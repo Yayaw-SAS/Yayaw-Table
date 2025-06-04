@@ -1,0 +1,214 @@
+{
+    "actions": {
+        "delete": "Delete",
+        "edit": "Edit",
+        "save": "Save",
+        "cancel": "Cancel",
+        "confirm": "Confirm",
+        "view": "View"
+    },
+    "columns": {
+        "title": "Columns",
+        "hide": "Hide column",
+        "show": "Show column",
+        "drag": "Drag {column} column",
+        "resetOrder": "Reset column order",
+        "toggleVisibility": "Toggle columns",
+        "hideAll": "Hide all columns",
+        "showAll": "Show all columns",
+        "edit_property": "Edit Property",
+        "filter": "Filter",
+        "hide_in_view": "Hide in View",
+        "reorder": "Drag to Reorder",
+        "sort_ascending": "Sort Ascending",
+        "sort_descending": "Sort Descending"
+    },
+    "common": {
+        "true": "True",
+        "false": "False",
+        "loading": "Loading...",
+        "error": "Error",
+        "success": "Success",
+        "reset": "Reset",
+        "search": "Search"
+    },
+    "filters": {
+        "title": "Filters",
+        "add": "Add filter",
+        "remove": "Remove filter",
+        "apply": "Apply filters",
+        "clear": "Clear filters",
+        "noResults": "No results found",
+        "noFilters": "No filters applied",
+        "search": "Search {filter}...",
+        "selectedCount": "{count, plural, =1 {# selected} other {# selected}}",
+        "active_count": "{count, plural, =0 {No active filters} =1 {1 active filter} other {# active filters}}",
+        "column": "Column",
+        "value": "Value",
+        "value_to": "Value to",
+        "select_operator": "Select operator",
+        "error": "Filter error",
+        "operators": {
+            "contains": "Contains",
+            "empty": "Is empty",
+            "not_empty": "Is not empty",
+            "between": "Between"
+        }
+    },
+    "pagination": {
+        "first": "Go to first page",
+        "last": "Go to last page",
+        "next": "Go to next page",
+        "previous": "Go to previous page",
+        "of": "of",
+        "page": "Page",
+        "rowsPerPage": "Rows per page",
+        "showing": "Showing page {page} of {total}",
+        "selectedCount": "{selected} of {total} {count, plural, =0 {rows selected} =1 {row selected} other {rows selected}}"
+    },
+    "search": {
+        "placeholder": "Search..."
+    },
+    "selection": {
+        "rows": "{count, plural, =1 {# row selected} other {# rows selected}}"
+    },
+    "sorting": {
+        "ascending": "Sort ascending",
+        "descending": "Sort descending"
+    },
+    "views": {
+        "title": "Views",
+        "current": "Current View",
+        "save": "Save View",
+        "saveAs": "Save as new view",
+        "update": "Update view",
+        "delete": "Delete view",
+        "rename": "Rename view",
+        "setDefault": "Set as default",
+        "defaultView": "Default View",
+        "default_system_view": "Default System View",
+        "systemView": "System View",
+        "custom_view": "Custom View",
+        "temporary_view": "Temporary View",
+        "viewName": "View Name",
+        "noViews": "No saved views",
+        "confirmDelete": "Are you sure you want to delete this view?",
+        "confirmDeleteWithName": "Are you sure you want to delete the view '{name}'?",
+        "manage": "Manage Views",
+        "saveChanges": "Save changes",
+        "saveChangesTooltip": "Save changes made to this view",
+        "add_view": "Add view",
+        "view_options": "View options",
+        "view_name": "View name",
+        "cannot_delete_system_view": "Cannot delete system view",
+        "cannot_update_system_view": "Cannot update system view",
+        "view_created_successfully": "View created successfully",
+        "view_updated_successfully": "View updated successfully",
+        "view_deleted_successfully": "View deleted successfully",
+        "error_saving_view": "Error saving view",
+        "error_updating_view": "Error updating view",
+        "error_deleting_view": "Error deleting view",
+        "error_loading_views": "Error loading views",
+        "history": {
+            "undo": "Undo change",
+            "redo": "Redo change",
+            "nothing_to_undo": "Nothing to undo",
+            "nothing_to_redo": "Nothing to redo"
+        },
+        "notifications": {
+            "created": "View created successfully",
+            "updated": "View updated successfully",
+            "deleted": "View deleted successfully",
+            "setAsDefault": "View set as default successfully",
+            "error": {
+                "create": "Failed to create view",
+                "update": "Failed to update view",
+                "delete": "Failed to delete view",
+                "setDefault": "Failed to set view as default"
+            }
+        },
+        "dialog": {
+            "save": {
+                "title": "Save View",
+                "description": "Save your current configuration as a custom view",
+                "name": "Name",
+                "namePlaceholder": "My custom view",
+                "default": "Set as default view",
+                "global": "Make this view global",
+                "save": "Save",
+                "saving": "Saving..."
+            },
+            "manage": {
+                "title": "Manage Views",
+                "description": "Manage your saved table views",
+                "name": "Name",
+                "type": "Type",
+                "created": "Created",
+                "actions": "Actions",
+                "rename": "Rename view",
+                "delete": "Delete view",
+                "setDefault": "Set as default",
+                "editColumns": "Edit Columns",
+                "stopEdit": "Stop Editing",
+                "editSystemViewWarning": "(Will create a new view)"
+            }
+        }
+    },
+    "state": {
+        "loading": "Loading data...",
+        "noData": "No data available",
+        "error": "Error loading data",
+        "error_description": "An error occurred: {message}"
+    },
+    "url_state": {
+        "copy_link": "Copy link",
+        "link_copied": "Link copied to clipboard",
+        "reset": "Reset filters",
+        "share": "Share this view",
+        "auto_save": "Auto-saving...",
+        "save_success": "View saved successfully"
+    },
+    "demo": {
+        "title": "URL Table Demo",
+        "copy_url": "Copy URL",
+        "save_view": "Save View",
+        "reset": "Reset",
+        "view": "View",
+        "sort_by": "Sort by",
+        "select_view": "Select a view",
+        "select_sort": "Select sorting",
+        "view_name_placeholder": "Enter view name",
+        "save": "Save",
+        "current_state": "Current State",
+        "data": "Data",
+        "loading": "Loading...",
+        "name_asc": "Name (A-Z)",
+        "name_desc": "Name (Z-A)",
+        "date_asc": "Date (oldest first)",
+        "date_desc": "Date (newest first)"
+    },
+    "table": {
+        "no_results": "No results found",
+        "no_results_description": "No data matches your current filters",
+        "hide_column": "Hide column",
+        "show_column": "Show column",
+        "toggle_columns": "Toggle columns",
+        "selected_rows": "{count, plural, =1 {# row selected} other {# rows selected}}",
+        "sort_ascending": "Sort ascending",
+        "sort_descending": "Sort descending",
+        "drag_column": "Drag to reorder column"
+    },
+    "menu": {
+        "back": "Back",
+        "columns": "Columns",
+        "columns_visible": "{count} column(s) visible",
+        "filter": "Filter",
+        "filters": "Filters",
+        "group": "Group",
+        "options": "Options",
+        "properties": "Properties",
+        "sort": "Sort",
+        "subgroup": "Subgroups",
+        "title": "Options"
+    }
+}

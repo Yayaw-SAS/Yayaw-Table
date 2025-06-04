@@ -1,0 +1,38 @@
+---
+title: YaYaw Table Documentation
+description: Learn how to use YaYaw Table in your React applications
+---
+
+# YaYaw Table Documentation
+
+YaYaw Table is a flexible data table component library for React that lets you define your own table configurations instead of imposing predefined structures.
+
+## Quick Start
+
+```bash
+bun add yayaw-table
+```
+
+```tsx
+import { DataTable, defineTableConfig } from 'yayaw-table'
+
+const config = defineTableConfig({
+  id: "products",
+  columns: {
+    definitions: [
+      { id: "name", type: "text", header: "Product Name" },
+      { id: "price", type: "number", header: "Price" },
+      { id: "status", type: "tag", header: "Status" }
+    ],
+    order: ["select", "name", "price", "status", "actions"],
+    visible: ["select", "name", "price", "status", "actions"]
+  },
+  table: { defaultPageSize: 10 }
+})
+
+<DataTable 
+  tableType="products"
+  config={config}
+  data={products}
+/>
+```

@@ -1,0 +1,88 @@
+---
+title: Installation
+description: How to install and set up YaYaw Table in your React project
+---
+
+# Installation
+
+## Package Manager
+
+Install YaYaw Table using your preferred package manager:
+
+```bash
+# With bun
+bun add yayaw-table @tanstack/react-table
+
+# With npm
+npm install yayaw-table @tanstack/react-table
+
+# With yarn
+yarn add yayaw-table @tanstack/react-table
+
+# With pnpm
+pnpm add yayaw-table @tanstack/react-table
+```
+
+## Required Dependencies
+
+YaYaw Table requires these peer dependencies:
+
+- `react` (^18.0.0 or ^19.0.0)
+- `react-dom` (^18.0.0 or ^19.0.0)
+- `@tanstack/react-table` (^8.0.0)
+
+## CSS Setup
+
+YaYaw Table uses Tailwind CSS for styling.
+
+### Configure Tailwind
+
+Add YaYaw Table to your `tailwind.config.js`:
+
+```js title="tailwind.config.js"
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    "./src/**/*.{js,ts,jsx,tsx,mdx}",
+    "./node_modules/yayaw-table/dist/**/*.{js,mjs}",
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+}
+```
+
+## Verification
+
+Create a simple test:
+
+```tsx
+import { DataTable, defineTableConfig } from 'yayaw-table'
+
+const testConfig = defineTableConfig({
+  id: "test",
+  columns: {
+    definitions: [
+      { id: "name", type: "text", header: "Name" }
+    ],
+    order: ["name"],
+    visible: ["name"]
+  },
+  table: { defaultPageSize: 5 }
+})
+
+export function TestTable() {
+  return (
+    <DataTable 
+      tableType="test"
+      config={testConfig}
+      data={[{ id: 1, name: "Test Item" }]}
+    />
+  )
+}
+```
+
+## Next Steps
+
+[Create your first table](/quick-start) 

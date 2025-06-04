@@ -1,0 +1,69 @@
+{
+    "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+    "vcs": {
+        "enabled": true,
+        "clientKind": "git",
+        "useIgnoreFile": true,
+        "defaultBranch": "main"
+    },
+    "files": {
+        "ignore": [
+            "./src/components/ui/**",
+            "./src/types/generated/**",
+            "./src/lib/server/actions/database/generated/**",
+            "./src/lib/server/actions/database/custom/**",
+            "./src/lib/shared/validations/generated/**",
+            "./src/lib/server/trpc/generated/**"
+        ]
+    },
+    "formatter": {
+        "indentStyle": "space",
+        "indentWidth": 4,
+        "lineWidth": 100
+    },
+    "linter": {
+        "rules": {
+            "a11y": {
+                "noSvgWithoutTitle": "off",
+                "useGenericFontNames": "off"
+            },
+            "suspicious": {
+                "noArrayIndexKey": "off",
+                "noDoubleEquals": {
+                    "fix": "safe",
+                    "level": "warn",
+                    "options": {}
+                }
+            },
+            "style": {
+                "noNonNullAssertion": "off",
+                "useSelfClosingElements": {
+                    "fix": "safe",
+                    "level": "warn"
+                },
+                "useTemplate": {
+                    "fix": "safe",
+                    "level": "warn"
+                }
+            },
+            "correctness": {
+                "noUnusedImports": "info"
+            },
+            "nursery": {
+                "useSortedClasses": {
+                    "fix": "safe",
+                    "level": "info",
+                    "options": {
+                        "functions": ["cn"]
+                    }
+                }
+            }
+        }
+    },
+    "javascript": {
+        "formatter": {
+            "semicolons": "asNeeded",
+            "trailingCommas": "none"
+        }
+    }
+}
