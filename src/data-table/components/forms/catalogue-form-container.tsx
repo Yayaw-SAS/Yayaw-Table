@@ -5,10 +5,10 @@
  */
 "use client"
 
-import { useAtom } from "jotai"
+import { useAtomValue } from "jotai"
 import dynamic from "next/dynamic"
 
-import { catalogueFormAtom, handleFormOpenChange } from "./atoms/catalogue-form-atoms"
+import { catalogueFormAtom } from "./atoms/catalogue-form-atoms"
 
 // Dynamically import the CatalogueForm component with no SSR
 // This ensures it's only rendered on the client side
@@ -25,16 +25,11 @@ const CatalogueForm = dynamic(
  * and listening to the catalogueFormAtom
  */
 export function CatalogueFormContainer() {
-    // Get the form state from the atom
-    const [formState, setFormState] = useAtom(catalogueFormAtom)
+    // Get the form state from the atom (read-only to prevent conflicts)
+    const formState = useAtomValue(catalogueFormAtom)
 
     // Extract the necessary values from the form state
-    const { formType, initialData, isOpen, mode, onSuccess, tableId } = formState
-
-    // Handle open state changes
-    const handleOpenChange = (open: boolean) => {
-        setFormState((prev) => handleFormOpenChange(open, prev))
-    }
+    const { formType, initialData, mode, onSuccess, tableId } = formState
 
     // If no form type is provided, don't render anything
     if (!formType) {
@@ -42,6 +37,7 @@ export function CatalogueFormContainer() {
     }
 
     // Render the CatalogueForm with the values from the atom
+    // Let CatalogueForm handle all state management internally
     return (
         <CatalogueForm
             formType={formType}

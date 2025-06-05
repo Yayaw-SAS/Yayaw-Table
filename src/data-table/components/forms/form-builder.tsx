@@ -16,6 +16,7 @@ import type { FieldValues, Path, UseFormReturn } from "react-hook-form"
 import {
     CheckboxField,
     DynamicValueField,
+    NumberField,
     SelectField,
     SelectWithAddNewField,
     SwitchField,
@@ -375,6 +376,13 @@ export function FormBuilder<TFieldValues extends FieldValues>({
                     />
                 )
             }
+            case "number":
+                return (
+                    <NumberField
+                        field={{ ...field, ...baseFieldProps }}
+                        form={form as UseFormReturn<Record<string, unknown>>}
+                    />
+                )
             case "select":
                 return <SelectField field={{ ...field, ...baseFieldProps }} form={form} />
             case "select-with-add-new":

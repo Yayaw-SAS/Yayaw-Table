@@ -38,9 +38,6 @@ interface ActionsCellProps<TData> {
     row: Row<TData>
 }
 
-// Create stable cache for action handlers to prevent recreating them
-const actionHandlerCache = new Map()
-
 /**
  * Cell component for the actions column
  * Renders a dropdown menu with action buttons
@@ -78,70 +75,54 @@ function ActionsCellBase<TData>({ actions, onRefresh, row }: ActionsCellProps<TD
         }
     })
 
-    // Create a stable cache key for this row
-    const cacheKey = `${rowId}-${actions.length}`
+    // Stable action click handler
+    const handleActionClick = useCallback(async (action: ActionItem<TData>) => {
+        try {
+            // Determine if this is an edit action that opens a form
+            // For these actions, we don't want to show loading or success toasts
+            const isEditActionOpeningForm =
+                action.type === "edit" &&
+                // Check if the action is likely opening a form
+                (action.onClick?.toString().includes("openUpdateForm") ||
+                    action.onClick?.toString().includes("setFormState"))
 
-    // Wrapper for action click handlers to show toast and refresh data
-    // Get from cache or create new handler
-    const handleActionClick = useMemo(() => {
-        // Check if we already have a cached handler
-        if (!actionHandlerCache.has(cacheKey)) {
-            // Create new handler if not in cache
-            const handler = async (action: ActionItem<TData>) => {
-                try {
-                    // Determine if this is an edit action that opens a form
-                    // For these actions, we don't want to show loading or success toasts
-                    const isEditActionOpeningForm =
-                        action.type === "edit" &&
-                        // Check if the action is likely opening a form
-                        (action.onClick?.toString().includes("openUpdateForm") ||
-                            action.onClick?.toString().includes("setFormState"))
-
-                    // Only show loading toast for non-form actions
-                    let toastId: number | string = ""
-                    if (!isEditActionOpeningForm) {
-                        toastId = toast.loading(t("common.loading"))
-                    }
-
-                    // Execute the action using the mutation
-                    await actionMutation.mutateAsync(action)
-
-                    // Only show success toast for non-form actions
-                    if (!isEditActionOpeningForm) {
-                        // Show success toast based on action type
-                        let successMessage = t("common.success")
-
-                        // Use specific messages for standard action types
-                        if (action.type === "custom") {
-                            successMessage = t("common.success")
-                        } else if (action.type === "delete") {
-                            successMessage = t("common.success")
-                        } else if (action.type === "duplicate") {
-                            successMessage = t("common.success")
-                        } else if (action.type === "edit") {
-                            successMessage = t("common.success")
-                        } else if (action.type === "view") {
-                            successMessage = t("common.success")
-                        }
-
-                        toast.success(successMessage, {
-                            id: toastId
-                        })
-                    }
-                } catch (error) {
-                    // Show error toast
-                    toast.error(error instanceof Error ? error.message : t("common.error"))
-                    console.error("Action failed:", error)
-                }
+            // Only show loading toast for non-form actions
+            let toastId: number | string = ""
+            if (!isEditActionOpeningForm) {
+                toastId = toast.loading(t("common.loading"))
             }
 
-            // Store in cache
-            actionHandlerCache.set(cacheKey, handler)
-        }
+            // Execute the action using the mutation
+            await actionMutation.mutateAsync(action)
 
-        // Return the cached handler
-        return actionHandlerCache.get(cacheKey)
-    }, [cacheKey, actionMutation, t])
+            // Only show success toast for non-form actions
+            if (!isEditActionOpeningForm) {
+                // Show success toast based on action type
+                let successMessage = t("common.success")
+
+                // Use specific messages for standard action types
+                if (action.type === "custom") {
+                    successMessage = t("common.success")
+                } else if (action.type === "delete") {
+                    successMessage = t("common.success")
+                } else if (action.type === "duplicate") {
+                    successMessage = t("common.success")
+                } else if (action.type === "edit") {
+                    successMessage = t("common.success")
+                } else if (action.type === "view") {
+                    successMessage = t("common.success")
+                }
+
+                toast.success(successMessage, {
+                    id: toastId
+                })
+            }
+        } catch (error) {
+            // Show error toast
+            toast.error(error instanceof Error ? error.message : t("common.error"))
+            console.error("Action failed:", error)
+        }
+    }, [actionMutation, t])
 
     // Memoize action groups to prevent recalculation on every render
     const actionGroups = useMemo(() => {
@@ -348,13 +329,14 @@ export function ActionsCellWithTranslations<TData extends Record<string, unknown
 }) {
     const { t } = useTranslations()
     const allActions: Array<ActionItem<TData>> = [...actions]
-    // Get the setAtom function for the catalogue form - moved outside conditional
+    // Get the setAtom function for the catalogue form
     const setFormState = useSetAtom(catalogueFormAtom)
     // Get the query client for invalidating queries
     const queryClient = useQueryClient()
-    // Create a reference to the CatalogueForm trigger button outside of the conditional
-    // to avoid React Hook conditional call issues
-    const editButtonRef = useRef<HTMLButtonElement>(null)
+
+    // Stable reference to the tableId to prevent callback recreation
+    const tableIdRef = useRef(standardActions.tableId)
+    tableIdRef.current = standardActions.tableId
 
     // Add standard view action if requested
     if (standardActions.includeView && standardActions.onView) {
@@ -366,12 +348,11 @@ export function ActionsCellWithTranslations<TData extends Record<string, unknown
         })
     }
 
-    // Create an edit handler that uses the Jotai atom
+    // Create an edit handler that uses the Jotai atom with stable dependencies
     const handleEdit = useCallback(
         (rowData: TData): Promise<boolean | undefined> | undefined => {
             try {
                 console.log("🔧 [handleEdit] Called with rowData:", rowData)
-                console.log("🔧 [handleEdit] standardActions:", standardActions)
                 
                 // Only proceed if edit action is included
                 if (!standardActions.includeEdit) {
@@ -380,12 +361,10 @@ export function ActionsCellWithTranslations<TData extends Record<string, unknown
                 }
 
                 // Check if we have a tableId in the standardActions or in the row
-                const tableId =
-                    "tableId" in standardActions
-                        ? (standardActions.tableId as string)
-                        : rowData && typeof rowData === "object" && "tableId" in rowData
-                          ? String(rowData.tableId)
-                          : undefined
+                const tableId = tableIdRef.current ||
+                    (rowData && typeof rowData === "object" && "tableId" in rowData
+                        ? String(rowData.tableId)
+                        : undefined)
 
                 console.log("🔧 [handleEdit] Resolved tableId:", tableId)
 
@@ -393,39 +372,16 @@ export function ActionsCellWithTranslations<TData extends Record<string, unknown
                 if (tableId) {
                     console.log("🔧 [handleEdit] Opening form with tableId:", tableId)
                     
-                    // Only log in development environment
-                    if (process.env.NODE_ENV === "development") {
-                        console.log("[ActionsCellWithTranslations] tableId:", tableId)
-                        console.log(
-                            "[ActionsCellWithTranslations] Using tableId directly as form type:",
-                            tableId
-                        )
-                    }
-
                     // Pass the row data directly to maintain the generic nature of the component
                     const initialData = rowData
 
-                    // Create a modified version of onRefresh that only calls onRefresh after successful submission
-                    const wrappedOnSuccess = (data: unknown) => {
+                    // Create a simple success callback that doesn't capture complex dependencies
+                    const handleSuccess = (data: unknown) => {
                         try {
-                            // Only call onRefresh after a successful form submission
-                            if (process.env.NODE_ENV === "development") {
-                                console.log(
-                                    "[ActionsCellWithTranslations] Form submission success callback triggered"
-                                )
-                            }
-
                             // Invalidate the table data query to refresh the table
-                            if (tableId) {
-                                if (process.env.NODE_ENV === "development") {
-                                    console.log(
-                                        `[ActionsCellWithTranslations] Invalidating cache for tableId: ${tableId}`
-                                    )
-                                }
-                                queryClient.invalidateQueries({
-                                    queryKey: ["tableData", tableId]
-                                })
-                            }
+                            queryClient.invalidateQueries({
+                                queryKey: ["tableData", tableId]
+                            })
 
                             // Also call the onRefresh function if provided
                             if (onRefresh && typeof onRefresh === "function") {
@@ -444,13 +400,12 @@ export function ActionsCellWithTranslations<TData extends Record<string, unknown
                         tableId, // Use tableId directly as form type
                         tableId,
                         initialData, // Use the row data as initial form data
-                        wrappedOnSuccess
+                        handleSuccess
                     )
 
                     console.log("🔧 [handleEdit] Created formState:", formState)
 
-                    // Set the form state directly without using handleFormOpenChange
-                    // since openUpdateForm already sets isOpen to true
+                    // Set the form state directly
                     setFormState(formState as CatalogueFormState<Record<string, unknown>>)
                     
                     console.log("🔧 [handleEdit] Set form state, should open form now")
@@ -472,7 +427,7 @@ export function ActionsCellWithTranslations<TData extends Record<string, unknown
                 return undefined
             }
         },
-        [standardActions, onRefresh, setFormState, queryClient]
+        [standardActions.includeEdit, standardActions.onEdit, onRefresh, setFormState, queryClient]
     )
 
     // Add edit action to the dropdown menu if edit is included

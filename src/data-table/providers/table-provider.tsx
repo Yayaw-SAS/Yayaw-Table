@@ -1,4 +1,4 @@
-import React, { createContext, useContext, ReactNode, useMemo } from 'react'
+import React, { createContext, useContext, ReactNode, useMemo, useCallback } from 'react'
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { useAtomValue } from "jotai"
 import { useHydrateAtoms } from "jotai/utils"
@@ -111,10 +111,11 @@ export function TableProvider({
   TitleComponent,
   DescriptionComponent
 }: TableProviderProps) {
-  const t = (key: string, params?: TranslationParams): string => {
+  // Stabilize the t function to prevent unnecessary re-renders
+  const t = useCallback((key: string, params?: TranslationParams): string => {
     const translation = getTranslation(translations, key)
     return params ? interpolate(translation, params) : translation
-  }
+  }, [translations])
 
   // Create default QueryClient if none provided
   const defaultQueryClient = useMemo(() => queryClient || new QueryClient({
@@ -144,7 +145,8 @@ export function TableProvider({
     [tableColumnsConfigAtom, mergedColumnsConfig]
   ])
 
-  const value = {
+  // Stabilize the context value to prevent unnecessary re-renders
+  const value = useMemo(() => ({
     translations,
     locale,
     t,
@@ -153,7 +155,7 @@ export function TableProvider({
     getTableConfig,
     TitleComponent,
     DescriptionComponent
-  }
+  }), [translations, locale, t, getFormConfig, getTableActions, getTableConfig, TitleComponent, DescriptionComponent])
 
   return (
     <QueryClientProvider client={defaultQueryClient}>

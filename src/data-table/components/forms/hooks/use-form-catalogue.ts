@@ -2,7 +2,7 @@
  * Hook for using form configurations from the catalogue
  */
 "use client"
-import { useCallback } from "react"
+import { useCallback, useMemo } from "react"
 import type { FieldValues, UseFormProps } from "react-hook-form"
 import { z } from "zod"
 
@@ -48,17 +48,24 @@ export function useFormCatalogue<TFieldValues extends FieldValues>({
     const getFormConfig = useFormConfig()
     const getTableActions = useTableActions()
 
-    // Get the form configuration from the catalogue
-    const config = getFormConfig?.<TFieldValues>(formType) || {
-        id: formType,
-        fields: [],
-        defaultValues: {} as Partial<TFieldValues>,
-        schema: z.any() as z.ZodType<TFieldValues>,
-        translations: {
-            namespace: "common",
-            keys: {}
-        }
-    } as FormConfig<TFieldValues>
+    // Stabilize the form configuration object to prevent recreation
+    const config = useMemo(() => {
+        return getFormConfig?.<TFieldValues>(formType) || {
+            id: formType,
+            fields: [],
+            defaultValues: {} as Partial<TFieldValues>,
+            schema: z.any() as z.ZodType<TFieldValues>,
+            translations: {
+                namespace: "common",
+                keys: {}
+            }
+        } as FormConfig<TFieldValues>
+    }, [getFormConfig, formType])
+
+    // Stabilize the table actions object to prevent recreation
+    const actions = useMemo(() => {
+        return getTableActions?.(formType) || {}
+    }, [getTableActions, formType])
 
     // Use the form builder with the configuration
     const { fields, form, translations } = useFormBuilder<TFieldValues>({
@@ -67,10 +74,7 @@ export function useFormCatalogue<TFieldValues extends FieldValues>({
         initialData
     })
 
-    // Get the table actions for this form type
-    const actions = getTableActions?.(formType) || {}
-
-    // Handle form submission
+    // Handle form submission with stabilized dependencies
     const handleSubmit = useCallback(
         async (values: TFieldValues) => {
             try {
@@ -179,7 +183,7 @@ export function useFormCatalogue<TFieldValues extends FieldValues>({
                 throw error
             }
         },
-        [formType, mode, actions, initialData, config?.fields]
+        [formType, mode, actions, initialData, config]
     )
 
     return {

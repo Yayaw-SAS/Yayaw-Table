@@ -130,14 +130,32 @@ export const handleFormOpenChange = <TData = Record<string, unknown>>(
     open: boolean,
     currentState: CatalogueFormState<TData>
 ): CatalogueFormState<TData> => {
-    // If closing, reset the form completely
-    if (!open) {
-        return closeForm<TData>()
+    // If the state is already what we want, return the current state to prevent unnecessary re-renders
+    if (currentState.isOpen === open) {
+        return currentState
     }
 
-    // Otherwise, just update the isOpen state
-    return {
-        ...currentState,
-        isOpen: open
+    // If opening, just update the isOpen state and keep everything else
+    if (open) {
+        return {
+            ...currentState,
+            isOpen: true
+        }
     }
+
+    // If closing, only reset the form if it was actually open
+    // This prevents unnecessary state changes
+    if (currentState.isOpen) {
+        return {
+            formType: undefined,
+            initialData: undefined,
+            isOpen: false,
+            mode: "create",
+            onSuccess: undefined,
+            tableId: undefined
+        }
+    }
+
+    // Form was already closed, return current state
+    return currentState
 }

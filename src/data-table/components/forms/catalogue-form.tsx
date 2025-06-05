@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/drawer"
 import { useAtom } from "jotai"
 import { PencilIcon, PlusIcon } from "lucide-react"
-import { type ReactNode, useEffect, useState, useCallback, useMemo } from "react"
+import { type ReactNode, useEffect, useState, useCallback, useMemo, useRef } from "react"
 import type { FieldValues, UseFormReturn } from "react-hook-form"
 import { toast } from "sonner"
 
@@ -95,6 +95,19 @@ export function CatalogueForm<TFieldValues extends FieldValues>({
     const onSuccess = propOnSuccess || atomOnSuccess
     const tableId = propTableId || atomTableId
 
+    // Stable references to prevent callback recreation
+    const onSuccessRef = useRef(onSuccess)
+    const initialDataRef = useRef(initialData)
+    const modeRef = useRef(mode)
+
+    // Update refs when values change
+    onSuccessRef.current = onSuccess
+    initialDataRef.current = initialData
+    modeRef.current = mode
+
+    // Add a ref to track if we're in the middle of a state change
+    const isChangingStateRef = useRef(false)
+
     // Stabilize the parameters for useFormCatalogue to prevent unnecessary re-renders
     const formCatalogueParams = useMemo(() => ({
         formType: formType || "",
@@ -115,16 +128,20 @@ export function CatalogueForm<TFieldValues extends FieldValues>({
         return children || null
     }
 
-    // Handle form submission
+    // Handle form submission with stable dependencies
     const onSubmit = useCallback(async (values: TFieldValues) => {
         // Set the flag to indicate a form has been submitted
         setFormSubmitted(true)
         setLoading(true)
         setError(null)
 
+        const currentMode = modeRef.current
+        const currentInitialData = initialDataRef.current
+        const currentOnSuccess = onSuccessRef.current
+
         // Show loading toast
         const loadingToastId = toast.loading(
-            mode === "update"
+            currentMode === "update"
                 ? translations.updating || "Updating..."
                 : translations.creating || "Creating..."
         )
@@ -133,8 +150,8 @@ export function CatalogueForm<TFieldValues extends FieldValues>({
             // For create mode, submit the form values directly
             // For update mode, submit only the values that have changed
             const valuesToSubmit =
-                mode === "update"
-                    ? { ...(initialData as TFieldValues), ...getChangedValues(form) }
+                currentMode === "update"
+                    ? { ...(currentInitialData as TFieldValues), ...getChangedValues(form) }
                     : values
 
             // Submit the form
@@ -145,7 +162,7 @@ export function CatalogueForm<TFieldValues extends FieldValues>({
 
             // Show success toast with appropriate message based on mode
             const successMessage =
-                mode === "update"
+                currentMode === "update"
                     ? translations.update_success || translations.success || "Updated successfully"
                     : translations.success || "Created successfully"
 
@@ -157,7 +174,7 @@ export function CatalogueForm<TFieldValues extends FieldValues>({
             }
 
             // For update operations, update the initialData in the form state with fresh data
-            if (mode === "update" && result) {
+            if (currentMode === "update" && result) {
                 setFormState((prev) => ({
                     ...prev,
                     initialData: result as Record<string, unknown>
@@ -165,15 +182,22 @@ export function CatalogueForm<TFieldValues extends FieldValues>({
             }
 
             // Call the success callback first to trigger cache invalidation
-            if (onSuccess) {
-                onSuccess(result as Record<string, unknown>)
+            if (currentOnSuccess) {
+                currentOnSuccess(result as Record<string, unknown>)
             }
 
             // Reset the form
             form.reset()
 
-            // Close the form after successful submission
-            handleOpenChange(false)
+            // Close the form after successful submission with protection
+            if (!isChangingStateRef.current) {
+                isChangingStateRef.current = true
+                setFormState((prev) => handleFormOpenChange(false, prev))
+                // Reset the flag after a brief delay
+                setTimeout(() => {
+                    isChangingStateRef.current = false
+                }, 100)
+            }
 
         } catch (error) {
             // Dismiss the loading toast
@@ -181,31 +205,40 @@ export function CatalogueForm<TFieldValues extends FieldValues>({
 
             // Determine error message based on mode
             const errorMessage =
-                mode === "update"
+                currentMode === "update"
                     ? translations.update_error || translations.error || "Failed to update"
                     : translations.error || "Failed to create"
 
             // Show error toast
             toast.error(errorMessage)
             setError(error as Error)
-            console.error(`Form ${mode} error:`, error)
+            console.error(`Form ${currentMode} error:`, error)
         } finally {
             setLoading(false)
         }
-    }, [mode, translations, handleSubmit, initialData, form, formSubmitted, onSuccess, setFormState, setFormSubmitted])
+    }, [handleSubmit, translations, form, formSubmitted, setFormState, setFormSubmitted])
 
-    // Handle open state changes
+    // Handle open state changes with stable dependencies and protection
     const handleOpenChange = useCallback((open: boolean) => {
+        // Prevent rapid state changes
+        if (isChangingStateRef.current) {
+            return
+        }
+
+        isChangingStateRef.current = true
+
         // Only reset the submission flag when the drawer is opened, not when it's closed
         if (open) {
             setFormSubmitted(false)
         }
 
         // Use the utility function to update the form state
-        setFormState((prev) => {
-            const newState = handleFormOpenChange(open, prev)
-            return newState
-        })
+        setFormState((prev) => handleFormOpenChange(open, prev))
+
+        // Reset the flag after a brief delay
+        setTimeout(() => {
+            isChangingStateRef.current = false
+        }, 100)
     }, [setFormSubmitted, setFormState])
 
     // Determine if this is a standalone form (with its own button)
@@ -213,7 +246,9 @@ export function CatalogueForm<TFieldValues extends FieldValues>({
 
     // Stabilize the button onClick handler
     const handleButtonClick = useCallback(() => {
-        setFormState((prev) => handleFormOpenChange(true, prev))
+        if (!isChangingStateRef.current) {
+            setFormState((prev) => handleFormOpenChange(true, prev))
+        }
     }, [setFormState])
 
     return (

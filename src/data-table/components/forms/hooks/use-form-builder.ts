@@ -6,7 +6,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useTranslations } from "../../../providers/table-provider"
-import { useEffect, useMemo } from "react"
+import { useEffect, useMemo, useRef } from "react"
 import { type DefaultValues, type FieldValues, type UseFormProps, useForm } from "react-hook-form"
 
 import type { AnyFieldDefinition, FormConfig, SelectFieldDefinition } from "../types"
@@ -42,13 +42,19 @@ export function useFormBuilder<TFieldValues extends FieldValues>({
     // Get translations for the form
     const { t } = useTranslations()
 
+    // Use refs to track previous values and prevent unnecessary resets
+    const prevInitialDataRef = useRef<Partial<TFieldValues> | undefined>(undefined)
+    const formResetInProgressRef = useRef(false)
+
     // Merge default values with initial data if provided
-    const defaultValues = initialData
-        ? {
-              ...(config.defaultValues as DefaultValues<TFieldValues>),
-              ...initialData
-          }
-        : (config.defaultValues as DefaultValues<TFieldValues>)
+    const defaultValues = useMemo(() => {
+        return initialData
+            ? {
+                  ...(config.defaultValues as DefaultValues<TFieldValues>),
+                  ...initialData
+              }
+            : (config.defaultValues as DefaultValues<TFieldValues>)
+    }, [config.defaultValues, initialData])
 
     // Create a form instance with the schema and default values
     const form = useForm<TFieldValues>({
@@ -60,7 +66,14 @@ export function useFormBuilder<TFieldValues extends FieldValues>({
     // Reset form with new default values when initialData changes
     // This ensures that react-hook-form correctly tracks dirty fields
     useEffect(() => {
-        if (initialData) {
+        // Only reset if initialData actually changed and we're not already resetting
+        if (
+            initialData &&
+            !formResetInProgressRef.current &&
+            JSON.stringify(initialData) !== JSON.stringify(prevInitialDataRef.current)
+        ) {
+            formResetInProgressRef.current = true
+            
             const newDefaultValues = {
                 ...(config.defaultValues as DefaultValues<TFieldValues>),
                 ...initialData
@@ -69,8 +82,16 @@ export function useFormBuilder<TFieldValues extends FieldValues>({
             // Reset the form with the new default values
             // This will update both the form values and the baseline for dirty field detection
             form.reset(newDefaultValues)
+
+            // Update the ref to track the current initialData
+            prevInitialDataRef.current = initialData
+
+            // Reset the flag after a brief delay
+            setTimeout(() => {
+                formResetInProgressRef.current = false
+            }, 10)
         }
-    }, [initialData, config.defaultValues])
+    }, [initialData, config.defaultValues, form])
 
     // Get translated fields
     const fields = useMemo(() => {
