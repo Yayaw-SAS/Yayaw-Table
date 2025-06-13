@@ -1,6 +1,6 @@
 "use client"
 
-import { DataTable, TableProvider, defaultTranslations } from '../../index'
+import { DataTable, TableProvider, defaultTranslations, ThemeToggle } from '../../index'
 import { QueryClient } from '@tanstack/react-query'
 import { Suspense } from 'react'
 import { products } from './data'
@@ -26,6 +26,21 @@ export default function ExamplePage() {
     >
       <div className="min-h-screen bg-background p-6 lg:p-8">
         <div className="max-w-7xl mx-auto">   
+
+          {/* Header with Theme Toggle */}
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight text-foreground">
+                YaYaw Table Demo
+              </h1>
+              <p className="text-muted-foreground mt-2">
+                Experience the power of advanced data tables with theme support
+              </p>
+            </div>
+            <div className="flex items-center gap-4">
+              <ThemeToggle variant="dropdown" />
+            </div>
+          </div>
 
           {/* Data Table */}
           <div className="bg-card rounded-lg border border-border shadow-sm overflow-hidden">
@@ -98,7 +113,8 @@ const getTableConfig = (tableType: string) => {
   }}
 />
 
-// ✅ Now includes Advanced Filters with proper type mapping!`}
+// ✅ Now includes Advanced Filters with proper type mapping!
+// 🎨 Try switching themes with the toggle in the top-right!`}
               </pre>
             </div>
           </div>

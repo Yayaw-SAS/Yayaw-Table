@@ -39,6 +39,10 @@ export * from "./src/components/ui/skeleton"
 export * from "./src/components/ui/separator"
 export * from "./src/components/ui/label"
 
+// Export theme components
+export { ThemeProvider } from "./src/components/theme-provider"
+export { ThemeToggle } from "./src/components/ui-custom/theme-toggle"
+
 // Export utility functions
 export { cn, formatDate, debounce } from "./src/lib/utils"
 

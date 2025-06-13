@@ -1,6 +1,6 @@
 /**
- * Main hook for data tables
- * Combines configuration, data fetching, and actions in a single hook
+ * Main hook for data tables - Orchestrates configuration, actions, and data fetching
+ * Refactored to use extracted hooks for better maintainability
  */
 "use client"
 
@@ -18,64 +18,18 @@ import {
     getSortedRowModel,
     useReactTable
 } from "@tanstack/react-table"
-import { useTranslations, useTableActions, useTableConfig } from "../providers/table-provider"
 import type * as React from "react"
 import { useCallback, useMemo } from "react"
 
 import type { ActionsColumnProps } from "../components/columns/actions-column"
 import { useColumns } from "../components/columns/hooks/use-columns"
-import { useTableTranslations } from "./use-table-translations"
 import { useTableUrlData } from "./use-table-url-data"
 import { useTableUrlState } from "./use-table-url-state"
+import { useTableConfig, type TableCatalogueConfig } from "./use-table-config"
+import { useTableActions } from "./use-table-actions"
+import { useTranslations } from "../providers/table-provider"
 
 const DEBUG = false
-
-/**
- * Configuration for table columns in the catalogue
- */
-interface TableCatalogueColumnConfig {
-    id: string
-    type: string
-    header: string
-    enableSorting?: boolean
-    typeKey?: string
-    customRenderers?: Record<string, (value: unknown) => React.ReactNode>
-}
-
-/**
- * Configuration for table behavior in the catalogue
- */
-interface TableCatalogueTableConfig {
-    enableRowSelection: boolean
-    enableColumnFilters: boolean
-    enableSorting: boolean
-    manualFiltering: boolean
-    manualPagination: boolean
-    manualSorting: boolean
-    enableColumnDragDropByDefault?: boolean
-    enableMultiRowSelection?: boolean
-    enablePagination?: boolean
-    defaultPageSize?: number
-    pageSizeOptions?: number[]
-}
-
-/**
- * Full configuration for a table type in the catalogue
- */
-interface TableCatalogueConfig {
-    table: TableCatalogueTableConfig
-    columns: {
-        definitions: TableCatalogueColumnConfig[]
-        order?: string[]
-        sort?: ColumnSort[]
-        visible?: string[]
-        mandatory?: string[]
-    }
-    translations?: {
-        namespace: string
-        keys: Record<string, string>
-    }
-}
 
 /**
  * Options for the useDataTable hook
@@ -116,78 +70,9 @@ export function useDataTable<TData extends Record<string, unknown>>(options: Use
     // Get QueryClient instance
     const queryClient = useQueryClient()
 
-    // Get configuration and actions helpers from the provider
-    const getTableConfig = useTableConfig()
-    const getTableActions = useTableActions()
+    // Get table configuration using extracted hook
+    const { config, translations } = useTableConfig(tableType)
     const { t } = useTranslations()
-
-    // Get table configuration and actions - use type assertion for now
-    const config = useMemo(() => {
-        const tableConfig = getTableConfig?.(tableType) as TableCatalogueConfig | undefined
-        if (!tableConfig) {
-            // Return a default configuration if none found
-            return {
-                table: {
-                    enableRowSelection: true,
-                    enableColumnFilters: true,
-                    enableSorting: true,
-                    manualFiltering: false,
-                    manualPagination: false,
-                    manualSorting: false,
-                    enableColumnDragDropByDefault: false,
-                    enableMultiRowSelection: true,
-                    enablePagination: true,
-                    defaultPageSize: 10,
-                    pageSizeOptions: [5, 10, 20, 50]
-                },
-                columns: {
-                    definitions: [],
-                    order: [],
-                    sort: [],
-                    visible: [],
-                    mandatory: []
-                },
-                translations: {
-                    namespace: "common",
-                    keys: {}
-                }
-            } as TableCatalogueConfig
-        }
-        return tableConfig
-    }, [getTableConfig, tableType])
-
-    const actions = useMemo(() => {
-        const tableActions = getTableActions?.(tableType)
-        if (!tableActions) {
-            // Return empty actions if none found
-            return {
-                list: async () => ({ data: [], meta: { pageCount: 0, totalCount: 0 } })
-            }
-        }
-        return tableActions
-    }, [getTableActions, tableType])
-
-    // Get translations
-    const baseTranslations = useTableTranslations()
-
-    // Create translations object
-    const translations = useMemo(() => {
-        if (!config.translations?.keys) {
-            return baseTranslations
-        }
-        
-        return {
-            ...baseTranslations,
-            ...Object.entries(config.translations.keys).reduce(
-                (acc, [key, value]) => {
-                    // Use the main t function for translation keys
-                    acc[key] = t(value)
-                    return acc
-                },
-                {} as Record<string, string>
-            )
-        }
-    }, [baseTranslations, config.translations?.keys, t])
 
     // Set up URL state for the table
     const tableUrlState = useTableUrlState({ tableId })
@@ -198,6 +83,24 @@ export function useDataTable<TData extends Record<string, unknown>>(options: Use
             queryKey: ["tableData", tableId]
         })
     }, [queryClient, tableId])
+
+    // Get table actions using extracted hook (before queryFn to avoid circular reference)
+    const {
+        actions,
+        handleCreate,
+        handleEdit,
+        handleDelete,
+        handleDuplicate,
+        hasAction,
+        isActionsAvailable
+    } = useTableActions<TData>({
+        tableType,
+        onSuccess: async () => {
+            // This will be defined later
+            tableUrlState.setPageParam("0")
+            await invalidateTable()
+        }
+    })
 
     // Create query function
     const queryFn = useCallback(
@@ -315,85 +218,6 @@ export function useDataTable<TData extends Record<string, unknown>>(options: Use
         await invalidateTable()
         await baseRefetch()
     }, [tableUrlState, invalidateTable, baseRefetch])
-
-    // Create action handlers
-    const handleCreate = useCallback(
-        async (data: Partial<TData>) => {
-            if (!actions.create) {
-                console.error(`Create action not available for ${tableType}`)
-                return false
-            }
-
-            try {
-                const result = await actions.create(data)
-
-                if (!result.success) {
-                    console.error(`Failed to create ${tableType}:`, result.error)
-                    return false
-                }
-
-                // Refresh data
-                await enhancedRefetch()
-                return true
-            } catch (error) {
-                console.error(`Error creating ${tableType}:`, error)
-                return false
-            }
-        },
-        [actions, enhancedRefetch, tableType]
-    )
-
-    const handleEdit = useCallback(
-        async (row: TData & { id: string }, data: Partial<TData>) => {
-            if (!actions.update) {
-                console.error(`Update action not available for ${tableType}`)
-                return false
-            }
-
-            try {
-                const result = await actions.update(row.id, data)
-
-                if (!result.success) {
-                    console.error(`Failed to update ${tableType}:`, result.error)
-                    return false
-                }
-
-                // Refresh data
-                await enhancedRefetch()
-                return true
-            } catch (error) {
-                console.error(`Error updating ${tableType}:`, error)
-                return false
-            }
-        },
-        [actions, enhancedRefetch, tableType]
-    )
-
-    const handleDelete = useCallback(
-        async (row: TData & { id: string }) => {
-            if (!actions.delete) {
-                console.error(`Delete action not available for ${tableType}`)
-                return false
-            }
-
-            try {
-                const result = await actions.delete(row.id)
-
-                if (!result.success) {
-                    console.error(`Failed to delete ${tableType}:`, result.error)
-                    return false
-                }
-
-                // Refresh data
-                await enhancedRefetch()
-                return true
-            } catch (error) {
-                console.error(`Error deleting ${tableType}:`, error)
-                return false
-            }
-        },
-        [actions, enhancedRefetch, tableType]
-    )
 
     // Use our columns hook to define columns in a modular way
     const { column, createColumns } = useColumns<TData>({
@@ -536,22 +360,7 @@ export function useDataTable<TData extends Record<string, unknown>>(options: Use
                     },
                     onDuplicate: actions.duplicate
                         ? async (row: TData) => {
-                              try {
-                                  if (!actions.duplicate) {
-                                      throw new Error(
-                                          `Duplicate action not available for ${tableType}`
-                                      )
-                                  }
-
-                                  const result = await actions.duplicate(
-                                      (row as TData & { id: string }).id
-                                  )
-                                  await enhancedRefetch()
-                                  return result.success
-                              } catch (error) {
-                                  console.error("Failed to duplicate row:", error)
-                                  return false
-                              }
+                              return await handleDuplicate(row as TData & { id: string })
                           }
                         : undefined,
                     onEdit: async (row: TData) => {
@@ -589,6 +398,7 @@ export function useDataTable<TData extends Record<string, unknown>>(options: Use
         tableType,
         handleDelete,
         handleEdit,
+        handleDuplicate,
         tableId
     ])
 

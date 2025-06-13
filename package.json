@@ -9,11 +9,12 @@
     "dist"
   ],
   "scripts": {
-    "build": "next build",
+    "build": "fumadocs-mdx && next build",
     "build:watch": "bun tsup --watch",
     "dev": "next dev",
     "start": "next start",
     "build:app": "fumadocs-mdx && next build",
+    "postinstall": "fumadocs-mdx",
     "type-check": "tsc --noEmit",
     "lint": "next lint",
     "test": "echo 'Add tests here'"
@@ -70,7 +71,7 @@
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
     "fumadocs-core": "^15.5.0",
-    "fumadocs-mdx": "^11.6.6",
+    "fumadocs-mdx": "^11.6.7",
     "fumadocs-typescript": "^4.0.5",
     "fumadocs-ui": "^15.5.0",
     "input-otp": "^1.4.2",

@@ -9,6 +9,10 @@ export { useTableTranslations } from "./use-table-translations"
 export { useTableUrlData } from "./use-table-url-data"
 export { useTableUrlState } from "./use-table-url-state"
 
+// Extracted hooks for better maintainability
+export { useTableConfig, type TableCatalogueConfig } from "./use-table-config"
+export { useTableActions } from "./use-table-actions"
+
 // Advanced filters hooks
 export { useAdvancedFilters } from "./use-advanced-filters"
 export { 
