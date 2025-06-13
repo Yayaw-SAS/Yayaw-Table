@@ -50,9 +50,9 @@ export function TableGroupingMenu({
         <StackMenuView name="group">
             <StackMenuHeader>
                 <StackMenuBackButton icon={<ArrowUpDown className="h-4 w-4 rotate-90" />}>
-                    Retour
+                    {t("menu.back")}
                 </StackMenuBackButton>
-                <StackMenuTitle>Grouper</StackMenuTitle>
+                <StackMenuTitle>{t("menu.group")}</StackMenuTitle>
             </StackMenuHeader>
 
             <StackMenuContent>
@@ -66,7 +66,7 @@ export function TableGroupingMenu({
                             }
                         }}
                     >
-                        {t("grouping.clear_all")}
+                        {t("common.reset")}
                     </StackMenuItem>
                 )}
 

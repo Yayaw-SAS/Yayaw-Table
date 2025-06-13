@@ -580,18 +580,17 @@ export function TableColumnsMenu({
                 {/* Visible columns section */}
                 <div className="mb-4">
                     <div className="mb-2 flex items-center justify-between">
-                        <div className="px-2 font-medium text-muted-foreground text-sm">
-                            Affiché dans la table
+                        <div className="px-2 font-medium text-foreground text-sm">
+                            {t("columns.visible")}
                         </div>
                         <div className="relative">
                             <Button
-                                className="text-primary hover:text-primary"
                                 disabled={!hasVisibleColumns}
                                 onClick={handleHideAllColumns}
                                 size="sm"
-                                variant="link"
+                                variant="outline"
                             >
-                                Tout masquer
+                                {t("columns.hideAll")}
                             </Button>
                         </div>
                     </div>
@@ -618,17 +617,16 @@ export function TableColumnsMenu({
                 {hasHiddenColumns && (
                     <div className="mt-4 border-gray-800 border-t pt-4">
                         <div className="mb-2 flex items-center justify-between">
-                            <div className="px-2 font-medium text-muted-foreground text-sm">
-                                Masqué dans la table
+                            <div className="px-2 font-medium text-foreground text-sm">
+                                {t("columns.hidden")}
                             </div>
                             <div className="relative">
                                 <Button
-                                    className="text-blue-500 hover:text-blue-400"
                                     onClick={handleShowAllColumns}
                                     size="sm"
-                                    variant="link"
+                                    variant="outline"
                                 >
-                                    Tout afficher
+                                    {t("columns.showAll")}
                                 </Button>
                             </div>
                         </div>

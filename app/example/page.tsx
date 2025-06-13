@@ -33,6 +33,18 @@ export default function ExamplePage() {
                 tableType="products"
                 title="Products Management"
                 description="Manage your product inventory with advanced filtering and actions"
+                enableAdvancedFilters={true}
+                data={products}
+                columnTypeMapping={{
+                  // Map table config types to filter types
+                  name: 'text',
+                  brand: 'text', 
+                  category: 'option',  // tag -> option for dropdown
+                  price: 'number',
+                  status: 'option',    // tag -> option for dropdown  
+                  createdAt: 'date',
+                  isActive: 'option'   // boolean -> option for true/false
+                }}
               />
             </div>
           </div>
@@ -69,16 +81,23 @@ const getTableConfig = (tableType: string) => {
   }
 }
 
-// 2. Provider setup with shadcn/ui
-<TableProvider
-  tableId="products"
-  getTableConfig={getTableConfig}
-  getTableActions={getTableActions}
->
-  <DataTable tableType="products" />
-</TableProvider>
+// 2. Advanced Filters Configuration
+<DataTable 
+  tableType="products"
+  enableAdvancedFilters={true}
+  data={products}
+  columnTypeMapping={{
+    name: 'text',
+    brand: 'text', 
+    category: 'option',  // tag -> option for dropdown
+    price: 'number',
+    status: 'option',    // tag -> option for dropdown  
+    createdAt: 'date',
+    isActive: 'option'   // boolean -> option for true/false
+  }}
+/>
 
-// ✅ Uses shadcn/ui Table, TableHeader, TableBody, TableRow, TableCell`}
+// ✅ Now includes Advanced Filters with proper type mapping!`}
               </pre>
             </div>
           </div>

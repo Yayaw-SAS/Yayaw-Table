@@ -17,6 +17,8 @@ export interface DataTableTranslations {
     title: string
     hide: string
     show: string
+    visible: string
+    hidden: string
     drag: string
     resetOrder: string
     toggleVisibility: string

@@ -7,6 +7,7 @@
 import type { ColumnFiltersState, SortingState } from "@tanstack/react-table"
 import { createParser, useQueryState } from "nuqs"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import type { AdvancedFiltersState } from "../types/filter-types"
 
 // Simple debounce implementation to avoid lodash dependency
 function debounce<T extends (...args: any[]) => void>(func: T, wait: number): T {
@@ -29,6 +30,18 @@ const arrayParser = createParser({
 const objectParser = createParser({
     parse: (value: string) => (value ? JSON.parse(value) : {}),
     serialize: (value: object) => (Object.keys(value || {}).length ? JSON.stringify(value) : "")
+})
+
+// Parser for advanced filters
+const advancedFiltersParser = createParser({
+    parse: (value: string) => {
+        try {
+            return value ? JSON.parse(value) : []
+        } catch {
+            return []
+        }
+    },
+    serialize: (value: AdvancedFiltersState) => (value?.length ? JSON.stringify(value) : "")
 })
 
 // Using URL state as the single source of truth - no Jotai atoms
@@ -125,6 +138,12 @@ export function useTableUrlState({ enabled = true, tableId }: UseTableUrlStateOp
 
     const [filtersParam, setFiltersParam] = useQueryState(`${tableId}-filters`, arrayParser)
 
+    // Advanced filters parameter
+    const [advancedFiltersParam, setAdvancedFiltersParam] = useQueryState(
+        `${tableId}-advancedFilters`, 
+        advancedFiltersParser
+    )
+
     const [pageParam, setPageParam] = useQueryState(`${tableId}-page`, {
         defaultValue: "0"
     })
@@ -161,7 +180,7 @@ export function useTableUrlState({ enabled = true, tableId }: UseTableUrlStateOp
         }
     })
 
-    type TableParamValue = ColumnFiltersState | SortingState | Record<string, boolean> | string[]
+    type TableParamValue = ColumnFiltersState | SortingState | Record<string, boolean> | string[] | AdvancedFiltersState
 
     const debouncedSetParamRef = useRef<((key: string, value: TableParamValue) => void) | null>(
         null
@@ -171,19 +190,29 @@ export function useTableUrlState({ enabled = true, tableId }: UseTableUrlStateOp
     useEffect(() => {
         if (!debouncedSetParamRef.current) {
             debouncedSetParamRef.current = debounce((key: string, value: TableParamValue) => {
-                if (key.includes("filters")) {
+                if (key.includes("filters") && !key.includes("advancedFilters")) {
                     setFiltersParam(value as ColumnFiltersState)
+                } else if (key.includes("advancedFilters")) {
+                    setAdvancedFiltersParam(value as AdvancedFiltersState)
                 } else if (key.includes("sort")) {
                     setSortParam(value as SortingState)
                 }
                 // Add other param setters as needed
             }, 150)
         }
-    }, [setFiltersParam, setSortParam])
+    }, [setFiltersParam, setAdvancedFiltersParam, setSortParam])
 
     const setColumnFiltersFromUI = useCallback(
         (filters: ColumnFiltersState) => {
             debouncedSetParamRef.current?.(`${tableId}-filters`, filters)
+        },
+        [tableId]
+    )
+
+    // Advanced filters setter
+    const setAdvancedFiltersFromUI = useCallback(
+        (filters: AdvancedFiltersState) => {
+            debouncedSetParamRef.current?.(`${tableId}-advancedFilters`, filters)
         },
         [tableId]
     )
@@ -198,7 +227,13 @@ export function useTableUrlState({ enabled = true, tableId }: UseTableUrlStateOp
     // Method to reset all filters
     const resetFilters = useCallback(() => {
         queueUrlUpdate(setFiltersParam, [])
-    }, [queueUrlUpdate, setFiltersParam])
+        queueUrlUpdate(setAdvancedFiltersParam, [])
+    }, [queueUrlUpdate, setFiltersParam, setAdvancedFiltersParam])
+
+    // Method to reset only advanced filters
+    const resetAdvancedFilters = useCallback(() => {
+        queueUrlUpdate(setAdvancedFiltersParam, [])
+    }, [queueUrlUpdate, setAdvancedFiltersParam])
 
     // Methods for other URL parameters
     const setPaginationFromUI = useCallback(
@@ -264,6 +299,11 @@ export function useTableUrlState({ enabled = true, tableId }: UseTableUrlStateOp
                 `${tableId}-filters`,
                 encodeURIComponent(JSON.stringify(filtersParam))
             )
+        if (advancedFiltersParam?.length)
+            url.searchParams.set(
+                `${tableId}-advancedFilters`,
+                encodeURIComponent(JSON.stringify(advancedFiltersParam))
+            )
         if (pageParam) url.searchParams.set(`${tableId}-page`, pageParam)
         if (pageSizeParam) url.searchParams.set(`${tableId}-pageSize`, pageSizeParam)
         if (visibilityParam && Object.keys(visibilityParam).length)
@@ -296,6 +336,7 @@ export function useTableUrlState({ enabled = true, tableId }: UseTableUrlStateOp
         historyIndexParam,
         sortParam,
         filtersParam,
+        advancedFiltersParam,
         pageParam,
         pageSizeParam,
         visibilityParam,
@@ -316,6 +357,7 @@ export function useTableUrlState({ enabled = true, tableId }: UseTableUrlStateOp
             setHistoryIndexParam("0")
             setSortParam([])
             setFiltersParam([])
+            setAdvancedFiltersParam([])
             setPageParam("0")
             setPageSizeParam("10")
             setVisibilityParam({})
@@ -334,6 +376,7 @@ export function useTableUrlState({ enabled = true, tableId }: UseTableUrlStateOp
         setHistoryIndexParam,
         setSortParam,
         setFiltersParam,
+        setAdvancedFiltersParam,
         setPageParam,
         setPageSizeParam,
         setVisibilityParam,
@@ -365,6 +408,7 @@ export function useTableUrlState({ enabled = true, tableId }: UseTableUrlStateOp
         // Utility functions
         createShareableUrl,
         // Raw URL parameters
+        advancedFiltersParam: advancedFiltersParam || [],
         expandedParam,
         filtersParam: filtersParam || [],
         groupingParam: groupingParam || [],
@@ -375,11 +419,14 @@ export function useTableUrlState({ enabled = true, tableId }: UseTableUrlStateOp
         // Processed state
         pagination,
         pinningParam,
+        resetAdvancedFilters,
         resetFilters,
 
         resetUrlState,
 
         // Setter functions for UI components
+        setAdvancedFiltersFromUI,
+        setAdvancedFiltersParam,
         setColumnFiltersFromUI,
         setExpandedFromUI,
         // Raw setters (should generally not be used directly)

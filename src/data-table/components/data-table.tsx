@@ -56,7 +56,10 @@ export function DataTable({
     onRowSelectionChange,
     tableType,
     title,
-    description
+    description,
+    enableAdvancedFilters = false,
+    data: providedData,
+    columnTypeMapping = {}
 }: {
     className?: string
     enableToolbar?: boolean
@@ -64,6 +67,12 @@ export function DataTable({
     tableType: string // Required
     title?: string
     description?: string
+    /** Whether to enable advanced filtering */
+    enableAdvancedFilters?: boolean
+    /** Data for advanced filtering (optional, if not provided, will be fetched) */
+    data?: Record<string, unknown>[]
+    /** Column type mapping for advanced filters */
+    columnTypeMapping?: Record<string, 'text' | 'number' | 'date' | 'option' | 'multiOption'>
 }) {
     // Utiliser directement le tableType comme tableId
     const tableId = tableType
@@ -83,6 +92,9 @@ export function DataTable({
         tableId,
         tableType
     })
+
+    // Use provided data for advanced filters if available, otherwise use fetched data
+    const finalData = providedData || data || []
 
     // Get the title and description from config or props
     const { t } = useTranslations()
@@ -133,7 +145,12 @@ export function DataTable({
                                 {/* Toolbar section */}
                                 {!isLoading && (
                                     <div className="flex-shrink-0">
-                                        <DataTableAdvancedToolbar tableId={tableId} />
+                                        <DataTableAdvancedToolbar 
+                                            tableId={tableId}
+                                            enableAdvancedFilters={enableAdvancedFilters}
+                                            data={finalData}
+                                            columnTypeMapping={columnTypeMapping}
+                                        />
                                     </div>
                                 )}
                             </div>
@@ -153,7 +170,7 @@ export function DataTable({
                                         >
                                     >
                                 }
-                                data={data || []}
+                                data={finalData}
                                 enableColumnDragDropByDefault={
                                     config.table.enableColumnDragDropByDefault || false
                                 }
@@ -171,9 +188,9 @@ export function DataTable({
                                     await refetch()
                                     // Return the current data to avoid flickering
                                     return {
-                                        data: data || [],
+                                        data: finalData,
                                         pageCount: pageCount || 1,
-                                        rowCount: rowCount || data?.length || 0
+                                        rowCount: rowCount || finalData.length
                                     }
                                 }}
                                 tableId={tableId}

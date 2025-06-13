@@ -1,0 +1,150 @@
+---
+title: Pluralization System
+description: Advanced pluralization system for handling singular and plural forms in DataTable translations
+---
+
+# Pluralization System
+
+The DataTable includes an advanced pluralization system that automatically handles singular and plural forms in translations.
+
+## Syntax
+
+The system uses the following syntax for pluralization:
+
+```text
+{variable, plural, one {singular_form} other {plural_form}}
+```
+
+### Parameters:
+- `variable`: The name of the variable containing the number
+- `plural`: The keyword indicating this is a pluralization
+- `one \{singular_form\}`: The text to display when the value equals 1
+- `other \{plural_form\}`: The text to display for all other values (0, 2, 3, etc.)
+
+## Examples
+
+### Example 1: Visible columns
+```typescript
+// Translation configuration
+columns_visible: "{count} {count, plural, one {visible} other {visible}}"
+
+// Usage
+t("menu.columns_visible", { count: 1 })  // "1 visible"
+t("menu.columns_visible", { count: 7 })  // "7 visible"
+```
+
+### Example 2: Selected rows
+```typescript
+// Translation configuration
+selected_rows: "{count} {count, plural, one {row} other {rows}} selected"
+
+// Usage
+t("table.selected_rows", { count: 1 })  // "1 row selected"
+t("table.selected_rows", { count: 5 })  // "5 rows selected"
+```
+
+### Example 3: Active filters
+```typescript
+// Translation configuration
+active_count: "{count} {count, plural, one {active filter} other {active filters}}"
+
+// Usage
+t("filters.active_count", { count: 1 })  // "1 active filter"
+t("filters.active_count", { count: 3 })  // "3 active filters"
+```
+
+## Combining with Standard Interpolation
+
+The pluralization system works in combination with standard interpolation:
+
+```typescript
+// Configuration
+selectedCount: "{selected} of {total} {total, plural, one {row} other {rows}} selected"
+
+// Usage
+t("pagination.selectedCount", { selected: 3, total: 1 })   // "3 of 1 row selected"
+t("pagination.selectedCount", { selected: 3, total: 10 })  // "3 of 10 rows selected"
+```
+
+## Language Support
+
+### English (default)
+```typescript
+menu: {
+  columns_visible: "{count} {count, plural, one {visible} other {visible}}"
+}
+```
+
+### French
+```typescript
+menu: {
+  columns_visible: "{count} {count, plural, one {visible} other {visibles}}"
+}
+```
+
+### Other Languages
+For other languages with different pluralization rules, the system can be easily extended by modifying the `interpolate` function in the `TableProvider`.
+
+## Current Pluralization Rules
+
+The current system follows a simple rule:
+- **Singular**: when `count === 1`
+- **Plural**: for all other values (0, 2, 3, 4, etc.)
+
+This rule works for the majority of languages, including:
+- English
+- French
+- Spanish
+- Italian
+- German
+- etc.
+
+## Best Practices
+
+1. **Always include the count**: `\{count\} \{count, plural, one \{item\} other \{items\}\}`
+
+2. **Be consistent**: Use the same structure throughout your application
+
+3. **Test edge cases**: Verify it works for 0, 1, and larger numbers
+
+4. **Document your keys**: Document your translation keys for the team
+
+## Migrating Existing Translations
+
+To migrate your existing translations:
+
+### Before
+```typescript
+columns_visible: "{count} visible"
+```
+
+### After
+```typescript
+columns_visible: "{count} {count, plural, one {visible} other {visible}}"
+```
+
+## Built-in Pluralized Keys
+
+The DataTable comes with several pre-configured pluralized translation keys:
+
+### Menu
+- `menu.columns_visible`: Column visibility count
+- `filters.active_count`: Active filters count
+- `filters.selectedCount`: Selected filters count
+
+### Table
+- `table.selected_rows`: Selected rows count
+- `selection.rows`: General row selection
+
+### Pagination
+- `pagination.selectedCount`: Selected rows in pagination
+- `pagination.showing`: Page display with totals
+
+## Extensibility
+
+The system can be extended to support:
+- More complex pluralization rules (e.g., Slavic languages)
+- Other grammatical forms (dual, trial, etc.)
+- Ordinal vs cardinal numbers
+
+For now, simplicity is prioritized to cover the majority of use cases. 

@@ -46,16 +46,16 @@ export function TableSortMenu({
         <StackMenuView name="sort">
             <StackMenuHeader>
                 <StackMenuBackButton icon={<ArrowUpDown className="h-4 w-4 rotate-90" />}>
-                    {t("common.back", { defaultValue: "Retour" })}
+                    {t("menu.back")}
                 </StackMenuBackButton>
-                <StackMenuTitle>{t("sort.title", { defaultValue: "Trier" })}</StackMenuTitle>
+                <StackMenuTitle>{t("menu.sort")}</StackMenuTitle>
             </StackMenuHeader>
 
             <StackMenuContent>
                 {/* Clear sort option */}
                 {sorting.length > 0 && (
                     <StackMenuItem icon={<X className="h-5 w-5" />} onClick={() => setSorting([])}>
-                        {t("sort.clear")}
+                        {t("common.reset")}
                     </StackMenuItem>
                 )}
 

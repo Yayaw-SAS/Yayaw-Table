@@ -14,3 +14,7 @@ export * from "./hooks"
 
 // Export types
 export type { TableView, TableViewConfig } from "../types/view-types"
+
+// Export advanced filter types and utilities
+export * from "./types/filter-types"
+export * from "./utils/advanced-filters"

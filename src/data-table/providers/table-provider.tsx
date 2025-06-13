@@ -69,10 +69,22 @@ interface TableProviderProps {
 }
 
 /**
- * Simple interpolation function for translations
- * Supports {param} syntax for basic interpolation
+ * Advanced interpolation function for translations
+ * Supports {param} syntax for basic interpolation and pluralization
+ * Pluralization syntax: {count, plural, one {singular} other {plural}}
  */
 function interpolate(text: string, params: TranslationParams = {}): string {
+  // Handle pluralization first
+  text = text.replace(/\{(\w+),\s*plural,\s*one\s*\{([^}]+)\}\s*other\s*\{([^}]+)\}\}/g, (match, key, singular, plural) => {
+    const value = params[key]
+    if (value !== undefined) {
+      const count = Number(value)
+      return count === 1 ? singular : plural
+    }
+    return match
+  })
+  
+  // Handle basic interpolation
   return text.replace(/\{(\w+)\}/g, (match, key) => {
     const value = params[key]
     return value !== undefined ? String(value) : match
@@ -264,6 +276,8 @@ export const defaultTranslations: DataTableTranslations = {
     title: "Columns",
     hide: "Hide column",
     show: "Show column",
+    visible: "Visible columns",
+    hidden: "Hidden columns",
     drag: "Drag {column} column",
     resetOrder: "Reset column order",
     toggleVisibility: "Toggle columns",
@@ -294,8 +308,8 @@ export const defaultTranslations: DataTableTranslations = {
     noResults: "No results found",
     noFilters: "No filters applied",
     search: "Search {filter}...",
-    selectedCount: "{count} selected",
-    active_count: "{count} active filters",
+    selectedCount: "{count} {count, plural, one {selected} other {selected}}",
+    active_count: "{count} {count, plural, one {active filter} other {active filters}}",
     column: "Column",
     value: "Value",
     value_to: "Value to",
@@ -316,14 +330,14 @@ export const defaultTranslations: DataTableTranslations = {
     of: "of",
     page: "Page",
     rowsPerPage: "Rows per page",
-    showing: "Showing page {page} of {total}",
-    selectedCount: "{selected} of {total} rows selected"
+    showing: "Showing page {page} of {total} {total, plural, one {page} other {pages}}",
+    selectedCount: "{selected} of {total} {total, plural, one {row} other {rows}} selected"
   },
   search: {
     placeholder: "Search..."
   },
   selection: {
-    rows: "{count} rows selected"
+    rows: "{count} {count, plural, one {row} other {rows}} selected"
   },
   sorting: {
     ascending: "Sort ascending",
@@ -446,7 +460,7 @@ export const defaultTranslations: DataTableTranslations = {
     hide_column: "Hide column",
     show_column: "Show column",
     toggle_columns: "Toggle columns",
-    selected_rows: "{count} rows selected",
+    selected_rows: "{count} {count, plural, one {row} other {rows}} selected",
     sort_ascending: "Sort ascending",
     sort_descending: "Sort descending",
     drag_column: "Drag column"
@@ -454,7 +468,7 @@ export const defaultTranslations: DataTableTranslations = {
   menu: {
     back: "Back",
     columns: "Columns",
-    columns_visible: "{count} visible",
+    columns_visible: "{count} {count, plural, one {visible} other {visibles}}",
     filter: "Filter",
     filters: "Filters",
     group: "Group",

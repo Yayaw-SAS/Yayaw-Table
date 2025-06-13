@@ -41,6 +41,15 @@ export interface TableMenuProps {
     setSorting: (state: TableState["sorting"]) => void
     state: TableState
     tableId: string
+    /** Whether to use advanced filters menu */
+    useAdvancedFilters?: boolean
+    /** Advanced filters configuration */
+    advancedFiltersConfig?: {
+        filters: any[]
+        actions: any
+        columnsConfig: any
+        onConvertToAdvanced?: (columnId: string, type: any) => void
+    }
 }
 
 /**
@@ -82,7 +91,9 @@ export function TableMenu({
     setGrouping,
     setSorting,
     state,
-    tableId
+    tableId,
+    useAdvancedFilters = false,
+    advancedFiltersConfig
 }: TableMenuProps) {
     const { t } = useTranslations()
     const stackMenuContext = useStackMenu()
@@ -300,6 +311,10 @@ export function TableMenu({
                     invalidateTable={invalidateTable}
                     setColumnFilters={setColumnFilters}
                     tableId={tableId}
+                    useAdvancedFilters={useAdvancedFilters}
+                    advancedFilters={useAdvancedFilters ? advancedFiltersConfig?.filters : undefined}
+                    advancedActions={useAdvancedFilters ? advancedFiltersConfig?.actions : undefined}
+                    advancedColumnsConfig={useAdvancedFilters ? advancedFiltersConfig?.columnsConfig : undefined}
                 />
             </StackMenuView>
 
