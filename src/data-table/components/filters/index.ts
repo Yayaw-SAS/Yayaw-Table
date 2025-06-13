@@ -17,12 +17,8 @@ export {
     isValidFilterValue
 } from './filter-value-input'
 
-// Main panel components
-export { AdvancedFilterPanel, CompactFilterPanel } from './advanced-filter-panel'
-
-// Modern UI components - Phase 4: Modern Interface
+// Lightweight filter components (always loaded)
 export { EnhancedFilterChip, CompactFilterChip } from './enhanced-filter-chip'
-export { ModernAddFilterDropdown, QuickAddFilterButton } from './modern-add-filter-dropdown'
 export { 
     FilterLoadingState, 
     FilterEmptyState, 
@@ -32,9 +28,19 @@ export {
     FilterPerformanceIndicator 
 } from './modern-filter-states'
 
-// Phase 5: Advanced Features
-export { FilterPresetsPanel } from './filter-presets-panel'
-export { AdvancedFacetedFilter, CompactFacetedFilter } from './advanced-faceted-filter'
+// Heavy components - lazy loaded for performance
+export {
+    LazyAdvancedFilterPanel as AdvancedFilterPanel,
+    LazyFilterPresetsPanel as FilterPresetsPanel,
+    LazyAdvancedFacetedFilter as AdvancedFacetedFilter,
+    LazyModernAddFilterDropdown as ModernAddFilterDropdown
+} from './lazy-advanced-filter'
+
+// Keep original exports for backwards compatibility
+export { AdvancedFilterPanel as AdvancedFilterPanelOriginal, CompactFilterPanel } from './advanced-filter-panel'
+export { ModernAddFilterDropdown as ModernAddFilterDropdownOriginal, QuickAddFilterButton } from './modern-add-filter-dropdown'
+export { FilterPresetsPanel as FilterPresetsPanelOriginal } from './filter-presets-panel'
+export { AdvancedFacetedFilter as AdvancedFacetedFilterOriginal, CompactFacetedFilter } from './advanced-faceted-filter'
 
 // Export types
 export type { TextFilterProps } from './text-filter'

@@ -9,6 +9,8 @@ import dynamic from "next/dynamic"
 import { Suspense, useMemo } from "react"
 
 import { useDataTable } from "../hooks/use-data-table"
+// Import advanced filters hook directly
+import { useCallback } from "react"
 import { useDataTableAdvancedFilters, useColumnConfigFromTableColumns, useTableAccessors } from "../hooks/use-data-table-advanced-filters"
 import { DataTableUIProvider } from "../providers/data-table-ui-provider"
 
@@ -27,8 +29,26 @@ const DataTableClient = dynamic(
         ssr: false
     }
 )
-import { CatalogueFormContainer } from "./forms/catalogue-form-container"
-import { DataTableAdvancedToolbar } from "./toolbar/data-table-advanced-toolbar"
+// Lazy load heavy components for better performance
+const CatalogueFormContainer = dynamic(
+    () => import("./forms/lazy-forms").then((mod) => ({
+        default: mod.LazyCatalogueFormContainer
+    })),
+    {
+        loading: () => null,
+        ssr: false
+    }
+)
+
+const DataTableAdvancedToolbar = dynamic(
+    () => import("./toolbar/data-table-advanced-toolbar").then((mod) => ({
+        default: mod.DataTableAdvancedToolbar
+    })),
+    {
+        loading: () => <div className="h-12 bg-muted animate-pulse rounded" />,
+        ssr: false
+    }
+)
 
 // Default UI components
 function DefaultTableTitle({ children, className }: { children: React.ReactNode; className?: string }) {
@@ -97,6 +117,9 @@ export function DataTable({
     // Use provided data for advanced filters if available, otherwise use fetched data
     const baseData = providedData || data || []
 
+    // Add DEBUG flag for development
+    const DEBUG = false
+
     // Set up advanced filters if enabled
     let finalData = baseData
     let advancedFiltersConfig = undefined
@@ -153,11 +176,13 @@ export function DataTable({
             onConvertToAdvanced: advancedFiltersResult.convertLegacyToAdvanced
         }
 
-        console.log("DataTable - Advanced filters applied:", {
-            baseDataLength: baseData.length,
-            filteredDataLength: finalData.length,
-            activeFilters: advancedFiltersResult.activeAdvancedFiltersCount
-        })
+        if (DEBUG) {
+            console.log("DataTable - Advanced filters applied:", {
+                baseDataLength: baseData.length,
+                filteredDataLength: finalData.length,
+                activeFilters: advancedFiltersResult.activeAdvancedFiltersCount
+            })
+        }
     }
 
     // Get the title and description from config or props
