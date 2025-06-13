@@ -30,7 +30,7 @@ import { useTableUrlState } from "./use-table-url-state"
 /**
  * Options for the useTableInstance hook
  */
-interface UseTableInstanceOptions<TData> {
+export interface UseTableInstanceOptions<TData> {
     columns: ColumnDef<TData>[]
     data: TData[]
     enableColumnFilters?: boolean

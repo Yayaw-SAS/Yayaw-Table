@@ -130,9 +130,9 @@ export function ModernAddFilterDropdown({
             .filter(([_, config]) => config.filterable !== false)
             .map(([columnId, config]) => ({
                 id: columnId,
-                label: config.label || columnId,
+                label: columnId,
                 type: config.type,
-                description: config.description || config.placeholder,
+                description: config.placeholder,
                 isRecent: recentColumns.includes(columnId),
                 isPopular: popularColumns.includes(columnId),
                 isFilterable: config.filterable !== false,

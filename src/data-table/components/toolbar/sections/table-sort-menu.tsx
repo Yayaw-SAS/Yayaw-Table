@@ -1,13 +1,11 @@
 "use client"
 
 import {
-    StackMenuBackButton,
     StackMenuContent,
-    StackMenuHeader,
+    StackMenuSection,
     StackMenuItem,
-    StackMenuTitle,
     StackMenuView
-} from "@/components/ui/stack-menu"
+} from "@/src/components/ui-custom/stack-menu"
 import { ArrowDownAZ, ArrowUpAZ, ArrowUpDown, X } from "lucide-react"
 import { useTranslations } from "../../../providers/table-provider"
 
@@ -44,13 +42,6 @@ export function TableSortMenu({
 
     return (
         <StackMenuView name="sort">
-            <StackMenuHeader>
-                <StackMenuBackButton icon={<ArrowUpDown className="h-4 w-4 rotate-90" />}>
-                    {t("menu.back")}
-                </StackMenuBackButton>
-                <StackMenuTitle>{t("menu.sort")}</StackMenuTitle>
-            </StackMenuHeader>
-
             <StackMenuContent>
                 {/* Clear sort option */}
                 {sorting.length > 0 && (

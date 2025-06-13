@@ -7,8 +7,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu"
-import { cn } from "@/lib"
-import { useTranslations } from "next-intl"
+import { cn } from "@/lib/utils"
 import { useTheme } from "next-themes"
 
 import { Icon } from "./icon"
@@ -20,7 +19,6 @@ interface ThemeToggleProps {
 
 function ThemeToggle({ className, variant = "dropdown" }: ThemeToggleProps) {
     const { setTheme } = useTheme()
-    const t = useTranslations("dashboard")
 
     const toggleTheme = (theme: string) => {
         setTheme(theme)
@@ -37,7 +35,7 @@ function ThemeToggle({ className, variant = "dropdown" }: ThemeToggleProps) {
                 >
                     <Icon className="hidden dark:block" name="Sun" />
                     <Icon className="block dark:hidden" name="Moon" />
-                    <span className="sr-only">{t("theme.theme")}</span>
+                    <span className="sr-only">Theme</span>
                 </Button>
             </div>
         )
@@ -56,7 +54,7 @@ function ThemeToggle({ className, variant = "dropdown" }: ThemeToggleProps) {
                             className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100"
                             name="Moon"
                         />
-                        <span className="sr-only">{t("theme.theme")}</span>
+                        <span className="sr-only">Theme</span>
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
@@ -64,19 +62,19 @@ function ThemeToggle({ className, variant = "dropdown" }: ThemeToggleProps) {
                         className="cursor-pointer"
                         onClick={() => toggleTheme("light")}
                     >
-                        {t("theme.light")}
+                        Light
                     </DropdownMenuItem>
                     <DropdownMenuItem
                         className="cursor-pointer"
                         onClick={() => toggleTheme("dark")}
                     >
-                        {t("theme.dark")}
+                        Dark
                     </DropdownMenuItem>
                     <DropdownMenuItem
                         className="cursor-pointer"
                         onClick={() => toggleTheme("system")}
                     >
-                        {t("theme.system")}
+                        System
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>

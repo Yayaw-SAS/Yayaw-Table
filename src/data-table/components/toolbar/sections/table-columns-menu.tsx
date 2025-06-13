@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { StackMenuContent } from "@/components/ui/stack-menu"
+import { StackMenuContent } from "@/src/components/ui-custom/stack-menu"
 import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"

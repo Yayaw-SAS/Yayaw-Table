@@ -179,13 +179,13 @@ function FacetedOption({
                         {/* Metadata indicators */}
                         <div className="flex items-center gap-1">
                             {option.metadata?.trending && (
-                                <TrendingUp className="h-3 w-3 text-emerald-500" title="Trending" />
+                                <TrendingUp className="h-3 w-3 text-emerald-500" />
                             )}
                             {option.metadata?.new && (
-                                <Sparkles className="h-3 w-3 text-blue-500" title="New" />
+                                <Sparkles className="h-3 w-3 text-blue-500" />
                             )}
                             {option.metadata?.priority === 1 && (
-                                <Star className="h-3 w-3 text-amber-500" title="High Priority" />
+                                <Star className="h-3 w-3 text-amber-500" />
                             )}
                         </div>
                     </div>

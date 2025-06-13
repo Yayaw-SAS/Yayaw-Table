@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
+import { Suspense } from 'react'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
 
 export const metadata: Metadata = {
@@ -13,8 +14,10 @@ export default function ExampleLayout({
   children: ReactNode
 }) {
   return (
-    <NuqsAdapter>
-      {children}
-    </NuqsAdapter>
+    <Suspense fallback={<div>Loading...</div>}>
+      <NuqsAdapter>
+        {children}
+      </NuqsAdapter>
+    </Suspense>
   )
 } 

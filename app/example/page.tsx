@@ -2,6 +2,7 @@
 
 import { DataTable, TableProvider, defaultTranslations } from '../../index'
 import { QueryClient } from '@tanstack/react-query'
+import { Suspense } from 'react'
 import { products } from './data'
 import { getTableConfig, getTableActions } from './table-config'
 import { getFormConfig } from './form-config'

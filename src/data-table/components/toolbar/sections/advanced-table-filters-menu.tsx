@@ -5,12 +5,11 @@
 "use client"
 
 import {
-    StackMenuBackButton,
     StackMenuContent,
-    StackMenuHeader,
-    StackMenuTitle,
+    StackMenuSection,
+    StackMenuItem,
     StackMenuView
-} from "@/components/ui/stack-menu"
+} from "@/src/components/ui-custom/stack-menu"
 import { ArrowUpDown, Filter, Plus, X } from "lucide-react"
 import { useTranslations } from "../../../providers/table-provider"
 import { useCallback, useMemo, useState } from "react"
@@ -203,22 +202,6 @@ export function AdvancedTableFiltersMenu({
 
     return (
         <StackMenuView name="filters">
-            <StackMenuHeader>
-                <StackMenuBackButton icon={<ArrowUpDown className="h-4 w-4 rotate-90" />}>
-                    {t("menu.back")}
-                </StackMenuBackButton>
-                <StackMenuTitle>
-                    <div className="flex items-center gap-2">
-                        <span>{t("menu.filter")}</span>
-                        {totalFiltersCount > 0 && (
-                            <Badge variant="secondary" className="text-xs">
-                                {totalFiltersCount}
-                            </Badge>
-                        )}
-                    </div>
-                </StackMenuTitle>
-            </StackMenuHeader>
-
             <StackMenuContent>
                 <ScrollArea className="max-h-96">
                     <div className="space-y-4">

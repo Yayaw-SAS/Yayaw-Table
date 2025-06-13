@@ -155,21 +155,24 @@ export function DateFilter({
                             </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                                mode={isBetween ? "range" : "single"}
-                                selected={
-                                    isBetween 
-                                        ? { from: currentRangeValue[0], to: currentRangeValue[1] }
-                                        : currentSingleValue
-                                }
-                                onSelect={
-                                    isBetween 
-                                        ? handleDateRangeSelect
-                                        : handleSingleDateSelect
-                                }
-                                disabled={disabled}
-                                initialFocus
-                            />
+                            {isBetween ? (
+                                <Calendar
+                                    mode="range"
+                                    selected={{ from: currentRangeValue[0], to: currentRangeValue[1] }}
+                                    onSelect={handleDateRangeSelect}
+                                    disabled={disabled}
+                                    initialFocus
+                                    required
+                                />
+                            ) : (
+                                <Calendar
+                                    mode="single"
+                                    selected={currentSingleValue}
+                                    onSelect={handleSingleDateSelect}
+                                    disabled={disabled}
+                                    initialFocus
+                                />
+                            )}
                         </PopoverContent>
                     </Popover>
                 )}
@@ -264,21 +267,24 @@ export function CompactDateFilter({
                 </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                    mode={isBetween ? "range" : "single"}
-                    selected={
-                        isBetween 
-                            ? { from: currentRangeValue[0], to: currentRangeValue[1] }
-                            : currentSingleValue
-                    }
-                    onSelect={
-                        isBetween 
-                            ? handleDateRangeSelect
-                            : handleSingleDateSelect
-                    }
-                    disabled={disabled}
-                    initialFocus
-                />
+                {isBetween ? (
+                    <Calendar
+                        mode="range"
+                        selected={{ from: currentRangeValue[0], to: currentRangeValue[1] }}
+                        onSelect={handleDateRangeSelect}
+                        disabled={disabled}
+                        initialFocus
+                        required
+                    />
+                ) : (
+                    <Calendar
+                        mode="single"
+                        selected={currentSingleValue}
+                        onSelect={handleSingleDateSelect}
+                        disabled={disabled}
+                        initialFocus
+                    />
+                )}
             </PopoverContent>
         </Popover>
     )

@@ -2,13 +2,14 @@ import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { 
   DataTable,
-  defineTableConfig,
-  TranslationsProvider, 
-  defaultTranslations,
-  type TableConfig
+  TableProvider, 
+  defaultTranslations
 } from '../index'
 
-// Example: User creates their own table configurations
+// Note: Current DataTable API uses tableType to get configuration from internal catalogue
+// The defineTableConfig configurations below are kept for reference but not used in this example
+
+/* Example of table configurations (not currently used by DataTable):
 const catalogueTableConfig = defineTableConfig({
   id: "catalogue",
   icon: "Package",
@@ -21,41 +22,7 @@ const catalogueTableConfig = defineTableConfig({
         enableSorting: true,
         size: 200
       },
-      {
-        id: "category", 
-        type: "tag",
-        header: "Category",
-        enableSorting: true,
-        size: 150
-      },
-      {
-        id: "price",
-        type: "number", 
-        header: "Price",
-        enableSorting: true,
-        size: 120
-      },
-      {
-        id: "stock",
-        type: "number",
-        header: "Stock",
-        enableSorting: true,
-        size: 100
-      },
-      {
-        id: "status",
-        type: "tag",
-        header: "Status", 
-        enableSorting: true,
-        size: 120
-      },
-      {
-        id: "lastUpdated",
-        type: "date",
-        header: "Last Updated",
-        enableSorting: true,
-        size: 150
-      }
+      // ... other column definitions
     ],
     mandatory: ["name"],
     order: ["select", "name", "category", "price", "stock", "status", "lastUpdated", "actions"],
@@ -83,67 +50,7 @@ const catalogueTableConfig = defineTableConfig({
     namespace: "catalogue"
   }
 })
-
-const usersTableConfig = defineTableConfig({
-  id: "users",
-  icon: "Users",
-  columns: {
-    definitions: [
-      {
-        id: "name",
-        type: "text", 
-        header: "Full Name",
-        enableSorting: true,
-        size: 200
-      },
-      {
-        id: "email",
-        type: "text",
-        header: "Email Address", 
-        enableSorting: true,
-        size: 250
-      },
-      {
-        id: "role",
-        type: "tag",
-        header: "Role",
-        enableSorting: true,
-        size: 120
-      },
-      {
-        id: "status",
-        type: "tag", 
-        header: "Status",
-        enableSorting: true,
-        size: 120
-      },
-      {
-        id: "lastLogin",
-        type: "date",
-        header: "Last Login",
-        enableSorting: true,
-        size: 150
-      }
-    ],
-    mandatory: ["name", "email"],
-    order: ["select", "name", "email", "role", "status", "lastLogin", "actions"],
-    visible: ["select", "name", "email", "role", "status", "lastLogin", "actions"]
-  },
-  table: {
-    defaultPageSize: 5,
-    enableColumnFilters: true,
-    enablePagination: true,
-    enableRowSelection: true,
-    enableSorting: true
-  },
-  translations: {
-    keys: {
-      title: "User Management",
-      description: "Manage system users and permissions"
-    },
-    namespace: "users"
-  }
-})
+*/
 
 // Example data that matches the table configurations
 const catalogueData = [
@@ -214,87 +121,68 @@ const usersData = [
 
 function App() {
   return (
-    <TranslationsProvider translations={defaultTranslations}>
+    <TableProvider 
+      tableId="example"
+      translations={defaultTranslations}
+      locale="en"
+      getTableConfig={(tableType) => undefined}
+    >
       <div className="min-h-screen bg-gray-100 p-8">
         <div className="space-y-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              📦 YaYaw Table - User-Defined Configurations
+              📦 YaYaw Table - Simple Data Tables
             </h1>
             <p className="text-gray-600">
-              This shows how users create their own table configurations and provide their own data
+              This shows how to use DataTable with your own data using a simple API
             </p>
           </div>
 
-          {/* User-provided table configuration example */}
+          {/* Product catalogue table example */}
           <div className="space-y-4">
             <h2 className="text-2xl font-semibold">🛒 Product Catalogue Table</h2>
             <p className="text-gray-600">
-              User provides both configuration and data to the DataTable
+              Simple DataTable with product data using tableType "catalogue"
             </p>
             
             <DataTable 
               tableType="catalogue"
-              config={catalogueTableConfig}
               data={catalogueData}
             />
           </div>
 
-          {/* Another example with different configuration */}
+          {/* Users management table example */}
           <div className="space-y-4">
             <h2 className="text-2xl font-semibold">👥 Users Management Table</h2>
             <p className="text-gray-600">
-              Different configuration with different data structure
+              DataTable with users data using tableType "users"
             </p>
             
             <DataTable 
               tableType="users"
-              config={usersTableConfig}
               data={usersData}
             />
           </div>
 
           {/* Code Examples */}
           <div className="bg-gray-50 p-6 rounded-lg">
-            <h3 className="text-lg font-semibold mb-4">📋 How to Use (New API)</h3>
+            <h3 className="text-lg font-semibold mb-4">📋 How to Use (Current API)</h3>
             <div className="space-y-4 text-sm">
               <div>
-                <h4 className="font-medium">1. Create your table configuration:</h4>
+                <h4 className="font-medium">1. Import the DataTable component:</h4>
                 <pre className="bg-white p-3 rounded border mt-2 overflow-x-auto">
-{`import { defineTableConfig } from 'yayaw-table'
-
-const myTableConfig = defineTableConfig({
-  id: "products",
-  columns: {
-    definitions: [
-      { id: "name", type: "text", header: "Product Name" },
-      { id: "price", type: "number", header: "Price" },
-      { id: "status", type: "tag", header: "Status" }
-    ],
-    order: ["select", "name", "price", "status", "actions"],
-    visible: ["select", "name", "price", "status", "actions"],
-    mandatory: ["name"]
-  },
-  table: {
-    defaultPageSize: 10,
-    enableSorting: true,
-    enablePagination: true
-  },
-  translations: {
-    keys: { title: "My Products" },
-    namespace: "products"
-  }
-})`}
+{`import { DataTable, TableProvider, defaultTranslations } from 'yayaw-table'`}
                 </pre>
               </div>
               
               <div>
-                <h4 className="font-medium">2. Use the DataTable with your config and data:</h4>
+                <h4 className="font-medium">2. Use the DataTable with your data:</h4>
                 <pre className="bg-white p-3 rounded border mt-2 overflow-x-auto">
 {`<DataTable 
   tableType="products"
-  config={myTableConfig}
   data={myData}
+  title="My Products"
+  description="Manage your product inventory"
 />`}
                 </pre>
               </div>
@@ -317,18 +205,18 @@ const myTableConfig = defineTableConfig({
 
           {/* Benefits */}
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <h3 className="font-medium text-green-900 mb-2">✅ Benefits of User-Defined Configurations</h3>
+            <h3 className="font-medium text-green-900 mb-2">✅ Benefits of YaYaw Table</h3>
             <div className="text-sm text-green-800 space-y-1">
-              <p>🎯 <strong>No built-in assumptions:</strong> Library doesn't assume your data structure</p>
-              <p>🔧 <strong>Full control:</strong> You define exactly how your tables work</p>
-              <p>📦 <strong>Smaller bundle:</strong> No unused table configurations in the library</p>
-              <p>🚀 <strong>Flexible:</strong> Create any table configuration you need</p>
-              <p>🏗️ <strong>Scalable:</strong> Add new table types without updating the library</p>
+              <p>🎯 <strong>Simple API:</strong> Just provide your data and tableType</p>
+              <p>🔧 <strong>Automatic features:</strong> Sorting, filtering, pagination out of the box</p>
+              <p>📦 <strong>Optimized bundle:</strong> Only loads what you need</p>
+              <p>🚀 <strong>Flexible:</strong> Works with any data structure</p>
+              <p>🏗️ <strong>Scalable:</strong> Add new table types easily</p>
             </div>
           </div>
         </div>
       </div>
-    </TranslationsProvider>
+    </TableProvider>
   )
 }
 

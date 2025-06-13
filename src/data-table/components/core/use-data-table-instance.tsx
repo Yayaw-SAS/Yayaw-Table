@@ -8,11 +8,28 @@ import { useCallback, useMemo, useRef, useState } from "react"
 
 import { useDataTable } from "../../hooks/use-data-table"
 import type { DataTableColumnDef } from "../../../types/column-types"
-import type { DataTableProps } from "../../../types/data-table-types"
 import { useOnScreen } from "../utils/use-on-screen"
 
 // Empty array to prevent unnecessary re-renders
 const EMPTY_ARRAY: Array<never> = []
+
+interface UseDataTableInstanceOptions<TData extends Record<string, unknown>> {
+    columns?: (ColumnDef<TData> | DataTableColumnDef<TData>)[]
+    data?: TData[]
+    enableColumnFilters?: boolean
+    enableMultiRowSelection?: boolean
+    enablePagination?: boolean
+    enableRowSelection?: boolean
+    enableSorting?: boolean
+    getRowId?: (row: TData) => string
+    manualFiltering?: boolean
+    manualPagination?: boolean
+    manualSorting?: boolean
+    onRowSelectionChange?: (selection: Record<string, boolean>) => void
+    queryFn?: unknown
+    tableId: string
+    tableType?: string
+}
 
 export function useDataTableInstance<
     TData extends Record<string, unknown> = Record<string, unknown>
@@ -32,10 +49,7 @@ export function useDataTableInstance<
     queryFn,
     tableId,
     tableType
-}: Omit<
-    DataTableProps<TData>,
-    "className" | "enableColumnDragDropByDefault" | "enableRowDragDrop" | "rowSelection"
->) {
+}: UseDataTableInstanceOptions<TData>) {
     // Optimization: Add a debounce timer ref to batch rapid state changes
     const debounceTimerRef = useRef<null | number>(null)
 

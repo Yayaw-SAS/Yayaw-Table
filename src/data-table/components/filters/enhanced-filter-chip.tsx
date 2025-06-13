@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils"
 import { X, Filter, ChevronDown, Zap, Calendar, Hash, Type, List, CheckSquare } from "lucide-react"
 
-import type { FilterModel, ColumnDataType, FilterOperator } from "../../types/filter-types"
+import type { AdvancedFilterModel, ColumnDataType, FilterOperators } from "../../types/filter-types"
 import { FilterValueInput } from "./filter-value-input"
 
 // Animation variants for different states
@@ -51,9 +51,9 @@ const colorSchemes = {
 } as const
 
 interface EnhancedFilterChipProps {
-    filter: FilterModel
+    filter: AdvancedFilterModel
     columnLabel: string
-    onUpdate: (updates: Partial<FilterModel>) => void
+    onUpdate: (updates: Partial<AdvancedFilterModel>) => void
     onRemove: () => void
     onToggle: () => void
     className?: string
@@ -72,7 +72,7 @@ interface EnhancedFilterChipProps {
  */
 function formatFilterValue(
     values: any, 
-    operator: FilterOperator, 
+    operator: FilterOperators[ColumnDataType], 
     type: ColumnDataType, 
     maxLength: number = 20
 ): string {
@@ -129,7 +129,7 @@ function formatFilterValue(
 /**
  * Get operator display text
  */
-function getOperatorText(operator: FilterOperator, type: ColumnDataType): string {
+function getOperatorText(operator: FilterOperators[ColumnDataType], type: ColumnDataType): string {
     const operatorLabels: Record<string, string> = {
         contains: 'contains',
         equals: 'is',
@@ -373,11 +373,13 @@ export function EnhancedFilterChip({
                         <FilterValueInput
                             type={filter.type}
                             operator={filter.operator}
-                            values={filter.values}
+                            value={filter.values}
+                            config={{
+                                type: filter.type,
+                                filterable: true
+                            }}
                             onOperatorChange={(operator) => onUpdate({ operator })}
-                            onValuesChange={(values) => onUpdate({ values })}
-                            placeholder={`Filter by ${columnLabel.toLowerCase()}...`}
-                            className="w-full"
+                            onValueChange={(value) => onUpdate({ values: value })}
                         />
                     </div>
                 </PopoverContent>

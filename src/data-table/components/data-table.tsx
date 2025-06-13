@@ -6,9 +6,10 @@
 
 import type { Row } from "@tanstack/react-table"
 import dynamic from "next/dynamic"
-import { Suspense } from "react"
+import { Suspense, useMemo } from "react"
 
 import { useDataTable } from "../hooks/use-data-table"
+import { useDataTableAdvancedFilters, useColumnConfigFromTableColumns, useTableAccessors } from "../hooks/use-data-table-advanced-filters"
 import { DataTableUIProvider } from "../providers/data-table-ui-provider"
 
 import { DataTableSkeleton } from "./data-table-skeleton"
@@ -94,7 +95,70 @@ export function DataTable({
     })
 
     // Use provided data for advanced filters if available, otherwise use fetched data
-    const finalData = providedData || data || []
+    const baseData = providedData || data || []
+
+    // Set up advanced filters if enabled
+    let finalData = baseData
+    let advancedFiltersConfig = undefined
+
+    if (enableAdvancedFilters) {
+        // Create enhanced column options similar to toolbar
+        const columnOptions = useMemo(() => {
+            const columnDefinitions = config.columns?.definitions || []
+            
+            return columnDefinitions.map((colDef: any) => ({
+                canFilter: colDef.canFilter !== false,
+                canHide: colDef.canHide !== false,
+                id: colDef.id,
+                label: colDef.header || colDef.id,
+                placeholder: colDef.placeholder,
+                description: colDef.description,
+                options: colDef.options,
+                min: colDef.min,
+                max: colDef.max,
+                type: colDef.type
+            }))
+        }, [config.columns?.definitions])
+
+        // Create advanced columns configuration from table columns
+        const advancedColumnsConfig = useColumnConfigFromTableColumns(
+            columnOptions,
+            columnTypeMapping
+        )
+
+        // Create accessors for advanced filtering
+        const accessors = useTableAccessors(
+            baseData,
+            columnOptions.map(col => col.id)
+        )
+
+        // Set up advanced filters
+        const advancedFiltersResult = useDataTableAdvancedFilters({
+            tableType: tableId,
+            strategy: 'client',
+            data: baseData,
+            advancedColumnsConfig,
+            accessors,
+            autoComputeFaceted: true
+        })
+
+        // Use filtered data from advanced filters
+        finalData = advancedFiltersResult.filteredData
+
+        // Store config for toolbar
+        advancedFiltersConfig = {
+            filters: advancedFiltersResult.advancedFilters,
+            actions: advancedFiltersResult.advancedActions,
+            columnsConfig: advancedColumnsConfig,
+            onConvertToAdvanced: advancedFiltersResult.convertLegacyToAdvanced
+        }
+
+        console.log("DataTable - Advanced filters applied:", {
+            baseDataLength: baseData.length,
+            filteredDataLength: finalData.length,
+            activeFilters: advancedFiltersResult.activeAdvancedFiltersCount
+        })
+    }
 
     // Get the title and description from config or props
     const { t } = useTranslations()
@@ -148,7 +212,7 @@ export function DataTable({
                                         <DataTableAdvancedToolbar 
                                             tableId={tableId}
                                             enableAdvancedFilters={enableAdvancedFilters}
-                                            data={finalData}
+                                            data={baseData}
                                             columnTypeMapping={columnTypeMapping}
                                         />
                                     </div>

@@ -3,14 +3,12 @@
 import { Button } from "@/components/ui/button"
 import {
     StackMenu,
-    StackMenuBackButton,
     StackMenuContent,
-    StackMenuHeader,
+    StackMenuSection,
     StackMenuItem,
-    StackMenuTitle,
     StackMenuView,
     useStackMenu
-} from "@/components/ui/stack-menu"
+} from "@/src/components/ui-custom/stack-menu"
 import {
     ArrowLeft,
     ArrowUpDown,
@@ -143,51 +141,21 @@ export function TableMenu({
     const activeGrouping = state.grouping[0]
     const activeSortCount = state.sorting.length
 
-    // Create title component based on active view
-    const getTitleContent = () => {
-        switch (activeView) {
+    // Navigation titles for different views
+    const getNavigationTitle = (viewName: string) => {
+        switch (viewName) {
             case "columns":
-                return (
-                    <div className="flex items-center gap-2">
-                        <List className="h-4 w-4" />
-                        <span>{t("menu.columns")}</span>
-                    </div>
-                )
+                return t("menu.columns")
             case "filters":
-                return (
-                    <div className="flex items-center gap-2">
-                        <ListFilter className="h-4 w-4" />
-                        <span>{t("menu.filters")}</span>
-                    </div>
-                )
+                return t("menu.filters")
             case "group":
-                return (
-                    <div className="flex items-center gap-2">
-                        <Layers className="h-4 w-4" />
-                        <span>{t("menu.group")}</span>
-                    </div>
-                )
+                return t("menu.group")
             case "sort":
-                return (
-                    <div className="flex items-center gap-2">
-                        <ArrowUpDown className="h-4 w-4" />
-                        <span>{t("menu.sort")}</span>
-                    </div>
-                )
+                return t("menu.sort")
             case "subgroup":
-                return (
-                    <div className="flex items-center gap-2">
-                        <Layers3 className="h-4 w-4" />
-                        <span>{t("menu.subgroup")}</span>
-                    </div>
-                )
+                return t("menu.subgroup")
             default:
-                return (
-                    <div className="flex items-center gap-2">
-                        <SlidersHorizontal className="h-4 w-4" />
-                        <span>{t("menu.options")}</span>
-                    </div>
-                )
+                return t("menu.options")
         }
     }
 
@@ -215,64 +183,65 @@ export function TableMenu({
                 </Button>
             }
         >
-            <StackMenuHeader>
-                {activeView !== "main" && (
-                    <StackMenuBackButton icon={<ArrowLeft className="h-4 w-4" />}>
-                        {t("menu.back")}
-                    </StackMenuBackButton>
-                )}
-                <StackMenuTitle>{getTitleContent()}</StackMenuTitle>
-            </StackMenuHeader>
-
             <StackMenuView name="main">
                 <StackMenuContent>
-                    <StackMenuItem
-                        description={t("menu.columns_visible", {
-                            count: displayVisibleCount
-                        })}
-                        icon={<List className="h-5 w-5" />}
-                        navigateTo="columns"
-                    >
-                        {t("menu.properties")}
-                    </StackMenuItem>
+                    <StackMenuSection>
+                        <StackMenuItem
+                            description={t("menu.columns_visible", {
+                                count: displayVisibleCount
+                            })}
+                            icon={<List className="h-4 w-4" />}
+                            navigateTo="columns"
+                            navigateTitle={getNavigationTitle("columns")}
+                        >
+                            {t("menu.properties")}
+                        </StackMenuItem>
 
-                    <StackMenuItem
-                        description={activeFiltersCount > 0 ? `${activeFiltersCount}` : undefined}
-                        icon={<ListFilter className="h-5 w-5" />}
-                        navigateTo="filters"
-                    >
-                        {t("menu.filter")}
-                        {activeFiltersCount > 0 && (
-                            <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs">
-                                {activeFiltersCount}
-                            </span>
-                        )}
-                    </StackMenuItem>
+                        <StackMenuItem
+                            description={activeFiltersCount > 0 ? `${activeFiltersCount} active` : undefined}
+                            icon={<ListFilter className="h-4 w-4" />}
+                            navigateTo="filters"
+                            navigateTitle={getNavigationTitle("filters")}
+                            endIcon={activeFiltersCount > 0 ? (
+                                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs">
+                                    {activeFiltersCount}
+                                </span>
+                            ) : undefined}
+                        >
+                            {t("menu.filter")}
+                        </StackMenuItem>
 
-                    <StackMenuItem
-                        description={activeSortCount > 0 ? `${activeSortCount}` : undefined}
-                        icon={<ArrowUpDown className="h-5 w-5" />}
-                        navigateTo="sort"
-                    >
-                        {t("menu.sort")}
-                        {activeSortCount > 0 && (
-                            <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs">
-                                {activeSortCount}
-                            </span>
-                        )}
-                    </StackMenuItem>
+                        <StackMenuItem
+                            description={activeSortCount > 0 ? `${activeSortCount} active` : undefined}
+                            icon={<ArrowUpDown className="h-4 w-4" />}
+                            navigateTo="sort"
+                            navigateTitle={getNavigationTitle("sort")}
+                            endIcon={activeSortCount > 0 ? (
+                                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs">
+                                    {activeSortCount}
+                                </span>
+                            ) : undefined}
+                        >
+                            {t("menu.sort")}
+                        </StackMenuItem>
 
-                    <StackMenuItem
-                        description={activeGrouping}
-                        icon={<Layers className="h-5 w-5" />}
-                        navigateTo="group"
-                    >
-                        {t("menu.group")}
-                    </StackMenuItem>
+                        <StackMenuItem
+                            description={activeGrouping}
+                            icon={<Layers className="h-4 w-4" />}
+                            navigateTo="group"
+                            navigateTitle={getNavigationTitle("group")}
+                        >
+                            {t("menu.group")}
+                        </StackMenuItem>
 
-                    <StackMenuItem icon={<Layers3 className="h-5 w-5" />} navigateTo="subgroup">
-                        {t("menu.subgroup")}
-                    </StackMenuItem>
+                        <StackMenuItem 
+                            icon={<Layers3 className="h-4 w-4" />} 
+                            navigateTo="subgroup"
+                            navigateTitle={getNavigationTitle("subgroup")}
+                        >
+                            {t("menu.subgroup")}
+                        </StackMenuItem>
+                    </StackMenuSection>
                 </StackMenuContent>
             </StackMenuView>
 

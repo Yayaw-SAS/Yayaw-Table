@@ -1,6 +1,5 @@
-import { siteConfig } from "@/config/site-config";
 import { cn } from "../../lib/utils";
-import { SVG } from "../ui-custom/svg";
+import { SVG } from "./svg";
 
 interface LogoProps {
   className?: string;
@@ -9,9 +8,9 @@ interface LogoProps {
 export function Logo({ className }: LogoProps) {
   return (
     <SVG
-      alt={`${siteConfig.name} logo`}
+      alt={`${"YaYaw Table"} logo`}
       className={cn(className)}
-      src={siteConfig.logo}
+      src={"/logo.svg"}
     />
   );
 }

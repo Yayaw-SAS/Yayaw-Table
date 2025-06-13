@@ -189,19 +189,40 @@ export function DataTableAdvancedToolbar<TData>({
         tableType: tableId
     }) as unknown as DataTableState
 
-    // Advanced filters setup
+    // Advanced filters setup - get enhanced column configurations
     const columnOptions = useMemo(() => {
         if (DEBUG) {
             console.log("🔧 TABLE DEBUG:")
             console.log("🔧 table instance:", !!table)
-            console.log("🔧 table:", table)
+            console.log("🔧 tableId:", tableId)
+        }
+        
+        // Get table configuration first
+        const tableConfig = getTableConfig?.(tableId)
+        const columnDefinitions = (tableConfig as any)?.columns?.definitions || []
+        
+        if (DEBUG) {
+            console.log("🔧 tableConfig:", tableConfig)
+            console.log("🔧 columnDefinitions:", columnDefinitions)
         }
         
         if (!table) {
             if (DEBUG) {
                 console.warn("DataTableAdvancedToolbar - No table instance provided")
             }
-            return []
+            // Fallback to column definitions from config
+            return columnDefinitions.map((colDef: any) => ({
+                canFilter: colDef.canFilter !== false,
+                canHide: colDef.canHide !== false,
+                id: colDef.id,
+                label: colDef.header || colDef.id,
+                placeholder: colDef.placeholder,
+                description: colDef.description,
+                options: colDef.options,
+                min: colDef.min,
+                max: colDef.max,
+                type: colDef.type
+            }))
         }
 
         const allColumns = table.getAllColumns()
@@ -210,27 +231,38 @@ export function DataTableAdvancedToolbar<TData>({
             console.log("🔧 allColumns length:", allColumns.length)
         }
 
+        // Merge table columns with enhanced configuration
         const options = allColumns.map((column) => {
             const columnDef = column.columnDef as DataTableColumnDef<TData>
+            const configDef = columnDefinitions.find((def: any) => def.id === column.id)
+            
             const option = {
                 canFilter: column.getCanFilter(),
                 canHide: columnDef.enableHiding !== false,
                 id: column.id,
-                label: columnDef.meta?.label || column.id
+                label: columnDef.meta?.label || configDef?.header || column.id,
+                // Enhanced properties from our table config
+                placeholder: configDef?.placeholder,
+                description: configDef?.description,
+                options: configDef?.options,
+                min: configDef?.min,
+                max: configDef?.max,
+                type: configDef?.type
             }
             
             if (DEBUG) {
                 console.log("🔧 Column:", column.id, "->", option)
+                console.log("🔧 Config def for", column.id, "->", configDef)
             }
             
             return option
         })
 
         if (DEBUG) {
-            console.log("DataTableAdvancedToolbar - Column options:", options)
+            console.log("DataTableAdvancedToolbar - Enhanced column options:", options)
         }
         return options
-    }, [table])
+    }, [table, tableId, getTableConfig])
 
     // Create advanced columns configuration from table columns
     const advancedColumnsConfig = useColumnConfigFromTableColumns(
@@ -241,7 +273,7 @@ export function DataTableAdvancedToolbar<TData>({
     // Create accessors for advanced filtering
     const accessors = useTableAccessors(
         data,
-        columnOptions.map(col => col.id)
+        columnOptions.map((col: any) => col.id)
     )
 
     if (DEBUG) {

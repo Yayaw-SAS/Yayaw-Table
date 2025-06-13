@@ -38,16 +38,118 @@ function applyAdvancedFilters<TData>(
             
             const value = accessor(row)
             
-            // Simple filtering logic
-            switch (filter.operator) {
-                case 'contains':
-                    return String(value).toLowerCase().includes(String(filter.values).toLowerCase())
-                case 'equals':
-                    return value === filter.values
-                case 'is':
-                    return value === filter.values
+            // Enhanced filtering logic
+            switch (filter.type) {
+                case 'text':
+                    const textValue = String(value || '').toLowerCase()
+                    const textFilter = String(filter.values || '').toLowerCase()
+                    
+                    switch (filter.operator) {
+                        case 'contains':
+                            return textValue.includes(textFilter)
+                        case 'equals':
+                            return textValue === textFilter
+                        case 'startsWith':
+                            return textValue.startsWith(textFilter)
+                        case 'endsWith':
+                            return textValue.endsWith(textFilter)
+                        case 'notContains':
+                            return !textValue.includes(textFilter)
+                        case 'isEmpty':
+                            return !textValue || textValue.trim() === ''
+                        case 'isNotEmpty':
+                            return textValue && textValue.trim() !== ''
+                        default:
+                            return true
+                    }
+                
+                case 'number':
+                    const numValue = Number(value)
+                    const numFilter = Number(filter.values)
+                    
+                    switch (filter.operator) {
+                        case 'equals':
+                            return numValue === numFilter
+                        case 'greaterThan':
+                            return numValue > numFilter
+                        case 'lessThan':
+                            return numValue < numFilter
+                        case 'greaterThanOrEqual':
+                            return numValue >= numFilter
+                        case 'lessThanOrEqual':
+                            return numValue <= numFilter
+                        case 'notEquals':
+                            return numValue !== numFilter
+                        case 'between':
+                            if (Array.isArray(filter.values) && filter.values.length === 2) {
+                                const min = Number(filter.values[0])
+                                const max = Number(filter.values[1])
+                                return numValue >= min && numValue <= max
+                            }
+                            return true
+                        case 'isEmpty':
+                            return value == null || value === ''
+                        case 'isNotEmpty':
+                            return value != null && value !== ''
+                        default:
+                            return true
+                    }
+                
+                case 'option':
+                    switch (filter.operator) {
+                        case 'is':
+                            return value === filter.values
+                        case 'isAnyOf':
+                            return Array.isArray(filter.values) && (filter.values as any[]).includes(value)
+                        case 'isNot':
+                            return value !== filter.values
+                        case 'isNoneOf':
+                            return Array.isArray(filter.values) && !(filter.values as any[]).includes(value)
+                        case 'isEmpty':
+                            return value == null || value === ''
+                        case 'isNotEmpty':
+                            return value != null && value !== ''
+                        default:
+                            return true
+                    }
+                
+                case 'date':
+                    const dateValue = new Date(value)
+                    const dateFilter = Array.isArray(filter.values) ? new Date(filter.values[0]) : new Date(filter.values as any)
+                    
+                    switch (filter.operator) {
+                        case 'equals':
+                            return dateValue.toDateString() === dateFilter.toDateString()
+                        case 'before':
+                            return dateValue < dateFilter
+                        case 'after':
+                            return dateValue > dateFilter
+                        case 'between':
+                            if (Array.isArray(filter.values) && filter.values.length === 2) {
+                                const startDate = new Date(filter.values[0])
+                                const endDate = new Date(filter.values[1])
+                                return dateValue >= startDate && dateValue <= endDate
+                            }
+                            return true
+                        case 'isEmpty':
+                            return value == null
+                        case 'isNotEmpty':
+                            return value != null
+                        default:
+                            return true
+                    }
+                
                 default:
-                    return true
+                    // Fallback for backward compatibility
+                    switch (filter.operator) {
+                        case 'contains':
+                            return String(value).toLowerCase().includes(String(filter.values).toLowerCase())
+                        case 'equals':
+                        case 'is':
+                            return value === filter.values
+                        default:
+                            return true
+                    }
             }
         })
     })
@@ -322,22 +424,34 @@ export function useColumnConfigFromTableColumns(
         console.log("useColumnConfigFromTableColumns - Type mapping:", typeMapping)
         
         columns.forEach(column => {
-            // Temporairement, on ignore la condition canFilter === false
-            // if (column.canFilter === false) return
-            
             // Skip system columns
             if (column.id === 'select' || column.id === 'actions') return
             
             const type = typeMapping[column.id] || 'text'
             
+            // Enhanced configuration based on our table config structure
             config[column.id] = {
                 type,
-                filterable: true,
-                faceted: type !== 'text',
-                placeholder: `Filter by ${column.label}...`,
-                ...(type === 'number' && { min: 0, max: 100 }),
+                filterable: column.canFilter !== false,
+                faceted: type === 'option' || type === 'multiOption',
+                placeholder: column.placeholder || `Filter by ${column.label}...`,
+                ...(column.description && { description: column.description }),
+                ...(type === 'number' && { 
+                    min: column.min || 0, 
+                    max: column.max || 10000 
+                }),
                 ...(type === 'option' && { 
-                    options: getOptionsForColumn(column.id, type)
+                    options: column.options || getOptionsForColumn(column.id, type),
+                    operators: ['is', 'isAnyOf', 'isNot', 'isEmpty', 'isNotEmpty']
+                }),
+                ...(type === 'text' && {
+                    operators: ['contains', 'equals', 'startsWith', 'endsWith', 'notContains', 'isEmpty', 'isNotEmpty']
+                }),
+                ...(type === 'number' && {
+                    operators: ['equals', 'greaterThan', 'lessThan', 'greaterThanOrEqual', 'lessThanOrEqual', 'between', 'notEquals', 'isEmpty', 'isNotEmpty']
+                }),
+                ...(type === 'date' && {
+                    operators: ['equals', 'before', 'after', 'between', 'notEquals', 'isEmpty', 'isNotEmpty']
                 })
             }
         })
@@ -351,12 +465,21 @@ export function useColumnConfigFromTableColumns(
 function getOptionsForColumn(columnId: string, type: ColumnDataType): any[] | undefined {
     if (type !== 'option') return undefined
     
-    // Static options for our example
+    // Static options for our example - using consistent {value, label} format
     switch (columnId) {
         case 'category':
-            return ["Laptops", "Phones", "Tablets", "Accessories"]
+            return [
+                { value: "Laptops", label: "Laptops" },
+                { value: "Phones", label: "Phones" },
+                { value: "Tablets", label: "Tablets" },
+                { value: "Accessories", label: "Accessories" }
+            ]
         case 'status':
-            return ["In Stock", "Low Stock", "Out of Stock"]
+            return [
+                { value: "In Stock", label: "In Stock" },
+                { value: "Low Stock", label: "Low Stock" },
+                { value: "Out of Stock", label: "Out of Stock" }
+            ]
         case 'isActive':
             return [
                 { value: true, label: "Active" },

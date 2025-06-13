@@ -59,7 +59,7 @@ export function useFormBuilder<TFieldValues extends FieldValues>({
     // Create a form instance with the schema and default values
     const form = useForm<TFieldValues>({
         defaultValues,
-        resolver: zodResolver(config.schema),
+        resolver: zodResolver(config.schema as any),
         ...formOptions
     })
 

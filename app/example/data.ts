@@ -51,6 +51,106 @@ export const products: Product[] = [
     brand: "Apple",
     createdAt: new Date("2024-02-15"),
     isActive: true
+  },
+  {
+    id: "6",
+    name: "MacBook Air M3",
+    price: 1299,
+    status: "In Stock",
+    category: "Laptops",
+    brand: "Apple",
+    createdAt: new Date("2024-03-10"),
+    isActive: true
+  },
+  {
+    id: "7",
+    name: "Samsung Galaxy Tab S9",
+    price: 799,
+    status: "Low Stock",
+    category: "Tablets",
+    brand: "Samsung",
+    createdAt: new Date("2024-02-28"),
+    isActive: true
+  },
+  {
+    id: "8",
+    name: "AirPods Pro",
+    price: 249,
+    status: "In Stock",
+    category: "Accessories",
+    brand: "Apple",
+    createdAt: new Date("2024-03-05"),
+    isActive: true
+  },
+  {
+    id: "9",
+    name: "Google Pixel 8",
+    price: 699,
+    status: "Out of Stock",
+    category: "Phones",
+    brand: "Google",
+    createdAt: new Date("2024-01-25"),
+    isActive: false
+  },
+  {
+    id: "10",
+    name: "ThinkPad X1 Carbon",
+    price: 1899,
+    status: "In Stock",
+    category: "Laptops",
+    brand: "Lenovo",
+    createdAt: new Date("2024-02-20"),
+    isActive: true
+  },
+  {
+    id: "11",
+    name: "Surface Pro 9",
+    price: 1199,
+    status: "Low Stock",
+    category: "Tablets",
+    brand: "Microsoft",
+    createdAt: new Date("2024-01-30"),
+    isActive: true
+  },
+  {
+    id: "12",
+    name: "Samsung Galaxy Buds",
+    price: 149,
+    status: "In Stock",
+    category: "Accessories",
+    brand: "Samsung",
+    createdAt: new Date("2024-03-12"),
+    isActive: true
+  },
+  {
+    id: "13",
+    name: "HP Spectre x360",
+    price: 1599,
+    status: "Out of Stock",
+    category: "Laptops",
+    brand: "HP",
+    createdAt: new Date("2024-02-05"),
+    isActive: false
+  },
+  {
+    id: "14",
+    name: "OnePlus 12",
+    price: 799,
+    status: "In Stock",
+    category: "Phones",
+    brand: "OnePlus",
+    createdAt: new Date("2024-03-08"),
+    isActive: true
+  },
+  {
+    id: "15",
+    name: "Magic Mouse",
+    price: 99,
+    status: "In Stock",
+    category: "Accessories",
+    brand: "Apple",
+    createdAt: new Date("2024-02-25"),
+    isActive: true
   }
 ]
 

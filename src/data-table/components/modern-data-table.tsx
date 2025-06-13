@@ -20,6 +20,7 @@ import { DataTableColumnHeader } from "../components/columns/header/column-heade
 import { useColumnDnd } from "../components/columns/hooks/use-column-dnd"
 import { useColumnDragOverlay } from "../components/columns/hooks/use-column-drag-overlay"
 import { useDataTable } from "../hooks/use-data-table"
+import { useTableInstance } from "../hooks/use-table-instance"
 
 import { ColumnDragOverlay } from "./columns"
 import { DataTablePagination } from "./data-table-pagination"
@@ -181,14 +182,33 @@ function ModernDataTable<TData extends Record<string, unknown>, TValue = unknown
     )
 
     const {
-        data,
+        data: fetchedData,
         error,
         isError,
         isLoading,
         refetch,
         state,
-        tableInstance: table
+        tableInstance: originalTable
     } = useDataTable(tableConfig)
+
+    // Use provided data (potentially filtered) or fallback to fetched data
+    const data = initialData.length > 0 ? initialData : fetchedData
+
+    // Create a table instance with the actual data to be used (filtered or not)
+    const table = useTableInstance({
+        columns: columns as ColumnDef<TData>[],
+        data: data as TData[],
+        enableColumnFilters,
+        enableMultiRowSelection,
+        enablePagination,
+        enableRowSelection,
+        enableSorting,
+        getRowId,
+        manualFiltering,
+        manualPagination,
+        manualSorting,
+        tableId: tableId || ""
+    })
 
     // Handle row selection changes
     useEffect(() => {
@@ -345,7 +365,7 @@ function ModernDataTable<TData extends Record<string, unknown>, TValue = unknown
                                                 header.id === "actions" &&
                                                     "sticky right-0 z-10 shadow-md"
                                             )}
-                                            column={header.column}
+                                            column={header.column as any}
                                             id={header.id}
                                             isDragEnabled={isDragEnabled && !isFixedPosition}
                                             key={header.id}
