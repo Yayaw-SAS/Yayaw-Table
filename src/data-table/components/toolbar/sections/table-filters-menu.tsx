@@ -72,7 +72,7 @@ export function TableFiltersMenu({
                 <StackMenuContent className="p-0">
                     {/* Debug info */}
                     {DEBUG && (
-                        <div className="m-3 p-2 bg-yellow-100 border border-yellow-300 rounded text-xs">
+                        <div className="m-3 p-2 border border-red-300 rounded text-xs">
                             <div>Debug Info (Advanced Mode):</div>
                             <div>• Columns: {columns.length}</div>
                             <div>• Advanced Filters: {advancedFilters.length}</div>

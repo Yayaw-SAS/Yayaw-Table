@@ -287,7 +287,6 @@ export function AdvancedTableFiltersMenu({
                             <div className="text-center py-6 text-muted-foreground">
                                 <Filter className="h-8 w-8 mx-auto mb-2 opacity-50" />
                                 <p className="text-sm">No active filters</p>
-                                <p className="text-xs">Click on a column to add a filter</p>
                             </div>
                         )}
                     </div>

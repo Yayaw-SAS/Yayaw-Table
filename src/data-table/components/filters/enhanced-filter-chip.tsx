@@ -324,7 +324,7 @@ export function EnhancedFilterChip({
                 </PopoverTrigger>
 
                 <PopoverContent 
-                    className="w-80 p-4"
+                    className="min-w-80 max-w-96 w-auto p-4"
                     align="start"
                     side="bottom"
                     sideOffset={4}

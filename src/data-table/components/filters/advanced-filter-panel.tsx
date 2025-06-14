@@ -26,6 +26,12 @@ import {
     PopoverContent,
     PopoverTrigger
 } from "@/components/ui/popover"
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger
+} from "@/components/ui/tooltip"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
@@ -185,7 +191,7 @@ function FilterChip({
                         )}
                     </button>
                 </PopoverTrigger>
-                <PopoverContent className="w-80 p-4" align="start">
+                <PopoverContent className="min-w-80 max-w-96 w-auto p-4" align="start">
                     <div className="space-y-3">
                         <Label className="text-sm font-medium">
                             Edit filter for {columnLabel}
@@ -328,7 +334,15 @@ export function AdvancedFilterPanel({
                         }}
                     />
                 ) : (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between p-3 rounded-lg border border-dashed border-muted bg-muted/20">
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2">
+                                <Filter className="h-4 w-4 text-muted-foreground opacity-50 shrink-0" />
+                                <span className="text-sm text-muted-foreground">
+                                    No filters applied
+                                </span>
+                            </div>
+                        </div>
                         <ModernAddFilterDropdown
                             columnsConfig={columnsConfig}
                             onAddFilter={handleAddFilter}
@@ -337,9 +351,6 @@ export function AdvancedFilterPanel({
                             disabled={disabled}
                             placeholder="Add filter..."
                         />
-                        <span className="text-sm text-muted-foreground">
-                            No filters applied
-                        </span>
                     </div>
                 )}
                 
@@ -532,26 +543,46 @@ export function CompactFilterPanel({
 
     if (filters.length === 0) {
         return (
-            <ModernAddFilterDropdown
-                columnsConfig={columnsConfig}
-                onAddFilter={(columnId, type) => {
-                    const config = columnsConfig[columnId]
-                    if (!config) return
+            <div className="flex items-center justify-between gap-3 p-2 rounded-md border border-dashed border-muted bg-muted/10">
+                <div className="flex items-center gap-2">
+                    <Filter className="h-3 w-3 text-muted-foreground opacity-50 shrink-0" />
+                    <span className="text-xs text-muted-foreground">
+                        No filters
+                    </span>
+                </div>
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <div>
+                                <ModernAddFilterDropdown
+                                    columnsConfig={columnsConfig}
+                                    onAddFilter={(columnId, type) => {
+                                        const config = columnsConfig[columnId]
+                                        if (!config) return
 
-                    const operator = getDefaultFilterOperator(type)
-                    const value = getDefaultFilterValue(type, operator)
+                                        const operator = getDefaultFilterOperator(type)
+                                        const value = getDefaultFilterValue(type, operator)
 
-                    actions.addFilter({
-                        columnId,
-                        type,
-                        operator,
-                        values: value,
-                        isActive: true
-                    })
-                }}
-                disabled={disabled}
-                placeholder="Add filter..."
-            />
+                                        actions.addFilter({
+                                            columnId,
+                                            type,
+                                            operator,
+                                            values: value,
+                                            isActive: true
+                                        })
+                                    }}
+                                    disabled={disabled}
+                                    placeholder="Add filter..."
+                                    size="sm"
+                                />
+                            </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Add filters to narrow down results</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+            </div>
         )
     }
 
@@ -568,7 +599,7 @@ export function CompactFilterPanel({
                     {activeFiltersCount > 0 ? `${activeFiltersCount} filters` : 'Filter'}
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-96 p-4" align="start">
+            <PopoverContent className="min-w-96 max-w-screen-sm w-auto p-4" align="start">
                 <div className="space-y-3">
                     <div className="flex items-center justify-between">
                         <Label className="font-medium">Filters</Label>
@@ -584,7 +615,7 @@ export function CompactFilterPanel({
                         )}
                     </div>
                     
-                    <ScrollArea className="max-h-64">
+                    <div className="max-h-80 overflow-y-auto">
                         <div className="space-y-2">
                             {filters.map((filter) => {
                                 const config = columnsConfig[filter.columnId]
@@ -603,7 +634,7 @@ export function CompactFilterPanel({
                                 )
                             })}
                         </div>
-                    </ScrollArea>
+                    </div>
 
                     <Separator />
 

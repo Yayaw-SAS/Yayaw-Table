@@ -145,7 +145,7 @@ export function TableMenu({
     const getNavigationTitle = (viewName: string) => {
         switch (viewName) {
             case "columns":
-                return t("menu.columns")
+                return t("menu.properties")
             case "filters":
                 return t("menu.filters")
             case "group":

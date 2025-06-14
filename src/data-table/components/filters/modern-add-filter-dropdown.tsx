@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 import { 
     Plus, 
@@ -23,7 +24,8 @@ import {
     Filter,
     Zap,
     Clock,
-    Tag
+    Tag,
+    Star
 } from "lucide-react"
 
 import type { ColumnsFilterConfig, ColumnDataType } from "../../types/filter-types"
@@ -122,6 +124,7 @@ export function ModernAddFilterDropdown({
     const [isOpen, setIsOpen] = useState(false)
     const [searchTerm, setSearchTerm] = useState('')
     const [selectedIndex, setSelectedIndex] = useState(0)
+    const [activeTab, setActiveTab] = useState('popular')
     const searchInputRef = useRef<HTMLInputElement>(null)
 
     // Convert config to column options
@@ -150,20 +153,11 @@ export function ModernAddFilterDropdown({
              option.description?.toLowerCase().includes(searchLower))
         )
 
-        // Group by categories
-        const grouped: Record<string, ColumnOption[]> = {}
+        // Organize by tabs
+        const popularOptions = available.filter(opt => opt.isPopular).slice(0, 6)
+        const recentOptions = available.filter(opt => opt.isRecent && !opt.isPopular).slice(0, 6)
         
-        // Add recent if we have search term or recent items
-        if (searchTerm === '' && available.some(opt => opt.isRecent)) {
-            grouped.recent = available.filter(opt => opt.isRecent).slice(0, 3)
-        }
-        
-        // Add popular if no search term
-        if (searchTerm === '' && available.some(opt => opt.isPopular)) {
-            grouped.popular = available.filter(opt => opt.isPopular && !opt.isRecent).slice(0, 3)
-        }
-
-        // Group by data type
+        // Group by data type for "All" tab
         const byType = available.reduce((acc, option) => {
             const category = option.category || option.type
             if (!acc[category]) acc[category] = []
@@ -171,42 +165,13 @@ export function ModernAddFilterDropdown({
             return acc
         }, {} as Record<string, ColumnOption[]>)
 
-        // Merge type groups
-        Object.assign(grouped, byType)
-
-        return grouped
-    }, [columnOptions, existingFilterColumnIds, searchTerm])
-
-    // Flatten for keyboard navigation
-    const flatOptions = useMemo(() => {
-        return Object.values(filteredOptions).flat()
-    }, [filteredOptions])
-
-    // Handle keyboard navigation
-    const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (!isOpen) return
-
-        switch (e.key) {
-            case 'ArrowDown':
-                e.preventDefault()
-                setSelectedIndex(prev => Math.min(prev + 1, flatOptions.length - 1))
-                break
-            case 'ArrowUp':
-                e.preventDefault()
-                setSelectedIndex(prev => Math.max(prev - 1, 0))
-                break
-            case 'Enter':
-                e.preventDefault()
-                if (flatOptions[selectedIndex]) {
-                    handleSelectColumn(flatOptions[selectedIndex])
-                }
-                break
-            case 'Escape':
-                e.preventDefault()
-                setIsOpen(false)
-                break
+        return {
+            popular: popularOptions,
+            recent: recentOptions,
+            all: byType,
+            search: searchTerm ? available : []
         }
-    }
+    }, [columnOptions, existingFilterColumnIds, searchTerm])
 
     // Handle column selection
     const handleSelectColumn = (option: ColumnOption) => {
@@ -243,6 +208,56 @@ export function ModernAddFilterDropdown({
         lg: "h-5 w-5"
     }
 
+    // Column option component
+    const ColumnOptionItem = ({ option }: { option: ColumnOption }) => {
+        const TypeIcon = typeIcons[option.type]
+        
+        return (
+            <button
+                onClick={() => handleSelectColumn(option)}
+                className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2 rounded-md text-left transition-all duration-150",
+                    "hover:bg-accent/50 group"
+                )}
+            >
+                {/* Type Icon */}
+                <div className={cn(
+                    "flex items-center justify-center w-6 h-6 rounded border",
+                    typeColors[option.type]
+                )}>
+                    <TypeIcon className="h-3 w-3" />
+                </div>
+
+                {/* Column Info */}
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                        <span className="font-medium text-sm truncate">
+                            {option.label}
+                        </span>
+                        {option.isRecent && (
+                            <Badge variant="secondary" className="text-xs">
+                                Recent
+                            </Badge>
+                        )}
+                        {option.isPopular && (
+                            <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700">
+                                Popular
+                            </Badge>
+                        )}
+                    </div>
+                    {option.description && (
+                        <p className="text-xs text-muted-foreground truncate">
+                            {option.description}
+                        </p>
+                    )}
+                </div>
+
+                {/* Add Icon */}
+                <Plus className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+            </button>
+        )
+    }
+
     return (
         <Popover open={isOpen} onOpenChange={handleOpenChange}>
             <PopoverTrigger asChild>
@@ -256,7 +271,6 @@ export function ModernAddFilterDropdown({
                         "hover:shadow-sm",
                         className
                     )}
-                    onKeyDown={handleKeyDown}
                 >
                     <Plus className={cn("mr-1", iconSizes[size])} />
                     {placeholder}
@@ -264,7 +278,7 @@ export function ModernAddFilterDropdown({
             </PopoverTrigger>
 
             <PopoverContent 
-                className="w-80 p-0" 
+                className="min-w-80 max-w-96 w-auto p-0" 
                 align="start"
                 side="bottom"
                 sideOffset={4}
@@ -279,113 +293,130 @@ export function ModernAddFilterDropdown({
                             onChange={(e) => setSearchTerm(e.target.value)}
                             placeholder="Search columns..."
                             className="border-none p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0"
-                            onKeyDown={handleKeyDown}
                         />
                     </div>
                 </div>
 
-                <ScrollArea className="max-h-96">
-                    <div className="p-2">
-                        {Object.keys(filteredOptions).length === 0 ? (
-                            // Empty state
-                            <div className="text-center py-8 text-muted-foreground">
-                                <Filter className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                                <p className="text-sm">No columns available</p>
-                                <p className="text-xs">All filterable columns are already in use</p>
-                            </div>
-                        ) : (
-                            // Categories
-                            Object.entries(filteredOptions).map(([categoryKey, options], categoryIndex) => {
-                                const category = categories[categoryKey as keyof typeof categories]
-                                const CategoryIcon = category?.icon || Filter
-
-                                return (
-                                    <div key={categoryKey}>
-                                        {categoryIndex > 0 && <Separator className="my-2" />}
-                                        
-                                        {/* Category Header */}
-                                        <div className="flex items-center gap-2 px-2 py-1 mb-1">
-                                            <CategoryIcon className={cn(
-                                                "h-3 w-3",
-                                                category?.color || "text-muted-foreground"
-                                            )} />
-                                            <span className="text-xs font-medium text-muted-foreground">
-                                                {category?.label || categoryKey}
-                                            </span>
-                                            <Badge variant="secondary" className="text-xs">
-                                                {options.length}
-                                            </Badge>
-                                        </div>
-
-                                        {/* Category Options */}
-                                        <div className="space-y-1">
-                                            {options.map((option, optionIndex) => {
-                                                const globalIndex = Object.values(filteredOptions)
-                                                    .slice(0, categoryIndex)
-                                                    .flat().length + optionIndex
-                                                const TypeIcon = typeIcons[option.type]
-                                                const isSelected = globalIndex === selectedIndex
-
-                                                return (
-                                                    <button
-                                                        key={option.id}
-                                                        onClick={() => handleSelectColumn(option)}
-                                                        className={cn(
-                                                            "w-full flex items-center gap-3 px-2 py-2 rounded-md text-left transition-all duration-150",
-                                                            "hover:bg-accent/50",
-                                                            isSelected && "bg-accent"
-                                                        )}
-                                                    >
-                                                        {/* Type Icon */}
-                                                        <div className={cn(
-                                                            "flex items-center justify-center w-6 h-6 rounded border",
-                                                            typeColors[option.type]
-                                                        )}>
-                                                            <TypeIcon className="h-3 w-3" />
-                                                        </div>
-
-                                                        {/* Column Info */}
-                                                        <div className="flex-1 min-w-0">
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="font-medium text-sm truncate">
-                                                                    {option.label}
-                                                                </span>
-                                                                {option.isRecent && (
-                                                                    <Badge variant="secondary" className="text-xs">
-                                                                        Recent
-                                                                    </Badge>
-                                                                )}
-                                                                {option.isPopular && (
-                                                                    <Badge variant="secondary" className="text-xs">
-                                                                        Popular
-                                                                    </Badge>
-                                                                )}
-                                                            </div>
-                                                            {option.description && (
-                                                                <p className="text-xs text-muted-foreground truncate">
-                                                                    {option.description}
-                                                                </p>
-                                                            )}
-                                                        </div>
-
-                                                        {/* Add Icon */}
-                                                        <Plus className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                                                    </button>
-                                                )
-                                            })}
-                                        </div>
-                                    </div>
-                                )
-                            })
-                        )}
+                {searchTerm ? (
+                    // Search Results
+                    <div className="max-h-80 overflow-y-auto">
+                        <div className="p-2">
+                            {filteredOptions.search.length === 0 ? (
+                                <div className="text-center py-8 text-muted-foreground">
+                                    <Filter className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                                    <p className="text-sm">No columns found</p>
+                                    <p className="text-xs">Try a different search term</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-1">
+                                    {filteredOptions.search.map((option) => (
+                                        <ColumnOptionItem key={option.id} option={option} />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
-                </ScrollArea>
+                ) : (
+                    // Tabbed Interface
+                    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                        <div className="border-b border-border px-3">
+                            <TabsList className="grid w-full grid-cols-3 h-8">
+                                <TabsTrigger value="popular" className="text-xs">
+                                    <Star className="h-3 w-3 mr-1" />
+                                    Popular
+                                </TabsTrigger>
+                                <TabsTrigger value="recent" className="text-xs">
+                                    <Clock className="h-3 w-3 mr-1" />
+                                    Recent
+                                </TabsTrigger>
+                                <TabsTrigger value="all" className="text-xs">
+                                    <Filter className="h-3 w-3 mr-1" />
+                                    All
+                                </TabsTrigger>
+                            </TabsList>
+                        </div>
+
+                        <div className="max-h-80 overflow-y-auto">
+                            <TabsContent value="popular" className="p-2 m-0">
+                                {filteredOptions.popular.length === 0 ? (
+                                    <div className="text-center py-6 text-muted-foreground">
+                                        <Star className="h-6 w-6 mx-auto mb-2 opacity-50" />
+                                        <p className="text-sm">No popular filters</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-1">
+                                        {filteredOptions.popular.map((option) => (
+                                            <ColumnOptionItem key={option.id} option={option} />
+                                        ))}
+                                    </div>
+                                )}
+                            </TabsContent>
+
+                            <TabsContent value="recent" className="p-2 m-0">
+                                {filteredOptions.recent.length === 0 ? (
+                                    <div className="text-center py-6 text-muted-foreground">
+                                        <Clock className="h-6 w-6 mx-auto mb-2 opacity-50" />
+                                        <p className="text-sm">No recent filters</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-1">
+                                        {filteredOptions.recent.map((option) => (
+                                            <ColumnOptionItem key={option.id} option={option} />
+                                        ))}
+                                    </div>
+                                )}
+                            </TabsContent>
+
+                            <TabsContent value="all" className="p-2 m-0">
+                                {Object.keys(filteredOptions.all).length === 0 ? (
+                                    <div className="text-center py-6 text-muted-foreground">
+                                        <Filter className="h-6 w-6 mx-auto mb-2 opacity-50" />
+                                        <p className="text-sm">No columns available</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {Object.entries(filteredOptions.all).map(([categoryKey, options], index) => {
+                                            const category = categories[categoryKey as keyof typeof categories]
+                                            const CategoryIcon = category?.icon || Filter
+
+                                            return (
+                                                <div key={categoryKey}>
+                                                    {index > 0 && <Separator className="my-2" />}
+                                                    
+                                                    {/* Category Header */}
+                                                    <div className="flex items-center gap-2 px-2 py-1 mb-2">
+                                                        <CategoryIcon className={cn(
+                                                            "h-3 w-3",
+                                                            category?.color || "text-muted-foreground"
+                                                        )} />
+                                                        <span className="text-xs font-medium text-muted-foreground">
+                                                            {category?.label || categoryKey}
+                                                        </span>
+                                                        <Badge variant="secondary" className="text-xs h-4">
+                                                            {options.length}
+                                                        </Badge>
+                                                    </div>
+
+                                                    {/* Category Options */}
+                                                    <div className="space-y-1">
+                                                        {options.map((option) => (
+                                                            <ColumnOptionItem key={option.id} option={option} />
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                )}
+                            </TabsContent>
+                        </div>
+                    </Tabs>
+                )}
 
                 {/* Footer */}
                 <div className="border-t border-border p-2">
                     <p className="text-xs text-muted-foreground text-center">
-                        Press <kbd className="px-1 py-0.5 bg-muted rounded text-xs">↑↓</kbd> to navigate, 
-                        <kbd className="px-1 py-0.5 bg-muted rounded text-xs ml-1">Enter</kbd> to select
+                        {searchTerm ? 'Press Esc to clear search' : 'Use tabs to navigate categories'}
                     </p>
                 </div>
             </PopoverContent>
