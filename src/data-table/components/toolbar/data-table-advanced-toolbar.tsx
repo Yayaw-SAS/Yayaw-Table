@@ -336,7 +336,8 @@ export function DataTableAdvancedToolbar<TData>({
         setColumnFilters,
         setColumnVisibility: dataTableSetColumnVisibility,
         setGrouping,
-        setSorting
+        setSorting,
+        state: dataTableState
     } = useDataTable({
         tableType: tableId
     })
@@ -380,7 +381,7 @@ export function DataTableAdvancedToolbar<TData>({
 
     const finalSetGrouping = props.setGrouping || setGrouping
     const finalSetSorting = props.setSorting || setSorting
-    const finalSorting = props.sorting || state?.sorting || []
+    const finalSorting = props.sorting || dataTableState?.sorting || state?.sorting || []
 
     // Get the setter for the form state atom
     const setFormState = useSetAtom(catalogueFormAtom)
@@ -423,6 +424,8 @@ export function DataTableAdvancedToolbar<TData>({
             "DataTableAdvancedToolbar - finalColumnVisibility state:",
             finalColumnVisibility
         )
+        console.log("DataTableAdvancedToolbar - finalSorting:", finalSorting)
+        console.log("DataTableAdvancedToolbar - dataTableState.sorting:", dataTableState?.sorting)
     }
 
     return (

@@ -415,14 +415,22 @@ export function useDataTable<TData extends Record<string, unknown>>(options: Use
             const colDef = col as ColumnDef<TData>
             let label: string
 
-            // Simplified header handling - just use the ID or a default label
+            // Use proper header handling with translations
             if (colDef.id === "select") {
-                label = "Selection"
+                label = t("common.selection")
             } else if (colDef.id === "actions") {
-                label = "Actions"
+                label = t("actions.title")
             } else {
-                // For other columns, use the ID as the label
-                label = colDef.id || "Column"
+                // For other columns, try to get the translated header
+                if (typeof colDef.header === "string") {
+                    label = getTranslationSafe(colDef.header)
+                } else if (typeof colDef.header === "function") {
+                    // For function headers, use the column ID and try to translate it
+                    label = getTranslationSafe(colDef.id || "Column")
+                } else {
+                    // Fallback to translated column ID
+                    label = getTranslationSafe(colDef.id || "Column")
+                }
             }
 
             const result = {
@@ -434,7 +442,7 @@ export function useDataTable<TData extends Record<string, unknown>>(options: Use
             }
             return result
         })
-    }, [columns])
+    }, [columns, t, getTranslationSafe])
 
     // Create table instance with configuration
     const table = useReactTable({

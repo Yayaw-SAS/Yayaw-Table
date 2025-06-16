@@ -8,6 +8,7 @@ import {
 } from "@/src/components/ui-custom/stack-menu"
 import { ArrowDownAZ, ArrowUpAZ, ArrowUpDown, X } from "lucide-react"
 import { useTranslations } from "../../../providers/table-provider"
+import { useDataTable } from "../../../hooks/use-data-table"
 
 import type { SortingState } from "@tanstack/react-table"
 
@@ -32,6 +33,11 @@ export function TableSortMenu({
     tableId
 }: TableSortMenuProps) {
     const { t } = useTranslations()
+
+    // Get table configuration to access column headers with translations
+    const { config } = useDataTable({
+        tableType: tableId
+    })
 
     // Get sortable columns
     const sortableColumns = columns.filter((col) => {
@@ -58,19 +64,37 @@ export function TableSortMenu({
                 {sortableColumns.map((column) => {
                     const columnId = column.id
                     const sortOrder = sorting.find((sort) => sort.id === columnId)?.desc
+                    const isActiveSorted = sortOrder !== undefined
 
-                    // Use the label property directly (from our enriched object)
-                    const columnLabel = column.label || columnId
+                    // Get column configuration from table config to get proper translated header
+                    const columnConfig = config?.columns?.definitions?.find(
+                        (def: { id: string; header?: string }) => def.id === columnId
+                    )
+                    
+                    // Use translated header from config, with fallbacks
+                    let columnLabel: string
+                    if (columnId === "select") {
+                        columnLabel = t("common.selection")
+                    } else if (columnId === "actions") {
+                        columnLabel = t("actions.title")
+                    } else if (columnConfig?.header) {
+                        // Try to translate the header from config
+                        columnLabel = t(columnConfig.header)
+                    } else {
+                        // Fallback to the label from the column or columnId
+                        columnLabel = column.label || columnId
+                    }
 
                     return (
                         <StackMenuItem
+                            className={isActiveSorted ? "bg-accent font-medium" : ""}
                             icon={
                                 sortOrder === undefined ? (
-                                    <ArrowUpAZ className="h-5 w-5" />
+                                    <ArrowUpDown className="h-5 w-5 text-muted-foreground" />
                                 ) : sortOrder ? (
-                                    <ArrowDownAZ className="h-5 w-5" />
+                                    <ArrowDownAZ className="h-5 w-5 text-foreground" />
                                 ) : (
-                                    <ArrowUpAZ className="h-5 w-5" />
+                                    <ArrowUpAZ className="h-5 w-5 text-foreground" />
                                 )
                             }
                             key={columnId}
@@ -87,7 +111,9 @@ export function TableSortMenu({
                                 }
                             }}
                         >
-                            {columnLabel}
+                            <span className={isActiveSorted ? "font-medium" : ""}>
+                                {columnLabel}
+                            </span>
                         </StackMenuItem>
                     )
                 })}

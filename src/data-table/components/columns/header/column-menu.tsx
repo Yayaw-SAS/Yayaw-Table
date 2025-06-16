@@ -276,7 +276,7 @@ function ColumnMenuBase<TData>({
         return (
             <div className="z-50" ref={menuRef} style={floating.floatingStyles}>
                 <div className="rounded-md border bg-popover p-1 text-popover-foreground shadow-md">
-                    <div className="font-semibold text-sm">
+                    <div className="text-sm">
                         <SortingMenuItems
                             canSort={canSort}
                             onSort={handleSort}
