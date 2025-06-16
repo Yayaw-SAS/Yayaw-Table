@@ -35,6 +35,12 @@ interface DateColumnProps {
     dateFormat?: string
 
     /**
+     * Whether the column can be filtered
+     * @default true
+     */
+    enableColumnFilter?: boolean
+
+    /**
      * Whether the column can be hidden
      * @default true
      */
@@ -71,6 +77,7 @@ export function createDateColumn<TData>({
     accessorKey,
     className,
     dateFormat = "PPP",
+    enableColumnFilter = true,
     enableHiding = true,
     enableSorting = true,
     header,
@@ -90,6 +97,7 @@ export function createDateColumn<TData>({
                 />
             )
         },
+        enableColumnFilter,
         enableHiding,
         enableSorting,
         header: header || accessorKey,

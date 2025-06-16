@@ -34,6 +34,12 @@ interface NumberColumnProps {
     className?: string
 
     /**
+     * Whether the column can be filtered
+     * @default true
+     */
+    enableColumnFilter?: boolean
+
+    /**
      * Whether the column can be hidden
      * @default true
      */
@@ -63,6 +69,7 @@ interface NumberColumnProps {
 export function createNumberColumn<TData>({
     accessorKey,
     className,
+    enableColumnFilter = true,
     enableHiding = true,
     enableSorting = true,
     formatter,
@@ -76,6 +83,7 @@ export function createNumberColumn<TData>({
             const numValue = value as number | string
             return <NumberCell className={className} formatter={formatter} value={numValue} />
         },
+        enableColumnFilter,
         enableHiding,
         enableSorting,
         header: header || accessorKey,

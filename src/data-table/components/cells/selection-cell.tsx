@@ -8,6 +8,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 import type { Row } from "@tanstack/react-table"
 import { useCallback, useEffect, useState } from "react"
 
+const DEBUG = false
+
 export interface SelectionCellProps<TData> {
     /**
      * Optional CSS class name
@@ -52,11 +54,13 @@ export function SelectionCell<TData>({
         [row]
     )
 
-    console.log("[SelectionCell] Render:", {
-        disabled,
-        isSelected,
-        rowId: row.id
-    })
+    if (DEBUG) {
+        console.log("[SelectionCell] Render:", {
+            disabled,
+            isSelected,
+            rowId: row.id
+        })
+    }
 
     return (
         <div className={`flex items-center justify-center ${className}`}>

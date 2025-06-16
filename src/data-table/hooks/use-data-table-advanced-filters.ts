@@ -17,6 +17,8 @@ import { useDataTable } from "./use-data-table"
 import { useTableUrlState } from "./use-table-url-state"
 import { convertToTanStackFilters, convertFromTanStackFilters } from "../utils/advanced-filters"
 
+const DEBUG = false
+
 // Helper functions
 function generateId(): string {
     return Math.random().toString(36).substr(2, 9)
@@ -230,11 +232,13 @@ export function useDataTableAdvancedFilters<TData = Record<string, any>>(
     // Advanced filters from URL state
     const advancedFilters = advancedFiltersParam || []
 
-    console.log("useDataTableAdvancedFilters - URL state:", {
-        advancedFiltersParam,
-        advancedFilters,
-        tableType
-    })
+    if (DEBUG) {
+        console.log("useDataTableAdvancedFilters - URL state:", {
+            advancedFiltersParam,
+            advancedFilters,
+            tableType
+        })
+    }
 
     // Apply client-side filtering
     const filteredData = useMemo(() => {
@@ -265,8 +269,10 @@ export function useDataTableAdvancedFilters<TData = Record<string, any>>(
             }
             
             const newFilters = [...advancedFilters, newFilter]
-            console.log("advancedActions.addFilter - Adding filter:", newFilter)
-            console.log("advancedActions.addFilter - New filters:", newFilters)
+            if (DEBUG) {
+                console.log("advancedActions.addFilter - Adding filter:", newFilter)
+                console.log("advancedActions.addFilter - New filters:", newFilters)
+            }
             setAdvancedFiltersFromUI(newFilters)
         },
 
@@ -276,13 +282,17 @@ export function useDataTableAdvancedFilters<TData = Record<string, any>>(
                     ? { ...filter, ...updates, updatedAt: new Date() } 
                     : filter
             )
-            console.log("advancedActions.updateFilter - Updating filter:", filterId, updates)
+            if (DEBUG) {
+                console.log("advancedActions.updateFilter - Updating filter:", filterId, updates)
+            }
             setAdvancedFiltersFromUI(newFilters)
         },
 
         removeFilter: (filterId: string) => {
             const newFilters = advancedFilters.filter(filter => filter.id !== filterId)
-            console.log("advancedActions.removeFilter - Removing filter:", filterId)
+            if (DEBUG) {
+                console.log("advancedActions.removeFilter - Removing filter:", filterId)
+            }
             setAdvancedFiltersFromUI(newFilters)
         },
 
@@ -292,23 +302,31 @@ export function useDataTableAdvancedFilters<TData = Record<string, any>>(
                     ? { ...filter, isActive: !filter.isActive, updatedAt: new Date() } 
                     : filter
             )
-            console.log("advancedActions.toggleFilter - Toggling filter:", filterId)
+            if (DEBUG) {
+                console.log("advancedActions.toggleFilter - Toggling filter:", filterId)
+            }
             setAdvancedFiltersFromUI(newFilters)
         },
 
         clearFilters: () => {
-            console.log("advancedActions.clearFilters - Clearing all advanced filters")
+            if (DEBUG) {
+                console.log("advancedActions.clearFilters - Clearing all advanced filters")
+            }
             resetAdvancedFilters()
         },
 
         applyPreset: (preset: any) => {
             // TODO: Implement preset functionality
-            console.log("advancedActions.applyPreset - Not implemented yet", preset)
+            if (DEBUG) {
+                console.log("advancedActions.applyPreset - Not implemented yet", preset)
+            }
         },
 
         savePreset: (name: string, description?: string) => {
             // TODO: Implement preset functionality  
-            console.log("advancedActions.savePreset - Not implemented yet", name, description)
+            if (DEBUG) {
+                console.log("advancedActions.savePreset - Not implemented yet", name, description)
+            }
             return {
                 id: generateId(),
                 name,
@@ -420,8 +438,10 @@ export function useColumnConfigFromTableColumns(
     return useMemo(() => {
         const config: ColumnsFilterConfig = {}
         
-        console.log("useColumnConfigFromTableColumns - Input columns:", columns)
-        console.log("useColumnConfigFromTableColumns - Type mapping:", typeMapping)
+        if (DEBUG) {
+            console.log("useColumnConfigFromTableColumns - Input columns:", columns)
+            console.log("useColumnConfigFromTableColumns - Type mapping:", typeMapping)
+        }
         
         columns.forEach(column => {
             // Skip system columns
@@ -456,7 +476,9 @@ export function useColumnConfigFromTableColumns(
             }
         })
         
-        console.log("useColumnConfigFromTableColumns - Generated config:", config)
+        if (DEBUG) {
+            console.log("useColumnConfigFromTableColumns - Generated config:", config)
+        }
         return config
     }, [columns, typeMapping])
 }

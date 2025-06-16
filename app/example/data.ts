@@ -1,5 +1,6 @@
 import { type Product, type CreateProductData, type UpdateProductData } from './types'
 
+const DEBUG = process.env.NODE_ENV === 'development'
 // Sample data for products - Mutable array for testing CRUD operations
 export const products: Product[] = [
   {
@@ -163,7 +164,9 @@ export const productActions = {
     orderBy?: Record<string, 'asc' | 'desc'>
     search?: string
   }) => {
-    console.log("🚀 Server action 'list' called with params:", params)
+    if (DEBUG) {
+        console.log("🚀 Server action 'list' called with params:", params)
+    }
     
     const { 
       page = 1, 
@@ -244,7 +247,9 @@ export const productActions = {
       } 
     }
     
-    console.log("🎯 Server action 'list' returning:", result)
+    if (DEBUG) {
+        console.log("🎯 Server action 'list' returning:", result)
+    }
     return result
   },
 

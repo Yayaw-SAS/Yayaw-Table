@@ -19,6 +19,12 @@ export interface CodeColumnOptions {
     className?: string
 
     /**
+     * Whether the column can be filtered
+     * @default true
+     */
+    enableColumnFilter?: boolean
+
+    /**
      * Whether the column can be hidden
      * @default true
      */
@@ -59,6 +65,7 @@ type ExtendedColumnDef<TData> = ColumnDef<TData> & CustomColumnProps
  */
 export function createCodeColumn<TData>({
     className = "",
+    enableColumnFilter = true,
     enableHiding = true,
     enableSorting = true,
     header,
@@ -69,6 +76,7 @@ export function createCodeColumn<TData>({
         cell: ({ getValue }: { getValue: () => unknown }) => (
             <CodeCell className={className} value={getValue()} />
         ),
+        enableColumnFilter,
         enableHiding,
         enableSorting,
         header,

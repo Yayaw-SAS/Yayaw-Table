@@ -345,7 +345,9 @@ function ModernDataTable<TData extends Record<string, unknown>, TValue = unknown
     // Optimize table header with better memoization
     const tableHeader = useMemo(
         () => {
-            console.log("🔄 [ModernDataTable] Re-rendering tableHeader, columnOrder:", columnOrder)
+            if (DEBUG) {
+                console.log("🔄 [ModernDataTable] Re-rendering tableHeader, columnOrder:", columnOrder)
+            }
             return (
                 <TableHeader>
                     {table.getHeaderGroups().map((headerGroup) => (

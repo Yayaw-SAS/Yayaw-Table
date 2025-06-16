@@ -27,6 +27,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import { useTableUrlState } from "./use-table-url-state"
 
+const DEBUG = false
 /**
  * Options for the useTableInstance hook
  */
@@ -448,30 +449,38 @@ export function useTableInstance<TData>({
 
     // Sync table column order when URL state changes
     useEffect(() => {
-        console.log("🔍 [useTableInstance] Effect triggered:", {
-            hasTableInstance: !!tableInstance,
+        if (DEBUG) {
+            console.log("🔍 [useTableInstance] Effect triggered:", {
+                hasTableInstance: !!tableInstance,
             orderParam,
             orderParamType: typeof orderParam,
             orderParamLength: Array.isArray(orderParam) ? orderParam.length : 'not array'
-        })
+            })
+        }
         
         if (tableInstance && orderParam && Array.isArray(orderParam) && orderParam.length > 0) {
             const currentOrder = tableInstance.getState().columnOrder
             const urlOrder = orderParam as string[]
             
-            console.log("🔍 [useTableInstance] Comparing orders:", {
-                currentOrder,
+            if (DEBUG) {
+                console.log("🔍 [useTableInstance] Comparing orders:", {
+                    currentOrder,
                 urlOrder,
                 areEqual: JSON.stringify(currentOrder) === JSON.stringify(urlOrder)
-            })
+                })
+            }
             
             // Only update if the order actually changed
             if (JSON.stringify(currentOrder) !== JSON.stringify(urlOrder)) {
-                console.log("🔄 [useTableInstance] Syncing column order from URL state:", urlOrder)
+                if (DEBUG) {
+                    console.log("🔄 [useTableInstance] Syncing column order from URL state:", urlOrder)
+                }
                 tableInstance.setColumnOrder(urlOrder)
                 
                 // Force a re-render by getting the state after update
-                console.log("✅ [useTableInstance] New order set:", tableInstance.getState().columnOrder)
+                if (DEBUG) {
+                    console.log("✅ [useTableInstance] New order set:", tableInstance.getState().columnOrder)
+                }
             }
         }
     }, [tableInstance, orderParam])

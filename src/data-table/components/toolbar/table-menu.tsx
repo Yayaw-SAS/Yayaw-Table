@@ -100,6 +100,7 @@ export function TableMenu({
     const menuRef = useRef<HTMLDivElement>(null)
     const [visibleCount, setVisibleCount] = useState(0)
 
+
     if (DEBUG) {
         console.log("TableMenu - columns:", columns)
         console.log("TableMenu - state:", state)

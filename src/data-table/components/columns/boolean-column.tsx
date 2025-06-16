@@ -16,6 +16,12 @@ interface BooleanColumnProps {
     accessorKey: string
 
     /**
+     * Whether the column can be filtered
+     * @default true
+     */
+    enableColumnFilter?: boolean
+
+    /**
      * Whether the column can be hidden
      * @default true
      */
@@ -39,6 +45,7 @@ interface BooleanColumnProps {
  */
 export function createBooleanColumn<TData>({
     accessorKey,
+    enableColumnFilter = true,
     enableHiding = true,
     enableSorting = true,
     header
@@ -55,6 +62,7 @@ export function createBooleanColumn<TData>({
 
             return <BooleanCell value={Boolean(value)} />
         },
+        enableColumnFilter,
         enableHiding,
         enableSorting,
         header: header || accessorKey,

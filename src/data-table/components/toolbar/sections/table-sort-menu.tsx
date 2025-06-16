@@ -34,11 +34,15 @@ export function TableSortMenu({
     const { t } = useTranslations()
 
     // Get sortable columns
-    const sortableColumns = columns.filter((col) =>
-        typeof col.getCanSort === "function" ? col.getCanSort() : col.canSort !== false
-    )
+    const sortableColumns = columns.filter((col) => {
+        const canSort = typeof col.getCanSort === "function" ? col.getCanSort() : col.canSort !== false
+        return canSort
+    })
+    
     // Skip rendering if no sortable columns
-    if (sortableColumns.length === 0) return null
+    if (sortableColumns.length === 0) {
+        return null
+    }
 
     return (
         <StackMenuView name="sort">

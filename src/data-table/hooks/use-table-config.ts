@@ -17,6 +17,7 @@ export interface TableCatalogueColumnConfig {
     type: string
     header: string
     enableSorting?: boolean
+    enableColumnFilter?: boolean
     typeKey?: string
     customRenderers?: Record<string, (value: unknown) => React.ReactNode>
 }

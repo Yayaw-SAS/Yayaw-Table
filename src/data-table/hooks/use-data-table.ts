@@ -271,6 +271,7 @@ export function useDataTable<TData extends Record<string, unknown>>(options: Use
                 case "boolean":
                     columnDefs.push(
                         column.boolean(colDef.id as keyof TData, {
+                            enableColumnFilter: colDef.enableColumnFilter,
                             enableSorting: colDef.enableSorting,
                             header: getTranslationSafe(colDef.header)
                         })
@@ -279,6 +280,7 @@ export function useDataTable<TData extends Record<string, unknown>>(options: Use
                 case "code":
                     columnDefs.push(
                         column.code(colDef.id as keyof TData, {
+                            enableColumnFilter: colDef.enableColumnFilter,
                             enableSorting: colDef.enableSorting,
                             header: getTranslationSafe(colDef.header)
                         })
@@ -287,6 +289,7 @@ export function useDataTable<TData extends Record<string, unknown>>(options: Use
                 case "date":
                     columnDefs.push(
                         column.date(colDef.id as keyof TData, {
+                            enableColumnFilter: colDef.enableColumnFilter,
                             enableSorting: colDef.enableSorting,
                             header: getTranslationSafe(colDef.header)
                         })
@@ -313,6 +316,7 @@ export function useDataTable<TData extends Record<string, unknown>>(options: Use
                     // Use number column for proper number formatting
                     columnDefs.push(
                         column.number(colDef.id as keyof TData, {
+                            enableColumnFilter: colDef.enableColumnFilter,
                             enableSorting: colDef.enableSorting,
                             header: getTranslationSafe(colDef.header)
                         })
@@ -321,6 +325,7 @@ export function useDataTable<TData extends Record<string, unknown>>(options: Use
                 case "tag":
                     columnDefs.push(
                         column.tag(colDef.id as keyof TData, {
+                            enableColumnFilter: colDef.enableColumnFilter,
                             enableSorting: colDef.enableSorting,
                             header: getTranslationSafe(colDef.header)
                         })
@@ -329,6 +334,7 @@ export function useDataTable<TData extends Record<string, unknown>>(options: Use
                 case "text":
                     columnDefs.push(
                         column.text(colDef.id as keyof TData, {
+                            enableColumnFilter: colDef.enableColumnFilter,
                             enableSorting: colDef.enableSorting,
                             header: getTranslationSafe(colDef.header)
                         })
@@ -339,6 +345,7 @@ export function useDataTable<TData extends Record<string, unknown>>(options: Use
                     // Default to text column
                     columnDefs.push(
                         column.text(colDef.id as keyof TData, {
+                            enableColumnFilter: colDef.enableColumnFilter,
                             enableSorting: colDef.enableSorting,
                             header: getTranslationSafe(colDef.header)
                         })
@@ -418,13 +425,14 @@ export function useDataTable<TData extends Record<string, unknown>>(options: Use
                 label = colDef.id || "Column"
             }
 
-            return {
-                canFilter: true, // Default to true, actual filtering capability is handled by the column implementation
-                canHide: true, // Default to true, actual hiding capability is handled by the column implementation
-                canSort: true, // Default to true, actual sorting capability is handled by the column implementation
+            const result = {
+                canFilter: colDef.enableColumnFilter !== false,
+                canHide: colDef.enableHiding !== false,
+                canSort: colDef.enableSorting !== false,
                 id: colDef.id || "unknown",
                 label
             }
+            return result
         })
     }, [columns])
 

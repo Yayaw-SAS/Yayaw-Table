@@ -30,7 +30,7 @@ import { catalogueFormAtom, openCreateForm } from "../forms/atoms/catalogue-form
 import { TableMenu } from "./table-menu"
 
 // Debug flag to help track issues - activated for debugging
-const DEBUG = true
+const DEBUG = false
 
 // Define DataTableColumnDef type to fix TypeScript errors
 export type DataTableColumnDef<TData> = ColumnDef<TData> & {
@@ -214,6 +214,7 @@ export function DataTableAdvancedToolbar<TData>({
             return columnDefinitions.map((colDef: any) => ({
                 canFilter: colDef.canFilter !== false,
                 canHide: colDef.canHide !== false,
+                canSort: colDef.canSort !== false,
                 id: colDef.id,
                 label: colDef.header || colDef.id,
                 placeholder: colDef.placeholder,
@@ -239,6 +240,7 @@ export function DataTableAdvancedToolbar<TData>({
             const option = {
                 canFilter: column.getCanFilter(),
                 canHide: columnDef.enableHiding !== false,
+                canSort: column.getCanSort(),
                 id: column.id,
                 label: columnDef.meta?.label || configDef?.header || column.id,
                 // Enhanced properties from our table config
@@ -406,8 +408,8 @@ export function DataTableAdvancedToolbar<TData>({
                       ? (col as { canHide?: boolean }).canHide !== false
                       : true,
                   canSort: isSpecificColumnType
-                      ? ((col as { canSort?: boolean }).canSort ?? false)
-                      : false,
+                      ? ((col as { canSort?: boolean }).canSort ?? true)
+                      : true,
                   id: (col as { id?: string }).id || "",
                   label:
                       (col as { label?: string }).label || (col as { id?: string }).id || "Column"

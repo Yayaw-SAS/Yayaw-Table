@@ -34,6 +34,12 @@ interface TextColumnProps {
     className?: string
 
     /**
+     * Whether the column can be filtered
+     * @default true
+     */
+    enableColumnFilter?: boolean
+
+    /**
      * Whether the column can be hidden
      * @default true
      */
@@ -58,6 +64,7 @@ interface TextColumnProps {
 export function createTextColumn<TData>({
     accessorKey,
     className = "",
+    enableColumnFilter = true,
     enableHiding = true,
     enableSorting = true,
     header
@@ -68,6 +75,7 @@ export function createTextColumn<TData>({
             const value = info.getValue()
             return <StringCell className={className} value={value} />
         },
+        enableColumnFilter,
         enableHiding,
         enableSorting,
         header: header || accessorKey,
