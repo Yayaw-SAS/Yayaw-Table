@@ -39,3 +39,4 @@ next-env.d.ts
 
 # Finder (MacOS) folder config
 .DS_Store
+.vercel
