@@ -8,7 +8,7 @@ export function HomePageClient() {
     <div className="py-12 min-h-screen bg-gradient-to-b from-background to-muted/20 transition-colors">
       {/* Header with Theme Toggle */}
       <div className="fixed top-6 right-6 z-50">
-        <ThemeToggle variant="dropdown" />
+        <ThemeToggle variant="switch" />
       </div>
 
       <div className="flex items-center justify-center min-h-screen">
