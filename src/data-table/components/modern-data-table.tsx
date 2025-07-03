@@ -230,11 +230,14 @@ function ModernDataTable<TData extends Record<string, unknown>, TValue = unknown
     // Extract important state from the table - memoize derived values
     const { columnOrder, pagination } = state
 
-    // Get leaf column IDs for column ordering - memoized
-    const leafColumnIds = useMemo(
-        () => table.getAllLeafColumns().map((column) => column.id),
-        [table]
-    )
+    // Get leaf column IDs for column ordering - memoized with column count for stability
+    const leafColumnIds = useMemo(() => {
+        const leafColumns = table.getAllLeafColumns()
+        return leafColumns.map((column) => column.id)
+    }, [
+        table.getAllLeafColumns().length, // Only re-compute when column count changes
+        columns.length // Also track columns prop changes
+    ])
 
     // Function to set column order - stable reference
     const setColumnOrder = useCallback(
