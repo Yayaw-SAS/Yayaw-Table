@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { useAtomValue } from "jotai"
 import { useHydrateAtoms } from "jotai/utils"
 import { DataTableTranslations, TranslationParams } from '../types/translations'
+import { createTranslationFunction } from './translation-cache'
 import type { FieldValues } from "react-hook-form"
 
 // Import atoms with correct paths
@@ -68,46 +69,7 @@ interface TableProviderProps {
   DescriptionComponent?: React.ComponentType<{ children: React.ReactNode; className?: string }>
 }
 
-/**
- * Advanced interpolation function for translations
- * Supports {param} syntax for basic interpolation and pluralization
- * Pluralization syntax: {count, plural, one {singular} other {plural}}
- */
-function interpolate(text: string, params: TranslationParams = {}): string {
-  // Handle pluralization first
-  text = text.replace(/\{(\w+),\s*plural,\s*one\s*\{([^}]+)\}\s*other\s*\{([^}]+)\}\}/g, (match, key, singular, plural) => {
-    const value = params[key]
-    if (value !== undefined) {
-      const count = Number(value)
-      return count === 1 ? singular : plural
-    }
-    return match
-  })
-  
-  // Handle basic interpolation
-  return text.replace(/\{(\w+)\}/g, (match, key) => {
-    const value = params[key]
-    return value !== undefined ? String(value) : match
-  })
-}
-
-/**
- * Get nested translation value using dot notation
- */
-function getTranslation(translations: DataTableTranslations, key: string): string {
-  const keys = key.split('.')
-  let current: unknown = translations
-  
-  for (const k of keys) {
-    if (current && typeof current === 'object' && k in current) {
-      current = (current as Record<string, unknown>)[k]
-    } else {
-      return key // Return key if translation not found
-    }
-  }
-  
-  return typeof current === 'string' ? current : key
-}
+// Note: Translation functions moved to separate translation-cache.ts file for optimization
 
 export function TableProvider({ 
   children, 
@@ -123,11 +85,8 @@ export function TableProvider({
   TitleComponent,
   DescriptionComponent
 }: TableProviderProps) {
-  // Stabilize the t function to prevent unnecessary re-renders
-  const t = useCallback((key: string, params?: TranslationParams): string => {
-    const translation = getTranslation(translations, key)
-    return params ? interpolate(translation, params) : translation
-  }, [translations])
+  // Create optimized translation function using cache
+  const t = useMemo(() => createTranslationFunction(translations), [translations])
 
   // Create default QueryClient if none provided
   const defaultQueryClient = useMemo(() => queryClient || new QueryClient({
