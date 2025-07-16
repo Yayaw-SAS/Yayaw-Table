@@ -2,33 +2,33 @@
  * Lazy loaded advanced filter components
  * These are only loaded when advanced filtering is actually used
  */
-"use client"
+'use client'
 
-import { lazy, Suspense } from "react"
-import { Skeleton } from "../../../components/ui/skeleton"
+import { lazy, Suspense } from 'react'
+import { Skeleton } from '../../../components/ui/skeleton'
 
 // Lazy load the heavy advanced filter components
-const AdvancedFacetedFilter = lazy(() => 
-    import("./advanced-faceted-filter").then(mod => ({ 
-        default: mod.AdvancedFacetedFilter 
+const AdvancedFacetedFilter = lazy(() =>
+    import('./advanced-faceted-filter').then((mod) => ({
+        default: mod.AdvancedFacetedFilter
     }))
 )
 
-const AdvancedFilterPanel = lazy(() => 
-    import("./advanced-filter-panel").then(mod => ({ 
-        default: mod.AdvancedFilterPanel 
+const AdvancedFilterPanel = lazy(() =>
+    import('./advanced-filter-panel').then((mod) => ({
+        default: mod.AdvancedFilterPanel
     }))
 )
 
-const FilterPresetsPanel = lazy(() => 
-    import("./filter-presets-panel").then(mod => ({ 
-        default: mod.FilterPresetsPanel 
+const FilterPresetsPanel = lazy(() =>
+    import('./filter-presets-panel').then((mod) => ({
+        default: mod.FilterPresetsPanel
     }))
 )
 
-const ModernAddFilterDropdown = lazy(() => 
-    import("./modern-add-filter-dropdown").then(mod => ({ 
-        default: mod.ModernAddFilterDropdown 
+const ModernAddFilterDropdown = lazy(() =>
+    import('./modern-add-filter-dropdown').then((mod) => ({
+        default: mod.ModernAddFilterDropdown
     }))
 )
 

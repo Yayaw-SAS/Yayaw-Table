@@ -1,22 +1,21 @@
-"use client"
+'use client'
 
-import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
-import { useSortable } from "@dnd-kit/sortable"
-import { CSS } from "@dnd-kit/utilities"
-import type { Column, Table } from "@tanstack/react-table"
-import { useAtomValue } from "jotai"
-import { ArrowDown, ArrowUp, GripVertical } from "lucide-react"
-import { memo, useMemo } from "react"
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import type { Column, Table } from '@tanstack/react-table'
+import { useAtomValue } from 'jotai'
+import { ArrowDown, ArrowUp, GripVertical } from 'lucide-react'
+import { memo, useMemo } from 'react'
+import { cn } from '@/lib/utils'
 
-import { columnDragEnabledAtom } from "../../../atoms/table-atoms"
+import { columnDragEnabledAtom } from '../../../atoms/table-atoms'
 
-import { ActionsHeader } from "./actions-header"
-import { ColumnMenu } from "./column-menu"
-import { SelectionHeader } from "./selection-header"
+import { ActionsHeader } from './actions-header'
+import { ColumnMenu } from './column-menu'
+import { SelectionHeader } from './selection-header'
 
 // Set to true to enable debug logging
-const DEBUG = false
+const _DEBUG = false
 
 interface DataTableColumnHeaderProps<TData, TValue> {
     /**
@@ -52,7 +51,7 @@ function DataTableColumnHeaderBase<TData, TValue>({
     className,
     column,
     table,
-    tableId = "default-table", // Default value if not provided
+    tableId = 'default-table', // Default value if not provided
     title
 }: DataTableColumnHeaderProps<TData, TValue>) {
     const tableInstance = table
@@ -61,7 +60,7 @@ function DataTableColumnHeaderBase<TData, TValue>({
 
     const { attributes, isDragging, isOver, listeners, setNodeRef, transform, transition } =
         useSortable({
-            disabled: !canSort || !isDragEnabled,
+            disabled: !(canSort && isDragEnabled),
             id: column.id
         })
 
@@ -73,8 +72,8 @@ function DataTableColumnHeaderBase<TData, TValue>({
         [transform, transition]
     )
 
-    const isSelectionColumn = column.id === "select"
-    const isActionsColumn = column.id === "actions"
+    const isSelectionColumn = column.id === 'select'
+    const isActionsColumn = column.id === 'actions'
     const sortDirection = column.getIsSorted()
 
     // Memoize selectionHeader component to prevent recreating on each render
@@ -99,13 +98,13 @@ function DataTableColumnHeaderBase<TData, TValue>({
 
     // Memoize regularHeaderContent component to prevent recreating on each render
     const regularHeaderContent = useMemo(() => {
-        if (!isSelectionColumn && !isActionsColumn) {
+        if (!(isSelectionColumn || isActionsColumn)) {
             return (
                 <div
                     className={cn(
-                        "flex h-full w-full items-center gap-2",
-                        isDragging && "opacity-50",
-                        isOver && "bg-accent",
+                        'flex h-full w-full items-center gap-2',
+                        isDragging && 'opacity-50',
+                        isOver && 'bg-accent',
                         className
                     )}
                     ref={setNodeRef}
@@ -113,36 +112,39 @@ function DataTableColumnHeaderBase<TData, TValue>({
                     {...attributes}
                 >
                     {tableInstance ? (
-                        <div className="h-full w-full flex items-center">
+                        <div className="flex h-full w-full items-center">
                             <div className="flex-1">
-                            <ColumnMenu column={column} table={tableInstance} tableId={tableId}>
-                                <div className="flex w-full cursor-pointer items-center gap-2">
-                                    <span>{title}</span>
-                                    {sortDirection && (
-                                        <span className="ml-2">
-                                            {sortDirection === "desc" ? (
-                                                <ArrowDown className="h-4 w-4" />
-                                            ) : (
-                                                <ArrowUp className="h-4 w-4" />
-                                            )}
-                                        </span>
-                                    )}
+                                <ColumnMenu column={column} table={tableInstance} tableId={tableId}>
+                                    <div className="flex w-full cursor-pointer items-center gap-2">
+                                        <span>{title}</span>
+                                        {sortDirection && (
+                                            <span className="ml-2">
+                                                {sortDirection === 'desc' ? (
+                                                    <ArrowDown className="h-4 w-4" />
+                                                ) : (
+                                                    <ArrowUp className="h-4 w-4" />
+                                                )}
+                                            </span>
+                                        )}
                                     </div>
                                 </ColumnMenu>
                             </div>
-                                    {isDragEnabled && (
-                                <div className="ml-2 touch-none cursor-grab active:cursor-grabbing" {...listeners}>
+                            {isDragEnabled && (
+                                <div
+                                    className="ml-2 cursor-grab touch-none active:cursor-grabbing"
+                                    {...listeners}
+                                >
                                     <div
-                                                aria-label="Drag to reorder column"
+                                        aria-label="Drag to reorder column"
                                         className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                                         role="button"
                                         tabIndex={0}
-                                            >
-                                                <GripVertical
-                                                    className="h-4 w-4 opacity-60 hover:opacity-100"
-                                                    strokeWidth={2}
-                                                />
-                                        </div>
+                                    >
+                                        <GripVertical
+                                            className="h-4 w-4 opacity-60 hover:opacity-100"
+                                            strokeWidth={2}
+                                        />
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -150,7 +152,10 @@ function DataTableColumnHeaderBase<TData, TValue>({
                         <div className="flex w-full items-center gap-2">
                             <span>{title}</span>
                             {isDragEnabled && (
-                                <div className="ml-auto touch-none cursor-grab active:cursor-grabbing" {...listeners}>
+                                <div
+                                    className="ml-auto cursor-grab touch-none active:cursor-grabbing"
+                                    {...listeners}
+                                >
                                     <div
                                         aria-label="Drag to reorder column"
                                         className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"

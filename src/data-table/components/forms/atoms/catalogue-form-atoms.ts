@@ -2,7 +2,7 @@
  * Atoms for the catalogue form
  * These atoms manage the state of the catalogue form drawer
  */
-import { atom } from "jotai"
+import { atom } from 'jotai'
 
 /**
  * Interface for the catalogue form state
@@ -26,7 +26,7 @@ export interface CatalogueFormState<TData = Record<string, unknown>> {
     /**
      * Mode of the form (create or update)
      */
-    mode: "create" | "update"
+    mode: 'create' | 'update'
 
     /**
      * Callback when the form is submitted successfully
@@ -46,7 +46,7 @@ const defaultState: CatalogueFormState = {
     formType: undefined,
     initialData: undefined,
     isOpen: false,
-    mode: "create",
+    mode: 'create',
     onSuccess: undefined,
     tableId: undefined
 }
@@ -66,9 +66,9 @@ export const formSubmittedAtom = atom<boolean>(false)
  * Enum for form renderer components
  */
 export enum FormRenderer {
-    CONTAINER = "container",
-    NONE = "none",
-    TOOLBAR = "toolbar"
+    CONTAINER = 'container',
+    NONE = 'none',
+    TOOLBAR = 'toolbar'
 }
 
 /**
@@ -88,7 +88,7 @@ export const openCreateForm = <TData = Record<string, unknown>>(
     formType,
     initialData: undefined,
     isOpen: true,
-    mode: "create",
+    mode: 'create',
     onSuccess,
     tableId
 })
@@ -105,7 +105,7 @@ export const openUpdateForm = <TData = Record<string, unknown>>(
     formType,
     initialData,
     isOpen: true,
-    mode: "update",
+    mode: 'update',
     onSuccess,
     tableId
 })
@@ -117,7 +117,7 @@ export const closeForm = <TData = Record<string, unknown>>(): CatalogueFormState
     formType: undefined,
     initialData: undefined,
     isOpen: false,
-    mode: "create",
+    mode: 'create',
     onSuccess: undefined,
     tableId: undefined
 })
@@ -150,7 +150,7 @@ export const handleFormOpenChange = <TData = Record<string, unknown>>(
             formType: undefined,
             initialData: undefined,
             isOpen: false,
-            mode: "create",
+            mode: 'create',
             onSuccess: undefined,
             tableId: undefined
         }

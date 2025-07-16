@@ -2,24 +2,24 @@
  * Pagination component for DataTable
  * Provides controls for navigating between pages
  */
-"use client"
+'use client'
 
-import { Button } from "@/components/ui/button"
+import type { Table } from '@tanstack/react-table'
+import { useAtom } from 'jotai'
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
+import { useCallback } from 'react'
+import { Button } from '@/components/ui/button'
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue
-} from "@/components/ui/select"
-import { cn } from "@/lib/utils"
-import type { Table } from "@tanstack/react-table"
-import { useAtom } from "jotai"
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
-import { useCallback } from "react"
+} from '@/components/ui/select'
+import { cn } from '@/lib/utils'
 
-import { paginationAtom } from "../atoms/table-atoms"
-import { useTableTranslations } from "../hooks"
+import { paginationAtom } from '../atoms/table-atoms'
+import { useTableTranslations } from '../hooks'
 
 interface DataTablePaginationProps<TData> {
     /**
@@ -82,7 +82,7 @@ export function DataTablePagination<TData>({
     return (
         <div
             className={cn(
-                "flex flex-col items-center justify-between gap-4 py-4 sm:flex-row",
+                'flex flex-col items-center justify-between gap-4 py-4 sm:flex-row',
                 className
             )}
         >
@@ -132,7 +132,7 @@ export function DataTablePagination<TData>({
                 </Button>
 
                 <span className="text-sm">
-                    {translations.format("pageXofY", {
+                    {translations.format('pageXofY', {
                         page: pageIndex + 1,
                         total: pageCount || 1
                     })}

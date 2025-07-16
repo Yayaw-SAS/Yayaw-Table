@@ -3,7 +3,7 @@
  * Extended types for advanced filtering features
  */
 
-import type { AdvancedFilterModel, AdvancedFiltersState, ColumnDataType, FilterOperators } from './filter-types'
+import type { AdvancedFilterModel, ColumnDataType, FilterOperators } from './filter-types'
 
 /**
  * Filter Logic Operators
@@ -96,7 +96,7 @@ export interface AdvancedColumnFilterConfig {
     label?: string
     placeholder?: string
     description?: string
-    
+
     // Faceted options
     faceted: boolean
     facetedOptions?: {
@@ -110,7 +110,7 @@ export interface AdvancedColumnFilterConfig {
         groupBy?: string
         customSort?: (a: FacetedData, b: FacetedData) => number
     }
-    
+
     // Smart suggestions
     suggestions: boolean
     suggestionsOptions?: {
@@ -119,7 +119,7 @@ export interface AdvancedColumnFilterConfig {
         minUsageCount: number
         includeEmpty: boolean
     }
-    
+
     // Validation and constraints
     validation?: {
         required: boolean
@@ -128,7 +128,7 @@ export interface AdvancedColumnFilterConfig {
         pattern?: string
         custom?: (value: any) => boolean | string
     }
-    
+
     // Performance options
     performance?: {
         debounceMs: number
@@ -136,7 +136,7 @@ export interface AdvancedColumnFilterConfig {
         preload: boolean
         virtualizeOptions: boolean
     }
-    
+
     // Advanced features
     features?: {
         allowMultiple: boolean
@@ -207,11 +207,14 @@ export interface FilterAnalytics {
         totalRecords: number
         filteredRecords: number
         filterEffectiveness: number
-        dataDistribution: Record<string, {
-            uniqueValues: number
-            nullValues: number
-            distribution: Array<{ value: any; count: number }>
-        }>
+        dataDistribution: Record<
+            string,
+            {
+                uniqueValues: number
+                nullValues: number
+                distribution: Array<{ value: any; count: number }>
+            }
+        >
     }
 }
 
@@ -284,44 +287,44 @@ export interface AdvancedFilterHookReturn {
     presets: FilterPreset[]
     suggestions: FilterSuggestion[]
     analytics: FilterAnalytics
-    
+
     // Actions
     actions: {
         // State management
         setState: (state: AdvancedFilterState) => void
         updateState: (updates: Partial<AdvancedFilterState>) => void
         resetState: () => void
-        
+
         // Group management
         addGroup: (group: Omit<FilterGroup, 'id'>) => void
         updateGroup: (groupId: string, updates: Partial<FilterGroup>) => void
         removeGroup: (groupId: string) => void
         moveFilter: (filterId: string, targetGroupId: string) => void
-        
+
         // Logic operations
         setGlobalLogic: (logic: FilterLogicOperator) => void
         setGroupLogic: (groupId: string, logic: FilterLogicOperator) => void
-        
+
         // Presets
         savePreset: (preset: Omit<FilterPreset, 'id' | 'metadata'>) => Promise<FilterPreset>
         loadPreset: (presetId: string) => Promise<void>
         deletePreset: (presetId: string) => Promise<void>
         updatePreset: (presetId: string, updates: Partial<FilterPreset>) => Promise<void>
-        
+
         // Export/Import
         exportState: (format: 'json' | 'url' | 'csv') => Promise<string>
         importState: (data: string, format: 'json' | 'url' | 'csv') => Promise<void>
-        
+
         // Bulk operations
         bulkApply: (filters: AdvancedFilterModel[], logic?: FilterLogicOperator) => Promise<void>
         bulkRemove: (filterIds: string[]) => Promise<void>
         bulkToggle: (filterIds: string[]) => Promise<void>
-        
+
         // Analytics
         refreshAnalytics: () => Promise<void>
         trackUsage: (action: string, metadata?: Record<string, any>) => void
     }
-    
+
     // Computed
     computed: {
         hasActiveFilters: boolean
@@ -332,13 +335,16 @@ export interface AdvancedFilterHookReturn {
         estimatedResultCount: number
         performanceScore: number
     }
-    
+
     // Utils
     utils: {
         validateState: (state: AdvancedFilterState) => { isValid: boolean; errors: string[] }
         optimizeState: (state: AdvancedFilterState) => AdvancedFilterState
-        compareStates: (stateA: AdvancedFilterState, stateB: AdvancedFilterState) => FilterComparison
+        compareStates: (
+            stateA: AdvancedFilterState,
+            stateB: AdvancedFilterState
+        ) => FilterComparison
         generateShareUrl: (state: AdvancedFilterState) => string
         cloneState: (state: AdvancedFilterState) => AdvancedFilterState
     }
-} 
+}

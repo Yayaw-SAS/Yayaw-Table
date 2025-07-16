@@ -2,11 +2,11 @@
  * Boolean cell component for data tables
  * Shows formatted boolean values with appropriate styling
  */
-"use client"
+'use client'
 
-import { Badge } from "@/components/ui/badge"
+import { Badge } from '@/components/ui/badge'
 
-import { useTableTranslations } from "../../hooks"
+import { useTableTranslations } from '../../hooks'
 
 interface BooleanCellProps {
     value: boolean
@@ -20,8 +20,8 @@ export function BooleanCell({ value }: BooleanCellProps) {
     const translations = useTableTranslations()
     return (
         <Badge
-            className={value ? "bg-green-100 text-green-800 hover:bg-green-100" : ""}
-            variant={value ? "default" : "destructive"}
+            className={value ? 'bg-green-100 text-green-800 hover:bg-green-100' : ''}
+            variant={value ? 'default' : 'destructive'}
         >
             {value ? translations.true : translations.false}
         </Badge>

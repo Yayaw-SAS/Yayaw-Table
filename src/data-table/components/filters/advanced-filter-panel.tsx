@@ -2,62 +2,44 @@
  * Advanced filter panel component
  * Main interface for managing advanced filters with design inspired by bazza/ui and Linear
  */
-"use client"
+'use client'
 
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import {
-    Command,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandItem,
-    CommandList
-} from "@/components/ui/command"
+import { Filter, MoreHorizontal, Settings2, X } from 'lucide-react'
+import { useCallback, useMemo, useState } from 'react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu"
-import { Label } from "@/components/ui/label"
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger
-} from "@/components/ui/popover"
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger
-} from "@/components/ui/tooltip"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
-import { cn } from "@/lib/utils"
-import { ChevronDown, Filter, MoreHorizontal, Plus, X, Settings2, Zap } from "lucide-react"
-import { useCallback, useMemo, useState, useEffect } from "react"
+} from '@/components/ui/dropdown-menu'
+import { Label } from '@/components/ui/label'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Separator } from '@/components/ui/separator'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { cn } from '@/lib/utils'
 import type {
-    AdvancedFiltersState,
     AdvancedFilterModel,
+    AdvancedFiltersState,
+    ColumnDataType,
     ColumnsFilterConfig,
-    FilterActions,
-    ColumnDataType
-} from "../../types/filter-types"
-import { formatFilterValueForDisplay } from "../../utils/advanced-filters"
+    FilterActions
+} from '../../types/filter-types'
+import { formatFilterValueForDisplay } from '../../utils/advanced-filters'
 
 import {
     FilterValueInput,
     getDefaultFilterOperator,
     getDefaultFilterValue
-} from "./filter-value-input"
-import { ModernAddFilterDropdown } from "./modern-add-filter-dropdown"
-import { 
-    FilterLoadingState, 
-    FilterEmptyState, 
-    FilterSuccessState,
-    FilterPerformanceIndicator 
-} from "./modern-filter-states"
+} from './filter-value-input'
+import { ModernAddFilterDropdown } from './modern-add-filter-dropdown'
+import {
+    FilterEmptyState,
+    FilterLoadingState,
+    FilterPerformanceIndicator,
+    FilterSuccessState
+} from './modern-filter-states'
 
 export interface AdvancedFilterPanelProps {
     /** Current filters state */
@@ -127,90 +109,86 @@ function FilterChip({
         )
     }, [filter.type, filter.operator, filter.values, config.options])
 
-    const handleValueChange = useCallback((newValue: any) => {
-        onUpdate({ values: newValue })
-    }, [onUpdate])
+    const handleValueChange = useCallback(
+        (newValue: any) => {
+            onUpdate({ values: newValue })
+        },
+        [onUpdate]
+    )
 
-    const handleOperatorChange = useCallback((newOperator: any) => {
-        onUpdate({ operator: newOperator })
-    }, [onUpdate])
+    const handleOperatorChange = useCallback(
+        (newOperator: any) => {
+            onUpdate({ operator: newOperator })
+        },
+        [onUpdate]
+    )
 
-    const columnLabel = config.displayValueFn 
+    const columnLabel = config.displayValueFn
         ? config.displayValueFn(filter.values)
         : filter.label || filter.columnId
 
     return (
-        <div 
+        <div
             className={cn(
-                "group flex items-center gap-1 bg-background border rounded-md px-2 py-1 text-sm transition-colors",
-                filter.isActive ? "border-border" : "border-muted bg-muted/50",
-                disabled && "opacity-50 cursor-not-allowed"
+                'group flex items-center gap-1 rounded-md border bg-background px-2 py-1 text-sm transition-colors',
+                filter.isActive ? 'border-border' : 'border-muted bg-muted/50',
+                disabled && 'cursor-not-allowed opacity-50'
             )}
         >
             {/* Toggle active/inactive */}
             <button
-                onClick={onToggle}
-                disabled={disabled}
                 className={cn(
-                    "w-3 h-3 rounded-sm border-2 flex items-center justify-center transition-colors",
-                    filter.isActive 
-                        ? "bg-primary border-primary" 
-                        : "border-muted-foreground/30 hover:border-muted-foreground/50"
+                    'flex h-3 w-3 items-center justify-center rounded-sm border-2 transition-colors',
+                    filter.isActive
+                        ? 'border-primary bg-primary'
+                        : 'border-muted-foreground/30 hover:border-muted-foreground/50'
                 )}
+                disabled={disabled}
+                onClick={onToggle}
             >
                 {filter.isActive && (
-                    <div className="w-1.5 h-1.5 bg-primary-foreground rounded-sm" />
+                    <div className="h-1.5 w-1.5 rounded-sm bg-primary-foreground" />
                 )}
             </button>
 
             {/* Column name */}
-            <span className="font-medium text-foreground">
-                {columnLabel}
-            </span>
+            <span className="font-medium text-foreground">{columnLabel}</span>
 
             {/* Operator - only show if not editing */}
-            {!isEditing && (
-                <span className="text-muted-foreground text-xs">
-                    {filter.operator}
-                </span>
-            )}
+            {!isEditing && <span className="text-muted-foreground text-xs">{filter.operator}</span>}
 
             {/* Value display or edit mode */}
-            <Popover open={isEditing} onOpenChange={setIsEditing}>
+            <Popover onOpenChange={setIsEditing} open={isEditing}>
                 <PopoverTrigger asChild>
-                    <button 
-                        className="text-left hover:bg-accent hover:text-accent-foreground rounded px-1 py-0.5 transition-colors"
+                    <button
+                        className="rounded px-1 py-0.5 text-left transition-colors hover:bg-accent hover:text-accent-foreground"
                         disabled={disabled}
                     >
                         {isEditing ? (
                             <span className="text-muted-foreground text-xs">Editing...</span>
                         ) : (
                             <span className="text-xs">
-                                {displayValue || <span className="text-muted-foreground">No value</span>}
+                                {displayValue || (
+                                    <span className="text-muted-foreground">No value</span>
+                                )}
                             </span>
                         )}
                     </button>
                 </PopoverTrigger>
-                <PopoverContent className="min-w-80 max-w-96 w-auto p-4" align="start">
+                <PopoverContent align="start" className="w-auto min-w-80 max-w-96 p-4">
                     <div className="space-y-3">
-                        <Label className="text-sm font-medium">
-                            Edit filter for {columnLabel}
-                        </Label>
+                        <Label className="font-medium text-sm">Edit filter for {columnLabel}</Label>
                         <FilterValueInput
+                            config={config}
+                            disabled={disabled}
+                            onOperatorChange={handleOperatorChange}
+                            onValueChange={handleValueChange}
+                            operator={filter.operator}
                             type={filter.type}
                             value={filter.values}
-                            operator={filter.operator}
-                            config={config}
-                            onValueChange={handleValueChange}
-                            onOperatorChange={handleOperatorChange}
-                            disabled={disabled}
                         />
                         <div className="flex justify-end gap-2">
-                            <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => setIsEditing(false)}
-                            >
+                            <Button onClick={() => setIsEditing(false)} size="sm" variant="outline">
                                 Done
                             </Button>
                         </div>
@@ -221,8 +199,8 @@ function FilterChip({
             {/* More actions menu */}
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <button 
-                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-accent rounded transition-opacity"
+                    <button
+                        className="rounded p-1 opacity-0 transition-opacity hover:bg-accent group-hover:opacity-100"
                         disabled={disabled}
                     >
                         <MoreHorizontal className="h-3 w-3" />
@@ -232,9 +210,9 @@ function FilterChip({
                     <DropdownMenuItem onClick={onToggle}>
                         {filter.isActive ? 'Disable' : 'Enable'} filter
                     </DropdownMenuItem>
-                    <DropdownMenuItem 
-                        onClick={onRemove}
+                    <DropdownMenuItem
                         className="text-destructive focus:text-destructive"
+                        onClick={onRemove}
                     >
                         Remove filter
                     </DropdownMenuItem>
@@ -243,9 +221,9 @@ function FilterChip({
 
             {/* Quick remove button */}
             <button
-                onClick={onRemove}
+                className="rounded p-1 opacity-0 transition-opacity hover:bg-destructive hover:text-destructive-foreground group-hover:opacity-100"
                 disabled={disabled}
-                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-destructive hover:text-destructive-foreground rounded transition-opacity"
+                onClick={onRemove}
             >
                 <X className="h-3 w-3" />
             </button>
@@ -274,33 +252,41 @@ export function AdvancedFilterPanel({
     showPerformance = false,
     enableAnimations = true
 }: AdvancedFilterPanelProps) {
-    const [editingFilterId, setEditingFilterId] = useState<string | null>(null)
-    
-    const activeFilters = filters.filter(f => f.isActive)
-    const inactiveFilters = filters.filter(f => !f.isActive)
-    
+    const [_editingFilterId, _setEditingFilterId] = useState<string | null>(null)
+
+    const activeFilters = filters.filter((f) => f.isActive)
+    const _inactiveFilters = filters.filter((f) => !f.isActive)
+
     const visibleFilters = filters.slice(0, maxVisibleFilters)
     const hiddenFiltersCount = Math.max(0, filters.length - maxVisibleFilters)
 
-    const handleAddFilter = useCallback((columnId: string, type: ColumnDataType) => {
-        const config = columnsConfig[columnId]
-        if (!config) return
+    const handleAddFilter = useCallback(
+        (columnId: string, type: ColumnDataType) => {
+            const config = columnsConfig[columnId]
+            if (!config) {
+                return
+            }
 
-        const operator = getDefaultFilterOperator(type)
-        const value = getDefaultFilterValue(type, operator)
+            const operator = getDefaultFilterOperator(type)
+            const value = getDefaultFilterValue(type, operator)
 
-        actions.addFilter({
-            columnId,
-            type,
-            operator,
-            values: value,
-            isActive: true
-        })
-    }, [columnsConfig, actions])
+            actions.addFilter({
+                columnId,
+                type,
+                operator,
+                values: value,
+                isActive: true
+            })
+        },
+        [columnsConfig, actions]
+    )
 
-    const handleUpdateFilter = useCallback((filterId: string, updates: Partial<AdvancedFilterModel>) => {
-        actions.updateFilter(filterId, updates)
-    }, [actions])
+    const handleUpdateFilter = useCallback(
+        (filterId: string, updates: Partial<AdvancedFilterModel>) => {
+            actions.updateFilter(filterId, updates)
+        },
+        [actions]
+    )
 
     // Show loading state
     if (isLoading) {
@@ -310,21 +296,27 @@ export function AdvancedFilterPanel({
     // Show error state
     if (error) {
         return (
-            <div className={cn("rounded-lg border border-destructive/20 bg-destructive/5 p-3", className)}>
-                <p className="text-sm text-destructive">{error}</p>
+            <div
+                className={cn(
+                    'rounded-lg border border-destructive/20 bg-destructive/5 p-3',
+                    className
+                )}
+            >
+                <p className="text-destructive text-sm">{error}</p>
             </div>
         )
     }
 
     // Handle empty state
     if (filters.length === 0) {
-        if (!showAddButton) return null
-        
+        if (!showAddButton) {
+            return null
+        }
+
         return (
-            <div className={cn("space-y-3", className)}>
+            <div className={cn('space-y-3', className)}>
                 {variant === 'minimal' ? (
-                    <FilterEmptyState 
-                        variant="minimal"
+                    <FilterEmptyState
                         onAddFilter={() => {
                             // Get first available column
                             const firstColumn = Object.keys(columnsConfig)[0]
@@ -332,28 +324,29 @@ export function AdvancedFilterPanel({
                                 handleAddFilter(firstColumn, columnsConfig[firstColumn].type)
                             }
                         }}
+                        variant="minimal"
                     />
                 ) : (
-                    <div className="flex items-center justify-between p-3 rounded-lg border border-dashed border-muted bg-muted/20">
+                    <div className="flex items-center justify-between rounded-lg border border-muted border-dashed bg-muted/20 p-3">
                         <div className="flex items-center gap-3">
                             <div className="flex items-center gap-2">
-                                <Filter className="h-4 w-4 text-muted-foreground opacity-50 shrink-0" />
-                                <span className="text-sm text-muted-foreground">
+                                <Filter className="h-4 w-4 shrink-0 text-muted-foreground opacity-50" />
+                                <span className="text-muted-foreground text-sm">
                                     No filters applied
                                 </span>
                             </div>
                         </div>
                         <ModernAddFilterDropdown
                             columnsConfig={columnsConfig}
-                            onAddFilter={handleAddFilter}
-                            recentColumns={recentColumns}
-                            popularColumns={popularColumns}
                             disabled={disabled}
+                            onAddFilter={handleAddFilter}
                             placeholder="Add filter..."
+                            popularColumns={popularColumns}
+                            recentColumns={recentColumns}
                         />
                     </div>
                 )}
-                
+
                 {showPerformance && performance && (
                     <FilterPerformanceIndicator
                         filterTime={performance.filterTime}
@@ -369,26 +362,28 @@ export function AdvancedFilterPanel({
         switch (variant) {
             case 'minimal':
                 return (
-                    <div className="flex items-center gap-1 flex-wrap">
+                    <div className="flex flex-wrap items-center gap-1">
                         {visibleFilters.map((filter) => {
                             const config = columnsConfig[filter.columnId]
-                            if (!config) return null
+                            if (!config) {
+                                return null
+                            }
 
                             return (
                                 <FilterChip
-                                    key={filter.id}
-                                    filter={filter}
                                     config={config}
-                                    onUpdate={(updates) => handleUpdateFilter(filter.id, updates)}
+                                    disabled={disabled}
+                                    filter={filter}
+                                    key={filter.id}
                                     onRemove={() => actions.removeFilter(filter.id)}
                                     onToggle={() => actions.toggleFilter(filter.id)}
-                                    disabled={disabled}
+                                    onUpdate={(updates) => handleUpdateFilter(filter.id, updates)}
                                 />
                             )
                         })}
-                        
+
                         {hiddenFiltersCount > 0 && (
-                            <Badge variant="secondary" className="text-xs h-6">
+                            <Badge className="h-6 text-xs" variant="secondary">
                                 +{hiddenFiltersCount}
                             </Badge>
                         )}
@@ -401,25 +396,29 @@ export function AdvancedFilterPanel({
                         <div className="flex items-center justify-between">
                             <FilterSuccessState
                                 activeFiltersCount={activeFilters.length}
-                                totalResults={performance?.resultCount}
                                 onClearAll={showClearButton ? actions.clearFilters : undefined}
+                                totalResults={performance?.resultCount}
                             />
                         </div>
-                        
-                        <div className="flex items-center gap-2 flex-wrap">
+
+                        <div className="flex flex-wrap items-center gap-2">
                             {visibleFilters.map((filter) => {
                                 const config = columnsConfig[filter.columnId]
-                                if (!config) return null
+                                if (!config) {
+                                    return null
+                                }
 
                                 return (
                                     <FilterChip
-                                        key={filter.id}
-                                        filter={filter}
                                         config={config}
-                                        onUpdate={(updates) => handleUpdateFilter(filter.id, updates)}
+                                        disabled={disabled}
+                                        filter={filter}
+                                        key={filter.id}
                                         onRemove={() => actions.removeFilter(filter.id)}
                                         onToggle={() => actions.toggleFilter(filter.id)}
-                                        disabled={disabled}
+                                        onUpdate={(updates) =>
+                                            handleUpdateFilter(filter.id, updates)
+                                        }
                                     />
                                 )
                             })}
@@ -437,7 +436,7 @@ export function AdvancedFilterPanel({
                                     <Settings2 className="h-4 w-4 text-muted-foreground" />
                                     <span className="font-medium text-sm">Filters</span>
                                 </div>
-                                
+
                                 <FilterSuccessState
                                     activeFiltersCount={activeFilters.length}
                                     totalResults={performance?.resultCount}
@@ -446,11 +445,11 @@ export function AdvancedFilterPanel({
 
                             {showClearButton && filters.length > 0 && (
                                 <Button
+                                    className="h-6 px-2 text-muted-foreground text-xs hover:text-foreground"
+                                    disabled={disabled}
+                                    onClick={actions.clearFilters}
                                     size="sm"
                                     variant="ghost"
-                                    onClick={actions.clearFilters}
-                                    disabled={disabled}
-                                    className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
                                 >
                                     Clear all
                                 </Button>
@@ -458,28 +457,34 @@ export function AdvancedFilterPanel({
                         </div>
 
                         {/* Filter chips */}
-                        <div className={cn(
-                            "flex items-center gap-2 flex-wrap",
-                            enableAnimations && "transition-all duration-200"
-                        )}>
-                            {visibleFilters.map((filter, index) => {
+                        <div
+                            className={cn(
+                                'flex flex-wrap items-center gap-2',
+                                enableAnimations && 'transition-all duration-200'
+                            )}
+                        >
+                            {visibleFilters.map((filter, _index) => {
                                 const config = columnsConfig[filter.columnId]
-                                if (!config) return null
+                                if (!config) {
+                                    return null
+                                }
 
                                 return (
-                                    <div 
-                                        key={filter.id}
+                                    <div
                                         className={cn(
-                                            enableAnimations && "transition-all duration-150"
+                                            enableAnimations && 'transition-all duration-150'
                                         )}
+                                        key={filter.id}
                                     >
                                         <FilterChip
-                                            filter={filter}
                                             config={config}
-                                            onUpdate={(updates) => handleUpdateFilter(filter.id, updates)}
+                                            disabled={disabled}
+                                            filter={filter}
                                             onRemove={() => actions.removeFilter(filter.id)}
                                             onToggle={() => actions.toggleFilter(filter.id)}
-                                            disabled={disabled}
+                                            onUpdate={(updates) =>
+                                                handleUpdateFilter(filter.id, updates)
+                                            }
                                         />
                                     </div>
                                 )
@@ -487,7 +492,7 @@ export function AdvancedFilterPanel({
 
                             {/* Hidden filters indicator */}
                             {hiddenFiltersCount > 0 && (
-                                <Badge variant="secondary" className="text-xs">
+                                <Badge className="text-xs" variant="secondary">
                                     +{hiddenFiltersCount} more
                                 </Badge>
                             )}
@@ -496,11 +501,11 @@ export function AdvancedFilterPanel({
                             {showAddButton && (
                                 <ModernAddFilterDropdown
                                     columnsConfig={columnsConfig}
-                                    onAddFilter={handleAddFilter}
-                                    recentColumns={recentColumns}
-                                    popularColumns={popularColumns}
                                     disabled={disabled}
+                                    onAddFilter={handleAddFilter}
                                     placeholder="Add filter..."
+                                    popularColumns={popularColumns}
+                                    recentColumns={recentColumns}
                                 />
                             )}
                         </div>
@@ -518,12 +523,14 @@ export function AdvancedFilterPanel({
     }
 
     return (
-        <div className={cn(
-            "w-full",
-            variant === 'modern' && "rounded-lg border bg-card/50 p-3",
-            variant === 'compact' && "rounded-md bg-muted/30 p-2",
-            className
-        )}>
+        <div
+            className={cn(
+                'w-full',
+                variant === 'modern' && 'rounded-lg border bg-card/50 p-3',
+                variant === 'compact' && 'rounded-md bg-muted/30 p-2',
+                className
+            )}
+        >
             {renderContent()}
         </div>
     )
@@ -539,16 +546,14 @@ export function CompactFilterPanel({
     disabled = false
 }: Pick<AdvancedFilterPanelProps, 'filters' | 'columnsConfig' | 'actions' | 'disabled'>) {
     const [isExpanded, setIsExpanded] = useState(false)
-    const activeFiltersCount = filters.filter(f => f.isActive).length
+    const activeFiltersCount = filters.filter((f) => f.isActive).length
 
     if (filters.length === 0) {
         return (
-            <div className="flex items-center justify-between gap-3 p-2 rounded-md border border-dashed border-muted bg-muted/10">
+            <div className="flex items-center justify-between gap-3 rounded-md border border-muted border-dashed bg-muted/10 p-2">
                 <div className="flex items-center gap-2">
-                    <Filter className="h-3 w-3 text-muted-foreground opacity-50 shrink-0" />
-                    <span className="text-xs text-muted-foreground">
-                        No filters
-                    </span>
+                    <Filter className="h-3 w-3 shrink-0 text-muted-foreground opacity-50" />
+                    <span className="text-muted-foreground text-xs">No filters</span>
                 </div>
                 <TooltipProvider>
                     <Tooltip>
@@ -556,9 +561,12 @@ export function CompactFilterPanel({
                             <div>
                                 <ModernAddFilterDropdown
                                     columnsConfig={columnsConfig}
+                                    disabled={disabled}
                                     onAddFilter={(columnId, type) => {
                                         const config = columnsConfig[columnId]
-                                        if (!config) return
+                                        if (!config) {
+                                            return
+                                        }
 
                                         const operator = getDefaultFilterOperator(type)
                                         const value = getDefaultFilterValue(type, operator)
@@ -571,7 +579,6 @@ export function CompactFilterPanel({
                                             isActive: true
                                         })
                                     }}
-                                    disabled={disabled}
                                     placeholder="Add filter..."
                                     size="sm"
                                 />
@@ -587,49 +594,48 @@ export function CompactFilterPanel({
     }
 
     return (
-        <Popover open={isExpanded} onOpenChange={setIsExpanded}>
+        <Popover onOpenChange={setIsExpanded} open={isExpanded}>
             <PopoverTrigger asChild>
-                <Button 
-                    size="sm" 
-                    variant="outline" 
-                    className="h-7 gap-1"
-                    disabled={disabled}
-                >
+                <Button className="h-7 gap-1" disabled={disabled} size="sm" variant="outline">
                     <Filter className="h-3 w-3" />
                     {activeFiltersCount > 0 ? `${activeFiltersCount} filters` : 'Filter'}
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="min-w-96 max-w-screen-sm w-auto p-4" align="start">
+            <PopoverContent align="start" className="w-auto min-w-96 max-w-screen-sm p-4">
                 <div className="space-y-3">
                     <div className="flex items-center justify-between">
                         <Label className="font-medium">Filters</Label>
                         {filters.length > 0 && (
                             <Button
+                                className="h-6 text-xs"
+                                onClick={actions.clearFilters}
                                 size="sm"
                                 variant="ghost"
-                                onClick={actions.clearFilters}
-                                className="h-6 text-xs"
                             >
                                 Clear all
                             </Button>
                         )}
                     </div>
-                    
+
                     <div className="max-h-80 overflow-y-auto">
                         <div className="space-y-2">
                             {filters.map((filter) => {
                                 const config = columnsConfig[filter.columnId]
-                                if (!config) return null
+                                if (!config) {
+                                    return null
+                                }
 
                                 return (
                                     <FilterChip
-                                        key={filter.id}
-                                        filter={filter}
                                         config={config}
-                                        onUpdate={(updates) => actions.updateFilter(filter.id, updates)}
+                                        disabled={disabled}
+                                        filter={filter}
+                                        key={filter.id}
                                         onRemove={() => actions.removeFilter(filter.id)}
                                         onToggle={() => actions.toggleFilter(filter.id)}
-                                        disabled={disabled}
+                                        onUpdate={(updates) =>
+                                            actions.updateFilter(filter.id, updates)
+                                        }
                                     />
                                 )
                             })}
@@ -640,9 +646,12 @@ export function CompactFilterPanel({
 
                     <ModernAddFilterDropdown
                         columnsConfig={columnsConfig}
+                        disabled={disabled}
                         onAddFilter={(columnId, type) => {
                             const config = columnsConfig[columnId]
-                            if (!config) return
+                            if (!config) {
+                                return
+                            }
 
                             const operator = getDefaultFilterOperator(type)
                             const value = getDefaultFilterValue(type, operator)
@@ -655,11 +664,10 @@ export function CompactFilterPanel({
                                 isActive: true
                             })
                         }}
-                        disabled={disabled}
                         placeholder="Add filter..."
                     />
                 </div>
             </PopoverContent>
         </Popover>
     )
-} 
+}

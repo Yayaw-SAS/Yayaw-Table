@@ -1,7 +1,6 @@
-import InlineSVG from "react-inlinesvg"
-import { twMerge } from "tailwind-merge"
-
-import type React from "react"
+import type React from 'react'
+import InlineSVG from 'react-inlinesvg'
+import { twMerge } from 'tailwind-merge'
 
 interface SvgProps {
     alt?: string

@@ -7,10 +7,10 @@ import type {
     AdvancedFilterModel,
     AdvancedFiltersState,
     ColumnDataType,
+    ColumnOption,
     FilterOperators,
-    FilterValues,
-    ColumnOption
-} from "../types/filter-types"
+    FilterValues
+} from '../types/filter-types'
 
 /**
  * Generate a unique ID for filters
@@ -88,10 +88,14 @@ export const clientFilterFunctions = {
         }
     },
 
-    number: (value: any, filterValue: number | [number, number], operator: FilterOperators['number']): boolean => {
-        const numValue = typeof value === 'number' ? value : parseFloat(String(value))
-        
-        if (isNaN(numValue)) {
+    number: (
+        value: any,
+        filterValue: number | [number, number],
+        operator: FilterOperators['number']
+    ): boolean => {
+        const numValue = typeof value === 'number' ? value : Number.parseFloat(String(value))
+
+        if (Number.isNaN(numValue)) {
             return operator === 'isEmpty'
         }
 
@@ -106,64 +110,78 @@ export const clientFilterFunctions = {
                 return numValue >= (filterValue as number)
             case 'lessThanOrEqual':
                 return numValue <= (filterValue as number)
-            case 'between':
+            case 'between': {
                 const [min, max] = filterValue as [number, number]
                 return numValue >= min && numValue <= max
+            }
             case 'notEquals':
                 return numValue !== (filterValue as number)
             case 'isEmpty':
-                return value === null || value === undefined || isNaN(numValue)
+                return value === null || value === undefined || Number.isNaN(numValue)
             case 'isNotEmpty':
-                return value !== null && value !== undefined && !isNaN(numValue)
+                return value !== null && value !== undefined && !Number.isNaN(numValue)
             default:
                 return true
         }
     },
 
-    date: (value: any, filterValue: Date | [Date, Date], operator: FilterOperators['date']): boolean => {
+    date: (
+        value: any,
+        filterValue: Date | [Date, Date],
+        operator: FilterOperators['date']
+    ): boolean => {
         const dateValue = value instanceof Date ? value : new Date(value)
-        
-        if (isNaN(dateValue.getTime())) {
+
+        if (Number.isNaN(dateValue.getTime())) {
             return operator === 'isEmpty'
         }
 
         switch (operator) {
-            case 'equals':
+            case 'equals': {
                 const filterDate = filterValue as Date
                 return dateValue.toDateString() === filterDate.toDateString()
+            }
             case 'before':
                 return dateValue < (filterValue as Date)
             case 'after':
                 return dateValue > (filterValue as Date)
-            case 'between':
+            case 'between': {
                 const [startDate, endDate] = filterValue as [Date, Date]
                 return dateValue >= startDate && dateValue <= endDate
-            case 'notEquals':
+            }
+            case 'notEquals': {
                 const notEqualDate = filterValue as Date
                 return dateValue.toDateString() !== notEqualDate.toDateString()
+            }
             case 'isEmpty':
-                return !value || isNaN(dateValue.getTime())
+                return !value || Number.isNaN(dateValue.getTime())
             case 'isNotEmpty':
-                return !!value && !isNaN(dateValue.getTime())
+                return !!value && !Number.isNaN(dateValue.getTime())
             default:
                 return true
         }
     },
 
-    option: (value: any, filterValue: string | string[], operator: FilterOperators['option']): boolean => {
+    option: (
+        value: any,
+        filterValue: string | string[],
+        operator: FilterOperators['option']
+    ): boolean => {
         const strValue = String(value || '')
-        
+
         switch (operator) {
             case 'is':
                 return strValue === (filterValue as string)
             case 'isNot':
                 return strValue !== (filterValue as string)
-            case 'isAnyOf':
+            case 'isAnyOf': {
                 const anyOfValues = Array.isArray(filterValue) ? filterValue : [filterValue]
                 return anyOfValues.includes(strValue)
-            case 'isNoneOf':
+            }
+            case 'isNoneOf': {
                 const noneOfValues = Array.isArray(filterValue) ? filterValue : [filterValue]
                 return !noneOfValues.includes(strValue)
+            }
             case 'isEmpty':
                 return !value || String(value).trim() === ''
             case 'isNotEmpty':
@@ -173,17 +191,21 @@ export const clientFilterFunctions = {
         }
     },
 
-    multiOption: (value: any, filterValue: string[], operator: FilterOperators['multiOption']): boolean => {
+    multiOption: (
+        value: any,
+        filterValue: string[],
+        operator: FilterOperators['multiOption']
+    ): boolean => {
         const arrayValue = Array.isArray(value) ? value.map(String) : [String(value || '')]
         const filterArray = Array.isArray(filterValue) ? filterValue : [filterValue]
 
         switch (operator) {
             case 'contains':
-                return filterArray.some(f => arrayValue.includes(f))
+                return filterArray.some((f) => arrayValue.includes(f))
             case 'containsAll':
-                return filterArray.every(f => arrayValue.includes(f))
+                return filterArray.every((f) => arrayValue.includes(f))
             case 'containsNone':
-                return !filterArray.some(f => arrayValue.includes(f))
+                return !filterArray.some((f) => arrayValue.includes(f))
             case 'isEmpty':
                 return !value || (Array.isArray(value) && value.length === 0)
             case 'isNotEmpty':
@@ -211,15 +233,35 @@ export function applyFilter<TData = Record<string, any>>(
 
     switch (type) {
         case 'text':
-            return clientFilterFunctions.text(value, values as string, operator as FilterOperators['text'])
+            return clientFilterFunctions.text(
+                value,
+                values as string,
+                operator as FilterOperators['text']
+            )
         case 'number':
-            return clientFilterFunctions.number(value, values as number | [number, number], operator as FilterOperators['number'])
+            return clientFilterFunctions.number(
+                value,
+                values as number | [number, number],
+                operator as FilterOperators['number']
+            )
         case 'date':
-            return clientFilterFunctions.date(value, values as Date | [Date, Date], operator as FilterOperators['date'])
+            return clientFilterFunctions.date(
+                value,
+                values as Date | [Date, Date],
+                operator as FilterOperators['date']
+            )
         case 'option':
-            return clientFilterFunctions.option(value, values as string | string[], operator as FilterOperators['option'])
+            return clientFilterFunctions.option(
+                value,
+                values as string | string[],
+                operator as FilterOperators['option']
+            )
         case 'multiOption':
-            return clientFilterFunctions.multiOption(value, values as string[], operator as FilterOperators['multiOption'])
+            return clientFilterFunctions.multiOption(
+                value,
+                values as string[],
+                operator as FilterOperators['multiOption']
+            )
         default:
             return true
     }
@@ -237,11 +279,10 @@ export function applyFilters<TData = Record<string, any>>(
         return data
     }
 
-    return data.filter(row => {
-        return filters.every(filter => {
+    return data.filter((row) => {
+        return filters.every((filter) => {
             const accessor = accessors[filter.columnId]
             if (!accessor) {
-                console.warn(`No accessor found for column: ${filter.columnId}`)
                 return true
             }
             return applyFilter(row, filter, accessor)
@@ -257,12 +298,12 @@ export function getFacetedUniqueValues<TData = Record<string, any>>(
     accessor: (row: TData) => any
 ): Map<string, number> {
     const counts = new Map<string, number>()
-    
-    data.forEach(row => {
+
+    data.forEach((row) => {
         const value = accessor(row)
         if (Array.isArray(value)) {
             // For multi-option columns
-            value.forEach(v => {
+            value.forEach((v) => {
                 const strValue = String(v || '')
                 counts.set(strValue, (counts.get(strValue) || 0) + 1)
             })
@@ -284,11 +325,11 @@ export function getFacetedNumericRange<TData = Record<string, any>>(
     accessor: (row: TData) => any
 ): [number, number] | null {
     const values = data
-        .map(row => {
+        .map((row) => {
             const value = accessor(row)
-            return typeof value === 'number' ? value : parseFloat(String(value))
+            return typeof value === 'number' ? value : Number.parseFloat(String(value))
         })
-        .filter(v => !isNaN(v))
+        .filter((v) => !Number.isNaN(v))
 
     if (values.length === 0) {
         return null
@@ -305,10 +346,10 @@ export function getFacetedDateRange<TData = Record<string, any>>(
     accessor: (row: TData) => any
 ): [Date, Date] | null {
     const dates = data
-        .map(row => {
+        .map((row) => {
             const value = accessor(row)
             const date = value instanceof Date ? value : new Date(value)
-            return isNaN(date.getTime()) ? null : date
+            return Number.isNaN(date.getTime()) ? null : date
         })
         .filter((date): date is Date => date !== null)
 
@@ -316,7 +357,10 @@ export function getFacetedDateRange<TData = Record<string, any>>(
         return null
     }
 
-    return [new Date(Math.min(...dates.map(d => d.getTime()))), new Date(Math.max(...dates.map(d => d.getTime())))]
+    return [
+        new Date(Math.min(...dates.map((d) => d.getTime()))),
+        new Date(Math.max(...dates.map((d) => d.getTime())))
+    ]
 }
 
 /**
@@ -331,13 +375,13 @@ export function formatFilterValueForDisplay(
     switch (type) {
         case 'text':
             return String(values || '')
-        
+
         case 'number':
             if (operator === 'between' && Array.isArray(values)) {
                 return `${values[0]} - ${values[1]}`
             }
             return String(values || '')
-        
+
         case 'date':
             if (operator === 'between' && Array.isArray(values)) {
                 const [start, end] = values as [Date, Date]
@@ -347,23 +391,23 @@ export function formatFilterValueForDisplay(
                 return values.toLocaleDateString()
             }
             return String(values || '')
-        
+
         case 'option':
             if (Array.isArray(values)) {
                 return values
-                    .map(v => options?.find(opt => opt.value === v)?.label || v)
+                    .map((v) => options?.find((opt) => opt.value === v)?.label || v)
                     .join(', ')
             }
-            return options?.find(opt => opt.value === values)?.label || String(values || '')
-        
+            return options?.find((opt) => opt.value === values)?.label || String(values || '')
+
         case 'multiOption':
             if (Array.isArray(values)) {
                 return values
-                    .map(v => options?.find(opt => opt.value === v)?.label || v)
+                    .map((v) => options?.find((opt) => opt.value === v)?.label || v)
                     .join(', ')
             }
             return String(values || '')
-        
+
         default:
             return String(values || '')
     }
@@ -374,8 +418,8 @@ export function formatFilterValueForDisplay(
  */
 export function convertToTanStackFilters(filters: AdvancedFiltersState) {
     return filters
-        .filter(filter => filter.isActive)
-        .map(filter => ({
+        .filter((filter) => filter.isActive)
+        .map((filter) => ({
             id: filter.columnId,
             value: {
                 type: filter.type,
@@ -393,8 +437,8 @@ export function convertFromTanStackFilters(
     columnsConfig: Record<string, { type: ColumnDataType }>
 ): AdvancedFiltersState {
     return tanStackFilters
-        .filter(filter => filter.value && typeof filter.value === 'object')
-        .map(filter => {
+        .filter((filter) => filter.value && typeof filter.value === 'object')
+        .map((filter) => {
             const columnConfig = columnsConfig[filter.id]
             if (!columnConfig) {
                 return null
@@ -408,4 +452,4 @@ export function convertFromTanStackFilters(
             )
         })
         .filter((filter): filter is AdvancedFilterModel => filter !== null)
-} 
+}

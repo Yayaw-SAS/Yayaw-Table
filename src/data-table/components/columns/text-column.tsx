@@ -2,12 +2,12 @@
  * Text column component for data tables
  * Provides standardized display of text values
  */
-"use client"
+'use client'
 
-import type { CellContext, ColumnDef } from "@tanstack/react-table"
-import { type LucideIcon, Text } from "lucide-react"
+import type { CellContext, ColumnDef } from '@tanstack/react-table'
+import { type LucideIcon, Text } from 'lucide-react'
 
-import { StringCell } from "../cells/string-cell"
+import { StringCell } from '../cells/string-cell'
 
 /**
  * Custom properties for our column definitions
@@ -63,7 +63,7 @@ interface TextColumnProps {
  */
 export function createTextColumn<TData>({
     accessorKey,
-    className = "",
+    className = '',
     enableColumnFilter = true,
     enableHiding = true,
     enableSorting = true,
@@ -81,6 +81,6 @@ export function createTextColumn<TData>({
         header: header || accessorKey,
         icon: Text,
         id: accessorKey,
-        type: "text"
+        type: 'text'
     }
 }

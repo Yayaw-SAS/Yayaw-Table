@@ -2,12 +2,12 @@
  * Code column component for data tables
  * Displays code values with monospace font styling
  */
-"use client"
+'use client'
 
-import type { ColumnDef } from "@tanstack/react-table"
-import { type LucideIcon, SquareCode } from "lucide-react"
+import type { ColumnDef } from '@tanstack/react-table'
+import { type LucideIcon, SquareCode } from 'lucide-react'
 
-import { CodeCell } from "../cells/code-cell"
+import { CodeCell } from '../cells/code-cell'
 
 /**
  * Options for creating a code column
@@ -64,7 +64,7 @@ type ExtendedColumnDef<TData> = ColumnDef<TData> & CustomColumnProps
  * Creates a column definition for displaying code values with monospace font
  */
 export function createCodeColumn<TData>({
-    className = "",
+    className = '',
     enableColumnFilter = true,
     enableHiding = true,
     enableSorting = true,
@@ -82,6 +82,6 @@ export function createCodeColumn<TData>({
         header,
         icon: SquareCode,
         id,
-        type: "code"
+        type: 'code'
     }
 }

@@ -1,4 +1,4 @@
-import type { FieldValues, Path } from "react-hook-form"
+import type { FieldValues, Path } from 'react-hook-form'
 
 import type {
     AnyFieldDefinition,
@@ -10,10 +10,10 @@ import type {
     SelectFieldDefinition,
     SelectWithAddNewFieldDefinition,
     SwitchFieldDefinition,
-    TextFieldDefinition,
     TextareaFieldDefinition,
+    TextFieldDefinition,
     ValueTypeFieldDefinition
-} from "./types"
+} from './types'
 
 interface BaseFieldOptions<TFieldValues extends FieldValues> {
     dependsOn?: {
@@ -35,11 +35,11 @@ interface BaseFieldOptions<TFieldValues extends FieldValues> {
  * Create a checkbox field definition
  */
 export function createCheckboxField<TFieldValues extends FieldValues = FieldValues>(
-    options: Omit<CheckboxFieldDefinition<TFieldValues>, "type">
+    options: Omit<CheckboxFieldDefinition<TFieldValues>, 'type'>
 ): CheckboxFieldDefinition<TFieldValues> {
     return {
         ...options,
-        type: "checkbox"
+        type: 'checkbox'
     }
 }
 
@@ -47,11 +47,11 @@ export function createCheckboxField<TFieldValues extends FieldValues = FieldValu
  * Create a custom field definition
  */
 export function createCustomField<TFieldValues extends FieldValues = FieldValues>(
-    options: Omit<CustomFieldDefinition<TFieldValues>, "type">
+    options: Omit<CustomFieldDefinition<TFieldValues>, 'type'>
 ): CustomFieldDefinition<TFieldValues> {
     return {
         ...options,
-        type: "custom"
+        type: 'custom'
     }
 }
 
@@ -65,7 +65,7 @@ export const createDateField = (
 ): DateFieldDefinition => ({
     label,
     name,
-    type: "date",
+    type: 'date',
     ...options
 })
 
@@ -73,11 +73,11 @@ export const createDateField = (
  * Create a dynamic value field definition
  */
 export function createDynamicValueField<TFieldValues extends FieldValues = FieldValues>(
-    options: Omit<DynamicValueFieldDefinition<TFieldValues>, "type">
+    options: Omit<DynamicValueFieldDefinition<TFieldValues>, 'type'>
 ): DynamicValueFieldDefinition<TFieldValues> {
     return {
         ...options,
-        type: "dynamic-value"
+        type: 'dynamic-value'
     }
 }
 
@@ -87,10 +87,10 @@ export function createDynamicValueField<TFieldValues extends FieldValues = Field
  */
 export function createNamedField<TFieldValues extends FieldValues = FieldValues>(
     name: Path<TFieldValues>,
-    fieldDefinition: Omit<AnyFieldDefinition<TFieldValues>, "name">
+    fieldDefinition: Omit<AnyFieldDefinition<TFieldValues>, 'name'>
 ): AnyFieldDefinition<TFieldValues> {
     if (!fieldDefinition.type) {
-        throw new Error("Field definition must have a type property")
+        throw new Error('Field definition must have a type property')
     }
 
     return {
@@ -110,7 +110,7 @@ export function createNumberField<TFieldValues extends FieldValues = FieldValues
 ): NumberFieldDefinition<TFieldValues> {
     return {
         ...options,
-        type: "number"
+        type: 'number'
     }
 }
 
@@ -118,11 +118,11 @@ export function createNumberField<TFieldValues extends FieldValues = FieldValues
  * Create a select field definition
  */
 export function createSelectField<TFieldValues extends FieldValues = FieldValues>(
-    options: Omit<SelectFieldDefinition<TFieldValues>, "type">
+    options: Omit<SelectFieldDefinition<TFieldValues>, 'type'>
 ): SelectFieldDefinition<TFieldValues> {
     return {
         ...options,
-        type: "select"
+        type: 'select'
     }
 }
 
@@ -130,12 +130,12 @@ export function createSelectField<TFieldValues extends FieldValues = FieldValues
  * Create a select with add new field definition
  */
 export function createSelectWithAddNewField<TFieldValues extends FieldValues = FieldValues>(
-    options: Omit<SelectWithAddNewFieldDefinition<TFieldValues>, "type">
+    options: Omit<SelectWithAddNewFieldDefinition<TFieldValues>, 'type'>
 ): SelectWithAddNewFieldDefinition<TFieldValues> {
     return {
         ...options,
         options: options.options || [],
-        type: "select-with-add-new"
+        type: 'select-with-add-new'
     }
 }
 
@@ -143,11 +143,11 @@ export function createSelectWithAddNewField<TFieldValues extends FieldValues = F
  * Create a switch field definition
  */
 export function createSwitchField<TFieldValues extends FieldValues = FieldValues>(
-    options: Omit<SwitchFieldDefinition<TFieldValues>, "type">
+    options: Omit<SwitchFieldDefinition<TFieldValues>, 'type'>
 ): SwitchFieldDefinition<TFieldValues> {
     return {
         ...options,
-        type: "switch"
+        type: 'switch'
     }
 }
 
@@ -155,11 +155,11 @@ export function createSwitchField<TFieldValues extends FieldValues = FieldValues
  * Create a textarea field definition
  */
 export function createTextareaField<TFieldValues extends FieldValues = FieldValues>(
-    options: Omit<TextareaFieldDefinition<TFieldValues>, "type">
+    options: Omit<TextareaFieldDefinition<TFieldValues>, 'type'>
 ): TextareaFieldDefinition<TFieldValues> {
     return {
         ...options,
-        type: "textarea"
+        type: 'textarea'
     }
 }
 
@@ -167,11 +167,11 @@ export function createTextareaField<TFieldValues extends FieldValues = FieldValu
  * Create a text field definition
  */
 export function createTextField<TFieldValues extends FieldValues = FieldValues>(
-    options: Omit<TextFieldDefinition<TFieldValues>, "type">
+    options: Omit<TextFieldDefinition<TFieldValues>, 'type'>
 ): TextFieldDefinition<TFieldValues> {
     return {
         ...options,
-        type: "text"
+        type: 'text'
     }
 }
 
@@ -179,10 +179,10 @@ export function createTextField<TFieldValues extends FieldValues = FieldValues>(
  * Create a value type field definition
  */
 export function createValueTypeField<TFieldValues extends FieldValues = FieldValues>(
-    options: Omit<ValueTypeFieldDefinition<TFieldValues>, "type">
+    options: Omit<ValueTypeFieldDefinition<TFieldValues>, 'type'>
 ): ValueTypeFieldDefinition<TFieldValues> {
     return {
         ...options,
-        type: "value-type"
+        type: 'value-type'
     }
 }

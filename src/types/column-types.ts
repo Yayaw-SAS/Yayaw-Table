@@ -1,7 +1,7 @@
 /**
  * Type definitions for DataTable column management
  */
-import type { CellContext, Row } from "@tanstack/react-table"
+import type { CellContext, Row } from '@tanstack/react-table'
 
 /**
  * Comprehensive column definition interface for DataTable
@@ -36,7 +36,7 @@ export interface DataTableColumnDef<T extends Record<string, unknown> = Record<s
     }
 
     // Column type for specialized rendering and filtering
-    type?: "boolean" | "code" | "custom" | "date" | "number" | "select" | "tag" | "text"
+    type?: 'boolean' | 'code' | 'custom' | 'date' | 'number' | 'select' | 'tag' | 'text'
 }
 
 /**
@@ -45,6 +45,6 @@ export interface DataTableColumnDef<T extends Record<string, unknown> = Record<s
  */
 export type DataTableColumnDefToColumnDef<
     T extends Record<string, unknown> = Record<string, unknown>
-> = Omit<DataTableColumnDef<T>, "enableFiltering"> & {
+> = Omit<DataTableColumnDef<T>, 'enableFiltering'> & {
     enableColumnFilter?: boolean
 }

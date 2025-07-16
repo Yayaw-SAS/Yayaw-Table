@@ -4,9 +4,9 @@
  */
 
 // Import TanStack Table types
-import type { ColumnFiltersState, ColumnOrderState, SortingState } from "@tanstack/react-table"
+import type { ColumnFiltersState, ColumnOrderState, SortingState } from '@tanstack/react-table'
 // Import TableViewConfig type from types
-import type { TableViewConfig } from "../../types/view-types"
+import type { TableViewConfig } from '../../types/view-types'
 
 /**
  * Type definition for a serialized table configuration
@@ -56,13 +56,12 @@ export const tableConfigUtils = {
         // If the input is a string, parse it as JSON
         let config: SerializedTableViewConfig
         try {
-            if (typeof serializedConfig === "string") {
+            if (typeof serializedConfig === 'string') {
                 config = JSON.parse(serializedConfig) as SerializedTableViewConfig
             } else {
                 config = serializedConfig
             }
-        } catch (error) {
-            console.error("Error parsing serialized config:", error)
+        } catch (_error) {
             // Return empty config if parsing fails
             return {}
         }
@@ -73,7 +72,7 @@ export const tableConfigUtils = {
             try {
                 // Handle the case where columnFilters might already be an object
                 const parsedFilters =
-                    typeof config.columnFilters === "string"
+                    typeof config.columnFilters === 'string'
                         ? JSON.parse(config.columnFilters)
                         : config.columnFilters
 
@@ -83,9 +82,9 @@ export const tableConfigUtils = {
                         const filterObj = filter as { id?: unknown; value?: unknown }
                         // Make sure the ID is a string
                         const id =
-                            typeof filterObj.id === "string"
+                            typeof filterObj.id === 'string'
                                 ? filterObj.id
-                                : String(filterObj.id || "")
+                                : String(filterObj.id || '')
                         return {
                             id,
                             value: filterObj.value
@@ -94,24 +93,24 @@ export const tableConfigUtils = {
                 } else {
                     columnFilters = []
                 }
-            } catch (error) {
-                console.error("Error parsing column filters:", error)
+            } catch (_error) {
                 columnFilters = []
             }
         }
 
         // Helper function to safely parse JSON or handle already parsed objects
         const safelyParse = <T>(value: unknown, defaultValue: T): T => {
-            if (!value) return defaultValue
+            if (!value) {
+                return defaultValue
+            }
 
             try {
-                if (typeof value === "string") {
+                if (typeof value === 'string') {
                     return JSON.parse(value) as T
                 }
                 // If it's already an object, return it directly
                 return value as T
-            } catch (error) {
-                console.error("Error parsing value:", error)
+            } catch (_error) {
                 return defaultValue
             }
         }
@@ -135,12 +134,12 @@ export const tableConfigUtils = {
         const normalizedColumnFilters = config.columnFilters?.map((filter) => {
             // Extract only the essential properties and normalize column IDs
             // This prevents complex objects like functions or module references from being serialized
-            let columnId = typeof filter.id === "string" ? filter.id : String(filter.id)
+            let columnId = typeof filter.id === 'string' ? filter.id : String(filter.id)
 
             // Clean up Turbopack references if present
-            if (columnId.includes("__TURBOPACK_")) {
+            if (columnId.includes('__TURBOPACK_')) {
                 // Try to extract a simpler ID from the path
-                const simplifiedId = columnId.split("/").pop()?.split("$").pop()
+                const simplifiedId = columnId.split('/').pop()?.split('$').pop()
                 if (simplifiedId) {
                     columnId = simplifiedId
                 }

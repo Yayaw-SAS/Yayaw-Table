@@ -1,11 +1,4 @@
-import type {
-    ColumnDef,
-    ColumnFiltersState,
-    PaginationState,
-    SortingState,
-    Table,
-    VisibilityState
-} from "@tanstack/react-table"
+import type { ColumnDef, ColumnFiltersState, Table } from '@tanstack/react-table'
 
 /**
  * Column filter object
@@ -102,11 +95,11 @@ export interface DataTableState {
 }
 
 export interface DataTableProps<TData extends Record<string, unknown>, TValue = unknown> {
-  data: TData[]
-  columns: ColumnDef<TData, TValue>[]
-  tableId: string
-  tableType?: string
-  children?: React.ReactNode
-  initialActiveViewId?: string
-  initialViews?: unknown[]
-} 
+    data: TData[]
+    columns: ColumnDef<TData, TValue>[]
+    tableId: string
+    tableType?: string
+    children?: React.ReactNode
+    initialActiveViewId?: string
+    initialViews?: unknown[]
+}

@@ -2,12 +2,10 @@
  * Advanced toolbar component for DataTable
  * Provides advanced filtering, view management, and other table controls
  */
-"use client"
+'use client'
 
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 // Import table configuration
-import { useQueryClient } from "@tanstack/react-query"
+import { useQueryClient } from '@tanstack/react-query'
 import type {
     ColumnDef,
     ColumnFiltersState,
@@ -16,18 +14,23 @@ import type {
     SortingState,
     Table,
     VisibilityState
-} from "@tanstack/react-table"
-import { useSetAtom } from "jotai"
-import { PlusIcon, Search } from "lucide-react"
-import { useTranslations, useTableConfig } from "../../providers/table-provider"
-import { useCallback, useMemo } from "react"
+} from '@tanstack/react-table'
+import { useSetAtom } from 'jotai'
+import { PlusIcon, Search } from 'lucide-react'
+import { useCallback, useMemo } from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { useDataTable } from '../../hooks/use-data-table'
+import {
+    useColumnConfigFromTableColumns,
+    useDataTableAdvancedFilters,
+    useTableAccessors
+} from '../../hooks/use-data-table-advanced-filters'
+import { useTableInstance } from '../../hooks/use-table-instance'
+import { useTableConfig, useTranslations } from '../../providers/table-provider'
+import { catalogueFormAtom, openCreateForm } from '../forms/atoms/catalogue-form-atoms'
 
-import { useDataTable } from "../../hooks/use-data-table"
-import { useDataTableAdvancedFilters, useColumnConfigFromTableColumns, useTableAccessors } from "../../hooks/use-data-table-advanced-filters"
-import { useTableInstance } from "../../hooks/use-table-instance"
-import { catalogueFormAtom, openCreateForm } from "../forms/atoms/catalogue-form-atoms"
-
-import { TableMenu } from "./table-menu"
+import { TableMenu } from './table-menu'
 
 // Debug flag to help track issues - activated for debugging
 const DEBUG = false
@@ -43,7 +46,7 @@ export type DataTableColumnDef<TData> = ColumnDef<TData> & {
 /**
  * Props for the DataTableAdvancedToolbar component - DEPRECATED: use only tableId
  */
-interface DataTableAdvancedToolbarProps<TData = Record<string, unknown>> {
+interface DataTableAdvancedToolbarProps<_TData = Record<string, unknown>> {
     /**
      * CSS class name
      */
@@ -155,7 +158,7 @@ interface DataTableAdvancedToolbarProps<TData = Record<string, unknown>> {
 // Define DataTableState type to handle state properties
 interface DataTableState {
     columnFilters?: ColumnFiltersState
-    columns?: Array<Record<string, unknown>>
+    columns?: Record<string, unknown>[]
     columnVisibility?: VisibilityState
     grouping?: GroupingState
     sorting?: SortingState
@@ -179,7 +182,7 @@ export function DataTableAdvancedToolbar<TData>({
     ...props
 }: DataTableAdvancedToolbarProps<TData>) {
     // Ensure tableId is available
-    const tableId = props.tableId || "default"
+    const tableId = props.tableId || 'default'
 
     // Get the configuration helpers from the provider
     const getTableConfig = useTableConfig()
@@ -192,23 +195,17 @@ export function DataTableAdvancedToolbar<TData>({
     // Advanced filters setup - get enhanced column configurations
     const columnOptions = useMemo(() => {
         if (DEBUG) {
-            console.log("🔧 TABLE DEBUG:")
-            console.log("🔧 table instance:", !!table)
-            console.log("🔧 tableId:", tableId)
         }
-        
+
         // Get table configuration first
         const tableConfig = getTableConfig?.(tableId)
         const columnDefinitions = (tableConfig as any)?.columns?.definitions || []
-        
+
         if (DEBUG) {
-            console.log("🔧 tableConfig:", tableConfig)
-            console.log("🔧 columnDefinitions:", columnDefinitions)
         }
-        
+
         if (!table) {
             if (DEBUG) {
-                console.warn("DataTableAdvancedToolbar - No table instance provided")
             }
             // Fallback to column definitions from config
             return columnDefinitions.map((colDef: any) => ({
@@ -228,15 +225,13 @@ export function DataTableAdvancedToolbar<TData>({
 
         const allColumns = table.getAllColumns()
         if (DEBUG) {
-            console.log("🔧 table.getAllColumns():", allColumns)
-            console.log("🔧 allColumns length:", allColumns.length)
         }
 
         // Merge table columns with enhanced configuration
         const options = allColumns.map((column) => {
             const columnDef = column.columnDef as DataTableColumnDef<TData>
             const configDef = columnDefinitions.find((def: any) => def.id === column.id)
-            
+
             const option = {
                 canFilter: column.getCanFilter(),
                 canHide: columnDef.enableHiding !== false,
@@ -251,26 +246,20 @@ export function DataTableAdvancedToolbar<TData>({
                 max: configDef?.max,
                 type: configDef?.type
             }
-            
+
             if (DEBUG) {
-                console.log("🔧 Column:", column.id, "->", option)
-                console.log("🔧 Config def for", column.id, "->", configDef)
             }
-            
+
             return option
         })
 
         if (DEBUG) {
-            console.log("DataTableAdvancedToolbar - Enhanced column options:", options)
         }
         return options
     }, [table, tableId, getTableConfig])
 
     // Create advanced columns configuration from table columns
-    const advancedColumnsConfig = useColumnConfigFromTableColumns(
-        columnOptions,
-        columnTypeMapping
-    )
+    const advancedColumnsConfig = useColumnConfigFromTableColumns(columnOptions, columnTypeMapping)
 
     // Create accessors for advanced filtering
     const accessors = useTableAccessors(
@@ -279,11 +268,6 @@ export function DataTableAdvancedToolbar<TData>({
     )
 
     if (DEBUG) {
-        console.log("🔧 ADVANCED CONFIG DEBUG:")
-        console.log("🔧 columnOptions:", columnOptions)
-        console.log("🔧 columnTypeMapping:", columnTypeMapping)
-        console.log("🔧 advancedColumnsConfig:", advancedColumnsConfig)
-        console.log("🔧 accessors:", accessors)
     }
 
     // Set up advanced filters if enabled
@@ -297,35 +281,27 @@ export function DataTableAdvancedToolbar<TData>({
     })
 
     if (DEBUG) {
-        console.log("DataTableAdvancedToolbar - state:", state)
-        console.log("DataTableAdvancedToolbar - table initialized:", !!table)
-        console.log("DataTableAdvancedToolbar - advanced filters enabled:", enableAdvancedFilters)
-        console.log("DataTableAdvancedToolbar - advanced filters count:", advancedFiltersResult.activeAdvancedFiltersCount)
-        console.log("DataTableAdvancedToolbar - advancedColumnsConfig:", advancedColumnsConfig)
-        console.log("DataTableAdvancedToolbar - data length:", data.length)
-        console.log("DataTableAdvancedToolbar - advanced filters:", advancedFiltersResult.advancedFilters)
     }
 
     // Get final columns
     const finalColumns = useMemo(() => {
         if (DEBUG) {
-            console.log("DataTableAdvancedToolbar - Computing finalColumns, state:", state)
         }
         return state?.columns ?? columnOptions
     }, [columnOptions, state])
 
     if (DEBUG) {
-        console.log("DataTableAdvancedToolbar - finalColumns:", finalColumns)
     }
 
     // Get final column visibility
     const finalColumnVisibility = useMemo(() => {
-        if (!table) return {}
+        if (!table) {
+            return {}
+        }
         return state?.columnVisibility ?? table.getState().columnVisibility
     }, [state?.columnVisibility, table])
 
     if (DEBUG) {
-        console.log("DataTableAdvancedToolbar - finalColumnVisibility:", finalColumnVisibility)
     }
 
     // QueryClient for invalidating queries
@@ -343,10 +319,10 @@ export function DataTableAdvancedToolbar<TData>({
     })
 
     // Create a table instance to use with the TableMenu
-    const tableInstance = useTableInstance({
+    const _tableInstance = useTableInstance({
         columns: [], // Empty columns since we only need the table structure for the menu
         data: [],
-        tableId: tableId
+        tableId
     })
 
     // Use props if provided (for backwards compatibility) or values from useDataTable
@@ -358,7 +334,6 @@ export function DataTableAdvancedToolbar<TData>({
     const finalSetColumnVisibility = useCallback(
         (value: VisibilityState) => {
             if (DEBUG) {
-                console.log("DataTableAdvancedToolbar - Setting column visibility to:", value)
             }
 
             try {
@@ -368,13 +343,8 @@ export function DataTableAdvancedToolbar<TData>({
                 } else if (dataTableSetColumnVisibility) {
                     dataTableSetColumnVisibility(value)
                 } else {
-                    console.warn(
-                        "DataTableAdvancedToolbar - No column visibility setter function available"
-                    )
                 }
-            } catch (error) {
-                console.error("Error setting column visibility:", error)
-            }
+            } catch (_error) {}
         },
         [props.setColumnVisibility, dataTableSetColumnVisibility]
     )
@@ -387,16 +357,16 @@ export function DataTableAdvancedToolbar<TData>({
     const setFormState = useSetAtom(catalogueFormAtom)
 
     // Get table configuration directly using tableId
-    const tableConfig = getTableConfig?.(tableId)
+    const _tableConfig = getTableConfig?.(tableId)
 
     // Count active filters
-    const activeFiltersCount = finalColumnFilters.length
+    const _activeFiltersCount = finalColumnFilters.length
 
     // Convert finalColumns to the format expected by TableMenu
     const tableMenuColumns = Array.isArray(finalColumns)
         ? finalColumns.map((col) => {
               // Handle both types: Record<string, unknown> and specific column type
-              const isSpecificColumnType = col && typeof col === "object" && "canFilter" in col
+              const isSpecificColumnType = col && typeof col === 'object' && 'canFilter' in col
 
               return {
                   canFilter: isSpecificColumnType
@@ -411,21 +381,14 @@ export function DataTableAdvancedToolbar<TData>({
                   canSort: isSpecificColumnType
                       ? ((col as { canSort?: boolean }).canSort ?? true)
                       : true,
-                  id: (col as { id?: string }).id || "",
+                  id: (col as { id?: string }).id || '',
                   label:
-                      (col as { label?: string }).label || (col as { id?: string }).id || "Column"
+                      (col as { label?: string }).label || (col as { id?: string }).id || 'Column'
               }
           })
         : []
 
     if (DEBUG) {
-        console.log("DataTableAdvancedToolbar - tableMenuColumns:", tableMenuColumns)
-        console.log(
-            "DataTableAdvancedToolbar - finalColumnVisibility state:",
-            finalColumnVisibility
-        )
-        console.log("DataTableAdvancedToolbar - finalSorting:", finalSorting)
-        console.log("DataTableAdvancedToolbar - dataTableState.sorting:", dataTableState?.sorting)
     }
 
     return (
@@ -436,10 +399,10 @@ export function DataTableAdvancedToolbar<TData>({
                     // Set the form state to open the create form
                     // Use tableId directly as the form type since they're now identical
                     setFormState(
-                        openCreateForm(tableId, tableId, (data) => {
+                        openCreateForm(tableId, tableId, (_data) => {
                             // Invalidate the table data query to refresh the table after successful submission
                             queryClient.invalidateQueries({
-                                queryKey: ["tableData", tableId]
+                                queryKey: ['tableData', tableId]
                             })
                         })
                     )
@@ -448,24 +411,31 @@ export function DataTableAdvancedToolbar<TData>({
                 variant="default"
             >
                 <PlusIcon className="mr-2 h-4 w-4" />
-                <span>{t("add_an_item")}</span>
+                <span>{t('add_an_item')}</span>
             </Button>
 
             {/* Search bar */}
             <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                    placeholder="Search..."
-                    className="pl-9 h-8 w-64"
-                />
+                <Search className="-translate-y-1/2 absolute top-1/2 left-3 h-4 w-4 text-muted-foreground" />
+                <Input className="h-8 w-64 pl-9" placeholder="Search..." />
             </div>
 
             {/* Options menu */}
             <TableMenu
+                advancedFiltersConfig={
+                    enableAdvancedFilters
+                        ? {
+                              filters: advancedFiltersResult.advancedFilters,
+                              actions: advancedFiltersResult.advancedActions,
+                              columnsConfig: advancedColumnsConfig,
+                              onConvertToAdvanced: advancedFiltersResult.convertLegacyToAdvanced
+                          }
+                        : undefined
+                }
                 columns={tableMenuColumns}
                 invalidateTable={async () => {
                     await queryClient.invalidateQueries({
-                        queryKey: ["tableData", tableId]
+                        queryKey: ['tableData', tableId]
                     })
                 }}
                 setColumnFilters={finalSetColumnFilters}
@@ -487,7 +457,7 @@ export function DataTableAdvancedToolbar<TData>({
                     },
                     columnVisibility: finalColumnVisibility as VisibilityState,
                     expanded: {},
-                    globalFilter: "",
+                    globalFilter: '',
                     grouping: finalGrouping as GroupingState,
                     pagination: { pageIndex: 0, pageSize: 10 },
                     rowPinning: { bottom: [], top: [] },
@@ -496,12 +466,6 @@ export function DataTableAdvancedToolbar<TData>({
                 }}
                 tableId={tableId}
                 useAdvancedFilters={enableAdvancedFilters}
-                advancedFiltersConfig={enableAdvancedFilters ? {
-                    filters: advancedFiltersResult.advancedFilters,
-                    actions: advancedFiltersResult.advancedActions,
-                    columnsConfig: advancedColumnsConfig,
-                    onConvertToAdvanced: advancedFiltersResult.convertLegacyToAdvanced
-                } : undefined}
             />
         </div>
     )

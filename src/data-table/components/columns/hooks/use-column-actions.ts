@@ -3,20 +3,16 @@
  * Provides utilities for column visibility, ordering, and other UI actions
  * Uses URL state for shareable states (order, visibility) and atoms for local states (translations, definitions)
  */
-"use client"
+'use client'
 
-import { useQuery } from "@tanstack/react-query"
-import type { AccessorFn, ColumnDef, ColumnMeta } from "@tanstack/react-table"
-import { useAtom } from "jotai"
-import { useCallback, useMemo, useRef } from "react"
-
-import { cleanColumnId, columnIdMappingAtom } from "../../../atoms/filter-atoms"
-import {
-    columnTranslationsAtom,
-    columnsAtom
-} from "../../../atoms/table-atoms"
-import type { DataTableColumnDef } from "../../../../types/column-types"
-import { useTableUrlState } from "../../../hooks/use-table-url-state"
+import { useQuery } from '@tanstack/react-query'
+import type { AccessorFn, ColumnDef, ColumnMeta } from '@tanstack/react-table'
+import { useAtom } from 'jotai'
+import { useCallback, useMemo, useRef } from 'react'
+import type { DataTableColumnDef } from '../../../../types/column-types'
+import { cleanColumnId, columnIdMappingAtom } from '../../../atoms/filter-atoms'
+import { columnsAtom, columnTranslationsAtom } from '../../../atoms/table-atoms'
+import { useTableUrlState } from '../../../hooks/use-table-url-state'
 
 interface UseColumnActionsOptions<TData extends Record<string, unknown> = Record<string, unknown>> {
     columns?: Array<ColumnDef<TData> | DataTableColumnDef<TData>>
@@ -37,13 +33,15 @@ export function useColumnActions<TData extends Record<string, unknown> = Record<
     const processingColumns = useRef(false)
 
     // **URL STATE** - for shareable states (order, visibility)
-    const { orderParam, setOrderFromUI, visibilityParam, setVisibilityFromUI } = useTableUrlState({ tableId })
-    
+    const { orderParam, setOrderFromUI, visibilityParam, setVisibilityFromUI } = useTableUrlState({
+        tableId
+    })
+
     // **ATOMS** - only for local states (translations, definitions)
     const [columns, setColumns] = useAtom(columnsAtom(tableId))
     const [columnTranslations, setColumnTranslations] = useAtom(columnTranslationsAtom(tableId))
-    const [columnIdMapping, setColumnIdMapping] = useAtom(columnIdMappingAtom(tableId))
-    
+    const [columnIdMapping, _setColumnIdMapping] = useAtom(columnIdMappingAtom(tableId))
+
     // Get current state from URL state
     const columnOrder = (orderParam as string[]) || []
     const columnVisibility = (visibilityParam as Record<string, boolean>) || {}
@@ -60,14 +58,14 @@ export function useColumnActions<TData extends Record<string, unknown> = Record<
             index?: number
         ): string => {
             // Use id if it's a string
-            if (typeof column.id === "string") {
+            if (typeof column.id === 'string') {
                 // Check mapping first
                 if (columnIdMapping.has(column.id)) {
                     return columnIdMapping.get(column.id) || column.id
                 }
 
                 // Clean Turbopack references
-                if (column.id.includes("__TURBOPACK__")) {
+                if (column.id.includes('__TURBOPACK__')) {
                     return cleanColumnId(column.id)
                 }
 
@@ -83,8 +81,8 @@ export function useColumnActions<TData extends Record<string, unknown> = Record<
             }
 
             // Try header
-            if (typeof column.header === "string") {
-                return `col-${column.header.toLowerCase().replace(/\s+/g, "-")}`
+            if (typeof column.header === 'string') {
+                return `col-${column.header.toLowerCase().replace(/\s+/g, '-')}`
             }
 
             // Fallback to index
@@ -129,8 +127,8 @@ export function useColumnActions<TData extends Record<string, unknown> = Record<
             }
 
             // Get header text
-            let headerText = ""
-            if (typeof columnDef.header === "string") {
+            let headerText = ''
+            if (typeof columnDef.header === 'string') {
                 headerText = columnDef.header
             } else {
                 const accessorKey = columnWithAccessor.accessorKey
@@ -139,14 +137,14 @@ export function useColumnActions<TData extends Record<string, unknown> = Record<
                         String(accessorKey).charAt(0).toUpperCase() +
                         String(accessorKey)
                             .slice(1)
-                            .replace(/([A-Z])/g, " $1")
+                            .replace(/([A-Z])/g, ' $1')
                             .trim()
                 } else {
                     headerText =
                         id.charAt(0).toUpperCase() +
                         id
                             .slice(1)
-                            .replace(/([A-Z])/g, " $1")
+                            .replace(/([A-Z])/g, ' $1')
                             .trim()
                 }
             }
@@ -162,9 +160,9 @@ export function useColumnActions<TData extends Record<string, unknown> = Record<
                 enableResizing: columnDef.enableResizing,
                 enableSorting: columnDef.enableSorting,
                 header: headerText,
-                id: id,
+                id,
                 meta: columnDef.meta,
-                type: "text"
+                type: 'text'
             } as DataTableColumnDef<TData>
         })
 
@@ -197,7 +195,7 @@ export function useColumnActions<TData extends Record<string, unknown> = Record<
 
     // Use a stable reference for the query key that only depends on tableId and columns length
     const queryKey = useMemo(
-        () => ["table-columns", tableId, columnsLength],
+        () => ['table-columns', tableId, columnsLength],
         [tableId, columnsLength]
     )
 
@@ -291,7 +289,7 @@ export function useColumnActions<TData extends Record<string, unknown> = Record<
             const columnDef: ColumnDef<TData> = {
                 accessorFn: col.accessorFn as AccessorFn<TData, unknown>,
                 accessorKey: col.accessorKey as keyof TData,
-                cell: col.cell as ColumnDef<TData>["cell"],
+                cell: col.cell as ColumnDef<TData>['cell'],
                 enableColumnFilter: col.enableFiltering !== undefined ? col.enableFiltering : true,
                 enableHiding: col.enableHiding,
                 enableResizing: col.enableResizing,
@@ -308,7 +306,7 @@ export function useColumnActions<TData extends Record<string, unknown> = Record<
     // Get column name by ID
     const getColumnName = useCallback(
         (columnId: string) => {
-            const cleanedId = columnId.includes("__TURBOPACK__")
+            const cleanedId = columnId.includes('__TURBOPACK__')
                 ? cleanColumnId(columnId)
                 : columnId
 
@@ -337,7 +335,7 @@ export function useColumnActions<TData extends Record<string, unknown> = Record<
                 cleanedId.charAt(0).toUpperCase() +
                 cleanedId
                     .slice(1)
-                    .replace(/([A-Z])/g, " $1")
+                    .replace(/([A-Z])/g, ' $1')
                     .trim()
             )
         },

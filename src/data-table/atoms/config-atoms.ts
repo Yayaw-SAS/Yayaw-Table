@@ -2,10 +2,10 @@
  * Configuration atoms for DataTable
  * Centralizes all configuration options in one place
  */
-import { atom } from "jotai"
-import { atomFamily } from "jotai/utils"
+import { atom } from 'jotai'
+import { atomFamily } from 'jotai/utils'
 
-import type { TableFormConfig } from "../config/form-config"
+import type { TableFormConfig } from '../config/form-config'
 
 /**
  * Interface for column-specific configuration options
@@ -153,7 +153,7 @@ export const tableConfigAtom = atom<DataTableConfig>(defaultTableConfig)
  * This allows different tables to have different configurations
  */
 export const tableConfigFamilyAtom = atomFamily(
-    (tableId: string) => atom<DataTableConfig>(defaultTableConfig),
+    (_tableId: string) => atom<DataTableConfig>(defaultTableConfig),
     (a, b) => a === b
 )
 
@@ -167,6 +167,6 @@ export const tableColumnsConfigAtom = atom<DataTableColumnsConfig>(defaultColumn
  * This allows different tables to have different column configurations
  */
 export const tableColumnsConfigFamilyAtom = atomFamily(
-    (tableId: string) => atom<DataTableColumnsConfig>(defaultColumnsConfig),
+    (_tableId: string) => atom<DataTableColumnsConfig>(defaultColumnsConfig),
     (a, b) => a === b
 )

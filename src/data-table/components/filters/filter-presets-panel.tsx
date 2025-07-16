@@ -2,64 +2,55 @@
  * Filter Presets Panel - Phase 5 Advanced Features
  * Modern UI for managing, organizing, and sharing filter presets
  */
-"use client"
+'use client'
 
-import React, { useState, useMemo, useCallback } from 'react'
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
+import {
+    Bookmark,
+    Clock,
+    Copy,
+    Download,
+    Edit,
+    Eye,
+    Filter,
+    MoreHorizontal,
+    Save,
+    Search,
+    Settings,
+    Share2,
+    Sparkles,
+    Star,
+    StarOff,
+    Trash2,
+    TrendingUp,
+    Upload,
+    Users
+} from 'lucide-react'
+import { useCallback, useMemo, useState } from 'react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
     Dialog,
     DialogContent,
     DialogDescription,
     DialogFooter,
     DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog"
+    DialogTitle
+} from '@/components/ui/dialog'
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
-    Tabs,
-    TabsContent,
-    TabsList,
-    TabsTrigger,
-} from "@/components/ui/tabs"
-import { cn } from "@/lib/utils"
-import {
-    Save,
-    Search,
-    Star,
-    StarOff,
-    Share2,
-    Download,
-    Upload,
-    MoreHorizontal,
-    Copy,
-    Edit,
-    Trash2,
-    Clock,
-    TrendingUp,
-    Bookmark,
-    Filter,
-    Tag,
-    Users,
-    Eye,
-    Settings,
-    Sparkles
-} from "lucide-react"
-
-import type { FilterPreset, AdvancedFilterState } from '../../types/advanced-filter-types'
+    DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Textarea } from '@/components/ui/textarea'
+import { cn } from '@/lib/utils'
 import type { UseFilterPresetsReturn } from '../../hooks/use-filter-presets'
+import type { AdvancedFilterState, FilterPreset } from '../../types/advanced-filter-types'
 
 interface FilterPresetsPanelProps {
     /** Current filter state */
@@ -101,19 +92,19 @@ function PresetCard({
     isPopular: boolean
 }) {
     return (
-        <div className="group relative border rounded-lg p-4 hover:bg-accent/50 transition-colors">
+        <div className="group relative rounded-lg border p-4 transition-colors hover:bg-accent/50">
             {/* Preset header */}
-            <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-2 min-w-0 flex-1">
+            <div className="mb-3 flex items-start justify-between">
+                <div className="flex min-w-0 flex-1 items-center gap-2">
                     {preset.icon && (
                         <span className="text-lg" title={preset.name}>
                             {preset.icon}
                         </span>
                     )}
                     <div className="min-w-0 flex-1">
-                        <h4 className="font-medium text-sm truncate">{preset.name}</h4>
+                        <h4 className="truncate font-medium text-sm">{preset.name}</h4>
                         {preset.description && (
-                            <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                            <p className="mt-1 line-clamp-2 text-muted-foreground text-xs">
                                 {preset.description}
                             </p>
                         )}
@@ -124,32 +115,22 @@ function PresetCard({
                 <div className="flex items-center gap-1">
                     {/* Indicators */}
                     <div className="flex gap-1">
-                        {isFavorite && (
-                            <Star className="h-3 w-3 text-amber-500 fill-current" />
-                        )}
-                        {isRecent && (
-                            <Clock className="h-3 w-3 text-blue-500" />
-                        )}
-                        {isPopular && (
-                            <TrendingUp className="h-3 w-3 text-emerald-500" />
-                        )}
-                        {preset.isSystem && (
-                            <Settings className="h-3 w-3 text-muted-foreground" />
-                        )}
-                        {preset.isPublic && (
-                            <Users className="h-3 w-3 text-muted-foreground" />
-                        )}
+                        {isFavorite && <Star className="h-3 w-3 fill-current text-amber-500" />}
+                        {isRecent && <Clock className="h-3 w-3 text-blue-500" />}
+                        {isPopular && <TrendingUp className="h-3 w-3 text-emerald-500" />}
+                        {preset.isSystem && <Settings className="h-3 w-3 text-muted-foreground" />}
+                        {preset.isPublic && <Users className="h-3 w-3 text-muted-foreground" />}
                     </div>
 
                     {/* Quick favorite toggle */}
                     <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="h-6 w-6 p-0 opacity-0 transition-opacity group-hover:opacity-100"
                         onClick={(e) => {
                             e.stopPropagation()
                             onToggleFavorite()
                         }}
+                        size="sm"
+                        variant="ghost"
                     >
                         {isFavorite ? (
                             <StarOff className="h-3 w-3" />
@@ -162,34 +143,34 @@ function PresetCard({
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button
-                                variant="ghost"
+                                className="h-6 w-6 p-0 opacity-0 transition-opacity group-hover:opacity-100"
                                 size="sm"
-                                className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                variant="ghost"
                             >
                                 <MoreHorizontal className="h-3 w-3" />
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={onShare}>
-                                <Share2 className="h-4 w-4 mr-2" />
+                                <Share2 className="mr-2 h-4 w-4" />
                                 Share
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={onDuplicate}>
-                                <Copy className="h-4 w-4 mr-2" />
+                                <Copy className="mr-2 h-4 w-4" />
                                 Duplicate
                             </DropdownMenuItem>
                             {!preset.isSystem && (
                                 <>
                                     <DropdownMenuItem onClick={onEdit}>
-                                        <Edit className="h-4 w-4 mr-2" />
+                                        <Edit className="mr-2 h-4 w-4" />
                                         Edit
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
-                                    <DropdownMenuItem 
-                                        onClick={onDelete}
+                                    <DropdownMenuItem
                                         className="text-destructive focus:text-destructive"
+                                        onClick={onDelete}
                                     >
-                                        <Trash2 className="h-4 w-4 mr-2" />
+                                        <Trash2 className="mr-2 h-4 w-4" />
                                         Delete
                                     </DropdownMenuItem>
                                 </>
@@ -201,14 +182,14 @@ function PresetCard({
 
             {/* Tags */}
             {preset.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1 mb-3">
+                <div className="mb-3 flex flex-wrap gap-1">
                     {preset.tags.slice(0, 3).map((tag) => (
-                        <Badge key={tag} variant="secondary" className="text-xs">
+                        <Badge className="text-xs" key={tag} variant="secondary">
                             {tag}
                         </Badge>
                     ))}
                     {preset.tags.length > 3 && (
-                        <Badge variant="secondary" className="text-xs">
+                        <Badge className="text-xs" variant="secondary">
                             +{preset.tags.length - 3}
                         </Badge>
                     )}
@@ -216,21 +197,17 @@ function PresetCard({
             )}
 
             {/* Metadata */}
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <div className="flex items-center justify-between text-muted-foreground text-xs">
                 <div className="flex items-center gap-2">
                     <span>Used {preset.metadata.usageCount} times</span>
                     {preset.metadata.lastUsed && (
                         <span>• Last: {preset.metadata.lastUsed.toLocaleDateString()}</span>
                     )}
                 </div>
-                
+
                 {/* Load button */}
-                <Button
-                    size="sm"
-                    onClick={onLoad}
-                    className="h-6 px-2 text-xs"
-                >
-                    <Eye className="h-3 w-3 mr-1" />
+                <Button className="h-6 px-2 text-xs" onClick={onLoad} size="sm">
+                    <Eye className="mr-1 h-3 w-3" />
                     Load
                 </Button>
             </div>
@@ -266,36 +243,40 @@ function SavePresetDialog({
     const [isSaving, setIsSaving] = useState(false)
 
     const handleSave = async () => {
-        if (!name.trim() || !currentState) return
+        if (!(name.trim() && currentState)) {
+            return
+        }
 
         setIsSaving(true)
         try {
             await onSave({
                 name,
                 description: description || undefined,
-                tags: tags.split(',').map(t => t.trim()).filter(Boolean),
+                tags: tags
+                    .split(',')
+                    .map((t) => t.trim())
+                    .filter(Boolean),
                 isPublic
             })
-            
+
             // Reset form
             setName('')
             setDescription('')
             setTags('')
             setIsPublic(false)
             onOpenChange(false)
-        } catch (error) {
-            console.error('Failed to save preset:', error)
+        } catch (_error) {
         } finally {
             setIsSaving(false)
         }
     }
 
-    const hasFilters = currentState && currentState.groups.some(group => 
-        group.filters.length > 0 && group.isActive
+    const hasFilters = currentState?.groups.some(
+        (group) => group.filters.length > 0 && group.isActive
     )
 
     return (
-        <Dialog open={isOpen} onOpenChange={onOpenChange}>
+        <Dialog onOpenChange={onOpenChange} open={isOpen}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle>Save Filter Preset</DialogTitle>
@@ -304,23 +285,16 @@ function SavePresetDialog({
                     </DialogDescription>
                 </DialogHeader>
 
-                {!hasFilters ? (
-                    <div className="text-center py-6">
-                        <Filter className="h-8 w-8 mx-auto mb-2 text-muted-foreground opacity-50" />
-                        <p className="text-sm text-muted-foreground">
-                            No active filters to save. Add some filters first.
-                        </p>
-                    </div>
-                ) : (
+                {hasFilters ? (
                     <div className="space-y-4">
                         <div className="space-y-2">
                             <Label htmlFor="name">Name *</Label>
                             <Input
                                 id="name"
-                                value={name}
+                                maxLength={100}
                                 onChange={(e) => setName(e.target.value)}
                                 placeholder="My awesome filter preset"
-                                maxLength={100}
+                                value={name}
                             />
                         </div>
 
@@ -328,11 +302,11 @@ function SavePresetDialog({
                             <Label htmlFor="description">Description</Label>
                             <Textarea
                                 id="description"
-                                value={description}
+                                maxLength={500}
                                 onChange={(e) => setDescription(e.target.value)}
                                 placeholder="Optional description..."
-                                maxLength={500}
                                 rows={3}
+                                value={description}
                             />
                         </div>
 
@@ -340,32 +314,39 @@ function SavePresetDialog({
                             <Label htmlFor="tags">Tags</Label>
                             <Input
                                 id="tags"
-                                value={tags}
                                 onChange={(e) => setTags(e.target.value)}
                                 placeholder="work, urgent, weekly (comma separated)"
+                                value={tags}
                             />
                         </div>
 
                         <div className="flex items-center space-x-2">
                             <input
-                                type="checkbox"
-                                id="public"
                                 checked={isPublic}
-                                onChange={(e) => setIsPublic(e.target.checked)}
                                 className="rounded"
+                                id="public"
+                                onChange={(e) => setIsPublic(e.target.checked)}
+                                type="checkbox"
                             />
                             <Label htmlFor="public">Make public (visible to other users)</Label>
                         </div>
                     </div>
+                ) : (
+                    <div className="py-6 text-center">
+                        <Filter className="mx-auto mb-2 h-8 w-8 text-muted-foreground opacity-50" />
+                        <p className="text-muted-foreground text-sm">
+                            No active filters to save. Add some filters first.
+                        </p>
+                    </div>
                 )}
 
                 <DialogFooter>
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>
+                    <Button onClick={() => onOpenChange(false)} variant="outline">
                         Cancel
                     </Button>
-                    <Button 
-                        onClick={handleSave} 
-                        disabled={!name.trim() || !hasFilters || isSaving}
+                    <Button
+                        disabled={!(name.trim() && hasFilters) || isSaving}
+                        onClick={handleSave}
                     >
                         {isSaving ? 'Saving...' : 'Save Preset'}
                     </Button>
@@ -418,51 +399,64 @@ export function FilterPresetsPanel({
     }, [presets, searchQuery, selectedTab])
 
     // Handle preset actions
-    const handleLoadPreset = useCallback(async (presetId: string) => {
-        try {
-            const state = await presets.loadPreset(presetId)
-            onLoadPreset?.(state)
-        } catch (error) {
-            console.error('Failed to load preset:', error)
-        }
-    }, [presets, onLoadPreset])
+    const handleLoadPreset = useCallback(
+        async (presetId: string) => {
+            try {
+                const state = await presets.loadPreset(presetId)
+                onLoadPreset?.(state)
+            } catch (_error) {}
+        },
+        [presets, onLoadPreset]
+    )
 
-    const handleSavePreset = useCallback(async (options: any) => {
-        if (!currentState) return
-        await presets.savePreset(currentState, options)
-    }, [presets, currentState])
+    const handleSavePreset = useCallback(
+        async (options: any) => {
+            if (!currentState) {
+                return
+            }
+            await presets.savePreset(currentState, options)
+        },
+        [presets, currentState]
+    )
 
-    const handleDeletePreset = useCallback(async (presetId: string) => {
-        if (confirm('Are you sure you want to delete this preset?')) {
-            await presets.deletePreset(presetId)
-        }
-    }, [presets])
+    const handleDeletePreset = useCallback(
+        async (presetId: string) => {
+            if (confirm('Are you sure you want to delete this preset?')) {
+                await presets.deletePreset(presetId)
+            }
+        },
+        [presets]
+    )
 
-    const handleSharePreset = useCallback(async (presetId: string) => {
-        try {
-            const url = await presets.sharePreset(presetId)
-            await navigator.clipboard.writeText(url)
-            // You would show a toast notification here
-        } catch (error) {
-            console.error('Failed to share preset:', error)
-        }
-    }, [presets])
+    const handleSharePreset = useCallback(
+        async (presetId: string) => {
+            try {
+                const url = await presets.sharePreset(presetId)
+                await navigator.clipboard.writeText(url)
+                // You would show a toast notification here
+            } catch (_error) {}
+        },
+        [presets]
+    )
 
-    const handleToggleFavorite = useCallback(async (presetId: string, isFavorite: boolean) => {
-        await presets.setFavorite(presetId, !isFavorite)
-    }, [presets])
+    const handleToggleFavorite = useCallback(
+        async (presetId: string, isFavorite: boolean) => {
+            await presets.setFavorite(presetId, !isFavorite)
+        },
+        [presets]
+    )
 
     if (compact) {
         return (
-            <div className={cn("space-y-3", className)}>
+            <div className={cn('space-y-3', className)}>
                 <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-medium">Presets</h3>
+                    <h3 className="font-medium text-sm">Presets</h3>
                     <Button
-                        size="sm"
-                        onClick={() => setSaveDialogOpen(true)}
                         className="h-6 px-2 text-xs"
+                        onClick={() => setSaveDialogOpen(true)}
+                        size="sm"
                     >
-                        <Save className="h-3 w-3 mr-1" />
+                        <Save className="mr-1 h-3 w-3" />
                         Save
                     </Button>
                 </div>
@@ -470,11 +464,11 @@ export function FilterPresetsPanel({
                 <div className="grid grid-cols-2 gap-2">
                     {filteredPresets.slice(0, 4).map((preset) => (
                         <Button
+                            className="h-8 justify-start px-2 text-xs"
                             key={preset.id}
-                            variant="outline"
-                            size="sm"
                             onClick={() => handleLoadPreset(preset.id)}
-                            className="h-8 px-2 text-xs justify-start"
+                            size="sm"
+                            variant="outline"
                         >
                             {preset.icon && <span className="mr-1">{preset.icon}</span>}
                             <span className="truncate">{preset.name}</span>
@@ -484,46 +478,42 @@ export function FilterPresetsPanel({
 
                 <SavePresetDialog
                     currentState={currentState}
-                    onSave={handleSavePreset}
                     isOpen={saveDialogOpen}
                     onOpenChange={setSaveDialogOpen}
+                    onSave={handleSavePreset}
                 />
             </div>
         )
     }
 
     return (
-        <div className={cn("space-y-4", className)}>
+        <div className={cn('space-y-4', className)}>
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <Bookmark className="h-5 w-5 text-muted-foreground" />
-                    <h2 className="text-lg font-semibold">Filter Presets</h2>
+                    <h2 className="font-semibold text-lg">Filter Presets</h2>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
-                    <Button
-                        size="sm"
-                        onClick={() => setSaveDialogOpen(true)}
-                        className="gap-1"
-                    >
+                    <Button className="gap-1" onClick={() => setSaveDialogOpen(true)} size="sm">
                         <Save className="h-4 w-4" />
                         Save Current
                     </Button>
 
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="sm">
+                            <Button size="sm" variant="outline">
                                 <MoreHorizontal className="h-4 w-4" />
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <DropdownMenuItem>
-                                <Upload className="h-4 w-4 mr-2" />
+                                <Upload className="mr-2 h-4 w-4" />
                                 Import Presets
                             </DropdownMenuItem>
                             <DropdownMenuItem>
-                                <Download className="h-4 w-4 mr-2" />
+                                <Download className="mr-2 h-4 w-4" />
                                 Export All
                             </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -533,17 +523,17 @@ export function FilterPresetsPanel({
 
             {/* Search */}
             <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="-translate-y-1/2 absolute top-1/2 left-3 h-4 w-4 transform text-muted-foreground" />
                 <Input
+                    className="pl-9"
+                    onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search presets..."
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9"
                 />
             </div>
 
             {/* Tabs */}
-            <Tabs value={selectedTab} onValueChange={(value) => setSelectedTab(value as any)}>
+            <Tabs onValueChange={(value) => setSelectedTab(value as any)} value={selectedTab}>
                 <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="all">All</TabsTrigger>
                     <TabsTrigger value="recent">Recent</TabsTrigger>
@@ -551,21 +541,20 @@ export function FilterPresetsPanel({
                     <TabsTrigger value="system">System</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value={selectedTab} className="mt-4">
+                <TabsContent className="mt-4" value={selectedTab}>
                     <ScrollArea className="h-96">
                         {filteredPresets.length === 0 ? (
-                            <div className="text-center py-12">
-                                <Sparkles className="h-8 w-8 mx-auto mb-3 text-muted-foreground opacity-50" />
-                                <h3 className="font-medium mb-1">No presets found</h3>
-                                <p className="text-sm text-muted-foreground mb-4">
-                                    {searchQuery 
-                                        ? 'Try a different search term' 
-                                        : 'Create your first preset by saving your current filters'
-                                    }
+                            <div className="py-12 text-center">
+                                <Sparkles className="mx-auto mb-3 h-8 w-8 text-muted-foreground opacity-50" />
+                                <h3 className="mb-1 font-medium">No presets found</h3>
+                                <p className="mb-4 text-muted-foreground text-sm">
+                                    {searchQuery
+                                        ? 'Try a different search term'
+                                        : 'Create your first preset by saving your current filters'}
                                 </p>
                                 {!searchQuery && (
                                     <Button onClick={() => setSaveDialogOpen(true)}>
-                                        <Save className="h-4 w-4 mr-2" />
+                                        <Save className="mr-2 h-4 w-4" />
                                         Save First Preset
                                     </Button>
                                 )}
@@ -574,19 +563,28 @@ export function FilterPresetsPanel({
                             <div className="space-y-3">
                                 {filteredPresets.map((preset) => (
                                     <PresetCard
+                                        isFavorite={preset.tags.includes('favorite')}
+                                        isPopular={presets.popularPresets.some(
+                                            (p) => p.id === preset.id
+                                        )}
+                                        isRecent={presets.recentPresets.some(
+                                            (p) => p.id === preset.id
+                                        )}
                                         key={preset.id}
-                                        preset={preset}
-                                        onLoad={() => handleLoadPreset(preset.id)}
-                                        onEdit={() => {/* TODO: Edit dialog */}}
                                         onDelete={() => handleDeletePreset(preset.id)}
                                         onDuplicate={() => presets.duplicatePreset(preset.id)}
+                                        onEdit={() => {
+                                            /* TODO: Edit dialog */
+                                        }}
+                                        onLoad={() => handleLoadPreset(preset.id)}
                                         onShare={() => handleSharePreset(preset.id)}
-                                        onToggleFavorite={() => 
-                                            handleToggleFavorite(preset.id, preset.tags.includes('favorite'))
+                                        onToggleFavorite={() =>
+                                            handleToggleFavorite(
+                                                preset.id,
+                                                preset.tags.includes('favorite')
+                                            )
                                         }
-                                        isFavorite={preset.tags.includes('favorite')}
-                                        isRecent={presets.recentPresets.some(p => p.id === preset.id)}
-                                        isPopular={presets.popularPresets.some(p => p.id === preset.id)}
+                                        preset={preset}
                                     />
                                 ))}
                             </div>
@@ -598,10 +596,10 @@ export function FilterPresetsPanel({
             {/* Save dialog */}
             <SavePresetDialog
                 currentState={currentState}
-                onSave={handleSavePreset}
                 isOpen={saveDialogOpen}
                 onOpenChange={setSaveDialogOpen}
+                onSave={handleSavePreset}
             />
         </div>
     )
-} 
+}

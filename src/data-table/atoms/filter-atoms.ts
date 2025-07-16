@@ -2,11 +2,11 @@
  * Filter atoms for DataTable component
  * These atoms manage filter-related state
  */
-import type { ColumnFiltersState } from "@tanstack/react-table"
-import { atom } from "jotai"
-import { atomFamily } from "jotai/utils"
+import type { ColumnFiltersState } from '@tanstack/react-table'
+import { atom } from 'jotai'
+import { atomFamily } from 'jotai/utils'
 
-import { columnFiltersAtom } from "./table-atoms"
+import { columnFiltersAtom } from './table-atoms'
 
 /**
  * Interface for a filter preset
@@ -26,12 +26,14 @@ export interface FilterPreset {
  * @returns Cleaned column ID
  */
 export function cleanColumnId(columnId: string): string {
-    if (typeof columnId !== "string") return String(columnId)
+    if (typeof columnId !== 'string') {
+        return String(columnId)
+    }
 
     // No need for logging here
 
     // If it doesn't contain Turbopack references or parentheses, return as is
-    if (!columnId.includes("__TURBOPACK_") && !columnId.includes("(") && !columnId.includes(")")) {
+    if (!(columnId.includes('__TURBOPACK_') || columnId.includes('(') || columnId.includes(')'))) {
         return columnId
     }
 
@@ -73,49 +75,49 @@ export function cleanColumnId(columnId: string): string {
     }
 
     // Try to extract the column name from the header prop if it's a component
-    const headerComponentMatch = columnId.match(/header:\s*\(\{[^}]*\}\)\s*=>\s*\<([^>]+)/)
+    const headerComponentMatch = columnId.match(/header:\s*\(\{[^}]*\}\)\s*=>\s*<([^>]+)/)
     if (headerComponentMatch?.[1]) {
         // Extract the component name, which is often descriptive
-        const componentName = headerComponentMatch[1].split(" ")[0]
+        const componentName = headerComponentMatch[1].split(' ')[0]
 
         return componentName
     }
 
     // If all else fails, extract the last part of the path and clean it
-    const parts = columnId.split("/")
-    const lastPart = parts[parts.length - 1]
+    const parts = columnId.split('/')
+    const lastPart = parts.at(-1)
 
     // Remove any remaining Turbopack references and special characters
     const cleaned = lastPart
-        .replace(/\[.*?\]/g, "")
-        .replace(/\(.*?\)/g, "")
-        .replace(/\{.*?\}/g, "")
-        .replace(/".*?"/g, "")
-        .replace(/\_\_TURBOPACK\_\_.*?\_\_/g, "")
-        .replace(/[^a-zA-Z0-9]/g, "")
+        .replace(/\[.*?\]/g, '')
+        .replace(/\(.*?\)/g, '')
+        .replace(/\{.*?\}/g, '')
+        .replace(/".*?"/g, '')
+        .replace(/__TURBOPACK__.*?__/g, '')
+        .replace(/[^a-zA-Z0-9]/g, '')
         .trim()
 
     // If we still have nothing usable, default to a generic column name
-    return cleaned || "column"
+    return cleaned || 'column'
 }
 
 /**
  * Atom family for storing filter presets for a specific table
  * Keyed by tableId
  */
-export const filterPresetsAtom = atomFamily((tableId: string) => atom<FilterPreset[]>([]))
+export const filterPresetsAtom = atomFamily((_tableId: string) => atom<FilterPreset[]>([]))
 
 /**
  * Atom family for storing the active filter preset ID
  * Keyed by tableId
  */
-export const activeFilterPresetIdAtom = atomFamily((tableId: string) => atom<null | string>(null))
+export const activeFilterPresetIdAtom = atomFamily((_tableId: string) => atom<null | string>(null))
 
 /**
  * Atom family for storing whether the filter panel is open
  * Keyed by tableId
  */
-export const isFilterPanelOpenAtom = atomFamily((tableId: string) => atom<boolean>(false))
+export const isFilterPanelOpenAtom = atomFamily((_tableId: string) => atom<boolean>(false))
 
 /**
  * Derived atom family that returns the active filter preset
@@ -126,7 +128,9 @@ export const activeFilterPresetAtom = atomFamily((tableId: string) =>
         const presetId = get(activeFilterPresetIdAtom(tableId))
         const presets = get(filterPresetsAtom(tableId))
 
-        if (!presetId) return null
+        if (!presetId) {
+            return null
+        }
         return presets.find((preset) => preset.id === presetId) || null
     })
 )
@@ -141,7 +145,9 @@ export const hasFilterChangesAtom = atomFamily((tableId: string) =>
         const activePreset = get(activeFilterPresetAtom(tableId))
         const currentFilters = get(columnFiltersAtom(tableId))
 
-        if (!activePreset) return currentFilters.length > 0
+        if (!activePreset) {
+            return currentFilters.length > 0
+        }
 
         // Simple comparison - in a real app you might want a deeper comparison
         return JSON.stringify(activePreset.filters) !== JSON.stringify(currentFilters)

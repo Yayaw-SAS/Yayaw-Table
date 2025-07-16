@@ -1,17 +1,16 @@
 /**
  * Hook to centralize table logic and provide a configured instance
  */
-"use client"
+'use client'
 
-import type { ColumnDef } from "@tanstack/react-table"
-import { useCallback, useMemo, useRef, useState } from "react"
-
-import { useDataTable } from "../../hooks/use-data-table"
-import type { DataTableColumnDef } from "../../../types/column-types"
-import { useOnScreen } from "../utils/use-on-screen"
+import type { ColumnDef } from '@tanstack/react-table'
+import { useCallback, useMemo, useRef, useState } from 'react'
+import type { DataTableColumnDef } from '../../../types/column-types'
+import { useDataTable } from '../../hooks/use-data-table'
+import { useOnScreen } from '../utils/use-on-screen'
 
 // Empty array to prevent unnecessary re-renders
-const EMPTY_ARRAY: Array<never> = []
+const EMPTY_ARRAY: never[] = []
 
 interface UseDataTableInstanceOptions<TData extends Record<string, unknown>> {
     columns?: (ColumnDef<TData> | DataTableColumnDef<TData>)[]
@@ -105,7 +104,7 @@ export function useDataTableInstance<
 
     // Use intersection observer to detect when table is visible/in viewport
     const { isVisible, ref } = useOnScreen({
-        rootMargin: "100px", // Load a bit before it's visible
+        rootMargin: '100px', // Load a bit before it's visible
         threshold: 0.1
     })
 

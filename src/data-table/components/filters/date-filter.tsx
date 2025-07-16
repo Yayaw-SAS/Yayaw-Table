@@ -2,29 +2,25 @@
  * Date filter component
  * Provides filtering for date columns with various date operators and date picker
  */
-"use client"
+'use client'
 
-import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
-import { Label } from "@/components/ui/label"
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger
-} from "@/components/ui/popover"
+import { format } from 'date-fns'
+import { CalendarIcon } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Calendar } from '@/components/ui/calendar'
+import { Label } from '@/components/ui/label'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue
-} from "@/components/ui/select"
-import { cn } from "@/lib/utils"
-import { format } from "date-fns"
-import { CalendarIcon } from "lucide-react"
-import { useCallback, useEffect, useState } from "react"
-import type { FilterOperators } from "../../types/filter-types"
-import { FILTER_OPERATORS_LABELS, DEFAULT_OPERATORS } from "../../types/filter-types"
+} from '@/components/ui/select'
+import { cn } from '@/lib/utils'
+import type { FilterOperators } from '../../types/filter-types'
+import { DEFAULT_OPERATORS, FILTER_OPERATORS_LABELS } from '../../types/filter-types'
 
 export interface DateFilterProps {
     /** Current filter value - single date or [start, end] for between */
@@ -59,7 +55,7 @@ export function DateFilter({
     onOperatorChange,
     label,
     showOperator = true,
-    dateFormat = "PPP"
+    dateFormat = 'PPP'
 }: DateFilterProps) {
     const [internalValue, setInternalValue] = useState(value)
     const [isOpen, setIsOpen] = useState(false)
@@ -70,56 +66,70 @@ export function DateFilter({
     }, [value])
 
     // Handle value change
-    const handleValueChange = useCallback((newValue: Date | [Date, Date]) => {
-        setInternalValue(newValue)
-        onValueChange(newValue)
-    }, [onValueChange])
+    const handleValueChange = useCallback(
+        (newValue: Date | [Date, Date]) => {
+            setInternalValue(newValue)
+            onValueChange(newValue)
+        },
+        [onValueChange]
+    )
 
     // Check if this operator needs a value input
     const needsValue = !['isEmpty', 'isNotEmpty'].includes(operator)
     const isBetween = operator === 'between'
     const currentSingleValue = Array.isArray(internalValue) ? internalValue[0] : internalValue
-    const currentRangeValue = Array.isArray(internalValue) ? internalValue : [new Date(), new Date()]
+    const currentRangeValue = Array.isArray(internalValue)
+        ? internalValue
+        : [new Date(), new Date()]
 
     // Handle single date selection
-    const handleSingleDateSelect = useCallback((date: Date | undefined) => {
-        if (date) {
-            handleValueChange(date)
-            setIsOpen(false)
-        }
-    }, [handleValueChange])
+    const handleSingleDateSelect = useCallback(
+        (date: Date | undefined) => {
+            if (date) {
+                handleValueChange(date)
+                setIsOpen(false)
+            }
+        },
+        [handleValueChange]
+    )
 
     // Handle date range selection
-    const handleDateRangeSelect = useCallback((range: { from?: Date; to?: Date } | undefined) => {
-        if (range?.from && range?.to) {
-            handleValueChange([range.from, range.to])
-        } else if (range?.from) {
-            // If only start date is selected, set end date to same date
-            handleValueChange([range.from, range.from])
-        }
-    }, [handleValueChange])
+    const handleDateRangeSelect = useCallback(
+        (range: { from?: Date; to?: Date } | undefined) => {
+            if (range?.from && range?.to) {
+                handleValueChange([range.from, range.to])
+            } else if (range?.from) {
+                // If only start date is selected, set end date to same date
+                handleValueChange([range.from, range.from])
+            }
+        },
+        [handleValueChange]
+    )
 
     // Format date for display
-    const formatDateForDisplay = useCallback((date: Date | [Date, Date]) => {
-        if (Array.isArray(date)) {
-            return `${format(date[0], dateFormat)} - ${format(date[1], dateFormat)}`
-        }
-        return format(date, dateFormat)
-    }, [dateFormat])
+    const formatDateForDisplay = useCallback(
+        (date: Date | [Date, Date]) => {
+            if (Array.isArray(date)) {
+                return `${format(date[0], dateFormat)} - ${format(date[1], dateFormat)}`
+            }
+            return format(date, dateFormat)
+        },
+        [dateFormat]
+    )
 
     return (
         <div className="space-y-3">
-            {label && (
-                <Label className="text-sm font-medium">{label}</Label>
-            )}
-            
+            {label && <Label className="font-medium text-sm">{label}</Label>}
+
             <div className="flex flex-col gap-3">
                 {/* Operator selector */}
                 {showOperator && (
                     <Select
-                        value={operator}
-                        onValueChange={(value) => onOperatorChange(value as FilterOperators['date'])}
                         disabled={disabled}
+                        onValueChange={(value) =>
+                            onOperatorChange(value as FilterOperators['date'])
+                        }
+                        value={operator}
                     >
                         <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select operator..." />
@@ -136,41 +146,46 @@ export function DateFilter({
 
                 {/* Date picker */}
                 {needsValue && (
-                    <Popover open={isOpen} onOpenChange={setIsOpen}>
+                    <Popover onOpenChange={setIsOpen} open={isOpen}>
                         <PopoverTrigger asChild>
                             <Button
-                                variant="outline"
                                 className={cn(
-                                    "w-full justify-start text-left font-normal",
-                                    !internalValue && "text-muted-foreground"
+                                    'w-full justify-start text-left font-normal',
+                                    !internalValue && 'text-muted-foreground'
                                 )}
                                 disabled={disabled}
+                                variant="outline"
                             >
                                 <CalendarIcon className="mr-2 h-4 w-4" />
                                 {internalValue ? (
                                     formatDateForDisplay(internalValue)
                                 ) : (
-                                    <span>{isBetween ? "Pick date range..." : "Pick a date..."}</span>
+                                    <span>
+                                        {isBetween ? 'Pick date range...' : 'Pick a date...'}
+                                    </span>
                                 )}
                             </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
+                        <PopoverContent align="start" className="w-auto p-0">
                             {isBetween ? (
                                 <Calendar
-                                    mode="range"
-                                    selected={{ from: currentRangeValue[0], to: currentRangeValue[1] }}
-                                    onSelect={handleDateRangeSelect}
                                     disabled={disabled}
                                     initialFocus
+                                    mode="range"
+                                    onSelect={handleDateRangeSelect}
                                     required
+                                    selected={{
+                                        from: currentRangeValue[0],
+                                        to: currentRangeValue[1]
+                                    }}
                                 />
                             ) : (
                                 <Calendar
-                                    mode="single"
-                                    selected={currentSingleValue}
-                                    onSelect={handleSingleDateSelect}
                                     disabled={disabled}
                                     initialFocus
+                                    mode="single"
+                                    onSelect={handleSingleDateSelect}
+                                    selected={currentSingleValue}
                                 />
                             )}
                         </PopoverContent>
@@ -179,8 +194,9 @@ export function DateFilter({
 
                 {/* Info text for operators that don't need values */}
                 {!needsValue && (
-                    <div className="text-sm text-muted-foreground italic">
-                        This filter will show rows where the field {operator === 'isEmpty' ? 'is empty' : 'is not empty'}.
+                    <div className="text-muted-foreground text-sm italic">
+                        This filter will show rows where the field{' '}
+                        {operator === 'isEmpty' ? 'is empty' : 'is not empty'}.
                     </div>
                 )}
             </div>
@@ -196,7 +212,7 @@ export function CompactDateFilter({
     operator,
     onValueChange,
     disabled = false,
-    dateFormat = "PP"
+    dateFormat = 'PP'
 }: Pick<DateFilterProps, 'value' | 'operator' | 'onValueChange' | 'disabled' | 'dateFormat'>) {
     const [internalValue, setInternalValue] = useState(value)
     const [isOpen, setIsOpen] = useState(false)
@@ -205,84 +221,94 @@ export function CompactDateFilter({
         setInternalValue(value)
     }, [value])
 
-    const handleValueChange = useCallback((newValue: Date | [Date, Date]) => {
-        setInternalValue(newValue)
-        onValueChange(newValue)
-    }, [onValueChange])
+    const handleValueChange = useCallback(
+        (newValue: Date | [Date, Date]) => {
+            setInternalValue(newValue)
+            onValueChange(newValue)
+        },
+        [onValueChange]
+    )
 
     const needsValue = !['isEmpty', 'isNotEmpty'].includes(operator)
     const isBetween = operator === 'between'
 
     if (!needsValue) {
         return (
-            <span className="text-xs text-muted-foreground">
+            <span className="text-muted-foreground text-xs">
                 {operator === 'isEmpty' ? 'is empty' : 'is not empty'}
             </span>
         )
     }
 
     const currentSingleValue = Array.isArray(internalValue) ? internalValue[0] : internalValue
-    const currentRangeValue = Array.isArray(internalValue) ? internalValue : [new Date(), new Date()]
+    const currentRangeValue = Array.isArray(internalValue)
+        ? internalValue
+        : [new Date(), new Date()]
 
-    const handleSingleDateSelect = useCallback((date: Date | undefined) => {
-        if (date) {
-            handleValueChange(date)
-            setIsOpen(false)
-        }
-    }, [handleValueChange])
+    const handleSingleDateSelect = useCallback(
+        (date: Date | undefined) => {
+            if (date) {
+                handleValueChange(date)
+                setIsOpen(false)
+            }
+        },
+        [handleValueChange]
+    )
 
-    const handleDateRangeSelect = useCallback((range: { from?: Date; to?: Date } | undefined) => {
-        if (range?.from && range?.to) {
-            handleValueChange([range.from, range.to])
-        } else if (range?.from) {
-            handleValueChange([range.from, range.from])
-        }
-    }, [handleValueChange])
+    const handleDateRangeSelect = useCallback(
+        (range: { from?: Date; to?: Date } | undefined) => {
+            if (range?.from && range?.to) {
+                handleValueChange([range.from, range.to])
+            } else if (range?.from) {
+                handleValueChange([range.from, range.from])
+            }
+        },
+        [handleValueChange]
+    )
 
-    const formatDateForDisplay = useCallback((date: Date | [Date, Date]) => {
-        if (Array.isArray(date)) {
-            return `${format(date[0], dateFormat)} - ${format(date[1], dateFormat)}`
-        }
-        return format(date, dateFormat)
-    }, [dateFormat])
+    const formatDateForDisplay = useCallback(
+        (date: Date | [Date, Date]) => {
+            if (Array.isArray(date)) {
+                return `${format(date[0], dateFormat)} - ${format(date[1], dateFormat)}`
+            }
+            return format(date, dateFormat)
+        },
+        [dateFormat]
+    )
 
     return (
-        <Popover open={isOpen} onOpenChange={setIsOpen}>
+        <Popover onOpenChange={setIsOpen} open={isOpen}>
             <PopoverTrigger asChild>
                 <Button
-                    variant="ghost"
-                    size="sm"
                     className={cn(
-                        "h-6 px-2 text-xs font-normal justify-start",
-                        !internalValue && "text-muted-foreground"
+                        'h-6 justify-start px-2 font-normal text-xs',
+                        !internalValue && 'text-muted-foreground'
                     )}
                     disabled={disabled}
+                    size="sm"
+                    variant="ghost"
                 >
                     <CalendarIcon className="mr-1 h-3 w-3" />
-                    {internalValue ? (
-                        formatDateForDisplay(internalValue)
-                    ) : (
-                        "Date..."
-                    )}
+                    {internalValue ? formatDateForDisplay(internalValue) : 'Date...'}
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
+            <PopoverContent align="start" className="w-auto p-0">
                 {isBetween ? (
                     <Calendar
-                        mode="range"
-                        selected={{ from: currentRangeValue[0], to: currentRangeValue[1] }}
-                        onSelect={handleDateRangeSelect}
                         disabled={disabled}
                         initialFocus
+                        mode="range"
+                        onSelect={handleDateRangeSelect}
                         required
+                        selected={{ from: currentRangeValue[0], to: currentRangeValue[1] }}
                     />
                 ) : (
                     <Calendar
-                        mode="single"
-                        selected={currentSingleValue}
-                        onSelect={handleSingleDateSelect}
                         disabled={disabled}
                         initialFocus
+                        mode="single"
+                        onSelect={handleSingleDateSelect}
+                        selected={currentSingleValue}
                     />
                 )}
             </PopoverContent>
@@ -302,14 +328,14 @@ export function DateRangeShortcuts({
 }) {
     const shortcuts = [
         {
-            label: "Today",
+            label: 'Today',
             getValue: () => {
                 const today = new Date()
                 return [today, today] as [Date, Date]
             }
         },
         {
-            label: "Yesterday",
+            label: 'Yesterday',
             getValue: () => {
                 const yesterday = new Date()
                 yesterday.setDate(yesterday.getDate() - 1)
@@ -317,7 +343,7 @@ export function DateRangeShortcuts({
             }
         },
         {
-            label: "Last 7 days",
+            label: 'Last 7 days',
             getValue: () => {
                 const end = new Date()
                 const start = new Date()
@@ -326,7 +352,7 @@ export function DateRangeShortcuts({
             }
         },
         {
-            label: "Last 30 days",
+            label: 'Last 30 days',
             getValue: () => {
                 const end = new Date()
                 const start = new Date()
@@ -335,7 +361,7 @@ export function DateRangeShortcuts({
             }
         },
         {
-            label: "This month",
+            label: 'This month',
             getValue: () => {
                 const now = new Date()
                 const start = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -349,16 +375,16 @@ export function DateRangeShortcuts({
         <div className="flex flex-wrap gap-1">
             {shortcuts.map((shortcut) => (
                 <Button
-                    key={shortcut.label}
-                    variant="outline"
-                    size="sm"
                     className="h-6 px-2 text-xs"
-                    onClick={() => onSelect(shortcut.getValue())}
                     disabled={disabled}
+                    key={shortcut.label}
+                    onClick={() => onSelect(shortcut.getValue())}
+                    size="sm"
+                    variant="outline"
                 >
                     {shortcut.label}
                 </Button>
             ))}
         </div>
     )
-} 
+}

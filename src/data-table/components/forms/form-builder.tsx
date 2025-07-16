@@ -2,16 +2,16 @@
  * Form builder component
  * This component renders a form based on field definitions
  */
-"use client"
+'use client'
 
 // Debug flag to control logging
 const DEBUG = false
 
-import { Button } from "@/components/ui/button"
-import { Form } from "@/components/ui/form"
-import { useTranslations } from "../../providers/table-provider"
-import { type ReactNode, useEffect } from "react"
-import type { FieldValues, Path, UseFormReturn } from "react-hook-form"
+import { type ReactNode, useEffect } from 'react'
+import type { FieldValues, Path, UseFormReturn } from 'react-hook-form'
+import { Button } from '@/components/ui/button'
+import { Form } from '@/components/ui/form'
+import { useTranslations } from '../../providers/table-provider'
 
 import {
     CheckboxField,
@@ -20,11 +20,11 @@ import {
     SelectField,
     SelectWithAddNewField,
     SwitchField,
-    TextField,
     TextareaField,
+    TextField,
     ValueTypeField
-} from "./fields"
-import type { AnyFieldDefinition, DynamicValueFieldDefinition } from "./types"
+} from './fields'
+import type { AnyFieldDefinition, DynamicValueFieldDefinition } from './types'
 
 interface FormBuilderProps<TFieldValues extends FieldValues> {
     /**
@@ -101,13 +101,12 @@ export function FormBuilder<TFieldValues extends FieldValues>({
     // Setup dependencies for fields that depend on other fields
     useEffect(() => {
         if (DEBUG) {
-            console.log("[FormBuilder] Setting up dependencies for fields:", fields)
         }
 
         // Filter fields that have dependencies (only DynamicValueFieldDefinition has dependsOn)
         const fieldsWithDependencies = fields.filter(
             (field): field is DynamicValueFieldDefinition<TFieldValues> =>
-                field.type === "dynamic-value" && "dependsOn" in field
+                field.type === 'dynamic-value' && 'dependsOn' in field
         )
 
         if (fieldsWithDependencies.length === 0) {
@@ -115,7 +114,6 @@ export function FormBuilder<TFieldValues extends FieldValues>({
         }
 
         if (DEBUG) {
-            console.log("[FormBuilder] Fields with dependencies:", fieldsWithDependencies)
         }
 
         // Set up dependencies for fields
@@ -126,12 +124,12 @@ export function FormBuilder<TFieldValues extends FieldValues>({
             // we only need to watch for changes, not set initial values
             const fieldName = field.name as string
             const fieldType = field.type
-            const isValueField = fieldName === "value"
-            const isDynamicValueField = fieldType === "dynamic-value"
+            const isValueField = fieldName === 'value'
+            const isDynamicValueField = fieldType === 'dynamic-value'
 
             // Only apply transform to non-dynamic-value fields
             // For dynamic-value fields, the transform is only used to determine the field type
-            if (!isDynamicValueField && !isValueField) {
+            if (!(isDynamicValueField || isValueField)) {
                 const currentValue = form.getValues(dependencyField)
 
                 // If there's an initial value, apply the transform
@@ -151,16 +149,14 @@ export function FormBuilder<TFieldValues extends FieldValues>({
                                 }
                             )
                         }
-                    } catch (error) {
-                        console.error(`Error transforming field ${field.name}:`, error)
-                    }
+                    } catch (_error) {}
                 }
             }
 
             // Subscribe to changes in the dependency field
             const subscription = form.watch((formValues, { name, type }) => {
                 // Only process if the changed field is our dependency
-                if (name === dependencyField && type === "change" && formValues) {
+                if (name === dependencyField && type === 'change' && formValues) {
                     try {
                         const dependencyValue = formValues[dependencyField]
                         if (dependencyValue !== undefined) {
@@ -169,7 +165,7 @@ export function FormBuilder<TFieldValues extends FieldValues>({
 
                             // For dynamic-value fields, we don't want to set their value to the transformed value
                             // since the transform is only used to determine the field type
-                            if (!isDynamicValueField && !isValueField) {
+                            if (!(isDynamicValueField || isValueField)) {
                                 // Update the dependent field
                                 form.setValue(
                                     field.name,
@@ -181,9 +177,7 @@ export function FormBuilder<TFieldValues extends FieldValues>({
                                 )
                             }
                         }
-                    } catch (error) {
-                        console.error(`Error transforming field ${field.name}:`, error)
-                    }
+                    } catch (_error) {}
                 }
             })
 
@@ -193,7 +187,7 @@ export function FormBuilder<TFieldValues extends FieldValues>({
         // Clean up subscriptions when component unmounts
         return () => {
             for (const subscription of subscriptions) {
-                if (subscription && typeof subscription.unsubscribe === "function") {
+                if (subscription && typeof subscription.unsubscribe === 'function') {
                     subscription.unsubscribe()
                 }
             }
@@ -210,12 +204,6 @@ export function FormBuilder<TFieldValues extends FieldValues>({
             for (const update of dynamicFieldUpdates.values()) {
                 try {
                     if (DEBUG) {
-                        console.log(
-                            `[FormBuilder] Applying delayed update for ${update.name}:`,
-                            typeof update.value === "object"
-                                ? JSON.stringify(update.value)
-                                : update.value
-                        )
                     }
 
                     form.setValue(
@@ -225,9 +213,7 @@ export function FormBuilder<TFieldValues extends FieldValues>({
                             shouldDirty: false
                         }
                     )
-                } catch (error) {
-                    console.error(`[FormBuilder] Error updating field ${update.name}:`, error)
-                }
+                } catch (_error) {}
             }
 
             // Clear the updates after processing
@@ -254,11 +240,11 @@ export function FormBuilder<TFieldValues extends FieldValues>({
         }
 
         switch (field.type) {
-            case "checkbox":
+            case 'checkbox':
                 return <CheckboxField field={{ ...field, ...baseFieldProps }} form={form} />
-            case "custom":
+            case 'custom':
                 return field.renderField({ field: baseFieldProps, form })
-            case "dynamic-value": {
+            case 'dynamic-value': {
                 // Directly watch the field value for real-time updates
                 const valueType = form.watch(field.dependsOn?.field as Path<TFieldValues>)
                 const transformedType = field.dependsOn?.transform(valueType)
@@ -267,28 +253,13 @@ export function FormBuilder<TFieldValues extends FieldValues>({
                 const dynamicFieldValue = form.getValues(field.name)
 
                 if (DEBUG) {
-                    console.log(
-                        "[FormBuilder] Dynamic value field details:",
-                        JSON.stringify(
-                            {
-                                currentValue: dynamicFieldValue,
-                                dependsOnField: field.dependsOn?.field,
-                                dependsOnValue: valueType,
-                                fieldName: field.name,
-                                transformedType
-                            },
-                            null,
-                            2
-                        )
-                    )
                 }
 
                 if (
                     !transformedType ||
-                    typeof transformedType !== "string" ||
-                    !["boolean", "json", "number", "string"].includes(transformedType)
+                    typeof transformedType !== 'string' ||
+                    !['boolean', 'json', 'number', 'string'].includes(transformedType)
                 ) {
-                    console.warn(`Invalid value type: ${transformedType}`)
                     return null
                 }
 
@@ -305,49 +276,45 @@ export function FormBuilder<TFieldValues extends FieldValues>({
                     let convertedValue: unknown = dynamicFieldValue
                     let needsConversion = false
 
-                    if (transformedType === "boolean" && typeof dynamicFieldValue !== "boolean") {
+                    if (transformedType === 'boolean' && typeof dynamicFieldValue !== 'boolean') {
                         // Convert to boolean
-                        if (typeof dynamicFieldValue === "string") {
+                        if (typeof dynamicFieldValue === 'string') {
                             const stringValue = String(dynamicFieldValue).toLowerCase()
-                            convertedValue = stringValue === "true" || stringValue === "1"
+                            convertedValue = stringValue === 'true' || stringValue === '1'
                             needsConversion = true
-                        } else if (typeof dynamicFieldValue === "number") {
+                        } else if (typeof dynamicFieldValue === 'number') {
                             convertedValue = dynamicFieldValue !== 0
                             needsConversion = true
                         }
                     } else if (
-                        transformedType === "number" &&
-                        typeof dynamicFieldValue !== "number"
+                        transformedType === 'number' &&
+                        typeof dynamicFieldValue !== 'number'
                     ) {
                         // Convert to number
                         if (
-                            typeof dynamicFieldValue === "string" &&
+                            typeof dynamicFieldValue === 'string' &&
                             !Number.isNaN(Number(dynamicFieldValue))
                         ) {
                             convertedValue = Number(dynamicFieldValue)
                             needsConversion = true
                         }
-                    } else if (transformedType === "json") {
+                    } else if (transformedType === 'json') {
                         // Convert to JSON string if needed
-                        if (typeof dynamicFieldValue === "object" && dynamicFieldValue !== null) {
+                        if (typeof dynamicFieldValue === 'object' && dynamicFieldValue !== null) {
                             try {
                                 convertedValue = JSON.stringify(dynamicFieldValue, null, 2)
                                 needsConversion = true
-                            } catch (e) {
-                                console.error("[FormBuilder] Failed to stringify object:", e)
-                            }
+                            } catch (_e) {}
                         }
                     } else if (
-                        transformedType === "string" &&
-                        typeof dynamicFieldValue !== "string"
+                        transformedType === 'string' &&
+                        typeof dynamicFieldValue !== 'string'
                     ) {
                         // Convert to string
                         try {
                             convertedValue = String(dynamicFieldValue)
                             needsConversion = true
-                        } catch (e) {
-                            console.error("[FormBuilder] Failed to convert to string:", e)
-                        }
+                        } catch (_e) {}
                     }
 
                     // Record conversion for later processing by useEffect
@@ -360,11 +327,6 @@ export function FormBuilder<TFieldValues extends FieldValues>({
                 }
 
                 if (DEBUG) {
-                    console.log(
-                        "[FormBuilder] Render value for value:",
-                        form.getValues(field.name),
-                        `(${transformedType})`
-                    )
                 }
 
                 // Return the dynamic field with the computed type
@@ -372,20 +334,20 @@ export function FormBuilder<TFieldValues extends FieldValues>({
                     <DynamicValueField
                         field={field}
                         form={form as UseFormReturn<Record<string, unknown>>}
-                        type={transformedType as "boolean" | "json" | "number" | "string"}
+                        type={transformedType as 'boolean' | 'json' | 'number' | 'string'}
                     />
                 )
             }
-            case "number":
+            case 'number':
                 return (
                     <NumberField
                         field={{ ...field, ...baseFieldProps }}
                         form={form as UseFormReturn<Record<string, unknown>>}
                     />
                 )
-            case "select":
+            case 'select':
                 return <SelectField field={{ ...field, ...baseFieldProps }} form={form} />
-            case "select-with-add-new":
+            case 'select-with-add-new':
                 return (
                     <SelectWithAddNewField
                         field={{ ...field, ...baseFieldProps }}
@@ -397,20 +359,20 @@ export function FormBuilder<TFieldValues extends FieldValues>({
                         placeholder={field.placeholder}
                     />
                 )
-            case "switch":
+            case 'switch':
                 return (
                     <SwitchField
                         field={{
                             ...field,
                             ...baseFieldProps,
-                            type: "checkbox",
-                            variant: "switch"
+                            type: 'checkbox',
+                            variant: 'switch'
                         }}
                         form={form as UseFormReturn<Record<string, unknown>>}
                     />
                 )
-            case "text":
-                if (typeof field === "object" && field !== null) {
+            case 'text':
+                if (typeof field === 'object' && field !== null) {
                     return (
                         <TextField
                             field={{ ...field, ...baseFieldProps }}
@@ -418,16 +380,15 @@ export function FormBuilder<TFieldValues extends FieldValues>({
                         />
                     )
                 }
-                console.warn(`Invalid field type for string: ${typeof field}`)
                 return null
-            case "textarea":
+            case 'textarea':
                 return (
                     <TextareaField
                         field={{ ...field, ...baseFieldProps }}
                         form={form as UseFormReturn<Record<string, unknown>>}
                     />
                 )
-            case "value-type":
+            case 'value-type':
                 return (
                     <ValueTypeField
                         description={field.description}
@@ -439,8 +400,7 @@ export function FormBuilder<TFieldValues extends FieldValues>({
                     />
                 )
             default: {
-                const unknownField = field as { type: string }
-                console.warn(`Unknown field type: ${unknownField.type}`)
+                const _unknownField = field as { type: string }
                 return null
             }
         }

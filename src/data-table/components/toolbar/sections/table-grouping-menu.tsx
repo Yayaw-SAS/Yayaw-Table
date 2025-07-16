@@ -1,16 +1,14 @@
-"use client"
+'use client'
 
+import type { GroupingState } from '@tanstack/react-table'
+import { Group, X } from 'lucide-react'
+import { useMemo } from 'react'
 import {
     StackMenuContent,
-    StackMenuSection,
     StackMenuItem,
     StackMenuView
-} from "@/src/components/ui-custom/stack-menu"
-import { ArrowUpDown, Group, X } from "lucide-react"
-import { useTranslations } from "../../../providers/table-provider"
-import { useMemo } from "react"
-
-import type { GroupingState } from "@tanstack/react-table"
+} from '@/src/components/ui-custom/stack-menu'
+import { useTranslations } from '../../../providers/table-provider'
 
 export interface TableGroupingMenuProps {
     columns: {
@@ -42,7 +40,9 @@ export function TableGroupingMenu({
     )
 
     // Skip rendering if no groupable columns
-    if (groupableColumns.length === 0) return null
+    if (groupableColumns.length === 0) {
+        return null
+    }
 
     return (
         <StackMenuView name="group">
@@ -57,7 +57,7 @@ export function TableGroupingMenu({
                             }
                         }}
                     >
-                        {t("common.reset")}
+                        {t('common.reset')}
                     </StackMenuItem>
                 )}
 

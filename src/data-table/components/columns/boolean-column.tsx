@@ -2,12 +2,12 @@
  * Boolean column component for data tables
  * Provides standardized display of boolean values using BooleanBadge
  */
-"use client"
+'use client'
 
-import type { CellContext } from "@tanstack/react-table"
-import { ToggleRight } from "lucide-react"
+import type { CellContext } from '@tanstack/react-table'
+import { ToggleRight } from 'lucide-react'
 
-import { BooleanCell } from "../cells/boolean-cell"
+import { BooleanCell } from '../cells/boolean-cell'
 
 interface BooleanColumnProps {
     /**
@@ -68,6 +68,6 @@ export function createBooleanColumn<TData>({
         header: header || accessorKey,
         icon: ToggleRight,
         id: accessorKey,
-        type: "boolean"
+        type: 'boolean'
     }
 }

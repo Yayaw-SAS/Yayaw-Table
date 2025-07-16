@@ -2,14 +2,14 @@
  * Form builder hook
  * This hook creates a form instance based on a form configuration
  */
-"use client"
+'use client'
 
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useTranslations } from "../../../providers/table-provider"
-import { useEffect, useMemo, useRef } from "react"
-import { type DefaultValues, type FieldValues, type UseFormProps, useForm } from "react-hook-form"
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useEffect, useMemo, useRef } from 'react'
+import { type DefaultValues, type FieldValues, type UseFormProps, useForm } from 'react-hook-form'
+import { useTranslations } from '../../../providers/table-provider'
 
-import type { AnyFieldDefinition, FormConfig, SelectFieldDefinition } from "../types"
+import type { AnyFieldDefinition, FormConfig, SelectFieldDefinition } from '../types'
 
 export interface UseFormBuilderOptions<TFieldValues extends FieldValues> {
     /**
@@ -20,7 +20,7 @@ export interface UseFormBuilderOptions<TFieldValues extends FieldValues> {
     /**
      * Additional form options
      */
-    formOptions?: Omit<UseFormProps<TFieldValues>, "defaultValues" | "resolver">
+    formOptions?: Omit<UseFormProps<TFieldValues>, 'defaultValues' | 'resolver'>
 
     /**
      * Initial data for the form (used for update operations)
@@ -73,7 +73,7 @@ export function useFormBuilder<TFieldValues extends FieldValues>({
             JSON.stringify(initialData) !== JSON.stringify(prevInitialDataRef.current)
         ) {
             formResetInProgressRef.current = true
-            
+
             const newDefaultValues = {
                 ...(config.defaultValues as DefaultValues<TFieldValues>),
                 ...initialData
@@ -121,7 +121,7 @@ export function useFormBuilder<TFieldValues extends FieldValues>({
             }
 
             // If the field is a select field with option translation keys, translate them
-            if (field.type === "select") {
+            if (field.type === 'select') {
                 const selectField = field as SelectFieldDefinition<TFieldValues>
                 const optionKeys = selectField.optionKeys
                 if (optionKeys?.length) {

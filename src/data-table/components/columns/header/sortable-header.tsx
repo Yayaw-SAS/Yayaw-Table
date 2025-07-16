@@ -1,13 +1,13 @@
-"use client"
+'use client'
 
-import { TableHead } from "@/components/ui/table"
-import { cn } from "@/lib/utils"
-import { useSortable } from "@dnd-kit/sortable"
-import { CSS } from "@dnd-kit/utilities"
-import type { Column } from "@tanstack/react-table"
-import type { CSSProperties, ReactNode } from "react"
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import type { Column } from '@tanstack/react-table'
+import type { CSSProperties, ReactNode } from 'react'
+import { TableHead } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
 
-import { getColumnPinningStyles } from "../../../utils/column-pinning-styles"
+import { getColumnPinningStyles } from '../../../utils/column-pinning-styles'
 
 interface SortableHeaderProps {
     /**
@@ -63,12 +63,12 @@ export function SortableHeader({
 
     // Combine styles for the sortable header with improved visual feedback
     const sortableStyles: CSSProperties = {
-        boxShadow: isDragging ? "0 2px 10px rgba(0, 0, 0, 0.1)" : pinningStyles.boxShadow || "none",
+        boxShadow: isDragging ? '0 2px 10px rgba(0, 0, 0, 0.1)' : pinningStyles.boxShadow || 'none',
         left: pinningStyles.left,
         opacity: isDragging ? 0.8 : pinningStyles.opacity || 1,
         position: isDragging
-            ? "relative"
-            : (pinningStyles.position as "relative" | "sticky") || "relative",
+            ? 'relative'
+            : (pinningStyles.position as 'relative' | 'sticky') || 'relative',
         right: pinningStyles.right,
         transform: CSS.Translate.toString(transform), // Using Translate for smoother performance
         transition,
@@ -82,8 +82,8 @@ export function SortableHeader({
     return (
         <TableHead
             className={cn(
-                "group relative border-border border-r [&:has([role=checkbox])]:pr-2 [&:has([role=checkbox])]:pl-4",
-                isDragging && "z-10 bg-muted opacity-50",
+                'group relative border-border border-r [&:has([role=checkbox])]:pr-2 [&:has([role=checkbox])]:pl-4',
+                isDragging && 'z-10 bg-muted opacity-50',
                 className
             )}
             data-column-id={id} // Add data-column-id attribute for DOM-based fallback

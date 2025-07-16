@@ -2,12 +2,12 @@
  * String column component for data tables
  * Provides standardized display of string values
  */
-"use client"
+'use client'
 
-import type { CellContext, ColumnDef } from "@tanstack/react-table"
-import { Asterisk, type LucideIcon } from "lucide-react"
+import type { CellContext, ColumnDef } from '@tanstack/react-table'
+import { Asterisk, type LucideIcon } from 'lucide-react'
 
-import { StringCell } from "../cells/string-cell"
+import { StringCell } from '../cells/string-cell'
 
 /**
  * Custom properties for our column definitions
@@ -80,6 +80,6 @@ export function createStringColumn<TData>({
         header: header || accessorKey,
         icon: Asterisk,
         id: accessorKey,
-        type: "string"
+        type: 'string'
     }
 }

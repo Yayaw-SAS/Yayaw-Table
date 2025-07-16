@@ -2,12 +2,12 @@
  * Number column component for data tables
  * Provides standardized display of numeric values
  */
-"use client"
+'use client'
 
-import type { CellContext, ColumnDef } from "@tanstack/react-table"
-import { Hash, type LucideIcon } from "lucide-react"
+import type { CellContext, ColumnDef } from '@tanstack/react-table'
+import { Hash, type LucideIcon } from 'lucide-react'
 
-import { NumberCell } from "../cells/number-cell"
+import { NumberCell } from '../cells/number-cell'
 
 /**
  * Custom properties for our column definitions
@@ -89,6 +89,6 @@ export function createNumberColumn<TData>({
         header: header || accessorKey,
         icon: Hash,
         id: accessorKey,
-        type: "number"
+        type: 'number'
     }
 }

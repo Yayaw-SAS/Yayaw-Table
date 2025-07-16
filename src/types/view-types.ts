@@ -3,7 +3,7 @@
  * Defines the structure of saved table views
  */
 
-import type { ColumnFiltersState, SortingState, VisibilityState } from "@tanstack/react-table"
+import type { ColumnFiltersState, SortingState, VisibilityState } from '@tanstack/react-table'
 
 /**
  * Table view

@@ -2,34 +2,36 @@
  * Hook for managing URL state with nuqs
  * Allows sharing links to specific table states
  */
-"use client"
+'use client'
 
-import type { ColumnFiltersState, SortingState } from "@tanstack/react-table"
-import { createParser, useQueryState } from "nuqs"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import type { AdvancedFiltersState } from "../types/filter-types"
+import type { ColumnFiltersState, SortingState } from '@tanstack/react-table'
+import { createParser, useQueryState } from 'nuqs'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
+import type { AdvancedFiltersState } from '../types/filter-types'
 
 // Simple debounce implementation to avoid lodash dependency
 function debounce<T extends (...args: any[]) => void>(func: T, wait: number): T {
     let timeout: NodeJS.Timeout | null = null
     return ((...args: any[]) => {
-        if (timeout) clearTimeout(timeout)
+        if (timeout) {
+            clearTimeout(timeout)
+        }
         timeout = setTimeout(() => func(...args), wait)
     }) as T
 }
 
 // Debug flag to help track sorting issues
-const DEBUG = false
+const _DEBUG = false
 
 // Create parsers for different types of state
 const arrayParser = createParser({
     parse: (value: string) => (value ? JSON.parse(value) : []),
-    serialize: (value: unknown[]) => (value?.length ? JSON.stringify(value) : "")
+    serialize: (value: unknown[]) => (value?.length ? JSON.stringify(value) : '')
 })
 
 const objectParser = createParser({
     parse: (value: string) => (value ? JSON.parse(value) : {}),
-    serialize: (value: object) => (Object.keys(value || {}).length ? JSON.stringify(value) : "")
+    serialize: (value: object) => (Object.keys(value || {}).length ? JSON.stringify(value) : '')
 })
 
 // Parser for advanced filters
@@ -41,7 +43,7 @@ const advancedFiltersParser = createParser({
             return []
         }
     },
-    serialize: (value: AdvancedFiltersState) => (value?.length ? JSON.stringify(value) : "")
+    serialize: (value: AdvancedFiltersState) => (value?.length ? JSON.stringify(value) : '')
 })
 
 // Using URL state as the single source of truth - no Jotai atoms
@@ -94,7 +96,9 @@ export function useTableUrlState({ enabled = true, tableId }: UseTableUrlStateOp
 
     // Process batched updates
     const processBatchedUpdates = useCallback(() => {
-        if (updateQueue.current.length === 0) return
+        if (updateQueue.current.length === 0) {
+            return
+        }
 
         isSyncing.current = true
         try {
@@ -111,7 +115,9 @@ export function useTableUrlState({ enabled = true, tableId }: UseTableUrlStateOp
     // Helper function to queue URL parameter updates
     const queueUrlUpdate = useCallback(
         <T>(setter: (value: T) => void, value: T) => {
-            if (isSyncing.current) return
+            if (isSyncing.current) {
+                return
+            }
 
             updateQueue.current.push(() => setter(value))
 
@@ -128,9 +134,9 @@ export function useTableUrlState({ enabled = true, tableId }: UseTableUrlStateOp
 
     // URL parameters using nuqs
     // View and history management
-    const [viewParam, setViewParam] = useQueryState("view")
-    const [historyIndexParam, setHistoryIndexParam] = useQueryState("historyIndex", {
-        defaultValue: "0"
+    const [viewParam, setViewParam] = useQueryState('view')
+    const [historyIndexParam, setHistoryIndexParam] = useQueryState('historyIndex', {
+        defaultValue: '0'
     })
 
     // Table state parameters
@@ -140,16 +146,16 @@ export function useTableUrlState({ enabled = true, tableId }: UseTableUrlStateOp
 
     // Advanced filters parameter
     const [advancedFiltersParam, setAdvancedFiltersParam] = useQueryState(
-        `${tableId}-advancedFilters`, 
+        `${tableId}-advancedFilters`,
         advancedFiltersParser
     )
 
     const [pageParam, setPageParam] = useQueryState(`${tableId}-page`, {
-        defaultValue: "0"
+        defaultValue: '0'
     })
 
     const [pageSizeParam, setPageSizeParam] = useQueryState(`${tableId}-pageSize`, {
-        defaultValue: "10"
+        defaultValue: '10'
     })
 
     const [visibilityParam, setVisibilityParam] = useQueryState(
@@ -160,27 +166,32 @@ export function useTableUrlState({ enabled = true, tableId }: UseTableUrlStateOp
     const [orderParam, setOrderParam] = useQueryState(`${tableId}-order`, arrayParser)
 
     const [expandedParam, setExpandedParam] = useQueryState(`${tableId}-expanded`, {
-        defaultValue: "",
+        defaultValue: '',
         parse: (value) => (value ? JSON.parse(decodeURIComponent(value)) : {}),
         serialize: (value) =>
-            Object.keys(value || {}).length ? encodeURIComponent(JSON.stringify(value)) : ""
+            Object.keys(value || {}).length ? encodeURIComponent(JSON.stringify(value)) : ''
     })
 
     const [groupingParam, setGroupingParam] = useQueryState(`${tableId}-grouping`, arrayParser)
 
     // Column pinning parameter
     const [pinningParam, setPinningParam] = useQueryState(`${tableId}-pinning`, {
-        defaultValue: "",
+        defaultValue: '',
         parse: (value) => (value ? JSON.parse(decodeURIComponent(value)) : { left: [], right: [] }),
         serialize: (value) => {
             // Only serialize if we have pinned columns
             const hasLeft = value?.left?.length > 0
             const hasRight = value?.right?.length > 0
-            return hasLeft || hasRight ? encodeURIComponent(JSON.stringify(value)) : ""
+            return hasLeft || hasRight ? encodeURIComponent(JSON.stringify(value)) : ''
         }
     })
 
-    type TableParamValue = ColumnFiltersState | SortingState | Record<string, boolean> | string[] | AdvancedFiltersState
+    type TableParamValue =
+        | ColumnFiltersState
+        | SortingState
+        | Record<string, boolean>
+        | string[]
+        | AdvancedFiltersState
 
     const debouncedSetParamRef = useRef<((key: string, value: TableParamValue) => void) | null>(
         null
@@ -190,11 +201,11 @@ export function useTableUrlState({ enabled = true, tableId }: UseTableUrlStateOp
     useEffect(() => {
         if (!debouncedSetParamRef.current) {
             debouncedSetParamRef.current = debounce((key: string, value: TableParamValue) => {
-                if (key.includes("filters") && !key.includes("advancedFilters")) {
+                if (key.includes('filters') && !key.includes('advancedFilters')) {
                     setFiltersParam(value as ColumnFiltersState)
-                } else if (key.includes("advancedFilters")) {
+                } else if (key.includes('advancedFilters')) {
                     setAdvancedFiltersParam(value as AdvancedFiltersState)
-                } else if (key.includes("sort")) {
+                } else if (key.includes('sort')) {
                     setSortParam(value as SortingState)
                 }
                 // Add other param setters as needed
@@ -290,44 +301,60 @@ export function useTableUrlState({ enabled = true, tableId }: UseTableUrlStateOp
         const url = new URL(window.location.href)
 
         // Add all URL parameters
-        if (viewParam) url.searchParams.set("view", viewParam)
-        if (historyIndexParam) url.searchParams.set("historyIndex", historyIndexParam)
-        if (sortParam?.length)
+        if (viewParam) {
+            url.searchParams.set('view', viewParam)
+        }
+        if (historyIndexParam) {
+            url.searchParams.set('historyIndex', historyIndexParam)
+        }
+        if (sortParam?.length) {
             url.searchParams.set(`${tableId}-sort`, encodeURIComponent(JSON.stringify(sortParam)))
-        if (filtersParam?.length)
+        }
+        if (filtersParam?.length) {
             url.searchParams.set(
                 `${tableId}-filters`,
                 encodeURIComponent(JSON.stringify(filtersParam))
             )
-        if (advancedFiltersParam?.length)
+        }
+        if (advancedFiltersParam?.length) {
             url.searchParams.set(
                 `${tableId}-advancedFilters`,
                 encodeURIComponent(JSON.stringify(advancedFiltersParam))
             )
-        if (pageParam) url.searchParams.set(`${tableId}-page`, pageParam)
-        if (pageSizeParam) url.searchParams.set(`${tableId}-pageSize`, pageSizeParam)
-        if (visibilityParam && Object.keys(visibilityParam).length)
+        }
+        if (pageParam) {
+            url.searchParams.set(`${tableId}-page`, pageParam)
+        }
+        if (pageSizeParam) {
+            url.searchParams.set(`${tableId}-pageSize`, pageSizeParam)
+        }
+        if (visibilityParam && Object.keys(visibilityParam).length) {
             url.searchParams.set(
                 `${tableId}-visibility`,
                 encodeURIComponent(JSON.stringify(visibilityParam))
             )
-        if (orderParam?.length)
+        }
+        if (orderParam?.length) {
             url.searchParams.set(`${tableId}-order`, encodeURIComponent(JSON.stringify(orderParam)))
-        if (expandedParam && Object.keys(expandedParam).length)
+        }
+        if (expandedParam && Object.keys(expandedParam).length) {
             url.searchParams.set(
                 `${tableId}-expanded`,
                 encodeURIComponent(JSON.stringify(expandedParam))
             )
-        if (groupingParam?.length)
+        }
+        if (groupingParam?.length) {
             url.searchParams.set(
                 `${tableId}-grouping`,
                 encodeURIComponent(JSON.stringify(groupingParam))
             )
-        if (pinningParam && (pinningParam.left?.length || pinningParam.right?.length))
+        }
+        if (pinningParam && (pinningParam.left?.length || pinningParam.right?.length)) {
             url.searchParams.set(
                 `${tableId}-pinning`,
                 encodeURIComponent(JSON.stringify(pinningParam))
             )
+        }
 
         return url.toString()
     }, [
@@ -348,18 +375,20 @@ export function useTableUrlState({ enabled = true, tableId }: UseTableUrlStateOp
 
     // Reset all URL state parameters
     const resetUrlState = useCallback(() => {
-        if (isSyncing.current) return
+        if (isSyncing.current) {
+            return
+        }
 
         try {
             isSyncing.current = true
             // Reset all URL parameters
             setViewParam(null)
-            setHistoryIndexParam("0")
+            setHistoryIndexParam('0')
             setSortParam([])
             setFiltersParam([])
             setAdvancedFiltersParam([])
-            setPageParam("0")
-            setPageSizeParam("10")
+            setPageParam('0')
+            setPageSizeParam('10')
             setVisibilityParam({})
             setOrderParam([])
             setExpandedParam({})
@@ -389,8 +418,8 @@ export function useTableUrlState({ enabled = true, tableId }: UseTableUrlStateOp
     // Get pagination state from URL parameters
     const pagination = useMemo(
         () => ({
-            pageIndex: Number.parseInt(pageParam || "0", 10),
-            pageSize: Number.parseInt(pageSizeParam || "10", 10)
+            pageIndex: Number.parseInt(pageParam || '0', 10),
+            pageSize: Number.parseInt(pageSizeParam || '10', 10)
         }),
         [pageParam, pageSizeParam]
     )
@@ -414,8 +443,8 @@ export function useTableUrlState({ enabled = true, tableId }: UseTableUrlStateOp
         groupingParam: groupingParam || [],
         historyIndexParam,
         orderParam: orderParam || [],
-        pageParam: pageParam || "0",
-        pageSizeParam: pageSizeParam || "10",
+        pageParam: pageParam || '0',
+        pageSizeParam: pageSizeParam || '10',
         // Processed state
         pagination,
         pinningParam,
@@ -456,7 +485,7 @@ export function useTableUrlState({ enabled = true, tableId }: UseTableUrlStateOp
 }
 
 // Helper function to ensure consistent property order in sorting objects
-function normalizeSortingObject(sort: { desc: boolean; id: string }) {
+function _normalizeSortingObject(sort: { desc: boolean; id: string }) {
     // TanStack Table requires sorting objects to have 'id' property first, then 'desc'
     // eslint-disable-next-line perfectionist/sort-objects
     return { id: sort.id, desc: sort.desc }

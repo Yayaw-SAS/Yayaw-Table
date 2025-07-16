@@ -1,1 +1,1 @@
-export * from './table-provider' 
+export * from './table-provider'

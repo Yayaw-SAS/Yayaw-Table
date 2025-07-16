@@ -2,12 +2,12 @@
  * Tag column component for data tables
  * Displays tag values with colored backgrounds
  */
-"use client"
+'use client'
 
-import type { ColumnDef } from "@tanstack/react-table"
-import { type LucideIcon, Tag } from "lucide-react"
+import type { ColumnDef } from '@tanstack/react-table'
+import { type LucideIcon, Tag } from 'lucide-react'
 
-import { TagCell } from "../cells/tag-cell"
+import { TagCell } from '../cells/tag-cell'
 
 /**
  * Options for creating a tag column
@@ -64,7 +64,7 @@ type ExtendedColumnDef<TData> = ColumnDef<TData> & CustomColumnProps
  * Creates a column definition for displaying tag values with colored backgrounds
  */
 export function createTagColumn<TData>({
-    className = "",
+    className = '',
     enableColumnFilter = true,
     enableHiding = true,
     enableSorting = true,
@@ -80,6 +80,6 @@ export function createTagColumn<TData>({
         header,
         icon: Tag,
         id,
-        type: "tag"
+        type: 'tag'
     }
 }

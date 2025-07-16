@@ -1,12 +1,12 @@
-"use client"
+'use client'
 
-import { Button } from "@/components/ui/button"
-import { ArrowLeft } from "lucide-react"
-import dynamic from "next/dynamic"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { ArrowLeft } from 'lucide-react'
+import dynamic from 'next/dynamic'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
 
-const FileQuestion = dynamic(() => import("lucide-react").then((mod) => mod.FileQuestion), {
+const FileQuestion = dynamic(() => import('lucide-react').then((mod) => mod.FileQuestion), {
     ssr: false
 })
 
@@ -72,7 +72,7 @@ export function ErrorBlock({
                         </Button>
                     )}
                     {showHomeButton && (
-                        <Button className="cursor-pointer" onClick={() => router.push("/")}>
+                        <Button className="cursor-pointer" onClick={() => router.push('/')}>
                             Home
                         </Button>
                     )}

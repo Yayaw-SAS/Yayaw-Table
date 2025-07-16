@@ -1,16 +1,14 @@
-import { SVG } from "@/components/ui-custom/svg"
-import { cn } from "@/lib/utils"
-import * as LucideIcons from "lucide-react"
-import { motion } from "motion/react"
+import type { LucideProps } from 'lucide-react'
+import * as LucideIcons from 'lucide-react'
+import { motion } from 'motion/react'
+import type React from 'react'
+import { cn } from '@/lib/utils'
 
-import type { LucideProps } from "lucide-react"
-import type React from "react"
-
-type IconSize = "2xl" | "3xl" | "lg" | "md" | "sm" | "xl" | "xs"
+type IconSize = '2xl' | '3xl' | 'lg' | 'md' | 'sm' | 'xl' | 'xs'
 
 const sizeMap: Record<IconSize, number> = {
-    "2xl": 40,
-    "3xl": 48,
+    '2xl': 40,
+    '3xl': 48,
     lg: 24,
     md: 20,
     sm: 16,
@@ -46,16 +44,15 @@ export function Icon({
     animated = true, // Animation enabled by default
     className,
     name,
-    size = "md",
+    size = 'md',
     strokeWidth = 2,
     ...props
 }: IconProps): React.ReactElement {
-
     const IconComponent = getLucideIcon(name)
 
     // Determine icon size
     let iconSize: number
-    if (typeof size === "number") {
+    if (typeof size === 'number') {
         // If size is a number, use it directly
         iconSize = size
     } else if (size in sizeMap) {
@@ -67,10 +64,9 @@ export function Icon({
     }
 
     if (!IconComponent) {
-        console.warn(`Icon "${name}" not found`)
         return (
             <div
-                className={cn("flex items-center justify-center text-card-foreground", className)}
+                className={cn('flex items-center justify-center text-card-foreground', className)}
                 {...props}
             />
         )
@@ -91,7 +87,7 @@ export function Icon({
         // Use motion.div for animated icons with explicit type casting to avoid conflicts
         return (
             <motion.div
-                className={cn("flex items-center justify-center text-card-foreground", className)}
+                className={cn('flex items-center justify-center text-card-foreground', className)}
                 initial="initial"
                 variants={iconVariants}
                 whileHover="hover"
@@ -104,7 +100,7 @@ export function Icon({
     // Use regular div for non-animated icons
     return (
         <div
-            className={cn("flex items-center justify-center text-card-foreground", className)}
+            className={cn('flex items-center justify-center text-card-foreground', className)}
             {...props}
         >
             <IconComp size={iconSize} stroke="currentColor" strokeWidth={strokeWidth} />

@@ -2,56 +2,35 @@
  * Advanced Faceted Filter - Phase 5
  * Intelligent faceted filtering with hierarchies, counts, and smart grouping
  */
-"use client"
+'use client'
 
-import React, { useState, useMemo, useCallback, useEffect } from 'react'
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Checkbox } from "@/components/ui/checkbox"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
 import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
-} from "@/components/ui/collapsible"
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from "@/components/ui/popover"
-import { cn } from "@/lib/utils"
-import {
-    Search,
+    BarChart3,
+    CheckSquare,
     ChevronDown,
     ChevronRight,
     Filter,
-    TrendingUp,
-    Clock,
-    Star,
-    Hash,
-    CheckSquare,
-    X,
+    Search,
     SortAsc,
     SortDesc,
-    BarChart3,
     Sparkles,
+    Star,
     Target,
-    Layers,
-    ArrowUpDown,
-    MoreHorizontal
-} from "lucide-react"
-import {
-    Command,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandItem,
-    CommandList,
-} from "@/components/ui/command"
+    TrendingUp,
+    X
+} from 'lucide-react'
+import { useCallback, useMemo, useState } from 'react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible'
+import { Input } from '@/components/ui/input'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Separator } from '@/components/ui/separator'
+import { cn } from '@/lib/utils'
 
-import type { FacetedData, AdvancedColumnFilterConfig } from '../../types/advanced-filter-types'
+import type { AdvancedColumnFilterConfig, FacetedData } from '../../types/advanced-filter-types'
 
 export interface AdvancedFacetedFilterProps {
     /** Column ID */
@@ -117,31 +96,36 @@ function FacetedOption({
     const hasChildren = option.children && option.children.length > 0
 
     const handleToggle = useCallback(() => {
-        if (isDisabled) return
+        if (isDisabled) {
+            return
+        }
         onToggle(option.value, !isSelected)
     }, [option.value, isSelected, isDisabled, onToggle])
 
-    const handleChildToggle = useCallback((childValue: any, selected: boolean) => {
-        onToggle(childValue, selected)
-    }, [onToggle])
+    const handleChildToggle = useCallback(
+        (childValue: any, selected: boolean) => {
+            onToggle(childValue, selected)
+        },
+        [onToggle]
+    )
 
     return (
         <div className="space-y-1">
-            <div 
+            <div
                 className={cn(
-                    "flex items-center gap-2 py-1 px-2 rounded-md hover:bg-accent/50 transition-colors",
-                    level > 0 && "ml-4",
-                    isDisabled && "opacity-50 cursor-not-allowed"
+                    'flex items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-accent/50',
+                    level > 0 && 'ml-4',
+                    isDisabled && 'cursor-not-allowed opacity-50'
                 )}
                 style={{ paddingLeft: `${8 + level * 16}px` }}
             >
                 {/* Expand/collapse for hierarchical options */}
                 {hasChildren && (
                     <Button
-                        variant="ghost"
-                        size="sm"
                         className="h-4 w-4 p-0"
                         onClick={() => setIsExpanded(!isExpanded)}
+                        size="sm"
+                        variant="ghost"
                     >
                         {isExpanded ? (
                             <ChevronDown className="h-3 w-3" />
@@ -156,34 +140,32 @@ function FacetedOption({
                     {multiSelect ? (
                         <Checkbox
                             checked={isSelected}
-                            onCheckedChange={handleToggle}
-                            disabled={isDisabled}
                             className="h-4 w-4"
+                            disabled={isDisabled}
+                            onCheckedChange={handleToggle}
                         />
                     ) : (
                         <input
-                            type="radio"
                             checked={isSelected}
-                            onChange={handleToggle}
-                            disabled={isDisabled}
                             className="h-4 w-4"
+                            disabled={isDisabled}
+                            onChange={handleToggle}
+                            type="radio"
                         />
                     )}
                 </div>
 
                 {/* Option content */}
-                <div className="flex-1 min-w-0 flex items-center justify-between">
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <span className="text-sm truncate">{option.label}</span>
-                        
+                <div className="flex min-w-0 flex-1 items-center justify-between">
+                    <div className="flex min-w-0 flex-1 items-center gap-2">
+                        <span className="truncate text-sm">{option.label}</span>
+
                         {/* Metadata indicators */}
                         <div className="flex items-center gap-1">
                             {option.metadata?.trending && (
                                 <TrendingUp className="h-3 w-3 text-emerald-500" />
                             )}
-                            {option.metadata?.new && (
-                                <Sparkles className="h-3 w-3 text-blue-500" />
-                            )}
+                            {option.metadata?.new && <Sparkles className="h-3 w-3 text-blue-500" />}
                             {option.metadata?.priority === 1 && (
                                 <Star className="h-3 w-3 text-amber-500" />
                             )}
@@ -191,16 +173,14 @@ function FacetedOption({
                     </div>
 
                     {/* Count and percentage */}
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-2 text-muted-foreground text-xs">
                         {showCount && (
-                            <Badge variant="secondary" className="text-xs">
+                            <Badge className="text-xs" variant="secondary">
                                 {option.count.toLocaleString()}
                             </Badge>
                         )}
                         {showPercentage && option.percentage > 0 && (
-                            <span className="text-xs">
-                                {option.percentage.toFixed(1)}%
-                            </span>
+                            <span className="text-xs">{option.percentage.toFixed(1)}%</span>
                         )}
                     </div>
                 </div>
@@ -212,15 +192,15 @@ function FacetedOption({
                     <CollapsibleContent className="space-y-1">
                         {option.children!.map((child) => (
                             <FacetedOption
-                                key={child.value}
-                                option={child}
-                                isSelected={isSelected}
                                 isDisabled={isDisabled}
+                                isSelected={isSelected}
+                                key={child.value}
+                                level={level + 1}
+                                multiSelect={multiSelect}
+                                onToggle={handleChildToggle}
+                                option={child}
                                 showCount={showCount}
                                 showPercentage={showPercentage}
-                                onToggle={handleChildToggle}
-                                multiSelect={multiSelect}
-                                level={level + 1}
                             />
                         ))}
                     </CollapsibleContent>
@@ -258,12 +238,12 @@ function FilterControls({
         <div className="space-y-3">
             {/* Search */}
             <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="-translate-y-1/2 absolute top-1/2 left-3 h-4 w-4 transform text-muted-foreground" />
                 <Input
+                    className="pl-9"
+                    onChange={(e) => onSearchChange(e.target.value)}
                     placeholder="Search options..."
                     value={searchQuery}
-                    onChange={(e) => onSearchChange(e.target.value)}
-                    className="pl-9"
                 />
             </div>
 
@@ -272,9 +252,9 @@ function FilterControls({
                 {/* Sort controls */}
                 <div className="flex items-center gap-2">
                     <select
-                        value={sortBy}
+                        className="rounded border px-2 py-1 text-xs"
                         onChange={(e) => onSortByChange(e.target.value as SortBy)}
-                        className="text-xs border rounded px-2 py-1"
+                        value={sortBy}
                     >
                         <option value="label">Sort by Label</option>
                         <option value="count">Sort by Count</option>
@@ -283,10 +263,10 @@ function FilterControls({
                     </select>
 
                     <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onSortOrderChange(sortOrder === 'asc' ? 'desc' : 'asc')}
                         className="h-6 w-6 p-0"
+                        onClick={() => onSortOrderChange(sortOrder === 'asc' ? 'desc' : 'asc')}
+                        size="sm"
+                        variant="outline"
                     >
                         {sortOrder === 'asc' ? (
                             <SortAsc className="h-3 w-3" />
@@ -297,15 +277,17 @@ function FilterControls({
                 </div>
 
                 {/* Selection info */}
-                <div className="text-xs text-muted-foreground">
+                <div className="text-muted-foreground text-xs">
                     {selectedCount > 0 ? (
                         <div className="flex items-center gap-2">
-                            <span>{selectedCount} of {totalCount} selected</span>
+                            <span>
+                                {selectedCount} of {totalCount} selected
+                            </span>
                             <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={onClear}
                                 className="h-4 w-4 p-0"
+                                onClick={onClear}
+                                size="sm"
+                                variant="ghost"
                             >
                                 <X className="h-3 w-3" />
                             </Button>
@@ -335,45 +317,30 @@ function QuickSelection({
     onSelectTop: () => void
     onSelectTrending: () => void
 }) {
-    const hasTrending = options.some(opt => opt.metadata?.trending)
+    const hasTrending = options.some((opt) => opt.metadata?.trending)
 
     return (
-        <div className="flex items-center gap-1 flex-wrap">
-            <Button
-                variant="outline"
-                size="sm"
-                onClick={onSelectAll}
-                className="h-6 px-2 text-xs"
-            >
-                <CheckSquare className="h-3 w-3 mr-1" />
+        <div className="flex flex-wrap items-center gap-1">
+            <Button className="h-6 px-2 text-xs" onClick={onSelectAll} size="sm" variant="outline">
+                <CheckSquare className="mr-1 h-3 w-3" />
                 All
             </Button>
-            <Button
-                variant="outline"
-                size="sm"
-                onClick={onSelectNone}
-                className="h-6 px-2 text-xs"
-            >
-                <X className="h-3 w-3 mr-1" />
+            <Button className="h-6 px-2 text-xs" onClick={onSelectNone} size="sm" variant="outline">
+                <X className="mr-1 h-3 w-3" />
                 None
             </Button>
-            <Button
-                variant="outline"
-                size="sm"
-                onClick={onSelectTop}
-                className="h-6 px-2 text-xs"
-            >
-                <BarChart3 className="h-3 w-3 mr-1" />
+            <Button className="h-6 px-2 text-xs" onClick={onSelectTop} size="sm" variant="outline">
+                <BarChart3 className="mr-1 h-3 w-3" />
                 Top 5
             </Button>
             {hasTrending && (
                 <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={onSelectTrending}
                     className="h-6 px-2 text-xs"
+                    onClick={onSelectTrending}
+                    size="sm"
+                    variant="outline"
                 >
-                    <TrendingUp className="h-3 w-3 mr-1" />
+                    <TrendingUp className="mr-1 h-3 w-3" />
                     Trending
                 </Button>
             )}
@@ -415,9 +382,10 @@ export function AdvancedFacetedFilter({
         // Apply search filter
         if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase()
-            filtered = filtered.filter(option =>
-                option.label.toLowerCase().includes(query) ||
-                option.value.toString().toLowerCase().includes(query)
+            filtered = filtered.filter(
+                (option) =>
+                    option.label.toLowerCase().includes(query) ||
+                    option.value.toString().toLowerCase().includes(query)
             )
         }
 
@@ -435,11 +403,12 @@ export function AdvancedFacetedFilter({
                 case 'value':
                     comparison = String(a.value).localeCompare(String(b.value))
                     break
-                case 'trending':
+                case 'trending': {
                     const aTrending = a.metadata?.trending ? 1 : 0
                     const bTrending = b.metadata?.trending ? 1 : 0
                     comparison = aTrending - bTrending
                     break
+                }
             }
 
             return sortOrder === 'asc' ? comparison : -comparison
@@ -449,50 +418,63 @@ export function AdvancedFacetedFilter({
     }, [facetedData, searchQuery, sortBy, sortOrder])
 
     // Handle selection changes
-    const handleToggle = useCallback((value: any, selected: boolean) => {
-        if (disabled) return
-
-        let newSelection: any[]
-        
-        if (multiSelect) {
-            if (selected) {
-                newSelection = [...selectedValues, value]
-            } else {
-                newSelection = selectedValues.filter(v => v !== value)
+    const handleToggle = useCallback(
+        (value: any, selected: boolean) => {
+            if (disabled) {
+                return
             }
-        } else {
-            newSelection = selected ? [value] : []
-        }
 
-        onSelectionChange(newSelection)
-    }, [selectedValues, onSelectionChange, disabled, multiSelect])
+            let newSelection: any[]
+
+            if (multiSelect) {
+                if (selected) {
+                    newSelection = [...selectedValues, value]
+                } else {
+                    newSelection = selectedValues.filter((v) => v !== value)
+                }
+            } else {
+                newSelection = selected ? [value] : []
+            }
+
+            onSelectionChange(newSelection)
+        },
+        [selectedValues, onSelectionChange, disabled, multiSelect]
+    )
 
     // Quick selection handlers
     const handleSelectAll = useCallback(() => {
-        if (disabled) return
-        const allValues = processedOptions.map(opt => opt.value)
+        if (disabled) {
+            return
+        }
+        const allValues = processedOptions.map((opt) => opt.value)
         onSelectionChange(allValues)
     }, [processedOptions, onSelectionChange, disabled])
 
     const handleSelectNone = useCallback(() => {
-        if (disabled) return
+        if (disabled) {
+            return
+        }
         onSelectionChange([])
     }, [onSelectionChange, disabled])
 
     const handleSelectTop = useCallback(() => {
-        if (disabled) return
+        if (disabled) {
+            return
+        }
         const topValues = processedOptions
             .sort((a, b) => b.count - a.count)
             .slice(0, 5)
-            .map(opt => opt.value)
+            .map((opt) => opt.value)
         onSelectionChange(topValues)
     }, [processedOptions, onSelectionChange, disabled])
 
     const handleSelectTrending = useCallback(() => {
-        if (disabled) return
+        if (disabled) {
+            return
+        }
         const trendingValues = processedOptions
-            .filter(opt => opt.metadata?.trending)
-            .map(opt => opt.value)
+            .filter((opt) => opt.metadata?.trending)
+            .map((opt) => opt.value)
         onSelectionChange(trendingValues)
     }, [processedOptions, onSelectionChange, disabled])
 
@@ -502,17 +484,17 @@ export function AdvancedFacetedFilter({
     // Compact mode for small spaces
     if (!isExpanded) {
         return (
-            <Popover open={isExpanded} onOpenChange={setIsExpanded}>
+            <Popover onOpenChange={setIsExpanded} open={isExpanded}>
                 <PopoverTrigger asChild>
                     <Button
-                        variant="outline"
                         className={cn(
-                            "justify-between",
-                            selectedCount > 0 && "border-primary",
-                            disabled && "opacity-50",
+                            'justify-between',
+                            selectedCount > 0 && 'border-primary',
+                            disabled && 'opacity-50',
                             className
                         )}
                         disabled={disabled}
+                        variant="outline"
                     >
                         <div className="flex items-center gap-2">
                             <Filter className="h-4 w-4" />
@@ -524,13 +506,13 @@ export function AdvancedFacetedFilter({
                         <ChevronDown className="h-4 w-4" />
                     </Button>
                 </PopoverTrigger>
-                
-                <PopoverContent className="w-80 p-0" align="start">
-                    <div className="p-4 space-y-4">
+
+                <PopoverContent align="start" className="w-80 p-0">
+                    <div className="space-y-4 p-4">
                         {/* Header */}
                         <div className="flex items-center justify-between">
                             <h4 className="font-medium">{config.label || columnId}</h4>
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-1 text-muted-foreground text-xs">
                                 <Target className="h-3 w-3" />
                                 <span>{totalCount} options</span>
                             </div>
@@ -539,50 +521,53 @@ export function AdvancedFacetedFilter({
                         {/* Controls */}
                         {searchable && (
                             <FilterControls
-                                searchQuery={searchQuery}
-                                onSearchChange={setSearchQuery}
-                                sortBy={sortBy}
-                                onSortByChange={setSortBy}
-                                sortOrder={sortOrder}
-                                onSortOrderChange={setSortOrder}
-                                totalCount={totalCount}
-                                selectedCount={selectedCount}
                                 onClear={handleSelectNone}
+                                onSearchChange={setSearchQuery}
+                                onSortByChange={setSortBy}
+                                onSortOrderChange={setSortOrder}
+                                searchQuery={searchQuery}
+                                selectedCount={selectedCount}
+                                sortBy={sortBy}
+                                sortOrder={sortOrder}
+                                totalCount={totalCount}
                             />
                         )}
 
                         {/* Quick selection */}
                         {multiSelect && (
                             <QuickSelection
-                                options={processedOptions}
                                 onSelectAll={handleSelectAll}
                                 onSelectNone={handleSelectNone}
                                 onSelectTop={handleSelectTop}
                                 onSelectTrending={handleSelectTrending}
+                                options={processedOptions}
                             />
                         )}
 
                         <Separator />
 
                         {/* Options list */}
-                        <div className="max-h-80 overflow-y-auto" style={{ maxHeight: Math.min(maxHeight, 320) }}>
+                        <div
+                            className="max-h-80 overflow-y-auto"
+                            style={{ maxHeight: Math.min(maxHeight, 320) }}
+                        >
                             {processedOptions.length === 0 ? (
-                                <div className="text-center py-4 text-muted-foreground">
-                                    <Search className="h-6 w-6 mx-auto mb-2 opacity-50" />
+                                <div className="py-4 text-center text-muted-foreground">
+                                    <Search className="mx-auto mb-2 h-6 w-6 opacity-50" />
                                     <p className="text-sm">No options found</p>
                                 </div>
                             ) : (
                                 <div className="space-y-1">
                                     {processedOptions.map((option) => (
                                         <FacetedOption
-                                            key={option.value}
-                                            option={option}
-                                            isSelected={selectedValues.includes(option.value)}
                                             isDisabled={option.isDisabled}
+                                            isSelected={selectedValues.includes(option.value)}
+                                            key={option.value}
+                                            multiSelect={multiSelect}
+                                            onToggle={handleToggle}
+                                            option={option}
                                             showCount={showCounts}
                                             showPercentage={showPercentages}
-                                            onToggle={handleToggle}
-                                            multiSelect={multiSelect}
                                         />
                                     ))}
                                 </div>
@@ -596,15 +581,15 @@ export function AdvancedFacetedFilter({
 
     // Expanded mode for dedicated space
     return (
-        <div className={cn("space-y-4 border rounded-lg p-4", className)}>
+        <div className={cn('space-y-4 rounded-lg border p-4', className)}>
             {/* Header */}
             <div className="flex items-center justify-between">
                 <h3 className="font-medium">{config.label || columnId}</h3>
                 <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsExpanded(false)}
                     className="h-6 w-6 p-0"
+                    onClick={() => setIsExpanded(false)}
+                    size="sm"
+                    variant="ghost"
                 >
                     <X className="h-4 w-4" />
                 </Button>
@@ -613,56 +598,55 @@ export function AdvancedFacetedFilter({
             {/* Controls */}
             {searchable && (
                 <FilterControls
-                    searchQuery={searchQuery}
-                    onSearchChange={setSearchQuery}
-                    sortBy={sortBy}
-                    onSortByChange={setSortBy}
-                    sortOrder={sortOrder}
-                    onSortOrderChange={setSortOrder}
-                    totalCount={totalCount}
-                    selectedCount={selectedCount}
                     onClear={handleSelectNone}
+                    onSearchChange={setSearchQuery}
+                    onSortByChange={setSortBy}
+                    onSortOrderChange={setSortOrder}
+                    searchQuery={searchQuery}
+                    selectedCount={selectedCount}
+                    sortBy={sortBy}
+                    sortOrder={sortOrder}
+                    totalCount={totalCount}
                 />
             )}
 
             {/* Quick selection */}
             {multiSelect && (
                 <QuickSelection
-                    options={processedOptions}
                     onSelectAll={handleSelectAll}
                     onSelectNone={handleSelectNone}
                     onSelectTop={handleSelectTop}
                     onSelectTrending={handleSelectTrending}
+                    options={processedOptions}
                 />
             )}
 
             <Separator />
 
             {/* Options list */}
-            <ScrollArea style={{ maxHeight: maxHeight }}>
+            <ScrollArea style={{ maxHeight }}>
                 {processedOptions.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                        <Search className="h-8 w-8 mx-auto mb-3 opacity-50" />
-                        <h4 className="font-medium mb-1">No options found</h4>
+                    <div className="py-8 text-center text-muted-foreground">
+                        <Search className="mx-auto mb-3 h-8 w-8 opacity-50" />
+                        <h4 className="mb-1 font-medium">No options found</h4>
                         <p className="text-sm">
-                            {searchQuery 
-                                ? 'Try a different search term' 
-                                : 'No data available for this filter'
-                            }
+                            {searchQuery
+                                ? 'Try a different search term'
+                                : 'No data available for this filter'}
                         </p>
                     </div>
                 ) : (
                     <div className="space-y-1">
                         {processedOptions.map((option) => (
                             <FacetedOption
-                                key={option.value}
-                                option={option}
-                                isSelected={selectedValues.includes(option.value)}
                                 isDisabled={option.isDisabled}
+                                isSelected={selectedValues.includes(option.value)}
+                                key={option.value}
+                                multiSelect={multiSelect}
+                                onToggle={handleToggle}
+                                option={option}
                                 showCount={showCounts}
                                 showPercentage={showPercentages}
-                                onToggle={handleToggle}
-                                multiSelect={multiSelect}
                             />
                         ))}
                     </div>
@@ -684,19 +668,17 @@ function FacetedStats({
     selectedCount: number
     totalCount: number
 }) {
-    const visibleOptions = data.filter(d => !d.isDisabled).length
+    const visibleOptions = data.filter((d) => !d.isDisabled).length
     const totalRecords = data.reduce((sum, d) => sum + d.count, 0)
-    const selectedRecords = data
-        .filter(d => d.isSelected)
-        .reduce((sum, d) => sum + d.count, 0)
+    const selectedRecords = data.filter((d) => d.isSelected).reduce((sum, d) => sum + d.count, 0)
 
     return (
-        <div className="p-3 bg-muted/30 rounded-md">
-            <div className="flex items-center gap-2 mb-2">
+        <div className="rounded-md bg-muted/30 p-3">
+            <div className="mb-2 flex items-center gap-2">
                 <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">Statistics</span>
+                <span className="font-medium text-sm">Statistics</span>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                     <div className="text-muted-foreground">Options</div>
@@ -713,7 +695,7 @@ function FacetedStats({
             </div>
 
             {selectedCount > 0 && (
-                <div className="mt-2 text-xs text-muted-foreground">
+                <div className="mt-2 text-muted-foreground text-xs">
                     Coverage: {((selectedRecords / totalRecords) * 100).toFixed(1)}% of data
                 </div>
             )}
@@ -732,35 +714,45 @@ export function CompactFacetedFilter({
     onSelectionChange,
     disabled = false,
     className
-}: Omit<AdvancedFacetedFilterProps, 'maxHeight' | 'searchable' | 'showCounts' | 'showPercentages' | 'multiSelect' | 'virtualized' | 'maxVisible' | 'showSelectAll' | 'showStats'>) {
+}: Omit<
+    AdvancedFacetedFilterProps,
+    | 'maxHeight'
+    | 'searchable'
+    | 'showCounts'
+    | 'showPercentages'
+    | 'multiSelect'
+    | 'virtualized'
+    | 'maxVisible'
+    | 'showSelectAll'
+    | 'showStats'
+>) {
     const [isOpen, setIsOpen] = useState(false)
     const selectedCount = selectedValues.length
 
     return (
-        <Popover open={isOpen} onOpenChange={setIsOpen}>
+        <Popover onOpenChange={setIsOpen} open={isOpen}>
             <PopoverTrigger asChild>
                 <Button
-                    variant="outline"
-                    size="sm"
+                    className={cn('justify-between', className)}
                     disabled={disabled}
-                    className={cn("justify-between", className)}
+                    size="sm"
+                    variant="outline"
                 >
                     <span className="truncate">
-                        {selectedCount > 0 
+                        {selectedCount > 0
                             ? `${config.label || columnId} (${selectedCount})`
-                            : config.label || columnId
-                        }
+                            : config.label || columnId}
                     </span>
-                    <ChevronDown className="h-4 w-4 ml-2 shrink-0" />
+                    <ChevronDown className="ml-2 h-4 w-4 shrink-0" />
                 </Button>
             </PopoverTrigger>
-            
-            <PopoverContent className="w-80 p-0" align="start">
-                <div className="p-4 space-y-4">
+
+            <PopoverContent align="start" className="w-80 p-0">
+                <div className="space-y-4 p-4">
                     {/* Header */}
                     <div className="flex items-center justify-between">
                         <h4 className="font-medium">{config.label || columnId}</h4>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1 text-muted-foreground text-xs">
                             <Target className="h-3 w-3" />
                             <span>{selectedCount} options</span>
                         </div>
@@ -769,22 +761,22 @@ export function CompactFacetedFilter({
                     {/* Controls */}
                     <div className="flex items-center justify-between">
                         <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => onSelectionChange(facetedData.map(d => d.value))}
-                            disabled={disabled || selectedCount === 0}
                             className="h-6 px-2 text-xs"
+                            disabled={disabled || selectedCount === 0}
+                            onClick={() => onSelectionChange(facetedData.map((d) => d.value))}
+                            size="sm"
+                            variant="ghost"
                         >
                             Select All ({facetedData.length})
                         </Button>
-                        
+
                         {selectedCount > 0 && (
                             <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => onSelectionChange([])}
+                                className="h-6 px-2 text-muted-foreground text-xs"
                                 disabled={disabled}
-                                className="h-6 px-2 text-xs text-muted-foreground"
+                                onClick={() => onSelectionChange([])}
+                                size="sm"
+                                variant="ghost"
                             >
                                 Clear ({selectedCount})
                             </Button>
@@ -796,19 +788,25 @@ export function CompactFacetedFilter({
                     {/* Options list */}
                     <div className="max-h-60 overflow-y-auto">
                         {facetedData.length === 0 ? (
-                            <div className="text-center py-8 text-muted-foreground">
-                                <Search className="h-8 w-8 mx-auto mb-3 opacity-50" />
-                                <h5 className="font-medium mb-1">No options available</h5>
+                            <div className="py-8 text-center text-muted-foreground">
+                                <Search className="mx-auto mb-3 h-8 w-8 opacity-50" />
+                                <h5 className="mb-1 font-medium">No options available</h5>
                             </div>
                         ) : (
                             <div className="space-y-1">
                                 {facetedData.map((option) => (
                                     <FacetedOption
-                                        key={option.value}
-                                        option={option}
-                                        isSelected={selectedValues.includes(option.value)}
                                         isDisabled={option.isDisabled}
-                                        onToggle={(value, selected) => onSelectionChange(selected ? [...selectedValues, value] : selectedValues.filter(v => v !== value))}
+                                        isSelected={selectedValues.includes(option.value)}
+                                        key={option.value}
+                                        onToggle={(value, selected) =>
+                                            onSelectionChange(
+                                                selected
+                                                    ? [...selectedValues, value]
+                                                    : selectedValues.filter((v) => v !== value)
+                                            )
+                                        }
+                                        option={option}
                                     />
                                 ))}
                             </div>
@@ -825,4 +823,4 @@ export function CompactFacetedFilter({
             </PopoverContent>
         </Popover>
     )
-} 
+}

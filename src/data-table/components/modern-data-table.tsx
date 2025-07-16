@@ -2,39 +2,35 @@
  * Modern implementation of the DataTable component
  * A cleaner approach using modular components and hooks
  */
-"use client"
+'use client'
 
-import { Loader } from "@/components/ui-custom/loader"
-import { Skeleton } from "@/components/ui/skeleton"
-import { ErrorBlock } from "@/components/ui-custom/error-block"
-import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table"
-import { cn } from "@/lib/utils"
-import { DataTableProps } from "@/types/index"
-import { flexRender } from "@tanstack/react-table"
-import { useAtom } from "jotai"
-import type React from "react"
-import { memo, useCallback, useEffect, useMemo, useRef } from "react"
-
-import { tableIdAtom } from "../atoms/table-atoms"
-import { DataTableColumnHeader } from "../components/columns/header/column-header"
-import { useColumnDnd } from "../components/columns/hooks/use-column-dnd"
-import { useColumnDragOverlay } from "../components/columns/hooks/use-column-drag-overlay"
-import { useDataTable } from "../hooks/use-data-table"
-import { useTableInstance } from "../hooks/use-table-instance"
-
-import { ColumnDragOverlay } from "./columns"
-import { DataTablePagination } from "./data-table-pagination"
-
-import { SortableHeader } from "./index"
-
-import type { Cell, ColumnDef, Row } from "@tanstack/react-table"
+import type { Cell, ColumnDef, Row } from '@tanstack/react-table'
+import { flexRender } from '@tanstack/react-table'
+import { useAtom } from 'jotai'
+import type React from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef } from 'react'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table'
+import { ErrorBlock } from '@/components/ui-custom/error-block'
+import { Loader } from '@/components/ui-custom/loader'
+import { cn } from '@/lib/utils'
+import type { DataTableProps } from '@/types/index'
+import { tableIdAtom } from '../atoms/table-atoms'
+import { DataTableColumnHeader } from '../components/columns/header/column-header'
+import { useColumnDnd } from '../components/columns/hooks/use-column-dnd'
+import { useColumnDragOverlay } from '../components/columns/hooks/use-column-drag-overlay'
+import { useDataTable } from '../hooks/use-data-table'
+import { useTableInstance } from '../hooks/use-table-instance'
+import { ColumnDragOverlay } from './columns'
+import { DataTablePagination } from './data-table-pagination'
+import { SortableHeader } from './index'
 
 // Debug flag for logging
 const DEBUG = false
 
 type ModernDataTableProps<TData extends Record<string, unknown>, TValue = unknown> = Omit<
     DataTableProps<TData, TValue>,
-    "children" | "initialActiveViewId" | "initialViews"
+    'children' | 'initialActiveViewId' | 'initialViews'
 > & {
     className?: string
     enableColumnDragDropByDefault?: boolean
@@ -61,7 +57,7 @@ const MemoizedTableCell = memo<{
     cell: Cell<Record<string, unknown>, unknown>
 }>(({ cell }) => <TableCell>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>)
 
-MemoizedTableCell.displayName = "MemoizedTableCell"
+MemoizedTableCell.displayName = 'MemoizedTableCell'
 
 // Optimize table row with better memoization
 const MemoizedTableRow = memo<{
@@ -75,9 +71,9 @@ const MemoizedTableRow = memo<{
         return (
             <TableRow
                 className={cn(
-                    isSelected && "bg-muted/50",
+                    isSelected && 'bg-muted/50',
                     // Add CSS containment to reduce layout recalculation scope
-                    "contain-paint"
+                    'contain-paint'
                 )}
                 key={row.id}
             >
@@ -89,24 +85,32 @@ const MemoizedTableRow = memo<{
     },
     (prevProps, nextProps) => {
         // Custom equality check for better memoization
-        if (prevProps.isSelected !== nextProps.isSelected) return false
-        if (prevProps.row.id !== nextProps.row.id) return false
+        if (prevProps.isSelected !== nextProps.isSelected) {
+            return false
+        }
+        if (prevProps.row.id !== nextProps.row.id) {
+            return false
+        }
 
         // Check if any cell values have changed
         const prevCells = prevProps.row.getVisibleCells()
         const nextCells = nextProps.row.getVisibleCells()
 
-        if (prevCells.length !== nextCells.length) return false
+        if (prevCells.length !== nextCells.length) {
+            return false
+        }
 
         for (let i = 0; i < prevCells.length; i++) {
-            if (prevCells[i].getValue() !== nextCells[i].getValue()) return false
+            if (prevCells[i].getValue() !== nextCells[i].getValue()) {
+                return false
+            }
         }
 
         return true
     }
 )
 
-MemoizedTableRow.displayName = "MemoizedTableRow"
+MemoizedTableRow.displayName = 'MemoizedTableRow'
 
 // Optimize skeleton row with better memoization
 const MemoizedSkeletonRow = memo<{
@@ -122,7 +126,7 @@ const MemoizedSkeletonRow = memo<{
     </TableRow>
 ))
 
-MemoizedSkeletonRow.displayName = "MemoizedSkeletonRow"
+MemoizedSkeletonRow.displayName = 'MemoizedSkeletonRow'
 
 /**
  * Modern implementation of DataTable using the new hooks and components
@@ -152,14 +156,14 @@ function ModernDataTable<TData extends Record<string, unknown>, TValue = unknown
     const [, setGlobalTableId] = useAtom(tableIdAtom)
     useEffect(() => {
         setGlobalTableId(tableId)
-        return () => setGlobalTableId("")
+        return () => setGlobalTableId('')
     }, [tableId, setGlobalTableId])
 
     // State for optimization - use refs instead of state where possible
     const isTableUpdatingRef = useRef(false)
-    const isVisibleRef = useRef(true)
+    const _isVisibleRef = useRef(true)
     const tableRef = useRef<HTMLDivElement>(null)
-    const previousRowsRef = useRef<Row<TData>[]>([])
+    const _previousRowsRef = useRef<Row<TData>[]>([])
 
     // Use stable references for callbacks
     const stableOnRowSelectionChange = useRef(onRowSelectionChange)
@@ -174,7 +178,7 @@ function ModernDataTable<TData extends Record<string, unknown>, TValue = unknown
             enableMultiRowSelection: true,
             enableRowSelection: true,
             getRowId: (originalRow: TData) =>
-                (originalRow as Record<string, unknown>).id?.toString() || "",
+                (originalRow as Record<string, unknown>).id?.toString() || '',
             tableId,
             tableType: tableType || tableId
         }),
@@ -207,7 +211,7 @@ function ModernDataTable<TData extends Record<string, unknown>, TValue = unknown
         manualFiltering,
         manualPagination,
         manualSorting,
-        tableId: tableId || ""
+        tableId: tableId || ''
     })
 
     // Handle row selection changes
@@ -219,11 +223,6 @@ function ModernDataTable<TData extends Record<string, unknown>, TValue = unknown
                 .rows.filter((row) => currentSelection[row.id]) as Row<TData>[]
 
             onRowSelectionChange(selectedRows)
-
-            console.log("[ModernDataTable] Selection changed:", {
-                selectedRows,
-                selection: currentSelection
-            })
         }
     }, [table, onRowSelectionChange])
 
@@ -234,10 +233,7 @@ function ModernDataTable<TData extends Record<string, unknown>, TValue = unknown
     const leafColumnIds = useMemo(() => {
         const leafColumns = table.getAllLeafColumns()
         return leafColumns.map((column) => column.id)
-    }, [
-        table.getAllLeafColumns().length, // Only re-compute when column count changes
-        columns.length // Also track columns prop changes
-    ])
+    }, [table.getAllLeafColumns])
 
     // Function to set column order - stable reference
     const setColumnOrder = useCallback(
@@ -303,7 +299,7 @@ function ModernDataTable<TData extends Record<string, unknown>, TValue = unknown
                 </div>
             </div>
         )
-        Component.displayName = "LoadingOverlay"
+        Component.displayName = 'LoadingOverlay'
         return Component
     }, [])
 
@@ -327,10 +323,10 @@ function ModernDataTable<TData extends Record<string, unknown>, TValue = unknown
             return (
                 <TableRow
                     className={cn(
-                        "data-[state=selected]:bg-muted/50",
-                        row.getIsSelected() && "bg-muted/50"
+                        'data-[state=selected]:bg-muted/50',
+                        row.getIsSelected() && 'bg-muted/50'
                     )}
-                    data-state={row.getIsSelected() ? "selected" : ""}
+                    data-state={row.getIsSelected() ? 'selected' : ''}
                     key={row.id}
                 >
                     {visibleCells.map((cell) => (
@@ -346,62 +342,57 @@ function ModernDataTable<TData extends Record<string, unknown>, TValue = unknown
     }, [isLoading, data, table])
 
     // Optimize table header with better memoization
-    const tableHeader = useMemo(
-        () => {
-            if (DEBUG) {
-                console.log("🔄 [ModernDataTable] Re-rendering tableHeader, columnOrder:", columnOrder)
-            }
-            return (
-                <TableHeader>
-                    {table.getHeaderGroups().map((headerGroup) => (
-                        <TableRow key={headerGroup.id}>
-                            <ColumnSortableContext
-                                items={leafColumnIds}
-                                strategy={horizontalListSortingStrategy}
-                            >
-                                {headerGroup.headers.map((header) => {
-                                    const isFixedPosition =
-                                        header.id === "select" || header.id === "actions"
-                                    return (
-                                        <SortableHeader
-                                            className={cn(
-                                                "relative whitespace-nowrap px-0",
-                                                header.id === "select" && "select-column",
-                                                header.id === "actions" &&
-                                                    "sticky right-0 z-10 shadow-md"
-                                            )}
-                                            column={header.column as any}
-                                            id={header.id}
-                                            isDragEnabled={isDragEnabled && !isFixedPosition}
-                                            key={header.id}
-                                        >
-                                            {!header.isPlaceholder && (
-                                                <DataTableColumnHeader
-                                                    column={header.column}
-                                                    table={table}
-                                                    tableId={tableId}
-                                                    title={header.column.columnDef.header as string}
-                                                />
-                                            )}
-                                        </SortableHeader>
-                                    )
-                                })}
-                            </ColumnSortableContext>
-                        </TableRow>
-                    ))}
-                </TableHeader>
-            )
-        },
-        [
-            table,
-            leafColumnIds,
-            isDragEnabled,
-            tableId,
-            horizontalListSortingStrategy,
-            ColumnSortableContext,
-            columnOrder
-        ]
-    )
+    const tableHeader = useMemo(() => {
+        if (DEBUG) {
+        }
+        return (
+            <TableHeader>
+                {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id}>
+                        <ColumnSortableContext
+                            items={leafColumnIds}
+                            strategy={horizontalListSortingStrategy}
+                        >
+                            {headerGroup.headers.map((header) => {
+                                const isFixedPosition =
+                                    header.id === 'select' || header.id === 'actions'
+                                return (
+                                    <SortableHeader
+                                        className={cn(
+                                            'relative whitespace-nowrap px-0',
+                                            header.id === 'select' && 'select-column',
+                                            header.id === 'actions' &&
+                                                'sticky right-0 z-10 shadow-md'
+                                        )}
+                                        column={header.column as any}
+                                        id={header.id}
+                                        isDragEnabled={isDragEnabled && !isFixedPosition}
+                                        key={header.id}
+                                    >
+                                        {!header.isPlaceholder && (
+                                            <DataTableColumnHeader
+                                                column={header.column}
+                                                table={table}
+                                                tableId={tableId}
+                                                title={header.column.columnDef.header as string}
+                                            />
+                                        )}
+                                    </SortableHeader>
+                                )
+                            })}
+                        </ColumnSortableContext>
+                    </TableRow>
+                ))}
+            </TableHeader>
+        )
+    }, [
+        table,
+        leafColumnIds,
+        isDragEnabled,
+        tableId,
+        horizontalListSortingStrategy,
+        ColumnSortableContext
+    ])
 
     // Only show empty state if we have no data AND we shouldn't show table UI
     // This ensures we always show the table UI when using server-side operations
@@ -427,10 +418,10 @@ function ModernDataTable<TData extends Record<string, unknown>, TValue = unknown
                 <div className="h-64">
                     <ErrorBlock
                         action={{
-                            href: "#",
-                            label: "Reset"
+                            href: '#',
+                            label: 'Reset'
                         }}
-                        description={error?.message || "There was an error loading the data."}
+                        description={error?.message || 'There was an error loading the data.'}
                         reset={refetch}
                         title="Error"
                     />
@@ -459,10 +450,10 @@ function ModernDataTable<TData extends Record<string, unknown>, TValue = unknown
 
                         {/* Container for the table */}
                         <div
-                            className={cn("relative w-full overflow-auto", "contain-paint")}
+                            className={cn('relative w-full overflow-auto', 'contain-paint')}
                             ref={tableRef}
                         >
-                            <Table className={cn("w-full", className)}>
+                            <Table className={cn('w-full', className)}>
                                 {tableHeader}
                                 {tableBodyContent}
                             </Table>
@@ -490,7 +481,7 @@ function ModernDataTable<TData extends Record<string, unknown>, TValue = unknown
 /**
  * Helper function to batch DOM updates and minimize layout thrashing
  */
-function useDebouncedLayoutEffect(callback: () => void, dependencies: React.DependencyList) {
+function _useDebouncedLayoutEffect(callback: () => void, dependencies: React.DependencyList) {
     useEffect(() => {
         // Use requestAnimationFrame to batch multiple DOM updates
         // This prevents layout thrashing by ensuring all measurements

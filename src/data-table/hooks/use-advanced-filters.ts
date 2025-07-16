@@ -3,22 +3,18 @@
  * Manages advanced filter state and provides actions for filter manipulation
  */
 
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from 'react'
 import type {
     AdvancedFilterModel,
-    AdvancedFiltersState,
-    ColumnDataType,
-    ColumnsFilterConfig,
-    ColumnsFacetedData,
-    FilterActions,
-    FilterOperators,
     AdvancedFilterPreset,
-    FilterStrategy,
-    FilterValues
-} from "../types/filter-types"
+    AdvancedFiltersState,
+    ColumnsFacetedData,
+    ColumnsFilterConfig,
+    FilterActions,
+    FilterStrategy
+} from '../types/filter-types'
 import {
     applyFilters,
-    convertFromTanStackFilters,
     convertToTanStackFilters,
     createFilter,
     generateFilterId,
@@ -26,7 +22,7 @@ import {
     getFacetedNumericRange,
     getFacetedUniqueValues,
     updateFilter
-} from "../utils/advanced-filters"
+} from '../utils/advanced-filters'
 
 export interface UseAdvancedFiltersOptions<TData = Record<string, any>> {
     /** Filter strategy - client or server */
@@ -96,14 +92,17 @@ export function useAdvancedFilters<TData = Record<string, any>>(
 
     // Use controlled or uncontrolled filters
     const filters = controlledFilters ?? internalFilters
-    const setFilters = useCallback((update: AdvancedFiltersState | ((prev: AdvancedFiltersState) => AdvancedFiltersState)) => {
-        if (onFiltersChange) {
-            const newFilters = typeof update === 'function' ? update(filters) : update
-            onFiltersChange(newFilters)
-        } else {
-            setInternalFilters(update)
-        }
-    }, [onFiltersChange, filters])
+    const setFilters = useCallback(
+        (update: AdvancedFiltersState | ((prev: AdvancedFiltersState) => AdvancedFiltersState)) => {
+            if (onFiltersChange) {
+                const newFilters = typeof update === 'function' ? update(filters) : update
+                onFiltersChange(newFilters)
+            } else {
+                setInternalFilters(update)
+            }
+        },
+        [onFiltersChange, filters]
+    )
 
     // Compute filtered data for client-side filtering
     const filteredData = useMemo(() => {
@@ -124,7 +123,7 @@ export function useAdvancedFilters<TData = Record<string, any>>(
 
         Object.entries(columnsConfig).forEach(([columnId, config]) => {
             const accessor = accessors[columnId]
-            if (!accessor || !config.faceted) {
+            if (!(accessor && config.faceted)) {
                 return
             }
 
@@ -174,24 +173,19 @@ export function useAdvancedFilters<TData = Record<string, any>>(
                 }
             )
 
-            setFilters(prev => [...prev, newFilter])
+            setFilters((prev) => [...prev, newFilter])
         }
 
-        const updateFilterAction = (
-            filterId: string,
-            updates: Partial<AdvancedFilterModel>
-        ) => {
-            setFilters(prev =>
-                prev.map(filter =>
-                    filter.id === filterId
-                        ? updateFilter(filter, updates)
-                        : filter
+        const updateFilterAction = (filterId: string, updates: Partial<AdvancedFilterModel>) => {
+            setFilters((prev) =>
+                prev.map((filter) =>
+                    filter.id === filterId ? updateFilter(filter, updates) : filter
                 )
             )
         }
 
         const removeFilter = (filterId: string) => {
-            setFilters(prev => prev.filter(filter => filter.id !== filterId))
+            setFilters((prev) => prev.filter((filter) => filter.id !== filterId))
         }
 
         const clearFilters = () => {
@@ -199,8 +193,8 @@ export function useAdvancedFilters<TData = Record<string, any>>(
         }
 
         const toggleFilter = (filterId: string) => {
-            setFilters(prev =>
-                prev.map(filter =>
+            setFilters((prev) =>
+                prev.map((filter) =>
                     filter.id === filterId
                         ? updateFilter(filter, { isActive: !filter.isActive })
                         : filter
@@ -241,7 +235,7 @@ export function useAdvancedFilters<TData = Record<string, any>>(
     }, [filters])
 
     // Filter statistics
-    const activeFiltersCount = filters.filter(f => f.isActive).length
+    const activeFiltersCount = filters.filter((f) => f.isActive).length
     const hasActiveFilters = activeFiltersCount > 0
 
     return {
@@ -261,64 +255,106 @@ export function useAdvancedFilters<TData = Record<string, any>>(
  * Helper hook for creating column configurations
  */
 export function useColumnFilterConfig() {
-    const createTextColumn = useCallback((
-        columnId: string,
-        options: Partial<{ filterable?: boolean; faceted?: boolean; placeholder?: string; operators?: any }> = {}
-    ) => ({
-        type: 'text' as const,
-        filterable: true,
-        faceted: false,
-        placeholder: 'Enter text...',
-        ...options
-    }), [])
+    const createTextColumn = useCallback(
+        (
+            _columnId: string,
+            options: Partial<{
+                filterable?: boolean
+                faceted?: boolean
+                placeholder?: string
+                operators?: any
+            }> = {}
+        ) => ({
+            type: 'text' as const,
+            filterable: true,
+            faceted: false,
+            placeholder: 'Enter text...',
+            ...options
+        }),
+        []
+    )
 
-    const createNumberColumn = useCallback((
-        columnId: string,
-        options: Partial<{ filterable?: boolean; faceted?: boolean; placeholder?: string; min?: number; max?: number; operators?: any }> = {}
-    ) => ({
-        type: 'number' as const,
-        filterable: true,
-        faceted: true,
-        placeholder: 'Enter number...',
-        ...options
-    }), [])
+    const createNumberColumn = useCallback(
+        (
+            _columnId: string,
+            options: Partial<{
+                filterable?: boolean
+                faceted?: boolean
+                placeholder?: string
+                min?: number
+                max?: number
+                operators?: any
+            }> = {}
+        ) => ({
+            type: 'number' as const,
+            filterable: true,
+            faceted: true,
+            placeholder: 'Enter number...',
+            ...options
+        }),
+        []
+    )
 
-    const createDateColumn = useCallback((
-        columnId: string,
-        options: Partial<{ filterable?: boolean; faceted?: boolean; placeholder?: string; operators?: any }> = {}
-    ) => ({
-        type: 'date' as const,
-        filterable: true,
-        faceted: true,
-        placeholder: 'Select date...',
-        ...options
-    }), [])
+    const createDateColumn = useCallback(
+        (
+            _columnId: string,
+            options: Partial<{
+                filterable?: boolean
+                faceted?: boolean
+                placeholder?: string
+                operators?: any
+            }> = {}
+        ) => ({
+            type: 'date' as const,
+            filterable: true,
+            faceted: true,
+            placeholder: 'Select date...',
+            ...options
+        }),
+        []
+    )
 
-    const createOptionColumn = useCallback((
-        columnId: string,
-        optionsList: Array<{ label: string; value: string; icon?: any }>,
-        options: Partial<{ filterable?: boolean; faceted?: boolean; placeholder?: string; operators?: any }> = {}
-    ) => ({
-        type: 'option' as const,
-        filterable: true,
-        faceted: true,
-        options: optionsList,
-        placeholder: 'Select option...',
-        ...options
-    }), [])
+    const createOptionColumn = useCallback(
+        (
+            _columnId: string,
+            optionsList: Array<{ label: string; value: string; icon?: any }>,
+            options: Partial<{
+                filterable?: boolean
+                faceted?: boolean
+                placeholder?: string
+                operators?: any
+            }> = {}
+        ) => ({
+            type: 'option' as const,
+            filterable: true,
+            faceted: true,
+            options: optionsList,
+            placeholder: 'Select option...',
+            ...options
+        }),
+        []
+    )
 
-    const createMultiOptionColumn = useCallback((
-        columnId: string,
-        optionsList: Array<{ label: string; value: string; icon?: any }>,
-        options: Partial<{ filterable?: boolean; faceted?: boolean; placeholder?: string; operators?: any }> = {}
-    ) => ({
-        type: 'multiOption' as const,
-        filterable: true,
-        faceted: true,
-        options: optionsList,
-        placeholder: 'Select options...',
-        ...options
-    }), [])
+    const createMultiOptionColumn = useCallback(
+        (
+            _columnId: string,
+            optionsList: Array<{ label: string; value: string; icon?: any }>,
+            options: Partial<{
+                filterable?: boolean
+                faceted?: boolean
+                placeholder?: string
+                operators?: any
+            }> = {}
+        ) => ({
+            type: 'multiOption' as const,
+            filterable: true,
+            faceted: true,
+            options: optionsList,
+            placeholder: 'Select options...',
+            ...options
+        }),
+        []
+    )
 
     return {
         createTextColumn,
@@ -332,34 +368,35 @@ export function useColumnFilterConfig() {
 /**
  * Helper hook for creating a quick filter setup
  */
-export function useQuickFilterSetup<TData = Record<string, any>>(
-    tableId: string,
-    data: TData[]
-) {
-    const { createTextColumn, createNumberColumn, createDateColumn, createOptionColumn } = useColumnFilterConfig()
+export function useQuickFilterSetup<TData = Record<string, any>>(_tableId: string, _data: TData[]) {
+    const { createTextColumn, createNumberColumn, createDateColumn, createOptionColumn } =
+        useColumnFilterConfig()
 
     // Basic text search across multiple columns
-    const createQuickSearch = useCallback((
-        searchColumns: Array<{
-            id: string
-            accessor: (row: TData) => any
-            weight?: number
-        }>
-    ) => {
-        const columnsConfig: ColumnsFilterConfig = {}
-        const accessors: Record<string, (row: TData) => any> = {}
+    const createQuickSearch = useCallback(
+        (
+            searchColumns: Array<{
+                id: string
+                accessor: (row: TData) => any
+                weight?: number
+            }>
+        ) => {
+            const columnsConfig: ColumnsFilterConfig = {}
+            const accessors: Record<string, (row: TData) => any> = {}
 
-        searchColumns.forEach(({ id, accessor }) => {
-            columnsConfig[id] = createTextColumn(id, {
-                placeholder: `Search ${id}...`
+            searchColumns.forEach(({ id, accessor }) => {
+                columnsConfig[id] = createTextColumn(id, {
+                    placeholder: `Search ${id}...`
+                })
+                accessors[id] = accessor
             })
-            accessors[id] = accessor
-        })
 
-        return { columnsConfig, accessors }
-    }, [createTextColumn])
+            return { columnsConfig, accessors }
+        },
+        [createTextColumn]
+    )
 
     return {
         createQuickSearch
     }
-} 
+}

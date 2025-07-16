@@ -1,21 +1,21 @@
 /**
  * Hook for using form configurations from the catalogue
  */
-"use client"
-import { useCallback, useMemo } from "react"
-import type { FieldValues, UseFormProps } from "react-hook-form"
-import { z } from "zod"
+'use client'
+import { useCallback, useMemo } from 'react'
+import type { FieldValues, UseFormProps } from 'react-hook-form'
+import { z } from 'zod'
 
-import { useFormConfig, useTableActions } from "../../../providers/table-provider"
-import type { AnyFieldDefinition, FormConfig } from "../types"
+import { useFormConfig, useTableActions } from '../../../providers/table-provider'
+import type { AnyFieldDefinition, FormConfig } from '../types'
 
-import { useFormBuilder } from "./use-form-builder"
+import { useFormBuilder } from './use-form-builder'
 
 export interface UseFormCatalogueOptions<TFieldValues extends FieldValues> {
     /**
      * Additional form options
      */
-    formOptions?: Omit<UseFormProps<TFieldValues>, "defaultValues" | "resolver">
+    formOptions?: Omit<UseFormProps<TFieldValues>, 'defaultValues' | 'resolver'>
 
     /**
      * Type of form to use (corresponds to a key in the form catalogue)
@@ -30,7 +30,7 @@ export interface UseFormCatalogueOptions<TFieldValues extends FieldValues> {
     /**
      * Mode of the form (create or update)
      */
-    mode?: "create" | "update"
+    mode?: 'create' | 'update'
 }
 
 /**
@@ -42,7 +42,7 @@ export function useFormCatalogue<TFieldValues extends FieldValues>({
     formOptions,
     formType,
     initialData,
-    mode = "create"
+    mode = 'create'
 }: UseFormCatalogueOptions<TFieldValues>) {
     // Get the configuration helpers from the provider
     const getFormConfig = useFormConfig()
@@ -50,16 +50,19 @@ export function useFormCatalogue<TFieldValues extends FieldValues>({
 
     // Stabilize the form configuration object to prevent recreation
     const config = useMemo(() => {
-        return getFormConfig?.<TFieldValues>(formType) || {
-            id: formType,
-            fields: [],
-            defaultValues: {} as Partial<TFieldValues>,
-            schema: z.any() as z.ZodType<TFieldValues>,
-            translations: {
-                namespace: "common",
-                keys: {}
-            }
-        } as FormConfig<TFieldValues>
+        return (
+            getFormConfig?.<TFieldValues>(formType) ||
+            ({
+                id: formType,
+                fields: [],
+                defaultValues: {} as Partial<TFieldValues>,
+                schema: z.any() as z.ZodType<TFieldValues>,
+                translations: {
+                    namespace: 'common',
+                    keys: {}
+                }
+            } as FormConfig<TFieldValues>)
+        )
     }, [getFormConfig, formType])
 
     // Stabilize the table actions object to prevent recreation
@@ -84,14 +87,16 @@ export function useFormCatalogue<TFieldValues extends FieldValues>({
                 const sanitizedValues = Object.entries(values).reduce(
                     (acc, [key, value]) => {
                         // Find the field definition to check its type
-                        const fieldDef = config?.fields?.find((f: AnyFieldDefinition<TFieldValues>) => f.name === key)
+                        const fieldDef = config?.fields?.find(
+                            (f: AnyFieldDefinition<TFieldValues>) => f.name === key
+                        )
 
                         if (fieldDef) {
                             // Handle JSON fields
                             if (
-                                fieldDef.type === "value-type" &&
-                                fieldDef.supportedTypes?.includes("json") &&
-                                typeof value === "string"
+                                fieldDef.type === 'value-type' &&
+                                fieldDef.supportedTypes?.includes('json') &&
+                                typeof value === 'string'
                             ) {
                                 try {
                                     acc[key] = JSON.parse(value)
@@ -100,7 +105,7 @@ export function useFormCatalogue<TFieldValues extends FieldValues>({
                                 }
                             }
                             // Handle boolean fields (ensure they're actual booleans)
-                            else if (fieldDef.type === "checkbox") {
+                            else if (fieldDef.type === 'checkbox') {
                                 acc[key] = Boolean(value)
                             } else {
                                 acc[key] = value
@@ -115,7 +120,7 @@ export function useFormCatalogue<TFieldValues extends FieldValues>({
 
                 // For update operations, merge with initial data and handle null JSON fields properly
                 let dataToSubmit = sanitizedValues
-                if (mode === "update" && initialData) {
+                if (mode === 'update' && initialData) {
                     // Merge the sanitized form values with the initial data
                     dataToSubmit = {
                         ...(initialData as Record<string, unknown>),
@@ -128,10 +133,10 @@ export function useFormCatalogue<TFieldValues extends FieldValues>({
                         if (dataToSubmit[key] === null) {
                             // For JSON fields, omit them entirely if they're null
                             if (
-                                key === "options" ||
-                                key === "value" ||
-                                key === "config" ||
-                                key === "metadata"
+                                key === 'options' ||
+                                key === 'value' ||
+                                key === 'config' ||
+                                key === 'metadata'
                             ) {
                                 delete dataToSubmit[key]
                             }
@@ -140,16 +145,16 @@ export function useFormCatalogue<TFieldValues extends FieldValues>({
                 }
 
                 // Use the appropriate action based on the mode
-                if (mode === "update" && actions.update) {
+                if (mode === 'update' && actions.update) {
                     // For update, we need the ID from the values or initialData
                     let id: string
 
                     // Try to get ID from values first
-                    if ("id" in values) {
+                    if ('id' in values) {
                         id = String(values.id)
                     }
                     // Then try to get ID from initialData if available
-                    else if (initialData && "id" in initialData) {
+                    else if (initialData && 'id' in initialData) {
                         id = String((initialData as Record<string, unknown>).id)
                     }
                     // If no ID is found, throw an error
@@ -159,12 +164,12 @@ export function useFormCatalogue<TFieldValues extends FieldValues>({
 
                     // Create a clean copy of the data without the ID for the update operation
                     const updateData = { ...dataToSubmit }
-                    if ("id" in updateData) {
+                    if ('id' in updateData) {
                         ;(updateData as Record<string, unknown>).id = undefined
                     }
 
                     result = await actions.update(id, updateData as Record<string, unknown>)
-                } else if (mode === "create" && actions.create) {
+                } else if (mode === 'create' && actions.create) {
                     result = await actions.create(sanitizedValues as Record<string, unknown>)
                 } else {
                     throw new Error(`Action ${mode} not available for ${formType}`)
@@ -176,10 +181,6 @@ export function useFormCatalogue<TFieldValues extends FieldValues>({
 
                 return result.data
             } catch (error) {
-                console.error(
-                    `Error ${mode === "update" ? "updating" : "submitting"} ${formType} form:`,
-                    error
-                )
                 throw error
             }
         },

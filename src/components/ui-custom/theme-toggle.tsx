@@ -1,23 +1,23 @@
-"use client"
+'use client'
 
-import { Button } from "@/components/ui/button"
+import { useTheme } from 'next-themes'
+import { Button } from '@/components/ui/button'
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu"
-import { cn } from "@/lib/utils"
-import { useTheme } from "next-themes"
+} from '@/components/ui/dropdown-menu'
+import { cn } from '@/lib/utils'
 
-import { Icon } from "./icon"
+import { Icon } from './icon'
 
 interface ThemeToggleProps {
     className?: string
-    variant?: "dropdown" | "switch"
+    variant?: 'dropdown' | 'switch'
 }
 
-function ThemeToggle({ className, variant = "dropdown" }: ThemeToggleProps) {
+function ThemeToggle({ className, variant = 'dropdown' }: ThemeToggleProps) {
     const { setTheme } = useTheme()
 
     const toggleTheme = (theme: string) => {
@@ -25,12 +25,12 @@ function ThemeToggle({ className, variant = "dropdown" }: ThemeToggleProps) {
     }
 
     const { resolvedTheme } = useTheme()
-    if (variant === "switch") {
+    if (variant === 'switch') {
         return (
-            <div className={cn("flex items-center", className)}>
+            <div className={cn('flex items-center', className)}>
                 <Button
                     className="group/toggle h-8 w-8 px-0 [&_svg]:size-4"
-                    onClick={() => toggleTheme(resolvedTheme === "dark" ? "light" : "dark")}
+                    onClick={() => toggleTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
                     variant="ghost"
                 >
                     <Icon className="hidden dark:block" name="Sun" />
@@ -42,7 +42,7 @@ function ThemeToggle({ className, variant = "dropdown" }: ThemeToggleProps) {
     }
 
     return (
-        <div className={cn("relative", className)}>
+        <div className={cn('relative', className)}>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button size="icon" variant="ghost">
@@ -60,19 +60,19 @@ function ThemeToggle({ className, variant = "dropdown" }: ThemeToggleProps) {
                 <DropdownMenuContent align="end">
                     <DropdownMenuItem
                         className="cursor-pointer"
-                        onClick={() => toggleTheme("light")}
+                        onClick={() => toggleTheme('light')}
                     >
                         Light
                     </DropdownMenuItem>
                     <DropdownMenuItem
                         className="cursor-pointer"
-                        onClick={() => toggleTheme("dark")}
+                        onClick={() => toggleTheme('dark')}
                     >
                         Dark
                     </DropdownMenuItem>
                     <DropdownMenuItem
                         className="cursor-pointer"
-                        onClick={() => toggleTheme("system")}
+                        onClick={() => toggleTheme('system')}
                     >
                         System
                     </DropdownMenuItem>

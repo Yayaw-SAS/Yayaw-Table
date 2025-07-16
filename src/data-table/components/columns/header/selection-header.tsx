@@ -1,5 +1,5 @@
-import { Checkbox } from "@/components/ui/checkbox"
-import type { Column, Table } from "@tanstack/react-table"
+import type { Column, Table } from '@tanstack/react-table'
+import { Checkbox } from '@/components/ui/checkbox'
 
 interface SelectionHeaderProps<TData> {
     column: Column<TData, unknown>
@@ -7,7 +7,9 @@ interface SelectionHeaderProps<TData> {
 }
 
 export function SelectionHeader<TData>({ column, table }: SelectionHeaderProps<TData>) {
-    if (!table) return null
+    if (!table) {
+        return null
+    }
 
     return (
         <div className="flex items-center justify-center px-1">

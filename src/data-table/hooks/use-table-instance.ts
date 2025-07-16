@@ -2,7 +2,7 @@
  * Hook for creating and managing a TanStack Table instance
  * Uses URL parameters as the source of truth
  */
-"use client"
+'use client'
 
 import {
     type ColumnDef,
@@ -11,21 +11,21 @@ import {
     type ColumnPinningState,
     type ExpandedState,
     type GroupingState,
-    type OnChangeFn,
-    type PaginationState,
-    type RowSelectionState,
-    type SortingState,
-    type VisibilityState,
     getCoreRowModel,
     getFilteredRowModel,
     getGroupedRowModel,
     getPaginationRowModel,
     getSortedRowModel,
-    useReactTable
-} from "@tanstack/react-table"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+    type OnChangeFn,
+    type PaginationState,
+    type RowSelectionState,
+    type SortingState,
+    useReactTable,
+    type VisibilityState
+} from '@tanstack/react-table'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-import { useTableUrlState } from "./use-table-url-state"
+import { useTableUrlState } from './use-table-url-state'
 
 const DEBUG = false
 /**
@@ -147,7 +147,7 @@ export function useTableInstance<TData>({
     const handleColumnFiltersChange = useCallback<OnChangeFn<ColumnFiltersState>>(
         (updaterOrValue) => {
             const newValue =
-                typeof updaterOrValue === "function"
+                typeof updaterOrValue === 'function'
                     ? updaterOrValue((filtersParam as ColumnFiltersState) || [])
                     : updaterOrValue
 
@@ -159,7 +159,7 @@ export function useTableInstance<TData>({
     const handleColumnOrderChange = useCallback<OnChangeFn<ColumnOrderState>>(
         (updaterOrValue) => {
             const newValue =
-                typeof updaterOrValue === "function"
+                typeof updaterOrValue === 'function'
                     ? updaterOrValue((orderParam as string[]) || [])
                     : updaterOrValue
             setOrderFromUI(newValue)
@@ -171,7 +171,7 @@ export function useTableInstance<TData>({
     const handleColumnPinningChange = useCallback<OnChangeFn<ColumnPinningState>>(
         (updaterOrValue) => {
             const newValue =
-                typeof updaterOrValue === "function"
+                typeof updaterOrValue === 'function'
                     ? updaterOrValue(pinningParam || { left: [], right: [] })
                     : updaterOrValue
 
@@ -189,7 +189,7 @@ export function useTableInstance<TData>({
     const handleColumnVisibilityChange = useCallback<OnChangeFn<VisibilityState>>(
         (updaterOrValue) => {
             const newValue =
-                typeof updaterOrValue === "function"
+                typeof updaterOrValue === 'function'
                     ? updaterOrValue((visibilityParam as VisibilityState) || {})
                     : updaterOrValue
 
@@ -201,7 +201,7 @@ export function useTableInstance<TData>({
     const handleExpandedChange = useCallback<OnChangeFn<ExpandedState>>(
         (updaterOrValue) => {
             const newValue =
-                typeof updaterOrValue === "function"
+                typeof updaterOrValue === 'function'
                     ? updaterOrValue(expandedParam || {})
                     : updaterOrValue
             setExpandedFromUI(newValue as Record<string, boolean>)
@@ -212,7 +212,7 @@ export function useTableInstance<TData>({
     const handleGroupingChange = useCallback<OnChangeFn<GroupingState>>(
         (updaterOrValue) => {
             const newValue =
-                typeof updaterOrValue === "function"
+                typeof updaterOrValue === 'function'
                     ? updaterOrValue((groupingParam as string[]) || [])
                     : updaterOrValue
             setGroupingFromUI(newValue)
@@ -223,7 +223,7 @@ export function useTableInstance<TData>({
     const handlePaginationChange = useCallback<OnChangeFn<PaginationState>>(
         (updaterOrValue) => {
             const newValue =
-                typeof updaterOrValue === "function" ? updaterOrValue(pagination) : updaterOrValue
+                typeof updaterOrValue === 'function' ? updaterOrValue(pagination) : updaterOrValue
             setPaginationFromUI(newValue)
         },
         [pagination, setPaginationFromUI]
@@ -232,7 +232,7 @@ export function useTableInstance<TData>({
     const handleSortingChange = useCallback<OnChangeFn<SortingState>>(
         (updaterOrValue) => {
             const newValue =
-                typeof updaterOrValue === "function"
+                typeof updaterOrValue === 'function'
                     ? updaterOrValue((sortParam as SortingState) || [])
                     : updaterOrValue
 
@@ -253,14 +253,14 @@ export function useTableInstance<TData>({
         (updaterOrValue) => {
             // First update the internal state using React's state setter
             setInternalRowSelection((prev) =>
-                typeof updaterOrValue === "function" ? updaterOrValue(prev) : updaterOrValue
+                typeof updaterOrValue === 'function' ? updaterOrValue(prev) : updaterOrValue
             )
 
             // Then if we have an external handler, call it with the new value
             if (onRowSelectionChange) {
                 // Convert the updater to a value if needed
                 const newValue =
-                    typeof updaterOrValue === "function"
+                    typeof updaterOrValue === 'function'
                         ? updaterOrValue(internalRowSelection)
                         : updaterOrValue
 
@@ -272,7 +272,9 @@ export function useTableInstance<TData>({
 
     // Validate sorting to ensure all referenced columns exist
     const validatedSorting = useMemo(() => {
-        if (!sortParam || !Array.isArray(sortParam)) return []
+        if (!(sortParam && Array.isArray(sortParam))) {
+            return []
+        }
 
         const columnIds = new Set<string>()
 
@@ -281,11 +283,11 @@ export function useTableInstance<TData>({
                 columnIds.add(col.id)
             }
 
-            if ("accessorKey" in col && col.accessorKey) {
+            if ('accessorKey' in col && col.accessorKey) {
                 columnIds.add(String(col.accessorKey))
             }
 
-            if (col.header && typeof col.header === "string") {
+            if (col.header && typeof col.header === 'string') {
                 columnIds.add(col.header.toLowerCase())
             }
         }
@@ -297,11 +299,11 @@ export function useTableInstance<TData>({
                 return (
                     columnIds.has(sort.id) ||
                     Array.from(columnIds).some((id) => id.toLowerCase() === normalizedId) ||
-                    sort.id === "key" ||
-                    sort.id === "id" ||
-                    sort.id === "name" ||
-                    sort.id === "createdAt" ||
-                    sort.id === "updatedAt"
+                    sort.id === 'key' ||
+                    sort.id === 'id' ||
+                    sort.id === 'name' ||
+                    sort.id === 'createdAt' ||
+                    sort.id === 'updatedAt'
                 )
             })
             .map((sort) => ({
@@ -326,11 +328,11 @@ export function useTableInstance<TData>({
             let id: string
 
             // Case 1: Column has an explicit ID
-            if (typeof column.id === "string") {
+            if (typeof column.id === 'string') {
                 id = column.id
             }
             // Case 2: Column has an accessorKey (need to check if it exists)
-            else if ("accessorKey" in column && column.accessorKey !== undefined) {
+            else if ('accessorKey' in column && column.accessorKey !== undefined) {
                 id = String(column.accessorKey)
             }
             // Case 3: Generate a fallback ID
@@ -341,9 +343,9 @@ export function useTableInstance<TData>({
             if (id) {
                 // Special cases for selection and actions columns - always visible
                 if (
-                    id === "select" ||
+                    id === 'select' ||
                     (column.meta as Record<string, unknown>)?.isSelectionColumn ||
-                    id === "actions" ||
+                    id === 'actions' ||
                     (column.meta as Record<string, unknown>)?.isActionsColumn
                 ) {
                     visibility[id] = true
@@ -359,10 +361,10 @@ export function useTableInstance<TData>({
     const initialColumnOrder = useMemo(() => {
         // Get all column IDs using the same logic as the visibility function
         const allColumnIds = columns.map((column) => {
-            if (typeof column.id === "string") {
+            if (typeof column.id === 'string') {
                 return column.id
             }
-            if ("accessorKey" in column && column.accessorKey !== undefined) {
+            if ('accessorKey' in column && column.accessorKey !== undefined) {
                 return String(column.accessorKey)
             }
             return `col-${columns.indexOf(column)}`
@@ -371,32 +373,40 @@ export function useTableInstance<TData>({
         // If we have order in URL params, validate and fix it to respect constraints
         if (orderParam && Array.isArray(orderParam) && orderParam.length > 0) {
             const urlOrder = orderParam as string[]
-            
+
             // Separate fixed and moveable columns
-            const selectCol = urlOrder.find(id => id === "select")
-            const actionsCol = urlOrder.find(id => id === "actions") 
-            const otherCols = urlOrder.filter(id => id !== "select" && id !== "actions")
-            
+            const selectCol = urlOrder.find((id) => id === 'select')
+            const actionsCol = urlOrder.find((id) => id === 'actions')
+            const otherCols = urlOrder.filter((id) => id !== 'select' && id !== 'actions')
+
             // Build final order: select first, others in middle, actions last
             const finalOrder: string[] = []
-            if (selectCol) finalOrder.push(selectCol)
+            if (selectCol) {
+                finalOrder.push(selectCol)
+            }
             finalOrder.push(...otherCols)
-            if (actionsCol) finalOrder.push(actionsCol)
-            
+            if (actionsCol) {
+                finalOrder.push(actionsCol)
+            }
+
             return finalOrder
         }
 
         // Otherwise, create natural order with fixed positions
-        const selectCol = allColumnIds.find(id => id === "select")
-        const actionsCol = allColumnIds.find(id => id === "actions")
-        const otherCols = allColumnIds.filter(id => id !== "select" && id !== "actions")
-        
-        // Build natural order: select first, others in middle, actions last  
+        const selectCol = allColumnIds.find((id) => id === 'select')
+        const actionsCol = allColumnIds.find((id) => id === 'actions')
+        const otherCols = allColumnIds.filter((id) => id !== 'select' && id !== 'actions')
+
+        // Build natural order: select first, others in middle, actions last
         const naturalOrder: string[] = []
-        if (selectCol) naturalOrder.push(selectCol)
+        if (selectCol) {
+            naturalOrder.push(selectCol)
+        }
         naturalOrder.push(...otherCols)
-        if (actionsCol) naturalOrder.push(actionsCol)
-        
+        if (actionsCol) {
+            naturalOrder.push(actionsCol)
+        }
+
         return naturalOrder
     }, [columns, orderParam])
 
@@ -435,8 +445,8 @@ export function useTableInstance<TData>({
             columnFilters: Array.isArray(filtersParam) ? (filtersParam as ColumnFiltersState) : [],
             columnOrder: initialColumnOrder,
             columnPinning: pinningParam || {
-                left: ["select"],
-                right: ["actions"]
+                left: ['select'],
+                right: ['actions']
             },
             columnVisibility: initialColumnVisibility as VisibilityState,
             expanded: expandedParam || {},
@@ -450,36 +460,23 @@ export function useTableInstance<TData>({
     // Sync table column order when URL state changes
     useEffect(() => {
         if (DEBUG) {
-            console.log("🔍 [useTableInstance] Effect triggered:", {
-                hasTableInstance: !!tableInstance,
-            orderParam,
-            orderParamType: typeof orderParam,
-            orderParamLength: Array.isArray(orderParam) ? orderParam.length : 'not array'
-            })
         }
-        
+
         if (tableInstance && orderParam && Array.isArray(orderParam) && orderParam.length > 0) {
             const currentOrder = tableInstance.getState().columnOrder
             const urlOrder = orderParam as string[]
-            
+
             if (DEBUG) {
-                console.log("🔍 [useTableInstance] Comparing orders:", {
-                    currentOrder,
-                urlOrder,
-                areEqual: JSON.stringify(currentOrder) === JSON.stringify(urlOrder)
-                })
             }
-            
+
             // Only update if the order actually changed
             if (JSON.stringify(currentOrder) !== JSON.stringify(urlOrder)) {
                 if (DEBUG) {
-                    console.log("🔄 [useTableInstance] Syncing column order from URL state:", urlOrder)
                 }
                 tableInstance.setColumnOrder(urlOrder)
-                
+
                 // Force a re-render by getting the state after update
                 if (DEBUG) {
-                    console.log("✅ [useTableInstance] New order set:", tableInstance.getState().columnOrder)
                 }
             }
         }

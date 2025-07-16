@@ -1,11 +1,8 @@
-"use client"
+'use client'
 
-import { Button } from "@/components/ui/button"
-import { useOnClickOutside } from "../../../hooks/use-on-click-outside"
-import { cn } from "@/lib/utils"
-import { flip, offset, shift, useFloating } from "@floating-ui/react-dom"
-import type { Column, Table } from "@tanstack/react-table"
-import { useAtom } from "jotai"
+import { flip, offset, shift, useFloating } from '@floating-ui/react-dom'
+import type { Column, Table } from '@tanstack/react-table'
+import { useAtom } from 'jotai'
 import {
     ArrowDownIcon,
     ArrowUpIcon,
@@ -13,16 +10,18 @@ import {
     FunnelIcon,
     GripVertical,
     MenuIcon
-} from "lucide-react"
-import * as React from "react"
-import { type RefObject, memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
-
-import { columnDragEnabledAtom } from "../../../atoms/table-atoms"
-import { useDataTable } from "../../../hooks/use-data-table"
-import { useTableTranslations } from "../../../hooks/use-table-translations"
+} from 'lucide-react'
+import * as React from 'react'
+import { memo, type RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import { columnDragEnabledAtom } from '../../../atoms/table-atoms'
+import { useDataTable } from '../../../hooks/use-data-table'
+import { useOnClickOutside } from '../../../hooks/use-on-click-outside'
+import { useTableTranslations } from '../../../hooks/use-table-translations'
 
 // Debug flag to help track sorting issues
-const DEBUG = false
+const _DEBUG = false
 
 interface ColumnMenuProps<TData> {
     /**
@@ -79,14 +78,14 @@ const MenuItem = memo(function MenuItem({
     return (
         <div
             className={cn(
-                "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors",
+                'relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors',
                 disabled
-                    ? "cursor-not-allowed text-muted-foreground"
-                    : "cursor-pointer hover:bg-accent hover:text-accent-foreground"
+                    ? 'cursor-not-allowed text-muted-foreground'
+                    : 'cursor-pointer hover:bg-accent hover:text-accent-foreground'
             )}
             onClick={disabled ? undefined : onClick}
             onKeyDown={(e) => {
-                if ((e.key === "Enter" || e.key === " ") && !disabled) {
+                if ((e.key === 'Enter' || e.key === ' ') && !disabled) {
                     e.preventDefault()
                     onClick?.()
                 }
@@ -109,21 +108,23 @@ const SortingMenuItems = memo(function SortingMenuItems({
 }: {
     canSort: boolean
     onSort: (desc: boolean) => void
-    sortDirection: "asc" | "desc" | false
+    sortDirection: 'asc' | 'desc' | false
     translations: ReturnType<typeof useTableTranslations>
 }) {
-    if (!canSort) return null
+    if (!canSort) {
+        return null
+    }
 
     return (
         <>
             <MenuItem
-                disabled={sortDirection === "asc"}
+                disabled={sortDirection === 'asc'}
                 icon={<ArrowUpIcon className="h-3.5 w-3.5" />}
                 label={translations.columnSortAsc}
                 onClick={() => onSort(false)}
             />
             <MenuItem
-                disabled={sortDirection === "desc"}
+                disabled={sortDirection === 'desc'}
                 icon={<ArrowDownIcon className="h-3.5 w-3.5" />}
                 label={translations.columnSortDesc}
                 onClick={() => onSort(true)}
@@ -174,7 +175,7 @@ const floatingMiddleware = [offset(4), flip(), shift()]
 // Memoized floating options
 const floatingOptions = {
     middleware: floatingMiddleware,
-    placement: "bottom-end" as const
+    placement: 'bottom-end' as const
 }
 
 /**
@@ -184,7 +185,7 @@ function ColumnMenuBase<TData>({
     children,
     column,
     table,
-    tableId = "default-table"
+    tableId = 'default-table'
 }: ColumnMenuProps<TData>) {
     const [isOpen, setIsOpen] = useState(false)
     const translations = useTableTranslations(tableId)
@@ -271,7 +272,9 @@ function ColumnMenuBase<TData>({
 
     // Memoize menu items to prevent recreation
     const menuItems = useMemo(() => {
-        if (!isOpen) return null
+        if (!isOpen) {
+            return null
+        }
 
         return (
             <div className="z-50" ref={menuRef} style={floating.floatingStyles}>
@@ -289,7 +292,6 @@ function ColumnMenuBase<TData>({
                                 icon={<FunnelIcon className="size-3.5" />}
                                 label={translations.columnFilter}
                                 onClick={() => {
-                                    console.log("Open filter dialog")
                                     setIsOpen(false)
                                 }}
                             />
@@ -305,7 +307,7 @@ function ColumnMenuBase<TData>({
 
                         <MenuItem
                             icon={<GripVertical className="h-3.5 w-3.5" />}
-                            label={translations.columnReorder + (isDragEnabled ? " ✓" : "")}
+                            label={translations.columnReorder + (isDragEnabled ? ' ✓' : '')}
                             onClick={handleToggleDrag}
                         />
                     </div>
@@ -338,17 +340,26 @@ function ColumnMenuBase<TData>({
 
 // Memoize with strict prop comparison
 export const ColumnMenu = memo(ColumnMenuBase, (prevProps, nextProps) => {
-    if (prevProps.column.id !== nextProps.column.id) return false
-    if (prevProps.tableId !== nextProps.tableId) return false
-    if (prevProps.children !== nextProps.children) return false
-    if (prevProps.table !== nextProps.table) return false
+    if (prevProps.column.id !== nextProps.column.id) {
+        return false
+    }
+    if (prevProps.tableId !== nextProps.tableId) {
+        return false
+    }
+    if (prevProps.children !== nextProps.children) {
+        return false
+    }
+    if (prevProps.table !== nextProps.table) {
+        return false
+    }
     if (
         prevProps.column.getCanFilter() !== nextProps.column.getCanFilter() ||
         prevProps.column.getCanHide() !== nextProps.column.getCanHide() ||
         prevProps.column.getCanSort() !== nextProps.column.getCanSort() ||
         prevProps.column.getIsVisible() !== nextProps.column.getIsVisible() ||
         prevProps.column.getIsSorted() !== nextProps.column.getIsSorted()
-    )
+    ) {
         return false
+    }
     return true
 }) as typeof ColumnMenuBase

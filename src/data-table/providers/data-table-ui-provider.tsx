@@ -3,20 +3,20 @@
  * Centralized provider for all UI-related configurations of the DataTable
  * Handles translations, table options, and column configurations in one place
  */
-"use client"
+'use client'
 
+import { useAtomValue } from 'jotai'
+import { useHydrateAtoms } from 'jotai/utils'
+import { type ReactNode, useMemo } from 'react'
 // Import using absolute path to fix module resolution issue
 import {
     type DataTableColumnsConfig,
     type DataTableConfig,
     tableColumnsConfigAtom,
     tableConfigAtom
-} from "../atoms/config-atoms"
-import { useAtomValue } from "jotai"
-import { useHydrateAtoms } from "jotai/utils"
-import { type ReactNode, useMemo } from "react"
+} from '../atoms/config-atoms'
 
-import { type DataTableTranslations, resolvedTranslationsAtom } from "../atoms/i18n-atoms"
+import { type DataTableTranslations, resolvedTranslationsAtom } from '../atoms/i18n-atoms'
 
 interface DataTableUIProviderProps {
     /**

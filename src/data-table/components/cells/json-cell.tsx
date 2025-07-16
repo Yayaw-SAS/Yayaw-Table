@@ -2,9 +2,9 @@
  * JSON cell component for data tables
  * Shows formatted JSON values with appropriate styling
  */
-"use client"
+'use client'
 
-import { useTableTranslations } from "../../hooks"
+import { useTableTranslations } from '../../hooks'
 
 export interface JsonCellProps {
     /**
@@ -28,14 +28,14 @@ export interface JsonCellProps {
  * Cell component for displaying JSON values
  * Shows arrays and objects in a compact, readable format
  */
-export function JsonCell({ className = "", maxItems = 3, value }: JsonCellProps) {
-    const translations = useTableTranslations()
+export function JsonCell({ className = '', maxItems = 3, value }: JsonCellProps) {
+    const _translations = useTableTranslations()
 
     // Try to parse the value if it's a JSON string
     value = safelyParseJson(value)
 
     // Handle Prisma JSON objects with 'set' property
-    if (value && typeof value === "object" && "set" in value) {
+    if (value && typeof value === 'object' && 'set' in value) {
         value = (value as { set: unknown }).set
         // Try to parse the set value too if needed
         value = safelyParseJson(value)
@@ -59,10 +59,10 @@ export function JsonCell({ className = "", maxItems = 3, value }: JsonCellProps)
                     // Preserve JSON format for display
                     const displayValue =
                         parsedItem === null || parsedItem === undefined
-                            ? "null"
-                            : typeof parsedItem === "object"
+                            ? 'null'
+                            : typeof parsedItem === 'object'
                               ? JSON.stringify(parsedItem)
-                              : typeof parsedItem === "string"
+                              : typeof parsedItem === 'string'
                                 ? `&quot;${parsedItem}&quot;`
                                 : String(parsedItem)
 
@@ -70,7 +70,7 @@ export function JsonCell({ className = "", maxItems = 3, value }: JsonCellProps)
                         <span
                             className="inline-flex items-center whitespace-nowrap rounded-md border px-2 py-1 text-xs"
                             key={index}
-                            title={typeof item === "object" ? JSON.stringify(item) : String(item)}
+                            title={typeof item === 'object' ? JSON.stringify(item) : String(item)}
                         >
                             {displayValue}
                         </span>
@@ -86,7 +86,7 @@ export function JsonCell({ className = "", maxItems = 3, value }: JsonCellProps)
     }
 
     // Handle objects
-    if (typeof value === "object" && value !== null) {
+    if (typeof value === 'object' && value !== null) {
         const entries = Object.entries(value as Record<string, unknown>)
         return (
             <div
@@ -99,10 +99,10 @@ export function JsonCell({ className = "", maxItems = 3, value }: JsonCellProps)
                     // Preserve JSON format for display
                     const displayValue =
                         parsedVal === null || parsedVal === undefined
-                            ? "null"
-                            : typeof parsedVal === "object"
+                            ? 'null'
+                            : typeof parsedVal === 'object'
                               ? JSON.stringify(parsedVal)
-                              : typeof parsedVal === "string"
+                              : typeof parsedVal === 'string'
                                 ? `&quot;${parsedVal}&quot;`
                                 : String(parsedVal)
 
@@ -130,10 +130,10 @@ export function JsonCell({ className = "", maxItems = 3, value }: JsonCellProps)
 
     // For strings that look like JSON but couldn't be parsed earlier
     if (
-        typeof value === "string" &&
+        typeof value === 'string' &&
         (value.includes('\\"') ||
             value.includes("\\'") ||
-            (value.includes("{") && value.includes("}"))) &&
+            (value.includes('{') && value.includes('}'))) &&
         value.length > 2
     ) {
         try {
@@ -148,13 +148,13 @@ export function JsonCell({ className = "", maxItems = 3, value }: JsonCellProps)
                     {JSON.stringify(parsedValue)}
                 </span>
             )
-        } catch (e) {
+        } catch (_e) {
             // Fall through to default handling
         }
     }
 
     // Default fallback for primitive values
-    const stringValue = typeof value === "string" ? value : JSON.stringify(value)
+    const stringValue = typeof value === 'string' ? value : JSON.stringify(value)
     return (
         <span className={`block max-w-[200px] truncate ${className}`} title={stringValue}>
             {stringValue}
@@ -168,13 +168,13 @@ export function JsonCell({ className = "", maxItems = 3, value }: JsonCellProps)
  */
 function safelyParseJson(value: unknown): unknown {
     if (
-        typeof value === "string" &&
-        (value.startsWith("{") || value.startsWith("[")) &&
-        (value.endsWith("}") || value.endsWith("]"))
+        typeof value === 'string' &&
+        (value.startsWith('{') || value.startsWith('[')) &&
+        (value.endsWith('}') || value.endsWith(']'))
     ) {
         try {
             return JSON.parse(value)
-        } catch (e) {
+        } catch (_e) {
             // If it can't be parsed as JSON, return the original
             return value
         }

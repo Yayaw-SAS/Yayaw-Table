@@ -2,31 +2,31 @@
  * Hook for handling row drag and drop functionality
  * Uses dnd-kit for drag and drop operations
  */
-"use client"
+'use client'
 
 import {
+    closestCenter,
     DndContext,
     type DragEndEvent,
     type DragStartEvent,
     KeyboardSensor,
     PointerSensor,
-    closestCenter,
     useSensor,
     useSensors
-} from "@dnd-kit/core"
-import { restrictToVerticalAxis } from "@dnd-kit/modifiers"
+} from '@dnd-kit/core'
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import {
-    SortableContext,
     arrayMove,
+    SortableContext,
     sortableKeyboardCoordinates,
     verticalListSortingStrategy
-} from "@dnd-kit/sortable"
-import { useAtom } from "jotai"
-import { useCallback, useEffect, useMemo } from "react"
+} from '@dnd-kit/sortable'
+import { useAtom } from 'jotai'
+import { useCallback, useEffect, useMemo } from 'react'
 
-import { activeRowDragAtom, rowDragEnabledAtom, rowOrderAtom } from "../atoms/table-atoms"
+import { activeRowDragAtom, rowDragEnabledAtom, rowOrderAtom } from '../atoms/table-atoms'
 
-import { useTableTranslations } from "./use-table-translations"
+import { useTableTranslations } from './use-table-translations'
 
 /**
  * Hook for managing row drag and drop
@@ -37,7 +37,7 @@ import { useTableTranslations } from "./use-table-translations"
  */
 export function useRowDnd<TData>(tableId: string, data: TData[], getRowId: (row: TData) => string) {
     // Get translations
-    const translations = useTableTranslations()
+    const _translations = useTableTranslations()
 
     // Get atoms
     const [rowOrder, setRowOrder] = useAtom(rowOrderAtom(tableId))
@@ -74,7 +74,9 @@ export function useRowDnd<TData>(tableId: string, data: TData[], getRowId: (row:
                     const newIndex = items.indexOf(over.id.toString())
 
                     // Return early if indexes are invalid
-                    if (oldIndex === -1 || newIndex === -1) return items
+                    if (oldIndex === -1 || newIndex === -1) {
+                        return items
+                    }
 
                     // Create new order by moving the item
                     return arrayMove(items, oldIndex, newIndex)
@@ -102,7 +104,9 @@ export function useRowDnd<TData>(tableId: string, data: TData[], getRowId: (row:
 
     // Get ordered data based on rowOrder
     const orderedData = useMemo(() => {
-        if (!rowOrder.length || !isDragEnabled) return data
+        if (!(rowOrder.length && isDragEnabled)) {
+            return data
+        }
 
         // Create a map for faster lookups
         const dataMap = new Map(data.map((item) => [getRowId(item), item]))

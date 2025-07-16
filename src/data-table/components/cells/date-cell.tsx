@@ -2,10 +2,10 @@
  * Date cell component for data tables
  * Shows formatted date values with appropriate styling
  */
-"use client"
+'use client'
 
-import { format } from "date-fns"
-import { useLocale } from "../../providers/table-provider"
+import { format } from 'date-fns'
+import { useLocale } from '../../providers/table-provider'
 
 export interface DateCellProps {
     /**
@@ -35,21 +35,23 @@ export interface DateCellProps {
  * Cell component for displaying formatted date values
  */
 export function DateCell({
-    className = "",
-    dateFormat = "PPP",
+    className = '',
+    dateFormat = 'PPP',
     showTime = false,
     value
 }: DateCellProps) {
     // Get the current locale from our translations provider
-    const locale = useLocale()
+    const _locale = useLocale()
 
     // Handle Prisma JSON objects with 'set' property
-    if (value && typeof value === "object" && "set" in value) {
+    if (value && typeof value === 'object' && 'set' in value) {
         value = (value as { set: unknown }).set as Date | number | string
     }
 
     // If the value is not a valid date, return a placeholder
-    if (!value) return <span className="text-muted-foreground">-</span>
+    if (!value) {
+        return <span className="text-muted-foreground">-</span>
+    }
 
     // Format the date based on the locale and format string
     try {
@@ -61,11 +63,8 @@ export function DateCell({
         }
 
         const formatString = showTime ? `${dateFormat} HH:mm` : dateFormat
-        return (
-            <span className={className}>{format(date, formatString)}</span>
-        )
-    } catch (error) {
-        console.error("Error formatting date:", error)
+        return <span className={className}>{format(date, formatString)}</span>
+    } catch (_error) {
         return <span className="text-muted-foreground">Invalid date</span>
     }
 }

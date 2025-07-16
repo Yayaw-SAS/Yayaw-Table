@@ -2,31 +2,25 @@
  * Advanced table filters menu
  * Modern replacement for TableFiltersMenu using advanced filtering system
  */
-"use client"
+'use client'
 
-import {
-    StackMenuContent,
-    StackMenuSection,
-    StackMenuItem,
-    StackMenuView
-} from "@/src/components/ui-custom/stack-menu"
-import { ArrowUpDown, Filter, Plus, X } from "lucide-react"
-import { useTranslations } from "../../../providers/table-provider"
-import { useCallback, useMemo, useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
-
-import type { ColumnFiltersState } from "@tanstack/react-table"
+import type { ColumnFiltersState } from '@tanstack/react-table'
+import { Filter, X } from 'lucide-react'
+import { useCallback, useMemo, useState } from 'react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Separator } from '@/components/ui/separator'
+import { StackMenuContent, StackMenuView } from '@/src/components/ui-custom/stack-menu'
+import { useTranslations } from '../../../providers/table-provider'
 import type {
     AdvancedFiltersState,
+    ColumnDataType,
     ColumnsFilterConfig,
-    FilterActions,
-    ColumnDataType
-} from "../../../types/filter-types"
+    FilterActions
+} from '../../../types/filter-types'
 
-import { AdvancedFilterPanel, CompactFilterPanel } from "../../filters/advanced-filter-panel"
+import { CompactFilterPanel } from '../../filters/advanced-filter-panel'
 
 export interface AdvancedTableFiltersMenuProps {
     /** Legacy column filters for backward compatibility */
@@ -74,17 +68,20 @@ function LegacyFilterItem({
 }) {
     const [showConvertOptions, setShowConvertOptions] = useState(false)
 
-    const handleConvert = useCallback((type: ColumnDataType) => {
-        onConvertToAdvanced?.(column.id, type)
-        setShowConvertOptions(false)
-    }, [column.id, onConvertToAdvanced])
+    const handleConvert = useCallback(
+        (type: ColumnDataType) => {
+            onConvertToAdvanced?.(column.id, type)
+            setShowConvertOptions(false)
+        },
+        [column.id, onConvertToAdvanced]
+    )
 
     return (
-        <div className="flex items-center justify-between p-2 hover:bg-accent rounded-lg">
+        <div className="flex items-center justify-between rounded-lg p-2 hover:bg-accent">
             <div className="flex items-center gap-3">
                 <button
-                    onClick={onToggle}
                     className="flex h-4 w-4 items-center justify-center rounded-sm border border-current"
+                    onClick={onToggle}
                 >
                     {isActive && <div className="h-2 w-2 rounded-sm bg-current" />}
                 </button>
@@ -97,52 +94,52 @@ function LegacyFilterItem({
                     {showConvertOptions ? (
                         <div className="flex gap-1">
                             <Button
+                                className="h-6 px-2 text-xs"
+                                onClick={() => handleConvert('text')}
                                 size="sm"
                                 variant="outline"
-                                onClick={() => handleConvert('text')}
-                                className="h-6 px-2 text-xs"
                             >
                                 Text
                             </Button>
                             <Button
+                                className="h-6 px-2 text-xs"
+                                onClick={() => handleConvert('number')}
                                 size="sm"
                                 variant="outline"
-                                onClick={() => handleConvert('number')}
-                                className="h-6 px-2 text-xs"
                             >
                                 Number
                             </Button>
                             <Button
+                                className="h-6 px-2 text-xs"
+                                onClick={() => handleConvert('date')}
                                 size="sm"
                                 variant="outline"
-                                onClick={() => handleConvert('date')}
-                                className="h-6 px-2 text-xs"
                             >
                                 Date
                             </Button>
                             <Button
+                                className="h-6 px-2 text-xs"
+                                onClick={() => handleConvert('option')}
                                 size="sm"
                                 variant="outline"
-                                onClick={() => handleConvert('option')}
-                                className="h-6 px-2 text-xs"
                             >
                                 Option
                             </Button>
                             <Button
+                                className="h-6 px-2 text-xs"
+                                onClick={() => setShowConvertOptions(false)}
                                 size="sm"
                                 variant="ghost"
-                                onClick={() => setShowConvertOptions(false)}
-                                className="h-6 px-2 text-xs"
                             >
                                 Cancel
                             </Button>
                         </div>
                     ) : (
                         <Button
+                            className="h-6 px-2 text-primary text-xs"
+                            onClick={() => setShowConvertOptions(true)}
                             size="sm"
                             variant="ghost"
-                            onClick={() => setShowConvertOptions(true)}
-                            className="h-6 px-2 text-xs text-primary"
                         >
                             Upgrade
                         </Button>
@@ -178,18 +175,21 @@ export function AdvancedTableFiltersMenu({
 
     // Calculate legacy and advanced filter stats
     const legacyFiltersCount = columnFilters.length
-    const advancedFiltersCount = advancedFilters.filter(f => f.isActive).length
+    const advancedFiltersCount = advancedFilters.filter((f) => f.isActive).length
     const totalFiltersCount = legacyFiltersCount + advancedFiltersCount
 
     // Handle legacy filter toggle
-    const handleLegacyToggle = useCallback((columnId: string) => {
-        const existingFilter = columnFilters.find(f => f.id === columnId)
-        if (existingFilter) {
-            setColumnFilters(columnFilters.filter(f => f.id !== columnId))
-        } else {
-            setColumnFilters([...columnFilters, { id: columnId, value: "" }])
-        }
-    }, [columnFilters, setColumnFilters])
+    const handleLegacyToggle = useCallback(
+        (columnId: string) => {
+            const existingFilter = columnFilters.find((f) => f.id === columnId)
+            if (existingFilter) {
+                setColumnFilters(columnFilters.filter((f) => f.id !== columnId))
+            } else {
+                setColumnFilters([...columnFilters, { id: columnId, value: '' }])
+            }
+        },
+        [columnFilters, setColumnFilters]
+    )
 
     // Handle clear all filters
     const handleClearAll = useCallback(() => {
@@ -198,7 +198,9 @@ export function AdvancedTableFiltersMenu({
     }, [setColumnFilters, advancedActions])
 
     // Skip rendering if no filterable columns
-    if (filterableColumns.length === 0) return null
+    if (filterableColumns.length === 0) {
+        return null
+    }
 
     return (
         <StackMenuView name="filters">
@@ -206,40 +208,42 @@ export function AdvancedTableFiltersMenu({
                 <ScrollArea className="max-h-96">
                     <div className="space-y-4">
                         {/* Advanced Filters Section */}
-                        {useAdvancedFilters && advancedActions && Object.keys(advancedColumnsConfig).length > 0 && (
-                            <div className="space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <h4 className="text-sm font-medium text-foreground">
-                                        Advanced Filters
-                                    </h4>
-                                    {advancedFiltersCount > 0 && (
-                                        <Badge variant="default" className="text-xs">
-                                            {advancedFiltersCount} active
-                                        </Badge>
+                        {useAdvancedFilters &&
+                            advancedActions &&
+                            Object.keys(advancedColumnsConfig).length > 0 && (
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <h4 className="font-medium text-foreground text-sm">
+                                            Advanced Filters
+                                        </h4>
+                                        {advancedFiltersCount > 0 && (
+                                            <Badge className="text-xs" variant="default">
+                                                {advancedFiltersCount} active
+                                            </Badge>
+                                        )}
+                                    </div>
+
+                                    <CompactFilterPanel
+                                        actions={advancedActions}
+                                        columnsConfig={advancedColumnsConfig}
+                                        filters={advancedFilters}
+                                    />
+
+                                    {(legacyFiltersCount > 0 || filterableColumns.length > 0) && (
+                                        <Separator className="my-3" />
                                     )}
                                 </div>
-
-                                <CompactFilterPanel
-                                    filters={advancedFilters}
-                                    columnsConfig={advancedColumnsConfig}
-                                    actions={advancedActions}
-                                />
-
-                                {(legacyFiltersCount > 0 || filterableColumns.length > 0) && (
-                                    <Separator className="my-3" />
-                                )}
-                            </div>
-                        )}
+                            )}
 
                         {/* Legacy Filters Section */}
                         {filterableColumns.length > 0 && (
                             <div className="space-y-3">
                                 <div className="flex items-center justify-between">
-                                    <h4 className="text-sm font-medium text-foreground">
+                                    <h4 className="font-medium text-foreground text-sm">
                                         {useAdvancedFilters ? 'Basic Filters' : 'Filters'}
                                     </h4>
                                     {legacyFiltersCount > 0 && (
-                                        <Badge variant="secondary" className="text-xs">
+                                        <Badge className="text-xs" variant="secondary">
                                             {legacyFiltersCount} active
                                         </Badge>
                                     )}
@@ -247,19 +251,21 @@ export function AdvancedTableFiltersMenu({
 
                                 <div className="space-y-2">
                                     {filterableColumns.map((column) => {
-                                        const isActive = columnFilters.some(f => f.id === column.id)
-                                        
+                                        const isActive = columnFilters.some(
+                                            (f) => f.id === column.id
+                                        )
+
                                         return (
                                             <LegacyFilterItem
-                                                key={column.id}
                                                 column={column}
                                                 isActive={isActive}
-                                                onToggle={() => handleLegacyToggle(column.id)}
+                                                key={column.id}
                                                 onConvertToAdvanced={
-                                                    useAdvancedFilters && onConvertToAdvanced 
-                                                        ? onConvertToAdvanced 
+                                                    useAdvancedFilters && onConvertToAdvanced
+                                                        ? onConvertToAdvanced
                                                         : undefined
                                                 }
+                                                onToggle={() => handleLegacyToggle(column.id)}
                                             />
                                         )
                                     })}
@@ -272,20 +278,20 @@ export function AdvancedTableFiltersMenu({
                             <>
                                 <Separator className="my-3" />
                                 <Button
-                                    variant="ghost"
-                                    onClick={handleClearAll}
                                     className="w-full justify-start"
+                                    onClick={handleClearAll}
+                                    variant="ghost"
                                 >
-                                    <X className="h-4 w-4 mr-2" />
-                                    {t("filters.clear")} ({totalFiltersCount})
+                                    <X className="mr-2 h-4 w-4" />
+                                    {t('filters.clear')} ({totalFiltersCount})
                                 </Button>
                             </>
                         )}
 
                         {/* No Filters State */}
                         {totalFiltersCount === 0 && (
-                            <div className="text-center py-6 text-muted-foreground">
-                                <Filter className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                            <div className="py-6 text-center text-muted-foreground">
+                                <Filter className="mx-auto mb-2 h-8 w-8 opacity-50" />
                                 <p className="text-sm">No active filters</p>
                             </div>
                         )}
@@ -299,11 +305,15 @@ export function AdvancedTableFiltersMenu({
 /**
  * Simple wrapper for backward compatibility with existing TableFiltersMenu
  */
-export function TableFiltersMenuAdvanced(props: Omit<AdvancedTableFiltersMenuProps, 'advancedFilters' | 'advancedActions' | 'advancedColumnsConfig' | 'useAdvancedFilters' | 'onConvertToAdvanced'>) {
-    return (
-        <AdvancedTableFiltersMenu
-            {...props}
-            useAdvancedFilters={false}
-        />
-    )
-} 
+export function TableFiltersMenuAdvanced(
+    props: Omit<
+        AdvancedTableFiltersMenuProps,
+        | 'advancedFilters'
+        | 'advancedActions'
+        | 'advancedColumnsConfig'
+        | 'useAdvancedFilters'
+        | 'onConvertToAdvanced'
+    >
+) {
+    return <AdvancedTableFiltersMenu {...props} useAdvancedFilters={false} />
+}

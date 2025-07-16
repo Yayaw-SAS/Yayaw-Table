@@ -2,10 +2,12 @@
  * Multi-option filter component
  * Provides filtering for multi-option columns with tags and multiple selection
  */
-"use client"
+'use client'
 
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { Check, ChevronDown, X } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
     Command,
     CommandEmpty,
@@ -13,25 +15,19 @@ import {
     CommandInput,
     CommandItem,
     CommandList
-} from "@/components/ui/command"
-import { Label } from "@/components/ui/label"
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger
-} from "@/components/ui/popover"
+} from '@/components/ui/command'
+import { Label } from '@/components/ui/label'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue
-} from "@/components/ui/select"
-import { cn } from "@/lib/utils"
-import { Check, ChevronDown, X } from "lucide-react"
-import { useCallback, useEffect, useMemo, useState } from "react"
-import type { ColumnOption, FilterOperators } from "../../types/filter-types"
-import { FILTER_OPERATORS_LABELS, DEFAULT_OPERATORS } from "../../types/filter-types"
+} from '@/components/ui/select'
+import { cn } from '@/lib/utils'
+import type { ColumnOption, FilterOperators } from '../../types/filter-types'
+import { DEFAULT_OPERATORS, FILTER_OPERATORS_LABELS } from '../../types/filter-types'
 
 export interface MultiOptionFilterProps {
     /** Current filter value - array of selected values */
@@ -74,12 +70,12 @@ export function MultiOptionFilter({
     label,
     showOperator = true,
     showCounts = true,
-    placeholder = "Select options...",
+    placeholder = 'Select options...',
     maxDisplayedTags = 3
 }: MultiOptionFilterProps) {
     const [internalValue, setInternalValue] = useState(value)
     const [isOpen, setIsOpen] = useState(false)
-    const [searchTerm, setSearchTerm] = useState("")
+    const [searchTerm, setSearchTerm] = useState('')
 
     // Sync internal value with prop
     useEffect(() => {
@@ -87,34 +83,43 @@ export function MultiOptionFilter({
     }, [value])
 
     // Handle value change
-    const handleValueChange = useCallback((newValue: string[]) => {
-        setInternalValue(newValue)
-        onValueChange(newValue)
-    }, [onValueChange])
+    const handleValueChange = useCallback(
+        (newValue: string[]) => {
+            setInternalValue(newValue)
+            onValueChange(newValue)
+        },
+        [onValueChange]
+    )
 
     // Check if this operator needs a value input
     const needsValue = !['isEmpty', 'isNotEmpty'].includes(operator)
 
     // Filter options based on search term
     const filteredOptions = useMemo(() => {
-        if (!searchTerm) return options
-        return options.filter(option => 
-            option.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            option.value.toLowerCase().includes(searchTerm.toLowerCase())
+        if (!searchTerm) {
+            return options
+        }
+        return options.filter(
+            (option) =>
+                option.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                option.value.toLowerCase().includes(searchTerm.toLowerCase())
         )
     }, [options, searchTerm])
 
     // Handle option selection toggle
-    const handleOptionToggle = useCallback((optionValue: string) => {
-        const newValue = internalValue.includes(optionValue)
-            ? internalValue.filter(v => v !== optionValue)
-            : [...internalValue, optionValue]
-        handleValueChange(newValue)
-    }, [internalValue, handleValueChange])
+    const handleOptionToggle = useCallback(
+        (optionValue: string) => {
+            const newValue = internalValue.includes(optionValue)
+                ? internalValue.filter((v) => v !== optionValue)
+                : [...internalValue, optionValue]
+            handleValueChange(newValue)
+        },
+        [internalValue, handleValueChange]
+    )
 
     // Handle select all
     const handleSelectAll = useCallback(() => {
-        const allValues = filteredOptions.map(opt => opt.value)
+        const allValues = filteredOptions.map((opt) => opt.value)
         handleValueChange(allValues)
     }, [filteredOptions, handleValueChange])
 
@@ -124,13 +129,18 @@ export function MultiOptionFilter({
     }, [handleValueChange])
 
     // Get option by value
-    const getOptionByValue = useCallback((optionValue: string) => {
-        return options.find(opt => opt.value === optionValue)
-    }, [options])
+    const getOptionByValue = useCallback(
+        (optionValue: string) => {
+            return options.find((opt) => opt.value === optionValue)
+        },
+        [options]
+    )
 
     // Format selected values for display
     const formatValueForDisplay = useCallback(() => {
-        if (internalValue.length === 0) return placeholder
+        if (internalValue.length === 0) {
+            return placeholder
+        }
         if (internalValue.length === 1) {
             const option = getOptionByValue(internalValue[0])
             return option?.label || internalValue[0]
@@ -147,17 +157,17 @@ export function MultiOptionFilter({
 
     return (
         <div className="space-y-3">
-            {label && (
-                <Label className="text-sm font-medium">{label}</Label>
-            )}
-            
+            {label && <Label className="font-medium text-sm">{label}</Label>}
+
             <div className="flex flex-col gap-3">
                 {/* Operator selector */}
                 {showOperator && (
                     <Select
-                        value={operator}
-                        onValueChange={(value) => onOperatorChange(value as FilterOperators['multiOption'])}
                         disabled={disabled}
+                        onValueChange={(value) =>
+                            onOperatorChange(value as FilterOperators['multiOption'])
+                        }
+                        value={operator}
                     >
                         <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select operator..." />
@@ -175,25 +185,25 @@ export function MultiOptionFilter({
                 {/* Option picker */}
                 {needsValue && (
                     <div className="space-y-2">
-                        <Popover open={isOpen} onOpenChange={setIsOpen}>
+                        <Popover onOpenChange={setIsOpen} open={isOpen}>
                             <PopoverTrigger asChild>
                                 <Button
-                                    variant="outline"
-                                    role="combobox"
                                     aria-expanded={isOpen}
                                     className="w-full justify-between"
                                     disabled={disabled}
+                                    role="combobox"
+                                    variant="outline"
                                 >
                                     <span className="truncate">{formatValueForDisplay()}</span>
                                     <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                 </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-full p-0" align="start">
+                            <PopoverContent align="start" className="w-full p-0">
                                 <Command>
                                     <CommandInput
+                                        onValueChange={setSearchTerm}
                                         placeholder="Search options..."
                                         value={searchTerm}
-                                        onValueChange={setSearchTerm}
                                     />
                                     <CommandList>
                                         <CommandEmpty>No options found.</CommandEmpty>
@@ -202,15 +212,15 @@ export function MultiOptionFilter({
                                             {filteredOptions.length > 1 && (
                                                 <>
                                                     <CommandItem
-                                                        onSelect={handleSelectAll}
                                                         className="justify-center border-b"
+                                                        onSelect={handleSelectAll}
                                                     >
                                                         Select All ({filteredOptions.length})
                                                     </CommandItem>
                                                     {internalValue.length > 0 && (
                                                         <CommandItem
+                                                            className="mb-1 justify-center border-b"
                                                             onSelect={handleClearAll}
-                                                            className="justify-center border-b mb-1"
                                                         >
                                                             Clear All
                                                         </CommandItem>
@@ -219,34 +229,48 @@ export function MultiOptionFilter({
                                             )}
 
                                             {filteredOptions.map((option) => {
-                                                const isSelected = internalValue.includes(option.value)
+                                                const isSelected = internalValue.includes(
+                                                    option.value
+                                                )
 
                                                 return (
                                                     <CommandItem
                                                         key={option.value}
+                                                        onSelect={() =>
+                                                            handleOptionToggle(option.value)
+                                                        }
                                                         value={option.value}
-                                                        onSelect={() => handleOptionToggle(option.value)}
                                                     >
-                                                        <div className="flex items-center gap-2 flex-1">
+                                                        <div className="flex flex-1 items-center gap-2">
                                                             {option.icon && (
-                                                                <span className="flex-shrink-0 w-4 h-4 flex items-center justify-center">
-                                                                    {typeof option.icon === 'function' 
-                                                                        ? <option.icon />
-                                                                        : option.icon
-                                                                    }
+                                                                <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center">
+                                                                    {typeof option.icon ===
+                                                                    'function' ? (
+                                                                        <option.icon />
+                                                                    ) : (
+                                                                        option.icon
+                                                                    )}
                                                                 </span>
                                                             )}
-                                                            <span className="flex-1">{option.label}</span>
-                                                            {showCounts && option.count !== undefined && (
-                                                                <Badge variant="secondary" className="text-xs">
-                                                                    {option.count}
-                                                                </Badge>
-                                                            )}
+                                                            <span className="flex-1">
+                                                                {option.label}
+                                                            </span>
+                                                            {showCounts &&
+                                                                option.count !== undefined && (
+                                                                    <Badge
+                                                                        className="text-xs"
+                                                                        variant="secondary"
+                                                                    >
+                                                                        {option.count}
+                                                                    </Badge>
+                                                                )}
                                                         </div>
                                                         <Check
                                                             className={cn(
-                                                                "ml-auto h-4 w-4",
-                                                                isSelected ? "opacity-100" : "opacity-0"
+                                                                'ml-auto h-4 w-4',
+                                                                isSelected
+                                                                    ? 'opacity-100'
+                                                                    : 'opacity-0'
                                                             )}
                                                         />
                                                     </CommandItem>
@@ -265,23 +289,25 @@ export function MultiOptionFilter({
                                     const option = getOptionByValue(selectedValue)
                                     return (
                                         <Badge
+                                            className="text-xs"
                                             key={selectedValue}
                                             variant="secondary"
-                                            className="text-xs"
                                         >
                                             {option?.icon && (
-                                                <span className="mr-1 w-3 h-3 flex items-center justify-center">
-                                                    {typeof option.icon === 'function'
-                                                        ? <option.icon />
-                                                        : option.icon
-                                                    }
+                                                <span className="mr-1 flex h-3 w-3 items-center justify-center">
+                                                    {typeof option.icon === 'function' ? (
+                                                        <option.icon />
+                                                    ) : (
+                                                        option.icon
+                                                    )}
                                                 </span>
                                             )}
                                             {option?.label || selectedValue}
                                             <button
-                                                className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                                className="ml-1 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                                onClick={() => handleOptionToggle(selectedValue)}
                                                 onKeyDown={(e) => {
-                                                    if (e.key === "Enter") {
+                                                    if (e.key === 'Enter') {
                                                         handleOptionToggle(selectedValue)
                                                     }
                                                 }}
@@ -289,17 +315,16 @@ export function MultiOptionFilter({
                                                     e.preventDefault()
                                                     e.stopPropagation()
                                                 }}
-                                                onClick={() => handleOptionToggle(selectedValue)}
                                             >
                                                 <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
                                             </button>
                                         </Badge>
                                     )
                                 })}
-                                
+
                                 {/* Show remaining count if there are more tags */}
                                 {displayedTags.hasMore && (
-                                    <Badge variant="outline" className="text-xs">
+                                    <Badge className="text-xs" variant="outline">
                                         +{displayedTags.remainingCount} more
                                     </Badge>
                                 )}
@@ -310,8 +335,9 @@ export function MultiOptionFilter({
 
                 {/* Info text for operators that don't need values */}
                 {!needsValue && (
-                    <div className="text-sm text-muted-foreground italic">
-                        This filter will show rows where the field {operator === 'isEmpty' ? 'is empty' : 'is not empty'}.
+                    <div className="text-muted-foreground text-sm italic">
+                        This filter will show rows where the field{' '}
+                        {operator === 'isEmpty' ? 'is empty' : 'is not empty'}.
                     </div>
                 )}
             </div>
@@ -328,9 +354,18 @@ export function CompactMultiOptionFilter({
     options,
     onValueChange,
     disabled = false,
-    placeholder = "Select...",
+    placeholder = 'Select...',
     maxDisplayedTags = 2
-}: Pick<MultiOptionFilterProps, 'value' | 'operator' | 'options' | 'onValueChange' | 'disabled' | 'placeholder' | 'maxDisplayedTags'>) {
+}: Pick<
+    MultiOptionFilterProps,
+    | 'value'
+    | 'operator'
+    | 'options'
+    | 'onValueChange'
+    | 'disabled'
+    | 'placeholder'
+    | 'maxDisplayedTags'
+>) {
     const [internalValue, setInternalValue] = useState(value)
     const [isOpen, setIsOpen] = useState(false)
 
@@ -338,27 +373,35 @@ export function CompactMultiOptionFilter({
         setInternalValue(value)
     }, [value])
 
-    const handleValueChange = useCallback((newValue: string[]) => {
-        setInternalValue(newValue)
-        onValueChange(newValue)
-    }, [onValueChange])
+    const handleValueChange = useCallback(
+        (newValue: string[]) => {
+            setInternalValue(newValue)
+            onValueChange(newValue)
+        },
+        [onValueChange]
+    )
 
     const needsValue = !['isEmpty', 'isNotEmpty'].includes(operator)
 
     if (!needsValue) {
         return (
-            <span className="text-xs text-muted-foreground">
+            <span className="text-muted-foreground text-xs">
                 {operator === 'isEmpty' ? 'is empty' : 'is not empty'}
             </span>
         )
     }
 
-    const getOptionByValue = useCallback((optionValue: string) => {
-        return options.find(opt => opt.value === optionValue)
-    }, [options])
+    const getOptionByValue = useCallback(
+        (optionValue: string) => {
+            return options.find((opt) => opt.value === optionValue)
+        },
+        [options]
+    )
 
     const formatValueForDisplay = useCallback(() => {
-        if (internalValue.length === 0) return placeholder
+        if (internalValue.length === 0) {
+            return placeholder
+        }
         if (internalValue.length === 1) {
             const option = getOptionByValue(internalValue[0])
             return option?.label || internalValue[0]
@@ -366,28 +409,31 @@ export function CompactMultiOptionFilter({
         return `${internalValue.length} items`
     }, [internalValue, placeholder, getOptionByValue])
 
-    const handleOptionToggle = useCallback((optionValue: string) => {
-        const newValue = internalValue.includes(optionValue)
-            ? internalValue.filter(v => v !== optionValue)
-            : [...internalValue, optionValue]
-        handleValueChange(newValue)
-    }, [internalValue, handleValueChange])
+    const handleOptionToggle = useCallback(
+        (optionValue: string) => {
+            const newValue = internalValue.includes(optionValue)
+                ? internalValue.filter((v) => v !== optionValue)
+                : [...internalValue, optionValue]
+            handleValueChange(newValue)
+        },
+        [internalValue, handleValueChange]
+    )
 
     return (
         <div className="flex flex-col gap-1">
-            <Popover open={isOpen} onOpenChange={setIsOpen}>
+            <Popover onOpenChange={setIsOpen} open={isOpen}>
                 <PopoverTrigger asChild>
                     <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 px-2 text-xs font-normal justify-between max-w-32"
+                        className="h-6 max-w-32 justify-between px-2 font-normal text-xs"
                         disabled={disabled}
+                        size="sm"
+                        variant="ghost"
                     >
                         <span className="truncate">{formatValueForDisplay()}</span>
                         <ChevronDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
                     </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-48 p-0" align="start">
+                <PopoverContent align="start" className="w-48 p-0">
                     <Command>
                         <CommandInput placeholder="Search..." />
                         <CommandList>
@@ -399,24 +445,27 @@ export function CompactMultiOptionFilter({
                                     return (
                                         <CommandItem
                                             key={option.value}
-                                            value={option.value}
                                             onSelect={() => handleOptionToggle(option.value)}
+                                            value={option.value}
                                         >
-                                            <div className="flex items-center gap-2 flex-1">
+                                            <div className="flex flex-1 items-center gap-2">
                                                 {option.icon && (
-                                                    <span className="flex-shrink-0 w-3 h-3 flex items-center justify-center">
-                                                        {typeof option.icon === 'function' 
-                                                            ? <option.icon />
-                                                            : option.icon
-                                                        }
+                                                    <span className="flex h-3 w-3 flex-shrink-0 items-center justify-center">
+                                                        {typeof option.icon === 'function' ? (
+                                                            <option.icon />
+                                                        ) : (
+                                                            option.icon
+                                                        )}
                                                     </span>
                                                 )}
-                                                <span className="flex-1 text-xs">{option.label}</span>
+                                                <span className="flex-1 text-xs">
+                                                    {option.label}
+                                                </span>
                                             </div>
                                             <Check
                                                 className={cn(
-                                                    "ml-auto h-3 w-3",
-                                                    isSelected ? "opacity-100" : "opacity-0"
+                                                    'ml-auto h-3 w-3',
+                                                    isSelected ? 'opacity-100' : 'opacity-0'
                                                 )}
                                             />
                                         </CommandItem>
@@ -435,13 +484,13 @@ export function CompactMultiOptionFilter({
                         const option = getOptionByValue(selectedValue)
                         return (
                             <Badge
+                                className="h-4 px-1 text-xs"
                                 key={selectedValue}
                                 variant="secondary"
-                                className="text-xs h-4 px-1"
                             >
                                 {option?.label || selectedValue}
                                 <button
-                                    className="ml-1 hover:bg-destructive hover:text-destructive-foreground rounded-full"
+                                    className="ml-1 rounded-full hover:bg-destructive hover:text-destructive-foreground"
                                     onClick={(e) => {
                                         e.preventDefault()
                                         e.stopPropagation()
@@ -454,7 +503,7 @@ export function CompactMultiOptionFilter({
                         )
                     })}
                     {internalValue.length > maxDisplayedTags && (
-                        <Badge variant="outline" className="text-xs h-4 px-1">
+                        <Badge className="h-4 px-1 text-xs" variant="outline">
                             +{internalValue.length - maxDisplayedTags}
                         </Badge>
                     )}
@@ -462,4 +511,4 @@ export function CompactMultiOptionFilter({
             )}
         </div>
     )
-} 
+}

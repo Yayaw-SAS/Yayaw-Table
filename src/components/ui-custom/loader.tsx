@@ -1,18 +1,18 @@
-import { cn } from "@/lib/utils"
-import { type VariantProps, cva } from "class-variance-authority"
-import { Loader2 } from "lucide-react"
-import * as React from "react"
+import { cva, type VariantProps } from 'class-variance-authority'
+import { Loader2 } from 'lucide-react'
+import * as React from 'react'
+import { cn } from '@/lib/utils'
 
-const loaderVariants = cva("animate-spin text-muted-foreground", {
+const loaderVariants = cva('animate-spin text-muted-foreground', {
     defaultVariants: {
-        size: "default"
+        size: 'default'
     },
     variants: {
         size: {
-            default: "h-4 w-4",
-            lg: "h-6 w-6",
-            sm: "h-2 w-2",
-            xl: "h-10 w-10"
+            default: 'h-4 w-4',
+            lg: 'h-6 w-6',
+            sm: 'h-2 w-2',
+            xl: 'h-10 w-10'
         }
     }
 })
@@ -28,6 +28,6 @@ const Loader = React.forwardRef<SVGSVGElement, LoaderProps>(
         return <Loader2 className={cn(loaderVariants({ className, size }))} ref={ref} {...props} />
     }
 )
-Loader.displayName = "Loader"
+Loader.displayName = 'Loader'
 
 export { Loader, loaderVariants }

@@ -2,12 +2,12 @@
  * JSON column component for data tables
  * Provides standardized display of JSON/array values
  */
-"use client"
+'use client'
 
-import type { CellContext, ColumnDef } from "@tanstack/react-table"
-import { Braces, type LucideIcon } from "lucide-react"
+import type { CellContext, ColumnDef } from '@tanstack/react-table'
+import { Braces, type LucideIcon } from 'lucide-react'
 
-import { JsonCell } from "../cells/json-cell"
+import { JsonCell } from '../cells/json-cell'
 
 /**
  * Custom properties for our column definitions
@@ -80,6 +80,6 @@ export function createJsonColumn<TData>({
         header: header || accessorKey,
         icon: Braces,
         id: accessorKey,
-        type: "json"
+        type: 'json'
     }
 }

@@ -2,14 +2,14 @@
  * Hook for fetching and managing table data with URL state
  * Uses TanStack Query for data fetching and caching
  */
-"use client"
+'use client'
 
-import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { useCallback, useMemo, useState } from "react"
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useCallback, useMemo, useState } from 'react'
 
-import { processServerFilters } from "../utils/server-filters"
+import { processServerFilters } from '../utils/server-filters'
 
-import { useTableUrlState } from "./use-table-url-state"
+import { useTableUrlState } from './use-table-url-state'
 
 const DEBUG = false
 
@@ -74,22 +74,22 @@ export function useTableUrlData<TData>({
             // Extract global filter if present
             const globalFilterEntry = filters.find(
                 (f: unknown): f is { id: string; value: unknown } =>
-                    typeof f === "object" &&
+                    typeof f === 'object' &&
                     f !== null &&
-                    "id" in f &&
-                    (f as { id: string }).id === "global"
+                    'id' in f &&
+                    (f as { id: string }).id === 'global'
             )
             const globalFilter =
                 globalFilterEntry &&
-                typeof globalFilterEntry === "object" &&
-                "value" in globalFilterEntry
+                typeof globalFilterEntry === 'object' &&
+                'value' in globalFilterEntry
                     ? (globalFilterEntry.value as string)
-                    : ""
+                    : ''
 
             // Process column filters for server-side compatibility
             const result = processServerFilters(
                 (filters as Array<{ id: string; value: unknown }>)
-                    .filter((filter) => filter.id !== "global") // Remove global filter from regular filters
+                    .filter((filter) => filter.id !== 'global') // Remove global filter from regular filters
                     .map((filter) => ({
                         id: filter.id,
                         value: filter.value
@@ -104,7 +104,7 @@ export function useTableUrlData<TData>({
             return result
         },
         // Ensure the query is stable and doesn't cause unnecessary re-renders
-        queryKey: ["tableProcessedFilters", tableId, filtersParam],
+        queryKey: ['tableProcessedFilters', tableId, filtersParam],
         staleTime: 5000 // 5 seconds
     })
 
@@ -119,8 +119,8 @@ export function useTableUrlData<TData>({
     const shouldEnableQuery =
         Boolean(tableId) &&
         enabled &&
-        (processedFiltersQuery.status === "success" ||
-            (processedFiltersQuery.status === "pending" && initialData.length > 0))
+        (processedFiltersQuery.status === 'success' ||
+            (processedFiltersQuery.status === 'pending' && initialData.length > 0))
 
     // Query for fetching data
     const {
@@ -143,17 +143,10 @@ export function useTableUrlData<TData>({
         queryFn: async () => {
             try {
                 if (DEBUG) {
-                    console.log("[useTableUrlData] Starting data fetch with params:", {
-                        filtersParam,
-                        pagination,
-                        serverFilters,
-                        sortParam,
-                        tableId
-                    })
                 }
 
                 // Check if we have any key-specific filters that might be causing individual requests
-                const hasKeyFilter = Object.keys(serverFilters).includes("key")
+                const hasKeyFilter = Object.keys(serverFilters).includes('key')
 
                 // If we're doing a key-specific lookup, we should clear all filters and do a full table fetch instead
                 // This prevents the individual key-based requests we're seeing
@@ -163,9 +156,9 @@ export function useTableUrlData<TData>({
                 const columnFilters: Array<{ id: string; value: unknown }> = []
                 for (const [id, value] of Object.entries(cleanedServerFilters)) {
                     // For object values like {contains: 'value'}, extract just the value
-                    if (typeof value === "object" && value !== null) {
+                    if (typeof value === 'object' && value !== null) {
                         // If it's a contains filter, extract the value
-                        if ("contains" in value) {
+                        if ('contains' in value) {
                             // For text search, we need to extract just the value for TanStack Table compatibility
                             columnFilters.push({
                                 id,
@@ -203,26 +196,22 @@ export function useTableUrlData<TData>({
                 }
 
                 if (DEBUG) {
-                    console.log("[useTableUrlData] Calling queryFn with params:", params)
                 }
 
                 try {
                     const result = await queryFn(params)
                     if (DEBUG) {
-                        console.log("[useTableUrlData] Query result:", result)
                     }
                     return result
                 } catch (error) {
-                    console.error("[useTableUrlData] Error in queryFn:", error)
                     throw error
                 }
             } catch (err) {
-                console.error("[useTableUrlData] Error fetching table data:", err)
                 throw err
             }
         },
         queryKey: [
-            "tableData",
+            'tableData',
             tableId,
             JSON.stringify(sortParam),
             JSON.stringify(filtersParam),
@@ -232,7 +221,7 @@ export function useTableUrlData<TData>({
         // Prevent refetching on window focus to avoid duplicate requests
         refetchOnWindowFocus: false,
         // Improve cache options for better performance
-        staleTime: 30000 // 30 seconds
+        staleTime: 30_000 // 30 seconds
     })
 
     // Get data from query result or use initial data
@@ -263,8 +252,12 @@ export function useTableUrlData<TData>({
                 }
 
                 // If only one row is in the order map, it comes first
-                if (orderMap.has(aId)) return -1
-                if (orderMap.has(bId)) return 1
+                if (orderMap.has(aId)) {
+                    return -1
+                }
+                if (orderMap.has(bId)) {
+                    return 1
+                }
 
                 // If neither row is in the order map, maintain original order
                 return 0
@@ -276,7 +269,7 @@ export function useTableUrlData<TData>({
 
     // Enhanced refetch that invalidates the cache
     const enhancedRefetch = useCallback(async () => {
-        queryClient.invalidateQueries({ queryKey: ["tableData", tableId] })
+        queryClient.invalidateQueries({ queryKey: ['tableData', tableId] })
         return await refetch()
     }, [queryClient, refetch, tableId])
 

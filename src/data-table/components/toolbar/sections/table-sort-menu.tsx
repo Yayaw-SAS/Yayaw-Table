@@ -1,16 +1,14 @@
-"use client"
+'use client'
 
+import type { SortingState } from '@tanstack/react-table'
+import { ArrowDownAZ, ArrowUpAZ, ArrowUpDown, X } from 'lucide-react'
 import {
     StackMenuContent,
-    StackMenuSection,
     StackMenuItem,
     StackMenuView
-} from "@/src/components/ui-custom/stack-menu"
-import { ArrowDownAZ, ArrowUpAZ, ArrowUpDown, X } from "lucide-react"
-import { useTranslations } from "../../../providers/table-provider"
-import { useDataTable } from "../../../hooks/use-data-table"
-
-import type { SortingState } from "@tanstack/react-table"
+} from '@/src/components/ui-custom/stack-menu'
+import { useDataTable } from '../../../hooks/use-data-table'
+import { useTranslations } from '../../../providers/table-provider'
 
 export interface TableSortMenuProps {
     columns: Array<{
@@ -41,10 +39,11 @@ export function TableSortMenu({
 
     // Get sortable columns
     const sortableColumns = columns.filter((col) => {
-        const canSort = typeof col.getCanSort === "function" ? col.getCanSort() : col.canSort !== false
+        const canSort =
+            typeof col.getCanSort === 'function' ? col.getCanSort() : col.canSort !== false
         return canSort
     })
-    
+
     // Skip rendering if no sortable columns
     if (sortableColumns.length === 0) {
         return null
@@ -56,7 +55,7 @@ export function TableSortMenu({
                 {/* Clear sort option */}
                 {sorting.length > 0 && (
                     <StackMenuItem icon={<X className="h-5 w-5" />} onClick={() => setSorting([])}>
-                        {t("common.reset")}
+                        {t('common.reset')}
                     </StackMenuItem>
                 )}
 
@@ -70,13 +69,13 @@ export function TableSortMenu({
                     const columnConfig = config?.columns?.definitions?.find(
                         (def: { id: string; header?: string }) => def.id === columnId
                     )
-                    
+
                     // Use translated header from config, with fallbacks
                     let columnLabel: string
-                    if (columnId === "select") {
-                        columnLabel = t("common.selection")
-                    } else if (columnId === "actions") {
-                        columnLabel = t("actions.title")
+                    if (columnId === 'select') {
+                        columnLabel = t('common.selection')
+                    } else if (columnId === 'actions') {
+                        columnLabel = t('actions.title')
                     } else if (columnConfig?.header) {
                         // Try to translate the header from config
                         columnLabel = t(columnConfig.header)
@@ -87,7 +86,7 @@ export function TableSortMenu({
 
                     return (
                         <StackMenuItem
-                            className={isActiveSorted ? "bg-accent font-medium" : ""}
+                            className={isActiveSorted ? 'bg-accent font-medium' : ''}
                             icon={
                                 sortOrder === undefined ? (
                                     <ArrowUpDown className="h-5 w-5 text-muted-foreground" />
@@ -102,16 +101,16 @@ export function TableSortMenu({
                                 if (sortOrder === undefined) {
                                     // First click: ascending
                                     setSorting([{ desc: false, id: columnId }])
-                                } else if (!sortOrder) {
-                                    // Second click: descending
-                                    setSorting([{ desc: true, id: columnId }])
-                                } else {
+                                } else if (sortOrder) {
                                     // Third click: remove sort
                                     setSorting([])
+                                } else {
+                                    // Second click: descending
+                                    setSorting([{ desc: true, id: columnId }])
                                 }
                             }}
                         >
-                            <span className={isActiveSorted ? "font-medium" : ""}>
+                            <span className={isActiveSorted ? 'font-medium' : ''}>
                                 {columnLabel}
                             </span>
                         </StackMenuItem>

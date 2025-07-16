@@ -3,33 +3,30 @@
  * Uses dnd-kit for drag and drop operations
  * Uses URL state as source of truth for column order (shareable URLs)
  */
-"use client"
+'use client'
 
 import {
+    closestCenter,
     DndContext,
     type DragEndEvent,
     type DragStartEvent,
     KeyboardSensor,
     MouseSensor,
     TouchSensor,
-    closestCenter,
     useSensor,
     useSensors
-} from "@dnd-kit/core"
-import { restrictToHorizontalAxis } from "@dnd-kit/modifiers"
+} from '@dnd-kit/core'
+import { restrictToHorizontalAxis } from '@dnd-kit/modifiers'
 import {
-    SortableContext,
     horizontalListSortingStrategy,
+    SortableContext,
     sortableKeyboardCoordinates
-} from "@dnd-kit/sortable"
-import { useAtom } from "jotai"
-import { useCallback, useEffect } from "react"
+} from '@dnd-kit/sortable'
+import { useAtom } from 'jotai'
+import { useCallback, useEffect } from 'react'
 
-import {
-    activeColumnDragAtom,
-    columnDragEnabledAtom
-} from "../../../atoms/table-atoms"
-import { useTableUrlState } from "../../../hooks/use-table-url-state"
+import { activeColumnDragAtom, columnDragEnabledAtom } from '../../../atoms/table-atoms'
+import { useTableUrlState } from '../../../hooks/use-table-url-state'
 
 // Utility function to move array items
 function arrayMove<T>(array: T[], from: number, to: number): T[] {
@@ -46,10 +43,14 @@ function arrayMove<T>(array: T[], from: number, to: number): T[] {
  * @param enableByDefault - Whether to enable drag & drop by default (from configuration)
  * @returns Object with column drag and drop utilities
  */
-export function useColumnDnd(tableId: string, onColumnOrderChange?: (newOrder: string[]) => void, enableByDefault?: boolean) {
+export function useColumnDnd(
+    tableId: string,
+    onColumnOrderChange?: (newOrder: string[]) => void,
+    enableByDefault?: boolean
+) {
     // **URL STATE** - source of truth for column order (shareable)
     const { orderParam, setOrderFromUI } = useTableUrlState({ tableId })
-    
+
     // **ATOMS** - only for temporary UI state (not shareable)
     const [activeDragId, setActiveDragId] = useAtom(activeColumnDragAtom(tableId))
     const [isDragEnabled, setIsDragEnabled] = useAtom(columnDragEnabledAtom(tableId))
@@ -60,7 +61,7 @@ export function useColumnDnd(tableId: string, onColumnOrderChange?: (newOrder: s
             // Check if this is the first time or if localStorage doesn't have a value
             const storageKey = `${tableId}-column-drag-enabled`
             const currentValue = localStorage.getItem(storageKey)
-            
+
             if (currentValue === null) {
                 // First time - use the configuration value
                 setIsDragEnabled(enableByDefault)
@@ -110,9 +111,13 @@ export function useColumnDnd(tableId: string, onColumnOrderChange?: (newOrder: s
                 // Don't allow dragging fixed columns (select, actions)
                 const activeId = active.id.toString()
                 const overId = over.id.toString()
-                
-                if (activeId === "select" || activeId === "actions" || overId === "select" || overId === "actions") {
-                    console.log("Cannot move fixed columns (select/actions)")
+
+                if (
+                    activeId === 'select' ||
+                    activeId === 'actions' ||
+                    overId === 'select' ||
+                    overId === 'actions'
+                ) {
                     setActiveDragId(null)
                     return
                 }
@@ -121,17 +126,17 @@ export function useColumnDnd(tableId: string, onColumnOrderChange?: (newOrder: s
                 // If column order is empty, we need to get the columns from the DOM
                 if (columnOrder.length === 0) {
                     // Try to get column IDs from the DOM
-                    const headerElements = document.querySelectorAll("[data-column-id]")
+                    const headerElements = document.querySelectorAll('[data-column-id]')
                     const idsFromDOM = Array.from(headerElements).map((el) =>
-                        el.getAttribute("data-column-id")
+                        el.getAttribute('data-column-id')
                     )
 
                     if (idsFromDOM.length > 0) {
                         const newOrder = idsFromDOM.filter(Boolean) as string[]
-                        
+
                         // Ensure fixed positions: select first, actions last
                         const finalOrder = enforceFixedPositions(newOrder)
-                        
+
                         // Update URL state
                         setOrderFromUI(finalOrder)
 
@@ -150,7 +155,7 @@ export function useColumnDnd(tableId: string, onColumnOrderChange?: (newOrder: s
                 if (oldIndex !== -1 && newIndex !== -1) {
                     // Calculate the new order by moving the item
                     const newOrder = arrayMove(columnOrder, oldIndex, newIndex)
-                    
+
                     // Ensure fixed positions: select first, actions last
                     const finalOrder = enforceFixedPositions(newOrder)
 
@@ -167,20 +172,24 @@ export function useColumnDnd(tableId: string, onColumnOrderChange?: (newOrder: s
             // Reset active drag ID
             setActiveDragId(null)
         },
-        [columnOrder, onColumnOrderChange, setActiveDragId, setOrderFromUI]
+        [columnOrder, onColumnOrderChange, setActiveDragId, setOrderFromUI, enforceFixedPositions]
     )
 
     // Helper function to enforce fixed positions
     const enforceFixedPositions = useCallback((order: string[]): string[] => {
-        const selectCol = order.find(id => id === "select")
-        const actionsCol = order.find(id => id === "actions")
-        const otherCols = order.filter(id => id !== "select" && id !== "actions")
-        
+        const selectCol = order.find((id) => id === 'select')
+        const actionsCol = order.find((id) => id === 'actions')
+        const otherCols = order.filter((id) => id !== 'select' && id !== 'actions')
+
         const finalOrder: string[] = []
-        if (selectCol) finalOrder.push(selectCol)
+        if (selectCol) {
+            finalOrder.push(selectCol)
+        }
         finalOrder.push(...otherCols)
-        if (actionsCol) finalOrder.push(actionsCol)
-        
+        if (actionsCol) {
+            finalOrder.push(actionsCol)
+        }
+
         return finalOrder
     }, [])
 

@@ -2,26 +2,27 @@
  * New DataTable component using the declarative architecture
  * This component replaces the old DataTable with a more streamlined API
  */
-"use client"
+'use client'
 
-import type { Row } from "@tanstack/react-table"
-import dynamic from "next/dynamic"
-import { Suspense, useMemo } from "react"
-
-import { useDataTable } from "../hooks/use-data-table"
+import type { Row } from '@tanstack/react-table'
+import dynamic from 'next/dynamic'
 // Import advanced filters hook directly
-import { useCallback } from "react"
-import { useDataTableAdvancedFilters, useColumnConfigFromTableColumns, useTableAccessors } from "../hooks/use-data-table-advanced-filters"
-import { DataTableUIProvider } from "../providers/data-table-ui-provider"
-
-import { DataTableSkeleton } from "./data-table-skeleton"
-import { useTranslations, useTableComponents } from "../providers/table-provider"
+import { Suspense, useMemo } from 'react'
+import { useDataTable } from '../hooks/use-data-table'
+import {
+    useColumnConfigFromTableColumns,
+    useDataTableAdvancedFilters,
+    useTableAccessors
+} from '../hooks/use-data-table-advanced-filters'
+import { DataTableUIProvider } from '../providers/data-table-ui-provider'
+import { useTableComponents, useTranslations } from '../providers/table-provider'
+import { DataTableSkeleton } from './data-table-skeleton'
 
 // Dynamically import the DataTableClient component with no SSR
 // This ensures it's only rendered on the client side to avoid hydration issues
 const DataTableClient = dynamic(
     () =>
-        import("./modern-data-table").then((mod) => ({
+        import('./modern-data-table').then((mod) => ({
             default: mod.DataTable
         })),
     {
@@ -31,9 +32,10 @@ const DataTableClient = dynamic(
 )
 // Lazy load heavy components for better performance
 const CatalogueFormContainer = dynamic(
-    () => import("./forms/lazy-forms").then((mod) => ({
-        default: mod.LazyCatalogueFormContainer
-    })),
+    () =>
+        import('./forms/lazy-forms').then((mod) => ({
+            default: mod.LazyCatalogueFormContainer
+        })),
     {
         loading: () => null,
         ssr: false
@@ -41,30 +43,37 @@ const CatalogueFormContainer = dynamic(
 )
 
 const DataTableAdvancedToolbar = dynamic(
-    () => import("./toolbar/data-table-advanced-toolbar").then((mod) => ({
-        default: mod.DataTableAdvancedToolbar
-    })),
+    () =>
+        import('./toolbar/data-table-advanced-toolbar').then((mod) => ({
+            default: mod.DataTableAdvancedToolbar
+        })),
     {
-        loading: () => <div className="h-12 bg-muted animate-pulse rounded" />,
+        loading: () => <div className="h-12 animate-pulse rounded bg-muted" />,
         ssr: false
     }
 )
 
 // Default UI components
-function DefaultTableTitle({ children, className }: { children: React.ReactNode; className?: string }) {
-  return (
-    <h2 className={`text-xl font-semibold text-foreground ${className || ''}`}>
-      {children}
-    </h2>
-  )
+function DefaultTableTitle({
+    children,
+    className
+}: {
+    children: React.ReactNode
+    className?: string
+}) {
+    return (
+        <h2 className={`font-semibold text-foreground text-xl ${className || ''}`}>{children}</h2>
+    )
 }
 
-function DefaultTableDescription({ children, className }: { children: React.ReactNode; className?: string }) {
-  return (
-    <p className={`text-sm text-muted-foreground ${className || ''}`}>
-      {children}
-    </p>
-  )
+function DefaultTableDescription({
+    children,
+    className
+}: {
+    children: React.ReactNode
+    className?: string
+}) {
+    return <p className={`text-muted-foreground text-sm ${className || ''}`}>{children}</p>
 }
 
 /**
@@ -122,13 +131,13 @@ export function DataTable({
 
     // Set up advanced filters if enabled
     let finalData = baseData
-    let advancedFiltersConfig = undefined
+    let _advancedFiltersConfig
 
     if (enableAdvancedFilters) {
         // Create enhanced column options similar to toolbar
         const columnOptions = useMemo(() => {
             const columnDefinitions = config.columns?.definitions || []
-            
+
             return columnDefinitions.map((colDef: any) => ({
                 canFilter: colDef.canFilter !== false,
                 canHide: colDef.canHide !== false,
@@ -152,7 +161,7 @@ export function DataTable({
         // Create accessors for advanced filtering
         const accessors = useTableAccessors(
             baseData,
-            columnOptions.map(col => col.id)
+            columnOptions.map((col) => col.id)
         )
 
         // Set up advanced filters
@@ -169,7 +178,7 @@ export function DataTable({
         finalData = advancedFiltersResult.filteredData
 
         // Store config for toolbar
-        advancedFiltersConfig = {
+        _advancedFiltersConfig = {
             filters: advancedFiltersResult.advancedFilters,
             actions: advancedFiltersResult.advancedActions,
             columnsConfig: advancedColumnsConfig,
@@ -177,11 +186,6 @@ export function DataTable({
         }
 
         if (DEBUG) {
-            console.log("DataTable - Advanced filters applied:", {
-                baseDataLength: baseData.length,
-                filteredDataLength: finalData.length,
-                activeFilters: advancedFiltersResult.activeAdvancedFiltersCount
-            })
         }
     }
 
@@ -189,7 +193,8 @@ export function DataTable({
     const { t } = useTranslations()
     const { TitleComponent, DescriptionComponent } = useTableComponents()
     const displayTitle = title || config.translations?.keys?.title || `${tableType} Table`
-    const displayDescription = description || config.translations?.keys?.description || `Manage your ${tableType}`
+    const displayDescription =
+        description || config.translations?.keys?.description || `Manage your ${tableType}`
 
     // Use custom components if provided, otherwise use defaults
     const Title = TitleComponent || DefaultTableTitle
@@ -207,10 +212,10 @@ export function DataTable({
                     }}
                     tableConfig={{
                         defaultPageSize: config.table.defaultPageSize || 10,
-                        enableColumnDragDropByDefault: config.table.enableColumnDragDropByDefault || false,
+                        enableColumnDragDropByDefault: config.table.enableColumnDragDropByDefault,
                         enableColumnFilters: config.table.enableColumnFilters,
-                        enableMultiRowSelection: config.table.enableMultiRowSelection || true,
-                        enablePagination: config.table.enablePagination || true,
+                        enableMultiRowSelection: true,
+                        enablePagination: true,
                         enableRowSelection: config.table.enableRowSelection,
                         enableSorting: config.table.enableSorting,
                         manualFiltering: config.table.manualFiltering,
@@ -230,15 +235,15 @@ export function DataTable({
                                     <Title>{displayTitle}</Title>
                                     <Description>{displayDescription}</Description>
                                 </div>
-                                
+
                                 {/* Toolbar section */}
                                 {!isLoading && (
                                     <div className="flex-shrink-0">
-                                        <DataTableAdvancedToolbar 
-                                            tableId={tableId}
-                                            enableAdvancedFilters={enableAdvancedFilters}
-                                            data={baseData}
+                                        <DataTableAdvancedToolbar
                                             columnTypeMapping={columnTypeMapping}
+                                            data={baseData}
+                                            enableAdvancedFilters={enableAdvancedFilters}
+                                            tableId={tableId}
                                         />
                                     </div>
                                 )}
@@ -250,29 +255,27 @@ export function DataTable({
                             <DataTableSkeleton />
                         ) : (
                             <DataTableClient
-                                key={`${tableId}-${visibilityKey}`}
                                 className={className}
                                 columns={
-                                    columns as Array<
-                                        import("@tanstack/react-table").ColumnDef<
-                                            Record<string, unknown>
-                                        >
-                                    >
+                                    columns as import('@tanstack/react-table').ColumnDef<
+                                        Record<string, unknown>
+                                    >[]
                                 }
                                 data={finalData}
                                 enableColumnDragDropByDefault={
-                                    config.table.enableColumnDragDropByDefault || false
+                                    config.table.enableColumnDragDropByDefault
                                 }
                                 enableColumnFilters={config.table.enableColumnFilters}
-                                enableMultiRowSelection={config.table.enableMultiRowSelection || true}
-                                enablePagination={config.table.enablePagination || true}
+                                enableMultiRowSelection={true}
+                                enablePagination={true}
                                 enableRowSelection={config.table.enableRowSelection}
                                 enableSorting={config.table.enableSorting}
+                                key={`${tableId}-${visibilityKey}`}
                                 manualFiltering={config.table.manualFiltering}
                                 manualPagination={config.table.manualPagination}
                                 manualSorting={config.table.manualSorting}
                                 onRowSelectionChange={onRowSelectionChange}
-                                queryFn={async (params) => {
+                                queryFn={async (_params) => {
                                     // We need to wrap the refresh function to match the expected signature
                                     await refetch()
                                     // Return the current data to avoid flickering

@@ -2,12 +2,15 @@
  * Hook for managing table configuration
  * Handles configuration retrieval, defaults, and translations
  */
-"use client"
+'use client'
 
-import { useMemo } from "react"
-import { useTranslations, useTableConfig as useProviderTableConfig } from "../providers/table-provider"
-import type { ColumnSort } from "@tanstack/react-table"
-import { useTableTranslations } from "./use-table-translations"
+import type { ColumnSort } from '@tanstack/react-table'
+import { useMemo } from 'react'
+import {
+    useTableConfig as useProviderTableConfig,
+    useTranslations
+} from '../providers/table-provider'
+import { useTableTranslations } from './use-table-translations'
 
 /**
  * Configuration for table columns in the catalogue
@@ -82,7 +85,7 @@ const DEFAULT_TABLE_CONFIG: TableCatalogueConfig = {
         mandatory: []
     },
     translations: {
-        namespace: "common",
+        namespace: 'common',
         keys: {}
     }
 }
@@ -99,11 +102,11 @@ export function useTableConfig(tableType: string) {
     // Get table configuration with fallback to defaults
     const config = useMemo(() => {
         const tableConfig = getTableConfig?.(tableType) as TableCatalogueConfig | undefined
-        
+
         if (!tableConfig) {
             return DEFAULT_TABLE_CONFIG
         }
-        
+
         return tableConfig
     }, [getTableConfig, tableType])
 
@@ -112,7 +115,7 @@ export function useTableConfig(tableType: string) {
         if (!config.translations?.keys) {
             return baseTranslations
         }
-        
+
         return {
             ...baseTranslations,
             ...Object.entries(config.translations.keys).reduce(

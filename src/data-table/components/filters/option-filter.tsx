@@ -2,10 +2,12 @@
  * Option filter component
  * Provides filtering for single-option columns with search and faceted counts
  */
-"use client"
+'use client'
 
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { Check, ChevronDown, X } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
     Command,
     CommandEmpty,
@@ -13,25 +15,19 @@ import {
     CommandInput,
     CommandItem,
     CommandList
-} from "@/components/ui/command"
-import { Label } from "@/components/ui/label"
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger
-} from "@/components/ui/popover"
+} from '@/components/ui/command'
+import { Label } from '@/components/ui/label'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue
-} from "@/components/ui/select"
-import { cn } from "@/lib/utils"
-import { Check, ChevronDown, X } from "lucide-react"
-import { useCallback, useEffect, useMemo, useState } from "react"
-import type { ColumnOption, FilterOperators } from "../../types/filter-types"
-import { FILTER_OPERATORS_LABELS, DEFAULT_OPERATORS } from "../../types/filter-types"
+} from '@/components/ui/select'
+import { cn } from '@/lib/utils'
+import type { ColumnOption, FilterOperators } from '../../types/filter-types'
+import { DEFAULT_OPERATORS, FILTER_OPERATORS_LABELS } from '../../types/filter-types'
 
 export interface OptionFilterProps {
     /** Current filter value - single value or array for isAnyOf/isNoneOf */
@@ -72,11 +68,11 @@ export function OptionFilter({
     label,
     showOperator = true,
     showCounts = true,
-    placeholder = "Select option..."
+    placeholder = 'Select option...'
 }: OptionFilterProps) {
     const [internalValue, setInternalValue] = useState(value)
     const [isOpen, setIsOpen] = useState(false)
-    const [searchTerm, setSearchTerm] = useState("")
+    const [searchTerm, setSearchTerm] = useState('')
 
     // Sync internal value with prop
     useEffect(() => {
@@ -84,74 +80,96 @@ export function OptionFilter({
     }, [value])
 
     // Handle value change
-    const handleValueChange = useCallback((newValue: string | string[]) => {
-        setInternalValue(newValue)
-        onValueChange(newValue)
-    }, [onValueChange])
+    const handleValueChange = useCallback(
+        (newValue: string | string[]) => {
+            setInternalValue(newValue)
+            onValueChange(newValue)
+        },
+        [onValueChange]
+    )
 
     // Check if this operator needs a value input
     const needsValue = !['isEmpty', 'isNotEmpty'].includes(operator)
     const isMultiple = ['isAnyOf', 'isNoneOf'].includes(operator)
     const currentSingleValue = Array.isArray(internalValue) ? internalValue[0] : internalValue
-    const currentMultipleValue = Array.isArray(internalValue) ? internalValue : (internalValue ? [internalValue] : [])
+    const currentMultipleValue = Array.isArray(internalValue)
+        ? internalValue
+        : internalValue
+          ? [internalValue]
+          : []
 
     // Filter options based on search term
     const filteredOptions = useMemo(() => {
-        if (!searchTerm) return options
-        return options.filter(option => 
-            option.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            option.value.toLowerCase().includes(searchTerm.toLowerCase())
+        if (!searchTerm) {
+            return options
+        }
+        return options.filter(
+            (option) =>
+                option.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                option.value.toLowerCase().includes(searchTerm.toLowerCase())
         )
     }, [options, searchTerm])
 
     // Handle single option selection
-    const handleSingleOptionSelect = useCallback((optionValue: string) => {
-        handleValueChange(optionValue)
-        setIsOpen(false)
-    }, [handleValueChange])
+    const handleSingleOptionSelect = useCallback(
+        (optionValue: string) => {
+            handleValueChange(optionValue)
+            setIsOpen(false)
+        },
+        [handleValueChange]
+    )
 
     // Handle multiple option selection
-    const handleMultipleOptionToggle = useCallback((optionValue: string) => {
-        const newValue = currentMultipleValue.includes(optionValue)
-            ? currentMultipleValue.filter(v => v !== optionValue)
-            : [...currentMultipleValue, optionValue]
-        handleValueChange(newValue)
-    }, [currentMultipleValue, handleValueChange])
+    const handleMultipleOptionToggle = useCallback(
+        (optionValue: string) => {
+            const newValue = currentMultipleValue.includes(optionValue)
+                ? currentMultipleValue.filter((v) => v !== optionValue)
+                : [...currentMultipleValue, optionValue]
+            handleValueChange(newValue)
+        },
+        [currentMultipleValue, handleValueChange]
+    )
 
     // Get option by value
-    const getOptionByValue = useCallback((optionValue: string) => {
-        return options.find(opt => opt.value === optionValue)
-    }, [options])
+    const getOptionByValue = useCallback(
+        (optionValue: string) => {
+            return options.find((opt) => opt.value === optionValue)
+        },
+        [options]
+    )
 
     // Format selected values for display
     const formatValueForDisplay = useCallback(() => {
         if (isMultiple) {
-            if (currentMultipleValue.length === 0) return placeholder
+            if (currentMultipleValue.length === 0) {
+                return placeholder
+            }
             if (currentMultipleValue.length === 1) {
                 const option = getOptionByValue(currentMultipleValue[0])
                 return option?.label || currentMultipleValue[0]
             }
             return `${currentMultipleValue.length} selected`
-        } else {
-            if (!currentSingleValue) return placeholder
-            const option = getOptionByValue(currentSingleValue)
-            return option?.label || currentSingleValue
         }
+        if (!currentSingleValue) {
+            return placeholder
+        }
+        const option = getOptionByValue(currentSingleValue)
+        return option?.label || currentSingleValue
     }, [isMultiple, currentMultipleValue, currentSingleValue, placeholder, getOptionByValue])
 
     return (
         <div className="space-y-3">
-            {label && (
-                <Label className="text-sm font-medium">{label}</Label>
-            )}
-            
+            {label && <Label className="font-medium text-sm">{label}</Label>}
+
             <div className="flex flex-col gap-3">
                 {/* Operator selector */}
                 {showOperator && (
                     <Select
-                        value={operator}
-                        onValueChange={(value) => onOperatorChange(value as FilterOperators['option'])}
                         disabled={disabled}
+                        onValueChange={(value) =>
+                            onOperatorChange(value as FilterOperators['option'])
+                        }
+                        value={operator}
                     >
                         <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select operator..." />
@@ -169,66 +187,80 @@ export function OptionFilter({
                 {/* Option picker */}
                 {needsValue && (
                     <div className="space-y-2">
-                        <Popover open={isOpen} onOpenChange={setIsOpen}>
+                        <Popover onOpenChange={setIsOpen} open={isOpen}>
                             <PopoverTrigger asChild>
                                 <Button
-                                    variant="outline"
-                                    role="combobox"
                                     aria-expanded={isOpen}
                                     className="w-full justify-between"
                                     disabled={disabled}
+                                    role="combobox"
+                                    variant="outline"
                                 >
                                     <span className="truncate">{formatValueForDisplay()}</span>
                                     <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                 </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-full p-0" align="start">
+                            <PopoverContent align="start" className="w-full p-0">
                                 <Command>
                                     <CommandInput
+                                        onValueChange={setSearchTerm}
                                         placeholder="Search options..."
                                         value={searchTerm}
-                                        onValueChange={setSearchTerm}
                                     />
                                     <CommandList>
                                         <CommandEmpty>No options found.</CommandEmpty>
                                         <CommandGroup>
                                             {filteredOptions.map((option) => {
-                                                const isSelected = isMultiple 
+                                                const isSelected = isMultiple
                                                     ? currentMultipleValue.includes(option.value)
                                                     : currentSingleValue === option.value
 
                                                 return (
                                                     <CommandItem
                                                         key={option.value}
-                                                        value={option.value}
                                                         onSelect={() => {
                                                             if (isMultiple) {
-                                                                handleMultipleOptionToggle(option.value)
+                                                                handleMultipleOptionToggle(
+                                                                    option.value
+                                                                )
                                                             } else {
-                                                                handleSingleOptionSelect(option.value)
+                                                                handleSingleOptionSelect(
+                                                                    option.value
+                                                                )
                                                             }
                                                         }}
+                                                        value={option.value}
                                                     >
-                                                        <div className="flex items-center gap-2 flex-1">
+                                                        <div className="flex flex-1 items-center gap-2">
                                                             {option.icon && (
-                                                                <span className="flex-shrink-0 w-4 h-4 flex items-center justify-center">
-                                                                    {typeof option.icon === 'function' 
-                                                                        ? <option.icon />
-                                                                        : option.icon
-                                                                    }
+                                                                <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center">
+                                                                    {typeof option.icon ===
+                                                                    'function' ? (
+                                                                        <option.icon />
+                                                                    ) : (
+                                                                        option.icon
+                                                                    )}
                                                                 </span>
                                                             )}
-                                                            <span className="flex-1">{option.label}</span>
-                                                            {showCounts && option.count !== undefined && (
-                                                                <Badge variant="secondary" className="text-xs">
-                                                                    {option.count}
-                                                                </Badge>
-                                                            )}
+                                                            <span className="flex-1">
+                                                                {option.label}
+                                                            </span>
+                                                            {showCounts &&
+                                                                option.count !== undefined && (
+                                                                    <Badge
+                                                                        className="text-xs"
+                                                                        variant="secondary"
+                                                                    >
+                                                                        {option.count}
+                                                                    </Badge>
+                                                                )}
                                                         </div>
                                                         <Check
                                                             className={cn(
-                                                                "ml-auto h-4 w-4",
-                                                                isSelected ? "opacity-100" : "opacity-0"
+                                                                'ml-auto h-4 w-4',
+                                                                isSelected
+                                                                    ? 'opacity-100'
+                                                                    : 'opacity-0'
                                                             )}
                                                         />
                                                     </CommandItem>
@@ -247,23 +279,27 @@ export function OptionFilter({
                                     const option = getOptionByValue(selectedValue)
                                     return (
                                         <Badge
+                                            className="text-xs"
                                             key={selectedValue}
                                             variant="secondary"
-                                            className="text-xs"
                                         >
                                             {option?.icon && (
-                                                <span className="mr-1 w-3 h-3 flex items-center justify-center">
-                                                    {typeof option.icon === 'function'
-                                                        ? <option.icon />
-                                                        : option.icon
-                                                    }
+                                                <span className="mr-1 flex h-3 w-3 items-center justify-center">
+                                                    {typeof option.icon === 'function' ? (
+                                                        <option.icon />
+                                                    ) : (
+                                                        option.icon
+                                                    )}
                                                 </span>
                                             )}
                                             {option?.label || selectedValue}
                                             <button
-                                                className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                                className="ml-1 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                                onClick={() =>
+                                                    handleMultipleOptionToggle(selectedValue)
+                                                }
                                                 onKeyDown={(e) => {
-                                                    if (e.key === "Enter") {
+                                                    if (e.key === 'Enter') {
                                                         handleMultipleOptionToggle(selectedValue)
                                                     }
                                                 }}
@@ -271,7 +307,6 @@ export function OptionFilter({
                                                     e.preventDefault()
                                                     e.stopPropagation()
                                                 }}
-                                                onClick={() => handleMultipleOptionToggle(selectedValue)}
                                             >
                                                 <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
                                             </button>
@@ -285,8 +320,9 @@ export function OptionFilter({
 
                 {/* Info text for operators that don't need values */}
                 {!needsValue && (
-                    <div className="text-sm text-muted-foreground italic">
-                        This filter will show rows where the field {operator === 'isEmpty' ? 'is empty' : 'is not empty'}.
+                    <div className="text-muted-foreground text-sm italic">
+                        This filter will show rows where the field{' '}
+                        {operator === 'isEmpty' ? 'is empty' : 'is not empty'}.
                     </div>
                 )}
             </div>
@@ -303,8 +339,11 @@ export function CompactOptionFilter({
     options,
     onValueChange,
     disabled = false,
-    placeholder = "Select..."
-}: Pick<OptionFilterProps, 'value' | 'operator' | 'options' | 'onValueChange' | 'disabled' | 'placeholder'>) {
+    placeholder = 'Select...'
+}: Pick<
+    OptionFilterProps,
+    'value' | 'operator' | 'options' | 'onValueChange' | 'disabled' | 'placeholder'
+>) {
     const [internalValue, setInternalValue] = useState(value)
     const [isOpen, setIsOpen] = useState(false)
 
@@ -312,76 +351,92 @@ export function CompactOptionFilter({
         setInternalValue(value)
     }, [value])
 
-    const handleValueChange = useCallback((newValue: string | string[]) => {
-        setInternalValue(newValue)
-        onValueChange(newValue)
-    }, [onValueChange])
+    const handleValueChange = useCallback(
+        (newValue: string | string[]) => {
+            setInternalValue(newValue)
+            onValueChange(newValue)
+        },
+        [onValueChange]
+    )
 
     const needsValue = !['isEmpty', 'isNotEmpty'].includes(operator)
     const isMultiple = ['isAnyOf', 'isNoneOf'].includes(operator)
 
     if (!needsValue) {
         return (
-            <span className="text-xs text-muted-foreground">
+            <span className="text-muted-foreground text-xs">
                 {operator === 'isEmpty' ? 'is empty' : 'is not empty'}
             </span>
         )
     }
 
     const currentSingleValue = Array.isArray(internalValue) ? internalValue[0] : internalValue
-    const currentMultipleValue = Array.isArray(internalValue) ? internalValue : (internalValue ? [internalValue] : [])
+    const currentMultipleValue = Array.isArray(internalValue)
+        ? internalValue
+        : internalValue
+          ? [internalValue]
+          : []
 
-    const getOptionByValue = useCallback((optionValue: string) => {
-        return options.find(opt => opt.value === optionValue)
-    }, [options])
+    const getOptionByValue = useCallback(
+        (optionValue: string) => {
+            return options.find((opt) => opt.value === optionValue)
+        },
+        [options]
+    )
 
     const formatValueForDisplay = useCallback(() => {
         if (isMultiple) {
-            if (currentMultipleValue.length === 0) return placeholder
+            if (currentMultipleValue.length === 0) {
+                return placeholder
+            }
             if (currentMultipleValue.length === 1) {
                 const option = getOptionByValue(currentMultipleValue[0])
                 return option?.label || currentMultipleValue[0]
             }
             return `${currentMultipleValue.length} items`
-        } else {
-            if (!currentSingleValue) return placeholder
-            const option = getOptionByValue(currentSingleValue)
-            return option?.label || currentSingleValue
         }
+        if (!currentSingleValue) {
+            return placeholder
+        }
+        const option = getOptionByValue(currentSingleValue)
+        return option?.label || currentSingleValue
     }, [isMultiple, currentMultipleValue, currentSingleValue, placeholder, getOptionByValue])
 
     return (
-        <Popover open={isOpen} onOpenChange={setIsOpen}>
+        <Popover onOpenChange={setIsOpen} open={isOpen}>
             <PopoverTrigger asChild>
                 <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 px-2 text-xs font-normal justify-between max-w-32"
+                    className="h-6 max-w-32 justify-between px-2 font-normal text-xs"
                     disabled={disabled}
+                    size="sm"
+                    variant="ghost"
                 >
                     <span className="truncate">{formatValueForDisplay()}</span>
                     <ChevronDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-48 p-0" align="start">
+            <PopoverContent align="start" className="w-48 p-0">
                 <Command>
                     <CommandInput placeholder="Search..." />
                     <CommandList>
                         <CommandEmpty>No options found.</CommandEmpty>
                         <CommandGroup>
                             {options.map((option) => {
-                                const isSelected = isMultiple 
+                                const isSelected = isMultiple
                                     ? currentMultipleValue.includes(option.value)
                                     : currentSingleValue === option.value
 
                                 return (
                                     <CommandItem
                                         key={option.value}
-                                        value={option.value}
                                         onSelect={() => {
                                             if (isMultiple) {
-                                                const newValue = currentMultipleValue.includes(option.value)
-                                                    ? currentMultipleValue.filter(v => v !== option.value)
+                                                const newValue = currentMultipleValue.includes(
+                                                    option.value
+                                                )
+                                                    ? currentMultipleValue.filter(
+                                                          (v) => v !== option.value
+                                                      )
                                                     : [...currentMultipleValue, option.value]
                                                 handleValueChange(newValue)
                                             } else {
@@ -389,22 +444,24 @@ export function CompactOptionFilter({
                                                 setIsOpen(false)
                                             }
                                         }}
+                                        value={option.value}
                                     >
-                                        <div className="flex items-center gap-2 flex-1">
+                                        <div className="flex flex-1 items-center gap-2">
                                             {option.icon && (
-                                                <span className="flex-shrink-0 w-3 h-3 flex items-center justify-center">
-                                                    {typeof option.icon === 'function' 
-                                                        ? <option.icon />
-                                                        : option.icon
-                                                    }
+                                                <span className="flex h-3 w-3 flex-shrink-0 items-center justify-center">
+                                                    {typeof option.icon === 'function' ? (
+                                                        <option.icon />
+                                                    ) : (
+                                                        option.icon
+                                                    )}
                                                 </span>
                                             )}
                                             <span className="flex-1 text-xs">{option.label}</span>
                                         </div>
                                         <Check
                                             className={cn(
-                                                "ml-auto h-3 w-3",
-                                                isSelected ? "opacity-100" : "opacity-0"
+                                                'ml-auto h-3 w-3',
+                                                isSelected ? 'opacity-100' : 'opacity-0'
                                             )}
                                         />
                                     </CommandItem>
@@ -416,4 +473,4 @@ export function CompactOptionFilter({
             </PopoverContent>
         </Popover>
     )
-} 
+}

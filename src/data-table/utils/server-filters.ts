@@ -1,7 +1,7 @@
 /**
  * Utilities for handling server-side filtering in DataTable
  */
-"use client"
+'use client'
 
 /**
  * Interface for complex filter objects
@@ -28,23 +28,25 @@ interface Filter {
  */
 export function applyComplexFilters<T>(data: T[], complexFilters: ComplexFilter[]) {
     // If no complex filters, return data as is
-    if (complexFilters.length === 0) return data
+    if (complexFilters.length === 0) {
+        return data
+    }
 
     // Apply each complex filter
     return data.filter((item) => {
         // Item must match all complex filters
         return complexFilters.every((filter) => {
             const fieldValue = String(
-                (item as Record<string, unknown>)[filter.id] || ""
+                (item as Record<string, unknown>)[filter.id] || ''
             ).toLowerCase()
 
             // Apply the appropriate operator
             switch (filter.operator) {
-                case "contains":
+                case 'contains':
                     return fieldValue.includes(filter.value)
-                case "endsWith":
+                case 'endsWith':
                     return fieldValue.endsWith(filter.value)
-                case "startsWith":
+                case 'startsWith':
                     return fieldValue.startsWith(filter.value)
                 default:
                     return true // Unknown operator, don't filter
@@ -85,7 +87,7 @@ export function processServerFilters(filters: Filter[]) {
     // Process each filter
     for (const filter of filters) {
         // Handle different filter types based on the value
-        if (typeof filter.value === "object" && filter.value !== null) {
+        if (typeof filter.value === 'object' && filter.value !== null) {
             // For complex filters, we need special handling
             const valueObj = filter.value as Record<string, unknown>
 
@@ -93,18 +95,12 @@ export function processServerFilters(filters: Filter[]) {
                 // For 'contains' operator, store for client-side filtering
                 complexFilters.push({
                     id: filter.id,
-                    operator: "contains",
-                    value: String(valueObj.contains || "").toLowerCase()
+                    operator: 'contains',
+                    value: String(valueObj.contains || '').toLowerCase()
                 })
                 // Also add to serverFilters in a format the server can understand
                 // Use the complete object structure for server-side processing
                 serverFilters[filter.id] = { contains: valueObj.contains }
-
-                // Log for debugging
-                console.log(
-                    `Processing 'contains' filter for ${filter.id} with value: ${valueObj.contains}`
-                )
-                console.log("Server filter value set to:", serverFilters[filter.id])
             } else if (valueObj.value !== undefined) {
                 // Use only the value part, not the operator
                 serverFilters[filter.id] = valueObj.value
@@ -112,7 +108,7 @@ export function processServerFilters(filters: Filter[]) {
                 // For 'equals' operator, use the exact value
                 complexFilters.push({
                     id: filter.id,
-                    operator: "equals",
+                    operator: 'equals',
                     value: String(valueObj.equals)
                 })
                 // Add to serverFilters in a format the server can understand
@@ -121,7 +117,7 @@ export function processServerFilters(filters: Filter[]) {
                 // For 'startsWith' operator, use the exact value
                 complexFilters.push({
                     id: filter.id,
-                    operator: "startsWith",
+                    operator: 'startsWith',
                     value: String(valueObj.startsWith)
                 })
                 // Add to serverFilters in a format the server can understand
@@ -130,13 +126,13 @@ export function processServerFilters(filters: Filter[]) {
                 // For 'endsWith' operator, use the exact value
                 complexFilters.push({
                     id: filter.id,
-                    operator: "endsWith",
+                    operator: 'endsWith',
                     value: String(valueObj.endsWith)
                 })
                 // Add to serverFilters in a format the server can understand
                 serverFilters[filter.id] = valueObj.endsWith
             }
-        } else if (filter.value !== undefined && filter.value !== "") {
+        } else if (filter.value !== undefined && filter.value !== '') {
             // For simple equality filters
             serverFilters[filter.id] = filter.value
         }

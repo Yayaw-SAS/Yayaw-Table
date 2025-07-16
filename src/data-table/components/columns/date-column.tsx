@@ -2,12 +2,12 @@
  * Date column component for data tables
  * Provides standardized display of date values with formatting options
  */
-"use client"
+'use client'
 
-import type { CellContext, ColumnDef } from "@tanstack/react-table"
-import { CalendarDays, type LucideIcon } from "lucide-react"
+import type { CellContext, ColumnDef } from '@tanstack/react-table'
+import { CalendarDays, type LucideIcon } from 'lucide-react'
 
-import { DateCell } from "../cells/date-cell"
+import { DateCell } from '../cells/date-cell'
 
 /**
  * Custom properties for our column definitions
@@ -76,7 +76,7 @@ type ExtendedColumnDef<TData> = ColumnDef<TData> & CustomColumnProps
 export function createDateColumn<TData>({
     accessorKey,
     className,
-    dateFormat = "PPP",
+    dateFormat = 'PPP',
     enableColumnFilter = true,
     enableHiding = true,
     enableSorting = true,
@@ -103,6 +103,6 @@ export function createDateColumn<TData>({
         header: header || accessorKey,
         icon: CalendarDays,
         id: accessorKey,
-        type: "date"
+        type: 'date'
     }
 }

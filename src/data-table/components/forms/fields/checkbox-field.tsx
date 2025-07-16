@@ -1,9 +1,10 @@
 /**
  * Checkbox field component for forms
  */
-"use client"
+'use client'
 
-import { Checkbox } from "@/components/ui/checkbox"
+import type { FieldValues, UseFormReturn } from 'react-hook-form'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
     FormControl,
     FormDescription,
@@ -11,11 +12,10 @@ import {
     FormItem,
     FormLabel,
     FormMessage
-} from "@/components/ui/form"
-import { useTranslations } from "../../../providers/table-provider"
-import type { FieldValues, UseFormReturn } from "react-hook-form"
+} from '@/components/ui/form'
+import { useTranslations } from '../../../providers/table-provider'
 
-import type { CheckboxFieldDefinition } from "../types"
+import type { CheckboxFieldDefinition } from '../types'
 
 interface CheckboxFieldProps<TFieldValues extends FieldValues> {
     /**

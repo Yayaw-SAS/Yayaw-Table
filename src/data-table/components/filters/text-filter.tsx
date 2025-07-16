@@ -2,20 +2,20 @@
  * Text filter component
  * Provides filtering for text-based columns with various text operators
  */
-"use client"
+'use client'
 
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { useCallback, useEffect, useState } from 'react'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue
-} from "@/components/ui/select"
-import { useCallback, useEffect, useState } from "react"
-import type { FilterOperators } from "../../types/filter-types"
-import { FILTER_OPERATORS_LABELS, DEFAULT_OPERATORS } from "../../types/filter-types"
+} from '@/components/ui/select'
+import type { FilterOperators } from '../../types/filter-types'
+import { DEFAULT_OPERATORS, FILTER_OPERATORS_LABELS } from '../../types/filter-types'
 
 export interface TextFilterProps {
     /** Current filter value */
@@ -45,7 +45,7 @@ export function TextFilter({
     value,
     operator,
     operators = DEFAULT_OPERATORS.text,
-    placeholder = "Enter text...",
+    placeholder = 'Enter text...',
     disabled = false,
     onValueChange,
     onOperatorChange,
@@ -60,39 +60,45 @@ export function TextFilter({
     }, [value])
 
     // Handle value change with debouncing
-    const handleValueChange = useCallback((newValue: string) => {
-        setInternalValue(newValue)
-        
-        // Debounce the callback
-        const timeoutId = setTimeout(() => {
-            onValueChange(newValue)
-        }, 300)
+    const handleValueChange = useCallback(
+        (newValue: string) => {
+            setInternalValue(newValue)
 
-        return () => clearTimeout(timeoutId)
-    }, [onValueChange])
+            // Debounce the callback
+            const timeoutId = setTimeout(() => {
+                onValueChange(newValue)
+            }, 300)
+
+            return () => clearTimeout(timeoutId)
+        },
+        [onValueChange]
+    )
 
     // Handle immediate value change for certain operators
-    const handleImmediateChange = useCallback((newValue: string) => {
-        setInternalValue(newValue)
-        onValueChange(newValue)
-    }, [onValueChange])
+    const handleImmediateChange = useCallback(
+        (newValue: string) => {
+            setInternalValue(newValue)
+            onValueChange(newValue)
+        },
+        [onValueChange]
+    )
 
     // Check if this operator needs a value input
     const needsValue = !['isEmpty', 'isNotEmpty'].includes(operator)
 
     return (
         <div className="space-y-3">
-            {label && (
-                <Label className="text-sm font-medium">{label}</Label>
-            )}
-            
+            {label && <Label className="font-medium text-sm">{label}</Label>}
+
             <div className="flex flex-col gap-2">
                 {/* Operator selector */}
                 {showOperator && (
                     <Select
-                        value={operator}
-                        onValueChange={(value) => onOperatorChange(value as FilterOperators['text'])}
                         disabled={disabled}
+                        onValueChange={(value) =>
+                            onOperatorChange(value as FilterOperators['text'])
+                        }
+                        value={operator}
                     >
                         <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select operator..." />
@@ -110,20 +116,21 @@ export function TextFilter({
                 {/* Value input - only show if operator needs a value */}
                 {needsValue && (
                     <Input
+                        className="w-full"
+                        disabled={disabled}
+                        onBlur={(e) => handleImmediateChange(e.target.value)}
+                        onChange={(e) => handleValueChange(e.target.value)}
+                        placeholder={placeholder}
                         type="text"
                         value={internalValue}
-                        onChange={(e) => handleValueChange(e.target.value)}
-                        onBlur={(e) => handleImmediateChange(e.target.value)}
-                        placeholder={placeholder}
-                        disabled={disabled}
-                        className="w-full"
                     />
                 )}
 
                 {/* Info text for operators that don't need values */}
                 {!needsValue && (
-                    <div className="text-sm text-muted-foreground italic">
-                        This filter will show rows where the field {operator === 'isEmpty' ? 'is empty' : 'is not empty'}.
+                    <div className="text-muted-foreground text-sm italic">
+                        This filter will show rows where the field{' '}
+                        {operator === 'isEmpty' ? 'is empty' : 'is not empty'}.
                     </div>
                 )}
             </div>
@@ -138,7 +145,7 @@ export function CompactTextFilter({
     value,
     operator,
     onValueChange,
-    placeholder = "Type...",
+    placeholder = 'Type...',
     disabled = false
 }: Pick<TextFilterProps, 'value' | 'operator' | 'onValueChange' | 'placeholder' | 'disabled'>) {
     const [internalValue, setInternalValue] = useState(value)
@@ -147,19 +154,22 @@ export function CompactTextFilter({
         setInternalValue(value)
     }, [value])
 
-    const handleChange = useCallback((newValue: string) => {
-        setInternalValue(newValue)
-        const timeoutId = setTimeout(() => {
-            onValueChange(newValue)
-        }, 300)
-        return () => clearTimeout(timeoutId)
-    }, [onValueChange])
+    const handleChange = useCallback(
+        (newValue: string) => {
+            setInternalValue(newValue)
+            const timeoutId = setTimeout(() => {
+                onValueChange(newValue)
+            }, 300)
+            return () => clearTimeout(timeoutId)
+        },
+        [onValueChange]
+    )
 
     const needsValue = !['isEmpty', 'isNotEmpty'].includes(operator)
 
     if (!needsValue) {
         return (
-            <span className="text-xs text-muted-foreground">
+            <span className="text-muted-foreground text-xs">
                 {operator === 'isEmpty' ? 'is empty' : 'is not empty'}
             </span>
         )
@@ -167,12 +177,12 @@ export function CompactTextFilter({
 
     return (
         <Input
-            type="text"
-            value={internalValue}
+            className="h-6 text-xs"
+            disabled={disabled}
             onChange={(e) => handleChange(e.target.value)}
             placeholder={placeholder}
-            disabled={disabled}
-            className="h-6 text-xs"
+            type="text"
+            value={internalValue}
         />
     )
-} 
+}

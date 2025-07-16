@@ -2,12 +2,12 @@
  * Actions column component for data tables
  * Provides standardized display of row action buttons
  */
-"use client"
+'use client'
 
-import type { Row } from "@tanstack/react-table"
-import type { ReactNode } from "react"
+import type { Row } from '@tanstack/react-table'
+import type { ReactNode } from 'react'
 
-import { ActionsCellWithTranslations } from "../cells/actions-cell"
+import { ActionsCellWithTranslations } from '../cells/actions-cell'
 
 export interface ActionItem<TData> {
     /**
@@ -47,7 +47,7 @@ export interface ActionItem<TData> {
     /**
      * Type of action (for predefined actions like edit and delete)
      */
-    type?: "custom" | "delete" | "duplicate" | "edit" | "view"
+    type?: 'custom' | 'delete' | 'duplicate' | 'edit' | 'view'
 }
 
 export interface ActionsColumnProps<TData> {
@@ -55,7 +55,7 @@ export interface ActionsColumnProps<TData> {
      * Actions to display for each row
      * Optional if standard actions (edit/delete) are provided
      */
-    actions?: Array<ActionItem<TData>>
+    actions?: ActionItem<TData>[]
 
     /**
      * Optional custom header text
@@ -120,7 +120,7 @@ export interface ActionsColumnProps<TData> {
 
 export function createActionsColumn<TData extends Record<string, unknown>>({
     actions = [],
-    header = "Actions",
+    header = 'Actions',
     includeDelete = true,
     includeDuplicate = true,
     includeEdit = true,
@@ -134,21 +134,15 @@ export function createActionsColumn<TData extends Record<string, unknown>>({
 }: ActionsColumnProps<TData>) {
     // Validate standard actions
     if (includeView && !onView) {
-        console.warn("[ActionsColumn] includeView is true but onView handler is not provided")
     }
 
     if (includeEdit && !onEdit) {
-        console.warn("[ActionsColumn] includeEdit is true but onEdit handler is not provided")
     }
 
     if (includeDuplicate && !onDuplicate) {
-        console.warn(
-            "[ActionsColumn] includeDuplicate is true but onDuplicate handler is not provided"
-        )
     }
 
     if (includeDelete && !onDelete) {
-        console.warn("[ActionsColumn] includeDelete is true but onDelete handler is not provided")
     }
 
     const column = {
@@ -176,14 +170,14 @@ export function createActionsColumn<TData extends Record<string, unknown>>({
         enablePinning: false, // Disable manual pinning by users
         enableSorting: false,
         header,
-        id: "actions",
+        id: 'actions',
         meta: {
             disableDrag: true,
             disableDrop: true,
-            fixedPosition: "end",
+            fixedPosition: 'end',
             isActionsColumn: true
         },
-        pinned: "right", // Pin this column to the right side
+        pinned: 'right', // Pin this column to the right side
         // Ensure the column is always visible
         size: 80 // Fixed width for actions column
     }

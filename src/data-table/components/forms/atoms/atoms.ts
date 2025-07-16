@@ -1,4 +1,4 @@
-import { atom } from "jotai"
+import { atom } from 'jotai'
 
 export interface TranslationConfig {
     keys: {
@@ -24,22 +24,22 @@ export interface TranslationConfig {
 
 export const translationConfigAtom = atom<TranslationConfig>({
     keys: {
-        cancel: "cancel",
+        cancel: 'cancel',
         categories: {
-            current: "categories.current",
-            empty: "categories.empty",
-            newPlaceholder: "categories.new_placeholder"
+            current: 'categories.current',
+            empty: 'categories.empty',
+            newPlaceholder: 'categories.new_placeholder'
         },
-        create: "create",
+        create: 'create',
         createForm: {
-            description: "create_form.description",
-            title: "create_form.title"
+            description: 'create_form.description',
+            title: 'create_form.title'
         },
-        error: "error",
-        errorDescription: "error_description",
-        submit: "submit",
-        success: "success",
-        successDescription: "success_description"
+        error: 'error',
+        errorDescription: 'error_description',
+        submit: 'submit',
+        success: 'success',
+        successDescription: 'success_description'
     },
-    namespace: "common"
+    namespace: 'common'
 })

@@ -2,7 +2,7 @@
  * Skeleton loader for the DataTable component
  * Displayed while the client component is loading
  */
-import { Skeleton } from "@/components/ui/skeleton"
+import { Skeleton } from '@/components/ui/skeleton'
 
 /**
  * Skeleton component for the DataTable

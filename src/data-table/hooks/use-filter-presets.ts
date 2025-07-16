@@ -3,12 +3,12 @@
  * Handles saving, loading, sharing, and organizing filter configurations
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type {
-    FilterPreset,
     AdvancedFilterState,
+    FilterComparison,
     FilterExport,
-    FilterComparison
+    FilterPreset
 } from '../types/advanced-filter-types'
 
 // Local storage keys
@@ -36,57 +36,63 @@ export interface UseFilterPresetsReturn {
     userPresets: FilterPreset[]
     recentPresets: FilterPreset[]
     popularPresets: FilterPreset[]
-    
+
     // Loading states
     isLoading: boolean
     isSaving: boolean
     isDeleting: boolean
-    
+
     // Actions
-    savePreset: (state: AdvancedFilterState, options: {
-        name: string
-        description?: string
-        isPublic?: boolean
-        tags?: string[]
-        icon?: string
-        color?: string
-    }) => Promise<FilterPreset>
-    
+    savePreset: (
+        state: AdvancedFilterState,
+        options: {
+            name: string
+            description?: string
+            isPublic?: boolean
+            tags?: string[]
+            icon?: string
+            color?: string
+        }
+    ) => Promise<FilterPreset>
+
     loadPreset: (presetId: string) => Promise<AdvancedFilterState>
     updatePreset: (presetId: string, updates: Partial<FilterPreset>) => Promise<void>
     deletePreset: (presetId: string) => Promise<void>
     duplicatePreset: (presetId: string, newName?: string) => Promise<FilterPreset>
-    
+
     // Organization
     addTag: (presetId: string, tag: string) => Promise<void>
     removeTag: (presetId: string, tag: string) => Promise<void>
     setFavorite: (presetId: string, isFavorite: boolean) => Promise<void>
-    
+
     // Export/Import
     exportPreset: (presetId: string, format?: 'json' | 'url') => Promise<string>
     exportAll: (format?: 'json' | 'zip') => Promise<string>
     importPreset: (data: string, format?: 'json' | 'url') => Promise<FilterPreset>
     importFromFile: (file: File) => Promise<FilterPreset[]>
-    
+
     // Sharing
-    sharePreset: (presetId: string, permissions?: {
-        canEdit: boolean
-        canDelete: boolean
-        expiresAt?: Date
-    }) => Promise<string>
-    
+    sharePreset: (
+        presetId: string,
+        permissions?: {
+            canEdit: boolean
+            canDelete: boolean
+            expiresAt?: Date
+        }
+    ) => Promise<string>
+
     // Analytics
     getUsageStats: () => {
         mostUsed: Array<{ presetId: string; count: number }>
         recentlyUsed: Array<{ presetId: string; lastUsed: Date }>
         totalUsage: number
     }
-    
+
     // Utilities
     validatePreset: (preset: Partial<FilterPreset>) => { isValid: boolean; errors: string[] }
     searchPresets: (query: string) => FilterPreset[]
     comparePresets: (presetA: string, presetB: string) => FilterComparison
-    
+
     // Settings
     settings: {
         autoSave: boolean
@@ -94,12 +100,14 @@ export interface UseFilterPresetsReturn {
         defaultTags: string[]
         notifications: boolean
     }
-    updateSettings: (newSettings: Partial<{
-        autoSave: boolean
-        maxRecent: number
-        defaultTags: string[]
-        notifications: boolean
-    }>) => void
+    updateSettings: (
+        newSettings: Partial<{
+            autoSave: boolean
+            maxRecent: number
+            defaultTags: string[]
+            notifications: boolean
+        }>
+    ) => void
 }
 
 /**
@@ -211,30 +219,31 @@ export function useFilterPresets(options: UseFilterPresetsOptions): UseFilterPre
     useEffect(() => {
         loadPresetsFromStorage()
         loadSettings()
-    }, [tableId])
+    }, [loadPresetsFromStorage, loadSettings])
 
     // Computed values
-    const systemPresets = useMemo(() => 
-        [...DEFAULT_SYSTEM_PRESETS, ...presets.filter(p => p.isSystem)], 
+    const systemPresets = useMemo(
+        () => [...DEFAULT_SYSTEM_PRESETS, ...presets.filter((p) => p.isSystem)],
         [presets]
     )
-    
-    const userPresets = useMemo(() => 
-        presets.filter(p => !p.isSystem), 
-        [presets]
-    )
-    
-    const recentPresets = useMemo(() => 
-        [...presets]
-            .sort((a, b) => (b.metadata.lastUsed?.getTime() || 0) - (a.metadata.lastUsed?.getTime() || 0))
-            .slice(0, settings.maxRecent), 
+
+    const userPresets = useMemo(() => presets.filter((p) => !p.isSystem), [presets])
+
+    const recentPresets = useMemo(
+        () =>
+            [...presets]
+                .sort(
+                    (a, b) =>
+                        (b.metadata.lastUsed?.getTime() || 0) -
+                        (a.metadata.lastUsed?.getTime() || 0)
+                )
+                .slice(0, settings.maxRecent),
         [presets, settings.maxRecent]
     )
-    
-    const popularPresets = useMemo(() => 
-        [...presets]
-            .sort((a, b) => b.metadata.usageCount - a.metadata.usageCount)
-            .slice(0, 10), 
+
+    const popularPresets = useMemo(
+        () =>
+            [...presets].sort((a, b) => b.metadata.usageCount - a.metadata.usageCount).slice(0, 10),
         [presets]
     )
 
@@ -252,25 +261,30 @@ export function useFilterPresets(options: UseFilterPresetsOptions): UseFilterPre
                         ...preset.metadata,
                         createdAt: new Date(preset.metadata.createdAt),
                         modifiedAt: new Date(preset.metadata.modifiedAt),
-                        lastUsed: preset.metadata.lastUsed ? new Date(preset.metadata.lastUsed) : undefined
+                        lastUsed: preset.metadata.lastUsed
+                            ? new Date(preset.metadata.lastUsed)
+                            : undefined
                     }
                 }))
                 setPresets(presetsWithDates)
             }
-        } catch (error) {
-            console.error('Failed to load presets from storage:', error)
+        } catch (_error) {
         } finally {
             setIsLoading(false)
         }
     }, [tableId])
 
-    const savePresetsToStorage = useCallback((newPresets: FilterPreset[]) => {
-        try {
-            localStorage.setItem(`${PRESETS_STORAGE_KEY}_${tableId}`, JSON.stringify(newPresets))
-        } catch (error) {
-            console.error('Failed to save presets to storage:', error)
-        }
-    }, [tableId])
+    const savePresetsToStorage = useCallback(
+        (newPresets: FilterPreset[]) => {
+            try {
+                localStorage.setItem(
+                    `${PRESETS_STORAGE_KEY}_${tableId}`,
+                    JSON.stringify(newPresets)
+                )
+            } catch (_error) {}
+        },
+        [tableId]
+    )
 
     const loadSettings = useCallback(() => {
         try {
@@ -278,10 +292,8 @@ export function useFilterPresets(options: UseFilterPresetsOptions): UseFilterPre
             if (stored) {
                 setSettings({ ...settings, ...JSON.parse(stored) })
             }
-        } catch (error) {
-            console.error('Failed to load settings:', error)
-        }
-    }, [tableId])
+        } catch (_error) {}
+    }, [tableId, settings])
 
     // Track usage
     const trackUsage = useCallback((presetId: string) => {
@@ -289,246 +301,260 @@ export function useFilterPresets(options: UseFilterPresetsOptions): UseFilterPre
             const usage = JSON.parse(localStorage.getItem(USAGE_STORAGE_KEY) || '{}')
             usage[presetId] = (usage[presetId] || 0) + 1
             localStorage.setItem(USAGE_STORAGE_KEY, JSON.stringify(usage))
-        } catch (error) {
-            console.error('Failed to track usage:', error)
-        }
+        } catch (_error) {}
     }, [])
 
     // Main actions
-    const savePreset = useCallback(async (
-        state: AdvancedFilterState, 
-        options: {
-            name: string
-            description?: string
-            isPublic?: boolean
-            tags?: string[]
-            icon?: string
-            color?: string
-        }
-    ): Promise<FilterPreset> => {
-        setIsSaving(true)
-        try {
-            const preset: FilterPreset = {
-                id: generatePresetId(),
-                name: options.name,
-                description: options.description,
-                icon: options.icon,
-                color: options.color,
-                state,
-                isPublic: options.isPublic || false,
-                isSystem: false,
-                tags: options.tags || settings.defaultTags,
-                metadata: {
-                    createdBy: currentUser,
-                    createdAt: new Date(),
-                    modifiedAt: new Date(),
-                    usageCount: 0,
-                    version: '1.0'
-                }
+    const savePreset = useCallback(
+        async (
+            state: AdvancedFilterState,
+            options: {
+                name: string
+                description?: string
+                isPublic?: boolean
+                tags?: string[]
+                icon?: string
+                color?: string
             }
-
-            const newPresets = [...presets, preset]
-            
-            // Limit number of presets
-            if (newPresets.length > maxPresets) {
-                // Remove oldest non-system presets
-                const sortedPresets = newPresets
-                    .filter(p => !p.isSystem)
-                    .sort((a, b) => a.metadata.createdAt.getTime() - b.metadata.createdAt.getTime())
-                
-                const toRemove = sortedPresets.slice(0, newPresets.length - maxPresets)
-                const filtered = newPresets.filter(p => !toRemove.includes(p))
-                setPresets(filtered)
-                savePresetsToStorage(filtered)
-            } else {
-                setPresets(newPresets)
-                savePresetsToStorage(newPresets)
-            }
-
-            return preset
-        } finally {
-            setIsSaving(false)
-        }
-    }, [presets, settings.defaultTags, currentUser, maxPresets, savePresetsToStorage])
-
-    const loadPreset = useCallback(async (presetId: string): Promise<AdvancedFilterState> => {
-        const preset = presets.find(p => p.id === presetId) || 
-                      systemPresets.find(p => p.id === presetId)
-        
-        if (!preset) {
-            throw new Error(`Preset ${presetId} not found`)
-        }
-
-        // Update usage tracking
-        trackUsage(presetId)
-        
-        // Update last used timestamp
-        const updatedPresets = presets.map(p => 
-            p.id === presetId 
-                ? {
-                    ...p,
+        ): Promise<FilterPreset> => {
+            setIsSaving(true)
+            try {
+                const preset: FilterPreset = {
+                    id: generatePresetId(),
+                    name: options.name,
+                    description: options.description,
+                    icon: options.icon,
+                    color: options.color,
+                    state,
+                    isPublic: options.isPublic,
+                    isSystem: false,
+                    tags: options.tags || settings.defaultTags,
                     metadata: {
-                        ...p.metadata,
-                        lastUsed: new Date(),
-                        usageCount: p.metadata.usageCount + 1
+                        createdBy: currentUser,
+                        createdAt: new Date(),
+                        modifiedAt: new Date(),
+                        usageCount: 0,
+                        version: '1.0'
                     }
                 }
-                : p
-        )
-        
-        setPresets(updatedPresets)
-        savePresetsToStorage(updatedPresets)
 
-        return preset.state
-    }, [presets, systemPresets, trackUsage, savePresetsToStorage])
+                const newPresets = [...presets, preset]
 
-    const updatePreset = useCallback(async (
-        presetId: string, 
-        updates: Partial<FilterPreset>
-    ): Promise<void> => {
-        const updatedPresets = presets.map(preset => 
-            preset.id === presetId 
-                ? {
-                    ...preset,
-                    ...updates,
-                    metadata: {
-                        ...preset.metadata,
-                        ...updates.metadata,
-                        modifiedAt: new Date()
-                    }
+                // Limit number of presets
+                if (newPresets.length > maxPresets) {
+                    // Remove oldest non-system presets
+                    const sortedPresets = newPresets
+                        .filter((p) => !p.isSystem)
+                        .sort(
+                            (a, b) =>
+                                a.metadata.createdAt.getTime() - b.metadata.createdAt.getTime()
+                        )
+
+                    const toRemove = sortedPresets.slice(0, newPresets.length - maxPresets)
+                    const filtered = newPresets.filter((p) => !toRemove.includes(p))
+                    setPresets(filtered)
+                    savePresetsToStorage(filtered)
+                } else {
+                    setPresets(newPresets)
+                    savePresetsToStorage(newPresets)
                 }
-                : preset
-        )
-        
-        setPresets(updatedPresets)
-        savePresetsToStorage(updatedPresets)
-    }, [presets, savePresetsToStorage])
 
-    const deletePreset = useCallback(async (presetId: string): Promise<void> => {
-        setIsDeleting(true)
-        try {
-            const preset = presets.find(p => p.id === presetId)
-            if (preset?.isSystem) {
-                throw new Error('Cannot delete system presets')
+                return preset
+            } finally {
+                setIsSaving(false)
+            }
+        },
+        [presets, settings.defaultTags, currentUser, maxPresets, savePresetsToStorage]
+    )
+
+    const loadPreset = useCallback(
+        async (presetId: string): Promise<AdvancedFilterState> => {
+            const preset =
+                presets.find((p) => p.id === presetId) ||
+                systemPresets.find((p) => p.id === presetId)
+
+            if (!preset) {
+                throw new Error(`Preset ${presetId} not found`)
             }
 
-            const updatedPresets = presets.filter(p => p.id !== presetId)
+            // Update usage tracking
+            trackUsage(presetId)
+
+            // Update last used timestamp
+            const updatedPresets = presets.map((p) =>
+                p.id === presetId
+                    ? {
+                          ...p,
+                          metadata: {
+                              ...p.metadata,
+                              lastUsed: new Date(),
+                              usageCount: p.metadata.usageCount + 1
+                          }
+                      }
+                    : p
+            )
+
             setPresets(updatedPresets)
             savePresetsToStorage(updatedPresets)
-        } finally {
-            setIsDeleting(false)
-        }
-    }, [presets, savePresetsToStorage])
 
-    const duplicatePreset = useCallback(async (
-        presetId: string, 
-        newName?: string
-    ): Promise<FilterPreset> => {
-        const original = presets.find(p => p.id === presetId)
-        if (!original) {
-            throw new Error(`Preset ${presetId} not found`)
-        }
+            return preset.state
+        },
+        [presets, systemPresets, trackUsage, savePresetsToStorage]
+    )
 
-        return savePreset(original.state, {
-            name: newName || `${original.name} (Copy)`,
-            description: original.description,
-            tags: original.tags,
-            icon: original.icon,
-            color: original.color
-        })
-    }, [presets, savePreset])
+    const updatePreset = useCallback(
+        async (presetId: string, updates: Partial<FilterPreset>): Promise<void> => {
+            const updatedPresets = presets.map((preset) =>
+                preset.id === presetId
+                    ? {
+                          ...preset,
+                          ...updates,
+                          metadata: {
+                              ...preset.metadata,
+                              ...updates.metadata,
+                              modifiedAt: new Date()
+                          }
+                      }
+                    : preset
+            )
+
+            setPresets(updatedPresets)
+            savePresetsToStorage(updatedPresets)
+        },
+        [presets, savePresetsToStorage]
+    )
+
+    const deletePreset = useCallback(
+        async (presetId: string): Promise<void> => {
+            setIsDeleting(true)
+            try {
+                const preset = presets.find((p) => p.id === presetId)
+                if (preset?.isSystem) {
+                    throw new Error('Cannot delete system presets')
+                }
+
+                const updatedPresets = presets.filter((p) => p.id !== presetId)
+                setPresets(updatedPresets)
+                savePresetsToStorage(updatedPresets)
+            } finally {
+                setIsDeleting(false)
+            }
+        },
+        [presets, savePresetsToStorage]
+    )
+
+    const duplicatePreset = useCallback(
+        async (presetId: string, newName?: string): Promise<FilterPreset> => {
+            const original = presets.find((p) => p.id === presetId)
+            if (!original) {
+                throw new Error(`Preset ${presetId} not found`)
+            }
+
+            return savePreset(original.state, {
+                name: newName || `${original.name} (Copy)`,
+                description: original.description,
+                tags: original.tags,
+                icon: original.icon,
+                color: original.color
+            })
+        },
+        [presets, savePreset]
+    )
 
     // Export/Import functions
-    const exportPreset = useCallback(async (
-        presetId: string, 
-        format: 'json' | 'url' = 'json'
-    ): Promise<string> => {
-        const preset = presets.find(p => p.id === presetId)
-        if (!preset) {
-            throw new Error(`Preset ${presetId} not found`)
-        }
-
-        const exportData: FilterExport = {
-            version: '1.0',
-            type: 'preset',
-            name: preset.name,
-            description: preset.description,
-            data: preset,
-            metadata: {
-                exportedBy: currentUser,
-                exportedAt: new Date(),
-                sourceSystem: 'data-table-filters',
-                compatibility: ['1.0']
+    const exportPreset = useCallback(
+        async (presetId: string, format: 'json' | 'url' = 'json'): Promise<string> => {
+            const preset = presets.find((p) => p.id === presetId)
+            if (!preset) {
+                throw new Error(`Preset ${presetId} not found`)
             }
-        }
 
-        if (format === 'json') {
-            return JSON.stringify(exportData, null, 2)
-        } else {
+            const exportData: FilterExport = {
+                version: '1.0',
+                type: 'preset',
+                name: preset.name,
+                description: preset.description,
+                data: preset,
+                metadata: {
+                    exportedBy: currentUser,
+                    exportedAt: new Date(),
+                    sourceSystem: 'data-table-filters',
+                    compatibility: ['1.0']
+                }
+            }
+
+            if (format === 'json') {
+                return JSON.stringify(exportData, null, 2)
+            }
             // URL format - base64 encoded
             const compressed = btoa(JSON.stringify(exportData))
             return `${window.location.origin}${window.location.pathname}?preset=${compressed}`
-        }
-    }, [presets, currentUser])
+        },
+        [presets, currentUser]
+    )
 
-    const importPreset = useCallback(async (
-        data: string, 
-        format: 'json' | 'url' = 'json'
-    ): Promise<FilterPreset> => {
-        try {
-            let exportData: FilterExport
+    const importPreset = useCallback(
+        async (data: string, format: 'json' | 'url' = 'json'): Promise<FilterPreset> => {
+            try {
+                let exportData: FilterExport
 
-            if (format === 'url') {
-                // Extract from URL parameter
-                const compressed = data.includes('preset=') 
-                    ? data.split('preset=')[1] 
-                    : data
-                exportData = JSON.parse(atob(compressed))
-            } else {
-                exportData = JSON.parse(data)
-            }
-
-            if (exportData.type !== 'preset') {
-                throw new Error('Invalid export format')
-            }
-
-            const preset = exportData.data as FilterPreset
-            
-            // Generate new ID and update metadata
-            const newPreset: FilterPreset = {
-                ...preset,
-                id: generatePresetId(),
-                isSystem: false,
-                metadata: {
-                    ...preset.metadata,
-                    createdBy: currentUser,
-                    createdAt: new Date(),
-                    modifiedAt: new Date(),
-                    usageCount: 0
+                if (format === 'url') {
+                    // Extract from URL parameter
+                    const compressed = data.includes('preset=') ? data.split('preset=')[1] : data
+                    exportData = JSON.parse(atob(compressed))
+                } else {
+                    exportData = JSON.parse(data)
                 }
+
+                if (exportData.type !== 'preset') {
+                    throw new Error('Invalid export format')
+                }
+
+                const preset = exportData.data as FilterPreset
+
+                // Generate new ID and update metadata
+                const newPreset: FilterPreset = {
+                    ...preset,
+                    id: generatePresetId(),
+                    isSystem: false,
+                    metadata: {
+                        ...preset.metadata,
+                        createdBy: currentUser,
+                        createdAt: new Date(),
+                        modifiedAt: new Date(),
+                        usageCount: 0
+                    }
+                }
+
+                const updatedPresets = [...presets, newPreset]
+                setPresets(updatedPresets)
+                savePresetsToStorage(updatedPresets)
+
+                return newPreset
+            } catch (error) {
+                throw new Error(`Failed to import preset: ${error}`)
             }
-
-            const updatedPresets = [...presets, newPreset]
-            setPresets(updatedPresets)
-            savePresetsToStorage(updatedPresets)
-
-            return newPreset
-        } catch (error) {
-            throw new Error(`Failed to import preset: ${error}`)
-        }
-    }, [presets, currentUser, savePresetsToStorage])
+        },
+        [presets, currentUser, savePresetsToStorage]
+    )
 
     // Utility functions
-    const searchPresets = useCallback((query: string): FilterPreset[] => {
-        if (!query.trim()) return presets
+    const searchPresets = useCallback(
+        (query: string): FilterPreset[] => {
+            if (!query.trim()) {
+                return presets
+            }
 
-        const searchTerm = query.toLowerCase()
-        return presets.filter(preset => 
-            preset.name.toLowerCase().includes(searchTerm) ||
-            preset.description?.toLowerCase().includes(searchTerm) ||
-            preset.tags.some(tag => tag.toLowerCase().includes(searchTerm))
-        )
-    }, [presets])
+            const searchTerm = query.toLowerCase()
+            return presets.filter(
+                (preset) =>
+                    preset.name.toLowerCase().includes(searchTerm) ||
+                    preset.description?.toLowerCase().includes(searchTerm) ||
+                    preset.tags.some((tag) => tag.toLowerCase().includes(searchTerm))
+            )
+        },
+        [presets]
+    )
 
     const validatePreset = useCallback((preset: Partial<FilterPreset>) => {
         const errors: string[] = []
@@ -555,11 +581,14 @@ export function useFilterPresets(options: UseFilterPresetsOptions): UseFilterPre
         }
     }, [])
 
-    const updateSettings = useCallback((newSettings: Partial<typeof settings>) => {
-        const updated = { ...settings, ...newSettings }
-        setSettings(updated)
-        localStorage.setItem(`${SETTINGS_STORAGE_KEY}_${tableId}`, JSON.stringify(updated))
-    }, [settings, tableId])
+    const updateSettings = useCallback(
+        (newSettings: Partial<typeof settings>) => {
+            const updated = { ...settings, ...newSettings }
+            setSettings(updated)
+            localStorage.setItem(`${SETTINGS_STORAGE_KEY}_${tableId}`, JSON.stringify(updated))
+        },
+        [settings, tableId]
+    )
 
     const getUsageStats = useCallback(() => {
         try {
@@ -570,12 +599,15 @@ export function useFilterPresets(options: UseFilterPresetsOptions): UseFilterPre
                 .slice(0, 10)
 
             const recentlyUsed = presets
-                .filter(p => p.metadata.lastUsed)
-                .map(p => ({ presetId: p.id, lastUsed: p.metadata.lastUsed! }))
+                .filter((p) => p.metadata.lastUsed)
+                .map((p) => ({ presetId: p.id, lastUsed: p.metadata.lastUsed! }))
                 .sort((a, b) => b.lastUsed.getTime() - a.lastUsed.getTime())
                 .slice(0, 10)
 
-            const totalUsage = Object.values(usage).reduce((sum: number, count) => sum + (count as number), 0)
+            const totalUsage = Object.values(usage).reduce(
+                (sum: number, count) => sum + (count as number),
+                0
+            )
 
             return { mostUsed, recentlyUsed, totalUsage }
         } catch {
@@ -584,32 +616,48 @@ export function useFilterPresets(options: UseFilterPresetsOptions): UseFilterPre
     }, [presets])
 
     // Placeholder functions for advanced features
-    const addTag = useCallback(async (presetId: string, tag: string): Promise<void> => {
-        await updatePreset(presetId, {
-            tags: [...(presets.find(p => p.id === presetId)?.tags || []), tag]
-        })
-    }, [updatePreset, presets])
+    const addTag = useCallback(
+        async (presetId: string, tag: string): Promise<void> => {
+            await updatePreset(presetId, {
+                tags: [...(presets.find((p) => p.id === presetId)?.tags || []), tag]
+            })
+        },
+        [updatePreset, presets]
+    )
 
-    const removeTag = useCallback(async (presetId: string, tag: string): Promise<void> => {
-        await updatePreset(presetId, {
-            tags: presets.find(p => p.id === presetId)?.tags.filter(t => t !== tag) || []
-        })
-    }, [updatePreset, presets])
+    const removeTag = useCallback(
+        async (presetId: string, tag: string): Promise<void> => {
+            await updatePreset(presetId, {
+                tags: presets.find((p) => p.id === presetId)?.tags.filter((t) => t !== tag) || []
+            })
+        },
+        [updatePreset, presets]
+    )
 
-    const setFavorite = useCallback(async (presetId: string, isFavorite: boolean): Promise<void> => {
-        const preset = presets.find(p => p.id === presetId)
-        if (!preset) return
+    const setFavorite = useCallback(
+        async (presetId: string, isFavorite: boolean): Promise<void> => {
+            const preset = presets.find((p) => p.id === presetId)
+            if (!preset) {
+                return
+            }
 
-        const tags = preset.tags.filter(tag => tag !== 'favorite')
-        if (isFavorite) tags.push('favorite')
+            const tags = preset.tags.filter((tag) => tag !== 'favorite')
+            if (isFavorite) {
+                tags.push('favorite')
+            }
 
-        await updatePreset(presetId, { tags })
-    }, [updatePreset, presets])
+            await updatePreset(presetId, { tags })
+        },
+        [updatePreset, presets]
+    )
 
-    const sharePreset = useCallback(async (presetId: string): Promise<string> => {
-        // For now, just return the export URL
-        return exportPreset(presetId, 'url')
-    }, [exportPreset])
+    const sharePreset = useCallback(
+        async (presetId: string): Promise<string> => {
+            // For now, just return the export URL
+            return exportPreset(presetId, 'url')
+        },
+        [exportPreset]
+    )
 
     const exportAll = useCallback(async (): Promise<string> => {
         const exportData = {
@@ -621,48 +669,56 @@ export function useFilterPresets(options: UseFilterPresetsOptions): UseFilterPre
         return JSON.stringify(exportData, null, 2)
     }, [userPresets, currentUser])
 
-    const importFromFile = useCallback(async (file: File): Promise<FilterPreset[]> => {
-        const text = await file.text()
-        const data = JSON.parse(text)
-        
-        if (data.presets && Array.isArray(data.presets)) {
-            const imported: FilterPreset[] = []
-            for (const preset of data.presets) {
-                const newPreset = await importPreset(JSON.stringify({ type: 'preset', data: preset }))
-                imported.push(newPreset)
-            }
-            return imported
-        }
-        
-        throw new Error('Invalid file format')
-    }, [importPreset])
+    const importFromFile = useCallback(
+        async (file: File): Promise<FilterPreset[]> => {
+            const text = await file.text()
+            const data = JSON.parse(text)
 
-    const comparePresets = useCallback((presetA: string, presetB: string): FilterComparison => {
-        const a = presets.find(p => p.id === presetA)
-        const b = presets.find(p => p.id === presetB)
-        
-        if (!a || !b) {
-            throw new Error('Presets not found')
-        }
-
-        return {
-            id: `compare_${Date.now()}`,
-            name: `${a.name} vs ${b.name}`,
-            stateA: a.state,
-            stateB: b.state,
-            metrics: {
-                resultsA: 0, // Would be calculated
-                resultsB: 0,
-                performanceA: 0,
-                performanceB: 0
-            },
-            status: 'draft',
-            duration: {
-                startDate: new Date(),
-                plannedDuration: 7 * 24 * 60 * 60 * 1000 // 7 days
+            if (data.presets && Array.isArray(data.presets)) {
+                const imported: FilterPreset[] = []
+                for (const preset of data.presets) {
+                    const newPreset = await importPreset(
+                        JSON.stringify({ type: 'preset', data: preset })
+                    )
+                    imported.push(newPreset)
+                }
+                return imported
             }
-        }
-    }, [presets])
+
+            throw new Error('Invalid file format')
+        },
+        [importPreset]
+    )
+
+    const comparePresets = useCallback(
+        (presetA: string, presetB: string): FilterComparison => {
+            const a = presets.find((p) => p.id === presetA)
+            const b = presets.find((p) => p.id === presetB)
+
+            if (!(a && b)) {
+                throw new Error('Presets not found')
+            }
+
+            return {
+                id: `compare_${Date.now()}`,
+                name: `${a.name} vs ${b.name}`,
+                stateA: a.state,
+                stateB: b.state,
+                metrics: {
+                    resultsA: 0, // Would be calculated
+                    resultsB: 0,
+                    performanceA: 0,
+                    performanceB: 0
+                },
+                status: 'draft',
+                duration: {
+                    startDate: new Date(),
+                    plannedDuration: 7 * 24 * 60 * 60 * 1000 // 7 days
+                }
+            }
+        },
+        [presets]
+    )
 
     return {
         // Data
@@ -671,43 +727,43 @@ export function useFilterPresets(options: UseFilterPresetsOptions): UseFilterPre
         userPresets,
         recentPresets,
         popularPresets,
-        
+
         // Loading states
         isLoading,
         isSaving,
         isDeleting,
-        
+
         // Actions
         savePreset,
         loadPreset,
         updatePreset,
         deletePreset,
         duplicatePreset,
-        
+
         // Organization
         addTag,
         removeTag,
         setFavorite,
-        
+
         // Export/Import
         exportPreset,
         exportAll,
         importPreset,
         importFromFile,
-        
+
         // Sharing
         sharePreset,
-        
+
         // Analytics
         getUsageStats,
-        
+
         // Utilities
         validatePreset,
         searchPresets,
         comparePresets,
-        
+
         // Settings
         settings,
         updateSettings
     }
-} 
+}

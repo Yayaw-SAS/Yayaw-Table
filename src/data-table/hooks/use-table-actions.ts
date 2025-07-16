@@ -2,10 +2,10 @@
  * Hook for managing table CRUD actions
  * Provides unified error handling and success callbacks
  */
-"use client"
+'use client'
 
-import { useCallback, useMemo } from "react"
-import { useTableActions as useProviderTableActions } from "../providers/table-provider"
+import { useCallback, useMemo } from 'react'
+import { useTableActions as useProviderTableActions } from '../providers/table-provider'
 
 /**
  * Generic action result type
@@ -20,7 +20,9 @@ interface ActionResult {
  * Generic table actions interface
  */
 interface TableActions {
-    list?: (params: any) => Promise<{ data: any[]; meta: { pageCount: number; totalCount: number } }>
+    list?: (
+        params: any
+    ) => Promise<{ data: any[]; meta: { pageCount: number; totalCount: number } }>
     create?: (data: any) => Promise<ActionResult>
     update?: (id: string, data: any) => Promise<ActionResult>
     delete?: (id: string) => Promise<ActionResult>
@@ -43,26 +45,21 @@ interface UseTableActionsOptions {
 export function useTableActions<TData extends Record<string, unknown> = Record<string, unknown>>(
     options: UseTableActionsOptions
 ) {
-    const { 
-        tableType, 
-        onSuccess, 
-        onError, 
-        enableLogging = true 
-    } = options
+    const { tableType, onSuccess, onError, enableLogging = true } = options
 
     // Get actions from provider
     const getTableActions = useProviderTableActions()
-    
+
     const actions = useMemo(() => {
         const tableActions = getTableActions?.(tableType) as TableActions | undefined
-        
+
         if (!tableActions) {
             // Return empty actions if none found
             return {
                 list: async () => ({ data: [], meta: { pageCount: 0, totalCount: 0 } })
             } as TableActions
         }
-        
+
         return tableActions
     }, [getTableActions, tableType])
 
@@ -79,16 +76,15 @@ export function useTableActions<TData extends Record<string, unknown> = Record<s
                 const result = await actionFn()
 
                 if (!result.success) {
-                    const errorMsg = `Failed to ${actionName} ${tableType}: ${result.error}`
-                    
+                    const _errorMsg = `Failed to ${actionName} ${tableType}: ${result.error}`
+
                     if (enableLogging) {
-                        console.error(errorMsg)
                     }
-                    
+
                     if (onError) {
                         onError(result.error || 'Unknown error', actionName)
                     }
-                    
+
                     return false
                 }
 
@@ -99,16 +95,15 @@ export function useTableActions<TData extends Record<string, unknown> = Record<s
 
                 return successReturnValue
             } catch (error) {
-                const errorMsg = `Error ${actionName} ${tableType}: ${error}`
-                
+                const _errorMsg = `Error ${actionName} ${tableType}: ${error}`
+
                 if (enableLogging) {
-                    console.error(errorMsg)
                 }
-                
+
                 if (onError) {
                     onError(error instanceof Error ? error.message : String(error), actionName)
                 }
-                
+
                 return false
             }
         },
@@ -121,16 +116,15 @@ export function useTableActions<TData extends Record<string, unknown> = Record<s
     const handleCreate = useCallback(
         async (data: Partial<TData>): Promise<boolean> => {
             if (!actions.create) {
-                const errorMsg = `Create action not available for ${tableType}`
-                
+                const _errorMsg = `Create action not available for ${tableType}`
+
                 if (enableLogging) {
-                    console.error(errorMsg)
                 }
-                
+
                 if (onError) {
                     onError('Action not available', 'create')
                 }
-                
+
                 return false
             }
 
@@ -145,16 +139,15 @@ export function useTableActions<TData extends Record<string, unknown> = Record<s
     const handleEdit = useCallback(
         async (row: TData & { id: string }, data: Partial<TData>): Promise<boolean> => {
             if (!actions.update) {
-                const errorMsg = `Update action not available for ${tableType}`
-                
+                const _errorMsg = `Update action not available for ${tableType}`
+
                 if (enableLogging) {
-                    console.error(errorMsg)
                 }
-                
+
                 if (onError) {
                     onError('Action not available', 'update')
                 }
-                
+
                 return false
             }
 
@@ -169,16 +162,15 @@ export function useTableActions<TData extends Record<string, unknown> = Record<s
     const handleDelete = useCallback(
         async (row: TData & { id: string }): Promise<boolean> => {
             if (!actions.delete) {
-                const errorMsg = `Delete action not available for ${tableType}`
-                
+                const _errorMsg = `Delete action not available for ${tableType}`
+
                 if (enableLogging) {
-                    console.error(errorMsg)
                 }
-                
+
                 if (onError) {
                     onError('Action not available', 'delete')
                 }
-                
+
                 return false
             }
 
@@ -193,16 +185,15 @@ export function useTableActions<TData extends Record<string, unknown> = Record<s
     const handleDuplicate = useCallback(
         async (row: TData & { id: string }): Promise<boolean> => {
             if (!actions.duplicate) {
-                const errorMsg = `Duplicate action not available for ${tableType}`
-                
+                const _errorMsg = `Duplicate action not available for ${tableType}`
+
                 if (enableLogging) {
-                    console.error(errorMsg)
                 }
-                
+
                 if (onError) {
                     onError('Action not available', 'duplicate')
                 }
-                
+
                 return false
             }
 
@@ -214,13 +205,13 @@ export function useTableActions<TData extends Record<string, unknown> = Record<s
     return {
         // Raw actions from provider
         actions,
-        
+
         // Enhanced handlers
         handleCreate,
         handleEdit,
         handleDelete,
         handleDuplicate,
-        
+
         // Utility
         hasAction: (actionName: keyof TableActions) => !!actions[actionName],
         isActionsAvailable: Object.keys(actions).length > 1 // More than just 'list'

@@ -2,15 +2,13 @@
  * Selection column component for data tables
  * Provides checkbox for row selection with proper accessibility
  */
-"use client"
+'use client'
 
-import { Checkbox } from "@/components/ui/checkbox"
-import type { ColumnDef, Row, Table } from "@tanstack/react-table"
-import { memo } from "react"
-
-import { SelectionCell } from "../cells/selection-cell"
-
-import type { ReactElement } from "react"
+import type { ColumnDef, Row, Table } from '@tanstack/react-table'
+import type { ReactElement } from 'react'
+import { memo } from 'react'
+import { Checkbox } from '@/components/ui/checkbox'
+import { SelectionCell } from '../cells/selection-cell'
 
 /**
  * Options for selection column
@@ -44,22 +42,20 @@ interface SelectionHeaderProps<TData> {
 
 // Memoize the header component to prevent unnecessary rerenders
 const SelectionHeaderMemo = memo(function SelectionHeaderBase<TData>({
-    className = "",
+    className = '',
     table
 }: SelectionHeaderProps<TData>) {
     if (!table) {
-        console.warn("[SelectionHeader] Table is undefined")
         return <div className="flex h-4 w-4 items-center justify-center" />
     }
 
     try {
         const hasRequiredMethods =
-            typeof table.getIsAllRowsSelected === "function" &&
-            typeof table.toggleAllRowsSelected === "function" &&
-            typeof table.getIsSomeRowsSelected === "function"
+            typeof table.getIsAllRowsSelected === 'function' &&
+            typeof table.toggleAllRowsSelected === 'function' &&
+            typeof table.getIsSomeRowsSelected === 'function'
 
         if (!hasRequiredMethods) {
-            console.warn("[SelectionHeader] Missing required selection methods")
             return <div className="flex h-4 w-4 items-center justify-center" />
         }
 
@@ -83,8 +79,7 @@ const SelectionHeaderMemo = memo(function SelectionHeaderBase<TData>({
                 />
             </div>
         )
-    } catch (error) {
-        console.error("[SelectionHeader] Error rendering selection header:", error)
+    } catch (_error) {
         return <div className="flex h-4 w-4 items-center justify-center" />
     }
 }) as <T>(props: SelectionHeaderProps<T>) => ReactElement
@@ -97,10 +92,10 @@ const SelectionHeaderMemo = memo(function SelectionHeaderBase<TData>({
 export function createSelectionColumn<TData>(
     options: SelectionColumnOptions = {}
 ): ColumnDef<TData, unknown> {
-    const { className = "", enableHiding = false } = options
+    const { className = '', enableHiding = false } = options
 
     return {
-        accessorKey: "select",
+        accessorKey: 'select',
         cell: ({ row }: { row: Row<TData> }) => <SelectionCell className={className} row={row} />,
         enableHiding,
         enablePinning: false,
@@ -108,11 +103,11 @@ export function createSelectionColumn<TData>(
         header: ({ table }: { table: Table<TData> }) => (
             <SelectionHeaderMemo className={className} table={table} />
         ),
-        id: "select",
+        id: 'select',
         meta: {
             disableDrag: true,
             disableDrop: true,
-            fixedPosition: "start",
+            fixedPosition: 'start',
             isSelectionColumn: true
         }
     }

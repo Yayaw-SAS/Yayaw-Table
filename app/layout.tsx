@@ -5,29 +5,28 @@ import { Inter } from 'next/font/google'
 import type { ReactNode } from 'react'
 
 const inter = Inter({
-  subsets: ['latin'],
+    subsets: ['latin']
 })
 
 export default function Layout({ children }: { children: ReactNode }) {
-  return (
-    <html lang="en" className={inter.className} suppressHydrationWarning>
-      <body className="flex flex-col min-h-screen text-foreground font-sans">
-      <ThemeProvider
-        attribute="class"
-        defaultTheme="system"
-        enableSystem
-        disableTransitionOnChange
-      >
-        <RootProvider>
-          {children}
-        </RootProvider>
-        </ThemeProvider>
-      </body>
-    </html>
-  )
+    return (
+        <html className={inter.className} lang="en" suppressHydrationWarning>
+            <body className="flex min-h-screen flex-col font-sans text-foreground">
+                <ThemeProvider
+                    attribute="class"
+                    defaultTheme="system"
+                    disableTransitionOnChange
+                    enableSystem
+                >
+                    <RootProvider>{children}</RootProvider>
+                </ThemeProvider>
+            </body>
+        </html>
+    )
 }
 
 export const metadata = {
-  title: 'YaYaw Table Documentation',
-  description: 'A flexible data table component library for React with user-defined configurations',
-} 
+    title: 'YaYaw Table Documentation',
+    description:
+        'A flexible data table component library for React with user-defined configurations'
+}

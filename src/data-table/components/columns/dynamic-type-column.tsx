@@ -2,18 +2,18 @@
  * Dynamic type column component for data tables
  * Renders values differently based on a specified type column
  */
-"use client"
+'use client'
 
-import type { CellContext, ColumnDef } from "@tanstack/react-table"
-import { type LucideIcon, Shapes } from "lucide-react"
-import { type ReactNode, memo, useMemo } from "react"
+import type { CellContext, ColumnDef } from '@tanstack/react-table'
+import { type LucideIcon, Shapes } from 'lucide-react'
+import { memo, type ReactNode, useMemo } from 'react'
 
 // Import necessary components
-import { useTableTranslations } from "../../hooks"
-import { BooleanCell } from "../cells/boolean-cell"
-import { JsonCell } from "../cells/json-cell"
-import { NumberCell } from "../cells/number-cell"
-import { StringCell } from "../cells/string-cell"
+import { useTableTranslations } from '../../hooks'
+import { BooleanCell } from '../cells/boolean-cell'
+import { JsonCell } from '../cells/json-cell'
+import { NumberCell } from '../cells/number-cell'
+import { StringCell } from '../cells/string-cell'
 
 /**
  * Custom properties for our column definitions
@@ -23,7 +23,7 @@ type CustomColumnProps = {
     type?: string
 }
 
-interface DynamicTypeColumnProps<TData> {
+interface DynamicTypeColumnProps<_TData> {
     /**
      * Optional CSS class name
      */
@@ -69,7 +69,7 @@ type ExtendedColumnDef<TData> = ColumnDef<TData> & CustomColumnProps
  * Creates a column that dynamically renders values based on a type column
  */
 export function createDynamicTypeColumn<TData>({
-    className = "",
+    className = '',
     customRenderers = {},
     enableHiding = true,
     enableSorting = false,
@@ -84,7 +84,7 @@ export function createDynamicTypeColumn<TData>({
             // Define as an inner memoized component to prevent unnecessary renders
             const MemoizedDynamicCellRenderer = memo(function DynamicCellRenderer() {
                 // Use hooks inside the component
-                const translations = useTableTranslations()
+                const _translations = useTableTranslations()
 
                 // Extract values only once and memoize the calculation
                 const { processedValue, valueType } = useMemo(() => {
@@ -92,7 +92,7 @@ export function createDynamicTypeColumn<TData>({
                     const valueType = info.row.getValue(typeKey) as string
 
                     // Handle Prisma JSON objects with 'set' property
-                    if (value && typeof value === "object" && "set" in value) {
+                    if (value && typeof value === 'object' && 'set' in value) {
                         value = (value as { set: unknown }).set
                     }
 
@@ -104,7 +104,7 @@ export function createDynamicTypeColumn<TData>({
                     return (
                         processedValue === null ||
                         processedValue === undefined ||
-                        (typeof processedValue === "number" && Number.isNaN(processedValue))
+                        (typeof processedValue === 'number' && Number.isNaN(processedValue))
                     )
                 }, [processedValue])
 
@@ -122,31 +122,31 @@ export function createDynamicTypeColumn<TData>({
 
                     // Format based on valueType
                     switch (valueType) {
-                        case "boolean":
+                        case 'boolean':
                             // Use the boolean cell renderer
                             return <BooleanCell value={Boolean(processedValue)} />
 
-                        case "json":
+                        case 'json':
                             // Use the JSON cell renderer
                             return <JsonCell value={processedValue} />
 
-                        case "number":
+                        case 'number':
                             // Use the number cell renderer
                             return (
                                 <NumberCell
                                     value={
-                                        typeof processedValue === "number"
+                                        typeof processedValue === 'number'
                                             ? processedValue
                                             : Number(processedValue)
                                     }
                                 />
                             )
 
-                        case "options":
+                        case 'options':
                             // For options type, display the selected option
                             return <StringCell value={processedValue} />
 
-                        case "string":
+                        case 'string':
                             // For string values, use text column with quotes
                             return <StringCell value={processedValue} />
 
@@ -155,7 +155,7 @@ export function createDynamicTypeColumn<TData>({
                             return (
                                 <span className={className}>
                                     {processedValue === null || processedValue === undefined
-                                        ? ""
+                                        ? ''
                                         : String(processedValue)}
                                 </span>
                             )
@@ -173,6 +173,6 @@ export function createDynamicTypeColumn<TData>({
         header: header || valueKey,
         icon: Shapes,
         id: valueKey,
-        type: "dynamic"
+        type: 'dynamic'
     }
 }
