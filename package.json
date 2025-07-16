@@ -16,7 +16,7 @@
     "build:app": "fumadocs-mdx && next build",
     "postinstall": "fumadocs-mdx",
     "type-check": "tsc --noEmit",
-    "lint": "next lint",
+    "lint": "npx ultracite lint && npx ultracite format",
     "test": "echo 'Add tests here'"
   },
   "keywords": [

@@ -1,221 +1,233 @@
-'use client'
+'use client';
 
-import { useSortable } from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
-import type { Column, Table } from '@tanstack/react-table'
-import { useAtomValue } from 'jotai'
-import { ArrowDown, ArrowUp, GripVertical } from 'lucide-react'
-import { memo, useMemo } from 'react'
-import { cn } from '@/lib/utils'
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import type { Column, Table } from '@tanstack/react-table';
+import { useAtomValue } from 'jotai';
+import { ArrowDown, ArrowUp, GripVertical } from 'lucide-react';
+import { memo, useMemo } from 'react';
+import { cn } from '@/lib/utils';
 
-import { columnDragEnabledAtom } from '../../../atoms/table-atoms'
+import { columnDragEnabledAtom } from '../../../atoms/table-atoms';
 
-import { ActionsHeader } from './actions-header'
-import { ColumnMenu } from './column-menu'
-import { SelectionHeader } from './selection-header'
+import { ActionsHeader } from './actions-header';
+import { ColumnMenu } from './column-menu';
+import { SelectionHeader } from './selection-header';
 
 // Set to true to enable debug logging
-const _DEBUG = false
+const _DEBUG = false;
 
 interface DataTableColumnHeaderProps<TData, TValue> {
-    /**
-     * Additional CSS classes for the header
-     */
-    className?: string
+  /**
+   * Additional CSS classes for the header
+   */
+  className?: string;
 
-    /**
-     * The column to render the header for
-     */
-    column: Column<TData, TValue>
+  /**
+   * The column to render the header for
+   */
+  column: Column<TData, TValue>;
 
-    /**
-     * The table instance
-     */
-    table?: Table<TData>
+  /**
+   * The table instance
+   */
+  table?: Table<TData>;
 
-    /**
-     * The ID of the table this column belongs to
-     */
-    tableId?: string
+  /**
+   * The ID of the table this column belongs to
+   */
+  tableId?: string;
 
-    /**
-     * The title to display in the header
-     */
-    title: string
+  /**
+   * The title to display in the header
+   */
+  title: string;
 }
 
 /**
  * Component for rendering a column header with sorting and filtering controls
  */
 function DataTableColumnHeaderBase<TData, TValue>({
-    className,
-    column,
-    table,
-    tableId = 'default-table', // Default value if not provided
-    title
+  className,
+  column,
+  table,
+  tableId = 'default-table', // Default value if not provided
+  title,
 }: DataTableColumnHeaderProps<TData, TValue>) {
-    const tableInstance = table
-    const canSort = column.getCanSort()
-    const isDragEnabled = useAtomValue(columnDragEnabledAtom(tableId))
+  const tableInstance = table;
+  const canSort = column.getCanSort();
+  const isDragEnabled = useAtomValue(columnDragEnabledAtom(tableId));
 
-    const { attributes, isDragging, isOver, listeners, setNodeRef, transform, transition } =
-        useSortable({
-            disabled: !(canSort && isDragEnabled),
-            id: column.id
-        })
+  const {
+    attributes,
+    isDragging,
+    isOver,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({
+    disabled: !(canSort && isDragEnabled),
+    id: column.id,
+  });
 
-    const style = useMemo(
-        () => ({
-            transform: CSS.Transform.toString(transform),
-            transition
-        }),
-        [transform, transition]
-    )
+  const style = useMemo(
+    () => ({
+      transform: CSS.Transform.toString(transform),
+      transition,
+    }),
+    [transform, transition]
+  );
 
-    const isSelectionColumn = column.id === 'select'
-    const isActionsColumn = column.id === 'actions'
-    const sortDirection = column.getIsSorted()
+  const isSelectionColumn = column.id === 'select';
+  const isActionsColumn = column.id === 'actions';
+  const sortDirection = column.getIsSorted();
 
-    // Memoize selectionHeader component to prevent recreating on each render
-    const selectionHeaderContent = useMemo(() => {
-        if (isSelectionColumn) {
-            return tableInstance ? (
-                <SelectionHeader<TData> column={column} table={tableInstance} />
-            ) : (
-                <div className="flex h-4 w-4 items-center justify-center" />
-            )
-        }
-        return null
-    }, [isSelectionColumn, tableInstance, column])
-
-    // Memoize actionsHeader component to prevent recreating on each render
-    const actionsHeaderContent = useMemo(() => {
-        if (isActionsColumn) {
-            return <ActionsHeader title={title} />
-        }
-        return null
-    }, [isActionsColumn, title])
-
-    // Memoize regularHeaderContent component to prevent recreating on each render
-    const regularHeaderContent = useMemo(() => {
-        if (!(isSelectionColumn || isActionsColumn)) {
-            return (
-                <div
-                    className={cn(
-                        'flex h-full w-full items-center gap-2',
-                        isDragging && 'opacity-50',
-                        isOver && 'bg-accent',
-                        className
-                    )}
-                    ref={setNodeRef}
-                    style={style}
-                    {...attributes}
-                >
-                    {tableInstance ? (
-                        <div className="flex h-full w-full items-center">
-                            <div className="flex-1">
-                                <ColumnMenu column={column} table={tableInstance} tableId={tableId}>
-                                    <div className="flex w-full cursor-pointer items-center gap-2">
-                                        <span>{title}</span>
-                                        {sortDirection && (
-                                            <span className="ml-2">
-                                                {sortDirection === 'desc' ? (
-                                                    <ArrowDown className="h-4 w-4" />
-                                                ) : (
-                                                    <ArrowUp className="h-4 w-4" />
-                                                )}
-                                            </span>
-                                        )}
-                                    </div>
-                                </ColumnMenu>
-                            </div>
-                            {isDragEnabled && (
-                                <div
-                                    className="ml-2 cursor-grab touch-none active:cursor-grabbing"
-                                    {...listeners}
-                                >
-                                    <div
-                                        aria-label="Drag to reorder column"
-                                        className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                                        role="button"
-                                        tabIndex={0}
-                                    >
-                                        <GripVertical
-                                            className="h-4 w-4 opacity-60 hover:opacity-100"
-                                            strokeWidth={2}
-                                        />
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    ) : (
-                        <div className="flex w-full items-center gap-2">
-                            <span>{title}</span>
-                            {isDragEnabled && (
-                                <div
-                                    className="ml-auto cursor-grab touch-none active:cursor-grabbing"
-                                    {...listeners}
-                                >
-                                    <div
-                                        aria-label="Drag to reorder column"
-                                        className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                                        role="button"
-                                        tabIndex={0}
-                                    >
-                                        <GripVertical
-                                            className="h-4 w-4 opacity-60 hover:opacity-100"
-                                            strokeWidth={2}
-                                        />
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </div>
-            )
-        }
-        return null
-    }, [
-        isSelectionColumn,
-        isActionsColumn,
-        isDragEnabled,
-        isDragging,
-        isOver,
-        setNodeRef,
-        attributes,
-        listeners,
-        style,
-        column,
-        tableInstance,
-        tableId,
-        title,
-        className,
-        sortDirection
-    ])
-
-    // Create the header content without using TableHead
-    // This allows the component to be used inside other header cells without nesting issues
+  // Memoize selectionHeader component to prevent recreating on each render
+  const selectionHeaderContent = useMemo(() => {
     if (isSelectionColumn) {
-        return selectionHeaderContent
+      return tableInstance ? (
+        <SelectionHeader<TData> column={column} table={tableInstance} />
+      ) : (
+        <div className="flex h-4 w-4 items-center justify-center" />
+      );
     }
+    return null;
+  }, [isSelectionColumn, tableInstance, column]);
 
+  // Memoize actionsHeader component to prevent recreating on each render
+  const actionsHeaderContent = useMemo(() => {
     if (isActionsColumn) {
-        return actionsHeaderContent
+      return <ActionsHeader title={title} />;
     }
+    return null;
+  }, [isActionsColumn, title]);
 
-    return regularHeaderContent
+  // Memoize regularHeaderContent component to prevent recreating on each render
+  const regularHeaderContent = useMemo(() => {
+    if (!(isSelectionColumn || isActionsColumn)) {
+      return (
+        <div
+          className={cn(
+            'flex h-full w-full items-center gap-2',
+            isDragging && 'opacity-50',
+            isOver && 'bg-accent',
+            className
+          )}
+          ref={setNodeRef}
+          style={style}
+          {...attributes}
+        >
+          {tableInstance ? (
+            <div className="flex h-full w-full items-center">
+              <div className="flex-1">
+                <ColumnMenu
+                  column={column}
+                  table={tableInstance}
+                  tableId={tableId}
+                >
+                  <div className="flex w-full cursor-pointer items-center gap-2">
+                    <span>{title}</span>
+                    {sortDirection && (
+                      <span className="ml-2">
+                        {sortDirection === 'desc' ? (
+                          <ArrowDown className="h-4 w-4" />
+                        ) : (
+                          <ArrowUp className="h-4 w-4" />
+                        )}
+                      </span>
+                    )}
+                  </div>
+                </ColumnMenu>
+              </div>
+              {isDragEnabled && (
+                <div
+                  className="ml-2 cursor-grab touch-none active:cursor-grabbing"
+                  {...listeners}
+                >
+                  <button
+                    aria-label="Drag to reorder column"
+                    className="inline-flex size-7 items-center justify-center rounded-md border-0 bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    type="button"
+                  >
+                    <GripVertical
+                      className="h-4 w-4 opacity-60 hover:opacity-100"
+                      strokeWidth={2}
+                    />
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex w-full items-center gap-2">
+              <span>{title}</span>
+              {isDragEnabled && (
+                <div
+                  className="ml-auto cursor-grab touch-none active:cursor-grabbing"
+                  {...listeners}
+                >
+                  <button
+                    aria-label="Drag to reorder column"
+                    className="inline-flex size-7 items-center justify-center rounded-md border-0 bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    type="button"
+                  >
+                    <GripVertical
+                      className="h-4 w-4 opacity-60 hover:opacity-100"
+                      strokeWidth={2}
+                    />
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      );
+    }
+    return null;
+  }, [
+    isSelectionColumn,
+    isActionsColumn,
+    isDragEnabled,
+    isDragging,
+    isOver,
+    setNodeRef,
+    attributes,
+    listeners,
+    style,
+    column,
+    tableInstance,
+    tableId,
+    title,
+    className,
+    sortDirection,
+  ]);
+
+  // Create the header content without using TableHead
+  // This allows the component to be used inside other header cells without nesting issues
+  if (isSelectionColumn) {
+    return selectionHeaderContent;
+  }
+
+  if (isActionsColumn) {
+    return actionsHeaderContent;
+  }
+
+  return regularHeaderContent;
 }
 
 // Create a memoized version with a more effective memo implementation
-export const DataTableColumnHeader = memo(DataTableColumnHeaderBase, (prevProps, nextProps) => {
+export const DataTableColumnHeader = memo(
+  DataTableColumnHeaderBase,
+  (prevProps, nextProps) => {
     // Only re-render if these props change
     return (
-        prevProps.column === nextProps.column &&
-        prevProps.tableId === nextProps.tableId &&
-        prevProps.title === nextProps.title &&
-        prevProps.className === nextProps.className &&
-        prevProps.table === nextProps.table
-    )
-}) as typeof DataTableColumnHeaderBase
+      prevProps.column === nextProps.column &&
+      prevProps.tableId === nextProps.tableId &&
+      prevProps.title === nextProps.title &&
+      prevProps.className === nextProps.className &&
+      prevProps.table === nextProps.table
+    );
+  }
+) as typeof DataTableColumnHeaderBase;
 
-export type { DataTableColumnHeaderProps }
+export type { DataTableColumnHeaderProps };

@@ -5,7 +5,7 @@ import {
   frontmatterSchema,
   metaSchema
 } from "fumadocs-mdx/config";
-import { remarkAutoTypeTable, createGenerator } from "fumadocs-typescript";
+import { createGenerator, remarkAutoTypeTable } from "fumadocs-typescript";
 var generator = createGenerator();
 var docs = defineDocs({
   docs: {
