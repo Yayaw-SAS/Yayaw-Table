@@ -157,7 +157,7 @@ function ModernDataTable<
 >({
   className,
   columns = [],
-  data: initialData = [],
+  data: _initialData = [],
   enableColumnDragDropByDefault = true,
   enableColumnFilters = true,
   enableMultiRowSelection = true,
@@ -194,19 +194,12 @@ function ModernDataTable<
     stableOnRowSelectionChange.current = onRowSelectionChange;
   }, [onRowSelectionChange]);
 
-  // Use our data table hook to get everything we need - with stable config
-  const tableConfig = useMemo(
-    () => ({
-      enabled: true,
-      enableMultiRowSelection: true,
-      enableRowSelection: true,
-      getRowId: (originalRow: TData) =>
-        (originalRow as Record<string, unknown>).id?.toString() || '',
-      tableId,
-      tableType: tableType || tableId,
-    }),
-    [tableId, tableType]
-  );
+  // Use proper data table hook like in production
+  const dataTableResult = useDataTable({
+    enabled: true,
+    tableId,
+    tableType: tableType || tableId,
+  });
 
   const {
     data: fetchedData,
@@ -215,27 +208,57 @@ function ModernDataTable<
     isLoading,
     refetch,
     state,
-    tableInstance: _originalTable,
-  } = useDataTable(tableConfig);
+  } = dataTableResult;
 
-  // Use provided data (potentially filtered) or fallback to fetched data
-  const data = initialData.length > 0 ? initialData : fetchedData;
+  // Use fetched data from API like in production
+  const data = fetchedData || [];
+
+  // Debug logging - only when data actually changes
+  if (DEBUG && data) {
+    console.log('🔍 ModernDataTable Debug:', {
+      'fetchedData.length': fetchedData?.length || 0,
+      'final data.length': data?.length || 0,
+      isLoading,
+      manualFiltering,
+      manualPagination,
+      manualSorting,
+    });
+  }
 
   // Create a table instance with the actual data to be used (filtered or not)
-  const table = useTableInstance({
-    columns: columns as ColumnDef<TData>[],
-    data: data as TData[],
-    enableColumnFilters,
-    enableMultiRowSelection,
-    enablePagination,
-    enableRowSelection,
-    enableSorting,
-    getRowId,
-    manualFiltering,
-    manualPagination,
-    manualSorting,
-    tableId: tableId || '',
-  });
+  // Memoize table instance configuration to prevent recreating table on every render
+  const tableInstanceConfig = useMemo(
+    () => ({
+      columns: columns as ColumnDef<TData>[],
+      data: data as TData[],
+      enableColumnFilters,
+      enableMultiRowSelection,
+      enablePagination,
+      enableRowSelection,
+      enableSorting,
+      getRowId,
+      manualFiltering,
+      manualPagination,
+      manualSorting,
+      tableId: tableId || '',
+    }),
+    [
+      columns,
+      data,
+      enableColumnFilters,
+      enableMultiRowSelection,
+      enablePagination,
+      enableRowSelection,
+      enableSorting,
+      getRowId,
+      manualFiltering,
+      manualPagination,
+      manualSorting,
+      tableId,
+    ]
+  );
+
+  const table = useTableInstance(tableInstanceConfig);
 
   // Handle row selection changes
   useEffect(() => {
@@ -331,10 +354,21 @@ function ModernDataTable<
 
   // Optimize table body content with better memoization
   const tableBodyContent = useMemo(() => {
-    if (
-      isTableUpdatingRef.current ||
-      (isLoading && (!data || data.length === 0))
-    ) {
+    const showSkeleton =
+      isTableUpdatingRef.current || (isLoading && (!data || data.length === 0));
+
+    if (DEBUG) {
+      console.log('🔍 TableBody render decision:', {
+        showSkeleton,
+        'isTableUpdatingRef.current': isTableUpdatingRef.current,
+        isLoading,
+        'data length': data?.length || 0,
+        condition1: isTableUpdatingRef.current,
+        condition2: isLoading && (!data || data.length === 0),
+      });
+    }
+
+    if (showSkeleton) {
       const skeletonRows = [
         <MemoizedSkeletonRow
           columns={table.getAllColumns()}

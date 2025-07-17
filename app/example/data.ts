@@ -153,103 +153,49 @@ export const products: Product[] = [
     createdAt: new Date('2024-02-25'),
     isActive: true,
   },
+  // Adding more products for pagination testing (16-50)
+  ...Array.from({ length: 35 }, (_, i) => {
+    const id = (16 + i).toString();
+    const brands = [
+      'Apple',
+      'Samsung',
+      'Google',
+      'Microsoft',
+      'Sony',
+      'Dell',
+      'HP',
+      'Asus',
+    ];
+    const categories = [
+      'Laptops',
+      'Phones',
+      'Tablets',
+      'Accessories',
+      'Audio',
+      'Gaming',
+    ];
+    const statuses = ['In Stock', 'Low Stock', 'Out of Stock'] as const;
+
+    return {
+      id,
+      name: `Product ${id}`,
+      price: Math.floor(Math.random() * 2000) + 100,
+      status: statuses[Math.floor(Math.random() * statuses.length)],
+      category: categories[Math.floor(Math.random() * categories.length)],
+      brand: brands[Math.floor(Math.random() * brands.length)],
+      createdAt: new Date(
+        2024,
+        Math.floor(Math.random() * 12),
+        Math.floor(Math.random() * 28) + 1
+      ),
+      isActive: Math.random() > 0.3,
+    } as Product;
+  }),
 ];
 
-// Helper functions to reduce complexity
-const applySearchFilter = (
-  productList: Product[],
-  search: string
-): Product[] => {
-  if (!search) {
-    return [...productList];
-  }
+// Removed unused helper functions
 
-  const searchLower = search.toLowerCase();
-  return productList.filter(
-    (product) =>
-      product.name.toLowerCase().includes(searchLower) ||
-      product.brand.toLowerCase().includes(searchLower) ||
-      product.category.toLowerCase().includes(searchLower)
-  );
-};
-
-const applyArrayFilters = (
-  productList: Product[],
-  filters: Array<{ id: string; value: unknown }>
-): Product[] => {
-  let result = productList;
-
-  for (const filter of filters) {
-    if (filter.value && filter.value !== '') {
-      result = result.filter((product) => {
-        const value = product[filter.id as keyof Product];
-        if (typeof value === 'string') {
-          return value
-            .toLowerCase()
-            .includes(String(filter.value).toLowerCase());
-        }
-        return value === filter.value;
-      });
-    }
-  }
-
-  return result;
-};
-
-const applyObjectFilters = (
-  productList: Product[],
-  filters: Record<string, unknown>
-): Product[] => {
-  let result = productList;
-
-  for (const [filterId, filterValue] of Object.entries(filters)) {
-    if (filterValue && filterValue !== '') {
-      result = result.filter((product) => {
-        const value = product[filterId as keyof Product];
-        if (typeof value === 'string') {
-          return value
-            .toLowerCase()
-            .includes(String(filterValue).toLowerCase());
-        }
-        return value === filterValue;
-      });
-    }
-  }
-
-  return result;
-};
-
-const applySorting = (
-  productList: Product[],
-  orderBy: Record<string, 'asc' | 'desc'>
-): Product[] => {
-  if (!orderBy || Object.keys(orderBy).length === 0) {
-    return productList;
-  }
-
-  const [sortField, sortDirection] = Object.entries(orderBy)[0];
-  return [...productList].sort((a, b) => {
-    const aVal = a[sortField as keyof Product];
-    const bVal = b[sortField as keyof Product];
-
-    if (sortDirection === 'desc') {
-      return aVal < bVal ? 1 : -1;
-    }
-    return aVal > bVal ? 1 : -1;
-  });
-};
-
-const applyPagination = (
-  productList: Product[],
-  pageIndex: number,
-  pageSize: number
-) => {
-  const startIndex = pageIndex * pageSize;
-  const endIndex = startIndex + pageSize;
-  return productList.slice(startIndex, endIndex);
-};
-
-// Server actions simulées - Ajustées pour correspondre aux types attendus
+// Server actions using real API routes - Production-ready approach
 export const productActions = {
   list: async (params: {
     page?: number;
@@ -257,55 +203,84 @@ export const productActions = {
     filters?: Record<string, unknown> | Array<{ id: string; value: unknown }>;
     orderBy?: Record<string, 'asc' | 'desc'>;
     search?: string;
+    // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Complex API logic needed for production functionality
   }) => {
     if (DEBUG) {
-      // Debug logging is disabled
+      console.log('🔥 API call with params:', params);
     }
 
     const {
-      page = 1,
+      page = 0, // Use 0-based pagination as expected by the table
       limit = 10,
       filters = {},
       orderBy = {},
       search = '',
     } = params;
 
-    // Convert page to 0-based index (server sends 1-based)
-    const pageIndex = Math.max(0, page - 1);
-    const pageSize = limit;
+    // Build URL parameters for the API call
+    const urlParams = new URLSearchParams({
+      page: page.toString(),
+      pageSize: limit.toString(),
+    });
 
-    // Apply filters step by step
-    let filteredProducts = applySearchFilter(products, search);
+    // Add search parameter
+    if (search) {
+      urlParams.append('search', search);
+    }
 
-    if (filters) {
-      if (Array.isArray(filters)) {
-        filteredProducts = applyArrayFilters(filteredProducts, filters);
-      } else {
-        filteredProducts = applyObjectFilters(filteredProducts, filters);
+    // Add sorting parameters
+    if (Object.keys(orderBy).length > 0) {
+      const [sortBy, sortDirection] = Object.entries(orderBy)[0];
+      urlParams.append('sortBy', sortBy);
+      urlParams.append('sortDirection', sortDirection);
+    }
+
+    // Add filter parameters
+    if (Array.isArray(filters)) {
+      for (const filter of filters) {
+        if (filter.id && filter.value) {
+          urlParams.append(filter.id, String(filter.value));
+        }
+      }
+    } else if (typeof filters === 'object') {
+      for (const [key, value] of Object.entries(filters)) {
+        if (value) {
+          urlParams.append(key, String(value));
+        }
       }
     }
 
-    filteredProducts = applySorting(filteredProducts, orderBy);
-    const paginatedProducts = applyPagination(
-      filteredProducts,
-      pageIndex,
-      pageSize
-    );
+    try {
+      // Make the API call
+      const response = await fetch(`/api/products?${urlParams.toString()}`);
 
-    const result = {
-      data: paginatedProducts,
-      meta: {
-        pageCount: Math.ceil(filteredProducts.length / pageSize),
-        totalCount: filteredProducts.length,
-      },
-    };
+      if (!response.ok) {
+        throw new Error(`API call failed: ${response.statusText}`);
+      }
 
-    if (DEBUG) {
-      // Debug logging is disabled
+      const result = await response.json();
+
+      if (DEBUG) {
+        console.log('🎯 API response:', result);
+      }
+
+      return {
+        data: result.data,
+        meta: {
+          pageCount: result.meta.pageCount,
+          totalCount: result.meta.totalCount,
+        },
+      };
+    } catch (error) {
+      console.error('❌ API call failed:', error);
+      return {
+        data: [],
+        meta: {
+          pageCount: 0,
+          totalCount: 0,
+        },
+      };
     }
-    // Simulate async operation
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    return result;
   },
 
   create: async (

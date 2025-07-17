@@ -34,7 +34,7 @@ const DEBUG = false;
 /**
  * Options for the useDataTable hook
  */
-export interface UseDataTableOptions {
+export interface UseDataTableOptions<_TData = Record<string, unknown>> {
   /**
    * Whether to enable data fetching
    * Defaults to true
@@ -65,7 +65,7 @@ export interface UseDataTableOptions {
  * @returns Everything needed to render a data table
  */
 export function useDataTable<TData extends Record<string, unknown>>(
-  options: UseDataTableOptions
+  options: UseDataTableOptions<TData>
 ) {
   const {
     enabled = true,
@@ -235,22 +235,26 @@ export function useDataTable<TData extends Record<string, unknown>>(
     ]
   );
 
-  // Use the tableUrlData hook to manage data fetching and state
-  const {
-    data,
-    error,
-    isError,
-    isLoading,
-    refetch: baseRefetch,
-    rowCount,
-    rowSelection,
-    setRowSelection,
-  } = useTableUrlData<TData>({
+  // Use the tableUrlData hook for proper API data fetching
+  const urlDataResult = useTableUrlData<TData>({
     enabled,
-    initialData: [], // Provide empty array as initial data to avoid undefined issues
     queryFn,
     tableId,
   });
+
+  // Extract data and state from API
+  const data = urlDataResult?.data || [];
+  const error = urlDataResult?.error;
+  const isError = urlDataResult?.isError;
+  const isLoading = urlDataResult?.isLoading;
+  const baseRefetch = urlDataResult?.refetch || (() => Promise.resolve());
+  const rowCount = urlDataResult?.rowCount || 0;
+  const rowSelection = urlDataResult?.rowSelection || {};
+  const setRowSelection =
+    urlDataResult?.setRowSelection ||
+    (() => {
+      // No-op implementation
+    });
 
   // Get table state from URL parameters with proper type assertions
   const columnOrder = (tableUrlState.orderParam || []) as string[];

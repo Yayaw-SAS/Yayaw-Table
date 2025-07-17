@@ -247,7 +247,7 @@ export function useTableUrlData<TData>({
     isLoading,
     pagination,
     refetch,
-    rowCount: queryResult?.rowCount || 0,
+    rowCount: queryResult?.rowCount || initialData.length || 0,
     rowSelection,
     setRowSelection,
     status,

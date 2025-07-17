@@ -151,7 +151,7 @@ function App() {
               Simple DataTable with product data using tableType "catalogue"
             </p>
 
-            <DataTable data={catalogueData} tableType="catalogue" />
+            <DataTable tableType="catalogue" />
           </div>
 
           {/* Users management table example */}
@@ -163,7 +163,7 @@ function App() {
               DataTable with users data using tableType "users"
             </p>
 
-            <DataTable data={usersData} tableType="users" />
+            <DataTable tableType="users" />
           </div>
 
           {/* Code Examples */}

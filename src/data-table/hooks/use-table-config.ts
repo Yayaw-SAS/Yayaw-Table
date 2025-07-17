@@ -107,41 +107,84 @@ export function useTableConfig(tableType: string) {
       return DEFAULT_TABLE_CONFIG;
     }
 
-         // Transform DataTableConfig to TableCatalogueConfig
-     const tableConfig: TableCatalogueConfig = {
-       table: {
-         enableRowSelection: providerConfig.enableRowSelection,
-         enableColumnFilters: providerConfig.enableColumnFilters,
-         enableSorting: providerConfig.enableSorting,
-         manualFiltering: providerConfig.manualFiltering,
-         manualPagination: providerConfig.manualPagination,
-         manualSorting: providerConfig.manualSorting,
-         enableColumnDragDropByDefault: providerConfig.enableColumnDragDropByDefault,
-         enableMultiRowSelection: providerConfig.enableMultiRowSelection,
-         enablePagination: providerConfig.enablePagination,
-         defaultPageSize: providerConfig.defaultPageSize,
-         pageSizeOptions: providerConfig.pageSizeOptions,
-       },
-       columns: {
-         definitions: [
-           { id: "name", type: "text", header: "Product Name", enableSorting: true, enableColumnFilter: true },
-           { id: "brand", type: "text", header: "Brand", enableSorting: true, enableColumnFilter: true },
-           { id: "category", type: "tag", header: "Category", enableSorting: true, enableColumnFilter: true },
-           { id: "price", type: "number", header: "Price", enableSorting: true, enableColumnFilter: true },
-           { id: "status", type: "tag", header: "Status", enableSorting: true, enableColumnFilter: true },
-           { id: "createdAt", type: "date", header: "Created", enableSorting: true, enableColumnFilter: true },
-           { id: "isActive", type: "boolean", header: "Active", enableSorting: true, enableColumnFilter: true },
-         ],
-         order: [],
-         sort: [],
-         visible: [],
-         mandatory: [],
-       },
-       translations: {
-         namespace: 'common',
-         keys: {},
-       },
-     };
+    // Transform DataTableConfig to TableCatalogueConfig
+    const tableConfig: TableCatalogueConfig = {
+      table: {
+        enableRowSelection: providerConfig.enableRowSelection,
+        enableColumnFilters: providerConfig.enableColumnFilters,
+        enableSorting: providerConfig.enableSorting,
+        manualFiltering: providerConfig.manualFiltering,
+        manualPagination: providerConfig.manualPagination,
+        manualSorting: providerConfig.manualSorting,
+        enableColumnDragDropByDefault:
+          providerConfig.enableColumnDragDropByDefault,
+        enableMultiRowSelection: providerConfig.enableMultiRowSelection,
+        enablePagination: providerConfig.enablePagination,
+        defaultPageSize: providerConfig.defaultPageSize,
+        pageSizeOptions: providerConfig.pageSizeOptions,
+      },
+      columns: {
+        definitions: [
+          {
+            id: 'name',
+            type: 'text',
+            header: 'Product Name',
+            enableSorting: true,
+            enableColumnFilter: true,
+          },
+          {
+            id: 'brand',
+            type: 'text',
+            header: 'Brand',
+            enableSorting: true,
+            enableColumnFilter: true,
+          },
+          {
+            id: 'category',
+            type: 'tag',
+            header: 'Category',
+            enableSorting: true,
+            enableColumnFilter: true,
+          },
+          {
+            id: 'price',
+            type: 'number',
+            header: 'Price',
+            enableSorting: true,
+            enableColumnFilter: true,
+          },
+          {
+            id: 'status',
+            type: 'tag',
+            header: 'Status',
+            enableSorting: true,
+            enableColumnFilter: true,
+          },
+          {
+            id: 'createdAt',
+            type: 'date',
+            header: 'Created',
+            enableSorting: true,
+            enableColumnFilter: true,
+          },
+          {
+            id: 'isActive',
+            type: 'boolean',
+            header: 'Active',
+            enableSorting: true,
+            enableColumnFilter: true,
+          },
+        ],
+        order: [],
+        sort: [],
+        visible: [],
+        mandatory: [],
+      },
+      translations: {
+        namespace: 'common',
+        keys: {},
+      },
+    };
 
     return tableConfig;
   }, [getTableConfig, tableType]);
