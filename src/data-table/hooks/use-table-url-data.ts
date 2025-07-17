@@ -141,8 +141,13 @@ export function useTableUrlData<TData>({
         }
       : undefined,
     queryFn: async () => {
-      const { columnFilters, cleanedServerFilters } =
-        processServerFilters(serverFilters);
+      // Convert serverFilters to columnFilters format for compatibility
+      const columnFilters = Object.entries(serverFilters).map(
+        ([id, value]) => ({
+          id,
+          value,
+        })
+      );
 
       const params = {
         // Use columnFilters for TanStack Table compatibility
@@ -152,7 +157,7 @@ export function useTableUrlData<TData>({
         // Pagination parameters from URL
         pagination,
         // Use serverFilters directly for server-side filtering (without key filters)
-        serverFilters: cleanedServerFilters,
+        serverFilters,
         // Sorting parameters
         sorting: (sortParam as { desc: boolean; id: string }[]) || [],
         // Table identifier

@@ -135,7 +135,8 @@ export const clientFilterFunctions = {
     filterValue: Date | [Date, Date],
     operator: FilterOperators['date']
   ): boolean => {
-    const dateValue = value instanceof Date ? value : new Date(value);
+    const dateValue =
+      value instanceof Date ? value : new Date(value as string | number);
 
     if (Number.isNaN(dateValue.getTime())) {
       return operator === 'isEmpty';
@@ -363,7 +364,8 @@ export function getFacetedDateRange<TData = Record<string, unknown>>(
   const dates = data
     .map((row) => {
       const value = accessor(row);
-      const date = value instanceof Date ? value : new Date(value);
+      const date =
+        value instanceof Date ? value : new Date(value as string | number);
       return Number.isNaN(date.getTime()) ? null : date;
     })
     .filter((date): date is Date => date !== null);
@@ -471,11 +473,15 @@ export function convertFromTanStackFilters(
         return null;
       }
 
+      const filterValue = filter.value as {
+        operator: FilterOperators[ColumnDataType];
+        values: unknown[];
+      };
       return createFilter(
         filter.id,
         columnConfig.type,
-        filter.value.operator,
-        filter.value.values
+        filterValue.operator,
+        filterValue.values as FilterValues<typeof columnConfig.type>
       );
     })
     .filter((filter): filter is AdvancedFilterModel => filter !== null);

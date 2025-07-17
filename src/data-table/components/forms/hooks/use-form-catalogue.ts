@@ -173,8 +173,19 @@ export function useFormCatalogue<TFieldValues extends FieldValues>({
     async (
       operationMode: 'create' | 'update',
       tableActions: {
-        create?: (...args: never[]) => Promise<unknown>;
-        update?: (...args: never[]) => Promise<unknown>;
+        create?: (data: Record<string, unknown>) => Promise<{
+          success: boolean;
+          data?: unknown;
+          error?: string | undefined;
+        }>;
+        update?: (
+          id: string,
+          data: Record<string, unknown>
+        ) => Promise<{
+          success: boolean;
+          data?: unknown;
+          error?: string | undefined;
+        }>;
       },
       formValues: TFieldValues,
       initialFormData: Partial<TFieldValues> | undefined,
@@ -208,7 +219,7 @@ export function useFormCatalogue<TFieldValues extends FieldValues>({
         }
 
         return await tableActions.update(
-          id,
+          id as string,
           updateData as Record<string, unknown>
         );
       }

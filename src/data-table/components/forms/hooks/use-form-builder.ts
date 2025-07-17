@@ -12,6 +12,7 @@ import {
   type UseFormProps,
   useForm,
 } from 'react-hook-form';
+import type { z } from 'zod';
 import { useTranslations } from '../../../providers/table-provider';
 
 import type {

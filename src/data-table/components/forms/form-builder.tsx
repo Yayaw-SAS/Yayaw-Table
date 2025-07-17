@@ -390,9 +390,15 @@ export function FormBuilder<TFieldValues extends FieldValues>({
 
   // Render dynamic-value field type
   const renderDynamicValueField = (field: AnyFieldDefinition<TFieldValues>) => {
+    // Type guard to ensure field has dependsOn property
+    if (!('dependsOn' in field)) {
+      console.warn('Field does not have dependsOn property:', field);
+      return null;
+    }
+
     // Directly watch the field value for real-time updates
-    const valueType = form.watch(field.dependsOn?.field as Path<TFieldValues>);
-    const transformedType = field.dependsOn?.transform(valueType);
+    const valueType = form.watch(field.dependsOn.field as Path<TFieldValues>);
+    const transformedType = field.dependsOn.transform(valueType);
 
     // Get current value for this field
     const dynamicFieldValue = form.getValues(field.name);

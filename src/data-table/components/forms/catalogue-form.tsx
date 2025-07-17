@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/drawer';
 
 import {
+  type CatalogueFormState,
   catalogueFormAtom,
   formSubmittedAtom,
   handleFormOpenChange,
@@ -39,10 +40,6 @@ interface CatalogueFormTranslations {
   createError?: string;
   updating?: string;
   creating?: string;
-}
-
-interface FormState {
-  success: boolean;
 }
 
 interface CatalogueFormProps<TFieldValues extends FieldValues = FieldValues> {
@@ -103,12 +100,11 @@ function handleSubmissionSuccess(
   result: unknown,
   mode: 'create' | 'update',
   onSuccess: ((resultParam: unknown) => void) | undefined,
-  setFormState: (fn: (prev: FormState) => FormState) => void,
+  _setFormState: (fn: (prev: CatalogueFormState) => CatalogueFormState) => void,
   setFormSubmitted: (submitted: boolean) => void,
   translations: CatalogueFormTranslations
 ): string {
-  // Update success state
-  setFormState((prev) => ({ ...prev, success: true }));
+  // No need to update success state as CatalogueFormState doesn't have it
   setFormSubmitted(false);
 
   // Call the success callback if provided
@@ -128,7 +124,7 @@ function handleSuccessFlow<TFieldValues extends FieldValues>(
   result: unknown,
   currentMode: 'create' | 'update',
   currentOnSuccess: ((resultParam: unknown) => void) | undefined,
-  setFormState: (fn: (prev: FormState) => FormState) => void,
+  setFormState: (fn: (prev: CatalogueFormState) => CatalogueFormState) => void,
   setFormSubmitted: (submitted: boolean) => void,
   translations: CatalogueFormTranslations,
   formSubmitted: boolean,
@@ -316,7 +312,7 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
           values,
           currentMode,
           currentInitialData,
-          form
+          form as UseFormReturn<Record<string, unknown>>
         );
 
         // Submit the form
@@ -329,7 +325,7 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
         handleSuccessFlow(
           result,
           currentMode,
-          currentOnSuccess,
+          currentOnSuccess as ((resultParam: unknown) => void) | undefined,
           setFormState,
           setFormSubmitted,
           translations,

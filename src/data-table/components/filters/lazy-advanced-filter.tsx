@@ -6,6 +6,12 @@
 
 import { lazy, Suspense } from 'react';
 import { Skeleton } from '../../../components/ui/skeleton';
+import type { UseFilterPresetsReturn } from '../../hooks/use-filter-presets';
+import type { ColumnDataType } from '../../types';
+import type { AdvancedFilterState } from '../../types/advanced-filter-types';
+import type { ColumnsFilterConfig } from '../../types/filter-types';
+import type { AdvancedFacetedFilterProps } from './advanced-faceted-filter';
+import type { AdvancedFilterPanelProps } from './advanced-filter-panel';
 
 // Lazy load the heavy advanced filter components
 const AdvancedFacetedFilter = lazy(() =>
@@ -51,8 +57,35 @@ const PanelSkeleton = () => (
   </div>
 );
 
+// Define the prop interfaces for the components that don't export them yet
+interface FilterPresetsPanelProps {
+  /** Current filter state */
+  currentState?: AdvancedFilterState;
+  /** Presets hook return */
+  presets: UseFilterPresetsReturn;
+  /** Callback when preset is loaded */
+  onLoadPreset?: (state: AdvancedFilterState) => void;
+  /** Whether the panel is in compact mode */
+  compact?: boolean;
+  /** Custom className */
+  className?: string;
+}
+
+interface ModernAddFilterDropdownProps {
+  columnsConfig: ColumnsFilterConfig;
+  onAddFilter: (columnId: string, type: ColumnDataType) => void;
+  existingFilterColumnIds?: string[];
+  recentColumns?: string[];
+  popularColumns?: string[];
+  className?: string;
+  size?: 'sm' | 'md' | 'lg';
+  variant?: 'default' | 'outline' | 'ghost';
+  disabled?: boolean;
+  placeholder?: string;
+}
+
 // Exported lazy components with suspense boundaries
-export function LazyAdvancedFacetedFilter(props: Record<string, unknown>) {
+export function LazyAdvancedFacetedFilter(props: AdvancedFacetedFilterProps) {
   return (
     <Suspense fallback={<FilterSkeleton />}>
       <AdvancedFacetedFilter {...props} />
@@ -60,7 +93,7 @@ export function LazyAdvancedFacetedFilter(props: Record<string, unknown>) {
   );
 }
 
-export function LazyAdvancedFilterPanel(props: Record<string, unknown>) {
+export function LazyAdvancedFilterPanel(props: AdvancedFilterPanelProps) {
   return (
     <Suspense fallback={<PanelSkeleton />}>
       <AdvancedFilterPanel {...props} />
@@ -68,7 +101,7 @@ export function LazyAdvancedFilterPanel(props: Record<string, unknown>) {
   );
 }
 
-export function LazyFilterPresetsPanel(props: Record<string, unknown>) {
+export function LazyFilterPresetsPanel(props: FilterPresetsPanelProps) {
   return (
     <Suspense fallback={<PanelSkeleton />}>
       <FilterPresetsPanel {...props} />
@@ -76,7 +109,9 @@ export function LazyFilterPresetsPanel(props: Record<string, unknown>) {
   );
 }
 
-export function LazyModernAddFilterDropdown(props: Record<string, unknown>) {
+export function LazyModernAddFilterDropdown(
+  props: ModernAddFilterDropdownProps
+) {
   return (
     <Suspense fallback={<Skeleton className="h-9 w-24" />}>
       <ModernAddFilterDropdown {...props} />

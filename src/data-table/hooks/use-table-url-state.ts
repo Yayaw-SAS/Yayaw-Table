@@ -234,19 +234,17 @@ export function useTableUrlState({
   // Create debounced setter on mount
   useEffect(() => {
     if (!debouncedSetParamRef.current) {
-      debouncedSetParamRef.current = debounce(
-        (key: string, value: TableParamValue) => {
-          if (key.includes('filters') && !key.includes('advancedFilters')) {
-            setFiltersParam(value as ColumnFiltersState);
-          } else if (key.includes('advancedFilters')) {
-            setAdvancedFiltersParam(value as AdvancedFiltersState);
-          } else if (key.includes('sort')) {
-            setSortParam(value as SortingState);
-          }
-          // Add other param setters as needed
-        },
-        150
-      );
+      debouncedSetParamRef.current = debounce((...args: unknown[]) => {
+        const [key, value] = args as [string, TableParamValue];
+        if (key.includes('filters') && !key.includes('advancedFilters')) {
+          setFiltersParam(value as ColumnFiltersState);
+        } else if (key.includes('advancedFilters')) {
+          setAdvancedFiltersParam(value as AdvancedFiltersState);
+        } else if (key.includes('sort')) {
+          setSortParam(value as SortingState);
+        }
+        // Add other param setters as needed
+      }, 150);
     }
   }, [setFiltersParam, setAdvancedFiltersParam, setSortParam]);
 

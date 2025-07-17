@@ -154,7 +154,8 @@ export function useTableActions<
         return false;
       }
 
-      return await executeAction('create', () => actions.create?.(data));
+      // biome-ignore lint/style/noNonNullAssertion: actions.create is guaranteed to exist by the check above
+      return await executeAction('create', () => actions.create!(data));
     },
     [actions.create, executeAction, tableType, enableLogging, onError]
   );
@@ -185,9 +186,8 @@ export function useTableActions<
         return false;
       }
 
-      return await executeAction('update', () =>
-        actions.update?.(row.id, data)
-      );
+      // biome-ignore lint/style/noNonNullAssertion: actions.update is guaranteed to exist by the check above
+      return await executeAction('update', () => actions.update!(row.id, data));
     },
     [actions.update, executeAction, tableType, enableLogging, onError]
   );
@@ -215,7 +215,8 @@ export function useTableActions<
         return false;
       }
 
-      return await executeAction('delete', () => actions.delete?.(row.id));
+      // biome-ignore lint/style/noNonNullAssertion: actions.delete is guaranteed to exist by the check above
+      return await executeAction('delete', () => actions.delete!(row.id));
     },
     [actions.delete, executeAction, tableType, enableLogging, onError]
   );
@@ -243,9 +244,8 @@ export function useTableActions<
         return false;
       }
 
-      return await executeAction('duplicate', () =>
-        actions.duplicate?.(row.id)
-      );
+      // biome-ignore lint/style/noNonNullAssertion: actions.duplicate is guaranteed to exist by the check above
+      return await executeAction('duplicate', () => actions.duplicate!(row.id));
     },
     [actions.duplicate, executeAction, tableType, enableLogging, onError]
   );

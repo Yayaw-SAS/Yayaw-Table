@@ -20,6 +20,12 @@ import {
   useStackMenu,
 } from '@/src/components/ui-custom/stack-menu';
 import { useTranslations } from '../../providers/table-provider';
+import type { ColumnDataType } from '../../types';
+import type {
+  AdvancedFiltersState,
+  ColumnsFilterConfig,
+  FilterActions,
+} from '../../types/filter-types';
 import { TableColumnsMenu } from './sections/table-columns-menu';
 import { TableFiltersMenu } from './sections/table-filters-menu';
 import { TableGroupingMenu } from './sections/table-grouping-menu';
@@ -40,10 +46,10 @@ export interface TableMenuProps {
   useAdvancedFilters?: boolean;
   /** Advanced filters configuration */
   advancedFiltersConfig?: {
-    filters: unknown[];
-    actions: unknown;
-    columnsConfig: unknown;
-    onConvertToAdvanced?: (columnId: string, type: unknown) => void;
+    filters: AdvancedFiltersState;
+    actions: FilterActions;
+    columnsConfig: ColumnsFilterConfig;
+    onConvertToAdvanced?: (columnId: string, type: ColumnDataType) => void;
   };
 }
 

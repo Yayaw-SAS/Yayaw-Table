@@ -39,7 +39,7 @@ function createTranslationCache(
     }
   };
 
-  flatten(translations);
+  flatten(translations as unknown as Record<string, unknown>);
 
   // Store in WeakMap for future use
   translationCaches.set(translations, cache);

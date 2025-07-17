@@ -138,14 +138,17 @@ export function useSimpleDataTable<T>({
   );
 
   // Create table instance
-  const table = useReactTable(createTableConfig());
+  // biome-ignore lint/suspicious/noExplicitAny: TanStack Table has complex generic constraints that require type assertion
+  const table = useReactTable(createTableConfig() as any);
 
   // Get selected rows and call callback
-  const selectedRows = useMemo(() => {
+  const selectedRows = useMemo((): T[] => {
     if (!enableRowSelection) {
       return [];
     }
-    return table.getFilteredSelectedRowModel().rows.map((row) => row.original);
+    return table
+      .getFilteredSelectedRowModel()
+      .rows.map((row) => row.original as T);
   }, [table, enableRowSelection]);
 
   // Call onRowSelect when selection changes

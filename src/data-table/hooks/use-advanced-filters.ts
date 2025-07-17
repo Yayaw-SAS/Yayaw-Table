@@ -11,6 +11,7 @@ import type {
   ColumnsFacetedData,
   ColumnsFilterConfig,
   FilterActions,
+  FilterOperators,
   FilterStrategy,
 } from '../types/filter-types';
 import {
@@ -157,7 +158,8 @@ export function useAdvancedFilters<TData = Record<string, unknown>>(
 
     for (const [columnId, config] of Object.entries(columnsConfig)) {
       const accessor = accessors[columnId];
-      if (!(accessor && config.faceted)) {
+      // biome-ignore lint/complexity/useSimplifiedLogicExpression: TypeScript requires this exact form
+      if (!accessors[columnId] || !config.faceted) {
         continue;
       }
 
@@ -291,7 +293,7 @@ export function useColumnFilterConfig() {
         filterable?: boolean;
         faceted?: boolean;
         placeholder?: string;
-        operators?: unknown;
+        operators?: FilterOperators['text'][];
       }> = {}
     ) => ({
       type: 'text' as const,

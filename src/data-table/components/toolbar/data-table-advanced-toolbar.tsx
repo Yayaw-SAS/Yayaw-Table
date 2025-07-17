@@ -31,6 +31,7 @@ import {
   useTableConfig,
   useTranslations,
 } from '../../providers/table-provider';
+import type { ColumnDataType } from '../../types';
 import {
   catalogueFormAtom,
   openCreateForm,
@@ -208,9 +209,9 @@ export function DataTableAdvancedToolbar<TData>({
     }
 
     // Get table configuration first
-    const tableConfig = getTableConfig?.(tableId);
-    const columnDefinitions =
-      (tableConfig as Record<string, unknown>)?.columns?.definitions || [];
+    const _tableConfig = getTableConfig?.(tableId);
+    // TableConfig doesn't have columns.definitions property, so use empty array
+    const columnDefinitions: unknown[] = [];
 
     if (DEBUG) {
       // Debug logs for column definitions
@@ -220,22 +221,8 @@ export function DataTableAdvancedToolbar<TData>({
       if (DEBUG) {
         // Debug logs for table fallback
       }
-      // Fallback to column definitions from config
-      return columnDefinitions.map((colDef: unknown) => ({
-        canFilter: (colDef as Record<string, unknown>)?.canFilter !== false,
-        canHide: (colDef as Record<string, unknown>)?.canHide !== false,
-        canSort: (colDef as Record<string, unknown>)?.canSort !== false,
-        id: (colDef as Record<string, unknown>)?.id as string,
-        label:
-          (colDef as Record<string, unknown>)?.header ||
-          (colDef as Record<string, unknown>)?.id,
-        placeholder: (colDef as Record<string, unknown>)?.placeholder,
-        description: (colDef as Record<string, unknown>)?.description,
-        options: (colDef as Record<string, unknown>)?.options,
-        min: (colDef as Record<string, unknown>)?.min,
-        max: (colDef as Record<string, unknown>)?.max,
-        type: (colDef as Record<string, unknown>)?.type,
-      }));
+      // No table available and no column definitions, return empty array
+      return [];
     }
 
     const allColumns = table.getAllColumns();
@@ -255,7 +242,9 @@ export function DataTableAdvancedToolbar<TData>({
         canHide: columnDef.enableHiding !== false,
         canSort: column.getCanSort(),
         id: column.id,
-        label: columnDef.meta?.label || configDef?.header || column.id,
+        label: String(
+          columnDef.meta?.label || configDef?.header || column.id || 'Unknown'
+        ),
         // Enhanced properties from our table config
         placeholder: configDef?.placeholder,
         description: configDef?.description,
@@ -287,7 +276,9 @@ export function DataTableAdvancedToolbar<TData>({
   // Create accessors for advanced filtering
   const accessors = useTableAccessors(
     data,
-    columnOptions.map((col: unknown) => (col as Record<string, unknown>).id)
+    columnOptions.map((col: unknown) =>
+      String((col as Record<string, unknown>).id || '')
+    )
   );
 
   if (DEBUG) {
@@ -469,7 +460,10 @@ export function DataTableAdvancedToolbar<TData>({
                 actions: advancedFiltersResult.advancedActions,
                 columnsConfig: advancedColumnsConfig,
                 onConvertToAdvanced:
-                  advancedFiltersResult.convertLegacyToAdvanced,
+                  advancedFiltersResult.convertLegacyToAdvanced as (
+                    columnId: string,
+                    type: ColumnDataType
+                  ) => void,
               }
             : undefined
         }

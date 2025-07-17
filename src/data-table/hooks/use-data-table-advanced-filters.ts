@@ -7,11 +7,13 @@ import type { ColumnFiltersState } from '@tanstack/react-table';
 import { useCallback, useMemo } from 'react';
 import type {
   AdvancedFilterModel,
+  AdvancedFilterPreset,
   AdvancedFiltersState,
   ColumnDataType,
   ColumnOption,
   ColumnsFilterConfig,
   FilterActions,
+  FilterOperators,
   FilterStrategy,
 } from '../types/filter-types';
 import { useDataTable } from './use-data-table';
@@ -43,7 +45,7 @@ function applyTextFilter(value: unknown, filter: AdvancedFilterModel): boolean {
     case 'isEmpty':
       return !textValue || textValue.trim() === '';
     case 'isNotEmpty':
-      return textValue && textValue.trim() !== '';
+      return Boolean(textValue && textValue.trim() !== '');
     default:
       return true;
   }
@@ -308,7 +310,11 @@ export function useDataTableAdvancedFilters<TData = Record<string, unknown>>(
       return {};
     }
 
-    return computeFacetedData(data, advancedColumnsConfig, accessors);
+    return computeFacetedData(
+      data,
+      advancedColumnsConfig,
+      accessors as Record<string, (row: unknown) => unknown>
+    );
   }, [data, advancedColumnsConfig, accessors, autoComputeFaceted]);
 
   // Advanced filter actions using URL state
@@ -392,11 +398,11 @@ export function useDataTableAdvancedFilters<TData = Record<string, unknown>>(
         resetAdvancedFilters();
       },
 
-      applyPreset: (_preset: Record<string, unknown>) => {
+      applyPreset: (preset: AdvancedFilterPreset) => {
         // TODO: Implement preset functionality
         if (DEBUG) {
           // DEBUG: Preset application requested
-          console.log('Apply preset requested (not yet implemented)');
+          console.log('Apply preset requested (not yet implemented)', preset);
         }
       },
 
@@ -437,39 +443,45 @@ export function useDataTableAdvancedFilters<TData = Record<string, unknown>>(
       );
 
       // Add to advanced filters
-      let value: string | number | Date = '';
-      let operator = 'contains';
+      let value:
+        | string
+        | number
+        | Date
+        | string[]
+        | [number, number]
+        | [Date, Date] = '';
+      let operator: FilterOperators[ColumnDataType] = 'contains';
 
       switch (type) {
         case 'text':
           value = String(existingLegacyFilter.value || '');
-          operator = 'contains';
+          operator = 'contains' as FilterOperators['text'];
           break;
         case 'number':
           value = Number(existingLegacyFilter.value) || 0;
-          operator = 'equals';
+          operator = 'equals' as FilterOperators['number'];
           break;
         case 'date':
           value =
             existingLegacyFilter.value instanceof Date
               ? existingLegacyFilter.value
               : new Date();
-          operator = 'equals';
+          operator = 'equals' as FilterOperators['date'];
           break;
         case 'option':
           value = String(existingLegacyFilter.value || '');
-          operator = 'is';
+          operator = 'is' as FilterOperators['option'];
           break;
         case 'multiOption':
           value = Array.isArray(existingLegacyFilter.value)
-            ? existingLegacyFilter.value
+            ? (existingLegacyFilter.value as string[])
             : [];
-          operator = 'contains';
+          operator = 'contains' as FilterOperators['multiOption'];
           break;
         default:
           // Handle unknown column types as text
           value = String(existingLegacyFilter.value || '');
-          operator = 'contains';
+          operator = 'contains' as FilterOperators['text'];
           break;
       }
 
@@ -528,39 +540,55 @@ const isSystemColumn = (columnId: string): boolean => {
 };
 
 // Helper function to get operators by column type
-const getOperatorsByType = (type: ColumnDataType) => {
-  const operatorMap = {
-    option: ['is', 'isAnyOf', 'isNot', 'isEmpty', 'isNotEmpty'],
-    text: [
-      'contains',
-      'equals',
-      'startsWith',
-      'endsWith',
-      'notContains',
-      'isEmpty',
-      'isNotEmpty',
-    ],
-    number: [
-      'equals',
-      'greaterThan',
-      'lessThan',
-      'greaterThanOrEqual',
-      'lessThanOrEqual',
-      'between',
-      'notEquals',
-      'isEmpty',
-      'isNotEmpty',
-    ],
-    date: [
-      'equals',
-      'before',
-      'after',
-      'between',
-      'notEquals',
-      'isEmpty',
-      'isNotEmpty',
-    ],
-  };
+const getOperatorsByType = (
+  type: ColumnDataType
+): FilterOperators[ColumnDataType][] => {
+  const operatorMap: Record<ColumnDataType, FilterOperators[ColumnDataType][]> =
+    {
+      option: [
+        'is',
+        'isAnyOf',
+        'isNot',
+        'isEmpty',
+        'isNotEmpty',
+      ] as FilterOperators['option'][],
+      text: [
+        'contains',
+        'equals',
+        'startsWith',
+        'endsWith',
+        'notContains',
+        'isEmpty',
+        'isNotEmpty',
+      ] as FilterOperators['text'][],
+      number: [
+        'equals',
+        'greaterThan',
+        'lessThan',
+        'greaterThanOrEqual',
+        'lessThanOrEqual',
+        'between',
+        'notEquals',
+        'isEmpty',
+        'isNotEmpty',
+      ] as FilterOperators['number'][],
+      date: [
+        'equals',
+        'before',
+        'after',
+        'between',
+        'notEquals',
+        'isEmpty',
+        'isNotEmpty',
+      ] as FilterOperators['date'][],
+      multiOption: [
+        'contains',
+        'containsAll',
+        'containsNone',
+        'isEmpty',
+        'isNotEmpty',
+      ] as FilterOperators['multiOption'][],
+    };
   return operatorMap[type] || [];
 };
 
@@ -578,19 +606,21 @@ const createColumnConfig = (
     type,
     filterable: column.canFilter !== false,
     faceted: type === 'option' || type === 'multiOption',
-    placeholder: column.placeholder || `Filter by ${column.label}...`,
-    ...(column.description && { description: column.description }),
+    placeholder: String(column.placeholder) || `Filter by ${column.label}...`,
+    ...(column.description ? { description: String(column.description) } : {}),
   };
 
   // Type-specific configurations
   const typeConfigs = {
     number: {
-      min: column.min || 0,
-      max: column.max || 10_000,
+      min: Number(column.min) || 0,
+      max: Number(column.max) || 10_000,
       operators: getOperatorsByType('number'),
     },
     option: {
-      options: column.options || getOptionsForColumn(column.id, type),
+      options: (Array.isArray(column.options)
+        ? column.options
+        : getOptionsForColumn(column.id, type)) as ColumnOption[],
       operators: getOperatorsByType('option'),
     },
     text: {
@@ -598,6 +628,12 @@ const createColumnConfig = (
     },
     date: {
       operators: getOperatorsByType('date'),
+    },
+    multiOption: {
+      options: (Array.isArray(column.options)
+        ? column.options
+        : getOptionsForColumn(column.id, type)) as ColumnOption[],
+      operators: getOperatorsByType('multiOption'),
     },
   };
 
@@ -666,8 +702,8 @@ function getOptionsForColumn(
       ];
     case 'isActive':
       return [
-        { value: true, label: 'Active' },
-        { value: false, label: 'Inactive' },
+        { value: 'true', label: 'Active' },
+        { value: 'false', label: 'Inactive' },
       ];
     default:
       return;

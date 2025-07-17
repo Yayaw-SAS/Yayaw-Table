@@ -1,5 +1,7 @@
 import { createRoot } from 'react-dom/client';
 import { DataTable, defaultTranslations, TableProvider } from '../index';
+import type { DataTableConfig } from '../src';
+import { defaultTableConfig } from '../src/data-table/config/defaults';
 
 // Note: Current DataTable API uses tableType to get configuration from internal catalogue
 // The defineTableConfig configurations below are kept for reference but not used in this example
@@ -117,7 +119,13 @@ const usersData = [
 function App() {
   return (
     <TableProvider
-      getTableConfig={((tableType: string) => {}) as any}
+      getTableConfig={(_tableType: string): DataTableConfig => {
+        // Return default table config for this example with missing properties
+        return {
+          ...defaultTableConfig,
+          enableRowDragDrop: false, // Add missing property
+        };
+      }}
       locale="en"
       tableId="example"
       translations={defaultTranslations}

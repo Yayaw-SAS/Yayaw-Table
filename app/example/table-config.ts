@@ -19,23 +19,9 @@ export const getTableConfig = (
       manualPagination: false,
       manualSorting: false,
       pageSizeOptions: [5, 10, 20, 50],
-      translations: {
-        namespace: 'products',
-        keys: {
-          'Product Name': 'Product Name',
-          Brand: 'Brand',
-          Category: 'Category',
-          Price: 'Price',
-          Status: 'Status',
-          Created: 'Created',
-          Active: 'Active',
-          title: 'Products Table',
-          description: 'Manage your products',
-        },
-      },
     };
   }
-  return;
+  return undefined;
 };
 
 // Configuration des actions du tableau
@@ -43,5 +29,5 @@ export const getTableActions = (tableType: string) => {
   if (tableType === 'products') {
     return productActions;
   }
-  return;
+  return undefined;
 };
