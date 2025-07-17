@@ -1,7 +1,11 @@
+import type { FieldValues } from 'react-hook-form';
+import type { FormConfig } from '../../src/data-table/components/forms/types';
 import { ProductSchema } from './types';
 
 // Configuration des formulaires
-export const getFormConfig = (formType: string): unknown => {
+export const getFormConfig = <TFieldValues extends FieldValues = FieldValues>(
+  formType: string
+): FormConfig<TFieldValues> | undefined => {
   if (formType === 'products') {
     return {
       id: 'products',
@@ -78,7 +82,7 @@ export const getFormConfig = (formType: string): unknown => {
           updating: 'Updating product...',
         },
       },
-    };
+    } as unknown as FormConfig<TFieldValues>;
   }
   return;
 };

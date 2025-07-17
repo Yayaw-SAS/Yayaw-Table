@@ -204,7 +204,7 @@ function FacetedOption({
               <FacetedOption
                 isDisabled={isDisabled}
                 isSelected={isSelected}
-                key={child.value}
+                key={String(child.value)}
                 level={level + 1}
                 multiSelect={multiSelect}
                 onToggle={handleChildToggle}
@@ -391,7 +391,7 @@ function filterOptions(
   return options.filter(
     (option) =>
       option.label.toLowerCase().includes(query) ||
-      option.value.toString().toLowerCase().includes(query)
+      String(option.value).toLowerCase().includes(query)
   );
 }
 
@@ -536,7 +536,7 @@ function FilterContent({
               <FacetedOption
                 isDisabled={option.isDisabled}
                 isSelected={selectedValues.includes(option.value)}
-                key={option.value}
+                key={String(option.value)}
                 multiSelect={multiSelect}
                 onToggle={handleToggle}
                 option={option}
@@ -566,11 +566,11 @@ export function AdvancedFacetedFilter({
   showCounts = true,
   showPercentages = false,
   multiSelect = true,
-  _virtualized = false,
+  virtualized: _virtualized = false,
   className,
-  _maxVisible = 200,
-  _showSelectAll = true,
-  _showStats = true,
+  maxVisible: _maxVisible = 200,
+  showSelectAll: _showSelectAll = true,
+  showStats: _showStats = true,
 }: AdvancedFacetedFilterProps) {
   // Local state
   const [searchQuery, setSearchQuery] = useState('');
@@ -766,7 +766,7 @@ export function AdvancedFacetedFilter({
               <FacetedOption
                 isDisabled={option.isDisabled}
                 isSelected={selectedValues.includes(option.value)}
-                key={option.value}
+                key={String(option.value)}
                 multiSelect={multiSelect}
                 onToggle={handleToggle}
                 option={option}
@@ -787,7 +787,7 @@ export function AdvancedFacetedFilter({
 function FacetedStats({
   data,
   selectedCount,
-  _totalCount,
+  totalCount: _totalCount,
 }: {
   data: FacetedData[];
   selectedCount: number;
@@ -926,7 +926,7 @@ export function CompactFacetedFilter({
                   <FacetedOption
                     isDisabled={option.isDisabled}
                     isSelected={selectedValues.includes(option.value)}
-                    key={option.value}
+                    key={String(option.value)}
                     onToggle={(value, selected) =>
                       onSelectionChange(
                         selected

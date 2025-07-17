@@ -120,14 +120,45 @@ function FilterChip({
 
   const handleValueChange = useCallback(
     (newValue: unknown) => {
-      onUpdate({ values: newValue });
+      onUpdate({
+        values: newValue as
+          | string
+          | number
+          | string[]
+          | Date
+          | [number, number]
+          | [Date, Date],
+      });
     },
     [onUpdate]
   );
 
   const handleOperatorChange = useCallback(
     (newOperator: unknown) => {
-      onUpdate({ operator: newOperator });
+      onUpdate({
+        operator: newOperator as
+          | 'contains'
+          | 'equals'
+          | 'startsWith'
+          | 'endsWith'
+          | 'notContains'
+          | 'isEmpty'
+          | 'isNotEmpty'
+          | 'greaterThan'
+          | 'lessThan'
+          | 'greaterThanOrEqual'
+          | 'lessThanOrEqual'
+          | 'between'
+          | 'notEquals'
+          | 'before'
+          | 'after'
+          | 'is'
+          | 'isNot'
+          | 'isAnyOf'
+          | 'isNoneOf'
+          | 'containsAll'
+          | 'containsNone',
+      });
     },
     [onUpdate]
   );

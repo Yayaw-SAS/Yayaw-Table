@@ -10,7 +10,7 @@ import dynamic from 'next/dynamic';
 import { Suspense, useMemo } from 'react';
 import { useDataTable } from '../hooks/use-data-table';
 import {
-  useColumnConfigFromTableColumns,
+  useColumnsFilterConfig,
   useDataTableAdvancedFilters,
   useTableAccessors,
 } from '../hooks/use-data-table-advanced-filters';
@@ -93,18 +93,21 @@ function useColumnOptions(
     }
     const definitions = columnDefinitions || [];
 
-    return definitions.map((colDef: Record<string, unknown>) => ({
-      canFilter: colDef.canFilter !== false,
-      canHide: colDef.canHide !== false,
-      id: colDef.id,
-      label: colDef.header || colDef.id,
-      placeholder: colDef.placeholder,
-      description: colDef.description,
-      options: colDef.options,
-      min: colDef.min,
-      max: colDef.max,
-      type: colDef.type,
-    }));
+    return definitions.map((colDef) => {
+      const col = colDef as Record<string, unknown>;
+      return {
+        canFilter: col.canFilter !== false,
+        canHide: col.canHide !== false,
+        id: String(col.id || ''),
+        label: String(col.header || col.id || ''),
+        placeholder: col.placeholder,
+        description: col.description,
+        options: col.options,
+        min: col.min,
+        max: col.max,
+        type: col.type,
+      };
+    });
   }, [enableAdvancedFilters, columnDefinitions]);
 }
 
@@ -134,7 +137,7 @@ function useAdvancedFiltersSetup({
   );
 
   // Create advanced columns configuration from table columns (always call hook)
-  const advancedColumnsConfig = useColumnConfigFromTableColumns(
+  const advancedColumnsConfig = useColumnsFilterConfig(
     columnOptions,
     columnTypeMapping
   );
@@ -142,7 +145,7 @@ function useAdvancedFiltersSetup({
   // Create accessors for advanced filtering (always call hook)
   const accessors = useTableAccessors(
     baseData,
-    columnOptions.map((col) => col.id)
+    columnOptions.map((col) => String(col.id || ''))
   );
 
   // Set up advanced filters (always call hook)

@@ -8,7 +8,7 @@ export { useAdvancedFilters } from './use-advanced-filters';
 export { useDataTable } from './use-data-table';
 export {
   isAdvancedFiltersState,
-  useColumnConfigFromTableColumns,
+  useColumnsFilterConfig,
   useDataTableAdvancedFilters,
   useTableAccessors,
 } from './use-data-table-advanced-filters';

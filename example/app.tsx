@@ -117,7 +117,7 @@ const usersData = [
 function App() {
   return (
     <TableProvider
-      getTableConfig={() => ({})}
+      getTableConfig={((tableType: string) => {}) as any}
       locale="en"
       tableId="example"
       translations={defaultTranslations}

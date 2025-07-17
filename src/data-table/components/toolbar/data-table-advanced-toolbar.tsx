@@ -22,7 +22,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useDataTable } from '../../hooks/use-data-table';
 import {
-  useColumnConfigFromTableColumns,
+  useColumnsFilterConfig,
   useDataTableAdvancedFilters,
   useTableAccessors,
 } from '../../hooks/use-data-table-advanced-filters';
@@ -279,7 +279,7 @@ export function DataTableAdvancedToolbar<TData>({
   }, [table, tableId, getTableConfig]);
 
   // Create advanced columns configuration from table columns
-  const advancedColumnsConfig = useColumnConfigFromTableColumns(
+  const advancedColumnsConfig = useColumnsFilterConfig(
     columnOptions,
     columnTypeMapping
   );

@@ -80,10 +80,13 @@ function ActionsCellBase<TData>({
 
   // Helper function to determine if action opens a form
   const isFormAction = useCallback((action: ActionItem<TData>): boolean => {
+    if (action.type !== 'edit' || !action.onClick) {
+      return false;
+    }
+    const actionString = action.onClick.toString();
     return (
-      action.type === 'edit' &&
-      (action.onClick?.toString().includes('openUpdateForm') ||
-        action.onClick?.toString().includes('setFormState'))
+      actionString.includes('openUpdateForm') ||
+      actionString.includes('setFormState')
     );
   }, []);
 

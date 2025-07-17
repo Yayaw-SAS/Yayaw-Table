@@ -437,7 +437,14 @@ export function FilterPresetsPanel({
   );
 
   const handleSavePreset = useCallback(
-    async (options: Record<string, unknown>) => {
+    async (options: {
+      name: string;
+      description?: string;
+      isPublic?: boolean;
+      tags?: string[];
+      icon?: string;
+      color?: string;
+    }) => {
       if (!currentState) {
         return;
       }
@@ -567,7 +574,9 @@ export function FilterPresetsPanel({
 
       {/* Tabs */}
       <Tabs
-        onValueChange={(value) => setSelectedTab(value as string)}
+        onValueChange={(value) =>
+          setSelectedTab(value as 'all' | 'recent' | 'popular' | 'system')
+        }
         value={selectedTab}
       >
         <TabsList className="grid w-full grid-cols-4">

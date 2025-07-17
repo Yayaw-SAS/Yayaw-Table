@@ -33,8 +33,7 @@ const ID_PATTERNS = [
 ] as const;
 
 // Header component pattern - moved to top-level for performance
-const HEADER_COMPONENT_PATTERN =
-  /header:\s*\(\{[^}]*\}\)\s*=>\s*<([^>]+)/ as const;
+const HEADER_COMPONENT_PATTERN = /header:\s*\(\{[^}]*\}\)\s*=>\s*<([^>]+)/;
 
 /**
  * Interface for a filter preset
