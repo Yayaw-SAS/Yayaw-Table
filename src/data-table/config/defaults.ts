@@ -7,59 +7,59 @@
  * Default table configuration
  */
 export const defaultTableConfig = {
-    defaultPageSize: 10,
-    enableColumnDragDropByDefault: false,
-    enableColumnFilters: true,
-    enableColumnPinning: true,
-    enableMultiRowSelection: true,
-    enablePagination: true,
-    enableRowSelection: true,
-    enableSorting: true,
-    manualFiltering: false,
-    manualPagination: false,
-    manualSorting: false,
-    pageSizeOptions: [5, 10, 20, 50, 100]
-}
+  defaultPageSize: 10,
+  enableColumnDragDropByDefault: false,
+  enableColumnFilters: true,
+  enableColumnPinning: true,
+  enableMultiRowSelection: true,
+  enablePagination: true,
+  enableRowSelection: true,
+  enableSorting: true,
+  manualFiltering: false,
+  manualPagination: false,
+  manualSorting: false,
+  pageSizeOptions: [5, 10, 20, 50, 100],
+};
 
 /**
  * Default columns configuration
  */
 export const defaultColumnsConfig = {
-    defaultColumnOrder: [],
-    defaultSort: [],
-    defaultVisibleColumns: [],
-    mandatoryColumns: []
-}
+  defaultColumnOrder: [],
+  defaultSort: [],
+  defaultVisibleColumns: [],
+  mandatoryColumns: [],
+};
 
 /**
  * Default translations
  */
 export const defaultTranslations = {
-    addFilter: "Add filter",
-    clearFilters: "Clear filters",
-    clearSort: "Clear sort",
-    columns: "Columns",
-    createView: "Create view",
-    deleteView: "Delete view",
-    dragHandleAriaLabel: "Drag to reorder",
-    filterOperator: "Filter operator",
-    filters: "Filters",
-    filterValue: "Filter value",
-    loading: "Loading data...",
-    loadingError: "Error loading data",
-    noDataAvailable: "No data available",
-    noResults: "No results found",
-    noResultsDescription: "Try adjusting your filters",
-    of: "of",
-    resetColumns: "Reset columns",
-    rowsPerPage: "Rows per page",
-    rowsSelected: "rows selected",
-    saveView: "Save view",
-    search: "Search",
-    searchPlaceholder: "Search...",
-    selectedCount: "Selected",
-    showHideColumns: "Show/hide columns",
-    toggleVisibility: "Toggle visibility",
-    viewName: "View name",
-    views: "Views"
-}
+  addFilter: 'Add filter',
+  clearFilters: 'Clear filters',
+  clearSort: 'Clear sort',
+  columns: 'Columns',
+  createView: 'Create view',
+  deleteView: 'Delete view',
+  dragHandleAriaLabel: 'Drag to reorder',
+  filterOperator: 'Filter operator',
+  filters: 'Filters',
+  filterValue: 'Filter value',
+  loading: 'Loading data...',
+  loadingError: 'Error loading data',
+  noDataAvailable: 'No data available',
+  noResults: 'No results found',
+  noResultsDescription: 'Try adjusting your filters',
+  of: 'of',
+  resetColumns: 'Reset columns',
+  rowsPerPage: 'Rows per page',
+  rowsSelected: 'rows selected',
+  saveView: 'Save view',
+  search: 'Search',
+  searchPlaceholder: 'Search...',
+  selectedCount: 'Selected',
+  showHideColumns: 'Show/hide columns',
+  toggleVisibility: 'Toggle visibility',
+  viewName: 'View name',
+  views: 'Views',
+};

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ReactNode } from 'react';
 
 interface SectionTitleProps {
   title: string;
@@ -14,7 +14,7 @@ export function SectionTitle({ title, description, icon }: SectionTitleProps) {
         <h2>{title}</h2>
       </div>
       {description && (
-        <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+        <p className="mt-1 text-muted-foreground text-sm">{description}</p>
       )}
     </div>
   );

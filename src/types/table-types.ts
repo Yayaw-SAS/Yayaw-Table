@@ -1,112 +1,112 @@
 import type {
-    ColumnDef,
-    ColumnFiltersState,
-    PaginationState,
-    SortingState,
-    Table,
-    VisibilityState
-} from "@tanstack/react-table"
+  ColumnDef,
+  ColumnFiltersState,
+  Table,
+} from '@tanstack/react-table';
 
 /**
  * Column filter object
  */
 export interface ColumnFilter {
-    /**
-     * ID of the column to filter
-     */
-    id: string
+  /**
+   * ID of the column to filter
+   */
+  id: string;
 
-    /**
-     * Filter value
-     */
-    value: unknown
+  /**
+   * Filter value
+   */
+  value: unknown;
 }
 
 export interface DataTableFooterProps {
-    tableId: string
+  tableId: string;
 }
 
 export interface DataTableHeaderProps {
-    menuId?: string
-    onSearch?: (value: string) => void
-    searchPlaceholder?: string
-    showSearch?: boolean
-    tableId: string
-    title?: string
+  menuId?: string;
+  onSearch?: (value: string) => void;
+  searchPlaceholder?: string;
+  showSearch?: boolean;
+  tableId: string;
+  title?: string;
 }
 
 export interface DataTablePaginationProps<TData> {
-    table: Table<TData>
-    tableId: string
+  table: Table<TData>;
+  tableId: string;
 }
 
 /**
  * DataTable v2 context state interface
  */
 export interface DataTableState {
-    /**
-     * Active column ID
-     */
-    activeColumnId: null | string
+  /**
+   * Active column ID
+   */
+  activeColumnId: null | string;
 
-    /**
-     * Column filters
-     */
-    columnFilters: ColumnFiltersState
+  /**
+   * Column filters
+   */
+  columnFilters: ColumnFiltersState;
 
-    /**
-     * Column order
-     */
-    columnOrder: string[]
+  /**
+   * Column order
+   */
+  columnOrder: string[];
 
-    /**
-     * Column visibility
-     */
-    columnVisibility: Record<string, boolean>
+  /**
+   * Column visibility
+   */
+  columnVisibility: Record<string, boolean>;
 
-    /**
-     * Global filter value
-     */
-    globalFilter: string
+  /**
+   * Global filter value
+   */
+  globalFilter: string;
 
-    /**
-     * Pagination state
-     */
-    pagination: {
-        pageIndex: number
-        pageSize: number
-    }
+  /**
+   * Pagination state
+   */
+  pagination: {
+    pageIndex: number;
+    pageSize: number;
+  };
 
-    /**
-     * Row selection state
-     */
-    rowSelection: Record<string, boolean>
+  /**
+   * Row selection state
+   */
+  rowSelection: Record<string, boolean>;
 
-    /**
-     * Sorting state
-     */
-    sorting: {
-        desc: boolean
-        id: string
-    }[]
+  /**
+   * Sorting state
+   */
+  sorting: {
+    desc: boolean;
+    id: string;
+  }[];
 
-    /**
-     * Table ID
-     */
-    tableId: string
+  /**
+   * Table ID
+   */
+  tableId: string;
 
-    /**
-     * Last update date of the view
-     */
-    updatedAt: Date
+  /**
+   * Last update date of the view
+   */
+  updatedAt: Date;
 }
 
-export interface DataTableProps<TData extends Record<string, unknown>, TValue = unknown> {
-  data: TData[]
-  columns: ColumnDef<TData, TValue>[]
-  tableId: string
-  tableType?: string
-  children?: React.ReactNode
-  initialActiveViewId?: string
-  initialViews?: unknown[]
-} 
+export interface DataTableProps<
+  TData extends Record<string, unknown>,
+  TValue = unknown,
+> {
+  data: TData[];
+  columns: ColumnDef<TData, TValue>[];
+  tableId: string;
+  tableType?: string;
+  children?: React.ReactNode;
+  initialActiveViewId?: string;
+  initialViews?: unknown[];
+}

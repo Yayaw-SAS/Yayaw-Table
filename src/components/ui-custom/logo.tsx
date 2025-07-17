@@ -1,5 +1,5 @@
-import { cn } from "../../lib/utils";
-import { SVG } from "./svg";
+import { cn } from '../../lib/utils';
+import { SVG } from './svg';
 
 interface LogoProps {
   className?: string;
@@ -8,9 +8,9 @@ interface LogoProps {
 export function Logo({ className }: LogoProps) {
   return (
     <SVG
-      alt={`${"YaYaw Table"} logo`}
+      alt={`${'YaYaw Table'} logo`}
       className={cn(className)}
-      src={"/logo.svg"}
+      src={'/logo.svg'}
     />
   );
 }

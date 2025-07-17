@@ -2,59 +2,59 @@
  * Text column component for data tables
  * Provides standardized display of text values
  */
-"use client"
+'use client';
 
-import type { CellContext, ColumnDef } from "@tanstack/react-table"
-import { type LucideIcon, Text } from "lucide-react"
+import type { CellContext, ColumnDef } from '@tanstack/react-table';
+import { type LucideIcon, Text } from 'lucide-react';
 
-import { StringCell } from "../cells/string-cell"
+import { StringCell } from '../cells/string-cell';
 
 /**
  * Custom properties for our column definitions
  */
 type CustomColumnProps = {
-    icon?: LucideIcon
-    type?: string
-}
+  icon?: LucideIcon;
+  type?: string;
+};
 
 /**
  * Combined type for our column definition
  */
-type ExtendedColumnDef<TData> = ColumnDef<TData> & CustomColumnProps
+type ExtendedColumnDef<TData> = ColumnDef<TData> & CustomColumnProps;
 
 interface TextColumnProps {
-    /**
-     * Key to access the text value from the row data
-     */
-    accessorKey: string
+  /**
+   * Key to access the text value from the row data
+   */
+  accessorKey: string;
 
-    /**
-     * Optional CSS class for the cell
-     */
-    className?: string
+  /**
+   * Optional CSS class for the cell
+   */
+  className?: string;
 
-    /**
-     * Whether the column can be filtered
-     * @default true
-     */
-    enableColumnFilter?: boolean
+  /**
+   * Whether the column can be filtered
+   * @default true
+   */
+  enableColumnFilter?: boolean;
 
-    /**
-     * Whether the column can be hidden
-     * @default true
-     */
-    enableHiding?: boolean
+  /**
+   * Whether the column can be hidden
+   * @default true
+   */
+  enableHiding?: boolean;
 
-    /**
-     * Whether the column can be sorted
-     * @default true
-     */
-    enableSorting?: boolean
+  /**
+   * Whether the column can be sorted
+   * @default true
+   */
+  enableSorting?: boolean;
 
-    /**
-     * Optional custom header text
-     */
-    header?: string
+  /**
+   * Optional custom header text
+   */
+  header?: string;
 }
 
 /**
@@ -62,25 +62,25 @@ interface TextColumnProps {
  * @returns Column definition for displaying text values
  */
 export function createTextColumn<TData>({
-    accessorKey,
-    className = "",
-    enableColumnFilter = true,
-    enableHiding = true,
-    enableSorting = true,
-    header
+  accessorKey,
+  className = '',
+  enableColumnFilter = true,
+  enableHiding = true,
+  enableSorting = true,
+  header,
 }: TextColumnProps): ExtendedColumnDef<TData> {
-    return {
-        accessorKey,
-        cell: (info: CellContext<TData, unknown>) => {
-            const value = info.getValue()
-            return <StringCell className={className} value={value} />
-        },
-        enableColumnFilter,
-        enableHiding,
-        enableSorting,
-        header: header || accessorKey,
-        icon: Text,
-        id: accessorKey,
-        type: "text"
-    }
+  return {
+    accessorKey,
+    cell: (info: CellContext<TData, unknown>) => {
+      const value = info.getValue();
+      return <StringCell className={className} value={value} />;
+    },
+    enableColumnFilter,
+    enableHiding,
+    enableSorting,
+    header: header || accessorKey,
+    icon: Text,
+    id: accessorKey,
+    type: 'text',
+  };
 }

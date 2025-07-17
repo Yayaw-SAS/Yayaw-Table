@@ -1,84 +1,88 @@
-import { ProductSchema } from './types'
+import type { FieldValues } from 'react-hook-form';
+import type { FormConfig } from '../../src/data-table/components/forms/types';
+import { ProductSchema } from './types';
 
-// Configuration des formulaires  
-export const getFormConfig = (formType: string): any => {
-  if (formType === "products") {
+// Configuration des formulaires
+export const getFormConfig = <TFieldValues extends FieldValues = FieldValues>(
+  formType: string
+): FormConfig<TFieldValues> | undefined => {
+  if (formType === 'products') {
     return {
-      id: "products",
+      id: 'products',
       schema: ProductSchema,
       defaultValues: {
-        name: "",
+        name: '',
         price: 0,
-        status: "In Stock" as const,
-        category: "",
-        brand: "",
-        isActive: true
+        status: 'In Stock' as const,
+        category: '',
+        brand: '',
+        isActive: true,
       },
       fields: [
         {
-          type: "text",
-          name: "name",
-          label: "Product Name",
-          placeholder: "Enter product name",
-          required: true
-        },
-        {
-          type: "number",
-          name: "price", 
-          label: "Price",
-          placeholder: "Enter price",
+          type: 'text',
+          name: 'name',
+          label: 'Product Name',
+          placeholder: 'Enter product name',
           required: true,
-          min: 0
         },
         {
-          type: "select",
-          name: "status",
-          label: "Status",
+          type: 'number',
+          name: 'price',
+          label: 'Price',
+          placeholder: 'Enter price',
+          required: true,
+          min: 0,
+        },
+        {
+          type: 'select',
+          name: 'status',
+          label: 'Status',
           required: true,
           options: [
-            { value: "In Stock", label: "In Stock" },
-            { value: "Low Stock", label: "Low Stock" },
-            { value: "Out of Stock", label: "Out of Stock" }
-          ]
+            { value: 'In Stock', label: 'In Stock' },
+            { value: 'Low Stock', label: 'Low Stock' },
+            { value: 'Out of Stock', label: 'Out of Stock' },
+          ],
         },
         {
-          type: "text",
-          name: "category",
-          label: "Category",
-          placeholder: "Enter category",
-          required: true
+          type: 'text',
+          name: 'category',
+          label: 'Category',
+          placeholder: 'Enter category',
+          required: true,
         },
         {
-          type: "text", 
-          name: "brand",
-          label: "Brand",
-          placeholder: "Enter brand",
-          required: true
+          type: 'text',
+          name: 'brand',
+          label: 'Brand',
+          placeholder: 'Enter brand',
+          required: true,
         },
         {
-          type: "checkbox",
-          name: "isActive",
-          label: "Active"
-        }
+          type: 'checkbox',
+          name: 'isActive',
+          label: 'Active',
+        },
       ],
       translations: {
-        namespace: "products",
+        namespace: 'products',
         keys: {
-          "createForm.title": "Add New Product",
-          "createForm.description": "Create a new product in your inventory",
-          "updateForm.title": "Edit Product", 
-          "updateForm.description": "Update product information",
-          submit: "Save Product",
-          create: "Add Product",
-          update: "Update Product", 
-          cancel: "Cancel",
-          success: "Product saved successfully",
-          error: "Failed to save product",
-          creating: "Creating product...",
-          updating: "Updating product..."
-        }
-      }
-    }
+          'createForm.title': 'Add New Product',
+          'createForm.description': 'Create a new product in your inventory',
+          'updateForm.title': 'Edit Product',
+          'updateForm.description': 'Update product information',
+          submit: 'Save Product',
+          create: 'Add Product',
+          update: 'Update Product',
+          cancel: 'Cancel',
+          success: 'Product saved successfully',
+          error: 'Failed to save product',
+          creating: 'Creating product...',
+          updating: 'Updating product...',
+        },
+      },
+    } as unknown as FormConfig<TFieldValues>;
   }
-  return undefined
-} 
+  return;
+};

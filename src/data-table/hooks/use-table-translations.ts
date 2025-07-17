@@ -2,31 +2,30 @@
  * Hook for accessing translations in the DataTable component
  * Provides both direct access to resolved translations and complex formatting capabilities
  */
-import { useAtomValue } from "jotai"
-import { useTranslations } from "../providers/table-provider"
-
+import { useAtomValue } from 'jotai';
 import {
-    type DataTableTranslations,
-    tableTranslationsAtom,
-    translationKeysMap,
-    translationsAtom,
-    translationsInitializedAtom
-} from "../atoms/i18n-atoms"
+  type DataTableTranslations,
+  tableTranslationsAtom,
+  translationKeysMap,
+  translationsAtom,
+  translationsInitializedAtom,
+} from '../atoms/i18n-atoms';
+import { useTranslations } from '../providers/table-provider';
 
 /**
  * Extended return type for useTableTranslations that includes formatting function
  */
 export interface UseTableTranslationsReturn extends DataTableTranslations {
-    /**
-     * Format a translation with variables (plurals, dates, rich text, etc.)
-     * Leverages next-intl's powerful formatting capabilities
-     * @param key - The translation key name from DataTableTranslations
-     * @param values - Values to interpolate, including pluralization variables
-     */
-    format: (
-        key: keyof DataTableTranslations,
-        values?: Record<string, string | number | Date>
-    ) => string
+  /**
+   * Format a translation with variables (plurals, dates, rich text, etc.)
+   * Leverages next-intl's powerful formatting capabilities
+   * @param key - The translation key name from DataTableTranslations
+   * @param values - Values to interpolate, including pluralization variables
+   */
+  format: (
+    key: keyof DataTableTranslations,
+    values?: Record<string, string | number | Date>
+  ) => string;
 }
 
 /**
@@ -34,78 +33,91 @@ export interface UseTableTranslationsReturn extends DataTableTranslations {
  * Along with a format function that leverages next-intl for complex formatting
  * @returns Both direct translations and a format function for complex cases
  */
-export function useTableTranslations(tableId?: string): UseTableTranslationsReturn {
-    // Get global translations from atom
-    const globalTranslations = useAtomValue(translationsAtom)
+export function useTableTranslations(
+  tableId?: string
+): UseTableTranslationsReturn {
+  // Get global translations from atom
+  const globalTranslations = useAtomValue(translationsAtom);
 
-    // Create a dummy tableId if none is provided to ensure hooks are called consistently
-    const safeTableId = tableId || "global"
+  // Create a dummy tableId if none is provided to ensure hooks are called consistently
+  const safeTableId = tableId || 'global';
 
-    // Always call the hook unconditionally
-    const tableSpecificTranslations = useAtomValue(tableTranslationsAtom(safeTableId))
+  // Always call the hook unconditionally
+  const tableSpecificTranslations = useAtomValue(
+    tableTranslationsAtom(safeTableId)
+  );
 
-    // Use table-specific translations if tableId was provided, otherwise use global
-    const tableTranslations = tableId ? tableSpecificTranslations : globalTranslations
+  // Use table-specific translations if tableId was provided, otherwise use global
+  const tableTranslations = tableId
+    ? tableSpecificTranslations
+    : globalTranslations;
 
-    // Check if translations are initialized
-    const isInitialized = useAtomValue(translationsInitializedAtom)
+  // Check if translations are initialized
+  const isInitialized = useAtomValue(translationsInitializedAtom);
 
-    // Get next-intl's translation function for advanced formatting
-    // Specify the 'data-table' namespace to access translations from the correct file
-    const { t } = useTranslations()
+  // Get next-intl's translation function for advanced formatting
+  // Specify the 'data-table' namespace to access translations from the correct file
+  const { t } = useTranslations();
 
-    // Create a mapping from property name to original translation key
-    const keyToOriginalMap = Object.entries(translationKeysMap).reduce(
-        (acc, [key, originalKey]) => {
-            if (typeof originalKey === "string") {
-                acc[key as keyof DataTableTranslations] = originalKey
-            }
-            return acc
-        },
-        {} as Record<keyof DataTableTranslations, string>
-    )
+  // Create a mapping from property name to original translation key
+  const keyToOriginalMap = Object.entries(translationKeysMap).reduce(
+    (acc, [key, originalKey]) => {
+      if (typeof originalKey === 'string') {
+        acc[key as keyof DataTableTranslations] = originalKey;
+      }
+      return acc;
+    },
+    {} as Record<keyof DataTableTranslations, string>
+  );
 
-    // Format function that leverages next-intl's capabilities for plurals and more
-    const format = (
-        key: keyof DataTableTranslations,
-        values?: Record<string, string | number | Date>
-    ): string => {
-        const originalKey = keyToOriginalMap[key]
+  // Format function that leverages next-intl's capabilities for plurals and more
+  const format = (
+    key: keyof DataTableTranslations,
+    values?: Record<string, string | number | Date>
+  ): string => {
+    const originalKey = keyToOriginalMap[key];
 
-        // If we can't find the original key, return the stored translation or the key itself
-        if (!originalKey) return tableTranslations[key] || String(key)
+    // If we can't find the original key, return the stored translation or the key itself
+    if (!originalKey) {
+      return tableTranslations[key] || String(key);
+    }
 
-        try {
-            // Use the t function directly with the original translation key and provided values
-            // Convert Date objects to strings to match TranslationParams type
-            const safeValues = values ? Object.fromEntries(
-                Object.entries(values).map(([key, value]) => [
-                    key, 
-                    value instanceof Date ? value.toISOString() : value
-                ])
-            ) : {}
-            
-            return t(originalKey, safeValues)
-        } catch (error) {
-            // Log a warning in development mode only
-            if (process.env.NODE_ENV === "development") {
-                console.warn(`Translation error for key ${String(key)}:`, error)
-            }
-            // Return the stored translation or the key itself as a fallback
-            return tableTranslations[key] || String(key)
+    try {
+      // Use the t function directly with the original translation key and provided values
+      // Convert Date objects to strings to match TranslationParams type
+      const safeValues = values
+        ? Object.fromEntries(
+            Object.entries(values).map(([paramKey, value]) => [
+              paramKey,
+              value instanceof Date ? value.toISOString() : value,
+            ])
+          )
+        : {};
+
+      return t(originalKey, safeValues);
+    } catch (_error) {
+      // Log a warning in development mode only
+      if (process.env.NODE_ENV === 'development') {
+        // DEBUG: Translation error in development
+        console.warn('Translation error for key:', key, 'Error:', _error);
+      }
+      // Return the stored translation or the key itself as a fallback
+      return tableTranslations[key] || String(key);
+    }
+  };
+
+  // If translations aren't initialized yet, return a proxy that uses format for all keys
+  if (!isInitialized) {
+    return new Proxy({ format } as UseTableTranslationsReturn, {
+      get: (target, prop) => {
+        if (prop === 'format') {
+          return target.format;
         }
-    }
+        return format(prop as keyof DataTableTranslations);
+      },
+    });
+  }
 
-    // If translations aren't initialized yet, return a proxy that uses format for all keys
-    if (!isInitialized) {
-        return new Proxy({ format } as UseTableTranslationsReturn, {
-            get: (target, prop) => {
-                if (prop === "format") return target.format
-                return format(prop as keyof DataTableTranslations)
-            }
-        })
-    }
-
-    // Return all translations plus the format function
-    return { ...tableTranslations, format } as UseTableTranslationsReturn
+  // Return all translations plus the format function
+  return { ...tableTranslations, format } as UseTableTranslationsReturn;
 }

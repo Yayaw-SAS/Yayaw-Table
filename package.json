@@ -16,7 +16,7 @@
     "build:app": "fumadocs-mdx && next build",
     "postinstall": "fumadocs-mdx",
     "type-check": "tsc --noEmit",
-    "lint": "next lint",
+    "lint": "npx ultracite lint && npx ultracite format",
     "test": "echo 'Add tests here'"
   },
   "keywords": [
@@ -95,16 +95,19 @@
     "zod": "^3.25.64"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.0.6",
     "@tailwindcss/postcss": "^4.1.8",
     "@tailwindcss/typography": "^0.5.15",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "autoprefixer": "^10.4.20",
+    "lint-staged": "^16.1.2",
     "postcss": "^8.5.4",
     "tailwindcss": "^4.1.8",
     "tsup": "^8.5.0",
-    "typescript": "^5.8.0"
+    "typescript": "^5.8.0",
+    "ultracite": "5.0.32"
   },
   "repository": {
     "type": "git",
@@ -113,5 +116,10 @@
   "bugs": {
     "url": "https://github.com/your-username/yayaw-table/issues"
   },
-  "homepage": "https://github.com/your-username/yayaw-table#readme"
+  "homepage": "https://github.com/your-username/yayaw-table#readme",
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,json,jsonc,css,scss,md,mdx}": [
+      "npx ultracite format"
+    ]
+  }
 }
