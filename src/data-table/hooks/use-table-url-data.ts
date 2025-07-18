@@ -20,6 +20,7 @@ interface UseTableUrlDataOptions<TData> {
   queryFn: (params: {
     columnFilters: Array<{ id: string; value: unknown }>;
     complexFilters: unknown[];
+    advancedFilters: unknown[];
     pagination: {
       pageIndex: number;
       pageSize: number;
@@ -50,8 +51,8 @@ export function useTableUrlData<TData>({
   queryFn,
   tableId,
 }: UseTableUrlDataOptions<TData>) {
-  // Get URL state
-  const { filtersParam, orderParam, pagination, sortParam } = useTableUrlState({
+  // Get URL state - include advanced filters!
+  const { filtersParam, advancedFiltersParam, orderParam, pagination, sortParam } = useTableUrlState({
     tableId,
   });
 
@@ -66,9 +67,19 @@ export function useTableUrlData<TData>({
     queryFn: () => {
       // Ensure filtersParam is always an array
       const filters = Array.isArray(filtersParam) ? filtersParam : [];
+      // Ensure advancedFiltersParam is always an array
+      const advancedFilters = Array.isArray(advancedFiltersParam) ? advancedFiltersParam : [];
 
-      if (filters.length === 0) {
-        return { complexFilters: [], serverFilters: {} };
+      if (DEBUG) {
+        console.log('🔧 Processing filters:', {
+          'legacy filters': filters.length,
+          'advanced filters': advancedFilters.length,
+          advancedFilters,
+        });
+      }
+
+      if (filters.length === 0 && advancedFilters.length === 0) {
+        return { complexFilters: [], serverFilters: {}, advancedFilters: [] };
       }
 
       // Extract global filter if present
@@ -101,17 +112,28 @@ export function useTableUrlData<TData>({
         result.serverFilters.global = globalFilter;
       }
 
-      return result;
+      // Add advanced filters to the result
+      const finalResult = {
+        ...result,
+        advancedFilters: advancedFilters.filter((filter: any) => filter.isActive), // Only include active filters
+      };
+
+      if (DEBUG) {
+        console.log('🔧 Processed filters result:', finalResult);
+      }
+
+      return finalResult;
     },
-    // Ensure the query is stable and doesn't cause unnecessary re-renders
-    queryKey: ['tableProcessedFilters', tableId, filtersParam],
+    // Include advancedFiltersParam in query key
+    queryKey: ['tableProcessedFilters', tableId, filtersParam, advancedFiltersParam],
     staleTime: 5000, // 5 seconds
   });
 
-  // Extract complex filters and server filters from the query result
-  const { complexFilters, serverFilters } = processedFiltersQuery.data || {
+  // Extract complex filters, server filters, and advanced filters from the query result
+  const { complexFilters, serverFilters, advancedFilters } = processedFiltersQuery.data || {
     complexFilters: [],
     serverFilters: {},
+    advancedFilters: [],
   };
 
   // Modify the enabled condition to also run when processedFiltersQuery is pending but we have initial data
@@ -154,6 +176,8 @@ export function useTableUrlData<TData>({
         columnFilters,
         // Use complexFilters for special filter types
         complexFilters,
+        // Advanced filters for enhanced filtering
+        advancedFilters,
         // Pagination parameters from URL
         pagination,
         // Use serverFilters directly for server-side filtering (without key filters)
@@ -181,6 +205,7 @@ export function useTableUrlData<TData>({
       tableId,
       JSON.stringify(sortParam),
       JSON.stringify(filtersParam),
+      JSON.stringify(advancedFiltersParam),
       JSON.stringify(pagination),
       JSON.stringify(serverFilters),
     ],

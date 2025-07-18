@@ -156,10 +156,12 @@ export function useDataTable<TData extends Record<string, unknown>>(
     (
       cleanedFilters: Record<string, unknown>,
       paginationTyped: { pageSize?: number; pageIndex?: number } | undefined,
-      orderByParam: Record<string, string> | undefined
+      orderByParam: Record<string, string> | undefined,
+      advancedFilters?: unknown
     ) => {
       const requestParams = {
         filters: cleanedFilters,
+        advancedFilters: advancedFilters || [],
         limit: paginationTyped?.pageSize || 10,
         orderBy: orderByParam,
         page: (paginationTyped?.pageIndex || 0) + 1,
@@ -180,6 +182,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
       const {
         columnFilters: _paramsColumnFilters,
         complexFilters: _complexFilters,
+        advancedFilters: paramsAdvancedFilters,
         pagination: _paramsPagination,
         sorting: paramsSorting,
       } = params;
@@ -195,6 +198,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
             columnFilters,
             paramsSorting,
             paginationTyped,
+            advancedFilters: paramsAdvancedFilters,
           });
         }
 
@@ -203,7 +207,8 @@ export function useDataTable<TData extends Record<string, unknown>>(
         const requestParams = buildRequestParams(
           cleanedFilters,
           paginationTyped,
-          orderBy
+          orderBy,
+          paramsAdvancedFilters
         );
 
         // Execute the request - safely handle the list action

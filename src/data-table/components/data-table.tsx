@@ -71,79 +71,7 @@ function DefaultTableDescription({
 
 // Helper hook for creating column options (removed as unused)
 
-/**
- * Hook to set up advanced filters configuration
- */
-function useAdvancedFiltersSetup({
-  enableAdvancedFilters,
-  config: _config,
-  columnTypeMapping,
-  baseData,
-  tableId: _tableId,
-}: {
-  enableAdvancedFilters: boolean;
-  config: ReturnType<typeof useDataTable>['config'];
-  columnTypeMapping: Record<
-    string,
-    'text' | 'number' | 'date' | 'option' | 'multiOption'
-  >;
-  baseData: Record<string, unknown>[];
-  tableId: string;
-}) {
-  // Return early if advanced filters are disabled
-  if (!enableAdvancedFilters) {
-    return {
-      finalData: baseData,
-      advancedFiltersConfig: undefined,
-    };
-  }
-
-  // For server-side data, we don't need to reprocess the data
-  // The filtering is handled by the API
-  const finalData = baseData;
-
-  // Create minimal config for advanced filters UI
-  const advancedFiltersConfig = {
-    filters: [],
-    actions: {
-      addFilter: () => {
-        // No-op implementation for demo
-      },
-      updateFilter: () => {
-        // No-op implementation for demo
-      },
-      removeFilter: () => {
-        // No-op implementation for demo
-      },
-      clearFilters: () => {
-        // No-op implementation for demo
-      },
-      toggleFilter: () => {
-        // No-op implementation for demo
-      },
-      applyPreset: () => {
-        // No-op implementation for demo
-      },
-      savePreset: () => ({
-        id: '',
-        name: '',
-        filters: [],
-        createdAt: new Date(),
-      }),
-    },
-    columnsConfig: Object.fromEntries(
-      Object.entries(columnTypeMapping).map(([key, type]) => [
-        key,
-        { type, faceted: true },
-      ])
-    ),
-    onConvertToAdvanced: () => {
-      // No-op implementation for demo
-    },
-  };
-
-  return { finalData, advancedFiltersConfig };
-}
+// Hook removed - advanced filters are now handled directly in DataTableAdvancedToolbar
 
 /**
  * DataTable component with declarative configuration
@@ -209,14 +137,8 @@ export function DataTable({
     });
   }
 
-  // Configure advanced filters properly now that we have a real API
-  const { finalData, advancedFiltersConfig } = useAdvancedFiltersSetup({
-    enableAdvancedFilters,
-    config,
-    columnTypeMapping,
-    baseData,
-    tableId,
-  });
+  // Use baseData directly since filtering is handled by the API and DataTableAdvancedToolbar
+  const finalData = baseData;
 
   if (DEBUG) {
     console.log('🔍 DataTable Debug Info:', {
@@ -244,19 +166,7 @@ export function DataTable({
     }
   }
 
-  // Debug log temporarily disabled to prevent re-render loops
-  // if (DEBUG) {
-  //   console.log('🔍 Advanced filters setup result:', {
-  //     'finalData length': finalData.length,
-  //     'enableAdvancedFilters': enableAdvancedFilters,
-  //     'baseData length': baseData.length,
-  //     'advancedFiltersConfig': advancedFiltersConfig
-  //   });
-  // }
-
-  if (DEBUG) {
-    console.log('Full advanced filters config:', advancedFiltersConfig);
-  }
+  // Debug logs for advanced filters removed since configuration is now handled in DataTableAdvancedToolbar
 
   // Get the title and description from config or props
   const { TitleComponent, DescriptionComponent } = useTableComponents();
