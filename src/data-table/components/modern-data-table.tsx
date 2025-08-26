@@ -452,14 +452,22 @@ function ModernDataTable<
                     isDragEnabled={isDragEnabled && !isFixedPosition}
                     key={header.id}
                   >
-                    {!header.isPlaceholder && (
-                      <DataTableColumnHeader
-                        column={header.column}
-                        table={table}
-                        tableId={tableId}
-                        title={header.column.columnDef.header as string}
-                      />
-                    )}
+                    {!header.isPlaceholder &&
+                      (header.id === 'select' ? (
+                        // For selection columns, use the column's header directly
+                        flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )
+                      ) : (
+                        // For other columns, use our custom header component
+                        <DataTableColumnHeader
+                          column={header.column}
+                          table={table}
+                          tableId={tableId}
+                          title={header.column.columnDef.header as string}
+                        />
+                      ))}
                   </SortableHeader>
                 );
               })}

@@ -5,8 +5,7 @@
 'use client';
 
 import type { ColumnDef, Row, Table } from '@tanstack/react-table';
-import type { ReactElement } from 'react';
-import { memo } from 'react';
+import { useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { SelectionCell } from '../cells/selection-cell';
 
@@ -40,48 +39,60 @@ interface SelectionHeaderProps<TData> {
   table: Table<TData>;
 }
 
-// Memoize the header component to prevent unnecessary rerenders
-const SelectionHeaderMemo = memo(function SelectionHeaderBase<TData>({
-  table,
-}: SelectionHeaderProps<TData>) {
+// Selection header component with proper UI refresh
+function SelectionHeaderBase<TData>({ table }: SelectionHeaderProps<TData>) {
+  // Force re-render when selection changes - this is the key fix!
+  const [, forceUpdate] = useState({});
+
   if (!table) {
     return <div className="flex h-4 w-4 items-center justify-center" />;
   }
 
-  try {
-    const hasRequiredMethods =
-      typeof table.getIsAllRowsSelected === 'function' &&
-      typeof table.toggleAllRowsSelected === 'function' &&
-      typeof table.getIsSomeRowsSelected === 'function';
+  const rowSelection = table.getState().rowSelection;
+  const allRows = table.getRowModel().rows;
+  const selectedCount = Object.keys(rowSelection).length;
+  const totalCount = allRows.length;
 
-    if (!hasRequiredMethods) {
-      return <div className="flex h-4 w-4 items-center justify-center" />;
+  const isAllSelected = selectedCount === totalCount && totalCount > 0;
+  const isSomeSelected = selectedCount > 0 && selectedCount < totalCount;
+
+  const handleToggle = (value: boolean) => {
+    if (value) {
+      // Select all rows on current page
+      const newSelection: Record<string, boolean> = { ...rowSelection };
+      for (const row of allRows) {
+        newSelection[row.id] = true;
+      }
+      table.setRowSelection(newSelection);
+    } else {
+      // Deselect all rows on current page
+      const newSelection: Record<string, boolean> = { ...rowSelection };
+      for (const row of allRows) {
+        delete newSelection[row.id];
+      }
+      table.setRowSelection(newSelection);
     }
 
-    const isAllSelected = table.getIsAllRowsSelected();
-    const isSomeSelected = table.getIsSomeRowsSelected();
+    // Critical: Force re-render after state change
+    forceUpdate({});
+  };
 
-    return (
-      <div className="flex items-center justify-center">
-        <Checkbox
-          aria-label="Select all rows"
-          checked={isAllSelected}
-          className="translate-y-[2px] data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
-          onCheckedChange={(value) => {
-            table.toggleAllRowsSelected(!!value);
-          }}
-          ref={(el: HTMLButtonElement & { indeterminate?: boolean }) => {
-            if (el) {
-              el.indeterminate = isSomeSelected && !isAllSelected;
-            }
-          }}
-        />
-      </div>
-    );
-  } catch (_error) {
-    return <div className="flex h-4 w-4 items-center justify-center" />;
-  }
-}) as <T>(props: SelectionHeaderProps<T>) => ReactElement;
+  return (
+    <div className="flex items-center justify-center">
+      <Checkbox
+        aria-label="Select all rows"
+        checked={isAllSelected}
+        className="translate-y-[2px] cursor-pointer data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+        onCheckedChange={handleToggle}
+        ref={(el: HTMLButtonElement & { indeterminate?: boolean }) => {
+          if (el) {
+            el.indeterminate = isSomeSelected;
+          }
+        }}
+      />
+    </div>
+  );
+}
 
 /**
  * Creates a selection column definition
@@ -102,7 +113,7 @@ export function createSelectionColumn<TData>(
     enablePinning: false,
     enableSorting: false,
     header: ({ table }: { table: Table<TData> }) => (
-      <SelectionHeaderMemo className={className} table={table} />
+      <SelectionHeaderBase className={className} table={table} />
     ),
     id: 'select',
     meta: {
