@@ -17,8 +17,8 @@ import type {
 } from '../../../types/filter-types';
 import { AdvancedFilterPanel } from '../../filters/advanced-filter-panel';
 
-// Debug flag
-const DEBUG = true;
+// Debug flag - activated for debugging advanced filters
+const DEBUG = false;
 
 export interface TableFiltersMenuProps {
   columnFilters: ColumnFiltersState;
@@ -61,10 +61,23 @@ export function TableFiltersMenu({
   }, []);
 
   // Use advanced filters if enabled and we have the proper setup
+  const hasAdvancedConfig = advancedColumnsConfig && 
+    Object.keys(advancedColumnsConfig).length > 0;
+
+  if (DEBUG) {
+    console.log('🔍 TableFiltersMenu Advanced Filters Check:', {
+      useAdvancedFilters,
+      hasAdvancedActions: !!advancedActions,
+      advancedColumnsConfig,
+      hasAdvancedConfig,
+      'config keys': advancedColumnsConfig ? Object.keys(advancedColumnsConfig) : 'undefined'
+    });
+  }
+
   if (
     useAdvancedFilters &&
     advancedActions &&
-    Object.keys(advancedColumnsConfig).length > 0
+    hasAdvancedConfig
   ) {
     return (
       <StackMenuView name="filters">

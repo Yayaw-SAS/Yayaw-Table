@@ -28,9 +28,10 @@ import {
 } from '../../hooks/use-data-table-advanced-filters';
 import { useTableInstance } from '../../hooks/use-table-instance';
 import {
-  useTableConfig,
+  useTableConfig as useProviderTableConfig,
   useTranslations,
 } from '../../providers/table-provider';
+import { useTableConfig } from '../../hooks/use-table-config';
 import type { ColumnDataType } from '../../types';
 import {
   catalogueFormAtom,
@@ -195,83 +196,76 @@ export function DataTableAdvancedToolbar<TData>({
   const tableId = props.tableId || 'default';
 
   // Get the configuration helpers from the provider
-  const getTableConfig = useTableConfig();
+  const getTableConfig = useProviderTableConfig();
   const { t } = useTranslations();
 
   const state = useDataTable({
     tableType: tableId,
   }) as unknown as DataTableState;
 
-  // Advanced filters setup - get enhanced column configurations
+  // Get table configuration directly to avoid circular dependency  
+  const { config: tableConfig } = useTableConfig(tableId);
+
+  // Advanced filters setup - create column options from table configuration
   const columnOptions = useMemo(() => {
     if (DEBUG) {
-      // Debug logs for column options setup
+      console.log('🔧 Creating columnOptions from table config:', {
+        tableConfig,
+        'column definitions': tableConfig.columns?.definitions?.length || 0,
+        columnTypeMapping
+      });
     }
 
-    // Get table configuration first
-    const _tableConfig = getTableConfig?.(tableId);
-    // TableConfig doesn't have columns.definitions property, so use empty array
-    const columnDefinitions: unknown[] = [];
+    // Get column definitions from table configuration
+    const columnDefinitions = tableConfig.columns?.definitions || [];
+
+    // Create column options from configuration instead of table instance
+    const options = columnDefinitions
+      .filter((colDef: any) => colDef.id !== 'select' && colDef.id !== 'actions') // Skip system columns
+      .map((colDef: any) => {
+        const option = {
+          canFilter: colDef.enableColumnFilter !== false,
+          canHide: true, // Most columns can be hidden
+          canSort: colDef.enableSorting !== false,
+          id: colDef.id,
+          label: colDef.header || colDef.id,
+          // Enhanced properties from column definition
+          placeholder: `Filter by ${colDef.header || colDef.id}...`,
+          type: colDef.type,
+        };
+
+        if (DEBUG) {
+          console.log('🔧 Created column option:', option);
+        }
+
+        return option;
+      });
 
     if (DEBUG) {
-      // Debug logs for column definitions
-    }
-
-    if (!table) {
-      if (DEBUG) {
-        // Debug logs for table fallback
-      }
-      // No table available and no column definitions, return empty array
-      return [];
-    }
-
-    const allColumns = table.getAllColumns();
-    if (DEBUG) {
-      // Debug logs for all columns
-    }
-
-    // Merge table columns with enhanced configuration
-    const options = allColumns.map((column) => {
-      const columnDef = column.columnDef as DataTableColumnDef<TData>;
-      const configDef = columnDefinitions.find(
-        (def: unknown) => (def as Record<string, unknown>)?.id === column.id
-      ) as Record<string, unknown> | undefined;
-
-      const option = {
-        canFilter: column.getCanFilter(),
-        canHide: columnDef.enableHiding !== false,
-        canSort: column.getCanSort(),
-        id: column.id,
-        label: String(
-          columnDef.meta?.label || configDef?.header || column.id || 'Unknown'
-        ),
-        // Enhanced properties from our table config
-        placeholder: configDef?.placeholder,
-        description: configDef?.description,
-        options: configDef?.options,
-        min: configDef?.min,
-        max: configDef?.max,
-        type: configDef?.type,
-      };
-
-      if (DEBUG) {
-        // Debug log for option creation
-      }
-
-      return option;
-    });
-
-    if (DEBUG) {
-      // Debug log for final options
+      console.log('🔧 Final columnOptions:', {
+        'options length': options.length,
+        options
+      });
     }
     return options;
-  }, [table, tableId, getTableConfig]);
+  }, [tableConfig, columnTypeMapping, tableId]);
 
   // Create advanced columns configuration from table columns
   const advancedColumnsConfig = useColumnsFilterConfig(
     columnOptions,
     columnTypeMapping
   );
+
+  if (DEBUG) {
+    console.log('🔧 DataTableAdvancedToolbar - Advanced Columns Config:', {
+      'columnOptions length': columnOptions.length,
+      'columnOptions': columnOptions,
+      'columnTypeMapping': columnTypeMapping,
+      'advancedColumnsConfig': advancedColumnsConfig,
+      'config keys': Object.keys(advancedColumnsConfig || {}),
+      'enableAdvancedFilters': enableAdvancedFilters
+    });
+  }
 
   // Create accessors for advanced filtering
   const accessors = useTableAccessors(

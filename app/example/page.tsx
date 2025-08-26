@@ -8,7 +8,6 @@ import {
   ThemeToggle,
 } from '../../index';
 import { CustomDescription, CustomTitle } from './components';
-import { products } from './data';
 import { getFormConfig } from './form-config';
 import { getTableActions, getTableConfig } from './table-config';
 
@@ -59,8 +58,7 @@ export default function ExamplePage() {
                   createdAt: 'date',
                   isActive: 'option', // boolean -> option for true/false
                 }}
-                data={products}
-                description="Manage your product inventory with advanced filtering and actions"
+                description="Production-ready table with server-side pagination, filtering, and sorting"
                 enableAdvancedFilters={true}
                 tableType="products"
                 title="Products Management"
@@ -100,11 +98,10 @@ const getTableConfig = (tableType: string) => {
   }
 }
 
-// 2. Advanced Filters Configuration
+// 2. Production Table with Real API
 <DataTable 
   tableType="products"
   enableAdvancedFilters={true}
-  data={products}
   columnTypeMapping={{
     name: 'text',
     brand: 'text', 
@@ -116,7 +113,7 @@ const getTableConfig = (tableType: string) => {
   }}
 />
 
-// ✅ Now includes Advanced Filters with proper type mapping!
+// ✅ Server-side API with pagination, filtering, and sorting!
 // 🎨 Try switching themes with the toggle in the top-right!`}
               </pre>
             </div>

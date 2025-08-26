@@ -7,29 +7,16 @@
 import type { Row } from '@tanstack/react-table';
 import dynamic from 'next/dynamic';
 // Import advanced filters hook directly
-import { Suspense, useMemo } from 'react';
+import { Suspense } from 'react';
 import { useDataTable } from '../hooks/use-data-table';
-import {
-  useColumnsFilterConfig,
-  useDataTableAdvancedFilters,
-  useTableAccessors,
-} from '../hooks/use-data-table-advanced-filters';
+
 import { DataTableUIProvider } from '../providers/data-table-ui-provider';
 import { useTableComponents } from '../providers/table-provider';
 import { DataTableSkeleton } from './data-table-skeleton';
 
-// Dynamically import the DataTableClient component with no SSR
-// This ensures it's only rendered on the client side to avoid hydration issues
-const DataTableClient = dynamic(
-  () =>
-    import('./modern-data-table').then((mod) => ({
-      default: mod.DataTable,
-    })),
-  {
-    loading: () => <DataTableSkeleton />,
-    ssr: false,
-  }
-);
+// Import DataTableClient directly for better SSR compatibility
+import { DataTable as DataTableClient } from './modern-data-table';
+
 // Lazy load heavy components for better performance
 const CatalogueFormContainer = dynamic(
   () =>
@@ -82,104 +69,15 @@ function DefaultTableDescription({
   );
 }
 
-// Helper hook for creating column options
-function useColumnOptions(
-  enableAdvancedFilters: boolean,
-  columnDefinitions?: unknown[]
-) {
-  return useMemo(() => {
-    if (!enableAdvancedFilters) {
-      return [];
-    }
-    const definitions = columnDefinitions || [];
+// Helper hook for creating column options (removed as unused)
 
-    return definitions.map((colDef) => {
-      const col = colDef as Record<string, unknown>;
-      return {
-        canFilter: col.canFilter !== false,
-        canHide: col.canHide !== false,
-        id: String(col.id || ''),
-        label: String(col.header || col.id || ''),
-        placeholder: col.placeholder,
-        description: col.description,
-        options: col.options,
-        min: col.min,
-        max: col.max,
-        type: col.type,
-      };
-    });
-  }, [enableAdvancedFilters, columnDefinitions]);
-}
-
-/**
- * Hook to set up advanced filters configuration
- */
-function useAdvancedFiltersSetup({
-  enableAdvancedFilters,
-  config,
-  columnTypeMapping,
-  baseData,
-  tableId,
-}: {
-  enableAdvancedFilters: boolean;
-  config: ReturnType<typeof useDataTable>['config'];
-  columnTypeMapping: Record<
-    string,
-    'text' | 'number' | 'date' | 'option' | 'multiOption'
-  >;
-  baseData: Record<string, unknown>[];
-  tableId: string;
-}) {
-  // Create enhanced column options similar to toolbar (always create, use conditionally)
-  const columnOptions = useColumnOptions(
-    enableAdvancedFilters,
-    config.columns?.definitions
-  );
-
-  // Create advanced columns configuration from table columns (always call hook)
-  const advancedColumnsConfig = useColumnsFilterConfig(
-    columnOptions,
-    columnTypeMapping
-  );
-
-  // Create accessors for advanced filtering (always call hook)
-  const accessors = useTableAccessors(
-    baseData,
-    columnOptions.map((col) => String(col.id || ''))
-  );
-
-  // Set up advanced filters (always call hook)
-  const advancedFiltersResult = useDataTableAdvancedFilters({
-    tableType: tableId,
-    strategy: 'client',
-    data: baseData,
-    advancedColumnsConfig,
-    accessors,
-    autoComputeFaceted: true,
-  });
-
-  // Use filtered data from advanced filters if enabled
-  const finalData = enableAdvancedFilters
-    ? advancedFiltersResult.filteredData
-    : baseData;
-
-  // Store config for toolbar if enabled
-  const advancedFiltersConfig = enableAdvancedFilters
-    ? {
-        filters: advancedFiltersResult.advancedFilters,
-        actions: advancedFiltersResult.advancedActions,
-        columnsConfig: advancedColumnsConfig,
-        onConvertToAdvanced: advancedFiltersResult.convertLegacyToAdvanced,
-      }
-    : undefined;
-
-  return { finalData, advancedFiltersConfig };
-}
+// Hook removed - advanced filters are now handled directly in DataTableAdvancedToolbar
 
 /**
  * DataTable component with declarative configuration
  * This component uses the table catalogue to configure itself
  */
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Main table component with complex configuration logic
 export function DataTable({
   className,
   enableToolbar = true,
@@ -188,7 +86,6 @@ export function DataTable({
   title,
   description,
   enableAdvancedFilters = false,
-  data: providedData,
   columnTypeMapping = {},
 }: {
   className?: string;
@@ -199,8 +96,6 @@ export function DataTable({
   description?: string;
   /** Whether to enable advanced filtering */
   enableAdvancedFilters?: boolean;
-  /** Data for advanced filtering (optional, if not provided, will be fetched) */
-  data?: Record<string, unknown>[];
   /** Column type mapping for advanced filters */
   columnTypeMapping?: Record<
     string,
@@ -226,24 +121,52 @@ export function DataTable({
     tableType,
   });
 
-  // Use provided data for advanced filters if available, otherwise use fetched data
-  const baseData = providedData || data || [];
+  // Use fetched data from API
+  const baseData = data || [];
 
   // Add DEBUG flag for development
   const DEBUG = false;
 
-  // Configure advanced filters
-  const { finalData, advancedFiltersConfig } = useAdvancedFiltersSetup({
-    enableAdvancedFilters,
-    config,
-    columnTypeMapping,
-    baseData,
-    tableId,
-  });
+  if (DEBUG) {
+    console.log('🔍 DataTable Debug:', {
+      'fetched data length': data?.length || 0,
+      'baseData length': baseData.length,
+      rowCount,
+      tableType,
+      'columns length': columns?.length || 0,
+    });
+  }
+
+  // Use baseData directly since filtering is handled by the API and DataTableAdvancedToolbar
+  const finalData = baseData;
 
   if (DEBUG) {
-    console.log('Advanced filters config:', advancedFiltersConfig);
+    console.log('🔍 DataTable Debug Info:', {
+      'baseData length': baseData.length,
+      'finalData length': finalData.length,
+      'columns length': columns?.length || 0,
+      isLoading,
+      rowCount,
+      config,
+      'first baseData item': baseData[0],
+    });
   }
+
+  if (DEBUG) {
+    if (isLoading) {
+      console.log('🔄 Table is loading - showing skeleton');
+    } else {
+      console.log('🚀 Table ready - rendering DataTableClient with:', {
+        'finalData length': finalData.length,
+        'columns available': !!columns,
+        'columns length': columns?.length,
+        'first column': columns?.[0],
+        visibilityKey,
+      });
+    }
+  }
+
+  // Debug logs for advanced filters removed since configuration is now handled in DataTableAdvancedToolbar
 
   // Get the title and description from config or props
   const { TitleComponent, DescriptionComponent } = useTableComponents();
@@ -335,9 +258,8 @@ export function DataTable({
                 manualSorting={config.table.manualSorting}
                 onRowSelectionChange={onRowSelectionChange}
                 queryFn={async (_params) => {
-                  // We need to wrap the refresh function to match the expected signature
+                  // For fetched data, use the refetch function
                   await refetch();
-                  // Return the current data to avoid flickering
                   return {
                     data: finalData,
                     pageCount: pageCount || 1,
@@ -359,3 +281,5 @@ export function DataTable({
     </>
   );
 }
+
+// Simple toolbar component removed as unused

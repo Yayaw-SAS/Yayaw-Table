@@ -5,7 +5,6 @@
 'use client';
 
 import type { Table } from '@tanstack/react-table';
-import { useAtom } from 'jotai';
 import {
   ChevronLeft,
   ChevronRight,
@@ -23,7 +22,6 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
-import { paginationAtom } from '../atoms/table-atoms';
 import { useTableTranslations } from '../hooks';
 
 interface DataTablePaginationProps<TData> {
@@ -56,16 +54,13 @@ export function DataTablePagination<TData>({
   className,
   rowCount,
   table,
-  tableId,
+  tableId: _tableId,
 }: DataTablePaginationProps<TData>) {
   // Get translations
   const translations = useTableTranslations();
 
-  // Get pagination state from atom
-  const [pagination, setPagination] = useAtom(paginationAtom(tableId));
-
-  // Calculate row range for current page
-  const { pageIndex, pageSize } = pagination;
+  // Get pagination state directly from table
+  const { pageIndex, pageSize } = table.getState().pagination;
   const pageCount = table.getPageCount();
 
   // Calculate start and end row numbers for display
@@ -78,13 +73,10 @@ export function DataTablePagination<TData>({
   // Handle page size change
   const handlePageSizeChange = useCallback(
     (value: string) => {
-      setPagination((prev) => ({
-        ...prev,
-        pageIndex: 0, // Reset to first page when changing page size
-        pageSize: Number(value),
-      }));
+      console.log('🔧 Changing page size to:', value);
+      table.setPageSize(Number(value));
     },
-    [setPagination]
+    [table]
   );
 
   return (

@@ -15,13 +15,12 @@ export const getTableConfig = (
       enableRowDragDrop: false,
       enableRowSelection: true,
       enableSorting: true,
-      manualFiltering: false,
-      manualPagination: false,
-      manualSorting: false,
-      pageSizeOptions: [5, 10, 20, 50],
+      manualFiltering: true, // Server-side filtering
+      manualPagination: true, // Server-side pagination
+      manualSorting: true, // Server-side sorting
+      pageSizeOptions: [5, 10, 20, 30, 50],
     };
   }
-  return undefined;
 };
 
 // Configuration des actions du tableau
@@ -29,5 +28,4 @@ export const getTableActions = (tableType: string) => {
   if (tableType === 'products') {
     return productActions;
   }
-  return undefined;
 };

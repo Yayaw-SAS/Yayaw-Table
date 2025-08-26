@@ -2,6 +2,7 @@ import { ThemeProvider } from '@/src/components/theme-provider';
 import './global.css';
 import { RootProvider } from 'fumadocs-ui/provider';
 import { Inter } from 'next/font/google';
+import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import type { ReactNode } from 'react';
 
 const inter = Inter({
@@ -18,7 +19,9 @@ export default function Layout({ children }: { children: ReactNode }) {
           disableTransitionOnChange
           enableSystem
         >
-          <RootProvider>{children}</RootProvider>
+          <NuqsAdapter>
+            <RootProvider>{children}</RootProvider>
+          </NuqsAdapter>
         </ThemeProvider>
       </body>
     </html>
