@@ -9,6 +9,16 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Copy, Edit, Trash2, X } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useOnClickOutside } from 'usehooks-ts';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useTranslations } from '../../providers/table-provider';
@@ -190,10 +200,7 @@ export function BulkActionsMenu<TData>({
     return actionTabs.find((tab) => tab.id === selectedAction);
   };
 
-  const getActionVariant = () => {
-    const action = getSelectedAction();
-    return action?.variant || 'default';
-  };
+  // deprecated: button variant now handled by AlertDialogAction styling
 
   return (
     <div
@@ -205,41 +212,49 @@ export function BulkActionsMenu<TData>({
       )}
     >
       <div className="flex flex-col items-center space-y-4">
-        {/* Confirmation dialog */}
-        {showConfirmation && selectedAction && (
-          <div className="min-w-[300px] rounded-lg border bg-popover p-4 shadow-lg">
-            <div className="space-y-3 text-center">
-              <p className="font-medium text-sm">
+        {/* Confirmation dialog (consistent AlertDialog for copy/delete) */}
+        <AlertDialog
+          onOpenChange={(open) => {
+            if (!open) {
+              handleCancel();
+            }
+          }}
+          open={showConfirmation && !!selectedAction}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
                 {t(getSelectedAction()?.translationKey || '')} {selectedCount}{' '}
-                item
-                {selectedCount > 1 ? 's' : ''}?
-              </p>
-              {selectedAction === 'delete' && (
-                <p className="text-muted-foreground text-xs">
-                  This action cannot be undone
-                </p>
+                item{selectedCount > 1 ? 's' : ''}?
+              </AlertDialogTitle>
+              {selectedAction === 'delete' ? (
+                <AlertDialogDescription>
+                  This action cannot be undone.
+                </AlertDialogDescription>
+              ) : (
+                <AlertDialogDescription>
+                  You are about to {t('actions.copy').toLowerCase()}{' '}
+                  {selectedCount} item{selectedCount > 1 ? 's' : ''}.
+                </AlertDialogDescription>
               )}
-              <div className="flex gap-2 pt-2">
-                <Button
-                  className="flex-1"
-                  onClick={handleCancel}
-                  size="sm"
-                  variant="outline"
-                >
-                  {t('actions.cancel')}
-                </Button>
-                <Button
-                  className="flex-1"
-                  onClick={handleConfirmAction}
-                  size="sm"
-                  variant={getActionVariant() as 'default' | 'destructive'}
-                >
-                  {t('actions.confirm')}
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={handleCancel}>
+                {t('actions.cancel')}
+              </AlertDialogCancel>
+              <AlertDialogAction
+                className={
+                  selectedAction === 'delete'
+                    ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
+                    : undefined
+                }
+                onClick={handleConfirmAction}
+              >
+                {t('actions.confirm')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Main menu with custom expandable tabs */}
         <div
