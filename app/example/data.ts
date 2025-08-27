@@ -509,15 +509,255 @@ export const products: Product[] = [
 // Removed unused helper functions
 
 // Server actions using real API routes - Production-ready approach
+// Helpers to evaluate individual filter types (kept small to satisfy complexity rules)
+function evaluateTextFilter(
+  value: unknown,
+  operator: unknown,
+  values: unknown[]
+): boolean {
+  const textValue = String(value ?? '').toLowerCase();
+  const searchValue = String(values[0] ?? '').toLowerCase();
+  switch (operator) {
+    case 'equals':
+      return textValue === searchValue;
+    case 'startsWith':
+      return textValue.startsWith(searchValue);
+    case 'endsWith':
+      return textValue.endsWith(searchValue);
+    default:
+      return textValue.includes(searchValue);
+  }
+}
+
+function evaluateNumberFilter(
+  value: unknown,
+  operator: unknown,
+  values: unknown[]
+): boolean {
+  const numValue = Number(value);
+  const filterValue = Number(values[0]);
+  switch (operator) {
+    case 'equals':
+      return numValue === filterValue;
+    case 'greaterThan':
+      return numValue > filterValue;
+    case 'lessThan':
+      return numValue < filterValue;
+    case 'greaterThanOrEqual':
+      return numValue >= filterValue;
+    case 'lessThanOrEqual':
+      return numValue <= filterValue;
+    default:
+      return numValue === filterValue;
+  }
+}
+
+function evaluateOptionFilter(
+  value: unknown,
+  operator: unknown,
+  values: unknown[]
+): boolean {
+  if (operator === 'in') {
+    return values.includes(value);
+  }
+  return values.includes(value);
+}
+
+function evaluateDateFilter(
+  value: unknown,
+  operator: unknown,
+  values: unknown[]
+): boolean {
+  const dateValue = new Date(value as string);
+  const filterDate = new Date((values[0] as string) ?? '');
+  switch (operator) {
+    case 'after':
+      return dateValue > filterDate;
+    case 'before':
+      return dateValue < filterDate;
+    default:
+      return dateValue.toDateString() === filterDate.toDateString();
+  }
+}
+
+// Helper function to apply a single advanced filter
+function applyAdvancedFilter(
+  product: Product,
+  filter: Record<string, unknown>
+): boolean {
+  if (!filter.isActive) {
+    return true;
+  }
+
+  const value = product[filter.columnId as keyof Product];
+  const filterValues = Array.isArray(filter.values) ? filter.values : [];
+
+  switch (filter.type) {
+    case 'text':
+      return evaluateTextFilter(value, filter.operator, filterValues);
+    case 'number':
+      return evaluateNumberFilter(value, filter.operator, filterValues);
+    case 'option':
+      return evaluateOptionFilter(value, filter.operator, filterValues);
+    case 'date':
+      return evaluateDateFilter(value, filter.operator, filterValues);
+    default:
+      return true;
+  }
+}
+
+// Helper function to apply advanced filters
+function applyAdvancedFilters(
+  productsList: Product[],
+  filters: Record<string, unknown>[]
+): Product[] {
+  if (filters.length === 0) {
+    return productsList;
+  }
+
+  if (DEBUG) {
+    console.log(
+      '🔧 Applying advanced filters to',
+      productsList.length,
+      'products'
+    );
+  }
+
+  const filteredProducts = productsList.filter((product) => {
+    return filters.every((filter) => applyAdvancedFilter(product, filter));
+  });
+
+  if (DEBUG) {
+    console.log(
+      '🔧 After advanced filtering:',
+      filteredProducts.length,
+      'products remain'
+    );
+  }
+
+  return filteredProducts;
+}
+
+// Helper: apply legacy (simple) filters
+function applyLegacyFiltersToProducts(
+  productsList: Product[],
+  filters: Record<string, unknown> | Array<{ id: string; value: unknown }>
+): Product[] {
+  const resultList: Product[] = [...productsList];
+
+  if (Array.isArray(filters)) {
+    for (const filter of filters) {
+      if (filter.id && (filter as { value?: unknown }).value) {
+        const valueToMatch = String(
+          (filter as { value?: unknown }).value
+        ).toLowerCase();
+        const next = resultList.filter((product) => {
+          const value = product[filter.id as keyof Product];
+          return String(value || '')
+            .toLowerCase()
+            .includes(valueToMatch);
+        });
+        resultList.length = 0;
+        resultList.push(...next);
+      }
+    }
+    return resultList;
+  }
+
+  // Object form
+  for (const [key, value] of Object.entries(filters)) {
+    if (!value) {
+      continue;
+    }
+    const valueToMatch = String(value).toLowerCase();
+    const next = resultList.filter((product) => {
+      const productValue = product[key as keyof Product];
+      return String(productValue || '')
+        .toLowerCase()
+        .includes(valueToMatch);
+    });
+    resultList.length = 0;
+    resultList.push(...next);
+  }
+  return resultList;
+}
+
+// Helper: search
+function applySearchToProducts(
+  productsList: Product[],
+  search: string
+): Product[] {
+  if (!search) {
+    return productsList;
+  }
+  const searchLower = search.toLowerCase();
+  return productsList.filter((product) => {
+    return (
+      product.name.toLowerCase().includes(searchLower) ||
+      product.brand.toLowerCase().includes(searchLower) ||
+      product.category.toLowerCase().includes(searchLower) ||
+      product.status.toLowerCase().includes(searchLower)
+    );
+  });
+}
+
+// Helper: sorting
+function sortProducts(
+  productsList: Product[],
+  orderBy: Record<string, 'asc' | 'desc'>
+): Product[] {
+  if (Object.keys(orderBy).length === 0) {
+    return productsList;
+  }
+  const [sortBy, sortDirection] = Object.entries(orderBy)[0];
+  const sorted = [...productsList].sort((a, b) => {
+    const aValue = a[sortBy as keyof Product] as unknown as
+      | string
+      | number
+      | Date;
+    const bValue = b[sortBy as keyof Product] as unknown as
+      | string
+      | number
+      | Date;
+    let comparison = 0;
+    if (aValue < bValue) {
+      comparison = -1;
+    } else if (aValue > bValue) {
+      comparison = 1;
+    }
+    return sortDirection === 'desc' ? -comparison : comparison;
+  });
+  return sorted;
+}
+
+// Helper: pagination
+function paginateProducts(
+  productsList: Product[],
+  page: number,
+  limit: number
+): { data: Product[]; pageCount: number; totalCount: number } {
+  const totalCount = productsList.length;
+  const pageCount = Math.ceil(totalCount / limit);
+  const startIndex = page * limit;
+  const endIndex = startIndex + limit;
+  const data = productsList.slice(startIndex, endIndex);
+  return { data, pageCount, totalCount };
+}
+
 export const productActions = {
   list: async (params: {
     page?: number;
     limit?: number;
     filters?: Record<string, unknown> | Array<{ id: string; value: unknown }>;
-    advancedFilters?: Array<{ columnId: string; operator: string; values: unknown[]; isActive: boolean; type: string }>;
+    advancedFilters?: Array<{
+      columnId: string;
+      operator: string;
+      values: unknown[];
+      isActive: boolean;
+      type: string;
+    }>;
     orderBy?: Record<string, 'asc' | 'desc'>;
     search?: string;
-    // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Complex API logic needed for production functionality
   }) => {
     const {
       page = 0, // Use 0-based pagination as expected by the table
@@ -534,191 +774,53 @@ export const productActions = {
     }
 
     // Apply advanced filters to the data
-    let filteredProducts = [...products];
-    
-    if (advancedFilters.length > 0) {
-      if (DEBUG) {
-        console.log('🔧 Applying advanced filters to', filteredProducts.length, 'products');
-      }
-      
-      filteredProducts = filteredProducts.filter((product) => {
-        return advancedFilters.every((filter: any) => {
-          if (!filter.isActive) return true;
-          
-          const value = product[filter.columnId as keyof Product];
-          
-          if (DEBUG) {
-            console.log('🔧 Applying filter:', filter, 'to value:', value);
-          }
-          
-          switch (filter.type) {
-            case 'text':
-              const textValue = String(value || '').toLowerCase();
-              const searchValue = String(filter.values[0] || '').toLowerCase();
-              
-              switch (filter.operator) {
-                case 'equals':
-                  return textValue === searchValue;
-                case 'contains':
-                  return textValue.includes(searchValue);
-                case 'startsWith':
-                  return textValue.startsWith(searchValue);
-                case 'endsWith':
-                  return textValue.endsWith(searchValue);
-                default:
-                  return textValue.includes(searchValue);
-              }
-              
-            case 'number':
-              const numValue = Number(value);
-              const filterValue = Number(filter.values[0]);
-              
-              switch (filter.operator) {
-                case 'equals':
-                  return numValue === filterValue;
-                case 'greaterThan':
-                  return numValue > filterValue;
-                case 'lessThan':
-                  return numValue < filterValue;
-                case 'greaterThanOrEqual':
-                  return numValue >= filterValue;
-                case 'lessThanOrEqual':
-                  return numValue <= filterValue;
-                default:
-                  return numValue === filterValue;
-              }
-              
-            case 'option':
-              if (filter.operator === 'in' && Array.isArray(filter.values)) {
-                return filter.values.includes(value);
-              }
-              return filter.values.includes(value);
-              
-            case 'date':
-              const dateValue = new Date(value as string);
-              const filterDate = new Date(filter.values[0] as string);
-              
-              switch (filter.operator) {
-                case 'equals':
-                  return dateValue.toDateString() === filterDate.toDateString();
-                case 'greaterThan':
-                  return dateValue > filterDate;
-                case 'lessThan':
-                  return dateValue < filterDate;
-                default:
-                  return dateValue.toDateString() === filterDate.toDateString();
-              }
-              
-            default:
-              return true;
-          }
-        });
-      });
-      
-      if (DEBUG) {
-        console.log('🔧 After advanced filtering:', filteredProducts.length, 'products remain');
-      }
-    }
-
-    // Process data directly instead of making API calls
+    const filteredProducts = applyAdvancedFilters(
+      products,
+      advancedFilters as Record<string, unknown>[]
+    );
 
     try {
-      // Apply legacy filters to the already advanced-filtered products
-      let finalProducts = [...filteredProducts];
-      
-      // Apply legacy filters if any
-      if (Array.isArray(filters)) {
-        for (const filter of filters) {
-          if (filter.id && filter.value) {
-            finalProducts = finalProducts.filter((product) => {
-              const value = product[filter.id as keyof Product];
-              return String(value || '').toLowerCase().includes(String(filter.value).toLowerCase());
-            });
-          }
-        }
-      } else if (typeof filters === 'object') {
-        for (const [key, value] of Object.entries(filters)) {
-          if (value) {
-            finalProducts = finalProducts.filter((product) => {
-              const productValue = product[key as keyof Product];
-              return String(productValue || '').toLowerCase().includes(String(value).toLowerCase());
-            });
-          }
-        }
-      }
+      // Apply legacy filters
+      let finalProducts = applyLegacyFiltersToProducts(
+        filteredProducts,
+        filters
+      );
 
-      // Apply search if present
-      if (search) {
-        finalProducts = finalProducts.filter((product) => {
-          const searchLower = search.toLowerCase();
-          return (
-            product.name.toLowerCase().includes(searchLower) ||
-            product.brand.toLowerCase().includes(searchLower) ||
-            product.category.toLowerCase().includes(searchLower) ||
-            product.status.toLowerCase().includes(searchLower)
-          );
-        });
-      }
+      // Apply search
+      finalProducts = applySearchToProducts(finalProducts, search);
 
       // Apply sorting
-      if (Object.keys(orderBy).length > 0) {
-        const [sortBy, sortDirection] = Object.entries(orderBy)[0];
-        finalProducts.sort((a, b) => {
-          const aValue = a[sortBy as keyof Product];
-          const bValue = b[sortBy as keyof Product];
-          
-          let comparison = 0;
-          if (aValue < bValue) {
-            comparison = -1;
-          } else if (aValue > bValue) {
-            comparison = 1;
-          }
-          
-          return sortDirection === 'desc' ? -comparison : comparison;
-        });
-      }
+      finalProducts = sortProducts(finalProducts, orderBy);
 
       // Apply pagination
-      const totalCount = finalProducts.length;
-      const pageCount = Math.ceil(totalCount / limit);
-      const startIndex = page * limit;
-      const endIndex = startIndex + limit;
-      const paginatedProducts = finalProducts.slice(startIndex, endIndex);
-
-      const result = {
+      const {
         data: paginatedProducts,
-        meta: {
-          pageCount,
-          totalCount,
-        },
-      };
+        pageCount,
+        totalCount,
+      } = paginateProducts(finalProducts, page, limit);
 
       if (DEBUG) {
         console.log('🎯 Processed result:', {
           'original products': products.length,
           'after advanced filters': filteredProducts.length,
           'after all filters': finalProducts.length,
-          'paginated': paginatedProducts.length,
-          'page': page,
-          'limit': limit,
-          'pageCount': pageCount,
-          'totalCount': totalCount
+          paginated: paginatedProducts.length,
+          page,
+          limit,
+          pageCount,
+          totalCount,
         });
       }
 
-      // Simulate API delay
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      return result;
+      return {
+        data: paginatedProducts,
+        meta: { pageCount, totalCount },
+      };
     } catch (error) {
       console.error('❌ Data processing failed:', error);
-      return {
-        data: [],
-        meta: {
-          pageCount: 0,
-          totalCount: 0,
-        },
-      };
+      return { data: [], meta: { pageCount: 0, totalCount: 0 } };
     }
   },
 
@@ -811,5 +913,163 @@ export const productActions = {
           error instanceof Error ? error.message : 'Failed to delete product',
       };
     }
+  },
+
+  // Bulk operations
+  bulkDelete: (
+    ids: string[]
+  ): Promise<{ success: boolean; data?: Product[]; error?: string }> => {
+    return new Promise((resolve) => {
+      try {
+        if (DEBUG) {
+          console.log('🗑️ Bulk deleting products:', ids);
+        }
+
+        const deletedProducts: Product[] = [];
+        const notFoundIds: string[] = [];
+
+        // Remove products from array
+        for (const id of ids) {
+          const productIndex = products.findIndex((p) => p.id === id);
+          if (productIndex !== -1) {
+            const [deletedProduct] = products.splice(productIndex, 1);
+            deletedProducts.push(deletedProduct);
+          } else {
+            notFoundIds.push(id);
+          }
+        }
+
+        if (notFoundIds.length > 0) {
+          console.warn('Products not found:', notFoundIds);
+        }
+
+        if (DEBUG) {
+          console.log(
+            `✅ Successfully deleted ${deletedProducts.length} products`,
+            deletedProducts.map((p) => p.name)
+          );
+        }
+
+        resolve({
+          success: true,
+          data: deletedProducts,
+        });
+      } catch (error) {
+        console.error('❌ Bulk delete error:', error);
+        resolve({
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    });
+  },
+
+  bulkUpdate: (
+    ids: string[],
+    updateData: Partial<Product>
+  ): Promise<{ success: boolean; data?: Product[]; error?: string }> => {
+    return new Promise((resolve) => {
+      try {
+        if (DEBUG) {
+          console.log('🔄 Bulk updating products:', { ids, updateData });
+        }
+
+        const updatedProducts: Product[] = [];
+        const notFoundIds: string[] = [];
+
+        // Update products in array
+        for (const id of ids) {
+          const productIndex = products.findIndex((p) => p.id === id);
+          if (productIndex !== -1) {
+            // Apply updates, only for fields that are not undefined
+            const updates = Object.entries(updateData).reduce(
+              (acc, [key, value]) => {
+                if (value !== undefined && value !== null && value !== '') {
+                  acc[key] = value;
+                }
+                return acc;
+              },
+              {} as Record<string, unknown>
+            );
+
+            products[productIndex] = {
+              ...products[productIndex],
+              ...updates,
+            } as Product;
+
+            updatedProducts.push(products[productIndex]);
+          } else {
+            notFoundIds.push(id);
+          }
+        }
+
+        if (notFoundIds.length > 0) {
+          console.warn('Products not found:', notFoundIds);
+        }
+
+        if (DEBUG) {
+          console.log(
+            `✅ Successfully updated ${updatedProducts.length} products`,
+            updatedProducts.map((p) => p.name)
+          );
+        }
+
+        resolve({
+          success: true,
+          data: updatedProducts,
+        });
+      } catch (error) {
+        console.error('❌ Bulk update error:', error);
+        resolve({
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    });
+  },
+
+  bulkCopy: (
+    ids: string[]
+  ): Promise<{ success: boolean; data?: string; error?: string }> => {
+    return new Promise((resolve) => {
+      try {
+        if (DEBUG) {
+          console.log('📋 Bulk copying products:', ids);
+        }
+
+        const productsToCopy = products.filter((p) => ids.includes(p.id));
+
+        if (productsToCopy.length === 0) {
+          throw new Error('No products found to copy');
+        }
+
+        // Create clean data for copying (remove internal fields)
+        const cleanData = productsToCopy.map(({ ...product }) => ({
+          ...product,
+          // Remove fields that shouldn't be copied
+          id: undefined,
+          createdAt: undefined,
+        }));
+
+        const jsonData = JSON.stringify(cleanData, null, 2);
+
+        if (DEBUG) {
+          console.log(
+            `✅ Successfully copied ${productsToCopy.length} products to clipboard`
+          );
+        }
+
+        resolve({
+          success: true,
+          data: jsonData,
+        });
+      } catch (error) {
+        console.error('❌ Bulk copy error:', error);
+        resolve({
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    });
   },
 };

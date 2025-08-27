@@ -278,6 +278,7 @@ export const defaultTranslations: DataTableTranslations = {
   actions: {
     delete: 'Delete',
     edit: 'Edit',
+    copy: 'Copy',
     save: 'Save',
     cancel: 'Cancel',
     confirm: 'Confirm',

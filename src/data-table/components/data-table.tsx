@@ -82,6 +82,9 @@ export function DataTable({
   className,
   enableToolbar = true,
   onRowSelectionChange,
+  onBulkEdit,
+  onBulkDelete,
+  onBulkCopy,
   tableType,
   title,
   description,
@@ -91,6 +94,9 @@ export function DataTable({
   className?: string;
   enableToolbar?: boolean;
   onRowSelectionChange?: (rows: Row<Record<string, unknown>>[]) => void;
+  onBulkEdit?: (rows: Row<Record<string, unknown>>[]) => void;
+  onBulkDelete?: (rows: Row<Record<string, unknown>>[]) => void;
+  onBulkCopy?: (rows: Row<Record<string, unknown>>[]) => void;
   tableType: string; // Required
   title?: string;
   description?: string;
@@ -256,6 +262,9 @@ export function DataTable({
                 manualFiltering={config.table.manualFiltering}
                 manualPagination={config.table.manualPagination}
                 manualSorting={config.table.manualSorting}
+                onBulkCopy={onBulkCopy}
+                onBulkDelete={onBulkDelete}
+                onBulkEdit={onBulkEdit}
                 onRowSelectionChange={onRowSelectionChange}
                 queryFn={async (_params) => {
                   // For fetched data, use the refetch function

@@ -1,0 +1,107 @@
+---
+title: Bulk Actions Quick Start
+description: Get started with bulk operations in just a few minutes.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# Bulk Actions Quick Start
+
+Get bulk edit, delete, and copy functionality up and running in your data table quickly.
+
+## 5-Minute Setup
+
+### 1. Create Bulk Edit Configuration
+
+```tsx
+import { createBulkEditFormConfig } from 'yayaw-table';
+
+// Your existing form config
+const baseConfig = {
+  id: 'products',
+  fields: [
+    { type: 'text', name: 'name', label: 'Name' },
+    { type: 'number', name: 'price', label: 'Price' },
+    { type: 'text', name: 'category', label: 'Category' },
+  ],
+  // ... rest of config
+};
+
+// Auto-generate bulk edit config
+export const getBulkConfig = () => createBulkEditFormConfig(baseConfig, {
+  title: 'Bulk Edit Products',
+  uniqueFields: ['sku'], // Protect unique fields
+});
+```
+
+### 2. Setup Bulk Edit Provider
+
+```tsx
+'use client';
+import { useBulkEdit } from 'yayaw-table';
+
+export function BulkEditProvider({ children }) {
+  const bulkEdit = useBulkEdit({
+    tableId: 'products',
+    formType: 'products-bulk',
+    onUpdate: async (ids, data) => {
+      // Your API call
+      const response = await fetch('/api/bulk-update', {
+        method: 'POST',
+        body: JSON.stringify({ ids, data }),
+      });
+      return response.ok;
+    },
+  });
+
+  return <>{children(bulkEdit)}</>;
+}
+```
+
+### 3. Add to DataTable
+
+```tsx
+import { DataTable } from 'yayaw-table';
+import { BulkEditProvider } from './bulk-edit-provider';
+
+export function ProductsTable() {
+  return (
+    <BulkEditProvider>
+      {(bulkEdit) => (
+        <DataTable
+          tableType="products"
+          onBulkEdit={(rows) => bulkEdit.openBulkEdit(rows)}
+          onBulkDelete={async (rows) => {
+            // Delete logic
+            const ids = rows.map(r => r.original.id);
+            await deleteProducts(ids);
+          }}
+          onBulkCopy={(rows) => {
+            // Copy to clipboard
+            const data = JSON.stringify(rows.map(r => r.original), null, 2);
+            navigator.clipboard.writeText(data);
+          }}
+        />
+      )}
+    </BulkEditProvider>
+  );
+}
+```
+
+## That's It! 
+
+Your users can now:
+- Select multiple rows
+- See the expandable actions menu at the bottom
+- Edit multiple items with a smart form
+- Delete or copy selected items
+
+<Callout type="info">
+The bulk edit form automatically handles unique fields, common values, and provides a clean UX with a single description at the top.
+</Callout>
+
+## Next Steps
+
+- [Read the full documentation](/docs/bulk-actions) for advanced features
+- Learn about [unique field protection](/docs/bulk-actions#form-behavior)
+- Explore [custom implementations](/docs/bulk-actions#custom-implementation)

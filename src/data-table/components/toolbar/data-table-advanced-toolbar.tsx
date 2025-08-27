@@ -26,12 +26,9 @@ import {
   useDataTableAdvancedFilters,
   useTableAccessors,
 } from '../../hooks/use-data-table-advanced-filters';
-import { useTableInstance } from '../../hooks/use-table-instance';
-import {
-  useTableConfig as useProviderTableConfig,
-  useTranslations,
-} from '../../providers/table-provider';
 import { useTableConfig } from '../../hooks/use-table-config';
+import { useTableInstance } from '../../hooks/use-table-instance';
+import { useTranslations } from '../../providers/table-provider';
 import type { ColumnDataType } from '../../types';
 import {
   catalogueFormAtom,
@@ -175,6 +172,159 @@ interface DataTableState {
   sorting?: SortingState;
 }
 
+// Removed unused renderToolbarContent function - was causing import errors
+
+/**
+ * Helper function to create column options from table configuration
+ */
+function createColumnOptions(
+  tableConfig: Record<string, unknown>,
+  columnTypeMapping: Record<string, string>
+) {
+  if (DEBUG) {
+    console.log('🔧 Creating columnOptions from table config:', {
+      tableConfig,
+      'column definitions':
+        (
+          (tableConfig?.columns as Record<string, unknown>)
+            ?.definitions as unknown[]
+        )?.length || 0,
+      columnTypeMapping,
+    });
+  }
+
+  // Get column definitions from table configuration
+  const columns = tableConfig.columns as Record<string, unknown> | undefined;
+  const columnDefinitions =
+    (columns?.definitions as Record<string, unknown>[]) || [];
+
+  // Create column options from configuration instead of table instance
+  const options = columnDefinitions
+    .filter((colDef) => colDef.id !== 'select' && colDef.id !== 'actions') // Skip system columns
+    .map((colDef) => {
+      const option = {
+        canFilter: colDef.enableColumnFilter !== false,
+        canHide: true, // Most columns can be hidden
+        canSort: colDef.enableSorting !== false,
+        id: String(colDef.id),
+        label: String(colDef.header || colDef.id),
+        // Enhanced properties from column definition
+        placeholder: `Filter by ${colDef.header || colDef.id}...`,
+        type: colDef.type,
+      };
+
+      if (DEBUG) {
+        console.log('🔧 Created column option:', option);
+      }
+
+      return option;
+    });
+
+  if (DEBUG) {
+    console.log('🔧 Final columnOptions:', {
+      'options length': options.length,
+      options,
+    });
+  }
+  return options;
+}
+
+/**
+ * Helper function to setup table configuration and state
+ */
+function useToolbarSetup(tableId: string) {
+  const { t } = useTranslations();
+
+  const state = useDataTable({
+    tableType: tableId,
+  }) as unknown as DataTableState;
+
+  const { config: tableConfig } = useTableConfig(tableId);
+
+  return { t, state, tableConfig };
+}
+
+// Extracted: setup advanced filters related memoized values
+function useAdvancedFiltersSetup(
+  tableId: string,
+  data: unknown[],
+  columnOptions: {
+    [key: string]: unknown;
+    id: string;
+    label: string;
+    canFilter?: boolean;
+  }[],
+  columnTypeMapping: Record<
+    string,
+    'text' | 'number' | 'date' | 'option' | 'multiOption'
+  >
+) {
+  const advancedColumnsConfig = useColumnsFilterConfig(
+    columnOptions,
+    columnTypeMapping
+  );
+
+  const accessors = useTableAccessors(
+    data,
+    columnOptions.map((col: unknown) =>
+      String((col as Record<string, unknown>).id || '')
+    )
+  );
+
+  const advancedFiltersResult = useDataTableAdvancedFilters({
+    tableType: tableId,
+    strategy: 'client',
+    data,
+    advancedColumnsConfig,
+    accessors,
+    autoComputeFaceted: true,
+  });
+
+  return { advancedColumnsConfig, accessors, advancedFiltersResult };
+}
+
+// Extracted: memoize final columns
+function useFinalColumns(state: DataTableState, columnOptions: unknown[]) {
+  return useMemo(() => state?.columns ?? columnOptions, [columnOptions, state]);
+}
+
+// Extracted: memoize final column visibility
+function useFinalColumnVisibility(
+  state: DataTableState,
+  table?: Table<Record<string, unknown>>
+) {
+  return useMemo(() => {
+    if (!table) {
+      return {} as VisibilityState;
+    }
+    return (state?.columnVisibility ??
+      table.getState().columnVisibility) as VisibilityState;
+  }, [state?.columnVisibility, table]);
+}
+
+// Extracted: stable setter for column visibility
+function useFinalSetColumnVisibility(
+  propSetter: ((value: VisibilityState) => void) | undefined,
+  dataTableSetter: ((value: VisibilityState) => void) | undefined
+) {
+  return useCallback(
+    (value: VisibilityState) => {
+      try {
+        if (propSetter) {
+          propSetter(value);
+          return;
+        }
+        if (dataTableSetter) {
+          dataTableSetter(value);
+        }
+      } catch (_error) {
+        // ignore
+      }
+    },
+    [propSetter, dataTableSetter]
+  );
+}
+
 /**
  * Advanced toolbar component for DataTable
  * Combines search, filters, view management, and column visibility controls
@@ -195,127 +345,25 @@ export function DataTableAdvancedToolbar<TData>({
   // Ensure tableId is available
   const tableId = props.tableId || 'default';
 
-  // Get the configuration helpers from the provider
-  const getTableConfig = useProviderTableConfig();
-  const { t } = useTranslations();
+  // Setup configuration and state
+  const { t, state, tableConfig } = useToolbarSetup(tableId);
 
-  const state = useDataTable({
-    tableType: tableId,
-  }) as unknown as DataTableState;
-
-  // Get table configuration directly to avoid circular dependency  
-  const { config: tableConfig } = useTableConfig(tableId);
-
-  // Advanced filters setup - create column options from table configuration
-  const columnOptions = useMemo(() => {
-    if (DEBUG) {
-      console.log('🔧 Creating columnOptions from table config:', {
-        tableConfig,
-        'column definitions': tableConfig.columns?.definitions?.length || 0,
+  // Advanced filters setup - create column options and configs
+  const columnOptions = useMemo(
+    () =>
+      createColumnOptions(
+        tableConfig as unknown as Record<string, unknown>,
         columnTypeMapping
-      });
-    }
-
-    // Get column definitions from table configuration
-    const columnDefinitions = tableConfig.columns?.definitions || [];
-
-    // Create column options from configuration instead of table instance
-    const options = columnDefinitions
-      .filter((colDef: any) => colDef.id !== 'select' && colDef.id !== 'actions') // Skip system columns
-      .map((colDef: any) => {
-        const option = {
-          canFilter: colDef.enableColumnFilter !== false,
-          canHide: true, // Most columns can be hidden
-          canSort: colDef.enableSorting !== false,
-          id: colDef.id,
-          label: colDef.header || colDef.id,
-          // Enhanced properties from column definition
-          placeholder: `Filter by ${colDef.header || colDef.id}...`,
-          type: colDef.type,
-        };
-
-        if (DEBUG) {
-          console.log('🔧 Created column option:', option);
-        }
-
-        return option;
-      });
-
-    if (DEBUG) {
-      console.log('🔧 Final columnOptions:', {
-        'options length': options.length,
-        options
-      });
-    }
-    return options;
-  }, [tableConfig, columnTypeMapping, tableId]);
-
-  // Create advanced columns configuration from table columns
-  const advancedColumnsConfig = useColumnsFilterConfig(
-    columnOptions,
-    columnTypeMapping
+      ),
+    [tableConfig, columnTypeMapping]
   );
 
-  if (DEBUG) {
-    console.log('🔧 DataTableAdvancedToolbar - Advanced Columns Config:', {
-      'columnOptions length': columnOptions.length,
-      'columnOptions': columnOptions,
-      'columnTypeMapping': columnTypeMapping,
-      'advancedColumnsConfig': advancedColumnsConfig,
-      'config keys': Object.keys(advancedColumnsConfig || {}),
-      'enableAdvancedFilters': enableAdvancedFilters
-    });
-  }
+  const { advancedColumnsConfig, advancedFiltersResult } =
+    useAdvancedFiltersSetup(tableId, data, columnOptions, columnTypeMapping);
 
-  // Create accessors for advanced filtering
-  const accessors = useTableAccessors(
-    data,
-    columnOptions.map((col: unknown) =>
-      String((col as Record<string, unknown>).id || '')
-    )
-  );
-
-  if (DEBUG) {
-    // Debug log for accessors
-  }
-
-  // Set up advanced filters if enabled
-  const advancedFiltersResult = useDataTableAdvancedFilters({
-    tableType: tableId,
-    strategy: 'client',
-    data,
-    advancedColumnsConfig,
-    accessors,
-    autoComputeFaceted: true,
-  });
-
-  if (DEBUG) {
-    // Debug log for advanced filters setup
-  }
-
-  // Get final columns
-  const finalColumns = useMemo(() => {
-    if (DEBUG) {
-      // Debug log for final columns
-    }
-    return state?.columns ?? columnOptions;
-  }, [columnOptions, state]);
-
-  if (DEBUG) {
-    // Debug log for final columns state
-  }
-
-  // Get final column visibility
-  const finalColumnVisibility = useMemo(() => {
-    if (!table) {
-      return {};
-    }
-    return state?.columnVisibility ?? table.getState().columnVisibility;
-  }, [state?.columnVisibility, table]);
-
-  if (DEBUG) {
-    // Debug log for column visibility
-  }
+  // Get final columns and visibility
+  const finalColumns = useFinalColumns(state, columnOptions);
+  const finalColumnVisibility = useFinalColumnVisibility(state, table);
 
   // QueryClient for invalidating queries
   const queryClient = useQueryClient();
@@ -344,26 +392,9 @@ export function DataTableAdvancedToolbar<TData>({
   const finalSetColumnFilters = props.setColumnFilters || setColumnFilters;
 
   // Specific handler for column visibility with debugging
-  const finalSetColumnVisibility = useCallback(
-    (value: VisibilityState) => {
-      if (DEBUG) {
-        // Debug log for column visibility change
-      }
-
-      try {
-        // Use the provided setter from props if available, otherwise use the one from useDataTable
-        if (props.setColumnVisibility) {
-          props.setColumnVisibility(value);
-        } else if (dataTableSetColumnVisibility) {
-          dataTableSetColumnVisibility(value);
-        } else {
-          // No visibility setter available
-        }
-      } catch (_error) {
-        // Ignore visibility update errors
-      }
-    },
-    [props.setColumnVisibility, dataTableSetColumnVisibility]
+  const finalSetColumnVisibility = useFinalSetColumnVisibility(
+    props.setColumnVisibility,
+    dataTableSetColumnVisibility
   );
 
   const finalSetGrouping = props.setGrouping || setGrouping;
@@ -374,8 +405,8 @@ export function DataTableAdvancedToolbar<TData>({
   // Get the setter for the form state atom
   const setFormState = useSetAtom(catalogueFormAtom);
 
-  // Get table configuration directly using tableId
-  const _tableConfig = getTableConfig?.(tableId);
+  // Get table configuration from hook
+  const _tableConfig = tableConfig;
 
   // Count active filters
   const _activeFiltersCount = finalColumnFilters.length;

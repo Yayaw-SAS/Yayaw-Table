@@ -32,6 +32,9 @@ export * from './src/components/ui/skeleton';
 // Export core UI components (cleaned versions)
 export * from './src/components/ui/table';
 export { ThemeToggle } from './src/components/ui-custom/theme-toggle';
+export type { BulkActionsMenuProps } from './src/data-table/components/bulk-actions';
+// Export bulk actions components
+export { BulkActionsMenu } from './src/data-table/components/bulk-actions';
 // Export main DataTable component (full-featured)
 export { DataTable } from './src/data-table/components/data-table';
 // Export simplified components (alternative API)
@@ -45,11 +48,20 @@ export type {
 } from './src/data-table/config/helpers';
 // Export configuration helpers - users need these to create their table configs
 export { defineTableConfig } from './src/data-table/config/helpers';
+export {
+  defaultBulkActions,
+  useBulkActions,
+} from './src/data-table/hooks/use-bulk-actions';
+export {
+  createBulkEditFormConfig,
+  useBulkEdit,
+} from './src/data-table/hooks/use-bulk-edit';
 export { useSimpleDataTable } from './src/data-table/hooks/use-simple-data-table';
 // Export providers and translations
 export {
   defaultTranslations,
   TableProvider,
+  useTableActions,
   useTranslations,
 } from './src/data-table/providers/table-provider';
 // Export translation types

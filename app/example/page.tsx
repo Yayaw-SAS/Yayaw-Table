@@ -1,18 +1,34 @@
 'use client';
 
 import { QueryClient } from '@tanstack/react-query';
+// Row type is not used directly in this file
 import {
-  DataTable,
   defaultTranslations,
   TableProvider,
   ThemeToggle,
+  useBulkEdit,
 } from '../../index';
 import { CustomDescription, CustomTitle } from './components';
+import { TableWithActions } from './components/table-with-actions';
 import { getFormConfig } from './form-config';
 import { getTableActions, getTableConfig } from './table-config';
 
 // Create a query client
 const queryClient = new QueryClient();
+
+function BulkActionsSection() {
+  const bulkEdit = useBulkEdit({
+    tableId: 'products',
+    formType: 'products-bulk',
+    onSuccess: () => {
+      // no-op
+    },
+    onUpdate: async () => true,
+  });
+  return (
+    <TableWithActions onBulkEdit={(rows) => bulkEdit.openBulkEdit(rows)} />
+  );
+}
 
 export default function ExamplePage() {
   return (
@@ -47,22 +63,7 @@ export default function ExamplePage() {
           {/* Data Table */}
           <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
             <div className="p-6">
-              <DataTable
-                columnTypeMapping={{
-                  // Map table config types to filter types
-                  name: 'text',
-                  brand: 'text',
-                  category: 'option', // tag -> option for dropdown
-                  price: 'number',
-                  status: 'option', // tag -> option for dropdown
-                  createdAt: 'date',
-                  isActive: 'option', // boolean -> option for true/false
-                }}
-                description="Production-ready table with server-side pagination, filtering, and sorting"
-                enableAdvancedFilters={true}
-                tableType="products"
-                title="Products Management"
-              />
+              <BulkActionsSection />
             </div>
           </div>
 
@@ -136,6 +137,7 @@ const getTableConfig = (tableType: string) => {
           </div>
         </div>
       </div>
+      );
     </TableProvider>
   );
 }

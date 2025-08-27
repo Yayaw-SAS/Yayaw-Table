@@ -25,8 +25,10 @@ import { tableIdAtom } from '../atoms/table-atoms';
 import { DataTableColumnHeader } from '../components/columns/header/column-header';
 import { useColumnDnd } from '../components/columns/hooks/use-column-dnd';
 import { useColumnDragOverlay } from '../components/columns/hooks/use-column-drag-overlay';
+import { defaultBulkActions, useBulkActions } from '../hooks/use-bulk-actions';
 import { useDataTable } from '../hooks/use-data-table';
 import { useTableInstance } from '../hooks/use-table-instance';
+import { BulkActionsMenu } from './bulk-actions/bulk-actions-menu';
 import { ColumnDragOverlay } from './columns';
 import { DataTablePagination } from './data-table-pagination';
 import { SortableHeader } from './index';
@@ -54,6 +56,9 @@ type ModernDataTableProps<
   manualPagination?: boolean;
   manualSorting?: boolean;
   onRowSelectionChange?: (rows: Row<TData>[]) => void;
+  onBulkEdit?: (rows: Row<TData>[]) => void;
+  onBulkDelete?: (rows: Row<TData>[]) => void;
+  onBulkCopy?: (rows: Row<TData>[]) => void;
   queryFn?: (
     params: Record<string, unknown>
   ) => Promise<{ data: TData[]; pageCount: number; rowCount: number }>;
@@ -170,6 +175,9 @@ function ModernDataTable<
   manualPagination = false,
   manualSorting = false,
   onRowSelectionChange,
+  onBulkEdit,
+  onBulkDelete,
+  onBulkCopy,
   queryFn: _queryFn,
   rowSelection: _rowSelection,
   tableId,
@@ -341,6 +349,23 @@ function ModernDataTable<
     onDragStart: handleColumnDragStart,
     table,
   });
+
+  // Setup bulk actions functionality
+  const bulkActions = useBulkActions({
+    table,
+    onBulkEdit: onBulkEdit || defaultBulkActions.onBulkEdit,
+    onBulkDelete: onBulkDelete || defaultBulkActions.onBulkDelete,
+    onBulkCopy: onBulkCopy || defaultBulkActions.onBulkCopy,
+  });
+
+  // Debug bulk actions state
+  if (DEBUG) {
+    console.log('🔍 ModernDataTable bulk actions:', {
+      showBulkActions: bulkActions.showBulkActions,
+      selectedCount: bulkActions.selectedCount,
+      tableExists: !!table,
+    });
+  }
 
   // Loading overlay component
   const loadingOverlay = (
@@ -571,7 +596,22 @@ function ModernDataTable<
   };
 
   // Render the component
-  return <div className="space-y-4">{renderContent()}</div>;
+  return (
+    <div className="space-y-4">
+      {renderContent()}
+
+      {/* Bulk Actions Menu - rendered as overlay when rows are selected */}
+      {bulkActions.showBulkActions && (
+        <BulkActionsMenu
+          onBulkCopy={bulkActions.handleBulkCopy}
+          onBulkDelete={bulkActions.handleBulkDelete}
+          onBulkEdit={bulkActions.handleBulkEdit}
+          onClose={bulkActions.closeBulkActions}
+          selectedRows={bulkActions.selectedRows}
+        />
+      )}
+    </div>
+  );
 }
 
 /**
