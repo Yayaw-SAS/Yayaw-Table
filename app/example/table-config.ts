@@ -1,116 +1,25 @@
 import type { DataTableConfig } from '../../src/data-table/atoms/config-atoms';
 import { productActions } from './data';
 
-// Configuration du tableau
+// Configuration du tableau (DataTableConfig)
 export const getTableConfig = (
   tableType: string
 ): DataTableConfig | undefined => {
   if (tableType === 'products') {
     return {
-      table: {
-        defaultPageSize: 10,
-        enableColumnDragDropByDefault: false,
-        enableColumnFilters: true,
-        enableMultiRowSelection: true,
-        enablePagination: true,
-        enableRowDragDrop: false,
-        enableRowSelection: true,
-        enableSorting: true,
-        manualFiltering: true, // Server-side filtering
-        manualPagination: true, // Server-side pagination
-        manualSorting: true, // Server-side sorting
-        pageSizeOptions: [5, 10, 20, 30, 50],
-      },
-      columns: {
-        definitions: [
-          {
-            id: 'name',
-            type: 'text',
-            header: 'Product Name',
-            enableSorting: true,
-            enableColumnFilter: true,
-          },
-          {
-            id: 'brand',
-            type: 'text',
-            header: 'Brand',
-            enableSorting: true,
-            enableColumnFilter: true,
-          },
-          {
-            id: 'category',
-            type: 'tag',
-            header: 'Category',
-            enableSorting: true,
-            enableColumnFilter: true,
-          },
-          {
-            id: 'price',
-            type: 'number',
-            header: 'Price',
-            enableSorting: true,
-            enableColumnFilter: true,
-          },
-          {
-            id: 'status',
-            type: 'tag',
-            header: 'Status',
-            enableSorting: true,
-            enableColumnFilter: true,
-          },
-          {
-            id: 'createdAt',
-            type: 'date',
-            header: 'Created',
-            enableSorting: true,
-            enableColumnFilter: true,
-          },
-          {
-            id: 'isActive',
-            type: 'boolean',
-            header: 'Active',
-            enableSorting: true,
-            enableColumnFilter: true,
-          },
-          {
-            id: 'actions',
-            type: 'actions',
-            header: 'Actions',
-            enableSorting: false,
-            enableColumnFilter: false,
-          },
-        ],
-        order: [
-          'name',
-          'brand',
-          'category',
-          'price',
-          'status',
-          'createdAt',
-          'isActive',
-          'actions',
-        ],
-        visible: [
-          'name',
-          'brand',
-          'category',
-          'price',
-          'status',
-          'createdAt',
-          'isActive',
-          'actions',
-        ],
-        mandatory: ['name'],
-        sort: [],
-      },
-      translations: {
-        namespace: 'table.products',
-        keys: {
-          title: 'Products Management',
-          description:
-            'Production-ready table with server-side pagination, filtering, and sorting',
-        },
-      },
+      defaultPageSize: 10,
+      enableColumnDragDropByDefault: false,
+      enableColumnFilters: true,
+      enableGrouping: true,
+      enableMultiRowSelection: true,
+      enablePagination: true,
+      enableRowDragDrop: false,
+      enableRowSelection: true,
+      enableSorting: true,
+      manualFiltering: true, // Server-side filtering
+      manualPagination: true, // Server-side pagination
+      manualSorting: true, // Server-side sorting
+      pageSizeOptions: [5, 10, 20, 30, 50],
     };
   }
 };

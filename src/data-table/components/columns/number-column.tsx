@@ -77,6 +77,8 @@ export function createNumberColumn<TData>({
 }: NumberColumnProps): ExtendedColumnDef<TData> {
   return {
     accessorKey,
+    // Enable aggregation for grouped rows
+    aggregationFn: 'sum',
     cell: (info: CellContext<TData, unknown>) => {
       const value = info.getValue();
       // Cast to number or string to satisfy NumberCell props
@@ -88,6 +90,18 @@ export function createNumberColumn<TData>({
           value={numValue}
         />
       );
+    },
+    // Render subtotal values on grouped rows
+    aggregatedCell: ({ getValue }) => {
+      const sum = Number(getValue() as number);
+      let formatted = '—';
+      if (Number.isFinite(sum)) {
+        formatted =
+          typeof formatter === 'function'
+            ? formatter(sum)
+            : sum.toLocaleString();
+      }
+      return <span className="font-medium">{formatted}</span>;
     },
     enableColumnFilter,
     enableHiding,

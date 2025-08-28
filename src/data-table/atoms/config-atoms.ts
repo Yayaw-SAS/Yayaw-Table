@@ -82,6 +82,11 @@ export interface DataTableConfig {
   enableSorting: boolean;
 
   /**
+   * Enable grouping
+   */
+  enableGrouping?: boolean;
+
+  /**
    * Form configuration
    */
   form?: TableFormConfig;
@@ -127,6 +132,7 @@ const defaultTableConfig: DataTableConfig = {
   enableRowDragDrop: false,
   enableRowSelection: true,
   enableSorting: true,
+  enableGrouping: true,
   manualFiltering: false,
   manualPagination: false,
   manualSorting: false,

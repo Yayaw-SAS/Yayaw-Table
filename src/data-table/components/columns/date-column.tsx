@@ -5,7 +5,14 @@
 'use client';
 
 import type { CellContext, ColumnDef } from '@tanstack/react-table';
-import { CalendarDays, type LucideIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import {
+  CalendarDays,
+  ChevronDown,
+  ChevronRight,
+  type LucideIcon,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 import { DateCell } from '../cells/date-cell';
 
@@ -69,6 +76,14 @@ interface DateColumnProps {
  */
 type ExtendedColumnDef<TData> = ColumnDef<TData> & CustomColumnProps;
 
+function formatMonthLabel(value: Date | number | string | undefined) {
+  if (!value) {
+    return '';
+  }
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? '' : format(d, 'LLLL yyyy');
+}
+
 /**
  * Creates a date column definition
  * @returns Column definition for displaying formatted date values
@@ -85,8 +100,58 @@ export function createDateColumn<TData>({
 }: DateColumnProps): ExtendedColumnDef<TData> {
   return {
     accessorKey,
+    // Allow grouping by default for date columns
+    enableGrouping: true,
+    // Grouping value: month label (e.g., "September 2017")
+    getGroupingValue: (row: unknown) => {
+      const value = (row as Record<string, unknown>)[accessorKey] as
+        | Date
+        | number
+        | string
+        | undefined;
+      return formatMonthLabel(value);
+    },
+    // Aggregation for grouped rows (count of rows)
+    aggregationFn: 'count',
     cell: (info: CellContext<TData, unknown>) => {
-      // Cast the value to the appropriate type for DateCell
+      const isGrouped = info.cell.getIsGrouped();
+      const isAggregated = info.cell.getIsAggregated();
+      const isPlaceholder = info.cell.getIsPlaceholder();
+
+      // Group header row: show toggle + month label + count
+      if (isGrouped) {
+        const rawValue = info.getValue() as Date | number | string | undefined;
+        const label = formatMonthLabel(rawValue);
+        const expanded = info.row.getIsExpanded();
+        const count = info.row.subRows?.length || 0;
+
+        return (
+          <div className="flex items-center gap-2">
+            <Button
+              aria-label={expanded ? 'Collapse group' : 'Expand group'}
+              onClick={info.row.getToggleExpandedHandler()}
+              size="sm"
+              type="button"
+              variant="ghost"
+            >
+              {expanded ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+            </Button>
+            <span className="font-medium">{label}</span>
+            <span className="text-muted-foreground text-xs">{count}</span>
+          </div>
+        );
+      }
+
+      // Aggregated cells for this column: show nothing (label is on grouped cell)
+      if (isAggregated || isPlaceholder) {
+        return <span className="text-muted-foreground"> </span>;
+      }
+
+      // Regular leaf row cell
       const value = info.getValue() as
         | Date
         | null
@@ -101,6 +166,11 @@ export function createDateColumn<TData>({
           value={value}
         />
       );
+    },
+    // How to render aggregated cell for date column (show group label)
+    aggregatedCell: ({ getValue }) => {
+      const label = getValue() as string;
+      return <span className="font-medium">{label}</span>;
     },
     enableColumnFilter,
     enableHiding,

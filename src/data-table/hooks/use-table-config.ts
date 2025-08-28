@@ -32,6 +32,7 @@ export interface TableCatalogueTableConfig {
   enableRowSelection: boolean;
   enableColumnFilters: boolean;
   enableSorting: boolean;
+  enableGrouping?: boolean;
   manualFiltering: boolean;
   manualPagination: boolean;
   manualSorting: boolean;
@@ -68,6 +69,7 @@ const DEFAULT_TABLE_CONFIG: TableCatalogueConfig = {
     enableRowSelection: true,
     enableColumnFilters: true,
     enableSorting: true,
+    enableGrouping: true,
     manualFiltering: false,
     manualPagination: false,
     manualSorting: false,
@@ -113,6 +115,7 @@ export function useTableConfig(tableType: string) {
         enableRowSelection: providerConfig.enableRowSelection,
         enableColumnFilters: providerConfig.enableColumnFilters,
         enableSorting: providerConfig.enableSorting,
+        enableGrouping: providerConfig.enableGrouping,
         manualFiltering: providerConfig.manualFiltering,
         manualPagination: providerConfig.manualPagination,
         manualSorting: providerConfig.manualSorting,

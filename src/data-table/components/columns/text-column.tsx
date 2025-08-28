@@ -71,7 +71,53 @@ export function createTextColumn<TData>({
 }: TextColumnProps): ExtendedColumnDef<TData> {
   return {
     accessorKey,
+    // Enable grouping by default for textual columns
+    enableGrouping: true,
+    // When grouped, use the raw value for grouping label
+    getGroupingValue: (row: unknown) => {
+      const value = (row as Record<string, unknown>)[accessorKey];
+      return typeof value === 'string' ? value : String(value ?? '');
+    },
+    // Show plain label in aggregated cell
+    aggregatedCell: ({ getValue }) => {
+      const label = String(getValue() ?? '');
+      return <span className="font-medium">{label}</span>;
+    },
     cell: (info: CellContext<TData, unknown>) => {
+      const isGrouped = info.cell.getIsGrouped();
+      const isAggregated = info.cell.getIsAggregated();
+      const isPlaceholder = info.cell.getIsPlaceholder();
+
+      // Group header cell: toggle + label + count
+      if (isGrouped) {
+        const toggle = info.row.getToggleExpandedHandler();
+        const expanded = info.row.getIsExpanded();
+        const count = info.row.subRows?.length ?? 0;
+        const label = String(info.getValue() ?? '');
+        return (
+          <div className="flex items-center gap-2">
+            <button
+              aria-label={expanded ? 'Collapse group' : 'Expand group'}
+              className="text-muted-foreground hover:text-foreground"
+              onClick={toggle}
+              type="button"
+            >
+              <span aria-hidden>{expanded ? '▾' : '▸'}</span>
+            </button>
+            <span className="font-medium">{label}</span>
+            <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground text-xs">
+              {count}
+            </span>
+          </div>
+        );
+      }
+
+      // Aggregated/placeholder cells: keep minimal
+      if (isAggregated || isPlaceholder) {
+        return <span className="text-muted-foreground"> </span>;
+      }
+
+      // Regular cell
       const value = info.getValue();
       return <StringCell className={className} value={value} />;
     },

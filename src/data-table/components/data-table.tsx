@@ -254,6 +254,7 @@ export function DataTable({
                   config.table.enableColumnDragDropByDefault
                 }
                 enableColumnFilters={config.table.enableColumnFilters}
+                enableGrouping={config.table.enableGrouping}
                 enableMultiRowSelection={true}
                 enablePagination={true}
                 enableRowSelection={config.table.enableRowSelection}

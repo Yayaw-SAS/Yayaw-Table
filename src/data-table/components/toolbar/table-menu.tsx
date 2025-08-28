@@ -19,6 +19,7 @@ import {
   StackMenuView,
   useStackMenu,
 } from '@/src/components/ui-custom/stack-menu';
+import { useTableUrlState } from '../../hooks/use-table-url-state';
 import { useTranslations } from '../../providers/table-provider';
 import type { ColumnDataType } from '../../types';
 import type {
@@ -103,6 +104,29 @@ export function TableMenu({
   const menuRef = useRef<HTMLDivElement>(null);
   const [_visibleCount, _setVisibleCount] = useState(0);
 
+  // URL-state fallback to avoid stale grouping passed from parents
+  const { groupingParam: urlGrouping, setGroupingFromUI } = useTableUrlState({
+    tableId,
+  });
+
+  const finalGrouping = (
+    state?.grouping?.length ? state.grouping : urlGrouping || []
+  ) as string[];
+  const finalSetGrouping = useCallback(
+    (next: TableState['grouping']) => {
+      try {
+        if (setGrouping) {
+          setGrouping(next);
+        } else {
+          setGroupingFromUI(next as string[]);
+        }
+      } catch {
+        // ignore
+      }
+    },
+    [setGrouping, setGroupingFromUI]
+  );
+
   if (DEBUG) {
     // Debug log for visible count
   }
@@ -145,7 +169,7 @@ export function TableMenu({
   }
 
   const activeFiltersCount = state.columnFilters.length;
-  const activeGrouping = state.grouping[0];
+  const activeGrouping = finalGrouping[0];
   const activeSortCount = state.sorting.length;
 
   // Navigation titles for different views
@@ -327,9 +351,9 @@ export function TableMenu({
       <StackMenuView name="group">
         <TableGroupingMenu
           columns={columns}
-          grouping={state.grouping}
+          grouping={finalGrouping}
           invalidateTable={invalidateTable}
-          setGrouping={setGrouping}
+          setGrouping={finalSetGrouping}
           tableId={tableId}
         />
       </StackMenuView>
@@ -337,9 +361,9 @@ export function TableMenu({
       <StackMenuView name="subgroup">
         <TableGroupingMenu
           columns={columns}
-          grouping={state.grouping}
+          grouping={finalGrouping}
           invalidateTable={invalidateTable}
-          setGrouping={setGrouping}
+          setGrouping={finalSetGrouping}
           tableId={tableId}
         />
       </StackMenuView>

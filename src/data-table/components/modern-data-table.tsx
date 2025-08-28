@@ -51,6 +51,7 @@ type ModernDataTableProps<
   enableRowDragDrop?: boolean;
   enableRowSelection?: boolean;
   enableSorting?: boolean;
+  enableGrouping?: boolean;
   getRowId?: (row: TData) => string;
   manualFiltering?: boolean;
   manualPagination?: boolean;
@@ -170,6 +171,7 @@ function ModernDataTable<
   enableRowDragDrop: _enableRowDragDrop = false,
   enableRowSelection = true,
   enableSorting = true,
+  enableGrouping = true,
   getRowId,
   manualFiltering = false,
   manualPagination = false,
@@ -243,6 +245,7 @@ function ModernDataTable<
       enableMultiRowSelection,
       enablePagination,
       enableRowSelection,
+      enableGrouping,
       enableSorting,
       getRowId,
       manualFiltering,
@@ -257,6 +260,7 @@ function ModernDataTable<
       enableMultiRowSelection,
       enablePagination,
       enableRowSelection,
+      enableGrouping,
       enableSorting,
       getRowId,
       manualFiltering,
@@ -279,6 +283,13 @@ function ModernDataTable<
       onRowSelectionChange(selectedRows);
     }
   }, [table, onRowSelectionChange]);
+
+  // Auto-expand all groups when a grouping is active so leaf rows are visible by default
+  useEffect(() => {
+    if (table && Array.isArray(state.grouping) && state.grouping.length > 0) {
+      table.toggleAllRowsExpanded(true);
+    }
+  }, [table, state.grouping]);
 
   // Extract important state from the table - memoize derived values
   const { columnOrder, pagination: _pagination } = state;
@@ -428,11 +439,14 @@ function ModernDataTable<
 
     const rowElements = rows.map((row) => {
       const visibleCells = row.getVisibleCells();
+      const isGroupHeaderRow = visibleCells.some((cell) => cell.getIsGrouped());
       return (
         <TableRow
           className={cn(
             'data-[state=selected]:bg-muted/50',
-            row.getIsSelected() && 'bg-muted/50'
+            row.getIsSelected() && 'bg-muted/50',
+            isGroupHeaderRow &&
+              'border-border border-t bg-muted/20 first:border-t-0'
           )}
           data-state={row.getIsSelected() ? 'selected' : ''}
           key={row.id}

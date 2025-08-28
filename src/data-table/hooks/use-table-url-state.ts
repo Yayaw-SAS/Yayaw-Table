@@ -100,7 +100,7 @@ export function useTableUrlState({
 
   // Batch update queue
   const updateQueue = useRef<Array<() => void>>([]);
-  const batchTimeout = useRef<null | number>(null);
+  const batchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Process batched updates
   const processBatchedUpdates = useCallback(() => {
@@ -131,11 +131,11 @@ export function useTableUrlState({
 
       // Clear existing timeout
       if (batchTimeout.current !== null) {
-        window.clearTimeout(batchTimeout.current);
+        clearTimeout(batchTimeout.current);
       }
 
-      // Schedule batch update
-      batchTimeout.current = window.setTimeout(processBatchedUpdates, 0);
+      // Schedule batch update (SSR-safe)
+      batchTimeout.current = setTimeout(processBatchedUpdates, 0);
     },
     [processBatchedUpdates]
   );
@@ -311,16 +311,18 @@ export function useTableUrlState({
 
   const setExpandedFromUI = useCallback(
     (expanded: Record<string, boolean>) => {
-      queueUrlUpdate(setExpandedParam, expanded);
+      // Apply immediately to avoid race conditions with grouping/expansion
+      setExpandedParam(expanded);
     },
-    [queueUrlUpdate, setExpandedParam]
+    [setExpandedParam]
   );
 
   const setGroupingFromUI = useCallback(
     (grouping: string[]) => {
-      queueUrlUpdate(setGroupingParam, grouping);
+      // Apply immediately to keep TanStack grouping in sync with UI without batching lag
+      setGroupingParam(grouping);
     },
-    [queueUrlUpdate, setGroupingParam]
+    [setGroupingParam]
   );
 
   // Handler for column pinning changes from UI
@@ -398,6 +400,9 @@ export function useTableUrlState({
 
   // Create shareable URL with all parameters
   const createShareableUrl = useCallback(() => {
+    if (typeof window === 'undefined') {
+      return '';
+    }
     const url = new URL(window.location.href);
 
     // Add view and history parameters
@@ -432,8 +437,14 @@ export function useTableUrlState({
       setGroupingParam([]);
       setPinningParam({ left: [], right: [] });
     } finally {
-      // Use requestAnimationFrame to avoid React warnings
-      requestAnimationFrame(() => {
+      // Schedule after paint (SSR-safe)
+      const schedule =
+        typeof window !== 'undefined' &&
+        typeof window.requestAnimationFrame === 'function'
+          ? window.requestAnimationFrame
+          : (cb: FrameRequestCallback) =>
+              setTimeout(cb, 0) as unknown as number;
+      schedule(() => {
         isSyncing.current = false;
       });
     }
@@ -465,7 +476,7 @@ export function useTableUrlState({
   useEffect(() => {
     return () => {
       if (batchTimeout.current !== null) {
-        window.clearTimeout(batchTimeout.current);
+        clearTimeout(batchTimeout.current);
       }
     };
   }, []);

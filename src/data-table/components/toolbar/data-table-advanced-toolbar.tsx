@@ -204,6 +204,10 @@ function createColumnOptions(
     .map((colDef) => {
       const option = {
         canFilter: colDef.enableColumnFilter !== false,
+        // Grouping: enable by default for non-system columns unless explicitly disabled via config
+        // If a future config flag like enableGrouping exists on colDef, respect it; otherwise default to true
+        canGroup:
+          (colDef as { enableGrouping?: boolean }).enableGrouping !== false,
         canHide: true, // Most columns can be hidden
         canSort: colDef.enableSorting !== false,
         id: String(colDef.id),
@@ -412,30 +416,42 @@ export function DataTableAdvancedToolbar<TData>({
   const _activeFiltersCount = finalColumnFilters.length;
 
   // Helper function to convert column to TableMenu format
-  const convertColumnForTableMenu = (col: unknown) => {
-    // Handle both types: Record<string, unknown> and specific column type
-    const isSpecificColumnType =
-      col && typeof col === 'object' && 'canFilter' in col;
+  const getColumnIdAndLabel = (raw: Record<string, unknown>) => {
+    const id =
+      (raw.id as string) ||
+      (raw.accessorKey as string) ||
+      (typeof raw.header === 'string' ? (raw.header as string) : '') ||
+      '';
+    const label =
+      (raw.label as string) ||
+      (typeof raw.header === 'string' ? (raw.header as string) : '') ||
+      id ||
+      'Column';
+    return { id, label };
+  };
 
-    return {
-      canFilter: isSpecificColumnType
-        ? ((col as { canFilter?: boolean }).canFilter ?? false)
-        : false,
-      canGroup: isSpecificColumnType
-        ? ((col as { canGroup?: boolean }).canGroup ?? false)
-        : false,
-      canHide: isSpecificColumnType
-        ? (col as { canHide?: boolean }).canHide !== false
-        : true,
-      canSort: isSpecificColumnType
-        ? ((col as { canSort?: boolean }).canSort ?? true)
-        : true,
-      id: (col as { id?: string }).id || '',
-      label:
-        (col as { label?: string }).label ||
-        (col as { id?: string }).id ||
-        'Column',
-    };
+  const getBooleanFlag = (
+    raw: Record<string, unknown>,
+    key: 'canFilter' | 'canGroup' | 'canHide' | 'canSort',
+    defaultValue: boolean
+  ) => {
+    if (key === 'canHide') {
+      return (raw.canHide as boolean | undefined) !== false;
+    }
+    const value = raw[key] as boolean | undefined;
+    return value === undefined ? defaultValue : value;
+  };
+
+  const convertColumnForTableMenu = (col: unknown) => {
+    const raw = (col || {}) as Record<string, unknown>;
+    const { id, label } = getColumnIdAndLabel(raw);
+
+    const canFilter = getBooleanFlag(raw, 'canFilter', true);
+    const canGroup = getBooleanFlag(raw, 'canGroup', true);
+    const canHide = getBooleanFlag(raw, 'canHide', true);
+    const canSort = getBooleanFlag(raw, 'canSort', true);
+
+    return { canFilter, canGroup, canHide, canSort, id, label };
   };
 
   // Convert finalColumns to the format expected by TableMenu

@@ -12,6 +12,7 @@ import {
   type ExpandedState,
   type GroupingState,
   getCoreRowModel,
+  getExpandedRowModel,
   getFilteredRowModel,
   getGroupedRowModel,
   getPaginationRowModel,
@@ -396,6 +397,8 @@ export function useTableInstance<TData>({
     columns: memoizedColumns,
     data: memoizedData,
     ...tableOptionsRef.current,
+    // Keep grouped columns and move them to the start so group headers render in their own column
+    groupedColumnMode: 'reorder',
     getCoreRowModel: useMemo(() => getCoreRowModel(), []),
     getFilteredRowModel: useMemo(() => getFilteredRowModel(), []),
     getGroupedRowModel: useMemo(
@@ -407,7 +410,22 @@ export function useTableInstance<TData>({
       [enablePagination]
     ),
     getRowId,
+    // Explicitly allow expanding on rows that can expand (group headers)
+    getRowCanExpand: (row) => {
+      try {
+        // TanStack groups create subRows, use that as the signal
+        return (
+          Array.isArray((row as unknown as { subRows?: unknown[] }).subRows) &&
+          ((row as unknown as { subRows?: unknown[] }).subRows as unknown[])
+            .length > 0
+        );
+      } catch {
+        return false;
+      }
+    },
     getSortedRowModel: useMemo(() => getSortedRowModel(), []),
+    // Needed so grouped rows can expand/collapse
+    getExpandedRowModel: useMemo(() => getExpandedRowModel(), []),
     getSubRows: (row: TData) =>
       (row as unknown as { subRows?: TData[] }).subRows,
     manualFiltering,
