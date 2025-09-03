@@ -39,6 +39,8 @@ export interface TextFilterProps {
   label?: string;
   /** Whether to show the operator selector */
   showOperator?: boolean;
+  /** Debounce delay for value changes (ms). 0 = no debounce */
+  debounceMs?: number;
 }
 
 /**
@@ -54,6 +56,7 @@ export function TextFilter({
   onOperatorChange,
   label,
   showOperator = true,
+  debounceMs = 300,
 }: TextFilterProps) {
   const [internalValue, setInternalValue] = useState(value);
 
@@ -66,15 +69,16 @@ export function TextFilter({
   const handleValueChange = useCallback(
     (newValue: string) => {
       setInternalValue(newValue);
-
-      // Debounce the callback
+      if (debounceMs <= 0) {
+        onValueChange(newValue);
+        return () => {};
+      }
       const timeoutId = setTimeout(() => {
         onValueChange(newValue);
-      }, 300);
-
+      }, debounceMs);
       return () => clearTimeout(timeoutId);
     },
-    [onValueChange]
+    [onValueChange, debounceMs]
   );
 
   // Handle immediate value change for certain operators

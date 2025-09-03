@@ -59,6 +59,8 @@ export interface OptionFilterProps {
   showCounts?: boolean;
   /** Placeholder text */
   placeholder?: string;
+  /** Render picker inline instead of popover */
+  inline?: boolean;
 }
 
 /**
@@ -76,6 +78,7 @@ export function OptionFilter({
   showOperator = true,
   showCounts = true,
   placeholder = 'Select option...',
+  inline = false,
 }: OptionFilterProps) {
   const [internalValue, setInternalValue] = useState(value);
   const [isOpen, setIsOpen] = useState(false);
@@ -205,19 +208,8 @@ export function OptionFilter({
         {/* Option picker */}
         {needsValue && (
           <div className="space-y-2">
-            <Popover onOpenChange={setIsOpen} open={isOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  aria-expanded={isOpen}
-                  className="w-full justify-between"
-                  disabled={disabled}
-                  variant="outline"
-                >
-                  <span className="truncate">{formatValueForDisplay()}</span>
-                  <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent align="start" className="w-full p-0">
+            {inline ? (
+              <div className="rounded-md border">
                 <Command>
                   <CommandInput
                     onValueChange={setSearchTerm}
@@ -273,8 +265,79 @@ export function OptionFilter({
                     </CommandGroup>
                   </CommandList>
                 </Command>
-              </PopoverContent>
-            </Popover>
+              </div>
+            ) : (
+              <Popover onOpenChange={setIsOpen} open={isOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    aria-expanded={isOpen}
+                    className="w-full justify-between"
+                    disabled={disabled}
+                    variant="outline"
+                  >
+                    <span className="truncate">{formatValueForDisplay()}</span>
+                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-full p-0">
+                  <Command>
+                    <CommandInput
+                      onValueChange={setSearchTerm}
+                      placeholder="Search options..."
+                      value={searchTerm}
+                    />
+                    <CommandList>
+                      <CommandEmpty>No options found.</CommandEmpty>
+                      <CommandGroup>
+                        {filteredOptions.map((option) => {
+                          const isSelected = isMultiple
+                            ? currentMultipleValue.includes(option.value)
+                            : currentSingleValue === option.value;
+
+                          return (
+                            <CommandItem
+                              key={option.value}
+                              onSelect={() => {
+                                if (isMultiple) {
+                                  handleMultipleOptionToggle(option.value);
+                                } else {
+                                  handleSingleOptionSelect(option.value);
+                                }
+                              }}
+                              value={option.value}
+                            >
+                              <div className="flex flex-1 items-center gap-2">
+                                {option.icon && (
+                                  <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center">
+                                    {typeof option.icon === 'function' ? (
+                                      <option.icon />
+                                    ) : (
+                                      option.icon
+                                    )}
+                                  </span>
+                                )}
+                                <span className="flex-1">{option.label}</span>
+                                {showCounts && option.count !== undefined && (
+                                  <Badge className="text-xs" variant="secondary">
+                                    {option.count}
+                                  </Badge>
+                                )}
+                              </div>
+                              <Check
+                                className={cn(
+                                  'ml-auto h-4 w-4',
+                                  isSelected ? 'opacity-100' : 'opacity-0'
+                                )}
+                              />
+                            </CommandItem>
+                          );
+                        })}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            )}
 
             {/* Selected values display for multiple selection */}
             {isMultiple && currentMultipleValue.length > 0 && (

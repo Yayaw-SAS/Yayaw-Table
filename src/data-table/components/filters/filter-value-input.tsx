@@ -44,6 +44,8 @@ export interface FilterValueInputProps<
   showOperator?: boolean;
   /** Whether to use compact mode */
   compact?: boolean;
+  /** Render value pickers inline (no popovers) */
+  inline?: boolean;
 }
 
 /**
@@ -60,6 +62,7 @@ export function FilterValueInput<TType extends ColumnDataType>({
   label,
   showOperator = true,
   compact = false,
+  inline = false,
 }: FilterValueInputProps<TType>) {
   // Type-safe value change handler
   const handleValueChange = useCallback(
@@ -104,6 +107,7 @@ export function FilterValueInput<TType extends ColumnDataType>({
           operator={textOperator}
           operators={config.operators as readonly FilterOperators['text'][]}
           placeholder={config.placeholder}
+          debounceMs={0}
           showOperator={showOperator}
           value={textValue}
         />
@@ -160,6 +164,7 @@ export function FilterValueInput<TType extends ColumnDataType>({
 
       return (
         <DateFilter
+          inline={inline}
           disabled={disabled}
           label={label}
           onOperatorChange={handleOperatorChange}
@@ -195,6 +200,7 @@ export function FilterValueInput<TType extends ColumnDataType>({
 
       return (
         <OptionFilter
+          inline={inline}
           disabled={disabled}
           label={label}
           onOperatorChange={handleOperatorChange}
@@ -233,6 +239,7 @@ export function FilterValueInput<TType extends ColumnDataType>({
 
       return (
         <MultiOptionFilter
+          inline={inline}
           disabled={disabled}
           label={label}
           onOperatorChange={handleOperatorChange}

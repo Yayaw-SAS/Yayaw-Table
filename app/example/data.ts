@@ -557,10 +557,11 @@ function evaluateOptionFilter(
   operator: unknown,
   values: unknown[]
 ): boolean {
+  const list = Array.isArray(values) ? values : [values];
   if (operator === 'in') {
-    return values.includes(value);
+    return list.includes(value);
   }
-  return values.includes(value);
+  return list.includes(value);
 }
 
 function evaluateDateFilter(
@@ -585,12 +586,19 @@ function applyAdvancedFilter(
   product: Product,
   filter: Record<string, unknown>
 ): boolean {
-  if (!filter.isActive) {
+  // Skip inactive or empty filters
+  const valuesArray = Array.isArray(filter.values)
+    ? (filter.values as unknown[])
+    : [filter.values];
+  const hasMeaningfulValue = valuesArray.some(
+    (v) => v !== undefined && v !== null && String(v).trim() !== ''
+  );
+  if (!filter.isActive || !hasMeaningfulValue) {
     return true;
   }
 
   const value = product[filter.columnId as keyof Product];
-  const filterValues = Array.isArray(filter.values) ? filter.values : [];
+  const filterValues = valuesArray;
 
   switch (filter.type) {
     case 'text':

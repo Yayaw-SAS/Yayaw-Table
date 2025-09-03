@@ -243,6 +243,37 @@ const StackMenu = forwardRef<HTMLDivElement, StackMenuProps>(
             align={align}
             className="w-auto p-0"
             sideOffset={sideOffset}
+            onInteractOutside={(e) => {
+              const target = e.target as HTMLElement | null;
+              // Keep the menu open when interacting with nested popovers or dropdowns
+              if (
+                target?.closest('[data-slot="popover-content"]') ||
+                target?.closest('[data-slot="dropdown-menu-content"]') ||
+                target?.closest('[data-slot="command-list"]')
+              ) {
+                e.preventDefault();
+              }
+            }}
+            onPointerDownOutside={(e) => {
+              const target = e.target as HTMLElement | null;
+              if (
+                target?.closest('[data-slot="popover-content"]') ||
+                target?.closest('[data-slot="dropdown-menu-content"]') ||
+                target?.closest('[data-slot="command-list"]')
+              ) {
+                e.preventDefault();
+              }
+            }}
+            onFocusOutside={(e) => {
+              const target = e.target as HTMLElement | null;
+              if (
+                target?.closest('[data-slot="popover-content"]') ||
+                target?.closest('[data-slot="dropdown-menu-content"]') ||
+                target?.closest('[data-slot="command-list"]')
+              ) {
+                e.preventDefault();
+              }
+            }}
           >
             {menuContent}
           </DropdownMenuContent>

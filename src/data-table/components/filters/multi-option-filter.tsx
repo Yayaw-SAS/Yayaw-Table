@@ -59,6 +59,8 @@ export interface MultiOptionFilterProps {
   showCounts?: boolean;
   /** Placeholder text */
   placeholder?: string;
+  /** Render picker inline instead of popover */
+  inline?: boolean;
   /** Maximum number of tags to show before showing count */
   maxDisplayedTags?: number;
 }
@@ -79,6 +81,7 @@ export function MultiOptionFilter({
   showCounts = true,
   placeholder = 'Select options...',
   maxDisplayedTags = 3,
+  inline = false,
 }: MultiOptionFilterProps) {
   const [internalValue, setInternalValue] = useState(value);
   const [isOpen, setIsOpen] = useState(false);
@@ -196,6 +199,56 @@ export function MultiOptionFilter({
         {/* Option picker */}
         {needsValue && (
           <div className="space-y-2">
+            {inline ? (
+              <div className="rounded-md border">
+                <Command>
+                  <CommandInput
+                    onValueChange={setSearchTerm}
+                    placeholder="Search options..."
+                    value={searchTerm}
+                  />
+                  <CommandList>
+                    <CommandEmpty>No options found.</CommandEmpty>
+                    <CommandGroup>
+                      {filteredOptions.map((option) => {
+                        const isSelected = internalValue.includes(option.value);
+                        return (
+                          <CommandItem
+                            key={option.value}
+                            onSelect={() => handleOptionToggle(option.value)}
+                            value={option.value}
+                          >
+                            <div className="flex flex-1 items-center gap-2">
+                              {option.icon && (
+                                <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center">
+                                  {typeof option.icon === 'function' ? (
+                                    <option.icon />
+                                  ) : (
+                                    option.icon
+                                  )}
+                                </span>
+                              )}
+                              <span className="flex-1">{option.label}</span>
+                              {showCounts && option.count !== undefined && (
+                                <Badge className="text-xs" variant="secondary">
+                                  {option.count}
+                                </Badge>
+                              )}
+                            </div>
+                            <Check
+                              className={cn(
+                                'ml-auto h-4 w-4',
+                                isSelected ? 'opacity-100' : 'opacity-0'
+                              )}
+                            />
+                          </CommandItem>
+                        );
+                      })}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </div>
+            ) : (
             <Popover onOpenChange={setIsOpen} open={isOpen}>
               <PopoverTrigger asChild>
                 <Button
@@ -278,6 +331,7 @@ export function MultiOptionFilter({
                 </Command>
               </PopoverContent>
             </Popover>
+            )}
 
             {/* Selected tags display */}
             {internalValue.length > 0 && (

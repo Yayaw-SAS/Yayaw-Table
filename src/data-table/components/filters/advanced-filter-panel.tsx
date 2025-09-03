@@ -5,7 +5,7 @@
 'use client';
 
 import { Filter, MoreHorizontal, Settings2, X } from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -35,14 +35,17 @@ import type {
   ColumnsFilterConfig,
   FilterActions,
 } from '../../types/filter-types';
-import { formatFilterValueForDisplay } from '../../utils/advanced-filters';
+import { formatFilterValueForDisplay, createFilter } from '../../utils/advanced-filters';
 
 import {
   FilterValueInput,
   getDefaultFilterOperator,
   getDefaultFilterValue,
 } from './filter-value-input';
-import { ModernAddFilterDropdown } from './modern-add-filter-dropdown';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Star, Clock, Filter as FilterIcon, Plus, Type, Hash, Calendar, CheckSquare, List as ListIcon } from 'lucide-react';
+// Replaced popover dropdown with inline panel to avoid nested popovers under StackMenu
 import {
   FilterEmptyState,
   FilterLoadingState,
@@ -99,6 +102,7 @@ function FilterChip({
   onRemove,
   onToggle,
   disabled = false,
+  autoEdit = false,
 }: {
   filter: AdvancedFilterModel;
   config: ColumnsFilterConfig[string];
@@ -106,8 +110,41 @@ function FilterChip({
   onRemove: () => void;
   onToggle: () => void;
   disabled?: boolean;
+  autoEdit?: boolean;
 }) {
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState<boolean>(autoEdit);
+  // Ensure auto open when requested
+  useEffect(() => {
+    if (autoEdit) {
+      setIsEditing(true);
+    }
+  }, [autoEdit]);
+  const [stagedOperator, setStagedOperator] = useState<
+    | 'contains'
+    | 'equals'
+    | 'startsWith'
+    | 'endsWith'
+    | 'notContains'
+    | 'isEmpty'
+    | 'isNotEmpty'
+    | 'greaterThan'
+    | 'lessThan'
+    | 'greaterThanOrEqual'
+    | 'lessThanOrEqual'
+    | 'between'
+    | 'notEquals'
+    | 'before'
+    | 'after'
+    | 'is'
+    | 'isNot'
+    | 'isAnyOf'
+    | 'isNoneOf'
+    | 'containsAll'
+    | 'containsNone'
+  >(filter.operator as any);
+  const [stagedValues, setStagedValues] = useState<
+    string | number | string[] | Date | [number, number] | [Date, Date]
+  >(filter.values as any);
 
   const displayValue = useMemo(() => {
     return formatFilterValueForDisplay(
@@ -118,63 +155,58 @@ function FilterChip({
     );
   }, [filter.type, filter.operator, filter.values, config.options]);
 
-  const handleValueChange = useCallback(
-    (newValue: unknown) => {
-      onUpdate({
-        values: newValue as
-          | string
-          | number
-          | string[]
-          | Date
-          | [number, number]
-          | [Date, Date],
-      });
-    },
-    [onUpdate]
-  );
+  const handleValueChange = useCallback((newValue: unknown) => {
+    setStagedValues(
+      newValue as
+        | string
+        | number
+        | string[]
+        | Date
+        | [number, number]
+        | [Date, Date]
+    );
+  }, []);
 
-  const handleOperatorChange = useCallback(
-    (newOperator: unknown) => {
-      onUpdate({
-        operator: newOperator as
-          | 'contains'
-          | 'equals'
-          | 'startsWith'
-          | 'endsWith'
-          | 'notContains'
-          | 'isEmpty'
-          | 'isNotEmpty'
-          | 'greaterThan'
-          | 'lessThan'
-          | 'greaterThanOrEqual'
-          | 'lessThanOrEqual'
-          | 'between'
-          | 'notEquals'
-          | 'before'
-          | 'after'
-          | 'is'
-          | 'isNot'
-          | 'isAnyOf'
-          | 'isNoneOf'
-          | 'containsAll'
-          | 'containsNone',
-      });
-    },
-    [onUpdate]
-  );
+  const handleOperatorChange = useCallback((newOperator: unknown) => {
+    setStagedOperator(
+      newOperator as
+        | 'contains'
+        | 'equals'
+        | 'startsWith'
+        | 'endsWith'
+        | 'notContains'
+        | 'isEmpty'
+        | 'isNotEmpty'
+        | 'greaterThan'
+        | 'lessThan'
+        | 'greaterThanOrEqual'
+        | 'lessThanOrEqual'
+        | 'between'
+        | 'notEquals'
+        | 'before'
+        | 'after'
+        | 'is'
+        | 'isNot'
+        | 'isAnyOf'
+        | 'isNoneOf'
+        | 'containsAll'
+        | 'containsNone'
+    );
+  }, []);
 
   const columnLabel = config.displayValueFn
     ? config.displayValueFn(filter.values)
     : filter.label || filter.columnId;
 
   return (
-    <div
-      className={cn(
-        'group flex items-center gap-1 rounded-md border bg-background px-2 py-1 text-sm transition-colors',
-        filter.isActive ? 'border-border' : 'border-muted bg-muted/50',
-        disabled && 'cursor-not-allowed opacity-50'
-      )}
-    >
+    <div className="w-full">
+      <div
+        className={cn(
+          'group flex items-center gap-1 rounded-md border bg-background px-2 py-1 text-sm transition-colors',
+          filter.isActive ? 'border-border' : 'border-muted bg-muted/50',
+          disabled && 'cursor-not-allowed opacity-50'
+        )}
+      >
       {/* Toggle active/inactive */}
       <button
         className={cn(
@@ -200,42 +232,61 @@ function FilterChip({
         <span className="text-muted-foreground text-xs">{filter.operator}</span>
       )}
 
-      {/* Value display or edit mode */}
-      <Popover onOpenChange={setIsEditing} open={isEditing}>
-        <PopoverTrigger asChild>
-          <button
-            className="rounded px-1 py-0.5 text-left transition-colors hover:bg-accent hover:text-accent-foreground"
-            disabled={disabled}
-            type="button"
-          >
-            {isEditing ? (
-              <span className="text-muted-foreground text-xs">Editing...</span>
-            ) : (
-              <span className="text-xs">
-                {displayValue || (
-                  <span className="text-muted-foreground">No value</span>
-                )}
-              </span>
+      {/* Value display or edit mode (inline, no popover) */}
+      <button
+        className="rounded px-1 py-0.5 text-left transition-colors hover:bg-accent hover:text-accent-foreground"
+        disabled={disabled}
+        onClick={() => setIsEditing(true)}
+        type="button"
+      >
+        {isEditing ? (
+          <span className="text-muted-foreground text-xs">Editing...</span>
+        ) : (
+          <span className="text-xs">
+            {displayValue || (
+              <span className="text-muted-foreground">No value</span>
             )}
-          </button>
-        </PopoverTrigger>
-        <PopoverContent align="start" className="w-auto min-w-80 max-w-96 p-4">
-          <div className="space-y-3">
-            <Label className="font-medium text-sm">
-              Edit filter for {columnLabel}
-            </Label>
+          </span>
+        )}
+      </button>
+      </div>
+
+      {isEditing && (
+        <div className="mt-2 ml-6 w-full max-w-full rounded-md border bg-background p-4 shadow-md">
+          <div
+            className="space-y-3"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                onUpdate({ operator: stagedOperator as any, values: stagedValues as any });
+                setIsEditing(false);
+              }
+            }}
+          >
+            <Label className="font-medium text-sm">Edit filter for {columnLabel}</Label>
             <FilterValueInput
               config={config}
               disabled={disabled}
+              inline
               onOperatorChange={handleOperatorChange}
               onValueChange={handleValueChange}
-              operator={filter.operator}
+              operator={stagedOperator as any}
               type={filter.type}
-              value={filter.values}
+              value={stagedValues as any}
             />
             <div className="flex justify-end gap-2">
               <Button
-                onClick={() => setIsEditing(false)}
+                onClick={() => {
+                  onUpdate({ operator: stagedOperator as any, values: stagedValues as any });
+                  setIsEditing(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    onUpdate({ operator: stagedOperator as any, values: stagedValues as any });
+                    setIsEditing(false);
+                  }
+                }}
                 size="sm"
                 variant="outline"
               >
@@ -243,42 +294,42 @@ function FilterChip({
               </Button>
             </div>
           </div>
-        </PopoverContent>
-      </Popover>
+        </div>
+      )}
 
-      {/* More actions menu */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            className="rounded p-1 opacity-0 transition-opacity hover:bg-accent group-hover:opacity-100"
-            disabled={disabled}
-            type="button"
-          >
-            <MoreHorizontal className="h-3 w-3" />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={onToggle}>
-            {filter.isActive ? 'Disable' : 'Enable'} filter
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            className="text-destructive focus:text-destructive"
-            onClick={onRemove}
-          >
-            Remove filter
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      {/* Quick remove button */}
-      <button
-        className="rounded p-1 opacity-0 transition-opacity hover:bg-destructive hover:text-destructive-foreground group-hover:opacity-100"
-        disabled={disabled}
-        onClick={onRemove}
-        type="button"
-      >
-        <X className="h-3 w-3" />
-      </button>
+      {/* More actions & quick remove aligned with chip row */}
+      <div className="mt-2 ml-6 flex items-center gap-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="rounded p-1 transition-opacity hover:bg-accent"
+              disabled={disabled}
+              type="button"
+            >
+              <MoreHorizontal className="h-3 w-3" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={onToggle}>
+              {filter.isActive ? 'Disable' : 'Enable'} filter
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive"
+              onClick={onRemove}
+            >
+              Remove filter
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <button
+          className="rounded p-1 transition-opacity hover:bg-destructive hover:text-destructive-foreground"
+          disabled={disabled}
+          onClick={onRemove}
+          type="button"
+        >
+          <X className="h-3 w-3" />
+        </button>
+      </div>
     </div>
   );
 }
@@ -305,12 +356,15 @@ export function AdvancedFilterPanel({
   enableAnimations = true,
 }: AdvancedFilterPanelProps) {
   const [_editingFilterId, _setEditingFilterId] = useState<string | null>(null);
+  const [draftFilters, setDraftFilters] = useState<AdvancedFilterModel[]>([]);
+  const [isAddPanelOpen, setIsAddPanelOpen] = useState(false);
 
   const activeFilters = filters.filter((f) => f.isActive);
   const _inactiveFilters = filters.filter((f) => !f.isActive);
 
-  const visibleFilters = filters.slice(0, maxVisibleFilters);
-  const hiddenFiltersCount = Math.max(0, filters.length - maxVisibleFilters);
+  const combinedFilters = [...draftFilters, ...filters];
+  const visibleFilters = combinedFilters.slice(0, maxVisibleFilters);
+  const hiddenFiltersCount = Math.max(0, combinedFilters.length - maxVisibleFilters);
 
   const handleAddFilter = useCallback(
     (columnId: string, type: ColumnDataType) => {
@@ -322,15 +376,17 @@ export function AdvancedFilterPanel({
       const operator = getDefaultFilterOperator(type);
       const value = getDefaultFilterValue(type, operator);
 
-      actions.addFilter({
+      const draft = createFilter(
         columnId,
-        type,
-        operator,
-        values: value,
-        isActive: true,
-      });
+        type as any,
+        operator as any,
+        value as any,
+        { isActive: false, label: columnId }
+      );
+      setDraftFilters((prev) => [draft, ...prev]);
+      setIsAddPanelOpen(true);
     },
-    [columnsConfig, actions]
+    [columnsConfig]
   );
 
   const handleUpdateFilter = useCallback(
@@ -359,8 +415,8 @@ export function AdvancedFilterPanel({
     );
   }
 
-  // Handle empty state
-  if (filters.length === 0) {
+  // Handle empty state (include drafts)
+  if (combinedFilters.length === 0) {
     if (!showAddButton) {
       return null;
     }
@@ -379,23 +435,31 @@ export function AdvancedFilterPanel({
             variant="minimal"
           />
         ) : (
-          <div className="flex items-center justify-between rounded-lg border border-muted border-dashed bg-muted/20 p-3">
-            <div className="flex items-center gap-3">
+          <div className="space-y-2 rounded-lg border border-muted bg-muted/20 p-3">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4 shrink-0 text-muted-foreground opacity-50" />
-                <span className="text-muted-foreground text-sm">
-                  No filters applied
-                </span>
+                <span className="text-muted-foreground text-sm">No filters applied</span>
               </div>
+              <Button
+                className="h-8 px-3"
+                disabled={disabled}
+                onClick={() => setIsAddPanelOpen((v) => !v)}
+                size="sm"
+                variant="outline"
+              >
+                Add filter...
+              </Button>
             </div>
-            <ModernAddFilterDropdown
-              columnsConfig={columnsConfig}
-              disabled={disabled}
-              onAddFilter={handleAddFilter}
-              placeholder="Add filter..."
-              popularColumns={popularColumns}
-              recentColumns={recentColumns}
-            />
+            {isAddPanelOpen && (
+              <InlineAddFilterPanel
+                columnsConfig={columnsConfig}
+                disabled={disabled}
+                onAddFilter={handleAddFilter}
+                popularColumns={popularColumns}
+                recentColumns={recentColumns}
+              />
+            )}
           </div>
         )}
 
@@ -521,6 +585,7 @@ export function AdvancedFilterPanel({
                   return null;
                 }
 
+                const isDraft = draftFilters.some((d) => d.id === filter.id);
                 return (
                   <div
                     className={cn(
@@ -528,16 +593,53 @@ export function AdvancedFilterPanel({
                     )}
                     key={filter.id}
                   >
-                    <FilterChip
-                      config={config}
-                      disabled={disabled}
-                      filter={filter}
-                      onRemove={() => actions.removeFilter(filter.id)}
-                      onToggle={() => actions.toggleFilter(filter.id)}
-                      onUpdate={(updates) =>
-                        handleUpdateFilter(filter.id, updates)
-                      }
-                    />
+                    {isDraft ? (
+                      <FilterChip
+                        config={config}
+                        disabled={disabled}
+                        filter={filter}
+                        autoEdit
+                        onRemove={() =>
+                          setDraftFilters((prev) =>
+                            prev.filter((d) => d.id !== filter.id)
+                          )
+                        }
+                        onToggle={() =>
+                          setDraftFilters((prev) =>
+                            prev.map((d) =>
+                              d.id === filter.id
+                                ? { ...d, isActive: !d.isActive }
+                                : d
+                            )
+                          )
+                        }
+                        onUpdate={(updates) => {
+                          actions.addFilter({
+                            columnId: filter.columnId,
+                            type: filter.type,
+                            operator:
+                              (updates.operator as any) || (filter.operator as any),
+                            values:
+                              (updates.values as any) || (filter.values as any),
+                            isActive: true,
+                          });
+                          setDraftFilters((prev) =>
+                            prev.filter((d) => d.id !== filter.id)
+                          );
+                        }}
+                      />
+                    ) : (
+                      <FilterChip
+                        config={config}
+                        disabled={disabled}
+                        filter={filter}
+                        onRemove={() => actions.removeFilter(filter.id)}
+                        onToggle={() => actions.toggleFilter(filter.id)}
+                        onUpdate={(updates) =>
+                          handleUpdateFilter(filter.id, updates)
+                        }
+                      />
+                    )}
                   </div>
                 );
               })}
@@ -551,14 +653,26 @@ export function AdvancedFilterPanel({
 
               {/* Add filter button */}
               {showAddButton && (
-                <ModernAddFilterDropdown
-                  columnsConfig={columnsConfig}
-                  disabled={disabled}
-                  onAddFilter={handleAddFilter}
-                  placeholder="Add filter..."
-                  popularColumns={popularColumns}
-                  recentColumns={recentColumns}
-                />
+                <div className="w-full">
+                  <Button
+                    className="h-8 px-3 text-muted-foreground text-xs hover:text-foreground"
+                    disabled={disabled}
+                    onClick={() => setIsAddPanelOpen((v) => !v)}
+                    size="sm"
+                    variant="ghost"
+                  >
+                    Add filter...
+                  </Button>
+                  {isAddPanelOpen && (
+                    <InlineAddFilterPanel
+                      columnsConfig={columnsConfig}
+                      disabled={disabled}
+                      onAddFilter={handleAddFilter}
+                      popularColumns={popularColumns}
+                      recentColumns={recentColumns}
+                    />
+                  )}
+                </div>
               )}
             </div>
 
@@ -588,6 +702,246 @@ export function AdvancedFilterPanel({
   );
 }
 
+// Inline Add Filter Panel (search + tabs) rendered inside StackMenu content
+function InlineAddFilterPanel({
+  columnsConfig,
+  onAddFilter,
+  recentColumns = [],
+  popularColumns = [],
+  disabled = false,
+}: {
+  columnsConfig: ColumnsFilterConfig;
+  onAddFilter: (columnId: string, type: ColumnDataType) => void;
+  recentColumns?: string[];
+  popularColumns?: string[];
+  disabled?: boolean;
+}) {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState<'popular' | 'recent' | 'all'>(
+    'popular'
+  );
+
+  const options = useMemo(() => {
+    return Object.entries(columnsConfig)
+      .filter(([_, cfg]) => cfg.filterable !== false)
+      .map(([id, cfg]) => ({
+        id,
+        label: id,
+        type: cfg.type,
+        description: cfg.placeholder,
+        isRecent: recentColumns.includes(id),
+        isPopular: popularColumns.includes(id),
+      }));
+  }, [columnsConfig, recentColumns, popularColumns]);
+
+  const filtered = useMemo(() => {
+    const lower = searchTerm.toLowerCase();
+    const list = options.filter(
+      (o) =>
+        !searchTerm ||
+        o.label.toLowerCase().includes(lower) ||
+        (o.description || '').toLowerCase().includes(lower)
+    );
+
+    const popular = list.filter((o) => o.isPopular).slice(0, 6);
+    const recent = list.filter((o) => o.isRecent && !o.isPopular).slice(0, 6);
+
+    const grouped: Record<string, typeof options> = {};
+    for (const o of list) {
+      const key = o.type === 'multiOption' ? 'option' : o.type;
+      if (!grouped[key]) grouped[key] = [] as typeof options;
+      grouped[key].push(o);
+    }
+
+    return { popular, recent, all: grouped, search: list };
+  }, [options, searchTerm]);
+
+  const typeIcon: Record<string, React.ComponentType<{ className?: string }>> = {
+    text: Type,
+    number: Hash,
+    date: Calendar,
+    option: CheckSquare,
+    multiOption: ListIcon,
+  } as const;
+
+  return (
+    <div className="w-72 rounded-md border bg-background">
+      <div className="border-border border-b p-3">
+        <div className="flex items-center gap-2">
+          <FilterIcon className="h-4 w-4 text-muted-foreground" />
+          <Input
+            className="h-auto border-none p-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search columns..."
+            value={searchTerm}
+          />
+        </div>
+      </div>
+
+      {searchTerm ? (
+        <div className="max-h-80 overflow-y-auto p-2">
+          {filtered.search.length === 0 ? (
+            <div className="py-6 text-center text-muted-foreground text-sm">
+              No columns found
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {filtered.search.map((o) => {
+                const Icon = typeIcon[o.type] || Type;
+                return (
+                  <button
+                    key={o.id}
+                    className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left transition-colors hover:bg-accent/50"
+                    disabled={disabled}
+                    onClick={() => onAddFilter(o.id, o.type)}
+                    type="button"
+                  >
+                    <div className="flex h-8 w-8 items-center justify-center rounded-md border bg-muted">
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="truncate font-medium text-sm">{o.label}</span>
+                      </div>
+                      {o.description && (
+                        <p className="truncate text-muted-foreground text-xs">{o.description}</p>
+                      )}
+                    </div>
+                    <Plus className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div>
+          <div className="border-border border-b px-3">
+            <Tabs
+              className="w-full"
+              onValueChange={(v) => setActiveTab(v as typeof activeTab)}
+              value={activeTab}
+            >
+              <TabsList className="grid h-8 w-full grid-cols-3">
+                <TabsTrigger className="text-xs" value="popular">
+                  <Star className="mr-1 h-3 w-3" /> Popular
+                </TabsTrigger>
+                <TabsTrigger className="text-xs" value="recent">
+                  <Clock className="mr-1 h-3 w-3" /> Recent
+                </TabsTrigger>
+                <TabsTrigger className="text-xs" value="all">
+                  <FilterIcon className="mr-1 h-3 w-3" /> All
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+
+          <div className="max-h-80 overflow-y-auto">
+            <Tabs className="w-full" value={activeTab}>
+              <TabsContent className="m-0 p-2" value="popular">
+                {filtered.popular.length === 0 ? (
+                  <div className="py-6 text-center text-muted-foreground text-sm">
+                    No popular filters
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    {filtered.popular.map((o) => {
+                      const Icon = typeIcon[o.type] || Type;
+                      return (
+                        <button
+                          key={o.id}
+                          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left transition-colors hover:bg-accent/50"
+                          disabled={disabled}
+                          onClick={() => onAddFilter(o.id, o.type)}
+                          type="button"
+                        >
+                          <div className="flex h-8 w-8 items-center justify-center rounded-md border bg-muted">
+                            <Icon className="h-4 w-4" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <span className="truncate font-medium text-sm">{o.label}</span>
+                          </div>
+                          <Plus className="h-4 w-4 text-muted-foreground" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent className="m-0 p-2" value="recent">
+                {filtered.recent.length === 0 ? (
+                  <div className="py-6 text-center text-muted-foreground text-sm">
+                    No recent filters
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    {filtered.recent.map((o) => {
+                      const Icon = typeIcon[o.type] || Type;
+                      return (
+                        <button
+                          key={o.id}
+                          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left transition-colors hover:bg-accent/50"
+                          disabled={disabled}
+                          onClick={() => onAddFilter(o.id, o.type)}
+                          type="button"
+                        >
+                          <div className="flex h-8 w-8 items-center justify-center rounded-md border bg-muted">
+                            <Icon className="h-4 w-4" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <span className="truncate font-medium text-sm">{o.label}</span>
+                          </div>
+                          <Plus className="h-4 w-4 text-muted-foreground" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent className="m-0 p-2" value="all">
+                <div className="space-y-3">
+                  {Object.entries(filtered.all).map(([group, list]) => (
+                    <div key={group}>
+                      <div className="mb-2 flex items-center gap-2 px-2 py-1 text-muted-foreground text-xs font-medium">
+                        {group}
+                        <span className="ml-1 rounded-md bg-muted px-1 text-[10px]">{list.length}</span>
+                      </div>
+                      <div className="space-y-1">
+                        {list.map((o) => {
+                          const Icon = typeIcon[o.type] || Type;
+                          return (
+                            <button
+                              key={o.id}
+                              className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left transition-colors hover:bg-accent/50"
+                              disabled={disabled}
+                              onClick={() => onAddFilter(o.id, o.type)}
+                              type="button"
+                            >
+                              <div className="flex h-8 w-8 items-center justify-center rounded-md border bg-muted">
+                                <Icon className="h-4 w-4" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <span className="truncate font-medium text-sm">{o.label}</span>
+                              </div>
+                              <Plus className="h-4 w-4 text-muted-foreground" />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /**
  * Compact filter panel for smaller spaces
  */
@@ -601,6 +955,7 @@ export function CompactFilterPanel({
   'filters' | 'columnsConfig' | 'actions' | 'disabled'
 >) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showInlineAdd, setShowInlineAdd] = useState(false);
   const activeFiltersCount = filters.filter((f) => f.isActive).length;
 
   if (filters.length === 0) {
@@ -613,37 +968,47 @@ export function CompactFilterPanel({
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <div>
-                <ModernAddFilterDropdown
-                  columnsConfig={columnsConfig}
-                  disabled={disabled}
-                  onAddFilter={(columnId, type) => {
-                    const config = columnsConfig[columnId];
-                    if (!config) {
-                      return;
-                    }
-
-                    const operator = getDefaultFilterOperator(type);
-                    const value = getDefaultFilterValue(type, operator);
-
-                    actions.addFilter({
-                      columnId,
-                      type,
-                      operator,
-                      values: value,
-                      isActive: true,
-                    });
-                  }}
-                  placeholder="Add filter..."
-                  size="sm"
-                />
-              </div>
+              <Button
+                className="h-7 px-2 text-xs"
+                disabled={disabled}
+                onClick={() => setShowInlineAdd((v) => !v)}
+                size="sm"
+                variant="outline"
+              >
+                Add filter...
+              </Button>
             </TooltipTrigger>
             <TooltipContent>
               <p>Add filters to narrow down results</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
+        {showInlineAdd && (
+          <div className="mt-2">
+            <InlineAddFilterPanel
+              columnsConfig={columnsConfig}
+              disabled={disabled}
+              onAddFilter={(columnId, type) => {
+                const operator = getDefaultFilterOperator(type);
+                const value = getDefaultFilterValue(type, operator) as
+                  | string
+                  | number
+                  | [number, number]
+                  | Date
+                  | [Date, Date]
+                  | string[];
+                actions.addFilter({
+                  columnId,
+                  type,
+                  operator,
+                  values: value,
+                  isActive: true,
+                });
+                setShowInlineAdd(false);
+              }}
+            />
+          </div>
+        )}
       </div>
     );
   }
@@ -707,18 +1072,18 @@ export function CompactFilterPanel({
 
           <Separator />
 
-          <ModernAddFilterDropdown
+          <InlineAddFilterPanel
             columnsConfig={columnsConfig}
             disabled={disabled}
             onAddFilter={(columnId, type) => {
-              const config = columnsConfig[columnId];
-              if (!config) {
-                return;
-              }
-
               const operator = getDefaultFilterOperator(type);
-              const value = getDefaultFilterValue(type, operator);
-
+              const value = getDefaultFilterValue(type, operator) as
+                | string
+                | number
+                | [number, number]
+                | Date
+                | [Date, Date]
+                | string[];
               actions.addFilter({
                 columnId,
                 type,
@@ -727,7 +1092,6 @@ export function CompactFilterPanel({
                 isActive: true,
               });
             }}
-            placeholder="Add filter..."
           />
         </div>
       </PopoverContent>

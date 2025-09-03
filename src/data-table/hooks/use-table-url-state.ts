@@ -289,6 +289,7 @@ export function useTableUrlState({
   // Advanced filters setter
   const setAdvancedFiltersFromUI = useCallback(
     (filters: AdvancedFiltersState) => {
+      // Write as-is; server/mock layer ignores inactive or empty filters
       debouncedSetParamRef.current?.(`${tableId}-advancedFilters`, filters);
     },
     [tableId]

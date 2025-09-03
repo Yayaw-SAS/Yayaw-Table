@@ -81,17 +81,7 @@ export function TableFiltersMenu({
       <StackMenuView name="filters">
         <StackMenuContent className="p-0">
           <AdvancedFilterPanel
-            actions={{
-              ...advancedActions,
-              // Override addFilter to create inactive filters by default
-              addFilter: (filter) => {
-                console.log('🔧 Adding filter (inactive by default):', filter);
-                advancedActions.addFilter({
-                  ...filter,
-                  isActive: false, // Start inactive until user configures it
-                });
-              },
-            }}
+            actions={advancedActions}
             className="border-0"
             columnsConfig={advancedColumnsConfig}
             enableAnimations={true}

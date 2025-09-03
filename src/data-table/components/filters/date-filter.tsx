@@ -48,6 +48,8 @@ export interface DateFilterProps {
   showOperator?: boolean;
   /** Date format for display */
   dateFormat?: string;
+  /** Render pickers inline instead of popover */
+  inline?: boolean;
 }
 
 /**
@@ -63,6 +65,7 @@ export function DateFilter({
   label,
   showOperator = true,
   dateFormat = 'PPP',
+  inline = false,
 }: DateFilterProps) {
   const [internalValue, setInternalValue] = useState(value);
   const [isOpen, setIsOpen] = useState(false);
@@ -155,28 +158,8 @@ export function DateFilter({
 
         {/* Date picker */}
         {needsValue && (
-          <Popover onOpenChange={setIsOpen} open={isOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                className={cn(
-                  'w-full justify-start text-left font-normal',
-                  !internalValue && 'text-muted-foreground'
-                )}
-                disabled={disabled}
-                type="button"
-                variant="outline"
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {internalValue ? (
-                  formatDateForDisplay(internalValue)
-                ) : (
-                  <span>
-                    {isBetween ? 'Pick date range...' : 'Pick a date...'}
-                  </span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="start" className="w-auto p-0">
+          inline ? (
+            <div className="rounded-md border">
               {isBetween ? (
                 <Calendar
                   disabled={disabled}
@@ -184,10 +167,7 @@ export function DateFilter({
                   mode="range"
                   onSelect={handleDateRangeSelect}
                   required
-                  selected={{
-                    from: currentRangeValue[0],
-                    to: currentRangeValue[1],
-                  }}
+                  selected={{ from: currentRangeValue[0], to: currentRangeValue[1] }}
                 />
               ) : (
                 <Calendar
@@ -198,8 +178,54 @@ export function DateFilter({
                   selected={currentSingleValue}
                 />
               )}
-            </PopoverContent>
-          </Popover>
+            </div>
+          ) : (
+            <Popover onOpenChange={setIsOpen} open={isOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  className={cn(
+                    'w-full justify-start text-left font-normal',
+                    !internalValue && 'text-muted-foreground'
+                  )}
+                  disabled={disabled}
+                  type="button"
+                  variant="outline"
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {internalValue ? (
+                    formatDateForDisplay(internalValue)
+                  ) : (
+                    <span>
+                      {isBetween ? 'Pick date range...' : 'Pick a date...'}
+                    </span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-auto p-0">
+                {isBetween ? (
+                  <Calendar
+                    disabled={disabled}
+                    initialFocus
+                    mode="range"
+                    onSelect={handleDateRangeSelect}
+                    required
+                    selected={{
+                      from: currentRangeValue[0],
+                      to: currentRangeValue[1],
+                    }}
+                  />
+                ) : (
+                  <Calendar
+                    disabled={disabled}
+                    initialFocus
+                    mode="single"
+                    onSelect={handleSingleDateSelect}
+                    selected={currentSingleValue}
+                  />
+                )}
+              </PopoverContent>
+            </Popover>
+          )
         )}
 
         {/* Info text for operators that don't need values */}

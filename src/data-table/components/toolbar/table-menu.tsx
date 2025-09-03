@@ -130,6 +130,12 @@ export function TableMenu({
   if (DEBUG) {
     // Debug log for visible count
   }
+  // Keep menu open when advanced filters change (selection inside add panel)
+  useEffect(() => {
+    if (useAdvancedFilters && open) {
+      setOpen(true);
+    }
+  }, [useAdvancedFilters, advancedFiltersConfig?.filters, open]);
 
   // Calculate visible columns count
   const hideableColumns = columns.filter((col) => col.canHide !== false);
