@@ -1,38 +1,165 @@
 ---
 title: YaYaw Table Documentation
-description: Learn how to use YaYaw Table in your React applications
+description: Ultra-simple data table with zero boilerplate
 ---
 
 # YaYaw Table Documentation
 
-YaYaw Table is a flexible data table component library for React that lets you define your own table configurations instead of imposing predefined structures.
+YaYaw Table est une librairie de composants data table ultra-simple pour React. **Une config, un composant, zéro boilerplate !**
 
-## Quick Start
+## 🚀 Quick Start
 
 ```bash
+npm install yayaw-table
+# ou
 bun add yayaw-table
 ```
 
+### API Ultra-Simple
+
 ```tsx
-import { DataTable, defineTableConfig } from 'yayaw-table'
+import { UltraSimpleTable } from 'yayaw-table'
 
-const config = defineTableConfig({
-  id: "products",
-  columns: {
-    definitions: [
-      { id: "name", type: "text", header: "Product Name" },
-      { id: "price", type: "number", header: "Price" },
-      { id: "status", type: "tag", header: "Status" }
-    ],
-    order: ["select", "name", "price", "status", "actions"],
-    visible: ["select", "name", "price", "status", "actions"]
-  },
-  table: { defaultPageSize: 10 }
-})
+const config = {
+  id: 'products',
+  name: 'Products Management',
+  description: 'Table ultra-simple avec grouping, pagination et tri',
+  
+  columns: [
+    { id: 'name', type: 'text', header: 'Product Name' },
+    { id: 'brand', type: 'tag', header: 'Brand' },
+    { id: 'price', type: 'number', header: 'Price' },
+    { id: 'status', type: 'tag', header: 'Status' },
+  ],
+  
+  fetchData: async (params) => {
+    const result = await fetch('/api/products', {
+      method: 'POST',
+      body: JSON.stringify(params)
+    });
+    return result.json();
+  }
+};
 
-<DataTable 
-  tableType="products"
-  config={config}
-  data={products}
-/>
+export const MyTable = () => (
+  <UltraSimpleTable config={config} />
+);
 ```
+
+**C'est tout !** 🎉
+
+## ✅ Avantages
+
+- **95% moins de code** - Une seule config
+- **Zero providers** - Plus de setup complexe  
+- **Pas de boucles infinies** - Stable
+- **TanStack Table pur** - Performance
+- **Grouping natif** - Expand/collapse automatique
+- **Types intégrés** - Icônes automatiques
+- **SSR-friendly** - Pas d'hydration errors
+
+## 🔧 Fonctionnalités
+
+### Grouping
+```tsx
+// Grouping automatique par type de colonne
+<UltraSimpleTable config={config} />
+// Boutons "Group by Brand" et "Group by Category" inclus
+```
+
+### Pagination
+```tsx
+// Pagination sans Select problématique
+// Navigation Previous/Next + compteurs automatiques
+```
+
+### Tri
+```tsx
+// Tri automatique sur toutes les colonnes
+// Pas de configuration nécessaire
+```
+
+### Types de colonnes
+```tsx
+const columns = [
+  { id: 'name', type: 'text', header: 'Name' },      // Icône Text
+  { id: 'brand', type: 'tag', header: 'Brand' },     // Icône Tag  
+  { id: 'price', type: 'number', header: 'Price' },  // Icône Hash
+  { id: 'active', type: 'boolean', header: 'Active' }, // Icône Toggle
+  { id: 'date', type: 'date', header: 'Created' },   // Icône Calendar
+];
+```
+
+## 🎯 Migration depuis l'ancienne API
+
+### ❌ Avant (complexe)
+```tsx
+<TableProvider translations={...} getTableConfig={...}>
+  <DataTableUIProvider columnsConfig={...} tableConfig={...}>
+    <DataTable 
+      tableType="products"
+      columnTypeMapping={{...}}
+      enableAdvancedFilters={true}
+    />
+  </DataTableUIProvider>
+</TableProvider>
+```
+
+### ✅ Après (simple)
+```tsx
+<UltraSimpleTable config={config} />
+```
+
+## 📖 API Reference
+
+### UltraSimpleConfig
+
+```tsx
+interface UltraSimpleConfig {
+  id: string;
+  name: string;
+  description?: string;
+  
+  columns: Array<{
+    id: string;
+    type: 'text' | 'tag' | 'number' | 'boolean' | 'date';
+    header: string;
+  }>;
+  
+  fetchData: (params: {
+    page: number;
+    pageSize: number;
+    sorting: SortingState;
+    grouping: GroupingState;
+  }) => Promise<{
+    data: Record<string, unknown>[];
+    pageCount: number;
+    totalCount: number;
+  }>;
+}
+```
+
+### Exemple fetchData
+```tsx
+fetchData: async (params) => {
+  const result = await productActions.list({
+    page: params.page,
+    limit: params.pageSize,
+    orderBy: params.sorting,
+  });
+  
+  return {
+    data: result.data as Record<string, unknown>[],
+    pageCount: result.meta?.pageCount || 1,
+    totalCount: result.meta?.totalCount || 0,
+  };
+}
+```
+
+## 🎨 Personnalisation
+
+La table utilise les classes Tailwind par défaut. Toutes les classes sont personnalisables via les props className standard.
+
+## 🔗 Exemples
+
+Voir `/example` pour un exemple complet avec données mockées et toutes les fonctionnalités.

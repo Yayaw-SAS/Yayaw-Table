@@ -29,16 +29,8 @@ const CatalogueFormContainer = dynamic(
   }
 );
 
-const DataTableAdvancedToolbar = dynamic(
-  () =>
-    import('./toolbar/data-table-advanced-toolbar').then((mod) => ({
-      default: mod.DataTableAdvancedToolbar,
-    })),
-  {
-    loading: () => <div className="h-12 animate-pulse rounded bg-muted" />,
-    ssr: false,
-  }
-);
+// Import direct pour déboguer (au lieu de dynamic)
+import { DataTableAdvancedToolbar } from './toolbar/data-table-advanced-toolbar';
 
 // Default UI components
 function DefaultTableTitle({
@@ -250,9 +242,7 @@ export function DataTable({
                   >[]
                 }
                 data={finalData}
-                enableColumnDragDropByDefault={
-                  config.table.enableColumnDragDropByDefault
-                }
+                enableColumnDragDropByDefault={false}
                 enableColumnFilters={config.table.enableColumnFilters}
                 enableGrouping={config.table.enableGrouping}
                 enableMultiRowSelection={true}

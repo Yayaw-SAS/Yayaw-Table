@@ -5,16 +5,16 @@ description: How to install YaYaw Table
 
 # Installation
 
-Install YaYaw Table in your React project using your preferred package manager.
+Installez YaYaw Table dans votre projet React avec votre gestionnaire de packages préféré.
 
 ## Package Manager
 
-```bash title="Using Bun (recommended)"
-bun add yayaw-table
-```
-
 ```bash title="Using npm"
 npm install yayaw-table
+```
+
+```bash title="Using Bun (recommended)"
+bun add yayaw-table
 ```
 
 ```bash title="Using pnpm"
@@ -23,12 +23,47 @@ pnpm add yayaw-table
 
 ## Peer Dependencies
 
-YaYaw Table depends on the following peer dependencies:
+YaYaw Table dépend des peer dependencies suivantes :
 
 - `react` (^18.0.0)
 - `react-dom` (^18.0.0)
 - `@tanstack/react-table` (^8.0.0)
-- `@tanstack/react-query` (^5.0.0)
-- `jotai` (^2.0.0)
 
-Make sure these are installed in your project. 
+Assurez-vous qu'elles sont installées dans votre projet.
+
+## Premier usage
+
+```tsx
+import { UltraSimpleTable } from 'yayaw-table';
+
+const config = {
+  id: 'products',
+  name: 'Products',
+  columns: [
+    { id: 'name', type: 'text', header: 'Name' },
+    { id: 'price', type: 'number', header: 'Price' }
+  ],
+  fetchData: async (params) => {
+    // Votre logique de fetch
+    return { data: [], pageCount: 1, totalCount: 0 };
+  }
+};
+
+export const MyTable = () => (
+  <UltraSimpleTable config={config} />
+);
+```
+
+## CSS/Tailwind
+
+La table utilise Tailwind CSS. Assurez-vous que Tailwind est configuré dans votre projet :
+
+```bash
+npm install tailwindcss
+```
+
+Ou utilisez vos propres classes CSS en surchargeant les styles par défaut.
+
+## TypeScript
+
+YaYaw Table est entièrement typé avec TypeScript. Les types sont inclus automatiquement.

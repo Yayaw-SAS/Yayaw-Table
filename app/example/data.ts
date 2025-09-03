@@ -738,9 +738,26 @@ function paginateProducts(
 ): { data: Product[]; pageCount: number; totalCount: number } {
   const totalCount = productsList.length;
   const pageCount = Math.ceil(totalCount / limit);
-  const startIndex = page * limit;
+
+  // Convert 1-based page to 0-based for slice
+  const zeroBasedPage = Math.max(0, page - 1);
+  const startIndex = zeroBasedPage * limit;
   const endIndex = startIndex + limit;
   const data = productsList.slice(startIndex, endIndex);
+
+  if (DEBUG) {
+    console.log('🔧 Pagination debug:', {
+      page,
+      zeroBasedPage,
+      limit,
+      startIndex,
+      endIndex,
+      totalCount,
+      pageCount,
+      resultLength: data.length,
+    });
+  }
+
   return { data, pageCount, totalCount };
 }
 

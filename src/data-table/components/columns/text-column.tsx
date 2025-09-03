@@ -6,6 +6,7 @@
 
 import type { CellContext, ColumnDef } from '@tanstack/react-table';
 import { type LucideIcon, Text } from 'lucide-react';
+import { useState } from 'react';
 
 import { StringCell } from '../cells/string-cell';
 
@@ -88,28 +89,42 @@ export function createTextColumn<TData>({
       const isAggregated = info.cell.getIsAggregated();
       const isPlaceholder = info.cell.getIsPlaceholder();
 
-      // Group header cell: toggle + label + count
-      if (isGrouped) {
-        const toggle = info.row.getToggleExpandedHandler();
-        const expanded = info.row.getIsExpanded();
-        const count = info.row.subRows?.length ?? 0;
-        const label = String(info.getValue() ?? '');
-        return (
-          <div className="flex items-center gap-2">
+      // Debug removed to stop spam
+
+      // FORCE group header display for ANY row that has subRows (bypass TanStack detection)
+      const hasSubRows = (info.row.subRows?.length ?? 0) > 0;
+      if (isGrouped || hasSubRows) {
+        const GroupHeader = () => {
+          const [localExpanded, setLocalExpanded] = useState(true); // Start expanded
+          const count = info.row.subRows?.length ?? 0;
+          const label = String(info.getValue() ?? '');
+
+          return (
             <button
-              aria-label={expanded ? 'Collapse group' : 'Expand group'}
-              className="text-muted-foreground hover:text-foreground"
-              onClick={toggle}
+              className="flex w-full cursor-pointer items-center gap-2 border-0 bg-red-100 p-2 text-left hover:bg-red-200"
+              onClick={(e) => {
+                e.stopPropagation();
+                console.log('🔥 BUTTON CLICKED!', {
+                  localExpanded,
+                  label,
+                  count,
+                });
+                setLocalExpanded(!localExpanded);
+              }}
               type="button"
             >
-              <span aria-hidden>{expanded ? '▾' : '▸'}</span>
+              <span aria-hidden className="text-lg text-muted-foreground">
+                {localExpanded ? '▾' : '▸'}
+              </span>
+              <span className="font-medium">{label}</span>
+              <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground text-xs">
+                {count}
+              </span>
             </button>
-            <span className="font-medium">{label}</span>
-            <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground text-xs">
-              {count}
-            </span>
-          </div>
-        );
+          );
+        };
+
+        return <GroupHeader />;
       }
 
       // Aggregated/placeholder cells: keep minimal

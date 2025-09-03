@@ -28,37 +28,29 @@ export function TableWithActions({ onBulkEdit }: TableWithActionsProps) {
 
   const handleBulkDelete = async (rows: Row<Record<string, unknown>>[]) => {
     if (!actions?.bulkDelete) {
-      toast.error('Bulk delete not available');
+      toast.error('Delete action not available');
       return;
     }
 
-    const ids = rows.map((row) => row.original.id as string);
-    const itemNames = rows.map((row) => row.original.name).join(', ');
+    try {
+      const ids = rows.map((row) => row.original.id as string);
+      const result = await actions.bulkDelete(ids);
 
-    const confirmed = window.confirm(
-      `⚠️ Delete Confirmation\n\nAre you sure you want to delete ${rows.length} item${rows.length > 1 ? 's' : ''}?\n\n${itemNames}\n\nThis action cannot be undone.`
-    );
-
-    if (confirmed) {
-      try {
-        const result = await actions.bulkDelete(ids);
-
-        if (result.success) {
-          toast.success(`Successfully deleted ${ids.length} products`);
-          console.log('Bulk delete completed:', result.data);
-        } else {
-          toast.error(result.error || 'Failed to delete products');
-        }
-      } catch (error) {
-        console.error('Bulk delete error:', error);
-        toast.error('Failed to delete products');
+      if (result.success) {
+        toast.success(`✅ Deleted ${rows.length} products successfully!`);
+        console.log('Bulk delete completed:', rows.length, 'items');
+      } else {
+        toast.error(result.error || 'Failed to delete products');
       }
+    } catch (error) {
+      console.error('Bulk delete error:', error);
+      toast.error('❌ Failed to delete products');
     }
   };
 
   const handleBulkCopy = async (rows: Row<Record<string, unknown>>[]) => {
     if (!actions?.bulkCopy) {
-      toast.error('Bulk copy not available');
+      toast.error('Copy action not available');
       return;
     }
 

@@ -79,6 +79,8 @@ export function useDataTable<TData extends Record<string, unknown>>(
 
   // Get table configuration using extracted hook
   const { config, translations } = useTableConfig(tableType);
+
+  // Debug removed
   const { t } = useTranslations();
 
   // Set up URL state for the table

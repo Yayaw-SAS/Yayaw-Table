@@ -106,9 +106,45 @@ export function createSelectionColumn<TData>(
 
   return {
     accessorKey: 'select',
-    cell: ({ row }: { row: Row<TData> }) => (
-      <SelectionCell className={className} row={row} />
-    ),
+    enableGrouping: true,
+    // Custom grouping value: selected vs unselected
+    getGroupingValue: (_row: TData) => {
+      // This will be handled dynamically by the table
+      return 'unselected'; // Default fallback
+    },
+    cell: (info) => {
+      const isGrouped = info.cell.getIsGrouped?.() ?? false;
+
+      if (isGrouped) {
+        const count = info.row.subRows?.length ?? 0;
+
+        // Count selected vs unselected in subRows
+        const selectedCount =
+          info.row.subRows?.filter((subRow: Row<TData>) => {
+            const rowSelection = info.table.getState().rowSelection;
+            return rowSelection[subRow.id];
+          }).length ?? 0;
+
+        const unselectedCount = count - selectedCount;
+
+        return (
+          <div className="flex items-center gap-2">
+            <span>📋</span>
+            <span className="font-medium">Selection Status</span>
+            <div className="flex gap-1">
+              <span className="rounded-full bg-green-100 px-2 py-0.5 text-green-700 text-xs">
+                ☑️ {selectedCount} selected
+              </span>
+              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-gray-700 text-xs">
+                ☐ {unselectedCount} unselected
+              </span>
+            </div>
+          </div>
+        );
+      }
+
+      return <SelectionCell className={className} row={info.row} />;
+    },
     enableHiding,
     enablePinning: false,
     enableSorting: false,

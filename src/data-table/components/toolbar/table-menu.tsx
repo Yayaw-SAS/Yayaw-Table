@@ -183,8 +183,6 @@ export function TableMenu({
         return t('menu.group');
       case 'sort':
         return t('menu.sort');
-      case 'subgroup':
-        return t('menu.subgroup');
       default:
         return t('menu.options');
     }

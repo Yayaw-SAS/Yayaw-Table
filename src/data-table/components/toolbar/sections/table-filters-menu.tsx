@@ -61,8 +61,8 @@ export function TableFiltersMenu({
   }, []);
 
   // Use advanced filters if enabled and we have the proper setup
-  const hasAdvancedConfig = advancedColumnsConfig && 
-    Object.keys(advancedColumnsConfig).length > 0;
+  const hasAdvancedConfig =
+    advancedColumnsConfig && Object.keys(advancedColumnsConfig).length > 0;
 
   if (DEBUG) {
     console.log('🔍 TableFiltersMenu Advanced Filters Check:', {
@@ -70,34 +70,28 @@ export function TableFiltersMenu({
       hasAdvancedActions: !!advancedActions,
       advancedColumnsConfig,
       hasAdvancedConfig,
-      'config keys': advancedColumnsConfig ? Object.keys(advancedColumnsConfig) : 'undefined'
+      'config keys': advancedColumnsConfig
+        ? Object.keys(advancedColumnsConfig)
+        : 'undefined',
     });
   }
 
-  if (
-    useAdvancedFilters &&
-    advancedActions &&
-    hasAdvancedConfig
-  ) {
+  if (useAdvancedFilters && advancedActions && hasAdvancedConfig) {
     return (
       <StackMenuView name="filters">
         <StackMenuContent className="p-0">
-          {/* Debug info */}
-          {DEBUG && (
-            <div className="m-3 rounded border border-red-300 p-2 text-xs">
-              <div>Debug Info (Advanced Mode):</div>
-              <div>• Columns: {columns.length}</div>
-              <div>• Advanced Filters: {advancedFilters.length}</div>
-              <div>
-                • Config keys: {Object.keys(advancedColumnsConfig).join(', ')}
-              </div>
-              <div>• Actions available: {!!advancedActions}</div>
-            </div>
-          )}
-
-          {/* Use the full Bazza UI Advanced Filter Panel */}
           <AdvancedFilterPanel
-            actions={advancedActions}
+            actions={{
+              ...advancedActions,
+              // Override addFilter to create inactive filters by default
+              addFilter: (filter) => {
+                console.log('🔧 Adding filter (inactive by default):', filter);
+                advancedActions.addFilter({
+                  ...filter,
+                  isActive: false, // Start inactive until user configures it
+                });
+              },
+            }}
             className="border-0"
             columnsConfig={advancedColumnsConfig}
             enableAnimations={true}

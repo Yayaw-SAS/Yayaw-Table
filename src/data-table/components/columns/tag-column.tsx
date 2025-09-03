@@ -73,9 +73,43 @@ export function createTagColumn<TData>({
 }: TagColumnOptions): ExtendedColumnDef<TData> {
   return {
     accessorFn: (row: TData) => (row as Record<string, unknown>)[id],
-    cell: ({ getValue }) => (
-      <TagCell className={className} value={getValue()} />
-    ),
+    enableGrouping: true,
+    cell: (info) => {
+      // Group header: toggle + label (pill) + count
+      if (info.cell.getIsGrouped?.()) {
+        const toggle = info.row.getToggleExpandedHandler();
+        const expanded = info.row.getIsExpanded();
+        const count = info.row.subRows?.length ?? 0;
+        const label = String(info.getValue() ?? '');
+        return (
+          <div className="flex items-center gap-2">
+            <button
+              aria-expanded={expanded}
+              aria-label={expanded ? 'Collapse group' : 'Expand group'}
+              className="text-muted-foreground hover:text-foreground"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggle();
+              }}
+              type="button"
+            >
+              <span aria-hidden>{expanded ? '▾' : '▸'}</span>
+            </button>
+            <span className="rounded-full bg-muted px-2 py-0.5 font-medium text-foreground text-xs">
+              {label}
+            </span>
+            <span className="text-muted-foreground text-xs">{count}</span>
+          </div>
+        );
+      }
+
+      // Minimal output for aggregate or placeholder cells
+      if (info.cell.getIsAggregated?.() || info.cell.getIsPlaceholder?.()) {
+        return <span className="text-muted-foreground"> </span>;
+      }
+
+      return <TagCell className={className} value={info.getValue()} />;
+    },
     enableColumnFilter,
     enableHiding,
     enableSorting,

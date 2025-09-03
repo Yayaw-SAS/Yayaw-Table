@@ -52,7 +52,13 @@ export function useTableUrlData<TData>({
   tableId,
 }: UseTableUrlDataOptions<TData>) {
   // Get URL state - include advanced filters!
-  const { filtersParam, advancedFiltersParam, orderParam, pagination, sortParam } = useTableUrlState({
+  const {
+    filtersParam,
+    advancedFiltersParam,
+    orderParam,
+    pagination,
+    sortParam,
+  } = useTableUrlState({
     tableId,
   });
 
@@ -68,7 +74,9 @@ export function useTableUrlData<TData>({
       // Ensure filtersParam is always an array
       const filters = Array.isArray(filtersParam) ? filtersParam : [];
       // Ensure advancedFiltersParam is always an array
-      const advancedFilters = Array.isArray(advancedFiltersParam) ? advancedFiltersParam : [];
+      const advancedFilters = Array.isArray(advancedFiltersParam)
+        ? advancedFiltersParam
+        : [];
 
       if (DEBUG) {
         console.log('🔧 Processing filters:', {
@@ -115,7 +123,9 @@ export function useTableUrlData<TData>({
       // Add advanced filters to the result
       const finalResult = {
         ...result,
-        advancedFilters: advancedFilters.filter((filter: any) => filter.isActive), // Only include active filters
+        advancedFilters: advancedFilters.filter(
+          (filter: any) => filter.isActive
+        ), // Only include active filters
       };
 
       if (DEBUG) {
@@ -125,16 +135,22 @@ export function useTableUrlData<TData>({
       return finalResult;
     },
     // Include advancedFiltersParam in query key
-    queryKey: ['tableProcessedFilters', tableId, filtersParam, advancedFiltersParam],
+    queryKey: [
+      'tableProcessedFilters',
+      tableId,
+      filtersParam,
+      advancedFiltersParam,
+    ],
     staleTime: 5000, // 5 seconds
   });
 
   // Extract complex filters, server filters, and advanced filters from the query result
-  const { complexFilters, serverFilters, advancedFilters } = processedFiltersQuery.data || {
-    complexFilters: [],
-    serverFilters: {},
-    advancedFilters: [],
-  };
+  const { complexFilters, serverFilters, advancedFilters } =
+    processedFiltersQuery.data || {
+      complexFilters: [],
+      serverFilters: {},
+      advancedFilters: [],
+    };
 
   // Modify the enabled condition to also run when processedFiltersQuery is pending but we have initial data
   // This prevents the infinite loading state when processedFiltersQuery is stuck in pending

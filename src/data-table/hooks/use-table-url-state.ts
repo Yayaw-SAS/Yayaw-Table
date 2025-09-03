@@ -188,16 +188,47 @@ export function useTableUrlState({
     arrayParser
   );
 
-  const [expandedParam, setExpandedParam] = useQueryState(
+  const [expandedParam, setExpandedParam] = useQueryState<object>(
     `${tableId}-expanded`,
-    {
-      defaultValue: '',
-      parse: (value) => (value ? JSON.parse(decodeURIComponent(value)) : {}),
-      serialize: (value) =>
-        Object.keys(value || {}).length
-          ? encodeURIComponent(JSON.stringify(value))
-          : '',
-    }
+    createParser({
+      parse: (value: string) => {
+        try {
+          if (!value) {
+            return {};
+          }
+          // Handle double-encoded values robustly
+          const safeDecode = (input: string): string => {
+            let out = input;
+            for (let i = 0; i < 2; i++) {
+              try {
+                const dec = decodeURIComponent(out);
+                if (dec === out) {
+                  break;
+                }
+                out = dec;
+              } catch {
+                break;
+              }
+            }
+            return out;
+          };
+          const decoded = safeDecode(value);
+          const parsed = JSON.parse(decoded);
+          if (typeof parsed === 'object' && parsed !== null) {
+            return parsed as object;
+          }
+          return {};
+        } catch {
+          return {};
+        }
+      },
+      serialize: (value: object) => {
+        const safe = value || {};
+        return Object.keys(safe).length
+          ? encodeURIComponent(JSON.stringify(safe))
+          : '';
+      },
+    })
   );
 
   const [groupingParam, setGroupingParam] = useQueryState(

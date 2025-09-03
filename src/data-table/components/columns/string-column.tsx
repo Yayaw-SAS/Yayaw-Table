@@ -71,7 +71,43 @@ export function createStringColumn<TData>({
 }: StringColumnProps): ExtendedColumnDef<TData> {
   return {
     accessorKey,
+    enableGrouping: true,
     cell: (info: CellContext<TData, unknown>) => {
+      // Debug removed to stop spam
+
+      // Fast path: grouped header with toggle
+      if (info.cell.getIsGrouped?.()) {
+        const toggle = info.row.getToggleExpandedHandler();
+        const expanded = info.row.getIsExpanded();
+        const count = info.row.subRows?.length ?? 0;
+        const label = String(info.getValue() ?? '');
+        return (
+          <button
+            className="flex w-full cursor-pointer items-center gap-2 border-0 bg-transparent p-0 text-left"
+            onClick={(e) => {
+              e.stopPropagation();
+              console.log('🔥 CLICK!', expanded, 'calling toggle...');
+              const result = toggle();
+              console.log('🔥 TOGGLE RESULT:', result);
+            }}
+            type="button"
+          >
+            <span aria-hidden className="text-muted-foreground">
+              {expanded ? '▾' : '▸'}
+            </span>
+            <span className="font-medium">{label}</span>
+            <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground text-xs">
+              {count}
+            </span>
+          </button>
+        );
+      }
+
+      // Minimal output for aggregate or placeholder cells
+      if (info.cell.getIsAggregated?.() || info.cell.getIsPlaceholder?.()) {
+        return <span className="text-muted-foreground"> </span>;
+      }
+
       const value = info.getValue();
       return (
         <StringCell

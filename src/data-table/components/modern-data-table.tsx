@@ -7,8 +7,10 @@
 import type { Cell, ColumnDef, Row } from '@tanstack/react-table';
 import { flexRender } from '@tanstack/react-table';
 import { useAtom } from 'jotai';
+// CheckSquare import removed - using ColumnIcon helper
 import type React from 'react';
-import { memo, useCallback, useEffect, useMemo, useRef } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
@@ -27,11 +29,13 @@ import { useColumnDnd } from '../components/columns/hooks/use-column-dnd';
 import { useColumnDragOverlay } from '../components/columns/hooks/use-column-drag-overlay';
 import { defaultBulkActions, useBulkActions } from '../hooks/use-bulk-actions';
 import { useDataTable } from '../hooks/use-data-table';
+import { useTableConfig } from '../hooks/use-table-config';
 import { useTableInstance } from '../hooks/use-table-instance';
+import { ColumnIcon } from '../utils/column-icons';
 import { BulkActionsMenu } from './bulk-actions/bulk-actions-menu';
 import { ColumnDragOverlay } from './columns';
-import { DataTablePagination } from './data-table-pagination';
 import { SortableHeader } from './index';
+import { SafePagination } from './safe-pagination';
 
 // Debug flag for logging
 const DEBUG = false;
@@ -197,6 +201,10 @@ function ModernDataTable<
   const _isVisibleRef = useRef(true);
   const tableRef = useRef<HTMLDivElement>(null);
   const _previousRowsRef = useRef<Row<TData>[]>([]);
+  const [hasMounted, setHasMounted] = useState(false);
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   // Use stable references for callbacks
   const stableOnRowSelectionChange = useRef(onRowSelectionChange);
@@ -219,6 +227,10 @@ function ModernDataTable<
     refetch,
     state,
   } = dataTableResult;
+
+  // Get table config to access column types
+  const { config: tableConfig } = useTableConfig(tableType || tableId);
+  // Debug removed to stop spam
 
   // Use fetched data from API like in production
   const data = fetchedData || [];
@@ -272,6 +284,19 @@ function ModernDataTable<
 
   const table = useTableInstance(tableInstanceConfig);
 
+  // Refetch data when grouping changes so server/client data adapts
+  const prevGroupingRef = useRef<string>(JSON.stringify(state.grouping || []));
+  useEffect(() => {
+    const current = JSON.stringify(state.grouping || []);
+    if (current === prevGroupingRef.current) {
+      return;
+    }
+    prevGroupingRef.current = current;
+    if (typeof refetch === 'function') {
+      refetch();
+    }
+  }, [state.grouping, refetch]);
+
   // Handle row selection changes
   useEffect(() => {
     if (onRowSelectionChange && table) {
@@ -286,8 +311,18 @@ function ModernDataTable<
 
   // Auto-expand all groups when a grouping is active so leaf rows are visible by default
   useEffect(() => {
-    if (table && Array.isArray(state.grouping) && state.grouping.length > 0) {
-      table.toggleAllRowsExpanded(true);
+    if (!table) {
+      return;
+    }
+    const hasGrouping =
+      Array.isArray(state.grouping) && state.grouping.length > 0;
+    if (hasGrouping) {
+      // Force expand all groups after a small delay to ensure table is ready
+      setTimeout(() => {
+        table.toggleAllRowsExpanded(true);
+      }, 100);
+    } else {
+      table.toggleAllRowsExpanded(false);
     }
   }, [table, state.grouping]);
 
@@ -388,10 +423,29 @@ function ModernDataTable<
     </div>
   );
 
+  // Local state to track expanded groups (bypass TanStack issues)
+  const [localExpanded, setLocalExpanded] = useState<Record<string, boolean>>(
+    {}
+  );
+
+  // Auto-expand all groups when grouping is active - DISABLED to prevent infinite loops
+  // TODO: Implement stable group expansion logic
+  // useEffect(() => {
+  //   const hasGrouping = Array.isArray(state.grouping) && state.grouping.length > 0;
+  //   if (!hasGrouping) {
+  //     setLocalExpanded({});
+  //     return;
+  //   }
+  //   // Expansion logic disabled to prevent loops
+  // }, [state.grouping]);
+
   // Optimize table body content with better memoization
   const tableBodyContent = useMemo(() => {
+    // Avoid hydration mismatch: only show skeletons after mount
     const showSkeleton =
-      isTableUpdatingRef.current || (isLoading && (!data || data.length === 0));
+      hasMounted &&
+      (isTableUpdatingRef.current ||
+        (isLoading && (!data || data.length === 0)));
 
     if (DEBUG) {
       console.log('🔍 TableBody render decision:', {
@@ -437,31 +491,280 @@ function ModernDataTable<
 
     const rows = table.getRowModel().rows as Row<TData>[];
 
-    const rowElements = rows.map((row) => {
-      const visibleCells = row.getVisibleCells();
-      const isGroupHeaderRow = visibleCells.some((cell) => cell.getIsGrouped());
+    // Helper to get selection counts
+    const getSelectionCounts = (row: Row<TData>) => {
+      const selectedCount =
+        row.subRows?.filter((subRow) => {
+          const selection = table.getState().rowSelection;
+          return selection[subRow.id];
+        }).length ?? 0;
+      const totalCount = row.subRows?.length ?? 0;
+      return { selectedCount, totalCount };
+    };
+
+    // Helper to get column icon from table config (single source of truth)
+    const getColumnIcon = (columnId: string) => {
+      const configColumn = tableConfig.columns.definitions.find(
+        (def) => def.id === columnId
+      );
+      const columnType = configColumn?.type || 'text';
+
+      // Debug removed
+
+      return <ColumnIcon columnType={columnType} />;
+    };
+
+    // Helper to get group display info
+    const getGroupDisplayInfo = (row: Row<TData>, level: number) => {
+      const groupingColumn = (state.grouping as string[])?.[level] || '';
+
+      if (groupingColumn === 'select') {
+        const { selectedCount, totalCount } = getSelectionCounts(row);
+        let groupValue = 'Not Selected';
+
+        if (selectedCount === totalCount && totalCount > 0) {
+          groupValue = 'All Selected';
+        } else if (selectedCount > 0) {
+          groupValue = 'Partially Selected';
+        }
+
+        return {
+          groupValue,
+          columnLabel: 'Selection',
+          groupingColumn,
+          icon: <ColumnIcon columnType="select" />,
+        };
+      }
+
+      const groupValue = String(
+        (row.original as Record<string, unknown>)[groupingColumn] || ''
+      );
+      return {
+        groupValue,
+        columnLabel: groupingColumn,
+        groupingColumn,
+        icon: getColumnIcon(groupingColumn),
+      };
+    };
+
+    const renderGroupedRow = (
+      row: Row<TData>,
+      visibleCells: ReturnType<Row<TData>['getVisibleCells']>,
+      level = 0
+    ) => {
+      // Calculate indentation based on nesting level
+      const indentPx = level * 24;
+
+      // Get group display info
+      const { groupValue, columnLabel, icon } = getGroupDisplayInfo(row, level);
+
       return (
         <TableRow
           className={cn(
             'data-[state=selected]:bg-muted/50',
             row.getIsSelected() && 'bg-muted/50',
-            isGroupHeaderRow &&
-              'border-border border-t bg-muted/20 first:border-t-0'
+            'border-border border-t bg-muted/20 first:border-t-0'
           )}
           data-state={row.getIsSelected() ? 'selected' : ''}
           key={row.id}
         >
-          {visibleCells.map((cell) => (
-            <TableCell key={cell.id}>
-              {flexRender(cell.column.columnDef.cell, cell.getContext())}
-            </TableCell>
-          ))}
+          <TableCell colSpan={visibleCells.length}>
+            <Button
+              className="flex h-auto w-full cursor-pointer items-center justify-start gap-2 p-2"
+              onClick={() => {
+                const isCurrentlyExpanded = localExpanded[row.id] ?? false;
+                setLocalExpanded((prev) => ({
+                  ...prev,
+                  [row.id]: !isCurrentlyExpanded,
+                }));
+              }}
+              style={{ paddingLeft: indentPx + 8 }}
+              variant="ghost"
+            >
+              <span aria-hidden className="text-muted-foreground">
+                {localExpanded[row.id] ? '▾' : '▸'}
+              </span>
+              {icon}
+              <span className="text-muted-foreground text-sm">
+                {columnLabel}:
+              </span>
+              <span className="font-medium">{groupValue}</span>
+              <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground text-xs">
+                {row.subRows?.length || 0}
+              </span>
+            </Button>
+          </TableCell>
         </TableRow>
       );
-    });
+    };
+
+    const renderRegularRow = (
+      row: Row<TData>,
+      visibleCells: ReturnType<Row<TData>['getVisibleCells']>
+    ) => (
+      <TableRow
+        className={cn(
+          'data-[state=selected]:bg-muted/50',
+          row.getIsSelected() && 'bg-muted/50'
+        )}
+        data-state={row.getIsSelected() ? 'selected' : ''}
+        key={row.id}
+      >
+        {visibleCells.map((cell) => (
+          <TableCell key={cell.id}>
+            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+          </TableCell>
+        ))}
+      </TableRow>
+    );
+
+    const rowElements: React.ReactNode[] = [];
+
+    // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Complex grouping logic with selection handling
+    const renderRowWithChildren = (row: Row<TData>, level = 0) => {
+      const visibleCells = row.getVisibleCells();
+      const isGroupHeaderRow = visibleCells.some((cell) => cell.getIsGrouped());
+
+      // Add the group header row
+      if (isGroupHeaderRow) {
+        // Special handling for selection grouping
+        const groupingColumn = (state.grouping as string[])?.[level] || '';
+
+        if (groupingColumn === 'select') {
+          // Separate selected and unselected rows
+          const selectedRows: Row<TData>[] = [];
+          const unselectedRows: Row<TData>[] = [];
+
+          for (const subRow of row.subRows || []) {
+            const selection = table.getState().rowSelection;
+            if (selection[subRow.id]) {
+              selectedRows.push(subRow);
+            } else {
+              unselectedRows.push(subRow);
+            }
+          }
+
+          // Render selected group if any
+          if (selectedRows.length > 0) {
+            const selectedGroupId = `${row.id}-selected`;
+            rowElements.push(
+              <TableRow className="border-t bg-muted/20" key={selectedGroupId}>
+                <TableCell colSpan={visibleCells.length}>
+                  <Button
+                    className="flex h-auto w-full cursor-pointer items-center justify-start gap-2 p-2"
+                    onClick={() => {
+                      const isExpanded =
+                        localExpanded[selectedGroupId] ?? false;
+                      setLocalExpanded((prev) => ({
+                        ...prev,
+                        [selectedGroupId]: !isExpanded,
+                      }));
+                    }}
+                    style={{ paddingLeft: level * 24 + 8 }}
+                    variant="ghost"
+                  >
+                    <span aria-hidden className="text-muted-foreground">
+                      {localExpanded[selectedGroupId] ? '▾' : '▸'}
+                    </span>
+                    <ColumnIcon
+                      className="text-green-600"
+                      columnType="select"
+                    />
+                    <span className="text-muted-foreground text-sm">
+                      Selection:
+                    </span>
+                    <span className="font-medium">☑️ Selected</span>
+                    <span className="rounded-full bg-green-100 px-2 py-0.5 text-green-700 text-xs">
+                      {selectedRows.length}
+                    </span>
+                  </Button>
+                </TableCell>
+              </TableRow>
+            );
+
+            if (localExpanded[selectedGroupId]) {
+              for (const subRow of selectedRows) {
+                rowElements.push(
+                  renderRegularRow(subRow, subRow.getVisibleCells())
+                );
+              }
+            }
+          }
+
+          // Render unselected group if any
+          if (unselectedRows.length > 0) {
+            const unselectedGroupId = `${row.id}-unselected`;
+            rowElements.push(
+              <TableRow
+                className="border-t bg-muted/20"
+                key={unselectedGroupId}
+              >
+                <TableCell colSpan={visibleCells.length}>
+                  <Button
+                    className="flex h-auto w-full cursor-pointer items-center justify-start gap-2 p-2"
+                    onClick={() => {
+                      const isExpanded =
+                        localExpanded[unselectedGroupId] ?? false;
+                      setLocalExpanded((prev) => ({
+                        ...prev,
+                        [unselectedGroupId]: !isExpanded,
+                      }));
+                    }}
+                    style={{ paddingLeft: level * 24 + 8 }}
+                    variant="ghost"
+                  >
+                    <span aria-hidden className="text-muted-foreground">
+                      {localExpanded[unselectedGroupId] ? '▾' : '▸'}
+                    </span>
+                    <span className="text-muted-foreground text-sm">
+                      Selection:
+                    </span>
+                    <span className="font-medium">☐ Unselected</span>
+                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-gray-700 text-xs">
+                      {unselectedRows.length}
+                    </span>
+                  </Button>
+                </TableCell>
+              </TableRow>
+            );
+
+            if (localExpanded[unselectedGroupId]) {
+              for (const subRow of unselectedRows) {
+                rowElements.push(
+                  renderRegularRow(subRow, subRow.getVisibleCells())
+                );
+              }
+            }
+          }
+        } else {
+          // Normal grouping (non-selection)
+          rowElements.push(renderGroupedRow(row, visibleCells, level));
+
+          if (localExpanded[row.id]) {
+            for (const subRow of row.subRows || []) {
+              renderRowWithChildren(subRow, level + 1);
+            }
+          }
+        }
+      } else {
+        rowElements.push(renderRegularRow(row, visibleCells));
+      }
+    };
+
+    for (const row of rows) {
+      renderRowWithChildren(row);
+    }
 
     return <TableBody>{rowElements}</TableBody>;
-  }, [isLoading, data, table]);
+  }, [
+    isLoading,
+    data,
+    table,
+    hasMounted,
+    localExpanded,
+    state.grouping,
+    tableConfig.columns.definitions,
+  ]);
 
   // Optimize table header with better memoization
   const tableHeader = useMemo(() => {
@@ -594,9 +897,7 @@ function ModernDataTable<
           </div>
 
           {/* Pagination is outside the table container to avoid focus issues */}
-          {enablePagination && (
-            <DataTablePagination table={table} tableId={tableId} />
-          )}
+          {enablePagination && <SafePagination table={table} />}
         </div>
 
         {/* Column drag overlay is rendered at the context level */}

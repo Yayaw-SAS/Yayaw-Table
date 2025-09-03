@@ -98,12 +98,14 @@ const DEFAULT_TABLE_CONFIG: TableCatalogueConfig = {
 export function useTableConfig(tableType: string) {
   // Get configuration and translation providers
   const getTableConfig = useProviderTableConfig();
+  // Removed useColumnsConfig since it's not exported
   const { t } = useTranslations();
   const baseTranslations = useTableTranslations();
 
   // Get table configuration with fallback to defaults
   const config = useMemo(() => {
-    const providerConfig = getTableConfig?.(tableType);
+    const providerConfig = getTableConfig?.(tableType) as any;
+    // columnsConfig removed since useColumnsConfig is not exported
 
     if (!providerConfig) {
       return DEFAULT_TABLE_CONFIG;
@@ -127,61 +129,11 @@ export function useTableConfig(tableType: string) {
         pageSizeOptions: providerConfig.pageSizeOptions,
       },
       columns: {
-        definitions: [
-          {
-            id: 'name',
-            type: 'text',
-            header: 'Product Name',
-            enableSorting: true,
-            enableColumnFilter: true,
-          },
-          {
-            id: 'brand',
-            type: 'text',
-            header: 'Brand',
-            enableSorting: true,
-            enableColumnFilter: true,
-          },
-          {
-            id: 'category',
-            type: 'tag',
-            header: 'Category',
-            enableSorting: true,
-            enableColumnFilter: true,
-          },
-          {
-            id: 'price',
-            type: 'number',
-            header: 'Price',
-            enableSorting: true,
-            enableColumnFilter: true,
-          },
-          {
-            id: 'status',
-            type: 'tag',
-            header: 'Status',
-            enableSorting: true,
-            enableColumnFilter: true,
-          },
-          {
-            id: 'createdAt',
-            type: 'date',
-            header: 'Created',
-            enableSorting: true,
-            enableColumnFilter: true,
-          },
-          {
-            id: 'isActive',
-            type: 'boolean',
-            header: 'Active',
-            enableSorting: true,
-            enableColumnFilter: true,
-          },
-        ],
-        order: [],
+        definitions: providerConfig?.columns?.definitions || [],
+        order: providerConfig?.columns?.order || [],
         sort: [],
-        visible: [],
-        mandatory: [],
+        visible: providerConfig?.columns?.visible || [],
+        mandatory: providerConfig?.columns?.mandatory || [],
       },
       translations: {
         namespace: 'common',

@@ -1,26 +1,46 @@
 import type { DataTableConfig } from '../../src/data-table/atoms/config-atoms';
 import { productActions } from './data';
 
+// Interface étendue pour inclure les colonnes
+interface ExtendedDataTableConfig extends DataTableConfig {
+  columns?: {
+    definitions?: Array<{
+      id: string;
+      type: string;
+      header: string;
+      enableSorting?: boolean;
+      enableColumnFilter?: boolean;
+    }>;
+    order?: string[];
+    visible?: string[];
+    mandatory?: string[];
+    sort?: Array<{ id: string; desc: boolean }>;
+  };
+  translations?: {
+    namespace: string;
+    keys: Record<string, string>;
+  };
+}
+
 // Configuration du tableau
 export const getTableConfig = (
   tableType: string
-): DataTableConfig | undefined => {
+): ExtendedDataTableConfig | undefined => {
   if (tableType === 'products') {
     return {
-      table: {
-        defaultPageSize: 10,
-        enableColumnDragDropByDefault: false,
-        enableColumnFilters: true,
-        enableMultiRowSelection: true,
-        enablePagination: true,
-        enableRowDragDrop: false,
-        enableRowSelection: true,
-        enableSorting: true,
-        manualFiltering: true, // Server-side filtering
-        manualPagination: true, // Server-side pagination
-        manualSorting: true, // Server-side sorting
-        pageSizeOptions: [5, 10, 20, 30, 50],
-      },
+      defaultPageSize: 10,
+      enableColumnDragDropByDefault: false,
+      enableColumnFilters: true,
+      enableMultiRowSelection: true,
+      enablePagination: true,
+      enableRowDragDrop: false,
+      enableRowSelection: true,
+      enableSorting: true,
+      enableGrouping: true,
+      manualFiltering: true, // Server-side filtering
+      manualPagination: true, // Server-side pagination
+      manualSorting: true, // Server-side sorting
+      pageSizeOptions: [5, 10, 20, 30, 50],
       columns: {
         definitions: [
           {

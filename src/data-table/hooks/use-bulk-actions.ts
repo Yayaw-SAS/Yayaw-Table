@@ -81,6 +81,7 @@ interface BulkActionsReturn<TData> {
   closeBulkActions: () => void;
 }
 
+const DEBUG = false;
 /**
  * Hook to manage bulk actions for data table
  *
@@ -113,7 +114,7 @@ export function useBulkActions<TData>({
     setShowBulkActions(selected.length >= minimumSelection);
 
     // Debug logs
-    if (process.env.NODE_ENV === 'development') {
+    if (DEBUG) {
       console.log('🔍 useBulkActions updateSelection:', {
         selectedCount: selected.length,
         showBulkActions: selected.length >= minimumSelection,
@@ -123,22 +124,15 @@ export function useBulkActions<TData>({
     }
   }, [table, minimumSelection]);
 
-  // Set up periodic update and initial call
+  // Set up initial update only - no periodic updates to prevent loops
   useEffect(() => {
     if (!table) {
       return;
     }
 
-    // Initial update
+    // Initial update only
     updateSelection();
-
-    // Set up periodic update to catch selection changes
-    const intervalId = setInterval(updateSelection, 16); // ~60fps for smooth updates
-
-    return () => {
-      clearInterval(intervalId);
-    };
-  }, [table, updateSelection]);
+  }, [table]); // Removed updateSelection dependency to prevent loops
 
   // Clear all selections
   const clearSelection = useCallback(() => {

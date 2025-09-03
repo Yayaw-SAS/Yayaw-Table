@@ -77,11 +77,42 @@ export function createNumberColumn<TData>({
 }: NumberColumnProps): ExtendedColumnDef<TData> {
   return {
     accessorKey,
+    enableGrouping: true,
     // Enable aggregation for grouped rows
     aggregationFn: 'sum',
     cell: (info: CellContext<TData, unknown>) => {
+      // Group header: toggle + label + count
+      if (info.cell.getIsGrouped?.()) {
+        const toggle = info.row.getToggleExpandedHandler();
+        const expanded = info.row.getIsExpanded();
+        const count = info.row.subRows?.length ?? 0;
+        const label = String(info.getValue() ?? '');
+        return (
+          <div className="flex items-center gap-2">
+            <button
+              aria-expanded={expanded}
+              aria-label={expanded ? 'Collapse group' : 'Expand group'}
+              className="text-muted-foreground hover:text-foreground"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggle();
+              }}
+              type="button"
+            >
+              <span aria-hidden>{expanded ? '▾' : '▸'}</span>
+            </button>
+            <span className="font-medium">{label}</span>
+            <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground text-xs">
+              {count}
+            </span>
+          </div>
+        );
+      }
+      // Minimal output for aggregate or placeholder cells
+      if (info.cell.getIsAggregated?.() || info.cell.getIsPlaceholder?.()) {
+        return <span className="text-muted-foreground"> </span>;
+      }
       const value = info.getValue();
-      // Cast to number or string to satisfy NumberCell props
       const numValue = value as number | string;
       return (
         <NumberCell

@@ -124,14 +124,12 @@ export function useTableInstance<TData>({
 
   // Get table state from URL parameters
   const {
-    expandedParam,
     filtersParam,
     groupingParam,
     orderParam,
     pagination,
     pinningParam,
     setColumnFiltersFromUI,
-    setExpandedFromUI,
     setGroupingFromUI,
     setOrderFromUI,
     setPaginationFromUI,
@@ -201,15 +199,12 @@ export function useTableInstance<TData>({
     [visibilityParam, setVisibilityFromUI]
   );
 
+  // Expanded: disable handler to avoid loops
   const handleExpandedChange = useCallback<OnChangeFn<ExpandedState>>(
-    (updaterOrValue) => {
-      const newValue =
-        typeof updaterOrValue === 'function'
-          ? updaterOrValue(expandedParam || {})
-          : updaterOrValue;
-      setExpandedFromUI(newValue as Record<string, boolean>);
+    (_updaterOrValue) => {
+      // No-op to avoid infinite loops
     },
-    [expandedParam, setExpandedFromUI]
+    []
   );
 
   const handleGroupingChange = useCallback<OnChangeFn<GroupingState>>(
@@ -451,7 +446,7 @@ export function useTableInstance<TData>({
         right: ['actions'],
       },
       columnVisibility: initialColumnVisibility as VisibilityState,
-      expanded: expandedParam || {},
+      expanded: {},
       grouping: Array.isArray(groupingParam) ? (groupingParam as string[]) : [],
       pagination,
       rowSelection:

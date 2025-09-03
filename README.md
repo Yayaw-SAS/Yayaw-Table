@@ -1,164 +1,144 @@
-# 📦 YaYaw Table
+# 🚀 YaYaw Table
 
-A flexible, powerful data table component library for React that lets you **define your own table configurations** instead of imposing predefined structures.
+**API ultra-simple pour créer des data tables React avec zéro boilerplate !**
 
-**No assumptions, full control.** Built on @tanstack/react-table with TypeScript.
+Une config, un composant, c'est tout. Built on @tanstack/react-table avec TypeScript.
 
 ## ✨ Features
 
-- 🎛️ **User-Defined Configurations**: You define the table structure, not the library
-- 🏗️ **7 Column Types**: text, number, tag, date, boolean, code, dynamic  
-- 🚀 **Built on TanStack**: Powered by @tanstack/react-table for performance
-- 📱 **Mobile Responsive**: Works great on all screen sizes
-- 🎨 **Tailwind CSS v4**: Beautiful styling with latest features
-- ⚡ **TypeScript**: Full type safety and excellent DX
+- ⚡ **API Ultra-Simple**: Une config, un composant, zéro providers
+- 🎛️ **5 Column Types**: text, tag, number, boolean, date avec icônes automatiques
+- 📊 **Grouping Natif**: Expand/collapse automatique par type de colonne
+- 🔄 **Pagination Sans Bugs**: Pas de Select problématique, stable
+- 🚀 **TanStack Table Pur**: Performance optimale
+- 📱 **Mobile Responsive**: Fonctionne sur tous les écrans
+- 🎨 **Tailwind CSS**: Styling moderne
+- ⚡ **TypeScript**: Type safety complète
+- 🔧 **SSR-Friendly**: Pas d'erreurs d'hydration
 
 ## 🚀 Quick Start
 
-1. **Install the library:**
+### 1. Installation
 ```bash
-bun add yayaw-table
-# or
 npm install yayaw-table
+# ou
+bun add yayaw-table
 ```
 
-2. **Define your table configuration:**
+### 2. Usage Ultra-Simple
 ```tsx
-import { DataTable, defineTableConfig } from 'yayaw-table'
+import { UltraSimpleTable } from 'yayaw-table';
 
-const productConfig = defineTableConfig({
-  id: "products",
-  columns: {
-    definitions: [
-      { id: "name", type: "text", header: "Product Name" },
-      { id: "price", type: "number", header: "Price" },
-      { id: "status", type: "tag", header: "Status" }
-    ],
-    order: ["select", "name", "price", "status", "actions"],
-    visible: ["select", "name", "price", "status", "actions"]
-  },
-  table: { defaultPageSize: 10 }
-})
+const config = {
+  id: 'products',
+  name: 'Products Management',
+  description: 'Table ultra-simple avec toutes les fonctionnalités',
+  
+  columns: [
+    { id: 'name', type: 'text', header: 'Product Name' },
+    { id: 'brand', type: 'tag', header: 'Brand' },
+    { id: 'price', type: 'number', header: 'Price' },
+    { id: 'status', type: 'tag', header: 'Status' },
+  ],
+  
+  fetchData: async (params) => {
+    const response = await fetch('/api/products', {
+      method: 'POST',
+      body: JSON.stringify(params)
+    });
+    const result = await response.json();
+    
+    return {
+      data: result.data,
+      pageCount: result.pageCount,
+      totalCount: result.totalCount,
+    };
+  }
+};
+
+export const MyTable = () => (
+  <UltraSimpleTable config={config} />
+);
 ```
 
-3. **Use with your data:**
+**C'est tout !** 🎉
+
+## ✅ Avantages vs autres librairies
+
+| Feature | YaYaw Table | Autres |
+|---------|-------------|---------|
+| **Setup** | 1 config | 5-10 fichiers |
+| **Providers** | 0 | 2-3 providers |
+| **Boilerplate** | 5 lignes | 50-100 lignes |
+| **Boucles infinies** | ❌ Jamais | ✅ Souvent |
+| **Types** | ✅ Auto | ⚠️ Manuel |
+| **Grouping** | ✅ Natif | ⚠️ Complexe |
+| **SSR** | ✅ Stable | ⚠️ Problématique |
+
+## 🔧 Fonctionnalités
+
+### Grouping Automatique
+- Boutons "Group by Brand", "Group by Category" générés automatiquement
+- Expand/collapse des groupes avec compteurs
+- Icônes par type de colonne dans les headers
+
+### Types de Colonnes
 ```tsx
-<DataTable 
-  tableType="products"
-  config={productConfig}
-  data={products}
-/>
+{ id: 'name', type: 'text', header: 'Name' }        // 📝 Icône Text
+{ id: 'brand', type: 'tag', header: 'Brand' }       // 🏷️ Icône Tag  
+{ id: 'price', type: 'number', header: 'Price' }    // # Icône Hash
+{ id: 'active', type: 'boolean', header: 'Active' } // ⚡ Icône Toggle
+{ id: 'date', type: 'date', header: 'Created' }     // 📅 Icône Calendar
 ```
 
-## 📱 Unified Development Experience
+### Pagination Stable
+- Navigation Previous/Next sans bugs
+- Compteurs automatiques ("Showing 1 to 10 of 100")
+- **Pas de Select Radix problématique**
 
-The project is now fully unified with everything in the root:
+### Performance
+- TanStack Table pur - 0 abstraction inutile
+- Pas de providers complexes
+- SSR-friendly sans erreurs d'hydration
 
-```bash
-# Start the Next.js app (homepage + docs + examples)
-bun run dev
+## 📖 Documentation
+
+- [Installation](./content/docs/installation.mdx)
+- [Ultra Simple API](./content/docs/ultra-simple-api.mdx)
+- [Exemple complet](./app/example/page.tsx)
+
+## 🎯 Migration depuis l'ancienne API
+
+### ❌ Avant (95 lignes de boilerplate)
+```tsx
+<TableProvider getTableConfig={...} getColumnsConfig={...}>
+  <DataTableUIProvider columnsConfig={...} tableConfig={...}>
+    <DataTable tableType="products" columnTypeMapping={{...}} />
+  </DataTableUIProvider>
+</TableProvider>
 ```
 
-This serves:
-- **Homepage** (`/`) - Overview and quick start
-- **Documentation** (`/docs`) - Complete API reference with Fumadocs
-- **Live Examples** (`/example`) - Interactive playground (coming soon)
-
-## 🏗️ Development
-
-```bash
-# Install dependencies
-bun install
-
-# Start the unified Next.js app
-bun run dev
-
-# Build the library (one-time)
-bun run build
-
-# Build the library (watch mode for development)
-bun run build:watch
-
-# Build the app for production
-bun run build:app
-
-# Start production app
-bun run start
+### ✅ Après (5 lignes)
+```tsx
+<UltraSimpleTable config={config} />
 ```
 
-**Development Workflow:**
-- **Full-stack development**: `bun run dev` → All-in-one Next.js app
-- **Library development**: `bun run build:watch` (in separate terminal)
+**95% moins de code !**
 
-## 📁 Unified Project Structure
+## 🔗 Exemples
 
-```
-yayaw-table/
-├── src/                    # Library source code
-│   ├── data-table/        # Core DataTable components
-│   ├── columns/           # Column type definitions
-│   └── index.ts           # Public API
-├── app/                   # Next.js App Router
-│   ├── page.tsx          # Homepage
-│   ├── docs/             # Documentation routes
-│   ├── example/          # Live examples
-│   └── source.ts         # Fumadocs source
-├── content/              # MDX documentation content
-│   └── docs/             # Documentation files
-├── dist/                 # Built library output
-├── .source/              # Generated Fumadocs source
-├── tailwind.config.ts    # TailwindCSS v4 config
-├── next.config.mjs       # Next.js configuration
-└── package.json          # Unified dependencies
-```
-
-## 🎯 Architecture Benefits
-
-### **Before**: 3 Separate Projects
-- ❌ Library build watcher
-- ❌ Docs app on port 3002  
-- ❌ Example app on port 3001
-
-### **After**: Unified Monolith
-- ✅ **One command**: `bun run dev`
-- ✅ **One codebase**: Everything in root
-- ✅ **One deployment**: Library + docs + examples
-- ✅ **TailwindCSS v4**: Latest features
-- ✅ **TypeScript**: Shared types and config
-
-## 🎯 Philosophy
-
-YaYaw Table is built on the principle that **users should define their own data structures**, not adapt to predefined ones. Unlike traditional table libraries that force you to fit your data into their schemas, YaYaw Table provides the tools and flexibility for you to create exactly what you need.
-
-## 📚 Key Concepts
-
-### User-Defined Configurations
-- Create configurations with `defineTableConfig()`
-- Define your columns, types, and behavior
-- No built-in assumptions about your data
-
-### Column Types
-- **text**: Simple text display and editing
-- **number**: Numeric values with formatting
-- **tag**: Colored tags/badges for status, categories
-- **date**: Date formatting and time-relative display  
-- **boolean**: Checkbox or toggle display
-- **code**: Syntax-highlighted code blocks
-- **dynamic**: Runtime-determined column types
-
-### Flexible Architecture
-- Peer dependencies model - bring your own versions
-- Optional integrations (jotai, react-query, dnd-kit, etc.)
-- TypeScript-first with full type safety
+- **Live Demo**: [http://localhost:3001/example](http://localhost:3001/example)
+- **Code Source**: [./app/example/page.tsx](./app/example/page.tsx)
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+```bash
+git clone https://github.com/your-org/yayaw-table
+cd yayaw-table
+bun install
+bun run dev
+```
 
-## 📄 License
+## 📝 License
 
-MIT License - see [LICENSE](LICENSE) file for details.
-
----
-
-Built with ❤️ by [Yannis](https://github.com/your-username)
+MIT

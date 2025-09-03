@@ -11,15 +11,27 @@ import {
   ChevronsLeft,
   ChevronsRight,
 } from 'lucide-react';
-import { useCallback } from 'react';
+import dynamic from 'next/dynamic';
+import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
-  Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+
+// Client-only Select to prevent hydration/infinite loop issues
+const Select = dynamic(
+  () => import('@/components/ui/select').then((mod) => mod.Select),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-8 w-[70px] animate-pulse rounded bg-muted" />
+    ),
+  }
+);
+
 import { cn } from '@/lib/utils';
 
 import { useTableTranslations } from '../hooks';
@@ -58,6 +70,11 @@ export function DataTablePagination<TData>({
 }: DataTablePaginationProps<TData>) {
   // Get translations
   const translations = useTableTranslations();
+  // Avoid hydration/compose-ref loops from Radix Select on first render
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Get pagination state directly from table
   const { pageIndex, pageSize } = table.getState().pagination;
@@ -73,11 +90,50 @@ export function DataTablePagination<TData>({
   // Handle page size change
   const handlePageSizeChange = useCallback(
     (value: string) => {
-      console.log('🔧 Changing page size to:', value);
-      table.setPageSize(Number(value));
+      const next = Number(value);
+      if (Number.isNaN(next)) {
+        return;
+      }
+      // Guard to avoid update loops if Radix re-fires onValueChange with same value
+      const current = table.getState().pagination.pageSize;
+      if (next === current) {
+        return;
+      }
+      table.setPageSize(next);
     },
     [table]
   );
+
+  // During SSR/first paint, render a simple static pagination to avoid Radix hydration refs
+  if (!mounted) {
+    return (
+      <div
+        className={cn(
+          'flex flex-col items-center justify-between gap-4 py-4 sm:flex-row',
+          className
+        )}
+      >
+        <div className="flex-1 text-muted-foreground text-sm">
+          {startRow}-{endRow} {translations.of}{' '}
+          {rowCount || table.getRowModel().rows.length}
+        </div>
+        <div className="flex items-center gap-2">
+          <p className="font-medium text-sm">{translations.rowsPerPage}</p>
+          <div className="h-8 w-[70px] rounded border px-2 py-1 text-center text-sm">
+            {pageSize}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 opacity-60">
+          <span className="text-sm">
+            {translations.format('pageXofY', {
+              page: pageIndex + 1,
+              total: pageCount || 1,
+            })}
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -95,21 +151,26 @@ export function DataTablePagination<TData>({
       {/* Page size selector */}
       <div className="flex items-center gap-2">
         <p className="font-medium text-sm">{translations.rowsPerPage}</p>
-        <Select
-          onValueChange={handlePageSizeChange}
-          value={pageSize.toString()}
-        >
-          <SelectTrigger className="h-8 w-[70px]">
-            <SelectValue placeholder={pageSize} />
-          </SelectTrigger>
-          <SelectContent>
-            {[10, 20, 30, 40, 50].map((size) => (
-              <SelectItem key={size} value={size.toString()}>
-                {size}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {mounted ? (
+          <Select
+            defaultValue={pageSize.toString()}
+            key={`ps-${pageSize}-mounted`}
+            onValueChange={handlePageSizeChange}
+          >
+            <SelectTrigger className="h-8 w-[70px]">
+              <SelectValue placeholder={pageSize} />
+            </SelectTrigger>
+            <SelectContent>
+              {[10, 20, 30, 40, 50].map((size) => (
+                <SelectItem key={size} value={size.toString()}>
+                  {size}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <div className="h-8 w-[70px] animate-pulse rounded bg-muted" />
+        )}
       </div>
 
       {/* Page navigation */}
