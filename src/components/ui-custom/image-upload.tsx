@@ -110,7 +110,7 @@ export function ImageUpload({
               transition={{ duration: 0.3, ease: 'easeOut' }}
             >
               <div className="group relative inline-block">
-                <button
+                <Button
                   aria-label="Upload image"
                   className={cn(
                     width,
@@ -121,6 +121,7 @@ export function ImageUpload({
                   )}
                   onClick={handleImageClick}
                   type="button"
+                  variant="ghost"
                 >
                   {image ? (
                     isSvg ? (
@@ -150,7 +151,7 @@ export function ImageUpload({
                   <div className="absolute inset-0 flex items-center justify-center bg-background/70 opacity-0 transition-opacity duration-300 hover:opacity-100">
                     <Camera className="h-8 w-8 text-foreground" />
                   </div>
-                </button>
+                </Button>
                 {image && (
                   <Button
                     aria-label="Remove image"

@@ -147,7 +147,8 @@ export function createDateColumn<TData>({
       }
 
       // Aggregated cells for this column: show nothing (label is on grouped cell)
-      if (isAggregated || isPlaceholder) {
+      // For placeholder cells on leaf rows, render the actual value so subgroups stay aligned.
+      if (isAggregated) {
         return <span className="text-muted-foreground"> </span>;
       }
 

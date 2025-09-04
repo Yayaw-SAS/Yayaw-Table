@@ -8,6 +8,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { type LucideIcon, Tag } from 'lucide-react';
 
 import { TagCell } from '../cells/tag-cell';
+import { Button } from '@/components/ui/button';
 
 /**
  * Options for creating a tag column
@@ -83,18 +84,20 @@ export function createTagColumn<TData>({
         const label = String(info.getValue() ?? '');
         return (
           <div className="flex items-center gap-2">
-            <button
+            <Button
               aria-expanded={expanded}
               aria-label={expanded ? 'Collapse group' : 'Expand group'}
-              className="text-muted-foreground hover:text-foreground"
+              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
               onClick={(e) => {
                 e.stopPropagation();
                 toggle();
               }}
+              size="icon"
               type="button"
+              variant="ghost"
             >
               <span aria-hidden>{expanded ? '▾' : '▸'}</span>
-            </button>
+            </Button>
             <span className="rounded-full bg-muted px-2 py-0.5 font-medium text-foreground text-xs">
               {label}
             </span>
@@ -103,8 +106,9 @@ export function createTagColumn<TData>({
         );
       }
 
-      // Minimal output for aggregate or placeholder cells
-      if (info.cell.getIsAggregated?.() || info.cell.getIsPlaceholder?.()) {
+      // Aggregated cells: keep minimal. For placeholder cells on leaf rows,
+      // render the actual value to preserve alignment and visibility in subgroups.
+      if (info.cell.getIsAggregated?.()) {
         return <span className="text-muted-foreground"> </span>;
       }
 

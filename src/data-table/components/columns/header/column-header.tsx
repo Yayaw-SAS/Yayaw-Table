@@ -7,6 +7,7 @@ import { useAtomValue } from 'jotai';
 import { ArrowDown, ArrowUp, GripVertical } from 'lucide-react';
 import { memo, useMemo } from 'react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 import { columnDragEnabledAtom } from '../../../atoms/table-atoms';
 
@@ -145,16 +146,18 @@ function DataTableColumnHeaderBase<TData, TValue>({
                   className="ml-2 cursor-grab touch-none active:cursor-grabbing"
                   {...listeners}
                 >
-                  <button
+                  <Button
                     aria-label="Drag to reorder column"
-                    className="inline-flex size-7 items-center justify-center rounded-md border-0 bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    className="size-7 border-0 bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                     type="button"
+                    size="icon"
+                    variant="ghost"
                   >
                     <GripVertical
                       className="h-4 w-4 opacity-60 hover:opacity-100"
                       strokeWidth={2}
                     />
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>
@@ -166,16 +169,18 @@ function DataTableColumnHeaderBase<TData, TValue>({
                   className="ml-auto cursor-grab touch-none active:cursor-grabbing"
                   {...listeners}
                 >
-                  <button
+                  <Button
                     aria-label="Drag to reorder column"
-                    className="inline-flex size-7 items-center justify-center rounded-md border-0 bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    className="size-7 border-0 bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                     type="button"
+                    size="icon"
+                    variant="ghost"
                   >
                     <GripVertical
                       className="h-4 w-4 opacity-60 hover:opacity-100"
                       strokeWidth={2}
                     />
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>

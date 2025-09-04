@@ -1,4 +1,4 @@
-import type { Product } from './types';
+import type { Product } from './setup/types';
 
 const DEBUG = process.env.NODE_ENV === 'development';
 // Sample data for products - Mutable array for testing CRUD operations

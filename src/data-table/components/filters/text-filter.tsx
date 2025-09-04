@@ -19,6 +19,7 @@ import {
   DEFAULT_OPERATORS,
   FILTER_OPERATORS_LABELS,
 } from '../../types/filter-types';
+import { useTranslations } from '../../providers/table-provider';
 
 export interface TextFilterProps {
   /** Current filter value */
@@ -58,6 +59,7 @@ export function TextFilter({
   showOperator = true,
   debounceMs = 300,
 }: TextFilterProps) {
+  const { t } = useTranslations();
   const [internalValue, setInternalValue] = useState(value);
 
   // Sync internal value with prop
@@ -108,7 +110,7 @@ export function TextFilter({
             value={operator}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select operator..." />
+              <SelectValue placeholder={t('filters.select_operator')} />
             </SelectTrigger>
             <SelectContent>
               {operators.map((op) => (
@@ -136,8 +138,9 @@ export function TextFilter({
         {/* Info text for operators that don't need values */}
         {!needsValue && (
           <div className="text-muted-foreground text-sm italic">
-            This filter will show rows where the field{' '}
-            {operator === 'isEmpty' ? 'is empty' : 'is not empty'}.
+            {operator === 'isEmpty'
+              ? t('filters.operators.empty')
+              : t('filters.operators.not_empty')}
           </div>
         )}
       </div>

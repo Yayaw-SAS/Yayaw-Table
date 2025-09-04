@@ -1,6 +1,6 @@
 import type { FieldValues } from 'react-hook-form';
-import type { FormConfig } from '../../src/data-table/components/forms/types';
-import { createBulkEditFormConfig } from '../../src/data-table/hooks/use-bulk-edit';
+import type { FormConfig } from '../../../src/data-table/components/forms/types';
+import { createBulkEditFormConfig } from '../../../src/data-table/hooks/use-bulk-edit';
 import { ProductSchema } from './types';
 
 // Configuration de base pour les produits

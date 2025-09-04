@@ -185,6 +185,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
         columnFilters: _paramsColumnFilters,
         complexFilters: _complexFilters,
         advancedFilters: paramsAdvancedFilters,
+        globalSearch: paramsGlobalSearch,
         pagination: _paramsPagination,
         sorting: paramsSorting,
       } = params;
@@ -212,6 +213,11 @@ export function useDataTable<TData extends Record<string, unknown>>(
           orderBy,
           paramsAdvancedFilters
         );
+
+        // Attach global search if present (server-side global filter)
+        if (paramsGlobalSearch && typeof paramsGlobalSearch === 'string') {
+          (requestParams as Record<string, unknown>).search = paramsGlobalSearch;
+        }
 
         // Execute the request - safely handle the list action
         if (actions.list) {

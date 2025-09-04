@@ -4,7 +4,6 @@ import type { TableState } from '@tanstack/react-table';
 import {
   ArrowUpDown,
   Layers,
-  Layers3,
   List,
   ListFilter,
   SlidersHorizontal,
@@ -174,8 +173,11 @@ export function TableMenu({
     );
   }
 
-  const activeFiltersCount = state.columnFilters.length;
-  const activeGrouping = finalGrouping[0];
+  // Compute active filters count depending on filter mode
+  const activeFiltersCount = useAdvancedFilters
+    ? (advancedFiltersConfig?.filters || []).filter((f) => f.isActive).length
+    : state.columnFilters.length;
+  const activeGroupingCount = finalGrouping.length;
   const activeSortCount = state.sorting.length;
 
   // Navigation titles for different views
@@ -231,6 +233,13 @@ export function TableMenu({
                 count: displayVisibleCount,
               })}
               icon={<List className="h-4 w-4" />}
+              endIcon={
+                displayVisibleCount > 0 ? (
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs">
+                    {displayVisibleCount}
+                  </span>
+                ) : undefined
+              }
               navigateTitle={getNavigationTitle('columns')}
               navigateTo="columns"
             >
@@ -240,7 +249,7 @@ export function TableMenu({
             <StackMenuItem
               description={
                 activeFiltersCount > 0
-                  ? `${activeFiltersCount} active`
+                  ? t('filters.active_count', { count: activeFiltersCount })
                   : undefined
               }
               endIcon={
@@ -259,7 +268,9 @@ export function TableMenu({
 
             <StackMenuItem
               description={
-                activeSortCount > 0 ? `${activeSortCount} active` : undefined
+                activeSortCount > 0
+                  ? t('filters.active_count', { count: activeSortCount })
+                  : undefined
               }
               endIcon={
                 activeSortCount > 0 ? (
@@ -276,20 +287,23 @@ export function TableMenu({
             </StackMenuItem>
 
             <StackMenuItem
-              description={activeGrouping}
+              description={
+                activeGroupingCount > 0
+                  ? t('menu.active_groups', { count: activeGroupingCount })
+                  : undefined
+              }
+              endIcon={
+                activeGroupingCount > 0 ? (
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs">
+                    {activeGroupingCount}
+                  </span>
+                ) : undefined
+              }
               icon={<Layers className="h-4 w-4" />}
               navigateTitle={getNavigationTitle('group')}
               navigateTo="group"
             >
               {t('menu.group')}
-            </StackMenuItem>
-
-            <StackMenuItem
-              icon={<Layers3 className="h-4 w-4" />}
-              navigateTitle={getNavigationTitle('subgroup')}
-              navigateTo="subgroup"
-            >
-              {t('menu.subgroup')}
             </StackMenuItem>
           </StackMenuSection>
         </StackMenuContent>
@@ -362,15 +376,7 @@ export function TableMenu({
         />
       </StackMenuView>
 
-      <StackMenuView name="subgroup">
-        <TableGroupingMenu
-          columns={columns}
-          grouping={finalGrouping}
-          invalidateTable={invalidateTable}
-          setGrouping={finalSetGrouping}
-          tableId={tableId}
-        />
-      </StackMenuView>
+      {/* Subgroup view removed - grouping handled directly in group view */}
     </StackMenu>
   );
 }

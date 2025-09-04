@@ -311,7 +311,7 @@ export function EnhancedFilterChip({
     >
       <Popover onOpenChange={handlePopoverChange} open={popoverOpen}>
         <PopoverTrigger asChild>
-          <button
+          <Button
             aria-label={`Filter: ${columnLabel} ${getOperatorText(filter.operator, filter.type)} ${displayValue}`}
             className={cn(
               'inline-flex items-center rounded-full border transition-all duration-200',
@@ -332,6 +332,7 @@ export function EnhancedFilterChip({
               }
             }}
             type="button"
+            variant="ghost"
           >
             {/* Type Icon */}
             {showTypeIcon && (
@@ -384,7 +385,7 @@ export function EnhancedFilterChip({
                 colorScheme.icon
               )}
             />
-          </button>
+          </Button>
         </PopoverTrigger>
 
         <PopoverContent

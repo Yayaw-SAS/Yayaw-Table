@@ -20,6 +20,7 @@ import {
   DEFAULT_OPERATORS,
   FILTER_OPERATORS_LABELS,
 } from '../../types/filter-types';
+import { useTranslations } from '../../providers/table-provider';
 
 export interface NumberFilterProps {
   /** Current filter value - single number or [min, max] for between */
@@ -68,6 +69,7 @@ export function NumberFilter({
   showOperator = true,
   showSlider = true,
 }: NumberFilterProps) {
+  const { t } = useTranslations();
   const [internalValue, setInternalValue] = useState(value);
 
   // Sync internal value with prop
@@ -170,7 +172,7 @@ export function NumberFilter({
             value={operator}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select operator..." />
+              <SelectValue placeholder={t('filters.select_operator')} />
             </SelectTrigger>
             <SelectContent>
               {operators.map((op) => (
@@ -195,7 +197,7 @@ export function NumberFilter({
                     max={max}
                     min={min}
                     onChange={(e) => handleRangeMinChange(e.target.value)}
-                    placeholder="Min"
+                    placeholder={t('filters.value')}
                     step={step}
                     type="number"
                     value={currentRangeValue[0]}
@@ -207,7 +209,7 @@ export function NumberFilter({
                     max={max}
                     min={min}
                     onChange={(e) => handleRangeMaxChange(e.target.value)}
-                    placeholder="Max"
+                    placeholder={t('filters.value_to')}
                     step={step}
                     type="number"
                     value={currentRangeValue[1]}
@@ -274,8 +276,9 @@ export function NumberFilter({
         {/* Info text for operators that don't need values */}
         {!needsValue && (
           <div className="text-muted-foreground text-sm italic">
-            This filter will show rows where the field{' '}
-            {operator === 'isEmpty' ? 'is empty' : 'is not empty'}.
+            {operator === 'isEmpty'
+              ? t('filters.operators.empty')
+              : t('filters.operators.not_empty')}
           </div>
         )}
       </div>

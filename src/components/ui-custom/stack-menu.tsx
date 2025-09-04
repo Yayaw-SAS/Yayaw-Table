@@ -58,26 +58,43 @@ const useStackMenu = () => {
   return useContext(StackMenuContext);
 };
 
-const stackMenuVariants = cva(
-  'flex flex-col rounded-lg border bg-background shadow-lg',
-  {
-    variants: {
-      variant: {
-        default: 'border-border bg-popover',
-        ghost: 'border-muted bg-background',
-      },
-      size: {
-        default: 'max-h-[500px] w-[320px]',
-        sm: 'max-h-[400px] w-[280px]',
-        lg: 'max-h-[600px] w-[400px]',
-      },
+const stackMenuVariants = cva('flex flex-col', {
+  variants: {
+    // When framed=true, the menu renders its own rounded/bordered frame.
+    // When framed=false (inside a dropdown), we avoid duplicate borders/radius.
+    framed: {
+      true: 'rounded-lg border bg-background shadow-lg',
+      false: '',
     },
-    defaultVariants: {
+    variant: {
+      // Variant classes are attached via compoundVariants only when framed=true
+      default: '',
+      ghost: '',
+    },
+    size: {
+      default: 'max-h-[500px] w-[320px]',
+      sm: 'max-h-[400px] w-[280px]',
+      lg: 'max-h-[600px] w-[400px]',
+    },
+  },
+  compoundVariants: [
+    {
+      framed: true,
       variant: 'default',
-      size: 'default',
+      class: 'border-border bg-popover',
     },
-  }
-);
+    {
+      framed: true,
+      variant: 'ghost',
+      class: 'border-muted bg-background',
+    },
+  ],
+  defaultVariants: {
+    framed: true,
+    variant: 'default',
+    size: 'default',
+  },
+});
 
 interface StackMenuProps
   extends HTMLAttributes<HTMLDivElement>,
@@ -197,7 +214,10 @@ const StackMenu = forwardRef<HTMLDivElement, StackMenuProps>(
         }}
       >
         <div
-          className={cn(stackMenuVariants({ variant, size }), className)}
+          className={cn(
+            stackMenuVariants({ variant, size, framed: !asDropdown }),
+            className
+          )}
           ref={ref}
           {...props}
         >
@@ -373,12 +393,16 @@ const StackMenuItem = forwardRef<HTMLButtonElement, StackMenuItemProps>(
             </div>
           )}
         </div>
-        {navigateTo && !endIcon && (
-          <ChevronRight className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
-        )}
-        {endIcon && (
-          <div className="flex-shrink-0 text-muted-foreground">{endIcon}</div>
-        )}
+        {/* Trailing slot with fixed width to avoid layout shift when a badge appears */}
+        <div className="ml-1 flex w-8 flex-shrink-0 items-center justify-end">
+          {endIcon ? (
+            <div className="text-muted-foreground">{endIcon}</div>
+          ) : (
+            navigateTo && (
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            )
+          )}
+        </div>
       </Button>
     );
   }

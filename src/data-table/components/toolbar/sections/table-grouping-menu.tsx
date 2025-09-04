@@ -38,7 +38,10 @@ export function TableGroupingMenu({
 
   // Get groupable columns with types from config
   const groupableColumns = useMemo(() => {
-    const filteredColumns = columns.filter((col) => col.canGroup !== false);
+    // Exclude system/action columns and those that explicitly disable grouping
+    const filteredColumns = columns.filter(
+      (col) => col.id !== 'actions' && col.canGroup !== false
+    );
 
     // Map each column to include its type from the config
     return filteredColumns.map((col) => {

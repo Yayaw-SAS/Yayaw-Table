@@ -8,6 +8,7 @@ import type { CellContext } from '@tanstack/react-table';
 import { ToggleRight } from 'lucide-react';
 
 import { BooleanCell } from '../cells/boolean-cell';
+import { Button } from '@/components/ui/button';
 
 // GroupHeader removed (inlined) to reduce complexity and avoid unused symbol
 
@@ -63,18 +64,20 @@ export function createBooleanColumn<TData>({
         const label = String(info.getValue() ?? '');
         return (
           <div className="flex items-center gap-2">
-            <button
+            <Button
               aria-expanded={expanded}
               aria-label={expanded ? 'Collapse group' : 'Expand group'}
-              className="text-muted-foreground hover:text-foreground"
+              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
               onClick={(e) => {
                 e.stopPropagation();
                 toggle();
               }}
+              size="icon"
               type="button"
+              variant="ghost"
             >
               <span aria-hidden>{expanded ? '▾' : '▸'}</span>
-            </button>
+            </Button>
             <span className="font-medium">{label}</span>
             <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground text-xs">
               {count}
@@ -82,7 +85,9 @@ export function createBooleanColumn<TData>({
           </div>
         );
       }
-      if (info.cell.getIsAggregated?.() || info.cell.getIsPlaceholder?.()) {
+      // Aggregated cells: keep minimal. For placeholder cells (grouped column on leaf rows),
+      // render the actual boolean value to keep subgroup rows aligned.
+      if (info.cell.getIsAggregated?.()) {
         return <span className="text-muted-foreground"> </span>;
       }
       const v = info.getValue();

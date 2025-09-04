@@ -8,6 +8,7 @@ import type { CellContext, ColumnDef } from '@tanstack/react-table';
 import { Asterisk, type LucideIcon } from 'lucide-react';
 
 import { StringCell } from '../cells/string-cell';
+import { Button } from '@/components/ui/button';
 
 /**
  * Custom properties for our column definitions
@@ -82,7 +83,7 @@ export function createStringColumn<TData>({
         const count = info.row.subRows?.length ?? 0;
         const label = String(info.getValue() ?? '');
         return (
-          <button
+          <Button
             className="flex w-full cursor-pointer items-center gap-2 border-0 bg-transparent p-0 text-left"
             onClick={(e) => {
               e.stopPropagation();
@@ -91,6 +92,7 @@ export function createStringColumn<TData>({
               console.log('🔥 TOGGLE RESULT:', result);
             }}
             type="button"
+            variant="ghost"
           >
             <span aria-hidden className="text-muted-foreground">
               {expanded ? '▾' : '▸'}
@@ -99,12 +101,13 @@ export function createStringColumn<TData>({
             <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground text-xs">
               {count}
             </span>
-          </button>
+          </Button>
         );
       }
 
-      // Minimal output for aggregate or placeholder cells
-      if (info.cell.getIsAggregated?.() || info.cell.getIsPlaceholder?.()) {
+      // Minimal output for aggregate cells. For placeholder cells (grouped column on leaf rows),
+      // render the actual value so grouped layouts keep their visible data and alignment.
+      if (info.cell.getIsAggregated?.()) {
         return <span className="text-muted-foreground"> </span>;
       }
 

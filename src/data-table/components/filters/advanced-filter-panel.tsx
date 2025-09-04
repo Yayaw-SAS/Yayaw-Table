@@ -208,21 +208,23 @@ function FilterChip({
         )}
       >
       {/* Toggle active/inactive */}
-      <button
+      <Button
         className={cn(
-          'flex h-3 w-3 items-center justify-center rounded-sm border-2 transition-colors',
+          'flex h-3 w-3 items-center justify-center rounded-sm border-2 p-0 transition-colors',
           filter.isActive
             ? 'border-primary bg-primary'
             : 'border-muted-foreground/30 hover:border-muted-foreground/50'
         )}
         disabled={disabled}
         onClick={onToggle}
+        size="icon"
         type="button"
+        variant="ghost"
       >
         {filter.isActive && (
           <div className="h-1.5 w-1.5 rounded-sm bg-primary-foreground" />
         )}
-      </button>
+      </Button>
 
       {/* Column name */}
       <span className="font-medium text-foreground">{columnLabel}</span>
@@ -233,11 +235,12 @@ function FilterChip({
       )}
 
       {/* Value display or edit mode (inline, no popover) */}
-      <button
-        className="rounded px-1 py-0.5 text-left transition-colors hover:bg-accent hover:text-accent-foreground"
+      <Button
+        className="h-auto rounded px-1 py-0.5 text-left text-current transition-colors hover:bg-accent hover:text-accent-foreground"
         disabled={disabled}
         onClick={() => setIsEditing(true)}
         type="button"
+        variant="ghost"
       >
         {isEditing ? (
           <span className="text-muted-foreground text-xs">Editing...</span>
@@ -248,7 +251,7 @@ function FilterChip({
             )}
           </span>
         )}
-      </button>
+      </Button>
       </div>
 
       {isEditing && (
@@ -301,13 +304,15 @@ function FilterChip({
       <div className="mt-2 ml-6 flex items-center gap-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button
-              className="rounded p-1 transition-opacity hover:bg-accent"
+            <Button
+              className="h-6 w-6 p-0 transition-opacity hover:bg-accent"
               disabled={disabled}
               type="button"
+              variant="ghost"
+              size="icon"
             >
               <MoreHorizontal className="h-3 w-3" />
-            </button>
+            </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={onToggle}>
@@ -321,14 +326,16 @@ function FilterChip({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <button
-          className="rounded p-1 transition-opacity hover:bg-destructive hover:text-destructive-foreground"
+        <Button
+          className="h-6 w-6 p-0 transition-opacity hover:bg-destructive hover:text-destructive-foreground"
           disabled={disabled}
           onClick={onRemove}
           type="button"
+          variant="ghost"
+          size="icon"
         >
           <X className="h-3 w-3" />
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -789,12 +796,13 @@ function InlineAddFilterPanel({
               {filtered.search.map((o) => {
                 const Icon = typeIcon[o.type] || Type;
                 return (
-                  <button
+                  <Button
                     key={o.id}
-                    className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left transition-colors hover:bg-accent/50"
+                    className="flex w-full items-center justify-start gap-3 rounded-md px-3 py-2 text-left hover:bg-accent/50"
                     disabled={disabled}
                     onClick={() => onAddFilter(o.id, o.type)}
                     type="button"
+                    variant="ghost"
                   >
                     <div className="flex h-8 w-8 items-center justify-center rounded-md border bg-muted">
                       <Icon className="h-4 w-4" />
@@ -808,7 +816,7 @@ function InlineAddFilterPanel({
                       )}
                     </div>
                     <Plus className="h-4 w-4 text-muted-foreground" />
-                  </button>
+                  </Button>
                 );
               })}
             </div>
@@ -848,12 +856,13 @@ function InlineAddFilterPanel({
                     {filtered.popular.map((o) => {
                       const Icon = typeIcon[o.type] || Type;
                       return (
-                        <button
+                        <Button
                           key={o.id}
-                          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left transition-colors hover:bg-accent/50"
+                          className="flex w-full items-center justify-start gap-3 rounded-md px-3 py-2 text-left hover:bg-accent/50"
                           disabled={disabled}
                           onClick={() => onAddFilter(o.id, o.type)}
                           type="button"
+                          variant="ghost"
                         >
                           <div className="flex h-8 w-8 items-center justify-center rounded-md border bg-muted">
                             <Icon className="h-4 w-4" />
@@ -862,7 +871,7 @@ function InlineAddFilterPanel({
                             <span className="truncate font-medium text-sm">{o.label}</span>
                           </div>
                           <Plus className="h-4 w-4 text-muted-foreground" />
-                        </button>
+                        </Button>
                       );
                     })}
                   </div>
@@ -879,12 +888,13 @@ function InlineAddFilterPanel({
                     {filtered.recent.map((o) => {
                       const Icon = typeIcon[o.type] || Type;
                       return (
-                        <button
+                        <Button
                           key={o.id}
-                          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left transition-colors hover:bg-accent/50"
+                          className="flex w-full items-center justify-start gap-3 rounded-md px-3 py-2 text-left hover:bg-accent/50"
                           disabled={disabled}
                           onClick={() => onAddFilter(o.id, o.type)}
                           type="button"
+                          variant="ghost"
                         >
                           <div className="flex h-8 w-8 items-center justify-center rounded-md border bg-muted">
                             <Icon className="h-4 w-4" />
@@ -893,7 +903,7 @@ function InlineAddFilterPanel({
                             <span className="truncate font-medium text-sm">{o.label}</span>
                           </div>
                           <Plus className="h-4 w-4 text-muted-foreground" />
-                        </button>
+                        </Button>
                       );
                     })}
                   </div>
@@ -912,12 +922,13 @@ function InlineAddFilterPanel({
                         {list.map((o) => {
                           const Icon = typeIcon[o.type] || Type;
                           return (
-                            <button
+                            <Button
                               key={o.id}
-                              className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left transition-colors hover:bg-accent/50"
+                              className="flex w-full items-center justify-start gap-3 rounded-md px-3 py-2 text-left hover:bg-accent/50"
                               disabled={disabled}
                               onClick={() => onAddFilter(o.id, o.type)}
                               type="button"
+                              variant="ghost"
                             >
                               <div className="flex h-8 w-8 items-center justify-center rounded-md border bg-muted">
                                 <Icon className="h-4 w-4" />
@@ -926,7 +937,7 @@ function InlineAddFilterPanel({
                                 <span className="truncate font-medium text-sm">{o.label}</span>
                               </div>
                               <Plus className="h-4 w-4 text-muted-foreground" />
-                            </button>
+                            </Button>
                           );
                         })}
                       </div>

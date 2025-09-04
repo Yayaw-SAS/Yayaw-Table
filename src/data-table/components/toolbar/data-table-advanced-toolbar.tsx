@@ -16,7 +16,7 @@ import type {
   VisibilityState,
 } from '@tanstack/react-table';
 import { useSetAtom } from 'jotai';
-import { PlusIcon, Search } from 'lucide-react';
+import { PlusIcon } from 'lucide-react';
 import { useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,6 +36,7 @@ import {
 } from '../forms/atoms/catalogue-form-atoms';
 
 import { TableMenu } from './table-menu';
+import { SearchBar } from './sections/search-bar';
 
 // Debug flag to help track issues - activated for debugging
 const DEBUG = false;
@@ -179,7 +180,8 @@ interface DataTableState {
  */
 function createColumnOptions(
   tableConfig: Record<string, unknown>,
-  columnTypeMapping: Record<string, string>
+  columnTypeMapping: Record<string, string>,
+  t?: (key: string, params?: Record<string, string | number>) => string
 ) {
   if (DEBUG) {
     console.log('🔧 Creating columnOptions from table config:', {
@@ -213,7 +215,11 @@ function createColumnOptions(
         id: String(colDef.id),
         label: String(colDef.header || colDef.id),
         // Enhanced properties from column definition
-        placeholder: `Filter by ${colDef.header || colDef.id}...`,
+        placeholder: t
+          ? t('filters.search', {
+              filter: String(colDef.header || colDef.id),
+            })
+          : `Filter by ${colDef.header || colDef.id}...`,
         type: colDef.type,
       };
 
@@ -357,9 +363,10 @@ export function DataTableAdvancedToolbar<TData>({
     () =>
       createColumnOptions(
         tableConfig as unknown as Record<string, unknown>,
-        columnTypeMapping
+        columnTypeMapping,
+        t
       ),
-    [tableConfig, columnTypeMapping]
+    [tableConfig, columnTypeMapping, t]
   );
 
   const { advancedColumnsConfig, advancedFiltersResult } =
@@ -435,6 +442,31 @@ export function DataTableAdvancedToolbar<TData>({
     key: 'canFilter' | 'canGroup' | 'canHide' | 'canSort',
     defaultValue: boolean
   ) => {
+    // Special handling for sorting capability
+    if (key === 'canSort') {
+      const id = (raw.id as string) || '';
+      const meta = (raw.meta || {}) as Record<string, unknown>;
+      const isSelectionColumn = id === 'select' || (meta.isSelectionColumn as boolean | undefined) === true;
+      const isActionsColumn = id === 'actions' || (meta.isActionsColumn as boolean | undefined) === true;
+
+      // Never allow sorting on selection or actions columns
+      if (isSelectionColumn || isActionsColumn) {
+        return false;
+      }
+
+      // Prefer explicit flags if present
+      const explicitCanSort = raw.canSort as boolean | undefined;
+      if (explicitCanSort !== undefined) {
+        return explicitCanSort;
+      }
+
+      const enableSorting = raw.enableSorting as boolean | undefined;
+      if (enableSorting !== undefined) {
+        return enableSorting;
+      }
+
+      return defaultValue;
+    }
     if (key === 'canHide') {
       return (raw.canHide as boolean | undefined) !== false;
     }
@@ -486,11 +518,7 @@ export function DataTableAdvancedToolbar<TData>({
         <span>{t('add_an_item')}</span>
       </Button>
 
-      {/* Search bar */}
-      <div className="relative">
-        <Search className="-translate-y-1/2 absolute top-1/2 left-3 h-4 w-4 text-muted-foreground" />
-        <Input className="h-8 w-64 pl-9" placeholder="Search..." />
-      </div>
+      <SearchBar placeholder={t('search.placeholder')} tableId={tableId} />
 
       {/* Options menu */}
       <TableMenu

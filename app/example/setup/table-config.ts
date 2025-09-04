@@ -1,5 +1,5 @@
-import type { DataTableConfig } from '../../src/data-table/atoms/config-atoms';
-import { productActions } from './data';
+import type { DataTableConfig } from '../../../src/data-table/atoms/config-atoms';
+import { productActions } from '../data';
 
 // Interface étendue pour inclure les colonnes
 interface ExtendedDataTableConfig extends DataTableConfig {
@@ -40,7 +40,7 @@ export const getTableConfig = (
       manualFiltering: true, // Server-side filtering
       manualPagination: true, // Server-side pagination
       manualSorting: true, // Server-side sorting
-      pageSizeOptions: [5, 10, 20, 30, 50],
+      pageSizeOptions: [10, 50, 100],
       columns: {
         definitions: [
           {

@@ -35,6 +35,7 @@ import {
   DEFAULT_OPERATORS,
   FILTER_OPERATORS_LABELS,
 } from '../../types/filter-types';
+import { useTranslations } from '../../providers/table-provider';
 
 export interface MultiOptionFilterProps {
   /** Current filter value - array of selected values */
@@ -83,6 +84,7 @@ export function MultiOptionFilter({
   maxDisplayedTags = 3,
   inline = false,
 }: MultiOptionFilterProps) {
+  const { t } = useTranslations();
   const [internalValue, setInternalValue] = useState(value);
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -155,7 +157,7 @@ export function MultiOptionFilter({
       const option = getOptionByValue(internalValue[0]);
       return option?.label || internalValue[0];
     }
-    return `${internalValue.length} selected`;
+    return t('filters.selectedCount', { count: internalValue.length });
   }, [internalValue, placeholder, getOptionByValue]);
 
   // Get displayed tags
@@ -184,7 +186,7 @@ export function MultiOptionFilter({
             value={operator}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select operator..." />
+              <SelectValue placeholder={t('filters.select_operator')} />
             </SelectTrigger>
             <SelectContent>
               {operators.map((op) => (
@@ -204,11 +206,11 @@ export function MultiOptionFilter({
                 <Command>
                   <CommandInput
                     onValueChange={setSearchTerm}
-                    placeholder="Search options..."
+                    placeholder={t('filters.search', { filter: 'options' })}
                     value={searchTerm}
                   />
                   <CommandList>
-                    <CommandEmpty>No options found.</CommandEmpty>
+                    <CommandEmpty>{t('filters.noResults')}</CommandEmpty>
                     <CommandGroup>
                       {filteredOptions.map((option) => {
                         const isSelected = internalValue.includes(option.value);
@@ -265,11 +267,11 @@ export function MultiOptionFilter({
                 <Command>
                   <CommandInput
                     onValueChange={setSearchTerm}
-                    placeholder="Search options..."
+                    placeholder={t('filters.search', { filter: 'options' })}
                     value={searchTerm}
                   />
                   <CommandList>
-                    <CommandEmpty>No options found.</CommandEmpty>
+                    <CommandEmpty>{t('filters.noResults')}</CommandEmpty>
                     <CommandGroup>
                       {/* Select/Clear all buttons */}
                       {filteredOptions.length > 1 && (
@@ -285,7 +287,7 @@ export function MultiOptionFilter({
                               className="mb-1 justify-center border-b"
                               onSelect={handleClearAll}
                             >
-                              Clear All
+                              {t('filters.clear')}
                             </CommandItem>
                           )}
                         </>
@@ -354,8 +356,8 @@ export function MultiOptionFilter({
                         </span>
                       )}
                       {option?.label || selectedValue}
-                      <button
-                        className="ml-1 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                      <Button
+                        className="ml-1 h-5 w-5 rounded-full p-0 outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
                         onClick={() => handleOptionToggle(selectedValue)}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
@@ -367,9 +369,11 @@ export function MultiOptionFilter({
                           e.stopPropagation();
                         }}
                         type="button"
+                        variant="ghost"
+                        size="icon"
                       >
                         <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                      </button>
+                      </Button>
                     </Badge>
                   );
                 })}
@@ -377,7 +381,7 @@ export function MultiOptionFilter({
                 {/* Show remaining count if there are more tags */}
                 {displayedTags.hasMore && (
                   <Badge className="text-xs" variant="outline">
-                    +{displayedTags.remainingCount} more
+                    +{displayedTags.remainingCount}
                   </Badge>
                 )}
               </div>
@@ -388,8 +392,9 @@ export function MultiOptionFilter({
         {/* Info text for operators that don't need values */}
         {!needsValue && (
           <div className="text-muted-foreground text-sm italic">
-            This filter will show rows where the field{' '}
-            {operator === 'isEmpty' ? 'is empty' : 'is not empty'}.
+            {operator === 'isEmpty'
+              ? t('filters.operators.empty')
+              : t('filters.operators.not_empty')}
           </div>
         )}
       </div>
@@ -533,17 +538,19 @@ export function CompactMultiOptionFilter({
                 variant="secondary"
               >
                 {option?.label || selectedValue}
-                <button
-                  className="ml-1 rounded-full hover:bg-destructive hover:text-destructive-foreground"
+                <Button
+                  className="ml-1 h-4 w-4 p-0 hover:bg-destructive hover:text-destructive-foreground"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     handleOptionToggle(selectedValue);
                   }}
                   type="button"
+                  size="icon"
+                  variant="ghost"
                 >
                   <X className="h-2 w-2" />
-                </button>
+                </Button>
               </Badge>
             );
           })}

@@ -30,6 +30,7 @@ import { useColumnDragOverlay } from '../components/columns/hooks/use-column-dra
 import { defaultBulkActions, useBulkActions } from '../hooks/use-bulk-actions';
 import { useDataTable } from '../hooks/use-data-table';
 import { useTableConfig } from '../hooks/use-table-config';
+import { useTableUrlState } from '../hooks/use-table-url-state';
 import { useTableInstance } from '../hooks/use-table-instance';
 import { ColumnIcon } from '../utils/column-icons';
 import { BulkActionsMenu } from './bulk-actions/bulk-actions-menu';
@@ -427,6 +428,50 @@ function ModernDataTable<
   const [localExpanded, setLocalExpanded] = useState<Record<string, boolean>>(
     {}
   );
+
+  // Bridge URL-driven expand/collapse controls with local expansion state
+  const { expandedParam, setExpandedFromUI } = useTableUrlState({
+    tableId: tableId || '',
+  });
+
+  // When grouping changes, expand all by default
+  useEffect(() => {
+    const hasGrouping = Array.isArray(state.grouping) && state.grouping.length > 0;
+    if (hasGrouping) {
+      setExpandedFromUI({ _all: true } as unknown as Record<string, boolean>);
+    } else {
+      setExpandedFromUI({} as Record<string, boolean>);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(state.grouping)]);
+
+  // Sync URL "expand all / collapse all" with local expanded mapping
+  useEffect(() => {
+    if (!table) {
+      return;
+    }
+    const rows = table.getRowModel().rows as Row<TData>[];
+
+    // Expand all
+    if (expandedParam && (expandedParam as Record<string, unknown>)['_all']) {
+      const next: Record<string, boolean> = {};
+      const collect = (r: Row<TData>[]) => {
+        for (const row of r) {
+          const hasChildren = (row.subRows?.length || 0) > 0;
+          if (hasChildren) {
+            next[row.id] = true;
+            collect(row.subRows as Row<TData>[]);
+          }
+        }
+      };
+      collect(rows);
+      setLocalExpanded(next);
+      return;
+    }
+
+    // Collapse all (or unsupported structure)
+    setLocalExpanded({});
+  }, [expandedParam, table]);
 
   // Auto-expand all groups when grouping is active - DISABLED to prevent infinite loops
   // TODO: Implement stable group expansion logic

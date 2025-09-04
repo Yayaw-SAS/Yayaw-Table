@@ -5,7 +5,7 @@
 'use client';
 
 import { format } from 'date-fns';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, ChevronDown } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -28,6 +28,7 @@ import {
   DEFAULT_OPERATORS,
   FILTER_OPERATORS_LABELS,
 } from '../../types/filter-types';
+import { useTranslations } from '../../providers/table-provider';
 
 export interface DateFilterProps {
   /** Current filter value - single date or [start, end] for between */
@@ -67,6 +68,7 @@ export function DateFilter({
   dateFormat = 'PPP',
   inline = false,
 }: DateFilterProps) {
+  const { t } = useTranslations();
   const [internalValue, setInternalValue] = useState(value);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -110,6 +112,7 @@ export function DateFilter({
     (range: { from?: Date; to?: Date } | undefined) => {
       if (range?.from && range?.to) {
         handleValueChange([range.from, range.to]);
+        setIsOpen(false);
       } else if (range?.from) {
         // If only start date is selected, set end date to same date
         handleValueChange([range.from, range.from]);
@@ -144,7 +147,7 @@ export function DateFilter({
             value={operator}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select operator..." />
+              <SelectValue placeholder={t('filters.select_operator')} />
             </SelectTrigger>
             <SelectContent>
               {operators.map((op) => (
@@ -159,9 +162,10 @@ export function DateFilter({
         {/* Date picker */}
         {needsValue && (
           inline ? (
-            <div className="rounded-md border">
+            <div className="rounded-md border p-2 mr-auto w-fit">
               {isBetween ? (
                 <Calendar
+                  className="[--cell-size:--spacing(7)] sm:[--cell-size:--spacing(8)]"
                   disabled={disabled}
                   initialFocus
                   mode="range"
@@ -171,6 +175,7 @@ export function DateFilter({
                 />
               ) : (
                 <Calendar
+                  className="[--cell-size:--spacing(7)] sm:[--cell-size:--spacing(8)]"
                   disabled={disabled}
                   initialFocus
                   mode="single"
@@ -183,6 +188,7 @@ export function DateFilter({
             <Popover onOpenChange={setIsOpen} open={isOpen}>
               <PopoverTrigger asChild>
                 <Button
+                  aria-expanded={isOpen}
                   className={cn(
                     'w-full justify-start text-left font-normal',
                     !internalValue && 'text-muted-foreground'
@@ -192,36 +198,56 @@ export function DateFilter({
                   variant="outline"
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {internalValue ? (
-                    formatDateForDisplay(internalValue)
-                  ) : (
-                    <span>
-                      {isBetween ? 'Pick date range...' : 'Pick a date...'}
-                    </span>
-                  )}
+                  <span className="flex-1 truncate">
+                    {internalValue ? (
+                      formatDateForDisplay(internalValue)
+                    ) : (
+                      <span>
+                        {isBetween ? t('filters.value') : t('filters.value')}
+                      </span>
+                    )}
+                  </span>
+                  <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent align="start" className="w-auto p-0">
+              <PopoverContent align="start" className="w-72 p-0">
                 {isBetween ? (
-                  <Calendar
-                    disabled={disabled}
-                    initialFocus
-                    mode="range"
-                    onSelect={handleDateRangeSelect}
-                    required
-                    selected={{
-                      from: currentRangeValue[0],
-                      to: currentRangeValue[1],
-                    }}
-                  />
+                  <div className="space-y-2 p-2">
+                    <DateRangeShortcuts
+                      disabled={disabled}
+                      onSelect={(range) => {
+                        handleValueChange(range);
+                        setIsOpen(false);
+                      }}
+                    />
+                    <div className="rounded-md border">
+                      <Calendar
+                        className="[--cell-size:--spacing(7)] sm:[--cell-size:--spacing(8)]"
+                        disabled={disabled}
+                        initialFocus
+                        mode="range"
+                        onSelect={handleDateRangeSelect}
+                        required
+                        selected={{
+                          from: currentRangeValue[0],
+                          to: currentRangeValue[1],
+                        }}
+                      />
+                    </div>
+                  </div>
                 ) : (
-                  <Calendar
-                    disabled={disabled}
-                    initialFocus
-                    mode="single"
-                    onSelect={handleSingleDateSelect}
-                    selected={currentSingleValue}
-                  />
+                  <div className="p-2">
+                    <div className="rounded-md border">
+                      <Calendar
+                        className="[--cell-size:--spacing(7)] sm:[--cell-size:--spacing(8)]"
+                        disabled={disabled}
+                        initialFocus
+                        mode="single"
+                        onSelect={handleSingleDateSelect}
+                        selected={currentSingleValue}
+                      />
+                    </div>
+                  </div>
                 )}
               </PopoverContent>
             </Popover>
@@ -253,6 +279,7 @@ export function CompactDateFilter({
   DateFilterProps,
   'value' | 'operator' | 'onValueChange' | 'disabled' | 'dateFormat'
 >) {
+  const { t } = useTranslations();
   const [internalValue, setInternalValue] = useState(value);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -331,7 +358,7 @@ export function CompactDateFilter({
           variant="ghost"
         >
           <CalendarIcon className="mr-1 h-3 w-3" />
-          {internalValue ? formatDateForDisplay(internalValue) : 'Date...'}
+          {internalValue ? formatDateForDisplay(internalValue) : t('filters.value')}
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-auto p-0">

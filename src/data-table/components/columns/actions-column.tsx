@@ -172,6 +172,8 @@ export function createActionsColumn<TData extends Record<string, unknown>>({
         />
       );
     },
+    // Never allow grouping on the actions column
+    enableGrouping: false,
     enableHiding: false,
     enablePinning: false, // Disable manual pinning by users
     enableSorting: false,

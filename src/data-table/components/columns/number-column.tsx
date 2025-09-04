@@ -8,6 +8,7 @@ import type { CellContext, ColumnDef } from '@tanstack/react-table';
 import { Hash, type LucideIcon } from 'lucide-react';
 
 import { NumberCell } from '../cells/number-cell';
+import { Button } from '@/components/ui/button';
 
 /**
  * Custom properties for our column definitions
@@ -89,18 +90,20 @@ export function createNumberColumn<TData>({
         const label = String(info.getValue() ?? '');
         return (
           <div className="flex items-center gap-2">
-            <button
+            <Button
               aria-expanded={expanded}
               aria-label={expanded ? 'Collapse group' : 'Expand group'}
-              className="text-muted-foreground hover:text-foreground"
+              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
               onClick={(e) => {
                 e.stopPropagation();
                 toggle();
               }}
+              size="icon"
               type="button"
+              variant="ghost"
             >
               <span aria-hidden>{expanded ? '▾' : '▸'}</span>
-            </button>
+            </Button>
             <span className="font-medium">{label}</span>
             <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground text-xs">
               {count}
@@ -108,8 +111,9 @@ export function createNumberColumn<TData>({
           </div>
         );
       }
-      // Minimal output for aggregate or placeholder cells
-      if (info.cell.getIsAggregated?.() || info.cell.getIsPlaceholder?.()) {
+      // Aggregated cells: keep minimal. For placeholder cells (leaf rows under a grouped column),
+      // render the actual numeric value to avoid shifted columns in subgroups.
+      if (info.cell.getIsAggregated?.()) {
         return <span className="text-muted-foreground"> </span>;
       }
       const value = info.getValue();

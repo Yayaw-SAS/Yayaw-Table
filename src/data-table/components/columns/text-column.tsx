@@ -9,6 +9,7 @@ import { type LucideIcon, Text } from 'lucide-react';
 import { useState } from 'react';
 
 import { StringCell } from '../cells/string-cell';
+import { Button } from '@/components/ui/button';
 
 /**
  * Custom properties for our column definitions
@@ -100,7 +101,7 @@ export function createTextColumn<TData>({
           const label = String(info.getValue() ?? '');
 
           return (
-            <button
+            <Button
               className="flex w-full cursor-pointer items-center gap-2 border-0 bg-red-100 p-2 text-left hover:bg-red-200"
               onClick={(e) => {
                 e.stopPropagation();
@@ -112,6 +113,7 @@ export function createTextColumn<TData>({
                 setLocalExpanded(!localExpanded);
               }}
               type="button"
+              variant="ghost"
             >
               <span aria-hidden className="text-lg text-muted-foreground">
                 {localExpanded ? '▾' : '▸'}
@@ -120,15 +122,16 @@ export function createTextColumn<TData>({
               <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground text-xs">
                 {count}
               </span>
-            </button>
+            </Button>
           );
         };
 
         return <GroupHeader />;
       }
 
-      // Aggregated/placeholder cells: keep minimal
-      if (isAggregated || isPlaceholder) {
+      // Aggregated cells: keep minimal. For placeholder cells (e.g., grouped column on leaf rows),
+      // render the actual value so columns stay aligned and data remains visible.
+      if (isAggregated) {
         return <span className="text-muted-foreground"> </span>;
       }
 

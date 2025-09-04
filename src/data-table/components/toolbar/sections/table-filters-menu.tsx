@@ -51,7 +51,7 @@ export function TableFiltersMenu({
   advancedColumnsConfig = {},
   useAdvancedFilters = false,
 }: TableFiltersMenuProps) {
-  const { t: _t } = useTranslations();
+  const { t } = useTranslations();
 
   // Debug logs
   useEffect(() => {
@@ -106,17 +106,15 @@ export function TableFiltersMenu({
         <div className="space-y-4">
           <div className="py-8 text-center text-muted-foreground">
             <Filter className="mx-auto mb-2 h-8 w-8 opacity-50" />
-            <p className="text-sm">Advanced filters not available</p>
-            <p className="text-xs">
-              Enable advanced filters to use this feature
-            </p>
+            <p className="text-sm">{t('filters.noFilters')}</p>
+            <p className="text-xs">{t('filters.noResults')}</p>
           </div>
 
           {/* Show legacy column filters if any exist */}
           {columnFilters.length > 0 && (
             <div className="space-y-2">
               <Separator />
-              <h4 className="font-medium text-sm">Legacy Filters</h4>
+              <h4 className="font-medium text-sm">{t('filters.title')}</h4>
               {columnFilters.map((filter, index) => (
                 <div
                   className="flex items-center gap-2 rounded-md border p-2"

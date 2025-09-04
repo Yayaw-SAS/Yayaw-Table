@@ -82,13 +82,15 @@ function LegacyFilterItem({
   return (
     <div className="flex items-center justify-between rounded-lg p-2 hover:bg-accent">
       <div className="flex items-center gap-3">
-        <button
-          className="flex h-4 w-4 items-center justify-center rounded-sm border border-current"
+        <Button
+          className="flex h-4 w-4 items-center justify-center rounded-sm border border-current p-0"
           onClick={onToggle}
           type="button"
+          variant="ghost"
+          size="icon"
         >
           {isActive && <div className="h-2 w-2 rounded-sm bg-current" />}
-        </button>
+        </Button>
         <Filter className="h-4 w-4 text-muted-foreground" />
         <span>{column.label}</span>
       </div>

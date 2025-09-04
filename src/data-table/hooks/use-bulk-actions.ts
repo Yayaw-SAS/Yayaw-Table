@@ -124,15 +124,15 @@ export function useBulkActions<TData>({
     }
   }, [table, minimumSelection]);
 
-  // Set up initial update only - no periodic updates to prevent loops
+  // React to selection changes by tracking a stable key derived from rowSelection
+  const selectionKey = JSON.stringify(table?.getState().rowSelection || {});
+
   useEffect(() => {
     if (!table) {
       return;
     }
-
-    // Initial update only
     updateSelection();
-  }, [table]); // Removed updateSelection dependency to prevent loops
+  }, [table, selectionKey, updateSelection]);
 
   // Clear all selections
   const clearSelection = useCallback(() => {

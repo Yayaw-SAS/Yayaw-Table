@@ -125,13 +125,14 @@ function ColumnOptionItem({
   const TypeIcon = typeIcons[columnOption.type];
 
   return (
-    <button
+    <Button
       className={cn(
-        'flex w-full items-center gap-3 rounded-md px-3 py-2 text-left transition-all duration-150',
+        'flex w-full items-center justify-start gap-3 rounded-md px-3 py-2 text-left transition-all duration-150',
         'group hover:bg-accent/50'
       )}
       onClick={() => onSelect(columnOption)}
       type="button"
+      variant="ghost"
     >
       {/* Type Icon */}
       <div
@@ -173,7 +174,7 @@ function ColumnOptionItem({
 
       {/* Add Icon */}
       <Plus className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
-    </button>
+    </Button>
   );
 }
 

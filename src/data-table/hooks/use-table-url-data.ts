@@ -58,6 +58,7 @@ export function useTableUrlData<TData>({
     orderParam,
     pagination,
     sortParam,
+    globalSearchParam,
   } = useTableUrlState({
     tableId,
   });
@@ -194,6 +195,8 @@ export function useTableUrlData<TData>({
         complexFilters,
         // Advanced filters for enhanced filtering
         advancedFilters,
+        // Global search (server-side global filtering)
+        globalSearch: globalSearchParam,
         // Pagination parameters from URL
         pagination,
         // Use serverFilters directly for server-side filtering (without key filters)
@@ -222,6 +225,7 @@ export function useTableUrlData<TData>({
       JSON.stringify(sortParam),
       JSON.stringify(filtersParam),
       JSON.stringify(advancedFiltersParam),
+      globalSearchParam || '',
       JSON.stringify(pagination),
       JSON.stringify(serverFilters),
     ],

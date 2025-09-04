@@ -35,6 +35,7 @@ import {
   DEFAULT_OPERATORS,
   FILTER_OPERATORS_LABELS,
 } from '../../types/filter-types';
+import { useTranslations } from '../../providers/table-provider';
 
 export interface OptionFilterProps {
   /** Current filter value - single value or array for isAnyOf/isNoneOf */
@@ -80,6 +81,7 @@ export function OptionFilter({
   placeholder = 'Select option...',
   inline = false,
 }: OptionFilterProps) {
+  const { t } = useTranslations();
   const [internalValue, setInternalValue] = useState(value);
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -193,7 +195,7 @@ export function OptionFilter({
             value={operator}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select operator..." />
+              <SelectValue placeholder={t('filters.select_operator')} />
             </SelectTrigger>
             <SelectContent>
               {operators.map((op) => (
@@ -213,11 +215,11 @@ export function OptionFilter({
                 <Command>
                   <CommandInput
                     onValueChange={setSearchTerm}
-                    placeholder="Search options..."
+                    placeholder={t('filters.search', { filter: 'options' })}
                     value={searchTerm}
                   />
                   <CommandList>
-                    <CommandEmpty>No options found.</CommandEmpty>
+                    <CommandEmpty>{t('filters.noResults')}</CommandEmpty>
                     <CommandGroup>
                       {filteredOptions.map((option) => {
                         const isSelected = isMultiple
@@ -283,11 +285,11 @@ export function OptionFilter({
                   <Command>
                     <CommandInput
                       onValueChange={setSearchTerm}
-                      placeholder="Search options..."
+                      placeholder={t('filters.search', { filter: 'options' })}
                       value={searchTerm}
                     />
                     <CommandList>
-                      <CommandEmpty>No options found.</CommandEmpty>
+                      <CommandEmpty>{t('filters.noResults')}</CommandEmpty>
                       <CommandGroup>
                         {filteredOptions.map((option) => {
                           const isSelected = isMultiple
@@ -360,8 +362,8 @@ export function OptionFilter({
                         </span>
                       )}
                       {option?.label || selectedValue}
-                      <button
-                        className="ml-1 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                      <Button
+                        className="ml-1 h-5 w-5 rounded-full p-0 outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
                         onClick={() =>
                           handleMultipleOptionToggle(selectedValue)
                         }
@@ -375,9 +377,11 @@ export function OptionFilter({
                           e.stopPropagation();
                         }}
                         type="button"
+                        variant="ghost"
+                        size="icon"
                       >
                         <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                      </button>
+                      </Button>
                     </Badge>
                   );
                 })}
@@ -417,6 +421,7 @@ export function CompactOptionFilter({
   | 'disabled'
   | 'placeholder'
 >) {
+  const { t } = useTranslations();
   const [internalValue, setInternalValue] = useState(value);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -461,7 +466,7 @@ export function CompactOptionFilter({
         const option = getOptionByValue(currentMultipleValue[0]);
         return option?.label || currentMultipleValue[0];
       }
-      return `${currentMultipleValue.length} items`;
+      return t('filters.selectedCount', { count: currentMultipleValue.length });
     }
     if (!currentSingleValue) {
       return placeholder;
@@ -481,7 +486,9 @@ export function CompactOptionFilter({
   if (!needsValue) {
     return (
       <span className="text-muted-foreground text-xs">
-        {operator === 'isEmpty' ? 'is empty' : 'is not empty'}
+        {operator === 'isEmpty'
+          ? t('filters.operators.empty')
+          : t('filters.operators.not_empty')}
       </span>
     );
   }
@@ -501,9 +508,9 @@ export function CompactOptionFilter({
       </PopoverTrigger>
       <PopoverContent align="start" className="w-48 p-0">
         <Command>
-          <CommandInput placeholder="Search..." />
+          <CommandInput placeholder={t('filters.search', { filter: 'options' })} />
           <CommandList>
-            <CommandEmpty>No options found.</CommandEmpty>
+            <CommandEmpty>{t('filters.noResults')}</CommandEmpty>
             <CommandGroup>
               {options.map((option) => {
                 const isSelected = isMultiple

@@ -358,6 +358,8 @@ export const defaultTranslations: DataTableTranslations = {
   sorting: {
     ascending: 'Sort ascending',
     descending: 'Sort descending',
+    choose_column: 'Select column',
+    current: 'Current sort',
   },
   views: {
     title: 'Views',
@@ -488,6 +490,9 @@ export const defaultTranslations: DataTableTranslations = {
     filter: 'Filter',
     filters: 'Filters',
     group: 'Group',
+    select_column: 'Select column',
+    current_groups: '{count, plural, one {Current group} other {Current groups}}',
+    active_groups: '{count} {count, plural, one {active group} other {active groups}}',
     options: 'Options',
     properties: 'Properties',
     sort: 'Sort',

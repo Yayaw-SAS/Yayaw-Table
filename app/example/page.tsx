@@ -1,32 +1,113 @@
 'use client';
 
 import { QueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 // Row type is not used directly in this file
 import {
   defaultTranslations,
   TableProvider,
   ThemeToggle,
   useBulkEdit,
+  DataTable,
+  useTableActions,
 } from '../../index';
 import { CustomDescription, CustomTitle } from './components';
-import { TableWithActions } from './components/table-with-actions';
-import { getFormConfig } from './form-config';
-import { getTableActions, getTableConfig } from './table-config';
+import { getFormConfig } from './setup/form-config';
+import { getTableActions, getTableConfig } from './setup/table-config';
 
 // Create a query client
 const queryClient = new QueryClient();
 
 function BulkActionsSection() {
+  const getTableActions = useTableActions();
+  const actions = getTableActions?.('products') as
+    | {
+        bulkDelete?: (
+          ids: string[]
+        ) => Promise<{ success: boolean; data?: unknown; error?: string }>;
+        bulkCopy?: (
+          ids: string[]
+        ) => Promise<{ success: boolean; data?: string; error?: string }>;
+      }
+    | undefined;
+
+  const handleBulkDelete = async (rows: Array<{ original: { id?: unknown } }>) => {
+    if (!actions?.bulkDelete) {
+      toast.error('Delete action not available');
+      return;
+    }
+
+    try {
+      const ids = rows.map((row) => String(row.original.id ?? ''));
+      const result = await actions.bulkDelete(ids);
+
+      if (result.success) {
+        toast.success(`✅ Deleted ${rows.length} products successfully!`);
+      } else {
+        toast.error(result.error || 'Failed to delete products');
+      }
+    } catch (error) {
+      toast.error('❌ Failed to delete products');
+    }
+  };
+
+  const handleBulkCopy = async (rows: Array<{ original: { id?: unknown } }>) => {
+    if (!actions?.bulkCopy) {
+      toast.error('Copy action not available');
+      return;
+    }
+
+    try {
+      const ids = rows.map((row) => String(row.original.id ?? ''));
+      const result = await actions.bulkCopy(ids);
+
+      if (result.success && result.data) {
+        if (navigator.clipboard) {
+          await navigator.clipboard.writeText(result.data);
+          toast.success(`📋 Copied ${rows.length} products to clipboard!`);
+        } else {
+          const textArea = document.createElement('textarea');
+          textArea.value = result.data;
+          document.body.appendChild(textArea);
+          textArea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textArea);
+          toast.success(`📋 Copied ${rows.length} products to clipboard!`);
+        }
+      } else {
+        toast.error(result.error || 'Failed to copy products');
+      }
+    } catch (error) {
+      toast.error('❌ Failed to copy products to clipboard');
+    }
+  };
+
   const bulkEdit = useBulkEdit({
     tableId: 'products',
     formType: 'products-bulk',
-    onSuccess: () => {
-      // no-op
-    },
+    onSuccess: () => {},
     onUpdate: async () => true,
   });
+
   return (
-    <TableWithActions onBulkEdit={(rows) => bulkEdit.openBulkEdit(rows)} />
+    <DataTable
+      columnTypeMapping={{
+        name: 'text',
+        brand: 'text',
+        category: 'option',
+        price: 'number',
+        status: 'option',
+        createdAt: 'date',
+        isActive: 'option',
+      }}
+      description="Production-ready table with server-side pagination, filtering, and sorting. Select multiple rows to see bulk actions!"
+      enableAdvancedFilters={true}
+      onBulkCopy={handleBulkCopy}
+      onBulkDelete={handleBulkDelete}
+      onBulkEdit={(rows) => bulkEdit.openBulkEdit(rows as never)}
+      tableType="products"
+      title="Products Management"
+    />
   );
 }
 

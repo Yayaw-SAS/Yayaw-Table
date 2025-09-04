@@ -84,6 +84,8 @@ export interface DataTableTranslations {
   sorting: {
     ascending: string;
     descending: string;
+    choose_column: string;
+    current: string;
   };
   views: {
     title: string;
@@ -214,6 +216,9 @@ export interface DataTableTranslations {
     filter: string;
     filters: string;
     group: string;
+    select_column: string;
+    current_groups: string;
+    active_groups: string;
     options: string;
     properties: string;
     sort: string;

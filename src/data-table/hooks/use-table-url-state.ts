@@ -127,7 +127,13 @@ export function useTableUrlState({
         return;
       }
 
-      updateQueue.current.push(() => setter(updateValue));
+      updateQueue.current.push(() =>
+        // Pass shallow replace options to avoid full navigation and keep focus
+        (setter as unknown as (value: T, options?: unknown) => void)(
+          updateValue,
+          { shallow: true, history: 'replace', scroll: false }
+        )
+      );
 
       // Clear existing timeout
       if (batchTimeout.current !== null) {
@@ -236,6 +242,11 @@ export function useTableUrlState({
     arrayParser
   );
 
+  // Global search parameter (server-side global filter)
+  const [globalSearchParam, setGlobalSearchParam] = useQueryState(
+    `${tableId}-q`
+  );
+
   // Column pinning parameter
   const [pinningParam, setPinningParam] = useQueryState(`${tableId}-pinning`, {
     defaultValue: '',
@@ -256,7 +267,8 @@ export function useTableUrlState({
     | SortingState
     | Record<string, boolean>
     | string[]
-    | AdvancedFiltersState;
+    | AdvancedFiltersState
+    | string;
 
   const debouncedSetParamRef = useRef<
     ((key: string, value: TableParamValue) => void) | null
@@ -268,16 +280,46 @@ export function useTableUrlState({
       debouncedSetParamRef.current = debounce((...args: unknown[]) => {
         const [key, value] = args as [string, TableParamValue];
         if (key.includes('filters') && !key.includes('advancedFilters')) {
-          setFiltersParam(value as ColumnFiltersState);
+          (setFiltersParam as unknown as (
+            v: ColumnFiltersState,
+            o?: unknown
+          ) => void)(value as ColumnFiltersState, {
+            shallow: true,
+            history: 'replace',
+            scroll: false,
+          });
         } else if (key.includes('advancedFilters')) {
-          setAdvancedFiltersParam(value as AdvancedFiltersState);
+          (setAdvancedFiltersParam as unknown as (
+            v: AdvancedFiltersState,
+            o?: unknown
+          ) => void)(value as AdvancedFiltersState, {
+            shallow: true,
+            history: 'replace',
+            scroll: false,
+          });
         } else if (key.includes('sort')) {
-          setSortParam(value as SortingState);
+          (setSortParam as unknown as (
+            v: SortingState,
+            o?: unknown
+          ) => void)(value as SortingState, {
+            shallow: true,
+            history: 'replace',
+            scroll: false,
+          });
+        } else if (key.endsWith('-q')) {
+          (setGlobalSearchParam as unknown as (
+            v: string,
+            o?: unknown
+          ) => void)(value as unknown as string, {
+            shallow: true,
+            history: 'replace',
+            scroll: false,
+          });
         }
         // Add other param setters as needed
       }, 150);
     }
-  }, [setFiltersParam, setAdvancedFiltersParam, setSortParam]);
+  }, [setFiltersParam, setAdvancedFiltersParam, setSortParam, setGlobalSearchParam]);
 
   const setColumnFiltersFromUI = useCallback(
     (filters: ColumnFiltersState) => {
@@ -298,6 +340,14 @@ export function useTableUrlState({
   const setSorting = useCallback(
     (sorting: SortingState) => {
       debouncedSetParamRef.current?.(`${tableId}-sort`, sorting);
+    },
+    [tableId]
+  );
+
+  // Global search setter
+  const setGlobalSearchFromUI = useCallback(
+    (value: string) => {
+      debouncedSetParamRef.current?.(`${tableId}-q`, value || '');
     },
     [tableId]
   );
@@ -399,6 +449,7 @@ export function useTableUrlState({
       setUrlParam(url, `${tableId}-sort`, sortParam);
       setUrlParam(url, `${tableId}-filters`, filtersParam);
       setUrlParam(url, `${tableId}-advancedFilters`, advancedFiltersParam);
+      setUrlParam(url, `${tableId}-q`, globalSearchParam);
       setUrlParam(url, `${tableId}-page`, pageParam);
       setUrlParam(url, `${tableId}-pageSize`, pageSizeParam);
       setUrlParam(url, `${tableId}-visibility`, visibilityParam);
@@ -425,6 +476,7 @@ export function useTableUrlState({
       orderParam,
       expandedParam,
       groupingParam,
+      globalSearchParam,
       pinningParam,
       setUrlParam,
     ]
@@ -538,6 +590,7 @@ export function useTableUrlState({
     setAdvancedFiltersParam,
     setColumnFiltersFromUI,
     setExpandedFromUI,
+    setGlobalSearchFromUI,
     // Raw setters (should generally not be used directly)
     setExpandedParam,
     setFiltersParam,
@@ -559,6 +612,7 @@ export function useTableUrlState({
     setVisibilityParam,
 
     sortParam: sortParam || [],
+    globalSearchParam: globalSearchParam || '',
     viewParam,
     visibilityParam: visibilityParam || {},
   };
