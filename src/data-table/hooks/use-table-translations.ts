@@ -4,7 +4,7 @@
  */
 import { useAtomValue } from 'jotai';
 import {
-  type DataTableTranslations,
+  type DataTableUiStrings,
   tableTranslationsAtom,
   translationKeysMap,
   translationsAtom,
@@ -15,7 +15,7 @@ import { useTranslations } from '../providers/table-provider';
 /**
  * Extended return type for useTableTranslations that includes formatting function
  */
-export interface UseTableTranslationsReturn extends DataTableTranslations {
+export interface UseTableTranslationsReturn extends DataTableUiStrings {
   /**
    * Format a translation with variables (plurals, dates, rich text, etc.)
    * Leverages next-intl's powerful formatting capabilities
@@ -23,7 +23,7 @@ export interface UseTableTranslationsReturn extends DataTableTranslations {
    * @param values - Values to interpolate, including pluralization variables
    */
   format: (
-    key: keyof DataTableTranslations,
+    key: keyof DataTableUiStrings,
     values?: Record<string, string | number | Date>
   ) => string;
 }
@@ -63,23 +63,23 @@ export function useTableTranslations(
   const keyToOriginalMap = Object.entries(translationKeysMap).reduce(
     (acc, [key, originalKey]) => {
       if (typeof originalKey === 'string') {
-        acc[key as keyof DataTableTranslations] = originalKey;
+        acc[key as keyof DataTableUiStrings] = originalKey;
       }
       return acc;
     },
-    {} as Record<keyof DataTableTranslations, string>
+    {} as Record<keyof DataTableUiStrings, string>
   );
 
   // Format function that leverages next-intl's capabilities for plurals and more
   const format = (
-    key: keyof DataTableTranslations,
+    key: keyof DataTableUiStrings,
     values?: Record<string, string | number | Date>
   ): string => {
     const originalKey = keyToOriginalMap[key];
 
     // If we can't find the original key, return the stored translation or the key itself
     if (!originalKey) {
-      return tableTranslations[key] || String(key);
+      return (tableTranslations as Partial<Record<keyof DataTableUiStrings, string>>)[key] || String(key);
     }
 
     try {
@@ -102,7 +102,7 @@ export function useTableTranslations(
         console.warn('Translation error for key:', key, 'Error:', _error);
       }
       // Return the stored translation or the key itself as a fallback
-      return tableTranslations[key] || String(key);
+      return (tableTranslations as Partial<Record<keyof DataTableUiStrings, string>>)[key] || String(key);
     }
   };
 
@@ -113,11 +113,11 @@ export function useTableTranslations(
         if (prop === 'format') {
           return target.format;
         }
-        return format(prop as keyof DataTableTranslations);
+        return format(prop as keyof DataTableUiStrings);
       },
     });
   }
 
   // Return all translations plus the format function
-  return { ...tableTranslations, format } as UseTableTranslationsReturn;
+  return { ...(tableTranslations as Record<string, string>), format } as UseTableTranslationsReturn;
 }

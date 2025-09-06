@@ -115,10 +115,7 @@ export function TableProvider({
   DescriptionComponent,
 }: TableProviderProps) {
   // Create optimized translation function using cache
-  const t = useMemo(
-    () => createTranslationFunction(translations),
-    [translations]
-  );
+  const t = useMemo(() => createTranslationFunction(translations), [translations]);
 
   // Create default QueryClient if none provided
   const defaultQueryClient = useMemo(

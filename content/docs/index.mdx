@@ -5,161 +5,83 @@ description: Ultra-simple data table with zero boilerplate
 
 # YaYaw Table Documentation
 
-YaYaw Table est une librairie de composants data table ultra-simple pour React. **Une config, un composant, zéro boilerplate !**
+YaYaw Table is a flexible data table component library for React. **One component, clean API, minimal boilerplate.**
 
 ## 🚀 Quick Start
 
 ```bash
 npm install yayaw-table
-# ou
+# or
 bun add yayaw-table
 ```
 
-### API Ultra-Simple
+### Usage
 
 ```tsx
-import { UltraSimpleTable } from 'yayaw-table'
-
-const config = {
-  id: 'products',
-  name: 'Products Management',
-  description: 'Table ultra-simple avec grouping, pagination et tri',
-  
-  columns: [
-    { id: 'name', type: 'text', header: 'Product Name' },
-    { id: 'brand', type: 'tag', header: 'Brand' },
-    { id: 'price', type: 'number', header: 'Price' },
-    { id: 'status', type: 'tag', header: 'Status' },
-  ],
-  
-  fetchData: async (params) => {
-    const result = await fetch('/api/products', {
-      method: 'POST',
-      body: JSON.stringify(params)
-    });
-    return result.json();
-  }
-};
+import { DataTable } from 'yayaw-table'
 
 export const MyTable = () => (
-  <UltraSimpleTable config={config} />
-);
+  <DataTable tableType="products" />
+)
 ```
 
-**C'est tout !** 🎉
+## ✅ Benefits
 
-## ✅ Avantages
+- **Less boilerplate** – Clear, focused API
+- **Minimal setup** – Sensible defaults
+- **Stable** – No hydration loops with Next.js
+- **Powered by TanStack Table** – Great performance
+- **Built-in grouping** – Expand/collapse support
+- **Type-safe** – First-class TypeScript types
+- **SSR-friendly** – Works with Next.js 15
 
-- **95% moins de code** - Une seule config
-- **Zero providers** - Plus de setup complexe  
-- **Pas de boucles infinies** - Stable
-- **TanStack Table pur** - Performance
-- **Grouping natif** - Expand/collapse automatique
-- **Types intégrés** - Icônes automatiques
-- **SSR-friendly** - Pas d'hydration errors
-
-## 🔧 Fonctionnalités
+## 🔧 Features
 
 ### Grouping
-```tsx
-// Grouping automatique par type de colonne
-<UltraSimpleTable config={config} />
-// Boutons "Group by Brand" et "Group by Category" inclus
-```
+Grouping, pagination and sorting are enabled via table configuration and column types. No heavy wiring needed.
 
 ### Pagination
-```tsx
-// Pagination sans Select problématique
-// Navigation Previous/Next + compteurs automatiques
-```
+Accessible pagination controls with proper aria and keyboard navigation.
 
-### Tri
-```tsx
-// Tri automatique sur toutes les colonnes
-// Pas de configuration nécessaire
-```
+### Sorting
+Click headers to sort. Enable/disable per column.
 
-### Types de colonnes
+### Column types
 ```tsx
 const columns = [
-  { id: 'name', type: 'text', header: 'Name' },      // Icône Text
-  { id: 'brand', type: 'tag', header: 'Brand' },     // Icône Tag  
-  { id: 'price', type: 'number', header: 'Price' },  // Icône Hash
-  { id: 'active', type: 'boolean', header: 'Active' }, // Icône Toggle
-  { id: 'date', type: 'date', header: 'Created' },   // Icône Calendar
+  { id: 'name', type: 'text', header: 'Name' },
+  { id: 'brand', type: 'tag', header: 'Brand' },
+  { id: 'price', type: 'number', header: 'Price' },
+  { id: 'active', type: 'boolean', header: 'Active' },
+  { id: 'date', type: 'date', header: 'Created' },
 ];
 ```
 
-## 🎯 Migration depuis l'ancienne API
+### Toolbar & Menus
+Everything is available from the table toolbar:
 
-### ❌ Avant (complexe)
-```tsx
-<TableProvider translations={...} getTableConfig={...}>
-  <DataTableUIProvider columnsConfig={...} tableConfig={...}>
-    <DataTable 
-      tableType="products"
-      columnTypeMapping={{...}}
-      enableAdvancedFilters={true}
-    />
-  </DataTableUIProvider>
-</TableProvider>
-```
-
-### ✅ Après (simple)
-```tsx
-<UltraSimpleTable config={config} />
-```
+- Sorting via column headers
+- Column filters and an advanced filters panel
+- Grouping toggles when supported by column types
+- Column visibility menu (show/hide, reset order)
+- Global search input
+- Bulk actions menu (Edit, Delete, Duplicate)
+- Auto-generated edit forms for row/item editing
 
 ## 📖 API Reference
 
-### UltraSimpleConfig
+Find complete references here:
 
-```tsx
-interface UltraSimpleConfig {
-  id: string;
-  name: string;
-  description?: string;
-  
-  columns: Array<{
-    id: string;
-    type: 'text' | 'tag' | 'number' | 'boolean' | 'date';
-    header: string;
-  }>;
-  
-  fetchData: (params: {
-    page: number;
-    pageSize: number;
-    sorting: SortingState;
-    grouping: GroupingState;
-  }) => Promise<{
-    data: Record<string, unknown>[];
-    pageCount: number;
-    totalCount: number;
-  }>;
-}
-```
+- [DataTable](/docs/datatable)
+- [Configuration](/docs/configuration)
+- [Columns](/docs/columns)
+- [Actions](/docs/actions)
+- [Translations](/docs/translations)
 
-### Exemple fetchData
-```tsx
-fetchData: async (params) => {
-  const result = await productActions.list({
-    page: params.page,
-    limit: params.pageSize,
-    orderBy: params.sorting,
-  });
-  
-  return {
-    data: result.data as Record<string, unknown>[],
-    pageCount: result.meta?.pageCount || 1,
-    totalCount: result.meta?.totalCount || 0,
-  };
-}
-```
+## 🎨 Customization
 
-## 🎨 Personnalisation
+The table uses Tailwind by default. You can customize classes via standard `className` props.
 
-La table utilise les classes Tailwind par défaut. Toutes les classes sont personnalisables via les props className standard.
+## 🔗 Examples
 
-## 🔗 Exemples
-
-Voir `/example` pour un exemple complet avec données mockées et toutes les fonctionnalités.
+See `/example` for a complete example with mocked data and all features.

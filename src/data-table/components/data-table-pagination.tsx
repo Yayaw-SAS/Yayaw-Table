@@ -11,7 +11,6 @@ import {
   ChevronsLeft,
   ChevronsRight,
 } from 'lucide-react';
-import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,17 +19,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Select } from '@/components/ui/select';
 
-// Client-only Select to prevent hydration/infinite loop issues
-const Select = dynamic(
-  () => import('@/components/ui/select').then((mod) => mod.Select),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="h-8 w-[70px] animate-pulse rounded bg-muted" />
-    ),
-  }
-);
+// Use static Select import; SSR-safe usage is handled by mounted state
 
 import { cn } from '@/lib/utils';
 

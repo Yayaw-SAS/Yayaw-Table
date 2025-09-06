@@ -1,0 +1,87 @@
+---
+title: DataTable Reference
+description: Props and usage reference for the unified DataTable component
+---
+
+# DataTable Reference
+
+The single entry-point component that composes provider, UI, and table logic. Import from `yayaw-table`.
+
+```tsx
+import { DataTable } from "yayaw-table";
+```
+
+## Props
+
+List of available props for configuring `DataTable`.
+
+### tableType
+The identifier of your table configuration.
+
+```tsx
+<DataTable tableType="products" />
+```
+
+Required: `true`
+
+### className
+Additional class names applied to the root wrapper.
+
+Type: `string` | Default: `undefined`
+
+### loadingOverlay
+Custom loading overlay to display while data is loading.
+
+Type: `React.ReactNode` | Default: internal spinner overlay
+
+```tsx
+<DataTable tableType="products" loadingOverlay={<MySpinner />} />
+```
+
+### onRowSelectionChange
+Callback fired when selected rows change.
+
+Type: `(rows: Row<Record<string, unknown>>[]) => void` | Default: `undefined`
+
+### onBulkEdit
+Handle bulk edit of selected rows.
+
+Type: `(rows: Row<Record<string, unknown>>[]) => void` | Default: uses provider `update`
+
+### onBulkDelete
+Handle bulk deletion of selected rows.
+
+Type: `(rows: Row<Record<string, unknown>>[]) => void` | Default: uses provider `delete`
+
+### onBulkCopy
+Handle bulk duplication of selected rows.
+
+Type: `(rows: Row<Record<string, unknown>>[]) => void` | Default: uses provider `duplicate`
+
+### enableAdvancedFilters
+Enable advanced filters UI when available in your configuration.
+
+Type: `boolean` | Default: `false`
+
+### columnTypeMapping
+Map dynamic backend types to internal column renderer types.
+
+Type: `Record<string, 'text' | 'number' | 'date' | 'option' | 'multiOption'>` | Default: `{}`
+
+## Usage
+
+```tsx
+<DataTable
+  tableType="products"
+  loadingOverlay={<MySpinner />}
+  onRowSelectionChange={(rows) => console.log(rows)}
+  onBulkDelete={(rows) => console.log("delete", rows.length)}
+/>
+```
+
+See also:
+- [Configuration](/docs/configuration)
+- [Columns](/docs/columns)
+- [Actions](/docs/actions)
+- [Translations](/docs/translations)
+

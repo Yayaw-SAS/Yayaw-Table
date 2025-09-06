@@ -8,11 +8,6 @@ export type {
 // Export main components
 export { DataTable } from './data-table/components/data-table';
 export {
-  SimpleDataTable,
-  type SimpleTableConfig,
-} from './data-table/components/simple-data-table';
-export { UltraSimpleTable } from './data-table/components/ultra-simple-table';
-export {
   defaultTranslations,
   TableProvider,
   useFormConfig,

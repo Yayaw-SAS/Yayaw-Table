@@ -4,6 +4,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { Column } from '@tanstack/react-table';
 import type { CSSProperties, ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { TableHead } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 
@@ -65,6 +66,12 @@ export function SortableHeader({
     id,
   });
 
+  // Avoid SSR/CSR hydration mismatches: attach DnD attrs only after hydration
+  const [isHydrated, setIsHydrated] = useState(false);
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
   // Get pinning styles if column is provided
   const pinningStyles = column ? getColumnPinningStyles(column) : {};
 
@@ -86,7 +93,7 @@ export function SortableHeader({
   };
 
   // Create props to pass to the children
-  const dragProps = isDragEnabled ? { ...listeners } : {};
+  const dragProps = isHydrated && isDragEnabled ? { ...listeners } : {};
 
   return (
     <TableHead
@@ -96,9 +103,9 @@ export function SortableHeader({
         className
       )}
       data-column-id={id} // Add data-column-id attribute for DOM-based fallback
-      ref={setNodeRef}
+      ref={isHydrated ? setNodeRef : undefined}
       style={sortableStyles}
-      {...attributes}
+      {...(isHydrated ? attributes : {})}
       {...dragProps}
     >
       {children}

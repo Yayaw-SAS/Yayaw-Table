@@ -19,14 +19,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { ErrorBlock } from '@/components/ui-custom/error-block';
 import { Loader } from '@/components/ui-custom/loader';
 import { cn } from '@/lib/utils';
-import type { DataTableProps } from '@/types/index';
+import type { DataTableProps } from '../types';
 import { tableIdAtom } from '../atoms/table-atoms';
-import { DataTableColumnHeader } from '../components/columns/header/column-header';
-import { useColumnDnd } from '../components/columns/hooks/use-column-dnd';
-import { useColumnDragOverlay } from '../components/columns/hooks/use-column-drag-overlay';
+import { DataTableColumnHeader } from './columns/header/column-header';
+import { useColumnDnd } from './columns/hooks/use-column-dnd';
+import { useColumnDragOverlay } from './columns/hooks/use-column-drag-overlay';
 import { defaultBulkActions, useBulkActions } from '../hooks/use-bulk-actions';
 import { useDataTable } from '../hooks/use-data-table';
 import { useTableConfig } from '../hooks/use-table-config';
@@ -61,6 +60,8 @@ type ModernDataTableProps<
   manualFiltering?: boolean;
   manualPagination?: boolean;
   manualSorting?: boolean;
+  /** Optional custom overlay to render when loading */
+  loadingOverlay?: React.ReactNode;
   onRowSelectionChange?: (rows: Row<TData>[]) => void;
   onBulkEdit?: (rows: Row<TData>[]) => void;
   onBulkDelete?: (rows: Row<TData>[]) => void;
@@ -181,6 +182,7 @@ function ModernDataTable<
   manualFiltering = false,
   manualPagination = false,
   manualSorting = false,
+  loadingOverlay: loadingOverlayProp,
   onRowSelectionChange,
   onBulkEdit,
   onBulkDelete,
@@ -414,8 +416,8 @@ function ModernDataTable<
     });
   }
 
-  // Loading overlay component
-  const loadingOverlay = (
+  // Default loading overlay component
+  const defaultLoadingOverlay = (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/80">
       <div className="flex flex-col items-center">
         <Loader size="xl" />
@@ -423,6 +425,7 @@ function ModernDataTable<
       </div>
     </div>
   );
+  const loadingOverlay = loadingOverlayProp ?? defaultLoadingOverlay;
 
   // Local state to track expanded groups (bypass TanStack issues)
   const [localExpanded, setLocalExpanded] = useState<Record<string, boolean>>(
@@ -891,21 +894,21 @@ function ModernDataTable<
 
   // Render the content based on state
   const renderContent = () => {
-    // Render error state using the ErrorBlock component
+    // Render error state
     if (isError) {
       return (
-        <div className="h-64">
-          <ErrorBlock
-            action={{
-              href: '#',
-              label: 'Reset',
-            }}
-            description={
-              error?.message || 'There was an error loading the data.'
-            }
-            reset={refetch}
-            title="Error"
-          />
+        <div className="flex h-64 items-center justify-center">
+          <div role="alert" className="space-y-2 text-center">
+            <p className="font-semibold text-lg">Error loading data</p>
+            <p className="text-muted-foreground text-sm">
+              {error?.message || 'There was an error loading the data.'}
+            </p>
+            {typeof refetch === 'function' && (
+              <Button onClick={refetch} variant="outline">
+                Retry
+              </Button>
+            )}
+          </div>
         </div>
       );
     }
@@ -1013,7 +1016,7 @@ function _useDebouncedLayoutEffect(
 const MemoizedModernDataTable = memo(ModernDataTable) as typeof ModernDataTable;
 
 // Export the component with proper typing
-export function DataTable<
+export function TableComponent<
   TData extends Record<string, unknown>,
   TValue = unknown,
 >(props: ModernDataTableProps<TData, TValue>) {

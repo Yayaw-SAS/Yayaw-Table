@@ -14,7 +14,7 @@ import type {
 import { atom } from 'jotai';
 import { atomFamily, atomWithStorage } from 'jotai/utils';
 
-import type { DataTableColumnDef } from '../../types/column-types';
+import type { DataTableColumnDef } from '../types/column-types';
 
 /**
  * Atom to store the current table ID

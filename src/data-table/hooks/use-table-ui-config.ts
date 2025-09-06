@@ -12,10 +12,7 @@ import {
   tableColumnsConfigFamilyAtom,
   tableConfigFamilyAtom,
 } from '../atoms/config-atoms';
-import {
-  type DataTableTranslations,
-  resolvedTranslationsAtom,
-} from '../atoms/i18n-atoms';
+import { resolvedTranslationsAtom, type DataTableUiStrings } from '../atoms/i18n-atoms';
 
 interface UseTableUIConfigResult {
   /**
@@ -31,7 +28,7 @@ interface UseTableUIConfigResult {
   /**
    * Fully resolved translations
    */
-  translations: DataTableTranslations;
+  translations: DataTableUiStrings;
 }
 
 /**

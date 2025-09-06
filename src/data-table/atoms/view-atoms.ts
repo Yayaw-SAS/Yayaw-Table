@@ -3,7 +3,7 @@
 import { atom } from 'jotai';
 import { atomFamily } from 'jotai/utils';
 
-import type { TableView } from '../../types/view-types';
+import type { TableView } from '../types/view-types';
 
 /**
  * Atom family for storing the active view ID for each table

@@ -4,6 +4,7 @@
 'use client';
 
 import type { Row, Table } from '@tanstack/react-table';
+import { useTableActions } from './use-table-actions';
 import { useCallback, useEffect, useState } from 'react';
 
 /**
@@ -34,6 +35,11 @@ interface BulkActionsConfig<TData> {
    * Minimum number of selected rows to show bulk actions menu
    */
   minimumSelection?: number;
+
+  /**
+   * Optional table type to auto-wire provider actions when callbacks are not provided
+   */
+  tableType?: string;
 }
 
 /**
@@ -94,7 +100,12 @@ export function useBulkActions<TData>({
   onBulkDelete,
   onBulkCopy,
   minimumSelection = 1,
+  tableType,
 }: BulkActionsConfig<TData>): BulkActionsReturn<TData> {
+  // Auto-wire provider actions when tableType is provided
+  const provider = tableType
+    ? useTableActions<{ id: string }>({ tableType, enableLogging: false })
+    : undefined;
   const [selectedRows, setSelectedRows] = useState<Row<TData>[]>([]);
   const [showBulkActions, setShowBulkActions] = useState(false);
 
@@ -149,8 +160,22 @@ export function useBulkActions<TData>({
     if (selectedRows.length === 0) {
       return;
     }
-
-    onBulkEdit?.(selectedRows);
+    if (onBulkEdit) {
+      onBulkEdit(selectedRows);
+      return;
+    }
+    // If provider available, delegate to update for each selected row (no-op without data)
+    if (provider?.actions.update) {
+      for (const row of selectedRows) {
+        const original = row.original as unknown;
+        if (original && typeof original === 'object' && 'id' in original) {
+          const idValue = (original as { id: unknown }).id;
+          if (typeof idValue === 'string') {
+            void provider.actions.update(idValue, original as Record<string, unknown>);
+          }
+        }
+      }
+    }
   }, [selectedRows, onBulkEdit]);
 
   // Handle bulk delete
@@ -158,20 +183,42 @@ export function useBulkActions<TData>({
     if (selectedRows.length === 0) {
       return;
     }
-
-    onBulkDelete?.(selectedRows);
-
-    // Clear selection after delete
-    clearSelection();
-  }, [selectedRows, onBulkDelete, clearSelection]);
+    if (onBulkDelete) {
+      onBulkDelete(selectedRows);
+      clearSelection();
+      return;
+    }
+    if (provider?.actions.delete) {
+      for (const row of selectedRows) {
+        const original = row.original as unknown;
+        if (original && typeof original === 'object' && 'id' in original) {
+          const idValue = (original as { id: unknown }).id;
+          if (typeof idValue === 'string') {
+            void provider.actions.delete(idValue);
+          }
+        }
+      }
+      clearSelection();
+    }
+  }, [selectedRows, onBulkDelete, clearSelection, provider?.actions]);
 
   // Handle bulk copy
   const handleBulkCopy = useCallback(() => {
     if (selectedRows.length === 0) {
       return;
     }
-
-    onBulkCopy?.(selectedRows);
+    if (onBulkCopy) {
+      onBulkCopy(selectedRows);
+      return;
+    }
+    // Default copy to clipboard
+    try {
+      const data = selectedRows.map((row) => row.original as unknown);
+      const jsonString = JSON.stringify(data, null, 2);
+      if (navigator.clipboard) {
+        void navigator.clipboard.writeText(jsonString);
+      }
+    } catch (_err) {}
   }, [selectedRows, onBulkCopy]);
 
   // Close bulk actions (alias for clearSelection)

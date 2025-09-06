@@ -1,16 +1,17 @@
 {
-  "name": "yayaw-table",
+  "name": "yayaw-table-workspace",
+  "private": true,
   "version": "0.1.0",
   "description": "A flexible data table component library for React with user-defined configurations",
-  "main": "dist/index.cjs",
-  "module": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "files": [
-    "dist"
+  "workspaces": [
+    "packages/*"
   ],
   "scripts": {
     "build": "fumadocs-mdx && next build",
-    "build:watch": "bun tsup --watch",
+    "build:watch": "next dev",
+    "build:lib": "npm run build -w packages/yayaw-table",
+    "type-check:lib": "npm run type-check -w packages/yayaw-table",
+    "publish:lib": "npm publish --access public -w packages/yayaw-table",
     "dev": "next dev",
     "start": "next start",
     "build:app": "fumadocs-mdx && next build",
@@ -69,7 +70,7 @@
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-separator": "^1.1.7",
     "@radix-ui/react-slot": "^1.2.3",
-    "@tanstack/react-query": "^5.80.2",
+    "@tanstack/react-query": "^5.86.0",
     "@tanstack/react-table": "^8.0.0",
     "@types/mdx": "^2.0.13",
     "class-variance-authority": "^0.7.1",

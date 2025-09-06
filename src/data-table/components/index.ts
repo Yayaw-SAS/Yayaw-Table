@@ -7,7 +7,8 @@ export * from './cells';
 export * from './columns';
 export { DataTablePagination } from './data-table-pagination';
 // Export modern data table components
-export { DataTable } from './modern-data-table';
+export { TableComponent } from './table-component';
+export { DataTable } from './data-table';
 
 /**
  * Export all data table components for easy imports

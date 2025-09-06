@@ -7,7 +7,7 @@
 import type { ColumnDef } from '@tanstack/react-table';
 import { useAtomValue } from 'jotai';
 import { useMemo } from 'react';
-import type { DataTableColumnDef } from '../../../../types/column-types';
+import type { DataTableColumnDef } from '../../../types/column-types';
 import { tableConfigFamilyAtom } from '../../../atoms/config-atoms';
 import {
   createActionsColumn,

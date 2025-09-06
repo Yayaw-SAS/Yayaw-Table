@@ -1,0 +1,299 @@
+---
+title: Translations Reference
+description: Translation keys, namespaces, and override strategies
+---
+
+# Translations Reference
+
+Translations are strongly typed. Provide overrides either via the provider or directly in your table configuration under `translations.keys`.
+
+## Type shape
+
+```ts
+type DataTableTranslations = {
+  actions: { delete: string; edit: string; copy: string; save: string; cancel: string; confirm: string; title: string; view: string };
+  columns: { title: string; hide: string; show: string; visible: string; hidden: string; drag: string; resetOrder: string; toggleVisibility: string; hideAll: string; showAll: string; edit_property: string; filter: string; hide_in_view: string; reorder: string; sort_ascending: string; sort_descending: string };
+  pagination: { first: string; last: string; next: string; previous: string; of: string; page: string; rowsPerPage: string; showing: string; selectedCount: string };
+  // ... see full type in `src/data-table/types/translations.ts`
+}
+```
+
+## Inline overrides (config)
+
+```ts
+translations: {
+  namespace: 'common',
+  keys: {
+    'columns.title': 'Columns',
+    'actions.title': 'Actions',
+  },
+}
+```
+
+## Provider-based
+
+You can supply a full `DataTableTranslations` object to the provider for consistent localization across tables.
+
+See also:
+- [DataTable](/docs/datatable)
+- [Columns](/docs/columns)
+
+
+## All keys (dot-path)
+
+Use the following keys to construct your translations object. All values are strings.
+
+### actions
+
+| Key | Type |
+| --- | --- |
+| actions.delete | string |
+| actions.edit | string |
+| actions.copy | string |
+| actions.save | string |
+| actions.cancel | string |
+| actions.confirm | string |
+| actions.title | string |
+| actions.view | string |
+
+### columns
+
+| Key | Type |
+| --- | --- |
+| columns.title | string |
+| columns.hide | string |
+| columns.show | string |
+| columns.visible | string |
+| columns.hidden | string |
+| columns.drag | string |
+| columns.resetOrder | string |
+| columns.toggleVisibility | string |
+| columns.hideAll | string |
+| columns.showAll | string |
+| columns.edit_property | string |
+| columns.filter | string |
+| columns.hide_in_view | string |
+| columns.reorder | string |
+| columns.sort_ascending | string |
+| columns.sort_descending | string |
+
+### common
+
+| Key | Type |
+| --- | --- |
+| common.true | string |
+| common.false | string |
+| common.loading | string |
+| common.error | string |
+| common.success | string |
+| common.reset | string |
+| common.search | string |
+
+### filters
+
+| Key | Type |
+| --- | --- |
+| filters.title | string |
+| filters.add | string |
+| filters.remove | string |
+| filters.apply | string |
+| filters.clear | string |
+| filters.noResults | string |
+| filters.noFilters | string |
+| filters.search | string |
+| filters.selectedCount | string |
+| filters.active_count | string |
+| filters.column | string |
+| filters.value | string |
+| filters.value_to | string |
+| filters.select_operator | string |
+| filters.error | string |
+| filters.operators.contains | string |
+| filters.operators.empty | string |
+| filters.operators.not_empty | string |
+| filters.operators.between | string |
+
+### pagination
+
+| Key | Type |
+| --- | --- |
+| pagination.first | string |
+| pagination.last | string |
+| pagination.next | string |
+| pagination.previous | string |
+| pagination.of | string |
+| pagination.page | string |
+| pagination.rowsPerPage | string |
+| pagination.showing | string |
+| pagination.selectedCount | string |
+
+### search
+
+| Key | Type |
+| --- | --- |
+| search.placeholder | string |
+
+### selection
+
+| Key | Type |
+| --- | --- |
+| selection.rows | string |
+
+### sorting
+
+| Key | Type |
+| --- | --- |
+| sorting.ascending | string |
+| sorting.descending | string |
+| sorting.choose_column | string |
+| sorting.current | string |
+
+### views
+
+| Key | Type |
+| --- | --- |
+| views.title | string |
+| views.current | string |
+| views.save | string |
+| views.saveAs | string |
+| views.update | string |
+| views.delete | string |
+| views.rename | string |
+| views.setDefault | string |
+| views.defaultView | string |
+| views.default_system_view | string |
+| views.systemView | string |
+| views.custom_view | string |
+| views.temporary_view | string |
+| views.viewName | string |
+| views.noViews | string |
+| views.confirmDelete | string |
+| views.confirmDeleteWithName | string |
+| views.manage | string |
+| views.saveChanges | string |
+| views.saveChangesTooltip | string |
+| views.add_view | string |
+| views.view_options | string |
+| views.view_name | string |
+| views.cannot_delete_system_view | string |
+| views.cannot_update_system_view | string |
+| views.view_created_successfully | string |
+| views.view_updated_successfully | string |
+| views.view_deleted_successfully | string |
+| views.error_saving_view | string |
+| views.error_updating_view | string |
+| views.error_deleting_view | string |
+| views.error_loading_views | string |
+| views.history.undo | string |
+| views.history.redo | string |
+| views.history.nothing_to_undo | string |
+| views.history.nothing_to_redo | string |
+| views.notifications.created | string |
+| views.notifications.updated | string |
+| views.notifications.deleted | string |
+| views.notifications.setAsDefault | string |
+| views.notifications.error.create | string |
+| views.notifications.error.update | string |
+| views.notifications.error.delete | string |
+| views.notifications.error.setDefault | string |
+| views.dialog.save.title | string |
+| views.dialog.save.description | string |
+| views.dialog.save.name | string |
+| views.dialog.save.namePlaceholder | string |
+| views.dialog.save.default | string |
+| views.dialog.save.global | string |
+| views.dialog.save.save | string |
+| views.dialog.save.saving | string |
+| views.dialog.manage.title | string |
+| views.dialog.manage.description | string |
+| views.dialog.manage.name | string |
+| views.dialog.manage.type | string |
+| views.dialog.manage.created | string |
+| views.dialog.manage.actions | string |
+| views.dialog.manage.rename | string |
+| views.dialog.manage.delete | string |
+| views.dialog.manage.setDefault | string |
+| views.dialog.manage.editColumns | string |
+| views.dialog.manage.stopEdit | string |
+| views.dialog.manage.editSystemViewWarning | string |
+
+### state
+
+| Key | Type |
+| --- | --- |
+| state.loading | string |
+| state.noData | string |
+| state.error | string |
+| state.error_description | string |
+
+### url_state
+
+| Key | Type |
+| --- | --- |
+| url_state.copy_link | string |
+| url_state.link_copied | string |
+| url_state.reset | string |
+| url_state.share | string |
+| url_state.auto_save | string |
+| url_state.save_success | string |
+
+### demo
+
+| Key | Type |
+| --- | --- |
+| demo.title | string |
+| demo.copy_url | string |
+| demo.save_view | string |
+| demo.reset | string |
+| demo.view | string |
+| demo.sort_by | string |
+| demo.select_view | string |
+| demo.select_sort | string |
+| demo.view_name_placeholder | string |
+| demo.save | string |
+| demo.current_state | string |
+| demo.data | string |
+| demo.loading | string |
+| demo.name_asc | string |
+| demo.name_desc | string |
+| demo.date_asc | string |
+| demo.date_desc | string |
+
+### table
+
+| Key | Type |
+| --- | --- |
+| table.no_results | string |
+| table.no_results_description | string |
+| table.hide_column | string |
+| table.show_column | string |
+| table.toggle_columns | string |
+| table.selected_rows | string |
+| table.sort_ascending | string |
+| table.sort_descending | string |
+| table.drag_column | string |
+
+### menu
+
+| Key | Type |
+| --- | --- |
+| menu.back | string |
+| menu.columns | string |
+| menu.columns_visible | string |
+| menu.filter | string |
+| menu.filters | string |
+| menu.group | string |
+| menu.select_column | string |
+| menu.current_groups | string |
+| menu.active_groups | string |
+| menu.options | string |
+| menu.properties | string |
+| menu.sort | string |
+| menu.subgroup | string |
+| menu.title | string |
+
+### root
+
+| Key | Type |
+| --- | --- |
+| add_an_item | string |

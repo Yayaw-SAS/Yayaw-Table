@@ -1,0 +1,63 @@
+---
+title: Columns Reference
+description: Columns configuration, types, order, and visibility
+---
+
+# Columns Reference
+
+Declare columns in `columns.definitions`, then control order and visibility via `columns.order` and `columns.visible`.
+
+```ts
+columns: {
+  definitions: [
+    { id: 'name', type: 'text', header: 'Name', enableSorting: true, enableColumnFilter: true },
+    { id: 'price', type: 'number', header: 'Price' },
+    { id: 'status', type: 'tag', header: 'Status' },
+    { id: 'createdAt', type: 'date', header: 'Created' },
+    { id: 'isActive', type: 'boolean', header: 'Active' },
+    { id: 'actions', type: 'actions', header: 'Actions' },
+    { id: 'value', type: 'dynamicType', typeKey: 'valueType', header: 'Value' },
+  ],
+  order: ['select', 'name', 'price', 'status', 'createdAt', 'actions'],
+  visible: ['name', 'price', 'status', 'createdAt', 'actions'],
+  mandatory: ['name'],
+}
+```
+
+## Types
+
+Supported column types:
+
+- `text`
+- `number`
+- `boolean`
+- `date`
+- `tag`
+- `actions`
+- `dynamicType` (renderer selected via `typeKey`)
+- `select` (row selection checkbox; virtual column)
+
+## Options per column
+
+Common properties:
+
+- `id: string` – Unique identifier
+- `header: string | React.ReactNode`
+- `enableSorting?: boolean` (default `true`)
+- `enableColumnFilter?: boolean` (default `true`)
+- `accessorKey?: string` – Optional accessor if data key differs from `id`
+
+## Dynamic type columns
+
+Use `type: 'dynamicType'` and specify `typeKey` on the row to pick the renderer at runtime.
+
+## Selection column (`select`)
+
+- The `select` column is virtual and does not need a definition entry.
+- Add `'select'` to `columns.order` and (optionally) to `columns.visible` to show it.
+- Controlled by `table.enableRowSelection` (default `true`).
+
+See also:
+- [Configuration](/docs/configuration)
+- [DataTable](/docs/datatable)
+

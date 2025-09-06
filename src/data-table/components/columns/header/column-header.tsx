@@ -5,7 +5,7 @@ import { CSS } from '@dnd-kit/utilities';
 import type { Column, Table } from '@tanstack/react-table';
 import { useAtomValue } from 'jotai';
 import { ArrowDown, ArrowUp, GripVertical } from 'lucide-react';
-import { memo, useMemo } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
@@ -72,6 +72,12 @@ function DataTableColumnHeaderBase<TData, TValue>({
     id: column.id,
   });
 
+  // Ensure DnD attributes are attached only after hydration to avoid mismatches
+  const [isHydrated, setIsHydrated] = useState(false);
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
   const style = useMemo(
     () => ({
       transform: CSS.Transform.toString(transform),
@@ -115,9 +121,9 @@ function DataTableColumnHeaderBase<TData, TValue>({
             isOver && 'bg-accent',
             className
           )}
-          ref={setNodeRef}
+          ref={isHydrated ? setNodeRef : undefined}
           style={style}
-          {...attributes}
+          {...(isHydrated ? attributes : {})}
         >
           {tableInstance ? (
             <div className="flex h-full w-full items-center">
@@ -141,7 +147,7 @@ function DataTableColumnHeaderBase<TData, TValue>({
                   </div>
                 </ColumnMenu>
               </div>
-              {isDragEnabled && (
+              {isHydrated && isDragEnabled && (
                 <div
                   className="ml-2 cursor-grab touch-none active:cursor-grabbing"
                   {...listeners}
@@ -164,7 +170,7 @@ function DataTableColumnHeaderBase<TData, TValue>({
           ) : (
             <div className="flex w-full items-center gap-2">
               <span>{title}</span>
-              {isDragEnabled && (
+              {isHydrated && isDragEnabled && (
                 <div
                   className="ml-auto cursor-grab touch-none active:cursor-grabbing"
                   {...listeners}

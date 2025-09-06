@@ -9,7 +9,7 @@ import { atomFamily } from 'jotai/utils';
  * Interface defining all translation keys used in the DataTable
  * This acts as a "translation API" for the component
  */
-export interface DataTableTranslations {
+export interface DataTableUiStrings {
   // Filters
   activeFilters: string;
   addFilter: string;
@@ -131,7 +131,7 @@ export interface DataTableTranslations {
  * This is populated by the translation provider
  */
 export const translationsAtom = atom<
-  Partial<Record<keyof DataTableTranslations, string>>
+  Partial<Record<keyof DataTableUiStrings, string>>
 >({});
 
 /**
@@ -144,7 +144,7 @@ export const translationsInitializedAtom = atom<boolean>(false);
  * Allows customizing translations for specific tables
  */
 export const tableTranslationOverridesAtom = atomFamily((_tableId: string) =>
-  atom<Partial<Record<keyof DataTableTranslations, string>>>({})
+  atom<Partial<Record<keyof DataTableUiStrings, string>>>({})
 );
 
 /**
@@ -165,7 +165,7 @@ export const tableTranslationsAtom = atomFamily((tableId: string) =>
  * Default translation keys mapping
  * Maps each UI string to its corresponding translation key in the translations file
  */
-export const translationKeysMap: DataTableTranslations = {
+export const translationKeysMap: DataTableUiStrings = {
   // Filters
   activeFilters: 'filters.active_count',
   addFilter: 'filters.add',
@@ -287,12 +287,12 @@ export const translationKeysMap: DataTableTranslations = {
  * Allows complete replacement of translation keys if needed
  */
 export const dataTableTranslationKeysAtom =
-  atom<DataTableTranslations>(translationKeysMap);
+  atom<DataTableUiStrings>(translationKeysMap);
 
 /**
  * Atom for resolved translations
  * Components use this atom directly, without knowing how translations are resolved
  */
-export const resolvedTranslationsAtom = atom<DataTableTranslations>(
-  {} as DataTableTranslations
+export const resolvedTranslationsAtom = atom<DataTableUiStrings>(
+  {} as DataTableUiStrings
 );

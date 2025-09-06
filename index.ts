@@ -38,7 +38,7 @@ export { BulkActionsMenu } from './src/data-table/components/bulk-actions';
 // Export main DataTable component (full-featured)
 export { DataTable } from './src/data-table/components/data-table';
 // Export simplified components (alternative API)
-export { SimpleDataTable } from './src/data-table/components/simple-data-table';
+// SimpleDataTable removed in favor of unified DataTable
 export type {
   ColumnDefinition,
   TableBehaviorConfig,
@@ -56,7 +56,7 @@ export {
   createBulkEditFormConfig,
   useBulkEdit,
 } from './src/data-table/hooks/use-bulk-edit';
-export { useSimpleDataTable } from './src/data-table/hooks/use-simple-data-table';
+// useSimpleDataTable hook kept for advanced internal scenarios; not exported by default
 // Export providers and translations
 export {
   defaultTranslations,

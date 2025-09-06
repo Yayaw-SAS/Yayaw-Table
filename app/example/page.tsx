@@ -1,16 +1,11 @@
 'use client';
 
-import { QueryClient } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { toast } from 'sonner';
 // Row type is not used directly in this file
-import {
-  defaultTranslations,
-  TableProvider,
-  ThemeToggle,
-  useBulkEdit,
-  DataTable,
-  useTableActions,
-} from '../../index';
+import { ThemeToggle } from '../../src/components/ui-custom/theme-toggle';
+import { useBulkEdit } from '../../src/data-table/hooks/use-bulk-edit';
+import { DataTable } from '../../src/data-table/components/data-table';
 import { CustomDescription, CustomTitle } from './components';
 import { getFormConfig } from './setup/form-config';
 import { getTableActions, getTableConfig } from './setup/table-config';
@@ -19,8 +14,7 @@ import { getTableActions, getTableConfig } from './setup/table-config';
 const queryClient = new QueryClient();
 
 function BulkActionsSection() {
-  const getTableActions = useTableActions();
-  const actions = getTableActions?.('products') as
+  const actions = getTableActions('products') as
     | {
         bulkDelete?: (
           ids: string[]
@@ -91,6 +85,14 @@ function BulkActionsSection() {
 
   return (
     <DataTable
+      DescriptionComponent={CustomDescription}
+      TitleComponent={CustomTitle}
+      getFormConfig={getFormConfig}
+      getTableActions={getTableActions}
+      getTableConfig={getTableConfig}
+      locale="en"
+      queryClient={queryClient}
+      className="w-full"
       columnTypeMapping={{
         name: 'text',
         brand: 'text',
@@ -102,9 +104,12 @@ function BulkActionsSection() {
       }}
       description="Production-ready table with server-side pagination, filtering, and sorting. Select multiple rows to see bulk actions!"
       enableAdvancedFilters={true}
+      enableToolbar={true}
+      loadingOverlay={<div className="flex items-center justify-center p-8 text-muted-foreground">Loading products…</div>}
       onBulkCopy={handleBulkCopy}
       onBulkDelete={handleBulkDelete}
       onBulkEdit={(rows) => bulkEdit.openBulkEdit(rows as never)}
+      onRowSelectionChange={(rows) => console.log('Selected rows:', rows.length)}
       tableType="products"
       title="Products Management"
     />
@@ -113,17 +118,6 @@ function BulkActionsSection() {
 
 export default function ExamplePage() {
   return (
-    <TableProvider
-      DescriptionComponent={CustomDescription}
-      getFormConfig={getFormConfig}
-      getTableActions={getTableActions}
-      getTableConfig={getTableConfig}
-      locale="en"
-      queryClient={queryClient}
-      TitleComponent={CustomTitle}
-      tableId="products"
-      translations={defaultTranslations}
-    >
       <div className="min-h-screen bg-background p-6 lg:p-8">
         <div className="mx-auto max-w-7xl">
           {/* Header with Theme Toggle */}
@@ -144,7 +138,9 @@ export default function ExamplePage() {
           {/* Data Table */}
           <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
             <div className="p-6">
-              <BulkActionsSection />
+              <QueryClientProvider client={queryClient}>
+                <BulkActionsSection />
+              </QueryClientProvider>
             </div>
           </div>
 
@@ -219,6 +215,4 @@ const getTableConfig = (tableType: string) => {
         </div>
       </div>
       );
-    </TableProvider>
-  );
 }

@@ -10,7 +10,7 @@ import type {
   SortingState,
 } from '@tanstack/react-table';
 // Import TableViewConfig type from types
-import type { TableViewConfig } from '../../types/view-types';
+import type { TableViewConfig } from '../types/view-types';
 
 /**
  * Type definition for a serialized table configuration

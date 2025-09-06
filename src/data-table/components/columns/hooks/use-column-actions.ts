@@ -9,7 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { AccessorFn, ColumnDef, ColumnMeta } from '@tanstack/react-table';
 import { useAtom } from 'jotai';
 import { useCallback, useMemo, useRef } from 'react';
-import type { DataTableColumnDef } from '../../../../types/column-types';
+import type { DataTableColumnDef } from '../../../types/column-types';
 import {
   cleanColumnId,
   columnIdMappingAtom,

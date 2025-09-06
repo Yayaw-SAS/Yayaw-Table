@@ -1,4 +1,12 @@
 {
   "title": "Documentation",
-  "pages": ["index", "installation", "ultra-simple-api"]
+  "pages": [
+    "index",
+    "installation",
+    "datatable",
+    "configuration",
+    "columns",
+    "actions",
+    "translations"
+  ]
 }

@@ -7,7 +7,7 @@
 import { lazy, Suspense } from 'react';
 import { Skeleton } from '../../../components/ui/skeleton';
 import type { UseFilterPresetsReturn } from '../../hooks/use-filter-presets';
-import type { ColumnDataType } from '../../types';
+import type { ColumnDataType } from '../../types/filter-types';
 import type { AdvancedFilterState } from '../../types/advanced-filter-types';
 import type { ColumnsFilterConfig } from '../../types/filter-types';
 import type { AdvancedFacetedFilterProps } from './advanced-faceted-filter';

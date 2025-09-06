@@ -16,10 +16,7 @@ import {
   tableConfigAtom,
 } from '../atoms/config-atoms';
 
-import {
-  type DataTableTranslations,
-  resolvedTranslationsAtom,
-} from '../atoms/i18n-atoms';
+import { type DataTableUiStrings, resolvedTranslationsAtom } from '../atoms/i18n-atoms';
 
 interface DataTableUIProviderProps {
   /**
@@ -46,7 +43,7 @@ interface DataTableUIProviderProps {
    * Pre-translated values to use directly
    * This simplifies the translation process by using already translated strings
    */
-  translations: DataTableTranslations;
+  translations: DataTableUiStrings;
 }
 
 /**

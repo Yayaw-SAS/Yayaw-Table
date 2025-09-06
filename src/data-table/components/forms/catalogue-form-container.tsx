@@ -6,18 +6,13 @@
 'use client';
 
 import { useAtomValue } from 'jotai';
-import dynamic from 'next/dynamic';
+import { lazy, Suspense } from 'react';
 
 import { catalogueFormAtom } from './atoms/catalogue-form-atoms';
 
-// Dynamically import the CatalogueForm component with no SSR
-// This ensures it's only rendered on the client side
-const CatalogueForm = dynamic(
-  () =>
-    import('./catalogue-form').then((mod) => ({ default: mod.CatalogueForm })),
-  {
-    ssr: false,
-  }
+// Dynamically import the CatalogueForm component using React.lazy
+const CatalogueForm = lazy(() =>
+  import('./catalogue-form').then((mod) => ({ default: mod.CatalogueForm }))
 );
 
 /**
@@ -40,12 +35,14 @@ export function CatalogueFormContainer() {
   // Render the CatalogueForm with the values from the atom
   // Let CatalogueForm handle all state management internally
   return (
-    <CatalogueForm
-      formType={formType}
-      initialData={initialData}
-      mode={mode}
-      onSuccess={onSuccess as ((data: unknown) => void) | undefined}
-      tableId={tableId}
-    />
+    <Suspense fallback={null}>
+      <CatalogueForm
+        formType={formType}
+        initialData={initialData}
+        mode={mode}
+        onSuccess={onSuccess as ((data: unknown) => void) | undefined}
+        tableId={tableId}
+      />
+    </Suspense>
   );
 }

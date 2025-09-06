@@ -1,0 +1,47 @@
+---
+title: Actions Provider API
+description: Wire CRUD actions to the table via provider callbacks
+---
+
+# Actions Provider API
+
+Provide actions per `tableType` to connect your data layer.
+
+## Shape
+
+```ts
+getTableActions: (tableType: string) => ({
+  list: async (params) => {
+    // params: { filters, advancedFilters, limit, orderBy, page }
+    return {
+      data: [],
+      meta: { pageCount: 1, totalCount: 0 },
+    };
+  },
+  create: async (data) => ({ success: true, data }),
+  update: async (id, data) => ({ success: true, data }),
+  delete: async (id) => ({ success: true }),
+  duplicate: async (id) => ({ success: true }),
+})
+```
+
+## list response
+
+The `list` method must return:
+
+```ts
+{ data: T[]; meta?: { pageCount?: number; totalCount?: number } }
+```
+
+## Bulk actions
+
+`DataTable` will use these by default if you don't provide explicit callbacks:
+
+- `onBulkEdit` → `update`
+- `onBulkDelete` → `delete`
+- `onBulkCopy` → `duplicate`
+
+See also:
+- [DataTable props](/docs/datatable)
+- [Configuration](/docs/configuration)
+

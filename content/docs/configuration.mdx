@@ -1,0 +1,93 @@
+---
+title: Configuration Options
+description: Table behavior configuration and defaults
+---
+
+# Configuration Options
+
+List of options for table behavior. Configure within your table definition under `table`.
+
+```ts
+table: {
+  enableRowSelection: true,
+  enableColumnFilters: true,
+  enableSorting: true,
+  enableGrouping: true,
+  manualFiltering: false,
+  manualPagination: false,
+  manualSorting: false,
+  enableColumnDragDropByDefault: false,
+  enableMultiRowSelection: true,
+  enablePagination: true,
+  defaultPageSize: 10,
+  pageSizeOptions: [5, 10, 20, 50],
+}
+```
+
+## Options
+
+### enableRowSelection
+Enable row selection checkboxes.
+
+Type: `boolean` | Default: `true`
+
+### enableColumnFilters
+Enable per-column filters.
+
+Type: `boolean` | Default: `true`
+
+### enableSorting
+Enable sorting by clicking column headers.
+
+Type: `boolean` | Default: `true`
+
+### enableGrouping
+Enable grouping UI and grouped row rendering when column types allow it.
+
+Type: `boolean` | Default: `true`
+
+### manualFiltering
+Delegate filtering to your backend.
+
+Type: `boolean` | Default: `false`
+
+### manualPagination
+Delegate pagination to your backend.
+
+Type: `boolean` | Default: `false`
+
+### manualSorting
+Delegate sorting to your backend.
+
+Type: `boolean` | Default: `false`
+
+### enableColumnDragDropByDefault
+Enable drag-and-drop column reordering by default.
+
+Type: `boolean` | Default: `false`
+
+### enableMultiRowSelection
+Allow selecting multiple rows.
+
+Type: `boolean` | Default: `true`
+
+### enablePagination
+Render pagination controls.
+
+Type: `boolean` | Default: `true`
+
+### defaultPageSize
+Default number of rows per page.
+
+Type: `number` | Default: `10`
+
+### pageSizeOptions
+Allowed page size values.
+
+Type: `number[]` | Default: `[5, 10, 20, 50]`
+
+See also:
+- [DataTable](/docs/datatable)
+- [Columns](/docs/columns)
+- [Actions](/docs/actions)
+
