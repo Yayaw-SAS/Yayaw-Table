@@ -29,7 +29,8 @@ export const getTableConfig = (
   if (tableType === 'products') {
     return {
       defaultPageSize: 10,
-      enableColumnDragDropByDefault: false,
+      enableColumnDnd: true,
+      enableColumnDragDropByDefault: true,
       enableColumnFilters: true,
       enableMultiRowSelection: true,
       enablePagination: true,

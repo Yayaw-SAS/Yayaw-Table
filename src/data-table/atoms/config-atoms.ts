@@ -47,6 +47,12 @@ export interface DataTableConfig {
   enableColumnDragDropByDefault: boolean;
 
   /**
+   * Enable the column drag & drop feature and UI (gate)
+   * When false, the interface and actions to reorder columns are hidden/disabled
+   */
+  enableColumnDnd?: boolean;
+
+  /**
    * Enable column filters
    */
   enableColumnFilters: boolean;
@@ -126,6 +132,7 @@ export interface DataTableConfig {
 const defaultTableConfig: DataTableConfig = {
   defaultPageSize: 10,
   enableColumnDragDropByDefault: true,
+  enableColumnDnd: true,
   enableColumnFilters: true,
   enableMultiRowSelection: true,
   enablePagination: true,

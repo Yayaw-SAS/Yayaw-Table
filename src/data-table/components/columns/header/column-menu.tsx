@@ -25,6 +25,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { columnDragEnabledAtom } from '../../../atoms/table-atoms';
+import { useTableConfig } from '../../../hooks/use-table-config';
 import { useDataTable } from '../../../hooks/use-data-table';
 import { useOnClickOutside } from '../../../hooks/use-on-click-outside';
 import { useTableTranslations } from '../../../hooks/use-table-translations';
@@ -250,6 +251,8 @@ function ColumnMenuBase<TData>({
   const [isDragEnabled, setIsDragEnabled] = useAtom(
     columnDragEnabledAtom(tableId)
   );
+  const { config } = useTableConfig(tableId);
+  const dndFeatureEnabled = config?.table?.enableColumnDnd !== false;
 
   // Memoize handlers to prevent recreation
   const handleSort = useCallback(
@@ -324,11 +327,22 @@ function ColumnMenuBase<TData>({
               />
             )}
 
-            <MenuItem
-              icon={<GripVertical className="h-3.5 w-3.5" />}
-              label={translations.columnReorder + (isDragEnabled ? ' ✓' : '')}
-              onClick={handleToggleDrag}
-            />
+            {dndFeatureEnabled && (
+              <div className="mt-1 border-t pt-1">
+                <MenuItem
+                  icon={<GripVertical className="h-3.5 w-3.5" />}
+                  label={
+                    translations.columnReorder + (isDragEnabled ? ' ✓' : '')
+                  }
+                  onClick={handleToggleDrag}
+                />
+                {!isDragEnabled && (
+                  <div className="px-2 py-1 text-muted-foreground text-xs">
+                    Enable to drag columns in header and here
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

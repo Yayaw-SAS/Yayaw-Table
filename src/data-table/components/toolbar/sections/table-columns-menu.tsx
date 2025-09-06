@@ -25,7 +25,8 @@ import {
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { StackMenuContent } from '@/src/components/ui-custom/stack-menu';
-import { tableIdAtom } from '../../../atoms/table-atoms';
+import { columnDragEnabledAtom, tableIdAtom } from '../../../atoms/table-atoms';
+import { useTableConfig } from '../../../hooks/use-table-config';
 import { useColumnDnd } from '../../../components/columns/hooks/use-column-dnd';
 import { useDataTable } from '../../../hooks/use-data-table';
 import { useTableUIConfig } from '../../../hooks/use-table-ui-config';
@@ -162,6 +163,7 @@ const SortableItem = ({
   isVisible,
   onToggle,
   tableId: _tableId,
+  featureEnabled,
 }: {
   column: {
     canSort?: boolean;
@@ -172,6 +174,7 @@ const SortableItem = ({
   isVisible: boolean;
   onToggle: () => void;
   tableId: string;
+  featureEnabled: boolean;
 }) => {
   // Utiliser le hook useSortable de dnd-kit
   const {
@@ -184,6 +187,10 @@ const SortableItem = ({
   } = useSortable({
     id: column.id,
   });
+
+  // Respect the column drag enabled state for this table
+  const [isDragEnabled] = useAtom(columnDragEnabledAtom(_tableId));
+  const effectiveDragEnabled = featureEnabled && isDragEnabled;
 
   // Style pour l'animation du glisser-déposer
   const style = {
@@ -199,12 +206,18 @@ const SortableItem = ({
       style={style}
     >
       {/* Grip icon rendu draggable */}
-      <div
-        className="cursor-grab touch-none px-2 active:cursor-grabbing"
-        {...attributes}
-        {...listeners}
-      >
-        <GripVertical className="h-4 w-4 text-muted-foreground" />
+      <div className="px-2">
+        {effectiveDragEnabled ? (
+          <div
+            className="cursor-grab touch-none active:cursor-grabbing"
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="h-4 w-4 text-muted-foreground" />
+          </div>
+        ) : (
+          <GripVertical className="h-4 w-4 text-muted-foreground opacity-40" />
+        )}
       </div>
 
       {/* Column icon and name */}
@@ -253,6 +266,8 @@ export function TableColumnsMenu({
   // Get table configuration
   const { columnsConfig: _columnsConfig, tableConfig: _tableConfig } =
     useTableUIConfig(effectiveTableId);
+  const tableConfigRes = useTableConfig(effectiveTableId);
+  const dndFeatureEnabled = tableConfigRes.config?.table?.enableColumnDnd !== false;
 
   // Local state to force re-render when visibility changes
   const [visibilityVersion, setVisibilityVersion] = useState(0);
@@ -644,6 +659,7 @@ export function TableColumnsMenu({
                   key={`${column.id}-${visibilityVersion}-visible`}
                   onToggle={() => handleToggleColumnVisibility(column.id)}
                   tableId={effectiveTableId}
+                  featureEnabled={dndFeatureEnabled}
                 />
               ))}
             </div>
@@ -680,6 +696,7 @@ export function TableColumnsMenu({
                     key={`${column.id}-${visibilityVersion}-hidden`}
                     onToggle={() => handleToggleColumnVisibility(column.id)}
                     tableId={effectiveTableId}
+                    featureEnabled={dndFeatureEnabled}
                   />
                 ))}
               </div>

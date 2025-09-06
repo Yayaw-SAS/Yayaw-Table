@@ -387,6 +387,35 @@ export function useTableInstance<TData>({
     return columns.map((column, index) => getColumnId(column, index));
   }, [columns, getColumnId]);
 
+  // Resolve the effective column order from URL params with a safe fallback
+  const resolvedColumnOrder = useMemo(() => {
+    const urlOrder = Array.isArray(orderParam)
+      ? (orderParam as string[])
+      : [];
+
+    // When no URL order, use initial order derived from current columns
+    if (urlOrder.length === 0) {
+      return initialColumnOrder;
+    }
+
+    // Filter URL order to only include current columns
+    const currentIds = new Set(initialColumnOrder);
+    const filtered = urlOrder.filter((id) => currentIds.has(id));
+
+    // Append any new/missing columns at the end in their initial order
+    const missing = initialColumnOrder.filter((id) => !filtered.includes(id));
+    let combined = [...filtered, ...missing];
+
+    // Enforce fixed positions for special columns if present
+    const hasSelect = combined.includes('select');
+    const hasActions = combined.includes('actions');
+    combined = combined.filter((id) => id !== 'select' && id !== 'actions');
+    if (hasSelect) combined = ['select', ...combined];
+    if (hasActions) combined = [...combined, 'actions'];
+
+    return combined;
+  }, [orderParam, initialColumnOrder]);
+
   // Create the table instance with memoized values
   const tableInstance = useReactTable({
     columns: memoizedColumns,
@@ -440,7 +469,7 @@ export function useTableInstance<TData>({
       columnFilters: Array.isArray(filtersParam)
         ? (filtersParam as ColumnFiltersState)
         : [],
-      columnOrder: initialColumnOrder,
+      columnOrder: resolvedColumnOrder,
       columnPinning: pinningParam || {
         left: ['select'],
         right: ['actions'],

@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
 import { columnDragEnabledAtom } from '../../../atoms/table-atoms';
+import { useTableConfig } from '../../../hooks/use-table-config';
 
 import { ActionsHeader } from './actions-header';
 import { ColumnMenu } from './column-menu';
@@ -58,6 +59,8 @@ function DataTableColumnHeaderBase<TData, TValue>({
   const tableInstance = table;
   const canSort = column.getCanSort();
   const isDragEnabled = useAtomValue(columnDragEnabledAtom(tableId));
+  const { config } = useTableConfig(tableId);
+  const dndFeatureEnabled = config?.table?.enableColumnDnd !== false;
 
   const {
     attributes,
@@ -68,7 +71,7 @@ function DataTableColumnHeaderBase<TData, TValue>({
     transform,
     transition,
   } = useSortable({
-    disabled: !(canSort && isDragEnabled),
+    disabled: !(isDragEnabled && dndFeatureEnabled),
     id: column.id,
   });
 
@@ -82,6 +85,8 @@ function DataTableColumnHeaderBase<TData, TValue>({
     () => ({
       transform: CSS.Transform.toString(transform),
       transition,
+      // Force header cell to follow its column when pinned/reordered
+      willChange: 'transform',
     }),
     [transform, transition]
   );

@@ -36,6 +36,8 @@ export interface TableCatalogueTableConfig {
   manualFiltering: boolean;
   manualPagination: boolean;
   manualSorting: boolean;
+  /** Gate for column DnD feature and UI */
+  enableColumnDnd?: boolean;
   enableColumnDragDropByDefault?: boolean;
   enableMultiRowSelection?: boolean;
   enablePagination?: boolean;
@@ -73,6 +75,7 @@ const DEFAULT_TABLE_CONFIG: TableCatalogueConfig = {
     manualFiltering: false,
     manualPagination: false,
     manualSorting: false,
+    enableColumnDnd: true,
     enableColumnDragDropByDefault: false,
     enableMultiRowSelection: true,
     enablePagination: true,
@@ -121,6 +124,7 @@ export function useTableConfig(tableType: string) {
         manualFiltering: providerConfig.manualFiltering,
         manualPagination: providerConfig.manualPagination,
         manualSorting: providerConfig.manualSorting,
+        enableColumnDnd: providerConfig.enableColumnDnd ?? true,
         enableColumnDragDropByDefault:
           providerConfig.enableColumnDragDropByDefault,
         enableMultiRowSelection: providerConfig.enableMultiRowSelection,

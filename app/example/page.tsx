@@ -131,7 +131,23 @@ export default function ExamplePage() {
               </p>
             </div>
             <div className="flex items-center gap-4">
-              <ThemeToggle variant="switch" />
+              {/* Navigation */}
+          <div className="mt-8 flex justify-center gap-4">
+            <a
+              className="inline-flex items-center rounded-lg bg-primary px-6 py-3 font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+              href="/docs"
+            >
+              📚 Read Documentation
+            </a>
+            <a
+              className="inline-flex items-center rounded-lg bg-secondary px-6 py-3 font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
+              href="/"
+            >
+              🏠 Back Home
+            </a>
+                          <ThemeToggle variant="switch" />
+
+          </div>
             </div>
           </div>
 
@@ -195,22 +211,6 @@ const getTableConfig = (tableType: string) => {
 // 🎨 Try switching themes with the toggle in the top-right!`}
               </pre>
             </div>
-          </div>
-
-          {/* Navigation */}
-          <div className="mt-8 flex justify-center gap-4">
-            <a
-              className="inline-flex items-center rounded-lg bg-primary px-6 py-3 font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-              href="/docs"
-            >
-              📚 Read Documentation
-            </a>
-            <a
-              className="inline-flex items-center rounded-lg bg-secondary px-6 py-3 font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
-              href="/"
-            >
-              🏠 Back Home
-            </a>
           </div>
         </div>
       </div>

@@ -336,7 +336,7 @@ function ModernDataTable<
   const leafColumnIds = useMemo(() => {
     const leafColumns = table.getAllLeafColumns();
     return leafColumns.map((column) => column.id);
-  }, [table.getAllLeafColumns]);
+  }, [table, JSON.stringify(table.getState().columnOrder)]);
 
   // Function to set column order - stable reference
   const setColumnOrder = useCallback(
@@ -839,7 +839,6 @@ function ModernDataTable<
                     )}
                     column={header.column as never}
                     id={header.id}
-                    isDragEnabled={isDragEnabled && !isFixedPosition}
                     key={header.id}
                   >
                     {!header.isPlaceholder &&
