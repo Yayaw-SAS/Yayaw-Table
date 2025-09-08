@@ -286,6 +286,8 @@ export function DataTable(props: Parameters<typeof DataTableContent>[0] & {
   getFormConfig?: Parameters<typeof TableProvider>[0]['getFormConfig'];
   getTableActions?: Parameters<typeof TableProvider>[0]['getTableActions'];
   getTableConfig?: Parameters<typeof TableProvider>[0]['getTableConfig'];
+  columnsConfig?: Parameters<typeof TableProvider>[0]['columnsConfig'];
+  tableConfig?: Parameters<typeof TableProvider>[0]['tableConfig'];
   queryClient?: import('@tanstack/react-query').QueryClient;
   TitleComponent?: Parameters<typeof TableProvider>[0]['TitleComponent'];
   DescriptionComponent?: Parameters<typeof TableProvider>[0]['DescriptionComponent'];
@@ -298,6 +300,8 @@ export function DataTable(props: Parameters<typeof DataTableContent>[0] & {
     getTableActions,
     getTableConfig,
     queryClient,
+    columnsConfig,
+    tableConfig,
     TitleComponent,
     DescriptionComponent,
     tableType,
@@ -313,6 +317,8 @@ export function DataTable(props: Parameters<typeof DataTableContent>[0] & {
       getFormConfig={getFormConfig}
       getTableActions={getTableActions}
       getTableConfig={getTableConfig}
+      columnsConfig={columnsConfig}
+      tableConfig={tableConfig}
       queryClient={queryClient}
       TitleComponent={TitleComponent}
       DescriptionComponent={DescriptionComponent}

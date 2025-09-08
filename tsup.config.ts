@@ -6,6 +6,10 @@ export default defineConfig({
   dts: true,
   clean: true,
   sourcemap: true,
+  esbuildOptions(options) {
+    options.jsx = 'automatic';
+    options.jsxImportSource = 'react';
+  },
   external: [
     'react',
     'react-dom',

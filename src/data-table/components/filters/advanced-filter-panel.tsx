@@ -364,7 +364,8 @@ export function AdvancedFilterPanel({
 }: AdvancedFilterPanelProps) {
   const [_editingFilterId, _setEditingFilterId] = useState<string | null>(null);
   const [draftFilters, setDraftFilters] = useState<AdvancedFilterModel[]>([]);
-  const [isAddPanelOpen, setIsAddPanelOpen] = useState(false);
+  // Always show the add-filter panel (GroupPicker-like UX)
+  const isAddPanelOpen = true;
 
   const activeFilters = filters.filter((f) => f.isActive);
   const _inactiveFilters = filters.filter((f) => !f.isActive);
@@ -391,7 +392,6 @@ export function AdvancedFilterPanel({
         { isActive: false, label: columnId }
       );
       setDraftFilters((prev) => [draft, ...prev]);
-      setIsAddPanelOpen(true);
     },
     [columnsConfig]
   );
@@ -433,7 +433,6 @@ export function AdvancedFilterPanel({
         {variant === 'minimal' ? (
           <FilterEmptyState
             onAddFilter={() => {
-              // Get first available column
               const firstColumn = Object.keys(columnsConfig)[0];
               if (firstColumn) {
                 handleAddFilter(firstColumn, columnsConfig[firstColumn].type);
@@ -442,38 +441,10 @@ export function AdvancedFilterPanel({
             variant="minimal"
           />
         ) : (
-          <div className="space-y-2 rounded-lg border border-muted bg-muted/20 p-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4 shrink-0 text-muted-foreground opacity-50" />
-                <span className="text-muted-foreground text-sm">No filters applied</span>
-              </div>
-              <Button
-                className="h-8 px-3"
-                disabled={disabled}
-                onClick={() => setIsAddPanelOpen((v) => !v)}
-                size="sm"
-                variant="outline"
-              >
-                Add filter...
-              </Button>
-            </div>
-            {isAddPanelOpen && (
-              <InlineAddFilterPanel
-                columnsConfig={columnsConfig}
-                disabled={disabled}
-                onAddFilter={handleAddFilter}
-                popularColumns={popularColumns}
-                recentColumns={recentColumns}
-              />
-            )}
-          </div>
-        )}
-
-        {showPerformance && performance && (
-          <FilterPerformanceIndicator
-            filterTime={performance.filterTime}
-            isOptimized={performance.isOptimized}
+          <InlineAddFilterPanel
+            columnsConfig={columnsConfig}
+            disabled={disabled}
+            onAddFilter={handleAddFilter}
           />
         )}
       </div>
@@ -552,33 +523,6 @@ export function AdvancedFilterPanel({
       default: // modern
         return (
           <div className="space-y-3">
-            {/* Header with status */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <Settings2 className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium text-sm">Filters</span>
-                </div>
-
-                <FilterSuccessState
-                  activeFiltersCount={activeFilters.length}
-                  totalResults={performance?.resultCount}
-                />
-              </div>
-
-              {showClearButton && filters.length > 0 && (
-                <Button
-                  className="h-6 px-2 text-muted-foreground text-xs hover:text-foreground"
-                  disabled={disabled}
-                  onClick={actions.clearFilters}
-                  size="sm"
-                  variant="ghost"
-                >
-                  Clear all
-                </Button>
-              )}
-            </div>
-
             {/* Filter chips */}
             <div
               className={cn(
@@ -651,45 +595,17 @@ export function AdvancedFilterPanel({
                 );
               })}
 
-              {/* Hidden filters indicator */}
-              {hiddenFiltersCount > 0 && (
-                <Badge className="text-xs" variant="secondary">
-                  +{hiddenFiltersCount} more
-                </Badge>
-              )}
-
-              {/* Add filter button */}
+              {/* Inline Add filter panel (always visible, GroupPicker-like) */}
               {showAddButton && (
                 <div className="w-full">
-                  <Button
-                    className="h-8 px-3 text-muted-foreground text-xs hover:text-foreground"
+                  <InlineAddFilterPanel
+                    columnsConfig={columnsConfig}
                     disabled={disabled}
-                    onClick={() => setIsAddPanelOpen((v) => !v)}
-                    size="sm"
-                    variant="ghost"
-                  >
-                    Add filter...
-                  </Button>
-                  {isAddPanelOpen && (
-                    <InlineAddFilterPanel
-                      columnsConfig={columnsConfig}
-                      disabled={disabled}
-                      onAddFilter={handleAddFilter}
-                      popularColumns={popularColumns}
-                      recentColumns={recentColumns}
-                    />
-                  )}
+                    onAddFilter={handleAddFilter}
+                  />
                 </div>
               )}
             </div>
-
-            {/* Performance indicator */}
-            {showPerformance && performance && (
-              <FilterPerformanceIndicator
-                filterTime={performance.filterTime}
-                isOptimized={performance.isOptimized}
-              />
-            )}
           </div>
         );
     }
@@ -699,7 +615,7 @@ export function AdvancedFilterPanel({
     <div
       className={cn(
         'w-full',
-        variant === 'modern' && 'rounded-lg border bg-card/50 p-3',
+        variant === 'modern' && 'p-0',
         variant === 'compact' && 'rounded-md bg-muted/30 p-2',
         className
       )}
@@ -713,55 +629,19 @@ export function AdvancedFilterPanel({
 function InlineAddFilterPanel({
   columnsConfig,
   onAddFilter,
-  recentColumns = [],
-  popularColumns = [],
   disabled = false,
 }: {
   columnsConfig: ColumnsFilterConfig;
   onAddFilter: (columnId: string, type: ColumnDataType) => void;
-  recentColumns?: string[];
-  popularColumns?: string[];
   disabled?: boolean;
 }) {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState<'popular' | 'recent' | 'all'>(
-    'popular'
+  const options = useMemo(
+    () =>
+      Object.entries(columnsConfig)
+        .filter(([_, cfg]) => cfg.filterable !== false)
+        .map(([id, cfg]) => ({ id, label: id, type: cfg.type })),
+    [columnsConfig]
   );
-
-  const options = useMemo(() => {
-    return Object.entries(columnsConfig)
-      .filter(([_, cfg]) => cfg.filterable !== false)
-      .map(([id, cfg]) => ({
-        id,
-        label: id,
-        type: cfg.type,
-        description: cfg.placeholder,
-        isRecent: recentColumns.includes(id),
-        isPopular: popularColumns.includes(id),
-      }));
-  }, [columnsConfig, recentColumns, popularColumns]);
-
-  const filtered = useMemo(() => {
-    const lower = searchTerm.toLowerCase();
-    const list = options.filter(
-      (o) =>
-        !searchTerm ||
-        o.label.toLowerCase().includes(lower) ||
-        (o.description || '').toLowerCase().includes(lower)
-    );
-
-    const popular = list.filter((o) => o.isPopular).slice(0, 6);
-    const recent = list.filter((o) => o.isRecent && !o.isPopular).slice(0, 6);
-
-    const grouped: Record<string, typeof options> = {};
-    for (const o of list) {
-      const key = o.type === 'multiOption' ? 'option' : o.type;
-      if (!grouped[key]) grouped[key] = [] as typeof options;
-      grouped[key].push(o);
-    }
-
-    return { popular, recent, all: grouped, search: list };
-  }, [options, searchTerm]);
 
   const typeIcon: Record<string, React.ComponentType<{ className?: string }>> = {
     text: Type,
@@ -772,183 +652,43 @@ function InlineAddFilterPanel({
   } as const;
 
   return (
-    <div className="w-72 rounded-md border bg-background">
-      <div className="border-border border-b p-3">
-        <div className="flex items-center gap-2">
-          <FilterIcon className="h-4 w-4 text-muted-foreground" />
-          <Input
-            className="h-auto border-none p-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search columns..."
-            value={searchTerm}
-          />
+    <div className="w-full">
+      <div className="mb-3 flex items-center justify-between">
+        <div className="px-2 font-medium text-foreground text-sm">
+          Select column
         </div>
+        <Button className="h-7 px-2" disabled size="sm" variant="outline">
+          Reset
+        </Button>
       </div>
 
-      {searchTerm ? (
-        <div className="max-h-80 overflow-y-auto p-2">
-          {filtered.search.length === 0 ? (
-            <div className="py-6 text-center text-muted-foreground text-sm">
-              No columns found
+      <div className="rounded-lg border bg-muted/10 p-1">
+        <div className="space-y-0.5">
+        {options.map((o) => {
+          const Icon = typeIcon[o.type] || Type;
+          return (
+            <div className="group flex items-center py-1.5" key={o.id}>
+              <div className="px-2">
+                <Icon className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <Button
+                className="h-8 flex-1 justify-start px-0 text-left"
+                disabled={disabled}
+                onClick={() => onAddFilter(o.id, o.type)}
+                size="sm"
+                type="button"
+                variant="ghost"
+              >
+                <span className="text-left text-sm">{o.label}</span>
+              </Button>
+              <div className="ml-auto pr-3">
+                <Plus className="h-4 w-4 text-muted-foreground" />
+              </div>
             </div>
-          ) : (
-            <div className="space-y-1">
-              {filtered.search.map((o) => {
-                const Icon = typeIcon[o.type] || Type;
-                return (
-                  <Button
-                    key={o.id}
-                    className="flex w-full items-center justify-start gap-3 rounded-md px-3 py-2 text-left hover:bg-accent/50"
-                    disabled={disabled}
-                    onClick={() => onAddFilter(o.id, o.type)}
-                    type="button"
-                    variant="ghost"
-                  >
-                    <div className="flex h-8 w-8 items-center justify-center rounded-md border bg-muted">
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="truncate font-medium text-sm">{o.label}</span>
-                      </div>
-                      {o.description && (
-                        <p className="truncate text-muted-foreground text-xs">{o.description}</p>
-                      )}
-                    </div>
-                    <Plus className="h-4 w-4 text-muted-foreground" />
-                  </Button>
-                );
-              })}
-            </div>
-          )}
+          );
+        })}
         </div>
-      ) : (
-        <div>
-          <div className="border-border border-b px-3">
-            <Tabs
-              className="w-full"
-              onValueChange={(v) => setActiveTab(v as typeof activeTab)}
-              value={activeTab}
-            >
-              <TabsList className="grid h-8 w-full grid-cols-3">
-                <TabsTrigger className="text-xs" value="popular">
-                  <Star className="mr-1 h-3 w-3" /> Popular
-                </TabsTrigger>
-                <TabsTrigger className="text-xs" value="recent">
-                  <Clock className="mr-1 h-3 w-3" /> Recent
-                </TabsTrigger>
-                <TabsTrigger className="text-xs" value="all">
-                  <FilterIcon className="mr-1 h-3 w-3" /> All
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
-
-          <div className="max-h-80 overflow-y-auto">
-            <Tabs className="w-full" value={activeTab}>
-              <TabsContent className="m-0 p-2" value="popular">
-                {filtered.popular.length === 0 ? (
-                  <div className="py-6 text-center text-muted-foreground text-sm">
-                    No popular filters
-                  </div>
-                ) : (
-                  <div className="space-y-1">
-                    {filtered.popular.map((o) => {
-                      const Icon = typeIcon[o.type] || Type;
-                      return (
-                        <Button
-                          key={o.id}
-                          className="flex w-full items-center justify-start gap-3 rounded-md px-3 py-2 text-left hover:bg-accent/50"
-                          disabled={disabled}
-                          onClick={() => onAddFilter(o.id, o.type)}
-                          type="button"
-                          variant="ghost"
-                        >
-                          <div className="flex h-8 w-8 items-center justify-center rounded-md border bg-muted">
-                            <Icon className="h-4 w-4" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <span className="truncate font-medium text-sm">{o.label}</span>
-                          </div>
-                          <Plus className="h-4 w-4 text-muted-foreground" />
-                        </Button>
-                      );
-                    })}
-                  </div>
-                )}
-              </TabsContent>
-
-              <TabsContent className="m-0 p-2" value="recent">
-                {filtered.recent.length === 0 ? (
-                  <div className="py-6 text-center text-muted-foreground text-sm">
-                    No recent filters
-                  </div>
-                ) : (
-                  <div className="space-y-1">
-                    {filtered.recent.map((o) => {
-                      const Icon = typeIcon[o.type] || Type;
-                      return (
-                        <Button
-                          key={o.id}
-                          className="flex w-full items-center justify-start gap-3 rounded-md px-3 py-2 text-left hover:bg-accent/50"
-                          disabled={disabled}
-                          onClick={() => onAddFilter(o.id, o.type)}
-                          type="button"
-                          variant="ghost"
-                        >
-                          <div className="flex h-8 w-8 items-center justify-center rounded-md border bg-muted">
-                            <Icon className="h-4 w-4" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <span className="truncate font-medium text-sm">{o.label}</span>
-                          </div>
-                          <Plus className="h-4 w-4 text-muted-foreground" />
-                        </Button>
-                      );
-                    })}
-                  </div>
-                )}
-              </TabsContent>
-
-              <TabsContent className="m-0 p-2" value="all">
-                <div className="space-y-3">
-                  {Object.entries(filtered.all).map(([group, list]) => (
-                    <div key={group}>
-                      <div className="mb-2 flex items-center gap-2 px-2 py-1 text-muted-foreground text-xs font-medium">
-                        {group}
-                        <span className="ml-1 rounded-md bg-muted px-1 text-[10px]">{list.length}</span>
-                      </div>
-                      <div className="space-y-1">
-                        {list.map((o) => {
-                          const Icon = typeIcon[o.type] || Type;
-                          return (
-                            <Button
-                              key={o.id}
-                              className="flex w-full items-center justify-start gap-3 rounded-md px-3 py-2 text-left hover:bg-accent/50"
-                              disabled={disabled}
-                              onClick={() => onAddFilter(o.id, o.type)}
-                              type="button"
-                              variant="ghost"
-                            >
-                              <div className="flex h-8 w-8 items-center justify-center rounded-md border bg-muted">
-                                <Icon className="h-4 w-4" />
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <span className="truncate font-medium text-sm">{o.label}</span>
-                              </div>
-                              <Plus className="h-4 w-4 text-muted-foreground" />
-                            </Button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </TabsContent>
-            </Tabs>
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 }

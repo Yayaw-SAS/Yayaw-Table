@@ -17,5 +17,7 @@ export {
   useTableConfig,
   useTranslations,
 } from './data-table/providers/table-provider';
+// Re-export TableActions type from provider for external usage
+export type { TableActions } from './data-table/providers/table-provider';
 // Export types
 export type { DataTableTranslations } from './data-table/types/translations';

@@ -3,6 +3,7 @@ import { useAtomValue } from 'jotai';
 import { useHydrateAtoms } from 'jotai/utils';
 import type React from 'react';
 import { createContext, type ReactNode, useContext, useMemo } from 'react';
+import type { TableConfig } from '../config/helpers';
 import type { FieldValues } from 'react-hook-form';
 // Import atoms with correct paths
 import {
@@ -20,7 +21,7 @@ import type {
 import { createTranslationFunction } from './translation-cache';
 
 // Define proper types for the helper functions
-interface TableActions {
+export type TableActions = {
   create?: (
     data: Record<string, unknown>
   ) => Promise<{ success: boolean; data?: unknown; error?: string }>;
@@ -42,7 +43,7 @@ interface TableActions {
     id: string
   ) => Promise<{ success: boolean; data?: unknown; error?: string }>;
   [key: string]: unknown;
-}
+};
 
 interface TableProviderContextType {
   translations: DataTableTranslations;
@@ -52,7 +53,9 @@ interface TableProviderContextType {
     formType: string
   ) => FormConfig<TFieldValues> | undefined;
   getTableActions?: (formType: string) => TableActions | undefined;
-  getTableConfig?: (tableType: string) => DataTableConfig | undefined;
+  getTableConfig?: (
+    tableType: string
+  ) => TableConfig | DataTableConfig | undefined;
 
   // UI Components for custom styling
   TitleComponent?: React.ComponentType<{
@@ -77,7 +80,9 @@ interface TableProviderProps {
     formType: string
   ) => FormConfig<TFieldValues> | undefined;
   getTableActions?: (formType: string) => TableActions | undefined;
-  getTableConfig?: (tableType: string) => DataTableConfig | undefined;
+  getTableConfig?: (
+    tableType: string
+  ) => TableConfig | DataTableConfig | undefined;
 
   // From data-table-ui-provider
   columnsConfig?: Partial<DataTableColumnsConfig>;

@@ -79,7 +79,7 @@ export function TableFiltersMenu({
   if (useAdvancedFilters && advancedActions && hasAdvancedConfig) {
     return (
       <StackMenuView name="filters">
-        <StackMenuContent className="p-0">
+        <StackMenuContent>
           <AdvancedFilterPanel
             actions={advancedActions}
             className="border-0"
