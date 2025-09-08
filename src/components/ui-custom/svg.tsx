@@ -14,6 +14,13 @@ const SVG: React.FC<SvgProps> = ({ alt, className, src }) => {
       aria-label={alt}
       cacheRequests={true}
       className={twMerge(className)}
+      preProcessor={(code) => {
+        if (!alt) return code;
+        const hasTitle = /<title[\s\S]*?>[\s\S]*?<\/title>/.test(code);
+        if (hasTitle) return code;
+        return code.replace(/<svg([^>]*)>/, '<svg$1><title>' + alt + '</title>');
+      }}
+      role="img"
       src={src}
     />
   );

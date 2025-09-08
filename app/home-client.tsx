@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ThemeToggle } from '../index';
+import { ThemeToggle } from '@/src/components/ui-custom/theme-toggle';
 
 export function HomePageClient() {
   return (

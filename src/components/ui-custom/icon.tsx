@@ -19,6 +19,7 @@ const sizeMap: Record<IconSize, number> = {
 interface IconProps extends HTMLAttributes<HTMLDivElement> {
   animated?: boolean; // Option to enable/disable animation
   className?: string;
+  label?: string; // Accessible name when icon conveys meaning
   name: string;
   size?: IconSize | number;
   strokeWidth?: number;
@@ -46,6 +47,7 @@ export function getLucideIcon(iconName: string): null | FC<LucideProps> {
 export function Icon({
   animated = true, // Animation enabled by default
   className,
+  label,
   name,
   size = 'md',
   strokeWidth = 2,
@@ -97,6 +99,9 @@ export function Icon({
           'flex items-center justify-center text-card-foreground',
           className
         )}
+        aria-hidden={label ? undefined : true}
+        aria-label={label}
+        role="img"
         initial="initial"
         variants={iconVariants}
         whileHover="hover"
@@ -113,6 +118,9 @@ export function Icon({
         'flex items-center justify-center text-card-foreground',
         className
       )}
+      aria-hidden={label ? undefined : true}
+      aria-label={label}
+      role="img"
       {...props}
     >
       <IconComp
