@@ -12,8 +12,6 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "allowJs": true,
-    "declaration": true,
-    "declarationMap": true,
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],

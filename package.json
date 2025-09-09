@@ -9,14 +9,14 @@
   "scripts": {
     "build": "fumadocs-mdx && next build",
     "build:watch": "next dev",
-    "build:lib": "npm run build -w packages/yayaw-table",
-    "type-check:lib": "npm run type-check -w packages/yayaw-table",
-    "publish:lib": "npm publish --access public -w packages/yayaw-table",
+    "build:lib": "cd packages/yayaw-table && bun run build",
+    "type-check:lib": "cd packages/yayaw-table && bun run type-check",
+    "publish:lib": "cd packages/yayaw-table && bun publish --access public",
     "dev": "next dev",
     "start": "next start",
     "build:app": "fumadocs-mdx && next build",
     "type-check": "tsc --noEmit",
-    "lint": "npx ultracite lint && npx ultracite format",
+    "lint": "bunx ultracite lint && bunx ultracite format",
     "test": "echo 'Add tests here'"
   },
   "keywords": [
@@ -128,7 +128,7 @@
   "homepage": "https://github.com/your-username/yayaw-table#readme",
   "lint-staged": {
     "*.{js,jsx,ts,tsx,json,jsonc,css,scss,md,mdx}": [
-      "npx ultracite format"
+      "bunx ultracite format"
     ]
   }
 }
