@@ -95,12 +95,12 @@ export function Icon({
     // Use motion.div for animated icons with explicit type casting to avoid conflicts
     return (
       <motion.div
+        aria-hidden={label ? undefined : true}
+        aria-label={label}
         className={cn(
           'flex items-center justify-center text-card-foreground',
           className
         )}
-        aria-hidden={label ? undefined : true}
-        aria-label={label}
         role="img"
         initial="initial"
         variants={iconVariants}
@@ -114,12 +114,12 @@ export function Icon({
   // Use regular div for non-animated icons
   return (
     <div
+      aria-hidden={label ? undefined : true}
+      aria-label={label}
       className={cn(
         'flex items-center justify-center text-card-foreground',
         className
       )}
-      aria-hidden={label ? undefined : true}
-      aria-label={label}
       role="img"
       {...props}
     >
