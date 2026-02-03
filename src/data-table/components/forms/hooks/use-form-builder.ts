@@ -2,24 +2,25 @@
  * Form builder hook
  * This hook creates a form instance based on a form configuration
  */
-'use client';
+"use client";
 
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   type DefaultValues,
   type FieldValues,
+  type Resolver,
   type UseFormProps,
   useForm,
-} from 'react-hook-form';
-import type { z } from 'zod';
-import { useTranslations } from '../../../providers/table-provider';
+} from "react-hook-form";
+import type { z } from "zod";
+import { useTranslations } from "../../../providers/table-provider";
 
 import type {
   AnyFieldDefinition,
   FormConfig,
   SelectFieldDefinition,
-} from '../types';
+} from "../types";
 
 export interface UseFormBuilderOptions<TFieldValues extends FieldValues> {
   /**
@@ -30,7 +31,7 @@ export interface UseFormBuilderOptions<TFieldValues extends FieldValues> {
   /**
    * Additional form options
    */
-  formOptions?: Omit<UseFormProps<TFieldValues>, 'defaultValues' | 'resolver'>;
+  formOptions?: Omit<UseFormProps<TFieldValues>, "defaultValues" | "resolver">;
 
   /**
    * Initial data for the form (used for update operations)
@@ -69,9 +70,13 @@ export function useFormBuilder<TFieldValues extends FieldValues>({
   }, [config.defaultValues, initialData]);
 
   // Create a form instance with the schema and default values
+  // Cast schema via unknown for compatibility between zod v3/v4 and @hookform/resolvers
+  const resolver = zodResolver(
+    config.schema as unknown as Parameters<typeof zodResolver>[0]
+  ) as unknown as Resolver<TFieldValues, unknown>;
   const form = useForm<TFieldValues>({
     defaultValues,
-    resolver: zodResolver(config.schema as z.ZodTypeAny),
+    resolver,
     ...formOptions,
   });
 
@@ -135,7 +140,7 @@ export function useFormBuilder<TFieldValues extends FieldValues>({
       }
 
       // If the field is a select field with option translation keys, translate them
-      if (field.type === 'select') {
+      if (field.type === "select") {
         const selectField = field as SelectFieldDefinition<TFieldValues>;
         const optionKeys = selectField.optionKeys;
         if (optionKeys?.length) {

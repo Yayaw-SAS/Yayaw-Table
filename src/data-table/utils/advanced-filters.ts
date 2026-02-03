@@ -10,7 +10,7 @@ import type {
   ColumnOption,
   FilterOperators,
   FilterValues,
-} from '../types/filter-types';
+} from "../types/filter-types";
 
 /**
  * Generate a unique ID for filters
@@ -51,7 +51,7 @@ export function createFilter<TType extends ColumnDataType>(
  */
 export function updateFilter<TType extends ColumnDataType>(
   filter: AdvancedFilterModel<TType>,
-  updates: Partial<Omit<AdvancedFilterModel<TType>, 'id' | 'createdAt'>>
+  updates: Partial<Omit<AdvancedFilterModel<TType>, "id" | "createdAt">>
 ): AdvancedFilterModel<TType> {
   return {
     ...filter,
@@ -67,26 +67,26 @@ export const clientFilterFunctions = {
   text: (
     value: unknown,
     filterValue: string,
-    operator: FilterOperators['text']
+    operator: FilterOperators["text"]
   ): boolean => {
-    const strValue = String(value || '').toLowerCase();
-    const strFilter = String(filterValue || '').toLowerCase();
+    const strValue = String(value || "").toLowerCase();
+    const strFilter = String(filterValue || "").toLowerCase();
 
     switch (operator) {
-      case 'contains':
+      case "contains":
         return strValue.includes(strFilter);
-      case 'equals':
+      case "equals":
         return strValue === strFilter;
-      case 'startsWith':
+      case "startsWith":
         return strValue.startsWith(strFilter);
-      case 'endsWith':
+      case "endsWith":
         return strValue.endsWith(strFilter);
-      case 'notContains':
+      case "notContains":
         return !strValue.includes(strFilter);
-      case 'isEmpty':
-        return !value || String(value).trim() === '';
-      case 'isNotEmpty':
-        return !!value && String(value).trim() !== '';
+      case "isEmpty":
+        return !value || String(value).trim() === "";
+      case "isNotEmpty":
+        return !!value && String(value).trim() !== "";
       default:
         return true;
     }
@@ -95,35 +95,35 @@ export const clientFilterFunctions = {
   number: (
     value: unknown,
     filterValue: number | [number, number],
-    operator: FilterOperators['number']
+    operator: FilterOperators["number"]
   ): boolean => {
     const numValue =
-      typeof value === 'number' ? value : Number.parseFloat(String(value));
+      typeof value === "number" ? value : Number.parseFloat(String(value));
 
     if (Number.isNaN(numValue)) {
-      return operator === 'isEmpty';
+      return operator === "isEmpty";
     }
 
     switch (operator) {
-      case 'equals':
+      case "equals":
         return numValue === (filterValue as number);
-      case 'greaterThan':
+      case "greaterThan":
         return numValue > (filterValue as number);
-      case 'lessThan':
+      case "lessThan":
         return numValue < (filterValue as number);
-      case 'greaterThanOrEqual':
+      case "greaterThanOrEqual":
         return numValue >= (filterValue as number);
-      case 'lessThanOrEqual':
+      case "lessThanOrEqual":
         return numValue <= (filterValue as number);
-      case 'between': {
+      case "between": {
         const [min, max] = filterValue as [number, number];
         return numValue >= min && numValue <= max;
       }
-      case 'notEquals':
+      case "notEquals":
         return numValue !== (filterValue as number);
-      case 'isEmpty':
+      case "isEmpty":
         return value === null || value === undefined || Number.isNaN(numValue);
-      case 'isNotEmpty':
+      case "isNotEmpty":
         return value !== null && value !== undefined && !Number.isNaN(numValue);
       default:
         return true;
@@ -133,35 +133,35 @@ export const clientFilterFunctions = {
   date: (
     value: unknown,
     filterValue: Date | [Date, Date],
-    operator: FilterOperators['date']
+    operator: FilterOperators["date"]
   ): boolean => {
     const dateValue =
       value instanceof Date ? value : new Date(value as string | number);
 
     if (Number.isNaN(dateValue.getTime())) {
-      return operator === 'isEmpty';
+      return operator === "isEmpty";
     }
 
     switch (operator) {
-      case 'equals': {
+      case "equals": {
         const filterDate = filterValue as Date;
         return dateValue.toDateString() === filterDate.toDateString();
       }
-      case 'before':
+      case "before":
         return dateValue < (filterValue as Date);
-      case 'after':
+      case "after":
         return dateValue > (filterValue as Date);
-      case 'between': {
+      case "between": {
         const [startDate, endDate] = filterValue as [Date, Date];
         return dateValue >= startDate && dateValue <= endDate;
       }
-      case 'notEquals': {
+      case "notEquals": {
         const notEqualDate = filterValue as Date;
         return dateValue.toDateString() !== notEqualDate.toDateString();
       }
-      case 'isEmpty':
+      case "isEmpty":
         return !value || Number.isNaN(dateValue.getTime());
-      case 'isNotEmpty':
+      case "isNotEmpty":
         return !!value && !Number.isNaN(dateValue.getTime());
       default:
         return true;
@@ -171,31 +171,31 @@ export const clientFilterFunctions = {
   option: (
     value: unknown,
     filterValue: string | string[],
-    operator: FilterOperators['option']
+    operator: FilterOperators["option"]
   ): boolean => {
-    const strValue = String(value || '');
+    const strValue = String(value || "");
 
     switch (operator) {
-      case 'is':
+      case "is":
         return strValue === (filterValue as string);
-      case 'isNot':
+      case "isNot":
         return strValue !== (filterValue as string);
-      case 'isAnyOf': {
+      case "isAnyOf": {
         const anyOfValues = Array.isArray(filterValue)
           ? filterValue
           : [filterValue];
         return anyOfValues.includes(strValue);
       }
-      case 'isNoneOf': {
+      case "isNoneOf": {
         const noneOfValues = Array.isArray(filterValue)
           ? filterValue
           : [filterValue];
         return !noneOfValues.includes(strValue);
       }
-      case 'isEmpty':
-        return !value || String(value).trim() === '';
-      case 'isNotEmpty':
-        return !!value && String(value).trim() !== '';
+      case "isEmpty":
+        return !value || String(value).trim() === "";
+      case "isNotEmpty":
+        return !!value && String(value).trim() !== "";
       default:
         return true;
     }
@@ -204,25 +204,25 @@ export const clientFilterFunctions = {
   multiOption: (
     value: unknown,
     filterValue: string[],
-    operator: FilterOperators['multiOption']
+    operator: FilterOperators["multiOption"]
   ): boolean => {
     const arrayValue = Array.isArray(value)
       ? value.map(String)
-      : [String(value || '')];
+      : [String(value || "")];
     const filterArray = Array.isArray(filterValue)
       ? filterValue
       : [filterValue];
 
     switch (operator) {
-      case 'contains':
+      case "contains":
         return filterArray.some((f) => arrayValue.includes(f));
-      case 'containsAll':
+      case "containsAll":
         return filterArray.every((f) => arrayValue.includes(f));
-      case 'containsNone':
+      case "containsNone":
         return !filterArray.some((f) => arrayValue.includes(f));
-      case 'isEmpty':
+      case "isEmpty":
         return !value || (Array.isArray(value) && value.length === 0);
-      case 'isNotEmpty':
+      case "isNotEmpty":
         return !!value && (!Array.isArray(value) || value.length > 0);
       default:
         return true;
@@ -246,35 +246,35 @@ export function applyFilter<TData = Record<string, unknown>>(
   const { type, operator, values } = filter;
 
   switch (type) {
-    case 'text':
+    case "text":
       return clientFilterFunctions.text(
         value,
         values as string,
-        operator as FilterOperators['text']
+        operator as FilterOperators["text"]
       );
-    case 'number':
+    case "number":
       return clientFilterFunctions.number(
         value,
         values as number | [number, number],
-        operator as FilterOperators['number']
+        operator as FilterOperators["number"]
       );
-    case 'date':
+    case "date":
       return clientFilterFunctions.date(
         value,
         values as Date | [Date, Date],
-        operator as FilterOperators['date']
+        operator as FilterOperators["date"]
       );
-    case 'option':
+    case "option":
       return clientFilterFunctions.option(
         value,
         values as string | string[],
-        operator as FilterOperators['option']
+        operator as FilterOperators["option"]
       );
-    case 'multiOption':
+    case "multiOption":
       return clientFilterFunctions.multiOption(
         value,
         values as string[],
-        operator as FilterOperators['multiOption']
+        operator as FilterOperators["multiOption"]
       );
     default:
       return true;
@@ -318,12 +318,12 @@ export function getFacetedUniqueValues<TData = Record<string, unknown>>(
     if (Array.isArray(value)) {
       // For multi-option columns
       for (const v of value) {
-        const strValue = String(v || '');
+        const strValue = String(v || "");
         counts.set(strValue, (counts.get(strValue) || 0) + 1);
       }
     } else {
       // For single-value columns
-      const strValue = String(value || '');
+      const strValue = String(value || "");
       counts.set(strValue, (counts.get(strValue) || 0) + 1);
     }
   }
@@ -341,7 +341,7 @@ export function getFacetedNumericRange<TData = Record<string, unknown>>(
   const values = data
     .map((row) => {
       const value = accessor(row);
-      return typeof value === 'number'
+      return typeof value === "number"
         ? value
         : Number.parseFloat(String(value));
     })
@@ -384,24 +384,24 @@ export function getFacetedDateRange<TData = Record<string, unknown>>(
  * Format number values for display
  */
 function formatNumberValue(operator: string, values: unknown): string {
-  if (operator === 'between' && Array.isArray(values)) {
+  if (operator === "between" && Array.isArray(values)) {
     return `${values[0]} - ${values[1]}`;
   }
-  return String(values || '');
+  return String(values || "");
 }
 
 /**
  * Format date values for display
  */
 function formatDateValue(operator: string, values: unknown): string {
-  if (operator === 'between' && Array.isArray(values)) {
+  if (operator === "between" && Array.isArray(values)) {
     const [start, end] = values as [Date, Date];
     return `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`;
   }
   if (values instanceof Date) {
     return values.toLocaleDateString();
   }
-  return String(values || '');
+  return String(values || "");
 }
 
 /**
@@ -411,10 +411,10 @@ function formatOptionValue(values: unknown, options?: ColumnOption[]): string {
   if (Array.isArray(values)) {
     return values
       .map((v) => options?.find((opt) => opt.value === v)?.label || v)
-      .join(', ');
+      .join(", ");
   }
   return (
-    options?.find((opt) => opt.value === values)?.label || String(values || '')
+    options?.find((opt) => opt.value === values)?.label || String(values || "")
   );
 }
 
@@ -428,17 +428,17 @@ export function formatFilterValueForDisplay(
   options?: ColumnOption[]
 ): string {
   switch (type) {
-    case 'text':
-      return String(values || '');
-    case 'number':
+    case "text":
+      return String(values || "");
+    case "number":
       return formatNumberValue(operator, values);
-    case 'date':
+    case "date":
       return formatDateValue(operator, values);
-    case 'option':
-    case 'multiOption':
+    case "option":
+    case "multiOption":
       return formatOptionValue(values, options);
     default:
-      return String(values || '');
+      return String(values || "");
   }
 }
 
@@ -466,7 +466,7 @@ export function convertFromTanStackFilters(
   columnsConfig: Record<string, { type: ColumnDataType }>
 ): AdvancedFiltersState {
   return tanStackFilters
-    .filter((filter) => filter.value && typeof filter.value === 'object')
+    .filter((filter) => filter.value && typeof filter.value === "object")
     .map((filter) => {
       const columnConfig = columnsConfig[filter.id];
       if (!columnConfig) {

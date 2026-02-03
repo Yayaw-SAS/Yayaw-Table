@@ -1,7 +1,7 @@
-import { Loader2 } from 'lucide-react';
-import type { ComponentProps } from 'react';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { Loader2 } from "lucide-react";
+import type { ComponentProps } from "react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 type ButtonWithLoaderProps = ComponentProps<typeof Button> & {
   isLoading?: boolean;
@@ -13,12 +13,12 @@ export function ButtonWithLoader({
   className,
   isLoading,
   loadingText,
-  variant = 'default',
+  variant = "default",
   ...props
 }: ButtonWithLoaderProps) {
   return (
     <Button
-      className={cn(isLoading && 'opacity-50', className)}
+      className={cn(isLoading && "opacity-50", className)}
       disabled={isLoading}
       variant={variant}
       {...props}

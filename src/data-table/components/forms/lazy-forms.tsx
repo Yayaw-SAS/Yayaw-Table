@@ -2,13 +2,13 @@
  * Lazy loaded form components
  * Only the essential form container is lazy loaded for performance
  */
-'use client';
+"use client";
 
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense } from "react";
 
 // Lazy load the main form container
 const CatalogueFormContainer = lazy(() =>
-  import('./catalogue-form-container').then((mod) => ({
+  import("./catalogue-form-container").then((mod) => ({
     default: mod.CatalogueFormContainer,
   }))
 );

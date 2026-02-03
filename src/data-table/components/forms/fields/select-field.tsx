@@ -1,9 +1,9 @@
 /**
  * Select field component for forms
  */
-'use client';
+"use client";
 
-import type { FieldValues, UseFormReturn } from 'react-hook-form';
+import type { FieldValues, UseFormReturn } from "react-hook-form";
 import {
   FormControl,
   FormDescription,
@@ -11,17 +11,17 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
+} from "@/components/ui/form";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { useTranslations } from '../../../providers/table-provider';
+} from "@/components/ui/select";
+import { useTranslations } from "../../../providers/table-provider";
 
-import type { SelectFieldDefinition } from '../types';
+import type { SelectFieldDefinition } from "../types";
 
 interface SelectFieldProps<TFieldValues extends FieldValues> {
   /**

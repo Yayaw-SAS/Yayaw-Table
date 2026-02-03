@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import type { UseFormReturn } from 'react-hook-form';
+import type { UseFormReturn } from "react-hook-form";
 import {
   FormControl,
   FormDescription,
@@ -8,11 +8,11 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { useTranslations } from '../../../providers/table-provider';
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { useTranslations } from "../../../providers/table-provider";
 
-import type { NumberFieldDefinition } from '../types';
+import type { NumberFieldDefinition } from "../types";
 
 interface NumberFieldProps {
   field: NumberFieldDefinition;
@@ -51,7 +51,7 @@ export function NumberField({ field, form }: NumberFieldProps) {
               }
               step={field.step}
               type="number"
-              value={formField.value ? String(formField.value) : ''}
+              value={formField.value ? String(formField.value) : ""}
             />
           </FormControl>
           <FormMessage />

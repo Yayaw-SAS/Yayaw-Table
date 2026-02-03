@@ -2,10 +2,10 @@
  * Advanced toolbar component for DataTable
  * Provides advanced filtering, view management, and other table controls
  */
-'use client';
+"use client";
 
 // Import table configuration
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from "@tanstack/react-query";
 import type {
   ColumnDef,
   ColumnFiltersState,
@@ -14,29 +14,27 @@ import type {
   SortingState,
   Table,
   VisibilityState,
-} from '@tanstack/react-table';
-import { useSetAtom } from 'jotai';
-import { PlusIcon } from 'lucide-react';
-import { useCallback, useMemo } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { useDataTable } from '../../hooks/use-data-table';
+} from "@tanstack/react-table";
+import { useSetAtom } from "jotai";
+import { PlusIcon } from "lucide-react";
+import { useCallback, useMemo } from "react";
+import { Button } from "@/components/ui/button";
+import { useDataTable } from "../../hooks/use-data-table";
 import {
   useColumnsFilterConfig,
   useDataTableAdvancedFilters,
   useTableAccessors,
-} from '../../hooks/use-data-table-advanced-filters';
-import { useTableConfig } from '../../hooks/use-table-config';
-import { useTableInstance } from '../../hooks/use-table-instance';
-import { useTranslations } from '../../providers/table-provider';
-import type { ColumnDataType } from '../../types';
+} from "../../hooks/use-data-table-advanced-filters";
+import { useTableConfig } from "../../hooks/use-table-config";
+import { useTableInstance } from "../../hooks/use-table-instance";
+import { useTranslations } from "../../providers/table-provider";
+import type { ColumnDataType } from "../../types";
 import {
   catalogueFormAtom,
   openCreateForm,
-} from '../forms/atoms/catalogue-form-atoms';
-
-import { TableMenu } from './table-menu';
-import { SearchBar } from './sections/search-bar';
+} from "../forms/atoms/catalogue-form-atoms";
+import { SearchBar } from "./sections/search-bar";
+import { TableMenu } from "./table-menu";
 
 // Debug flag to help track issues - activated for debugging
 const DEBUG = false;
@@ -160,7 +158,7 @@ interface DataTableAdvancedToolbarProps<_TData = Record<string, unknown>> {
    */
   columnTypeMapping?: Record<
     string,
-    'text' | 'number' | 'date' | 'option' | 'multiOption'
+    "text" | "number" | "date" | "option" | "multiOption"
   >;
 }
 
@@ -180,21 +178,9 @@ interface DataTableState {
  */
 function createColumnOptions(
   tableConfig: Record<string, unknown>,
-  columnTypeMapping: Record<string, string>,
+  _columnTypeMapping: Record<string, string>,
   t?: (key: string, params?: Record<string, string | number>) => string
 ) {
-  if (DEBUG) {
-    console.log('🔧 Creating columnOptions from table config:', {
-      tableConfig,
-      'column definitions':
-        (
-          (tableConfig?.columns as Record<string, unknown>)
-            ?.definitions as unknown[]
-        )?.length || 0,
-      columnTypeMapping,
-    });
-  }
-
   // Get column definitions from table configuration
   const columns = tableConfig.columns as Record<string, unknown> | undefined;
   const columnDefinitions =
@@ -202,7 +188,7 @@ function createColumnOptions(
 
   // Create column options from configuration instead of table instance
   const options = columnDefinitions
-    .filter((colDef) => colDef.id !== 'select' && colDef.id !== 'actions') // Skip system columns
+    .filter((colDef) => colDef.id !== "select" && colDef.id !== "actions") // Skip system columns
     .map((colDef) => {
       const option = {
         canFilter: colDef.enableColumnFilter !== false,
@@ -216,26 +202,14 @@ function createColumnOptions(
         label: String(colDef.header || colDef.id),
         // Enhanced properties from column definition
         placeholder: t
-          ? t('filters.search', {
+          ? t("filters.search", {
               filter: String(colDef.header || colDef.id),
             })
           : `Filter by ${colDef.header || colDef.id}...`,
         type: colDef.type,
       };
-
-      if (DEBUG) {
-        console.log('🔧 Created column option:', option);
-      }
-
       return option;
     });
-
-  if (DEBUG) {
-    console.log('🔧 Final columnOptions:', {
-      'options length': options.length,
-      options,
-    });
-  }
   return options;
 }
 
@@ -266,7 +240,7 @@ function useAdvancedFiltersSetup(
   }[],
   columnTypeMapping: Record<
     string,
-    'text' | 'number' | 'date' | 'option' | 'multiOption'
+    "text" | "number" | "date" | "option" | "multiOption"
   >
 ) {
   const advancedColumnsConfig = useColumnsFilterConfig(
@@ -277,13 +251,13 @@ function useAdvancedFiltersSetup(
   const accessors = useTableAccessors(
     data,
     columnOptions.map((col: unknown) =>
-      String((col as Record<string, unknown>).id || '')
+      String((col as Record<string, unknown>).id || "")
     )
   );
 
   const advancedFiltersResult = useDataTableAdvancedFilters({
     tableType: tableId,
-    strategy: 'client',
+    strategy: "client",
     data,
     advancedColumnsConfig,
     accessors,
@@ -353,7 +327,7 @@ export function DataTableAdvancedToolbar<TData>({
   ...props
 }: DataTableAdvancedToolbarProps<TData>) {
   // Ensure tableId is available
-  const tableId = props.tableId || 'default';
+  const tableId = props.tableId || "default";
 
   // Setup configuration and state
   const { t, state, tableConfig } = useToolbarSetup(tableId);
@@ -427,27 +401,31 @@ export function DataTableAdvancedToolbar<TData>({
     const id =
       (raw.id as string) ||
       (raw.accessorKey as string) ||
-      (typeof raw.header === 'string' ? (raw.header as string) : '') ||
-      '';
+      (typeof raw.header === "string" ? (raw.header as string) : "") ||
+      "";
     const label =
       (raw.label as string) ||
-      (typeof raw.header === 'string' ? (raw.header as string) : '') ||
+      (typeof raw.header === "string" ? (raw.header as string) : "") ||
       id ||
-      'Column';
+      "Column";
     return { id, label };
   };
 
   const getBooleanFlag = (
     raw: Record<string, unknown>,
-    key: 'canFilter' | 'canGroup' | 'canHide' | 'canSort',
+    key: "canFilter" | "canGroup" | "canHide" | "canSort",
     defaultValue: boolean
   ) => {
     // Special handling for sorting capability
-    if (key === 'canSort') {
-      const id = (raw.id as string) || '';
+    if (key === "canSort") {
+      const id = (raw.id as string) || "";
       const meta = (raw.meta || {}) as Record<string, unknown>;
-      const isSelectionColumn = id === 'select' || (meta.isSelectionColumn as boolean | undefined) === true;
-      const isActionsColumn = id === 'actions' || (meta.isActionsColumn as boolean | undefined) === true;
+      const isSelectionColumn =
+        id === "select" ||
+        (meta.isSelectionColumn as boolean | undefined) === true;
+      const isActionsColumn =
+        id === "actions" ||
+        (meta.isActionsColumn as boolean | undefined) === true;
 
       // Never allow sorting on selection or actions columns
       if (isSelectionColumn || isActionsColumn) {
@@ -467,7 +445,7 @@ export function DataTableAdvancedToolbar<TData>({
 
       return defaultValue;
     }
-    if (key === 'canHide') {
+    if (key === "canHide") {
       return (raw.canHide as boolean | undefined) !== false;
     }
     const value = raw[key] as boolean | undefined;
@@ -478,10 +456,10 @@ export function DataTableAdvancedToolbar<TData>({
     const raw = (col || {}) as Record<string, unknown>;
     const { id, label } = getColumnIdAndLabel(raw);
 
-    const canFilter = getBooleanFlag(raw, 'canFilter', true);
-    const canGroup = getBooleanFlag(raw, 'canGroup', true);
-    const canHide = getBooleanFlag(raw, 'canHide', true);
-    const canSort = getBooleanFlag(raw, 'canSort', true);
+    const canFilter = getBooleanFlag(raw, "canFilter", true);
+    const canGroup = getBooleanFlag(raw, "canGroup", true);
+    const canHide = getBooleanFlag(raw, "canHide", true);
+    const canSort = getBooleanFlag(raw, "canSort", true);
 
     return { canFilter, canGroup, canHide, canSort, id, label };
   };
@@ -506,7 +484,7 @@ export function DataTableAdvancedToolbar<TData>({
             openCreateForm(tableId, tableId, (_data) => {
               // Invalidate the table data query to refresh the table after successful submission
               queryClient.invalidateQueries({
-                queryKey: ['tableData', tableId],
+                queryKey: ["tableData", tableId],
               });
             })
           );
@@ -515,10 +493,10 @@ export function DataTableAdvancedToolbar<TData>({
         variant="default"
       >
         <PlusIcon className="mr-2 h-4 w-4" />
-        <span>{t('add_an_item')}</span>
+        <span>{t("add_an_item")}</span>
       </Button>
 
-      <SearchBar placeholder={t('search.placeholder')} tableId={tableId} />
+      <SearchBar placeholder={t("search.placeholder")} tableId={tableId} />
 
       {/* Options menu */}
       <TableMenu
@@ -539,7 +517,7 @@ export function DataTableAdvancedToolbar<TData>({
         columns={tableMenuColumns}
         invalidateTable={async () => {
           await queryClient.invalidateQueries({
-            queryKey: ['tableData', tableId],
+            queryKey: ["tableData", tableId],
           });
         }}
         setColumnFilters={finalSetColumnFilters}
@@ -561,7 +539,7 @@ export function DataTableAdvancedToolbar<TData>({
           },
           columnVisibility: finalColumnVisibility as VisibilityState,
           expanded: {},
-          globalFilter: '',
+          globalFilter: "",
           grouping: finalGrouping as GroupingState,
           pagination: { pageIndex: 0, pageSize: 10 },
           rowPinning: { bottom: [], top: [] },

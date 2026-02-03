@@ -1,14 +1,13 @@
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
-  "extends": ["ultracite"],
+  "extends": ["ultracite/biome/core", "ultracite/biome/next"],
   "files": {
     "includes": [
-      "**",
-      "!src/components/ui/**",
+      "!src/components/ui",
       "!**/*.css",
       "!src/app/globals.css",
-      "!.source/**",
-      "!content/**"
+      "!.source",
+      "!content"
     ]
   },
   "css": {
@@ -18,18 +17,34 @@
   },
   "linter": {
     "rules": {
+      "complexity": {
+        "noExcessiveCognitiveComplexity": {
+          "level": "warn",
+          "options": { "maxAllowedComplexity": 25 }
+        }
+      },
       "suspicious": {
-        "noConsole": "off"
+        "noConsole": "error"
       }
     }
   },
   "overrides": [
     {
-      "includes": ["src/components/ui-custom/icon.tsx"],
+      "includes": ["**/index.ts", "index.ts"],
       "linter": {
         "rules": {
           "performance": {
-            "noNamespaceImport": "off"
+            "noBarrelFile": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/data-table/components/table-component.tsx"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noExcessiveCognitiveComplexity": "off"
           }
         }
       }

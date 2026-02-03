@@ -2,30 +2,30 @@
  * Pagination component for DataTable
  * Provides controls for navigating between pages
  */
-'use client';
+"use client";
 
-import type { Table } from '@tanstack/react-table';
+import type { Table } from "@tanstack/react-table";
 import {
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-} from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
-import { Button } from '@/components/ui/button';
+} from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
+  Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Select } from '@/components/ui/select';
+} from "@/components/ui/select";
 
 // Use static Select import; SSR-safe usage is handled by mounted state
 
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils";
 
-import { useTableTranslations } from '../hooks';
+import { useTableTranslations } from "../hooks";
 
 interface DataTablePaginationProps<TData> {
   /**
@@ -100,12 +100,12 @@ export function DataTablePagination<TData>({
     return (
       <div
         className={cn(
-          'flex flex-col items-center justify-between gap-4 py-4 sm:flex-row',
+          "flex flex-col items-center justify-between gap-4 py-4 sm:flex-row",
           className
         )}
       >
         <div className="flex-1 text-muted-foreground text-sm">
-          {startRow}-{endRow} {translations.of}{' '}
+          {startRow}-{endRow} {translations.of}{" "}
           {rowCount || table.getRowModel().rows.length}
         </div>
         <div className="flex items-center gap-2">
@@ -116,7 +116,7 @@ export function DataTablePagination<TData>({
         </div>
         <div className="flex items-center gap-2 opacity-60">
           <span className="text-sm">
-            {translations.format('pageXofY', {
+            {translations.format("pageXofY", {
               page: pageIndex + 1,
               total: pageCount || 1,
             })}
@@ -129,13 +129,13 @@ export function DataTablePagination<TData>({
   return (
     <div
       className={cn(
-        'flex flex-col items-center justify-between gap-4 py-4 sm:flex-row',
+        "flex flex-col items-center justify-between gap-4 py-4 sm:flex-row",
         className
       )}
     >
       {/* Row range display */}
       <div className="flex-1 text-muted-foreground text-sm">
-        {startRow}-{endRow} {translations.of}{' '}
+        {startRow}-{endRow} {translations.of}{" "}
         {rowCount || table.getRowModel().rows.length}
       </div>
 
@@ -190,7 +190,7 @@ export function DataTablePagination<TData>({
         </Button>
 
         <span className="text-sm">
-          {translations.format('pageXofY', {
+          {translations.format("pageXofY", {
             page: pageIndex + 1,
             total: pageCount || 1,
           })}

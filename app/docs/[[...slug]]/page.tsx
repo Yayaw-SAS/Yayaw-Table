@@ -3,10 +3,20 @@ import {
   DocsDescription,
   DocsPage,
   DocsTitle,
-} from 'fumadocs-ui/page';
-import { notFound } from 'next/navigation';
-import { getMDXComponents } from '@/mdx-components';
-import { source } from '@/src/lib/source';
+} from "fumadocs-ui/page";
+import type { ComponentType, ReactNode } from "react";
+import { notFound } from "next/navigation";
+import { getMDXComponents } from "@/mdx-components";
+import { source } from "@/src/lib/source";
+
+/** Page data from fumadocs-mdx MDX compilation (body, full, toc are added at build time) */
+interface DocsPageData {
+  title?: string;
+  description?: string;
+  body: ComponentType<{ components?: Record<string, ComponentType<unknown>> }>;
+  full?: boolean;
+  toc?: { title: ReactNode; url: string; depth: number }[];
+}
 
 export default async function Page(props: {
   params: Promise<{ slug?: string[] }>;
@@ -17,14 +27,22 @@ export default async function Page(props: {
     notFound();
   }
 
-  const MDX = page.data.body;
+  const data = page.data as DocsPageData;
+  const MDX = data.body;
 
   return (
-    <DocsPage full={page.data.full} toc={page.data.toc}>
-      <DocsTitle>{page.data.title}</DocsTitle>
-      <DocsDescription>{page.data.description}</DocsDescription>
+    <DocsPage full={data.full} toc={data.toc}>
+      <DocsTitle>{data.title}</DocsTitle>
+      <DocsDescription>{data.description}</DocsDescription>
       <DocsBody>
-        <MDX components={getMDXComponents()} />
+        <MDX
+        components={
+          getMDXComponents() as Record<
+            string,
+            ComponentType<unknown>
+          >
+        }
+      />
       </DocsBody>
     </DocsPage>
   );

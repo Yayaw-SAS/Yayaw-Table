@@ -2,9 +2,9 @@
  * Hook utilitaire pour détecter quand un élément est visible dans le viewport
  * en utilisant l'Intersection Observer API
  */
-'use client';
+"use client";
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from "react";
 
 interface UseOnScreenOptions {
   rootMargin?: string;

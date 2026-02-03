@@ -1,23 +1,23 @@
-'use client';
+"use client";
 
-import type { UseFormReturn } from 'react-hook-form';
+import type { UseFormReturn } from "react-hook-form";
 import {
   FormControl,
   FormDescription,
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
+} from "@/components/ui/form";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { useTranslations } from '../../../providers/table-provider';
+} from "@/components/ui/select";
+import { useTranslations } from "../../../providers/table-provider";
 
-import type { ValueType } from './value-type-field';
+import type { ValueType } from "./value-type-field";
 
 export interface ValueTypeSelectorProps {
   description?: string;
@@ -42,10 +42,10 @@ export function ValueTypeSelector({
   const { t } = useTranslations();
 
   const valueTypes: { label: string; value: ValueType }[] = [
-    { label: t('value_types.boolean'), value: 'boolean' },
-    { label: t('value_types.number'), value: 'number' },
-    { label: t('value_types.string'), value: 'string' },
-    { label: t('value_types.json'), value: 'json' },
+    { label: t("value_types.boolean"), value: "boolean" },
+    { label: t("value_types.number"), value: "number" },
+    { label: t("value_types.string"), value: "string" },
+    { label: t("value_types.json"), value: "json" },
   ];
 
   const handleValueTypeChange = (value: string) => {
@@ -60,11 +60,11 @@ export function ValueTypeSelector({
       <FormControl>
         <Select
           onValueChange={handleValueTypeChange}
-          value={String(field.value || 'string')}
+          value={String(field.value || "string")}
         >
           <SelectTrigger>
             <SelectValue
-              placeholder={placeholder || t('value_types.select_placeholder')}
+              placeholder={placeholder || t("value_types.select_placeholder")}
             />
           </SelectTrigger>
           <SelectContent>

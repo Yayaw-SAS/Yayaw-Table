@@ -2,7 +2,7 @@
  * Dynamic value field component for forms
  * Renders different form fields based on a specified type
  */
-'use client';
+"use client";
 
 // Debug flag to control logging
 const DEBUG = false;
@@ -11,14 +11,14 @@ const DEBUG = false;
  * Convert value to boolean type
  */
 function convertToBoolean(value: unknown): boolean {
-  if (typeof value === 'boolean') {
+  if (typeof value === "boolean") {
     return value;
   }
-  if (typeof value === 'string') {
+  if (typeof value === "string") {
     const stringValue = String(value).toLowerCase();
-    return stringValue === 'true' || stringValue === '1';
+    return stringValue === "true" || stringValue === "1";
   }
-  if (typeof value === 'number') {
+  if (typeof value === "number") {
     return value !== 0;
   }
   return Boolean(value);
@@ -28,10 +28,10 @@ function convertToBoolean(value: unknown): boolean {
  * Convert value to number type
  */
 function convertToNumber(value: unknown): unknown {
-  if (typeof value === 'number') {
+  if (typeof value === "number") {
     return value;
   }
-  if (typeof value === 'string' && !Number.isNaN(Number(value))) {
+  if (typeof value === "string" && !Number.isNaN(Number(value))) {
     return Number(value);
   }
   return value;
@@ -41,7 +41,7 @@ function convertToNumber(value: unknown): unknown {
  * Convert value to JSON string
  */
 function convertToJson(value: unknown): unknown {
-  if (typeof value === 'object' && value !== null) {
+  if (typeof value === "object" && value !== null) {
     try {
       return JSON.stringify(value, null, 2);
     } catch (_e) {
@@ -55,7 +55,7 @@ function convertToJson(value: unknown): unknown {
  * Convert value to string type
  */
 function convertToString(value: unknown): unknown {
-  if (typeof value === 'string') {
+  if (typeof value === "string") {
     return value;
   }
   try {
@@ -75,20 +75,20 @@ function convertValueToType(value: unknown, type: string): unknown {
   }
 
   switch (type) {
-    case 'boolean':
+    case "boolean":
       return convertToBoolean(value);
-    case 'number':
+    case "number":
       return convertToNumber(value);
-    case 'json':
+    case "json":
       return convertToJson(value);
-    case 'string':
+    case "string":
       return convertToString(value);
     default:
       return value;
   }
 }
 
-import type { UseFormReturn } from 'react-hook-form';
+import type { UseFormReturn } from "react-hook-form";
 
 import type {
   AnyFieldDefinition,
@@ -96,17 +96,17 @@ import type {
   NumberFieldDefinition,
   TextareaFieldDefinition,
   TextFieldDefinition,
-} from '../types';
+} from "../types";
 
-import { NumberField } from './number-field';
-import { SwitchField } from './switch-field';
-import { TextField } from './text-field';
-import { TextareaField } from './textarea-field';
+import { NumberField } from "./number-field";
+import { SwitchField } from "./switch-field";
+import { TextField } from "./text-field";
+import { TextareaField } from "./textarea-field";
 
 interface DynamicValueFieldProps {
   field: AnyFieldDefinition;
   form: UseFormReturn<Record<string, unknown>>;
-  type: 'boolean' | 'json' | 'number' | 'string';
+  type: "boolean" | "json" | "number" | "string";
 }
 
 /**
@@ -153,14 +153,14 @@ function fixValueTypeMismatch(
 ): unknown {
   // Fix a common bug: Detect if the currentValue is the same as the valueType - likely indicating we got the wrong value
   // In this case, we should attempt to get the real value from the form
-  if (typeof currentValue === 'string' && currentValue === type) {
+  if (typeof currentValue === "string" && currentValue === type) {
     // Try to get the real value from the form's formValues instead
     const formValues = form.getValues();
     if (DEBUG) {
       // DEBUG: Form values extracted
     }
 
-    if (formValues && typeof formValues === 'object') {
+    if (formValues && typeof formValues === "object") {
       const correctValue = searchFormValuesForCorrectValue(
         formValues,
         field,
@@ -231,41 +231,41 @@ export function DynamicValueField({
   }
 
   switch (type) {
-    case 'boolean':
+    case "boolean":
       return (
         <SwitchField
           field={
             {
               ...field,
               ...baseFieldProps,
-              type: 'checkbox',
-              variant: 'switch',
+              type: "checkbox",
+              variant: "switch",
             } as CheckboxFieldDefinition
           }
           form={form}
         />
       );
-    case 'json':
+    case "json":
       return (
         <TextareaField
           field={
             {
               ...field,
               ...baseFieldProps,
-              type: 'textarea',
+              type: "textarea",
             } as TextareaFieldDefinition
           }
           form={form}
         />
       );
-    case 'number':
+    case "number":
       return (
         <NumberField
           field={
             {
               ...field,
               ...baseFieldProps,
-              type: 'number',
+              type: "number",
             } as NumberFieldDefinition
           }
           form={form}
@@ -278,7 +278,7 @@ export function DynamicValueField({
       return (
         <TextField
           field={
-            { ...field, ...baseFieldProps, type: 'text' } as TextFieldDefinition
+            { ...field, ...baseFieldProps, type: "text" } as TextFieldDefinition
           }
           form={form}
         />

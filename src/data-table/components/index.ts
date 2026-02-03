@@ -3,18 +3,18 @@
  * This makes importing components easier
  */
 
-export * from './cells';
-export * from './columns';
-export { DataTablePagination } from './data-table-pagination';
+export * from "./cells";
+export * from "./columns";
+export { DataTable } from "./data-table";
+export { DataTablePagination } from "./data-table-pagination";
 // Export modern data table components
-export { TableComponent } from './table-component';
-export { DataTable } from './data-table';
+export { TableComponent } from "./table-component";
 
 /**
  * Export all data table components for easy imports
  */
 
 // Re-export types
-export { SortableRow } from './sortable-row';
+export { SortableRow } from "./sortable-row";
 
-export { DataTableAdvancedToolbar } from './toolbar/data-table-advanced-toolbar';
+export { DataTableAdvancedToolbar } from "./toolbar/data-table-advanced-toolbar";

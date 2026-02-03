@@ -2,13 +2,13 @@
  * Selection cell component for data tables
  * Shows a checkbox for row selection
  */
-'use client';
+"use client";
 
-import type { Row } from '@tanstack/react-table';
-import { useCallback, useEffect, useState } from 'react';
-import { Checkbox } from '@/components/ui/checkbox';
+import type { Row } from "@tanstack/react-table";
+import { useCallback, useEffect, useState } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
 
-const DEBUG = false;
+const _DEBUG = false;
 
 export interface SelectionCellProps<TData> {
   /**
@@ -31,7 +31,7 @@ export interface SelectionCellProps<TData> {
  * Cell component for displaying a selection checkbox
  */
 export function SelectionCell<TData>({
-  className = '',
+  className = "",
   disabled = false,
   row,
 }: SelectionCellProps<TData>) {
@@ -53,11 +53,6 @@ export function SelectionCell<TData>({
     },
     [row]
   );
-
-  if (DEBUG) {
-    console.log('SelectionCell rendered for row:', row.id);
-  }
-
   return (
     <div className={`flex items-center justify-center ${className}`}>
       <Checkbox

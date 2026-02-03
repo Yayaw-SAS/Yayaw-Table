@@ -2,12 +2,12 @@
  * Option filter component
  * Provides filtering for single-option columns with search and faceted counts
  */
-'use client';
+"use client";
 
-import { Check, ChevronDown, X } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Check, ChevronDown, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Command,
   CommandEmpty,
@@ -15,35 +15,35 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from '@/components/ui/command';
-import { Label } from '@/components/ui/label';
+} from "@/components/ui/command";
+import { Label } from "@/components/ui/label";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover';
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { cn } from '@/lib/utils';
-import type { ColumnOption, FilterOperators } from '../../types/filter-types';
+} from "@/components/ui/select";
+import { cn } from "@/lib/utils";
+import { useTranslations } from "../../providers/table-provider";
+import type { ColumnOption, FilterOperators } from "../../types/filter-types";
 import {
   DEFAULT_OPERATORS,
   FILTER_OPERATORS_LABELS,
-} from '../../types/filter-types';
-import { useTranslations } from '../../providers/table-provider';
+} from "../../types/filter-types";
 
 export interface OptionFilterProps {
   /** Current filter value - single value or array for isAnyOf/isNoneOf */
   value: string | string[];
   /** Current operator */
-  operator: FilterOperators['option'];
+  operator: FilterOperators["option"];
   /** Available operators (defaults to all option operators) */
-  operators?: readonly FilterOperators['option'][];
+  operators?: readonly FilterOperators["option"][];
   /** Available options */
   options: ColumnOption[];
   /** Whether the filter is disabled */
@@ -51,7 +51,7 @@ export interface OptionFilterProps {
   /** Callback when the value changes */
   onValueChange: (value: string | string[]) => void;
   /** Callback when the operator changes */
-  onOperatorChange: (operator: FilterOperators['option']) => void;
+  onOperatorChange: (operator: FilterOperators["option"]) => void;
   /** Optional label */
   label?: string;
   /** Whether to show the operator selector */
@@ -78,13 +78,13 @@ export function OptionFilter({
   label,
   showOperator = true,
   showCounts = true,
-  placeholder = 'Select option...',
+  placeholder = "Select option...",
   inline = false,
 }: OptionFilterProps) {
   const { t } = useTranslations();
   const [internalValue, setInternalValue] = useState(value);
   const [isOpen, setIsOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Sync internal value with prop
   useEffect(() => {
@@ -101,8 +101,8 @@ export function OptionFilter({
   );
 
   // Check if this operator needs a value input
-  const needsValue = !['isEmpty', 'isNotEmpty'].includes(operator);
-  const isMultiple = ['isAnyOf', 'isNoneOf'].includes(operator);
+  const needsValue = !["isEmpty", "isNotEmpty"].includes(operator);
+  const isMultiple = ["isAnyOf", "isNoneOf"].includes(operator);
   const currentSingleValue = Array.isArray(internalValue)
     ? internalValue[0]
     : internalValue;
@@ -190,12 +190,12 @@ export function OptionFilter({
           <Select
             disabled={disabled}
             onValueChange={(operatorValue) =>
-              onOperatorChange(operatorValue as FilterOperators['option'])
+              onOperatorChange(operatorValue as FilterOperators["option"])
             }
             value={operator}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder={t('filters.select_operator')} />
+              <SelectValue placeholder={t("filters.select_operator")} />
             </SelectTrigger>
             <SelectContent>
               {operators.map((op) => (
@@ -215,11 +215,11 @@ export function OptionFilter({
                 <Command>
                   <CommandInput
                     onValueChange={setSearchTerm}
-                    placeholder={t('filters.search', { filter: 'options' })}
+                    placeholder={t("filters.search", { filter: "options" })}
                     value={searchTerm}
                   />
                   <CommandList>
-                    <CommandEmpty>{t('filters.noResults')}</CommandEmpty>
+                    <CommandEmpty>{t("filters.noResults")}</CommandEmpty>
                     <CommandGroup>
                       {filteredOptions.map((option) => {
                         const isSelected = isMultiple
@@ -241,7 +241,7 @@ export function OptionFilter({
                             <div className="flex flex-1 items-center gap-2">
                               {option.icon && (
                                 <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center">
-                                  {typeof option.icon === 'function' ? (
+                                  {typeof option.icon === "function" ? (
                                     <option.icon />
                                   ) : (
                                     option.icon
@@ -257,8 +257,8 @@ export function OptionFilter({
                             </div>
                             <Check
                               className={cn(
-                                'ml-auto h-4 w-4',
-                                isSelected ? 'opacity-100' : 'opacity-0'
+                                "ml-auto h-4 w-4",
+                                isSelected ? "opacity-100" : "opacity-0"
                               )}
                             />
                           </CommandItem>
@@ -285,11 +285,11 @@ export function OptionFilter({
                   <Command>
                     <CommandInput
                       onValueChange={setSearchTerm}
-                      placeholder={t('filters.search', { filter: 'options' })}
+                      placeholder={t("filters.search", { filter: "options" })}
                       value={searchTerm}
                     />
                     <CommandList>
-                      <CommandEmpty>{t('filters.noResults')}</CommandEmpty>
+                      <CommandEmpty>{t("filters.noResults")}</CommandEmpty>
                       <CommandGroup>
                         {filteredOptions.map((option) => {
                           const isSelected = isMultiple
@@ -311,7 +311,7 @@ export function OptionFilter({
                               <div className="flex flex-1 items-center gap-2">
                                 {option.icon && (
                                   <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center">
-                                    {typeof option.icon === 'function' ? (
+                                    {typeof option.icon === "function" ? (
                                       <option.icon />
                                     ) : (
                                       option.icon
@@ -320,15 +320,18 @@ export function OptionFilter({
                                 )}
                                 <span className="flex-1">{option.label}</span>
                                 {showCounts && option.count !== undefined && (
-                                  <Badge className="text-xs" variant="secondary">
+                                  <Badge
+                                    className="text-xs"
+                                    variant="secondary"
+                                  >
                                     {option.count}
                                   </Badge>
                                 )}
                               </div>
                               <Check
                                 className={cn(
-                                  'ml-auto h-4 w-4',
-                                  isSelected ? 'opacity-100' : 'opacity-0'
+                                  "ml-auto h-4 w-4",
+                                  isSelected ? "opacity-100" : "opacity-0"
                                 )}
                               />
                             </CommandItem>
@@ -354,7 +357,7 @@ export function OptionFilter({
                     >
                       {option?.icon && (
                         <span className="mr-1 flex h-3 w-3 items-center justify-center">
-                          {typeof option.icon === 'function' ? (
+                          {typeof option.icon === "function" ? (
                             <option.icon />
                           ) : (
                             option.icon
@@ -368,7 +371,7 @@ export function OptionFilter({
                           handleMultipleOptionToggle(selectedValue)
                         }
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
+                          if (e.key === "Enter") {
                             handleMultipleOptionToggle(selectedValue);
                           }
                         }}
@@ -376,9 +379,9 @@ export function OptionFilter({
                           e.preventDefault();
                           e.stopPropagation();
                         }}
+                        size="icon"
                         type="button"
                         variant="ghost"
-                        size="icon"
                       >
                         <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
                       </Button>
@@ -393,8 +396,8 @@ export function OptionFilter({
         {/* Info text for operators that don't need values */}
         {!needsValue && (
           <div className="text-muted-foreground text-sm italic">
-            This filter will show rows where the field{' '}
-            {operator === 'isEmpty' ? 'is empty' : 'is not empty'}.
+            This filter will show rows where the field{" "}
+            {operator === "isEmpty" ? "is empty" : "is not empty"}.
           </div>
         )}
       </div>
@@ -411,15 +414,15 @@ export function CompactOptionFilter({
   options,
   onValueChange,
   disabled = false,
-  placeholder = 'Select...',
+  placeholder = "Select...",
 }: Pick<
   OptionFilterProps,
-  | 'value'
-  | 'operator'
-  | 'options'
-  | 'onValueChange'
-  | 'disabled'
-  | 'placeholder'
+  | "value"
+  | "operator"
+  | "options"
+  | "onValueChange"
+  | "disabled"
+  | "placeholder"
 >) {
   const { t } = useTranslations();
   const [internalValue, setInternalValue] = useState(value);
@@ -444,7 +447,7 @@ export function CompactOptionFilter({
     [options]
   );
 
-  const isMultiple = ['isAnyOf', 'isNoneOf'].includes(operator);
+  const isMultiple = ["isAnyOf", "isNoneOf"].includes(operator);
   const currentSingleValue = Array.isArray(internalValue)
     ? internalValue[0]
     : internalValue;
@@ -466,7 +469,7 @@ export function CompactOptionFilter({
         const option = getOptionByValue(currentMultipleValue[0]);
         return option?.label || currentMultipleValue[0];
       }
-      return t('filters.selectedCount', { count: currentMultipleValue.length });
+      return t("filters.selectedCount", { count: currentMultipleValue.length });
     }
     if (!currentSingleValue) {
       return placeholder;
@@ -479,16 +482,17 @@ export function CompactOptionFilter({
     currentSingleValue,
     placeholder,
     getOptionByValue,
+    t,
   ]);
 
-  const needsValue = !['isEmpty', 'isNotEmpty'].includes(operator);
+  const needsValue = !["isEmpty", "isNotEmpty"].includes(operator);
 
   if (!needsValue) {
     return (
       <span className="text-muted-foreground text-xs">
-        {operator === 'isEmpty'
-          ? t('filters.operators.empty')
-          : t('filters.operators.not_empty')}
+        {operator === "isEmpty"
+          ? t("filters.operators.empty")
+          : t("filters.operators.not_empty")}
       </span>
     );
   }
@@ -508,9 +512,11 @@ export function CompactOptionFilter({
       </PopoverTrigger>
       <PopoverContent align="start" className="w-48 p-0">
         <Command>
-          <CommandInput placeholder={t('filters.search', { filter: 'options' })} />
+          <CommandInput
+            placeholder={t("filters.search", { filter: "options" })}
+          />
           <CommandList>
-            <CommandEmpty>{t('filters.noResults')}</CommandEmpty>
+            <CommandEmpty>{t("filters.noResults")}</CommandEmpty>
             <CommandGroup>
               {options.map((option) => {
                 const isSelected = isMultiple
@@ -540,7 +546,7 @@ export function CompactOptionFilter({
                     <div className="flex flex-1 items-center gap-2">
                       {option.icon && (
                         <span className="flex h-3 w-3 flex-shrink-0 items-center justify-center">
-                          {typeof option.icon === 'function' ? (
+                          {typeof option.icon === "function" ? (
                             <option.icon />
                           ) : (
                             option.icon
@@ -551,8 +557,8 @@ export function CompactOptionFilter({
                     </div>
                     <Check
                       className={cn(
-                        'ml-auto h-3 w-3',
-                        isSelected ? 'opacity-100' : 'opacity-0'
+                        "ml-auto h-3 w-3",
+                        isSelected ? "opacity-100" : "opacity-0"
                       )}
                     />
                   </CommandItem>

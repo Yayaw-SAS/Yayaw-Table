@@ -2,47 +2,47 @@
  * Date filter component
  * Provides filtering for date columns with various date operators and date picker
  */
-'use client';
+"use client";
 
-import { format } from 'date-fns';
-import { CalendarIcon, ChevronDown } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
-import { Label } from '@/components/ui/label';
+import { format } from "date-fns";
+import { CalendarIcon, ChevronDown } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Label } from "@/components/ui/label";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover';
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { cn } from '@/lib/utils';
-import type { FilterOperators } from '../../types/filter-types';
+} from "@/components/ui/select";
+import { cn } from "@/lib/utils";
+import { useTranslations } from "../../providers/table-provider";
+import type { FilterOperators } from "../../types/filter-types";
 import {
   DEFAULT_OPERATORS,
   FILTER_OPERATORS_LABELS,
-} from '../../types/filter-types';
-import { useTranslations } from '../../providers/table-provider';
+} from "../../types/filter-types";
 
 export interface DateFilterProps {
   /** Current filter value - single date or [start, end] for between */
   value: Date | [Date, Date];
   /** Current operator */
-  operator: FilterOperators['date'];
+  operator: FilterOperators["date"];
   /** Available operators (defaults to all date operators) */
-  operators?: readonly FilterOperators['date'][];
+  operators?: readonly FilterOperators["date"][];
   /** Whether the filter is disabled */
   disabled?: boolean;
   /** Callback when the value changes */
   onValueChange: (value: Date | [Date, Date]) => void;
   /** Callback when the operator changes */
-  onOperatorChange: (operator: FilterOperators['date']) => void;
+  onOperatorChange: (operator: FilterOperators["date"]) => void;
   /** Optional label */
   label?: string;
   /** Whether to show the operator selector */
@@ -65,7 +65,7 @@ export function DateFilter({
   onOperatorChange,
   label,
   showOperator = true,
-  dateFormat = 'PPP',
+  dateFormat = "PPP",
   inline = false,
 }: DateFilterProps) {
   const { t } = useTranslations();
@@ -87,8 +87,8 @@ export function DateFilter({
   );
 
   // Check if this operator needs a value input
-  const needsValue = !['isEmpty', 'isNotEmpty'].includes(operator);
-  const isBetween = operator === 'between';
+  const needsValue = !["isEmpty", "isNotEmpty"].includes(operator);
+  const isBetween = operator === "between";
   const currentSingleValue = Array.isArray(internalValue)
     ? internalValue[0]
     : internalValue;
@@ -142,12 +142,12 @@ export function DateFilter({
           <Select
             disabled={disabled}
             onValueChange={(selectedValue) =>
-              onOperatorChange(selectedValue as FilterOperators['date'])
+              onOperatorChange(selectedValue as FilterOperators["date"])
             }
             value={operator}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder={t('filters.select_operator')} />
+              <SelectValue placeholder={t("filters.select_operator")} />
             </SelectTrigger>
             <SelectContent>
               {operators.map((op) => (
@@ -160,9 +160,9 @@ export function DateFilter({
         )}
 
         {/* Date picker */}
-        {needsValue && (
-          inline ? (
-            <div className="rounded-md border p-2 mr-auto w-fit">
+        {needsValue &&
+          (inline ? (
+            <div className="mr-auto w-fit rounded-md border p-2">
               {isBetween ? (
                 <Calendar
                   className="[--cell-size:--spacing(7)] sm:[--cell-size:--spacing(8)]"
@@ -171,7 +171,10 @@ export function DateFilter({
                   mode="range"
                   onSelect={handleDateRangeSelect}
                   required
-                  selected={{ from: currentRangeValue[0], to: currentRangeValue[1] }}
+                  selected={{
+                    from: currentRangeValue[0],
+                    to: currentRangeValue[1],
+                  }}
                 />
               ) : (
                 <Calendar
@@ -190,8 +193,8 @@ export function DateFilter({
                 <Button
                   aria-expanded={isOpen}
                   className={cn(
-                    'w-full justify-start text-left font-normal',
-                    !internalValue && 'text-muted-foreground'
+                    "w-full justify-start text-left font-normal",
+                    !internalValue && "text-muted-foreground"
                   )}
                   disabled={disabled}
                   type="button"
@@ -203,7 +206,7 @@ export function DateFilter({
                       formatDateForDisplay(internalValue)
                     ) : (
                       <span>
-                        {isBetween ? t('filters.value') : t('filters.value')}
+                        {isBetween ? t("filters.value") : t("filters.value")}
                       </span>
                     )}
                   </span>
@@ -251,14 +254,13 @@ export function DateFilter({
                 )}
               </PopoverContent>
             </Popover>
-          )
-        )}
+          ))}
 
         {/* Info text for operators that don't need values */}
         {!needsValue && (
           <div className="text-muted-foreground text-sm italic">
-            This filter will show rows where the field{' '}
-            {operator === 'isEmpty' ? 'is empty' : 'is not empty'}.
+            This filter will show rows where the field{" "}
+            {operator === "isEmpty" ? "is empty" : "is not empty"}.
           </div>
         )}
       </div>
@@ -274,10 +276,10 @@ export function CompactDateFilter({
   operator,
   onValueChange,
   disabled = false,
-  dateFormat = 'PP',
+  dateFormat = "PP",
 }: Pick<
   DateFilterProps,
-  'value' | 'operator' | 'onValueChange' | 'disabled' | 'dateFormat'
+  "value" | "operator" | "onValueChange" | "disabled" | "dateFormat"
 >) {
   const { t } = useTranslations();
   const [internalValue, setInternalValue] = useState(value);
@@ -326,13 +328,13 @@ export function CompactDateFilter({
     [dateFormat]
   );
 
-  const needsValue = !['isEmpty', 'isNotEmpty'].includes(operator);
-  const isBetween = operator === 'between';
+  const needsValue = !["isEmpty", "isNotEmpty"].includes(operator);
+  const isBetween = operator === "between";
 
   if (!needsValue) {
     return (
       <span className="text-muted-foreground text-xs">
-        {operator === 'isEmpty' ? 'is empty' : 'is not empty'}
+        {operator === "isEmpty" ? "is empty" : "is not empty"}
       </span>
     );
   }
@@ -349,8 +351,8 @@ export function CompactDateFilter({
       <PopoverTrigger asChild>
         <Button
           className={cn(
-            'h-6 justify-start px-2 font-normal text-xs',
-            !internalValue && 'text-muted-foreground'
+            "h-6 justify-start px-2 font-normal text-xs",
+            !internalValue && "text-muted-foreground"
           )}
           disabled={disabled}
           size="sm"
@@ -358,7 +360,9 @@ export function CompactDateFilter({
           variant="ghost"
         >
           <CalendarIcon className="mr-1 h-3 w-3" />
-          {internalValue ? formatDateForDisplay(internalValue) : t('filters.value')}
+          {internalValue
+            ? formatDateForDisplay(internalValue)
+            : t("filters.value")}
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-auto p-0">
@@ -397,14 +401,14 @@ export function DateRangeShortcuts({
 }) {
   const shortcuts = [
     {
-      label: 'Today',
+      label: "Today",
       getValue: () => {
         const today = new Date();
         return [today, today] as [Date, Date];
       },
     },
     {
-      label: 'Yesterday',
+      label: "Yesterday",
       getValue: () => {
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
@@ -412,7 +416,7 @@ export function DateRangeShortcuts({
       },
     },
     {
-      label: 'Last 7 days',
+      label: "Last 7 days",
       getValue: () => {
         const end = new Date();
         const start = new Date();
@@ -421,7 +425,7 @@ export function DateRangeShortcuts({
       },
     },
     {
-      label: 'Last 30 days',
+      label: "Last 30 days",
       getValue: () => {
         const end = new Date();
         const start = new Date();
@@ -430,7 +434,7 @@ export function DateRangeShortcuts({
       },
     },
     {
-      label: 'This month',
+      label: "This month",
       getValue: () => {
         const now = new Date();
         const start = new Date(now.getFullYear(), now.getMonth(), 1);

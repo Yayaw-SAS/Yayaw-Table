@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { atom } from 'jotai';
-import { atomFamily } from 'jotai/utils';
+import { atom } from "jotai";
+import { atomFamily } from "jotai-family";
 
-import type { TableView } from '../types/view-types';
+import type { TableView } from "../types/view-types";
 
 /**
  * Atom family for storing the active view ID for each table

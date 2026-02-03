@@ -1,19 +1,29 @@
-import type { LucideProps } from 'lucide-react';
-import * as LucideIcons from 'lucide-react';
-import { motion } from 'motion/react';
-import type { FC, HTMLAttributes, ReactElement } from 'react';
-import { cn } from '@/lib/utils';
+import type { LucideIcon, LucideProps } from "lucide-react";
+import { Copy, Eye, Moon, Pencil, Sun, Trash } from "lucide-react";
+import { motion } from "motion/react";
+import type { FC, HTMLAttributes, ReactElement } from "react";
+import { cn } from "@/lib/utils";
 
-type IconSize = '2xl' | '3xl' | 'lg' | 'md' | 'sm' | 'xl' | 'xs';
+type IconSize = "2xl" | "3xl" | "lg" | "md" | "sm" | "xl" | "xs";
 
 const sizeMap: Record<IconSize, number> = {
-  '2xl': 40,
-  '3xl': 48,
+  "2xl": 40,
+  "3xl": 48,
   lg: 24,
   md: 20,
   sm: 16,
   xl: 32,
   xs: 12,
+};
+
+/** Explicit map of Lucide icons used by the app; add new icons here when needed */
+const LUCIDE_ICON_MAP: Record<string, LucideIcon> = {
+  Copy,
+  Eye,
+  Moon,
+  Pencil,
+  Sun,
+  Trash,
 };
 
 interface IconProps extends HTMLAttributes<HTMLDivElement> {
@@ -26,10 +36,7 @@ interface IconProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 export function getLucideIcon(iconName: string): null | FC<LucideProps> {
-  return (
-    (LucideIcons as unknown as Record<string, FC<LucideProps>>)[iconName] ||
-    null
-  );
+  return LUCIDE_ICON_MAP[iconName] ?? null;
 }
 
 /**
@@ -49,7 +56,7 @@ export function Icon({
   className,
   label,
   name,
-  size = 'md',
+  size = "md",
   strokeWidth = 2,
   ...props
 }: IconProps): ReactElement {
@@ -57,7 +64,7 @@ export function Icon({
 
   // Determine icon size
   let iconSize: number;
-  if (typeof size === 'number') {
+  if (typeof size === "number") {
     // If size is a number, use it directly
     iconSize = size;
   } else if (size in sizeMap) {
@@ -72,7 +79,7 @@ export function Icon({
     return (
       <div
         className={cn(
-          'flex items-center justify-center text-card-foreground',
+          "flex items-center justify-center text-card-foreground",
           className
         )}
         {...props}
@@ -98,11 +105,11 @@ export function Icon({
         aria-hidden={label ? undefined : true}
         aria-label={label}
         className={cn(
-          'flex items-center justify-center text-card-foreground',
+          "flex items-center justify-center text-card-foreground",
           className
         )}
-        role="img"
         initial="initial"
+        role="img"
         variants={iconVariants}
         whileHover="hover"
       >
@@ -117,7 +124,7 @@ export function Icon({
       aria-hidden={label ? undefined : true}
       aria-label={label}
       className={cn(
-        'flex items-center justify-center text-card-foreground',
+        "flex items-center justify-center text-card-foreground",
         className
       )}
       role="img"

@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { ThemeToggle } from '@/src/components/ui-custom/theme-toggle';
+import Link from "next/link";
+import { ThemeToggle } from "@/src/components/ui-custom/theme-toggle";
 
 export function HomePageClient() {
   return (
@@ -16,7 +16,7 @@ export function HomePageClient() {
           {/* Hero Section */}
           <div className="space-y-6">
             <h1 className="font-bold text-5xl text-foreground sm:text-6xl">
-              📦{' '}
+              📦{" "}
               <span className="bg-gradient-to-r from-primary to-violet-600 bg-clip-text text-transparent">
                 YaYaw Table
               </span>
@@ -26,9 +26,9 @@ export function HomePageClient() {
               A flexible, powerful data table component library for React that
               lets you
               <strong className="text-foreground">
-                {' '}
+                {" "}
                 define your own table configurations
-              </strong>{' '}
+              </strong>{" "}
               instead of imposing predefined structures.
             </p>
 
@@ -123,8 +123,8 @@ const config = defineTableConfig({
           {/* Theme Notice */}
           <div className="mt-8 rounded-lg border border-border bg-accent/50 p-4">
             <p className="text-muted-foreground text-sm">
-              🎨{' '}
-              <strong className="text-foreground">Try the theme toggle</strong>{' '}
+              🎨{" "}
+              <strong className="text-foreground">Try the theme toggle</strong>{" "}
               in the top-right corner to see how YaYaw Table adapts to your
               design system!
             </p>

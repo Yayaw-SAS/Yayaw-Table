@@ -2,15 +2,15 @@
  * Hook for accessing translations in the DataTable component
  * Provides both direct access to resolved translations and complex formatting capabilities
  */
-import { useAtomValue } from 'jotai';
+import { useAtomValue } from "jotai";
 import {
   type DataTableUiStrings,
   tableTranslationsAtom,
   translationKeysMap,
   translationsAtom,
   translationsInitializedAtom,
-} from '../atoms/i18n-atoms';
-import { useTranslations } from '../providers/table-provider';
+} from "../atoms/i18n-atoms";
+import { useTranslations } from "../providers/table-provider";
 
 /**
  * Extended return type for useTableTranslations that includes formatting function
@@ -40,7 +40,7 @@ export function useTableTranslations(
   const globalTranslations = useAtomValue(translationsAtom);
 
   // Create a dummy tableId if none is provided to ensure hooks are called consistently
-  const safeTableId = tableId || 'global';
+  const safeTableId = tableId || "global";
 
   // Always call the hook unconditionally
   const tableSpecificTranslations = useAtomValue(
@@ -62,7 +62,7 @@ export function useTableTranslations(
   // Create a mapping from property name to original translation key
   const keyToOriginalMap = Object.entries(translationKeysMap).reduce(
     (acc, [key, originalKey]) => {
-      if (typeof originalKey === 'string') {
+      if (typeof originalKey === "string") {
         acc[key as keyof DataTableUiStrings] = originalKey;
       }
       return acc;
@@ -79,7 +79,11 @@ export function useTableTranslations(
 
     // If we can't find the original key, return the stored translation or the key itself
     if (!originalKey) {
-      return (tableTranslations as Partial<Record<keyof DataTableUiStrings, string>>)[key] || String(key);
+      return (
+        (
+          tableTranslations as Partial<Record<keyof DataTableUiStrings, string>>
+        )[key] || String(key)
+      );
     }
 
     try {
@@ -97,12 +101,15 @@ export function useTableTranslations(
       return t(originalKey, safeValues);
     } catch (_error) {
       // Log a warning in development mode only
-      if (process.env.NODE_ENV === 'development') {
-        // DEBUG: Translation error in development
-        console.warn('Translation error for key:', key, 'Error:', _error);
+      if (process.env.NODE_ENV === "development") {
+        /* optional dev warning */
       }
       // Return the stored translation or the key itself as a fallback
-      return (tableTranslations as Partial<Record<keyof DataTableUiStrings, string>>)[key] || String(key);
+      return (
+        (
+          tableTranslations as Partial<Record<keyof DataTableUiStrings, string>>
+        )[key] || String(key)
+      );
     }
   };
 
@@ -110,7 +117,7 @@ export function useTableTranslations(
   if (!isInitialized) {
     return new Proxy({ format } as UseTableTranslationsReturn, {
       get: (target, prop) => {
-        if (prop === 'format') {
+        if (prop === "format") {
           return target.format;
         }
         return format(prop as keyof DataTableUiStrings);
@@ -119,5 +126,8 @@ export function useTableTranslations(
   }
 
   // Return all translations plus the format function
-  return { ...(tableTranslations as Record<string, string>), format } as UseTableTranslationsReturn;
+  return {
+    ...(tableTranslations as Record<string, string>),
+    format,
+  } as UseTableTranslationsReturn;
 }

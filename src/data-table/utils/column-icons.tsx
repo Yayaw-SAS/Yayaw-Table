@@ -12,7 +12,7 @@ import {
   Tag,
   Text,
   ToggleRight,
-} from 'lucide-react';
+} from "lucide-react";
 
 export const COLUMN_TYPE_ICONS: Record<string, LucideIcon> = {
   text: Text,
@@ -37,7 +37,7 @@ export const getColumnTypeIcon = (columnType: string): LucideIcon => {
  */
 export const ColumnIcon = ({
   columnType,
-  className = 'h-4 w-4',
+  className = "h-4 w-4",
 }: {
   columnType: string;
   className?: string;

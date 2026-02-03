@@ -2,15 +2,15 @@
  * Actions cell component for data tables
  * Provides standardized display of row action buttons with enhanced dropdown menu
  */
-'use client';
+"use client";
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { Row } from '@tanstack/react-table';
-import { useSetAtom } from 'jotai';
-import { MoreHorizontal } from 'lucide-react';
-import { memo, useCallback, useEffect, useMemo, useRef } from 'react';
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { Row } from "@tanstack/react-table";
+import { useSetAtom } from "jotai";
+import { MoreHorizontal } from "lucide-react";
+import { memo, useCallback, useEffect, useMemo, useRef } from "react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,17 +18,17 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Icon } from '@/components/ui-custom/icon';
-import { cn } from '@/lib/utils';
-import { useTranslations } from '../../providers/table-provider';
+} from "@/components/ui/dropdown-menu";
+import { Icon } from "@/components/ui-custom/icon";
+import { cn } from "@/lib/utils";
+import { useTranslations } from "../../providers/table-provider";
 
-import type { ActionItem } from '../columns/actions-column';
+import type { ActionItem } from "../columns/actions-column";
 import {
   type CatalogueFormState,
   catalogueFormAtom,
   openUpdateForm,
-} from '../forms/atoms/catalogue-form-atoms';
+} from "../forms/atoms/catalogue-form-atoms";
 
 // Type definition for ActionsCell props
 interface ActionsCellProps<TData> {
@@ -63,13 +63,13 @@ function ActionsCellBase<TData>({
   const actionMutation = useMutation({
     mutationFn: async (action: ActionItem<TData>) => {
       if (!action.onClick) {
-        throw new Error('Action does not have an onClick handler');
+        throw new Error("Action does not have an onClick handler");
       }
       return await action.onClick(rowData);
     },
     onSuccess: () => {
       // Invalidate all table data queries to trigger a refresh
-      queryClient.invalidateQueries({ queryKey: ['tableData'] });
+      queryClient.invalidateQueries({ queryKey: ["tableData"] });
 
       // Also call the onRefresh function if provided
       if (onRefreshRef.current) {
@@ -80,13 +80,13 @@ function ActionsCellBase<TData>({
 
   // Helper function to determine if action opens a form
   const isFormAction = useCallback((action: ActionItem<TData>): boolean => {
-    if (action.type !== 'edit' || !action.onClick) {
+    if (action.type !== "edit" || !action.onClick) {
       return false;
     }
     const actionString = action.onClick.toString();
     return (
-      actionString.includes('openUpdateForm') ||
-      actionString.includes('setFormState')
+      actionString.includes("openUpdateForm") ||
+      actionString.includes("setFormState")
     );
   }, []);
 
@@ -94,7 +94,7 @@ function ActionsCellBase<TData>({
   const getSuccessMessage = useCallback(
     (_action: ActionItem<TData>): string => {
       // All actions use the same success message for now
-      return t('common.success');
+      return t("common.success");
     },
     [t]
   );
@@ -125,9 +125,9 @@ function ActionsCellBase<TData>({
         const isForm = isFormAction(action);
 
         // Show loading toast for non-form actions
-        let toastId: number | string = '';
+        let toastId: number | string = "";
         if (!isForm) {
-          toastId = toast.loading(t('common.loading'));
+          toastId = toast.loading(t("common.loading"));
         }
 
         // Execute the action
@@ -137,7 +137,7 @@ function ActionsCellBase<TData>({
         handleToasts(action, toastId);
       } catch (error) {
         // Show error toast
-        toast.error(error instanceof Error ? error.message : t('common.error'));
+        toast.error(error instanceof Error ? error.message : t("common.error"));
       }
     },
     [t, isFormAction, executeAction, handleToasts]
@@ -148,17 +148,17 @@ function ActionsCellBase<TData>({
     // Group actions by type
     const filteredStandardActions = actions.filter(
       (action) =>
-        action.type === 'view' ||
-        action.type === 'edit' ||
-        action.type === 'duplicate'
+        action.type === "view" ||
+        action.type === "edit" ||
+        action.type === "duplicate"
     );
 
     const filteredCustomActions = actions.filter(
-      (action) => action.type === 'custom' || !action.type
+      (action) => action.type === "custom" || !action.type
     );
 
     const filteredDestructiveActions = actions.filter(
-      (action) => action.type === 'delete'
+      (action) => action.type === "delete"
     );
 
     // Only show separators if we have multiple groups of actions
@@ -198,7 +198,7 @@ function ActionsCellBase<TData>({
         {standardActions.map((action, index) => {
           // Determine if the action is disabled
           const isDisabled =
-            typeof action.disabled === 'function'
+            typeof action.disabled === "function"
               ? action.disabled(rowData)
               : action.disabled;
 
@@ -228,7 +228,7 @@ function ActionsCellBase<TData>({
         {customActions.map((action, index) => {
           // Determine if the action is disabled
           const isDisabled =
-            typeof action.disabled === 'function'
+            typeof action.disabled === "function"
               ? action.disabled(rowData)
               : action.disabled;
 
@@ -258,19 +258,19 @@ function ActionsCellBase<TData>({
         {destructiveActions.map((action, index) => {
           // Determine if the action is disabled
           const isDisabled =
-            typeof action.disabled === 'function'
+            typeof action.disabled === "function"
               ? action.disabled(rowData)
               : action.disabled;
 
           return (
             <DropdownMenuItem
-              className={cn('text-destructive', action.className)}
+              className={cn("text-destructive", action.className)}
               disabled={isDisabled}
               key={`destructive-${action.label}-${index}`}
               onClick={() => handleActionClick(action)}
             >
               {action.icon && <span className="mr-2">{action.icon}</span>}
-              {action.label || 'Delete'}
+              {action.label || "Delete"}
             </DropdownMenuItem>
           );
         })}
@@ -395,9 +395,9 @@ export function ActionsCellWithTranslations<
   if (standardActions.includeView && standardActions.onView) {
     allActions.unshift({
       icon: <Icon name="Eye" size="sm" />,
-      label: t('actions.view'),
+      label: t("actions.view"),
       onClick: standardActions.onView,
-      type: 'view',
+      type: "view",
     });
   }
 
@@ -413,7 +413,7 @@ export function ActionsCellWithTranslations<
         // Check if we have a tableId in the standardActions or in the row
         const tableId =
           tableIdRef.current ||
-          (rowData && typeof rowData === 'object' && 'tableId' in rowData
+          (rowData && typeof rowData === "object" && "tableId" in rowData
             ? String(rowData.tableId)
             : undefined);
 
@@ -427,11 +427,11 @@ export function ActionsCellWithTranslations<
             try {
               // Invalidate the table data query to refresh the table
               queryClient.invalidateQueries({
-                queryKey: ['tableData', tableId],
+                queryKey: ["tableData", tableId],
               });
 
               // Also call the onRefresh function if provided
-              if (onRefresh && typeof onRefresh === 'function') {
+              if (onRefresh && typeof onRefresh === "function") {
                 onRefresh();
               }
             } catch (_error) {
@@ -476,9 +476,9 @@ export function ActionsCellWithTranslations<
   if (standardActions.includeEdit) {
     allActions.unshift({
       icon: <Icon name="Pencil" size="sm" />,
-      label: t('actions.edit'),
+      label: t("actions.edit"),
       onClick: handleEdit,
-      type: 'edit',
+      type: "edit",
     });
   }
 
@@ -486,9 +486,9 @@ export function ActionsCellWithTranslations<
   if (standardActions.includeDuplicate && standardActions.onDuplicate) {
     allActions.push({
       icon: <Icon name="Copy" size="sm" />,
-      label: t('actions.duplicate'),
+      label: t("actions.duplicate"),
       onClick: standardActions.onDuplicate,
-      type: 'duplicate',
+      type: "duplicate",
     });
   }
 
@@ -496,23 +496,23 @@ export function ActionsCellWithTranslations<
   if (standardActions.includeDelete && standardActions.onDelete) {
     allActions.push({
       icon: <Icon name="Trash" size="sm" />,
-      label: t('actions.delete'),
+      label: t("actions.delete"),
       onClick: standardActions.onDelete,
-      type: 'delete',
+      type: "delete",
     });
   }
 
   // Process other actions to ensure they have proper translations
   const processedActions = allActions.map((action) => {
     // If it's already a standard action with translation, return as is
-    if (['delete', 'duplicate', 'edit', 'view'].includes(action.type || '')) {
+    if (["delete", "duplicate", "edit", "view"].includes(action.type || "")) {
       return action;
     }
 
     return {
       ...action,
       // If the label looks like a translation key, translate it
-      label: action.label.includes('.') ? t(action.label) : action.label,
+      label: action.label.includes(".") ? t(action.label) : action.label,
     };
   });
 

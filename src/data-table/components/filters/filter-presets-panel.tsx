@@ -2,7 +2,7 @@
  * Filter Presets Panel - Phase 5 Advanced Features
  * Modern UI for managing, organizing, and sharing filter presets
  */
-'use client';
+"use client";
 
 import {
   Bookmark,
@@ -24,10 +24,20 @@ import {
   TrendingUp,
   Upload,
   Users,
-} from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+} from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -35,25 +45,25 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
-import { cn } from '@/lib/utils';
-import type { UseFilterPresetsReturn } from '../../hooks/use-filter-presets';
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
+import type { UseFilterPresetsReturn } from "../../hooks/use-filter-presets";
 import type {
   AdvancedFilterState,
   FilterPreset,
-} from '../../types/advanced-filter-types';
+} from "../../types/advanced-filter-types";
 
 interface FilterPresetsPanelProps {
   /** Current filter state */
@@ -251,9 +261,9 @@ function SavePresetDialog({
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [tags, setTags] = useState('');
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [tags, setTags] = useState("");
   const [isPublic, setIsPublic] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -268,16 +278,16 @@ function SavePresetDialog({
         name,
         description: description || undefined,
         tags: tags
-          .split(',')
+          .split(",")
           .map((t) => t.trim())
           .filter(Boolean),
         isPublic,
       });
 
       // Reset form
-      setName('');
-      setDescription('');
-      setTags('');
+      setName("");
+      setDescription("");
+      setTags("");
       setIsPublic(false);
       onOpenChange(false);
     } catch (_error) {
@@ -371,7 +381,7 @@ function SavePresetDialog({
             onClick={handleSave}
             type="button"
           >
-            {isSaving ? 'Saving...' : 'Save Preset'}
+            {isSaving ? "Saving..." : "Save Preset"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -389,10 +399,11 @@ export function FilterPresetsPanel({
   compact = false,
   className,
 }: FilterPresetsPanelProps) {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [presetIdToDelete, setPresetIdToDelete] = useState<null | string>(null);
   const [selectedTab, setSelectedTab] = useState<
-    'all' | 'recent' | 'popular' | 'system'
-  >('all');
+    "all" | "recent" | "popular" | "system"
+  >("all");
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
 
   // Filter presets based on search and tab
@@ -401,13 +412,13 @@ export function FilterPresetsPanel({
 
     // Filter by tab
     switch (selectedTab) {
-      case 'recent':
+      case "recent":
         filtered = presets.recentPresets;
         break;
-      case 'popular':
+      case "popular":
         filtered = presets.popularPresets;
         break;
-      case 'system':
+      case "system":
         filtered = presets.systemPresets;
         break;
       default:
@@ -453,14 +464,20 @@ export function FilterPresetsPanel({
     [presets, currentState]
   );
 
-  const handleDeletePreset = useCallback(
-    async (presetId: string) => {
-      if (confirm('Are you sure you want to delete this preset?')) {
-        await presets.deletePreset(presetId);
-      }
-    },
-    [presets]
-  );
+  const handleDeletePresetClick = useCallback((presetId: string) => {
+    setPresetIdToDelete(presetId);
+  }, []);
+
+  const handleConfirmDeletePreset = useCallback(async () => {
+    if (presetIdToDelete) {
+      await presets.deletePreset(presetIdToDelete);
+      setPresetIdToDelete(null);
+    }
+  }, [presets, presetIdToDelete]);
+
+  const handleCancelDeletePreset = useCallback(() => {
+    setPresetIdToDelete(null);
+  }, []);
 
   const handleSharePreset = useCallback(
     async (presetId: string) => {
@@ -484,7 +501,7 @@ export function FilterPresetsPanel({
 
   if (compact) {
     return (
-      <div className={cn('space-y-3', className)}>
+      <div className={cn("space-y-3", className)}>
         <div className="flex items-center justify-between">
           <h3 className="font-medium text-sm">Presets</h3>
           <Button
@@ -523,7 +540,34 @@ export function FilterPresetsPanel({
   }
 
   return (
-    <div className={cn('space-y-4', className)}>
+    <div className={cn("space-y-4", className)}>
+      <AlertDialog
+        onOpenChange={(open) => {
+          if (!open) {
+            setPresetIdToDelete(null);
+          }
+        }}
+        open={presetIdToDelete !== null}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete preset</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this preset? This action cannot be
+              undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelDeletePreset}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDeletePreset}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -563,7 +607,7 @@ export function FilterPresetsPanel({
 
       {/* Search */}
       <div className="relative">
-        <Search className="-translate-y-1/2 absolute top-1/2 left-3 h-4 w-4 transform text-muted-foreground" />
+        <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform text-muted-foreground" />
         <Input
           className="pl-9"
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -575,7 +619,7 @@ export function FilterPresetsPanel({
       {/* Tabs */}
       <Tabs
         onValueChange={(value) =>
-          setSelectedTab(value as 'all' | 'recent' | 'popular' | 'system')
+          setSelectedTab(value as "all" | "recent" | "popular" | "system")
         }
         value={selectedTab}
       >
@@ -594,8 +638,8 @@ export function FilterPresetsPanel({
                 <h3 className="mb-1 font-medium">No presets found</h3>
                 <p className="mb-4 text-muted-foreground text-sm">
                   {searchQuery
-                    ? 'Try a different search term'
-                    : 'Create your first preset by saving your current filters'}
+                    ? "Try a different search term"
+                    : "Create your first preset by saving your current filters"}
                 </p>
                 {!searchQuery && (
                   <Button onClick={() => setSaveDialogOpen(true)}>
@@ -608,7 +652,7 @@ export function FilterPresetsPanel({
               <div className="space-y-3">
                 {filteredPresets.map((preset) => (
                   <PresetCard
-                    isFavorite={preset.tags.includes('favorite')}
+                    isFavorite={preset.tags.includes("favorite")}
                     isPopular={presets.popularPresets.some(
                       (p) => p.id === preset.id
                     )}
@@ -616,7 +660,7 @@ export function FilterPresetsPanel({
                       (p) => p.id === preset.id
                     )}
                     key={preset.id}
-                    onDelete={() => handleDeletePreset(preset.id)}
+                    onDelete={() => handleDeletePresetClick(preset.id)}
                     onDuplicate={() => presets.duplicatePreset(preset.id)}
                     onEdit={() => {
                       /* TODO: Edit dialog */
@@ -626,7 +670,7 @@ export function FilterPresetsPanel({
                     onToggleFavorite={() =>
                       handleToggleFavorite(
                         preset.id,
-                        preset.tags.includes('favorite')
+                        preset.tags.includes("favorite")
                       )
                     }
                     preset={preset}

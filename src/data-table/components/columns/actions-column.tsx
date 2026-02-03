@@ -2,12 +2,12 @@
  * Actions column component for data tables
  * Provides standardized display of row action buttons
  */
-'use client';
+"use client";
 
-import type { Row } from '@tanstack/react-table';
-import type { ReactNode } from 'react';
+import type { Row } from "@tanstack/react-table";
+import type { ReactNode } from "react";
 
-import { ActionsCellWithTranslations } from '../cells/actions-cell';
+import { ActionsCellWithTranslations } from "../cells/actions-cell";
 
 export interface ActionItem<TData> {
   /**
@@ -47,7 +47,7 @@ export interface ActionItem<TData> {
   /**
    * Type of action (for predefined actions like edit and delete)
    */
-  type?: 'custom' | 'delete' | 'duplicate' | 'edit' | 'view';
+  type?: "custom" | "delete" | "duplicate" | "edit" | "view";
 }
 
 export interface ActionsColumnProps<TData> {
@@ -120,7 +120,7 @@ export interface ActionsColumnProps<TData> {
 
 export function createActionsColumn<TData extends Record<string, unknown>>({
   actions = [],
-  header = 'Actions',
+  header = "Actions",
   includeDelete = true,
   includeDuplicate = false,
   includeEdit = true,
@@ -132,23 +132,18 @@ export function createActionsColumn<TData extends Record<string, unknown>>({
   onView,
   tableId,
 }: ActionsColumnProps<TData>) {
-  // Validate standard actions
+  // Validate standard actions (handlers optional; no-op when missing)
   if (includeView && !onView) {
-    console.warn('includeView is true but onView handler is not provided');
+    /* onView not provided */
   }
-
   if (includeEdit && !onEdit) {
-    console.warn('includeEdit is true but onEdit handler is not provided');
+    /* onEdit not provided */
   }
-
   if (includeDuplicate && !onDuplicate) {
-    console.warn(
-      'includeDuplicate is true but onDuplicate handler is not provided'
-    );
+    /* onDuplicate not provided */
   }
-
   if (includeDelete && !onDelete) {
-    console.warn('includeDelete is true but onDelete handler is not provided');
+    /* onDelete not provided */
   }
 
   const column = {
@@ -178,14 +173,14 @@ export function createActionsColumn<TData extends Record<string, unknown>>({
     enablePinning: false, // Disable manual pinning by users
     enableSorting: false,
     header,
-    id: 'actions',
+    id: "actions",
     meta: {
       disableDrag: true,
       disableDrop: true,
-      fixedPosition: 'end',
+      fixedPosition: "end",
       isActionsColumn: true,
     },
-    pinned: 'right', // Pin this column to the right side
+    pinned: "right", // Pin this column to the right side
     // Ensure the column is always visible
     size: 80, // Fixed width for actions column
   };

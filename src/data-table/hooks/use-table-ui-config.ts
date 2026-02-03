@@ -2,17 +2,20 @@
  * Hook for accessing DataTable UI configuration
  * Provides access to translations, table options, and column configurations
  */
-'use client';
+"use client";
 
-import { useAtomValue } from 'jotai';
+import { useAtomValue } from "jotai";
 
 import {
   type DataTableColumnsConfig,
   type DataTableConfig,
   tableColumnsConfigFamilyAtom,
   tableConfigFamilyAtom,
-} from '../atoms/config-atoms';
-import { resolvedTranslationsAtom, type DataTableUiStrings } from '../atoms/i18n-atoms';
+} from "../atoms/config-atoms";
+import {
+  type DataTableUiStrings,
+  resolvedTranslationsAtom,
+} from "../atoms/i18n-atoms";
 
 interface UseTableUIConfigResult {
   /**
@@ -37,7 +40,7 @@ interface UseTableUIConfigResult {
  * @returns Object containing translations, table config, and columns config
  */
 export function useTableUIConfig(
-  tableId = 'default-table'
+  tableId = "default-table"
 ): UseTableUIConfigResult {
   // Get table-specific column configuration
   const columnsConfig = useAtomValue(tableColumnsConfigFamilyAtom(tableId));

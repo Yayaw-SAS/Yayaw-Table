@@ -2,38 +2,40 @@
  * Lazy loaded advanced filter components
  * These are only loaded when advanced filtering is actually used
  */
-'use client';
+"use client";
 
-import { lazy, Suspense } from 'react';
-import { Skeleton } from '../../../components/ui/skeleton';
-import type { UseFilterPresetsReturn } from '../../hooks/use-filter-presets';
-import type { ColumnDataType } from '../../types/filter-types';
-import type { AdvancedFilterState } from '../../types/advanced-filter-types';
-import type { ColumnsFilterConfig } from '../../types/filter-types';
-import type { AdvancedFacetedFilterProps } from './advanced-faceted-filter';
-import type { AdvancedFilterPanelProps } from './advanced-filter-panel';
+import { lazy, Suspense } from "react";
+import { Skeleton } from "../../../components/ui/skeleton";
+import type { UseFilterPresetsReturn } from "../../hooks/use-filter-presets";
+import type { AdvancedFilterState } from "../../types/advanced-filter-types";
+import type {
+  ColumnDataType,
+  ColumnsFilterConfig,
+} from "../../types/filter-types";
+import type { AdvancedFacetedFilterProps } from "./advanced-faceted-filter";
+import type { AdvancedFilterPanelProps } from "./advanced-filter-panel";
 
 // Lazy load the heavy advanced filter components
 const AdvancedFacetedFilter = lazy(() =>
-  import('./advanced-faceted-filter').then((mod) => ({
+  import("./advanced-faceted-filter").then((mod) => ({
     default: mod.AdvancedFacetedFilter,
   }))
 );
 
 const AdvancedFilterPanel = lazy(() =>
-  import('./advanced-filter-panel').then((mod) => ({
+  import("./advanced-filter-panel").then((mod) => ({
     default: mod.AdvancedFilterPanel,
   }))
 );
 
 const FilterPresetsPanel = lazy(() =>
-  import('./filter-presets-panel').then((mod) => ({
+  import("./filter-presets-panel").then((mod) => ({
     default: mod.FilterPresetsPanel,
   }))
 );
 
 const ModernAddFilterDropdown = lazy(() =>
-  import('./modern-add-filter-dropdown').then((mod) => ({
+  import("./modern-add-filter-dropdown").then((mod) => ({
     default: mod.ModernAddFilterDropdown,
   }))
 );
@@ -78,8 +80,8 @@ interface ModernAddFilterDropdownProps {
   recentColumns?: string[];
   popularColumns?: string[];
   className?: string;
-  size?: 'sm' | 'md' | 'lg';
-  variant?: 'default' | 'outline' | 'ghost';
+  size?: "sm" | "md" | "lg";
+  variant?: "default" | "outline" | "ghost";
   disabled?: boolean;
   placeholder?: string;
 }

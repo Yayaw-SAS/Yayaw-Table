@@ -2,21 +2,20 @@
  * String column component for data tables
  * Provides standardized display of string values
  */
-'use client';
+"use client";
 
-import type { CellContext, ColumnDef } from '@tanstack/react-table';
-import { Asterisk, type LucideIcon } from 'lucide-react';
-
-import { StringCell } from '../cells/string-cell';
-import { Button } from '@/components/ui/button';
+import type { CellContext, ColumnDef } from "@tanstack/react-table";
+import { Asterisk, type LucideIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { StringCell } from "../cells/string-cell";
 
 /**
  * Custom properties for our column definitions
  */
-type CustomColumnProps = {
+interface CustomColumnProps {
   icon?: LucideIcon;
   type?: string;
-};
+}
 
 /**
  * Combined type for our column definition
@@ -81,21 +80,19 @@ export function createStringColumn<TData>({
         const toggle = info.row.getToggleExpandedHandler();
         const expanded = info.row.getIsExpanded();
         const count = info.row.subRows?.length ?? 0;
-        const label = String(info.getValue() ?? '');
+        const label = String(info.getValue() ?? "");
         return (
           <Button
             className="flex w-full cursor-pointer items-center gap-2 border-0 bg-transparent p-0 text-left"
             onClick={(e) => {
               e.stopPropagation();
-              console.log('🔥 CLICK!', expanded, 'calling toggle...');
-              const result = toggle();
-              console.log('🔥 TOGGLE RESULT:', result);
+              const _result = toggle();
             }}
             type="button"
             variant="ghost"
           >
             <span aria-hidden className="text-muted-foreground">
-              {expanded ? '▾' : '▸'}
+              {expanded ? "▾" : "▸"}
             </span>
             <span className="font-medium">{label}</span>
             <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground text-xs">
@@ -125,6 +122,6 @@ export function createStringColumn<TData>({
     header: header || accessorKey,
     icon: Asterisk,
     id: accessorKey,
-    type: 'string',
+    type: "string",
   };
 }

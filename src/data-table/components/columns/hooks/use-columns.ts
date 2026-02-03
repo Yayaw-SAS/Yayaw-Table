@@ -2,13 +2,13 @@
  * Hook for creating and managing column definitions
  * Provides a standardized way to define columns for any data type
  */
-'use client';
+"use client";
 
-import type { ColumnDef } from '@tanstack/react-table';
-import { useAtomValue } from 'jotai';
-import { useMemo } from 'react';
-import type { DataTableColumnDef } from '../../../types/column-types';
-import { tableConfigFamilyAtom } from '../../../atoms/config-atoms';
+import type { ColumnDef } from "@tanstack/react-table";
+import { useAtomValue } from "jotai";
+import { useMemo } from "react";
+import { tableConfigFamilyAtom } from "../../../atoms/config-atoms";
+import type { DataTableColumnDef } from "../../../types/column-types";
 import {
   createActionsColumn,
   createBooleanColumn,
@@ -18,10 +18,10 @@ import {
   createSelectionColumn,
   createTagColumn,
   createTextColumn,
-} from '..';
-import { createDynamicTypeColumn } from '../dynamic-type-column';
-import { createNumberColumn } from '../number-column';
-import { createStringColumn } from '../string-column';
+} from "..";
+import { createDynamicTypeColumn } from "../dynamic-type-column";
+import { createNumberColumn } from "../number-column";
+import { createStringColumn } from "../string-column";
 
 export interface UseColumnsOptions<
   _TData extends Record<string, unknown> = Record<string, unknown>,
@@ -70,7 +70,7 @@ export function useColumns<
       accessorKey: K,
       options?: Omit<
         Parameters<typeof createTagColumn<TData>>[0],
-        'header' | 'id'
+        "header" | "id"
       > & {
         header?: string;
       }
@@ -89,7 +89,7 @@ export function useColumns<
       accessorKey: K,
       options?: Omit<
         Parameters<typeof createTextColumn<TData>>[0],
-        'accessorKey'
+        "accessorKey"
       >
     ) => {
       return createTextColumn<TData>({
@@ -105,7 +105,7 @@ export function useColumns<
       accessorKey: K,
       options?: Omit<
         Parameters<typeof createBooleanColumn<TData>>[0],
-        'accessorKey'
+        "accessorKey"
       >
     ) => {
       return createBooleanColumn<TData>({
@@ -121,7 +121,7 @@ export function useColumns<
       accessorKey: K,
       options?: Omit<
         Parameters<typeof createCodeColumn<TData>>[0],
-        'header' | 'id'
+        "header" | "id"
       > & {
         header?: string;
       }
@@ -140,7 +140,7 @@ export function useColumns<
       accessorKey: K,
       options?: Omit<
         Parameters<typeof createDateColumn<TData>>[0],
-        'accessorKey'
+        "accessorKey"
       >
     ) => {
       return createDateColumn<TData>({
@@ -156,7 +156,7 @@ export function useColumns<
       accessorKey: K,
       options?: Omit<
         Parameters<typeof createJsonColumn<TData>>[0],
-        'accessorKey'
+        "accessorKey"
       >
     ) => {
       return createJsonColumn<TData>({
@@ -169,7 +169,7 @@ export function useColumns<
   // Create an actions column with the given options
   const createActions = useMemo(() => {
     return (
-      options: Omit<Parameters<typeof createActionsColumn<TData>>[0], 'tableId'>
+      options: Omit<Parameters<typeof createActionsColumn<TData>>[0], "tableId">
     ) => {
       // Automatically pass the tableId from the hook parameters
       return createActionsColumn<TData>({
@@ -186,7 +186,7 @@ export function useColumns<
       typeKey: T,
       options?: Omit<
         Parameters<typeof createDynamicTypeColumn<TData>>[0],
-        'typeKey' | 'valueKey'
+        "typeKey" | "valueKey"
       >
     ) => {
       return createDynamicTypeColumn<TData>({
@@ -203,7 +203,7 @@ export function useColumns<
       accessorKey: K,
       options?: Omit<
         Parameters<typeof createNumberColumn<TData>>[0],
-        'accessorKey'
+        "accessorKey"
       >
     ) => {
       return createNumberColumn<TData>({
@@ -219,7 +219,7 @@ export function useColumns<
       accessorKey: K,
       options?: Omit<
         Parameters<typeof createStringColumn<TData>>[0],
-        'accessorKey'
+        "accessorKey"
       >
     ) => {
       return createStringColumn<TData>({
@@ -272,7 +272,7 @@ export function useColumns<
         const colWithMeta = col as DataTableColumnDef<TData> & {
           meta?: { isSelectionColumn?: boolean };
         };
-        return colWithId.id === 'select' || colWithMeta.meta?.isSelectionColumn;
+        return colWithId.id === "select" || colWithMeta.meta?.isSelectionColumn;
       });
 
       if (selectionColumn && !hasSelectionColumn) {

@@ -2,32 +2,32 @@
  * Text filter component
  * Provides filtering for text-based columns with various text operators
  */
-'use client';
+"use client";
 
-import { useCallback, useEffect, useState } from 'react';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { useCallback, useEffect, useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import type { FilterOperators } from '../../types/filter-types';
+} from "@/components/ui/select";
+import { useTranslations } from "../../providers/table-provider";
+import type { FilterOperators } from "../../types/filter-types";
 import {
   DEFAULT_OPERATORS,
   FILTER_OPERATORS_LABELS,
-} from '../../types/filter-types';
-import { useTranslations } from '../../providers/table-provider';
+} from "../../types/filter-types";
 
 export interface TextFilterProps {
   /** Current filter value */
   value: string;
   /** Current operator */
-  operator: FilterOperators['text'];
+  operator: FilterOperators["text"];
   /** Available operators (defaults to all text operators) */
-  operators?: readonly FilterOperators['text'][];
+  operators?: readonly FilterOperators["text"][];
   /** Placeholder text */
   placeholder?: string;
   /** Whether the filter is disabled */
@@ -35,7 +35,7 @@ export interface TextFilterProps {
   /** Callback when the value changes */
   onValueChange: (value: string) => void;
   /** Callback when the operator changes */
-  onOperatorChange: (operator: FilterOperators['text']) => void;
+  onOperatorChange: (operator: FilterOperators["text"]) => void;
   /** Optional label */
   label?: string;
   /** Whether to show the operator selector */
@@ -51,7 +51,7 @@ export function TextFilter({
   value,
   operator,
   operators = DEFAULT_OPERATORS.text,
-  placeholder = 'Enter text...',
+  placeholder = "Enter text...",
   disabled = false,
   onValueChange,
   onOperatorChange,
@@ -73,7 +73,9 @@ export function TextFilter({
       setInternalValue(newValue);
       if (debounceMs <= 0) {
         onValueChange(newValue);
-        return () => {};
+        return () => {
+          /* no-op cleanup */
+        };
       }
       const timeoutId = setTimeout(() => {
         onValueChange(newValue);
@@ -93,7 +95,7 @@ export function TextFilter({
   );
 
   // Check if this operator needs a value input
-  const needsValue = !['isEmpty', 'isNotEmpty'].includes(operator);
+  const needsValue = !["isEmpty", "isNotEmpty"].includes(operator);
 
   return (
     <div className="space-y-3">
@@ -105,12 +107,12 @@ export function TextFilter({
           <Select
             disabled={disabled}
             onValueChange={(operatorValue) =>
-              onOperatorChange(operatorValue as FilterOperators['text'])
+              onOperatorChange(operatorValue as FilterOperators["text"])
             }
             value={operator}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder={t('filters.select_operator')} />
+              <SelectValue placeholder={t("filters.select_operator")} />
             </SelectTrigger>
             <SelectContent>
               {operators.map((op) => (
@@ -138,9 +140,9 @@ export function TextFilter({
         {/* Info text for operators that don't need values */}
         {!needsValue && (
           <div className="text-muted-foreground text-sm italic">
-            {operator === 'isEmpty'
-              ? t('filters.operators.empty')
-              : t('filters.operators.not_empty')}
+            {operator === "isEmpty"
+              ? t("filters.operators.empty")
+              : t("filters.operators.not_empty")}
           </div>
         )}
       </div>
@@ -155,11 +157,11 @@ export function CompactTextFilter({
   value,
   operator,
   onValueChange,
-  placeholder = 'Type...',
+  placeholder = "Type...",
   disabled = false,
 }: Pick<
   TextFilterProps,
-  'value' | 'operator' | 'onValueChange' | 'placeholder' | 'disabled'
+  "value" | "operator" | "onValueChange" | "placeholder" | "disabled"
 >) {
   const [internalValue, setInternalValue] = useState(value);
 
@@ -178,12 +180,12 @@ export function CompactTextFilter({
     [onValueChange]
   );
 
-  const needsValue = !['isEmpty', 'isNotEmpty'].includes(operator);
+  const needsValue = !["isEmpty", "isNotEmpty"].includes(operator);
 
   if (!needsValue) {
     return (
       <span className="text-muted-foreground text-xs">
-        {operator === 'isEmpty' ? 'is empty' : 'is not empty'}
+        {operator === "isEmpty" ? "is empty" : "is not empty"}
       </span>
     );
   }

@@ -2,11 +2,11 @@
  * Filter atoms for DataTable component
  * These atoms manage filter-related state
  */
-import type { ColumnFiltersState } from '@tanstack/react-table';
-import { atom } from 'jotai';
-import { atomFamily } from 'jotai/utils';
+import type { ColumnFiltersState } from "@tanstack/react-table";
+import { atom } from "jotai";
+import { atomFamily } from "jotai-family";
 
-import { columnFiltersAtom } from './table-atoms';
+import { columnFiltersAtom } from "./table-atoms";
 
 // Regex patterns for column ID extraction - moved to top-level for performance
 const ACCESSOR_KEY_PATTERNS = [
@@ -50,9 +50,9 @@ export interface FilterPreset {
 // Helper function to check if columnId needs cleaning
 const needsCleaning = (columnId: string): boolean => {
   return (
-    columnId.includes('__TURBOPACK_') ||
-    columnId.includes('(') ||
-    columnId.includes(')')
+    columnId.includes("__TURBOPACK_") ||
+    columnId.includes("(") ||
+    columnId.includes(")")
   );
 };
 
@@ -93,23 +93,23 @@ const extractId = (columnId: string): string | null => {
 const extractHeaderComponent = (columnId: string): string | null => {
   const match = columnId.match(HEADER_COMPONENT_PATTERN);
   if (match?.[1]) {
-    return match[1].split(' ')[0];
+    return match[1].split(" ")[0];
   }
   return null;
 };
 
 // Helper function to clean path and remove special characters
 const cleanPath = (columnId: string): string => {
-  const parts = columnId.split('/');
+  const parts = columnId.split("/");
   const lastPart = parts.at(-1);
 
   return (lastPart || columnId)
-    .replace(/\[.*?\]/g, '')
-    .replace(/\(.*?\)/g, '')
-    .replace(/\{.*?\}/g, '')
-    .replace(/".*?"/g, '')
-    .replace(/__TURBOPACK__.*?__/g, '')
-    .replace(/[^a-zA-Z0-9]/g, '')
+    .replace(/\[.*?\]/g, "")
+    .replace(/\(.*?\)/g, "")
+    .replace(/\{.*?\}/g, "")
+    .replace(/".*?"/g, "")
+    .replace(/__TURBOPACK__.*?__/g, "")
+    .replace(/[^a-zA-Z0-9]/g, "")
     .trim();
 };
 
@@ -119,7 +119,7 @@ const cleanPath = (columnId: string): string => {
  * @returns Cleaned column ID
  */
 export function cleanColumnId(columnId: string): string {
-  if (typeof columnId !== 'string') {
+  if (typeof columnId !== "string") {
     return String(columnId);
   }
 
@@ -151,7 +151,7 @@ export function cleanColumnId(columnId: string): string {
 
   // If all else fails, clean the path
   const cleaned = cleanPath(columnId);
-  return cleaned || 'column';
+  return cleaned || "column";
 }
 
 /**

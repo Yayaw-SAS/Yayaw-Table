@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { flip, offset, shift, useFloating } from '@floating-ui/react-dom';
-import type { Column, Table } from '@tanstack/react-table';
-import { useAtom } from 'jotai';
+import { flip, offset, shift, useFloating } from "@floating-ui/react-dom";
+import type { Column, Table } from "@tanstack/react-table";
+import { useAtom } from "jotai";
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -10,7 +10,7 @@ import {
   FunnelIcon,
   GripVertical,
   MenuIcon,
-} from 'lucide-react';
+} from "lucide-react";
 import {
   createContext,
   memo,
@@ -21,14 +21,14 @@ import {
   useMemo,
   useRef,
   useState,
-} from 'react';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { columnDragEnabledAtom } from '../../../atoms/table-atoms';
-import { useTableConfig } from '../../../hooks/use-table-config';
-import { useDataTable } from '../../../hooks/use-data-table';
-import { useOnClickOutside } from '../../../hooks/use-on-click-outside';
-import { useTableTranslations } from '../../../hooks/use-table-translations';
+} from "react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { columnDragEnabledAtom } from "../../../atoms/table-atoms";
+import { useDataTable } from "../../../hooks/use-data-table";
+import { useOnClickOutside } from "../../../hooks/use-on-click-outside";
+import { useTableConfig } from "../../../hooks/use-table-config";
+import { useTableTranslations } from "../../../hooks/use-table-translations";
 
 // Debug flag to help track sorting issues
 const _DEBUG = false;
@@ -90,14 +90,14 @@ const MenuItem = memo(function MenuItemComponent({
   return (
     <div
       className={cn(
-        'relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors',
+        "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors",
         disabled
-          ? 'cursor-not-allowed text-muted-foreground'
-          : 'cursor-pointer hover:bg-accent hover:text-accent-foreground'
+          ? "cursor-not-allowed text-muted-foreground"
+          : "cursor-pointer hover:bg-accent hover:text-accent-foreground"
       )}
       onClick={disabled ? undefined : onClick}
       onKeyDown={(e) => {
-        if ((e.key === 'Enter' || e.key === ' ') && !disabled) {
+        if ((e.key === "Enter" || e.key === " ") && !disabled) {
           e.preventDefault();
           onClick?.();
         }
@@ -120,7 +120,7 @@ const SortingMenuItems = memo(function SortingMenuItemsComponent({
 }: {
   canSort: boolean;
   onSort: (desc: boolean) => void;
-  sortDirection: 'asc' | 'desc' | false;
+  sortDirection: "asc" | "desc" | false;
   translations: ReturnType<typeof useTableTranslations>;
 }) {
   if (!canSort) {
@@ -130,13 +130,13 @@ const SortingMenuItems = memo(function SortingMenuItemsComponent({
   return (
     <>
       <MenuItem
-        disabled={sortDirection === 'asc'}
+        disabled={sortDirection === "asc"}
         icon={<ArrowUpIcon className="h-3.5 w-3.5" />}
         label={translations.columnSortAsc}
         onClick={() => onSort(false)}
       />
       <MenuItem
-        disabled={sortDirection === 'desc'}
+        disabled={sortDirection === "desc"}
         icon={<ArrowDownIcon className="h-3.5 w-3.5" />}
         label={translations.columnSortDesc}
         onClick={() => onSort(true)}
@@ -189,7 +189,7 @@ const floatingMiddleware = [offset(4), flip(), shift()];
 // Memoized floating options
 const floatingOptions = {
   middleware: floatingMiddleware,
-  placement: 'bottom-end' as const,
+  placement: "bottom-end" as const,
 };
 
 /**
@@ -199,7 +199,7 @@ function ColumnMenuBase<TData>({
   children,
   column,
   table,
-  tableId = 'default-table',
+  tableId = "default-table",
 }: ColumnMenuProps<TData>) {
   const [isOpen, setIsOpen] = useState(false);
   const translations = useTableTranslations(tableId);
@@ -332,7 +332,7 @@ function ColumnMenuBase<TData>({
                 <MenuItem
                   icon={<GripVertical className="h-3.5 w-3.5" />}
                   label={
-                    translations.columnReorder + (isDragEnabled ? ' ✓' : '')
+                    translations.columnReorder + (isDragEnabled ? " ✓" : "")
                   }
                   onClick={handleToggleDrag}
                 />
@@ -359,6 +359,7 @@ function ColumnMenuBase<TData>({
     handleToggleVisibility,
     handleToggleDrag,
     isDragEnabled,
+    dndFeatureEnabled,
   ]);
 
   return (

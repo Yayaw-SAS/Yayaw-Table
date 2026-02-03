@@ -2,26 +2,26 @@
  * Dynamic type column component for data tables
  * Renders values differently based on a specified type column
  */
-'use client';
+"use client";
 
-import type { CellContext, ColumnDef } from '@tanstack/react-table';
-import { type LucideIcon, Shapes } from 'lucide-react';
-import { memo, type ReactNode, useCallback, useMemo } from 'react';
+import type { CellContext, ColumnDef } from "@tanstack/react-table";
+import { type LucideIcon, Shapes } from "lucide-react";
+import { memo, type ReactNode, useCallback, useMemo } from "react";
 
 // Import necessary components
-import { useTableTranslations } from '../../hooks';
-import { BooleanCell } from '../cells/boolean-cell';
-import { JsonCell } from '../cells/json-cell';
-import { NumberCell } from '../cells/number-cell';
-import { StringCell } from '../cells/string-cell';
+import { useTableTranslations } from "../../hooks";
+import { BooleanCell } from "../cells/boolean-cell";
+import { JsonCell } from "../cells/json-cell";
+import { NumberCell } from "../cells/number-cell";
+import { StringCell } from "../cells/string-cell";
 
 /**
  * Custom properties for our column definitions
  */
-type CustomColumnProps = {
+interface CustomColumnProps {
   icon?: LucideIcon;
   type?: string;
-};
+}
 
 interface DynamicTypeColumnProps<_TData> {
   /**
@@ -69,7 +69,7 @@ type ExtendedColumnDef<TData> = ColumnDef<TData> & CustomColumnProps;
  * Creates a column that dynamically renders values based on a type column
  */
 export function createDynamicTypeColumn<TData>({
-  className = '',
+  className = "",
   customRenderers = {},
   enableHiding = true,
   enableSorting = false,
@@ -92,19 +92,19 @@ export function createDynamicTypeColumn<TData>({
           const cellValueType = info.row.getValue(typeKey) as string;
 
           // Handle Prisma JSON objects with 'set' property
-          if (value && typeof value === 'object' && 'set' in value) {
+          if (value && typeof value === "object" && "set" in value) {
             value = (value as { set: unknown }).set;
           }
 
           return { processedValue: value, valueType: cellValueType };
-        }, [info, typeKey]);
+        }, []);
 
         // Handle null, undefined, or NaN values - memoize this decision
         const isEmptyValue = useMemo(() => {
           return (
             processedValue === null ||
             processedValue === undefined ||
-            (typeof processedValue === 'number' && Number.isNaN(processedValue))
+            (typeof processedValue === "number" && Number.isNaN(processedValue))
           );
         }, [processedValue]);
 
@@ -125,28 +125,28 @@ export function createDynamicTypeColumn<TData>({
         const renderTypedContent = useCallback(
           (type: string, value: unknown) => {
             switch (type) {
-              case 'boolean':
+              case "boolean":
                 return <BooleanCell value={Boolean(value)} />;
-              case 'json':
+              case "json":
                 return <JsonCell value={value} />;
-              case 'number':
+              case "number":
                 return (
                   <NumberCell
-                    value={typeof value === 'number' ? value : Number(value)}
+                    value={typeof value === "number" ? value : Number(value)}
                   />
                 );
-              case 'options':
-              case 'string':
+              case "options":
+              case "string":
                 return <StringCell value={value} />;
               default:
                 return (
                   <span className={className}>
-                    {value === null || value === undefined ? '' : String(value)}
+                    {value === null || value === undefined ? "" : String(value)}
                   </span>
                 );
             }
           },
-          [className]
+          []
         );
 
         // Memoize the content to render based on value type and empty state
@@ -170,7 +170,6 @@ export function createDynamicTypeColumn<TData>({
           valueType,
           processedValue,
           isEmptyValue,
-          customRenderers,
           renderEmptyValue,
           renderCustomContent,
           renderTypedContent,
@@ -187,6 +186,6 @@ export function createDynamicTypeColumn<TData>({
     header: header || valueKey,
     icon: Shapes,
     id: valueKey,
-    type: 'dynamic',
+    type: "dynamic",
   };
 }

@@ -2,13 +2,13 @@
  * Bulk Actions Menu Component
  * An overlay menu that appears when rows are selected, using expandable tabs design
  */
-'use client';
+"use client";
 
-import type { Row } from '@tanstack/react-table';
-import { AnimatePresence, motion } from 'framer-motion';
-import { Copy, Edit, Trash2, X } from 'lucide-react';
-import { useRef, useState } from 'react';
-import { useOnClickOutside } from 'usehooks-ts';
+import type { Row } from "@tanstack/react-table";
+import { AnimatePresence, motion } from "framer-motion";
+import { Copy, Edit, Trash2, X } from "lucide-react";
+import { useRef, useState } from "react";
+import { useOnClickOutside } from "usehooks-ts";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,10 +18,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { useTranslations } from '../../providers/table-provider';
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { useTranslations } from "../../providers/table-provider";
 
 /**
  * Props for the BulkActionsMenu component
@@ -63,32 +63,32 @@ interface ActionTab {
   id: string;
   icon: React.ComponentType<{ size?: number }>;
   translationKey: string;
-  variant: 'default' | 'destructive';
+  variant: "default" | "destructive";
 }
 
 // Variants pour les animations
 const buttonVariants = {
   initial: {
     gap: 0,
-    paddingLeft: '.5rem',
-    paddingRight: '.5rem',
+    paddingLeft: ".5rem",
+    paddingRight: ".5rem",
   },
   animate: (isExpanded: boolean) => ({
-    gap: isExpanded ? '.5rem' : 0,
-    paddingLeft: isExpanded ? '1rem' : '.5rem',
-    paddingRight: isExpanded ? '1rem' : '.5rem',
+    gap: isExpanded ? ".5rem" : 0,
+    paddingLeft: isExpanded ? "1rem" : ".5rem",
+    paddingRight: isExpanded ? "1rem" : ".5rem",
   }),
 };
 
 const spanVariants = {
   initial: { width: 0, opacity: 0 },
-  animate: { width: 'auto', opacity: 1 },
+  animate: { width: "auto", opacity: 1 },
   exit: { width: 0, opacity: 0 },
 };
 
 const transition = {
   delay: 0.1,
-  type: 'spring' as const,
+  type: "spring" as const,
   bounce: 0,
   duration: 0.6,
 };
@@ -113,25 +113,29 @@ export function BulkActionsMenu<TData>({
   const outsideClickRef = useRef<HTMLDivElement>(null);
   const { t } = useTranslations();
 
-  // Configuration des actions avec traductions
+  // Only show actions that have handlers. Edit is shown when onBulkEdit is provided.
   const actionTabs: ActionTab[] = [
+    ...(onBulkEdit
+      ? [
+          {
+            id: "edit",
+            icon: Edit,
+            translationKey: "actions.edit",
+            variant: "default" as const,
+          },
+        ]
+      : []),
     {
-      id: 'edit',
-      icon: Edit,
-      translationKey: 'actions.edit',
-      variant: 'default',
-    },
-    {
-      id: 'copy',
+      id: "copy",
       icon: Copy,
-      translationKey: 'actions.copy',
-      variant: 'default',
+      translationKey: "actions.copy",
+      variant: "default",
     },
     {
-      id: 'delete',
+      id: "delete",
       icon: Trash2,
-      translationKey: 'actions.delete',
-      variant: 'destructive',
+      translationKey: "actions.delete",
+      variant: "destructive",
     },
   ];
 
@@ -150,7 +154,7 @@ export function BulkActionsMenu<TData>({
 
   const handleTabClick = (actionId: string) => {
     // Pour l'édition, ouvrir directement le formulaire sans confirmation
-    if (actionId === 'edit') {
+    if (actionId === "edit") {
       onBulkEdit?.(selectedRows);
       onClose?.();
       return;
@@ -168,10 +172,10 @@ export function BulkActionsMenu<TData>({
 
     // Execute action based on ID
     switch (selectedAction) {
-      case 'copy':
+      case "copy":
         onBulkCopy?.(selectedRows);
         break;
-      case 'delete':
+      case "delete":
         onBulkDelete?.(selectedRows);
         break;
       default:
@@ -205,9 +209,9 @@ export function BulkActionsMenu<TData>({
   return (
     <div
       className={cn(
-        '-translate-x-1/2 fixed bottom-10 left-1/2 z-50 transform',
-        'fade-in-0 slide-in-from-bottom-2 animate-in',
-        'duration-300 ease-out',
+        "fixed bottom-10 left-1/2 z-50 -translate-x-1/2 transform",
+        "fade-in-0 slide-in-from-bottom-2 animate-in",
+        "duration-300 ease-out",
         className
       )}
     >
@@ -224,33 +228,33 @@ export function BulkActionsMenu<TData>({
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>
-                {t(getSelectedAction()?.translationKey || '')} {selectedCount}{' '}
-                item{selectedCount > 1 ? 's' : ''}?
+                {t(getSelectedAction()?.translationKey || "")} {selectedCount}{" "}
+                item{selectedCount > 1 ? "s" : ""}?
               </AlertDialogTitle>
-              {selectedAction === 'delete' ? (
+              {selectedAction === "delete" ? (
                 <AlertDialogDescription>
                   This action cannot be undone.
                 </AlertDialogDescription>
               ) : (
                 <AlertDialogDescription>
-                  You are about to {t('actions.copy').toLowerCase()}{' '}
-                  {selectedCount} item{selectedCount > 1 ? 's' : ''}.
+                  You are about to {t("actions.copy").toLowerCase()}{" "}
+                  {selectedCount} item{selectedCount > 1 ? "s" : ""}.
                 </AlertDialogDescription>
               )}
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel onClick={handleCancel}>
-                {t('actions.cancel')}
+                {t("actions.cancel")}
               </AlertDialogCancel>
               <AlertDialogAction
                 className={
-                  selectedAction === 'delete'
-                    ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
+                  selectedAction === "delete"
+                    ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     : undefined
                 }
                 onClick={handleConfirmAction}
               >
-                {t('actions.confirm')}
+                {t("actions.confirm")}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -279,10 +283,10 @@ export function BulkActionsMenu<TData>({
               <motion.button
                 animate="animate"
                 className={cn(
-                  'relative flex items-center rounded-xl px-4 py-2 font-medium text-sm transition-colors duration-300',
-                  tab.variant === 'destructive'
-                    ? 'text-destructive hover:bg-destructive/10 hover:text-destructive'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  "relative flex items-center rounded-xl px-4 py-2 font-medium text-sm transition-colors duration-300",
+                  tab.variant === "destructive"
+                    ? "text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
                 custom={isExpanded}
                 initial={false}

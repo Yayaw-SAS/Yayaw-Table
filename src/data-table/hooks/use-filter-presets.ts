@@ -3,18 +3,18 @@
  * Handles saving, loading, sharing, and organizing filter configurations
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type {
   AdvancedFilterState,
   FilterComparison,
   FilterExport,
   FilterPreset,
-} from '../types/advanced-filter-types';
+} from "../types/advanced-filter-types";
 
 // Local storage keys
-const PRESETS_STORAGE_KEY = 'data-table-filter-presets';
-const USAGE_STORAGE_KEY = 'data-table-filter-usage';
-const SETTINGS_STORAGE_KEY = 'data-table-filter-settings';
+const PRESETS_STORAGE_KEY = "data-table-filter-presets";
+const USAGE_STORAGE_KEY = "data-table-filter-usage";
+const SETTINGS_STORAGE_KEY = "data-table-filter-settings";
 
 export interface UseFilterPresetsOptions {
   /** Table identifier for scoped presets */
@@ -72,11 +72,11 @@ export interface UseFilterPresetsReturn {
   setFavorite: (presetId: string, isFavorite: boolean) => Promise<void>;
 
   // Export/Import
-  exportPreset: (presetId: string, format?: 'json' | 'url') => Promise<string>;
-  exportAll: (format?: 'json' | 'zip') => Promise<string>;
+  exportPreset: (presetId: string, format?: "json" | "url") => Promise<string>;
+  exportAll: (format?: "json" | "zip") => Promise<string>;
   importPreset: (
     data: string,
-    format?: 'json' | 'url'
+    format?: "json" | "url"
   ) => Promise<FilterPreset>;
   importFromFile: (file: File) => Promise<FilterPreset[]>;
 
@@ -134,22 +134,22 @@ function generatePresetId(): string {
  */
 const DEFAULT_SYSTEM_PRESETS: FilterPreset[] = [
   {
-    id: 'system_recent',
-    name: 'Recent Items',
-    description: 'Items created in the last 7 days',
-    icon: '🕐',
-    color: '#3b82f6',
+    id: "system_recent",
+    name: "Recent Items",
+    description: "Items created in the last 7 days",
+    icon: "🕐",
+    color: "#3b82f6",
     state: {
-      version: '1.0',
+      version: "1.0",
       groups: [
         {
-          id: 'group_1',
-          logic: 'AND',
+          id: "group_1",
+          logic: "AND",
           filters: [],
           isActive: true,
         },
       ],
-      globalLogic: 'AND',
+      globalLogic: "AND",
       metadata: {
         createdAt: new Date(),
         modifiedAt: new Date(),
@@ -158,32 +158,32 @@ const DEFAULT_SYSTEM_PRESETS: FilterPreset[] = [
     },
     isPublic: true,
     isSystem: true,
-    tags: ['system', 'time'],
+    tags: ["system", "time"],
     metadata: {
-      createdBy: 'system',
+      createdBy: "system",
       createdAt: new Date(),
       modifiedAt: new Date(),
       usageCount: 0,
-      version: '1.0',
+      version: "1.0",
     },
   },
   {
-    id: 'system_active',
-    name: 'Active Items',
-    description: 'Only active/enabled items',
-    icon: '✅',
-    color: '#10b981',
+    id: "system_active",
+    name: "Active Items",
+    description: "Only active/enabled items",
+    icon: "✅",
+    color: "#10b981",
     state: {
-      version: '1.0',
+      version: "1.0",
       groups: [
         {
-          id: 'group_1',
-          logic: 'AND',
+          id: "group_1",
+          logic: "AND",
           filters: [],
           isActive: true,
         },
       ],
-      globalLogic: 'AND',
+      globalLogic: "AND",
       metadata: {
         createdAt: new Date(),
         modifiedAt: new Date(),
@@ -192,13 +192,13 @@ const DEFAULT_SYSTEM_PRESETS: FilterPreset[] = [
     },
     isPublic: true,
     isSystem: true,
-    tags: ['system', 'status'],
+    tags: ["system", "status"],
     metadata: {
-      createdBy: 'system',
+      createdBy: "system",
       createdAt: new Date(),
       modifiedAt: new Date(),
       usageCount: 0,
-      version: '1.0',
+      version: "1.0",
     },
   },
 ];
@@ -214,7 +214,7 @@ export function useFilterPresets(
     enableCloudSync: _enableCloudSync = false,
     maxPresets = 50,
     autoSaveDraft: _autoSaveDraft = true,
-    currentUser = 'anonymous',
+    currentUser = "anonymous",
   } = options;
 
   // State
@@ -225,7 +225,7 @@ export function useFilterPresets(
   const [settings, setSettings] = useState({
     autoSave: true,
     maxRecent: 10,
-    defaultTags: ['custom'],
+    defaultTags: ["custom"],
     notifications: true,
   });
 
@@ -241,7 +241,7 @@ export function useFilterPresets(
           (preset: Record<string, unknown>) => ({
             ...preset,
             metadata: {
-              ...(preset.metadata && typeof preset.metadata === 'object'
+              ...(preset.metadata && typeof preset.metadata === "object"
                 ? (preset.metadata as Record<string, unknown>)
                 : {}),
               createdAt: new Date(
@@ -263,9 +263,8 @@ export function useFilterPresets(
         );
         setPresets(presetsWithDates);
       }
-    } catch (_error) {
-      // DEBUG: Failed to load presets from storage
-      console.warn('Failed to load filter presets from storage:', _error);
+    } catch {
+      /* ignore load error */
     } finally {
       setIsLoading(false);
     }
@@ -277,9 +276,8 @@ export function useFilterPresets(
       if (stored) {
         setSettings({ ...settings, ...JSON.parse(stored) });
       }
-    } catch (_error) {
-      // DEBUG: Failed to parse settings from storage
-      console.warn('Failed to parse filter settings:', _error);
+    } catch {
+      /* ignore parse error */
     }
   }, [tableId, settings]);
 
@@ -327,9 +325,8 @@ export function useFilterPresets(
           `${PRESETS_STORAGE_KEY}_${tableId}`,
           JSON.stringify(newPresets)
         );
-      } catch (_error) {
-        // DEBUG: Failed to save presets to storage
-        console.warn('Failed to save presets to storage:', _error);
+      } catch {
+        /* ignore save error */
       }
     },
     [tableId]
@@ -338,12 +335,11 @@ export function useFilterPresets(
   // Track usage
   const trackUsage = useCallback((presetId: string) => {
     try {
-      const usage = JSON.parse(localStorage.getItem(USAGE_STORAGE_KEY) || '{}');
+      const usage = JSON.parse(localStorage.getItem(USAGE_STORAGE_KEY) || "{}");
       usage[presetId] = (usage[presetId] || 0) + 1;
       localStorage.setItem(USAGE_STORAGE_KEY, JSON.stringify(usage));
-    } catch (_error) {
-      // DEBUG: Failed to track preset usage
-      console.warn('Failed to track preset usage:', _error);
+    } catch {
+      /* ignore usage tracking error */
     }
   }, []);
 
@@ -378,7 +374,7 @@ export function useFilterPresets(
             createdAt: new Date(),
             modifiedAt: new Date(),
             usageCount: 0,
-            version: '1.0',
+            version: "1.0",
           },
         };
 
@@ -486,7 +482,7 @@ export function useFilterPresets(
       try {
         const preset = presets.find((p) => p.id === presetId);
         if (preset?.isSystem) {
-          throw new Error('Cannot delete system presets');
+          throw new Error("Cannot delete system presets");
         }
 
         const updatedPresets = presets.filter((p) => p.id !== presetId);
@@ -521,7 +517,7 @@ export function useFilterPresets(
   const exportPreset = useCallback(
     async (
       presetId: string,
-      format: 'json' | 'url' = 'json'
+      format: "json" | "url" = "json"
     ): Promise<string> => {
       await Promise.resolve(); // Satisfy async linting requirement
       const preset = presets.find((p) => p.id === presetId);
@@ -530,20 +526,20 @@ export function useFilterPresets(
       }
 
       const exportData: FilterExport = {
-        version: '1.0',
-        type: 'preset',
+        version: "1.0",
+        type: "preset",
         name: preset.name,
         description: preset.description,
         data: preset,
         metadata: {
           exportedBy: currentUser,
           exportedAt: new Date(),
-          sourceSystem: 'data-table-filters',
-          compatibility: ['1.0'],
+          sourceSystem: "data-table-filters",
+          compatibility: ["1.0"],
         },
       };
 
-      if (format === 'json') {
+      if (format === "json") {
         return JSON.stringify(exportData, null, 2);
       }
       // URL format - base64 encoded
@@ -556,23 +552,23 @@ export function useFilterPresets(
   const importPreset = useCallback(
     async (
       data: string,
-      format: 'json' | 'url' = 'json'
+      format: "json" | "url" = "json"
     ): Promise<FilterPreset> => {
       try {
         let exportData: FilterExport;
 
-        if (format === 'url') {
+        if (format === "url") {
           // Extract from URL parameter
-          const compressed = data.includes('preset=')
-            ? data.split('preset=')[1]
+          const compressed = data.includes("preset=")
+            ? data.split("preset=")[1]
             : data;
           exportData = JSON.parse(atob(compressed));
         } else {
           exportData = JSON.parse(data);
         }
 
-        if (exportData.type !== 'preset') {
-          throw new Error('Invalid export format');
+        if (exportData.type !== "preset") {
+          throw new Error("Invalid export format");
         }
 
         const preset = exportData.data as FilterPreset;
@@ -625,19 +621,19 @@ export function useFilterPresets(
     const errors: string[] = [];
 
     if (!preset.name?.trim()) {
-      errors.push('Name is required');
+      errors.push("Name is required");
     }
 
     if (preset.name && preset.name.length > 100) {
-      errors.push('Name must be less than 100 characters');
+      errors.push("Name must be less than 100 characters");
     }
 
     if (preset.description && preset.description.length > 500) {
-      errors.push('Description must be less than 500 characters');
+      errors.push("Description must be less than 500 characters");
     }
 
     if (!preset.state) {
-      errors.push('Filter state is required');
+      errors.push("Filter state is required");
     }
 
     return {
@@ -660,7 +656,7 @@ export function useFilterPresets(
 
   const getUsageStats = useCallback(() => {
     try {
-      const usage = JSON.parse(localStorage.getItem(USAGE_STORAGE_KEY) || '{}');
+      const usage = JSON.parse(localStorage.getItem(USAGE_STORAGE_KEY) || "{}");
       const mostUsed = Object.entries(usage)
         .map(([presetId, count]) => ({ presetId, count: count as number }))
         .sort((a, b) => b.count - a.count)
@@ -712,9 +708,9 @@ export function useFilterPresets(
         return;
       }
 
-      const tags = preset.tags.filter((tag) => tag !== 'favorite');
+      const tags = preset.tags.filter((tag) => tag !== "favorite");
       if (isFavorite) {
-        tags.push('favorite');
+        tags.push("favorite");
       }
 
       await updatePreset(presetId, { tags });
@@ -725,7 +721,7 @@ export function useFilterPresets(
   const sharePreset = useCallback(
     async (presetId: string): Promise<string> => {
       // For now, just return the export URL
-      return await exportPreset(presetId, 'url');
+      return await exportPreset(presetId, "url");
     },
     [exportPreset]
   );
@@ -733,7 +729,7 @@ export function useFilterPresets(
   const exportAll = useCallback(async (): Promise<string> => {
     await Promise.resolve(); // Satisfy async linting requirement
     const exportData = {
-      version: '1.0',
+      version: "1.0",
       presets: userPresets,
       exportedAt: new Date(),
       exportedBy: currentUser,
@@ -748,13 +744,13 @@ export function useFilterPresets(
 
       if (data.presets && Array.isArray(data.presets)) {
         const importPromises = data.presets.map((preset: FilterPreset) =>
-          importPreset(JSON.stringify({ type: 'preset', data: preset }))
+          importPreset(JSON.stringify({ type: "preset", data: preset }))
         );
         const imported = await Promise.all(importPromises);
         return imported;
       }
 
-      throw new Error('Invalid file format');
+      throw new Error("Invalid file format");
     },
     [importPreset]
   );
@@ -765,7 +761,7 @@ export function useFilterPresets(
       const b = presets.find((p) => p.id === presetB);
 
       if (!(a && b)) {
-        throw new Error('Presets not found');
+        throw new Error("Presets not found");
       }
 
       return {
@@ -779,7 +775,7 @@ export function useFilterPresets(
           performanceA: 0,
           performanceB: 0,
         },
-        status: 'draft',
+        status: "draft",
         duration: {
           startDate: new Date(),
           plannedDuration: 7 * 24 * 60 * 60 * 1000, // 7 days

@@ -2,7 +2,7 @@
  * Modern Add Filter Dropdown
  * Inspired by Linear's filter addition interface
  */
-'use client';
+"use client";
 
 import {
   Calendar,
@@ -17,24 +17,24 @@ import {
   Tag,
   Type,
   Zap,
-} from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+} from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover';
-import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { cn } from '@/lib/utils';
+} from "@/components/ui/popover";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 
 import type {
   ColumnDataType,
   ColumnsFilterConfig,
-} from '../../types/filter-types';
+} from "../../types/filter-types";
 
 // Icons for different data types
 const typeIcons = {
@@ -47,44 +47,44 @@ const typeIcons = {
 
 // Colors for different data types
 const typeColors = {
-  text: 'text-blue-600 bg-blue-50 border-blue-200',
-  number: 'text-emerald-600 bg-emerald-50 border-emerald-200',
-  date: 'text-purple-600 bg-purple-50 border-purple-200',
-  option: 'text-orange-600 bg-orange-50 border-orange-200',
-  multiOption: 'text-pink-600 bg-pink-50 border-pink-200',
+  text: "text-blue-600 bg-blue-50 border-blue-200",
+  number: "text-emerald-600 bg-emerald-50 border-emerald-200",
+  date: "text-purple-600 bg-purple-50 border-purple-200",
+  option: "text-orange-600 bg-orange-50 border-orange-200",
+  multiOption: "text-pink-600 bg-pink-50 border-pink-200",
 } as const;
 
 // Categories for organizing columns
 const categories = {
   recent: {
-    label: 'Recently Used',
+    label: "Recently Used",
     icon: Clock,
-    color: 'text-muted-foreground',
+    color: "text-muted-foreground",
   },
   popular: {
-    label: 'Popular',
+    label: "Popular",
     icon: Zap,
-    color: 'text-amber-600',
+    color: "text-amber-600",
   },
   text: {
-    label: 'Text Fields',
+    label: "Text Fields",
     icon: Type,
-    color: 'text-blue-600',
+    color: "text-blue-600",
   },
   number: {
-    label: 'Number Fields',
+    label: "Number Fields",
     icon: Hash,
-    color: 'text-emerald-600',
+    color: "text-emerald-600",
   },
   date: {
-    label: 'Date Fields',
+    label: "Date Fields",
     icon: Calendar,
-    color: 'text-purple-600',
+    color: "text-purple-600",
   },
   option: {
-    label: 'Selection Fields',
+    label: "Selection Fields",
     icon: Tag,
-    color: 'text-orange-600',
+    color: "text-orange-600",
   },
 } as const;
 
@@ -106,8 +106,8 @@ interface ModernAddFilterDropdownProps {
   recentColumns?: string[];
   popularColumns?: string[];
   className?: string;
-  size?: 'sm' | 'md' | 'lg';
-  variant?: 'default' | 'outline' | 'ghost';
+  size?: "sm" | "md" | "lg";
+  variant?: "default" | "outline" | "ghost";
   disabled?: boolean;
   placeholder?: string;
 }
@@ -127,8 +127,8 @@ function ColumnOptionItem({
   return (
     <Button
       className={cn(
-        'flex w-full items-center justify-start gap-3 rounded-md px-3 py-2 text-left transition-all duration-150',
-        'group hover:bg-accent/50'
+        "flex w-full items-center justify-start gap-3 rounded-md px-3 py-2 text-left transition-all duration-150",
+        "group hover:bg-accent/50"
       )}
       onClick={() => onSelect(columnOption)}
       type="button"
@@ -137,8 +137,8 @@ function ColumnOptionItem({
       {/* Type Icon */}
       <div
         className={cn(
-          'flex h-8 w-8 shrink-0 items-center justify-center rounded-md border transition-colors',
-          'bg-gradient-to-br group-hover:shadow-sm',
+          "flex h-8 w-8 shrink-0 items-center justify-center rounded-md border transition-colors",
+          "bg-gradient-to-br group-hover:shadow-sm",
           typeColors[columnOption.type]
         )}
       >
@@ -188,15 +188,15 @@ export function ModernAddFilterDropdown({
   recentColumns = [],
   popularColumns = [],
   className,
-  size = 'md',
-  variant = 'default',
+  size = "md",
+  variant = "default",
   disabled = false,
-  placeholder = 'Add filter...',
+  placeholder = "Add filter...",
 }: ModernAddFilterDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [_selectedIndex, setSelectedIndex] = useState(0);
-  const [activeTab, setActiveTab] = useState('popular');
+  const [activeTab, setActiveTab] = useState("popular");
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Convert config to column options
@@ -211,7 +211,7 @@ export function ModernAddFilterDropdown({
         isRecent: recentColumns.includes(columnId),
         isPopular: popularColumns.includes(columnId),
         isFilterable: config.filterable !== false,
-        category: config.type === 'multiOption' ? 'option' : config.type,
+        category: config.type === "multiOption" ? "option" : config.type,
       }));
   }, [columnsConfig, recentColumns, popularColumns]);
 
@@ -221,7 +221,7 @@ export function ModernAddFilterDropdown({
     const available = columnOptions.filter(
       (option) =>
         !existingFilterColumnIds.includes(option.id) &&
-        (searchTerm === '' ||
+        (searchTerm === "" ||
           option.label.toLowerCase().includes(searchLower) ||
           option.description?.toLowerCase().includes(searchLower))
     );
@@ -257,7 +257,7 @@ export function ModernAddFilterDropdown({
   const handleSelectColumn = (option: ColumnOption) => {
     onAddFilter(option.id, option.type);
     setIsOpen(false);
-    setSearchTerm('');
+    setSearchTerm("");
     setSelectedIndex(0);
   };
 
@@ -270,22 +270,22 @@ export function ModernAddFilterDropdown({
         searchInputRef.current?.focus();
       }, 100);
     } else {
-      setSearchTerm('');
+      setSearchTerm("");
       setSelectedIndex(0);
     }
   };
 
   // Size variants
   const sizeClasses = {
-    sm: 'h-7 px-2 text-xs',
-    md: 'h-8 px-3 text-sm',
-    lg: 'h-10 px-4 text-base',
+    sm: "h-7 px-2 text-xs",
+    md: "h-8 px-3 text-sm",
+    lg: "h-10 px-4 text-base",
   };
 
   const iconSizes = {
-    sm: 'h-3 w-3',
-    md: 'h-4 w-4',
-    lg: 'h-5 w-5',
+    sm: "h-3 w-3",
+    md: "h-4 w-4",
+    lg: "h-5 w-5",
   };
 
   return (
@@ -293,9 +293,9 @@ export function ModernAddFilterDropdown({
       <PopoverTrigger asChild>
         <Button
           className={cn(
-            'transition-all duration-200',
+            "transition-all duration-200",
             sizeClasses[size],
-            'hover:shadow-sm',
+            "hover:shadow-sm",
             className
           )}
           disabled={disabled}
@@ -303,7 +303,7 @@ export function ModernAddFilterDropdown({
           type="button"
           variant={variant}
         >
-          <Plus className={cn('mr-1', iconSizes[size])} />
+          <Plus className={cn("mr-1", iconSizes[size])} />
           {placeholder}
         </Button>
       </PopoverTrigger>
@@ -436,8 +436,8 @@ export function ModernAddFilterDropdown({
                             <div className="mb-2 flex items-center gap-2 px-2 py-1">
                               <CategoryIcon
                                 className={cn(
-                                  'h-3 w-3',
-                                  category?.color || 'text-muted-foreground'
+                                  "h-3 w-3",
+                                  category?.color || "text-muted-foreground"
                                 )}
                               />
                               <span className="font-medium text-muted-foreground text-xs">
@@ -476,8 +476,8 @@ export function ModernAddFilterDropdown({
         <div className="border-border border-t p-2">
           <p className="text-center text-muted-foreground text-xs">
             {searchTerm
-              ? 'Press Esc to clear search'
-              : 'Use tabs to navigate categories'}
+              ? "Press Esc to clear search"
+              : "Use tabs to navigate categories"}
           </p>
         </div>
       </PopoverContent>
@@ -507,9 +507,9 @@ export function QuickAddFilterButton({
   return (
     <Button
       className={cn(
-        'h-8 px-2 text-muted-foreground text-xs hover:text-foreground',
-        'border border-border border-dashed hover:border-solid hover:bg-accent',
-        'transition-all duration-200',
+        "h-8 px-2 text-muted-foreground text-xs hover:text-foreground",
+        "border border-border border-dashed hover:border-solid hover:bg-accent",
+        "transition-all duration-200",
         className
       )}
       onClick={() => onAddFilter(firstAvailable.id, firstAvailable.type)}

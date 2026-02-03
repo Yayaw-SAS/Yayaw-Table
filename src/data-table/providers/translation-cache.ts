@@ -6,7 +6,9 @@
 import type {
   DataTableTranslations,
   TranslationParams,
-} from '../types/translations';
+} from "../types/translations";
+import type { DataTableUiStrings } from "../atoms/i18n-atoms";
+import { translationKeysMap } from "../atoms/i18n-atoms";
 
 // Global cache for translations to avoid recalculation
 const translationCaches = new WeakMap<
@@ -28,12 +30,12 @@ function createTranslationCache(
 
   const cache = new Map<string, string>();
 
-  const flatten = (obj: Record<string, unknown>, prefix = '') => {
+  const flatten = (obj: Record<string, unknown>, prefix = "") => {
     for (const key of Object.keys(obj)) {
       const fullKey = prefix ? `${prefix}.${key}` : key;
-      if (typeof obj[key] === 'string') {
+      if (typeof obj[key] === "string") {
         cache.set(fullKey, obj[key] as string);
-      } else if (obj[key] && typeof obj[key] === 'object') {
+      } else if (obj[key] && typeof obj[key] === "object") {
         flatten(obj[key] as Record<string, unknown>, fullKey);
       }
     }
@@ -97,4 +99,18 @@ export function createTranslationFunction(translations: DataTableTranslations) {
     const translation = cache.get(key) || key;
     return params ? interpolate(translation, params) : translation;
   };
+}
+
+/**
+ * Resolve nested DataTableTranslations to flat DataTableUiStrings for the UI provider
+ */
+export function resolveTranslationsToUiStrings(
+  translations: DataTableTranslations
+): DataTableUiStrings {
+  const cache = createTranslationCache(translations);
+  const result = {} as DataTableUiStrings;
+  for (const key of Object.keys(translationKeysMap) as (keyof DataTableUiStrings)[]) {
+    result[key] = cache.get(translationKeysMap[key]) ?? key;
+  }
+  return result;
 }

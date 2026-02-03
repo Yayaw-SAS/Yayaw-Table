@@ -3,70 +3,70 @@
  * Provides type-safe filtering for different data types
  */
 
-import type { ReactElement } from 'react';
+import type { ReactElement } from "react";
 
 /**
  * Supported column data types for filtering
  */
 export type ColumnDataType =
-  | 'text'
-  | 'number'
-  | 'date'
-  | 'option'
-  | 'multiOption';
+  | "text"
+  | "number"
+  | "date"
+  | "option"
+  | "multiOption";
 
 /**
  * Filter operators mapped by data type
  */
-export type FilterOperators = {
+export interface FilterOperators {
   text:
-    | 'contains'
-    | 'equals'
-    | 'startsWith'
-    | 'endsWith'
-    | 'notContains'
-    | 'isEmpty'
-    | 'isNotEmpty';
+    | "contains"
+    | "equals"
+    | "startsWith"
+    | "endsWith"
+    | "notContains"
+    | "isEmpty"
+    | "isNotEmpty";
   number:
-    | 'equals'
-    | 'greaterThan'
-    | 'lessThan'
-    | 'greaterThanOrEqual'
-    | 'lessThanOrEqual'
-    | 'between'
-    | 'notEquals'
-    | 'isEmpty'
-    | 'isNotEmpty';
+    | "equals"
+    | "greaterThan"
+    | "lessThan"
+    | "greaterThanOrEqual"
+    | "lessThanOrEqual"
+    | "between"
+    | "notEquals"
+    | "isEmpty"
+    | "isNotEmpty";
   date:
-    | 'equals'
-    | 'before'
-    | 'after'
-    | 'between'
-    | 'notEquals'
-    | 'isEmpty'
-    | 'isNotEmpty';
-  option: 'is' | 'isNot' | 'isAnyOf' | 'isNoneOf' | 'isEmpty' | 'isNotEmpty';
+    | "equals"
+    | "before"
+    | "after"
+    | "between"
+    | "notEquals"
+    | "isEmpty"
+    | "isNotEmpty";
+  option: "is" | "isNot" | "isAnyOf" | "isNoneOf" | "isEmpty" | "isNotEmpty";
   multiOption:
-    | 'contains'
-    | 'containsAll'
-    | 'containsNone'
-    | 'isEmpty'
-    | 'isNotEmpty';
-};
+    | "contains"
+    | "containsAll"
+    | "containsNone"
+    | "isEmpty"
+    | "isNotEmpty";
+}
 
 /**
  * Filter values mapped by data type
  */
 export type FilterValues<TType extends ColumnDataType = ColumnDataType> =
-  TType extends 'text'
+  TType extends "text"
     ? string
-    : TType extends 'number'
+    : TType extends "number"
       ? number | [number, number]
-      : TType extends 'date'
+      : TType extends "date"
         ? Date | [Date, Date]
-        : TType extends 'option'
+        : TType extends "option"
           ? string | string[]
-          : TType extends 'multiOption'
+          : TType extends "multiOption"
             ? string[]
             : unknown;
 
@@ -152,14 +152,14 @@ export interface ColumnFilterConfig<
 /**
  * Faceted values for a column
  */
-export type FacetedValues = {
+export interface FacetedValues {
   /** For option-based columns: Map of option value to count */
   uniqueValues?: Map<string, number>;
   /** For number columns: [min, max] range */
   range?: [number, number];
   /** For date columns: [earliest, latest] range */
   dateRange?: [Date, Date];
-};
+}
 
 /**
  * Configuration for all filterable columns
@@ -194,7 +194,7 @@ export interface AdvancedFilterPreset {
 /**
  * Filter strategy - where filtering happens
  */
-export type FilterStrategy = 'client' | 'server';
+export type FilterStrategy = "client" | "server";
 
 /**
  * Filter context for passing data to components
@@ -218,7 +218,7 @@ export interface FilterContext {
 export interface FilterActions {
   /** Add a new filter */
   addFilter: (
-    filter: Omit<AdvancedFilterModel, 'id' | 'createdAt' | 'updatedAt'>
+    filter: Omit<AdvancedFilterModel, "id" | "createdAt" | "updatedAt">
   ) => void;
   /** Update an existing filter */
   updateFilter: (
@@ -245,48 +245,48 @@ export const FILTER_OPERATORS_LABELS: Record<
   Record<string, string>
 > = {
   text: {
-    contains: 'Contains',
-    equals: 'Equals',
-    startsWith: 'Starts with',
-    endsWith: 'Ends with',
-    notContains: 'Does not contain',
-    isEmpty: 'Is empty',
-    isNotEmpty: 'Is not empty',
+    contains: "Contains",
+    equals: "Equals",
+    startsWith: "Starts with",
+    endsWith: "Ends with",
+    notContains: "Does not contain",
+    isEmpty: "Is empty",
+    isNotEmpty: "Is not empty",
   },
   number: {
-    equals: 'Equals',
-    greaterThan: 'Greater than',
-    lessThan: 'Less than',
-    greaterThanOrEqual: 'Greater than or equal',
-    lessThanOrEqual: 'Less than or equal',
-    between: 'Between',
-    notEquals: 'Not equal',
-    isEmpty: 'Is empty',
-    isNotEmpty: 'Is not empty',
+    equals: "Equals",
+    greaterThan: "Greater than",
+    lessThan: "Less than",
+    greaterThanOrEqual: "Greater than or equal",
+    lessThanOrEqual: "Less than or equal",
+    between: "Between",
+    notEquals: "Not equal",
+    isEmpty: "Is empty",
+    isNotEmpty: "Is not empty",
   },
   date: {
-    equals: 'Equals',
-    before: 'Before',
-    after: 'After',
-    between: 'Between',
-    notEquals: 'Not equal',
-    isEmpty: 'Is empty',
-    isNotEmpty: 'Is not empty',
+    equals: "Equals",
+    before: "Before",
+    after: "After",
+    between: "Between",
+    notEquals: "Not equal",
+    isEmpty: "Is empty",
+    isNotEmpty: "Is not empty",
   },
   option: {
-    is: 'Is',
-    isNot: 'Is not',
-    isAnyOf: 'Is any of',
-    isNoneOf: 'Is none of',
-    isEmpty: 'Is empty',
-    isNotEmpty: 'Is not empty',
+    is: "Is",
+    isNot: "Is not",
+    isAnyOf: "Is any of",
+    isNoneOf: "Is none of",
+    isEmpty: "Is empty",
+    isNotEmpty: "Is not empty",
   },
   multiOption: {
-    contains: 'Contains',
-    containsAll: 'Contains all',
-    containsNone: 'Contains none',
-    isEmpty: 'Is empty',
-    isNotEmpty: 'Is not empty',
+    contains: "Contains",
+    containsAll: "Contains all",
+    containsNone: "Contains none",
+    isEmpty: "Is empty",
+    isNotEmpty: "Is not empty",
   },
 };
 
@@ -295,47 +295,47 @@ export const FILTER_OPERATORS_LABELS: Record<
  */
 export const DEFAULT_OPERATORS = {
   text: [
-    'contains',
-    'equals',
-    'startsWith',
-    'endsWith',
-    'notContains',
-    'isEmpty',
-    'isNotEmpty',
+    "contains",
+    "equals",
+    "startsWith",
+    "endsWith",
+    "notContains",
+    "isEmpty",
+    "isNotEmpty",
   ] as const,
   number: [
-    'equals',
-    'greaterThan',
-    'lessThan',
-    'greaterThanOrEqual',
-    'lessThanOrEqual',
-    'between',
-    'notEquals',
-    'isEmpty',
-    'isNotEmpty',
+    "equals",
+    "greaterThan",
+    "lessThan",
+    "greaterThanOrEqual",
+    "lessThanOrEqual",
+    "between",
+    "notEquals",
+    "isEmpty",
+    "isNotEmpty",
   ] as const,
   date: [
-    'equals',
-    'before',
-    'after',
-    'between',
-    'notEquals',
-    'isEmpty',
-    'isNotEmpty',
+    "equals",
+    "before",
+    "after",
+    "between",
+    "notEquals",
+    "isEmpty",
+    "isNotEmpty",
   ] as const,
   option: [
-    'is',
-    'isNot',
-    'isAnyOf',
-    'isNoneOf',
-    'isEmpty',
-    'isNotEmpty',
+    "is",
+    "isNot",
+    "isAnyOf",
+    "isNoneOf",
+    "isEmpty",
+    "isNotEmpty",
   ] as const,
   multiOption: [
-    'contains',
-    'containsAll',
-    'containsNone',
-    'isEmpty',
-    'isNotEmpty',
+    "contains",
+    "containsAll",
+    "containsNone",
+    "isEmpty",
+    "isNotEmpty",
   ] as const,
 } as const;

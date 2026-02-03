@@ -2,21 +2,20 @@
  * Number column component for data tables
  * Provides standardized display of numeric values
  */
-'use client';
+"use client";
 
-import type { CellContext, ColumnDef } from '@tanstack/react-table';
-import { Hash, type LucideIcon } from 'lucide-react';
-
-import { NumberCell } from '../cells/number-cell';
-import { Button } from '@/components/ui/button';
+import type { CellContext, ColumnDef } from "@tanstack/react-table";
+import { Hash, type LucideIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { NumberCell } from "../cells/number-cell";
 
 /**
  * Custom properties for our column definitions
  */
-type CustomColumnProps = {
+interface CustomColumnProps {
   icon?: LucideIcon;
   type?: string;
-};
+}
 
 /**
  * Combined type for our column definition
@@ -80,19 +79,19 @@ export function createNumberColumn<TData>({
     accessorKey,
     enableGrouping: true,
     // Enable aggregation for grouped rows
-    aggregationFn: 'sum',
+    aggregationFn: "sum",
     cell: (info: CellContext<TData, unknown>) => {
       // Group header: toggle + label + count
       if (info.cell.getIsGrouped?.()) {
         const toggle = info.row.getToggleExpandedHandler();
         const expanded = info.row.getIsExpanded();
         const count = info.row.subRows?.length ?? 0;
-        const label = String(info.getValue() ?? '');
+        const label = String(info.getValue() ?? "");
         return (
           <div className="flex items-center gap-2">
             <Button
               aria-expanded={expanded}
-              aria-label={expanded ? 'Collapse group' : 'Expand group'}
+              aria-label={expanded ? "Collapse group" : "Expand group"}
               className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
               onClick={(e) => {
                 e.stopPropagation();
@@ -102,7 +101,7 @@ export function createNumberColumn<TData>({
               type="button"
               variant="ghost"
             >
-              <span aria-hidden>{expanded ? '▾' : '▸'}</span>
+              <span aria-hidden>{expanded ? "▾" : "▸"}</span>
             </Button>
             <span className="font-medium">{label}</span>
             <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground text-xs">
@@ -129,10 +128,10 @@ export function createNumberColumn<TData>({
     // Render subtotal values on grouped rows
     aggregatedCell: ({ getValue }) => {
       const sum = Number(getValue() as number);
-      let formatted = '—';
+      let formatted = "—";
       if (Number.isFinite(sum)) {
         formatted =
-          typeof formatter === 'function'
+          typeof formatter === "function"
             ? formatter(sum)
             : sum.toLocaleString();
       }
@@ -144,6 +143,6 @@ export function createNumberColumn<TData>({
     header: header || accessorKey,
     icon: Hash,
     id: accessorKey,
-    type: 'number',
+    type: "number",
   };
 }

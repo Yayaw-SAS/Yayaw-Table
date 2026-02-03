@@ -1,18 +1,18 @@
-'use client';
+"use client";
 
-import { Camera, Upload, X } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
-import Image from 'next/image';
-import { useRef, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
+import { Camera, Upload, X } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import Image from "next/image";
+import { useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
-import { Loader } from './loader';
-import { SVG } from './svg';
+import { Loader } from "./loader";
+import { SVG } from "./svg";
 
 interface ImageUploadProps {
-  aspectRatio?: 'square' | 'tall' | 'wide';
+  aspectRatio?: "square" | "tall" | "wide";
   className?: string;
   containerClassName?: string;
   fallbackIcon?: React.ReactNode;
@@ -25,16 +25,16 @@ interface ImageUploadProps {
 }
 
 export function ImageUpload({
-  aspectRatio = 'square',
+  aspectRatio = "square",
   className,
   containerClassName,
   fallbackIcon = <Upload className="h-8 w-8 text-muted-foreground" />,
-  height = 'h-32',
+  height = "h-32",
   id,
   initialImage,
   isLoading = false,
   onImageChange,
-  width = 'w-32',
+  width = "w-32",
 }: ImageUploadProps) {
   const [image, setImage] = useState<null | string>(initialImage ?? null);
   const [isSvg, setIsSvg] = useState<boolean>(false);
@@ -44,7 +44,7 @@ export function ImageUpload({
     const file = event.target.files?.[0];
     if (file) {
       // Check if the file is an SVG
-      const isSvgFile = file.type === 'image/svg+xml';
+      const isSvgFile = file.type === "image/svg+xml";
       setIsSvg(isSvgFile);
 
       const reader = new FileReader();
@@ -63,7 +63,7 @@ export function ImageUpload({
     setIsSvg(false);
     onImageChange?.(null, null);
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = "";
     }
   };
 
@@ -73,13 +73,13 @@ export function ImageUpload({
 
   // Determine container aspect ratio class
   const aspectRatioClass = {
-    square: 'aspect-square',
-    tall: 'aspect-[3/4]',
-    wide: 'aspect-[4/3]',
+    square: "aspect-square",
+    tall: "aspect-[3/4]",
+    wide: "aspect-[4/3]",
   }[aspectRatio];
 
   return (
-    <div className={cn('flex', containerClassName)}>
+    <div className={cn("flex", containerClassName)}>
       <div className="relative inline-block">
         <AnimatePresence mode="wait">
           {isLoading ? (
@@ -88,14 +88,14 @@ export function ImageUpload({
               exit={{ opacity: 0, scale: 0.8 }}
               initial={{ opacity: 0, scale: 0.8 }}
               key="loading"
-              transition={{ duration: 0.3, ease: 'easeOut' }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
             >
               <div
                 className={cn(
                   width,
                   height,
                   aspectRatioClass,
-                  'flex items-center justify-center rounded-md bg-muted'
+                  "flex items-center justify-center rounded-md bg-muted"
                 )}
               >
                 <Loader size="xl" />
@@ -106,8 +106,8 @@ export function ImageUpload({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
               initial={{ opacity: 0, scale: 0.8 }}
-              key={image || 'empty'}
-              transition={{ duration: 0.3, ease: 'easeOut' }}
+              key={image || "empty"}
+              transition={{ duration: 0.3, ease: "easeOut" }}
             >
               <div className="group relative inline-block">
                 <Button
@@ -116,21 +116,34 @@ export function ImageUpload({
                     width,
                     height,
                     aspectRatioClass,
-                    'flex cursor-pointer items-center justify-center overflow-hidden rounded-md border-2 border-accent border-dashed transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+                    "flex cursor-pointer items-center justify-center overflow-hidden rounded-md border-2 border-accent border-dashed transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
                     className
                   )}
                   onClick={handleImageClick}
                   type="button"
                   variant="ghost"
                 >
-                  {image ? (
-                    isSvg ? (
-                      <SVG
-                        alt="Uploaded SVG"
-                        className="h-full w-full p-2 text-foreground"
-                        src={image}
-                      />
-                    ) : (
+                  {(() => {
+                    if (!image) {
+                      return (
+                        <div className="flex flex-col items-center justify-center gap-2 p-4">
+                          {fallbackIcon}
+                          <span className="text-muted-foreground text-xs">
+                            Upload
+                          </span>
+                        </div>
+                      );
+                    }
+                    if (isSvg) {
+                      return (
+                        <SVG
+                          alt="Uploaded SVG"
+                          className="h-full w-full p-2 text-foreground"
+                          src={image}
+                        />
+                      );
+                    }
+                    return (
                       <Image
                         alt="Uploaded image"
                         className="h-full w-full object-contain"
@@ -139,15 +152,8 @@ export function ImageUpload({
                         unoptimized
                         width={1000}
                       />
-                    )
-                  ) : (
-                    <div className="flex flex-col items-center justify-center gap-2 p-4">
-                      {fallbackIcon}
-                      <span className="text-muted-foreground text-xs">
-                        Upload
-                      </span>
-                    </div>
-                  )}
+                    );
+                  })()}
                   <div className="absolute inset-0 flex items-center justify-center bg-background/70 opacity-0 transition-opacity duration-300 hover:opacity-100">
                     <Camera className="h-8 w-8 text-foreground" />
                   </div>
@@ -155,7 +161,7 @@ export function ImageUpload({
                 {image && (
                   <Button
                     aria-label="Remove image"
-                    className="-top-1 -right-1 absolute h-5 w-5 rounded-full opacity-0 shadow-sm transition-opacity duration-200 group-hover:opacity-100"
+                    className="absolute -top-1 -right-1 h-5 w-5 rounded-full opacity-0 shadow-sm transition-opacity duration-200 group-hover:opacity-100"
                     onClick={handleRemoveImage}
                     size="icon"
                     variant="destructive"

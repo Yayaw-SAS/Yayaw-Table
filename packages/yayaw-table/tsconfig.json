@@ -4,8 +4,15 @@
     "noEmit": false,
     "declaration": true,
     "declarationMap": true,
-    "incremental": false
+    "incremental": false,
+    "strictNullChecks": true
   },
   "include": ["../../index.ts", "../../src/**/*"],
-  "exclude": ["node_modules", "../../app", "../../content", "../../.next", "../../dist"]
+  "exclude": [
+    "node_modules",
+    "../../app",
+    "../../content",
+    "../../.next",
+    "../../dist"
+  ]
 }

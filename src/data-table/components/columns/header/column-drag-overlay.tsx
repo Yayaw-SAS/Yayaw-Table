@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { DragOverlay } from '@dnd-kit/core';
-import { GripVertical } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { DragOverlay } from "@dnd-kit/core";
+import { GripVertical } from "lucide-react";
+import type { ReactNode } from "react";
 
 interface ColumnDragOverlayProps {
   /**
@@ -42,9 +42,9 @@ export function ColumnDragOverlay({
         <div
           className="flex w-40 items-center gap-2 overflow-hidden rounded-md border bg-background p-2 shadow-md"
           style={{
-            boxShadow: '0 5px 15px rgba(0, 0, 0, 0.15)',
+            boxShadow: "0 5px 15px rgba(0, 0, 0, 0.15)",
             opacity: 0.85,
-            transform: 'rotate(-2deg)',
+            transform: "rotate(-2deg)",
           }}
         >
           <GripVertical className="h-4 w-4 opacity-60" strokeWidth={2} />

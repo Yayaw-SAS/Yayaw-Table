@@ -3,8 +3,8 @@
  * Provides backward compatibility while adding advanced filtering capabilities
  */
 
-import type { ColumnFiltersState } from '@tanstack/react-table';
-import { useCallback, useMemo } from 'react';
+import type { ColumnFiltersState } from "@tanstack/react-table";
+import { useCallback, useMemo } from "react";
 import type {
   AdvancedFilterModel,
   AdvancedFilterPreset,
@@ -15,9 +15,9 @@ import type {
   FilterActions,
   FilterOperators,
   FilterStrategy,
-} from '../types/filter-types';
-import { useDataTable } from './use-data-table';
-import { useTableUrlState } from './use-table-url-state';
+} from "../types/filter-types";
+import { useDataTable } from "./use-data-table";
+import { useTableUrlState } from "./use-table-url-state";
 
 const DEBUG = false;
 
@@ -28,24 +28,24 @@ function generateId(): string {
 
 // Filter helper functions
 function applyTextFilter(value: unknown, filter: AdvancedFilterModel): boolean {
-  const textValue = String(value || '').toLowerCase();
-  const textFilter = String(filter.values || '').toLowerCase();
+  const textValue = String(value || "").toLowerCase();
+  const textFilter = String(filter.values || "").toLowerCase();
 
   switch (filter.operator) {
-    case 'contains':
+    case "contains":
       return textValue.includes(textFilter);
-    case 'equals':
+    case "equals":
       return textValue === textFilter;
-    case 'startsWith':
+    case "startsWith":
       return textValue.startsWith(textFilter);
-    case 'endsWith':
+    case "endsWith":
       return textValue.endsWith(textFilter);
-    case 'notContains':
+    case "notContains":
       return !textValue.includes(textFilter);
-    case 'isEmpty':
-      return !textValue || textValue.trim() === '';
-    case 'isNotEmpty':
-      return Boolean(textValue && textValue.trim() !== '');
+    case "isEmpty":
+      return !textValue || textValue.trim() === "";
+    case "isNotEmpty":
+      return Boolean(textValue && textValue.trim() !== "");
     default:
       return true;
   }
@@ -59,29 +59,29 @@ function applyNumberFilter(
   const numFilter = Number(filter.values);
 
   switch (filter.operator) {
-    case 'equals':
+    case "equals":
       return numValue === numFilter;
-    case 'greaterThan':
+    case "greaterThan":
       return numValue > numFilter;
-    case 'lessThan':
+    case "lessThan":
       return numValue < numFilter;
-    case 'greaterThanOrEqual':
+    case "greaterThanOrEqual":
       return numValue >= numFilter;
-    case 'lessThanOrEqual':
+    case "lessThanOrEqual":
       return numValue <= numFilter;
-    case 'notEquals':
+    case "notEquals":
       return numValue !== numFilter;
-    case 'between':
+    case "between":
       if (Array.isArray(filter.values) && filter.values.length === 2) {
         const min = Number(filter.values[0]);
         const max = Number(filter.values[1]);
         return numValue >= min && numValue <= max;
       }
       return true;
-    case 'isEmpty':
-      return value == null || value === '';
-    case 'isNotEmpty':
-      return value != null && value !== '';
+    case "isEmpty":
+      return value == null || value === "";
+    case "isNotEmpty":
+      return value != null && value !== "";
     default:
       return true;
   }
@@ -92,24 +92,24 @@ function applyOptionFilter(
   filter: AdvancedFilterModel
 ): boolean {
   switch (filter.operator) {
-    case 'is':
+    case "is":
       return value === filter.values;
-    case 'isAnyOf':
+    case "isAnyOf":
       return (
         Array.isArray(filter.values) &&
         (filter.values as unknown[]).includes(value)
       );
-    case 'isNot':
+    case "isNot":
       return value !== filter.values;
-    case 'isNoneOf':
+    case "isNoneOf":
       return (
         Array.isArray(filter.values) &&
         !(filter.values as unknown[]).includes(value)
       );
-    case 'isEmpty':
-      return value == null || value === '';
-    case 'isNotEmpty':
-      return value != null && value !== '';
+    case "isEmpty":
+      return value == null || value === "";
+    case "isNotEmpty":
+      return value != null && value !== "";
     default:
       return true;
   }
@@ -128,26 +128,26 @@ const applyDateFilter = (
       : new Date(filter.values as string | number);
 
   switch (filter.operator) {
-    case 'equals':
+    case "equals":
       return dateValue.getTime() === dateFilter.getTime();
-    case 'greaterThan':
+    case "greaterThan":
       return dateValue > dateFilter;
-    case 'lessThan':
+    case "lessThan":
       return dateValue < dateFilter;
-    case 'greaterThanOrEqual':
+    case "greaterThanOrEqual":
       return dateValue >= dateFilter;
-    case 'lessThanOrEqual':
+    case "lessThanOrEqual":
       return dateValue <= dateFilter;
-    case 'between':
+    case "between":
       if (Array.isArray(filter.values) && filter.values.length === 2) {
         const startDate = new Date(filter.values[0] as string | number);
         const endDate = new Date(filter.values[1] as string | number);
         return dateValue >= startDate && dateValue <= endDate;
       }
       return true;
-    case 'isEmpty':
+    case "isEmpty":
       return value == null;
-    case 'isNotEmpty':
+    case "isNotEmpty":
       return value != null;
     default:
       return true;
@@ -160,12 +160,12 @@ const applyFallbackFilter = (
   filter: AdvancedFilterModel
 ): boolean => {
   switch (filter.operator) {
-    case 'contains':
+    case "contains":
       return String(value)
         .toLowerCase()
         .includes(String(filter.values).toLowerCase());
-    case 'equals':
-    case 'is':
+    case "equals":
+    case "is":
       return value === filter.values;
     default:
       return true;
@@ -196,14 +196,14 @@ function applyFilters<TData>(
 
       // Enhanced filtering logic using helper functions
       switch (filter.type) {
-        case 'text':
+        case "text":
           return applyTextFilter(value, filter);
-        case 'number':
+        case "number":
           return applyNumberFilter(value, filter);
-        case 'option':
-        case 'multiOption':
+        case "option":
+        case "multiOption":
           return applyOptionFilter(value, filter);
-        case 'date':
+        case "date":
           return applyDateFilter(value, filter);
         default:
           return applyFallbackFilter(value, filter);
@@ -269,7 +269,7 @@ export function useDataTableAdvancedFilters<TData = Record<string, unknown>>(
 ): UseDataTableAdvancedFiltersReturn<TData> {
   const {
     tableType,
-    strategy = 'client',
+    strategy = "client",
     data = [],
     advancedColumnsConfig = {},
     accessors = {},
@@ -297,7 +297,7 @@ export function useDataTableAdvancedFilters<TData = Record<string, unknown>>(
 
   // Apply client-side filtering
   const filteredData = useMemo(() => {
-    if (strategy === 'server' || !data.length || !advancedFilters.length) {
+    if (strategy === "server" || !data.length || !advancedFilters.length) {
       return data;
     }
 
@@ -321,7 +321,7 @@ export function useDataTableAdvancedFilters<TData = Record<string, unknown>>(
   const advancedActions: FilterActions = useMemo(
     () => ({
       addFilter: (
-        filterData: Omit<AdvancedFilterModel, 'id' | 'createdAt' | 'updatedAt'>
+        filterData: Omit<AdvancedFilterModel, "id" | "createdAt" | "updatedAt">
       ) => {
         const now = new Date();
         const newFilter: AdvancedFilterModel = {
@@ -333,15 +333,6 @@ export function useDataTableAdvancedFilters<TData = Record<string, unknown>>(
         };
 
         const newFilters = [...advancedFilters, newFilter];
-        if (DEBUG) {
-          // DEBUG: New filter added to collection
-          console.log(
-            'Added filter:',
-            newFilter,
-            'Total filters:',
-            newFilters.length
-          );
-        }
         setAdvancedFiltersFromUI(newFilters);
       },
 
@@ -354,10 +345,6 @@ export function useDataTableAdvancedFilters<TData = Record<string, unknown>>(
             ? { ...filter, ...updates, updatedAt: new Date() }
             : filter
         );
-        if (DEBUG) {
-          // DEBUG: Filter updated with new properties
-          console.log('Updated filter:', filterId, 'Updates:', updates);
-        }
         setAdvancedFiltersFromUI(newFilters);
       },
 
@@ -365,15 +352,6 @@ export function useDataTableAdvancedFilters<TData = Record<string, unknown>>(
         const newFilters = advancedFilters.filter(
           (filter) => filter.id !== filterId
         );
-        if (DEBUG) {
-          // DEBUG: Filter removed from collection
-          console.log(
-            'Removed filter:',
-            filterId,
-            'Remaining:',
-            newFilters.length
-          );
-        }
         setAdvancedFiltersFromUI(newFilters);
       },
 
@@ -383,35 +361,19 @@ export function useDataTableAdvancedFilters<TData = Record<string, unknown>>(
             ? { ...filter, isActive: !filter.isActive, updatedAt: new Date() }
             : filter
         );
-        if (DEBUG) {
-          // DEBUG: Filter toggled active state
-          console.log('Toggled filter:', filterId);
-        }
         setAdvancedFiltersFromUI(newFilters);
       },
 
       clearFilters: () => {
-        if (DEBUG) {
-          // DEBUG: All filters cleared
-          console.log('Cleared all filters');
-        }
         resetAdvancedFilters();
       },
 
-      applyPreset: (preset: AdvancedFilterPreset) => {
+      applyPreset: (_preset: AdvancedFilterPreset) => {
         // TODO: Implement preset functionality
-        if (DEBUG) {
-          // DEBUG: Preset application requested
-          console.log('Apply preset requested (not yet implemented)', preset);
-        }
       },
 
       savePreset: (name: string, description?: string) => {
         // TODO: Implement preset functionality
-        if (DEBUG) {
-          // DEBUG: Save preset requested
-          console.log('Save preset requested:', name, description);
-        }
         return {
           id: generateId(),
           name,
@@ -449,39 +411,39 @@ export function useDataTableAdvancedFilters<TData = Record<string, unknown>>(
         | Date
         | string[]
         | [number, number]
-        | [Date, Date] = '';
-      let operator: FilterOperators[ColumnDataType] = 'contains';
+        | [Date, Date] = "";
+      let operator: FilterOperators[ColumnDataType] = "contains";
 
       switch (type) {
-        case 'text':
-          value = String(existingLegacyFilter.value || '');
-          operator = 'contains' as FilterOperators['text'];
+        case "text":
+          value = String(existingLegacyFilter.value || "");
+          operator = "contains" as FilterOperators["text"];
           break;
-        case 'number':
+        case "number":
           value = Number(existingLegacyFilter.value) || 0;
-          operator = 'equals' as FilterOperators['number'];
+          operator = "equals" as FilterOperators["number"];
           break;
-        case 'date':
+        case "date":
           value =
             existingLegacyFilter.value instanceof Date
               ? existingLegacyFilter.value
               : new Date();
-          operator = 'equals' as FilterOperators['date'];
+          operator = "equals" as FilterOperators["date"];
           break;
-        case 'option':
-          value = String(existingLegacyFilter.value || '');
-          operator = 'is' as FilterOperators['option'];
+        case "option":
+          value = String(existingLegacyFilter.value || "");
+          operator = "is" as FilterOperators["option"];
           break;
-        case 'multiOption':
+        case "multiOption":
           value = Array.isArray(existingLegacyFilter.value)
             ? (existingLegacyFilter.value as string[])
             : [];
-          operator = 'contains' as FilterOperators['multiOption'];
+          operator = "contains" as FilterOperators["multiOption"];
           break;
         default:
           // Handle unknown column types as text
-          value = String(existingLegacyFilter.value || '');
-          operator = 'contains' as FilterOperators['text'];
+          value = String(existingLegacyFilter.value || "");
+          operator = "contains" as FilterOperators["text"];
           break;
       }
 
@@ -536,7 +498,7 @@ export function useDataTableAdvancedFilters<TData = Record<string, unknown>>(
 
 // Helper function to check if column is a system column
 const isSystemColumn = (columnId: string): boolean => {
-  return columnId === 'select' || columnId === 'actions';
+  return columnId === "select" || columnId === "actions";
 };
 
 // Helper function to get operators by column type
@@ -546,48 +508,48 @@ const getOperatorsByType = (
   const operatorMap: Record<ColumnDataType, FilterOperators[ColumnDataType][]> =
     {
       option: [
-        'is',
-        'isAnyOf',
-        'isNot',
-        'isEmpty',
-        'isNotEmpty',
-      ] as FilterOperators['option'][],
+        "is",
+        "isAnyOf",
+        "isNot",
+        "isEmpty",
+        "isNotEmpty",
+      ] as FilterOperators["option"][],
       text: [
-        'contains',
-        'equals',
-        'startsWith',
-        'endsWith',
-        'notContains',
-        'isEmpty',
-        'isNotEmpty',
-      ] as FilterOperators['text'][],
+        "contains",
+        "equals",
+        "startsWith",
+        "endsWith",
+        "notContains",
+        "isEmpty",
+        "isNotEmpty",
+      ] as FilterOperators["text"][],
       number: [
-        'equals',
-        'greaterThan',
-        'lessThan',
-        'greaterThanOrEqual',
-        'lessThanOrEqual',
-        'between',
-        'notEquals',
-        'isEmpty',
-        'isNotEmpty',
-      ] as FilterOperators['number'][],
+        "equals",
+        "greaterThan",
+        "lessThan",
+        "greaterThanOrEqual",
+        "lessThanOrEqual",
+        "between",
+        "notEquals",
+        "isEmpty",
+        "isNotEmpty",
+      ] as FilterOperators["number"][],
       date: [
-        'equals',
-        'before',
-        'after',
-        'between',
-        'notEquals',
-        'isEmpty',
-        'isNotEmpty',
-      ] as FilterOperators['date'][],
+        "equals",
+        "before",
+        "after",
+        "between",
+        "notEquals",
+        "isEmpty",
+        "isNotEmpty",
+      ] as FilterOperators["date"][],
       multiOption: [
-        'contains',
-        'containsAll',
-        'containsNone',
-        'isEmpty',
-        'isNotEmpty',
-      ] as FilterOperators['multiOption'][],
+        "contains",
+        "containsAll",
+        "containsNone",
+        "isEmpty",
+        "isNotEmpty",
+      ] as FilterOperators["multiOption"][],
     };
   return operatorMap[type] || [];
 };
@@ -605,7 +567,7 @@ const createColumnConfig = (
   const baseConfig = {
     type,
     filterable: column.canFilter !== false,
-    faceted: type === 'option' || type === 'multiOption',
+    faceted: type === "option" || type === "multiOption",
     placeholder: String(column.placeholder) || `Filter by ${column.label}...`,
     ...(column.description ? { description: String(column.description) } : {}),
   };
@@ -615,25 +577,25 @@ const createColumnConfig = (
     number: {
       min: Number(column.min) || 0,
       max: Number(column.max) || 10_000,
-      operators: getOperatorsByType('number'),
+      operators: getOperatorsByType("number"),
     },
     option: {
       options: (Array.isArray(column.options)
         ? column.options
         : getOptionsForColumn(column.id, type)) as ColumnOption[],
-      operators: getOperatorsByType('option'),
+      operators: getOperatorsByType("option"),
     },
     text: {
-      operators: getOperatorsByType('text'),
+      operators: getOperatorsByType("text"),
     },
     date: {
-      operators: getOperatorsByType('date'),
+      operators: getOperatorsByType("date"),
     },
     multiOption: {
       options: (Array.isArray(column.options)
         ? column.options
         : getOptionsForColumn(column.id, type)) as ColumnOption[],
-      operators: getOperatorsByType('multiOption'),
+      operators: getOperatorsByType("multiOption"),
     },
   };
 
@@ -654,23 +616,14 @@ export function useColumnsFilterConfig(
 ): ColumnsFilterConfig {
   return useMemo(() => {
     const config: ColumnsFilterConfig = {};
-
-    if (DEBUG) {
-      console.log('Building config for columns:', columns.length);
-    }
-
     for (const column of columns) {
       // Skip system columns
       if (isSystemColumn(column.id)) {
         continue;
       }
 
-      const type = typeMapping[column.id] || 'text';
+      const type = typeMapping[column.id] || "text";
       config[column.id] = createColumnConfig(column, type);
-    }
-
-    if (DEBUG) {
-      console.log('Built config for', Object.keys(config).length, 'columns');
     }
     return config;
   }, [columns, typeMapping]);
@@ -681,29 +634,29 @@ function getOptionsForColumn(
   columnId: string,
   type: ColumnDataType
 ): ColumnOption[] | undefined {
-  if (type !== 'option') {
+  if (type !== "option") {
     return;
   }
 
   // Static options for our example - using consistent {value, label} format
   switch (columnId) {
-    case 'category':
+    case "category":
       return [
-        { value: 'Laptops', label: 'Laptops' },
-        { value: 'Phones', label: 'Phones' },
-        { value: 'Tablets', label: 'Tablets' },
-        { value: 'Accessories', label: 'Accessories' },
+        { value: "Laptops", label: "Laptops" },
+        { value: "Phones", label: "Phones" },
+        { value: "Tablets", label: "Tablets" },
+        { value: "Accessories", label: "Accessories" },
       ];
-    case 'status':
+    case "status":
       return [
-        { value: 'In Stock', label: 'In Stock' },
-        { value: 'Low Stock', label: 'Low Stock' },
-        { value: 'Out of Stock', label: 'Out of Stock' },
+        { value: "In Stock", label: "In Stock" },
+        { value: "Low Stock", label: "Low Stock" },
+        { value: "Out of Stock", label: "Out of Stock" },
       ];
-    case 'isActive':
+    case "isActive":
       return [
-        { value: 'true', label: 'Active' },
-        { value: 'false', label: 'Inactive' },
+        { value: "true", label: "Active" },
+        { value: "false", label: "Inactive" },
       ];
     default:
       return;
@@ -723,9 +676,9 @@ export function useTableAccessors<TData = Record<string, unknown>>(
     for (const columnId of columnIds) {
       accessors[columnId] = (row: TData) => {
         // Handle nested property access like "user.name"
-        if (columnId.includes('.')) {
+        if (columnId.includes(".")) {
           return columnId
-            .split('.')
+            .split(".")
             .reduce(
               (obj: unknown, key) => (obj as Record<string, unknown>)?.[key],
               row
@@ -749,8 +702,8 @@ export function isAdvancedFiltersState(
   return (
     Array.isArray(filters) &&
     filters.length > 0 &&
-    typeof filters[0] === 'object' &&
-    'type' in filters[0] &&
-    'operator' in filters[0]
+    typeof filters[0] === "object" &&
+    "type" in filters[0] &&
+    "operator" in filters[0]
   );
 }

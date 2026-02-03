@@ -2,7 +2,7 @@
  * String cell component for data tables
  * Shows formatted string values with appropriate styling
  */
-'use client';
+"use client";
 
 export interface StringCellProps {
   /**
@@ -27,12 +27,12 @@ export interface StringCellProps {
  * Optionally shows quotes around the string
  */
 export function StringCell({
-  className = '',
+  className = "",
   showQuotes = false,
   value,
 }: StringCellProps) {
   // Handle Prisma JSON objects with 'set' property
-  if (value && typeof value === 'object' && 'set' in value) {
+  if (value && typeof value === "object" && "set" in value) {
     value = (value as { set: unknown }).set;
   }
 

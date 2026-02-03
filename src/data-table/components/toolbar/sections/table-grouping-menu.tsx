@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import type { GroupingState } from '@tanstack/react-table';
-import { useMemo } from 'react';
+import type { GroupingState } from "@tanstack/react-table";
+import { useMemo } from "react";
 import {
   StackMenuContent,
   StackMenuView,
-} from '@/src/components/ui-custom/stack-menu';
-import { useTableConfig } from '../../../hooks/use-table-config';
-import { useTableUrlState } from '../../../hooks/use-table-url-state';
-import { useTranslations } from '../../../providers/table-provider';
-import { GroupPicker } from './group-picker';
+} from "@/src/components/ui-custom/stack-menu";
+import { useTableConfig } from "../../../hooks/use-table-config";
+import { useTableUrlState } from "../../../hooks/use-table-url-state";
+import { useTranslations } from "../../../providers/table-provider";
+import { GroupPicker } from "./group-picker";
 
 export interface TableGroupingMenuProps {
   columns: {
@@ -40,7 +40,7 @@ export function TableGroupingMenu({
   const groupableColumns = useMemo(() => {
     // Exclude system/action columns and those that explicitly disable grouping
     const filteredColumns = columns.filter(
-      (col) => col.id !== 'actions' && col.canGroup !== false
+      (col) => col.id !== "actions" && col.canGroup !== false
     );
 
     // Map each column to include its type from the config
@@ -50,7 +50,7 @@ export function TableGroupingMenu({
       );
       return {
         ...col,
-        type: configColumn?.type || 'text',
+        type: configColumn?.type || "text",
       };
     });
   }, [columns, config.columns.definitions]);
@@ -64,7 +64,7 @@ export function TableGroupingMenu({
           columns={groupableColumns.map((c) => ({
             id: c.id,
             label: c.label,
-            type: c.type || 'text',
+            type: c.type || "text",
           }))}
           grouping={grouping as string[]}
           onChange={(next) => setGrouping(next as typeof grouping)}

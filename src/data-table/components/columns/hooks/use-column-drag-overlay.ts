@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
-import type { Table } from '@tanstack/react-table';
-import { useCallback, useState } from 'react';
+import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
+import type { Table } from "@tanstack/react-table";
+import { useCallback, useState } from "react";
 
 interface UseColumnDragOverlayProps<TData> {
   /**
@@ -69,7 +69,7 @@ export function useColumnDragOverlay<TData>({
       if (column) {
         // Get the column title, fallback to ID if not available
         const columnTitle =
-          typeof column.columnDef.header === 'string'
+          typeof column.columnDef.header === "string"
             ? column.columnDef.header
             : columnId;
 

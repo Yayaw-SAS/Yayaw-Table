@@ -2,12 +2,12 @@
  * Hook for managing URL state with nuqs
  * Allows sharing links to specific table states
  */
-'use client';
+"use client";
 
-import type { ColumnFiltersState, SortingState } from '@tanstack/react-table';
-import { createParser, useQueryState } from 'nuqs';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
-import type { AdvancedFiltersState } from '../types/filter-types';
+import type { ColumnFiltersState, SortingState } from "@tanstack/react-table";
+import { createParser, useQueryState } from "nuqs";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import type { AdvancedFiltersState } from "../types/filter-types";
 
 // Simple debounce implementation to avoid lodash dependency
 function debounce<T extends (...args: unknown[]) => void>(
@@ -29,13 +29,13 @@ const _DEBUG = false;
 // Create parsers for different types of state
 const arrayParser = createParser({
   parse: (value: string) => (value ? JSON.parse(value) : []),
-  serialize: (value: unknown[]) => (value?.length ? JSON.stringify(value) : ''),
+  serialize: (value: unknown[]) => (value?.length ? JSON.stringify(value) : ""),
 });
 
 const objectParser = createParser({
   parse: (value: string) => (value ? JSON.parse(value) : {}),
   serialize: (value: object) =>
-    Object.keys(value || {}).length ? JSON.stringify(value) : '',
+    Object.keys(value || {}).length ? JSON.stringify(value) : "",
 });
 
 // Parser for advanced filters
@@ -48,7 +48,7 @@ const advancedFiltersParser = createParser({
     }
   },
   serialize: (value: AdvancedFiltersState) =>
-    value?.length ? JSON.stringify(value) : '',
+    value?.length ? JSON.stringify(value) : "",
 });
 
 // Using URL state as the single source of truth - no Jotai atoms
@@ -131,7 +131,7 @@ export function useTableUrlState({
         // Pass shallow replace options to avoid full navigation and keep focus
         (setter as unknown as (value: T, options?: unknown) => void)(
           updateValue,
-          { shallow: true, history: 'replace', scroll: false }
+          { shallow: true, history: "replace", scroll: false }
         )
       );
 
@@ -148,11 +148,11 @@ export function useTableUrlState({
 
   // URL parameters using nuqs
   // View and history management
-  const [viewParam, setViewParam] = useQueryState('view');
+  const [viewParam, setViewParam] = useQueryState("view");
   const [historyIndexParam, setHistoryIndexParam] = useQueryState(
-    'historyIndex',
+    "historyIndex",
     {
-      defaultValue: '0',
+      defaultValue: "0",
     }
   );
 
@@ -174,13 +174,13 @@ export function useTableUrlState({
   );
 
   const [pageParam, setPageParam] = useQueryState(`${tableId}-page`, {
-    defaultValue: '0',
+    defaultValue: "0",
   });
 
   const [pageSizeParam, setPageSizeParam] = useQueryState(
     `${tableId}-pageSize`,
     {
-      defaultValue: '10',
+      defaultValue: "10",
     }
   );
 
@@ -220,7 +220,7 @@ export function useTableUrlState({
           };
           const decoded = safeDecode(value);
           const parsed = JSON.parse(decoded);
-          if (typeof parsed === 'object' && parsed !== null) {
+          if (typeof parsed === "object" && parsed !== null) {
             return parsed as object;
           }
           return {};
@@ -232,7 +232,7 @@ export function useTableUrlState({
         const safe = value || {};
         return Object.keys(safe).length
           ? encodeURIComponent(JSON.stringify(safe))
-          : '';
+          : "";
       },
     })
   );
@@ -249,7 +249,7 @@ export function useTableUrlState({
 
   // Column pinning parameter
   const [pinningParam, setPinningParam] = useQueryState(`${tableId}-pinning`, {
-    defaultValue: '',
+    defaultValue: "",
     parse: (value) =>
       value ? JSON.parse(decodeURIComponent(value)) : { left: [], right: [] },
     serialize: (value) => {
@@ -258,7 +258,7 @@ export function useTableUrlState({
       const hasRight = value?.right?.length > 0;
       return hasLeft || hasRight
         ? encodeURIComponent(JSON.stringify(value))
-        : '';
+        : "";
     },
   });
 
@@ -279,47 +279,56 @@ export function useTableUrlState({
     if (!debouncedSetParamRef.current) {
       debouncedSetParamRef.current = debounce((...args: unknown[]) => {
         const [key, value] = args as [string, TableParamValue];
-        if (key.includes('filters') && !key.includes('advancedFilters')) {
-          (setFiltersParam as unknown as (
-            v: ColumnFiltersState,
-            o?: unknown
-          ) => void)(value as ColumnFiltersState, {
+        if (key.includes("filters") && !key.includes("advancedFilters")) {
+          (
+            setFiltersParam as unknown as (
+              v: ColumnFiltersState,
+              o?: unknown
+            ) => void
+          )(value as ColumnFiltersState, {
             shallow: true,
-            history: 'replace',
+            history: "replace",
             scroll: false,
           });
-        } else if (key.includes('advancedFilters')) {
-          (setAdvancedFiltersParam as unknown as (
-            v: AdvancedFiltersState,
-            o?: unknown
-          ) => void)(value as AdvancedFiltersState, {
+        } else if (key.includes("advancedFilters")) {
+          (
+            setAdvancedFiltersParam as unknown as (
+              v: AdvancedFiltersState,
+              o?: unknown
+            ) => void
+          )(value as AdvancedFiltersState, {
             shallow: true,
-            history: 'replace',
+            history: "replace",
             scroll: false,
           });
-        } else if (key.includes('sort')) {
-          (setSortParam as unknown as (
-            v: SortingState,
-            o?: unknown
-          ) => void)(value as SortingState, {
-            shallow: true,
-            history: 'replace',
-            scroll: false,
-          });
-        } else if (key.endsWith('-q')) {
-          (setGlobalSearchParam as unknown as (
-            v: string,
-            o?: unknown
-          ) => void)(value as unknown as string, {
-            shallow: true,
-            history: 'replace',
-            scroll: false,
-          });
+        } else if (key.includes("sort")) {
+          (setSortParam as unknown as (v: SortingState, o?: unknown) => void)(
+            value as SortingState,
+            {
+              shallow: true,
+              history: "replace",
+              scroll: false,
+            }
+          );
+        } else if (key.endsWith("-q")) {
+          (setGlobalSearchParam as unknown as (v: string, o?: unknown) => void)(
+            value as unknown as string,
+            {
+              shallow: true,
+              history: "replace",
+              scroll: false,
+            }
+          );
         }
         // Add other param setters as needed
       }, 150);
     }
-  }, [setFiltersParam, setAdvancedFiltersParam, setSortParam, setGlobalSearchParam]);
+  }, [
+    setFiltersParam,
+    setAdvancedFiltersParam,
+    setSortParam,
+    setGlobalSearchParam,
+  ]);
 
   const setColumnFiltersFromUI = useCallback(
     (filters: ColumnFiltersState) => {
@@ -347,7 +356,7 @@ export function useTableUrlState({
   // Global search setter
   const setGlobalSearchFromUI = useCallback(
     (value: string) => {
-      debouncedSetParamRef.current?.(`${tableId}-q`, value || '');
+      debouncedSetParamRef.current?.(`${tableId}-q`, value || "");
     },
     [tableId]
   );
@@ -428,7 +437,7 @@ export function useTableUrlState({
           encodeURIComponent(JSON.stringify(value))
         );
       } else if (
-        typeof value === 'object' &&
+        typeof value === "object" &&
         value &&
         Object.keys(value).length > 0
       ) {
@@ -436,7 +445,7 @@ export function useTableUrlState({
           paramName,
           encodeURIComponent(JSON.stringify(value))
         );
-      } else if (typeof value === 'string' && value) {
+      } else if (typeof value === "string" && value) {
         url.searchParams.set(paramName, value);
       }
     },
@@ -484,14 +493,14 @@ export function useTableUrlState({
 
   // Create shareable URL with all parameters
   const createShareableUrl = useCallback(() => {
-    if (typeof window === 'undefined') {
-      return '';
+    if (typeof window === "undefined") {
+      return "";
     }
     const url = new URL(window.location.href);
 
     // Add view and history parameters
-    setUrlParam(url, 'view', viewParam);
-    setUrlParam(url, 'historyIndex', historyIndexParam);
+    setUrlParam(url, "view", viewParam);
+    setUrlParam(url, "historyIndex", historyIndexParam);
 
     // Add all table-specific parameters
     setTableParams(url);
@@ -509,12 +518,12 @@ export function useTableUrlState({
       isSyncing.current = true;
       // Reset all URL parameters
       setViewParam(null);
-      setHistoryIndexParam('0');
+      setHistoryIndexParam("0");
       setSortParam([]);
       setFiltersParam([]);
       setAdvancedFiltersParam([]);
-      setPageParam('0');
-      setPageSizeParam('10');
+      setPageParam("0");
+      setPageSizeParam("10");
       setVisibilityParam({});
       setOrderParam([]);
       setExpandedParam({});
@@ -523,8 +532,8 @@ export function useTableUrlState({
     } finally {
       // Schedule after paint (SSR-safe)
       const schedule =
-        typeof window !== 'undefined' &&
-        typeof window.requestAnimationFrame === 'function'
+        typeof window !== "undefined" &&
+        typeof window.requestAnimationFrame === "function"
           ? window.requestAnimationFrame
           : (cb: FrameRequestCallback) =>
               setTimeout(cb, 0) as unknown as number;
@@ -550,8 +559,8 @@ export function useTableUrlState({
   // Get pagination state from URL parameters
   const pagination = useMemo(
     () => ({
-      pageIndex: Number.parseInt(pageParam || '0', 10),
-      pageSize: Number.parseInt(pageSizeParam || '10', 10),
+      pageIndex: Number.parseInt(pageParam || "0", 10),
+      pageSize: Number.parseInt(pageSizeParam || "10", 10),
     }),
     [pageParam, pageSizeParam]
   );
@@ -575,8 +584,8 @@ export function useTableUrlState({
     groupingParam: groupingParam || [],
     historyIndexParam,
     orderParam: orderParam || [],
-    pageParam: pageParam || '0',
-    pageSizeParam: pageSizeParam || '10',
+    pageParam: pageParam || "0",
+    pageSizeParam: pageSizeParam || "10",
     // Processed state
     pagination,
     pinningParam,
@@ -612,7 +621,7 @@ export function useTableUrlState({
     setVisibilityParam,
 
     sortParam: sortParam || [],
-    globalSearchParam: globalSearchParam || '',
+    globalSearchParam: globalSearchParam || "",
     viewParam,
     visibilityParam: visibilityParam || {},
   };

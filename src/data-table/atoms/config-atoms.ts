@@ -2,10 +2,10 @@
  * Configuration atoms for DataTable
  * Centralizes all configuration options in one place
  */
-import { atom } from 'jotai';
-import { atomFamily } from 'jotai/utils';
+import { atom } from "jotai";
+import { atomFamily } from "jotai-family";
 
-import type { TableFormConfig } from '../config/form-config';
+import type { TableFormConfig } from "../config/form-config";
 
 /**
  * Interface for column-specific configuration options

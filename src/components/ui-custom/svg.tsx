@@ -1,6 +1,6 @@
-import type React from 'react';
-import InlineSVG from 'react-inlinesvg';
-import { twMerge } from 'tailwind-merge';
+import type React from "react";
+import InlineSVG from "react-inlinesvg";
+import { twMerge } from "tailwind-merge";
 
 const TITLE_TAG_REGEX = /<title[\s\S]*?>[\s\S]*?<\/title>/;
 const OPENING_SVG_TAG_REGEX = /<svg([^>]*)>/;
@@ -25,7 +25,10 @@ const SVG: React.FC<SvgProps> = ({ alt, className, src }) => {
         if (hasTitle) {
           return code;
         }
-        return code.replace(OPENING_SVG_TAG_REGEX, `<svg$1><title>${alt}</title>`);
+        return code.replace(
+          OPENING_SVG_TAG_REGEX,
+          `<svg$1><title>${alt}</title>`
+        );
       }}
       role="img"
       src={src}

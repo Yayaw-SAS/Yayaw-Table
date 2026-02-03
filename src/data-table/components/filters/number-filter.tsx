@@ -2,33 +2,33 @@
  * Number filter component
  * Provides filtering for numeric columns with various numeric operators and range slider
  */
-'use client';
+"use client";
 
-import { useCallback, useEffect, useState } from 'react';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { useCallback, useEffect, useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Slider } from '@/components/ui/slider';
-import type { FilterOperators } from '../../types/filter-types';
+} from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
+import { useTranslations } from "../../providers/table-provider";
+import type { FilterOperators } from "../../types/filter-types";
 import {
   DEFAULT_OPERATORS,
   FILTER_OPERATORS_LABELS,
-} from '../../types/filter-types';
-import { useTranslations } from '../../providers/table-provider';
+} from "../../types/filter-types";
 
 export interface NumberFilterProps {
   /** Current filter value - single number or [min, max] for between */
   value: number | [number, number];
   /** Current operator */
-  operator: FilterOperators['number'];
+  operator: FilterOperators["number"];
   /** Available operators (defaults to all number operators) */
-  operators?: readonly FilterOperators['number'][];
+  operators?: readonly FilterOperators["number"][];
   /** Minimum value for slider/validation */
   min?: number;
   /** Maximum value for slider/validation */
@@ -42,7 +42,7 @@ export interface NumberFilterProps {
   /** Callback when the value changes */
   onValueChange: (value: number | [number, number]) => void;
   /** Callback when the operator changes */
-  onOperatorChange: (operator: FilterOperators['number']) => void;
+  onOperatorChange: (operator: FilterOperators["number"]) => void;
   /** Optional label */
   label?: string;
   /** Whether to show the operator selector */
@@ -61,7 +61,7 @@ export function NumberFilter({
   min = 0,
   max = 100,
   step = 1,
-  placeholder = 'Enter number...',
+  placeholder = "Enter number...",
   disabled = false,
   onValueChange,
   onOperatorChange,
@@ -102,8 +102,8 @@ export function NumberFilter({
   );
 
   // Check if this operator needs a value input
-  const needsValue = !['isEmpty', 'isNotEmpty'].includes(operator);
-  const isBetween = operator === 'between';
+  const needsValue = !["isEmpty", "isNotEmpty"].includes(operator);
+  const isBetween = operator === "between";
   const currentSingleValue = Array.isArray(internalValue)
     ? internalValue[0]
     : internalValue;
@@ -167,12 +167,12 @@ export function NumberFilter({
           <Select
             disabled={disabled}
             onValueChange={(operatorValue) =>
-              onOperatorChange(operatorValue as FilterOperators['number'])
+              onOperatorChange(operatorValue as FilterOperators["number"])
             }
             value={operator}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder={t('filters.select_operator')} />
+              <SelectValue placeholder={t("filters.select_operator")} />
             </SelectTrigger>
             <SelectContent>
               {operators.map((op) => (
@@ -197,7 +197,7 @@ export function NumberFilter({
                     max={max}
                     min={min}
                     onChange={(e) => handleRangeMinChange(e.target.value)}
-                    placeholder={t('filters.value')}
+                    placeholder={t("filters.value")}
                     step={step}
                     type="number"
                     value={currentRangeValue[0]}
@@ -209,7 +209,7 @@ export function NumberFilter({
                     max={max}
                     min={min}
                     onChange={(e) => handleRangeMaxChange(e.target.value)}
-                    placeholder={t('filters.value_to')}
+                    placeholder={t("filters.value_to")}
                     step={step}
                     type="number"
                     value={currentRangeValue[1]}
@@ -247,7 +247,7 @@ export function NumberFilter({
                   placeholder={placeholder}
                   step={step}
                   type="number"
-                  value={currentSingleValue || ''}
+                  value={currentSingleValue || ""}
                 />
 
                 {/* Single value slider */}
@@ -276,9 +276,9 @@ export function NumberFilter({
         {/* Info text for operators that don't need values */}
         {!needsValue && (
           <div className="text-muted-foreground text-sm italic">
-            {operator === 'isEmpty'
-              ? t('filters.operators.empty')
-              : t('filters.operators.not_empty')}
+            {operator === "isEmpty"
+              ? t("filters.operators.empty")
+              : t("filters.operators.not_empty")}
           </div>
         )}
       </div>
@@ -293,11 +293,11 @@ export function CompactNumberFilter({
   value,
   operator,
   onValueChange,
-  placeholder = '0',
+  placeholder = "0",
   disabled = false,
 }: Pick<
   NumberFilterProps,
-  'value' | 'operator' | 'onValueChange' | 'placeholder' | 'disabled'
+  "value" | "operator" | "onValueChange" | "placeholder" | "disabled"
 >) {
   const [internalValue, setInternalValue] = useState(value);
 
@@ -316,13 +316,13 @@ export function CompactNumberFilter({
     [onValueChange]
   );
 
-  const needsValue = !['isEmpty', 'isNotEmpty'].includes(operator);
-  const isBetween = operator === 'between';
+  const needsValue = !["isEmpty", "isNotEmpty"].includes(operator);
+  const isBetween = operator === "between";
 
   if (!needsValue) {
     return (
       <span className="text-muted-foreground text-xs">
-        {operator === 'isEmpty' ? 'is empty' : 'is not empty'}
+        {operator === "isEmpty" ? "is empty" : "is not empty"}
       </span>
     );
   }
@@ -375,7 +375,7 @@ export function CompactNumberFilter({
       }}
       placeholder={placeholder}
       type="number"
-      value={singleValue || ''}
+      value={singleValue || ""}
     />
   );
 }

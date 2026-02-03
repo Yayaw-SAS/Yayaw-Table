@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { toast } from 'sonner';
-import { useBulkEdit } from '@/src/data-table/hooks/use-bulk-edit';
-import { useTableActions } from '@/src/data-table/providers/table-provider';
+import { toast } from "sonner";
+import { useBulkEdit } from "@/src/data-table/hooks/use-bulk-edit";
+import { useTableActions } from "@/src/data-table/providers/table-provider";
 
 interface BulkEditProviderProps {
   children: (bulkEdit: ReturnType<typeof useBulkEdit>) => React.ReactNode;
@@ -14,19 +14,19 @@ interface BulkEditProviderProps {
  */
 export function BulkEditProvider({ children }: BulkEditProviderProps) {
   const getTableActions = useTableActions();
-  const actions = getTableActions?.('products');
+  const actions = getTableActions?.("products");
 
   const bulkEdit = useBulkEdit({
-    tableId: 'products',
-    formType: 'products-bulk',
+    tableId: "products",
+    formType: "products-bulk",
     onSuccess: (_updatedData, selectedRows) => {
       toast.success(`Successfully updated ${selectedRows.length} products`);
     },
     onUpdate: async (ids, data) => {
       if (
         actions &&
-        'bulkUpdate' in actions &&
-        typeof actions.bulkUpdate === 'function'
+        "bulkUpdate" in actions &&
+        typeof actions.bulkUpdate === "function"
       ) {
         const result = await actions.bulkUpdate(ids, data);
         return result.success;
@@ -37,5 +37,3 @@ export function BulkEditProvider({ children }: BulkEditProviderProps) {
 
   return <>{children(bulkEdit)}</>;
 }
-
-

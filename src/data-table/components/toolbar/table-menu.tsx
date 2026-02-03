@@ -1,15 +1,16 @@
-'use client';
+"use client";
 
-import type { TableState } from '@tanstack/react-table';
+import type { TableState } from "@tanstack/react-table";
 import {
   ArrowUpDown,
   Layers,
   List,
   ListFilter,
+  RotateCcw,
   SlidersHorizontal,
-} from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Button } from '@/components/ui/button';
+} from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   StackMenu,
   StackMenuContent,
@@ -17,29 +18,29 @@ import {
   StackMenuSection,
   StackMenuView,
   useStackMenu,
-} from '@/src/components/ui-custom/stack-menu';
-import { useTableUrlState } from '../../hooks/use-table-url-state';
-import { useTranslations } from '../../providers/table-provider';
-import type { ColumnDataType } from '../../types';
+} from "@/src/components/ui-custom/stack-menu";
+import { useTableUrlState } from "../../hooks/use-table-url-state";
+import { useTranslations } from "../../providers/table-provider";
+import type { ColumnDataType } from "../../types";
 import type {
   AdvancedFiltersState,
   ColumnsFilterConfig,
   FilterActions,
-} from '../../types/filter-types';
-import { TableColumnsMenu } from './sections/table-columns-menu';
-import { TableFiltersMenu } from './sections/table-filters-menu';
-import { TableGroupingMenu } from './sections/table-grouping-menu';
-import { TableSortMenu } from './sections/table-sort-menu';
+} from "../../types/filter-types";
+import { TableColumnsMenu } from "./sections/table-columns-menu";
+import { TableFiltersMenu } from "./sections/table-filters-menu";
+import { TableGroupingMenu } from "./sections/table-grouping-menu";
+import { TableSortMenu } from "./sections/table-sort-menu";
 
 const DEBUG = false;
 
 export interface TableMenuProps {
   columns: TableColumn[];
   invalidateTable: () => Promise<void>;
-  setColumnFilters: (state: TableState['columnFilters']) => void;
-  setColumnVisibility: (state: TableState['columnVisibility']) => void;
-  setGrouping: (state: TableState['grouping']) => void;
-  setSorting: (state: TableState['sorting']) => void;
+  setColumnFilters: (state: TableState["columnFilters"]) => void;
+  setColumnVisibility: (state: TableState["columnVisibility"]) => void;
+  setGrouping: (state: TableState["grouping"]) => void;
+  setSorting: (state: TableState["sorting"]) => void;
   state: TableState;
   tableId: string;
   /** Whether to use advanced filters menu */
@@ -112,7 +113,7 @@ export function TableMenu({
     state?.grouping?.length ? state.grouping : urlGrouping || []
   ) as string[];
   const finalSetGrouping = useCallback(
-    (next: TableState['grouping']) => {
+    (next: TableState["grouping"]) => {
       try {
         if (setGrouping) {
           setGrouping(next);
@@ -134,7 +135,7 @@ export function TableMenu({
     if (useAdvancedFilters && open) {
       setOpen(true);
     }
-  }, [useAdvancedFilters, advancedFiltersConfig?.filters, open]);
+  }, [useAdvancedFilters, open]);
 
   // Calculate visible columns count
   const hideableColumns = columns.filter((col) => col.canHide !== false);
@@ -157,7 +158,70 @@ export function TableMenu({
     }
   }, []);
 
-  // Early return if no columns
+  // Compute active filters count depending on filter mode (must be before early return for hooks order)
+  const activeFiltersCount = useAdvancedFilters
+    ? (advancedFiltersConfig?.filters || []).filter((f) => f.isActive).length
+    : state.columnFilters.length;
+  const activeGroupingCount = finalGrouping.length;
+  const activeSortCount = state.sorting.length;
+
+  const hasHiddenColumns =
+    columns?.some((col) => state.columnVisibility?.[col.id] === false) ?? false;
+  const hasAnythingToReset =
+    activeFiltersCount > 0 ||
+    activeSortCount > 0 ||
+    activeGroupingCount > 0 ||
+    hasHiddenColumns;
+
+  const handleResetAll = useCallback(() => {
+    setColumnFilters([]);
+    if (useAdvancedFilters && advancedFiltersConfig?.actions?.clearFilters) {
+      advancedFiltersConfig.actions.clearFilters();
+    }
+    setSorting([]);
+    finalSetGrouping([]);
+    setColumnVisibility({});
+  }, [
+    setColumnFilters,
+    useAdvancedFilters,
+    advancedFiltersConfig?.actions,
+    setSorting,
+    finalSetGrouping,
+    setColumnVisibility,
+  ]);
+
+  // Navigation titles for different views
+  const getNavigationTitle = (viewName: string) => {
+    switch (viewName) {
+      case "columns":
+        return t("menu.properties");
+      case "filters":
+        return t("menu.filters");
+      case "group":
+        return t("menu.group");
+      case "sort":
+        return t("menu.sort");
+      default:
+        return t("menu.options");
+    }
+  };
+
+  const resetAllButton = (
+    <Button
+      aria-label={t("menu.reset_all")}
+      className="h-8 w-8 shrink-0 p-0 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40"
+      disabled={!hasAnythingToReset}
+      onClick={handleResetAll}
+      size="sm"
+      title={t("menu.reset_all_description")}
+      type="button"
+      variant="ghost"
+    >
+      <RotateCcw className="h-4 w-4" />
+    </Button>
+  );
+
+  // Early return if no columns (after all hooks)
   if (!columns || columns.length === 0) {
     return (
       <Button
@@ -168,38 +232,16 @@ export function TableMenu({
         variant="outline"
       >
         <List className="h-3.5 w-3.5" />
-        <span>{t('menu.options')}</span>
+        <span>{t("menu.options")}</span>
       </Button>
     );
   }
-
-  // Compute active filters count depending on filter mode
-  const activeFiltersCount = useAdvancedFilters
-    ? (advancedFiltersConfig?.filters || []).filter((f) => f.isActive).length
-    : state.columnFilters.length;
-  const activeGroupingCount = finalGrouping.length;
-  const activeSortCount = state.sorting.length;
-
-  // Navigation titles for different views
-  const getNavigationTitle = (viewName: string) => {
-    switch (viewName) {
-      case 'columns':
-        return t('menu.properties');
-      case 'filters':
-        return t('menu.filters');
-      case 'group':
-        return t('menu.group');
-      case 'sort':
-        return t('menu.sort');
-      default:
-        return t('menu.options');
-    }
-  };
 
   return (
     <StackMenu
       asDropdown
       defaultView="main"
+      headerEndContent={resetAllButton}
       onOpenChange={(isOpen) => {
         if (DEBUG) {
           // Debug log for open change
@@ -216,7 +258,7 @@ export function TableMenu({
           variant="outline"
         >
           <SlidersHorizontal className="h-4 w-4" />
-          <span>{t('menu.options')}</span>
+          <span>{t("menu.options")}</span>
           {(activeFiltersCount > 0 || activeSortCount > 0) && (
             <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
               {activeFiltersCount + activeSortCount}
@@ -229,10 +271,9 @@ export function TableMenu({
         <StackMenuContent>
           <StackMenuSection>
             <StackMenuItem
-              description={t('menu.columns_visible', {
+              description={t("menu.columns_visible", {
                 count: displayVisibleCount,
               })}
-              icon={<List className="h-4 w-4" />}
               endIcon={
                 displayVisibleCount > 0 ? (
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs">
@@ -240,16 +281,17 @@ export function TableMenu({
                   </span>
                 ) : undefined
               }
-              navigateTitle={getNavigationTitle('columns')}
+              icon={<List className="h-4 w-4" />}
+              navigateTitle={getNavigationTitle("columns")}
               navigateTo="columns"
             >
-              {t('menu.properties')}
+              {t("menu.properties")}
             </StackMenuItem>
 
             <StackMenuItem
               description={
                 activeFiltersCount > 0
-                  ? t('filters.active_count', { count: activeFiltersCount })
+                  ? t("filters.active_count", { count: activeFiltersCount })
                   : undefined
               }
               endIcon={
@@ -260,16 +302,16 @@ export function TableMenu({
                 ) : undefined
               }
               icon={<ListFilter className="h-4 w-4" />}
-              navigateTitle={getNavigationTitle('filters')}
+              navigateTitle={getNavigationTitle("filters")}
               navigateTo="filters"
             >
-              {t('menu.filter')}
+              {t("menu.filter")}
             </StackMenuItem>
 
             <StackMenuItem
               description={
                 activeSortCount > 0
-                  ? t('filters.active_count', { count: activeSortCount })
+                  ? t("filters.active_count", { count: activeSortCount })
                   : undefined
               }
               endIcon={
@@ -280,16 +322,16 @@ export function TableMenu({
                 ) : undefined
               }
               icon={<ArrowUpDown className="h-4 w-4" />}
-              navigateTitle={getNavigationTitle('sort')}
+              navigateTitle={getNavigationTitle("sort")}
               navigateTo="sort"
             >
-              {t('menu.sort')}
+              {t("menu.sort")}
             </StackMenuItem>
 
             <StackMenuItem
               description={
                 activeGroupingCount > 0
-                  ? t('menu.active_groups', { count: activeGroupingCount })
+                  ? t("menu.active_groups", { count: activeGroupingCount })
                   : undefined
               }
               endIcon={
@@ -300,10 +342,10 @@ export function TableMenu({
                 ) : undefined
               }
               icon={<Layers className="h-4 w-4" />}
-              navigateTitle={getNavigationTitle('group')}
+              navigateTitle={getNavigationTitle("group")}
               navigateTo="group"
             >
-              {t('menu.group')}
+              {t("menu.group")}
             </StackMenuItem>
           </StackMenuSection>
         </StackMenuContent>

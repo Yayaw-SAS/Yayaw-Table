@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { cva, type VariantProps } from 'class-variance-authority';
-import { ArrowLeft, ChevronRight, X } from 'lucide-react';
+import { cva, type VariantProps } from "class-variance-authority";
+import { ArrowLeft, ChevronRight, X } from "lucide-react";
 import {
   type ButtonHTMLAttributes,
   Children,
@@ -15,14 +15,14 @@ import {
   useContext,
   useEffect,
   useState,
-} from 'react';
-import { Button } from '@/components/ui/button';
+} from "react";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { cn } from '../../lib/utils';
+} from "@/components/ui/dropdown-menu";
+import { cn } from "../../lib/utils";
 
 interface StackMenuViewProps {
   children: ReactNode;
@@ -40,7 +40,7 @@ const StackMenuContext = createContext<{
   viewHistory: Array<{ name: string; title?: string }>;
   canGoBack: boolean;
 }>({
-  activeView: 'main',
+  activeView: "main",
   navigate: () => {
     // Default empty navigation handler
   },
@@ -49,7 +49,7 @@ const StackMenuContext = createContext<{
   },
   onOpenChange: undefined,
   open: false,
-  defaultView: 'main',
+  defaultView: "main",
   viewHistory: [],
   canGoBack: false,
 });
@@ -58,41 +58,41 @@ const useStackMenu = () => {
   return useContext(StackMenuContext);
 };
 
-const stackMenuVariants = cva('flex flex-col', {
+const stackMenuVariants = cva("flex flex-col", {
   variants: {
     // When framed=true, the menu renders its own rounded/bordered frame.
     // When framed=false (inside a dropdown), we avoid duplicate borders/radius.
     framed: {
-      true: 'rounded-lg border bg-background shadow-lg',
-      false: '',
+      true: "rounded-lg border bg-background shadow-lg",
+      false: "",
     },
     variant: {
       // Variant classes are attached via compoundVariants only when framed=true
-      default: '',
-      ghost: '',
+      default: "",
+      ghost: "",
     },
     size: {
-      default: 'max-h-[500px] w-[320px]',
-      sm: 'max-h-[400px] w-[280px]',
-      lg: 'max-h-[600px] w-[400px]',
+      default: "max-h-[500px] w-[320px]",
+      sm: "max-h-[400px] w-[280px]",
+      lg: "max-h-[600px] w-[400px]",
     },
   },
   compoundVariants: [
     {
       framed: true,
-      variant: 'default',
-      class: 'border-border bg-popover',
+      variant: "default",
+      class: "border-border bg-popover",
     },
     {
       framed: true,
-      variant: 'ghost',
-      class: 'border-muted bg-background',
+      variant: "ghost",
+      class: "border-muted bg-background",
     },
   ],
   defaultVariants: {
     framed: true,
-    variant: 'default',
-    size: 'default',
+    variant: "default",
+    size: "default",
   },
 });
 
@@ -104,8 +104,10 @@ interface StackMenuProps
   onOpenChange?: (open: boolean) => void;
   trigger?: ReactNode;
   asDropdown?: boolean;
-  align?: 'start' | 'center' | 'end';
+  align?: "start" | "center" | "end";
   sideOffset?: number;
+  /** Optional content rendered in the header, before the close button (e.g. Reset all) */
+  headerEndContent?: ReactNode;
 }
 
 const StackMenuView = ({ children, name }: StackMenuViewProps) => {
@@ -115,7 +117,7 @@ const StackMenuView = ({ children, name }: StackMenuViewProps) => {
     </div>
   );
 };
-StackMenuView.displayName = 'StackMenuView';
+StackMenuView.displayName = "StackMenuView";
 
 const StackMenu = forwardRef<HTMLDivElement, StackMenuProps>(
   (
@@ -123,14 +125,15 @@ const StackMenu = forwardRef<HTMLDivElement, StackMenuProps>(
       className,
       variant,
       size,
-      defaultView = 'main',
+      defaultView = "main",
       children,
       open,
       onOpenChange,
       trigger,
       asDropdown = false,
-      align = 'end',
+      align = "end",
       sideOffset = 5,
+      headerEndContent,
       ...props
     },
     ref
@@ -184,8 +187,8 @@ const StackMenu = forwardRef<HTMLDivElement, StackMenuProps>(
     const viewChildren = Children.toArray(children).filter(
       (child) =>
         isValidElement(child) &&
-        typeof child.type === 'function' &&
-        (child.type as { displayName?: string }).displayName === 'StackMenuView'
+        typeof child.type === "function" &&
+        (child.type as { displayName?: string }).displayName === "StackMenuView"
     );
 
     // Find the active view
@@ -222,10 +225,11 @@ const StackMenu = forwardRef<HTMLDivElement, StackMenuProps>(
           {...props}
         >
           {/* Header with navigation */}
-          <div className="flex items-center gap-2 border-border border-b bg-muted/30 p-3">
+          <div className="flex items-center gap-1 border-border border-b bg-muted/30 px-3 py-2">
             {canGoBack && (
               <Button
-                className="h-7 w-7 p-0 hover:bg-muted"
+                aria-label="Back"
+                className="h-8 w-8 shrink-0 p-0 hover:bg-muted"
                 onClick={goBack}
                 size="sm"
                 variant="ghost"
@@ -233,13 +237,15 @@ const StackMenu = forwardRef<HTMLDivElement, StackMenuProps>(
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             )}
-            <div className="flex-1 font-medium text-foreground text-sm">
+            <div className="min-w-0 flex-1 truncate font-medium text-foreground text-sm">
               {currentViewTitle ||
-                (activeView === defaultView ? 'Menu' : activeView)}
+                (activeView === defaultView ? "Menu" : activeView)}
             </div>
+            {headerEndContent}
             {onOpenChange && (
               <Button
-                className="h-7 w-7 p-0 hover:bg-muted"
+                aria-label="Close"
+                className="h-8 w-8 shrink-0 p-0 hover:bg-muted"
                 onClick={() => onOpenChange(false)}
                 size="sm"
                 variant="ghost"
@@ -262,7 +268,16 @@ const StackMenu = forwardRef<HTMLDivElement, StackMenuProps>(
           <DropdownMenuContent
             align={align}
             className="w-auto p-0"
-            sideOffset={sideOffset}
+            onFocusOutside={(e) => {
+              const target = e.target as HTMLElement | null;
+              if (
+                target?.closest('[data-slot="popover-content"]') ||
+                target?.closest('[data-slot="dropdown-menu-content"]') ||
+                target?.closest('[data-slot="command-list"]')
+              ) {
+                e.preventDefault();
+              }
+            }}
             onInteractOutside={(e) => {
               const target = e.target as HTMLElement | null;
               // Keep the menu open when interacting with nested popovers or dropdowns
@@ -284,16 +299,7 @@ const StackMenu = forwardRef<HTMLDivElement, StackMenuProps>(
                 e.preventDefault();
               }
             }}
-            onFocusOutside={(e) => {
-              const target = e.target as HTMLElement | null;
-              if (
-                target?.closest('[data-slot="popover-content"]') ||
-                target?.closest('[data-slot="dropdown-menu-content"]') ||
-                target?.closest('[data-slot="command-list"]')
-              ) {
-                e.preventDefault();
-              }
-            }}
+            sideOffset={sideOffset}
           >
             {menuContent}
           </DropdownMenuContent>
@@ -304,16 +310,16 @@ const StackMenu = forwardRef<HTMLDivElement, StackMenuProps>(
     return menuContent;
   }
 );
-StackMenu.displayName = 'StackMenu';
+StackMenu.displayName = "StackMenu";
 
 // Simplified content component
 const StackMenuContent = forwardRef<
   HTMLDivElement,
   HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-  <div className={cn('p-3', className)} ref={ref} {...props} />
+  <div className={cn("p-3", className)} ref={ref} {...props} />
 ));
-StackMenuContent.displayName = 'StackMenuContent';
+StackMenuContent.displayName = "StackMenuContent";
 
 // Section component for grouping
 const StackMenuSection = forwardRef<
@@ -322,7 +328,7 @@ const StackMenuSection = forwardRef<
     title?: string;
   }
 >(({ className, title, children, ...props }, ref) => (
-  <div className={cn('space-y-2', className)} ref={ref} {...props}>
+  <div className={cn("space-y-2", className)} ref={ref} {...props}>
     {title && (
       <div className="px-2 py-1 font-medium text-muted-foreground text-xs uppercase tracking-wider">
         {title}
@@ -331,7 +337,7 @@ const StackMenuSection = forwardRef<
     <div className="space-y-1">{children}</div>
   </div>
 ));
-StackMenuSection.displayName = 'StackMenuSection';
+StackMenuSection.displayName = "StackMenuSection";
 
 // Clean menu item component
 interface StackMenuItemProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -372,7 +378,7 @@ const StackMenuItem = forwardRef<HTMLButtonElement, StackMenuItemProps>(
     return (
       <Button
         className={cn(
-          'h-auto w-full justify-start gap-3 p-2 text-left font-normal hover:bg-accent',
+          "h-auto w-full justify-start gap-3 p-2 text-left font-normal hover:bg-accent",
           className
         )}
         onClick={handleClick}
@@ -407,16 +413,16 @@ const StackMenuItem = forwardRef<HTMLButtonElement, StackMenuItemProps>(
     );
   }
 );
-StackMenuItem.displayName = 'StackMenuItem';
+StackMenuItem.displayName = "StackMenuItem";
 
 // Separator component
 const StackMenuSeparator = forwardRef<
   HTMLDivElement,
   HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-  <div className={cn('my-2 h-px bg-border', className)} ref={ref} {...props} />
+  <div className={cn("my-2 h-px bg-border", className)} ref={ref} {...props} />
 ));
-StackMenuSeparator.displayName = 'StackMenuSeparator';
+StackMenuSeparator.displayName = "StackMenuSeparator";
 
 export {
   StackMenu,

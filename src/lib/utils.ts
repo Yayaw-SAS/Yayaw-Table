@@ -1,5 +1,5 @@
-import { type ClassValue, clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 /**
  * Utility function to merge Tailwind CSS classes
@@ -11,8 +11,8 @@ export function cn(...inputs: ClassValue[]) {
 /**
  * Format a date to a specific locale
  */
-export function formatDate(date: Date | string, locale = 'fr-FR'): string {
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
+export function formatDate(date: Date | string, locale = "fr-FR"): string {
+  const dateObj = typeof date === "string" ? new Date(date) : date;
   return dateObj.toLocaleDateString(locale);
 }
 

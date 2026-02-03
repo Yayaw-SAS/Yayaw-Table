@@ -1,20 +1,20 @@
-'use client';
+"use client";
 
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import type { Column, Table } from '@tanstack/react-table';
-import { useAtomValue } from 'jotai';
-import { ArrowDown, ArrowUp, GripVertical } from 'lucide-react';
-import { memo, useEffect, useMemo, useState } from 'react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import type { Column, Table } from "@tanstack/react-table";
+import { useAtomValue } from "jotai";
+import { ArrowDown, ArrowUp, GripVertical } from "lucide-react";
+import { memo, useEffect, useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
-import { columnDragEnabledAtom } from '../../../atoms/table-atoms';
-import { useTableConfig } from '../../../hooks/use-table-config';
+import { columnDragEnabledAtom } from "../../../atoms/table-atoms";
+import { useTableConfig } from "../../../hooks/use-table-config";
 
-import { ActionsHeader } from './actions-header';
-import { ColumnMenu } from './column-menu';
-import { SelectionHeader } from './selection-header';
+import { ActionsHeader } from "./actions-header";
+import { ColumnMenu } from "./column-menu";
+import { SelectionHeader } from "./selection-header";
 
 // Set to true to enable debug logging
 const _DEBUG = false;
@@ -53,11 +53,11 @@ function DataTableColumnHeaderBase<TData, TValue>({
   className,
   column,
   table,
-  tableId = 'default-table', // Default value if not provided
+  tableId = "default-table", // Default value if not provided
   title,
 }: DataTableColumnHeaderProps<TData, TValue>) {
   const tableInstance = table;
-  const canSort = column.getCanSort();
+  const _canSort = column.getCanSort();
   const isDragEnabled = useAtomValue(columnDragEnabledAtom(tableId));
   const { config } = useTableConfig(tableId);
   const dndFeatureEnabled = config?.table?.enableColumnDnd !== false;
@@ -86,13 +86,13 @@ function DataTableColumnHeaderBase<TData, TValue>({
       transform: CSS.Transform.toString(transform),
       transition,
       // Force header cell to follow its column when pinned/reordered
-      willChange: 'transform',
+      willChange: "transform",
     }),
     [transform, transition]
   );
 
-  const isSelectionColumn = column.id === 'select';
-  const isActionsColumn = column.id === 'actions';
+  const isSelectionColumn = column.id === "select";
+  const isActionsColumn = column.id === "actions";
   const sortDirection = column.getIsSorted();
 
   // Memoize selectionHeader component to prevent recreating on each render
@@ -118,12 +118,13 @@ function DataTableColumnHeaderBase<TData, TValue>({
   // Memoize regularHeaderContent component to prevent recreating on each render
   const regularHeaderContent = useMemo(() => {
     if (!(isSelectionColumn || isActionsColumn)) {
+      const SortIcon = sortDirection === "desc" ? ArrowDown : ArrowUp;
       return (
         <div
           className={cn(
-            'flex h-full w-full items-center gap-2',
-            isDragging && 'opacity-50',
-            isOver && 'bg-accent',
+            "flex h-full w-full items-center gap-2",
+            isDragging && "opacity-50",
+            isOver && "bg-accent",
             className
           )}
           ref={isHydrated ? setNodeRef : undefined}
@@ -142,11 +143,7 @@ function DataTableColumnHeaderBase<TData, TValue>({
                     <span>{title}</span>
                     {sortDirection && (
                       <span className="ml-2">
-                        {sortDirection === 'desc' ? (
-                          <ArrowDown className="h-4 w-4" />
-                        ) : (
-                          <ArrowUp className="h-4 w-4" />
-                        )}
+                        <SortIcon className="h-4 w-4" />
                       </span>
                     )}
                   </div>
@@ -160,8 +157,8 @@ function DataTableColumnHeaderBase<TData, TValue>({
                   <Button
                     aria-label="Drag to reorder column"
                     className="size-7 border-0 bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                    type="button"
                     size="icon"
+                    type="button"
                     variant="ghost"
                   >
                     <GripVertical
@@ -183,8 +180,8 @@ function DataTableColumnHeaderBase<TData, TValue>({
                   <Button
                     aria-label="Drag to reorder column"
                     className="size-7 border-0 bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                    type="button"
                     size="icon"
+                    type="button"
                     variant="ghost"
                   >
                     <GripVertical
@@ -216,6 +213,7 @@ function DataTableColumnHeaderBase<TData, TValue>({
     title,
     className,
     sortDirection,
+    isHydrated,
   ]);
 
   // Create the header content without using TableHead

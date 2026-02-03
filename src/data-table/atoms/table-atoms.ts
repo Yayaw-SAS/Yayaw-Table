@@ -6,21 +6,22 @@ import type {
   RowSelectionState,
   SortingState,
   VisibilityState,
-} from '@tanstack/react-table';
+} from "@tanstack/react-table";
 /**
  * Base atoms for DataTable component
  * These atoms provide core functionality used across the DataTable
  */
-import { atom } from 'jotai';
-import { atomFamily, atomWithStorage } from 'jotai/utils';
+import { atom } from "jotai";
+import { atomFamily } from "jotai-family";
+import { atomWithStorage } from "jotai/utils";
 
-import type { DataTableColumnDef } from '../types/column-types';
+import type { DataTableColumnDef } from "../types/column-types";
 
 /**
  * Atom to store the current table ID
  * This is used to identify the table across the application
  */
-export const tableIdAtom = atom<string>('');
+export const tableIdAtom = atom<string>("");
 
 /**
  * Atom family to store column definitions for a specific table
@@ -80,7 +81,7 @@ export const columnFiltersAtom = atomFamily((_tableId: string) =>
  * Keyed by tableId
  */
 export const globalFilterAtom = atomFamily((_tableId: string) =>
-  atom<string>('')
+  atom<string>("")
 );
 
 /**
@@ -195,7 +196,7 @@ export const errorAtom = atom<null | string>(null);
  * When in debug mode, additional logging and UI elements may be displayed
  */
 export const isDebugModeAtom = atom<boolean>(
-  process.env.NODE_ENV === 'development'
+  process.env.NODE_ENV === "development"
 );
 
 /**

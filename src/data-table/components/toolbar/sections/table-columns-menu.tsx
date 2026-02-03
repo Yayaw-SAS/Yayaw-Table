@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import type { Column, VisibilityState } from '@tanstack/react-table';
-import { useAtom } from 'jotai';
-import type { LucideIcon } from 'lucide-react';
+import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import type { Column, VisibilityState } from "@tanstack/react-table";
+import { useAtom } from "jotai";
+import type { LucideIcon } from "lucide-react";
 import {
   AtSign,
   Braces,
@@ -21,17 +21,17 @@ import {
   Text,
   ToggleRight,
   User,
-} from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { StackMenuContent } from '@/src/components/ui-custom/stack-menu';
-import { columnDragEnabledAtom, tableIdAtom } from '../../../atoms/table-atoms';
-import { useTableConfig } from '../../../hooks/use-table-config';
-import { useColumnDnd } from '../../../components/columns/hooks/use-column-dnd';
-import { useDataTable } from '../../../hooks/use-data-table';
-import { useTableUIConfig } from '../../../hooks/use-table-ui-config';
-import { useTableUrlState } from '../../../hooks/use-table-url-state';
-import { useTranslations } from '../../../providers/table-provider';
+} from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { StackMenuContent } from "@/src/components/ui-custom/stack-menu";
+import { columnDragEnabledAtom, tableIdAtom } from "../../../atoms/table-atoms";
+import { useColumnDnd } from "../../../components/columns/hooks/use-column-dnd";
+import { useDataTable } from "../../../hooks/use-data-table";
+import { useTableConfig } from "../../../hooks/use-table-config";
+import { useTableUIConfig } from "../../../hooks/use-table-ui-config";
+import { useTableUrlState } from "../../../hooks/use-table-url-state";
+import { useTranslations } from "../../../providers/table-provider";
 
 // Custom type for our enriched column definition
 // columns: Array<{ canSort?: boolean; getCanSort: () => boolean; id: string; label: string; }>
@@ -39,14 +39,14 @@ type ExtendedColumnDef = Column<Record<string, unknown>, unknown> & {
   icon?: LucideIcon;
 };
 
-type SortableColumn = {
+interface SortableColumn {
   canHide?: boolean;
   canSort?: boolean;
   getCanSort: () => boolean;
   id: string;
   label: string;
   type?: string;
-};
+}
 
 // Helper functions for drag and drop (outside component to avoid dependency issues)
 const determineDragSection = (
@@ -105,20 +105,20 @@ const getColumnIcon = (column: {
   // If we have a column type, use its corresponding icon
   if (columnType) {
     switch (columnType) {
-      case 'boolean':
+      case "boolean":
         return <ToggleRight className="mr-2 h-4 w-4" />;
-      case 'code':
+      case "code":
         return <Code className="mr-2 h-4 w-4" />;
-      case 'date':
+      case "date":
         return <Calendar className="mr-2 h-4 w-4" />;
-      case 'json':
+      case "json":
         return <Braces className="mr-2 h-4 w-4" />;
-      case 'number':
+      case "number":
         return <Hash className="mr-2 h-4 w-4" />;
-      case 'string':
-      case 'text':
+      case "string":
+      case "text":
         return <Text className="mr-2 h-4 w-4" />;
-      case 'tag':
+      case "tag":
         return <Tag className="mr-2 h-4 w-4" />;
       default:
         return <Text className="mr-2 h-4 w-4" />;
@@ -127,22 +127,22 @@ const getColumnIcon = (column: {
 
   // Fallback to ID-based icons for legacy or special columns
   switch (column.id.toLowerCase()) {
-    case 'comment':
-    case 'comments':
+    case "comment":
+    case "comments":
       return <FileText className="mr-2 h-4 w-4" />;
-    case 'company':
-    case 'company_name':
-    case 'companyname':
+    case "company":
+    case "company_name":
+    case "companyname":
       return <Building className="mr-2 h-4 w-4" />;
-    case 'email':
+    case "email":
       return <AtSign className="mr-2 h-4 w-4" />;
-    case 'first_name':
-    case 'firstname':
+    case "first_name":
+    case "firstname":
       return <User className="mr-2 h-4 w-4" />;
-    case 'last_name':
-    case 'lastname':
+    case "last_name":
+    case "lastname":
       return (
-        <User className="mr-2 h-4 w-4" style={{ transform: 'scaleX(-1)' }} />
+        <User className="mr-2 h-4 w-4" style={{ transform: "scaleX(-1)" }} />
       );
     default:
       return <FileText className="mr-2 h-4 w-4" />;
@@ -201,7 +201,7 @@ const SortableItem = ({
 
   return (
     <div
-      className={`group flex items-center py-1.5 ${isDragging ? 'z-10 bg-muted' : ''}`}
+      className={`group flex items-center py-1.5 ${isDragging ? "z-10 bg-muted" : ""}`}
       ref={setNodeRef}
       style={style}
     >
@@ -267,7 +267,8 @@ export function TableColumnsMenu({
   const { columnsConfig: _columnsConfig, tableConfig: _tableConfig } =
     useTableUIConfig(effectiveTableId);
   const tableConfigRes = useTableConfig(effectiveTableId);
-  const dndFeatureEnabled = tableConfigRes.config?.table?.enableColumnDnd !== false;
+  const dndFeatureEnabled =
+    tableConfigRes.config?.table?.enableColumnDnd !== false;
 
   // Local state to force re-render when visibility changes
   const [visibilityVersion, setVisibilityVersion] = useState(0);
@@ -297,7 +298,7 @@ export function TableColumnsMenu({
       columns
         .filter(
           (col) =>
-            col.canHide !== false && col.id !== 'select' && col.id !== 'actions'
+            col.canHide !== false && col.id !== "select" && col.id !== "actions"
         )
         .map((col) => {
           // Get column configuration from table config
@@ -568,10 +569,10 @@ export function TableColumnsMenu({
     }
 
     // Preserve visibility of special columns (select, actions)
-    if ('select' in newVisibility) {
+    if ("select" in newVisibility) {
       newVisibility.select = true;
     }
-    if ('actions' in newVisibility) {
+    if ("actions" in newVisibility) {
       newVisibility.actions = true;
     }
 
@@ -633,7 +634,7 @@ export function TableColumnsMenu({
         <div className="mb-4">
           <div className="mb-2 flex items-center justify-between">
             <div className="px-2 font-medium text-foreground text-sm">
-              {t('columns.visible')}
+              {t("columns.visible")}
             </div>
             <div className="relative">
               <Button
@@ -642,7 +643,7 @@ export function TableColumnsMenu({
                 size="sm"
                 variant="outline"
               >
-                {t('columns.hideAll')}
+                {t("columns.hideAll")}
               </Button>
             </div>
           </div>
@@ -655,11 +656,11 @@ export function TableColumnsMenu({
               {visibleColumns.map((column) => (
                 <SortableItem
                   column={column}
+                  featureEnabled={dndFeatureEnabled}
                   isVisible={true}
                   key={`${column.id}-${visibilityVersion}-visible`}
                   onToggle={() => handleToggleColumnVisibility(column.id)}
                   tableId={effectiveTableId}
-                  featureEnabled={dndFeatureEnabled}
                 />
               ))}
             </div>
@@ -671,7 +672,7 @@ export function TableColumnsMenu({
           <div className="mt-4 border-gray-800 border-t pt-4">
             <div className="mb-2 flex items-center justify-between">
               <div className="px-2 font-medium text-foreground text-sm">
-                {t('columns.hidden')}
+                {t("columns.hidden")}
               </div>
               <div className="relative">
                 <Button
@@ -679,7 +680,7 @@ export function TableColumnsMenu({
                   size="sm"
                   variant="outline"
                 >
-                  {t('columns.showAll')}
+                  {t("columns.showAll")}
                 </Button>
               </div>
             </div>
@@ -692,11 +693,11 @@ export function TableColumnsMenu({
                 {hiddenColumns.map((column) => (
                   <SortableItem
                     column={column}
+                    featureEnabled={dndFeatureEnabled}
                     isVisible={false}
                     key={`${column.id}-${visibilityVersion}-hidden`}
                     onToggle={() => handleToggleColumnVisibility(column.id)}
                     tableId={effectiveTableId}
-                    featureEnabled={dndFeatureEnabled}
                   />
                 ))}
               </div>

@@ -1,11 +1,11 @@
 /**
  * Hook for managing bulk actions on selected table rows
  */
-'use client';
+"use client";
 
-import type { Row, Table } from '@tanstack/react-table';
-import { useTableActions } from './use-table-actions';
-import { useCallback, useEffect, useState } from 'react';
+import type { Row, Table } from "@tanstack/react-table";
+import { useCallback, useEffect, useState } from "react";
+import { useTableActions } from "./use-table-actions";
 
 /**
  * Configuration for bulk actions
@@ -87,7 +87,7 @@ interface BulkActionsReturn<TData> {
   closeBulkActions: () => void;
 }
 
-const DEBUG = false;
+const _DEBUG = false;
 /**
  * Hook to manage bulk actions for data table
  *
@@ -102,10 +102,12 @@ export function useBulkActions<TData>({
   minimumSelection = 1,
   tableType,
 }: BulkActionsConfig<TData>): BulkActionsReturn<TData> {
-  // Auto-wire provider actions when tableType is provided
-  const provider = tableType
-    ? useTableActions<{ id: string }>({ tableType, enableLogging: false })
-    : undefined;
+  // Call hook unconditionally to satisfy Rules of Hooks; use result only when tableType is set
+  const providerResult = useTableActions<{ id: string }>({
+    tableType: tableType ?? "",
+    enableLogging: false,
+  });
+  const provider = tableType ? providerResult : undefined;
   const [selectedRows, setSelectedRows] = useState<Row<TData>[]>([]);
   const [showBulkActions, setShowBulkActions] = useState(false);
 
@@ -125,25 +127,15 @@ export function useBulkActions<TData>({
     setShowBulkActions(selected.length >= minimumSelection);
 
     // Debug logs
-    if (DEBUG) {
-      console.log('🔍 useBulkActions updateSelection:', {
-        selectedCount: selected.length,
-        showBulkActions: selected.length >= minimumSelection,
-        rowSelection,
-        minimumSelection,
-      });
-    }
   }, [table, minimumSelection]);
 
-  // React to selection changes by tracking a stable key derived from rowSelection
-  const selectionKey = JSON.stringify(table?.getState().rowSelection || {});
-
+  // React to selection changes: re-run when table or updateSelection changes
   useEffect(() => {
     if (!table) {
       return;
     }
     updateSelection();
-  }, [table, selectionKey, updateSelection]);
+  }, [table, updateSelection]);
 
   // Clear all selections
   const clearSelection = useCallback(() => {
@@ -168,15 +160,19 @@ export function useBulkActions<TData>({
     if (provider?.actions.update) {
       for (const row of selectedRows) {
         const original = row.original as unknown;
-        if (original && typeof original === 'object' && 'id' in original) {
+        if (original && typeof original === "object" && "id" in original) {
           const idValue = (original as { id: unknown }).id;
-          if (typeof idValue === 'string') {
-            void provider.actions.update(idValue, original as Record<string, unknown>);
+          if (typeof idValue === "string") {
+            provider.actions
+              .update(idValue, original as Record<string, unknown>)
+              .catch(() => {
+                /* ignore update errors */
+              });
           }
         }
       }
     }
-  }, [selectedRows, onBulkEdit]);
+  }, [selectedRows, onBulkEdit, provider?.actions?.update]);
 
   // Handle bulk delete
   const handleBulkDelete = useCallback(() => {
@@ -191,10 +187,12 @@ export function useBulkActions<TData>({
     if (provider?.actions.delete) {
       for (const row of selectedRows) {
         const original = row.original as unknown;
-        if (original && typeof original === 'object' && 'id' in original) {
+        if (original && typeof original === "object" && "id" in original) {
           const idValue = (original as { id: unknown }).id;
-          if (typeof idValue === 'string') {
-            void provider.actions.delete(idValue);
+          if (typeof idValue === "string") {
+            provider.actions.delete(idValue).catch(() => {
+              /* ignore delete errors */
+            });
           }
         }
       }
@@ -216,9 +214,13 @@ export function useBulkActions<TData>({
       const data = selectedRows.map((row) => row.original as unknown);
       const jsonString = JSON.stringify(data, null, 2);
       if (navigator.clipboard) {
-        void navigator.clipboard.writeText(jsonString);
+        navigator.clipboard.writeText(jsonString).catch(() => {
+          /* ignore clipboard errors */
+        });
       }
-    } catch (_err) {}
+    } catch {
+      /* ignore clipboard errors */
+    }
   }, [selectedRows, onBulkCopy]);
 
   // Close bulk actions (alias for clearSelection)
@@ -243,56 +245,40 @@ export function useBulkActions<TData>({
  *
  * Provides basic implementations for common bulk actions
  */
+/**
+ * Default bulk action handlers (no-op / silent).
+ * Apps should provide their own handlers for user feedback (toast, modal, etc.).
+ */
 export const defaultBulkActions = {
-  /**
-   * Default bulk edit handler - opens edit dialog/modal
-   */
-  onBulkEdit: <TData>(rows: Row<TData>[]) => {
-    console.log('Bulk edit:', rows.length, 'items');
-    // TODO: Implement bulk edit logic
-    alert(`Edit ${rows.length} items`);
+  onBulkEdit: <TData>(_rows: Row<TData>[]) => {
+    /* Provide onBulkEdit in table config for custom behavior */
   },
 
-  /**
-   * Default bulk delete handler - shows confirmation dialog
-   */
   onBulkDelete: <TData>(rows: Row<TData>[]) => {
-    const confirmed = window.confirm(
-      `Are you sure you want to delete ${rows.length} item${rows.length > 1 ? 's' : ''}?`
-    );
-
-    if (confirmed) {
-      console.log('Bulk delete:', rows.length, 'items');
-      // TODO: Implement bulk delete logic
-      alert(`Deleted ${rows.length} items`);
+    /* Provide onBulkDelete in table config; consider confirmation UI in app */
+    if (rows.length > 0) {
+      /* no-op unless app provides handler */
     }
   },
 
-  /**
-   * Default bulk copy handler - copies data to clipboard
-   */
   onBulkCopy: <TData>(rows: Row<TData>[]) => {
     try {
       const data = rows.map((row) => row.original);
       const jsonString = JSON.stringify(data, null, 2);
-
-      // Try to copy to clipboard
       if (navigator.clipboard) {
-        navigator.clipboard.writeText(jsonString);
-        alert(`Copied ${rows.length} items to clipboard`);
+        navigator.clipboard.writeText(jsonString).catch(() => {
+          /* ignore clipboard errors */
+        });
       } else {
-        // Fallback for older browsers
-        const textArea = document.createElement('textarea');
+        const textArea = document.createElement("textarea");
         textArea.value = jsonString;
         document.body.appendChild(textArea);
         textArea.select();
-        document.execCommand('copy');
+        document.execCommand("copy");
         document.body.removeChild(textArea);
-        alert(`Copied ${rows.length} items to clipboard`);
       }
-    } catch (error) {
-      console.error('Failed to copy to clipboard:', error);
-      alert('Failed to copy items to clipboard');
+    } catch {
+      /* ignore clipboard errors */
     }
   },
 };

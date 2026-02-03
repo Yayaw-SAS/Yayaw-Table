@@ -2,20 +2,20 @@
  * Pagination sans Select Radix pour éviter les boucles infinies
  * Utilise des boutons simples à la place
  */
-'use client';
+"use client";
 
-import type { Table } from '@tanstack/react-table';
+import type { Table } from "@tanstack/react-table";
 import {
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-} from 'lucide-react';
-import { useCallback } from 'react';
+} from "lucide-react";
+import { useCallback } from "react";
 
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { useTableTranslations } from '../hooks';
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { useTableTranslations } from "../hooks";
 
 interface SafePaginationProps<TData> {
   table: Table<TData>;
@@ -47,22 +47,9 @@ export function SafePagination<TData>({
   // Handle page size change with buttons instead of Select
   const handlePageSizeChange = useCallback(
     (newSize: number) => {
-      console.log(
-        '🔧 SafePagination: Changing page size from',
-        pageSize,
-        'to',
-        newSize
-      );
-      console.log('🔧 SafePagination state:', {
-        pageIndex,
-        pageSize,
-        pageCount,
-        rowCount,
-        startRow,
-        endRow,
-        totalRows: table.getRowModel().rows.length,
-      });
-      if (newSize === pageSize) return; // Prevent unnecessary updates
+      if (newSize === pageSize) {
+        return; // Prevent unnecessary updates
+      }
       table.setPageSize(newSize);
     },
     [table, pageSize]
@@ -71,13 +58,13 @@ export function SafePagination<TData>({
   return (
     <div
       className={cn(
-        'flex flex-col items-center justify-between gap-4 py-4 sm:flex-row',
+        "flex flex-col items-center justify-between gap-4 py-4 sm:flex-row",
         className
       )}
     >
       {/* Row range display */}
       <div className="flex-1 text-muted-foreground text-sm">
-        {startRow}-{endRow} {translations.of}{' '}
+        {startRow}-{endRow} {translations.of}{" "}
         {rowCount ?? table.getRowModel().rows.length}
       </div>
 
@@ -92,7 +79,7 @@ export function SafePagination<TData>({
               onClick={() => handlePageSizeChange(size)}
               size="sm"
               type="button"
-              variant={size === pageSize ? 'default' : 'outline'}
+              variant={size === pageSize ? "default" : "outline"}
             >
               {size}
             </Button>

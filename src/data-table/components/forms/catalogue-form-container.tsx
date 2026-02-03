@@ -3,16 +3,16 @@
  * This component renders the CatalogueForm and listens to the catalogueFormAtom
  * It will automatically show/hide the form based on the atom state
  */
-'use client';
+"use client";
 
-import { useAtomValue } from 'jotai';
-import { lazy, Suspense } from 'react';
+import { useAtomValue } from "jotai";
+import { lazy, Suspense } from "react";
 
-import { catalogueFormAtom } from './atoms/catalogue-form-atoms';
+import { catalogueFormAtom } from "./atoms/catalogue-form-atoms";
 
 // Dynamically import the CatalogueForm component using React.lazy
 const CatalogueForm = lazy(() =>
-  import('./catalogue-form').then((mod) => ({ default: mod.CatalogueForm }))
+  import("./catalogue-form").then((mod) => ({ default: mod.CatalogueForm }))
 );
 
 /**

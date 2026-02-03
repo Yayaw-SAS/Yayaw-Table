@@ -2,9 +2,9 @@
  * Form field types and interfaces
  * This file defines the types used for the form builder system
  */
-import type { ReactNode } from 'react';
-import type { FieldValues, Path, UseFormReturn } from 'react-hook-form';
-import type { z } from 'zod';
+import type { ReactNode } from "react";
+import type { FieldValues, Path, UseFormReturn } from "react-hook-form";
+import type { z } from "zod";
 
 /**
  * Union type of all possible field definitions
@@ -62,8 +62,8 @@ export interface BaseFieldProps<
 export interface CheckboxFieldDefinition<
   TFieldValues extends FieldValues = FieldValues,
 > extends BaseFieldDefinition<TFieldValues> {
-  type: 'checkbox';
-  variant?: 'checkbox' | 'switch';
+  type: "checkbox";
+  variant?: "checkbox" | "switch";
 }
 
 /**
@@ -73,7 +73,7 @@ export interface CustomFieldDefinition<
   TFieldValues extends FieldValues = FieldValues,
 > extends BaseFieldDefinition<TFieldValues> {
   renderField: (props: BaseFieldProps<TFieldValues>) => ReactNode;
-  type: 'custom';
+  type: "custom";
 }
 
 /**
@@ -85,7 +85,7 @@ export interface DateFieldDefinition<
   format?: string; // Format de date (ex: "yyyy-MM-dd")
   maxDate?: Date;
   minDate?: Date;
-  type: 'date';
+  type: "date";
 }
 
 /**
@@ -98,7 +98,7 @@ export interface DynamicValueFieldDefinition<
     field: Path<TFieldValues>;
     transform: (value: unknown) => unknown;
   };
-  type: 'dynamic-value';
+  type: "dynamic-value";
 }
 
 export type FieldDefinition =
@@ -114,7 +114,7 @@ export type FieldDefinition =
 /**
  * All possible field types
  */
-export type FieldType = AnyFieldDefinition['type'];
+export type FieldType = AnyFieldDefinition["type"];
 
 /**
  * Form configuration
@@ -141,7 +141,7 @@ export interface NumberFieldDefinition<
   max?: number;
   min?: number;
   step?: number;
-  type: 'number';
+  type: "number";
 }
 
 /**
@@ -152,7 +152,7 @@ export interface SelectFieldDefinition<
 > extends BaseFieldDefinition<TFieldValues> {
   optionKeys?: string[];
   options: Array<{ label: string; value: number | string }>;
-  type: 'select';
+  type: "select";
 }
 
 /**
@@ -165,7 +165,7 @@ export interface SelectWithAddNewFieldDefinition<
   optionKeys?: string[];
   options?: Array<{ label: string; value: number | string }>;
   optionsLoader?: () => Promise<string[]>;
-  type: 'select-with-add-new';
+  type: "select-with-add-new";
 }
 
 /**
@@ -174,7 +174,7 @@ export interface SelectWithAddNewFieldDefinition<
 export interface SwitchFieldDefinition<
   TFieldValues extends FieldValues = FieldValues,
 > extends BaseFieldDefinition<TFieldValues> {
-  type: 'switch';
+  type: "switch";
 }
 
 /**
@@ -184,7 +184,7 @@ export interface TextareaFieldDefinition<
   TFieldValues extends FieldValues = FieldValues,
 > extends BaseFieldDefinition<TFieldValues> {
   rows?: number;
-  type: 'textarea';
+  type: "textarea";
 }
 
 /**
@@ -193,8 +193,8 @@ export interface TextareaFieldDefinition<
 export interface TextFieldDefinition<
   TFieldValues extends FieldValues = FieldValues,
 > extends BaseFieldDefinition<TFieldValues> {
-  inputType?: 'email' | 'password' | 'tel' | 'text' | 'url';
-  type: 'text';
+  inputType?: "email" | "password" | "tel" | "text" | "url";
+  type: "text";
 }
 
 /**
@@ -203,7 +203,7 @@ export interface TextFieldDefinition<
 export interface ValueTypeFieldDefinition<
   TFieldValues extends FieldValues = FieldValues,
 > extends BaseFieldDefinition<TFieldValues> {
-  supportedTypes?: Array<'boolean' | 'json' | 'number' | 'string'>;
-  type: 'value-type';
+  supportedTypes?: Array<"boolean" | "json" | "number" | "string">;
+  type: "value-type";
   valueTypeField: Path<TFieldValues>;
 }

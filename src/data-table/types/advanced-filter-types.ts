@@ -7,12 +7,12 @@ import type {
   AdvancedFilterModel,
   ColumnDataType,
   FilterOperators,
-} from './filter-types';
+} from "./filter-types";
 
 /**
  * Filter Logic Operators
  */
-export type FilterLogicOperator = 'AND' | 'OR';
+export type FilterLogicOperator = "AND" | "OR";
 
 /**
  * Filter Group - for complex logic combinations
@@ -105,8 +105,8 @@ export interface AdvancedColumnFilterConfig {
   faceted: boolean;
   facetedOptions?: {
     maxOptions: number;
-    sortBy: 'count' | 'label' | 'value' | 'custom';
-    sortOrder: 'asc' | 'desc';
+    sortBy: "count" | "label" | "value" | "custom";
+    sortOrder: "asc" | "desc";
     showCount: boolean;
     showPercentage: boolean;
     searchable: boolean;
@@ -119,7 +119,7 @@ export interface AdvancedColumnFilterConfig {
   suggestions: boolean;
   suggestionsOptions?: {
     maxSuggestions: number;
-    sources: ('history' | 'popular' | 'similar' | 'trending')[];
+    sources: ("history" | "popular" | "similar" | "trending")[];
     minUsageCount: number;
     includeEmpty: boolean;
   };
@@ -156,7 +156,7 @@ export interface AdvancedColumnFilterConfig {
  */
 export interface FilterSuggestion {
   id: string;
-  type: 'preset' | 'smart' | 'history' | 'popular';
+  type: "preset" | "smart" | "history" | "popular";
   title: string;
   description?: string;
   icon?: string;
@@ -227,7 +227,7 @@ export interface FilterAnalytics {
  */
 export interface FilterExport {
   version: string;
-  type: 'preset' | 'state' | 'analytics';
+  type: "preset" | "state" | "analytics";
   name: string;
   description?: string;
   data: FilterPreset | AdvancedFilterState | FilterAnalytics;
@@ -244,7 +244,7 @@ export interface FilterExport {
  */
 export interface BulkFilterOperation {
   id: string;
-  type: 'apply' | 'remove' | 'toggle' | 'update';
+  type: "apply" | "remove" | "toggle" | "update";
   filters: string[]; // filter IDs
   options: {
     logic?: FilterLogicOperator;
@@ -272,9 +272,9 @@ export interface FilterComparison {
     resultsB: number;
     performanceA: number;
     performanceB: number;
-    userPreference?: 'A' | 'B' | 'neither';
+    userPreference?: "A" | "B" | "neither";
   };
-  status: 'draft' | 'running' | 'completed' | 'archived';
+  status: "draft" | "running" | "completed" | "archived";
   duration: {
     startDate: Date;
     endDate?: Date;
@@ -300,7 +300,7 @@ export interface AdvancedFilterHookReturn {
     resetState: () => void;
 
     // Group management
-    addGroup: (group: Omit<FilterGroup, 'id'>) => void;
+    addGroup: (group: Omit<FilterGroup, "id">) => void;
     updateGroup: (groupId: string, updates: Partial<FilterGroup>) => void;
     removeGroup: (groupId: string) => void;
     moveFilter: (filterId: string, targetGroupId: string) => void;
@@ -311,7 +311,7 @@ export interface AdvancedFilterHookReturn {
 
     // Presets
     savePreset: (
-      preset: Omit<FilterPreset, 'id' | 'metadata'>
+      preset: Omit<FilterPreset, "id" | "metadata">
     ) => Promise<FilterPreset>;
     loadPreset: (presetId: string) => Promise<void>;
     deletePreset: (presetId: string) => Promise<void>;
@@ -321,10 +321,10 @@ export interface AdvancedFilterHookReturn {
     ) => Promise<void>;
 
     // Export/Import
-    exportState: (format: 'json' | 'url' | 'csv') => Promise<string>;
+    exportState: (format: "json" | "url" | "csv") => Promise<string>;
     importState: (
       data: string,
-      format: 'json' | 'url' | 'csv'
+      format: "json" | "url" | "csv"
     ) => Promise<void>;
 
     // Bulk operations

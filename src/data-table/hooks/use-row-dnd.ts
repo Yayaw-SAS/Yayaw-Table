@@ -2,7 +2,7 @@
  * Hook for handling row drag and drop functionality
  * Uses dnd-kit for drag and drop operations
  */
-'use client';
+"use client";
 
 import {
   closestCenter,
@@ -13,24 +13,24 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-} from '@dnd-kit/core';
-import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
+} from "@dnd-kit/core";
+import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { useAtom } from 'jotai';
-import { useCallback, useEffect, useMemo } from 'react';
+} from "@dnd-kit/sortable";
+import { useAtom } from "jotai";
+import { useCallback, useEffect, useMemo } from "react";
 
 import {
   activeRowDragAtom,
   rowDragEnabledAtom,
   rowOrderAtom,
-} from '../atoms/table-atoms';
+} from "../atoms/table-atoms";
 
-import { useTableTranslations } from './use-table-translations';
+import { useTableTranslations } from "./use-table-translations";
 
 /**
  * Hook for managing row drag and drop

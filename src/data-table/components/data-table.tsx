@@ -2,27 +2,31 @@
  * New DataTable component using the declarative architecture
  * This component replaces the old DataTable with a more streamlined API
  */
-'use client';
+"use client";
 
-import type { Row } from '@tanstack/react-table';
+import type { Row } from "@tanstack/react-table";
+import type React from "react";
 // Import advanced filters hook directly
-import { Suspense } from 'react';
-import type React from 'react';
-import { useDataTable } from '../hooks/use-data-table';
+import { Suspense } from "react";
+import { useDataTable } from "../hooks/use-data-table";
 
-import { DataTableUIProvider } from '../providers/data-table-ui-provider';
-import { TableProvider, defaultTranslations } from '../providers/table-provider';
-import { useTableComponents } from '../providers/table-provider';
-import { DataTableSkeleton } from './data-table-skeleton';
-
-// Import DataTableClient directly for better SSR compatibility
-import { TableComponent as DataTableClient } from './table-component';
-
+import { DataTableUIProvider } from "../providers/data-table-ui-provider";
+import {
+  defaultTranslations,
+  TableProvider,
+  useTableComponents,
+  useTranslations,
+} from "../providers/table-provider";
+import { resolveTranslationsToUiStrings } from "../providers/translation-cache";
+import type { DataTableTranslations } from "../types/translations";
+import { DataTableSkeleton } from "./data-table-skeleton";
 // Lazy load heavy components using React.lazy inside './forms/lazy-forms'
-import { LazyCatalogueFormContainer as CatalogueFormContainer } from './forms/lazy-forms';
+import { LazyCatalogueFormContainer as CatalogueFormContainer } from "./forms/lazy-forms";
+// Import DataTableClient directly for better SSR compatibility
+import { TableComponent as DataTableClient } from "./table-component";
 
 // Import direct pour déboguer (au lieu de dynamic)
-import { DataTableAdvancedToolbar } from './toolbar/data-table-advanced-toolbar';
+import { DataTableAdvancedToolbar } from "./toolbar/data-table-advanced-toolbar";
 
 // Default UI components
 function DefaultTableTitle({
@@ -33,7 +37,7 @@ function DefaultTableTitle({
   className?: string;
 }) {
   return (
-    <h2 className={`font-semibold text-foreground text-xl ${className || ''}`}>
+    <h2 className={`font-semibold text-foreground text-xl ${className || ""}`}>
       {children}
     </h2>
   );
@@ -47,7 +51,7 @@ function DefaultTableDescription({
   className?: string;
 }) {
   return (
-    <p className={`text-muted-foreground text-sm ${className || ''}`}>
+    <p className={`text-muted-foreground text-sm ${className || ""}`}>
       {children}
     </p>
   );
@@ -61,7 +65,6 @@ function DefaultTableDescription({
  * DataTable component with declarative configuration
  * This component uses the table catalogue to configure itself
  */
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Main table component with complex configuration logic
 function DataTableContent({
   className,
   loadingOverlay,
@@ -91,11 +94,14 @@ function DataTableContent({
   /** Column type mapping for advanced filters */
   columnTypeMapping?: Record<
     string,
-    'text' | 'number' | 'date' | 'option' | 'multiOption'
+    "text" | "number" | "date" | "option" | "multiOption"
   >;
 }) {
   // Utiliser directement le tableType comme tableId
   const tableId = tableType;
+
+  // Nested translations from TableProvider (used to resolve for DataTableUIProvider)
+  const { translations: nestedTranslations } = useTranslations();
 
   // Use our data table hook to get everything we need
   const {
@@ -106,7 +112,6 @@ function DataTableContent({
     pageCount,
     refetch,
     rowCount,
-    translations,
     visibilityKey,
   } = useDataTable({
     tableId,
@@ -116,47 +121,8 @@ function DataTableContent({
   // Use fetched data from API
   const baseData = data || [];
 
-  // Add DEBUG flag for development
-  const DEBUG = false;
-
-  if (DEBUG) {
-    console.log('🔍 DataTable Debug:', {
-      'fetched data length': data?.length || 0,
-      'baseData length': baseData.length,
-      rowCount,
-      tableType,
-      'columns length': columns?.length || 0,
-    });
-  }
-
   // Use baseData directly since filtering is handled by the API and DataTableAdvancedToolbar
   const finalData = baseData;
-
-  if (DEBUG) {
-    console.log('🔍 DataTable Debug Info:', {
-      'baseData length': baseData.length,
-      'finalData length': finalData.length,
-      'columns length': columns?.length || 0,
-      isLoading,
-      rowCount,
-      config,
-      'first baseData item': baseData[0],
-    });
-  }
-
-  if (DEBUG) {
-    if (isLoading) {
-      console.log('🔄 Table is loading - showing skeleton');
-    } else {
-      console.log('🚀 Table ready - rendering DataTableClient with:', {
-        'finalData length': finalData.length,
-        'columns available': !!columns,
-        'columns length': columns?.length,
-        'first column': columns?.[0],
-        visibilityKey,
-      });
-    }
-  }
 
   // Debug logs for advanced filters removed since configuration is now handled in DataTableAdvancedToolbar
 
@@ -198,7 +164,9 @@ function DataTableContent({
             pageSizeOptions: config.table.pageSizeOptions || [5, 10, 20, 50],
           }}
           tableId={tableId}
-          translations={translations as any}
+          translations={resolveTranslationsToUiStrings(
+            (nestedTranslations ?? defaultTranslations) as DataTableTranslations
+          )}
         >
           <div className="space-y-4">
             {/* Header with title/description and toolbar */}
@@ -230,16 +198,15 @@ function DataTableContent({
             ) : (
               <DataTableClient
                 className={className}
-                loadingOverlay={loadingOverlay}
                 columns={
-                  columns as import('@tanstack/react-table').ColumnDef<
+                  columns as import("@tanstack/react-table").ColumnDef<
                     Record<string, unknown>
                   >[]
                 }
                 data={finalData}
-                enableColumnDragDropByDefault={
-                  Boolean(config.table.enableColumnDragDropByDefault)
-                }
+                enableColumnDragDropByDefault={Boolean(
+                  config.table.enableColumnDragDropByDefault
+                )}
                 enableColumnFilters={config.table.enableColumnFilters}
                 enableGrouping={config.table.enableGrouping}
                 enableMultiRowSelection={true}
@@ -247,6 +214,7 @@ function DataTableContent({
                 enableRowSelection={config.table.enableRowSelection}
                 enableSorting={config.table.enableSorting}
                 key={`${tableId}-${visibilityKey}`}
+                loadingOverlay={loadingOverlay}
                 manualFiltering={config.table.manualFiltering}
                 manualPagination={config.table.manualPagination}
                 manualSorting={config.table.manualSorting}
@@ -279,20 +247,24 @@ function DataTableContent({
   );
 }
 
-export function DataTable(props: Parameters<typeof DataTableContent>[0] & {
-  // Provider props (single entry point API)
-  translations?: import('../types/translations').DataTableTranslations;
-  locale?: string;
-  getFormConfig?: Parameters<typeof TableProvider>[0]['getFormConfig'];
-  getTableActions?: Parameters<typeof TableProvider>[0]['getTableActions'];
-  getTableConfig?: Parameters<typeof TableProvider>[0]['getTableConfig'];
-  columnsConfig?: Parameters<typeof TableProvider>[0]['columnsConfig'];
-  tableConfig?: Parameters<typeof TableProvider>[0]['tableConfig'];
-  queryClient?: import('@tanstack/react-query').QueryClient;
-  TitleComponent?: Parameters<typeof TableProvider>[0]['TitleComponent'];
-  DescriptionComponent?: Parameters<typeof TableProvider>[0]['DescriptionComponent'];
-  children?: React.ReactNode;
-}) {
+export function DataTable(
+  props: Parameters<typeof DataTableContent>[0] & {
+    // Provider props (single entry point API)
+    translations?: import("../types/translations").DataTableTranslations;
+    locale?: string;
+    getFormConfig?: Parameters<typeof TableProvider>[0]["getFormConfig"];
+    getTableActions?: Parameters<typeof TableProvider>[0]["getTableActions"];
+    getTableConfig?: Parameters<typeof TableProvider>[0]["getTableConfig"];
+    columnsConfig?: Parameters<typeof TableProvider>[0]["columnsConfig"];
+    tableConfig?: Parameters<typeof TableProvider>[0]["tableConfig"];
+    queryClient?: import("@tanstack/react-query").QueryClient;
+    TitleComponent?: Parameters<typeof TableProvider>[0]["TitleComponent"];
+    DescriptionComponent?: Parameters<
+      typeof TableProvider
+    >[0]["DescriptionComponent"];
+    children?: React.ReactNode;
+  }
+) {
   const {
     translations,
     locale,
@@ -307,24 +279,28 @@ export function DataTable(props: Parameters<typeof DataTableContent>[0] & {
     tableType,
     children,
     ...rest
-  } = props as any;
+  } = props;
 
+  type ContentProps = Parameters<typeof DataTableContent>[0];
   return (
     <TableProvider
-      tableId={tableType}
-      translations={(translations as any) || (defaultTranslations as any)}
-      locale={locale}
+      columnsConfig={columnsConfig}
+      DescriptionComponent={DescriptionComponent}
       getFormConfig={getFormConfig}
       getTableActions={getTableActions}
       getTableConfig={getTableConfig}
-      columnsConfig={columnsConfig}
-      tableConfig={tableConfig}
+      locale={locale}
       queryClient={queryClient}
       TitleComponent={TitleComponent}
-      DescriptionComponent={DescriptionComponent}
+      tableConfig={tableConfig}
+      tableId={tableType}
+      translations={
+        (translations as DataTableTranslations | undefined) ??
+        defaultTranslations
+      }
     >
       {children}
-      <DataTableContent tableType={tableType} {...(rest as any)} />
+      <DataTableContent {...(rest as ContentProps)} tableType={tableType} />
     </TableProvider>
   );
 }

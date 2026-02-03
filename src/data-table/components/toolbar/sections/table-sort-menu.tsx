@@ -1,16 +1,16 @@
-'use client';
+"use client";
 
-import type { SortingState } from '@tanstack/react-table';
-import { ArrowDownAZ, ArrowUpAZ, ArrowUpDown, Plus } from 'lucide-react';
+import type { SortingState } from "@tanstack/react-table";
+import { ArrowDownAZ, ArrowUpAZ, ArrowUpDown, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   StackMenuContent,
   StackMenuItem,
   StackMenuView,
-} from '@/src/components/ui-custom/stack-menu';
-import { Button } from '@/components/ui/button';
-import { useStackMenu } from '@/src/components/ui-custom/stack-menu';
-import { useDataTable } from '../../../hooks/use-data-table';
-import { useTranslations } from '../../../providers/table-provider';
+  useStackMenu,
+} from "@/src/components/ui-custom/stack-menu";
+import { useDataTable } from "../../../hooks/use-data-table";
+import { useTranslations } from "../../../providers/table-provider";
 
 export interface TableSortMenuProps {
   columns: Array<{
@@ -43,7 +43,7 @@ export function TableSortMenu({
   // Get sortable columns
   const sortableColumns = columns.filter((col) => {
     const canSort =
-      typeof col.getCanSort === 'function'
+      typeof col.getCanSort === "function"
         ? col.getCanSort()
         : col.canSort !== false;
     return canSort;
@@ -57,14 +57,18 @@ export function TableSortMenu({
   // Split into active and inactive to show active first
   const activeSortIds = new Set((sorting || []).map((s) => s.id));
   const activeColumns = sortableColumns.filter((c) => activeSortIds.has(c.id));
-  const inactiveColumns = sortableColumns.filter((c) => !activeSortIds.has(c.id));
+  const inactiveColumns = sortableColumns.filter(
+    (c) => !activeSortIds.has(c.id)
+  );
 
   return (
     <StackMenuView name="sort">
       <StackMenuContent>
         <div className="mb-2 flex items-center justify-between">
           <div className="px-2 font-medium text-foreground text-sm">
-            {sorting.length > 0 ? t('sorting.current') : t('sorting.choose_column')}
+            {sorting.length > 0
+              ? t("sorting.current")
+              : t("sorting.choose_column")}
           </div>
           <Button
             disabled={sorting.length === 0}
@@ -72,7 +76,7 @@ export function TableSortMenu({
             size="sm"
             variant="outline"
           >
-            {t('common.reset')}
+            {t("common.reset")}
           </Button>
         </div>
 
@@ -89,8 +93,8 @@ export function TableSortMenu({
 
           // Use translated header from config, with fallbacks
           let columnLabel: string;
-          if (columnId === 'actions') {
-            columnLabel = t('actions.title');
+          if (columnId === "actions") {
+            columnLabel = t("actions.title");
           } else if (columnConfig?.header) {
             // Try to translate the header from config
             columnLabel = t(columnConfig.header);
@@ -101,7 +105,10 @@ export function TableSortMenu({
 
           return (
             <StackMenuItem
-              className={`h-7 gap-2 px-2 text-sm ${isActiveSorted ? 'bg-accent font-medium' : ''}`}
+              className={`h-7 gap-2 px-2 text-sm ${isActiveSorted ? "bg-accent font-medium" : ""}`}
+              endIcon={
+                isActiveSorted ? undefined : <Plus className="h-3.5 w-3.5" />
+              }
               icon={(() => {
                 if (sortOrder === undefined) {
                   return (
@@ -109,11 +116,12 @@ export function TableSortMenu({
                   );
                 }
                 if (sortOrder) {
-                  return <ArrowDownAZ className="h-3.5 w-3.5 text-foreground" />;
+                  return (
+                    <ArrowDownAZ className="h-3.5 w-3.5 text-foreground" />
+                  );
                 }
                 return <ArrowUpAZ className="h-3.5 w-3.5 text-foreground" />;
               })()}
-              endIcon={!isActiveSorted ? <Plus className="h-3.5 w-3.5" /> : undefined}
               key={columnId}
               onClick={(e) => {
                 e.preventDefault();
@@ -132,7 +140,7 @@ export function TableSortMenu({
                 stackMenu.onOpenChange?.(true);
               }}
             >
-              <span className={isActiveSorted ? 'font-medium' : ''}>
+              <span className={isActiveSorted ? "font-medium" : ""}>
                 {columnLabel}
               </span>
             </StackMenuItem>
@@ -150,8 +158,8 @@ export function TableSortMenu({
           );
 
           let columnLabel: string;
-          if (columnId === 'actions') {
-            columnLabel = t('actions.title');
+          if (columnId === "actions") {
+            columnLabel = t("actions.title");
           } else if (columnConfig?.header) {
             columnLabel = t(columnConfig.header);
           } else {
@@ -160,9 +168,11 @@ export function TableSortMenu({
 
           return (
             <StackMenuItem
-              className={`h-7 gap-2 px-2 text-sm ${isActiveSorted ? 'bg-accent font-medium' : ''}`}
-              icon={<ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />}
+              className={`h-7 gap-2 px-2 text-sm ${isActiveSorted ? "bg-accent font-medium" : ""}`}
               endIcon={<Plus className="h-3.5 w-3.5" />}
+              icon={
+                <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
+              }
               key={columnId}
               onClick={(e) => {
                 e.preventDefault();

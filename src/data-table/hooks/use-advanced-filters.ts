@@ -3,7 +3,7 @@
  * Manages advanced filter state and provides actions for filter manipulation
  */
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from "react";
 import type {
   AdvancedFilterModel,
   AdvancedFilterPreset,
@@ -13,7 +13,7 @@ import type {
   FilterActions,
   FilterOperators,
   FilterStrategy,
-} from '../types/filter-types';
+} from "../types/filter-types";
 import {
   applyFilters,
   convertToTanStackFilters,
@@ -23,7 +23,7 @@ import {
   getFacetedNumericRange,
   getFacetedUniqueValues,
   updateFilter,
-} from '../utils/advanced-filters';
+} from "../utils/advanced-filters";
 
 export interface UseAdvancedFiltersOptions<TData = Record<string, unknown>> {
   /** Filter strategy - client or server */
@@ -102,7 +102,7 @@ export function useAdvancedFilters<TData = Record<string, unknown>>(
     ) => {
       if (onFiltersChange) {
         const newFilters =
-          typeof update === 'function' ? update(filters) : update;
+          typeof update === "function" ? update(filters) : update;
         onFiltersChange(newFilters);
       } else {
         setInternalFilters(update);
@@ -113,7 +113,7 @@ export function useAdvancedFilters<TData = Record<string, unknown>>(
 
   // Compute filtered data for client-side filtering
   const filteredData = useMemo(() => {
-    if (strategy === 'server') {
+    if (strategy === "server") {
       return data;
     }
 
@@ -127,16 +127,16 @@ export function useAdvancedFilters<TData = Record<string, unknown>>(
       accessor: (row: TData) => unknown
     ) => {
       switch (config.type) {
-        case 'option':
-        case 'multiOption': {
+        case "option":
+        case "multiOption": {
           const uniqueValues = getFacetedUniqueValues(data, accessor);
           return { uniqueValues };
         }
-        case 'number': {
+        case "number": {
           const range = getFacetedNumericRange(data, accessor);
           return range ? { range } : undefined;
         }
-        case 'date': {
+        case "date": {
           const dateRange = getFacetedDateRange(data, accessor);
           return dateRange ? { dateRange } : undefined;
         }
@@ -150,7 +150,7 @@ export function useAdvancedFilters<TData = Record<string, unknown>>(
 
   // Compute faceted data for client-side filtering
   const computedFacetedData = useMemo(() => {
-    if (!autoComputeFaceted || strategy === 'server' || !data.length) {
+    if (!autoComputeFaceted || strategy === "server" || !data.length) {
       return {};
     }
 
@@ -158,8 +158,8 @@ export function useAdvancedFilters<TData = Record<string, unknown>>(
 
     for (const [columnId, config] of Object.entries(columnsConfig)) {
       const accessor = accessors[columnId];
-      // biome-ignore lint/complexity/useSimplifiedLogicExpression: TypeScript requires this exact form
-      if (!accessors[columnId] || !config.faceted) {
+      const hasAccessorAndFaceted = accessor !== undefined && config.faceted;
+      if (!hasAccessorAndFaceted) {
         continue;
       }
 
@@ -185,7 +185,7 @@ export function useAdvancedFilters<TData = Record<string, unknown>>(
   // Filter actions
   const actions: FilterActions = useMemo(() => {
     const addFilter = (
-      filterData: Omit<AdvancedFilterModel, 'id' | 'createdAt' | 'updatedAt'>
+      filterData: Omit<AdvancedFilterModel, "id" | "createdAt" | "updatedAt">
     ) => {
       const newFilter = createFilter(
         filterData.columnId,
@@ -293,13 +293,13 @@ export function useColumnFilterConfig() {
         filterable?: boolean;
         faceted?: boolean;
         placeholder?: string;
-        operators?: FilterOperators['text'][];
+        operators?: FilterOperators["text"][];
       }> = {}
     ) => ({
-      type: 'text' as const,
+      type: "text" as const,
       filterable: true,
       faceted: false,
-      placeholder: 'Enter text...',
+      placeholder: "Enter text...",
       ...options,
     }),
     []
@@ -317,10 +317,10 @@ export function useColumnFilterConfig() {
         operators?: unknown;
       }> = {}
     ) => ({
-      type: 'number' as const,
+      type: "number" as const,
       filterable: true,
       faceted: true,
-      placeholder: 'Enter number...',
+      placeholder: "Enter number...",
       ...options,
     }),
     []
@@ -336,10 +336,10 @@ export function useColumnFilterConfig() {
         operators?: unknown;
       }> = {}
     ) => ({
-      type: 'date' as const,
+      type: "date" as const,
       filterable: true,
       faceted: true,
-      placeholder: 'Select date...',
+      placeholder: "Select date...",
       ...options,
     }),
     []
@@ -360,11 +360,11 @@ export function useColumnFilterConfig() {
         operators?: unknown;
       }> = {}
     ) => ({
-      type: 'option' as const,
+      type: "option" as const,
       filterable: true,
       faceted: true,
       options: optionsList,
-      placeholder: 'Select option...',
+      placeholder: "Select option...",
       ...options,
     }),
     []
@@ -385,11 +385,11 @@ export function useColumnFilterConfig() {
         operators?: unknown;
       }> = {}
     ) => ({
-      type: 'multiOption' as const,
+      type: "multiOption" as const,
       filterable: true,
       faceted: true,
       options: optionsList,
-      placeholder: 'Select options...',
+      placeholder: "Select options...",
       ...options,
     }),
     []

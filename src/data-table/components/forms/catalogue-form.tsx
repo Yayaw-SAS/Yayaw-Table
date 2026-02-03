@@ -2,18 +2,22 @@
  * Catalogue form component
  * This component renders a form based on a form configuration from the catalogue
  */
-'use client';
+"use client";
 
 // Debug flag to control logging
 const _DEBUG = false;
 
-import { useAtom } from 'jotai';
-import { PencilIcon, PlusIcon } from 'lucide-react';
-import type React from 'react';
-import { type ReactNode, useCallback, useMemo, useRef, useState } from 'react';
-import type { FieldValues, UseFormReturn } from 'react-hook-form';
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
+import { useAtom } from "jotai";
+import { PencilIcon, PlusIcon } from "lucide-react";
+import type React from "react";
+import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
+import type {
+  FieldValues,
+  SubmitHandler,
+  UseFormReturn,
+} from "react-hook-form";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import {
   Drawer,
   DrawerClose,
@@ -22,16 +26,16 @@ import {
   DrawerFooter,
   DrawerHeader,
   DrawerTitle,
-} from '@/components/ui/drawer';
+} from "@/components/ui/drawer";
 
 import {
   type CatalogueFormState,
   catalogueFormAtom,
   formSubmittedAtom,
   handleFormOpenChange,
-} from './atoms/catalogue-form-atoms';
-import { FormBuilder } from './form-builder';
-import { useFormCatalogue } from './hooks/use-form-catalogue';
+} from "./atoms/catalogue-form-atoms";
+import { FormBuilder } from "./form-builder";
+import { useFormCatalogue } from "./hooks/use-form-catalogue";
 
 interface CatalogueFormTranslations {
   updated?: string;
@@ -62,7 +66,7 @@ interface CatalogueFormProps<TFieldValues extends FieldValues = FieldValues> {
   /**
    * Mode of the form (create or update)
    */
-  mode?: 'create' | 'update';
+  mode?: "create" | "update";
 
   /**
    * Callback when the form is submitted successfully
@@ -80,11 +84,11 @@ interface CatalogueFormProps<TFieldValues extends FieldValues = FieldValues> {
  */
 function prepareSubmissionData<T extends FieldValues>(
   values: T,
-  mode: 'create' | 'update',
+  mode: "create" | "update",
   initialData: T | undefined,
   form: UseFormReturn<T>
 ): T {
-  if (mode === 'update') {
+  if (mode === "update") {
     return {
       ...(initialData as T),
       ...getChangedValues(form),
@@ -98,7 +102,7 @@ function prepareSubmissionData<T extends FieldValues>(
  */
 function handleSubmissionSuccess(
   result: unknown,
-  mode: 'create' | 'update',
+  mode: "create" | "update",
   onSuccess: ((resultParam: unknown) => void) | undefined,
   _setFormState: (fn: (prev: CatalogueFormState) => CatalogueFormState) => void,
   setFormSubmitted: (submitted: boolean) => void,
@@ -112,9 +116,9 @@ function handleSubmissionSuccess(
     onSuccess(result);
   }
 
-  return mode === 'update'
-    ? translations.updated || 'Updated successfully!'
-    : translations.created || 'Created successfully!';
+  return mode === "update"
+    ? translations.updated || "Updated successfully!"
+    : translations.created || "Created successfully!";
 }
 
 /**
@@ -122,7 +126,7 @@ function handleSubmissionSuccess(
  */
 function handleSuccessFlow<TFieldValues extends FieldValues>(
   result: unknown,
-  currentMode: 'create' | 'update',
+  currentMode: "create" | "update",
   currentOnSuccess: ((resultParam: unknown) => void) | undefined,
   setFormState: (fn: (prev: CatalogueFormState) => CatalogueFormState) => void,
   setFormSubmitted: (submitted: boolean) => void,
@@ -149,7 +153,7 @@ function handleSuccessFlow<TFieldValues extends FieldValues>(
   }
 
   // For update operations, update the initialData in the form state with fresh data
-  if (currentMode === 'update' && result) {
+  if (currentMode === "update" && result) {
     setFormState((prev) => ({
       ...prev,
       initialData: result as Record<string, unknown>,
@@ -182,16 +186,16 @@ function handleSuccessFlow<TFieldValues extends FieldValues>(
  */
 function handleSubmissionError(
   error: unknown,
-  mode: 'create' | 'update',
+  mode: "create" | "update",
   setError: (errorParam: Error | null) => void,
   translations: CatalogueFormTranslations
 ): string {
-  const errorObj = error instanceof Error ? error : new Error('Unknown error');
+  const errorObj = error instanceof Error ? error : new Error("Unknown error");
   setError(errorObj);
 
-  return mode === 'update'
-    ? translations.updateError || 'Failed to update'
-    : translations.createError || 'Failed to create';
+  return mode === "update"
+    ? translations.updateError || "Failed to update"
+    : translations.createError || "Failed to create";
 }
 
 /**
@@ -209,7 +213,7 @@ function useFormStateResolution<TFieldValues extends FieldValues>(
     formType: atomFormType,
     initialData: atomInitialData,
     isOpen,
-    mode: atomMode = 'create',
+    mode: atomMode = "create",
     onSuccess: atomOnSuccess,
     tableId: atomTableId,
   } = formState;
@@ -271,7 +275,7 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
   // Stabilize the parameters for useFormCatalogue to prevent unnecessary re-renders
   const formCatalogueParams = useMemo(
     () => ({
-      formType: formType || '',
+      formType: formType || "",
       initialData: initialData as Partial<TFieldValues>,
       mode,
     }),
@@ -301,9 +305,9 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
 
       // Show loading toast
       const loadingToastId = toast.loading(
-        currentMode === 'update'
-          ? translations.updating || 'Updating...'
-          : translations.creating || 'Creating...'
+        currentMode === "update"
+          ? translations.updating || "Updating..."
+          : translations.creating || "Creating..."
       );
 
       try {
@@ -330,7 +334,7 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
           setFormSubmitted,
           translations,
           formSubmitted,
-          form,
+          form as unknown as UseFormReturn<TFieldValues>,
           isChangingStateRef
         );
       } catch (error) {
@@ -417,15 +421,15 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
           type="button"
           variant="outline"
         >
-          {mode === 'update' ? (
+          {mode === "update" ? (
             <>
               <PencilIcon className="mr-2 h-4 w-4" />
-              <span>{translations.update || 'Edit'}</span>
+              <span>{translations.update || "Edit"}</span>
             </>
           ) : (
             <>
               <PlusIcon className="mr-2 h-4 w-4" />
-              <span>{translations.create || 'Create'}</span>
+              <span>{translations.create || "Create"}</span>
             </>
           )}
         </Button>
@@ -437,17 +441,17 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
         <div className="mx-auto w-full max-w-md p-6">
           <DrawerHeader className="px-0">
             <DrawerTitle>
-              {mode === 'update'
-                ? translations['updateForm.title']
-                : translations['createForm.title']}
+              {mode === "update"
+                ? translations["updateForm.title"]
+                : translations["createForm.title"]}
             </DrawerTitle>
-            {(mode === 'update'
-              ? translations['updateForm.description']
-              : translations['createForm.description']) && (
+            {(mode === "update"
+              ? translations["updateForm.description"]
+              : translations["createForm.description"]) && (
               <DrawerDescription>
-                {mode === 'update'
-                  ? translations['updateForm.description']
-                  : translations['createForm.description']}
+                {mode === "update"
+                  ? translations["updateForm.description"]
+                  : translations["createForm.description"]}
               </DrawerDescription>
             )}
           </DrawerHeader>
@@ -456,7 +460,7 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
           <div className="py-4">
             <FormBuilder
               fields={fields}
-              form={form}
+              form={form as unknown as UseFormReturn<TFieldValues>}
               onSubmit={onSubmit}
               submitText={null} // Completely disable the integrated submit button
             />
@@ -470,10 +474,14 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
             </DrawerClose>
             <Button
               disabled={loading}
-              onClick={form.handleSubmit(onSubmit)}
+              onClick={
+                form.handleSubmit(
+                  onSubmit as unknown as SubmitHandler<FieldValues>
+                ) as (e: React.MouseEvent<HTMLButtonElement>) => void
+              }
               type="submit"
             >
-              {mode === 'update' ? translations.update : translations.submit}
+              {mode === "update" ? translations.update : translations.submit}
             </Button>
           </DrawerFooter>
         </div>

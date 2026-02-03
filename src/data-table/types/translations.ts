@@ -221,6 +221,8 @@ export interface DataTableTranslations {
     active_groups: string;
     options: string;
     properties: string;
+    reset_all: string;
+    reset_all_description: string;
     sort: string;
     subgroup: string;
     title: string;

@@ -2,27 +2,27 @@
  * Form definition helpers
  * These functions help define form configurations
  */
-import type { FieldValues } from 'react-hook-form';
-import type { z } from 'zod';
+import type { FieldValues } from "react-hook-form";
+import type { z } from "zod";
 
-import type { AnyFieldDefinition, FormConfig } from './types';
+import type { AnyFieldDefinition, FormConfig } from "./types";
 
 /**
  * Default form translations
  */
 export const defaultFormTranslations = {
   keys: {
-    cancel: 'cancel',
-    create: 'create',
-    'createForm.description': 'create_form.description',
-    'createForm.title': 'create_form.title',
-    error: 'error',
-    errorDescription: 'error_description',
-    submit: 'submit',
-    success: 'success',
-    successDescription: 'success_description',
+    cancel: "cancel",
+    create: "create",
+    "createForm.description": "create_form.description",
+    "createForm.title": "create_form.title",
+    error: "error",
+    errorDescription: "error_description",
+    submit: "submit",
+    success: "success",
+    successDescription: "success_description",
   },
-  namespace: 'common',
+  namespace: "common",
 };
 
 /**
@@ -56,7 +56,7 @@ export function defineFormConfig<
   /**
    * Translation configuration
    */
-  translations?: Partial<FormConfig<TFieldValues>['translations']>;
+  translations?: Partial<FormConfig<TFieldValues>["translations"]>;
 }): FormConfig<TFieldValues> {
   // Merge translations with defaults
   const translations = {

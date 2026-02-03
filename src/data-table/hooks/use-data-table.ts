@@ -2,9 +2,9 @@
  * Main hook for data tables - Orchestrates configuration, actions, and data fetching
  * Refactored to use extracted hooks for better maintainability
  */
-'use client';
+"use client";
 
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from "@tanstack/react-query";
 import {
   type ColumnDef,
   type ColumnFilter,
@@ -17,17 +17,17 @@ import {
   type PaginationState,
   useReactTable,
   type VisibilityState,
-} from '@tanstack/react-table';
-import type * as React from 'react';
-import { useCallback, useMemo } from 'react';
+} from "@tanstack/react-table";
+import type * as React from "react";
+import { useCallback, useMemo } from "react";
 
-import type { ActionsColumnProps } from '../components/columns/actions-column';
-import { useColumns } from '../components/columns/hooks/use-columns';
-import { useTranslations } from '../providers/table-provider';
-import { useTableActions } from './use-table-actions';
-import { useTableConfig } from './use-table-config';
-import { useTableUrlData } from './use-table-url-data';
-import { useTableUrlState } from './use-table-url-state';
+import type { ActionsColumnProps } from "../components/columns/actions-column";
+import { useColumns } from "../components/columns/hooks/use-columns";
+import { useTranslations } from "../providers/table-provider";
+import { useTableActions } from "./use-table-actions";
+import { useTableConfig } from "./use-table-config";
+import { useTableUrlData } from "./use-table-url-data";
+import { useTableUrlState } from "./use-table-url-state";
 
 const DEBUG = false;
 
@@ -89,7 +89,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
   // Create a function to invalidate table data
   const invalidateTable = useCallback(async () => {
     await queryClient.invalidateQueries({
-      queryKey: ['tableData', tableId],
+      queryKey: ["tableData", tableId],
     });
   }, [queryClient, tableId]);
 
@@ -106,7 +106,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
     tableType,
     onSuccess: async () => {
       // This will be defined later
-      tableUrlState.setPageParam('0');
+      tableUrlState.setPageParam("0");
       await invalidateTable();
     },
   });
@@ -123,13 +123,8 @@ export function useDataTable<TData extends Record<string, unknown>>(
 
     const sortItem = sortingParam[0] as { id: string; desc?: boolean };
     const sortField = sortItem.id;
-    const sortDirection = sortItem.desc ? 'desc' : 'asc';
+    const sortDirection = sortItem.desc ? "desc" : "asc";
     const orderBy = { [sortField]: sortDirection };
-
-    if (DEBUG) {
-      console.log('OrderBy parameter:', orderBy);
-    }
-
     return orderBy;
   }, []);
 
@@ -144,7 +139,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
       columnFiltersTyped
         .filter(
           (filter: { id: string; value: unknown }) =>
-            !['id', 'key'].includes(filter.id)
+            !["id", "key"].includes(filter.id)
         )
         .map((filter: { id: string; value: unknown }) => [
           filter.id,
@@ -168,11 +163,6 @@ export function useDataTable<TData extends Record<string, unknown>>(
         orderBy: orderByParam,
         page: (paginationTyped?.pageIndex || 0) + 1,
       };
-
-      if (DEBUG) {
-        console.log('Request parameters:', requestParams);
-      }
-
       return requestParams;
     },
     []
@@ -196,15 +186,6 @@ export function useDataTable<TData extends Record<string, unknown>>(
         | undefined;
 
       try {
-        if (DEBUG) {
-          console.log('Fetching data with params:', {
-            columnFilters,
-            paramsSorting,
-            paginationTyped,
-            advancedFilters: paramsAdvancedFilters,
-          });
-        }
-
         const orderBy = buildOrderByParam(paramsSorting);
         const cleanedFilters = cleanColumnFilters(columnFilters);
         const requestParams = buildRequestParams(
@@ -215,18 +196,14 @@ export function useDataTable<TData extends Record<string, unknown>>(
         );
 
         // Attach global search if present (server-side global filter)
-        if (paramsGlobalSearch && typeof paramsGlobalSearch === 'string') {
-          (requestParams as Record<string, unknown>).search = paramsGlobalSearch;
+        if (paramsGlobalSearch && typeof paramsGlobalSearch === "string") {
+          (requestParams as Record<string, unknown>).search =
+            paramsGlobalSearch;
         }
 
         // Execute the request - safely handle the list action
         if (actions.list) {
           const response = await actions.list(requestParams);
-
-          if (DEBUG) {
-            console.log('API response:', response);
-          }
-
           return {
             data: (response.data || []) as TData[],
             pageCount: response.meta?.pageCount || 1,
@@ -277,7 +254,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
 
   // Enhanced refetch function that resets pagination and invalidates queries
   const enhancedRefetch = useCallback(async () => {
-    tableUrlState.setPageParam('0');
+    tableUrlState.setPageParam("0");
     await invalidateTable();
     await baseRefetch();
   }, [tableUrlState, invalidateTable, baseRefetch]);
@@ -315,10 +292,10 @@ export function useDataTable<TData extends Record<string, unknown>>(
     // Add columns from configuration
     for (const colDef of config.columns.definitions) {
       switch (colDef.type) {
-        case 'actions':
+        case "actions":
           columnDefs.push(
             column.actions({
-              header: t('actions.title'),
+              header: t("actions.title"),
               includeDelete: true,
               includeEdit: true,
               onDelete: async (row: TData) => {
@@ -334,7 +311,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
             } as ActionsColumnProps<TData>)
           );
           break;
-        case 'boolean':
+        case "boolean":
           columnDefs.push(
             column.boolean(colDef.id as keyof TData, {
               enableColumnFilter: colDef.enableColumnFilter,
@@ -343,7 +320,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
             })
           );
           break;
-        case 'code':
+        case "code":
           columnDefs.push(
             column.code(colDef.id as keyof TData, {
               enableColumnFilter: colDef.enableColumnFilter,
@@ -352,7 +329,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
             })
           );
           break;
-        case 'date':
+        case "date":
           columnDefs.push(
             column.date(colDef.id as keyof TData, {
               enableColumnFilter: colDef.enableColumnFilter,
@@ -361,7 +338,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
             })
           );
           break;
-        case 'dynamicType':
+        case "dynamicType":
           // Use dynamic type column that renders based on the type in the specified typeKey
           columnDefs.push(
             column.dynamicType(
@@ -378,7 +355,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
             )
           );
           break;
-        case 'number':
+        case "number":
           // Use number column for proper number formatting
           columnDefs.push(
             column.number(colDef.id as keyof TData, {
@@ -388,7 +365,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
             })
           );
           break;
-        case 'tag':
+        case "tag":
           columnDefs.push(
             column.tag(colDef.id as keyof TData, {
               enableColumnFilter: colDef.enableColumnFilter,
@@ -397,7 +374,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
             })
           );
           break;
-        case 'text':
+        case "text":
           columnDefs.push(
             column.text(colDef.id as keyof TData, {
               enableColumnFilter: colDef.enableColumnFilter,
@@ -420,10 +397,10 @@ export function useDataTable<TData extends Record<string, unknown>>(
     }
 
     // Add actions column if not already added
-    if (!columnDefs.some((col) => 'id' in col && col.id === 'actions')) {
+    if (!columnDefs.some((col) => "id" in col && col.id === "actions")) {
       columnDefs.push(
         column.actions({
-          header: t('actions.title'),
+          header: t("actions.title"),
           includeDelete: true,
           includeDuplicate: !!actions.duplicate,
           includeEdit: true,
@@ -474,17 +451,17 @@ export function useDataTable<TData extends Record<string, unknown>>(
   // Helper function to determine column label
   const getColumnLabel = useCallback(
     (colDef: ColumnDef<TData>): string => {
-      if (colDef.id === 'select') {
-        return t('common.selection');
+      if (colDef.id === "select") {
+        return t("common.selection");
       }
-      if (colDef.id === 'actions') {
-        return t('actions.title');
+      if (colDef.id === "actions") {
+        return t("actions.title");
       }
-      if (typeof colDef.header === 'string') {
+      if (typeof colDef.header === "string") {
         return getTranslationSafe(colDef.header);
       }
       // For function headers or fallback, use the column ID and try to translate it
-      return getTranslationSafe(colDef.id || 'Column');
+      return getTranslationSafe(colDef.id || "Column");
     },
     [t, getTranslationSafe]
   );
@@ -498,7 +475,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
         canFilter: colDef.enableColumnFilter !== false,
         canHide: colDef.enableHiding !== false,
         canSort: colDef.enableSorting !== false,
-        id: colDef.id || 'unknown',
+        id: colDef.id || "unknown",
         label: getColumnLabel(colDef),
       };
     });

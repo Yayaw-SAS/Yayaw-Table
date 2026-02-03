@@ -2,7 +2,7 @@ import type {
   ColumnDef,
   ColumnFiltersState,
   Table,
-} from '@tanstack/react-table';
+} from "@tanstack/react-table";
 
 /**
  * Column filter object

@@ -1,5 +1,5 @@
-import type { DataTableConfig } from '../../../src/data-table/atoms/config-atoms';
-import { productActions } from '../data';
+import type { DataTableConfig } from "../../../src/data-table/atoms/config-atoms";
+import { productActions } from "../data";
 
 // Interface étendue pour inclure les colonnes
 interface ExtendedDataTableConfig extends DataTableConfig {
@@ -26,7 +26,7 @@ interface ExtendedDataTableConfig extends DataTableConfig {
 export const getTableConfig = (
   tableType: string
 ): ExtendedDataTableConfig | undefined => {
-  if (tableType === 'products') {
+  if (tableType === "products") {
     return {
       defaultPageSize: 10,
       enableColumnDnd: true,
@@ -45,91 +45,91 @@ export const getTableConfig = (
       columns: {
         definitions: [
           {
-            id: 'name',
-            type: 'text',
-            header: 'Product Name',
+            id: "name",
+            type: "text",
+            header: "Product Name",
             enableSorting: true,
             enableColumnFilter: true,
           },
           {
-            id: 'brand',
-            type: 'text',
-            header: 'Brand',
+            id: "brand",
+            type: "text",
+            header: "Brand",
             enableSorting: true,
             enableColumnFilter: true,
           },
           {
-            id: 'category',
-            type: 'tag',
-            header: 'Category',
+            id: "category",
+            type: "tag",
+            header: "Category",
             enableSorting: true,
             enableColumnFilter: true,
           },
           {
-            id: 'price',
-            type: 'number',
-            header: 'Price',
+            id: "price",
+            type: "number",
+            header: "Price",
             enableSorting: true,
             enableColumnFilter: true,
           },
           {
-            id: 'status',
-            type: 'tag',
-            header: 'Status',
+            id: "status",
+            type: "tag",
+            header: "Status",
             enableSorting: true,
             enableColumnFilter: true,
           },
           {
-            id: 'createdAt',
-            type: 'date',
-            header: 'Created',
+            id: "createdAt",
+            type: "date",
+            header: "Created",
             enableSorting: true,
             enableColumnFilter: true,
           },
           {
-            id: 'isActive',
-            type: 'boolean',
-            header: 'Active',
+            id: "isActive",
+            type: "boolean",
+            header: "Active",
             enableSorting: true,
             enableColumnFilter: true,
           },
           {
-            id: 'actions',
-            type: 'actions',
-            header: 'Actions',
+            id: "actions",
+            type: "actions",
+            header: "Actions",
             enableSorting: false,
             enableColumnFilter: false,
           },
         ],
         order: [
-          'name',
-          'brand',
-          'category',
-          'price',
-          'status',
-          'createdAt',
-          'isActive',
-          'actions',
+          "name",
+          "brand",
+          "category",
+          "price",
+          "status",
+          "createdAt",
+          "isActive",
+          "actions",
         ],
         visible: [
-          'name',
-          'brand',
-          'category',
-          'price',
-          'status',
-          'createdAt',
-          'isActive',
-          'actions',
+          "name",
+          "brand",
+          "category",
+          "price",
+          "status",
+          "createdAt",
+          "isActive",
+          "actions",
         ],
-        mandatory: ['name'],
+        mandatory: ["name"],
         sort: [],
       },
       translations: {
-        namespace: 'table.products',
+        namespace: "table.products",
         keys: {
-          title: 'Products Management',
+          title: "Products Management",
           description:
-            'Production-ready table with server-side pagination, filtering, and sorting',
+            "Production-ready table with server-side pagination, filtering, and sorting",
         },
       },
     };
@@ -138,7 +138,7 @@ export const getTableConfig = (
 
 // Configuration des actions du tableau
 export const getTableActions = (tableType: string) => {
-  if (tableType === 'products') {
+  if (tableType === "products") {
     return productActions;
   }
 };

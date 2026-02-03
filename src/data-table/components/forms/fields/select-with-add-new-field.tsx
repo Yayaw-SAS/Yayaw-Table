@@ -1,21 +1,21 @@
-'use client';
+"use client";
 
 // Debug flag to control logging
 const DEBUG = false;
 
-import { useQuery } from '@tanstack/react-query';
-import { Plus, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import type { UseFormReturn } from 'react-hook-form';
-import { Button } from '@/components/ui/button';
+import { useQuery } from "@tanstack/react-query";
+import { Plus, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import type { UseFormReturn } from "react-hook-form";
+import { Button } from "@/components/ui/button";
 import {
   FormControl,
   FormDescription,
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -24,8 +24,8 @@ import {
   SelectSeparator,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { useTranslations } from '../../../providers/table-provider';
+} from "@/components/ui/select";
+import { useTranslations } from "../../../providers/table-provider";
 
 export interface SelectWithAddNewFieldProps {
   allowCreate?: boolean;
@@ -60,7 +60,7 @@ export function SelectWithAddNewField({
 }: SelectWithAddNewFieldProps) {
   const { t } = useTranslations();
   const [showAddNew, setShowAddNew] = useState(false);
-  const [newItem, setNewItem] = useState('');
+  const [newItem, setNewItem] = useState("");
   const [localItems, setLocalItems] = useState<string[]>([]);
   const [selectKey, setSelectKey] = useState(0); // Used to force re-render of Select component
   // Use Tanstack Query to fetch options
@@ -125,7 +125,7 @@ export function SelectWithAddNewField({
       updateFormValue(trimmedItem);
 
       // Reset state but keep the value in the form
-      setNewItem('');
+      setNewItem("");
       setShowAddNew(false);
     } catch (_error) {
       // Ignore field change errors
@@ -135,7 +135,7 @@ export function SelectWithAddNewField({
   // Helper function to update field using onChange callback
   const updateFieldOnChange = (value: string) => {
     try {
-      if (field && typeof field.onChange === 'function') {
+      if (field && typeof field.onChange === "function") {
         field.onChange(value);
       } else if (DEBUG) {
         // DEBUG: Field onChange not available
@@ -203,7 +203,7 @@ export function SelectWithAddNewField({
   };
 
   const handleSelectChange = (value: string) => {
-    if (value === 'add-new-item') {
+    if (value === "add-new-item") {
       // Show the item addition interface
       setShowAddNew(true);
       return;
@@ -220,7 +220,7 @@ export function SelectWithAddNewField({
   // Force validation on mount to ensure required fields are marked as such
   useEffect(() => {
     // Check if field exists and has a value property before accessing it
-    const fieldValue = field && 'value' in field ? field.value : undefined;
+    const fieldValue = field && "value" in field ? field.value : undefined;
 
     // If the field is empty, trigger validation
     if (!fieldValue) {
@@ -261,15 +261,15 @@ export function SelectWithAddNewField({
                 setNewItem(e.target.value);
               }}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') {
+                if (e.key === "Enter") {
                   e.preventDefault();
                   // Ensure the current input value is used when adding
                   handleAddNew();
-                } else if (e.key === 'Escape') {
+                } else if (e.key === "Escape") {
                   setShowAddNew(false);
                 }
               }}
-              placeholder={t('new_item_placeholder', { fallback: 'New item' })}
+              placeholder={t("new_item_placeholder", { fallback: "New item" })}
               value={newItem}
             />
             <Button
@@ -291,7 +291,7 @@ export function SelectWithAddNewField({
           </div>
         ) : (
           <Select
-            defaultValue={(field?.value as string) || ''}
+            defaultValue={(field?.value as string) || ""}
             key={`select-${name}-${selectKey}`}
             onOpenChange={(open) => {
               // When closing the select without making a selection, trigger validation
@@ -308,7 +308,7 @@ export function SelectWithAddNewField({
             value={
               (form.getValues()[name] as string) ||
               (field?.value as string) ||
-              ''
+              ""
             }
           >
             <SelectTrigger>
@@ -316,10 +316,10 @@ export function SelectWithAddNewField({
                 placeholder={
                   field.placeholderKey
                     ? t(field.placeholderKey as string, {
-                        fallback: placeholder || 'Select...',
+                        fallback: placeholder || "Select...",
                       })
                     : placeholder ||
-                      t('select_placeholder', { fallback: 'Select...' })
+                      t("select_placeholder", { fallback: "Select..." })
                 }
               />
             </SelectTrigger>
@@ -336,8 +336,8 @@ export function SelectWithAddNewField({
                     <SelectItem value="add-new-item">
                       <span className="flex items-center">
                         <Plus className="mr-2 h-4 w-4" />
-                        {t('categories.add_new', {
-                          fallback: 'Add new',
+                        {t("categories.add_new", {
+                          fallback: "Add new",
                         })}
                       </span>
                     </SelectItem>

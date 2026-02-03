@@ -1,8 +1,8 @@
 /**
  * Helper functions for defining and working with table configurations
  */
-import { defaultTableConfig, defaultTranslations } from './defaults';
-import type { TableFormConfig } from './form-config';
+import { defaultTableConfig, defaultTranslations } from "./defaults";
+import type { TableFormConfig } from "./form-config";
 
 /**
  * Column definition for a data table
@@ -46,15 +46,15 @@ export interface ColumnDefinition {
    * Used to determine how to render and filter the column
    */
   type?:
-    | 'actions'
-    | 'boolean'
-    | 'code'
-    | 'custom'
-    | 'date'
-    | 'dynamicType'
-    | 'number'
-    | 'tag'
-    | 'text';
+    | "actions"
+    | "boolean"
+    | "code"
+    | "custom"
+    | "date"
+    | "dynamicType"
+    | "number"
+    | "tag"
+    | "text";
 
   /**
    * Key that contains the type information for dynamicType columns

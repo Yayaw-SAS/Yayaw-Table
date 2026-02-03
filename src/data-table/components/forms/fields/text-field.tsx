@@ -1,9 +1,9 @@
 /**
  * Text field component for forms
  */
-'use client';
+"use client";
 
-import type { FieldValues, UseFormReturn } from 'react-hook-form';
+import type { FieldValues, UseFormReturn } from "react-hook-form";
 import {
   FormControl,
   FormDescription,
@@ -11,11 +11,11 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { useTranslations } from '../../../providers/table-provider';
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { useTranslations } from "../../../providers/table-provider";
 
-import type { TextFieldDefinition } from '../types';
+import type { TextFieldDefinition } from "../types";
 
 interface TextFieldProps<TFieldValues extends FieldValues> {
   /**

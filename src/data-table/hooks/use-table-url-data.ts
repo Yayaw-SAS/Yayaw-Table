@@ -2,16 +2,16 @@
  * Hook for fetching and managing table data with URL state
  * Uses TanStack Query for data fetching and caching
  */
-'use client';
+"use client";
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useMemo, useState } from 'react';
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useMemo, useState } from "react";
 
-import { processServerFilters } from '../utils/server-filters';
+import { processServerFilters } from "../utils/server-filters";
 
-import { useTableUrlState } from './use-table-url-state';
+import { useTableUrlState } from "./use-table-url-state";
 
-const DEBUG = false;
+const _DEBUG = false;
 
 interface UseTableUrlDataOptions<TData> {
   enabled?: boolean;
@@ -78,15 +78,6 @@ export function useTableUrlData<TData>({
       const advancedFilters = Array.isArray(advancedFiltersParam)
         ? advancedFiltersParam
         : [];
-
-      if (DEBUG) {
-        console.log('🔧 Processing filters:', {
-          'legacy filters': filters.length,
-          'advanced filters': advancedFilters.length,
-          advancedFilters,
-        });
-      }
-
       if (filters.length === 0 && advancedFilters.length === 0) {
         return { complexFilters: [], serverFilters: {}, advancedFilters: [] };
       }
@@ -94,22 +85,22 @@ export function useTableUrlData<TData>({
       // Extract global filter if present
       const globalFilterEntry = filters.find(
         (f: unknown): f is { id: string; value: unknown } =>
-          typeof f === 'object' &&
+          typeof f === "object" &&
           f !== null &&
-          'id' in f &&
-          (f as { id: string }).id === 'global'
+          "id" in f &&
+          (f as { id: string }).id === "global"
       );
       const globalFilter =
         globalFilterEntry &&
-        typeof globalFilterEntry === 'object' &&
-        'value' in globalFilterEntry
+        typeof globalFilterEntry === "object" &&
+        "value" in globalFilterEntry
           ? (globalFilterEntry.value as string)
-          : '';
+          : "";
 
       // Process column filters for server-side compatibility
       const result = processServerFilters(
         (filters as Array<{ id: string; value: unknown }>)
-          .filter((filter) => filter.id !== 'global') // Remove global filter from regular filters
+          .filter((filter) => filter.id !== "global") // Remove global filter from regular filters
           .map((filter) => ({
             id: filter.id,
             value: filter.value,
@@ -125,19 +116,14 @@ export function useTableUrlData<TData>({
       const finalResult = {
         ...result,
         advancedFilters: advancedFilters.filter(
-          (filter: any) => filter.isActive
+          (filter: { isActive: boolean }) => filter.isActive
         ), // Only include active filters
       };
-
-      if (DEBUG) {
-        console.log('🔧 Processed filters result:', finalResult);
-      }
-
       return finalResult;
     },
     // Include advancedFiltersParam in query key
     queryKey: [
-      'tableProcessedFilters',
+      "tableProcessedFilters",
       tableId,
       filtersParam,
       advancedFiltersParam,
@@ -158,8 +144,8 @@ export function useTableUrlData<TData>({
   const shouldEnableQuery =
     Boolean(tableId) &&
     enabled &&
-    (processedFiltersQuery.status === 'success' ||
-      (processedFiltersQuery.status === 'pending' && initialData.length > 0));
+    (processedFiltersQuery.status === "success" ||
+      (processedFiltersQuery.status === "pending" && initialData.length > 0));
 
   // Query for fetching data
   const {
@@ -206,26 +192,16 @@ export function useTableUrlData<TData>({
         // Table identifier
         tableId,
       };
-
-      if (DEBUG) {
-        console.log('useTableUrlData queryFn called with params:', params);
-      }
-      if (DEBUG) {
-        console.log('Calling queryFn with processed params:', params);
-      }
       const result = await queryFn(params);
-      if (DEBUG) {
-        console.log('QueryFn result:', result);
-      }
       return result;
     },
     queryKey: [
-      'tableData',
+      "tableData",
       tableId,
       JSON.stringify(sortParam),
       JSON.stringify(filtersParam),
       JSON.stringify(advancedFiltersParam),
-      globalSearchParam || '',
+      globalSearchParam || "",
       JSON.stringify(pagination),
       JSON.stringify(serverFilters),
     ],
@@ -280,7 +256,7 @@ export function useTableUrlData<TData>({
 
   // Enhanced refetch that invalidates the cache
   const enhancedRefetch = useCallback(async () => {
-    queryClient.invalidateQueries({ queryKey: ['tableData', tableId] });
+    queryClient.invalidateQueries({ queryKey: ["tableData", tableId] });
     return await refetch();
   }, [queryClient, refetch, tableId]);
 

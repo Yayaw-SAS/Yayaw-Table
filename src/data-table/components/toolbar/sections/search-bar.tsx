@@ -1,9 +1,9 @@
-import { Input } from "@/src/components/ui/input";
 import { Search, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/src/components/ui/input";
 import { useTableUrlState } from "@/src/data-table/hooks/use-table-url-state";
 import { useTranslations } from "@/src/data-table/providers/table-provider";
-import { Button } from "@/components/ui/button";
 
 const SearchBar = ({
   placeholder,
@@ -15,7 +15,9 @@ const SearchBar = ({
   debounceMs?: number;
 }) => {
   const { t } = useTranslations();
-  const { globalSearchParam, setGlobalSearchFromUI } = useTableUrlState({ tableId });
+  const { globalSearchParam, setGlobalSearchFromUI } = useTableUrlState({
+    tableId,
+  });
   const [value, setValue] = useState(globalSearchParam || "");
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -29,7 +31,10 @@ const SearchBar = ({
         inputRef.current.focus({ preventScroll: true });
         if (caretPosRef.current !== null) {
           try {
-            inputRef.current.setSelectionRange(caretPosRef.current, caretPosRef.current);
+            inputRef.current.setSelectionRange(
+              caretPosRef.current,
+              caretPosRef.current
+            );
           } catch {
             // ignore selection errors
           }
@@ -43,7 +48,7 @@ const SearchBar = ({
     if (lastPushedRef.current === globalSearchParam) {
       lastPushedRef.current = null;
       // next frame to ensure mount completed if re-created
-      typeof window !== 'undefined' && window.requestAnimationFrame
+      typeof window !== "undefined" && window.requestAnimationFrame
         ? window.requestAnimationFrame(restoreFocus)
         : restoreFocus();
       return;
@@ -51,7 +56,7 @@ const SearchBar = ({
 
     setValue(globalSearchParam || "");
     // Also attempt to restore focus if we previously had it
-    typeof window !== 'undefined' && window.requestAnimationFrame
+    typeof window !== "undefined" && window.requestAnimationFrame
       ? window.requestAnimationFrame(restoreFocus)
       : restoreFocus();
   }, [globalSearchParam]);
@@ -79,12 +84,9 @@ const SearchBar = ({
 
   return (
     <div className="relative">
-      <Search className="-translate-y-1/2 absolute top-1/2 left-3 h-4 w-4 text-muted-foreground" />
+      <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
       <Input
-        ref={inputRef}
-        className="h-8 w-64 pl-9 pr-8"
-        placeholder={placeholder}
-        value={value}
+        className="h-8 w-64 pr-8 pl-9"
         onChange={(e) => {
           // Capture focus and caret before any potential remount
           wasFocusedRef.current = document.activeElement === inputRef.current;
@@ -103,21 +105,24 @@ const SearchBar = ({
             setGlobalSearchFromUI(trimmed);
           }
         }}
+        placeholder={placeholder}
+        ref={inputRef}
+        value={value}
         // No onBlur push to avoid losing caret/focus in some browsers
       />
       {value && (
         <Button
-          aria-label={t('common.reset')}
-          className="-translate-y-1/2 absolute top-1/2 right-0 rounded bg-transparent p-0 text-muted-foreground hover:bg-transparent dark:hover:bg-transparent hover:font-bold focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-transparent focus-visible:ring-transparent active:bg-transparent"
+          aria-label={t("common.reset")}
+          className="absolute top-1/2 right-0 -translate-y-1/2 rounded bg-transparent p-0 text-muted-foreground hover:bg-transparent hover:font-bold focus-visible:border-transparent focus-visible:ring-0 focus-visible:ring-transparent focus-visible:ring-offset-0 active:bg-transparent dark:hover:bg-transparent"
           onClick={() => {
             setValue("");
             setGlobalSearchFromUI("");
             // Restore focus for accessibility
             inputRef.current?.focus();
           }}
+          size="icon"
           type="button"
           variant="ghost"
-          size="icon"
         >
           <X className="size-4" />
         </Button>

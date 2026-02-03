@@ -2,12 +2,12 @@
  * Selection column component for data tables
  * Provides checkbox for row selection with proper accessibility
  */
-'use client';
+"use client";
 
-import type { ColumnDef, Row, Table } from '@tanstack/react-table';
-import { useState } from 'react';
-import { Checkbox } from '@/components/ui/checkbox';
-import { SelectionCell } from '../cells/selection-cell';
+import type { ColumnDef, Row, Table } from "@tanstack/react-table";
+import { useState } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { SelectionCell } from "../cells/selection-cell";
 
 /**
  * Options for selection column
@@ -102,15 +102,15 @@ function SelectionHeaderBase<TData>({ table }: SelectionHeaderProps<TData>) {
 export function createSelectionColumn<TData>(
   options: SelectionColumnOptions = {}
 ): ColumnDef<TData, unknown> {
-  const { className = '', enableHiding = false } = options;
+  const { className = "", enableHiding = false } = options;
 
   return {
-    accessorKey: 'select',
+    accessorKey: "select",
     enableGrouping: true,
     // Custom grouping value: selected vs unselected
     getGroupingValue: (_row: TData) => {
       // This will be handled dynamically by the table
-      return 'unselected'; // Default fallback
+      return "unselected"; // Default fallback
     },
     cell: (info) => {
       const isGrouped = info.cell.getIsGrouped?.() ?? false;
@@ -151,11 +151,11 @@ export function createSelectionColumn<TData>(
     header: ({ table }: { table: Table<TData> }) => (
       <SelectionHeaderBase className={className} table={table} />
     ),
-    id: 'select',
+    id: "select",
     meta: {
       disableDrag: true,
       disableDrop: true,
-      fixedPosition: 'start',
+      fixedPosition: "start",
       isSelectionColumn: true,
     },
   };

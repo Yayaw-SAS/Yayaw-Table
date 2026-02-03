@@ -2,7 +2,7 @@
  * Enhanced Filter Chip Component
  * Modern, animated filter chips inspired by bazza/ui and Linear
  */
-'use client';
+"use client";
 
 import {
   Calendar,
@@ -14,30 +14,30 @@ import {
   Type,
   X,
   Zap,
-} from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 import type {
   AdvancedFilterModel,
   ColumnDataType,
   FilterOperators,
-} from '../../types/filter-types';
-import { FilterValueInput } from './filter-value-input';
+} from "../../types/filter-types";
+import { FilterValueInput } from "./filter-value-input";
 
 // Animation variants for different states
 const animationClasses = {
-  idle: 'scale-100 opacity-100',
-  hover: 'scale-105 opacity-100',
-  active: 'scale-98 opacity-90',
-  removing: 'scale-95 opacity-0',
+  idle: "scale-100 opacity-100",
+  hover: "scale-105 opacity-100",
+  active: "scale-98 opacity-90",
+  removing: "scale-95 opacity-0",
 };
 
 // Icons for different data types
@@ -52,19 +52,19 @@ const typeIcons = {
 // Color schemes for different filter states
 const colorSchemes = {
   active: {
-    chip: 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/15',
-    badge: 'bg-primary text-primary-foreground',
-    icon: 'text-primary',
+    chip: "bg-primary/10 text-primary border-primary/20 hover:bg-primary/15",
+    badge: "bg-primary text-primary-foreground",
+    icon: "text-primary",
   },
   inactive: {
-    chip: 'bg-muted/50 text-muted-foreground border-border hover:bg-muted',
-    badge: 'bg-muted text-muted-foreground',
-    icon: 'text-muted-foreground',
+    chip: "bg-muted/50 text-muted-foreground border-border hover:bg-muted",
+    badge: "bg-muted text-muted-foreground",
+    icon: "text-muted-foreground",
   },
   error: {
-    chip: 'bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/15',
-    badge: 'bg-destructive text-destructive-foreground',
-    icon: 'text-destructive',
+    chip: "bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/15",
+    badge: "bg-destructive text-destructive-foreground",
+    icon: "text-destructive",
   },
 } as const;
 
@@ -79,7 +79,7 @@ function getFilterColorScheme(filter: AdvancedFilterModel) {
   const hasEmptyValues =
     filter.values === null ||
     filter.values === undefined ||
-    filter.values === '';
+    filter.values === "";
 
   return hasEmptyValues ? colorSchemes.error : colorSchemes.active;
 }
@@ -87,14 +87,14 @@ function getFilterColorScheme(filter: AdvancedFilterModel) {
 /**
  * Get icon size class based on chip size
  */
-function getIconSizeClass(size: 'sm' | 'md' | 'lg'): string {
+function getIconSizeClass(size: "sm" | "md" | "lg"): string {
   switch (size) {
-    case 'sm':
-      return 'h-3 w-3';
-    case 'lg':
-      return 'h-5 w-5';
+    case "sm":
+      return "h-3 w-3";
+    case "lg":
+      return "h-5 w-5";
     default:
-      return 'h-4 w-4';
+      return "h-4 w-4";
   }
 }
 
@@ -105,8 +105,8 @@ interface EnhancedFilterChipProps {
   onRemove: () => void;
   onToggle: () => void;
   className?: string;
-  size?: 'sm' | 'md' | 'lg';
-  variant?: 'default' | 'outline' | 'minimal';
+  size?: "sm" | "md" | "lg";
+  variant?: "default" | "outline" | "minimal";
   showTypeIcon?: boolean;
   showOperator?: boolean;
   maxValueLength?: number;
@@ -119,7 +119,7 @@ interface EnhancedFilterChipProps {
  * Format number value for display
  */
 function formatNumberValue(values: unknown, operator: string): string {
-  if (operator === 'between' && Array.isArray(values)) {
+  if (operator === "between" && Array.isArray(values)) {
     return `${values[0]} - ${values[1]}`;
   }
   return String(values);
@@ -129,7 +129,7 @@ function formatNumberValue(values: unknown, operator: string): string {
  * Format date value for display
  */
 function formatDateValue(values: unknown, operator: string): string {
-  if (operator === 'between' && Array.isArray(values)) {
+  if (operator === "between" && Array.isArray(values)) {
     const [start, end] = values as [Date, Date];
     return `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`;
   }
@@ -145,7 +145,7 @@ function formatDateValue(values: unknown, operator: string): string {
 function formatMultiOptionValue(values: unknown): string {
   if (Array.isArray(values)) {
     if (values.length === 0) {
-      return '';
+      return "";
     }
     if (values.length === 1) {
       return String(values[0]);
@@ -165,29 +165,29 @@ function formatFilterValue(
   maxLength = 20
 ): string {
   if (values === null || values === undefined) {
-    return '';
+    return "";
   }
 
-  let displayValue = '';
+  let displayValue = "";
 
   switch (type) {
-    case 'text':
+    case "text":
       displayValue = String(values);
       break;
 
-    case 'number':
+    case "number":
       displayValue = formatNumberValue(values, operator);
       break;
 
-    case 'date':
+    case "date":
       displayValue = formatDateValue(values, operator);
       break;
 
-    case 'option':
+    case "option":
       displayValue = String(values);
       break;
 
-    case 'multiOption':
+    case "multiOption":
       displayValue = formatMultiOptionValue(values);
       break;
 
@@ -208,23 +208,23 @@ function getOperatorText(
   _type: ColumnDataType
 ): string {
   const operatorLabels: Record<string, string> = {
-    contains: 'contains',
-    equals: 'is',
-    startsWith: 'starts with',
-    endsWith: 'ends with',
-    isEmpty: 'is empty',
-    isNotEmpty: 'is not empty',
-    gt: '>',
-    gte: '≥',
-    lt: '<',
-    lte: '≤',
-    between: 'between',
-    is: 'is',
-    isNot: 'is not',
-    before: 'before',
-    after: 'after',
-    onOrBefore: 'on or before',
-    onOrAfter: 'on or after',
+    contains: "contains",
+    equals: "is",
+    startsWith: "starts with",
+    endsWith: "ends with",
+    isEmpty: "is empty",
+    isNotEmpty: "is not empty",
+    gt: ">",
+    gte: "≥",
+    lt: "<",
+    lte: "≤",
+    between: "between",
+    is: "is",
+    isNot: "is not",
+    before: "before",
+    after: "after",
+    onOrBefore: "on or before",
+    onOrAfter: "on or after",
   };
 
   return operatorLabels[operator] || operator;
@@ -240,8 +240,8 @@ export function EnhancedFilterChip({
   onRemove,
   onToggle,
   className,
-  size = 'md',
-  variant = 'default',
+  size = "md",
+  variant = "default",
   showTypeIcon = true,
   showOperator = true,
   maxValueLength = 20,
@@ -269,9 +269,9 @@ export function EnhancedFilterChip({
 
   // Size variants
   const sizeClasses = {
-    sm: 'h-6 text-xs px-2 gap-1',
-    md: 'h-8 text-sm px-3 gap-1.5',
-    lg: 'h-10 text-base px-4 gap-2',
+    sm: "h-6 text-xs px-2 gap-1",
+    md: "h-8 text-sm px-3 gap-1.5",
+    lg: "h-10 text-base px-4 gap-2",
   };
 
   // Get type icon
@@ -303,7 +303,7 @@ export function EnhancedFilterChip({
   return (
     <div
       className={cn(
-        'relative transition-all duration-200 ease-out',
+        "relative transition-all duration-200 ease-out",
         isRemoving ? animationClasses.removing : animationClasses.idle,
         className
       )}
@@ -314,19 +314,19 @@ export function EnhancedFilterChip({
           <Button
             aria-label={`Filter: ${columnLabel} ${getOperatorText(filter.operator, filter.type)} ${displayValue}`}
             className={cn(
-              'inline-flex items-center rounded-full border transition-all duration-200',
-              'cursor-pointer select-none',
+              "inline-flex items-center rounded-full border transition-all duration-200",
+              "cursor-pointer select-none",
               sizeClasses[size],
               colorScheme.chip,
-              !disabled && 'hover:shadow-sm',
-              disabled && 'cursor-not-allowed opacity-50',
-              variant === 'outline' && 'bg-transparent',
-              variant === 'minimal' && 'border-none shadow-none',
-              'group'
+              !disabled && "hover:shadow-sm",
+              disabled && "cursor-not-allowed opacity-50",
+              variant === "outline" && "bg-transparent",
+              variant === "minimal" && "border-none shadow-none",
+              "group"
             )}
             disabled={disabled}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
+              if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
                 handlePopoverChange(true);
               }
@@ -338,10 +338,10 @@ export function EnhancedFilterChip({
             {showTypeIcon && (
               <TypeIcon
                 className={cn(
-                  'shrink-0',
+                  "shrink-0",
                   getIconSizeClass(size),
                   colorScheme.icon,
-                  'transition-colors duration-200'
+                  "transition-colors duration-200"
                 )}
               />
             )}
@@ -366,8 +366,8 @@ export function EnhancedFilterChip({
             {!filter.isActive && (
               <Badge
                 className={cn(
-                  'ml-1 px-1.5 py-0 text-xs',
-                  size === 'sm' && 'px-1 text-xs',
+                  "ml-1 px-1.5 py-0 text-xs",
+                  size === "sm" && "px-1 text-xs",
                   colorScheme.badge
                 )}
                 variant="secondary"
@@ -379,9 +379,9 @@ export function EnhancedFilterChip({
             {/* Expand Icon */}
             <ChevronDown
               className={cn(
-                'ml-1 shrink-0 transition-transform duration-200',
-                size === 'sm' ? 'h-3 w-3' : 'h-4 w-4',
-                popoverOpen && 'rotate-180',
+                "ml-1 shrink-0 transition-transform duration-200",
+                size === "sm" ? "h-3 w-3" : "h-4 w-4",
+                popoverOpen && "rotate-180",
                 colorScheme.icon
               )}
             />
@@ -405,8 +405,8 @@ export function EnhancedFilterChip({
                 {/* Toggle Active State */}
                 <Button
                   className={cn(
-                    'h-6 px-2 text-xs',
-                    filter.isActive ? 'text-primary' : 'text-muted-foreground'
+                    "h-6 px-2 text-xs",
+                    filter.isActive ? "text-primary" : "text-muted-foreground"
                   )}
                   onClick={handleToggle}
                   size="sm"
@@ -419,7 +419,7 @@ export function EnhancedFilterChip({
                       Active
                     </>
                   ) : (
-                    'Activate'
+                    "Activate"
                   )}
                 </Button>
 
@@ -466,7 +466,7 @@ export function CompactFilterChip({
   className,
 }: Pick<
   EnhancedFilterChipProps,
-  'filter' | 'columnLabel' | 'onToggle' | 'onRemove' | 'className'
+  "filter" | "columnLabel" | "onToggle" | "onRemove" | "className"
 >) {
   return (
     <EnhancedFilterChip

@@ -2,7 +2,7 @@
  * Advanced Faceted Filter - Phase 5
  * Intelligent faceted filtering with hierarchies, counts, and smart grouping
  */
-'use client';
+"use client";
 
 import {
   BarChart3,
@@ -18,26 +18,26 @@ import {
   Target,
   TrendingUp,
   X,
-} from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
-import { Input } from '@/components/ui/input';
+} from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
+import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { cn } from '@/lib/utils';
+} from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 
 import type {
   AdvancedColumnFilterConfig,
   FacetedData,
-} from '../../types/advanced-filter-types';
+} from "../../types/advanced-filter-types";
 
 export interface AdvancedFacetedFilterProps {
   /** Column ID */
@@ -74,8 +74,8 @@ export interface AdvancedFacetedFilterProps {
   showStats?: boolean;
 }
 
-type SortBy = 'label' | 'count' | 'value' | 'trending';
-type SortOrder = 'asc' | 'desc';
+type SortBy = "label" | "count" | "value" | "trending";
+type SortOrder = "asc" | "desc";
 
 /**
  * Individual faceted option component
@@ -120,9 +120,9 @@ function FacetedOption({
     <div className="space-y-1">
       <div
         className={cn(
-          'flex items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-accent/50',
-          level > 0 && 'ml-4',
-          isDisabled && 'cursor-not-allowed opacity-50'
+          "flex items-center gap-2 rounded-md px-2 py-1 transition-colors hover:bg-accent/50",
+          level > 0 && "ml-4",
+          isDisabled && "cursor-not-allowed opacity-50"
         )}
         style={{ paddingLeft: `${8 + level * 16}px` }}
       >
@@ -248,7 +248,7 @@ function FilterControls({
     <div className="space-y-3">
       {/* Search */}
       <div className="relative">
-        <Search className="-translate-y-1/2 absolute top-1/2 left-3 h-4 w-4 transform text-muted-foreground" />
+        <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform text-muted-foreground" />
         <Input
           className="pl-9"
           onChange={(e) => onSearchChange(e.target.value)}
@@ -275,13 +275,13 @@ function FilterControls({
           <Button
             className="h-6 w-6 p-0"
             onClick={() =>
-              onSortOrderChange(sortOrder === 'asc' ? 'desc' : 'asc')
+              onSortOrderChange(sortOrder === "asc" ? "desc" : "asc")
             }
             size="sm"
             type="button"
             variant="outline"
           >
-            {sortOrder === 'asc' ? (
+            {sortOrder === "asc" ? (
               <SortAsc className="h-3 w-3" />
             ) : (
               <SortDesc className="h-3 w-3" />
@@ -407,16 +407,16 @@ function sortOptions(
     let comparison = 0;
 
     switch (sortBy) {
-      case 'label':
+      case "label":
         comparison = a.label.localeCompare(b.label);
         break;
-      case 'count':
+      case "count":
         comparison = a.count - b.count;
         break;
-      case 'value':
+      case "value":
         comparison = String(a.value).localeCompare(String(b.value));
         break;
-      case 'trending': {
+      case "trending": {
         const aTrending = a.metadata?.trending ? 1 : 0;
         const bTrending = b.metadata?.trending ? 1 : 0;
         comparison = aTrending - bTrending;
@@ -427,7 +427,7 @@ function sortOptions(
         break;
     }
 
-    return sortOrder === 'asc' ? comparison : -comparison;
+    return sortOrder === "asc" ? comparison : -comparison;
   });
 }
 
@@ -573,9 +573,9 @@ export function AdvancedFacetedFilter({
   showStats: _showStats = true,
 }: AdvancedFacetedFilterProps) {
   // Local state
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<SortBy>('count');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<SortBy>("count");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Memoized filtered and sorted options
@@ -655,9 +655,9 @@ export function AdvancedFacetedFilter({
         <PopoverTrigger asChild>
           <Button
             className={cn(
-              'justify-between',
-              selectedCount > 0 && 'border-primary',
-              disabled && 'opacity-50',
+              "justify-between",
+              selectedCount > 0 && "border-primary",
+              disabled && "opacity-50",
               className
             )}
             disabled={disabled}
@@ -706,7 +706,7 @@ export function AdvancedFacetedFilter({
 
   // Expanded mode for dedicated space
   return (
-    <div className={cn('space-y-4 rounded-lg border p-4', className)}>
+    <div className={cn("space-y-4 rounded-lg border p-4", className)}>
       {/* Header */}
       <div className="flex items-center justify-between">
         <h3 className="font-medium">{config.label || columnId}</h3>
@@ -756,8 +756,8 @@ export function AdvancedFacetedFilter({
             <h4 className="mb-1 font-medium">No options found</h4>
             <p className="text-sm">
               {searchQuery
-                ? 'Try a different search term'
-                : 'No data available for this filter'}
+                ? "Try a different search term"
+                : "No data available for this filter"}
             </p>
           </div>
         ) : (
@@ -844,15 +844,15 @@ export function CompactFacetedFilter({
   className,
 }: Omit<
   AdvancedFacetedFilterProps,
-  | 'maxHeight'
-  | 'searchable'
-  | 'showCounts'
-  | 'showPercentages'
-  | 'multiSelect'
-  | 'virtualized'
-  | 'maxVisible'
-  | 'showSelectAll'
-  | 'showStats'
+  | "maxHeight"
+  | "searchable"
+  | "showCounts"
+  | "showPercentages"
+  | "multiSelect"
+  | "virtualized"
+  | "maxVisible"
+  | "showSelectAll"
+  | "showStats"
 >) {
   const [isOpen, setIsOpen] = useState(false);
   const selectedCount = selectedValues.length;
@@ -861,7 +861,7 @@ export function CompactFacetedFilter({
     <Popover onOpenChange={setIsOpen} open={isOpen}>
       <PopoverTrigger asChild>
         <Button
-          className={cn('justify-between', className)}
+          className={cn("justify-between", className)}
           disabled={disabled}
           size="sm"
           variant="outline"

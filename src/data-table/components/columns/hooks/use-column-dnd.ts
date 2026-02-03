@@ -3,7 +3,7 @@
  * Uses dnd-kit for drag and drop operations
  * Uses URL state as source of truth for column order (shareable URLs)
  */
-'use client';
+"use client";
 
 import {
   closestCenter,
@@ -15,21 +15,21 @@ import {
   TouchSensor,
   useSensor,
   useSensors,
-} from '@dnd-kit/core';
-import { restrictToHorizontalAxis } from '@dnd-kit/modifiers';
+} from "@dnd-kit/core";
+import { restrictToHorizontalAxis } from "@dnd-kit/modifiers";
 import {
   horizontalListSortingStrategy,
   SortableContext,
   sortableKeyboardCoordinates,
-} from '@dnd-kit/sortable';
-import { useAtom } from 'jotai';
-import { useCallback, useEffect } from 'react';
+} from "@dnd-kit/sortable";
+import { useAtom } from "jotai";
+import { useCallback, useEffect } from "react";
 
 import {
   activeColumnDragAtom,
   columnDragEnabledAtom,
-} from '../../../atoms/table-atoms';
-import { useTableUrlState } from '../../../hooks/use-table-url-state';
+} from "../../../atoms/table-atoms";
+import { useTableUrlState } from "../../../hooks/use-table-url-state";
 
 // Utility function to move array items
 function arrayMove<T>(array: T[], from: number, to: number): T[] {
@@ -56,9 +56,9 @@ export function useColumnDnd(
 
   // Helper function to enforce fixed positions
   const enforceFixedPositions = useCallback((order: string[]): string[] => {
-    const selectCol = order.find((id) => id === 'select');
-    const actionsCol = order.find((id) => id === 'actions');
-    const otherCols = order.filter((id) => id !== 'select' && id !== 'actions');
+    const selectCol = order.find((id) => id === "select");
+    const actionsCol = order.find((id) => id === "actions");
+    const otherCols = order.filter((id) => id !== "select" && id !== "actions");
 
     const finalOrder: string[] = [];
     if (selectCol) {
@@ -90,7 +90,7 @@ export function useColumnDnd(
       if (currentValue === null) {
         // First time - use the configuration value
         setIsDragEnabled(enableByDefault);
-      } else if (enableByDefault && currentValue === 'false') {
+      } else if (enableByDefault && currentValue === "false") {
         // Configuration says true but localStorage has false - prefer configuration for new setup
         setIsDragEnabled(enableByDefault);
       }
@@ -128,7 +128,7 @@ export function useColumnDnd(
 
   // Helper function to check if a column ID is fixed (non-draggable)
   const isFixedColumn = useCallback((columnId: string): boolean => {
-    return columnId === 'select' || columnId === 'actions';
+    return columnId === "select" || columnId === "actions";
   }, []);
 
   // Helper function to validate drag operation
@@ -141,9 +141,9 @@ export function useColumnDnd(
 
   // Helper function to get column order from DOM
   const getColumnOrderFromDOM = useCallback((): string[] | null => {
-    const headerElements = document.querySelectorAll('[data-column-id]');
+    const headerElements = document.querySelectorAll("[data-column-id]");
     const idsFromDOM = Array.from(headerElements).map((el) =>
-      el.getAttribute('data-column-id')
+      el.getAttribute("data-column-id")
     );
 
     if (idsFromDOM.length > 0) {

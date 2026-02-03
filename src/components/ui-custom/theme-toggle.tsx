@@ -1,38 +1,66 @@
-'use client';
+"use client";
 
-import { useTheme } from 'next-themes';
-import { Button } from '@/components/ui/button';
+import { useTheme } from "next-themes";
+import { useCallback, useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { cn } from '@/lib/utils';
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
-import { Icon } from './icon';
+import { Icon } from "./icon";
 
 interface ThemeToggleProps {
   className?: string;
-  variant?: 'dropdown' | 'switch';
+  variant?: "dropdown" | "switch";
 }
 
-function ThemeToggle({ className, variant = 'dropdown' }: ThemeToggleProps) {
-  const { setTheme } = useTheme();
+function ThemeToggle({ className, variant = "dropdown" }: ThemeToggleProps) {
+  const { setTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
 
-  const toggleTheme = (theme: string) => {
-    setTheme(theme);
-  };
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  const { resolvedTheme } = useTheme();
-  if (variant === 'switch') {
+  const toggleTheme = useCallback(
+    (theme: string) => {
+      setTheme(theme);
+    },
+    [setTheme]
+  );
+
+  const handleSwitchClick = useCallback(() => {
+    toggleTheme(resolvedTheme === "dark" ? "light" : "dark");
+  }, [resolvedTheme, toggleTheme]);
+
+  if (!mounted) {
     return (
-      <div className={cn('flex items-center', className)}>
+      <div className={cn("flex items-center", className)}>
         <Button
+          aria-label="Theme"
           className="group/toggle h-8 w-8 px-0 [&_svg]:size-4"
-          onClick={() =>
-            toggleTheme(resolvedTheme === 'dark' ? 'light' : 'dark')
-          }
+          disabled
+          type="button"
+          variant="ghost"
+        >
+          <span className="sr-only">Theme</span>
+        </Button>
+      </div>
+    );
+  }
+
+  if (variant === "switch") {
+    return (
+      <div className={cn("flex items-center", className)}>
+        <Button
+          aria-label="Theme"
+          className="group/toggle h-8 w-8 px-0 [&_svg]:size-4"
+          onClick={handleSwitchClick}
+          type="button"
           variant="ghost"
         >
           <Icon className="hidden dark:block" name="Sun" />
@@ -44,12 +72,12 @@ function ThemeToggle({ className, variant = 'dropdown' }: ThemeToggleProps) {
   }
 
   return (
-    <div className={cn('relative', className)}>
+    <div className={cn("relative", className)}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button size="icon" variant="ghost">
+          <Button size="icon" type="button" variant="ghost">
             <Icon
-              className="dark:-rotate-90 h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:scale-0"
+              className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0"
               name="Sun"
             />
             <Icon
@@ -62,19 +90,19 @@ function ThemeToggle({ className, variant = 'dropdown' }: ThemeToggleProps) {
         <DropdownMenuContent align="end">
           <DropdownMenuItem
             className="cursor-pointer"
-            onClick={() => toggleTheme('light')}
+            onClick={() => toggleTheme("light")}
           >
             Light
           </DropdownMenuItem>
           <DropdownMenuItem
             className="cursor-pointer"
-            onClick={() => toggleTheme('dark')}
+            onClick={() => toggleTheme("dark")}
           >
             Dark
           </DropdownMenuItem>
           <DropdownMenuItem
             className="cursor-pointer"
-            onClick={() => toggleTheme('system')}
+            onClick={() => toggleTheme("system")}
           >
             System
           </DropdownMenuItem>

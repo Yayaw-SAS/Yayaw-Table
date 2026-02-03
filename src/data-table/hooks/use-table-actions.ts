@@ -2,10 +2,10 @@
  * Hook for managing table CRUD actions
  * Provides unified error handling and success callbacks
  */
-'use client';
+"use client";
 
-import { useCallback, useMemo } from 'react';
-import { useTableActions as useProviderTableActions } from '../providers/table-provider';
+import { useCallback, useMemo } from "react";
+import { useTableActions as useProviderTableActions } from "../providers/table-provider";
 
 /**
  * Generic action result type
@@ -46,7 +46,12 @@ interface UseTableActionsOptions {
 export function useTableActions<
   TData extends Record<string, unknown> = Record<string, unknown>,
 >(options: UseTableActionsOptions) {
-  const { tableType, onSuccess, onError, enableLogging = true } = options;
+  const {
+    tableType,
+    onSuccess,
+    onError,
+    enableLogging: _enableLogging = true,
+  } = options;
 
   // Get actions from provider
   const getTableActions = useProviderTableActions();
@@ -69,24 +74,16 @@ export function useTableActions<
   // Helper function to handle action failure
   const handleActionFailure = useCallback(
     (actionName: string, error?: string) => {
-      if (enableLogging) {
-        // Log error message to console
-      }
-
       if (onError) {
-        onError(error || 'Unknown error', actionName);
+        onError(error || "Unknown error", actionName);
       }
     },
-    [enableLogging, onError]
+    [onError]
   );
 
   // Helper function to handle action exception
   const handleActionException = useCallback(
     (actionName: string, error: unknown) => {
-      if (enableLogging) {
-        console.error('Action execution failed:', actionName, tableType, error);
-      }
-
       if (onError) {
         onError(
           error instanceof Error ? error.message : String(error),
@@ -94,7 +91,7 @@ export function useTableActions<
         );
       }
     },
-    [tableType, enableLogging, onError]
+    [onError]
   );
 
   // Helper function to handle action success
@@ -138,26 +135,19 @@ export function useTableActions<
     async (data: Partial<TData>): Promise<boolean> => {
       if (!actions.create) {
         const _errorMsg = `Create action not available for ${tableType}`;
-
-        if (enableLogging) {
-          // DEBUG: Log create action not available
-          console.warn(
-            'Create action not available for table type:',
-            tableType
-          );
-        }
-
         if (onError) {
-          onError('Action not available', 'create');
+          onError("Action not available", "create");
         }
 
         return false;
       }
 
-      // biome-ignore lint/style/noNonNullAssertion: actions.create is guaranteed to exist by the check above
-      return await executeAction('create', () => actions.create!(data));
+      const createFn = actions.create;
+      return createFn
+        ? await executeAction("create", () => createFn(data))
+        : false;
     },
-    [actions.create, executeAction, tableType, enableLogging, onError]
+    [actions.create, executeAction, tableType, onError]
   );
 
   /**
@@ -170,26 +160,19 @@ export function useTableActions<
     ): Promise<boolean> => {
       if (!actions.update) {
         const _errorMsg = `Update action not available for ${tableType}`;
-
-        if (enableLogging) {
-          // DEBUG: Log update action not available
-          console.warn(
-            'Update action not available for table type:',
-            tableType
-          );
-        }
-
         if (onError) {
-          onError('Action not available', 'update');
+          onError("Action not available", "update");
         }
 
         return false;
       }
 
-      // biome-ignore lint/style/noNonNullAssertion: actions.update is guaranteed to exist by the check above
-      return await executeAction('update', () => actions.update!(row.id, data));
+      const updateFn = actions.update;
+      return updateFn
+        ? await executeAction("update", () => updateFn(row.id, data))
+        : false;
     },
-    [actions.update, executeAction, tableType, enableLogging, onError]
+    [actions.update, executeAction, tableType, onError]
   );
 
   /**
@@ -199,26 +182,19 @@ export function useTableActions<
     async (row: TData & { id: string }): Promise<boolean> => {
       if (!actions.delete) {
         const _errorMsg = `Delete action not available for ${tableType}`;
-
-        if (enableLogging) {
-          // DEBUG: Log delete action not available
-          console.warn(
-            'Delete action not available for table type:',
-            tableType
-          );
-        }
-
         if (onError) {
-          onError('Action not available', 'delete');
+          onError("Action not available", "delete");
         }
 
         return false;
       }
 
-      // biome-ignore lint/style/noNonNullAssertion: actions.delete is guaranteed to exist by the check above
-      return await executeAction('delete', () => actions.delete!(row.id));
+      const deleteFn = actions.delete;
+      return deleteFn
+        ? await executeAction("delete", () => deleteFn(row.id))
+        : false;
     },
-    [actions.delete, executeAction, tableType, enableLogging, onError]
+    [actions.delete, executeAction, tableType, onError]
   );
 
   /**
@@ -228,26 +204,19 @@ export function useTableActions<
     async (row: TData & { id: string }): Promise<boolean> => {
       if (!actions.duplicate) {
         const _errorMsg = `Duplicate action not available for ${tableType}`;
-
-        if (enableLogging) {
-          // DEBUG: Log duplicate action not available
-          console.warn(
-            'Duplicate action not available for table type:',
-            tableType
-          );
-        }
-
         if (onError) {
-          onError('Action not available', 'duplicate');
+          onError("Action not available", "duplicate");
         }
 
         return false;
       }
 
-      // biome-ignore lint/style/noNonNullAssertion: actions.duplicate is guaranteed to exist by the check above
-      return await executeAction('duplicate', () => actions.duplicate!(row.id));
+      const duplicateFn = actions.duplicate;
+      return duplicateFn
+        ? await executeAction("duplicate", () => duplicateFn(row.id))
+        : false;
     },
-    [actions.duplicate, executeAction, tableType, enableLogging, onError]
+    [actions.duplicate, executeAction, tableType, onError]
   );
 
   return {

@@ -2,27 +2,27 @@
  * Date column component for data tables
  * Provides standardized display of date values with formatting options
  */
-'use client';
+"use client";
 
-import type { CellContext, ColumnDef } from '@tanstack/react-table';
-import { format } from 'date-fns';
+import type { CellContext, ColumnDef } from "@tanstack/react-table";
+import { format } from "date-fns";
 import {
   CalendarDays,
   ChevronDown,
   ChevronRight,
   type LucideIcon,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-import { DateCell } from '../cells/date-cell';
+import { DateCell } from "../cells/date-cell";
 
 /**
  * Custom properties for our column definitions
  */
-type CustomColumnProps = {
+interface CustomColumnProps {
   icon?: LucideIcon;
   type?: string;
-};
+}
 
 interface DateColumnProps {
   /**
@@ -78,10 +78,10 @@ type ExtendedColumnDef<TData> = ColumnDef<TData> & CustomColumnProps;
 
 function formatMonthLabel(value: Date | number | string | undefined) {
   if (!value) {
-    return '';
+    return "";
   }
   const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? '' : format(d, 'LLLL yyyy');
+  return Number.isNaN(d.getTime()) ? "" : format(d, "LLLL yyyy");
 }
 
 /**
@@ -91,7 +91,7 @@ function formatMonthLabel(value: Date | number | string | undefined) {
 export function createDateColumn<TData>({
   accessorKey,
   className,
-  dateFormat = 'PPP',
+  dateFormat = "PPP",
   enableColumnFilter = true,
   enableHiding = true,
   enableSorting = true,
@@ -112,11 +112,11 @@ export function createDateColumn<TData>({
       return formatMonthLabel(value);
     },
     // Aggregation for grouped rows (count of rows)
-    aggregationFn: 'count',
+    aggregationFn: "count",
     cell: (info: CellContext<TData, unknown>) => {
       const isGrouped = info.cell.getIsGrouped();
       const isAggregated = info.cell.getIsAggregated();
-      const isPlaceholder = info.cell.getIsPlaceholder();
+      const _isPlaceholder = info.cell.getIsPlaceholder();
 
       // Group header row: show toggle + month label + count
       if (isGrouped) {
@@ -128,7 +128,7 @@ export function createDateColumn<TData>({
         return (
           <div className="flex items-center gap-2">
             <Button
-              aria-label={expanded ? 'Collapse group' : 'Expand group'}
+              aria-label={expanded ? "Collapse group" : "Expand group"}
               onClick={info.row.getToggleExpandedHandler()}
               size="sm"
               type="button"
@@ -179,6 +179,6 @@ export function createDateColumn<TData>({
     header: header || accessorKey,
     icon: CalendarDays,
     id: accessorKey,
-    type: 'date',
+    type: "date",
   };
 }

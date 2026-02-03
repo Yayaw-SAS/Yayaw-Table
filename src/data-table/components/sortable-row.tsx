@@ -2,15 +2,15 @@
  * Sortable row component for DataTable
  * Uses dnd-kit for drag and drop functionality
  */
-'use client';
+"use client";
 
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { useAtomValue } from 'jotai';
-import type * as React from 'react';
-import { cn } from '@/lib/utils';
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { useAtomValue } from "jotai";
+import type * as React from "react";
+import { cn } from "@/lib/utils";
 
-import { activeRowDragAtom, rowDragEnabledAtom } from '../atoms/table-atoms';
+import { activeRowDragAtom, rowDragEnabledAtom } from "../atoms/table-atoms";
 
 interface SortableRowProps {
   children: React.ReactNode;
@@ -73,12 +73,12 @@ export function SortableRow({
     style,
     ...attributes,
     ...listeners,
-    'aria-label': `Drag to reorder row ${id}`,
+    "aria-label": `Drag to reorder row ${id}`,
     className: cn(
       className,
-      'relative cursor-grab select-none',
-      isDragging && 'z-10 cursor-grabbing opacity-50 shadow-lg',
-      isOver && 'border-2 border-primary/50'
+      "relative cursor-grab select-none",
+      isDragging && "z-10 cursor-grabbing opacity-50 shadow-lg",
+      isOver && "border-2 border-primary/50"
     ),
   };
 

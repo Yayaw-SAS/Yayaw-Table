@@ -1,16 +1,16 @@
-'use client';
+"use client";
 
-import type { UseFormReturn } from 'react-hook-form';
+import type { UseFormReturn } from "react-hook-form";
 import {
   FormControl,
   FormField,
   FormItem,
   FormLabel,
-} from '@/components/ui/form';
-import { Switch } from '@/components/ui/switch';
-import { useTranslations } from '../../../providers/table-provider';
+} from "@/components/ui/form";
+import { Switch } from "@/components/ui/switch";
+import { useTranslations } from "../../../providers/table-provider";
 
-import type { CheckboxFieldDefinition } from '../types';
+import type { CheckboxFieldDefinition } from "../types";
 
 interface SwitchFieldProps {
   field: CheckboxFieldDefinition;

@@ -2,56 +2,71 @@
  * Advanced filter panel component
  * Main interface for managing advanced filters with design inspired by bazza/ui and Linear
  */
-'use client';
+"use client";
 
-import { Filter, MoreHorizontal, Settings2, X } from 'lucide-react';
-import { useCallback, useMemo, useState, useEffect } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import {
+  Calendar,
+  CheckSquare,
+  Filter,
+  Hash,
+  List as ListIcon,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Power,
+  RotateCcw,
+  Trash2,
+  Type,
+  X,
+} from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Label } from '@/components/ui/label';
+} from "@/components/ui/dropdown-menu";
+import { Label } from "@/components/ui/label";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover';
-import { Separator } from '@/components/ui/separator';
+} from "@/components/ui/popover";
+import { Separator } from "@/components/ui/separator";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
-import type {
-  AdvancedFilterModel,
-  AdvancedFiltersState,
-  ColumnDataType,
-  ColumnsFilterConfig,
-  FilterActions,
-} from '../../types/filter-types';
-import { formatFilterValueForDisplay, createFilter } from '../../utils/advanced-filters';
-
+} from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
+import {
+  type AdvancedFilterModel,
+  type AdvancedFiltersState,
+  type ColumnDataType,
+  type ColumnsFilterConfig,
+  FILTER_OPERATORS_LABELS,
+  type FilterActions,
+  type FilterOperators,
+  type FilterValues,
+} from "../../types/filter-types";
+import {
+  createFilter,
+  formatFilterValueForDisplay,
+} from "../../utils/advanced-filters";
 import {
   FilterValueInput,
   getDefaultFilterOperator,
   getDefaultFilterValue,
-} from './filter-value-input';
-import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Star, Clock, Filter as FilterIcon, Plus, Type, Hash, Calendar, CheckSquare, List as ListIcon } from 'lucide-react';
+} from "./filter-value-input";
 // Replaced popover dropdown with inline panel to avoid nested popovers under StackMenu
 import {
   FilterEmptyState,
   FilterLoadingState,
-  FilterPerformanceIndicator,
   FilterSuccessState,
-} from './modern-filter-states';
+} from "./modern-filter-states";
 
 export interface AdvancedFilterPanelProps {
   /** Current filters state */
@@ -81,7 +96,7 @@ export interface AdvancedFilterPanelProps {
     resultCount?: number;
   };
   /** Variant style */
-  variant?: 'default' | 'modern' | 'compact' | 'minimal';
+  variant?: "default" | "modern" | "compact" | "minimal";
   /** Recently used columns for quick access */
   recentColumns?: string[];
   /** Popular columns for suggestions */
@@ -120,31 +135,39 @@ function FilterChip({
     }
   }, [autoEdit]);
   const [stagedOperator, setStagedOperator] = useState<
-    | 'contains'
-    | 'equals'
-    | 'startsWith'
-    | 'endsWith'
-    | 'notContains'
-    | 'isEmpty'
-    | 'isNotEmpty'
-    | 'greaterThan'
-    | 'lessThan'
-    | 'greaterThanOrEqual'
-    | 'lessThanOrEqual'
-    | 'between'
-    | 'notEquals'
-    | 'before'
-    | 'after'
-    | 'is'
-    | 'isNot'
-    | 'isAnyOf'
-    | 'isNoneOf'
-    | 'containsAll'
-    | 'containsNone'
-  >(filter.operator as any);
+    | "contains"
+    | "equals"
+    | "startsWith"
+    | "endsWith"
+    | "notContains"
+    | "isEmpty"
+    | "isNotEmpty"
+    | "greaterThan"
+    | "lessThan"
+    | "greaterThanOrEqual"
+    | "lessThanOrEqual"
+    | "between"
+    | "notEquals"
+    | "before"
+    | "after"
+    | "is"
+    | "isNot"
+    | "isAnyOf"
+    | "isNoneOf"
+    | "containsAll"
+    | "containsNone"
+  >(filter.operator);
   const [stagedValues, setStagedValues] = useState<
     string | number | string[] | Date | [number, number] | [Date, Date]
-  >(filter.values as any);
+  >(
+    filter.values as
+      | string
+      | number
+      | string[]
+      | Date
+      | [number, number]
+      | [Date, Date]
+  );
 
   const displayValue = useMemo(() => {
     return formatFilterValueForDisplay(
@@ -170,27 +193,27 @@ function FilterChip({
   const handleOperatorChange = useCallback((newOperator: unknown) => {
     setStagedOperator(
       newOperator as
-        | 'contains'
-        | 'equals'
-        | 'startsWith'
-        | 'endsWith'
-        | 'notContains'
-        | 'isEmpty'
-        | 'isNotEmpty'
-        | 'greaterThan'
-        | 'lessThan'
-        | 'greaterThanOrEqual'
-        | 'lessThanOrEqual'
-        | 'between'
-        | 'notEquals'
-        | 'before'
-        | 'after'
-        | 'is'
-        | 'isNot'
-        | 'isAnyOf'
-        | 'isNoneOf'
-        | 'containsAll'
-        | 'containsNone'
+        | "contains"
+        | "equals"
+        | "startsWith"
+        | "endsWith"
+        | "notContains"
+        | "isEmpty"
+        | "isNotEmpty"
+        | "greaterThan"
+        | "lessThan"
+        | "greaterThanOrEqual"
+        | "lessThanOrEqual"
+        | "between"
+        | "notEquals"
+        | "before"
+        | "after"
+        | "is"
+        | "isNot"
+        | "isAnyOf"
+        | "isNoneOf"
+        | "containsAll"
+        | "containsNone"
     );
   }, []);
 
@@ -198,145 +221,149 @@ function FilterChip({
     ? config.displayValueFn(filter.values)
     : filter.label || filter.columnId;
 
-  return (
-    <div className="w-full">
-      <div
-        className={cn(
-          'group flex items-center gap-1 rounded-md border bg-background px-2 py-1 text-sm transition-colors',
-          filter.isActive ? 'border-border' : 'border-muted bg-muted/50',
-          disabled && 'cursor-not-allowed opacity-50'
-        )}
-      >
-      {/* Toggle active/inactive */}
+  const handleEdit = useCallback(() => {
+    setIsEditing(true);
+  }, []);
+
+  const actionsBar = (
+    <div className="flex shrink-0 items-center gap-0.5">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            aria-label="Filter options"
+            className="h-7 w-7 rounded-md p-0 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            disabled={disabled}
+            size="icon"
+            type="button"
+            variant="ghost"
+          >
+            <MoreHorizontal className="h-3.5 w-3.5" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={handleEdit}>
+            <Pencil className="mr-2 h-4 w-4" />
+            Edit filter
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={onToggle}>
+            <Power className="mr-2 h-4 w-4" />
+            {filter.isActive ? "Disable" : "Enable"} filter
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="text-destructive focus:text-destructive"
+            onClick={onRemove}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Remove filter
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
       <Button
-        className={cn(
-          'flex h-3 w-3 items-center justify-center rounded-sm border-2 p-0 transition-colors',
-          filter.isActive
-            ? 'border-primary bg-primary'
-            : 'border-muted-foreground/30 hover:border-muted-foreground/50'
-        )}
+        className="h-7 w-7 rounded-md p-0 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
         disabled={disabled}
-        onClick={onToggle}
+        onClick={onRemove}
         size="icon"
         type="button"
         variant="ghost"
       >
-        {filter.isActive && (
-          <div className="h-1.5 w-1.5 rounded-sm bg-primary-foreground" />
-        )}
+        <X className="h-3.5 w-3.5" />
       </Button>
+    </div>
+  );
 
-      {/* Column name */}
-      <span className="font-medium text-foreground">{columnLabel}</span>
+  const operatorLabel =
+    FILTER_OPERATORS_LABELS[filter.type]?.[filter.operator] ?? filter.operator;
 
-      {/* Operator - only show if not editing */}
-      {!isEditing && (
-        <span className="text-muted-foreground text-xs">{filter.operator}</span>
-      )}
-
-      {/* Value display or edit mode (inline, no popover) */}
-      <Button
-        className="h-auto rounded px-1 py-0.5 text-left text-current transition-colors hover:bg-accent hover:text-accent-foreground"
-        disabled={disabled}
-        onClick={() => setIsEditing(true)}
-        type="button"
-        variant="ghost"
+  return (
+    <div className="w-full space-y-3">
+      {/* Chip: left accent + field operator value + actions */}
+      <div
+        className={cn(
+          "flex items-center gap-2 rounded-lg border border-border py-2 pr-2 pl-2 text-sm transition-colors",
+          "bg-muted/20",
+          filter.isActive && "border-l-4 border-l-primary bg-muted/30",
+          !filter.isActive && "border-l-4 border-l-transparent opacity-80",
+          disabled && "cursor-not-allowed opacity-50"
+        )}
       >
-        {isEditing ? (
-          <span className="text-muted-foreground text-xs">Editing...</span>
-        ) : (
-          <span className="text-xs">
-            {displayValue || (
-              <span className="text-muted-foreground">No value</span>
-            )}
+        <button
+          className="flex min-w-0 flex-1 items-center gap-2 rounded-md text-left transition-colors hover:bg-muted/40 disabled:hover:bg-transparent"
+          disabled={disabled}
+          onClick={() => setIsEditing(true)}
+          type="button"
+        >
+          <span className="shrink-0 font-medium text-foreground">
+            {columnLabel}
           </span>
-        )}
-      </Button>
+          {isEditing ? (
+            <span className="text-muted-foreground text-xs">Editing…</span>
+          ) : (
+            <>
+              <span className="shrink-0 text-muted-foreground text-xs">
+                {operatorLabel}
+              </span>
+              <span
+                className={cn(
+                  "block min-w-0 max-w-[10rem] truncate rounded-md px-2 py-0.5 text-xs",
+                  displayValue
+                    ? "bg-primary/10 font-medium text-foreground"
+                    : "text-muted-foreground"
+                )}
+              >
+                {displayValue || "Set value"}
+              </span>
+            </>
+          )}
+        </button>
+
+        {actionsBar}
       </div>
 
       {isEditing && (
-        <div className="mt-2 ml-6 w-full max-w-full rounded-md border bg-background p-4 shadow-md">
-          <div
-            className="space-y-3"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
+        <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+          <fieldset className="space-y-4 border-0 p-0">
+            <legend className="sr-only">Edit filter for {columnLabel}</legend>
+            <form
+              className="space-y-4"
+              onSubmit={(e) => {
                 e.preventDefault();
-                onUpdate({ operator: stagedOperator as any, values: stagedValues as any });
+                onUpdate({
+                  operator: stagedOperator,
+                  values: stagedValues,
+                });
                 setIsEditing(false);
-              }
-            }}
-          >
-            <Label className="font-medium text-sm">Edit filter for {columnLabel}</Label>
-            <FilterValueInput
-              config={config}
-              disabled={disabled}
-              inline
-              onOperatorChange={handleOperatorChange}
-              onValueChange={handleValueChange}
-              operator={stagedOperator as any}
-              type={filter.type}
-              value={stagedValues as any}
-            />
-            <div className="flex justify-end gap-2">
-              <Button
-                onClick={() => {
-                  onUpdate({ operator: stagedOperator as any, values: stagedValues as any });
-                  setIsEditing(false);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    onUpdate({ operator: stagedOperator as any, values: stagedValues as any });
-                    setIsEditing(false);
-                  }
-                }}
-                size="sm"
-                variant="outline"
+              }}
+            >
+              <Label
+                className="font-medium text-muted-foreground text-xs uppercase tracking-wider"
+                htmlFor={`filter-${filter.id}-value`}
               >
-                Done
-              </Button>
-            </div>
-          </div>
+                Edit filter for {columnLabel}
+              </Label>
+              <FilterValueInput
+                config={config}
+                disabled={disabled}
+                inline
+                onOperatorChange={handleOperatorChange}
+                onValueChange={handleValueChange}
+                operator={stagedOperator}
+                type={filter.type}
+                value={stagedValues}
+              />
+              <div className="flex justify-end border-border border-t pt-3">
+                <Button
+                  className="rounded-lg"
+                  size="sm"
+                  type="submit"
+                  variant="secondary"
+                >
+                  Done
+                </Button>
+              </div>
+            </form>
+          </fieldset>
         </div>
       )}
-
-      {/* More actions & quick remove aligned with chip row */}
-      <div className="mt-2 ml-6 flex items-center gap-2">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              className="h-6 w-6 p-0 transition-opacity hover:bg-accent"
-              disabled={disabled}
-              type="button"
-              variant="ghost"
-              size="icon"
-            >
-              <MoreHorizontal className="h-3 w-3" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={onToggle}>
-              {filter.isActive ? 'Disable' : 'Enable'} filter
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="text-destructive focus:text-destructive"
-              onClick={onRemove}
-            >
-              Remove filter
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <Button
-          className="h-6 w-6 p-0 transition-opacity hover:bg-destructive hover:text-destructive-foreground"
-          disabled={disabled}
-          onClick={onRemove}
-          type="button"
-          variant="ghost"
-          size="icon"
-        >
-          <X className="h-3 w-3" />
-        </Button>
-      </div>
     </div>
   );
 }
@@ -356,23 +383,26 @@ export function AdvancedFilterPanel({
   isLoading = false,
   error = null,
   performance,
-  variant = 'modern',
-  recentColumns = [],
-  popularColumns = [],
-  showPerformance = false,
+  variant = "modern",
+  recentColumns: _recentColumns = [],
+  popularColumns: _popularColumns = [],
+  showPerformance: _showPerformance = false,
   enableAnimations = true,
 }: AdvancedFilterPanelProps) {
   const [_editingFilterId, _setEditingFilterId] = useState<string | null>(null);
   const [draftFilters, setDraftFilters] = useState<AdvancedFilterModel[]>([]);
   // Always show the add-filter panel (GroupPicker-like UX)
-  const isAddPanelOpen = true;
+  const _isAddPanelOpen = true;
 
   const activeFilters = filters.filter((f) => f.isActive);
   const _inactiveFilters = filters.filter((f) => !f.isActive);
 
   const combinedFilters = [...draftFilters, ...filters];
   const visibleFilters = combinedFilters.slice(0, maxVisibleFilters);
-  const hiddenFiltersCount = Math.max(0, combinedFilters.length - maxVisibleFilters);
+  const hiddenFiltersCount = Math.max(
+    0,
+    combinedFilters.length - maxVisibleFilters
+  );
 
   const handleAddFilter = useCallback(
     (columnId: string, type: ColumnDataType) => {
@@ -386,9 +416,9 @@ export function AdvancedFilterPanel({
 
       const draft = createFilter(
         columnId,
-        type as any,
-        operator as any,
-        value as any,
+        type,
+        operator as FilterOperators[ColumnDataType],
+        value as FilterValues<ColumnDataType>,
         { isActive: false, label: columnId }
       );
       setDraftFilters((prev) => [draft, ...prev]);
@@ -413,7 +443,7 @@ export function AdvancedFilterPanel({
     return (
       <div
         className={cn(
-          'rounded-lg border border-destructive/20 bg-destructive/5 p-3',
+          "rounded-lg border border-destructive/20 bg-destructive/5 p-3",
           className
         )}
       >
@@ -429,8 +459,8 @@ export function AdvancedFilterPanel({
     }
 
     return (
-      <div className={cn('space-y-3', className)}>
-        {variant === 'minimal' ? (
+      <div className={cn("space-y-3", className)}>
+        {variant === "minimal" ? (
           <FilterEmptyState
             onAddFilter={() => {
               const firstColumn = Object.keys(columnsConfig)[0];
@@ -442,6 +472,7 @@ export function AdvancedFilterPanel({
           />
         ) : (
           <InlineAddFilterPanel
+            activeFiltersCount={0}
             columnsConfig={columnsConfig}
             disabled={disabled}
             onAddFilter={handleAddFilter}
@@ -454,7 +485,7 @@ export function AdvancedFilterPanel({
   // Render filters based on variant
   const renderContent = () => {
     switch (variant) {
-      case 'minimal':
+      case "minimal":
         return (
           <div className="flex flex-wrap items-center gap-1">
             {visibleFilters.map((filter) => {
@@ -484,7 +515,7 @@ export function AdvancedFilterPanel({
           </div>
         );
 
-      case 'compact':
+      case "compact":
         return (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -522,12 +553,12 @@ export function AdvancedFilterPanel({
 
       default: // modern
         return (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {/* Filter chips */}
             <div
               className={cn(
-                'flex flex-wrap items-center gap-2',
-                enableAnimations && 'transition-all duration-200'
+                "flex flex-wrap items-start gap-3",
+                enableAnimations && "transition-all duration-200"
               )}
             >
               {visibleFilters.map((filter, _index) => {
@@ -540,16 +571,17 @@ export function AdvancedFilterPanel({
                 return (
                   <div
                     className={cn(
-                      enableAnimations && 'transition-all duration-150'
+                      "min-w-0 flex-1 basis-full",
+                      enableAnimations && "transition-all duration-150"
                     )}
                     key={filter.id}
                   >
                     {isDraft ? (
                       <FilterChip
+                        autoEdit
                         config={config}
                         disabled={disabled}
                         filter={filter}
-                        autoEdit
                         onRemove={() =>
                           setDraftFilters((prev) =>
                             prev.filter((d) => d.id !== filter.id)
@@ -568,10 +600,8 @@ export function AdvancedFilterPanel({
                           actions.addFilter({
                             columnId: filter.columnId,
                             type: filter.type,
-                            operator:
-                              (updates.operator as any) || (filter.operator as any),
-                            values:
-                              (updates.values as any) || (filter.values as any),
+                            operator: updates.operator ?? filter.operator,
+                            values: updates.values ?? filter.values,
                             isActive: true,
                           });
                           setDraftFilters((prev) =>
@@ -594,18 +624,22 @@ export function AdvancedFilterPanel({
                   </div>
                 );
               })}
-
-              {/* Inline Add filter panel (always visible, GroupPicker-like) */}
-              {showAddButton && (
-                <div className="w-full">
-                  <InlineAddFilterPanel
-                    columnsConfig={columnsConfig}
-                    disabled={disabled}
-                    onAddFilter={handleAddFilter}
-                  />
-                </div>
-              )}
             </div>
+
+            {/* Add filter section – separate block for clearer hierarchy */}
+            {showAddButton && (
+              <div className="border-border border-t pt-4">
+                <InlineAddFilterPanel
+                  activeFiltersCount={activeFilters.length}
+                  columnsConfig={columnsConfig}
+                  disabled={disabled}
+                  onAddFilter={handleAddFilter}
+                  onReset={
+                    showClearButton !== false ? actions.clearFilters : undefined
+                  }
+                />
+              </div>
+            )}
           </div>
         );
     }
@@ -614,9 +648,9 @@ export function AdvancedFilterPanel({
   return (
     <div
       className={cn(
-        'w-full',
-        variant === 'modern' && 'p-0',
-        variant === 'compact' && 'rounded-md bg-muted/30 p-2',
+        "w-full",
+        variant === "modern" && "p-0",
+        variant === "compact" && "rounded-md bg-muted/30 p-2",
         className
       )}
     >
@@ -629,10 +663,14 @@ export function AdvancedFilterPanel({
 function InlineAddFilterPanel({
   columnsConfig,
   onAddFilter,
+  onReset,
+  activeFiltersCount = 0,
   disabled = false,
 }: {
   columnsConfig: ColumnsFilterConfig;
   onAddFilter: (columnId: string, type: ColumnDataType) => void;
+  onReset?: () => void;
+  activeFiltersCount?: number;
   disabled?: boolean;
 }) {
   const options = useMemo(
@@ -643,7 +681,10 @@ function InlineAddFilterPanel({
     [columnsConfig]
   );
 
-  const typeIcon: Record<string, React.ComponentType<{ className?: string }>> = {
+  const typeIcon: Record<
+    string,
+    React.ComponentType<{ className?: string }>
+  > = {
     text: Type,
     number: Hash,
     date: Calendar,
@@ -652,41 +693,51 @@ function InlineAddFilterPanel({
   } as const;
 
   return (
-    <div className="w-full">
-      <div className="mb-3 flex items-center justify-between">
-        <div className="px-2 font-medium text-foreground text-sm">
+    <div className="w-full space-y-3 rounded-xl border border-border bg-card p-4 shadow-sm">
+      <div className="flex items-center justify-between gap-3">
+        <span className="font-medium text-muted-foreground text-xs uppercase tracking-wider">
           Select column
-        </div>
-        <Button className="h-7 px-2" disabled size="sm" variant="outline">
-          Reset
+        </span>
+        <Button
+          aria-label="Reset filters"
+          className="h-8 w-8 shrink-0 rounded-lg p-0"
+          disabled={disabled || activeFiltersCount === 0 || !onReset}
+          onClick={onReset}
+          size="icon"
+          type="button"
+          variant="outline"
+        >
+          <RotateCcw className="h-3.5 w-3.5" />
         </Button>
       </div>
 
-      <div className="rounded-lg border bg-muted/10 p-1">
+      <div className="rounded-lg bg-muted/20 p-1">
         <div className="space-y-0.5">
-        {options.map((o) => {
-          const Icon = typeIcon[o.type] || Type;
-          return (
-            <div className="group flex items-center py-1.5" key={o.id}>
-              <div className="px-2">
-                <Icon className="h-4 w-4 text-muted-foreground" />
-              </div>
+          {options.map((o) => {
+            const Icon = typeIcon[o.type] || Type;
+            return (
               <Button
-                className="h-8 flex-1 justify-start px-0 text-left"
+                className="group h-auto w-full justify-start gap-2.5 rounded-md py-2.5 pr-3 pl-2.5 text-left transition-colors hover:bg-muted/60"
                 disabled={disabled}
+                key={o.id}
                 onClick={() => onAddFilter(o.id, o.type)}
                 size="sm"
                 type="button"
                 variant="ghost"
               >
-                <span className="text-left text-sm">{o.label}</span>
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted/60 text-muted-foreground transition-colors group-hover:bg-muted">
+                  <Icon aria-hidden className="h-3.5 w-3.5" />
+                </span>
+                <span className="min-w-0 flex-1 truncate text-left font-medium text-foreground text-sm">
+                  {o.label}
+                </span>
+                <Plus
+                  aria-hidden
+                  className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-70 transition-opacity group-hover:opacity-100"
+                />
               </Button>
-              <div className="ml-auto pr-3">
-                <Plus className="h-4 w-4 text-muted-foreground" />
-              </div>
-            </div>
-          );
-        })}
+            );
+          })}
         </div>
       </div>
     </div>
@@ -703,7 +754,7 @@ export function CompactFilterPanel({
   disabled = false,
 }: Pick<
   AdvancedFilterPanelProps,
-  'filters' | 'columnsConfig' | 'actions' | 'disabled'
+  "filters" | "columnsConfig" | "actions" | "disabled"
 >) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showInlineAdd, setShowInlineAdd] = useState(false);
@@ -737,6 +788,7 @@ export function CompactFilterPanel({
         {showInlineAdd && (
           <div className="mt-2">
             <InlineAddFilterPanel
+              activeFiltersCount={0}
               columnsConfig={columnsConfig}
               disabled={disabled}
               onAddFilter={(columnId, type) => {
@@ -774,7 +826,7 @@ export function CompactFilterPanel({
           variant="outline"
         >
           <Filter className="h-3 w-3" />
-          {activeFiltersCount > 0 ? `${activeFiltersCount} filters` : 'Filter'}
+          {activeFiltersCount > 0 ? `${activeFiltersCount} filters` : "Filter"}
         </Button>
       </PopoverTrigger>
       <PopoverContent
@@ -824,6 +876,7 @@ export function CompactFilterPanel({
           <Separator />
 
           <InlineAddFilterPanel
+            activeFiltersCount={filters.filter((f) => f.isActive).length}
             columnsConfig={columnsConfig}
             disabled={disabled}
             onAddFilter={(columnId, type) => {
@@ -843,6 +896,7 @@ export function CompactFilterPanel({
                 isActive: true,
               });
             }}
+            onReset={actions.clearFilters}
           />
         </div>
       </PopoverContent>

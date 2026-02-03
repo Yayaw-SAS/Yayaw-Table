@@ -2,7 +2,7 @@
  * Modern Filter States Components
  * Loading, empty, and error states with beautiful animations
  */
-'use client';
+"use client";
 
 import {
   AlertCircle,
@@ -14,10 +14,10 @@ import {
   Target,
   TrendingUp,
   Zap,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 interface FilterLoadingStateProps {
   className?: string;
@@ -31,7 +31,7 @@ interface FilterEmptyStateProps {
   description?: string;
   onAddFilter?: () => void;
   showAddButton?: boolean;
-  variant?: 'default' | 'compact' | 'minimal';
+  variant?: "default" | "compact" | "minimal";
 }
 
 interface FilterErrorStateProps {
@@ -51,7 +51,7 @@ export function FilterLoadingState({
   showTitle = true,
 }: FilterLoadingStateProps) {
   return (
-    <div className={cn('space-y-3', className)}>
+    <div className={cn("space-y-3", className)}>
       {showTitle && (
         <div className="flex items-center gap-2">
           <Skeleton className="h-4 w-4 rounded" />
@@ -63,11 +63,11 @@ export function FilterLoadingState({
         {Array.from({ length: count }, (_, i) => i).map((index) => (
           <Skeleton
             className={cn(
-              'h-8 rounded-full',
-              index === 0 && 'w-24',
-              index === 1 && 'w-32',
-              index === 2 && 'w-20',
-              index > 2 && 'w-28'
+              "h-8 rounded-full",
+              index === 0 && "w-24",
+              index === 1 && "w-32",
+              index === 2 && "w-20",
+              index > 2 && "w-28"
             )}
             key={`skeleton-${count}-${index}`}
           />
@@ -85,15 +85,15 @@ export function FilterLoadingState({
  */
 export function FilterEmptyState({
   className,
-  title = 'No filters applied',
+  title = "No filters applied",
   description = "Add filters to narrow down your results and find exactly what you're looking for.",
   onAddFilter,
   showAddButton = true,
-  variant = 'default',
+  variant = "default",
 }: FilterEmptyStateProps) {
-  if (variant === 'compact') {
+  if (variant === "compact") {
     return (
-      <div className={cn('flex items-center justify-center py-4', className)}>
+      <div className={cn("flex items-center justify-center py-4", className)}>
         <div className="text-center">
           <Filter className="mx-auto mb-2 h-6 w-6 text-muted-foreground opacity-50" />
           <p className="text-muted-foreground text-sm">{title}</p>
@@ -102,11 +102,11 @@ export function FilterEmptyState({
     );
   }
 
-  if (variant === 'minimal') {
+  if (variant === "minimal") {
     return (
       <div
         className={cn(
-          'flex items-center gap-2 text-muted-foreground',
+          "flex items-center gap-2 text-muted-foreground",
           className
         )}
       >
@@ -128,7 +128,7 @@ export function FilterEmptyState({
   }
 
   return (
-    <div className={cn('py-8 text-center', className)}>
+    <div className={cn("py-8 text-center", className)}>
       {/* Animated Icon */}
       <div className="relative mb-4">
         <div className="absolute inset-0 animate-pulse">
@@ -136,7 +136,7 @@ export function FilterEmptyState({
         </div>
         <div className="relative">
           <Filter className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
-          <Sparkles className="-top-1 -right-1 absolute h-4 w-4 animate-bounce text-blue-400" />
+          <Sparkles className="absolute -top-1 -right-1 h-4 w-4 animate-bounce text-blue-400" />
         </div>
       </div>
 
@@ -160,7 +160,7 @@ export function FilterEmptyState({
           {/* Quick suggestions */}
           <div className="flex flex-wrap items-center justify-center gap-2">
             <span className="text-muted-foreground text-xs">Quick start:</span>
-            {['Search', 'Status', 'Date'].map((suggestion) => (
+            {["Search", "Status", "Date"].map((suggestion) => (
               <Button
                 className="h-6 px-2 text-xs"
                 key={suggestion}
@@ -183,13 +183,13 @@ export function FilterEmptyState({
  */
 export function FilterErrorState({
   className,
-  title = 'Failed to load filters',
-  description = 'Something went wrong while loading the filters. Please try again.',
+  title = "Failed to load filters",
+  description = "Something went wrong while loading the filters. Please try again.",
   onRetry,
   showRetryButton = true,
 }: FilterErrorStateProps) {
   return (
-    <div className={cn('py-6 text-center', className)}>
+    <div className={cn("py-6 text-center", className)}>
       {/* Error Icon */}
       <div className="relative mb-4">
         <AlertCircle className="mx-auto mb-2 h-8 w-8 text-destructive" />
@@ -228,12 +228,12 @@ export function FilterSuccessState({
   onClearAll?: () => void;
 }) {
   return (
-    <div className={cn('flex items-center gap-3 text-sm', className)}>
+    <div className={cn("flex items-center gap-3 text-sm", className)}>
       {/* Success indicator */}
       <div className="flex items-center gap-2 text-emerald-600">
         <Target className="h-4 w-4" />
         <span className="font-medium">
-          {activeFiltersCount} filter{activeFiltersCount !== 1 ? 's' : ''}{' '}
+          {activeFiltersCount} filter{activeFiltersCount !== 1 ? "s" : ""}{" "}
           active
         </span>
       </div>
@@ -276,7 +276,7 @@ export function FilterNoResultsState({
   onModifyFilters?: () => void;
 }) {
   return (
-    <div className={cn('py-8 text-center', className)}>
+    <div className={cn("py-8 text-center", className)}>
       {/* No results icon */}
       <div className="relative mb-4">
         <Search className="mx-auto mb-2 h-8 w-8 text-muted-foreground opacity-50" />
@@ -290,7 +290,7 @@ export function FilterNoResultsState({
       <p className="mx-auto mb-6 max-w-md text-muted-foreground text-sm">
         {searchTerm
           ? `No items match "${searchTerm}" with the current filters.`
-          : 'No items match the current filter criteria.'}
+          : "No items match the current filter criteria."}
         <br />
         Try adjusting your filters or search terms.
       </p>
@@ -339,16 +339,16 @@ export function FilterPerformanceIndicator({
   return (
     <div
       className={cn(
-        'flex items-center gap-1 text-xs',
-        isSlowQuery ? 'text-amber-600' : 'text-muted-foreground',
+        "flex items-center gap-1 text-xs",
+        isSlowQuery ? "text-amber-600" : "text-muted-foreground",
         className
       )}
     >
       <Zap
         className={cn(
-          'h-3 w-3',
-          isOptimized && 'text-emerald-500',
-          !isOptimized && isSlowQuery && 'text-amber-500'
+          "h-3 w-3",
+          isOptimized && "text-emerald-500",
+          !isOptimized && isSlowQuery && "text-amber-500"
         )}
       />
       <span>Filtered in {displayTime}</span>

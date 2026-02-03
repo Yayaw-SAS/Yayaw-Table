@@ -3,8 +3,8 @@ import {
   defineDocs,
   frontmatterSchema,
   metaSchema,
-} from 'fumadocs-mdx/config';
-import { createGenerator, remarkAutoTypeTable } from 'fumadocs-typescript';
+} from "fumadocs-mdx/config";
+import { createGenerator, remarkAutoTypeTable } from "fumadocs-typescript";
 
 const generator = createGenerator();
 

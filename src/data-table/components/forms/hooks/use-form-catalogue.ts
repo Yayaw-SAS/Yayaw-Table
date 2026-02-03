@@ -1,24 +1,24 @@
 /**
  * Hook for using form configurations from the catalogue
  */
-'use client';
-import { useCallback, useMemo } from 'react';
-import type { FieldValues, UseFormProps } from 'react-hook-form';
-import { z } from 'zod';
+"use client";
+import { useCallback, useMemo } from "react";
+import type { FieldValues, UseFormProps } from "react-hook-form";
+import { z } from "zod";
 
 import {
   useFormConfig,
   useTableActions,
-} from '../../../providers/table-provider';
-import type { AnyFieldDefinition, FormConfig } from '../types';
+} from "../../../providers/table-provider";
+import type { AnyFieldDefinition, FormConfig } from "../types";
 
-import { useFormBuilder } from './use-form-builder';
+import { useFormBuilder } from "./use-form-builder";
 
 export interface UseFormCatalogueOptions<TFieldValues extends FieldValues> {
   /**
    * Additional form options
    */
-  formOptions?: Omit<UseFormProps<TFieldValues>, 'defaultValues' | 'resolver'>;
+  formOptions?: Omit<UseFormProps<TFieldValues>, "defaultValues" | "resolver">;
 
   /**
    * Type of form to use (corresponds to a key in the form catalogue)
@@ -33,7 +33,7 @@ export interface UseFormCatalogueOptions<TFieldValues extends FieldValues> {
   /**
    * Mode of the form (create or update)
    */
-  mode?: 'create' | 'update';
+  mode?: "create" | "update";
 }
 
 /**
@@ -45,7 +45,7 @@ export function useFormCatalogue<TFieldValues extends FieldValues>({
   formOptions,
   formType,
   initialData,
-  mode = 'create',
+  mode = "create",
 }: UseFormCatalogueOptions<TFieldValues>) {
   // Get the configuration helpers from the provider
   const getFormConfig = useFormConfig();
@@ -61,7 +61,7 @@ export function useFormCatalogue<TFieldValues extends FieldValues>({
         defaultValues: {} as Partial<TFieldValues>,
         schema: z.any() as z.ZodType<TFieldValues>,
         translations: {
-          namespace: 'common',
+          namespace: "common",
           keys: {},
         },
       } as FormConfig<TFieldValues>)
@@ -93,9 +93,9 @@ export function useFormCatalogue<TFieldValues extends FieldValues>({
 
       // Handle JSON fields
       if (
-        fieldDef.type === 'value-type' &&
-        fieldDef.supportedTypes?.includes('json') &&
-        typeof value === 'string'
+        fieldDef.type === "value-type" &&
+        fieldDef.supportedTypes?.includes("json") &&
+        typeof value === "string"
       ) {
         try {
           return JSON.parse(value);
@@ -105,7 +105,7 @@ export function useFormCatalogue<TFieldValues extends FieldValues>({
       }
 
       // Handle boolean fields (ensure they're actual booleans)
-      if (fieldDef.type === 'checkbox') {
+      if (fieldDef.type === "checkbox") {
         return Boolean(value);
       }
 
@@ -137,11 +137,11 @@ export function useFormCatalogue<TFieldValues extends FieldValues>({
   const prepareUpdateData = useCallback(
     (
       sanitizedValues: Record<string, unknown>,
-      operationMode: 'create' | 'update',
+      operationMode: "create" | "update",
       initialFormData?: Partial<TFieldValues>
     ) => {
       let dataToSubmit = sanitizedValues;
-      if (operationMode === 'update' && initialFormData) {
+      if (operationMode === "update" && initialFormData) {
         // Merge the sanitized form values with the initial data
         dataToSubmit = {
           ...(initialFormData as Record<string, unknown>),
@@ -153,10 +153,10 @@ export function useFormCatalogue<TFieldValues extends FieldValues>({
         for (const key of Object.keys(dataToSubmit)) {
           if (
             dataToSubmit[key] === null &&
-            (key === 'options' ||
-              key === 'value' ||
-              key === 'config' ||
-              key === 'metadata')
+            (key === "options" ||
+              key === "value" ||
+              key === "config" ||
+              key === "metadata")
           ) {
             // For JSON fields, omit them entirely if they're null
             delete dataToSubmit[key];
@@ -171,7 +171,7 @@ export function useFormCatalogue<TFieldValues extends FieldValues>({
   // Helper function to execute form action
   const executeFormAction = useCallback(
     async (
-      operationMode: 'create' | 'update',
+      operationMode: "create" | "update",
       tableActions: {
         create?: (data: Record<string, unknown>) => Promise<{
           success: boolean;
@@ -193,16 +193,16 @@ export function useFormCatalogue<TFieldValues extends FieldValues>({
       dataToSubmit: Record<string, unknown>,
       sanitizedValues: Record<string, unknown>
     ) => {
-      if (operationMode === 'update' && tableActions.update) {
+      if (operationMode === "update" && tableActions.update) {
         // For update, we need the ID from the values or initialData
         let id: string;
 
         // Try to get ID from values first
-        if ('id' in formValues) {
+        if ("id" in formValues) {
           id = String(formValues.id);
         }
         // Then try to get ID from initialData if available
-        else if (initialFormData && 'id' in initialFormData) {
+        else if (initialFormData && "id" in initialFormData) {
           id = String((initialFormData as Record<string, unknown>).id);
         }
         // If no ID is found, throw an error
@@ -214,7 +214,7 @@ export function useFormCatalogue<TFieldValues extends FieldValues>({
 
         // Create a clean copy of the data without the ID for the update operation
         const updateData = { ...dataToSubmit };
-        if ('id' in updateData) {
+        if ("id" in updateData) {
           (updateData as Record<string, unknown>).id = undefined;
         }
 
@@ -223,7 +223,7 @@ export function useFormCatalogue<TFieldValues extends FieldValues>({
           updateData as Record<string, unknown>
         );
       }
-      if (operationMode === 'create' && tableActions.create) {
+      if (operationMode === "create" && tableActions.create) {
         return await tableActions.create(
           sanitizedValues as Record<string, unknown>
         );

@@ -2,10 +2,10 @@
  * Date cell component for data tables
  * Shows formatted date values with appropriate styling
  */
-'use client';
+"use client";
 
-import { format } from 'date-fns';
-import { useLocale } from '../../providers/table-provider';
+import { format } from "date-fns";
+import { useLocale } from "../../providers/table-provider";
 
 export interface DateCellProps {
   /**
@@ -35,8 +35,8 @@ export interface DateCellProps {
  * Cell component for displaying formatted date values
  */
 export function DateCell({
-  className = '',
-  dateFormat = 'PPP',
+  className = "",
+  dateFormat = "PPP",
   showTime = false,
   value,
 }: DateCellProps) {
@@ -44,7 +44,7 @@ export function DateCell({
   const _locale = useLocale();
 
   // Handle Prisma JSON objects with 'set' property
-  if (value && typeof value === 'object' && 'set' in value) {
+  if (value && typeof value === "object" && "set" in value) {
     value = (value as { set: unknown }).set as Date | number | string;
   }
 

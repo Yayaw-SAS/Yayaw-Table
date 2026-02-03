@@ -1,55 +1,55 @@
-import { type NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from "next/server";
 
 // Import the mock data
 const products = [
   {
-    id: '1',
+    id: "1",
     name: 'MacBook Pro 16"',
     price: 2499,
-    status: 'In Stock',
-    category: 'Laptops',
-    brand: 'Apple',
-    createdAt: new Date('2024-01-15'),
+    status: "In Stock",
+    category: "Laptops",
+    brand: "Apple",
+    createdAt: new Date("2024-01-15"),
     isActive: true,
   },
   {
-    id: '2',
-    name: 'Dell XPS 13',
+    id: "2",
+    name: "Dell XPS 13",
     price: 1299,
-    status: 'In Stock',
-    category: 'Laptops',
-    brand: 'Dell',
-    createdAt: new Date('2024-01-16'),
+    status: "In Stock",
+    category: "Laptops",
+    brand: "Dell",
+    createdAt: new Date("2024-01-16"),
     isActive: true,
   },
   {
-    id: '3',
-    name: 'iPhone 15 Pro',
+    id: "3",
+    name: "iPhone 15 Pro",
     price: 999,
-    status: 'Out of Stock',
-    category: 'Phones',
-    brand: 'Apple',
-    createdAt: new Date('2024-01-17'),
+    status: "Out of Stock",
+    category: "Phones",
+    brand: "Apple",
+    createdAt: new Date("2024-01-17"),
     isActive: true,
   },
   {
-    id: '4',
-    name: 'Samsung Galaxy S24',
+    id: "4",
+    name: "Samsung Galaxy S24",
     price: 899,
-    status: 'In Stock',
-    category: 'Phones',
-    brand: 'Samsung',
-    createdAt: new Date('2024-01-18'),
+    status: "In Stock",
+    category: "Phones",
+    brand: "Samsung",
+    createdAt: new Date("2024-01-18"),
     isActive: false,
   },
   {
-    id: '5',
+    id: "5",
     name: 'iPad Pro 12.9"',
     price: 1099,
-    status: 'In Stock',
-    category: 'Tablets',
-    brand: 'Apple',
-    createdAt: new Date('2024-01-19'),
+    status: "In Stock",
+    category: "Tablets",
+    brand: "Apple",
+    createdAt: new Date("2024-01-19"),
     isActive: true,
   },
   // Generate more products to reach 50
@@ -57,11 +57,11 @@ const products = [
     id: `${i + 6}`,
     name: `Product ${i + 6}`,
     price: Math.floor(Math.random() * 2000) + 100,
-    status: Math.random() > 0.3 ? 'In Stock' : 'Out of Stock',
-    category: ['Laptops', 'Phones', 'Tablets', 'Accessories'][
+    status: Math.random() > 0.3 ? "In Stock" : "Out of Stock",
+    category: ["Laptops", "Phones", "Tablets", "Accessories"][
       Math.floor(Math.random() * 4)
     ],
-    brand: ['Apple', 'Samsung', 'Dell', 'HP', 'Sony'][
+    brand: ["Apple", "Samsung", "Dell", "HP", "Sony"][
       Math.floor(Math.random() * 5)
     ],
     createdAt: new Date(2024, 0, 20 + i),
@@ -73,18 +73,18 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
 
   // Parse pagination parameters
-  const page = Number.parseInt(searchParams.get('page') || '0', 10);
-  const pageSize = Number.parseInt(searchParams.get('pageSize') || '10', 10);
+  const page = Number.parseInt(searchParams.get("page") || "0", 10);
+  const pageSize = Number.parseInt(searchParams.get("pageSize") || "10", 10);
 
   // Parse sorting parameters
-  const sortBy = searchParams.get('sortBy');
-  const sortDirection = searchParams.get('sortDirection') || 'asc';
+  const sortBy = searchParams.get("sortBy");
+  const sortDirection = searchParams.get("sortDirection") || "asc";
 
   // Parse filter parameters
-  const search = searchParams.get('search')?.toLowerCase();
-  const category = searchParams.get('category');
-  const brand = searchParams.get('brand');
-  const status = searchParams.get('status');
+  const search = searchParams.get("search")?.toLowerCase();
+  const category = searchParams.get("category");
+  const brand = searchParams.get("brand");
+  const status = searchParams.get("status");
 
   // Start with all products
   let filteredProducts = [...products];
@@ -124,10 +124,10 @@ export async function GET(request: NextRequest) {
       const bValue = b[sortBy as keyof typeof b];
 
       if (aValue < bValue) {
-        return sortDirection === 'asc' ? -1 : 1;
+        return sortDirection === "asc" ? -1 : 1;
       }
       if (aValue > bValue) {
-        return sortDirection === 'asc' ? 1 : -1;
+        return sortDirection === "asc" ? 1 : -1;
       }
       return 0;
     });

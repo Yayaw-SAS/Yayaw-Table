@@ -1,19 +1,19 @@
 /**
  * Hook for managing bulk edit operations
  */
-'use client';
+"use client";
 
-import { useQueryClient } from '@tanstack/react-query';
-import type { Row } from '@tanstack/react-table';
-import { useAtom } from 'jotai';
-import { useCallback, useMemo } from 'react';
-import { toast } from 'sonner';
-import { z } from 'zod';
+import { useQueryClient } from "@tanstack/react-query";
+import type { Row } from "@tanstack/react-table";
+import { useAtom } from "jotai";
+import { useCallback, useMemo } from "react";
+import { toast } from "sonner";
+import { z } from "zod";
 import {
   type CatalogueFormState,
   catalogueFormAtom,
   openUpdateForm,
-} from '../components/forms/atoms/catalogue-form-atoms';
+} from "../components/forms/atoms/catalogue-form-atoms";
 
 /**
  * Configuration for bulk edit
@@ -83,7 +83,7 @@ export function useBulkEdit<TData extends Record<string, unknown>>({
     return (
       formState.isOpen &&
       formState.formType === bulkFormType &&
-      formState.mode === 'update'
+      formState.mode === "update"
     );
   }, [formState, bulkFormType]);
 
@@ -133,7 +133,7 @@ export function useBulkEdit<TData extends Record<string, unknown>>({
       const cleanData: Record<string, unknown> = {};
 
       for (const [key, value] of Object.entries(formData)) {
-        if (value !== undefined && value !== '') {
+        if (value !== undefined && value !== "") {
           cleanData[key] = value;
         }
       }
@@ -149,9 +149,6 @@ export function useBulkEdit<TData extends Record<string, unknown>>({
       if (onUpdate) {
         return await onUpdate(ids, cleanData);
       }
-
-      // Use default update logic
-      console.log('Bulk updating items:', { ids, data: cleanData });
       await new Promise((resolve) => setTimeout(resolve, 1000));
       return true;
     },
@@ -168,14 +165,14 @@ export function useBulkEdit<TData extends Record<string, unknown>>({
         const ids = extractRowIds(selectedRows);
 
         if (ids.length === 0) {
-          toast.error('No valid IDs found for update');
+          toast.error("No valid IDs found for update");
           return false;
         }
 
         const cleanData = cleanFormData(formData);
 
         if (Object.keys(cleanData).length === 0) {
-          toast.error('No changes to apply');
+          toast.error("No changes to apply");
           return false;
         }
 
@@ -184,7 +181,7 @@ export function useBulkEdit<TData extends Record<string, unknown>>({
         if (success) {
           // Invalidate queries to refresh data
           await queryClient.invalidateQueries({
-            queryKey: ['tableData', tableId],
+            queryKey: ["tableData", tableId],
           });
 
           // Call custom success handler
@@ -193,16 +190,15 @@ export function useBulkEdit<TData extends Record<string, unknown>>({
           }
 
           toast.success(
-            `Successfully updated ${ids.length} item${ids.length > 1 ? 's' : ''}`
+            `Successfully updated ${ids.length} item${ids.length > 1 ? "s" : ""}`
           );
           return true;
         }
 
-        toast.error('Failed to update items');
+        toast.error("Failed to update items");
         return false;
-      } catch (error) {
-        console.error('Bulk update error:', error);
-        toast.error('Failed to update items');
+      } catch (_error) {
+        toast.error("Failed to update items");
         return false;
       }
     },
@@ -220,7 +216,7 @@ export function useBulkEdit<TData extends Record<string, unknown>>({
   const openBulkEdit = useCallback(
     (selectedRows: Row<TData>[]) => {
       if (selectedRows.length === 0) {
-        toast.error('No rows selected');
+        toast.error("No rows selected");
         return;
       }
 
@@ -295,11 +291,11 @@ function createBulkEditSchema(
 
     // Create optional schema for each field type - all as ZodAny to simplify
     switch (fieldType) {
-      case 'number':
+      case "number":
         schemaShape[fieldName] = z.any().optional();
         break;
-      case 'boolean':
-      case 'checkbox':
+      case "boolean":
+      case "checkbox":
         schemaShape[fieldName] = z.any().optional();
         break;
       default:
@@ -325,11 +321,11 @@ export function createBulkEditFormConfig(
   } = {}
 ) {
   const {
-    title = 'Bulk Edit',
-    description = 'Edit multiple items at once. Only filled fields will be applied to all selected items. Leave fields empty to keep their current values.',
-    excludeFields = ['id', '_id', 'createdAt', 'updatedAt'],
+    title = "Bulk Edit",
+    description = "Edit multiple items at once. Only filled fields will be applied to all selected items. Leave fields empty to keep their current values.",
+    excludeFields = ["id", "_id", "createdAt", "updatedAt"],
     includeFields,
-    uniqueFields = ['email', 'username', 'sku', 'slug', 'code'], // Common unique fields
+    uniqueFields = ["email", "username", "sku", "slug", "code"], // Common unique fields
   } = options;
 
   // Filter fields for bulk edit
@@ -353,7 +349,7 @@ export function createBulkEditFormConfig(
   fields = fields.map((field: Record<string, unknown>) => ({
     ...field,
     required: false, // Force all fields to be optional
-    placeholder: field.placeholder || 'Leave empty to keep current value',
+    placeholder: field.placeholder || "Leave empty to keep current value",
     description: field.description || undefined, // Remove field-level description
     validation: undefined, // Remove field-level validation rules
   }));
@@ -375,12 +371,12 @@ export function createBulkEditFormConfig(
       ...baseTranslations,
       keys: {
         ...(baseTranslations?.keys || {}),
-        'updateForm.title': title,
-        'updateForm.description': description,
-        update: 'Update Selected Items',
-        updating: 'Updating items...',
-        success: 'Items updated successfully',
-        error: 'Failed to update items',
+        "updateForm.title": title,
+        "updateForm.description": description,
+        update: "Update Selected Items",
+        updating: "Updating items...",
+        success: "Items updated successfully",
+        error: "Failed to update items",
       },
     },
   };

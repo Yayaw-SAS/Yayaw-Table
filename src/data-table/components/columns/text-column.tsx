@@ -2,22 +2,21 @@
  * Text column component for data tables
  * Provides standardized display of text values
  */
-'use client';
+"use client";
 
-import type { CellContext, ColumnDef } from '@tanstack/react-table';
-import { type LucideIcon, Text } from 'lucide-react';
-import { useState } from 'react';
-
-import { StringCell } from '../cells/string-cell';
-import { Button } from '@/components/ui/button';
+import type { CellContext, ColumnDef } from "@tanstack/react-table";
+import { type LucideIcon, Text } from "lucide-react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { StringCell } from "../cells/string-cell";
 
 /**
  * Custom properties for our column definitions
  */
-type CustomColumnProps = {
+interface CustomColumnProps {
   icon?: LucideIcon;
   type?: string;
-};
+}
 
 /**
  * Combined type for our column definition
@@ -65,7 +64,7 @@ interface TextColumnProps {
  */
 export function createTextColumn<TData>({
   accessorKey,
-  className = '',
+  className = "",
   enableColumnFilter = true,
   enableHiding = true,
   enableSorting = true,
@@ -78,17 +77,17 @@ export function createTextColumn<TData>({
     // When grouped, use the raw value for grouping label
     getGroupingValue: (row: unknown) => {
       const value = (row as Record<string, unknown>)[accessorKey];
-      return typeof value === 'string' ? value : String(value ?? '');
+      return typeof value === "string" ? value : String(value ?? "");
     },
     // Show plain label in aggregated cell
     aggregatedCell: ({ getValue }) => {
-      const label = String(getValue() ?? '');
+      const label = String(getValue() ?? "");
       return <span className="font-medium">{label}</span>;
     },
     cell: (info: CellContext<TData, unknown>) => {
       const isGrouped = info.cell.getIsGrouped();
       const isAggregated = info.cell.getIsAggregated();
-      const isPlaceholder = info.cell.getIsPlaceholder();
+      const _isPlaceholder = info.cell.getIsPlaceholder();
 
       // Debug removed to stop spam
 
@@ -98,25 +97,20 @@ export function createTextColumn<TData>({
         const GroupHeader = () => {
           const [localExpanded, setLocalExpanded] = useState(true); // Start expanded
           const count = info.row.subRows?.length ?? 0;
-          const label = String(info.getValue() ?? '');
+          const label = String(info.getValue() ?? "");
 
           return (
             <Button
               className="flex w-full cursor-pointer items-center gap-2 border-0 bg-red-100 p-2 text-left hover:bg-red-200"
               onClick={(e) => {
                 e.stopPropagation();
-                console.log('🔥 BUTTON CLICKED!', {
-                  localExpanded,
-                  label,
-                  count,
-                });
                 setLocalExpanded(!localExpanded);
               }}
               type="button"
               variant="ghost"
             >
               <span aria-hidden className="text-lg text-muted-foreground">
-                {localExpanded ? '▾' : '▸'}
+                {localExpanded ? "▾" : "▸"}
               </span>
               <span className="font-medium">{label}</span>
               <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground text-xs">
@@ -145,6 +139,6 @@ export function createTextColumn<TData>({
     header: header || accessorKey,
     icon: Text,
     id: accessorKey,
-    type: 'text',
+    type: "text",
   };
 }

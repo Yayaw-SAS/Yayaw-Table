@@ -2,15 +2,15 @@
  * Hook for managing table configuration
  * Handles configuration retrieval, defaults, and translations
  */
-'use client';
+"use client";
 
-import type { ColumnSort } from '@tanstack/react-table';
-import { useMemo } from 'react';
+import type { ColumnSort } from "@tanstack/react-table";
+import { useMemo } from "react";
 import {
   useTableConfig as useProviderTableConfig,
   useTranslations,
-} from '../providers/table-provider';
-import { useTableTranslations } from './use-table-translations';
+} from "../providers/table-provider";
+import { useTableTranslations } from "./use-table-translations";
 
 /**
  * Configuration for table columns in the catalogue
@@ -44,6 +44,20 @@ export interface TableCatalogueTableConfig {
   defaultPageSize?: number;
   pageSizeOptions?: number[];
 }
+
+/**
+ * Shape returned by getTableConfig: table options plus optional columns.
+ * Used when normalizing provider config to TableCatalogueConfig.
+ */
+type ProviderTableConfig = TableCatalogueTableConfig & {
+  columns?: {
+    definitions?: TableCatalogueColumnConfig[];
+    order?: string[];
+    visible?: string[];
+    mandatory?: string[];
+    sort?: ColumnSort[];
+  };
+};
 
 /**
  * Full configuration for a table type in the catalogue
@@ -90,7 +104,7 @@ const DEFAULT_TABLE_CONFIG: TableCatalogueConfig = {
     mandatory: [],
   },
   translations: {
-    namespace: 'common',
+    namespace: "common",
     keys: {},
   },
 };
@@ -107,7 +121,9 @@ export function useTableConfig(tableType: string) {
 
   // Get table configuration with fallback to defaults
   const config = useMemo(() => {
-    const providerConfig = getTableConfig?.(tableType) as any;
+    const providerConfig = getTableConfig?.(tableType) as
+      | ProviderTableConfig
+      | undefined;
     // columnsConfig removed since useColumnsConfig is not exported
 
     if (!providerConfig) {
@@ -140,7 +156,7 @@ export function useTableConfig(tableType: string) {
         mandatory: providerConfig?.columns?.mandatory || [],
       },
       translations: {
-        namespace: 'common',
+        namespace: "common",
         keys: {},
       },
     };

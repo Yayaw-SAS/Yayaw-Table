@@ -2,13 +2,12 @@
  * Tag column component for data tables
  * Displays tag values with colored backgrounds
  */
-'use client';
+"use client";
 
-import type { ColumnDef } from '@tanstack/react-table';
-import { type LucideIcon, Tag } from 'lucide-react';
-
-import { TagCell } from '../cells/tag-cell';
-import { Button } from '@/components/ui/button';
+import type { ColumnDef } from "@tanstack/react-table";
+import { type LucideIcon, Tag } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { TagCell } from "../cells/tag-cell";
 
 /**
  * Options for creating a tag column
@@ -51,10 +50,10 @@ export interface TagColumnOptions {
 /**
  * Custom properties for our column definitions
  */
-type CustomColumnProps = {
+interface CustomColumnProps {
   icon?: LucideIcon;
   type?: string;
-};
+}
 
 /**
  * Combined type for our column definition
@@ -65,7 +64,7 @@ type ExtendedColumnDef<TData> = ColumnDef<TData> & CustomColumnProps;
  * Creates a column definition for displaying tag values with colored backgrounds
  */
 export function createTagColumn<TData>({
-  className = '',
+  className = "",
   enableColumnFilter = true,
   enableHiding = true,
   enableSorting = true,
@@ -81,12 +80,12 @@ export function createTagColumn<TData>({
         const toggle = info.row.getToggleExpandedHandler();
         const expanded = info.row.getIsExpanded();
         const count = info.row.subRows?.length ?? 0;
-        const label = String(info.getValue() ?? '');
+        const label = String(info.getValue() ?? "");
         return (
           <div className="flex items-center gap-2">
             <Button
               aria-expanded={expanded}
-              aria-label={expanded ? 'Collapse group' : 'Expand group'}
+              aria-label={expanded ? "Collapse group" : "Expand group"}
               className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
               onClick={(e) => {
                 e.stopPropagation();
@@ -96,7 +95,7 @@ export function createTagColumn<TData>({
               type="button"
               variant="ghost"
             >
-              <span aria-hidden>{expanded ? '▾' : '▸'}</span>
+              <span aria-hidden>{expanded ? "▾" : "▸"}</span>
             </Button>
             <span className="rounded-full bg-muted px-2 py-0.5 font-medium text-foreground text-xs">
               {label}
@@ -120,6 +119,6 @@ export function createTagColumn<TData>({
     header,
     icon: Tag,
     id,
-    type: 'tag',
+    type: "tag",
   };
 }

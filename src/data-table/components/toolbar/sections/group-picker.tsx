@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { ArrowDown, ArrowUp, Minus, Plus } from 'lucide-react';
-import { useMemo } from 'react';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { useTranslations } from '../../../providers/table-provider';
-import { ColumnIcon } from '../../../utils/column-icons';
+import { ArrowDown, ArrowUp, Minus, Plus } from "lucide-react";
+import { useMemo } from "react";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { useTranslations } from "../../../providers/table-provider";
+import { ColumnIcon } from "../../../utils/column-icons";
 
 export interface GroupPickerColumn {
   id: string;
@@ -47,15 +47,15 @@ export function GroupPicker({
     return (
       columns
         // Exclude actions column from grouping options
-        .filter((c) => c.id !== 'actions')
+        .filter((c) => c.id !== "actions")
         .filter((c) => !grouping.includes(c.id))
         .filter((c) => {
           // Block "select" as subgroup - only allow as main group
-          if (c.id === 'select' && grouping.length > 0) {
+          if (c.id === "select" && grouping.length > 0) {
             return false;
           }
           // Block other columns if "select" is already the main group
-          if (grouping[0] === 'select' && c.id !== 'select') {
+          if (grouping[0] === "select" && c.id !== "select") {
             return false;
           }
           return true;
@@ -85,8 +85,8 @@ export function GroupPicker({
         <div className="mb-3 flex items-center justify-between">
           <div className="px-2 font-medium text-foreground text-sm">
             {activeCount > 0
-              ? t('menu.current_groups', { count: activeCount })
-              : t('menu.select_column')}
+              ? t("menu.current_groups", { count: activeCount })
+              : t("menu.select_column")}
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -95,7 +95,7 @@ export function GroupPicker({
               size="sm"
               variant="outline"
             >
-              {t('common.reset')}
+              {t("common.reset")}
             </Button>
           </div>
         </div>
@@ -117,7 +117,7 @@ export function GroupPicker({
                   <div className="flex items-center gap-2">
                     <ColumnIcon
                       className="h-3.5 w-3.5"
-                      columnType={col.type || 'text'}
+                      columnType={col.type || "text"}
                     />
                     <span className="text-sm">{col.label}</span>
                   </div>
@@ -193,8 +193,8 @@ export function GroupPicker({
         {availableColumns.length === 0 ? (
           <div className="px-3 py-2 text-muted-foreground text-sm">
             {grouping.length >= 2
-              ? 'Maximum 2 levels reached'
-              : t('filters.noResults')}
+              ? "Maximum 2 levels reached"
+              : t("filters.noResults")}
           </div>
         ) : (
           availableColumns.map((column) => {
@@ -216,7 +216,7 @@ export function GroupPicker({
                 <span className="flex items-center gap-2">
                   <ColumnIcon
                     className="h-3.5 w-3.5"
-                    columnType={column.type || 'text'}
+                    columnType={column.type || "text"}
                   />
                   <span className="text-sm">{column.label}</span>
                 </span>

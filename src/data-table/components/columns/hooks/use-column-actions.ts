@@ -3,22 +3,22 @@
  * Provides utilities for column visibility, ordering, and other UI actions
  * Uses URL state for shareable states (order, visibility) and atoms for local states (translations, definitions)
  */
-'use client';
+"use client";
 
-import { useQuery } from '@tanstack/react-query';
-import type { AccessorFn, ColumnDef, ColumnMeta } from '@tanstack/react-table';
-import { useAtom } from 'jotai';
-import { useCallback, useMemo, useRef } from 'react';
-import type { DataTableColumnDef } from '../../../types/column-types';
+import { useQuery } from "@tanstack/react-query";
+import type { AccessorFn, ColumnDef, ColumnMeta } from "@tanstack/react-table";
+import { useAtom } from "jotai";
+import { useCallback, useMemo, useRef } from "react";
 import {
   cleanColumnId,
   columnIdMappingAtom,
-} from '../../../atoms/filter-atoms';
+} from "../../../atoms/filter-atoms";
 import {
   columnsAtom,
   columnTranslationsAtom,
-} from '../../../atoms/table-atoms';
-import { useTableUrlState } from '../../../hooks/use-table-url-state';
+} from "../../../atoms/table-atoms";
+import { useTableUrlState } from "../../../hooks/use-table-url-state";
+import type { DataTableColumnDef } from "../../../types/column-types";
 
 interface UseColumnActionsOptions<
   TData extends Record<string, unknown> = Record<string, unknown>,
@@ -70,14 +70,14 @@ export function useColumnActions<
       index?: number
     ): string => {
       // Use id if it's a string
-      if (typeof column.id === 'string') {
+      if (typeof column.id === "string") {
         // Check mapping first
         if (columnIdMapping.has(column.id)) {
           return columnIdMapping.get(column.id) || column.id;
         }
 
         // Clean Turbopack references
-        if (column.id.includes('__TURBOPACK__')) {
+        if (column.id.includes("__TURBOPACK__")) {
           return cleanColumnId(column.id);
         }
 
@@ -93,8 +93,8 @@ export function useColumnActions<
       }
 
       // Try header
-      if (typeof column.header === 'string') {
-        return `col-${column.header.toLowerCase().replace(/\s+/g, '-')}`;
+      if (typeof column.header === "string") {
+        return `col-${column.header.toLowerCase().replace(/\s+/g, "-")}`;
       }
 
       // Fallback to index
@@ -141,7 +141,7 @@ export function useColumnActions<
 
     // Helper function to get header text
     const getHeaderText = (columnDef: ColumnDef<TData>): string => {
-      if (typeof columnDef.header === 'string') {
+      if (typeof columnDef.header === "string") {
         return columnDef.header;
       }
 
@@ -154,12 +154,12 @@ export function useColumnActions<
           accessorKey.charAt(0).toUpperCase() +
           accessorKey
             .slice(1)
-            .replace(/([A-Z])/g, ' $1')
+            .replace(/([A-Z])/g, " $1")
             .trim()
         );
       }
 
-      return '';
+      return "";
     };
 
     // Helper function to process single column
@@ -182,7 +182,7 @@ export function useColumnActions<
           id.charAt(0).toUpperCase() +
           id
             .slice(1)
-            .replace(/([A-Z])/g, ' $1')
+            .replace(/([A-Z])/g, " $1")
             .trim();
       }
 
@@ -205,7 +205,7 @@ export function useColumnActions<
         header: headerText,
         id,
         meta: columnDef.meta,
-        type: 'text',
+        type: "text",
       } as DataTableColumnDef<TData>;
     };
 
@@ -243,7 +243,7 @@ export function useColumnActions<
 
   // Use a stable reference for the query key that only depends on tableId and columns length
   const queryKey = useMemo(
-    () => ['table-columns', tableId, columnsLength],
+    () => ["table-columns", tableId, columnsLength],
     [tableId, columnsLength]
   );
 
@@ -338,7 +338,7 @@ export function useColumnActions<
       const columnDef: ColumnDef<TData> = {
         accessorFn: col.accessorFn as AccessorFn<TData, unknown>,
         accessorKey: col.accessorKey as keyof TData,
-        cell: col.cell as ColumnDef<TData>['cell'],
+        cell: col.cell as ColumnDef<TData>["cell"],
         enableColumnFilter:
           col.enableFiltering !== undefined ? col.enableFiltering : true,
         enableHiding: col.enableHiding,
@@ -356,7 +356,7 @@ export function useColumnActions<
   // Get column name by ID
   const getColumnName = useCallback(
     (columnId: string) => {
-      const cleanedId = columnId.includes('__TURBOPACK__')
+      const cleanedId = columnId.includes("__TURBOPACK__")
         ? cleanColumnId(columnId)
         : columnId;
 
@@ -385,7 +385,7 @@ export function useColumnActions<
         cleanedId.charAt(0).toUpperCase() +
         cleanedId
           .slice(1)
-          .replace(/([A-Z])/g, ' $1')
+          .replace(/([A-Z])/g, " $1")
           .trim()
       );
     },

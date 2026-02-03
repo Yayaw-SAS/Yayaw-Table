@@ -1,21 +1,21 @@
-'use client';
+"use client";
 
-import type { ColumnFiltersState } from '@tanstack/react-table';
-import { Filter, X } from 'lucide-react';
-import { useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
+import type { ColumnFiltersState } from "@tanstack/react-table";
+import { Filter, X } from "lucide-react";
+import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import {
   StackMenuContent,
   StackMenuView,
-} from '@/src/components/ui-custom/stack-menu';
-import { useTranslations } from '../../../providers/table-provider';
+} from "@/src/components/ui-custom/stack-menu";
+import { useTranslations } from "../../../providers/table-provider";
 import type {
   AdvancedFiltersState,
   ColumnsFilterConfig,
   FilterActions,
-} from '../../../types/filter-types';
-import { AdvancedFilterPanel } from '../../filters/advanced-filter-panel';
+} from "../../../types/filter-types";
+import { AdvancedFilterPanel } from "../../filters/advanced-filter-panel";
 
 // Debug flag - activated for debugging advanced filters
 const DEBUG = false;
@@ -42,7 +42,7 @@ export interface TableFiltersMenuProps {
 
 export function TableFiltersMenu({
   columnFilters,
-  columns,
+  columns: _columns,
   invalidateTable: _invalidateTable,
   setColumnFilters,
   tableId: _tableId,
@@ -63,19 +63,6 @@ export function TableFiltersMenu({
   // Use advanced filters if enabled and we have the proper setup
   const hasAdvancedConfig =
     advancedColumnsConfig && Object.keys(advancedColumnsConfig).length > 0;
-
-  if (DEBUG) {
-    console.log('🔍 TableFiltersMenu Advanced Filters Check:', {
-      useAdvancedFilters,
-      hasAdvancedActions: !!advancedActions,
-      advancedColumnsConfig,
-      hasAdvancedConfig,
-      'config keys': advancedColumnsConfig
-        ? Object.keys(advancedColumnsConfig)
-        : 'undefined',
-    });
-  }
-
   if (useAdvancedFilters && advancedActions && hasAdvancedConfig) {
     return (
       <StackMenuView name="filters">
@@ -87,7 +74,7 @@ export function TableFiltersMenu({
             enableAnimations={true}
             filters={advancedFilters}
             maxVisibleFilters={5}
-            popularColumns={['name', 'status', 'category']}
+            popularColumns={["name", "status", "category"]}
             recentColumns={[]}
             showAddButton={true}
             showClearButton={true}
@@ -106,15 +93,15 @@ export function TableFiltersMenu({
         <div className="space-y-4">
           <div className="py-8 text-center text-muted-foreground">
             <Filter className="mx-auto mb-2 h-8 w-8 opacity-50" />
-            <p className="text-sm">{t('filters.noFilters')}</p>
-            <p className="text-xs">{t('filters.noResults')}</p>
+            <p className="text-sm">{t("filters.noFilters")}</p>
+            <p className="text-xs">{t("filters.noResults")}</p>
           </div>
 
           {/* Show legacy column filters if any exist */}
           {columnFilters.length > 0 && (
             <div className="space-y-2">
               <Separator />
-              <h4 className="font-medium text-sm">{t('filters.title')}</h4>
+              <h4 className="font-medium text-sm">{t("filters.title")}</h4>
               {columnFilters.map((filter, index) => (
                 <div
                   className="flex items-center gap-2 rounded-md border p-2"
