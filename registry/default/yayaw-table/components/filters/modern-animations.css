@@ -1,0 +1,318 @@
+/**
+ * Modern Filter Animations
+ * Custom CSS animations for the advanced filter system
+ * Inspired by bazza/ui and Linear design patterns
+ */
+
+/* Filter chip entrance animations */
+@keyframes filterChipSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes filterChipSlideOut {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-8px) scale(0.95);
+  }
+}
+
+/* Filter chip hover and focus states */
+.filter-chip {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.filter-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.filter-chip:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Popover entrance animations */
+@keyframes popoverSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.popover-content {
+  animation: popoverSlideIn 0.15s ease-out;
+}
+
+/* Loading skeleton animations */
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 0%,
+    hsl(var(--muted-foreground) / 0.1) 50%,
+    hsl(var(--muted)) 100%
+  );
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+
+/* Filter panel expand/collapse */
+@keyframes panelExpand {
+  from {
+    opacity: 0;
+    height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  to {
+    opacity: 1;
+    height: auto;
+    padding-top: var(--panel-padding, 1rem);
+    padding-bottom: var(--panel-padding, 1rem);
+  }
+}
+
+@keyframes panelCollapse {
+  from {
+    opacity: 1;
+    height: auto;
+    padding-top: var(--panel-padding, 1rem);
+    padding-bottom: var(--panel-padding, 1rem);
+  }
+  to {
+    opacity: 0;
+    height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+}
+
+/* Success/error state animations */
+@keyframes successPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes errorShake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-2px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(2px);
+  }
+}
+
+/* Interactive button states */
+.filter-button {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.filter-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+
+.filter-button:hover::before {
+  left: 100%;
+}
+
+/* Dropdown animation */
+@keyframes dropdownSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-content {
+  animation: dropdownSlideDown 0.2s ease-out;
+}
+
+/* Focus ring animation */
+@keyframes focusRing {
+  0% {
+    box-shadow: 0 0 0 0 hsl(var(--primary) / 0.5);
+  }
+  100% {
+    box-shadow: 0 0 0 4px hsl(var(--primary) / 0);
+  }
+}
+
+.focus-visible {
+  animation: focusRing 0.3s ease-out;
+}
+
+/* Filter value highlight */
+@keyframes valueHighlight {
+  0% {
+    background-color: hsl(var(--primary) / 0.1);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.value-updated {
+  animation: valueHighlight 0.5s ease-out;
+}
+
+/* Badge notification animation */
+@keyframes badgeBounce {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.badge-animated {
+  animation: badgeBounce 0.3s ease-out;
+}
+
+/* Performance indicator pulse */
+@keyframes performancePulse {
+  0%, 100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.performance-indicator {
+  animation: performancePulse 2s infinite ease-in-out;
+}
+
+/* Micro-interactions for modern feel */
+.micro-bounce {
+  transition: transform 0.1s ease;
+}
+
+.micro-bounce:active {
+  transform: scale(0.98);
+}
+
+/* Stagger animation utilities */
+.stagger-1 { animation-delay: 50ms; }
+.stagger-2 { animation-delay: 100ms; }
+.stagger-3 { animation-delay: 150ms; }
+.stagger-4 { animation-delay: 200ms; }
+.stagger-5 { animation-delay: 250ms; }
+
+/* Glass morphism effects for modern cards */
+.glass-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Dark mode optimizations */
+@media (prefers-color-scheme: dark) {
+  .glass-card {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .filter-chip:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .filter-chip,
+  .popover-content,
+  .dropdown-content,
+  .filter-button {
+    animation: none !important;
+    transition: none !important;
+  }
+  
+  .filter-chip:hover {
+    transform: none;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .filter-chip {
+    border-width: 2px;
+  }
+  
+  .glass-card {
+    background: var(--background);
+    backdrop-filter: none;
+  }
+}
+
+/* Utility classes for React components */
+.animate-filter-in {
+  animation: filterChipSlideIn 0.2s ease-out;
+}
+
+.animate-filter-out {
+  animation: filterChipSlideOut 0.2s ease-in;
+  animation-fill-mode: forwards;
+}
+
+.animate-success {
+  animation: successPulse 0.5s ease-out;
+}
+
+.animate-error {
+  animation: errorShake 0.5s ease-out;
+}
+
+.animate-focus {
+  animation: focusRing 0.3s ease-out;
+} 
