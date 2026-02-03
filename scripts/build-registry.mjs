@@ -92,6 +92,12 @@ function transformContent(content, fileRel) {
     out = out.replace(/from ["']\.\.\/\.\.\/lib\/utils["']/g, 'from "@/lib/utils"');
   }
 
+  // Relative path to components/ui/* (e.g. ../../../components/ui/skeleton) -> @/components/ui/*
+  out = out.replace(
+    /from ["'](\.\.\/)+components\/ui\/([^"']+)["']/g,
+    (_, _back, name) => `from "@/components/ui/${name}"`
+  );
+
   return out;
 }
 
