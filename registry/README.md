@@ -2,21 +2,25 @@
 
 Distribution **sans package npm** : tout le code est dans le registry. Les composants Shadcn utilisés sont déclarés en `registryDependencies`, le CLI les ajoute une seule fois (pas de duplication).
 
-## Workflow
+## CI (GitHub Actions)
+
+Un job **Build registry** (`.github/workflows/build-registry.yml`) tourne sur chaque push sur `main` :
+
+- exécute `bun run registry:build` (sync du code + `shadcn build` → `public/r/*.json`)
+- commit et push de `public/r`, `registry/default` et `registry/registry.json` s’ils ont changé
+
+Le site de doc (Next) sert tout ce qui est dans `public/` : une fois déployé, l’URL du block est `https://<ton-domaine>/r/yayaw-table.json`. C’est cette URL qu’on met dans la doc d’installation.
+
+## En local
 
 1. **Synchroniser** le code source vers le registry (après modification de `src/data-table` ou des composants ui-custom) :
    ```bash
    bun run registry:sync
    ```
 
-2. **Builder** le registry (génère `public/r/*.json` pour le CLI) :
+2. **Builder** le registry (génère `public/r/*.json`) :
    ```bash
    bun run registry:build
-   ```
-
-3. **Servir** les JSON (via ton site de doc ou un déploiement) pour que les utilisateurs puissent faire :
-   ```bash
-   npx shadcn@latest add https://ton-site.com/r/yayaw-table.json
    ```
 
 ## Structure

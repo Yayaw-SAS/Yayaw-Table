@@ -1,13 +1,45 @@
 ---
 title: Installation
-description: How to install YaYaw Table
+description: How to install Yayaw Table
 ---
 
 # Installation
 
-Install YaYaw Table in your React project using your preferred package manager.
+You can install Yayaw Table in two ways: via the **Shadcn CLI** (code copied into your project, no npm package) or via **npm** (package dependency).
 
-## Package Manager
+## Option 1: Shadcn CLI (recommended if you use Shadcn)
+
+The project ships a [Shadcn registry](https://ui.shadcn.com/docs/registry): all table code is added into your repo, and the CLI installs the Shadcn components we depend on (table, button, input, etc.) once — no duplication.
+
+**Prerequisites:** a project already set up with [Shadcn UI](https://ui.shadcn.com/docs/installation) (`npx shadcn@latest init`).
+
+From your project root:
+
+```bash
+npx shadcn@latest add https://yayaw-table.vercel.app/r/yayaw-table.json
+```
+
+_(Replace the URL with your docs/deploy URL if you self-host; the registry is built in CI and served from `/r/`.)_
+
+The CLI will:
+
+- Add any missing Shadcn components (table, button, dialog, etc.) to `@/components/ui`
+- Copy the full Yayaw Table code (and its small ui-custom pieces) into your project (e.g. under `components/yayaw-table/`)
+- Install the required npm dependencies (e.g. `@tanstack/react-table`, `jotai`, `lucide-react`)
+
+Then use the table from the copied code:
+
+```tsx
+import { DataTable } from "@/components/yayaw-table";
+
+export const MyTable = () => <DataTable tableType="products" />;
+```
+
+No `yayaw-table` package: you own and can edit the code locally.
+
+## Option 2: Package manager (npm package)
+
+Install the published package and use it as a dependency.
 
 ```bash title="Using npm"
 npm install yayaw-table
@@ -21,9 +53,7 @@ bun add yayaw-table
 pnpm add yayaw-table
 ```
 
-## Peer Dependencies
-
-YaYaw Table relies on the following peer dependencies:
+### Peer dependencies
 
 - `react` (^18 or ^19)
 - `react-dom` (^18 or ^19)
@@ -31,28 +61,18 @@ YaYaw Table relies on the following peer dependencies:
 - `jotai` (^2) [optional]
 - `@tanstack/react-query` (^5) [optional]
 
-Make sure they are installed in your project.
-
-## First usage
+### First usage
 
 ```tsx
-import { DataTable } from 'yayaw-table';
+import { DataTable } from "yayaw-table";
 
-export const MyTable = () => (
-  <DataTable tableType="products" />
-);
+export const MyTable = () => <DataTable tableType="products" />;
 ```
 
-## CSS/Tailwind
+## CSS / Tailwind
 
-The table uses Tailwind CSS. Ensure Tailwind is set up in your project:
-
-```bash
-npm install tailwindcss
-```
-
-Or use your own CSS classes by overriding default styles.
+The table uses Tailwind CSS. Ensure Tailwind is set up in your project (or use your own classes to override default styles).
 
 ## TypeScript
 
-YaYaw Table is fully typed with TypeScript. Declaration files are included automatically.
+Yayaw Table is fully typed; declaration files are included with both installation methods.
