@@ -24,7 +24,6 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { StackMenuContent } from "../../../ui-custom/stack-menu";
 import { columnDragEnabledAtom, tableIdAtom } from "../../../atoms/table-atoms";
 import { useColumnDnd } from "../../../components/columns/hooks/use-column-dnd";
 import { useDataTable } from "../../../hooks/use-data-table";
@@ -32,6 +31,7 @@ import { useTableConfig } from "../../../hooks/use-table-config";
 import { useTableUIConfig } from "../../../hooks/use-table-ui-config";
 import { useTableUrlState } from "../../../hooks/use-table-url-state";
 import { useTranslations } from "../../../providers/table-provider";
+import { StackMenuContent } from "../../../ui-custom/stack-menu";
 
 // Custom type for our enriched column definition
 // columns: Array<{ canSort?: boolean; getCanSort: () => boolean; id: string; label: string; }>

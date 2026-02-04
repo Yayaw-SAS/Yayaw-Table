@@ -19,9 +19,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Icon } from "../../ui-custom/icon";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "../../providers/table-provider";
+import { Icon } from "../../ui-custom/icon";
 
 import type { ActionItem } from "../columns/actions-column";
 import {

@@ -12,8 +12,8 @@ import type {
  * These atoms provide core functionality used across the DataTable
  */
 import { atom } from "jotai";
-import { atomFamily } from "jotai-family";
 import { atomWithStorage } from "jotai/utils";
+import { atomFamily } from "jotai-family";
 
 import type { DataTableColumnDef } from "../types/column-types";
 

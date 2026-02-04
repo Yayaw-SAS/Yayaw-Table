@@ -4,8 +4,8 @@ import {
   DocsPage,
   DocsTitle,
 } from "fumadocs-ui/page";
-import type { ComponentType, ReactNode } from "react";
 import { notFound } from "next/navigation";
+import type { ComponentType, ReactNode } from "react";
 import { getMDXComponents } from "@/mdx-components";
 import { source } from "@/src/lib/source";
 
@@ -36,13 +36,10 @@ export default async function Page(props: {
       <DocsDescription>{data.description}</DocsDescription>
       <DocsBody>
         <MDX
-        components={
-          getMDXComponents() as Record<
-            string,
-            ComponentType<unknown>
-          >
-        }
-      />
+          components={
+            getMDXComponents() as Record<string, ComponentType<unknown>>
+          }
+        />
       </DocsBody>
     </DocsPage>
   );

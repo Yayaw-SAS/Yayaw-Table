@@ -11,14 +11,6 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  StackMenu,
-  StackMenuContent,
-  StackMenuItem,
-  StackMenuSection,
-  StackMenuView,
-  useStackMenu,
-} from "../../ui-custom/stack-menu";
 import { useTableUrlState } from "../../hooks/use-table-url-state";
 import { useTranslations } from "../../providers/table-provider";
 import type { ColumnDataType } from "../../types";
@@ -27,6 +19,14 @@ import type {
   ColumnsFilterConfig,
   FilterActions,
 } from "../../types/filter-types";
+import {
+  StackMenu,
+  StackMenuContent,
+  StackMenuItem,
+  StackMenuSection,
+  StackMenuView,
+  useStackMenu,
+} from "../../ui-custom/stack-menu";
 import { TableColumnsMenu } from "./sections/table-columns-menu";
 import { TableFiltersMenu } from "./sections/table-filters-menu";
 import { TableGroupingMenu } from "./sections/table-grouping-menu";

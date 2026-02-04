@@ -3,12 +3,12 @@
  * Replaces inefficient object traversal with flat Map cache
  */
 
+import type { DataTableUiStrings } from "../atoms/i18n-atoms";
+import { translationKeysMap } from "../atoms/i18n-atoms";
 import type {
   DataTableTranslations,
   TranslationParams,
 } from "../types/translations";
-import type { DataTableUiStrings } from "../atoms/i18n-atoms";
-import { translationKeysMap } from "../atoms/i18n-atoms";
 
 // Global cache for translations to avoid recalculation
 const translationCaches = new WeakMap<
@@ -109,7 +109,9 @@ export function resolveTranslationsToUiStrings(
 ): DataTableUiStrings {
   const cache = createTranslationCache(translations);
   const result = {} as DataTableUiStrings;
-  for (const key of Object.keys(translationKeysMap) as (keyof DataTableUiStrings)[]) {
+  for (const key of Object.keys(
+    translationKeysMap
+  ) as (keyof DataTableUiStrings)[]) {
     result[key] = cache.get(translationKeysMap[key]) ?? key;
   }
   return result;

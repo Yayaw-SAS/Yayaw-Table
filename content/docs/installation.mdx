@@ -16,7 +16,13 @@ The project ships a [Shadcn registry](https://ui.shadcn.com/docs/registry): all 
 From your project root:
 
 ```bash
-npx shadcn@latest add https://yayaw-table.vercel.app/r/yayaw-table.json
+npx shadcn@latest add https://table.yayaw.eu/r/yayaw-table.json
+```
+
+**With a configured registry:** if your project has the Yayaw registry in `components.json` (namespace `@yayaw`), you can run:
+
+```bash
+npx shadcn@latest add @yayaw/yayaw-table
 ```
 
 _(Replace the URL with your docs/deploy URL if you self-host; the registry is built in CI and served from `/r/`.)_

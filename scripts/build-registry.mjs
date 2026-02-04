@@ -9,6 +9,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+const REGEX_TSX_CSS = /\.(tsx?|css)$/;
+const REGEX_TSX_TS = /\.(tsx?|ts)$/;
+const REGEX_BACKSLASH = /\\/g;
+const REGEX_REGISTRY_PREFIX = /^registry\/default\/yayaw-table\//;
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 const REGISTRY_BLOCK = path.join(ROOT, "registry", "default", "yayaw-table");
@@ -23,7 +28,7 @@ function getAllFiles(dir, base = dir) {
     const full = path.join(dir, e.name);
     if (e.isDirectory()) {
       out.push(...getAllFiles(full, base));
-    } else if (e.isFile() && /\.(tsx?|css)$/.test(e.name)) {
+    } else if (e.isFile() && REGEX_TSX_CSS.test(e.name)) {
       out.push(path.relative(base, full));
     }
   }
@@ -46,9 +51,11 @@ function copyRecursive(src, dest) {
 function relativeImport(fromFileRel, toPathRel) {
   const fromDir = path.dirname(fromFileRel);
   let r = path.relative(fromDir, toPathRel);
-  r = r.replace(/\.(tsx?|ts)$/, "");
-  if (!r.startsWith(".")) r = "./" + r;
-  return r.replace(/\\/g, "/");
+  r = r.replace(REGEX_TSX_TS, "");
+  if (!r.startsWith(".")) {
+    r = `./${r}`;
+  }
+  return r.replace(REGEX_BACKSLASH, "/");
 }
 
 function transformContent(content, fileRel) {
@@ -58,7 +65,7 @@ function transformContent(content, fileRel) {
   out = out.replace(
     /from ["']@\/src\/data-table\/([^"']+)["']/g,
     (_, subPath) => {
-      const toPath = subPath.replace(/\.(tsx?|ts)$/, "");
+      const toPath = subPath.replace(REGEX_TSX_TS, "");
       return `from "${relativeImport(fileRel, toPath)}"`;
     }
   );
@@ -89,7 +96,10 @@ function transformContent(content, fileRel) {
 
   // In ui-custom/stack-menu only: ../../lib/utils -> @/lib/utils
   if (fileRel.startsWith("ui-custom/")) {
-    out = out.replace(/from ["']\.\.\/\.\.\/lib\/utils["']/g, 'from "@/lib/utils"');
+    out = out.replace(
+      /from ["']\.\.\/\.\.\/lib\/utils["']/g,
+      'from "@/lib/utils"'
+    );
   }
 
   // Relative path to components/ui/* (e.g. ../../../components/ui/skeleton) -> @/components/ui/*
@@ -102,18 +112,25 @@ function transformContent(content, fileRel) {
 }
 
 function getFileType(fileRel) {
-  const rel = fileRel.replace(/\\/g, "/");
-  if (rel.endsWith(".css")) return "registry:style";
-  if (rel.includes("/hooks/") && rel.endsWith(".ts")) return "registry:hook";
+  const rel = fileRel.replace(REGEX_BACKSLASH, "/");
+  if (rel.endsWith(".css")) {
+    return "registry:style";
+  }
+  if (rel.includes("/hooks/") && rel.endsWith(".ts")) {
+    return "registry:hook";
+  }
   if (
     (rel.includes("/atoms/") ||
       rel.includes("/config/") ||
       rel.includes("/types/") ||
       rel.includes("/utils/")) &&
     rel.endsWith(".ts")
-  )
+  ) {
     return "registry:lib";
-  if (rel.endsWith(".tsx") || rel.endsWith(".ts")) return "registry:component";
+  }
+  if (rel.endsWith(".tsx") || rel.endsWith(".ts")) {
+    return "registry:component";
+  }
   return "registry:file";
 }
 
@@ -147,21 +164,22 @@ for (const rel of allRels) {
 
 // 4) Build files array for registry (paths relative to project root for shadcn build)
 const registryPaths = allRels.map((rel) =>
-  path.join("registry", "default", "yayaw-table", rel).replace(/\\/g, "/")
+  path
+    .join("registry", "default", "yayaw-table", rel)
+    .replace(REGEX_BACKSLASH, "/")
 );
 
 const files = registryPaths.map((p) => ({
   path: p,
-  type: getFileType(
-    p.replace(/^registry\/default\/yayaw-table\//, "")
-  ),
+  type: getFileType(p.replace(REGEX_REGISTRY_PREFIX, "")),
 }));
 
 // 5) Update registry.json
 const registryPath = path.join(ROOT, "registry", "registry.json");
 const registry = JSON.parse(fs.readFileSync(registryPath, "utf8"));
 registry.items[0].files = files;
-fs.writeFileSync(registryPath, JSON.stringify(registry, null, 2) + "\n", "utf8");
-
-console.log("Registry built: %d files in registry/default/yayaw-table", allRels.length);
-console.log("Run: npx shadcn@latest build --output public/r (or your docs public path)");
+fs.writeFileSync(
+  registryPath,
+  `${JSON.stringify(registry, null, 2)}\n`,
+  "utf8"
+);
