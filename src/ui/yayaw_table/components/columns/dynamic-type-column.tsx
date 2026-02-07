@@ -97,7 +97,7 @@ export function createDynamicTypeColumn<TData>({
           }
 
           return { processedValue: value, valueType: cellValueType };
-        }, [info.getValue, info.row.getValue, typeKey]);
+        }, []);
 
         // Handle null, undefined, or NaN values - memoize this decision
         const isEmptyValue = useMemo(() => {
@@ -146,7 +146,7 @@ export function createDynamicTypeColumn<TData>({
                 );
             }
           },
-          [className]
+          []
         );
 
         // Memoize the content to render based on value type and empty state
@@ -173,7 +173,6 @@ export function createDynamicTypeColumn<TData>({
           renderEmptyValue,
           renderCustomContent,
           renderTypedContent,
-          customRenderers,
         ]);
 
         return content;

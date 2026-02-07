@@ -828,13 +828,7 @@ function ModernDataTable<
         ))}
       </TableHeader>
     );
-  }, [
-    table,
-    leafColumnIds,
-    tableId,
-    horizontalListSortingStrategy,
-    ColumnSortableContext,
-  ]);
+  }, [table, leafColumnIds, tableId, horizontalListSortingStrategy]);
 
   // Only show empty state if we have no data AND we shouldn't show table UI
   // This ensures we always show the table UI when using server-side operations
