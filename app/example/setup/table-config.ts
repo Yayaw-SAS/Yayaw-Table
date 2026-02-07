@@ -1,5 +1,13 @@
 import type { DataTableConfig } from "@/ui/yayaw_table/atoms/config-atoms";
-import { productActions } from "../data";
+import {
+  bulkCopy,
+  bulkDelete,
+  bulkUpdate,
+  createProduct,
+  deleteProduct,
+  listProducts,
+  updateProduct,
+} from "../actions/products";
 
 // Interface étendue pour inclure les colonnes
 interface ExtendedDataTableConfig extends DataTableConfig {
@@ -136,9 +144,17 @@ export const getTableConfig = (
   }
 };
 
-// Configuration des actions du tableau
+// Configuration des actions du tableau (Server Actions)
 export const getTableActions = (tableType: string) => {
   if (tableType === "products") {
-    return productActions;
+    return {
+      list: listProducts,
+      create: createProduct,
+      update: updateProduct,
+      delete: deleteProduct,
+      bulkDelete,
+      bulkCopy,
+      bulkUpdate,
+    };
   }
 };
