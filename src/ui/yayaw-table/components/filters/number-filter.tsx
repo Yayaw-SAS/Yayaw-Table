@@ -224,7 +224,11 @@ export function NumberFilter({
                       disabled={disabled}
                       max={max}
                       min={min}
-                      onValueChange={handleSliderChange}
+                      onValueChange={(value) =>
+                        handleSliderChange(
+                          Array.isArray(value) ? [...value] : [value as number]
+                        )
+                      }
                       step={step}
                       value={currentRangeValue}
                     />
@@ -258,7 +262,11 @@ export function NumberFilter({
                       disabled={disabled}
                       max={max}
                       min={min}
-                      onValueChange={handleSliderChange}
+                      onValueChange={(value) =>
+                        handleSliderChange(
+                          Array.isArray(value) ? [...value] : [value as number]
+                        )
+                      }
                       step={step}
                       value={[currentSingleValue || min]}
                     />

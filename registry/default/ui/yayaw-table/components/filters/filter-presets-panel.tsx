@@ -161,7 +161,7 @@ function PresetCard({
 
           {/* More actions menu */}
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+            <DropdownMenuTrigger>
               <Button
                 className="h-6 w-6 p-0 opacity-0 transition-opacity group-hover:opacity-100"
                 size="sm"
@@ -586,7 +586,7 @@ export function FilterPresetsPanel({
           </Button>
 
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+            <DropdownMenuTrigger>
               <Button size="sm" variant="outline">
                 <MoreHorizontal className="h-4 w-4" />
               </Button>

@@ -248,7 +248,7 @@ export function MultiOptionFilter({
               </div>
             ) : (
               <Popover onOpenChange={setIsOpen} open={isOpen}>
-                <PopoverTrigger asChild>
+                <PopoverTrigger>
                   <Button
                     aria-expanded={isOpen}
                     className="w-full justify-between"
@@ -474,7 +474,7 @@ export function CompactMultiOptionFilter({
   return (
     <div className="flex flex-col gap-1">
       <Popover onOpenChange={setIsOpen} open={isOpen}>
-        <PopoverTrigger asChild>
+        <PopoverTrigger>
           <Button
             className="h-6 max-w-32 justify-between px-2 font-normal text-xs"
             disabled={disabled}

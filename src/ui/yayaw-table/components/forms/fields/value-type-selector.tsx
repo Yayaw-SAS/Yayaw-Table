@@ -59,7 +59,9 @@ export function ValueTypeSelector({
       {description && <FormDescription>{description}</FormDescription>}
       <FormControl>
         <Select
-          onValueChange={handleValueTypeChange}
+          onValueChange={(value) =>
+            value != null ? handleValueTypeChange(value) : undefined
+          }
           value={String(field.value || "string")}
         >
           <SelectTrigger>

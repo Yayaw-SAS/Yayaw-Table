@@ -304,7 +304,9 @@ export function SelectWithAddNewField({
                 }
               }
             }}
-            onValueChange={handleSelectChange}
+            onValueChange={(value) =>
+              value != null ? handleSelectChange(value) : undefined
+            }
             value={
               (form.getValues()[name] as string) ||
               (field?.value as string) ||

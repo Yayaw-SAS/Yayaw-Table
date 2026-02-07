@@ -224,7 +224,7 @@ function FilterChip({
   const actionsBar = (
     <div className="flex shrink-0 items-center gap-0.5">
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+        <DropdownMenuTrigger>
           <Button
             aria-label="Filter options"
             className="h-7 w-7 rounded-md p-0 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
@@ -765,7 +765,7 @@ export function CompactFilterPanel({
         </div>
         <TooltipProvider>
           <Tooltip>
-            <TooltipTrigger asChild>
+            <TooltipTrigger>
               <Button
                 className="h-7 px-2 text-xs"
                 disabled={disabled}
@@ -814,7 +814,7 @@ export function CompactFilterPanel({
 
   return (
     <Popover onOpenChange={setIsExpanded} open={isExpanded}>
-      <PopoverTrigger asChild>
+      <PopoverTrigger>
         <Button
           className="h-7 gap-1"
           disabled={disabled}

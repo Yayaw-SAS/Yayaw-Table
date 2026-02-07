@@ -1,6 +1,6 @@
 {
   "$schema": "https://ui.shadcn.com/schema.json",
-  "style": "new-york",
+  "style": "base-vega",
   "rsc": false,
   "tsx": true,
   "tailwind": {
@@ -10,9 +10,7 @@
     "cssVariables": true,
     "prefix": ""
   },
-  "registries": {
-    "@yayaw": "https://table.yayaw.eu/r/{name}.json"
-  },
+  "registries": { "@yayaw": "https://table.yayaw.eu/r/{name}.json" },
   "aliases": {
     "components": "@/components",
     "utils": "@/lib/utils",

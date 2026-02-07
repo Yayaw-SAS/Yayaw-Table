@@ -266,7 +266,7 @@ export function OptionFilter({
               </div>
             ) : (
               <Popover onOpenChange={setIsOpen} open={isOpen}>
-                <PopoverTrigger asChild>
+                <PopoverTrigger>
                   <Button
                     aria-expanded={isOpen}
                     className="w-full justify-between"
@@ -495,7 +495,7 @@ export function CompactOptionFilter({
 
   return (
     <Popover onOpenChange={setIsOpen} open={isOpen}>
-      <PopoverTrigger asChild>
+      <PopoverTrigger>
         <Button
           className="h-6 max-w-32 justify-between px-2 font-normal text-xs"
           disabled={disabled}

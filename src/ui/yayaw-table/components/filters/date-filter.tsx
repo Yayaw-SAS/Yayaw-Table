@@ -185,7 +185,7 @@ export function DateFilter({
             </div>
           ) : (
             <Popover onOpenChange={setIsOpen} open={isOpen}>
-              <PopoverTrigger asChild>
+              <PopoverTrigger>
                 <Button
                   aria-expanded={isOpen}
                   className={cn(
@@ -344,7 +344,7 @@ export function CompactDateFilter({
 
   return (
     <Popover onOpenChange={setIsOpen} open={isOpen}>
-      <PopoverTrigger asChild>
+      <PopoverTrigger>
         <Button
           className={cn(
             "h-6 justify-start px-2 font-normal text-xs",

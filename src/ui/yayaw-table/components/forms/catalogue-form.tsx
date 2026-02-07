@@ -467,7 +467,7 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
           </div>
 
           <DrawerFooter className="flex-row justify-end gap-2 px-0">
-            <DrawerClose asChild>
+            <DrawerClose>
               <Button type="button" variant="outline">
                 {translations.cancel}
               </Button>

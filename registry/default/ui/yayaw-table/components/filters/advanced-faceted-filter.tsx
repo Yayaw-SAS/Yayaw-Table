@@ -648,7 +648,7 @@ export function AdvancedFacetedFilter({
   if (!isExpanded) {
     return (
       <Popover onOpenChange={setIsExpanded} open={isExpanded}>
-        <PopoverTrigger asChild>
+        <PopoverTrigger>
           <Button
             className={cn(
               "justify-between",
@@ -855,7 +855,7 @@ export function CompactFacetedFilter({
 
   return (
     <Popover onOpenChange={setIsOpen} open={isOpen}>
-      <PopoverTrigger asChild>
+      <PopoverTrigger>
         <Button
           className={cn("justify-between", className)}
           disabled={disabled}

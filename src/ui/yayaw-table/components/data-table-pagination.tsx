@@ -146,7 +146,9 @@ export function DataTablePagination<TData>({
           <Select
             defaultValue={pageSize.toString()}
             key={`ps-${pageSize}-mounted`}
-            onValueChange={handlePageSizeChange}
+            onValueChange={(value) =>
+              value != null && handlePageSizeChange(value)
+            }
           >
             <SelectTrigger className="h-8 w-[70px]">
               <SelectValue placeholder={pageSize} />

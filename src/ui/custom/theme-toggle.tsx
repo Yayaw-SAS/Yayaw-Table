@@ -74,7 +74,7 @@ function ThemeToggle({ className, variant = "dropdown" }: ThemeToggleProps) {
   return (
     <div className={cn("relative", className)}>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+        <DropdownMenuTrigger>
           <Button size="icon" type="button" variant="ghost">
             <Icon
               className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0"

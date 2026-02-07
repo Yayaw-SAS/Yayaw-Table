@@ -306,7 +306,7 @@ export function EnhancedFilterChip({
       ref={chipRef}
     >
       <Popover onOpenChange={handlePopoverChange} open={popoverOpen}>
-        <PopoverTrigger asChild>
+        <PopoverTrigger>
           <Button
             aria-label={`Filter: ${columnLabel} ${getOperatorText(filter.operator, filter.type)} ${displayValue}`}
             className={cn(

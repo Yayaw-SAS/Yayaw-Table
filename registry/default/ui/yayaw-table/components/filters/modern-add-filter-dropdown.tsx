@@ -286,7 +286,7 @@ export function ModernAddFilterDropdown({
 
   return (
     <Popover onOpenChange={handleOpenChange} open={isOpen}>
-      <PopoverTrigger asChild>
+      <PopoverTrigger>
         <Button
           className={cn(
             "transition-all duration-200",

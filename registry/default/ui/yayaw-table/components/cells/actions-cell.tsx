@@ -281,7 +281,7 @@ function ActionsCellBase<TData>({
   return (
     <div className="flex justify-end">
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+        <DropdownMenuTrigger>
           <Button
             aria-label="Open actions menu"
             className="h-8 w-8 p-0"

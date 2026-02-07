@@ -264,41 +264,10 @@ const StackMenu = forwardRef<HTMLDivElement, StackMenuProps>(
     if (asDropdown && trigger) {
       return (
         <DropdownMenu onOpenChange={handleOpenChange} open={isOpen}>
-          <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
+          <DropdownMenuTrigger>{trigger}</DropdownMenuTrigger>
           <DropdownMenuContent
             align={align}
             className="w-auto p-0"
-            onFocusOutside={(e) => {
-              const target = e.target as HTMLElement | null;
-              if (
-                target?.closest('[data-slot="popover-content"]') ||
-                target?.closest('[data-slot="dropdown-menu-content"]') ||
-                target?.closest('[data-slot="command-list"]')
-              ) {
-                e.preventDefault();
-              }
-            }}
-            onInteractOutside={(e) => {
-              const target = e.target as HTMLElement | null;
-              // Keep the menu open when interacting with nested popovers or dropdowns
-              if (
-                target?.closest('[data-slot="popover-content"]') ||
-                target?.closest('[data-slot="dropdown-menu-content"]') ||
-                target?.closest('[data-slot="command-list"]')
-              ) {
-                e.preventDefault();
-              }
-            }}
-            onPointerDownOutside={(e) => {
-              const target = e.target as HTMLElement | null;
-              if (
-                target?.closest('[data-slot="popover-content"]') ||
-                target?.closest('[data-slot="dropdown-menu-content"]') ||
-                target?.closest('[data-slot="command-list"]')
-              ) {
-                e.preventDefault();
-              }
-            }}
             sideOffset={sideOffset}
           >
             {menuContent}
