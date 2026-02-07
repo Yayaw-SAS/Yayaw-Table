@@ -35,12 +35,21 @@
         "tooltip"
       ],
       "dependencies": [
+        "@tanstack/react-query",
         "@tanstack/react-table",
         "class-variance-authority",
         "clsx",
+        "date-fns",
+        "framer-motion",
         "jotai",
+        "jotai-family",
         "lucide-react",
-        "tailwind-merge"
+        "motion",
+        "nuqs",
+        "react-hook-form",
+        "sonner",
+        "tailwind-merge",
+        "usehooks-ts"
       ],
       "files": [
         {
