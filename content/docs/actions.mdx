@@ -3,16 +3,16 @@ title: Actions Provider API
 description: Wire CRUD actions to the table via provider callbacks
 ---
 
-# Actions Provider API
+# Actions API
 
-Provide actions per `tableType` to connect your data layer.
+Provide actions per `tableType` via **getTableActions** (passed to `DataTable`). These connect the table to your data layer. In Next.js you can pass **Server Actions** so that list, create, update, delete, and bulk operations run on the server. See [Server-side & Server Actions](/docs/server-actions) for a full example.
 
 ## Shape
 
 ```ts
 getTableActions: (tableType: string) => ({
   list: async (params) => {
-    // params: { filters, advancedFilters, limit, orderBy, page }
+    // params: { filters, advancedFilters, limit, orderBy, page (1-based), search }
     return {
       data: [],
       meta: { pageCount: 1, totalCount: 0 },
@@ -22,6 +22,9 @@ getTableActions: (tableType: string) => ({
   update: async (id, data) => ({ success: true, data }),
   delete: async (id) => ({ success: true }),
   duplicate: async (id) => ({ success: true }),
+  bulkDelete: async (ids) => ({ success: true }),
+  bulkCopy: async (ids) => ({ success: true, data?: string }),
+  bulkUpdate: async (ids, updateData) => ({ success: true }),
 })
 ```
 
@@ -42,6 +45,8 @@ The `list` method must return:
 - `onBulkCopy` → `duplicate`
 
 See also:
+- [Provider & Setup](/docs/setup)
 - [DataTable props](/docs/datatable)
+- [Server-side & Server Actions](/docs/server-actions)
 - [Configuration](/docs/configuration)
 

@@ -1,5 +1,8 @@
 // @ts-nocheck
-import * as __fd_glob_7 from "../content/docs/translations.mdx?collection=docs"
+import * as __fd_glob_10 from "../content/docs/url-state.mdx?collection=docs"
+import * as __fd_glob_9 from "../content/docs/translations.mdx?collection=docs"
+import * as __fd_glob_8 from "../content/docs/setup.mdx?collection=docs"
+import * as __fd_glob_7 from "../content/docs/server-actions.mdx?collection=docs"
 import * as __fd_glob_6 from "../content/docs/installation.mdx?collection=docs"
 import * as __fd_glob_5 from "../content/docs/index.mdx?collection=docs"
 import * as __fd_glob_4 from "../content/docs/datatable.mdx?collection=docs"
@@ -15,4 +18,4 @@ const create = server<typeof Config, import("fumadocs-mdx/runtime/types").Intern
   }
 }>({"doc":{"passthroughs":["extractedReferences"]}});
 
-export const docs = await create.docs("docs", "content/docs", {"meta.json": __fd_glob_0, }, {"actions.mdx": __fd_glob_1, "columns.mdx": __fd_glob_2, "configuration.mdx": __fd_glob_3, "datatable.mdx": __fd_glob_4, "index.mdx": __fd_glob_5, "installation.mdx": __fd_glob_6, "translations.mdx": __fd_glob_7, });
+export const docs = await create.docs("docs", "content/docs", {"meta.json": __fd_glob_0, }, {"actions.mdx": __fd_glob_1, "columns.mdx": __fd_glob_2, "configuration.mdx": __fd_glob_3, "datatable.mdx": __fd_glob_4, "index.mdx": __fd_glob_5, "installation.mdx": __fd_glob_6, "server-actions.mdx": __fd_glob_7, "setup.mdx": __fd_glob_8, "translations.mdx": __fd_glob_9, "url-state.mdx": __fd_glob_10, });

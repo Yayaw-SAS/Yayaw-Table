@@ -5,24 +5,46 @@ description: Props and usage reference for the unified DataTable component
 
 # DataTable Reference
 
-The single entry-point component that composes provider, UI, and table logic. Import from `yayaw-table`.
+The single entry-point component: you pass config and actions as props; it composes the provider, UI, and table logic internally. Import from `yayaw-table` (or your Shadcn copy).
 
 ```tsx
 import { DataTable } from "yayaw-table";
 ```
+
+For a minimal working setup you need **tableType**, **getTableConfig**, and **getTableActions**. See [Provider & Setup](/docs/setup) for the full list and Next.js layout (NuqsAdapter, QueryClientProvider).
 
 ## Props
 
 List of available props for configuring `DataTable`.
 
 ### tableType
-The identifier of your table configuration.
+The identifier of your table. Used to resolve config and actions (e.g. `getTableConfig("products")`, `getTableActions("products")`).
 
 ```tsx
 <DataTable tableType="products" />
 ```
 
 Required: `true`
+
+### getTableConfig
+Function that returns table and column configuration for the given `tableType`. Required for the table to know columns, sort, visibility, and options. See [Configuration](/docs/configuration) and [Setup](/docs/setup).
+
+Type: `(tableType: string) => Config | undefined`
+
+### getTableActions
+Function that returns actions (list, create, update, delete, bulk, etc.) for the given `tableType`. **list** is required for server-driven data. Can be Server Actions in Next.js. See [Actions](/docs/actions) and [Server-side & Server Actions](/docs/server-actions).
+
+Type: `(tableType: string) => TableActions | undefined`
+
+### getFormConfig
+Function that returns form field definitions for create/edit and bulk edit dialogs. Optional but needed for forms.
+
+Type: `(formType: string) => FormConfig | undefined`
+
+### queryClient
+TanStack Query client instance. Optional; the table can create one if not provided. Recommended to pass one when using a single app-wide client.
+
+Type: `QueryClient`
 
 ### className
 Additional class names applied to the root wrapper.
@@ -80,8 +102,11 @@ Type: `Record<string, 'text' | 'number' | 'date' | 'option' | 'multiOption'>` | 
 ```
 
 See also:
+- [Provider & Setup](/docs/setup)
 - [Configuration](/docs/configuration)
 - [Columns](/docs/columns)
 - [Actions](/docs/actions)
+- [Server-side & Server Actions](/docs/server-actions)
+- [URL state (Nuqs)](/docs/url-state)
 - [Translations](/docs/translations)
 

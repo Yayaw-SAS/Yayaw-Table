@@ -1,29 +1,31 @@
 ---
 title: YaYaw Table Documentation
-description: Ultra-simple data table with zero boilerplate
+description: Flexible data table for React with URL state, Server Actions, and minimal boilerplate
 ---
 
 # YaYaw Table Documentation
 
-YaYaw Table is a flexible data table component library for React. **One component, clean API, minimal boilerplate.**
+YaYaw Table is a flexible data table component library for React. **One component, clean API:** pass `getTableConfig` and `getTableActions`, and the table handles URL state (Nuqs), server-side data, and CRUD/bulk actions.
 
 ## 🚀 Quick Start
 
-```bash
-npm install yayaw-table
-# or
-bun add yayaw-table
-```
-
-### Usage
+Install the package or use the [Shadcn registry](/docs/installation). Then wire config and actions to `DataTable`:
 
 ```tsx
-import { DataTable } from 'yayaw-table'
+import { DataTable } from "yayaw-table";
+import { getTableConfig, getTableActions } from "./table-config";
 
 export const MyTable = () => (
-  <DataTable tableType="products" />
-)
+  <DataTable
+    tableType="products"
+    getTableConfig={getTableConfig}
+    getTableActions={getTableActions}
+    title="Products"
+  />
+);
 ```
+
+You need at least **getTableConfig** (columns, table options) and **getTableActions** (e.g. **list** for data). For Next.js with URL state, add [NuqsAdapter](/docs/url-state) in your layout. See [Provider & Setup](/docs/setup) for the full picture.
 
 ## ✅ Benefits
 
@@ -68,20 +70,22 @@ Everything is available from the table toolbar:
 - Bulk actions menu (Edit, Delete, Duplicate)
 - Auto-generated edit forms for row/item editing
 
-## 📖 API Reference
+## 📖 Documentation
 
-Find complete references here:
-
-- [DataTable](/docs/datatable)
-- [Configuration](/docs/configuration)
-- [Columns](/docs/columns)
-- [Actions](/docs/actions)
-- [Translations](/docs/translations)
+- [Installation](/docs/installation) – Package or Shadcn registry, peer dependencies
+- [Provider & Setup](/docs/setup) – getTableConfig, getTableActions, getFormConfig, DataTable props
+- [DataTable](/docs/datatable) – Component props reference
+- [Configuration](/docs/configuration) – Table and column options
+- [Columns](/docs/columns) – Column types and definitions
+- [Actions](/docs/actions) – Actions API shape (list, create, update, delete, bulk)
+- [Server-side & Server Actions](/docs/server-actions) – Next.js Server Actions for list and CRUD
+- [URL state (Nuqs)](/docs/url-state) – Sort, filters, pagination in the URL
+- [Translations](/docs/translations) – Override UI strings
 
 ## 🎨 Customization
 
 The table uses Tailwind by default. You can customize classes via standard `className` props.
 
-## 🔗 Examples
+## 🔗 Example
 
-See `/example` for a complete example with mocked data and all features.
+See **/example** in this repo for a full example: Server Actions for list/create/update/delete/bulk, URL state (Nuqs), advanced filters, bulk edit, and Shadcn UI.

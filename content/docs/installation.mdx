@@ -64,16 +64,28 @@ pnpm add yayaw-table
 - `react` (^18 or ^19)
 - `react-dom` (^18 or ^19)
 - `@tanstack/react-table` (^8)
-- `jotai` (^2) [optional]
-- `@tanstack/react-query` (^5) [optional]
+- `@tanstack/react-query` (^5) – used for data fetching and cache
+- `nuqs` (^2) – used for URL state (sort, filters, pagination in the URL). For Next.js App Router use `nuqs/adapters/next/app` and add **NuqsAdapter** in your root layout; see [URL state (Nuqs)](/docs/url-state).
+- `jotai` (^2) [optional] – used internally for some UI state
 
 ### First usage
 
+You must pass at least **getTableConfig** and **getTableActions** so the table has columns and a data source. Example:
+
 ```tsx
 import { DataTable } from "yayaw-table";
+import { getTableConfig, getTableActions } from "./table-config";
 
-export const MyTable = () => <DataTable tableType="products" />;
+export const MyTable = () => (
+  <DataTable
+    tableType="products"
+    getTableConfig={getTableConfig}
+    getTableActions={getTableActions}
+  />
+);
 ```
+
+For Next.js with URL state, add **NuqsAdapter** in `app/layout.tsx` and optionally **QueryClientProvider**. See [Provider & Setup](/docs/setup) and [URL state (Nuqs)](/docs/url-state).
 
 ## CSS / Tailwind
 

@@ -1,0 +1,80 @@
+---
+title: URL State (Nuqs)
+description: Sort, filters, pagination and column state in the URL with Nuqs
+---
+
+# URL State (Nuqs)
+
+The table keeps **sort, filters, pagination, column visibility, grouping, and pinning** in the URL using [Nuqs](https://nuqs.io). That gives:
+
+- **Shareable links** – Send a link and the recipient sees the same view (same sort, filters, page).
+- **Back/forward** – Browser history reflects table state.
+- **SSR-friendly** – The same URL can be used for server-side rendering or prefetching.
+
+## Setup (Next.js App Router)
+
+1. Install **nuqs**:
+
+```bash
+bun add nuqs
+# or npm install nuqs
+```
+
+2. Add **NuqsAdapter** in your root layout:
+
+```tsx
+// app/layout.tsx
+import { NuqsAdapter } from "nuqs/adapters/next/app";
+
+export default function Layout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        <NuqsAdapter>
+          {children}
+        </NuqsAdapter>
+      </body>
+    </html>
+  );
+}
+```
+
+No other configuration is required; the table uses Nuqs internally.
+
+## What is stored in the URL
+
+Query params are prefixed by **table id** (your `tableType`, e.g. `products`). Typical names:
+
+| Param | Example | Description |
+|-------|---------|-------------|
+| `{tableId}-sort` | `products-sort` | Sort state (array of `{ id, desc }`). |
+| `{tableId}-filters` | `products-filters` | Column filters. |
+| `{tableId}-advancedFilters` | `products-advancedFilters` | Advanced filter rules. |
+| `{tableId}-q` | `products-q` | Global search. |
+| `{tableId}-page` | `products-page` | 0-based page index. |
+| `{tableId}-pageSize` | `products-pageSize` | Page size. |
+| `{tableId}-visibility` | `products-visibility` | Column visibility (object). |
+| `{tableId}-order` | `products-order` | Column order. |
+| `{tableId}-grouping` | `products-grouping` | Grouping column ids. |
+| `{tableId}-pinning` | `products-pinning` | Pinned columns (left/right). |
+
+Values are JSON-encoded or plain strings. The table reads and writes these via Nuqs; you don’t need to read them yourself unless you want to use them on the server (e.g. for SSR).
+
+## Sharing and reset
+
+- **Copy link** – The toolbar can offer “Copy link” / “Share” using the current URL (all table params are already in it).
+- **Reset** – Resetting the table state clears these params (or restores defaults), so the URL is updated accordingly.
+
+## Server-side use of URL state
+
+If you render the table on the server (e.g. in a Server Component), you can read the same params from `searchParams` and pass initial data or use them in your Server Action. The client will hydrate with the same URL and Nuqs will stay in sync.
+
+## Dependencies
+
+- **nuqs** – Required for URL state. The table uses `useQueryState` and custom parsers.
+- **Next.js** – Use `nuqs/adapters/next/app` for the App Router.
+
+See also:
+- [Provider & Setup](/docs/setup)
+- [Server-side & Server Actions](/docs/server-actions)
+- [Nuqs documentation](https://nuqs.io)

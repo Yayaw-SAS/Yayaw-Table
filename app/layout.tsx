@@ -31,4 +31,8 @@ export const metadata = {
   title: "YaYaw Table Documentation",
   description:
     "A flexible data table component library for React with user-defined configurations",
+  icons: {
+    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/apple-touch-icon.png" }],
+  },
 };

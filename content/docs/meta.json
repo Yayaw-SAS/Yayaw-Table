@@ -1,12 +1,1 @@
-{
-  "title": "Documentation",
-  "pages": [
-    "index",
-    "installation",
-    "datatable",
-    "configuration",
-    "columns",
-    "actions",
-    "translations"
-  ]
-}
+{"title":"Documentation","pages":["index","installation","setup","datatable","configuration","columns","actions","server-actions","url-state","translations"]}

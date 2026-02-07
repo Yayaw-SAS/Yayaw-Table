@@ -1,0 +1,138 @@
+---
+title: Provider & Setup
+description: TableProvider, getTableConfig, getTableActions, getFormConfig and minimal setup
+---
+
+# Provider & Setup
+
+The table uses a **single entry point**: the `DataTable` component. You pass configuration and actions as props; `DataTable` wraps everything in `TableProvider` internally. No need to import `TableProvider` unless you want to nest multiple tables or share one provider across several tables.
+
+## Minimal setup
+
+You need at least:
+
+1. **Table configuration** – `getTableConfig(tableType)` returning columns, table options, translations keys.
+2. **Table actions** – `getTableActions(tableType)` returning `list`, and optionally `create`, `update`, `delete`, `duplicate`, `bulkDelete`, `bulkCopy`, `bulkUpdate`.
+
+Pass them to `DataTable`:
+
+```tsx
+import { DataTable } from "yayaw-table";
+import { getTableConfig, getTableActions } from "./table-config";
+
+export function ProductsPage() {
+  return (
+    <DataTable
+      tableType="products"
+      getTableConfig={getTableConfig}
+      getTableActions={getTableActions}
+      title="Products"
+    />
+  );
+}
+```
+
+## Full props (single entry point)
+
+All of these are optional except `tableType`. They are passed through to the internal provider.
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `tableType` | `string` | **Required.** Identifier for this table (e.g. `"products"`). Used to resolve config and actions. |
+| `getTableConfig` | `(tableType: string) => Config \| undefined` | Returns columns, table options, default sort, visibility, translations keys. |
+| `getTableActions` | `(tableType: string) => TableActions \| undefined` | Returns `list`, `create`, `update`, `delete`, `duplicate`, `bulkDelete`, `bulkCopy`, `bulkUpdate`. |
+| `getFormConfig` | `(formType: string) => FormConfig \| undefined` | Returns form field definitions for create/edit and bulk edit. |
+| `translations` | `DataTableTranslations` | Override default UI strings. |
+| `locale` | `string` | Locale for translations (default `"en"`). |
+| `queryClient` | `QueryClient` | TanStack Query client. Create one if not provided (e.g. `new QueryClient()`). |
+| `title` | `string` | Table title above the toolbar. |
+| `description` | `string` | Short description under the title. |
+| `enableToolbar` | `boolean` | Show toolbar with filters, sort, columns, etc. (default `true`). |
+| `enableAdvancedFilters` | `boolean` | Enable advanced filters panel (default `false`). |
+| `columnTypeMapping` | `Record<string, 'text' \| 'number' \| 'date' \| 'option' \| 'multiOption'>` | Map backend types to filter/column types. |
+| `onBulkEdit`, `onBulkDelete`, `onBulkCopy` | `(rows) => void` | Override bulk behavior; otherwise provider actions are used. |
+| `loadingOverlay` | `ReactNode` | Custom loading UI. |
+| `TitleComponent`, `DescriptionComponent` | `ComponentType` | Custom title/description components. |
+
+## getTableConfig
+
+Return value must include at least:
+
+- **table** – `enableRowSelection`, `enableSorting`, `enableColumnFilters`, `manualFiltering`, `manualPagination`, `manualSorting`, `defaultPageSize`, `pageSizeOptions`, etc.
+- **columns** – `definitions` (array of `{ id, type, header, enableSorting?, enableColumnFilter? }`), `order`, `visible`, `mandatory`, `sort`.
+- **translations** (optional) – `namespace`, `keys` for title/description.
+
+See [Configuration](/docs/configuration) and [Columns](/docs/columns) for full options.
+
+## getTableActions
+
+Return an object with methods keyed by action name. The table calls these when the user sorts, filters, paginates, or runs CRUD/bulk actions.
+
+- **list** – **Required** for server-driven data. Signature: `(params) => Promise<{ data, meta: { pageCount, totalCount } }>`. Params include `filters`, `advancedFilters`, `limit`, `page` (1-based), `orderBy`, `search`.
+- **create**, **update**, **delete**, **duplicate** – Optional; used for row actions and default bulk behavior.
+- **bulkDelete**, **bulkCopy**, **bulkUpdate** – Optional; used when user runs bulk actions.
+
+See [Actions](/docs/actions) and [Server-side & Server Actions](/docs/server-actions).
+
+## getFormConfig
+
+Return form configuration per form type (e.g. `"products"`, `"products-bulk"`). Used to build create/edit dialogs and bulk edit. Shape: fields array with `name`, `type`, `label`, `required`, etc. See your codebase or the example app `form-config` for the full type.
+
+## Next.js layout (Nuqs)
+
+If you use **URL state** (sort, filters, pagination in the URL) with [Nuqs](https://nuqs.io), add `NuqsAdapter` in your root layout:
+
+```tsx
+// app/layout.tsx
+import { NuqsAdapter } from "nuqs/adapters/next/app";
+
+export default function Layout({ children }) {
+  return (
+    <html lang="en">
+      <body>
+        <NuqsAdapter>
+          {children}
+        </NuqsAdapter>
+      </body>
+    </html>
+  );
+}
+```
+
+And wrap the page that uses the table with `QueryClientProvider` if you don't have one at the app level:
+
+```tsx
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+const queryClient = new QueryClient();
+
+export default function Page() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <DataTable
+        tableType="products"
+        getTableConfig={getTableConfig}
+        getTableActions={getTableActions}
+        getFormConfig={getFormConfig}
+        queryClient={queryClient}
+      />
+    </QueryClientProvider>
+  );
+}
+```
+
+See [URL state (Nuqs)](/docs/url-state) for what is stored in the URL.
+
+## Summary
+
+- **DataTable** is the single component; pass `getTableConfig`, `getTableActions`, `getFormConfig`, `queryClient`, etc. as props.
+- **getTableConfig** and **getTableActions** are required for a working table (config drives columns and options; actions drive data and CRUD).
+- **getFormConfig** is needed for create/edit and bulk edit forms.
+- In Next.js, add **NuqsAdapter** in the layout if you use URL state, and **QueryClientProvider** where you render the table (or at app level).
+
+See also:
+- [Configuration](/docs/configuration)
+- [Columns](/docs/columns)
+- [Actions](/docs/actions)
+- [Server-side & Server Actions](/docs/server-actions)
+- [URL state (Nuqs)](/docs/url-state)

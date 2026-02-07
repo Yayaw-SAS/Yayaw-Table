@@ -1,0 +1,179 @@
+---
+title: Server-side & Server Actions
+description: Using Server Actions for list, create, update, delete and bulk operations
+---
+
+# Server-side & Server Actions
+
+The table is designed to work with **server-side** data: sorting, filtering, and pagination are sent to your backend, and CRUD/bulk operations run on the server. In Next.js, the recommended way to do this is with **Server Actions**.
+
+## How it works
+
+1. **State in the URL** – Sort, filters, pagination, and column visibility are stored in the URL (via [Nuqs](/docs/url-state)). The client reads these and calls your data layer with the same parameters.
+2. **getTableActions(tableType)** – You return an object whose methods are your **Server Actions** (or any async functions that call your API).
+3. **list(params)** – Called with `{ filters, advancedFilters, limit, page (1-based), orderBy, search }`. Your action runs on the server and returns `{ data, meta: { pageCount, totalCount } }`.
+4. **create, update, delete, duplicate, bulkDelete, bulkCopy, bulkUpdate** – Same pattern: the table calls the function you provide; you implement it as a Server Action or API call.
+
+So the **library** does not fetch data itself; it calls whatever you pass in `getTableActions`. If that is Server Actions, everything runs on the server.
+
+## Next.js Server Actions example
+
+### 1. Server module (optional but recommended)
+
+Keep your data logic in a server-only module (e.g. `lib/products-server.ts`): list with filter/sort/paginate, create, update, delete, bulk operations. This file must only be imported from Server Actions or other server code.
+
+```ts
+// app/example/lib/products-server.ts
+import { products as initialProducts } from "../data";
+
+const productsStore = [...initialProducts];
+
+export async function listProducts(params: {
+  page?: number;
+  limit?: number;
+  filters?: Record<string, unknown>;
+  advancedFilters?: unknown[];
+  orderBy?: Record<string, "asc" | "desc">;
+  search?: string;
+}) {
+  const { page = 1, limit = 10, filters = {}, orderBy = {}, search = "" } = params;
+  // Filter, sort, paginate productsStore...
+  return { data: pageData, meta: { pageCount, totalCount } };
+}
+
+export async function createProduct(data: Record<string, unknown>) {
+  // Insert into productsStore or DB
+  return { success: true, data: newProduct };
+}
+
+export async function updateProduct(id: string, data: Record<string, unknown>) {
+  // Update and return
+  return { success: true, data: updated };
+}
+
+export async function deleteProduct(id: string) {
+  return { success: true };
+}
+
+export async function bulkDeleteProducts(ids: string[]) { /* ... */ }
+export async function bulkCopyProducts(ids: string[]) { /* ... */ }
+export async function bulkUpdateProducts(ids: string[], updateData: unknown) { /* ... */ }
+```
+
+### 2. Server Actions file
+
+Create a file with `"use server"` that re-exposes these functions (or calls your API). These are what you pass to the table.
+
+```ts
+// app/example/actions/products.ts
+"use server";
+
+import {
+  listProducts as listProductsImpl,
+  createProduct as createProductImpl,
+  updateProduct as updateProductImpl,
+  deleteProduct as deleteProductImpl,
+  bulkDeleteProducts,
+  bulkCopyProducts,
+  bulkUpdateProducts,
+} from "../lib/products-server";
+
+export async function listProducts(params: Parameters<typeof listProductsImpl>[0]) {
+  return await listProductsImpl(params);
+}
+
+export async function createProduct(data: Record<string, unknown>) {
+  return await createProductImpl(data);
+}
+
+export async function updateProduct(id: string, data: Record<string, unknown>) {
+  return await updateProductImpl(id, data);
+}
+
+export async function deleteProduct(id: string) {
+  return await deleteProductImpl(id);
+}
+
+export async function bulkDelete(ids: string[]) {
+  return await bulkDeleteProducts(ids);
+}
+
+export async function bulkCopy(ids: string[]) {
+  return await bulkCopyProducts(ids);
+}
+
+export async function bulkUpdate(ids: string[], updateData: unknown) {
+  return await bulkUpdateProducts(ids, updateData);
+}
+```
+
+### 3. Wire actions to the table
+
+In your table config, return these Server Actions from `getTableActions`:
+
+```ts
+// app/example/setup/table-config.ts
+import {
+  listProducts,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  bulkDelete,
+  bulkCopy,
+  bulkUpdate,
+} from "../actions/products";
+
+export const getTableActions = (tableType: string) => {
+  if (tableType === "products") {
+    return {
+      list: listProducts,
+      create: createProduct,
+      update: updateProduct,
+      delete: deleteProduct,
+      bulkDelete,
+      bulkCopy,
+      bulkUpdate,
+    };
+  }
+};
+```
+
+When the table needs data or runs an action, it will call these functions. In Next.js they run on the server; params and return values are serialized automatically.
+
+## list params shape
+
+The **list** action receives a single object with:
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `page` | `number` | 1-based page index. |
+| `limit` | `number` | Page size. |
+| `filters` | `Record<string, unknown>` | Column filters (key = column id, value = filter value). |
+| `advancedFilters` | `array` | Advanced filter rules (columnId, operator, values, type, isActive). |
+| `orderBy` | `Record<string, "asc" \| "desc">` | Sort by field; only first key is used for single-column sort. |
+| `search` | `string` | Global search term. |
+
+Return:
+
+```ts
+{ data: T[]; meta?: { pageCount?: number; totalCount?: number } }
+```
+
+## Manual mode
+
+Set these to `true` in your table config so the table does not filter/sort/paginate on the client; it only sends params to your **list** action:
+
+- `manualFiltering: true`
+- `manualPagination: true`
+- `manualSorting: true`
+
+See [Configuration](/docs/configuration).
+
+## Example app
+
+The `/example` route in this repo uses the pattern above: Server Actions in `app/example/actions/products.ts`, server logic in `app/example/lib/products-server.ts`, and `getTableActions` returning those actions. You can copy and adapt it for your app.
+
+See also:
+- [Provider & Setup](/docs/setup)
+- [Actions](/docs/actions)
+- [URL state (Nuqs)](/docs/url-state)

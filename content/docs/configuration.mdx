@@ -47,17 +47,17 @@ Enable grouping UI and grouped row rendering when column types allow it.
 Type: `boolean` | Default: `true`
 
 ### manualFiltering
-Delegate filtering to your backend.
+When `true`, filtering is delegated to your backend: the table sends filter params to your **list** action and does not filter client-side. Use with **getTableActions** returning a **list** that accepts `filters` and `advancedFilters`. See [Server-side & Server Actions](/docs/server-actions).
 
 Type: `boolean` | Default: `false`
 
 ### manualPagination
-Delegate pagination to your backend.
+When `true`, pagination is delegated to your backend: the table sends `page` and `limit` to your **list** action. See [Server-side & Server Actions](/docs/server-actions).
 
 Type: `boolean` | Default: `false`
 
 ### manualSorting
-Delegate sorting to your backend.
+When `true`, sorting is delegated to your backend: the table sends `orderBy` to your **list** action. See [Server-side & Server Actions](/docs/server-actions).
 
 Type: `boolean` | Default: `false`
 
@@ -87,7 +87,9 @@ Allowed page size values.
 Type: `number[]` | Default: `[5, 10, 20, 50]`
 
 See also:
+- [Provider & Setup](/docs/setup)
 - [DataTable](/docs/datatable)
 - [Columns](/docs/columns)
 - [Actions](/docs/actions)
+- [Server-side & Server Actions](/docs/server-actions)
 
