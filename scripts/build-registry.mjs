@@ -1,7 +1,7 @@
 /**
  * Builds the Shadcn registry: copies src/ui/yayaw_table + ui-custom (from src/ui/custom)
- * into registry/default/yayaw-table, fixes imports for registry distribution,
- * and updates registry.json files array.
+ * into registry/default/ui/yayaw-table. Paths use the "ui" segment so the CLI installs
+ * under the project's ui folder (e.g. ui/yayaw-table/).
  *
  * Run from repo root: node scripts/build-registry.mjs
  */
@@ -12,14 +12,20 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
-const REGISTRY_BLOCK = path.join(ROOT, "registry", "default", "yayaw-table");
+const REGISTRY_BLOCK = path.join(
+  ROOT,
+  "registry",
+  "default",
+  "ui",
+  "yayaw-table"
+);
 const SRC_YAYAW_TABLE = path.join(ROOT, "src", "ui", "yayaw_table");
 const SRC_UI_CUSTOM = path.join(ROOT, "src", "ui", "custom");
 const UI_CUSTOM_FILES = ["loader.tsx", "icon.tsx", "stack-menu.tsx"];
 
 const REGEX_TSX_CSS = /\.(tsx?|css)$/;
 const REGEX_TS_EXT = /\.(tsx?|ts)$/;
-const REGEX_REGISTRY_PREFIX = /^registry\/default\/yayaw-table\//;
+const REGEX_REGISTRY_PREFIX = /^registry\/default\/ui\/yayaw-table\//;
 
 function getAllFiles(dir, base = dir) {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -145,7 +151,7 @@ function getFileType(fileRel) {
 
 // --- main ---
 
-// 1) Clean and copy data-table
+// 1) Clean and copy data-table (under ui/ so CLI installs to ui/yayaw-table/)
 if (fs.existsSync(REGISTRY_BLOCK)) {
   fs.rmSync(REGISTRY_BLOCK, { recursive: true });
 }
@@ -171,9 +177,9 @@ for (const rel of allRels) {
   fs.writeFileSync(full, content, "utf8");
 }
 
-// 4) Build files array for registry (paths relative to project root for shadcn build)
+// 4) Build files array for registry (ui/ prefix → CLI installs to ui/yayaw-table/)
 const registryPaths = allRels.map((rel) =>
-  path.join("registry", "default", "yayaw-table", rel).replace(/\\/g, "/")
+  path.join("registry", "default", "ui", "yayaw-table", rel).replace(/\\/g, "/")
 );
 
 const files = registryPaths.map((p) => ({
