@@ -90,10 +90,10 @@ function transformContent(content, fileRel) {
     (_, name) => `from "${relativeImport(fileRel, `ui-custom/${name}`)}"`
   );
 
-  // @/src/components/ui/* or @/ui/shadcn/* -> @/ui/shadcn/* (canonical for registry)
+  // @/src/components/ui/* or @/ui/shadcn/* -> @/components/ui/* (standard shadcn alias for registry)
   out = out.replace(
     /from ["']@\/(?:src\/components\/ui|ui\/shadcn)\/([^"']+)["']/g,
-    (_, name) => `from "@/ui/shadcn/${name}"`
+    (_, name) => `from "@/components/ui/${name}"`
   );
 
   // @/ui/custom/loader -> relative
@@ -116,10 +116,10 @@ function transformContent(content, fileRel) {
     );
   }
 
-  // Relative path to components/ui/* or ui/shadcn/* -> @/ui/shadcn/*
+  // Relative path to components/ui/* or ui/shadcn/* -> @/components/ui/*
   out = out.replace(
     /from ["'](\.\.\/)+(?:components\/ui|ui\/shadcn)\/([^"']+)["']/g,
-    (_, _back, name) => `from "@/ui/shadcn/${name}"`
+    (_, _back, name) => `from "@/components/ui/${name}"`
   );
 
   return out;

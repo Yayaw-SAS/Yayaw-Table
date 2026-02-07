@@ -7,15 +7,15 @@ import { useQuery } from "@tanstack/react-query";
 import { Plus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
-import { Button } from "@/ui/shadcn/button";
+import { Button } from "@/components/ui/button";
 import {
   FormControl,
   FormDescription,
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/ui/shadcn/form";
-import { Input } from "@/ui/shadcn/input";
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -24,7 +24,7 @@ import {
   SelectSeparator,
   SelectTrigger,
   SelectValue,
-} from "@/ui/shadcn/select";
+} from "@/components/ui/select";
 import { useTranslations } from "../../../providers/table-provider";
 
 export interface SelectWithAddNewFieldProps {

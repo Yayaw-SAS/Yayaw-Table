@@ -18,7 +18,7 @@ import {
   StackMenuView,
   useStackMenu,
 } from "../../ui-custom/stack-menu";
-import { Button } from "@/ui/shadcn/button";
+import { Button } from "@/components/ui/button";
 import { useTableUrlState } from "../../hooks/use-table-url-state";
 import { useTranslations } from "../../providers/table-provider";
 import type { ColumnDataType } from "../../types";

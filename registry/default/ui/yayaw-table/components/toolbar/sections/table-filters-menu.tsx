@@ -4,8 +4,8 @@ import type { ColumnFiltersState } from "@tanstack/react-table";
 import { Filter, X } from "lucide-react";
 import { useEffect } from "react";
 import { StackMenuContent, StackMenuView } from "../../../ui-custom/stack-menu";
-import { Button } from "@/ui/shadcn/button";
-import { Separator } from "@/ui/shadcn/separator";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { useTranslations } from "../../../providers/table-provider";
 import type {
   AdvancedFiltersState,

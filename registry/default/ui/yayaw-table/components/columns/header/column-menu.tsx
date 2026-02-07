@@ -23,7 +23,7 @@ import {
   useState,
 } from "react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/ui/shadcn/button";
+import { Button } from "@/components/ui/button";
 import { columnDragEnabledAtom } from "../../../atoms/table-atoms";
 import { useDataTable } from "../../../hooks/use-data-table";
 import { useOnClickOutside } from "../../../hooks/use-on-click-outside";

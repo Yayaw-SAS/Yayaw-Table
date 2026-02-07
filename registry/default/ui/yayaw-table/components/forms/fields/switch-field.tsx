@@ -1,8 +1,8 @@
 "use client";
 
 import type { UseFormReturn } from "react-hook-form";
-import { FormControl, FormField, FormItem, FormLabel } from "@/ui/shadcn/form";
-import { Switch } from "@/ui/shadcn/switch";
+import { FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { Switch } from "@/components/ui/switch";
 import { useTranslations } from "../../../providers/table-provider";
 
 import type { CheckboxFieldDefinition } from "../types";

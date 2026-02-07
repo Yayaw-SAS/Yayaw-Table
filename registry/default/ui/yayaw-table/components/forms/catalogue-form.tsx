@@ -17,7 +17,7 @@ import type {
   UseFormReturn,
 } from "react-hook-form";
 import { toast } from "sonner";
-import { Button } from "@/ui/shadcn/button";
+import { Button } from "@/components/ui/button";
 import {
   Drawer,
   DrawerClose,
@@ -26,7 +26,7 @@ import {
   DrawerFooter,
   DrawerHeader,
   DrawerTitle,
-} from "@/ui/shadcn/drawer";
+} from "@/components/ui/drawer";
 
 import {
   type CatalogueFormState,

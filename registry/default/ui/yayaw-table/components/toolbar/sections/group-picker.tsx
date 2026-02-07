@@ -2,8 +2,8 @@
 
 import { ArrowDown, ArrowUp, Minus, Plus } from "lucide-react";
 import { useMemo } from "react";
-import { Button } from "@/ui/shadcn/button";
-import { Separator } from "@/ui/shadcn/separator";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { useTranslations } from "../../../providers/table-provider";
 import { ColumnIcon } from "../../../utils/column-icons";
 

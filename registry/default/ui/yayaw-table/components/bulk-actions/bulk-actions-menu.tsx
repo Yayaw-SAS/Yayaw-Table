@@ -19,8 +19,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/ui/shadcn/alert-dialog";
-import { Button } from "@/ui/shadcn/button";
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import { useTranslations } from "../../providers/table-provider";
 
 /**

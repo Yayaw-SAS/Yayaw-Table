@@ -19,7 +19,7 @@
         "dialog",
         "drawer",
         "dropdown-menu",
-        "form",
+        "field",
         "input",
         "label",
         "popover",
@@ -46,7 +46,8 @@
         "lucide-react",
         "motion",
         "nuqs",
-        "react-hook-form",
+        "@tanstack/react-form",
+        "@tanstack/zod-form-adapter",
         "sonner",
         "tailwind-merge",
         "usehooks-ts"

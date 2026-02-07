@@ -7,10 +7,10 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/ui/shadcn/form";
-import { Input } from "@/ui/shadcn/input";
-import { Switch } from "@/ui/shadcn/switch";
-import { Textarea } from "@/ui/shadcn/textarea";
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { useTranslations } from "../../../providers/table-provider";
 
 import type { TranslationConfig } from "../atoms";

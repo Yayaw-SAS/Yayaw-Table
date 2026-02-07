@@ -8,8 +8,8 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/ui/shadcn/form";
-import { Input } from "@/ui/shadcn/input";
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { useTranslations } from "../../../providers/table-provider";
 
 import type { NumberFieldDefinition } from "../types";

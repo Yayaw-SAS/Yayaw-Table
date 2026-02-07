@@ -6,7 +6,7 @@
 
 import type { CellContext, ColumnDef } from "@tanstack/react-table";
 import { Asterisk, type LucideIcon } from "lucide-react";
-import { Button } from "@/ui/shadcn/button";
+import { Button } from "@/components/ui/button";
 import { StringCell } from "../cells/string-cell";
 
 /**

@@ -21,14 +21,14 @@ import {
 } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/ui/shadcn/badge";
-import { Button } from "@/ui/shadcn/button";
-import { Checkbox } from "@/ui/shadcn/checkbox";
-import { Collapsible, CollapsibleContent } from "@/ui/shadcn/collapsible";
-import { Input } from "@/ui/shadcn/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/ui/shadcn/popover";
-import { ScrollArea } from "@/ui/shadcn/scroll-area";
-import { Separator } from "@/ui/shadcn/separator";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 
 import type {
   AdvancedColumnFilterConfig,

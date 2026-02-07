@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/ui/shadcn/button";
+import { Button } from "@/components/ui/button";
 import { useTableTranslations } from "../hooks";
 
 interface SafePaginationProps<TData> {

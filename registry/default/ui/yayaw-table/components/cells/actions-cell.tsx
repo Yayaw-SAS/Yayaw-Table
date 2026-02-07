@@ -12,7 +12,7 @@ import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Icon } from "../../ui-custom/icon";
-import { Button } from "@/ui/shadcn/button";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,7 +20,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/ui/shadcn/dropdown-menu";
+} from "@/components/ui/dropdown-menu";
 import { useTranslations } from "../../providers/table-provider";
 
 import type { ActionItem } from "../columns/actions-column";

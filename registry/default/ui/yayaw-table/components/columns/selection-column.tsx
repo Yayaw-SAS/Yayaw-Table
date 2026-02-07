@@ -6,7 +6,7 @@
 
 import type { ColumnDef, Row, Table } from "@tanstack/react-table";
 import { useState } from "react";
-import { Checkbox } from "@/ui/shadcn/checkbox";
+import { Checkbox } from "@/components/ui/checkbox";
 import { SelectionCell } from "../cells/selection-cell";
 
 /**

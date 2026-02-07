@@ -1,7 +1,7 @@
 import { Search, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Button } from "@/ui/shadcn/button";
-import { Input } from "@/ui/shadcn/input";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useTableUrlState } from "../../../hooks/use-table-url-state";
 import { useTranslations } from "../../../providers/table-provider";
 

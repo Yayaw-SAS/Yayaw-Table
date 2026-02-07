@@ -18,7 +18,7 @@ import type {
 import { useSetAtom } from "jotai";
 import { PlusIcon } from "lucide-react";
 import { useCallback, useMemo } from "react";
-import { Button } from "@/ui/shadcn/button";
+import { Button } from "@/components/ui/button";
 import { useDataTable } from "../../hooks/use-data-table";
 import {
   useColumnsFilterConfig,

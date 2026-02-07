@@ -7,14 +7,14 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/ui/shadcn/form";
+} from "@/components/ui/form";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/ui/shadcn/select";
+} from "@/components/ui/select";
 import { useTranslations } from "../../../providers/table-provider";
 
 import type { ValueType } from "./value-type-field";

@@ -36,9 +36,9 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/ui/shadcn/alert-dialog";
-import { Badge } from "@/ui/shadcn/badge";
-import { Button } from "@/ui/shadcn/button";
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -46,19 +46,19 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/ui/shadcn/dialog";
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/ui/shadcn/dropdown-menu";
-import { Input } from "@/ui/shadcn/input";
-import { Label } from "@/ui/shadcn/label";
-import { ScrollArea } from "@/ui/shadcn/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/ui/shadcn/tabs";
-import { Textarea } from "@/ui/shadcn/textarea";
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import type { UseFilterPresetsReturn } from "../../hooks/use-filter-presets";
 import type {
   AdvancedFilterState,

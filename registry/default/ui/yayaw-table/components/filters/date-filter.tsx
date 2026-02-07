@@ -8,17 +8,17 @@ import { format } from "date-fns";
 import { CalendarIcon, ChevronDown } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/ui/shadcn/button";
-import { Calendar } from "@/ui/shadcn/calendar";
-import { Label } from "@/ui/shadcn/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@/ui/shadcn/popover";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/ui/shadcn/select";
+} from "@/components/ui/select";
 import { useTranslations } from "../../providers/table-provider";
 import type { FilterOperators } from "../../types/filter-types";
 import {

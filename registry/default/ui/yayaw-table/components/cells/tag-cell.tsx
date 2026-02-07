@@ -6,7 +6,7 @@
 
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/ui/shadcn/badge";
+import { Badge } from "@/components/ui/badge";
 
 // Define color palette with distinct colors that work well in both light and dark modes
 interface TagColor {

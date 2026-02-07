@@ -12,7 +12,7 @@ import {
   ChevronRight,
   type LucideIcon,
 } from "lucide-react";
-import { Button } from "@/ui/shadcn/button";
+import { Button } from "@/components/ui/button";
 
 import { DateCell } from "../cells/date-cell";
 

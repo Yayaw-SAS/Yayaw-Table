@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { StackMenuContent } from "../../../ui-custom/stack-menu";
-import { Button } from "@/ui/shadcn/button";
+import { Button } from "@/components/ui/button";
 import { columnDragEnabledAtom, tableIdAtom } from "../../../atoms/table-atoms";
 import { useColumnDnd } from "../../../components/columns/hooks/use-column-dnd";
 import { useDataTable } from "../../../hooks/use-data-table";

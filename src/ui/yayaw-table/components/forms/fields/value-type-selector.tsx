@@ -1,13 +1,11 @@
 "use client";
 
-import type { UseFormReturn } from "react-hook-form";
 import {
-  FormControl,
-  FormDescription,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/ui/shadcn/form";
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+} from "@/ui/shadcn/field";
 import {
   Select,
   SelectContent,
@@ -17,15 +15,12 @@ import {
 } from "@/ui/shadcn/select";
 import { useTranslations } from "../../../providers/table-provider";
 
+import type { FormFieldApi } from "../types";
 import type { ValueType } from "./value-type-field";
 
 export interface ValueTypeSelectorProps {
   description?: string;
-  field: {
-    onChange: (value: unknown) => void;
-    value: unknown;
-  };
-  form: UseFormReturn<Record<string, unknown>>;
+  fieldApi: FormFieldApi<string>;
   label: string;
   onValueTypeChange?: (valueType: ValueType) => void;
   placeholder?: string;
@@ -33,13 +28,16 @@ export interface ValueTypeSelectorProps {
 
 export function ValueTypeSelector({
   description,
-  field,
-  form: _form,
+  fieldApi,
   label,
   onValueTypeChange,
   placeholder,
 }: ValueTypeSelectorProps) {
   const { t } = useTranslations();
+  const errors = fieldApi.state.meta.errors;
+  const errorMessages = Array.isArray(errors)
+    ? errors.map((e) => (typeof e === "string" ? e : String(e)))
+    : [];
 
   const valueTypes: { label: string; value: ValueType }[] = [
     { label: t("value_types.boolean"), value: "boolean" },
@@ -49,36 +47,36 @@ export function ValueTypeSelector({
   ];
 
   const handleValueTypeChange = (value: string) => {
-    field.onChange(value);
+    fieldApi.handleChange(value);
     onValueTypeChange?.(value as ValueType);
   };
 
   return (
-    <FormItem>
-      <FormLabel>{label}</FormLabel>
-      {description && <FormDescription>{description}</FormDescription>}
-      <FormControl>
-        <Select
-          onValueChange={(value) =>
-            value != null ? handleValueTypeChange(value) : undefined
-          }
-          value={String(field.value || "string")}
-        >
-          <SelectTrigger>
-            <SelectValue
-              placeholder={placeholder || t("value_types.select_placeholder")}
-            />
-          </SelectTrigger>
-          <SelectContent>
-            {valueTypes.map((type) => (
-              <SelectItem key={type.value} value={type.value}>
-                {type.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </FormControl>
-      <FormMessage />
-    </FormItem>
+    <Field data-invalid={!fieldApi.state.meta.isValid}>
+      <FieldLabel>{label}</FieldLabel>
+      {description != null && (
+        <FieldDescription>{description}</FieldDescription>
+      )}
+      <Select
+        onValueChange={(v) =>
+          v != null ? handleValueTypeChange(v) : undefined
+        }
+        value={String(fieldApi.state.value ?? "string")}
+      >
+        <SelectTrigger>
+          <SelectValue
+            placeholder={placeholder ?? t("value_types.select_placeholder")}
+          />
+        </SelectTrigger>
+        <SelectContent>
+          {valueTypes.map((type) => (
+            <SelectItem key={type.value} value={type.value}>
+              {type.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <FieldError errors={errorMessages.map((message) => ({ message }))} />
+    </Field>
   );
 }

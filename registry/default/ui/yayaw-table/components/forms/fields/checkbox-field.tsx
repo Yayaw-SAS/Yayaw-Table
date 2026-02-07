@@ -4,7 +4,7 @@
 "use client";
 
 import type { FieldValues, UseFormReturn } from "react-hook-form";
-import { Checkbox } from "@/ui/shadcn/checkbox";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   FormControl,
   FormDescription,
@@ -12,7 +12,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/ui/shadcn/form";
+} from "@/components/ui/form";
 import { useTranslations } from "../../../providers/table-provider";
 
 import type { CheckboxFieldDefinition } from "../types";

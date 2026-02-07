@@ -1,71 +1,57 @@
 /**
- * Checkbox field component for forms
+ * Checkbox field component for forms (TanStack Form + Field)
  */
 "use client";
 
-import type { FieldValues, UseFormReturn } from "react-hook-form";
 import { Checkbox } from "@/ui/shadcn/checkbox";
 import {
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/ui/shadcn/form";
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+} from "@/ui/shadcn/field";
 import { useTranslations } from "../../../providers/table-provider";
+import type { CheckboxFieldDefinition, FormFieldApi } from "../types";
 
-import type { CheckboxFieldDefinition } from "../types";
-
-interface CheckboxFieldProps<TFieldValues extends FieldValues> {
-  /**
-   * Field definition
-   */
+interface CheckboxFieldProps<TFieldValues extends Record<string, unknown>> {
   field: CheckboxFieldDefinition<TFieldValues>;
-
-  /**
-   * Form instance
-   */
-  form: UseFormReturn<TFieldValues>;
+  fieldApi: FormFieldApi<boolean>;
 }
 
-/**
- * Checkbox field component
- */
-export function CheckboxField<TFieldValues extends FieldValues>({
+export function CheckboxField<TFieldValues extends Record<string, unknown>>({
   field,
-  form,
+  fieldApi,
 }: CheckboxFieldProps<TFieldValues>) {
   const { t } = useTranslations();
+  const errors = fieldApi.state.meta.errors;
+  const errorMessages = Array.isArray(errors)
+    ? errors.map((e) => (typeof e === "string" ? e : String(e)))
+    : [];
+  const checked = Boolean(fieldApi.state.value);
 
   return (
-    <FormField
-      control={form.control}
-      name={field.name}
-      render={({ field: formField }) => (
-        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-          <FormControl>
-            <Checkbox
-              checked={formField.value}
-              disabled={field.disabled}
-              onCheckedChange={formField.onChange}
-            />
-          </FormControl>
-          <div className="space-y-1 leading-none">
-            <FormLabel>
-              {field.labelKey ? t(field.labelKey) : field.label}
-            </FormLabel>
-            {field.description && (
-              <FormDescription>
-                {field.descriptionKey
-                  ? t(field.descriptionKey)
-                  : field.description}
-              </FormDescription>
-            )}
-          </div>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
+    <Field data-invalid={!fieldApi.state.meta.isValid}>
+      <div className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+        <Checkbox
+          checked={checked}
+          disabled={field.disabled}
+          id={fieldApi.name}
+          onCheckedChange={(val) => fieldApi.handleChange(Boolean(val))}
+        />
+        <div className="space-y-1 leading-none">
+          <FieldLabel htmlFor={fieldApi.name}>
+            {field.labelKey ? t(field.labelKey) : field.label}
+          </FieldLabel>
+          {field.description != null && (
+            <FieldDescription>
+              {field.descriptionKey
+                ? t(field.descriptionKey)
+                : field.description}
+            </FieldDescription>
+          )}
+        </div>
+      </div>
+      <FieldError errors={errorMessages.map((message) => ({ message }))} />
+    </Field>
   );
 }

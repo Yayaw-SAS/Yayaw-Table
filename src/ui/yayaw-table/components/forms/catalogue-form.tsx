@@ -11,11 +11,6 @@ import { useAtom } from "jotai";
 import { PencilIcon, PlusIcon } from "lucide-react";
 import type React from "react";
 import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
-import type {
-  FieldValues,
-  SubmitHandler,
-  UseFormReturn,
-} from "react-hook-form";
 import { toast } from "sonner";
 import { Button } from "@/ui/shadcn/button";
 import {
@@ -27,7 +22,6 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/ui/shadcn/drawer";
-
 import {
   type CatalogueFormState,
   catalogueFormAtom,
@@ -36,6 +30,7 @@ import {
 } from "./atoms/catalogue-form-atoms";
 import { FormBuilder } from "./form-builder";
 import { useFormCatalogue } from "./hooks/use-form-catalogue";
+import type { FieldValues } from "./types";
 
 interface CatalogueFormTranslations {
   updated?: string;
@@ -80,18 +75,38 @@ interface CatalogueFormProps<TFieldValues extends FieldValues = FieldValues> {
 }
 
 /**
+ * Returns only values that differ from initial data (for update mode)
+ */
+function getChangedValues<T extends FieldValues>(
+  currentValues: T,
+  initialData: Partial<T> | undefined
+): Partial<T> {
+  if (!initialData || typeof currentValues !== "object") {
+    return currentValues;
+  }
+  const result = {} as Partial<T>;
+  for (const key of Object.keys(currentValues) as (keyof T)[]) {
+    const cur = currentValues[key];
+    const init = initialData[key];
+    if (JSON.stringify(cur) !== JSON.stringify(init)) {
+      result[key] = cur;
+    }
+  }
+  return result;
+}
+
+/**
  * Prepare submission data based on mode
  */
 function prepareSubmissionData<T extends FieldValues>(
   values: T,
   mode: "create" | "update",
-  initialData: T | undefined,
-  form: UseFormReturn<T>
+  initialData: Partial<T> | undefined
 ): T {
-  if (mode === "update") {
+  if (mode === "update" && initialData) {
     return {
       ...(initialData as T),
-      ...getChangedValues(form),
+      ...getChangedValues(values, initialData),
     };
   }
   return values;
@@ -132,7 +147,7 @@ function handleSuccessFlow<TFieldValues extends FieldValues>(
   setFormSubmitted: (submitted: boolean) => void,
   translations: CatalogueFormTranslations,
   formSubmitted: boolean,
-  form: UseFormReturn<TFieldValues>,
+  form: { reset: (values?: TFieldValues) => void },
   isChangingStateRef: React.MutableRefObject<boolean>
 ): string {
   // Get success message using helper
@@ -272,7 +287,8 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
   // Add a ref to track if we're in the middle of a state change
   const isChangingStateRef = useRef(false);
 
-  // Stabilize the parameters for useFormCatalogue to prevent unnecessary re-renders
+  const [formSubmitted, setFormSubmitted] = useAtom(formSubmittedAtom);
+
   const formCatalogueParams = useMemo(
     () => ({
       formType: formType || "",
@@ -282,93 +298,78 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
     [formType, initialData, mode]
   );
 
-  // Get the form from the catalogue
-  const { fields, form, handleSubmit, translations } =
-    useFormCatalogue<TFieldValues>(formCatalogueParams);
+  const translationsRef = useRef<CatalogueFormTranslations>({});
+  const formRef = useRef<{ reset: (values?: TFieldValues) => void } | null>(
+    null
+  );
 
-  // Use Jotai atom to track form submission state
-  // This prevents showing success notifications except after actual form submission
-  // Using an atom instead of useRef ensures the state persists across component remounts
-  const [formSubmitted, setFormSubmitted] = useAtom(formSubmittedAtom);
-
-  // Handle form submission with stable dependencies
-  const onSubmit = useCallback(
-    async (values: TFieldValues) => {
-      // Set the flag to indicate a form has been submitted
+  const onFormSubmit = useCallback(
+    async (
+      values: TFieldValues,
+      doSubmit: (values: TFieldValues) => Promise<unknown>
+    ) => {
       setFormSubmitted(true);
       setLoading(true);
       setError(null);
-
-      const currentMode = mode;
-      const currentInitialData = initialData;
-      const currentOnSuccess = onSuccessRef.current;
-
-      // Show loading toast
+      const t = translationsRef.current;
       const loadingToastId = toast.loading(
-        currentMode === "update"
-          ? translations.updating || "Updating..."
-          : translations.creating || "Creating..."
+        mode === "update"
+          ? (t.updating ?? "Updating...")
+          : (t.creating ?? "Creating...")
       );
-
       try {
-        // Prepare submission data based on mode
         const valuesToSubmit = prepareSubmissionData(
           values,
-          currentMode,
-          currentInitialData,
-          form as UseFormReturn<Record<string, unknown>>
+          mode,
+          initialData as Partial<TFieldValues> | undefined
         );
-
-        // Submit the form
-        const result = await handleSubmit(valuesToSubmit as TFieldValues);
-
-        // Dismiss the loading toast
+        const result = await doSubmit(valuesToSubmit as TFieldValues);
         toast.dismiss(loadingToastId);
-
-        // Handle success flow
         handleSuccessFlow(
           result,
-          currentMode,
-          currentOnSuccess as ((resultParam: unknown) => void) | undefined,
+          mode,
+          onSuccessRef.current as ((resultParam: unknown) => void) | undefined,
           setFormState,
           setFormSubmitted,
-          translations,
+          t,
           formSubmitted,
-          form as unknown as UseFormReturn<TFieldValues>,
+          formRef.current ?? {
+            reset: () => {
+              /* fallback when form not yet set */
+            },
+          },
           isChangingStateRef
         );
       } catch (error) {
-        // Dismiss the loading toast
         toast.dismiss(loadingToastId);
-
-        // Handle error using helper
-        const errorMessage = handleSubmissionError(
-          error,
-          currentMode,
-          setError,
-          translations
-        );
-
-        // Show error toast
-        toast.error(errorMessage);
+        toast.error(handleSubmissionError(error, mode, setError, t));
       } finally {
         setLoading(false);
       }
     },
     [
-      handleSubmit,
-      translations,
-      form,
-      formSubmitted,
       setFormState,
       setFormSubmitted,
       setLoading,
       setError,
       mode,
       initialData,
-      onSuccessRef,
+      formSubmitted,
+      onSuccessRef.current,
     ]
   );
+
+  const formCatalogueParamsWithSubmit = useMemo(
+    () => ({ ...formCatalogueParams, onFormSubmit }),
+    [formCatalogueParams, onFormSubmit]
+  );
+
+  const { fields, form, translations } = useFormCatalogue<TFieldValues>(
+    formCatalogueParamsWithSubmit
+  );
+
+  translationsRef.current = translations;
+  formRef.current = form;
 
   // Handle open state changes with stable dependencies and protection
   const handleOpenChange = useCallback(
@@ -458,12 +459,7 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
 
           {/* Use FormBuilder without its own submit button */}
           <div className="py-4">
-            <FormBuilder
-              fields={fields}
-              form={form as unknown as UseFormReturn<TFieldValues>}
-              onSubmit={onSubmit}
-              submitText={null} // Completely disable the integrated submit button
-            />
+            <FormBuilder fields={fields} form={form} submitText={null} />
           </div>
 
           <DrawerFooter className="flex-row justify-end gap-2 px-0">
@@ -474,12 +470,10 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
             </DrawerClose>
             <Button
               disabled={loading}
-              onClick={
-                form.handleSubmit(
-                  onSubmit as unknown as SubmitHandler<FieldValues>
-                ) as (e: React.MouseEvent<HTMLButtonElement>) => void
-              }
-              type="submit"
+              onClick={() => {
+                form.handleSubmit();
+              }}
+              type="button"
             >
               {mode === "update" ? translations.update : translations.submit}
             </Button>
@@ -488,34 +482,4 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
       </DrawerContent>
     </Drawer>
   );
-}
-
-/**
- * Compares the current form values with initial values and returns only changed values
- * @param form - The form instance from react-hook-form
- * @returns An object containing only the values that have changed
- */
-function getChangedValues<TFieldValues extends FieldValues>(
-  form: UseFormReturn<TFieldValues>
-): Partial<TFieldValues> {
-  const currentValues = form.getValues();
-  const _defaultValues = (form.formState.defaultValues as TFieldValues) || {};
-  const dirtyFields = form.formState.dirtyFields;
-
-  // If no fields are dirty, return empty object
-  if (Object.keys(dirtyFields).length === 0) {
-    return {} as Partial<TFieldValues>;
-  }
-
-  // Create an object containing only changed values
-  const changedValues = Object.keys(dirtyFields).reduce(
-    (result, key) => {
-      result[key as keyof TFieldValues] =
-        currentValues[key as keyof TFieldValues];
-      return result;
-    },
-    {} as Partial<TFieldValues>
-  );
-
-  return changedValues;
 }

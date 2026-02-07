@@ -1,39 +1,36 @@
 "use client";
 
-import type { UseFormReturn } from "react-hook-form";
-import { FormControl, FormField, FormItem, FormLabel } from "@/ui/shadcn/form";
+import { Field, FieldError, FieldLabel } from "@/ui/shadcn/field";
 import { Switch } from "@/ui/shadcn/switch";
 import { useTranslations } from "../../../providers/table-provider";
-
-import type { CheckboxFieldDefinition } from "../types";
+import type { CheckboxFieldDefinition, FormFieldApi } from "../types";
 
 interface SwitchFieldProps {
   field: CheckboxFieldDefinition;
-  form: UseFormReturn<Record<string, unknown>>;
+  fieldApi: FormFieldApi<boolean>;
 }
 
-export function SwitchField({ field, form }: SwitchFieldProps) {
+export function SwitchField({ field, fieldApi }: SwitchFieldProps) {
   const { t } = useTranslations();
+  const errors = fieldApi.state.meta.errors;
+  const errorMessages = Array.isArray(errors)
+    ? errors.map((e) => (typeof e === "string" ? e : String(e)))
+    : [];
 
   return (
-    <FormField
-      control={form.control}
-      name={field.name}
-      render={({ field: formField }) => (
-        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-          <div className="space-y-0.5">
-            <FormLabel>
-              {field.labelKey ? t(field.labelKey) : field.label}
-            </FormLabel>
-          </div>
-          <FormControl>
-            <Switch
-              checked={Boolean(formField.value)}
-              onCheckedChange={formField.onChange}
-            />
-          </FormControl>
-        </FormItem>
-      )}
-    />
+    <Field data-invalid={!fieldApi.state.meta.isValid}>
+      <div className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+        <div className="space-y-0.5">
+          <FieldLabel>
+            {field.labelKey ? t(field.labelKey) : field.label}
+          </FieldLabel>
+        </div>
+        <Switch
+          checked={Boolean(fieldApi.state.value)}
+          onCheckedChange={(val) => fieldApi.handleChange(Boolean(val))}
+        />
+      </div>
+      <FieldError errors={errorMessages.map((message) => ({ message }))} />
+    </Field>
   );
 }

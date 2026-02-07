@@ -1,36 +1,29 @@
 "use client";
 
-import type { UseFormReturn } from "react-hook-form";
 import {
-  FormControl,
-  FormDescription,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/ui/shadcn/form";
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+} from "@/ui/shadcn/field";
 import { Input } from "@/ui/shadcn/input";
 import { Switch } from "@/ui/shadcn/switch";
 import { Textarea } from "@/ui/shadcn/textarea";
 import { useTranslations } from "../../../providers/table-provider";
-
 import type { TranslationConfig } from "../atoms";
+import type { FormFieldApi } from "../types";
 
 export type ValueType = "boolean" | "json" | "number" | "string";
 
 export interface ValueTypeFieldProps {
   description?: string;
-  field: {
-    onChange: (value: unknown) => void;
-    value: unknown;
-  };
-  form: UseFormReturn<Record<string, unknown>>;
+  fieldApi: FormFieldApi<unknown>;
   label: string;
   placeholder?: string;
   translationConfig?: TranslationConfig;
   valueType: ValueType;
 }
 
-// Helper functions for type coercion
 function coerceToBooleanType(value: unknown): boolean {
   if (typeof value === "boolean") {
     return value;
@@ -65,7 +58,6 @@ function coerceToNumberType(value: unknown): number {
   return Number(value);
 }
 
-// Helper function for type coercion
 export function coerceToType(value: unknown, type: ValueType): unknown {
   switch (type) {
     case "boolean":
@@ -83,27 +75,28 @@ export function coerceToType(value: unknown, type: ValueType): unknown {
 
 export function ValueTypeField({
   description,
-  field,
-  form: _form,
+  fieldApi,
   label,
   placeholder,
-  translationConfig: _customTranslationConfig,
   valueType,
 }: ValueTypeFieldProps) {
   const { t } = useTranslations();
+  const errors = fieldApi.state.meta.errors;
+  const errorMessages = Array.isArray(errors)
+    ? errors.map((e) => (typeof e === "string" ? e : String(e)))
+    : [];
 
-  // Render different input types based on valueType
   const renderValueInput = () => {
     switch (valueType) {
       case "boolean":
         return (
           <div className="flex items-center space-x-2">
             <Switch
-              checked={field.value === true}
-              onCheckedChange={field.onChange}
+              checked={fieldApi.state.value === true}
+              onCheckedChange={(val) => fieldApi.handleChange(Boolean(val))}
             />
             <span className="text-muted-foreground text-sm">
-              {field.value ? t("value.enabled") : t("value.disabled")}
+              {fieldApi.state.value ? t("value.enabled") : t("value.disabled")}
             </span>
           </div>
         );
@@ -113,28 +106,26 @@ export function ValueTypeField({
             className="font-mono text-sm"
             onChange={(e) => {
               try {
-                // Only update if valid JSON
                 const value =
                   e.target.value.trim() === ""
                     ? {}
                     : JSON.parse(e.target.value);
-                field.onChange(value);
-                // Update the displayed text
-                e.target.value = JSON.stringify(value, null, 2);
-              } catch (_error) {
-                // Keep the invalid JSON in the textarea but don't update the form value
+                fieldApi.handleChange(value);
+              } catch {
+                // Keep invalid JSON in textarea
               }
             }}
-            placeholder={placeholder || t("value.json_placeholder")}
+            placeholder={placeholder ?? t("value.json_placeholder")}
             rows={5}
             value={(() => {
-              if (field.value === undefined) {
+              const v = fieldApi.state.value;
+              if (v === undefined) {
                 return "";
               }
-              if (typeof field.value === "object") {
-                return JSON.stringify(field.value, null, 2);
+              if (typeof v === "object") {
+                return JSON.stringify(v, null, 2);
               }
-              return String(field.value);
+              return String(v);
             })()}
           />
         );
@@ -142,32 +133,38 @@ export function ValueTypeField({
         return (
           <Input
             onChange={(e) => {
-              const value = e.target.value === "" ? "" : Number(e.target.value);
-              field.onChange(value);
+              const v = e.target.value === "" ? "" : Number(e.target.value);
+              fieldApi.handleChange(v);
             }}
-            placeholder={placeholder || t("value.number_placeholder")}
+            placeholder={placeholder ?? t("value.number_placeholder")}
             type="number"
-            value={field.value === undefined ? "" : String(field.value)}
+            value={
+              fieldApi.state.value === undefined
+                ? ""
+                : String(fieldApi.state.value)
+            }
           />
         );
       default:
         return (
           <Input
-            onChange={(e) => field.onChange(e.target.value)}
-            placeholder={placeholder || t("value.string_placeholder")}
+            onChange={(e) => fieldApi.handleChange(e.target.value)}
+            placeholder={placeholder ?? t("value.string_placeholder")}
             type="text"
-            value={String(field.value || "")}
+            value={String(fieldApi.state.value ?? "")}
           />
         );
     }
   };
 
   return (
-    <FormItem>
-      <FormLabel>{label}</FormLabel>
-      {description && <FormDescription>{description}</FormDescription>}
-      <FormControl>{renderValueInput()}</FormControl>
-      <FormMessage />
-    </FormItem>
+    <Field data-invalid={!fieldApi.state.meta.isValid}>
+      <FieldLabel>{label}</FieldLabel>
+      {description != null && (
+        <FieldDescription>{description}</FieldDescription>
+      )}
+      {renderValueInput()}
+      <FieldError errors={errorMessages.map((message) => ({ message }))} />
+    </Field>
   );
 }

@@ -16,12 +16,12 @@ import {
   useEffect,
   useState,
 } from "react";
-import { Button } from "@/ui/shadcn/button";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
-} from "@/ui/shadcn/dropdown-menu";
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 interface StackMenuViewProps {

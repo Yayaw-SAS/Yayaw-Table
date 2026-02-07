@@ -12,15 +12,15 @@ import type React from "react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Loader } from "../ui-custom/loader";
-import { Button } from "@/ui/shadcn/button";
-import { Skeleton } from "@/ui/shadcn/skeleton";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
   TableCell,
   TableHeader,
   TableRow,
-} from "@/ui/shadcn/table";
+} from "@/components/ui/table";
 import { tableIdAtom } from "../atoms/table-atoms";
 import { defaultBulkActions, useBulkActions } from "../hooks/use-bulk-actions";
 import { useDataTable } from "../hooks/use-data-table";

@@ -7,7 +7,7 @@
 import type { CellContext, ColumnDef } from "@tanstack/react-table";
 import { type LucideIcon, Text } from "lucide-react";
 import { useState } from "react";
-import { Button } from "@/ui/shadcn/button";
+import { Button } from "@/components/ui/button";
 import { StringCell } from "../cells/string-cell";
 
 /**

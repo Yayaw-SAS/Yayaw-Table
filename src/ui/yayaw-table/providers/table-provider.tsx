@@ -3,7 +3,6 @@ import { useAtomValue } from "jotai";
 import { useHydrateAtoms } from "jotai/utils";
 import type React from "react";
 import { createContext, type ReactNode, useContext, useMemo } from "react";
-import type { FieldValues } from "react-hook-form";
 // Import atoms with correct paths
 import {
   type DataTableColumnsConfig,
@@ -12,7 +11,7 @@ import {
   tableConfigAtom,
 } from "../atoms/config-atoms";
 // Import form config type
-import type { FormConfig } from "../components/forms/types";
+import type { FieldValues, FormConfig } from "../components/forms/types";
 import type { TableConfig } from "../config/helpers";
 import type {
   DataTableTranslations,

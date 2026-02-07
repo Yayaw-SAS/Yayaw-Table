@@ -5,7 +5,7 @@
 "use client";
 
 import { lazy, Suspense } from "react";
-import { Skeleton } from "@/ui/shadcn/skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { UseFilterPresetsReturn } from "../../hooks/use-filter-presets";
 import type { AdvancedFilterState } from "../../types/advanced-filter-types";
 import type {

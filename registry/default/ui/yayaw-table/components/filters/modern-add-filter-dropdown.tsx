@@ -20,12 +20,12 @@ import {
 } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/ui/shadcn/badge";
-import { Button } from "@/ui/shadcn/button";
-import { Input } from "@/ui/shadcn/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/ui/shadcn/popover";
-import { Separator } from "@/ui/shadcn/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/ui/shadcn/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import type {
   ColumnDataType,

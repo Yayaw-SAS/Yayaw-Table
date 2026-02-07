@@ -16,8 +16,8 @@ import {
   Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/ui/shadcn/button";
-import { Skeleton } from "@/ui/shadcn/skeleton";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface FilterLoadingStateProps {
   className?: string;

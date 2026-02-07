@@ -7,7 +7,7 @@ import { useAtomValue } from "jotai";
 import { ArrowDown, ArrowUp, GripVertical } from "lucide-react";
 import { memo, useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/ui/shadcn/button";
+import { Button } from "@/components/ui/button";
 
 import { columnDragEnabledAtom } from "../../../atoms/table-atoms";
 import { useTableConfig } from "../../../hooks/use-table-config";

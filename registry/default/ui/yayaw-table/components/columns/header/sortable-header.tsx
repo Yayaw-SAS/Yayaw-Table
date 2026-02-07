@@ -3,7 +3,7 @@
 import type { Column } from "@tanstack/react-table";
 import type { CSSProperties, ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { TableHead } from "@/ui/shadcn/table";
+import { TableHead } from "@/components/ui/table";
 
 import { getColumnPinningStyles } from "../../../utils/column-pinning-styles";
 

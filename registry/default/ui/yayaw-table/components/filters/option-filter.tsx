@@ -7,8 +7,8 @@
 import { Check, ChevronDown, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/ui/shadcn/badge";
-import { Button } from "@/ui/shadcn/button";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Command,
   CommandEmpty,
@@ -16,16 +16,16 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/ui/shadcn/command";
-import { Label } from "@/ui/shadcn/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@/ui/shadcn/popover";
+} from "@/components/ui/command";
+import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/ui/shadcn/select";
+} from "@/components/ui/select";
 import { useTranslations } from "../../providers/table-provider";
 import type { ColumnOption, FilterOperators } from "../../types/filter-types";
 import {

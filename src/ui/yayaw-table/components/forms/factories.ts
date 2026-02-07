@@ -1,12 +1,12 @@
-import type { FieldValues, Path } from "react-hook-form";
-
 import type {
   AnyFieldDefinition,
   CheckboxFieldDefinition,
   CustomFieldDefinition,
   DateFieldDefinition,
   DynamicValueFieldDefinition,
+  FieldValues,
   NumberFieldDefinition,
+  Path,
   SelectFieldDefinition,
   SelectWithAddNewFieldDefinition,
   SwitchFieldDefinition,

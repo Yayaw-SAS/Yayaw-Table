@@ -9,8 +9,8 @@ const DEBUG = false;
 
 import { type ReactNode, useEffect } from "react";
 import type { FieldValues, Path, UseFormReturn } from "react-hook-form";
-import { Button } from "@/ui/shadcn/button";
-import { Form } from "@/ui/shadcn/form";
+import { Button } from "@/components/ui/button";
+import { Form } from "@/components/ui/form";
 import { useTranslations } from "../../providers/table-provider";
 
 import {

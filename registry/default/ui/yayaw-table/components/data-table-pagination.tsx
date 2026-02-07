@@ -12,14 +12,14 @@ import {
   ChevronsRight,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { Button } from "@/ui/shadcn/button";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/ui/shadcn/select";
+} from "@/components/ui/select";
 
 // Use static Select import; SSR-safe usage is handled by mounted state
 

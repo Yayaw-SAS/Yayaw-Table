@@ -7,8 +7,8 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/ui/shadcn/form";
-import { Textarea } from "@/ui/shadcn/textarea";
+} from "@/components/ui/form";
+import { Textarea } from "@/components/ui/textarea";
 import { useTranslations } from "../../../providers/table-provider";
 
 import type { TextareaFieldDefinition } from "../types";
