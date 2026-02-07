@@ -10,15 +10,6 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { useTableUrlState } from "../../hooks/use-table-url-state";
-import { useTranslations } from "../../providers/table-provider";
-import type { ColumnDataType } from "../../types";
-import type {
-  AdvancedFiltersState,
-  ColumnsFilterConfig,
-  FilterActions,
-} from "../../types/filter-types";
 import {
   StackMenu,
   StackMenuContent,
@@ -27,6 +18,15 @@ import {
   StackMenuView,
   useStackMenu,
 } from "../../ui-custom/stack-menu";
+import { Button } from "@/ui/shadcn/button";
+import { useTableUrlState } from "../../hooks/use-table-url-state";
+import { useTranslations } from "../../providers/table-provider";
+import type { ColumnDataType } from "../../types";
+import type {
+  AdvancedFiltersState,
+  ColumnsFilterConfig,
+  FilterActions,
+} from "../../types/filter-types";
 import { TableColumnsMenu } from "./sections/table-columns-menu";
 import { TableFiltersMenu } from "./sections/table-filters-menu";
 import { TableGroupingMenu } from "./sections/table-grouping-menu";

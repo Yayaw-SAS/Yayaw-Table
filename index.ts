@@ -21,22 +21,24 @@ export type {
 } from "@tanstack/react-table";
 // Export theme components
 export { ThemeProvider } from "./src/components/theme-provider";
-export * from "./src/components/ui/badge";
-export * from "./src/components/ui/button";
-export * from "./src/components/ui/checkbox";
-export * from "./src/components/ui/input";
-export * from "./src/components/ui/label";
-export * from "./src/components/ui/select";
-export * from "./src/components/ui/separator";
-export * from "./src/components/ui/skeleton";
+// Export utility functions
+export { cn, debounce, formatDate } from "./src/lib/utils";
+export { ThemeToggle } from "./src/ui/custom/theme-toggle";
+export * from "./src/ui/shadcn/badge";
+export * from "./src/ui/shadcn/button";
+export * from "./src/ui/shadcn/checkbox";
+export * from "./src/ui/shadcn/input";
+export * from "./src/ui/shadcn/label";
+export * from "./src/ui/shadcn/select";
+export * from "./src/ui/shadcn/separator";
+export * from "./src/ui/shadcn/skeleton";
 // Export core UI components (cleaned versions)
-export * from "./src/components/ui/table";
-export { ThemeToggle } from "./src/components/ui-custom/theme-toggle";
-export type { BulkActionsMenuProps } from "./src/data-table/components/bulk-actions";
+export * from "./src/ui/shadcn/table";
+export type { BulkActionsMenuProps } from "./src/ui/yayaw_table/components/bulk-actions";
 // Export bulk actions components
-export { BulkActionsMenu } from "./src/data-table/components/bulk-actions";
+export { BulkActionsMenu } from "./src/ui/yayaw_table/components/bulk-actions";
 // Export main DataTable component (full-featured)
-export { DataTable } from "./src/data-table/components/data-table";
+export { DataTable } from "./src/ui/yayaw_table/components/data-table";
 // Export simplified components (alternative API)
 // SimpleDataTable removed in favor of unified DataTable
 export type {
@@ -45,17 +47,17 @@ export type {
   TableColumnsConfig,
   TableConfig,
   TableTranslationsConfig,
-} from "./src/data-table/config/helpers";
+} from "./src/ui/yayaw_table/config/helpers";
 // Export configuration helpers - users need these to create their table configs
-export { defineTableConfig } from "./src/data-table/config/helpers";
+export { defineTableConfig } from "./src/ui/yayaw_table/config/helpers";
 export {
   defaultBulkActions,
   useBulkActions,
-} from "./src/data-table/hooks/use-bulk-actions";
+} from "./src/ui/yayaw_table/hooks/use-bulk-actions";
 export {
   createBulkEditFormConfig,
   useBulkEdit,
-} from "./src/data-table/hooks/use-bulk-edit";
+} from "./src/ui/yayaw_table/hooks/use-bulk-edit";
 // useSimpleDataTable hook kept for advanced internal scenarios; not exported by default
 // Export providers and translations
 export {
@@ -63,14 +65,12 @@ export {
   TableProvider,
   useTableActions,
   useTranslations,
-} from "./src/data-table/providers/table-provider";
+} from "./src/ui/yayaw_table/providers/table-provider";
 // Export translation types
 export type {
   DataTableTranslations,
   TranslationParams,
-} from "./src/data-table/types/translations";
-// Export utility functions
-export { cn, debounce, formatDate } from "./src/lib/utils";
+} from "./src/ui/yayaw_table/types/translations";
 
 // Advanced components require optional peer dependencies:
 // - jotai (for advanced state management)
@@ -82,4 +82,4 @@ export { cn, debounce, formatDate } from "./src/lib/utils";
 // Note: Advanced hooks like useDataTable with external dependencies
 // are available but not exported by default to avoid build issues.
 // They can be imported directly if needed:
-// import { useDataTable } from "yayaw-table/src/data-table/hooks/use-data-table"
+// import { useDataTable } from "yayaw-table/src/ui/yayaw_table/hooks/use-data-table"

@@ -3,9 +3,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { toast } from "sonner";
 // Row type is not used directly in this file
-import { ThemeToggle } from "../../src/components/ui-custom/theme-toggle";
-import { DataTable } from "../../src/data-table/components/data-table";
-import { useBulkEdit } from "../../src/data-table/hooks/use-bulk-edit";
+import { ThemeToggle } from "@/ui/custom/theme-toggle";
+import { DataTable } from "@/ui/yayaw_table/components/data-table";
+import { useBulkEdit } from "@/ui/yayaw_table/hooks/use-bulk-edit";
 import { CustomDescription, CustomTitle } from "./components";
 import { getFormConfig } from "./setup/form-config";
 import { getTableActions, getTableConfig } from "./setup/table-config";

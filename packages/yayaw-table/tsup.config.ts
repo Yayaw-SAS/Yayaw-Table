@@ -3,7 +3,7 @@ import aliasPlugin from "esbuild-plugin-alias";
 import { defineConfig } from "tsup";
 
 export default defineConfig({
-  entry: ["../../src/data-table/index.ts"],
+  entry: ["../../src/ui/yayaw_table/index.ts"],
   format: ["esm"],
   dts: true,
   clean: true,
@@ -17,6 +17,7 @@ export default defineConfig({
       "@": path.resolve(__dirname, "../../src"),
       "@/lib": path.resolve(__dirname, "../../src/lib"),
       "@/components": path.resolve(__dirname, "../../src/components"),
+      "@/ui": path.resolve(__dirname, "../../src/ui"),
       "@/hooks": path.resolve(__dirname, "../../src/hooks"),
       "@/providers": path.resolve(__dirname, "../../src/providers"),
       "@/utils": path.resolve(__dirname, "../../src/utils"),

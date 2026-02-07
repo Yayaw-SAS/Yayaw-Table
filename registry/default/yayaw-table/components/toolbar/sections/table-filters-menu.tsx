@@ -3,15 +3,15 @@
 import type { ColumnFiltersState } from "@tanstack/react-table";
 import { Filter, X } from "lucide-react";
 import { useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import { StackMenuContent, StackMenuView } from "../../../ui-custom/stack-menu";
+import { Button } from "@/ui/shadcn/button";
+import { Separator } from "@/ui/shadcn/separator";
 import { useTranslations } from "../../../providers/table-provider";
 import type {
   AdvancedFiltersState,
   ColumnsFilterConfig,
   FilterActions,
 } from "../../../types/filter-types";
-import { StackMenuContent, StackMenuView } from "../../../ui-custom/stack-menu";
 import { AdvancedFilterPanel } from "../../filters/advanced-filter-panel";
 
 // Debug flag - activated for debugging advanced filters

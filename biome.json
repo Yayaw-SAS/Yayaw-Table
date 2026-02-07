@@ -3,11 +3,12 @@
   "extends": ["ultracite/biome/core", "ultracite/biome/next"],
   "files": {
     "includes": [
-      "!src/components/ui",
       "!**/*.css",
       "!src/app/globals.css",
       "!.source",
-      "!content"
+      "!content",
+      "!registry",
+      "!src/ui/shadcn"
     ]
   },
   "css": {
@@ -40,7 +41,7 @@
       }
     },
     {
-      "includes": ["src/data-table/components/table-component.tsx"],
+      "includes": ["src/ui/yayaw_table/components/table-component.tsx"],
       "linter": {
         "rules": {
           "complexity": {

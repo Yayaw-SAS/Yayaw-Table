@@ -1,4 +1,4 @@
-import type { DataTableConfig } from "../../../src/data-table/atoms/config-atoms";
+import type { DataTableConfig } from "@/ui/yayaw_table/atoms/config-atoms";
 import { productActions } from "../data";
 
 // Interface étendue pour inclure les colonnes

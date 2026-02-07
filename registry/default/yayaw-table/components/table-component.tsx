@@ -10,16 +10,17 @@ import { useAtom } from "jotai";
 // CheckSquare import removed - using ColumnIcon helper
 import type React from "react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
+import { Loader } from "../ui-custom/loader";
+import { Button } from "@/ui/shadcn/button";
+import { Skeleton } from "@/ui/shadcn/skeleton";
 import {
   Table,
   TableBody,
   TableCell,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { cn } from "@/lib/utils";
+} from "@/ui/shadcn/table";
 import { tableIdAtom } from "../atoms/table-atoms";
 import { defaultBulkActions, useBulkActions } from "../hooks/use-bulk-actions";
 import { useDataTable } from "../hooks/use-data-table";
@@ -27,7 +28,6 @@ import { useTableConfig } from "../hooks/use-table-config";
 import { useTableInstance } from "../hooks/use-table-instance";
 import { useTableUrlState } from "../hooks/use-table-url-state";
 import type { DataTableProps } from "../types";
-import { Loader } from "../ui-custom/loader";
 import { ColumnIcon } from "../utils/column-icons";
 import { BulkActionsMenu } from "./bulk-actions/bulk-actions-menu";
 import { ColumnDragOverlay } from "./columns";
@@ -650,47 +650,6 @@ function ModernDataTable<
 
     const rowElements: React.ReactNode[] = [];
 
-    const pushSelectionGroupButtonRow = (
-      groupId: string,
-      colSpan: number,
-      level: number,
-      icon: React.ReactNode,
-      label: string,
-      count: number,
-      badgeClassName: string
-    ) => (
-      <TableRow className="border-t bg-muted/20" key={groupId}>
-        <TableCell colSpan={colSpan}>
-          <Button
-            className="flex h-auto w-full cursor-pointer items-center justify-start gap-2 p-2"
-            onClick={() => {
-              const isExpanded = localExpanded[groupId] ?? false;
-              setLocalExpanded((prev) => ({
-                ...prev,
-                [groupId]: !isExpanded,
-              }));
-            }}
-            style={{ paddingLeft: level * 24 + 8 }}
-            variant="ghost"
-          >
-            <span aria-hidden className="text-muted-foreground">
-              {localExpanded[groupId] ? "▾" : "▸"}
-            </span>
-            {icon}
-            <span className="text-muted-foreground text-sm">Selection:</span>
-            <span className="font-medium">{label}</span>
-            <span className={badgeClassName}>{count}</span>
-          </Button>
-        </TableCell>
-      </TableRow>
-    );
-
-    const pushExpandedSubRows = (subRows: Row<TData>[]) => {
-      for (const subRow of subRows) {
-        rowElements.push(renderRegularRow(subRow, subRow.getVisibleCells()));
-      }
-    };
-
     const pushSelectionGroupRows = (row: Row<TData>, level: number) => {
       const visibleCells = row.getVisibleCells();
       const selection = table.getState().rowSelection;
@@ -707,36 +666,81 @@ function ModernDataTable<
       if (selectedRows.length > 0) {
         const selectedGroupId = `${row.id}-selected`;
         rowElements.push(
-          pushSelectionGroupButtonRow(
-            selectedGroupId,
-            visibleCells.length,
-            level,
-            <ColumnIcon className="text-green-600" columnType="select" />,
-            "☑️ Selected",
-            selectedRows.length,
-            "rounded-full bg-green-100 px-2 py-0.5 text-green-700 text-xs"
-          )
+          <TableRow className="border-t bg-muted/20" key={selectedGroupId}>
+            <TableCell colSpan={visibleCells.length}>
+              <Button
+                className="flex h-auto w-full cursor-pointer items-center justify-start gap-2 p-2"
+                onClick={() => {
+                  const isExpanded = localExpanded[selectedGroupId] ?? false;
+                  setLocalExpanded((prev) => ({
+                    ...prev,
+                    [selectedGroupId]: !isExpanded,
+                  }));
+                }}
+                style={{ paddingLeft: level * 24 + 8 }}
+                variant="ghost"
+              >
+                <span aria-hidden className="text-muted-foreground">
+                  {localExpanded[selectedGroupId] ? "▾" : "▸"}
+                </span>
+                <ColumnIcon className="text-green-600" columnType="select" />
+                <span className="text-muted-foreground text-sm">
+                  Selection:
+                </span>
+                <span className="font-medium">☑️ Selected</span>
+                <span className="rounded-full bg-green-100 px-2 py-0.5 text-green-700 text-xs">
+                  {selectedRows.length}
+                </span>
+              </Button>
+            </TableCell>
+          </TableRow>
         );
         if (localExpanded[selectedGroupId]) {
-          pushExpandedSubRows(selectedRows);
+          for (const subRow of selectedRows) {
+            rowElements.push(
+              renderRegularRow(subRow, subRow.getVisibleCells())
+            );
+          }
         }
       }
 
       if (unselectedRows.length > 0) {
         const unselectedGroupId = `${row.id}-unselected`;
         rowElements.push(
-          pushSelectionGroupButtonRow(
-            unselectedGroupId,
-            visibleCells.length,
-            level,
-            null,
-            "☐ Unselected",
-            unselectedRows.length,
-            "rounded-full bg-gray-100 px-2 py-0.5 text-gray-700 text-xs"
-          )
+          <TableRow className="border-t bg-muted/20" key={unselectedGroupId}>
+            <TableCell colSpan={visibleCells.length}>
+              <Button
+                className="flex h-auto w-full cursor-pointer items-center justify-start gap-2 p-2"
+                onClick={() => {
+                  const isExpanded = localExpanded[unselectedGroupId] ?? false;
+                  setLocalExpanded((prev) => ({
+                    ...prev,
+                    [unselectedGroupId]: !isExpanded,
+                  }));
+                }}
+                style={{ paddingLeft: level * 24 + 8 }}
+                variant="ghost"
+              >
+                <span aria-hidden className="text-muted-foreground">
+                  {localExpanded[unselectedGroupId] ? "▾" : "▸"}
+                </span>
+                <span className="text-muted-foreground text-sm">
+                  Selection:
+                </span>
+                <span className="font-medium">☐ Unselected</span>
+                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-gray-700 text-xs">
+                  {unselectedRows.length}
+                </span>
+              </Button>
+            </TableCell>
+          </TableRow>
         );
         if (localExpanded[unselectedGroupId]) {
-          pushExpandedSubRows(unselectedRows);
+          for (const subRow of unselectedRows) {
+            rowElements.push(
+              renderRegularRow(subRow, subRow.getVisibleCells())
+            );
+          }
         }
       }
     };
@@ -828,13 +832,7 @@ function ModernDataTable<
         ))}
       </TableHeader>
     );
-  }, [
-    table,
-    leafColumnIds,
-    tableId,
-    horizontalListSortingStrategy,
-    ColumnSortableContext,
-  ]);
+  }, [table, leafColumnIds, tableId, horizontalListSortingStrategy]);
 
   // Only show empty state if we have no data AND we shouldn't show table UI
   // This ensures we always show the table UI when using server-side operations
