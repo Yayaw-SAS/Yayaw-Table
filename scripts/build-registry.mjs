@@ -1,7 +1,7 @@
 /**
- * Builds the Shadcn registry: copies src/ui/yayaw_table + ui-custom (from src/ui/custom)
- * into registry/default/ui/yayaw-table. Paths use the "ui" segment so the CLI installs
- * under the project's ui folder (e.g. ui/yayaw-table/).
+ * Builds the Shadcn registry: copies src/ui/yayaw-table + ui-custom into
+ * registry/default/ui/yayaw-table. Each file gets a "target" so the CLI
+ * installs strictly under ui/yayaw-table/ (no files at components root).
  *
  * Run from repo root: node scripts/build-registry.mjs
  */
@@ -19,13 +19,12 @@ const REGISTRY_BLOCK = path.join(
   "ui",
   "yayaw-table"
 );
-const SRC_YAYAW_TABLE = path.join(ROOT, "src", "ui", "yayaw_table");
+const SRC_YAYAW_TABLE = path.join(ROOT, "src", "ui", "yayaw-table");
 const SRC_UI_CUSTOM = path.join(ROOT, "src", "ui", "custom");
 const UI_CUSTOM_FILES = ["loader.tsx", "icon.tsx", "stack-menu.tsx"];
 
 const REGEX_TSX_CSS = /\.(tsx?|css)$/;
 const REGEX_TS_EXT = /\.(tsx?|ts)$/;
-const REGEX_REGISTRY_PREFIX = /^registry\/default\/ui\/yayaw-table\//;
 
 function getAllFiles(dir, base = dir) {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -67,9 +66,9 @@ function relativeImport(fromFileRel, toPathRel) {
 function transformContent(content, fileRel) {
   let out = content;
 
-  // @/ui/yayaw_table/XXX -> relative path (no extension)
+  // @/ui/yayaw-table/XXX -> relative path (no extension)
   out = out.replace(
-    /from ["']@\/ui\/yayaw_table\/([^"']+)["']/g,
+    /from ["']@\/ui\/yayaw-table\/([^"']+)["']/g,
     (_, subPath) => {
       const toPath = subPath.replace(REGEX_TS_EXT, "");
       return `from "${relativeImport(fileRel, toPath)}"`;
@@ -177,15 +176,19 @@ for (const rel of allRels) {
   fs.writeFileSync(full, content, "utf8");
 }
 
-// 4) Build files array for registry (ui/ prefix → CLI installs to ui/yayaw-table/)
-const registryPaths = allRels.map((rel) =>
-  path.join("registry", "default", "ui", "yayaw-table", rel).replace(/\\/g, "/")
-);
+// 4) Build files array: path (in registry) + target (in project) so CLI installs only under ui/yayaw-table/
+const registryPathPrefix = ["registry", "default", "ui", "yayaw-table"];
+const targetDir = "ui/yayaw-table";
 
-const files = registryPaths.map((p) => ({
-  path: p,
-  type: getFileType(p.replace(REGEX_REGISTRY_PREFIX, "")),
-}));
+const files = allRels.map((rel) => {
+  const relNorm = rel.replace(/\\/g, "/");
+  const p = path.join(...registryPathPrefix, rel).replace(/\\/g, "/");
+  return {
+    path: p,
+    type: getFileType(relNorm),
+    target: `${targetDir}/${relNorm}`,
+  };
+});
 
 // 5) Update registry.json
 const registryPath = path.join(ROOT, "registry", "registry.json");

@@ -41,7 +41,7 @@
       }
     },
     {
-      "includes": ["src/ui/yayaw_table/components/table-component.tsx"],
+      "includes": ["src/ui/yayaw-table/components/table-component.tsx"],
       "linter": {
         "rules": {
           "complexity": {

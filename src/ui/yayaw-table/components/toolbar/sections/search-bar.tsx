@@ -2,8 +2,8 @@ import { Search, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/ui/shadcn/button";
 import { Input } from "@/ui/shadcn/input";
-import { useTableUrlState } from "@/ui/yayaw_table/hooks/use-table-url-state";
-import { useTranslations } from "@/ui/yayaw_table/providers/table-provider";
+import { useTableUrlState } from "@/ui/yayaw-table/hooks/use-table-url-state";
+import { useTranslations } from "@/ui/yayaw-table/providers/table-provider";
 
 const SearchBar = ({
   placeholder,
