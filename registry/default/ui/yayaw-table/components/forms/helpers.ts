@@ -2,10 +2,9 @@
  * Form definition helpers
  * These functions help define form configurations
  */
-import type { FieldValues } from "react-hook-form";
-import type { z } from "zod";
 
-import type { AnyFieldDefinition, FormConfig } from "./types";
+import type { z } from "zod";
+import type { AnyFieldDefinition, FieldValues, FormConfig } from "./types";
 
 /**
  * Default form translations

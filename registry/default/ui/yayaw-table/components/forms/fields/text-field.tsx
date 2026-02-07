@@ -1,73 +1,55 @@
 /**
- * Text field component for forms
+ * Text field component for forms (TanStack Form + Field)
  */
 "use client";
 
-import type { FieldValues, UseFormReturn } from "react-hook-form";
 import {
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { useTranslations } from "../../../providers/table-provider";
+import type { FormFieldApi, TextFieldDefinition } from "../types";
 
-import type { TextFieldDefinition } from "../types";
-
-interface TextFieldProps<TFieldValues extends FieldValues> {
-  /**
-   * Field definition
-   */
+interface TextFieldProps<TFieldValues extends Record<string, unknown>> {
   field: TextFieldDefinition<TFieldValues>;
-
-  /**
-   * Form instance
-   */
-  form: UseFormReturn<TFieldValues>;
+  fieldApi: FormFieldApi<string>;
 }
 
-/**
- * Text field component
- */
-export function TextField<TFieldValues extends FieldValues>({
+export function TextField<TFieldValues extends Record<string, unknown>>({
   field,
-  form,
+  fieldApi,
 }: TextFieldProps<TFieldValues>) {
   const { t } = useTranslations();
+  const errors = fieldApi.state.meta.errors;
+  const errorMessages = Array.isArray(errors)
+    ? errors.map((e) => (typeof e === "string" ? e : String(e)))
+    : [];
 
   return (
-    <FormField
-      control={form.control}
-      name={field.name}
-      render={({ field: formField }) => (
-        <FormItem>
-          <FormLabel>
-            {field.labelKey ? t(field.labelKey) : field.label}
-          </FormLabel>
-          <FormControl>
-            <Input
-              disabled={field.disabled}
-              placeholder={
-                field.placeholderKey
-                  ? t(field.placeholderKey)
-                  : field.placeholder
-              }
-              {...formField}
-            />
-          </FormControl>
-          {field.description && (
-            <FormDescription>
-              {field.descriptionKey
-                ? t(field.descriptionKey)
-                : field.description}
-            </FormDescription>
-          )}
-          <FormMessage />
-        </FormItem>
+    <Field data-invalid={!fieldApi.state.meta.isValid}>
+      <FieldLabel>
+        {field.labelKey ? t(field.labelKey) : field.label}
+      </FieldLabel>
+      <Input
+        aria-invalid={!fieldApi.state.meta.isValid}
+        disabled={field.disabled}
+        name={fieldApi.name}
+        onBlur={fieldApi.handleBlur}
+        onChange={(e) => fieldApi.handleChange(e.target.value)}
+        placeholder={
+          field.placeholderKey ? t(field.placeholderKey) : field.placeholder
+        }
+        value={fieldApi.state.value ?? ""}
+      />
+      {field.description != null && (
+        <FieldDescription>
+          {field.descriptionKey ? t(field.descriptionKey) : field.description}
+        </FieldDescription>
       )}
-    />
+      <FieldError errors={errorMessages.map((message) => ({ message }))} />
+    </Field>
   );
 }

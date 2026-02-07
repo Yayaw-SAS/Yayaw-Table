@@ -2,24 +2,19 @@
  * Hook for using form configurations from the catalogue
  */
 "use client";
+
 import { useCallback, useMemo } from "react";
-import type { FieldValues, UseFormProps } from "react-hook-form";
 import { z } from "zod";
 
 import {
   useFormConfig,
   useTableActions,
 } from "../../../providers/table-provider";
-import type { AnyFieldDefinition, FormConfig } from "../types";
+import type { AnyFieldDefinition, FieldValues, FormConfig } from "../types";
 
 import { useFormBuilder } from "./use-form-builder";
 
 export interface UseFormCatalogueOptions<TFieldValues extends FieldValues> {
-  /**
-   * Additional form options
-   */
-  formOptions?: Omit<UseFormProps<TFieldValues>, "defaultValues" | "resolver">;
-
   /**
    * Type of form to use (corresponds to a key in the form catalogue)
    */
@@ -34,6 +29,15 @@ export interface UseFormCatalogueOptions<TFieldValues extends FieldValues> {
    * Mode of the form (create or update)
    */
   mode?: "create" | "update";
+
+  /**
+   * Optional wrapper for submit (e.g. loading, toast). Receives validated values and the actual submit function.
+   * The wrapper can use form from its closure (e.g. via a ref updated after useFormCatalogue returns).
+   */
+  onFormSubmit?: (
+    values: TFieldValues,
+    doSubmit: (values: TFieldValues) => Promise<unknown>
+  ) => Promise<void>;
 }
 
 /**
@@ -42,10 +46,10 @@ export interface UseFormCatalogueOptions<TFieldValues extends FieldValues> {
  * @returns Form builder result
  */
 export function useFormCatalogue<TFieldValues extends FieldValues>({
-  formOptions,
   formType,
   initialData,
   mode = "create",
+  onFormSubmit,
 }: UseFormCatalogueOptions<TFieldValues>) {
   // Get the configuration helpers from the provider
   const getFormConfig = useFormConfig();
@@ -72,13 +76,6 @@ export function useFormCatalogue<TFieldValues extends FieldValues>({
   const actions = useMemo(() => {
     return getTableActions?.(formType) || {};
   }, [getTableActions, formType]);
-
-  // Use the form builder with the configuration
-  const { fields, form, translations } = useFormBuilder<TFieldValues>({
-    config,
-    formOptions,
-    initialData,
-  });
 
   // Helper function to sanitize a single field value
   const sanitizeFieldValue = useCallback(
@@ -235,23 +232,16 @@ export function useFormCatalogue<TFieldValues extends FieldValues>({
     []
   );
 
-  // Handle form submission with stabilized dependencies
+  // Handle form submission (passed to useFormBuilder as onSubmit)
   const handleSubmit = useCallback(
     async (values: TFieldValues) => {
-      let result: { success: boolean; data?: unknown; error?: string };
-
-      // Sanitize values before submission
       const sanitizedValues = sanitizeFormValues(values);
-
-      // Prepare submission data
       const dataToSubmit = prepareUpdateData(
         sanitizedValues,
         mode,
         initialData
       );
-
-      // Execute the appropriate action
-      result = await executeFormAction(
+      const result = await executeFormAction(
         mode,
         actions,
         values,
@@ -260,11 +250,9 @@ export function useFormCatalogue<TFieldValues extends FieldValues>({
         dataToSubmit,
         sanitizedValues
       );
-
       if (!result.success) {
-        throw new Error(result.error || `Failed to ${mode} ${formType}`);
+        throw new Error(result.error ?? `Failed to ${mode} ${formType}`);
       }
-
       return result.data;
     },
     [
@@ -277,6 +265,20 @@ export function useFormCatalogue<TFieldValues extends FieldValues>({
       prepareUpdateData,
     ]
   );
+
+  const { fields, form, translations } = useFormBuilder<TFieldValues>({
+    config,
+    formOptions: {
+      onSubmit: onFormSubmit
+        ? (values) => {
+            onFormSubmit(values, handleSubmit);
+          }
+        : (values) => {
+            handleSubmit(values);
+          },
+    },
+    initialData,
+  });
 
   return {
     fields,

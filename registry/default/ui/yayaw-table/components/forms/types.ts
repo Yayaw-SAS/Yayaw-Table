@@ -3,8 +3,29 @@
  * This file defines the types used for the form builder system
  */
 import type { ReactNode } from "react";
-import type { FieldValues, Path, UseFormReturn } from "react-hook-form";
 import type { z } from "zod";
+
+/** Form values type (generic record) */
+export type FieldValues = Record<string, unknown>;
+
+/** Field path (dot-notation string for nested fields) */
+export type Path<T extends FieldValues> = keyof T extends string
+  ? keyof T
+  : string;
+
+/**
+ * Minimal field API shape passed from TanStack Form's form.Field children.
+ * Used by field components to avoid depending on @tanstack/react-form in types.
+ */
+export interface FormFieldApi<TValue = unknown> {
+  handleBlur: () => void;
+  handleChange: (value: TValue) => void;
+  name: string;
+  state: {
+    meta: { errors: string[]; isValid: boolean };
+    value: TValue;
+  };
+}
 
 /**
  * Union type of all possible field definitions
@@ -43,17 +64,16 @@ export interface BaseFieldDefinition<
 }
 
 /**
- * Props that all field components receive
+ * Props that custom/render field components receive (TanStack Form field API)
  */
 export interface BaseFieldProps<
-  TFieldValues extends FieldValues = FieldValues,
+  _TFieldValues extends FieldValues = FieldValues,
 > {
-  field: {
-    [key: string]: unknown;
-    onChange: (value: unknown) => void;
-    value: unknown;
+  field: FormFieldApi<unknown>;
+  form: {
+    getFieldValue: (name: string) => unknown;
+    setFieldValue: (name: string, value: unknown) => void;
   };
-  form: UseFormReturn<TFieldValues>;
 }
 
 /**
