@@ -161,15 +161,17 @@ function PresetCard({
 
           {/* More actions menu */}
           <DropdownMenu>
-            <DropdownMenuTrigger>
-              <Button
-                className="h-6 w-6 p-0 opacity-0 transition-opacity group-hover:opacity-100"
-                size="sm"
-                variant="ghost"
-              >
-                <MoreHorizontal className="h-3 w-3" />
-              </Button>
-            </DropdownMenuTrigger>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  className="h-6 w-6 p-0 opacity-0 transition-opacity group-hover:opacity-100"
+                  size="sm"
+                  variant="ghost"
+                >
+                  <MoreHorizontal className="h-3 w-3" />
+                </Button>
+              }
+            />
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={onShare}>
                 <Share2 className="mr-2 h-4 w-4" />
@@ -586,11 +588,13 @@ export function FilterPresetsPanel({
           </Button>
 
           <DropdownMenu>
-            <DropdownMenuTrigger>
-              <Button size="sm" variant="outline">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
+            <DropdownMenuTrigger
+              render={
+                <Button size="sm" variant="outline">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              }
+            />
             <DropdownMenuContent align="end">
               <DropdownMenuItem>
                 <Upload className="mr-2 h-4 w-4" />

@@ -17,11 +17,7 @@ import {
   useState,
 } from "react";
 import { Button } from "@/ui/shadcn/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/ui/shadcn/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/ui/shadcn/popover";
 import { cn } from "../../lib/utils";
 
 interface StackMenuViewProps {
@@ -169,7 +165,6 @@ const StackMenu = forwardRef<HTMLDivElement, StackMenuProps>(
         onOpenChange?.(state);
 
         if (!state) {
-          // Reset to default view when closing
           setActiveView(defaultView);
           setViewHistory([{ name: defaultView }]);
         }
@@ -262,17 +257,26 @@ const StackMenu = forwardRef<HTMLDivElement, StackMenuProps>(
     );
 
     if (asDropdown && trigger) {
+      const triggerElement = isValidElement(trigger) ? trigger : null;
       return (
-        <DropdownMenu onOpenChange={handleOpenChange} open={isOpen}>
-          <DropdownMenuTrigger>{trigger}</DropdownMenuTrigger>
-          <DropdownMenuContent
+        <Popover
+          modal={false}
+          onOpenChange={(open) => handleOpenChange(open)}
+          open={isOpen}
+        >
+          {triggerElement ? (
+            <PopoverTrigger render={triggerElement} />
+          ) : (
+            <PopoverTrigger>{trigger}</PopoverTrigger>
+          )}
+          <PopoverContent
             align={align}
             className="w-auto p-0"
             sideOffset={sideOffset}
           >
             {menuContent}
-          </DropdownMenuContent>
-        </DropdownMenu>
+          </PopoverContent>
+        </Popover>
       );
     }
 

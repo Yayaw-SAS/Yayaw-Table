@@ -224,18 +224,20 @@ function FilterChip({
   const actionsBar = (
     <div className="flex shrink-0 items-center gap-0.5">
       <DropdownMenu>
-        <DropdownMenuTrigger>
-          <Button
-            aria-label="Filter options"
-            className="h-7 w-7 rounded-md p-0 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            disabled={disabled}
-            size="icon"
-            type="button"
-            variant="ghost"
-          >
-            <MoreHorizontal className="h-3.5 w-3.5" />
-          </Button>
-        </DropdownMenuTrigger>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              aria-label="Filter options"
+              className="h-7 w-7 rounded-md p-0 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              disabled={disabled}
+              size="icon"
+              type="button"
+              variant="ghost"
+            >
+              <MoreHorizontal className="h-3.5 w-3.5" />
+            </Button>
+          }
+        />
         <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={handleEdit}>
             <Pencil className="mr-2 h-4 w-4" />

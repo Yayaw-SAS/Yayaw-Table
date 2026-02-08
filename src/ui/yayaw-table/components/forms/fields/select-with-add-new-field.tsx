@@ -81,12 +81,12 @@ export function SelectWithAddNewField({
     updateFormValue(trimmedItem);
   };
 
-  const handleSelectChange = (value: string) => {
+  const handleSelectChange = (value: string | null) => {
     if (value === "add-new-item") {
       setShowAddNew(true);
       return;
     }
-    fieldApi.handleChange(value === "" ? null : value);
+    fieldApi.handleChange(value == null || value === "" ? null : value);
   };
 
   useEffect(() => {
@@ -100,7 +100,8 @@ export function SelectWithAddNewField({
   const errorMessages = Array.isArray(errors)
     ? errors.map((e) => (typeof e === "string" ? e : String(e)))
     : [];
-  const value = fieldApi.state.value ?? "";
+  const rawValue = fieldApi.state.value;
+  const value = rawValue == null || rawValue === "" ? null : String(rawValue);
 
   return (
     <Field data-invalid={!fieldApi.state.meta.isValid}>
@@ -145,8 +146,8 @@ export function SelectWithAddNewField({
       ) : (
         <Select
           key={`select-${name}-${selectKey}`}
-          onValueChange={(v) => (v != null ? handleSelectChange(v) : undefined)}
-          value={value === "" ? "" : String(value)}
+          onValueChange={(v) => handleSelectChange(v ?? null)}
+          value={value}
         >
           <SelectTrigger>
             <SelectValue

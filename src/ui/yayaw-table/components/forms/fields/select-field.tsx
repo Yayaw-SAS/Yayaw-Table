@@ -34,6 +34,7 @@ export function SelectField<TFieldValues extends Record<string, unknown>>({
     ? errors.map((e) => (typeof e === "string" ? e : String(e)))
     : [];
   const value = fieldApi.state.value;
+  const selectValue = value == null || value === "" ? null : String(value);
 
   return (
     <Field data-invalid={!fieldApi.state.meta.isValid}>
@@ -42,8 +43,10 @@ export function SelectField<TFieldValues extends Record<string, unknown>>({
       </FieldLabel>
       <Select
         disabled={field.disabled}
-        onValueChange={(val) => fieldApi.handleChange(val === "" ? null : val)}
-        value={value == null ? "" : String(value)}
+        onValueChange={(val) =>
+          fieldApi.handleChange(val == null || val === "" ? null : val)
+        }
+        value={selectValue}
       >
         <SelectTrigger>
           <SelectValue

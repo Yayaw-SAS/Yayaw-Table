@@ -281,16 +281,18 @@ function ActionsCellBase<TData>({
   return (
     <div className="flex justify-end">
       <DropdownMenu>
-        <DropdownMenuTrigger>
-          <Button
-            aria-label="Open actions menu"
-            className="h-8 w-8 p-0"
-            type="button"
-            variant="ghost"
-          >
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              aria-label="Open actions menu"
+              className="h-8 w-8 p-0"
+              type="button"
+              variant="ghost"
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          }
+        />
         <DropdownMenuContent align="end">
           {/* Standard actions group */}
           {standardActionsGroup}

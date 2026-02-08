@@ -74,19 +74,21 @@ function ThemeToggle({ className, variant = "dropdown" }: ThemeToggleProps) {
   return (
     <div className={cn("relative", className)}>
       <DropdownMenu>
-        <DropdownMenuTrigger>
-          <Button size="icon" type="button" variant="ghost">
-            <Icon
-              className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0"
-              name="Sun"
-            />
-            <Icon
-              className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100"
-              name="Moon"
-            />
-            <span className="sr-only">Theme</span>
-          </Button>
-        </DropdownMenuTrigger>
+        <DropdownMenuTrigger
+          render={
+            <Button size="icon" type="button" variant="ghost">
+              <Icon
+                className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0"
+                name="Sun"
+              />
+              <Icon
+                className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100"
+                name="Moon"
+              />
+              <span className="sr-only">Theme</span>
+            </Button>
+          }
+        />
         <DropdownMenuContent align="end">
           <DropdownMenuItem
             className="cursor-pointer"

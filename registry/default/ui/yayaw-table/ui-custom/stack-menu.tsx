@@ -262,9 +262,18 @@ const StackMenu = forwardRef<HTMLDivElement, StackMenuProps>(
     );
 
     if (asDropdown && trigger) {
+      const triggerElement = isValidElement(trigger) ? trigger : null;
       return (
-        <DropdownMenu onOpenChange={handleOpenChange} open={isOpen}>
-          <DropdownMenuTrigger>{trigger}</DropdownMenuTrigger>
+        <DropdownMenu
+          modal={false}
+          onOpenChange={handleOpenChange}
+          open={isOpen}
+        >
+          {triggerElement ? (
+            <DropdownMenuTrigger render={triggerElement} />
+          ) : (
+            <DropdownMenuTrigger>{trigger}</DropdownMenuTrigger>
+          )}
           <DropdownMenuContent
             align={align}
             className="w-auto p-0"
