@@ -17,11 +17,7 @@ import {
   useState,
 } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
 interface StackMenuViewProps {
@@ -169,7 +165,6 @@ const StackMenu = forwardRef<HTMLDivElement, StackMenuProps>(
         onOpenChange?.(state);
 
         if (!state) {
-          // Reset to default view when closing
           setActiveView(defaultView);
           setViewHistory([{ name: defaultView }]);
         }
@@ -264,24 +259,24 @@ const StackMenu = forwardRef<HTMLDivElement, StackMenuProps>(
     if (asDropdown && trigger) {
       const triggerElement = isValidElement(trigger) ? trigger : null;
       return (
-        <DropdownMenu
+        <Popover
           modal={false}
-          onOpenChange={handleOpenChange}
+          onOpenChange={(open) => handleOpenChange(open)}
           open={isOpen}
         >
           {triggerElement ? (
-            <DropdownMenuTrigger render={triggerElement} />
+            <PopoverTrigger render={triggerElement} />
           ) : (
-            <DropdownMenuTrigger>{trigger}</DropdownMenuTrigger>
+            <PopoverTrigger>{trigger}</PopoverTrigger>
           )}
-          <DropdownMenuContent
+          <PopoverContent
             align={align}
             className="w-auto p-0"
             sideOffset={sideOffset}
           >
             {menuContent}
-          </DropdownMenuContent>
-        </DropdownMenu>
+          </PopoverContent>
+        </Popover>
       );
     }
 
