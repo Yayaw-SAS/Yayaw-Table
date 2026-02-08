@@ -36,6 +36,12 @@ const _DEBUG = false;
 export interface UseTableInstanceOptions<TData> {
   columns: ColumnDef<TData>[];
   data: TData[];
+  /**
+   * Column IDs that should be visible by default when no URL visibility state exists.
+   * Columns present in column definitions but absent from this list will be hidden.
+   * When empty or undefined, all columns default to visible (original behaviour).
+   */
+  defaultVisibleColumns?: string[];
   enableColumnFilters?: boolean;
   enableColumnPinning?: boolean;
   enableGrouping?: boolean;
@@ -61,6 +67,7 @@ export interface UseTableInstanceOptions<TData> {
 export function useTableInstance<TData>({
   columns,
   data,
+  defaultVisibleColumns,
   enableColumnFilters = true,
   enableColumnPinning = true,
   enableGrouping = false,
@@ -358,9 +365,15 @@ export function useTableInstance<TData>({
       ) {
         return true;
       }
+
+      // When a defaultVisibleColumns list is provided, only show listed columns
+      if (defaultVisibleColumns && defaultVisibleColumns.length > 0) {
+        return defaultVisibleColumns.includes(id);
+      }
+
       return column.enableHiding !== false;
     },
-    []
+    [defaultVisibleColumns]
   );
 
   // Initialize column visibility from columns
@@ -370,7 +383,7 @@ export function useTableInstance<TData>({
       return visibilityParam;
     }
 
-    // Otherwise, use the column definitions
+    // Otherwise, use the column definitions (+ defaultVisibleColumns if provided)
     const visibility: VisibilityState = {};
     for (const [index, column] of columns.entries()) {
       const id = getColumnId(column, index);

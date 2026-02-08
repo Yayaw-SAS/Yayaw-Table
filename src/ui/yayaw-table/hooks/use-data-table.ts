@@ -248,9 +248,47 @@ export function useDataTable<TData extends Record<string, unknown>>(
 
   // Get table state from URL parameters with proper type assertions
   const columnOrder = (tableUrlState.orderParam || []) as string[];
-  const columnVisibility = (tableUrlState.visibilityParam ||
-    {}) as VisibilityState;
   const sorting = (tableUrlState.sortParam || []) as ColumnSort[];
+
+  // Compute column visibility: when URL has no visibility state, derive it
+  // from config.columns.visible so columns in order/definitions but NOT in
+  // visible are hidden by default.
+  const columnVisibility = useMemo<VisibilityState>(() => {
+    const urlVisibility = (tableUrlState.visibilityParam ||
+      {}) as VisibilityState;
+
+    // If URL already has explicit visibility state, use it as-is
+    if (Object.keys(urlVisibility).length > 0) {
+      return urlVisibility;
+    }
+
+    const visibleList = config.columns.visible;
+
+    // If no visible list is configured, fall back to everything visible
+    if (!visibleList || visibleList.length === 0) {
+      return {};
+    }
+
+    const visibleSet = new Set(visibleList);
+    const visibility: VisibilityState = {};
+
+    // Walk every defined column and mark those absent from visible as hidden
+    for (const colDef of config.columns.definitions) {
+      const colId = colDef.id;
+      // Special columns (select, actions) are always visible
+      if (colId === "select" || colId === "actions") {
+        visibility[colId] = true;
+        continue;
+      }
+      visibility[colId] = visibleSet.has(colId);
+    }
+
+    return visibility;
+  }, [
+    tableUrlState.visibilityParam,
+    config.columns.visible,
+    config.columns.definitions,
+  ]);
 
   // Enhanced refetch function that resets pagination and invalidates queries
   const enhancedRefetch = useCallback(async () => {

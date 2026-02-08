@@ -20,7 +20,11 @@ export function BooleanCell({ value }: BooleanCellProps) {
   const translations = useTableTranslations();
   return (
     <Badge
-      className={value ? "bg-green-100 text-green-800 hover:bg-green-100" : ""}
+      className={
+        value
+          ? "bg-green-500/10 text-green-600 hover:bg-green-500/20 dark:bg-green-500/20 dark:text-green-400"
+          : ""
+      }
       variant={value ? "default" : "destructive"}
     >
       {value ? translations.true : translations.false}
