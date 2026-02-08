@@ -284,7 +284,11 @@ export function useDataTable<TData extends Record<string, unknown>>(
     }
 
     return visibility;
-  }, [tableUrlState.visibilityParam, config.columns.visible, config.columns.definitions]);
+  }, [
+    tableUrlState.visibilityParam,
+    config.columns.visible,
+    config.columns.definitions,
+  ]);
 
   // Enhanced refetch function that resets pagination and invalidates queries
   const enhancedRefetch = useCallback(async () => {
