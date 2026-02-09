@@ -130,15 +130,20 @@ function DataTableContent({
   const { TitleComponent, DescriptionComponent } = useTableComponents();
   const displayTitle =
     title ||
-    (nestedTranslations as (DataTableTranslations & { title?: string }) | undefined)
-      ?.title ||
+    (
+      nestedTranslations as
+        | (DataTableTranslations & { title?: string })
+        | undefined
+    )?.title ||
     config.translations?.keys?.title ||
     `${tableType} Table`;
   const displayDescription =
     description ||
-    (nestedTranslations as
-      | (DataTableTranslations & { description?: string })
-      | undefined)?.description ||
+    (
+      nestedTranslations as
+        | (DataTableTranslations & { description?: string })
+        | undefined
+    )?.description ||
     config.translations?.keys?.description ||
     `Manage your ${tableType}`;
 
