@@ -126,12 +126,24 @@ function DataTableContent({
 
   // Debug logs for advanced filters removed since configuration is now handled in DataTableAdvancedToolbar
 
-  // Get the title and description from config or props
+  // Get the title and description from props, provider translations, config, or fallback
   const { TitleComponent, DescriptionComponent } = useTableComponents();
   const displayTitle =
-    title || config.translations?.keys?.title || `${tableType} Table`;
+    title ||
+    (
+      nestedTranslations as
+        | (DataTableTranslations & { title?: string })
+        | undefined
+    )?.title ||
+    config.translations?.keys?.title ||
+    `${tableType} Table`;
   const displayDescription =
     description ||
+    (
+      nestedTranslations as
+        | (DataTableTranslations & { description?: string })
+        | undefined
+    )?.description ||
     config.translations?.keys?.description ||
     `Manage your ${tableType}`;
 
