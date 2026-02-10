@@ -148,13 +148,30 @@ export function useTableConfig(tableType: string) {
         defaultPageSize: providerConfig.defaultPageSize,
         pageSizeOptions: providerConfig.pageSizeOptions,
       },
-      columns: {
-        definitions: providerConfig?.columns?.definitions || [],
-        order: providerConfig?.columns?.order || [],
-        sort: [],
-        visible: providerConfig?.columns?.visible || [],
-        mandatory: providerConfig?.columns?.mandatory || [],
-      },
+      columns: (() => {
+        const definitions = providerConfig?.columns?.definitions || [];
+        const order = providerConfig?.columns?.order || [];
+        const visible = providerConfig?.columns?.visible || [];
+        const mandatory = providerConfig?.columns?.mandatory || [];
+        const enableRowSelection = providerConfig.enableRowSelection !== false;
+
+        const orderWithSelect =
+          enableRowSelection && !order.includes("select")
+            ? ["select", ...order]
+            : order;
+        const visibleWithSelect =
+          enableRowSelection && !visible.includes("select")
+            ? ["select", ...visible]
+            : visible;
+
+        return {
+          definitions,
+          order: orderWithSelect,
+          sort: [],
+          visible: visibleWithSelect,
+          mandatory,
+        };
+      })(),
       translations: {
         namespace: "common",
         keys: {},

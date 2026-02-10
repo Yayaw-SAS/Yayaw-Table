@@ -51,6 +51,7 @@ All of these are optional except `tableType`. They are passed through to the int
 | `enableAdvancedFilters` | `boolean` | Enable advanced filters panel (default `false`). |
 | `columnTypeMapping` | `Record<string, 'text' \| 'number' \| 'date' \| 'option' \| 'multiOption'>` | Map backend types to filter/column types. |
 | `onBulkEdit`, `onBulkDelete`, `onBulkCopy` | `(rows) => void` | Override bulk behavior; otherwise provider actions are used. |
+| **Bulk actions UI** | | When row selection is enabled, the bulk actions menu uses **actions** (`actions.edit`, `actions.copy`, `actions.delete`, `actions.cancel`, `actions.confirm`), **bulk** (`bulk.close_menu`, `bulk.confirm_title`, `bulk.confirm_copy_description`, `bulk.confirm_delete_description`), and **selection** (`selection.rows`) from your `DataTableTranslations`. See [Translations — actions & bulk](/docs/translations#actions). |
 | `loadingOverlay` | `ReactNode` | Custom loading UI. |
 | `TitleComponent`, `DescriptionComponent` | `ComponentType` | Custom title/description components. |
 
@@ -77,6 +78,8 @@ See [Actions](/docs/actions) and [Server-side & Server Actions](/docs/server-act
 ## getFormConfig
 
 Return form configuration per form type (e.g. `"products"`, `"products-bulk"`). Used to build create/edit dialogs and bulk edit. Shape: fields array with `name`, `type`, `label`, `required`, etc. See your codebase or the example app `form-config` for the full type.
+
+**Form translations:** The catalogue form uses the same `DataTableTranslations` object as the table. You must add **form** and **value** keys to that object (e.g. `form.name`, `form.submit`, `value.string_placeholder`) and use `labelKey` / `optionKeys` in your field definitions so labels and placeholders resolve. See [Translations Reference — Form translations](/docs/translations#form-translations-catalogue-form) for the full example.
 
 ## Next.js layout (Nuqs)
 

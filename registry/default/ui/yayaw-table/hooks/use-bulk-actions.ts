@@ -4,7 +4,7 @@
 "use client";
 
 import type { Row, Table } from "@tanstack/react-table";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 import { useTableActions } from "./use-table-actions";
 
 /**
@@ -108,44 +108,24 @@ export function useBulkActions<TData>({
     enableLogging: false,
   });
   const provider = tableType ? providerResult : undefined;
-  const [selectedRows, setSelectedRows] = useState<Row<TData>[]>([]);
-  const [showBulkActions, setShowBulkActions] = useState(false);
 
-  // Update selected rows based on table state
-  const updateSelection = useCallback(() => {
-    if (!table) {
-      setSelectedRows([]);
-      setShowBulkActions(false);
-      return;
-    }
-
-    const rowSelection = table.getState().rowSelection;
-    const allRows = table.getRowModel().rows;
-    const selected = allRows.filter((row) => rowSelection[row.id]);
-
-    setSelectedRows(selected);
-    setShowBulkActions(selected.length >= minimumSelection);
-
-    // Debug logs
-  }, [table, minimumSelection]);
-
-  // React to selection changes: re-run when table or updateSelection changes
-  useEffect(() => {
-    if (!table) {
-      return;
-    }
-    updateSelection();
-  }, [table, updateSelection]);
+  // Derive selected rows and menu visibility from table state so they stay in sync when user selects/deselects
+  const selectedRows =
+    table && typeof table.getState === "function"
+      ? (() => {
+          const rowSelection = table.getState().rowSelection || {};
+          return table.getRowModel().rows.filter((row) => rowSelection[row.id]);
+        })()
+      : [];
+  const showBulkActions = selectedRows.length >= minimumSelection;
 
   // Clear all selections
   const clearSelection = useCallback(() => {
     if (!table) {
       return;
     }
-
     table.setRowSelection({});
-    updateSelection(); // Force update after clearing selection
-  }, [table, updateSelection]);
+  }, [table]);
 
   // Handle bulk edit
   const handleBulkEdit = useCallback(() => {

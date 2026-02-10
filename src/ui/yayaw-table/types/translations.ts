@@ -14,6 +14,12 @@ export interface DataTableTranslations {
     title: string;
     view: string;
   };
+  bulk: {
+    close_menu: string;
+    confirm_copy_description: string;
+    confirm_delete_description: string;
+    confirm_title: string;
+  };
   columns: {
     title: string;
     hide: string;

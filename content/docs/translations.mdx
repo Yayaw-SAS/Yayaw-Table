@@ -7,14 +7,18 @@ description: Translation keys, namespaces, and override strategies
 
 Translations are strongly typed. Provide overrides either via the provider or directly in your table configuration under `translations.keys`.
 
+**Important:** When you use the **catalogue form** (create/edit via `getFormConfig`), the form uses the same translation function `t()` as the table — i.e. the same `DataTableTranslations` object passed to the provider. You must include **form** and **value** keys in that object so that field labels, placeholders (including the value-type field), and form buttons resolve correctly. Otherwise you will see raw keys like `value.string_placeholder` in the UI.
+
 ## Type shape
 
 ```ts
 type DataTableTranslations = {
   actions: { delete: string; edit: string; copy: string; save: string; cancel: string; confirm: string; title: string; view: string };
+  bulk: { close_menu: string; confirm_copy_description: string; confirm_delete_description: string; confirm_title: string };
   columns: { title: string; hide: string; show: string; visible: string; hidden: string; drag: string; resetOrder: string; toggleVisibility: string; hideAll: string; showAll: string; edit_property: string; filter: string; hide_in_view: string; reorder: string; sort_ascending: string; sort_descending: string };
   pagination: { first: string; last: string; next: string; previous: string; of: string; page: string; rowsPerPage: string; showing: string; selectedCount: string };
-  // ... see full type in `src/data-table/types/translations.ts`
+  selection: { rows: string };
+  // ... see full type in types/translations.ts
 }
 ```
 
@@ -34,16 +38,127 @@ translations: {
 
 You can supply a full `DataTableTranslations` object to the provider for consistent localization across tables.
 
+## Form translations (catalogue form)
+
+When using **getFormConfig** and the built-in create/edit form (catalogue form), the form resolves all labels, placeholders, and button text from the **same** `DataTableTranslations` object you pass to the provider. Add a **form** and **value** section to that object.
+
+- **form** – Field labels (use `labelKey` in your form config, e.g. `form.name`), form buttons (cancel, submit, create, update), and success/error messages. The catalogue form also uses `createForm.title` and `createForm.description` for the dialog/drawer header. For select fields, use `form.valueType_options.boolean` etc. if you use `optionKeys`.
+- **value** – Used by the **value-type** field: `value.string_placeholder`, `value.json_placeholder`, `value.number_placeholder`, and for the boolean switch `value.enabled` / `value.disabled`.
+
+In your form config, set `labelKey` (and optionally `placeholderKey`, `optionKeys`) on each field so that the form builder replaces labels/options with `t(labelKey)`.
+
+### Example object (form + value)
+
+Merge this into the `DataTableTranslations` object you pass to the table (e.g. next to `actions`, `columns`, `filters`, etc.):
+
+```ts
+const myTableTranslations = {
+  // ... actions, columns, filters, etc. ...
+
+  form: {
+    cancel: "Cancel",
+    create: "Create",
+    createError: "Failed to create",
+    createForm: {
+      description: "Add a new item.",
+      title: "Create item",
+    },
+    created: "Created successfully",
+    name: "Name",
+    slug: "Slug",
+    category: "Category",
+    description: "Description",
+    enabled: "Enabled",
+    valueType: "Value type",
+    value: "Value",
+    submit: "Save",
+    update: "Update",
+    updateError: "Failed to update",
+    updated: "Updated successfully",
+    valueType_options: {
+      boolean: "Boolean",
+      number: "Number",
+      string: "String",
+      json: "JSON",
+    },
+  },
+  value: {
+    string_placeholder: "Default string value",
+    json_placeholder: "{}",
+    number_placeholder: "0",
+    enabled: "Enabled",
+    disabled: "Disabled",
+  },
+};
+```
+
+Form config example using `labelKey` and `optionKeys` so these keys are used:
+
+```ts
+defineFormConfig({
+  id: "my-entity",
+  defaultValues: { name: "", slug: "", valueType: "string", value: null, enabled: false },
+  fields: [
+    { name: "name", type: "text", label: "Name", labelKey: "form.name", required: true },
+    { name: "slug", type: "text", label: "Slug", labelKey: "form.slug", required: true },
+    {
+      name: "valueType",
+      type: "select",
+      label: "Value type",
+      labelKey: "form.valueType",
+      optionKeys: [
+        "form.valueType_options.boolean",
+        "form.valueType_options.number",
+        "form.valueType_options.string",
+        "form.valueType_options.json",
+      ],
+      options: [
+        { label: "boolean", value: "boolean" },
+        { label: "number", value: "number" },
+        { label: "string", value: "string" },
+        { label: "json", value: "json" },
+      ],
+    },
+    {
+      name: "value",
+      type: "value-type",
+      label: "Value",
+      labelKey: "form.value",
+      valueTypeField: "valueType",
+      supportedTypes: ["boolean", "json", "number", "string"],
+    },
+  ],
+  schema: mySchema,
+  translations: {
+    namespace: "my.namespace",
+    keys: {
+      cancel: "form.cancel",
+      submit: "form.submit",
+      create: "form.create",
+      update: "form.update",
+      created: "form.created",
+      updated: "form.updated",
+      createError: "form.createError",
+      updateError: "form.updateError",
+      "createForm.title": "form.createForm.title",
+      "createForm.description": "form.createForm.description",
+    },
+  },
+});
+```
+
 See also:
 - [DataTable](/docs/datatable)
 - [Columns](/docs/columns)
-
+- [Provider & Setup](/docs/setup) (getFormConfig)
 
 ## All keys (dot-path)
 
 Use the following keys to construct your translations object. All values are strings.
 
 ### actions
+
+Used by row actions and by the **bulk actions menu** (Edit, Copy, Delete tabs and dialog buttons).
 
 | Key | Type |
 | --- | --- |
@@ -55,6 +170,17 @@ Use the following keys to construct your translations object. All values are str
 | actions.confirm | string |
 | actions.title | string |
 | actions.view | string |
+
+### bulk
+
+Strings for the bulk actions overlay (shown when one or more rows are selected). Supports `{action}`, `{count}` and ICU plural: `{count, plural, one {item} other {items}}`.
+
+| Key | Type |
+| --- | --- |
+| bulk.close_menu | string |
+| bulk.confirm_copy_description | string |
+| bulk.confirm_delete_description | string |
+| bulk.confirm_title | string |
 
 ### columns
 
@@ -134,6 +260,8 @@ Use the following keys to construct your translations object. All values are str
 | search.placeholder | string |
 
 ### selection
+
+Used for the selection column header and the **bulk actions menu** count (e.g. “3 rows selected”). Supports `{count}` and ICU plural.
 
 | Key | Type |
 | --- | --- |
@@ -291,6 +419,46 @@ Use the following keys to construct your translations object. All values are str
 | menu.sort | string |
 | menu.subgroup | string |
 | menu.title | string |
+
+### form (catalogue form)
+
+Include these when using create/edit forms so labels, placeholders, and buttons resolve. Use `labelKey` / `optionKeys` in your form config to point to these keys.
+
+| Key | Type |
+| --- | --- |
+| form.cancel | string |
+| form.create | string |
+| form.createError | string |
+| form.createForm.title | string |
+| form.createForm.description | string |
+| form.created | string |
+| form.name | string |
+| form.slug | string |
+| form.category | string |
+| form.description | string |
+| form.enabled | string |
+| form.valueType | string |
+| form.value | string |
+| form.submit | string |
+| form.update | string |
+| form.updateError | string |
+| form.updated | string |
+| form.valueType_options.boolean | string |
+| form.valueType_options.number | string |
+| form.valueType_options.string | string |
+| form.valueType_options.json | string |
+
+### value (value-type field)
+
+Used by the value-type form field for placeholders and boolean labels.
+
+| Key | Type |
+| --- | --- |
+| value.string_placeholder | string |
+| value.json_placeholder | string |
+| value.number_placeholder | string |
+| value.enabled | string |
+| value.disabled | string |
 
 ### root
 

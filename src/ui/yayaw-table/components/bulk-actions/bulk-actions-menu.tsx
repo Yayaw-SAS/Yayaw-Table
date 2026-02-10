@@ -228,17 +228,20 @@ export function BulkActionsMenu<TData>({
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>
-                {t(getSelectedAction()?.translationKey || "")} {selectedCount}{" "}
-                item{selectedCount > 1 ? "s" : ""}?
+                {t("bulk.confirm_title", {
+                  action: t(getSelectedAction()?.translationKey || ""),
+                  count: selectedCount,
+                })}
               </AlertDialogTitle>
               {selectedAction === "delete" ? (
                 <AlertDialogDescription>
-                  This action cannot be undone.
+                  {t("bulk.confirm_delete_description")}
                 </AlertDialogDescription>
               ) : (
                 <AlertDialogDescription>
-                  You are about to {t("actions.copy").toLowerCase()}{" "}
-                  {selectedCount} item{selectedCount > 1 ? "s" : ""}.
+                  {t("bulk.confirm_copy_description", {
+                    count: selectedCount,
+                  })}
                 </AlertDialogDescription>
               )}
             </AlertDialogHeader>
@@ -269,7 +272,7 @@ export function BulkActionsMenu<TData>({
           <div className="flex items-center gap-2 px-3">
             <div className="h-2 w-2 animate-pulse rounded-full bg-primary" />
             <span className="font-medium text-foreground text-sm">
-              {selectedCount}
+              {t("selection.rows", { count: selectedCount })}
             </span>
           </div>
 
@@ -324,7 +327,7 @@ export function BulkActionsMenu<TData>({
 
           {/* Close button */}
           <Button
-            aria-label="Close bulk actions menu"
+            aria-label={t("bulk.close_menu")}
             className="h-8 w-8 p-0 hover:bg-muted"
             onClick={handleClose}
             size="sm"

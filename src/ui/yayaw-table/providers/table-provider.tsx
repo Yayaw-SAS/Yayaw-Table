@@ -289,6 +289,14 @@ export const defaultTranslations: DataTableTranslations = {
     title: "Actions",
     view: "View",
   },
+  bulk: {
+    close_menu: "Close bulk actions menu",
+    confirm_copy_description:
+      "You are about to copy {count} {count, plural, one {item} other {items}}.",
+    confirm_delete_description: "This action cannot be undone.",
+    confirm_title:
+      "{action} {count} {count, plural, one {item} other {items}}?",
+  },
   columns: {
     title: "Columns",
     hide: "Hide column",

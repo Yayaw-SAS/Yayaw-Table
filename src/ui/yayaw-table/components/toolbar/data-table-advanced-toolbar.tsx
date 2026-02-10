@@ -489,7 +489,7 @@ export function DataTableAdvancedToolbar<TData>({
             })
           );
         }}
-        size="sm"
+        size="lg"
         variant="default"
       >
         <PlusIcon className="mr-2 h-4 w-4" />

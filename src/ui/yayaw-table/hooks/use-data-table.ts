@@ -283,11 +283,17 @@ export function useDataTable<TData extends Record<string, unknown>>(
       visibility[colId] = visibleSet.has(colId);
     }
 
+    // Select column is not in definitions; ensure it is visible when row selection is enabled
+    if (config.table.enableRowSelection) {
+      visibility.select = true;
+    }
+
     return visibility;
   }, [
     tableUrlState.visibilityParam,
     config.columns.visible,
     config.columns.definitions,
+    config.table.enableRowSelection,
   ]);
 
   // Enhanced refetch function that resets pagination and invalidates queries
