@@ -22,7 +22,7 @@ import {
   TableRow,
 } from "@/ui/shadcn/table";
 import { tableIdAtom } from "../atoms/table-atoms";
-import { defaultBulkActions, useBulkActions } from "../hooks/use-bulk-actions";
+import { useBulkActions } from "../hooks/use-bulk-actions";
 import { useDataTable } from "../hooks/use-data-table";
 import { useTableConfig } from "../hooks/use-table-config";
 import { useTableInstance } from "../hooks/use-table-instance";
@@ -399,13 +399,13 @@ function ModernDataTable<
     table,
   });
 
-  // Setup bulk actions functionality (bulk edit enabled by default via provider when onBulkEdit not provided)
+  // Setup bulk actions: pass only app-provided callbacks; hook uses provider (update/delete) and clipboard copy when undefined
   const bulkActions = useBulkActions({
     table,
     tableType: tableType || tableId,
-    onBulkEdit: onBulkEdit || defaultBulkActions.onBulkEdit,
-    onBulkDelete: onBulkDelete || defaultBulkActions.onBulkDelete,
-    onBulkCopy: onBulkCopy || defaultBulkActions.onBulkCopy,
+    onBulkEdit,
+    onBulkDelete,
+    onBulkCopy,
   });
 
   // Debug bulk actions state
