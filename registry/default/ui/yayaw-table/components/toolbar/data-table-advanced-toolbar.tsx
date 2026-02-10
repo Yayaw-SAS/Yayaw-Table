@@ -477,6 +477,7 @@ export function DataTableAdvancedToolbar<TData>({
     <div className="flex items-center gap-2">
       {/* Create button */}
       <Button
+        className="h-8"
         onClick={() => {
           // Set the form state to open the create form
           // Use tableId directly as the form type since they're now identical
@@ -489,7 +490,7 @@ export function DataTableAdvancedToolbar<TData>({
             })
           );
         }}
-        size="lg"
+        size="sm"
         variant="default"
       >
         <PlusIcon className="mr-2 h-4 w-4" />
