@@ -7,7 +7,6 @@
 import type { ColumnFiltersState } from "@tanstack/react-table";
 import { Filter, X } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
-import { StackMenuContent, StackMenuView } from "../../../ui-custom/stack-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -19,6 +18,7 @@ import type {
   ColumnsFilterConfig,
   FilterActions,
 } from "../../../types/filter-types";
+import { StackMenuContent, StackMenuView } from "../../../ui-custom/stack-menu";
 
 import { CompactFilterPanel } from "../../filters/advanced-filter-panel";
 

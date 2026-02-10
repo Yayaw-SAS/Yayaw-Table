@@ -2,7 +2,7 @@
 
 Distribution **sans package npm** : tout le code est dans le registry. Les composants Shadcn utilisés sont déclarés en `registryDependencies`, le CLI les ajoute une seule fois (pas de duplication).
 
-**Source de vérité :** seul `src/ui/yayaw-table` (et les fichiers listés dans `src/ui/custom`) est à maintenir. Le dossier `registry/default/ui/yayaw-table` est **généré** par le script et ne doit pas être modifié à la main. Après toute modification sous `src/ui/yayaw-table`, exécuter `bun run registry:sync`.
+**Source de vérité :** seul `src/ui/yayaw-table` (et les fichiers listés dans `src/ui/custom`) est à maintenir. Le dossier `registry/default/ui/yayaw-table` est **généré** par le script et ne doit pas être modifié à la main. Après toute modification sous `src/ui/yayaw-table`, exécuter `bun run registry:sync`. Le script lance ensuite `ultracite fix` sur `registry/default` pour que le code généré respecte le style du projet (plus besoin de lancer un fix à la main).
 
 ## CI (GitHub Actions)
 
@@ -44,7 +44,7 @@ En résumé : **Shadcn → `ui` (ex. `src/ui/shadcn/`)**, **block yayaw-table �
 ## Structure
 
 - `registry.json` : entrée du registry (un block `yayaw-table` avec `registryDependencies` Shadcn et `dependencies` npm).
-- `default/ui/yayaw-table/` : **généré** par `scripts/build-registry.mjs` à partir de `src/ui/yayaw-table` + `ui-custom` (loader, icon, stack-menu) depuis `src/ui/custom`, avec imports transformés pour le CLI (`@/components/ui/*`, etc.). Ne pas éditer ce dossier à la main.
+- `default/ui/yayaw-table/` : **généré** par `scripts/build-registry.mjs` à partir de `src/ui/yayaw-table` + `ui-custom` (loader, icon, stack-menu) depuis `src/ui/custom`, avec imports transformés pour le CLI (`@/components/ui/*`, etc.). Le script exécute ensuite `ultracite fix` sur ce dossier. Ne pas éditer ce dossier à la main.
 
 ## Index officiel Shadcn
 

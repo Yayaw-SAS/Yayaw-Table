@@ -10,8 +10,6 @@ import { useAtom } from "jotai";
 // CheckSquare import removed - using ColumnIcon helper
 import type React from "react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { cn } from "@/lib/utils";
-import { Loader } from "../ui-custom/loader";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -21,6 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 import { tableIdAtom } from "../atoms/table-atoms";
 import { useBulkActions } from "../hooks/use-bulk-actions";
 import { useDataTable } from "../hooks/use-data-table";
@@ -28,6 +27,7 @@ import { useTableConfig } from "../hooks/use-table-config";
 import { useTableInstance } from "../hooks/use-table-instance";
 import { useTableUrlState } from "../hooks/use-table-url-state";
 import type { DataTableProps } from "../types";
+import { Loader } from "../ui-custom/loader";
 import { ColumnIcon } from "../utils/column-icons";
 import { BulkActionsMenu } from "./bulk-actions/bulk-actions-menu";
 import { ColumnDragOverlay, GroupRowSelectionCell } from "./columns";

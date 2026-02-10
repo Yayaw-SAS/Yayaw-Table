@@ -6,10 +6,15 @@
  * Source of truth: src/ui/yayaw-table (and listed src/ui/custom files).
  * Do not edit registry/default/ by hand — it is overwritten by this script.
  *
+ * After writing files, runs the project formatter (ultracite fix) on the
+ * registry output so generated code matches project style and you don't need
+ * to "fix" manually.
+ *
  * Run from repo root: node scripts/build-registry.mjs
  * Or: bun run registry:sync
  */
 
+import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -203,3 +208,15 @@ fs.writeFileSync(
   `${JSON.stringify(registry, null, 2)}\n`,
   "utf8"
 );
+
+// 6) Run formatter on registry output so generated files match project style
+try {
+  execSync("bun x ultracite fix registry/default", {
+    cwd: ROOT,
+    stdio: "inherit",
+  });
+} catch {
+  console.warn(
+    "build-registry: ultracite fix on registry/default failed or not found; run manually: bun x ultracite fix registry/default"
+  );
+}

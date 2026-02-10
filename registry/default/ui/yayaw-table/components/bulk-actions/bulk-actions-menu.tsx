@@ -9,7 +9,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Copy, Edit, Trash2, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { useOnClickOutside } from "usehooks-ts";
-import { cn } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,6 +20,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { useTranslations } from "../../providers/table-provider";
 
 /**
