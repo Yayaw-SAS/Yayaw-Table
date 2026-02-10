@@ -50,27 +50,25 @@ function SelectionHeaderBase<TData>({ table }: SelectionHeaderProps<TData>) {
 
   const rowSelection = table.getState().rowSelection;
   const allRows = table.getRowModel().rows;
-  const selectedCount = Object.keys(rowSelection).length;
-  const totalCount = allRows.length;
+  const coreRows = table.getCoreRowModel().rows;
+  const selectedCount = coreRows.filter((row) => rowSelection[row.id]).length;
+  // With grouping, allRows can be group rows only; count visible leaf rows by recursing
+  const visibleLeafIds = allRows.flatMap((row) => getLeafRowIds(row));
+  const totalCount = visibleLeafIds.length;
 
   const isAllSelected = selectedCount === totalCount && totalCount > 0;
-  const isSomeSelected = selectedCount > 0 && selectedCount < totalCount;
+  const isSomeSelected =
+    selectedCount > 0 && (totalCount === 0 || selectedCount < totalCount);
 
   const handleToggle = (value: boolean) => {
     if (value) {
-      // Select all rows on current page
-      const newSelection: Record<string, boolean> = { ...rowSelection };
-      for (const row of allRows) {
-        newSelection[row.id] = true;
-      }
+      const newSelection: Record<string, boolean> = {
+        ...rowSelection,
+        ...Object.fromEntries(visibleLeafIds.map((id) => [id, true])),
+      };
       table.setRowSelection(newSelection);
     } else {
-      // Deselect all rows on current page
-      const newSelection: Record<string, boolean> = { ...rowSelection };
-      for (const row of allRows) {
-        delete newSelection[row.id];
-      }
-      table.setRowSelection(newSelection);
+      table.setRowSelection({});
     }
 
     // Critical: Force re-render after state change
@@ -87,6 +85,59 @@ function SelectionHeaderBase<TData>({ table }: SelectionHeaderProps<TData>) {
         ref={(el: HTMLButtonElement & { indeterminate?: boolean }) => {
           if (el) {
             el.indeterminate = isSomeSelected;
+          }
+        }}
+      />
+    </div>
+  );
+}
+
+/** Collect all leaf row IDs under a row (for group rows, recurse into subRows) */
+function getLeafRowIds<TData>(row: Row<TData>): string[] {
+  if (!row.getIsGrouped?.()) {
+    return [row.id];
+  }
+  const sub = (row.subRows ?? []) as Row<TData>[];
+  return sub.flatMap((r) => getLeafRowIds(r));
+}
+
+/** Group row selection control: checkbox to select/deselect whole group (exported for use in custom table body) */
+export function GroupRowSelectionCell<TData>({
+  row,
+  table,
+}: {
+  row: Row<TData>;
+  table: Table<TData>;
+}) {
+  const leafIds = getLeafRowIds(row);
+  const rowSelection = table.getState().rowSelection || {};
+  const selectedInGroup = leafIds.filter((id) => rowSelection[id]).length;
+  const allSelected = selectedInGroup === leafIds.length && leafIds.length > 0;
+  const someSelected = selectedInGroup > 0;
+
+  const handleGroupToggle = (value: boolean) => {
+    const leafSet = new Set(leafIds);
+    const next: Record<string, boolean> = value
+      ? {
+          ...rowSelection,
+          ...Object.fromEntries(leafIds.map((id) => [id, true])),
+        }
+      : Object.fromEntries(
+          Object.entries(rowSelection).filter(([id]) => !leafSet.has(id))
+        );
+    table.setRowSelection(next);
+  };
+
+  return (
+    <div className="flex items-center justify-center">
+      <Checkbox
+        aria-label="Select group"
+        checked={allSelected}
+        className="translate-y-[2px] cursor-pointer data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+        onCheckedChange={handleGroupToggle}
+        ref={(el: HTMLButtonElement & { indeterminate?: boolean }) => {
+          if (el) {
+            el.indeterminate = someSelected && !allSelected;
           }
         }}
       />
@@ -116,31 +167,7 @@ export function createSelectionColumn<TData>(
       const isGrouped = info.cell.getIsGrouped?.() ?? false;
 
       if (isGrouped) {
-        const count = info.row.subRows?.length ?? 0;
-
-        // Count selected vs unselected in subRows
-        const selectedCount =
-          info.row.subRows?.filter((subRow: Row<TData>) => {
-            const rowSelection = info.table.getState().rowSelection;
-            return rowSelection[subRow.id];
-          }).length ?? 0;
-
-        const unselectedCount = count - selectedCount;
-
-        return (
-          <div className="flex items-center gap-2">
-            <span>📋</span>
-            <span className="font-medium">Selection Status</span>
-            <div className="flex gap-1">
-              <span className="rounded-full bg-green-100 px-2 py-0.5 text-green-700 text-xs">
-                ☑️ {selectedCount} selected
-              </span>
-              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-gray-700 text-xs">
-                ☐ {unselectedCount} unselected
-              </span>
-            </div>
-          </div>
-        );
+        return <GroupRowSelectionCell row={info.row} table={info.table} />;
       }
 
       return <SelectionCell className={className} row={info.row} />;

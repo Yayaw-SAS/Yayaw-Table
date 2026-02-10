@@ -30,7 +30,7 @@ import { useTableUrlState } from "../hooks/use-table-url-state";
 import type { DataTableProps } from "../types";
 import { ColumnIcon } from "../utils/column-icons";
 import { BulkActionsMenu } from "./bulk-actions/bulk-actions-menu";
-import { ColumnDragOverlay } from "./columns";
+import { ColumnDragOverlay, GroupRowSelectionCell } from "./columns";
 import { DataTableColumnHeader } from "./columns/header/column-header";
 import { useColumnDnd } from "./columns/hooks/use-column-dnd";
 import { useColumnDragOverlay } from "./columns/hooks/use-column-drag-overlay";
@@ -295,14 +295,14 @@ function ModernDataTable<
     }
   }, [state.grouping, refetch]);
 
-  // Handle row selection changes
+  // Handle row selection changes (use core row model so selection is correct with grouping)
   useEffect(() => {
     if (onRowSelectionChange && table) {
       const currentSelection = table.getState().rowSelection;
-      const selectedRows = table
-        .getRowModel()
-        .rows.filter((row) => currentSelection[row.id]) as Row<TData>[];
-
+      const rows = table.getCoreRowModel().rows;
+      const selectedRows = rows.filter(
+        (row) => currentSelection[row.id]
+      ) as Row<TData>[];
       onRowSelectionChange(selectedRows);
     }
   }, [table, onRowSelectionChange]);
@@ -606,7 +606,13 @@ function ModernDataTable<
           data-state={row.getIsSelected() ? "selected" : ""}
           key={row.id}
         >
-          <TableCell colSpan={visibleCells.length}>
+          <TableCell className="w-(--radix-checkbox-size) align-middle">
+            <GroupRowSelectionCell row={row} table={table} />
+          </TableCell>
+          <TableCell
+            className="p-0 align-middle"
+            colSpan={visibleCells.length - 1}
+          >
             <Button
               className="flex h-auto w-full cursor-pointer items-center justify-start gap-2 p-2"
               onClick={() => {

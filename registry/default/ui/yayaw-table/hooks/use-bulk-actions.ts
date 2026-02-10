@@ -109,12 +109,13 @@ export function useBulkActions<TData>({
   });
   const provider = tableType ? providerResult : undefined;
 
-  // Derive selected rows and menu visibility from table state so they stay in sync when user selects/deselects
+  // Use core row model so selected rows are correct even when grouping is active (collapsed = getRowModel() has no leaves)
   const selectedRows =
     table && typeof table.getState === "function"
       ? (() => {
           const rowSelection = table.getState().rowSelection || {};
-          return table.getRowModel().rows.filter((row) => rowSelection[row.id]);
+          const rows = table.getCoreRowModel().rows;
+          return rows.filter((row) => rowSelection[row.id]) as Row<TData>[];
         })()
       : [];
   const showBulkActions = selectedRows.length >= minimumSelection;
