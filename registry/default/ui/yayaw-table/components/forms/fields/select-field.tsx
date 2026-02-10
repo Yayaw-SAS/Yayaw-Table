@@ -11,13 +11,13 @@ import {
 } from "@/components/ui/field";
 import {
   Select,
-  SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
 import { useTranslations } from "../../../providers/table-provider";
 import type { FormFieldApi, SelectFieldDefinition } from "../types";
+import { FormSelectContent } from "./form-select-content";
 
 interface SelectFieldProps<TFieldValues extends Record<string, unknown>> {
   field: SelectFieldDefinition<TFieldValues>;
@@ -55,7 +55,7 @@ export function SelectField<TFieldValues extends Record<string, unknown>>({
             }
           />
         </SelectTrigger>
-        <SelectContent>
+        <FormSelectContent>
           {field.options.map((option, index) => (
             <SelectItem key={String(option.value)} value={String(option.value)}>
               {field.optionKeys?.[index]
@@ -63,7 +63,7 @@ export function SelectField<TFieldValues extends Record<string, unknown>>({
                 : option.label}
             </SelectItem>
           ))}
-        </SelectContent>
+        </FormSelectContent>
       </Select>
       {field.description != null && (
         <FieldDescription>

@@ -5,6 +5,7 @@
 
 export * from "./checkbox-field";
 export * from "./dynamic-value-field";
+export * from "./form-select-content";
 export * from "./number-field";
 export * from "./select-field";
 export * from "./select-with-add-new-field";

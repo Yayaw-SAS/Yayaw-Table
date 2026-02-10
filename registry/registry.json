@@ -379,6 +379,11 @@
           "target": "ui/yayaw-table/components/forms/catalogue-form.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/forms/drawer-form-portal-context.tsx",
+          "type": "registry:component",
+          "target": "ui/yayaw-table/components/forms/drawer-form-portal-context.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/forms/factories.ts",
           "type": "registry:component",
           "target": "ui/yayaw-table/components/forms/factories.ts"
@@ -397,6 +402,11 @@
           "path": "registry/default/ui/yayaw-table/components/forms/fields/dynamic-value-field.tsx",
           "type": "registry:component",
           "target": "ui/yayaw-table/components/forms/fields/dynamic-value-field.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/forms/fields/form-select-content.tsx",
+          "type": "registry:component",
+          "target": "ui/yayaw-table/components/forms/fields/form-select-content.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/forms/fields/index.ts",

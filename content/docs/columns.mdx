@@ -46,6 +46,32 @@ Common properties:
 - `enableSorting?: boolean` (default `true`)
 - `enableColumnFilter?: boolean` (default `true`)
 - `accessorKey?: string` – Optional accessor if data key differs from `id`
+- For **tag** columns: `tagColorMap?: Record<string, string>` – optional value → Tailwind class map (see below).
+
+## Tag column (`tag`)
+
+Tag columns render values as colored badges. Colors are **deterministic**: the same tag value always gets the same color across sessions and page reloads (derived from a hash of the value). Values are normalized (trim + lowercase) for matching, so e.g. "Urgent" and "urgent" share the same color.
+
+### Custom colors per value: `tagColorMap`
+
+You can override colors for specific tag values by passing a `tagColorMap` in the column definition. Keys are tag values (lookup tries the raw value, then the normalized value); values are Tailwind classes for the badge (e.g. background + text).
+
+Example:
+
+```ts
+{
+  id: 'status',
+  type: 'tag',
+  header: 'Status',
+  tagColorMap: {
+    Urgent: 'bg-red-500/80 text-white dark:bg-red-600/90',
+    Done: 'bg-green-500/80 text-white dark:bg-green-600/90',
+    'In progress': 'bg-amber-500/80 text-white dark:bg-amber-600/90',
+  },
+}
+```
+
+Entries in `tagColorMap` use the given class; any other value falls back to the deterministic hash-based color.
 
 ## Dynamic type columns
 

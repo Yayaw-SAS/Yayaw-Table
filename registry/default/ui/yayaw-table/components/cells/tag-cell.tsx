@@ -57,12 +57,36 @@ const TAG_COLORS: TagColor[] = [
   { className: "bg-sky-500/80 text-white dark:bg-sky-600/90", name: "Sky" },
 ];
 
-// Cache of tag values to color indices
-const tagColorMap = new Map<string, number>();
+const HASH_MOD = 1_000_000_007;
 
-// Function to get a random integer between min (inclusive) and max (exclusive)
-const getRandomInt = (min: number, max: number): number => {
-  return Math.floor(Math.random() * (max - min)) + min;
+/**
+ * Deterministic hash for a string (djb2-style, arithmetic-only).
+ * Same tag value always yields the same color across sessions.
+ */
+const hashString = (str: string): number => {
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash * 33 + str.charCodeAt(i)) % HASH_MOD;
+  }
+  if (hash < 0) {
+    hash += HASH_MOD;
+  }
+  return hash;
+};
+
+/**
+ * Get a stable color index from a tag value (0 to TAG_COLORS.length - 1).
+ * Normalized with trim + toLowerCase so "Urgent" and "urgent" share the same color.
+ */
+const getColorIndexForTag = (tagValue: string): number => {
+  if (!tagValue) {
+    return 0;
+  }
+  const normalized = tagValue.trim().toLowerCase();
+  if (!normalized) {
+    return 0;
+  }
+  return hashString(normalized) % TAG_COLORS.length;
 };
 
 export interface TagCellProps {
@@ -72,16 +96,23 @@ export interface TagCellProps {
   className?: string;
 
   /**
+   * Optional map of tag value → Tailwind color class (e.g. "bg-red-500/80 text-white").
+   * When provided, matching values use this class; others use the deterministic hash.
+   * Lookup tries the raw value then the normalized (trim + lowerCase) value.
+   */
+  tagColorMap?: Record<string, string>;
+
+  /**
    * The tag value to display
    */
   value: unknown;
 }
 
 /**
- * Cell component for displaying tag values with colored backgrounds
- * Assigns a unique color to each unique tag value
+ * Cell component for displaying tag values with colored backgrounds.
+ * Color is derived deterministically from the tag value (same value = same color across sessions).
  */
-export function TagCell({ className = "", value }: TagCellProps) {
+export function TagCell({ className = "", tagColorMap, value }: TagCellProps) {
   // Handle Prisma JSON objects with 'set' property
   let processedValue = value;
   if (
@@ -98,26 +129,19 @@ export function TagCell({ className = "", value }: TagCellProps) {
       ? ""
       : String(processedValue);
 
-  // Get or assign a color index for this tag value
-  const colorIndex = useMemo(() => {
-    // If empty, return a default index
+  const colorClass = useMemo(() => {
     if (!tagValue) {
-      return 0;
+      return TAG_COLORS[0].className;
     }
-
-    // Check if we already assigned a color to this tag
-    if (tagColorMap.has(tagValue)) {
-      const existingColor = tagColorMap.get(tagValue);
-      return existingColor ?? 0;
+    const normalized = tagValue.trim().toLowerCase();
+    const fromMap =
+      tagColorMap?.[tagValue] ??
+      (normalized ? tagColorMap?.[normalized] : undefined);
+    if (fromMap) {
+      return fromMap;
     }
-
-    // Assign a random color index and store it
-    const randomIndex = getRandomInt(0, TAG_COLORS.length);
-    tagColorMap.set(tagValue, randomIndex);
-    return randomIndex;
-  }, [tagValue]);
-
-  const colorClass = TAG_COLORS[colorIndex].className;
+    return TAG_COLORS[getColorIndexForTag(tagValue)].className;
+  }, [tagValue, tagColorMap]);
 
   // Handle null or undefined after computing the color (to avoid hook conditional error)
   if (processedValue === null || processedValue === undefined) {

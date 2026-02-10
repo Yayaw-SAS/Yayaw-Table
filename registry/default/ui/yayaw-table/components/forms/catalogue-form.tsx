@@ -28,6 +28,7 @@ import {
   formSubmittedAtom,
   handleFormOpenChange,
 } from "./atoms/catalogue-form-atoms";
+import { DrawerFormPortalContainerContext } from "./drawer-form-portal-context";
 import { FormBuilder } from "./form-builder";
 import { useFormCatalogue } from "./hooks/use-form-catalogue";
 import type { FieldValues } from "./types";
@@ -93,6 +94,14 @@ function getChangedValues<T extends FieldValues>(
     }
   }
   return result;
+}
+
+const FOCUSABLE_SELECTOR =
+  'button:not([disabled]), [href], input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+function findFirstFocusable(container: HTMLElement): HTMLElement | null {
+  const el = container.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+  return el;
 }
 
 /**
@@ -289,6 +298,9 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
 
   const [formSubmitted, setFormSubmitted] = useAtom(formSubmittedAtom);
 
+  const drawerContentRef = useRef<HTMLDivElement>(null);
+  const previousActiveElementRef = useRef<HTMLElement | null>(null);
+
   const formCatalogueParams = useMemo(
     () => ({
       formType: formType || "",
@@ -381,9 +393,12 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
 
       isChangingStateRef.current = true;
 
-      // Only reset the submission flag when the drawer is opened, not when it's closed
       if (open) {
         setFormSubmitted(false);
+        previousActiveElementRef.current =
+          document.activeElement instanceof HTMLElement
+            ? document.activeElement
+            : null;
       }
 
       // Use the utility function to update the form state
@@ -400,12 +415,43 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
   // Determine if this is a standalone form (with its own button)
   const isStandaloneForm = !(children || isOpen);
 
-  // Stabilize the button onClick handler
-  const handleButtonClick = useCallback(() => {
-    if (!isChangingStateRef.current) {
-      setFormState((prev) => handleFormOpenChange(true, prev));
+  // Stabilize the button onClick handler; capture focus restore target before opening
+  const handleButtonClick = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      if (!isChangingStateRef.current) {
+        previousActiveElementRef.current =
+          e.currentTarget ??
+          (document.activeElement instanceof HTMLElement
+            ? document.activeElement
+            : null);
+        setFormState((prev) => handleFormOpenChange(true, prev));
+      }
+    },
+    [setFormState]
+  );
+
+  // Use Radix Dialog's focus callbacks (Vaul uses Radix under the hood). No useEffect.
+  const handleOpenAutoFocus = useCallback((e: Event) => {
+    e.preventDefault();
+    // Double rAF so drawer layout (and Select/portals) is committed before focus
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const first = drawerContentRef.current
+          ? findFirstFocusable(drawerContentRef.current)
+          : null;
+        first?.focus();
+      });
+    });
+  }, []);
+
+  const handleCloseAutoFocus = useCallback((e: Event) => {
+    e.preventDefault();
+    const prev = previousActiveElementRef.current;
+    previousActiveElementRef.current = null;
+    if (prev?.isConnected) {
+      prev.focus();
     }
-  }, [setFormState]);
+  }, []);
 
   // If no form type is provided, don't render anything
   if (!formType) {
@@ -438,47 +484,56 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
         children
       )}
 
-      <DrawerContent className="w-full sm:max-w-md">
-        <div className="mx-auto w-full max-w-md p-6">
-          <DrawerHeader className="px-0">
-            <DrawerTitle>
-              {mode === "update"
-                ? translations["updateForm.title"]
-                : translations["createForm.title"]}
-            </DrawerTitle>
-            {(mode === "update"
-              ? translations["updateForm.description"]
-              : translations["createForm.description"]) && (
-              <DrawerDescription>
+      <DrawerContent
+        className="w-full sm:max-w-md"
+        onCloseAutoFocus={handleCloseAutoFocus}
+        onOpenAutoFocus={handleOpenAutoFocus}
+      >
+        <DrawerFormPortalContainerContext.Provider value={drawerContentRef}>
+          <div
+            className="relative mx-auto w-full max-w-md overflow-visible p-6"
+            ref={drawerContentRef}
+          >
+            <DrawerHeader className="px-0">
+              <DrawerTitle>
                 {mode === "update"
-                  ? translations["updateForm.description"]
-                  : translations["createForm.description"]}
-              </DrawerDescription>
-            )}
-          </DrawerHeader>
+                  ? translations["updateForm.title"]
+                  : translations["createForm.title"]}
+              </DrawerTitle>
+              {(mode === "update"
+                ? translations["updateForm.description"]
+                : translations["createForm.description"]) && (
+                <DrawerDescription>
+                  {mode === "update"
+                    ? translations["updateForm.description"]
+                    : translations["createForm.description"]}
+                </DrawerDescription>
+              )}
+            </DrawerHeader>
 
-          {/* Use FormBuilder without its own submit button */}
-          <div className="py-4">
-            <FormBuilder fields={fields} form={form} submitText={null} />
-          </div>
+            {/* Use FormBuilder without its own submit button */}
+            <div className="py-4">
+              <FormBuilder fields={fields} form={form} submitText={null} />
+            </div>
 
-          <DrawerFooter className="flex-row justify-end gap-2 px-0">
-            <DrawerClose asChild>
-              <Button type="button" variant="outline">
-                {translations.cancel}
+            <DrawerFooter className="flex-row justify-end gap-2 px-0">
+              <DrawerClose asChild>
+                <Button type="button" variant="outline">
+                  {translations.cancel}
+                </Button>
+              </DrawerClose>
+              <Button
+                disabled={loading}
+                onClick={() => {
+                  form.handleSubmit();
+                }}
+                type="button"
+              >
+                {mode === "update" ? translations.update : translations.submit}
               </Button>
-            </DrawerClose>
-            <Button
-              disabled={loading}
-              onClick={() => {
-                form.handleSubmit();
-              }}
-              type="button"
-            >
-              {mode === "update" ? translations.update : translations.submit}
-            </Button>
-          </DrawerFooter>
-        </div>
+            </DrawerFooter>
+          </div>
+        </DrawerFormPortalContainerContext.Provider>
       </DrawerContent>
     </Drawer>
   );

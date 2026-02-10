@@ -2,6 +2,8 @@
 
 Distribution **sans package npm** : tout le code est dans le registry. Les composants Shadcn utilisés sont déclarés en `registryDependencies`, le CLI les ajoute une seule fois (pas de duplication).
 
+**Source de vérité :** seul `src/ui/yayaw-table` (et les fichiers listés dans `src/ui/custom`) est à maintenir. Le dossier `registry/default/ui/yayaw-table` est **généré** par le script et ne doit pas être modifié à la main. Après toute modification sous `src/ui/yayaw-table`, exécuter `bun run registry:sync`.
+
 ## CI (GitHub Actions)
 
 Un job **Build registry** (`.github/workflows/build-registry.yml`) tourne sur chaque push sur `main` :
@@ -13,7 +15,7 @@ Le site de doc (Next) sert tout ce qui est dans `public/` : une fois déployé, 
 
 ## En local
 
-1. **Synchroniser** le code source vers le registry (après modification de `src/ui/yayaw_table` ou des composants dans `src/ui/custom`) :
+1. **Synchroniser** le code source vers le registry (après modification de `src/ui/yayaw-table` ou des composants dans `src/ui/custom`) :
    ```bash
    bun run registry:sync
    ```
@@ -42,7 +44,7 @@ En résumé : **Shadcn → `ui` (ex. `src/ui/shadcn/`)**, **block yayaw-table �
 ## Structure
 
 - `registry.json` : entrée du registry (un block `yayaw-table` avec `registryDependencies` Shadcn et `dependencies` npm).
-- `default/yayaw-table/` : copie de `src/ui/yayaw_table` + `ui-custom` (loader, icon, stack-menu) depuis `src/ui/custom`, avec imports corrigés (relatifs entre fichiers du block, `@/ui/shadcn` et `@/lib/utils` pour le projet cible).
+- `default/ui/yayaw-table/` : **généré** par `scripts/build-registry.mjs` à partir de `src/ui/yayaw-table` + `ui-custom` (loader, icon, stack-menu) depuis `src/ui/custom`, avec imports transformés pour le CLI (`@/components/ui/*`, etc.). Ne pas éditer ce dossier à la main.
 
 ## Index officiel Shadcn
 

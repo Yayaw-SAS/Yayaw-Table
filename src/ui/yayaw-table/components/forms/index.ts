@@ -6,6 +6,12 @@
 // Atoms
 export * from "./atoms";
 
+// Drawer form portal container (for Select inside drawer)
+export {
+  DrawerFormPortalContainerContext,
+  useDrawerFormPortalContainer,
+} from "./drawer-form-portal-context";
+
 // Factories
 export * from "./factories";
 

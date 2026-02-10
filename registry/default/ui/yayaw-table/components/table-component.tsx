@@ -327,11 +327,16 @@ function ModernDataTable<
   // Extract important state from the table - memoize derived values
   const { columnOrder, pagination: _pagination } = state;
 
-  // Get leaf column IDs for column ordering - memoized with column count for stability
+  // Get leaf column IDs in display order (so headers and SortableContext stay in sync with body)
   const leafColumnIds = useMemo(() => {
     const leafColumns = table.getAllLeafColumns();
-    return leafColumns.map((column) => column.id);
-  }, [table]);
+    const ids = leafColumns.map((column) => column.id);
+    if (!columnOrder?.length) {
+      return ids;
+    }
+    const orderIndex = (id: string) => columnOrder.indexOf(id);
+    return [...ids].sort((a, b) => orderIndex(a) - orderIndex(b));
+  }, [table, columnOrder]);
 
   // Function to set column order - stable reference
   const setColumnOrder = useCallback(
@@ -394,9 +399,10 @@ function ModernDataTable<
     table,
   });
 
-  // Setup bulk actions functionality
+  // Setup bulk actions functionality (bulk edit enabled by default via provider when onBulkEdit not provided)
   const bulkActions = useBulkActions({
     table,
+    tableType: tableType || tableId,
     onBulkEdit: onBulkEdit || defaultBulkActions.onBulkEdit,
     onBulkDelete: onBulkDelete || defaultBulkActions.onBulkDelete,
     onBulkCopy: onBulkCopy || defaultBulkActions.onBulkCopy,
@@ -782,10 +788,11 @@ function ModernDataTable<
     tableConfig.columns.definitions,
   ]);
 
-  // Optimize table header with better memoization
+  // Optimize table header with better memoization (columnOrder in deps so header re-renders when order changes)
   const tableHeader = useMemo(() => {
+    const orderKey = columnOrder?.join(",") ?? "";
     return (
-      <TableHeader>
+      <TableHeader key={orderKey}>
         {table.getHeaderGroups().map((headerGroup) => (
           <TableRow key={headerGroup.id}>
             <ColumnSortableContext
@@ -830,7 +837,13 @@ function ModernDataTable<
         ))}
       </TableHeader>
     );
-  }, [table, leafColumnIds, tableId, horizontalListSortingStrategy]);
+  }, [
+    table,
+    leafColumnIds,
+    tableId,
+    horizontalListSortingStrategy,
+    columnOrder,
+  ]);
 
   // Only show empty state if we have no data AND we shouldn't show table UI
   // This ensures we always show the table UI when using server-side operations
@@ -925,7 +938,7 @@ function ModernDataTable<
         <BulkActionsMenu
           onBulkCopy={bulkActions.handleBulkCopy}
           onBulkDelete={bulkActions.handleBulkDelete}
-          onBulkEdit={onBulkEdit ? bulkActions.handleBulkEdit : undefined}
+          onBulkEdit={bulkActions.handleBulkEdit}
           onClose={bulkActions.closeBulkActions}
           selectedRows={bulkActions.selectedRows}
         />

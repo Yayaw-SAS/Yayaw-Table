@@ -3,7 +3,11 @@
  * registry/default/ui/yayaw-table. Each file gets a "target" so the CLI
  * installs strictly under ui/yayaw-table/ (no files at components root).
  *
+ * Source of truth: src/ui/yayaw-table (and listed src/ui/custom files).
+ * Do not edit registry/default/ by hand — it is overwritten by this script.
+ *
  * Run from repo root: node scripts/build-registry.mjs
+ * Or: bun run registry:sync
  */
 
 import fs from "node:fs";

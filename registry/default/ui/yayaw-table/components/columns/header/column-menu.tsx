@@ -22,6 +22,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { columnDragEnabledAtom } from "../../../atoms/table-atoms";
@@ -221,13 +222,26 @@ function ColumnMenuBase<TData>({
     }
   );
 
-  // Update floating elements when refs change
+  // Set reference ref so floating-ui has the trigger position (reference is inside sortable header)
   useEffect(() => {
-    if (isOpen && referenceRef.current && menuRef.current) {
+    if (referenceRef.current) {
       floating.refs.setReference(referenceRef.current);
-      floating.refs.setFloating(menuRef.current);
     }
-  }, [isOpen, floating.refs]);
+  }, [floating.refs]);
+
+  // When menu opens: set floating ref and recalc position (menu is portaled to body to avoid sortable transform)
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+    const floatingEl = menuRef.current;
+    if (floatingEl) {
+      floating.refs.setFloating(floatingEl);
+      queueMicrotask(() => {
+        floating.update();
+      });
+    }
+  }, [isOpen, floating.refs, floating.update]);
 
   const setSorting = useDataTable({
     tableId,
@@ -366,7 +380,7 @@ function ColumnMenuBase<TData>({
     <TranslationsProvider translations={translations}>
       <div className="h-full w-full">
         {trigger}
-        {menuItems}
+        {menuItems && createPortal(menuItems, document.body)}
       </div>
     </TranslationsProvider>
   );

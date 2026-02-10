@@ -13,7 +13,6 @@ import {
 import { Input } from "@/components/ui/input";
 import {
   Select,
-  SelectContent,
   SelectGroup,
   SelectItem,
   SelectSeparator,
@@ -21,8 +20,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useTranslations } from "../../../providers/table-provider";
-
 import type { FormFieldApi } from "../types";
+import { FormSelectContent } from "./form-select-content";
 
 export interface SelectWithAddNewFieldProps {
   allowCreate?: boolean;
@@ -157,7 +156,7 @@ export function SelectWithAddNewField({
               }
             />
           </SelectTrigger>
-          <SelectContent>
+          <FormSelectContent>
             <SelectGroup>
               {allItems.map((item) => (
                 <SelectItem key={item} value={item}>
@@ -176,7 +175,7 @@ export function SelectWithAddNewField({
                 </>
               )}
             </SelectGroup>
-          </SelectContent>
+          </FormSelectContent>
         </Select>
       )}
       <FieldError errors={errorMessages.map((message) => ({ message }))} />

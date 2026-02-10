@@ -45,6 +45,12 @@ export interface TagColumnOptions {
    * Unique identifier for the column
    */
   id: string;
+
+  /**
+   * Optional map of tag value → Tailwind color class (e.g. "bg-red-500/80 text-white dark:bg-red-600/90").
+   * When provided, matching values use this class; others use the deterministic hash.
+   */
+  tagColorMap?: Record<string, string>;
 }
 
 /**
@@ -70,6 +76,7 @@ export function createTagColumn<TData>({
   enableSorting = true,
   header,
   id,
+  tagColorMap,
 }: TagColumnOptions): ExtendedColumnDef<TData> {
   return {
     accessorFn: (row: TData) => (row as Record<string, unknown>)[id],
@@ -111,7 +118,13 @@ export function createTagColumn<TData>({
         return <span className="text-muted-foreground"> </span>;
       }
 
-      return <TagCell className={className} value={info.getValue()} />;
+      return (
+        <TagCell
+          className={className}
+          tagColorMap={tagColorMap}
+          value={info.getValue()}
+        />
+      );
     },
     enableColumnFilter,
     enableHiding,
