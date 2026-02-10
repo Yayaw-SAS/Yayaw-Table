@@ -7,7 +7,7 @@
     "ultracite/biome/next"
   ],
   "files": {
-    "includes": ["!src/ui/shadcn"]
+    "includes": ["!.source", "!src/ui/shadcn"]
   },
   "overrides": [
     {
@@ -16,25 +16,6 @@
         "rules": {
           "performance": {
             "noBarrelFile": "off"
-          }
-        }
-      }
-    },
-    {
-      "includes": [".source/**"],
-      "linter": {
-        "rules": {
-          "complexity": {
-            "noBannedTypes": "off"
-          },
-          "correctness": {
-            "noUnusedVariables": "off"
-          },
-          "performance": {
-            "noNamespaceImport": "off"
-          },
-          "suspicious": {
-            "noVar": "off"
           }
         }
       }
