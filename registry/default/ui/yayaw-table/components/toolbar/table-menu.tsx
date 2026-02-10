@@ -1,6 +1,7 @@
 "use client";
 
 import type { TableState } from "@tanstack/react-table";
+import { useAtomValue, useSetAtom } from "jotai";
 import {
   ArrowUpDown,
   Layers,
@@ -19,6 +20,10 @@ import {
   useStackMenu,
 } from "../../ui-custom/stack-menu";
 import { Button } from "@/components/ui/button";
+import {
+  tableMenuOpenFilterColumnIdAtom,
+  tableMenuOpenToViewAtom,
+} from "../../atoms/table-atoms";
 import { useTableUrlState } from "../../hooks/use-table-url-state";
 import { useTranslations } from "../../providers/table-provider";
 import type { ColumnDataType } from "../../types";
@@ -102,6 +107,17 @@ export function TableMenu({
   const { activeView: _activeView } = stackMenuContext;
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const openToView = useAtomValue(tableMenuOpenToViewAtom(tableId));
+  const setOpenToView = useSetAtom(tableMenuOpenToViewAtom(tableId));
+  const setOpenFilterColumnId = useSetAtom(
+    tableMenuOpenFilterColumnIdAtom(tableId)
+  );
+
+  useEffect(() => {
+    if (openToView) {
+      setOpen(true);
+    }
+  }, [openToView]);
   const [_visibleCount, _setVisibleCount] = useState(0);
 
   // URL-state fallback to avoid stale grouping passed from parents
@@ -247,8 +263,13 @@ export function TableMenu({
           // Debug log for open change
         }
         setOpen(isOpen);
+        if (!isOpen) {
+          setOpenToView(null);
+          setOpenFilterColumnId(null);
+        }
       }}
       open={open}
+      openToView={openToView ?? undefined}
       ref={menuRef}
       trigger={
         <Button

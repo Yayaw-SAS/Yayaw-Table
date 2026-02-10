@@ -2,7 +2,7 @@
 
 import { flip, offset, shift, useFloating } from "@floating-ui/react-dom";
 import type { Column, Table } from "@tanstack/react-table";
-import { useAtom } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -25,7 +25,11 @@ import {
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { columnDragEnabledAtom } from "../../../atoms/table-atoms";
+import {
+  columnDragEnabledAtom,
+  tableMenuOpenFilterColumnIdAtom,
+  tableMenuOpenToViewAtom,
+} from "../../../atoms/table-atoms";
 import { useDataTable } from "../../../hooks/use-data-table";
 import { useOnClickOutside } from "../../../hooks/use-on-click-outside";
 import { useTableConfig } from "../../../hooks/use-table-config";
@@ -265,6 +269,10 @@ function ColumnMenuBase<TData>({
   const [isDragEnabled, setIsDragEnabled] = useAtom(
     columnDragEnabledAtom(tableId)
   );
+  const setTableMenuOpenToView = useSetAtom(tableMenuOpenToViewAtom(tableId));
+  const setTableMenuOpenFilterColumnId = useSetAtom(
+    tableMenuOpenFilterColumnIdAtom(tableId)
+  );
   const { config } = useTableConfig(tableId);
   const dndFeatureEnabled = config?.table?.enableColumnDnd !== false;
 
@@ -328,6 +336,8 @@ function ColumnMenuBase<TData>({
                 icon={<FunnelIcon className="size-3.5" />}
                 label={translations.columnFilter}
                 onClick={() => {
+                  setTableMenuOpenToView("filters");
+                  setTableMenuOpenFilterColumnId(column.id);
                   setIsOpen(false);
                 }}
               />
@@ -374,6 +384,9 @@ function ColumnMenuBase<TData>({
     handleToggleDrag,
     isDragEnabled,
     dndFeatureEnabled,
+    setTableMenuOpenToView,
+    setTableMenuOpenFilterColumnId,
+    column.id,
   ]);
 
   return (

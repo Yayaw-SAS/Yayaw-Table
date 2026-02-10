@@ -98,6 +98,8 @@ interface StackMenuProps
   defaultView?: string;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /** When set and menu is open, navigate to this view (e.g. "filters" from column header Filter) */
+  openToView?: null | string;
   trigger?: ReactNode;
   asDropdown?: boolean;
   align?: "start" | "center" | "end";
@@ -125,6 +127,7 @@ const StackMenu = forwardRef<HTMLDivElement, StackMenuProps>(
       children,
       open,
       onOpenChange,
+      openToView,
       trigger,
       asDropdown = false,
       align = "end",
@@ -177,6 +180,14 @@ const StackMenu = forwardRef<HTMLDivElement, StackMenuProps>(
         setIsOpen(open);
       }
     }, [open, isOpen]);
+
+    // When opened with openToView (e.g. from column header Filter), navigate to that view
+    useEffect(() => {
+      if (isOpen && openToView) {
+        setActiveView(openToView);
+        setViewHistory([{ name: defaultView }, { name: openToView }]);
+      }
+    }, [isOpen, openToView, defaultView]);
 
     // Get all views
     const viewChildren = Children.toArray(children).filter(

@@ -1,11 +1,13 @@
 "use client";
 
 import type { ColumnFiltersState } from "@tanstack/react-table";
+import { useAtomValue, useSetAtom } from "jotai";
 import { Filter, X } from "lucide-react";
 import { useEffect } from "react";
 import { StackMenuContent, StackMenuView } from "../../../ui-custom/stack-menu";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { tableMenuOpenFilterColumnIdAtom } from "../../../atoms/table-atoms";
 import { useTranslations } from "../../../providers/table-provider";
 import type {
   AdvancedFiltersState,
@@ -42,13 +44,19 @@ export function TableFiltersMenu({
   columns: _columns,
   invalidateTable: _invalidateTable,
   setColumnFilters,
-  tableId: _tableId,
+  tableId,
   advancedFilters = [],
   advancedActions,
   advancedColumnsConfig = {},
   useAdvancedFilters = false,
 }: TableFiltersMenuProps) {
   const { t } = useTranslations();
+  const openFilterForColumnId = useAtomValue(
+    tableMenuOpenFilterColumnIdAtom(tableId)
+  );
+  const setOpenFilterColumnId = useSetAtom(
+    tableMenuOpenFilterColumnIdAtom(tableId)
+  );
 
   // Debug logs
   useEffect(() => {
@@ -71,6 +79,8 @@ export function TableFiltersMenu({
             enableAnimations={true}
             filters={advancedFilters}
             maxVisibleFilters={5}
+            onOpenFilterConsumed={() => setOpenFilterColumnId(null)}
+            openFilterForColumnId={openFilterForColumnId ?? undefined}
             popularColumns={["name", "status", "category"]}
             recentColumns={[]}
             showAddButton={true}

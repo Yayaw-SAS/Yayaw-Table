@@ -180,6 +180,22 @@ export const columnDragEnabledAtom = atomFamily((tableId: string) =>
 );
 
 /**
+ * Atom family for "open Options stack menu to this view" (e.g. "filters" when clicking Filter in column header menu)
+ * When set, the toolbar TableMenu opens and navigates to that view; cleared when the menu closes.
+ */
+export const tableMenuOpenToViewAtom = atomFamily((_tableId: string) =>
+  atom<null | string>(null)
+);
+
+/**
+ * When opening the filters view from a column header Filter click, open the filter for this column id.
+ * Cleared when the filter panel has consumed it or when the menu closes.
+ */
+export const tableMenuOpenFilterColumnIdAtom = atomFamily((_tableId: string) =>
+  atom<null | string>(null)
+);
+
+/**
  * Atom to store whether the table is in a loading state
  * Used for showing loading indicators
  */

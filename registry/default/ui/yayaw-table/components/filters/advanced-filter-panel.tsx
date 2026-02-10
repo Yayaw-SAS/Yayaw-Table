@@ -19,7 +19,7 @@ import {
   Type,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -101,6 +101,10 @@ export interface AdvancedFilterPanelProps {
   showPerformance?: boolean;
   /** Whether to animate filter changes */
   enableAnimations?: boolean;
+  /** When set, open the add-filter flow for this column (e.g. from column header Filter click) */
+  openFilterForColumnId?: string;
+  /** Called after the panel has opened the filter for openFilterForColumnId */
+  onOpenFilterConsumed?: () => void;
 }
 
 /**
@@ -386,6 +390,8 @@ export function AdvancedFilterPanel({
   popularColumns: _popularColumns = [],
   showPerformance: _showPerformance = false,
   enableAnimations = true,
+  openFilterForColumnId,
+  onOpenFilterConsumed,
 }: AdvancedFilterPanelProps) {
   const [_editingFilterId, _setEditingFilterId] = useState<string | null>(null);
   const [draftFilters, setDraftFilters] = useState<AdvancedFilterModel[]>([]);
@@ -430,6 +436,35 @@ export function AdvancedFilterPanel({
     },
     [actions]
   );
+
+  const openFilterConsumedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (
+      !(openFilterForColumnId && columnsConfig[openFilterForColumnId]) ||
+      openFilterConsumedRef.current === openFilterForColumnId
+    ) {
+      return;
+    }
+    const config = columnsConfig[openFilterForColumnId];
+    const operator = getDefaultFilterOperator(config.type);
+    const value = getDefaultFilterValue(config.type, operator);
+    const draft = createFilter(
+      openFilterForColumnId,
+      config.type,
+      operator as FilterOperators[ColumnDataType],
+      value as FilterValues<ColumnDataType>,
+      { isActive: false, label: openFilterForColumnId }
+    );
+    setDraftFilters((prev) => [draft, ...prev]);
+    openFilterConsumedRef.current = openFilterForColumnId;
+    onOpenFilterConsumed?.();
+  }, [openFilterForColumnId, columnsConfig, onOpenFilterConsumed]);
+
+  useEffect(() => {
+    if (!openFilterForColumnId) {
+      openFilterConsumedRef.current = null;
+    }
+  }, [openFilterForColumnId]);
 
   // Show loading state
   if (isLoading) {
