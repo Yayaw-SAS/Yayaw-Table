@@ -112,7 +112,8 @@
 
 /* Success/error state animations */
 @keyframes successPulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
     transform: scale(1);
   }
@@ -123,13 +124,21 @@
 }
 
 @keyframes errorShake {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateX(0);
   }
-  10%, 30%, 50%, 70%, 90% {
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
     transform: translateX(-2px);
   }
-  20%, 40%, 60%, 80% {
+  20%,
+  40%,
+  60%,
+  80% {
     transform: translateX(2px);
   }
 }
@@ -142,7 +151,7 @@
 }
 
 .filter-button::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: -100%;
@@ -207,7 +216,8 @@
 
 /* Badge notification animation */
 @keyframes badgeBounce {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
   }
   50% {
@@ -221,7 +231,8 @@
 
 /* Performance indicator pulse */
 @keyframes performancePulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.7;
   }
   50% {
@@ -243,11 +254,21 @@
 }
 
 /* Stagger animation utilities */
-.stagger-1 { animation-delay: 50ms; }
-.stagger-2 { animation-delay: 100ms; }
-.stagger-3 { animation-delay: 150ms; }
-.stagger-4 { animation-delay: 200ms; }
-.stagger-5 { animation-delay: 250ms; }
+.stagger-1 {
+  animation-delay: 50ms;
+}
+.stagger-2 {
+  animation-delay: 100ms;
+}
+.stagger-3 {
+  animation-delay: 150ms;
+}
+.stagger-4 {
+  animation-delay: 200ms;
+}
+.stagger-5 {
+  animation-delay: 250ms;
+}
 
 /* Glass morphism effects for modern cards */
 .glass-card {
@@ -262,7 +283,7 @@
     background: rgba(0, 0, 0, 0.2);
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
-  
+
   .filter-chip:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
@@ -277,7 +298,7 @@
     animation: none !important;
     transition: none !important;
   }
-  
+
   .filter-chip:hover {
     transform: none;
   }
@@ -288,7 +309,7 @@
   .filter-chip {
     border-width: 2px;
   }
-  
+
   .glass-card {
     background: var(--background);
     backdrop-filter: none;
@@ -315,4 +336,4 @@
 
 .animate-focus {
   animation: focusRing 0.3s ease-out;
-} 
+}

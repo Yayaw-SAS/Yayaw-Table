@@ -6,8 +6,8 @@ import type { Column, Table } from "@tanstack/react-table";
 import { useAtomValue } from "jotai";
 import { ArrowDown, ArrowUp, GripVertical } from "lucide-react";
 import { memo, useEffect, useMemo, useState } from "react";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 import { columnDragEnabledAtom } from "../../../atoms/table-atoms";
 import { useTableConfig } from "../../../hooks/use-table-config";

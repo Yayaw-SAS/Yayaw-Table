@@ -757,25 +757,26 @@ function ModernDataTable<
 
     const renderRowWithChildren = (row: Row<TData>, level = 0) => {
       const visibleCells = row.getVisibleCells();
-      const isGroupHeaderRow = visibleCells.some((cell) => cell.getIsGrouped());
+      const isGroupedRow = visibleCells.some((cell) => cell.getIsGrouped());
 
-      if (isGroupHeaderRow) {
-        const groupingColumn = (state.grouping as string[])?.[level] || "";
-
-        if (groupingColumn === "select") {
-          pushSelectionGroupRows(row, level);
-        } else {
-          // Normal grouping (non-selection)
-          rowElements.push(renderGroupedRow(row, visibleCells, level));
-
-          if (localExpanded[row.id]) {
-            for (const subRow of row.subRows || []) {
-              renderRowWithChildren(subRow, level + 1);
-            }
-          }
-        }
-      } else {
+      if (!isGroupedRow) {
         rowElements.push(renderRegularRow(row, visibleCells));
+        return;
+      }
+
+      const groupingColumn = (state.grouping as string[])?.[level] ?? "";
+      if (groupingColumn === "select") {
+        pushSelectionGroupRows(row, level);
+        return;
+      }
+
+      rowElements.push(renderGroupedRow(row, visibleCells, level));
+      if (!localExpanded[row.id]) {
+        return;
+      }
+
+      for (const subRow of row.subRows ?? []) {
+        renderRowWithChildren(subRow, level + 1);
       }
     };
 

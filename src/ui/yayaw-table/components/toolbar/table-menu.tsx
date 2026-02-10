@@ -17,7 +17,6 @@ import {
   StackMenuItem,
   StackMenuSection,
   StackMenuView,
-  useStackMenu,
 } from "@/ui/custom/stack-menu";
 import { Button } from "@/ui/shadcn/button";
 import {
@@ -36,8 +35,6 @@ import { TableColumnsMenu } from "./sections/table-columns-menu";
 import { TableFiltersMenu } from "./sections/table-filters-menu";
 import { TableGroupingMenu } from "./sections/table-grouping-menu";
 import { TableSortMenu } from "./sections/table-sort-menu";
-
-const DEBUG = false;
 
 export interface TableMenuProps {
   columns: TableColumn[];
@@ -90,6 +87,23 @@ const adaptToTanstackColumns = (
   }));
 };
 
+const NAVIGATION_TITLE_KEYS = {
+  columns: "menu.properties",
+  filters: "menu.filters",
+  group: "menu.group",
+  sort: "menu.sort",
+} as const;
+
+type NavigationViewName = keyof typeof NAVIGATION_TITLE_KEYS;
+
+const getNavigationTitle = (
+  viewName: string,
+  t: ReturnType<typeof useTranslations>["t"]
+) => {
+  const titleKey = NAVIGATION_TITLE_KEYS[viewName as NavigationViewName];
+  return titleKey ? t(titleKey) : t("menu.options");
+};
+
 export function TableMenu({
   columns = [],
   invalidateTable,
@@ -103,8 +117,6 @@ export function TableMenu({
   advancedFiltersConfig,
 }: TableMenuProps) {
   const { t } = useTranslations();
-  const stackMenuContext = useStackMenu();
-  const { activeView: _activeView } = stackMenuContext;
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const openToView = useAtomValue(tableMenuOpenToViewAtom(tableId));
@@ -118,7 +130,6 @@ export function TableMenu({
       setOpen(true);
     }
   }, [openToView]);
-  const [_visibleCount, _setVisibleCount] = useState(0);
 
   // URL-state fallback to avoid stale grouping passed from parents
   const { groupingParam: urlGrouping, setGroupingFromUI } = useTableUrlState({
@@ -130,28 +141,11 @@ export function TableMenu({
   ) as string[];
   const finalSetGrouping = useCallback(
     (next: TableState["grouping"]) => {
-      try {
-        if (setGrouping) {
-          setGrouping(next);
-        } else {
-          setGroupingFromUI(next as string[]);
-        }
-      } catch {
-        // ignore
-      }
+      setGrouping(next);
+      setGroupingFromUI(next as string[]);
     },
     [setGrouping, setGroupingFromUI]
   );
-
-  if (DEBUG) {
-    // Debug log for visible count
-  }
-  // Keep menu open when advanced filters change (selection inside add panel)
-  useEffect(() => {
-    if (useAdvancedFilters && open) {
-      setOpen(true);
-    }
-  }, [useAdvancedFilters, open]);
 
   // Calculate visible columns count
   const hideableColumns = columns.filter((col) => col.canHide !== false);
@@ -167,22 +161,17 @@ export function TableMenu({
     setDisplayVisibleCount(count);
   }, []);
 
-  // Effect to log active view changes
-  useEffect(() => {
-    if (DEBUG) {
-      // Debug log for active view changes
-    }
-  }, []);
-
   // Compute active filters count depending on filter mode (must be before early return for hooks order)
   const activeFiltersCount = useAdvancedFilters
     ? (advancedFiltersConfig?.filters || []).filter((f) => f.isActive).length
     : state.columnFilters.length;
   const activeGroupingCount = finalGrouping.length;
   const activeSortCount = state.sorting.length;
+  const hasMenuBadgeCount = activeFiltersCount > 0 || activeSortCount > 0;
 
-  const hasHiddenColumns =
-    columns?.some((col) => state.columnVisibility?.[col.id] === false) ?? false;
+  const hasHiddenColumns = columns.some(
+    (col) => state.columnVisibility[col.id] === false
+  );
   const hasAnythingToReset =
     activeFiltersCount > 0 ||
     activeSortCount > 0 ||
@@ -206,22 +195,6 @@ export function TableMenu({
     setColumnVisibility,
   ]);
 
-  // Navigation titles for different views
-  const getNavigationTitle = (viewName: string) => {
-    switch (viewName) {
-      case "columns":
-        return t("menu.properties");
-      case "filters":
-        return t("menu.filters");
-      case "group":
-        return t("menu.group");
-      case "sort":
-        return t("menu.sort");
-      default:
-        return t("menu.options");
-    }
-  };
-
   const resetAllButton = (
     <Button
       aria-label={t("menu.reset_all")}
@@ -238,7 +211,7 @@ export function TableMenu({
   );
 
   // Early return if no columns (after all hooks)
-  if (!columns || columns.length === 0) {
+  if (columns.length === 0) {
     return (
       <Button
         className="ml-auto h-8 gap-1"
@@ -259,9 +232,6 @@ export function TableMenu({
       defaultView="main"
       headerEndContent={resetAllButton}
       onOpenChange={(isOpen) => {
-        if (DEBUG) {
-          // Debug log for open change
-        }
         setOpen(isOpen);
         if (!isOpen) {
           setOpenToView(null);
@@ -280,7 +250,7 @@ export function TableMenu({
         >
           <SlidersHorizontal className="h-4 w-4" />
           <span>{t("menu.options")}</span>
-          {(activeFiltersCount > 0 || activeSortCount > 0) && (
+          {hasMenuBadgeCount && (
             <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
               {activeFiltersCount + activeSortCount}
             </span>
@@ -303,7 +273,7 @@ export function TableMenu({
                 ) : undefined
               }
               icon={<List className="h-4 w-4" />}
-              navigateTitle={getNavigationTitle("columns")}
+              navigateTitle={getNavigationTitle("columns", t)}
               navigateTo="columns"
             >
               {t("menu.properties")}
@@ -323,7 +293,7 @@ export function TableMenu({
                 ) : undefined
               }
               icon={<ListFilter className="h-4 w-4" />}
-              navigateTitle={getNavigationTitle("filters")}
+              navigateTitle={getNavigationTitle("filters", t)}
               navigateTo="filters"
             >
               {t("menu.filter")}
@@ -343,7 +313,7 @@ export function TableMenu({
                 ) : undefined
               }
               icon={<ArrowUpDown className="h-4 w-4" />}
-              navigateTitle={getNavigationTitle("sort")}
+              navigateTitle={getNavigationTitle("sort", t)}
               navigateTo="sort"
             >
               {t("menu.sort")}
@@ -363,7 +333,7 @@ export function TableMenu({
                 ) : undefined
               }
               icon={<Layers className="h-4 w-4" />}
-              navigateTitle={getNavigationTitle("group")}
+              navigateTitle={getNavigationTitle("group", t)}
               navigateTo="group"
             >
               {t("menu.group")}
@@ -376,22 +346,9 @@ export function TableMenu({
         <TableColumnsMenu
           columns={adaptToTanstackColumns(columns)}
           columnVisibility={state.columnVisibility}
-          onVisibleCountChange={(count) => {
-            if (DEBUG) {
-              // Debug log for visible count change
-            }
-            handleVisibleCountChange(count);
-          }}
+          onVisibleCountChange={handleVisibleCountChange}
           setColumnVisibility={(value) => {
-            if (DEBUG) {
-              // Debug log for column visibility change
-            }
-            try {
-              const newVisibility = { ...value };
-              setColumnVisibility(newVisibility);
-            } catch (_error) {
-              // Ignore column visibility errors
-            }
+            setColumnVisibility({ ...value });
           }}
           tableId={tableId}
         />

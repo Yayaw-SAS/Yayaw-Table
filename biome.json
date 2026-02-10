@@ -1,37 +1,17 @@
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
-  "extends": ["ultracite/biome/core", "ultracite/biome/next"],
+  "extends": [
+    "ultracite/next",
+    "ultracite/core",
+    "ultracite/biome/core",
+    "ultracite/biome/next"
+  ],
   "files": {
-    "includes": [
-      "!**/*.css",
-      "!src/app/globals.css",
-      "!.source",
-      "!content",
-      "!registry",
-      "!src/ui/shadcn"
-    ]
-  },
-  "css": {
-    "linter": {
-      "enabled": false
-    }
-  },
-  "linter": {
-    "rules": {
-      "complexity": {
-        "noExcessiveCognitiveComplexity": {
-          "level": "warn",
-          "options": { "maxAllowedComplexity": 25 }
-        }
-      },
-      "suspicious": {
-        "noConsole": "error"
-      }
-    }
+    "includes": ["!src/ui/shadcn"]
   },
   "overrides": [
     {
-      "includes": ["**/index.ts", "index.ts"],
+      "includes": ["index.ts", "**/index.ts"],
       "linter": {
         "rules": {
           "performance": {
@@ -41,11 +21,20 @@
       }
     },
     {
-      "includes": ["src/ui/yayaw-table/components/table-component.tsx"],
+      "includes": [".source/**"],
       "linter": {
         "rules": {
           "complexity": {
-            "noExcessiveCognitiveComplexity": "off"
+            "noBannedTypes": "off"
+          },
+          "correctness": {
+            "noUnusedVariables": "off"
+          },
+          "performance": {
+            "noNamespaceImport": "off"
+          },
+          "suspicious": {
+            "noVar": "off"
           }
         }
       }
