@@ -26,6 +26,7 @@ import {
   Users,
 } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
+import { cn } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -58,7 +59,6 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
 import type { UseFilterPresetsReturn } from "../../hooks/use-filter-presets";
 import type {
   AdvancedFilterState,

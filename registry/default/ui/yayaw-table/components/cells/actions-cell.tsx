@@ -10,6 +10,8 @@ import { useSetAtom } from "jotai";
 import { MoreHorizontal } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { Icon } from "../../ui-custom/icon";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -19,9 +21,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
 import { useTranslations } from "../../providers/table-provider";
-import { Icon } from "../../ui-custom/icon";
 
 import type { ActionItem } from "../columns/actions-column";
 import {

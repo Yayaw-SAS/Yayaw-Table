@@ -11,6 +11,13 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  StackMenu,
+  StackMenuContent,
+  StackMenuItem,
+  StackMenuSection,
+  StackMenuView,
+} from "../../ui-custom/stack-menu";
 import { Button } from "@/components/ui/button";
 import {
   tableMenuOpenFilterColumnIdAtom,
@@ -24,13 +31,6 @@ import type {
   ColumnsFilterConfig,
   FilterActions,
 } from "../../types/filter-types";
-import {
-  StackMenu,
-  StackMenuContent,
-  StackMenuItem,
-  StackMenuSection,
-  StackMenuView,
-} from "../../ui-custom/stack-menu";
 import { TableColumnsMenu } from "./sections/table-columns-menu";
 import { TableFiltersMenu } from "./sections/table-filters-menu";
 import { TableGroupingMenu } from "./sections/table-grouping-menu";
