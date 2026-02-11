@@ -231,6 +231,14 @@ export function useTableInstance<TData>({
         typeof updaterOrValue === "function"
           ? updaterOrValue(pagination)
           : updaterOrValue;
+
+      if (
+        newValue.pageIndex === pagination.pageIndex &&
+        newValue.pageSize === pagination.pageSize
+      ) {
+        return;
+      }
+
       setPaginationFromUI(newValue);
     },
     [pagination, setPaginationFromUI]
@@ -470,6 +478,7 @@ export function useTableInstance<TData>({
     manualFiltering,
     manualPagination,
     manualSorting,
+    autoResetPageIndex: false,
     onColumnFiltersChange: handleColumnFiltersChange,
     onColumnOrderChange: handleColumnOrderChange,
     onColumnPinningChange: handleColumnPinningChange,

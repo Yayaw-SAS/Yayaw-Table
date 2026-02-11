@@ -26,6 +26,18 @@ function debounce<T extends (...args: unknown[]) => void>(
 // Debug flag to help track sorting issues
 const _DEBUG = false;
 
+const parsePositiveInt = (
+  value: string | null | undefined,
+  fallback: number
+) => {
+  if (!value) {
+    return fallback;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+  return Number.isNaN(parsed) ? fallback : parsed;
+};
+
 // Create parsers for different types of state
 const arrayParser = createParser({
   parse: (value: string) => (value ? JSON.parse(value) : []),
@@ -378,12 +390,19 @@ export function useTableUrlState({
       // Use default values if pageIndex or pageSize are undefined
       const pageIndex = paginationParams.pageIndex ?? 0;
       const pageSize = paginationParams.pageSize ?? 10;
+      const currentPageIndex = parsePositiveInt(pageParam, 0);
+      const currentPageSize = parsePositiveInt(pageSizeParam, 10);
 
-      // Always update with valid values
-      queueUrlUpdate(setPageParam, pageIndex.toString());
-      queueUrlUpdate(setPageSizeParam, pageSize.toString());
+      // Avoid redundant URL writes (prevents replaceState flood / browser throttling)
+      if (currentPageIndex !== pageIndex) {
+        queueUrlUpdate(setPageParam, pageIndex.toString());
+      }
+
+      if (currentPageSize !== pageSize) {
+        queueUrlUpdate(setPageSizeParam, pageSize.toString());
+      }
     },
-    [queueUrlUpdate, setPageParam, setPageSizeParam]
+    [pageParam, pageSizeParam, queueUrlUpdate, setPageParam, setPageSizeParam]
   );
 
   const setVisibilityFromUI = useCallback(
