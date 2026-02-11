@@ -818,7 +818,10 @@ function ModernDataTable<
   const tableHeader = useMemo(() => {
     const orderKey = columnOrder?.join(",") ?? "";
     return (
-      <TableHeader key={orderKey}>
+      <TableHeader
+        className="[&_th]:bg-muted/20 [&_th]:font-medium [&_th]:text-sm"
+        key={orderKey}
+      >
         {table.getHeaderGroups().map((headerGroup) => (
           <TableRow key={headerGroup.id}>
             <ColumnSortableContext
@@ -834,7 +837,7 @@ function ModernDataTable<
                       "relative whitespace-nowrap px-0",
                       header.id === "select" && "select-column",
                       header.id === "actions" &&
-                        "sticky right-0 z-20 w-12 min-w-12 bg-card shadow-[-1px_0_0_0_hsl(var(--border))] sm:w-20 sm:min-w-20"
+                        "sticky right-0 z-20 w-12 min-w-12 shadow-[-1px_0_0_0_hsl(var(--border))] sm:w-20 sm:min-w-20"
                     )}
                     column={header.column as never}
                     id={header.id}
