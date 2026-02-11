@@ -8,8 +8,8 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/ui/shadcn/dialog";
-import { InputGroup, InputGroupAddon } from "@/ui/shadcn/input-group";
+} from "@/src/components/ui/dialog";
+import { InputGroup, InputGroupAddon } from "@/src/components/ui/input-group";
 
 function Command({
   className,

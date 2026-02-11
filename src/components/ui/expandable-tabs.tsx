@@ -4,7 +4,7 @@ import { AnimatePresence, motion, type Transition } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { useOnClickOutside } from "@/ui/yayaw-table/hooks/use-on-click-outside";
+import { useOnClickOutside } from "@/src/ui/yayaw-table/hooks/use-on-click-outside";
 
 interface Tab {
   title: string;

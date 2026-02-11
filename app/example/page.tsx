@@ -2,10 +2,10 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { DataTable } from "@/src/ui/yayaw-table/components/data-table";
+import { useBulkEdit } from "@/src/ui/yayaw-table/hooks/use-bulk-edit";
 // Row type is not used directly in this file
 import { ThemeToggle } from "@/ui/custom/theme-toggle";
-import { DataTable } from "@/ui/yayaw-table/components/data-table";
-import { useBulkEdit } from "@/ui/yayaw-table/hooks/use-bulk-edit";
 import { CustomDescription, CustomTitle } from "./components";
 import { getFormConfig } from "./setup/form-config";
 import { getTableActions, getTableConfig } from "./setup/table-config";

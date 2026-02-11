@@ -24,7 +24,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
-import { Button } from "@/ui/shadcn/button";
+import { Button } from "@/src/components/ui/button";
 import {
   columnDragEnabledAtom,
   tableMenuOpenFilterColumnIdAtom,

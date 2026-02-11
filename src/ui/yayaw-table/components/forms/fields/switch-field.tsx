@@ -1,7 +1,7 @@
 "use client";
 
-import { Field, FieldError, FieldLabel } from "@/ui/shadcn/field";
-import { Switch } from "@/ui/shadcn/switch";
+import { Field, FieldError, FieldLabel } from "@/src/components/ui/field";
+import { Switch } from "@/src/components/ui/switch";
 import { useTranslations } from "../../../providers/table-provider";
 import type { CheckboxFieldDefinition, FormFieldApi } from "../types";
 

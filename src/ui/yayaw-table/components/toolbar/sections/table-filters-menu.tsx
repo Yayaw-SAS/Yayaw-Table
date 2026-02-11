@@ -4,9 +4,9 @@ import type { ColumnFiltersState } from "@tanstack/react-table";
 import { useAtomValue, useSetAtom } from "jotai";
 import { Filter, X } from "lucide-react";
 import { useEffect } from "react";
+import { Button } from "@/src/components/ui/button";
+import { Separator } from "@/src/components/ui/separator";
 import { StackMenuContent, StackMenuView } from "@/ui/custom/stack-menu";
-import { Button } from "@/ui/shadcn/button";
-import { Separator } from "@/ui/shadcn/separator";
 import { tableMenuOpenFilterColumnIdAtom } from "../../../atoms/table-atoms";
 import { useTranslations } from "../../../providers/table-provider";
 import type {

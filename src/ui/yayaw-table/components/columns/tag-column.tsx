@@ -6,7 +6,7 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 import { type LucideIcon, Tag } from "lucide-react";
-import { Button } from "@/ui/shadcn/button";
+import { Button } from "@/src/components/ui/button";
 import { TagCell } from "../cells/tag-cell";
 
 /**

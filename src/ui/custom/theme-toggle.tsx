@@ -3,13 +3,13 @@
 import { useTheme } from "next-themes";
 import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/ui/shadcn/button";
+import { Button } from "@/src/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/ui/shadcn/dropdown-menu";
+} from "@/src/components/ui/dropdown-menu";
 
 import { Icon } from "./icon";
 

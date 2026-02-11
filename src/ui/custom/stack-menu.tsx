@@ -16,8 +16,12 @@ import {
   useEffect,
   useState,
 } from "react";
-import { Button } from "@/ui/shadcn/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/ui/shadcn/popover";
+import { Button } from "@/src/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/src/components/ui/popover";
 import { cn } from "../../lib/utils";
 
 interface StackMenuViewProps {

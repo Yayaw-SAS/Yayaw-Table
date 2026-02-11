@@ -11,6 +11,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Button } from "@/src/components/ui/button";
 import {
   StackMenu,
   StackMenuContent,
@@ -18,7 +19,6 @@ import {
   StackMenuSection,
   StackMenuView,
 } from "@/ui/custom/stack-menu";
-import { Button } from "@/ui/shadcn/button";
 import {
   tableMenuOpenFilterColumnIdAtom,
   tableMenuOpenToViewAtom,

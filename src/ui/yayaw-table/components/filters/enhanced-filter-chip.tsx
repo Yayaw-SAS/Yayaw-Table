@@ -17,9 +17,13 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/ui/shadcn/badge";
-import { Button } from "@/ui/shadcn/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/ui/shadcn/popover";
+import { Badge } from "@/src/components/ui/badge";
+import { Button } from "@/src/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/src/components/ui/popover";
 
 import { useTranslations } from "../../providers/table-provider";
 import type {

@@ -11,16 +11,16 @@ import { useAtom } from "jotai";
 import type React from "react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Loader } from "@/ui/custom/loader";
-import { Button } from "@/ui/shadcn/button";
-import { Skeleton } from "@/ui/shadcn/skeleton";
+import { Button } from "@/src/components/ui/button";
+import { Skeleton } from "@/src/components/ui/skeleton";
 import {
   Table,
   TableBody,
   TableCell,
   TableHeader,
   TableRow,
-} from "@/ui/shadcn/table";
+} from "@/src/components/ui/table";
+import { Loader } from "@/ui/custom/loader";
 import { tableIdAtom } from "../atoms/table-atoms";
 import { useBulkActions } from "../hooks/use-bulk-actions";
 import { useDataTable } from "../hooks/use-data-table";

@@ -1,7 +1,7 @@
 import { Loader2 } from "lucide-react";
 import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/ui/shadcn/button";
+import { Button } from "@/src/components/ui/button";
 
 type ButtonWithLoaderProps = ComponentProps<typeof Button> & {
   isLoading?: boolean;

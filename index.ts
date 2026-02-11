@@ -21,19 +21,19 @@ export type {
 } from "@tanstack/react-table";
 // Export theme components
 export { ThemeProvider } from "./src/components/theme-provider";
+export * from "./src/components/ui/badge";
+export * from "./src/components/ui/button";
+export * from "./src/components/ui/checkbox";
+export * from "./src/components/ui/input";
+export * from "./src/components/ui/label";
+export * from "./src/components/ui/select";
+export * from "./src/components/ui/separator";
+export * from "./src/components/ui/skeleton";
+// Export core UI components (cleaned versions)
+export * from "./src/components/ui/table";
 // Export utility functions
 export { cn, debounce, formatDate } from "./src/lib/utils";
 export { ThemeToggle } from "./src/ui/custom/theme-toggle";
-export * from "./src/ui/shadcn/badge";
-export * from "./src/ui/shadcn/button";
-export * from "./src/ui/shadcn/checkbox";
-export * from "./src/ui/shadcn/input";
-export * from "./src/ui/shadcn/label";
-export * from "./src/ui/shadcn/select";
-export * from "./src/ui/shadcn/separator";
-export * from "./src/ui/shadcn/skeleton";
-// Export core UI components (cleaned versions)
-export * from "./src/ui/shadcn/table";
 export type { BulkActionsMenuProps } from "./src/ui/yayaw-table/components/bulk-actions";
 // Export bulk actions components
 export { BulkActionsMenu } from "./src/ui/yayaw-table/components/bulk-actions";

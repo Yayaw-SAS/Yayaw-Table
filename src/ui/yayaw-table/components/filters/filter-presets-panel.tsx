@@ -36,9 +36,9 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/ui/shadcn/alert-dialog";
-import { Badge } from "@/ui/shadcn/badge";
-import { Button } from "@/ui/shadcn/button";
+} from "@/src/components/ui/alert-dialog";
+import { Badge } from "@/src/components/ui/badge";
+import { Button } from "@/src/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -46,19 +46,24 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/ui/shadcn/dialog";
+} from "@/src/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/ui/shadcn/dropdown-menu";
-import { Input } from "@/ui/shadcn/input";
-import { Label } from "@/ui/shadcn/label";
-import { ScrollArea } from "@/ui/shadcn/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/ui/shadcn/tabs";
-import { Textarea } from "@/ui/shadcn/textarea";
+} from "@/src/components/ui/dropdown-menu";
+import { Input } from "@/src/components/ui/input";
+import { Label } from "@/src/components/ui/label";
+import { ScrollArea } from "@/src/components/ui/scroll-area";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/src/components/ui/tabs";
+import { Textarea } from "@/src/components/ui/textarea";
 import type { UseFilterPresetsReturn } from "../../hooks/use-filter-presets";
 import { useTranslations } from "../../providers/table-provider";
 import type {

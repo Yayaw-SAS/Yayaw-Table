@@ -7,11 +7,11 @@
 import type { ColumnFiltersState } from "@tanstack/react-table";
 import { Filter, X } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
+import { Badge } from "@/src/components/ui/badge";
+import { Button } from "@/src/components/ui/button";
+import { ScrollArea } from "@/src/components/ui/scroll-area";
+import { Separator } from "@/src/components/ui/separator";
 import { StackMenuContent, StackMenuView } from "@/ui/custom/stack-menu";
-import { Badge } from "@/ui/shadcn/badge";
-import { Button } from "@/ui/shadcn/button";
-import { ScrollArea } from "@/ui/shadcn/scroll-area";
-import { Separator } from "@/ui/shadcn/separator";
 import { useTranslations } from "../../../providers/table-provider";
 import type {
   AdvancedFiltersState,

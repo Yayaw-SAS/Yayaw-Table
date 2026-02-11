@@ -5,7 +5,7 @@
 "use client";
 
 import { type ReactNode, useEffect } from "react";
-import { Button } from "@/ui/shadcn/button";
+import { Button } from "@/src/components/ui/button";
 import { useTranslations } from "../../providers/table-provider";
 import {
   CheckboxField,

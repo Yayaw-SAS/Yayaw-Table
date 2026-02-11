@@ -8,13 +8,13 @@ import {
   FieldDescription,
   FieldError,
   FieldLabel,
-} from "@/ui/shadcn/field";
+} from "@/src/components/ui/field";
 import {
   Select,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/ui/shadcn/select";
+} from "@/src/components/ui/select";
 import { useTranslations } from "../../../providers/table-provider";
 import type { FormFieldApi, SelectFieldDefinition } from "../types";
 import { FormSelectContent } from "./form-select-content";

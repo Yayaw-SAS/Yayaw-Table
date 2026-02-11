@@ -1,6 +1,6 @@
 import type { FieldValues } from "react-hook-form";
-import type { FormConfig } from "@/ui/yayaw-table/components/forms/types";
-import { createBulkEditFormConfig } from "@/ui/yayaw-table/hooks/use-bulk-edit";
+import type { FormConfig } from "@/src/ui/yayaw-table/components/forms/types";
+import { createBulkEditFormConfig } from "@/src/ui/yayaw-table/hooks/use-bulk-edit";
 import { ProductSchema } from "./types";
 
 // Configuration de base pour les produits

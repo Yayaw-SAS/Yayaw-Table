@@ -3,13 +3,13 @@
  */
 "use client";
 
-import { Checkbox } from "@/ui/shadcn/checkbox";
+import { Checkbox } from "@/src/components/ui/checkbox";
 import {
   Field,
   FieldDescription,
   FieldError,
   FieldLabel,
-} from "@/ui/shadcn/field";
+} from "@/src/components/ui/field";
 import { useTranslations } from "../../../providers/table-provider";
 import type { CheckboxFieldDefinition, FormFieldApi } from "../types";
 

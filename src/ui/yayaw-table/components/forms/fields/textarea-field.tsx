@@ -1,7 +1,7 @@
 "use client";
 
-import { Field, FieldError, FieldLabel } from "@/ui/shadcn/field";
-import { Textarea } from "@/ui/shadcn/textarea";
+import { Field, FieldError, FieldLabel } from "@/src/components/ui/field";
+import { Textarea } from "@/src/components/ui/textarea";
 import { useTranslations } from "../../../providers/table-provider";
 import type { FormFieldApi, TextareaFieldDefinition } from "../types";
 

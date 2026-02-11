@@ -5,16 +5,16 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Input } from "@/ui/shadcn/input";
-import { Label } from "@/ui/shadcn/label";
+import { Input } from "@/src/components/ui/input";
+import { Label } from "@/src/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/ui/shadcn/select";
-import { Slider } from "@/ui/shadcn/slider";
+} from "@/src/components/ui/select";
+import { Slider } from "@/src/components/ui/slider";
 import { useTranslations } from "../../providers/table-provider";
 import type { FilterOperators } from "../../types/filter-types";
 import {

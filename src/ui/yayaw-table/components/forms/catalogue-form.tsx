@@ -12,7 +12,7 @@ import { PencilIcon, PlusIcon } from "lucide-react";
 import type React from "react";
 import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/ui/shadcn/button";
+import { Button } from "@/src/components/ui/button";
 import {
   Drawer,
   DrawerClose,
@@ -21,7 +21,7 @@ import {
   DrawerFooter,
   DrawerHeader,
   DrawerTitle,
-} from "@/ui/shadcn/drawer";
+} from "@/src/components/ui/drawer";
 import {
   type CatalogueFormState,
   catalogueFormAtom,

@@ -5,8 +5,8 @@ import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
 import { useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/ui/shadcn/button";
-import { Input } from "@/ui/shadcn/input";
+import { Button } from "@/src/components/ui/button";
+import { Input } from "@/src/components/ui/input";
 
 import { Loader } from "./loader";
 import { SVG } from "./svg";

@@ -5,10 +5,10 @@ import {
   FieldDescription,
   FieldError,
   FieldLabel,
-} from "@/ui/shadcn/field";
-import { Input } from "@/ui/shadcn/input";
-import { Switch } from "@/ui/shadcn/switch";
-import { Textarea } from "@/ui/shadcn/textarea";
+} from "@/src/components/ui/field";
+import { Input } from "@/src/components/ui/input";
+import { Switch } from "@/src/components/ui/switch";
+import { Textarea } from "@/src/components/ui/textarea";
 import { useTranslations } from "../../../providers/table-provider";
 import type { TranslationConfig } from "../atoms";
 import type { FormFieldApi } from "../types";

@@ -2,7 +2,7 @@
  * Skeleton loader for the DataTable component
  * Displayed while the client component is loading
  */
-import { Skeleton } from "@/ui/shadcn/skeleton";
+import { Skeleton } from "@/src/components/ui/skeleton";
 
 // Generate stable IDs for skeleton items to avoid array index keys
 const HEADER_ITEMS = Array.from({ length: 5 }, (_, index) => ({

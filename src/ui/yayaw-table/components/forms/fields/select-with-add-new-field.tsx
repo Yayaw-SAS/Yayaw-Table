@@ -3,14 +3,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { Plus, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Button } from "@/ui/shadcn/button";
+import { Button } from "@/src/components/ui/button";
 import {
   Field,
   FieldDescription,
   FieldError,
   FieldLabel,
-} from "@/ui/shadcn/field";
-import { Input } from "@/ui/shadcn/input";
+} from "@/src/components/ui/field";
+import { Input } from "@/src/components/ui/input";
 import {
   Select,
   SelectGroup,
@@ -18,7 +18,7 @@ import {
   SelectSeparator,
   SelectTrigger,
   SelectValue,
-} from "@/ui/shadcn/select";
+} from "@/src/components/ui/select";
 import { useTranslations } from "../../../providers/table-provider";
 import type { FormFieldApi } from "../types";
 import { FormSelectContent } from "./form-select-content";

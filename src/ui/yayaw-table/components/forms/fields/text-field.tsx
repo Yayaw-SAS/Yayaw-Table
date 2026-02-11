@@ -8,8 +8,8 @@ import {
   FieldDescription,
   FieldError,
   FieldLabel,
-} from "@/ui/shadcn/field";
-import { Input } from "@/ui/shadcn/input";
+} from "@/src/components/ui/field";
+import { Input } from "@/src/components/ui/input";
 import { useTranslations } from "../../../providers/table-provider";
 import type { FormFieldApi, TextFieldDefinition } from "../types";
 

@@ -6,7 +6,7 @@
 
 import type { Row } from "@tanstack/react-table";
 import { useCallback, useEffect, useState } from "react";
-import { Checkbox } from "@/ui/shadcn/checkbox";
+import { Checkbox } from "@/src/components/ui/checkbox";
 
 const _DEBUG = false;
 

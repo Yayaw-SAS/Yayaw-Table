@@ -5,14 +5,14 @@ import {
   FieldDescription,
   FieldError,
   FieldLabel,
-} from "@/ui/shadcn/field";
+} from "@/src/components/ui/field";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/ui/shadcn/select";
+} from "@/src/components/ui/select";
 import { useTranslations } from "../../../providers/table-provider";
 
 import type { FormFieldApi } from "../types";

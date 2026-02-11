@@ -17,7 +17,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "@/ui/shadcn/dropdown-menu";
+} from "@/src/components/ui/dropdown-menu";
 
 function Menubar({ className, ...props }: MenubarPrimitive.Props) {
   return (

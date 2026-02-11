@@ -21,23 +21,27 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/ui/shadcn/badge";
-import { Button } from "@/ui/shadcn/button";
+import { Badge } from "@/src/components/ui/badge";
+import { Button } from "@/src/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/ui/shadcn/dropdown-menu";
-import { Label } from "@/ui/shadcn/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@/ui/shadcn/popover";
-import { Separator } from "@/ui/shadcn/separator";
+} from "@/src/components/ui/dropdown-menu";
+import { Label } from "@/src/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/src/components/ui/popover";
+import { Separator } from "@/src/components/ui/separator";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/ui/shadcn/tooltip";
+} from "@/src/components/ui/tooltip";
 import { useTranslations } from "../../providers/table-provider";
 import {
   type AdvancedFilterModel,

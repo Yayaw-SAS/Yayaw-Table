@@ -4,7 +4,7 @@
  */
 "use client";
 
-import { Badge } from "@/ui/shadcn/badge";
+import { Badge } from "@/src/components/ui/badge";
 
 import { useTableTranslations } from "../../hooks";
 

@@ -16,8 +16,8 @@ import {
   Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/ui/shadcn/button";
-import { Skeleton } from "@/ui/shadcn/skeleton";
+import { Button } from "@/src/components/ui/button";
+import { Skeleton } from "@/src/components/ui/skeleton";
 import { useTranslations } from "../../providers/table-provider";
 import { translateWithFallback } from "./i18n-utils";
 

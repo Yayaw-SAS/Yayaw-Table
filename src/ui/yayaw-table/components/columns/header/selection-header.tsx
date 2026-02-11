@@ -1,5 +1,5 @@
 import type { Column, Table } from "@tanstack/react-table";
-import { Checkbox } from "@/ui/shadcn/checkbox";
+import { Checkbox } from "@/src/components/ui/checkbox";
 
 interface SelectionHeaderProps<TData> {
   column: Column<TData, unknown>;
