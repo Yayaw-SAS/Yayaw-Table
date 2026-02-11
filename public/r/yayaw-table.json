@@ -195,7 +195,7 @@
     },
     {
       "path": "registry/default/ui/yayaw-table/components/columns/header/actions-header.tsx",
-      "content": "import { cn } from \"@/lib/utils\";\n\ninterface ActionsHeaderProps {\n  className?: string;\n  title: string;\n}\n\nexport function ActionsHeader({ className, title }: ActionsHeaderProps) {\n  return (\n    <div\n      className={cn(\n        \"inline-flex h-full w-full shrink-0 items-center justify-center whitespace-nowrap px-2 font-normal text-foreground text-sm sm:justify-start\",\n        className\n      )}\n    >\n      <span className=\"sr-only sm:not-sr-only\">{title}</span>\n    </div>\n  );\n}\n",
+      "content": "import { cn } from \"@/lib/utils\";\n\ninterface ActionsHeaderProps {\n  className?: string;\n  title: string;\n}\n\nexport function ActionsHeader({ className, title }: ActionsHeaderProps) {\n  return (\n    <div\n      className={cn(\n        \"inline-flex h-full w-full shrink-0 items-center justify-center whitespace-nowrap px-2 font-normal text-foreground sm:justify-start\",\n        className\n      )}\n    >\n      <span className=\"sr-only sm:not-sr-only\">{title}</span>\n    </div>\n  );\n}\n",
       "type": "registry:component",
       "target": "components/ui/yayaw-table/components/columns/header/actions-header.tsx"
     },
