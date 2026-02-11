@@ -5,6 +5,7 @@
 
 import type { Table } from "@tanstack/react-table";
 import {
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
@@ -82,18 +83,21 @@ export function SafePagination<TData>({
       {/* Page size selector */}
       <div className="flex items-center gap-2">
         <p className="font-medium text-sm">{translations.rowsPerPage}</p>
-        <select
-          aria-label={translations.rowsPerPage}
-          className="h-8 min-w-20 rounded-md border bg-background px-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          onChange={(event) => handlePageSizeChange(event.target.value)}
-          value={pageSize.toString()}
-        >
-          {availablePageSizes.map((size) => (
-            <option key={size} value={size.toString()}>
-              {size}
-            </option>
-          ))}
-        </select>
+        <div className="relative">
+          <select
+            aria-label={translations.rowsPerPage}
+            className="h-8 min-w-20 appearance-none rounded-md border bg-background py-1.5 pr-8 pl-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            onChange={(event) => handlePageSizeChange(event.target.value)}
+            value={pageSize.toString()}
+          >
+            {availablePageSizes.map((size) => (
+              <option key={size} value={size.toString()}>
+                {size}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="pointer-events-none absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        </div>
       </div>
 
       {/* Page navigation */}

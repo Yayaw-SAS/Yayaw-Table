@@ -122,7 +122,7 @@ function DataTableColumnHeaderBase<TData, TValue>({
       return (
         <div
           className={cn(
-            "flex h-full w-full items-center gap-2",
+            "group/header flex h-full w-full items-center gap-2 rounded-none transition-colors hover:bg-accent hover:text-accent-foreground",
             isDragging && "opacity-50",
             isOver && "bg-accent",
             className
