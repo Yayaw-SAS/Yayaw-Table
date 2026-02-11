@@ -21,6 +21,10 @@ import {
   DEFAULT_OPERATORS,
   FILTER_OPERATORS_LABELS,
 } from "../../types/filter-types";
+import {
+  getTranslatedOperatorLabel,
+  translateWithFallback,
+} from "./i18n-utils";
 
 export interface NumberFilterProps {
   /** Current filter value - single number or [min, max] for between */
@@ -61,7 +65,7 @@ export function NumberFilter({
   min = 0,
   max = 100,
   step = 1,
-  placeholder = "Enter number...",
+  placeholder,
   disabled = false,
   onValueChange,
   onOperatorChange,
@@ -70,6 +74,8 @@ export function NumberFilter({
   showSlider = true,
 }: NumberFilterProps) {
   const { t } = useTranslations();
+  const effectivePlaceholder =
+    placeholder ?? translateWithFallback(t, "filters.value", "Enter number...");
   const [internalValue, setInternalValue] = useState(value);
 
   // Sync internal value with prop
@@ -177,7 +183,11 @@ export function NumberFilter({
             <SelectContent>
               {operators.map((op) => (
                 <SelectItem key={op} value={op}>
-                  {FILTER_OPERATORS_LABELS.number[op]}
+                  {getTranslatedOperatorLabel(
+                    t,
+                    op,
+                    FILTER_OPERATORS_LABELS.number[op]
+                  )}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -202,7 +212,7 @@ export function NumberFilter({
                     type="number"
                     value={currentRangeValue[0]}
                   />
-                  <span className="text-muted-foreground text-sm">to</span>
+                  <span className="text-muted-foreground text-sm">-</span>
                   <Input
                     className="flex-1"
                     disabled={disabled}
@@ -248,7 +258,7 @@ export function NumberFilter({
                   max={max}
                   min={min}
                   onChange={(e) => handleSingleInputChange(e.target.value)}
-                  placeholder={placeholder}
+                  placeholder={effectivePlaceholder}
                   step={step}
                   type="number"
                   value={currentSingleValue || ""}
@@ -301,12 +311,15 @@ export function CompactNumberFilter({
   value,
   operator,
   onValueChange,
-  placeholder = "0",
+  placeholder,
   disabled = false,
 }: Pick<
   NumberFilterProps,
   "value" | "operator" | "onValueChange" | "placeholder" | "disabled"
 >) {
+  const { t } = useTranslations();
+  const effectivePlaceholder =
+    placeholder ?? translateWithFallback(t, "filters.value", "0");
   const [internalValue, setInternalValue] = useState(value);
 
   useEffect(() => {
@@ -330,7 +343,9 @@ export function CompactNumberFilter({
   if (!needsValue) {
     return (
       <span className="text-muted-foreground text-xs">
-        {operator === "isEmpty" ? "is empty" : "is not empty"}
+        {operator === "isEmpty"
+          ? t("filters.operators.empty")
+          : t("filters.operators.not_empty")}
       </span>
     );
   }
@@ -381,7 +396,7 @@ export function CompactNumberFilter({
           handleChange(val);
         }
       }}
-      placeholder={placeholder}
+      placeholder={effectivePlaceholder}
       type="number"
       value={singleValue || ""}
     />

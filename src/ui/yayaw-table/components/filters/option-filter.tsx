@@ -32,6 +32,10 @@ import {
   DEFAULT_OPERATORS,
   FILTER_OPERATORS_LABELS,
 } from "../../types/filter-types";
+import {
+  getTranslatedOperatorLabel,
+  translateWithFallback,
+} from "./i18n-utils";
 
 export interface OptionFilterProps {
   /** Current filter value - single value or array for isAnyOf/isNoneOf */
@@ -74,10 +78,13 @@ export function OptionFilter({
   label,
   showOperator = true,
   showCounts = true,
-  placeholder = "Select option...",
+  placeholder,
   inline = false,
 }: OptionFilterProps) {
   const { t } = useTranslations();
+  const effectivePlaceholder =
+    placeholder ??
+    translateWithFallback(t, "filters.value", "Select option...");
   const [internalValue, setInternalValue] = useState(value);
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -155,7 +162,7 @@ export function OptionFilter({
   const formatValueForDisplay = useCallback(() => {
     if (isMultiple) {
       if (currentMultipleValue.length === 0) {
-        return placeholder;
+        return effectivePlaceholder;
       }
       if (currentMultipleValue.length === 1) {
         const option = getOptionByValue(currentMultipleValue[0]);
@@ -164,7 +171,7 @@ export function OptionFilter({
       return `${currentMultipleValue.length} selected`;
     }
     if (!currentSingleValue) {
-      return placeholder;
+      return effectivePlaceholder;
     }
     const option = getOptionByValue(currentSingleValue);
     return option?.label || currentSingleValue;
@@ -172,7 +179,7 @@ export function OptionFilter({
     isMultiple,
     currentMultipleValue,
     currentSingleValue,
-    placeholder,
+    effectivePlaceholder,
     getOptionByValue,
   ]);
 
@@ -196,7 +203,11 @@ export function OptionFilter({
             <SelectContent>
               {operators.map((op) => (
                 <SelectItem key={op} value={op}>
-                  {FILTER_OPERATORS_LABELS.option[op]}
+                  {getTranslatedOperatorLabel(
+                    t,
+                    op,
+                    FILTER_OPERATORS_LABELS.option[op]
+                  )}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -392,8 +403,9 @@ export function OptionFilter({
         {/* Info text for operators that don't need values */}
         {!needsValue && (
           <div className="text-muted-foreground text-sm italic">
-            This filter will show rows where the field{" "}
-            {operator === "isEmpty" ? "is empty" : "is not empty"}.
+            {operator === "isEmpty"
+              ? t("filters.operators.empty")
+              : t("filters.operators.not_empty")}
           </div>
         )}
       </div>
@@ -410,7 +422,7 @@ export function CompactOptionFilter({
   options,
   onValueChange,
   disabled = false,
-  placeholder = "Select...",
+  placeholder,
 }: Pick<
   OptionFilterProps,
   | "value"
@@ -421,6 +433,8 @@ export function CompactOptionFilter({
   | "placeholder"
 >) {
   const { t } = useTranslations();
+  const effectivePlaceholder =
+    placeholder ?? translateWithFallback(t, "filters.value", "Select...");
   const [internalValue, setInternalValue] = useState(value);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -459,7 +473,7 @@ export function CompactOptionFilter({
   const formatValueForDisplay = useCallback(() => {
     if (isMultiple) {
       if (currentMultipleValue.length === 0) {
-        return placeholder;
+        return effectivePlaceholder;
       }
       if (currentMultipleValue.length === 1) {
         const option = getOptionByValue(currentMultipleValue[0]);
@@ -468,7 +482,7 @@ export function CompactOptionFilter({
       return t("filters.selectedCount", { count: currentMultipleValue.length });
     }
     if (!currentSingleValue) {
-      return placeholder;
+      return effectivePlaceholder;
     }
     const option = getOptionByValue(currentSingleValue);
     return option?.label || currentSingleValue;
@@ -476,7 +490,7 @@ export function CompactOptionFilter({
     isMultiple,
     currentMultipleValue,
     currentSingleValue,
-    placeholder,
+    effectivePlaceholder,
     getOptionByValue,
     t,
   ]);

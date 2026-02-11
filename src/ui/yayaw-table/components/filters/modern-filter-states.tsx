@@ -18,6 +18,8 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/ui/shadcn/button";
 import { Skeleton } from "@/ui/shadcn/skeleton";
+import { useTranslations } from "../../providers/table-provider";
+import { translateWithFallback } from "./i18n-utils";
 
 interface FilterLoadingStateProps {
   className?: string;
@@ -85,18 +87,28 @@ export function FilterLoadingState({
  */
 export function FilterEmptyState({
   className,
-  title = "No filters applied",
-  description = "Add filters to narrow down your results and find exactly what you're looking for.",
+  title,
+  description,
   onAddFilter,
   showAddButton = true,
   variant = "default",
 }: FilterEmptyStateProps) {
+  const { t } = useTranslations();
+  const resolvedTitle = title ?? t("filters.noFilters");
+  const resolvedDescription =
+    description ??
+    translateWithFallback(
+      t,
+      "filters.advanced.empty_description",
+      "Add filters to narrow down your results and find exactly what you're looking for."
+    );
+
   if (variant === "compact") {
     return (
       <div className={cn("flex items-center justify-center py-4", className)}>
         <div className="text-center">
           <Filter className="mx-auto mb-2 h-6 w-6 text-muted-foreground opacity-50" />
-          <p className="text-muted-foreground text-sm">{title}</p>
+          <p className="text-muted-foreground text-sm">{resolvedTitle}</p>
         </div>
       </div>
     );
@@ -111,7 +123,7 @@ export function FilterEmptyState({
         )}
       >
         <Filter className="h-4 w-4 opacity-50" />
-        <span className="text-sm">{title}</span>
+        <span className="text-sm">{resolvedTitle}</span>
         {showAddButton && onAddFilter && (
           <Button
             className="h-6 px-2 text-primary text-xs hover:text-primary"
@@ -120,7 +132,7 @@ export function FilterEmptyState({
             variant="ghost"
           >
             <Plus className="mr-1 h-3 w-3" />
-            Add filter
+            {t("filters.add")}
           </Button>
         )}
       </div>
@@ -141,9 +153,11 @@ export function FilterEmptyState({
       </div>
 
       {/* Content */}
-      <h3 className="mb-2 font-semibold text-foreground text-lg">{title}</h3>
+      <h3 className="mb-2 font-semibold text-foreground text-lg">
+        {resolvedTitle}
+      </h3>
       <p className="mx-auto mb-6 max-w-md text-muted-foreground text-sm">
-        {description}
+        {resolvedDescription}
       </p>
 
       {/* Actions */}
@@ -154,13 +168,39 @@ export function FilterEmptyState({
             onClick={onAddFilter}
           >
             <Plus className="mr-2 h-4 w-4" />
-            Add your first filter
+            {translateWithFallback(
+              t,
+              "filters.advanced.add_first_filter",
+              "Add your first filter"
+            )}
           </Button>
 
           {/* Quick suggestions */}
           <div className="flex flex-wrap items-center justify-center gap-2">
-            <span className="text-muted-foreground text-xs">Quick start:</span>
-            {["Search", "Status", "Date"].map((suggestion) => (
+            <span className="text-muted-foreground text-xs">
+              {translateWithFallback(
+                t,
+                "filters.advanced.quick_start",
+                "Quick start:"
+              )}
+            </span>
+            {[
+              translateWithFallback(
+                t,
+                "filters.advanced.quick_start_search",
+                "Search"
+              ),
+              translateWithFallback(
+                t,
+                "filters.advanced.quick_start_status",
+                "Status"
+              ),
+              translateWithFallback(
+                t,
+                "filters.advanced.quick_start_date",
+                "Date"
+              ),
+            ].map((suggestion) => (
               <Button
                 className="h-6 px-2 text-xs"
                 key={suggestion}
@@ -183,11 +223,27 @@ export function FilterEmptyState({
  */
 export function FilterErrorState({
   className,
-  title = "Failed to load filters",
-  description = "Something went wrong while loading the filters. Please try again.",
+  title,
+  description,
   onRetry,
   showRetryButton = true,
 }: FilterErrorStateProps) {
+  const { t } = useTranslations();
+  const resolvedTitle =
+    title ??
+    translateWithFallback(
+      t,
+      "filters.advanced.load_error_title",
+      "Failed to load filters"
+    );
+  const resolvedDescription =
+    description ??
+    translateWithFallback(
+      t,
+      "filters.advanced.load_error_description",
+      "Something went wrong while loading the filters. Please try again."
+    );
+
   return (
     <div className={cn("py-6 text-center", className)}>
       {/* Error Icon */}
@@ -197,16 +253,18 @@ export function FilterErrorState({
       </div>
 
       {/* Content */}
-      <h3 className="mb-2 font-medium text-base text-foreground">{title}</h3>
+      <h3 className="mb-2 font-medium text-base text-foreground">
+        {resolvedTitle}
+      </h3>
       <p className="mx-auto mb-4 max-w-sm text-muted-foreground text-sm">
-        {description}
+        {resolvedDescription}
       </p>
 
       {/* Actions */}
       {showRetryButton && onRetry && (
         <Button className="text-sm" onClick={onRetry} variant="outline">
           <RefreshCw className="mr-2 h-4 w-4" />
-          Try again
+          {translateWithFallback(t, "filters.advanced.retry", "Try again")}
         </Button>
       )}
     </div>
@@ -227,14 +285,14 @@ export function FilterSuccessState({
   totalResults?: number;
   onClearAll?: () => void;
 }) {
+  const { t } = useTranslations();
   return (
     <div className={cn("flex items-center gap-3 text-sm", className)}>
       {/* Success indicator */}
       <div className="flex items-center gap-2 text-emerald-600">
         <Target className="h-4 w-4" />
         <span className="font-medium">
-          {activeFiltersCount} filter{activeFiltersCount !== 1 ? "s" : ""}{" "}
-          active
+          {t("filters.active_count", { count: activeFiltersCount })}
         </span>
       </div>
 
@@ -242,7 +300,14 @@ export function FilterSuccessState({
       {totalResults !== undefined && (
         <div className="flex items-center gap-1 text-muted-foreground">
           <TrendingUp className="h-3 w-3" />
-          <span>{totalResults.toLocaleString()} results</span>
+          <span>
+            {translateWithFallback(
+              t,
+              "filters.advanced.results_count",
+              "{count} results",
+              { count: totalResults.toLocaleString() }
+            )}
+          </span>
         </div>
       )}
 
@@ -254,7 +319,7 @@ export function FilterSuccessState({
           size="sm"
           variant="ghost"
         >
-          Clear all
+          {t("filters.clear")}
         </Button>
       )}
     </div>
@@ -275,6 +340,14 @@ export function FilterNoResultsState({
   onClearFilters?: () => void;
   onModifyFilters?: () => void;
 }) {
+  const { t } = useTranslations();
+  const noResultsWithSearch = translateWithFallback(
+    t,
+    "filters.advanced.no_results_with_search",
+    'No items match "{search}" with the current filters.',
+    { search: searchTerm ?? "" }
+  );
+
   return (
     <div className={cn("py-8 text-center", className)}>
       {/* No results icon */}
@@ -285,14 +358,22 @@ export function FilterNoResultsState({
 
       {/* Content */}
       <h3 className="mb-2 font-medium text-foreground text-lg">
-        No results found
+        {t("table.no_results")}
       </h3>
       <p className="mx-auto mb-6 max-w-md text-muted-foreground text-sm">
         {searchTerm
-          ? `No items match "${searchTerm}" with the current filters.`
-          : "No items match the current filter criteria."}
+          ? noResultsWithSearch
+          : translateWithFallback(
+              t,
+              "filters.advanced.no_results_description",
+              "No items match the current filter criteria."
+            )}
         <br />
-        Try adjusting your filters or search terms.
+        {translateWithFallback(
+          t,
+          "filters.advanced.adjust_filters_hint",
+          "Try adjusting your filters or search terms."
+        )}
       </p>
 
       {/* Actions */}
@@ -300,13 +381,17 @@ export function FilterNoResultsState({
         {onClearFilters && (
           <Button onClick={onClearFilters} variant="outline">
             <RefreshCw className="mr-2 h-4 w-4" />
-            Clear filters
+            {t("filters.clear")}
           </Button>
         )}
         {onModifyFilters && (
           <Button onClick={onModifyFilters}>
             <Zap className="mr-2 h-4 w-4" />
-            Modify filters
+            {translateWithFallback(
+              t,
+              "filters.advanced.modify_filters",
+              "Modify filters"
+            )}
           </Button>
         )}
       </div>
@@ -326,6 +411,7 @@ export function FilterPerformanceIndicator({
   filterTime?: number;
   isOptimized?: boolean;
 }) {
+  const { t } = useTranslations();
   if (!filterTime) {
     return null;
   }
@@ -351,7 +437,14 @@ export function FilterPerformanceIndicator({
           !isOptimized && isSlowQuery && "text-amber-500"
         )}
       />
-      <span>Filtered in {displayTime}</span>
+      <span>
+        {translateWithFallback(
+          t,
+          "filters.advanced.filtered_in",
+          "Filtered in {time}",
+          { time: displayTime }
+        )}
+      </span>
       {isOptimized && <span className="font-medium text-emerald-600">⚡</span>}
     </div>
   );

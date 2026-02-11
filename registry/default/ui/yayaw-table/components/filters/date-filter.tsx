@@ -29,6 +29,10 @@ import {
   DEFAULT_OPERATORS,
   FILTER_OPERATORS_LABELS,
 } from "../../types/filter-types";
+import {
+  getTranslatedOperatorLabel,
+  translateWithFallback,
+} from "./i18n-utils";
 
 export interface DateFilterProps {
   /** Current filter value - single date or [start, end] for between */
@@ -152,7 +156,11 @@ export function DateFilter({
             <SelectContent>
               {operators.map((op) => (
                 <SelectItem key={op} value={op}>
-                  {FILTER_OPERATORS_LABELS.date[op]}
+                  {getTranslatedOperatorLabel(
+                    t,
+                    op,
+                    FILTER_OPERATORS_LABELS.date[op]
+                  )}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -259,8 +267,9 @@ export function DateFilter({
         {/* Info text for operators that don't need values */}
         {!needsValue && (
           <div className="text-muted-foreground text-sm italic">
-            This filter will show rows where the field{" "}
-            {operator === "isEmpty" ? "is empty" : "is not empty"}.
+            {operator === "isEmpty"
+              ? t("filters.operators.empty")
+              : t("filters.operators.not_empty")}
           </div>
         )}
       </div>
@@ -334,7 +343,9 @@ export function CompactDateFilter({
   if (!needsValue) {
     return (
       <span className="text-muted-foreground text-xs">
-        {operator === "isEmpty" ? "is empty" : "is not empty"}
+        {operator === "isEmpty"
+          ? t("filters.operators.empty")
+          : t("filters.operators.not_empty")}
       </span>
     );
   }
@@ -399,16 +410,21 @@ export function DateRangeShortcuts({
   onSelect: (range: [Date, Date]) => void;
   disabled?: boolean;
 }) {
+  const { t } = useTranslations();
   const shortcuts = [
     {
-      label: "Today",
+      label: translateWithFallback(t, "filters.date_shortcuts.today", "Today"),
       getValue: () => {
         const today = new Date();
         return [today, today] as [Date, Date];
       },
     },
     {
-      label: "Yesterday",
+      label: translateWithFallback(
+        t,
+        "filters.date_shortcuts.yesterday",
+        "Yesterday"
+      ),
       getValue: () => {
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
@@ -416,7 +432,11 @@ export function DateRangeShortcuts({
       },
     },
     {
-      label: "Last 7 days",
+      label: translateWithFallback(
+        t,
+        "filters.date_shortcuts.last_7_days",
+        "Last 7 days"
+      ),
       getValue: () => {
         const end = new Date();
         const start = new Date();
@@ -425,7 +445,11 @@ export function DateRangeShortcuts({
       },
     },
     {
-      label: "Last 30 days",
+      label: translateWithFallback(
+        t,
+        "filters.date_shortcuts.last_30_days",
+        "Last 30 days"
+      ),
       getValue: () => {
         const end = new Date();
         const start = new Date();
@@ -434,7 +458,11 @@ export function DateRangeShortcuts({
       },
     },
     {
-      label: "This month",
+      label: translateWithFallback(
+        t,
+        "filters.date_shortcuts.this_month",
+        "This month"
+      ),
       getValue: () => {
         const now = new Date();
         const start = new Date(now.getFullYear(), now.getMonth(), 1);

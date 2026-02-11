@@ -32,6 +32,10 @@ import {
   DEFAULT_OPERATORS,
   FILTER_OPERATORS_LABELS,
 } from "../../types/filter-types";
+import {
+  getTranslatedOperatorLabel,
+  translateWithFallback,
+} from "./i18n-utils";
 
 export interface MultiOptionFilterProps {
   /** Current filter value - array of selected values */
@@ -76,11 +80,14 @@ export function MultiOptionFilter({
   label,
   showOperator = true,
   showCounts = true,
-  placeholder = "Select options...",
+  placeholder,
   maxDisplayedTags = 3,
   inline = false,
 }: MultiOptionFilterProps) {
   const { t } = useTranslations();
+  const effectivePlaceholder =
+    placeholder ??
+    translateWithFallback(t, "filters.value", "Select options...");
   const [internalValue, setInternalValue] = useState(value);
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -147,14 +154,14 @@ export function MultiOptionFilter({
   // Format selected values for display
   const formatValueForDisplay = useCallback(() => {
     if (internalValue.length === 0) {
-      return placeholder;
+      return effectivePlaceholder;
     }
     if (internalValue.length === 1) {
       const option = getOptionByValue(internalValue[0]);
       return option?.label || internalValue[0];
     }
     return t("filters.selectedCount", { count: internalValue.length });
-  }, [internalValue, placeholder, getOptionByValue, t]);
+  }, [internalValue, effectivePlaceholder, getOptionByValue, t]);
 
   // Get displayed tags
   const displayedTags = useMemo(() => {
@@ -187,7 +194,11 @@ export function MultiOptionFilter({
             <SelectContent>
               {operators.map((op) => (
                 <SelectItem key={op} value={op}>
-                  {FILTER_OPERATORS_LABELS.multiOption[op]}
+                  {getTranslatedOperatorLabel(
+                    t,
+                    op,
+                    FILTER_OPERATORS_LABELS.multiOption[op]
+                  )}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -276,7 +287,12 @@ export function MultiOptionFilter({
                               className="justify-center border-b"
                               onSelect={handleSelectAll}
                             >
-                              Select All ({filteredOptions.length})
+                              {translateWithFallback(
+                                t,
+                                "filters.select_all",
+                                "Select all"
+                              )}{" "}
+                              ({filteredOptions.length})
                             </CommandItem>
                             {internalValue.length > 0 && (
                               <CommandItem
@@ -412,7 +428,7 @@ export function CompactMultiOptionFilter({
   options,
   onValueChange,
   disabled = false,
-  placeholder = "Select...",
+  placeholder,
   maxDisplayedTags = 2,
 }: Pick<
   MultiOptionFilterProps,
@@ -424,6 +440,9 @@ export function CompactMultiOptionFilter({
   | "placeholder"
   | "maxDisplayedTags"
 >) {
+  const { t } = useTranslations();
+  const effectivePlaceholder =
+    placeholder ?? translateWithFallback(t, "filters.value", "Select...");
   const [internalValue, setInternalValue] = useState(value);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -440,14 +459,19 @@ export function CompactMultiOptionFilter({
 
   const formatValueForDisplay = useCallback(() => {
     if (internalValue.length === 0) {
-      return placeholder;
+      return effectivePlaceholder;
     }
     if (internalValue.length === 1) {
       const option = getOptionByValue(internalValue[0]);
       return option?.label || internalValue[0];
     }
-    return `${internalValue.length} items`;
-  }, [internalValue, placeholder, getOptionByValue]);
+    return translateWithFallback(
+      t,
+      "filters.selectedCount",
+      `${internalValue.length} selected`,
+      { count: internalValue.length }
+    );
+  }, [internalValue, effectivePlaceholder, getOptionByValue, t]);
 
   const handleOptionToggle = useCallback(
     (optionValue: string) => {
@@ -466,7 +490,9 @@ export function CompactMultiOptionFilter({
   if (!needsValue) {
     return (
       <span className="text-muted-foreground text-xs">
-        {operator === "isEmpty" ? "is empty" : "is not empty"}
+        {operator === "isEmpty"
+          ? t("filters.operators.empty")
+          : t("filters.operators.not_empty")}
       </span>
     );
   }
@@ -487,9 +513,11 @@ export function CompactMultiOptionFilter({
         </PopoverTrigger>
         <PopoverContent align="start" className="w-48 p-0">
           <Command>
-            <CommandInput placeholder="Search..." />
+            <CommandInput
+              placeholder={t("filters.search", { filter: "options" })}
+            />
             <CommandList>
-              <CommandEmpty>No options found.</CommandEmpty>
+              <CommandEmpty>{t("filters.noResults")}</CommandEmpty>
               <CommandGroup>
                 {options.map((option) => {
                   const isSelected = internalValue.includes(option.value);

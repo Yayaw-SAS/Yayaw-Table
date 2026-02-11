@@ -60,10 +60,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import type { UseFilterPresetsReturn } from "../../hooks/use-filter-presets";
+import { useTranslations } from "../../providers/table-provider";
 import type {
   AdvancedFilterState,
   FilterPreset,
 } from "../../types/advanced-filter-types";
+import { translateWithFallback } from "./i18n-utils";
 
 interface FilterPresetsPanelProps {
   /** Current filter state */
@@ -104,6 +106,7 @@ function PresetCard({
   isRecent: boolean;
   isPopular: boolean;
 }) {
+  const { t } = useTranslations();
   return (
     <div className="group relative rounded-lg border p-4 transition-colors hover:bg-accent/50">
       {/* Preset header */}
@@ -175,17 +178,21 @@ function PresetCard({
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={onShare}>
                 <Share2 className="mr-2 h-4 w-4" />
-                Share
+                {translateWithFallback(t, "filters.presets.share", "Share")}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={onDuplicate}>
                 <Copy className="mr-2 h-4 w-4" />
-                Duplicate
+                {translateWithFallback(
+                  t,
+                  "filters.presets.duplicate",
+                  "Duplicate"
+                )}
               </DropdownMenuItem>
               {!preset.isSystem && (
                 <>
                   <DropdownMenuItem onClick={onEdit}>
                     <Edit className="mr-2 h-4 w-4" />
-                    Edit
+                    {t("actions.edit")}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
@@ -193,7 +200,7 @@ function PresetCard({
                     onClick={onDelete}
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
-                    Delete
+                    {t("actions.delete")}
                   </DropdownMenuItem>
                 </>
               )}
@@ -221,9 +228,23 @@ function PresetCard({
       {/* Metadata */}
       <div className="flex items-center justify-between text-muted-foreground text-xs">
         <div className="flex items-center gap-2">
-          <span>Used {preset.metadata.usageCount} times</span>
+          <span>
+            {translateWithFallback(
+              t,
+              "filters.presets.used_times",
+              "Used {count} times",
+              { count: preset.metadata.usageCount }
+            )}
+          </span>
           {preset.metadata.lastUsed && (
-            <span>• Last: {preset.metadata.lastUsed.toLocaleDateString()}</span>
+            <span>
+              {translateWithFallback(
+                t,
+                "filters.presets.last_used",
+                "Last: {date}",
+                { date: preset.metadata.lastUsed.toLocaleDateString() }
+              )}
+            </span>
           )}
         </div>
 
@@ -235,7 +256,7 @@ function PresetCard({
           type="button"
         >
           <Eye className="mr-1 h-3 w-3" />
-          Load
+          {translateWithFallback(t, "filters.presets.load", "Load")}
         </Button>
       </div>
     </div>
@@ -263,6 +284,7 @@ function SavePresetDialog({
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { t } = useTranslations();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [tags, setTags] = useState("");
@@ -307,43 +329,79 @@ function SavePresetDialog({
     <Dialog onOpenChange={onOpenChange} open={isOpen}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Save Filter Preset</DialogTitle>
+          <DialogTitle>
+            {translateWithFallback(
+              t,
+              "filters.presets.save_dialog_title",
+              "Save filter preset"
+            )}
+          </DialogTitle>
           <DialogDescription>
-            Save your current filter configuration for future use.
+            {translateWithFallback(
+              t,
+              "filters.presets.save_dialog_description",
+              "Save your current filter configuration for future use."
+            )}
           </DialogDescription>
         </DialogHeader>
 
         {hasFilters ? (
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Name *</Label>
+              <Label htmlFor="name">
+                {translateWithFallback(
+                  t,
+                  "filters.presets.name_label",
+                  "Name *"
+                )}
+              </Label>
               <Input
                 id="name"
                 maxLength={100}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="My awesome filter preset"
+                placeholder={translateWithFallback(
+                  t,
+                  "filters.presets.name_placeholder",
+                  "My awesome filter preset"
+                )}
                 value={name}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description">
+                {translateWithFallback(
+                  t,
+                  "filters.presets.description_label",
+                  "Description"
+                )}
+              </Label>
               <Textarea
                 id="description"
                 maxLength={500}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Optional description..."
+                placeholder={translateWithFallback(
+                  t,
+                  "filters.presets.description_placeholder",
+                  "Optional description..."
+                )}
                 rows={3}
                 value={description}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="tags">Tags</Label>
+              <Label htmlFor="tags">
+                {translateWithFallback(t, "filters.presets.tags_label", "Tags")}
+              </Label>
               <Input
                 id="tags"
                 onChange={(e) => setTags(e.target.value)}
-                placeholder="work, urgent, weekly (comma separated)"
+                placeholder={translateWithFallback(
+                  t,
+                  "filters.presets.tags_placeholder",
+                  "work, urgent, weekly (comma separated)"
+                )}
                 value={tags}
               />
             </div>
@@ -357,7 +415,11 @@ function SavePresetDialog({
                 type="checkbox"
               />
               <Label htmlFor="public">
-                Make public (visible to other users)
+                {translateWithFallback(
+                  t,
+                  "filters.presets.make_public",
+                  "Make public (visible to other users)"
+                )}
               </Label>
             </div>
           </div>
@@ -365,7 +427,11 @@ function SavePresetDialog({
           <div className="py-6 text-center">
             <Filter className="mx-auto mb-2 h-8 w-8 text-muted-foreground opacity-50" />
             <p className="text-muted-foreground text-sm">
-              No active filters to save. Add some filters first.
+              {translateWithFallback(
+                t,
+                "filters.presets.no_active_filters_to_save",
+                "No active filters to save. Add some filters first."
+              )}
             </p>
           </div>
         )}
@@ -376,14 +442,20 @@ function SavePresetDialog({
             type="button"
             variant="outline"
           >
-            Cancel
+            {t("actions.cancel")}
           </Button>
           <Button
             disabled={!(name.trim() && hasFilters) || isSaving}
             onClick={handleSave}
             type="button"
           >
-            {isSaving ? "Saving..." : "Save Preset"}
+            {isSaving
+              ? translateWithFallback(t, "filters.presets.saving", "Saving...")
+              : translateWithFallback(
+                  t,
+                  "filters.presets.save_preset",
+                  "Save preset"
+                )}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -401,6 +473,7 @@ export function FilterPresetsPanel({
   compact = false,
   className,
 }: FilterPresetsPanelProps) {
+  const { t } = useTranslations();
   const [searchQuery, setSearchQuery] = useState("");
   const [presetIdToDelete, setPresetIdToDelete] = useState<null | string>(null);
   const [selectedTab, setSelectedTab] = useState<
@@ -505,14 +578,16 @@ export function FilterPresetsPanel({
     return (
       <div className={cn("space-y-3", className)}>
         <div className="flex items-center justify-between">
-          <h3 className="font-medium text-sm">Presets</h3>
+          <h3 className="font-medium text-sm">
+            {translateWithFallback(t, "filters.presets.title", "Presets")}
+          </h3>
           <Button
             className="h-6 px-2 text-xs"
             onClick={() => setSaveDialogOpen(true)}
             size="sm"
           >
             <Save className="mr-1 h-3 w-3" />
-            Save
+            {t("actions.save")}
           </Button>
         </div>
 
@@ -553,18 +628,27 @@ export function FilterPresetsPanel({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete preset</AlertDialogTitle>
+            <AlertDialogTitle>
+              {translateWithFallback(
+                t,
+                "filters.presets.delete_title",
+                "Delete preset"
+              )}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this preset? This action cannot be
-              undone.
+              {translateWithFallback(
+                t,
+                "filters.presets.delete_description",
+                "Are you sure you want to delete this preset? This action cannot be undone."
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={handleCancelDeletePreset}>
-              Cancel
+              {t("actions.cancel")}
             </AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmDeletePreset}>
-              Delete
+              {t("actions.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -574,7 +658,13 @@ export function FilterPresetsPanel({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Bookmark className="h-5 w-5 text-muted-foreground" />
-          <h2 className="font-semibold text-lg">Filter Presets</h2>
+          <h2 className="font-semibold text-lg">
+            {translateWithFallback(
+              t,
+              "filters.presets.panel_title",
+              "Filter presets"
+            )}
+          </h2>
         </div>
 
         <div className="flex items-center gap-2">
@@ -584,7 +674,11 @@ export function FilterPresetsPanel({
             size="sm"
           >
             <Save className="h-4 w-4" />
-            Save Current
+            {translateWithFallback(
+              t,
+              "filters.presets.save_current",
+              "Save current"
+            )}
           </Button>
 
           <DropdownMenu>
@@ -598,11 +692,19 @@ export function FilterPresetsPanel({
             <DropdownMenuContent align="end">
               <DropdownMenuItem>
                 <Upload className="mr-2 h-4 w-4" />
-                Import Presets
+                {translateWithFallback(
+                  t,
+                  "filters.presets.import",
+                  "Import presets"
+                )}
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <Download className="mr-2 h-4 w-4" />
-                Export All
+                {translateWithFallback(
+                  t,
+                  "filters.presets.export_all",
+                  "Export all"
+                )}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -615,7 +717,11 @@ export function FilterPresetsPanel({
         <Input
           className="pl-9"
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search presets..."
+          placeholder={translateWithFallback(
+            t,
+            "filters.presets.search_placeholder",
+            "Search presets..."
+          )}
           value={searchQuery}
         />
       </div>
@@ -628,10 +734,22 @@ export function FilterPresetsPanel({
         value={selectedTab}
       >
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="all">All</TabsTrigger>
-          <TabsTrigger value="recent">Recent</TabsTrigger>
-          <TabsTrigger value="popular">Popular</TabsTrigger>
-          <TabsTrigger value="system">System</TabsTrigger>
+          <TabsTrigger value="all">
+            {translateWithFallback(t, "filters.presets.tabs.all", "All")}
+          </TabsTrigger>
+          <TabsTrigger value="recent">
+            {translateWithFallback(t, "filters.presets.tabs.recent", "Recent")}
+          </TabsTrigger>
+          <TabsTrigger value="popular">
+            {translateWithFallback(
+              t,
+              "filters.presets.tabs.popular",
+              "Popular"
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="system">
+            {translateWithFallback(t, "filters.presets.tabs.system", "System")}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent className="mt-4" value={selectedTab}>
@@ -639,16 +757,34 @@ export function FilterPresetsPanel({
             {filteredPresets.length === 0 ? (
               <div className="py-12 text-center">
                 <Sparkles className="mx-auto mb-3 h-8 w-8 text-muted-foreground opacity-50" />
-                <h3 className="mb-1 font-medium">No presets found</h3>
+                <h3 className="mb-1 font-medium">
+                  {translateWithFallback(
+                    t,
+                    "filters.presets.no_presets_found",
+                    "No presets found"
+                  )}
+                </h3>
                 <p className="mb-4 text-muted-foreground text-sm">
                   {searchQuery
-                    ? "Try a different search term"
-                    : "Create your first preset by saving your current filters"}
+                    ? translateWithFallback(
+                        t,
+                        "filters.presets.try_different_search",
+                        "Try a different search term"
+                      )
+                    : translateWithFallback(
+                        t,
+                        "filters.presets.create_first_hint",
+                        "Create your first preset by saving your current filters"
+                      )}
                 </p>
                 {!searchQuery && (
                   <Button onClick={() => setSaveDialogOpen(true)}>
                     <Save className="mr-2 h-4 w-4" />
-                    Save First Preset
+                    {translateWithFallback(
+                      t,
+                      "filters.presets.save_first",
+                      "Save first preset"
+                    )}
                   </Button>
                 )}
               </div>

@@ -309,6 +309,11 @@
           "target": "ui/yayaw-table/components/filters/filter-value-input.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/filters/i18n-utils.ts",
+          "type": "registry:component",
+          "target": "ui/yayaw-table/components/filters/i18n-utils.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/filters/index.ts",
           "type": "registry:component",
           "target": "ui/yayaw-table/components/filters/index.ts"

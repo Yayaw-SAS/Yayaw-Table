@@ -26,11 +26,12 @@ import { Input } from "@/ui/shadcn/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/ui/shadcn/popover";
 import { Separator } from "@/ui/shadcn/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/ui/shadcn/tabs";
-
+import { useTranslations } from "../../providers/table-provider";
 import type {
   ColumnDataType,
   ColumnsFilterConfig,
 } from "../../types/filter-types";
+import { translateWithFallback } from "./i18n-utils";
 
 // Icons for different data types
 const typeIcons = {
@@ -53,32 +54,38 @@ const typeColors = {
 // Categories for organizing columns
 const categories = {
   recent: {
-    label: "Recently Used",
+    label: "Recently used",
+    labelKey: "filters.add_menu.categories.recent",
     icon: Clock,
     color: "text-muted-foreground",
   },
   popular: {
     label: "Popular",
+    labelKey: "filters.add_menu.categories.popular",
     icon: Zap,
     color: "text-amber-600",
   },
   text: {
-    label: "Text Fields",
+    label: "Text fields",
+    labelKey: "filters.add_menu.categories.text",
     icon: Type,
     color: "text-blue-600",
   },
   number: {
-    label: "Number Fields",
+    label: "Number fields",
+    labelKey: "filters.add_menu.categories.number",
     icon: Hash,
     color: "text-emerald-600",
   },
   date: {
-    label: "Date Fields",
+    label: "Date fields",
+    labelKey: "filters.add_menu.categories.date",
     icon: Calendar,
     color: "text-purple-600",
   },
   option: {
-    label: "Selection Fields",
+    label: "Selection fields",
+    labelKey: "filters.add_menu.categories.option",
     icon: Tag,
     color: "text-orange-600",
   },
@@ -118,6 +125,7 @@ function ColumnOptionItem({
   option: ColumnOption;
   onSelect: (option: ColumnOption) => void;
 }) {
+  const { t } = useTranslations();
   const TypeIcon = typeIcons[columnOption.type];
 
   return (
@@ -149,7 +157,7 @@ function ColumnOptionItem({
           </span>
           {columnOption.isRecent && (
             <Badge className="text-xs" variant="secondary">
-              Recent
+              {translateWithFallback(t, "filters.add_menu.recent", "Recent")}
             </Badge>
           )}
           {columnOption.isPopular && (
@@ -157,7 +165,7 @@ function ColumnOptionItem({
               className="bg-amber-100 text-amber-700 text-xs"
               variant="secondary"
             >
-              Popular
+              {translateWithFallback(t, "filters.add_menu.popular", "Popular")}
             </Badge>
           )}
         </div>
@@ -187,8 +195,10 @@ export function ModernAddFilterDropdown({
   size = "md",
   variant = "default",
   disabled = false,
-  placeholder = "Add filter...",
+  placeholder,
 }: ModernAddFilterDropdownProps) {
+  const { t } = useTranslations();
+  const triggerLabel = placeholder ?? t("filters.add");
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [_selectedIndex, setSelectedIndex] = useState(0);
@@ -300,7 +310,7 @@ export function ModernAddFilterDropdown({
           variant={variant}
         >
           <Plus className={cn("mr-1", iconSizes[size])} />
-          {placeholder}
+          {triggerLabel}
         </Button>
       </PopoverTrigger>
 
@@ -317,7 +327,11 @@ export function ModernAddFilterDropdown({
             <Input
               className="h-auto border-none p-0 focus-visible:ring-0 focus-visible:ring-offset-0"
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search columns..."
+              placeholder={translateWithFallback(
+                t,
+                "filters.advanced.search_columns",
+                "Search columns..."
+              )}
               ref={searchInputRef}
               value={searchTerm}
             />
@@ -331,8 +345,20 @@ export function ModernAddFilterDropdown({
               {filteredOptions.search.length === 0 ? (
                 <div className="py-8 text-center text-muted-foreground">
                   <Filter className="mx-auto mb-2 h-8 w-8 opacity-50" />
-                  <p className="text-sm">No columns found</p>
-                  <p className="text-xs">Try a different search term</p>
+                  <p className="text-sm">
+                    {translateWithFallback(
+                      t,
+                      "filters.advanced.no_columns_found",
+                      "No columns found"
+                    )}
+                  </p>
+                  <p className="text-xs">
+                    {translateWithFallback(
+                      t,
+                      "filters.advanced.try_different_search",
+                      "Try a different search term"
+                    )}
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-1">
@@ -358,15 +384,23 @@ export function ModernAddFilterDropdown({
               <TabsList className="grid h-8 w-full grid-cols-3">
                 <TabsTrigger className="text-xs" value="popular">
                   <Star className="mr-1 h-3 w-3" />
-                  Popular
+                  {translateWithFallback(
+                    t,
+                    "filters.add_menu.popular",
+                    "Popular"
+                  )}
                 </TabsTrigger>
                 <TabsTrigger className="text-xs" value="recent">
                   <Clock className="mr-1 h-3 w-3" />
-                  Recent
+                  {translateWithFallback(
+                    t,
+                    "filters.add_menu.recent",
+                    "Recent"
+                  )}
                 </TabsTrigger>
                 <TabsTrigger className="text-xs" value="all">
                   <Filter className="mr-1 h-3 w-3" />
-                  All
+                  {translateWithFallback(t, "filters.add_menu.all", "All")}
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -376,7 +410,13 @@ export function ModernAddFilterDropdown({
                 {filteredOptions.popular.length === 0 ? (
                   <div className="py-6 text-center text-muted-foreground">
                     <Star className="mx-auto mb-2 h-6 w-6 opacity-50" />
-                    <p className="text-sm">No popular filters</p>
+                    <p className="text-sm">
+                      {translateWithFallback(
+                        t,
+                        "filters.advanced.no_popular_filters",
+                        "No popular filters"
+                      )}
+                    </p>
                   </div>
                 ) : (
                   <div className="space-y-1">
@@ -395,7 +435,13 @@ export function ModernAddFilterDropdown({
                 {filteredOptions.recent.length === 0 ? (
                   <div className="py-6 text-center text-muted-foreground">
                     <Clock className="mx-auto mb-2 h-6 w-6 opacity-50" />
-                    <p className="text-sm">No recent filters</p>
+                    <p className="text-sm">
+                      {translateWithFallback(
+                        t,
+                        "filters.advanced.no_recent_filters",
+                        "No recent filters"
+                      )}
+                    </p>
                   </div>
                 ) : (
                   <div className="space-y-1">
@@ -414,7 +460,13 @@ export function ModernAddFilterDropdown({
                 {Object.keys(filteredOptions.all).length === 0 ? (
                   <div className="py-6 text-center text-muted-foreground">
                     <Filter className="mx-auto mb-2 h-6 w-6 opacity-50" />
-                    <p className="text-sm">No columns available</p>
+                    <p className="text-sm">
+                      {translateWithFallback(
+                        t,
+                        "filters.advanced.no_columns_available",
+                        "No columns available"
+                      )}
+                    </p>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -437,7 +489,13 @@ export function ModernAddFilterDropdown({
                                 )}
                               />
                               <span className="font-medium text-muted-foreground text-xs">
-                                {category?.label || categoryKey}
+                                {category
+                                  ? translateWithFallback(
+                                      t,
+                                      category.labelKey,
+                                      category.label
+                                    )
+                                  : categoryKey}
                               </span>
                               <Badge
                                 className="h-4 text-xs"
@@ -472,8 +530,16 @@ export function ModernAddFilterDropdown({
         <div className="border-border border-t p-2">
           <p className="text-center text-muted-foreground text-xs">
             {searchTerm
-              ? "Press Esc to clear search"
-              : "Use tabs to navigate categories"}
+              ? translateWithFallback(
+                  t,
+                  "filters.add_menu.clear_search_hint",
+                  "Press Esc to clear search"
+                )
+              : translateWithFallback(
+                  t,
+                  "filters.add_menu.navigate_hint",
+                  "Use tabs to navigate categories"
+                )}
           </p>
         </div>
       </PopoverContent>
@@ -493,6 +559,7 @@ export function QuickAddFilterButton({
   availableColumns: Array<{ id: string; type: ColumnDataType; label: string }>;
   className?: string;
 }) {
+  const { t } = useTranslations();
   // Show first available column as quick add
   const firstAvailable = availableColumns[0];
 
@@ -513,7 +580,9 @@ export function QuickAddFilterButton({
       variant="ghost"
     >
       <Plus className="mr-1 h-3 w-3" />
-      Add {firstAvailable.label}
+      {translateWithFallback(t, "filters.advanced.add_column", "Add {column}", {
+        column: firstAvailable.label,
+      })}
     </Button>
   );
 }

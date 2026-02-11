@@ -20,6 +20,10 @@ import {
   DEFAULT_OPERATORS,
   FILTER_OPERATORS_LABELS,
 } from "../../types/filter-types";
+import {
+  getTranslatedOperatorLabel,
+  translateWithFallback,
+} from "./i18n-utils";
 
 export interface TextFilterProps {
   /** Current filter value */
@@ -51,7 +55,7 @@ export function TextFilter({
   value,
   operator,
   operators = DEFAULT_OPERATORS.text,
-  placeholder = "Enter text...",
+  placeholder,
   disabled = false,
   onValueChange,
   onOperatorChange,
@@ -60,6 +64,8 @@ export function TextFilter({
   debounceMs = 300,
 }: TextFilterProps) {
   const { t } = useTranslations();
+  const effectivePlaceholder =
+    placeholder ?? translateWithFallback(t, "filters.value", "Enter text...");
   const [internalValue, setInternalValue] = useState(value);
 
   // Sync internal value with prop
@@ -117,7 +123,11 @@ export function TextFilter({
             <SelectContent>
               {operators.map((op) => (
                 <SelectItem key={op} value={op}>
-                  {FILTER_OPERATORS_LABELS.text[op]}
+                  {getTranslatedOperatorLabel(
+                    t,
+                    op,
+                    FILTER_OPERATORS_LABELS.text[op]
+                  )}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -131,7 +141,7 @@ export function TextFilter({
             disabled={disabled}
             onBlur={(e) => handleImmediateChange(e.target.value)}
             onChange={(e) => handleValueChange(e.target.value)}
-            placeholder={placeholder}
+            placeholder={effectivePlaceholder}
             type="text"
             value={internalValue}
           />
@@ -157,12 +167,15 @@ export function CompactTextFilter({
   value,
   operator,
   onValueChange,
-  placeholder = "Type...",
+  placeholder,
   disabled = false,
 }: Pick<
   TextFilterProps,
   "value" | "operator" | "onValueChange" | "placeholder" | "disabled"
 >) {
+  const { t } = useTranslations();
+  const effectivePlaceholder =
+    placeholder ?? translateWithFallback(t, "filters.value", "Type...");
   const [internalValue, setInternalValue] = useState(value);
 
   useEffect(() => {
@@ -185,7 +198,9 @@ export function CompactTextFilter({
   if (!needsValue) {
     return (
       <span className="text-muted-foreground text-xs">
-        {operator === "isEmpty" ? "is empty" : "is not empty"}
+        {operator === "isEmpty"
+          ? t("filters.operators.empty")
+          : t("filters.operators.not_empty")}
       </span>
     );
   }
@@ -195,7 +210,7 @@ export function CompactTextFilter({
       className="h-6 text-xs"
       disabled={disabled}
       onChange={(e) => handleChange(e.target.value)}
-      placeholder={placeholder}
+      placeholder={effectivePlaceholder}
       type="text"
       value={internalValue}
     />

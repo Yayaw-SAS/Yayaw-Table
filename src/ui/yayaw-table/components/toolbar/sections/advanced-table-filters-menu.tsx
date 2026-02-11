@@ -19,8 +19,8 @@ import type {
   ColumnsFilterConfig,
   FilterActions,
 } from "../../../types/filter-types";
-
 import { CompactFilterPanel } from "../../filters/advanced-filter-panel";
+import { translateWithFallback } from "../../filters/i18n-utils";
 
 export interface AdvancedTableFiltersMenuProps {
   /** Legacy column filters for backward compatibility */
@@ -66,6 +66,7 @@ function LegacyFilterItem({
   onToggle: () => void;
   onConvertToAdvanced?: (columnId: string, type: ColumnDataType) => void;
 }) {
+  const { t } = useTranslations();
   const [showConvertOptions, setShowConvertOptions] = useState(false);
 
   const handleConvert = useCallback(
@@ -102,7 +103,7 @@ function LegacyFilterItem({
                 size="sm"
                 variant="outline"
               >
-                Text
+                {translateWithFallback(t, "filters.types.text", "Text")}
               </Button>
               <Button
                 className="h-6 px-2 text-xs"
@@ -110,7 +111,7 @@ function LegacyFilterItem({
                 size="sm"
                 variant="outline"
               >
-                Number
+                {translateWithFallback(t, "filters.types.number", "Number")}
               </Button>
               <Button
                 className="h-6 px-2 text-xs"
@@ -118,7 +119,7 @@ function LegacyFilterItem({
                 size="sm"
                 variant="outline"
               >
-                Date
+                {translateWithFallback(t, "filters.types.date", "Date")}
               </Button>
               <Button
                 className="h-6 px-2 text-xs"
@@ -126,7 +127,7 @@ function LegacyFilterItem({
                 size="sm"
                 variant="outline"
               >
-                Option
+                {translateWithFallback(t, "filters.types.option", "Option")}
               </Button>
               <Button
                 className="h-6 px-2 text-xs"
@@ -134,7 +135,7 @@ function LegacyFilterItem({
                 size="sm"
                 variant="ghost"
               >
-                Cancel
+                {t("actions.cancel")}
               </Button>
             </div>
           ) : (
@@ -144,7 +145,11 @@ function LegacyFilterItem({
               size="sm"
               variant="ghost"
             >
-              Upgrade
+              {translateWithFallback(
+                t,
+                "filters.advanced.convert_to_advanced",
+                "Upgrade"
+              )}
             </Button>
           )}
         </div>
@@ -217,11 +222,17 @@ export function AdvancedTableFiltersMenu({
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <h4 className="font-medium text-foreground text-sm">
-                      Advanced Filters
+                      {translateWithFallback(
+                        t,
+                        "filters.advanced.title",
+                        "Advanced filters"
+                      )}
                     </h4>
                     {advancedFiltersCount > 0 && (
                       <Badge className="text-xs" variant="default">
-                        {advancedFiltersCount} active
+                        {t("filters.active_count", {
+                          count: advancedFiltersCount,
+                        })}
                       </Badge>
                     )}
                   </div>
@@ -243,11 +254,17 @@ export function AdvancedTableFiltersMenu({
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h4 className="font-medium text-foreground text-sm">
-                    {useAdvancedFilters ? "Basic Filters" : "Filters"}
+                    {useAdvancedFilters
+                      ? translateWithFallback(
+                          t,
+                          "filters.advanced.basic_title",
+                          "Basic filters"
+                        )
+                      : t("filters.title")}
                   </h4>
                   {legacyFiltersCount > 0 && (
                     <Badge className="text-xs" variant="secondary">
-                      {legacyFiltersCount} active
+                      {t("filters.active_count", { count: legacyFiltersCount })}
                     </Badge>
                   )}
                 </div>
@@ -295,7 +312,7 @@ export function AdvancedTableFiltersMenu({
             {totalFiltersCount === 0 && (
               <div className="py-6 text-center text-muted-foreground">
                 <Filter className="mx-auto mb-2 h-8 w-8 opacity-50" />
-                <p className="text-sm">No active filters</p>
+                <p className="text-sm">{t("filters.noFilters")}</p>
               </div>
             )}
           </div>

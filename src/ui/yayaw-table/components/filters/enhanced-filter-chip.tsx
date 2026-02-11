@@ -21,12 +21,17 @@ import { Badge } from "@/ui/shadcn/badge";
 import { Button } from "@/ui/shadcn/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/ui/shadcn/popover";
 
+import { useTranslations } from "../../providers/table-provider";
 import type {
   AdvancedFilterModel,
   ColumnDataType,
   FilterOperators,
 } from "../../types/filter-types";
 import { FilterValueInput } from "./filter-value-input";
+import {
+  getTranslatedOperatorLabel,
+  translateWithFallback,
+} from "./i18n-utils";
 
 // Animation variants for different states
 const animationClasses = {
@@ -200,6 +205,7 @@ function formatFilterValue(
  * Get operator display text
  */
 function getOperatorText(
+  t: ReturnType<typeof useTranslations>["t"],
   operator: FilterOperators[ColumnDataType],
   _type: ColumnDataType
 ): string {
@@ -223,7 +229,11 @@ function getOperatorText(
     onOrAfter: "on or after",
   };
 
-  return operatorLabels[operator] || operator;
+  return getTranslatedOperatorLabel(
+    t,
+    operator,
+    operatorLabels[operator] || operator
+  );
 }
 
 /**
@@ -245,6 +255,7 @@ export function EnhancedFilterChip({
   isEditing = false,
   onEditingChange,
 }: EnhancedFilterChipProps) {
+  const { t } = useTranslations();
   const [isRemoving, setIsRemoving] = useState(false);
   const [popoverOpen, setPopoverOpen] = useState(isEditing);
   const chipRef = useRef<HTMLDivElement>(null);
@@ -308,7 +319,15 @@ export function EnhancedFilterChip({
       <Popover onOpenChange={handlePopoverChange} open={popoverOpen}>
         <PopoverTrigger>
           <Button
-            aria-label={`Filter: ${columnLabel} ${getOperatorText(filter.operator, filter.type)} ${displayValue}`}
+            aria-label={`${translateWithFallback(
+              t,
+              "menu.filter",
+              "Filter"
+            )}: ${columnLabel} ${getOperatorText(
+              t,
+              filter.operator,
+              filter.type
+            )} ${displayValue}`}
             className={cn(
               "inline-flex items-center rounded-full border transition-all duration-200",
               "cursor-pointer select-none",
@@ -350,7 +369,7 @@ export function EnhancedFilterChip({
               {/* Operator */}
               {showOperator && displayValue && (
                 <span className="text-xs opacity-70">
-                  {getOperatorText(filter.operator, filter.type)}
+                  {getOperatorText(t, filter.operator, filter.type)}
                 </span>
               )}
 
@@ -368,7 +387,7 @@ export function EnhancedFilterChip({
                 )}
                 variant="secondary"
               >
-                Off
+                {translateWithFallback(t, "filters.advanced.off", "Off")}
               </Badge>
             )}
 
@@ -412,10 +431,18 @@ export function EnhancedFilterChip({
                   {filter.isActive ? (
                     <>
                       <Zap className="mr-1 h-3 w-3" />
-                      Active
+                      {translateWithFallback(
+                        t,
+                        "filters.advanced.active",
+                        "Active"
+                      )}
                     </>
                   ) : (
-                    "Activate"
+                    translateWithFallback(
+                      t,
+                      "filters.advanced.activate",
+                      "Activate"
+                    )
                   )}
                 </Button>
 

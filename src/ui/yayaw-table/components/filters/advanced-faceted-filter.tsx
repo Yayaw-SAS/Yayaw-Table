@@ -29,11 +29,13 @@ import { Input } from "@/ui/shadcn/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/ui/shadcn/popover";
 import { ScrollArea } from "@/ui/shadcn/scroll-area";
 import { Separator } from "@/ui/shadcn/separator";
+import { useTranslations } from "../../providers/table-provider";
 
 import type {
   AdvancedColumnFilterConfig,
   FacetedData,
 } from "../../types/advanced-filter-types";
+import { translateWithFallback } from "./i18n-utils";
 
 export interface AdvancedFacetedFilterProps {
   /** Column ID */
@@ -240,6 +242,7 @@ function FilterControls({
   selectedCount: number;
   onClear: () => void;
 }) {
+  const { t } = useTranslations();
   return (
     <div className="space-y-3">
       {/* Search */}
@@ -248,7 +251,7 @@ function FilterControls({
         <Input
           className="pl-9"
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Search options..."
+          placeholder={t("filters.search", { filter: "options" })}
           value={searchQuery}
         />
       </div>
@@ -262,10 +265,34 @@ function FilterControls({
             onChange={(e) => onSortByChange(e.target.value as SortBy)}
             value={sortBy}
           >
-            <option value="label">Sort by Label</option>
-            <option value="count">Sort by Count</option>
-            <option value="value">Sort by Value</option>
-            <option value="trending">Sort by Trending</option>
+            <option value="label">
+              {translateWithFallback(
+                t,
+                "filters.faceted.sort_by_label",
+                "Sort by label"
+              )}
+            </option>
+            <option value="count">
+              {translateWithFallback(
+                t,
+                "filters.faceted.sort_by_count",
+                "Sort by count"
+              )}
+            </option>
+            <option value="value">
+              {translateWithFallback(
+                t,
+                "filters.faceted.sort_by_value",
+                "Sort by value"
+              )}
+            </option>
+            <option value="trending">
+              {translateWithFallback(
+                t,
+                "filters.faceted.sort_by_trending",
+                "Sort by trending"
+              )}
+            </option>
           </select>
 
           <Button
@@ -290,7 +317,12 @@ function FilterControls({
           {selectedCount > 0 ? (
             <div className="flex items-center gap-2">
               <span>
-                {selectedCount} of {totalCount} selected
+                {translateWithFallback(
+                  t,
+                  "filters.faceted.selected_of_total",
+                  "{selected} of {total} selected",
+                  { selected: selectedCount, total: totalCount }
+                )}
               </span>
               <Button
                 className="h-4 w-4 p-0"
@@ -303,7 +335,14 @@ function FilterControls({
               </Button>
             </div>
           ) : (
-            <span>{totalCount} options</span>
+            <span>
+              {translateWithFallback(
+                t,
+                "filters.faceted.options_count",
+                "{count} options",
+                { count: totalCount }
+              )}
+            </span>
           )}
         </div>
       </div>
@@ -327,6 +366,7 @@ function QuickSelection({
   onSelectTop: () => void;
   onSelectTrending: () => void;
 }) {
+  const { t } = useTranslations();
   const hasTrending = options.some((opt) => opt.metadata?.trending);
 
   return (
@@ -338,7 +378,7 @@ function QuickSelection({
         variant="outline"
       >
         <CheckSquare className="mr-1 h-3 w-3" />
-        All
+        {translateWithFallback(t, "filters.faceted.select_all", "All")}
       </Button>
       <Button
         className="h-6 px-2 text-xs"
@@ -347,7 +387,7 @@ function QuickSelection({
         variant="outline"
       >
         <X className="mr-1 h-3 w-3" />
-        None
+        {translateWithFallback(t, "filters.faceted.select_none", "None")}
       </Button>
       <Button
         className="h-6 px-2 text-xs"
@@ -356,7 +396,7 @@ function QuickSelection({
         variant="outline"
       >
         <BarChart3 className="mr-1 h-3 w-3" />
-        Top 5
+        {translateWithFallback(t, "filters.faceted.top_5", "Top 5")}
       </Button>
       {hasTrending && (
         <Button
@@ -366,7 +406,7 @@ function QuickSelection({
           variant="outline"
         >
           <TrendingUp className="mr-1 h-3 w-3" />
-          Trending
+          {translateWithFallback(t, "filters.faceted.trending", "Trending")}
         </Button>
       )}
     </div>
@@ -477,6 +517,7 @@ function FilterContent({
   showCounts: boolean;
   showPercentages: boolean;
 }) {
+  const { t } = useTranslations();
   return (
     <div className="space-y-4 p-4">
       {/* Header */}
@@ -484,7 +525,14 @@ function FilterContent({
         <h4 className="font-medium">{config.label || columnId}</h4>
         <div className="flex items-center gap-1 text-muted-foreground text-xs">
           <Target className="h-3 w-3" />
-          <span>{totalCount} options</span>
+          <span>
+            {translateWithFallback(
+              t,
+              "filters.faceted.options_count",
+              "{count} options",
+              { count: totalCount }
+            )}
+          </span>
         </div>
       </div>
 
@@ -524,7 +572,13 @@ function FilterContent({
         {processedOptions.length === 0 ? (
           <div className="py-4 text-center text-muted-foreground">
             <Search className="mx-auto mb-2 h-6 w-6 opacity-50" />
-            <p className="text-sm">No options found</p>
+            <p className="text-sm">
+              {translateWithFallback(
+                t,
+                "filters.faceted.no_options_found",
+                "No options found"
+              )}
+            </p>
           </div>
         ) : (
           <div className="space-y-1">
@@ -568,6 +622,7 @@ export function AdvancedFacetedFilter({
   showSelectAll: _showSelectAll = true,
   showStats: _showStats = true,
 }: AdvancedFacetedFilterProps) {
+  const { t } = useTranslations();
   // Local state
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortBy>("count");
@@ -749,11 +804,25 @@ export function AdvancedFacetedFilter({
         {processedOptions.length === 0 ? (
           <div className="py-8 text-center text-muted-foreground">
             <Search className="mx-auto mb-3 h-8 w-8 opacity-50" />
-            <h4 className="mb-1 font-medium">No options found</h4>
+            <h4 className="mb-1 font-medium">
+              {translateWithFallback(
+                t,
+                "filters.faceted.no_options_found",
+                "No options found"
+              )}
+            </h4>
             <p className="text-sm">
               {searchQuery
-                ? "Try a different search term"
-                : "No data available for this filter"}
+                ? translateWithFallback(
+                    t,
+                    "filters.faceted.try_different_search",
+                    "Try a different search term"
+                  )
+                : translateWithFallback(
+                    t,
+                    "filters.faceted.no_data_for_filter",
+                    "No data available for this filter"
+                  )}
             </p>
           </div>
         ) : (
@@ -789,6 +858,7 @@ function FacetedStats({
   selectedCount: number;
   totalCount: number;
 }) {
+  const { t } = useTranslations();
   const visibleOptions = data.filter((d) => !d.isDisabled).length;
   const totalRecords = data.reduce((sum, d) => sum + d.count, 0);
   const selectedRecords = data
@@ -799,18 +869,24 @@ function FacetedStats({
     <div className="rounded-md bg-muted/30 p-3">
       <div className="mb-2 flex items-center gap-2">
         <BarChart3 className="h-4 w-4 text-muted-foreground" />
-        <span className="font-medium text-sm">Statistics</span>
+        <span className="font-medium text-sm">
+          {translateWithFallback(t, "filters.faceted.statistics", "Statistics")}
+        </span>
       </div>
 
       <div className="grid grid-cols-2 gap-4 text-sm">
         <div>
-          <div className="text-muted-foreground">Options</div>
+          <div className="text-muted-foreground">
+            {translateWithFallback(t, "filters.faceted.options", "Options")}
+          </div>
           <div className="font-medium">
             {selectedCount} / {visibleOptions}
           </div>
         </div>
         <div>
-          <div className="text-muted-foreground">Records</div>
+          <div className="text-muted-foreground">
+            {translateWithFallback(t, "filters.faceted.records", "Records")}
+          </div>
           <div className="font-medium">
             {selectedRecords.toLocaleString()} / {totalRecords.toLocaleString()}
           </div>
@@ -819,8 +895,14 @@ function FacetedStats({
 
       {selectedCount > 0 && (
         <div className="mt-2 text-muted-foreground text-xs">
-          Coverage: {((selectedRecords / totalRecords) * 100).toFixed(1)}% of
-          data
+          {translateWithFallback(
+            t,
+            "filters.faceted.coverage",
+            "Coverage: {percentage}% of data",
+            {
+              percentage: ((selectedRecords / totalRecords) * 100).toFixed(1),
+            }
+          )}
         </div>
       )}
     </div>
@@ -850,6 +932,7 @@ export function CompactFacetedFilter({
   | "showSelectAll"
   | "showStats"
 >) {
+  const { t } = useTranslations();
   const [isOpen, setIsOpen] = useState(false);
   const selectedCount = selectedValues.length;
 
@@ -878,7 +961,14 @@ export function CompactFacetedFilter({
             <h4 className="font-medium">{config.label || columnId}</h4>
             <div className="flex items-center gap-1 text-muted-foreground text-xs">
               <Target className="h-3 w-3" />
-              <span>{selectedCount} options</span>
+              <span>
+                {translateWithFallback(
+                  t,
+                  "filters.faceted.options_count",
+                  "{count} options",
+                  { count: selectedCount }
+                )}
+              </span>
             </div>
           </div>
 
@@ -891,7 +981,12 @@ export function CompactFacetedFilter({
               size="sm"
               variant="ghost"
             >
-              Select All ({facetedData.length})
+              {translateWithFallback(
+                t,
+                "filters.faceted.select_all",
+                "Select all"
+              )}{" "}
+              ({facetedData.length})
             </Button>
 
             {selectedCount > 0 && (
@@ -902,7 +997,7 @@ export function CompactFacetedFilter({
                 size="sm"
                 variant="ghost"
               >
-                Clear ({selectedCount})
+                {t("filters.clear")} ({selectedCount})
               </Button>
             )}
           </div>
@@ -914,7 +1009,13 @@ export function CompactFacetedFilter({
             {facetedData.length === 0 ? (
               <div className="py-8 text-center text-muted-foreground">
                 <Search className="mx-auto mb-3 h-8 w-8 opacity-50" />
-                <h5 className="mb-1 font-medium">No options available</h5>
+                <h5 className="mb-1 font-medium">
+                  {translateWithFallback(
+                    t,
+                    "filters.faceted.no_options_available",
+                    "No options available"
+                  )}
+                </h5>
               </div>
             ) : (
               <div className="space-y-1">

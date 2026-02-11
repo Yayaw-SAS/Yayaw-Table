@@ -38,6 +38,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/ui/shadcn/tooltip";
+import { useTranslations } from "../../providers/table-provider";
 import {
   type AdvancedFilterModel,
   type AdvancedFiltersState,
@@ -57,6 +58,10 @@ import {
   getDefaultFilterOperator,
   getDefaultFilterValue,
 } from "./filter-value-input";
+import {
+  getTranslatedOperatorLabel,
+  translateWithFallback,
+} from "./i18n-utils";
 // Replaced popover dropdown with inline panel to avoid nested popovers under StackMenu
 import {
   FilterEmptyState,
@@ -127,6 +132,7 @@ function FilterChip({
   disabled?: boolean;
   autoEdit?: boolean;
 }) {
+  const { t } = useTranslations();
   const [isEditing, setIsEditing] = useState<boolean>(autoEdit);
   // Ensure auto open when requested
   useEffect(() => {
@@ -231,7 +237,11 @@ function FilterChip({
         <DropdownMenuTrigger
           render={
             <Button
-              aria-label="Filter options"
+              aria-label={translateWithFallback(
+                t,
+                "filters.advanced.filter_options",
+                "Filter options"
+              )}
               className="h-7 w-7 rounded-md p-0 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               disabled={disabled}
               size="icon"
@@ -245,18 +255,32 @@ function FilterChip({
         <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={handleEdit}>
             <Pencil className="mr-2 h-4 w-4" />
-            Edit filter
+            {translateWithFallback(
+              t,
+              "filters.advanced.edit_filter",
+              "Edit filter"
+            )}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={onToggle}>
             <Power className="mr-2 h-4 w-4" />
-            {filter.isActive ? "Disable" : "Enable"} filter
+            {filter.isActive
+              ? translateWithFallback(
+                  t,
+                  "filters.advanced.disable_filter",
+                  "Disable filter"
+                )
+              : translateWithFallback(
+                  t,
+                  "filters.advanced.enable_filter",
+                  "Enable filter"
+                )}
           </DropdownMenuItem>
           <DropdownMenuItem
             className="text-destructive focus:text-destructive"
             onClick={onRemove}
           >
             <Trash2 className="mr-2 h-4 w-4" />
-            Remove filter
+            {translateWithFallback(t, "filters.remove", "Remove filter")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -273,8 +297,11 @@ function FilterChip({
     </div>
   );
 
-  const operatorLabel =
-    FILTER_OPERATORS_LABELS[filter.type]?.[filter.operator] ?? filter.operator;
+  const operatorLabel = getTranslatedOperatorLabel(
+    t,
+    filter.operator,
+    FILTER_OPERATORS_LABELS[filter.type]?.[filter.operator] ?? filter.operator
+  );
 
   return (
     <div className="w-full space-y-3">
@@ -298,7 +325,13 @@ function FilterChip({
             {columnLabel}
           </span>
           {isEditing ? (
-            <span className="text-muted-foreground text-xs">Editing…</span>
+            <span className="text-muted-foreground text-xs">
+              {translateWithFallback(
+                t,
+                "filters.advanced.editing",
+                "Editing..."
+              )}
+            </span>
           ) : (
             <>
               <span className="shrink-0 text-muted-foreground text-xs">
@@ -312,7 +345,8 @@ function FilterChip({
                     : "text-muted-foreground"
                 )}
               >
-                {displayValue || "Set value"}
+                {displayValue ||
+                  translateWithFallback(t, "filters.value", "Set value")}
               </span>
             </>
           )}
@@ -324,7 +358,14 @@ function FilterChip({
       {isEditing && (
         <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
           <fieldset className="space-y-4 border-0 p-0">
-            <legend className="sr-only">Edit filter for {columnLabel}</legend>
+            <legend className="sr-only">
+              {translateWithFallback(
+                t,
+                "filters.advanced.edit_filter_for",
+                "Edit filter for {column}",
+                { column: columnLabel }
+              )}
+            </legend>
             <form
               className="space-y-4"
               onSubmit={(e) => {
@@ -340,7 +381,12 @@ function FilterChip({
                 className="font-medium text-muted-foreground text-xs uppercase tracking-wider"
                 htmlFor={`filter-${filter.id}-value`}
               >
-                Edit filter for {columnLabel}
+                {translateWithFallback(
+                  t,
+                  "filters.advanced.edit_filter_for",
+                  "Edit filter for {column}",
+                  { column: columnLabel }
+                )}
               </Label>
               <FilterValueInput
                 config={config}
@@ -359,7 +405,7 @@ function FilterChip({
                   type="submit"
                   variant="secondary"
                 >
-                  Done
+                  {translateWithFallback(t, "filters.advanced.done", "Done")}
                 </Button>
               </div>
             </form>
@@ -706,6 +752,7 @@ function InlineAddFilterPanel({
   activeFiltersCount?: number;
   disabled?: boolean;
 }) {
+  const { t } = useTranslations();
   const options = useMemo(
     () =>
       Object.entries(columnsConfig)
@@ -729,10 +776,14 @@ function InlineAddFilterPanel({
     <div className="w-full space-y-3 rounded-xl border border-border bg-card p-4 shadow-sm">
       <div className="flex items-center justify-between gap-3">
         <span className="font-medium text-muted-foreground text-xs uppercase tracking-wider">
-          Select column
+          {t("menu.select_column")}
         </span>
         <Button
-          aria-label="Reset filters"
+          aria-label={translateWithFallback(
+            t,
+            "filters.advanced.reset_filters",
+            "Reset filters"
+          )}
           className="h-8 w-8 shrink-0 rounded-lg p-0"
           disabled={disabled || activeFiltersCount === 0 || !onReset}
           onClick={onReset}
@@ -789,6 +840,7 @@ export function CompactFilterPanel({
   AdvancedFilterPanelProps,
   "filters" | "columnsConfig" | "actions" | "disabled"
 >) {
+  const { t } = useTranslations();
   const [isExpanded, setIsExpanded] = useState(false);
   const [showInlineAdd, setShowInlineAdd] = useState(false);
   const activeFiltersCount = filters.filter((f) => f.isActive).length;
@@ -798,7 +850,9 @@ export function CompactFilterPanel({
       <div className="flex items-center justify-between gap-3 rounded-md border border-muted border-dashed bg-muted/10 p-2">
         <div className="flex items-center gap-2">
           <Filter className="h-3 w-3 shrink-0 text-muted-foreground opacity-50" />
-          <span className="text-muted-foreground text-xs">No filters</span>
+          <span className="text-muted-foreground text-xs">
+            {t("filters.noFilters")}
+          </span>
         </div>
         <TooltipProvider>
           <Tooltip>
@@ -810,11 +864,17 @@ export function CompactFilterPanel({
                 size="sm"
                 variant="outline"
               >
-                Add filter...
+                {translateWithFallback(t, "filters.add", "Add filter")}
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Add filters to narrow down results</p>
+              <p>
+                {translateWithFallback(
+                  t,
+                  "filters.advanced.empty_description",
+                  "Add filters to narrow down results."
+                )}
+              </p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -859,7 +919,9 @@ export function CompactFilterPanel({
           variant="outline"
         >
           <Filter className="h-3 w-3" />
-          {activeFiltersCount > 0 ? `${activeFiltersCount} filters` : "Filter"}
+          {activeFiltersCount > 0
+            ? t("filters.active_count", { count: activeFiltersCount })
+            : t("menu.filter")}
         </Button>
       </PopoverTrigger>
       <PopoverContent
@@ -868,7 +930,7 @@ export function CompactFilterPanel({
       >
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <Label className="font-medium">Filters</Label>
+            <Label className="font-medium">{t("filters.title")}</Label>
             {filters.length > 0 && (
               <Button
                 className="h-6 text-xs"
@@ -876,7 +938,7 @@ export function CompactFilterPanel({
                 size="sm"
                 variant="ghost"
               >
-                Clear all
+                {t("filters.clear")}
               </Button>
             )}
           </div>

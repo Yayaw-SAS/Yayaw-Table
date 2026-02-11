@@ -224,6 +224,7 @@ Strings for the bulk actions overlay (shown when one or more rows are selected).
 | filters.remove | string |
 | filters.apply | string |
 | filters.clear | string |
+| filters.select_all | string |
 | filters.noResults | string |
 | filters.noFilters | string |
 | filters.search | string |
@@ -234,10 +235,172 @@ Strings for the bulk actions overlay (shown when one or more rows are selected).
 | filters.value_to | string |
 | filters.select_operator | string |
 | filters.error | string |
+
+#### filters.operators
+
+| Key | Type |
+| --- | --- |
 | filters.operators.contains | string |
+| filters.operators.equals | string |
+| filters.operators.starts_with | string |
+| filters.operators.ends_with | string |
+| filters.operators.not_contains | string |
 | filters.operators.empty | string |
 | filters.operators.not_empty | string |
+| filters.operators.greater_than | string |
+| filters.operators.less_than | string |
+| filters.operators.greater_than_or_equal | string |
+| filters.operators.less_than_or_equal | string |
 | filters.operators.between | string |
+| filters.operators.not_equals | string |
+| filters.operators.is | string |
+| filters.operators.is_not | string |
+| filters.operators.is_any_of | string |
+| filters.operators.is_none_of | string |
+| filters.operators.contains_all | string |
+| filters.operators.contains_none | string |
+| filters.operators.before | string |
+| filters.operators.after | string |
+| filters.operators.on_or_before | string |
+| filters.operators.on_or_after | string |
+
+#### filters.types
+
+| Key | Type |
+| --- | --- |
+| filters.types.text | string |
+| filters.types.number | string |
+| filters.types.date | string |
+| filters.types.option | string |
+| filters.types.multiOption | string |
+
+#### filters.date_shortcuts
+
+| Key | Type |
+| --- | --- |
+| filters.date_shortcuts.today | string |
+| filters.date_shortcuts.yesterday | string |
+| filters.date_shortcuts.last_7_days | string |
+| filters.date_shortcuts.last_30_days | string |
+| filters.date_shortcuts.this_month | string |
+
+#### filters.advanced
+
+| Key | Type |
+| --- | --- |
+| filters.advanced.title | string |
+| filters.advanced.basic_title | string |
+| filters.advanced.convert_to_advanced | string |
+| filters.advanced.filter_options | string |
+| filters.advanced.edit_filter | string |
+| filters.advanced.enable_filter | string |
+| filters.advanced.disable_filter | string |
+| filters.advanced.edit_filter_for | string |
+| filters.advanced.editing | string |
+| filters.advanced.done | string |
+| filters.advanced.reset_filters | string |
+| filters.advanced.empty_description | string |
+| filters.advanced.add_first_filter | string |
+| filters.advanced.quick_start | string |
+| filters.advanced.quick_start_search | string |
+| filters.advanced.quick_start_status | string |
+| filters.advanced.quick_start_date | string |
+| filters.advanced.load_error_title | string |
+| filters.advanced.load_error_description | string |
+| filters.advanced.retry | string |
+| filters.advanced.results_count | string |
+| filters.advanced.no_results_with_search | string |
+| filters.advanced.no_results_description | string |
+| filters.advanced.adjust_filters_hint | string |
+| filters.advanced.modify_filters | string |
+| filters.advanced.filtered_in | string |
+| filters.advanced.search_columns | string |
+| filters.advanced.no_columns_found | string |
+| filters.advanced.no_columns_available | string |
+| filters.advanced.no_popular_filters | string |
+| filters.advanced.no_recent_filters | string |
+| filters.advanced.try_different_search | string |
+| filters.advanced.add_column | string |
+| filters.advanced.active | string |
+| filters.advanced.activate | string |
+| filters.advanced.off | string |
+
+#### filters.faceted
+
+| Key | Type |
+| --- | --- |
+| filters.faceted.sort_by_label | string |
+| filters.faceted.sort_by_count | string |
+| filters.faceted.sort_by_value | string |
+| filters.faceted.sort_by_trending | string |
+| filters.faceted.selected_of_total | string |
+| filters.faceted.options_count | string |
+| filters.faceted.select_all | string |
+| filters.faceted.select_none | string |
+| filters.faceted.top_5 | string |
+| filters.faceted.trending | string |
+| filters.faceted.no_options_found | string |
+| filters.faceted.no_options_available | string |
+| filters.faceted.try_different_search | string |
+| filters.faceted.no_data_for_filter | string |
+| filters.faceted.statistics | string |
+| filters.faceted.options | string |
+| filters.faceted.records | string |
+| filters.faceted.coverage | string |
+
+#### filters.add_menu
+
+| Key | Type |
+| --- | --- |
+| filters.add_menu.all | string |
+| filters.add_menu.popular | string |
+| filters.add_menu.recent | string |
+| filters.add_menu.clear_search_hint | string |
+| filters.add_menu.navigate_hint | string |
+| filters.add_menu.categories.recent | string |
+| filters.add_menu.categories.popular | string |
+| filters.add_menu.categories.text | string |
+| filters.add_menu.categories.number | string |
+| filters.add_menu.categories.date | string |
+| filters.add_menu.categories.option | string |
+
+#### filters.presets
+
+| Key | Type |
+| --- | --- |
+| filters.presets.title | string |
+| filters.presets.panel_title | string |
+| filters.presets.share | string |
+| filters.presets.duplicate | string |
+| filters.presets.load | string |
+| filters.presets.used_times | string |
+| filters.presets.last_used | string |
+| filters.presets.save_dialog_title | string |
+| filters.presets.save_dialog_description | string |
+| filters.presets.name_label | string |
+| filters.presets.name_placeholder | string |
+| filters.presets.description_label | string |
+| filters.presets.description_placeholder | string |
+| filters.presets.tags_label | string |
+| filters.presets.tags_placeholder | string |
+| filters.presets.make_public | string |
+| filters.presets.no_active_filters_to_save | string |
+| filters.presets.save_preset | string |
+| filters.presets.saving | string |
+| filters.presets.delete_title | string |
+| filters.presets.delete_description | string |
+| filters.presets.save_current | string |
+| filters.presets.import | string |
+| filters.presets.export_all | string |
+| filters.presets.search_placeholder | string |
+| filters.presets.no_presets_found | string |
+| filters.presets.try_different_search | string |
+| filters.presets.create_first_hint | string |
+| filters.presets.save_first | string |
+| filters.presets.tabs.all | string |
+| filters.presets.tabs.recent | string |
+| filters.presets.tabs.popular | string |
+| filters.presets.tabs.system | string |
 
 ### pagination
 
