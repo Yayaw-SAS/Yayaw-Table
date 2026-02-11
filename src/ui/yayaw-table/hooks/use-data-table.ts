@@ -199,6 +199,10 @@ export function useDataTable<TData extends Record<string, unknown>>(
         if (paramsGlobalSearch && typeof paramsGlobalSearch === "string") {
           (requestParams as Record<string, unknown>).search =
             paramsGlobalSearch;
+          // Backward compatibility for handlers expecting q/globalSearch instead of search
+          (requestParams as Record<string, unknown>).q = paramsGlobalSearch;
+          (requestParams as Record<string, unknown>).globalSearch =
+            paramsGlobalSearch;
         }
 
         // Execute the request - safely handle the list action

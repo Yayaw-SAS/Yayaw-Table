@@ -132,6 +132,7 @@ export function useTableInstance<TData>({
   // Get table state from URL parameters
   const {
     filtersParam,
+    globalSearchParam,
     groupingParam,
     orderParam,
     pagination,
@@ -500,6 +501,7 @@ export function useTableInstance<TData>({
       },
       columnVisibility: initialColumnVisibility as VisibilityState,
       expanded: {},
+      globalFilter: globalSearchParam || "",
       grouping: Array.isArray(groupingParam) ? (groupingParam as string[]) : [],
       pagination,
       rowSelection:
