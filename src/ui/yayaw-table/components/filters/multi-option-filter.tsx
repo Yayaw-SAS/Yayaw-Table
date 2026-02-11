@@ -193,7 +193,13 @@ export function MultiOptionFilter({
             value={operator}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder={t("filters.select_operator")} />
+              <SelectValue placeholder={t("filters.select_operator")}>
+                {getTranslatedOperatorLabel(
+                  t,
+                  operator,
+                  FILTER_OPERATORS_LABELS.multiOption[operator]
+                )}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {operators.map((op) => (
