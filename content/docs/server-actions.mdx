@@ -130,13 +130,15 @@ export const getTableActions = (tableType: string) => {
       create: createProduct,
       update: updateProduct,
       delete: deleteProduct,
-      bulkDelete,
-      bulkCopy,
-      bulkUpdate,
+      bulkDelete: bulkDelete,
+      bulkCopy: bulkCopy,
+      bulkUpdate: bulkUpdate,
     };
   }
 };
 ```
+
+`bulkDelete`, `bulkCopy`, `bulkUpdate` without `:` is also valid JavaScript shorthand when the variable and key have the same name.
 
 When the table needs data or runs an action, it will call these functions. In Next.js they run on the server; params and return values are serialized automatically.
 

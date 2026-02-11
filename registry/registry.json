@@ -35,8 +35,16 @@
         "tooltip"
       ],
       "dependencies": [
+        "@base-ui/react",
+        "@dnd-kit/core",
+        "@dnd-kit/modifiers",
+        "@dnd-kit/sortable",
+        "@dnd-kit/utilities",
+        "@floating-ui/react-dom",
         "@tanstack/react-query",
+        "@tanstack/react-form",
         "@tanstack/react-table",
+        "@tanstack/zod-form-adapter",
         "class-variance-authority",
         "clsx",
         "date-fns",
@@ -46,11 +54,10 @@
         "lucide-react",
         "motion",
         "nuqs",
-        "@tanstack/react-form",
-        "@tanstack/zod-form-adapter",
         "sonner",
         "tailwind-merge",
-        "usehooks-ts"
+        "usehooks-ts",
+        "zod"
       ],
       "files": [
         {

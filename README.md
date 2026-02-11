@@ -27,8 +27,10 @@ Peer dependencies:
 - `react` (^18 or ^19)
 - `react-dom` (^18 or ^19)
 - `@tanstack/react-table` (^8)
-
-Optional (depending on features you use): `jotai`, `@tanstack/react-query`.
+- `@tanstack/react-query` (^5)
+- `nuqs` (^2)
+- `jotai` (^2)
+- `jotai-family` (^1)
 
 ### Quick Start
 
@@ -62,6 +64,19 @@ Common props:
 
 - Open the example page at `/example` when running the dev server
 - Source: `./app/example/page.tsx`
+
+### Acknowledgements
+
+Massive thanks to the teams behind:
+
+- [TanStack Table](https://tanstack.com/table)
+- [TanStack Query](https://tanstack.com/query)
+- [shadcn/ui](https://ui.shadcn.com)
+- [Nuqs](https://nuqs.io)
+- [Jotai](https://jotai.org)
+- [dnd-kit](https://dndkit.com)
+- [Floating UI](https://floating-ui.com)
+- [Base UI](https://base-ui.com)
 
 ### Contributing
 

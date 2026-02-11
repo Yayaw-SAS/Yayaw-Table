@@ -28,6 +28,9 @@ interface TableActions {
   update?: (id: string, data: unknown) => Promise<ActionResult>;
   delete?: (id: string) => Promise<ActionResult>;
   duplicate?: (id: string) => Promise<ActionResult>;
+  bulkDelete?: (ids: string[]) => Promise<ActionResult>;
+  bulkCopy?: (ids: string[]) => Promise<ActionResult>;
+  bulkUpdate?: (ids: string[], updateData: unknown) => Promise<ActionResult>;
 }
 
 /**

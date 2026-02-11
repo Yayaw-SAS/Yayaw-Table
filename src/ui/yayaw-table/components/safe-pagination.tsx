@@ -1,6 +1,5 @@
 /**
- * Pagination sans Select Radix pour éviter les boucles infinies
- * Utilise des boutons simples à la place
+ * Pagination with native select to avoid Radix feedback loops
  */
 "use client";
 
@@ -20,12 +19,14 @@ interface SafePaginationProps<TData> {
   table: Table<TData>;
   rowCount?: number;
   className?: string;
+  pageSizeOptions?: number[];
 }
 
 export function SafePagination<TData>({
   table,
   rowCount,
   className,
+  pageSizeOptions = [10, 20, 50, 100, 200, 500],
 }: SafePaginationProps<TData>) {
   const translations = useTableTranslations();
 
@@ -40,18 +41,29 @@ export function SafePagination<TData>({
     rowCount || table.getRowModel().rows.length
   );
 
-  // Page size options
-  const pageSizeOptions = [5, 10, 20, 30, 50];
+  const normalizedPageSizeOptions = [...new Set(pageSizeOptions)]
+    .filter((size) => Number.isFinite(size) && size > 0)
+    .sort((a, b) => a - b);
+  const availablePageSizes = normalizedPageSizeOptions.includes(pageSize)
+    ? normalizedPageSizeOptions
+    : [...normalizedPageSizeOptions, pageSize].sort((a, b) => a - b);
 
-  // Handle page size change with buttons instead of Select
+  // Handle page size change
   const handlePageSizeChange = useCallback(
-    (newSize: number) => {
-      if (newSize === pageSize) {
-        return; // Prevent unnecessary updates
+    (newSize: string) => {
+      const parsedSize = Number.parseInt(newSize, 10);
+      if (Number.isNaN(parsedSize)) {
+        return;
       }
-      table.setPageSize(newSize);
+
+      const current = table.getState().pagination.pageSize;
+      if (parsedSize === current) {
+        return;
+      }
+
+      table.setPageSize(parsedSize);
     },
-    [table, pageSize]
+    [table]
   );
 
   return (
@@ -67,23 +79,21 @@ export function SafePagination<TData>({
         {rowCount ?? table.getRowModel().rows.length}
       </div>
 
-      {/* Page size selector with buttons */}
+      {/* Page size selector */}
       <div className="flex items-center gap-2">
         <p className="font-medium text-sm">{translations.rowsPerPage}</p>
-        <div className="flex gap-1">
-          {pageSizeOptions.map((size) => (
-            <Button
-              className="h-8 w-10 p-0"
-              key={size}
-              onClick={() => handlePageSizeChange(size)}
-              size="sm"
-              type="button"
-              variant={size === pageSize ? "default" : "outline"}
-            >
+        <select
+          aria-label={translations.rowsPerPage}
+          className="h-8 min-w-20 rounded-md border bg-background px-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          onChange={(event) => handlePageSizeChange(event.target.value)}
+          value={pageSize.toString()}
+        >
+          {availablePageSizes.map((size) => (
+            <option key={size} value={size.toString()}>
               {size}
-            </Button>
+            </option>
           ))}
-        </div>
+        </select>
       </div>
 
       {/* Page navigation */}

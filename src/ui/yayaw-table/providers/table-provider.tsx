@@ -21,6 +21,13 @@ import { createTranslationFunction } from "./translation-cache";
 
 // Define proper types for the helper functions
 export interface TableActions {
+  list?: (params: Record<string, unknown>) => Promise<{
+    data: unknown[];
+    meta?: {
+      pageCount?: number;
+      totalCount?: number;
+    };
+  }>;
   create?: (
     data: Record<string, unknown>
   ) => Promise<{ success: boolean; data?: unknown; error?: string }>;
@@ -31,15 +38,18 @@ export interface TableActions {
   delete?: (
     id: string
   ) => Promise<{ success: boolean; data?: unknown; error?: string }>;
-  list?: (params: Record<string, unknown>) => Promise<{
-    data: unknown[];
-    meta?: {
-      pageCount?: number;
-      totalCount?: number;
-    };
-  }>;
   duplicate?: (
     id: string
+  ) => Promise<{ success: boolean; data?: unknown; error?: string }>;
+  bulkDelete?: (
+    ids: string[]
+  ) => Promise<{ success: boolean; data?: unknown; error?: string }>;
+  bulkCopy?: (
+    ids: string[]
+  ) => Promise<{ success: boolean; data?: unknown; error?: string }>;
+  bulkUpdate?: (
+    ids: string[],
+    data: Record<string, unknown>
   ) => Promise<{ success: boolean; data?: unknown; error?: string }>;
   [key: string]: unknown;
 }
@@ -503,8 +513,7 @@ export const defaultTranslations: DataTableTranslations = {
     of: "of",
     page: "Page",
     rowsPerPage: "Rows per page",
-    showing:
-      "Showing page {page} of {total} {total, plural, one {page} other {pages}}",
+    showing: "Page {page} of {total}",
     selectedCount:
       "{selected} of {total} {total, plural, one {row} other {rows}} selected",
   },

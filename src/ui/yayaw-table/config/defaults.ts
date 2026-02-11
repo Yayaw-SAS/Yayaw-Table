@@ -18,7 +18,7 @@ export const defaultTableConfig = {
   manualFiltering: false,
   manualPagination: false,
   manualSorting: false,
-  pageSizeOptions: [5, 10, 20, 50, 100],
+  pageSizeOptions: [10, 20, 50, 100, 200, 500],
 };
 
 /**

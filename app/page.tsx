@@ -5,7 +5,7 @@ export default function HomePage() {
 }
 
 export const metadata = {
-  title: "YaYaw Table - User-Defined Data Tables for React",
+  title: "YaYaw Table - Advanced Data Tables for React + Shadcn",
   description:
-    "A flexible data table component library that lets you define your own configurations instead of imposing predefined structures.",
+    "Production-ready data tables with advanced filters, URL state, i18n, presets, and Shadcn registry installation.",
 };

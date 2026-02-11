@@ -922,7 +922,14 @@ function ModernDataTable<
           </div>
 
           {/* Pagination is outside the table container to avoid focus issues */}
-          {enablePagination && <SafePagination table={table} />}
+          {enablePagination && (
+            <SafePagination
+              pageSizeOptions={
+                tableConfig.table.pageSizeOptions || [10, 20, 50, 100, 200, 500]
+              }
+              table={table}
+            />
+          )}
         </div>
 
         {/* Column drag overlay is rendered at the context level */}

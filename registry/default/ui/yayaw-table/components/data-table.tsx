@@ -173,7 +173,9 @@ function DataTableContent({
             manualFiltering: config.table.manualFiltering,
             manualPagination: config.table.manualPagination,
             manualSorting: config.table.manualSorting,
-            pageSizeOptions: config.table.pageSizeOptions || [5, 10, 20, 50],
+            pageSizeOptions: config.table.pageSizeOptions || [
+              10, 20, 50, 100, 200, 500,
+            ],
           }}
           tableId={tableId}
           translations={resolveTranslationsToUiStrings(
