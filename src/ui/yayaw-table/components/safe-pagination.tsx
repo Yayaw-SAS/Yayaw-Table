@@ -111,12 +111,12 @@ export function SafePagination<TData>({
           <ChevronLeft className="h-4 w-4" />
         </Button>
 
-        <div className="flex items-center gap-1 text-sm">
-          <span>Page</span>
-          <span className="font-medium">{pageIndex + 1}</span>
-          <span>of</span>
-          <span className="font-medium">{pageCount}</span>
-        </div>
+        <span className="text-sm">
+          {translations.format("pageXofY", {
+            page: pageIndex + 1,
+            total: pageCount || 1,
+          })}
+        </span>
 
         <Button
           aria-label={translations.nextPage}
