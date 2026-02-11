@@ -38,6 +38,7 @@ export interface DataTableUiStrings {
   deleteView: string;
   dragColumn: string;
   edit: string;
+  export: string;
   error: string;
   // Messages
   errorDescription: string;
@@ -194,6 +195,7 @@ export const translationKeysMap: DataTableUiStrings = {
   deleteView: "views.delete",
   dragColumn: "table.drag_column",
   edit: "actions.edit",
+  export: "actions.export",
   error: "common.error",
   // Messages
   errorDescription: "state.error_description",

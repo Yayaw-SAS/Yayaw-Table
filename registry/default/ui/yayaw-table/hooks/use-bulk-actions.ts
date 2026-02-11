@@ -5,12 +5,23 @@
 
 import type { Row, Table } from "@tanstack/react-table";
 import { useCallback } from "react";
+import { type CsvExportColumn, exportRowsAsCsv } from "../utils/csv-export";
 import { useTableActions } from "./use-table-actions";
 
 /**
  * Configuration for bulk actions
  */
 interface BulkActionsConfig<TData> {
+  /**
+   * Whether bulk export action is enabled
+   */
+  bulkExportEnabled?: boolean;
+
+  /**
+   * CSV columns for export
+   */
+  csvExportColumns?: CsvExportColumn[];
+
   /**
    * Table instance from TanStack Table
    */
@@ -32,6 +43,11 @@ interface BulkActionsConfig<TData> {
   onBulkCopy?: (rows: Row<TData>[]) => void;
 
   /**
+   * Callback when bulk export is triggered
+   */
+  onBulkExport?: (rows: Row<TData>[]) => void | Promise<void>;
+
+  /**
    * Minimum number of selected rows to show bulk actions menu
    */
   minimumSelection?: number;
@@ -39,6 +55,7 @@ interface BulkActionsConfig<TData> {
   /**
    * Optional table type to auto-wire provider actions when callbacks are not provided
    */
+  tableId?: string;
   tableType?: string;
 }
 
@@ -77,6 +94,16 @@ interface BulkActionsReturn<TData> {
   handleBulkCopy: () => void;
 
   /**
+   * Handle bulk export action
+   */
+  handleBulkExport: () => void;
+
+  /**
+   * Whether bulk export action is enabled
+   */
+  isBulkExportEnabled: boolean;
+
+  /**
    * Clear all selections
    */
   clearSelection: () => void;
@@ -95,11 +122,15 @@ const _DEBUG = false;
  * on selected table rows
  */
 export function useBulkActions<TData>({
+  bulkExportEnabled = true,
+  csvExportColumns = [],
   table,
   onBulkEdit,
   onBulkDelete,
   onBulkCopy,
+  onBulkExport,
   minimumSelection = 1,
+  tableId,
   tableType,
 }: BulkActionsConfig<TData>): BulkActionsReturn<TData> {
   // Call hook unconditionally to satisfy Rules of Hooks; use result only when tableType is set
@@ -204,6 +235,42 @@ export function useBulkActions<TData>({
     }
   }, [selectedRows, onBulkCopy]);
 
+  // Handle bulk CSV export
+  const handleBulkExport = useCallback(() => {
+    if (!bulkExportEnabled || selectedRows.length === 0) {
+      return;
+    }
+
+    if (onBulkExport) {
+      Promise.resolve(onBulkExport(selectedRows)).catch(() => {
+        /* ignore export errors */
+      });
+      return;
+    }
+
+    const rowsToExport = selectedRows.map(
+      (row) => row.original as Record<string, unknown>
+    );
+
+    const fallbackColumns =
+      rowsToExport.length > 0
+        ? Object.keys(rowsToExport[0]).map((id) => ({ id, label: id }))
+        : [];
+
+    exportRowsAsCsv({
+      columns: csvExportColumns.length > 0 ? csvExportColumns : fallbackColumns,
+      rows: rowsToExport,
+      tableId: tableId ?? tableType ?? "table",
+    });
+  }, [
+    bulkExportEnabled,
+    selectedRows,
+    onBulkExport,
+    csvExportColumns,
+    tableId,
+    tableType,
+  ]);
+
   // Close bulk actions (alias for clearSelection)
   const closeBulkActions = useCallback(() => {
     clearSelection();
@@ -216,6 +283,8 @@ export function useBulkActions<TData>({
     handleBulkEdit,
     handleBulkDelete,
     handleBulkCopy,
+    handleBulkExport,
+    isBulkExportEnabled: bulkExportEnabled,
     clearSelection,
     closeBulkActions,
   };
@@ -261,5 +330,9 @@ export const defaultBulkActions = {
     } catch {
       /* ignore clipboard errors */
     }
+  },
+
+  onBulkExport: <TData>(_rows: Row<TData>[]) => {
+    /* Provide onBulkExport in table config for custom behavior */
   },
 };

@@ -29,13 +29,13 @@ export interface TableCatalogueColumnConfig {
  * Configuration for table behavior in the catalogue
  */
 export interface TableCatalogueTableConfig {
+  export?: boolean;
+  bulkExport?: boolean;
+  actionsAsIcons?: boolean;
   enableRowSelection: boolean;
   enableColumnFilters: boolean;
   enableSorting: boolean;
   enableGrouping?: boolean;
-  manualFiltering: boolean;
-  manualPagination: boolean;
-  manualSorting: boolean;
   /** Gate for column DnD feature and UI */
   enableColumnDnd?: boolean;
   enableColumnDragDropByDefault?: boolean;
@@ -82,13 +82,13 @@ export interface TableCatalogueConfig {
  */
 const DEFAULT_TABLE_CONFIG: TableCatalogueConfig = {
   table: {
+    export: true,
+    bulkExport: true,
+    actionsAsIcons: false,
     enableRowSelection: true,
     enableColumnFilters: true,
     enableSorting: true,
     enableGrouping: true,
-    manualFiltering: false,
-    manualPagination: false,
-    manualSorting: false,
     enableColumnDnd: true,
     enableColumnDragDropByDefault: false,
     enableMultiRowSelection: true,
@@ -133,13 +133,13 @@ export function useTableConfig(tableType: string) {
     // Transform DataTableConfig to TableCatalogueConfig
     const tableConfig: TableCatalogueConfig = {
       table: {
+        export: providerConfig.export ?? true,
+        bulkExport: providerConfig.bulkExport ?? true,
+        actionsAsIcons: providerConfig.actionsAsIcons ?? false,
         enableRowSelection: providerConfig.enableRowSelection,
         enableColumnFilters: providerConfig.enableColumnFilters,
         enableSorting: providerConfig.enableSorting,
         enableGrouping: providerConfig.enableGrouping,
-        manualFiltering: providerConfig.manualFiltering,
-        manualPagination: providerConfig.manualPagination,
-        manualSorting: providerConfig.manualSorting,
         enableColumnDnd: providerConfig.enableColumnDnd ?? true,
         enableColumnDragDropByDefault:
           providerConfig.enableColumnDragDropByDefault,

@@ -13,7 +13,7 @@ Translations are strongly typed. Provide overrides either via the provider or di
 
 ```ts
 type DataTableTranslations = {
-  actions: { delete: string; edit: string; copy: string; save: string; cancel: string; confirm: string; title: string; view: string };
+  actions: { delete: string; edit: string; copy: string; export: string; save: string; cancel: string; confirm: string; title: string; view: string };
   bulk: { close_menu: string; confirm_copy_description: string; confirm_delete_description: string; confirm_title: string };
   columns: { title: string; hide: string; show: string; visible: string; hidden: string; drag: string; resetOrder: string; toggleVisibility: string; hideAll: string; showAll: string; edit_property: string; filter: string; hide_in_view: string; reorder: string; sort_ascending: string; sort_descending: string };
   pagination: { first: string; last: string; next: string; previous: string; of: string; page: string; rowsPerPage: string; showing: string; selectedCount: string };
@@ -163,13 +163,14 @@ Use the following keys to construct your translations object. All values are str
 
 ### actions
 
-Used by row actions and by the **bulk actions menu** (Edit, Copy, Delete tabs and dialog buttons).
+Used by row actions, toolbar export button, and by the **bulk actions menu** (Edit, Copy, Export, Delete tabs and dialog buttons).
 
 | Key | Type |
 | --- | --- |
 | actions.delete | string |
 | actions.edit | string |
 | actions.copy | string |
+| actions.export | string |
 | actions.save | string |
 | actions.cancel | string |
 | actions.confirm | string |

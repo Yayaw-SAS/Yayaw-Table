@@ -7,7 +7,7 @@
     "ultracite/biome/next"
   ],
   "files": {
-    "includes": ["!.source", "!src/ui/shadcn"]
+    "includes": ["!.source", "!src/ui/shadcn", "!src/components/ui"]
   },
   "overrides": [
     {

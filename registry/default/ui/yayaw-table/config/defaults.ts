@@ -7,6 +7,9 @@
  * Default table configuration
  */
 export const defaultTableConfig = {
+  export: true,
+  bulkExport: true,
+  actionsAsIcons: false,
   defaultPageSize: 10,
   enableColumnDragDropByDefault: false,
   enableColumnFilters: true,
@@ -15,9 +18,6 @@ export const defaultTableConfig = {
   enablePagination: true,
   enableRowSelection: true,
   enableSorting: true,
-  manualFiltering: false,
-  manualPagination: false,
-  manualSorting: false,
   pageSizeOptions: [10, 20, 50, 100, 200, 500],
 };
 

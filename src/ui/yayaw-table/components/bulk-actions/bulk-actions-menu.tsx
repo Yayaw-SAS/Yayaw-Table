@@ -6,7 +6,7 @@
 
 import type { Row } from "@tanstack/react-table";
 import { AnimatePresence, motion } from "framer-motion";
-import { Copy, Edit, Trash2, X } from "lucide-react";
+import { Copy, Download, Edit, Trash2, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { useOnClickOutside } from "usehooks-ts";
 import { cn } from "@/lib/utils";
@@ -48,6 +48,11 @@ export interface BulkActionsMenuProps<TData> {
   onBulkCopy?: (rows: Row<TData>[]) => void;
 
   /**
+   * Callback when bulk export is triggered
+   */
+  onBulkExport?: (rows: Row<TData>[]) => void | Promise<void>;
+
+  /**
    * Callback when menu is closed
    */
   onClose?: () => void;
@@ -56,6 +61,11 @@ export interface BulkActionsMenuProps<TData> {
    * Optional CSS class name
    */
   className?: string;
+
+  /**
+   * Whether export action should be shown
+   */
+  showBulkExport?: boolean;
 }
 
 // Configuration pour les tabs d'actions
@@ -104,8 +114,10 @@ export function BulkActionsMenu<TData>({
   onBulkEdit,
   onBulkDelete,
   onBulkCopy,
+  onBulkExport,
   onClose,
   className,
+  showBulkExport = true,
 }: BulkActionsMenuProps<TData>) {
   const [selectedAction, setSelectedAction] = useState<string | null>(null);
   const [hoveredAction, setHoveredAction] = useState<string | null>(null);
@@ -131,6 +143,16 @@ export function BulkActionsMenu<TData>({
       translationKey: "actions.copy",
       variant: "default",
     },
+    ...(showBulkExport
+      ? [
+          {
+            id: "export",
+            icon: Download,
+            translationKey: "actions.export",
+            variant: "default" as const,
+          },
+        ]
+      : []),
     {
       id: "delete",
       icon: Trash2,
@@ -156,6 +178,14 @@ export function BulkActionsMenu<TData>({
     // Pour l'édition, ouvrir directement le formulaire sans confirmation
     if (actionId === "edit") {
       onBulkEdit?.(selectedRows);
+      onClose?.();
+      return;
+    }
+
+    if (actionId === "export") {
+      Promise.resolve(onBulkExport?.(selectedRows)).catch(() => {
+        /* ignore export errors */
+      });
       onClose?.();
       return;
     }

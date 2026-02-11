@@ -133,14 +133,22 @@ export function FormBuilder<TFieldValues extends FieldValues>({
       case "checkbox":
         return (
           <form.Field key={field.name} name={field.name as Path<TFieldValues>}>
-            {(f) => (
-              <CheckboxField
-                field={field}
-                fieldApi={
-                  normalizeFieldApi(f) as unknown as FormFieldApi<boolean>
-                }
-              />
-            )}
+            {(f) => {
+              const normalizedFieldApi = normalizeFieldApi(
+                f
+              ) as unknown as FormFieldApi<boolean>;
+              if (field.variant === "checkbox") {
+                return (
+                  <CheckboxField field={field} fieldApi={normalizedFieldApi} />
+                );
+              }
+              return (
+                <SwitchField
+                  field={{ ...field, variant: "switch" }}
+                  fieldApi={normalizedFieldApi}
+                />
+              );
+            }}
           </form.Field>
         );
       case "custom":

@@ -16,19 +16,31 @@ import type {
   VisibilityState,
 } from "@tanstack/react-table";
 import { useSetAtom } from "jotai";
-import { PlusIcon } from "lucide-react";
-import { useCallback, useMemo } from "react";
+import { Download, PlusIcon } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useDataTable } from "../../hooks/use-data-table";
 import {
   useColumnsFilterConfig,
   useDataTableAdvancedFilters,
   useTableAccessors,
 } from "../../hooks/use-data-table-advanced-filters";
+import { useIsMobile } from "../../hooks/use-mobile";
 import { useTableConfig } from "../../hooks/use-table-config";
 import { useTableInstance } from "../../hooks/use-table-instance";
-import { useTranslations } from "../../providers/table-provider";
+import { useTableUrlState } from "../../hooks/use-table-url-state";
+import {
+  useTableActions as useProviderTableActions,
+  useTranslations,
+} from "../../providers/table-provider";
 import type { ColumnDataType } from "../../types";
+import { buildCsvExportColumns, exportRowsAsCsv } from "../../utils/csv-export";
 import {
   catalogueFormAtom,
   openCreateForm,
@@ -160,6 +172,11 @@ interface DataTableAdvancedToolbarProps<_TData = Record<string, unknown>> {
     string,
     "text" | "number" | "date" | "option" | "multiOption"
   >;
+
+  /**
+   * Callback to override default toolbar export behavior
+   */
+  onExport?: (rows: Record<string, unknown>[]) => void | Promise<void>;
 }
 
 // Define DataTableState type to handle state properties
@@ -309,6 +326,137 @@ function useFinalSetColumnVisibility(
   );
 }
 
+type ToolbarListAction = (params: Record<string, unknown>) => Promise<{
+  data: unknown[];
+  meta?: { pageCount?: number; totalCount?: number };
+}>;
+
+const DEFAULT_EXPORT_PAGE_SIZE = 100;
+const MAX_EXPORT_PAGES = 1000;
+
+const toOrderByParam = (
+  sortParam: unknown
+): Record<string, "asc" | "desc"> | undefined => {
+  if (!Array.isArray(sortParam) || sortParam.length === 0) {
+    return;
+  }
+
+  const firstSort = sortParam[0] as { desc?: boolean; id?: string };
+  if (!firstSort || typeof firstSort.id !== "string") {
+    return;
+  }
+
+  return {
+    [firstSort.id]: firstSort.desc ? "desc" : "asc",
+  };
+};
+
+const toFiltersParam = (filtersParam: unknown): Record<string, unknown> => {
+  if (!Array.isArray(filtersParam)) {
+    return {};
+  }
+
+  const parsedFilters = filtersParam as Array<{ id: string; value: unknown }>;
+  return Object.fromEntries(
+    parsedFilters
+      .filter((filter) => !["global", "id", "key"].includes(filter.id))
+      .map((filter) => [filter.id, filter.value])
+  );
+};
+
+const toAdvancedFiltersParam = (advancedFiltersParam: unknown): unknown[] => {
+  if (!Array.isArray(advancedFiltersParam)) {
+    return [];
+  }
+
+  return advancedFiltersParam.filter((filter) => {
+    if (!filter || typeof filter !== "object") {
+      return false;
+    }
+
+    const isActive = (filter as { isActive?: boolean }).isActive;
+    return isActive !== false;
+  });
+};
+
+const toPageSize = (pageSizeParam: string): number => {
+  const parsedPageSize = Number.parseInt(pageSizeParam || "100", 10);
+  if (Number.isNaN(parsedPageSize) || parsedPageSize < 1) {
+    return DEFAULT_EXPORT_PAGE_SIZE;
+  }
+  return parsedPageSize;
+};
+
+const toRecordRows = (data: unknown[]): Record<string, unknown>[] => {
+  return data.filter(
+    (row): row is Record<string, unknown> =>
+      typeof row === "object" && row !== null
+  );
+};
+
+const fetchAllFilteredRows = async ({
+  listAction,
+  advancedFilters,
+  filters,
+  orderBy,
+  pageSize,
+  search,
+}: {
+  listAction: ToolbarListAction;
+  advancedFilters: unknown[];
+  filters: Record<string, unknown>;
+  orderBy?: Record<string, "asc" | "desc">;
+  pageSize: number;
+  search: string;
+}): Promise<Record<string, unknown>[]> => {
+  const collectedRows: Record<string, unknown>[] = [];
+  let page = 1;
+  let knownPageCount: number | undefined;
+
+  while (page <= MAX_EXPORT_PAGES) {
+    const requestParams: Record<string, unknown> = {
+      advancedFilters,
+      filters,
+      limit: pageSize,
+      page,
+    };
+
+    if (orderBy) {
+      requestParams.orderBy = orderBy;
+    }
+
+    if (search.length > 0) {
+      requestParams.search = search;
+      requestParams.q = search;
+      requestParams.globalSearch = search;
+    }
+
+    const response = await listAction(requestParams);
+    const pageRows = toRecordRows(response.data);
+    collectedRows.push(...pageRows);
+
+    if (
+      typeof response.meta?.pageCount === "number" &&
+      response.meta.pageCount > 0
+    ) {
+      knownPageCount = response.meta.pageCount;
+    }
+
+    const reachedLastKnownPage =
+      typeof knownPageCount === "number" && page >= knownPageCount;
+    const reachedLastByPageSize = pageRows.length < pageSize;
+    const hasNoMoreData = pageRows.length === 0;
+
+    if (reachedLastKnownPage || reachedLastByPageSize || hasNoMoreData) {
+      break;
+    }
+
+    page += 1;
+  }
+
+  return collectedRows;
+};
+
 /**
  * Advanced toolbar component for DataTable
  * Combines search, filters, view management, and column visibility controls
@@ -324,6 +472,7 @@ export function DataTableAdvancedToolbar<TData>({
   enableAdvancedFilters = false,
   data = [],
   columnTypeMapping = {},
+  onExport,
   ...props
 }: DataTableAdvancedToolbarProps<TData>) {
   // Ensure tableId is available
@@ -331,6 +480,23 @@ export function DataTableAdvancedToolbar<TData>({
 
   // Setup configuration and state
   const { t, state, tableConfig } = useToolbarSetup(tableId);
+  const [isExporting, setIsExporting] = useState(false);
+  const getTableActions = useProviderTableActions();
+  const tableActions = useMemo(
+    () => getTableActions?.(tableId),
+    [getTableActions, tableId]
+  );
+  const {
+    advancedFiltersParam,
+    filtersParam,
+    globalSearchParam,
+    orderParam,
+    pageSizeParam,
+    sortParam,
+    visibilityParam,
+  } = useTableUrlState({
+    tableId,
+  });
 
   // Advanced filters setup - create column options and configs
   const columnOptions = useMemo(
@@ -469,87 +635,271 @@ export function DataTableAdvancedToolbar<TData>({
     ? finalColumns.map(convertColumnForTableMenu)
     : [];
 
+  const normalizedColumnOrder = useMemo(() => {
+    return Array.isArray(orderParam) && orderParam.length > 0
+      ? (orderParam as string[])
+      : tableConfig.columns.order || [];
+  }, [orderParam, tableConfig.columns.order]);
+
+  const normalizedVisibility = useMemo(() => {
+    const visibilityFromUrl =
+      visibilityParam && typeof visibilityParam === "object"
+        ? (visibilityParam as Record<string, boolean>)
+        : {};
+
+    if (Object.keys(visibilityFromUrl).length > 0) {
+      return visibilityFromUrl;
+    }
+
+    return (
+      (state?.columnVisibility as Record<string, boolean> | undefined) || {}
+    );
+  }, [visibilityParam, state?.columnVisibility]);
+
+  const csvExportColumns = useMemo(() => {
+    return buildCsvExportColumns({
+      columnDefinitions: tableConfig.columns.definitions.map((definition) => ({
+        header: definition.header,
+        id: definition.id,
+      })),
+      columnOrder: normalizedColumnOrder,
+      defaultVisibleColumns: tableConfig.columns.visible || [],
+      visibility: normalizedVisibility,
+    });
+  }, [
+    tableConfig.columns.definitions,
+    tableConfig.columns.visible,
+    normalizedColumnOrder,
+    normalizedVisibility,
+  ]);
+
+  const exportLabel = useMemo(() => {
+    const translated = t("actions.export");
+    return translated === "actions.export" ? "Export" : translated;
+  }, [t]);
+  const addItemLabel = useMemo(() => {
+    const translated = t("add_an_item");
+    return translated === "add_an_item" ? "Add item" : translated;
+  }, [t]);
+  const isMobile = useIsMobile();
+  const actionsAsIcons = tableConfig.table.actionsAsIcons === true || isMobile;
+  const isColumnFiltersEnabled =
+    tableConfig.table.enableColumnFilters !== false;
+  const isSortingEnabled = tableConfig.table.enableSorting !== false;
+  const isGroupingEnabled = tableConfig.table.enableGrouping !== false;
+  const handleOpenCreateForm = useCallback(() => {
+    setFormState(
+      openCreateForm(tableId, tableId, (_data) => {
+        queryClient.invalidateQueries({
+          queryKey: ["tableData", tableId],
+        });
+      })
+    );
+  }, [queryClient, setFormState, tableId]);
+
+  const hasListAction = typeof tableActions?.list === "function";
+
+  const handleExportAll = useCallback(async () => {
+    if (!hasListAction || isExporting) {
+      return;
+    }
+
+    const listAction = tableActions.list as ToolbarListAction;
+    const orderBy = toOrderByParam(sortParam);
+    const filters = toFiltersParam(filtersParam);
+    const advancedFilters = toAdvancedFiltersParam(advancedFiltersParam);
+    const pageSize = toPageSize(pageSizeParam || "100");
+    const normalizedSearch = globalSearchParam?.trim() || "";
+
+    setIsExporting(true);
+    try {
+      const collectedRows = await fetchAllFilteredRows({
+        advancedFilters,
+        filters,
+        listAction,
+        orderBy,
+        pageSize,
+        search: normalizedSearch,
+      });
+
+      if (onExport) {
+        await onExport(collectedRows);
+        return;
+      }
+
+      const fallbackColumns =
+        collectedRows.length > 0
+          ? Object.keys(collectedRows[0]).map((id) => ({ id, label: id }))
+          : [];
+
+      exportRowsAsCsv({
+        columns:
+          csvExportColumns.length > 0 ? csvExportColumns : fallbackColumns,
+        rows: collectedRows,
+        tableId,
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  }, [
+    hasListAction,
+    isExporting,
+    tableActions,
+    sortParam,
+    filtersParam,
+    advancedFiltersParam,
+    pageSizeParam,
+    globalSearchParam,
+    onExport,
+    csvExportColumns,
+    tableId,
+  ]);
+
   if (DEBUG) {
     // Debug log for table menu columns
   }
 
   return (
-    <div className="flex items-center gap-2">
-      {/* Create button */}
-      <Button
-        className="h-8"
-        onClick={() => {
-          // Set the form state to open the create form
-          // Use tableId directly as the form type since they're now identical
-          setFormState(
-            openCreateForm(tableId, tableId, (_data) => {
-              // Invalidate the table data query to refresh the table after successful submission
-              queryClient.invalidateQueries({
-                queryKey: ["tableData", tableId],
-              });
-            })
-          );
-        }}
-        size="sm"
-        variant="default"
-      >
-        <PlusIcon className="mr-2 h-4 w-4" />
-        <span>{t("add_an_item")}</span>
-      </Button>
-
-      <SearchBar placeholder={t("search.placeholder")} tableId={tableId} />
-
-      {/* Options menu */}
-      <TableMenu
-        advancedFiltersConfig={
-          enableAdvancedFilters
-            ? {
-                filters: advancedFiltersResult.advancedFilters,
-                actions: advancedFiltersResult.advancedActions,
-                columnsConfig: advancedColumnsConfig,
-                onConvertToAdvanced:
-                  advancedFiltersResult.convertLegacyToAdvanced as (
-                    columnId: string,
-                    type: ColumnDataType
-                  ) => void,
-              }
-            : undefined
+    <TooltipProvider>
+      <div
+        className={
+          isMobile
+            ? "ml-auto flex w-full items-center justify-end gap-2"
+            : "flex items-center gap-2"
         }
-        columns={tableMenuColumns}
-        invalidateTable={async () => {
-          await queryClient.invalidateQueries({
-            queryKey: ["tableData", tableId],
-          });
-        }}
-        setColumnFilters={finalSetColumnFilters}
-        setColumnVisibility={finalSetColumnVisibility}
-        setGrouping={finalSetGrouping}
-        setSorting={finalSetSorting}
-        state={{
-          columnFilters: finalColumnFilters as ColumnFiltersState,
-          columnOrder: [],
-          columnPinning: { left: [], right: [] },
-          columnSizing: {} as ColumnSizingState,
-          columnSizingInfo: {
-            columnSizingStart: [],
-            deltaOffset: 0,
-            deltaPercentage: 0,
-            isResizingColumn: false,
-            startOffset: 0,
-            startSize: 0,
-          },
-          columnVisibility: finalColumnVisibility as VisibilityState,
-          expanded: {},
-          globalFilter: "",
-          grouping: finalGrouping as GroupingState,
-          pagination: { pageIndex: 0, pageSize: 10 },
-          rowPinning: { bottom: [], top: [] },
-          rowSelection: {},
-          sorting: finalSorting as SortingState,
-        }}
-        tableId={tableId}
-        useAdvancedFilters={enableAdvancedFilters}
-      />
-    </div>
+      >
+        {isColumnFiltersEnabled && (
+          <SearchBar placeholder={t("search.placeholder")} tableId={tableId} />
+        )}
+
+        {/* Create button */}
+        {actionsAsIcons ? (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  aria-label={addItemLabel}
+                  className="h-8 w-8"
+                  onClick={handleOpenCreateForm}
+                  size="icon-sm"
+                  variant="default"
+                >
+                  <PlusIcon className="h-4 w-4" />
+                </Button>
+              }
+            />
+            <TooltipContent>{addItemLabel}</TooltipContent>
+          </Tooltip>
+        ) : (
+          <Button
+            className="h-8"
+            onClick={handleOpenCreateForm}
+            size="sm"
+            variant="default"
+          >
+            <PlusIcon className="mr-2 h-4 w-4" />
+            <span>{addItemLabel}</span>
+          </Button>
+        )}
+
+        {tableConfig.table.export !== false &&
+          (actionsAsIcons ? (
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    aria-label={exportLabel}
+                    className="h-8 w-8"
+                    disabled={!hasListAction || isExporting}
+                    onClick={() => {
+                      handleExportAll().catch(() => {
+                        /* ignore export errors */
+                      });
+                    }}
+                    size="icon-sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
+                }
+              />
+              <TooltipContent>{exportLabel}</TooltipContent>
+            </Tooltip>
+          ) : (
+            <Button
+              className="h-8 gap-2 px-3"
+              disabled={!hasListAction || isExporting}
+              onClick={() => {
+                handleExportAll().catch(() => {
+                  /* ignore export errors */
+                });
+              }}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              <Download className="h-4 w-4" />
+              <span>{exportLabel}</span>
+            </Button>
+          ))}
+
+        {/* Options menu */}
+        <TableMenu
+          actionsAsIcons={actionsAsIcons}
+          advancedFiltersConfig={
+            enableAdvancedFilters
+              ? {
+                  filters: advancedFiltersResult.advancedFilters,
+                  actions: advancedFiltersResult.advancedActions,
+                  columnsConfig: advancedColumnsConfig,
+                  onConvertToAdvanced:
+                    advancedFiltersResult.convertLegacyToAdvanced as (
+                      columnId: string,
+                      type: ColumnDataType
+                    ) => void,
+                }
+              : undefined
+          }
+          columns={tableMenuColumns}
+          enableColumnFilters={isColumnFiltersEnabled}
+          enableGrouping={isGroupingEnabled}
+          enableSorting={isSortingEnabled}
+          invalidateTable={async () => {
+            await queryClient.invalidateQueries({
+              queryKey: ["tableData", tableId],
+            });
+          }}
+          setColumnFilters={finalSetColumnFilters}
+          setColumnVisibility={finalSetColumnVisibility}
+          setGrouping={finalSetGrouping}
+          setSorting={finalSetSorting}
+          state={{
+            columnFilters: finalColumnFilters as ColumnFiltersState,
+            columnOrder: [],
+            columnPinning: { left: [], right: [] },
+            columnSizing: {} as ColumnSizingState,
+            columnSizingInfo: {
+              columnSizingStart: [],
+              deltaOffset: 0,
+              deltaPercentage: 0,
+              isResizingColumn: false,
+              startOffset: 0,
+              startSize: 0,
+            },
+            columnVisibility: finalColumnVisibility as VisibilityState,
+            expanded: {},
+            globalFilter: "",
+            grouping: finalGrouping as GroupingState,
+            pagination: { pageIndex: 0, pageSize: 10 },
+            rowPinning: { bottom: [], top: [] },
+            rowSelection: {},
+            sorting: finalSorting as SortingState,
+          }}
+          tableId={tableId}
+          useAdvancedFilters={enableAdvancedFilters}
+        />
+      </div>
+    </TooltipProvider>
   );
 }

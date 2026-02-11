@@ -296,6 +296,7 @@ function createBulkEditSchema(
         break;
       case "boolean":
       case "checkbox":
+      case "switch":
         schemaShape[fieldName] = z.any().optional();
         break;
       default:

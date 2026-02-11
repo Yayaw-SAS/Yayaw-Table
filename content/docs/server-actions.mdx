@@ -161,15 +161,11 @@ Return:
 { data: T[]; meta?: { pageCount?: number; totalCount?: number } }
 ```
 
-## Manual mode
+## Server-side mode (default)
 
-Set these to `true` in your table config so the table does not filter/sort/paginate on the client; it only sends params to your **list** action:
+YaYaw Table always runs filtering, pagination, and sorting in server-side mode. No `manual*` flags are required in `table` config.
 
-- `manualFiltering: true`
-- `manualPagination: true`
-- `manualSorting: true`
-
-See [Configuration](/docs/configuration).
+Your `list` action should handle `search`, `filters`, `advancedFilters`, `orderBy`, `page`, and `limit`.
 
 ## Example app
 

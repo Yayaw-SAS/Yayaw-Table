@@ -636,6 +636,11 @@
           "target": "components/ui/yayaw-table/hooks/use-filter-presets.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/hooks/use-mobile.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/hooks/use-mobile.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/hooks/use-on-click-outside.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/hooks/use-on-click-outside.ts"
@@ -769,6 +774,11 @@
           "path": "registry/default/ui/yayaw-table/utils/column-pinning-styles.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/column-pinning-styles.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/csv-export.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/csv-export.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/utils/server-filters.ts",

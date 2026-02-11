@@ -73,6 +73,8 @@ function DataTableContent({
   onBulkEdit,
   onBulkDelete,
   onBulkCopy,
+  onBulkExport,
+  onExport,
   tableType,
   title,
   description,
@@ -86,6 +88,8 @@ function DataTableContent({
   onBulkEdit?: (rows: Row<Record<string, unknown>>[]) => void;
   onBulkDelete?: (rows: Row<Record<string, unknown>>[]) => void;
   onBulkCopy?: (rows: Row<Record<string, unknown>>[]) => void;
+  onBulkExport?: (rows: Row<Record<string, unknown>>[]) => void | Promise<void>;
+  onExport?: (rows: Record<string, unknown>[]) => void | Promise<void>;
   tableType: string; // Required
   title?: string;
   description?: string;
@@ -162,17 +166,19 @@ function DataTableContent({
             mandatoryColumns: config.columns.mandatory || [],
           }}
           tableConfig={{
+            actionsAsIcons: config.table.actionsAsIcons,
+            bulkExport: config.table.bulkExport,
             defaultPageSize: config.table.defaultPageSize || 10,
+            export: config.table.export,
             enableColumnDragDropByDefault:
               config.table.enableColumnDragDropByDefault,
             enableColumnFilters: config.table.enableColumnFilters,
-            enableMultiRowSelection: true,
-            enablePagination: true,
+            enableGrouping: config.table.enableGrouping,
+            enableMultiRowSelection:
+              config.table.enableMultiRowSelection !== false,
+            enablePagination: config.table.enablePagination !== false,
             enableRowSelection: config.table.enableRowSelection,
             enableSorting: config.table.enableSorting,
-            manualFiltering: config.table.manualFiltering,
-            manualPagination: config.table.manualPagination,
-            manualSorting: config.table.manualSorting,
             pageSizeOptions: config.table.pageSizeOptions || [
               10, 20, 50, 100, 200, 500,
             ],
@@ -199,6 +205,7 @@ function DataTableContent({
                       columnTypeMapping={columnTypeMapping}
                       data={baseData}
                       enableAdvancedFilters={enableAdvancedFilters}
+                      onExport={onExport}
                       tableId={tableId}
                     />
                   </div>
@@ -223,18 +230,18 @@ function DataTableContent({
                 )}
                 enableColumnFilters={config.table.enableColumnFilters}
                 enableGrouping={config.table.enableGrouping}
-                enableMultiRowSelection={true}
-                enablePagination={true}
+                enableMultiRowSelection={
+                  config.table.enableMultiRowSelection !== false
+                }
+                enablePagination={config.table.enablePagination !== false}
                 enableRowSelection={config.table.enableRowSelection}
                 enableSorting={config.table.enableSorting}
                 key={`${tableId}-${visibilityKey}`}
                 loadingOverlay={loadingOverlay}
-                manualFiltering={config.table.manualFiltering}
-                manualPagination={config.table.manualPagination}
-                manualSorting={config.table.manualSorting}
                 onBulkCopy={onBulkCopy}
                 onBulkDelete={onBulkDelete}
                 onBulkEdit={onBulkEdit}
+                onBulkExport={onBulkExport}
                 onRowSelectionChange={onRowSelectionChange}
                 queryFn={async (_params) => {
                   // For fetched data, use the refetch function

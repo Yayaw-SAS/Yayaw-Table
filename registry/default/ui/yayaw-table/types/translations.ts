@@ -8,6 +8,7 @@ export interface DataTableTranslations {
     delete: string;
     edit: string;
     copy: string;
+    export: string;
     save: string;
     cancel: string;
     confirm: string;

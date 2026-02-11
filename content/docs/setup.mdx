@@ -50,8 +50,10 @@ All of these are optional except `tableType`. They are passed through to the int
 | `enableToolbar` | `boolean` | Show toolbar with filters, sort, columns, etc. (default `true`). |
 | `enableAdvancedFilters` | `boolean` | Enable advanced filters panel (default `false`). |
 | `columnTypeMapping` | `Record<string, 'text' \| 'number' \| 'date' \| 'option' \| 'multiOption'>` | Map backend types to filter/column types. |
+| `onExport` | `(rows) => void \| Promise<void>` | Override toolbar export behavior (all filtered rows). |
+| `onBulkExport` | `(rows) => void \| Promise<void>` | Override bulk CSV export behavior (selected rows). |
 | `onBulkEdit`, `onBulkDelete`, `onBulkCopy` | `(rows) => void` | Override bulk behavior; otherwise provider actions are used. |
-| **Bulk actions UI** | | When row selection is enabled, the bulk actions menu uses **actions** (`actions.edit`, `actions.copy`, `actions.delete`, `actions.cancel`, `actions.confirm`), **bulk** (`bulk.close_menu`, `bulk.confirm_title`, `bulk.confirm_copy_description`, `bulk.confirm_delete_description`), and **selection** (`selection.rows`) from your `DataTableTranslations`. See [Translations — actions & bulk](/docs/translations#actions). |
+| **Bulk actions UI** | | When row selection is enabled, the bulk actions menu uses **actions** (`actions.edit`, `actions.copy`, `actions.export`, `actions.delete`, `actions.cancel`, `actions.confirm`), **bulk** (`bulk.close_menu`, `bulk.confirm_title`, `bulk.confirm_copy_description`, `bulk.confirm_delete_description`), and **selection** (`selection.rows`) from your `DataTableTranslations`. See [Translations — actions & bulk](/docs/translations#actions). |
 | `loadingOverlay` | `ReactNode` | Custom loading UI. |
 | `TitleComponent`, `DescriptionComponent` | `ComponentType` | Custom title/description components. |
 
@@ -59,11 +61,13 @@ All of these are optional except `tableType`. They are passed through to the int
 
 Return value must include at least:
 
-- **table** – `enableRowSelection`, `enableSorting`, `enableColumnFilters`, `manualFiltering`, `manualPagination`, `manualSorting`, `defaultPageSize`, `pageSizeOptions`, etc.
+- **table** – `enableRowSelection`, `enableSorting`, `enableColumnFilters`, `defaultPageSize`, `pageSizeOptions`, `export`, `bulkExport`, `actionsAsIcons`, etc.
 - **columns** – `definitions` (array of `{ id, type, header, enableSorting?, enableColumnFilter? }`), `order`, `visible`, `mandatory`, `sort`.
 - **translations** (optional) – `namespace`, `keys` for title/description.
 
 See [Configuration](/docs/configuration) and [Columns](/docs/columns) for full options.
+
+Filtering, pagination, and sorting are always server-side in YaYaw Table (no `manual*` flags required).
 
 ## getTableActions
 
@@ -78,6 +82,16 @@ See [Actions](/docs/actions) and [Server-side & Server Actions](/docs/server-act
 ## getFormConfig
 
 Return form configuration per form type (e.g. `"products"`, `"products-bulk"`). Used to build create/edit dialogs and bulk edit. Shape: fields array with `name`, `type`, `label`, `required`, etc. See your codebase or the example app `form-config` for the full type.
+
+**Boolean fields:** In catalogue forms, boolean fields render as a **Switch** by default (`type: "switch"` or `type: "checkbox"`). If you specifically want a checkbox UI, set `variant: "checkbox"` on the field definition.
+
+```ts
+{
+  type: "switch",
+  name: "isActive",
+  label: "Active",
+}
+```
 
 **Form translations:** The catalogue form uses the same `DataTableTranslations` object as the table. You must add **form** and **value** keys to that object (e.g. `form.name`, `form.submit`, `value.string_placeholder`) and use `labelKey` / `optionKeys` in your field definitions so labels and placeholders resolve. See [Translations Reference — Form translations](/docs/translations#form-translations-catalogue-form) for the full example.
 

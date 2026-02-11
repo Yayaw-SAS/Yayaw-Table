@@ -2,6 +2,7 @@ import { Search, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useIsMobile } from "../../../hooks/use-mobile";
 import { useTableUrlState } from "../../../hooks/use-table-url-state";
 import { useTranslations } from "../../../providers/table-provider";
 
@@ -15,10 +16,12 @@ const SearchBar = ({
   debounceMs?: number;
 }) => {
   const { t } = useTranslations();
+  const isMobile = useIsMobile();
   const { globalSearchParam, setGlobalSearchFromUI } = useTableUrlState({
     tableId,
   });
   const [value, setValue] = useState(globalSearchParam || "");
+  const [isExpandedOnMobile, setIsExpandedOnMobile] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastPushedRef = useRef<string | null>(null);
@@ -61,6 +64,28 @@ const SearchBar = ({
       : restoreFocus();
   }, [globalSearchParam]);
 
+  useEffect(() => {
+    if (!isMobile) {
+      setIsExpandedOnMobile(false);
+      return;
+    }
+    if ((globalSearchParam || "").length > 0) {
+      setIsExpandedOnMobile(true);
+    }
+  }, [isMobile, globalSearchParam]);
+
+  useEffect(() => {
+    if (!(isMobile && isExpandedOnMobile)) {
+      return;
+    }
+    const focusTimer = setTimeout(() => {
+      inputRef.current?.focus();
+    }, 0);
+    return () => {
+      clearTimeout(focusTimer);
+    };
+  }, [isMobile, isExpandedOnMobile]);
+
   // Debounce push to URL while typing
   useEffect(() => {
     if (debounceRef.current) {
@@ -82,11 +107,28 @@ const SearchBar = ({
     };
   }, [value, debounceMs, setGlobalSearchFromUI, globalSearchParam]);
 
+  if (isMobile && !isExpandedOnMobile) {
+    return (
+      <Button
+        aria-label={placeholder}
+        className="h-8 w-8"
+        onClick={() => {
+          setIsExpandedOnMobile(true);
+        }}
+        size="icon-sm"
+        type="button"
+        variant="outline"
+      >
+        <Search className="h-4 w-4" />
+      </Button>
+    );
+  }
+
   return (
     <div className="relative">
       <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
       <Input
-        className="h-8 w-64 pr-8 pl-9"
+        className="h-8 w-40 pr-8 pl-9 sm:w-64"
         onChange={(e) => {
           // Capture focus and caret before any potential remount
           wasFocusedRef.current = document.activeElement === inputRef.current;
@@ -103,6 +145,15 @@ const SearchBar = ({
             lastPushedRef.current = trimmed;
             e.preventDefault();
             setGlobalSearchFromUI(trimmed);
+            return;
+          }
+          if (e.key === "Escape" && isMobile) {
+            if (value.length > 0) {
+              setValue("");
+              setGlobalSearchFromUI("");
+              return;
+            }
+            setIsExpandedOnMobile(false);
           }
         }}
         placeholder={placeholder}
@@ -110,15 +161,20 @@ const SearchBar = ({
         value={value}
         // No onBlur push to avoid losing caret/focus in some browsers
       />
-      {value && (
+      {(isMobile || value.length > 0) && (
         <Button
-          aria-label={t("common.reset")}
+          aria-label={value ? t("common.reset") : "Close search"}
           className="absolute top-1/2 right-0 -translate-y-1/2 rounded bg-transparent p-0 text-muted-foreground hover:bg-transparent hover:font-bold focus-visible:border-transparent focus-visible:ring-0 focus-visible:ring-transparent focus-visible:ring-offset-0 active:bg-transparent dark:hover:bg-transparent"
           onClick={() => {
-            setValue("");
-            setGlobalSearchFromUI("");
-            // Restore focus for accessibility
-            inputRef.current?.focus();
+            if (value.length > 0) {
+              setValue("");
+              setGlobalSearchFromUI("");
+              inputRef.current?.focus();
+              return;
+            }
+            if (isMobile) {
+              setIsExpandedOnMobile(false);
+            }
           }}
           size="icon"
           type="button"

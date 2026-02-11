@@ -68,6 +68,21 @@ export interface ColumnDefinition {
  */
 export interface TableBehaviorConfig {
   /**
+   * Enable toolbar CSV export button
+   */
+  export: boolean;
+
+  /**
+   * Enable CSV export in bulk actions menu
+   */
+  bulkExport: boolean;
+
+  /**
+   * Render toolbar action buttons as icons with tooltips
+   */
+  actionsAsIcons: boolean;
+
+  /**
    * Default number of rows per page
    */
   defaultPageSize: number;
@@ -106,21 +121,6 @@ export interface TableBehaviorConfig {
    * Enable sorting
    */
   enableSorting: boolean;
-
-  /**
-   * Server-side filtering (true = server-side)
-   */
-  manualFiltering: boolean;
-
-  /**
-   * Server-side pagination (true = server-side)
-   */
-  manualPagination: boolean;
-
-  /**
-   * Server-side sorting (true = server-side)
-   */
-  manualSorting: boolean;
 
   /**
    * Available options in the page size selector

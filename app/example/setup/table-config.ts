@@ -46,9 +46,6 @@ export const getTableConfig = (
       enableRowSelection: true,
       enableSorting: true,
       enableGrouping: true,
-      manualFiltering: true, // Server-side filtering
-      manualPagination: true, // Server-side pagination
-      manualSorting: true, // Server-side sorting
       pageSizeOptions: [10, 50, 100],
       columns: {
         definitions: [

@@ -37,6 +37,21 @@ export interface DataTableColumnsConfig {
  */
 export interface DataTableConfig {
   /**
+   * Enable toolbar CSV export button
+   */
+  export?: boolean;
+
+  /**
+   * Enable bulk CSV export action
+   */
+  bulkExport?: boolean;
+
+  /**
+   * Render toolbar action buttons as icons with tooltips
+   */
+  actionsAsIcons?: boolean;
+
+  /**
    * Default page size
    */
   defaultPageSize: number;
@@ -98,21 +113,6 @@ export interface DataTableConfig {
   form?: TableFormConfig;
 
   /**
-   * Enable manual filtering (server-side)
-   */
-  manualFiltering: boolean;
-
-  /**
-   * Enable manual pagination (server-side)
-   */
-  manualPagination: boolean;
-
-  /**
-   * Enable manual sorting (server-side)
-   */
-  manualSorting: boolean;
-
-  /**
    * Available page size options
    */
   pageSizeOptions: number[];
@@ -130,6 +130,9 @@ export interface DataTableConfig {
  * Default table configuration
  */
 const defaultTableConfig: DataTableConfig = {
+  export: true,
+  bulkExport: true,
+  actionsAsIcons: false,
   defaultPageSize: 10,
   enableColumnDragDropByDefault: true,
   enableColumnDnd: true,
@@ -140,9 +143,6 @@ const defaultTableConfig: DataTableConfig = {
   enableRowSelection: true,
   enableSorting: true,
   enableGrouping: true,
-  manualFiltering: false,
-  manualPagination: false,
-  manualSorting: false,
   pageSizeOptions: [5, 10, 20, 50, 100],
 };
 

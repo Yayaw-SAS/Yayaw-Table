@@ -29,6 +29,7 @@ import { useTableInstance } from "../hooks/use-table-instance";
 import { useTableUrlState } from "../hooks/use-table-url-state";
 import type { DataTableProps } from "../types";
 import { ColumnIcon } from "../utils/column-icons";
+import { buildCsvExportColumns } from "../utils/csv-export";
 import { BulkActionsMenu } from "./bulk-actions/bulk-actions-menu";
 import { ColumnDragOverlay, GroupRowSelectionCell } from "./columns";
 import { DataTableColumnHeader } from "./columns/header/column-header";
@@ -60,15 +61,13 @@ type ModernDataTableProps<
   enableSorting?: boolean;
   enableGrouping?: boolean;
   getRowId?: (row: TData) => string;
-  manualFiltering?: boolean;
-  manualPagination?: boolean;
-  manualSorting?: boolean;
   /** Optional custom overlay to render when loading */
   loadingOverlay?: React.ReactNode;
   onRowSelectionChange?: (rows: Row<TData>[]) => void;
   onBulkEdit?: (rows: Row<TData>[]) => void;
   onBulkDelete?: (rows: Row<TData>[]) => void;
   onBulkCopy?: (rows: Row<TData>[]) => void;
+  onBulkExport?: (rows: Row<TData>[]) => void | Promise<void>;
   queryFn?: (
     params: Record<string, unknown>
   ) => Promise<{ data: TData[]; pageCount: number; rowCount: number }>;
@@ -182,14 +181,12 @@ function ModernDataTable<
   enableSorting = true,
   enableGrouping = true,
   getRowId,
-  manualFiltering = false,
-  manualPagination = false,
-  manualSorting = false,
   loadingOverlay: loadingOverlayProp,
   onRowSelectionChange,
   onBulkEdit,
   onBulkDelete,
   onBulkCopy,
+  onBulkExport,
   queryFn: _queryFn,
   rowSelection: _rowSelection,
   tableId,
@@ -238,6 +235,23 @@ function ModernDataTable<
   const { config: tableConfig } = useTableConfig(tableType || tableId);
   // Debug removed to stop spam
 
+  const csvExportColumns = useMemo(() => {
+    return buildCsvExportColumns({
+      columnDefinitions: tableConfig.columns.definitions.map((definition) => ({
+        header: definition.header,
+        id: definition.id,
+      })),
+      columnOrder: state.columnOrder,
+      defaultVisibleColumns: tableConfig.columns.visible,
+      visibility: state.columnVisibility,
+    });
+  }, [
+    tableConfig.columns.definitions,
+    tableConfig.columns.visible,
+    state.columnOrder,
+    state.columnVisibility,
+  ]);
+
   // Use fetched data from API like in production
   const data = fetchedData || [];
 
@@ -255,9 +269,6 @@ function ModernDataTable<
       enableGrouping,
       enableSorting,
       getRowId,
-      manualFiltering,
-      manualPagination,
-      manualSorting,
       tableId: tableId || "",
     }),
     [
@@ -271,9 +282,6 @@ function ModernDataTable<
       enableGrouping,
       enableSorting,
       getRowId,
-      manualFiltering,
-      manualPagination,
-      manualSorting,
       tableId,
     ]
   );
@@ -401,7 +409,11 @@ function ModernDataTable<
 
   // Setup bulk actions: pass only app-provided callbacks; hook uses provider (update/delete) and clipboard copy when undefined
   const bulkActions = useBulkActions({
+    bulkExportEnabled: tableConfig.table.bulkExport !== false,
+    csvExportColumns,
+    onBulkExport,
     table,
+    tableId: tableType || tableId,
     tableType: tableType || tableId,
     onBulkEdit,
     onBulkDelete,
@@ -648,6 +660,7 @@ function ModernDataTable<
     ) => (
       <TableRow
         className={cn(
+          "group",
           "data-[state=selected]:bg-muted/50",
           row.getIsSelected() && "bg-muted/50"
         )}
@@ -655,7 +668,13 @@ function ModernDataTable<
         key={row.id}
       >
         {visibleCells.map((cell) => (
-          <TableCell key={cell.id}>
+          <TableCell
+            className={cn(
+              cell.column.id === "actions" &&
+                "sticky right-0 z-10 w-12 min-w-12 bg-card shadow-[-1px_0_0_0_hsl(var(--border))] group-hover:bg-muted/50 group-data-[state=selected]:bg-muted/50 sm:w-20 sm:min-w-20"
+            )}
+            key={cell.id}
+          >
             {flexRender(cell.column.columnDef.cell, cell.getContext())}
           </TableCell>
         ))}
@@ -814,7 +833,8 @@ function ModernDataTable<
                     className={cn(
                       "relative whitespace-nowrap px-0",
                       header.id === "select" && "select-column",
-                      header.id === "actions" && "sticky right-0 z-10 shadow-md"
+                      header.id === "actions" &&
+                        "sticky right-0 z-20 w-12 min-w-12 bg-card shadow-[-1px_0_0_0_hsl(var(--border))] sm:w-20 sm:min-w-20"
                     )}
                     column={header.column as never}
                     id={header.id}
@@ -852,11 +872,8 @@ function ModernDataTable<
     columnOrder,
   ]);
 
-  // Only show empty state if we have no data AND we shouldn't show table UI
-  // This ensures we always show the table UI when using server-side operations
-  const shouldShowTableUI =
-    manualFiltering || manualPagination || manualSorting;
-  const showEmptyState = (!data || data.length === 0) && !shouldShowTableUI;
+  // Always keep table UI visible for server-driven tables.
+  const showEmptyState = false;
 
   // Create empty state content
   const emptyStateContent = useMemo(
@@ -953,8 +970,10 @@ function ModernDataTable<
           onBulkCopy={bulkActions.handleBulkCopy}
           onBulkDelete={bulkActions.handleBulkDelete}
           onBulkEdit={bulkActions.handleBulkEdit}
+          onBulkExport={bulkActions.handleBulkExport}
           onClose={bulkActions.closeBulkActions}
           selectedRows={bulkActions.selectedRows}
+          showBulkExport={bulkActions.isBulkExportEnabled}
         />
       )}
     </div>

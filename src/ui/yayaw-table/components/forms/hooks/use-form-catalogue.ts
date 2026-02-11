@@ -102,7 +102,7 @@ export function useFormCatalogue<TFieldValues extends FieldValues>({
       }
 
       // Handle boolean fields (ensure they're actual booleans)
-      if (fieldDef.type === "checkbox") {
+      if (fieldDef.type === "checkbox" || fieldDef.type === "switch") {
         return Boolean(value);
       }
 

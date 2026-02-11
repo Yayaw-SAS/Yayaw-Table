@@ -57,9 +57,9 @@ const baseProductConfig = {
       required: true,
     },
     {
-      type: "checkbox",
+      type: "switch",
       name: "isActive",
-      label: "Active",
+      label: "Status",
     },
   ],
   translations: {

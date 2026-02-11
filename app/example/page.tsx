@@ -1,19 +1,261 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useSetAtom } from "jotai";
+import { useQueryState } from "nuqs";
+import { useCallback, useEffect, useMemo } from "react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import {
+  activeColumnDragAtom,
+  columnDragEnabledAtom,
+} from "@/src/ui/yayaw-table/atoms/table-atoms";
 import { DataTable } from "@/src/ui/yayaw-table/components/data-table";
 import { useBulkEdit } from "@/src/ui/yayaw-table/hooks/use-bulk-edit";
-// Row type is not used directly in this file
 import { ThemeToggle } from "@/ui/custom/theme-toggle";
 import { CustomDescription, CustomTitle } from "./components";
 import { getFormConfig } from "./setup/form-config";
 import { getTableActions, getTableConfig } from "./setup/table-config";
 
-// Create a query client
 const queryClient = new QueryClient();
 
-function BulkActionsSection() {
+interface ExampleTableSettings {
+  actionsAsIcons: boolean;
+  bulkExport: boolean;
+  enableColumnDnd: boolean;
+  enableColumnFilters: boolean;
+  enableGrouping: boolean;
+  enablePagination: boolean;
+  enableRowSelection: boolean;
+  enableSorting: boolean;
+  export: boolean;
+}
+
+type TableSettingKey = keyof ExampleTableSettings;
+
+interface SettingDefinition {
+  description: string;
+  key: TableSettingKey;
+  label: string;
+}
+
+interface BooleanQuerySettingController {
+  resetValue: () => void;
+  setValue: (nextValue: boolean) => void;
+  value: boolean;
+}
+
+const DEFAULT_TABLE_SETTINGS: ExampleTableSettings = {
+  actionsAsIcons: true,
+  bulkExport: true,
+  enableColumnDnd: true,
+  enableColumnFilters: true,
+  enableGrouping: true,
+  enablePagination: true,
+  enableRowSelection: true,
+  enableSorting: true,
+  export: true,
+};
+
+const CORE_FEATURE_SETTINGS: SettingDefinition[] = [
+  {
+    key: "enableRowSelection",
+    label: "Row selection",
+    description: "Enable checkbox selection and bulk actions.",
+  },
+  {
+    key: "enableColumnFilters",
+    label: "Column filters",
+    description: "Enable search and filters in toolbar/options.",
+  },
+  {
+    key: "enableSorting",
+    label: "Sorting",
+    description: "Enable sorting from headers and Options menu.",
+  },
+  {
+    key: "enableGrouping",
+    label: "Grouping",
+    description: "Enable row grouping controls.",
+  },
+  {
+    key: "enableColumnDnd",
+    label: "Column drag & drop",
+    description: "Enable drag & drop controls in column headers/menu.",
+  },
+  {
+    key: "enablePagination",
+    label: "Pagination",
+    description: "Enable page navigation and page-size selector.",
+  },
+];
+
+const EXPORT_SETTINGS: SettingDefinition[] = [
+  {
+    key: "export",
+    label: "Toolbar export",
+    description: "Show CSV export button in toolbar.",
+  },
+  {
+    key: "bulkExport",
+    label: "Bulk export",
+    description: "Show CSV export action in bulk menu.",
+  },
+  {
+    key: "actionsAsIcons",
+    label: "Icon toolbar actions",
+    description: "Render toolbar actions as icon-only with tooltips.",
+  },
+];
+
+const ALL_SETTING_DEFINITIONS: SettingDefinition[] = [
+  ...CORE_FEATURE_SETTINGS,
+  ...EXPORT_SETTINGS,
+];
+
+const TABLE_SETTING_KEYS: TableSettingKey[] = ALL_SETTING_DEFINITIONS.map(
+  (setting) => setting.key
+);
+
+const parseBooleanQueryValue = (
+  rawValue: string | null,
+  defaultValue: boolean
+) => {
+  if (rawValue === "1") {
+    return true;
+  }
+
+  if (rawValue === "0") {
+    return false;
+  }
+
+  return defaultValue;
+};
+
+function useBooleanQuerySetting(
+  queryKey: string,
+  defaultValue: boolean
+): BooleanQuerySettingController {
+  const [rawValue, setRawValue] = useQueryState(queryKey);
+
+  const value = useMemo(
+    () => parseBooleanQueryValue(rawValue, defaultValue),
+    [rawValue, defaultValue]
+  );
+
+  const setValue = useCallback(
+    (nextValue: boolean) => {
+      setRawValue(nextValue ? "1" : "0");
+    },
+    [setRawValue]
+  );
+
+  const resetValue = useCallback(() => {
+    setRawValue(null);
+  }, [setRawValue]);
+
+  return useMemo(
+    () => ({ value, setValue, resetValue }),
+    [value, setValue, resetValue]
+  );
+}
+
+function SettingsGroup({
+  onSettingChange,
+  settings,
+  tableSettings,
+  title,
+}: {
+  onSettingChange: (key: TableSettingKey, value: boolean) => void;
+  settings: SettingDefinition[];
+  tableSettings: ExampleTableSettings;
+  title: string;
+}) {
+  return (
+    <div className="space-y-3">
+      <h3 className="font-medium text-card-foreground text-sm">{title}</h3>
+      <div className="space-y-2">
+        {settings.map((setting) => (
+          <div
+            className="flex items-center justify-between gap-3 rounded-md border border-border p-3"
+            key={setting.key}
+          >
+            <div className="space-y-1">
+              <p className="font-medium text-card-foreground text-sm">
+                {setting.label}
+              </p>
+              <p className="text-muted-foreground text-xs">
+                {setting.description}
+              </p>
+            </div>
+            <Switch
+              aria-label={setting.label}
+              checked={tableSettings[setting.key]}
+              onCheckedChange={(checked) => {
+                onSettingChange(setting.key, checked === true);
+              }}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ExampleSettingsPanel({
+  onResetSettings,
+  onSettingChange,
+  tableSettings,
+}: {
+  onResetSettings: () => void;
+  onSettingChange: (key: TableSettingKey, value: boolean) => void;
+  tableSettings: ExampleTableSettings;
+}) {
+  return (
+    <section className="mb-6 rounded-lg border border-border bg-card p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="font-semibold text-card-foreground text-lg">
+            Table Settings
+          </h2>
+          <p className="text-muted-foreground text-sm">
+            Switch features live. Settings are persisted in URL query params.
+          </p>
+        </div>
+        <Button
+          onClick={onResetSettings}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          Reset settings
+        </Button>
+      </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <SettingsGroup
+          onSettingChange={onSettingChange}
+          settings={CORE_FEATURE_SETTINGS}
+          tableSettings={tableSettings}
+          title="Core Features"
+        />
+        <SettingsGroup
+          onSettingChange={onSettingChange}
+          settings={EXPORT_SETTINGS}
+          tableSettings={tableSettings}
+          title="Export & Toolbar"
+        />
+      </div>
+    </section>
+  );
+}
+
+function BulkActionsSection({
+  tableSettings,
+}: {
+  tableSettings: ExampleTableSettings;
+}) {
   const actions = getTableActions("products") as
     | {
         bulkDelete?: (
@@ -42,7 +284,7 @@ function BulkActionsSection() {
       } else {
         toast.error(result.error || "Failed to delete products");
       }
-    } catch (_error) {
+    } catch {
       toast.error("❌ Failed to delete products");
     }
   };
@@ -75,7 +317,7 @@ function BulkActionsSection() {
       } else {
         toast.error(result.error || "Failed to copy products");
       }
-    } catch (_error) {
+    } catch {
       toast.error("❌ Failed to copy products to clipboard");
     }
   };
@@ -88,6 +330,21 @@ function BulkActionsSection() {
     },
     onUpdate: async () => true,
   });
+
+  const getTableConfigWithOverrides = useCallback(
+    (tableType: string) => {
+      const baseConfig = getTableConfig(tableType);
+      if (!baseConfig) {
+        return;
+      }
+
+      return {
+        ...baseConfig,
+        ...tableSettings,
+      };
+    },
+    [tableSettings]
+  );
 
   return (
     <DataTable
@@ -107,7 +364,7 @@ function BulkActionsSection() {
       enableToolbar={true}
       getFormConfig={getFormConfig}
       getTableActions={getTableActions}
-      getTableConfig={getTableConfig}
+      getTableConfig={getTableConfigWithOverrides}
       loadingOverlay={
         <div className="flex items-center justify-center p-8 text-muted-foreground">
           Loading products…
@@ -127,6 +384,194 @@ function BulkActionsSection() {
 }
 
 export default function ExamplePage() {
+  const setColumnDragEnabled = useSetAtom(columnDragEnabledAtom("products"));
+  const setActiveColumnDrag = useSetAtom(activeColumnDragAtom("products"));
+
+  const enableRowSelectionSetting = useBooleanQuerySetting(
+    "excfg-rs",
+    DEFAULT_TABLE_SETTINGS.enableRowSelection
+  );
+  const enableColumnFiltersSetting = useBooleanQuerySetting(
+    "excfg-cf",
+    DEFAULT_TABLE_SETTINGS.enableColumnFilters
+  );
+  const enableColumnDndSetting = useBooleanQuerySetting(
+    "excfg-cd",
+    DEFAULT_TABLE_SETTINGS.enableColumnDnd
+  );
+  const enableSortingSetting = useBooleanQuerySetting(
+    "excfg-so",
+    DEFAULT_TABLE_SETTINGS.enableSorting
+  );
+  const enableGroupingSetting = useBooleanQuerySetting(
+    "excfg-gp",
+    DEFAULT_TABLE_SETTINGS.enableGrouping
+  );
+  const enablePaginationSetting = useBooleanQuerySetting(
+    "excfg-pg",
+    DEFAULT_TABLE_SETTINGS.enablePagination
+  );
+  const exportSetting = useBooleanQuerySetting(
+    "excfg-ex",
+    DEFAULT_TABLE_SETTINGS.export
+  );
+  const bulkExportSetting = useBooleanQuerySetting(
+    "excfg-bx",
+    DEFAULT_TABLE_SETTINGS.bulkExport
+  );
+  const actionsAsIconsSetting = useBooleanQuerySetting(
+    "excfg-ai",
+    DEFAULT_TABLE_SETTINGS.actionsAsIcons
+  );
+
+  const tableSettings = useMemo<ExampleTableSettings>(
+    () => ({
+      actionsAsIcons: actionsAsIconsSetting.value,
+      bulkExport: bulkExportSetting.value,
+      enableColumnDnd: enableColumnDndSetting.value,
+      enableColumnFilters: enableColumnFiltersSetting.value,
+      enableGrouping: enableGroupingSetting.value,
+      enablePagination: enablePaginationSetting.value,
+      enableRowSelection: enableRowSelectionSetting.value,
+      enableSorting: enableSortingSetting.value,
+      export: exportSetting.value,
+    }),
+    [
+      actionsAsIconsSetting.value,
+      bulkExportSetting.value,
+      enableColumnDndSetting.value,
+      enableColumnFiltersSetting.value,
+      enableGroupingSetting.value,
+      enablePaginationSetting.value,
+      enableRowSelectionSetting.value,
+      enableSortingSetting.value,
+      exportSetting.value,
+    ]
+  );
+
+  const settingControllers = useMemo<
+    Record<TableSettingKey, BooleanQuerySettingController>
+  >(
+    () => ({
+      actionsAsIcons: actionsAsIconsSetting,
+      bulkExport: bulkExportSetting,
+      enableColumnDnd: enableColumnDndSetting,
+      enableColumnFilters: enableColumnFiltersSetting,
+      enableGrouping: enableGroupingSetting,
+      enablePagination: enablePaginationSetting,
+      enableRowSelection: enableRowSelectionSetting,
+      enableSorting: enableSortingSetting,
+      export: exportSetting,
+    }),
+    [
+      actionsAsIconsSetting,
+      bulkExportSetting,
+      enableColumnDndSetting,
+      enableColumnFiltersSetting,
+      enableGroupingSetting,
+      enablePaginationSetting,
+      enableRowSelectionSetting,
+      enableSortingSetting,
+      exportSetting,
+    ]
+  );
+
+  const setTableSetting = useCallback(
+    (key: TableSettingKey, value: boolean) => {
+      settingControllers[key].setValue(value);
+    },
+    [settingControllers]
+  );
+
+  const resetTableSettings = useCallback(() => {
+    for (const key of TABLE_SETTING_KEYS) {
+      settingControllers[key].resetValue();
+    }
+  }, [settingControllers]);
+
+  const [, setProductsSearchParam] = useQueryState("products-q");
+  const [, setProductsFiltersParam] = useQueryState("products-filters");
+  const [, setProductsAdvancedFiltersParam] = useQueryState(
+    "products-advancedFilters"
+  );
+  const [, setProductsSortParam] = useQueryState("products-sort");
+  const [, setProductsGroupingParam] = useQueryState("products-grouping");
+  const [, setProductsExpandedParam] = useQueryState("products-expanded");
+  const [, setProductsPageParam] = useQueryState("products-page");
+
+  useEffect(() => {
+    if (tableSettings.enableColumnFilters) {
+      return;
+    }
+
+    setProductsSearchParam(null);
+    setProductsFiltersParam(null);
+    setProductsAdvancedFiltersParam(null);
+    setProductsPageParam("0");
+    queryClient
+      .invalidateQueries({
+        queryKey: ["tableData", "products"],
+      })
+      .catch(() => {
+        /* ignore invalidation errors */
+      });
+  }, [
+    tableSettings.enableColumnFilters,
+    setProductsSearchParam,
+    setProductsFiltersParam,
+    setProductsAdvancedFiltersParam,
+    setProductsPageParam,
+  ]);
+
+  useEffect(() => {
+    if (tableSettings.enableSorting) {
+      return;
+    }
+
+    setProductsSortParam(null);
+    setProductsPageParam("0");
+    queryClient
+      .invalidateQueries({
+        queryKey: ["tableData", "products"],
+      })
+      .catch(() => {
+        /* ignore invalidation errors */
+      });
+  }, [tableSettings.enableSorting, setProductsSortParam, setProductsPageParam]);
+
+  useEffect(() => {
+    if (tableSettings.enableGrouping) {
+      return;
+    }
+
+    setProductsGroupingParam(null);
+    setProductsExpandedParam(null);
+    queryClient
+      .invalidateQueries({
+        queryKey: ["tableData", "products"],
+      })
+      .catch(() => {
+        /* ignore invalidation errors */
+      });
+  }, [
+    tableSettings.enableGrouping,
+    setProductsGroupingParam,
+    setProductsExpandedParam,
+  ]);
+
+  useEffect(() => {
+    if (tableSettings.enableColumnDnd) {
+      return;
+    }
+
+    setColumnDragEnabled(false);
+    setActiveColumnDrag(null);
+  }, [
+    tableSettings.enableColumnDnd,
+    setColumnDragEnabled,
+    setActiveColumnDrag,
+  ]);
+
   return (
     <div className="min-h-screen bg-background p-6 lg:p-8">
       <div className="mx-auto max-w-7xl">
@@ -160,11 +605,17 @@ export default function ExamplePage() {
           </div>
         </div>
 
+        <ExampleSettingsPanel
+          onResetSettings={resetTableSettings}
+          onSettingChange={setTableSetting}
+          tableSettings={tableSettings}
+        />
+
         {/* Data Table */}
         <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
           <div className="p-6">
             <QueryClientProvider client={queryClient}>
-              <BulkActionsSection />
+              <BulkActionsSection tableSettings={tableSettings} />
             </QueryClientProvider>
           </div>
         </div>
@@ -181,10 +632,13 @@ const getTableConfig = (tableType: string) => {
       table: { 
         enableRowSelection: true,
         enableColumnFilters: true,
+        enableColumnDnd: true,
         enableSorting: true,
-        manualFiltering: false,
-        manualPagination: false,
-        manualSorting: false
+        enableGrouping: true,
+        enablePagination: true,
+        export: true,
+        bulkExport: true,
+        actionsAsIcons: false
       },
       columns: {
         definitions: [

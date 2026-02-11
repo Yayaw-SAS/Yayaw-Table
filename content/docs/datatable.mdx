@@ -80,6 +80,16 @@ Handle bulk duplication of selected rows.
 
 Type: `(rows: Row<Record<string, unknown>>[]) => void` | Default: uses provider `duplicate`
 
+### onExport
+Override toolbar export behavior. Called with all rows matching current search/filters/sort state. If provided, default CSV download is skipped.
+
+Type: `(rows: Record<string, unknown>[]) => void \| Promise<void>` | Default: internal CSV export
+
+### onBulkExport
+Override bulk export behavior. Called with selected rows. If provided, default CSV download is skipped.
+
+Type: `(rows: Row<Record<string, unknown>>[]) => void \| Promise<void>` | Default: internal CSV export
+
 ### enableAdvancedFilters
 Enable advanced filters UI when available in your configuration.
 
@@ -98,6 +108,8 @@ Type: `Record<string, 'text' | 'number' | 'date' | 'option' | 'multiOption'>` | 
   loadingOverlay={<MySpinner />}
   onRowSelectionChange={(rows) => console.log(rows)}
   onBulkDelete={(rows) => console.log("delete", rows.length)}
+  onExport={(rows) => console.log("export all", rows.length)}
+  onBulkExport={(rows) => console.log("export selected", rows.length)}
 />
 ```
 
@@ -109,4 +121,3 @@ See also:
 - [Server-side & Server Actions](/docs/server-actions)
 - [URL state (Nuqs)](/docs/url-state)
 - [Translations](/docs/translations)
-

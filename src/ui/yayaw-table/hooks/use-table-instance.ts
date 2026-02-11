@@ -50,9 +50,6 @@ export interface UseTableInstanceOptions<TData> {
   enableRowSelection?: boolean;
   enableSorting?: boolean;
   getRowId?: (row: TData) => string;
-  manualFiltering?: boolean;
-  manualPagination?: boolean;
-  manualSorting?: boolean;
   onRowSelectionChange?: (selection: Record<string, boolean>) => void;
   pageCount?: number;
   rowSelection?: Record<string, boolean>;
@@ -76,9 +73,6 @@ export function useTableInstance<TData>({
   enableRowSelection = true,
   enableSorting = true,
   getRowId,
-  manualFiltering = false,
-  manualPagination = false,
-  manualSorting = false,
   onRowSelectionChange,
   pageCount = 0,
   rowSelection: externalRowSelection,
@@ -97,9 +91,6 @@ export function useTableInstance<TData>({
     enablePagination,
     enableRowSelection,
     enableSorting,
-    manualFiltering,
-    manualPagination,
-    manualSorting,
   });
 
   // Update ref if options change
@@ -112,9 +103,6 @@ export function useTableInstance<TData>({
       enablePagination,
       enableRowSelection,
       enableSorting,
-      manualFiltering,
-      manualPagination,
-      manualSorting,
     };
   }, [
     enableColumnFilters,
@@ -124,9 +112,6 @@ export function useTableInstance<TData>({
     enablePagination,
     enableRowSelection,
     enableSorting,
-    manualFiltering,
-    manualPagination,
-    manualSorting,
   ]);
 
   // Get table state from URL parameters
@@ -476,9 +461,9 @@ export function useTableInstance<TData>({
     getExpandedRowModel: useMemo(() => getExpandedRowModel(), []),
     getSubRows: (row: TData) =>
       (row as unknown as { subRows?: TData[] }).subRows,
-    manualFiltering,
-    manualPagination,
-    manualSorting,
+    manualFiltering: true,
+    manualPagination: true,
+    manualSorting: true,
     autoResetPageIndex: false,
     onColumnFiltersChange: handleColumnFiltersChange,
     onColumnOrderChange: handleColumnOrderChange,
