@@ -30,13 +30,13 @@ _(Replace the URL with your docs/deploy URL if you self-host; the registry is bu
 The CLI will:
 
 - Add any missing Shadcn components (table, button, dialog, etc.) to `@/components/ui`
-- Copy the full Yayaw Table code (and its small ui-custom pieces) into your project (e.g. under `components/yayaw-table/`)
+- Copy the full Yayaw Table code (and its small ui-custom pieces) into your project (under `components/ui/yayaw-table/`)
 - Install the required npm dependencies (e.g. `@tanstack/react-table`, `jotai`, `lucide-react`)
 
 Then use the table from the copied code:
 
 ```tsx
-import { DataTable } from "@/components/yayaw-table";
+import { DataTable } from "@/components/ui/yayaw-table";
 
 export const MyTable = () => <DataTable tableType="products" />;
 ```

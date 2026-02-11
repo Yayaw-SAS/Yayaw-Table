@@ -13,7 +13,9 @@ Biome (the underlying engine) provides robust linting and formatting. Most issue
 
 ### Registry (yayaw-table)
 
-The **source of truth** for the Shadcn registry is `src/ui/yayaw-table` (and listed files in `src/ui/custom`). The folder `registry/default/ui/yayaw-table` is **generated** by `scripts/build-registry.mjs`. Only edit files under `src/`. After changes to yayaw-table or ui-custom, run `bun run registry:sync` to regenerate the registry and `registry.json`.
+The **source of truth** for the Shadcn registry is `src/ui/yayaw-table` (and listed files in `src/ui/custom`) in this repository. The folder `registry/default/ui/yayaw-table` is **generated** by `scripts/build-registry.mjs`. Only edit files under `src/`. After changes to yayaw-table or ui-custom, run `bun run registry:sync` to regenerate the registry and `registry.json`.
+
+Note: in consumer projects, the registry now installs files under `components/ui/yayaw-table` (target path), not under `src/ui/yayaw-table`.
 
 ---
 

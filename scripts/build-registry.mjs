@@ -1,7 +1,7 @@
 /**
  * Builds the Shadcn registry: copies src/ui/yayaw-table + ui-custom into
  * registry/default/ui/yayaw-table. Each file gets a "target" so the CLI
- * installs strictly under ui/yayaw-table/ (no files at components root).
+ * installs strictly under components/ui/yayaw-table/ (no files at components root).
  *
  * Source of truth: src/ui/yayaw-table (and listed src/ui/custom files).
  * Do not edit registry/default/ by hand — it is overwritten by this script.
@@ -78,6 +78,24 @@ function transformContent(content, fileRel) {
   // @/ui/yayaw-table/XXX -> relative path (no extension)
   out = out.replace(
     /from ["']@\/ui\/yayaw-table\/([^"']+)["']/g,
+    (_, subPath) => {
+      const toPath = subPath.replace(REGEX_TS_EXT, "");
+      return `from "${relativeImport(fileRel, toPath)}"`;
+    }
+  );
+
+  // @/src/ui/yayaw-table/XXX -> relative path (no extension)
+  out = out.replace(
+    /from ["']@\/src\/ui\/yayaw-table\/([^"']+)["']/g,
+    (_, subPath) => {
+      const toPath = subPath.replace(REGEX_TS_EXT, "");
+      return `from "${relativeImport(fileRel, toPath)}"`;
+    }
+  );
+
+  // @/components/ui/yayaw-table/XXX -> relative path (no extension)
+  out = out.replace(
+    /from ["']@\/components\/ui\/yayaw-table\/([^"']+)["']/g,
     (_, subPath) => {
       const toPath = subPath.replace(REGEX_TS_EXT, "");
       return `from "${relativeImport(fileRel, toPath)}"`;
@@ -185,9 +203,9 @@ for (const rel of allRels) {
   fs.writeFileSync(full, content, "utf8");
 }
 
-// 4) Build files array: path (in registry) + target (in project) so CLI installs only under ui/yayaw-table/
+// 4) Build files array: path (in registry) + target (in project) so CLI installs only under components/ui/yayaw-table/
 const registryPathPrefix = ["registry", "default", "ui", "yayaw-table"];
-const targetDir = "ui/yayaw-table";
+const targetDir = "components/ui/yayaw-table";
 
 const files = allRels.map((rel) => {
   const relNorm = rel.replace(/\\/g, "/");
