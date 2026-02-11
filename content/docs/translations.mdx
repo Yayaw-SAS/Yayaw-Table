@@ -38,6 +38,11 @@ translations: {
 
 You can supply a full `DataTableTranslations` object to the provider for consistent localization across tables.
 
+## Where translations apply
+
+- **Filters (advanced):** Operator names (Contains, Equals, Starts with, etc.) use the `filters.operators.*` keys. Both the dropdown options and the **selected value** shown when the operator select is closed are translated, so the current operator always appears in the active locale (e.g. “Contient” instead of “contains”).
+- **Pagination:** All labels are translated: “Rows per page” (`pagination.rowsPerPage`), the “Page X of Y” text (`pagination.showing`, with `{page}` and `{total}`), and the first/previous/next/last button labels (`pagination.first`, `pagination.previous`, etc.). Both the default pagination and the button-style pagination (SafePagination) use these keys.
+
 ## Form translations (catalogue form)
 
 When using **getFormConfig** and the built-in create/edit form (catalogue form), the form resolves all labels, placeholders, and button text from the **same** `DataTableTranslations` object you pass to the provider. Add a **form** and **value** section to that object.
@@ -404,6 +409,8 @@ Strings for the bulk actions overlay (shown when one or more rows are selected).
 
 ### pagination
 
+Used by both the default pagination and the button-style pagination (e.g. “Lignes par page”, “Page 1 of 2”). `pagination.showing` is used for the “Page X of Y” text and supports `{page}` and `{total}` (e.g. `"Page {page} of {total}"` or `"Page {page} sur {total}"`).
+
 | Key | Type |
 | --- | --- |
 | pagination.first | string |
@@ -413,7 +420,7 @@ Strings for the bulk actions overlay (shown when one or more rows are selected).
 | pagination.of | string |
 | pagination.page | string |
 | pagination.rowsPerPage | string |
-| pagination.showing | string |
+| pagination.showing | string (supports `{page}`, `{total}`) |
 | pagination.selectedCount | string |
 
 ### search

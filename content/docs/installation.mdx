@@ -29,9 +29,20 @@ _(Replace the URL with your docs/deploy URL if you self-host; the registry is bu
 
 The CLI will:
 
-- Add any missing Shadcn components (table, button, dialog, etc.) to `@/components/ui`
-- Copy the full Yayaw Table code (and its small ui-custom pieces) into your project (under `components/ui/yayaw-table/`)
+- Add any missing Shadcn components (table, button, dialog, etc.) to the path defined by your **`ui` alias**
+- Copy the full Yayaw Table code (and its small ui-custom pieces) into your project under `ui/yayaw-table/` (relative to that same base)
 - Install the required npm dependencies (e.g. `@tanstack/react-table`, `jotai`, `lucide-react`)
+
+**Install path:** The Shadcn CLI uses the `ui` alias from your project’s `components.json` (`aliases.ui`). To have Shadcn components and yayaw-table under `@/components/ui` (and yayaw-table at `@/components/ui/yayaw-table`), set:
+
+```json
+"aliases": {
+  "ui": "@/components/ui",
+  ...
+}
+```
+
+If the CLI previously installed into `@/ui/` or `@/ui/shadcn`, change this alias to `@/components/ui` and run the add command again so new installs go to the right place.
 
 Then use the table from the copied code:
 
