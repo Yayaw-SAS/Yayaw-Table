@@ -611,6 +611,11 @@
           "target": "components/ui/yayaw-table/hooks/use-advanced-filters.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/hooks/use-bulk-actions.test.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/hooks/use-bulk-actions.test.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/hooks/use-bulk-actions.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/hooks/use-bulk-actions.ts"
