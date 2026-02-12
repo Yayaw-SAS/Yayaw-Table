@@ -393,15 +393,30 @@ function formatNumberValue(operator: string, values: unknown): string {
 /**
  * Format date values for display
  */
+function normalizeDateValue(value: unknown): Date | undefined {
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? undefined : value;
+  }
+
+  if (typeof value === "string" || typeof value === "number") {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? undefined : date;
+  }
+
+  return;
+}
+
+function formatSingleDateValue(value: unknown): string {
+  const date = normalizeDateValue(value);
+  return date ? date.toLocaleDateString() : String(value ?? "");
+}
+
 function formatDateValue(operator: string, values: unknown): string {
   if (operator === "between" && Array.isArray(values)) {
-    const [start, end] = values as [Date, Date];
-    return `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`;
+    const [start, end] = values as [unknown, unknown];
+    return `${formatSingleDateValue(start)} - ${formatSingleDateValue(end)}`;
   }
-  if (values instanceof Date) {
-    return values.toLocaleDateString();
-  }
-  return String(values || "");
+  return formatSingleDateValue(values);
 }
 
 /**
