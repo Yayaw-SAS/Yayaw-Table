@@ -35,17 +35,17 @@ export interface BulkActionsMenuProps<TData> {
   /**
    * Callback when bulk edit is triggered
    */
-  onBulkEdit?: (rows: Row<TData>[]) => void;
+  onBulkEdit?: (rows: Row<TData>[]) => Promise<void> | void;
 
   /**
    * Callback when bulk delete is triggered
    */
-  onBulkDelete?: (rows: Row<TData>[]) => void;
+  onBulkDelete?: (rows: Row<TData>[]) => Promise<void> | void;
 
   /**
    * Callback when bulk copy is triggered
    */
-  onBulkCopy?: (rows: Row<TData>[]) => void;
+  onBulkCopy?: (rows: Row<TData>[]) => Promise<void> | void;
 
   /**
    * Callback when bulk export is triggered
@@ -177,16 +177,16 @@ export function BulkActionsMenu<TData>({
   const handleTabClick = (actionId: string) => {
     // Pour l'édition, ouvrir directement le formulaire sans confirmation
     if (actionId === "edit") {
-      onBulkEdit?.(selectedRows);
-      onClose?.();
+      Promise.resolve(onBulkEdit?.(selectedRows)).finally(() => {
+        onClose?.();
+      });
       return;
     }
 
     if (actionId === "export") {
-      Promise.resolve(onBulkExport?.(selectedRows)).catch(() => {
-        /* ignore export errors */
+      Promise.resolve(onBulkExport?.(selectedRows)).finally(() => {
+        onClose?.();
       });
-      onClose?.();
       return;
     }
 
@@ -203,19 +203,25 @@ export function BulkActionsMenu<TData>({
     // Execute action based on ID
     switch (selectedAction) {
       case "copy":
-        onBulkCopy?.(selectedRows);
+        Promise.resolve(onBulkCopy?.(selectedRows)).finally(() => {
+          setSelectedAction(null);
+          setShowConfirmation(false);
+          onClose?.();
+        });
         break;
       case "delete":
-        onBulkDelete?.(selectedRows);
+        Promise.resolve(onBulkDelete?.(selectedRows)).finally(() => {
+          setSelectedAction(null);
+          setShowConfirmation(false);
+          onClose?.();
+        });
         break;
       default:
+        setSelectedAction(null);
+        setShowConfirmation(false);
+        onClose?.();
         break;
     }
-
-    // Close after action
-    setSelectedAction(null);
-    setShowConfirmation(false);
-    onClose?.();
   };
 
   const handleCancel = () => {

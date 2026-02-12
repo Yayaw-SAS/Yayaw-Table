@@ -64,9 +64,9 @@ type ModernDataTableProps<
   /** Optional custom overlay to render when loading */
   loadingOverlay?: React.ReactNode;
   onRowSelectionChange?: (rows: Row<TData>[]) => void;
-  onBulkEdit?: (rows: Row<TData>[]) => void;
-  onBulkDelete?: (rows: Row<TData>[]) => void;
-  onBulkCopy?: (rows: Row<TData>[]) => void;
+  onBulkEdit?: (rows: Row<TData>[]) => Promise<void> | void;
+  onBulkDelete?: (rows: Row<TData>[]) => Promise<void> | void;
+  onBulkCopy?: (rows: Row<TData>[]) => Promise<void> | void;
   onBulkExport?: (rows: Row<TData>[]) => void | Promise<void>;
   queryFn?: (
     params: Record<string, unknown>

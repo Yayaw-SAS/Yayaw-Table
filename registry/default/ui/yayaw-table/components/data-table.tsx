@@ -85,9 +85,9 @@ function DataTableContent({
   loadingOverlay?: React.ReactNode;
   enableToolbar?: boolean;
   onRowSelectionChange?: (rows: Row<Record<string, unknown>>[]) => void;
-  onBulkEdit?: (rows: Row<Record<string, unknown>>[]) => void;
-  onBulkDelete?: (rows: Row<Record<string, unknown>>[]) => void;
-  onBulkCopy?: (rows: Row<Record<string, unknown>>[]) => void;
+  onBulkEdit?: (rows: Row<Record<string, unknown>>[]) => Promise<void> | void;
+  onBulkDelete?: (rows: Row<Record<string, unknown>>[]) => Promise<void> | void;
+  onBulkCopy?: (rows: Row<Record<string, unknown>>[]) => Promise<void> | void;
   onBulkExport?: (rows: Row<Record<string, unknown>>[]) => void | Promise<void>;
   onExport?: (rows: Record<string, unknown>[]) => void | Promise<void>;
   tableType: string; // Required
