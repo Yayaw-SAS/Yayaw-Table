@@ -1,4 +1,5 @@
-import { describe, expect, it } from "bun:test";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 
 import {
   buildBulkDeleteFeedback,
@@ -13,13 +14,13 @@ describe("executeBulkDeleteOperation", () => {
       ids: ["row-1", "row-2"],
     });
 
-    expect(outcome.mode).toBe("bulkDelete");
-    expect(outcome.successCount).toBe(2);
-    expect(outcome.failureCount).toBe(0);
+    assert.equal(outcome.mode, "bulkDelete");
+    assert.equal(outcome.successCount, 2);
+    assert.equal(outcome.failureCount, 0);
 
     const feedback = buildBulkDeleteFeedback(outcome);
-    expect(feedback.tone).toBe("success");
-    expect(feedback.message).toContain("Deleted 2 rows successfully");
+    assert.equal(feedback.tone, "success");
+    assert.ok(feedback.message.includes("Deleted 2 rows successfully"));
   });
 
   it("reports partial failure when delete fallback fails for some rows", async () => {
@@ -31,15 +32,15 @@ describe("executeBulkDeleteOperation", () => {
       ids: ["row-1", "row-2"],
     });
 
-    expect(outcome.mode).toBe("deleteFallback");
-    expect(outcome.successCount).toBe(1);
-    expect(outcome.failureCount).toBe(1);
-    expect(outcome.errorMessages).toContain("row-2 failed");
+    assert.equal(outcome.mode, "deleteFallback");
+    assert.equal(outcome.successCount, 1);
+    assert.equal(outcome.failureCount, 1);
+    assert.ok(outcome.errorMessages.includes("row-2 failed"));
 
     const feedback = buildBulkDeleteFeedback(outcome);
-    expect(feedback.tone).toBe("error");
-    expect(feedback.message).toContain("Deleted 1 of 2 rows. 1 failed.");
-    expect(feedback.message).toContain("row-2 failed");
+    assert.equal(feedback.tone, "error");
+    assert.ok(feedback.message.includes("Deleted 1 of 2 rows. 1 failed."));
+    assert.ok(feedback.message.includes("row-2 failed"));
   });
 
   it("returns a user-facing configuration message when no delete action exists", async () => {
@@ -47,13 +48,13 @@ describe("executeBulkDeleteOperation", () => {
       ids: ["row-1"],
     });
 
-    expect(outcome.mode).toBe("notConfigured");
-    expect(outcome.successCount).toBe(0);
-    expect(outcome.failureCount).toBe(1);
+    assert.equal(outcome.mode, "notConfigured");
+    assert.equal(outcome.successCount, 0);
+    assert.equal(outcome.failureCount, 1);
 
     const feedback = buildBulkDeleteFeedback(outcome);
-    expect(feedback.tone).toBe("error");
-    expect(feedback.message).toContain("Bulk delete is not configured");
+    assert.equal(feedback.tone, "error");
+    assert.ok(feedback.message.includes("Bulk delete is not configured"));
   });
 });
 
@@ -63,8 +64,8 @@ describe("resolveBulkEditWithoutCustom", () => {
       hasBulkUpdateAction: true,
     });
 
-    expect(resolution.status).toBe("missingPayload");
-    expect(resolution.message).toContain("actions.bulkUpdate(ids, data)");
-    expect(resolution.message).toContain("Provide onBulkEdit");
+    assert.equal(resolution.status, "missingPayload");
+    assert.ok(resolution.message.includes("actions.bulkUpdate(ids, data)"));
+    assert.ok(resolution.message.includes("Provide onBulkEdit"));
   });
 });
