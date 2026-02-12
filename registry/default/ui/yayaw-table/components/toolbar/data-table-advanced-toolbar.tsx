@@ -40,6 +40,8 @@ import {
   useTranslations,
 } from "../../providers/table-provider";
 import type { ColumnDataType } from "../../types";
+import type { DateDisplayPreset } from "../../types/date-types";
+import { DATE_DISPLAY_PRESETS } from "../../types/date-types";
 import { buildCsvExportColumns, exportRowsAsCsv } from "../../utils/csv-export";
 import {
   catalogueFormAtom,
@@ -198,8 +200,19 @@ function createColumnOptions(
   _columnTypeMapping: Record<string, string>,
   t?: (key: string, params?: Record<string, string | number>) => string
 ) {
+  const isDateDisplayPreset = (value: unknown): value is DateDisplayPreset => {
+    return (
+      typeof value === "string" &&
+      DATE_DISPLAY_PRESETS.includes(value as DateDisplayPreset)
+    );
+  };
+
   // Get column definitions from table configuration
   const columns = tableConfig.columns as Record<string, unknown> | undefined;
+  const table = tableConfig.table as Record<string, unknown> | undefined;
+  const tableDateDisplayPreset = isDateDisplayPreset(table?.dateDisplayPreset)
+    ? table.dateDisplayPreset
+    : undefined;
   const columnDefinitions =
     (columns?.definitions as Record<string, unknown>[]) || [];
 
@@ -207,6 +220,19 @@ function createColumnOptions(
   const options = columnDefinitions
     .filter((colDef) => colDef.id !== "select" && colDef.id !== "actions") // Skip system columns
     .map((colDef) => {
+      const columnDateDisplayPreset = (
+        colDef as { dateDisplayPreset?: unknown }
+      ).dateDisplayPreset;
+      const rawDateFormat =
+        (colDef as { dateFormat?: unknown }).dateFormat ??
+        (colDef as { meta?: { dateFormat?: unknown } }).meta?.dateFormat;
+      const resolvedDateDisplayPreset = isDateDisplayPreset(
+        columnDateDisplayPreset
+      )
+        ? columnDateDisplayPreset
+        : tableDateDisplayPreset;
+      const resolvedDateFormat =
+        typeof rawDateFormat === "string" ? rawDateFormat : undefined;
       const option = {
         canFilter: colDef.enableColumnFilter !== false,
         // Grouping: enable by default for non-system columns unless explicitly disabled via config
@@ -224,6 +250,8 @@ function createColumnOptions(
             })
           : `Filter by ${colDef.header || colDef.id}...`,
         options: (colDef as { options?: unknown }).options,
+        dateDisplayPreset: resolvedDateDisplayPreset,
+        dateFormat: resolvedDateFormat,
         type: colDef.type,
       };
       return option;
@@ -255,6 +283,8 @@ function useAdvancedFiltersSetup(
     id: string;
     label: string;
     canFilter?: boolean;
+    dateDisplayPreset?: DateDisplayPreset;
+    dateFormat?: string;
   }[],
   columnTypeMapping: Record<
     string,

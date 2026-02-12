@@ -18,6 +18,8 @@ interface ExtendedDataTableConfig extends DataTableConfig {
       header: string;
       enableSorting?: boolean;
       enableColumnFilter?: boolean;
+      dateDisplayPreset?: string;
+      dateFormat?: string;
     }>;
     order?: string[];
     visible?: string[];
@@ -47,6 +49,7 @@ export const getTableConfig = (
       enableSorting: true,
       enableGrouping: true,
       pageSizeOptions: [10, 50, 100],
+      dateDisplayPreset: "localized-medium",
       columns: {
         definitions: [
           {
@@ -90,6 +93,7 @@ export const getTableConfig = (
             header: "Created",
             enableSorting: true,
             enableColumnFilter: true,
+            dateDisplayPreset: "dmy-numeric",
           },
           {
             id: "isActive",

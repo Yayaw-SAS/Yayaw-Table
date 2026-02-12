@@ -13,7 +13,7 @@ columns: {
     { id: 'name', type: 'text', header: 'Name', enableSorting: true, enableColumnFilter: true },
     { id: 'price', type: 'number', header: 'Price' },
     { id: 'status', type: 'tag', header: 'Status' },
-    { id: 'createdAt', type: 'date', header: 'Created' },
+    { id: 'createdAt', type: 'date', header: 'Created', dateDisplayPreset: 'dmy-numeric' },
     { id: 'isActive', type: 'boolean', header: 'Active' },
     { id: 'actions', type: 'actions', header: 'Actions' },
     { id: 'value', type: 'dynamicType', typeKey: 'valueType', header: 'Value' },
@@ -46,7 +46,35 @@ Common properties:
 - `enableSorting?: boolean` (default `true`)
 - `enableColumnFilter?: boolean` (default `true`)
 - `accessorKey?: string` – Optional accessor if data key differs from `id`
+- `dateDisplayPreset?: DateDisplayPreset` – strict preset for date rendering (date columns only)
+- `dateFormat?: string` – legacy date-fns format fallback for date columns
 - For **tag** columns: `tagColorMap?: Record<string, string>` – optional value → Tailwind class map (see below).
+
+## Date display presets
+
+For `type: 'date'`, you can use strict presets:
+
+- `localized-short`
+- `localized-medium`
+- `localized-long`
+- `month-name-long`
+- `month-year`
+- `dmy-numeric`
+- `dmy-short`
+- `mdy-numeric`
+- `mdy-short`
+- `iso-date`
+
+Example:
+
+```ts
+{
+  id: 'createdAt',
+  type: 'date',
+  header: 'Created',
+  dateDisplayPreset: 'month-name-long',
+}
+```
 
 ## Tag column (`tag`)
 
@@ -86,4 +114,3 @@ Use `type: 'dynamicType'` and specify `typeKey` on the row to pick the renderer 
 See also:
 - [Configuration](/docs/configuration)
 - [DataTable](/docs/datatable)
-

@@ -37,7 +37,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { useTranslations } from "../../providers/table-provider";
+import { useLocale, useTranslations } from "../../providers/table-provider";
 import {
   type AdvancedFilterModel,
   type AdvancedFiltersState,
@@ -133,6 +133,7 @@ function FilterChip({
   autoEdit?: boolean;
 }) {
   const { t } = useTranslations();
+  const locale = useLocale();
   const [isEditing, setIsEditing] = useState<boolean>(autoEdit);
   // Ensure auto open when requested
   useEffect(() => {
@@ -180,9 +181,22 @@ function FilterChip({
       filter.type,
       filter.operator,
       filter.values,
-      config.options
+      config.options,
+      {
+        dateDisplayPreset: config.dateDisplayPreset,
+        dateFormat: config.dateFormat,
+        locale,
+      }
     );
-  }, [filter.type, filter.operator, filter.values, config.options]);
+  }, [
+    filter.type,
+    filter.operator,
+    filter.values,
+    config.options,
+    config.dateDisplayPreset,
+    config.dateFormat,
+    locale,
+  ]);
 
   const handleValueChange = useCallback((newValue: unknown) => {
     setStagedValues(

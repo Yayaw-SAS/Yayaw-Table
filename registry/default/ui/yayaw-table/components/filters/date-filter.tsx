@@ -4,7 +4,6 @@
  */
 "use client";
 
-import { format } from "date-fns";
 import { CalendarIcon, ChevronDown } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -23,12 +22,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { useTranslations } from "../../providers/table-provider";
+import { useLocale, useTranslations } from "../../providers/table-provider";
+import type { DateDisplayPreset } from "../../types/date-types";
 import type { FilterOperators } from "../../types/filter-types";
 import {
   DEFAULT_OPERATORS,
   FILTER_OPERATORS_LABELS,
 } from "../../types/filter-types";
+import {
+  formatDateForDisplay,
+  formatDateRangeForDisplay,
+} from "../../utils/date-display";
 import {
   getTranslatedOperatorLabel,
   translateWithFallback,
@@ -55,6 +59,10 @@ export interface DateFilterProps {
   showOperator?: boolean;
   /** Date format for display */
   dateFormat?: string;
+  /** Date display preset */
+  dateDisplayPreset?: DateDisplayPreset;
+  /** Fallback date display preset (table-level default) */
+  fallbackDateDisplayPreset?: DateDisplayPreset;
   /** Render pickers inline instead of popover */
   inline?: boolean;
 }
@@ -142,19 +150,38 @@ const toDateRange = (
   return fallbackDateRange();
 };
 
-const formatDateForDisplayValue = (
-  value: DateFilterValue | undefined,
-  dateFormat: string
-): string | undefined => {
+const formatDateForDisplayValue = ({
+  value,
+  dateDisplayPreset,
+  fallbackDateDisplayPreset,
+  dateFormat,
+  locale,
+}: {
+  value: DateFilterValue | undefined;
+  dateDisplayPreset?: DateDisplayPreset;
+  fallbackDateDisplayPreset?: DateDisplayPreset;
+  dateFormat: string;
+  locale?: string;
+}): string | undefined => {
   if (!value) {
     return;
   }
 
   if (Array.isArray(value)) {
-    return `${format(value[0], dateFormat)} - ${format(value[1], dateFormat)}`;
+    return formatDateRangeForDisplay(value, {
+      dateDisplayPreset,
+      fallbackDateDisplayPreset,
+      dateFormat,
+      locale,
+    });
   }
 
-  return format(value, dateFormat);
+  return formatDateForDisplay(value, {
+    dateDisplayPreset,
+    fallbackDateDisplayPreset,
+    dateFormat,
+    locale,
+  });
 };
 
 /**
@@ -170,9 +197,12 @@ export function DateFilter({
   label,
   showOperator = true,
   dateFormat = "PPP",
+  dateDisplayPreset,
+  fallbackDateDisplayPreset,
   inline = false,
 }: DateFilterProps) {
   const { t } = useTranslations();
+  const locale = useLocale();
   const [internalValue, setInternalValue] = useState<DateFilterValue>(
     () => normalizeDateValue(value, operator) ?? getFallbackValue(operator)
   );
@@ -229,11 +259,19 @@ export function DateFilter({
   );
 
   // Format date for display
-  const formatDateForDisplay = useCallback(
+  const formatDisplayValue = useCallback(
     (date: DateFilterValue | undefined) => {
-      return formatDateForDisplayValue(date, dateFormat) ?? t("filters.value");
+      return (
+        formatDateForDisplayValue({
+          value: date,
+          dateDisplayPreset,
+          fallbackDateDisplayPreset,
+          dateFormat,
+          locale,
+        }) ?? t("filters.value")
+      );
     },
-    [dateFormat, t]
+    [dateDisplayPreset, fallbackDateDisplayPreset, dateFormat, locale, t]
   );
 
   return (
@@ -319,7 +357,7 @@ export function DateFilter({
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   <span className="flex-1 truncate">
                     {normalizedInternalValue ? (
-                      formatDateForDisplay(normalizedInternalValue)
+                      formatDisplayValue(normalizedInternalValue)
                     ) : (
                       <span>
                         {isBetween ? t("filters.value") : t("filters.value")}
@@ -396,11 +434,20 @@ export function CompactDateFilter({
   onValueChange,
   disabled = false,
   dateFormat = "PP",
+  dateDisplayPreset,
+  fallbackDateDisplayPreset,
 }: Pick<
   DateFilterProps,
-  "value" | "operator" | "onValueChange" | "disabled" | "dateFormat"
+  | "value"
+  | "operator"
+  | "onValueChange"
+  | "disabled"
+  | "dateFormat"
+  | "dateDisplayPreset"
+  | "fallbackDateDisplayPreset"
 >) {
   const { t } = useTranslations();
+  const locale = useLocale();
   const [internalValue, setInternalValue] = useState<DateFilterValue>(
     () => normalizeDateValue(value, operator) ?? getFallbackValue(operator)
   );
@@ -441,11 +488,19 @@ export function CompactDateFilter({
     [handleValueChange]
   );
 
-  const formatDateForDisplay = useCallback(
+  const formatDisplayValue = useCallback(
     (date: DateFilterValue | undefined) => {
-      return formatDateForDisplayValue(date, dateFormat) ?? t("filters.value");
+      return (
+        formatDateForDisplayValue({
+          value: date,
+          dateDisplayPreset,
+          fallbackDateDisplayPreset,
+          dateFormat,
+          locale,
+        }) ?? t("filters.value")
+      );
     },
-    [dateFormat, t]
+    [dateDisplayPreset, fallbackDateDisplayPreset, dateFormat, locale, t]
   );
 
   const needsValue = !["isEmpty", "isNotEmpty"].includes(operator);
@@ -482,7 +537,7 @@ export function CompactDateFilter({
         >
           <CalendarIcon className="mr-1 h-3 w-3" />
           {normalizedInternalValue
-            ? formatDateForDisplay(normalizedInternalValue)
+            ? formatDisplayValue(normalizedInternalValue)
             : t("filters.value")}
         </Button>
       </PopoverTrigger>

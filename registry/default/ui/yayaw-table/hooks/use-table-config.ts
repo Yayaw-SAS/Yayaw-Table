@@ -10,6 +10,7 @@ import {
   useTableConfig as useProviderTableConfig,
   useTranslations,
 } from "../providers/table-provider";
+import type { DateDisplayPreset } from "../types/date-types";
 import { useTableTranslations } from "./use-table-translations";
 
 /**
@@ -21,6 +22,8 @@ export interface TableCatalogueColumnConfig {
   header: string;
   enableSorting?: boolean;
   enableColumnFilter?: boolean;
+  dateDisplayPreset?: DateDisplayPreset;
+  dateFormat?: string;
   typeKey?: string;
   customRenderers?: Record<string, (value: unknown) => React.ReactNode>;
 }
@@ -43,6 +46,7 @@ export interface TableCatalogueTableConfig {
   enablePagination?: boolean;
   defaultPageSize?: number;
   pageSizeOptions?: number[];
+  dateDisplayPreset?: DateDisplayPreset;
 }
 
 /**
@@ -95,6 +99,7 @@ const DEFAULT_TABLE_CONFIG: TableCatalogueConfig = {
     enablePagination: true,
     defaultPageSize: 10,
     pageSizeOptions: [10, 20, 50, 100, 200, 500],
+    dateDisplayPreset: "localized-short",
   },
   columns: {
     definitions: [],
@@ -147,6 +152,9 @@ export function useTableConfig(tableType: string) {
         enablePagination: providerConfig.enablePagination,
         defaultPageSize: providerConfig.defaultPageSize,
         pageSizeOptions: providerConfig.pageSizeOptions,
+        dateDisplayPreset:
+          providerConfig.dateDisplayPreset ??
+          DEFAULT_TABLE_CONFIG.table.dateDisplayPreset,
       },
       columns: (() => {
         const definitions = providerConfig?.columns?.definitions || [];

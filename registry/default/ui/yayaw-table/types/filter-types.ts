@@ -4,6 +4,7 @@
  */
 
 import type { ReactElement } from "react";
+import type { DateDisplayPreset } from "./date-types";
 
 /**
  * Supported column data types for filtering
@@ -147,6 +148,10 @@ export interface ColumnFilterConfig<
   ) => boolean;
   /** Transform function for displaying values */
   displayValueFn?: (value: FilterValues<TType>) => string;
+  /** Date display preset for date columns */
+  dateDisplayPreset?: DateDisplayPreset;
+  /** Legacy date-fns format string fallback */
+  dateFormat?: string;
 }
 
 /**

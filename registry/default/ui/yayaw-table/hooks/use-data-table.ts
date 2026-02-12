@@ -378,13 +378,27 @@ export function useDataTable<TData extends Record<string, unknown>>(
           );
           break;
         case "date":
-          columnDefs.push(
-            column.date(colDef.id as keyof TData, {
-              enableColumnFilter: colDef.enableColumnFilter,
-              enableSorting: colDef.enableSorting,
-              header: getTranslationSafe(colDef.header),
-            })
-          );
+          {
+            const dateMeta = (
+              colDef as {
+                meta?: {
+                  dateDisplayPreset?: import("../types/date-types").DateDisplayPreset;
+                  dateFormat?: string;
+                };
+              }
+            ).meta;
+            columnDefs.push(
+              column.date(colDef.id as keyof TData, {
+                dateDisplayPreset:
+                  colDef.dateDisplayPreset ?? dateMeta?.dateDisplayPreset,
+                dateFormat: colDef.dateFormat ?? dateMeta?.dateFormat,
+                enableColumnFilter: colDef.enableColumnFilter,
+                enableSorting: colDef.enableSorting,
+                fallbackDateDisplayPreset: config.table.dateDisplayPreset,
+                header: getTranslationSafe(colDef.header),
+              })
+            );
+          }
           break;
         case "dynamicType":
           // Use dynamic type column that renders based on the type in the specified typeKey
@@ -484,6 +498,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
   }, [
     column,
     config.columns.definitions,
+    config.table.dateDisplayPreset,
     config.table.enableRowSelection,
     createColumns,
     enhancedRefetch,
