@@ -79,6 +79,14 @@ const fallbackDateRange = (): [Date, Date] => {
   return [today, today];
 };
 
+const CALENDAR_START_MONTH = new Date(1900, 0);
+const CALENDAR_END_MONTH = new Date(2100, 11);
+const CALENDAR_NAVIGATION_PROPS = {
+  captionLayout: "dropdown" as const,
+  startMonth: CALENDAR_START_MONTH,
+  endMonth: CALENDAR_END_MONTH,
+};
+
 const normalizeBetweenDateValue = (
   value: unknown
 ): [Date, Date] | undefined => {
@@ -271,6 +279,7 @@ export function DateFilter({
             <div className="mr-auto w-fit rounded-md border p-2">
               {isBetween ? (
                 <Calendar
+                  {...CALENDAR_NAVIGATION_PROPS}
                   className="[--cell-size:--spacing(7)] sm:[--cell-size:--spacing(8)]"
                   disabled={disabled}
                   initialFocus
@@ -284,6 +293,7 @@ export function DateFilter({
                 />
               ) : (
                 <Calendar
+                  {...CALENDAR_NAVIGATION_PROPS}
                   className="[--cell-size:--spacing(7)] sm:[--cell-size:--spacing(8)]"
                   disabled={disabled}
                   initialFocus
@@ -331,6 +341,7 @@ export function DateFilter({
                     />
                     <div className="rounded-md border">
                       <Calendar
+                        {...CALENDAR_NAVIGATION_PROPS}
                         className="[--cell-size:--spacing(7)] sm:[--cell-size:--spacing(8)]"
                         disabled={disabled}
                         initialFocus
@@ -348,6 +359,7 @@ export function DateFilter({
                   <div className="p-2">
                     <div className="rounded-md border">
                       <Calendar
+                        {...CALENDAR_NAVIGATION_PROPS}
                         className="[--cell-size:--spacing(7)] sm:[--cell-size:--spacing(8)]"
                         disabled={disabled}
                         initialFocus
@@ -477,6 +489,7 @@ export function CompactDateFilter({
       <PopoverContent align="start" className="w-auto p-0">
         {isBetween ? (
           <Calendar
+            {...CALENDAR_NAVIGATION_PROPS}
             disabled={disabled}
             initialFocus
             mode="range"
@@ -486,6 +499,7 @@ export function CompactDateFilter({
           />
         ) : (
           <Calendar
+            {...CALENDAR_NAVIGATION_PROPS}
             disabled={disabled}
             initialFocus
             mode="single"
