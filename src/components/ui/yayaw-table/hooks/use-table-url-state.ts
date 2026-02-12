@@ -38,6 +38,91 @@ const parsePositiveInt = (
   return Number.isNaN(parsed) ? fallback : parsed;
 };
 
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === "object" && value !== null;
+};
+
+const toValidDate = (value: unknown): Date | undefined => {
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? undefined : value;
+  }
+
+  if (typeof value === "string" || typeof value === "number") {
+    const parsedDate = new Date(value);
+    return Number.isNaN(parsedDate.getTime()) ? undefined : parsedDate;
+  }
+
+  return;
+};
+
+const normalizeBetweenDateValues = (values: unknown): unknown => {
+  if (!Array.isArray(values)) {
+    const singleDate = toValidDate(values);
+    return singleDate ? ([singleDate, singleDate] as [Date, Date]) : values;
+  }
+
+  const startDate = toValidDate(values[0]);
+  const endDate = toValidDate(values[1] ?? values[0]);
+  if (startDate && endDate) {
+    return [startDate, endDate] as [Date, Date];
+  }
+  if (startDate) {
+    return [startDate, startDate] as [Date, Date];
+  }
+  if (endDate) {
+    return [endDate, endDate] as [Date, Date];
+  }
+  return values;
+};
+
+const normalizeSingleDateValue = (values: unknown): unknown => {
+  const parsedDate = toValidDate(Array.isArray(values) ? values[0] : values);
+  return parsedDate ?? values;
+};
+
+const normalizeDateFilterValues = (
+  operator: unknown,
+  values: unknown
+): unknown => {
+  const operatorKey = typeof operator === "string" ? operator : "";
+  if (operatorKey === "isEmpty" || operatorKey === "isNotEmpty") {
+    return values;
+  }
+
+  if (operatorKey === "between") {
+    return normalizeBetweenDateValues(values);
+  }
+
+  return normalizeSingleDateValue(values);
+};
+
+const normalizeAdvancedFilter = (filter: unknown): unknown => {
+  if (!isRecord(filter)) {
+    return filter;
+  }
+
+  const normalizedFilter: Record<string, unknown> = { ...filter };
+
+  const createdAt = toValidDate(normalizedFilter.createdAt);
+  if (createdAt) {
+    normalizedFilter.createdAt = createdAt;
+  }
+
+  const updatedAt = toValidDate(normalizedFilter.updatedAt);
+  if (updatedAt) {
+    normalizedFilter.updatedAt = updatedAt;
+  }
+
+  if (normalizedFilter.type === "date") {
+    normalizedFilter.values = normalizeDateFilterValues(
+      normalizedFilter.operator,
+      normalizedFilter.values
+    );
+  }
+
+  return normalizedFilter;
+};
+
 // Create parsers for different types of state
 const arrayParser = createParser({
   parse: (value: string) => (value ? JSON.parse(value) : []),
@@ -54,7 +139,12 @@ const objectParser = createParser({
 const advancedFiltersParser = createParser({
   parse: (value: string) => {
     try {
-      return value ? JSON.parse(value) : [];
+      const parsedValue = value ? JSON.parse(value) : [];
+      if (!Array.isArray(parsedValue)) {
+        return [];
+      }
+
+      return parsedValue.map(normalizeAdvancedFilter) as AdvancedFiltersState;
     } catch {
       return [];
     }

@@ -115,40 +115,124 @@ function applyOptionFilter(
   }
 }
 
+const toValidDate = (value: unknown): Date | undefined => {
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? undefined : value;
+  }
+
+  if (typeof value === "string" || typeof value === "number") {
+    const parsedDate = new Date(value);
+    return Number.isNaN(parsedDate.getTime()) ? undefined : parsedDate;
+  }
+
+  return;
+};
+
+const startOfDay = (date: Date): Date => {
+  const normalizedDate = new Date(date);
+  normalizedDate.setHours(0, 0, 0, 0);
+  return normalizedDate;
+};
+
+const endOfDay = (date: Date): Date => {
+  const normalizedDate = new Date(date);
+  normalizedDate.setHours(23, 59, 59, 999);
+  return normalizedDate;
+};
+
+const getDateTarget = (values: unknown): Date | undefined => {
+  return toValidDate(Array.isArray(values) ? values[0] : values);
+};
+
+const getDateRange = (values: unknown): [Date, Date] | undefined => {
+  if (!Array.isArray(values)) {
+    const singleDate = toValidDate(values);
+    return singleDate ? [singleDate, singleDate] : undefined;
+  }
+
+  const startDate = toValidDate(values[0]);
+  const endDate = toValidDate(values[1] ?? values[0]);
+  if (!(startDate && endDate)) {
+    return;
+  }
+
+  return startDate.getTime() <= endDate.getTime()
+    ? [startDate, endDate]
+    : [endDate, startDate];
+};
+
 // Helper function for date filtering
 const applyDateFilter = (
   value: unknown,
   filter: AdvancedFilterModel
 ): boolean => {
-  const dateValue =
-    value instanceof Date ? value : new Date(value as string | number);
-  const dateFilter =
-    filter.values instanceof Date
-      ? filter.values
-      : new Date(filter.values as string | number);
+  const dateValue = toValidDate(value);
+
+  if (filter.operator === "isEmpty") {
+    return !dateValue;
+  }
+
+  if (filter.operator === "isNotEmpty") {
+    return Boolean(dateValue);
+  }
+
+  if (!dateValue) {
+    return false;
+  }
 
   switch (filter.operator) {
-    case "equals":
-      return dateValue.getTime() === dateFilter.getTime();
-    case "greaterThan":
-      return dateValue > dateFilter;
-    case "lessThan":
-      return dateValue < dateFilter;
-    case "greaterThanOrEqual":
-      return dateValue >= dateFilter;
-    case "lessThanOrEqual":
-      return dateValue <= dateFilter;
+    case "equals": {
+      const targetDate = getDateTarget(filter.values);
+      return targetDate
+        ? startOfDay(dateValue).getTime() === startOfDay(targetDate).getTime()
+        : false;
+    }
+    case "notEquals": {
+      const targetDate = getDateTarget(filter.values);
+      return targetDate
+        ? startOfDay(dateValue).getTime() !== startOfDay(targetDate).getTime()
+        : false;
+    }
+    case "before":
+    case "lessThan": {
+      const targetDate = getDateTarget(filter.values);
+      return targetDate
+        ? dateValue.getTime() < startOfDay(targetDate).getTime()
+        : false;
+    }
+    case "after":
+    case "greaterThan": {
+      const targetDate = getDateTarget(filter.values);
+      return targetDate
+        ? dateValue.getTime() > endOfDay(targetDate).getTime()
+        : false;
+    }
+    case "greaterThanOrEqual": {
+      const targetDate = getDateTarget(filter.values);
+      return targetDate
+        ? dateValue.getTime() >= startOfDay(targetDate).getTime()
+        : false;
+    }
+    case "lessThanOrEqual": {
+      const targetDate = getDateTarget(filter.values);
+      return targetDate
+        ? dateValue.getTime() <= endOfDay(targetDate).getTime()
+        : false;
+    }
     case "between":
-      if (Array.isArray(filter.values) && filter.values.length === 2) {
-        const startDate = new Date(filter.values[0] as string | number);
-        const endDate = new Date(filter.values[1] as string | number);
-        return dateValue >= startDate && dateValue <= endDate;
+      {
+        const range = getDateRange(filter.values);
+        if (!range) {
+          return false;
+        }
+
+        const [startDate, endDate] = range;
+        const valueTime = dateValue.getTime();
+        return (
+          valueTime >= startOfDay(startDate).getTime() &&
+          valueTime <= endOfDay(endDate).getTime()
+        );
       }
-      return true;
-    case "isEmpty":
-      return value == null;
-    case "isNotEmpty":
-      return value != null;
     default:
       return true;
   }

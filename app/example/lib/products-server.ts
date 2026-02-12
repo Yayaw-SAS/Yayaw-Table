@@ -85,34 +85,117 @@ function evaluateOptionFilter(
   return list.includes(value);
 }
 
+function toValidDate(value: unknown): Date | undefined {
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? undefined : value;
+  }
+
+  if (typeof value === "string" || typeof value === "number") {
+    const parsedDate = new Date(value);
+    return Number.isNaN(parsedDate.getTime()) ? undefined : parsedDate;
+  }
+
+  return;
+}
+
+function startOfDay(date: Date): Date {
+  const normalizedDate = new Date(date);
+  normalizedDate.setHours(0, 0, 0, 0);
+  return normalizedDate;
+}
+
+function endOfDay(date: Date): Date {
+  const normalizedDate = new Date(date);
+  normalizedDate.setHours(23, 59, 59, 999);
+  return normalizedDate;
+}
+
+function hasSameCalendarDay(leftDate: Date, rightDate: Date): boolean {
+  return startOfDay(leftDate).getTime() === startOfDay(rightDate).getTime();
+}
+
+function normalizeDateRange(values: unknown[]): [Date, Date] | undefined {
+  const startDate = toValidDate(values[0]);
+  const endDate = toValidDate(values[1] ?? values[0]);
+  if (!(startDate && endDate)) {
+    return;
+  }
+
+  return startDate.getTime() <= endDate.getTime()
+    ? [startDate, endDate]
+    : [endDate, startDate];
+}
+
+function compareWithSingleDate(
+  dateValue: Date,
+  operator: string,
+  targetDate: Date | undefined
+): boolean {
+  if (!targetDate) {
+    return false;
+  }
+
+  switch (operator) {
+    case "after":
+      return dateValue.getTime() > endOfDay(targetDate).getTime();
+    case "before":
+      return dateValue.getTime() < startOfDay(targetDate).getTime();
+    case "notEquals":
+      return !hasSameCalendarDay(dateValue, targetDate);
+    default:
+      return hasSameCalendarDay(dateValue, targetDate);
+  }
+}
+
 function evaluateDateFilter(
   value: unknown,
   operator: unknown,
   values: unknown[]
 ): boolean {
-  const dateValue = new Date(value as string);
-  const filterDate = new Date((values[0] as string) ?? "");
-  switch (operator) {
-    case "after":
-      return dateValue > filterDate;
-    case "before":
-      return dateValue < filterDate;
-    default:
-      return dateValue.toDateString() === filterDate.toDateString();
+  const dateValue = toValidDate(value);
+  const operatorKey = String(operator ?? "");
+
+  if (operatorKey === "isEmpty") {
+    return !dateValue;
   }
+
+  if (operatorKey === "isNotEmpty") {
+    return Boolean(dateValue);
+  }
+
+  if (!dateValue) {
+    return false;
+  }
+
+  if (operatorKey === "between") {
+    const dateRange = normalizeDateRange(values);
+    if (!dateRange) {
+      return false;
+    }
+    const [rangeStart, rangeEnd] = dateRange;
+    const timeValue = dateValue.getTime();
+    return (
+      timeValue >= startOfDay(rangeStart).getTime() &&
+      timeValue <= endOfDay(rangeEnd).getTime()
+    );
+  }
+
+  return compareWithSingleDate(dateValue, operatorKey, toValidDate(values[0]));
 }
 
 function applyAdvancedFilter(
   product: Product,
   filter: Record<string, unknown>
 ): boolean {
+  const operator = String(filter.operator ?? "");
+  const operatorNeedsValue = !["isEmpty", "isNotEmpty"].includes(operator);
   const valuesArray = Array.isArray(filter.values)
     ? (filter.values as unknown[])
     : [filter.values];
   const hasMeaningfulValue = valuesArray.some(
     (v) => v !== undefined && v !== null && String(v).trim() !== ""
   );
-  if (!(filter.isActive && hasMeaningfulValue)) {
+  if (!filter.isActive || (operatorNeedsValue && !hasMeaningfulValue)) {
     return true;
   }
   const value = product[filter.columnId as keyof Product];

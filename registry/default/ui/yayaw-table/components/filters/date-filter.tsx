@@ -34,9 +34,11 @@ import {
   translateWithFallback,
 } from "./i18n-utils";
 
+type DateFilterValue = Date | [Date, Date];
+
 export interface DateFilterProps {
   /** Current filter value - single date or [start, end] for between */
-  value: Date | [Date, Date];
+  value: DateFilterValue;
   /** Current operator */
   operator: FilterOperators["date"];
   /** Available operators (defaults to all date operators) */
@@ -57,6 +59,96 @@ export interface DateFilterProps {
   inline?: boolean;
 }
 
+const coerceDate = (value: unknown): Date | undefined => {
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? undefined : value;
+  }
+
+  if (typeof value === "string" || typeof value === "number") {
+    const parsedDate = new Date(value);
+    return Number.isNaN(parsedDate.getTime()) ? undefined : parsedDate;
+  }
+
+  return;
+};
+
+const fallbackSingleDate = (): Date => new Date();
+
+const fallbackDateRange = (): [Date, Date] => {
+  const today = new Date();
+  return [today, today];
+};
+
+const normalizeBetweenDateValue = (
+  value: unknown
+): [Date, Date] | undefined => {
+  if (!Array.isArray(value)) {
+    const singleDate = coerceDate(value);
+    return singleDate ? [singleDate, singleDate] : undefined;
+  }
+
+  const startDate = coerceDate(value[0]);
+  const endDate = coerceDate(value[1] ?? value[0]);
+  if (!(startDate && endDate)) {
+    if (startDate) {
+      return [startDate, startDate];
+    }
+    if (endDate) {
+      return [endDate, endDate];
+    }
+    return;
+  }
+
+  return startDate.getTime() <= endDate.getTime()
+    ? [startDate, endDate]
+    : [endDate, startDate];
+};
+
+const normalizeDateValue = (
+  value: unknown,
+  operator: FilterOperators["date"]
+): DateFilterValue | undefined => {
+  if (operator === "between") {
+    return normalizeBetweenDateValue(value);
+  }
+
+  return coerceDate(Array.isArray(value) ? value[0] : value);
+};
+
+const getFallbackValue = (
+  operator: FilterOperators["date"]
+): DateFilterValue =>
+  operator === "between" ? fallbackDateRange() : fallbackSingleDate();
+
+const toDateRange = (
+  normalizedValue: DateFilterValue | undefined
+): [Date, Date] => {
+  if (Array.isArray(normalizedValue)) {
+    return normalizedValue;
+  }
+
+  if (normalizedValue) {
+    return [normalizedValue, normalizedValue];
+  }
+
+  return fallbackDateRange();
+};
+
+const formatDateForDisplayValue = (
+  value: DateFilterValue | undefined,
+  dateFormat: string
+): string | undefined => {
+  if (!value) {
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    return `${format(value[0], dateFormat)} - ${format(value[1], dateFormat)}`;
+  }
+
+  return format(value, dateFormat);
+};
+
 /**
  * Date filter component with operator selection and date picker
  */
@@ -73,13 +165,17 @@ export function DateFilter({
   inline = false,
 }: DateFilterProps) {
   const { t } = useTranslations();
-  const [internalValue, setInternalValue] = useState(value);
+  const [internalValue, setInternalValue] = useState<DateFilterValue>(
+    () => normalizeDateValue(value, operator) ?? getFallbackValue(operator)
+  );
   const [isOpen, setIsOpen] = useState(false);
 
   // Sync internal value with prop
   useEffect(() => {
-    setInternalValue(value);
-  }, [value]);
+    setInternalValue(
+      normalizeDateValue(value, operator) ?? getFallbackValue(operator)
+    );
+  }, [value, operator]);
 
   // Handle value change
   const handleValueChange = useCallback(
@@ -93,12 +189,11 @@ export function DateFilter({
   // Check if this operator needs a value input
   const needsValue = !["isEmpty", "isNotEmpty"].includes(operator);
   const isBetween = operator === "between";
-  const currentSingleValue = Array.isArray(internalValue)
-    ? internalValue[0]
-    : internalValue;
-  const currentRangeValue = Array.isArray(internalValue)
-    ? internalValue
-    : [new Date(), new Date()];
+  const normalizedInternalValue = normalizeDateValue(internalValue, operator);
+  const currentSingleValue = Array.isArray(normalizedInternalValue)
+    ? normalizedInternalValue[0]
+    : normalizedInternalValue;
+  const currentRangeValue = toDateRange(normalizedInternalValue);
 
   // Handle single date selection
   const handleSingleDateSelect = useCallback(
@@ -127,13 +222,10 @@ export function DateFilter({
 
   // Format date for display
   const formatDateForDisplay = useCallback(
-    (date: Date | [Date, Date]) => {
-      if (Array.isArray(date)) {
-        return `${format(date[0], dateFormat)} - ${format(date[1], dateFormat)}`;
-      }
-      return format(date, dateFormat);
+    (date: DateFilterValue | undefined) => {
+      return formatDateForDisplayValue(date, dateFormat) ?? t("filters.value");
     },
-    [dateFormat]
+    [dateFormat, t]
   );
 
   return (
@@ -216,8 +308,8 @@ export function DateFilter({
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   <span className="flex-1 truncate">
-                    {internalValue ? (
-                      formatDateForDisplay(internalValue)
+                    {normalizedInternalValue ? (
+                      formatDateForDisplay(normalizedInternalValue)
                     ) : (
                       <span>
                         {isBetween ? t("filters.value") : t("filters.value")}
@@ -297,12 +389,16 @@ export function CompactDateFilter({
   "value" | "operator" | "onValueChange" | "disabled" | "dateFormat"
 >) {
   const { t } = useTranslations();
-  const [internalValue, setInternalValue] = useState(value);
+  const [internalValue, setInternalValue] = useState<DateFilterValue>(
+    () => normalizeDateValue(value, operator) ?? getFallbackValue(operator)
+  );
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    setInternalValue(value);
-  }, [value]);
+    setInternalValue(
+      normalizeDateValue(value, operator) ?? getFallbackValue(operator)
+    );
+  }, [value, operator]);
 
   const handleValueChange = useCallback(
     (newValue: Date | [Date, Date]) => {
@@ -334,13 +430,10 @@ export function CompactDateFilter({
   );
 
   const formatDateForDisplay = useCallback(
-    (date: Date | [Date, Date]) => {
-      if (Array.isArray(date)) {
-        return `${format(date[0], dateFormat)} - ${format(date[1], dateFormat)}`;
-      }
-      return format(date, dateFormat);
+    (date: DateFilterValue | undefined) => {
+      return formatDateForDisplayValue(date, dateFormat) ?? t("filters.value");
     },
-    [dateFormat]
+    [dateFormat, t]
   );
 
   const needsValue = !["isEmpty", "isNotEmpty"].includes(operator);
@@ -356,12 +449,11 @@ export function CompactDateFilter({
     );
   }
 
-  const currentSingleValue = Array.isArray(internalValue)
-    ? internalValue[0]
-    : internalValue;
-  const currentRangeValue = Array.isArray(internalValue)
-    ? internalValue
-    : [new Date(), new Date()];
+  const normalizedInternalValue = normalizeDateValue(internalValue, operator);
+  const currentSingleValue = Array.isArray(normalizedInternalValue)
+    ? normalizedInternalValue[0]
+    : normalizedInternalValue;
+  const currentRangeValue = toDateRange(normalizedInternalValue);
 
   return (
     <Popover onOpenChange={setIsOpen} open={isOpen}>
@@ -377,8 +469,8 @@ export function CompactDateFilter({
           variant="ghost"
         >
           <CalendarIcon className="mr-1 h-3 w-3" />
-          {internalValue
-            ? formatDateForDisplay(internalValue)
+          {normalizedInternalValue
+            ? formatDateForDisplay(normalizedInternalValue)
             : t("filters.value")}
         </Button>
       </PopoverTrigger>

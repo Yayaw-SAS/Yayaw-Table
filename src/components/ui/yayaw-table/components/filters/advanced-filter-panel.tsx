@@ -302,6 +302,8 @@ function FilterChip({
     filter.operator,
     FILTER_OPERATORS_LABELS[filter.type]?.[filter.operator] ?? filter.operator
   );
+  const valueLabel =
+    displayValue || translateWithFallback(t, "filters.value", "Set value");
 
   return (
     <div className="w-full space-y-3">
@@ -316,12 +318,12 @@ function FilterChip({
         )}
       >
         <button
-          className="flex min-w-0 flex-1 items-center gap-2 rounded-md text-left transition-colors hover:bg-muted/40 disabled:hover:bg-transparent"
+          className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md text-left transition-colors hover:bg-muted/40 disabled:hover:bg-transparent"
           disabled={disabled}
           onClick={() => setIsEditing(true)}
           type="button"
         >
-          <span className="shrink-0 font-medium text-foreground">
+          <span className="min-w-0 max-w-[7rem] truncate font-medium text-foreground sm:max-w-[10rem]">
             {columnLabel}
           </span>
           {isEditing ? (
@@ -334,20 +336,37 @@ function FilterChip({
             </span>
           ) : (
             <>
-              <span className="shrink-0 text-muted-foreground text-xs">
-                {operatorLabel}
+              <span aria-hidden className="shrink-0 text-muted-foreground text-xs">
+                •
               </span>
               <span
-                className={cn(
-                  "block min-w-0 max-w-[10rem] truncate rounded-md px-2 py-0.5 text-xs",
-                  displayValue
-                    ? "bg-primary/10 font-medium text-foreground"
-                    : "text-muted-foreground"
-                )}
+                className="min-w-0 max-w-[5.5rem] truncate text-muted-foreground text-xs sm:max-w-[7rem]"
+                title={operatorLabel}
               >
-                {displayValue ||
-                  translateWithFallback(t, "filters.value", "Set value")}
+                {operatorLabel}
               </span>
+              <span aria-hidden className="shrink-0 text-muted-foreground text-xs">
+                •
+              </span>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <span
+                      className={cn(
+                        "inline-block min-w-0 max-w-[8.5rem] truncate rounded-md px-2 py-0.5 text-xs sm:max-w-[10rem]",
+                        displayValue
+                          ? "bg-primary/10 font-medium text-foreground"
+                          : "text-muted-foreground"
+                      )}
+                    >
+                      {valueLabel}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs break-words">{valueLabel}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </>
           )}
         </button>
