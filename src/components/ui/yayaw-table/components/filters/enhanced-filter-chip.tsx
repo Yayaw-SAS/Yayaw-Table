@@ -24,8 +24,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/src/components/ui/popover";
+import {
+  formatDateForDisplay,
+  formatDateRangeForDisplay,
+} from "../../utils/date-display";
 
-import { useTranslations } from "../../providers/table-provider";
+import { useLocale, useTranslations } from "../../providers/table-provider";
 import type {
   AdvancedFilterModel,
   ColumnDataType,
@@ -130,33 +134,20 @@ function formatNumberValue(values: unknown, operator: string): string {
   return String(values);
 }
 
-/**
- * Format date value for display
- */
-function normalizeDateValue(value: unknown): Date | undefined {
-  if (value instanceof Date) {
-    return Number.isNaN(value.getTime()) ? undefined : value;
+function formatDateValue(values: unknown, operator: string, locale?: string): string {
+  if (operator === "between") {
+    return (
+      formatDateRangeForDisplay(values, {
+        locale,
+      }) ?? String(values ?? "")
+    );
   }
 
-  if (typeof value === "string" || typeof value === "number") {
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? undefined : date;
-  }
-
-  return;
-}
-
-function formatSingleDateValue(value: unknown): string {
-  const date = normalizeDateValue(value);
-  return date ? date.toLocaleDateString() : String(value ?? "");
-}
-
-function formatDateValue(values: unknown, operator: string): string {
-  if (operator === "between" && Array.isArray(values)) {
-    const [start, end] = values as [unknown, unknown];
-    return `${formatSingleDateValue(start)} - ${formatSingleDateValue(end)}`;
-  }
-  return formatSingleDateValue(values);
+  return (
+    formatDateForDisplay(values, {
+      locale,
+    }) ?? String(values ?? "")
+  );
 }
 
 /**
@@ -182,7 +173,8 @@ function formatFilterValue(
   values: unknown,
   operator: FilterOperators[ColumnDataType],
   type: ColumnDataType,
-  maxLength = 20
+  maxLength = 20,
+  locale?: string
 ): string {
   if (values === null || values === undefined) {
     return "";
@@ -200,7 +192,7 @@ function formatFilterValue(
       break;
 
     case "date":
-      displayValue = formatDateValue(values, operator);
+      displayValue = formatDateValue(values, operator, locale);
       break;
 
     case "option":
@@ -275,6 +267,7 @@ export function EnhancedFilterChip({
   onEditingChange,
 }: EnhancedFilterChipProps) {
   const { t } = useTranslations();
+  const locale = useLocale();
   const [isRemoving, setIsRemoving] = useState(false);
   const [popoverOpen, setPopoverOpen] = useState(isEditing);
   const chipRef = useRef<HTMLDivElement>(null);
@@ -308,7 +301,8 @@ export function EnhancedFilterChip({
     filter.values,
     filter.operator,
     filter.type,
-    maxValueLength
+    maxValueLength,
+    locale
   );
 
   // Handle remove with animation

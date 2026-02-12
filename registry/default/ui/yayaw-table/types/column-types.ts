@@ -2,6 +2,7 @@
  * Type definitions for DataTable column management
  */
 import type { CellContext, Row } from "@tanstack/react-table";
+import type { DateDisplayPreset } from "./date-types";
 
 /**
  * Comprehensive column definition interface for DataTable
@@ -30,12 +31,23 @@ export interface DataTableColumnDef<
     [key: string]: unknown; // Allow for additional custom metadata
     className?: string; // Additional CSS classes
     dateFormat?: string; // Format for date columns
+    dateDisplayPreset?: DateDisplayPreset; // Preset for date display
     filterOptions?: string[]; // Options for select filters
     isActions?: boolean; // Whether this is an actions column
     maxWidth?: number; // Maximum width
     minWidth?: number; // Minimum width
     width?: number; // Default width
   };
+
+  /**
+   * Date display preset for date columns
+   */
+  dateDisplayPreset?: DateDisplayPreset;
+
+  /**
+   * Legacy date-fns format string for date columns
+   */
+  dateFormat?: string;
 
   // Column type for specialized rendering and filtering
   type?:

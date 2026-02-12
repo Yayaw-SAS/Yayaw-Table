@@ -6,6 +6,7 @@ import { atom } from "jotai";
 import { atomFamily } from "jotai-family";
 
 import type { TableFormConfig } from "../config/form-config";
+import type { DateDisplayPreset } from "../types/date-types";
 
 /**
  * Interface for column-specific configuration options
@@ -118,6 +119,11 @@ export interface DataTableConfig {
   pageSizeOptions: number[];
 
   /**
+   * Default date display preset for date columns in this table
+   */
+  dateDisplayPreset?: DateDisplayPreset;
+
+  /**
    * Translations for the table
    */
   translations?: {
@@ -143,6 +149,7 @@ const defaultTableConfig: DataTableConfig = {
   enableRowSelection: true,
   enableSorting: true,
   enableGrouping: true,
+  dateDisplayPreset: "localized-short",
   pageSizeOptions: [5, 10, 20, 50, 100],
 };
 

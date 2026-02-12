@@ -1,6 +1,8 @@
 /**
  * Helper functions for defining and working with table configurations
  */
+
+import type { DateDisplayPreset } from "../types/date-types";
 import { defaultTableConfig, defaultTranslations } from "./defaults";
 import type { TableFormConfig } from "./form-config";
 
@@ -55,6 +57,16 @@ export interface ColumnDefinition {
     | "number"
     | "tag"
     | "text";
+
+  /**
+   * Date display preset for date columns
+   */
+  dateDisplayPreset?: DateDisplayPreset;
+
+  /**
+   * Legacy date-fns format string for date columns
+   */
+  dateFormat?: string;
 
   /**
    * Key that contains the type information for dynamicType columns
@@ -126,6 +138,11 @@ export interface TableBehaviorConfig {
    * Available options in the page size selector
    */
   pageSizeOptions: number[];
+
+  /**
+   * Default date display preset for date columns in this table
+   */
+  dateDisplayPreset?: DateDisplayPreset;
 }
 
 /**
@@ -220,7 +237,13 @@ export function defineTableConfig(config: {
   translations: TableTranslationsConfig;
 }): TableConfig {
   // Merge the table behavior config with defaults
-  const tableDefaults = { ...defaultTableConfig, ...config.table };
+  const tableDefaults: TableBehaviorConfig = {
+    ...defaultTableConfig,
+    ...config.table,
+    dateDisplayPreset:
+      config.table?.dateDisplayPreset ??
+      (defaultTableConfig.dateDisplayPreset as DateDisplayPreset | undefined),
+  };
 
   return {
     columns: {

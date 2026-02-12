@@ -4,8 +4,9 @@
  */
 "use client";
 
-import { format } from "date-fns";
 import { useLocale } from "../../providers/table-provider";
+import type { DateDisplayPreset } from "../../types/date-types";
+import { formatDateForDisplay, toValidDate } from "../../utils/date-display";
 
 export interface DateCellProps {
   /**
@@ -18,6 +19,16 @@ export interface DateCellProps {
    * @default "PPP" (localized date with month name)
    */
   dateFormat?: string;
+
+  /**
+   * Date display preset (strict preset-based formatting)
+   */
+  dateDisplayPreset?: DateDisplayPreset;
+
+  /**
+   * Fallback date display preset (typically table-level default)
+   */
+  fallbackDateDisplayPreset?: DateDisplayPreset;
 
   /**
    * Whether to show the time
@@ -37,34 +48,34 @@ export interface DateCellProps {
 export function DateCell({
   className = "",
   dateFormat = "PPP",
+  dateDisplayPreset,
+  fallbackDateDisplayPreset,
   showTime = false,
   value,
 }: DateCellProps) {
-  // Get the current locale from our translations provider
-  const _locale = useLocale();
-
-  // Handle Prisma JSON objects with 'set' property
-  if (value && typeof value === "object" && "set" in value) {
-    value = (value as { set: unknown }).set as Date | number | string;
-  }
+  const locale = useLocale();
 
   // If the value is not a valid date, return a placeholder
   if (!value) {
     return <span className="text-muted-foreground">-</span>;
   }
 
-  // Format the date based on the locale and format string
-  try {
-    const date = new Date(value);
-
-    // Check if the date is valid
-    if (Number.isNaN(date.getTime())) {
-      return <span className="text-muted-foreground">Invalid date</span>;
-    }
-
-    const formatString = showTime ? `${dateFormat} HH:mm` : dateFormat;
-    return <span className={className}>{format(date, formatString)}</span>;
-  } catch (_error) {
+  // If the input cannot be parsed to a valid date, keep explicit fallback.
+  if (!toValidDate(value)) {
     return <span className="text-muted-foreground">Invalid date</span>;
   }
+
+  const displayValue = formatDateForDisplay(value, {
+    dateDisplayPreset,
+    fallbackDateDisplayPreset,
+    dateFormat,
+    locale,
+    showTime,
+  });
+
+  if (!displayValue) {
+    return <span className="text-muted-foreground">Invalid date</span>;
+  }
+
+  return <span className={className}>{displayValue}</span>;
 }

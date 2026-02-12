@@ -5,6 +5,7 @@
 
 import type { ColumnFiltersState } from "@tanstack/react-table";
 import { useCallback, useMemo } from "react";
+import type { DateDisplayPreset } from "../types/date-types";
 import type {
   AdvancedFilterModel,
   AdvancedFilterPreset,
@@ -692,6 +693,8 @@ const createColumnConfig = (
     id: string;
     label: string;
     canFilter?: boolean;
+    dateDisplayPreset?: DateDisplayPreset;
+    dateFormat?: string;
     [key: string]: unknown;
   },
   type: ColumnDataType
@@ -721,6 +724,9 @@ const createColumnConfig = (
       operators: getOperatorsByType("text"),
     },
     date: {
+      dateDisplayPreset: column.dateDisplayPreset,
+      dateFormat:
+        typeof column.dateFormat === "string" ? column.dateFormat : undefined,
       operators: getOperatorsByType("date"),
     },
     multiOption: {
@@ -744,6 +750,8 @@ export function useColumnsFilterConfig(
     canFilter?: boolean;
     type?: ColumnDataType | string;
     options?: unknown;
+    dateDisplayPreset?: DateDisplayPreset;
+    dateFormat?: string;
     [key: string]: unknown;
   }>,
   typeMapping: Record<string, ColumnDataType> = {}

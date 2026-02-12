@@ -154,6 +154,8 @@ export function FilterValueInput<TType extends ColumnDataType>({
       if (compact) {
         return (
           <CompactDateFilter
+            dateDisplayPreset={config.dateDisplayPreset}
+            dateFormat={config.dateFormat}
             disabled={disabled}
             onValueChange={handleValueChange}
             operator={dateOperator}
@@ -164,6 +166,8 @@ export function FilterValueInput<TType extends ColumnDataType>({
 
       return (
         <DateFilter
+          dateDisplayPreset={config.dateDisplayPreset}
+          dateFormat={config.dateFormat}
           disabled={disabled}
           inline={inline}
           label={label}

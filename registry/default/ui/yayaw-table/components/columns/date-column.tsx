@@ -5,7 +5,6 @@
 "use client";
 
 import type { CellContext, ColumnDef } from "@tanstack/react-table";
-import { format } from "date-fns";
 import {
   CalendarDays,
   ChevronDown,
@@ -13,6 +12,12 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useLocale } from "../../providers/table-provider";
+import type { DateDisplayPreset } from "../../types/date-types";
+import {
+  formatYearMonthGroupLabel,
+  toYearMonthGroupKey,
+} from "../../utils/date-display";
 
 import { DateCell } from "../cells/date-cell";
 
@@ -40,6 +45,16 @@ interface DateColumnProps {
    * @default "PPP" (localized date with month name)
    */
   dateFormat?: string;
+
+  /**
+   * Date display preset (strict preset-based formatting)
+   */
+  dateDisplayPreset?: DateDisplayPreset;
+
+  /**
+   * Fallback date display preset (typically table-level default)
+   */
+  fallbackDateDisplayPreset?: DateDisplayPreset;
 
   /**
    * Whether the column can be filtered
@@ -76,12 +91,10 @@ interface DateColumnProps {
  */
 type ExtendedColumnDef<TData> = ColumnDef<TData> & CustomColumnProps;
 
-function formatMonthLabel(value: Date | number | string | undefined) {
-  if (!value) {
-    return "";
-  }
-  const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? "" : format(d, "LLLL yyyy");
+function DateGroupLabel({ value }: { value: unknown }) {
+  const locale = useLocale();
+  const label = formatYearMonthGroupLabel(value, locale);
+  return <span className="font-medium">{label}</span>;
 }
 
 /**
@@ -92,6 +105,8 @@ export function createDateColumn<TData>({
   accessorKey,
   className,
   dateFormat = "PPP",
+  dateDisplayPreset,
+  fallbackDateDisplayPreset,
   enableColumnFilter = true,
   enableHiding = true,
   enableSorting = true,
@@ -102,14 +117,14 @@ export function createDateColumn<TData>({
     accessorKey,
     // Allow grouping by default for date columns
     enableGrouping: true,
-    // Grouping value: month label (e.g., "September 2017")
+    // Grouping value: stable chronological key (YYYY-MM)
     getGroupingValue: (row: unknown) => {
       const value = (row as Record<string, unknown>)[accessorKey] as
         | Date
         | number
         | string
         | undefined;
-      return formatMonthLabel(value);
+      return toYearMonthGroupKey(value) ?? "";
     },
     // Aggregation for grouped rows (count of rows)
     aggregationFn: "count",
@@ -120,8 +135,7 @@ export function createDateColumn<TData>({
 
       // Group header row: show toggle + month label + count
       if (isGrouped) {
-        const rawValue = info.getValue() as Date | number | string | undefined;
-        const label = formatMonthLabel(rawValue);
+        const rawValue = info.getValue();
         const expanded = info.row.getIsExpanded();
         const count = info.row.subRows?.length || 0;
 
@@ -140,7 +154,7 @@ export function createDateColumn<TData>({
                 <ChevronRight className="h-4 w-4" />
               )}
             </Button>
-            <span className="font-medium">{label}</span>
+            <DateGroupLabel value={rawValue} />
             <span className="text-muted-foreground text-xs">{count}</span>
           </div>
         );
@@ -162,7 +176,9 @@ export function createDateColumn<TData>({
       return (
         <DateCell
           className={className}
+          dateDisplayPreset={dateDisplayPreset}
           dateFormat={dateFormat}
+          fallbackDateDisplayPreset={fallbackDateDisplayPreset}
           showTime={showTime}
           value={value}
         />
@@ -170,8 +186,7 @@ export function createDateColumn<TData>({
     },
     // How to render aggregated cell for date column (show group label)
     aggregatedCell: ({ getValue }) => {
-      const label = getValue() as string;
-      return <span className="font-medium">{label}</span>;
+      return <DateGroupLabel value={getValue()} />;
     },
     enableColumnFilter,
     enableHiding,

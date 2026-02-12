@@ -15,6 +15,7 @@ export type {
 // Config helper and types
 export { defineTableConfig } from "./config/helpers";
 export * from "./types/column-types";
+export * from "./types/date-types";
 export * from "./types/filter-types";
 export * from "./types/table-types";
 export * from "./types/translations";

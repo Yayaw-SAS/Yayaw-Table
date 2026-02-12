@@ -721,6 +721,11 @@
           "target": "components/ui/yayaw-table/types/column-types.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/types/date-types.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/types/date-types.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/types/filter-types.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/types/filter-types.ts"
@@ -779,6 +784,11 @@
           "path": "registry/default/ui/yayaw-table/utils/csv-export.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/csv-export.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/date-display.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/date-display.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/utils/server-filters.ts",

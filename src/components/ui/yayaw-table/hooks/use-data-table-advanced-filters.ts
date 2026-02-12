@@ -16,6 +16,7 @@ import type {
   FilterOperators,
   FilterStrategy,
 } from "../types/filter-types";
+import type { DateDisplayPreset } from "../types/date-types";
 import { useDataTable } from "./use-data-table";
 import { useTableUrlState } from "./use-table-url-state";
 
@@ -695,6 +696,8 @@ const createColumnConfig = (
     id: string;
     label: string;
     canFilter?: boolean;
+    dateDisplayPreset?: DateDisplayPreset;
+    dateFormat?: string;
     [key: string]: unknown;
   },
   type: ColumnDataType
@@ -724,6 +727,9 @@ const createColumnConfig = (
       operators: getOperatorsByType("text"),
     },
     date: {
+      dateDisplayPreset: column.dateDisplayPreset,
+      dateFormat:
+        typeof column.dateFormat === "string" ? column.dateFormat : undefined,
       operators: getOperatorsByType("date"),
     },
     multiOption: {
@@ -747,6 +753,8 @@ export function useColumnsFilterConfig(
     canFilter?: boolean;
     type?: ColumnDataType | string;
     options?: unknown;
+    dateDisplayPreset?: DateDisplayPreset;
+    dateFormat?: string;
     [key: string]: unknown;
   }>,
   typeMapping: Record<string, ColumnDataType> = {}

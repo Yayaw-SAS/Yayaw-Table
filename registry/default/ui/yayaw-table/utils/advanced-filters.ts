@@ -3,6 +3,7 @@
  * Provides client-side filtering functions and helpers
  */
 
+import type { DateDisplayPreset } from "../types/date-types";
 import type {
   AdvancedFilterModel,
   AdvancedFiltersState,
@@ -11,6 +12,10 @@ import type {
   FilterOperators,
   FilterValues,
 } from "../types/filter-types";
+import {
+  formatDateForDisplay,
+  formatDateRangeForDisplay,
+} from "./date-display";
 
 /**
  * Generate a unique ID for filters
@@ -390,33 +395,40 @@ function formatNumberValue(operator: string, values: unknown): string {
   return String(values || "");
 }
 
+export interface DateFilterDisplayOptions {
+  dateDisplayPreset?: DateDisplayPreset;
+  fallbackDateDisplayPreset?: DateDisplayPreset;
+  dateFormat?: string;
+  locale?: string;
+}
+
 /**
  * Format date values for display
  */
-function normalizeDateValue(value: unknown): Date | undefined {
-  if (value instanceof Date) {
-    return Number.isNaN(value.getTime()) ? undefined : value;
+function formatDateValue(
+  operator: string,
+  values: unknown,
+  dateOptions?: DateFilterDisplayOptions
+): string {
+  if (operator === "between") {
+    return (
+      formatDateRangeForDisplay(values, {
+        dateDisplayPreset: dateOptions?.dateDisplayPreset,
+        fallbackDateDisplayPreset: dateOptions?.fallbackDateDisplayPreset,
+        dateFormat: dateOptions?.dateFormat,
+        locale: dateOptions?.locale,
+      }) ?? String(values ?? "")
+    );
   }
 
-  if (typeof value === "string" || typeof value === "number") {
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? undefined : date;
-  }
-
-  return;
-}
-
-function formatSingleDateValue(value: unknown): string {
-  const date = normalizeDateValue(value);
-  return date ? date.toLocaleDateString() : String(value ?? "");
-}
-
-function formatDateValue(operator: string, values: unknown): string {
-  if (operator === "between" && Array.isArray(values)) {
-    const [start, end] = values as [unknown, unknown];
-    return `${formatSingleDateValue(start)} - ${formatSingleDateValue(end)}`;
-  }
-  return formatSingleDateValue(values);
+  return (
+    formatDateForDisplay(values, {
+      dateDisplayPreset: dateOptions?.dateDisplayPreset,
+      fallbackDateDisplayPreset: dateOptions?.fallbackDateDisplayPreset,
+      dateFormat: dateOptions?.dateFormat,
+      locale: dateOptions?.locale,
+    }) ?? String(values ?? "")
+  );
 }
 
 /**
@@ -440,7 +452,8 @@ export function formatFilterValueForDisplay(
   type: ColumnDataType,
   operator: string,
   values: unknown,
-  options?: ColumnOption[]
+  options?: ColumnOption[],
+  dateOptions?: DateFilterDisplayOptions
 ): string {
   switch (type) {
     case "text":
@@ -448,7 +461,7 @@ export function formatFilterValueForDisplay(
     case "number":
       return formatNumberValue(operator, values);
     case "date":
-      return formatDateValue(operator, values);
+      return formatDateValue(operator, values, dateOptions);
     case "option":
     case "multiOption":
       return formatOptionValue(values, options);
