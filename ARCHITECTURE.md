@@ -28,7 +28,7 @@ YaYaw Table is a flexible data table component library that allows users to defi
 
 ### 2. Configuration Helper
 ```tsx
-import { defineTableConfig } from 'yayaw-table'
+import { defineTableConfig } from "@/components/ui/yayaw-table";
 
 const myTableConfig = defineTableConfig({
   id: "products",
@@ -68,33 +68,26 @@ The library supports these column types:
 | `code` | Code snippets | IDs, keys |
 | `dynamicType` | Variable content | Mixed data types |
 
-## 📂 Package Structure
+## 📂 Repository Structure
 
-```
+```text
 yayaw-table/
 ├── src/
-│   ├── data-table/
-│   │   ├── components/
-│   │   │   ├── data-table.tsx           # Main component
-│   │   │   └── simple-data-table.tsx    # Alternative simple API
-│   │   ├── config/
-│   │   │   └── helpers.ts               # defineTableConfig()
-│   │   ├── providers/
-│   │   │   └── table-provider.tsx
-│   │   └── types/
-│   │       └── translations.ts
-│   ├── components/ui/                   # Core UI components
-│   └── lib/
-│       └── utils.ts                     # Utilities
-├── example/                             # Usage examples
-└── dist/                               # Built package
+│   ├── components/ui/yayaw-table/       # Source of truth for the table block
+│   ├── components/ui/custom/            # Shared custom UI files used by the block
+│   └── lib/                             # Shared utilities
+├── registry/
+│   ├── default/ui/yayaw-table/          # Generated from src (do not edit by hand)
+│   └── registry.json                    # Shadcn registry manifest
+├── public/r/                            # Built registry artifacts served by docs site
+└── scripts/build-registry.mjs           # Sync/generate registry files
 ```
 
 ## 🚀 Usage Patterns
 
 ### Basic Usage
 ```tsx
-import { DataTable, defineTableConfig } from 'yayaw-table'
+import { DataTable, defineTableConfig } from "@/components/ui/yayaw-table";
 
 // 1. Define your configuration
 const tableConfig = defineTableConfig({

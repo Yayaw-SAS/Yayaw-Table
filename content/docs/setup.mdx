@@ -160,14 +160,13 @@ export const getTableActions = (tableType: string) => {
 ### 4. Render `DataTable` in a client component
 
 `getTableConfig` and `getTableActions` are functions, so the component that passes them must be a Client Component.
-If you installed via Shadcn registry, import `DataTable` from `@/components/ui/yayaw-table` instead of `yayaw-table`.
 
 ```tsx
 // app/products/page.tsx
 "use client";
 
 import { QueryClient } from "@tanstack/react-query";
-import { DataTable } from "yayaw-table";
+import { DataTable } from "@/components/ui/yayaw-table";
 import { getTableActions, getTableConfig } from "./setup/table-config";
 
 const queryClient = new QueryClient();

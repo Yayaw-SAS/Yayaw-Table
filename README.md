@@ -8,43 +8,43 @@ Flexible, type-safe data table for React. One component, clean API, minimal boil
 - **Built-in UX**: Sorting, pagination, grouping, column visibility, bulk actions
 - **Type-safe**: Strong TypeScript types out of the box
 - **Accessible**: Keyboard navigation and ARIA-friendly UI
-- **SSR-friendly**: Works great with Next.js 15
+- **SSR-friendly**: Works great with Next.js 15+
 - **Powered by TanStack Table**: Excellent performance
 - **Tailwind-ready**: Easy to style
 
-### Installation
+### Installation (Shadcn Registry)
+
+Prerequisites:
+
+- A project already initialized with Shadcn UI
+- `components.json` configured with `"aliases": { "ui": "@/components/ui" }`
+
+Install YaYaw Table from the registry:
 
 ```bash
-npm install yayaw-table
-# or
-bun add yayaw-table
-# or
-pnpm add yayaw-table
+npx shadcn@latest add https://table.yayaw.eu/r/yayaw-table.json
 ```
 
-Peer dependencies:
+If your project has the `@yayaw` registry namespace configured:
 
-- `react` (^18 or ^19)
-- `react-dom` (^18 or ^19)
-- `@tanstack/react-table` (^8)
-- `@tanstack/react-query` (^5)
-- `nuqs` (^2)
-- `jotai` (^2)
-- `jotai-family` (^1)
+```bash
+npx shadcn@latest add @yayaw/yayaw-table
+```
+
+The CLI will copy the code to `components/ui/yayaw-table` and install required dependencies.
 
 ### Quick Start
 
 ```tsx
-import { DataTable } from 'yayaw-table';
+import { DataTable } from "@/components/ui/yayaw-table";
 
-export const MyTable = () => (
-  <DataTable tableType="products" />
-);
+export const MyTable = () => <DataTable tableType="products" />;
 ```
 
 Common props:
 
 - `tableType`: your table configuration key
+- `getTableConfig` / `getTableActions`: configuration and server actions resolver
 - `loadingOverlay`: custom loading UI
 - `onRowSelectionChange`, `onBulkDelete`, `onBulkEdit`, `onBulkCopy`
 - `enableAdvancedFilters`: toggle advanced filters UI
@@ -60,23 +60,19 @@ Common props:
 - [Actions](./content/docs/actions.mdx)
 - [Translations](./content/docs/translations.mdx)
 
-### Example
+### Registry Maintenance
 
-- Open the example page at `/example` when running the dev server
-- Source: `./app/example/page.tsx`
+After editing files in `src/components/ui/yayaw-table` (or custom files listed in `src/components/ui/custom`):
 
-### Acknowledgements
+```bash
+bun run registry:sync
+```
 
-Massive thanks to the teams behind:
+To regenerate the distributable registry JSON in `public/r`:
 
-- [TanStack Table](https://tanstack.com/table)
-- [TanStack Query](https://tanstack.com/query)
-- [shadcn/ui](https://ui.shadcn.com)
-- [Nuqs](https://nuqs.io)
-- [Jotai](https://jotai.org)
-- [dnd-kit](https://dndkit.com)
-- [Floating UI](https://floating-ui.com)
-- [Base UI](https://base-ui.com)
+```bash
+bun run registry:build
+```
 
 ### Contributing
 
