@@ -1,17 +1,18 @@
 ---
 title: Installation
-description: How to install Yayaw Table
+description: Install Yayaw Table via Shadcn registry
 ---
 
 # Installation
 
-You can install Yayaw Table in two ways: via the **Shadcn CLI** (code copied into your project, no npm package) or via **npm** (package dependency).
+YaYaw Table is distributed through a **Shadcn registry**. The CLI copies the full code into your project, so you own and can edit it locally.
 
-## Option 1: Shadcn CLI (recommended if you use Shadcn)
+## Prerequisites
 
-The project ships a [Shadcn registry](https://ui.shadcn.com/docs/registry): all table code is added into your repo, and the CLI installs the Shadcn components we depend on (table, button, input, etc.) once — no duplication.
+- A project already set up with [Shadcn UI](https://ui.shadcn.com/docs/installation)
+- A `components.json` with the `ui` alias configured (recommended: `"ui": "@/components/ui"`)
 
-**Prerequisites:** a project already set up with [Shadcn UI](https://ui.shadcn.com/docs/installation) (`npx shadcn@latest init`).
+## Install with Shadcn CLI
 
 From your project root:
 
@@ -19,72 +20,25 @@ From your project root:
 npx shadcn@latest add https://table.yayaw.eu/r/yayaw-table.json
 ```
 
-**With a configured registry:** if your project has the Yayaw registry in `components.json` (namespace `@yayaw`), you can run:
+If your project has the YaYaw registry namespace configured (`@yayaw`), you can also run:
 
 ```bash
 npx shadcn@latest add @yayaw/yayaw-table
 ```
 
-_(Replace the URL with your docs/deploy URL if you self-host; the registry is built in CI and served from `/r/`.)_
-
 The CLI will:
 
-- Add any missing Shadcn components (table, button, dialog, etc.) to the path defined by your **`ui` alias**
-- Copy the full Yayaw Table code (and its small ui-custom pieces) into your project under `ui/yayaw-table/` (relative to that same base)
-- Install the required npm dependencies (e.g. `@tanstack/react-table`, `jotai`, `lucide-react`)
+- Add missing Shadcn components we depend on
+- Copy YaYaw Table files under your `ui` alias (for example `@/components/ui/yayaw-table`)
+- Install required npm dependencies (`@tanstack/react-table`, `jotai`, `lucide-react`, etc.)
 
-**Install path:** The Shadcn CLI uses the `ui` alias from your project’s `components.json` (`aliases.ui`). To have Shadcn components and yayaw-table under `@/components/ui` (and yayaw-table at `@/components/ui/yayaw-table`), set:
+## First usage
 
-```json
-"aliases": {
-  "ui": "@/components/ui",
-  ...
-}
-```
-
-Then use the table from the copied code:
+Import from your local copied code:
 
 ```tsx
 import { DataTable } from "@/components/ui/yayaw-table";
-
-export const MyTable = () => <DataTable tableType="products" />;
-```
-
-No `yayaw-table` package: you own and can edit the code locally.
-
-## Option 2: Package manager (npm package)
-
-Install the published package and use it as a dependency.
-
-```bash title="Using npm"
-npm install yayaw-table
-```
-
-```bash title="Using Bun (recommended)"
-bun add yayaw-table
-```
-
-```bash title="Using pnpm"
-pnpm add yayaw-table
-```
-
-### Peer dependencies
-
-- `react` (^18 or ^19)
-- `react-dom` (^18 or ^19)
-- `@tanstack/react-table` (^8)
-- `@tanstack/react-query` (^5) – used for data fetching and cache
-- `nuqs` (^2) – used for URL state (sort, filters, pagination in the URL). For Next.js App Router use `nuqs/adapters/next/app` and add **NuqsAdapter** in your root layout; see [URL state (Nuqs)](/docs/url-state).
-- `jotai` (^2) – used internally for table and UI state
-- `jotai-family` (^1) – atom families used by internal state modules
-
-### First usage
-
-You must pass at least **getTableConfig** and **getTableActions** so the table has columns and a data source. Example:
-
-```tsx
-import { DataTable } from "yayaw-table";
-import { getTableConfig, getTableActions } from "./table-config";
+import { getTableActions, getTableConfig } from "./table-config";
 
 export const MyTable = () => (
   <DataTable
@@ -95,12 +49,12 @@ export const MyTable = () => (
 );
 ```
 
-For Next.js with URL state, add **NuqsAdapter** in `app/layout.tsx` and optionally **QueryClientProvider**. See [Provider & Setup](/docs/setup) and [URL state (Nuqs)](/docs/url-state).
+For Next.js URL state, add **NuqsAdapter** in `app/layout.tsx`. See [Provider & Setup](/docs/setup) and [URL state (Nuqs)](/docs/url-state).
 
 ## CSS / Tailwind
 
-The table uses Tailwind CSS. Ensure Tailwind is set up in your project (or use your own classes to override default styles).
+YaYaw Table uses Tailwind CSS. Ensure Tailwind is configured in your project.
 
 ## TypeScript
 
-Yayaw Table is fully typed; declaration files are included with both installation methods.
+YaYaw Table is fully typed and ships type-safe configuration helpers in the copied source.
