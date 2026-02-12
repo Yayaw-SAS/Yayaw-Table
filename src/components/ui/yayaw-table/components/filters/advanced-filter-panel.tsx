@@ -5,18 +5,13 @@
 "use client";
 
 import {
-  Calendar,
-  CheckSquare,
   Filter,
-  Hash,
-  List as ListIcon,
   MoreHorizontal,
   Pencil,
   Plus,
   Power,
   RotateCcw,
   Trash2,
-  Type,
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -57,6 +52,7 @@ import {
   createFilter,
   formatFilterValueForDisplay,
 } from "../../utils/advanced-filters";
+import { ColumnIcon } from "../../utils/column-icons";
 import {
   FilterValueInput,
   getDefaultFilterOperator,
@@ -765,17 +761,6 @@ function InlineAddFilterPanel({
     [columnsConfig]
   );
 
-  const typeIcon: Record<
-    string,
-    React.ComponentType<{ className?: string }>
-  > = {
-    text: Type,
-    number: Hash,
-    date: Calendar,
-    option: CheckSquare,
-    multiOption: ListIcon,
-  } as const;
-
   return (
     <div className="w-full space-y-3 rounded-xl border border-border bg-card p-4 shadow-sm">
       <div className="flex items-center justify-between gap-3">
@@ -802,7 +787,6 @@ function InlineAddFilterPanel({
       <div className="rounded-lg bg-muted/20 p-1">
         <div className="space-y-0.5">
           {options.map((o) => {
-            const Icon = typeIcon[o.type] || Type;
             return (
               <Button
                 className="group h-auto w-full justify-start gap-2.5 rounded-md py-2.5 pr-3 pl-2.5 text-left transition-colors hover:bg-muted/60"
@@ -814,7 +798,7 @@ function InlineAddFilterPanel({
                 variant="ghost"
               >
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted/60 text-muted-foreground transition-colors group-hover:bg-muted">
-                  <Icon aria-hidden className="h-3.5 w-3.5" />
+                  <ColumnIcon className="h-3.5 w-3.5" columnType={o.type} />
                 </span>
                 <span className="min-w-0 flex-1 truncate text-left font-medium text-foreground text-sm">
                   {o.label}

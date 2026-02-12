@@ -501,6 +501,57 @@ const isSystemColumn = (columnId: string): boolean => {
   return columnId === "select" || columnId === "actions";
 };
 
+const normalizeColumnDataType = (
+  type: unknown
+): ColumnDataType | undefined => {
+  if (typeof type !== "string") {
+    return;
+  }
+
+  switch (type) {
+    case "text":
+    case "number":
+    case "date":
+    case "option":
+    case "multiOption":
+      return type;
+    case "boolean":
+    case "select":
+    case "tag":
+      return "option";
+    case "string":
+    case "code":
+      return "text";
+    default:
+      return;
+  }
+};
+
+const resolveColumnFilterType = (
+  column: {
+    id: string;
+    type?: ColumnDataType | string;
+    options?: unknown;
+  },
+  typeMapping: Record<string, ColumnDataType>
+): ColumnDataType => {
+  const mappedType = normalizeColumnDataType(typeMapping[column.id]);
+  if (mappedType) {
+    return mappedType;
+  }
+
+  const declaredType = normalizeColumnDataType(column.type);
+  if (declaredType) {
+    return declaredType;
+  }
+
+  if (Array.isArray(column.options) && column.options.length > 0) {
+    return "option";
+  }
+
+  return "text";
+};
+
 // Helper function to get operators by column type
 const getOperatorsByType = (
   type: ColumnDataType
@@ -610,6 +661,8 @@ export function useColumnsFilterConfig(
     id: string;
     label: string;
     canFilter?: boolean;
+    type?: ColumnDataType | string;
+    options?: unknown;
     [key: string]: unknown;
   }>,
   typeMapping: Record<string, ColumnDataType> = {}
@@ -622,7 +675,7 @@ export function useColumnsFilterConfig(
         continue;
       }
 
-      const type = typeMapping[column.id] || "text";
+      const type = resolveColumnFilterType(column, typeMapping);
       config[column.id] = createColumnConfig(column, type);
     }
     return config;

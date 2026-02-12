@@ -223,6 +223,7 @@ function createColumnOptions(
               filter: String(colDef.header || colDef.id),
             })
           : `Filter by ${colDef.header || colDef.id}...`,
+        options: (colDef as { options?: unknown }).options,
         type: colDef.type,
       };
       return option;
