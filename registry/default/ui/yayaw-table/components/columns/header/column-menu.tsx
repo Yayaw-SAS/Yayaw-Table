@@ -95,7 +95,7 @@ const MenuItem = memo(function MenuItemComponent({
   return (
     <div
       className={cn(
-        "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors",
+        "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 outline-none transition-colors",
         disabled
           ? "cursor-not-allowed text-muted-foreground"
           : "cursor-pointer hover:bg-accent hover:text-accent-foreground"
