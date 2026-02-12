@@ -1,22 +1,29 @@
 {
   "$schema": "https://ui.shadcn.com/schema.json",
+  "aliases": {
+    "components": "@/components",
+    "config": "@/config",
+    "contexts": "@/context",
+    "hooks": "@/lib/client/hooks",
+    "lib": "@/lib",
+    "messages": "@/messages",
+    "middleware": "@/middleware",
+    "types": "@/types",
+    "ui": "@/components/ui",
+    "utils": "@/lib/utils"
+  },
+  "iconLibrary": "lucide",
+  "menuAccent": "subtle",
+  "menuColor": "default",
+  "registries": { "@yayaw": "https://table.yayaw.eu/r/{name}.json" },
+  "rsc": true,
   "style": "base-vega",
-  "rsc": false,
-  "tsx": true,
   "tailwind": {
+    "baseColor": "neutral",
     "config": "",
     "css": "app/global.css",
-    "baseColor": "neutral",
     "cssVariables": true,
     "prefix": ""
   },
-  "registries": { "@yayaw": "https://table.yayaw.eu/r/{name}.json" },
-  "aliases": {
-    "components": "@/components",
-    "utils": "@/lib/utils",
-    "ui": "@/components/ui/",
-    "lib": "@/lib",
-    "hooks": "@/hooks"
-  },
-  "iconLibrary": "lucide"
+  "tsx": true
 }

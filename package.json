@@ -11,7 +11,7 @@
     "build:watch": "next dev",
     "build:lib": "cd packages/yayaw-table && bun run build",
     "registry:sync": "node scripts/build-registry.mjs",
-    "registry:build": "node scripts/build-registry.mjs && npx shadcn@latest build registry/registry.json --output public/r && node scripts/version-registry-artifacts.mjs",
+    "registry:build": "node scripts/build-registry.mjs && npx shadcn@latest build registry/registry.json --output public/r",
     "type-check:lib": "cd packages/yayaw-table && bun run type-check",
     "publish:lib": "cd packages/yayaw-table && bun publish --access public",
     "dev": "next dev",

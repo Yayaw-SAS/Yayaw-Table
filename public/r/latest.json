@@ -1,9 +1,0 @@
-{
-  "artifacts": {
-    "registry": "registry-v0.1.0-1a031f3b.json",
-    "yayawTable": "yayaw-table-v0.1.0-1a031f3b.json"
-  },
-  "build": "1a031f3b",
-  "generatedAt": "2026-02-12T08:49:57.123Z",
-  "version": "0.1.0"
-}
