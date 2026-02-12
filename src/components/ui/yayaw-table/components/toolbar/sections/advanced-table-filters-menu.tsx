@@ -11,7 +11,7 @@ import { Badge } from "@/src/components/ui/badge";
 import { Button } from "@/src/components/ui/button";
 import { ScrollArea } from "@/src/components/ui/scroll-area";
 import { Separator } from "@/src/components/ui/separator";
-import { StackMenuContent, StackMenuView } from "@/ui/custom/stack-menu";
+import { StackMenuContent, StackMenuView } from "@/components/ui/custom/stack-menu";
 import { useTranslations } from "../../../providers/table-provider";
 import type {
   AdvancedFiltersState,

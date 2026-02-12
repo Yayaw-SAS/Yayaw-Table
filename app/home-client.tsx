@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ThemeToggle } from "@/ui/custom/theme-toggle";
+import { ThemeToggle } from "@/components/ui/custom/theme-toggle";
 
 const productPillars = [
   {

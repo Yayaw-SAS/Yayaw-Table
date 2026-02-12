@@ -20,7 +20,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/src/components/ui/dropdown-menu";
-import { Icon } from "@/ui/custom/icon";
+import { Icon } from "@/components/ui/custom/icon";
 import { useTranslations } from "../../providers/table-provider";
 
 import type { ActionItem } from "../columns/actions-column";

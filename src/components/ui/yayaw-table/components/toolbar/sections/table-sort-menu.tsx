@@ -8,7 +8,7 @@ import {
   StackMenuItem,
   StackMenuView,
   useStackMenu,
-} from "@/ui/custom/stack-menu";
+} from "@/components/ui/custom/stack-menu";
 import { useDataTable } from "../../../hooks/use-data-table";
 import { useTranslations } from "../../../providers/table-provider";
 

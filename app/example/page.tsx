@@ -6,14 +6,14 @@ import { useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ui/custom/theme-toggle";
 import { Switch } from "@/components/ui/switch";
 import {
   activeColumnDragAtom,
   columnDragEnabledAtom,
-} from "@/src/ui/yayaw-table/atoms/table-atoms";
-import { DataTable } from "@/src/ui/yayaw-table/components/data-table";
-import { useBulkEdit } from "@/src/ui/yayaw-table/hooks/use-bulk-edit";
-import { ThemeToggle } from "@/ui/custom/theme-toggle";
+} from "@/src/components/ui/yayaw-table/atoms/table-atoms";
+import { DataTable } from "@/src/components/ui/yayaw-table/components/data-table";
+import { useBulkEdit } from "@/src/components/ui/yayaw-table/hooks/use-bulk-edit";
 import { CustomDescription, CustomTitle } from "./components";
 import { getFormConfig } from "./setup/form-config";
 import { getTableActions, getTableConfig } from "./setup/table-config";

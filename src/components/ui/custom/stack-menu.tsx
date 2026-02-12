@@ -22,7 +22,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/src/components/ui/popover";
-import { cn } from "../../lib/utils";
+import { cn } from "@/lib/utils";
 
 interface StackMenuViewProps {
   children: ReactNode;

@@ -2,7 +2,7 @@
 
 import type { GroupingState } from "@tanstack/react-table";
 import { useMemo } from "react";
-import { StackMenuContent, StackMenuView } from "@/ui/custom/stack-menu";
+import { StackMenuContent, StackMenuView } from "@/components/ui/custom/stack-menu";
 import { useTableConfig } from "../../../hooks/use-table-config";
 import { useTableUrlState } from "../../../hooks/use-table-url-state";
 import { useTranslations } from "../../../providers/table-provider";

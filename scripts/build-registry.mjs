@@ -1,9 +1,9 @@
 /**
- * Builds the Shadcn registry: copies src/ui/yayaw-table + ui-custom into
+ * Builds the Shadcn registry: copies src/components/ui/yayaw-table + ui-custom into
  * registry/default/ui/yayaw-table. Each file gets a "target" so the CLI
  * installs strictly under components/ui/yayaw-table/ (no files at components root).
  *
- * Source of truth: src/ui/yayaw-table (and listed src/ui/custom files).
+ * Source of truth: src/components/ui/yayaw-table (and listed src/components/ui/custom files).
  * Do not edit registry/default/ by hand — it is overwritten by this script.
  *
  * After writing files, runs the project formatter (ultracite fix) on the
@@ -28,8 +28,14 @@ const REGISTRY_BLOCK = path.join(
   "ui",
   "yayaw-table"
 );
-const SRC_YAYAW_TABLE = path.join(ROOT, "src", "ui", "yayaw-table");
-const SRC_UI_CUSTOM = path.join(ROOT, "src", "ui", "custom");
+const SRC_YAYAW_TABLE = path.join(
+  ROOT,
+  "src",
+  "components",
+  "ui",
+  "yayaw-table"
+);
+const SRC_UI_CUSTOM = path.join(ROOT, "src", "components", "ui", "custom");
 const UI_CUSTOM_FILES = ["loader.tsx", "icon.tsx", "stack-menu.tsx"];
 
 const REGEX_TSX_CSS = /\.(tsx?|css)$/;
@@ -47,6 +53,17 @@ function getAllFiles(dir, base = dir) {
     }
   }
   return out;
+}
+
+function assertDirectoryExists(dirPath, label) {
+  if (fs.existsSync(dirPath)) {
+    return;
+  }
+
+  throw new Error(
+    `${label} source directory not found: ${dirPath}\n` +
+      "Ensure source files exist at this exact location."
+  );
 }
 
 function copyRecursive(src, dest) {
@@ -75,18 +92,9 @@ function relativeImport(fromFileRel, toPathRel) {
 function transformContent(content, fileRel) {
   let out = content;
 
-  // @/ui/yayaw-table/XXX -> relative path (no extension)
+  // @/src/components/ui/yayaw-table/XXX -> relative path (no extension)
   out = out.replace(
-    /from ["']@\/ui\/yayaw-table\/([^"']+)["']/g,
-    (_, subPath) => {
-      const toPath = subPath.replace(REGEX_TS_EXT, "");
-      return `from "${relativeImport(fileRel, toPath)}"`;
-    }
-  );
-
-  // @/src/ui/yayaw-table/XXX -> relative path (no extension)
-  out = out.replace(
-    /from ["']@\/src\/ui\/yayaw-table\/([^"']+)["']/g,
+    /from ["']@\/src\/components\/ui\/yayaw-table\/([^"']+)["']/g,
     (_, subPath) => {
       const toPath = subPath.replace(REGEX_TS_EXT, "");
       return `from "${relativeImport(fileRel, toPath)}"`;
@@ -102,36 +110,28 @@ function transformContent(content, fileRel) {
     }
   );
 
-  // @/src/data-table/XXX (legacy) -> relative path
+  // @/src/components/ui/custom/* or @/components/ui/custom/*
+  // -> relative to ui-custom in block
   out = out.replace(
-    /from ["']@\/src\/data-table\/([^"']+)["']/g,
-    (_, subPath) => {
-      const toPath = subPath.replace(REGEX_TS_EXT, "");
-      return `from "${relativeImport(fileRel, toPath)}"`;
-    }
-  );
-
-  // @/src/components/ui-custom/* or @/ui/custom/* -> relative to ui-custom in block
-  out = out.replace(
-    /from ["']@\/(?:src\/components\/ui-custom|ui\/custom)\/([^"']+)["']/g,
+    /from ["']@\/(?:src\/components\/ui\/custom|components\/ui\/custom)\/([^"']+)["']/g,
     (_, name) => `from "${relativeImport(fileRel, `ui-custom/${name}`)}"`
   );
 
-  // @/src/components/ui/* or @/ui/shadcn/* -> @/components/ui/* (standard shadcn alias for registry)
+  // @/src/components/ui/* or @/components/ui/* -> @/components/ui/*
   out = out.replace(
-    /from ["']@\/(?:src\/components\/ui|ui\/shadcn)\/([^"']+)["']/g,
+    /from ["']@\/(?:src\/components\/ui|components\/ui)\/([^"']+)["']/g,
     (_, name) => `from "@/components/ui/${name}"`
   );
 
-  // @/ui/custom/loader -> relative
+  // explicit custom aliases -> relative
   out = out.replace(
-    /from ["']@\/components\/ui-custom\/loader["']/g,
+    /from ["']@\/components\/ui\/custom\/loader["']/g,
     () => `from "${relativeImport(fileRel, "ui-custom/loader")}"`
   );
 
-  // @/ui/custom/icon -> relative
+  // explicit custom aliases -> relative
   out = out.replace(
-    /from ["']@\/components\/ui-custom\/icon["']/g,
+    /from ["']@\/components\/ui\/custom\/icon["']/g,
     () => `from "${relativeImport(fileRel, "ui-custom/icon")}"`
   );
 
@@ -143,9 +143,9 @@ function transformContent(content, fileRel) {
     );
   }
 
-  // Relative path to components/ui/* or ui/shadcn/* -> @/components/ui/*
+  // Relative path to components/ui/* -> @/components/ui/*
   out = out.replace(
-    /from ["'](\.\.\/)+(?:components\/ui|ui\/shadcn)\/([^"']+)["']/g,
+    /from ["'](\.\.\/)+components\/ui\/([^"']+)["']/g,
     (_, _back, name) => `from "@/components/ui/${name}"`
   );
 
@@ -177,11 +177,13 @@ function getFileType(fileRel) {
 
 // --- main ---
 
-// 1) Clean and copy data-table (under ui/ so CLI installs to ui/yayaw-table/)
+// 1) Clean and copy source table block
 if (fs.existsSync(REGISTRY_BLOCK)) {
   fs.rmSync(REGISTRY_BLOCK, { recursive: true });
 }
 fs.mkdirSync(path.dirname(REGISTRY_BLOCK), { recursive: true });
+assertDirectoryExists(SRC_YAYAW_TABLE, "yayaw-table");
+assertDirectoryExists(SRC_UI_CUSTOM, "ui/custom");
 copyRecursive(SRC_YAYAW_TABLE, REGISTRY_BLOCK);
 
 // 2) Copy ui-custom (loader, icon, stack-menu)

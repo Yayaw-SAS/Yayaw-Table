@@ -6,7 +6,7 @@ import { Filter, X } from "lucide-react";
 import { useEffect } from "react";
 import { Button } from "@/src/components/ui/button";
 import { Separator } from "@/src/components/ui/separator";
-import { StackMenuContent, StackMenuView } from "@/ui/custom/stack-menu";
+import { StackMenuContent, StackMenuView } from "@/components/ui/custom/stack-menu";
 import { tableMenuOpenFilterColumnIdAtom } from "../../../atoms/table-atoms";
 import { useTranslations } from "../../../providers/table-provider";
 import type {

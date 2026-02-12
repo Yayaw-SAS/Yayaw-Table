@@ -1,8 +1,8 @@
 "use client";
 
 import { toast } from "sonner";
-import { useBulkEdit } from "@/src/ui/yayaw-table/hooks/use-bulk-edit";
-import { useTableActions } from "@/src/ui/yayaw-table/providers/table-provider";
+import { useBulkEdit } from "@/src/components/ui/yayaw-table/hooks/use-bulk-edit";
+import { useTableActions } from "@/src/components/ui/yayaw-table/providers/table-provider";
 
 interface BulkEditProviderProps {
   children: (bulkEdit: ReturnType<typeof useBulkEdit>) => React.ReactNode;

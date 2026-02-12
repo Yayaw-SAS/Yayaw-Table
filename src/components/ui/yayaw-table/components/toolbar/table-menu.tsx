@@ -32,7 +32,7 @@ import {
   StackMenuItem,
   StackMenuSection,
   StackMenuView,
-} from "@/ui/custom/stack-menu";
+} from "@/components/ui/custom/stack-menu";
 import {
   tableMenuOpenFilterColumnIdAtom,
   tableMenuOpenToViewAtom,

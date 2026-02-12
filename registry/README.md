@@ -2,7 +2,7 @@
 
 Distribution **sans package npm** : tout le code est dans le registry. Les composants Shadcn utilisés sont déclarés en `registryDependencies`, le CLI les ajoute une seule fois (pas de duplication).
 
-**Source de vérité :** seul `src/ui/yayaw-table` (et les fichiers listés dans `src/ui/custom`) est à maintenir. Le dossier `registry/default/ui/yayaw-table` est **généré** par le script et ne doit pas être modifié à la main. Après toute modification sous `src/ui/yayaw-table`, exécuter `bun run registry:sync`. Le script lance ensuite `ultracite fix` sur `registry/default` pour que le code généré respecte le style du projet (plus besoin de lancer un fix à la main).
+**Source de vérité :** seul `src/components/ui/yayaw-table` (et les fichiers listés dans `src/components/ui/custom`) est à maintenir. Le dossier `registry/default/ui/yayaw-table` est **généré** par le script et ne doit pas être modifié à la main. Après toute modification sous `src/components/ui/yayaw-table`, exécuter `bun run registry:sync`. Le script lance ensuite `ultracite fix` sur `registry/default` pour que le code généré respecte le style du projet (plus besoin de lancer un fix à la main).
 
 ## CI (GitHub Actions)
 
@@ -15,7 +15,7 @@ Le site de doc (Next) sert tout ce qui est dans `public/` : une fois déployé, 
 
 ## En local
 
-1. **Synchroniser** le code source vers le registry (après modification de `src/ui/yayaw-table` ou des composants dans `src/ui/custom`) :
+1. **Synchroniser** le code source vers le registry (après modification de `src/components/ui/yayaw-table` ou des composants dans `src/components/ui/custom`) :
    ```bash
    bun run registry:sync
    ```
@@ -29,7 +29,7 @@ Le site de doc (Next) sert tout ce qui est dans `public/` : une fois déployé, 
 
 Quand on fait `npx shadcn@latest add <url-du-block>` (ex. `https://ton-domaine.com/r/yayaw-table.json`) :
 
-1. **Composants Shadcn** (`registryDependencies`) : installés **d’abord** par le CLI dans le dossier défini par l’alias **`ui`** du `components.json` du projet. Ex. si `"ui": "@/ui/shadcn"` → `src/ui/shadcn/` (button, dialog, table, etc.).
+1. **Composants Shadcn** (`registryDependencies`) : installés **d’abord** par le CLI dans le dossier défini par l’alias **`ui`** du `components.json` du projet. Ex. si `"ui": "@/components/ui"` → `src/components/ui/` (button, dialog, table, etc.).
 
 2. **Fichiers du block yayaw-table** : le CLI utilise le `components.json` du projet pour déterminer la cible. En général, les fichiers du block sont placés dans un **sous-dossier du nom du block** sous l’alias correspondant au type de fichier :
    - types **registry:component** / **registry:lib** → alias **`components`** (souvent `@/components` → `src/components/`) ;
@@ -37,14 +37,14 @@ Quand on fait `npx shadcn@latest add <url-du-block>` (ex. `https://ton-domaine.c
 
    Donc avec une config par défaut, tout le block atterrit typiquement sous un même dossier, par ex. **`src/components/yayaw-table/`** (ou équivalent selon la version du CLI), avec la structure : `atoms/`, `components/`, `config/`, `hooks/`, `providers/`, `types/`, `utils/`, `ui-custom/`.
 
-3. **Imports dans le block** : le code du block importe `@/ui/shadcn/...` et `@/lib/utils`. Pour que ça résolve correctement, le projet doit avoir les alias **`@/ui`** (ou au moins `@/ui/shadcn` pour les primitives Shadcn) et **`@/lib`** comme dans son `components.json` / `tsconfig.json`.
+3. **Imports dans le block** : le code du block importe `@/components/ui/...` et `@/lib/utils`. Pour que ça résolve correctement, le projet doit avoir les alias **`@/components`** et **`@/lib`** dans `components.json` / `tsconfig.json`.
 
-En résumé : **Shadcn → `ui` (ex. `src/ui/shadcn/`)**, **block yayaw-table → sous-dossier dédié (ex. `src/components/yayaw-table/`)**. Pour une structure alignée avec ce repo, on peut configurer `"components": "@/components"` et `"ui": "@/ui/shadcn"` dans `components.json`.
+En résumé : **Shadcn → `ui` (ex. `src/components/ui/`)**, **block yayaw-table → sous-dossier dédié (ex. `src/components/yayaw-table/`)**. Pour une structure alignée avec ce repo, on peut configurer `"components": "@/components"` et `"ui": "@/components/ui"` dans `components.json`.
 
 ## Structure
 
 - `registry.json` : entrée du registry (un block `yayaw-table` avec `registryDependencies` Shadcn et `dependencies` npm).
-- `default/ui/yayaw-table/` : **généré** par `scripts/build-registry.mjs` à partir de `src/ui/yayaw-table` + `ui-custom` (loader, icon, stack-menu) depuis `src/ui/custom`, avec imports transformés pour le CLI (`@/components/ui/*`, etc.). Le script exécute ensuite `ultracite fix` sur ce dossier. Ne pas éditer ce dossier à la main.
+- `default/components/ui/yayaw-table/` : **généré** par `scripts/build-registry.mjs` à partir de `src/components/ui/yayaw-table` + `ui-custom` (loader, icon, stack-menu) depuis `src/components/ui/custom`, avec imports transformés pour le CLI (`@/components/ui/*`, etc.). Le script exécute ensuite `ultracite fix` sur ce dossier. Ne pas éditer ce dossier à la main.
 
 ## Index officiel Shadcn
 

@@ -19,7 +19,6 @@
       "@/app/*": ["./app/*"],
       "@/lib/*": ["./src/lib/*"],
       "@/components/*": ["./src/components/*"],
-      "@/ui/*": ["./src/ui/*"],
       "@/hooks/*": ["./src/hooks/*"],
       "@/providers/*": ["./src/providers/*"],
       "@/utils/*": ["./src/utils/*"],

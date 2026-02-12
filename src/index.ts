@@ -3,11 +3,11 @@
 export type {
   DataTableColumnsConfig,
   DataTableConfig,
-} from "./ui/yayaw-table/atoms/config-atoms";
+} from "./components/ui/yayaw-table/atoms/config-atoms";
 // Export main components
-export { DataTable } from "./ui/yayaw-table/components/data-table";
+export { DataTable } from "./components/ui/yayaw-table/components/data-table";
 // Re-export TableActions type from provider for external usage
-export type { TableActions } from "./ui/yayaw-table/providers/table-provider";
+export type { TableActions } from "./components/ui/yayaw-table/providers/table-provider";
 export {
   defaultTranslations,
   TableProvider,
@@ -17,6 +17,6 @@ export {
   useTableComponents,
   useTableConfig,
   useTranslations,
-} from "./ui/yayaw-table/providers/table-provider";
+} from "./components/ui/yayaw-table/providers/table-provider";
 // Export types
-export type { DataTableTranslations } from "./ui/yayaw-table/types/translations";
+export type { DataTableTranslations } from "./components/ui/yayaw-table/types/translations";

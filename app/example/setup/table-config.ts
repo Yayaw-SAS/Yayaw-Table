@@ -1,4 +1,4 @@
-import type { DataTableConfig } from "@/src/ui/yayaw-table/atoms/config-atoms";
+import type { DataTableConfig } from "@/src/components/ui/yayaw-table/atoms/config-atoms";
 import {
   bulkCopy,
   bulkDelete,

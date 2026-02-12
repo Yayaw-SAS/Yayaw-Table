@@ -20,7 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/src/components/ui/table";
-import { Loader } from "@/ui/custom/loader";
+import { Loader } from "@/components/ui/custom/loader";
 import { tableIdAtom } from "../atoms/table-atoms";
 import { useBulkActions } from "../hooks/use-bulk-actions";
 import { useDataTable } from "../hooks/use-data-table";

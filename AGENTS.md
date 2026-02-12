@@ -7,15 +7,15 @@ This project uses **Ultracite**, a zero-config preset that enforces strict code 
 - **Format code**: `bun x ultracite fix`
 - **Check for issues**: `bun x ultracite check`
 - **Diagnose setup**: `bun x ultracite doctor`
-- **Sync registry** (after editing `src/ui/yayaw-table`): `bun run registry:sync`
+- **Sync registry** (after editing `src/components/ui/yayaw-table`): `bun run registry:sync`
 
 Biome (the underlying engine) provides robust linting and formatting. Most issues are automatically fixable.
 
 ### Registry (yayaw-table)
 
-The **source of truth** for the Shadcn registry is `src/ui/yayaw-table` (and listed files in `src/ui/custom`) in this repository. The folder `registry/default/ui/yayaw-table` is **generated** by `scripts/build-registry.mjs`. Only edit files under `src/`. After changes to yayaw-table or ui-custom, run `bun run registry:sync` to regenerate the registry and `registry.json`.
+The **source of truth** for the Shadcn registry is `src/components/ui/yayaw-table` (and listed files in `src/components/ui/custom`) in this repository. The folder `registry/default/ui/yayaw-table` is **generated** by `scripts/build-registry.mjs`. Only edit files under `src/`. After changes to yayaw-table or custom UI files, run `bun run registry:sync` to regenerate the registry and `registry.json`.
 
-Note: in consumer projects, the registry now installs files under `components/ui/yayaw-table` (target path), not under `src/ui/yayaw-table`.
+Note: in consumer projects, the registry now installs files under `components/ui/yayaw-table` (target path), not under `src/components/ui/yayaw-table`.
 
 ---
 
