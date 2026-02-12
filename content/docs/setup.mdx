@@ -1,73 +1,244 @@
 ---
 title: Provider & Setup
-description: TableProvider, getTableConfig, getTableActions, getFormConfig and minimal setup
+description: Step-by-step setup with a concrete Next.js example
 ---
 
 # Provider & Setup
 
-The table uses a **single entry point**: the `DataTable` component. You pass configuration and actions as props; `DataTable` wraps everything in `TableProvider` internally. No need to import `TableProvider` unless you want to nest multiple tables or share one provider across several tables.
+`DataTable` is the single entry point. You pass configuration and actions as props, and `DataTable` wires `TableProvider` internally.
 
-## Minimal setup
+This page shows a concrete setup you can copy, then adapt.
 
-You need at least:
+## Step-by-step setup (Next.js App Router)
 
-1. **Table configuration** – `getTableConfig(tableType)` returning columns, table options, translations keys.
-2. **Table actions** – `getTableActions(tableType)` returning `list`, and optionally `create`, `update`, `delete`, `duplicate`, `bulkDelete`, `bulkCopy`, `bulkUpdate`.
+### 1. Add `NuqsAdapter` in your root layout
 
-Pass them to `DataTable`:
+If you want sort, filters, pagination, and visibility persisted in URL params, wrap your app with `NuqsAdapter`:
 
 ```tsx
-import { DataTable } from "yayaw-table";
-import { getTableConfig, getTableActions } from "./table-config";
+// app/layout.tsx
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 
-export function ProductsPage() {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="en">
+      <body>
+        <NuqsAdapter>{children}</NuqsAdapter>
+      </body>
+    </html>
+  );
+}
+```
+
+### 2. Create your table actions (minimum: `list`)
+
+The table calls your actions for data and CRUD. The only required action is `list`.
+
+```ts
+// app/products/actions/products.ts
+"use server";
+
+type ListProductsParams = {
+  advancedFilters?: unknown[];
+  filters?: Record<string, unknown>;
+  limit?: number;
+  orderBy?: Record<string, "asc" | "desc">;
+  page?: number; // 1-based
+  search?: string;
+};
+
+const products = [
+  { id: "1", name: "MacBook Pro", brand: "Apple", price: 2499, isActive: true },
+  { id: "2", name: "ThinkPad X1", brand: "Lenovo", price: 1899, isActive: true },
+  { id: "3", name: "XPS 13", brand: "Dell", price: 1599, isActive: false },
+];
+
+export async function listProducts(params: ListProductsParams) {
+  const { limit = 10, page = 1, search = "" } = params;
+
+  const filtered = products.filter((product) =>
+    product.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const start = (page - 1) * limit;
+  const end = start + limit;
+  const paged = filtered.slice(start, end);
+
+  return {
+    data: paged,
+    meta: {
+      pageCount: Math.max(1, Math.ceil(filtered.length / limit)),
+      totalCount: filtered.length,
+    },
+  };
+}
+
+export async function createProduct(data: Record<string, unknown>) {
+  return { success: true, data };
+}
+
+export async function updateProduct(id: string, data: Record<string, unknown>) {
+  return { success: true, data: { id, ...data } };
+}
+
+export async function deleteProduct(id: string) {
+  return { success: true, data: { id } };
+}
+```
+
+### 3. Create `getTableConfig` and `getTableActions`
+
+Keep setup in one file so each `tableType` is easy to maintain:
+
+```ts
+// app/products/setup/table-config.ts
+import {
+  createProduct,
+  deleteProduct,
+  listProducts,
+  updateProduct,
+} from "../actions/products";
+
+export const getTableConfig = (tableType: string) => {
+  if (tableType !== "products") {
+    return;
+  }
+
+  return {
+    defaultPageSize: 10,
+    enableColumnDnd: true,
+    enableColumnDragDropByDefault: false,
+    enableColumnFilters: true,
+    enableGrouping: false,
+    enableMultiRowSelection: true,
+    enablePagination: true,
+    enableRowDragDrop: false,
+    enableRowSelection: true,
+    enableSorting: true,
+    pageSizeOptions: [10, 20, 50],
+    columns: {
+      definitions: [
+        { id: "name", type: "text", header: "Name", enableSorting: true, enableColumnFilter: true },
+        { id: "brand", type: "text", header: "Brand", enableSorting: true, enableColumnFilter: true },
+        { id: "price", type: "number", header: "Price", enableSorting: true, enableColumnFilter: true },
+        { id: "isActive", type: "boolean", header: "Active", enableSorting: true, enableColumnFilter: true },
+        { id: "actions", type: "actions", header: "Actions", enableSorting: false, enableColumnFilter: false },
+      ],
+      order: ["name", "brand", "price", "isActive", "actions"],
+      visible: ["name", "brand", "price", "isActive", "actions"],
+      mandatory: ["name"],
+      sort: [{ id: "name", desc: false }],
+    },
+    translations: {
+      namespace: "table.products",
+      keys: {
+        title: "Products",
+        description: "Manage your product catalog",
+      },
+    },
+  };
+};
+
+export const getTableActions = (tableType: string) => {
+  if (tableType !== "products") {
+    return;
+  }
+
+  return {
+    list: listProducts,
+    create: createProduct,
+    update: updateProduct,
+    delete: deleteProduct,
+  };
+};
+```
+
+### 4. Render `DataTable` in a client component
+
+`getTableConfig` and `getTableActions` are functions, so the component that passes them must be a Client Component.
+If you installed via Shadcn registry, import `DataTable` from `@/components/ui/yayaw-table` instead of `yayaw-table`.
+
+```tsx
+// app/products/page.tsx
+"use client";
+
+import { QueryClient } from "@tanstack/react-query";
+import { DataTable } from "yayaw-table";
+import { getTableActions, getTableConfig } from "./setup/table-config";
+
+const queryClient = new QueryClient();
+
+export default function ProductsPage() {
   return (
     <DataTable
       tableType="products"
       getTableConfig={getTableConfig}
       getTableActions={getTableActions}
+      queryClient={queryClient}
       title="Products"
+      description="Server-side pagination, filtering and sorting"
     />
   );
 }
 ```
 
-## Full props (single entry point)
+### 5. Optional: add `getFormConfig` for create/edit dialogs
 
-All of these are optional except `tableType`. They are passed through to the internal provider.
+If you want built-in create/edit/bulk-edit forms, provide `getFormConfig`:
 
-| Prop | Type | Description |
-|------|------|-------------|
-| `tableType` | `string` | **Required.** Identifier for this table (e.g. `"products"`). Used to resolve config and actions. |
-| `getTableConfig` | `(tableType: string) => Config \| undefined` | Returns columns, table options, default sort, visibility, translations keys. |
-| `getTableActions` | `(tableType: string) => TableActions \| undefined` | Returns `list`, `create`, `update`, `delete`, `duplicate`, `bulkDelete`, `bulkCopy`, `bulkUpdate`. |
-| `getFormConfig` | `(formType: string) => FormConfig \| undefined` | Returns form field definitions for create/edit and bulk edit. |
-| `translations` | `DataTableTranslations` | Override default UI strings. |
-| `locale` | `string` | Locale for translations (default `"en"`). |
-| `queryClient` | `QueryClient` | TanStack Query client. Create one if not provided (e.g. `new QueryClient()`). |
-| `title` | `string` | Table title above the toolbar. |
-| `description` | `string` | Short description under the title. |
-| `enableToolbar` | `boolean` | Show toolbar with filters, sort, columns, etc. (default `true`). |
-| `enableAdvancedFilters` | `boolean` | Enable advanced filters panel (default `false`). |
-| `columnTypeMapping` | `Record<string, 'text' \| 'number' \| 'date' \| 'option' \| 'multiOption'>` | Map backend types to filter/column types. |
-| `onExport` | `(rows) => void \| Promise<void>` | Override toolbar export behavior (all filtered rows). |
-| `onBulkExport` | `(rows) => void \| Promise<void>` | Override bulk CSV export behavior (selected rows). |
-| `onBulkEdit`, `onBulkDelete`, `onBulkCopy` | `(rows) => void` | Override bulk behavior; otherwise provider actions are used. |
-| **Bulk actions UI** | | When row selection is enabled, the bulk actions menu uses **actions** (`actions.edit`, `actions.copy`, `actions.export`, `actions.delete`, `actions.cancel`, `actions.confirm`), **bulk** (`bulk.close_menu`, `bulk.confirm_title`, `bulk.confirm_copy_description`, `bulk.confirm_delete_description`), and **selection** (`selection.rows`) from your `DataTableTranslations`. See [Translations — actions & bulk](/docs/translations#actions). |
-| `loadingOverlay` | `ReactNode` | Custom loading UI. |
-| `TitleComponent`, `DescriptionComponent` | `ComponentType` | Custom title/description components. |
+```ts
+// app/products/setup/form-config.ts
+export const getFormConfig = (formType: string) => {
+  if (formType !== "products") {
+    return;
+  }
+
+  return {
+    id: "products",
+    fields: [
+      { type: "text", name: "name", label: "Name", required: true },
+      { type: "number", name: "price", label: "Price", required: true },
+      { type: "switch", name: "isActive", label: "Active" },
+    ],
+  };
+};
+```
+
+Then pass it:
+
+```tsx
+<DataTable
+  tableType="products"
+  getTableConfig={getTableConfig}
+  getTableActions={getTableActions}
+  getFormConfig={getFormConfig}
+/>
+```
+
+## Setup checklist
+
+After the 4 core steps above, your table should:
+
+- Load data through `list(params)`.
+- Keep sorting, filters, and pagination in URL params.
+- Call `create`/`update`/`delete` when row actions are used.
+- Use your columns/order/visibility from `getTableConfig`.
 
 ## getTableConfig
 
-Return value must include at least:
+`getTableConfig(tableType)` should return:
 
-- **table** – `enableRowSelection`, `enableSorting`, `enableColumnFilters`, `defaultPageSize`, `pageSizeOptions`, `export`, `bulkExport`, `actionsAsIcons`, etc.
+- Top-level table behavior keys like `enableRowSelection`, `enableSorting`, `enableColumnFilters`, `defaultPageSize`, `pageSizeOptions`, `export`, `bulkExport`, `actionsAsIcons`.
 - **columns** – `definitions` (array of `{ id, type, header, enableSorting?, enableColumnFilter? }`), `order`, `visible`, `mandatory`, `sort`.
 - **translations** (optional) – `namespace`, `keys` for title/description.
 
 See [Configuration](/docs/configuration) and [Columns](/docs/columns) for full options.
 
-Filtering, pagination, and sorting are always server-side in YaYaw Table (no `manual*` flags required).
+Filtering, pagination, and sorting are server-side in YaYaw Table.
 
 ## getTableActions
 
@@ -95,57 +266,45 @@ Return form configuration per form type (e.g. `"products"`, `"products-bulk"`). 
 
 **Form translations:** The catalogue form uses the same `DataTableTranslations` object as the table. You must add **form** and **value** keys to that object (e.g. `form.name`, `form.submit`, `value.string_placeholder`) and use `labelKey` / `optionKeys` in your field definitions so labels and placeholders resolve. See [Translations Reference — Form translations](/docs/translations#form-translations-catalogue-form) for the full example.
 
-## Next.js layout (Nuqs)
+## Full props (single entry point)
 
-If you use **URL state** (sort, filters, pagination in the URL) with [Nuqs](https://nuqs.io), add `NuqsAdapter` in your root layout:
+All props are optional except `tableType`.
 
-```tsx
-// app/layout.tsx
-import { NuqsAdapter } from "nuqs/adapters/next/app";
+| Prop | Type | Description |
+|------|------|-------------|
+| `tableType` | `string` | **Required.** Identifier for this table (e.g. `"products"`). Used to resolve config and actions. |
+| `getTableConfig` | `(tableType: string) => Config \| undefined` | Returns columns, table options, default sort, visibility, and translation keys. |
+| `getTableActions` | `(tableType: string) => TableActions \| undefined` | Returns `list`, `create`, `update`, `delete`, `duplicate`, `bulkDelete`, `bulkCopy`, `bulkUpdate`. |
+| `getFormConfig` | `(formType: string) => FormConfig \| undefined` | Returns form field definitions for create/edit and bulk edit. |
+| `translations` | `DataTableTranslations` | Override default UI strings. |
+| `locale` | `string` | Locale for translations (default `"en"`). |
+| `queryClient` | `QueryClient` | TanStack Query client. If omitted, the table creates one. |
+| `title` | `string` | Table title above the toolbar. |
+| `description` | `string` | Short description under the title. |
+| `enableToolbar` | `boolean` | Show toolbar with filters, sort, columns, etc. (default `true`). |
+| `enableAdvancedFilters` | `boolean` | Enable advanced filters panel (default `false`). |
+| `columnTypeMapping` | `Record<string, 'text' \| 'number' \| 'date' \| 'option' \| 'multiOption'>` | Map backend types to filter/column types. |
+| `onExport` | `(rows) => void \| Promise<void>` | Override toolbar export behavior (all filtered rows). |
+| `onBulkExport` | `(rows) => void \| Promise<void>` | Override bulk CSV export behavior (selected rows). |
+| `onBulkEdit`, `onBulkDelete`, `onBulkCopy` | `(rows) => void` | Override bulk behavior; otherwise provider actions are used. |
+| `loadingOverlay` | `ReactNode` | Custom loading UI. |
+| `TitleComponent`, `DescriptionComponent` | `ComponentType` | Custom title/description components. |
 
-export default function Layout({ children }) {
-  return (
-    <html lang="en">
-      <body>
-        <NuqsAdapter>
-          {children}
-        </NuqsAdapter>
-      </body>
-    </html>
-  );
-}
-```
+See [URL state (Nuqs)](/docs/url-state) for details on URL synchronization.
 
-And wrap the page that uses the table with `QueryClientProvider` if you don't have one at the app level:
+## Common setup mistakes
 
-```tsx
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-
-const queryClient = new QueryClient();
-
-export default function Page() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <DataTable
-        tableType="products"
-        getTableConfig={getTableConfig}
-        getTableActions={getTableActions}
-        getFormConfig={getFormConfig}
-        queryClient={queryClient}
-      />
-    </QueryClientProvider>
-  );
-}
-```
-
-See [URL state (Nuqs)](/docs/url-state) for what is stored in the URL.
+- Returning a 0-based `page` in `list`; YaYaw Table sends and expects 1-based page index.
+- Omitting `meta.pageCount`/`meta.totalCount` in `list` return value.
+- Using a different `tableType` between `DataTable`, `getTableConfig`, and `getTableActions`.
+- Rendering `DataTable` in a Server Component while passing function props (`getTableConfig`, `getTableActions`).
 
 ## Summary
 
-- **DataTable** is the single component; pass `getTableConfig`, `getTableActions`, `getFormConfig`, `queryClient`, etc. as props.
-- **getTableConfig** and **getTableActions** are required for a working table (config drives columns and options; actions drive data and CRUD).
-- **getFormConfig** is needed for create/edit and bulk edit forms.
-- In Next.js, add **NuqsAdapter** in the layout if you use URL state, and **QueryClientProvider** where you render the table (or at app level).
+- **DataTable** is the single component; pass `getTableConfig`, `getTableActions`, and optional `getFormConfig`.
+- **getTableConfig** defines table behavior and columns.
+- **getTableActions** connects your server actions or API functions.
+- In Next.js App Router, use **NuqsAdapter** and render `DataTable` from a Client Component when passing function props.
 
 See also:
 - [Configuration](/docs/configuration)
