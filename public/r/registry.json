@@ -801,6 +801,11 @@
           "target": "components/ui/yayaw-table/utils/date-display.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/utils/number-format.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/number-format.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/utils/server-filters.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/server-filters.ts"

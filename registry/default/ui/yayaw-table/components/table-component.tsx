@@ -47,6 +47,14 @@ const _DEBUG = false;
 /** Stable empty object for "collapse all" to avoid setState loops when effect re-runs */
 const EMPTY_EXPANDED: Record<string, boolean> = {};
 
+/** Detect number column from def.type or def.meta.columnType (set by createNumberColumn) */
+function isNumberColumn(def: {
+  type?: string;
+  meta?: { columnType?: string };
+}): boolean {
+  return def.type === "number" || def.meta?.columnType === "number";
+}
+
 type ModernDataTableProps<
   TData extends Record<string, unknown>,
   TValue = unknown,
@@ -684,7 +692,8 @@ function ModernDataTable<
               cell.column.id === "select" &&
                 "[&:has([role=checkbox])]:!pr-2 flex w-(--radix-checkbox-size) min-w-(--radix-checkbox-size) justify-center px-2",
               cell.column.id === "actions" &&
-                "sticky right-0 z-10 flex w-(--radix-checkbox-size) min-w-(--radix-checkbox-size) justify-center bg-card px-2 shadow-[-1px_0_0_0_hsl(var(--border))] group-hover:bg-muted/50 group-data-[state=selected]:bg-muted/50"
+                "sticky right-0 z-10 flex w-(--radix-checkbox-size) min-w-(--radix-checkbox-size) justify-center bg-card px-2 shadow-[-1px_0_0_0_hsl(var(--border))] group-hover:bg-muted/50 group-data-[state=selected]:bg-muted/50",
+              isNumberColumn(cell.column.columnDef) && "text-right"
             )}
             key={cell.id}
           >
@@ -851,7 +860,8 @@ function ModernDataTable<
                       header.id === "select" &&
                         "select-column [&:has([role=checkbox])]:!pr-2 w-(--radix-checkbox-size) min-w-(--radix-checkbox-size) px-2 text-center",
                       header.id === "actions" &&
-                        "actions-column sticky right-0 z-20 w-(--radix-checkbox-size) min-w-(--radix-checkbox-size) px-2 text-center shadow-[-1px_0_0_0_hsl(var(--border))]"
+                        "actions-column sticky right-0 z-20 w-(--radix-checkbox-size) min-w-(--radix-checkbox-size) px-2 text-center shadow-[-1px_0_0_0_hsl(var(--border))]",
+                      isNumberColumn(header.column.columnDef) && "text-right"
                     )}
                     column={header.column as never}
                     id={header.id}

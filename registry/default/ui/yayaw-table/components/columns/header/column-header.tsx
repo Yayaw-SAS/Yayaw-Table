@@ -93,6 +93,12 @@ function DataTableColumnHeaderBase<TData, TValue>({
 
   const isSelectionColumn = column.id === "select";
   const isActionsColumn = column.id === "actions";
+  const def = column.columnDef as {
+    type?: string;
+    meta?: { columnType?: string };
+  };
+  const isNumberColumn =
+    def.type === "number" || def.meta?.columnType === "number";
   const sortDirection = column.getIsSorted();
 
   // Memoize selectionHeader component to prevent recreating on each render
@@ -131,10 +137,25 @@ function DataTableColumnHeaderBase<TData, TValue>({
           style={style}
           {...(isHydrated ? attributes : {})}
         >
-          <div className="relative mr-2 ml-2 flex min-h-0 flex-1 items-center gap-2 px-2 py-2">
+          <div
+            className={cn(
+              "relative mr-2 ml-2 flex min-h-0 flex-1 items-center gap-2 py-2 pr-2 pl-0",
+              isNumberColumn && "justify-end"
+            )}
+          >
             {tableInstance ? (
-              <div className="flex h-full w-full items-center">
-                <div className="flex min-h-0 flex-1 self-stretch">
+              <div
+                className={cn(
+                  "flex h-full w-full items-center",
+                  isNumberColumn && "justify-end"
+                )}
+              >
+                <div
+                  className={cn(
+                    "flex min-h-0 flex-1 self-stretch",
+                    isNumberColumn && "justify-end"
+                  )}
+                >
                   <ColumnMenu
                     column={column}
                     table={tableInstance}
@@ -171,7 +192,12 @@ function DataTableColumnHeaderBase<TData, TValue>({
                 )}
               </div>
             ) : (
-              <div className="flex w-full items-center gap-2">
+              <div
+                className={cn(
+                  "flex w-full items-center gap-2",
+                  isNumberColumn && "justify-end"
+                )}
+              >
                 <span>{title}</span>
                 {isHydrated && isDragEnabled && (
                   <div
@@ -202,6 +228,7 @@ function DataTableColumnHeaderBase<TData, TValue>({
   }, [
     isSelectionColumn,
     isActionsColumn,
+    isNumberColumn,
     isDragEnabled,
     isDragging,
     isOver,

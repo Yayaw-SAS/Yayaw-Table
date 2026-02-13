@@ -4,6 +4,11 @@
  */
 "use client";
 
+import {
+  formatNumber,
+  type NumberFormatConfig,
+} from "../../utils/number-format";
+
 export interface NumberCellProps {
   /**
    * Optional CSS class name
@@ -11,9 +16,15 @@ export interface NumberCellProps {
   className?: string;
 
   /**
-   * Optional formatter function to format the number
+   * Optional formatter function to format the number (overrides numberFormat)
    */
   formatter?: (value: number) => string;
+
+  /**
+   * Display format: "space" | "dot" | "comma" | "locale" or options.
+   * Used when formatter is not provided.
+   */
+  numberFormat?: NumberFormatConfig;
 
   /**
    * The numeric value to display
@@ -28,6 +39,7 @@ export interface NumberCellProps {
 export function NumberCell({
   className = "",
   formatter,
+  numberFormat,
   value,
 }: NumberCellProps) {
   // Handle null or undefined
@@ -43,9 +55,16 @@ export function NumberCell({
     return <span className={`text-muted-foreground ${className}`}>-</span>;
   }
 
-  // Apply formatter if provided
+  // Custom formatter takes precedence
   if (formatter) {
     return <span className={className}>{formatter(numValue)}</span>;
+  }
+
+  // Configurable format (e.g. space/dot thousands)
+  if (numberFormat !== undefined) {
+    return (
+      <span className={className}>{formatNumber(numValue, numberFormat)}</span>
+    );
   }
 
   // Default display
