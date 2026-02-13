@@ -855,6 +855,7 @@ function ModernDataTable<
                   header.id === "select" || header.id === "actions";
                 return (
                   <SortableHeader
+                    aria-label={header.id === "actions" ? "Actions" : undefined}
                     className={cn(
                       "relative whitespace-nowrap",
                       header.id === "select" &&

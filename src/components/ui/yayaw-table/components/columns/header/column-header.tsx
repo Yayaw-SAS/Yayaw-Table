@@ -19,6 +19,23 @@ import { SelectionHeader } from "./selection-header";
 // Set to true to enable debug logging
 const _DEBUG = false;
 
+function DragHandleButton() {
+  return (
+    <Button
+      aria-label="Drag to reorder column"
+      className="size-7 border-0 bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+      size="icon"
+      type="button"
+      variant="ghost"
+    >
+      <GripVertical
+        className="h-4 w-4 opacity-60 hover:opacity-100"
+        strokeWidth={2}
+      />
+    </Button>
+  );
+}
+
 interface DataTableColumnHeaderProps<TData, TValue> {
   /**
    * Additional CSS classes for the header
@@ -120,108 +137,87 @@ function DataTableColumnHeaderBase<TData, TValue>({
 
   // Memoize regularHeaderContent component to prevent recreating on each render
   const regularHeaderContent = useMemo(() => {
-    if (!(isSelectionColumn || isActionsColumn)) {
-      const SortIcon = sortDirection === "desc" ? ArrowDown : ArrowUp;
-      return (
+    if (isSelectionColumn || isActionsColumn) {
+      return null;
+    }
+    const SortIcon = sortDirection === "desc" ? ArrowDown : ArrowUp;
+    const content = tableInstance ? (
+      <div
+        className={cn(
+          "flex h-full w-full items-center",
+          isNumberColumn && "justify-end"
+        )}
+      >
         <div
           className={cn(
-            "absolute inset-y-0 -left-2 -right-2 flex rounded-none transition-colors hover:bg-accent hover:text-accent-foreground",
-            isOver && "bg-accent",
-            isDragging && "opacity-50",
-            className
+            "flex min-h-0 flex-1 self-stretch",
+            isNumberColumn && "justify-end"
           )}
-          ref={isHydrated ? setNodeRef : undefined}
-          style={style}
-          {...(isHydrated ? attributes : {})}
         >
-          <div
-            className={cn(
-              "relative flex min-h-0 flex-1 items-center gap-2 py-2 pl-0 pr-2 ml-2 mr-2",
-              isNumberColumn && "justify-end"
-            )}
+          <ColumnMenu
+            column={column}
+            table={tableInstance}
+            tableId={tableId}
           >
-            {tableInstance ? (
-              <div
-                className={cn(
-                  "flex h-full w-full items-center",
-                  isNumberColumn && "justify-end"
-                )}
-              >
-                <div
-                  className={cn(
-                    "flex min-h-0 flex-1 self-stretch",
-                    isNumberColumn && "justify-end"
-                  )}
-                >
-                  <ColumnMenu
-                    column={column}
-                    table={tableInstance}
-                    tableId={tableId}
-                  >
-                    <div className="flex w-full cursor-pointer items-center gap-2">
-                      <span>{title}</span>
-                      {sortDirection && (
-                        <span className="ml-2">
-                          <SortIcon className="h-4 w-4" />
-                        </span>
-                      )}
-                    </div>
-                  </ColumnMenu>
-                </div>
-                {isHydrated && isDragEnabled && (
-                  <div
-                    className="ml-2 cursor-grab touch-none active:cursor-grabbing"
-                    {...listeners}
-                  >
-                    <Button
-                      aria-label="Drag to reorder column"
-                      className="size-7 border-0 bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                      size="icon"
-                      type="button"
-                      variant="ghost"
-                    >
-                      <GripVertical
-                        className="h-4 w-4 opacity-60 hover:opacity-100"
-                        strokeWidth={2}
-                      />
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div
-                className={cn(
-                  "flex w-full items-center gap-2",
-                  isNumberColumn && "justify-end"
-                )}
-              >
-                <span>{title}</span>
-                {isHydrated && isDragEnabled && (
-                  <div
-                    className="ml-auto cursor-grab touch-none active:cursor-grabbing"
-                    {...listeners}
-                  >
-                    <Button
-                      aria-label="Drag to reorder column"
-                      className="size-7 border-0 bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                      size="icon"
-                      type="button"
-                      variant="ghost"
-                    >
-                      <GripVertical
-                        className="h-4 w-4 opacity-60 hover:opacity-100"
-                        strokeWidth={2}
-                      />
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+            <div className="flex w-full cursor-pointer items-center gap-2">
+              <span>{title}</span>
+              {sortDirection && (
+                <span className="ml-2">
+                  <SortIcon className="h-4 w-4" />
+                </span>
+              )}
+            </div>
+          </ColumnMenu>
         </div>
-      );
-    }
-    return null;
+        {isHydrated && isDragEnabled && (
+          <div
+            className="ml-2 cursor-grab touch-none active:cursor-grabbing"
+            {...listeners}
+          >
+            <DragHandleButton />
+          </div>
+        )}
+      </div>
+    ) : (
+      <div
+        className={cn(
+          "flex w-full items-center gap-2",
+          isNumberColumn && "justify-end"
+        )}
+      >
+        <span>{title}</span>
+        {isHydrated && isDragEnabled && (
+          <div
+            className="ml-auto cursor-grab touch-none active:cursor-grabbing"
+            {...listeners}
+          >
+            <DragHandleButton />
+          </div>
+        )}
+      </div>
+    );
+    return (
+      <div
+        className={cn(
+          "absolute inset-y-0 -left-2 -right-2 flex rounded-none transition-colors hover:bg-accent hover:text-accent-foreground",
+          isOver && "bg-accent",
+          isDragging && "opacity-50",
+          className
+        )}
+        ref={isHydrated ? setNodeRef : undefined}
+        style={style}
+        {...(isHydrated ? attributes : {})}
+      >
+        <div
+          className={cn(
+            "relative flex min-h-0 flex-1 items-center gap-2 py-2 pl-0 pr-2 ml-2 mr-2",
+            isNumberColumn && "justify-end"
+          )}
+        >
+          {content}
+        </div>
+      </div>
+    );
   }, [
     isSelectionColumn,
     isActionsColumn,

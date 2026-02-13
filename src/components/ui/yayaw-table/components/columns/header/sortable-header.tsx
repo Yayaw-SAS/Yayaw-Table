@@ -8,6 +8,8 @@ import { TableHead } from "@/src/components/ui/table";
 import { getColumnPinningStyles } from "../../../utils/column-pinning-styles";
 
 interface SortableHeaderProps {
+  /** Accessible name for the column header (e.g. for actions column with no visible label) */
+  "aria-label"?: string;
   children: ReactNode;
   className?: string;
   column?: Column<Record<string, unknown>, unknown>;
@@ -18,6 +20,7 @@ interface SortableHeaderProps {
 
 // Simplified header wrapper; DnD is attached inside DataTableColumnHeader
 export function SortableHeader({
+  "aria-label": ariaLabel,
   children,
   className,
   column,
@@ -38,6 +41,7 @@ export function SortableHeader({
 
   return (
     <TableHead
+      aria-label={ariaLabel}
       className={cn("group relative border-border border-r text-sm", className)}
       data-column-id={id}
       style={headerStyles}

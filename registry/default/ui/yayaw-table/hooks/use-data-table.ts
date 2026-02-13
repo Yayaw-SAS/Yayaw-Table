@@ -506,7 +506,6 @@ export function useDataTable<TData extends Record<string, unknown>>(
     config.table.enableRowSelection,
     createColumns,
     enhancedRefetch,
-    t,
     getTranslationSafe,
     actions.duplicate,
     handleDelete,
