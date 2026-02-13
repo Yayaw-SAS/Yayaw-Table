@@ -25,7 +25,7 @@ export function SelectionHeader<TData>({ table }: SelectionHeaderProps<TData>) {
     const isSomeSelected = table.getIsSomeRowsSelected();
 
     return (
-      <div className="flex items-center justify-center px-1">
+      <div className="flex h-full w-full items-center justify-center">
         <Checkbox
           aria-label="Select all rows"
           checked={isAllSelected}

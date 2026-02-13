@@ -343,7 +343,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
         case "actions":
           columnDefs.push(
             column.actions({
-              header: t("actions.title"),
+              header: "",
               includeDelete: true,
               includeEdit: true,
               onDelete: async (row: TData) => {
@@ -416,16 +416,18 @@ export function useDataTable<TData extends Record<string, unknown>>(
             )
           );
           break;
-        case "number":
-          // Use number column for proper number formatting
+        case "number": {
+          const numberColDef = colDef as { numberFormat?: import("../utils/number-format").NumberFormatConfig };
           columnDefs.push(
             column.number(colDef.id as keyof TData, {
               enableColumnFilter: colDef.enableColumnFilter,
               enableSorting: colDef.enableSorting,
               header: getTranslationSafe(colDef.header),
+              numberFormat: numberColDef.numberFormat,
             })
           );
           break;
+        }
         case "tag":
           columnDefs.push(
             column.tag(colDef.id as keyof TData, {
@@ -461,7 +463,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
     if (!columnDefs.some((col) => "id" in col && col.id === "actions")) {
       columnDefs.push(
         column.actions({
-          header: t("actions.title"),
+          header: "",
           includeDelete: true,
           includeDuplicate: !!actions.duplicate,
           includeEdit: true,

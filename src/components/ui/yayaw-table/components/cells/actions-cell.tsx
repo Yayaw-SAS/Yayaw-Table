@@ -279,7 +279,7 @@ function ActionsCellBase<TData>({
   }, [destructiveActions, rowData, handleActionClick]);
 
   return (
-    <div className="flex justify-end">
+    <div className="flex justify-center">
       <DropdownMenu>
         <DropdownMenuTrigger
           render={

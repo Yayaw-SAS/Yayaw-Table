@@ -120,7 +120,7 @@ export interface ActionsColumnProps<TData> {
 
 export function createActionsColumn<TData extends Record<string, unknown>>({
   actions = [],
-  header = "Actions",
+  header = "",
   includeDelete = true,
   includeDuplicate = false,
   includeEdit = true,

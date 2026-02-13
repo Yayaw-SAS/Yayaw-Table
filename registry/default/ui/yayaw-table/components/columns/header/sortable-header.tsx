@@ -38,10 +38,7 @@ export function SortableHeader({
 
   return (
     <TableHead
-      className={cn(
-        "group relative border-border border-r text-sm [&:has([role=checkbox])]:pr-2 [&:has([role=checkbox])]:pl-4",
-        className
-      )}
+      className={cn("group relative border-border border-r text-sm", className)}
       data-column-id={id}
       style={headerStyles}
     >

@@ -645,7 +645,16 @@ const getTableConfig = (tableType: string) => {
           { id: "name", type: "text", header: "Product Name" },
           { id: "brand", type: "text", header: "Brand" },
           { id: "category", type: "tag", header: "Category" },
-          { id: "price", type: "number", header: "Price" },
+          {
+            id: "price",
+            type: "number",
+            header: "Price",
+            numberFormat: {
+              thousandsSeparator: " ",
+              decimals: 0,
+              suffix: " €",
+            },
+          },
           { id: "status", type: "tag", header: "Status" },
           { id: "createdAt", type: "date", header: "Created" },
           { id: "isActive", type: "boolean", header: "Active" }

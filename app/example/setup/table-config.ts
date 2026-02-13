@@ -20,6 +20,18 @@ interface ExtendedDataTableConfig extends DataTableConfig {
       enableColumnFilter?: boolean;
       dateDisplayPreset?: string;
       dateFormat?: string;
+      numberFormat?:
+        | "space"
+        | "dot"
+        | "comma"
+        | "locale"
+        | {
+            thousandsSeparator?: string;
+            decimalSeparator?: string;
+            decimals?: number;
+            prefix?: string;
+            suffix?: string;
+          };
     }>;
     order?: string[];
     visible?: string[];
@@ -79,6 +91,12 @@ export const getTableConfig = (
             header: "Price",
             enableSorting: true,
             enableColumnFilter: true,
+            // Monetary: euros, space thousands, no decimals, suffix " €"
+            numberFormat: {
+              thousandsSeparator: " ",
+              decimals: 0,
+              suffix: " €",
+            },
           },
           {
             id: "status",

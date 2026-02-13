@@ -629,7 +629,7 @@ function ModernDataTable<
           data-state={row.getIsSelected() ? "selected" : ""}
           key={row.id}
         >
-          <TableCell className="w-(--radix-checkbox-size) align-middle">
+          <TableCell className="[&:has([role=checkbox])]:!pr-2 flex w-(--radix-checkbox-size) min-w-(--radix-checkbox-size) justify-center px-2 align-middle">
             <GroupRowSelectionCell row={row} table={table} />
           </TableCell>
           <TableCell
@@ -681,8 +681,10 @@ function ModernDataTable<
         {visibleCells.map((cell) => (
           <TableCell
             className={cn(
+              cell.column.id === "select" &&
+                "[&:has([role=checkbox])]:!pr-2 flex w-(--radix-checkbox-size) min-w-(--radix-checkbox-size) justify-center px-2",
               cell.column.id === "actions" &&
-                "sticky right-0 z-10 w-12 min-w-12 bg-card shadow-[-1px_0_0_0_hsl(var(--border))] group-hover:bg-muted/50 group-data-[state=selected]:bg-muted/50 sm:w-20 sm:min-w-20"
+                "sticky right-0 z-10 flex w-(--radix-checkbox-size) min-w-(--radix-checkbox-size) justify-center bg-card px-2 shadow-[-1px_0_0_0_hsl(var(--border))] group-hover:bg-muted/50 group-data-[state=selected]:bg-muted/50"
             )}
             key={cell.id}
           >
@@ -830,7 +832,7 @@ function ModernDataTable<
     const orderKey = columnOrder?.join(",") ?? "";
     return (
       <TableHeader
-        className="[&_th]:bg-muted/20 [&_th]:font-medium [&_th]:text-sm"
+        className="[&_th]:relative [&_th]:bg-muted/20 [&_th]:font-medium [&_th]:text-sm"
         key={orderKey}
       >
         {table.getHeaderGroups().map((headerGroup) => (
@@ -845,10 +847,11 @@ function ModernDataTable<
                 return (
                   <SortableHeader
                     className={cn(
-                      "relative whitespace-nowrap px-0",
-                      header.id === "select" && "select-column",
+                      "relative whitespace-nowrap",
+                      header.id === "select" &&
+                        "select-column [&:has([role=checkbox])]:!pr-2 w-(--radix-checkbox-size) min-w-(--radix-checkbox-size) px-2 text-center",
                       header.id === "actions" &&
-                        "sticky right-0 z-20 w-12 min-w-12 shadow-[-1px_0_0_0_hsl(var(--border))] sm:w-20 sm:min-w-20"
+                        "actions-column sticky right-0 z-20 w-(--radix-checkbox-size) min-w-(--radix-checkbox-size) px-2 text-center shadow-[-1px_0_0_0_hsl(var(--border))]"
                     )}
                     column={header.column as never}
                     id={header.id}

@@ -7,6 +7,8 @@
 import type { CellContext, ColumnDef } from "@tanstack/react-table";
 import { Hash, type LucideIcon } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
+import { formatNumber } from "../../utils/number-format";
+import type { NumberFormatConfig } from "../../utils/number-format";
 import { NumberCell } from "../cells/number-cell";
 
 /**
@@ -60,6 +62,12 @@ interface NumberColumnProps {
    * Optional custom header text
    */
   header?: string;
+
+  /**
+   * Display format: "space" (1 234 567), "dot" (1.234.567), "comma" (1,234,567), "locale" (Intl),
+   * or { thousandsSeparator, decimalSeparator, decimals }.
+   */
+  numberFormat?: NumberFormatConfig;
 }
 
 /**
@@ -74,6 +82,7 @@ export function createNumberColumn<TData>({
   enableSorting = true,
   formatter,
   header,
+  numberFormat,
 }: NumberColumnProps): ExtendedColumnDef<TData> {
   return {
     accessorKey,
@@ -121,6 +130,7 @@ export function createNumberColumn<TData>({
         <NumberCell
           className={className}
           formatter={formatter}
+          numberFormat={numberFormat}
           value={numValue}
         />
       );
@@ -130,10 +140,13 @@ export function createNumberColumn<TData>({
       const sum = Number(getValue() as number);
       let formatted = "—";
       if (Number.isFinite(sum)) {
-        formatted =
-          typeof formatter === "function"
-            ? formatter(sum)
-            : sum.toLocaleString();
+        if (typeof formatter === "function") {
+          formatted = formatter(sum);
+        } else if (numberFormat !== undefined) {
+          formatted = formatNumber(sum, numberFormat);
+        } else {
+          formatted = sum.toLocaleString();
+        }
       }
       return <span className="font-medium">{formatted}</span>;
     },
@@ -143,6 +156,7 @@ export function createNumberColumn<TData>({
     header: header || accessorKey,
     icon: Hash,
     id: accessorKey,
+    meta: { columnType: "number" },
     type: "number",
   };
 }

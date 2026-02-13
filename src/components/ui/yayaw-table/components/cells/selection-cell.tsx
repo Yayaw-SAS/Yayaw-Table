@@ -6,6 +6,7 @@
 
 import type { Row } from "@tanstack/react-table";
 import { useCallback, useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
 import { Checkbox } from "@/src/components/ui/checkbox";
 
 const _DEBUG = false;
@@ -54,7 +55,7 @@ export function SelectionCell<TData>({
     [row]
   );
   return (
-    <div className={`flex items-center justify-center ${className}`}>
+    <div className={cn("flex items-center justify-center px-2", className)}>
       <Checkbox
         aria-label="Select row"
         checked={isSelected}

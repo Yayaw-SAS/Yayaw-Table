@@ -6,6 +6,7 @@ Flexible, type-safe data table for React. One component, clean API, minimal boil
 
 - **Simple API**: One component to render a complete data table
 - **Built-in UX**: Sorting, pagination, grouping, column visibility, bulk actions
+- **Number & currency**: Right-aligned number columns with configurable format (thousands/decimal separators, prefix/suffix for currency, e.g. euros)
 - **Type-safe**: Strong TypeScript types out of the box
 - **Accessible**: Keyboard navigation and ARIA-friendly UI
 - **SSR-friendly**: Works great with Next.js 15+

@@ -47,6 +47,14 @@ const _DEBUG = false;
 /** Stable empty object for "collapse all" to avoid setState loops when effect re-runs */
 const EMPTY_EXPANDED: Record<string, boolean> = {};
 
+/** Detect number column from def.type or def.meta.columnType (set by createNumberColumn) */
+function isNumberColumn(def: {
+  type?: string;
+  meta?: { columnType?: string };
+}): boolean {
+  return def.type === "number" || def.meta?.columnType === "number";
+}
+
 type ModernDataTableProps<
   TData extends Record<string, unknown>,
   TValue = unknown,
@@ -629,7 +637,7 @@ function ModernDataTable<
           data-state={row.getIsSelected() ? "selected" : ""}
           key={row.id}
         >
-          <TableCell className="w-(--radix-checkbox-size) align-middle">
+          <TableCell className="flex w-(--radix-checkbox-size) min-w-(--radix-checkbox-size) justify-center px-2 align-middle [&:has([role=checkbox])]:!pr-2">
             <GroupRowSelectionCell row={row} table={table} />
           </TableCell>
           <TableCell
@@ -681,8 +689,11 @@ function ModernDataTable<
         {visibleCells.map((cell) => (
           <TableCell
             className={cn(
+              cell.column.id === "select" &&
+                "flex w-(--radix-checkbox-size) min-w-(--radix-checkbox-size) justify-center px-2 [&:has([role=checkbox])]:!pr-2",
               cell.column.id === "actions" &&
-                "sticky right-0 z-10 w-12 min-w-12 bg-card shadow-[-1px_0_0_0_hsl(var(--border))] group-hover:bg-muted/50 group-data-[state=selected]:bg-muted/50 sm:w-20 sm:min-w-20"
+                "flex justify-center sticky right-0 z-10 w-(--radix-checkbox-size) min-w-(--radix-checkbox-size) bg-card px-2 shadow-[-1px_0_0_0_hsl(var(--border))] group-hover:bg-muted/50 group-data-[state=selected]:bg-muted/50",
+              isNumberColumn(cell.column.columnDef) && "text-right"
             )}
             key={cell.id}
           >
@@ -830,7 +841,7 @@ function ModernDataTable<
     const orderKey = columnOrder?.join(",") ?? "";
     return (
       <TableHeader
-        className="[&_th]:bg-muted/20 [&_th]:font-medium [&_th]:text-sm"
+        className="[&_th]:bg-muted/20 [&_th]:font-medium [&_th]:relative [&_th]:text-sm"
         key={orderKey}
       >
         {table.getHeaderGroups().map((headerGroup) => (
@@ -845,10 +856,12 @@ function ModernDataTable<
                 return (
                   <SortableHeader
                     className={cn(
-                      "relative whitespace-nowrap px-0",
-                      header.id === "select" && "select-column",
+                      "relative whitespace-nowrap",
+                      header.id === "select" &&
+                        "select-column w-(--radix-checkbox-size) min-w-(--radix-checkbox-size) px-2 text-center [&:has([role=checkbox])]:!pr-2",
                       header.id === "actions" &&
-                        "sticky right-0 z-20 w-12 min-w-12 shadow-[-1px_0_0_0_hsl(var(--border))] sm:w-20 sm:min-w-20"
+                        "actions-column sticky right-0 z-20 w-(--radix-checkbox-size) min-w-(--radix-checkbox-size) px-2 text-center shadow-[-1px_0_0_0_hsl(var(--border))]",
+                      isNumberColumn(header.column.columnDef) && "text-right"
                     )}
                     column={header.column as never}
                     id={header.id}

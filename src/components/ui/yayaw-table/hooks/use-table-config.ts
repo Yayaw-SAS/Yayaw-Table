@@ -11,6 +11,7 @@ import {
   useTableConfig as useProviderTableConfig,
   useTranslations,
 } from "../providers/table-provider";
+import type { NumberFormatConfig } from "../utils/number-format";
 import { useTableTranslations } from "./use-table-translations";
 
 /**
@@ -26,6 +27,8 @@ export interface TableCatalogueColumnConfig {
   dateFormat?: string;
   typeKey?: string;
   customRenderers?: Record<string, (value: unknown) => React.ReactNode>;
+  /** Number column: "space" | "dot" | "comma" | "locale" or { thousandsSeparator, decimalSeparator, decimals } */
+  numberFormat?: NumberFormatConfig;
 }
 
 /**

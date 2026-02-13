@@ -343,7 +343,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
         case "actions":
           columnDefs.push(
             column.actions({
-              header: t("actions.title"),
+              header: "",
               includeDelete: true,
               includeEdit: true,
               onDelete: async (row: TData) => {
@@ -462,7 +462,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
     if (!columnDefs.some((col) => "id" in col && col.id === "actions")) {
       columnDefs.push(
         column.actions({
-          header: t("actions.title"),
+          header: "",
           includeDelete: true,
           includeDuplicate: !!actions.duplicate,
           includeEdit: true,

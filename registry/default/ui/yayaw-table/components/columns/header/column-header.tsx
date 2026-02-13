@@ -122,77 +122,79 @@ function DataTableColumnHeaderBase<TData, TValue>({
       return (
         <div
           className={cn(
-            "group/header flex h-full w-full items-center gap-2 rounded-none transition-colors hover:bg-accent hover:text-accent-foreground",
-            isDragging && "opacity-50",
+            "absolute inset-y-0 -right-2 -left-2 flex rounded-none transition-colors hover:bg-accent hover:text-accent-foreground",
             isOver && "bg-accent",
+            isDragging && "opacity-50",
             className
           )}
           ref={isHydrated ? setNodeRef : undefined}
           style={style}
           {...(isHydrated ? attributes : {})}
         >
-          {tableInstance ? (
-            <div className="flex h-full w-full items-center">
-              <div className="flex-1">
-                <ColumnMenu
-                  column={column}
-                  table={tableInstance}
-                  tableId={tableId}
-                >
-                  <div className="flex w-full cursor-pointer items-center gap-2">
-                    <span>{title}</span>
-                    {sortDirection && (
-                      <span className="ml-2">
-                        <SortIcon className="h-4 w-4" />
-                      </span>
-                    )}
+          <div className="relative mr-2 ml-2 flex min-h-0 flex-1 items-center gap-2 px-2 py-2">
+            {tableInstance ? (
+              <div className="flex h-full w-full items-center">
+                <div className="flex min-h-0 flex-1 self-stretch">
+                  <ColumnMenu
+                    column={column}
+                    table={tableInstance}
+                    tableId={tableId}
+                  >
+                    <div className="flex w-full cursor-pointer items-center gap-2">
+                      <span>{title}</span>
+                      {sortDirection && (
+                        <span className="ml-2">
+                          <SortIcon className="h-4 w-4" />
+                        </span>
+                      )}
+                    </div>
+                  </ColumnMenu>
+                </div>
+                {isHydrated && isDragEnabled && (
+                  <div
+                    className="ml-2 cursor-grab touch-none active:cursor-grabbing"
+                    {...listeners}
+                  >
+                    <Button
+                      aria-label="Drag to reorder column"
+                      className="size-7 border-0 bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                      size="icon"
+                      type="button"
+                      variant="ghost"
+                    >
+                      <GripVertical
+                        className="h-4 w-4 opacity-60 hover:opacity-100"
+                        strokeWidth={2}
+                      />
+                    </Button>
                   </div>
-                </ColumnMenu>
+                )}
               </div>
-              {isHydrated && isDragEnabled && (
-                <div
-                  className="ml-2 cursor-grab touch-none active:cursor-grabbing"
-                  {...listeners}
-                >
-                  <Button
-                    aria-label="Drag to reorder column"
-                    className="size-7 border-0 bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                    size="icon"
-                    type="button"
-                    variant="ghost"
+            ) : (
+              <div className="flex w-full items-center gap-2">
+                <span>{title}</span>
+                {isHydrated && isDragEnabled && (
+                  <div
+                    className="ml-auto cursor-grab touch-none active:cursor-grabbing"
+                    {...listeners}
                   >
-                    <GripVertical
-                      className="h-4 w-4 opacity-60 hover:opacity-100"
-                      strokeWidth={2}
-                    />
-                  </Button>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="flex w-full items-center gap-2">
-              <span>{title}</span>
-              {isHydrated && isDragEnabled && (
-                <div
-                  className="ml-auto cursor-grab touch-none active:cursor-grabbing"
-                  {...listeners}
-                >
-                  <Button
-                    aria-label="Drag to reorder column"
-                    className="size-7 border-0 bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                    size="icon"
-                    type="button"
-                    variant="ghost"
-                  >
-                    <GripVertical
-                      className="h-4 w-4 opacity-60 hover:opacity-100"
-                      strokeWidth={2}
-                    />
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
+                    <Button
+                      aria-label="Drag to reorder column"
+                      className="size-7 border-0 bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                      size="icon"
+                      type="button"
+                      variant="ghost"
+                    >
+                      <GripVertical
+                        className="h-4 w-4 opacity-60 hover:opacity-100"
+                        strokeWidth={2}
+                      />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       );
     }
