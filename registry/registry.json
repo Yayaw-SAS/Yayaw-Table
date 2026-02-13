@@ -91,6 +91,11 @@
           "target": "components/ui/yayaw-table/atoms/view-atoms.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/bulk-actions/bulk-actions-menu.test.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/bulk-actions/bulk-actions-menu.test.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/bulk-actions/bulk-actions-menu.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/bulk-actions/bulk-actions-menu.tsx"

@@ -21,7 +21,10 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { tableIdAtom } from "../atoms/table-atoms";
-import { useBulkActions } from "../hooks/use-bulk-actions";
+import {
+  type BulkDeleteCustomHandlerResult,
+  useBulkActions,
+} from "../hooks/use-bulk-actions";
 import { useDataTable } from "../hooks/use-data-table";
 import { useTableConfig } from "../hooks/use-table-config";
 import { useTableInstance } from "../hooks/use-table-instance";
@@ -65,9 +68,13 @@ type ModernDataTableProps<
   loadingOverlay?: React.ReactNode;
   onRowSelectionChange?: (rows: Row<TData>[]) => void;
   onBulkEdit?: (rows: Row<TData>[]) => Promise<void> | void;
-  onBulkDelete?: (rows: Row<TData>[]) => Promise<void> | void;
+  onBulkDelete?: (
+    rows: Row<TData>[]
+  ) => Promise<BulkDeleteCustomHandlerResult> | BulkDeleteCustomHandlerResult;
   onBulkCopy?: (rows: Row<TData>[]) => Promise<void> | void;
   onBulkExport?: (rows: Row<TData>[]) => void | Promise<void>;
+  closeOnError?: boolean;
+  showDefaultToastsForCustomHandlers?: boolean;
   queryFn?: (
     params: Record<string, unknown>
   ) => Promise<{ data: TData[]; pageCount: number; rowCount: number }>;
@@ -187,6 +194,8 @@ function ModernDataTable<
   onBulkDelete,
   onBulkCopy,
   onBulkExport,
+  closeOnError,
+  showDefaultToastsForCustomHandlers,
   queryFn: _queryFn,
   rowSelection: _rowSelection,
   tableId,
@@ -410,6 +419,7 @@ function ModernDataTable<
   // Setup bulk actions: pass only app-provided callbacks; hook uses provider (update/delete) and clipboard copy when undefined
   const bulkActions = useBulkActions({
     bulkExportEnabled: tableConfig.table.bulkExport !== false,
+    closeOnError,
     csvExportColumns,
     onBulkExport,
     table,
@@ -418,6 +428,7 @@ function ModernDataTable<
     onBulkEdit,
     onBulkDelete,
     onBulkCopy,
+    showDefaultToastsForCustomHandlers,
   });
 
   // Debug bulk actions state

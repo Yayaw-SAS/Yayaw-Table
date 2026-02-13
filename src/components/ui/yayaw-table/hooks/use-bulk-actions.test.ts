@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import type { Row } from "@tanstack/react-table";
 
 import {
   buildBulkDeleteFeedback,
+  executeCustomBulkDeleteHandler,
   executeBulkDeleteOperation,
   resolveBulkEditWithoutCustom,
 } from "./use-bulk-actions";
@@ -67,5 +69,139 @@ describe("resolveBulkEditWithoutCustom", () => {
     assert.equal(resolution.status, "missingPayload");
     assert.ok(resolution.message.includes("actions.bulkUpdate(ids, data)"));
     assert.ok(resolution.message.includes("Provide onBulkEdit"));
+  });
+});
+
+function createSelectedRows(ids: string[]): Row<Record<string, unknown>>[] {
+  return ids.map(
+    (id) =>
+      ({
+        id,
+        original: { id },
+      }) as unknown as Row<Record<string, unknown>>
+  );
+}
+
+describe("executeCustomBulkDeleteHandler", () => {
+  it("shows error feedback and keeps menu open for partial failure outcomes", async () => {
+    const selectedRows = createSelectedRows(["row-1", "row-2"]);
+    const notifications = { error: [] as string[], success: [] as string[] };
+    let clearSelectionCalls = 0;
+
+    const result = await executeCustomBulkDeleteHandler({
+      clearSelection: () => {
+        clearSelectionCalls += 1;
+      },
+      closeOnError: false,
+      notify: {
+        error: (message: string) => notifications.error.push(message),
+        success: (message: string) => notifications.success.push(message),
+      },
+      onBulkDelete: async () => ({
+        errorMessages: ["row-2 failed"],
+        failureCount: 1,
+        mode: "bulkDelete",
+        successCount: 1,
+        totalCount: 2,
+      }),
+      selectedRows,
+      showDefaultToastsForCustomHandlers: false,
+    });
+
+    assert.equal(result.closeMenu, false);
+    assert.equal(result.success, false);
+    assert.equal(clearSelectionCalls, 0);
+    assert.equal(notifications.success.length, 0);
+    assert.equal(notifications.error.length, 1);
+    assert.ok(notifications.error[0].includes("Deleted 1 of 2 rows. 1 failed."));
+  });
+
+  it("shows an error toast and keeps menu open when the custom handler throws", async () => {
+    const selectedRows = createSelectedRows(["row-1", "row-2"]);
+    const notifications = { error: [] as string[], success: [] as string[] };
+    let clearSelectionCalls = 0;
+
+    const result = await executeCustomBulkDeleteHandler({
+      clearSelection: () => {
+        clearSelectionCalls += 1;
+      },
+      closeOnError: false,
+      notify: {
+        error: (message: string) => notifications.error.push(message),
+        success: (message: string) => notifications.success.push(message),
+      },
+      onBulkDelete: () => {
+        throw new Error("delete failed");
+      },
+      selectedRows,
+      showDefaultToastsForCustomHandlers: false,
+    });
+
+    assert.equal(result.closeMenu, false);
+    assert.equal(result.success, false);
+    assert.equal(clearSelectionCalls, 0);
+    assert.equal(notifications.success.length, 0);
+    assert.equal(notifications.error.length, 1);
+    assert.equal(notifications.error[0], "delete failed");
+  });
+
+  it("shows success feedback and closes menu on success outcomes", async () => {
+    const selectedRows = createSelectedRows(["row-1", "row-2"]);
+    const notifications = { error: [] as string[], success: [] as string[] };
+    let clearSelectionCalls = 0;
+
+    const result = await executeCustomBulkDeleteHandler({
+      clearSelection: () => {
+        clearSelectionCalls += 1;
+      },
+      closeOnError: false,
+      notify: {
+        error: (message: string) => notifications.error.push(message),
+        success: (message: string) => notifications.success.push(message),
+      },
+      onBulkDelete: async () => ({
+        errorMessages: [],
+        failureCount: 0,
+        mode: "bulkDelete",
+        successCount: 2,
+        totalCount: 2,
+      }),
+      selectedRows,
+      showDefaultToastsForCustomHandlers: false,
+    });
+
+    assert.equal(result.closeMenu, true);
+    assert.equal(result.success, true);
+    assert.equal(clearSelectionCalls, 1);
+    assert.equal(notifications.error.length, 0);
+    assert.equal(notifications.success.length, 1);
+    assert.ok(notifications.success[0].includes("Deleted 2 rows successfully."));
+  });
+
+  it("preserves legacy custom-handler behavior when default toasts are explicitly enabled", async () => {
+    const selectedRows = createSelectedRows(["row-1", "row-2"]);
+    const notifications = { error: [] as string[], success: [] as string[] };
+    let clearSelectionCalls = 0;
+
+    const result = await executeCustomBulkDeleteHandler({
+      clearSelection: () => {
+        clearSelectionCalls += 1;
+      },
+      closeOnError: false,
+      notify: {
+        error: (message: string) => notifications.error.push(message),
+        success: (message: string) => notifications.success.push(message),
+      },
+      onBulkDelete: () => undefined,
+      selectedRows,
+      showDefaultToastsForCustomHandlers: true,
+    });
+
+    assert.equal(result.closeMenu, true);
+    assert.equal(result.success, true);
+    assert.equal(clearSelectionCalls, 1);
+    assert.equal(notifications.error.length, 0);
+    assert.equal(notifications.success.length, 1);
+    assert.ok(notifications.success[0].includes("Deleted 2 rows successfully."));
   });
 });

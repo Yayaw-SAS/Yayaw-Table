@@ -18,6 +18,26 @@ interface ActionResult {
 type BulkDeleteAction = (ids: string[]) => Promise<ActionResult>;
 type DeleteAction = (id: string) => Promise<ActionResult>;
 
+export interface BulkDeleteActionExecutionResult {
+  closeMenu: boolean;
+  success: boolean;
+}
+
+/**
+ * Custom delete callbacks can:
+ * - return `void` to fully own user feedback,
+ * - return `BulkDeleteExecutionOutcome` for library-managed feedback,
+ * - return `{ outcome, clearSelection }` to override clear/close behavior explicitly.
+ */
+export type BulkDeleteCustomHandlerResult =
+  | BulkDeleteExecutionOutcome
+  | {
+      clearSelection?: boolean;
+      outcome?: BulkDeleteExecutionOutcome;
+    }
+  // biome-ignore lint/suspicious/noConfusingVoidType: Keep `void` for backward compatibility with existing async handlers returning Promise<void>.
+  | void;
+
 /**
  * Configuration for bulk actions
  */
@@ -45,7 +65,9 @@ interface BulkActionsConfig<TData> {
   /**
    * Callback when bulk delete is triggered
    */
-  onBulkDelete?: (rows: Row<TData>[]) => Promise<void> | void;
+  onBulkDelete?: (
+    rows: Row<TData>[]
+  ) => Promise<BulkDeleteCustomHandlerResult> | BulkDeleteCustomHandlerResult;
 
   /**
    * Callback when bulk copy is triggered
@@ -67,6 +89,16 @@ interface BulkActionsConfig<TData> {
    */
   tableId?: string;
   tableType?: string;
+
+  /**
+   * Whether the selection should be cleared when a delete operation fails
+   */
+  closeOnError?: boolean;
+
+  /**
+   * Whether to keep the previous default success toast behavior for custom delete handlers
+   */
+  showDefaultToastsForCustomHandlers?: boolean;
 }
 
 /**
@@ -96,7 +128,7 @@ interface BulkActionsReturn<TData> {
   /**
    * Handle bulk delete action
    */
-  handleBulkDelete: () => Promise<void>;
+  handleBulkDelete: () => Promise<BulkDeleteActionExecutionResult>;
 
   /**
    * Handle bulk copy action
@@ -142,6 +174,17 @@ export interface BulkEditResolution {
   status: "missingPayload" | "notConfigured";
 }
 
+interface BulkDeleteNotificationAdapter {
+  error: (message: string) => void;
+  success: (message: string) => void;
+}
+
+interface CustomBulkDeleteResultResolution {
+  feedback?: BulkDeleteFeedback;
+  shouldClearSelection: boolean;
+  success: boolean;
+}
+
 const DEFAULT_BULK_DELETE_ERROR =
   "Failed to delete selected rows. Please try again.";
 const DEFAULT_NO_VALID_IDS_ERROR =
@@ -165,6 +208,24 @@ function pluralizeRows(count: number): string {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+export function isBulkDeleteExecutionOutcome(
+  value: unknown
+): value is BulkDeleteExecutionOutcome {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    Array.isArray(value.errorMessages) &&
+    typeof value.failureCount === "number" &&
+    typeof value.successCount === "number" &&
+    typeof value.totalCount === "number" &&
+    (value.mode === "bulkDelete" ||
+      value.mode === "deleteFallback" ||
+      value.mode === "notConfigured")
+  );
 }
 
 function normalizeUniqueMessages(messages: string[]): string[] {
@@ -418,6 +479,115 @@ export function buildBulkDeleteFeedback(
   };
 }
 
+export function resolveCustomBulkDeleteHandlerResult({
+  closeOnError,
+  result,
+  selectedCount,
+  showDefaultToastsForCustomHandlers,
+}: {
+  closeOnError: boolean;
+  result: BulkDeleteCustomHandlerResult;
+  selectedCount: number;
+  showDefaultToastsForCustomHandlers: boolean;
+}): CustomBulkDeleteResultResolution {
+  const recordResult = isRecord(result) ? result : undefined;
+  const explicitClearSelection =
+    recordResult && typeof recordResult.clearSelection === "boolean"
+      ? recordResult.clearSelection
+      : undefined;
+
+  let structuredOutcome: BulkDeleteExecutionOutcome | undefined;
+  if (isBulkDeleteExecutionOutcome(result)) {
+    structuredOutcome = result;
+  } else if (isBulkDeleteExecutionOutcome(recordResult?.outcome)) {
+    structuredOutcome = recordResult.outcome;
+  }
+
+  if (structuredOutcome) {
+    const feedback = buildBulkDeleteFeedback(structuredOutcome);
+    const isSuccess = feedback.tone === "success";
+    return {
+      feedback,
+      shouldClearSelection:
+        explicitClearSelection ?? (isSuccess ? true : closeOnError),
+      success: isSuccess,
+    };
+  }
+
+  if (showDefaultToastsForCustomHandlers) {
+    return {
+      feedback: {
+        message: `Deleted ${selectedCount} ${pluralizeRows(selectedCount)} successfully.`,
+        tone: "success",
+      },
+      shouldClearSelection: explicitClearSelection ?? true,
+      success: true,
+    };
+  }
+
+  return {
+    shouldClearSelection: explicitClearSelection ?? false,
+    success: explicitClearSelection === true,
+  };
+}
+
+export async function executeCustomBulkDeleteHandler<TData>({
+  clearSelection,
+  closeOnError,
+  notify,
+  onBulkDelete,
+  selectedRows,
+  showDefaultToastsForCustomHandlers,
+}: {
+  clearSelection: () => void;
+  closeOnError: boolean;
+  notify?: BulkDeleteNotificationAdapter;
+  onBulkDelete: (
+    rows: Row<TData>[]
+  ) => Promise<BulkDeleteCustomHandlerResult> | BulkDeleteCustomHandlerResult;
+  selectedRows: Row<TData>[];
+  showDefaultToastsForCustomHandlers: boolean;
+}): Promise<BulkDeleteActionExecutionResult> {
+  const notifier = notify ?? toast;
+
+  try {
+    const rawResult = await Promise.resolve(onBulkDelete(selectedRows));
+    const resolution = resolveCustomBulkDeleteHandlerResult({
+      closeOnError,
+      result: rawResult,
+      selectedCount: selectedRows.length,
+      showDefaultToastsForCustomHandlers,
+    });
+
+    if (resolution.feedback) {
+      if (resolution.feedback.tone === "success") {
+        notifier.success(resolution.feedback.message);
+      } else {
+        notifier.error(resolution.feedback.message);
+      }
+    }
+
+    if (resolution.shouldClearSelection) {
+      clearSelection();
+    }
+
+    return {
+      closeMenu: resolution.shouldClearSelection,
+      success: resolution.success,
+    };
+  } catch (error) {
+    notifier.error(toErrorMessage(error, DEFAULT_BULK_DELETE_ERROR));
+    if (closeOnError) {
+      clearSelection();
+    }
+
+    return {
+      closeMenu: closeOnError,
+      success: false,
+    };
+  }
+}
+
 export function resolveBulkEditWithoutCustom(options: {
   hasBulkUpdateAction: boolean;
 }): BulkEditResolution {
@@ -445,6 +615,7 @@ const _DEBUG = false;
  */
 export function useBulkActions<TData>({
   bulkExportEnabled = true,
+  closeOnError = false,
   csvExportColumns = [],
   table,
   onBulkEdit,
@@ -452,6 +623,7 @@ export function useBulkActions<TData>({
   onBulkCopy,
   onBulkExport,
   minimumSelection = 1,
+  showDefaultToastsForCustomHandlers = false,
   tableId,
   tableType,
 }: BulkActionsConfig<TData>): BulkActionsReturn<TData> {
@@ -505,26 +677,26 @@ export function useBulkActions<TData>({
   // Handle bulk delete
   const handleBulkDelete = useCallback(async () => {
     if (selectedRows.length === 0) {
-      return;
+      return { closeMenu: false, success: false };
     }
 
     if (onBulkDelete) {
-      try {
-        await Promise.resolve(onBulkDelete(selectedRows));
-        toast.success(
-          `Deleted ${selectedRows.length} ${pluralizeRows(selectedRows.length)} successfully.`
-        );
-        clearSelection();
-      } catch (error) {
-        toast.error(toErrorMessage(error, DEFAULT_BULK_DELETE_ERROR));
-      }
-      return;
+      return executeCustomBulkDeleteHandler({
+        clearSelection,
+        closeOnError,
+        onBulkDelete,
+        selectedRows,
+        showDefaultToastsForCustomHandlers,
+      });
     }
 
     const ids = extractSelectedRowIds(selectedRows);
     if (ids.length === 0) {
       toast.error(DEFAULT_NO_VALID_IDS_ERROR);
-      return;
+      if (closeOnError) {
+        clearSelection();
+      }
+      return { closeMenu: closeOnError, success: false };
     }
 
     const outcome = await executeBulkDeleteOperation({
@@ -537,11 +709,22 @@ export function useBulkActions<TData>({
     if (feedback.tone === "success") {
       toast.success(feedback.message);
       clearSelection();
-      return;
+      return { closeMenu: true, success: true };
     }
 
     toast.error(feedback.message);
-  }, [selectedRows, onBulkDelete, clearSelection, provider?.actions]);
+    if (closeOnError) {
+      clearSelection();
+    }
+    return { closeMenu: closeOnError, success: false };
+  }, [
+    selectedRows,
+    onBulkDelete,
+    clearSelection,
+    provider?.actions,
+    closeOnError,
+    showDefaultToastsForCustomHandlers,
+  ]);
 
   // Handle bulk copy
   const handleBulkCopy = useCallback(async () => {

@@ -8,6 +8,7 @@ import type { Row } from "@tanstack/react-table";
 import type React from "react";
 // Import advanced filters hook directly
 import { Suspense } from "react";
+import type { BulkDeleteCustomHandlerResult } from "../hooks/use-bulk-actions";
 import { useDataTable } from "../hooks/use-data-table";
 
 import { DataTableUIProvider } from "../providers/data-table-ui-provider";
@@ -74,6 +75,8 @@ function DataTableContent({
   onBulkDelete,
   onBulkCopy,
   onBulkExport,
+  closeOnError,
+  showDefaultToastsForCustomHandlers,
   onExport,
   tableType,
   title,
@@ -86,9 +89,13 @@ function DataTableContent({
   enableToolbar?: boolean;
   onRowSelectionChange?: (rows: Row<Record<string, unknown>>[]) => void;
   onBulkEdit?: (rows: Row<Record<string, unknown>>[]) => Promise<void> | void;
-  onBulkDelete?: (rows: Row<Record<string, unknown>>[]) => Promise<void> | void;
+  onBulkDelete?: (
+    rows: Row<Record<string, unknown>>[]
+  ) => Promise<BulkDeleteCustomHandlerResult> | BulkDeleteCustomHandlerResult;
   onBulkCopy?: (rows: Row<Record<string, unknown>>[]) => Promise<void> | void;
   onBulkExport?: (rows: Row<Record<string, unknown>>[]) => void | Promise<void>;
+  closeOnError?: boolean;
+  showDefaultToastsForCustomHandlers?: boolean;
   onExport?: (rows: Record<string, unknown>[]) => void | Promise<void>;
   tableType: string; // Required
   title?: string;
@@ -219,6 +226,7 @@ function DataTableContent({
             ) : (
               <DataTableClient
                 className={className}
+                closeOnError={closeOnError}
                 columns={
                   columns as import("@tanstack/react-table").ColumnDef<
                     Record<string, unknown>
@@ -252,6 +260,9 @@ function DataTableContent({
                     rowCount: rowCount || finalData.length,
                   };
                 }}
+                showDefaultToastsForCustomHandlers={
+                  showDefaultToastsForCustomHandlers
+                }
                 tableId={tableId}
                 tableType={tableType}
               />

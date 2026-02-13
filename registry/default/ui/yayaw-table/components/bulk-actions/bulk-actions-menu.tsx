@@ -21,6 +21,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import type {
+  BulkDeleteActionExecutionResult,
+  BulkDeleteCustomHandlerResult,
+} from "../../hooks/use-bulk-actions";
 import { useTranslations } from "../../providers/table-provider";
 
 /**
@@ -40,7 +44,17 @@ export interface BulkActionsMenuProps<TData> {
   /**
    * Callback when bulk delete is triggered
    */
-  onBulkDelete?: (rows: Row<TData>[]) => Promise<void> | void;
+  onBulkDelete?: (
+    rows: Row<TData>[]
+  ) =>
+    | Promise<
+        | boolean
+        | BulkDeleteActionExecutionResult
+        | BulkDeleteCustomHandlerResult
+      >
+    | boolean
+    | BulkDeleteActionExecutionResult
+    | BulkDeleteCustomHandlerResult;
 
   /**
    * Callback when bulk copy is triggered
@@ -102,6 +116,32 @@ const transition = {
   bounce: 0,
   duration: 0.6,
 };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+export function shouldCloseBulkActionsMenuAfterDelete(
+  deleteResult: unknown
+): boolean {
+  if (typeof deleteResult === "boolean") {
+    return deleteResult;
+  }
+
+  if (!isRecord(deleteResult)) {
+    return false;
+  }
+
+  if (typeof deleteResult.closeMenu === "boolean") {
+    return deleteResult.closeMenu;
+  }
+
+  if (typeof deleteResult.success === "boolean") {
+    return deleteResult.success;
+  }
+
+  return false;
+}
 
 /**
  * BulkActionsMenu Component
@@ -210,11 +250,19 @@ export function BulkActionsMenu<TData>({
         });
         break;
       case "delete":
-        Promise.resolve(onBulkDelete?.(selectedRows)).finally(() => {
-          setSelectedAction(null);
-          setShowConfirmation(false);
-          onClose?.();
-        });
+        Promise.resolve(onBulkDelete?.(selectedRows))
+          .then((result) => {
+            setSelectedAction(null);
+            setShowConfirmation(false);
+
+            if (shouldCloseBulkActionsMenuAfterDelete(result)) {
+              onClose?.();
+            }
+          })
+          .catch(() => {
+            setSelectedAction(null);
+            setShowConfirmation(false);
+          });
         break;
       default:
         setSelectedAction(null);

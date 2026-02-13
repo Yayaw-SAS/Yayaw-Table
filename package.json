@@ -12,7 +12,7 @@
     "start": "next start",
     "build:app": "fumadocs-mdx && next build",
     "type-check": "tsc --noEmit",
-    "test": "echo 'Add tests here'",
+    "test": "bun test src/components/ui/yayaw-table",
     "check": "ultracite check",
     "fix": "ultracite fix"
   },
