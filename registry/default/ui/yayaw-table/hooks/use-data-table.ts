@@ -24,6 +24,7 @@ import { useCallback, useMemo } from "react";
 import type { ActionsColumnProps } from "../components/columns/actions-column";
 import { useColumns } from "../components/columns/hooks/use-columns";
 import { useTranslations } from "../providers/table-provider";
+import { invalidateTableDataQuery } from "./query-cache-utils";
 import { useTableActions } from "./use-table-actions";
 import { useTableConfig } from "./use-table-config";
 import { useTableUrlData } from "./use-table-url-data";
@@ -88,9 +89,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
 
   // Create a function to invalidate table data
   const invalidateTable = useCallback(async () => {
-    await queryClient.invalidateQueries({
-      queryKey: ["tableData", tableId],
-    });
+    await invalidateTableDataQuery({ queryClient, tableId });
   }, [queryClient, tableId]);
 
   // Get table actions using extracted hook (before queryFn to avoid circular reference)

@@ -22,9 +22,11 @@ import {
 } from "@/src/components/ui/alert-dialog";
 import { Button } from "@/src/components/ui/button";
 import type {
-  BulkDeleteActionExecutionResult,
+  BulkActionCustomHandlerResult,
+  BulkActionResult,
   BulkDeleteCustomHandlerResult,
 } from "../../hooks/use-bulk-actions";
+import { normalizeBulkActionResult } from "../../hooks/use-bulk-actions";
 import { useTranslations } from "../../providers/table-provider";
 
 /**
@@ -39,32 +41,30 @@ export interface BulkActionsMenuProps<TData> {
   /**
    * Callback when bulk edit is triggered
    */
-  onBulkEdit?: (rows: Row<TData>[]) => Promise<void> | void;
+  onBulkEdit?: (
+    rows: Row<TData>[]
+  ) => Promise<BulkActionCustomHandlerResult> | BulkActionCustomHandlerResult;
 
   /**
    * Callback when bulk delete is triggered
    */
   onBulkDelete?: (
     rows: Row<TData>[]
-  ) =>
-    | Promise<
-        | boolean
-        | BulkDeleteActionExecutionResult
-        | BulkDeleteCustomHandlerResult
-      >
-    | boolean
-    | BulkDeleteActionExecutionResult
-    | BulkDeleteCustomHandlerResult;
+  ) => Promise<BulkDeleteCustomHandlerResult> | BulkDeleteCustomHandlerResult;
 
   /**
    * Callback when bulk copy is triggered
    */
-  onBulkCopy?: (rows: Row<TData>[]) => Promise<void> | void;
+  onBulkCopy?: (
+    rows: Row<TData>[]
+  ) => Promise<BulkActionCustomHandlerResult> | BulkActionCustomHandlerResult;
 
   /**
    * Callback when bulk export is triggered
    */
-  onBulkExport?: (rows: Row<TData>[]) => void | Promise<void>;
+  onBulkExport?: (
+    rows: Row<TData>[]
+  ) => Promise<BulkActionCustomHandlerResult> | BulkActionCustomHandlerResult;
 
   /**
    * Callback when menu is closed
@@ -84,11 +84,44 @@ export interface BulkActionsMenuProps<TData> {
 
 // Configuration pour les tabs d'actions
 interface ActionTab {
-  id: string;
+  id: MenuActionId;
   icon: React.ComponentType<{ size?: number }>;
   translationKey: string;
   variant: "default" | "destructive";
 }
+
+type MenuActionId = "copy" | "delete" | "edit" | "export";
+type ConfirmableMenuActionId = "copy" | "delete";
+
+interface BulkMenuOutsideClickState {
+  hoveredAction: string | null;
+  isConfirmingAction: boolean;
+  selectedAction: ConfirmableMenuActionId | null;
+  showConfirmation: boolean;
+}
+
+const DEFAULT_BULK_ACTION_RESULTS: Record<MenuActionId, BulkActionResult> = {
+  copy: {
+    clearSelection: false,
+    closeMenu: true,
+    success: true,
+  },
+  delete: {
+    clearSelection: false,
+    closeMenu: false,
+    success: false,
+  },
+  edit: {
+    clearSelection: false,
+    closeMenu: true,
+    success: true,
+  },
+  export: {
+    clearSelection: false,
+    closeMenu: true,
+    success: true,
+  },
+};
 
 // Variants pour les animations
 const buttonVariants = {
@@ -117,30 +150,135 @@ const transition = {
   duration: 0.6,
 };
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
+export function shouldIgnoreOutsideClickForBulkMenu(
+  state: Pick<BulkMenuOutsideClickState, "isConfirmingAction" | "showConfirmation">
+): boolean {
+  return state.showConfirmation || state.isConfirmingAction;
 }
 
-export function shouldCloseBulkActionsMenuAfterDelete(
-  deleteResult: unknown
-): boolean {
-  if (typeof deleteResult === "boolean") {
-    return deleteResult;
+export function getBulkMenuStateAfterOutsideClick(
+  state: BulkMenuOutsideClickState
+): BulkMenuOutsideClickState {
+  if (shouldIgnoreOutsideClickForBulkMenu(state)) {
+    return state;
   }
 
-  if (!isRecord(deleteResult)) {
-    return false;
+  return {
+    ...state,
+    hoveredAction: null,
+    selectedAction: null,
+    showConfirmation: false,
+  };
+}
+
+async function executeImmediateBulkAction<TData>({
+  actionId,
+  onBulkEdit,
+  onBulkExport,
+  selectedRows,
+}: {
+  actionId: "edit" | "export";
+  onBulkEdit?: (
+    rows: Row<TData>[]
+  ) => Promise<BulkActionCustomHandlerResult> | BulkActionCustomHandlerResult;
+  onBulkExport?: (
+    rows: Row<TData>[]
+  ) => Promise<BulkActionCustomHandlerResult> | BulkActionCustomHandlerResult;
+  selectedRows: Row<TData>[];
+}): Promise<BulkActionResult> {
+  try {
+    if (actionId === "edit") {
+      const rawResult = await Promise.resolve(onBulkEdit?.(selectedRows));
+      return normalizeBulkActionResult(
+        rawResult,
+        DEFAULT_BULK_ACTION_RESULTS[actionId]
+      );
+    }
+
+    const rawResult = await Promise.resolve(onBulkExport?.(selectedRows));
+    return normalizeBulkActionResult(
+      rawResult,
+      DEFAULT_BULK_ACTION_RESULTS[actionId]
+    );
+  } catch {
+    return {
+      ...DEFAULT_BULK_ACTION_RESULTS[actionId],
+      closeMenu: false,
+      success: false,
+    };
+  }
+}
+
+async function executeConfirmableBulkAction<TData>({
+  action,
+  onBulkCopy,
+  onBulkDelete,
+  selectedRows,
+}: {
+  action: ConfirmableMenuActionId;
+  onBulkCopy?: (
+    rows: Row<TData>[]
+  ) => Promise<BulkActionCustomHandlerResult> | BulkActionCustomHandlerResult;
+  onBulkDelete?: (
+    rows: Row<TData>[]
+  ) => Promise<BulkDeleteCustomHandlerResult> | BulkDeleteCustomHandlerResult;
+  selectedRows: Row<TData>[];
+}): Promise<BulkActionResult> {
+  try {
+    if (action === "copy") {
+      const rawResult = await Promise.resolve(onBulkCopy?.(selectedRows));
+      return normalizeBulkActionResult(
+        rawResult,
+        DEFAULT_BULK_ACTION_RESULTS[action]
+      );
+    }
+
+    const rawResult = await Promise.resolve(onBulkDelete?.(selectedRows));
+    return normalizeBulkActionResult(
+      rawResult,
+      DEFAULT_BULK_ACTION_RESULTS[action]
+    );
+  } catch {
+    return {
+      ...DEFAULT_BULK_ACTION_RESULTS[action],
+      closeMenu: false,
+      success: false,
+    };
+  }
+}
+
+export async function executeConfirmableBulkActionWithLock<TData>({
+  action,
+  lockRef,
+  onBulkCopy,
+  onBulkDelete,
+  selectedRows,
+}: {
+  action: ConfirmableMenuActionId;
+  lockRef: { current: boolean };
+  onBulkCopy?: (
+    rows: Row<TData>[]
+  ) => Promise<BulkActionCustomHandlerResult> | BulkActionCustomHandlerResult;
+  onBulkDelete?: (
+    rows: Row<TData>[]
+  ) => Promise<BulkDeleteCustomHandlerResult> | BulkDeleteCustomHandlerResult;
+  selectedRows: Row<TData>[];
+}): Promise<BulkActionResult | undefined> {
+  if (lockRef.current) {
+    return;
   }
 
-  if (typeof deleteResult.closeMenu === "boolean") {
-    return deleteResult.closeMenu;
+  lockRef.current = true;
+  try {
+    return await executeConfirmableBulkAction({
+      action,
+      onBulkCopy,
+      onBulkDelete,
+      selectedRows,
+    });
+  } finally {
+    lockRef.current = false;
   }
-
-  if (typeof deleteResult.success === "boolean") {
-    return deleteResult.success;
-  }
-
-  return false;
 }
 
 /**
@@ -159,9 +297,13 @@ export function BulkActionsMenu<TData>({
   className,
   showBulkExport = true,
 }: BulkActionsMenuProps<TData>) {
-  const [selectedAction, setSelectedAction] = useState<string | null>(null);
+  const [selectedAction, setSelectedAction] =
+    useState<ConfirmableMenuActionId | null>(null);
   const [hoveredAction, setHoveredAction] = useState<string | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [isConfirmingAction, setIsConfirmingAction] = useState(false);
+  const pendingActionRef = useRef<ConfirmableMenuActionId | null>(null);
+  const confirmationLockRef = useRef(false);
   const outsideClickRef = useRef<HTMLDivElement>(null);
   const { t } = useTranslations();
 
@@ -170,7 +312,7 @@ export function BulkActionsMenu<TData>({
     ...(onBulkEdit
       ? [
           {
-            id: "edit",
+            id: "edit" as const,
             icon: Edit,
             translationKey: "actions.edit",
             variant: "default" as const,
@@ -178,7 +320,7 @@ export function BulkActionsMenu<TData>({
         ]
       : []),
     {
-      id: "copy",
+      id: "copy" as const,
       icon: Copy,
       translationKey: "actions.copy",
       variant: "default",
@@ -186,7 +328,7 @@ export function BulkActionsMenu<TData>({
     ...(showBulkExport
       ? [
           {
-            id: "export",
+            id: "export" as const,
             icon: Download,
             translationKey: "actions.export",
             variant: "default" as const,
@@ -194,7 +336,7 @@ export function BulkActionsMenu<TData>({
         ]
       : []),
     {
-      id: "delete",
+      id: "delete" as const,
       icon: Trash2,
       translationKey: "actions.delete",
       variant: "destructive",
@@ -202,9 +344,16 @@ export function BulkActionsMenu<TData>({
   ];
 
   useOnClickOutside(outsideClickRef as React.RefObject<HTMLElement>, () => {
-    setSelectedAction(null);
-    setHoveredAction(null);
-    setShowConfirmation(false);
+    const nextState = getBulkMenuStateAfterOutsideClick({
+      hoveredAction,
+      isConfirmingAction,
+      selectedAction,
+      showConfirmation,
+    });
+
+    setHoveredAction(nextState.hoveredAction);
+    setSelectedAction(nextState.selectedAction);
+    setShowConfirmation(nextState.showConfirmation);
   });
 
   // Don't render if no rows are selected
@@ -214,70 +363,75 @@ export function BulkActionsMenu<TData>({
 
   const selectedCount = selectedRows.length;
 
-  const handleTabClick = (actionId: string) => {
-    // Pour l'édition, ouvrir directement le formulaire sans confirmation
-    if (actionId === "edit") {
-      Promise.resolve(onBulkEdit?.(selectedRows)).finally(() => {
-        onClose?.();
+  const handleTabClick = (actionId: MenuActionId) => {
+    if (isConfirmingAction) {
+      return;
+    }
+
+    if (actionId === "edit" || actionId === "export") {
+      executeImmediateBulkAction({
+        actionId,
+        onBulkEdit,
+        onBulkExport,
+        selectedRows,
+      }).then((result) => {
+        if (result.closeMenu) {
+          onClose?.();
+        }
       });
       return;
     }
 
-    if (actionId === "export") {
-      Promise.resolve(onBulkExport?.(selectedRows)).finally(() => {
-        onClose?.();
-      });
-      return;
-    }
-
-    // Pour les autres actions, afficher la confirmation
+    pendingActionRef.current = actionId;
     setSelectedAction(actionId);
     setShowConfirmation(true);
   };
 
   const handleConfirmAction = () => {
-    if (!selectedAction) {
+    const pendingAction = pendingActionRef.current;
+    if (
+      !pendingAction ||
+      confirmationLockRef.current ||
+      isConfirmingAction
+    ) {
       return;
     }
 
-    // Execute action based on ID
-    switch (selectedAction) {
-      case "copy":
-        Promise.resolve(onBulkCopy?.(selectedRows)).finally(() => {
-          setSelectedAction(null);
-          setShowConfirmation(false);
+    setIsConfirmingAction(true);
+    executeConfirmableBulkActionWithLock({
+      action: pendingAction,
+      lockRef: confirmationLockRef,
+      onBulkCopy,
+      onBulkDelete,
+      selectedRows,
+    })
+      .then((result) => {
+        if (result?.closeMenu) {
           onClose?.();
-        });
-        break;
-      case "delete":
-        Promise.resolve(onBulkDelete?.(selectedRows))
-          .then((result) => {
-            setSelectedAction(null);
-            setShowConfirmation(false);
-
-            if (shouldCloseBulkActionsMenuAfterDelete(result)) {
-              onClose?.();
-            }
-          })
-          .catch(() => {
-            setSelectedAction(null);
-            setShowConfirmation(false);
-          });
-        break;
-      default:
+        }
+      })
+      .finally(() => {
+        pendingActionRef.current = null;
         setSelectedAction(null);
         setShowConfirmation(false);
-        onClose?.();
-        break;
-    }
+        setIsConfirmingAction(false);
+      });
   };
 
   const handleCancel = () => {
+    if (isConfirmingAction || confirmationLockRef.current) {
+      return;
+    }
+    pendingActionRef.current = null;
     setSelectedAction(null);
     setShowConfirmation(false);
   };
 
   const handleClose = () => {
+    if (isConfirmingAction || confirmationLockRef.current) {
+      return;
+    }
+    pendingActionRef.current = null;
     setSelectedAction(null);
     setHoveredAction(null);
     setShowConfirmation(false);
@@ -303,7 +457,7 @@ export function BulkActionsMenu<TData>({
         {/* Confirmation dialog (consistent AlertDialog for copy/delete) */}
         <AlertDialog
           onOpenChange={(open) => {
-            if (!open) {
+            if (!open && !isConfirmingAction && !confirmationLockRef.current) {
               handleCancel();
             }
           }}
@@ -330,7 +484,10 @@ export function BulkActionsMenu<TData>({
               )}
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel onClick={handleCancel}>
+              <AlertDialogCancel
+                disabled={isConfirmingAction}
+                onClick={handleCancel}
+              >
                 {t("actions.cancel")}
               </AlertDialogCancel>
               <AlertDialogAction
@@ -339,9 +496,10 @@ export function BulkActionsMenu<TData>({
                     ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     : undefined
                 }
+                disabled={isConfirmingAction}
                 onClick={handleConfirmAction}
               >
-                {t("actions.confirm")}
+                {isConfirmingAction ? t("common.loading") : t("actions.confirm")}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -381,6 +539,7 @@ export function BulkActionsMenu<TData>({
                 onClick={() => handleTabClick(tab.id)}
                 onMouseEnter={() => setHoveredAction(tab.id)}
                 onMouseLeave={() => setHoveredAction(null)}
+                type="button"
                 transition={transition}
                 variants={buttonVariants}
               >

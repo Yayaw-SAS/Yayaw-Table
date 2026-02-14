@@ -45,6 +45,37 @@ The `list` method must return:
 - `onBulkCopy` → `duplicate`
 - `onBulkExport` → internal CSV export of selected rows (client-side)
 
+### Recommended bulk callback contract
+
+To avoid ambiguous branches, return an explicit result object from your bulk callbacks:
+
+```ts
+type BulkActionResult = {
+  success: boolean;
+  closeMenu: boolean;
+  clearSelection: boolean;
+  message?: string;
+};
+```
+
+Example:
+
+```ts
+onBulkDelete: async (rows) => {
+  const ids = rows.map((row) => String((row.original as { id: string }).id));
+  const response = await deleteManyProducts(ids);
+
+  return {
+    success: response.success,
+    closeMenu: response.success,
+    clearSelection: response.success,
+    message: response.success
+      ? `Deleted ${ids.length} products`
+      : response.error ?? "Delete failed",
+  };
+};
+```
+
 See also:
 - [Provider & Setup](/docs/setup)
 - [DataTable props](/docs/datatable)

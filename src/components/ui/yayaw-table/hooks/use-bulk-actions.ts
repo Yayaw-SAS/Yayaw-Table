@@ -18,10 +18,22 @@ interface ActionResult {
 type BulkDeleteAction = (ids: string[]) => Promise<ActionResult>;
 type DeleteAction = (id: string) => Promise<ActionResult>;
 
-export interface BulkDeleteActionExecutionResult {
+export interface BulkActionResult {
+  clearSelection: boolean;
   closeMenu: boolean;
+  message?: string;
   success: boolean;
 }
+
+// biome-ignore lint/suspicious/noConfusingVoidType: Keep void for backward compatibility with existing handlers returning Promise<void>.
+export type BulkActionCustomHandlerResult = BulkActionResult | void;
+export type BulkDeleteActionExecutionResult = BulkActionResult;
+
+const DEFAULT_BULK_ACTION_FAILURE_RESULT: BulkActionResult = {
+  clearSelection: false,
+  closeMenu: false,
+  success: false,
+};
 
 /**
  * Custom delete callbacks can:
@@ -30,9 +42,13 @@ export interface BulkDeleteActionExecutionResult {
  * - return `{ outcome, clearSelection }` to override clear/close behavior explicitly.
  */
 export type BulkDeleteCustomHandlerResult =
+  | BulkActionResult
   | BulkDeleteExecutionOutcome
   | {
       clearSelection?: boolean;
+      closeMenu?: boolean;
+      message?: string;
+      success?: boolean;
       outcome?: BulkDeleteExecutionOutcome;
     }
   // biome-ignore lint/suspicious/noConfusingVoidType: Keep `void` for backward compatibility with existing async handlers returning Promise<void>.
@@ -60,7 +76,9 @@ interface BulkActionsConfig<TData> {
   /**
    * Callback when bulk edit is triggered
    */
-  onBulkEdit?: (rows: Row<TData>[]) => Promise<void> | void;
+  onBulkEdit?: (
+    rows: Row<TData>[]
+  ) => Promise<BulkActionCustomHandlerResult> | BulkActionCustomHandlerResult;
 
   /**
    * Callback when bulk delete is triggered
@@ -72,12 +90,16 @@ interface BulkActionsConfig<TData> {
   /**
    * Callback when bulk copy is triggered
    */
-  onBulkCopy?: (rows: Row<TData>[]) => Promise<void> | void;
+  onBulkCopy?: (
+    rows: Row<TData>[]
+  ) => Promise<BulkActionCustomHandlerResult> | BulkActionCustomHandlerResult;
 
   /**
    * Callback when bulk export is triggered
    */
-  onBulkExport?: (rows: Row<TData>[]) => void | Promise<void>;
+  onBulkExport?: (
+    rows: Row<TData>[]
+  ) => Promise<BulkActionCustomHandlerResult> | BulkActionCustomHandlerResult;
 
   /**
    * Minimum number of selected rows to show bulk actions menu
@@ -123,7 +145,7 @@ interface BulkActionsReturn<TData> {
   /**
    * Handle bulk edit action
    */
-  handleBulkEdit: () => Promise<void>;
+  handleBulkEdit: () => Promise<BulkActionResult>;
 
   /**
    * Handle bulk delete action
@@ -133,12 +155,12 @@ interface BulkActionsReturn<TData> {
   /**
    * Handle bulk copy action
    */
-  handleBulkCopy: () => Promise<void>;
+  handleBulkCopy: () => Promise<BulkActionResult>;
 
   /**
    * Handle bulk export action
    */
-  handleBulkExport: () => Promise<void>;
+  handleBulkExport: () => Promise<BulkActionResult>;
 
   /**
    * Whether bulk export action is enabled
@@ -181,6 +203,7 @@ interface BulkDeleteNotificationAdapter {
 
 interface CustomBulkDeleteResultResolution {
   feedback?: BulkDeleteFeedback;
+  closeMenu: boolean;
   shouldClearSelection: boolean;
   success: boolean;
 }
@@ -208,6 +231,59 @@ function pluralizeRows(count: number): string {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+export function isBulkActionResult(value: unknown): value is BulkActionResult {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    typeof value.success === "boolean" &&
+    typeof value.closeMenu === "boolean" &&
+    typeof value.clearSelection === "boolean"
+  );
+}
+
+export function normalizeBulkActionResult(
+  result: unknown,
+  fallbackResult: BulkActionResult
+): BulkActionResult {
+  if (typeof result === "boolean") {
+    return {
+      clearSelection: result,
+      closeMenu: result,
+      success: result,
+    };
+  }
+
+  if (!isRecord(result)) {
+    return fallbackResult;
+  }
+
+  const success =
+    typeof result.success === "boolean" ? result.success : fallbackResult.success;
+  const closeMenu =
+    typeof result.closeMenu === "boolean"
+      ? result.closeMenu
+      : fallbackResult.closeMenu;
+  let clearSelection = fallbackResult.clearSelection;
+  if (typeof result.clearSelection === "boolean") {
+    clearSelection = result.clearSelection;
+  } else if (typeof result.closeMenu === "boolean") {
+    clearSelection = result.closeMenu;
+  }
+  const message =
+    typeof result.message === "string" && result.message.trim().length > 0
+      ? result.message
+      : fallbackResult.message;
+
+  return {
+    clearSelection,
+    closeMenu,
+    message,
+    success,
+  };
 }
 
 export function isBulkDeleteExecutionOutcome(
@@ -477,6 +553,146 @@ export function buildBulkDeleteFeedback(
   };
 }
 
+interface BulkDeleteResultOverrides {
+  explicitClearSelection?: boolean;
+  explicitCloseMenu?: boolean;
+  explicitMessage?: string;
+  explicitSuccess?: boolean;
+  recordResult?: Record<string, unknown>;
+}
+
+function readBulkDeleteResultOverrides(
+  result: BulkDeleteCustomHandlerResult
+): BulkDeleteResultOverrides {
+  const recordResult = isRecord(result) ? result : undefined;
+
+  return {
+    explicitClearSelection:
+      recordResult && typeof recordResult.clearSelection === "boolean"
+        ? recordResult.clearSelection
+        : undefined,
+    explicitCloseMenu:
+      recordResult && typeof recordResult.closeMenu === "boolean"
+        ? recordResult.closeMenu
+        : undefined,
+    explicitMessage:
+      recordResult && typeof recordResult.message === "string"
+        ? recordResult.message
+        : undefined,
+    explicitSuccess:
+      recordResult && typeof recordResult.success === "boolean"
+        ? recordResult.success
+        : undefined,
+    recordResult,
+  };
+}
+
+function resolveStructuredBulkDeleteOutcome(
+  result: BulkDeleteCustomHandlerResult,
+  recordResult?: Record<string, unknown>
+): BulkDeleteExecutionOutcome | undefined {
+  if (isBulkDeleteExecutionOutcome(result)) {
+    return result;
+  }
+
+  if (isBulkDeleteExecutionOutcome(recordResult?.outcome)) {
+    return recordResult.outcome;
+  }
+
+  return;
+}
+
+function resolveBulkDeleteStructuredResult(options: {
+  closeOnError: boolean;
+  explicitClearSelection?: boolean;
+  explicitCloseMenu?: boolean;
+  outcome: BulkDeleteExecutionOutcome;
+}): CustomBulkDeleteResultResolution {
+  const feedback = buildBulkDeleteFeedback(options.outcome);
+  const isSuccess = feedback.tone === "success";
+
+  return {
+    closeMenu: options.explicitCloseMenu ?? (isSuccess ? true : options.closeOnError),
+    feedback,
+    shouldClearSelection:
+      options.explicitClearSelection ?? (isSuccess ? true : options.closeOnError),
+    success: isSuccess,
+  };
+}
+
+function resolveBulkDeleteLegacyDefaultResult(options: {
+  explicitClearSelection?: boolean;
+  explicitCloseMenu?: boolean;
+  selectedCount: number;
+}): CustomBulkDeleteResultResolution {
+  return {
+    closeMenu: options.explicitCloseMenu ?? true,
+    feedback: {
+      message: `Deleted ${options.selectedCount} ${pluralizeRows(options.selectedCount)} successfully.`,
+      tone: "success",
+    },
+    shouldClearSelection: options.explicitClearSelection ?? true,
+    success: true,
+  };
+}
+
+function resolveBulkDeleteExplicitSuccessResult(options: {
+  closeOnError: boolean;
+  explicitClearSelection?: boolean;
+  explicitCloseMenu?: boolean;
+  explicitMessage?: string;
+  explicitSuccess?: boolean;
+}): CustomBulkDeleteResultResolution | undefined {
+  if (typeof options.explicitSuccess !== "boolean") {
+    return;
+  }
+
+  const shouldClearSelection =
+    options.explicitClearSelection ??
+    (options.explicitSuccess ? true : options.closeOnError);
+  const feedbackMessage =
+    typeof options.explicitMessage === "string"
+      ? options.explicitMessage.trim()
+      : "";
+
+  return {
+    closeMenu: options.explicitCloseMenu ?? shouldClearSelection,
+    feedback: feedbackMessage.length > 0
+      ? {
+          message: feedbackMessage,
+          tone: options.explicitSuccess ? "success" : "error",
+        }
+      : undefined,
+    shouldClearSelection,
+    success: options.explicitSuccess,
+  };
+}
+
+function resolveBulkDeleteMessageOnlyResult(options: {
+  explicitClearSelection?: boolean;
+  explicitCloseMenu?: boolean;
+  explicitMessage?: string;
+}): CustomBulkDeleteResultResolution | undefined {
+  const feedbackMessage =
+    typeof options.explicitMessage === "string"
+      ? options.explicitMessage.trim()
+      : "";
+
+  if (feedbackMessage.length === 0) {
+    return;
+  }
+
+  return {
+    closeMenu: options.explicitCloseMenu ?? false,
+    feedback: {
+      message: feedbackMessage,
+      tone: "error",
+    },
+    shouldClearSelection: options.explicitClearSelection ?? false,
+    success: false,
+  };
+}
+
 export function resolveCustomBulkDeleteHandlerResult({
   closeOnError,
   result,
@@ -488,44 +704,67 @@ export function resolveCustomBulkDeleteHandlerResult({
   selectedCount: number;
   showDefaultToastsForCustomHandlers: boolean;
 }): CustomBulkDeleteResultResolution {
-  const recordResult = isRecord(result) ? result : undefined;
-  const explicitClearSelection =
-    recordResult && typeof recordResult.clearSelection === "boolean"
-      ? recordResult.clearSelection
-      : undefined;
+  const overrides = readBulkDeleteResultOverrides(result);
 
-  let structuredOutcome: BulkDeleteExecutionOutcome | undefined;
-  if (isBulkDeleteExecutionOutcome(result)) {
-    structuredOutcome = result;
-  } else if (isBulkDeleteExecutionOutcome(recordResult?.outcome)) {
-    structuredOutcome = recordResult.outcome;
+  if (isBulkActionResult(result)) {
+    return {
+      closeMenu: result.closeMenu,
+      feedback: result.message
+        ? {
+            message: result.message,
+            tone: result.success ? "success" : "error",
+          }
+        : undefined,
+      shouldClearSelection: result.clearSelection,
+      success: result.success,
+    };
   }
 
+  const structuredOutcome = resolveStructuredBulkDeleteOutcome(
+    result,
+    overrides.recordResult
+  );
   if (structuredOutcome) {
-    const feedback = buildBulkDeleteFeedback(structuredOutcome);
-    const isSuccess = feedback.tone === "success";
-    return {
-      feedback,
-      shouldClearSelection:
-        explicitClearSelection ?? (isSuccess ? true : closeOnError),
-      success: isSuccess,
-    };
+    return resolveBulkDeleteStructuredResult({
+      closeOnError,
+      explicitClearSelection: overrides.explicitClearSelection,
+      explicitCloseMenu: overrides.explicitCloseMenu,
+      outcome: structuredOutcome,
+    });
   }
 
   if (showDefaultToastsForCustomHandlers) {
-    return {
-      feedback: {
-        message: `Deleted ${selectedCount} ${pluralizeRows(selectedCount)} successfully.`,
-        tone: "success",
-      },
-      shouldClearSelection: explicitClearSelection ?? true,
-      success: true,
-    };
+    return resolveBulkDeleteLegacyDefaultResult({
+      explicitClearSelection: overrides.explicitClearSelection,
+      explicitCloseMenu: overrides.explicitCloseMenu,
+      selectedCount,
+    });
+  }
+
+  const explicitSuccessResolution = resolveBulkDeleteExplicitSuccessResult({
+    closeOnError,
+    explicitClearSelection: overrides.explicitClearSelection,
+    explicitCloseMenu: overrides.explicitCloseMenu,
+    explicitMessage: overrides.explicitMessage,
+    explicitSuccess: overrides.explicitSuccess,
+  });
+  if (explicitSuccessResolution) {
+    return explicitSuccessResolution;
+  }
+
+  const explicitMessageResolution = resolveBulkDeleteMessageOnlyResult({
+    explicitClearSelection: overrides.explicitClearSelection,
+    explicitCloseMenu: overrides.explicitCloseMenu,
+    explicitMessage: overrides.explicitMessage,
+  });
+  if (explicitMessageResolution) {
+    return explicitMessageResolution;
   }
 
   return {
-    shouldClearSelection: explicitClearSelection ?? false,
-    success: explicitClearSelection === true,
+    closeMenu: overrides.explicitCloseMenu ?? false,
+    shouldClearSelection: overrides.explicitClearSelection ?? false,
+    success: overrides.explicitClearSelection === true,
   };
 }
 
@@ -570,17 +809,22 @@ export async function executeCustomBulkDeleteHandler<TData>({
     }
 
     return {
-      closeMenu: resolution.shouldClearSelection,
+      clearSelection: resolution.shouldClearSelection,
+      closeMenu: resolution.closeMenu,
+      message: resolution.feedback?.message,
       success: resolution.success,
     };
   } catch (error) {
-    notifier.error(toErrorMessage(error, DEFAULT_BULK_DELETE_ERROR));
+    const errorMessage = toErrorMessage(error, DEFAULT_BULK_DELETE_ERROR);
+    notifier.error(errorMessage);
     if (closeOnError) {
       clearSelection();
     }
 
     return {
+      clearSelection: closeOnError,
       closeMenu: closeOnError,
+      message: errorMessage,
       success: false,
     };
   }
@@ -602,6 +846,19 @@ export function resolveBulkEditWithoutCustom(options: {
       "Bulk edit is not configured. Provide onBulkEdit or actions.bulkUpdate(ids, data).",
     status: "notConfigured",
   };
+}
+
+function showBulkActionMessage(result: BulkActionResult): void {
+  if (!result.message || result.message.trim().length === 0) {
+    return;
+  }
+
+  if (result.success) {
+    toast.success(result.message);
+    return;
+  }
+
+  toast.error(result.message);
 }
 
 const _DEBUG = false;
@@ -652,17 +909,31 @@ export function useBulkActions<TData>({
   }, [table]);
 
   // Handle bulk edit
-  const handleBulkEdit = useCallback(async () => {
+  const handleBulkEdit = useCallback(async (): Promise<BulkActionResult> => {
+    const successResult: BulkActionResult = {
+      clearSelection: false,
+      closeMenu: true,
+      success: true,
+    };
+
     if (selectedRows.length === 0) {
-      return;
+      return DEFAULT_BULK_ACTION_FAILURE_RESULT;
     }
+
     if (onBulkEdit) {
       try {
-        await Promise.resolve(onBulkEdit(selectedRows));
+        const rawResult = await Promise.resolve(onBulkEdit(selectedRows));
+        const result = normalizeBulkActionResult(rawResult, successResult);
+        showBulkActionMessage(result);
+        return result;
       } catch (error) {
-        toast.error(toErrorMessage(error, "Bulk edit failed."));
+        const errorMessage = toErrorMessage(error, "Bulk edit failed.");
+        toast.error(errorMessage);
+        return {
+          ...DEFAULT_BULK_ACTION_FAILURE_RESULT,
+          message: errorMessage,
+        };
       }
-      return;
     }
 
     const resolution = resolveBulkEditWithoutCustom({
@@ -670,12 +941,16 @@ export function useBulkActions<TData>({
     });
 
     toast.info(resolution.message);
+    return {
+      ...DEFAULT_BULK_ACTION_FAILURE_RESULT,
+      message: resolution.message,
+    };
   }, [selectedRows, onBulkEdit, provider?.actions.bulkUpdate]);
 
   // Handle bulk delete
-  const handleBulkDelete = useCallback(async () => {
+  const handleBulkDelete = useCallback(async (): Promise<BulkActionResult> => {
     if (selectedRows.length === 0) {
-      return { closeMenu: false, success: false };
+      return DEFAULT_BULK_ACTION_FAILURE_RESULT;
     }
 
     if (onBulkDelete) {
@@ -694,7 +969,12 @@ export function useBulkActions<TData>({
       if (closeOnError) {
         clearSelection();
       }
-      return { closeMenu: closeOnError, success: false };
+      return {
+        clearSelection: closeOnError,
+        closeMenu: closeOnError,
+        message: DEFAULT_NO_VALID_IDS_ERROR,
+        success: false,
+      };
     }
 
     const outcome = await executeBulkDeleteOperation({
@@ -707,14 +987,24 @@ export function useBulkActions<TData>({
     if (feedback.tone === "success") {
       toast.success(feedback.message);
       clearSelection();
-      return { closeMenu: true, success: true };
+      return {
+        clearSelection: true,
+        closeMenu: true,
+        message: feedback.message,
+        success: true,
+      };
     }
 
     toast.error(feedback.message);
     if (closeOnError) {
       clearSelection();
     }
-    return { closeMenu: closeOnError, success: false };
+    return {
+      clearSelection: closeOnError,
+      closeMenu: closeOnError,
+      message: feedback.message,
+      success: false,
+    };
   }, [
     selectedRows,
     onBulkDelete,
@@ -725,18 +1015,34 @@ export function useBulkActions<TData>({
   ]);
 
   // Handle bulk copy
-  const handleBulkCopy = useCallback(async () => {
+  const handleBulkCopy = useCallback(async (): Promise<BulkActionResult> => {
+    const successResult: BulkActionResult = {
+      clearSelection: false,
+      closeMenu: true,
+      success: true,
+    };
+
     if (selectedRows.length === 0) {
-      return;
+      return DEFAULT_BULK_ACTION_FAILURE_RESULT;
     }
 
     if (onBulkCopy) {
       try {
-        await Promise.resolve(onBulkCopy(selectedRows));
+        const rawResult = await Promise.resolve(onBulkCopy(selectedRows));
+        const result = normalizeBulkActionResult(rawResult, successResult);
+        showBulkActionMessage(result);
+        return result;
       } catch (error) {
-        toast.error(toErrorMessage(error, "Failed to copy selected rows."));
+        const errorMessage = toErrorMessage(
+          error,
+          "Failed to copy selected rows."
+        );
+        toast.error(errorMessage);
+        return {
+          ...DEFAULT_BULK_ACTION_FAILURE_RESULT,
+          message: errorMessage,
+        };
       }
-      return;
     }
 
     // Default copy to clipboard
@@ -748,28 +1054,52 @@ export function useBulkActions<TData>({
         toast.success(
           `Copied ${selectedRows.length} ${pluralizeRows(selectedRows.length)} to clipboard.`
         );
-        return;
+        return {
+          ...successResult,
+          message: `Copied ${selectedRows.length} ${pluralizeRows(selectedRows.length)} to clipboard.`,
+        };
       }
 
       throw new Error("Clipboard API is not available in this environment.");
     } catch (error) {
-      toast.error(toErrorMessage(error, "Failed to copy selected rows."));
+      const errorMessage = toErrorMessage(error, "Failed to copy selected rows.");
+      toast.error(errorMessage);
+      return {
+        ...DEFAULT_BULK_ACTION_FAILURE_RESULT,
+        message: errorMessage,
+      };
     }
   }, [selectedRows, onBulkCopy]);
 
   // Handle bulk CSV export
-  const handleBulkExport = useCallback(async () => {
+  const handleBulkExport = useCallback(async (): Promise<BulkActionResult> => {
+    const successResult: BulkActionResult = {
+      clearSelection: false,
+      closeMenu: true,
+      success: true,
+    };
+
     if (!bulkExportEnabled || selectedRows.length === 0) {
-      return;
+      return DEFAULT_BULK_ACTION_FAILURE_RESULT;
     }
 
     if (onBulkExport) {
       try {
-        await Promise.resolve(onBulkExport(selectedRows));
+        const rawResult = await Promise.resolve(onBulkExport(selectedRows));
+        const result = normalizeBulkActionResult(rawResult, successResult);
+        showBulkActionMessage(result);
+        return result;
       } catch (error) {
-        toast.error(toErrorMessage(error, "Failed to export selected rows."));
+        const errorMessage = toErrorMessage(
+          error,
+          "Failed to export selected rows."
+        );
+        toast.error(errorMessage);
+        return {
+          ...DEFAULT_BULK_ACTION_FAILURE_RESULT,
+          message: errorMessage,
+        };
       }
-      return;
     }
 
     try {
@@ -788,8 +1118,14 @@ export function useBulkActions<TData>({
         rows: rowsToExport,
         tableId: tableId ?? tableType ?? "table",
       });
+      return successResult;
     } catch (error) {
-      toast.error(toErrorMessage(error, "Failed to export selected rows."));
+      const errorMessage = toErrorMessage(error, "Failed to export selected rows.");
+      toast.error(errorMessage);
+      return {
+        ...DEFAULT_BULK_ACTION_FAILURE_RESULT,
+        message: errorMessage,
+      };
     }
   }, [
     bulkExportEnabled,
