@@ -611,6 +611,16 @@
           "target": "components/ui/yayaw-table/hooks/index.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/hooks/query-cache-utils.test.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/hooks/query-cache-utils.test.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/hooks/query-cache-utils.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/hooks/query-cache-utils.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/hooks/use-advanced-filters.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/hooks/use-advanced-filters.ts"
@@ -709,6 +719,16 @@
           "path": "registry/default/ui/yayaw-table/providers/index.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/providers/index.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/providers/query-client-requirements.test.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/providers/query-client-requirements.test.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/providers/query-client-requirements.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/providers/query-client-requirements.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/providers/table-provider.tsx",

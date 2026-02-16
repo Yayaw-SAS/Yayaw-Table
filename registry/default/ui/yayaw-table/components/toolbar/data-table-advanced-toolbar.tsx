@@ -39,9 +39,9 @@ import {
   useTableActions as useProviderTableActions,
   useTranslations,
 } from "../../providers/table-provider";
-import type { ColumnDataType } from "../../types";
 import type { DateDisplayPreset } from "../../types/date-types";
 import { DATE_DISPLAY_PRESETS } from "../../types/date-types";
+import type { ColumnDataType } from "../../types";
 import { buildCsvExportColumns, exportRowsAsCsv } from "../../utils/csv-export";
 import {
   catalogueFormAtom,
@@ -220,9 +220,8 @@ function createColumnOptions(
   const options = columnDefinitions
     .filter((colDef) => colDef.id !== "select" && colDef.id !== "actions") // Skip system columns
     .map((colDef) => {
-      const columnDateDisplayPreset = (
-        colDef as { dateDisplayPreset?: unknown }
-      ).dateDisplayPreset;
+      const columnDateDisplayPreset = (colDef as { dateDisplayPreset?: unknown })
+        .dateDisplayPreset;
       const rawDateFormat =
         (colDef as { dateFormat?: unknown }).dateFormat ??
         (colDef as { meta?: { dateFormat?: unknown } }).meta?.dateFormat;
