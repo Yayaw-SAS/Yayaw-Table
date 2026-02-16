@@ -622,7 +622,7 @@ export default function ExamplePage() {
                     : "Full width (test table in full width)"
                 }
                 type="button"
-                variant="outline"
+                variant="ghost"
               >
                 <GalleryHorizontal aria-hidden className="size-4" />
               </Button>
