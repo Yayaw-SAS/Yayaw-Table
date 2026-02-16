@@ -4,8 +4,8 @@
  */
 "use client";
 
-import type { DateDisplayPreset } from "../../types/date-types";
 import { useLocale } from "../../providers/table-provider";
+import type { DateDisplayPreset } from "../../types/date-types";
 import { formatDateForDisplay, toValidDate } from "../../utils/date-display";
 
 export interface DateCellProps {

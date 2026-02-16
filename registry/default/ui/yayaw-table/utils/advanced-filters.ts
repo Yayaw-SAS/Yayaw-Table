@@ -3,6 +3,7 @@
  * Provides client-side filtering functions and helpers
  */
 
+import type { DateDisplayPreset } from "../types/date-types";
 import type {
   AdvancedFilterModel,
   AdvancedFiltersState,
@@ -11,7 +12,6 @@ import type {
   FilterOperators,
   FilterValues,
 } from "../types/filter-types";
-import type { DateDisplayPreset } from "../types/date-types";
 import {
   formatDateForDisplay,
   formatDateRangeForDisplay,

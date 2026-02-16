@@ -4,19 +4,19 @@
  */
 "use client";
 
-import type { Cell, ColumnDef, Row } from "@tanstack/react-table";
+import type { Cell, ColumnDef, Header, Row } from "@tanstack/react-table";
 import { flexRender } from "@tanstack/react-table";
-import { useAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import {
+  type CSSProperties,
   memo,
+  type ReactNode,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
-  type ReactNode,
 } from "react";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -26,8 +26,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Loader } from "../ui-custom/loader";
-import { tableIdAtom } from "../atoms/table-atoms";
+import { cn } from "@/lib/utils";
+import { activeRowDragAtom, tableIdAtom } from "../atoms/table-atoms";
 import {
   type BulkActionCustomHandlerResult,
   type BulkDeleteCustomHandlerResult,
@@ -38,6 +38,7 @@ import { useTableConfig } from "../hooks/use-table-config";
 import { useTableInstance } from "../hooks/use-table-instance";
 import { useTableUrlState } from "../hooks/use-table-url-state";
 import type { DataTableProps } from "../types";
+import { Loader } from "../ui-custom/loader";
 import { ColumnIcon } from "../utils/column-icons";
 import { buildCsvExportColumns } from "../utils/csv-export";
 import { BulkActionsMenu } from "./bulk-actions/bulk-actions-menu";
@@ -60,6 +61,59 @@ function isNumberColumn(def: {
   meta?: { columnType?: string };
 }): boolean {
   return def.type === "number" || def.meta?.columnType === "number";
+}
+
+function getHeaderSizeStyle<TData>(
+  header: Header<TData, unknown>
+): CSSProperties | undefined {
+  const isSizeFixedColumn = header.id === "select" || header.id === "actions";
+  if (!isSizeFixedColumn) {
+    return undefined;
+  }
+  const headerDef = header.column.columnDef as { maxSize?: number };
+  return {
+    ...(typeof headerDef.maxSize === "number"
+      ? { maxWidth: headerDef.maxSize }
+      : {}),
+    minWidth: header.column.getSize(),
+    width: header.column.getSize(),
+  };
+}
+
+function getHeaderCellClassName<TData>(header: Header<TData, unknown>): string {
+  return cn(
+    "relative whitespace-nowrap",
+    header.id === "select" &&
+      "select-column px-2 text-center [&:has([role=checkbox])]:pr-2!",
+    header.id === "actions" &&
+      "actions-column sticky right-0 z-20 px-2 text-center shadow-[-1px_0_0_0_hsl(var(--border))]",
+    isNumberColumn(header.column.columnDef) && "text-right"
+  );
+}
+
+function getHeaderAriaLabel(headerId: string): string | undefined {
+  return headerId === "actions" ? "Actions" : undefined;
+}
+
+function renderHeaderContent<TData>(
+  header: Header<TData, unknown>,
+  table: { getAllColumns: () => unknown[] },
+  tableId: string
+): ReactNode {
+  if (header.isPlaceholder) {
+    return null;
+  }
+  if (header.id === "select") {
+    return flexRender(header.column.columnDef.header, header.getContext());
+  }
+  return (
+    <DataTableColumnHeader
+      column={header.column}
+      table={table as never}
+      tableId={tableId}
+      title={header.column.columnDef.header as string}
+    />
+  );
 }
 
 type ModernDataTableProps<
@@ -437,6 +491,21 @@ function ModernDataTable<
     table,
   });
 
+  // Cursor during drag (column or row)
+  const effectiveTableId = tableType || tableId;
+  const activeRowDragId = useAtomValue(activeRowDragAtom(effectiveTableId));
+  useEffect(() => {
+    const isDragging = !!activeColumn || activeRowDragId !== null;
+    if (!isDragging) {
+      return;
+    }
+    const previousCursor = document.body.style.cursor;
+    document.body.style.cursor = "grabbing";
+    return () => {
+      document.body.style.cursor = previousCursor;
+    };
+  }, [activeColumn, activeRowDragId]);
+
   // Setup bulk actions: pass only app-provided callbacks; hook uses provider (update/delete) and clipboard copy when undefined
   const bulkActions = useBulkActions({
     bulkExportEnabled: tableConfig.table.bulkExport !== false,
@@ -653,12 +722,15 @@ function ModernDataTable<
           <TableCell
             className="flex justify-center px-2 align-middle [&:has([role=checkbox])]:pr-2!"
             style={{
-              ...(typeof (visibleCells[0].column.columnDef as { maxSize?: number })
-                .maxSize === "number"
+              ...(typeof (
+                visibleCells[0].column.columnDef as { maxSize?: number }
+              ).maxSize === "number"
                 ? {
-                    maxWidth: (visibleCells[0].column.columnDef as {
-                      maxSize: number;
-                    }).maxSize,
+                    maxWidth: (
+                      visibleCells[0].column.columnDef as {
+                        maxSize: number;
+                      }
+                    ).maxSize,
                   }
                 : {}),
               minWidth: visibleCells[0].column.getSize(),
@@ -732,7 +804,7 @@ function ModernDataTable<
                 cell.column.id === "select" &&
                   "flex justify-center px-2 [&:has([role=checkbox])]:pr-2!",
                 cell.column.id === "actions" &&
-                  "flex justify-center sticky right-0 z-10 bg-card px-2 shadow-[-1px_0_0_0_hsl(var(--border))] group-hover:bg-muted/50 group-data-[state=selected]:bg-muted/50",
+                  "sticky right-0 z-10 flex justify-center bg-card px-2 shadow-[-1px_0_0_0_hsl(var(--border))] group-hover:bg-muted/50 group-data-[state=selected]:bg-muted/50",
                 isNumberColumn(cell.column.columnDef) && "text-right"
               )}
               key={cell.id}
@@ -883,7 +955,7 @@ function ModernDataTable<
     const orderKey = columnOrder?.join(",") ?? "";
     return (
       <TableHeader
-        className="[&_th]:bg-muted/20 [&_th]:font-medium [&_th]:relative [&_th]:text-sm"
+        className="[&_th]:relative [&_th]:bg-muted/20 [&_th]:font-medium [&_th]:text-sm"
         key={orderKey}
       >
         {table.getHeaderGroups().map((headerGroup) => (
@@ -892,58 +964,18 @@ function ModernDataTable<
               items={leafColumnIds}
               strategy={horizontalListSortingStrategy}
             >
-              {headerGroup.headers.map((header) => {
-                const _isFixedPosition =
-                  header.id === "select" || header.id === "actions";
-                const isSizeFixedColumn =
-                  header.id === "select" || header.id === "actions";
-                const headerDef = header.column.columnDef as {
-                  maxSize?: number;
-                };
-                const sizeStyle = isSizeFixedColumn
-                  ? {
-                      ...(typeof headerDef.maxSize === "number"
-                        ? { maxWidth: headerDef.maxSize }
-                        : {}),
-                      minWidth: header.column.getSize(),
-                      width: header.column.getSize(),
-                    }
-                  : undefined;
-                return (
-                  <SortableHeader
-                    aria-label={header.id === "actions" ? "Actions" : undefined}
-                    className={cn(
-                      "relative whitespace-nowrap",
-                      header.id === "select" &&
-                        "select-column px-2 text-center [&:has([role=checkbox])]:pr-2!",
-                      header.id === "actions" &&
-                        "actions-column sticky right-0 z-20 px-2 text-center shadow-[-1px_0_0_0_hsl(var(--border))]",
-                      isNumberColumn(header.column.columnDef) && "text-right"
-                    )}
-                    column={header.column as never}
-                    id={header.id}
-                    key={header.id}
-                    style={sizeStyle}
-                  >
-                    {!header.isPlaceholder &&
-                      (header.id === "select" ? (
-                        // For selection columns, use the column's header directly
-                        flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )
-                      ) : (
-                        // For other columns, use our custom header component
-                        <DataTableColumnHeader
-                          column={header.column}
-                          table={table}
-                          tableId={tableId}
-                          title={header.column.columnDef.header as string}
-                        />
-                      ))}
-                  </SortableHeader>
-                );
-              })}
+              {headerGroup.headers.map((header) => (
+                <SortableHeader
+                  aria-label={getHeaderAriaLabel(header.id)}
+                  className={getHeaderCellClassName(header)}
+                  column={header.column as never}
+                  id={header.id}
+                  key={header.id}
+                  style={getHeaderSizeStyle(header)}
+                >
+                  {renderHeaderContent(header, table, tableId)}
+                </SortableHeader>
+              ))}
             </ColumnSortableContext>
           </TableRow>
         ))}

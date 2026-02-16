@@ -23,7 +23,7 @@ function DragHandleButton() {
   return (
     <Button
       aria-label="Drag to reorder column"
-      className="size-7 border-0 bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+      className="size-7 cursor-grab border-0 bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground active:cursor-grabbing"
       size="icon"
       type="button"
       variant="ghost"
