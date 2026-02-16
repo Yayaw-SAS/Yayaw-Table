@@ -96,7 +96,7 @@
     },
     "migration": {
       "title": "Migration depuis le glue code",
-      "description": "Passez d'une plomberie table fragmentée à un système réutilisable unique.",
+      "description": "Remplacez le glue code dispersé par un composant de table unique et réutilisable.",
       "items": {
         "before": "Avant: wiring custom pour recherche, filtres, params URL, export et actions de masse.",
         "after": "Après: un système de table unifié avec un comportement cohérent.",
