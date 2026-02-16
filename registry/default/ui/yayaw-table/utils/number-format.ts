@@ -39,7 +39,9 @@ function isPreset(config: NumberFormatConfig): config is NumberFormatPreset {
 /**
  * Resolve config to options (with defaults for locale)
  */
-export function resolveNumberFormat(config: NumberFormatConfig): NumberFormatOptions {
+export function resolveNumberFormat(
+  config: NumberFormatConfig
+): NumberFormatOptions {
   if (isPreset(config)) {
     if (config === "locale") {
       return { thousandsSeparator: "", decimalSeparator: "" };
@@ -79,10 +81,7 @@ export function formatNumber(
   const thousandsSep = opts.thousandsSeparator ?? " ";
 
   const [intPart, fracPart] = value.toFixed(dec).split(".");
-  const withThousands = intPart.replace(
-    /\B(?=(\d{3})+(?!\d))/g,
-    thousandsSep
-  );
+  const withThousands = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, thousandsSep);
   const numeric =
     dec <= 0
       ? withThousands

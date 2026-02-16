@@ -37,6 +37,8 @@ export function resolveTableQueryClient(
 
   return {
     queryClient,
-    shouldProvideQueryClient: Boolean(explicitQueryClient && !providerQueryClient),
+    shouldProvideQueryClient: Boolean(
+      explicitQueryClient && !providerQueryClient
+    ),
   };
 }
