@@ -1,0 +1,46 @@
+---
+title: Changelog
+description: Dernières évolutions, corrections et notes de migration de YaYaw Table
+---
+
+# Changelog
+
+## Non publié
+
+### Corrections
+
+- Correction d'un no-op sur la confirmation d'actions de masse (copie/suppression) lorsque des clics externes étaient déclenchés pendant l'ouverture du portail de dialogue.
+- L'exécution de confirmation est maintenant protégée par un verrou pour éviter les doubles exécutions.
+- Les clics externes ne réinitialisent plus l'action de masse en attente lorsque la confirmation est ouverte.
+
+### Changements
+
+- Standardisation du traitement des résultats des actions de masse autour d'un objet explicite:
+  - `success`
+  - `closeMenu`
+  - `clearSelection`
+  - `message?`
+- Renforcement des garde-fous runtime autour de l'utilisation de QueryClient pour éviter des isolations silencieuses de cache.
+
+### Changements cassants
+
+1. **Suppression du QueryClient interne implicite**
+   - YaYaw Table ne crée plus de QueryClient par défaut.
+   - Vous devez fournir un `QueryClientProvider` partagé (recommandé) ou passer un `queryClient` partagé explicitement.
+
+2. **Détection de QueryClient dupliqué**
+   - Si la prop `queryClient` et le client du provider sont présents mais sont des instances différentes, YaYaw Table lève une erreur explicite.
+
+3. **Normalisation du contrat de callbacks bulk**
+   - Les anciens formats de retour sont toujours normalisés, mais `BulkActionResult` explicite est désormais le contrat recommandé pour un comportement déterministe.
+
+### Migration en 5 minutes
+
+1. Créez un `QueryClient` unique au niveau application.
+2. Entourez votre app/page avec `QueryClientProvider`.
+3. Vérifiez que les invalidations ciblent `[
+   "tableData",
+   tableId
+]`.
+4. Supprimez les hypothèses liées au fallback QueryClient interne.
+5. Mettez à jour les callbacks bulk pour retourner un `BulkActionResult` explicite.

@@ -1,0 +1,109 @@
+---
+title: Documentation YaYaw Table
+description: Data table flexible pour React avec état URL, Server Actions et un minimum de boilerplate
+---
+
+# Documentation YaYaw Table
+
+YaYaw Table est une librairie de tableaux de données flexible pour React. **Un seul composant, une API claire :** vous passez `getTableConfig` et `getTableActions`, puis la table gère l'état URL (Nuqs), les données server-side et les actions CRUD/bulk.
+
+## 🚀 Démarrage rapide
+
+Installez via la [registry Shadcn](/docs/installation), puis branchez la configuration et les actions à `DataTable` :
+
+```tsx
+import { DataTable } from "@/components/ui/yayaw-table";
+import { getTableConfig, getTableActions } from "./table-config";
+
+export const MyTable = () => (
+  <DataTable
+    tableType="products"
+    getTableConfig={getTableConfig}
+    getTableActions={getTableActions}
+    title="Produits"
+  />
+);
+```
+
+Il vous faut au minimum **getTableConfig** (colonnes, options de table) et **getTableActions** (par exemple **list** pour les données). Pour Next.js avec état URL, ajoutez [NuqsAdapter](/docs/url-state) dans votre layout. Voir [Provider & Setup](/docs/setup) pour la configuration complète.
+
+## ✅ Bénéfices
+
+- **Moins de boilerplate** – API claire et focalisée
+- **Setup minimal** – Defaults robustes
+- **Stable** – Pas de boucles d'hydratation avec Next.js
+- **Propulsé par TanStack Table** – Excellentes performances
+- **Regroupement intégré** – Support expand/collapse
+- **Type-safe** – Typage TypeScript de bout en bout
+- **Compatible SSR** – Fonctionne avec Next.js 15+
+
+## 🔧 Fonctionnalités
+
+### Groupement
+Le groupement, la pagination et le tri sont activés via la configuration de table et les types de colonnes. Pas de wiring lourd.
+
+### Pagination
+Contrôles de pagination accessibles avec ARIA correct et navigation clavier.
+
+### Tri
+Cliquez sur les en-têtes pour trier. Activation/désactivation par colonne.
+
+### Types de colonnes
+```tsx
+const columns = [
+  { id: "name", type: "text", header: "Nom" },
+  { id: "brand", type: "tag", header: "Marque" },
+  { id: "price", type: "number", header: "Prix" },
+  { id: "active", type: "boolean", header: "Actif" },
+  { id: "date", type: "date", header: "Créé le" },
+];
+```
+
+### Toolbar & menus
+Tout est accessible depuis la toolbar :
+
+- Tri via les en-têtes de colonnes
+- Filtres de colonnes et panneau de filtres avancés
+- Toggles de groupement quand le type de colonne le permet
+- Menu de visibilité des colonnes (afficher/masquer, reset order)
+- Recherche globale
+- Export CSV depuis la toolbar (toutes les lignes filtrées)
+- Mode toolbar compact (icône + tooltip) via `table.actionsAsIcons`
+- Menu d'actions de masse (Modifier, Copier, Exporter, Supprimer)
+- Formulaires d'édition auto-générés pour les lignes/éléments
+
+## 📖 Documentation
+
+- [Installation](/docs/installation) – Installation registry Shadcn et setup projet
+- [Provider & Setup](/docs/setup) – getTableConfig, getTableActions, getFormConfig, props DataTable
+- [DataTable](/docs/datatable) – Référence des props du composant
+- [Configuration](/docs/configuration) – Options table et colonnes
+- [Columns](/docs/columns) – Types et définitions de colonnes
+- [Actions](/docs/actions) – Forme de l'API d'actions (list, create, update, delete, bulk)
+- [Query Integration](/docs/query-integration) – Architecture QueryClient partagé et invalidation
+- [Bulk Actions](/docs/bulk-actions) – Flux de confirmation et contrat des callbacks
+- [Server-side & Server Actions](/docs/server-actions) – Server Actions Next.js pour list et CRUD
+- [URL state (Nuqs)](/docs/url-state) – Tri, filtres, pagination dans l'URL
+- [Troubleshooting](/docs/troubleshooting) – Résoudre les problèmes runtime fréquents
+- [Migration Guide](/docs/migration-query-client) – Migration vers un QueryClient partagé
+- [Translations](/docs/translations) – Surcharger les chaînes UI
+
+## 🎨 Personnalisation
+
+La table utilise Tailwind par défaut. Vous pouvez personnaliser les classes via les props `className` standards.
+
+## 🔗 Exemple
+
+Consultez **/example** dans ce repo pour un exemple complet : Server Actions list/create/update/delete/bulk, état URL (Nuqs), filtres avancés, bulk edit et UI Shadcn.
+
+## 🙏 Remerciements
+
+YaYaw Table s'appuie sur d'excellents projets open-source. Merci à leurs mainteneurs et contributeurs :
+
+- [TanStack Table](https://tanstack.com/table) - moteur de table et fondations de performance
+- [TanStack Query](https://tanstack.com/query) - modèle de data-fetching et cache asynchrone
+- [shadcn/ui](https://ui.shadcn.com) - modèle d'intégration registry et primitives UI
+- [Nuqs](https://nuqs.io) - patterns de gestion d'état URL
+- [Jotai](https://jotai.org) - état atomique léger pour l'UI/table
+- [dnd-kit](https://dndkit.com) - drag-and-drop pour les interactions de colonnes
+- [Floating UI](https://floating-ui.com) et [Base UI](https://base-ui.com) - primitives headless accessibles et positionnement robuste

@@ -1,0 +1,176 @@
+---
+title: Columns Reference
+description: Columns configuration, types, order, and visibility
+---
+
+# Columns Reference
+
+Declare columns in `columns.definitions`, then control order and visibility via `columns.order` and `columns.visible`.
+
+```ts
+columns: {
+  definitions: [
+    { id: 'name', type: 'text', header: 'Name', enableSorting: true, enableColumnFilter: true },
+    {
+      id: 'price',
+      type: 'number',
+      header: 'Price',
+      numberFormat: { thousandsSeparator: ' ', decimals: 0, suffix: ' €' },
+    },
+    { id: 'status', type: 'tag', header: 'Status' },
+    { id: 'createdAt', type: 'date', header: 'Created', dateDisplayPreset: 'dmy-numeric' },
+    { id: 'isActive', type: 'boolean', header: 'Active' },
+    { id: 'actions', type: 'actions', header: 'Actions' },
+    { id: 'value', type: 'dynamicType', typeKey: 'valueType', header: 'Value' },
+  ],
+  order: ['select', 'name', 'price', 'status', 'createdAt', 'actions'],
+  visible: ['name', 'price', 'status', 'createdAt', 'actions'],
+  mandatory: ['name'],
+}
+```
+
+## Types
+
+Supported column types:
+
+- `text`
+- `number`
+- `boolean`
+- `date`
+- `tag`
+- `actions`
+- `dynamicType` (renderer selected via `typeKey`)
+- `select` (row selection checkbox; virtual column)
+
+## Options per column
+
+Common properties:
+
+- `id: string` – Unique identifier
+- `header: string | React.ReactNode`
+- `enableSorting?: boolean` (default `true`)
+- `enableColumnFilter?: boolean` (default `true`)
+- `accessorKey?: string` – Optional accessor if data key differs from `id`
+- `dateDisplayPreset?: DateDisplayPreset` – strict preset for date rendering (date columns only)
+- `dateFormat?: string` – legacy date-fns format fallback for date columns
+- For **number** columns: `numberFormat?: NumberFormatConfig` – display format (thousands/decimal separators, decimals, prefix/suffix for currency). See [Number column](#number-column-number) below.
+- For **tag** columns: `tagColorMap?: Record<string, string>` – optional value → Tailwind class map (see below).
+
+## Number column (`number`)
+
+Number columns render numeric values with optional formatting and are **right-aligned** (header and cells) by default.
+
+### Display format: `numberFormat`
+
+Use `numberFormat` to control thousands separator, decimal separator, number of decimals, and optional **monetary** prefix/suffix.
+
+**Presets (string):**
+
+- `'space'` – space as thousands separator, dot for decimals (e.g. `1 234 567.89`)
+- `'dot'` – dot for thousands, comma for decimals (e.g. `1.234.567,89`)
+- `'comma'` – comma for thousands, dot for decimals (e.g. `1,234,567.89`)
+- `'locale'` – use browser `Intl.NumberFormat` (locale-dependent)
+
+**Explicit options (object):**
+
+- `thousandsSeparator?: string` – e.g. `' '`, `'.'`, `','`
+- `decimalSeparator?: string` – e.g. `'.'`, `','`
+- `decimals?: number` – fixed decimal places (omit for default)
+- `prefix?: string` – text before the number (e.g. `'€ '` for currency)
+- `suffix?: string` – text after the number (e.g. `' €'` for euros)
+
+**Examples:**
+
+```ts
+// Euros, no decimals, space thousands (e.g. 2 499 €)
+{
+  id: 'price',
+  type: 'number',
+  header: 'Price',
+  numberFormat: { thousandsSeparator: ' ', decimals: 0, suffix: ' €' },
+}
+
+// US-style with prefix
+{
+  id: 'amount',
+  type: 'number',
+  header: 'Amount',
+  numberFormat: { thousandsSeparator: ',', decimalSeparator: '.', decimals: 2, prefix: '$ ' },
+}
+
+// Preset only
+{ id: 'count', type: 'number', header: 'Count', numberFormat: 'space' }
+```
+
+When `numberFormat` is not set, numbers are shown as plain values (no thousands grouping). A custom `formatter` (if provided when building columns programmatically) overrides `numberFormat`.
+
+## Date display presets
+
+For `type: 'date'`, you can use strict presets:
+
+- `localized-short`
+- `localized-medium`
+- `localized-long`
+- `month-name-long`
+- `month-year`
+- `dmy-numeric`
+- `dmy-short`
+- `mdy-numeric`
+- `mdy-short`
+- `iso-date`
+
+Example:
+
+```ts
+{
+  id: 'createdAt',
+  type: 'date',
+  header: 'Created',
+  dateDisplayPreset: 'month-name-long',
+}
+```
+
+## Tag column (`tag`)
+
+Tag columns render values as colored badges. Colors are **deterministic**: the same tag value always gets the same color across sessions and page reloads (derived from a hash of the value). Values are normalized (trim + lowercase) for matching, so e.g. "Urgent" and "urgent" share the same color.
+
+### Custom colors per value: `tagColorMap`
+
+You can override colors for specific tag values by passing a `tagColorMap` in the column definition. Keys are tag values (lookup tries the raw value, then the normalized value); values are Tailwind classes for the badge (e.g. background + text).
+
+Example:
+
+```ts
+{
+  id: 'status',
+  type: 'tag',
+  header: 'Status',
+  tagColorMap: {
+    Urgent: 'bg-red-500/80 text-white dark:bg-red-600/90',
+    Done: 'bg-green-500/80 text-white dark:bg-green-600/90',
+    'In progress': 'bg-amber-500/80 text-white dark:bg-amber-600/90',
+  },
+}
+```
+
+Entries in `tagColorMap` use the given class; any other value falls back to the deterministic hash-based color.
+
+## Dynamic type columns
+
+Use `type: 'dynamicType'` and specify `typeKey` on the row to pick the renderer at runtime.
+
+## Selection column (`select`)
+
+- The `select` column is virtual and does not need a definition entry.
+- Add `'select'` to `columns.order` and (optionally) to `columns.visible` to show it.
+- Controlled by `table.enableRowSelection` (default `true`).
+- Rendered as a narrow fixed-width column with a centered checkbox; same width as the actions column.
+
+## Actions column (`actions`)
+
+- Add `{ id: 'actions', type: 'actions', header: '...' }` to `columns.definitions` (the header label is not shown in the UI; use `header: ''` or any label for accessibility/column menu).
+- Rendered as a narrow fixed-width column with a centered actions menu (ellipsis) per row; same width as the selection column.
+
+See also:
+- [Configuration](/docs/configuration)
+- [DataTable](/docs/datatable)

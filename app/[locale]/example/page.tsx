@@ -3,18 +3,21 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useSetAtom } from "jotai";
 import { GalleryHorizontal } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import { useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo } from "react";
+import type { FieldValues } from "react-hook-form";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/ui/custom/theme-toggle";
 import { Switch } from "@/components/ui/switch";
+import { SiteHeader } from "@/src/components/site/site-header";
 import {
   activeColumnDragAtom,
   columnDragEnabledAtom,
 } from "@/src/components/ui/yayaw-table/atoms/table-atoms";
 import { DataTable } from "@/src/components/ui/yayaw-table/components/data-table";
 import { useBulkEdit } from "@/src/components/ui/yayaw-table/hooks/use-bulk-edit";
+import type { AppLocale } from "@/src/i18n/routing";
 import { CustomDescription, CustomTitle } from "./components";
 import { getFormConfig } from "./setup/form-config";
 import { getTableActions, getTableConfig } from "./setup/table-config";
@@ -36,9 +39,7 @@ interface ExampleTableSettings {
 type TableSettingKey = keyof ExampleTableSettings;
 
 interface SettingDefinition {
-  description: string;
   key: TableSettingKey;
-  label: string;
 }
 
 interface BooleanQuerySettingController {
@@ -62,51 +63,33 @@ const DEFAULT_TABLE_SETTINGS: ExampleTableSettings = {
 const CORE_FEATURE_SETTINGS: SettingDefinition[] = [
   {
     key: "enableRowSelection",
-    label: "Row selection",
-    description: "Enable checkbox selection and bulk actions.",
   },
   {
     key: "enableColumnFilters",
-    label: "Column filters",
-    description: "Enable search and filters in toolbar/options.",
   },
   {
     key: "enableSorting",
-    label: "Sorting",
-    description: "Enable sorting from headers and Options menu.",
   },
   {
     key: "enableGrouping",
-    label: "Grouping",
-    description: "Enable row grouping controls.",
   },
   {
     key: "enableColumnDnd",
-    label: "Column drag & drop",
-    description: "Enable drag & drop controls in column headers/menu.",
   },
   {
     key: "enablePagination",
-    label: "Pagination",
-    description: "Enable page navigation and page-size selector.",
   },
 ];
 
 const EXPORT_SETTINGS: SettingDefinition[] = [
   {
     key: "export",
-    label: "Toolbar export",
-    description: "Show CSV export button in toolbar.",
   },
   {
     key: "bulkExport",
-    label: "Bulk export",
-    description: "Show CSV export action in bulk menu.",
   },
   {
     key: "actionsAsIcons",
-    label: "Icon toolbar actions",
-    description: "Render toolbar actions as icon-only with tooltips.",
   },
 ];
 
@@ -173,6 +156,8 @@ function SettingsGroup({
   tableSettings: ExampleTableSettings;
   title: string;
 }) {
+  const t = useTranslations("Example");
+
   return (
     <div className="space-y-3">
       <h3 className="font-medium text-card-foreground text-sm">{title}</h3>
@@ -184,14 +169,14 @@ function SettingsGroup({
           >
             <div className="space-y-1">
               <p className="font-medium text-card-foreground text-sm">
-                {setting.label}
+                {t(`feature.${setting.key}.label`)}
               </p>
               <p className="text-muted-foreground text-xs">
-                {setting.description}
+                {t(`feature.${setting.key}.description`)}
               </p>
             </div>
             <Switch
-              aria-label={setting.label}
+              aria-label={t(`feature.${setting.key}.label`)}
               checked={tableSettings[setting.key]}
               onCheckedChange={(checked) => {
                 onSettingChange(setting.key, checked === true);
@@ -213,15 +198,17 @@ function ExampleSettingsPanel({
   onSettingChange: (key: TableSettingKey, value: boolean) => void;
   tableSettings: ExampleTableSettings;
 }) {
+  const t = useTranslations("Example");
+
   return (
     <section className="mb-6 rounded-lg border border-border bg-card p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="font-semibold text-card-foreground text-lg">
-            Table Settings
+            {t("settingsTitle")}
           </h2>
           <p className="text-muted-foreground text-sm">
-            Switch features live. Settings are persisted in URL query params.
+            {t("settingsDescription")}
           </p>
         </div>
         <Button
@@ -230,7 +217,7 @@ function ExampleSettingsPanel({
           type="button"
           variant="outline"
         >
-          Reset settings
+          {t("resetSettings")}
         </Button>
       </div>
 
@@ -239,13 +226,13 @@ function ExampleSettingsPanel({
           onSettingChange={onSettingChange}
           settings={CORE_FEATURE_SETTINGS}
           tableSettings={tableSettings}
-          title="Core Features"
+          title={t("coreFeatures")}
         />
         <SettingsGroup
           onSettingChange={onSettingChange}
           settings={EXPORT_SETTINGS}
           tableSettings={tableSettings}
-          title="Export & Toolbar"
+          title={t("exportToolbar")}
         />
       </div>
     </section>
@@ -257,6 +244,8 @@ function BulkActionsSection({
 }: {
   tableSettings: ExampleTableSettings;
 }) {
+  const t = useTranslations("Example");
+  const locale = useLocale() as AppLocale;
   const actions = getTableActions("products") as
     | {
         bulkDelete?: (
@@ -272,7 +261,7 @@ function BulkActionsSection({
     rows: Array<{ original: { id?: unknown } }>
   ) => {
     if (!actions?.bulkDelete) {
-      toast.error("Delete action not available");
+      toast.error(t("toasts.deleteUnavailable"));
       return;
     }
 
@@ -281,12 +270,12 @@ function BulkActionsSection({
       const result = await actions.bulkDelete(ids);
 
       if (result.success) {
-        toast.success(`✅ Deleted ${rows.length} products successfully!`);
+        toast.success(t("toasts.deleteSuccess", { count: rows.length }));
       } else {
-        toast.error(result.error || "Failed to delete products");
+        toast.error(result.error || t("toasts.deleteError"));
       }
     } catch {
-      toast.error("❌ Failed to delete products");
+      toast.error(t("toasts.deleteError"));
     }
   };
 
@@ -294,7 +283,7 @@ function BulkActionsSection({
     rows: Array<{ original: { id?: unknown } }>
   ) => {
     if (!actions?.bulkCopy) {
-      toast.error("Copy action not available");
+      toast.error(t("toasts.copyUnavailable"));
       return;
     }
 
@@ -305,7 +294,7 @@ function BulkActionsSection({
       if (result.success && result.data) {
         if (navigator.clipboard) {
           await navigator.clipboard.writeText(result.data);
-          toast.success(`📋 Copied ${rows.length} products to clipboard!`);
+          toast.success(t("toasts.copySuccess", { count: rows.length }));
         } else {
           const textArea = document.createElement("textarea");
           textArea.value = result.data;
@@ -313,13 +302,13 @@ function BulkActionsSection({
           textArea.select();
           document.execCommand("copy");
           document.body.removeChild(textArea);
-          toast.success(`📋 Copied ${rows.length} products to clipboard!`);
+          toast.success(t("toasts.copySuccess", { count: rows.length }));
         }
       } else {
-        toast.error(result.error || "Failed to copy products");
+        toast.error(result.error || t("toasts.copyError"));
       }
     } catch {
-      toast.error("❌ Failed to copy products to clipboard");
+      toast.error(t("toasts.copyError"));
     }
   };
 
@@ -334,7 +323,7 @@ function BulkActionsSection({
 
   const getTableConfigWithOverrides = useCallback(
     (tableType: string) => {
-      const baseConfig = getTableConfig(tableType);
+      const baseConfig = getTableConfig(tableType, locale);
       if (!baseConfig) {
         return;
       }
@@ -344,7 +333,13 @@ function BulkActionsSection({
         ...tableSettings,
       };
     },
-    [tableSettings]
+    [locale, tableSettings]
+  );
+
+  const getFormConfigWithLocale = useCallback(
+    <TFieldValues extends FieldValues = FieldValues>(formType: string) =>
+      getFormConfig<TFieldValues>(formType, locale),
+    [locale]
   );
 
   return (
@@ -360,18 +355,18 @@ function BulkActionsSection({
         isActive: "option",
       }}
       DescriptionComponent={CustomDescription}
-      description="Production-ready table with server-side pagination, filtering, and sorting. Select multiple rows to see bulk actions!"
+      description={t("description")}
       enableAdvancedFilters={true}
       enableToolbar={true}
-      getFormConfig={getFormConfig}
+      getFormConfig={getFormConfigWithLocale}
       getTableActions={getTableActions}
       getTableConfig={getTableConfigWithOverrides}
       loadingOverlay={
         <div className="flex items-center justify-center p-8 text-muted-foreground">
-          Loading products…
+          {t("loadingExample")}
         </div>
       }
-      locale="en"
+      locale={locale}
       onBulkCopy={handleBulkCopy}
       onBulkDelete={handleBulkDelete}
       onBulkEdit={(rows) => bulkEdit.openBulkEdit(rows as never)}
@@ -379,12 +374,13 @@ function BulkActionsSection({
       queryClient={queryClient}
       TitleComponent={CustomTitle}
       tableType="products"
-      title="Products Management"
+      title={t("title")}
     />
   );
 }
 
 export default function ExamplePage() {
+  const t = useTranslations("Example");
   const setColumnDragEnabled = useSetAtom(columnDragEnabledAtom("products"));
   const setActiveColumnDrag = useSetAtom(activeColumnDragAtom("products"));
 
@@ -579,79 +575,64 @@ export default function ExamplePage() {
   }, [fullWidthSetting]);
 
   return (
-    <div className="min-h-screen bg-background p-6 lg:p-8">
-      <div className={fullWidthSetting.value ? "w-full" : "mx-auto max-w-7xl"}>
-        {/* Header with Theme Toggle */}
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="font-bold text-3xl text-foreground tracking-tight">
-              YaYaw Table Demo
-            </h1>
-            <p className="mt-2 text-muted-foreground">
-              Experience the power of advanced data tables with theme support
-            </p>
+    <div className="min-h-screen bg-background">
+      <SiteHeader />
+      <div className="p-6 lg:p-8">
+        <div
+          className={fullWidthSetting.value ? "w-full" : "mx-auto max-w-7xl"}
+        >
+          <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h1 className="font-display font-semibold text-3xl text-foreground tracking-tight">
+                {t("title")}
+              </h1>
+              <p className="mt-2 text-muted-foreground">{t("description")}</p>
+            </div>
+            <Button
+              aria-label={
+                fullWidthSetting.value
+                  ? t("fullWidthDisable")
+                  : t("fullWidthEnable")
+              }
+              aria-pressed={fullWidthSetting.value}
+              className="shrink-0"
+              onClick={handleFullWidthToggle}
+              size="icon"
+              title={
+                fullWidthSetting.value
+                  ? t("layoutConstrained")
+                  : t("layoutFull")
+              }
+              type="button"
+              variant="ghost"
+            >
+              <GalleryHorizontal aria-hidden className="size-4" />
+            </Button>
           </div>
-          <div className="flex items-center gap-4">
-            {/* Navigation */}
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-              <a
-                className="inline-flex items-center rounded-lg bg-primary px-6 py-3 font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-                href="/docs"
-              >
-                📚 Read Documentation
-              </a>
-              <a
-                className="inline-flex items-center rounded-lg bg-secondary px-6 py-3 font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
-                href="/"
-              >
-                🏠 Back Home
-              </a>
-              <Button
-                aria-label={
-                  fullWidthSetting.value
-                    ? "Use constrained width layout"
-                    : "Use full width layout"
-                }
-                aria-pressed={fullWidthSetting.value}
-                className="shrink-0"
-                onClick={handleFullWidthToggle}
-                size="icon"
-                title={
-                  fullWidthSetting.value
-                    ? "Constrain width (like shadcn docs)"
-                    : "Full width (test table in full width)"
-                }
-                type="button"
-                variant="ghost"
-              >
-                <GalleryHorizontal aria-hidden className="size-4" />
-              </Button>
-              <ThemeToggle variant="switch" />
+
+          <ExampleSettingsPanel
+            onResetSettings={resetTableSettings}
+            onSettingChange={setTableSetting}
+            tableSettings={tableSettings}
+          />
+
+          {/* Data Table */}
+          <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+            <div className="p-6">
+              <QueryClientProvider client={queryClient}>
+                <BulkActionsSection tableSettings={tableSettings} />
+              </QueryClientProvider>
             </div>
           </div>
-        </div>
 
-        <ExampleSettingsPanel
-          onResetSettings={resetTableSettings}
-          onSettingChange={setTableSetting}
-          tableSettings={tableSettings}
-        />
-
-        {/* Data Table */}
-        <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-          <div className="p-6">
-            <QueryClientProvider client={queryClient}>
-              <BulkActionsSection tableSettings={tableSettings} />
-            </QueryClientProvider>
-          </div>
-        </div>
-
-        {/* Code Example */}
-        <div className="mt-8 rounded-lg border border-border bg-card p-6">
-          <h3 className="mb-4 text-card-foreground">📋 Configuration Used</h3>
-          <div className="overflow-x-auto rounded-md bg-muted p-4">
-            <pre className="text-muted-foreground text-sm">
-              {`// 1. Configuration via provider
+          {/* Code Example */}
+          <div className="mt-8 rounded-lg border border-border bg-card p-6">
+            <h3 className="mb-4 text-card-foreground">
+              {t("configurationUsed")}
+            </h3>
+            <div className="overflow-x-auto rounded-md bg-muted p-4">
+              <pre className="text-muted-foreground text-sm">
+                {`// 1. Configuration via provider
 const getTableConfig = (tableType: string) => {
   if (tableType === "products") {
     return {
@@ -707,7 +688,8 @@ const getTableConfig = (tableType: string) => {
 
 // ✅ Server-side API with pagination, filtering, and sorting!
 // 🎨 Try switching themes with the toggle in the top-right!`}
-            </pre>
+              </pre>
+            </div>
           </div>
         </div>
       </div>

@@ -1,11 +1,21 @@
 import "./global.css";
 import { RootProvider } from "fumadocs-ui/provider/next";
-import { Inter } from "next/font/google";
+import type { Metadata } from "next";
+import { Plus_Jakarta_Sans, Space_Grotesk } from "next/font/google";
+import { hasLocale } from "next-intl";
+import { getLocale } from "next-intl/server";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import type { ReactNode } from "react";
+import { routing } from "@/src/i18n/routing";
 
-const inter = Inter({
+const bodyFont = Plus_Jakarta_Sans({
   subsets: ["latin"],
+  variable: "--font-body-family",
+});
+
+const displayFont = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-display-family",
 });
 
 const rootThemeOptions = {
@@ -15,10 +25,30 @@ const rootThemeOptions = {
   enableSystem: true,
 } as const;
 
-export default function Layout({ children }: { children: ReactNode }) {
+export const metadata: Metadata = {
+  icons: {
+    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/apple-touch-icon.png" }],
+  },
+};
+
+export default async function RootLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const requestLocale = await getLocale().catch(() => routing.defaultLocale);
+  const locale = hasLocale(routing.locales, requestLocale)
+    ? requestLocale
+    : routing.defaultLocale;
+
   return (
-    <html className={inter.className} lang="en" suppressHydrationWarning>
-      <body className="flex min-h-screen flex-col font-sans text-foreground">
+    <html
+      className={`${bodyFont.variable} ${displayFont.variable}`}
+      lang={locale}
+      suppressHydrationWarning
+    >
+      <body className="flex min-h-screen flex-col font-sans text-foreground antialiased">
         <NuqsAdapter>
           <RootProvider theme={rootThemeOptions}>{children}</RootProvider>
         </NuqsAdapter>
@@ -26,13 +56,3 @@ export default function Layout({ children }: { children: ReactNode }) {
     </html>
   );
 }
-
-export const metadata = {
-  title: "YaYaw Table Documentation",
-  description:
-    "A flexible data table component library for React with user-defined configurations",
-  icons: {
-    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
-    apple: [{ url: "/apple-touch-icon.png" }],
-  },
-};

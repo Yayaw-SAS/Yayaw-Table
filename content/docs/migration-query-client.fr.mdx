@@ -1,0 +1,80 @@
+---
+title: Migration Guide
+description: From implicit QueryClient to explicit shared provider
+---
+
+# Migration Guide
+
+## From implicit QueryClient to explicit shared provider
+
+This release removes implicit QueryClient creation inside YaYaw Table.
+
+## Breaking changes
+
+1. **No internal QueryClient fallback**
+   - Before: `DataTable` could create a client automatically.
+   - Now: a shared QueryClient is required.
+2. **Duplicate client detection**
+   - Passing `queryClient` while a different provider client exists now throws.
+3. **Bulk callback contract (recommended)**
+   - Use explicit `BulkActionResult` to avoid ambiguous branches.
+
+## Before / After
+
+### Before (implicit behavior)
+
+```tsx
+import { QueryClient } from "@tanstack/react-query";
+import { DataTable } from "@/components/ui/yayaw-table";
+
+const queryClient = new QueryClient();
+
+export default function ProductsPage() {
+  return (
+    <DataTable
+      tableType="products"
+      getTableConfig={getTableConfig}
+      getTableActions={getTableActions}
+      queryClient={queryClient}
+    />
+  );
+}
+```
+
+### After (explicit shared provider)
+
+```tsx
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { DataTable } from "@/components/ui/yayaw-table";
+
+const queryClient = new QueryClient();
+
+export default function ProductsPage() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <DataTable
+        tableType="products"
+        getTableConfig={getTableConfig}
+        getTableActions={getTableActions}
+      />
+    </QueryClientProvider>
+  );
+}
+```
+
+## How to migrate in 5 minutes
+
+1. Create one app-level `QueryClient`.
+2. Wrap your app/page with `QueryClientProvider`.
+3. Remove any assumption that YaYaw Table creates a client internally.
+4. Ensure all custom invalidations target `["tableData", tableId]`.
+5. (Recommended) return explicit `BulkActionResult` from `onBulkDelete`, `onBulkCopy`, `onBulkEdit`, `onBulkExport`.
+
+```ts
+type BulkActionResult = {
+  success: boolean;
+  closeMenu: boolean;
+  clearSelection: boolean;
+  message?: string;
+};
+```

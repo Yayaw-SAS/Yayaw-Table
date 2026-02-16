@@ -5,8 +5,10 @@ import {
   DocsTitle,
 } from "fumadocs-ui/page";
 import { notFound } from "next/navigation";
+import { hasLocale } from "next-intl";
 import type { ComponentType, ReactNode } from "react";
 import { getMDXComponents } from "@/mdx-components";
+import { routing } from "@/src/i18n/routing";
 import { source } from "@/src/lib/source";
 
 /** Page data from fumadocs-mdx MDX compilation (body, full, toc are added at build time) */
@@ -19,10 +21,15 @@ interface DocsPageData {
 }
 
 export default async function Page(props: {
-  params: Promise<{ slug?: string[] }>;
+  params: Promise<{ locale: string; slug?: string[] }>;
 }) {
   const params = await props.params;
-  const page = source.getPage(params.slug);
+
+  if (!hasLocale(routing.locales, params.locale)) {
+    notFound();
+  }
+
+  const page = source.getPage(params.slug, params.locale);
   if (!page) {
     notFound();
   }
@@ -46,20 +53,36 @@ export default async function Page(props: {
 }
 
 export function generateStaticParams() {
-  return source.generateParams();
+  return source.generateParams("slug", "locale");
 }
 
 export async function generateMetadata(props: {
-  params: Promise<{ slug?: string[] }>;
+  params: Promise<{ locale: string; slug?: string[] }>;
 }) {
   const params = await props.params;
-  const page = source.getPage(params.slug);
+
+  if (!hasLocale(routing.locales, params.locale)) {
+    notFound();
+  }
+
+  const page = source.getPage(params.slug, params.locale);
   if (!page) {
     notFound();
   }
 
+  const slugPath = params.slug?.join("/") ?? "";
+  const enPath = `/docs${slugPath ? `/${slugPath}` : ""}`;
+  const frPath = `/fr/docs${slugPath ? `/${slugPath}` : ""}`;
+
   return {
     title: page.data.title,
     description: page.data.description,
+    alternates: {
+      canonical: params.locale === "fr" ? frPath : enPath,
+      languages: {
+        en: enPath,
+        fr: frPath,
+      },
+    },
   };
 }

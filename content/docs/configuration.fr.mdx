@@ -1,0 +1,106 @@
+---
+title: Configuration Options
+description: Table behavior configuration and defaults
+---
+
+# Configuration Options
+
+List of options for table behavior. Configure within your table definition under `table`.
+
+```ts
+table: {
+  export: true,
+  bulkExport: true,
+  actionsAsIcons: false,
+  enableRowSelection: true,
+  enableColumnFilters: true,
+  enableSorting: true,
+  enableGrouping: true,
+  enableColumnDragDropByDefault: false,
+  enableMultiRowSelection: true,
+  enablePagination: true,
+  defaultPageSize: 10,
+  pageSizeOptions: [5, 10, 20, 50],
+  dateDisplayPreset: 'localized-short',
+}
+```
+
+## Options
+
+### enableRowSelection
+Enable row selection checkboxes.
+
+Type: `boolean` | Default: `true`
+
+### export
+Show the toolbar CSV export button (between search and options). Exports all rows matching the current search/filters/sort state.
+
+Type: `boolean` | Default: `true`
+
+### bulkExport
+Show CSV export in the bulk actions menu. Exports only selected rows.
+
+Type: `boolean` | Default: `true`
+
+### actionsAsIcons
+Render toolbar action buttons (`Add`, `Export`, `Options`) as icon-only buttons with tooltips.
+
+Type: `boolean` | Default: `false`
+
+### enableColumnFilters
+Enable per-column filters.
+
+Type: `boolean` | Default: `true`
+
+### enableSorting
+Enable sorting by clicking column headers.
+
+Type: `boolean` | Default: `true`
+
+### enableGrouping
+Enable grouping UI and grouped row rendering when column types allow it.
+
+Type: `boolean` | Default: `true`
+
+### enableColumnDragDropByDefault
+Enable drag-and-drop column reordering by default.
+
+Type: `boolean` | Default: `false`
+
+### enableMultiRowSelection
+Allow selecting multiple rows.
+
+Type: `boolean` | Default: `true`
+
+### enablePagination
+Render pagination controls.
+
+Type: `boolean` | Default: `true`
+
+### defaultPageSize
+Default number of rows per page.
+
+Type: `number` | Default: `10`
+
+### pageSizeOptions
+Allowed page size values.
+
+Type: `number[]` | Default: `[5, 10, 20, 50]`
+
+### dateDisplayPreset
+Default date display preset for all date columns. A column can override this value with `columns.definitions[].dateDisplayPreset`.
+
+Type: `'localized-short' | 'localized-medium' | 'localized-long' | 'month-name-long' | 'month-year' | 'dmy-numeric' | 'dmy-short' | 'mdy-numeric' | 'mdy-short' | 'iso-date'` | Default: `'localized-short'`
+
+## Server-side mode
+
+Filtering, pagination, and sorting are server-side by default and are no longer configurable via `manual*` flags. The table always sends `search`, `filters`, `advancedFilters`, `orderBy`, `page`, and `limit` to your `list` action.
+
+For **column-level options** (e.g. `numberFormat` for numeric/currency display, `dateDisplayPreset`, `tagColorMap`), see [Columns](/docs/columns).
+
+See also:
+- [Provider & Setup](/docs/setup)
+- [DataTable](/docs/datatable)
+- [Columns](/docs/columns)
+- [Actions](/docs/actions)
+- [Server-side & Server Actions](/docs/server-actions)

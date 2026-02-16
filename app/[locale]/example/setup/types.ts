@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// Schema de validation pour les produits
+// Validation schema for product records.
 export const ProductSchema = z.object({
   id: z.string(),
   name: z.string().min(1, "Name is required"),
@@ -14,8 +14,8 @@ export const ProductSchema = z.object({
 
 export type Product = z.infer<typeof ProductSchema>;
 
-// Type pour les données partielles lors de la création
+// Partial payload used for product creation.
 export type CreateProductData = Omit<Product, "id" | "createdAt">;
 
-// Type pour les données partielles lors de la mise à jour
+// Partial payload used for product updates.
 export type UpdateProductData = Partial<Omit<Product, "id">>;

@@ -1,0 +1,62 @@
+---
+title: Bulk Actions
+description: Confirmation flow and callback contract for copy, delete, edit, and export
+---
+
+# Bulk Actions
+
+## Confirmation flow
+
+`copy` and `delete` use a confirmation dialog.
+
+Current behavior:
+
+1. User clicks `Copy` or `Delete`.
+2. Dialog opens and stores the pending action.
+3. Outside clicks are ignored while confirmation is open.
+4. `Confirm` executes the pending action exactly once.
+5. Menu closing follows the callback result (`closeMenu`).
+
+This prevents the previous no-op case where outside click events reset state while the portal dialog was open.
+
+## Deterministic action behavior
+
+- `edit`: executes immediately.
+- `export`: executes immediately.
+- `copy`: always requires confirmation.
+- `delete`: always requires confirmation.
+
+## Bulk callback contract
+
+Recommended return shape:
+
+```ts
+type BulkActionResult = {
+  success: boolean;
+  closeMenu: boolean;
+  clearSelection: boolean;
+  message?: string;
+};
+```
+
+### Example (`onBulkDelete`)
+
+```ts
+onBulkDelete: async (rows) => {
+  const ids = rows.map((row) => String((row.original as { id: string }).id));
+  const response = await deleteMany(ids);
+
+  return {
+    success: response.success,
+    closeMenu: response.success,
+    clearSelection: response.success,
+    message: response.success
+      ? `Deleted ${ids.length} rows`
+      : response.error ?? "Delete failed",
+  };
+};
+```
+
+### Legacy compatibility
+
+YaYaw Table still normalizes legacy callback returns, but the explicit object contract is strongly recommended for predictable behavior.

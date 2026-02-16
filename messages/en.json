@@ -1,0 +1,174 @@
+{
+  "Metadata": {
+    "siteTitle": "YaYaw Table",
+    "siteDescription": "Enterprise-grade data tables for React and Shadcn with URL state, advanced filters, i18n and full code ownership.",
+    "homeTitle": "YaYaw Table - The table system you own",
+    "homeDescription": "Install a production-ready table system with one command. Keep full ownership, ship advanced UX and avoid glue code.",
+    "exampleTitle": "YaYaw Table - Live example",
+    "exampleDescription": "Explore a real interactive YaYaw Table setup with server-side pagination, filters, grouping and bulk actions.",
+    "docsTitle": "YaYaw Table Documentation",
+    "docsDescription": "Install, configure and ship YaYaw Table in production with complete guides and API references."
+  },
+  "Common": {
+    "installCommand": "npx shadcn@latest add https://table.yayaw.eu/r/yayaw-table.json",
+    "copy": "Copy",
+    "copied": "Copied",
+    "copiedInstallCommand": "Installation command copied to clipboard.",
+    "loading": "Loading...",
+    "learnMore": "Learn more"
+  },
+  "Nav": {
+    "brand": "YaYaw Table",
+    "useCases": "Use cases",
+    "product": "Product",
+    "docs": "Docs",
+    "example": "Example",
+    "changelog": "Changelog",
+    "install": "Install",
+    "openMenu": "Open navigation menu",
+    "closeMenu": "Close navigation menu",
+    "language": "Language",
+    "theme": "Theme",
+    "home": "Home"
+  },
+  "Home": {
+    "badgeA": "Shadcn Registry",
+    "badgeB": "Production-ready",
+    "heroTitleLead": "The table system you own,",
+    "heroTitleAccent": "not a black box package.",
+    "heroDescription": "YaYaw Table gives teams shipping internal products a complete table workflow: advanced filters, URL state, bulk flows and i18n with code that lives in your app.",
+    "ctaInstall": "Install now",
+    "ctaExample": "Open live example",
+    "ctaDocs": "Read docs",
+    "installHint": "Works with your existing Shadcn + TanStack stack.",
+    "proofTitle": "Why teams switch",
+    "proofItems": {
+      "ownership": "Registry installation copies the full UI layer into your codebase.",
+      "url": "URL state is built-in for sorting, pagination, grouping and filters.",
+      "i18n": "Native i18n keys across table, filters, views and forms.",
+      "dx": "Config-driven architecture keeps feature rollout predictable."
+    },
+    "useCases": {
+      "title": "Use cases",
+      "description": "Designed for real back-office workflows where table UX drives business operations.",
+      "orders": {
+        "title": "Orders operations",
+        "description": "Shareable filtered views, saved presets and bulk actions for support and finance teams."
+      },
+      "users": {
+        "title": "User administration",
+        "description": "Grouping, faceted filters and safe pagination for high-volume user management."
+      },
+      "catalog": {
+        "title": "Catalog management",
+        "description": "Consistent forms, status filtering and translation-ready interfaces for product teams."
+      }
+    },
+    "product": {
+      "title": "Product",
+      "description": "A pragmatic system for teams that want enterprise behavior without enterprise lock-in.",
+      "pillars": {
+        "install": {
+          "title": "Shadcn CLI install",
+          "description": "Single command onboarding and immediate local ownership."
+        },
+        "architecture": {
+          "title": "Config-driven architecture",
+          "description": "Plug in getTableConfig/getTableActions and iterate safely."
+        },
+        "state": {
+          "title": "URL state by default",
+          "description": "Every meaningful table state can be shared and restored."
+        },
+        "i18n": {
+          "title": "Native i18n surface",
+          "description": "Translations are first-class across all core table experiences."
+        },
+        "ux": {
+          "title": "Production UX toolkit",
+          "description": "Bulk actions, safe pagination, advanced filtering and robust defaults."
+        },
+        "stack": {
+          "title": "TanStack + Shadcn",
+          "description": "Built on battle-tested foundations with strong TypeScript ergonomics."
+        }
+      }
+    },
+    "migration": {
+      "title": "Migration from glue code",
+      "description": "Move from fragmented table plumbing to a single reusable system.",
+      "items": {
+        "before": "Before: custom wiring for search, filters, URL params, export and bulk actions.",
+        "after": "After: one table system with consistent behavior and fewer maintenance edges.",
+        "outcome": "Outcome: shorter time-to-first-table and cleaner long-term ownership."
+      }
+    },
+    "finalCta": {
+      "title": "Ship your next table faster",
+      "description": "Install in minutes, then adapt everything directly in your codebase.",
+      "primary": "Install YaYaw Table",
+      "secondary": "Browse documentation"
+    }
+  },
+  "Example": {
+    "title": "YaYaw Table Demo",
+    "description": "Interactive playground with feature toggles and a production-style products table.",
+    "settingsTitle": "Table settings",
+    "settingsDescription": "Toggle features live. Settings are persisted in URL query params.",
+    "coreFeatures": "Core features",
+    "exportToolbar": "Export and toolbar",
+    "resetSettings": "Reset settings",
+    "configurationUsed": "Configuration used",
+    "fullWidthEnable": "Use full width layout",
+    "fullWidthDisable": "Use constrained width layout",
+    "layoutConstrained": "Constrain width (like docs)",
+    "layoutFull": "Full width (stress test)",
+    "loadingExample": "Loading example...",
+    "feature": {
+      "enableRowSelection": {
+        "label": "Row selection",
+        "description": "Enable checkbox selection and bulk actions."
+      },
+      "enableColumnFilters": {
+        "label": "Column filters",
+        "description": "Enable search and filters in toolbar and menus."
+      },
+      "enableSorting": {
+        "label": "Sorting",
+        "description": "Enable sorting from headers and options menu."
+      },
+      "enableGrouping": {
+        "label": "Grouping",
+        "description": "Enable row grouping controls."
+      },
+      "enableColumnDnd": {
+        "label": "Column drag and drop",
+        "description": "Enable drag and drop controls in headers and menus."
+      },
+      "enablePagination": {
+        "label": "Pagination",
+        "description": "Enable page navigation and page-size selector."
+      },
+      "export": {
+        "label": "Toolbar export",
+        "description": "Show CSV export button in toolbar."
+      },
+      "bulkExport": {
+        "label": "Bulk export",
+        "description": "Show CSV export action in bulk menu."
+      },
+      "actionsAsIcons": {
+        "label": "Icon toolbar actions",
+        "description": "Render toolbar actions as icon-only with tooltips."
+      }
+    },
+    "toasts": {
+      "deleteUnavailable": "Delete action is not available",
+      "copyUnavailable": "Copy action is not available",
+      "deleteSuccess": "Deleted {count} products successfully.",
+      "deleteError": "Failed to delete products",
+      "copySuccess": "Copied {count} products to clipboard.",
+      "copyError": "Failed to copy products to clipboard"
+    }
+  }
+}

@@ -1,0 +1,174 @@
+{
+  "Metadata": {
+    "siteTitle": "YaYaw Table",
+    "siteDescription": "Tables de données prêtes pour la production avec React et Shadcn: état URL, filtres avancés, i18n et ownership total du code.",
+    "homeTitle": "YaYaw Table - Le système de table que vous possédez",
+    "homeDescription": "Installez un système de table prêt pour la prod en une commande, avec ownership total et sans glue code.",
+    "exampleTitle": "YaYaw Table - Exemple live",
+    "exampleDescription": "Explorez une implémentation réelle de YaYaw Table avec pagination serveur, filtres, regroupement et actions de masse.",
+    "docsTitle": "Documentation YaYaw Table",
+    "docsDescription": "Installez, configurez et déployez YaYaw Table en production avec des guides complets et des références API."
+  },
+  "Common": {
+    "installCommand": "npx shadcn@latest add https://table.yayaw.eu/r/yayaw-table.json",
+    "copy": "Copier",
+    "copied": "Copié",
+    "copiedInstallCommand": "Commande d'installation copiée dans le presse-papiers.",
+    "loading": "Chargement...",
+    "learnMore": "En savoir plus"
+  },
+  "Nav": {
+    "brand": "YaYaw Table",
+    "useCases": "Cas d'usage",
+    "product": "Produit",
+    "docs": "Docs",
+    "example": "Exemple",
+    "changelog": "Changelog",
+    "install": "Installer",
+    "openMenu": "Ouvrir le menu de navigation",
+    "closeMenu": "Fermer le menu de navigation",
+    "language": "Langue",
+    "theme": "Thème",
+    "home": "Accueil"
+  },
+  "Home": {
+    "badgeA": "Registry Shadcn",
+    "badgeB": "Prêt pour la production",
+    "heroTitleLead": "Le système de table que vous possédez,",
+    "heroTitleAccent": "pas une boîte noire npm.",
+    "heroDescription": "YaYaw Table donne aux équipes produit un workflow table complet: filtres avancés, état URL, bulk actions et i18n avec du code qui vit dans votre application.",
+    "ctaInstall": "Installer maintenant",
+    "ctaExample": "Voir l'exemple live",
+    "ctaDocs": "Lire la documentation",
+    "installHint": "Compatible avec votre stack Shadcn + TanStack actuelle.",
+    "proofTitle": "Pourquoi les équipes migrent",
+    "proofItems": {
+      "ownership": "L'installation registry copie toute la couche UI dans votre codebase.",
+      "url": "L'état URL est intégré pour le tri, la pagination, le groupement et les filtres.",
+      "i18n": "Clés i18n natives sur la table, les filtres, les vues et les formulaires.",
+      "dx": "Une architecture config-driven rend les évolutions plus prévisibles."
+    },
+    "useCases": {
+      "title": "Cas d'usage",
+      "description": "Pensé pour des workflows back-office réels où l'UX table pilote les opérations métier.",
+      "orders": {
+        "title": "Gestion des commandes",
+        "description": "Vues filtrées partageables, presets sauvegardés et bulk actions pour les équipes support et finance."
+      },
+      "users": {
+        "title": "Administration utilisateurs",
+        "description": "Groupement, filtres facettés et pagination sûre pour les volumes élevés."
+      },
+      "catalog": {
+        "title": "Gestion du catalogue",
+        "description": "Formulaires cohérents, filtres de statut et interfaces prêtes pour la traduction."
+      }
+    },
+    "product": {
+      "title": "Produit",
+      "description": "Un système pragmatique pour les équipes qui veulent un comportement enterprise sans lock-in enterprise.",
+      "pillars": {
+        "install": {
+          "title": "Installation CLI Shadcn",
+          "description": "Onboarding en une commande et ownership local immédiat."
+        },
+        "architecture": {
+          "title": "Architecture config-driven",
+          "description": "Branchez getTableConfig/getTableActions et itérez en sécurité."
+        },
+        "state": {
+          "title": "État URL par défaut",
+          "description": "Chaque état utile de table peut être partagé et restauré."
+        },
+        "i18n": {
+          "title": "Surface i18n native",
+          "description": "La traduction est native sur toutes les expériences clés."
+        },
+        "ux": {
+          "title": "Toolkit UX production",
+          "description": "Bulk actions, pagination sûre, filtres avancés et defaults robustes."
+        },
+        "stack": {
+          "title": "TanStack + Shadcn",
+          "description": "Construit sur des fondations solides avec une excellente DX TypeScript."
+        }
+      }
+    },
+    "migration": {
+      "title": "Migration depuis le glue code",
+      "description": "Passez d'une plomberie table fragmentée à un système réutilisable unique.",
+      "items": {
+        "before": "Avant: wiring custom pour recherche, filtres, params URL, export et actions de masse.",
+        "after": "Après: un système de table unifié avec un comportement cohérent.",
+        "outcome": "Résultat: un meilleur time-to-first-table et un ownership plus propre dans le temps."
+      }
+    },
+    "finalCta": {
+      "title": "Livrez votre prochaine table plus vite",
+      "description": "Installez en quelques minutes, puis adaptez tout directement dans votre codebase.",
+      "primary": "Installer YaYaw Table",
+      "secondary": "Parcourir la documentation"
+    }
+  },
+  "Example": {
+    "title": "Démo YaYaw Table",
+    "description": "Playground interactif avec toggles de fonctionnalités et table produits orientée production.",
+    "settingsTitle": "Configuration de la table",
+    "settingsDescription": "Activez ou désactivez les fonctionnalités en direct. Les réglages sont persistés dans l'URL.",
+    "coreFeatures": "Fonctionnalités cœur",
+    "exportToolbar": "Export et toolbar",
+    "resetSettings": "Réinitialiser",
+    "configurationUsed": "Configuration utilisée",
+    "fullWidthEnable": "Activer le mode pleine largeur",
+    "fullWidthDisable": "Revenir à une largeur contrainte",
+    "layoutConstrained": "Largeur contrainte (comme la doc)",
+    "layoutFull": "Pleine largeur (stress test)",
+    "loadingExample": "Chargement de l'exemple...",
+    "feature": {
+      "enableRowSelection": {
+        "label": "Sélection de lignes",
+        "description": "Active les cases à cocher et les actions de masse."
+      },
+      "enableColumnFilters": {
+        "label": "Filtres de colonnes",
+        "description": "Active la recherche et les filtres dans la toolbar et les menus."
+      },
+      "enableSorting": {
+        "label": "Tri",
+        "description": "Active le tri depuis les en-têtes et le menu options."
+      },
+      "enableGrouping": {
+        "label": "Regroupement",
+        "description": "Active les contrôles de groupement de lignes."
+      },
+      "enableColumnDnd": {
+        "label": "Drag and drop des colonnes",
+        "description": "Active le drag and drop dans les en-têtes et menus."
+      },
+      "enablePagination": {
+        "label": "Pagination",
+        "description": "Active la navigation de pages et le sélecteur de taille."
+      },
+      "export": {
+        "label": "Export toolbar",
+        "description": "Affiche le bouton d'export CSV dans la toolbar."
+      },
+      "bulkExport": {
+        "label": "Export de masse",
+        "description": "Affiche l'action d'export CSV dans le menu bulk."
+      },
+      "actionsAsIcons": {
+        "label": "Actions toolbar en icônes",
+        "description": "Rend les actions en mode icône avec infobulles."
+      }
+    },
+    "toasts": {
+      "deleteUnavailable": "L'action de suppression n'est pas disponible",
+      "copyUnavailable": "L'action de copie n'est pas disponible",
+      "deleteSuccess": "{count} produits supprimés avec succès.",
+      "deleteError": "Échec de la suppression des produits",
+      "copySuccess": "{count} produits copiés dans le presse-papiers.",
+      "copyError": "Échec de la copie des produits dans le presse-papiers"
+    }
+  }
+}
