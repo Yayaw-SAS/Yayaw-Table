@@ -8,15 +8,16 @@ import type { Cell, ColumnDef, Header, Row } from "@tanstack/react-table";
 import { flexRender } from "@tanstack/react-table";
 import { useAtom, useAtomValue } from "jotai";
 import {
-  type CSSProperties,
   memo,
-  type ReactNode,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
+  type ReactNode,
 } from "react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -26,8 +27,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { cn } from "@/lib/utils";
-import { activeRowDragAtom, tableIdAtom } from "../atoms/table-atoms";
+import { Loader } from "../ui-custom/loader";
+import {
+  activeRowDragAtom,
+  tableIdAtom,
+} from "../atoms/table-atoms";
 import {
   type BulkActionCustomHandlerResult,
   type BulkDeleteCustomHandlerResult,
@@ -38,7 +42,6 @@ import { useTableConfig } from "../hooks/use-table-config";
 import { useTableInstance } from "../hooks/use-table-instance";
 import { useTableUrlState } from "../hooks/use-table-url-state";
 import type { DataTableProps } from "../types";
-import { Loader } from "../ui-custom/loader";
 import { ColumnIcon } from "../utils/column-icons";
 import { buildCsvExportColumns } from "../utils/csv-export";
 import { BulkActionsMenu } from "./bulk-actions/bulk-actions-menu";
@@ -66,7 +69,8 @@ function isNumberColumn(def: {
 function getHeaderSizeStyle<TData>(
   header: Header<TData, unknown>
 ): CSSProperties | undefined {
-  const isSizeFixedColumn = header.id === "select" || header.id === "actions";
+  const isSizeFixedColumn =
+    header.id === "select" || header.id === "actions";
   if (!isSizeFixedColumn) {
     return undefined;
   }
@@ -80,7 +84,9 @@ function getHeaderSizeStyle<TData>(
   };
 }
 
-function getHeaderCellClassName<TData>(header: Header<TData, unknown>): string {
+function getHeaderCellClassName<TData>(
+  header: Header<TData, unknown>
+): string {
   return cn(
     "relative whitespace-nowrap",
     header.id === "select" &&
@@ -104,7 +110,10 @@ function renderHeaderContent<TData>(
     return null;
   }
   if (header.id === "select") {
-    return flexRender(header.column.columnDef.header, header.getContext());
+    return flexRender(
+      header.column.columnDef.header,
+      header.getContext()
+    );
   }
   return (
     <DataTableColumnHeader
@@ -722,15 +731,12 @@ function ModernDataTable<
           <TableCell
             className="flex justify-center px-2 align-middle [&:has([role=checkbox])]:pr-2!"
             style={{
-              ...(typeof (
-                visibleCells[0].column.columnDef as { maxSize?: number }
-              ).maxSize === "number"
+              ...(typeof (visibleCells[0].column.columnDef as { maxSize?: number })
+                .maxSize === "number"
                 ? {
-                    maxWidth: (
-                      visibleCells[0].column.columnDef as {
-                        maxSize: number;
-                      }
-                    ).maxSize,
+                    maxWidth: (visibleCells[0].column.columnDef as {
+                      maxSize: number;
+                    }).maxSize,
                   }
                 : {}),
               minWidth: visibleCells[0].column.getSize(),
@@ -804,7 +810,7 @@ function ModernDataTable<
                 cell.column.id === "select" &&
                   "flex justify-center px-2 [&:has([role=checkbox])]:pr-2!",
                 cell.column.id === "actions" &&
-                  "sticky right-0 z-10 flex justify-center bg-card px-2 shadow-[-1px_0_0_0_hsl(var(--border))] group-hover:bg-muted/50 group-data-[state=selected]:bg-muted/50",
+                  "flex justify-center sticky right-0 z-10 bg-card px-2 shadow-[-1px_0_0_0_hsl(var(--border))] group-hover:bg-muted/50 group-data-[state=selected]:bg-muted/50",
                 isNumberColumn(cell.column.columnDef) && "text-right"
               )}
               key={cell.id}
@@ -955,7 +961,7 @@ function ModernDataTable<
     const orderKey = columnOrder?.join(",") ?? "";
     return (
       <TableHeader
-        className="[&_th]:relative [&_th]:bg-muted/20 [&_th]:font-medium [&_th]:text-sm"
+        className="[&_th]:bg-muted/20 [&_th]:font-medium [&_th]:relative [&_th]:text-sm"
         key={orderKey}
       >
         {table.getHeaderGroups().map((headerGroup) => (

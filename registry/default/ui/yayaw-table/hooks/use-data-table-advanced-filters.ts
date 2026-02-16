@@ -5,7 +5,6 @@
 
 import type { ColumnFiltersState } from "@tanstack/react-table";
 import { useCallback, useMemo } from "react";
-import type { DateDisplayPreset } from "../types/date-types";
 import type {
   AdvancedFilterModel,
   AdvancedFilterPreset,
@@ -17,6 +16,7 @@ import type {
   FilterOperators,
   FilterStrategy,
 } from "../types/filter-types";
+import type { DateDisplayPreset } from "../types/date-types";
 import { useDataTable } from "./use-data-table";
 import { useTableUrlState } from "./use-table-url-state";
 
@@ -220,19 +220,20 @@ const applyDateFilter = (
         ? dateValue.getTime() <= endOfDay(targetDate).getTime()
         : false;
     }
-    case "between": {
-      const range = getDateRange(filter.values);
-      if (!range) {
-        return false;
-      }
+    case "between":
+      {
+        const range = getDateRange(filter.values);
+        if (!range) {
+          return false;
+        }
 
-      const [startDate, endDate] = range;
-      const valueTime = dateValue.getTime();
-      return (
-        valueTime >= startOfDay(startDate).getTime() &&
-        valueTime <= endOfDay(endDate).getTime()
-      );
-    }
+        const [startDate, endDate] = range;
+        const valueTime = dateValue.getTime();
+        return (
+          valueTime >= startOfDay(startDate).getTime() &&
+          valueTime <= endOfDay(endDate).getTime()
+        );
+      }
     default:
       return true;
   }
@@ -585,7 +586,9 @@ const isSystemColumn = (columnId: string): boolean => {
   return columnId === "select" || columnId === "actions";
 };
 
-const normalizeColumnDataType = (type: unknown): ColumnDataType | undefined => {
+const normalizeColumnDataType = (
+  type: unknown
+): ColumnDataType | undefined => {
   if (typeof type !== "string") {
     return;
   }

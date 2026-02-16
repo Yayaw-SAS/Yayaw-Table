@@ -17,4 +17,5 @@ export const DATE_DISPLAY_PRESETS = [
 
 export type DateDisplayPreset = (typeof DATE_DISPLAY_PRESETS)[number];
 
-export const DEFAULT_DATE_DISPLAY_PRESET: DateDisplayPreset = "localized-short";
+export const DEFAULT_DATE_DISPLAY_PRESET: DateDisplayPreset =
+  "localized-short";
