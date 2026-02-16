@@ -1,7 +1,3 @@
-/**
- * Actions cell component for data tables
- * Provides standardized display of row action buttons with enhanced dropdown menu
- */
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -11,7 +7,7 @@ import { MoreHorizontal } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Button } from "@/src/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,7 +15,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/src/components/ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu";
 import { Icon } from "@/components/ui/custom/icon";
 import { useTranslations } from "../../providers/table-provider";
 
@@ -35,6 +31,8 @@ interface ActionsCellProps<TData> {
   actions: ActionItem<TData>[];
   onRefresh?: () => Promise<void> | void;
   row: Row<TData>;
+  /** When set, invalidations target ["tableData", tableId] per YaYaw Table contract */
+  tableId?: string;
 }
 
 /**
@@ -45,6 +43,7 @@ function ActionsCellBase<TData>({
   actions,
   onRefresh,
   row,
+  tableId,
 }: ActionsCellProps<TData>) {
   const { t } = useTranslations();
   const rowData = row.original;
@@ -68,8 +67,9 @@ function ActionsCellBase<TData>({
       return await action.onClick(rowData);
     },
     onSuccess: () => {
-      // Invalidate all table data queries to trigger a refresh
-      queryClient.invalidateQueries({ queryKey: ["tableData"] });
+      // Target ["tableData", tableId] when tableId is set (YaYaw Table contract)
+      const queryKey = tableId ? ["tableData", tableId] : ["tableData"];
+      queryClient.invalidateQueries({ queryKey });
 
       // Also call the onRefresh function if provided
       if (onRefreshRef.current) {
@@ -346,6 +346,11 @@ export const ActionsCell = memo(
       return false;
     }
 
+    // 5. tableId affects invalidation target
+    if (prevProps.tableId !== nextProps.tableId) {
+      return false;
+    }
+
     // If we get here, consider props equal enough to prevent re-render
     return true;
   }
@@ -519,6 +524,11 @@ export function ActionsCellWithTranslations<
   });
 
   return (
-    <ActionsCell actions={processedActions} onRefresh={onRefresh} row={row} />
+    <ActionsCell
+      actions={processedActions}
+      onRefresh={onRefresh}
+      row={row}
+      tableId={standardActions.tableId}
+    />
   );
 }

@@ -1,9 +1,10 @@
 /**
  * Helper functions for defining and working with table configurations
  */
+
+import type { DateDisplayPreset } from "../types/date-types";
 import { defaultTableConfig, defaultTranslations } from "./defaults";
 import type { TableFormConfig } from "./form-config";
-import type { DateDisplayPreset } from "../types/date-types";
 
 /**
  * Column definition for a data table

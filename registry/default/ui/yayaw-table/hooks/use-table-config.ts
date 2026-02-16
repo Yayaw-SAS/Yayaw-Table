@@ -6,11 +6,11 @@
 
 import type { ColumnSort } from "@tanstack/react-table";
 import { useMemo } from "react";
-import type { DateDisplayPreset } from "../types/date-types";
 import {
   useTableConfig as useProviderTableConfig,
   useTranslations,
 } from "../providers/table-provider";
+import type { DateDisplayPreset } from "../types/date-types";
 import type { NumberFormatConfig } from "../utils/number-format";
 import { useTableTranslations } from "./use-table-translations";
 

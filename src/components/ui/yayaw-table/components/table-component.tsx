@@ -7,9 +7,15 @@
 import type { Cell, ColumnDef, Row } from "@tanstack/react-table";
 import { flexRender } from "@tanstack/react-table";
 import { useAtom } from "jotai";
-// CheckSquare import removed - using ColumnIcon helper
-import type React from "react";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/src/components/ui/button";
 import { Skeleton } from "@/src/components/ui/skeleton";
@@ -74,7 +80,7 @@ type ModernDataTableProps<
   enableGrouping?: boolean;
   getRowId?: (row: TData) => string;
   /** Optional custom overlay to render when loading */
-  loadingOverlay?: React.ReactNode;
+  loadingOverlay?: ReactNode;
   onRowSelectionChange?: (rows: Row<TData>[]) => void;
   onBulkEdit?: (
     rows: Row<TData>[]
@@ -710,13 +716,13 @@ function ModernDataTable<
       </TableRow>
     );
 
-    const rowElements: React.ReactNode[] = [];
+    const rowElements: ReactNode[] = [];
 
     const pushSelectionGroupButtonRow = (
       groupId: string,
       colSpan: number,
       level: number,
-      icon: React.ReactNode,
+      icon: ReactNode,
       label: string,
       count: number,
       badgeClassName: string
@@ -1014,41 +1020,6 @@ function ModernDataTable<
       )}
     </div>
   );
-}
-
-/**
- * Helper function to batch DOM updates and minimize layout thrashing
- */
-function _useDebouncedLayoutEffect(
-  callback: () => void,
-  dependencies: React.DependencyList
-) {
-  useEffect(() => {
-    // Use requestAnimationFrame to batch multiple DOM updates
-    // This prevents layout thrashing by ensuring all measurements
-    // are done before any DOM updates
-    let rafId: number;
-    const update = () => {
-      // Cancel any pending update
-      if (rafId) {
-        cancelAnimationFrame(rafId);
-      }
-
-      // Schedule the update for the next animation frame
-      rafId = requestAnimationFrame(() => {
-        callback();
-      });
-    };
-
-    update();
-
-    // Cleanup on unmount or dependency change
-    return () => {
-      if (rafId) {
-        cancelAnimationFrame(rafId);
-      }
-    };
-  }, [callback, ...dependencies]);
 }
 
 // Memoize the component to avoid unnecessary rerenders

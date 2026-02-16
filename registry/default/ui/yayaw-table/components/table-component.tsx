@@ -8,9 +8,15 @@ import type { Cell, ColumnDef, Row } from "@tanstack/react-table";
 import { flexRender } from "@tanstack/react-table";
 import { useAtom } from "jotai";
 // CheckSquare import removed - using ColumnIcon helper
-import type React from "react";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { cn } from "@/lib/utils";
+import {
+  memo,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -20,7 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Loader } from "../ui-custom/loader";
+import { cn } from "@/lib/utils";
 import { tableIdAtom } from "../atoms/table-atoms";
 import {
   type BulkActionCustomHandlerResult,
@@ -32,6 +38,7 @@ import { useTableConfig } from "../hooks/use-table-config";
 import { useTableInstance } from "../hooks/use-table-instance";
 import { useTableUrlState } from "../hooks/use-table-url-state";
 import type { DataTableProps } from "../types";
+import { Loader } from "../ui-custom/loader";
 import { ColumnIcon } from "../utils/column-icons";
 import { buildCsvExportColumns } from "../utils/csv-export";
 import { BulkActionsMenu } from "./bulk-actions/bulk-actions-menu";
@@ -74,7 +81,7 @@ type ModernDataTableProps<
   enableGrouping?: boolean;
   getRowId?: (row: TData) => string;
   /** Optional custom overlay to render when loading */
-  loadingOverlay?: React.ReactNode;
+  loadingOverlay?: ReactNode;
   onRowSelectionChange?: (rows: Row<TData>[]) => void;
   onBulkEdit?: (
     rows: Row<TData>[]
@@ -644,7 +651,7 @@ function ModernDataTable<
           data-state={row.getIsSelected() ? "selected" : ""}
           key={row.id}
         >
-          <TableCell className="flex w-(--radix-checkbox-size) min-w-(--radix-checkbox-size) justify-center px-2 align-middle [&:has([role=checkbox])]:!pr-2">
+          <TableCell className="[&:has([role=checkbox])]:!pr-2 flex w-(--radix-checkbox-size) min-w-(--radix-checkbox-size) justify-center px-2 align-middle">
             <GroupRowSelectionCell row={row} table={table} />
           </TableCell>
           <TableCell
@@ -697,9 +704,9 @@ function ModernDataTable<
           <TableCell
             className={cn(
               cell.column.id === "select" &&
-                "flex w-(--radix-checkbox-size) min-w-(--radix-checkbox-size) justify-center px-2 [&:has([role=checkbox])]:!pr-2",
+                "[&:has([role=checkbox])]:!pr-2 flex w-(--radix-checkbox-size) min-w-(--radix-checkbox-size) justify-center px-2",
               cell.column.id === "actions" &&
-                "flex justify-center sticky right-0 z-10 w-(--radix-checkbox-size) min-w-(--radix-checkbox-size) bg-card px-2 shadow-[-1px_0_0_0_hsl(var(--border))] group-hover:bg-muted/50 group-data-[state=selected]:bg-muted/50",
+                "sticky right-0 z-10 flex w-(--radix-checkbox-size) min-w-(--radix-checkbox-size) justify-center bg-card px-2 shadow-[-1px_0_0_0_hsl(var(--border))] group-hover:bg-muted/50 group-data-[state=selected]:bg-muted/50",
               isNumberColumn(cell.column.columnDef) && "text-right"
             )}
             key={cell.id}
@@ -710,13 +717,13 @@ function ModernDataTable<
       </TableRow>
     );
 
-    const rowElements: React.ReactNode[] = [];
+    const rowElements: ReactNode[] = [];
 
     const pushSelectionGroupButtonRow = (
       groupId: string,
       colSpan: number,
       level: number,
-      icon: React.ReactNode,
+      icon: ReactNode,
       label: string,
       count: number,
       badgeClassName: string
@@ -848,7 +855,7 @@ function ModernDataTable<
     const orderKey = columnOrder?.join(",") ?? "";
     return (
       <TableHeader
-        className="[&_th]:bg-muted/20 [&_th]:font-medium [&_th]:relative [&_th]:text-sm"
+        className="[&_th]:relative [&_th]:bg-muted/20 [&_th]:font-medium [&_th]:text-sm"
         key={orderKey}
       >
         {table.getHeaderGroups().map((headerGroup) => (
@@ -866,7 +873,7 @@ function ModernDataTable<
                     className={cn(
                       "relative whitespace-nowrap",
                       header.id === "select" &&
-                        "select-column w-(--radix-checkbox-size) min-w-(--radix-checkbox-size) px-2 text-center [&:has([role=checkbox])]:!pr-2",
+                        "select-column [&:has([role=checkbox])]:!pr-2 w-(--radix-checkbox-size) min-w-(--radix-checkbox-size) px-2 text-center",
                       header.id === "actions" &&
                         "actions-column sticky right-0 z-20 w-(--radix-checkbox-size) min-w-(--radix-checkbox-size) px-2 text-center shadow-[-1px_0_0_0_hsl(var(--border))]",
                       isNumberColumn(header.column.columnDef) && "text-right"
@@ -1014,41 +1021,6 @@ function ModernDataTable<
       )}
     </div>
   );
-}
-
-/**
- * Helper function to batch DOM updates and minimize layout thrashing
- */
-function _useDebouncedLayoutEffect(
-  callback: () => void,
-  dependencies: React.DependencyList
-) {
-  useEffect(() => {
-    // Use requestAnimationFrame to batch multiple DOM updates
-    // This prevents layout thrashing by ensuring all measurements
-    // are done before any DOM updates
-    let rafId: number;
-    const update = () => {
-      // Cancel any pending update
-      if (rafId) {
-        cancelAnimationFrame(rafId);
-      }
-
-      // Schedule the update for the next animation frame
-      rafId = requestAnimationFrame(() => {
-        callback();
-      });
-    };
-
-    update();
-
-    // Cleanup on unmount or dependency change
-    return () => {
-      if (rafId) {
-        cancelAnimationFrame(rafId);
-      }
-    };
-  }, [callback, ...dependencies]);
 }
 
 // Memoize the component to avoid unnecessary rerenders
