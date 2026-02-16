@@ -6,6 +6,7 @@
 
 import { CalendarIcon, ChevronDown } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Label } from "@/components/ui/label";
@@ -21,7 +22,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
 import { useLocale, useTranslations } from "../../providers/table-provider";
 import type { DateDisplayPreset } from "../../types/date-types";
 import type { FilterOperators } from "../../types/filter-types";
@@ -95,9 +95,7 @@ const CALENDAR_NAVIGATION_PROPS = {
   endMonth: CALENDAR_END_MONTH,
 };
 
-const normalizeBetweenDateValue = (
-  value: unknown
-): [Date, Date] | undefined => {
+const normalizeBetweenDateValue = (value: unknown): [Date, Date] | undefined => {
   if (!Array.isArray(value)) {
     const singleDate = coerceDate(value);
     return singleDate ? [singleDate, singleDate] : undefined;
@@ -131,9 +129,7 @@ const normalizeDateValue = (
   return coerceDate(Array.isArray(value) ? value[0] : value);
 };
 
-const getFallbackValue = (
-  operator: FilterOperators["date"]
-): DateFilterValue =>
+const getFallbackValue = (operator: FilterOperators["date"]): DateFilterValue =>
   operator === "between" ? fallbackDateRange() : fallbackSingleDate();
 
 const toDateRange = (
