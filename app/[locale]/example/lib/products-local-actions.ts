@@ -43,6 +43,10 @@ export interface ListProductsParams {
 }
 
 export interface ProductsLocalActions {
+  /**
+   * Compatibility index signature for consumers expecting generic table actions.
+   */
+  [key: string]: unknown;
   list: (params: ListProductsParams) => Promise<{
     data: Product[];
     meta: { pageCount: number; totalCount: number };
