@@ -182,7 +182,8 @@ export function createActionsColumn<TData extends Record<string, unknown>>({
     },
     pinned: "right", // Pin this column to the right side
     // Ensure the column is always visible
-    size: 80, // Fixed width for actions column
+    size: 48,
+    maxSize: 48,
   };
 
   return column;
