@@ -8,8 +8,12 @@
     "configuration",
     "columns",
     "actions",
+    "query-integration",
+    "bulk-actions",
     "server-actions",
     "url-state",
+    "troubleshooting",
+    "migration-query-client",
     "translations"
   ]
 }

@@ -11,6 +11,7 @@ YaYaw Table is distributed through a **Shadcn registry**. The CLI copies the ful
 
 - A project already set up with [Shadcn UI](https://ui.shadcn.com/docs/installation)
 - A `components.json` with the `ui` alias configured (recommended: `"ui": "@/components/ui"`)
+- A **single shared TanStack Query client** available through `QueryClientProvider`
 
 ## Install with Shadcn CLI
 
@@ -37,19 +38,35 @@ The CLI will:
 Import from your local copied code:
 
 ```tsx
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { DataTable } from "@/components/ui/yayaw-table";
 import { getTableActions, getTableConfig } from "./table-config";
 
+const queryClient = new QueryClient();
+
 export const MyTable = () => (
-  <DataTable
-    tableType="products"
-    getTableConfig={getTableConfig}
-    getTableActions={getTableActions}
-  />
+  <QueryClientProvider client={queryClient}>
+    <DataTable
+      tableType="products"
+      getTableConfig={getTableConfig}
+      getTableActions={getTableActions}
+    />
+  </QueryClientProvider>
 );
 ```
 
 For Next.js URL state, add **NuqsAdapter** in `app/layout.tsx`. See [Provider & Setup](/docs/setup) and [URL state (Nuqs)](/docs/url-state).
+
+## QueryClient requirement (breaking change)
+
+YaYaw Table no longer creates an internal QueryClient automatically.
+
+You must now provide exactly one shared client:
+
+- either from your app-level `QueryClientProvider`,
+- or via the `queryClient` prop (must be the same instance as the app provider if both are used).
+
+If no QueryClient is available, YaYaw Table throws an explicit developer error at runtime.
 
 ## CSS / Tailwind
 

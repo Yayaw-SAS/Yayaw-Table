@@ -8,7 +8,10 @@ import type { Row } from "@tanstack/react-table";
 import type React from "react";
 // Import advanced filters hook directly
 import { Suspense } from "react";
-import type { BulkDeleteCustomHandlerResult } from "../hooks/use-bulk-actions";
+import type {
+  BulkActionCustomHandlerResult,
+  BulkDeleteCustomHandlerResult,
+} from "../hooks/use-bulk-actions";
 import { useDataTable } from "../hooks/use-data-table";
 
 import { DataTableUIProvider } from "../providers/data-table-ui-provider";
@@ -88,12 +91,18 @@ function DataTableContent({
   loadingOverlay?: React.ReactNode;
   enableToolbar?: boolean;
   onRowSelectionChange?: (rows: Row<Record<string, unknown>>[]) => void;
-  onBulkEdit?: (rows: Row<Record<string, unknown>>[]) => Promise<void> | void;
+  onBulkEdit?: (
+    rows: Row<Record<string, unknown>>[]
+  ) => Promise<BulkActionCustomHandlerResult> | BulkActionCustomHandlerResult;
   onBulkDelete?: (
     rows: Row<Record<string, unknown>>[]
   ) => Promise<BulkDeleteCustomHandlerResult> | BulkDeleteCustomHandlerResult;
-  onBulkCopy?: (rows: Row<Record<string, unknown>>[]) => Promise<void> | void;
-  onBulkExport?: (rows: Row<Record<string, unknown>>[]) => void | Promise<void>;
+  onBulkCopy?: (
+    rows: Row<Record<string, unknown>>[]
+  ) => Promise<BulkActionCustomHandlerResult> | BulkActionCustomHandlerResult;
+  onBulkExport?: (
+    rows: Row<Record<string, unknown>>[]
+  ) => Promise<BulkActionCustomHandlerResult> | BulkActionCustomHandlerResult;
   closeOnError?: boolean;
   showDefaultToastsForCustomHandlers?: boolean;
   onExport?: (rows: Record<string, unknown>[]) => void | Promise<void>;

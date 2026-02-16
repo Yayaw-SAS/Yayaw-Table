@@ -6,6 +6,7 @@ import {
   buildBulkDeleteFeedback,
   executeCustomBulkDeleteHandler,
   executeBulkDeleteOperation,
+  normalizeBulkActionResult,
   resolveBulkEditWithoutCustom,
 } from "./use-bulk-actions";
 
@@ -72,6 +73,41 @@ describe("resolveBulkEditWithoutCustom", () => {
   });
 });
 
+describe("normalizeBulkActionResult", () => {
+  it("supports explicit bulk action contract result", () => {
+    const normalized = normalizeBulkActionResult(
+      {
+        clearSelection: true,
+        closeMenu: true,
+        message: "Operation done",
+        success: true,
+      },
+      {
+        clearSelection: false,
+        closeMenu: false,
+        success: false,
+      }
+    );
+
+    assert.equal(normalized.success, true);
+    assert.equal(normalized.closeMenu, true);
+    assert.equal(normalized.clearSelection, true);
+    assert.equal(normalized.message, "Operation done");
+  });
+
+  it("maps legacy boolean result to explicit contract", () => {
+    const normalized = normalizeBulkActionResult(true, {
+      clearSelection: false,
+      closeMenu: false,
+      success: false,
+    });
+
+    assert.equal(normalized.success, true);
+    assert.equal(normalized.closeMenu, true);
+    assert.equal(normalized.clearSelection, true);
+  });
+});
+
 function createSelectedRows(ids: string[]): Row<Record<string, unknown>>[] {
   return ids.map(
     (id) =>
@@ -108,6 +144,7 @@ describe("executeCustomBulkDeleteHandler", () => {
       showDefaultToastsForCustomHandlers: false,
     });
 
+    assert.equal(result.clearSelection, false);
     assert.equal(result.closeMenu, false);
     assert.equal(result.success, false);
     assert.equal(clearSelectionCalls, 0);
@@ -137,6 +174,7 @@ describe("executeCustomBulkDeleteHandler", () => {
       showDefaultToastsForCustomHandlers: false,
     });
 
+    assert.equal(result.clearSelection, false);
     assert.equal(result.closeMenu, false);
     assert.equal(result.success, false);
     assert.equal(clearSelectionCalls, 0);
@@ -170,6 +208,7 @@ describe("executeCustomBulkDeleteHandler", () => {
       showDefaultToastsForCustomHandlers: false,
     });
 
+    assert.equal(result.clearSelection, true);
     assert.equal(result.closeMenu, true);
     assert.equal(result.success, true);
     assert.equal(clearSelectionCalls, 1);
@@ -197,6 +236,7 @@ describe("executeCustomBulkDeleteHandler", () => {
       showDefaultToastsForCustomHandlers: true,
     });
 
+    assert.equal(result.clearSelection, true);
     assert.equal(result.closeMenu, true);
     assert.equal(result.success, true);
     assert.equal(clearSelectionCalls, 1);

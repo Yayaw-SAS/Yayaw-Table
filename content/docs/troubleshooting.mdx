@@ -1,0 +1,59 @@
+---
+title: Troubleshooting
+description: Common runtime issues and fixes
+---
+
+# Troubleshooting
+
+## `invalidateQueries` does not refresh the table
+
+### Symptoms
+
+- Mutation succeeds.
+- You call `invalidateQueries`.
+- The table still shows stale data.
+
+### Root cause
+
+Different QueryClient instances are being used (isolated caches).
+
+### Fix
+
+1. Ensure one shared app-level `QueryClientProvider`.
+2. Invalidate the key `["tableData", tableId]`.
+3. Do not pass a different `queryClient` prop than the provider instance.
+
+```ts
+await queryClient.invalidateQueries({
+  queryKey: ["tableData", "products"],
+});
+```
+
+---
+
+## Bulk confirm does nothing (copy/delete)
+
+### Symptoms
+
+- User clicks `Copy` or `Delete`.
+- Confirmation dialog opens.
+- Clicking `Confirm` appears to do nothing.
+
+### Root cause
+
+A pending action was reset by outside-click behavior while the dialog portal was open.
+
+### Fix in current version
+
+- Outside clicks are ignored while confirmation is open.
+- Confirm execution is lock-protected and runs once.
+- Bulk callbacks should return explicit `BulkActionResult` for deterministic close/selection behavior.
+
+```ts
+type BulkActionResult = {
+  success: boolean;
+  closeMenu: boolean;
+  clearSelection: boolean;
+  message?: string;
+};
+```

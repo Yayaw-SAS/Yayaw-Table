@@ -13,6 +13,8 @@ import { DataTable } from "@/components/ui/yayaw-table";
 
 For a minimal working setup you need **tableType**, **getTableConfig**, and **getTableActions**. See [Provider & Setup](/docs/setup) for the full list and Next.js layout (NuqsAdapter, QueryClientProvider).
 
+If no QueryClient is available from context (and no explicit `queryClient` prop is provided), `DataTable` now throws an explicit runtime error.
+
 ## Props
 
 List of available props for configuring `DataTable`.
@@ -42,7 +44,7 @@ Function that returns form field definitions for create/edit and bulk edit dialo
 Type: `(formType: string) => FormConfig | undefined`
 
 ### queryClient
-TanStack Query client instance. Optional; the table can create one if not provided. Recommended to pass one when using a single app-wide client.
+Optional explicit TanStack Query client instance. YaYaw Table no longer creates one internally. In most apps you should provide a shared app-level `QueryClientProvider` and omit this prop.
 
 Type: `QueryClient`
 
@@ -68,17 +70,17 @@ Type: `(rows: Row<Record<string, unknown>>[]) => void` | Default: `undefined`
 ### onBulkEdit
 Handle bulk edit of selected rows.
 
-Type: `(rows: Row<Record<string, unknown>>[]) => void` | Default: uses provider `update`
+Type: `(rows: Row<Record<string, unknown>>[]) => BulkActionResult | void | Promise<BulkActionResult | void>` | Default: uses provider actions
 
 ### onBulkDelete
 Handle bulk deletion of selected rows.
 
-Type: `(rows: Row<Record<string, unknown>>[]) => void` | Default: uses provider `delete`
+Type: `(rows: Row<Record<string, unknown>>[]) => BulkActionResult | BulkDeleteExecutionOutcome | void | Promise<...>` | Default: uses provider `bulkDelete` / `delete`
 
 ### onBulkCopy
 Handle bulk duplication of selected rows.
 
-Type: `(rows: Row<Record<string, unknown>>[]) => void` | Default: uses provider `duplicate`
+Type: `(rows: Row<Record<string, unknown>>[]) => BulkActionResult | void | Promise<BulkActionResult | void>` | Default: internal clipboard copy
 
 ### onExport
 Override toolbar export behavior. Called with all rows matching current search/filters/sort state. If provided, default CSV download is skipped.

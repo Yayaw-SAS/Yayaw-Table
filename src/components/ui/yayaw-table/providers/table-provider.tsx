@@ -1,4 +1,8 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  type QueryClient,
+  QueryClientContext,
+  QueryClientProvider,
+} from "@tanstack/react-query";
 import { useAtomValue } from "jotai";
 import { useHydrateAtoms } from "jotai/utils";
 import type React from "react";
@@ -17,6 +21,7 @@ import type {
   DataTableTranslations,
   TranslationParams,
 } from "../types/translations";
+import { resolveTableQueryClient } from "./query-client-requirements";
 import { createTranslationFunction } from "./translation-cache";
 
 // Define proper types for the helper functions
@@ -52,6 +57,10 @@ export interface TableActions {
     data: Record<string, unknown>
   ) => Promise<{ success: boolean; data?: unknown; error?: string }>;
   [key: string]: unknown;
+}
+
+function useOptionalProviderQueryClient(): QueryClient | undefined {
+  return useContext(QueryClientContext) ?? undefined;
 }
 
 interface TableProviderContextType {
@@ -133,20 +142,14 @@ export function TableProvider({
     () => createTranslationFunction(translations),
     [translations]
   );
-
-  // Create default QueryClient if none provided
-  const defaultQueryClient = useMemo(
+  const providerQueryClient = useOptionalProviderQueryClient();
+  const resolvedQueryClient = useMemo(
     () =>
-      queryClient ||
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            staleTime: 1000 * 60 * 5, // 5 minutes
-            refetchOnWindowFocus: false,
-          },
-        },
+      resolveTableQueryClient({
+        explicitQueryClient: queryClient,
+        providerQueryClient,
       }),
-    [queryClient]
+    [queryClient, providerQueryClient]
   );
 
   // Prepare table configuration (from data-table-ui-provider)
@@ -195,13 +198,21 @@ export function TableProvider({
     ]
   );
 
-  return (
-    <QueryClientProvider client={defaultQueryClient}>
-      <TableProviderContext.Provider value={value}>
-        {children}
-      </TableProviderContext.Provider>
-    </QueryClientProvider>
+  const content = (
+    <TableProviderContext.Provider value={value}>
+      {children}
+    </TableProviderContext.Provider>
   );
+
+  if (resolvedQueryClient.shouldProvideQueryClient) {
+    return (
+      <QueryClientProvider client={resolvedQueryClient.queryClient}>
+        {content}
+      </QueryClientProvider>
+    );
+  }
+
+  return content;
 }
 
 /**

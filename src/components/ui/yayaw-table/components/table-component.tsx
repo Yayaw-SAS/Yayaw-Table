@@ -23,6 +23,7 @@ import {
 import { Loader } from "@/components/ui/custom/loader";
 import { tableIdAtom } from "../atoms/table-atoms";
 import {
+  type BulkActionCustomHandlerResult,
   type BulkDeleteCustomHandlerResult,
   useBulkActions,
 } from "../hooks/use-bulk-actions";
@@ -75,12 +76,18 @@ type ModernDataTableProps<
   /** Optional custom overlay to render when loading */
   loadingOverlay?: React.ReactNode;
   onRowSelectionChange?: (rows: Row<TData>[]) => void;
-  onBulkEdit?: (rows: Row<TData>[]) => Promise<void> | void;
+  onBulkEdit?: (
+    rows: Row<TData>[]
+  ) => Promise<BulkActionCustomHandlerResult> | BulkActionCustomHandlerResult;
   onBulkDelete?: (
     rows: Row<TData>[]
   ) => Promise<BulkDeleteCustomHandlerResult> | BulkDeleteCustomHandlerResult;
-  onBulkCopy?: (rows: Row<TData>[]) => Promise<void> | void;
-  onBulkExport?: (rows: Row<TData>[]) => void | Promise<void>;
+  onBulkCopy?: (
+    rows: Row<TData>[]
+  ) => Promise<BulkActionCustomHandlerResult> | BulkActionCustomHandlerResult;
+  onBulkExport?: (
+    rows: Row<TData>[]
+  ) => Promise<BulkActionCustomHandlerResult> | BulkActionCustomHandlerResult;
   closeOnError?: boolean;
   showDefaultToastsForCustomHandlers?: boolean;
   queryFn?: (
@@ -898,6 +905,7 @@ function ModernDataTable<
     tableId,
     horizontalListSortingStrategy,
     columnOrder,
+    ColumnSortableContext,
   ]);
 
   // Always keep table UI visible for server-driven tables.

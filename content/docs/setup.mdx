@@ -7,6 +7,9 @@ description: Step-by-step setup with a concrete Next.js example
 
 `DataTable` is the single entry point. You pass configuration and actions as props, and `DataTable` wires `TableProvider` internally.
 
+> **Breaking change:** YaYaw Table no longer creates an internal QueryClient.
+> You must provide a shared TanStack Query client through `QueryClientProvider` (recommended) or pass a shared `queryClient` instance explicitly.
+
 This page shows a concrete setup you can copy, then adapt.
 
 ## Step-by-step setup (Next.js App Router)
@@ -157,7 +160,7 @@ export const getTableActions = (tableType: string) => {
 };
 ```
 
-### 4. Render `DataTable` in a client component
+### 4. Render `DataTable` inside a shared `QueryClientProvider`
 
 `getTableConfig` and `getTableActions` are functions, so the component that passes them must be a Client Component.
 
@@ -165,7 +168,7 @@ export const getTableActions = (tableType: string) => {
 // app/products/page.tsx
 "use client";
 
-import { QueryClient } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { DataTable } from "@/components/ui/yayaw-table";
 import { getTableActions, getTableConfig } from "./setup/table-config";
 
@@ -173,14 +176,15 @@ const queryClient = new QueryClient();
 
 export default function ProductsPage() {
   return (
-    <DataTable
-      tableType="products"
-      getTableConfig={getTableConfig}
-      getTableActions={getTableActions}
-      queryClient={queryClient}
-      title="Products"
-      description="Server-side pagination, filtering and sorting"
-    />
+    <QueryClientProvider client={queryClient}>
+      <DataTable
+        tableType="products"
+        getTableConfig={getTableConfig}
+        getTableActions={getTableActions}
+        title="Products"
+        description="Server-side pagination, filtering and sorting"
+      />
+    </QueryClientProvider>
   );
 }
 ```
@@ -277,7 +281,7 @@ All props are optional except `tableType`.
 | `getFormConfig` | `(formType: string) => FormConfig \| undefined` | Returns form field definitions for create/edit and bulk edit. |
 | `translations` | `DataTableTranslations` | Override default UI strings. |
 | `locale` | `string` | Locale for translations (default `"en"`). |
-| `queryClient` | `QueryClient` | TanStack Query client. If omitted, the table creates one. |
+| `queryClient` | `QueryClient` | Optional explicit shared client. If provided, it must match your app `QueryClientProvider` instance. |
 | `title` | `string` | Table title above the toolbar. |
 | `description` | `string` | Short description under the title. |
 | `enableToolbar` | `boolean` | Show toolbar with filters, sort, columns, etc. (default `true`). |
@@ -285,7 +289,7 @@ All props are optional except `tableType`.
 | `columnTypeMapping` | `Record<string, 'text' \| 'number' \| 'date' \| 'option' \| 'multiOption'>` | Map backend types to filter/column types. |
 | `onExport` | `(rows) => void \| Promise<void>` | Override toolbar export behavior (all filtered rows). |
 | `onBulkExport` | `(rows) => void \| Promise<void>` | Override bulk CSV export behavior (selected rows). |
-| `onBulkEdit`, `onBulkDelete`, `onBulkCopy` | `(rows) => void` | Override bulk behavior; otherwise provider actions are used. |
+| `onBulkEdit`, `onBulkDelete`, `onBulkCopy` | `(rows) => BulkActionResult \| void` | Override bulk behavior; explicit result contract is recommended for deterministic close/selection behavior. |
 | `loadingOverlay` | `ReactNode` | Custom loading UI. |
 | `TitleComponent`, `DescriptionComponent` | `ComponentType` | Custom title/description components. |
 
@@ -297,17 +301,22 @@ See [URL state (Nuqs)](/docs/url-state) for details on URL synchronization.
 - Omitting `meta.pageCount`/`meta.totalCount` in `list` return value.
 - Using a different `tableType` between `DataTable`, `getTableConfig`, and `getTableActions`.
 - Rendering `DataTable` in a Server Component while passing function props (`getTableConfig`, `getTableActions`).
+- Forgetting to wrap with a shared `QueryClientProvider` (runtime error: missing QueryClient).
 
 ## Summary
 
 - **DataTable** is the single component; pass `getTableConfig`, `getTableActions`, and optional `getFormConfig`.
 - **getTableConfig** defines table behavior and columns.
 - **getTableActions** connects your server actions or API functions.
-- In Next.js App Router, use **NuqsAdapter** and render `DataTable` from a Client Component when passing function props.
+- In Next.js App Router, use **NuqsAdapter**, provide a shared **QueryClientProvider**, and render `DataTable` from a Client Component when passing function props.
 
 See also:
 - [Configuration](/docs/configuration)
 - [Columns](/docs/columns)
 - [Actions](/docs/actions)
+- [Query Integration](/docs/query-integration)
+- [Bulk Actions](/docs/bulk-actions)
 - [Server-side & Server Actions](/docs/server-actions)
 - [URL state (Nuqs)](/docs/url-state)
+- [Troubleshooting](/docs/troubleshooting)
+- [Migration Guide](/docs/migration-query-client)

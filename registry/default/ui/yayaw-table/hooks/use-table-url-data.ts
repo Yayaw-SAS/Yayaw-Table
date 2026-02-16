@@ -9,6 +9,7 @@ import { useCallback, useMemo, useState } from "react";
 
 import { processServerFilters } from "../utils/server-filters";
 
+import { invalidateAndRefetchTableData } from "./query-cache-utils";
 import { useTableUrlState } from "./use-table-url-state";
 
 const _DEBUG = false;
@@ -256,8 +257,11 @@ export function useTableUrlData<TData>({
 
   // Enhanced refetch that invalidates the cache
   const enhancedRefetch = useCallback(async () => {
-    queryClient.invalidateQueries({ queryKey: ["tableData", tableId] });
-    return await refetch();
+    return await invalidateAndRefetchTableData({
+      queryClient,
+      refetch,
+      tableId,
+    });
   }, [queryClient, refetch, tableId]);
 
   return {
