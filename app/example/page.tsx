@@ -2,6 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useSetAtom } from "jotai";
+import { GalleryHorizontal } from "lucide-react";
 import { useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo } from "react";
 import { toast } from "sonner";
@@ -423,6 +424,7 @@ export default function ExamplePage() {
     "excfg-ai",
     DEFAULT_TABLE_SETTINGS.actionsAsIcons
   );
+  const fullWidthSetting = useBooleanQuerySetting("excfg-fw", false);
 
   const tableSettings = useMemo<ExampleTableSettings>(
     () => ({
@@ -572,9 +574,13 @@ export default function ExamplePage() {
     setActiveColumnDrag,
   ]);
 
+  const handleFullWidthToggle = useCallback(() => {
+    fullWidthSetting.setValue(!fullWidthSetting.value);
+  }, [fullWidthSetting]);
+
   return (
     <div className="min-h-screen bg-background p-6 lg:p-8">
-      <div className="mx-auto max-w-7xl">
+      <div className={fullWidthSetting.value ? "w-full" : "mx-auto max-w-7xl"}>
         {/* Header with Theme Toggle */}
         <div className="mb-8 flex items-center justify-between">
           <div>
@@ -587,7 +593,7 @@ export default function ExamplePage() {
           </div>
           <div className="flex items-center gap-4">
             {/* Navigation */}
-            <div className="mt-8 flex justify-center gap-4">
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
               <a
                 className="inline-flex items-center rounded-lg bg-primary px-6 py-3 font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                 href="/docs"
@@ -600,6 +606,26 @@ export default function ExamplePage() {
               >
                 🏠 Back Home
               </a>
+              <Button
+                aria-label={
+                  fullWidthSetting.value
+                    ? "Use constrained width layout"
+                    : "Use full width layout"
+                }
+                aria-pressed={fullWidthSetting.value}
+                className="shrink-0"
+                onClick={handleFullWidthToggle}
+                size="icon"
+                title={
+                  fullWidthSetting.value
+                    ? "Constrain width (like shadcn docs)"
+                    : "Full width (test table in full width)"
+                }
+                type="button"
+                variant="outline"
+              >
+                <GalleryHorizontal aria-hidden className="size-4" />
+              </Button>
               <ThemeToggle variant="switch" />
             </div>
           </div>

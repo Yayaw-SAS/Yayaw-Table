@@ -650,7 +650,21 @@ function ModernDataTable<
           data-state={row.getIsSelected() ? "selected" : ""}
           key={row.id}
         >
-          <TableCell className="flex w-(--radix-checkbox-size) min-w-(--radix-checkbox-size) justify-center px-2 align-middle [&:has([role=checkbox])]:!pr-2">
+          <TableCell
+            className="flex justify-center px-2 align-middle [&:has([role=checkbox])]:pr-2!"
+            style={{
+              ...(typeof (visibleCells[0].column.columnDef as { maxSize?: number })
+                .maxSize === "number"
+                ? {
+                    maxWidth: (visibleCells[0].column.columnDef as {
+                      maxSize: number;
+                    }).maxSize,
+                  }
+                : {}),
+              minWidth: visibleCells[0].column.getSize(),
+              width: visibleCells[0].column.getSize(),
+            }}
+          >
             <GroupRowSelectionCell row={row} table={table} />
           </TableCell>
           <TableCell
@@ -699,20 +713,35 @@ function ModernDataTable<
         data-state={row.getIsSelected() ? "selected" : ""}
         key={row.id}
       >
-        {visibleCells.map((cell) => (
-          <TableCell
-            className={cn(
-              cell.column.id === "select" &&
-                "flex w-(--radix-checkbox-size) min-w-(--radix-checkbox-size) justify-center px-2 [&:has([role=checkbox])]:!pr-2",
-              cell.column.id === "actions" &&
-                "flex justify-center sticky right-0 z-10 w-(--radix-checkbox-size) min-w-(--radix-checkbox-size) bg-card px-2 shadow-[-1px_0_0_0_hsl(var(--border))] group-hover:bg-muted/50 group-data-[state=selected]:bg-muted/50",
-              isNumberColumn(cell.column.columnDef) && "text-right"
-            )}
-            key={cell.id}
-          >
-            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-          </TableCell>
-        ))}
+        {visibleCells.map((cell) => {
+          const isSizeFixedColumn =
+            cell.column.id === "select" || cell.column.id === "actions";
+          const def = cell.column.columnDef as { maxSize?: number };
+          const sizeStyle = isSizeFixedColumn
+            ? {
+                ...(typeof def.maxSize === "number"
+                  ? { maxWidth: def.maxSize }
+                  : {}),
+                minWidth: cell.column.getSize(),
+                width: cell.column.getSize(),
+              }
+            : undefined;
+          return (
+            <TableCell
+              className={cn(
+                cell.column.id === "select" &&
+                  "flex justify-center px-2 [&:has([role=checkbox])]:pr-2!",
+                cell.column.id === "actions" &&
+                  "flex justify-center sticky right-0 z-10 bg-card px-2 shadow-[-1px_0_0_0_hsl(var(--border))] group-hover:bg-muted/50 group-data-[state=selected]:bg-muted/50",
+                isNumberColumn(cell.column.columnDef) && "text-right"
+              )}
+              key={cell.id}
+              style={sizeStyle}
+            >
+              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+            </TableCell>
+          );
+        })}
       </TableRow>
     );
 
@@ -866,20 +895,35 @@ function ModernDataTable<
               {headerGroup.headers.map((header) => {
                 const _isFixedPosition =
                   header.id === "select" || header.id === "actions";
+                const isSizeFixedColumn =
+                  header.id === "select" || header.id === "actions";
+                const headerDef = header.column.columnDef as {
+                  maxSize?: number;
+                };
+                const sizeStyle = isSizeFixedColumn
+                  ? {
+                      ...(typeof headerDef.maxSize === "number"
+                        ? { maxWidth: headerDef.maxSize }
+                        : {}),
+                      minWidth: header.column.getSize(),
+                      width: header.column.getSize(),
+                    }
+                  : undefined;
                 return (
                   <SortableHeader
                     aria-label={header.id === "actions" ? "Actions" : undefined}
                     className={cn(
                       "relative whitespace-nowrap",
                       header.id === "select" &&
-                        "select-column w-(--radix-checkbox-size) min-w-(--radix-checkbox-size) px-2 text-center [&:has([role=checkbox])]:!pr-2",
+                        "select-column px-2 text-center [&:has([role=checkbox])]:pr-2!",
                       header.id === "actions" &&
-                        "actions-column sticky right-0 z-20 w-(--radix-checkbox-size) min-w-(--radix-checkbox-size) px-2 text-center shadow-[-1px_0_0_0_hsl(var(--border))]",
+                        "actions-column sticky right-0 z-20 px-2 text-center shadow-[-1px_0_0_0_hsl(var(--border))]",
                       isNumberColumn(header.column.columnDef) && "text-right"
                     )}
                     column={header.column as never}
                     id={header.id}
                     key={header.id}
+                    style={sizeStyle}
                   >
                     {!header.isPlaceholder &&
                       (header.id === "select" ? (

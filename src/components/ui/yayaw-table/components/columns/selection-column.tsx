@@ -185,5 +185,7 @@ export function createSelectionColumn<TData>(
       fixedPosition: "start",
       isSelectionColumn: true,
     },
+    size: 48,
+    maxSize: 48,
   };
 }
