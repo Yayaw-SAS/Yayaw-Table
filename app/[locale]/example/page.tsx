@@ -19,8 +19,12 @@ import { DataTable } from "@/src/components/ui/yayaw-table/components/data-table
 import { useBulkEdit } from "@/src/components/ui/yayaw-table/hooks/use-bulk-edit";
 import type { AppLocale } from "@/src/i18n/routing";
 import { CustomDescription, CustomTitle } from "./components";
+import {
+  createProductsLocalActions,
+  type ProductsLocalActions,
+} from "./lib/products-local-actions";
 import { getFormConfig } from "./setup/form-config";
-import { getTableActions, getTableConfig } from "./setup/table-config";
+import { getTableConfig } from "./setup/table-config";
 
 const queryClient = new QueryClient();
 
@@ -190,10 +194,12 @@ function SettingsGroup({
 }
 
 function ExampleSettingsPanel({
+  onResetData,
   onResetSettings,
   onSettingChange,
   tableSettings,
 }: {
+  onResetData: () => void;
   onResetSettings: () => void;
   onSettingChange: (key: TableSettingKey, value: boolean) => void;
   tableSettings: ExampleTableSettings;
@@ -211,14 +217,24 @@ function ExampleSettingsPanel({
             {t("settingsDescription")}
           </p>
         </div>
-        <Button
-          onClick={onResetSettings}
-          size="sm"
-          type="button"
-          variant="outline"
-        >
-          {t("resetSettings")}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            onClick={onResetSettings}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            {t("resetSettings")}
+          </Button>
+          <Button
+            onClick={onResetData}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            {t("resetData")}
+          </Button>
+        </div>
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
@@ -240,34 +256,36 @@ function ExampleSettingsPanel({
 }
 
 function BulkActionsSection({
+  tableActions,
   tableSettings,
 }: {
+  tableActions: ProductsLocalActions;
   tableSettings: ExampleTableSettings;
 }) {
   const t = useTranslations("Example");
   const locale = useLocale() as AppLocale;
-  const actions = getTableActions("products") as
-    | {
-        bulkDelete?: (
-          ids: string[]
-        ) => Promise<{ success: boolean; data?: unknown; error?: string }>;
-        bulkCopy?: (
-          ids: string[]
-        ) => Promise<{ success: boolean; data?: string; error?: string }>;
+
+  const getLocalTableActions = useCallback(
+    (tableType: string) => {
+      if (tableType !== "products") {
+        return;
       }
-    | undefined;
+      return tableActions;
+    },
+    [tableActions]
+  );
 
   const handleBulkDelete = async (
     rows: Array<{ original: { id?: unknown } }>
   ) => {
-    if (!actions?.bulkDelete) {
+    if (!tableActions.bulkDelete) {
       toast.error(t("toasts.deleteUnavailable"));
       return;
     }
 
     try {
       const ids = rows.map((row) => String(row.original.id ?? ""));
-      const result = await actions.bulkDelete(ids);
+      const result = await tableActions.bulkDelete(ids);
 
       if (result.success) {
         toast.success(t("toasts.deleteSuccess", { count: rows.length }));
@@ -282,14 +300,14 @@ function BulkActionsSection({
   const handleBulkCopy = async (
     rows: Array<{ original: { id?: unknown } }>
   ) => {
-    if (!actions?.bulkCopy) {
+    if (!tableActions.bulkCopy) {
       toast.error(t("toasts.copyUnavailable"));
       return;
     }
 
     try {
       const ids = rows.map((row) => String(row.original.id ?? ""));
-      const result = await actions.bulkCopy(ids);
+      const result = await tableActions.bulkCopy(ids);
 
       if (result.success && result.data) {
         if (navigator.clipboard) {
@@ -359,7 +377,7 @@ function BulkActionsSection({
       enableAdvancedFilters={true}
       enableToolbar={true}
       getFormConfig={getFormConfigWithLocale}
-      getTableActions={getTableActions}
+      getTableActions={getLocalTableActions}
       getTableConfig={getTableConfigWithOverrides}
       loadingOverlay={
         <div className="flex items-center justify-center p-8 text-muted-foreground">
@@ -383,6 +401,7 @@ export default function ExamplePage() {
   const t = useTranslations("Example");
   const setColumnDragEnabled = useSetAtom(columnDragEnabledAtom("products"));
   const setActiveColumnDrag = useSetAtom(activeColumnDragAtom("products"));
+  const localTableActions = useMemo(() => createProductsLocalActions(), []);
 
   const enableRowSelectionSetting = useBooleanQuerySetting(
     "excfg-rs",
@@ -486,6 +505,23 @@ export default function ExamplePage() {
       settingControllers[key].resetValue();
     }
   }, [settingControllers]);
+
+  const handleResetData = useCallback(async () => {
+    const result = await localTableActions.resetData();
+    if (!result.success) {
+      toast.error(result.error || t("toasts.resetDataError"));
+      return;
+    }
+
+    try {
+      await queryClient.invalidateQueries({
+        queryKey: ["tableData", "products"],
+      });
+      toast.success(t("toasts.resetDataSuccess"));
+    } catch {
+      toast.error(t("toasts.resetDataError"));
+    }
+  }, [localTableActions, t]);
 
   const [, setProductsSearchParam] = useQueryState("products-q");
   const [, setProductsFiltersParam] = useQueryState("products-filters");
@@ -611,6 +647,7 @@ export default function ExamplePage() {
           </div>
 
           <ExampleSettingsPanel
+            onResetData={handleResetData}
             onResetSettings={resetTableSettings}
             onSettingChange={setTableSetting}
             tableSettings={tableSettings}
@@ -620,7 +657,10 @@ export default function ExamplePage() {
           <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
             <div className="p-6">
               <QueryClientProvider client={queryClient}>
-                <BulkActionsSection tableSettings={tableSettings} />
+                <BulkActionsSection
+                  tableActions={localTableActions}
+                  tableSettings={tableSettings}
+                />
               </QueryClientProvider>
             </div>
           </div>
@@ -686,8 +726,8 @@ const getTableConfig = (tableType: string) => {
   }}
 />
 
-// ✅ Server-side API with pagination, filtering, and sorting!
-// 🎨 Try switching themes with the toggle in the top-right!`}
+// Local data API with pagination, filtering, and sorting.
+// Edits persist in localStorage and can be reset from the settings panel.`}
               </pre>
             </div>
           </div>

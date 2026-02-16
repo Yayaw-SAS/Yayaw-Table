@@ -118,6 +118,7 @@
     "coreFeatures": "Core features",
     "exportToolbar": "Export and toolbar",
     "resetSettings": "Reset settings",
+    "resetData": "Reset example data",
     "configurationUsed": "Configuration used",
     "fullWidthEnable": "Use full width layout",
     "fullWidthDisable": "Use constrained width layout",
@@ -168,7 +169,9 @@
       "deleteSuccess": "Deleted {count} products successfully.",
       "deleteError": "Failed to delete products",
       "copySuccess": "Copied {count} products to clipboard.",
-      "copyError": "Failed to copy products to clipboard"
+      "copyError": "Failed to copy products to clipboard",
+      "resetDataSuccess": "Example data has been reset.",
+      "resetDataError": "Failed to reset example data"
     }
   }
 }

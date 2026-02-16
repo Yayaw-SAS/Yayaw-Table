@@ -118,6 +118,7 @@
     "coreFeatures": "Fonctionnalités cœur",
     "exportToolbar": "Export et toolbar",
     "resetSettings": "Réinitialiser",
+    "resetData": "Réinitialiser les données de l'exemple",
     "configurationUsed": "Configuration utilisée",
     "fullWidthEnable": "Activer le mode pleine largeur",
     "fullWidthDisable": "Revenir à une largeur contrainte",
@@ -168,7 +169,9 @@
       "deleteSuccess": "{count} produits supprimés avec succès.",
       "deleteError": "Échec de la suppression des produits",
       "copySuccess": "{count} produits copiés dans le presse-papiers.",
-      "copyError": "Échec de la copie des produits dans le presse-papiers"
+      "copyError": "Échec de la copie des produits dans le presse-papiers",
+      "resetDataSuccess": "Les données de l'exemple ont été réinitialisées.",
+      "resetDataError": "Échec de la réinitialisation des données de l'exemple"
     }
   }
 }
