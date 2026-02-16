@@ -279,21 +279,44 @@ function BulkActionsSection({
     rows: Array<{ original: { id?: unknown } }>
   ) => {
     if (!tableActions.bulkDelete) {
-      toast.error(t("toasts.deleteUnavailable"));
-      return;
+      return {
+        clearSelection: false,
+        closeMenu: false,
+        message: t("toasts.deleteUnavailable"),
+        success: false,
+      };
     }
 
     try {
       const ids = rows.map((row) => String(row.original.id ?? ""));
       const result = await tableActions.bulkDelete(ids);
 
-      if (result.success) {
-        toast.success(t("toasts.deleteSuccess", { count: rows.length }));
-      } else {
-        toast.error(result.error || t("toasts.deleteError"));
+      if (!result.success) {
+        return {
+          clearSelection: false,
+          closeMenu: false,
+          message: result.error || t("toasts.deleteError"),
+          success: false,
+        };
       }
+
+      await queryClient.invalidateQueries({
+        queryKey: ["tableData", "products"],
+      });
+
+      return {
+        clearSelection: true,
+        closeMenu: true,
+        message: t("toasts.deleteSuccess", { count: rows.length }),
+        success: true,
+      };
     } catch {
-      toast.error(t("toasts.deleteError"));
+      return {
+        clearSelection: false,
+        closeMenu: false,
+        message: t("toasts.deleteError"),
+        success: false,
+      };
     }
   };
 
@@ -301,8 +324,12 @@ function BulkActionsSection({
     rows: Array<{ original: { id?: unknown } }>
   ) => {
     if (!tableActions.bulkCopy) {
-      toast.error(t("toasts.copyUnavailable"));
-      return;
+      return {
+        clearSelection: false,
+        closeMenu: false,
+        message: t("toasts.copyUnavailable"),
+        success: false,
+      };
     }
 
     try {
@@ -312,7 +339,6 @@ function BulkActionsSection({
       if (result.success && result.data) {
         if (navigator.clipboard) {
           await navigator.clipboard.writeText(result.data);
-          toast.success(t("toasts.copySuccess", { count: rows.length }));
         } else {
           const textArea = document.createElement("textarea");
           textArea.value = result.data;
@@ -320,13 +346,29 @@ function BulkActionsSection({
           textArea.select();
           document.execCommand("copy");
           document.body.removeChild(textArea);
-          toast.success(t("toasts.copySuccess", { count: rows.length }));
         }
-      } else {
-        toast.error(result.error || t("toasts.copyError"));
+
+        return {
+          clearSelection: false,
+          closeMenu: true,
+          message: t("toasts.copySuccess", { count: rows.length }),
+          success: true,
+        };
       }
+
+      return {
+        clearSelection: false,
+        closeMenu: false,
+        message: result.error || t("toasts.copyError"),
+        success: false,
+      };
     } catch {
-      toast.error(t("toasts.copyError"));
+      return {
+        clearSelection: false,
+        closeMenu: false,
+        message: t("toasts.copyError"),
+        success: false,
+      };
     }
   };
 
