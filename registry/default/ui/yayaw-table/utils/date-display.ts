@@ -1,7 +1,7 @@
 import { format as formatDateFns } from "date-fns";
 import {
-  type DateDisplayPreset,
   DEFAULT_DATE_DISPLAY_PRESET,
+  type DateDisplayPreset,
 } from "../types/date-types";
 
 interface DateDisplayConfig {
@@ -118,7 +118,7 @@ const isDateWithSet = (value: unknown): value is { set: unknown } => {
     value &&
       typeof value === "object" &&
       "set" in value &&
-      Object.hasOwn(value, "set")
+      Object.prototype.hasOwnProperty.call(value, "set")
   );
 };
 

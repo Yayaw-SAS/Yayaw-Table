@@ -3,23 +3,23 @@
 import type { Cell } from "@tanstack/react-table";
 import type { KeyboardEvent, ReactNode } from "react";
 import { memo, useCallback, useMemo } from "react";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
+import type { AnyFieldDefinition } from "../forms/types";
 import {
+  parseInlineEditValue,
+  resolveInlineEditor,
+  resolveInlineEditOptions,
+  toInlineEditDraftValue,
   type InlineEditColumnRuntimeConfig,
   type InlineEditCommitResult,
   type InlineEditValidationSchema,
-  parseInlineEditValue,
-  resolveInlineEditOptions,
-  resolveInlineEditor,
-  toInlineEditDraftValue,
   useInlineEditRuntime,
   validateInlineEditValue,
 } from "../../hooks/use-inline-edit-runtime";
 import { useTranslations } from "../../providers/table-provider";
-import type { AnyFieldDefinition } from "../forms/types";
 
 interface InlineEditableCellProps<TData extends Record<string, unknown>> {
   cell: Cell<TData, unknown>;
@@ -74,7 +74,8 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
       if (!parsedResult.success) {
         return {
           success: false,
-          errorMessage: parsedResult.errorMessage ?? t("inline.invalid_value"),
+          errorMessage:
+            parsedResult.errorMessage ?? t("inline.invalid_value"),
         };
       }
 
@@ -177,9 +178,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
     }
 
     const currentValue = String(editorValue);
-    if (
-      resolvedOptions.some((option) => String(option.value) === currentValue)
-    ) {
+    if (resolvedOptions.some((option) => String(option.value) === currentValue)) {
       return resolvedOptions;
     }
 
@@ -224,7 +223,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
             }}
           />
           <span className="text-muted-foreground text-xs">
-            {editorValue ? t("common.true") : t("common.false")}
+            {Boolean(editorValue) ? t("common.true") : t("common.false")}
           </span>
         </div>
       );
@@ -234,7 +233,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
       return (
         <select
           autoFocus
-          className="h-8 w-full rounded-md border border-input bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="border-input focus-visible:border-ring focus-visible:ring-ring/50 h-8 w-full rounded-md border bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:ring-3"
           onBlur={handleEditorBlur}
           onChange={(event) => {
             updateDraftValue(event.target.value);
@@ -243,7 +242,9 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
           value={String(editorValue)}
         >
           {selectOptions.length === 0 && (
-            <option value="">{t("inline.select_no_options")}</option>
+            <option value="">
+              {t("inline.select_no_options")}
+            </option>
           )}
           {selectOptions.map((option) => (
             <option key={String(option.value)} value={String(option.value)}>
@@ -284,22 +285,22 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
         <button
           className={cn(
             "relative min-h-8 w-full cursor-text rounded-sm px-0.5 py-1 text-left outline-none",
-            "focus-visible:ring-2 focus-visible:ring-primary/30"
+            "focus-visible:ring-primary/30 focus-visible:ring-2"
           )}
           onDoubleClick={(event) => {
             event.stopPropagation();
             startEditing();
           }}
           onKeyDown={handleDisplayKeyDown}
-          title={t("inline.edit_hint")}
           type="button"
+          title={t("inline.edit_hint")}
         >
           {displayValue}
         </button>
       )}
 
       {isSaving && (
-        <span className="absolute top-0.5 right-0.5 text-[10px] text-muted-foreground">
+        <span className="absolute top-0.5 right-0.5 text-muted-foreground text-[10px]">
           {t("inline.saving")}
         </span>
       )}

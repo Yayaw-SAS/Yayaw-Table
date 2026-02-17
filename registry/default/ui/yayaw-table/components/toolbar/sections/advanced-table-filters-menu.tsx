@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { StackMenuContent, StackMenuView } from "../../../ui-custom/stack-menu";
 import { useTranslations } from "../../../providers/table-provider";
 import type {
   AdvancedFiltersState,
@@ -18,7 +19,6 @@ import type {
   ColumnsFilterConfig,
   FilterActions,
 } from "../../../types/filter-types";
-import { StackMenuContent, StackMenuView } from "../../../ui-custom/stack-menu";
 import { CompactFilterPanel } from "../../filters/advanced-filter-panel";
 import { translateWithFallback } from "../../filters/i18n-utils";
 

@@ -20,10 +20,14 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleContent,
+} from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import {
   Popover,
@@ -32,7 +36,6 @@ import {
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { cn } from "@/lib/utils";
 import { useTranslations } from "../../providers/table-provider";
 
 import type {
