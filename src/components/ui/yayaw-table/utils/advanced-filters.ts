@@ -173,10 +173,10 @@ export const clientFilterFunctions = {
     }
   },
 
-  option: (
+  select: (
     value: unknown,
     filterValue: string | string[],
-    operator: FilterOperators["option"]
+    operator: FilterOperators["select"]
   ): boolean => {
     const strValue = String(value || "");
 
@@ -206,10 +206,10 @@ export const clientFilterFunctions = {
     }
   },
 
-  multiOption: (
+  multiSelect: (
     value: unknown,
     filterValue: string[],
-    operator: FilterOperators["multiOption"]
+    operator: FilterOperators["multiSelect"]
   ): boolean => {
     const arrayValue = Array.isArray(value)
       ? value.map(String)
@@ -269,17 +269,17 @@ export function applyFilter<TData = Record<string, unknown>>(
         values as Date | [Date, Date],
         operator as FilterOperators["date"]
       );
-    case "option":
-      return clientFilterFunctions.option(
+    case "select":
+      return clientFilterFunctions.select(
         value,
         values as string | string[],
-        operator as FilterOperators["option"]
+        operator as FilterOperators["select"]
       );
-    case "multiOption":
-      return clientFilterFunctions.multiOption(
+    case "multiSelect":
+      return clientFilterFunctions.multiSelect(
         value,
         values as string[],
-        operator as FilterOperators["multiOption"]
+        operator as FilterOperators["multiSelect"]
       );
     default:
       return true;
@@ -321,7 +321,7 @@ export function getFacetedUniqueValues<TData = Record<string, unknown>>(
   for (const row of data) {
     const value = accessor(row);
     if (Array.isArray(value)) {
-      // For multi-option columns
+      // For multi-select columns
       for (const v of value) {
         const strValue = String(v || "");
         counts.set(strValue, (counts.get(strValue) || 0) + 1);
@@ -432,9 +432,9 @@ function formatDateValue(
 }
 
 /**
- * Format option values for display
+ * Format select values for display
  */
-function formatOptionValue(values: unknown, options?: ColumnOption[]): string {
+function formatSelectValue(values: unknown, options?: ColumnOption[]): string {
   if (Array.isArray(values)) {
     return values
       .map((v) => options?.find((opt) => opt.value === v)?.label || v)
@@ -462,9 +462,9 @@ export function formatFilterValueForDisplay(
       return formatNumberValue(operator, values);
     case "date":
       return formatDateValue(operator, values, dateOptions);
-    case "option":
-    case "multiOption":
-      return formatOptionValue(values, options);
+    case "select":
+    case "multiSelect":
+      return formatSelectValue(values, options);
     default:
       return String(values || "");
   }

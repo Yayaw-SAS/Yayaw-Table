@@ -54,15 +54,20 @@ export interface DataTableColumnDef<
    */
   tagColorMap?: Record<string, string>;
 
+  /**
+   * Visual rendering variant for option-like columns.
+   */
+  displayVariant?: "default" | "tag";
+
   // Column type for specialized rendering and filtering
   type?:
     | "boolean"
     | "code"
     | "custom"
     | "date"
+    | "multiSelect"
     | "number"
     | "select"
-    | "tag"
     | "text";
 }
 

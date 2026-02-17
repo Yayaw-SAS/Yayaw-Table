@@ -130,8 +130,8 @@ export interface ColumnDefinition {
   id: string;
 
   /**
-   * Type of column (text, number, date, boolean, code, tag, etc.)
-   * Used to determine how to render and filter the column
+   * Type of column (text, number, date, boolean, code, select, etc.)
+   * Used to determine how to render and filter the column.
    */
   type?:
     | "actions"
@@ -140,9 +140,16 @@ export interface ColumnDefinition {
     | "custom"
     | "date"
     | "dynamicType"
+    | "multiSelect"
     | "number"
-    | "tag"
+    | "select"
     | "text";
+
+  /**
+   * Visual rendering variant for option-like columns.
+   * Use "tag" to render a pill/badge style while keeping type as select/multiSelect.
+   */
+  displayVariant?: "default" | "tag";
 
   /**
    * Date display preset for date columns

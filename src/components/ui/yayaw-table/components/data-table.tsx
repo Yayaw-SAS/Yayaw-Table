@@ -114,7 +114,7 @@ function DataTableContent({
   /** Column type mapping for advanced filters */
   columnTypeMapping?: Record<
     string,
-    "text" | "number" | "date" | "option" | "multiOption"
+    "text" | "number" | "date" | "select" | "multiSelect"
   >;
 }) {
   // Utiliser directement le tableType comme tableId

@@ -104,8 +104,8 @@ export interface DataTableTranslations {
       text?: string;
       number?: string;
       date?: string;
-      option?: string;
-      multiOption?: string;
+      select?: string;
+      multiSelect?: string;
     };
     date_shortcuts?: {
       today?: string;
@@ -184,7 +184,7 @@ export interface DataTableTranslations {
         text?: string;
         number?: string;
         date?: string;
-        option?: string;
+        select?: string;
       };
     };
     presets?: {

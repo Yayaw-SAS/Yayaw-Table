@@ -5,8 +5,8 @@
 import {
   Asterisk,
   CalendarDays,
-  CircleDot,
   CheckSquare,
+  CircleDot,
   Hash,
   List,
   type LucideIcon,
@@ -21,31 +21,27 @@ export const COLUMN_TYPE_ICONS: Record<string, LucideIcon> = {
   string: Asterisk,
   number: Hash,
   boolean: ToggleRight,
-  tag: Tag,
   date: CalendarDays,
   code: SquareCode,
   select: CheckSquare,
-  option: CheckSquare,
-  multioption: List,
+  multiselect: List,
 };
 
 const STATUS_COLUMN_PATTERN = /(status|state)/;
 const CATEGORY_COLUMN_PATTERN = /(categor|type|tag)/;
-const BOOLEAN_OPTION_COLUMN_PATTERN =
+const BOOLEAN_SELECT_COLUMN_PATTERN =
   /(^is[a-z0-9])|(active|enabled|disabled|visible|verified|published|archived)/;
 
 /**
- * Resolve a semantic icon for option-like columns based on the column id.
+ * Resolve a semantic icon for select-like columns based on the column id.
  */
-const getSemanticOptionIcon = (
+const getSemanticSelectIcon = (
   normalizedType: string,
   normalizedColumnId: string
 ): LucideIcon | undefined => {
-  const isOptionLikeType =
-    normalizedType === "option" ||
-    normalizedType === "select" ||
-    normalizedType === "multioption";
-  if (!isOptionLikeType || !normalizedColumnId) {
+  const isSelectLikeType =
+    normalizedType === "select" || normalizedType === "multiselect";
+  if (!(isSelectLikeType && normalizedColumnId)) {
     return;
   }
 
@@ -55,11 +51,11 @@ const getSemanticOptionIcon = (
   if (CATEGORY_COLUMN_PATTERN.test(normalizedColumnId)) {
     return Tag;
   }
-  if (BOOLEAN_OPTION_COLUMN_PATTERN.test(normalizedColumnId)) {
+  if (BOOLEAN_SELECT_COLUMN_PATTERN.test(normalizedColumnId)) {
     return ToggleRight;
   }
 
-  return normalizedType === "multioption" ? List : CheckSquare;
+  return normalizedType === "multiselect" ? List : CheckSquare;
 };
 
 /**
@@ -67,17 +63,22 @@ const getSemanticOptionIcon = (
  */
 export const getColumnTypeIcon = (
   columnType: string,
-  columnId?: string
+  columnId?: string,
+  displayVariant?: "default" | "tag"
 ): LucideIcon => {
+  if (displayVariant === "tag") {
+    return Tag;
+  }
+
   const normalizedType = columnType.toLowerCase();
   const normalizedColumnId = columnId?.toLowerCase() ?? "";
 
-  const semanticOptionIcon = getSemanticOptionIcon(
+  const semanticSelectIcon = getSemanticSelectIcon(
     normalizedType,
     normalizedColumnId
   );
-  if (semanticOptionIcon) {
-    return semanticOptionIcon;
+  if (semanticSelectIcon) {
+    return semanticSelectIcon;
   }
 
   return COLUMN_TYPE_ICONS[normalizedType] || Text;
@@ -89,12 +90,14 @@ export const getColumnTypeIcon = (
 export const ColumnIcon = ({
   columnType,
   columnId,
+  displayVariant,
   className = "h-4 w-4",
 }: {
   columnType: string;
   columnId?: string;
+  displayVariant?: "default" | "tag";
   className?: string;
 }) => {
-  const IconComponent = getColumnTypeIcon(columnType, columnId);
+  const IconComponent = getColumnTypeIcon(columnType, columnId, displayVariant);
   return <IconComponent className={className} />;
 };

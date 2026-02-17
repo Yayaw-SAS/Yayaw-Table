@@ -16,12 +16,12 @@ import {
   createDateColumn,
   createJsonColumn,
   createSelectionColumn,
-  createTagColumn,
   createTextColumn,
 } from "..";
 import { createDynamicTypeColumn } from "../dynamic-type-column";
 import { createNumberColumn } from "../number-column";
 import { createStringColumn } from "../string-column";
+import { createTagColumn } from "../tag-column";
 
 export interface UseColumnsOptions<
   _TData extends Record<string, unknown> = Record<string, unknown>,

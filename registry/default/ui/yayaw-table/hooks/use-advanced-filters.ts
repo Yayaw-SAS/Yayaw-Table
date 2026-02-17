@@ -127,8 +127,8 @@ export function useAdvancedFilters<TData = Record<string, unknown>>(
       accessor: (row: TData) => unknown
     ) => {
       switch (config.type) {
-        case "option":
-        case "multiOption": {
+        case "select":
+        case "multiSelect": {
           const uniqueValues = getFacetedUniqueValues(data, accessor);
           return { uniqueValues };
         }
@@ -345,7 +345,7 @@ export function useColumnFilterConfig() {
     []
   );
 
-  const createOptionColumn = useCallback(
+  const createSelectColumn = useCallback(
     (
       _columnId: string,
       optionsList: Array<{
@@ -360,17 +360,17 @@ export function useColumnFilterConfig() {
         operators?: unknown;
       }> = {}
     ) => ({
-      type: "option" as const,
+      type: "select" as const,
       filterable: true,
       faceted: true,
       options: optionsList,
-      placeholder: "Select option...",
+      placeholder: "Select value...",
       ...options,
     }),
     []
   );
 
-  const createMultiOptionColumn = useCallback(
+  const createMultiSelectColumn = useCallback(
     (
       _columnId: string,
       optionsList: Array<{
@@ -385,11 +385,11 @@ export function useColumnFilterConfig() {
         operators?: unknown;
       }> = {}
     ) => ({
-      type: "multiOption" as const,
+      type: "multiSelect" as const,
       filterable: true,
       faceted: true,
       options: optionsList,
-      placeholder: "Select options...",
+      placeholder: "Select values...",
       ...options,
     }),
     []
@@ -399,8 +399,8 @@ export function useColumnFilterConfig() {
     createTextColumn,
     createNumberColumn,
     createDateColumn,
-    createOptionColumn,
-    createMultiOptionColumn,
+    createSelectColumn,
+    createMultiSelectColumn,
   };
 }
 
@@ -415,7 +415,7 @@ export function useQuickFilterSetup<TData = Record<string, unknown>>(
     createTextColumn,
     createNumberColumn: _createNumberColumn,
     createDateColumn: _createDateColumn,
-    createOptionColumn: _createOptionColumn,
+    createSelectColumn: _createSelectColumn,
   } = useColumnFilterConfig();
 
   // Basic text search across multiple columns

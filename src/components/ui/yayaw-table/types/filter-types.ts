@@ -13,8 +13,8 @@ export type ColumnDataType =
   | "text"
   | "number"
   | "date"
-  | "option"
-  | "multiOption";
+  | "select"
+  | "multiSelect";
 
 /**
  * Filter operators mapped by data type
@@ -46,8 +46,8 @@ export interface FilterOperators {
     | "notEquals"
     | "isEmpty"
     | "isNotEmpty";
-  option: "is" | "isNot" | "isAnyOf" | "isNoneOf" | "isEmpty" | "isNotEmpty";
-  multiOption:
+  select: "is" | "isNot" | "isAnyOf" | "isNoneOf" | "isEmpty" | "isNotEmpty";
+  multiSelect:
     | "contains"
     | "containsAll"
     | "containsNone"
@@ -65,9 +65,9 @@ export type FilterValues<TType extends ColumnDataType = ColumnDataType> =
       ? number | [number, number]
       : TType extends "date"
         ? Date | [Date, Date]
-        : TType extends "option"
+        : TType extends "select"
           ? string | string[]
-          : TType extends "multiOption"
+          : TType extends "multiSelect"
             ? string[]
             : unknown;
 
@@ -103,7 +103,7 @@ export interface AdvancedFilterModel<
 export type AdvancedFiltersState = AdvancedFilterModel[];
 
 /**
- * Column option for option-based filters
+ * Column option for select-based filters
  */
 export interface ColumnOption {
   /** Display label */
@@ -130,7 +130,7 @@ export interface ColumnFilterConfig<
   type: TType;
   /** Available operators (defaults to all for the type) */
   operators?: FilterOperators[TType][];
-  /** Options for option/multiOption types */
+  /** Options for select/multiSelect types */
   options?: ColumnOption[];
   /** Minimum value for number types */
   min?: number;
@@ -160,7 +160,7 @@ export interface ColumnFilterConfig<
  * Faceted values for a column
  */
 export interface FacetedValues {
-  /** For option-based columns: Map of option value to count */
+  /** For select-based columns: Map of option value to count */
   uniqueValues?: Map<string, number>;
   /** For number columns: [min, max] range */
   range?: [number, number];
@@ -280,7 +280,7 @@ export const FILTER_OPERATORS_LABELS: Record<
     isEmpty: "Is empty",
     isNotEmpty: "Is not empty",
   },
-  option: {
+  select: {
     is: "Is",
     isNot: "Is not",
     isAnyOf: "Is any of",
@@ -288,7 +288,7 @@ export const FILTER_OPERATORS_LABELS: Record<
     isEmpty: "Is empty",
     isNotEmpty: "Is not empty",
   },
-  multiOption: {
+  multiSelect: {
     contains: "Contains",
     containsAll: "Contains all",
     containsNone: "Contains none",
@@ -330,7 +330,7 @@ export const DEFAULT_OPERATORS = {
     "isEmpty",
     "isNotEmpty",
   ] as const,
-  option: [
+  select: [
     "is",
     "isNot",
     "isAnyOf",
@@ -338,7 +338,7 @@ export const DEFAULT_OPERATORS = {
     "isEmpty",
     "isNotEmpty",
   ] as const,
-  multiOption: [
+  multiSelect: [
     "contains",
     "containsAll",
     "containsNone",

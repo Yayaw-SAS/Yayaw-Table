@@ -48,15 +48,15 @@ export {
   FilterPerformanceIndicator,
   FilterSuccessState,
 } from "./modern-filter-states";
-export type { MultiOptionFilterProps } from "./multi-option-filter";
+export type { MultiSelectFilterProps } from "./multi-select-filter";
 export {
-  CompactMultiOptionFilter,
-  MultiOptionFilter,
-} from "./multi-option-filter";
+  CompactMultiSelectFilter,
+  MultiSelectFilter,
+} from "./multi-select-filter";
 export type { NumberFilterProps } from "./number-filter";
 export { CompactNumberFilter, NumberFilter } from "./number-filter";
-export type { OptionFilterProps } from "./option-filter";
-export { CompactOptionFilter, OptionFilter } from "./option-filter";
+export type { SelectFilterProps } from "./select-filter";
+export { CompactSelectFilter, SelectFilter } from "./select-filter";
 // Export types
 export type { TextFilterProps } from "./text-filter";
 // Main filter components

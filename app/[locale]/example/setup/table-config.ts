@@ -18,6 +18,7 @@ interface ExtendedDataTableConfig extends DataTableConfig {
       header: string;
       enableSorting?: boolean;
       enableColumnFilter?: boolean;
+      displayVariant?: "default" | "tag";
       dateDisplayPreset?: string;
       dateFormat?: string;
       inlineEdit?:
@@ -29,6 +30,7 @@ interface ExtendedDataTableConfig extends DataTableConfig {
               | "boolean"
               | "date"
               | "json"
+              | "multiSelect"
               | "number"
               | "select"
               | "text"
@@ -172,7 +174,8 @@ export const getTableConfig = (
         },
         {
           id: "category",
-          type: "tag",
+          type: "select",
+          displayVariant: "tag",
           header: copy.headers.category,
           enableSorting: true,
           enableColumnFilter: true,
@@ -200,7 +203,8 @@ export const getTableConfig = (
         },
         {
           id: "status",
-          type: "tag",
+          type: "select",
+          displayVariant: "tag",
           header: copy.headers.status,
           enableSorting: true,
           enableColumnFilter: true,

@@ -11,7 +11,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { StackMenuContent, StackMenuView } from "../../../ui-custom/stack-menu";
 import { useTranslations } from "../../../providers/table-provider";
 import type {
   AdvancedFiltersState,
@@ -19,6 +18,7 @@ import type {
   ColumnsFilterConfig,
   FilterActions,
 } from "../../../types/filter-types";
+import { StackMenuContent, StackMenuView } from "../../../ui-custom/stack-menu";
 import { CompactFilterPanel } from "../../filters/advanced-filter-panel";
 import { translateWithFallback } from "../../filters/i18n-utils";
 
@@ -123,11 +123,11 @@ function LegacyFilterItem({
               </Button>
               <Button
                 className="h-6 px-2 text-xs"
-                onClick={() => handleConvert("option")}
+                onClick={() => handleConvert("select")}
                 size="sm"
                 variant="outline"
               >
-                {translateWithFallback(t, "filters.types.option", "Option")}
+                {translateWithFallback(t, "filters.types.select", "Select")}
               </Button>
               <Button
                 className="h-6 px-2 text-xs"

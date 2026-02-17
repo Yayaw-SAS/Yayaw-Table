@@ -188,12 +188,10 @@ function mapColumnTypeToInlineEditor(columnType?: string): InlineEditEditor {
       return "date";
     case "number":
       return "number";
-    case "option":
     case "select":
       return "select";
-    case "multioption":
+    case "multiselect":
       return "multiSelect";
-    case "tag":
     case "code":
     case "text":
       return "text";
@@ -212,7 +210,7 @@ export function resolveInlineEditor({
     return explicitEditor;
   }
 
-  if (columnType?.toLowerCase() === "multioption") {
+  if (columnType?.toLowerCase() === "multiselect") {
     return "multiSelect";
   }
 

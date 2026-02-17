@@ -4,9 +4,8 @@
  */
 import { atom } from "jotai";
 import { atomFamily } from "jotai-family";
-
-import type { TableInlineEditConfig } from "../config/helpers";
 import type { TableFormConfig } from "../config/form-config";
+import type { TableInlineEditConfig } from "../config/helpers";
 import type { DateDisplayPreset } from "../types/date-types";
 
 /**

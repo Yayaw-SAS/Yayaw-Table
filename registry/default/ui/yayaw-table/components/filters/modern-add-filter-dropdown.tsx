@@ -17,7 +17,6 @@ import {
   Zap,
 } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
-import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,12 +26,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 import { useTranslations } from "../../providers/table-provider";
 import type {
   ColumnDataType,
@@ -46,8 +41,8 @@ const typeColors = {
   text: "text-blue-600 bg-blue-50 border-blue-200",
   number: "text-emerald-600 bg-emerald-50 border-emerald-200",
   date: "text-purple-600 bg-purple-50 border-purple-200",
-  option: "text-orange-600 bg-orange-50 border-orange-200",
-  multiOption: "text-pink-600 bg-pink-50 border-pink-200",
+  select: "text-orange-600 bg-orange-50 border-orange-200",
+  multiSelect: "text-pink-600 bg-pink-50 border-pink-200",
 } as const;
 
 // Categories for organizing columns
@@ -82,9 +77,9 @@ const categories = {
     icon: Calendar,
     color: "text-purple-600",
   },
-  option: {
+  select: {
     label: "Selection fields",
-    labelKey: "filters.add_menu.categories.option",
+    labelKey: "filters.add_menu.categories.select",
     icon: Tag,
     color: "text-orange-600",
   },
@@ -216,7 +211,7 @@ export function ModernAddFilterDropdown({
         isRecent: recentColumns.includes(columnId),
         isPopular: popularColumns.includes(columnId),
         isFilterable: config.filterable !== false,
-        category: config.type === "multiOption" ? "option" : config.type,
+        category: config.type === "multiSelect" ? "select" : config.type,
       }));
   }, [columnsConfig, recentColumns, popularColumns]);
 

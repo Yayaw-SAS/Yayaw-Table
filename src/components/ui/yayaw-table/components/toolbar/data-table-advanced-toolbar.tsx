@@ -172,7 +172,7 @@ interface DataTableAdvancedToolbarProps<_TData = Record<string, unknown>> {
    */
   columnTypeMapping?: Record<
     string,
-    "text" | "number" | "date" | "option" | "multiOption"
+    "text" | "number" | "date" | "select" | "multiSelect"
   >;
 
   /**
@@ -287,7 +287,7 @@ function useAdvancedFiltersSetup(
   }[],
   columnTypeMapping: Record<
     string,
-    "text" | "number" | "date" | "option" | "multiOption"
+    "text" | "number" | "date" | "select" | "multiSelect"
   >
 ) {
   const advancedColumnsConfig = useColumnsFilterConfig(

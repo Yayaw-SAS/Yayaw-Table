@@ -105,8 +105,8 @@ const FRENCH_TABLE_TRANSLATIONS: DataTableTranslations = {
       text: "Texte",
       number: "Nombre",
       date: "Date",
-      option: "Option",
-      multiOption: "Options multiples",
+      select: "Sélection",
+      multiSelect: "Options multiples",
     },
     date_shortcuts: {
       ...defaultTableTranslations.filters.date_shortcuts,
@@ -194,7 +194,7 @@ const FRENCH_TABLE_TRANSLATIONS: DataTableTranslations = {
         text: "Champs texte",
         number: "Champs numériques",
         date: "Champs date",
-        option: "Champs de sélection",
+        select: "Champs de sélection",
       },
     },
     presets: {

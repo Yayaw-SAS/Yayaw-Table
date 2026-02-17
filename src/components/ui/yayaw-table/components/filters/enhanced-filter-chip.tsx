@@ -137,9 +137,9 @@ function formatDateValue(values: unknown, operator: string, locale?: string): st
 }
 
 /**
- * Format multi-option value for display
+ * Format multi-select value for display
  */
-function formatMultiOptionValue(values: unknown): string {
+function formatMultiSelectValue(values: unknown): string {
   if (Array.isArray(values)) {
     if (values.length === 0) {
       return "";
@@ -181,12 +181,12 @@ function formatFilterValue(
       displayValue = formatDateValue(values, operator, locale);
       break;
 
-    case "option":
+    case "select":
       displayValue = String(values);
       break;
 
-    case "multiOption":
-      displayValue = formatMultiOptionValue(values);
+    case "multiSelect":
+      displayValue = formatMultiSelectValue(values);
       break;
 
     default:

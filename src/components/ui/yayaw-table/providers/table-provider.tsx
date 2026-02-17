@@ -412,8 +412,8 @@ export const defaultTranslations: DataTableTranslations = {
       text: "Text",
       number: "Number",
       date: "Date",
-      option: "Option",
-      multiOption: "Multiple options",
+      select: "Select",
+      multiSelect: "Multiple options",
     },
     date_shortcuts: {
       today: "Today",
@@ -494,7 +494,7 @@ export const defaultTranslations: DataTableTranslations = {
         text: "Text fields",
         number: "Number fields",
         date: "Date fields",
-        option: "Selection fields",
+        select: "Selection fields",
       },
     },
     presets: {

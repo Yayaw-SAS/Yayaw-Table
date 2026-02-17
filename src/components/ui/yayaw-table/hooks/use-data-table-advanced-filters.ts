@@ -88,7 +88,7 @@ function applyNumberFilter(
   }
 }
 
-function applyOptionFilter(
+function applySelectFilter(
   value: unknown,
   filter: AdvancedFilterModel
 ): boolean {
@@ -285,9 +285,9 @@ function applyFilters<TData>(
           return applyTextFilter(value, filter);
         case "number":
           return applyNumberFilter(value, filter);
-        case "option":
-        case "multiOption":
-          return applyOptionFilter(value, filter);
+        case "select":
+        case "multiSelect":
+          return applySelectFilter(value, filter);
         case "date":
           return applyDateFilter(value, filter);
         default:
@@ -521,15 +521,15 @@ export function useDataTableAdvancedFilters<TData = Record<string, unknown>>(
               : new Date();
           operator = "equals" as FilterOperators["date"];
           break;
-        case "option":
+        case "select":
           value = String(existingLegacyFilter.value || "");
-          operator = "is" as FilterOperators["option"];
+          operator = "is" as FilterOperators["select"];
           break;
-        case "multiOption":
+        case "multiSelect":
           value = Array.isArray(existingLegacyFilter.value)
             ? (existingLegacyFilter.value as string[])
             : [];
-          operator = "contains" as FilterOperators["multiOption"];
+          operator = "contains" as FilterOperators["multiSelect"];
           break;
         default:
           // Handle unknown column types as text
@@ -603,13 +603,11 @@ const normalizeColumnDataType = (
     case "text":
     case "number":
     case "date":
-    case "option":
-    case "multiOption":
+    case "select":
+    case "multiSelect":
       return type;
     case "boolean":
-    case "select":
-    case "tag":
-      return "option";
+      return "select";
     case "string":
     case "code":
       return "text";
@@ -637,7 +635,7 @@ const resolveColumnFilterType = (
   }
 
   if (Array.isArray(column.options) && column.options.length > 0) {
-    return "option";
+    return "select";
   }
 
   return "text";
@@ -649,13 +647,14 @@ const getOperatorsByType = (
 ): FilterOperators[ColumnDataType][] => {
   const operatorMap: Record<ColumnDataType, FilterOperators[ColumnDataType][]> =
     {
-      option: [
+      select: [
         "is",
         "isAnyOf",
+        "isNoneOf",
         "isNot",
         "isEmpty",
         "isNotEmpty",
-      ] as FilterOperators["option"][],
+      ] as FilterOperators["select"][],
       text: [
         "contains",
         "equals",
@@ -685,13 +684,13 @@ const getOperatorsByType = (
         "isEmpty",
         "isNotEmpty",
       ] as FilterOperators["date"][],
-      multiOption: [
+      multiSelect: [
         "contains",
         "containsAll",
         "containsNone",
         "isEmpty",
         "isNotEmpty",
-      ] as FilterOperators["multiOption"][],
+      ] as FilterOperators["multiSelect"][],
     };
   return operatorMap[type] || [];
 };
@@ -712,7 +711,7 @@ const createColumnConfig = (
     label: column.label,
     type,
     filterable: column.canFilter !== false,
-    faceted: type === "option" || type === "multiOption",
+    faceted: type === "select" || type === "multiSelect",
     placeholder: String(column.placeholder) || `Filter by ${column.label}...`,
     ...(column.description ? { description: String(column.description) } : {}),
   };
@@ -724,11 +723,11 @@ const createColumnConfig = (
       max: Number(column.max) || 10_000,
       operators: getOperatorsByType("number"),
     },
-    option: {
+    select: {
       options: (Array.isArray(column.options)
         ? column.options
         : getOptionsForColumn(column.id, type)) as ColumnOption[],
-      operators: getOperatorsByType("option"),
+      operators: getOperatorsByType("select"),
     },
     text: {
       operators: getOperatorsByType("text"),
@@ -739,11 +738,11 @@ const createColumnConfig = (
         typeof column.dateFormat === "string" ? column.dateFormat : undefined,
       operators: getOperatorsByType("date"),
     },
-    multiOption: {
+    multiSelect: {
       options: (Array.isArray(column.options)
         ? column.options
         : getOptionsForColumn(column.id, type)) as ColumnOption[],
-      operators: getOperatorsByType("multiOption"),
+      operators: getOperatorsByType("multiSelect"),
     },
   };
 
@@ -781,12 +780,12 @@ export function useColumnsFilterConfig(
   }, [columns, typeMapping]);
 }
 
-// Helper function to get options for option-type columns
+// Helper function to get options for select-type columns
 function getOptionsForColumn(
   columnId: string,
   type: ColumnDataType
 ): ColumnOption[] | undefined {
-  if (type !== "option") {
+  if (type !== "select") {
     return;
   }
 

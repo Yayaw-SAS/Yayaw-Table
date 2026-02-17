@@ -95,9 +95,9 @@ describe("resolveInlineEditor", () => {
     assert.equal(editor, "select");
   });
 
-  it("maps multiOption columns to multiSelect editor", () => {
+  it("maps multiSelect columns to multiSelect editor", () => {
     const editor = resolveInlineEditor({
-      columnType: "multiOption",
+      columnType: "multiSelect",
       hasOptions: true,
     });
 

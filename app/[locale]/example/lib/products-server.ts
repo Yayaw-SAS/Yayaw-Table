@@ -73,7 +73,7 @@ function evaluateNumberFilter(
   }
 }
 
-function evaluateOptionFilter(
+function evaluateSelectFilter(
   value: unknown,
   operator: unknown,
   values: unknown[]
@@ -205,8 +205,8 @@ function applyAdvancedFilter(
       return evaluateTextFilter(value, filter.operator, filterValues);
     case "number":
       return evaluateNumberFilter(value, filter.operator, filterValues);
-    case "option":
-      return evaluateOptionFilter(value, filter.operator, filterValues);
+    case "select":
+      return evaluateSelectFilter(value, filter.operator, filterValues);
     case "date":
       return evaluateDateFilter(value, filter.operator, filterValues);
     default:

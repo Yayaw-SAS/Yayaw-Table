@@ -11,12 +11,14 @@ import {
   Braces,
   Building,
   Calendar,
+  CheckSquare,
   Code,
   Eye,
   EyeOff,
   FileText,
   GripVertical,
   Hash,
+  List,
   Tag,
   Text,
   ToggleRight,
@@ -24,13 +26,13 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { StackMenuContent } from "../../../ui-custom/stack-menu";
 import { columnDragEnabledAtom, tableIdAtom } from "../../../atoms/table-atoms";
 import { useDataTable } from "../../../hooks/use-data-table";
 import { useTableConfig } from "../../../hooks/use-table-config";
 import { useTableUIConfig } from "../../../hooks/use-table-ui-config";
 import { useTableUrlState } from "../../../hooks/use-table-url-state";
 import { useTranslations } from "../../../providers/table-provider";
+import { StackMenuContent } from "../../../ui-custom/stack-menu";
 import { useColumnDnd } from "../../columns/hooks/use-column-dnd";
 
 // Custom type for our enriched column definition
@@ -42,6 +44,7 @@ type ExtendedColumnDef = Column<Record<string, unknown>, unknown> & {
 interface SortableColumn {
   canHide?: boolean;
   canSort?: boolean;
+  displayVariant?: "default" | "tag";
   getCanSort: () => boolean;
   id: string;
   label: string;
@@ -94,6 +97,7 @@ interface TableColumnsMenuProps {
 // Get the appropriate icon for a column based on its type or ID
 const getColumnIcon = (column: {
   canSort?: boolean;
+  displayVariant?: "default" | "tag";
   getCanSort?: () => boolean;
   id: string;
   label?: string;
@@ -104,6 +108,10 @@ const getColumnIcon = (column: {
 
   // If we have a column type, use its corresponding icon
   if (columnType) {
+    if (column.displayVariant === "tag") {
+      return <Tag className="mr-2 h-4 w-4" />;
+    }
+
     switch (columnType) {
       case "boolean":
         return <ToggleRight className="mr-2 h-4 w-4" />;
@@ -115,11 +123,13 @@ const getColumnIcon = (column: {
         return <Braces className="mr-2 h-4 w-4" />;
       case "number":
         return <Hash className="mr-2 h-4 w-4" />;
+      case "select":
+        return <CheckSquare className="mr-2 h-4 w-4" />;
+      case "multiselect":
+        return <List className="mr-2 h-4 w-4" />;
       case "string":
       case "text":
         return <Text className="mr-2 h-4 w-4" />;
-      case "tag":
-        return <Tag className="mr-2 h-4 w-4" />;
       default:
         return <Text className="mr-2 h-4 w-4" />;
     }
@@ -303,12 +313,17 @@ export function TableColumnsMenu({
         .map((col) => {
           // Get column configuration from table config
           const columnConfig = config?.columns?.definitions?.find(
-            (def: { id: string; type?: string; header?: string }) =>
-              def.id === col.id
+            (def: {
+              displayVariant?: "default" | "tag";
+              id: string;
+              type?: string;
+              header?: string;
+            }) => def.id === col.id
           );
           return {
             ...col,
             label: columnConfig?.header || col.id,
+            displayVariant: columnConfig?.displayVariant,
             type: columnConfig?.type,
           };
         }),

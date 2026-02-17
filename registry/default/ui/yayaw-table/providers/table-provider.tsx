@@ -359,7 +359,8 @@ export const defaultTranslations: DataTableTranslations = {
     edit_hint: "Double-click or press Enter to edit",
     invalid_value: "Invalid value",
     missing_row_id: "Cannot save inline edit: missing row id.",
-    missing_update_action: "Inline edit requires actions.update in getTableActions.",
+    missing_update_action:
+      "Inline edit requires actions.update in getTableActions.",
     save_error: "Failed to save inline changes.",
     save_scheduled: "Save scheduled",
     saving: "Saving...",
@@ -412,8 +413,8 @@ export const defaultTranslations: DataTableTranslations = {
       text: "Text",
       number: "Number",
       date: "Date",
-      option: "Option",
-      multiOption: "Multiple options",
+      select: "Select",
+      multiSelect: "Multiple options",
     },
     date_shortcuts: {
       today: "Today",
@@ -494,7 +495,7 @@ export const defaultTranslations: DataTableTranslations = {
         text: "Text fields",
         number: "Number fields",
         date: "Date fields",
-        option: "Selection fields",
+        select: "Selection fields",
       },
     },
     presets: {

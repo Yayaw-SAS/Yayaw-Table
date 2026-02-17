@@ -14,11 +14,11 @@ import type {
 
 import { CompactDateFilter, DateFilter } from "./date-filter";
 import {
-  CompactMultiOptionFilter,
-  MultiOptionFilter,
-} from "./multi-option-filter";
+  CompactMultiSelectFilter,
+  MultiSelectFilter,
+} from "./multi-select-filter";
 import { CompactNumberFilter, NumberFilter } from "./number-filter";
-import { CompactOptionFilter, OptionFilter } from "./option-filter";
+import { CompactSelectFilter, SelectFilter } from "./select-filter";
 import { CompactTextFilter, TextFilter } from "./text-filter";
 
 export interface FilterValueInputProps<
@@ -181,9 +181,9 @@ export function FilterValueInput<TType extends ColumnDataType>({
       );
     }
 
-    case "option": {
-      const optionValue = value as string | string[];
-      const optionOperator = operator as FilterOperators["option"];
+    case "select": {
+      const selectValue = value as string | string[];
+      const selectOperator = operator as FilterOperators["select"];
 
       if (!config.options) {
         return null;
@@ -191,38 +191,38 @@ export function FilterValueInput<TType extends ColumnDataType>({
 
       if (compact) {
         return (
-          <CompactOptionFilter
+          <CompactSelectFilter
             disabled={disabled}
             onValueChange={handleValueChange}
-            operator={optionOperator}
+            operator={selectOperator}
             options={config.options}
             placeholder={config.placeholder}
-            value={optionValue}
+            value={selectValue}
           />
         );
       }
 
       return (
-        <OptionFilter
+        <SelectFilter
           disabled={disabled}
           inline={inline}
           label={label}
           onOperatorChange={handleOperatorChange}
           onValueChange={handleValueChange}
-          operator={optionOperator}
-          operators={config.operators as readonly FilterOperators["option"][]}
+          operator={selectOperator}
+          operators={config.operators as readonly FilterOperators["select"][]}
           options={config.options}
           placeholder={config.placeholder}
           showCounts={config.faceted}
           showOperator={showOperator}
-          value={optionValue}
+          value={selectValue}
         />
       );
     }
 
-    case "multiOption": {
-      const multiOptionValue = value as string[];
-      const multiOptionOperator = operator as FilterOperators["multiOption"];
+    case "multiSelect": {
+      const multiSelectValue = value as string[];
+      const multiSelectOperator = operator as FilterOperators["multiSelect"];
 
       if (!config.options) {
         return null;
@@ -230,33 +230,33 @@ export function FilterValueInput<TType extends ColumnDataType>({
 
       if (compact) {
         return (
-          <CompactMultiOptionFilter
+          <CompactMultiSelectFilter
             disabled={disabled}
             onValueChange={handleValueChange}
-            operator={multiOptionOperator}
+            operator={multiSelectOperator}
             options={config.options}
             placeholder={config.placeholder}
-            value={multiOptionValue}
+            value={multiSelectValue}
           />
         );
       }
 
       return (
-        <MultiOptionFilter
+        <MultiSelectFilter
           disabled={disabled}
           inline={inline}
           label={label}
           onOperatorChange={handleOperatorChange}
           onValueChange={handleValueChange}
-          operator={multiOptionOperator}
+          operator={multiSelectOperator}
           operators={
-            config.operators as readonly FilterOperators["multiOption"][]
+            config.operators as readonly FilterOperators["multiSelect"][]
           }
           options={config.options}
           placeholder={config.placeholder}
           showCounts={config.faceted}
           showOperator={showOperator}
-          value={multiOptionValue}
+          value={multiSelectValue}
         />
       );
     }
@@ -296,15 +296,15 @@ export function getDefaultFilterValue<TType extends ColumnDataType>(
       return new Date() as FilterValues<TType>;
     }
 
-    case "option": {
-      const optOperator = operator as FilterOperators["option"];
+    case "select": {
+      const optOperator = operator as FilterOperators["select"];
       if (["isAnyOf", "isNoneOf"].includes(optOperator)) {
         return [] as FilterValues<TType>;
       }
       return "" as FilterValues<TType>;
     }
 
-    case "multiOption":
+    case "multiSelect":
       return [] as FilterValues<TType>;
 
     default:
@@ -325,9 +325,9 @@ export function getDefaultFilterOperator<TType extends ColumnDataType>(
       return "equals" as FilterOperators[TType];
     case "date":
       return "equals" as FilterOperators[TType];
-    case "option":
+    case "select":
       return "is" as FilterOperators[TType];
-    case "multiOption":
+    case "multiSelect":
       return "contains" as FilterOperators[TType];
     default:
       return "equals" as FilterOperators[TType];
@@ -379,14 +379,14 @@ export function isValidFilterValue<TType extends ColumnDataType>(
       );
     }
 
-    case "option": {
+    case "select": {
       if (["isAnyOf", "isNoneOf"].includes(operator as string)) {
         return Array.isArray(value);
       }
       return typeof value === "string";
     }
 
-    case "multiOption":
+    case "multiSelect":
       return Array.isArray(value);
 
     default:

@@ -508,12 +508,26 @@ export function useDataTable<TData extends Record<string, unknown>>(
           });
           break;
         }
-        case "tag": {
-          baseColumnDef = column.tag(colDef.id as keyof TData, {
+        case "select":
+        case "multiSelect": {
+          const displayVariant = (
+            colDef as { displayVariant?: "default" | "tag" }
+          ).displayVariant;
+
+          if (displayVariant === "tag") {
+            baseColumnDef = column.tag(colDef.id as keyof TData, {
+              enableColumnFilter: colDef.enableColumnFilter,
+              enableSorting: colDef.enableSorting,
+              header: getTranslationSafe(colDef.header),
+              tagColorMap: colDef.tagColorMap,
+            });
+            break;
+          }
+
+          baseColumnDef = column.text(colDef.id as keyof TData, {
             enableColumnFilter: colDef.enableColumnFilter,
             enableSorting: colDef.enableSorting,
             header: getTranslationSafe(colDef.header),
-            tagColorMap: colDef.tagColorMap,
           });
           break;
         }

@@ -15,9 +15,9 @@ import {
   TrendingUp,
   Zap,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import { useTranslations } from "../../providers/table-provider";
 import { translateWithFallback } from "./i18n-utils";
 

@@ -28,6 +28,7 @@ export interface TableCatalogueColumnConfig {
   header: string;
   enableSorting?: boolean;
   enableColumnFilter?: boolean;
+  displayVariant?: "default" | "tag";
   dateDisplayPreset?: DateDisplayPreset;
   dateFormat?: string;
   tagColorMap?: Record<string, string>;

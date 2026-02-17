@@ -646,11 +646,11 @@ function BulkActionsSection({
       columnTypeMapping={{
         name: "text",
         brand: "text",
-        category: "option",
+        category: "select",
         price: "number",
-        status: "option",
+        status: "select",
         createdAt: "date",
-        isActive: "option",
+        isActive: "select",
       }}
       DescriptionComponent={CustomDescription}
       description={t("description")}
@@ -1076,7 +1076,8 @@ const getTableConfig = (tableType: string) => {
           { id: "brand", type: "text", header: "Brand" },
           {
             id: "category",
-            type: "tag",
+            type: "select",
+            displayVariant: "tag",
             header: "Category",
             tagColorMap: {
               Electronics: "bg-blue-500/80 text-white dark:bg-blue-600/90",
@@ -1095,7 +1096,8 @@ const getTableConfig = (tableType: string) => {
           },
           {
             id: "status",
-            type: "tag",
+            type: "select",
+            displayVariant: "tag",
             header: "Status",
             tagColorMap: {
               available: "bg-green-500/80 text-white dark:bg-green-600/90",
@@ -1118,11 +1120,11 @@ const getTableConfig = (tableType: string) => {
   columnTypeMapping={{
     name: 'text',
     brand: 'text', 
-    category: 'option',  // tag -> option for dropdown
+    category: 'select',  // select with tag display variant
     price: 'number',
-    status: 'option',    // tag -> option for dropdown  
+    status: 'select',    // select with tag display variant  
     createdAt: 'date',
-    isActive: 'option'   // boolean -> option for true/false
+    isActive: 'select'   // boolean -> select for true/false
   }}
 />
 

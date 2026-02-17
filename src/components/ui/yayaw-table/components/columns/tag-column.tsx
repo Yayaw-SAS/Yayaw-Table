@@ -57,6 +57,7 @@ export interface TagColumnOptions {
  * Custom properties for our column definitions
  */
 interface CustomColumnProps {
+  displayVariant?: "default" | "tag";
   icon?: LucideIcon;
   type?: string;
 }
@@ -130,8 +131,9 @@ export function createTagColumn<TData>({
     enableHiding,
     enableSorting,
     header,
+    displayVariant: "tag",
     icon: Tag,
     id,
-    type: "tag",
+    type: "select",
   };
 }

@@ -1,14 +1,13 @@
 /**
- * Multi-option filter component
- * Provides filtering for multi-option columns with tags and multiple selection
+ * Select filter component
+ * Provides filtering for single-option columns with search and faceted counts
  */
 "use client";
 
 import { Check, ChevronDown, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { cn } from "@/lib/utils";
-import { Badge } from "@/src/components/ui/badge";
-import { Button } from "@/src/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Command,
   CommandEmpty,
@@ -16,20 +15,21 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/src/components/ui/command";
-import { Label } from "@/src/components/ui/label";
+} from "@/components/ui/command";
+import { Label } from "@/components/ui/label";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/src/components/ui/popover";
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/src/components/ui/select";
+} from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 import { useTranslations } from "../../providers/table-provider";
 import type { ColumnOption, FilterOperators } from "../../types/filter-types";
 import {
@@ -41,21 +41,21 @@ import {
   translateWithFallback,
 } from "./i18n-utils";
 
-export interface MultiOptionFilterProps {
-  /** Current filter value - array of selected values */
-  value: string[];
+export interface SelectFilterProps {
+  /** Current filter value - single value or array for isAnyOf/isNoneOf */
+  value: string | string[];
   /** Current operator */
-  operator: FilterOperators["multiOption"];
-  /** Available operators (defaults to all multiOption operators) */
-  operators?: readonly FilterOperators["multiOption"][];
+  operator: FilterOperators["select"];
+  /** Available operators (defaults to all option operators) */
+  operators?: readonly FilterOperators["select"][];
   /** Available options */
   options: ColumnOption[];
   /** Whether the filter is disabled */
   disabled?: boolean;
   /** Callback when the value changes */
-  onValueChange: (value: string[]) => void;
+  onValueChange: (value: string | string[]) => void;
   /** Callback when the operator changes */
-  onOperatorChange: (operator: FilterOperators["multiOption"]) => void;
+  onOperatorChange: (operator: FilterOperators["select"]) => void;
   /** Optional label */
   label?: string;
   /** Whether to show the operator selector */
@@ -66,17 +66,15 @@ export interface MultiOptionFilterProps {
   placeholder?: string;
   /** Render picker inline instead of popover */
   inline?: boolean;
-  /** Maximum number of tags to show before showing count */
-  maxDisplayedTags?: number;
 }
 
 /**
- * Multi-option filter component with operator selection and multiple option picker
+ * Select filter component with operator selection and option picker
  */
-export function MultiOptionFilter({
+export function SelectFilter({
   value,
   operator,
-  operators = DEFAULT_OPERATORS.multiOption,
+  operators = DEFAULT_OPERATORS.select,
   options,
   disabled = false,
   onValueChange,
@@ -85,13 +83,12 @@ export function MultiOptionFilter({
   showOperator = true,
   showCounts = true,
   placeholder,
-  maxDisplayedTags = 3,
   inline = false,
-}: MultiOptionFilterProps) {
+}: SelectFilterProps) {
   const { t } = useTranslations();
   const effectivePlaceholder =
     placeholder ??
-    translateWithFallback(t, "filters.value", "Select options...");
+    translateWithFallback(t, "filters.value", "Select option...");
   const [internalValue, setInternalValue] = useState(value);
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -103,7 +100,7 @@ export function MultiOptionFilter({
 
   // Handle value change
   const handleValueChange = useCallback(
-    (newValue: string[]) => {
+    (newValue: string | string[]) => {
       setInternalValue(newValue);
       onValueChange(newValue);
     },
@@ -112,6 +109,18 @@ export function MultiOptionFilter({
 
   // Check if this operator needs a value input
   const needsValue = !["isEmpty", "isNotEmpty"].includes(operator);
+  const isMultiple = ["isAnyOf", "isNoneOf"].includes(operator);
+  const currentSingleValue = Array.isArray(internalValue)
+    ? internalValue[0]
+    : internalValue;
+  let currentMultipleValue: string[];
+  if (Array.isArray(internalValue)) {
+    currentMultipleValue = internalValue;
+  } else if (internalValue) {
+    currentMultipleValue = [internalValue];
+  } else {
+    currentMultipleValue = [];
+  }
 
   // Filter options based on search term
   const filteredOptions = useMemo(() => {
@@ -125,27 +134,25 @@ export function MultiOptionFilter({
     );
   }, [options, searchTerm]);
 
-  // Handle option selection toggle
-  const handleOptionToggle = useCallback(
+  // Handle single option selection
+  const handleSingleOptionSelect = useCallback(
     (optionValue: string) => {
-      const newValue = internalValue.includes(optionValue)
-        ? internalValue.filter((v) => v !== optionValue)
-        : [...internalValue, optionValue];
-      handleValueChange(newValue);
+      handleValueChange(optionValue);
+      setIsOpen(false);
     },
-    [internalValue, handleValueChange]
+    [handleValueChange]
   );
 
-  // Handle select all
-  const handleSelectAll = useCallback(() => {
-    const allValues = filteredOptions.map((opt) => opt.value);
-    handleValueChange(allValues);
-  }, [filteredOptions, handleValueChange]);
-
-  // Handle clear all
-  const handleClearAll = useCallback(() => {
-    handleValueChange([]);
-  }, [handleValueChange]);
+  // Handle multiple option selection
+  const handleMultipleOptionToggle = useCallback(
+    (optionValue: string) => {
+      const newValue = currentMultipleValue.includes(optionValue)
+        ? currentMultipleValue.filter((v) => v !== optionValue)
+        : [...currentMultipleValue, optionValue];
+      handleValueChange(newValue);
+    },
+    [currentMultipleValue, handleValueChange]
+  );
 
   // Get option by value
   const getOptionByValue = useCallback(
@@ -157,26 +164,28 @@ export function MultiOptionFilter({
 
   // Format selected values for display
   const formatValueForDisplay = useCallback(() => {
-    if (internalValue.length === 0) {
+    if (isMultiple) {
+      if (currentMultipleValue.length === 0) {
+        return effectivePlaceholder;
+      }
+      if (currentMultipleValue.length === 1) {
+        const option = getOptionByValue(currentMultipleValue[0]);
+        return option?.label || currentMultipleValue[0];
+      }
+      return `${currentMultipleValue.length} selected`;
+    }
+    if (!currentSingleValue) {
       return effectivePlaceholder;
     }
-    if (internalValue.length === 1) {
-      const option = getOptionByValue(internalValue[0]);
-      return option?.label || internalValue[0];
-    }
-    return t("filters.selectedCount", { count: internalValue.length });
-  }, [internalValue, effectivePlaceholder, getOptionByValue, t]);
-
-  // Get displayed tags
-  const displayedTags = useMemo(() => {
-    const tags = internalValue.slice(0, maxDisplayedTags);
-    const hasMore = internalValue.length > maxDisplayedTags;
-    return {
-      tags,
-      hasMore,
-      remainingCount: internalValue.length - maxDisplayedTags,
-    };
-  }, [internalValue, maxDisplayedTags]);
+    const option = getOptionByValue(currentSingleValue);
+    return option?.label || currentSingleValue;
+  }, [
+    isMultiple,
+    currentMultipleValue,
+    currentSingleValue,
+    effectivePlaceholder,
+    getOptionByValue,
+  ]);
 
   return (
     <div className="space-y-3">
@@ -188,7 +197,7 @@ export function MultiOptionFilter({
           <Select
             disabled={disabled}
             onValueChange={(operatorValue) =>
-              onOperatorChange(operatorValue as FilterOperators["multiOption"])
+              onOperatorChange(operatorValue as FilterOperators["select"])
             }
             value={operator}
           >
@@ -197,7 +206,7 @@ export function MultiOptionFilter({
                 {getTranslatedOperatorLabel(
                   t,
                   operator,
-                  FILTER_OPERATORS_LABELS.multiOption[operator]
+                  FILTER_OPERATORS_LABELS.select[operator]
                 )}
               </SelectValue>
             </SelectTrigger>
@@ -207,7 +216,7 @@ export function MultiOptionFilter({
                   {getTranslatedOperatorLabel(
                     t,
                     op,
-                    FILTER_OPERATORS_LABELS.multiOption[op]
+                    FILTER_OPERATORS_LABELS.select[op]
                   )}
                 </SelectItem>
               ))}
@@ -230,11 +239,20 @@ export function MultiOptionFilter({
                     <CommandEmpty>{t("filters.noResults")}</CommandEmpty>
                     <CommandGroup>
                       {filteredOptions.map((option) => {
-                        const isSelected = internalValue.includes(option.value);
+                        const isSelected = isMultiple
+                          ? currentMultipleValue.includes(option.value)
+                          : currentSingleValue === option.value;
+
                         return (
                           <CommandItem
                             key={option.value}
-                            onSelect={() => handleOptionToggle(option.value)}
+                            onSelect={() => {
+                              if (isMultiple) {
+                                handleMultipleOptionToggle(option.value);
+                              } else {
+                                handleSingleOptionSelect(option.value);
+                              }
+                            }}
                             value={option.value}
                           >
                             <div className="flex flex-1 items-center gap-2">
@@ -290,40 +308,21 @@ export function MultiOptionFilter({
                     <CommandList>
                       <CommandEmpty>{t("filters.noResults")}</CommandEmpty>
                       <CommandGroup>
-                        {/* Select/Clear all buttons */}
-                        {filteredOptions.length > 1 && (
-                          <>
-                            <CommandItem
-                              className="justify-center border-b"
-                              onSelect={handleSelectAll}
-                            >
-                              {translateWithFallback(
-                                t,
-                                "filters.select_all",
-                                "Select all"
-                              )}{" "}
-                              ({filteredOptions.length})
-                            </CommandItem>
-                            {internalValue.length > 0 && (
-                              <CommandItem
-                                className="mb-1 justify-center border-b"
-                                onSelect={handleClearAll}
-                              >
-                                {t("filters.clear")}
-                              </CommandItem>
-                            )}
-                          </>
-                        )}
-
                         {filteredOptions.map((option) => {
-                          const isSelected = internalValue.includes(
-                            option.value
-                          );
+                          const isSelected = isMultiple
+                            ? currentMultipleValue.includes(option.value)
+                            : currentSingleValue === option.value;
 
                           return (
                             <CommandItem
                               key={option.value}
-                              onSelect={() => handleOptionToggle(option.value)}
+                              onSelect={() => {
+                                if (isMultiple) {
+                                  handleMultipleOptionToggle(option.value);
+                                } else {
+                                  handleSingleOptionSelect(option.value);
+                                }
+                              }}
                               value={option.value}
                             >
                               <div className="flex flex-1 items-center gap-2">
@@ -362,10 +361,10 @@ export function MultiOptionFilter({
               </Popover>
             )}
 
-            {/* Selected tags display */}
-            {internalValue.length > 0 && (
+            {/* Selected values display for multiple selection */}
+            {isMultiple && currentMultipleValue.length > 0 && (
               <div className="flex flex-wrap gap-1">
-                {displayedTags.tags.map((selectedValue) => {
+                {currentMultipleValue.map((selectedValue) => {
                   const option = getOptionByValue(selectedValue);
                   return (
                     <Badge
@@ -385,10 +384,12 @@ export function MultiOptionFilter({
                       {option?.label || selectedValue}
                       <Button
                         className="ml-1 h-5 w-5 rounded-full p-0 outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                        onClick={() => handleOptionToggle(selectedValue)}
+                        onClick={() =>
+                          handleMultipleOptionToggle(selectedValue)
+                        }
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
-                            handleOptionToggle(selectedValue);
+                            handleMultipleOptionToggle(selectedValue);
                           }
                         }}
                         onMouseDown={(e) => {
@@ -404,13 +405,6 @@ export function MultiOptionFilter({
                     </Badge>
                   );
                 })}
-
-                {/* Show remaining count if there are more tags */}
-                {displayedTags.hasMore && (
-                  <Badge className="text-xs" variant="outline">
-                    +{displayedTags.remainingCount}
-                  </Badge>
-                )}
               </div>
             )}
           </div>
@@ -430,25 +424,23 @@ export function MultiOptionFilter({
 }
 
 /**
- * Compact multi-option filter for use in filter chips
+ * Compact select filter for use in filter chips
  */
-export function CompactMultiOptionFilter({
+export function CompactSelectFilter({
   value,
   operator,
   options,
   onValueChange,
   disabled = false,
   placeholder,
-  maxDisplayedTags = 2,
 }: Pick<
-  MultiOptionFilterProps,
+  SelectFilterProps,
   | "value"
   | "operator"
   | "options"
   | "onValueChange"
   | "disabled"
   | "placeholder"
-  | "maxDisplayedTags"
 >) {
   const { t } = useTranslations();
   const effectivePlaceholder =
@@ -460,6 +452,14 @@ export function CompactMultiOptionFilter({
     setInternalValue(value);
   }, [value]);
 
+  const handleValueChange = useCallback(
+    (newValue: string | string[]) => {
+      setInternalValue(newValue);
+      onValueChange(newValue);
+    },
+    [onValueChange]
+  );
+
   const getOptionByValue = useCallback(
     (optionValue: string) => {
       return options.find((opt) => opt.value === optionValue);
@@ -467,33 +467,43 @@ export function CompactMultiOptionFilter({
     [options]
   );
 
+  const isMultiple = ["isAnyOf", "isNoneOf"].includes(operator);
+  const currentSingleValue = Array.isArray(internalValue)
+    ? internalValue[0]
+    : internalValue;
+  let currentMultipleValue: string[];
+  if (Array.isArray(internalValue)) {
+    currentMultipleValue = internalValue;
+  } else if (internalValue) {
+    currentMultipleValue = [internalValue];
+  } else {
+    currentMultipleValue = [];
+  }
+
   const formatValueForDisplay = useCallback(() => {
-    if (internalValue.length === 0) {
+    if (isMultiple) {
+      if (currentMultipleValue.length === 0) {
+        return effectivePlaceholder;
+      }
+      if (currentMultipleValue.length === 1) {
+        const option = getOptionByValue(currentMultipleValue[0]);
+        return option?.label || currentMultipleValue[0];
+      }
+      return t("filters.selectedCount", { count: currentMultipleValue.length });
+    }
+    if (!currentSingleValue) {
       return effectivePlaceholder;
     }
-    if (internalValue.length === 1) {
-      const option = getOptionByValue(internalValue[0]);
-      return option?.label || internalValue[0];
-    }
-    return translateWithFallback(
-      t,
-      "filters.selectedCount",
-      `${internalValue.length} selected`,
-      { count: internalValue.length }
-    );
-  }, [internalValue, effectivePlaceholder, getOptionByValue, t]);
-
-  const handleOptionToggle = useCallback(
-    (optionValue: string) => {
-      const newValue = internalValue.includes(optionValue)
-        ? internalValue.filter((v) => v !== optionValue)
-        : [...internalValue, optionValue];
-
-      setInternalValue(newValue);
-      onValueChange(newValue);
-    },
-    [internalValue, onValueChange]
-  );
+    const option = getOptionByValue(currentSingleValue);
+    return option?.label || currentSingleValue;
+  }, [
+    isMultiple,
+    currentMultipleValue,
+    currentSingleValue,
+    effectivePlaceholder,
+    getOptionByValue,
+    t,
+  ]);
 
   const needsValue = !["isEmpty", "isNotEmpty"].includes(operator);
 
@@ -508,98 +518,76 @@ export function CompactMultiOptionFilter({
   }
 
   return (
-    <div className="flex flex-col gap-1">
-      <Popover onOpenChange={setIsOpen} open={isOpen}>
-        <PopoverTrigger>
-          <Button
-            className="h-6 max-w-32 justify-between px-2 font-normal text-xs"
-            disabled={disabled}
-            size="sm"
-            variant="ghost"
-          >
-            <span className="truncate">{formatValueForDisplay()}</span>
-            <ChevronDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent align="start" className="w-48 p-0">
-          <Command>
-            <CommandInput
-              placeholder={t("filters.search", { filter: "options" })}
-            />
-            <CommandList>
-              <CommandEmpty>{t("filters.noResults")}</CommandEmpty>
-              <CommandGroup>
-                {options.map((option) => {
-                  const isSelected = internalValue.includes(option.value);
+    <Popover onOpenChange={setIsOpen} open={isOpen}>
+      <PopoverTrigger>
+        <Button
+          className="h-6 max-w-32 justify-between px-2 font-normal text-xs"
+          disabled={disabled}
+          size="sm"
+          variant="ghost"
+        >
+          <span className="truncate">{formatValueForDisplay()}</span>
+          <ChevronDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-48 p-0">
+        <Command>
+          <CommandInput
+            placeholder={t("filters.search", { filter: "options" })}
+          />
+          <CommandList>
+            <CommandEmpty>{t("filters.noResults")}</CommandEmpty>
+            <CommandGroup>
+              {options.map((option) => {
+                const isSelected = isMultiple
+                  ? currentMultipleValue.includes(option.value)
+                  : currentSingleValue === option.value;
 
-                  return (
-                    <CommandItem
-                      key={option.value}
-                      onSelect={() => handleOptionToggle(option.value)}
-                      value={option.value}
-                    >
-                      <div className="flex flex-1 items-center gap-2">
-                        {option.icon && (
-                          <span className="flex h-3 w-3 flex-shrink-0 items-center justify-center">
-                            {typeof option.icon === "function" ? (
-                              <option.icon />
-                            ) : (
-                              option.icon
-                            )}
-                          </span>
-                        )}
-                        <span className="flex-1 text-xs">{option.label}</span>
-                      </div>
-                      <Check
-                        className={cn(
-                          "ml-auto h-3 w-3",
-                          isSelected ? "opacity-100" : "opacity-0"
-                        )}
-                      />
-                    </CommandItem>
-                  );
-                })}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
-
-      {/* Compact tags display */}
-      {internalValue.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          {internalValue.slice(0, maxDisplayedTags).map((selectedValue) => {
-            const option = getOptionByValue(selectedValue);
-            return (
-              <Badge
-                className="h-4 px-1 text-xs"
-                key={selectedValue}
-                variant="secondary"
-              >
-                {option?.label || selectedValue}
-                <Button
-                  className="ml-1 h-4 w-4 p-0 hover:bg-destructive hover:text-destructive-foreground"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleOptionToggle(selectedValue);
-                  }}
-                  size="icon"
-                  type="button"
-                  variant="ghost"
-                >
-                  <X className="h-2 w-2" />
-                </Button>
-              </Badge>
-            );
-          })}
-          {internalValue.length > maxDisplayedTags && (
-            <Badge className="h-4 px-1 text-xs" variant="outline">
-              +{internalValue.length - maxDisplayedTags}
-            </Badge>
-          )}
-        </div>
-      )}
-    </div>
+                return (
+                  <CommandItem
+                    key={option.value}
+                    onSelect={() => {
+                      if (isMultiple) {
+                        const newValue = currentMultipleValue.includes(
+                          option.value
+                        )
+                          ? currentMultipleValue.filter(
+                              (v) => v !== option.value
+                            )
+                          : [...currentMultipleValue, option.value];
+                        handleValueChange(newValue);
+                      } else {
+                        handleValueChange(option.value);
+                        setIsOpen(false);
+                      }
+                    }}
+                    value={option.value}
+                  >
+                    <div className="flex flex-1 items-center gap-2">
+                      {option.icon && (
+                        <span className="flex h-3 w-3 flex-shrink-0 items-center justify-center">
+                          {typeof option.icon === "function" ? (
+                            <option.icon />
+                          ) : (
+                            option.icon
+                          )}
+                        </span>
+                      )}
+                      <span className="flex-1 text-xs">{option.label}</span>
+                    </div>
+                    <Check
+                      className={cn(
+                        "ml-auto h-3 w-3",
+                        isSelected ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }
