@@ -66,9 +66,18 @@ export function DataTableUIProvider({
   // Prepare table configuration
   const defaultTableConfig = useAtomValue(tableConfigAtom);
   const mergedTableConfig = useMemo(() => {
-    return tableConfig
-      ? { ...defaultTableConfig, ...tableConfig }
-      : defaultTableConfig;
+    if (!tableConfig) {
+      return defaultTableConfig;
+    }
+
+    return {
+      ...defaultTableConfig,
+      ...tableConfig,
+      inlineEdit: {
+        ...defaultTableConfig.inlineEdit,
+        ...tableConfig.inlineEdit,
+      },
+    };
   }, [defaultTableConfig, tableConfig]);
 
   // Prepare columns configuration

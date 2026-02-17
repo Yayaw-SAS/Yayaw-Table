@@ -7,9 +7,13 @@
 export { DataTable } from "./components/data-table";
 export type {
   ColumnDefinition,
+  InlineEditColumnConfig,
+  InlineEditEditor,
+  InlineEditOption,
   TableBehaviorConfig,
   TableColumnsConfig,
   TableConfig,
+  TableInlineEditConfig,
   TableTranslationsConfig,
 } from "./config/helpers";
 // Config helper and types

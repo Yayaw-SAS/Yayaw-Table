@@ -3,6 +3,7 @@ export * from "./boolean-cell";
 export * from "./code-cell";
 export * from "./date-cell";
 export * from "./json-cell";
+export * from "./inline-editable-cell";
 export * from "./number-cell";
 export * from "./selection-cell";
 export * from "./string-cell";

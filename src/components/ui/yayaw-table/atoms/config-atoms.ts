@@ -5,6 +5,7 @@
 import { atom } from "jotai";
 import { atomFamily } from "jotai-family";
 
+import type { TableInlineEditConfig } from "../config/helpers";
 import type { TableFormConfig } from "../config/form-config";
 import type { DateDisplayPreset } from "../types/date-types";
 
@@ -124,6 +125,11 @@ export interface DataTableConfig {
   dateDisplayPreset?: DateDisplayPreset;
 
   /**
+   * Inline edit behavior configuration
+   */
+  inlineEdit?: TableInlineEditConfig;
+
+  /**
    * Translations for the table
    */
   translations?: {
@@ -149,6 +155,13 @@ const defaultTableConfig: DataTableConfig = {
   enableRowSelection: true,
   enableSorting: true,
   enableGrouping: true,
+  inlineEdit: {
+    enabled: false,
+    debounceMs: 700,
+    trigger: "doubleClickEnter",
+    optimistic: true,
+    showDelayIndicator: true,
+  },
   dateDisplayPreset: "localized-short",
   pageSizeOptions: [5, 10, 20, 50, 100],
 };

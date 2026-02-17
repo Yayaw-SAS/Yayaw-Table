@@ -14,6 +14,7 @@ export {
 } from "./use-data-table-advanced-filters";
 // Phase 5: Advanced Features hooks
 export { useFilterPresets } from "./use-filter-presets";
+export { useInlineEditRuntime } from "./use-inline-edit-runtime";
 export { useRowDnd } from "./use-row-dnd";
 export { useTableActions } from "./use-table-actions";
 // Extracted hooks for better maintainability

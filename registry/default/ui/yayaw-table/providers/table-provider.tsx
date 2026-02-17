@@ -155,9 +155,18 @@ export function TableProvider({
   // Prepare table configuration (from data-table-ui-provider)
   const defaultTableConfig = useAtomValue(tableConfigAtom);
   const mergedTableConfig = useMemo(() => {
-    return tableConfig
-      ? { ...defaultTableConfig, ...tableConfig }
-      : defaultTableConfig;
+    if (!tableConfig) {
+      return defaultTableConfig;
+    }
+
+    return {
+      ...defaultTableConfig,
+      ...tableConfig,
+      inlineEdit: {
+        ...defaultTableConfig.inlineEdit,
+        ...tableConfig.inlineEdit,
+      },
+    };
   }, [defaultTableConfig, tableConfig]);
 
   // Prepare columns configuration (from data-table-ui-provider)
@@ -345,6 +354,17 @@ export const defaultTranslations: DataTableTranslations = {
     success: "Success",
     reset: "Reset",
     search: "Search",
+  },
+  inline: {
+    edit_hint: "Double-click or press Enter to edit",
+    invalid_value: "Invalid value",
+    missing_row_id: "Cannot save inline edit: missing row id.",
+    missing_update_action:
+      "Inline edit requires actions.update in getTableActions.",
+    save_error: "Failed to save inline changes.",
+    save_scheduled: "Save scheduled",
+    saving: "Saving...",
+    select_no_options: "No options available",
   },
   filters: {
     title: "Filters",

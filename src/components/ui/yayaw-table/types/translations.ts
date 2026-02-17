@@ -48,6 +48,16 @@ export interface DataTableTranslations {
     reset: string;
     search: string;
   };
+  inline?: {
+    edit_hint: string;
+    invalid_value: string;
+    missing_row_id: string;
+    missing_update_action: string;
+    save_error: string;
+    save_scheduled: string;
+    saving: string;
+    select_no_options: string;
+  };
   filters: {
     title: string;
     add: string;

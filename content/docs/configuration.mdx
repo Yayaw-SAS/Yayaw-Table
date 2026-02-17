@@ -22,6 +22,13 @@ table: {
   defaultPageSize: 10,
   pageSizeOptions: [5, 10, 20, 50],
   dateDisplayPreset: 'localized-short',
+  inlineEdit: {
+    enabled: false,
+    debounceMs: 700,
+    trigger: 'doubleClickEnter',
+    optimistic: true,
+    showDelayIndicator: true,
+  },
 }
 ```
 
@@ -91,6 +98,35 @@ Type: `number[]` | Default: `[5, 10, 20, 50]`
 Default date display preset for all date columns. A column can override this value with `columns.definitions[].dateDisplayPreset`.
 
 Type: `'localized-short' | 'localized-medium' | 'localized-long' | 'month-name-long' | 'month-year' | 'dmy-numeric' | 'dmy-short' | 'mdy-numeric' | 'mdy-short' | 'iso-date'` | Default: `'localized-short'`
+
+### inlineEdit
+Global defaults for column inline edit behavior.
+
+Type:
+
+```ts
+{
+  enabled?: boolean;
+  debounceMs?: number;
+  trigger?: 'doubleClickEnter';
+  optimistic?: boolean;
+  showDelayIndicator?: boolean;
+}
+```
+
+Default:
+
+```ts
+{
+  enabled: false,
+  debounceMs: 700,
+  trigger: 'doubleClickEnter',
+  optimistic: true,
+  showDelayIndicator: true,
+}
+```
+
+Column-level `columns.definitions[].inlineEdit` can override these defaults.
 
 ## Server-side mode
 

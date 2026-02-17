@@ -4,6 +4,7 @@
  */
 "use client";
 
+import { type QueryClient, useQueryClient } from "@tanstack/react-query";
 import type { Cell, ColumnDef, Header, Row } from "@tanstack/react-table";
 import { flexRender } from "@tanstack/react-table";
 import { useAtom, useAtomValue } from "jotai";
@@ -17,6 +18,7 @@ import {
   type CSSProperties,
   type ReactNode,
 } from "react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/src/components/ui/button";
 import { Skeleton } from "@/src/components/ui/skeleton";
@@ -37,18 +39,25 @@ import {
   type BulkDeleteCustomHandlerResult,
   useBulkActions,
 } from "../hooks/use-bulk-actions";
+import type {
+  InlineEditColumnRuntimeConfig,
+  InlineEditCommitResult,
+} from "../hooks/use-inline-edit-runtime";
 import { useDataTable } from "../hooks/use-data-table";
 import { useTableConfig } from "../hooks/use-table-config";
 import { useTableInstance } from "../hooks/use-table-instance";
 import { useTableUrlState } from "../hooks/use-table-url-state";
+import { useFormConfig, useTranslations } from "../providers/table-provider";
 import type { DataTableProps } from "../types";
 import { ColumnIcon } from "../utils/column-icons";
 import { buildCsvExportColumns } from "../utils/csv-export";
+import { InlineEditableCell } from "./cells/inline-editable-cell";
 import { BulkActionsMenu } from "./bulk-actions/bulk-actions-menu";
 import { ColumnDragOverlay, GroupRowSelectionCell } from "./columns";
 import { DataTableColumnHeader } from "./columns/header/column-header";
 import { useColumnDnd } from "./columns/hooks/use-column-dnd";
 import { useColumnDragOverlay } from "./columns/hooks/use-column-drag-overlay";
+import type { AnyFieldDefinition } from "./forms/types";
 import { SortableHeader } from "./index";
 import { SafePagination } from "./safe-pagination";
 
@@ -123,6 +132,152 @@ function renderHeaderContent<TData>(
       title={header.column.columnDef.header as string}
     />
   );
+}
+
+interface TableDataQueryPayload<TData> {
+  data: TData[];
+  pageCount?: number;
+  rowCount?: number;
+  [key: string]: unknown;
+}
+
+function getInlineEditConfigFromCell<TData>(
+  cell: Cell<TData, unknown>
+): InlineEditColumnRuntimeConfig | undefined {
+  const columnMeta = cell.column.columnDef.meta as
+    | {
+        inlineEdit?: InlineEditColumnRuntimeConfig;
+      }
+    | undefined;
+
+  return columnMeta?.inlineEdit;
+}
+
+function isCellInlineEditable<TData>(
+  cell: Cell<TData, unknown>,
+  inlineConfig: InlineEditColumnRuntimeConfig | undefined
+): inlineConfig is InlineEditColumnRuntimeConfig {
+  if (!inlineConfig) {
+    return false;
+  }
+
+  if (!inlineConfig.enabled || inlineConfig.readonly) {
+    return false;
+  }
+
+  if (cell.column.id === "actions" || cell.column.id === "select") {
+    return false;
+  }
+
+  return (
+    !cell.getIsAggregated() &&
+    !cell.getIsGrouped() &&
+    !cell.getIsPlaceholder()
+  );
+}
+
+function resolveRowEntityId<TData extends Record<string, unknown>>(
+  row: Row<TData>
+): string {
+  const rowRecord = row.original as Record<string, unknown>;
+  const candidateId = rowRecord.id ?? rowRecord._id;
+  if (candidateId != null) {
+    return String(candidateId);
+  }
+
+  return row.id;
+}
+
+function patchInlineEditInQueryPayload<TData extends Record<string, unknown>>(
+  payload: TableDataQueryPayload<TData> | undefined,
+  rowId: string,
+  fieldName: string,
+  value: unknown
+): TableDataQueryPayload<TData> | undefined {
+  if (!payload || !Array.isArray(payload.data)) {
+    return payload;
+  }
+
+  let hasChanged = false;
+  const nextData = payload.data.map((item) => {
+    const rowRecord = item as Record<string, unknown>;
+    const itemId = rowRecord.id ?? rowRecord._id;
+    if (itemId == null || String(itemId) !== rowId) {
+      return item;
+    }
+
+    hasChanged = true;
+    return {
+      ...item,
+      [fieldName]: value,
+    };
+  });
+
+  if (!hasChanged) {
+    return payload;
+  }
+
+  return {
+    ...payload,
+    data: nextData,
+  };
+}
+
+type TableDataSnapshot<TData extends Record<string, unknown>> = [
+  readonly unknown[],
+  TableDataQueryPayload<TData> | undefined,
+][];
+
+function getTableDataSnapshots<TData extends Record<string, unknown>>(
+  queryClient: QueryClient,
+  tableId: string
+): TableDataSnapshot<TData> {
+  return queryClient.getQueriesData<TableDataQueryPayload<TData>>({
+    queryKey: ["tableData", tableId],
+  });
+}
+
+function applyInlineOptimisticPatch<TData extends Record<string, unknown>>({
+  formField,
+  optimisticValue,
+  queryClient,
+  rowId,
+  snapshots,
+}: {
+  snapshots: TableDataSnapshot<TData>;
+  queryClient: QueryClient;
+  rowId: string;
+  formField: string;
+  optimisticValue: unknown;
+}) {
+  for (const [queryKey, queryData] of snapshots) {
+    queryClient.setQueryData<TableDataQueryPayload<TData>>(
+      queryKey,
+      patchInlineEditInQueryPayload(
+        queryData,
+        rowId,
+        formField,
+        optimisticValue
+      )
+    );
+  }
+}
+
+function restoreInlineSnapshots<TData extends Record<string, unknown>>(
+  queryClient: QueryClient,
+  snapshots: TableDataSnapshot<TData>
+) {
+  for (const [queryKey, queryData] of snapshots) {
+    queryClient.setQueryData(queryKey, queryData);
+  }
+}
+
+function failInlineEditCommit(errorMessage: string): InlineEditCommitResult {
+  toast.error(errorMessage);
+  return {
+    success: false,
+    errorMessage,
+  };
 }
 
 type ModernDataTableProps<
@@ -307,12 +462,16 @@ function ModernDataTable<
   useEffect(() => {
     stableOnRowSelectionChange.current = onRowSelectionChange;
   }, [onRowSelectionChange]);
+  const queryClient = useQueryClient();
+  const { t } = useTranslations();
+  const getFormConfig = useFormConfig();
+  const resolvedTableType = tableType || tableId;
 
   // Use proper data table hook like in production
   const dataTableResult = useDataTable({
     enabled: true,
     tableId,
-    tableType: tableType || tableId,
+    tableType: resolvedTableType,
   });
 
   const {
@@ -325,8 +484,102 @@ function ModernDataTable<
   } = dataTableResult;
 
   // Get table config to access column types
-  const { config: tableConfig } = useTableConfig(tableType || tableId);
+  const { config: tableConfig } = useTableConfig(resolvedTableType);
   // Debug removed to stop spam
+
+  const inlineEditFormType =
+    tableConfig.form?.editFormType || resolvedTableType;
+  const inlineEditFormConfig = useMemo(
+    () => getFormConfig?.(inlineEditFormType),
+    [getFormConfig, inlineEditFormType]
+  );
+  const inlineEditSchema = useMemo(() => {
+    const schema = inlineEditFormConfig?.schema;
+    if (!schema) {
+      return undefined;
+    }
+
+    return {
+      safeParse: (data: unknown) => schema.safeParse(data),
+    };
+  }, [inlineEditFormConfig?.schema]);
+  const inlineEditFieldMap = useMemo(() => {
+    const fieldMap = new Map<string, AnyFieldDefinition>();
+    for (const field of inlineEditFormConfig?.fields ?? []) {
+      fieldMap.set(String(field.name), field as AnyFieldDefinition);
+    }
+    return fieldMap;
+  }, [inlineEditFormConfig?.fields]);
+
+  const commitInlineEdit = useCallback(
+    async ({
+      formField,
+      optimistic,
+      row,
+      value,
+    }: {
+      row: Row<TData>;
+      formField: string;
+      value: unknown;
+      optimistic: boolean;
+    }) => {
+      const editAction = dataTableResult.actions.edit;
+      if (typeof editAction !== "function") {
+        return failInlineEditCommit(t("inline.missing_update_action"));
+      }
+      const rowId = resolveRowEntityId(row);
+      if (!rowId) {
+        return failInlineEditCommit(t("inline.missing_row_id"));
+      }
+
+      const cacheSnapshots = getTableDataSnapshots<TData>(
+        queryClient,
+        tableId
+      );
+      if (optimistic) {
+        applyInlineOptimisticPatch({
+          snapshots: cacheSnapshots,
+          queryClient,
+          rowId,
+          formField,
+          optimisticValue: value,
+        });
+      }
+
+      try {
+        const rowWithId = {
+          ...(row.original as Record<string, unknown>),
+          id: rowId,
+        } as TData & { id: string };
+
+        const success = await editAction(rowWithId, {
+          [formField]: value,
+        } as Partial<TData>);
+
+        if (!success) {
+          throw new Error(t("inline.save_error"));
+        }
+
+        await queryClient.invalidateQueries({
+          queryKey: ["tableData", tableId],
+        });
+
+        return {
+          success: true,
+          committedValue: value,
+        };
+      } catch (error) {
+        if (optimistic) {
+          restoreInlineSnapshots(queryClient, cacheSnapshots);
+        }
+
+        const errorMessage =
+          error instanceof Error ? error.message : t("inline.save_error");
+        return failInlineEditCommit(errorMessage);
+      }
+    },
+    [dataTableResult.actions.edit, queryClient, t, tableId]
+  );
 
   const csvExportColumns = useMemo(() => {
     return buildCsvExportColumns({
@@ -501,8 +754,7 @@ function ModernDataTable<
   });
 
   // Cursor during drag (column or row)
-  const effectiveTableId = tableType || tableId;
-  const activeRowDragId = useAtomValue(activeRowDragAtom(effectiveTableId));
+  const activeRowDragId = useAtomValue(activeRowDragAtom(resolvedTableType));
   useEffect(() => {
     const isDragging = !!activeColumn || activeRowDragId !== null;
     if (!isDragging) {
@@ -522,8 +774,8 @@ function ModernDataTable<
     csvExportColumns,
     onBulkExport,
     table,
-    tableId: tableType || tableId,
-    tableType: tableType || tableId,
+    tableId: resolvedTableType,
+    tableType: resolvedTableType,
     onBulkEdit,
     onBulkDelete,
     onBulkCopy,
@@ -778,6 +1030,78 @@ function ModernDataTable<
       );
     };
 
+    const renderRegularCellContent = (
+      row: Row<TData>,
+      cell: ReturnType<Row<TData>["getVisibleCells"]>[number]
+    ) => {
+      const defaultCellContent = flexRender(
+        cell.column.columnDef.cell,
+        cell.getContext()
+      );
+      const inlineConfig = getInlineEditConfigFromCell(cell);
+      const canInlineEdit = isCellInlineEditable(cell, inlineConfig);
+      if (!canInlineEdit) {
+        return defaultCellContent;
+      }
+
+      const formFieldDefinition = inlineEditFieldMap.get(
+        inlineConfig.formField
+      );
+
+      return (
+        <InlineEditableCell
+          cell={cell}
+          displayValue={defaultCellContent}
+          formFieldDefinition={formFieldDefinition}
+          inlineConfig={inlineConfig}
+          onCommit={async (value) => {
+            return await commitInlineEdit({
+              row,
+              formField: inlineConfig.formField,
+              optimistic: inlineConfig.optimistic,
+              value,
+            });
+          }}
+          rowData={row.original as Record<string, unknown>}
+          schema={inlineEditSchema}
+        />
+      );
+    };
+
+    const renderRegularCell = (
+      row: Row<TData>,
+      cell: ReturnType<Row<TData>["getVisibleCells"]>[number]
+    ) => {
+      const isSizeFixedColumn =
+        cell.column.id === "select" || cell.column.id === "actions";
+      const def = cell.column.columnDef as { maxSize?: number };
+      const sizeStyle = isSizeFixedColumn
+        ? {
+            ...(typeof def.maxSize === "number"
+              ? { maxWidth: def.maxSize }
+              : {}),
+            minWidth: cell.column.getSize(),
+            width: cell.column.getSize(),
+          }
+        : undefined;
+
+      return (
+        <TableCell
+          className={cn(
+            cell.column.id === "select" &&
+              "flex justify-center px-2 [&:has([role=checkbox])]:pr-2!",
+            cell.column.id === "actions" &&
+              "flex justify-center sticky right-0 z-10 bg-card px-2 shadow-[-1px_0_0_0_hsl(var(--border))] group-hover:bg-muted/50 group-data-[state=selected]:bg-muted/50",
+            isNumberColumn(cell.column.columnDef) && "text-right"
+          )}
+          key={cell.id}
+          style={sizeStyle}
+        >
+          {renderRegularCellContent(row, cell)}
+        </TableCell>
+      );
+    };
+
     const renderRegularRow = (
       row: Row<TData>,
       visibleCells: ReturnType<Row<TData>["getVisibleCells"]>
@@ -791,35 +1115,7 @@ function ModernDataTable<
         data-state={row.getIsSelected() ? "selected" : ""}
         key={row.id}
       >
-        {visibleCells.map((cell) => {
-          const isSizeFixedColumn =
-            cell.column.id === "select" || cell.column.id === "actions";
-          const def = cell.column.columnDef as { maxSize?: number };
-          const sizeStyle = isSizeFixedColumn
-            ? {
-                ...(typeof def.maxSize === "number"
-                  ? { maxWidth: def.maxSize }
-                  : {}),
-                minWidth: cell.column.getSize(),
-                width: cell.column.getSize(),
-              }
-            : undefined;
-          return (
-            <TableCell
-              className={cn(
-                cell.column.id === "select" &&
-                  "flex justify-center px-2 [&:has([role=checkbox])]:pr-2!",
-                cell.column.id === "actions" &&
-                  "flex justify-center sticky right-0 z-10 bg-card px-2 shadow-[-1px_0_0_0_hsl(var(--border))] group-hover:bg-muted/50 group-data-[state=selected]:bg-muted/50",
-                isNumberColumn(cell.column.columnDef) && "text-right"
-              )}
-              key={cell.id}
-              style={sizeStyle}
-            >
-              {flexRender(cell.column.columnDef.cell, cell.getContext())}
-            </TableCell>
-          );
-        })}
+        {visibleCells.map((cell) => renderRegularCell(row, cell))}
       </TableRow>
     );
 
@@ -947,10 +1243,13 @@ function ModernDataTable<
 
     return <TableBody>{rowElements}</TableBody>;
   }, [
+    commitInlineEdit,
     isLoading,
     data,
     table,
     hasMounted,
+    inlineEditFieldMap,
+    inlineEditSchema,
     localExpanded,
     state.grouping,
     tableConfig.columns.definitions,

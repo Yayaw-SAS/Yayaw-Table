@@ -18,6 +18,13 @@ export const defaultTableConfig = {
   enablePagination: true,
   enableRowSelection: true,
   enableSorting: true,
+  inlineEdit: {
+    enabled: false,
+    debounceMs: 700,
+    trigger: "doubleClickEnter",
+    optimistic: true,
+    showDelayIndicator: true,
+  },
   dateDisplayPreset: "localized-short",
   pageSizeOptions: [10, 20, 50, 100, 200, 500],
 };

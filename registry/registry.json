@@ -131,6 +131,11 @@
           "target": "components/ui/yayaw-table/components/cells/index.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/cells/inline-editable-cell.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/cells/inline-editable-cell.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/cells/json-cell.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/cells/json-cell.tsx"
@@ -654,6 +659,16 @@
           "path": "registry/default/ui/yayaw-table/hooks/use-filter-presets.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/hooks/use-filter-presets.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/hooks/use-inline-edit-runtime.test.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/hooks/use-inline-edit-runtime.test.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/hooks/use-inline-edit-runtime.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/hooks/use-inline-edit-runtime.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/hooks/use-mobile.ts",

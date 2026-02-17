@@ -195,6 +195,7 @@ function DataTableContent({
             enablePagination: config.table.enablePagination !== false,
             enableRowSelection: config.table.enableRowSelection,
             enableSorting: config.table.enableSorting,
+            inlineEdit: config.table.inlineEdit,
             pageSizeOptions: config.table.pageSizeOptions || [
               10, 20, 50, 100, 200, 500,
             ],

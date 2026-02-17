@@ -45,6 +45,14 @@ The `list` method must return:
 - `onBulkCopy` → `duplicate`
 - `onBulkExport` → internal CSV export of selected rows (client-side)
 
+## Inline edit dependency
+
+Inline cell editing depends on the provider `update(id, data)` action.
+
+- No extra API route is used.
+- When `inlineEdit` is enabled on table/columns, each cell commit calls `update(id, { [field]: value })`.
+- If `update` is not configured, inline edit shows an error and does not commit.
+
 ### Recommended bulk callback contract
 
 To avoid ambiguous branches, return an explicit result object from your bulk callbacks:

@@ -20,6 +20,27 @@ interface ExtendedDataTableConfig extends DataTableConfig {
       enableColumnFilter?: boolean;
       dateDisplayPreset?: string;
       dateFormat?: string;
+      inlineEdit?:
+        | boolean
+        | {
+            enabled?: boolean;
+            editor?:
+              | "auto"
+              | "boolean"
+              | "date"
+              | "json"
+              | "number"
+              | "select"
+              | "text"
+              | "textarea";
+            debounceMs?: number;
+            formField?: string;
+            options?: Array<{
+              label: string;
+              value: boolean | number | string;
+            }>;
+            readonly?: boolean;
+          };
       numberFormat?:
         | "space"
         | "dot"
@@ -41,6 +62,13 @@ interface ExtendedDataTableConfig extends DataTableConfig {
   translations?: {
     namespace: string;
     keys: Record<string, string>;
+  };
+  inlineEdit?: {
+    enabled?: boolean;
+    debounceMs?: number;
+    trigger?: "doubleClickEnter";
+    optimistic?: boolean;
+    showDelayIndicator?: boolean;
   };
 }
 
@@ -114,6 +142,13 @@ export const getTableConfig = (
     enableRowDragDrop: false,
     enableRowSelection: true,
     enableSorting: true,
+    inlineEdit: {
+      enabled: true,
+      debounceMs: 700,
+      trigger: "doubleClickEnter",
+      optimistic: true,
+      showDelayIndicator: true,
+    },
     pageSizeOptions: [10, 50, 100],
     dateDisplayPreset: "localized-medium",
     columns: {
@@ -124,6 +159,7 @@ export const getTableConfig = (
           header: copy.headers.name,
           enableSorting: true,
           enableColumnFilter: true,
+          inlineEdit: true,
         },
         {
           id: "brand",
@@ -131,6 +167,7 @@ export const getTableConfig = (
           header: copy.headers.brand,
           enableSorting: true,
           enableColumnFilter: true,
+          inlineEdit: true,
         },
         {
           id: "category",
@@ -145,6 +182,9 @@ export const getTableConfig = (
           header: copy.headers.price,
           enableSorting: true,
           enableColumnFilter: true,
+          inlineEdit: {
+            editor: "number",
+          },
           // Euro display with space thousands separator and no decimals.
           numberFormat: {
             thousandsSeparator: " ",
@@ -173,6 +213,9 @@ export const getTableConfig = (
           header: copy.headers.active,
           enableSorting: true,
           enableColumnFilter: true,
+          inlineEdit: {
+            editor: "boolean",
+          },
         },
         {
           id: "actions",

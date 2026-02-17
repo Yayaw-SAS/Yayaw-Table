@@ -6,6 +6,11 @@
 
 import type { ColumnSort } from "@tanstack/react-table";
 import { useMemo } from "react";
+import type {
+  InlineEditColumnConfig,
+  TableInlineEditConfig,
+} from "../config/helpers";
+import type { TableFormConfig } from "../config/form-config";
 import type { DateDisplayPreset } from "../types/date-types";
 import {
   useTableConfig as useProviderTableConfig,
@@ -29,6 +34,7 @@ export interface TableCatalogueColumnConfig {
   customRenderers?: Record<string, (value: unknown) => React.ReactNode>;
   /** Number column: "space" | "dot" | "comma" | "locale" or { thousandsSeparator, decimalSeparator, decimals } */
   numberFormat?: NumberFormatConfig;
+  inlineEdit?: boolean | InlineEditColumnConfig;
 }
 
 /**
@@ -50,6 +56,7 @@ export interface TableCatalogueTableConfig {
   defaultPageSize?: number;
   pageSizeOptions?: number[];
   dateDisplayPreset?: DateDisplayPreset;
+  inlineEdit?: TableInlineEditConfig;
 }
 
 /**
@@ -57,6 +64,7 @@ export interface TableCatalogueTableConfig {
  * Used when normalizing provider config to TableCatalogueConfig.
  */
 type ProviderTableConfig = TableCatalogueTableConfig & {
+  form?: TableFormConfig;
   columns?: {
     definitions?: TableCatalogueColumnConfig[];
     order?: string[];
@@ -71,6 +79,7 @@ type ProviderTableConfig = TableCatalogueTableConfig & {
  */
 export interface TableCatalogueConfig {
   table: TableCatalogueTableConfig;
+  form?: TableFormConfig;
   columns: {
     definitions: TableCatalogueColumnConfig[];
     order?: string[];
@@ -103,6 +112,13 @@ const DEFAULT_TABLE_CONFIG: TableCatalogueConfig = {
     defaultPageSize: 10,
     pageSizeOptions: [10, 20, 50, 100, 200, 500],
     dateDisplayPreset: "localized-short",
+    inlineEdit: {
+      enabled: false,
+      debounceMs: 700,
+      trigger: "doubleClickEnter",
+      optimistic: true,
+      showDelayIndicator: true,
+    },
   },
   columns: {
     definitions: [],
@@ -158,7 +174,30 @@ export function useTableConfig(tableType: string) {
         dateDisplayPreset:
           providerConfig.dateDisplayPreset ??
           DEFAULT_TABLE_CONFIG.table.dateDisplayPreset,
+        inlineEdit: {
+          enabled:
+            providerConfig.inlineEdit?.enabled ??
+            DEFAULT_TABLE_CONFIG.table.inlineEdit?.enabled ??
+            false,
+          debounceMs:
+            providerConfig.inlineEdit?.debounceMs ??
+            DEFAULT_TABLE_CONFIG.table.inlineEdit?.debounceMs ??
+            700,
+          trigger:
+            providerConfig.inlineEdit?.trigger ??
+            DEFAULT_TABLE_CONFIG.table.inlineEdit?.trigger ??
+            "doubleClickEnter",
+          optimistic:
+            providerConfig.inlineEdit?.optimistic ??
+            DEFAULT_TABLE_CONFIG.table.inlineEdit?.optimistic ??
+            true,
+          showDelayIndicator:
+            providerConfig.inlineEdit?.showDelayIndicator ??
+            DEFAULT_TABLE_CONFIG.table.inlineEdit?.showDelayIndicator ??
+            true,
+        },
       },
+      form: providerConfig.form,
       columns: (() => {
         const definitions = providerConfig?.columns?.definitions || [];
         const order = providerConfig?.columns?.order || [];

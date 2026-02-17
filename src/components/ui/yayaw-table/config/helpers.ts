@@ -6,6 +6,92 @@ import type { TableFormConfig } from "./form-config";
 import type { DateDisplayPreset } from "../types/date-types";
 
 /**
+ * Supported editor types for inline cell editing.
+ */
+export type InlineEditEditor =
+  | "auto"
+  | "boolean"
+  | "date"
+  | "json"
+  | "number"
+  | "select"
+  | "text"
+  | "textarea";
+
+/**
+ * Select option used by inline edit select editor.
+ */
+export interface InlineEditOption {
+  label: string;
+  value: boolean | number | string;
+}
+
+/**
+ * Per-column inline editing configuration.
+ */
+export interface InlineEditColumnConfig {
+  /**
+   * Enable inline edit for this column.
+   */
+  enabled?: boolean;
+
+  /**
+   * Force a specific inline editor.
+   */
+  editor?: InlineEditEditor;
+
+  /**
+   * Debounce delay before auto-save, in milliseconds.
+   */
+  debounceMs?: number;
+
+  /**
+   * Optional form field name to use instead of column id.
+   */
+  formField?: string;
+
+  /**
+   * Options for select editor.
+   */
+  options?: InlineEditOption[];
+
+  /**
+   * Mark this column as read-only in inline mode.
+   */
+  readonly?: boolean;
+}
+
+/**
+ * Table-level inline edit behavior.
+ */
+export interface TableInlineEditConfig {
+  /**
+   * Enable inline edit globally for the table.
+   */
+  enabled?: boolean;
+
+  /**
+   * Default debounce delay for inline edits, in milliseconds.
+   */
+  debounceMs?: number;
+
+  /**
+   * Inline edit trigger mode.
+   */
+  trigger?: "doubleClickEnter";
+
+  /**
+   * Whether optimistic cache updates are enabled.
+   */
+  optimistic?: boolean;
+
+  /**
+   * Whether to show the debounce progress indicator.
+   */
+  showDelayIndicator?: boolean;
+}
+
+/**
  * Column definition for a data table
  */
 export interface ColumnDefinition {
@@ -66,6 +152,11 @@ export interface ColumnDefinition {
    * Legacy date-fns format string for date columns
    */
   dateFormat?: string;
+
+  /**
+   * Inline edit configuration for this column.
+   */
+  inlineEdit?: boolean | InlineEditColumnConfig;
 
   /**
    * Key that contains the type information for dynamicType columns
@@ -142,6 +233,11 @@ export interface TableBehaviorConfig {
    * Default date display preset for date columns in this table
    */
   dateDisplayPreset?: DateDisplayPreset;
+
+  /**
+   * Inline edit behavior configuration.
+   */
+  inlineEdit?: TableInlineEditConfig;
 }
 
 /**
@@ -239,6 +335,25 @@ export function defineTableConfig(config: {
   const tableDefaults: TableBehaviorConfig = {
     ...defaultTableConfig,
     ...config.table,
+    inlineEdit: {
+      enabled:
+        config.table?.inlineEdit?.enabled ??
+        defaultTableConfig.inlineEdit?.enabled,
+      debounceMs:
+        config.table?.inlineEdit?.debounceMs ??
+        defaultTableConfig.inlineEdit?.debounceMs,
+      trigger:
+        config.table?.inlineEdit?.trigger ??
+        (defaultTableConfig.inlineEdit?.trigger as
+          | "doubleClickEnter"
+          | undefined),
+      optimistic:
+        config.table?.inlineEdit?.optimistic ??
+        defaultTableConfig.inlineEdit?.optimistic,
+      showDelayIndicator:
+        config.table?.inlineEdit?.showDelayIndicator ??
+        defaultTableConfig.inlineEdit?.showDelayIndicator,
+    },
     dateDisplayPreset:
       config.table?.dateDisplayPreset ??
       (defaultTableConfig.dateDisplayPreset as DateDisplayPreset | undefined),
