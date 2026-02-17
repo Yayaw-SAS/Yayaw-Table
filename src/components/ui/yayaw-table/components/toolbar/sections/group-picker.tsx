@@ -117,6 +117,7 @@ export function GroupPicker({
                   <div className="flex items-center gap-2">
                     <ColumnIcon
                       className="h-3.5 w-3.5"
+                      columnId={col.id}
                       columnType={col.type || "text"}
                     />
                     <span className="text-sm">{col.label}</span>
@@ -216,6 +217,7 @@ export function GroupPicker({
                 <span className="flex items-center gap-2">
                   <ColumnIcon
                     className="h-3.5 w-3.5"
+                    columnId={column.id}
                     columnType={column.type || "text"}
                   />
                   <span className="text-sm">{column.label}</span>

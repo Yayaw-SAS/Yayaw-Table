@@ -671,7 +671,7 @@ function ModernDataTable<
 
       // Debug removed
 
-      return <ColumnIcon columnType={columnType} />;
+      return <ColumnIcon columnId={columnId} columnType={columnType} />;
     };
 
     // Helper to get group display info

@@ -6,11 +6,9 @@
 
 import {
   Calendar,
-  CheckSquare,
   Clock,
   Filter,
   Hash,
-  List,
   Plus,
   Search,
   Star,
@@ -40,16 +38,8 @@ import type {
   ColumnDataType,
   ColumnsFilterConfig,
 } from "../../types/filter-types";
+import { getColumnTypeIcon } from "../../utils/column-icons";
 import { translateWithFallback } from "./i18n-utils";
-
-// Icons for different data types
-const typeIcons = {
-  text: Type,
-  number: Hash,
-  date: Calendar,
-  option: CheckSquare,
-  multiOption: List,
-} as const;
 
 // Colors for different data types
 const typeColors = {
@@ -135,7 +125,7 @@ function ColumnOptionItem({
   onSelect: (option: ColumnOption) => void;
 }) {
   const { t } = useTranslations();
-  const TypeIcon = typeIcons[columnOption.type];
+  const TypeIcon = getColumnTypeIcon(columnOption.type, columnOption.id);
 
   return (
     <Button

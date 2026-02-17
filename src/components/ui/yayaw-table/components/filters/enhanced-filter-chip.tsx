@@ -5,13 +5,7 @@
 "use client";
 
 import {
-  Calendar,
-  CheckSquare,
   ChevronDown,
-  Filter,
-  Hash,
-  List,
-  Type,
   X,
   Zap,
 } from "lucide-react";
@@ -28,6 +22,7 @@ import {
   formatDateForDisplay,
   formatDateRangeForDisplay,
 } from "../../utils/date-display";
+import { getColumnTypeIcon } from "../../utils/column-icons";
 
 import { useLocale, useTranslations } from "../../providers/table-provider";
 import type {
@@ -48,15 +43,6 @@ const animationClasses = {
   active: "scale-98 opacity-90",
   removing: "scale-95 opacity-0",
 };
-
-// Icons for different data types
-const typeIcons = {
-  text: Type,
-  number: Hash,
-  date: Calendar,
-  option: CheckSquare,
-  multiOption: List,
-} as const;
 
 // Color schemes for different filter states
 const colorSchemes = {
@@ -294,7 +280,7 @@ export function EnhancedFilterChip({
   };
 
   // Get type icon
-  const TypeIcon = typeIcons[filter.type] || Filter;
+  const TypeIcon = getColumnTypeIcon(filter.type, filter.columnId);
 
   // Format display value
   const displayValue = formatFilterValue(

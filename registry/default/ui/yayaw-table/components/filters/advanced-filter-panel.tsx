@@ -15,7 +15,6 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,6 +36,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import { useLocale, useTranslations } from "../../providers/table-provider";
 import {
   type AdvancedFilterModel,
@@ -350,7 +350,10 @@ function FilterChip({
             </span>
           ) : (
             <>
-              <span aria-hidden className="shrink-0 text-muted-foreground text-xs">
+              <span
+                aria-hidden
+                className="shrink-0 text-muted-foreground text-xs"
+              >
                 •
               </span>
               <span
@@ -359,7 +362,10 @@ function FilterChip({
               >
                 {operatorLabel}
               </span>
-              <span aria-hidden className="shrink-0 text-muted-foreground text-xs">
+              <span
+                aria-hidden
+                className="shrink-0 text-muted-foreground text-xs"
+              >
                 •
               </span>
               <TooltipProvider>
@@ -831,7 +837,11 @@ function InlineAddFilterPanel({
                 variant="ghost"
               >
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted/60 text-muted-foreground transition-colors group-hover:bg-muted">
-                  <ColumnIcon className="h-3.5 w-3.5" columnType={o.type} />
+                  <ColumnIcon
+                    className="h-3.5 w-3.5"
+                    columnId={o.id}
+                    columnType={o.type}
+                  />
                 </span>
                 <span className="min-w-0 flex-1 truncate text-left font-medium text-foreground text-sm">
                   {o.label}

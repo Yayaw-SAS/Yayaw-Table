@@ -831,7 +831,11 @@ function InlineAddFilterPanel({
                 variant="ghost"
               >
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted/60 text-muted-foreground transition-colors group-hover:bg-muted">
-                  <ColumnIcon className="h-3.5 w-3.5" columnType={o.type} />
+                  <ColumnIcon
+                    className="h-3.5 w-3.5"
+                    columnId={o.id}
+                    columnType={o.type}
+                  />
                 </span>
                 <span className="min-w-0 flex-1 truncate text-left font-medium text-foreground text-sm">
                   {o.label}

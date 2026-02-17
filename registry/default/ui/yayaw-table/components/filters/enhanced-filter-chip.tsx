@@ -4,19 +4,8 @@
  */
 "use client";
 
-import {
-  Calendar,
-  CheckSquare,
-  ChevronDown,
-  Filter,
-  Hash,
-  List,
-  Type,
-  X,
-  Zap,
-} from "lucide-react";
+import { ChevronDown, X, Zap } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,17 +13,18 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  formatDateForDisplay,
-  formatDateRangeForDisplay,
-} from "../../utils/date-display";
-
+import { cn } from "@/lib/utils";
 import { useLocale, useTranslations } from "../../providers/table-provider";
 import type {
   AdvancedFilterModel,
   ColumnDataType,
   FilterOperators,
 } from "../../types/filter-types";
+import { getColumnTypeIcon } from "../../utils/column-icons";
+import {
+  formatDateForDisplay,
+  formatDateRangeForDisplay,
+} from "../../utils/date-display";
 import { FilterValueInput } from "./filter-value-input";
 import {
   getTranslatedOperatorLabel,
@@ -48,15 +38,6 @@ const animationClasses = {
   active: "scale-98 opacity-90",
   removing: "scale-95 opacity-0",
 };
-
-// Icons for different data types
-const typeIcons = {
-  text: Type,
-  number: Hash,
-  date: Calendar,
-  option: CheckSquare,
-  multiOption: List,
-} as const;
 
 // Color schemes for different filter states
 const colorSchemes = {
@@ -134,7 +115,11 @@ function formatNumberValue(values: unknown, operator: string): string {
   return String(values);
 }
 
-function formatDateValue(values: unknown, operator: string, locale?: string): string {
+function formatDateValue(
+  values: unknown,
+  operator: string,
+  locale?: string
+): string {
   if (operator === "between") {
     return (
       formatDateRangeForDisplay(values, {
@@ -294,7 +279,7 @@ export function EnhancedFilterChip({
   };
 
   // Get type icon
-  const TypeIcon = typeIcons[filter.type] || Filter;
+  const TypeIcon = getColumnTypeIcon(filter.type, filter.columnId);
 
   // Format display value
   const displayValue = formatFilterValue(
