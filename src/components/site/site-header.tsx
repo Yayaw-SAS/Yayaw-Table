@@ -19,8 +19,6 @@ export function SiteHeader() {
 
   const items = useMemo(() => {
     return [
-      { label: t("useCases"), href: "/#use-cases" },
-      { label: t("product"), href: "/#product" },
       { label: t("docs"), href: "/docs" },
       { label: t("example"), href: "/example" },
     ];

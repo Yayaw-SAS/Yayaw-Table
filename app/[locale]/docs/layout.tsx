@@ -26,8 +26,6 @@ export default async function Layout({
 
   const links: BaseLayoutProps["links"] = [
     { text: t("home"), type: "main", url: `${prefix}/` },
-    { text: t("useCases"), type: "main", url: `${prefix}/#use-cases` },
-    { text: t("product"), type: "main", url: `${prefix}/#product` },
     { text: t("docs"), type: "main", url: `${prefix}/docs` },
     { text: t("example"), type: "main", url: `${prefix}/example` },
     { text: t("install"), type: "button", url: `${prefix}/docs/installation` },
