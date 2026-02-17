@@ -39,9 +39,9 @@ import {
   useTableActions as useProviderTableActions,
   useTranslations,
 } from "../../providers/table-provider";
+import type { ColumnDataType } from "../../types";
 import type { DateDisplayPreset } from "../../types/date-types";
 import { DATE_DISPLAY_PRESETS } from "../../types/date-types";
-import type { ColumnDataType } from "../../types";
 import { buildCsvExportColumns, exportRowsAsCsv } from "../../utils/csv-export";
 import {
   catalogueFormAtom,
@@ -220,8 +220,9 @@ function createColumnOptions(
   const options = columnDefinitions
     .filter((colDef) => colDef.id !== "select" && colDef.id !== "actions") // Skip system columns
     .map((colDef) => {
-      const columnDateDisplayPreset = (colDef as { dateDisplayPreset?: unknown })
-        .dateDisplayPreset;
+      const columnDateDisplayPreset = (
+        colDef as { dateDisplayPreset?: unknown }
+      ).dateDisplayPreset;
       const rawDateFormat =
         (colDef as { dateFormat?: unknown }).dateFormat ??
         (colDef as { meta?: { dateFormat?: unknown } }).meta?.dateFormat;
@@ -726,11 +727,16 @@ export function DataTableAdvancedToolbar<TData>({
   }, [t]);
   const isMobile = useIsMobile();
   const actionsAsIcons = tableConfig.table.actionsAsIcons === true || isMobile;
+  const isCreateEnabled = tableConfig.table.allowCreate !== false;
   const isColumnFiltersEnabled =
     tableConfig.table.enableColumnFilters !== false;
   const isSortingEnabled = tableConfig.table.enableSorting !== false;
   const isGroupingEnabled = tableConfig.table.enableGrouping !== false;
   const handleOpenCreateForm = useCallback(() => {
+    if (!isCreateEnabled) {
+      return;
+    }
+
     setFormState(
       openCreateForm(tableId, tableId, (_data) => {
         queryClient.invalidateQueries({
@@ -738,7 +744,7 @@ export function DataTableAdvancedToolbar<TData>({
         });
       })
     );
-  }, [queryClient, setFormState, tableId]);
+  }, [isCreateEnabled, queryClient, setFormState, tableId]);
 
   const hasListAction = typeof tableActions?.list === "function";
 
@@ -816,34 +822,35 @@ export function DataTableAdvancedToolbar<TData>({
         )}
 
         {/* Create button */}
-        {actionsAsIcons ? (
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <Button
-                  aria-label={addItemLabel}
-                  className="h-8 w-8"
-                  onClick={handleOpenCreateForm}
-                  size="icon-sm"
-                  variant="default"
-                >
-                  <PlusIcon className="h-4 w-4" />
-                </Button>
-              }
-            />
-            <TooltipContent>{addItemLabel}</TooltipContent>
-          </Tooltip>
-        ) : (
-          <Button
-            className="h-8"
-            onClick={handleOpenCreateForm}
-            size="sm"
-            variant="default"
-          >
-            <PlusIcon className="mr-2 h-4 w-4" />
-            <span>{addItemLabel}</span>
-          </Button>
-        )}
+        {isCreateEnabled &&
+          (actionsAsIcons ? (
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    aria-label={addItemLabel}
+                    className="h-8 w-8"
+                    onClick={handleOpenCreateForm}
+                    size="icon-sm"
+                    variant="default"
+                  >
+                    <PlusIcon className="h-4 w-4" />
+                  </Button>
+                }
+              />
+              <TooltipContent>{addItemLabel}</TooltipContent>
+            </Tooltip>
+          ) : (
+            <Button
+              className="h-8"
+              onClick={handleOpenCreateForm}
+              size="sm"
+              variant="default"
+            >
+              <PlusIcon className="mr-2 h-4 w-4" />
+              <span>{addItemLabel}</span>
+            </Button>
+          ))}
 
         {tableConfig.table.export !== false &&
           (actionsAsIcons ? (

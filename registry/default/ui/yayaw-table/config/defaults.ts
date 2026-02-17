@@ -7,9 +7,19 @@
  * Default table configuration
  */
 export const defaultTableConfig = {
+  allowCreate: true,
+  allowEdit: true,
+  allowDuplicate: true,
+  allowDelete: true,
+  allowBulkEdit: true,
+  allowBulkDelete: true,
+  allowInlineEdit: true,
+  showToolbar: true,
+  showToolbarHeader: true,
   export: true,
   bulkExport: true,
   actionsAsIcons: false,
+  density: "medium" as const,
   defaultPageSize: 10,
   enableColumnDragDropByDefault: false,
   enableColumnFilters: true,

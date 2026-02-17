@@ -9,9 +9,19 @@ List of options for table behavior. Configure within your table definition under
 
 ```ts
 table: {
+  allowCreate: true,
+  allowEdit: true,
+  allowDuplicate: true,
+  allowDelete: true,
+  allowBulkEdit: true,
+  allowBulkDelete: true,
+  allowInlineEdit: true,
+  showToolbar: true,
+  showToolbarHeader: true,
   export: true,
   bulkExport: true,
   actionsAsIcons: false,
+  density: 'medium',
   enableRowSelection: true,
   enableColumnFilters: true,
   enableSorting: true,
@@ -39,6 +49,51 @@ Enable row selection checkboxes.
 
 Type: `boolean` | Default: `true`
 
+### allowCreate
+Show and enable create actions in table UI.
+
+Type: `boolean` | Default: `true`
+
+### allowEdit
+Show and enable the row Edit action (row actions menu).
+
+Type: `boolean` | Default: `true`
+
+### allowDuplicate
+Show and enable row duplicate actions.
+
+Type: `boolean` | Default: `true`
+
+### allowDelete
+Show and enable row delete actions.
+
+Type: `boolean` | Default: `true`
+
+### allowBulkEdit
+Show and enable bulk edit action.
+
+Type: `boolean` | Default: `true`
+
+### allowBulkDelete
+Show and enable bulk delete action.
+
+Type: `boolean` | Default: `true`
+
+### allowInlineEdit
+Allow inline editing interactions in table cells.
+
+Type: `boolean` | Default: `true`
+
+### showToolbar
+Show the whole table toolbar (search and action buttons).
+
+Type: `boolean` | Default: `true`
+
+### showToolbarHeader
+Show the toolbar header block (title and description). Set to `false` to keep only search/actions.
+
+Type: `boolean` | Default: `true`
+
 ### export
 Show the toolbar CSV export button (between search and options). Exports all rows matching the current search/filters/sort state.
 
@@ -53,6 +108,11 @@ Type: `boolean` | Default: `true`
 Render toolbar action buttons (`Add`, `Export`, `Options`) as icon-only buttons with tooltips.
 
 Type: `boolean` | Default: `false`
+
+### density
+Table row density mode.
+
+Type: `'small' | 'medium' | 'large'` | Default: `'medium'`
 
 ### enableColumnFilters
 Enable per-column filters.

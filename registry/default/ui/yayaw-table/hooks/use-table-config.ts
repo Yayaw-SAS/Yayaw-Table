@@ -6,16 +6,16 @@
 
 import type { ColumnSort } from "@tanstack/react-table";
 import { useMemo } from "react";
+import type { TableFormConfig } from "../config/form-config";
 import type {
   InlineEditColumnConfig,
   TableInlineEditConfig,
 } from "../config/helpers";
-import type { TableFormConfig } from "../config/form-config";
-import type { DateDisplayPreset } from "../types/date-types";
 import {
   useTableConfig as useProviderTableConfig,
   useTranslations,
 } from "../providers/table-provider";
+import type { DateDisplayPreset } from "../types/date-types";
 import type { NumberFormatConfig } from "../utils/number-format";
 import { useTableTranslations } from "./use-table-translations";
 
@@ -30,6 +30,7 @@ export interface TableCatalogueColumnConfig {
   enableColumnFilter?: boolean;
   dateDisplayPreset?: DateDisplayPreset;
   dateFormat?: string;
+  tagColorMap?: Record<string, string>;
   typeKey?: string;
   customRenderers?: Record<string, (value: unknown) => React.ReactNode>;
   /** Number column: "space" | "dot" | "comma" | "locale" or { thousandsSeparator, decimalSeparator, decimals } */
@@ -41,9 +42,19 @@ export interface TableCatalogueColumnConfig {
  * Configuration for table behavior in the catalogue
  */
 export interface TableCatalogueTableConfig {
+  allowCreate?: boolean;
+  allowEdit?: boolean;
+  allowDuplicate?: boolean;
+  allowDelete?: boolean;
+  allowBulkEdit?: boolean;
+  allowBulkDelete?: boolean;
+  allowInlineEdit?: boolean;
+  showToolbar?: boolean;
+  showToolbarHeader?: boolean;
   export?: boolean;
   bulkExport?: boolean;
   actionsAsIcons?: boolean;
+  density?: "small" | "medium" | "large";
   enableRowSelection: boolean;
   enableColumnFilters: boolean;
   enableSorting: boolean;
@@ -98,9 +109,19 @@ export interface TableCatalogueConfig {
  */
 const DEFAULT_TABLE_CONFIG: TableCatalogueConfig = {
   table: {
+    allowCreate: true,
+    allowEdit: true,
+    allowDuplicate: true,
+    allowDelete: true,
+    allowBulkEdit: true,
+    allowBulkDelete: true,
+    allowInlineEdit: true,
+    showToolbar: true,
+    showToolbarHeader: true,
     export: true,
     bulkExport: true,
     actionsAsIcons: false,
+    density: "medium",
     enableRowSelection: true,
     enableColumnFilters: true,
     enableSorting: true,
@@ -133,6 +154,108 @@ const DEFAULT_TABLE_CONFIG: TableCatalogueConfig = {
   },
 };
 
+function normalizeDensityMode(
+  density: "small" | "medium" | "large" | undefined
+): "small" | "medium" | "large" {
+  if (density === "small") {
+    return "small";
+  }
+
+  if (density === "large") {
+    return "large";
+  }
+
+  return "medium";
+}
+
+function resolveInlineEditConfig(
+  inlineEdit: TableInlineEditConfig | undefined
+): TableInlineEditConfig {
+  return {
+    enabled:
+      inlineEdit?.enabled ??
+      DEFAULT_TABLE_CONFIG.table.inlineEdit?.enabled ??
+      false,
+    debounceMs:
+      inlineEdit?.debounceMs ??
+      DEFAULT_TABLE_CONFIG.table.inlineEdit?.debounceMs ??
+      700,
+    trigger:
+      inlineEdit?.trigger ??
+      DEFAULT_TABLE_CONFIG.table.inlineEdit?.trigger ??
+      "doubleClickEnter",
+    optimistic:
+      inlineEdit?.optimistic ??
+      DEFAULT_TABLE_CONFIG.table.inlineEdit?.optimistic ??
+      true,
+    showDelayIndicator:
+      inlineEdit?.showDelayIndicator ??
+      DEFAULT_TABLE_CONFIG.table.inlineEdit?.showDelayIndicator ??
+      true,
+  };
+}
+
+function resolveTableBehaviorConfig(
+  providerConfig: ProviderTableConfig
+): TableCatalogueTableConfig {
+  return {
+    allowCreate: providerConfig.allowCreate ?? true,
+    allowEdit: providerConfig.allowEdit ?? true,
+    allowDuplicate: providerConfig.allowDuplicate ?? true,
+    allowDelete: providerConfig.allowDelete ?? true,
+    allowBulkEdit: providerConfig.allowBulkEdit ?? true,
+    allowBulkDelete: providerConfig.allowBulkDelete ?? true,
+    allowInlineEdit: providerConfig.allowInlineEdit ?? true,
+    showToolbar: providerConfig.showToolbar ?? true,
+    showToolbarHeader: providerConfig.showToolbarHeader ?? true,
+    export: providerConfig.export ?? true,
+    bulkExport: providerConfig.bulkExport ?? true,
+    actionsAsIcons: providerConfig.actionsAsIcons ?? false,
+    density: normalizeDensityMode(providerConfig.density),
+    enableRowSelection: providerConfig.enableRowSelection,
+    enableColumnFilters: providerConfig.enableColumnFilters,
+    enableSorting: providerConfig.enableSorting,
+    enableGrouping: providerConfig.enableGrouping,
+    enableColumnDnd: providerConfig.enableColumnDnd ?? true,
+    enableColumnDragDropByDefault: providerConfig.enableColumnDragDropByDefault,
+    enableMultiRowSelection: providerConfig.enableMultiRowSelection,
+    enablePagination: providerConfig.enablePagination,
+    defaultPageSize: providerConfig.defaultPageSize,
+    pageSizeOptions: providerConfig.pageSizeOptions,
+    dateDisplayPreset:
+      providerConfig.dateDisplayPreset ??
+      DEFAULT_TABLE_CONFIG.table.dateDisplayPreset,
+    inlineEdit: resolveInlineEditConfig(providerConfig.inlineEdit),
+  };
+}
+
+function resolveColumnsConfig(
+  providerConfig: ProviderTableConfig
+): TableCatalogueConfig["columns"] {
+  const definitions = providerConfig?.columns?.definitions || [];
+  const order = providerConfig?.columns?.order || [];
+  const visible = providerConfig?.columns?.visible || [];
+  const mandatory = providerConfig?.columns?.mandatory || [];
+  const enableRowSelection = providerConfig.enableRowSelection !== false;
+
+  const orderWithSelect =
+    enableRowSelection && !order.includes("select")
+      ? ["select", ...order]
+      : order;
+  const visibleWithSelect =
+    enableRowSelection && !visible.includes("select")
+      ? ["select", ...visible]
+      : visible;
+
+  return {
+    definitions,
+    order: orderWithSelect,
+    sort: [],
+    visible: visibleWithSelect,
+    mandatory,
+  };
+}
+
 /**
  * Hook for managing table configuration
  */
@@ -156,72 +279,9 @@ export function useTableConfig(tableType: string) {
 
     // Transform DataTableConfig to TableCatalogueConfig
     const tableConfig: TableCatalogueConfig = {
-      table: {
-        export: providerConfig.export ?? true,
-        bulkExport: providerConfig.bulkExport ?? true,
-        actionsAsIcons: providerConfig.actionsAsIcons ?? false,
-        enableRowSelection: providerConfig.enableRowSelection,
-        enableColumnFilters: providerConfig.enableColumnFilters,
-        enableSorting: providerConfig.enableSorting,
-        enableGrouping: providerConfig.enableGrouping,
-        enableColumnDnd: providerConfig.enableColumnDnd ?? true,
-        enableColumnDragDropByDefault:
-          providerConfig.enableColumnDragDropByDefault,
-        enableMultiRowSelection: providerConfig.enableMultiRowSelection,
-        enablePagination: providerConfig.enablePagination,
-        defaultPageSize: providerConfig.defaultPageSize,
-        pageSizeOptions: providerConfig.pageSizeOptions,
-        dateDisplayPreset:
-          providerConfig.dateDisplayPreset ??
-          DEFAULT_TABLE_CONFIG.table.dateDisplayPreset,
-        inlineEdit: {
-          enabled:
-            providerConfig.inlineEdit?.enabled ??
-            DEFAULT_TABLE_CONFIG.table.inlineEdit?.enabled ??
-            false,
-          debounceMs:
-            providerConfig.inlineEdit?.debounceMs ??
-            DEFAULT_TABLE_CONFIG.table.inlineEdit?.debounceMs ??
-            700,
-          trigger:
-            providerConfig.inlineEdit?.trigger ??
-            DEFAULT_TABLE_CONFIG.table.inlineEdit?.trigger ??
-            "doubleClickEnter",
-          optimistic:
-            providerConfig.inlineEdit?.optimistic ??
-            DEFAULT_TABLE_CONFIG.table.inlineEdit?.optimistic ??
-            true,
-          showDelayIndicator:
-            providerConfig.inlineEdit?.showDelayIndicator ??
-            DEFAULT_TABLE_CONFIG.table.inlineEdit?.showDelayIndicator ??
-            true,
-        },
-      },
+      table: resolveTableBehaviorConfig(providerConfig),
       form: providerConfig.form,
-      columns: (() => {
-        const definitions = providerConfig?.columns?.definitions || [];
-        const order = providerConfig?.columns?.order || [];
-        const visible = providerConfig?.columns?.visible || [];
-        const mandatory = providerConfig?.columns?.mandatory || [];
-        const enableRowSelection = providerConfig.enableRowSelection !== false;
-
-        const orderWithSelect =
-          enableRowSelection && !order.includes("select")
-            ? ["select", ...order]
-            : order;
-        const visibleWithSelect =
-          enableRowSelection && !visible.includes("select")
-            ? ["select", ...visible]
-            : visible;
-
-        return {
-          definitions,
-          order: orderWithSelect,
-          sort: [],
-          visible: visibleWithSelect,
-          mandatory,
-        };
-      })(),
+      columns: resolveColumnsConfig(providerConfig),
       translations: {
         namespace: "common",
         keys: {},

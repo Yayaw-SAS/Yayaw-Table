@@ -36,8 +36,18 @@ const queryClient = new QueryClient();
 const PRODUCTS_TABLE_TYPE = "products";
 const PRODUCTS_BULK_FORM_TYPE = "products-bulk";
 const BULK_EDIT_SYNTHETIC_ID = "__bulk-edit__";
+const DEFAULT_DENSITY_MODE = "medium" as const;
+
+type ExampleDensityMode = "small" | "medium" | "large";
 
 interface ExampleTableSettings {
+  allowBulkDelete: boolean;
+  allowBulkEdit: boolean;
+  allowCreate: boolean;
+  allowDelete: boolean;
+  allowDuplicate: boolean;
+  allowEdit: boolean;
+  allowInlineEdit: boolean;
   actionsAsIcons: boolean;
   bulkExport: boolean;
   enableColumnDnd: boolean;
@@ -47,6 +57,8 @@ interface ExampleTableSettings {
   enableRowSelection: boolean;
   enableSorting: boolean;
   export: boolean;
+  showToolbar: boolean;
+  showToolbarHeader: boolean;
 }
 
 type TableSettingKey = keyof ExampleTableSettings;
@@ -62,6 +74,13 @@ interface BooleanQuerySettingController {
 }
 
 const DEFAULT_TABLE_SETTINGS: ExampleTableSettings = {
+  allowBulkDelete: true,
+  allowBulkEdit: true,
+  allowCreate: true,
+  allowDelete: true,
+  allowDuplicate: true,
+  allowEdit: true,
+  allowInlineEdit: true,
   actionsAsIcons: true,
   bulkExport: true,
   enableColumnDnd: true,
@@ -71,9 +90,26 @@ const DEFAULT_TABLE_SETTINGS: ExampleTableSettings = {
   enableRowSelection: true,
   enableSorting: true,
   export: true,
+  showToolbar: true,
+  showToolbarHeader: true,
 };
 
-const CORE_FEATURE_SETTINGS: SettingDefinition[] = [
+const STYLE_SETTINGS: SettingDefinition[] = [
+  {
+    key: "showToolbar",
+  },
+  {
+    key: "enablePagination",
+  },
+  {
+    key: "actionsAsIcons",
+  },
+  {
+    key: "showToolbarHeader",
+  },
+];
+
+const FEATURE_SETTINGS: SettingDefinition[] = [
   {
     key: "enableRowSelection",
   },
@@ -89,12 +125,9 @@ const CORE_FEATURE_SETTINGS: SettingDefinition[] = [
   {
     key: "enableColumnDnd",
   },
-  {
-    key: "enablePagination",
-  },
 ];
 
-const EXPORT_SETTINGS: SettingDefinition[] = [
+const AUTHORIZATION_SETTINGS: SettingDefinition[] = [
   {
     key: "export",
   },
@@ -102,13 +135,32 @@ const EXPORT_SETTINGS: SettingDefinition[] = [
     key: "bulkExport",
   },
   {
-    key: "actionsAsIcons",
+    key: "allowCreate",
+  },
+  {
+    key: "allowEdit",
+  },
+  {
+    key: "allowDuplicate",
+  },
+  {
+    key: "allowDelete",
+  },
+  {
+    key: "allowBulkEdit",
+  },
+  {
+    key: "allowBulkDelete",
+  },
+  {
+    key: "allowInlineEdit",
   },
 ];
 
 const ALL_SETTING_DEFINITIONS: SettingDefinition[] = [
-  ...CORE_FEATURE_SETTINGS,
-  ...EXPORT_SETTINGS,
+  ...STYLE_SETTINGS,
+  ...FEATURE_SETTINGS,
+  ...AUTHORIZATION_SETTINGS,
 ];
 
 const TABLE_SETTING_KEYS: TableSettingKey[] = ALL_SETTING_DEFINITIONS.map(
@@ -129,6 +181,14 @@ const parseBooleanQueryValue = (
 
   return defaultValue;
 };
+
+function parseDensityQueryValue(rawValue: string | null): ExampleDensityMode {
+  if (rawValue === "small" || rawValue === "medium" || rawValue === "large") {
+    return rawValue;
+  }
+
+  return DEFAULT_DENSITY_MODE;
+}
 
 function extractIdsFromRows(
   rows: Array<{ original: { id?: unknown } }>
@@ -243,12 +303,56 @@ function SettingsGroup({
   );
 }
 
+function DensitySettingCard({
+  density,
+  onDensityChange,
+}: {
+  density: ExampleDensityMode;
+  onDensityChange: (nextDensity: ExampleDensityMode) => void;
+}) {
+  const t = useTranslations("Example");
+
+  const densityOptions: ExampleDensityMode[] = ["small", "medium", "large"];
+
+  return (
+    <div className="space-y-2 rounded-md border border-border p-3">
+      <div className="space-y-1">
+        <p className="font-medium text-card-foreground text-sm">
+          {t("densityMode.label")}
+        </p>
+        <p className="text-muted-foreground text-xs">
+          {t("densityMode.description")}
+        </p>
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        {densityOptions.map((option) => (
+          <Button
+            key={option}
+            onClick={() => {
+              onDensityChange(option);
+            }}
+            size="sm"
+            type="button"
+            variant={density === option ? "default" : "outline"}
+          >
+            {t(`densityMode.${option}`)}
+          </Button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ExampleSettingsPanel({
+  density,
+  onDensityChange,
   onResetData,
   onResetSettings,
   onSettingChange,
   tableSettings,
 }: {
+  density: ExampleDensityMode;
+  onDensityChange: (nextDensity: ExampleDensityMode) => void;
   onResetData: () => void;
   onResetSettings: () => void;
   onSettingChange: (key: TableSettingKey, value: boolean) => void;
@@ -287,18 +391,30 @@ function ExampleSettingsPanel({
         </div>
       </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+      <div className="mt-4 grid gap-4 lg:grid-cols-3">
+        <div className="space-y-4">
+          <SettingsGroup
+            onSettingChange={onSettingChange}
+            settings={STYLE_SETTINGS}
+            tableSettings={tableSettings}
+            title={t("styleBlock")}
+          />
+          <DensitySettingCard
+            density={density}
+            onDensityChange={onDensityChange}
+          />
+        </div>
         <SettingsGroup
           onSettingChange={onSettingChange}
-          settings={CORE_FEATURE_SETTINGS}
+          settings={FEATURE_SETTINGS}
           tableSettings={tableSettings}
-          title={t("coreFeatures")}
+          title={t("featuresBlock")}
         />
         <SettingsGroup
           onSettingChange={onSettingChange}
-          settings={EXPORT_SETTINGS}
+          settings={AUTHORIZATION_SETTINGS}
           tableSettings={tableSettings}
-          title={t("exportToolbar")}
+          title={t("authorizationsBlock")}
         />
       </div>
     </section>
@@ -306,9 +422,11 @@ function ExampleSettingsPanel({
 }
 
 function BulkActionsSection({
+  densityMode,
   tableActions,
   tableSettings,
 }: {
+  densityMode: ExampleDensityMode;
   tableActions: ProductsLocalActions;
   tableSettings: ExampleTableSettings;
 }) {
@@ -510,9 +628,10 @@ function BulkActionsSection({
       return {
         ...baseConfig,
         ...tableSettings,
+        density: densityMode,
       };
     },
-    [locale, tableSettings]
+    [locale, tableSettings, densityMode]
   );
 
   const getFormConfigWithLocale = useCallback(
@@ -601,10 +720,69 @@ export default function ExamplePage() {
     "excfg-ai",
     DEFAULT_TABLE_SETTINGS.actionsAsIcons
   );
+  const allowCreateSetting = useBooleanQuerySetting(
+    "excfg-cr",
+    DEFAULT_TABLE_SETTINGS.allowCreate
+  );
+  const allowEditSetting = useBooleanQuerySetting(
+    "excfg-ed",
+    DEFAULT_TABLE_SETTINGS.allowEdit
+  );
+  const allowDuplicateSetting = useBooleanQuerySetting(
+    "excfg-du",
+    DEFAULT_TABLE_SETTINGS.allowDuplicate
+  );
+  const allowDeleteSetting = useBooleanQuerySetting(
+    "excfg-de",
+    DEFAULT_TABLE_SETTINGS.allowDelete
+  );
+  const allowBulkEditSetting = useBooleanQuerySetting(
+    "excfg-be",
+    DEFAULT_TABLE_SETTINGS.allowBulkEdit
+  );
+  const allowBulkDeleteSetting = useBooleanQuerySetting(
+    "excfg-bd",
+    DEFAULT_TABLE_SETTINGS.allowBulkDelete
+  );
+  const allowInlineEditSetting = useBooleanQuerySetting(
+    "excfg-ie",
+    DEFAULT_TABLE_SETTINGS.allowInlineEdit
+  );
+  const showToolbarSetting = useBooleanQuerySetting(
+    "excfg-tb",
+    DEFAULT_TABLE_SETTINGS.showToolbar
+  );
+  const showToolbarHeaderSetting = useBooleanQuerySetting(
+    "excfg-th",
+    DEFAULT_TABLE_SETTINGS.showToolbarHeader
+  );
+  const [densityQueryValue, setDensityQueryValue] = useQueryState("excfg-dn");
+  const densityMode = useMemo(
+    () => parseDensityQueryValue(densityQueryValue),
+    [densityQueryValue]
+  );
   const fullWidthSetting = useBooleanQuerySetting("excfg-fw", false);
+
+  const setDensityMode = useCallback(
+    (nextDensity: ExampleDensityMode) => {
+      setDensityQueryValue(nextDensity);
+    },
+    [setDensityQueryValue]
+  );
+
+  const resetDensityMode = useCallback(() => {
+    setDensityQueryValue(null);
+  }, [setDensityQueryValue]);
 
   const tableSettings = useMemo<ExampleTableSettings>(
     () => ({
+      allowBulkDelete: allowBulkDeleteSetting.value,
+      allowBulkEdit: allowBulkEditSetting.value,
+      allowCreate: allowCreateSetting.value,
+      allowDelete: allowDeleteSetting.value,
+      allowDuplicate: allowDuplicateSetting.value,
+      allowEdit: allowEditSetting.value,
+      allowInlineEdit: allowInlineEditSetting.value,
       actionsAsIcons: actionsAsIconsSetting.value,
       bulkExport: bulkExportSetting.value,
       enableColumnDnd: enableColumnDndSetting.value,
@@ -614,8 +792,17 @@ export default function ExamplePage() {
       enableRowSelection: enableRowSelectionSetting.value,
       enableSorting: enableSortingSetting.value,
       export: exportSetting.value,
+      showToolbar: showToolbarSetting.value,
+      showToolbarHeader: showToolbarHeaderSetting.value,
     }),
     [
+      allowBulkDeleteSetting.value,
+      allowBulkEditSetting.value,
+      allowCreateSetting.value,
+      allowDeleteSetting.value,
+      allowDuplicateSetting.value,
+      allowEditSetting.value,
+      allowInlineEditSetting.value,
       actionsAsIconsSetting.value,
       bulkExportSetting.value,
       enableColumnDndSetting.value,
@@ -625,6 +812,8 @@ export default function ExamplePage() {
       enableRowSelectionSetting.value,
       enableSortingSetting.value,
       exportSetting.value,
+      showToolbarSetting.value,
+      showToolbarHeaderSetting.value,
     ]
   );
 
@@ -632,6 +821,13 @@ export default function ExamplePage() {
     Record<TableSettingKey, BooleanQuerySettingController>
   >(
     () => ({
+      allowBulkDelete: allowBulkDeleteSetting,
+      allowBulkEdit: allowBulkEditSetting,
+      allowCreate: allowCreateSetting,
+      allowDelete: allowDeleteSetting,
+      allowDuplicate: allowDuplicateSetting,
+      allowEdit: allowEditSetting,
+      allowInlineEdit: allowInlineEditSetting,
       actionsAsIcons: actionsAsIconsSetting,
       bulkExport: bulkExportSetting,
       enableColumnDnd: enableColumnDndSetting,
@@ -641,8 +837,17 @@ export default function ExamplePage() {
       enableRowSelection: enableRowSelectionSetting,
       enableSorting: enableSortingSetting,
       export: exportSetting,
+      showToolbar: showToolbarSetting,
+      showToolbarHeader: showToolbarHeaderSetting,
     }),
     [
+      allowBulkDeleteSetting,
+      allowBulkEditSetting,
+      allowCreateSetting,
+      allowDeleteSetting,
+      allowDuplicateSetting,
+      allowEditSetting,
+      allowInlineEditSetting,
       actionsAsIconsSetting,
       bulkExportSetting,
       enableColumnDndSetting,
@@ -652,6 +857,8 @@ export default function ExamplePage() {
       enableRowSelectionSetting,
       enableSortingSetting,
       exportSetting,
+      showToolbarSetting,
+      showToolbarHeaderSetting,
     ]
   );
 
@@ -666,7 +873,8 @@ export default function ExamplePage() {
     for (const key of TABLE_SETTING_KEYS) {
       settingControllers[key].resetValue();
     }
-  }, [settingControllers]);
+    resetDensityMode();
+  }, [settingControllers, resetDensityMode]);
 
   const handleResetData = useCallback(async () => {
     const result = await localTableActions.resetData();
@@ -809,6 +1017,8 @@ export default function ExamplePage() {
           </div>
 
           <ExampleSettingsPanel
+            density={densityMode}
+            onDensityChange={setDensityMode}
             onResetData={handleResetData}
             onResetSettings={resetTableSettings}
             onSettingChange={setTableSetting}
@@ -820,6 +1030,7 @@ export default function ExamplePage() {
             <div className="p-6">
               <QueryClientProvider client={queryClient}>
                 <BulkActionsSection
+                  densityMode={densityMode}
                   tableActions={localTableActions}
                   tableSettings={tableSettings}
                 />
@@ -839,6 +1050,13 @@ const getTableConfig = (tableType: string) => {
   if (tableType === "products") {
     return {
       table: { 
+        allowCreate: true,
+        allowEdit: true,
+        allowDuplicate: true,
+        allowDelete: true,
+        allowBulkEdit: true,
+        allowBulkDelete: true,
+        allowInlineEdit: true,
         enableRowSelection: true,
         enableColumnFilters: true,
         enableColumnDnd: true,
@@ -847,13 +1065,24 @@ const getTableConfig = (tableType: string) => {
         enablePagination: true,
         export: true,
         bulkExport: true,
+        showToolbar: true,
+        showToolbarHeader: true,
+        density: "medium",
         actionsAsIcons: false
       },
       columns: {
         definitions: [
           { id: "name", type: "text", header: "Product Name" },
           { id: "brand", type: "text", header: "Brand" },
-          { id: "category", type: "tag", header: "Category" },
+          {
+            id: "category",
+            type: "tag",
+            header: "Category",
+            tagColorMap: {
+              Electronics: "bg-blue-500/80 text-white dark:bg-blue-600/90",
+              Furniture: "bg-amber-500/80 text-white dark:bg-amber-600/90"
+            }
+          },
           {
             id: "price",
             type: "number",
@@ -864,7 +1093,16 @@ const getTableConfig = (tableType: string) => {
               suffix: " €",
             },
           },
-          { id: "status", type: "tag", header: "Status" },
+          {
+            id: "status",
+            type: "tag",
+            header: "Status",
+            tagColorMap: {
+              available: "bg-green-500/80 text-white dark:bg-green-600/90",
+              low_stock: "bg-orange-500/80 text-white dark:bg-orange-600/90",
+              out_of_stock: "bg-red-500/80 text-white dark:bg-red-600/90"
+            }
+          },
           { id: "createdAt", type: "date", header: "Created" },
           { id: "isActive", type: "boolean", header: "Active" }
         ]

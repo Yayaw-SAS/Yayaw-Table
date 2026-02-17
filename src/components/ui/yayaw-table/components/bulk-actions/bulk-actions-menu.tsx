@@ -80,6 +80,16 @@ export interface BulkActionsMenuProps<TData> {
    * Whether export action should be shown
    */
   showBulkExport?: boolean;
+
+  /**
+   * Whether bulk edit action should be shown
+   */
+  showBulkEdit?: boolean;
+
+  /**
+   * Whether bulk delete action should be shown
+   */
+  showBulkDelete?: boolean;
 }
 
 // Configuration pour les tabs d'actions
@@ -296,6 +306,8 @@ export function BulkActionsMenu<TData>({
   onClose,
   className,
   showBulkExport = true,
+  showBulkEdit = true,
+  showBulkDelete = true,
 }: BulkActionsMenuProps<TData>) {
   const [selectedAction, setSelectedAction] =
     useState<ConfirmableMenuActionId | null>(null);
@@ -307,9 +319,9 @@ export function BulkActionsMenu<TData>({
   const outsideClickRef = useRef<HTMLDivElement>(null);
   const { t } = useTranslations();
 
-  // Only show actions that have handlers. Edit is shown when onBulkEdit is provided.
+  // Action visibility is driven by explicit props.
   const actionTabs: ActionTab[] = [
-    ...(onBulkEdit
+    ...(showBulkEdit
       ? [
           {
             id: "edit" as const,
@@ -335,12 +347,16 @@ export function BulkActionsMenu<TData>({
           },
         ]
       : []),
-    {
-      id: "delete" as const,
-      icon: Trash2,
-      translationKey: "actions.delete",
-      variant: "destructive",
-    },
+    ...(showBulkDelete
+      ? [
+          {
+            id: "delete" as const,
+            icon: Trash2,
+            translationKey: "actions.delete",
+            variant: "destructive" as const,
+          },
+        ]
+      : []),
   ];
 
   useOnClickOutside(outsideClickRef as React.RefObject<HTMLElement>, () => {

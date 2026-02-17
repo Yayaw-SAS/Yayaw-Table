@@ -170,6 +170,8 @@ function DataTableContent({
   // Use custom components if provided, otherwise use defaults
   const Title = TitleComponent || DefaultTableTitle;
   const Description = DescriptionComponent || DefaultTableDescription;
+  const shouldShowToolbar = enableToolbar && config.table.showToolbar !== false;
+  const shouldShowToolbarHeader = config.table.showToolbarHeader !== false;
 
   return (
     <>
@@ -182,10 +184,20 @@ function DataTableContent({
             mandatoryColumns: config.columns.mandatory || [],
           }}
           tableConfig={{
+            allowBulkDelete: config.table.allowBulkDelete,
+            allowBulkEdit: config.table.allowBulkEdit,
+            allowCreate: config.table.allowCreate,
+            allowDelete: config.table.allowDelete,
+            allowDuplicate: config.table.allowDuplicate,
+            allowEdit: config.table.allowEdit,
+            allowInlineEdit: config.table.allowInlineEdit,
             actionsAsIcons: config.table.actionsAsIcons,
             bulkExport: config.table.bulkExport,
             defaultPageSize: config.table.defaultPageSize || 10,
+            density: config.table.density,
             export: config.table.export,
+            showToolbar: config.table.showToolbar,
+            showToolbarHeader: config.table.showToolbarHeader,
             enableColumnDragDropByDefault:
               config.table.enableColumnDragDropByDefault,
             enableColumnFilters: config.table.enableColumnFilters,
@@ -207,17 +219,27 @@ function DataTableContent({
         >
           <div className="space-y-4">
             {/* Header with title/description and toolbar */}
-            {enableToolbar && (
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            {shouldShowToolbar && (
+              <div
+                className={
+                  shouldShowToolbarHeader
+                    ? "flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"
+                    : "flex justify-end"
+                }
+              >
                 {/* Title and description section */}
-                <div className="space-y-1">
-                  <Title>{displayTitle}</Title>
-                  <Description>{displayDescription}</Description>
-                </div>
+                {shouldShowToolbarHeader && (
+                  <div className="space-y-1">
+                    <Title>{displayTitle}</Title>
+                    <Description>{displayDescription}</Description>
+                  </div>
+                )}
 
                 {/* Toolbar section */}
                 {!isLoading && (
-                  <div className="flex-shrink-0">
+                  <div
+                    className={shouldShowToolbarHeader ? "flex-shrink-0" : ""}
+                  >
                     <DataTableAdvancedToolbar
                       columnTypeMapping={columnTypeMapping}
                       data={baseData}
@@ -236,6 +258,7 @@ function DataTableContent({
             ) : (
               <DataTableClient
                 className={className}
+                closeOnError={closeOnError}
                 columns={
                   columns as import("@tanstack/react-table").ColumnDef<
                     Record<string, unknown>
@@ -255,15 +278,11 @@ function DataTableContent({
                 enableSorting={config.table.enableSorting}
                 key={`${tableId}-${visibilityKey}`}
                 loadingOverlay={loadingOverlay}
-                closeOnError={closeOnError}
                 onBulkCopy={onBulkCopy}
                 onBulkDelete={onBulkDelete}
                 onBulkEdit={onBulkEdit}
                 onBulkExport={onBulkExport}
                 onRowSelectionChange={onRowSelectionChange}
-                showDefaultToastsForCustomHandlers={
-                  showDefaultToastsForCustomHandlers
-                }
                 queryFn={async (_params) => {
                   // For fetched data, use the refetch function
                   await refetch();
@@ -273,6 +292,9 @@ function DataTableContent({
                     rowCount: rowCount || finalData.length,
                   };
                 }}
+                showDefaultToastsForCustomHandlers={
+                  showDefaultToastsForCustomHandlers
+                }
                 tableId={tableId}
                 tableType={tableType}
               />

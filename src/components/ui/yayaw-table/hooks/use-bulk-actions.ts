@@ -35,6 +35,15 @@ const DEFAULT_BULK_ACTION_FAILURE_RESULT: BulkActionResult = {
   success: false,
 };
 
+function buildBlockedBulkActionResult(message: string): BulkActionResult {
+  return {
+    clearSelection: false,
+    closeMenu: false,
+    message,
+    success: false,
+  };
+}
+
 /**
  * Custom delete callbacks can:
  * - return `void` to fully own user feedback,
@@ -58,6 +67,16 @@ export type BulkDeleteCustomHandlerResult =
  * Configuration for bulk actions
  */
 interface BulkActionsConfig<TData> {
+  /**
+   * Whether bulk edit action is enabled
+   */
+  bulkEditEnabled?: boolean;
+
+  /**
+   * Whether bulk delete action is enabled
+   */
+  bulkDeleteEnabled?: boolean;
+
   /**
    * Whether bulk export action is enabled
    */
@@ -166,6 +185,16 @@ interface BulkActionsReturn<TData> {
    * Whether bulk export action is enabled
    */
   isBulkExportEnabled: boolean;
+
+  /**
+   * Whether bulk edit action is enabled
+   */
+  isBulkEditEnabled: boolean;
+
+  /**
+   * Whether bulk delete action is enabled
+   */
+  isBulkDeleteEnabled: boolean;
 
   /**
    * Clear all selections
@@ -869,6 +898,8 @@ const _DEBUG = false;
  * on selected table rows
  */
 export function useBulkActions<TData>({
+  bulkEditEnabled = true,
+  bulkDeleteEnabled = true,
   bulkExportEnabled = true,
   closeOnError = false,
   csvExportColumns = [],
@@ -916,6 +947,12 @@ export function useBulkActions<TData>({
       success: true,
     };
 
+    if (!bulkEditEnabled) {
+      return buildBlockedBulkActionResult(
+        "Bulk edit is disabled by table configuration."
+      );
+    }
+
     if (selectedRows.length === 0) {
       return DEFAULT_BULK_ACTION_FAILURE_RESULT;
     }
@@ -945,10 +982,16 @@ export function useBulkActions<TData>({
       ...DEFAULT_BULK_ACTION_FAILURE_RESULT,
       message: resolution.message,
     };
-  }, [selectedRows, onBulkEdit, provider?.actions.bulkUpdate]);
+  }, [bulkEditEnabled, selectedRows, onBulkEdit, provider?.actions.bulkUpdate]);
 
   // Handle bulk delete
   const handleBulkDelete = useCallback(async (): Promise<BulkActionResult> => {
+    if (!bulkDeleteEnabled) {
+      return buildBlockedBulkActionResult(
+        "Bulk delete is disabled by table configuration."
+      );
+    }
+
     if (selectedRows.length === 0) {
       return DEFAULT_BULK_ACTION_FAILURE_RESULT;
     }
@@ -1010,6 +1053,7 @@ export function useBulkActions<TData>({
     onBulkDelete,
     clearSelection,
     provider?.actions,
+    bulkDeleteEnabled,
     closeOnError,
     showDefaultToastsForCustomHandlers,
   ]);
@@ -1149,6 +1193,8 @@ export function useBulkActions<TData>({
     handleBulkDelete,
     handleBulkCopy,
     handleBulkExport,
+    isBulkDeleteEnabled: bulkDeleteEnabled,
+    isBulkEditEnabled: bulkEditEnabled,
     isBulkExportEnabled: bulkExportEnabled,
     clearSelection,
     closeBulkActions,

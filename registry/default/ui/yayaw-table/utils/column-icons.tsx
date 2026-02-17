@@ -5,8 +5,8 @@
 import {
   Asterisk,
   CalendarDays,
-  CircleDot,
   CheckSquare,
+  CircleDot,
   Hash,
   List,
   type LucideIcon,
@@ -45,7 +45,7 @@ const getSemanticOptionIcon = (
     normalizedType === "option" ||
     normalizedType === "select" ||
     normalizedType === "multioption";
-  if (!isOptionLikeType || !normalizedColumnId) {
+  if (!(isOptionLikeType && normalizedColumnId)) {
     return;
   }
 

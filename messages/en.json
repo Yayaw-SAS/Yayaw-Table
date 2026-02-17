@@ -114,8 +114,9 @@
     "description": "Interactive playground with feature toggles and a production-style products table.",
     "settingsTitle": "Table settings",
     "settingsDescription": "Toggle features live. Settings are persisted in URL query params.",
-    "coreFeatures": "Core features",
-    "exportToolbar": "Export and toolbar",
+    "styleBlock": "Design",
+    "featuresBlock": "Features",
+    "authorizationsBlock": "Authorizations",
     "resetSettings": "Reset settings",
     "resetData": "Reset example data",
     "configurationUsed": "Configuration used",
@@ -126,41 +127,84 @@
     "loadingExample": "Loading example...",
     "feature": {
       "enableRowSelection": {
-        "label": "Row selection",
-        "description": "Enable checkbox selection and bulk actions."
+        "label": "Enable row selection",
+        "description": "Enable row checkboxes and bulk selection behaviors."
       },
       "enableColumnFilters": {
-        "label": "Column filters",
-        "description": "Enable search and filters in toolbar and menus."
+        "label": "Enable column filters",
+        "description": "Enable search and filter controls in toolbar and menus."
       },
       "enableSorting": {
-        "label": "Sorting",
-        "description": "Enable sorting from headers and options menu."
+        "label": "Enable sorting",
+        "description": "Enable sorting from headers and the options menu."
       },
       "enableGrouping": {
-        "label": "Grouping",
+        "label": "Enable grouping",
         "description": "Enable row grouping controls."
       },
       "enableColumnDnd": {
-        "label": "Column drag and drop",
+        "label": "Enable column drag and drop",
         "description": "Enable drag and drop controls in headers and menus."
       },
       "enablePagination": {
-        "label": "Pagination",
+        "label": "Enable pagination",
         "description": "Enable page navigation and page-size selector."
       },
       "export": {
-        "label": "Toolbar export",
-        "description": "Show CSV export button in toolbar."
+        "label": "Enable toolbar export",
+        "description": "Show the CSV export button in the toolbar."
       },
       "bulkExport": {
-        "label": "Bulk export",
-        "description": "Show CSV export action in bulk menu."
+        "label": "Enable bulk export",
+        "description": "Show the CSV export action in the bulk menu."
       },
       "actionsAsIcons": {
-        "label": "Icon toolbar actions",
-        "description": "Render toolbar actions as icon-only with tooltips."
+        "label": "Show actions as icons",
+        "description": "Render toolbar action buttons as icon-only with tooltips."
+      },
+      "showToolbar": {
+        "label": "Show toolbar",
+        "description": "Show search and toolbar actions (Add, Export, Options)."
+      },
+      "showToolbarHeader": {
+        "label": "Show title and description",
+        "description": "Show the toolbar title and description block."
+      },
+      "allowCreate": {
+        "label": "Allow create",
+        "description": "Show and enable the Add item action."
+      },
+      "allowEdit": {
+        "label": "Allow row edit action (menu)",
+        "description": "Show and enable the Edit action in the row actions menu."
+      },
+      "allowDuplicate": {
+        "label": "Allow row duplicate",
+        "description": "Show and enable the row duplicate action."
+      },
+      "allowDelete": {
+        "label": "Allow row delete",
+        "description": "Show and enable the row delete action."
+      },
+      "allowBulkEdit": {
+        "label": "Allow bulk edit",
+        "description": "Show and enable the bulk edit action."
+      },
+      "allowBulkDelete": {
+        "label": "Allow bulk delete",
+        "description": "Show and enable the bulk delete action."
+      },
+      "allowInlineEdit": {
+        "label": "Allow direct cell editing",
+        "description": "Allow direct cell editing inside table rows."
       }
+    },
+    "densityMode": {
+      "label": "Density mode",
+      "description": "Choose row spacing for table headers and cells.",
+      "small": "Small",
+      "medium": "Medium",
+      "large": "Large"
     },
     "toasts": {
       "deleteUnavailable": "Delete action is not available",

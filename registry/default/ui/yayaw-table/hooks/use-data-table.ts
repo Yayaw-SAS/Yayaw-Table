@@ -98,7 +98,15 @@ export function useDataTable<TData extends Record<string, unknown>>(
 
   // Get table configuration using extracted hook
   const { config, translations } = useTableConfig(tableType);
-  const tableInlineEditConfig = config.table.inlineEdit;
+  const tableInlineEditConfig = useMemo(() => {
+    const inlineEditConfig = config.table.inlineEdit;
+    const isInlineEditAllowed = config.table.allowInlineEdit !== false;
+
+    return {
+      ...inlineEditConfig,
+      enabled: (inlineEditConfig?.enabled ?? false) && isInlineEditAllowed,
+    };
+  }, [config.table.inlineEdit, config.table.allowInlineEdit]);
 
   // Debug removed
   const { t } = useTranslations();
@@ -114,10 +122,10 @@ export function useDataTable<TData extends Record<string, unknown>>(
   // Get table actions using extracted hook (before queryFn to avoid circular reference)
   const {
     actions,
-    handleCreate,
-    handleEdit,
-    handleDelete,
-    handleDuplicate,
+    handleCreate: rawHandleCreate,
+    handleEdit: rawHandleEdit,
+    handleDelete: rawHandleDelete,
+    handleDuplicate: rawHandleDuplicate,
     hasAction: _hasAction,
     isActionsAvailable: _isActionsAvailable,
   } = useTableActions<TData>({
@@ -128,6 +136,54 @@ export function useDataTable<TData extends Record<string, unknown>>(
       await invalidateTable();
     },
   });
+
+  const isCreateAllowed = config.table.allowCreate !== false;
+  const isEditAllowed = config.table.allowEdit !== false;
+  const isDuplicateAllowed = config.table.allowDuplicate !== false;
+  const isDeleteAllowed = config.table.allowDelete !== false;
+
+  const handleCreate = useCallback(
+    async (payload: Partial<TData>): Promise<boolean> => {
+      if (!isCreateAllowed) {
+        return false;
+      }
+      return await rawHandleCreate(payload);
+    },
+    [isCreateAllowed, rawHandleCreate]
+  );
+
+  const handleEdit = useCallback(
+    async (
+      row: TData & { id: string },
+      payload: Partial<TData>
+    ): Promise<boolean> => {
+      if (!isEditAllowed) {
+        return false;
+      }
+      return await rawHandleEdit(row, payload);
+    },
+    [isEditAllowed, rawHandleEdit]
+  );
+
+  const handleDelete = useCallback(
+    async (row: TData & { id: string }): Promise<boolean> => {
+      if (!isDeleteAllowed) {
+        return false;
+      }
+      return await rawHandleDelete(row);
+    },
+    [isDeleteAllowed, rawHandleDelete]
+  );
+
+  const handleDuplicate = useCallback(
+    async (row: TData & { id: string }): Promise<boolean> => {
+      if (!isDuplicateAllowed) {
+        return false;
+      }
+      return await rawHandleDuplicate(row);
+    },
+    [isDuplicateAllowed, rawHandleDuplicate]
+  );
 
   // Get table state from URL parameters with proper type assertions
   const columnFilters = (tableUrlState.filtersParam || []) as ColumnFilter[];
@@ -372,8 +428,9 @@ export function useDataTable<TData extends Record<string, unknown>>(
         case "actions": {
           baseColumnDef = column.actions({
             header: "",
-            includeDelete: true,
-            includeEdit: true,
+            includeDelete: isDeleteAllowed,
+            includeDuplicate: isDuplicateAllowed && !!actions.duplicate,
+            includeEdit: isEditAllowed,
             onDelete: async (row: TData) => {
               return await handleDelete(row as TData & { id: string });
             },
@@ -456,6 +513,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
             enableColumnFilter: colDef.enableColumnFilter,
             enableSorting: colDef.enableSorting,
             header: getTranslationSafe(colDef.header),
+            tagColorMap: colDef.tagColorMap,
           });
           break;
         }
@@ -491,9 +549,9 @@ export function useDataTable<TData extends Record<string, unknown>>(
         withInlineEditMeta(
           column.actions({
             header: "",
-            includeDelete: true,
-            includeDuplicate: !!actions.duplicate,
-            includeEdit: true,
+            includeDelete: isDeleteAllowed,
+            includeDuplicate: isDuplicateAllowed && !!actions.duplicate,
+            includeEdit: isEditAllowed,
             includeView: true,
             onDelete: async (row: TData) => {
               return await handleDelete(row as TData & { id: string });
@@ -540,6 +598,9 @@ export function useDataTable<TData extends Record<string, unknown>>(
     enhancedRefetch,
     getTranslationSafe,
     actions.duplicate,
+    isDeleteAllowed,
+    isDuplicateAllowed,
+    isEditAllowed,
     handleDelete,
     handleEdit,
     handleDuplicate,
@@ -625,6 +686,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
     actions: {
       create: handleCreate,
       delete: handleDelete,
+      duplicate: handleDuplicate,
       edit: handleEdit,
       invalidateTable,
       refresh: enhancedRefetch,
@@ -646,6 +708,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
     // Data actions
     handleCreate,
     handleDelete,
+    handleDuplicate,
     handleEdit,
     isError,
     isLoading,

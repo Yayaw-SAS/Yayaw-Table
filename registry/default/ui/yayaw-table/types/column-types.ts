@@ -49,6 +49,11 @@ export interface DataTableColumnDef<
    */
   dateFormat?: string;
 
+  /**
+   * Optional map of tag value -> Tailwind class used by tag columns.
+   */
+  tagColorMap?: Record<string, string>;
+
   // Column type for specialized rendering and filtering
   type?:
     | "boolean"

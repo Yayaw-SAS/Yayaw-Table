@@ -35,6 +35,15 @@ const DEFAULT_BULK_ACTION_FAILURE_RESULT: BulkActionResult = {
   success: false,
 };
 
+function buildBlockedBulkActionResult(message: string): BulkActionResult {
+  return {
+    clearSelection: false,
+    closeMenu: false,
+    message,
+    success: false,
+  };
+}
+
 /**
  * Custom delete callbacks can:
  * - return `void` to fully own user feedback,
@@ -58,6 +67,16 @@ export type BulkDeleteCustomHandlerResult =
  * Configuration for bulk actions
  */
 interface BulkActionsConfig<TData> {
+  /**
+   * Whether bulk edit action is enabled
+   */
+  bulkEditEnabled?: boolean;
+
+  /**
+   * Whether bulk delete action is enabled
+   */
+  bulkDeleteEnabled?: boolean;
+
   /**
    * Whether bulk export action is enabled
    */
@@ -168,6 +187,16 @@ interface BulkActionsReturn<TData> {
   isBulkExportEnabled: boolean;
 
   /**
+   * Whether bulk edit action is enabled
+   */
+  isBulkEditEnabled: boolean;
+
+  /**
+   * Whether bulk delete action is enabled
+   */
+  isBulkDeleteEnabled: boolean;
+
+  /**
    * Clear all selections
    */
   clearSelection: () => void;
@@ -262,7 +291,9 @@ export function normalizeBulkActionResult(
   }
 
   const success =
-    typeof result.success === "boolean" ? result.success : fallbackResult.success;
+    typeof result.success === "boolean"
+      ? result.success
+      : fallbackResult.success;
   const closeMenu =
     typeof result.closeMenu === "boolean"
       ? result.closeMenu
@@ -396,7 +427,9 @@ function inferBulkDeleteCounts(
   return { failureCount, successCount };
 }
 
-export function extractSelectedRowIds<TData>(selectedRows: Row<TData>[]): string[] {
+export function extractSelectedRowIds<TData>(
+  selectedRows: Row<TData>[]
+): string[] {
   const ids = new Set<string>();
 
   for (const row of selectedRows) {
@@ -454,7 +487,7 @@ export async function executeBulkDeleteOperation({
 
       const errorMessages = normalizeUniqueMessages([
         result.error ?? "",
-        !result.success ? DEFAULT_BULK_DELETE_ERROR : "",
+        result.success ? "" : DEFAULT_BULK_DELETE_ERROR,
       ]);
 
       return {
@@ -466,9 +499,7 @@ export async function executeBulkDeleteOperation({
       };
     } catch (error) {
       return {
-        errorMessages: [
-          toErrorMessage(error, DEFAULT_BULK_DELETE_ERROR),
-        ],
+        errorMessages: [toErrorMessage(error, DEFAULT_BULK_DELETE_ERROR)],
         failureCount: totalCount,
         mode: "bulkDelete",
         successCount: 0,
@@ -498,7 +529,9 @@ export async function executeBulkDeleteOperation({
         continue;
       }
 
-      errorMessages.push(toErrorMessage(result.reason, DEFAULT_BULK_DELETE_ERROR));
+      errorMessages.push(
+        toErrorMessage(result.reason, DEFAULT_BULK_DELETE_ERROR)
+      );
     }
 
     return {
@@ -612,10 +645,12 @@ function resolveBulkDeleteStructuredResult(options: {
   const isSuccess = feedback.tone === "success";
 
   return {
-    closeMenu: options.explicitCloseMenu ?? (isSuccess ? true : options.closeOnError),
+    closeMenu:
+      options.explicitCloseMenu ?? (isSuccess ? true : options.closeOnError),
     feedback,
     shouldClearSelection:
-      options.explicitClearSelection ?? (isSuccess ? true : options.closeOnError),
+      options.explicitClearSelection ??
+      (isSuccess ? true : options.closeOnError),
     success: isSuccess,
   };
 }
@@ -657,12 +692,13 @@ function resolveBulkDeleteExplicitSuccessResult(options: {
 
   return {
     closeMenu: options.explicitCloseMenu ?? shouldClearSelection,
-    feedback: feedbackMessage.length > 0
-      ? {
-          message: feedbackMessage,
-          tone: options.explicitSuccess ? "success" : "error",
-        }
-      : undefined,
+    feedback:
+      feedbackMessage.length > 0
+        ? {
+            message: feedbackMessage,
+            tone: options.explicitSuccess ? "success" : "error",
+          }
+        : undefined,
     shouldClearSelection,
     success: options.explicitSuccess,
   };
@@ -869,6 +905,8 @@ const _DEBUG = false;
  * on selected table rows
  */
 export function useBulkActions<TData>({
+  bulkEditEnabled = true,
+  bulkDeleteEnabled = true,
   bulkExportEnabled = true,
   closeOnError = false,
   csvExportColumns = [],
@@ -916,6 +954,12 @@ export function useBulkActions<TData>({
       success: true,
     };
 
+    if (!bulkEditEnabled) {
+      return buildBlockedBulkActionResult(
+        "Bulk edit is disabled by table configuration."
+      );
+    }
+
     if (selectedRows.length === 0) {
       return DEFAULT_BULK_ACTION_FAILURE_RESULT;
     }
@@ -945,10 +989,16 @@ export function useBulkActions<TData>({
       ...DEFAULT_BULK_ACTION_FAILURE_RESULT,
       message: resolution.message,
     };
-  }, [selectedRows, onBulkEdit, provider?.actions.bulkUpdate]);
+  }, [bulkEditEnabled, selectedRows, onBulkEdit, provider?.actions.bulkUpdate]);
 
   // Handle bulk delete
   const handleBulkDelete = useCallback(async (): Promise<BulkActionResult> => {
+    if (!bulkDeleteEnabled) {
+      return buildBlockedBulkActionResult(
+        "Bulk delete is disabled by table configuration."
+      );
+    }
+
     if (selectedRows.length === 0) {
       return DEFAULT_BULK_ACTION_FAILURE_RESULT;
     }
@@ -1010,6 +1060,7 @@ export function useBulkActions<TData>({
     onBulkDelete,
     clearSelection,
     provider?.actions,
+    bulkDeleteEnabled,
     closeOnError,
     showDefaultToastsForCustomHandlers,
   ]);
@@ -1062,7 +1113,10 @@ export function useBulkActions<TData>({
 
       throw new Error("Clipboard API is not available in this environment.");
     } catch (error) {
-      const errorMessage = toErrorMessage(error, "Failed to copy selected rows.");
+      const errorMessage = toErrorMessage(
+        error,
+        "Failed to copy selected rows."
+      );
       toast.error(errorMessage);
       return {
         ...DEFAULT_BULK_ACTION_FAILURE_RESULT,
@@ -1120,7 +1174,10 @@ export function useBulkActions<TData>({
       });
       return successResult;
     } catch (error) {
-      const errorMessage = toErrorMessage(error, "Failed to export selected rows.");
+      const errorMessage = toErrorMessage(
+        error,
+        "Failed to export selected rows."
+      );
       toast.error(errorMessage);
       return {
         ...DEFAULT_BULK_ACTION_FAILURE_RESULT,
@@ -1149,6 +1206,8 @@ export function useBulkActions<TData>({
     handleBulkDelete,
     handleBulkCopy,
     handleBulkExport,
+    isBulkDeleteEnabled: bulkDeleteEnabled,
+    isBulkEditEnabled: bulkEditEnabled,
     isBulkExportEnabled: bulkExportEnabled,
     clearSelection,
     closeBulkActions,

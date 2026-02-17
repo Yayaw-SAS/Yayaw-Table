@@ -180,6 +180,7 @@ Tag columns render values as colored badges. Colors are **deterministic**: the s
 ### Custom colors per value: `tagColorMap`
 
 You can override colors for specific tag values by passing a `tagColorMap` in the column definition. Keys are tag values (lookup tries the raw value, then the normalized value); values are Tailwind classes for the badge (e.g. background + text).
+This works directly from `columns.definitions` without custom column wiring.
 
 Example:
 

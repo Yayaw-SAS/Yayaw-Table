@@ -9,7 +9,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Copy, Download, Edit, Trash2, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { useOnClickOutside } from "usehooks-ts";
-import { cn } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,6 +20,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import type {
   BulkActionCustomHandlerResult,
   BulkActionResult,
@@ -80,6 +80,16 @@ export interface BulkActionsMenuProps<TData> {
    * Whether export action should be shown
    */
   showBulkExport?: boolean;
+
+  /**
+   * Whether bulk edit action should be shown
+   */
+  showBulkEdit?: boolean;
+
+  /**
+   * Whether bulk delete action should be shown
+   */
+  showBulkDelete?: boolean;
 }
 
 // Configuration pour les tabs d'actions
@@ -151,7 +161,10 @@ const transition = {
 };
 
 export function shouldIgnoreOutsideClickForBulkMenu(
-  state: Pick<BulkMenuOutsideClickState, "isConfirmingAction" | "showConfirmation">
+  state: Pick<
+    BulkMenuOutsideClickState,
+    "isConfirmingAction" | "showConfirmation"
+  >
 ): boolean {
   return state.showConfirmation || state.isConfirmingAction;
 }
@@ -296,6 +309,8 @@ export function BulkActionsMenu<TData>({
   onClose,
   className,
   showBulkExport = true,
+  showBulkEdit = true,
+  showBulkDelete = true,
 }: BulkActionsMenuProps<TData>) {
   const [selectedAction, setSelectedAction] =
     useState<ConfirmableMenuActionId | null>(null);
@@ -307,9 +322,9 @@ export function BulkActionsMenu<TData>({
   const outsideClickRef = useRef<HTMLDivElement>(null);
   const { t } = useTranslations();
 
-  // Only show actions that have handlers. Edit is shown when onBulkEdit is provided.
+  // Action visibility is driven by explicit props.
   const actionTabs: ActionTab[] = [
-    ...(onBulkEdit
+    ...(showBulkEdit
       ? [
           {
             id: "edit" as const,
@@ -335,12 +350,16 @@ export function BulkActionsMenu<TData>({
           },
         ]
       : []),
-    {
-      id: "delete" as const,
-      icon: Trash2,
-      translationKey: "actions.delete",
-      variant: "destructive",
-    },
+    ...(showBulkDelete
+      ? [
+          {
+            id: "delete" as const,
+            icon: Trash2,
+            translationKey: "actions.delete",
+            variant: "destructive" as const,
+          },
+        ]
+      : []),
   ];
 
   useOnClickOutside(outsideClickRef as React.RefObject<HTMLElement>, () => {
@@ -389,11 +408,7 @@ export function BulkActionsMenu<TData>({
 
   const handleConfirmAction = () => {
     const pendingAction = pendingActionRef.current;
-    if (
-      !pendingAction ||
-      confirmationLockRef.current ||
-      isConfirmingAction
-    ) {
+    if (!pendingAction || confirmationLockRef.current || isConfirmingAction) {
       return;
     }
 
@@ -457,7 +472,7 @@ export function BulkActionsMenu<TData>({
         {/* Confirmation dialog (consistent AlertDialog for copy/delete) */}
         <AlertDialog
           onOpenChange={(open) => {
-            if (!open && !isConfirmingAction && !confirmationLockRef.current) {
+            if (!(open || isConfirmingAction || confirmationLockRef.current)) {
               handleCancel();
             }
           }}
@@ -499,7 +514,9 @@ export function BulkActionsMenu<TData>({
                 disabled={isConfirmingAction}
                 onClick={handleConfirmAction}
               >
-                {isConfirmingAction ? t("common.loading") : t("actions.confirm")}
+                {isConfirmingAction
+                  ? t("common.loading")
+                  : t("actions.confirm")}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -539,8 +556,8 @@ export function BulkActionsMenu<TData>({
                 onClick={() => handleTabClick(tab.id)}
                 onMouseEnter={() => setHoveredAction(tab.id)}
                 onMouseLeave={() => setHoveredAction(null)}
-                type="button"
                 transition={transition}
+                type="button"
                 variants={buttonVariants}
               >
                 <Icon size={20} />

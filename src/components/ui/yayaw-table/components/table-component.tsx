@@ -94,15 +94,73 @@ function getHeaderSizeStyle<TData>(
 }
 
 function getHeaderCellClassName<TData>(
-  header: Header<TData, unknown>
+  header: Header<TData, unknown>,
+  densityMode: "small" | "medium" | "large"
 ): string {
+  const isSmallDensity = densityMode === "small";
+  const isLargeDensity = densityMode === "large";
+  const fixedColumnPaddingClass = getFixedColumnPaddingClass(densityMode);
+
   return cn(
     "relative whitespace-nowrap",
+    isSmallDensity && "!h-8 !px-1.5",
+    isLargeDensity && "!h-12 !px-3",
     header.id === "select" &&
-      "select-column px-2 text-center [&:has([role=checkbox])]:pr-2!",
+      cn(
+        "select-column text-center [&:has([role=checkbox])]:pr-2!",
+        fixedColumnPaddingClass
+      ),
     header.id === "actions" &&
-      "actions-column sticky right-0 z-20 px-2 text-center shadow-[-1px_0_0_0_hsl(var(--border))]",
+      cn(
+        "actions-column sticky right-0 z-20 text-center shadow-[-1px_0_0_0_hsl(var(--border))]",
+        fixedColumnPaddingClass
+      ),
     isNumberColumn(header.column.columnDef) && "text-right"
+  );
+}
+
+function getFixedColumnPaddingClass(
+  densityMode: "small" | "medium" | "large"
+): string {
+  if (densityMode === "small") {
+    return "!px-1.5";
+  }
+
+  if (densityMode === "large") {
+    return "!px-3";
+  }
+
+  return "px-2";
+}
+
+function getRegularCellClassName<TData>({
+  cell,
+  densityMode,
+}: {
+  cell: ReturnType<Row<TData>["getVisibleCells"]>[number];
+  densityMode: "small" | "medium" | "large";
+}): string {
+  const fixedColumnPaddingClass = getFixedColumnPaddingClass(densityMode);
+  const isSmallDensity = densityMode === "small";
+  const isLargeDensity = densityMode === "large";
+  const isSelectColumn = cell.column.id === "select";
+  const isActionsColumn = cell.column.id === "actions";
+
+  return cn(
+    isSelectColumn &&
+      cn(
+        "flex justify-center [&:has([role=checkbox])]:pr-2!",
+        fixedColumnPaddingClass
+      ),
+    isActionsColumn &&
+      cn(
+        "sticky right-0 z-10 flex justify-center bg-card shadow-[-1px_0_0_0_hsl(var(--border))] group-hover:bg-muted/50 group-data-[state=selected]:bg-muted/50",
+        fixedColumnPaddingClass
+      ),
+    !(isSmallDensity || isLargeDensity) && "p-2",
+    isSmallDensity && "!p-1.5",
+    isLargeDensity && "!p-3",
+    isNumberColumn(cell.column.columnDef) && "text-right"
   );
 }
 
@@ -485,6 +543,9 @@ function ModernDataTable<
 
   // Get table config to access column types
   const { config: tableConfig } = useTableConfig(resolvedTableType);
+  const densityMode = tableConfig.table.density ?? "medium";
+  const isSmallDensity = densityMode === "small";
+  const isLargeDensity = densityMode === "large";
   // Debug removed to stop spam
 
   const inlineEditFormType =
@@ -769,6 +830,8 @@ function ModernDataTable<
 
   // Setup bulk actions: pass only app-provided callbacks; hook uses provider (update/delete) and clipboard copy when undefined
   const bulkActions = useBulkActions({
+    bulkDeleteEnabled: tableConfig.table.allowBulkDelete !== false,
+    bulkEditEnabled: tableConfig.table.allowBulkEdit !== false,
     bulkExportEnabled: tableConfig.table.bulkExport !== false,
     closeOnError,
     csvExportColumns,
@@ -981,7 +1044,11 @@ function ModernDataTable<
           key={row.id}
         >
           <TableCell
-            className="flex justify-center px-2 align-middle [&:has([role=checkbox])]:pr-2!"
+            className={cn(
+              "flex justify-center align-middle [&:has([role=checkbox])]:pr-2!",
+              isSmallDensity ? "!px-1.5 !py-1.5" : "px-2",
+              isLargeDensity && "!px-3 !py-3"
+            )}
             style={{
               ...(typeof (visibleCells[0].column.columnDef as { maxSize?: number })
                 .maxSize === "number"
@@ -1002,7 +1069,11 @@ function ModernDataTable<
             colSpan={visibleCells.length - 1}
           >
             <Button
-              className="flex h-auto w-full cursor-pointer items-center justify-start gap-2 p-2"
+              className={cn(
+                "flex h-auto w-full cursor-pointer items-center justify-start gap-2",
+                isSmallDensity ? "p-1.5" : "p-2",
+                isLargeDensity && "p-3"
+              )}
               onClick={() => {
                 const isCurrentlyExpanded = localExpanded[row.id] ?? false;
                 setLocalExpanded((prev) => ({
@@ -1087,13 +1158,7 @@ function ModernDataTable<
 
       return (
         <TableCell
-          className={cn(
-            cell.column.id === "select" &&
-              "flex justify-center px-2 [&:has([role=checkbox])]:pr-2!",
-            cell.column.id === "actions" &&
-              "flex justify-center sticky right-0 z-10 bg-card px-2 shadow-[-1px_0_0_0_hsl(var(--border))] group-hover:bg-muted/50 group-data-[state=selected]:bg-muted/50",
-            isNumberColumn(cell.column.columnDef) && "text-right"
-          )}
+          className={getRegularCellClassName({ cell, densityMode })}
           key={cell.id}
           style={sizeStyle}
         >
@@ -1131,9 +1196,19 @@ function ModernDataTable<
       badgeClassName: string
     ) => (
       <TableRow className="border-t bg-muted/20" key={groupId}>
-        <TableCell colSpan={colSpan}>
+        <TableCell
+          className={cn(
+            isSmallDensity && "!p-1.5",
+            isLargeDensity && "!p-3"
+          )}
+          colSpan={colSpan}
+        >
           <Button
-            className="flex h-auto w-full cursor-pointer items-center justify-start gap-2 p-2"
+            className={cn(
+              "flex h-auto w-full cursor-pointer items-center justify-start gap-2",
+              isSmallDensity ? "p-1.5" : "p-2",
+              isLargeDensity && "p-3"
+            )}
             onClick={() => {
               const isExpanded = localExpanded[groupId] ?? false;
               setLocalExpanded((prev) => ({
@@ -1253,6 +1328,9 @@ function ModernDataTable<
     localExpanded,
     state.grouping,
     tableConfig.columns.definitions,
+    densityMode,
+    isSmallDensity,
+    isLargeDensity,
   ]);
 
   // Optimize table header with better memoization (columnOrder in deps so header re-renders when order changes)
@@ -1260,7 +1338,11 @@ function ModernDataTable<
     const orderKey = columnOrder?.join(",") ?? "";
     return (
       <TableHeader
-        className="[&_th]:bg-muted/20 [&_th]:font-medium [&_th]:relative [&_th]:text-sm"
+        className={cn(
+          "[&_th]:bg-muted/20 [&_th]:font-medium [&_th]:relative [&_th]:text-sm",
+          isSmallDensity && "[&_th]:!h-8 [&_th]:!px-1.5",
+          isLargeDensity && "[&_th]:!h-12 [&_th]:!px-3"
+        )}
         key={orderKey}
       >
         {table.getHeaderGroups().map((headerGroup) => (
@@ -1272,7 +1354,7 @@ function ModernDataTable<
               {headerGroup.headers.map((header) => (
                 <SortableHeader
                   aria-label={getHeaderAriaLabel(header.id)}
-                  className={getHeaderCellClassName(header)}
+                  className={getHeaderCellClassName(header, densityMode)}
                   column={header.column as never}
                   id={header.id}
                   key={header.id}
@@ -1293,6 +1375,9 @@ function ModernDataTable<
     horizontalListSortingStrategy,
     columnOrder,
     ColumnSortableContext,
+    isSmallDensity,
+    isLargeDensity,
+    densityMode,
   ]);
 
   // Always keep table UI visible for server-driven tables.
@@ -1396,6 +1481,8 @@ function ModernDataTable<
           onBulkExport={bulkActions.handleBulkExport}
           onClose={bulkActions.closeBulkActions}
           selectedRows={bulkActions.selectedRows}
+          showBulkDelete={bulkActions.isBulkDeleteEnabled}
+          showBulkEdit={bulkActions.isBulkEditEnabled}
           showBulkExport={bulkActions.isBulkExportEnabled}
         />
       )}

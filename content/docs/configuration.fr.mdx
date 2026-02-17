@@ -9,9 +9,19 @@ Liste des options pour le comportement de la table. Configurez-les dans votre d�
 
 ```ts
 table: {
+  allowCreate: true,
+  allowEdit: true,
+  allowDuplicate: true,
+  allowDelete: true,
+  allowBulkEdit: true,
+  allowBulkDelete: true,
+  allowInlineEdit: true,
+  showToolbar: true,
+  showToolbarHeader: true,
   export: true,
   bulkExport: true,
   actionsAsIcons: false,
+  density: 'medium',
   enableRowSelection: true,
   enableColumnFilters: true,
   enableSorting: true,
@@ -32,6 +42,51 @@ Active les cases à cocher de sélection de lignes.
 
 Type : `boolean` | Par défaut : `true`
 
+### allowCreate
+Affiche et active les actions de création dans l'UI de table.
+
+Type : `boolean` | Par défaut : `true`
+
+### allowEdit
+Affiche et active l'action Modifier dans le menu d'actions de ligne.
+
+Type : `boolean` | Par défaut : `true`
+
+### allowDuplicate
+Affiche et active les actions de duplication de ligne.
+
+Type : `boolean` | Par défaut : `true`
+
+### allowDelete
+Affiche et active les actions de suppression de ligne.
+
+Type : `boolean` | Par défaut : `true`
+
+### allowBulkEdit
+Affiche et active l'action d'édition bulk.
+
+Type : `boolean` | Par défaut : `true`
+
+### allowBulkDelete
+Affiche et active l'action de suppression bulk.
+
+Type : `boolean` | Par défaut : `true`
+
+### allowInlineEdit
+Autorise les interactions d'édition inline dans les cellules de la table.
+
+Type : `boolean` | Par défaut : `true`
+
+### showToolbar
+Affiche toute la toolbar de la table (recherche et boutons d'action).
+
+Type : `boolean` | Par défaut : `true`
+
+### showToolbarHeader
+Affiche le bloc d'en-tête de la toolbar (titre et description). Mettre `false` pour ne garder que recherche/actions.
+
+Type : `boolean` | Par défaut : `true`
+
 ### export
 Affiche le bouton d'export CSV dans la toolbar (entre la recherche et les options). Exporte toutes les lignes correspondant à l'état courant (recherche/filtres/tri).
 
@@ -46,6 +101,11 @@ Type : `boolean` | Par défaut : `true`
 Affiche les boutons d'action de la toolbar (`Add`, `Export`, `Options`) sous forme d'icônes uniquement avec tooltip.
 
 Type : `boolean` | Par défaut : `false`
+
+### density
+Mode de densité des lignes de la table.
+
+Type : `'small' | 'medium' | 'large'` | Par défaut : `'medium'`
 
 ### enableColumnFilters
 Active les filtres par colonne.

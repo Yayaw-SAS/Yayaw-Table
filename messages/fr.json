@@ -114,8 +114,9 @@
     "description": "Playground interactif avec toggles de fonctionnalités et table produits orientée production.",
     "settingsTitle": "Configuration de la table",
     "settingsDescription": "Activez ou désactivez les fonctionnalités en direct. Les réglages sont persistés dans l'URL.",
-    "coreFeatures": "Fonctionnalités cœur",
-    "exportToolbar": "Export et toolbar",
+    "styleBlock": "Design",
+    "featuresBlock": "Fonctionnalités",
+    "authorizationsBlock": "Autorisations",
     "resetSettings": "Réinitialiser",
     "resetData": "Réinitialiser les données de l'exemple",
     "configurationUsed": "Configuration utilisée",
@@ -126,41 +127,84 @@
     "loadingExample": "Chargement de l'exemple...",
     "feature": {
       "enableRowSelection": {
-        "label": "Sélection de lignes",
-        "description": "Active les cases à cocher et les actions de masse."
+        "label": "Activer la sélection de lignes",
+        "description": "Active les cases à cocher de sélection et les actions de masse."
       },
       "enableColumnFilters": {
-        "label": "Filtres de colonnes",
+        "label": "Activer les filtres de colonnes",
         "description": "Active la recherche et les filtres dans la toolbar et les menus."
       },
       "enableSorting": {
-        "label": "Tri",
+        "label": "Activer le tri",
         "description": "Active le tri depuis les en-têtes et le menu options."
       },
       "enableGrouping": {
-        "label": "Regroupement",
-        "description": "Active les contrôles de groupement de lignes."
+        "label": "Activer le regroupement",
+        "description": "Active les contrôles de regroupement de lignes."
       },
       "enableColumnDnd": {
-        "label": "Drag and drop des colonnes",
+        "label": "Activer le drag and drop des colonnes",
         "description": "Active le drag and drop dans les en-têtes et menus."
       },
       "enablePagination": {
-        "label": "Pagination",
+        "label": "Activer la pagination",
         "description": "Active la navigation de pages et le sélecteur de taille."
       },
       "export": {
-        "label": "Export toolbar",
+        "label": "Activer l'export toolbar",
         "description": "Affiche le bouton d'export CSV dans la toolbar."
       },
       "bulkExport": {
-        "label": "Export de masse",
+        "label": "Activer l'export de masse",
         "description": "Affiche l'action d'export CSV dans le menu bulk."
       },
       "actionsAsIcons": {
-        "label": "Actions toolbar en icônes",
-        "description": "Rend les actions en mode icône avec infobulles."
+        "label": "Afficher les actions en icônes",
+        "description": "Affiche les actions de toolbar en mode icône avec infobulles."
+      },
+      "showToolbar": {
+        "label": "Afficher la toolbar",
+        "description": "Affiche la recherche et les actions de toolbar (Add, Export, Options)."
+      },
+      "showToolbarHeader": {
+        "label": "Afficher le titre et la description",
+        "description": "Affiche le bloc titre et description de la toolbar."
+      },
+      "allowCreate": {
+        "label": "Autoriser la création",
+        "description": "Affiche et active l'action Add item."
+      },
+      "allowEdit": {
+        "label": "Autoriser l'action Modifier (ligne)",
+        "description": "Affiche et active l'action Modifier dans le menu d'actions de la ligne."
+      },
+      "allowDuplicate": {
+        "label": "Autoriser la duplication ligne",
+        "description": "Affiche et active l'action de duplication de ligne."
+      },
+      "allowDelete": {
+        "label": "Autoriser la suppression ligne",
+        "description": "Affiche et active l'action de suppression de ligne."
+      },
+      "allowBulkEdit": {
+        "label": "Autoriser l'édition bulk",
+        "description": "Affiche et active l'action d'édition bulk."
+      },
+      "allowBulkDelete": {
+        "label": "Autoriser la suppression bulk",
+        "description": "Affiche et active l'action de suppression bulk."
+      },
+      "allowInlineEdit": {
+        "label": "Autoriser l'édition directe des cellules",
+        "description": "Autorise la modification directe des cellules dans les lignes du tableau."
       }
+    },
+    "densityMode": {
+      "label": "Mode de densité",
+      "description": "Choisissez l'espacement des en-têtes et des cellules de la table.",
+      "small": "Petit",
+      "medium": "Moyen",
+      "large": "Grand"
     },
     "toasts": {
       "deleteUnavailable": "L'action de suppression n'est pas disponible",

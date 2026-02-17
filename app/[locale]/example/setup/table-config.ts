@@ -53,6 +53,7 @@ interface ExtendedDataTableConfig extends DataTableConfig {
             prefix?: string;
             suffix?: string;
           };
+      tagColorMap?: Record<string, string>;
     }>;
     order?: string[];
     visible?: string[];
@@ -175,6 +176,11 @@ export const getTableConfig = (
           header: copy.headers.category,
           enableSorting: true,
           enableColumnFilter: true,
+          tagColorMap: {
+            Electronics: "bg-blue-500/80 text-white dark:bg-blue-600/90",
+            Furniture: "bg-amber-500/80 text-white dark:bg-amber-600/90",
+            Wearables: "bg-indigo-500/80 text-white dark:bg-indigo-600/90",
+          },
         },
         {
           id: "price",
@@ -198,6 +204,11 @@ export const getTableConfig = (
           header: copy.headers.status,
           enableSorting: true,
           enableColumnFilter: true,
+          tagColorMap: {
+            available: "bg-green-500/80 text-white dark:bg-green-600/90",
+            low_stock: "bg-orange-500/80 text-white dark:bg-orange-600/90",
+            out_of_stock: "bg-red-500/80 text-white dark:bg-red-600/90",
+          },
         },
         {
           id: "createdAt",

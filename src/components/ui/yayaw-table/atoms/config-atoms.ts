@@ -39,6 +39,51 @@ export interface DataTableColumnsConfig {
  */
 export interface DataTableConfig {
   /**
+   * Allow opening the create flow from table UI actions
+   */
+  allowCreate?: boolean;
+
+  /**
+   * Allow row edit actions
+   */
+  allowEdit?: boolean;
+
+  /**
+   * Allow row duplicate actions
+   */
+  allowDuplicate?: boolean;
+
+  /**
+   * Allow row delete actions
+   */
+  allowDelete?: boolean;
+
+  /**
+   * Allow bulk edit action
+   */
+  allowBulkEdit?: boolean;
+
+  /**
+   * Allow bulk delete action
+   */
+  allowBulkDelete?: boolean;
+
+  /**
+   * Allow inline editing
+   */
+  allowInlineEdit?: boolean;
+
+  /**
+   * Show the table toolbar (search and actions)
+   */
+  showToolbar?: boolean;
+
+  /**
+   * Show the toolbar header block (title and description)
+   */
+  showToolbarHeader?: boolean;
+
+  /**
    * Enable toolbar CSV export button
    */
   export?: boolean;
@@ -52,6 +97,11 @@ export interface DataTableConfig {
    * Render toolbar action buttons as icons with tooltips
    */
   actionsAsIcons?: boolean;
+
+  /**
+   * Table density mode
+   */
+  density?: "small" | "medium" | "large";
 
   /**
    * Default page size
@@ -142,9 +192,19 @@ export interface DataTableConfig {
  * Default table configuration
  */
 const defaultTableConfig: DataTableConfig = {
+  allowCreate: true,
+  allowEdit: true,
+  allowDuplicate: true,
+  allowDelete: true,
+  allowBulkEdit: true,
+  allowBulkDelete: true,
+  allowInlineEdit: true,
+  showToolbar: true,
+  showToolbarHeader: true,
   export: true,
   bulkExport: true,
   actionsAsIcons: false,
+  density: "medium",
   defaultPageSize: 10,
   enableColumnDragDropByDefault: true,
   enableColumnDnd: true,

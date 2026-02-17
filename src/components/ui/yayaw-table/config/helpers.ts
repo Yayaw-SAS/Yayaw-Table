@@ -159,6 +159,11 @@ export interface ColumnDefinition {
   inlineEdit?: boolean | InlineEditColumnConfig;
 
   /**
+   * Optional map of tag value -> Tailwind class used by tag columns.
+   */
+  tagColorMap?: Record<string, string>;
+
+  /**
    * Key that contains the type information for dynamicType columns
    * Only used when type is "dynamicType"
    */
@@ -169,6 +174,51 @@ export interface ColumnDefinition {
  * Configuration for the table behavior
  */
 export interface TableBehaviorConfig {
+  /**
+   * Allow opening the create flow from table UI actions
+   */
+  allowCreate: boolean;
+
+  /**
+   * Allow row edit actions
+   */
+  allowEdit: boolean;
+
+  /**
+   * Allow row duplicate actions
+   */
+  allowDuplicate: boolean;
+
+  /**
+   * Allow row delete actions
+   */
+  allowDelete: boolean;
+
+  /**
+   * Allow bulk edit action
+   */
+  allowBulkEdit: boolean;
+
+  /**
+   * Allow bulk delete action
+   */
+  allowBulkDelete: boolean;
+
+  /**
+   * Allow inline editing
+   */
+  allowInlineEdit: boolean;
+
+  /**
+   * Show the table toolbar (search and actions)
+   */
+  showToolbar: boolean;
+
+  /**
+   * Show the toolbar header block (title and description)
+   */
+  showToolbarHeader: boolean;
+
   /**
    * Enable toolbar CSV export button
    */
@@ -183,6 +233,11 @@ export interface TableBehaviorConfig {
    * Render toolbar action buttons as icons with tooltips
    */
   actionsAsIcons: boolean;
+
+  /**
+   * Table density mode
+   */
+  density: "small" | "medium" | "large";
 
   /**
    * Default number of rows per page
