@@ -386,17 +386,16 @@ export function useDataTable<TData extends Record<string, unknown>>(
                 };
               }
             ).meta;
-            columnDefs.push(
-              column.date(colDef.id as keyof TData, {
-                dateDisplayPreset:
-                  colDef.dateDisplayPreset ?? dateMeta?.dateDisplayPreset,
-                dateFormat: colDef.dateFormat ?? dateMeta?.dateFormat,
-                enableColumnFilter: colDef.enableColumnFilter,
-                enableSorting: colDef.enableSorting,
-                fallbackDateDisplayPreset: config.table.dateDisplayPreset,
-                header: getTranslationSafe(colDef.header),
-              })
-            );
+          columnDefs.push(
+            column.date(colDef.id as keyof TData, {
+              dateDisplayPreset: colDef.dateDisplayPreset ?? dateMeta?.dateDisplayPreset,
+              dateFormat: colDef.dateFormat ?? dateMeta?.dateFormat,
+              enableColumnFilter: colDef.enableColumnFilter,
+              enableSorting: colDef.enableSorting,
+              fallbackDateDisplayPreset: config.table.dateDisplayPreset,
+              header: getTranslationSafe(colDef.header),
+            })
+          );
           }
           break;
         case "dynamicType":
@@ -417,9 +416,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
           );
           break;
         case "number": {
-          const numberColDef = colDef as {
-            numberFormat?: import("../utils/number-format").NumberFormatConfig;
-          };
+          const numberColDef = colDef as { numberFormat?: import("../utils/number-format").NumberFormatConfig };
           columnDefs.push(
             column.number(colDef.id as keyof TData, {
               enableColumnFilter: colDef.enableColumnFilter,

@@ -9,6 +9,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Copy, Download, Edit, Trash2, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { useOnClickOutside } from "usehooks-ts";
+import { cn } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,7 +21,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import type {
   BulkActionCustomHandlerResult,
   BulkActionResult,
@@ -151,10 +151,7 @@ const transition = {
 };
 
 export function shouldIgnoreOutsideClickForBulkMenu(
-  state: Pick<
-    BulkMenuOutsideClickState,
-    "isConfirmingAction" | "showConfirmation"
-  >
+  state: Pick<BulkMenuOutsideClickState, "isConfirmingAction" | "showConfirmation">
 ): boolean {
   return state.showConfirmation || state.isConfirmingAction;
 }
@@ -392,7 +389,11 @@ export function BulkActionsMenu<TData>({
 
   const handleConfirmAction = () => {
     const pendingAction = pendingActionRef.current;
-    if (!pendingAction || confirmationLockRef.current || isConfirmingAction) {
+    if (
+      !pendingAction ||
+      confirmationLockRef.current ||
+      isConfirmingAction
+    ) {
       return;
     }
 
@@ -456,7 +457,7 @@ export function BulkActionsMenu<TData>({
         {/* Confirmation dialog (consistent AlertDialog for copy/delete) */}
         <AlertDialog
           onOpenChange={(open) => {
-            if (!(open || isConfirmingAction || confirmationLockRef.current)) {
+            if (!open && !isConfirmingAction && !confirmationLockRef.current) {
               handleCancel();
             }
           }}
@@ -498,9 +499,7 @@ export function BulkActionsMenu<TData>({
                 disabled={isConfirmingAction}
                 onClick={handleConfirmAction}
               >
-                {isConfirmingAction
-                  ? t("common.loading")
-                  : t("actions.confirm")}
+                {isConfirmingAction ? t("common.loading") : t("actions.confirm")}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -540,8 +539,8 @@ export function BulkActionsMenu<TData>({
                 onClick={() => handleTabClick(tab.id)}
                 onMouseEnter={() => setHoveredAction(tab.id)}
                 onMouseLeave={() => setHoveredAction(null)}
-                transition={transition}
                 type="button"
+                transition={transition}
                 variants={buttonVariants}
               >
                 <Icon size={20} />
