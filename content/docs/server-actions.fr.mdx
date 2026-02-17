@@ -169,7 +169,9 @@ Your `list` action should handle `search`, `filters`, `advancedFilters`, `orderB
 
 ## Example app
 
-The `/example` route in this repo uses the pattern above: Server Actions in `app/example/actions/products.ts`, server logic in `app/example/lib/products-server.ts`, and `getTableActions` returning those actions. You can copy and adapt it for your app.
+The `/example` route currently runs in local mode so edits remain interactive without a backend: it uses `app/[locale]/example/lib/products-local-actions.ts` with browser `localStorage` persistence.
+
+Server Action reference files are still present in `app/[locale]/example/actions/products.ts` and `app/[locale]/example/lib/products-server.ts`. Wire those actions through `getTableActions` if you want the same page in full server mode.
 
 See also:
 - [Provider & Setup](/docs/setup)

@@ -155,7 +155,6 @@ function handleSuccessFlow<TFieldValues extends FieldValues>(
   setFormState: (fn: (prev: CatalogueFormState) => CatalogueFormState) => void,
   setFormSubmitted: (submitted: boolean) => void,
   translations: CatalogueFormTranslations,
-  formSubmitted: boolean,
   form: { reset: (values?: TFieldValues) => void },
   isChangingStateRef: React.MutableRefObject<boolean>
 ): string {
@@ -169,12 +168,10 @@ function handleSuccessFlow<TFieldValues extends FieldValues>(
     translations
   );
 
-  // Only show success toast if a form was actually submitted
-  if (formSubmitted) {
-    toast.success(successMessage, {
-      duration: 3000,
-    });
-  }
+  // Show a success toast for each successful form submission.
+  toast.success(successMessage, {
+    duration: 3000,
+  });
 
   // For update operations, update the initialData in the form state with fresh data
   if (currentMode === "update" && result) {
@@ -296,7 +293,7 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
   // Add a ref to track if we're in the middle of a state change
   const isChangingStateRef = useRef(false);
 
-  const [formSubmitted, setFormSubmitted] = useAtom(formSubmittedAtom);
+  const [, setFormSubmitted] = useAtom(formSubmittedAtom);
 
   const drawerContentRef = useRef<HTMLDivElement>(null);
   const previousActiveElementRef = useRef<HTMLElement | null>(null);
@@ -344,7 +341,6 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
           setFormState,
           setFormSubmitted,
           t,
-          formSubmitted,
           formRef.current ?? {
             reset: () => {
               /* fallback when form not yet set */
@@ -366,7 +362,6 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
       setError,
       mode,
       initialData,
-      formSubmitted,
       onSuccessRef.current,
     ]
   );

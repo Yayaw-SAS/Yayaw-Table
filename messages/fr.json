@@ -170,6 +170,9 @@
       "deleteError": "Échec de la suppression des produits",
       "copySuccess": "{count} produits copiés dans le presse-papiers.",
       "copyError": "Échec de la copie des produits dans le presse-papiers",
+      "bulkEditNoRowsSelected": "Aucune ligne sélectionnée pour la mise à jour en masse.",
+      "bulkEditNoChanges": "Aucune modification à appliquer.",
+      "bulkEditNoRowsInMenu": "Aucune ligne sélectionnée.",
       "resetDataSuccess": "Les données de l'exemple ont été réinitialisées.",
       "resetDataError": "Échec de la réinitialisation des données de l'exemple"
     }

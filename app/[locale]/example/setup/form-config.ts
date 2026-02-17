@@ -9,6 +9,12 @@ const FORM_COPY: Record<
   {
     bulkDescription: string;
     bulkTitle: string;
+    bulkTranslations: {
+      update: string;
+      updated: string;
+      updateError: string;
+      updating: string;
+    };
     fields: {
       active: string;
       brand: string;
@@ -33,6 +39,12 @@ const FORM_COPY: Record<
     bulkDescription:
       "Edit multiple products at once. Only filled fields will be applied to all selected items. Unique fields like SKU or product codes are excluded to prevent conflicts.",
     bulkTitle: "Bulk Edit Products",
+    bulkTranslations: {
+      update: "Update selected items",
+      updated: "Items updated successfully",
+      updateError: "Failed to update items",
+      updating: "Updating items...",
+    },
     fields: {
       active: "Active",
       brand: "Brand",
@@ -51,8 +63,12 @@ const FORM_COPY: Record<
       outOfStock: "Out of Stock",
     },
     translations: {
+      created: "Product created successfully",
+      createError: "Failed to create product",
       "createForm.description": "Create a new product in your inventory",
       "createForm.title": "Add New Product",
+      updated: "Product updated successfully",
+      updateError: "Failed to update product",
       "updateForm.description": "Update product information",
       "updateForm.title": "Edit Product",
       cancel: "Cancel",
@@ -69,6 +85,12 @@ const FORM_COPY: Record<
     bulkDescription:
       "Modifiez plusieurs produits en une fois. Seuls les champs remplis seront appliqués aux éléments sélectionnés. Les champs uniques comme SKU ou code produit sont exclus pour éviter les conflits.",
     bulkTitle: "Édition en masse des produits",
+    bulkTranslations: {
+      update: "Mettre à jour les éléments sélectionnés",
+      updated: "Éléments mis à jour avec succès",
+      updateError: "Échec de la mise à jour des éléments",
+      updating: "Mise à jour des éléments...",
+    },
     fields: {
       active: "Actif",
       brand: "Marque",
@@ -87,9 +109,13 @@ const FORM_COPY: Record<
       outOfStock: "Rupture de stock",
     },
     translations: {
+      created: "Produit créé avec succès",
+      createError: "Échec de la création du produit",
       "createForm.description":
         "Créez un nouveau produit dans votre inventaire",
       "createForm.title": "Ajouter un produit",
+      updated: "Produit mis à jour avec succès",
+      updateError: "Échec de la mise à jour du produit",
       "updateForm.description": "Mettre à jour les informations du produit",
       "updateForm.title": "Modifier le produit",
       cancel: "Annuler",
@@ -177,13 +203,14 @@ export const getFormConfig = <TFieldValues extends FieldValues = FieldValues>(
   locale: AppLocale = "en"
 ): FormConfig<TFieldValues> | undefined => {
   const baseProductConfig = createBaseProductConfig(locale);
+  const copy = FORM_COPY[locale] ?? FORM_COPY.en;
 
   if (formType === "products") {
     return baseProductConfig as unknown as FormConfig<TFieldValues>;
   }
 
   if (formType === "products-bulk") {
-    return createBulkEditFormConfig(baseProductConfig, {
+    const bulkConfig = createBulkEditFormConfig(baseProductConfig, {
       title: FORM_COPY[locale]?.bulkTitle ?? FORM_COPY.en.bulkTitle,
       description:
         FORM_COPY[locale]?.bulkDescription ?? FORM_COPY.en.bulkDescription,
@@ -191,6 +218,20 @@ export const getFormConfig = <TFieldValues extends FieldValues = FieldValues>(
       // Protect unique fields from mass edits.
       uniqueFields: ["sku", "productCode"],
     }) as unknown as FormConfig<TFieldValues>;
+
+    return {
+      ...bulkConfig,
+      translations: {
+        ...bulkConfig.translations,
+        keys: {
+          ...bulkConfig.translations.keys,
+          update: copy.bulkTranslations.update,
+          updated: copy.bulkTranslations.updated,
+          updateError: copy.bulkTranslations.updateError,
+          updating: copy.bulkTranslations.updating,
+        },
+      },
+    };
   }
 
   return;

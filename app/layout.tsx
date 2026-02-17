@@ -51,9 +51,11 @@ export default async function RootLayout({
     >
       <body className="flex min-h-screen flex-col font-sans text-foreground antialiased">
         <NuqsAdapter>
-          <RootProvider theme={rootThemeOptions}>{children}</RootProvider>
+          <RootProvider theme={rootThemeOptions}>
+            {children}
+            <Toaster />
+          </RootProvider>
         </NuqsAdapter>
-        <Toaster />
       </body>
     </html>
   );

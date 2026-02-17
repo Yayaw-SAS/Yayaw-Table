@@ -1,9 +1,11 @@
 import type { Product } from "./setup/types";
 
 /**
- * Seed data for products. Table actions (list, create, update, delete, bulk)
- * are implemented as Server Actions in app/example/actions/products.ts
- * and use app/example/lib/products-server.ts (which keeps a server-side copy).
+ * Seed data for products used by the local example actions
+ * (app/[locale]/example/lib/products-local-actions.ts).
+ * The Server Action references are still available in
+ * app/[locale]/example/actions/products.ts and
+ * app/[locale]/example/lib/products-server.ts.
  */
 export const products: Product[] = [
   {

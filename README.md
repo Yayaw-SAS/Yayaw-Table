@@ -82,7 +82,9 @@ Docs live in this repo under `content/docs/`. Full documentation (when the site 
 
 ## Example
 
-See the **/example** app in this repo for a full setup: Server Actions for list/create/update/delete/bulk, URL state (Nuqs), advanced filters, bulk edit, and Shadcn UI.
+See the **/example** app in this repo for a full UI integration setup: URL state (Nuqs), advanced filters, bulk edit, and local persisted demo data (`localStorage` + dataset reset).
+
+For a server-driven implementation, follow [Server-side & Server Actions](./content/docs/server-actions.mdx).
 
 ## Registry maintenance (contributors)
 

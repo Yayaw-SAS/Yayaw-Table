@@ -21,6 +21,7 @@ import {
   catalogueFormAtom,
   openUpdateForm,
 } from "@/src/components/ui/yayaw-table/components/forms/atoms/catalogue-form-atoms";
+import type { TableActions } from "@/src/components/ui/yayaw-table/providers/table-provider";
 import type { AppLocale } from "@/src/i18n/routing";
 import { CustomDescription, CustomTitle } from "./components";
 import {
@@ -160,9 +161,7 @@ function extractBulkEditSelectedIds(data: Record<string, unknown>): string[] {
 function sanitizeBulkUpdatePayload(
   data: Record<string, unknown>
 ): Record<string, unknown> {
-  const payload = { ...data };
-  delete payload.id;
-  delete payload._bulkEdit;
+  const { id: _id, _bulkEdit, ...payload } = data;
 
   return Object.fromEntries(
     Object.entries(payload).filter(
@@ -317,7 +316,7 @@ function BulkActionsSection({
   const setFormState = useSetAtom(catalogueFormAtom);
 
   const getLocalTableActions = useCallback(
-    (formType: string) => {
+    (formType: string): TableActions | undefined => {
       if (formType === PRODUCTS_TABLE_TYPE) {
         return tableActions;
       }
@@ -329,7 +328,7 @@ function BulkActionsSection({
             if (selectedIds.length === 0) {
               return {
                 success: false,
-                error: "No rows selected for bulk update.",
+                error: t("toasts.bulkEditNoRowsSelected"),
               };
             }
 
@@ -337,7 +336,7 @@ function BulkActionsSection({
             if (Object.keys(payload).length === 0) {
               return {
                 success: false,
-                error: "No changes to apply.",
+                error: t("toasts.bulkEditNoChanges"),
               };
             }
 
@@ -363,7 +362,7 @@ function BulkActionsSection({
 
       return;
     },
-    [tableActions]
+    [tableActions, t]
   );
 
   const handleBulkDelete = async (
@@ -392,7 +391,7 @@ function BulkActionsSection({
       }
 
       await queryClient.invalidateQueries({
-        queryKey: ["tableData", "products"],
+        queryKey: ["tableData", PRODUCTS_TABLE_TYPE],
       });
 
       return {
@@ -470,14 +469,14 @@ function BulkActionsSection({
         return {
           clearSelection: false,
           closeMenu: false,
-          message: "No rows selected.",
+          message: t("toasts.bulkEditNoRowsInMenu"),
           success: false,
         };
       }
 
-      const bulkFormState = openUpdateForm(
+      const bulkFormState = openUpdateForm<Record<string, unknown>>(
         PRODUCTS_BULK_FORM_TYPE,
-        PRODUCTS_BULK_FORM_TYPE,
+        PRODUCTS_TABLE_TYPE,
         {
           id: BULK_EDIT_SYNTHETIC_ID,
           _bulkEdit: {
@@ -488,7 +487,7 @@ function BulkActionsSection({
       );
 
       setFormState(
-        bulkFormState as unknown as CatalogueFormState<Record<string, unknown>>
+        bulkFormState as CatalogueFormState<Record<string, unknown>>
       );
 
       return {
@@ -497,7 +496,7 @@ function BulkActionsSection({
         success: true,
       };
     },
-    [setFormState]
+    [setFormState, t]
   );
 
   const getTableConfigWithOverrides = useCallback(
@@ -676,7 +675,7 @@ export default function ExamplePage() {
 
     try {
       await queryClient.invalidateQueries({
-        queryKey: ["tableData", "products"],
+        queryKey: ["tableData", PRODUCTS_TABLE_TYPE],
       });
       toast.success(t("toasts.resetDataSuccess"));
     } catch {
@@ -705,7 +704,7 @@ export default function ExamplePage() {
     setProductsPageParam("0");
     queryClient
       .invalidateQueries({
-        queryKey: ["tableData", "products"],
+        queryKey: ["tableData", PRODUCTS_TABLE_TYPE],
       })
       .catch(() => {
         /* ignore invalidation errors */
@@ -727,7 +726,7 @@ export default function ExamplePage() {
     setProductsPageParam("0");
     queryClient
       .invalidateQueries({
-        queryKey: ["tableData", "products"],
+        queryKey: ["tableData", PRODUCTS_TABLE_TYPE],
       })
       .catch(() => {
         /* ignore invalidation errors */
@@ -743,7 +742,7 @@ export default function ExamplePage() {
     setProductsExpandedParam(null);
     queryClient
       .invalidateQueries({
-        queryKey: ["tableData", "products"],
+        queryKey: ["tableData", PRODUCTS_TABLE_TYPE],
       })
       .catch(() => {
         /* ignore invalidation errors */

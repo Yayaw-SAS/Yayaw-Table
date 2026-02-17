@@ -170,6 +170,9 @@
       "deleteError": "Failed to delete products",
       "copySuccess": "Copied {count} products to clipboard.",
       "copyError": "Failed to copy products to clipboard",
+      "bulkEditNoRowsSelected": "No rows selected for bulk update.",
+      "bulkEditNoChanges": "No changes to apply.",
+      "bulkEditNoRowsInMenu": "No rows selected.",
       "resetDataSuccess": "Example data has been reset.",
       "resetDataError": "Failed to reset example data"
     }
