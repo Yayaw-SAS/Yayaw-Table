@@ -1,15 +1,15 @@
 ---
-title: Translations Reference
-description: Translation keys, namespaces, and override strategies
+title: Référence des traductions
+description: Clés de traduction, namespaces et stratégies de surcharge
 ---
 
-# Translations Reference
+# Référence des traductions
 
-Translations are strongly typed. Provide overrides either via the provider or directly in your table configuration under `translations.keys`.
+Les traductions sont fortement typées. Vous pouvez fournir des surcharges soit via le provider, soit directement dans la configuration de table sous `translations.keys`.
 
-**Important:** When you use the **catalogue form** (create/edit via `getFormConfig`), the form uses the same translation function `t()` as the table — i.e. the same `DataTableTranslations` object passed to the provider. You must include **form** and **value** keys in that object so that field labels, placeholders (including the value-type field), and form buttons resolve correctly. Otherwise you will see raw keys like `value.string_placeholder` in the UI.
+**Important :** quand vous utilisez le **catalogue form** (create/edit via `getFormConfig`), le formulaire utilise la même fonction de traduction `t()` que la table, c'est-à-dire le même objet `DataTableTranslations` passé au provider. Vous devez inclure les clés **form** et **value** dans cet objet pour que les labels de champs, placeholders (y compris le champ value-type) et boutons de formulaire se résolvent correctement. Sinon, vous verrez des clés brutes comme `value.string_placeholder` dans l'UI.
 
-## Type shape
+## Structure du type
 
 ```ts
 type DataTableTranslations = {
@@ -22,7 +22,7 @@ type DataTableTranslations = {
 }
 ```
 
-## Inline overrides (config)
+## Surcharge inline (config)
 
 ```ts
 translations: {
@@ -34,27 +34,27 @@ translations: {
 }
 ```
 
-## Provider-based
+## Via provider
 
-You can supply a full `DataTableTranslations` object to the provider for consistent localization across tables.
+Vous pouvez fournir un objet `DataTableTranslations` complet au provider pour une localisation cohérente sur toutes les tables.
 
-## Where translations apply
+## Où les traductions s'appliquent
 
-- **Filters (advanced):** Operator names (Contains, Equals, Starts with, etc.) use the `filters.operators.*` keys. Both the dropdown options and the **selected value** shown when the operator select is closed are translated, so the current operator always appears in the active locale (e.g. “Contient” instead of “contains”).
-- **Pagination:** All labels are translated: “Rows per page” (`pagination.rowsPerPage`), the “Page X of Y” text (`pagination.showing`, with `{page}` and `{total}`), and the first/previous/next/last button labels (`pagination.first`, `pagination.previous`, etc.). Both the default pagination and the button-style pagination (SafePagination) use these keys.
+- **Filtres (avancés) :** les libellés d'opérateurs (Contains, Equals, Starts with, etc.) utilisent les clés `filters.operators.*`. Les options du menu et la **valeur sélectionnée** affichée lorsque le select est fermé sont traduites, donc l'opérateur courant apparaît toujours dans la locale active (par ex. “Contient” au lieu de “contains”).
+- **Pagination :** tous les libellés sont traduits : “Rows per page” (`pagination.rowsPerPage`), le texte “Page X of Y” (`pagination.showing`, avec `{page}` et `{total}`), et les labels des boutons first/previous/next/last (`pagination.first`, `pagination.previous`, etc.). La pagination par défaut et la pagination style boutons (SafePagination) utilisent ces clés.
 
-## Form translations (catalogue form)
+## Traductions de formulaire (catalogue form)
 
-When using **getFormConfig** and the built-in create/edit form (catalogue form), the form resolves all labels, placeholders, and button text from the **same** `DataTableTranslations` object you pass to the provider. Add a **form** and **value** section to that object.
+Quand vous utilisez **getFormConfig** et le formulaire create/edit intégré (catalogue form), le formulaire résout tous les labels, placeholders et textes de boutons depuis le **même** objet `DataTableTranslations` passé au provider. Ajoutez une section **form** et **value** dans cet objet.
 
-- **form** – Field labels (use `labelKey` in your form config, e.g. `form.name`), form buttons (cancel, submit, create, update), and success/error messages. The catalogue form also uses `createForm.title` and `createForm.description` for the dialog/drawer header. For select fields, use `form.valueType_options.boolean` etc. if you use `optionKeys`.
-- **value** – Used by the **value-type** field: `value.string_placeholder`, `value.json_placeholder`, `value.number_placeholder`, and for the boolean switch `value.enabled` / `value.disabled`.
+- **form** – Labels de champs (utilisez `labelKey` dans votre form config, par ex. `form.name`), boutons de formulaire (cancel, submit, create, update) et messages succès/erreur. Le catalogue form utilise aussi `createForm.title` et `createForm.description` pour l'en-tête de dialog/drawer. Pour les champs select, utilisez `form.valueType_options.boolean` etc. si vous utilisez `optionKeys`.
+- **value** – Utilisé par le champ **value-type** : `value.string_placeholder`, `value.json_placeholder`, `value.number_placeholder`, et pour le switch booléen `value.enabled` / `value.disabled`.
 
-In your form config, set `labelKey` (and optionally `placeholderKey`, `optionKeys`) on each field so that the form builder replaces labels/options with `t(labelKey)`.
+Dans votre form config, définissez `labelKey` (et éventuellement `placeholderKey`, `optionKeys`) sur chaque champ pour que le form builder remplace labels/options par `t(labelKey)`.
 
-### Example object (form + value)
+### Exemple d'objet (form + value)
 
-Merge this into the `DataTableTranslations` object you pass to the table (e.g. next to `actions`, `columns`, `filters`, etc.):
+Fusionnez ceci dans l'objet `DataTableTranslations` que vous passez à la table (par ex. à côté de `actions`, `columns`, `filters`, etc.) :
 
 ```ts
 const myTableTranslations = {
@@ -97,7 +97,7 @@ const myTableTranslations = {
 };
 ```
 
-Form config example using `labelKey` and `optionKeys` so these keys are used:
+Exemple de form config avec `labelKey` et `optionKeys` pour utiliser ces clés :
 
 ```ts
 defineFormConfig({
@@ -152,18 +152,18 @@ defineFormConfig({
 });
 ```
 
-See also:
+Voir aussi :
 - [DataTable](/docs/datatable)
 - [Columns](/docs/columns)
 - [Provider & Setup](/docs/setup) (getFormConfig)
 
-## All keys (dot-path)
+## Toutes les clés (dot-path)
 
-Use the following keys to construct your translations object. All values are strings.
+Utilisez les clés suivantes pour construire votre objet de traduction. Toutes les valeurs sont des strings.
 
 ### actions
 
-Used by row actions, toolbar export button, and by the **bulk actions menu** (Edit, Copy, Export, Delete tabs and dialog buttons).
+Utilisé par les actions de ligne, le bouton d'export de la toolbar et le **bulk actions menu** (onglets Edit, Copy, Export, Delete et boutons de dialogue).
 
 | Key | Type |
 | --- | --- |
@@ -179,7 +179,7 @@ Used by row actions, toolbar export button, and by the **bulk actions menu** (Ed
 
 ### bulk
 
-Strings for the bulk actions overlay (shown when one or more rows are selected). Supports `{action}`, `{count}` and ICU plural: `{count, plural, one {item} other {items}}`.
+Chaînes utilisées par l'overlay des actions bulk (affiché quand une ou plusieurs lignes sont sélectionnées). Supporte `{action}`, `{count}` et le pluriel ICU : `{count, plural, one {item} other {items}}`.
 
 | Key | Type |
 | --- | --- |
@@ -410,7 +410,7 @@ Strings for the bulk actions overlay (shown when one or more rows are selected).
 
 ### pagination
 
-Used by both the default pagination and the button-style pagination (e.g. “Lignes par page”, “Page 1 of 2”). `pagination.showing` is used for the “Page X of Y” text and supports `{page}` and `{total}`. Default English value: `"Page {page} of {total}"` (example French: `"Page {page} sur {total}"`).
+Utilisé par la pagination par défaut et la pagination style boutons (par ex. “Lignes par page”, “Page 1 of 2”). `pagination.showing` est utilisé pour le texte “Page X of Y” et supporte `{page}` et `{total}`. Valeur anglaise par défaut : `"Page {page} of {total}"` (exemple français : `"Page {page} sur {total}"`).
 
 | Key | Type |
 | --- | --- |
@@ -432,7 +432,7 @@ Used by both the default pagination and the button-style pagination (e.g. “Lig
 
 ### selection
 
-Used for the selection column header and the **bulk actions menu** count (e.g. “3 rows selected”). Supports `{count}` and ICU plural.
+Utilisé pour l'en-tête de la colonne de sélection et le compteur du **bulk actions menu** (par ex. “3 rows selected”). Supporte `{count}` et l'ICU plural.
 
 | Key | Type |
 | --- | --- |
@@ -593,7 +593,7 @@ Used for the selection column header and the **bulk actions menu** count (e.g. �
 
 ### form (catalogue form)
 
-Include these when using create/edit forms so labels, placeholders, and buttons resolve. Use `labelKey` / `optionKeys` in your form config to point to these keys.
+Incluez ces clés lors de l'utilisation des formulaires create/edit pour que labels, placeholders et boutons se résolvent. Utilisez `labelKey` / `optionKeys` dans votre form config pour pointer vers ces clés.
 
 | Key | Type |
 | --- | --- |
@@ -621,7 +621,7 @@ Include these when using create/edit forms so labels, placeholders, and buttons 
 
 ### value (value-type field)
 
-Used by the value-type form field for placeholders and boolean labels.
+Utilisé par le champ value-type du formulaire pour les placeholders et labels booléens.
 
 | Key | Type |
 | --- | --- |

@@ -30,7 +30,6 @@ export default async function Layout({
     { text: t("product"), type: "main", url: `${prefix}/#product` },
     { text: t("docs"), type: "main", url: `${prefix}/docs` },
     { text: t("example"), type: "main", url: `${prefix}/example` },
-    { text: t("changelog"), type: "main", url: `${prefix}/docs/changelog` },
     { text: t("install"), type: "button", url: `${prefix}/docs/installation` },
   ] as const;
 

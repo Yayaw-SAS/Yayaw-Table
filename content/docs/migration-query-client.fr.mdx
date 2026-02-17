@@ -1,27 +1,27 @@
 ---
-title: Migration Guide
-description: From implicit QueryClient to explicit shared provider
+title: Guide de migration
+description: De QueryClient implicite vers un provider partagé explicite
 ---
 
-# Migration Guide
+# Guide de migration
 
-## From implicit QueryClient to explicit shared provider
+## De QueryClient implicite vers un provider partagé explicite
 
-This release removes implicit QueryClient creation inside YaYaw Table.
+Cette version supprime la création implicite de QueryClient à l'intérieur de YaYaw Table.
 
 ## Breaking changes
 
-1. **No internal QueryClient fallback**
-   - Before: `DataTable` could create a client automatically.
-   - Now: a shared QueryClient is required.
-2. **Duplicate client detection**
-   - Passing `queryClient` while a different provider client exists now throws.
-3. **Bulk callback contract (recommended)**
-   - Use explicit `BulkActionResult` to avoid ambiguous branches.
+1. **Plus de fallback QueryClient interne**
+   - Avant : `DataTable` pouvait créer un client automatiquement.
+   - Maintenant : un QueryClient partagé est requis.
+2. **Détection de clients dupliqués**
+   - Passer `queryClient` alors qu'un autre client provider existe déclenche maintenant une erreur.
+3. **Contrat callback bulk (recommandé)**
+   - Utilisez un `BulkActionResult` explicite pour éviter les branches ambiguës.
 
-## Before / After
+## Avant / Après
 
-### Before (implicit behavior)
+### Avant (comportement implicite)
 
 ```tsx
 import { QueryClient } from "@tanstack/react-query";
@@ -41,7 +41,7 @@ export default function ProductsPage() {
 }
 ```
 
-### After (explicit shared provider)
+### Après (provider partagé explicite)
 
 ```tsx
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -62,13 +62,13 @@ export default function ProductsPage() {
 }
 ```
 
-## How to migrate in 5 minutes
+## Comment migrer en 5 minutes
 
-1. Create one app-level `QueryClient`.
-2. Wrap your app/page with `QueryClientProvider`.
-3. Remove any assumption that YaYaw Table creates a client internally.
-4. Ensure all custom invalidations target `["tableData", tableId]`.
-5. (Recommended) return explicit `BulkActionResult` from `onBulkDelete`, `onBulkCopy`, `onBulkEdit`, `onBulkExport`.
+1. Créez un `QueryClient` unique au niveau app.
+2. Encapsulez votre app/page avec `QueryClientProvider`.
+3. Supprimez toute hypothèse selon laquelle YaYaw Table crée un client en interne.
+4. Assurez-vous que toutes les invalidations custom ciblent `["tableData", tableId]`.
+5. (Recommandé) retournez un `BulkActionResult` explicite depuis `onBulkDelete`, `onBulkCopy`, `onBulkEdit`, `onBulkExport`.
 
 ```ts
 type BulkActionResult = {

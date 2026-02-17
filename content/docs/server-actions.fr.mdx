@@ -1,26 +1,26 @@
 ---
 title: Server-side & Server Actions
-description: Using Server Actions for list, create, update, delete and bulk operations
+description: Utiliser les Server Actions pour list, create, update, delete et opérations bulk
 ---
 
 # Server-side & Server Actions
 
-The table is designed to work with **server-side** data: sorting, filtering, and pagination are sent to your backend, and CRUD/bulk operations run on the server. In Next.js, the recommended way to do this is with **Server Actions**.
+La table est conçue pour fonctionner avec des données **server-side** : tri, filtrage et pagination sont envoyés à votre backend, et les opérations CRUD/bulk s'exécutent côté serveur. Dans Next.js, l'approche recommandée pour cela est d'utiliser les **Server Actions**.
 
-## How it works
+## Comment ça marche
 
-1. **State in the URL** – Sort, filters, pagination, and column visibility are stored in the URL (via [Nuqs](/docs/url-state)). The client reads these and calls your data layer with the same parameters.
-2. **getTableActions(tableType)** – You return an object whose methods are your **Server Actions** (or any async functions that call your API).
-3. **list(params)** – Called with `{ filters, advancedFilters, limit, page (1-based), orderBy, search }`. Your action runs on the server and returns `{ data, meta: { pageCount, totalCount } }`.
-4. **create, update, delete, duplicate, bulkDelete, bulkCopy, bulkUpdate** – Same pattern: the table calls the function you provide; you implement it as a Server Action or API call.
+1. **État dans l'URL** – Tri, filtres, pagination et visibilité des colonnes sont stockés dans l'URL (via [Nuqs](/docs/url-state)). Le client lit cet état et appelle votre couche de données avec les mêmes paramètres.
+2. **getTableActions(tableType)** – Vous retournez un objet dont les méthodes sont vos **Server Actions** (ou n'importe quelles fonctions async qui appellent votre API).
+3. **list(params)** – Appelée avec `{ filters, advancedFilters, limit, page (1-based), orderBy, search }`. Votre action s'exécute côté serveur et retourne `{ data, meta: { pageCount, totalCount } }`.
+4. **create, update, delete, duplicate, bulkDelete, bulkCopy, bulkUpdate** – Même principe : la table appelle la fonction que vous fournissez ; vous l'implémentez en Server Action ou en appel API.
 
-So the **library** does not fetch data itself; it calls whatever you pass in `getTableActions`. If that is Server Actions, everything runs on the server.
+Donc la **librairie** ne récupère pas les données elle-même ; elle appelle ce que vous passez à `getTableActions`. Si ce sont des Server Actions, tout s'exécute côté serveur.
 
-## Next.js Server Actions example
+## Exemple Next.js avec Server Actions
 
-### 1. Server module (optional but recommended)
+### 1. Module serveur (optionnel mais recommandé)
 
-Keep your data logic in a server-only module (e.g. `lib/products-server.ts`): list with filter/sort/paginate, create, update, delete, bulk operations. This file must only be imported from Server Actions or other server code.
+Conservez votre logique de données dans un module server-only (par ex. `lib/products-server.ts`) : list avec filtre/tri/pagination, create, update, delete, opérations bulk. Ce fichier doit être importé uniquement depuis des Server Actions ou d'autres modules serveur.
 
 ```ts
 // app/example/lib/products-server.ts
@@ -60,9 +60,9 @@ export async function bulkCopyProducts(ids: string[]) { /* ... */ }
 export async function bulkUpdateProducts(ids: string[], updateData: unknown) { /* ... */ }
 ```
 
-### 2. Server Actions file
+### 2. Fichier Server Actions
 
-Create a file with `"use server"` that re-exposes these functions (or calls your API). These are what you pass to the table.
+Créez un fichier avec `"use server"` qui ré-expose ces fonctions (ou appelle votre API). Ce sont ces fonctions que vous passez à la table.
 
 ```ts
 // app/example/actions/products.ts
@@ -107,9 +107,9 @@ export async function bulkUpdate(ids: string[], updateData: unknown) {
 }
 ```
 
-### 3. Wire actions to the table
+### 3. Connecter les actions à la table
 
-In your table config, return these Server Actions from `getTableActions`:
+Dans votre config de table, retournez ces Server Actions depuis `getTableActions` :
 
 ```ts
 // app/example/setup/table-config.ts
@@ -138,42 +138,42 @@ export const getTableActions = (tableType: string) => {
 };
 ```
 
-`bulkDelete`, `bulkCopy`, `bulkUpdate` without `:` is also valid JavaScript shorthand when the variable and key have the same name.
+`bulkDelete`, `bulkCopy`, `bulkUpdate` sans `:` est aussi un raccourci JavaScript valide quand la variable et la clé ont le même nom.
 
-When the table needs data or runs an action, it will call these functions. In Next.js they run on the server; params and return values are serialized automatically.
+Quand la table a besoin de données ou exécute une action, elle appellera ces fonctions. Dans Next.js, elles s'exécutent côté serveur ; les paramètres et valeurs de retour sont sérialisés automatiquement.
 
-## list params shape
+## Structure des paramètres `list`
 
-The **list** action receives a single object with:
+L'action **list** reçoit un objet unique avec :
 
 | Key | Type | Description |
 |-----|------|-------------|
-| `page` | `number` | 1-based page index. |
-| `limit` | `number` | Page size. |
-| `filters` | `Record<string, unknown>` | Column filters (key = column id, value = filter value). |
-| `advancedFilters` | `array` | Advanced filter rules (columnId, operator, values, type, isActive). |
-| `orderBy` | `Record<string, "asc" \| "desc">` | Sort by field; only first key is used for single-column sort. |
-| `search` | `string` | Global search term. |
+| `page` | `number` | Index de page en base 1. |
+| `limit` | `number` | Taille de page. |
+| `filters` | `Record<string, unknown>` | Filtres colonnes (clé = id colonne, valeur = valeur du filtre). |
+| `advancedFilters` | `array` | Règles de filtre avancé (columnId, operator, values, type, isActive). |
+| `orderBy` | `Record<string, "asc" \| "desc">` | Tri par champ ; seule la première clé est utilisée pour le tri mono-colonne. |
+| `search` | `string` | Terme de recherche global. |
 
-Return:
+Retour attendu :
 
 ```ts
 { data: T[]; meta?: { pageCount?: number; totalCount?: number } }
 ```
 
-## Server-side mode (default)
+## Mode server-side (par défaut)
 
-YaYaw Table always runs filtering, pagination, and sorting in server-side mode. No `manual*` flags are required in `table` config.
+YaYaw Table exécute toujours filtrage, pagination et tri en mode server-side. Aucun flag `manual*` n'est requis dans la config `table`.
 
-Your `list` action should handle `search`, `filters`, `advancedFilters`, `orderBy`, `page`, and `limit`.
+Votre action `list` doit gérer `search`, `filters`, `advancedFilters`, `orderBy`, `page` et `limit`.
 
-## Example app
+## Application d'exemple
 
-The `/example` route currently runs in local mode so edits remain interactive without a backend: it uses `app/[locale]/example/lib/products-local-actions.ts` with browser `localStorage` persistence.
+La route `/example` tourne actuellement en mode local pour que les modifications restent interactives sans backend : elle utilise `app/[locale]/example/lib/products-local-actions.ts` avec persistance `localStorage` navigateur.
 
-Server Action reference files are still present in `app/[locale]/example/actions/products.ts` and `app/[locale]/example/lib/products-server.ts`. Wire those actions through `getTableActions` if you want the same page in full server mode.
+Les fichiers de référence Server Action sont toujours présents dans `app/[locale]/example/actions/products.ts` et `app/[locale]/example/lib/products-server.ts`. Connectez ces actions via `getTableActions` si vous voulez la même page en mode serveur complet.
 
-See also:
+Voir aussi :
 - [Provider & Setup](/docs/setup)
 - [Actions](/docs/actions)
 - [URL state (Nuqs)](/docs/url-state)

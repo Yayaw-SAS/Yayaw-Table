@@ -1,11 +1,11 @@
 ---
-title: Configuration Options
-description: Table behavior configuration and defaults
+title: Options de configuration
+description: Configuration du comportement de la table et valeurs par défaut
 ---
 
-# Configuration Options
+# Options de configuration
 
-List of options for table behavior. Configure within your table definition under `table`.
+Liste des options pour le comportement de la table. Configurez-les dans votre définition de table sous `table`.
 
 ```ts
 table: {
@@ -28,77 +28,77 @@ table: {
 ## Options
 
 ### enableRowSelection
-Enable row selection checkboxes.
+Active les cases à cocher de sélection de lignes.
 
-Type: `boolean` | Default: `true`
+Type : `boolean` | Par défaut : `true`
 
 ### export
-Show the toolbar CSV export button (between search and options). Exports all rows matching the current search/filters/sort state.
+Affiche le bouton d'export CSV dans la toolbar (entre la recherche et les options). Exporte toutes les lignes correspondant à l'état courant (recherche/filtres/tri).
 
-Type: `boolean` | Default: `true`
+Type : `boolean` | Par défaut : `true`
 
 ### bulkExport
-Show CSV export in the bulk actions menu. Exports only selected rows.
+Affiche l'export CSV dans le menu des actions bulk. Exporte uniquement les lignes sélectionnées.
 
-Type: `boolean` | Default: `true`
+Type : `boolean` | Par défaut : `true`
 
 ### actionsAsIcons
-Render toolbar action buttons (`Add`, `Export`, `Options`) as icon-only buttons with tooltips.
+Affiche les boutons d'action de la toolbar (`Add`, `Export`, `Options`) sous forme d'icônes uniquement avec tooltip.
 
-Type: `boolean` | Default: `false`
+Type : `boolean` | Par défaut : `false`
 
 ### enableColumnFilters
-Enable per-column filters.
+Active les filtres par colonne.
 
-Type: `boolean` | Default: `true`
+Type : `boolean` | Par défaut : `true`
 
 ### enableSorting
-Enable sorting by clicking column headers.
+Active le tri au clic sur les en-têtes de colonnes.
 
-Type: `boolean` | Default: `true`
+Type : `boolean` | Par défaut : `true`
 
 ### enableGrouping
-Enable grouping UI and grouped row rendering when column types allow it.
+Active l'UI de regroupement et le rendu des groupes lorsque les types de colonnes le permettent.
 
-Type: `boolean` | Default: `true`
+Type : `boolean` | Par défaut : `true`
 
 ### enableColumnDragDropByDefault
-Enable drag-and-drop column reordering by default.
+Active le drag-and-drop pour réordonner les colonnes par défaut.
 
-Type: `boolean` | Default: `false`
+Type : `boolean` | Par défaut : `false`
 
 ### enableMultiRowSelection
-Allow selecting multiple rows.
+Autorise la sélection de plusieurs lignes.
 
-Type: `boolean` | Default: `true`
+Type : `boolean` | Par défaut : `true`
 
 ### enablePagination
-Render pagination controls.
+Affiche les contrôles de pagination.
 
-Type: `boolean` | Default: `true`
+Type : `boolean` | Par défaut : `true`
 
 ### defaultPageSize
-Default number of rows per page.
+Nombre de lignes par page par défaut.
 
-Type: `number` | Default: `10`
+Type : `number` | Par défaut : `10`
 
 ### pageSizeOptions
-Allowed page size values.
+Valeurs autorisées pour la taille de page.
 
-Type: `number[]` | Default: `[5, 10, 20, 50]`
+Type : `number[]` | Par défaut : `[5, 10, 20, 50]`
 
 ### dateDisplayPreset
-Default date display preset for all date columns. A column can override this value with `columns.definitions[].dateDisplayPreset`.
+Preset d'affichage de date par défaut pour toutes les colonnes de type date. Une colonne peut surcharger cette valeur avec `columns.definitions[].dateDisplayPreset`.
 
-Type: `'localized-short' | 'localized-medium' | 'localized-long' | 'month-name-long' | 'month-year' | 'dmy-numeric' | 'dmy-short' | 'mdy-numeric' | 'mdy-short' | 'iso-date'` | Default: `'localized-short'`
+Type : `'localized-short' | 'localized-medium' | 'localized-long' | 'month-name-long' | 'month-year' | 'dmy-numeric' | 'dmy-short' | 'mdy-numeric' | 'mdy-short' | 'iso-date'` | Par défaut : `'localized-short'`
 
-## Server-side mode
+## Mode server-side
 
-Filtering, pagination, and sorting are server-side by default and are no longer configurable via `manual*` flags. The table always sends `search`, `filters`, `advancedFilters`, `orderBy`, `page`, and `limit` to your `list` action.
+Le filtrage, la pagination et le tri sont server-side par défaut et ne sont plus configurables via des flags `manual*`. La table envoie toujours `search`, `filters`, `advancedFilters`, `orderBy`, `page` et `limit` à votre action `list`.
 
-For **column-level options** (e.g. `numberFormat` for numeric/currency display, `dateDisplayPreset`, `tagColorMap`), see [Columns](/docs/columns).
+Pour les **options au niveau colonne** (par ex. `numberFormat` pour l'affichage numérique/monétaire, `dateDisplayPreset`, `tagColorMap`), voir [Columns](/docs/columns).
 
-See also:
+Voir aussi :
 - [Provider & Setup](/docs/setup)
 - [DataTable](/docs/datatable)
 - [Columns](/docs/columns)

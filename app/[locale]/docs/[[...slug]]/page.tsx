@@ -20,8 +20,13 @@ interface DocsPageData {
   toc?: { title: ReactNode; url: string; depth: number }[];
 }
 
+interface DocsRouteParams {
+  locale: string;
+  slug?: string[];
+}
+
 export default async function Page(props: {
-  params: Promise<{ locale: string; slug?: string[] }>;
+  params: Promise<DocsRouteParams>;
 }) {
   const params = await props.params;
 
@@ -57,7 +62,7 @@ export function generateStaticParams() {
 }
 
 export async function generateMetadata(props: {
-  params: Promise<{ locale: string; slug?: string[] }>;
+  params: Promise<DocsRouteParams>;
 }) {
   const params = await props.params;
 

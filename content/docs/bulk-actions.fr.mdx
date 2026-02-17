@@ -1,34 +1,34 @@
 ---
-title: Bulk Actions
-description: Confirmation flow and callback contract for copy, delete, edit, and export
+title: Actions bulk
+description: Flux de confirmation et contrat des callbacks pour copy, delete, edit et export
 ---
 
-# Bulk Actions
+# Actions bulk
 
-## Confirmation flow
+## Flux de confirmation
 
-`copy` and `delete` use a confirmation dialog.
+`copy` et `delete` utilisent une boîte de dialogue de confirmation.
 
-Current behavior:
+Comportement actuel :
 
-1. User clicks `Copy` or `Delete`.
-2. Dialog opens and stores the pending action.
-3. Outside clicks are ignored while confirmation is open.
-4. `Confirm` executes the pending action exactly once.
-5. Menu closing follows the callback result (`closeMenu`).
+1. L'utilisateur clique sur `Copy` ou `Delete`.
+2. La boîte de dialogue s'ouvre et stocke l'action en attente.
+3. Les clics externes sont ignorés tant que la confirmation est ouverte.
+4. `Confirm` exécute l'action en attente exactement une fois.
+5. La fermeture du menu suit le résultat du callback (`closeMenu`).
 
-This prevents the previous no-op case where outside click events reset state while the portal dialog was open.
+Cela évite le cas précédent où un clic externe réinitialisait l'état pendant que la boîte de dialogue (portal) était ouverte.
 
-## Deterministic action behavior
+## Comportement déterministe des actions
 
-- `edit`: executes immediately.
-- `export`: executes immediately.
-- `copy`: always requires confirmation.
-- `delete`: always requires confirmation.
+- `edit` : exécution immédiate.
+- `export` : exécution immédiate.
+- `copy` : confirmation toujours requise.
+- `delete` : confirmation toujours requise.
 
-## Bulk callback contract
+## Contrat des callbacks bulk
 
-Recommended return shape:
+Structure de retour recommandée :
 
 ```ts
 type BulkActionResult = {
@@ -39,7 +39,7 @@ type BulkActionResult = {
 };
 ```
 
-### Example (`onBulkDelete`)
+### Exemple (`onBulkDelete`)
 
 ```ts
 onBulkDelete: async (rows) => {
@@ -57,6 +57,6 @@ onBulkDelete: async (rows) => {
 };
 ```
 
-### Legacy compatibility
+### Compatibilité legacy
 
-YaYaw Table still normalizes legacy callback returns, but the explicit object contract is strongly recommended for predictable behavior.
+YaYaw Table normalise encore les retours legacy des callbacks, mais le contrat explicite par objet est fortement recommandé pour un comportement prévisible.

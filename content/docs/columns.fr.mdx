@@ -1,11 +1,11 @@
 ---
-title: Columns Reference
-description: Columns configuration, types, order, and visibility
+title: Référence des colonnes
+description: Configuration des colonnes, types, ordre et visibilité
 ---
 
-# Columns Reference
+# Référence des colonnes
 
-Declare columns in `columns.definitions`, then control order and visibility via `columns.order` and `columns.visible`.
+Déclarez les colonnes dans `columns.definitions`, puis contrôlez l'ordre et la visibilité via `columns.order` et `columns.visible`.
 
 ```ts
 columns: {
@@ -31,7 +31,7 @@ columns: {
 
 ## Types
 
-Supported column types:
+Types de colonnes supportés :
 
 - `text`
 - `number`
@@ -39,50 +39,50 @@ Supported column types:
 - `date`
 - `tag`
 - `actions`
-- `dynamicType` (renderer selected via `typeKey`)
-- `select` (row selection checkbox; virtual column)
+- `dynamicType` (renderer sélectionné via `typeKey`)
+- `select` (checkbox de sélection de ligne ; colonne virtuelle)
 
-## Options per column
+## Options par colonne
 
-Common properties:
+Propriétés communes :
 
-- `id: string` – Unique identifier
+- `id: string` – Identifiant unique
 - `header: string | React.ReactNode`
-- `enableSorting?: boolean` (default `true`)
-- `enableColumnFilter?: boolean` (default `true`)
-- `accessorKey?: string` – Optional accessor if data key differs from `id`
-- `dateDisplayPreset?: DateDisplayPreset` – strict preset for date rendering (date columns only)
-- `dateFormat?: string` – legacy date-fns format fallback for date columns
-- For **number** columns: `numberFormat?: NumberFormatConfig` – display format (thousands/decimal separators, decimals, prefix/suffix for currency). See [Number column](#number-column-number) below.
-- For **tag** columns: `tagColorMap?: Record<string, string>` – optional value → Tailwind class map (see below).
+- `enableSorting?: boolean` (par défaut `true`)
+- `enableColumnFilter?: boolean` (par défaut `true`)
+- `accessorKey?: string` – Accesseur optionnel si la clé de donnée diffère de `id`
+- `dateDisplayPreset?: DateDisplayPreset` – preset strict pour le rendu des dates (colonnes date uniquement)
+- `dateFormat?: string` – fallback legacy au format date-fns pour les colonnes date
+- Pour les colonnes **number** : `numberFormat?: NumberFormatConfig` – format d'affichage (séparateurs milliers/décimales, décimales, préfixe/suffixe monétaire). Voir [Number column](#number-column-number) ci-dessous.
+- Pour les colonnes **tag** : `tagColorMap?: Record<string, string>` – map optionnelle valeur → classe Tailwind (voir ci-dessous).
 
 ## Number column (`number`)
 
-Number columns render numeric values with optional formatting and are **right-aligned** (header and cells) by default.
+Les colonnes numériques affichent les valeurs avec un format optionnel et sont **alignées à droite** (en-tête et cellules) par défaut.
 
-### Display format: `numberFormat`
+### Format d'affichage : `numberFormat`
 
-Use `numberFormat` to control thousands separator, decimal separator, number of decimals, and optional **monetary** prefix/suffix.
+Utilisez `numberFormat` pour contrôler le séparateur de milliers, le séparateur décimal, le nombre de décimales et un préfixe/suffixe **monétaire** optionnel.
 
-**Presets (string):**
+**Presets (string) :**
 
-- `'space'` – space as thousands separator, dot for decimals (e.g. `1 234 567.89`)
-- `'dot'` – dot for thousands, comma for decimals (e.g. `1.234.567,89`)
-- `'comma'` – comma for thousands, dot for decimals (e.g. `1,234,567.89`)
-- `'locale'` – use browser `Intl.NumberFormat` (locale-dependent)
+- `'space'` – espace comme séparateur de milliers, point pour les décimales (ex. `1 234 567.89`)
+- `'dot'` – point pour les milliers, virgule pour les décimales (ex. `1.234.567,89`)
+- `'comma'` – virgule pour les milliers, point pour les décimales (ex. `1,234,567.89`)
+- `'locale'` – utilise le `Intl.NumberFormat` du navigateur (dépend de la locale)
 
-**Explicit options (object):**
+**Options explicites (object) :**
 
-- `thousandsSeparator?: string` – e.g. `' '`, `'.'`, `','`
-- `decimalSeparator?: string` – e.g. `'.'`, `','`
-- `decimals?: number` – fixed decimal places (omit for default)
-- `prefix?: string` – text before the number (e.g. `'€ '` for currency)
-- `suffix?: string` – text after the number (e.g. `' €'` for euros)
+- `thousandsSeparator?: string` – ex. `' '`, `'.'`, `','`
+- `decimalSeparator?: string` – ex. `'.'`, `','`
+- `decimals?: number` – nombre fixe de décimales (omettre pour le comportement par défaut)
+- `prefix?: string` – texte avant le nombre (ex. `'€ '` pour une devise)
+- `suffix?: string` – texte après le nombre (ex. `' €'` pour les euros)
 
-**Examples:**
+**Exemples :**
 
 ```ts
-// Euros, no decimals, space thousands (e.g. 2 499 €)
+// Euros, pas de décimales, milliers espacés (ex. 2 499 €)
 {
   id: 'price',
   type: 'number',
@@ -90,7 +90,7 @@ Use `numberFormat` to control thousands separator, decimal separator, number of 
   numberFormat: { thousandsSeparator: ' ', decimals: 0, suffix: ' €' },
 }
 
-// US-style with prefix
+// Style US avec préfixe
 {
   id: 'amount',
   type: 'number',
@@ -98,15 +98,15 @@ Use `numberFormat` to control thousands separator, decimal separator, number of 
   numberFormat: { thousandsSeparator: ',', decimalSeparator: '.', decimals: 2, prefix: '$ ' },
 }
 
-// Preset only
+// Preset uniquement
 { id: 'count', type: 'number', header: 'Count', numberFormat: 'space' }
 ```
 
-When `numberFormat` is not set, numbers are shown as plain values (no thousands grouping). A custom `formatter` (if provided when building columns programmatically) overrides `numberFormat`.
+Quand `numberFormat` n'est pas défini, les nombres sont affichés bruts (sans regroupement des milliers). Un `formatter` custom (s'il est fourni lors de la construction programmatique des colonnes) a priorité sur `numberFormat`.
 
-## Date display presets
+## Presets d'affichage de date
 
-For `type: 'date'`, you can use strict presets:
+Pour `type: 'date'`, vous pouvez utiliser des presets stricts :
 
 - `localized-short`
 - `localized-medium`
@@ -119,7 +119,7 @@ For `type: 'date'`, you can use strict presets:
 - `mdy-short`
 - `iso-date`
 
-Example:
+Exemple :
 
 ```ts
 {
@@ -132,13 +132,13 @@ Example:
 
 ## Tag column (`tag`)
 
-Tag columns render values as colored badges. Colors are **deterministic**: the same tag value always gets the same color across sessions and page reloads (derived from a hash of the value). Values are normalized (trim + lowercase) for matching, so e.g. "Urgent" and "urgent" share the same color.
+Les colonnes tag affichent les valeurs sous forme de badges colorés. Les couleurs sont **déterministes** : la même valeur de tag reçoit toujours la même couleur entre les sessions et les rechargements de page (dérivée d'un hash de la valeur). Les valeurs sont normalisées (trim + lowercase) pour la correspondance ; par exemple "Urgent" et "urgent" partagent la même couleur.
 
-### Custom colors per value: `tagColorMap`
+### Couleurs personnalisées par valeur : `tagColorMap`
 
-You can override colors for specific tag values by passing a `tagColorMap` in the column definition. Keys are tag values (lookup tries the raw value, then the normalized value); values are Tailwind classes for the badge (e.g. background + text).
+Vous pouvez surcharger les couleurs pour des valeurs spécifiques via `tagColorMap` dans la définition de colonne. Les clés sont les valeurs de tag (la recherche essaie d'abord la valeur brute, puis la valeur normalisée) ; les valeurs sont des classes Tailwind pour le badge (par ex. fond + texte).
 
-Example:
+Exemple :
 
 ```ts
 {
@@ -153,24 +153,24 @@ Example:
 }
 ```
 
-Entries in `tagColorMap` use the given class; any other value falls back to the deterministic hash-based color.
+Les entrées définies dans `tagColorMap` utilisent la classe fournie ; toute autre valeur utilise la couleur déterministe basée sur le hash.
 
-## Dynamic type columns
+## Colonnes de type dynamique
 
-Use `type: 'dynamicType'` and specify `typeKey` on the row to pick the renderer at runtime.
+Utilisez `type: 'dynamicType'` et indiquez `typeKey` sur la ligne pour choisir le renderer au runtime.
 
 ## Selection column (`select`)
 
-- The `select` column is virtual and does not need a definition entry.
-- Add `'select'` to `columns.order` and (optionally) to `columns.visible` to show it.
-- Controlled by `table.enableRowSelection` (default `true`).
-- Rendered as a narrow fixed-width column with a centered checkbox; same width as the actions column.
+- La colonne `select` est virtuelle et ne nécessite pas d'entrée dans `definitions`.
+- Ajoutez `'select'` à `columns.order` et (optionnellement) à `columns.visible` pour l'afficher.
+- Contrôlée par `table.enableRowSelection` (par défaut `true`).
+- Rendue comme une colonne étroite à largeur fixe avec une checkbox centrée ; même largeur que la colonne actions.
 
 ## Actions column (`actions`)
 
-- Add `{ id: 'actions', type: 'actions', header: '...' }` to `columns.definitions` (the header label is not shown in the UI; use `header: ''` or any label for accessibility/column menu).
-- Rendered as a narrow fixed-width column with a centered actions menu (ellipsis) per row; same width as the selection column.
+- Ajoutez `{ id: 'actions', type: 'actions', header: '...' }` à `columns.definitions` (le libellé d'en-tête n'est pas affiché dans l'UI ; utilisez `header: ''` ou n'importe quel libellé pour l'accessibilité/le menu colonne).
+- Rendue comme une colonne étroite à largeur fixe avec un menu d'actions centré (ellipsis) par ligne ; même largeur que la colonne de sélection.
 
-See also:
+Voir aussi :
 - [Configuration](/docs/configuration)
 - [DataTable](/docs/datatable)

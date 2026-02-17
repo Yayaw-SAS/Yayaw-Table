@@ -1,13 +1,13 @@
 ---
-title: Actions Provider API
-description: Wire CRUD actions to the table via provider callbacks
+title: API du provider d'actions
+description: Connecter les actions CRUD à la table via des callbacks provider
 ---
 
-# Actions API
+# API des actions
 
-Provide actions per `tableType` via **getTableActions** (passed to `DataTable`). These connect the table to your data layer. In Next.js you can pass **Server Actions** so that list, create, update, delete, and bulk operations run on the server. See [Server-side & Server Actions](/docs/server-actions) for a full example.
+Fournissez les actions par `tableType` via **getTableActions** (passé à `DataTable`). Ces actions connectent la table à votre couche de données. Dans Next.js, vous pouvez passer des **Server Actions** pour que les opérations de liste, création, mise à jour, suppression et bulk s'exécutent côté serveur. Voir [Server-side & Server Actions](/docs/server-actions) pour un exemple complet.
 
-## Shape
+## Structure
 
 ```ts
 getTableActions: (tableType: string) => ({
@@ -28,26 +28,26 @@ getTableActions: (tableType: string) => ({
 })
 ```
 
-## list response
+## Réponse de `list`
 
-The `list` method must return:
+La méthode `list` doit retourner :
 
 ```ts
 { data: T[]; meta?: { pageCount?: number; totalCount?: number } }
 ```
 
-## Bulk actions
+## Actions bulk
 
-`DataTable` will use these by default if you don't provide explicit callbacks:
+`DataTable` utilise ces actions par défaut si vous ne fournissez pas de callbacks explicites :
 
 - `onBulkEdit` → `update`
 - `onBulkDelete` → `delete`
 - `onBulkCopy` → `duplicate`
-- `onBulkExport` → internal CSV export of selected rows (client-side)
+- `onBulkExport` → export CSV interne des lignes sélectionnées (côté client)
 
-### Recommended bulk callback contract
+### Contrat recommandé pour les callbacks bulk
 
-To avoid ambiguous branches, return an explicit result object from your bulk callbacks:
+Pour éviter les branches ambiguës, retournez un objet de résultat explicite depuis vos callbacks bulk :
 
 ```ts
 type BulkActionResult = {
@@ -58,7 +58,7 @@ type BulkActionResult = {
 };
 ```
 
-Example:
+Exemple :
 
 ```ts
 onBulkDelete: async (rows) => {
@@ -76,7 +76,7 @@ onBulkDelete: async (rows) => {
 };
 ```
 
-See also:
+Voir aussi :
 - [Provider & Setup](/docs/setup)
 - [DataTable props](/docs/datatable)
 - [Server-side & Server Actions](/docs/server-actions)

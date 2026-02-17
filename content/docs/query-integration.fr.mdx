@@ -1,17 +1,17 @@
 ---
-title: Query Integration
-description: Shared QueryClient architecture, invalidation, and refetch behavior
+title: Intégration Query
+description: Architecture QueryClient partagé, invalidation et comportement de refetch
 ---
 
-# Query Integration
+# Intégration Query
 
-YaYaw Table now requires a **shared QueryClient**.
+YaYaw Table requiert maintenant un **QueryClient partagé**.
 
-There is no implicit internal QueryClient anymore. This avoids isolated caches where invalidations did not refresh table data.
+Il n'existe plus de QueryClient interne implicite. Cela évite les caches isolés où les invalidations ne rafraîchissaient pas les données de la table.
 
-## Required architecture
+## Architecture requise
 
-Use exactly one app-level client:
+Utilisez exactement un client au niveau app :
 
 ```tsx
 "use client";
@@ -35,19 +35,19 @@ export default function ProductsPage() {
 }
 ```
 
-## What invalidate/refetch should do
+## Ce que `invalidate/refetch` doit faire
 
-When row or bulk actions succeed, YaYaw Table invalidates:
+Quand des actions de ligne ou bulk réussissent, YaYaw Table invalide :
 
 ```ts
 ["tableData", tableId]
 ```
 
-Then active queries refetch and the table updates with fresh server data.
+Ensuite les queries actives refetch et la table se met à jour avec des données serveur fraîches.
 
-## Correct invalidation from custom code
+## Invalidation correcte depuis du code custom
 
-When you run custom mutations outside YaYaw Table, invalidate the same key:
+Quand vous exécutez des mutations custom en dehors de YaYaw Table, invalidez la même clé :
 
 ```ts
 await queryClient.invalidateQueries({
@@ -55,8 +55,8 @@ await queryClient.invalidateQueries({
 });
 ```
 
-## Guardrails added by YaYaw Table
+## Garde-fous ajoutés par YaYaw Table
 
-- If no QueryClient is available: explicit runtime error.
-- If both a provider and `queryClient` prop are set with different instances: explicit runtime error.
-- Silent cache duplication is prevented.
+- Si aucun QueryClient n'est disponible : erreur runtime explicite.
+- Si un provider et la prop `queryClient` sont tous deux définis avec des instances différentes : erreur runtime explicite.
+- La duplication silencieuse de cache est empêchée.

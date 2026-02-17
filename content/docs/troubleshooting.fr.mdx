@@ -1,27 +1,27 @@
 ---
-title: Troubleshooting
-description: Common runtime issues and fixes
+title: Dépannage
+description: Problèmes runtime fréquents et corrections
 ---
 
-# Troubleshooting
+# Dépannage
 
-## `invalidateQueries` does not refresh the table
+## `invalidateQueries` ne rafraîchit pas la table
 
-### Symptoms
+### Symptômes
 
-- Mutation succeeds.
-- You call `invalidateQueries`.
-- The table still shows stale data.
+- La mutation réussit.
+- Vous appelez `invalidateQueries`.
+- La table affiche toujours des données obsolètes.
 
-### Root cause
+### Cause racine
 
-Different QueryClient instances are being used (isolated caches).
+Des instances différentes de QueryClient sont utilisées (caches isolés).
 
-### Fix
+### Correctif
 
-1. Ensure one shared app-level `QueryClientProvider`.
-2. Invalidate the key `["tableData", tableId]`.
-3. Do not pass a different `queryClient` prop than the provider instance.
+1. Assurez-vous d'avoir un `QueryClientProvider` partagé unique au niveau app.
+2. Invalidez la clé `["tableData", tableId]`.
+3. Ne passez pas de prop `queryClient` différente de l'instance du provider.
 
 ```ts
 await queryClient.invalidateQueries({
@@ -31,23 +31,23 @@ await queryClient.invalidateQueries({
 
 ---
 
-## Bulk confirm does nothing (copy/delete)
+## La confirmation bulk ne fait rien (copy/delete)
 
-### Symptoms
+### Symptômes
 
-- User clicks `Copy` or `Delete`.
-- Confirmation dialog opens.
-- Clicking `Confirm` appears to do nothing.
+- L'utilisateur clique sur `Copy` ou `Delete`.
+- La boîte de dialogue de confirmation s'ouvre.
+- Cliquer sur `Confirm` semble ne rien faire.
 
-### Root cause
+### Cause racine
 
-A pending action was reset by outside-click behavior while the dialog portal was open.
+Une action en attente a été réinitialisée par le comportement de clic externe pendant que le portal de dialogue était ouvert.
 
-### Fix in current version
+### Correctif dans la version actuelle
 
-- Outside clicks are ignored while confirmation is open.
-- Confirm execution is lock-protected and runs once.
-- Bulk callbacks should return explicit `BulkActionResult` for deterministic close/selection behavior.
+- Les clics externes sont ignorés tant que la confirmation est ouverte.
+- L'exécution de la confirmation est protégée par lock et s'exécute une seule fois.
+- Les callbacks bulk doivent retourner un `BulkActionResult` explicite pour un comportement déterministe (fermeture/sélection).
 
 ```ts
 type BulkActionResult = {

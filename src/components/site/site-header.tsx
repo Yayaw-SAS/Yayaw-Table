@@ -23,7 +23,6 @@ export function SiteHeader() {
       { label: t("product"), href: "/#product" },
       { label: t("docs"), href: "/docs" },
       { label: t("example"), href: "/example" },
-      { label: t("changelog"), href: "/docs/changelog" },
     ];
   }, [t]);
 
