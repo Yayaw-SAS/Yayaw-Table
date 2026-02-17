@@ -172,6 +172,7 @@
       "copyError": "Échec de la copie des produits dans le presse-papiers",
       "bulkEditNoRowsSelected": "Aucune ligne sélectionnée pour la mise à jour en masse.",
       "bulkEditNoChanges": "Aucune modification à appliquer.",
+      "bulkEditUpdateError": "Échec de la mise à jour des lignes sélectionnées.",
       "bulkEditNoRowsInMenu": "Aucune ligne sélectionnée.",
       "resetDataSuccess": "Les données de l'exemple ont été réinitialisées.",
       "resetDataError": "Échec de la réinitialisation des données de l'exemple"

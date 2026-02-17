@@ -210,7 +210,7 @@ export function ModernAddFilterDropdown({
       .filter(([_, config]) => config.filterable !== false)
       .map(([columnId, config]) => ({
         id: columnId,
-        label: columnId,
+        label: config.label || columnId,
         type: config.type,
         description: config.placeholder,
         isRecent: recentColumns.includes(columnId),

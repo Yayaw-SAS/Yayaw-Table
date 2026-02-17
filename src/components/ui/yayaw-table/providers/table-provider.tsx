@@ -670,6 +670,7 @@ export const defaultTranslations: DataTableTranslations = {
     filter: "Filter",
     filters: "Filters",
     group: "Group",
+    selection_column: "Selection",
     select_column: "Select column",
     current_groups:
       "{count, plural, one {Current group} other {Current groups}}",

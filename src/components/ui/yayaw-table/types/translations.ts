@@ -367,6 +367,7 @@ export interface DataTableTranslations {
     filter: string;
     filters: string;
     group: string;
+    selection_column?: string;
     select_column: string;
     current_groups: string;
     active_groups: string;

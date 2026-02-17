@@ -408,11 +408,12 @@ export function useDataTableAdvancedFilters<TData = Record<string, unknown>>(
       addFilter: (
         filterData: Omit<AdvancedFilterModel, "id" | "createdAt" | "updatedAt">
       ) => {
+        const columnLabel = advancedColumnsConfig[filterData.columnId]?.label;
         const now = new Date();
         const newFilter: AdvancedFilterModel = {
           ...filterData,
           id: generateId(),
-          label: filterData.label || filterData.columnId,
+          label: filterData.label || columnLabel || filterData.columnId,
           createdAt: now,
           updatedAt: now,
         };
@@ -471,7 +472,12 @@ export function useDataTableAdvancedFilters<TData = Record<string, unknown>>(
         };
       },
     }),
-    [advancedFilters, setAdvancedFiltersFromUI, resetAdvancedFilters]
+    [
+      advancedColumnsConfig,
+      advancedFilters,
+      setAdvancedFiltersFromUI,
+      resetAdvancedFilters,
+    ]
   );
 
   // Convert legacy filter to advanced filter
@@ -703,6 +709,7 @@ const createColumnConfig = (
   type: ColumnDataType
 ) => {
   const baseConfig = {
+    label: column.label,
     type,
     filterable: column.canFilter !== false,
     faceted: type === "option" || type === "multiOption",

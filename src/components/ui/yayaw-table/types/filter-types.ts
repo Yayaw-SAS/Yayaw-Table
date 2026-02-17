@@ -124,6 +124,8 @@ export interface ColumnOption {
 export interface ColumnFilterConfig<
   TType extends ColumnDataType = ColumnDataType,
 > {
+  /** Human-readable column label shown in the filter UI */
+  label?: string;
   /** Data type of the column */
   type: TType;
   /** Available operators (defaults to all for the type) */

@@ -172,6 +172,7 @@
       "copyError": "Failed to copy products to clipboard",
       "bulkEditNoRowsSelected": "No rows selected for bulk update.",
       "bulkEditNoChanges": "No changes to apply.",
+      "bulkEditUpdateError": "Failed to update selected rows.",
       "bulkEditNoRowsInMenu": "No rows selected.",
       "resetDataSuccess": "Example data has been reset.",
       "resetDataError": "Failed to reset example data"

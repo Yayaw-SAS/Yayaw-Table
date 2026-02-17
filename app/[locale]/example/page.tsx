@@ -30,6 +30,7 @@ import {
 } from "./lib/products-local-actions";
 import { getFormConfig } from "./setup/form-config";
 import { getTableConfig } from "./setup/table-config";
+import { getTableTranslations } from "./setup/table-translations";
 
 const queryClient = new QueryClient();
 const PRODUCTS_TABLE_TYPE = "products";
@@ -344,7 +345,7 @@ function BulkActionsSection({
             if (!result.success) {
               return {
                 success: false,
-                error: result.error || "Failed to update selected rows.",
+                error: result.error || t("toasts.bulkEditUpdateError"),
               };
             }
 
@@ -553,6 +554,7 @@ function BulkActionsSection({
       TitleComponent={CustomTitle}
       tableType="products"
       title={t("title")}
+      translations={getTableTranslations(locale)}
     />
   );
 }

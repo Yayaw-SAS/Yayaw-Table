@@ -648,6 +648,11 @@ export function DataTableAdvancedToolbar<TData>({
     return value === undefined ? defaultValue : value;
   };
 
+  const getSelectionColumnLabel = () => {
+    const translated = t("menu.selection_column");
+    return translated === "menu.selection_column" ? "Selection" : translated;
+  };
+
   const convertColumnForTableMenu = (col: unknown) => {
     const raw = (col || {}) as Record<string, unknown>;
     const { id, label } = getColumnIdAndLabel(raw);
@@ -656,8 +661,16 @@ export function DataTableAdvancedToolbar<TData>({
     const canGroup = getBooleanFlag(raw, "canGroup", true);
     const canHide = getBooleanFlag(raw, "canHide", true);
     const canSort = getBooleanFlag(raw, "canSort", true);
+    const resolvedLabel = id === "select" ? getSelectionColumnLabel() : label;
 
-    return { canFilter, canGroup, canHide, canSort, id, label };
+    return {
+      canFilter,
+      canGroup,
+      canHide,
+      canSort,
+      id,
+      label: resolvedLabel,
+    };
   };
 
   // Convert finalColumns to the format expected by TableMenu

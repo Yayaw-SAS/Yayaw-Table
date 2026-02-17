@@ -237,9 +237,7 @@ function FilterChip({
     );
   }, []);
 
-  const columnLabel = config.displayValueFn
-    ? config.displayValueFn(filter.values)
-    : filter.label || filter.columnId;
+  const columnLabel = config.label || filter.label || filter.columnId;
 
   const handleEdit = useCallback(() => {
     setIsEditing(true);
@@ -502,7 +500,7 @@ export function AdvancedFilterPanel({
         type,
         operator as FilterOperators[ColumnDataType],
         value as FilterValues<ColumnDataType>,
-        { isActive: false, label: columnId }
+        { isActive: false, label: config.label || columnId }
       );
       setDraftFilters((prev) => [draft, ...prev]);
     },
@@ -532,7 +530,7 @@ export function AdvancedFilterPanel({
       config.type,
       operator as FilterOperators[ColumnDataType],
       value as FilterValues<ColumnDataType>,
-      { isActive: false, label: openFilterForColumnId }
+      { isActive: false, label: config.label || openFilterForColumnId }
     );
     setDraftFilters((prev) => [draft, ...prev]);
     openFilterConsumedRef.current = openFilterForColumnId;
@@ -790,7 +788,7 @@ function InlineAddFilterPanel({
     () =>
       Object.entries(columnsConfig)
         .filter(([_, cfg]) => cfg.filterable !== false)
-        .map(([id, cfg]) => ({ id, label: id, type: cfg.type })),
+        .map(([id, cfg]) => ({ id, label: cfg.label || id, type: cfg.type })),
     [columnsConfig]
   );
 
