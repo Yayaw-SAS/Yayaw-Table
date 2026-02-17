@@ -5,7 +5,6 @@
 "use client";
 
 import { useForm } from "@tanstack/react-form";
-import { zodValidator } from "@tanstack/zod-form-adapter";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useTranslations } from "../../../providers/table-provider";
 
@@ -49,12 +48,10 @@ export function useFormBuilder<TFieldValues extends FieldValues>({
   const form = useForm({
     defaultValues,
     validators: {
-      onSubmit: (
-        zodValidator() as (
-          schema: unknown
-        ) => ReturnType<ReturnType<typeof zodValidator>>
-      )(config.schema),
-    } as unknown as { onSubmit: (opts: { value: TFieldValues }) => unknown },
+      // Zod schema is a standard schema at runtime; this cast avoids a generic
+      // input/output mismatch from Zod's type signature.
+      onSubmit: config.schema as never,
+    },
     onSubmit: formOptions.onSubmit
       ? ({ value }) => {
           formOptions.onSubmit?.(value as TFieldValues);
