@@ -4,8 +4,8 @@ import type { Row } from "@tanstack/react-table";
 
 import {
   buildBulkDeleteFeedback,
-  executeBulkDeleteOperation,
   executeCustomBulkDeleteHandler,
+  executeBulkDeleteOperation,
   normalizeBulkActionResult,
   resolveBulkEditWithoutCustom,
 } from "./use-bulk-actions";
@@ -150,9 +150,7 @@ describe("executeCustomBulkDeleteHandler", () => {
     assert.equal(clearSelectionCalls, 0);
     assert.equal(notifications.success.length, 0);
     assert.equal(notifications.error.length, 1);
-    assert.ok(
-      notifications.error[0].includes("Deleted 1 of 2 rows. 1 failed.")
-    );
+    assert.ok(notifications.error[0].includes("Deleted 1 of 2 rows. 1 failed."));
   });
 
   it("shows an error toast and keeps menu open when the custom handler throws", async () => {
@@ -216,9 +214,7 @@ describe("executeCustomBulkDeleteHandler", () => {
     assert.equal(clearSelectionCalls, 1);
     assert.equal(notifications.error.length, 0);
     assert.equal(notifications.success.length, 1);
-    assert.ok(
-      notifications.success[0].includes("Deleted 2 rows successfully.")
-    );
+    assert.ok(notifications.success[0].includes("Deleted 2 rows successfully."));
   });
 
   it("preserves legacy custom-handler behavior when default toasts are explicitly enabled", async () => {
@@ -246,8 +242,6 @@ describe("executeCustomBulkDeleteHandler", () => {
     assert.equal(clearSelectionCalls, 1);
     assert.equal(notifications.error.length, 0);
     assert.equal(notifications.success.length, 1);
-    assert.ok(
-      notifications.success[0].includes("Deleted 2 rows successfully.")
-    );
+    assert.ok(notifications.success[0].includes("Deleted 2 rows successfully."));
   });
 });

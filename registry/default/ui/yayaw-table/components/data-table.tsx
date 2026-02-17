@@ -237,9 +237,7 @@ function DataTableContent({
 
                 {/* Toolbar section */}
                 {!isLoading && (
-                  <div
-                    className={shouldShowToolbarHeader ? "flex-shrink-0" : ""}
-                  >
+                  <div className={shouldShowToolbarHeader ? "flex-shrink-0" : ""}>
                     <DataTableAdvancedToolbar
                       columnTypeMapping={columnTypeMapping}
                       data={baseData}
@@ -258,7 +256,6 @@ function DataTableContent({
             ) : (
               <DataTableClient
                 className={className}
-                closeOnError={closeOnError}
                 columns={
                   columns as import("@tanstack/react-table").ColumnDef<
                     Record<string, unknown>
@@ -278,11 +275,15 @@ function DataTableContent({
                 enableSorting={config.table.enableSorting}
                 key={`${tableId}-${visibilityKey}`}
                 loadingOverlay={loadingOverlay}
+                closeOnError={closeOnError}
                 onBulkCopy={onBulkCopy}
                 onBulkDelete={onBulkDelete}
                 onBulkEdit={onBulkEdit}
                 onBulkExport={onBulkExport}
                 onRowSelectionChange={onRowSelectionChange}
+                showDefaultToastsForCustomHandlers={
+                  showDefaultToastsForCustomHandlers
+                }
                 queryFn={async (_params) => {
                   // For fetched data, use the refetch function
                   await refetch();
@@ -292,9 +293,6 @@ function DataTableContent({
                     rowCount: rowCount || finalData.length,
                   };
                 }}
-                showDefaultToastsForCustomHandlers={
-                  showDefaultToastsForCustomHandlers
-                }
                 tableId={tableId}
                 tableType={tableType}
               />

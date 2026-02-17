@@ -356,9 +356,9 @@
           "target": "components/ui/yayaw-table/components/filters/modern-filter-states.tsx"
         },
         {
-          "path": "registry/default/ui/yayaw-table/components/filters/multi-option-filter.tsx",
+          "path": "registry/default/ui/yayaw-table/components/filters/multi-select-filter.tsx",
           "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/filters/multi-option-filter.tsx"
+          "target": "components/ui/yayaw-table/components/filters/multi-select-filter.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/filters/number-filter.tsx",
@@ -366,9 +366,9 @@
           "target": "components/ui/yayaw-table/components/filters/number-filter.tsx"
         },
         {
-          "path": "registry/default/ui/yayaw-table/components/filters/option-filter.tsx",
+          "path": "registry/default/ui/yayaw-table/components/filters/select-filter.tsx",
           "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/filters/option-filter.tsx"
+          "target": "components/ui/yayaw-table/components/filters/select-filter.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/filters/text-filter.tsx",
