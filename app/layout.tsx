@@ -6,6 +6,7 @@ import { hasLocale } from "next-intl";
 import { getLocale } from "next-intl/server";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import type { ReactNode } from "react";
+import { Toaster } from "@/src/components/ui/sonner";
 import { routing } from "@/src/i18n/routing";
 
 const bodyFont = Plus_Jakarta_Sans({
@@ -52,6 +53,7 @@ export default async function RootLayout({
         <NuqsAdapter>
           <RootProvider theme={rootThemeOptions}>{children}</RootProvider>
         </NuqsAdapter>
+        <Toaster />
       </body>
     </html>
   );

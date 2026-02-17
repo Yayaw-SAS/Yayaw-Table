@@ -16,7 +16,11 @@ import {
   columnDragEnabledAtom,
 } from "@/src/components/ui/yayaw-table/atoms/table-atoms";
 import { DataTable } from "@/src/components/ui/yayaw-table/components/data-table";
-import { useBulkEdit } from "@/src/components/ui/yayaw-table/hooks/use-bulk-edit";
+import {
+  type CatalogueFormState,
+  catalogueFormAtom,
+  openUpdateForm,
+} from "@/src/components/ui/yayaw-table/components/forms/atoms/catalogue-form-atoms";
 import type { AppLocale } from "@/src/i18n/routing";
 import { CustomDescription, CustomTitle } from "./components";
 import {
@@ -27,6 +31,9 @@ import { getFormConfig } from "./setup/form-config";
 import { getTableConfig } from "./setup/table-config";
 
 const queryClient = new QueryClient();
+const PRODUCTS_TABLE_TYPE = "products";
+const PRODUCTS_BULK_FORM_TYPE = "products-bulk";
+const BULK_EDIT_SYNTHETIC_ID = "__bulk-edit__";
 
 interface ExampleTableSettings {
   actionsAsIcons: boolean;
@@ -120,6 +127,49 @@ const parseBooleanQueryValue = (
 
   return defaultValue;
 };
+
+function extractIdsFromRows(
+  rows: Array<{ original: { id?: unknown } }>
+): string[] {
+  const ids = rows
+    .map((row) => row.original.id)
+    .filter((value): value is string | number => value != null)
+    .map((value) => String(value))
+    .filter((value) => value.length > 0);
+
+  return [...new Set(ids)];
+}
+
+function extractBulkEditSelectedIds(data: Record<string, unknown>): string[] {
+  const rawBulkEdit = data._bulkEdit;
+  if (!rawBulkEdit || typeof rawBulkEdit !== "object") {
+    return [];
+  }
+
+  const selectedIds = (rawBulkEdit as { selectedIds?: unknown }).selectedIds;
+  if (!Array.isArray(selectedIds)) {
+    return [];
+  }
+
+  return selectedIds
+    .filter((value): value is string | number => value != null)
+    .map((value) => String(value))
+    .filter((value) => value.length > 0);
+}
+
+function sanitizeBulkUpdatePayload(
+  data: Record<string, unknown>
+): Record<string, unknown> {
+  const payload = { ...data };
+  delete payload.id;
+  delete payload._bulkEdit;
+
+  return Object.fromEntries(
+    Object.entries(payload).filter(
+      ([, value]) => value !== undefined && value !== null && value !== ""
+    )
+  );
+}
 
 function useBooleanQuerySetting(
   queryKey: string,
@@ -264,13 +314,54 @@ function BulkActionsSection({
 }) {
   const t = useTranslations("Example");
   const locale = useLocale() as AppLocale;
+  const setFormState = useSetAtom(catalogueFormAtom);
 
   const getLocalTableActions = useCallback(
-    (tableType: string) => {
-      if (tableType !== "products") {
-        return;
+    (formType: string) => {
+      if (formType === PRODUCTS_TABLE_TYPE) {
+        return tableActions;
       }
-      return tableActions;
+
+      if (formType === PRODUCTS_BULK_FORM_TYPE) {
+        return {
+          update: async (_id: string, data: Record<string, unknown>) => {
+            const selectedIds = extractBulkEditSelectedIds(data);
+            if (selectedIds.length === 0) {
+              return {
+                success: false,
+                error: "No rows selected for bulk update.",
+              };
+            }
+
+            const payload = sanitizeBulkUpdatePayload(data);
+            if (Object.keys(payload).length === 0) {
+              return {
+                success: false,
+                error: "No changes to apply.",
+              };
+            }
+
+            const result = await tableActions.bulkUpdate(selectedIds, payload);
+            if (!result.success) {
+              return {
+                success: false,
+                error: result.error || "Failed to update selected rows.",
+              };
+            }
+
+            await queryClient.invalidateQueries({
+              queryKey: ["tableData", PRODUCTS_TABLE_TYPE],
+            });
+
+            return {
+              success: true,
+              data: result.data,
+            };
+          },
+        };
+      }
+
+      return;
     },
     [tableActions]
   );
@@ -372,14 +463,42 @@ function BulkActionsSection({
     }
   };
 
-  const bulkEdit = useBulkEdit({
-    tableId: "products",
-    formType: "products-bulk",
-    onSuccess: () => {
-      /* intentional no-op */
+  const handleBulkEdit = useCallback(
+    (rows: Array<{ original: { id?: unknown } }>) => {
+      const selectedIds = extractIdsFromRows(rows);
+      if (selectedIds.length === 0) {
+        return {
+          clearSelection: false,
+          closeMenu: false,
+          message: "No rows selected.",
+          success: false,
+        };
+      }
+
+      const bulkFormState = openUpdateForm(
+        PRODUCTS_BULK_FORM_TYPE,
+        PRODUCTS_BULK_FORM_TYPE,
+        {
+          id: BULK_EDIT_SYNTHETIC_ID,
+          _bulkEdit: {
+            selectedIds,
+          },
+        },
+        undefined
+      );
+
+      setFormState(
+        bulkFormState as unknown as CatalogueFormState<Record<string, unknown>>
+      );
+
+      return {
+        clearSelection: false,
+        closeMenu: true,
+        success: true,
+      };
     },
-    onUpdate: async () => true,
-  });
+    [setFormState]
+  );
 
   const getTableConfigWithOverrides = useCallback(
     (tableType: string) => {
@@ -429,7 +548,7 @@ function BulkActionsSection({
       locale={locale}
       onBulkCopy={handleBulkCopy}
       onBulkDelete={handleBulkDelete}
-      onBulkEdit={(rows) => bulkEdit.openBulkEdit(rows as never)}
+      onBulkEdit={handleBulkEdit}
       onRowSelectionChange={undefined}
       queryClient={queryClient}
       TitleComponent={CustomTitle}
