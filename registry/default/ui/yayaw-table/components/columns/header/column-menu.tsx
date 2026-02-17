@@ -23,8 +23,8 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   columnDragEnabledAtom,
   tableMenuOpenFilterColumnIdAtom,
@@ -164,7 +164,12 @@ const MenuTrigger = memo(function MenuTriggerComponent({
     return (
       <Button
         aria-label={translations.toggleColumns}
-        className="h-full w-full justify-start rounded-none px-2 font-normal hover:bg-accent hover:text-accent-foreground focus-visible:ring-0"
+        className={cn(
+          "h-full min-h-0 w-full justify-start rounded-none px-0 font-normal",
+          "hover:bg-transparent hover:text-inherit",
+          "aria-expanded:bg-transparent aria-expanded:text-inherit",
+          "focus-visible:ring-0 focus-visible:ring-offset-0 dark:hover:bg-transparent"
+        )}
         onClick={onClick}
         type="button"
         variant="ghost"

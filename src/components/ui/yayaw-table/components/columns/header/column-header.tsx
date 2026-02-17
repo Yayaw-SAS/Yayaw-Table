@@ -199,7 +199,7 @@ function DataTableColumnHeaderBase<TData, TValue>({
     return (
       <div
         className={cn(
-          "absolute inset-y-0 -left-2 -right-2 flex rounded-none transition-colors hover:bg-accent hover:text-accent-foreground",
+          "absolute inset-0 flex rounded-none transition-colors hover:bg-accent hover:text-accent-foreground",
           isOver && "bg-accent",
           isDragging && "opacity-50",
           className
@@ -210,7 +210,7 @@ function DataTableColumnHeaderBase<TData, TValue>({
       >
         <div
           className={cn(
-            "relative flex min-h-0 flex-1 items-center gap-2 py-2 pl-0 pr-2 ml-2 mr-2",
+            "relative flex h-full min-h-0 flex-1 items-center gap-2",
             isNumberColumn && "justify-end"
           )}
         >

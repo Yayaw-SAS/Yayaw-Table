@@ -6,8 +6,8 @@ import type { Column, Table } from "@tanstack/react-table";
 import { useAtomValue } from "jotai";
 import { ArrowDown, ArrowUp, GripVertical } from "lucide-react";
 import { memo, useEffect, useMemo, useState } from "react";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 import { columnDragEnabledAtom } from "../../../atoms/table-atoms";
 import { useTableConfig } from "../../../hooks/use-table-config";
@@ -110,7 +110,10 @@ function DataTableColumnHeaderBase<TData, TValue>({
 
   const isSelectionColumn = column.id === "select";
   const isActionsColumn = column.id === "actions";
-  const def = column.columnDef as { type?: string; meta?: { columnType?: string } };
+  const def = column.columnDef as {
+    type?: string;
+    meta?: { columnType?: string };
+  };
   const isNumberColumn =
     def.type === "number" || def.meta?.columnType === "number";
   const sortDirection = column.getIsSorted();
@@ -154,11 +157,7 @@ function DataTableColumnHeaderBase<TData, TValue>({
             isNumberColumn && "justify-end"
           )}
         >
-          <ColumnMenu
-            column={column}
-            table={tableInstance}
-            tableId={tableId}
-          >
+          <ColumnMenu column={column} table={tableInstance} tableId={tableId}>
             <div className="flex w-full cursor-pointer items-center gap-2">
               <span>{title}</span>
               {sortDirection && (
@@ -199,7 +198,7 @@ function DataTableColumnHeaderBase<TData, TValue>({
     return (
       <div
         className={cn(
-          "absolute inset-y-0 -left-2 -right-2 flex rounded-none transition-colors hover:bg-accent hover:text-accent-foreground",
+          "absolute inset-0 flex rounded-none transition-colors hover:bg-accent hover:text-accent-foreground",
           isOver && "bg-accent",
           isDragging && "opacity-50",
           className
@@ -210,7 +209,7 @@ function DataTableColumnHeaderBase<TData, TValue>({
       >
         <div
           className={cn(
-            "relative flex min-h-0 flex-1 items-center gap-2 py-2 pl-0 pr-2 ml-2 mr-2",
+            "relative flex h-full min-h-0 flex-1 items-center gap-2",
             isNumberColumn && "justify-end"
           )}
         >
