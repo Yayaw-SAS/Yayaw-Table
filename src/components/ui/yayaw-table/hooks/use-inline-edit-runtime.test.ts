@@ -94,6 +94,15 @@ describe("resolveInlineEditor", () => {
 
     assert.equal(editor, "select");
   });
+
+  it("maps multiOption columns to multiSelect editor", () => {
+    const editor = resolveInlineEditor({
+      columnType: "multiOption",
+      hasOptions: true,
+    });
+
+    assert.equal(editor, "multiSelect");
+  });
 });
 
 describe("parseInlineEditValue", () => {
@@ -139,6 +148,20 @@ describe("parseInlineEditValue", () => {
 
     assert.equal(result.success, true);
     assert.equal(result.value, true);
+  });
+
+  it("keeps multiSelect option value types", () => {
+    const result = parseInlineEditValue({
+      editor: "multiSelect",
+      rawValue: ["true", "2", "custom"],
+      options: [
+        { label: "Yes", value: true },
+        { label: "Two", value: 2 },
+      ],
+    });
+
+    assert.equal(result.success, true);
+    assert.deepEqual(result.value, [true, 2, "custom"]);
   });
 
   it("rejects invalid json payloads", () => {
@@ -208,5 +231,20 @@ describe("validateInlineEditValue", () => {
     });
 
     assert.equal(result.success, true);
+  });
+
+  it("rejects invalid multiSelect payloads", () => {
+    const result = validateInlineEditValue({
+      editor: "multiSelect",
+      candidateValue: "single",
+      formField: "tags",
+      rowData: {},
+    });
+
+    assert.equal(result.success, false);
+    assert.equal(
+      result.errorMessage,
+      "Inline edit expects an array of values."
+    );
   });
 });

@@ -108,8 +108,7 @@ function normalizeInlineEditTableConfig(
 ): InlineEditTableRuntimeConfig {
   return {
     enabled: inlineConfig?.enabled ?? false,
-    debounceMs:
-      inlineConfig?.debounceMs ?? DEFAULT_INLINE_EDIT_DEBOUNCE_MS,
+    debounceMs: inlineConfig?.debounceMs ?? DEFAULT_INLINE_EDIT_DEBOUNCE_MS,
     trigger: inlineConfig?.trigger ?? "doubleClickEnter",
     optimistic: inlineConfig?.optimistic ?? true,
     showDelayIndicator: inlineConfig?.showDelayIndicator ?? true,
@@ -120,9 +119,8 @@ export function resolveInlineEditColumnConfig(
   column: InlineEditColumnLike,
   tableInlineConfig?: TableInlineEditConfig
 ): InlineEditColumnRuntimeConfig {
-  const normalizedTableConfig = normalizeInlineEditTableConfig(
-    tableInlineConfig
-  );
+  const normalizedTableConfig =
+    normalizeInlineEditTableConfig(tableInlineConfig);
   const inlineColumnConfig =
     typeof column.inlineEdit === "boolean"
       ? { enabled: column.inlineEdit }
@@ -136,8 +134,7 @@ export function resolveInlineEditColumnConfig(
   const isReadonly = Boolean(inlineColumnConfig.readonly);
   const isSystemColumn = column.id === "actions" || column.id === "select";
   const isEnabled =
-    !isReadonly &&
-    !isSystemColumn &&
+    !(isReadonly || isSystemColumn) &&
     (enabledFromColumn ?? normalizedTableConfig.enabled);
 
   return {
@@ -179,13 +176,20 @@ function mapFormFieldTypeToInlineEditor(
 }
 
 function mapColumnTypeToInlineEditor(columnType?: string): InlineEditEditor {
-  switch (columnType) {
+  const normalizedType = columnType?.toLowerCase();
+
+  switch (normalizedType) {
     case "boolean":
       return "boolean";
     case "date":
       return "date";
     case "number":
       return "number";
+    case "option":
+    case "select":
+      return "select";
+    case "multioption":
+      return "multiSelect";
     case "tag":
     case "code":
     case "text":
@@ -203,6 +207,10 @@ export function resolveInlineEditor({
 }: ResolveInlineEditorInput): InlineEditEditor {
   if (explicitEditor && explicitEditor !== "auto") {
     return explicitEditor;
+  }
+
+  if (columnType?.toLowerCase() === "multioption") {
+    return "multiSelect";
   }
 
   const formMappedEditor = mapFormFieldTypeToInlineEditor(formFieldType);
@@ -351,6 +359,27 @@ function parseJsonValue(rawValue: unknown): ParseInlineEditValueResult {
   }
 }
 
+function mapOptionValue(
+  rawValue: unknown,
+  options: InlineEditOption[]
+): boolean | number | string {
+  const normalizedValue = rawValue == null ? "" : String(rawValue);
+  const matchingOption = options.find(
+    (option) => String(option.value) === normalizedValue
+  );
+  return matchingOption?.value ?? normalizedValue;
+}
+
+function toDraftMultiSelectValue(rawValue: unknown): string[] {
+  if (!Array.isArray(rawValue)) {
+    return [];
+  }
+
+  return rawValue
+    .map((value) => String(value).trim())
+    .filter((value) => value.length > 0);
+}
+
 export function parseInlineEditValue({
   editor,
   rawValue,
@@ -366,13 +395,20 @@ export function parseInlineEditValue({
     case "number":
       return parseNumberValue(rawValue);
     case "select": {
-      const selectValue = rawValue == null ? "" : String(rawValue);
-      const selectedOption = options.find(
-        (option) => String(option.value) === selectValue
+      const resolvedValue = mapOptionValue(rawValue, options);
+      return {
+        success: true,
+        value: resolvedValue,
+      };
+    }
+    case "multiSelect": {
+      const rawValues = toDraftMultiSelectValue(rawValue);
+      const resolvedValues = rawValues.map((value) =>
+        mapOptionValue(value, options)
       );
       return {
         success: true,
-        value: selectedOption?.value ?? selectValue,
+        value: resolvedValues,
       };
     }
     default:
@@ -419,13 +455,21 @@ export function validateInlineEditValue({
   }
 
   if (editor === "date") {
-    const isValidDate = candidateValue === null || Boolean(toValidDate(candidateValue));
+    const isValidDate =
+      candidateValue === null || Boolean(toValidDate(candidateValue));
     if (!isValidDate) {
       return {
         success: false,
         errorMessage: "Inline edit expects a valid date.",
       };
     }
+  }
+
+  if (editor === "multiSelect" && !Array.isArray(candidateValue)) {
+    return {
+      success: false,
+      errorMessage: "Inline edit expects an array of values.",
+    };
   }
 
   if (!schema) {
@@ -439,10 +483,7 @@ export function validateInlineEditValue({
 
   if (!schemaResult.success) {
     const issues = schemaResult.error?.issues ?? [];
-    const errorMessage = getSchemaErrorForField(
-      formField,
-      issues
-    );
+    const errorMessage = getSchemaErrorForField(formField, issues);
     return {
       success: false,
       errorMessage: errorMessage ?? "Inline edit validation failed.",
@@ -496,6 +537,8 @@ export function toInlineEditDraftValue(
       }
     case "number":
       return value == null ? "" : String(value);
+    case "multiSelect":
+      return toDraftMultiSelectValue(value);
     case "select":
       return value == null ? "" : String(value);
     default:
@@ -581,8 +624,7 @@ export function useInlineEditRuntime({
           return false;
         }
 
-        const nextCommittedValue =
-          commitResult.committedValue ?? valueToCommit;
+        const nextCommittedValue = commitResult.committedValue ?? valueToCommit;
         const normalizedCommittedDraft = toInlineEditDraftValue(
           nextCommittedValue,
           editor
@@ -600,9 +642,7 @@ export function useInlineEditRuntime({
         return true;
       } catch (error) {
         setErrorMessage(
-          error instanceof Error
-            ? error.message
-            : "Inline edit save failed."
+          error instanceof Error ? error.message : "Inline edit save failed."
         );
         return false;
       } finally {

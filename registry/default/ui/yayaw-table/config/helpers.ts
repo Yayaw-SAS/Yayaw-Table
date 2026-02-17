@@ -1,9 +1,10 @@
 /**
  * Helper functions for defining and working with table configurations
  */
+
+import type { DateDisplayPreset } from "../types/date-types";
 import { defaultTableConfig, defaultTranslations } from "./defaults";
 import type { TableFormConfig } from "./form-config";
-import type { DateDisplayPreset } from "../types/date-types";
 
 /**
  * Supported editor types for inline cell editing.
@@ -13,13 +14,14 @@ export type InlineEditEditor =
   | "boolean"
   | "date"
   | "json"
+  | "multiSelect"
   | "number"
   | "select"
   | "text"
   | "textarea";
 
 /**
- * Select option used by inline edit select editor.
+ * Option used by inline edit select editors.
  */
 export interface InlineEditOption {
   label: string;

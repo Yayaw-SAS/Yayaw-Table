@@ -4,7 +4,25 @@ import type { Cell } from "@tanstack/react-table";
 import type { KeyboardEvent, ReactNode } from "react";
 import { memo, useCallback, useMemo } from "react";
 import { cn } from "@/lib/utils";
+import {
+  Combobox,
+  ComboboxChip,
+  ComboboxChips,
+  ComboboxChipsInput,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxItem,
+  ComboboxList,
+  useComboboxAnchor,
+} from "@/src/components/ui/combobox";
 import { Input } from "@/src/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/src/components/ui/select";
 import { Switch } from "@/src/components/ui/switch";
 import { Textarea } from "@/src/components/ui/textarea";
 import type { AnyFieldDefinition } from "../forms/types";
@@ -29,6 +47,67 @@ interface InlineEditableCellProps<TData extends Record<string, unknown>> {
   formFieldDefinition?: AnyFieldDefinition;
   schema?: InlineEditValidationSchema;
   onCommit: (value: unknown) => Promise<InlineEditCommitResult>;
+}
+
+interface NormalizedSelectOption {
+  label: string;
+  value: string;
+}
+
+function getEditorCurrentValues(
+  editor: InlineEditColumnRuntimeConfig["editor"],
+  editorValue: unknown
+): string[] {
+  if (editor === "multiSelect") {
+    if (!Array.isArray(editorValue)) {
+      return [];
+    }
+    return editorValue.map((value) => String(value));
+  }
+
+  return [String(editorValue)];
+}
+
+function normalizeSelectOptions({
+  editor,
+  editorValue,
+  options,
+}: {
+  editor: InlineEditColumnRuntimeConfig["editor"];
+  editorValue: unknown;
+  options: InlineEditColumnRuntimeConfig["options"];
+}): NormalizedSelectOption[] {
+  if (editor !== "select" && editor !== "multiSelect") {
+    return [];
+  }
+
+  const normalizedOptions = new Map<string, NormalizedSelectOption>();
+
+  for (const option of options) {
+    const normalizedValue = String(option.value);
+    if (normalizedValue.length === 0) {
+      continue;
+    }
+
+    normalizedOptions.set(normalizedValue, {
+      label: option.label,
+      value: normalizedValue,
+    });
+  }
+
+  const currentValues = getEditorCurrentValues(editor, editorValue);
+  for (const currentValue of currentValues) {
+    if (currentValue.length === 0 || normalizedOptions.has(currentValue)) {
+      continue;
+    }
+
+    normalizedOptions.set(currentValue, {
+      label: currentValue,
+      value: currentValue,
+    });
+  }
+
+  return Array.from(normalizedOptions.values());
 }
 
 function InlineEditableCellBase<TData extends Record<string, unknown>>({
@@ -118,6 +197,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
     isSaving,
     scheduledAt,
     startEditing,
+    stopEditing,
     cancelEditing,
     updateDraftValue,
   } = useInlineEditRuntime({
@@ -141,11 +221,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
   );
 
   const handleEditorKeyDown = useCallback(
-    (
-      event: KeyboardEvent<
-        HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-      >
-    ) => {
+    (event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       if (event.key === "Escape") {
         event.preventDefault();
         event.stopPropagation();
@@ -173,88 +249,169 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
   }, [draftValue, resolvedEditor]);
 
   const selectOptions = useMemo(() => {
-    if (resolvedEditor !== "select") {
+    return normalizeSelectOptions({
+      editor: resolvedEditor,
+      editorValue,
+      options: resolvedOptions,
+    });
+  }, [editorValue, resolvedEditor, resolvedOptions]);
+
+  const multiSelectAnchorRef = useComboboxAnchor();
+  const selectedMultiValues = useMemo(() => {
+    if (resolvedEditor !== "multiSelect" || !Array.isArray(editorValue)) {
       return [];
     }
 
-    const currentValue = String(editorValue);
-    if (resolvedOptions.some((option) => String(option.value) === currentValue)) {
-      return resolvedOptions;
-    }
+    return editorValue.map((value) => String(value));
+  }, [editorValue, resolvedEditor]);
 
-    if (currentValue.length === 0) {
-      return resolvedOptions;
-    }
+  const getOptionLabel = useCallback(
+    (optionValue: string): string => {
+      const matchingOption = selectOptions.find(
+        (option) => option.value === optionValue
+      );
+      return matchingOption?.label ?? optionValue;
+    },
+    [selectOptions]
+  );
 
-    return [
-      {
-        label: currentValue,
-        value: currentValue,
-      },
-      ...resolvedOptions,
-    ];
-  }, [editorValue, resolvedEditor, resolvedOptions]);
+  const renderTextareaEditor = useCallback(() => {
+    return (
+      <Textarea
+        autoFocus
+        className="min-h-20 py-1 text-sm"
+        onBlur={handleEditorBlur}
+        onChange={(event) => {
+          updateDraftValue(event.target.value);
+        }}
+        onKeyDown={handleEditorKeyDown}
+        rows={resolvedEditor === "json" ? 6 : 4}
+        value={String(editorValue)}
+      />
+    );
+  }, [
+    editorValue,
+    handleEditorBlur,
+    handleEditorKeyDown,
+    resolvedEditor,
+    updateDraftValue,
+  ]);
 
-  const renderEditor = () => {
-    if (resolvedEditor === "textarea" || resolvedEditor === "json") {
-      return (
-        <Textarea
-          autoFocus
-          className="min-h-20 py-1 text-sm"
+  const renderBooleanEditor = useCallback(() => {
+    return (
+      <div className="flex min-h-8 items-center gap-2 px-1">
+        <Switch
+          checked={Boolean(editorValue)}
           onBlur={handleEditorBlur}
-          onChange={(event) => {
-            updateDraftValue(event.target.value);
+          onCheckedChange={(checked) => {
+            updateDraftValue(Boolean(checked));
           }}
-          onKeyDown={handleEditorKeyDown}
-          rows={resolvedEditor === "json" ? 6 : 4}
-          value={String(editorValue)}
         />
-      );
-    }
+        <span className="text-muted-foreground text-xs">
+          {Boolean(editorValue) ? t("common.true") : t("common.false")}
+        </span>
+      </div>
+    );
+  }, [editorValue, handleEditorBlur, t, updateDraftValue]);
 
-    if (resolvedEditor === "boolean") {
-      return (
-        <div className="flex min-h-8 items-center gap-2 px-1">
-          <Switch
-            checked={Boolean(editorValue)}
-            onBlur={handleEditorBlur}
-            onCheckedChange={(checked) => {
-              updateDraftValue(Boolean(checked));
-            }}
-          />
-          <span className="text-muted-foreground text-xs">
-            {Boolean(editorValue) ? t("common.true") : t("common.false")}
-          </span>
-        </div>
-      );
-    }
-
-    if (resolvedEditor === "select") {
-      return (
-        <select
-          autoFocus
-          className="border-input focus-visible:border-ring focus-visible:ring-ring/50 h-8 w-full rounded-md border bg-transparent px-2.5 py-1 text-sm outline-none focus-visible:ring-3"
-          onBlur={handleEditorBlur}
-          onChange={(event) => {
-            updateDraftValue(event.target.value);
-          }}
-          onKeyDown={handleEditorKeyDown}
-          value={String(editorValue)}
-        >
-          {selectOptions.length === 0 && (
-            <option value="">
+  const renderSelectEditor = useCallback(() => {
+    return (
+      <Select
+        onOpenChange={(open) => {
+          if (!open) {
+            stopEditing();
+          }
+        }}
+        onValueChange={(value) => {
+          updateDraftValue(value ?? "");
+        }}
+        value={String(editorValue)}
+      >
+        <SelectTrigger autoFocus className="h-8 w-full">
+          <SelectValue placeholder={t("inline.select_no_options")} />
+        </SelectTrigger>
+        <SelectContent>
+          {selectOptions.length === 0 ? (
+            <SelectItem disabled value="__no-options__">
               {t("inline.select_no_options")}
-            </option>
+            </SelectItem>
+          ) : (
+            selectOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))
           )}
-          {selectOptions.map((option) => (
-            <option key={String(option.value)} value={String(option.value)}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      );
-    }
+        </SelectContent>
+      </Select>
+    );
+  }, [editorValue, selectOptions, stopEditing, t, updateDraftValue]);
 
+  const renderMultiSelectEditor = useCallback(() => {
+    return (
+      <Combobox
+        multiple
+        onOpenChange={(open) => {
+          if (!open) {
+            stopEditing();
+          }
+        }}
+        onValueChange={(values) => {
+          updateDraftValue(
+            Array.isArray(values) ? values.map((value) => String(value)) : []
+          );
+        }}
+        value={selectedMultiValues}
+      >
+        <ComboboxChips className="w-full" ref={multiSelectAnchorRef}>
+          {selectedMultiValues.map((selectedValue) => (
+            <ComboboxChip key={selectedValue}>
+              {getOptionLabel(selectedValue)}
+            </ComboboxChip>
+          ))}
+          <ComboboxChipsInput
+            autoFocus
+            className="h-6 min-w-16"
+            onKeyDown={(event) => {
+              if (event.key !== "Escape") {
+                return;
+              }
+
+              event.preventDefault();
+              event.stopPropagation();
+              cancelEditing();
+            }}
+            placeholder={
+              selectedMultiValues.length === 0
+                ? t("inline.select_no_options")
+                : undefined
+            }
+          />
+        </ComboboxChips>
+        <ComboboxContent anchor={multiSelectAnchorRef}>
+          <ComboboxList>
+            <ComboboxEmpty>{t("filters.noResults")}</ComboboxEmpty>
+            {selectOptions.map((option) => (
+              <ComboboxItem key={option.value} value={option.value}>
+                {option.label}
+              </ComboboxItem>
+            ))}
+          </ComboboxList>
+        </ComboboxContent>
+      </Combobox>
+    );
+  }, [
+    cancelEditing,
+    getOptionLabel,
+    multiSelectAnchorRef,
+    selectOptions,
+    selectedMultiValues,
+    stopEditing,
+    t,
+    updateDraftValue,
+  ]);
+
+  const renderInputEditor = useCallback(() => {
     let inputType = "text";
     if (resolvedEditor === "number") {
       inputType = "number";
@@ -275,6 +432,32 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
         value={String(editorValue)}
       />
     );
+  }, [
+    editorValue,
+    handleEditorBlur,
+    handleEditorKeyDown,
+    resolvedEditor,
+    updateDraftValue,
+  ]);
+
+  const renderEditor = () => {
+    if (resolvedEditor === "textarea" || resolvedEditor === "json") {
+      return renderTextareaEditor();
+    }
+
+    if (resolvedEditor === "boolean") {
+      return renderBooleanEditor();
+    }
+
+    if (resolvedEditor === "select") {
+      return renderSelectEditor();
+    }
+
+    if (resolvedEditor === "multiSelect") {
+      return renderMultiSelectEditor();
+    }
+
+    return renderInputEditor();
   };
 
   return (

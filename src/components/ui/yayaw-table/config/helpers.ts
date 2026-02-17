@@ -13,13 +13,14 @@ export type InlineEditEditor =
   | "boolean"
   | "date"
   | "json"
+  | "multiSelect"
   | "number"
   | "select"
   | "text"
   | "textarea";
 
 /**
- * Select option used by inline edit select editor.
+ * Option used by inline edit select editors.
  */
 export interface InlineEditOption {
   label: string;
