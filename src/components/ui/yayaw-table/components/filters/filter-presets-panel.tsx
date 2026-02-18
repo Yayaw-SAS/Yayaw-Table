@@ -268,15 +268,21 @@ function PresetCard({
   );
 }
 
-const SAVE_PRESET_INITIAL = {
+interface SavePresetState {
+  name: string;
+  description: string;
+  tags: string;
+  isPublic: boolean;
+  isSaving: boolean;
+}
+
+const SAVE_PRESET_INITIAL: SavePresetState = {
   name: "",
   description: "",
   tags: "",
   isPublic: false,
   isSaving: false,
-} as const;
-
-type SavePresetState = typeof SAVE_PRESET_INITIAL;
+};
 
 type SavePresetAction =
   | { type: "set_field"; field: keyof SavePresetState; value: string | boolean }
