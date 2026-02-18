@@ -4,7 +4,7 @@
  */
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -66,17 +66,9 @@ export function TextFilter({
   const { t } = useTranslations();
   const effectivePlaceholder =
     placeholder ?? translateWithFallback(t, "filters.value", "Enter text...");
-  const [internalValue, setInternalValue] = useState(value);
 
-  // Sync internal value with prop
-  useEffect(() => {
-    setInternalValue(value);
-  }, [value]);
-
-  // Handle value change with debouncing
   const handleValueChange = useCallback(
     (newValue: string) => {
-      setInternalValue(newValue);
       if (debounceMs <= 0) {
         onValueChange(newValue);
         return () => {
@@ -94,7 +86,6 @@ export function TextFilter({
   // Handle immediate value change for certain operators
   const handleImmediateChange = useCallback(
     (newValue: string) => {
-      setInternalValue(newValue);
       onValueChange(newValue);
     },
     [onValueChange]
@@ -149,7 +140,7 @@ export function TextFilter({
             onChange={(e) => handleValueChange(e.target.value)}
             placeholder={effectivePlaceholder}
             type="text"
-            value={internalValue}
+            value={value}
           />
         )}
 
@@ -182,15 +173,9 @@ export function CompactTextFilter({
   const { t } = useTranslations();
   const effectivePlaceholder =
     placeholder ?? translateWithFallback(t, "filters.value", "Type...");
-  const [internalValue, setInternalValue] = useState(value);
-
-  useEffect(() => {
-    setInternalValue(value);
-  }, [value]);
 
   const handleChange = useCallback(
     (newValue: string) => {
-      setInternalValue(newValue);
       const timeoutId = setTimeout(() => {
         onValueChange(newValue);
       }, 300);
@@ -218,7 +203,7 @@ export function CompactTextFilter({
       onChange={(e) => handleChange(e.target.value)}
       placeholder={effectivePlaceholder}
       type="text"
-      value={internalValue}
+      value={value}
     />
   );
 }

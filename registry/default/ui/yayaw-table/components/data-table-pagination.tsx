@@ -103,6 +103,7 @@ export function DataTablePagination<TData>({
           "flex flex-col items-center justify-between gap-4 py-4 sm:flex-row",
           className
         )}
+        suppressHydrationWarning
       >
         <div className="flex-1 text-muted-foreground text-sm">
           {startRow}-{endRow} {translations.of}{" "}
@@ -132,6 +133,7 @@ export function DataTablePagination<TData>({
         "flex flex-col items-center justify-between gap-4 py-4 sm:flex-row",
         className
       )}
+      suppressHydrationWarning
     >
       {/* Row range display */}
       <div className="flex-1 text-muted-foreground text-sm">

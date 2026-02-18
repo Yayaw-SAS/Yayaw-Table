@@ -39,9 +39,9 @@ import {
   useTableActions as useProviderTableActions,
   useTranslations,
 } from "../../providers/table-provider";
+import type { ColumnDataType } from "../../types";
 import type { DateDisplayPreset } from "../../types/date-types";
 import { DATE_DISPLAY_PRESETS } from "../../types/date-types";
-import type { ColumnDataType } from "../../types";
 import { buildCsvExportColumns, exportRowsAsCsv } from "../../utils/csv-export";
 import {
   catalogueFormAtom,
@@ -220,8 +220,9 @@ function createColumnOptions(
   const options = columnDefinitions
     .filter((colDef) => colDef.id !== "select" && colDef.id !== "actions") // Skip system columns
     .map((colDef) => {
-      const columnDateDisplayPreset = (colDef as { dateDisplayPreset?: unknown })
-        .dateDisplayPreset;
+      const columnDateDisplayPreset = (
+        colDef as { dateDisplayPreset?: unknown }
+      ).dateDisplayPreset;
       const rawDateFormat =
         (colDef as { dateFormat?: unknown }).dateFormat ??
         (colDef as { meta?: { dateFormat?: unknown } }).meta?.dateFormat;
@@ -487,10 +488,9 @@ const fetchAllFilteredRows = async ({
   return collectedRows;
 };
 
-/**
- * Advanced toolbar component for DataTable
- * Combines search, filters, view management, and column visibility controls
- */
+const EMPTY_DATA: never[] = [];
+const EMPTY_COLUMN_TYPE_MAPPING: Record<string, never> = {};
+
 export function DataTableAdvancedToolbar<TData>({
   className: _className,
   hideGlobalFilter: _hideGlobalFilter,
@@ -500,8 +500,8 @@ export function DataTableAdvancedToolbar<TData>({
   table,
   viewOptions: _viewOptions,
   enableAdvancedFilters = false,
-  data = [],
-  columnTypeMapping = {},
+  data = EMPTY_DATA,
+  columnTypeMapping = EMPTY_COLUMN_TYPE_MAPPING,
   onExport,
   ...props
 }: DataTableAdvancedToolbarProps<TData>) {

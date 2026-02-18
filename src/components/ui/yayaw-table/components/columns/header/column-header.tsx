@@ -206,6 +206,7 @@ function DataTableColumnHeaderBase<TData, TValue>({
         )}
         ref={isHydrated ? setNodeRef : undefined}
         style={style}
+        suppressHydrationWarning
         {...(isHydrated ? attributes : {})}
       >
         <div

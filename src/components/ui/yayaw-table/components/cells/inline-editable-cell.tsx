@@ -278,7 +278,6 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
   const renderTextareaEditor = useCallback(() => {
     return (
       <Textarea
-        autoFocus
         className="min-h-20 py-1 text-sm"
         onBlur={handleEditorBlur}
         onChange={(event) => {
@@ -327,7 +326,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
         }}
         value={String(editorValue)}
       >
-        <SelectTrigger autoFocus className="h-8 w-full">
+        <SelectTrigger className="h-8 w-full">
           <SelectValue placeholder={t("inline.select_no_options")} />
         </SelectTrigger>
         <SelectContent>
@@ -370,7 +369,6 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
             </ComboboxChip>
           ))}
           <ComboboxChipsInput
-            autoFocus
             className="h-6 min-w-16"
             onKeyDown={(event) => {
               if (event.key !== "Escape") {
@@ -421,7 +419,6 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
 
     return (
       <Input
-        autoFocus
         className="h-8 py-1 text-sm"
         onBlur={handleEditorBlur}
         onChange={(event) => {

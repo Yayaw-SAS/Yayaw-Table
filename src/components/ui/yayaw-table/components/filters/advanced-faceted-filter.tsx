@@ -608,14 +608,13 @@ function FilterContent({
   );
 }
 
-/**
- * Main advanced faceted filter component
- */
+const EMPTY_VALUES: never[] = [];
+
 export function AdvancedFacetedFilter({
   columnId,
   config,
   facetedData,
-  selectedValues = [],
+  selectedValues = EMPTY_VALUES,
   onSelectionChange,
   disabled = false,
   maxHeight = 300,

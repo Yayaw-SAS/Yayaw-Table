@@ -22,6 +22,9 @@ import type {
 import { CompactFilterPanel } from "../../filters/advanced-filter-panel";
 import { translateWithFallback } from "../../filters/i18n-utils";
 
+const EMPTY_FILTERS: never[] = [];
+const EMPTY_COLUMNS_CONFIG: Record<string, never> = {};
+
 export interface AdvancedTableFiltersMenuProps {
   /** Legacy column filters for backward compatibility */
   columnFilters: ColumnFiltersState;
@@ -164,9 +167,9 @@ function LegacyFilterItem({
 export function AdvancedTableFiltersMenu({
   columnFilters,
   columns,
-  advancedFilters = [],
+  advancedFilters = EMPTY_FILTERS,
   advancedActions,
-  advancedColumnsConfig = {},
+  advancedColumnsConfig = EMPTY_COLUMNS_CONFIG,
   useAdvancedFilters = false,
   onConvertToAdvanced,
   setColumnFilters,

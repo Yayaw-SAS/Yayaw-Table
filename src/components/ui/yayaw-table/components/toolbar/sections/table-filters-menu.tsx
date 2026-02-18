@@ -19,6 +19,9 @@ import { AdvancedFilterPanel } from "../../filters/advanced-filter-panel";
 // Debug flag - activated for debugging advanced filters
 const DEBUG = false;
 
+const EMPTY_FILTERS: never[] = [];
+const EMPTY_COLUMNS_CONFIG: Record<string, never> = {};
+
 export interface TableFiltersMenuProps {
   columnFilters: ColumnFiltersState;
   columns: {
@@ -45,9 +48,9 @@ export function TableFiltersMenu({
   invalidateTable: _invalidateTable,
   setColumnFilters,
   tableId,
-  advancedFilters = [],
+  advancedFilters = EMPTY_FILTERS,
   advancedActions,
-  advancedColumnsConfig = {},
+  advancedColumnsConfig = EMPTY_COLUMNS_CONFIG,
   useAdvancedFilters = false,
 }: TableFiltersMenuProps) {
   const { t } = useTranslations();
@@ -109,10 +112,10 @@ export function TableFiltersMenu({
             <div className="space-y-2">
               <Separator />
               <h4 className="font-medium text-sm">{t("filters.title")}</h4>
-              {columnFilters.map((filter, index) => (
+              {columnFilters.map((filter) => (
                 <div
                   className="flex items-center gap-2 rounded-md border p-2"
-                  key={`${filter.id}-${index}`}
+                  key={filter.id}
                 >
                   <span className="font-medium text-sm">{filter.id}</span>
                   <span className="text-muted-foreground text-xs">:</span>
@@ -121,7 +124,7 @@ export function TableFiltersMenu({
                     className="ml-auto h-6 w-6 p-0"
                     onClick={() => {
                       const newFilters = columnFilters.filter(
-                        (_, i) => i !== index
+                        (f) => f.id !== filter.id
                       );
                       setColumnFilters(newFilters);
                     }}

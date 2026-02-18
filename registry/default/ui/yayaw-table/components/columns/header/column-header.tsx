@@ -6,8 +6,8 @@ import type { Column, Table } from "@tanstack/react-table";
 import { useAtomValue } from "jotai";
 import { ArrowDown, ArrowUp, GripVertical } from "lucide-react";
 import { memo, useEffect, useMemo, useState } from "react";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 import { columnDragEnabledAtom } from "../../../atoms/table-atoms";
 import { useTableConfig } from "../../../hooks/use-table-config";
@@ -110,7 +110,10 @@ function DataTableColumnHeaderBase<TData, TValue>({
 
   const isSelectionColumn = column.id === "select";
   const isActionsColumn = column.id === "actions";
-  const def = column.columnDef as { type?: string; meta?: { columnType?: string } };
+  const def = column.columnDef as {
+    type?: string;
+    meta?: { columnType?: string };
+  };
   const isNumberColumn =
     def.type === "number" || def.meta?.columnType === "number";
   const sortDirection = column.getIsSorted();
@@ -154,11 +157,7 @@ function DataTableColumnHeaderBase<TData, TValue>({
             isNumberColumn && "justify-end"
           )}
         >
-          <ColumnMenu
-            column={column}
-            table={tableInstance}
-            tableId={tableId}
-          >
+          <ColumnMenu column={column} table={tableInstance} tableId={tableId}>
             <div className="flex w-full cursor-pointer items-center gap-2">
               <span>{title}</span>
               {sortDirection && (
@@ -206,6 +205,7 @@ function DataTableColumnHeaderBase<TData, TValue>({
         )}
         ref={isHydrated ? setNodeRef : undefined}
         style={style}
+        suppressHydrationWarning
         {...(isHydrated ? attributes : {})}
       >
         <div

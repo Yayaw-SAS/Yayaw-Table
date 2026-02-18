@@ -5,8 +5,7 @@
 "use client";
 
 import { Check, ChevronDown, X } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { cn } from "@/lib/utils";
+import { useCallback, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 import { useTranslations } from "../../providers/table-provider";
 import type { ColumnOption, FilterOperators } from "../../types/filter-types";
 import {
@@ -92,19 +92,11 @@ export function MultiSelectFilter({
   const effectivePlaceholder =
     placeholder ??
     translateWithFallback(t, "filters.value", "Select options...");
-  const [internalValue, setInternalValue] = useState(value);
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Sync internal value with prop
-  useEffect(() => {
-    setInternalValue(value);
-  }, [value]);
-
-  // Handle value change
   const handleValueChange = useCallback(
     (newValue: string[]) => {
-      setInternalValue(newValue);
       onValueChange(newValue);
     },
     [onValueChange]
@@ -128,12 +120,12 @@ export function MultiSelectFilter({
   // Handle option selection toggle
   const handleOptionToggle = useCallback(
     (optionValue: string) => {
-      const newValue = internalValue.includes(optionValue)
-        ? internalValue.filter((v) => v !== optionValue)
-        : [...internalValue, optionValue];
+      const newValue = value.includes(optionValue)
+        ? value.filter((v) => v !== optionValue)
+        : [...value, optionValue];
       handleValueChange(newValue);
     },
-    [internalValue, handleValueChange]
+    [value, handleValueChange]
   );
 
   // Handle select all
@@ -157,26 +149,26 @@ export function MultiSelectFilter({
 
   // Format selected values for display
   const formatValueForDisplay = useCallback(() => {
-    if (internalValue.length === 0) {
+    if (value.length === 0) {
       return effectivePlaceholder;
     }
-    if (internalValue.length === 1) {
-      const option = getOptionByValue(internalValue[0]);
-      return option?.label || internalValue[0];
+    if (value.length === 1) {
+      const option = getOptionByValue(value[0]);
+      return option?.label || value[0];
     }
-    return t("filters.selectedCount", { count: internalValue.length });
-  }, [internalValue, effectivePlaceholder, getOptionByValue, t]);
+    return t("filters.selectedCount", { count: value.length });
+  }, [value, effectivePlaceholder, getOptionByValue, t]);
 
   // Get displayed tags
   const displayedTags = useMemo(() => {
-    const tags = internalValue.slice(0, maxDisplayedTags);
-    const hasMore = internalValue.length > maxDisplayedTags;
+    const tags = value.slice(0, maxDisplayedTags);
+    const hasMore = value.length > maxDisplayedTags;
     return {
       tags,
       hasMore,
-      remainingCount: internalValue.length - maxDisplayedTags,
+      remainingCount: value.length - maxDisplayedTags,
     };
-  }, [internalValue, maxDisplayedTags]);
+  }, [value, maxDisplayedTags]);
 
   return (
     <div className="space-y-3">
@@ -230,7 +222,7 @@ export function MultiSelectFilter({
                     <CommandEmpty>{t("filters.noResults")}</CommandEmpty>
                     <CommandGroup>
                       {filteredOptions.map((option) => {
-                        const isSelected = internalValue.includes(option.value);
+                        const isSelected = value.includes(option.value);
                         return (
                           <CommandItem
                             key={option.value}
@@ -304,7 +296,7 @@ export function MultiSelectFilter({
                               )}{" "}
                               ({filteredOptions.length})
                             </CommandItem>
-                            {internalValue.length > 0 && (
+                            {value.length > 0 && (
                               <CommandItem
                                 className="mb-1 justify-center border-b"
                                 onSelect={handleClearAll}
@@ -316,9 +308,7 @@ export function MultiSelectFilter({
                         )}
 
                         {filteredOptions.map((option) => {
-                          const isSelected = internalValue.includes(
-                            option.value
-                          );
+                          const isSelected = value.includes(option.value);
 
                           return (
                             <CommandItem
@@ -363,7 +353,7 @@ export function MultiSelectFilter({
             )}
 
             {/* Selected tags display */}
-            {internalValue.length > 0 && (
+            {value.length > 0 && (
               <div className="flex flex-wrap gap-1">
                 {displayedTags.tags.map((selectedValue) => {
                   const option = getOptionByValue(selectedValue);
@@ -453,12 +443,7 @@ export function CompactMultiSelectFilter({
   const { t } = useTranslations();
   const effectivePlaceholder =
     placeholder ?? translateWithFallback(t, "filters.value", "Select...");
-  const [internalValue, setInternalValue] = useState(value);
   const [isOpen, setIsOpen] = useState(false);
-
-  useEffect(() => {
-    setInternalValue(value);
-  }, [value]);
 
   const getOptionByValue = useCallback(
     (optionValue: string) => {
@@ -468,31 +453,30 @@ export function CompactMultiSelectFilter({
   );
 
   const formatValueForDisplay = useCallback(() => {
-    if (internalValue.length === 0) {
+    if (value.length === 0) {
       return effectivePlaceholder;
     }
-    if (internalValue.length === 1) {
-      const option = getOptionByValue(internalValue[0]);
-      return option?.label || internalValue[0];
+    if (value.length === 1) {
+      const option = getOptionByValue(value[0]);
+      return option?.label || value[0];
     }
     return translateWithFallback(
       t,
       "filters.selectedCount",
-      `${internalValue.length} selected`,
-      { count: internalValue.length }
+      `${value.length} selected`,
+      { count: value.length }
     );
-  }, [internalValue, effectivePlaceholder, getOptionByValue, t]);
+  }, [value, effectivePlaceholder, getOptionByValue, t]);
 
   const handleOptionToggle = useCallback(
     (optionValue: string) => {
-      const newValue = internalValue.includes(optionValue)
-        ? internalValue.filter((v) => v !== optionValue)
-        : [...internalValue, optionValue];
+      const newValue = value.includes(optionValue)
+        ? value.filter((v) => v !== optionValue)
+        : [...value, optionValue];
 
-      setInternalValue(newValue);
       onValueChange(newValue);
     },
-    [internalValue, onValueChange]
+    [value, onValueChange]
   );
 
   const needsValue = !["isEmpty", "isNotEmpty"].includes(operator);
@@ -530,7 +514,7 @@ export function CompactMultiSelectFilter({
               <CommandEmpty>{t("filters.noResults")}</CommandEmpty>
               <CommandGroup>
                 {options.map((option) => {
-                  const isSelected = internalValue.includes(option.value);
+                  const isSelected = value.includes(option.value);
 
                   return (
                     <CommandItem
@@ -566,9 +550,9 @@ export function CompactMultiSelectFilter({
       </Popover>
 
       {/* Compact tags display */}
-      {internalValue.length > 0 && (
+      {value.length > 0 && (
         <div className="flex flex-wrap gap-1">
-          {internalValue.slice(0, maxDisplayedTags).map((selectedValue) => {
+          {value.slice(0, maxDisplayedTags).map((selectedValue) => {
             const option = getOptionByValue(selectedValue);
             return (
               <Badge
@@ -593,9 +577,9 @@ export function CompactMultiSelectFilter({
               </Badge>
             );
           })}
-          {internalValue.length > maxDisplayedTags && (
+          {value.length > maxDisplayedTags && (
             <Badge className="h-4 px-1 text-xs" variant="outline">
-              +{internalValue.length - maxDisplayedTags}
+              +{value.length - maxDisplayedTags}
             </Badge>
           )}
         </div>

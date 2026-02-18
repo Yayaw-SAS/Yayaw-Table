@@ -39,7 +39,10 @@ function ThemeToggle({ className, variant = "dropdown" }: ThemeToggleProps) {
 
   if (!mounted) {
     return (
-      <div className={cn("flex items-center", className)}>
+      <div
+        className={cn("flex items-center", className)}
+        suppressHydrationWarning
+      >
         <Button
           aria-label="Theme"
           className="group/toggle h-8 w-8 px-0 [&_svg]:size-4"
@@ -55,7 +58,10 @@ function ThemeToggle({ className, variant = "dropdown" }: ThemeToggleProps) {
 
   if (variant === "switch") {
     return (
-      <div className={cn("flex items-center", className)}>
+      <div
+        className={cn("flex items-center", className)}
+        suppressHydrationWarning
+      >
         <Button
           aria-label="Theme"
           className="group/toggle h-8 w-8 px-0 [&_svg]:size-4"
@@ -72,7 +78,10 @@ function ThemeToggle({ className, variant = "dropdown" }: ThemeToggleProps) {
   }
 
   return (
-    <div className={cn("relative", className)}>
+    <div
+      className={cn("relative", className)}
+      suppressHydrationWarning
+    >
       <DropdownMenu>
         <DropdownMenuTrigger
           render={

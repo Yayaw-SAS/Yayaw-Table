@@ -69,6 +69,8 @@ import {
   FilterSuccessState,
 } from "./modern-filter-states";
 
+const EMPTY_COLUMNS: never[] = [];
+
 export interface AdvancedFilterPanelProps {
   /** Current filters state */
   filters: AdvancedFiltersState;
@@ -135,12 +137,14 @@ function FilterChip({
   const { t } = useTranslations();
   const locale = useLocale();
   const [isEditing, setIsEditing] = useState<boolean>(autoEdit);
-  // Ensure auto open when requested
-  useEffect(() => {
-    if (autoEdit) {
-      setIsEditing(true);
-    }
-  }, [autoEdit]);
+  const [prevAutoEdit, setPrevAutoEdit] = useState(autoEdit);
+  if (autoEdit && autoEdit !== prevAutoEdit) {
+    setPrevAutoEdit(autoEdit);
+    setIsEditing(true);
+  }
+  if (!autoEdit && prevAutoEdit) {
+    setPrevAutoEdit(autoEdit);
+  }
   const [stagedOperator, setStagedOperator] = useState<
     | "contains"
     | "equals"
@@ -463,8 +467,8 @@ export function AdvancedFilterPanel({
   error = null,
   performance,
   variant = "modern",
-  recentColumns: _recentColumns = [],
-  popularColumns: _popularColumns = [],
+  recentColumns: _recentColumns = EMPTY_COLUMNS,
+  popularColumns: _popularColumns = EMPTY_COLUMNS,
   showPerformance: _showPerformance = false,
   enableAnimations = true,
   openFilterForColumnId,

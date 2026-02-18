@@ -9,7 +9,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/src/components/ui/badge";
 import { Button } from "@/src/components/ui/button";
@@ -255,17 +255,10 @@ export function EnhancedFilterChip({
   const { t } = useTranslations();
   const locale = useLocale();
   const [isRemoving, setIsRemoving] = useState(false);
-  const [popoverOpen, setPopoverOpen] = useState(isEditing);
   const chipRef = useRef<HTMLDivElement>(null);
 
-  // Sync popover state with editing prop
-  useEffect(() => {
-    setPopoverOpen(isEditing);
-  }, [isEditing]);
-
-  // Handle popover state changes
+  // Controlled: parent owns open state via isEditing and onEditingChange
   const handlePopoverChange = (open: boolean) => {
-    setPopoverOpen(open);
     onEditingChange?.(open);
   };
 
@@ -315,7 +308,7 @@ export function EnhancedFilterChip({
       )}
       ref={chipRef}
     >
-      <Popover onOpenChange={handlePopoverChange} open={popoverOpen}>
+      <Popover onOpenChange={handlePopoverChange} open={isEditing}>
         <PopoverTrigger>
           <Button
             aria-label={`${translateWithFallback(
@@ -395,7 +388,7 @@ export function EnhancedFilterChip({
               className={cn(
                 "ml-1 shrink-0 transition-transform duration-200",
                 size === "sm" ? "h-3 w-3" : "h-4 w-4",
-                popoverOpen && "rotate-180",
+                isEditing && "rotate-180",
                 colorScheme.icon
               )}
             />

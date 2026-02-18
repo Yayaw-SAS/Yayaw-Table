@@ -53,18 +53,20 @@ import { ColumnIcon } from "../utils/column-icons";
 import { buildCsvExportColumns } from "../utils/csv-export";
 import { InlineEditableCell } from "./cells/inline-editable-cell";
 import { BulkActionsMenu } from "./bulk-actions/bulk-actions-menu";
-import { ColumnDragOverlay, GroupRowSelectionCell } from "./columns";
+import { GroupRowSelectionCell } from "./columns/selection-column";
 import { DataTableColumnHeader } from "./columns/header/column-header";
+import { ColumnDragOverlay } from "./columns/header/column-drag-overlay";
+import { SortableHeader } from "./columns/header/sortable-header";
 import { useColumnDnd } from "./columns/hooks/use-column-dnd";
 import { useColumnDragOverlay } from "./columns/hooks/use-column-drag-overlay";
 import type { AnyFieldDefinition } from "./forms/types";
-import { SortableHeader } from "./index";
 import { SafePagination } from "./safe-pagination";
 
-// Debug flag for logging
 const _DEBUG = false;
 
-/** Stable empty object for "collapse all" to avoid setState loops when effect re-runs */
+const EMPTY_COLUMNS: never[] = [];
+const EMPTY_DATA: never[] = [];
+
 const EMPTY_EXPANDED: Record<string, boolean> = {};
 
 /** Detect number column from def.type or def.meta.columnType (set by createNumberColumn) */
@@ -474,8 +476,8 @@ function ModernDataTable<
   TValue = unknown,
 >({
   className,
-  columns = [],
-  data: _initialData = [],
+  columns = EMPTY_COLUMNS,
+  data: _initialData = EMPTY_DATA,
   enableColumnDragDropByDefault = true,
   enableColumnFilters = true,
   enableMultiRowSelection = true,
@@ -1469,7 +1471,7 @@ function ModernDataTable<
 
   // Render the component
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" suppressHydrationWarning>
       {renderContent()}
 
       {/* Bulk Actions Menu - rendered as overlay when rows are selected */}

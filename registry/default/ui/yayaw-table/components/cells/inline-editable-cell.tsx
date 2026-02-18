@@ -3,7 +3,6 @@
 import type { Cell } from "@tanstack/react-table";
 import type { KeyboardEvent, ReactNode } from "react";
 import { memo, useCallback, useMemo } from "react";
-import { cn } from "@/lib/utils";
 import {
   Combobox,
   ComboboxChip,
@@ -25,19 +24,20 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import type { AnyFieldDefinition } from "../forms/types";
+import { cn } from "@/lib/utils";
 import {
-  parseInlineEditValue,
-  resolveInlineEditor,
-  resolveInlineEditOptions,
-  toInlineEditDraftValue,
   type InlineEditColumnRuntimeConfig,
   type InlineEditCommitResult,
   type InlineEditValidationSchema,
+  parseInlineEditValue,
+  resolveInlineEditOptions,
+  resolveInlineEditor,
+  toInlineEditDraftValue,
   useInlineEditRuntime,
   validateInlineEditValue,
 } from "../../hooks/use-inline-edit-runtime";
 import { useTranslations } from "../../providers/table-provider";
+import type { AnyFieldDefinition } from "../forms/types";
 
 interface InlineEditableCellProps<TData extends Record<string, unknown>> {
   cell: Cell<TData, unknown>;
@@ -153,8 +153,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
       if (!parsedResult.success) {
         return {
           success: false,
-          errorMessage:
-            parsedResult.errorMessage ?? t("inline.invalid_value"),
+          errorMessage: parsedResult.errorMessage ?? t("inline.invalid_value"),
         };
       }
 
@@ -278,7 +277,6 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
   const renderTextareaEditor = useCallback(() => {
     return (
       <Textarea
-        autoFocus
         className="min-h-20 py-1 text-sm"
         onBlur={handleEditorBlur}
         onChange={(event) => {
@@ -308,7 +306,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
           }}
         />
         <span className="text-muted-foreground text-xs">
-          {Boolean(editorValue) ? t("common.true") : t("common.false")}
+          {editorValue ? t("common.true") : t("common.false")}
         </span>
       </div>
     );
@@ -327,7 +325,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
         }}
         value={String(editorValue)}
       >
-        <SelectTrigger autoFocus className="h-8 w-full">
+        <SelectTrigger className="h-8 w-full">
           <SelectValue placeholder={t("inline.select_no_options")} />
         </SelectTrigger>
         <SelectContent>
@@ -370,7 +368,6 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
             </ComboboxChip>
           ))}
           <ComboboxChipsInput
-            autoFocus
             className="h-6 min-w-16"
             onKeyDown={(event) => {
               if (event.key !== "Escape") {
@@ -421,7 +418,6 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
 
     return (
       <Input
-        autoFocus
         className="h-8 py-1 text-sm"
         onBlur={handleEditorBlur}
         onChange={(event) => {
@@ -468,22 +464,22 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
         <button
           className={cn(
             "relative min-h-8 w-full cursor-text rounded-sm px-0.5 py-1 text-left outline-none",
-            "focus-visible:ring-primary/30 focus-visible:ring-2"
+            "focus-visible:ring-2 focus-visible:ring-primary/30"
           )}
           onDoubleClick={(event) => {
             event.stopPropagation();
             startEditing();
           }}
           onKeyDown={handleDisplayKeyDown}
-          type="button"
           title={t("inline.edit_hint")}
+          type="button"
         >
           {displayValue}
         </button>
       )}
 
       {isSaving && (
-        <span className="absolute top-0.5 right-0.5 text-muted-foreground text-[10px]">
+        <span className="absolute top-0.5 right-0.5 text-[10px] text-muted-foreground">
           {t("inline.saving")}
         </span>
       )}

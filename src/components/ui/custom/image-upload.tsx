@@ -1,7 +1,8 @@
 "use client";
 
 import { Camera, Upload, X } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, LazyMotion, domAnimation } from "motion/react";
+import * as m from "motion/react-m";
 import Image from "next/image";
 import { useRef, useState } from "react";
 import { cn } from "@/lib/utils";
@@ -81,34 +82,35 @@ export function ImageUpload({
   return (
     <div className={cn("flex", containerClassName)}>
       <div className="relative inline-block">
-        <AnimatePresence mode="wait">
-          {isLoading ? (
-            <motion.div
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              initial={{ opacity: 0, scale: 0.8 }}
-              key="loading"
-              transition={{ duration: 0.3, ease: "easeOut" }}
-            >
-              <div
-                className={cn(
-                  width,
-                  height,
-                  aspectRatioClass,
-                  "flex items-center justify-center rounded-md bg-muted"
-                )}
+        <LazyMotion features={domAnimation}>
+          <AnimatePresence mode="wait">
+            {isLoading ? (
+              <m.div
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                initial={{ opacity: 0, scale: 0.8 }}
+                key="loading"
+                transition={{ duration: 0.3, ease: "easeOut" }}
               >
-                <Loader size="xl" />
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              initial={{ opacity: 0, scale: 0.8 }}
-              key={image || "empty"}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-            >
+                <div
+                  className={cn(
+                    width,
+                    height,
+                    aspectRatioClass,
+                    "flex items-center justify-center rounded-md bg-muted"
+                  )}
+                >
+                  <Loader size="xl" />
+                </div>
+              </m.div>
+            ) : (
+              <m.div
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                initial={{ opacity: 0, scale: 0.8 }}
+                key={image || "empty"}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+              >
               <div className="group relative inline-block">
                 <Button
                   aria-label="Upload image"
@@ -170,9 +172,10 @@ export function ImageUpload({
                   </Button>
                 )}
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              </m.div>
+            )}
+          </AnimatePresence>
+        </LazyMotion>
         <Input
           accept="image/*,.svg"
           className="hidden"

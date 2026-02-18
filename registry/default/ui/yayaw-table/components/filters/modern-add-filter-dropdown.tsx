@@ -17,7 +17,6 @@ import {
   Zap,
 } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
-import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,12 +26,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 import { useTranslations } from "../../providers/table-provider";
 import type {
   ColumnDataType,
@@ -100,6 +95,9 @@ interface ColumnOption {
   isPopular?: boolean;
   isFilterable?: boolean;
 }
+
+const EMPTY_IDS: never[] = [];
+const EMPTY_COLUMNS: never[] = [];
 
 interface ModernAddFilterDropdownProps {
   columnsConfig: ColumnsFilterConfig;
@@ -187,9 +185,9 @@ function ColumnOptionItem({
 export function ModernAddFilterDropdown({
   columnsConfig,
   onAddFilter,
-  existingFilterColumnIds = [],
-  recentColumns = [],
-  popularColumns = [],
+  existingFilterColumnIds = EMPTY_IDS,
+  recentColumns = EMPTY_COLUMNS,
+  popularColumns = EMPTY_COLUMNS,
   className,
   size = "md",
   variant = "default",

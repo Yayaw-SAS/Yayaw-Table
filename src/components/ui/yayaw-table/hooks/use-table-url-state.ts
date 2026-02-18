@@ -739,6 +739,6 @@ export function useTableUrlState({
 // Helper function to ensure consistent property order in sorting objects
 function _normalizeSortingObject(sort: { desc: boolean; id: string }) {
   // TanStack Table requires sorting objects to have 'id' property first, then 'desc'
-  // eslint-disable-next-line perfectionist/sort-objects
+  // eslint_disable-next-line perfectionist/sort-objects
   return { id: sort.id, desc: sort.desc };
 }

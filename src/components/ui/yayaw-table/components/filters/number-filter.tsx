@@ -4,7 +4,7 @@
  */
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 import { Input } from "@/src/components/ui/input";
 import { Label } from "@/src/components/ui/label";
 import {
@@ -76,19 +76,9 @@ export function NumberFilter({
   const { t } = useTranslations();
   const effectivePlaceholder =
     placeholder ?? translateWithFallback(t, "filters.value", "Enter number...");
-  const [internalValue, setInternalValue] = useState(value);
 
-  // Sync internal value with prop
-  useEffect(() => {
-    setInternalValue(value);
-  }, [value]);
-
-  // Handle value change with debouncing
   const handleValueChange = useCallback(
     (newValue: number | [number, number]) => {
-      setInternalValue(newValue);
-
-      // Debounce the callback
       const timeoutId = setTimeout(() => {
         onValueChange(newValue);
       }, 300);
@@ -101,7 +91,6 @@ export function NumberFilter({
   // Handle immediate value change
   const handleImmediateChange = useCallback(
     (newValue: number | [number, number]) => {
-      setInternalValue(newValue);
       onValueChange(newValue);
     },
     [onValueChange]
@@ -110,12 +99,8 @@ export function NumberFilter({
   // Check if this operator needs a value input
   const needsValue = !["isEmpty", "isNotEmpty"].includes(operator);
   const isBetween = operator === "between";
-  const currentSingleValue = Array.isArray(internalValue)
-    ? internalValue[0]
-    : internalValue;
-  const currentRangeValue = Array.isArray(internalValue)
-    ? internalValue
-    : [min, max];
+  const currentSingleValue = Array.isArray(value) ? value[0] : value;
+  const currentRangeValue = Array.isArray(value) ? value : [min, max];
 
   // Handle single number input change
   const handleSingleInputChange = useCallback(
@@ -326,15 +311,9 @@ export function CompactNumberFilter({
   const { t } = useTranslations();
   const effectivePlaceholder =
     placeholder ?? translateWithFallback(t, "filters.value", "0");
-  const [internalValue, setInternalValue] = useState(value);
-
-  useEffect(() => {
-    setInternalValue(value);
-  }, [value]);
 
   const handleChange = useCallback(
     (newValue: number | [number, number]) => {
-      setInternalValue(newValue);
       const timeoutId = setTimeout(() => {
         onValueChange(newValue);
       }, 300);
@@ -356,7 +335,7 @@ export function CompactNumberFilter({
     );
   }
 
-  if (isBetween && Array.isArray(internalValue)) {
+  if (isBetween && Array.isArray(value)) {
     return (
       <div className="flex items-center gap-1">
         <Input
@@ -365,11 +344,11 @@ export function CompactNumberFilter({
           onChange={(e) => {
             const val = Number.parseFloat(e.target.value);
             if (!Number.isNaN(val)) {
-              handleChange([val, internalValue[1]]);
+              handleChange([val, value[1]]);
             }
           }}
           type="number"
-          value={internalValue[0]}
+          value={value[0]}
         />
         <span className="text-xs">-</span>
         <Input
@@ -378,19 +357,17 @@ export function CompactNumberFilter({
           onChange={(e) => {
             const val = Number.parseFloat(e.target.value);
             if (!Number.isNaN(val)) {
-              handleChange([internalValue[0], val]);
+              handleChange([value[0], val]);
             }
           }}
           type="number"
-          value={internalValue[1]}
+          value={value[1]}
         />
       </div>
     );
   }
 
-  const singleValue = Array.isArray(internalValue)
-    ? internalValue[0]
-    : internalValue;
+  const singleValue = Array.isArray(value) ? value[0] : value;
 
   return (
     <Input

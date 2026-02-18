@@ -23,8 +23,8 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   columnDragEnabledAtom,
   tableMenuOpenFilterColumnIdAtom,
@@ -80,15 +80,19 @@ const TranslationsProvider = memo(function TranslationsProviderComponent({
   );
 });
 
-// Memoized menu item component
+const MENU_ICON_CLASS = "h-3.5 w-3.5";
+
+type MenuItemIconComponent = React.ComponentType<{ className?: string }>;
+
+// Memoized menu item component — accepts icon as component type to avoid inline JSX and unnecessary re-renders
 const MenuItem = memo(function MenuItemComponent({
   disabled = false,
-  icon,
+  icon: IconComponent,
   label,
   onClick,
 }: {
   disabled?: boolean;
-  icon: ReactNode;
+  icon: MenuItemIconComponent;
   label: string;
   onClick: () => void;
 }) {
@@ -110,21 +114,25 @@ const MenuItem = memo(function MenuItemComponent({
       role="menuitem"
       tabIndex={0}
     >
-      <div className="mr-2 h-3.5 w-3.5">{icon}</div>
+      <div className={cn("mr-2", MENU_ICON_CLASS)}>
+        <IconComponent className={MENU_ICON_CLASS} />
+      </div>
       {label}
     </div>
   );
 });
 
-// Memoized sorting menu items
+// Memoized sorting menu items — stable callbacks to avoid breaking MenuItem memo
 const SortingMenuItems = memo(function SortingMenuItemsComponent({
   canSort,
-  onSort,
+  onSortAsc,
+  onSortDesc,
   sortDirection,
   translations,
 }: {
   canSort: boolean;
-  onSort: (desc: boolean) => void;
+  onSortAsc: () => void;
+  onSortDesc: () => void;
   sortDirection: "asc" | "desc" | false;
   translations: ReturnType<typeof useTableTranslations>;
 }) {
@@ -136,15 +144,15 @@ const SortingMenuItems = memo(function SortingMenuItemsComponent({
     <>
       <MenuItem
         disabled={sortDirection === "asc"}
-        icon={<ArrowUpIcon className="h-3.5 w-3.5" />}
+        icon={ArrowUpIcon}
         label={translations.columnSortAsc}
-        onClick={() => onSort(false)}
+        onClick={onSortAsc}
       />
       <MenuItem
         disabled={sortDirection === "desc"}
-        icon={<ArrowDownIcon className="h-3.5 w-3.5" />}
+        icon={ArrowDownIcon}
         label={translations.columnSortDesc}
-        onClick={() => onSort(true)}
+        onClick={onSortDesc}
       />
     </>
   );
@@ -168,7 +176,7 @@ const MenuTrigger = memo(function MenuTriggerComponent({
           "h-full min-h-0 w-full justify-start rounded-none px-0 font-normal",
           "hover:bg-transparent hover:text-inherit",
           "aria-expanded:bg-transparent aria-expanded:text-inherit",
-          "dark:hover:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+          "focus-visible:ring-0 focus-visible:ring-offset-0 dark:hover:bg-transparent"
         )}
         onClick={onClick}
         type="button"
@@ -304,19 +312,34 @@ function ColumnMenuBase<TData>({
     setIsOpen(false);
   }, [isDragEnabled, setIsDragEnabled]);
 
+  const handleSortAsc = useCallback(() => {
+    handleSort(false);
+  }, [handleSort]);
+
+  const handleSortDesc = useCallback(() => {
+    handleSort(true);
+  }, [handleSort]);
+
+  const handleOpenFilters = useCallback(() => {
+    setTableMenuOpenToView("filters");
+    setTableMenuOpenFilterColumnId(column.id);
+    setIsOpen(false);
+  }, [column.id, setTableMenuOpenFilterColumnId, setTableMenuOpenToView]);
+
+  const handleTriggerClick = useCallback(() => {
+    setIsOpen((prev) => !prev);
+  }, []);
+
   // Memoize trigger component
   const trigger = useMemo(
     () => (
       <div className="h-full w-full" ref={referenceRef}>
-        <MenuTrigger
-          onClick={() => setIsOpen(!isOpen)}
-          translations={translations}
-        >
+        <MenuTrigger onClick={handleTriggerClick} translations={translations}>
           {children}
         </MenuTrigger>
       </div>
     ),
-    [children, isOpen, translations]
+    [children, handleTriggerClick, translations]
   );
 
   // Memoize menu items to prevent recreation
@@ -331,26 +354,23 @@ function ColumnMenuBase<TData>({
           <div className="text-sm">
             <SortingMenuItems
               canSort={canSort}
-              onSort={handleSort}
+              onSortAsc={handleSortAsc}
+              onSortDesc={handleSortDesc}
               sortDirection={sortDirection}
               translations={translations}
             />
 
             {canFilter && (
               <MenuItem
-                icon={<FunnelIcon className="size-3.5" />}
+                icon={FunnelIcon}
                 label={translations.columnFilter}
-                onClick={() => {
-                  setTableMenuOpenToView("filters");
-                  setTableMenuOpenFilterColumnId(column.id);
-                  setIsOpen(false);
-                }}
+                onClick={handleOpenFilters}
               />
             )}
 
             {canHide && (
               <MenuItem
-                icon={<EyeOffIcon className="h-3.5 w-3.5" />}
+                icon={EyeOffIcon}
                 label={translations.columnHide}
                 onClick={handleToggleVisibility}
               />
@@ -359,7 +379,7 @@ function ColumnMenuBase<TData>({
             {dndFeatureEnabled && (
               <div className="mt-1 border-t pt-1">
                 <MenuItem
-                  icon={<GripVertical className="h-3.5 w-3.5" />}
+                  icon={GripVertical}
                   label={
                     translations.columnReorder + (isDragEnabled ? " ✓" : "")
                   }
@@ -380,18 +400,17 @@ function ColumnMenuBase<TData>({
     isOpen,
     floating.floatingStyles,
     canSort,
-    handleSort,
+    handleSortAsc,
+    handleSortDesc,
     sortDirection,
     translations,
     canFilter,
+    handleOpenFilters,
     canHide,
     handleToggleVisibility,
     handleToggleDrag,
     isDragEnabled,
     dndFeatureEnabled,
-    setTableMenuOpenToView,
-    setTableMenuOpenFilterColumnId,
-    column.id,
   ]);
 
   return (

@@ -108,8 +108,7 @@ function normalizeInlineEditTableConfig(
 ): InlineEditTableRuntimeConfig {
   return {
     enabled: inlineConfig?.enabled ?? false,
-    debounceMs:
-      inlineConfig?.debounceMs ?? DEFAULT_INLINE_EDIT_DEBOUNCE_MS,
+    debounceMs: inlineConfig?.debounceMs ?? DEFAULT_INLINE_EDIT_DEBOUNCE_MS,
     trigger: inlineConfig?.trigger ?? "doubleClickEnter",
     optimistic: inlineConfig?.optimistic ?? true,
     showDelayIndicator: inlineConfig?.showDelayIndicator ?? true,
@@ -120,9 +119,8 @@ export function resolveInlineEditColumnConfig(
   column: InlineEditColumnLike,
   tableInlineConfig?: TableInlineEditConfig
 ): InlineEditColumnRuntimeConfig {
-  const normalizedTableConfig = normalizeInlineEditTableConfig(
-    tableInlineConfig
-  );
+  const normalizedTableConfig =
+    normalizeInlineEditTableConfig(tableInlineConfig);
   const inlineColumnConfig =
     typeof column.inlineEdit === "boolean"
       ? { enabled: column.inlineEdit }
@@ -136,8 +134,7 @@ export function resolveInlineEditColumnConfig(
   const isReadonly = Boolean(inlineColumnConfig.readonly);
   const isSystemColumn = column.id === "actions" || column.id === "select";
   const isEnabled =
-    !isReadonly &&
-    !isSystemColumn &&
+    !(isReadonly || isSystemColumn) &&
     (enabledFromColumn ?? normalizedTableConfig.enabled);
 
   return {
@@ -484,10 +481,7 @@ export function validateInlineEditValue({
 
   if (!schemaResult.success) {
     const issues = schemaResult.error?.issues ?? [];
-    const errorMessage = getSchemaErrorForField(
-      formField,
-      issues
-    );
+    const errorMessage = getSchemaErrorForField(formField, issues);
     return {
       success: false,
       errorMessage: errorMessage ?? "Inline edit validation failed.",
@@ -628,8 +622,7 @@ export function useInlineEditRuntime({
           return false;
         }
 
-        const nextCommittedValue =
-          commitResult.committedValue ?? valueToCommit;
+        const nextCommittedValue = commitResult.committedValue ?? valueToCommit;
         const normalizedCommittedDraft = toInlineEditDraftValue(
           nextCommittedValue,
           editor
@@ -647,9 +640,7 @@ export function useInlineEditRuntime({
         return true;
       } catch (error) {
         setErrorMessage(
-          error instanceof Error
-            ? error.message
-            : "Inline edit save failed."
+          error instanceof Error ? error.message : "Inline edit save failed."
         );
         return false;
       } finally {

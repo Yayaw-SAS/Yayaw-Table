@@ -195,8 +195,7 @@ function ActionsCellBase<TData>({
 
     return (
       <DropdownMenuGroup>
-        {standardActions.map((action, index) => {
-          // Determine if the action is disabled
+        {standardActions.map((action) => {
           const isDisabled =
             typeof action.disabled === "function"
               ? action.disabled(rowData)
@@ -206,7 +205,7 @@ function ActionsCellBase<TData>({
             <DropdownMenuItem
               className={action.className}
               disabled={isDisabled}
-              key={`standard-${action.type}-${index}`}
+              key={`standard-${action.type}`}
               onClick={() => handleActionClick(action)}
             >
               {action.icon && <span className="mr-2">{action.icon}</span>}
@@ -225,8 +224,7 @@ function ActionsCellBase<TData>({
 
     return (
       <DropdownMenuGroup>
-        {customActions.map((action, index) => {
-          // Determine if the action is disabled
+        {customActions.map((action) => {
           const isDisabled =
             typeof action.disabled === "function"
               ? action.disabled(rowData)
@@ -236,7 +234,7 @@ function ActionsCellBase<TData>({
             <DropdownMenuItem
               className={action.className}
               disabled={isDisabled}
-              key={`custom-${action.label}-${index}`}
+              key={`custom-${action.label}`}
               onClick={() => handleActionClick(action)}
             >
               {action.icon && <span className="mr-2">{action.icon}</span>}
@@ -255,8 +253,7 @@ function ActionsCellBase<TData>({
 
     return (
       <DropdownMenuGroup>
-        {destructiveActions.map((action, index) => {
-          // Determine if the action is disabled
+        {destructiveActions.map((action) => {
           const isDisabled =
             typeof action.disabled === "function"
               ? action.disabled(rowData)
@@ -266,7 +263,7 @@ function ActionsCellBase<TData>({
             <DropdownMenuItem
               className={cn("text-destructive", action.className)}
               disabled={isDisabled}
-              key={`destructive-${action.label}-${index}`}
+              key={`destructive-${action.label}`}
               onClick={() => handleActionClick(action)}
             >
               {action.icon && <span className="mr-2">{action.icon}</span>}

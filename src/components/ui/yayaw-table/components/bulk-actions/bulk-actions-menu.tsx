@@ -5,7 +5,7 @@
 "use client";
 
 import type { Row } from "@tanstack/react-table";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, LazyMotion, domAnimation, m } from "framer-motion";
 import { Copy, Download, Edit, Trash2, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { useOnClickOutside } from "usehooks-ts";
@@ -461,6 +461,7 @@ export function BulkActionsMenu<TData>({
   // deprecated: button variant now handled by AlertDialogAction styling
 
   return (
+    <LazyMotion features={domAnimation}>
     <div
       className={cn(
         "fixed bottom-10 left-1/2 z-50 -translate-x-1/2 transform",
@@ -541,7 +542,7 @@ export function BulkActionsMenu<TData>({
               hoveredAction === tab.id || selectedAction === tab.id;
 
             return (
-              <motion.button
+              <m.button
                 animate="animate"
                 className={cn(
                   "relative flex items-center rounded-xl px-4 py-2 font-medium text-sm transition-colors duration-300",
@@ -562,7 +563,7 @@ export function BulkActionsMenu<TData>({
                 <Icon size={20} />
                 <AnimatePresence initial={false}>
                   {isExpanded && (
-                    <motion.span
+                    <m.span
                       animate="animate"
                       className="overflow-hidden whitespace-nowrap"
                       exit="exit"
@@ -571,10 +572,10 @@ export function BulkActionsMenu<TData>({
                       variants={spanVariants}
                     >
                       {t(tab.translationKey)}
-                    </motion.span>
+                    </m.span>
                   )}
                 </AnimatePresence>
-              </motion.button>
+              </m.button>
             );
           })}
 
@@ -597,5 +598,6 @@ export function BulkActionsMenu<TData>({
         </div>
       </div>
     </div>
+    </LazyMotion>
   );
 }

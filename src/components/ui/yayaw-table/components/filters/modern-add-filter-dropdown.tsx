@@ -101,6 +101,9 @@ interface ColumnOption {
   isFilterable?: boolean;
 }
 
+const EMPTY_IDS: never[] = [];
+const EMPTY_COLUMNS: never[] = [];
+
 interface ModernAddFilterDropdownProps {
   columnsConfig: ColumnsFilterConfig;
   onAddFilter: (columnId: string, type: ColumnDataType) => void;
@@ -187,9 +190,9 @@ function ColumnOptionItem({
 export function ModernAddFilterDropdown({
   columnsConfig,
   onAddFilter,
-  existingFilterColumnIds = [],
-  recentColumns = [],
-  popularColumns = [],
+  existingFilterColumnIds = EMPTY_IDS,
+  recentColumns = EMPTY_COLUMNS,
+  popularColumns = EMPTY_COLUMNS,
   className,
   size = "md",
   variant = "default",

@@ -79,14 +79,16 @@ export function JsonCell({
       <div
         className={`flex max-w-[200px] flex-wrap gap-1 overflow-hidden text-ellipsis ${className}`}
       >
-        {processedValue.slice(0, maxItems).map((item, index) => {
+        {processedValue.slice(0, maxItems).map((item) => {
           const parsedItem = safelyParseJson(item);
           const displayValue = formatDisplayValue(parsedItem);
+          const itemKey =
+            typeof item === "object" ? JSON.stringify(item) : String(item);
 
           return (
             <span
               className="inline-flex items-center whitespace-nowrap rounded-md border px-2 py-1 text-xs"
-              key={`item-${index}-${typeof item === "object" ? JSON.stringify(item) : String(item)}`}
+              key={itemKey}
               title={
                 typeof item === "object" ? JSON.stringify(item) : String(item)
               }

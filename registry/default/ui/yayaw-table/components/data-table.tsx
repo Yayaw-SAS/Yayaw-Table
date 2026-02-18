@@ -65,10 +65,8 @@ function DefaultTableDescription({
 
 // Hook removed - advanced filters are now handled directly in DataTableAdvancedToolbar
 
-/**
- * DataTable component with declarative configuration
- * This component uses the table catalogue to configure itself
- */
+const EMPTY_COLUMN_TYPE_MAPPING: Record<string, never> = {};
+
 function DataTableContent({
   className,
   loadingOverlay,
@@ -85,7 +83,7 @@ function DataTableContent({
   title,
   description,
   enableAdvancedFilters = false,
-  columnTypeMapping = {},
+  columnTypeMapping = EMPTY_COLUMN_TYPE_MAPPING,
 }: {
   className?: string;
   loadingOverlay?: React.ReactNode;
@@ -237,7 +235,9 @@ function DataTableContent({
 
                 {/* Toolbar section */}
                 {!isLoading && (
-                  <div className={shouldShowToolbarHeader ? "flex-shrink-0" : ""}>
+                  <div
+                    className={shouldShowToolbarHeader ? "flex-shrink-0" : ""}
+                  >
                     <DataTableAdvancedToolbar
                       columnTypeMapping={columnTypeMapping}
                       data={baseData}
@@ -256,6 +256,7 @@ function DataTableContent({
             ) : (
               <DataTableClient
                 className={className}
+                closeOnError={closeOnError}
                 columns={
                   columns as import("@tanstack/react-table").ColumnDef<
                     Record<string, unknown>
@@ -275,15 +276,11 @@ function DataTableContent({
                 enableSorting={config.table.enableSorting}
                 key={`${tableId}-${visibilityKey}`}
                 loadingOverlay={loadingOverlay}
-                closeOnError={closeOnError}
                 onBulkCopy={onBulkCopy}
                 onBulkDelete={onBulkDelete}
                 onBulkEdit={onBulkEdit}
                 onBulkExport={onBulkExport}
                 onRowSelectionChange={onRowSelectionChange}
-                showDefaultToastsForCustomHandlers={
-                  showDefaultToastsForCustomHandlers
-                }
                 queryFn={async (_params) => {
                   // For fetched data, use the refetch function
                   await refetch();
@@ -293,6 +290,9 @@ function DataTableContent({
                     rowCount: rowCount || finalData.length,
                   };
                 }}
+                showDefaultToastsForCustomHandlers={
+                  showDefaultToastsForCustomHandlers
+                }
                 tableId={tableId}
                 tableType={tableType}
               />

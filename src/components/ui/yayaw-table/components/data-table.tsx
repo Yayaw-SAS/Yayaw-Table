@@ -65,10 +65,8 @@ function DefaultTableDescription({
 
 // Hook removed - advanced filters are now handled directly in DataTableAdvancedToolbar
 
-/**
- * DataTable component with declarative configuration
- * This component uses the table catalogue to configure itself
- */
+const EMPTY_COLUMN_TYPE_MAPPING: Record<string, never> = {};
+
 function DataTableContent({
   className,
   loadingOverlay,
@@ -85,7 +83,7 @@ function DataTableContent({
   title,
   description,
   enableAdvancedFilters = false,
-  columnTypeMapping = {},
+  columnTypeMapping = EMPTY_COLUMN_TYPE_MAPPING,
 }: {
   className?: string;
   loadingOverlay?: React.ReactNode;

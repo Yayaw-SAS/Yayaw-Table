@@ -15,7 +15,6 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,6 +36,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import { useLocale, useTranslations } from "../../providers/table-provider";
 import {
   type AdvancedFilterModel,
@@ -68,6 +68,8 @@ import {
   FilterLoadingState,
   FilterSuccessState,
 } from "./modern-filter-states";
+
+const EMPTY_COLUMNS: never[] = [];
 
 export interface AdvancedFilterPanelProps {
   /** Current filters state */
@@ -135,12 +137,14 @@ function FilterChip({
   const { t } = useTranslations();
   const locale = useLocale();
   const [isEditing, setIsEditing] = useState<boolean>(autoEdit);
-  // Ensure auto open when requested
-  useEffect(() => {
-    if (autoEdit) {
-      setIsEditing(true);
-    }
-  }, [autoEdit]);
+  const [prevAutoEdit, setPrevAutoEdit] = useState(autoEdit);
+  if (autoEdit && autoEdit !== prevAutoEdit) {
+    setPrevAutoEdit(autoEdit);
+    setIsEditing(true);
+  }
+  if (!autoEdit && prevAutoEdit) {
+    setPrevAutoEdit(autoEdit);
+  }
   const [stagedOperator, setStagedOperator] = useState<
     | "contains"
     | "equals"
@@ -348,7 +352,10 @@ function FilterChip({
             </span>
           ) : (
             <>
-              <span aria-hidden className="shrink-0 text-muted-foreground text-xs">
+              <span
+                aria-hidden
+                className="shrink-0 text-muted-foreground text-xs"
+              >
                 •
               </span>
               <span
@@ -357,7 +364,10 @@ function FilterChip({
               >
                 {operatorLabel}
               </span>
-              <span aria-hidden className="shrink-0 text-muted-foreground text-xs">
+              <span
+                aria-hidden
+                className="shrink-0 text-muted-foreground text-xs"
+              >
                 •
               </span>
               <TooltipProvider>
@@ -463,8 +473,8 @@ export function AdvancedFilterPanel({
   error = null,
   performance,
   variant = "modern",
-  recentColumns: _recentColumns = [],
-  popularColumns: _popularColumns = [],
+  recentColumns: _recentColumns = EMPTY_COLUMNS,
+  popularColumns: _popularColumns = EMPTY_COLUMNS,
   showPerformance: _showPerformance = false,
   enableAnimations = true,
   openFilterForColumnId,

@@ -37,7 +37,7 @@ export function SelectionCell<TData>({
   row,
 }: SelectionCellProps<TData>) {
   // Track selection state locally
-  const [isSelected, setIsSelected] = useState(row.getIsSelected());
+  const [isSelected, setIsSelected] = useState(() => row.getIsSelected());
 
   // Update local state when row selection changes
   useEffect(() => {

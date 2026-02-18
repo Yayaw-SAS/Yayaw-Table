@@ -10,15 +10,7 @@ import {
   RotateCcw,
   SlidersHorizontal,
 } from "lucide-react";
-import {
-  forwardRef,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import { cn } from "@/lib/utils";
+import { forwardRef, useCallback, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -26,13 +18,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  StackMenu,
-  StackMenuContent,
-  StackMenuItem,
-  StackMenuSection,
-  StackMenuView,
-} from "../../ui-custom/stack-menu";
+import { cn } from "@/lib/utils";
 import {
   tableMenuOpenFilterColumnIdAtom,
   tableMenuOpenToViewAtom,
@@ -45,10 +31,19 @@ import type {
   ColumnsFilterConfig,
   FilterActions,
 } from "../../types/filter-types";
+import {
+  StackMenu,
+  StackMenuContent,
+  StackMenuItem,
+  StackMenuSection,
+  StackMenuView,
+} from "../../ui-custom/stack-menu";
 import { TableColumnsMenu } from "./sections/table-columns-menu";
 import { TableFiltersMenu } from "./sections/table-filters-menu";
 import { TableGroupingMenu } from "./sections/table-grouping-menu";
 import { TableSortMenu } from "./sections/table-sort-menu";
+
+const EMPTY_COLUMNS: never[] = [];
 
 export interface TableMenuProps {
   actionsAsIcons?: boolean;
@@ -258,7 +253,7 @@ const OptionsMenuTrigger = forwardRef<
   );
 });
 
-function renderMainMenuView({
+function MainMenuView({
   activeGroupingCount,
   displayVisibleCount,
   sectionState,
@@ -370,7 +365,7 @@ function renderMainMenuView({
 
 export function TableMenu({
   actionsAsIcons = false,
-  columns = [],
+  columns = EMPTY_COLUMNS,
   enableColumnFilters = true,
   enableGrouping = true,
   enableSorting = true,
@@ -393,11 +388,8 @@ export function TableMenu({
     tableMenuOpenFilterColumnIdAtom(tableId)
   );
 
-  useEffect(() => {
-    if (openToView) {
-      setOpen(true);
-    }
-  }, [openToView]);
+  // Derive open: menu opens when user toggles or when openToView is set (e.g. from column menu)
+  const effectiveOpen = open || Boolean(openToView);
 
   // URL-state fallback to avoid stale grouping passed from parents
   const { groupingParam: urlGrouping, setGroupingFromUI } = useTableUrlState({
@@ -538,7 +530,7 @@ export function TableMenu({
           setOpenFilterColumnId(null);
         }
       }}
-      open={open}
+      open={effectiveOpen}
       openToView={openToView ?? undefined}
       ref={menuRef}
       trigger={
@@ -549,12 +541,12 @@ export function TableMenu({
         />
       }
     >
-      {renderMainMenuView({
-        activeGroupingCount,
-        displayVisibleCount,
-        sectionState,
-        t,
-      })}
+      <MainMenuView
+        activeGroupingCount={activeGroupingCount}
+        displayVisibleCount={displayVisibleCount}
+        sectionState={sectionState}
+        t={t}
+      />
 
       {sectionState.canShowColumnsSection && (
         <StackMenuView name="columns">

@@ -24,7 +24,7 @@ import {
   ToggleRight,
   User,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Button } from "@/src/components/ui/button";
 import { StackMenuContent } from "@/components/ui/custom/stack-menu";
 import { columnDragEnabledAtom, tableIdAtom } from "../../../atoms/table-atoms";
@@ -535,8 +535,20 @@ export function TableColumnsMenu({
       if (table) {
         table.setColumnVisibility(newVisibility);
       }
+      const newVisibleCount =
+        newVisibility[columnId] === false
+          ? visibleColumns.length - 1
+          : visibleColumns.length + 1;
+      onVisibleCountChange?.(newVisibleCount);
     },
-    [visibilityParam, setVisibilityFromUI, setColumnVisibility, table]
+    [
+      visibilityParam,
+      setVisibilityFromUI,
+      setColumnVisibility,
+      table,
+      visibleColumns.length,
+      onVisibleCountChange,
+    ]
   );
 
   // Handle showing all columns
@@ -564,12 +576,14 @@ export function TableColumnsMenu({
     if (table) {
       table.setColumnVisibility(newVisibility);
     }
+    onVisibleCountChange?.(hideableColumns.length);
   }, [
     hideableColumns,
     setVisibilityFromUI,
     setColumnVisibility,
     visibilityParam,
     table,
+    onVisibleCountChange,
   ]);
 
   // Handle hiding all columns
@@ -605,30 +619,21 @@ export function TableColumnsMenu({
     if (table) {
       table.setColumnVisibility(newVisibility);
     }
+    const visibleCount = Object.values(newVisibility).filter((v) => v !== false)
+      .length;
+    onVisibleCountChange?.(visibleCount);
   }, [
     hideableColumns,
     setVisibilityFromUI,
     setColumnVisibility,
     visibilityParam,
     table,
+    onVisibleCountChange,
   ]);
 
   // Calculate button states based on current visibility
-  const hasHiddenColumns = useMemo(
-    () => hiddenColumns.length > 0,
-    [hiddenColumns]
-  );
-  const hasVisibleColumns = useMemo(
-    () => visibleColumns.length > 0,
-    [visibleColumns]
-  );
-
-  // Update visible count for parent component
-  useEffect(() => {
-    if (onVisibleCountChange) {
-      onVisibleCountChange(visibleColumns.length);
-    }
-  }, [visibleColumns, onVisibleCountChange]);
+  const hasHiddenColumns = hiddenColumns.length > 0;
+  const hasVisibleColumns = visibleColumns.length > 0;
 
   // Skip rendering if no columns can be hidden
   if (hideableColumns.length === 0) {

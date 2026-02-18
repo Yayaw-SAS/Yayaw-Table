@@ -487,10 +487,9 @@ const fetchAllFilteredRows = async ({
   return collectedRows;
 };
 
-/**
- * Advanced toolbar component for DataTable
- * Combines search, filters, view management, and column visibility controls
- */
+const EMPTY_DATA: never[] = [];
+const EMPTY_COLUMN_TYPE_MAPPING: Record<string, never> = {};
+
 export function DataTableAdvancedToolbar<TData>({
   className: _className,
   hideGlobalFilter: _hideGlobalFilter,
@@ -500,8 +499,8 @@ export function DataTableAdvancedToolbar<TData>({
   table,
   viewOptions: _viewOptions,
   enableAdvancedFilters = false,
-  data = [],
-  columnTypeMapping = {},
+  data = EMPTY_DATA,
+  columnTypeMapping = EMPTY_COLUMN_TYPE_MAPPING,
   onExport,
   ...props
 }: DataTableAdvancedToolbarProps<TData>) {

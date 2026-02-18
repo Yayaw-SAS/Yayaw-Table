@@ -50,6 +50,8 @@ import { TableFiltersMenu } from "./sections/table-filters-menu";
 import { TableGroupingMenu } from "./sections/table-grouping-menu";
 import { TableSortMenu } from "./sections/table-sort-menu";
 
+const EMPTY_COLUMNS: never[] = [];
+
 export interface TableMenuProps {
   actionsAsIcons?: boolean;
   columns: TableColumn[];
@@ -258,7 +260,7 @@ const OptionsMenuTrigger = forwardRef<
   );
 });
 
-function renderMainMenuView({
+function MainMenuView({
   activeGroupingCount,
   displayVisibleCount,
   sectionState,
@@ -370,7 +372,7 @@ function renderMainMenuView({
 
 export function TableMenu({
   actionsAsIcons = false,
-  columns = [],
+  columns = EMPTY_COLUMNS,
   enableColumnFilters = true,
   enableGrouping = true,
   enableSorting = true,
@@ -393,11 +395,8 @@ export function TableMenu({
     tableMenuOpenFilterColumnIdAtom(tableId)
   );
 
-  useEffect(() => {
-    if (openToView) {
-      setOpen(true);
-    }
-  }, [openToView]);
+  // Derive open: menu opens when user toggles or when openToView is set (e.g. from column menu)
+  const effectiveOpen = open || Boolean(openToView);
 
   // URL-state fallback to avoid stale grouping passed from parents
   const { groupingParam: urlGrouping, setGroupingFromUI } = useTableUrlState({
@@ -538,7 +537,7 @@ export function TableMenu({
           setOpenFilterColumnId(null);
         }
       }}
-      open={open}
+      open={effectiveOpen}
       openToView={openToView ?? undefined}
       ref={menuRef}
       trigger={
@@ -549,12 +548,12 @@ export function TableMenu({
         />
       }
     >
-      {renderMainMenuView({
-        activeGroupingCount,
-        displayVisibleCount,
-        sectionState,
-        t,
-      })}
+      <MainMenuView
+        activeGroupingCount={activeGroupingCount}
+        displayVisibleCount={displayVisibleCount}
+        sectionState={sectionState}
+        t={t}
+      />
 
       {sectionState.canShowColumnsSection && (
         <StackMenuView name="columns">

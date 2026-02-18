@@ -23,6 +23,8 @@ import { useTranslations } from "../../../providers/table-provider";
 import type { FormFieldApi } from "../types";
 import { FormSelectContent } from "./form-select-content";
 
+const EMPTY_ITEMS: never[] = [];
+
 export interface SelectWithAddNewFieldProps {
   allowCreate?: boolean;
   description?: string;
@@ -39,7 +41,7 @@ export function SelectWithAddNewField({
   allowCreate = true,
   description,
   fieldApi,
-  items = [],
+  items = EMPTY_ITEMS,
   label,
   name,
   onItemsChange,
@@ -111,7 +113,6 @@ export function SelectWithAddNewField({
       {showAddNew ? (
         <div className="flex items-center space-x-2">
           <Input
-            autoFocus
             name={`new-${name}-input`}
             onChange={(e) => setNewItem(e.target.value)}
             onKeyDown={(e) => {

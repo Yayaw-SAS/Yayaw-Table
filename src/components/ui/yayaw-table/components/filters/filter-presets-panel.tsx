@@ -25,7 +25,7 @@ import {
   Upload,
   Users,
 } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useReducer, useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   AlertDialog,
@@ -268,6 +268,37 @@ function PresetCard({
   );
 }
 
+const SAVE_PRESET_INITIAL = {
+  name: "",
+  description: "",
+  tags: "",
+  isPublic: false,
+  isSaving: false,
+} as const;
+
+type SavePresetState = typeof SAVE_PRESET_INITIAL;
+
+type SavePresetAction =
+  | { type: "set_field"; field: keyof SavePresetState; value: string | boolean }
+  | { type: "set_saving"; value: boolean }
+  | { type: "reset" };
+
+function savePresetReducer(
+  state: SavePresetState,
+  action: SavePresetAction
+): SavePresetState {
+  switch (action.type) {
+    case "set_field":
+      return { ...state, [action.field]: action.value };
+    case "set_saving":
+      return { ...state, isSaving: action.value };
+    case "reset":
+      return { ...SAVE_PRESET_INITIAL };
+    default:
+      return state;
+  }
+}
+
 /**
  * Save preset dialog
  */
@@ -290,39 +321,35 @@ function SavePresetDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const { t } = useTranslations();
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [tags, setTags] = useState("");
-  const [isPublic, setIsPublic] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [state, dispatch] = useReducer(
+    savePresetReducer,
+    SAVE_PRESET_INITIAL
+  );
+  const { name, description, tags, isPublic, isSaving } = state;
 
   const handleSave = async () => {
     if (!(name.trim() && currentState)) {
       return;
     }
 
-    setIsSaving(true);
+    dispatch({ type: "set_saving", value: true });
     try {
       await onSave({
         name,
         description: description || undefined,
         tags: tags
           .split(",")
-          .map((t) => t.trim())
+          .map((s) => s.trim())
           .filter(Boolean),
         isPublic,
       });
 
-      // Reset form
-      setName("");
-      setDescription("");
-      setTags("");
-      setIsPublic(false);
+      dispatch({ type: "reset" });
       onOpenChange(false);
     } catch (_error) {
       // Error handling can be added here if needed
     } finally {
-      setIsSaving(false);
+      dispatch({ type: "set_saving", value: false });
     }
   };
 
@@ -363,7 +390,9 @@ function SavePresetDialog({
               <Input
                 id="name"
                 maxLength={100}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) =>
+                  dispatch({ type: "set_field", field: "name", value: e.target.value })
+                }
                 placeholder={translateWithFallback(
                   t,
                   "filters.presets.name_placeholder",
@@ -384,7 +413,13 @@ function SavePresetDialog({
               <Textarea
                 id="description"
                 maxLength={500}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={(e) =>
+                  dispatch({
+                    type: "set_field",
+                    field: "description",
+                    value: e.target.value,
+                  })
+                }
                 placeholder={translateWithFallback(
                   t,
                   "filters.presets.description_placeholder",
@@ -401,7 +436,9 @@ function SavePresetDialog({
               </Label>
               <Input
                 id="tags"
-                onChange={(e) => setTags(e.target.value)}
+                onChange={(e) =>
+                  dispatch({ type: "set_field", field: "tags", value: e.target.value })
+                }
                 placeholder={translateWithFallback(
                   t,
                   "filters.presets.tags_placeholder",
@@ -416,7 +453,13 @@ function SavePresetDialog({
                 checked={isPublic}
                 className="rounded"
                 id="public"
-                onChange={(e) => setIsPublic(e.target.checked)}
+                onChange={(e) =>
+                  dispatch({
+                    type: "set_field",
+                    field: "isPublic",
+                    value: e.target.checked,
+                  })
+                }
                 type="checkbox"
               />
               <Label htmlFor="public">

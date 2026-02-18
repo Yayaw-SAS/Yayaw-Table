@@ -6,8 +6,8 @@
 
 import type { Row } from "@tanstack/react-table";
 import { useCallback, useEffect, useState } from "react";
-import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
+import { cn } from "@/lib/utils";
 
 const _DEBUG = false;
 
@@ -37,7 +37,7 @@ export function SelectionCell<TData>({
   row,
 }: SelectionCellProps<TData>) {
   // Track selection state locally
-  const [isSelected, setIsSelected] = useState(row.getIsSelected());
+  const [isSelected, setIsSelected] = useState(() => row.getIsSelected());
 
   // Update local state when row selection changes
   useEffect(() => {
