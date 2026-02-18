@@ -91,12 +91,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/yayaw-table.git"
+    "url": "https://github.com/Yayaw-eu/Yayaw-Table.git"
   },
   "bugs": {
-    "url": "https://github.com/your-username/yayaw-table/issues"
+    "url": "https://github.com/Yayaw-eu/Yayaw-Table/issues"
   },
-  "homepage": "https://github.com/your-username/yayaw-table#readme",
+  "homepage": "https://table.yayaw.eu",
   "lint-staged": {
     "*.{js,jsx,ts,tsx,json,jsonc,css,scss,md,mdx}": [
       "bunx ultracite format"

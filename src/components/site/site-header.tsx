@@ -1,6 +1,7 @@
 "use client";
 
 import { Menu, X } from "lucide-react";
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { Button } from "@/src/components/ui/button";
@@ -50,9 +51,23 @@ export function SiteHeader() {
     <header className="sticky top-0 z-50 border-border/60 border-b bg-background/80 backdrop-blur">
       <div className="mx-auto flex w-full max-w-7xl items-center gap-4 px-4 py-3 sm:px-6">
         <Link
-          className="font-display font-semibold text-foreground text-lg tracking-tight"
+          className="inline-flex items-center gap-2 font-display font-semibold text-foreground text-lg tracking-tight"
           href="/"
         >
+          <Image
+            alt="YaYaw Table"
+            className="block dark:hidden"
+            height={28}
+            src="/yayaw-icon-light.svg"
+            width={28}
+          />
+          <Image
+            alt="YaYaw Table"
+            className="hidden dark:block"
+            height={28}
+            src="/yayaw-icon-dark.svg"
+            width={28}
+          />
           {t("brand")}
         </Link>
 
