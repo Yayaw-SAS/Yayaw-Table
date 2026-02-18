@@ -1016,15 +1016,6 @@ export default function ExamplePage() {
             </Button>
           </div>
 
-          <ExampleSettingsPanel
-            density={densityMode}
-            onDensityChange={setDensityMode}
-            onResetData={handleResetData}
-            onResetSettings={resetTableSettings}
-            onSettingChange={setTableSetting}
-            tableSettings={tableSettings}
-          />
-
           {/* Data Table */}
           <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
             <div className="p-6">
@@ -1037,6 +1028,15 @@ export default function ExamplePage() {
               </QueryClientProvider>
             </div>
           </div>
+
+          <ExampleSettingsPanel
+            density={densityMode}
+            onDensityChange={setDensityMode}
+            onResetData={handleResetData}
+            onResetSettings={resetTableSettings}
+            onSettingChange={setTableSetting}
+            tableSettings={tableSettings}
+          />
 
           {/* Code Example */}
           <div className="mt-8 rounded-lg border border-border bg-card p-6">
