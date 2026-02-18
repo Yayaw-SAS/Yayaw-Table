@@ -361,7 +361,7 @@ function ExampleSettingsPanel({
   const t = useTranslations("Example");
 
   return (
-    <section>
+    <section className="rounded-lg border border-border bg-card p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="font-semibold text-card-foreground text-lg">
@@ -1029,7 +1029,7 @@ export default function ExamplePage() {
             </div>
           </div>
 
-          <div className="mt-8 space-y-6 rounded-lg border border-border bg-card p-6">
+          <div className="mt-8">
             <ExampleSettingsPanel
               density={densityMode}
               onDensityChange={setDensityMode}
@@ -1038,15 +1038,16 @@ export default function ExamplePage() {
               onSettingChange={setTableSetting}
               tableSettings={tableSettings}
             />
+          </div>
 
-            {/* Code Example */}
-            <div>
-              <h3 className="mb-4 text-card-foreground">
-                {t("configurationUsed")}
-              </h3>
-              <div className="overflow-x-auto rounded-md bg-muted p-4">
-                <pre className="text-muted-foreground text-sm">
-                  {`// 1. Configuration via provider
+          {/* Code Example */}
+          <div className="mt-8 rounded-lg border border-border bg-card p-6">
+            <h3 className="mb-4 text-card-foreground">
+              {t("configurationUsed")}
+            </h3>
+            <div className="overflow-x-auto rounded-md bg-muted p-4">
+              <pre className="text-muted-foreground text-sm">
+                {`// 1. Configuration via provider
 const getTableConfig = (tableType: string) => {
   if (tableType === "products") {
     return {
@@ -1131,8 +1132,7 @@ const getTableConfig = (tableType: string) => {
 
 // Local data API with pagination, filtering, and sorting.
 // Edits persist in localStorage and can be reset from the settings panel.`}
-                </pre>
-              </div>
+              </pre>
             </div>
           </div>
         </div>
