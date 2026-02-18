@@ -147,7 +147,7 @@ function DataTableColumnHeaderBase<TData, TValue>({
     const content = tableInstance ? (
       <div
         className={cn(
-          "flex h-full w-full items-center",
+          "flex h-full w-full items-center px-2",
           isNumberColumn && "justify-end"
         )}
       >
