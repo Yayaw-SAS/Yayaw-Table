@@ -22,6 +22,7 @@ import { createDynamicTypeColumn } from "../dynamic-type-column";
 import { createNumberColumn } from "../number-column";
 import { createStringColumn } from "../string-column";
 import { createTagColumn } from "../tag-column";
+import { createUrlColumn } from "../url-column";
 
 export interface UseColumnsOptions<
   _TData extends Record<string, unknown> = Record<string, unknown>,
@@ -229,6 +230,21 @@ export function useColumns<
     };
   }, []);
 
+  const createUrl = useMemo(() => {
+    return <K extends keyof TData>(
+      accessorKey: K,
+      options?: Omit<
+        Parameters<typeof createUrlColumn<TData>>[0],
+        "accessorKey"
+      >
+    ) => {
+      return createUrlColumn<TData>({
+        accessorKey: accessorKey as string,
+        ...options,
+      });
+    };
+  }, []);
+
   // Create a selection column
   const createSelection = useMemo(() => {
     return () => createSelectionColumn<TData>();
@@ -248,6 +264,7 @@ export function useColumns<
       string: createString,
       tag: createTag,
       text: createText,
+      url: createUrl,
     };
   }, [
     createActions,
@@ -261,6 +278,7 @@ export function useColumns<
     createString,
     createTag,
     createText,
+    createUrl,
   ]);
 
   // Function to combine columns with the selection column if enabled

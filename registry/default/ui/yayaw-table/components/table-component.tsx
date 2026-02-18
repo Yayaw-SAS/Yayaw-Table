@@ -366,6 +366,11 @@ type ModernDataTableProps<
     rows: Row<TData>[]
   ) => Promise<BulkActionCustomHandlerResult> | BulkActionCustomHandlerResult;
   closeOnError?: boolean;
+  /**
+   * Called when a row is clicked in row-link mode (url column with displayMode "row-link").
+   * Receives the URL string. When omitted, defaults to `window.location.href = url`.
+   */
+  onRowClick?: (url: string, row: TData, event: React.MouseEvent) => void;
   showDefaultToastsForCustomHandlers?: boolean;
   queryFn?: (
     params: Record<string, unknown>
@@ -487,6 +492,7 @@ function ModernDataTable<
   onBulkCopy,
   onBulkExport,
   closeOnError,
+  onRowClick,
   showDefaultToastsForCustomHandlers,
   queryFn: _queryFn,
   rowSelection: _rowSelection,
@@ -541,7 +547,13 @@ function ModernDataTable<
   const densityMode = tableConfig.table.density ?? "medium";
   const isSmallDensity = densityMode === "small";
   const isLargeDensity = densityMode === "large";
-  // Debug removed to stop spam
+
+  const rowLinkAccessorKey = useMemo(() => {
+    const rowLinkCol = tableConfig.columns.definitions.find(
+      (def) => def.type === "url" && def.urlDisplayMode === "row-link"
+    );
+    return rowLinkCol?.id;
+  }, [tableConfig.columns.definitions]);
 
   const inlineEditFormType =
     tableConfig.form?.editFormType || resolvedTableType;
@@ -1162,6 +1174,26 @@ function ModernDataTable<
       );
     };
 
+    const handleRowLinkClick = rowLinkAccessorKey
+      ? (row: Row<TData>, event: React.MouseEvent) => {
+          const url = String(
+            (row.original as Record<string, unknown>)[rowLinkAccessorKey] ?? ""
+          );
+          if (!url) {
+            return;
+          }
+          if (onRowClick) {
+            onRowClick(url, row.original, event);
+            return;
+          }
+          if (event.metaKey || event.ctrlKey) {
+            window.open(url, "_blank", "noopener");
+            return;
+          }
+          window.location.href = url;
+        }
+      : undefined;
+
     const renderRegularRow = (
       row: Row<TData>,
       visibleCells: ReturnType<Row<TData>["getVisibleCells"]>
@@ -1170,10 +1202,26 @@ function ModernDataTable<
         className={cn(
           "group",
           "data-[state=selected]:bg-muted/50",
-          row.getIsSelected() && "bg-muted/50"
+          row.getIsSelected() && "bg-muted/50",
+          handleRowLinkClick && "cursor-pointer hover:bg-muted/40"
         )}
         data-state={row.getIsSelected() ? "selected" : ""}
         key={row.id}
+        onClick={
+          handleRowLinkClick
+            ? (event) => {
+                const target = event.target as HTMLElement;
+                if (
+                  target.closest(
+                    "button, a, [role=checkbox], input, select, textarea"
+                  )
+                ) {
+                  return;
+                }
+                handleRowLinkClick(row, event);
+              }
+            : undefined
+        }
       >
         {visibleCells.map((cell) => renderRegularCell(row, cell))}
       </TableRow>
@@ -1323,6 +1371,8 @@ function ModernDataTable<
     densityMode,
     isSmallDensity,
     isLargeDensity,
+    rowLinkAccessorKey,
+    onRowClick,
   ]);
 
   // Optimize table header with better memoization (columnOrder in deps so header re-renders when order changes)

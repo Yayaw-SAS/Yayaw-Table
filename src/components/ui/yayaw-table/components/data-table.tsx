@@ -77,6 +77,7 @@ function DataTableContent({
   onBulkCopy,
   onBulkExport,
   closeOnError,
+  onRowClick,
   showDefaultToastsForCustomHandlers,
   onExport,
   tableType,
@@ -102,6 +103,11 @@ function DataTableContent({
     rows: Row<Record<string, unknown>>[]
   ) => Promise<BulkActionCustomHandlerResult> | BulkActionCustomHandlerResult;
   closeOnError?: boolean;
+  onRowClick?: (
+    url: string,
+    row: Record<string, unknown>,
+    event: React.MouseEvent
+  ) => void;
   showDefaultToastsForCustomHandlers?: boolean;
   onExport?: (rows: Record<string, unknown>[]) => void | Promise<void>;
   tableType: string; // Required
@@ -278,6 +284,7 @@ function DataTableContent({
                 onBulkDelete={onBulkDelete}
                 onBulkEdit={onBulkEdit}
                 onBulkExport={onBulkExport}
+                onRowClick={onRowClick}
                 onRowSelectionChange={onRowSelectionChange}
                 showDefaultToastsForCustomHandlers={
                   showDefaultToastsForCustomHandlers

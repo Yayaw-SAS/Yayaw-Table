@@ -41,6 +41,7 @@ export type AnyFieldDefinition<TFieldValues extends FieldValues = FieldValues> =
   | SwitchFieldDefinition<TFieldValues>
   | TextareaFieldDefinition<TFieldValues>
   | TextFieldDefinition<TFieldValues>
+  | UrlFieldDefinition<TFieldValues>
   | ValueTypeFieldDefinition<TFieldValues>;
 
 /**
@@ -215,6 +216,16 @@ export interface TextFieldDefinition<
 > extends BaseFieldDefinition<TFieldValues> {
   inputType?: "email" | "password" | "tel" | "text" | "url";
   type: "text";
+}
+
+/**
+ * URL field with optional Open Graph meta preview
+ */
+export interface UrlFieldDefinition<
+  TFieldValues extends FieldValues = FieldValues,
+> extends BaseFieldDefinition<TFieldValues> {
+  showMetaPreview?: boolean;
+  type: "url";
 }
 
 /**

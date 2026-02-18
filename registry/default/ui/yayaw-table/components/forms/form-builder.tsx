@@ -17,6 +17,7 @@ import {
   SwitchField,
   TextareaField,
   TextField,
+  UrlField,
   ValueTypeField,
 } from "./fields";
 import type { FormBuilderFormInstance } from "./hooks/use-form-builder";
@@ -230,6 +231,17 @@ function FormBuilderField<TFieldValues extends FieldValues>({
                   type: "textarea";
                 }
               }
+              fieldApi={normalizeFieldApi(f) as unknown as FormFieldApi<string>}
+            />
+          )}
+        </form.Field>
+      );
+    case "url":
+      return (
+        <form.Field key={field.name} name={field.name as Path<TFieldValues>}>
+          {(f) => (
+            <UrlField
+              field={field}
               fieldApi={normalizeFieldApi(f) as unknown as FormFieldApi<string>}
             />
           )}

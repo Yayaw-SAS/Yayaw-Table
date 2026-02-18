@@ -12,6 +12,7 @@ import type {
   SwitchFieldDefinition,
   TextareaFieldDefinition,
   TextFieldDefinition,
+  UrlFieldDefinition,
   ValueTypeFieldDefinition,
 } from "./types";
 
@@ -190,6 +191,18 @@ export function createTextField<TFieldValues extends FieldValues = FieldValues>(
   return {
     ...options,
     type: "text",
+  };
+}
+
+/**
+ * Create a URL field definition with optional meta preview
+ */
+export function createUrlField<TFieldValues extends FieldValues = FieldValues>(
+  options: Omit<UrlFieldDefinition<TFieldValues>, "type">
+): UrlFieldDefinition<TFieldValues> {
+  return {
+    ...options,
+    type: "url",
   };
 }
 

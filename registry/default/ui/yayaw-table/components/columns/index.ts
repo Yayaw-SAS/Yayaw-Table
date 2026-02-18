@@ -13,3 +13,4 @@ export * from "./hooks";
 export * from "./json-column";
 export * from "./selection-column";
 export * from "./text-column";
+export * from "./url-column";

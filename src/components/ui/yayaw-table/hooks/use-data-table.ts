@@ -539,7 +539,18 @@ export function useDataTable<TData extends Record<string, unknown>>(
           });
           break;
         }
-        // Add more column types as needed
+        case "url": {
+          const urlColDef = colDef as {
+            urlDisplayMode?: "domain" | "full" | "icon";
+          };
+          baseColumnDef = column.url(colDef.id as keyof TData, {
+            displayMode: urlColDef.urlDisplayMode,
+            enableColumnFilter: colDef.enableColumnFilter,
+            enableSorting: colDef.enableSorting,
+            header: getTranslationSafe(colDef.header),
+          });
+          break;
+        }
         default:
           // Default to text column
           baseColumnDef = column.text(colDef.id as keyof TData, {

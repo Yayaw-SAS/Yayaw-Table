@@ -142,6 +142,7 @@ const createBaseProductConfig = (locale: AppLocale) => {
       status: "In Stock" as const,
       category: "",
       brand: "",
+      website: "",
       isActive: true,
     },
     fields: [
@@ -184,6 +185,13 @@ const createBaseProductConfig = (locale: AppLocale) => {
         label: copy.fields.brand,
         placeholder: copy.fields.brandPlaceholder,
         required: true,
+      },
+      {
+        type: "url",
+        name: "website",
+        label: locale === "fr" ? "Site web" : "Website",
+        placeholder: "https://www.example.com",
+        showMetaPreview: true,
       },
       {
         type: "switch",

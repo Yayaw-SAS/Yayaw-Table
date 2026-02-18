@@ -169,6 +169,7 @@ function mapFormFieldTypeToInlineEditor(
     case "textarea":
       return "textarea";
     case "text":
+    case "url":
       return "text";
     default:
       return;
@@ -191,6 +192,7 @@ function mapColumnTypeToInlineEditor(columnType?: string): InlineEditEditor {
       return "multiSelect";
     case "code":
     case "text":
+    case "url":
       return "text";
     default:
       return "text";

@@ -36,6 +36,8 @@ export interface TableCatalogueColumnConfig {
   customRenderers?: Record<string, (value: unknown) => React.ReactNode>;
   /** Number column: "space" | "dot" | "comma" | "locale" or { thousandsSeparator, decimalSeparator, decimals } */
   numberFormat?: NumberFormatConfig;
+  /** URL column display mode */
+  urlDisplayMode?: "domain" | "full" | "icon" | "row-link";
   inlineEdit?: boolean | InlineEditColumnConfig;
 }
 

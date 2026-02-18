@@ -17,7 +17,8 @@ export type InlineEditEditor =
   | "number"
   | "select"
   | "text"
-  | "textarea";
+  | "textarea"
+  | "url";
 
 /**
  * Option used by inline edit select editors.
@@ -143,7 +144,8 @@ export interface ColumnDefinition {
     | "multiSelect"
     | "number"
     | "select"
-    | "text";
+    | "text"
+    | "url";
 
   /**
    * Visual rendering variant for option-like columns.
@@ -176,6 +178,15 @@ export interface ColumnDefinition {
    * Only used when type is "dynamicType"
    */
   typeKey?: string;
+
+  /**
+   * Display mode for URL columns.
+   * - "icon": clickable favicon/icon
+   * - "domain": shortened to domain name
+   * - "full": truncated full URL
+   * Only used when type is "url"
+   */
+  urlDisplayMode?: "domain" | "full" | "icon" | "row-link";
 }
 
 /**

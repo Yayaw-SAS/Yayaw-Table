@@ -19,6 +19,7 @@ interface ExtendedDataTableConfig extends DataTableConfig {
       enableSorting?: boolean;
       enableColumnFilter?: boolean;
       displayVariant?: "default" | "tag";
+      urlDisplayMode?: "domain" | "full" | "icon" | "row-link";
       dateDisplayPreset?: string;
       dateFormat?: string;
       inlineEdit?:
@@ -87,6 +88,7 @@ const TABLE_COPY: Record<
       name: string;
       price: string;
       status: string;
+      website: string;
     };
     tableDescription: string;
     tableTitle: string;
@@ -102,6 +104,7 @@ const TABLE_COPY: Record<
       name: "Product Name",
       price: "Price",
       status: "Status",
+      website: "Website",
     },
     tableDescription:
       "Production-ready table with server-side pagination, filtering, and sorting",
@@ -117,6 +120,7 @@ const TABLE_COPY: Record<
       name: "Nom du produit",
       price: "Prix",
       status: "Statut",
+      website: "Site web",
     },
     tableDescription:
       "Table prête pour la production avec pagination, filtres et tri côté serveur",
@@ -223,6 +227,15 @@ export const getTableConfig = (
           dateDisplayPreset: "dmy-numeric",
         },
         {
+          id: "website",
+          type: "url",
+          header: copy.headers.website,
+          enableSorting: true,
+          enableColumnFilter: true,
+          urlDisplayMode: "icon",
+          inlineEdit: true,
+        },
+        {
           id: "isActive",
           type: "boolean",
           header: copy.headers.active,
@@ -246,6 +259,7 @@ export const getTableConfig = (
         "category",
         "price",
         "status",
+        "website",
         "createdAt",
         "isActive",
         "actions",
@@ -256,6 +270,7 @@ export const getTableConfig = (
         "category",
         "price",
         "status",
+        "website",
         "createdAt",
         "isActive",
         "actions",

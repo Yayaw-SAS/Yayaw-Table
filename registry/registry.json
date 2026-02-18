@@ -161,6 +161,11 @@
           "target": "components/ui/yayaw-table/components/cells/tag-cell.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/cells/url-cell.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/cells/url-cell.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/columns/actions-column.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/columns/actions-column.tsx"
@@ -279,6 +284,11 @@
           "path": "registry/default/ui/yayaw-table/components/columns/text-column.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/columns/text-column.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/columns/url-column.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/columns/url-column.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/data-table-pagination.tsx",
@@ -464,6 +474,11 @@
           "path": "registry/default/ui/yayaw-table/components/forms/fields/textarea-field.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/forms/fields/textarea-field.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/forms/fields/url-field.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/forms/fields/url-field.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/forms/fields/value-type-field.tsx",

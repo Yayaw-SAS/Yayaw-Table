@@ -12,5 +12,6 @@ export * from "./select-with-add-new-field";
 export * from "./switch-field";
 export * from "./text-field";
 export * from "./textarea-field";
+export * from "./url-field";
 export * from "./value-type-field";
 export * from "./value-type-selector";

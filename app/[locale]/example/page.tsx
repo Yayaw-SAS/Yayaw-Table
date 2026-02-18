@@ -656,6 +656,7 @@ function BulkActionsSection({
         category: "select",
         price: "number",
         status: "select",
+        website: "text",
         createdAt: "date",
         isActive: "select",
       }}

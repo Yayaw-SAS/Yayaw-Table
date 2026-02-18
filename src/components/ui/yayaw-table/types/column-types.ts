@@ -68,7 +68,8 @@ export interface DataTableColumnDef<
     | "multiSelect"
     | "number"
     | "select"
-    | "text";
+    | "text"
+    | "url";
 }
 
 /**

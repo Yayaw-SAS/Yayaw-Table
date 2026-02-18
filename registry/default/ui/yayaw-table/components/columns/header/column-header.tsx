@@ -147,21 +147,21 @@ function DataTableColumnHeaderBase<TData, TValue>({
     const content = tableInstance ? (
       <div
         className={cn(
-          "flex h-full w-full items-center px-2",
+          "flex h-full w-full min-w-0 items-center px-2",
           isNumberColumn && "justify-end"
         )}
       >
         <div
           className={cn(
-            "flex min-h-0 flex-1 self-stretch",
+            "flex min-h-0 min-w-0 flex-1 self-stretch overflow-hidden",
             isNumberColumn && "justify-end"
           )}
         >
           <ColumnMenu column={column} table={tableInstance} tableId={tableId}>
-            <div className="flex w-full cursor-pointer items-center gap-2">
-              <span>{title}</span>
+            <div className="flex w-full min-w-0 cursor-pointer items-center gap-2">
+              <span className="truncate">{title}</span>
               {sortDirection && (
-                <span className="ml-2">
+                <span className="shrink-0">
                   <SortIcon className="h-4 w-4" />
                 </span>
               )}
@@ -170,7 +170,7 @@ function DataTableColumnHeaderBase<TData, TValue>({
         </div>
         {isHydrated && isDragEnabled && (
           <div
-            className="ml-2 cursor-grab touch-none active:cursor-grabbing"
+            className="ml-2 shrink-0 cursor-grab touch-none active:cursor-grabbing"
             {...listeners}
           >
             <DragHandleButton />
@@ -180,14 +180,14 @@ function DataTableColumnHeaderBase<TData, TValue>({
     ) : (
       <div
         className={cn(
-          "flex w-full items-center gap-2",
+          "flex w-full min-w-0 items-center gap-2",
           isNumberColumn && "justify-end"
         )}
       >
-        <span>{title}</span>
+        <span className="truncate">{title}</span>
         {isHydrated && isDragEnabled && (
           <div
-            className="ml-auto cursor-grab touch-none active:cursor-grabbing"
+            className="ml-auto shrink-0 cursor-grab touch-none active:cursor-grabbing"
             {...listeners}
           >
             <DragHandleButton />
@@ -198,7 +198,7 @@ function DataTableColumnHeaderBase<TData, TValue>({
     return (
       <div
         className={cn(
-          "absolute inset-0 flex rounded-none transition-colors hover:bg-accent hover:text-accent-foreground",
+          "absolute inset-0 flex overflow-hidden rounded-none transition-colors hover:bg-accent hover:text-accent-foreground",
           isOver && "bg-accent",
           isDragging && "opacity-50",
           className
@@ -210,7 +210,7 @@ function DataTableColumnHeaderBase<TData, TValue>({
       >
         <div
           className={cn(
-            "relative flex h-full min-h-0 flex-1 items-center gap-2",
+            "relative flex h-full min-h-0 min-w-0 flex-1 items-center gap-2",
             isNumberColumn && "justify-end"
           )}
         >
