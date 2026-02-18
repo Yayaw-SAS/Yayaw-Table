@@ -371,7 +371,9 @@ function ExampleSettingsPanel({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-display text-2xl">{t("settingsTitle")}</CardTitle>
+        <CardTitle className="font-display text-2xl">
+          {t("settingsTitle")}
+        </CardTitle>
         <CardDescription>{t("settingsDescription")}</CardDescription>
         <CardAction>
           <div className="flex flex-wrap items-center gap-2">
@@ -1048,12 +1050,14 @@ export default function ExamplePage() {
           {/* Code Example */}
           <Card className="mt-8">
             <CardHeader>
-              <CardTitle className="font-display text-2xl">{t("configurationUsed")}</CardTitle>
+              <CardTitle className="font-display text-2xl">
+                {t("configurationUsed")}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto rounded-md bg-muted p-4">
                 <pre className="text-muted-foreground text-sm">
-                {`// 1. Configuration via provider
+                  {`// 1. Configuration via provider
 const getTableConfig = (tableType: string) => {
   if (tableType === "products") {
     return {

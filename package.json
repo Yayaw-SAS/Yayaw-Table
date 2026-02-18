@@ -7,7 +7,7 @@
     "build": "fumadocs-mdx && next build",
     "build:watch": "next dev",
     "registry:sync": "node scripts/build-registry.mjs",
-    "registry:build": "node scripts/build-registry.mjs && npx shadcn@latest build registry/registry.json --output public/r",
+    "registry:build": "node scripts/build-registry.mjs && bunx --bun shadcn@latest build registry/registry.json --output public/r",
     "dev": "next dev",
     "start": "next start",
     "build:app": "fumadocs-mdx && next build",

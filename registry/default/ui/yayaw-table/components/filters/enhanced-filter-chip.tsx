@@ -4,13 +4,8 @@
  */
 "use client";
 
-import {
-  ChevronDown,
-  X,
-  Zap,
-} from "lucide-react";
+import { ChevronDown, X, Zap } from "lucide-react";
 import { useRef, useState } from "react";
-import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,18 +13,18 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  formatDateForDisplay,
-  formatDateRangeForDisplay,
-} from "../../utils/date-display";
-import { getColumnTypeIcon } from "../../utils/column-icons";
-
+import { cn } from "@/lib/utils";
 import { useLocale, useTranslations } from "../../providers/table-provider";
 import type {
   AdvancedFilterModel,
   ColumnDataType,
   FilterOperators,
 } from "../../types/filter-types";
+import { getColumnTypeIcon } from "../../utils/column-icons";
+import {
+  formatDateForDisplay,
+  formatDateRangeForDisplay,
+} from "../../utils/date-display";
 import { FilterValueInput } from "./filter-value-input";
 import {
   getTranslatedOperatorLabel,
@@ -120,7 +115,11 @@ function formatNumberValue(values: unknown, operator: string): string {
   return String(values);
 }
 
-function formatDateValue(values: unknown, operator: string, locale?: string): string {
+function formatDateValue(
+  values: unknown,
+  operator: string,
+  locale?: string
+): string {
   if (operator === "between") {
     return (
       formatDateRangeForDisplay(values, {

@@ -9,17 +9,16 @@ import type { Cell, ColumnDef, Header, Row } from "@tanstack/react-table";
 import { flexRender } from "@tanstack/react-table";
 import { useAtom, useAtomValue } from "jotai";
 import {
+  type CSSProperties,
   memo,
+  type ReactNode,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
-  type ReactNode,
 } from "react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -29,36 +28,34 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Loader } from "../ui-custom/loader";
-import {
-  activeRowDragAtom,
-  tableIdAtom,
-} from "../atoms/table-atoms";
+import { cn } from "@/lib/utils";
+import { activeRowDragAtom, tableIdAtom } from "../atoms/table-atoms";
 import {
   type BulkActionCustomHandlerResult,
   type BulkDeleteCustomHandlerResult,
   useBulkActions,
 } from "../hooks/use-bulk-actions";
+import { useDataTable } from "../hooks/use-data-table";
 import type {
   InlineEditColumnRuntimeConfig,
   InlineEditCommitResult,
 } from "../hooks/use-inline-edit-runtime";
-import { useDataTable } from "../hooks/use-data-table";
 import { useTableConfig } from "../hooks/use-table-config";
 import { useTableInstance } from "../hooks/use-table-instance";
 import { useTableUrlState } from "../hooks/use-table-url-state";
 import { useFormConfig, useTranslations } from "../providers/table-provider";
 import type { DataTableProps } from "../types";
+import { Loader } from "../ui-custom/loader";
 import { ColumnIcon } from "../utils/column-icons";
 import { buildCsvExportColumns } from "../utils/csv-export";
-import { InlineEditableCell } from "./cells/inline-editable-cell";
 import { BulkActionsMenu } from "./bulk-actions/bulk-actions-menu";
-import { GroupRowSelectionCell } from "./columns/selection-column";
-import { DataTableColumnHeader } from "./columns/header/column-header";
+import { InlineEditableCell } from "./cells/inline-editable-cell";
 import { ColumnDragOverlay } from "./columns/header/column-drag-overlay";
+import { DataTableColumnHeader } from "./columns/header/column-header";
 import { SortableHeader } from "./columns/header/sortable-header";
 import { useColumnDnd } from "./columns/hooks/use-column-dnd";
 import { useColumnDragOverlay } from "./columns/hooks/use-column-drag-overlay";
+import { GroupRowSelectionCell } from "./columns/selection-column";
 import type { AnyFieldDefinition } from "./forms/types";
 import { SafePagination } from "./safe-pagination";
 
@@ -80,8 +77,7 @@ function isNumberColumn(def: {
 function getHeaderSizeStyle<TData>(
   header: Header<TData, unknown>
 ): CSSProperties | undefined {
-  const isSizeFixedColumn =
-    header.id === "select" || header.id === "actions";
+  const isSizeFixedColumn = header.id === "select" || header.id === "actions";
   if (!isSizeFixedColumn) {
     return undefined;
   }
@@ -179,10 +175,7 @@ function renderHeaderContent<TData>(
     return null;
   }
   if (header.id === "select") {
-    return flexRender(
-      header.column.columnDef.header,
-      header.getContext()
-    );
+    return flexRender(header.column.columnDef.header, header.getContext());
   }
   return (
     <DataTableColumnHeader
@@ -229,10 +222,10 @@ function isCellInlineEditable<TData>(
     return false;
   }
 
-  return (
-    !cell.getIsAggregated() &&
-    !cell.getIsGrouped() &&
-    !cell.getIsPlaceholder()
+  return !(
+    cell.getIsAggregated() ||
+    cell.getIsGrouped() ||
+    cell.getIsPlaceholder()
   );
 }
 
@@ -254,7 +247,7 @@ function patchInlineEditInQueryPayload<TData extends Record<string, unknown>>(
   fieldName: string,
   value: unknown
 ): TableDataQueryPayload<TData> | undefined {
-  if (!payload || !Array.isArray(payload.data)) {
+  if (!(payload && Array.isArray(payload.data))) {
     return payload;
   }
 
@@ -595,10 +588,7 @@ function ModernDataTable<
         return failInlineEditCommit(t("inline.missing_row_id"));
       }
 
-      const cacheSnapshots = getTableDataSnapshots<TData>(
-        queryClient,
-        tableId
-      );
+      const cacheSnapshots = getTableDataSnapshots<TData>(queryClient, tableId);
       if (optimistic) {
         applyInlineOptimisticPatch({
           snapshots: cacheSnapshots,
@@ -1052,12 +1042,15 @@ function ModernDataTable<
               isLargeDensity && "!px-3 !py-3"
             )}
             style={{
-              ...(typeof (visibleCells[0].column.columnDef as { maxSize?: number })
-                .maxSize === "number"
+              ...(typeof (
+                visibleCells[0].column.columnDef as { maxSize?: number }
+              ).maxSize === "number"
                 ? {
-                    maxWidth: (visibleCells[0].column.columnDef as {
-                      maxSize: number;
-                    }).maxSize,
+                    maxWidth: (
+                      visibleCells[0].column.columnDef as {
+                        maxSize: number;
+                      }
+                    ).maxSize,
                   }
                 : {}),
               minWidth: visibleCells[0].column.getSize(),
@@ -1199,10 +1192,7 @@ function ModernDataTable<
     ) => (
       <TableRow className="border-t bg-muted/20" key={groupId}>
         <TableCell
-          className={cn(
-            isSmallDensity && "!p-1.5",
-            isLargeDensity && "!p-3"
-          )}
+          className={cn(isSmallDensity && "!p-1.5", isLargeDensity && "!p-3")}
           colSpan={colSpan}
         >
           <Button
@@ -1341,7 +1331,7 @@ function ModernDataTable<
     return (
       <TableHeader
         className={cn(
-          "[&_th]:bg-muted/20 [&_th]:font-medium [&_th]:relative [&_th]:text-sm",
+          "[&_th]:relative [&_th]:bg-muted/20 [&_th]:font-medium [&_th]:text-sm",
           isSmallDensity && "[&_th]:!h-8 [&_th]:!px-1.5",
           isLargeDensity && "[&_th]:!h-12 [&_th]:!px-3"
         )}
@@ -1376,7 +1366,6 @@ function ModernDataTable<
     tableId,
     horizontalListSortingStrategy,
     columnOrder,
-    ColumnSortableContext,
     isSmallDensity,
     isLargeDensity,
     densityMode,

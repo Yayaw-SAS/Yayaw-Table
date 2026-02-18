@@ -24,8 +24,6 @@ export function CustomDescription({
   className?: string;
 }) {
   return (
-    <p className={cn("text-muted-foreground text-sm", className)}>
-      {children}
-    </p>
+    <p className={cn("text-muted-foreground text-sm", className)}>{children}</p>
   );
 }

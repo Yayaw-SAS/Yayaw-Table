@@ -23,8 +23,8 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   columnDragEnabledAtom,
   tableMenuOpenFilterColumnIdAtom,
@@ -176,7 +176,7 @@ const MenuTrigger = memo(function MenuTriggerComponent({
           "h-full min-h-0 w-full justify-start rounded-none px-0 font-normal",
           "hover:bg-transparent hover:text-inherit",
           "aria-expanded:bg-transparent aria-expanded:text-inherit",
-          "dark:hover:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+          "focus-visible:ring-0 focus-visible:ring-offset-0 dark:hover:bg-transparent"
         )}
         onClick={onClick}
         type="button"
@@ -334,10 +334,7 @@ function ColumnMenuBase<TData>({
   const trigger = useMemo(
     () => (
       <div className="h-full w-full" ref={referenceRef}>
-        <MenuTrigger
-          onClick={handleTriggerClick}
-          translations={translations}
-        >
+        <MenuTrigger onClick={handleTriggerClick} translations={translations}>
           {children}
         </MenuTrigger>
       </div>

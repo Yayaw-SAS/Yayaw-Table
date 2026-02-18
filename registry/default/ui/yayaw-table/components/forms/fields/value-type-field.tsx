@@ -104,9 +104,7 @@ function ValueTypeFieldInput({
           onChange={(e) => {
             try {
               const value =
-                e.target.value.trim() === ""
-                  ? {}
-                  : JSON.parse(e.target.value);
+                e.target.value.trim() === "" ? {} : JSON.parse(e.target.value);
               fieldApi.handleChange(value);
             } catch {
               // Keep invalid JSON in textarea

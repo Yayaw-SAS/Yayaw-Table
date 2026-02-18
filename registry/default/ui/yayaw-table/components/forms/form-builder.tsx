@@ -158,9 +158,7 @@ function FormBuilderField<TFieldValues extends FieldValues>({
                 field as AnyFieldDefinition<TFieldValues> & { type: "number" }
               }
               fieldApi={
-                normalizeFieldApi(f) as unknown as FormFieldApi<
-                  number | string
-                >
+                normalizeFieldApi(f) as unknown as FormFieldApi<number | string>
               }
             />
           )}
@@ -217,9 +215,7 @@ function FormBuilderField<TFieldValues extends FieldValues>({
           {(f) => (
             <TextField
               field={field}
-              fieldApi={
-                normalizeFieldApi(f) as unknown as FormFieldApi<string>
-              }
+              fieldApi={normalizeFieldApi(f) as unknown as FormFieldApi<string>}
             />
           )}
         </form.Field>
@@ -234,9 +230,7 @@ function FormBuilderField<TFieldValues extends FieldValues>({
                   type: "textarea";
                 }
               }
-              fieldApi={
-                normalizeFieldApi(f) as unknown as FormFieldApi<string>
-              }
+              fieldApi={normalizeFieldApi(f) as unknown as FormFieldApi<string>}
             />
           )}
         </form.Field>

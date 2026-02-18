@@ -5,8 +5,8 @@
 import {
   Asterisk,
   CalendarDays,
-  CircleDot,
   CheckSquare,
+  CircleDot,
   Hash,
   List,
   type LucideIcon,
@@ -41,7 +41,7 @@ const getSemanticSelectIcon = (
 ): LucideIcon | undefined => {
   const isSelectLikeType =
     normalizedType === "select" || normalizedType === "multiselect";
-  if (!isSelectLikeType || !normalizedColumnId) {
+  if (!(isSelectLikeType && normalizedColumnId)) {
     return;
   }
 
@@ -98,10 +98,6 @@ export const ColumnIcon = ({
   displayVariant?: "default" | "tag";
   className?: string;
 }) => {
-  const IconComponent = getColumnTypeIcon(
-    columnType,
-    columnId,
-    displayVariant
-  );
+  const IconComponent = getColumnTypeIcon(columnType, columnId, displayVariant);
   return <IconComponent className={className} />;
 };

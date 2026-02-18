@@ -1376,7 +1376,6 @@ function ModernDataTable<
     tableId,
     horizontalListSortingStrategy,
     columnOrder,
-    ColumnSortableContext,
     isSmallDensity,
     isLargeDensity,
     densityMode,
