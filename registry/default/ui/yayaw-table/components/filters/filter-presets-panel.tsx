@@ -26,6 +26,7 @@ import {
   Users,
 } from "lucide-react";
 import { useCallback, useMemo, useReducer, useState } from "react";
+import { cn } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -56,9 +57,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
 import type { UseFilterPresetsReturn } from "../../hooks/use-filter-presets";
 import { useTranslations } from "../../providers/table-provider";
 import type {
@@ -316,7 +321,10 @@ function SavePresetDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const { t } = useTranslations();
-  const [state, dispatch] = useReducer(savePresetReducer, SAVE_PRESET_INITIAL);
+  const [state, dispatch] = useReducer(
+    savePresetReducer,
+    SAVE_PRESET_INITIAL
+  );
   const { name, description, tags, isPublic, isSaving } = state;
 
   const handleSave = async () => {
@@ -383,11 +391,7 @@ function SavePresetDialog({
                 id="name"
                 maxLength={100}
                 onChange={(e) =>
-                  dispatch({
-                    type: "set_field",
-                    field: "name",
-                    value: e.target.value,
-                  })
+                  dispatch({ type: "set_field", field: "name", value: e.target.value })
                 }
                 placeholder={translateWithFallback(
                   t,
@@ -433,11 +437,7 @@ function SavePresetDialog({
               <Input
                 id="tags"
                 onChange={(e) =>
-                  dispatch({
-                    type: "set_field",
-                    field: "tags",
-                    value: e.target.value,
-                  })
+                  dispatch({ type: "set_field", field: "tags", value: e.target.value })
                 }
                 placeholder={translateWithFallback(
                   t,

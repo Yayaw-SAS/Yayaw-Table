@@ -10,7 +10,15 @@ import {
   RotateCcw,
   SlidersHorizontal,
 } from "lucide-react";
-import { forwardRef, useCallback, useMemo, useRef, useState } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -18,7 +26,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
+import {
+  StackMenu,
+  StackMenuContent,
+  StackMenuItem,
+  StackMenuSection,
+  StackMenuView,
+} from "../../ui-custom/stack-menu";
 import {
   tableMenuOpenFilterColumnIdAtom,
   tableMenuOpenToViewAtom,
@@ -31,13 +45,6 @@ import type {
   ColumnsFilterConfig,
   FilterActions,
 } from "../../types/filter-types";
-import {
-  StackMenu,
-  StackMenuContent,
-  StackMenuItem,
-  StackMenuSection,
-  StackMenuView,
-} from "../../ui-custom/stack-menu";
 import { TableColumnsMenu } from "./sections/table-columns-menu";
 import { TableFiltersMenu } from "./sections/table-filters-menu";
 import { TableGroupingMenu } from "./sections/table-grouping-menu";

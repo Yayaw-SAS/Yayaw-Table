@@ -26,13 +26,13 @@ import {
 } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { StackMenuContent } from "../../../ui-custom/stack-menu";
 import { columnDragEnabledAtom, tableIdAtom } from "../../../atoms/table-atoms";
 import { useDataTable } from "../../../hooks/use-data-table";
 import { useTableConfig } from "../../../hooks/use-table-config";
 import { useTableUIConfig } from "../../../hooks/use-table-ui-config";
 import { useTableUrlState } from "../../../hooks/use-table-url-state";
 import { useTranslations } from "../../../providers/table-provider";
-import { StackMenuContent } from "../../../ui-custom/stack-menu";
 import { useColumnDnd } from "../../columns/hooks/use-column-dnd";
 
 // Custom type for our enriched column definition
@@ -318,7 +318,8 @@ export function TableColumnsMenu({
               id: string;
               type?: string;
               header?: string;
-            }) => def.id === col.id
+            }) =>
+              def.id === col.id
           );
           return {
             ...col,
@@ -618,9 +619,8 @@ export function TableColumnsMenu({
     if (table) {
       table.setColumnVisibility(newVisibility);
     }
-    const visibleCount = Object.values(newVisibility).filter(
-      (v) => v !== false
-    ).length;
+    const visibleCount = Object.values(newVisibility).filter((v) => v !== false)
+      .length;
     onVisibleCountChange?.(visibleCount);
   }, [
     hideableColumns,
