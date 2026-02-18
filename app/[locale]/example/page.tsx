@@ -9,6 +9,14 @@ import { useCallback, useEffect, useMemo } from "react";
 import type { FieldValues } from "react-hook-form";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { SiteHeader } from "@/src/components/site/site-header";
 import {
@@ -361,63 +369,60 @@ function ExampleSettingsPanel({
   const t = useTranslations("Example");
 
   return (
-    <section className="rounded-lg border border-border bg-card p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="font-semibold text-card-foreground text-lg">
-            {t("settingsTitle")}
-          </h2>
-          <p className="text-muted-foreground text-sm">
-            {t("settingsDescription")}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            onClick={onResetSettings}
-            size="sm"
-            type="button"
-            variant="outline"
-          >
-            {t("resetSettings")}
-          </Button>
-          <Button
-            onClick={onResetData}
-            size="sm"
-            type="button"
-            variant="outline"
-          >
-            {t("resetData")}
-          </Button>
-        </div>
-      </div>
-
-      <div className="mt-4 grid gap-4 lg:grid-cols-3">
-        <div className="space-y-4">
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-display text-2xl">{t("settingsTitle")}</CardTitle>
+        <CardDescription>{t("settingsDescription")}</CardDescription>
+        <CardAction>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              onClick={onResetSettings}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              {t("resetSettings")}
+            </Button>
+            <Button
+              onClick={onResetData}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              {t("resetData")}
+            </Button>
+          </div>
+        </CardAction>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-4 lg:grid-cols-3">
+          <div className="space-y-4">
+            <SettingsGroup
+              onSettingChange={onSettingChange}
+              settings={STYLE_SETTINGS}
+              tableSettings={tableSettings}
+              title={t("styleBlock")}
+            />
+            <DensitySettingCard
+              density={density}
+              onDensityChange={onDensityChange}
+            />
+          </div>
           <SettingsGroup
             onSettingChange={onSettingChange}
-            settings={STYLE_SETTINGS}
+            settings={FEATURE_SETTINGS}
             tableSettings={tableSettings}
-            title={t("styleBlock")}
+            title={t("featuresBlock")}
           />
-          <DensitySettingCard
-            density={density}
-            onDensityChange={onDensityChange}
+          <SettingsGroup
+            onSettingChange={onSettingChange}
+            settings={AUTHORIZATION_SETTINGS}
+            tableSettings={tableSettings}
+            title={t("authorizationsBlock")}
           />
         </div>
-        <SettingsGroup
-          onSettingChange={onSettingChange}
-          settings={FEATURE_SETTINGS}
-          tableSettings={tableSettings}
-          title={t("featuresBlock")}
-        />
-        <SettingsGroup
-          onSettingChange={onSettingChange}
-          settings={AUTHORIZATION_SETTINGS}
-          tableSettings={tableSettings}
-          title={t("authorizationsBlock")}
-        />
-      </div>
-    </section>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -1017,8 +1022,8 @@ export default function ExamplePage() {
           </div>
 
           {/* Data Table */}
-          <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-            <div className="p-6">
+          <Card>
+            <CardContent>
               <QueryClientProvider client={queryClient}>
                 <BulkActionsSection
                   densityMode={densityMode}
@@ -1026,8 +1031,8 @@ export default function ExamplePage() {
                   tableSettings={tableSettings}
                 />
               </QueryClientProvider>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           <div className="mt-8">
             <ExampleSettingsPanel
@@ -1041,12 +1046,13 @@ export default function ExamplePage() {
           </div>
 
           {/* Code Example */}
-          <div className="mt-8 rounded-lg border border-border bg-card p-6">
-            <h3 className="mb-4 text-card-foreground">
-              {t("configurationUsed")}
-            </h3>
-            <div className="overflow-x-auto rounded-md bg-muted p-4">
-              <pre className="text-muted-foreground text-sm">
+          <Card className="mt-8">
+            <CardHeader>
+              <CardTitle className="font-display text-2xl">{t("configurationUsed")}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto rounded-md bg-muted p-4">
+                <pre className="text-muted-foreground text-sm">
                 {`// 1. Configuration via provider
 const getTableConfig = (tableType: string) => {
   if (tableType === "products") {
@@ -1132,9 +1138,10 @@ const getTableConfig = (tableType: string) => {
 
 // Local data API with pagination, filtering, and sorting.
 // Edits persist in localStorage and can be reset from the settings panel.`}
-              </pre>
-            </div>
-          </div>
+                </pre>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

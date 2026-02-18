@@ -1,6 +1,7 @@
 import type React from "react";
 
-// Custom wrappers to keep heading/description style aligned with the example shell.
+import { cn } from "@/lib/utils";
+
 export function CustomTitle({
   children,
   className,
@@ -9,7 +10,7 @@ export function CustomTitle({
   className?: string;
 }) {
   return (
-    <h2 className={`font-bold text-2xl text-foreground ${className || ""}`}>
+    <h2 className={cn("font-display text-2xl text-foreground", className)}>
       {children}
     </h2>
   );
@@ -23,9 +24,7 @@ export function CustomDescription({
   className?: string;
 }) {
   return (
-    <p
-      className={`font-medium text-base text-muted-foreground ${className || ""}`}
-    >
+    <p className={cn("text-muted-foreground text-sm", className)}>
       {children}
     </p>
   );
