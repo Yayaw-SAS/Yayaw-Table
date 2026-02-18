@@ -1,9 +1,9 @@
 {
   "Metadata": {
     "siteTitle": "YaYaw Table",
-    "siteDescription": "Tables de données prêtes pour la production avec React et Shadcn: état URL, filtres avancés, i18n et ownership total du code.",
-    "homeTitle": "YaYaw Table - Le système de table que vous possédez",
-    "homeDescription": "Installez un système de table prêt pour la prod en une commande, avec ownership total et sans glue code.",
+    "siteDescription": "Tables de données prêtes pour la production avec React et Shadcn : état URL, filtres avancés, i18n et maîtrise totale du code.",
+    "homeTitle": "YaYaw Table – Un système de table complet à la sauce Shadcn",
+    "homeDescription": "Installez un système de table prêt pour la production en une commande. Gardez la maîtrise totale du code, sans dépendance opaque.",
     "exampleTitle": "YaYaw Table - Exemple live",
     "exampleDescription": "Explorez une implémentation réelle de YaYaw Table avec pagination serveur, filtres, regroupement et actions de masse.",
     "docsTitle": "Documentation YaYaw Table",
@@ -33,30 +33,30 @@
   "Home": {
     "badgeA": "Registry Shadcn",
     "badgeB": "Prêt pour la production",
-    "heroTitleLead": "Le système de table que vous possédez,",
-    "heroTitleAccent": "pas une boîte noire npm.",
-    "heroDescription": "YaYaw Table donne aux équipes produit un workflow table complet: filtres avancés, état URL, bulk actions et i18n avec du code qui vit dans votre application.",
+    "heroTitleLead": "Un système de table complet",
+    "heroTitleAccent": "à la sauce Shadcn.",
+    "heroDescription": "YaYaw Table offre aux équipes produit un workflow de table complet : filtres avancés, état URL, actions de masse et i18n, avec du code qui vit dans votre application.",
     "ctaInstall": "Installer maintenant",
     "ctaExample": "Voir l'exemple live",
     "ctaDocs": "Lire la documentation",
     "installHint": "Compatible avec votre stack Shadcn + TanStack actuelle.",
     "proofTitle": "Pourquoi les équipes migrent",
     "proofItems": {
-      "ownership": "L'installation registry copie toute la couche UI dans votre codebase.",
-      "url": "L'état URL est intégré pour le tri, la pagination, le groupement et les filtres.",
+      "ownership": "L'installation via le registry copie toute la couche UI dans votre codebase.",
+      "url": "L'état URL est intégré pour le tri, la pagination, le regroupement et les filtres.",
       "i18n": "Clés i18n natives sur la table, les filtres, les vues et les formulaires.",
       "dx": "Une architecture config-driven rend les évolutions plus prévisibles."
     },
     "useCases": {
       "title": "Cas d'usage",
-      "description": "Pensé pour des workflows back-office réels où l'UX table pilote les opérations métier.",
+      "description": "Pensé pour des workflows back-office réels où l'UX de la table pilote les opérations métier.",
       "orders": {
         "title": "Gestion des commandes",
-        "description": "Vues filtrées partageables, presets sauvegardés et bulk actions pour les équipes support et finance."
+        "description": "Vues filtrées partageables, préréglages enregistrés et actions de masse pour les équipes support et finance."
       },
       "users": {
         "title": "Administration utilisateurs",
-        "description": "Groupement, filtres facettés et pagination sûre pour les volumes élevés."
+        "description": "Regroupement, filtres facettés et pagination robuste pour les gros volumes."
       },
       "catalog": {
         "title": "Gestion du catalogue",
@@ -65,11 +65,11 @@
     },
     "product": {
       "title": "Produit",
-      "description": "Un système pragmatique pour les équipes qui veulent un comportement enterprise sans lock-in enterprise.",
+      "description": "Un système pragmatique pour les équipes qui veulent un comportement entreprise sans verrouillage fournisseur.",
       "pillars": {
         "install": {
           "title": "Installation CLI Shadcn",
-          "description": "Onboarding en une commande et ownership local immédiat."
+          "description": "Prise en main en une commande et maîtrise locale immédiate."
         },
         "architecture": {
           "title": "Architecture config-driven",
@@ -77,15 +77,15 @@
         },
         "state": {
           "title": "État URL par défaut",
-          "description": "Chaque état utile de table peut être partagé et restauré."
+          "description": "Chaque état utile de la table peut être partagé et restauré."
         },
         "i18n": {
           "title": "Surface i18n native",
-          "description": "La traduction est native sur toutes les expériences clés."
+          "description": "Les traductions sont intégrées nativement dans toutes les expériences clés."
         },
         "ux": {
           "title": "Toolkit UX production",
-          "description": "Bulk actions, pagination sûre, filtres avancés et defaults robustes."
+          "description": "Actions de masse, pagination robuste, filtres avancés et valeurs par défaut solides."
         },
         "stack": {
           "title": "TanStack + Shadcn",
@@ -94,12 +94,12 @@
       }
     },
     "migration": {
-      "title": "Migration depuis le glue code",
-      "description": "Remplacez le glue code dispersé par un composant de table unique et réutilisable.",
+      "title": "En finir avec le code ad hoc",
+      "description": "Remplacez le câblage dispersé par un système de table unique et réutilisable.",
       "items": {
-        "before": "Avant: wiring custom pour recherche, filtres, params URL, export et actions de masse.",
-        "after": "Après: un système de table unifié avec un comportement cohérent.",
-        "outcome": "Résultat: un meilleur time-to-first-table et un ownership plus propre dans le temps."
+        "before": "Avant : câblage artisanal pour recherche, filtres, paramètres URL, export et actions de masse.",
+        "after": "Après : un système de table unifié avec un comportement cohérent.",
+        "outcome": "Résultat : un temps de mise en place réduit et une maintenabilité accrue."
       }
     },
     "finalCta": {
@@ -111,11 +111,11 @@
   },
   "Example": {
     "title": "Démo YaYaw Table",
-    "description": "Playground interactif avec toggles de fonctionnalités et table produits orientée production.",
+    "description": "Exemple interactif avec bascules de fonctionnalités et table produits orientée production.",
     "tableTitle": "Produits",
     "tableDescription": "Gérez votre catalogue produits avec filtres, tri et actions groupées.",
     "settingsTitle": "Configuration de la table",
-    "settingsDescription": "Activez ou désactivez les fonctionnalités en direct. Les réglages sont persistés dans l'URL.",
+    "settingsDescription": "Activez ou désactivez les fonctionnalités en direct. Les réglages sont conservés dans l'URL.",
     "styleBlock": "Design",
     "featuresBlock": "Fonctionnalités",
     "authorizationsBlock": "Autorisations",
@@ -134,7 +134,7 @@
       },
       "enableColumnFilters": {
         "label": "Activer les filtres de colonnes",
-        "description": "Active la recherche et les filtres dans la toolbar et les menus."
+        "description": "Active la recherche et les filtres dans la barre d'outils et les menus."
       },
       "enableSorting": {
         "label": "Activer le tri",
@@ -153,48 +153,48 @@
         "description": "Active la navigation de pages et le sélecteur de taille."
       },
       "export": {
-        "label": "Activer l'export toolbar",
-        "description": "Affiche le bouton d'export CSV dans la toolbar."
+        "label": "Activer l'export dans la barre d'outils",
+        "description": "Affiche le bouton d'export CSV dans la barre d'outils."
       },
       "bulkExport": {
         "label": "Activer l'export de masse",
-        "description": "Affiche l'action d'export CSV dans le menu bulk."
+        "description": "Affiche l'action d'export CSV dans le menu d'actions groupées."
       },
       "actionsAsIcons": {
         "label": "Afficher les actions en icônes",
-        "description": "Affiche les actions de toolbar en mode icône avec infobulles."
+        "description": "Affiche les actions de la barre d'outils en mode icône avec infobulles."
       },
       "showToolbar": {
-        "label": "Afficher la toolbar",
-        "description": "Affiche la recherche et les actions de toolbar (Add, Export, Options)."
+        "label": "Afficher la barre d'outils",
+        "description": "Affiche la recherche et les actions (Ajouter, Exporter, Options)."
       },
       "showToolbarHeader": {
         "label": "Afficher le titre et la description",
-        "description": "Affiche le bloc titre et description de la toolbar."
+        "description": "Affiche le bloc titre et description de la barre d'outils."
       },
       "allowCreate": {
         "label": "Autoriser la création",
-        "description": "Affiche et active l'action Add item."
+        "description": "Affiche et active l'action Ajouter un élément."
       },
       "allowEdit": {
-        "label": "Autoriser l'action Modifier (ligne)",
-        "description": "Affiche et active l'action Modifier dans le menu d'actions de la ligne."
+        "label": "Autoriser la modification (ligne)",
+        "description": "Affiche et active l'action Modifier dans le menu contextuel de la ligne."
       },
       "allowDuplicate": {
-        "label": "Autoriser la duplication ligne",
+        "label": "Autoriser la duplication de ligne",
         "description": "Affiche et active l'action de duplication de ligne."
       },
       "allowDelete": {
-        "label": "Autoriser la suppression ligne",
+        "label": "Autoriser la suppression de ligne",
         "description": "Affiche et active l'action de suppression de ligne."
       },
       "allowBulkEdit": {
-        "label": "Autoriser l'édition bulk",
-        "description": "Affiche et active l'action d'édition bulk."
+        "label": "Autoriser l'édition groupée",
+        "description": "Affiche et active l'action d'édition groupée."
       },
       "allowBulkDelete": {
-        "label": "Autoriser la suppression bulk",
-        "description": "Affiche et active l'action de suppression bulk."
+        "label": "Autoriser la suppression groupée",
+        "description": "Affiche et active l'action de suppression groupée."
       },
       "allowInlineEdit": {
         "label": "Autoriser l'édition directe des cellules",
@@ -203,10 +203,10 @@
     },
     "densityMode": {
       "label": "Mode de densité",
-      "description": "Choisissez l'espacement des en-têtes et des cellules de la table.",
-      "small": "Petit",
-      "medium": "Moyen",
-      "large": "Grand"
+      "description": "Choisissez l'espacement des en-têtes et des cellules du tableau.",
+      "small": "Compact",
+      "medium": "Normal",
+      "large": "Large"
     },
     "toasts": {
       "deleteUnavailable": "L'action de suppression n'est pas disponible",

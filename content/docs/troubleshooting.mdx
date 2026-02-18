@@ -46,7 +46,7 @@ A pending action was reset by outside-click behavior while the dialog portal was
 ### Fix in current version
 
 - Outside clicks are ignored while confirmation is open.
-- Confirm execution is lock-protected and runs once.
+- The confirm action is lock-protected and runs exactly once.
 - Bulk callbacks should return explicit `BulkActionResult` for deterministic close/selection behavior.
 
 ```ts

@@ -7,7 +7,7 @@ description: Translation keys, namespaces, and override strategies
 
 Translations are strongly typed. Provide overrides either via the provider or directly in your table configuration under `translations.keys`.
 
-**Important:** When you use the **catalogue form** (create/edit via `getFormConfig`), the form uses the same translation function `t()` as the table — i.e. the same `DataTableTranslations` object passed to the provider. You must include **form** and **value** keys in that object so that field labels, placeholders (including the value-type field), and form buttons resolve correctly. Otherwise you will see raw keys like `value.string_placeholder` in the UI.
+**Important:** When you use the **catalog form** (create/edit via `getFormConfig`), the form uses the same translation function `t()` as the table — i.e. the same `DataTableTranslations` object passed to the provider. You must include **form** and **value** keys in that object so that field labels, placeholders (including the value-type field), and form buttons resolve correctly. Otherwise you will see raw keys like `value.string_placeholder` in the UI.
 
 ## Type shape
 
@@ -43,11 +43,11 @@ You can supply a full `DataTableTranslations` object to the provider for consist
 - **Filters (advanced):** Operator names (Contains, Equals, Starts with, etc.) use the `filters.operators.*` keys. Both the dropdown options and the **selected value** shown when the operator select is closed are translated, so the current operator always appears in the active locale (e.g. “Contient” instead of “contains”).
 - **Pagination:** All labels are translated: “Rows per page” (`pagination.rowsPerPage`), the “Page X of Y” text (`pagination.showing`, with `{page}` and `{total}`), and the first/previous/next/last button labels (`pagination.first`, `pagination.previous`, etc.). Both the default pagination and the button-style pagination (SafePagination) use these keys.
 
-## Form translations (catalogue form)
+## Form translations (catalog form)
 
-When using **getFormConfig** and the built-in create/edit form (catalogue form), the form resolves all labels, placeholders, and button text from the **same** `DataTableTranslations` object you pass to the provider. Add a **form** and **value** section to that object.
+When using **getFormConfig** and the built-in create/edit form (catalog form), the form resolves all labels, placeholders, and button text from the **same** `DataTableTranslations` object you pass to the provider. Add a **form** and **value** section to that object.
 
-- **form** – Field labels (use `labelKey` in your form config, e.g. `form.name`), form buttons (cancel, submit, create, update), and success/error messages. The catalogue form also uses `createForm.title` and `createForm.description` for the dialog/drawer header. For select fields, use `form.valueType_options.boolean` etc. if you use `optionKeys`.
+- **form** – Field labels (use `labelKey` in your form config, e.g. `form.name`), form buttons (cancel, submit, create, update), and success/error messages. The catalog form also uses `createForm.title` and `createForm.description` for the dialog/drawer header. For select fields, use `form.valueType_options.boolean` etc. if you use `optionKeys`.
 - **value** – Used by the **value-type** field: `value.string_placeholder`, `value.json_placeholder`, `value.number_placeholder`, and for the boolean switch `value.enabled` / `value.disabled`.
 
 In your form config, set `labelKey` (and optionally `placeholderKey`, `optionKeys`) on each field so that the form builder replaces labels/options with `t(labelKey)`.
@@ -591,7 +591,7 @@ Used for the selection column header and the **bulk actions menu** count (e.g. �
 | menu.subgroup | string |
 | menu.title | string |
 
-### form (catalogue form)
+### form (catalog form)
 
 Include these when using create/edit forms so labels, placeholders, and buttons resolve. Use `labelKey` / `optionKeys` in your form config to point to these keys.
 

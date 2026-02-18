@@ -41,7 +41,7 @@ Vous pouvez fournir un objet `DataTableTranslations` complet au provider pour un
 ## Où les traductions s'appliquent
 
 - **Filtres (avancés) :** les libellés d'opérateurs (Contains, Equals, Starts with, etc.) utilisent les clés `filters.operators.*`. Les options du menu et la **valeur sélectionnée** affichée lorsque le select est fermé sont traduites, donc l'opérateur courant apparaît toujours dans la locale active (par ex. “Contient” au lieu de “contains”).
-- **Pagination :** tous les libellés sont traduits : “Rows per page” (`pagination.rowsPerPage`), le texte “Page X of Y” (`pagination.showing`, avec `{page}` et `{total}`), et les labels des boutons first/previous/next/last (`pagination.first`, `pagination.previous`, etc.). La pagination par défaut et la pagination style boutons (SafePagination) utilisent ces clés.
+- **Pagination :** tous les libellés sont traduits : “Rows per page” (`pagination.rowsPerPage`), le texte “Page X of Y” (`pagination.showing`, avec `{page}` et `{total}`), et les labels des boutons first/previous/next/last (`pagination.first`, `pagination.previous`, etc.). La pagination par défaut et la pagination **de style boutons** (SafePagination) utilisent ces clés.
 
 ## Traductions de formulaire (catalogue form)
 
@@ -163,7 +163,7 @@ Utilisez les clés suivantes pour construire votre objet de traduction. Toutes l
 
 ### actions
 
-Utilisé par les actions de ligne, le bouton d'export de la toolbar et le **bulk actions menu** (onglets Edit, Copy, Export, Delete et boutons de dialogue).
+Utilisé par les actions de ligne, le bouton d'export de la barre d'outils et le **menu des actions de masse** (onglets Edit, Copy, Export, Delete et boutons de dialogue).
 
 | Key | Type |
 | --- | --- |
@@ -179,7 +179,7 @@ Utilisé par les actions de ligne, le bouton d'export de la toolbar et le **bulk
 
 ### bulk
 
-Chaînes utilisées par l'overlay des actions bulk (affiché quand une ou plusieurs lignes sont sélectionnées). Supporte `{action}`, `{count}` et le pluriel ICU : `{count, plural, one {item} other {items}}`.
+Chaînes utilisées par le **panneau** des actions **de masse** (affiché quand une ou plusieurs lignes sont sélectionnées). Supporte `{action}`, `{count}` et le pluriel ICU : `{count, plural, one {item} other {items}}`.
 
 | Key | Type |
 | --- | --- |
@@ -410,7 +410,7 @@ Chaînes utilisées par l'overlay des actions bulk (affiché quand une ou plusie
 
 ### pagination
 
-Utilisé par la pagination par défaut et la pagination style boutons (par ex. “Lignes par page”, “Page 1 of 2”). `pagination.showing` est utilisé pour le texte “Page X of Y” et supporte `{page}` et `{total}`. Valeur anglaise par défaut : `"Page {page} of {total}"` (exemple français : `"Page {page} sur {total}"`).
+Utilisé par la pagination par défaut et la pagination **de style boutons** (par ex. “Lignes par page”, “Page 1 of 2”). `pagination.showing` est utilisé pour le texte “Page X of Y” et supporte `{page}` et `{total}`. Valeur anglaise par défaut : `"Page {page} of {total}"` (exemple français : `"Page {page} sur {total}"`).
 
 | Key | Type |
 | --- | --- |
@@ -432,7 +432,7 @@ Utilisé par la pagination par défaut et la pagination style boutons (par ex. �
 
 ### selection
 
-Utilisé pour l'en-tête de la colonne de sélection et le compteur du **bulk actions menu** (par ex. “3 rows selected”). Supporte `{count}` et l'ICU plural.
+Utilisé pour l'en-tête de la colonne de sélection et le compteur du **menu des actions de masse** (par ex. “3 rows selected”). Supporte `{count}` et l'ICU plural.
 
 | Key | Type |
 | --- | --- |

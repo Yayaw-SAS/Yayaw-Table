@@ -25,7 +25,7 @@ export const MyTable = () => (
 );
 ```
 
-You need at least **getTableConfig** (columns, table options) and **getTableActions** (e.g. **list** for data). For Next.js with URL state, add [NuqsAdapter](/docs/url-state) in your layout. See [Provider & Setup](/docs/setup) for the full picture.
+You need at least **getTableConfig** (columns, table options) and **getTableActions** (e.g. **list** for data). For Next.js with URL state, add [NuqsAdapter](/docs/url-state) to your layout. See [Provider & Setup](/docs/setup) for the full picture.
 
 ## ✅ Benefits
 
@@ -40,10 +40,10 @@ You need at least **getTableConfig** (columns, table options) and **getTableActi
 ## 🔧 Features
 
 ### Grouping
-Grouping, pagination and sorting are enabled via table configuration and column types. No heavy wiring needed.
+Grouping, pagination, and sorting are enabled via table configuration and column types. No heavy wiring needed.
 
 ### Pagination
-Accessible pagination controls with proper aria and keyboard navigation.
+Accessible pagination controls with proper ARIA and keyboard navigation.
 
 ### Sorting
 Click headers to sort. Enable/disable per column.
@@ -85,7 +85,6 @@ Everything is available from the table toolbar:
 - [Server-side & Server Actions](/docs/server-actions) – Next.js Server Actions for list and CRUD
 - [URL state (Nuqs)](/docs/url-state) – Sort, filters, pagination in the URL
 - [Troubleshooting](/docs/troubleshooting) – Fix common runtime issues
-- [Migration Guide](/docs/migration-query-client) – Move from implicit QueryClient to shared provider
 - [Translations](/docs/translations) – Override UI strings
 
 ## 🎨 Customization
@@ -94,7 +93,7 @@ The table uses Tailwind by default. You can customize classes via standard `clas
 
 ## 🔗 Example
 
-See **/example** in this repo for a full UI integration example: URL state (Nuqs), advanced filters, bulk edit, and local persisted demo data (`localStorage` + dataset reset).
+See **/example** in this repo for a full UI integration example: URL state (Nuqs), advanced filters, bulk edit, and locally persisted demo data (`localStorage` + dataset reset).
 
 For the server-driven pattern, see [Server-side & Server Actions](/docs/server-actions).
 

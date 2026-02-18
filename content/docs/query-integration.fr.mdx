@@ -1,6 +1,6 @@
 ---
 title: Intégration Query
-description: Architecture QueryClient partagé, invalidation et comportement de refetch
+description: Architecture QueryClient partagé, invalidation et comportement de **rafraîchissement**
 ---
 
 # Intégration Query
@@ -43,7 +43,7 @@ Quand des actions de ligne ou bulk réussissent, YaYaw Table invalide :
 ["tableData", tableId]
 ```
 
-Ensuite les queries actives refetch et la table se met à jour avec des données serveur fraîches.
+Ensuite les queries actives **se rafraîchissent** et la table se met à jour avec des données serveur fraîches.
 
 ## Invalidation correcte depuis du code custom
 

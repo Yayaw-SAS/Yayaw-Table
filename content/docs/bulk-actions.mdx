@@ -17,7 +17,7 @@ Current behavior:
 4. `Confirm` executes the pending action exactly once.
 5. Menu closing follows the callback result (`closeMenu`).
 
-This prevents the previous no-op case where outside click events reset state while the portal dialog was open.
+This prevents a no-op scenario where outside-click events would reset state while the portal dialog was open.
 
 ## Deterministic action behavior
 

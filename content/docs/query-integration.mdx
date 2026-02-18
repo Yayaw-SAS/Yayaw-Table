@@ -57,6 +57,6 @@ await queryClient.invalidateQueries({
 
 ## Guardrails added by YaYaw Table
 
-- If no QueryClient is available: explicit runtime error.
-- If both a provider and `queryClient` prop are set with different instances: explicit runtime error.
+- If no QueryClient is available, YaYaw Table throws an explicit runtime error.
+- If both a provider and a `queryClient` prop are set with different instances, YaYaw Table throws an explicit runtime error.
 - Silent cache duplication is prevented.

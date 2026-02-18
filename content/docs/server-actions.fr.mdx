@@ -163,13 +163,13 @@ Retour attendu :
 
 ## Mode server-side (par défaut)
 
-YaYaw Table exécute toujours filtrage, pagination et tri en mode server-side. Aucun flag `manual*` n'est requis dans la config `table`.
+YaYaw Table exécute toujours filtrage, pagination et tri en mode server-side. Aucune **option** `manual*` n'est requise dans la config `table`.
 
 Votre action `list` doit gérer `search`, `filters`, `advancedFilters`, `orderBy`, `page` et `limit`.
 
 ## Application d'exemple
 
-La route `/example` tourne actuellement en mode local pour que les modifications restent interactives sans backend : elle utilise `app/[locale]/example/lib/products-local-actions.ts` avec persistance `localStorage` navigateur.
+La route `/example` tourne actuellement en mode local pour que les modifications restent interactives sans backend : elle utilise `app/[locale]/example/lib/products-local-actions.ts` avec **stockage** dans le `localStorage` du navigateur.
 
 Les fichiers de référence Server Action sont toujours présents dans `app/[locale]/example/actions/products.ts` et `app/[locale]/example/lib/products-server.ts`. Connectez ces actions via `getTableActions` si vous voulez la même page en mode serveur complet.
 

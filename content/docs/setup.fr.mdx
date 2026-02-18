@@ -16,7 +16,7 @@ Cette page montre un setup concret à copier, puis à adapter.
 
 ### 1. Ajouter `NuqsAdapter` dans votre root layout
 
-Si vous voulez persister le tri, les filtres, la pagination et la visibilité dans les paramètres d'URL, entourez l'app avec `NuqsAdapter` :
+Si vous voulez **conserver** le tri, les filtres, la pagination et la visibilité dans les paramètres d'URL, entourez l'app avec `NuqsAdapter` :
 
 ```tsx
 // app/layout.tsx
@@ -222,7 +222,7 @@ Puis passez-la :
 />
 ```
 
-## Checklist setup
+## **Vérifications de configuration**
 
 Après les 4 étapes principales, votre table doit :
 
@@ -248,7 +248,7 @@ Dans YaYaw Table, filtrage, pagination et tri sont server-side.
 Retourne un objet avec les méthodes d'action. La table les appelle quand l'utilisateur trie, filtre, pagine ou exécute des actions CRUD/bulk.
 
 - **list** – **Obligatoire** pour les données server-driven. Signature : `(params) => Promise<{ data, meta: { pageCount, totalCount } }>`.
-- **create**, **update**, **delete**, **duplicate** – Optionnelles ; utilisées pour les actions de ligne et le comportement bulk par défaut.
+- **create**, **update**, **delete**, **duplicate** – Optionnelles ; utilisées pour les actions de ligne et le comportement **de masse** par défaut.
 - **bulkDelete**, **bulkCopy**, **bulkUpdate** – Optionnelles ; utilisées quand l'utilisateur lance des actions de masse.
 
 Voir [Actions](/docs/actions) et [Server-side & Server Actions](/docs/server-actions).
@@ -281,15 +281,15 @@ Toutes les props sont optionnelles sauf `tableType`.
 | `getFormConfig` | `(formType: string) => FormConfig \| undefined` | Retourne les champs des formulaires create/edit/bulk. |
 | `translations` | `DataTableTranslations` | Surcharge les chaînes UI par défaut. |
 | `locale` | `string` | Locale pour les traductions (par défaut `"en"`). |
-| `queryClient` | `QueryClient` | Client explicite optionnel ; doit matcher l'instance du `QueryClientProvider`. |
-| `title` | `string` | Titre de la table au-dessus de la toolbar. |
+| `queryClient` | `QueryClient` | Client explicite optionnel ; doit **correspondre à** l'instance du `QueryClientProvider`. |
+| `title` | `string` | Titre de la table au-dessus de la barre d'outils. |
 | `description` | `string` | Description courte sous le titre. |
-| `enableToolbar` | `boolean` | Affiche la toolbar (filtres, tri, colonnes, etc.). |
+| `enableToolbar` | `boolean` | Affiche la barre d'outils (filtres, tri, colonnes, etc.). |
 | `enableAdvancedFilters` | `boolean` | Active le panneau de filtres avancés. |
 | `columnTypeMapping` | `Record<string, 'text' \| 'number' \| 'date' \| 'option' \| 'multiOption'>` | Mappe vos types backend vers les types internes de colonnes/filtres. |
-| `onExport` | `(rows) => void \| Promise<void>` | Surcharge l'export toolbar (toutes les lignes filtrées). |
+| `onExport` | `(rows) => void \| Promise<void>` | Surcharge l'export de la barre d'outils (toutes les lignes filtrées). |
 | `onBulkExport` | `(rows) => void \| Promise<void>` | Surcharge l'export bulk (lignes sélectionnées). |
-| `onBulkEdit`, `onBulkDelete`, `onBulkCopy` | `(rows) => BulkActionResult \| void` | Surcharge du bulk ; contrat explicite recommandé pour un comportement déterministe. |
+| `onBulkEdit`, `onBulkDelete`, `onBulkCopy` | `(rows) => BulkActionResult \| void` | Surcharge des **actions de masse** ; contrat explicite recommandé pour un comportement déterministe. |
 | `loadingOverlay` | `ReactNode` | UI de chargement personnalisée. |
 | `TitleComponent`, `DescriptionComponent` | `ComponentType` | Composants personnalisés pour titre/description. |
 
@@ -319,4 +319,3 @@ Voir aussi :
 - [Server-side & Server Actions](/docs/server-actions)
 - [URL state (Nuqs)](/docs/url-state)
 - [Troubleshooting](/docs/troubleshooting)
-- [Migration Guide](/docs/migration-query-client)

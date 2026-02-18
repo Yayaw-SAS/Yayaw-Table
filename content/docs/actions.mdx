@@ -50,7 +50,7 @@ The `list` method must return:
 Inline cell editing depends on the provider `update(id, data)` action.
 
 - No extra API route is used.
-- When `inlineEdit` is enabled on table/columns, each cell commit calls `update(id, { [field]: value })`.
+- When `inlineEdit` is enabled on the table or columns, each cell commit calls `update(id, { [field]: value })`.
 - If `update` is not configured, inline edit shows an error and does not commit.
 
 ### Recommended bulk callback contract

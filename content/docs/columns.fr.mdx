@@ -52,7 +52,7 @@ Propriétés communes :
 - `enableColumnFilter?: boolean` (par défaut `true`)
 - `accessorKey?: string` – Accesseur optionnel si la clé de donnée diffère de `id`
 - `dateDisplayPreset?: DateDisplayPreset` – preset strict pour le rendu des dates (colonnes date uniquement)
-- `dateFormat?: string` – fallback legacy au format date-fns pour les colonnes date
+- `dateFormat?: string` – **repli hérité** au format date-fns pour les colonnes date
 - Pour les colonnes **number** : `numberFormat?: NumberFormatConfig` – format d'affichage (séparateurs milliers/décimales, décimales, préfixe/suffixe monétaire). Voir [Number column](#number-column-number) ci-dessous.
 - Pour les colonnes **tag** : `tagColorMap?: Record<string, string>` – map optionnelle valeur → classe Tailwind (voir ci-dessous).
 
@@ -102,7 +102,7 @@ Utilisez `numberFormat` pour contrôler le séparateur de milliers, le séparate
 { id: 'count', type: 'number', header: 'Count', numberFormat: 'space' }
 ```
 
-Quand `numberFormat` n'est pas défini, les nombres sont affichés bruts (sans regroupement des milliers). Un `formatter` custom (s'il est fourni lors de la construction programmatique des colonnes) a priorité sur `numberFormat`.
+Quand `numberFormat` n'est pas défini, les nombres sont affichés bruts (sans regroupement des milliers). Un `formatter` **personnalisé** (s'il est fourni lors de la construction programmatique des colonnes) a priorité sur `numberFormat`.
 
 ## Presets d'affichage de date
 
@@ -137,7 +137,7 @@ Les colonnes tag affichent les valeurs sous forme de badges colorés. Les couleu
 ### Couleurs personnalisées par valeur : `tagColorMap`
 
 Vous pouvez surcharger les couleurs pour des valeurs spécifiques via `tagColorMap` dans la définition de colonne. Les clés sont les valeurs de tag (la recherche essaie d'abord la valeur brute, puis la valeur normalisée) ; les valeurs sont des classes Tailwind pour le badge (par ex. fond + texte).
-Cette option fonctionne directement depuis `columns.definitions`, sans câblage custom supplémentaire.
+Cette option fonctionne directement depuis `columns.definitions`, sans câblage **personnalisé** supplémentaire.
 
 Exemple :
 

@@ -63,42 +63,42 @@ Affiche et active les actions de suppression de ligne.
 Type : `boolean` | Par défaut : `true`
 
 ### allowBulkEdit
-Affiche et active l'action d'édition bulk.
+Affiche et active l'action d'édition **de masse**.
 
 Type : `boolean` | Par défaut : `true`
 
 ### allowBulkDelete
-Affiche et active l'action de suppression bulk.
+Affiche et active l'action de suppression **de masse**.
 
 Type : `boolean` | Par défaut : `true`
 
 ### allowInlineEdit
-Autorise les interactions d'édition inline dans les cellules de la table.
+Autorise les interactions d'édition **en ligne** dans les cellules de la table.
 
 Type : `boolean` | Par défaut : `true`
 
 ### showToolbar
-Affiche toute la toolbar de la table (recherche et boutons d'action).
+Affiche toute la barre d'outils de la table (recherche et boutons d'action).
 
 Type : `boolean` | Par défaut : `true`
 
 ### showToolbarHeader
-Affiche le bloc d'en-tête de la toolbar (titre et description). Mettre `false` pour ne garder que recherche/actions.
+Affiche le bloc d'en-tête de la barre d'outils (titre et description). Mettre `false` pour ne garder que recherche/actions.
 
 Type : `boolean` | Par défaut : `true`
 
 ### export
-Affiche le bouton d'export CSV dans la toolbar (entre la recherche et les options). Exporte toutes les lignes correspondant à l'état courant (recherche/filtres/tri).
+Affiche le bouton d'export CSV dans la barre d'outils (entre la recherche et les options). Exporte toutes les lignes correspondant à l'état courant (recherche/filtres/tri).
 
 Type : `boolean` | Par défaut : `true`
 
 ### bulkExport
-Affiche l'export CSV dans le menu des actions bulk. Exporte uniquement les lignes sélectionnées.
+Affiche l'export CSV dans le menu des actions **de masse**. Exporte uniquement les lignes sélectionnées.
 
 Type : `boolean` | Par défaut : `true`
 
 ### actionsAsIcons
-Affiche les boutons d'action de la toolbar (`Add`, `Export`, `Options`) sous forme d'icônes uniquement avec tooltip.
+Affiche les boutons d'action de la barre d'outils (`Add`, `Export`, `Options`) sous forme d'icônes uniquement avec tooltip.
 
 Type : `boolean` | Par défaut : `false`
 
@@ -148,13 +148,13 @@ Valeurs autorisées pour la taille de page.
 Type : `number[]` | Par défaut : `[5, 10, 20, 50]`
 
 ### dateDisplayPreset
-Preset d'affichage de date par défaut pour toutes les colonnes de type date. Une colonne peut surcharger cette valeur avec `columns.definitions[].dateDisplayPreset`.
+**Option prédéfinie** d'affichage de date par défaut pour toutes les colonnes de type date. Une colonne peut surcharger cette valeur avec `columns.definitions[].dateDisplayPreset`.
 
 Type : `'localized-short' | 'localized-medium' | 'localized-long' | 'month-name-long' | 'month-year' | 'dmy-numeric' | 'dmy-short' | 'mdy-numeric' | 'mdy-short' | 'iso-date'` | Par défaut : `'localized-short'`
 
 ## Mode server-side
 
-Le filtrage, la pagination et le tri sont server-side par défaut et ne sont plus configurables via des flags `manual*`. La table envoie toujours `search`, `filters`, `advancedFilters`, `orderBy`, `page` et `limit` à votre action `list`.
+Le filtrage, la pagination et le tri sont server-side par défaut et ne sont plus configurables via des **options** `manual*`. La table envoie toujours `search`, `filters`, `advancedFilters`, `orderBy`, `page` et `limit` à votre action `list`.
 
 Pour les **options au niveau colonne** (par ex. `numberFormat` pour l'affichage numérique/monétaire, `dateDisplayPreset`, `tagColorMap`), voir [Columns](/docs/columns).
 

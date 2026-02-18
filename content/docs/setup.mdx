@@ -257,7 +257,7 @@ See [Actions](/docs/actions) and [Server-side & Server Actions](/docs/server-act
 
 Return form configuration per form type (e.g. `"products"`, `"products-bulk"`). Used to build create/edit dialogs and bulk edit. Shape: fields array with `name`, `type`, `label`, `required`, etc. See your codebase or the example app `form-config` for the full type.
 
-**Boolean fields:** In catalogue forms, boolean fields render as a **Switch** by default (`type: "switch"` or `type: "checkbox"`). If you specifically want a checkbox UI, set `variant: "checkbox"` on the field definition.
+**Boolean fields:** In catalog forms, boolean fields render as a **Switch** by default (`type: "switch"` or `type: "checkbox"`). If you specifically want a checkbox UI, set `variant: "checkbox"` on the field definition.
 
 ```ts
 {
@@ -267,7 +267,7 @@ Return form configuration per form type (e.g. `"products"`, `"products-bulk"`). 
 }
 ```
 
-**Form translations:** The catalogue form uses the same `DataTableTranslations` object as the table. You must add **form** and **value** keys to that object (e.g. `form.name`, `form.submit`, `value.string_placeholder`) and use `labelKey` / `optionKeys` in your field definitions so labels and placeholders resolve. See [Translations Reference — Form translations](/docs/translations#form-translations-catalogue-form) for the full example.
+**Form translations:** The catalog form uses the same `DataTableTranslations` object as the table. You must add **form** and **value** keys to that object (e.g. `form.name`, `form.submit`, `value.string_placeholder`) and use `labelKey` / `optionKeys` in your field definitions so labels and placeholders resolve. See [Translations Reference — Form translations](/docs/translations#form-translations-catalog-form) for the full example.
 
 ## Full props (single entry point)
 
@@ -297,7 +297,7 @@ See [URL state (Nuqs)](/docs/url-state) for details on URL synchronization.
 
 ## Common setup mistakes
 
-- Returning a 0-based `page` in `list`; YaYaw Table sends and expects 1-based page index.
+- Returning a 0-based `page` in `list` — YaYaw Table sends and expects a 1-based page number.
 - Omitting `meta.pageCount`/`meta.totalCount` in `list` return value.
 - Using a different `tableType` between `DataTable`, `getTableConfig`, and `getTableActions`.
 - Rendering `DataTable` in a Server Component while passing function props (`getTableConfig`, `getTableActions`).
@@ -319,4 +319,3 @@ See also:
 - [Server-side & Server Actions](/docs/server-actions)
 - [URL state (Nuqs)](/docs/url-state)
 - [Troubleshooting](/docs/troubleshooting)
-- [Migration Guide](/docs/migration-query-client)
