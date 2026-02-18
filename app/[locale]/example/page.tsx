@@ -361,7 +361,7 @@ function ExampleSettingsPanel({
   const t = useTranslations("Example");
 
   return (
-    <section className="mb-6 rounded-lg border border-border bg-card p-4">
+    <section>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="font-semibold text-card-foreground text-lg">
@@ -653,7 +653,7 @@ function BulkActionsSection({
         isActive: "select",
       }}
       DescriptionComponent={CustomDescription}
-      description={t("description")}
+      description={t("tableDescription")}
       enableAdvancedFilters={true}
       enableToolbar={true}
       getFormConfig={getFormConfigWithLocale}
@@ -672,7 +672,7 @@ function BulkActionsSection({
       queryClient={queryClient}
       TitleComponent={CustomTitle}
       tableType="products"
-      title={t("title")}
+      title={t("tableTitle")}
       translations={getTableTranslations(locale)}
     />
   );
@@ -1029,23 +1029,24 @@ export default function ExamplePage() {
             </div>
           </div>
 
-          <ExampleSettingsPanel
-            density={densityMode}
-            onDensityChange={setDensityMode}
-            onResetData={handleResetData}
-            onResetSettings={resetTableSettings}
-            onSettingChange={setTableSetting}
-            tableSettings={tableSettings}
-          />
+          <div className="mt-8 space-y-6 rounded-lg border border-border bg-card p-6">
+            <ExampleSettingsPanel
+              density={densityMode}
+              onDensityChange={setDensityMode}
+              onResetData={handleResetData}
+              onResetSettings={resetTableSettings}
+              onSettingChange={setTableSetting}
+              tableSettings={tableSettings}
+            />
 
-          {/* Code Example */}
-          <div className="mt-8 rounded-lg border border-border bg-card p-6">
-            <h3 className="mb-4 text-card-foreground">
-              {t("configurationUsed")}
-            </h3>
-            <div className="overflow-x-auto rounded-md bg-muted p-4">
-              <pre className="text-muted-foreground text-sm">
-                {`// 1. Configuration via provider
+            {/* Code Example */}
+            <div>
+              <h3 className="mb-4 text-card-foreground">
+                {t("configurationUsed")}
+              </h3>
+              <div className="overflow-x-auto rounded-md bg-muted p-4">
+                <pre className="text-muted-foreground text-sm">
+                  {`// 1. Configuration via provider
 const getTableConfig = (tableType: string) => {
   if (tableType === "products") {
     return {
@@ -1130,7 +1131,8 @@ const getTableConfig = (tableType: string) => {
 
 // Local data API with pagination, filtering, and sorting.
 // Edits persist in localStorage and can be reset from the settings panel.`}
-              </pre>
+                </pre>
+              </div>
             </div>
           </div>
         </div>

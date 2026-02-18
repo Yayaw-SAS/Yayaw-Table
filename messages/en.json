@@ -112,6 +112,8 @@
   "Example": {
     "title": "YaYaw Table Demo",
     "description": "Interactive playground with feature toggles and a production-style products table.",
+    "tableTitle": "Products",
+    "tableDescription": "Manage your product catalogue with filters, sorting, and bulk actions.",
     "settingsTitle": "Table settings",
     "settingsDescription": "Toggle features live. Settings are persisted in URL query params.",
     "styleBlock": "Design",

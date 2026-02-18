@@ -112,6 +112,8 @@
   "Example": {
     "title": "Démo YaYaw Table",
     "description": "Playground interactif avec toggles de fonctionnalités et table produits orientée production.",
+    "tableTitle": "Produits",
+    "tableDescription": "Gérez votre catalogue produits avec filtres, tri et actions groupées.",
     "settingsTitle": "Configuration de la table",
     "settingsDescription": "Activez ou désactivez les fonctionnalités en direct. Les réglages sont persistés dans l'URL.",
     "styleBlock": "Design",
