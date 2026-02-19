@@ -253,7 +253,7 @@ const OptionsMenuTrigger = forwardRef<
   );
 });
 
-function MainMenuView({
+function renderMainMenuView({
   activeGroupingCount,
   displayVisibleCount,
   sectionState,
@@ -541,12 +541,12 @@ export function TableMenu({
         />
       }
     >
-      <MainMenuView
-        activeGroupingCount={activeGroupingCount}
-        displayVisibleCount={displayVisibleCount}
-        sectionState={sectionState}
-        t={t}
-      />
+      {renderMainMenuView({
+        activeGroupingCount,
+        displayVisibleCount,
+        sectionState,
+        t,
+      })}
 
       {sectionState.canShowColumnsSection && (
         <StackMenuView name="columns">
