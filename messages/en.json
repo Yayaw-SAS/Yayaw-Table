@@ -132,6 +132,18 @@
         "label": "Enable row selection",
         "description": "Enable row checkboxes and bulk selection behaviors."
       },
+      "showSelectionColumn": {
+        "label": "Show selection column (code)",
+        "description": "Control the selection column through config (`columns.visible`), not from the options menu."
+      },
+      "showActionsColumn": {
+        "label": "Show actions column (code)",
+        "description": "Control the actions column through config (`columns.visible`), not from the options menu."
+      },
+      "enableRowClickEdit": {
+        "label": "Enable row click edit drawer",
+        "description": "Open the edit drawer when a non-interactive row area is clicked. Enabling this disables inline edit in this demo."
+      },
       "enableColumnFilters": {
         "label": "Enable column filters",
         "description": "Enable search and filter controls in toolbar and menus."
@@ -198,7 +210,7 @@
       },
       "allowInlineEdit": {
         "label": "Allow direct cell editing",
-        "description": "Allow direct cell editing inside table rows."
+        "description": "Allow direct cell editing inside table rows. Enabling this disables row click edit in this demo."
       }
     },
     "densityMode": {

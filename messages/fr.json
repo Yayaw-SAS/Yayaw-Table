@@ -132,6 +132,18 @@
         "label": "Activer la sélection de lignes",
         "description": "Active les cases à cocher de sélection et les actions de masse."
       },
+      "showSelectionColumn": {
+        "label": "Afficher la colonne sélection (code)",
+        "description": "Pilote la colonne de sélection via la config (`columns.visible`), pas via le menu d'options."
+      },
+      "showActionsColumn": {
+        "label": "Afficher la colonne actions (code)",
+        "description": "Pilote la colonne d'actions via la config (`columns.visible`), pas via le menu d'options."
+      },
+      "enableRowClickEdit": {
+        "label": "Activer l'édition au clic ligne",
+        "description": "Ouvre le drawer d'édition au clic sur une zone non interactive de la ligne. L'activer désactive l'inline edit dans cette démo."
+      },
       "enableColumnFilters": {
         "label": "Activer les filtres de colonnes",
         "description": "Active la recherche et les filtres dans la barre d'outils et les menus."
@@ -198,7 +210,7 @@
       },
       "allowInlineEdit": {
         "label": "Autoriser l'édition directe des cellules",
-        "description": "Autorise la modification directe des cellules dans les lignes du tableau."
+        "description": "Autorise la modification directe des cellules dans les lignes du tableau. L'activer désactive le mode édition au clic ligne dans cette démo."
       }
     },
     "densityMode": {

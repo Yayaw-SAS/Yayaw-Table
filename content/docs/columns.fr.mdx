@@ -24,7 +24,7 @@ columns: {
     { id: 'value', type: 'dynamicType', typeKey: 'valueType', header: 'Value' },
   ],
   order: ['select', 'name', 'price', 'status', 'createdAt', 'actions'],
-  visible: ['name', 'price', 'status', 'createdAt', 'actions'],
+  visible: ['select', 'name', 'price', 'status', 'createdAt', 'actions'],
   mandatory: ['name'],
 }
 ```
@@ -163,14 +163,18 @@ Utilisez `type: 'dynamicType'` et indiquez `typeKey` sur la ligne pour choisir l
 ## Selection column (`select`)
 
 - La colonne `select` est virtuelle et ne nécessite pas d'entrée dans `definitions`.
-- Ajoutez `'select'` à `columns.order` et (optionnellement) à `columns.visible` pour l'afficher.
+- Ajoutez `'select'` à `columns.order` et à `columns.visible` pour l'afficher quand vous fournissez une liste `visible` explicite.
 - Contrôlée par `table.enableRowSelection` (par défaut `true`).
 - Rendue comme une colonne étroite à largeur fixe avec une checkbox centrée ; même largeur que la colonne actions.
+- Pour la masquer, retirez `'select'` de `columns.visible`.
+- Elle n'est pas masquable via le menu d'options de l'interface.
 
 ## Actions column (`actions`)
 
 - Ajoutez `{ id: 'actions', type: 'actions', header: '...' }` à `columns.definitions` (le libellé d'en-tête n'est pas affiché dans l'UI ; utilisez `header: ''` ou n'importe quel libellé pour l'accessibilité/le menu colonne).
 - Rendue comme une colonne étroite à largeur fixe avec un menu d'actions centré (ellipsis) par ligne ; même largeur que la colonne de sélection.
+- Pour la masquer, retirez `'actions'` de `columns.visible`.
+- Elle n'est pas masquable via le menu d'options de l'interface.
 
 Voir aussi :
 - [Configuration](/docs/configuration)

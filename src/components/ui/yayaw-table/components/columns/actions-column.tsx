@@ -169,7 +169,7 @@ export function createActionsColumn<TData extends Record<string, unknown>>({
     },
     // Never allow grouping on the actions column
     enableGrouping: false,
-    enableHiding: false,
+    enableHiding: true,
     enablePinning: false, // Disable manual pinning by users
     enableSorting: false,
     header,
@@ -181,7 +181,7 @@ export function createActionsColumn<TData extends Record<string, unknown>>({
       isActionsColumn: true,
     },
     pinned: "right", // Pin this column to the right side
-    // Ensure the column is always visible
+    // Keep a compact fixed baseline width for icon actions.
     size: 48,
     maxSize: 48,
   };

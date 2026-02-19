@@ -49,7 +49,8 @@ function arrayMove<T>(array: T[], from: number, to: number): T[] {
 export function useColumnDnd(
   tableId: string,
   onColumnOrderChange?: (newOrder: string[]) => void,
-  enableByDefault?: boolean
+  enableByDefault?: boolean,
+  featureEnabled: boolean = true
 ) {
   // **URL STATE** - source of truth for column order (shareable)
   const { orderParam, setOrderFromUI } = useTableUrlState({ tableId });
@@ -79,6 +80,7 @@ export function useColumnDnd(
   const [isDragEnabled, setIsDragEnabled] = useAtom(
     columnDragEnabledAtom(tableId)
   );
+  const effectiveDragEnabled = featureEnabled && isDragEnabled;
 
   // Initialize drag enabled state based on configuration
   useEffect(() => {
@@ -96,6 +98,15 @@ export function useColumnDnd(
       }
     }
   }, [tableId, enableByDefault, setIsDragEnabled]);
+
+  // Safety: keep drag disabled when the feature flag is off.
+  useEffect(() => {
+    if (!(featureEnabled === false && isDragEnabled)) {
+      return;
+    }
+
+    setIsDragEnabled(false);
+  }, [featureEnabled, isDragEnabled, setIsDragEnabled]);
 
   // Get current column order from URL state
   const columnOrder = (orderParam as string[]) || [];
@@ -118,12 +129,16 @@ export function useColumnDnd(
   // Handle drag start event
   const handleDragStart = useCallback(
     (event: DragStartEvent) => {
+      if (!effectiveDragEnabled) {
+        return;
+      }
+
       const { active } = event;
       if (active) {
         setActiveDragId(active.id.toString());
       }
     },
-    [setActiveDragId]
+    [effectiveDragEnabled, setActiveDragId]
   );
 
   // Helper function to check if a column ID is fixed (non-draggable)
@@ -198,6 +213,11 @@ export function useColumnDnd(
   // Handle drag end event
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
+      if (!effectiveDragEnabled) {
+        setActiveDragId(null);
+        return;
+      }
+
       const { active, over } = event;
 
       // Only update if we have a valid over target and it's different from the active item
@@ -214,13 +234,23 @@ export function useColumnDnd(
       // Reset active drag ID
       setActiveDragId(null);
     },
-    [setActiveDragId, validateDragOperation, handleValidDragOperation]
+    [
+      effectiveDragEnabled,
+      setActiveDragId,
+      validateDragOperation,
+      handleValidDragOperation,
+    ]
   );
 
   // Toggle drag enabled
   const toggleDragEnabled = useCallback(() => {
+    if (!featureEnabled) {
+      setIsDragEnabled(false);
+      return;
+    }
+
     setIsDragEnabled((prev) => !prev);
-  }, [setIsDragEnabled]);
+  }, [featureEnabled, setIsDragEnabled]);
 
   return {
     // State
@@ -234,7 +264,7 @@ export function useColumnDnd(
     handleDragEnd,
     handleDragStart,
     horizontalListSortingStrategy,
-    isDragEnabled,
+    isDragEnabled: effectiveDragEnabled,
     // Modifiers
     modifiers: [restrictToHorizontalAxis],
     restrictToHorizontalAxis,

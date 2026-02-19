@@ -262,7 +262,7 @@ const SortableItem = ({
 
 export function TableColumnsMenu({
   columns,
-  columnVisibility: _columnVisibility,
+  columnVisibility,
   onVisibleCountChange,
   setColumnVisibility,
   tableId,
@@ -302,7 +302,8 @@ export function TableColumnsMenu({
     tableType: effectiveTableId,
   });
 
-  // Get columns that can be hidden (excluding special columns)
+  // Get columns that can be hidden from the menu UI.
+  // System columns remain configurable via code (`columns.visible`) only.
   const hideableColumns = useMemo(
     () =>
       columns
@@ -346,8 +347,11 @@ export function TableColumnsMenu({
 
   // Get current visibility state with proper type
   const currentVisibility = useMemo(
-    () => (visibilityParam as VisibilityState) || {},
-    [visibilityParam]
+    () => ({
+      ...(columnVisibility || {}),
+      ...((visibilityParam as VisibilityState) || {}),
+    }),
+    [columnVisibility, visibilityParam]
   );
 
   // Get ordered column IDs from URL params
@@ -440,7 +444,12 @@ export function TableColumnsMenu({
     horizontalListSortingStrategy,
     sensors,
     SortableContext,
-  } = useColumnDnd(effectiveTableId, handleColumnOrderChange);
+  } = useColumnDnd(
+    effectiveTableId,
+    handleColumnOrderChange,
+    undefined,
+    dndFeatureEnabled
+  );
 
   // Handler for drag start
 
@@ -511,7 +520,7 @@ export function TableColumnsMenu({
     (columnId: string) => {
       // Create a new visibility state starting from the current one
       const newVisibility: VisibilityState = {
-        ...((visibilityParam as VisibilityState) || {}),
+        ...currentVisibility,
       };
 
       // Toggle visibility for the specific column
@@ -541,7 +550,7 @@ export function TableColumnsMenu({
       onVisibleCountChange?.(newVisibleCount);
     },
     [
-      visibilityParam,
+      currentVisibility,
       setVisibilityFromUI,
       setColumnVisibility,
       table,
@@ -554,7 +563,7 @@ export function TableColumnsMenu({
   const handleShowAllColumns = useCallback(() => {
     // Create a new visibility state starting from the current one
     const newVisibility: VisibilityState = {
-      ...((visibilityParam as VisibilityState) || {}),
+      ...currentVisibility,
     };
 
     // Remove hidden state for all hideable columns (making them visible)
@@ -580,7 +589,7 @@ export function TableColumnsMenu({
     hideableColumns,
     setVisibilityFromUI,
     setColumnVisibility,
-    visibilityParam,
+    currentVisibility,
     table,
     onVisibleCountChange,
   ]);
@@ -589,20 +598,12 @@ export function TableColumnsMenu({
   const handleHideAllColumns = useCallback(() => {
     // Create a new visibility state starting from the current one
     const newVisibility: VisibilityState = {
-      ...((visibilityParam as VisibilityState) || {}),
+      ...currentVisibility,
     };
 
     // Set all hideable columns to hidden
     for (const col of hideableColumns) {
       newVisibility[col.id] = false;
-    }
-
-    // Preserve visibility of special columns (select, actions)
-    if ("select" in newVisibility) {
-      newVisibility.select = true;
-    }
-    if ("actions" in newVisibility) {
-      newVisibility.actions = true;
     }
 
     // Update visibility in URL state
@@ -626,7 +627,7 @@ export function TableColumnsMenu({
     hideableColumns,
     setVisibilityFromUI,
     setColumnVisibility,
-    visibilityParam,
+    currentVisibility,
     table,
     onVisibleCountChange,
   ]);

@@ -174,6 +174,21 @@ export interface ColumnDefinition {
   tagColorMap?: Record<string, string>;
 
   /**
+   * Preferred column width in pixels.
+   */
+  size?: number;
+
+  /**
+   * Minimum allowed column width in pixels.
+   */
+  minSize?: number;
+
+  /**
+   * Maximum allowed column width in pixels.
+   */
+  maxSize?: number;
+
+  /**
    * Key that contains the type information for dynamicType columns
    * Only used when type is "dynamicType"
    */
@@ -292,6 +307,13 @@ export interface TableBehaviorConfig {
    * Enable row selection
    */
   enableRowSelection: boolean;
+
+  /**
+   * Open the edit drawer when a row is clicked.
+   * Incompatible with URL columns configured with `urlDisplayMode: "row-link"`.
+   * Incompatible with inline edit (`table.inlineEdit` / column `inlineEdit`).
+   */
+  enableRowClickEdit?: boolean;
 
   /**
    * Enable sorting

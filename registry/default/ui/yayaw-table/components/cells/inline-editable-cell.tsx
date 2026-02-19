@@ -418,7 +418,10 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
 
     return (
       <Input
-        className="h-8 py-1 text-sm"
+        className={cn(
+          "h-8 py-1 text-sm",
+          resolvedEditor === "number" && "text-right"
+        )}
         onBlur={handleEditorBlur}
         onChange={(event) => {
           updateDraftValue(event.target.value);
@@ -463,7 +466,10 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
       ) : (
         <button
           className={cn(
-            "relative min-h-8 w-full cursor-text rounded-sm px-0.5 py-1 text-left outline-none",
+            "relative flex min-h-8 w-full cursor-text items-center rounded-sm px-0.5 py-1 outline-none",
+            resolvedEditor === "number"
+              ? "justify-end text-right"
+              : "justify-start text-left",
             "focus-visible:ring-2 focus-visible:ring-primary/30"
           )}
           onDoubleClick={(event) => {
@@ -479,7 +485,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
       )}
 
       {isSaving && (
-        <span className="absolute top-0.5 right-0.5 text-[10px] text-muted-foreground">
+        <span aria-live="polite" className="sr-only">
           {t("inline.saving")}
         </span>
       )}

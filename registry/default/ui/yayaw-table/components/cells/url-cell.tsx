@@ -146,7 +146,7 @@ function UrlIconDisplay({
             <a
               aria-label={extractDomain(url)}
               className={cn(
-                "inline-flex items-center justify-center rounded-md p-1",
+                "flex w-full items-center justify-center rounded-md p-1",
                 "text-muted-foreground transition-colors hover:text-foreground",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
                 className

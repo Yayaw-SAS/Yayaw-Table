@@ -7,7 +7,7 @@
 import { type QueryClient, useQueryClient } from "@tanstack/react-query";
 import type { Cell, ColumnDef, Header, Row } from "@tanstack/react-table";
 import { flexRender } from "@tanstack/react-table";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import {
   type CSSProperties,
   memo,
@@ -56,6 +56,11 @@ import { SortableHeader } from "./columns/header/sortable-header";
 import { useColumnDnd } from "./columns/hooks/use-column-dnd";
 import { useColumnDragOverlay } from "./columns/hooks/use-column-drag-overlay";
 import { GroupRowSelectionCell } from "./columns/selection-column";
+import {
+  type CatalogueFormState,
+  catalogueFormAtom,
+  openUpdateForm,
+} from "./forms/atoms/catalogue-form-atoms";
 import type { AnyFieldDefinition } from "./forms/types";
 import { SafePagination } from "./safe-pagination";
 
@@ -65,6 +70,16 @@ const EMPTY_COLUMNS: never[] = [];
 const EMPTY_DATA: never[] = [];
 
 const EMPTY_EXPANDED: Record<string, boolean> = {};
+const ROW_CLICK_INTERACTIVE_SELECTOR =
+  "button, a, [role=checkbox], input, select, textarea";
+const ROW_CLICK_SYSTEM_COLUMN_SELECTOR =
+  '[data-column-id="select"], [data-column-id="actions"]';
+
+interface ColumnSizingDefinition {
+  maxSize?: number;
+  minSize?: number;
+  size?: number;
+}
 
 /** Detect number column from def.type or def.meta.columnType (set by createNumberColumn) */
 function isNumberColumn(def: {
@@ -74,21 +89,49 @@ function isNumberColumn(def: {
   return def.type === "number" || def.meta?.columnType === "number";
 }
 
+function getColumnSizingStyle(
+  columnDef: ColumnSizingDefinition,
+  columnSize: number,
+  isFixedColumn: boolean
+): CSSProperties | undefined {
+  const hasExplicitSizing =
+    typeof columnDef.size === "number" ||
+    typeof columnDef.minSize === "number" ||
+    typeof columnDef.maxSize === "number";
+
+  if (!(isFixedColumn || hasExplicitSizing)) {
+    return undefined;
+  }
+
+  const style: CSSProperties = {};
+
+  if (isFixedColumn || typeof columnDef.size === "number") {
+    style.width = columnSize;
+  }
+
+  if (isFixedColumn) {
+    style.minWidth = columnSize;
+  } else if (typeof columnDef.minSize === "number") {
+    style.minWidth = columnDef.minSize;
+  }
+
+  if (typeof columnDef.maxSize === "number") {
+    style.maxWidth = columnDef.maxSize;
+  }
+
+  return style;
+}
+
 function getHeaderSizeStyle<TData>(
   header: Header<TData, unknown>
 ): CSSProperties | undefined {
-  const isSizeFixedColumn = header.id === "select" || header.id === "actions";
-  if (!isSizeFixedColumn) {
-    return undefined;
-  }
-  const headerDef = header.column.columnDef as { maxSize?: number };
-  return {
-    ...(typeof headerDef.maxSize === "number"
-      ? { maxWidth: headerDef.maxSize }
-      : {}),
-    minWidth: header.column.getSize(),
-    width: header.column.getSize(),
-  };
+  const isFixedColumn = header.id === "select" || header.id === "actions";
+  const headerDef = header.column.columnDef as ColumnSizingDefinition;
+  return getColumnSizingStyle(
+    headerDef,
+    header.column.getSize(),
+    isFixedColumn
+  );
 }
 
 function getHeaderCellClassName<TData>(
@@ -522,6 +565,7 @@ function ModernDataTable<
     stableOnRowSelectionChange.current = onRowSelectionChange;
   }, [onRowSelectionChange]);
   const queryClient = useQueryClient();
+  const setFormState = useSetAtom(catalogueFormAtom);
   const { t } = useTranslations();
   const getFormConfig = useFormConfig();
   const resolvedTableType = tableType || tableId;
@@ -554,6 +598,52 @@ function ModernDataTable<
     );
     return rowLinkCol?.id;
   }, [tableConfig.columns.definitions]);
+  const isRowClickEditEnabled =
+    tableConfig.table.enableRowClickEdit === true &&
+    tableConfig.table.allowEdit !== false;
+  const hasInlineEditConfiguration = useMemo(() => {
+    if (tableConfig.table.allowInlineEdit === false) {
+      return false;
+    }
+
+    if (tableConfig.table.inlineEdit?.enabled === true) {
+      return true;
+    }
+
+    for (const columnDef of tableConfig.columns.definitions) {
+      if (columnDef.id === "actions" || columnDef.id === "select") {
+        continue;
+      }
+
+      if (typeof columnDef.inlineEdit === "boolean") {
+        if (columnDef.inlineEdit) {
+          return true;
+        }
+        continue;
+      }
+
+      if (columnDef.inlineEdit?.enabled === true) {
+        return true;
+      }
+    }
+
+    return false;
+  }, [
+    tableConfig.columns.definitions,
+    tableConfig.table.allowInlineEdit,
+    tableConfig.table.inlineEdit?.enabled,
+  ]);
+
+  if (isRowClickEditEnabled && rowLinkAccessorKey) {
+    throw new Error(
+      'YaYaw Table configuration error: `table.enableRowClickEdit` is incompatible with `urlDisplayMode: "row-link"`.'
+    );
+  }
+  if (isRowClickEditEnabled && hasInlineEditConfiguration) {
+    throw new Error(
+      "YaYaw Table configuration error: `table.enableRowClickEdit` is incompatible with inline edit. Disable row click edit or inline edit (`table.inlineEdit` / column `inlineEdit`)."
+    );
+  }
 
   const inlineEditFormType =
     tableConfig.form?.editFormType || resolvedTableType;
@@ -578,6 +668,31 @@ function ModernDataTable<
     }
     return fieldMap;
   }, [inlineEditFormConfig?.fields]);
+  const handleRowEditClick = useCallback(
+    (row: Row<TData>) => {
+      const handleSuccess = () => {
+        queryClient
+          .invalidateQueries({
+            queryKey: ["tableData", tableId],
+          })
+          .catch(() => undefined);
+
+        if (typeof refetch === "function") {
+          refetch().catch(() => undefined);
+        }
+      };
+
+      const formState = openUpdateForm(
+        tableId,
+        tableId,
+        row.original as Record<string, unknown>,
+        handleSuccess
+      );
+
+      setFormState(formState as CatalogueFormState<Record<string, unknown>>);
+    },
+    [queryClient, refetch, setFormState, tableId]
+  );
 
   const commitInlineEdit = useCallback(
     async ({
@@ -804,7 +919,8 @@ function ModernDataTable<
   } = useColumnDnd(
     tableId,
     handleColumnOrderChange,
-    enableColumnDragDropByDefault
+    enableColumnDragDropByDefault,
+    tableConfig.table.enableColumnDnd !== false
   );
 
   // Use hook to manage overlay during drag and drop
@@ -1150,22 +1266,19 @@ function ModernDataTable<
       row: Row<TData>,
       cell: ReturnType<Row<TData>["getVisibleCells"]>[number]
     ) => {
-      const isSizeFixedColumn =
+      const isFixedColumn =
         cell.column.id === "select" || cell.column.id === "actions";
-      const def = cell.column.columnDef as { maxSize?: number };
-      const sizeStyle = isSizeFixedColumn
-        ? {
-            ...(typeof def.maxSize === "number"
-              ? { maxWidth: def.maxSize }
-              : {}),
-            minWidth: cell.column.getSize(),
-            width: cell.column.getSize(),
-          }
-        : undefined;
+      const def = cell.column.columnDef as ColumnSizingDefinition;
+      const sizeStyle = getColumnSizingStyle(
+        def,
+        cell.column.getSize(),
+        isFixedColumn
+      );
 
       return (
         <TableCell
           className={getRegularCellClassName({ cell, densityMode })}
+          data-column-id={cell.column.id}
           key={cell.id}
           style={sizeStyle}
         >
@@ -1203,22 +1316,28 @@ function ModernDataTable<
           "group",
           "data-[state=selected]:bg-muted/50",
           row.getIsSelected() && "bg-muted/50",
-          handleRowLinkClick && "cursor-pointer hover:bg-muted/40"
+          (isRowClickEditEnabled || handleRowLinkClick) &&
+            "cursor-pointer hover:bg-muted/40"
         )}
         data-state={row.getIsSelected() ? "selected" : ""}
         key={row.id}
         onClick={
-          handleRowLinkClick
+          isRowClickEditEnabled || handleRowLinkClick
             ? (event) => {
                 const target = event.target as HTMLElement;
-                if (
-                  target.closest(
-                    "button, a, [role=checkbox], input, select, textarea"
-                  )
-                ) {
+                if (target.closest(ROW_CLICK_INTERACTIVE_SELECTOR)) {
                   return;
                 }
-                handleRowLinkClick(row, event);
+                if (target.closest(ROW_CLICK_SYSTEM_COLUMN_SELECTOR)) {
+                  return;
+                }
+
+                if (isRowClickEditEnabled) {
+                  handleRowEditClick(row);
+                  return;
+                }
+
+                handleRowLinkClick?.(row, event);
               }
             : undefined
         }
@@ -1372,6 +1491,8 @@ function ModernDataTable<
     isSmallDensity,
     isLargeDensity,
     rowLinkAccessorKey,
+    isRowClickEditEnabled,
+    handleRowEditClick,
     onRowClick,
   ]);
 

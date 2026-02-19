@@ -169,7 +169,7 @@ function DataTableColumnHeaderBase<TData, TValue>({
             </div>
           </ColumnMenu>
         </div>
-        {isHydrated && isDragEnabled && (
+        {isHydrated && dndFeatureEnabled && isDragEnabled && (
           <div
             className="ml-2 shrink-0 cursor-grab touch-none active:cursor-grabbing"
             {...listeners}
@@ -186,7 +186,7 @@ function DataTableColumnHeaderBase<TData, TValue>({
         )}
       >
         <span className="truncate">{title}</span>
-        {isHydrated && isDragEnabled && (
+        {isHydrated && dndFeatureEnabled && isDragEnabled && (
           <div
             className="ml-auto shrink-0 cursor-grab touch-none active:cursor-grabbing"
             {...listeners}
@@ -224,6 +224,7 @@ function DataTableColumnHeaderBase<TData, TValue>({
     isActionsColumn,
     isNumberColumn,
     isDragEnabled,
+    dndFeatureEnabled,
     isDragging,
     isOver,
     setNodeRef,

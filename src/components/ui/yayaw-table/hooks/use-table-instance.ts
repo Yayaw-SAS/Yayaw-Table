@@ -350,16 +350,6 @@ export function useTableInstance<TData>({
   // Helper function to determine if a column should be visible by default
   const getDefaultColumnVisibility = useCallback(
     (column: ColumnDef<TData>, id: string): boolean => {
-      // Special cases for selection and actions columns - always visible
-      if (
-        id === "select" ||
-        (column.meta as Record<string, unknown>)?.isSelectionColumn ||
-        id === "actions" ||
-        (column.meta as Record<string, unknown>)?.isActionsColumn
-      ) {
-        return true;
-      }
-
       // When a defaultVisibleColumns list is provided, only show listed columns
       if (defaultVisibleColumns && defaultVisibleColumns.length > 0) {
         return defaultVisibleColumns.includes(id);

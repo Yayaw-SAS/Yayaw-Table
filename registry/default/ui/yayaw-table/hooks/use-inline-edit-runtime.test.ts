@@ -63,6 +63,24 @@ describe("resolveInlineEditColumnConfig", () => {
 
     assert.equal(result.enabled, false);
   });
+
+  it("disables inline edit when feature gate is off", () => {
+    const result = resolveInlineEditColumnConfig(
+      {
+        id: "name",
+        type: "text",
+        inlineEdit: true,
+      },
+      {
+        enabled: true,
+      },
+      {
+        featureEnabled: false,
+      }
+    );
+
+    assert.equal(result.enabled, false);
+  });
 });
 
 describe("resolveInlineEditor", () => {

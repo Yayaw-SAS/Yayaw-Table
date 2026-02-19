@@ -27,6 +27,7 @@ export const defaultTableConfig = {
   enableMultiRowSelection: true,
   enablePagination: true,
   enableRowSelection: true,
+  enableRowClickEdit: false,
   enableSorting: true,
   inlineEdit: {
     enabled: false,

@@ -11,6 +11,8 @@ export const EXAMPLE_PRODUCTS_STORAGE_KEY = "yayaw-example-products:v1";
 const DEFAULT_LATENCY_MS = 50;
 
 const PRODUCT_STATUSES = ["In Stock", "Low Stock", "Out of Stock"] as const;
+const URL_PROTOCOL_REGEX = /^https?:\/\//i;
+const LEADING_SLASHES_REGEX = /^\/+/;
 
 interface StorageAdapter {
   getItem: (key: string) => null | string;
@@ -104,6 +106,45 @@ function cloneSeedProducts(): Product[] {
   }));
 }
 
+function slugifySegment(input: string): string {
+  const normalized = input
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return normalized.length > 0 ? normalized : "item";
+}
+
+function buildProductWebsiteFromNameBrand(name: string, brand: string): string {
+  const brandSlug = slugifySegment(brand);
+  const productSlug = slugifySegment(name);
+  return `https://www.${brandSlug}.example/products/${productSlug}/`;
+}
+
+function normalizeWebsiteValue({
+  brand,
+  fallback,
+  name,
+  value,
+}: {
+  brand: string;
+  fallback: string;
+  name: string;
+  value: unknown;
+}): string {
+  const normalizedValue = toStringValue(value, fallback).trim();
+  const websiteCandidate =
+    normalizedValue.length > 0
+      ? normalizedValue
+      : buildProductWebsiteFromNameBrand(name, brand);
+
+  if (URL_PROTOCOL_REGEX.test(websiteCandidate)) {
+    return websiteCandidate;
+  }
+
+  return `https://${websiteCandidate.replace(LEADING_SLASHES_REGEX, "")}`;
+}
+
 function serializeProducts(productsList: Product[]): string {
   const persistedProducts: PersistedProduct[] = productsList.map((product) => ({
     ...product,
@@ -147,6 +188,12 @@ function parseProducts(raw: string): Product[] {
       status: record.status as Product["status"],
       category: record.category,
       brand: record.brand,
+      website: normalizeWebsiteValue({
+        brand: record.brand,
+        fallback: "",
+        name: record.name,
+        value: record.website,
+      }),
       isActive: record.isActive,
       createdAt,
     };
@@ -598,6 +645,17 @@ function applyBulkUpdatePayload(
           brand: toStringValue(value, nextProduct.brand),
         };
         break;
+      case "website":
+        nextProduct = {
+          ...nextProduct,
+          website: normalizeWebsiteValue({
+            brand: nextProduct.brand,
+            fallback: nextProduct.website ?? "",
+            name: nextProduct.name,
+            value,
+          }),
+        };
+        break;
       case "isActive":
         if (typeof value === "boolean") {
           nextProduct = { ...nextProduct, isActive: value };
@@ -616,6 +674,52 @@ function applyBulkUpdatePayload(
   }
 
   return nextProduct;
+}
+
+function applyProductUpdatePayload({
+  data,
+  id,
+  current,
+}: {
+  current: Product;
+  data: Record<string, unknown>;
+  id: string;
+}): Product {
+  const nextName =
+    data.name == null ? current.name : toStringValue(data.name, current.name);
+  const nextBrand =
+    data.brand == null
+      ? current.brand
+      : toStringValue(data.brand, current.brand);
+
+  return {
+    ...current,
+    name: nextName,
+    price:
+      data.price == null
+        ? current.price
+        : normalizeNumber(data.price, current.price),
+    status:
+      data.status == null
+        ? current.status
+        : normalizeStatus(data.status, current.status),
+    category:
+      data.category == null
+        ? current.category
+        : toStringValue(data.category, current.category),
+    brand: nextBrand,
+    website: normalizeWebsiteValue({
+      brand: nextBrand,
+      fallback: current.website ?? "",
+      name: nextName,
+      value: data.website,
+    }),
+    isActive:
+      data.isActive == null || typeof data.isActive !== "boolean"
+        ? current.isActive
+        : data.isActive,
+    id,
+  };
 }
 
 async function waitForLatency(latencyMs: number): Promise<void> {
@@ -671,13 +775,21 @@ export function createProductsLocalActions(
     create: async (data) => {
       try {
         const productsList = readProducts(storage);
+        const productName = toStringValue(data.name, "");
+        const productBrand = toStringValue(data.brand, "");
         const newProduct: Product = {
           id: getNextProductId(productsList),
-          name: toStringValue(data.name, ""),
+          name: productName,
           price: normalizeNumber(data.price, 0),
           status: normalizeStatus(data.status, "In Stock"),
           category: toStringValue(data.category, ""),
-          brand: toStringValue(data.brand, ""),
+          brand: productBrand,
+          website: normalizeWebsiteValue({
+            brand: productBrand,
+            fallback: "",
+            name: productName,
+            value: data.website,
+          }),
           isActive: typeof data.isActive === "boolean" ? data.isActive : true,
           createdAt: now(),
         };
@@ -704,34 +816,11 @@ export function createProductsLocalActions(
         }
 
         const current = productsList[index];
-        const updatedProduct: Product = {
-          ...current,
-          name:
-            data.name == null
-              ? current.name
-              : toStringValue(data.name, current.name),
-          price:
-            data.price == null
-              ? current.price
-              : normalizeNumber(data.price, current.price),
-          status:
-            data.status == null
-              ? current.status
-              : normalizeStatus(data.status, current.status),
-          category:
-            data.category == null
-              ? current.category
-              : toStringValue(data.category, current.category),
-          brand:
-            data.brand == null
-              ? current.brand
-              : toStringValue(data.brand, current.brand),
-          isActive:
-            data.isActive == null || typeof data.isActive !== "boolean"
-              ? current.isActive
-              : data.isActive,
+        const updatedProduct = applyProductUpdatePayload({
+          current,
+          data,
           id,
-        };
+        });
 
         const updatedProducts = [...productsList];
         updatedProducts[index] = updatedProduct;

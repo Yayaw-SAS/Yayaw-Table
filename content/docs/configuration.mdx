@@ -23,6 +23,7 @@ table: {
   actionsAsIcons: false,
   density: 'medium',
   enableRowSelection: true,
+  enableRowClickEdit: false,
   enableColumnFilters: true,
   enableSorting: true,
   enableGrouping: true,
@@ -48,6 +49,16 @@ table: {
 Enable row selection checkboxes.
 
 Type: `boolean` | Default: `true`
+
+### enableRowClickEdit
+Open the edit drawer when a non-interactive row area is clicked.
+
+Type: `boolean` | Default: `false`
+
+Constraints:
+- Works only when `allowEdit` is enabled.
+- Incompatible with URL columns using `urlDisplayMode: 'row-link'`.
+- Incompatible with inline edit (table-level `inlineEdit` or column-level `inlineEdit`).
 
 ### allowCreate
 Show and enable create actions in table UI.

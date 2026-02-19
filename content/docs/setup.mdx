@@ -120,6 +120,7 @@ export const getTableConfig = (tableType: string) => {
     enableMultiRowSelection: true,
     enablePagination: true,
     enableRowDragDrop: false,
+    enableRowClickEdit: false,
     enableRowSelection: true,
     enableSorting: true,
     pageSizeOptions: [10, 20, 50],
@@ -131,8 +132,8 @@ export const getTableConfig = (tableType: string) => {
         { id: "isActive", type: "boolean", header: "Active", enableSorting: true, enableColumnFilter: true },
         { id: "actions", type: "actions", header: "Actions", enableSorting: false, enableColumnFilter: false },
       ],
-      order: ["name", "brand", "price", "isActive", "actions"],
-      visible: ["name", "brand", "price", "isActive", "actions"],
+      order: ["select", "name", "brand", "price", "isActive", "actions"],
+      visible: ["select", "name", "brand", "price", "isActive", "actions"],
       mandatory: ["name"],
       sort: [{ id: "name", desc: false }],
     },
@@ -235,7 +236,8 @@ After the 4 core steps above, your table should:
 
 `getTableConfig(tableType)` should return:
 
-- Top-level table behavior keys like `enableRowSelection`, `enableSorting`, `enableColumnFilters`, `defaultPageSize`, `pageSizeOptions`, `export`, `bulkExport`, `actionsAsIcons`.
+- Top-level table behavior keys like `enableRowSelection`, `enableRowClickEdit`, `enableSorting`, `enableColumnFilters`, `defaultPageSize`, `pageSizeOptions`, `export`, `bulkExport`, `actionsAsIcons`.
+- `enableRowClickEdit` opens the edit drawer on row click and cannot be combined with `urlDisplayMode: "row-link"` or inline edit.
 - **columns** – `definitions` (array of `{ id, type, header, enableSorting?, enableColumnFilter? }`), `order`, `visible`, `mandatory`, `sort`.
 - **translations** (optional) – `namespace`, `keys` for title/description.
 

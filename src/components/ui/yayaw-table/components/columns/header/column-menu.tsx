@@ -288,6 +288,16 @@ function ColumnMenuBase<TData>({
   );
   const { config } = useTableConfig(tableId);
   const dndFeatureEnabled = config?.table?.enableColumnDnd !== false;
+  const effectiveDragEnabled = dndFeatureEnabled && isDragEnabled;
+
+  // Safety: when the feature flag is disabled, force persisted state off.
+  useEffect(() => {
+    if (!(dndFeatureEnabled === false && isDragEnabled)) {
+      return;
+    }
+
+    setIsDragEnabled(false);
+  }, [dndFeatureEnabled, isDragEnabled, setIsDragEnabled]);
 
   // Memoize handlers to prevent recreation
   const handleSort = useCallback(
@@ -308,9 +318,15 @@ function ColumnMenuBase<TData>({
   }, [column, isVisible]);
 
   const handleToggleDrag = useCallback(() => {
+    if (!dndFeatureEnabled) {
+      setIsDragEnabled(false);
+      setIsOpen(false);
+      return;
+    }
+
     setIsDragEnabled(!isDragEnabled);
     setIsOpen(false);
-  }, [isDragEnabled, setIsDragEnabled]);
+  }, [dndFeatureEnabled, isDragEnabled, setIsDragEnabled]);
 
   const handleSortAsc = useCallback(() => {
     handleSort(false);
@@ -384,11 +400,11 @@ function ColumnMenuBase<TData>({
                 <MenuItem
                   icon={GripVertical}
                   label={
-                    translations.columnReorder + (isDragEnabled ? " ✓" : "")
+                    translations.columnReorder + (effectiveDragEnabled ? " ✓" : "")
                   }
                   onClick={handleToggleDrag}
                 />
-                {!isDragEnabled && (
+                {!effectiveDragEnabled && (
                   <div className="px-2 py-1 text-muted-foreground text-xs">
                     Enable to drag columns in header and here
                   </div>
@@ -412,7 +428,7 @@ function ColumnMenuBase<TData>({
     canHide,
     handleToggleVisibility,
     handleToggleDrag,
-    isDragEnabled,
+    effectiveDragEnabled,
     dndFeatureEnabled,
   ]);
 

@@ -153,7 +153,7 @@ export function GroupRowSelectionCell<TData>({
 export function createSelectionColumn<TData>(
   options: SelectionColumnOptions = {}
 ): ColumnDef<TData, unknown> {
-  const { className = "", enableHiding = false } = options;
+  const { className = "", enableHiding = true } = options;
 
   return {
     accessorKey: "select",

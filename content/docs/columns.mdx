@@ -24,7 +24,7 @@ columns: {
     { id: 'value', type: 'dynamicType', typeKey: 'valueType', header: 'Value' },
   ],
   order: ['select', 'name', 'price', 'status', 'createdAt', 'actions'],
-  visible: ['name', 'price', 'status', 'createdAt', 'actions'],
+  visible: ['select', 'name', 'price', 'status', 'createdAt', 'actions'],
   mandatory: ['name'],
 }
 ```
@@ -206,14 +206,18 @@ Use `type: 'dynamicType'` and specify `typeKey` on the row to pick the renderer 
 ## Selection column (`select`)
 
 - The `select` column is virtual and does not need a definition entry.
-- Add `'select'` to `columns.order` and (optionally) to `columns.visible` to show it.
+- Add `'select'` to `columns.order` and to `columns.visible` to show it when you provide an explicit visible list.
 - Controlled by `table.enableRowSelection` (default `true`).
 - Rendered as a narrow fixed-width column with a centered checkbox; same width as the actions column.
+- To hide it, remove `'select'` from `columns.visible`.
+- It is not toggleable from the options menu UI.
 
 ## Actions column (`actions`)
 
 - Add `{ id: 'actions', type: 'actions', header: '...' }` to `columns.definitions` (the header label is not shown in the UI; use `header: ''` or any label for accessibility/column menu).
 - Rendered as a narrow fixed-width column with a centered actions menu (ellipsis) per row; same width as the selection column.
+- To hide it, remove `'actions'` from `columns.visible`.
+- It is not toggleable from the options menu UI.
 
 See also:
 - [Configuration](/docs/configuration)

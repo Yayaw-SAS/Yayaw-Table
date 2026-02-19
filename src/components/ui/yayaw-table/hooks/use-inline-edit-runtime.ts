@@ -64,6 +64,10 @@ export interface InlineEditTableRuntimeConfig {
   showDelayIndicator: boolean;
 }
 
+interface ResolveInlineEditColumnConfigOptions {
+  featureEnabled?: boolean;
+}
+
 export interface ResolveInlineEditorInput {
   explicitEditor?: InlineEditEditor;
   columnType?: string;
@@ -118,11 +122,13 @@ function normalizeInlineEditTableConfig(
 
 export function resolveInlineEditColumnConfig(
   column: InlineEditColumnLike,
-  tableInlineConfig?: TableInlineEditConfig
+  tableInlineConfig?: TableInlineEditConfig,
+  options?: ResolveInlineEditColumnConfigOptions
 ): InlineEditColumnRuntimeConfig {
   const normalizedTableConfig = normalizeInlineEditTableConfig(
     tableInlineConfig
   );
+  const isFeatureEnabled = options?.featureEnabled ?? true;
   const inlineColumnConfig =
     typeof column.inlineEdit === "boolean"
       ? { enabled: column.inlineEdit }
@@ -136,6 +142,7 @@ export function resolveInlineEditColumnConfig(
   const isReadonly = Boolean(inlineColumnConfig.readonly);
   const isSystemColumn = column.id === "actions" || column.id === "select";
   const isEnabled =
+    isFeatureEnabled &&
     !isReadonly &&
     !isSystemColumn &&
     (enabledFromColumn ?? normalizedTableConfig.enabled);

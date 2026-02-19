@@ -210,6 +210,7 @@ function DataTableContent({
               config.table.enableMultiRowSelection !== false,
             enablePagination: config.table.enablePagination !== false,
             enableRowSelection: config.table.enableRowSelection,
+            enableRowClickEdit: config.table.enableRowClickEdit,
             enableSorting: config.table.enableSorting,
             inlineEdit: config.table.inlineEdit,
             pageSizeOptions: config.table.pageSizeOptions || [

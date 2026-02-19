@@ -34,6 +34,12 @@ import { useTableUrlState } from "./use-table-url-state";
 
 const DEBUG = false;
 
+interface ColumnSizingConfig {
+  maxSize?: number;
+  minSize?: number;
+  size?: number;
+}
+
 function withInlineEditMeta<TData>(
   columnDef: ColumnDef<TData>,
   inlineEditMeta: InlineEditColumnRuntimeConfig
@@ -48,6 +54,27 @@ function withInlineEditMeta<TData>(
       inlineEdit: inlineEditMeta,
     },
   };
+}
+
+function applyColumnSizingConfig<TData>(
+  columnDef: ColumnDef<TData>,
+  sizingConfig: ColumnSizingConfig
+): ColumnDef<TData> {
+  const sizedColumnDef: ColumnDef<TData> = { ...columnDef };
+
+  if (typeof sizingConfig.size === "number") {
+    sizedColumnDef.size = sizingConfig.size;
+  }
+
+  if (typeof sizingConfig.minSize === "number") {
+    sizedColumnDef.minSize = sizingConfig.minSize;
+  }
+
+  if (typeof sizingConfig.maxSize === "number") {
+    sizedColumnDef.maxSize = sizingConfig.maxSize;
+  }
+
+  return sizedColumnDef;
 }
 
 /**
@@ -98,15 +125,15 @@ export function useDataTable<TData extends Record<string, unknown>>(
 
   // Get table configuration using extracted hook
   const { config, translations } = useTableConfig(tableType);
+  const isInlineEditAllowed = config.table.allowInlineEdit !== false;
   const tableInlineEditConfig = useMemo(() => {
     const inlineEditConfig = config.table.inlineEdit;
-    const isInlineEditAllowed = config.table.allowInlineEdit !== false;
 
     return {
       ...inlineEditConfig,
       enabled: (inlineEditConfig?.enabled ?? false) && isInlineEditAllowed,
     };
-  }, [config.table.inlineEdit, config.table.allowInlineEdit]);
+  }, [config.table.inlineEdit, isInlineEditAllowed]);
 
   // Debug removed
   const { t } = useTranslations();
@@ -353,17 +380,13 @@ export function useDataTable<TData extends Record<string, unknown>>(
     // Walk every defined column and mark those absent from visible as hidden
     for (const colDef of config.columns.definitions) {
       const colId = colDef.id;
-      // Special columns (select, actions) are always visible
-      if (colId === "select" || colId === "actions") {
-        visibility[colId] = true;
-        continue;
-      }
       visibility[colId] = visibleSet.has(colId);
     }
 
-    // Select column is not in definitions; ensure it is visible when row selection is enabled
+    // Select is virtual (not in column definitions), so its default visibility
+    // must be driven explicitly by `columns.visible`.
     if (config.table.enableRowSelection) {
-      visibility.select = true;
+      visibility.select = visibleSet.has("select");
     }
 
     return visibility;
@@ -401,6 +424,178 @@ export function useDataTable<TData extends Record<string, unknown>>(
     [t]
   );
 
+  const buildActionsColumnDef = useCallback(
+    ({
+      includeView = false,
+      withDuplicateHandler = false,
+    }: {
+      includeView?: boolean;
+      withDuplicateHandler?: boolean;
+    } = {}): ColumnDef<TData> => {
+      const onDuplicate =
+        withDuplicateHandler && actions.duplicate
+          ? async (row: TData) => {
+              return await handleDuplicate(row as TData & { id: string });
+            }
+          : undefined;
+
+      return column.actions({
+        header: "",
+        includeDelete: isDeleteAllowed,
+        includeDuplicate: isDuplicateAllowed && !!actions.duplicate,
+        includeEdit: isEditAllowed,
+        includeView,
+        onDelete: async (row: TData) => {
+          return await handleDelete(row as TData & { id: string });
+        },
+        onDuplicate,
+        onEdit: async (row: TData) => {
+          return await handleEdit(row as TData & { id: string }, {});
+        },
+        onRefresh: async () => {
+          await enhancedRefetch();
+        },
+        onView: (_row: TData) => {
+          // Placeholder for view action - to be implemented later
+          if (DEBUG) {
+            // Debug log for view action placeholder
+          }
+
+          // Return success even though no behavior is attached yet.
+          return Promise.resolve(true);
+        },
+        tableId,
+      } as ActionsColumnProps<TData>);
+    },
+    [
+      actions.duplicate,
+      column,
+      enhancedRefetch,
+      handleDelete,
+      handleDuplicate,
+      handleEdit,
+      isDeleteAllowed,
+      isDuplicateAllowed,
+      isEditAllowed,
+      tableId,
+    ]
+  );
+
+  const buildBaseColumnDef = useCallback(
+    (colDef: (typeof config.columns.definitions)[number]): ColumnDef<TData> => {
+      switch (colDef.type) {
+        case "actions": {
+          return buildActionsColumnDef();
+        }
+        case "boolean": {
+          return column.boolean(colDef.id as keyof TData, {
+            enableColumnFilter: colDef.enableColumnFilter,
+            enableSorting: colDef.enableSorting,
+            header: getTranslationSafe(colDef.header),
+          });
+        }
+        case "code": {
+          return column.code(colDef.id as keyof TData, {
+            enableColumnFilter: colDef.enableColumnFilter,
+            enableSorting: colDef.enableSorting,
+            header: getTranslationSafe(colDef.header),
+          });
+        }
+        case "date": {
+          const dateMeta = (
+            colDef as {
+              meta?: {
+                dateDisplayPreset?: import("../types/date-types").DateDisplayPreset;
+                dateFormat?: string;
+              };
+            }
+          ).meta;
+          return column.date(colDef.id as keyof TData, {
+            dateDisplayPreset:
+              colDef.dateDisplayPreset ?? dateMeta?.dateDisplayPreset,
+            dateFormat: colDef.dateFormat ?? dateMeta?.dateFormat,
+            enableColumnFilter: colDef.enableColumnFilter,
+            enableSorting: colDef.enableSorting,
+            fallbackDateDisplayPreset: config.table.dateDisplayPreset,
+            header: getTranslationSafe(colDef.header),
+          });
+        }
+        case "dynamicType": {
+          return column.dynamicType(
+            colDef.id as keyof TData,
+            colDef.typeKey as keyof TData,
+            {
+              customRenderers: colDef.customRenderers as
+                | Record<string, (value: unknown) => React.ReactNode>
+                | undefined,
+              enableSorting: colDef.enableSorting,
+              header: getTranslationSafe(colDef.header),
+            }
+          );
+        }
+        case "number": {
+          const numberColDef = colDef as {
+            numberFormat?: import("../utils/number-format").NumberFormatConfig;
+          };
+          return column.number(colDef.id as keyof TData, {
+            enableColumnFilter: colDef.enableColumnFilter,
+            enableSorting: colDef.enableSorting,
+            header: getTranslationSafe(colDef.header),
+            numberFormat: numberColDef.numberFormat,
+          });
+        }
+        case "select":
+        case "multiSelect": {
+          if (colDef.displayVariant === "tag") {
+            return column.tag(colDef.id as keyof TData, {
+              enableColumnFilter: colDef.enableColumnFilter,
+              enableSorting: colDef.enableSorting,
+              header: getTranslationSafe(colDef.header),
+              tagColorMap: colDef.tagColorMap,
+            });
+          }
+
+          return column.text(colDef.id as keyof TData, {
+            enableColumnFilter: colDef.enableColumnFilter,
+            enableSorting: colDef.enableSorting,
+            header: getTranslationSafe(colDef.header),
+          });
+        }
+        case "text": {
+          return column.text(colDef.id as keyof TData, {
+            enableColumnFilter: colDef.enableColumnFilter,
+            enableSorting: colDef.enableSorting,
+            header: getTranslationSafe(colDef.header),
+          });
+        }
+        case "url": {
+          const urlColDef = colDef as {
+            urlDisplayMode?: "domain" | "full" | "icon";
+          };
+          return column.url(colDef.id as keyof TData, {
+            displayMode: urlColDef.urlDisplayMode,
+            enableColumnFilter: colDef.enableColumnFilter,
+            enableSorting: colDef.enableSorting,
+            header: getTranslationSafe(colDef.header),
+          });
+        }
+        default: {
+          return column.text(colDef.id as keyof TData, {
+            enableColumnFilter: colDef.enableColumnFilter,
+            enableSorting: colDef.enableSorting,
+            header: getTranslationSafe(colDef.header),
+          });
+        }
+      }
+    },
+    [
+      buildActionsColumnDef,
+      column,
+      config.table.dateDisplayPreset,
+      getTranslationSafe,
+    ]
+  );
+
   // Create columns based on configuration
   const columns = useMemo(() => {
     const columnDefs: ColumnDef<TData>[] = [];
@@ -409,7 +604,10 @@ export function useDataTable<TData extends Record<string, unknown>>(
         id: "select",
         type: "select",
       },
-      tableInlineEditConfig
+      tableInlineEditConfig,
+      {
+        featureEnabled: isInlineEditAllowed,
+      }
     );
 
     // Add selection column if enabled
@@ -422,148 +620,18 @@ export function useDataTable<TData extends Record<string, unknown>>(
 
     // Add columns from configuration
     for (const colDef of config.columns.definitions) {
-      let baseColumnDef: ColumnDef<TData>;
-
-      switch (colDef.type) {
-        case "actions": {
-          baseColumnDef = column.actions({
-            header: "",
-            includeDelete: isDeleteAllowed,
-            includeDuplicate: isDuplicateAllowed && !!actions.duplicate,
-            includeEdit: isEditAllowed,
-            onDelete: async (row: TData) => {
-              return await handleDelete(row as TData & { id: string });
-            },
-            onEdit: async (row: TData) => {
-              return await handleEdit(row as TData & { id: string }, {});
-            },
-            onRefresh: async () => {
-              await enhancedRefetch();
-            },
-            tableId,
-          } as ActionsColumnProps<TData>);
-          break;
-        }
-        case "boolean": {
-          baseColumnDef = column.boolean(colDef.id as keyof TData, {
-            enableColumnFilter: colDef.enableColumnFilter,
-            enableSorting: colDef.enableSorting,
-            header: getTranslationSafe(colDef.header),
-          });
-          break;
-        }
-        case "code": {
-          baseColumnDef = column.code(colDef.id as keyof TData, {
-            enableColumnFilter: colDef.enableColumnFilter,
-            enableSorting: colDef.enableSorting,
-            header: getTranslationSafe(colDef.header),
-          });
-          break;
-        }
-        case "date": {
-          const dateMeta = (
-            colDef as {
-              meta?: {
-                dateDisplayPreset?: import("../types/date-types").DateDisplayPreset;
-                dateFormat?: string;
-              };
-            }
-          ).meta;
-          baseColumnDef = column.date(colDef.id as keyof TData, {
-            dateDisplayPreset:
-              colDef.dateDisplayPreset ?? dateMeta?.dateDisplayPreset,
-            dateFormat: colDef.dateFormat ?? dateMeta?.dateFormat,
-            enableColumnFilter: colDef.enableColumnFilter,
-            enableSorting: colDef.enableSorting,
-            fallbackDateDisplayPreset: config.table.dateDisplayPreset,
-            header: getTranslationSafe(colDef.header),
-          });
-          break;
-        }
-        case "dynamicType": {
-          // Use dynamic type column that renders based on the type in the specified typeKey
-          baseColumnDef = column.dynamicType(
-            colDef.id as keyof TData,
-            colDef.typeKey as keyof TData,
-            {
-              // Pass any custom renderers if defined (with proper typing)
-              customRenderers: colDef.customRenderers as
-                | Record<string, (value: unknown) => React.ReactNode>
-                | undefined,
-              enableSorting: colDef.enableSorting,
-              header: getTranslationSafe(colDef.header),
-            }
-          );
-          break;
-        }
-        case "number": {
-          const numberColDef = colDef as {
-            numberFormat?: import("../utils/number-format").NumberFormatConfig;
-          };
-          baseColumnDef = column.number(colDef.id as keyof TData, {
-            enableColumnFilter: colDef.enableColumnFilter,
-            enableSorting: colDef.enableSorting,
-            header: getTranslationSafe(colDef.header),
-            numberFormat: numberColDef.numberFormat,
-          });
-          break;
-        }
-        case "select":
-        case "multiSelect": {
-          const displayVariant = (
-            colDef as { displayVariant?: "default" | "tag" }
-          ).displayVariant;
-
-          if (displayVariant === "tag") {
-            baseColumnDef = column.tag(colDef.id as keyof TData, {
-              enableColumnFilter: colDef.enableColumnFilter,
-              enableSorting: colDef.enableSorting,
-              header: getTranslationSafe(colDef.header),
-              tagColorMap: colDef.tagColorMap,
-            });
-            break;
-          }
-
-          baseColumnDef = column.text(colDef.id as keyof TData, {
-            enableColumnFilter: colDef.enableColumnFilter,
-            enableSorting: colDef.enableSorting,
-            header: getTranslationSafe(colDef.header),
-          });
-          break;
-        }
-        case "text": {
-          baseColumnDef = column.text(colDef.id as keyof TData, {
-            enableColumnFilter: colDef.enableColumnFilter,
-            enableSorting: colDef.enableSorting,
-            header: getTranslationSafe(colDef.header),
-          });
-          break;
-        }
-        case "url": {
-          const urlColDef = colDef as {
-            urlDisplayMode?: "domain" | "full" | "icon";
-          };
-          baseColumnDef = column.url(colDef.id as keyof TData, {
-            displayMode: urlColDef.urlDisplayMode,
-            enableColumnFilter: colDef.enableColumnFilter,
-            enableSorting: colDef.enableSorting,
-            header: getTranslationSafe(colDef.header),
-          });
-          break;
-        }
-        default:
-          // Default to text column
-          baseColumnDef = column.text(colDef.id as keyof TData, {
-            enableColumnFilter: colDef.enableColumnFilter,
-            enableSorting: colDef.enableSorting,
-            header: getTranslationSafe(colDef.header),
-          });
-      }
+      const baseColumnDef = buildBaseColumnDef(colDef);
+      const sizedColumnDef = applyColumnSizingConfig(
+        baseColumnDef,
+        colDef as ColumnSizingConfig
+      );
 
       columnDefs.push(
         withInlineEditMeta(
-          baseColumnDef,
-          resolveInlineEditColumnConfig(colDef, tableInlineEditConfig)
+          sizedColumnDef,
+          resolveInlineEditColumnConfig(colDef, tableInlineEditConfig, {
+            featureEnabled: isInlineEditAllowed,
+          })
         )
       );
     }
@@ -572,42 +640,19 @@ export function useDataTable<TData extends Record<string, unknown>>(
     if (!columnDefs.some((col) => "id" in col && col.id === "actions")) {
       columnDefs.push(
         withInlineEditMeta(
-          column.actions({
-            header: "",
-            includeDelete: isDeleteAllowed,
-            includeDuplicate: isDuplicateAllowed && !!actions.duplicate,
-            includeEdit: isEditAllowed,
+          buildActionsColumnDef({
             includeView: true,
-            onDelete: async (row: TData) => {
-              return await handleDelete(row as TData & { id: string });
-            },
-            onDuplicate: actions.duplicate
-              ? async (row: TData) => {
-                  return await handleDuplicate(row as TData & { id: string });
-                }
-              : undefined,
-            onEdit: async (row: TData) => {
-              return await handleEdit(row as TData & { id: string }, {});
-            },
-            onRefresh: async () => {
-              await enhancedRefetch();
-            },
-            onView: (_row: TData) => {
-              // Placeholder for view action - to be implemented later
-              if (DEBUG) {
-                // Debug log for view action placeholder
-              }
-              // We'll return true to indicate success even though we're not doing anything yet
-              return Promise.resolve(true);
-            },
-            tableId,
-          } as ActionsColumnProps<TData>),
+            withDuplicateHandler: true,
+          }),
           resolveInlineEditColumnConfig(
             {
               id: "actions",
               type: "actions",
             },
-            tableInlineEditConfig
+            tableInlineEditConfig,
+            {
+              featureEnabled: isInlineEditAllowed,
+            }
           )
         )
       );
@@ -616,20 +661,12 @@ export function useDataTable<TData extends Record<string, unknown>>(
     return createColumns(columnDefs);
   }, [
     column,
+    buildActionsColumnDef,
+    buildBaseColumnDef,
     config.columns.definitions,
-    config.table.dateDisplayPreset,
     config.table.enableRowSelection,
     createColumns,
-    enhancedRefetch,
-    getTranslationSafe,
-    actions.duplicate,
-    isDeleteAllowed,
-    isDuplicateAllowed,
-    isEditAllowed,
-    handleDelete,
-    handleEdit,
-    handleDuplicate,
-    tableId,
+    isInlineEditAllowed,
     tableInlineEditConfig,
   ]);
 

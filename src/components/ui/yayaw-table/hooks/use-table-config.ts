@@ -39,6 +39,9 @@ export interface TableCatalogueColumnConfig {
   /** URL column display mode */
   urlDisplayMode?: "domain" | "full" | "icon" | "row-link";
   inlineEdit?: boolean | InlineEditColumnConfig;
+  size?: number;
+  minSize?: number;
+  maxSize?: number;
 }
 
 /**
@@ -59,6 +62,7 @@ export interface TableCatalogueTableConfig {
   actionsAsIcons?: boolean;
   density?: "small" | "medium" | "large";
   enableRowSelection: boolean;
+  enableRowClickEdit?: boolean;
   enableColumnFilters: boolean;
   enableSorting: boolean;
   enableGrouping?: boolean;
@@ -126,6 +130,7 @@ const DEFAULT_TABLE_CONFIG: TableCatalogueConfig = {
     actionsAsIcons: false,
     density: "medium",
     enableRowSelection: true,
+    enableRowClickEdit: false,
     enableColumnFilters: true,
     enableSorting: true,
     enableGrouping: true,
@@ -216,6 +221,7 @@ function resolveTableBehaviorConfig(
     actionsAsIcons: providerConfig.actionsAsIcons ?? false,
     density: normalizeDensityMode(providerConfig.density),
     enableRowSelection: providerConfig.enableRowSelection,
+    enableRowClickEdit: providerConfig.enableRowClickEdit ?? false,
     enableColumnFilters: providerConfig.enableColumnFilters,
     enableSorting: providerConfig.enableSorting,
     enableGrouping: providerConfig.enableGrouping,
@@ -237,6 +243,7 @@ function resolveColumnsConfig(
 ): TableCatalogueConfig["columns"] {
   const definitions = providerConfig?.columns?.definitions || [];
   const order = providerConfig?.columns?.order || [];
+  const hasExplicitVisibleConfig = Array.isArray(providerConfig?.columns?.visible);
   const visible = providerConfig?.columns?.visible || [];
   const mandatory = providerConfig?.columns?.mandatory || [];
   const enableRowSelection = providerConfig.enableRowSelection !== false;
@@ -246,7 +253,9 @@ function resolveColumnsConfig(
       ? ["select", ...order]
       : order;
   const visibleWithSelect =
-    enableRowSelection && !visible.includes("select")
+    !hasExplicitVisibleConfig &&
+    enableRowSelection &&
+    !visible.includes("select")
       ? ["select", ...visible]
       : visible;
 

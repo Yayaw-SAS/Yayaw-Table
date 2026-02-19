@@ -62,9 +62,12 @@ interface ExampleTableSettings {
   enableColumnFilters: boolean;
   enableGrouping: boolean;
   enablePagination: boolean;
+  enableRowClickEdit: boolean;
   enableRowSelection: boolean;
   enableSorting: boolean;
   export: boolean;
+  showActionsColumn: boolean;
+  showSelectionColumn: boolean;
   showToolbar: boolean;
   showToolbarHeader: boolean;
 }
@@ -95,9 +98,12 @@ const DEFAULT_TABLE_SETTINGS: ExampleTableSettings = {
   enableColumnFilters: true,
   enableGrouping: true,
   enablePagination: true,
+  enableRowClickEdit: false,
   enableRowSelection: true,
   enableSorting: true,
   export: true,
+  showActionsColumn: true,
+  showSelectionColumn: true,
   showToolbar: true,
   showToolbarHeader: true,
 };
@@ -120,6 +126,15 @@ const STYLE_SETTINGS: SettingDefinition[] = [
 const FEATURE_SETTINGS: SettingDefinition[] = [
   {
     key: "enableRowSelection",
+  },
+  {
+    key: "showSelectionColumn",
+  },
+  {
+    key: "showActionsColumn",
+  },
+  {
+    key: "enableRowClickEdit",
   },
   {
     key: "enableColumnFilters",
@@ -196,6 +211,19 @@ function parseDensityQueryValue(rawValue: string | null): ExampleDensityMode {
   }
 
   return DEFAULT_DENSITY_MODE;
+}
+
+function resolveConflictingEditModes(
+  settings: ExampleTableSettings
+): ExampleTableSettings {
+  if (!(settings.enableRowClickEdit && settings.allowInlineEdit)) {
+    return settings;
+  }
+
+  return {
+    ...settings,
+    allowInlineEdit: false,
+  };
 }
 
 function extractIdsFromRows(
@@ -632,9 +660,51 @@ function BulkActionsSection({
         return;
       }
 
+      const {
+        showActionsColumn,
+        showSelectionColumn,
+        ...tableBehaviorSettings
+      } = tableSettings;
+      const isRowClickEditMode =
+        tableBehaviorSettings.enableRowClickEdit === true;
+      const baseVisibleColumns = baseConfig.columns?.visible ?? [];
+      const visibleColumns = baseVisibleColumns.filter(
+        (columnId) => columnId !== "select" && columnId !== "actions"
+      );
+      const definitionsWithInlineMode = (
+        baseConfig.columns?.definitions ?? []
+      ).map((definition) => ({
+        ...definition,
+        inlineEdit: isRowClickEditMode ? false : definition.inlineEdit,
+      }));
+
+      if (showSelectionColumn) {
+        visibleColumns.unshift("select");
+      }
+
+      if (showActionsColumn) {
+        visibleColumns.push("actions");
+      }
+
       return {
         ...baseConfig,
-        ...tableSettings,
+        ...tableBehaviorSettings,
+        allowInlineEdit: isRowClickEditMode
+          ? false
+          : tableBehaviorSettings.allowInlineEdit,
+        inlineEdit: isRowClickEditMode
+          ? {
+              ...baseConfig.inlineEdit,
+              enabled: false,
+            }
+          : baseConfig.inlineEdit,
+        columns: baseConfig.columns
+          ? {
+              ...baseConfig.columns,
+              definitions: definitionsWithInlineMode,
+              visible: [...new Set(visibleColumns)],
+            }
+          : undefined,
         density: densityMode,
       };
     },
@@ -716,6 +786,18 @@ export default function ExamplePage() {
     "excfg-pg",
     DEFAULT_TABLE_SETTINGS.enablePagination
   );
+  const enableRowClickEditSetting = useBooleanQuerySetting(
+    "excfg-re",
+    DEFAULT_TABLE_SETTINGS.enableRowClickEdit
+  );
+  const showSelectionColumnSetting = useBooleanQuerySetting(
+    "excfg-sc",
+    DEFAULT_TABLE_SETTINGS.showSelectionColumn
+  );
+  const showActionsColumnSetting = useBooleanQuerySetting(
+    "excfg-ac",
+    DEFAULT_TABLE_SETTINGS.showActionsColumn
+  );
   const exportSetting = useBooleanQuerySetting(
     "excfg-ex",
     DEFAULT_TABLE_SETTINGS.export
@@ -783,26 +865,30 @@ export default function ExamplePage() {
   }, [setDensityQueryValue]);
 
   const tableSettings = useMemo<ExampleTableSettings>(
-    () => ({
-      allowBulkDelete: allowBulkDeleteSetting.value,
-      allowBulkEdit: allowBulkEditSetting.value,
-      allowCreate: allowCreateSetting.value,
-      allowDelete: allowDeleteSetting.value,
-      allowDuplicate: allowDuplicateSetting.value,
-      allowEdit: allowEditSetting.value,
-      allowInlineEdit: allowInlineEditSetting.value,
-      actionsAsIcons: actionsAsIconsSetting.value,
-      bulkExport: bulkExportSetting.value,
-      enableColumnDnd: enableColumnDndSetting.value,
-      enableColumnFilters: enableColumnFiltersSetting.value,
-      enableGrouping: enableGroupingSetting.value,
-      enablePagination: enablePaginationSetting.value,
-      enableRowSelection: enableRowSelectionSetting.value,
-      enableSorting: enableSortingSetting.value,
-      export: exportSetting.value,
-      showToolbar: showToolbarSetting.value,
-      showToolbarHeader: showToolbarHeaderSetting.value,
-    }),
+    () =>
+      resolveConflictingEditModes({
+        allowBulkDelete: allowBulkDeleteSetting.value,
+        allowBulkEdit: allowBulkEditSetting.value,
+        allowCreate: allowCreateSetting.value,
+        allowDelete: allowDeleteSetting.value,
+        allowDuplicate: allowDuplicateSetting.value,
+        allowEdit: allowEditSetting.value,
+        allowInlineEdit: allowInlineEditSetting.value,
+        actionsAsIcons: actionsAsIconsSetting.value,
+        bulkExport: bulkExportSetting.value,
+        enableColumnDnd: enableColumnDndSetting.value,
+        enableColumnFilters: enableColumnFiltersSetting.value,
+        enableGrouping: enableGroupingSetting.value,
+        enablePagination: enablePaginationSetting.value,
+        enableRowClickEdit: enableRowClickEditSetting.value,
+        enableRowSelection: enableRowSelectionSetting.value,
+        enableSorting: enableSortingSetting.value,
+        export: exportSetting.value,
+        showActionsColumn: showActionsColumnSetting.value,
+        showSelectionColumn: showSelectionColumnSetting.value,
+        showToolbar: showToolbarSetting.value,
+        showToolbarHeader: showToolbarHeaderSetting.value,
+      }),
     [
       allowBulkDeleteSetting.value,
       allowBulkEditSetting.value,
@@ -817,9 +903,12 @@ export default function ExamplePage() {
       enableColumnFiltersSetting.value,
       enableGroupingSetting.value,
       enablePaginationSetting.value,
+      enableRowClickEditSetting.value,
       enableRowSelectionSetting.value,
       enableSortingSetting.value,
       exportSetting.value,
+      showActionsColumnSetting.value,
+      showSelectionColumnSetting.value,
       showToolbarSetting.value,
       showToolbarHeaderSetting.value,
     ]
@@ -842,9 +931,12 @@ export default function ExamplePage() {
       enableColumnFilters: enableColumnFiltersSetting,
       enableGrouping: enableGroupingSetting,
       enablePagination: enablePaginationSetting,
+      enableRowClickEdit: enableRowClickEditSetting,
       enableRowSelection: enableRowSelectionSetting,
       enableSorting: enableSortingSetting,
       export: exportSetting,
+      showActionsColumn: showActionsColumnSetting,
+      showSelectionColumn: showSelectionColumnSetting,
       showToolbar: showToolbarSetting,
       showToolbarHeader: showToolbarHeaderSetting,
     }),
@@ -862,9 +954,12 @@ export default function ExamplePage() {
       enableColumnFiltersSetting,
       enableGroupingSetting,
       enablePaginationSetting,
+      enableRowClickEditSetting,
       enableRowSelectionSetting,
       enableSortingSetting,
       exportSetting,
+      showActionsColumnSetting,
+      showSelectionColumnSetting,
       showToolbarSetting,
       showToolbarHeaderSetting,
     ]
@@ -872,10 +967,37 @@ export default function ExamplePage() {
 
   const setTableSetting = useCallback(
     (key: TableSettingKey, value: boolean) => {
+      if (key === "enableRowClickEdit" && value) {
+        settingControllers.allowInlineEdit.setValue(false);
+        settingControllers.enableRowClickEdit.setValue(true);
+        return;
+      }
+
+      if (key === "allowInlineEdit" && value) {
+        settingControllers.enableRowClickEdit.setValue(false);
+        settingControllers.allowInlineEdit.setValue(true);
+        return;
+      }
+
       settingControllers[key].setValue(value);
     },
     [settingControllers]
   );
+
+  useEffect(() => {
+    if (
+      enableRowClickEditSetting.value !== true ||
+      allowInlineEditSetting.value !== true
+    ) {
+      return;
+    }
+
+    allowInlineEditSetting.setValue(false);
+  }, [
+    enableRowClickEditSetting.value,
+    allowInlineEditSetting.value,
+    allowInlineEditSetting.setValue,
+  ]);
 
   const resetTableSettings = useCallback(() => {
     for (const key of TABLE_SETTING_KEYS) {
@@ -1076,6 +1198,7 @@ const getTableConfig = (tableType: string) => {
         enableSorting: true,
         enableGrouping: true,
         enablePagination: true,
+        enableRowClickEdit: false,
         export: true,
         bulkExport: true,
         showToolbar: true,
@@ -1119,7 +1242,19 @@ const getTableConfig = (tableType: string) => {
             }
           },
           { id: "createdAt", type: "date", header: "Created" },
-          { id: "isActive", type: "boolean", header: "Active" }
+          { id: "isActive", type: "boolean", header: "Active" },
+          { id: "actions", type: "actions", header: "Actions" }
+        ],
+        visible: [
+          "select",
+          "name",
+          "brand",
+          "category",
+          "price",
+          "status",
+          "createdAt",
+          "isActive",
+          "actions"
         ]
       }
     }
@@ -1136,6 +1271,7 @@ const getTableConfig = (tableType: string) => {
     category: 'select',  // select with tag display variant
     price: 'number',
     status: 'select',    // select with tag display variant  
+    website: 'text',
     createdAt: 'date',
     isActive: 'select'   // boolean -> select for true/false
   }}

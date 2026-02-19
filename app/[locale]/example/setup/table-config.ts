@@ -57,6 +57,9 @@ interface ExtendedDataTableConfig extends DataTableConfig {
             suffix?: string;
           };
       tagColorMap?: Record<string, string>;
+      size?: number;
+      minSize?: number;
+      maxSize?: number;
     }>;
     order?: string[];
     visible?: string[];
@@ -120,7 +123,7 @@ const TABLE_COPY: Record<
       name: "Nom du produit",
       price: "Prix",
       status: "Statut",
-      website: "Site web",
+      website: "Site",
     },
     tableDescription:
       "Table prête pour la production avec pagination, filtres et tri côté serveur",
@@ -164,6 +167,8 @@ export const getTableConfig = (
           id: "name",
           type: "text",
           header: copy.headers.name,
+          size: 260,
+          minSize: 200,
           enableSorting: true,
           enableColumnFilter: true,
           inlineEdit: true,
@@ -172,6 +177,8 @@ export const getTableConfig = (
           id: "brand",
           type: "text",
           header: copy.headers.brand,
+          size: 170,
+          minSize: 140,
           enableSorting: true,
           enableColumnFilter: true,
           inlineEdit: true,
@@ -181,6 +188,8 @@ export const getTableConfig = (
           type: "select",
           displayVariant: "tag",
           header: copy.headers.category,
+          size: 170,
+          minSize: 140,
           enableSorting: true,
           enableColumnFilter: true,
           tagColorMap: {
@@ -193,6 +202,9 @@ export const getTableConfig = (
           id: "price",
           type: "number",
           header: copy.headers.price,
+          size: 120,
+          minSize: 100,
+          maxSize: 140,
           enableSorting: true,
           enableColumnFilter: true,
           inlineEdit: {
@@ -210,6 +222,8 @@ export const getTableConfig = (
           type: "select",
           displayVariant: "tag",
           header: copy.headers.status,
+          size: 150,
+          minSize: 130,
           enableSorting: true,
           enableColumnFilter: true,
           tagColorMap: {
@@ -222,6 +236,9 @@ export const getTableConfig = (
           id: "createdAt",
           type: "date",
           header: copy.headers.created,
+          size: 140,
+          minSize: 120,
+          maxSize: 160,
           enableSorting: true,
           enableColumnFilter: true,
           dateDisplayPreset: "dmy-numeric",
@@ -230,15 +247,21 @@ export const getTableConfig = (
           id: "website",
           type: "url",
           header: copy.headers.website,
+          size: 84,
+          minSize: 77,
+          maxSize: 96,
           enableSorting: true,
           enableColumnFilter: true,
           urlDisplayMode: "icon",
-          inlineEdit: true,
+          inlineEdit: false,
         },
         {
           id: "isActive",
           type: "boolean",
           header: copy.headers.active,
+          size: 110,
+          minSize: 100,
+          maxSize: 130,
           enableSorting: true,
           enableColumnFilter: true,
           inlineEdit: {

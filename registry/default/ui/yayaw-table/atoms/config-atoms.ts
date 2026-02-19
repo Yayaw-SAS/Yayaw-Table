@@ -149,6 +149,13 @@ export interface DataTableConfig {
   enableRowSelection: boolean;
 
   /**
+   * Open the edit drawer when a row is clicked.
+   * Incompatible with URL columns configured with `urlDisplayMode: "row-link"`.
+   * Incompatible with inline edit (`table.inlineEdit` / column `inlineEdit`).
+   */
+  enableRowClickEdit?: boolean;
+
+  /**
    * Enable sorting
    */
   enableSorting: boolean;
@@ -212,6 +219,7 @@ const defaultTableConfig: DataTableConfig = {
   enablePagination: true,
   enableRowDragDrop: false,
   enableRowSelection: true,
+  enableRowClickEdit: false,
   enableSorting: true,
   enableGrouping: true,
   inlineEdit: {

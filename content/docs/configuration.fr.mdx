@@ -23,6 +23,7 @@ table: {
   actionsAsIcons: false,
   density: 'medium',
   enableRowSelection: true,
+  enableRowClickEdit: false,
   enableColumnFilters: true,
   enableSorting: true,
   enableGrouping: true,
@@ -41,6 +42,16 @@ table: {
 Active les cases à cocher de sélection de lignes.
 
 Type : `boolean` | Par défaut : `true`
+
+### enableRowClickEdit
+Ouvre le drawer d'édition lors d'un clic sur une zone non interactive de la ligne.
+
+Type : `boolean` | Par défaut : `false`
+
+Contraintes :
+- Fonctionne uniquement si `allowEdit` est activé.
+- Incompatible avec une colonne URL configurée avec `urlDisplayMode: 'row-link'`.
+- Incompatible avec l'inline edit (au niveau table `inlineEdit` ou au niveau colonne `inlineEdit`).
 
 ### allowCreate
 Affiche et active les actions de création dans l'UI de table.
