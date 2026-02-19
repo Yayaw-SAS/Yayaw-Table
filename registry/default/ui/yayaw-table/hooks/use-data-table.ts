@@ -383,10 +383,17 @@ export function useDataTable<TData extends Record<string, unknown>>(
       visibility[colId] = visibleSet.has(colId);
     }
 
-    // Select is virtual (not in column definitions), so its default visibility
-    // must be driven explicitly by `columns.visible`.
+    // Select is virtual (not in column definitions). Keep compatibility with
+    // configs that list `actions` but omitted `select`: in that legacy shape,
+    // selection should still be visible by default.
     if (config.table.enableRowSelection) {
-      visibility.select = visibleSet.has("select");
+      const hasActionsDefinition = config.columns.definitions.some(
+        (definition) =>
+          definition.id === "actions" || definition.type === "actions"
+      );
+      const shouldShowSelectByDefault =
+        visibleSet.has("actions") || !hasActionsDefinition;
+      visibility.select = visibleSet.has("select") || shouldShowSelectByDefault;
     }
 
     return visibility;
