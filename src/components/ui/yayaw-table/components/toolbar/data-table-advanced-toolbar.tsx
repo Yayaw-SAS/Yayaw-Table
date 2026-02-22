@@ -16,8 +16,8 @@ import type {
   VisibilityState,
 } from "@tanstack/react-table";
 import { useSetAtom } from "jotai";
-import { Download, PlusIcon } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { Download, Loader2, PlusIcon } from "lucide-react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Button } from "@/src/components/ui/button";
 import {
   Tooltip,
@@ -41,7 +41,13 @@ import {
 } from "../../providers/table-provider";
 import type { DateDisplayPreset } from "../../types/date-types";
 import { DATE_DISPLAY_PRESETS } from "../../types/date-types";
-import type { ColumnDataType } from "../../types";
+import type {
+  ColumnDataType,
+  ToolbarAction,
+  ToolbarActionContext,
+  ToolbarActionsInput,
+  ToolbarActionsPlacement,
+} from "../../types";
 import { buildCsvExportColumns, exportRowsAsCsv } from "../../utils/csv-export";
 import {
   catalogueFormAtom,
@@ -49,6 +55,12 @@ import {
 } from "../forms/atoms/catalogue-form-atoms";
 import { SearchBar } from "./sections/search-bar";
 import { TableMenu } from "./table-menu";
+import {
+  partitionToolbarActions,
+  shouldRenderToolbarAction,
+  resolveToolbarActionState,
+  resolveToolbarActions,
+} from "./toolbar-actions";
 
 // Debug flag to help track issues - activated for debugging
 const DEBUG = false;
@@ -179,6 +191,16 @@ interface DataTableAdvancedToolbarProps<_TData = Record<string, unknown>> {
    * Callback to override default toolbar export behavior
    */
   onExport?: (rows: Record<string, unknown>[]) => void | Promise<void>;
+
+  /**
+   * Custom actions rendered in toolbar
+   */
+  toolbarActions?: ToolbarActionsInput;
+
+  /**
+   * Placement for custom toolbar actions
+   */
+  toolbarActionsPlacement?: ToolbarActionsPlacement;
 }
 
 // Define DataTableState type to handle state properties
@@ -502,6 +524,8 @@ export function DataTableAdvancedToolbar<TData>({
   data = EMPTY_DATA,
   columnTypeMapping = EMPTY_COLUMN_TYPE_MAPPING,
   onExport,
+  toolbarActions,
+  toolbarActionsPlacement = "between-create-export",
   ...props
 }: DataTableAdvancedToolbarProps<TData>) {
   // Ensure tableId is available
@@ -510,6 +534,10 @@ export function DataTableAdvancedToolbar<TData>({
   // Setup configuration and state
   const { t, state, tableConfig } = useToolbarSetup(tableId);
   const [isExporting, setIsExporting] = useState(false);
+  const [pendingToolbarActionIds, setPendingToolbarActionIds] = useState<
+    Set<string>
+  >(() => new Set());
+  const pendingToolbarActionIdsRef = useRef<Set<string>>(new Set());
   const getTableActions = useProviderTableActions();
   const tableActions = useMemo(
     () => getTableActions?.(tableId),
@@ -726,6 +754,7 @@ export function DataTableAdvancedToolbar<TData>({
   const isMobile = useIsMobile();
   const actionsAsIcons = tableConfig.table.actionsAsIcons === true || isMobile;
   const isCreateEnabled = tableConfig.table.allowCreate !== false;
+  const isExportEnabled = tableConfig.table.export !== false;
   const isColumnFiltersEnabled =
     tableConfig.table.enableColumnFilters !== false;
   const isSortingEnabled = tableConfig.table.enableSorting !== false;
@@ -802,6 +831,172 @@ export function DataTableAdvancedToolbar<TData>({
     tableId,
   ]);
 
+  const toolbarActionContext = useMemo<ToolbarActionContext>(
+    () => ({
+      actionsAsIcons,
+      hasListAction,
+      isCreateEnabled,
+      isExportEnabled,
+      isExporting,
+      isMobile,
+      tableActions,
+      tableId,
+    }),
+    [
+      actionsAsIcons,
+      hasListAction,
+      isCreateEnabled,
+      isExportEnabled,
+      isExporting,
+      isMobile,
+      tableActions,
+      tableId,
+    ]
+  );
+
+  const resolvedToolbarActions = useMemo(
+    () =>
+      resolveToolbarActions({
+        context: toolbarActionContext,
+        toolbarActions,
+      }),
+    [toolbarActionContext, toolbarActions]
+  );
+
+  const toolbarActionsByPlacement = useMemo(
+    () =>
+      partitionToolbarActions({
+        actions: resolvedToolbarActions,
+        placement: toolbarActionsPlacement,
+      }),
+    [resolvedToolbarActions, toolbarActionsPlacement]
+  );
+
+  const setToolbarActionPending = useCallback(
+    (actionId: string, isPending: boolean): boolean => {
+      if (isPending) {
+        if (pendingToolbarActionIdsRef.current.has(actionId)) {
+          return false;
+        }
+
+        const nextPendingIds = new Set(pendingToolbarActionIdsRef.current);
+        nextPendingIds.add(actionId);
+        pendingToolbarActionIdsRef.current = nextPendingIds;
+        setPendingToolbarActionIds(nextPendingIds);
+        return true;
+      }
+
+      if (!pendingToolbarActionIdsRef.current.has(actionId)) {
+        return false;
+      }
+
+      const nextPendingIds = new Set(pendingToolbarActionIdsRef.current);
+      nextPendingIds.delete(actionId);
+      pendingToolbarActionIdsRef.current = nextPendingIds;
+      setPendingToolbarActionIds(nextPendingIds);
+      return true;
+    },
+    []
+  );
+
+  const handleToolbarActionClick = useCallback(
+    async (action: ToolbarAction) => {
+      const hasStarted = setToolbarActionPending(action.id, true);
+      if (!hasStarted) {
+        return;
+      }
+
+      try {
+        await Promise.resolve(action.onClick());
+      } finally {
+        setToolbarActionPending(action.id, false);
+      }
+    },
+    [setToolbarActionPending]
+  );
+
+  const renderToolbarAction = useCallback(
+    (action: ToolbarAction) => {
+      const resolvedState = resolveToolbarActionState({
+        action,
+        context: toolbarActionContext,
+        pendingActionIds: pendingToolbarActionIds,
+      });
+
+      if (
+        !shouldRenderToolbarAction({
+          actionsAsIcons,
+          state: resolvedState,
+        })
+      ) {
+        return null;
+      }
+
+      const iconContent = resolvedState.loading ? (
+        <Loader2 className="h-4 w-4 animate-spin" />
+      ) : (
+        action.icon
+      );
+
+      if (actionsAsIcons) {
+        const iconOnlyFallback = action.label.charAt(0).toUpperCase();
+
+        return (
+          <Tooltip key={action.id}>
+            <TooltipTrigger
+              render={
+                <Button
+                  aria-label={action.label}
+                  className="h-8 w-8"
+                  disabled={resolvedState.disabled || resolvedState.loading}
+                  onClick={() => {
+                    handleToolbarActionClick(action).catch(() => {
+                      /* ignore custom action errors */
+                    });
+                  }}
+                  size="icon-sm"
+                  type="button"
+                  variant={resolvedState.variant}
+                >
+                  {iconContent || (
+                    <span className="font-medium text-xs">{iconOnlyFallback}</span>
+                  )}
+                </Button>
+              }
+            />
+            <TooltipContent>{resolvedState.tooltip}</TooltipContent>
+          </Tooltip>
+        );
+      }
+
+      return (
+        <Button
+          className="h-8 gap-2 px-3"
+          disabled={resolvedState.disabled || resolvedState.loading}
+          key={action.id}
+          onClick={() => {
+            handleToolbarActionClick(action).catch(() => {
+              /* ignore custom action errors */
+            });
+          }}
+          size="sm"
+          title={action.tooltip}
+          type="button"
+          variant={resolvedState.variant}
+        >
+          {iconContent}
+          <span>{action.label}</span>
+        </Button>
+      );
+    },
+    [
+      actionsAsIcons,
+      handleToolbarActionClick,
+      pendingToolbarActionIds,
+      toolbarActionContext,
+    ]
+  );
+
   if (DEBUG) {
     // Debug log for table menu columns
   }
@@ -818,6 +1013,8 @@ export function DataTableAdvancedToolbar<TData>({
         {isColumnFiltersEnabled && (
           <SearchBar placeholder={t("search.placeholder")} tableId={tableId} />
         )}
+
+        {toolbarActionsByPlacement.beforeCreate.map(renderToolbarAction)}
 
         {/* Create button */}
         {isCreateEnabled &&
@@ -850,7 +1047,9 @@ export function DataTableAdvancedToolbar<TData>({
             </Button>
           ))}
 
-        {tableConfig.table.export !== false &&
+        {toolbarActionsByPlacement.betweenCreateAndExport.map(renderToolbarAction)}
+
+        {isExportEnabled &&
           (actionsAsIcons ? (
             <Tooltip>
               <TooltipTrigger
@@ -891,6 +1090,8 @@ export function DataTableAdvancedToolbar<TData>({
               <span>{exportLabel}</span>
             </Button>
           ))}
+
+        {toolbarActionsByPlacement.afterExport.map(renderToolbarAction)}
 
         {/* Options menu */}
         <TableMenu

@@ -18,5 +18,12 @@ export {
   useTableConfig,
   useTranslations,
 } from "./components/ui/yayaw-table/providers/table-provider";
+export type {
+  ToolbarAction,
+  ToolbarActionContext,
+  ToolbarActionsInput,
+  ToolbarActionsPlacement,
+  ToolbarActionVariant,
+} from "./components/ui/yayaw-table/types/toolbar-types";
 // Export types
 export type { DataTableTranslations } from "./components/ui/yayaw-table/types/translations";

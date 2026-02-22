@@ -22,6 +22,7 @@ export * from "./types/column-types";
 export * from "./types/date-types";
 export * from "./types/filter-types";
 export * from "./types/table-types";
+export * from "./types/toolbar-types";
 export * from "./types/translations";
 // Core types used in docs
 export type { TableView, TableViewConfig } from "./types/view-types";

@@ -127,6 +127,11 @@
     "layoutConstrained": "Largeur contrainte (comme la doc)",
     "layoutFull": "Pleine largeur (stress test)",
     "loadingExample": "Chargement de l'exemple...",
+    "toolbarActions": {
+      "recalculatePrices": "Recalculer les prix",
+      "recalculatePricesTooltip": "Recalculer les prix",
+      "detailsOnlyAction": "Ouvrir les détails"
+    },
     "feature": {
       "enableRowSelection": {
         "label": "Activer la sélection de lignes",
@@ -231,6 +236,9 @@
       "bulkEditNoChanges": "Aucune modification à appliquer.",
       "bulkEditUpdateError": "Échec de la mise à jour des lignes sélectionnées.",
       "bulkEditNoRowsInMenu": "Aucune ligne sélectionnée.",
+      "recalculatePricesSuccess": "Prix recalculés avec succès.",
+      "recalculatePricesError": "Échec du recalcul des prix.",
+      "detailsOnlyActionSuccess": "Action de détails exécutée.",
       "resetDataSuccess": "Les données de l'exemple ont été réinitialisées.",
       "resetDataError": "Échec de la réinitialisation des données de l'exemple"
     }

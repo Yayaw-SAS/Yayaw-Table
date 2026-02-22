@@ -127,6 +127,11 @@
     "layoutConstrained": "Constrain width (like docs)",
     "layoutFull": "Full width (stress test)",
     "loadingExample": "Loading example...",
+    "toolbarActions": {
+      "recalculatePrices": "Recalculate prices",
+      "recalculatePricesTooltip": "Recalculate prices",
+      "detailsOnlyAction": "Open details"
+    },
     "feature": {
       "enableRowSelection": {
         "label": "Enable row selection",
@@ -231,6 +236,9 @@
       "bulkEditNoChanges": "No changes to apply.",
       "bulkEditUpdateError": "Failed to update selected rows.",
       "bulkEditNoRowsInMenu": "No rows selected.",
+      "recalculatePricesSuccess": "Prices recalculated successfully.",
+      "recalculatePricesError": "Failed to recalculate prices.",
+      "detailsOnlyActionSuccess": "Details action executed.",
       "resetDataSuccess": "Example data has been reset.",
       "resetDataError": "Failed to reset example data"
     }

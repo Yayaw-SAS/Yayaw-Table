@@ -92,6 +92,42 @@ Surcharge le comportement d'export bulk. Appelé avec les lignes sélectionnées
 
 **Type :** `(rows: Row<Record<string, unknown>>[]) => void \| Promise<void>` | **Par défaut :** export CSV interne
 
+### toolbarActions
+Injecte des actions personnalisées dans la barre d'outils principale. Accepte un tableau statique ou une fonction recevant le contexte courant.
+
+**Type :** `ToolbarAction[] | ((ctx: ToolbarActionContext) => ToolbarAction[])` | **Par défaut :** `undefined`
+
+### toolbarActionsPlacement
+Contrôle l'emplacement des actions personnalisées par rapport aux actions natives.
+
+**Type :** `"before-create" | "between-create-export" | "after-export"` | **Par défaut :** `"between-create-export"`
+
+### ToolbarAction et ToolbarActionContext
+```ts
+type ToolbarAction = {
+  id: string;
+  label: string;
+  icon?: ReactNode;
+  onClick: () => void | Promise<void>;
+  disabled?: boolean | ((ctx: ToolbarActionContext) => boolean);
+  loading?: boolean;
+  variant?: "default" | "outline" | "secondary" | "ghost" | "destructive";
+  showInIconMode?: boolean; // true par défaut
+  tooltip?: string;
+};
+
+type ToolbarActionContext = {
+  tableId: string;
+  actionsAsIcons: boolean;
+  isMobile: boolean;
+  isCreateEnabled: boolean;
+  isExportEnabled: boolean;
+  isExporting: boolean;
+  hasListAction: boolean;
+  tableActions?: TableActions;
+};
+```
+
 ### enableAdvancedFilters
 Active l'UI de filtres avancés si disponible dans votre configuration.
 
@@ -114,6 +150,47 @@ Mappe vos types backend dynamiques vers les types de rendu internes.
   onBulkExport={(rows) => console.log("export selected", rows.length)}
 />
 ```
+
+Action personnalisée en mode texte :
+
+```tsx
+<DataTable
+  tableType="products"
+  toolbarActions={[
+    {
+      id: "recalculate-prices",
+      label: "Recalculate prices",
+      onClick: async () => {
+        await recalculatePrices();
+      },
+      variant: "secondary",
+    },
+  ]}
+/>
+```
+
+Action personnalisée en mode icône avec tooltip et placement explicite :
+
+```tsx
+<DataTable
+  tableType="products"
+  toolbarActions={(ctx) => [
+    {
+      id: "recalculate-prices",
+      label: "Recalculate prices",
+      tooltip: "Recalculate prices",
+      icon: <RefreshCw className="h-4 w-4" />,
+      disabled: () => !ctx.hasListAction || ctx.isExporting,
+      onClick: async () => {
+        await recalculatePrices();
+      },
+    },
+  ]}
+  toolbarActionsPlacement="between-create-export"
+/>
+```
+
+Compatibilité: si `toolbarActions` n'est pas défini, le comportement de la toolbar reste inchangé.
 
 Voir aussi :
 - [Provider & Setup](/docs/setup)

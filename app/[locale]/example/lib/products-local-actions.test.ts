@@ -110,4 +110,32 @@ describe("products-local-actions", () => {
     assert.ok(repairedRawPayload);
     assert.doesNotThrow(() => JSON.parse(repairedRawPayload as string));
   });
+
+  it("migrates legacy .example websites to .com on read", async () => {
+    const storage = createMemoryStorage();
+    const persistedProducts = seedProducts.map((product) => ({
+      ...product,
+      createdAt: product.createdAt.toISOString(),
+      website:
+        product.id === "1"
+          ? "https://www.apple.example/products/macbook-pro-16/"
+          : product.website,
+    }));
+    storage.setItem(
+      EXAMPLE_PRODUCTS_STORAGE_KEY,
+      JSON.stringify(persistedProducts)
+    );
+
+    const actions = createProductsLocalActions({ latencyMs: 0, storage });
+    const response = await actions.list({ limit: 10, page: 1 });
+    const migratedProduct = response.data.find((product) => product.id === "1");
+    const migratedRawPayload = storage.getItem(EXAMPLE_PRODUCTS_STORAGE_KEY);
+
+    assert.equal(
+      migratedProduct?.website,
+      "https://www.apple.com/products/macbook-pro-16/"
+    );
+    assert.ok(migratedRawPayload);
+    assert.equal(migratedRawPayload?.includes(".example"), false);
+  });
 });

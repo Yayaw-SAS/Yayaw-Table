@@ -2,10 +2,10 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useSetAtom } from "jotai";
-import { GalleryHorizontal } from "lucide-react";
+import { GalleryHorizontal, RefreshCw } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useQueryState } from "nuqs";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FieldValues } from "react-hook-form";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,7 @@ import {
   openUpdateForm,
 } from "@/src/components/ui/yayaw-table/components/forms/atoms/catalogue-form-atoms";
 import type { TableActions } from "@/src/components/ui/yayaw-table/providers/table-provider";
+import type { ToolbarActionContext } from "@/src/components/ui/yayaw-table/types/toolbar-types";
 import type { AppLocale } from "@/src/i18n/routing";
 import { CustomDescription, CustomTitle } from "./components";
 import {
@@ -468,6 +469,24 @@ function BulkActionsSection({
   const t = useTranslations("Example");
   const locale = useLocale() as AppLocale;
   const setFormState = useSetAtom(catalogueFormAtom);
+  const [isRecalculatingPrices, setIsRecalculatingPrices] = useState(false);
+
+  const handleRecalculatePrices = useCallback(async () => {
+    setIsRecalculatingPrices(true);
+    try {
+      await new Promise((resolve) => {
+        setTimeout(resolve, 900);
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["tableData", PRODUCTS_TABLE_TYPE],
+      });
+      toast.success(t("toasts.recalculatePricesSuccess"));
+    } catch {
+      toast.error(t("toasts.recalculatePricesError"));
+    } finally {
+      setIsRecalculatingPrices(false);
+    }
+  }, [t]);
 
   const getLocalTableActions = useCallback(
     (formType: string): TableActions | undefined => {
@@ -717,6 +736,31 @@ function BulkActionsSection({
     [locale]
   );
 
+  const toolbarActions = useCallback(
+    (_context: ToolbarActionContext) => [
+      {
+        id: "recalculate-prices",
+        label: t("toolbarActions.recalculatePrices"),
+        icon: <RefreshCw className="h-4 w-4" />,
+        loading: isRecalculatingPrices,
+        onClick: handleRecalculatePrices,
+        disabled: (ctx: ToolbarActionContext) =>
+          !ctx.hasListAction || ctx.isExporting,
+        tooltip: t("toolbarActions.recalculatePricesTooltip"),
+      },
+      {
+        id: "mobile-hidden-action",
+        label: t("toolbarActions.detailsOnlyAction"),
+        onClick: async () => {
+          toast.success(t("toasts.detailsOnlyActionSuccess"));
+        },
+        showInIconMode: false,
+        variant: "secondary",
+      },
+    ],
+    [handleRecalculatePrices, isRecalculatingPrices, t]
+  );
+
   return (
     <DataTable
       className="w-full"
@@ -751,6 +795,8 @@ function BulkActionsSection({
       TitleComponent={CustomTitle}
       tableType="products"
       title={t("tableTitle")}
+      toolbarActions={toolbarActions}
+      toolbarActionsPlacement="between-create-export"
       translations={getTableTranslations(locale)}
     />
   );

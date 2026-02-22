@@ -12,6 +12,7 @@ const DEFAULT_LATENCY_MS = 50;
 
 const PRODUCT_STATUSES = ["In Stock", "Low Stock", "Out of Stock"] as const;
 const URL_PROTOCOL_REGEX = /^https?:\/\//i;
+const LEGACY_EXAMPLE_TLD_REGEX = /\.example(?=[:/]|$)/gi;
 const LEADING_SLASHES_REGEX = /^\/+/;
 
 interface StorageAdapter {
@@ -118,7 +119,11 @@ function slugifySegment(input: string): string {
 function buildProductWebsiteFromNameBrand(name: string, brand: string): string {
   const brandSlug = slugifySegment(brand);
   const productSlug = slugifySegment(name);
-  return `https://www.${brandSlug}.example/products/${productSlug}/`;
+  return `https://www.${brandSlug}.com/products/${productSlug}/`;
+}
+
+function normalizeLegacyExampleDomain(value: string): string {
+  return value.replace(LEGACY_EXAMPLE_TLD_REGEX, ".com");
 }
 
 function normalizeWebsiteValue({
@@ -137,12 +142,14 @@ function normalizeWebsiteValue({
     normalizedValue.length > 0
       ? normalizedValue
       : buildProductWebsiteFromNameBrand(name, brand);
+  const normalizedWebsiteCandidate =
+    normalizeLegacyExampleDomain(websiteCandidate);
 
-  if (URL_PROTOCOL_REGEX.test(websiteCandidate)) {
-    return websiteCandidate;
+  if (URL_PROTOCOL_REGEX.test(normalizedWebsiteCandidate)) {
+    return normalizedWebsiteCandidate;
   }
 
-  return `https://${websiteCandidate.replace(LEADING_SLASHES_REGEX, "")}`;
+  return `https://${normalizedWebsiteCandidate.replace(LEADING_SLASHES_REGEX, "")}`;
 }
 
 function serializeProducts(productsList: Product[]): string {
@@ -217,7 +224,14 @@ function readProducts(storage: StorageAdapter): Product[] {
   }
 
   try {
-    return parseProducts(raw);
+    const parsedProducts = parseProducts(raw);
+
+    // Migrate legacy *.example URLs once storage is read.
+    if (raw.includes(".example")) {
+      writeProducts(storage, parsedProducts);
+    }
+
+    return parsedProducts;
   } catch {
     // Corrupted payload: restore deterministic seed and overwrite storage.
     const initialData = cloneSeedProducts();

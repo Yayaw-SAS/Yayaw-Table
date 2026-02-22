@@ -92,6 +92,42 @@ Override bulk export behavior. Called with selected rows. If provided, default C
 
 Type: `(rows: Row<Record<string, unknown>>[]) => void \| Promise<void>` | Default: internal CSV export
 
+### toolbarActions
+Inject custom actions in the main toolbar. Supports a static array or a callback receiving live toolbar context.
+
+Type: `ToolbarAction[] | ((ctx: ToolbarActionContext) => ToolbarAction[])` | Default: `undefined`
+
+### toolbarActionsPlacement
+Control where custom toolbar actions are rendered relative to built-in actions.
+
+Type: `"before-create" | "between-create-export" | "after-export"` | Default: `"between-create-export"`
+
+### ToolbarAction and ToolbarActionContext
+```ts
+type ToolbarAction = {
+  id: string;
+  label: string;
+  icon?: ReactNode;
+  onClick: () => void | Promise<void>;
+  disabled?: boolean | ((ctx: ToolbarActionContext) => boolean);
+  loading?: boolean;
+  variant?: "default" | "outline" | "secondary" | "ghost" | "destructive";
+  showInIconMode?: boolean; // default true
+  tooltip?: string;
+};
+
+type ToolbarActionContext = {
+  tableId: string;
+  actionsAsIcons: boolean;
+  isMobile: boolean;
+  isCreateEnabled: boolean;
+  isExportEnabled: boolean;
+  isExporting: boolean;
+  hasListAction: boolean;
+  tableActions?: TableActions;
+};
+```
+
 ### enableAdvancedFilters
 Enable advanced filters UI when available in your configuration.
 
@@ -114,6 +150,47 @@ Type: `Record<string, 'text' | 'number' | 'date' | 'option' | 'multiOption'>` | 
   onBulkExport={(rows) => console.log("export selected", rows.length)}
 />
 ```
+
+Custom action in text mode:
+
+```tsx
+<DataTable
+  tableType="products"
+  toolbarActions={[
+    {
+      id: "recalculate-prices",
+      label: "Recalculate prices",
+      onClick: async () => {
+        await recalculatePrices();
+      },
+      variant: "secondary",
+    },
+  ]}
+/>
+```
+
+Custom action in icon mode with tooltip and explicit placement:
+
+```tsx
+<DataTable
+  tableType="products"
+  toolbarActions={(ctx) => [
+    {
+      id: "recalculate-prices",
+      label: "Recalculate prices",
+      tooltip: "Recalculate prices",
+      icon: <RefreshCw className="h-4 w-4" />,
+      disabled: () => !ctx.hasListAction || ctx.isExporting,
+      onClick: async () => {
+        await recalculatePrices();
+      },
+    },
+  ]}
+  toolbarActionsPlacement="between-create-export"
+/>
+```
+
+Backward compatibility: if `toolbarActions` is omitted, toolbar behavior stays unchanged.
 
 See also:
 - [Provider & Setup](/docs/setup)

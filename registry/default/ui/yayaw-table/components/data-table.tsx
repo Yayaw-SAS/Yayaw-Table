@@ -22,6 +22,10 @@ import {
   useTranslations,
 } from "../providers/table-provider";
 import { resolveTranslationsToUiStrings } from "../providers/translation-cache";
+import type {
+  ToolbarActionsInput,
+  ToolbarActionsPlacement,
+} from "../types/toolbar-types";
 import type { DataTableTranslations } from "../types/translations";
 import { DataTableSkeleton } from "./data-table-skeleton";
 // Lazy load heavy components using React.lazy inside './forms/lazy-forms'
@@ -80,6 +84,8 @@ function DataTableContent({
   onRowClick,
   showDefaultToastsForCustomHandlers,
   onExport,
+  toolbarActions,
+  toolbarActionsPlacement = "between-create-export",
   tableType,
   title,
   description,
@@ -110,6 +116,8 @@ function DataTableContent({
   ) => void;
   showDefaultToastsForCustomHandlers?: boolean;
   onExport?: (rows: Record<string, unknown>[]) => void | Promise<void>;
+  toolbarActions?: ToolbarActionsInput;
+  toolbarActionsPlacement?: ToolbarActionsPlacement;
   tableType: string; // Required
   title?: string;
   description?: string;
@@ -251,6 +259,8 @@ function DataTableContent({
                       enableAdvancedFilters={enableAdvancedFilters}
                       onExport={onExport}
                       tableId={tableId}
+                      toolbarActions={toolbarActions}
+                      toolbarActionsPlacement={toolbarActionsPlacement}
                     />
                   </div>
                 )}
