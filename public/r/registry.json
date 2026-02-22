@@ -596,6 +596,16 @@
           "target": "components/ui/yayaw-table/components/toolbar/table-menu.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/toolbar/toolbar-actions.test.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/toolbar/toolbar-actions.test.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/toolbar/toolbar-actions.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/toolbar/toolbar-actions.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/utils/performance-monitor.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/utils/performance-monitor.tsx"
@@ -799,6 +809,11 @@
           "path": "registry/default/ui/yayaw-table/types/table-types.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/types/table-types.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/types/toolbar-types.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/types/toolbar-types.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/types/translations.ts",
