@@ -3,6 +3,8 @@
  * Used by Server Actions. Data is in-memory (resets on serverless cold start).
  */
 
+import type { CalculationType } from "@/src/components/ui/yayaw-table/types/footer-types";
+import { calculateColumn } from "@/src/components/ui/yayaw-table/utils/column-calculations";
 import { products as initialProducts } from "../data";
 import type { Product } from "../setup/types";
 
@@ -345,6 +347,35 @@ export interface ListProductsParams {
   search?: string;
 }
 
+export interface AggregateProductsParams {
+  filters?: Record<string, unknown> | Array<{ id: string; value: unknown }>;
+  advancedFilters?: Array<{
+    columnId: string;
+    operator: string;
+    values: unknown[];
+    isActive: boolean;
+    type: string;
+  }>;
+  orderBy?: Record<string, "asc" | "desc">;
+  search?: string;
+  calculations: Record<string, CalculationType>;
+  locale?: string;
+}
+
+function resolveColumnType(values: unknown[]): string | undefined {
+  const sampleValue = values.find(
+    (value) => value !== null && value !== undefined && value !== ""
+  );
+
+  if (sampleValue instanceof Date) {
+    return "date";
+  }
+  if (typeof sampleValue === "number") {
+    return "number";
+  }
+  return;
+}
+
 export async function listProducts(params: ListProductsParams) {
   const {
     page = 1,
@@ -368,6 +399,50 @@ export async function listProducts(params: ListProductsParams) {
   return {
     data,
     meta: { pageCount, totalCount },
+  };
+}
+
+export async function aggregateProducts(params: AggregateProductsParams) {
+  const {
+    filters = {},
+    advancedFilters = [],
+    orderBy = {},
+    search = "",
+    calculations,
+    locale,
+  } = params;
+
+  let filtered = applyAdvancedFilters(
+    productsStore,
+    advancedFilters as Record<string, unknown>[]
+  );
+  filtered = applyLegacyFiltersToProducts(filtered, filters);
+  filtered = applySearchToProducts(filtered, search);
+  const sorted = sortProducts(filtered, orderBy);
+
+  const results = Object.fromEntries(
+    Object.entries(calculations).map(([columnId, calculationType]) => {
+      const values = sorted.map(
+        (product) => product[columnId as keyof Product]
+      ) as unknown[];
+      const columnType = resolveColumnType(values);
+      const calculation = calculateColumn(
+        values,
+        calculationType,
+        columnType,
+        locale
+      );
+
+      return [columnId, calculation];
+    })
+  );
+
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  return {
+    results,
+    meta: {
+      totalCount: sorted.length,
+    },
   };
 }
 

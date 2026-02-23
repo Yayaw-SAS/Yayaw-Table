@@ -53,8 +53,32 @@ Propriétés communes :
 - `accessorKey?: string` – Accesseur optionnel si la clé de donnée diffère de `id`
 - `dateDisplayPreset?: DateDisplayPreset` – preset strict pour le rendu des dates (colonnes date uniquement)
 - `dateFormat?: string` – **repli hérité** au format date-fns pour les colonnes date
+- `enableCalculation?: boolean` – active/désactive les calculs du footer pour cette colonne (par défaut `true`, sauf colonnes système `select`/`actions`)
+- `defaultCalculation?: CalculationType` – calcul par défaut affiché pour cette colonne (validé selon le type de colonne)
 - Pour les colonnes **number** : `numberFormat?: NumberFormatConfig` – format d'affichage (séparateurs milliers/décimales, décimales, préfixe/suffixe monétaire). Voir [Number column](#number-column-number) ci-dessous.
 - Pour les colonnes **tag** : `tagColorMap?: Record<string, string>` – map optionnelle valeur → classe Tailwind (voir ci-dessous).
+
+## Calculs de footer par colonne
+
+Vous pouvez préconfigurer les calculs directement sur les colonnes :
+
+```ts
+{
+  id: 'price',
+  type: 'number',
+  header: 'Price',
+  defaultCalculation: 'average',
+}
+```
+
+Valeurs utiles par type :
+
+- Tous types : `count_all`, `count_values`, `count_unique`, `count_empty`, `count_not_empty`, `percent_empty`, `percent_not_empty`
+- Number : `sum`, `average`, `median`, `min`, `max`, `range`
+- Date : `min`, `max`, `range`
+- Boolean : `count_true`, `count_false`, `percent_true`, `percent_false`
+
+Si un `defaultCalculation` n'est pas valide pour le type de colonne, il est ignoré sans crash.
 
 ## Number column (`number`)
 

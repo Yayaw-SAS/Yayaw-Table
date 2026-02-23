@@ -153,6 +153,10 @@
         "label": "Activer les filtres de colonnes",
         "description": "Active la recherche et les filtres dans la barre d'outils et les menus."
       },
+      "enableCalculations": {
+        "label": "Activer les calculs de pied de tableau",
+        "description": "Affiche la ligne de calculs et le toggle associé dans le menu options."
+      },
       "enableSorting": {
         "label": "Activer le tri",
         "description": "Active le tri depuis les en-têtes et le menu options."

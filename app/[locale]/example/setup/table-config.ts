@@ -1,6 +1,8 @@
 import type { DataTableConfig } from "@/src/components/ui/yayaw-table/atoms/config-atoms";
+import type { CalculationType } from "@/src/components/ui/yayaw-table/types/footer-types";
 import type { AppLocale } from "@/src/i18n/routing";
 import {
+  aggregateProductsAction,
   bulkCopy,
   bulkDelete,
   bulkUpdate,
@@ -60,6 +62,8 @@ interface ExtendedDataTableConfig extends DataTableConfig {
       size?: number;
       minSize?: number;
       maxSize?: number;
+      enableCalculation?: boolean;
+      defaultCalculation?: CalculationType;
     }>;
     order?: string[];
     visible?: string[];
@@ -147,6 +151,7 @@ export const getTableConfig = (
     enableColumnDragDropByDefault: true,
     enableColumnFilters: true,
     enableGrouping: true,
+    enableCalculations: true,
     enableMultiRowSelection: true,
     enablePagination: true,
     enableRowDragDrop: false,
@@ -207,6 +212,7 @@ export const getTableConfig = (
           maxSize: 140,
           enableSorting: true,
           enableColumnFilter: true,
+          defaultCalculation: "average",
           inlineEdit: {
             editor: "number",
           },
@@ -318,6 +324,7 @@ export const getTableActions = (tableType: string) => {
   }
 
   return {
+    aggregate: aggregateProductsAction,
     list: listProducts,
     create: createProduct,
     update: updateProduct,

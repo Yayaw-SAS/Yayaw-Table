@@ -202,6 +202,37 @@ export interface ColumnDefinition {
    * Only used when type is "url"
    */
   urlDisplayMode?: "domain" | "full" | "icon" | "row-link";
+
+  /**
+   * Whether to enable footer calculations for this column.
+   * @default true
+   */
+  enableCalculation?: boolean;
+
+  /**
+   * Default calculation to show in the footer for this column.
+   * If set, the footer will display this calculation on first load
+   * (until the user explicitly changes it).
+   * @example "sum" for a price column, "count_all" for any column
+   */
+  defaultCalculation?:
+    | "average"
+    | "count_all"
+    | "count_empty"
+    | "count_not_empty"
+    | "count_true"
+    | "count_false"
+    | "count_unique"
+    | "count_values"
+    | "max"
+    | "median"
+    | "min"
+    | "percent_empty"
+    | "percent_not_empty"
+    | "percent_true"
+    | "percent_false"
+    | "range"
+    | "sum";
 }
 
 /**
@@ -334,6 +365,12 @@ export interface TableBehaviorConfig {
    * Inline edit behavior configuration.
    */
   inlineEdit?: TableInlineEditConfig;
+
+  /**
+   * Enable footer row with column calculations (sum, count, average, etc.)
+   * @default true
+   */
+  enableCalculations?: boolean;
 }
 
 /**

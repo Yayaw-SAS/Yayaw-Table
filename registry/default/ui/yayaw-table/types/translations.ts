@@ -370,6 +370,30 @@ export interface DataTableTranslations {
     sort_descending: string;
     drag_column: string;
   };
+  calculations: {
+    none: string;
+    count: string;
+    percent: string;
+    more: string;
+    count_all: string;
+    count_values: string;
+    count_unique: string;
+    count_empty: string;
+    count_not_empty: string;
+    count_true: string;
+    count_false: string;
+    percent_empty: string;
+    percent_not_empty: string;
+    percent_true: string;
+    percent_false: string;
+    sum: string;
+    average: string;
+    median: string;
+    min: string;
+    max: string;
+    range: string;
+    calculate: string;
+  };
   menu: {
     back: string;
     columns: string;
@@ -385,6 +409,9 @@ export interface DataTableTranslations {
     properties: string;
     reset_all: string;
     reset_all_description: string;
+    footer_calculations: string;
+    footer_calculations_on: string;
+    footer_calculations_off: string;
     sort: string;
     subgroup: string;
     title: string;

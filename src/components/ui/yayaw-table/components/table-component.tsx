@@ -26,6 +26,7 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableFooter,
   TableHeader,
   TableRow,
 } from "@/src/components/ui/table";
@@ -34,6 +35,7 @@ import {
   activeRowDragAtom,
   tableIdAtom,
 } from "../atoms/table-atoms";
+import { footerVisibleAtom } from "../atoms/footer-atoms";
 import {
   type BulkActionCustomHandlerResult,
   type BulkDeleteCustomHandlerResult,
@@ -65,6 +67,7 @@ import {
   openUpdateForm,
 } from "./forms/atoms/catalogue-form-atoms";
 import type { AnyFieldDefinition } from "./forms/types";
+import { FooterRow } from "./footer/footer-row";
 import { SafePagination } from "./safe-pagination";
 
 const _DEBUG = false;
@@ -77,6 +80,16 @@ const ROW_CLICK_INTERACTIVE_SELECTOR =
   "button, a, [role=checkbox], input, select, textarea";
 const ROW_CLICK_SYSTEM_COLUMN_SELECTOR =
   '[data-column-id="select"], [data-column-id="actions"]';
+
+export const shouldShowCalculationsFooter = ({
+  enableCalculations,
+  isFooterVisible,
+}: {
+  enableCalculations?: boolean;
+  isFooterVisible: boolean;
+}): boolean => {
+  return enableCalculations !== false && isFooterVisible;
+};
 
 interface ColumnSizingDefinition {
   maxSize?: number;
@@ -590,6 +603,11 @@ function ModernDataTable<
 
   // Get table config to access column types
   const { config: tableConfig } = useTableConfig(resolvedTableType);
+  const isFooterVisible = useAtomValue(footerVisibleAtom(tableId));
+  const showCalculationsFooter = shouldShowCalculationsFooter({
+    enableCalculations: tableConfig.table.enableCalculations,
+    isFooterVisible,
+  });
   const densityMode = tableConfig.table.density ?? "medium";
   const isSmallDensity = densityMode === "small";
   const isLargeDensity = densityMode === "large";
@@ -1597,7 +1615,7 @@ function ModernDataTable<
         sensors={columnSensors}
       >
         <div className="space-y-4">
-          <div className="relative rounded-md border">
+          <div className="relative overflow-hidden rounded-md border">
             {/* Show loading overlay during data fetches when we already have data */}
             {isLoading && data && data.length > 0 && loadingOverlay}
 
@@ -1609,6 +1627,16 @@ function ModernDataTable<
               <Table className={cn("w-full", className)}>
                 {tableHeader}
                 {tableBodyContent}
+                {showCalculationsFooter && (
+                  <TableFooter className="sticky bottom-0 z-10 overflow-hidden rounded-b-md bg-card">
+                    <FooterRow
+                      densityMode={densityMode}
+                      table={table}
+                      tableId={tableId}
+                      tableType={resolvedTableType}
+                    />
+                  </TableFooter>
+                )}
               </Table>
             </div>
           </div>

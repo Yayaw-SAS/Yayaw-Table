@@ -27,6 +27,7 @@ table: {
   enableColumnFilters: true,
   enableSorting: true,
   enableGrouping: true,
+  enableCalculations: true,
   enableColumnDragDropByDefault: false,
   enableMultiRowSelection: true,
   enablePagination: true,
@@ -132,6 +133,17 @@ Type : `boolean` | Par défaut : `true`
 Active l'UI de regroupement et le rendu des groupes lorsque les types de colonnes le permettent.
 
 Type : `boolean` | Par défaut : `true`
+
+### enableCalculations
+Active les calculs du pied de tableau (menu de calcul par colonne + ligne de résultats).
+
+Type : `boolean` | Par défaut : `true`
+
+Quand la valeur est `false` :
+
+- La ligne de calculs en pied est masquée.
+- Le toggle de calculs est masqué dans le menu options.
+- Les `defaultCalculation` définis sur les colonnes sont ignorés dans l'UI.
 
 ### enableColumnDragDropByDefault
 Active le drag-and-drop pour réordonner les colonnes par défaut.

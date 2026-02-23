@@ -1,6 +1,7 @@
 "use server";
 
 import {
+  aggregateProducts,
   bulkCopyProducts,
   bulkDeleteProducts,
   bulkUpdateProducts,
@@ -13,6 +14,12 @@ import {
 
 export async function listProducts(params: ListProductsParams) {
   return await listProductsImpl(params);
+}
+
+export async function aggregateProductsAction(
+  params: Parameters<typeof aggregateProducts>[0]
+) {
+  return await aggregateProducts(params);
 }
 
 export async function createProduct(data: Record<string, unknown>) {

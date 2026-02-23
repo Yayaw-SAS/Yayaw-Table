@@ -61,6 +61,7 @@ interface ExampleTableSettings {
   bulkExport: boolean;
   enableColumnDnd: boolean;
   enableColumnFilters: boolean;
+  enableCalculations: boolean;
   enableGrouping: boolean;
   enablePagination: boolean;
   enableRowClickEdit: boolean;
@@ -97,6 +98,7 @@ const DEFAULT_TABLE_SETTINGS: ExampleTableSettings = {
   bulkExport: true,
   enableColumnDnd: true,
   enableColumnFilters: true,
+  enableCalculations: true,
   enableGrouping: true,
   enablePagination: true,
   enableRowClickEdit: false,
@@ -139,6 +141,9 @@ const FEATURE_SETTINGS: SettingDefinition[] = [
   },
   {
     key: "enableColumnFilters",
+  },
+  {
+    key: "enableCalculations",
   },
   {
     key: "enableSorting",
@@ -816,6 +821,10 @@ export default function ExamplePage() {
     "excfg-cf",
     DEFAULT_TABLE_SETTINGS.enableColumnFilters
   );
+  const enableCalculationsSetting = useBooleanQuerySetting(
+    "excfg-cl",
+    DEFAULT_TABLE_SETTINGS.enableCalculations
+  );
   const enableColumnDndSetting = useBooleanQuerySetting(
     "excfg-cd",
     DEFAULT_TABLE_SETTINGS.enableColumnDnd
@@ -924,6 +933,7 @@ export default function ExamplePage() {
         bulkExport: bulkExportSetting.value,
         enableColumnDnd: enableColumnDndSetting.value,
         enableColumnFilters: enableColumnFiltersSetting.value,
+        enableCalculations: enableCalculationsSetting.value,
         enableGrouping: enableGroupingSetting.value,
         enablePagination: enablePaginationSetting.value,
         enableRowClickEdit: enableRowClickEditSetting.value,
@@ -947,6 +957,7 @@ export default function ExamplePage() {
       bulkExportSetting.value,
       enableColumnDndSetting.value,
       enableColumnFiltersSetting.value,
+      enableCalculationsSetting.value,
       enableGroupingSetting.value,
       enablePaginationSetting.value,
       enableRowClickEditSetting.value,
@@ -975,6 +986,7 @@ export default function ExamplePage() {
       bulkExport: bulkExportSetting,
       enableColumnDnd: enableColumnDndSetting,
       enableColumnFilters: enableColumnFiltersSetting,
+      enableCalculations: enableCalculationsSetting,
       enableGrouping: enableGroupingSetting,
       enablePagination: enablePaginationSetting,
       enableRowClickEdit: enableRowClickEditSetting,
@@ -998,6 +1010,7 @@ export default function ExamplePage() {
       bulkExportSetting,
       enableColumnDndSetting,
       enableColumnFiltersSetting,
+      enableCalculationsSetting,
       enableGroupingSetting,
       enablePaginationSetting,
       enableRowClickEditSetting,
@@ -1240,6 +1253,7 @@ const getTableConfig = (tableType: string) => {
         allowInlineEdit: true,
         enableRowSelection: true,
         enableColumnFilters: true,
+        enableCalculations: true,
         enableColumnDnd: true,
         enableSorting: true,
         enableGrouping: true,

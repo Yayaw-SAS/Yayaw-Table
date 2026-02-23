@@ -15,7 +15,9 @@ Translations are strongly typed. Provide overrides either via the provider or di
 type DataTableTranslations = {
   actions: { delete: string; edit: string; copy: string; export: string; save: string; cancel: string; confirm: string; title: string; view: string };
   bulk: { close_menu: string; confirm_copy_description: string; confirm_delete_description: string; confirm_title: string };
+  calculations: { none: string; count: string; percent: string; more: string; count_all: string; count_values: string; count_unique: string; count_empty: string; count_not_empty: string; count_true: string; count_false: string; percent_empty: string; percent_not_empty: string; percent_true: string; percent_false: string; sum: string; average: string; median: string; min: string; max: string; range: string; calculate: string };
   columns: { title: string; hide: string; show: string; visible: string; hidden: string; drag: string; resetOrder: string; toggleVisibility: string; hideAll: string; showAll: string; edit_property: string; filter: string; hide_in_view: string; reorder: string; sort_ascending: string; sort_descending: string };
+  menu: { /* ... */ footer_calculations: string; footer_calculations_on: string; footer_calculations_off: string };
   pagination: { first: string; last: string; next: string; previous: string; of: string; page: string; rowsPerPage: string; showing: string; selectedCount: string };
   selection: { rows: string };
   // ... see full type in types/translations.ts
@@ -42,6 +44,7 @@ You can supply a full `DataTableTranslations` object to the provider for consist
 
 - **Filters (advanced):** Operator names (Contains, Equals, Starts with, etc.) use the `filters.operators.*` keys. Both the dropdown options and the **selected value** shown when the operator select is closed are translated, so the current operator always appears in the active locale (e.g. “Contient” instead of “contains”).
 - **Pagination:** All labels are translated: “Rows per page” (`pagination.rowsPerPage`), the “Page X of Y” text (`pagination.showing`, with `{page}` and `{total}`), and the first/previous/next/last button labels (`pagination.first`, `pagination.previous`, etc.). Both the default pagination and the button-style pagination (SafePagination) use these keys.
+- **Footer calculations:** Footer menu labels and results use `calculations.*` keys. The options-menu toggle uses `menu.footer_calculations`, `menu.footer_calculations_on`, and `menu.footer_calculations_off`.
 
 ## Form translations (catalog form)
 
@@ -572,6 +575,33 @@ Used for the selection column header and the **bulk actions menu** count (e.g. �
 | table.sort_descending | string |
 | table.drag_column | string |
 
+### calculations
+
+| Key | Type |
+| --- | --- |
+| calculations.none | string |
+| calculations.count | string |
+| calculations.percent | string |
+| calculations.more | string |
+| calculations.count_all | string |
+| calculations.count_values | string |
+| calculations.count_unique | string |
+| calculations.count_empty | string |
+| calculations.count_not_empty | string |
+| calculations.count_true | string |
+| calculations.count_false | string |
+| calculations.percent_empty | string |
+| calculations.percent_not_empty | string |
+| calculations.percent_true | string |
+| calculations.percent_false | string |
+| calculations.sum | string |
+| calculations.average | string |
+| calculations.median | string |
+| calculations.min | string |
+| calculations.max | string |
+| calculations.range | string |
+| calculations.calculate | string |
+
 ### menu
 
 | Key | Type |
@@ -590,6 +620,9 @@ Used for the selection column header and the **bulk actions menu** count (e.g. �
 | menu.sort | string |
 | menu.subgroup | string |
 | menu.title | string |
+| menu.footer_calculations | string |
+| menu.footer_calculations_on | string |
+| menu.footer_calculations_off | string |
 
 ### form (catalog form)
 

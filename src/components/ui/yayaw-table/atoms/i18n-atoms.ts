@@ -125,6 +125,30 @@ export interface DataTableUiStrings {
   viewUpdated: string;
   viewUpdateError: string;
   viewUpdateSuccess: string;
+
+  // Footer calculations
+  calcNone: string;
+  calcCount: string;
+  calcPercent: string;
+  calcMore: string;
+  calcCountAll: string;
+  calcCountValues: string;
+  calcCountUnique: string;
+  calcCountEmpty: string;
+  calcCountNotEmpty: string;
+  calcCountTrue: string;
+  calcCountFalse: string;
+  calcPercentEmpty: string;
+  calcPercentNotEmpty: string;
+  calcPercentTrue: string;
+  calcPercentFalse: string;
+  calcSum: string;
+  calcAverage: string;
+  calcMedian: string;
+  calcMin: string;
+  calcMax: string;
+  calcRange: string;
+  calcCalculate: string;
 }
 
 /**
@@ -282,6 +306,30 @@ export const translationKeysMap: DataTableUiStrings = {
   viewUpdated: "views.view_updated_successfully",
   viewUpdateError: "views.error_updating_view",
   viewUpdateSuccess: "views.notifications.updated",
+
+  // Footer calculations
+  calcNone: "calculations.none",
+  calcCount: "calculations.count",
+  calcPercent: "calculations.percent",
+  calcMore: "calculations.more",
+  calcCountAll: "calculations.count_all",
+  calcCountValues: "calculations.count_values",
+  calcCountUnique: "calculations.count_unique",
+  calcCountEmpty: "calculations.count_empty",
+  calcCountNotEmpty: "calculations.count_not_empty",
+  calcCountTrue: "calculations.count_true",
+  calcCountFalse: "calculations.count_false",
+  calcPercentEmpty: "calculations.percent_empty",
+  calcPercentNotEmpty: "calculations.percent_not_empty",
+  calcPercentTrue: "calculations.percent_true",
+  calcPercentFalse: "calculations.percent_false",
+  calcSum: "calculations.sum",
+  calcAverage: "calculations.average",
+  calcMedian: "calculations.median",
+  calcMin: "calculations.min",
+  calcMax: "calculations.max",
+  calcRange: "calculations.range",
+  calcCalculate: "calculations.calculate",
 };
 
 /**

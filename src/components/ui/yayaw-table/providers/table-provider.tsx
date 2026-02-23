@@ -17,6 +17,7 @@ import {
 // Import form config type
 import type { FieldValues, FormConfig } from "../components/forms/types";
 import type { TableConfig } from "../config/helpers";
+import type { CalculationType } from "../types/footer-types";
 import type {
   DataTableTranslations,
   TranslationParams,
@@ -25,11 +26,30 @@ import { resolveTableQueryClient } from "./query-client-requirements";
 import { createTranslationFunction } from "./translation-cache";
 
 // Define proper types for the helper functions
+export interface TableAggregateResultValue {
+  raw: number | string | null;
+  label: string;
+}
+
+export interface TableAggregateParams {
+  filters: Record<string, unknown>;
+  advancedFilters: unknown[];
+  search: string;
+  calculations: Record<string, CalculationType>;
+  locale: string;
+}
+
 export interface TableActions {
   list?: (params: Record<string, unknown>) => Promise<{
     data: unknown[];
     meta?: {
       pageCount?: number;
+      totalCount?: number;
+    };
+  }>;
+  aggregate?: (params: TableAggregateParams) => Promise<{
+    results: Record<string, TableAggregateResultValue>;
+    meta?: {
       totalCount?: number;
     };
   }>;
@@ -682,6 +702,30 @@ export const defaultTranslations: DataTableTranslations = {
     sort_descending: "Sort descending",
     drag_column: "Drag column",
   },
+  calculations: {
+    none: "None",
+    count: "Count",
+    percent: "Percent",
+    more: "More options",
+    count_all: "Count all",
+    count_values: "Count values",
+    count_unique: "Count unique",
+    count_empty: "Count empty",
+    count_not_empty: "Count not empty",
+    count_true: "Count true",
+    count_false: "Count false",
+    percent_empty: "Percent empty",
+    percent_not_empty: "Percent not empty",
+    percent_true: "Percent true",
+    percent_false: "Percent false",
+    sum: "Sum",
+    average: "Average",
+    median: "Median",
+    min: "Min",
+    max: "Max",
+    range: "Range",
+    calculate: "Calculate",
+  },
   menu: {
     back: "Back",
     columns: "Columns",
@@ -697,6 +741,9 @@ export const defaultTranslations: DataTableTranslations = {
       "{count} {count, plural, one {active group} other {active groups}}",
     options: "Options",
     properties: "Properties",
+    footer_calculations: "Footer calculations",
+    footer_calculations_on: "On",
+    footer_calculations_off: "Off",
     sort: "Sort",
     subgroup: "Subgroup",
     title: "Options",

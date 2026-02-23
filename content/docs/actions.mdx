@@ -18,6 +18,15 @@ getTableActions: (tableType: string) => ({
       meta: { pageCount: 1, totalCount: 0 },
     };
   },
+  aggregate: async (params) => {
+    // params: { filters, advancedFilters, search, calculations, locale }
+    return {
+      results: {
+        price: { raw: 820.64, label: "820,64" },
+      },
+      meta: { totalCount: 50 },
+    };
+  },
   create: async (data) => ({ success: true, data }),
   update: async (id, data) => ({ success: true, data }),
   delete: async (id) => ({ success: true }),
@@ -35,6 +44,29 @@ The `list` method must return:
 ```ts
 { data: T[]; meta?: { pageCount?: number; totalCount?: number } }
 ```
+
+## aggregate response (optional)
+
+`aggregate` is used by footer calculations to compute values on the full filtered dataset (not only the current page).
+
+```ts
+{
+  results: Record<
+    string,
+    {
+      raw: number | string | null;
+      label: string;
+    }
+  >;
+  meta?: { totalCount?: number };
+}
+```
+
+Notes:
+
+- `calculations` in params is a map: `columnId -> CalculationType`.
+- If `aggregate` is not provided, the table falls back to paginated `list` calls.
+- You can return custom labels from your API (`label`) while keeping machine-readable values in `raw`.
 
 ## Bulk actions
 

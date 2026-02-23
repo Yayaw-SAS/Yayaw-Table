@@ -16,6 +16,7 @@ import {
   useTranslations,
 } from "../providers/table-provider";
 import type { DateDisplayPreset } from "../types/date-types";
+import type { CalculationType } from "../types/footer-types";
 import type { NumberFormatConfig } from "../utils/number-format";
 import { useTableTranslations } from "./use-table-translations";
 
@@ -42,6 +43,8 @@ export interface TableCatalogueColumnConfig {
   size?: number;
   minSize?: number;
   maxSize?: number;
+  enableCalculation?: boolean;
+  defaultCalculation?: CalculationType;
 }
 
 /**
@@ -75,6 +78,7 @@ export interface TableCatalogueTableConfig {
   pageSizeOptions?: number[];
   dateDisplayPreset?: DateDisplayPreset;
   inlineEdit?: TableInlineEditConfig;
+  enableCalculations?: boolean;
 }
 
 /**
@@ -141,6 +145,7 @@ const DEFAULT_TABLE_CONFIG: TableCatalogueConfig = {
     defaultPageSize: 10,
     pageSizeOptions: [10, 20, 50, 100, 200, 500],
     dateDisplayPreset: "localized-short",
+    enableCalculations: true,
     inlineEdit: {
       enabled: false,
       debounceMs: 700,
@@ -235,6 +240,7 @@ function resolveTableBehaviorConfig(
       providerConfig.dateDisplayPreset ??
       DEFAULT_TABLE_CONFIG.table.dateDisplayPreset,
     inlineEdit: resolveInlineEditConfig(providerConfig.inlineEdit),
+    enableCalculations: providerConfig.enableCalculations ?? true,
   };
 }
 

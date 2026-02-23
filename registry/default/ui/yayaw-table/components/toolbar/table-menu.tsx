@@ -1,9 +1,10 @@
 "use client";
 
 import type { TableState } from "@tanstack/react-table";
-import { useAtomValue, useSetAtom } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import {
   ArrowUpDown,
+  Calculator,
   Layers,
   List,
   ListFilter,
@@ -20,9 +21,10 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import {
+  footerVisibleAtom,
   tableMenuOpenFilterColumnIdAtom,
   tableMenuOpenToViewAtom,
-} from "../../atoms/table-atoms";
+} from "../../atoms";
 import { useTableUrlState } from "../../hooks/use-table-url-state";
 import { useTranslations } from "../../providers/table-provider";
 import type { ColumnDataType } from "../../types";
@@ -49,6 +51,7 @@ export interface TableMenuProps {
   actionsAsIcons?: boolean;
   columns: TableColumn[];
   enableColumnFilters?: boolean;
+  enableCalculations?: boolean;
   enableGrouping?: boolean;
   enableSorting?: boolean;
   invalidateTable: () => Promise<void>;
@@ -79,7 +82,7 @@ interface TableColumn {
   canSort?: boolean;
   id: string;
   label: string;
-} // ordre déjà correct ici
+}
 
 // Add this adapter function before the TableMenu component
 const adaptToTanstackColumns = (
@@ -117,8 +120,9 @@ const getNavigationTitle = (
   return titleKey ? t(titleKey) : t("menu.options");
 };
 
-interface MenuSectionState {
+export interface MenuSectionState {
   canShowColumnsSection: boolean;
+  canShowCalculationsSection: boolean;
   canShowFiltersSection: boolean;
   canShowGroupSection: boolean;
   canShowSortSection: boolean;
@@ -129,11 +133,12 @@ interface MenuSectionState {
   menuBadgeCount: number;
 }
 
-const buildMenuSectionState = ({
+export const buildMenuSectionState = ({
   activeFiltersCount,
   activeGroupingCount,
   activeSortCount,
   enableColumnFilters,
+  enableCalculations,
   enableGrouping,
   enableSorting,
   filterableColumnsCount,
@@ -147,6 +152,7 @@ const buildMenuSectionState = ({
   activeGroupingCount: number;
   activeSortCount: number;
   enableColumnFilters: boolean;
+  enableCalculations: boolean;
   enableGrouping: boolean;
   enableSorting: boolean;
   filterableColumnsCount: number;
@@ -157,6 +163,7 @@ const buildMenuSectionState = ({
   useAdvancedFilters: boolean;
 }): MenuSectionState => {
   const canShowColumnsSection = hideableColumnsCount > 0 || hasHiddenColumns;
+  const canShowCalculationsSection = enableCalculations;
   const canShowFiltersSection =
     enableColumnFilters &&
     (useAdvancedFilters ||
@@ -174,6 +181,7 @@ const buildMenuSectionState = ({
 
   return {
     canShowColumnsSection,
+    canShowCalculationsSection,
     canShowFiltersSection,
     canShowGroupSection,
     canShowSortSection,
@@ -181,6 +189,7 @@ const buildMenuSectionState = ({
     effectiveActiveSortCount,
     hasAnyMenuSection:
       canShowColumnsSection ||
+      canShowCalculationsSection ||
       canShowFiltersSection ||
       canShowSortSection ||
       canShowGroupSection,
@@ -256,11 +265,17 @@ const OptionsMenuTrigger = forwardRef<
 function renderMainMenuView({
   activeGroupingCount,
   displayVisibleCount,
+  footerCalculationsLabel,
+  isFooterCalculationsVisible,
+  onToggleFooterCalculations,
   sectionState,
   t,
 }: {
   activeGroupingCount: number;
   displayVisibleCount: number;
+  footerCalculationsLabel: string;
+  isFooterCalculationsVisible: boolean;
+  onToggleFooterCalculations: () => void;
   sectionState: MenuSectionState;
   t: ReturnType<typeof useTranslations>["t"];
 }) {
@@ -357,6 +372,21 @@ function renderMainMenuView({
               {t("menu.group")}
             </StackMenuItem>
           )}
+
+          {sectionState.canShowCalculationsSection && (
+            <StackMenuItem
+              description={footerCalculationsLabel}
+              icon={<Calculator className="h-4 w-4" />}
+              onClick={onToggleFooterCalculations}
+            >
+              {t("menu.footer_calculations")}
+              <span className="sr-only">
+                {isFooterCalculationsVisible
+                  ? t("menu.footer_calculations_on")
+                  : t("menu.footer_calculations_off")}
+              </span>
+            </StackMenuItem>
+          )}
         </StackMenuSection>
       </StackMenuContent>
     </StackMenuView>
@@ -367,6 +397,7 @@ export function TableMenu({
   actionsAsIcons = false,
   columns = EMPTY_COLUMNS,
   enableColumnFilters = true,
+  enableCalculations = true,
   enableGrouping = true,
   enableSorting = true,
   invalidateTable,
@@ -383,6 +414,9 @@ export function TableMenu({
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const openToView = useAtomValue(tableMenuOpenToViewAtom(tableId));
+  const [isFooterCalculationsVisible, setFooterCalculationsVisible] = useAtom(
+    footerVisibleAtom(tableId)
+  );
   const setOpenToView = useSetAtom(tableMenuOpenToViewAtom(tableId));
   const setOpenFilterColumnId = useSetAtom(
     tableMenuOpenFilterColumnIdAtom(tableId)
@@ -448,6 +482,7 @@ export function TableMenu({
         activeGroupingCount,
         activeSortCount,
         enableColumnFilters,
+        enableCalculations,
         enableGrouping,
         enableSorting,
         filterableColumnsCount,
@@ -462,6 +497,7 @@ export function TableMenu({
       activeGroupingCount,
       activeSortCount,
       enableColumnFilters,
+      enableCalculations,
       enableGrouping,
       enableSorting,
       filterableColumnsCount,
@@ -480,6 +516,12 @@ export function TableMenu({
     const translated = t("menu.options");
     return translated === "menu.options" ? "Options" : translated;
   }, [t]);
+  const footerCalculationsLabel = isFooterCalculationsVisible
+    ? t("menu.footer_calculations_on")
+    : t("menu.footer_calculations_off");
+  const toggleFooterCalculations = useCallback(() => {
+    setFooterCalculationsVisible((previous) => !previous);
+  }, [setFooterCalculationsVisible]);
 
   const handleResetAll = useCallback(() => {
     setColumnFilters([]);
@@ -544,6 +586,9 @@ export function TableMenu({
       {renderMainMenuView({
         activeGroupingCount,
         displayVisibleCount,
+        footerCalculationsLabel,
+        isFooterCalculationsVisible,
+        onToggleFooterCalculations: toggleFooterCalculations,
         sectionState,
         t,
       })}

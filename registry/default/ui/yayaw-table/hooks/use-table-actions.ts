@@ -5,7 +5,11 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
-import { useTableActions as useProviderTableActions } from "../providers/table-provider";
+import {
+  type TableAggregateParams,
+  type TableAggregateResultValue,
+  useTableActions as useProviderTableActions,
+} from "../providers/table-provider";
 
 /**
  * Generic action result type
@@ -23,6 +27,10 @@ interface TableActions {
   list?: (params: unknown) => Promise<{
     data: unknown[];
     meta: { pageCount: number; totalCount: number };
+  }>;
+  aggregate?: (params: TableAggregateParams) => Promise<{
+    results: Record<string, TableAggregateResultValue>;
+    meta?: { totalCount?: number };
   }>;
   create?: (data: unknown) => Promise<ActionResult>;
   update?: (id: string, data: unknown) => Promise<ActionResult>;

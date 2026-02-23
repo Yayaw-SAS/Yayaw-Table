@@ -161,6 +161,11 @@ export interface DataTableConfig {
   enableSorting: boolean;
 
   /**
+   * Enable footer calculations (sum, count, average, etc.)
+   */
+  enableCalculations?: boolean;
+
+  /**
    * Enable grouping
    */
   enableGrouping?: boolean;
@@ -221,6 +226,7 @@ const defaultTableConfig: DataTableConfig = {
   enableRowSelection: true,
   enableRowClickEdit: false,
   enableSorting: true,
+  enableCalculations: true,
   enableGrouping: true,
   inlineEdit: {
     enabled: false,

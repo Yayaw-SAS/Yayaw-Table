@@ -50,6 +50,14 @@ import type {
 } from "../../types";
 import { buildCsvExportColumns, exportRowsAsCsv } from "../../utils/csv-export";
 import {
+  fetchAllFilteredRows,
+  toAdvancedFiltersParam,
+  toFiltersParam,
+  toOrderByParam,
+  toPageSize,
+  type TableListAction,
+} from "../../utils/filtered-rows";
+import {
   catalogueFormAtom,
   openCreateForm,
 } from "../forms/atoms/catalogue-form-atoms";
@@ -378,137 +386,6 @@ function useFinalSetColumnVisibility(
   );
 }
 
-type ToolbarListAction = (params: Record<string, unknown>) => Promise<{
-  data: unknown[];
-  meta?: { pageCount?: number; totalCount?: number };
-}>;
-
-const DEFAULT_EXPORT_PAGE_SIZE = 100;
-const MAX_EXPORT_PAGES = 1000;
-
-const toOrderByParam = (
-  sortParam: unknown
-): Record<string, "asc" | "desc"> | undefined => {
-  if (!Array.isArray(sortParam) || sortParam.length === 0) {
-    return;
-  }
-
-  const firstSort = sortParam[0] as { desc?: boolean; id?: string };
-  if (!firstSort || typeof firstSort.id !== "string") {
-    return;
-  }
-
-  return {
-    [firstSort.id]: firstSort.desc ? "desc" : "asc",
-  };
-};
-
-const toFiltersParam = (filtersParam: unknown): Record<string, unknown> => {
-  if (!Array.isArray(filtersParam)) {
-    return {};
-  }
-
-  const parsedFilters = filtersParam as Array<{ id: string; value: unknown }>;
-  return Object.fromEntries(
-    parsedFilters
-      .filter((filter) => !["global", "id", "key"].includes(filter.id))
-      .map((filter) => [filter.id, filter.value])
-  );
-};
-
-const toAdvancedFiltersParam = (advancedFiltersParam: unknown): unknown[] => {
-  if (!Array.isArray(advancedFiltersParam)) {
-    return [];
-  }
-
-  return advancedFiltersParam.filter((filter) => {
-    if (!filter || typeof filter !== "object") {
-      return false;
-    }
-
-    const isActive = (filter as { isActive?: boolean }).isActive;
-    return isActive !== false;
-  });
-};
-
-const toPageSize = (pageSizeParam: string): number => {
-  const parsedPageSize = Number.parseInt(pageSizeParam || "100", 10);
-  if (Number.isNaN(parsedPageSize) || parsedPageSize < 1) {
-    return DEFAULT_EXPORT_PAGE_SIZE;
-  }
-  return parsedPageSize;
-};
-
-const toRecordRows = (data: unknown[]): Record<string, unknown>[] => {
-  return data.filter(
-    (row): row is Record<string, unknown> =>
-      typeof row === "object" && row !== null
-  );
-};
-
-const fetchAllFilteredRows = async ({
-  listAction,
-  advancedFilters,
-  filters,
-  orderBy,
-  pageSize,
-  search,
-}: {
-  listAction: ToolbarListAction;
-  advancedFilters: unknown[];
-  filters: Record<string, unknown>;
-  orderBy?: Record<string, "asc" | "desc">;
-  pageSize: number;
-  search: string;
-}): Promise<Record<string, unknown>[]> => {
-  const collectedRows: Record<string, unknown>[] = [];
-  let page = 1;
-  let knownPageCount: number | undefined;
-
-  while (page <= MAX_EXPORT_PAGES) {
-    const requestParams: Record<string, unknown> = {
-      advancedFilters,
-      filters,
-      limit: pageSize,
-      page,
-    };
-
-    if (orderBy) {
-      requestParams.orderBy = orderBy;
-    }
-
-    if (search.length > 0) {
-      requestParams.search = search;
-      requestParams.q = search;
-      requestParams.globalSearch = search;
-    }
-
-    const response = await listAction(requestParams);
-    const pageRows = toRecordRows(response.data);
-    collectedRows.push(...pageRows);
-
-    if (
-      typeof response.meta?.pageCount === "number" &&
-      response.meta.pageCount > 0
-    ) {
-      knownPageCount = response.meta.pageCount;
-    }
-
-    const reachedLastKnownPage =
-      typeof knownPageCount === "number" && page >= knownPageCount;
-    const reachedLastByPageSize = pageRows.length < pageSize;
-    const hasNoMoreData = pageRows.length === 0;
-
-    if (reachedLastKnownPage || reachedLastByPageSize || hasNoMoreData) {
-      break;
-    }
-
-    page += 1;
-  }
-
-  return collectedRows;
-};
-
 const EMPTY_DATA: never[] = [];
 const EMPTY_COLUMN_TYPE_MAPPING: Record<string, never> = {};
 
@@ -780,7 +657,7 @@ export function DataTableAdvancedToolbar<TData>({
       return;
     }
 
-    const listAction = tableActions.list as ToolbarListAction;
+    const listAction = tableActions.list as TableListAction;
     const orderBy = toOrderByParam(sortParam);
     const filters = toFiltersParam(filtersParam);
     const advancedFilters = toAdvancedFiltersParam(advancedFiltersParam);
@@ -1112,6 +989,7 @@ export function DataTableAdvancedToolbar<TData>({
           }
           columns={tableMenuColumns}
           enableColumnFilters={isColumnFiltersEnabled}
+          enableCalculations={tableConfig.table.enableCalculations !== false}
           enableGrouping={isGroupingEnabled}
           enableSorting={isSortingEnabled}
           invalidateTable={async () => {

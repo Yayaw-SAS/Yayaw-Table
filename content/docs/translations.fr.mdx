@@ -15,7 +15,9 @@ Les traductions sont fortement typées. Vous pouvez fournir des surcharges soit 
 type DataTableTranslations = {
   actions: { delete: string; edit: string; copy: string; export: string; save: string; cancel: string; confirm: string; title: string; view: string };
   bulk: { close_menu: string; confirm_copy_description: string; confirm_delete_description: string; confirm_title: string };
+  calculations: { none: string; count: string; percent: string; more: string; count_all: string; count_values: string; count_unique: string; count_empty: string; count_not_empty: string; count_true: string; count_false: string; percent_empty: string; percent_not_empty: string; percent_true: string; percent_false: string; sum: string; average: string; median: string; min: string; max: string; range: string; calculate: string };
   columns: { title: string; hide: string; show: string; visible: string; hidden: string; drag: string; resetOrder: string; toggleVisibility: string; hideAll: string; showAll: string; edit_property: string; filter: string; hide_in_view: string; reorder: string; sort_ascending: string; sort_descending: string };
+  menu: { /* ... */ footer_calculations: string; footer_calculations_on: string; footer_calculations_off: string };
   pagination: { first: string; last: string; next: string; previous: string; of: string; page: string; rowsPerPage: string; showing: string; selectedCount: string };
   selection: { rows: string };
   // ... see full type in types/translations.ts
@@ -42,6 +44,7 @@ Vous pouvez fournir un objet `DataTableTranslations` complet au provider pour un
 
 - **Filtres (avancés) :** les libellés d'opérateurs (Contains, Equals, Starts with, etc.) utilisent les clés `filters.operators.*`. Les options du menu et la **valeur sélectionnée** affichée lorsque le select est fermé sont traduites, donc l'opérateur courant apparaît toujours dans la locale active (par ex. “Contient” au lieu de “contains”).
 - **Pagination :** tous les libellés sont traduits : “Rows per page” (`pagination.rowsPerPage`), le texte “Page X of Y” (`pagination.showing`, avec `{page}` et `{total}`), et les labels des boutons first/previous/next/last (`pagination.first`, `pagination.previous`, etc.). La pagination par défaut et la pagination **de style boutons** (SafePagination) utilisent ces clés.
+- **Calculs de footer :** les libellés du menu de calcul et les résultats utilisent les clés `calculations.*`. Le toggle du menu options utilise `menu.footer_calculations`, `menu.footer_calculations_on` et `menu.footer_calculations_off`.
 
 ## Traductions de formulaire (catalogue form)
 
@@ -572,6 +575,33 @@ Utilisé pour l'en-tête de la colonne de sélection et le compteur du **menu de
 | table.sort_descending | string |
 | table.drag_column | string |
 
+### calculations
+
+| Key | Type |
+| --- | --- |
+| calculations.none | string |
+| calculations.count | string |
+| calculations.percent | string |
+| calculations.more | string |
+| calculations.count_all | string |
+| calculations.count_values | string |
+| calculations.count_unique | string |
+| calculations.count_empty | string |
+| calculations.count_not_empty | string |
+| calculations.count_true | string |
+| calculations.count_false | string |
+| calculations.percent_empty | string |
+| calculations.percent_not_empty | string |
+| calculations.percent_true | string |
+| calculations.percent_false | string |
+| calculations.sum | string |
+| calculations.average | string |
+| calculations.median | string |
+| calculations.min | string |
+| calculations.max | string |
+| calculations.range | string |
+| calculations.calculate | string |
+
 ### menu
 
 | Key | Type |
@@ -590,6 +620,9 @@ Utilisé pour l'en-tête de la colonne de sélection et le compteur du **menu de
 | menu.sort | string |
 | menu.subgroup | string |
 | menu.title | string |
+| menu.footer_calculations | string |
+| menu.footer_calculations_on | string |
+| menu.footer_calculations_off | string |
 
 ### form (catalogue form)
 

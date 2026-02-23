@@ -53,9 +53,33 @@ Common properties:
 - `accessorKey?: string` – Optional accessor if data key differs from `id`
 - `dateDisplayPreset?: DateDisplayPreset` – strict preset for date rendering (date columns only)
 - `dateFormat?: string` – legacy date-fns format fallback for date columns
+- `enableCalculation?: boolean` – enable/disable footer calculations for this column (default `true`, except system columns like `select`/`actions`)
+- `defaultCalculation?: CalculationType` – default footer calculation shown for this column (validated against column type)
 - `inlineEdit?: boolean | InlineEditColumnConfig` – enable/configure inline editing for this column
 - For **number** columns: `numberFormat?: NumberFormatConfig` – display format (thousands/decimal separators, decimals, prefix/suffix for currency). See [Number column](#number-column-number) below.
 - For **tag** columns: `tagColorMap?: Record<string, string>` – optional value → Tailwind class map (see below).
+
+## Footer calculations by column
+
+You can preconfigure calculations directly on columns:
+
+```ts
+{
+  id: 'price',
+  type: 'number',
+  header: 'Price',
+  defaultCalculation: 'average',
+}
+```
+
+Useful defaults by type:
+
+- Any type: `count_all`, `count_values`, `count_unique`, `count_empty`, `count_not_empty`, `percent_empty`, `percent_not_empty`
+- Number: `sum`, `average`, `median`, `min`, `max`, `range`
+- Date: `min`, `max`, `range`
+- Boolean: `count_true`, `count_false`, `percent_true`, `percent_false`
+
+If a `defaultCalculation` is invalid for the column type, it is ignored safely.
 
 ## Inline Edit by Column
 

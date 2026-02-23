@@ -153,6 +153,10 @@
         "label": "Enable column filters",
         "description": "Enable search and filter controls in toolbar and menus."
       },
+      "enableCalculations": {
+        "label": "Enable footer calculations",
+        "description": "Show the calculations footer and the related toggle in the options menu."
+      },
       "enableSorting": {
         "label": "Enable sorting",
         "description": "Enable sorting from headers and the options menu."

@@ -27,6 +27,7 @@ table: {
   enableColumnFilters: true,
   enableSorting: true,
   enableGrouping: true,
+  enableCalculations: true,
   enableColumnDragDropByDefault: false,
   enableMultiRowSelection: true,
   enablePagination: true,
@@ -139,6 +140,17 @@ Type: `boolean` | Default: `true`
 Enable grouping UI and grouped row rendering when column types allow it.
 
 Type: `boolean` | Default: `true`
+
+### enableCalculations
+Enable footer calculations (per-column calculation menus + footer results row).
+
+Type: `boolean` | Default: `true`
+
+When set to `false`:
+
+- The calculations footer row is hidden.
+- The calculations toggle is hidden from the options menu.
+- Column `defaultCalculation` values are ignored in the UI.
 
 ### enableColumnDragDropByDefault
 Enable drag-and-drop column reordering by default.

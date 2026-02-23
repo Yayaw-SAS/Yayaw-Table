@@ -213,6 +213,7 @@ function DataTableContent({
             enableColumnDragDropByDefault:
               config.table.enableColumnDragDropByDefault,
             enableColumnFilters: config.table.enableColumnFilters,
+            enableCalculations: config.table.enableCalculations,
             enableGrouping: config.table.enableGrouping,
             enableMultiRowSelection:
               config.table.enableMultiRowSelection !== false,
