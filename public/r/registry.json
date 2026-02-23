@@ -71,6 +71,16 @@
           "target": "components/ui/yayaw-table/atoms/filter-atoms.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/atoms/footer-atoms.test.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/atoms/footer-atoms.test.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/atoms/footer-atoms.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/atoms/footer-atoms.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/atoms/i18n-atoms.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/atoms/i18n-atoms.ts"
@@ -386,6 +396,16 @@
           "target": "components/ui/yayaw-table/components/filters/text-filter.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/footer/calculation-menu.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/footer/calculation-menu.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/footer/footer-row.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/footer/footer-row.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/forms/atoms/atoms.ts",
           "type": "registry:lib",
           "target": "components/ui/yayaw-table/components/forms/atoms/atoms.ts"
@@ -541,6 +561,11 @@
           "target": "components/ui/yayaw-table/components/sortable-row.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/table-component.test.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/table-component.test.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/table-component.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/table-component.tsx"
@@ -589,6 +614,11 @@
           "path": "registry/default/ui/yayaw-table/components/toolbar/sections/table-sort-menu.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/toolbar/sections/table-sort-menu.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/toolbar/table-menu.test.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/toolbar/table-menu.test.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/toolbar/table-menu.tsx",
@@ -686,6 +716,16 @@
           "target": "components/ui/yayaw-table/hooks/use-filter-presets.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/hooks/use-global-column-calculations.test.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/hooks/use-global-column-calculations.test.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/hooks/use-global-column-calculations.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/hooks/use-global-column-calculations.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/hooks/use-inline-edit-runtime.test.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/hooks/use-inline-edit-runtime.test.ts"
@@ -776,6 +816,11 @@
           "target": "components/ui/yayaw-table/providers/table-provider.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/providers/translation-cache.test.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/providers/translation-cache.test.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/providers/translation-cache.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/providers/translation-cache.ts"
@@ -799,6 +844,11 @@
           "path": "registry/default/ui/yayaw-table/types/filter-types.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/types/filter-types.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/types/footer-types.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/types/footer-types.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/types/index.ts",
@@ -846,6 +896,16 @@
           "target": "components/ui/yayaw-table/utils/advanced-filters.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/utils/column-calculations.test.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/column-calculations.test.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/column-calculations.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/column-calculations.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/utils/column-icons.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/column-icons.tsx"
@@ -864,6 +924,11 @@
           "path": "registry/default/ui/yayaw-table/utils/date-display.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/date-display.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/filtered-rows.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/filtered-rows.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/utils/number-format.ts",
