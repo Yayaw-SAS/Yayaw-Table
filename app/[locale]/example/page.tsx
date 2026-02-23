@@ -30,7 +30,10 @@ import {
   openUpdateForm,
 } from "@/src/components/ui/yayaw-table/components/forms/atoms/catalogue-form-atoms";
 import type { TableActions } from "@/src/components/ui/yayaw-table/providers/table-provider";
-import type { ToolbarActionContext } from "@/src/components/ui/yayaw-table/types/toolbar-types";
+import type {
+  ToolbarAction,
+  ToolbarActionContext,
+} from "@/src/components/ui/yayaw-table/types/toolbar-types";
 import type { AppLocale } from "@/src/i18n/routing";
 import { CustomDescription, CustomTitle } from "./components";
 import {
@@ -742,7 +745,7 @@ function BulkActionsSection({
   );
 
   const toolbarActions = useCallback(
-    (_context: ToolbarActionContext) => [
+    (_context: ToolbarActionContext): ToolbarAction[] => [
       {
         id: "recalculate-prices",
         label: t("toolbarActions.recalculatePrices"),

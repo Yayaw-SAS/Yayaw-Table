@@ -7,7 +7,12 @@
     "ultracite/biome/next"
   ],
   "files": {
-    "includes": ["!.source", "!src/ui/shadcn", "!src/components/ui"]
+    "includes": [
+      "!.source",
+      "!src/ui/shadcn",
+      "!src/components/ui",
+      "!public/r/yayaw-table.json"
+    ]
   },
   "overrides": [
     {
