@@ -1,9 +1,9 @@
 {
   "Metadata": {
     "siteTitle": "YaYaw Table",
-    "siteDescription": "Enterprise-grade data tables for React and Shadcn with URL state, advanced filters, i18n and full code ownership.",
-    "homeTitle": "YaYaw Table - A complete table system, the Shadcn way",
-    "homeDescription": "Install a production-ready table system with one command. Keep full ownership, ship advanced UX and avoid glue code.",
+    "siteDescription": "The favorite table system of vibe coders and every developer who wants fast, production-ready React tables with full code ownership.",
+    "homeTitle": "The favorite table system of vibe coders, and every dev",
+    "homeDescription": "Ship production-ready React tables faster with a Shadcn-friendly system for filters, URL state, bulk flows and full code ownership.",
     "exampleTitle": "YaYaw Table - Live example",
     "exampleDescription": "Explore a real interactive YaYaw Table setup with server-side pagination, filters, grouping and bulk actions.",
     "docsTitle": "YaYaw Table Documentation",
@@ -33,9 +33,9 @@
   "Home": {
     "badgeA": "Shadcn Registry",
     "badgeB": "Production-ready",
-    "heroTitleLead": "A complete table system,",
-    "heroTitleAccent": "the Shadcn way.",
-    "heroDescription": "YaYaw Table gives teams shipping internal products a complete table workflow: advanced filters, URL state, bulk flows and i18n with code that lives in your app.",
+    "heroTitleLead": "The favorite table system",
+    "heroTitleAccent": "of vibe coders, and every dev.",
+    "heroDescription": "YaYaw Table helps teams ship serious tables faster: advanced filters, URL state, bulk flows and i18n in a Shadcn-friendly system you fully own.",
     "ctaInstall": "Install now",
     "ctaExample": "Open live example",
     "ctaDocs": "Read docs",
