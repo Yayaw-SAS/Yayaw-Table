@@ -1,9 +1,9 @@
 {
   "Metadata": {
     "siteTitle": "YaYaw Table",
-    "siteDescription": "Le système de table préféré des vibe codeurs et de tous les devs qui veulent des tables React prêtes pour la prod avec une maîtrise totale du code.",
-    "homeTitle": "Le système de table préféré des vibe codeurs, et de tous les devs",
-    "homeDescription": "Livrez des tables React prêtes pour la production plus vite avec un système compatible Shadcn pour les filtres, l'état URL, les actions de masse et la maîtrise totale du code.",
+    "siteDescription": "Le système de table que les vibe coders adorent et que les autres devs voudraient avoir : des tables React prêtes pour la prod, avec filtres, état URL et maîtrise totale du code.",
+    "homeTitle": "Le système de table préféré des vibe coders",
+    "homeDescription": "Livrez des tables React prêtes pour la production plus vite avec le système qui rend les autres devs jaloux : compatible Shadcn, pensé pour les filtres, l'état URL et la maîtrise totale du code.",
     "exampleTitle": "YaYaw Table - Exemple live",
     "exampleDescription": "Explorez une implémentation réelle de YaYaw Table avec pagination serveur, filtres, regroupement et actions de masse.",
     "docsTitle": "Documentation YaYaw Table",
@@ -34,7 +34,7 @@
     "badgeA": "Registry Shadcn",
     "badgeB": "Prêt pour la production",
     "heroTitleLead": "Le système de table préféré",
-    "heroTitleAccent": "des vibe codeurs, et de tous les devs.",
+    "heroTitleAccent": "des vibe coders. Celui qui rend les autres devs jaloux.",
     "heroDescription": "YaYaw Table aide les équipes à livrer des vraies tables métier plus vite : filtres avancés, état URL, actions de masse et i18n dans un système compatible Shadcn que vous maîtrisez de bout en bout.",
     "ctaInstall": "Installer maintenant",
     "ctaExample": "Voir l'exemple live",
