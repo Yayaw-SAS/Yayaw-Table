@@ -1,9 +1,9 @@
 {
   "Metadata": {
     "siteTitle": "YaYaw Table",
-    "siteDescription": "Tables de données prêtes pour la production avec React et Shadcn : état URL, filtres avancés, i18n et maîtrise totale du code.",
-    "homeTitle": "YaYaw Table – Un système de table complet à la sauce Shadcn",
-    "homeDescription": "Installez un système de table prêt pour la production en une commande. Gardez la maîtrise totale du code, sans dépendance opaque.",
+    "siteDescription": "Le système de table préféré des vibe codeurs et de tous les devs qui veulent des tables React prêtes pour la prod avec une maîtrise totale du code.",
+    "homeTitle": "Le système de table préféré des vibe codeurs, et de tous les devs",
+    "homeDescription": "Livrez des tables React prêtes pour la production plus vite avec un système compatible Shadcn pour les filtres, l'état URL, les actions de masse et la maîtrise totale du code.",
     "exampleTitle": "YaYaw Table - Exemple live",
     "exampleDescription": "Explorez une implémentation réelle de YaYaw Table avec pagination serveur, filtres, regroupement et actions de masse.",
     "docsTitle": "Documentation YaYaw Table",
@@ -33,9 +33,9 @@
   "Home": {
     "badgeA": "Registry Shadcn",
     "badgeB": "Prêt pour la production",
-    "heroTitleLead": "Un système de table complet",
-    "heroTitleAccent": "à la sauce Shadcn.",
-    "heroDescription": "YaYaw Table offre aux équipes produit un workflow de table complet : filtres avancés, état URL, actions de masse et i18n, avec du code qui vit dans votre application.",
+    "heroTitleLead": "Le système de table préféré",
+    "heroTitleAccent": "des vibe codeurs, et de tous les devs.",
+    "heroDescription": "YaYaw Table aide les équipes à livrer des vraies tables métier plus vite : filtres avancés, état URL, actions de masse et i18n dans un système compatible Shadcn que vous maîtrisez de bout en bout.",
     "ctaInstall": "Installer maintenant",
     "ctaExample": "Voir l'exemple live",
     "ctaDocs": "Lire la documentation",
