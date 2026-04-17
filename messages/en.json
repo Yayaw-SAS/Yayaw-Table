@@ -1,9 +1,9 @@
 {
   "Metadata": {
     "siteTitle": "YaYaw Table",
-    "siteDescription": "The favorite table system of vibe coders and every developer who wants fast, production-ready React tables with full code ownership.",
-    "homeTitle": "The favorite table system of vibe coders, and every dev",
-    "homeDescription": "Ship production-ready React tables faster with a Shadcn-friendly system for filters, URL state, bulk flows and full code ownership.",
+    "siteDescription": "The table system vibe coders love and other devs wish they had: production-ready React tables with filters, URL state and full code ownership.",
+    "homeTitle": "Vibe coders' favorite table system",
+    "homeDescription": "Ship production-ready React tables faster with the system that makes other devs jealous: Shadcn-friendly, filter-heavy, URL-native and fully yours.",
     "exampleTitle": "YaYaw Table - Live example",
     "exampleDescription": "Explore a real interactive YaYaw Table setup with server-side pagination, filters, grouping and bulk actions.",
     "docsTitle": "YaYaw Table Documentation",
@@ -33,8 +33,8 @@
   "Home": {
     "badgeA": "Shadcn Registry",
     "badgeB": "Production-ready",
-    "heroTitleLead": "The favorite table system",
-    "heroTitleAccent": "of vibe coders, and every dev.",
+    "heroTitleLead": "Vibe coders' favorite",
+    "heroTitleAccent": "table system. The one making other devs jealous.",
     "heroDescription": "YaYaw Table helps teams ship serious tables faster: advanced filters, URL state, bulk flows and i18n in a Shadcn-friendly system you fully own.",
     "ctaInstall": "Install now",
     "ctaExample": "Open live example",
