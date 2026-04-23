@@ -56,6 +56,26 @@ export interface UseTableInstanceOptions<TData> {
   tableId: string;
 }
 
+export function resolveTablePageCount({
+  dataLength,
+  pageCount,
+  pageSize,
+}: {
+  dataLength: number;
+  pageCount?: number;
+  pageSize: number;
+}): number {
+  if (typeof pageCount === "number" && Number.isFinite(pageCount)) {
+    return Math.max(pageCount, 0);
+  }
+
+  if (!Number.isFinite(pageSize) || pageSize <= 0) {
+    return 0;
+  }
+
+  return Math.ceil(dataLength / pageSize);
+}
+
 /**
  * Hook for creating and managing a TanStack Table instance using URL parameters
  * @param options - Configuration options for the table instance
@@ -74,7 +94,7 @@ export function useTableInstance<TData>({
   enableSorting = true,
   getRowId,
   onRowSelectionChange,
-  pageCount = 0,
+  pageCount,
   rowSelection: externalRowSelection,
   tableId,
 }: UseTableInstanceOptions<TData>) {
@@ -464,7 +484,11 @@ export function useTableInstance<TData>({
     onPaginationChange: handlePaginationChange,
     onRowSelectionChange: handleRowSelectionChange,
     onSortingChange: handleSortingChange,
-    pageCount: pageCount || Math.ceil(data.length / pagination.pageSize),
+    pageCount: resolveTablePageCount({
+      dataLength: data.length,
+      pageCount,
+      pageSize: pagination.pageSize,
+    }),
     state: {
       columnFilters: Array.isArray(filtersParam)
         ? (filtersParam as ColumnFiltersState)

@@ -595,7 +595,9 @@ function ModernDataTable<
     error,
     isError,
     isLoading,
+    pageCount,
     refetch,
+    rowCount,
     state,
   } = dataTableResult;
 
@@ -813,6 +815,7 @@ function ModernDataTable<
       enableGrouping,
       enableSorting,
       getRowId,
+      pageCount,
       tableId: tableId || "",
     }),
     [
@@ -826,6 +829,7 @@ function ModernDataTable<
       enableGrouping,
       enableSorting,
       getRowId,
+      pageCount,
       tableId,
     ]
   );
@@ -1642,6 +1646,7 @@ function ModernDataTable<
               pageSizeOptions={
                 tableConfig.table.pageSizeOptions || [10, 20, 50, 100, 200, 500]
               }
+              rowCount={rowCount}
               table={table}
             />
           )}
