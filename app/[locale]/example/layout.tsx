@@ -7,6 +7,7 @@ import { Suspense } from "react";
 import { SiteHeader } from "@/src/components/site/site-header";
 import { Toaster } from "@/src/components/ui/sonner";
 import { type AppLocale, routing } from "@/src/i18n/routing";
+import { createPageMetadata } from "@/src/lib/metadata";
 
 export async function generateMetadata({
   params,
@@ -20,18 +21,15 @@ export async function generateMetadata({
   }
 
   const t = await getTranslations({ locale, namespace: "Metadata" });
+  const currentLocale = locale as AppLocale;
 
-  return {
-    title: t("exampleTitle"),
+  return createPageMetadata({
     description: t("exampleDescription"),
-    alternates: {
-      canonical: locale === "fr" ? "/fr/example" : "/example",
-      languages: {
-        en: "/example",
-        fr: "/fr/example",
-      },
-    },
-  };
+    locale: currentLocale,
+    noIndex: true,
+    pathname: "/example",
+    title: t("exampleTitle"),
+  });
 }
 
 export default async function ExampleLayout({

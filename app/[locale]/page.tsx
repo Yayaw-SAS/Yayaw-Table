@@ -17,6 +17,8 @@ import { SiteHeader } from "@/src/components/site/site-header";
 import { buttonVariants } from "@/src/components/ui/button-styles";
 import { getLocalizedHref } from "@/src/i18n/pathnames";
 import { type AppLocale, routing } from "@/src/i18n/routing";
+import { createPageMetadata } from "@/src/lib/metadata";
+import { getSiteUrl } from "@/src/lib/site-config";
 
 const CASE_ICONS = {
   catalog: Layers3,
@@ -55,9 +57,36 @@ export default async function HomePage({
   const exampleHref = getLocalizedHref(currentLocale, "/example");
   const installHref = getLocalizedHref(currentLocale, "/docs/installation");
   const installCommand = common("installCommand");
+  const softwareSchema = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    applicationCategory: "DeveloperApplication",
+    description: t("heroDescription"),
+    inLanguage: locale,
+    isAccessibleForFree: true,
+    name: "YaYaw Table",
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "EUR",
+    },
+    operatingSystem: "Web",
+    url: getSiteUrl(getLocalizedHref(currentLocale, "/")),
+  };
+  const websiteSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    description: t("heroDescription"),
+    inLanguage: locale,
+    name: "YaYaw Table",
+    url: getSiteUrl(getLocalizedHref(currentLocale, "/")),
+  };
 
   return (
     <div className="relative min-h-screen bg-site-gradient">
+      <script type="application/ld+json">
+        {JSON.stringify([softwareSchema, websiteSchema])}
+      </script>
       <SiteHeader
         installCommand={installCommand}
         labels={{
@@ -101,6 +130,7 @@ export default async function HomePage({
             <Link
               className={buttonVariants({ size: "lg", variant: "secondary" })}
               href={exampleHref}
+              prefetch={false}
             >
               {t("ctaExample")}
             </Link>
@@ -278,16 +308,12 @@ export async function generateMetadata({
   }
 
   const t = await getTranslations({ locale, namespace: "Metadata" });
+  const currentLocale = locale as AppLocale;
 
-  return {
-    title: t("homeTitle"),
+  return createPageMetadata({
     description: t("homeDescription"),
-    alternates: {
-      canonical: locale === "fr" ? "/fr" : "/",
-      languages: {
-        en: "/",
-        fr: "/fr",
-      },
-    },
-  };
+    locale: currentLocale,
+    pathname: "/",
+    title: t("homeTitle"),
+  });
 }
