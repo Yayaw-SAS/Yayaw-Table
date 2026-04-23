@@ -1,13 +1,13 @@
 {
   "Metadata": {
     "siteTitle": "YaYaw Table",
-    "siteDescription": "The table system vibe coders love and other devs wish they had: production-ready React tables with filters, URL state and full code ownership.",
-    "homeTitle": "Vibe coders' favorite table system",
-    "homeDescription": "Ship production-ready React tables faster with the system that makes other devs jealous: Shadcn-friendly, filter-heavy, URL-native and fully yours.",
-    "exampleTitle": "YaYaw Table - Live example",
+    "siteDescription": "Open-source React data table for Shadcn UI and TanStack Table, with URL state, server-side workflows, bulk actions, and full code ownership.",
+    "homeTitle": "Open-Source React Data Table for Shadcn UI",
+    "homeDescription": "Build production-ready React data tables with Shadcn UI and TanStack Table. URL state, server-side filtering, bulk actions, i18n, and full code ownership.",
+    "exampleTitle": "YaYaw Table Demo",
     "exampleDescription": "Explore a real interactive YaYaw Table setup with server-side pagination, filters, grouping and bulk actions.",
     "docsTitle": "YaYaw Table Documentation",
-    "docsDescription": "Install, configure and ship YaYaw Table in production with complete guides and API references."
+    "docsDescription": "Install, configure, and ship an open-source React data table for Shadcn UI and TanStack Table with complete guides and API references."
   },
   "Common": {
     "installCommand": "npx shadcn@latest add https://table.yayaw.eu/r/yayaw-table.json",
@@ -33,9 +33,9 @@
   "Home": {
     "badgeA": "Shadcn Registry",
     "badgeB": "Production-ready",
-    "heroTitleLead": "Vibe coders' favorite",
-    "heroTitleAccent": "table system. The one making other devs jealous.",
-    "heroDescription": "YaYaw Table helps teams ship serious tables faster: advanced filters, URL state, bulk flows and i18n in a Shadcn-friendly system you fully own.",
+    "heroTitleLead": "Open-source React data table",
+    "heroTitleAccent": "for Shadcn UI and TanStack Table.",
+    "heroDescription": "YaYaw Table helps teams ship production-ready data tables faster with advanced filters, URL state, bulk actions, i18n, and full code ownership.",
     "ctaInstall": "Install now",
     "ctaExample": "Open live example",
     "ctaDocs": "Read docs",

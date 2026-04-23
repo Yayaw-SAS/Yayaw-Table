@@ -88,6 +88,7 @@ export function SiteHeader({
                 }`}
                 href={item.href}
                 key={item.href}
+                prefetch={item.matchPathname === "/example" ? false : undefined}
               >
                 {item.label}
               </Link>
@@ -137,6 +138,7 @@ export function SiteHeader({
                 href={item.href}
                 key={item.href}
                 onClick={() => setIsOpen(false)}
+                prefetch={item.matchPathname === "/example" ? false : undefined}
               >
                 {item.label}
               </Link>
