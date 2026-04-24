@@ -4,10 +4,13 @@ export const routing = defineRouting({
   locales: ["en", "fr"],
   defaultLocale: "en",
   localePrefix: "as-needed",
-  // Disable locale cookies and automatic detection so localized pages stay
-  // cache-friendly and map to stable URLs.
-  localeCookie: false,
-  localeDetection: false,
+  // Keep stable localized URLs, but detect the browser locale on first visit
+  // and persist a manual language choice afterward.
+  localeCookie: {
+    maxAge: 60 * 60 * 24 * 365,
+    sameSite: "lax",
+  },
+  localeDetection: true,
 });
 
 export type AppLocale = (typeof routing.locales)[number];
