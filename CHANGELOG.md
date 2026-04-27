@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0
+
+### Minor Changes
+
+- ae3ce5c: Add Shadcn CLI v4 registry support with optional base and font items, root URL content negotiation, and documented inspection workflows.
+
+### Patch Changes
+
+- c90106b: Add Changesets-based versioning and immutable Shadcn registry release snapshots.
+
 ## Unreleased
 
 ### Added
@@ -26,10 +36,12 @@
 ### BREAKING CHANGES
 
 1. **Implicit internal QueryClient removed**
+
    - YaYaw Table no longer creates a default QueryClient.
    - You must provide a shared `QueryClientProvider` (recommended) or pass a shared `queryClient` explicitly.
 
 2. **Duplicate QueryClient detection**
+
    - If `queryClient` prop and provider client are both present but different instances, YaYaw Table throws an explicit error.
 
 3. **Bulk callback contract normalization**
