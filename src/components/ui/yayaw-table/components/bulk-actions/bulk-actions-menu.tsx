@@ -180,10 +180,11 @@ export function getBulkActionsMenuWrapperClassName({
   positionMode: BulkActionsMenuPositionMode;
 }): string {
   return cn(
-    "z-50 flex w-full justify-center px-4",
+    "bottom-6 z-50 flex w-full justify-center px-4",
     "pointer-events-none fade-in-0 slide-in-from-bottom-2 animate-in",
     "duration-300 ease-out",
-    positionMode === "fixed" && "fixed inset-x-0 bottom-6",
+    positionMode === "anchored" && "absolute inset-x-0",
+    positionMode === "fixed" && "fixed inset-x-0",
     className
   );
 }

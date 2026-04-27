@@ -82,7 +82,7 @@ const ROW_CLICK_INTERACTIVE_SELECTOR =
 const ROW_CLICK_SYSTEM_COLUMN_SELECTOR =
   '[data-column-id="select"], [data-column-id="actions"]';
 const BULK_ACTIONS_ANCHOR_VIEWPORT_OPTIONS = {
-  threshold: 0,
+  threshold: 1,
 } as const;
 
 export const shouldShowCalculationsFooter = ({
@@ -1618,63 +1618,68 @@ function ModernDataTable<
         onDragStart={handleDragStartWithOverlay}
         sensors={columnSensors}
       >
-        <div className="space-y-4">
-          <div className="relative overflow-hidden rounded-md border">
-            {/* Show loading overlay during data fetches when we already have data */}
-            {isLoading && data && data.length > 0 && loadingOverlay}
+        <div className="relative">
+          <div className="space-y-4">
+            <div className="relative overflow-hidden rounded-md border">
+              {/* Show loading overlay during data fetches when we already have data */}
+              {isLoading && data && data.length > 0 && loadingOverlay}
 
-            {/* Container for the table */}
-            <div
-              className={cn("relative w-full overflow-auto", "contain-paint")}
-              ref={tableRef}
-            >
-              <Table className={cn("w-full", className)}>
-                {tableHeader}
-                {tableBodyContent}
-                {showCalculationsFooter && (
-                  <TableFooter className="sticky bottom-0 z-10 overflow-hidden rounded-b-md bg-card">
-                    <FooterRow
-                      densityMode={densityMode}
-                      table={table}
-                      tableId={tableId}
-                      tableType={resolvedTableType}
-                    />
-                  </TableFooter>
-                )}
-              </Table>
+              {/* Container for the table */}
+              <div
+                className={cn("relative w-full overflow-auto", "contain-paint")}
+                ref={tableRef}
+              >
+                <Table className={cn("w-full", className)}>
+                  {tableHeader}
+                  {tableBodyContent}
+                  {showCalculationsFooter && (
+                    <TableFooter className="sticky bottom-0 z-10 overflow-hidden rounded-b-md bg-card">
+                      <FooterRow
+                        densityMode={densityMode}
+                        table={table}
+                        tableId={tableId}
+                        tableType={resolvedTableType}
+                      />
+                    </TableFooter>
+                  )}
+                </Table>
+              </div>
             </div>
+
+            {/* Pagination is outside the table container to avoid focus issues */}
+            {enablePagination && (
+              <SafePagination
+                pageSizeOptions={
+                  tableConfig.table.pageSizeOptions || [
+                    10, 20, 50, 100, 200, 500,
+                  ]
+                }
+                table={table}
+              />
+            )}
           </div>
 
-          {/* Pagination is outside the table container to avoid focus issues */}
-          {enablePagination && (
-            <SafePagination
-              pageSizeOptions={
-                tableConfig.table.pageSizeOptions || [10, 20, 50, 100, 200, 500]
-              }
-              table={table}
-            />
-          )}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-px"
+            ref={bulkActionsAnchorRef}
+          />
 
           {bulkActions.showBulkActions && (
-            <div
-              className="flex min-h-16 items-end justify-center"
-              ref={bulkActionsAnchorRef}
-            >
-              <BulkActionsMenu
-                onBulkCopy={bulkActions.handleBulkCopy}
-                onBulkDelete={bulkActions.handleBulkDelete}
-                onBulkEdit={bulkActions.handleBulkEdit}
-                onBulkExport={bulkActions.handleBulkExport}
-                onClose={bulkActions.closeBulkActions}
-                positionMode={getBulkActionsMenuPositionMode(
-                  isBulkActionsAnchorVisible
-                )}
-                selectedRows={bulkActions.selectedRows}
-                showBulkDelete={bulkActions.isBulkDeleteEnabled}
-                showBulkEdit={bulkActions.isBulkEditEnabled}
-                showBulkExport={bulkActions.isBulkExportEnabled}
-              />
-            </div>
+            <BulkActionsMenu
+              onBulkCopy={bulkActions.handleBulkCopy}
+              onBulkDelete={bulkActions.handleBulkDelete}
+              onBulkEdit={bulkActions.handleBulkEdit}
+              onBulkExport={bulkActions.handleBulkExport}
+              onClose={bulkActions.closeBulkActions}
+              positionMode={getBulkActionsMenuPositionMode(
+                isBulkActionsAnchorVisible
+              )}
+              selectedRows={bulkActions.selectedRows}
+              showBulkDelete={bulkActions.isBulkDeleteEnabled}
+              showBulkEdit={bulkActions.isBulkEditEnabled}
+              showBulkExport={bulkActions.isBulkExportEnabled}
+            />
           )}
         </div>
 

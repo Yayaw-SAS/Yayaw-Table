@@ -11,6 +11,7 @@ import {
 
 const FIXED_INSET_PATTERN = /\binset-x-0\b/;
 const FIXED_POSITIONING_PATTERN = /\bfixed\b/;
+const ANCHORED_POSITIONING_PATTERN = /\babsolute\b/;
 const VIEWPORT_OFFSET_PATTERN = /\bbottom-6\b/;
 
 function createSelectedRows(ids: string[]): Row<Record<string, unknown>>[] {
@@ -41,10 +42,12 @@ describe("bulk confirmation flow", () => {
     });
 
     assert.doesNotMatch(anchoredClassName, FIXED_POSITIONING_PATTERN);
-    assert.doesNotMatch(anchoredClassName, FIXED_INSET_PATTERN);
+    assert.match(anchoredClassName, ANCHORED_POSITIONING_PATTERN);
+    assert.match(anchoredClassName, FIXED_INSET_PATTERN);
     assert.match(fixedClassName, FIXED_POSITIONING_PATTERN);
     assert.match(fixedClassName, FIXED_INSET_PATTERN);
     assert.match(fixedClassName, VIEWPORT_OFFSET_PATTERN);
+    assert.match(anchoredClassName, VIEWPORT_OFFSET_PATTERN);
   });
 
   it("delete confirm triggers handler exactly once", async () => {
