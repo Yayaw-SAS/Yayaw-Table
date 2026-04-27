@@ -38,6 +38,7 @@ const SRC_YAYAW_TABLE = path.join(
 const SRC_UI_CUSTOM = path.join(ROOT, "src", "components", "ui", "custom");
 const UI_CUSTOM_FILES = ["loader.tsx", "icon.tsx", "stack-menu.tsx"];
 const PACKAGE_JSON_PATH = path.join(ROOT, "package.json");
+const TABLE_REGISTRY_ITEM_NAME = "yayaw-table";
 
 const REGEX_TSX_CSS = /\.(tsx?|css)$/;
 const REGEX_TS_EXT = /\.(tsx?|ts)$/;
@@ -219,6 +220,20 @@ function pinDependencyVersion(specifier, dependencyVersions) {
   return `${name}@${configuredVersion}`;
 }
 
+function pinDependencyList(dependencies, dependencyVersions) {
+  if (!Array.isArray(dependencies)) {
+    return dependencies;
+  }
+
+  return dependencies.map((dependency) =>
+    pinDependencyVersion(dependency, dependencyVersions)
+  );
+}
+
+function getRegistryItemUrl(homepage, itemName) {
+  return `${homepage}/r/${itemName}.json`;
+}
+
 // --- main ---
 
 const packageJson = readJson(PACKAGE_JSON_PATH);
@@ -268,20 +283,41 @@ const files = allRels.map((rel) => {
 // 5) Update registry.json
 const registryPath = path.join(ROOT, "registry", "registry.json");
 const registry = readJson(registryPath);
-const registryItem = registry.items[0];
+const dependencyVersions = {
+  ...(packageJson.dependencies ?? {}),
+  ...(packageJson.devDependencies ?? {}),
+};
 registry.homepage = packageJson.repository.url
   .replace(/^git\+/, "")
   .replace(/\.git$/, "");
-registryItem.files = files;
-registryItem.dependencies = registryItem.dependencies.map((dependency) =>
-  pinDependencyVersion(dependency, packageJson.dependencies)
+
+const tableRegistryItem = registry.items.find(
+  (item) => item.name === TABLE_REGISTRY_ITEM_NAME
 );
-registryItem.meta = {
-  ...(registryItem.meta ?? {}),
-  registryUrl: `${packageJson.homepage}/r/yayaw-table.json`,
-  version: packageJson.version,
-  versionedRegistryUrl: `${packageJson.homepage}/r/v${packageJson.version}/yayaw-table.json`,
-};
+if (!tableRegistryItem) {
+  throw new Error(
+    `Registry item "${TABLE_REGISTRY_ITEM_NAME}" not found in ${registryPath}.`
+  );
+}
+
+tableRegistryItem.files = files;
+
+for (const registryItem of registry.items) {
+  registryItem.dependencies = pinDependencyList(
+    registryItem.dependencies,
+    dependencyVersions
+  );
+  registryItem.devDependencies = pinDependencyList(
+    registryItem.devDependencies,
+    dependencyVersions
+  );
+  registryItem.meta = {
+    ...(registryItem.meta ?? {}),
+    registryUrl: getRegistryItemUrl(packageJson.homepage, registryItem.name),
+    version: packageJson.version,
+    versionedRegistryUrl: `${packageJson.homepage}/r/v${packageJson.version}/${registryItem.name}.json`,
+  };
+}
 fs.writeFileSync(
   registryPath,
   `${JSON.stringify(registry, null, 2)}\n`,

@@ -14,6 +14,9 @@ export const DEFAULT_PACKAGE_MANAGER: PackageManager = "npm";
 export const PACKAGE_MANAGER_STORAGE_KEY = "yayaw-package-manager";
 
 export const LATEST_REGISTRY_URL = "https://table.yayaw.eu/r/yayaw-table.json";
+export const ROOT_REGISTRY_URL = "https://table.yayaw.eu";
+export const YAYAW_BASE_REGISTRY_ITEM = "@yayaw/yayaw-table-base";
+export const YAYAW_FONT_REGISTRY_ITEM = "@yayaw/font-yayaw-sans";
 
 export const isPackageManager = (
   value: string | null | undefined
@@ -21,15 +24,21 @@ export const isPackageManager = (
   return PACKAGE_MANAGERS.includes(value as PackageManager);
 };
 
+export const createShadcnCommands = (
+  command: string
+): PackageManagerCommands => {
+  return {
+    bun: `bunx --bun shadcn@latest ${command}`,
+    npm: `npx shadcn@latest ${command}`,
+    pnpm: `pnpm dlx shadcn@latest ${command}`,
+    yarn: `yarn dlx shadcn@latest ${command}`,
+  };
+};
+
 export const createShadcnAddCommands = (
   target: string
 ): PackageManagerCommands => {
-  return {
-    bun: `bunx --bun shadcn@latest add ${target}`,
-    npm: `npx shadcn@latest add ${target}`,
-    pnpm: `pnpm dlx shadcn@latest add ${target}`,
-    yarn: `yarn dlx shadcn@latest add ${target}`,
-  };
+  return createShadcnCommands(`add ${target}`);
 };
 
 export const createPackageInstallCommands = (

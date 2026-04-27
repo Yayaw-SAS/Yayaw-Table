@@ -7,6 +7,7 @@ import { Button } from "@/src/components/ui/button";
 import {
   createPackageInstallCommands,
   createShadcnAddCommands,
+  createShadcnCommands,
   PACKAGE_MANAGERS,
   type PackageManagerCommands,
 } from "@/src/lib/package-manager";
@@ -148,6 +149,21 @@ export function DependencyInstallTabs({
     <PackageManagerTabs
       className={className}
       commands={createPackageInstallCommands(packageName)}
+    />
+  );
+}
+
+export function ShadcnCommandTabs({
+  className,
+  command,
+}: {
+  className?: string;
+  command: string;
+}) {
+  return (
+    <PackageManagerTabs
+      className={className}
+      commands={createShadcnCommands(command)}
     />
   );
 }

@@ -45,17 +45,30 @@ function writeImmutableFile(sourcePath, targetPath) {
   fs.writeFileSync(targetPath, sourceContent);
 }
 
-const latestItemPath = path.join(PUBLIC_REGISTRY_DIR, "yayaw-table.json");
 const latestIndexPath = path.join(PUBLIC_REGISTRY_DIR, "registry.json");
-const versionedItemPath = path.join(versionedRegistryDir, "yayaw-table.json");
 const versionedIndexPath = path.join(versionedRegistryDir, "registry.json");
 
-assertFileExists(latestItemPath, "Latest registry item");
 assertFileExists(latestIndexPath, "Latest registry index");
 fs.mkdirSync(versionedRegistryDir, { recursive: true });
 
-writeImmutableFile(latestItemPath, versionedItemPath);
+const latestRegistry = JSON.parse(fs.readFileSync(latestIndexPath, "utf8"));
+const itemFileNames = latestRegistry.items.map((item) => `${item.name}.json`);
+
+for (const itemFileName of itemFileNames) {
+  assertFileExists(
+    path.join(PUBLIC_REGISTRY_DIR, itemFileName),
+    `Latest registry item ${itemFileName}`
+  );
+}
+
 writeImmutableFile(latestIndexPath, versionedIndexPath);
+
+for (const itemFileName of itemFileNames) {
+  writeImmutableFile(
+    path.join(PUBLIC_REGISTRY_DIR, itemFileName),
+    path.join(versionedRegistryDir, itemFileName)
+  );
+}
 
 fs.writeFileSync(
   releaseManifestPath,
@@ -64,10 +77,20 @@ fs.writeFileSync(
       name: "yayaw-table",
       version,
       files: {
-        item: "yayaw-table.json",
         registry: "registry.json",
+        items: Object.fromEntries(
+          latestRegistry.items.map((item) => [item.name, `${item.name}.json`])
+        ),
       },
-      latest: "../yayaw-table.json",
+      latest: {
+        registry: "../registry.json",
+        items: Object.fromEntries(
+          latestRegistry.items.map((item) => [
+            item.name,
+            `../${item.name}.json`,
+          ])
+        ),
+      },
     },
     null,
     2
@@ -75,4 +98,6 @@ fs.writeFileSync(
   "utf8"
 );
 
-console.log(`Created registry snapshot public/r/v${version}/yayaw-table.json`);
+console.log(
+  `Created registry snapshot public/r/v${version}/ for ${itemFileNames.length} item(s)`
+);
