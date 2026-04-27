@@ -142,6 +142,7 @@ interface ActionTab {
 
 type MenuActionId = "copy" | "delete" | "edit" | "export" | "selectAll";
 type ConfirmableMenuActionId = "copy" | "delete";
+type ExecutableBulkActionId = Exclude<MenuActionId, "selectAll">;
 export type BulkActionsMenuPositionMode = "anchored" | "fixed";
 
 interface BulkMenuOutsideClickState {
@@ -151,7 +152,10 @@ interface BulkMenuOutsideClickState {
   showConfirmation: boolean;
 }
 
-const DEFAULT_BULK_ACTION_RESULTS: Record<MenuActionId, BulkActionResult> = {
+const DEFAULT_BULK_ACTION_RESULTS: Record<
+  ExecutableBulkActionId,
+  BulkActionResult
+> = {
   copy: {
     clearSelection: false,
     closeMenu: true,
