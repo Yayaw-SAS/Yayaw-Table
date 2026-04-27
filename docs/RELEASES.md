@@ -18,6 +18,13 @@ yarn dlx shadcn@latest add https://table.yayaw.eu/r/yayaw-table.json
 bunx --bun shadcn@latest add https://table.yayaw.eu/r/yayaw-table.json
 ```
 
+The shadcn CLI v4 can also install the default item from the site root via
+content negotiation:
+
+```bash
+npx shadcn@latest add https://table.yayaw.eu
+```
+
 Pinned installs use a release snapshot:
 
 ```bash
@@ -28,6 +35,13 @@ npx shadcn@latest add https://table.yayaw.eu/r/v0.1.0/yayaw-table.json
 yarn dlx shadcn@latest add https://table.yayaw.eu/r/v0.1.0/yayaw-table.json
 # or
 bunx --bun shadcn@latest add https://table.yayaw.eu/r/v0.1.0/yayaw-table.json
+```
+
+Optional CLI v4 items are published alongside the default block:
+
+```bash
+npx shadcn@latest add @yayaw/yayaw-table-base
+npx shadcn@latest add @yayaw/font-yayaw-sans
 ```
 
 ## Version policy
@@ -57,7 +71,7 @@ released as a `minor` bump and clearly documented as breaking in the changelog.
    ```
 
    This runs `changeset version`, updates `CHANGELOG.md`, rebuilds the latest
-   registry JSON, and writes `public/r/vX.Y.Z/yayaw-table.json`.
+   registry JSON, and writes every generated item into `public/r/vX.Y.Z/`.
 
 3. Verify before tagging:
 
@@ -73,19 +87,22 @@ released as a `minor` bump and clearly documented as breaking in the changelog.
    git push origin main --tags
    ```
 
-The tag workflow verifies that the committed versioned snapshot exists and then
-creates a GitHub release with the registry JSON attached. Release notes are
-generated automatically by GitHub from merged PRs and commits since the
-previous release, with the pinned install command prepended.
+The tag workflow verifies that the committed versioned snapshot exists for
+every registry item and then creates a GitHub release with the registry JSON
+files attached. Release notes are generated automatically by GitHub from
+merged PRs and commits since the previous release, with the pinned install
+command prepended.
 
 ## Registry snapshots
 
 `bun run registry:build` updates the latest files in `public/r/`.
 
 `bun run registry:release` updates the latest files and creates the versioned
-snapshot for the current `package.json` version.
+snapshot for the current `package.json` version. The snapshot includes
+`registry.json`, `yayaw-table.json`, `font-yayaw-sans.json`, and
+`yayaw-table-base.json`.
 
-Versioned snapshots are immutable. If `public/r/vX.Y.Z/yayaw-table.json` already
+Versioned snapshots are immutable. If any file under `public/r/vX.Y.Z/` already
 exists with different content, bump the version before releasing. Use
 `ALLOW_VERSION_SNAPSHOT_OVERWRITE=1 bun run registry:snapshot` only for a
 deliberate repair of an unpublished or broken snapshot.

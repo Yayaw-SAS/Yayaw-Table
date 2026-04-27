@@ -3,6 +3,7 @@ import type { MDXComponents } from "mdx/types";
 import {
   DependencyInstallTabs,
   RegistryInstallTabs,
+  ShadcnCommandTabs,
 } from "@/src/components/site/package-manager-tabs";
 
 export function getMDXComponents(components?: MDXComponents): MDXComponents {
@@ -10,6 +11,7 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     ...defaultMdxComponents,
     DependencyInstallTabs,
     RegistryInstallTabs,
+    ShadcnCommandTabs,
     ...components,
   };
 }

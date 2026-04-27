@@ -57,12 +57,13 @@ jobs:
           npx shadcn@latest add https://table.yayaw.eu/r/${RELEASE_TAG}/yayaw-table.json
           \`\`\`
 
+          Optional CLI v4 base and font registry items are attached to this release.
+
           EOF
           )
 
           gh release create "$RELEASE_TAG" \
-            public/r/"$RELEASE_TAG"/yayaw-table.json \
-            public/r/"$RELEASE_TAG"/release.json \
+            public/r/"$RELEASE_TAG"/*.json \
             --repo "$GITHUB_REPOSITORY" \
             --verify-tag \
             --title "$RELEASE_TAG" \

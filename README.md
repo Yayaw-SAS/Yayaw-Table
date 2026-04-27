@@ -60,7 +60,37 @@ yarn dlx shadcn@latest add @yayaw/yayaw-table
 bunx --bun shadcn@latest add @yayaw/yayaw-table
 ```
 
+With shadcn CLI v4, the site root also supports content negotiation for CLI
+requests:
+
+```bash
+npx shadcn@latest add https://table.yayaw.eu
+```
+
 The CLI copies the code to `components/ui/yayaw-table` (or your `ui` alias) and installs required dependencies.
+
+Optional CLI v4 registry items are available for new projects that want a
+YaYaw-ready baseline:
+
+```bash
+npx shadcn@latest add @yayaw/yayaw-table-base
+npx shadcn@latest add @yayaw/font-yayaw-sans
+```
+
+These are additive. Installing `yayaw-table` directly remains the default
+backward-compatible path.
+
+Useful shadcn CLI v4 inspection commands:
+
+```bash
+npx shadcn@latest add https://table.yayaw.eu/r/yayaw-table.json --dry-run
+npx shadcn@latest add https://table.yayaw.eu/r/yayaw-table.json --diff
+npx shadcn@latest add https://table.yayaw.eu/r/yayaw-table.json --view
+npx shadcn@latest view @yayaw/yayaw-table
+npx shadcn@latest search @yayaw
+npx shadcn@latest list @yayaw
+npx shadcn@latest info --json
+```
 
 ## Quick start
 

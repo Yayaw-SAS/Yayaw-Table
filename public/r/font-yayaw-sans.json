@@ -1,0 +1,22 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "font-yayaw-sans",
+  "title": "YaYaw Sans Font",
+  "description": "Optional YaYaw Table font preset using Plus Jakarta Sans as the project sans font.",
+  "meta": {
+    "registryUrl": "https://table.yayaw.eu/r/font-yayaw-sans.json",
+    "version": "0.1.0",
+    "versionedRegistryUrl": "https://table.yayaw.eu/r/v0.1.0/font-yayaw-sans.json"
+  },
+  "docs": "Installs the optional YaYaw Table sans font preset. This item is additive; installing `yayaw-table` does not require it.",
+  "categories": ["font", "theme", "yayaw-table"],
+  "type": "registry:font",
+  "font": {
+    "family": "'Plus Jakarta Sans Variable', sans-serif",
+    "provider": "google",
+    "import": "Plus_Jakarta_Sans",
+    "variable": "--font-sans",
+    "subsets": ["latin"],
+    "dependency": "@fontsource-variable/plus-jakarta-sans@^5.2.8"
+  }
+}

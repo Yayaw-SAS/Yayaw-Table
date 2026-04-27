@@ -27,11 +27,56 @@ If your project has the YaYaw registry namespace configured (`@yayaw`), you can 
 
 <RegistryInstallTabs target="@yayaw/yayaw-table" />
 
+With shadcn CLI v4, the root site URL also works for CLI installs through
+content negotiation:
+
+<RegistryInstallTabs target="https://table.yayaw.eu" />
+
 The CLI will:
 
 - Add missing Shadcn components we depend on
 - Copy YaYaw Table files under your `ui` alias (for example `@/components/ui/yayaw-table`)
 - Install required npm dependencies (`@tanstack/react-table`, `jotai`, `lucide-react`, etc.)
+
+## Optional CLI v4 items
+
+For new projects that want a YaYaw-ready Shadcn baseline, install the optional
+base item:
+
+<RegistryInstallTabs target="@yayaw/yayaw-table-base" />
+
+The base item configures `base-vega`, `lucide`, TypeScript, React Server
+Components, the neutral base color, the `@yayaw` registry namespace, the
+optional YaYaw Sans font, and YaYaw Table itself.
+
+You can also install only the font preset:
+
+<RegistryInstallTabs target="@yayaw/font-yayaw-sans" />
+
+These items are additive. Existing projects can keep installing `yayaw-table`
+directly.
+
+## Inspect before installing
+
+The shadcn CLI v4 can inspect registry payloads before writing files:
+
+<ShadcnCommandTabs command="add https://table.yayaw.eu/r/yayaw-table.json --dry-run" />
+
+<ShadcnCommandTabs command="add https://table.yayaw.eu/r/yayaw-table.json --diff" />
+
+<ShadcnCommandTabs command="add https://table.yayaw.eu/r/yayaw-table.json --view" />
+
+You can also inspect or discover registry items:
+
+<ShadcnCommandTabs command="view @yayaw/yayaw-table" />
+
+<ShadcnCommandTabs command="search @yayaw" />
+
+<ShadcnCommandTabs command="list @yayaw" />
+
+To capture local project context for debugging or agent workflows:
+
+<ShadcnCommandTabs command="info --json" />
 
 ## First usage
 

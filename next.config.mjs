@@ -4,6 +4,7 @@ import createNextIntlPlugin from "next-intl/plugin";
 
 const withMDX = createMDX();
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
+const registryVaryHeaders = [{ key: "Vary", value: "Accept, User-Agent" }];
 
 /** @type {import('next').NextConfig} */
 const config = {
@@ -19,6 +20,14 @@ const config = {
       jotai: resolve("./node_modules/jotai"),
     };
     return webpackConfig;
+  },
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: registryVaryHeaders,
+      },
+    ];
   },
 };
 
