@@ -6,7 +6,15 @@
 
 import type { Row } from "@tanstack/react-table";
 import { AnimatePresence, domAnimation, LazyMotion, m } from "framer-motion";
-import { Copy, Download, Edit, Trash2, X } from "lucide-react";
+import {
+  CheckCheck,
+  Copy,
+  Download,
+  Edit,
+  Loader2,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useRef, useState } from "react";
 import { useOnClickOutside } from "usehooks-ts";
 import {
@@ -95,6 +103,26 @@ export interface BulkActionsMenuProps<TData> {
    * Controls whether the menu is anchored to the table or fixed to the viewport.
    */
   positionMode?: BulkActionsMenuPositionMode;
+
+  /**
+   * Whether the menu should show a cross-page select all action.
+   */
+  canSelectAll?: boolean;
+
+  /**
+   * Total number of rows that can be selected across pages.
+   */
+  selectAllCount?: number;
+
+  /**
+   * Callback to select all matching rows across pages.
+   */
+  onSelectAll?: () => Promise<void> | void;
+
+  /**
+   * Whether the cross-page selection is loading.
+   */
+  isSelectingAll?: boolean;
 }
 
 // Configuration pour les tabs d'actions
@@ -180,11 +208,11 @@ export function getBulkActionsMenuWrapperClassName({
   positionMode: BulkActionsMenuPositionMode;
 }): string {
   return cn(
-    "bottom-6 z-50 flex w-full justify-center px-4",
+    "z-50 flex w-full justify-center",
     "fade-in-0 slide-in-from-bottom-2 pointer-events-none animate-in",
     "duration-300 ease-out",
-    positionMode === "anchored" && "absolute inset-x-0",
-    positionMode === "fixed" && "fixed inset-x-0",
+    positionMode === "anchored" && "px-0",
+    positionMode === "fixed" && "fixed inset-x-0 bottom-6 px-4",
     className
   );
 }
@@ -341,6 +369,10 @@ export function BulkActionsMenu<TData>({
   showBulkEdit = true,
   showBulkDelete = true,
   positionMode = "anchored",
+  canSelectAll = false,
+  selectAllCount,
+  onSelectAll,
+  isSelectingAll = false,
 }: BulkActionsMenuProps<TData>) {
   const [selectedAction, setSelectedAction] =
     useState<ConfirmableMenuActionId | null>(null);
@@ -351,6 +383,7 @@ export function BulkActionsMenu<TData>({
   const confirmationLockRef = useRef(false);
   const outsideClickRef = useRef<HTMLDivElement>(null);
   const { t } = useTranslations();
+  const showSelectAllAction = canSelectAll && typeof onSelectAll === "function";
 
   // Action visibility is driven by explicit props.
   const actionTabs: ActionTab[] = [
@@ -483,6 +516,14 @@ export function BulkActionsMenu<TData>({
     onClose?.();
   };
 
+  const handleSelectAll = () => {
+    if (!onSelectAll || isSelectingAll) {
+      return;
+    }
+
+    return Promise.resolve(onSelectAll());
+  };
+
   const getSelectedAction = () => {
     return actionTabs.find((tab) => tab.id === selectedAction);
   };
@@ -565,6 +606,36 @@ export function BulkActionsMenu<TData>({
                 {t("selection.rows", { count: selectedCount })}
               </span>
             </div>
+
+            {showSelectAllAction ? (
+              <>
+                <div
+                  aria-hidden="true"
+                  className="mx-1 h-[24px] w-[1.2px] bg-border/80"
+                />
+                <Button
+                  className="h-auto rounded-xl px-4 py-2 text-secondary-foreground/70 hover:bg-background/80 hover:text-secondary-foreground"
+                  disabled={isSelectingAll}
+                  onClick={handleSelectAll}
+                  size="sm"
+                  type="button"
+                  variant="ghost"
+                >
+                  {isSelectingAll ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <CheckCheck className="h-4 w-4" />
+                  )}
+                  <span className="whitespace-nowrap">
+                    {isSelectingAll
+                      ? t("common.loading")
+                      : t("bulk.select_all", {
+                          count: selectAllCount ?? selectedCount,
+                        })}
+                  </span>
+                </Button>
+              </>
+            ) : null}
 
             {/* Action tabs */}
             {actionTabs.map((tab) => {

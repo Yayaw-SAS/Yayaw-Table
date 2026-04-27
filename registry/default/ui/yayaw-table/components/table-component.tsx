@@ -95,6 +95,16 @@ export const shouldShowCalculationsFooter = ({
   return enableCalculations !== false && isFooterVisible;
 };
 
+export const shouldRenderBulkActionsInFooter = ({
+  enablePagination,
+  isTableBottomVisible,
+}: {
+  enablePagination: boolean;
+  isTableBottomVisible: boolean;
+}): boolean => {
+  return enablePagination && isTableBottomVisible;
+};
+
 interface ColumnSizingDefinition {
   maxSize?: number;
   minSize?: number;
@@ -604,6 +614,7 @@ function ModernDataTable<
     error,
     isError,
     isLoading,
+    rowCount,
     refetch,
     state,
   } = dataTableResult;
@@ -856,18 +867,6 @@ function ModernDataTable<
     }
   }, [state.grouping, refetch]);
 
-  // Handle row selection changes (use core row model so selection is correct with grouping)
-  useEffect(() => {
-    if (onRowSelectionChange && table) {
-      const currentSelection = table.getState().rowSelection;
-      const rows = table.getCoreRowModel().rows;
-      const selectedRows = rows.filter(
-        (row) => currentSelection[row.id]
-      ) as Row<TData>[];
-      onRowSelectionChange(selectedRows);
-    }
-  }, [table, onRowSelectionChange]);
-
   // Auto-expand all groups when a grouping is active so leaf rows are visible by default
   useEffect(() => {
     if (!table) {
@@ -989,8 +988,13 @@ function ModernDataTable<
     onBulkEdit,
     onBulkDelete,
     onBulkCopy,
+    rowCount,
     showDefaultToastsForCustomHandlers,
   });
+
+  useEffect(() => {
+    onRowSelectionChange?.(bulkActions.selectedRows);
+  }, [bulkActions.selectedRows, onRowSelectionChange]);
 
   // Debug bulk actions state
   // Default loading overlay component
@@ -1610,6 +1614,13 @@ function ModernDataTable<
     }
 
     // Otherwise render the full table
+    const renderBulkActionsInFooter =
+      bulkActions.showBulkActions &&
+      shouldRenderBulkActionsInFooter({
+        enablePagination,
+        isTableBottomVisible: isBulkActionsAnchorVisible,
+      });
+
     return (
       <ColumnDndContext
         collisionDetection={columnClosestCenter}
@@ -1649,32 +1660,60 @@ function ModernDataTable<
             {/* Pagination is outside the table container to avoid focus issues */}
             {enablePagination && (
               <SafePagination
+                anchorRef={bulkActionsAnchorRef}
+                footerSlot={
+                  renderBulkActionsInFooter ? (
+                    <BulkActionsMenu
+                      canSelectAll={bulkActions.canSelectAll}
+                      isSelectingAll={bulkActions.isSelectingAll}
+                      onBulkCopy={bulkActions.handleBulkCopy}
+                      onBulkDelete={bulkActions.handleBulkDelete}
+                      onBulkEdit={bulkActions.handleBulkEdit}
+                      onBulkExport={bulkActions.handleBulkExport}
+                      onClose={bulkActions.closeBulkActions}
+                      onSelectAll={bulkActions.handleSelectAll}
+                      positionMode="anchored"
+                      selectAllCount={rowCount}
+                      selectedRows={bulkActions.selectedRows}
+                      showBulkDelete={bulkActions.isBulkDeleteEnabled}
+                      showBulkEdit={bulkActions.isBulkEditEnabled}
+                      showBulkExport={bulkActions.isBulkExportEnabled}
+                    />
+                  ) : undefined
+                }
                 pageSizeOptions={
                   tableConfig.table.pageSizeOptions || [
                     10, 20, 50, 100, 200, 500,
                   ]
                 }
+                rowCount={rowCount}
                 table={table}
               />
             )}
           </div>
 
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-px"
-            ref={bulkActionsAnchorRef}
-          />
+          {enablePagination ? null : (
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-px"
+              ref={bulkActionsAnchorRef}
+            />
+          )}
 
-          {bulkActions.showBulkActions && (
+          {bulkActions.showBulkActions && !renderBulkActionsInFooter && (
             <BulkActionsMenu
+              canSelectAll={bulkActions.canSelectAll}
+              isSelectingAll={bulkActions.isSelectingAll}
               onBulkCopy={bulkActions.handleBulkCopy}
               onBulkDelete={bulkActions.handleBulkDelete}
               onBulkEdit={bulkActions.handleBulkEdit}
               onBulkExport={bulkActions.handleBulkExport}
               onClose={bulkActions.closeBulkActions}
+              onSelectAll={bulkActions.handleSelectAll}
               positionMode={getBulkActionsMenuPositionMode(
                 isBulkActionsAnchorVisible
               )}
+              selectAllCount={rowCount}
               selectedRows={bulkActions.selectedRows}
               showBulkDelete={bulkActions.isBulkDeleteEnabled}
               showBulkEdit={bulkActions.isBulkEditEnabled}

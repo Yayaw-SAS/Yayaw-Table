@@ -25,6 +25,7 @@ const FRENCH_TABLE_TRANSLATIONS: DataTableTranslations = {
     confirm_delete_description: "Cette action est irréversible.",
     confirm_title:
       "{action} {count} {count, plural, one {élément} other {éléments}} ?",
+    select_all: "Sélectionner les {count} lignes",
   },
   columns: {
     ...defaultTableTranslations.columns,
