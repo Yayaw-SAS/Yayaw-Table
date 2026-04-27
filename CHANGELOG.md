@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0
+
+### Minor Changes
+
+- Release the polished French homepage copy and metadata.
+
 ## 0.2.0
 
 ### Minor Changes
