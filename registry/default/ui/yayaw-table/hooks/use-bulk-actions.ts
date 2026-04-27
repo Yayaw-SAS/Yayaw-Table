@@ -5,11 +5,20 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import type { Row, Table } from "@tanstack/react-table";
-import { useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { type CsvExportColumn, exportRowsAsCsv } from "../utils/csv-export";
+import {
+  fetchAllFilteredRows,
+  type TableListAction,
+  toAdvancedFiltersParam,
+  toFiltersParam,
+  toOrderByParam,
+  toPageSize,
+} from "../utils/filtered-rows";
 import { invalidateTableDataQuery } from "./query-cache-utils";
 import { useTableActions } from "./use-table-actions";
+import { useTableUrlState } from "./use-table-url-state";
 
 interface ActionResult {
   success: boolean;
@@ -128,6 +137,11 @@ interface BulkActionsConfig<TData> {
   minimumSelection?: number;
 
   /**
+   * Total number of rows matching the current dataset context.
+   */
+  rowCount?: number;
+
+  /**
    * Optional table type to auto-wire provider actions when callbacks are not provided
    */
   tableId?: string;
@@ -207,6 +221,21 @@ interface BulkActionsReturn<TData> {
    * Close bulk actions menu (clears selection)
    */
   closeBulkActions: () => void;
+
+  /**
+   * Whether the user can extend the selection to all matching rows.
+   */
+  canSelectAll: boolean;
+
+  /**
+   * Select all matching rows across pages.
+   */
+  handleSelectAll: () => Promise<void>;
+
+  /**
+   * Whether the cross-page selection is currently being loaded.
+   */
+  isSelectingAll: boolean;
 }
 
 export interface BulkDeleteExecutionOutcome {
@@ -239,10 +268,22 @@ interface CustomBulkDeleteResultResolution {
   success: boolean;
 }
 
+interface CrossPageSelectionState<TData> {
+  contextKey: string;
+  rowIdsKey: string;
+  rows: Row<TData>[];
+}
+
+interface CrossPageSelectionResult<TData> {
+  rowIds: string[];
+  rows: Row<TData>[];
+}
+
 const DEFAULT_BULK_DELETE_ERROR =
   "Failed to delete selected rows. Please try again.";
 const DEFAULT_NO_VALID_IDS_ERROR =
   "No valid row IDs were found in the selected rows.";
+const DEFAULT_SELECT_ALL_ERROR = "Failed to select all matching rows.";
 
 function toErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error && error.message.trim().length > 0) {
@@ -373,6 +414,136 @@ function readArrayLengthField(
   return;
 }
 
+function getRecordEntityId(
+  record: Record<string, unknown>
+): string | undefined {
+  const candidateId = record.id ?? record._id;
+
+  if (typeof candidateId === "string" && candidateId.trim().length > 0) {
+    return candidateId;
+  }
+
+  if (typeof candidateId === "number" || typeof candidateId === "bigint") {
+    return String(candidateId);
+  }
+
+  return;
+}
+
+function getSelectedRowId<TData>(
+  row: Pick<Row<TData>, "id" | "original">
+): string | undefined {
+  const original = row.original as unknown;
+  if (isRecord(original)) {
+    const originalId = getRecordEntityId(original);
+    if (originalId) {
+      return originalId;
+    }
+  }
+
+  if (typeof row.id === "string" && row.id.trim().length > 0) {
+    return row.id;
+  }
+
+  return;
+}
+
+function getSortedSelectedIds(rowSelection: Record<string, boolean>): string[] {
+  return Object.entries(rowSelection)
+    .filter(([, isSelected]) => isSelected)
+    .map(([rowId]) => rowId)
+    .sort();
+}
+
+export function buildRowSelectionState(
+  rowIds: string[]
+): Record<string, boolean> {
+  const selection: Record<string, boolean> = {};
+
+  for (const rowId of rowIds) {
+    if (rowId.trim().length === 0) {
+      continue;
+    }
+
+    selection[rowId] = true;
+  }
+
+  return selection;
+}
+
+export function createSyntheticSelectedRows<TData>(
+  records: Record<string, unknown>[]
+): Row<TData>[] {
+  const rows: Row<TData>[] = [];
+  const seenIds = new Set<string>();
+
+  for (const record of records) {
+    const rowId = getRecordEntityId(record);
+    if (!rowId || seenIds.has(rowId)) {
+      continue;
+    }
+
+    seenIds.add(rowId);
+    rows.push({
+      id: rowId,
+      original: record as TData,
+    } as Row<TData>);
+  }
+
+  return rows;
+}
+
+export function mergeSelectedRows<TData>({
+  crossPageRows,
+  currentPageRows,
+}: {
+  crossPageRows: Row<TData>[];
+  currentPageRows: Row<TData>[];
+}): Row<TData>[] {
+  const rowsById = new Map<string, Row<TData>>();
+
+  for (const row of crossPageRows) {
+    const rowId = getSelectedRowId(row);
+    if (!rowId) {
+      continue;
+    }
+
+    rowsById.set(rowId, row);
+  }
+
+  for (const row of currentPageRows) {
+    const rowId = getSelectedRowId(row);
+    if (!rowId) {
+      continue;
+    }
+
+    rowsById.set(rowId, row);
+  }
+
+  return [...rowsById.values()];
+}
+
+export function canSelectAllRows({
+  hasListAction,
+  isSelectingAll,
+  rowCount,
+  selectedCount,
+}: {
+  hasListAction: boolean;
+  isSelectingAll: boolean;
+  rowCount?: number;
+  selectedCount: number;
+}): boolean {
+  return (
+    hasListAction &&
+    !isSelectingAll &&
+    typeof rowCount === "number" &&
+    rowCount > 0 &&
+    selectedCount > 0 &&
+    rowCount > selectedCount
+  );
+}
+
 function inferBulkDeleteCounts(
   result: ActionResult,
   totalCount: number
@@ -435,27 +606,45 @@ export function extractSelectedRowIds<TData>(
   const ids = new Set<string>();
 
   for (const row of selectedRows) {
-    const original = row.original as unknown;
-
-    if (isRecord(original) && "id" in original) {
-      const rowId = original.id;
-      if (typeof rowId === "string" && rowId.trim().length > 0) {
-        ids.add(rowId);
-        continue;
-      }
-
-      if (typeof rowId === "number" || typeof rowId === "bigint") {
-        ids.add(String(rowId));
-        continue;
-      }
-    }
-
-    if (typeof row.id === "string" && row.id.trim().length > 0) {
-      ids.add(row.id);
+    const rowId = getSelectedRowId(row);
+    if (rowId) {
+      ids.add(rowId);
     }
   }
 
   return [...ids];
+}
+
+export async function loadAllMatchingRowsForSelection<TData>({
+  advancedFiltersParam,
+  filtersParam,
+  globalSearchParam,
+  listAction,
+  pageSizeParam,
+  sortParam,
+}: {
+  advancedFiltersParam: unknown;
+  filtersParam: unknown;
+  globalSearchParam: string;
+  listAction: TableListAction;
+  pageSizeParam: string;
+  sortParam: unknown;
+}): Promise<CrossPageSelectionResult<TData>> {
+  const rows = await fetchAllFilteredRows({
+    listAction,
+    advancedFilters: toAdvancedFiltersParam(advancedFiltersParam),
+    filters: toFiltersParam(filtersParam),
+    orderBy: toOrderByParam(sortParam),
+    pageSize: toPageSize(pageSizeParam),
+    search: globalSearchParam.trim(),
+  });
+
+  const selectedRows = createSyntheticSelectedRows<TData>(rows);
+
+  return {
+    rowIds: extractSelectedRowIds(selectedRows),
+    rows: selectedRows,
+  };
 }
 
 export async function executeBulkDeleteOperation({
@@ -912,6 +1101,7 @@ export function useBulkActions<TData>({
   bulkExportEnabled = true,
   closeOnError = false,
   csvExportColumns = [],
+  rowCount,
   table,
   onBulkEdit,
   onBulkDelete,
@@ -929,26 +1119,148 @@ export function useBulkActions<TData>({
     enableLogging: false,
   });
   const provider = tableType ? providerResult : undefined;
-  const queryTableId = tableId ?? tableType;
+  const resolvedTableId = tableId ?? tableType ?? "";
+  const queryTableId = resolvedTableId || undefined;
+  const {
+    advancedFiltersParam,
+    filtersParam,
+    globalSearchParam,
+    pageSizeParam,
+    sortParam,
+  } = useTableUrlState({
+    tableId: resolvedTableId,
+  });
+  const [crossPageSelection, setCrossPageSelection] =
+    useState<CrossPageSelectionState<TData> | null>(null);
+  const [isSelectingAll, setIsSelectingAll] = useState(false);
+  const currentRowSelection =
+    table && typeof table.getState === "function"
+      ? table.getState().rowSelection || {}
+      : {};
+  const currentPageSelectedRows = useMemo(() => {
+    if (!table || typeof table.getState !== "function") {
+      return [] as Row<TData>[];
+    }
+
+    const rows = table.getCoreRowModel().rows;
+    return rows.filter((row) => currentRowSelection[row.id]) as Row<TData>[];
+  }, [currentRowSelection, table]);
+  const currentSelectionIds = useMemo(
+    () => getSortedSelectedIds(currentRowSelection),
+    [currentRowSelection]
+  );
+  const currentSelectionIdsKey = useMemo(
+    () => currentSelectionIds.join("|"),
+    [currentSelectionIds]
+  );
+  const selectionContextKey = useMemo(
+    () =>
+      JSON.stringify({
+        advancedFiltersParam,
+        filtersParam,
+        globalSearchParam,
+        resolvedTableId,
+        sortParam,
+      }),
+    [
+      advancedFiltersParam,
+      filtersParam,
+      globalSearchParam,
+      resolvedTableId,
+      sortParam,
+    ]
+  );
 
   // Use core row model so selected rows are correct even when grouping is active (collapsed = getRowModel() has no leaves)
-  const selectedRows =
-    table && typeof table.getState === "function"
-      ? (() => {
-          const rowSelection = table.getState().rowSelection || {};
-          const rows = table.getCoreRowModel().rows;
-          return rows.filter((row) => rowSelection[row.id]) as Row<TData>[];
-        })()
-      : [];
+  const selectedRows = useMemo(() => {
+    if (!crossPageSelection) {
+      return currentPageSelectedRows;
+    }
+
+    return mergeSelectedRows({
+      crossPageRows: crossPageSelection.rows,
+      currentPageRows: currentPageSelectedRows,
+    });
+  }, [crossPageSelection, currentPageSelectedRows]);
   const showBulkActions = selectedRows.length >= minimumSelection;
+
+  useEffect(() => {
+    if (!crossPageSelection) {
+      return;
+    }
+
+    if (crossPageSelection.contextKey !== selectionContextKey) {
+      setCrossPageSelection(null);
+      table?.setRowSelection({});
+      return;
+    }
+
+    if (crossPageSelection.rowIdsKey !== currentSelectionIdsKey) {
+      setCrossPageSelection(null);
+    }
+  }, [crossPageSelection, currentSelectionIdsKey, selectionContextKey, table]);
 
   // Clear all selections
   const clearSelection = useCallback(() => {
+    setCrossPageSelection(null);
     if (!table) {
       return;
     }
     table.setRowSelection({});
   }, [table]);
+
+  const canSelectAll = canSelectAllRows({
+    hasListAction: typeof provider?.actions.list === "function",
+    isSelectingAll,
+    rowCount,
+    selectedCount: selectedRows.length,
+  });
+
+  const handleSelectAll = useCallback(async (): Promise<void> => {
+    const listAction = provider?.actions.list as TableListAction | undefined;
+
+    if (!(table && listAction && canSelectAll)) {
+      return;
+    }
+
+    setIsSelectingAll(true);
+    try {
+      const nextSelection = await loadAllMatchingRowsForSelection<TData>({
+        advancedFiltersParam,
+        filtersParam,
+        globalSearchParam,
+        listAction,
+        pageSizeParam,
+        sortParam,
+      });
+
+      if (nextSelection.rowIds.length === 0) {
+        toast.error(DEFAULT_NO_VALID_IDS_ERROR);
+        return;
+      }
+
+      table.setRowSelection(buildRowSelectionState(nextSelection.rowIds));
+      setCrossPageSelection({
+        contextKey: selectionContextKey,
+        rowIdsKey: nextSelection.rowIds.slice().sort().join("|"),
+        rows: nextSelection.rows,
+      });
+    } catch (error) {
+      toast.error(toErrorMessage(error, DEFAULT_SELECT_ALL_ERROR));
+    } finally {
+      setIsSelectingAll(false);
+    }
+  }, [
+    advancedFiltersParam,
+    canSelectAll,
+    filtersParam,
+    globalSearchParam,
+    pageSizeParam,
+    provider?.actions.list,
+    selectionContextKey,
+    sortParam,
+    table,
+  ]);
 
   const invalidateTableData = useCallback(async (): Promise<void> => {
     if (!queryTableId) {
@@ -1233,6 +1545,9 @@ export function useBulkActions<TData>({
     isBulkExportEnabled: bulkExportEnabled,
     clearSelection,
     closeBulkActions,
+    canSelectAll,
+    handleSelectAll,
+    isSelectingAll,
   };
 }
 

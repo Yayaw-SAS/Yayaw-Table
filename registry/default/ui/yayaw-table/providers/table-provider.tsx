@@ -347,6 +347,7 @@ export const defaultTranslations: DataTableTranslations = {
     confirm_delete_description: "This action cannot be undone.",
     confirm_title:
       "{action} {count} {count, plural, one {item} other {items}}?",
+    select_all: "Select all {count} rows",
   },
   columns: {
     title: "Columns",

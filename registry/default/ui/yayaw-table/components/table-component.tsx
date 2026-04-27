@@ -50,7 +50,10 @@ import type { DataTableProps } from "../types";
 import { Loader } from "../ui-custom/loader";
 import { ColumnIcon } from "../utils/column-icons";
 import { buildCsvExportColumns } from "../utils/csv-export";
-import { BulkActionsMenu } from "./bulk-actions/bulk-actions-menu";
+import {
+  BulkActionsMenu,
+  getBulkActionsMenuPositionMode,
+} from "./bulk-actions/bulk-actions-menu";
 import { InlineEditableCell } from "./cells/inline-editable-cell";
 import { ColumnDragOverlay } from "./columns/header/column-drag-overlay";
 import { DataTableColumnHeader } from "./columns/header/column-header";
@@ -66,6 +69,7 @@ import {
 } from "./forms/atoms/catalogue-form-atoms";
 import type { AnyFieldDefinition } from "./forms/types";
 import { SafePagination } from "./safe-pagination";
+import { useOnScreen } from "./utils/use-on-screen";
 
 const _DEBUG = false;
 
@@ -77,6 +81,13 @@ const ROW_CLICK_INTERACTIVE_SELECTOR =
   "button, a, [role=checkbox], input, select, textarea";
 const ROW_CLICK_SYSTEM_COLUMN_SELECTOR =
   '[data-column-id="select"], [data-column-id="actions"]';
+const BULK_ACTIONS_ANCHOR_VIEWPORT_OPTIONS = {
+  threshold: 1,
+} as const;
+const PAGINATION_VIEWPORT_OPTIONS = {
+  threshold: 0,
+} as const;
+const BULK_ACTIONS_FIXED_VIEWPORT_MARGIN = 24;
 
 export const shouldShowCalculationsFooter = ({
   enableCalculations,
@@ -86,6 +97,28 @@ export const shouldShowCalculationsFooter = ({
   isFooterVisible: boolean;
 }): boolean => {
   return enableCalculations !== false && isFooterVisible;
+};
+
+export const shouldRenderBulkActionsInFooter = ({
+  enablePagination,
+  isTableBottomVisible,
+}: {
+  enablePagination: boolean;
+  isTableBottomVisible: boolean;
+}): boolean => {
+  return enablePagination && isTableBottomVisible;
+};
+
+export const getBulkActionsViewportBottomOffset = ({
+  isPaginationVisible,
+  paginationHeight,
+  viewportMargin = BULK_ACTIONS_FIXED_VIEWPORT_MARGIN,
+}: {
+  isPaginationVisible: boolean;
+  paginationHeight: number;
+  viewportMargin?: number;
+}): number => {
+  return viewportMargin + (isPaginationVisible ? paginationHeight : 0);
 };
 
 interface ColumnSizingDefinition {
@@ -567,10 +600,48 @@ function ModernDataTable<
   const _isVisibleRef = useRef(true);
   const tableRef = useRef<HTMLDivElement>(null);
   const _previousRowsRef = useRef<Row<TData>[]>([]);
+  const { isVisible: isBulkActionsAnchorVisible, ref: bulkActionsAnchorRef } =
+    useOnScreen(BULK_ACTIONS_ANCHOR_VIEWPORT_OPTIONS);
+  const { isVisible: isPaginationVisible, ref: paginationVisibilityRef } =
+    useOnScreen(PAGINATION_VIEWPORT_OPTIONS);
+  const paginationContainerRef = useRef<HTMLDivElement | null>(null);
+  const [paginationHeight, setPaginationHeight] = useState(0);
   const [hasMounted, setHasMounted] = useState(false);
   useEffect(() => {
     setHasMounted(true);
   }, []);
+
+  useEffect(() => {
+    const paginationElement = paginationContainerRef.current;
+    if (!paginationElement) {
+      setPaginationHeight(0);
+      return;
+    }
+
+    const updatePaginationHeight = () => {
+      setPaginationHeight(paginationElement.getBoundingClientRect().height);
+    };
+
+    updatePaginationHeight();
+
+    const observer = new ResizeObserver(() => {
+      updatePaginationHeight();
+    });
+
+    observer.observe(paginationElement);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  const handlePaginationContainerRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      paginationContainerRef.current = node;
+      paginationVisibilityRef.current = node;
+    },
+    [paginationVisibilityRef]
+  );
 
   // Use stable references for callbacks
   const stableOnRowSelectionChange = useRef(onRowSelectionChange);
@@ -851,18 +922,6 @@ function ModernDataTable<
     }
   }, [state.grouping, refetch]);
 
-  // Handle row selection changes (use core row model so selection is correct with grouping)
-  useEffect(() => {
-    if (onRowSelectionChange && table) {
-      const currentSelection = table.getState().rowSelection;
-      const rows = table.getCoreRowModel().rows;
-      const selectedRows = rows.filter(
-        (row) => currentSelection[row.id]
-      ) as Row<TData>[];
-      onRowSelectionChange(selectedRows);
-    }
-  }, [table, onRowSelectionChange]);
-
   // Auto-expand all groups when a grouping is active so leaf rows are visible by default
   useEffect(() => {
     if (!table) {
@@ -984,8 +1043,13 @@ function ModernDataTable<
     onBulkEdit,
     onBulkDelete,
     onBulkCopy,
+    rowCount,
     showDefaultToastsForCustomHandlers,
   });
+
+  useEffect(() => {
+    onRowSelectionChange?.(bulkActions.selectedRows);
+  }, [bulkActions.selectedRows, onRowSelectionChange]);
 
   // Debug bulk actions state
   // Default loading overlay component
@@ -1605,6 +1669,17 @@ function ModernDataTable<
     }
 
     // Otherwise render the full table
+    const renderBulkActionsInFooter =
+      bulkActions.showBulkActions &&
+      shouldRenderBulkActionsInFooter({
+        enablePagination,
+        isTableBottomVisible: isBulkActionsAnchorVisible,
+      });
+    const fixedBulkActionsViewportOffset = getBulkActionsViewportBottomOffset({
+      isPaginationVisible,
+      paginationHeight,
+    });
+
     return (
       <ColumnDndContext
         collisionDetection={columnClosestCenter}
@@ -1613,41 +1688,97 @@ function ModernDataTable<
         onDragStart={handleDragStartWithOverlay}
         sensors={columnSensors}
       >
-        <div className="space-y-4">
-          <div className="relative overflow-hidden rounded-md border">
-            {/* Show loading overlay during data fetches when we already have data */}
-            {isLoading && data && data.length > 0 && loadingOverlay}
+        <div className="relative">
+          <div className="space-y-4">
+            <div className="relative overflow-hidden rounded-md border">
+              {/* Show loading overlay during data fetches when we already have data */}
+              {isLoading && data && data.length > 0 && loadingOverlay}
 
-            {/* Container for the table */}
-            <div
-              className={cn("relative w-full overflow-auto", "contain-paint")}
-              ref={tableRef}
-            >
-              <Table className={cn("w-full", className)}>
-                {tableHeader}
-                {tableBodyContent}
-                {showCalculationsFooter && (
-                  <TableFooter className="sticky bottom-0 z-10 overflow-hidden rounded-b-md bg-card">
-                    <FooterRow
-                      densityMode={densityMode}
-                      table={table}
-                      tableId={tableId}
-                      tableType={resolvedTableType}
-                    />
-                  </TableFooter>
-                )}
-              </Table>
+              {/* Container for the table */}
+              <div
+                className={cn("relative w-full overflow-auto", "contain-paint")}
+                ref={tableRef}
+              >
+                <Table className={cn("w-full", className)}>
+                  {tableHeader}
+                  {tableBodyContent}
+                  {showCalculationsFooter && (
+                    <TableFooter className="sticky bottom-0 z-10 overflow-hidden rounded-b-md bg-card">
+                      <FooterRow
+                        densityMode={densityMode}
+                        table={table}
+                        tableId={tableId}
+                        tableType={resolvedTableType}
+                      />
+                    </TableFooter>
+                  )}
+                </Table>
+              </div>
             </div>
+
+            {/* Pagination is outside the table container to avoid focus issues */}
+            {enablePagination && (
+              <SafePagination
+                anchorRef={bulkActionsAnchorRef}
+                containerRef={handlePaginationContainerRef}
+                footerSlot={
+                  renderBulkActionsInFooter ? (
+                    <BulkActionsMenu
+                      canSelectAll={bulkActions.canSelectAll}
+                      isSelectingAll={bulkActions.isSelectingAll}
+                      onBulkCopy={bulkActions.handleBulkCopy}
+                      onBulkDelete={bulkActions.handleBulkDelete}
+                      onBulkEdit={bulkActions.handleBulkEdit}
+                      onBulkExport={bulkActions.handleBulkExport}
+                      onClose={bulkActions.closeBulkActions}
+                      onSelectAll={bulkActions.handleSelectAll}
+                      positionMode="anchored"
+                      selectAllCount={rowCount}
+                      selectedRows={bulkActions.selectedRows}
+                      showBulkDelete={bulkActions.isBulkDeleteEnabled}
+                      showBulkEdit={bulkActions.isBulkEditEnabled}
+                      showBulkExport={bulkActions.isBulkExportEnabled}
+                    />
+                  ) : undefined
+                }
+                pageSizeOptions={
+                  tableConfig.table.pageSizeOptions || [
+                    10, 20, 50, 100, 200, 500,
+                  ]
+                }
+                rowCount={rowCount}
+                table={table}
+              />
+            )}
           </div>
 
-          {/* Pagination is outside the table container to avoid focus issues */}
-          {enablePagination && (
-            <SafePagination
-              pageSizeOptions={
-                tableConfig.table.pageSizeOptions || [10, 20, 50, 100, 200, 500]
-              }
-              rowCount={rowCount}
-              table={table}
+          {enablePagination ? null : (
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-px"
+              ref={bulkActionsAnchorRef}
+            />
+          )}
+
+          {bulkActions.showBulkActions && !renderBulkActionsInFooter && (
+            <BulkActionsMenu
+              canSelectAll={bulkActions.canSelectAll}
+              isSelectingAll={bulkActions.isSelectingAll}
+              onBulkCopy={bulkActions.handleBulkCopy}
+              onBulkDelete={bulkActions.handleBulkDelete}
+              onBulkEdit={bulkActions.handleBulkEdit}
+              onBulkExport={bulkActions.handleBulkExport}
+              onClose={bulkActions.closeBulkActions}
+              onSelectAll={bulkActions.handleSelectAll}
+              positionMode={getBulkActionsMenuPositionMode(
+                isBulkActionsAnchorVisible
+              )}
+              selectAllCount={rowCount}
+              selectedRows={bulkActions.selectedRows}
+              showBulkDelete={bulkActions.isBulkDeleteEnabled}
+              showBulkEdit={bulkActions.isBulkEditEnabled}
+              showBulkExport={bulkActions.isBulkExportEnabled}
+              viewportBottomOffset={fixedBulkActionsViewportOffset}
             />
           )}
         </div>
@@ -1666,21 +1797,6 @@ function ModernDataTable<
   return (
     <div className="space-y-4" suppressHydrationWarning>
       {renderContent()}
-
-      {/* Bulk Actions Menu - rendered as overlay when rows are selected */}
-      {bulkActions.showBulkActions && (
-        <BulkActionsMenu
-          onBulkCopy={bulkActions.handleBulkCopy}
-          onBulkDelete={bulkActions.handleBulkDelete}
-          onBulkEdit={bulkActions.handleBulkEdit}
-          onBulkExport={bulkActions.handleBulkExport}
-          onClose={bulkActions.closeBulkActions}
-          selectedRows={bulkActions.selectedRows}
-          showBulkDelete={bulkActions.isBulkDeleteEnabled}
-          showBulkEdit={bulkActions.isBulkEditEnabled}
-          showBulkExport={bulkActions.isBulkExportEnabled}
-        />
-      )}
     </div>
   );
 }

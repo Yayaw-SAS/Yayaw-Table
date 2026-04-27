@@ -20,6 +20,7 @@ export interface DataTableTranslations {
     confirm_copy_description: string;
     confirm_delete_description: string;
     confirm_title: string;
+    select_all: string;
   };
   columns: {
     title: string;

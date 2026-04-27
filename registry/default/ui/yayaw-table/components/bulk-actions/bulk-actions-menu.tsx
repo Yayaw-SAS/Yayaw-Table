@@ -6,8 +6,16 @@
 
 import type { Row } from "@tanstack/react-table";
 import { AnimatePresence, domAnimation, LazyMotion, m } from "framer-motion";
-import { Copy, Download, Edit, Trash2, X } from "lucide-react";
-import { useRef, useState } from "react";
+import {
+  CheckCheck,
+  Copy,
+  Download,
+  Edit,
+  Loader2,
+  Trash2,
+  X,
+} from "lucide-react";
+import { type CSSProperties, useRef, useState } from "react";
 import { useOnClickOutside } from "usehooks-ts";
 import {
   AlertDialog,
@@ -90,18 +98,52 @@ export interface BulkActionsMenuProps<TData> {
    * Whether bulk delete action should be shown
    */
   showBulkDelete?: boolean;
+
+  /**
+   * Controls whether the menu is anchored to the table or fixed to the viewport.
+   */
+  positionMode?: BulkActionsMenuPositionMode;
+
+  /**
+   * Whether the menu should show a cross-page select all action.
+   */
+  canSelectAll?: boolean;
+
+  /**
+   * Total number of rows that can be selected across pages.
+   */
+  selectAllCount?: number;
+
+  /**
+   * Callback to select all matching rows across pages.
+   */
+  onSelectAll?: () => Promise<void> | void;
+
+  /**
+   * Whether the cross-page selection is loading.
+   */
+  isSelectingAll?: boolean;
+
+  /**
+   * Additional offset from the viewport bottom when the menu is fixed.
+   */
+  viewportBottomOffset?: number;
 }
 
 // Configuration pour les tabs d'actions
 interface ActionTab {
   id: MenuActionId;
-  icon: React.ComponentType<{ size?: number }>;
+  icon: React.ComponentType<{ className?: string; size?: number }>;
   translationKey: string;
+  translationParams?: Record<string, number | string>;
   variant: "default" | "destructive";
+  disabled?: boolean;
 }
 
-type MenuActionId = "copy" | "delete" | "edit" | "export";
+type MenuActionId = "copy" | "delete" | "edit" | "export" | "selectAll";
 type ConfirmableMenuActionId = "copy" | "delete";
+type ExecutableBulkActionId = Exclude<MenuActionId, "selectAll">;
+export type BulkActionsMenuPositionMode = "anchored" | "fixed";
 
 interface BulkMenuOutsideClickState {
   hoveredAction: string | null;
@@ -110,7 +152,10 @@ interface BulkMenuOutsideClickState {
   showConfirmation: boolean;
 }
 
-const DEFAULT_BULK_ACTION_RESULTS: Record<MenuActionId, BulkActionResult> = {
+const DEFAULT_BULK_ACTION_RESULTS: Record<
+  ExecutableBulkActionId,
+  BulkActionResult
+> = {
   copy: {
     clearSelection: false,
     closeMenu: true,
@@ -159,6 +204,45 @@ const transition = {
   bounce: 0,
   duration: 0.6,
 };
+
+export function getBulkActionsMenuPositionMode(
+  isTableBottomVisible: boolean
+): BulkActionsMenuPositionMode {
+  return isTableBottomVisible ? "anchored" : "fixed";
+}
+
+export function getBulkActionsMenuWrapperClassName({
+  className,
+  positionMode,
+}: {
+  className?: string;
+  positionMode: BulkActionsMenuPositionMode;
+}): string {
+  return cn(
+    "z-50 flex w-full justify-center",
+    "fade-in-0 slide-in-from-bottom-2 pointer-events-none animate-in",
+    "duration-300 ease-out",
+    positionMode === "anchored" && "px-0",
+    positionMode === "fixed" && "fixed inset-x-0 bottom-6 px-4",
+    className
+  );
+}
+
+export function getBulkActionsMenuWrapperStyle({
+  positionMode,
+  viewportBottomOffset,
+}: {
+  positionMode: BulkActionsMenuPositionMode;
+  viewportBottomOffset?: number;
+}): CSSProperties | undefined {
+  if (positionMode !== "fixed" || viewportBottomOffset === undefined) {
+    return;
+  }
+
+  return {
+    bottom: viewportBottomOffset,
+  };
+}
 
 export function shouldIgnoreOutsideClickForBulkMenu(
   state: Pick<
@@ -311,6 +395,12 @@ export function BulkActionsMenu<TData>({
   showBulkExport = true,
   showBulkEdit = true,
   showBulkDelete = true,
+  positionMode = "anchored",
+  canSelectAll = false,
+  selectAllCount,
+  onSelectAll,
+  isSelectingAll = false,
+  viewportBottomOffset,
 }: BulkActionsMenuProps<TData>) {
   const [selectedAction, setSelectedAction] =
     useState<ConfirmableMenuActionId | null>(null);
@@ -321,9 +411,25 @@ export function BulkActionsMenu<TData>({
   const confirmationLockRef = useRef(false);
   const outsideClickRef = useRef<HTMLDivElement>(null);
   const { t } = useTranslations();
+  const showSelectAllAction = canSelectAll && typeof onSelectAll === "function";
+  const selectedCount = selectedRows.length;
 
   // Action visibility is driven by explicit props.
   const actionTabs: ActionTab[] = [
+    ...(showSelectAllAction
+      ? [
+          {
+            id: "selectAll" as const,
+            icon: isSelectingAll ? Loader2 : CheckCheck,
+            translationKey: "bulk.select_all",
+            translationParams: {
+              count: selectAllCount ?? selectedCount,
+            },
+            variant: "default" as const,
+            disabled: isSelectingAll,
+          },
+        ]
+      : []),
     ...(showBulkEdit
       ? [
           {
@@ -380,10 +486,17 @@ export function BulkActionsMenu<TData>({
     return null;
   }
 
-  const selectedCount = selectedRows.length;
-
   const handleTabClick = (actionId: MenuActionId) => {
     if (isConfirmingAction) {
+      return;
+    }
+
+    if (actionId === "selectAll") {
+      if (!onSelectAll || isSelectingAll) {
+        return;
+      }
+
+      Promise.resolve(onSelectAll()).catch(() => undefined);
       return;
     }
 
@@ -462,14 +575,16 @@ export function BulkActionsMenu<TData>({
   return (
     <LazyMotion features={domAnimation}>
       <div
-        className={cn(
-          "fixed bottom-10 left-1/2 z-50 -translate-x-1/2 transform",
-          "fade-in-0 slide-in-from-bottom-2 animate-in",
-          "duration-300 ease-out",
-          className
-        )}
+        className={getBulkActionsMenuWrapperClassName({
+          className,
+          positionMode,
+        })}
+        style={getBulkActionsMenuWrapperStyle({
+          positionMode,
+          viewportBottomOffset,
+        })}
       >
-        <div className="flex flex-col items-center space-y-4">
+        <div className="pointer-events-auto flex flex-col items-center gap-4">
           {/* Confirmation dialog (consistent AlertDialog for copy/delete) */}
           <AlertDialog
             onOpenChange={(open) => {
@@ -527,13 +642,13 @@ export function BulkActionsMenu<TData>({
 
           {/* Main menu with custom expandable tabs */}
           <div
-            className="flex flex-wrap items-center gap-2 rounded-2xl border bg-background/95 p-1 shadow-lg backdrop-blur-sm"
+            className="flex flex-wrap items-center gap-2 rounded-2xl border border-border/80 bg-secondary/95 p-1 text-secondary-foreground shadow-xl backdrop-blur-md"
             ref={outsideClickRef}
           >
             {/* Count indicator */}
             <div className="flex items-center gap-2 px-3">
               <div className="h-2 w-2 animate-pulse rounded-full bg-primary" />
-              <span className="font-medium text-foreground text-sm">
+              <span className="font-medium text-secondary-foreground text-sm">
                 {t("selection.rows", { count: selectedCount })}
               </span>
             </div>
@@ -549,11 +664,13 @@ export function BulkActionsMenu<TData>({
                   animate="animate"
                   className={cn(
                     "relative flex items-center rounded-xl px-4 py-2 font-medium text-sm transition-colors duration-300",
+                    tab.disabled && "cursor-wait opacity-70",
                     tab.variant === "destructive"
                       ? "text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      : "text-secondary-foreground/70 hover:bg-background/80 hover:text-secondary-foreground"
                   )}
                   custom={isExpanded}
+                  disabled={tab.disabled}
                   initial={false}
                   key={tab.id}
                   onClick={() => handleTabClick(tab.id)}
@@ -563,7 +680,12 @@ export function BulkActionsMenu<TData>({
                   type="button"
                   variants={buttonVariants}
                 >
-                  <Icon size={20} />
+                  <Icon
+                    className={cn(
+                      tab.id === "selectAll" && isSelectingAll && "animate-spin"
+                    )}
+                    size={20}
+                  />
                   <AnimatePresence initial={false}>
                     {isExpanded && (
                       <m.span
@@ -574,7 +696,7 @@ export function BulkActionsMenu<TData>({
                         transition={transition}
                         variants={spanVariants}
                       >
-                        {t(tab.translationKey)}
+                        {t(tab.translationKey, tab.translationParams)}
                       </m.span>
                     )}
                   </AnimatePresence>
@@ -585,13 +707,13 @@ export function BulkActionsMenu<TData>({
             {/* Separator */}
             <div
               aria-hidden="true"
-              className="mx-1 h-[24px] w-[1.2px] bg-border"
+              className="mx-1 h-[24px] w-[1.2px] bg-border/80"
             />
 
             {/* Close button */}
             <Button
               aria-label={t("bulk.close_menu")}
-              className="h-8 w-8 p-0 hover:bg-muted"
+              className="h-8 w-8 p-0 text-secondary-foreground/70 hover:bg-background/80 hover:text-secondary-foreground"
               onClick={handleClose}
               size="sm"
               variant="ghost"

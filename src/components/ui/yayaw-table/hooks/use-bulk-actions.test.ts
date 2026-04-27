@@ -3,9 +3,14 @@ import { describe, it } from "node:test";
 import type { Row } from "@tanstack/react-table";
 
 import {
+  buildRowSelectionState,
   buildBulkDeleteFeedback,
+  canSelectAllRows,
+  createSyntheticSelectedRows,
   executeCustomBulkDeleteHandler,
   executeBulkDeleteOperation,
+  loadAllMatchingRowsForSelection,
+  mergeSelectedRows,
   normalizeBulkActionResult,
   resolveBulkEditWithoutCustom,
 } from "./use-bulk-actions";
@@ -105,6 +110,95 @@ describe("normalizeBulkActionResult", () => {
     assert.equal(normalized.success, true);
     assert.equal(normalized.closeMenu, true);
     assert.equal(normalized.clearSelection, true);
+  });
+});
+
+describe("cross-page bulk selection helpers", () => {
+  it("loads all matching rows across pages and builds a selection state", async () => {
+    const requestedPages: number[] = [];
+
+    const selection = await loadAllMatchingRowsForSelection<
+      Record<string, unknown>
+    >({
+      advancedFiltersParam: [{ field: "status", isActive: true }],
+      filtersParam: [{ id: "category", value: "phones" }],
+      globalSearchParam: "galaxy",
+      listAction: (params) => {
+        requestedPages.push(params.page as number);
+
+        assert.deepEqual(params.filters, { category: "phones" });
+        assert.deepEqual(params.orderBy, { name: "asc" });
+        assert.equal(params.search, "galaxy");
+
+        if (params.page === 1) {
+          return Promise.resolve({
+            data: [{ id: "row-1" }, { id: "row-2" }],
+            meta: { pageCount: 2, totalCount: 3 },
+          });
+        }
+
+        return Promise.resolve({
+          data: [{ id: "row-3" }],
+          meta: { pageCount: 2, totalCount: 3 },
+        });
+      },
+      pageSizeParam: "2",
+      sortParam: [{ desc: false, id: "name" }],
+    });
+
+    assert.deepEqual(requestedPages, [1, 2]);
+    assert.deepEqual(selection.rowIds, ["row-1", "row-2", "row-3"]);
+    assert.equal(selection.rows.length, 3);
+    assert.deepEqual(buildRowSelectionState(selection.rowIds), {
+      "row-1": true,
+      "row-2": true,
+      "row-3": true,
+    });
+  });
+
+  it("merges current-page rows over synthetic cross-page rows", () => {
+    const syntheticRows = createSyntheticSelectedRows<Record<string, unknown>>([
+      { id: "row-1", source: "cached" },
+      { id: "row-2", source: "cached" },
+    ]);
+    const liveRow = {
+      id: "row-2",
+      original: { id: "row-2", source: "live" },
+    } as unknown as Row<Record<string, unknown>>;
+
+    const mergedRows = mergeSelectedRows({
+      crossPageRows: syntheticRows,
+      currentPageRows: [liveRow],
+    });
+
+    assert.equal(mergedRows.length, 2);
+    const mergedRow = mergedRows.find((row) => row.id === "row-2");
+    assert.deepEqual(mergedRow?.original, {
+      id: "row-2",
+      source: "live",
+    });
+  });
+
+  it("only offers select all when more matching rows remain", () => {
+    assert.equal(
+      canSelectAllRows({
+        hasListAction: true,
+        isSelectingAll: false,
+        rowCount: 50,
+        selectedCount: 10,
+      }),
+      true
+    );
+
+    assert.equal(
+      canSelectAllRows({
+        hasListAction: true,
+        isSelectingAll: false,
+        rowCount: 10,
+        selectedCount: 10,
+      }),
+      false
+    );
   });
 });
 
