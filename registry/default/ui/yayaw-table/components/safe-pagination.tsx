@@ -78,6 +78,10 @@ export function SafePagination<TData>({
       className={cn("flex flex-col gap-4 py-4", className)}
       ref={containerRef}
     >
+      {footerSlot ? (
+        <div className="flex w-full justify-center">{footerSlot}</div>
+      ) : null}
+
       <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
         {/* Row range display */}
         <div className="flex-1 text-muted-foreground text-sm">
@@ -167,10 +171,6 @@ export function SafePagination<TData>({
         className="pointer-events-none h-px w-full"
         ref={anchorRef}
       />
-
-      {footerSlot ? (
-        <div className="flex w-full justify-center">{footerSlot}</div>
-      ) : null}
     </div>
   );
 }
