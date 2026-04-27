@@ -31,7 +31,7 @@ Use this flow for consumer-facing changes:
 3. For normal feature/fix PRs, run `bun run registry:sync` after editing `src/components/ui/yayaw-table` or `src/components/ui/custom`.
 4. For an actual release commit, run `bun run version`; it applies Changesets, updates `CHANGELOG.md`, runs `bun run registry:release`, and creates `public/r/vX.Y.Z/yayaw-table.json`.
 5. Before tagging, run `bun run release:check` and `bun run release:verify`.
-6. Tag releases as `vX.Y.Z`, matching `package.json.version`.
+6. Tag releases as `vX.Y.Z`, matching `package.json.version`. The GitHub release body is generated automatically from merged PRs and commits; do not hand-write release notes in the workflow unless the automation is intentionally changing.
 
 Never edit `public/r/vX.Y.Z/` snapshots by hand to change an already published version. Bump the version and create a new snapshot instead. Only use `ALLOW_VERSION_SNAPSHOT_OVERWRITE=1 bun run registry:snapshot` for an intentional repair of an unpublished or broken snapshot.
 
