@@ -17,8 +17,8 @@ import { cn } from "@/lib/utils";
 import { useTableTranslations } from "../hooks";
 
 interface SafePaginationProps<TData> {
-  anchorRef?: Ref<HTMLDivElement>;
   containerRef?: Ref<HTMLDivElement>;
+  controlsRef?: Ref<HTMLDivElement>;
   table: Table<TData>;
   rowCount?: number;
   className?: string;
@@ -27,8 +27,8 @@ interface SafePaginationProps<TData> {
 }
 
 export function SafePagination<TData>({
-  anchorRef,
   containerRef,
+  controlsRef,
   table,
   rowCount,
   className,
@@ -82,7 +82,10 @@ export function SafePagination<TData>({
         <div className="flex w-full justify-center">{footerSlot}</div>
       ) : null}
 
-      <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+      <div
+        className="flex flex-col items-center justify-between gap-4 sm:flex-row"
+        ref={controlsRef}
+      >
         {/* Row range display */}
         <div className="flex-1 text-muted-foreground text-sm">
           {startRow}-{endRow} {translations.of}{" "}
@@ -165,12 +168,6 @@ export function SafePagination<TData>({
           </Button>
         </div>
       </div>
-
-      <div
-        aria-hidden="true"
-        className="pointer-events-none h-px w-full"
-        ref={anchorRef}
-      />
     </div>
   );
 }
