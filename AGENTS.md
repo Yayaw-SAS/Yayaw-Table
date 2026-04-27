@@ -8,6 +8,9 @@ This project uses **Ultracite**, a zero-config preset that enforces strict code 
 - **Check for issues**: `bun x ultracite check`
 - **Diagnose setup**: `bun x ultracite doctor`
 - **Sync registry** (after editing `src/components/ui/yayaw-table`): `bun run registry:sync`
+- **Build latest registry**: `bun run registry:build`
+- **Build release registry snapshot**: `bun run registry:release`
+- **Add release note / version intent**: `bun run changeset`
 
 Biome (the underlying engine) provides robust linting and formatting. Most issues are automatically fixable.
 
@@ -16,6 +19,21 @@ Biome (the underlying engine) provides robust linting and formatting. Most issue
 The **source of truth** for the Shadcn registry is `src/components/ui/yayaw-table` (and listed files in `src/components/ui/custom`) in this repository. The folder `registry/default/ui/yayaw-table` is **generated** by `scripts/build-registry.mjs`. Only edit files under `src/`. After changes to yayaw-table or custom UI files, run `bun run registry:sync` to regenerate the registry and `registry.json`.
 
 Note: in consumer projects, the registry now installs files under `components/ui/yayaw-table` (target path), not under `src/components/ui/yayaw-table`.
+
+### Versioning and Releases (LLM Instructions)
+
+YaYaw Table is versioned as a **Shadcn registry distribution**, not as a published npm package. The SemVer source of truth is `package.json.version`; release notes are tracked with Changesets and `CHANGELOG.md`; immutable registry snapshots live under `public/r/vX.Y.Z/`.
+
+Use this flow for consumer-facing changes:
+
+1. If the change affects the copied table API, behavior, setup requirements, dependencies, or migration path, run `bun run changeset` and choose the appropriate SemVer bump.
+2. Use `patch` for fixes with no consumer migration, `minor` for backward-compatible features, and `major` for renamed/removed APIs or required consumer migrations. While the project is still `0.x`, breaking consumer changes should usually be a `minor` bump with a clear breaking note.
+3. For normal feature/fix PRs, run `bun run registry:sync` after editing `src/components/ui/yayaw-table` or `src/components/ui/custom`.
+4. For an actual release commit, run `bun run version`; it applies Changesets, updates `CHANGELOG.md`, runs `bun run registry:release`, and creates `public/r/vX.Y.Z/yayaw-table.json`.
+5. Before tagging, run `bun run release:check` and `bun run release:verify`.
+6. Tag releases as `vX.Y.Z`, matching `package.json.version`.
+
+Never edit `public/r/vX.Y.Z/` snapshots by hand to change an already published version. Bump the version and create a new snapshot instead. Only use `ALLOW_VERSION_SNAPSHOT_OVERWRITE=1 bun run registry:snapshot` for an intentional repair of an unpublished or broken snapshot.
 
 ---
 

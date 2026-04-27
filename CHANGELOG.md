@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Added
+
+- Added Changesets-based SemVer workflow for YaYaw Table registry releases.
+- Added immutable Shadcn registry snapshots under `public/r/vX.Y.Z/`.
+- Added release verification for version tags and registry snapshots.
+
 ### Fixed
 
 - Fixed bulk action confirmation no-op for copy/delete when outside-click events fired while the dialog portal was open.

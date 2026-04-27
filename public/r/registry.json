@@ -1,7 +1,7 @@
 {
   "$schema": "https://ui.shadcn.com/schema/registry.json",
   "name": "yayaw-table",
-  "homepage": "https://github.com/your-username/yayaw-table",
+  "homepage": "https://github.com/Yayaw-eu/Yayaw-Table",
   "items": [
     {
       "name": "yayaw-table",
@@ -35,29 +35,29 @@
         "tooltip"
       ],
       "dependencies": [
-        "@base-ui/react",
-        "@dnd-kit/core",
-        "@dnd-kit/modifiers",
-        "@dnd-kit/sortable",
-        "@dnd-kit/utilities",
-        "@floating-ui/react-dom",
-        "@tanstack/react-query",
-        "@tanstack/react-form",
-        "@tanstack/react-table",
-        "@tanstack/zod-form-adapter",
-        "class-variance-authority",
-        "clsx",
-        "date-fns",
-        "framer-motion",
-        "jotai",
-        "jotai-family",
-        "lucide-react",
-        "motion",
-        "nuqs",
-        "sonner",
-        "tailwind-merge",
-        "usehooks-ts",
-        "zod"
+        "@base-ui/react@^1.1.0",
+        "@dnd-kit/core@^6.3.1",
+        "@dnd-kit/modifiers@^9.0.0",
+        "@dnd-kit/sortable@^10.0.0",
+        "@dnd-kit/utilities@^3.2.2",
+        "@floating-ui/react-dom@^2.1.7",
+        "@tanstack/react-query@^5.90.20",
+        "@tanstack/react-form@^1.28.0",
+        "@tanstack/react-table@^8.21.3",
+        "@tanstack/zod-form-adapter@^0.42.1",
+        "class-variance-authority@^0.7.1",
+        "clsx@^2.1.1",
+        "date-fns@^4.1.0",
+        "framer-motion@^12.30.0",
+        "jotai@^2.17.0",
+        "jotai-family@^1.0.1",
+        "lucide-react@^0.563.0",
+        "motion@^12.30.0",
+        "nuqs@^2.8.8",
+        "sonner@^2.0.7",
+        "tailwind-merge@^3.4.0",
+        "usehooks-ts@^3.1.1",
+        "zod@^4.3.6"
       ],
       "files": [
         {
@@ -950,7 +950,12 @@
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/table-config-utils.ts"
         }
-      ]
+      ],
+      "meta": {
+        "registryUrl": "https://table.yayaw.eu/r/yayaw-table.json",
+        "version": "0.1.0",
+        "versionedRegistryUrl": "https://table.yayaw.eu/r/v0.1.0/yayaw-table.json"
+      }
     }
   ]
 }
