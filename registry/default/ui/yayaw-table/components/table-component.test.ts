@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  getBulkActionsViewportBottomOffset,
   shouldRenderBulkActionsInFooter,
   shouldShowCalculationsFooter,
 } from "./table-component";
@@ -65,6 +66,28 @@ describe("shouldRenderBulkActionsInFooter", () => {
         isTableBottomVisible: true,
       }),
       false
+    );
+  });
+});
+
+describe("getBulkActionsViewportBottomOffset", () => {
+  it("adds the pagination height when pagination is visible", () => {
+    assert.equal(
+      getBulkActionsViewportBottomOffset({
+        isPaginationVisible: true,
+        paginationHeight: 72,
+      }),
+      96
+    );
+  });
+
+  it("keeps only the viewport margin when pagination is hidden", () => {
+    assert.equal(
+      getBulkActionsViewportBottomOffset({
+        isPaginationVisible: false,
+        paginationHeight: 72,
+      }),
+      24
     );
   });
 });

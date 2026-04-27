@@ -7,7 +7,7 @@
 import type { Row } from "@tanstack/react-table";
 import { AnimatePresence, LazyMotion, domAnimation, m } from "framer-motion";
 import { CheckCheck, Copy, Download, Edit, Loader2, Trash2, X } from "lucide-react";
-import { useRef, useState } from "react";
+import { useRef, useState, type CSSProperties } from "react";
 import { useOnClickOutside } from "usehooks-ts";
 import { cn } from "@/lib/utils";
 import {
@@ -115,17 +115,24 @@ export interface BulkActionsMenuProps<TData> {
    * Whether the cross-page selection is loading.
    */
   isSelectingAll?: boolean;
+
+  /**
+   * Additional offset from the viewport bottom when the menu is fixed.
+   */
+  viewportBottomOffset?: number;
 }
 
 // Configuration pour les tabs d'actions
 interface ActionTab {
   id: MenuActionId;
-  icon: React.ComponentType<{ size?: number }>;
+  icon: React.ComponentType<{ className?: string; size?: number }>;
   translationKey: string;
+  translationParams?: Record<string, number | string>;
   variant: "default" | "destructive";
+  disabled?: boolean;
 }
 
-type MenuActionId = "copy" | "delete" | "edit" | "export";
+type MenuActionId = "copy" | "delete" | "edit" | "export" | "selectAll";
 type ConfirmableMenuActionId = "copy" | "delete";
 export type BulkActionsMenuPositionMode = "anchored" | "fixed";
 
@@ -207,6 +214,22 @@ export function getBulkActionsMenuWrapperClassName({
     positionMode === "fixed" && "fixed inset-x-0 bottom-6 px-4",
     className
   );
+}
+
+export function getBulkActionsMenuWrapperStyle({
+  positionMode,
+  viewportBottomOffset,
+}: {
+  positionMode: BulkActionsMenuPositionMode;
+  viewportBottomOffset?: number;
+}): CSSProperties | undefined {
+  if (positionMode !== "fixed" || viewportBottomOffset === undefined) {
+    return;
+  }
+
+  return {
+    bottom: viewportBottomOffset,
+  };
 }
 
 export function shouldIgnoreOutsideClickForBulkMenu(
@@ -362,6 +385,7 @@ export function BulkActionsMenu<TData>({
   selectAllCount,
   onSelectAll,
   isSelectingAll = false,
+  viewportBottomOffset,
 }: BulkActionsMenuProps<TData>) {
   const [selectedAction, setSelectedAction] =
     useState<ConfirmableMenuActionId | null>(null);
@@ -373,9 +397,24 @@ export function BulkActionsMenu<TData>({
   const outsideClickRef = useRef<HTMLDivElement>(null);
   const { t } = useTranslations();
   const showSelectAllAction = canSelectAll && typeof onSelectAll === "function";
+  const selectedCount = selectedRows.length;
 
   // Action visibility is driven by explicit props.
   const actionTabs: ActionTab[] = [
+    ...(showSelectAllAction
+      ? [
+          {
+            id: "selectAll" as const,
+            icon: isSelectingAll ? Loader2 : CheckCheck,
+            translationKey: "bulk.select_all",
+            translationParams: {
+              count: selectAllCount ?? selectedCount,
+            },
+            variant: "default" as const,
+            disabled: isSelectingAll,
+          },
+        ]
+      : []),
     ...(showBulkEdit
       ? [
           {
@@ -432,10 +471,17 @@ export function BulkActionsMenu<TData>({
     return null;
   }
 
-  const selectedCount = selectedRows.length;
-
   const handleTabClick = (actionId: MenuActionId) => {
     if (isConfirmingAction) {
+      return;
+    }
+
+    if (actionId === "selectAll") {
+      if (!onSelectAll || isSelectingAll) {
+        return;
+      }
+
+      Promise.resolve(onSelectAll()).catch(() => undefined);
       return;
     }
 
@@ -509,14 +555,6 @@ export function BulkActionsMenu<TData>({
     onClose?.();
   };
 
-  const handleSelectAll = () => {
-    if (!onSelectAll || isSelectingAll) {
-      return;
-    }
-
-    return Promise.resolve(onSelectAll());
-  };
-
   const getSelectedAction = () => {
     return actionTabs.find((tab) => tab.id === selectedAction);
   };
@@ -529,6 +567,10 @@ export function BulkActionsMenu<TData>({
         className={getBulkActionsMenuWrapperClassName({
           className,
           positionMode,
+        })}
+        style={getBulkActionsMenuWrapperStyle({
+          positionMode,
+          viewportBottomOffset,
         })}
       >
         <div className="pointer-events-auto flex flex-col items-center gap-4">
@@ -598,36 +640,6 @@ export function BulkActionsMenu<TData>({
               </span>
             </div>
 
-            {showSelectAllAction ? (
-              <>
-                <div
-                  aria-hidden="true"
-                  className="mx-1 h-[24px] w-[1.2px] bg-border/80"
-                />
-                <Button
-                  className="h-auto rounded-xl px-4 py-2 text-secondary-foreground/70 hover:bg-background/80 hover:text-secondary-foreground"
-                  disabled={isSelectingAll}
-                  onClick={handleSelectAll}
-                  size="sm"
-                  type="button"
-                  variant="ghost"
-                >
-                  {isSelectingAll ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <CheckCheck className="h-4 w-4" />
-                  )}
-                  <span className="whitespace-nowrap">
-                    {isSelectingAll
-                      ? t("common.loading")
-                      : t("bulk.select_all", {
-                          count: selectAllCount ?? selectedCount,
-                        })}
-                  </span>
-                </Button>
-              </>
-            ) : null}
-
             {/* Action tabs */}
             {actionTabs.map((tab) => {
               const Icon = tab.icon;
@@ -639,11 +651,13 @@ export function BulkActionsMenu<TData>({
                   animate="animate"
                   className={cn(
                     "relative flex items-center rounded-xl px-4 py-2 font-medium text-sm transition-colors duration-300",
+                    tab.disabled && "cursor-wait opacity-70",
                     tab.variant === "destructive"
                       ? "text-destructive hover:bg-destructive/10 hover:text-destructive"
                       : "text-secondary-foreground/70 hover:bg-background/80 hover:text-secondary-foreground"
                   )}
                   custom={isExpanded}
+                  disabled={tab.disabled}
                   initial={false}
                   key={tab.id}
                   onClick={() => handleTabClick(tab.id)}
@@ -653,7 +667,14 @@ export function BulkActionsMenu<TData>({
                   transition={transition}
                   variants={buttonVariants}
                 >
-                  <Icon size={20} />
+                  <Icon
+                    className={cn(
+                      tab.id === "selectAll" &&
+                        isSelectingAll &&
+                        "animate-spin"
+                    )}
+                    size={20}
+                  />
                   <AnimatePresence initial={false}>
                     {isExpanded && (
                       <m.span
@@ -664,7 +685,7 @@ export function BulkActionsMenu<TData>({
                         transition={transition}
                         variants={spanVariants}
                       >
-                        {t(tab.translationKey)}
+                        {t(tab.translationKey, tab.translationParams)}
                       </m.span>
                     )}
                   </AnimatePresence>

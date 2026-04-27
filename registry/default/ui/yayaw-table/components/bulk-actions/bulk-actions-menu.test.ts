@@ -6,6 +6,7 @@ import {
   executeConfirmableBulkActionWithLock,
   getBulkActionsMenuPositionMode,
   getBulkActionsMenuWrapperClassName,
+  getBulkActionsMenuWrapperStyle,
   getBulkMenuStateAfterOutsideClick,
 } from "./bulk-actions-menu";
 
@@ -48,6 +49,24 @@ describe("bulk confirmation flow", () => {
     assert.match(fixedClassName, FIXED_INSET_PATTERN);
     assert.match(fixedClassName, VIEWPORT_OFFSET_PATTERN);
     assert.doesNotMatch(anchoredClassName, VIEWPORT_OFFSET_PATTERN);
+  });
+
+  it("applies a viewport bottom offset only in fixed mode", () => {
+    assert.deepEqual(
+      getBulkActionsMenuWrapperStyle({
+        positionMode: "fixed",
+        viewportBottomOffset: 120,
+      }),
+      { bottom: 120 }
+    );
+
+    assert.equal(
+      getBulkActionsMenuWrapperStyle({
+        positionMode: "anchored",
+        viewportBottomOffset: 120,
+      }),
+      undefined
+    );
   });
 
   it("delete confirm triggers handler exactly once", async () => {

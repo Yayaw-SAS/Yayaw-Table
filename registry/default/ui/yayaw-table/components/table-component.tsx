@@ -84,6 +84,10 @@ const ROW_CLICK_SYSTEM_COLUMN_SELECTOR =
 const BULK_ACTIONS_ANCHOR_VIEWPORT_OPTIONS = {
   threshold: 1,
 } as const;
+const PAGINATION_VIEWPORT_OPTIONS = {
+  threshold: 0,
+} as const;
+const BULK_ACTIONS_FIXED_VIEWPORT_MARGIN = 24;
 
 export const shouldShowCalculationsFooter = ({
   enableCalculations,
@@ -103,6 +107,18 @@ export const shouldRenderBulkActionsInFooter = ({
   isTableBottomVisible: boolean;
 }): boolean => {
   return enablePagination && isTableBottomVisible;
+};
+
+export const getBulkActionsViewportBottomOffset = ({
+  isPaginationVisible,
+  paginationHeight,
+  viewportMargin = BULK_ACTIONS_FIXED_VIEWPORT_MARGIN,
+}: {
+  isPaginationVisible: boolean;
+  paginationHeight: number;
+  viewportMargin?: number;
+}): number => {
+  return viewportMargin + (isPaginationVisible ? paginationHeight : 0);
 };
 
 interface ColumnSizingDefinition {
@@ -586,10 +602,46 @@ function ModernDataTable<
   const _previousRowsRef = useRef<Row<TData>[]>([]);
   const { isVisible: isBulkActionsAnchorVisible, ref: bulkActionsAnchorRef } =
     useOnScreen(BULK_ACTIONS_ANCHOR_VIEWPORT_OPTIONS);
+  const { isVisible: isPaginationVisible, ref: paginationVisibilityRef } =
+    useOnScreen(PAGINATION_VIEWPORT_OPTIONS);
+  const paginationContainerRef = useRef<HTMLDivElement | null>(null);
+  const [paginationHeight, setPaginationHeight] = useState(0);
   const [hasMounted, setHasMounted] = useState(false);
   useEffect(() => {
     setHasMounted(true);
   }, []);
+
+  useEffect(() => {
+    const paginationElement = paginationContainerRef.current;
+    if (!paginationElement) {
+      setPaginationHeight(0);
+      return;
+    }
+
+    const updatePaginationHeight = () => {
+      setPaginationHeight(paginationElement.getBoundingClientRect().height);
+    };
+
+    updatePaginationHeight();
+
+    const observer = new ResizeObserver(() => {
+      updatePaginationHeight();
+    });
+
+    observer.observe(paginationElement);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  const handlePaginationContainerRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      paginationContainerRef.current = node;
+      paginationVisibilityRef.current = node;
+    },
+    [paginationVisibilityRef]
+  );
 
   // Use stable references for callbacks
   const stableOnRowSelectionChange = useRef(onRowSelectionChange);
@@ -1620,6 +1672,10 @@ function ModernDataTable<
         enablePagination,
         isTableBottomVisible: isBulkActionsAnchorVisible,
       });
+    const fixedBulkActionsViewportOffset = getBulkActionsViewportBottomOffset({
+      isPaginationVisible,
+      paginationHeight,
+    });
 
     return (
       <ColumnDndContext
@@ -1661,6 +1717,7 @@ function ModernDataTable<
             {enablePagination && (
               <SafePagination
                 anchorRef={bulkActionsAnchorRef}
+                containerRef={handlePaginationContainerRef}
                 footerSlot={
                   renderBulkActionsInFooter ? (
                     <BulkActionsMenu
@@ -1718,6 +1775,7 @@ function ModernDataTable<
               showBulkDelete={bulkActions.isBulkDeleteEnabled}
               showBulkEdit={bulkActions.isBulkEditEnabled}
               showBulkExport={bulkActions.isBulkExportEnabled}
+              viewportBottomOffset={fixedBulkActionsViewportOffset}
             />
           )}
         </div>

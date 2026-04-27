@@ -18,6 +18,7 @@ import { useTableTranslations } from "../hooks";
 
 interface SafePaginationProps<TData> {
   anchorRef?: Ref<HTMLDivElement>;
+  containerRef?: Ref<HTMLDivElement>;
   table: Table<TData>;
   rowCount?: number;
   className?: string;
@@ -27,6 +28,7 @@ interface SafePaginationProps<TData> {
 
 export function SafePagination<TData>({
   anchorRef,
+  containerRef,
   table,
   rowCount,
   className,
@@ -72,7 +74,10 @@ export function SafePagination<TData>({
   );
 
   return (
-    <div className={cn("flex flex-col gap-4 py-4", className)}>
+    <div
+      className={cn("flex flex-col gap-4 py-4", className)}
+      ref={containerRef}
+    >
       <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
         {/* Row range display */}
         <div className="flex-1 text-muted-foreground text-sm">
