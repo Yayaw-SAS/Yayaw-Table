@@ -90,6 +90,11 @@ export interface BulkActionsMenuProps<TData> {
    * Whether bulk delete action should be shown
    */
   showBulkDelete?: boolean;
+
+  /**
+   * Controls whether the menu is anchored to the table or fixed to the viewport.
+   */
+  positionMode?: BulkActionsMenuPositionMode;
 }
 
 // Configuration pour les tabs d'actions
@@ -102,6 +107,7 @@ interface ActionTab {
 
 type MenuActionId = "copy" | "delete" | "edit" | "export";
 type ConfirmableMenuActionId = "copy" | "delete";
+export type BulkActionsMenuPositionMode = "anchored" | "fixed";
 
 interface BulkMenuOutsideClickState {
   hoveredAction: string | null;
@@ -159,6 +165,28 @@ const transition = {
   bounce: 0,
   duration: 0.6,
 };
+
+export function getBulkActionsMenuPositionMode(
+  isTableBottomVisible: boolean
+): BulkActionsMenuPositionMode {
+  return isTableBottomVisible ? "anchored" : "fixed";
+}
+
+export function getBulkActionsMenuWrapperClassName({
+  className,
+  positionMode,
+}: {
+  className?: string;
+  positionMode: BulkActionsMenuPositionMode;
+}): string {
+  return cn(
+    "z-50 flex w-full justify-center px-4",
+    "pointer-events-none fade-in-0 slide-in-from-bottom-2 animate-in",
+    "duration-300 ease-out",
+    positionMode === "fixed" && "fixed inset-x-0 bottom-6",
+    className
+  );
+}
 
 export function shouldIgnoreOutsideClickForBulkMenu(
   state: Pick<BulkMenuOutsideClickState, "isConfirmingAction" | "showConfirmation">
@@ -308,6 +336,7 @@ export function BulkActionsMenu<TData>({
   showBulkExport = true,
   showBulkEdit = true,
   showBulkDelete = true,
+  positionMode = "anchored",
 }: BulkActionsMenuProps<TData>) {
   const [selectedAction, setSelectedAction] =
     useState<ConfirmableMenuActionId | null>(null);
@@ -462,142 +491,142 @@ export function BulkActionsMenu<TData>({
 
   return (
     <LazyMotion features={domAnimation}>
-    <div
-      className={cn(
-        "fixed bottom-10 left-1/2 z-50 -translate-x-1/2 transform",
-        "fade-in-0 slide-in-from-bottom-2 animate-in",
-        "duration-300 ease-out",
-        className
-      )}
-    >
-      <div className="flex flex-col items-center space-y-4">
-        {/* Confirmation dialog (consistent AlertDialog for copy/delete) */}
-        <AlertDialog
-          onOpenChange={(open) => {
-            if (!open && !isConfirmingAction && !confirmationLockRef.current) {
-              handleCancel();
-            }
-          }}
-          open={showConfirmation && !!selectedAction}
-        >
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>
-                {t("bulk.confirm_title", {
-                  action: t(getSelectedAction()?.translationKey || ""),
-                  count: selectedCount,
-                })}
-              </AlertDialogTitle>
-              {selectedAction === "delete" ? (
-                <AlertDialogDescription>
-                  {t("bulk.confirm_delete_description")}
-                </AlertDialogDescription>
-              ) : (
-                <AlertDialogDescription>
-                  {t("bulk.confirm_copy_description", {
+      <div
+        className={getBulkActionsMenuWrapperClassName({
+          className,
+          positionMode,
+        })}
+      >
+        <div className="pointer-events-auto flex flex-col items-center gap-4">
+          {/* Confirmation dialog (consistent AlertDialog for copy/delete) */}
+          <AlertDialog
+            onOpenChange={(open) => {
+              if (!open && !isConfirmingAction && !confirmationLockRef.current) {
+                handleCancel();
+              }
+            }}
+            open={showConfirmation && !!selectedAction}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  {t("bulk.confirm_title", {
+                    action: t(getSelectedAction()?.translationKey || ""),
                     count: selectedCount,
                   })}
-                </AlertDialogDescription>
-              )}
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel
-                disabled={isConfirmingAction}
-                onClick={handleCancel}
-              >
-                {t("actions.cancel")}
-              </AlertDialogCancel>
-              <AlertDialogAction
-                className={
-                  selectedAction === "delete"
-                    ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    : undefined
-                }
-                disabled={isConfirmingAction}
-                onClick={handleConfirmAction}
-              >
-                {isConfirmingAction ? t("common.loading") : t("actions.confirm")}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
-        {/* Main menu with custom expandable tabs */}
-        <div
-          className="flex flex-wrap items-center gap-2 rounded-2xl border bg-background/95 p-1 shadow-lg backdrop-blur-sm"
-          ref={outsideClickRef}
-        >
-          {/* Count indicator */}
-          <div className="flex items-center gap-2 px-3">
-            <div className="h-2 w-2 animate-pulse rounded-full bg-primary" />
-            <span className="font-medium text-foreground text-sm">
-              {t("selection.rows", { count: selectedCount })}
-            </span>
-          </div>
-
-          {/* Action tabs */}
-          {actionTabs.map((tab) => {
-            const Icon = tab.icon;
-            const isExpanded =
-              hoveredAction === tab.id || selectedAction === tab.id;
-
-            return (
-              <m.button
-                animate="animate"
-                className={cn(
-                  "relative flex items-center rounded-xl px-4 py-2 font-medium text-sm transition-colors duration-300",
-                  tab.variant === "destructive"
-                    ? "text-destructive hover:bg-destructive/10 hover:text-destructive"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                </AlertDialogTitle>
+                {selectedAction === "delete" ? (
+                  <AlertDialogDescription>
+                    {t("bulk.confirm_delete_description")}
+                  </AlertDialogDescription>
+                ) : (
+                  <AlertDialogDescription>
+                    {t("bulk.confirm_copy_description", {
+                      count: selectedCount,
+                    })}
+                  </AlertDialogDescription>
                 )}
-                custom={isExpanded}
-                initial={false}
-                key={tab.id}
-                onClick={() => handleTabClick(tab.id)}
-                onMouseEnter={() => setHoveredAction(tab.id)}
-                onMouseLeave={() => setHoveredAction(null)}
-                type="button"
-                transition={transition}
-                variants={buttonVariants}
-              >
-                <Icon size={20} />
-                <AnimatePresence initial={false}>
-                  {isExpanded && (
-                    <m.span
-                      animate="animate"
-                      className="overflow-hidden whitespace-nowrap"
-                      exit="exit"
-                      initial="initial"
-                      transition={transition}
-                      variants={spanVariants}
-                    >
-                      {t(tab.translationKey)}
-                    </m.span>
-                  )}
-                </AnimatePresence>
-              </m.button>
-            );
-          })}
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel
+                  disabled={isConfirmingAction}
+                  onClick={handleCancel}
+                >
+                  {t("actions.cancel")}
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  className={
+                    selectedAction === "delete"
+                      ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      : undefined
+                  }
+                  disabled={isConfirmingAction}
+                  onClick={handleConfirmAction}
+                >
+                  {isConfirmingAction
+                    ? t("common.loading")
+                    : t("actions.confirm")}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
-          {/* Separator */}
+          {/* Main menu with custom expandable tabs */}
           <div
-            aria-hidden="true"
-            className="mx-1 h-[24px] w-[1.2px] bg-border"
-          />
-
-          {/* Close button */}
-          <Button
-            aria-label={t("bulk.close_menu")}
-            className="h-8 w-8 p-0 hover:bg-muted"
-            onClick={handleClose}
-            size="sm"
-            variant="ghost"
+            className="flex flex-wrap items-center gap-2 rounded-2xl border border-border/80 bg-secondary/95 p-1 text-secondary-foreground shadow-xl backdrop-blur-md"
+            ref={outsideClickRef}
           >
-            <X className="h-3 w-3" />
-          </Button>
+            {/* Count indicator */}
+            <div className="flex items-center gap-2 px-3">
+              <div className="h-2 w-2 animate-pulse rounded-full bg-primary" />
+              <span className="font-medium text-sm text-secondary-foreground">
+                {t("selection.rows", { count: selectedCount })}
+              </span>
+            </div>
+
+            {/* Action tabs */}
+            {actionTabs.map((tab) => {
+              const Icon = tab.icon;
+              const isExpanded =
+                hoveredAction === tab.id || selectedAction === tab.id;
+
+              return (
+                <m.button
+                  animate="animate"
+                  className={cn(
+                    "relative flex items-center rounded-xl px-4 py-2 font-medium text-sm transition-colors duration-300",
+                    tab.variant === "destructive"
+                      ? "text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      : "text-secondary-foreground/70 hover:bg-background/80 hover:text-secondary-foreground"
+                  )}
+                  custom={isExpanded}
+                  initial={false}
+                  key={tab.id}
+                  onClick={() => handleTabClick(tab.id)}
+                  onMouseEnter={() => setHoveredAction(tab.id)}
+                  onMouseLeave={() => setHoveredAction(null)}
+                  type="button"
+                  transition={transition}
+                  variants={buttonVariants}
+                >
+                  <Icon size={20} />
+                  <AnimatePresence initial={false}>
+                    {isExpanded && (
+                      <m.span
+                        animate="animate"
+                        className="overflow-hidden whitespace-nowrap"
+                        exit="exit"
+                        initial="initial"
+                        transition={transition}
+                        variants={spanVariants}
+                      >
+                        {t(tab.translationKey)}
+                      </m.span>
+                    )}
+                  </AnimatePresence>
+                </m.button>
+              );
+            })}
+
+            {/* Separator */}
+            <div
+              aria-hidden="true"
+              className="mx-1 h-[24px] w-[1.2px] bg-border/80"
+            />
+
+            {/* Close button */}
+            <Button
+              aria-label={t("bulk.close_menu")}
+              className="h-8 w-8 p-0 text-secondary-foreground/70 hover:bg-background/80 hover:text-secondary-foreground"
+              onClick={handleClose}
+              size="sm"
+              variant="ghost"
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
         </div>
       </div>
-    </div>
     </LazyMotion>
   );
 }

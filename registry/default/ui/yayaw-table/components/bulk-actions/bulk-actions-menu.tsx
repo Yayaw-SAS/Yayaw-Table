@@ -90,6 +90,11 @@ export interface BulkActionsMenuProps<TData> {
    * Whether bulk delete action should be shown
    */
   showBulkDelete?: boolean;
+
+  /**
+   * Controls whether the menu is anchored to the table or fixed to the viewport.
+   */
+  positionMode?: BulkActionsMenuPositionMode;
 }
 
 // Configuration pour les tabs d'actions
@@ -102,6 +107,7 @@ interface ActionTab {
 
 type MenuActionId = "copy" | "delete" | "edit" | "export";
 type ConfirmableMenuActionId = "copy" | "delete";
+export type BulkActionsMenuPositionMode = "anchored" | "fixed";
 
 interface BulkMenuOutsideClickState {
   hoveredAction: string | null;
@@ -159,6 +165,28 @@ const transition = {
   bounce: 0,
   duration: 0.6,
 };
+
+export function getBulkActionsMenuPositionMode(
+  isTableBottomVisible: boolean
+): BulkActionsMenuPositionMode {
+  return isTableBottomVisible ? "anchored" : "fixed";
+}
+
+export function getBulkActionsMenuWrapperClassName({
+  className,
+  positionMode,
+}: {
+  className?: string;
+  positionMode: BulkActionsMenuPositionMode;
+}): string {
+  return cn(
+    "z-50 flex w-full justify-center px-4",
+    "fade-in-0 slide-in-from-bottom-2 pointer-events-none animate-in",
+    "duration-300 ease-out",
+    positionMode === "fixed" && "fixed inset-x-0 bottom-6",
+    className
+  );
+}
 
 export function shouldIgnoreOutsideClickForBulkMenu(
   state: Pick<
@@ -311,6 +339,7 @@ export function BulkActionsMenu<TData>({
   showBulkExport = true,
   showBulkEdit = true,
   showBulkDelete = true,
+  positionMode = "anchored",
 }: BulkActionsMenuProps<TData>) {
   const [selectedAction, setSelectedAction] =
     useState<ConfirmableMenuActionId | null>(null);
@@ -462,14 +491,12 @@ export function BulkActionsMenu<TData>({
   return (
     <LazyMotion features={domAnimation}>
       <div
-        className={cn(
-          "fixed bottom-10 left-1/2 z-50 -translate-x-1/2 transform",
-          "fade-in-0 slide-in-from-bottom-2 animate-in",
-          "duration-300 ease-out",
-          className
-        )}
+        className={getBulkActionsMenuWrapperClassName({
+          className,
+          positionMode,
+        })}
       >
-        <div className="flex flex-col items-center space-y-4">
+        <div className="pointer-events-auto flex flex-col items-center gap-4">
           {/* Confirmation dialog (consistent AlertDialog for copy/delete) */}
           <AlertDialog
             onOpenChange={(open) => {
@@ -527,13 +554,13 @@ export function BulkActionsMenu<TData>({
 
           {/* Main menu with custom expandable tabs */}
           <div
-            className="flex flex-wrap items-center gap-2 rounded-2xl border bg-background/95 p-1 shadow-lg backdrop-blur-sm"
+            className="flex flex-wrap items-center gap-2 rounded-2xl border border-border/80 bg-secondary/95 p-1 text-secondary-foreground shadow-xl backdrop-blur-md"
             ref={outsideClickRef}
           >
             {/* Count indicator */}
             <div className="flex items-center gap-2 px-3">
               <div className="h-2 w-2 animate-pulse rounded-full bg-primary" />
-              <span className="font-medium text-foreground text-sm">
+              <span className="font-medium text-secondary-foreground text-sm">
                 {t("selection.rows", { count: selectedCount })}
               </span>
             </div>
@@ -551,7 +578,7 @@ export function BulkActionsMenu<TData>({
                     "relative flex items-center rounded-xl px-4 py-2 font-medium text-sm transition-colors duration-300",
                     tab.variant === "destructive"
                       ? "text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      : "text-secondary-foreground/70 hover:bg-background/80 hover:text-secondary-foreground"
                   )}
                   custom={isExpanded}
                   initial={false}
@@ -585,13 +612,13 @@ export function BulkActionsMenu<TData>({
             {/* Separator */}
             <div
               aria-hidden="true"
-              className="mx-1 h-[24px] w-[1.2px] bg-border"
+              className="mx-1 h-[24px] w-[1.2px] bg-border/80"
             />
 
             {/* Close button */}
             <Button
               aria-label={t("bulk.close_menu")}
-              className="h-8 w-8 p-0 hover:bg-muted"
+              className="h-8 w-8 p-0 text-secondary-foreground/70 hover:bg-background/80 hover:text-secondary-foreground"
               onClick={handleClose}
               size="sm"
               variant="ghost"

@@ -4,8 +4,14 @@ import type { Row } from "@tanstack/react-table";
 
 import {
   executeConfirmableBulkActionWithLock,
+  getBulkActionsMenuPositionMode,
+  getBulkActionsMenuWrapperClassName,
   getBulkMenuStateAfterOutsideClick,
 } from "./bulk-actions-menu";
+
+const FIXED_INSET_PATTERN = /\binset-x-0\b/;
+const FIXED_POSITIONING_PATTERN = /\bfixed\b/;
+const VIEWPORT_OFFSET_PATTERN = /\bbottom-6\b/;
 
 function createSelectedRows(ids: string[]): Row<Record<string, unknown>>[] {
   return ids.map(
@@ -18,6 +24,29 @@ function createSelectedRows(ids: string[]): Row<Record<string, unknown>>[] {
 }
 
 describe("bulk confirmation flow", () => {
+  it("anchors the menu when the table bottom is visible", () => {
+    assert.equal(getBulkActionsMenuPositionMode(true), "anchored");
+  });
+
+  it("fixes the menu to the viewport when the table bottom is hidden", () => {
+    assert.equal(getBulkActionsMenuPositionMode(false), "fixed");
+  });
+
+  it("uses fixed viewport classes only in fixed mode", () => {
+    const anchoredClassName = getBulkActionsMenuWrapperClassName({
+      positionMode: "anchored",
+    });
+    const fixedClassName = getBulkActionsMenuWrapperClassName({
+      positionMode: "fixed",
+    });
+
+    assert.doesNotMatch(anchoredClassName, FIXED_POSITIONING_PATTERN);
+    assert.doesNotMatch(anchoredClassName, FIXED_INSET_PATTERN);
+    assert.match(fixedClassName, FIXED_POSITIONING_PATTERN);
+    assert.match(fixedClassName, FIXED_INSET_PATTERN);
+    assert.match(fixedClassName, VIEWPORT_OFFSET_PATTERN);
+  });
+
   it("delete confirm triggers handler exactly once", async () => {
     const selectedRows = createSelectedRows(["row-1", "row-2"]);
     const lockRef = { current: false };

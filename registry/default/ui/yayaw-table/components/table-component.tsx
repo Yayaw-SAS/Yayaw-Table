@@ -50,7 +50,10 @@ import type { DataTableProps } from "../types";
 import { Loader } from "../ui-custom/loader";
 import { ColumnIcon } from "../utils/column-icons";
 import { buildCsvExportColumns } from "../utils/csv-export";
-import { BulkActionsMenu } from "./bulk-actions/bulk-actions-menu";
+import {
+  BulkActionsMenu,
+  getBulkActionsMenuPositionMode,
+} from "./bulk-actions/bulk-actions-menu";
 import { InlineEditableCell } from "./cells/inline-editable-cell";
 import { ColumnDragOverlay } from "./columns/header/column-drag-overlay";
 import { DataTableColumnHeader } from "./columns/header/column-header";
@@ -66,6 +69,7 @@ import {
 } from "./forms/atoms/catalogue-form-atoms";
 import type { AnyFieldDefinition } from "./forms/types";
 import { SafePagination } from "./safe-pagination";
+import { useOnScreen } from "./utils/use-on-screen";
 
 const _DEBUG = false;
 
@@ -77,6 +81,9 @@ const ROW_CLICK_INTERACTIVE_SELECTOR =
   "button, a, [role=checkbox], input, select, textarea";
 const ROW_CLICK_SYSTEM_COLUMN_SELECTOR =
   '[data-column-id="select"], [data-column-id="actions"]';
+const BULK_ACTIONS_ANCHOR_VIEWPORT_OPTIONS = {
+  threshold: 0,
+} as const;
 
 export const shouldShowCalculationsFooter = ({
   enableCalculations,
@@ -567,6 +574,8 @@ function ModernDataTable<
   const _isVisibleRef = useRef(true);
   const tableRef = useRef<HTMLDivElement>(null);
   const _previousRowsRef = useRef<Row<TData>[]>([]);
+  const { isVisible: isBulkActionsAnchorVisible, ref: bulkActionsAnchorRef } =
+    useOnScreen(BULK_ACTIONS_ANCHOR_VIEWPORT_OPTIONS);
   const [hasMounted, setHasMounted] = useState(false);
   useEffect(() => {
     setHasMounted(true);
@@ -1645,6 +1654,28 @@ function ModernDataTable<
               table={table}
             />
           )}
+
+          {bulkActions.showBulkActions && (
+            <div
+              className="flex min-h-16 items-end justify-center"
+              ref={bulkActionsAnchorRef}
+            >
+              <BulkActionsMenu
+                onBulkCopy={bulkActions.handleBulkCopy}
+                onBulkDelete={bulkActions.handleBulkDelete}
+                onBulkEdit={bulkActions.handleBulkEdit}
+                onBulkExport={bulkActions.handleBulkExport}
+                onClose={bulkActions.closeBulkActions}
+                positionMode={getBulkActionsMenuPositionMode(
+                  isBulkActionsAnchorVisible
+                )}
+                selectedRows={bulkActions.selectedRows}
+                showBulkDelete={bulkActions.isBulkDeleteEnabled}
+                showBulkEdit={bulkActions.isBulkEditEnabled}
+                showBulkExport={bulkActions.isBulkExportEnabled}
+              />
+            </div>
+          )}
         </div>
 
         {/* Column drag overlay is rendered at the context level */}
@@ -1661,21 +1692,6 @@ function ModernDataTable<
   return (
     <div className="space-y-4" suppressHydrationWarning>
       {renderContent()}
-
-      {/* Bulk Actions Menu - rendered as overlay when rows are selected */}
-      {bulkActions.showBulkActions && (
-        <BulkActionsMenu
-          onBulkCopy={bulkActions.handleBulkCopy}
-          onBulkDelete={bulkActions.handleBulkDelete}
-          onBulkEdit={bulkActions.handleBulkEdit}
-          onBulkExport={bulkActions.handleBulkExport}
-          onClose={bulkActions.closeBulkActions}
-          selectedRows={bulkActions.selectedRows}
-          showBulkDelete={bulkActions.isBulkDeleteEnabled}
-          showBulkEdit={bulkActions.isBulkEditEnabled}
-          showBulkExport={bulkActions.isBulkExportEnabled}
-        />
-      )}
     </div>
   );
 }
