@@ -11,7 +11,9 @@ import { buttonVariants } from "@/src/components/ui/button-styles";
 import { ThemeToggle } from "@/src/components/ui/custom/theme-toggle";
 import { getLocalizedHref, stripLocalePrefix } from "@/src/i18n/pathnames";
 import type { AppLocale } from "@/src/i18n/routing";
+import { LATEST_INSTALL_COMMANDS } from "@/src/lib/package-manager";
 import { LanguageSwitcher } from "./language-switcher";
+import { usePackageManager } from "./package-manager-provider";
 
 interface SiteHeaderLabels {
   brand: string;
@@ -27,23 +29,20 @@ interface SiteHeaderLabels {
 }
 
 interface SiteHeaderProps {
-  installCommand: string;
   labels: SiteHeaderLabels;
   locale: AppLocale;
 }
 
-export function SiteHeader({
-  installCommand,
-  labels,
-  locale,
-}: SiteHeaderProps) {
+export function SiteHeader({ labels, locale }: SiteHeaderProps) {
   const pathname = usePathname();
   const normalizedPathname = stripLocalePrefix(pathname ?? "/");
   const [isOpen, setIsOpen] = useState(false);
+  const { packageManager } = usePackageManager();
   const homeHref = getLocalizedHref(locale, "/");
   const docsHref = getLocalizedHref(locale, "/docs");
   const exampleHref = getLocalizedHref(locale, "/example");
   const installHref = getLocalizedHref(locale, "/docs/installation");
+  const installCommand = LATEST_INSTALL_COMMANDS[packageManager];
   const items = [
     { href: docsHref, label: labels.docs, matchPathname: "/docs" },
     { href: exampleHref, label: labels.example, matchPathname: "/example" },

@@ -3,9 +3,10 @@ import { RootProvider } from "fumadocs-ui/provider/next";
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Space_Grotesk } from "next/font/google";
 import { notFound } from "next/navigation";
-import { hasLocale } from "next-intl";
+import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
+import { PackageManagerProvider } from "@/src/components/site/package-manager-provider";
 import { routing } from "@/src/i18n/routing";
 import { createPageMetadata } from "@/src/lib/metadata";
 import { siteConfig } from "@/src/lib/site-config";
@@ -49,6 +50,7 @@ export default async function LocaleLayout({
   }
 
   setRequestLocale(locale);
+  const messages = (await import(`../../messages/${locale}.json`)).default;
 
   return (
     <html
@@ -57,7 +59,11 @@ export default async function LocaleLayout({
       suppressHydrationWarning
     >
       <body className="flex min-h-screen flex-col font-sans text-foreground antialiased">
-        <RootProvider theme={rootThemeOptions}>{children}</RootProvider>
+        <RootProvider theme={rootThemeOptions}>
+          <NextIntlClientProvider messages={messages}>
+            <PackageManagerProvider>{children}</PackageManagerProvider>
+          </NextIntlClientProvider>
+        </RootProvider>
       </body>
     </html>
   );

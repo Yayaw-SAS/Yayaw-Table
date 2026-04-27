@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { hasLocale, NextIntlClientProvider } from "next-intl";
+import { hasLocale } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import type { ReactNode } from "react";
@@ -48,13 +48,10 @@ export default async function ExampleLayout({
   const currentLocale = locale as AppLocale;
   const common = await getTranslations({ locale, namespace: "Common" });
   const nav = await getTranslations({ locale, namespace: "Nav" });
-  const allMessages = (await import(`../../../messages/${locale}.json`))
-    .default as Record<string, unknown>;
 
   return (
     <>
       <SiteHeader
-        installCommand={common("installCommand")}
         labels={{
           brand: nav("brand"),
           closeMenu: nav("closeMenu"),
@@ -79,12 +76,10 @@ export default async function ExampleLayout({
           </div>
         }
       >
-        <NextIntlClientProvider messages={{ Example: allMessages.Example }}>
-          <NuqsAdapter>
-            {children}
-            <Toaster />
-          </NuqsAdapter>
-        </NextIntlClientProvider>
+        <NuqsAdapter>
+          {children}
+          <Toaster />
+        </NuqsAdapter>
       </Suspense>
     </>
   );

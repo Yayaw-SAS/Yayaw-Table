@@ -9,13 +9,25 @@ published npm package. Versioning therefore has two responsibilities:
 The moving install URL remains:
 
 ```bash
+pnpm dlx shadcn@latest add https://table.yayaw.eu/r/yayaw-table.json
+# or
 npx shadcn@latest add https://table.yayaw.eu/r/yayaw-table.json
+# or
+yarn dlx shadcn@latest add https://table.yayaw.eu/r/yayaw-table.json
+# or
+bunx --bun shadcn@latest add https://table.yayaw.eu/r/yayaw-table.json
 ```
 
 Pinned installs use a release snapshot:
 
 ```bash
+pnpm dlx shadcn@latest add https://table.yayaw.eu/r/v0.1.0/yayaw-table.json
+# or
 npx shadcn@latest add https://table.yayaw.eu/r/v0.1.0/yayaw-table.json
+# or
+yarn dlx shadcn@latest add https://table.yayaw.eu/r/v0.1.0/yayaw-table.json
+# or
+bunx --bun shadcn@latest add https://table.yayaw.eu/r/v0.1.0/yayaw-table.json
 ```
 
 ## Version policy
