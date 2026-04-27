@@ -37,9 +37,14 @@ const SRC_YAYAW_TABLE = path.join(
 );
 const SRC_UI_CUSTOM = path.join(ROOT, "src", "components", "ui", "custom");
 const UI_CUSTOM_FILES = ["loader.tsx", "icon.tsx", "stack-menu.tsx"];
+const PACKAGE_JSON_PATH = path.join(ROOT, "package.json");
 
 const REGEX_TSX_CSS = /\.(tsx?|css)$/;
 const REGEX_TS_EXT = /\.(tsx?|ts)$/;
+
+function readJson(filePath) {
+  return JSON.parse(fs.readFileSync(filePath, "utf8"));
+}
 
 function getAllFiles(dir, base = dir) {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -175,7 +180,48 @@ function getFileType(fileRel) {
   return "registry:file";
 }
 
+function splitDependencySpecifier(specifier) {
+  if (specifier.startsWith("@")) {
+    const scopeSeparatorIndex = specifier.indexOf("/");
+    const versionSeparatorIndex = specifier.indexOf("@", scopeSeparatorIndex);
+    if (versionSeparatorIndex === -1) {
+      return { name: specifier, version: null };
+    }
+    return {
+      name: specifier.slice(0, versionSeparatorIndex),
+      version: specifier.slice(versionSeparatorIndex + 1),
+    };
+  }
+
+  const versionSeparatorIndex = specifier.indexOf("@");
+  if (versionSeparatorIndex === -1) {
+    return { name: specifier, version: null };
+  }
+  return {
+    name: specifier.slice(0, versionSeparatorIndex),
+    version: specifier.slice(versionSeparatorIndex + 1),
+  };
+}
+
+function pinDependencyVersion(specifier, dependencyVersions) {
+  const { name, version } = splitDependencySpecifier(specifier);
+  if (version) {
+    return specifier;
+  }
+
+  const configuredVersion = dependencyVersions[name];
+  if (!configuredVersion) {
+    throw new Error(
+      `Registry dependency "${name}" is missing from package.json dependencies.`
+    );
+  }
+
+  return `${name}@${configuredVersion}`;
+}
+
 // --- main ---
+
+const packageJson = readJson(PACKAGE_JSON_PATH);
 
 // 1) Clean and copy source table block
 if (fs.existsSync(REGISTRY_BLOCK)) {
@@ -221,8 +267,21 @@ const files = allRels.map((rel) => {
 
 // 5) Update registry.json
 const registryPath = path.join(ROOT, "registry", "registry.json");
-const registry = JSON.parse(fs.readFileSync(registryPath, "utf8"));
-registry.items[0].files = files;
+const registry = readJson(registryPath);
+const registryItem = registry.items[0];
+registry.homepage = packageJson.repository.url
+  .replace(/^git\+/, "")
+  .replace(/\.git$/, "");
+registryItem.files = files;
+registryItem.dependencies = registryItem.dependencies.map((dependency) =>
+  pinDependencyVersion(dependency, packageJson.dependencies)
+);
+registryItem.meta = {
+  ...(registryItem.meta ?? {}),
+  registryUrl: `${packageJson.homepage}/r/yayaw-table.json`,
+  version: packageJson.version,
+  versionedRegistryUrl: `${packageJson.homepage}/r/v${packageJson.version}/yayaw-table.json`,
+};
 fs.writeFileSync(
   registryPath,
   `${JSON.stringify(registry, null, 2)}\n`,

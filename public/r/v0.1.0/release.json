@@ -1,0 +1,9 @@
+{
+  "name": "yayaw-table",
+  "version": "0.1.0",
+  "files": {
+    "item": "yayaw-table.json",
+    "registry": "registry.json"
+  },
+  "latest": "../yayaw-table.json"
+}

@@ -25,6 +25,27 @@ Le site de doc (Next) sert tout ce qui est dans `public/` : une fois déployé, 
    bun run registry:build
    ```
 
+3. **Préparer une release versionnée** (génère aussi `public/r/vX.Y.Z/yayaw-table.json` pour la version courante de `package.json`) :
+   ```bash
+   bun run registry:release
+   ```
+
+## Versioning
+
+Le registry a deux URLs publiques :
+
+- `https://table.yayaw.eu/r/yayaw-table.json` : canal `latest`, mis à jour à chaque build de registry.
+- `https://table.yayaw.eu/r/vX.Y.Z/yayaw-table.json` : snapshot immuable d'une release.
+
+Les versions suivent SemVer depuis `package.json`. Les notes de release sont gérées avec Changesets :
+
+```bash
+bun run changeset
+bun run version
+```
+
+`bun run version` applique les changesets, met à jour `CHANGELOG.md`, régénère le registry, puis crée le snapshot `public/r/vX.Y.Z/`. Ne modifiez jamais un dossier `public/r/vX.Y.Z/` existant pour changer le contenu d'une version déjà publiée : faites un nouveau bump de version.
+
 ## Où vont les fichiers quand on installe via la CLI ?
 
 Quand on fait `npx shadcn@latest add <url-du-block>` (ex. `https://ton-domaine.com/r/yayaw-table.json`) :

@@ -30,6 +30,12 @@ From your project root:
 npx shadcn@latest add https://table.yayaw.eu/r/yayaw-table.json
 ```
 
+To install a pinned release instead of the moving latest registry item:
+
+```bash
+npx shadcn@latest add https://table.yayaw.eu/r/v0.1.0/yayaw-table.json
+```
+
 If your project has the `@yayaw` registry namespace configured:
 
 ```bash
@@ -101,6 +107,16 @@ To regenerate the distributable registry JSON in `public/r`:
 ```bash
 bun run registry:build
 ```
+
+To generate the immutable registry snapshot for the current `package.json`
+version:
+
+```bash
+bun run registry:release
+```
+
+Release notes and SemVer bumps are managed with Changesets. See
+[Release workflow](./docs/RELEASES.md) before tagging a version.
 
 ## Development
 

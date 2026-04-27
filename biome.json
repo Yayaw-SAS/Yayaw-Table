@@ -11,7 +11,9 @@
       "!.source",
       "!src/ui/shadcn",
       "!src/components/ui",
-      "!public/r/yayaw-table.json"
+      "!public/r/yayaw-table.json",
+      "!public/r/v*/yayaw-table.json",
+      "!public/r/v*/registry.json"
     ]
   },
   "overrides": [

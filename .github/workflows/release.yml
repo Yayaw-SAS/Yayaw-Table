@@ -1,0 +1,49 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  github-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Read version
+        id: version
+        run: |
+          node -e 'const fs = require("node:fs"); const p = JSON.parse(fs.readFileSync("package.json", "utf8")); fs.appendFileSync(process.env.GITHUB_OUTPUT, "version=" + p.version + "\n");'
+
+      - name: Verify registry snapshot
+        run: |
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            bun run release:verify -- "$GITHUB_REF_NAME"
+          else
+            bun run release:verify
+          fi
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: v${{ steps.version.outputs.version }}
+          fail_on_unmatched_files: true
+          files: |
+            public/r/yayaw-table.json
+            public/r/v${{ steps.version.outputs.version }}/yayaw-table.json
+            public/r/v${{ steps.version.outputs.version }}/release.json
