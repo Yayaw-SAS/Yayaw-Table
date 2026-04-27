@@ -1,13 +1,13 @@
 {
   "Metadata": {
     "siteTitle": "YaYaw Table",
-    "siteDescription": "Table de donnees React open source pour Shadcn UI et TanStack Table, avec etat URL, workflows server-side, actions de masse et maitrise totale du code.",
-    "homeTitle": "Table de donnees React open source pour Shadcn UI",
-    "homeDescription": "Creez des tables React pretes pour la production avec Shadcn UI et TanStack Table. Etat URL, filtrage server-side, actions de masse, i18n et maitrise totale du code.",
-    "exampleTitle": "Demo YaYaw Table",
+    "siteDescription": "Table de données React open source pour Shadcn UI et TanStack Table, avec état synchronisé dans l'URL, workflows côté serveur, actions de masse et maîtrise complète du code.",
+    "homeTitle": "Table de données React open source pour Shadcn UI",
+    "homeDescription": "Créez des tables React prêtes pour la production avec Shadcn UI et TanStack Table. État synchronisé dans l'URL, filtrage côté serveur, actions de masse, i18n et maîtrise complète du code.",
+    "exampleTitle": "Démo YaYaw Table",
     "exampleDescription": "Explorez une implémentation réelle de YaYaw Table avec pagination serveur, filtres, regroupement et actions de masse.",
     "docsTitle": "Documentation YaYaw Table",
-    "docsDescription": "Installez, configurez et deploiyez une table de donnees React open source pour Shadcn UI et TanStack Table avec des guides complets et des references API."
+    "docsDescription": "Installez, configurez et déployez une table de données React open source pour Shadcn UI et TanStack Table avec des guides complets et des références API."
   },
   "Common": {
     "installCommand": "npx shadcn@latest add https://table.yayaw.eu/r/yayaw-table.json",
@@ -32,32 +32,32 @@
     "home": "Accueil"
   },
   "Home": {
-    "badgeA": "Registry Shadcn",
+    "badgeA": "Registre Shadcn",
     "badgeB": "Prêt pour la production",
-    "heroTitleLead": "Table de donnees React open source",
+    "heroTitleLead": "Table de données React open source",
     "heroTitleAccent": "pour Shadcn UI et TanStack Table.",
-    "heroDescription": "YaYaw Table aide les equipes a livrer des tables React pretes pour la production plus vite avec filtres avances, etat URL, actions de masse, i18n et maitrise totale du code.",
+    "heroDescription": "YaYaw Table aide les équipes à livrer plus vite des tables React prêtes pour la production, avec filtres avancés, état synchronisé dans l'URL, actions de masse, i18n et maîtrise complète du code.",
     "ctaInstall": "Installer maintenant",
     "ctaExample": "Voir l'exemple live",
     "ctaDocs": "Lire la documentation",
     "installHint": "Compatible avec votre stack Shadcn + TanStack actuelle.",
-    "proofTitle": "Pourquoi les équipes migrent",
+    "proofTitle": "Pourquoi les équipes l'adoptent",
     "proofItems": {
-      "ownership": "L'installation via le registry copie toute la couche UI dans votre codebase.",
-      "url": "L'état URL est intégré pour le tri, la pagination, le regroupement et les filtres.",
+      "ownership": "L'installation depuis le registre copie toute la couche UI dans votre base de code.",
+      "url": "L'état synchronisé dans l'URL est intégré pour le tri, la pagination, le regroupement et les filtres.",
       "i18n": "Clés i18n natives sur la table, les filtres, les vues et les formulaires.",
-      "dx": "Une architecture config-driven rend les évolutions plus prévisibles."
+      "dx": "Une architecture pilotée par configuration rend les évolutions plus prévisibles."
     },
     "useCases": {
       "title": "Cas d'usage",
-      "description": "Pensé pour des workflows back-office réels où l'UX de la table pilote les opérations métier.",
+      "description": "Pensé pour de vrais workflows back-office, où l'UX de la table pilote les opérations métier.",
       "orders": {
         "title": "Gestion des commandes",
         "description": "Vues filtrées partageables, préréglages enregistrés et actions de masse pour les équipes support et finance."
       },
       "users": {
         "title": "Administration utilisateurs",
-        "description": "Regroupement, filtres facettés et pagination robuste pour les gros volumes."
+        "description": "Regroupement, filtres à facettes et pagination robuste pour les gros volumes."
       },
       "catalog": {
         "title": "Gestion du catalogue",
@@ -66,26 +66,26 @@
     },
     "product": {
       "title": "Produit",
-      "description": "Un système pragmatique pour les équipes qui veulent un comportement entreprise sans verrouillage fournisseur.",
+      "description": "Un système pragmatique pour les équipes qui veulent une expérience de niveau entreprise, sans verrouillage fournisseur.",
       "pillars": {
         "install": {
-          "title": "Installation CLI Shadcn",
+          "title": "Installation avec la CLI Shadcn",
           "description": "Prise en main en une commande et maîtrise locale immédiate."
         },
         "architecture": {
-          "title": "Architecture config-driven",
-          "description": "Branchez getTableConfig/getTableActions et itérez en sécurité."
+          "title": "Architecture pilotée par configuration",
+          "description": "Branchez getTableConfig/getTableActions et itérez sereinement."
         },
         "state": {
-          "title": "État URL par défaut",
-          "description": "Chaque état utile de la table peut être partagé et restauré."
+          "title": "État dans l'URL par défaut",
+          "description": "Chaque état utile de la table peut être partagé puis restauré."
         },
         "i18n": {
           "title": "Surface i18n native",
-          "description": "Les traductions sont intégrées nativement dans toutes les expériences clés."
+          "description": "Les traductions sont intégrées nativement dans tous les parcours clés."
         },
         "ux": {
-          "title": "Toolkit UX production",
+          "title": "Boîte à outils UX de production",
           "description": "Actions de masse, pagination robuste, filtres avancés et valeurs par défaut solides."
         },
         "stack": {
@@ -95,17 +95,17 @@
       }
     },
     "migration": {
-      "title": "En finir avec le code ad hoc",
+      "title": "Fini le code ad hoc",
       "description": "Remplacez le câblage dispersé par un système de table unique et réutilisable.",
       "items": {
         "before": "Avant : câblage artisanal pour recherche, filtres, paramètres URL, export et actions de masse.",
         "after": "Après : un système de table unifié avec un comportement cohérent.",
-        "outcome": "Résultat : un temps de mise en place réduit et une maintenabilité accrue."
+        "outcome": "Résultat : une mise en place plus rapide et une maintenance plus simple."
       }
     },
     "finalCta": {
       "title": "Livrez votre prochaine table plus vite",
-      "description": "Installez en quelques minutes, puis adaptez tout directement dans votre codebase.",
+      "description": "Installez en quelques minutes, puis adaptez tout directement dans votre base de code.",
       "primary": "Installer YaYaw Table",
       "secondary": "Parcourir la documentation"
     }
