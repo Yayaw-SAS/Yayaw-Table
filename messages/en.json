@@ -14,6 +14,7 @@
     "copy": "Copy",
     "copied": "Copied",
     "copiedInstallCommand": "Installation command copied to clipboard.",
+    "packageManager": "Package manager",
     "loading": "Loading...",
     "learnMore": "Learn more"
   },

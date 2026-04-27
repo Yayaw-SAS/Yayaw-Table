@@ -27,19 +27,37 @@ Flexible, type-safe data table for React. One component, clean API, minimal boil
 From your project root:
 
 ```bash
+pnpm dlx shadcn@latest add https://table.yayaw.eu/r/yayaw-table.json
+# or
 npx shadcn@latest add https://table.yayaw.eu/r/yayaw-table.json
+# or
+yarn dlx shadcn@latest add https://table.yayaw.eu/r/yayaw-table.json
+# or
+bunx --bun shadcn@latest add https://table.yayaw.eu/r/yayaw-table.json
 ```
 
 To install a pinned release instead of the moving latest registry item:
 
 ```bash
+pnpm dlx shadcn@latest add https://table.yayaw.eu/r/v0.1.0/yayaw-table.json
+# or
 npx shadcn@latest add https://table.yayaw.eu/r/v0.1.0/yayaw-table.json
+# or
+yarn dlx shadcn@latest add https://table.yayaw.eu/r/v0.1.0/yayaw-table.json
+# or
+bunx --bun shadcn@latest add https://table.yayaw.eu/r/v0.1.0/yayaw-table.json
 ```
 
 If your project has the `@yayaw` registry namespace configured:
 
 ```bash
+pnpm dlx shadcn@latest add @yayaw/yayaw-table
+# or
 npx shadcn@latest add @yayaw/yayaw-table
+# or
+yarn dlx shadcn@latest add @yayaw/yayaw-table
+# or
+bunx --bun shadcn@latest add @yayaw/yayaw-table
 ```
 
 The CLI copies the code to `components/ui/yayaw-table` (or your `ui` alias) and installs required dependencies.

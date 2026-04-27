@@ -12,12 +12,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { hasLocale } from "next-intl";
 import { getTranslations } from "next-intl/server";
-import { CopyTextButton } from "@/src/components/site/copy-text-button";
+import { RegistryInstallTabs } from "@/src/components/site/package-manager-tabs";
 import { SiteHeader } from "@/src/components/site/site-header";
 import { buttonVariants } from "@/src/components/ui/button-styles";
 import { getLocalizedHref } from "@/src/i18n/pathnames";
 import { type AppLocale, routing } from "@/src/i18n/routing";
 import { createPageMetadata } from "@/src/lib/metadata";
+import { LATEST_REGISTRY_URL } from "@/src/lib/package-manager";
 import { getSiteUrl } from "@/src/lib/site-config";
 
 const CASE_ICONS = {
@@ -56,7 +57,6 @@ export default async function HomePage({
   const docsHref = getLocalizedHref(currentLocale, "/docs");
   const exampleHref = getLocalizedHref(currentLocale, "/example");
   const installHref = getLocalizedHref(currentLocale, "/docs/installation");
-  const installCommand = common("installCommand");
   const softwareSchema = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
@@ -88,7 +88,6 @@ export default async function HomePage({
         {JSON.stringify([softwareSchema, websiteSchema])}
       </script>
       <SiteHeader
-        installCommand={installCommand}
         labels={{
           brand: nav("brand"),
           closeMenu: nav("closeMenu"),
@@ -142,24 +141,11 @@ export default async function HomePage({
             </Link>
           </div>
 
-          <div className="mt-8 rounded-2xl border border-border/70 bg-background/80 p-4 sm:p-5">
+          <div className="mt-8">
             <p className="mb-3 text-muted-foreground text-xs">
               {t("installHint")}
             </p>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <code className="flex-1 overflow-x-auto rounded-lg bg-muted/70 px-3 py-2 font-mono text-foreground text-sm">
-                {installCommand}
-              </code>
-              <div className="flex flex-col items-start gap-1">
-                <CopyTextButton
-                  copiedLabel={common("copied")}
-                  copyLabel={common("copy")}
-                  liveRegionLabel={common("copiedInstallCommand")}
-                  text={installCommand}
-                  variant="outline"
-                />
-              </div>
-            </div>
+            <RegistryInstallTabs target={LATEST_REGISTRY_URL} />
           </div>
         </section>
 
