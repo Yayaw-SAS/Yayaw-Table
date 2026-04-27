@@ -62,7 +62,9 @@ released as a `minor` bump and clearly documented as breaking in the changelog.
    ```
 
 The tag workflow verifies that the committed versioned snapshot exists and then
-creates a GitHub release with the registry JSON attached.
+creates a GitHub release with the registry JSON attached. Release notes are
+generated automatically by GitHub from merged PRs and commits since the
+previous release, with the pinned install command prepended.
 
 ## Registry snapshots
 

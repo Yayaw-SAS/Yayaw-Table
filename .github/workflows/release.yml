@@ -38,12 +38,33 @@ jobs:
           fi
 
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ steps.version.outputs.version }}
-          name: v${{ steps.version.outputs.version }}
-          fail_on_unmatched_files: true
-          files: |
-            public/r/yayaw-table.json
-            public/r/v${{ steps.version.outputs.version }}/yayaw-table.json
-            public/r/v${{ steps.version.outputs.version }}/release.json
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: v${{ steps.version.outputs.version }}
+        run: |
+          release_notes=$(cat <<EOF
+          YaYaw Table registry release.
+
+          Install the latest registry item:
+
+          \`\`\`bash
+          npx shadcn@latest add https://table.yayaw.eu/r/yayaw-table.json
+          \`\`\`
+
+          Install this pinned release:
+
+          \`\`\`bash
+          npx shadcn@latest add https://table.yayaw.eu/r/${RELEASE_TAG}/yayaw-table.json
+          \`\`\`
+
+          EOF
+          )
+
+          gh release create "$RELEASE_TAG" \
+            public/r/"$RELEASE_TAG"/yayaw-table.json \
+            public/r/"$RELEASE_TAG"/release.json \
+            --repo "$GITHUB_REPOSITORY" \
+            --verify-tag \
+            --title "$RELEASE_TAG" \
+            --generate-notes \
+            --notes "$release_notes"
