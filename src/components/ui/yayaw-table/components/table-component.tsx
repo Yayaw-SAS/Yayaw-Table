@@ -672,8 +672,9 @@ function ModernDataTable<
     error,
     isError,
     isLoading,
-    rowCount,
+    pageCount,
     refetch,
+    rowCount,
     state,
   } = dataTableResult;
 
@@ -894,6 +895,7 @@ function ModernDataTable<
       enableGrouping,
       enableSorting,
       getRowId,
+      pageCount,
       tableId: tableId || "",
     }),
     [
@@ -907,6 +909,7 @@ function ModernDataTable<
       enableGrouping,
       enableSorting,
       getRowId,
+      pageCount,
       tableId,
     ]
   );

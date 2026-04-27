@@ -18,7 +18,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { SiteHeader } from "@/src/components/site/site-header";
 import {
   activeColumnDragAtom,
   columnDragEnabledAtom,
@@ -1174,7 +1173,6 @@ export default function ExamplePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <SiteHeader />
       <div className="p-6 lg:p-8">
         <div
           className={fullWidthSetting.value ? "w-full" : "mx-auto max-w-7xl"}

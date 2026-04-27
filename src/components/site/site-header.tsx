@@ -2,57 +2,59 @@
 
 import { Menu, X } from "lucide-react";
 import Image from "next/image";
-import { useTranslations } from "next-intl";
-import { useMemo, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
+import { CopyTextButton } from "@/src/components/site/copy-text-button";
 import { Button } from "@/src/components/ui/button";
+import { buttonVariants } from "@/src/components/ui/button-styles";
 import { ThemeToggle } from "@/src/components/ui/custom/theme-toggle";
-import { Link, usePathname } from "@/src/i18n/navigation";
+import { getLocalizedHref, stripLocalePrefix } from "@/src/i18n/pathnames";
+import type { AppLocale } from "@/src/i18n/routing";
 import { LanguageSwitcher } from "./language-switcher";
 
-const ANCHOR_SUFFIX_REGEX = /#.*$/;
+interface SiteHeaderLabels {
+  brand: string;
+  closeMenu: string;
+  copied: string;
+  copiedInstallCommand: string;
+  copy: string;
+  docs: string;
+  example: string;
+  install: string;
+  language: string;
+  openMenu: string;
+}
 
-export function SiteHeader() {
-  const t = useTranslations("Nav");
-  const common = useTranslations("Common");
+interface SiteHeaderProps {
+  installCommand: string;
+  labels: SiteHeaderLabels;
+  locale: AppLocale;
+}
+
+export function SiteHeader({
+  installCommand,
+  labels,
+  locale,
+}: SiteHeaderProps) {
   const pathname = usePathname();
+  const normalizedPathname = stripLocalePrefix(pathname ?? "/");
   const [isOpen, setIsOpen] = useState(false);
-  const [isCopied, setIsCopied] = useState(false);
-
-  const items = useMemo(() => {
-    return [
-      { label: t("docs"), href: "/docs" },
-      { label: t("example"), href: "/example" },
-    ];
-  }, [t]);
-
-  const copyInstallCommand = async () => {
-    const installCommand = common("installCommand");
-
-    try {
-      if (navigator.clipboard) {
-        await navigator.clipboard.writeText(installCommand);
-      } else {
-        const textarea = document.createElement("textarea");
-        textarea.value = installCommand;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand("copy");
-        document.body.removeChild(textarea);
-      }
-
-      setIsCopied(true);
-      window.setTimeout(() => setIsCopied(false), 1800);
-    } catch {
-      setIsCopied(false);
-    }
-  };
+  const homeHref = getLocalizedHref(locale, "/");
+  const docsHref = getLocalizedHref(locale, "/docs");
+  const exampleHref = getLocalizedHref(locale, "/example");
+  const installHref = getLocalizedHref(locale, "/docs/installation");
+  const items = [
+    { href: docsHref, label: labels.docs, matchPathname: "/docs" },
+    { href: exampleHref, label: labels.example, matchPathname: "/example" },
+  ] as const;
 
   return (
     <header className="sticky top-0 z-50 border-border/60 border-b bg-background/80 backdrop-blur">
       <div className="mx-auto flex w-full max-w-7xl items-center gap-4 px-4 py-3 sm:px-6">
         <Link
           className="inline-flex items-center gap-2 font-display font-semibold text-foreground text-lg tracking-tight"
-          href="/"
+          href={homeHref}
         >
           <Image
             alt="YaYaw Table"
@@ -68,23 +70,14 @@ export function SiteHeader() {
             src="/yayaw-icon-dark.svg"
             width={28}
           />
-          {t("brand")}
+          {labels.brand}
         </Link>
 
         <nav className="ml-2 hidden items-center gap-1 md:flex">
           {items.map((item) => {
-            const normalizedHref = item.href.replace(ANCHOR_SUFFIX_REGEX, "");
-            const hasAnchor = item.href.includes("#");
-            const isRootPath = normalizedHref === "/";
-            let isActive = false;
-
-            if (hasAnchor || isRootPath) {
-              isActive = pathname === "/";
-            } else {
-              isActive =
-                pathname === normalizedHref ||
-                pathname.startsWith(`${normalizedHref}/`);
-            }
+            const isActive =
+              normalizedPathname === item.matchPathname ||
+              normalizedPathname.startsWith(`${item.matchPathname}/`);
 
             return (
               <Link
@@ -95,6 +88,7 @@ export function SiteHeader() {
                 }`}
                 href={item.href}
                 key={item.href}
+                prefetch={item.matchPathname === "/example" ? false : undefined}
               >
                 {item.label}
               </Link>
@@ -103,33 +97,28 @@ export function SiteHeader() {
         </nav>
 
         <div className="ml-auto hidden items-center gap-2 md:flex">
-          <LanguageSwitcher />
+          <LanguageSwitcher ariaLabel={labels.language} locale={locale} />
           <ThemeToggle
             className="rounded-md border border-border/60"
             variant="switch"
           />
-          <Button
+          <CopyTextButton
             className="font-medium"
-            onClick={copyInstallCommand}
+            copiedLabel={labels.copied}
+            copyLabel={labels.copy}
+            liveRegionLabel={labels.copiedInstallCommand}
             size="sm"
-            type="button"
+            text={installCommand}
             variant="outline"
-          >
-            {isCopied ? common("copied") : common("copy")}
-          </Button>
-          <span aria-live="polite" className="sr-only">
-            {isCopied ? common("copiedInstallCommand") : ""}
-          </span>
-          <Link href="/docs/installation">
-            <Button size="sm" type="button">
-              {t("install")}
-            </Button>
+          />
+          <Link className={buttonVariants({ size: "sm" })} href={installHref}>
+            {labels.install}
           </Link>
         </div>
 
         <Button
           aria-expanded={isOpen}
-          aria-label={isOpen ? t("closeMenu") : t("openMenu")}
+          aria-label={isOpen ? labels.closeMenu : labels.openMenu}
           className="md:hidden"
           onClick={() => setIsOpen((prevState) => !prevState)}
           size="icon"
@@ -149,26 +138,29 @@ export function SiteHeader() {
                 href={item.href}
                 key={item.href}
                 onClick={() => setIsOpen(false)}
+                prefetch={item.matchPathname === "/example" ? false : undefined}
               >
                 {item.label}
               </Link>
             ))}
             <div className="mt-2 flex items-center justify-between gap-2">
-              <LanguageSwitcher />
+              <LanguageSwitcher ariaLabel={labels.language} locale={locale} />
               <ThemeToggle variant="switch" />
             </div>
-            <Button
+            <CopyTextButton
               className="mt-2 w-full"
-              onClick={copyInstallCommand}
-              type="button"
+              copiedLabel={labels.copied}
+              copyLabel={labels.copy}
+              liveRegionLabel={labels.copiedInstallCommand}
+              text={installCommand}
               variant="outline"
+            />
+            <Link
+              className={buttonVariants({ className: "mt-2 w-full" })}
+              href={installHref}
+              onClick={() => setIsOpen(false)}
             >
-              {isCopied ? common("copied") : common("copy")}
-            </Button>
-            <Link href="/docs/installation" onClick={() => setIsOpen(false)}>
-              <Button className="mt-2 w-full" type="button">
-                {t("install")}
-              </Button>
+              {labels.install}
             </Link>
           </nav>
         </div>

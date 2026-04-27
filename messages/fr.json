@@ -1,13 +1,13 @@
 {
   "Metadata": {
     "siteTitle": "YaYaw Table",
-    "siteDescription": "Tables de données prêtes pour la production avec React et Shadcn : état URL, filtres avancés, i18n et maîtrise totale du code.",
-    "homeTitle": "YaYaw Table – Un système de table complet à la sauce Shadcn",
-    "homeDescription": "Installez un système de table prêt pour la production en une commande. Gardez la maîtrise totale du code, sans dépendance opaque.",
-    "exampleTitle": "YaYaw Table - Exemple live",
+    "siteDescription": "Table de donnees React open source pour Shadcn UI et TanStack Table, avec etat URL, workflows server-side, actions de masse et maitrise totale du code.",
+    "homeTitle": "Table de donnees React open source pour Shadcn UI",
+    "homeDescription": "Creez des tables React pretes pour la production avec Shadcn UI et TanStack Table. Etat URL, filtrage server-side, actions de masse, i18n et maitrise totale du code.",
+    "exampleTitle": "Demo YaYaw Table",
     "exampleDescription": "Explorez une implémentation réelle de YaYaw Table avec pagination serveur, filtres, regroupement et actions de masse.",
     "docsTitle": "Documentation YaYaw Table",
-    "docsDescription": "Installez, configurez et déployez YaYaw Table en production avec des guides complets et des références API."
+    "docsDescription": "Installez, configurez et deploiyez une table de donnees React open source pour Shadcn UI et TanStack Table avec des guides complets et des references API."
   },
   "Common": {
     "installCommand": "npx shadcn@latest add https://table.yayaw.eu/r/yayaw-table.json",
@@ -33,9 +33,9 @@
   "Home": {
     "badgeA": "Registry Shadcn",
     "badgeB": "Prêt pour la production",
-    "heroTitleLead": "Un système de table complet",
-    "heroTitleAccent": "à la sauce Shadcn.",
-    "heroDescription": "YaYaw Table offre aux équipes produit un workflow de table complet : filtres avancés, état URL, actions de masse et i18n, avec du code qui vit dans votre application.",
+    "heroTitleLead": "Table de donnees React open source",
+    "heroTitleAccent": "pour Shadcn UI et TanStack Table.",
+    "heroDescription": "YaYaw Table aide les equipes a livrer des tables React pretes pour la production plus vite avec filtres avances, etat URL, actions de masse, i18n et maitrise totale du code.",
     "ctaInstall": "Installer maintenant",
     "ctaExample": "Voir l'exemple live",
     "ctaDocs": "Lire la documentation",

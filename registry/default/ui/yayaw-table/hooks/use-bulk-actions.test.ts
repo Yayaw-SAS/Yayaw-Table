@@ -131,16 +131,16 @@ describe("cross-page bulk selection helpers", () => {
         assert.equal(params.search, "galaxy");
 
         if (params.page === 1) {
-          return {
+          return Promise.resolve({
             data: [{ id: "row-1" }, { id: "row-2" }],
             meta: { pageCount: 2, totalCount: 3 },
-          };
+          });
         }
 
-        return {
+        return Promise.resolve({
           data: [{ id: "row-3" }],
           meta: { pageCount: 2, totalCount: 3 },
-        };
+        });
       },
       pageSizeParam: "2",
       sortParam: [{ desc: false, id: "name" }],
@@ -164,7 +164,7 @@ describe("cross-page bulk selection helpers", () => {
     const liveRow = {
       id: "row-2",
       original: { id: "row-2", source: "live" },
-    } as Row<Record<string, unknown>>;
+    } as unknown as Row<Record<string, unknown>>;
 
     const mergedRows = mergeSelectedRows({
       crossPageRows: syntheticRows,

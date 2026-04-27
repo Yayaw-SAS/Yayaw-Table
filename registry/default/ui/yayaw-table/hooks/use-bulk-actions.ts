@@ -3,6 +3,7 @@
  */
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import type { Row, Table } from "@tanstack/react-table";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -15,6 +16,7 @@ import {
   toOrderByParam,
   toPageSize,
 } from "../utils/filtered-rows";
+import { invalidateTableDataQuery } from "./query-cache-utils";
 import { useTableActions } from "./use-table-actions";
 import { useTableUrlState } from "./use-table-url-state";
 
@@ -1111,12 +1113,14 @@ export function useBulkActions<TData>({
   tableType,
 }: BulkActionsConfig<TData>): BulkActionsReturn<TData> {
   // Call hook unconditionally to satisfy Rules of Hooks; use result only when tableType is set
+  const queryClient = useQueryClient();
   const providerResult = useTableActions<{ id: string }>({
     tableType: tableType ?? "",
     enableLogging: false,
   });
   const provider = tableType ? providerResult : undefined;
   const resolvedTableId = tableId ?? tableType ?? "";
+  const queryTableId = resolvedTableId || undefined;
   const {
     advancedFiltersParam,
     filtersParam,
@@ -1258,6 +1262,17 @@ export function useBulkActions<TData>({
     table,
   ]);
 
+  const invalidateTableData = useCallback(async (): Promise<void> => {
+    if (!queryTableId) {
+      return;
+    }
+
+    await invalidateTableDataQuery({
+      queryClient,
+      tableId: queryTableId,
+    });
+  }, [queryClient, queryTableId]);
+
   // Handle bulk edit
   const handleBulkEdit = useCallback(async (): Promise<BulkActionResult> => {
     const successResult: BulkActionResult = {
@@ -1316,13 +1331,15 @@ export function useBulkActions<TData>({
     }
 
     if (onBulkDelete) {
-      return executeCustomBulkDeleteHandler({
+      const result = await executeCustomBulkDeleteHandler({
         clearSelection,
         closeOnError,
         onBulkDelete,
         selectedRows,
         showDefaultToastsForCustomHandlers,
       });
+      await invalidateTableData();
+      return result;
     }
 
     const ids = extractSelectedRowIds(selectedRows);
@@ -1344,6 +1361,10 @@ export function useBulkActions<TData>({
       deleteOne: provider?.actions.delete as DeleteAction | undefined,
       ids,
     });
+
+    if (outcome.successCount > 0) {
+      await invalidateTableData();
+    }
 
     const feedback = buildBulkDeleteFeedback(outcome);
     if (feedback.tone === "success") {
@@ -1374,6 +1395,7 @@ export function useBulkActions<TData>({
     provider?.actions,
     bulkDeleteEnabled,
     closeOnError,
+    invalidateTableData,
     showDefaultToastsForCustomHandlers,
   ]);
 

@@ -1,13 +1,13 @@
 {
   "Metadata": {
     "siteTitle": "YaYaw Table",
-    "siteDescription": "Enterprise-grade data tables for React and Shadcn with URL state, advanced filters, i18n and full code ownership.",
-    "homeTitle": "YaYaw Table - A complete table system, the Shadcn way",
-    "homeDescription": "Install a production-ready table system with one command. Keep full ownership, ship advanced UX and avoid glue code.",
-    "exampleTitle": "YaYaw Table - Live example",
+    "siteDescription": "Open-source React data table for Shadcn UI and TanStack Table, with URL state, server-side workflows, bulk actions, and full code ownership.",
+    "homeTitle": "Open-Source React Data Table for Shadcn UI",
+    "homeDescription": "Build production-ready React data tables with Shadcn UI and TanStack Table. URL state, server-side filtering, bulk actions, i18n, and full code ownership.",
+    "exampleTitle": "YaYaw Table Demo",
     "exampleDescription": "Explore a real interactive YaYaw Table setup with server-side pagination, filters, grouping and bulk actions.",
     "docsTitle": "YaYaw Table Documentation",
-    "docsDescription": "Install, configure and ship YaYaw Table in production with complete guides and API references."
+    "docsDescription": "Install, configure, and ship an open-source React data table for Shadcn UI and TanStack Table with complete guides and API references."
   },
   "Common": {
     "installCommand": "npx shadcn@latest add https://table.yayaw.eu/r/yayaw-table.json",
@@ -33,9 +33,9 @@
   "Home": {
     "badgeA": "Shadcn Registry",
     "badgeB": "Production-ready",
-    "heroTitleLead": "A complete table system,",
-    "heroTitleAccent": "the Shadcn way.",
-    "heroDescription": "YaYaw Table gives teams shipping internal products a complete table workflow: advanced filters, URL state, bulk flows and i18n with code that lives in your app.",
+    "heroTitleLead": "Open-source React data table",
+    "heroTitleAccent": "for Shadcn UI and TanStack Table.",
+    "heroDescription": "YaYaw Table helps teams ship production-ready data tables faster with advanced filters, URL state, bulk actions, i18n, and full code ownership.",
     "ctaInstall": "Install now",
     "ctaExample": "Open live example",
     "ctaDocs": "Read docs",
