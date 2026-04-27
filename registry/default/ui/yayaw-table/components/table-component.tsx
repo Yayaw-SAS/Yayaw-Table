@@ -82,7 +82,7 @@ const ROW_CLICK_INTERACTIVE_SELECTOR =
 const ROW_CLICK_SYSTEM_COLUMN_SELECTOR =
   '[data-column-id="select"], [data-column-id="actions"]';
 const BULK_ACTIONS_ANCHOR_VIEWPORT_OPTIONS = {
-  threshold: 1,
+  threshold: 0,
 } as const;
 const PAGINATION_VIEWPORT_OPTIONS = {
   threshold: 0,
@@ -604,7 +604,8 @@ function ModernDataTable<
     useOnScreen(BULK_ACTIONS_ANCHOR_VIEWPORT_OPTIONS);
   const { isVisible: isPaginationVisible, ref: paginationVisibilityRef } =
     useOnScreen(PAGINATION_VIEWPORT_OPTIONS);
-  const paginationContainerRef = useRef<HTMLDivElement | null>(null);
+  const [paginationControlsElement, setPaginationControlsElement] =
+    useState<HTMLDivElement | null>(null);
   const [paginationHeight, setPaginationHeight] = useState(0);
   const [hasMounted, setHasMounted] = useState(false);
   useEffect(() => {
@@ -612,7 +613,7 @@ function ModernDataTable<
   }, []);
 
   useEffect(() => {
-    const paginationElement = paginationContainerRef.current;
+    const paginationElement = paginationControlsElement;
     if (!paginationElement) {
       setPaginationHeight(0);
       return;
@@ -633,14 +634,19 @@ function ModernDataTable<
     return () => {
       observer.disconnect();
     };
-  }, []);
+  }, [paginationControlsElement]);
 
   const handlePaginationContainerRef = useCallback(
     (node: HTMLDivElement | null) => {
-      paginationContainerRef.current = node;
       paginationVisibilityRef.current = node;
     },
     [paginationVisibilityRef]
+  );
+  const handlePaginationControlsRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      setPaginationControlsElement(node);
+    },
+    []
   );
 
   // Use stable references for callbacks
@@ -1714,13 +1720,18 @@ function ModernDataTable<
                   )}
                 </Table>
               </div>
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-x-0 bottom-0 h-px"
+                ref={bulkActionsAnchorRef}
+              />
             </div>
 
             {/* Pagination is outside the table container to avoid focus issues */}
             {enablePagination && (
               <SafePagination
-                anchorRef={bulkActionsAnchorRef}
                 containerRef={handlePaginationContainerRef}
+                controlsRef={handlePaginationControlsRef}
                 footerSlot={
                   renderBulkActionsInFooter ? (
                     <BulkActionsMenu
@@ -1751,14 +1762,6 @@ function ModernDataTable<
               />
             )}
           </div>
-
-          {enablePagination ? null : (
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-x-0 bottom-0 h-px"
-              ref={bulkActionsAnchorRef}
-            />
-          )}
 
           {bulkActions.showBulkActions && !renderBulkActionsInFooter && (
             <BulkActionsMenu
