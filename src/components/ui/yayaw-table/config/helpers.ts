@@ -368,7 +368,7 @@ export interface TableBehaviorConfig {
 
   /**
    * Enable footer row with column calculations (sum, count, average, etc.)
-   * @default true
+   * @default false
    */
   enableCalculations?: boolean;
 }

@@ -145,7 +145,7 @@ const DEFAULT_TABLE_CONFIG: TableCatalogueConfig = {
     defaultPageSize: 10,
     pageSizeOptions: [10, 20, 50, 100, 200, 500],
     dateDisplayPreset: "localized-short",
-    enableCalculations: true,
+    enableCalculations: false,
     inlineEdit: {
       enabled: false,
       debounceMs: 700,
@@ -240,7 +240,7 @@ function resolveTableBehaviorConfig(
       providerConfig.dateDisplayPreset ??
       DEFAULT_TABLE_CONFIG.table.dateDisplayPreset,
     inlineEdit: resolveInlineEditConfig(providerConfig.inlineEdit),
-    enableCalculations: providerConfig.enableCalculations ?? true,
+    enableCalculations: providerConfig.enableCalculations ?? false,
   };
 }
 

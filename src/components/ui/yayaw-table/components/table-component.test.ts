@@ -36,6 +36,15 @@ describe("shouldShowCalculationsFooter", () => {
       false
     );
   });
+
+  it("returns false when calculations feature is omitted", () => {
+    assert.equal(
+      shouldShowCalculationsFooter({
+        isFooterVisible: true,
+      }),
+      false
+    );
+  });
 });
 
 describe("shouldRenderBulkActionsInFooter", () => {

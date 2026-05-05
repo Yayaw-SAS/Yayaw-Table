@@ -99,7 +99,7 @@ export const shouldShowCalculationsFooter = ({
   enableCalculations?: boolean;
   isFooterVisible: boolean;
 }): boolean => {
-  return enableCalculations !== false && isFooterVisible;
+  return enableCalculations === true && isFooterVisible;
 };
 
 export const shouldRenderBulkActionsInFooter = ({

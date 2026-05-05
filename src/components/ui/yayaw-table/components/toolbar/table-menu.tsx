@@ -404,7 +404,7 @@ export function TableMenu({
   actionsAsIcons = false,
   columns = EMPTY_COLUMNS,
   enableColumnFilters = true,
-  enableCalculations = true,
+  enableCalculations = false,
   enableGrouping = true,
   enableSorting = true,
   invalidateTable,

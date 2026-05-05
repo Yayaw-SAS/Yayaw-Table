@@ -151,7 +151,7 @@ export const getTableConfig = (
     enableColumnDragDropByDefault: true,
     enableColumnFilters: true,
     enableGrouping: true,
-    enableCalculations: true,
+    enableCalculations: false,
     enableMultiRowSelection: true,
     enablePagination: true,
     enableRowDragDrop: false,
