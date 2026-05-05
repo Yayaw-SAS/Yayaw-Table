@@ -181,52 +181,43 @@ function getFileType(fileRel) {
   return "registry:file";
 }
 
-function splitDependencySpecifier(specifier) {
+function hasExplicitDependencyVersion(specifier) {
   if (specifier.startsWith("@")) {
     const scopeSeparatorIndex = specifier.indexOf("/");
-    const versionSeparatorIndex = specifier.indexOf("@", scopeSeparatorIndex);
-    if (versionSeparatorIndex === -1) {
-      return { name: specifier, version: null };
+    if (scopeSeparatorIndex === -1) {
+      return false;
     }
-    return {
-      name: specifier.slice(0, versionSeparatorIndex),
-      version: specifier.slice(versionSeparatorIndex + 1),
-    };
+
+    return specifier.indexOf("@", scopeSeparatorIndex + 1) !== -1;
   }
 
-  const versionSeparatorIndex = specifier.indexOf("@");
-  if (versionSeparatorIndex === -1) {
-    return { name: specifier, version: null };
-  }
-  return {
-    name: specifier.slice(0, versionSeparatorIndex),
-    version: specifier.slice(versionSeparatorIndex + 1),
-  };
+  return specifier.includes("@");
 }
 
-function pinDependencyVersion(specifier, dependencyVersions) {
-  const { name, version } = splitDependencySpecifier(specifier);
-  if (version) {
-    return specifier;
+function assertUnversionedRegistryDependencies(registryItem) {
+  const versionedDependencies = [];
+
+  for (const field of ["dependencies", "devDependencies"]) {
+    const dependencies = registryItem[field];
+    if (!Array.isArray(dependencies)) {
+      continue;
+    }
+
+    for (const dependency of dependencies) {
+      if (hasExplicitDependencyVersion(dependency)) {
+        versionedDependencies.push(`${field}: ${dependency}`);
+      }
+    }
   }
 
-  const configuredVersion = dependencyVersions[name];
-  if (!configuredVersion) {
-    throw new Error(
-      `Registry dependency "${name}" is missing from package.json dependencies.`
-    );
+  if (versionedDependencies.length === 0) {
+    return;
   }
 
-  return `${name}@${configuredVersion}`;
-}
-
-function pinDependencyList(dependencies, dependencyVersions) {
-  if (!Array.isArray(dependencies)) {
-    return dependencies;
-  }
-
-  return dependencies.map((dependency) =>
-    pinDependencyVersion(dependency, dependencyVersions)
+  throw new Error(
+    `${registryItem.name} registry dependencies must stay unversioned so ` +
+      "consumer updates do not rewrite package ranges to older registry pins.\n" +
+      versionedDependencies.join("\n")
   );
 }
 
@@ -283,10 +274,6 @@ const files = allRels.map((rel) => {
 // 5) Update registry.json
 const registryPath = path.join(ROOT, "registry", "registry.json");
 const registry = readJson(registryPath);
-const dependencyVersions = {
-  ...(packageJson.dependencies ?? {}),
-  ...(packageJson.devDependencies ?? {}),
-};
 registry.homepage = packageJson.repository.url
   .replace(/^git\+/, "")
   .replace(/\.git$/, "");
@@ -301,16 +288,11 @@ if (!tableRegistryItem) {
 }
 
 tableRegistryItem.files = files;
+assertUnversionedRegistryDependencies(tableRegistryItem);
 
 for (const registryItem of registry.items) {
-  registryItem.dependencies = pinDependencyList(
-    registryItem.dependencies,
-    dependencyVersions
-  );
-  registryItem.devDependencies = pinDependencyList(
-    registryItem.devDependencies,
-    dependencyVersions
-  );
+  // Keep dependency specifiers authored in registry.json. Auto-pinning them
+  // from this workspace can force consumer projects back to older ranges.
   registryItem.meta = {
     ...(registryItem.meta ?? {}),
     registryUrl: getRegistryItemUrl(packageJson.homepage, registryItem.name),
