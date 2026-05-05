@@ -226,7 +226,7 @@ const defaultTableConfig: DataTableConfig = {
   enableRowSelection: true,
   enableRowClickEdit: false,
   enableSorting: true,
-  enableCalculations: true,
+  enableCalculations: false,
   enableGrouping: true,
   inlineEdit: {
     enabled: false,

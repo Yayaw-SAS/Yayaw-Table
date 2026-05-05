@@ -993,7 +993,7 @@ export function DataTableAdvancedToolbar<TData>({
               : undefined
           }
           columns={tableMenuColumns}
-          enableCalculations={tableConfig.table.enableCalculations !== false}
+          enableCalculations={tableConfig.table.enableCalculations === true}
           enableColumnFilters={isColumnFiltersEnabled}
           enableGrouping={isGroupingEnabled}
           enableSorting={isSortingEnabled}
