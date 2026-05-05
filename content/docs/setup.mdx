@@ -257,7 +257,7 @@ See [Actions](/docs/actions) and [Server-side & Server Actions](/docs/server-act
 
 ## getFormConfig
 
-Return form configuration per form type (e.g. `"products"`, `"products-bulk"`). Used to build create/edit dialogs and bulk edit. Shape: fields array with `name`, `type`, `label`, `required`, etc. See your codebase or the example app `form-config` for the full type.
+Return form configuration per form type (e.g. `"products"`, `"products-bulk"`). Used to build create/edit forms and bulk edit. Shape: fields array with `name`, `type`, `label`, `required`, etc. See your codebase or the example app `form-config` for the full type.
 
 **Boolean fields:** In catalog forms, boolean fields render as a **Switch** by default (`type: "switch"` or `type: "checkbox"`). If you specifically want a checkbox UI, set `variant: "checkbox"` on the field definition.
 
@@ -270,6 +270,24 @@ Return form configuration per form type (e.g. `"products"`, `"products-bulk"`). 
 ```
 
 **Form translations:** The catalog form uses the same `DataTableTranslations` object as the table. You must add **form** and **value** keys to that object (e.g. `form.name`, `form.submit`, `value.string_placeholder`) and use `labelKey` / `optionKeys` in your field definitions so labels and placeholders resolve. See [Translations Reference — Form translations](/docs/translations#form-translations-catalog-form) for the full example.
+
+### Catalogue form layout
+
+The built-in catalogue form opens in a right-side drawer by default. Configure `form.layout` in your table config when you want the same form to open as a modal instead:
+
+```ts
+defineTableConfig({
+  // ...
+  form: {
+    layout: {
+      mode: "modal",
+      width: "80vw",
+    },
+  },
+});
+```
+
+`mode: "drawer"` keeps the default behavior. `mode: "modal"` uses `80vw` by default, and `width` can be any valid CSS width such as `"64rem"` or `"min(80vw, 960px)"`.
 
 ## Full props (single entry point)
 
