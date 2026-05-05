@@ -6,6 +6,10 @@
 // Main component
 export { DataTable } from "./components/data-table";
 export type {
+  CatalogueFormLayoutConfig,
+  TableFormConfig,
+} from "./config/form-config";
+export type {
   ColumnDefinition,
   InlineEditColumnConfig,
   InlineEditEditor,

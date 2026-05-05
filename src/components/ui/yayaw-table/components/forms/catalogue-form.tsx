@@ -10,9 +10,25 @@ const _DEBUG = false;
 import { useAtom } from "jotai";
 import { PencilIcon, PlusIcon } from "lucide-react";
 import type React from "react";
-import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  type ReactNode,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { toast } from "sonner";
 import { Button } from "@/src/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/src/components/ui/dialog";
 import {
   Drawer,
   DrawerClose,
@@ -22,12 +38,14 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/src/components/ui/drawer";
+import { useTableConfig } from "../../hooks/use-table-config";
 import {
   type CatalogueFormState,
   catalogueFormAtom,
   formSubmittedAtom,
   handleFormOpenChange,
 } from "./atoms/catalogue-form-atoms";
+import { resolveCatalogueFormLayout } from "./catalogue-form-layout";
 import { DrawerFormPortalContainerContext } from "./drawer-form-portal-context";
 import { FormBuilder } from "./form-builder";
 import { useFormCatalogue } from "./hooks/use-form-catalogue";
@@ -74,6 +92,10 @@ interface CatalogueFormProps<TFieldValues extends FieldValues = FieldValues> {
    */
   tableId?: string;
 }
+
+type CatalogueFormContentStyle = CSSProperties & {
+  "--catalogue-form-width": string;
+};
 
 /**
  * Returns only values that differ from initial data (for update mode)
@@ -244,7 +266,7 @@ function useFormStateResolution<TFieldValues extends FieldValues>(
   const initialData = props.initialData || atomInitialData;
   const mode = props.mode || atomMode;
   const onSuccess = props.onSuccess || atomOnSuccess;
-  const _tableId = props.tableId || atomTableId;
+  const tableId = props.tableId || atomTableId;
 
   // Stable references to prevent callback recreation
   const onSuccessRef = useRef(onSuccess);
@@ -266,6 +288,7 @@ function useFormStateResolution<TFieldValues extends FieldValues>(
     formType,
     initialData,
     mode,
+    tableId,
     onSuccessRef,
     initialDataRef,
     modeRef,
@@ -287,8 +310,20 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
     formType,
     initialData,
     mode,
+    tableId,
     onSuccessRef,
   } = useFormStateResolution(props);
+  const { config: tableConfig } = useTableConfig(
+    tableId || formType || "default-table"
+  );
+  const formLayout = resolveCatalogueFormLayout(tableConfig.form?.layout);
+  const isModalLayout = formLayout.mode === "modal";
+  const formContentStyle = useMemo<CatalogueFormContentStyle>(
+    () => ({
+      "--catalogue-form-width": formLayout.width,
+    }),
+    [formLayout.width]
+  );
 
   // Add a ref to track if we're in the middle of a state change
   const isChangingStateRef = useRef(false);
@@ -453,82 +488,133 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
     return children || null;
   }
 
+  const trigger = isStandaloneForm ? (
+    <Button
+      onClick={handleButtonClick}
+      size="sm"
+      type="button"
+      variant="outline"
+    >
+      {mode === "update" ? (
+        <>
+          <PencilIcon className="mr-2 h-4 w-4" />
+          <span>{translations.update || "Edit"}</span>
+        </>
+      ) : (
+        <>
+          <PlusIcon className="mr-2 h-4 w-4" />
+          <span>{translations.create || "Create"}</span>
+        </>
+      )}
+    </Button>
+  ) : (
+    children
+  );
+
+  const formTitle =
+    mode === "update"
+      ? translations["updateForm.title"]
+      : translations["createForm.title"];
+  const formDescription =
+    mode === "update"
+      ? translations["updateForm.description"]
+      : translations["createForm.description"];
+
+  const formBody = isModalLayout ? (
+    <DrawerFormPortalContainerContext.Provider value={drawerContentRef}>
+      <div
+        className="relative mx-auto w-full overflow-visible p-6"
+        ref={drawerContentRef}
+      >
+        <DialogHeader className="px-0 pr-10">
+          <DialogTitle>{formTitle}</DialogTitle>
+          {formDescription && (
+            <DialogDescription>{formDescription}</DialogDescription>
+          )}
+        </DialogHeader>
+
+        <div className="py-4">
+          <FormBuilder fields={fields} form={form} submitText={null} />
+        </div>
+
+        <DialogFooter className="flex-row justify-end gap-2 px-0">
+          <DialogClose render={<Button type="button" variant="outline" />}>
+            {translations.cancel}
+          </DialogClose>
+          <Button
+            disabled={loading}
+            onClick={() => {
+              form.handleSubmit();
+            }}
+            type="button"
+          >
+            {mode === "update" ? translations.update : translations.submit}
+          </Button>
+        </DialogFooter>
+      </div>
+    </DrawerFormPortalContainerContext.Provider>
+  ) : (
+    <DrawerFormPortalContainerContext.Provider value={drawerContentRef}>
+      <div
+        className="relative mx-auto w-full overflow-visible p-6"
+        ref={drawerContentRef}
+      >
+        <DrawerHeader className="px-0">
+          <DrawerTitle>{formTitle}</DrawerTitle>
+          {formDescription && (
+            <DrawerDescription>{formDescription}</DrawerDescription>
+          )}
+        </DrawerHeader>
+
+        <div className="py-4">
+          <FormBuilder fields={fields} form={form} submitText={null} />
+        </div>
+
+        <DrawerFooter className="flex-row justify-end gap-2 px-0">
+          <DrawerClose asChild>
+            <Button type="button" variant="outline">
+              {translations.cancel}
+            </Button>
+          </DrawerClose>
+          <Button
+            disabled={loading}
+            onClick={() => {
+              form.handleSubmit();
+            }}
+            type="button"
+          >
+            {mode === "update" ? translations.update : translations.submit}
+          </Button>
+        </DrawerFooter>
+      </div>
+    </DrawerFormPortalContainerContext.Provider>
+  );
+
+  if (isModalLayout) {
+    return (
+      <Dialog onOpenChange={handleOpenChange} open={isOpen}>
+        {trigger}
+        <DialogContent
+          className="max-h-[90vh] overflow-y-auto p-0 sm:max-w-[var(--catalogue-form-width)]"
+          style={formContentStyle}
+        >
+          {formBody}
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
     <Drawer direction="right" onOpenChange={handleOpenChange} open={isOpen}>
-      {/* Only render the button if this is a standalone form or if children are provided */}
-      {isStandaloneForm ? (
-        <Button
-          onClick={handleButtonClick}
-          size="sm"
-          type="button"
-          variant="outline"
-        >
-          {mode === "update" ? (
-            <>
-              <PencilIcon className="mr-2 h-4 w-4" />
-              <span>{translations.update || "Edit"}</span>
-            </>
-          ) : (
-            <>
-              <PlusIcon className="mr-2 h-4 w-4" />
-              <span>{translations.create || "Create"}</span>
-            </>
-          )}
-        </Button>
-      ) : (
-        children
-      )}
+      {trigger}
 
       <DrawerContent
-        className="w-full sm:max-w-md"
+        className="w-full sm:max-w-[var(--catalogue-form-width)]"
         onCloseAutoFocus={handleCloseAutoFocus}
         onOpenAutoFocus={handleOpenAutoFocus}
+        style={formContentStyle}
       >
-        <DrawerFormPortalContainerContext.Provider value={drawerContentRef}>
-          <div
-            className="relative mx-auto w-full max-w-md overflow-visible p-6"
-            ref={drawerContentRef}
-          >
-            <DrawerHeader className="px-0">
-              <DrawerTitle>
-                {mode === "update"
-                  ? translations["updateForm.title"]
-                  : translations["createForm.title"]}
-              </DrawerTitle>
-              {(mode === "update"
-                ? translations["updateForm.description"]
-                : translations["createForm.description"]) && (
-                <DrawerDescription>
-                  {mode === "update"
-                    ? translations["updateForm.description"]
-                    : translations["createForm.description"]}
-                </DrawerDescription>
-              )}
-            </DrawerHeader>
-
-            {/* Use FormBuilder without its own submit button */}
-            <div className="py-4">
-              <FormBuilder fields={fields} form={form} submitText={null} />
-            </div>
-
-            <DrawerFooter className="flex-row justify-end gap-2 px-0">
-              <DrawerClose asChild>
-                <Button type="button" variant="outline">
-                  {translations.cancel}
-                </Button>
-              </DrawerClose>
-              <Button
-                disabled={loading}
-                onClick={() => {
-                  form.handleSubmit();
-                }}
-                type="button"
-              >
-                {mode === "update" ? translations.update : translations.submit}
-              </Button>
-            </DrawerFooter>
-          </div>
-        </DrawerFormPortalContainerContext.Provider>
+        {formBody}
       </DrawerContent>
     </Drawer>
   );
