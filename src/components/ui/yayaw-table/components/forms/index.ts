@@ -19,6 +19,7 @@ export * from "./factories";
 export * from "./fields";
 
 // Components
+export * from "./catalogue-form";
 export * from "./form-builder";
 
 // Helpers

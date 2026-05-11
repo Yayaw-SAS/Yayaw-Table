@@ -49,6 +49,15 @@ export interface DataTableTranslations {
     reset: string;
     search: string;
   };
+  collection?: {
+    actions?: string;
+    cancel?: string;
+    deleteItem?: string;
+    editItem?: string;
+    moveDown?: string;
+    moveUp?: string;
+    save?: string;
+  };
   inline?: {
     edit_hint: string;
     invalid_value: string;

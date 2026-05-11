@@ -269,6 +269,240 @@ Return form configuration per form type (e.g. `"products"`, `"products-bulk"`). 
 }
 ```
 
+### Collection fields
+
+Use `type: "collection"` when a form value is an array of objects and users need to add, edit, delete, reorder, and validate items without building a custom editor. The collection stays controlled by the form value: YaYaw Table writes the next array through the field API, and it does not keep an opaque copy of your data.
+
+```tsx
+import { defineFormConfig } from "@/components/ui/yayaw-table/components/forms";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { z } from "zod";
+
+const FeatureSchema = z.object({
+  features: z.array(
+    z.object({
+      label: z.string().min(1),
+      enabled: z.boolean(),
+    })
+  ),
+});
+
+export const featureForm = defineFormConfig({
+  id: "features",
+  schema: FeatureSchema,
+  defaultValues: {
+    features: [],
+  },
+  fields: [
+    {
+      type: "collection",
+      name: "features",
+      label: "Features",
+      description: "Manage the product feature list.",
+      addLabel: "Add feature",
+      itemLabel: "feature",
+      emptyLabel: "No features yet.",
+      columns: [
+        { id: "label", header: "Label" },
+        {
+          id: "enabled",
+          header: "Enabled",
+          render: (item) => (item.enabled ? "Yes" : "No"),
+        },
+      ],
+      createItem: () => ({ label: "", enabled: true }),
+      renderItemForm: ({ item, onChange, disabled }) => (
+        <div className="space-y-3">
+          <Input
+            disabled={disabled}
+            onChange={(event) =>
+              onChange({ ...item, label: event.target.value })
+            }
+            value={String(item.label ?? "")}
+          />
+          <Switch
+            checked={item.enabled === true}
+            disabled={disabled}
+            onCheckedChange={(enabled) => onChange({ ...item, enabled })}
+          />
+        </div>
+      ),
+      validateItem: (item) =>
+        typeof item.label === "string" && item.label.length > 0
+          ? []
+          : ["Label is required"],
+      validateItems: (items) =>
+        items.length > 0 ? [] : ["Add at least one feature"],
+    },
+  ],
+});
+```
+
+`validateItem` marks invalid rows, `validateItems` shows global errors, and both validators are also attached to the TanStack Form field so an invalid collection blocks submit. Zod validation still runs through the form schema, so schema errors and collection-specific errors can be used together.
+
+For menu-like JSON, use `createActions` to create several item shapes and `CollectionEditor` inside a group item form to edit a nested one-level collection.
+
+```tsx
+import {
+  CollectionEditor,
+  defineFormConfig,
+} from "@/components/ui/yayaw-table/components/forms";
+import { Input } from "@/components/ui/input";
+import { z } from "zod";
+
+const createLink = () => ({
+  type: "link",
+  label: "",
+  href: "",
+  placement: "primary",
+  variant: "default",
+  description: "",
+  external: false,
+});
+
+const menuItemColumns = [
+  { id: "label", header: "Label" },
+  { id: "type", header: "Type" },
+  { id: "placement", header: "Placement" },
+];
+
+export const menuForm = defineFormConfig({
+  id: "menu",
+  schema: z.object({
+    items_json: z.array(z.record(z.string(), z.unknown())),
+  }),
+  defaultValues: {
+    items_json: [],
+  },
+  fields: [
+    {
+      type: "collection",
+      name: "items_json",
+      label: "Menu items",
+      addLabel: "Add item",
+      itemLabel: "menu item",
+      emptyLabel: "No menu items yet.",
+      columns: menuItemColumns,
+      createItem: createLink,
+      createActions: [
+        { label: "Add link", createItem: createLink },
+        {
+          label: "Add group",
+          createItem: () => ({
+            type: "group",
+            label: "",
+            description: "",
+            placement: "primary",
+            items: [],
+          }),
+        },
+        {
+          label: "Add theme toggle",
+          createItem: () => ({ type: "themeToggle", placement: "utility" }),
+        },
+        {
+          label: "Add language toggle",
+          createItem: () => ({ type: "languageToggle", placement: "utility" }),
+        },
+      ],
+      getItemKey: (item, index) => String(item.id ?? `${item.type}-${index}`),
+      renderItemForm: ({ item, onChange, disabled }) => {
+        if (item.type === "group") {
+          return (
+            <div className="space-y-4">
+              <Input
+                disabled={disabled}
+                onChange={(event) =>
+                  onChange({ ...item, label: event.target.value })
+                }
+                value={String(item.label ?? "")}
+              />
+              <CollectionEditor
+                addLabel="Add nested link"
+                columns={[
+                  { id: "label", header: "Label" },
+                  { id: "href", header: "Href" },
+                ]}
+                createItem={createLink}
+                disabled={disabled}
+                itemLabel="nested link"
+                label="Nested links"
+                onChange={(items) => onChange({ ...item, items })}
+                renderItemForm={({ item: nestedItem, onChange: onNestedChange }) => (
+                  <div className="space-y-3">
+                    <Input
+                      onChange={(event) =>
+                        onNestedChange({
+                          ...nestedItem,
+                          label: event.target.value,
+                        })
+                      }
+                      value={String(nestedItem.label ?? "")}
+                    />
+                    <Input
+                      onChange={(event) =>
+                        onNestedChange({
+                          ...nestedItem,
+                          href: event.target.value,
+                        })
+                      }
+                      value={String(nestedItem.href ?? "")}
+                    />
+                  </div>
+                )}
+                validateItem={(nestedItem) =>
+                  nestedItem.type === "link" ? [] : ["Only links are allowed"]
+                }
+                value={item.items}
+              />
+            </div>
+          );
+        }
+
+        return (
+          <div className="space-y-3">
+            <Input
+              disabled={disabled}
+              onChange={(event) =>
+                onChange({ ...item, label: event.target.value })
+              }
+              value={String(item.label ?? "")}
+            />
+            <Input
+              disabled={disabled}
+              onChange={(event) =>
+                onChange({ ...item, href: event.target.value })
+              }
+              value={String(item.href ?? "")}
+            />
+          </div>
+        );
+      },
+      validateItem: (item) => {
+        if (item.type === "group") {
+          const nestedItems = Array.isArray(item.items) ? item.items : [];
+          return nestedItems.every(
+            (nestedItem) =>
+              typeof nestedItem === "object" &&
+              nestedItem !== null &&
+              "href" in nestedItem
+          )
+            ? []
+            : ["Group items must be links"];
+        }
+        if (item.type === "link" && !item.href) {
+          return ["Href is required"];
+        }
+        return [];
+      },
+    },
+  ],
+});
+```
+
+The built-in action labels (`Actions`, `Cancel`, `Save`, row edit/delete/move labels) can be customized with `labels` or translated with `labelKeys` on the collection field.
+
 **Form translations:** The catalog form uses the same `DataTableTranslations` object as the table. You must add **form** and **value** keys to that object (e.g. `form.name`, `form.submit`, `value.string_placeholder`) and use `labelKey` / `optionKeys` in your field definitions so labels and placeholders resolve. See [Translations Reference — Form translations](/docs/translations#form-translations-catalog-form) for the full example.
 
 ### Catalogue form layout

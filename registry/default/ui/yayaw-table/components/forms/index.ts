@@ -5,20 +5,17 @@
 
 // Atoms
 export * from "./atoms";
-
+// Components
+export * from "./catalogue-form";
 // Drawer form portal container (for Select inside drawer)
 export {
   DrawerFormPortalContainerContext,
   useDrawerFormPortalContainer,
 } from "./drawer-form-portal-context";
-
 // Factories
 export * from "./factories";
-
 // Field components
 export * from "./fields";
-
-// Components
 export * from "./form-builder";
 
 // Helpers

@@ -6,6 +6,25 @@ export type {
 } from "./components/ui/yayaw-table/atoms/config-atoms";
 // Export main components
 export { DataTable } from "./components/ui/yayaw-table/components/data-table";
+export type {
+  AnyFieldDefinition,
+  CollectionFieldActionLabels,
+  CollectionFieldColumnDefinition,
+  CollectionFieldCreateAction,
+  CollectionFieldDefinition,
+  CollectionFieldItem,
+  FieldValues,
+  FormConfig,
+  FormFieldApi,
+} from "./components/ui/yayaw-table/components/forms";
+export {
+  CatalogueForm,
+  CollectionEditor,
+  CollectionField,
+  createCollectionField,
+  defineFormConfig,
+  FormBuilder,
+} from "./components/ui/yayaw-table/components/forms";
 // Re-export TableActions type from provider for external usage
 export type { TableActions } from "./components/ui/yayaw-table/providers/table-provider";
 export {

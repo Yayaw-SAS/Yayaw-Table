@@ -6,6 +6,25 @@
 // Main component
 export { DataTable } from "./components/data-table";
 export type {
+  AnyFieldDefinition,
+  CollectionFieldActionLabels,
+  CollectionFieldColumnDefinition,
+  CollectionFieldCreateAction,
+  CollectionFieldDefinition,
+  CollectionFieldItem,
+  FieldValues,
+  FormConfig,
+  FormFieldApi,
+} from "./components/forms";
+export {
+  CatalogueForm,
+  CollectionEditor,
+  CollectionField,
+  createCollectionField,
+  defineFormConfig,
+  FormBuilder,
+} from "./components/forms";
+export type {
   CatalogueFormLayoutConfig,
   TableFormConfig,
 } from "./config/form-config";
