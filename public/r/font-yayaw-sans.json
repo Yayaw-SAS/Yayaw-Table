@@ -9,14 +9,20 @@
     "versionedRegistryUrl": "https://table.yayaw.eu/r/v0.3.0/font-yayaw-sans.json"
   },
   "docs": "Installs the optional YaYaw Table sans font preset. This item is additive; installing `yayaw-table` does not require it.",
-  "categories": ["font", "theme", "yayaw-table"],
+  "categories": [
+    "font",
+    "theme",
+    "yayaw-table"
+  ],
   "type": "registry:font",
   "font": {
     "family": "'Plus Jakarta Sans Variable', sans-serif",
     "provider": "google",
     "import": "Plus_Jakarta_Sans",
     "variable": "--font-sans",
-    "subsets": ["latin"],
+    "subsets": [
+      "latin"
+    ],
     "dependency": "@fontsource-variable/plus-jakarta-sans@^5.2.8"
   }
 }
