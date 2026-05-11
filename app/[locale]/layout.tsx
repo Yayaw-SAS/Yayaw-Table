@@ -8,7 +8,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 import { PackageManagerProvider } from "@/src/components/site/package-manager-provider";
 import { routing } from "@/src/i18n/routing";
-import { createPageMetadata } from "@/src/lib/metadata";
+import { createPageMetadata, siteIcons } from "@/src/lib/metadata";
 import { siteConfig } from "@/src/lib/site-config";
 
 const bodyFont = Plus_Jakarta_Sans({
@@ -107,10 +107,7 @@ export async function generateMetadata({
       default: t("siteTitle"),
       template: `%s | ${t("siteTitle")}`,
     },
-    icons: {
-      icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
-      apple: [{ url: "/apple-touch-icon.png" }],
-    },
+    icons: siteIcons,
     manifest: "/manifest.webmanifest",
   };
 }

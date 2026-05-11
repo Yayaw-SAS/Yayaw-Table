@@ -9,6 +9,26 @@ const OPEN_GRAPH_LOCALES: Record<AppLocale, string> = {
   fr: "fr_FR",
 };
 
+export const siteIcons = {
+  icon: [
+    {
+      media: "(prefers-color-scheme: light)",
+      type: "image/svg+xml",
+      url: "/yayaw-icon-light.svg",
+    },
+    {
+      media: "(prefers-color-scheme: dark)",
+      type: "image/svg+xml",
+      url: "/yayaw-icon-dark.svg",
+    },
+    { sizes: "any", type: "image/svg+xml", url: "/favicon.svg" },
+    { sizes: "32x32", type: "image/png", url: "/favicon-32x32.png" },
+    { sizes: "16x16", type: "image/png", url: "/favicon-16x16.png" },
+  ],
+  shortcut: [{ sizes: "32x32", type: "image/png", url: "/favicon-32x32.png" }],
+  apple: [{ sizes: "180x180", url: "/apple-touch-icon.png" }],
+} satisfies Metadata["icons"];
+
 function buildLocaleAlternates(locale: AppLocale, pathname: string) {
   const languages = Object.fromEntries(
     routing.locales.map((locale) => [
@@ -50,6 +70,8 @@ export function createPageMetadata({
     title,
     description,
     alternates: buildLocaleAlternates(locale, pathname),
+    icons: siteIcons,
+    manifest: "/manifest.webmanifest",
     metadataBase: new URL(siteConfig.url),
     openGraph: {
       description,
