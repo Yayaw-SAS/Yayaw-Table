@@ -257,7 +257,7 @@ Voir [Actions](/docs/actions) et [Server-side & Server Actions](/docs/server-act
 
 ## getFormConfig
 
-Retourne la configuration de formulaire par type (ex. `"products"`, `"products-bulk"`). Utilisée pour construire les dialogs create/edit et bulk edit. Structure : tableau de champs avec `name`, `type`, `label`, `required`, etc.
+Retourne la configuration de formulaire par type (ex. `"products"`, `"products-bulk"`). Utilisée pour construire les dialogs create/edit et bulk edit. Structure : tableau de champs avec `name`, `type`, `label`, `required`, etc. Voir [Formulaires et champs collection](/docs/forms) pour le modèle complet des champs, y compris les éditeurs natifs de tableaux.
 
 **Champs booléens :** dans les formulaires catalogue, les booléens sont affichés en **Switch** par défaut (`type: "switch"` ou `type: "checkbox"`). Si vous voulez explicitement une checkbox, définissez `variant: "checkbox"`.
 
@@ -268,6 +268,91 @@ Retourne la configuration de formulaire par type (ex. `"products"`, `"products-b
   label: "Active",
 }
 ```
+
+### Champs collection
+
+Utilisez `type: "collection"` quand une valeur de formulaire est un tableau d'objets et que les utilisateurs doivent ajouter, éditer, supprimer, réordonner et valider des items sans écrire un éditeur custom dans l'application consommatrice. La collection reste contrôlée par la valeur du formulaire : YaYaw Table écrit le prochain tableau via l'API de champ, sans état JSON opaque à synchroniser.
+
+Le champ collection fournit nativement :
+
+- Une vue structurée des items avec colonnes configurables.
+- Un état vide clair.
+- Un bouton d'ajout simple ou plusieurs actions d'ajout via `createActions`.
+- Des actions éditer, supprimer, monter et descendre.
+- Une dialog interne pour créer ou éditer un item.
+- Des erreurs par ligne via `validateItem`.
+- Des erreurs globales via `validateItems`.
+- Le blocage du submit quand la collection est invalide.
+
+```tsx
+import { defineFormConfig } from "@/components/ui/yayaw-table/components/forms";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { z } from "zod";
+
+const FeatureSchema = z.object({
+  features: z.array(
+    z.object({
+      label: z.string().min(1),
+      enabled: z.boolean(),
+    })
+  ),
+});
+
+export const featureForm = defineFormConfig({
+  id: "features",
+  schema: FeatureSchema,
+  defaultValues: {
+    features: [],
+  },
+  fields: [
+    {
+      type: "collection",
+      name: "features",
+      label: "Features",
+      description: "Manage the product feature list.",
+      addLabel: "Add feature",
+      itemLabel: "feature",
+      emptyLabel: "No features yet.",
+      columns: [
+        { id: "label", header: "Label" },
+        {
+          id: "enabled",
+          header: "Enabled",
+          render: (item) => (item.enabled ? "Yes" : "No"),
+        },
+      ],
+      createItem: () => ({ label: "", enabled: true }),
+      renderItemForm: ({ item, onChange, disabled }) => (
+        <div className="space-y-3">
+          <Input
+            disabled={disabled}
+            onChange={(event) =>
+              onChange({ ...item, label: event.target.value })
+            }
+            value={String(item.label ?? "")}
+          />
+          <Switch
+            checked={item.enabled === true}
+            disabled={disabled}
+            onCheckedChange={(enabled) => onChange({ ...item, enabled })}
+          />
+        </div>
+      ),
+      validateItem: (item) =>
+        typeof item.label === "string" && item.label.length > 0
+          ? []
+          : ["Label is required"],
+      validateItems: (items) =>
+        items.length > 0 ? [] : ["Add at least one feature"],
+    },
+  ],
+});
+```
+
+`validateItem` marque les lignes invalides, `validateItems` affiche des erreurs globales, et les deux validateurs sont branchés au champ TanStack Form pour empêcher le submit. La validation Zod du formulaire reste active sur la même valeur.
+
+Pour un JSON de menu, utilisez `createActions` afin de créer plusieurs formes d'items (`link`, `group`, `themeToggle`, `languageToggle`) et utilisez `CollectionEditor` dans le formulaire d'un groupe pour éditer `group.items`. La page [Formulaires et champs collection](/docs/forms) détaille ce cas avec les collections imbriquées et le choix entre `collection` et `custom`.
 
 **Traductions de formulaire :** le formulaire catalogue utilise le même objet `DataTableTranslations` que la table. Vous devez ajouter les clés **form** et **value** (ex. `form.name`, `form.submit`, `value.string_placeholder`) et utiliser `labelKey` / `optionKeys` dans vos champs pour résoudre labels et placeholders. Voir [Translations Reference — Form translations](/docs/translations#form-translations-catalogue-form) pour l'exemple complet.
 
