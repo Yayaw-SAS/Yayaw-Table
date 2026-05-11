@@ -21,7 +21,7 @@ import {
  * Generate a unique ID for filters
  */
 export function generateFilterId(): string {
-  return `filter_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  return `filter_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
 }
 
 /**

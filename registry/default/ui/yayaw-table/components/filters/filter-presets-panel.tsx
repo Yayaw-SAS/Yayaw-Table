@@ -344,7 +344,7 @@ function SavePresetDialog({
 
       dispatch({ type: "reset" });
       onOpenChange(false);
-    } catch (_error) {
+    } catch {
       // Error handling can be added here if needed
     } finally {
       dispatch({ type: "set_saving", value: false });
@@ -569,7 +569,7 @@ export function FilterPresetsPanel({
       try {
         const state = await presets.loadPreset(presetId);
         onLoadPreset?.(state);
-      } catch (_error) {
+      } catch {
         // Error handling can be added here if needed
       }
     },
@@ -614,7 +614,7 @@ export function FilterPresetsPanel({
         const url = await presets.sharePreset(presetId);
         await navigator.clipboard.writeText(url);
         // You would show a toast notification here
-      } catch (_error) {
+      } catch {
         // Error handling can be added here if needed
       }
     },

@@ -330,6 +330,8 @@ export function useTableComponents() {
  */
 export const defaultTranslations: DataTableTranslations = {
   actions: {
+    close: "Close",
+    create: "Create",
     delete: "Delete",
     edit: "Edit",
     copy: "Copy",
@@ -445,6 +447,8 @@ export const defaultTranslations: DataTableTranslations = {
       date: "Date",
       select: "Select",
       multiSelect: "Multiple options",
+      option: "Option",
+      multiOption: "Multiple options",
     },
     date_shortcuts: {
       today: "Today",
@@ -567,6 +571,12 @@ export const defaultTranslations: DataTableTranslations = {
       },
     },
   },
+  filter_types: {
+    option: "Option",
+    multiOption: "Multiple options",
+  },
+  form: "Form",
+  value: "Value",
   pagination: {
     first: "Go to first page",
     last: "Go to last page",

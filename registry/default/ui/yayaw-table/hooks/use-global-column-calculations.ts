@@ -337,7 +337,7 @@ export const loadGlobalColumnCalculationResults = async ({
         locale,
       });
       return response.results ?? EMPTY_RESULTS;
-    } catch (_error) {
+    } catch {
       // Fallback to list strategy below when aggregate fails.
     }
   }

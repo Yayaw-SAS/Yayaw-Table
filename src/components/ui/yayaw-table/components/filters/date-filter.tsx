@@ -316,7 +316,7 @@ export function DateFilter({
                   {...CALENDAR_NAVIGATION_PROPS}
                   className="[--cell-size:--spacing(7)] sm:[--cell-size:--spacing(8)]"
                   disabled={disabled}
-                  initialFocus
+                  autoFocus
                   mode="range"
                   onSelect={handleDateRangeSelect}
                   required
@@ -330,7 +330,7 @@ export function DateFilter({
                   {...CALENDAR_NAVIGATION_PROPS}
                   className="[--cell-size:--spacing(7)] sm:[--cell-size:--spacing(8)]"
                   disabled={disabled}
-                  initialFocus
+                  autoFocus
                   mode="single"
                   onSelect={handleSingleDateSelect}
                   selected={currentSingleValue}
@@ -378,7 +378,7 @@ export function DateFilter({
                         {...CALENDAR_NAVIGATION_PROPS}
                         className="[--cell-size:--spacing(7)] sm:[--cell-size:--spacing(8)]"
                         disabled={disabled}
-                        initialFocus
+                        autoFocus
                         mode="range"
                         onSelect={handleDateRangeSelect}
                         required
@@ -396,7 +396,7 @@ export function DateFilter({
                         {...CALENDAR_NAVIGATION_PROPS}
                         className="[--cell-size:--spacing(7)] sm:[--cell-size:--spacing(8)]"
                         disabled={disabled}
-                        initialFocus
+                        autoFocus
                         mode="single"
                         onSelect={handleSingleDateSelect}
                         selected={currentSingleValue}
@@ -542,7 +542,7 @@ export function CompactDateFilter({
           <Calendar
             {...CALENDAR_NAVIGATION_PROPS}
             disabled={disabled}
-            initialFocus
+            autoFocus
             mode="range"
             onSelect={handleDateRangeSelect}
             required
@@ -552,7 +552,7 @@ export function CompactDateFilter({
           <Calendar
             {...CALENDAR_NAVIGATION_PROPS}
             disabled={disabled}
-            initialFocus
+            autoFocus
             mode="single"
             onSelect={handleSingleDateSelect}
             selected={currentSingleValue}

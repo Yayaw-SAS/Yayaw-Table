@@ -162,7 +162,7 @@ export function JsonCell({
           {JSON.stringify(parsedValue)}
         </span>
       );
-    } catch (_e) {
+    } catch {
       // Fall through to default handling
     }
   }
@@ -194,7 +194,7 @@ function safelyParseJson(value: unknown): unknown {
   ) {
     try {
       return JSON.parse(value);
-    } catch (_e) {
+    } catch {
       // If it can't be parsed as JSON, return the original
       return value;
     }

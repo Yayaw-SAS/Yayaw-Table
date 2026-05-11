@@ -316,7 +316,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
           };
         }
         return { data: [] as TData[], pageCount: 0, rowCount: 0 };
-      } catch (_error) {
+      } catch {
         return { data: [] as TData[], pageCount: 0, rowCount: 0 };
       }
     },
