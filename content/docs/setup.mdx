@@ -257,7 +257,7 @@ See [Actions](/docs/actions) and [Server-side & Server Actions](/docs/server-act
 
 ## getFormConfig
 
-Return form configuration per form type (e.g. `"products"`, `"products-bulk"`). Used to build create/edit forms and bulk edit. Shape: fields array with `name`, `type`, `label`, `required`, etc. See your codebase or the example app `form-config` for the full type.
+Return form configuration per form type (e.g. `"products"`, `"products-bulk"`). Used to build create/edit forms and bulk edit. Shape: fields array with `name`, `type`, `label`, `required`, etc. See [Forms and Collection Fields](/docs/forms) for the full form field model, including native array editors.
 
 **Boolean fields:** In catalog forms, boolean fields render as a **Switch** by default (`type: "switch"` or `type: "checkbox"`). If you specifically want a checkbox UI, set `variant: "checkbox"` on the field definition.
 
@@ -272,6 +272,8 @@ Return form configuration per form type (e.g. `"products"`, `"products-bulk"`). 
 ### Collection fields
 
 Use `type: "collection"` when a form value is an array of objects and users need to add, edit, delete, reorder, and validate items without building a custom editor. The collection stays controlled by the form value: YaYaw Table writes the next array through the field API, and it does not keep an opaque copy of your data.
+
+For a deeper explanation of what this enables, how nested collections work, and how to choose between `collection` and `custom`, see [Forms and Collection Fields](/docs/forms).
 
 ```tsx
 import { defineFormConfig } from "@/components/ui/yayaw-table/components/forms";
