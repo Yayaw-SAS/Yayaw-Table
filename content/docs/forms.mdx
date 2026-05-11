@@ -1,0 +1,411 @@
+---
+title: Forms and Collection Fields
+description: Build create/edit forms with native array editors, validation, and nested collection support
+---
+
+# Forms and Collection Fields
+
+YaYaw Table can render create, edit, and bulk-edit forms from configuration. You provide a `FormConfig` through `getFormConfig`, and the table opens the matching form in the built-in drawer or modal when users create or edit rows.
+
+Most fields map to one primitive value: `text`, `number`, `select`, `switch`, `textarea`, `url`, `value-type`, or `custom`. The `collection` field is different: it edits an array of objects as a structured UI. It is designed for JSON-like data that would otherwise force every consuming app to build its own mini editor.
+
+## What Collection Fields Enable
+
+Use `type: "collection"` when a form value is an array and users need to manage its items visually.
+
+Good fits:
+
+- Navigation menus stored as JSON, with links, groups, toggles, and nested links.
+- Feature lists where each feature has a label, icon, enabled flag, and description.
+- Repeated pricing rules, FAQ entries, contact methods, gallery items, or localized content blocks.
+- Any “array of records” field where a plain JSON textarea would be too risky for users.
+
+The built-in collection UI gives you:
+
+- A table-like overview of items using configurable columns.
+- An empty state that explains there are no items yet.
+- One add button or multiple add actions, such as “Add link”, “Add group”, and “Add theme toggle”.
+- Edit, delete, move up, and move down row actions.
+- An internal item dialog with Cancel and Save actions.
+- Row-level errors from `validateItem`.
+- Global collection errors from `validateItems`.
+- Submit blocking when collection validation fails.
+- Compatibility with Zod schema validation on the same form value.
+- Nested collection editing through the exported `CollectionEditor` component.
+
+The collection field is generic. YaYaw Table does not need to know what a menu link, feature, or FAQ item means. You define item shapes with `createItem` / `createActions`, render item-specific controls with `renderItemForm`, and enforce business rules with validators.
+
+## Mental Model
+
+The form value is always the source of truth.
+
+1. `CollectionField` reads the current form value from TanStack Form.
+2. If the value is not an array, it is normalized to `[]`.
+3. Every add, edit, delete, or reorder action creates a new array.
+4. Item edits create new item objects instead of mutating the existing item.
+5. The new array is written through `fieldApi.handleChange`.
+6. On submit, YaYaw Table validates the same form value with collection validators and the configured Zod schema.
+
+This means there is no hidden internal JSON state to synchronize with your app. If the form value is `{ items_json: [...] }`, the collection editor is just a safer UI for that array.
+
+## Quick Example
+
+This creates a small features editor with add, edit, delete, reorder, row validation, and submit blocking.
+
+```tsx
+import { defineFormConfig } from "@/components/ui/yayaw-table/components/forms";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { z } from "zod";
+
+const FeatureSchema = z.object({
+  features: z.array(
+    z.object({
+      label: z.string().min(1),
+      enabled: z.boolean(),
+    })
+  ),
+});
+
+export const featureForm = defineFormConfig({
+  id: "features",
+  schema: FeatureSchema,
+  defaultValues: {
+    features: [],
+  },
+  fields: [
+    {
+      type: "collection",
+      name: "features",
+      label: "Features",
+      description: "Manage the product feature list.",
+      addLabel: "Add feature",
+      itemLabel: "feature",
+      emptyLabel: "No features yet.",
+      columns: [
+        { id: "label", header: "Label" },
+        {
+          id: "enabled",
+          header: "Enabled",
+          render: (item) => (item.enabled ? "Yes" : "No"),
+        },
+      ],
+      createItem: () => ({ label: "", enabled: true }),
+      renderItemForm: ({ item, onChange, disabled }) => (
+        <div className="space-y-3">
+          <Input
+            disabled={disabled}
+            onChange={(event) =>
+              onChange({ ...item, label: event.target.value })
+            }
+            value={String(item.label ?? "")}
+          />
+          <Switch
+            checked={item.enabled === true}
+            disabled={disabled}
+            onCheckedChange={(enabled) => onChange({ ...item, enabled })}
+          />
+        </div>
+      ),
+      validateItem: (item) =>
+        typeof item.label === "string" && item.label.length > 0
+          ? []
+          : ["Label is required"],
+      validateItems: (items) =>
+        items.length > 0 ? [] : ["Add at least one feature"],
+    },
+  ],
+});
+```
+
+## API Reference
+
+`CollectionFieldDefinition<TFormValues>` extends the normal field definition with array-editor options.
+
+| Property | Purpose |
+|---|---|
+| `type: "collection"` | Selects the native collection field. |
+| `name` | Form path for the array value. |
+| `label` / `description` | Field copy shown above the editor. |
+| `disabled` | Disables collection actions and item form controls. |
+| `addLabel` | Label for the default add button. |
+| `itemLabel` | Human-readable item name used in counts, dialog titles, and validation messages. |
+| `emptyLabel` | Optional empty-state text. |
+| `columns` | Overview columns. A column can read `item[column.id]` or provide a custom `render`. |
+| `createItem(items)` | Creates the default new item from the current items. |
+| `createActions` | Optional list of named add actions for multiple item types. |
+| `getItemKey(item, index)` | Optional stable React key. Use IDs when items have them. |
+| `renderItemForm` | Renders the dialog body for creating or editing one item. |
+| `validateItem` | Returns row-level errors for one item. |
+| `validateItems` | Returns global errors for the whole array. |
+| `labels` | Overrides built-in labels such as Actions, Cancel, Save, Edit, Delete, Move up, Move down. |
+| `labelKeys` | Translation keys for the same built-in labels. |
+
+`renderItemForm` receives a plain controlled item:
+
+```ts
+renderItemForm: (props: {
+  item: Record<string, unknown>;
+  index: number | null;
+  disabled?: boolean;
+  onChange: (item: Record<string, unknown>) => void;
+}) => ReactNode;
+```
+
+Call `onChange({ ...item, field: nextValue })` whenever a control changes. Avoid mutating `item` directly.
+
+## Multiple Item Types
+
+Use `createActions` when users need to create different item shapes from the same array.
+
+```tsx
+const createLink = () => ({
+  type: "link",
+  label: "",
+  href: "",
+  placement: "primary",
+  variant: "default",
+  description: "",
+  external: false,
+});
+
+const createGroup = () => ({
+  type: "group",
+  label: "",
+  description: "",
+  placement: "primary",
+  items: [],
+});
+
+{
+  type: "collection",
+  name: "items_json",
+  label: "Menu items",
+  addLabel: "Add item",
+  itemLabel: "menu item",
+  columns: [
+    { id: "label", header: "Label" },
+    { id: "type", header: "Type" },
+    { id: "placement", header: "Placement" },
+  ],
+  createItem: createLink,
+  createActions: [
+    { label: "Add link", createItem: createLink },
+    { label: "Add group", createItem: createGroup },
+    {
+      label: "Add theme toggle",
+      createItem: () => ({ type: "themeToggle", placement: "utility" }),
+    },
+    {
+      label: "Add language toggle",
+      createItem: () => ({ type: "languageToggle", placement: "utility" }),
+    },
+  ],
+  renderItemForm: ({ item, onChange }) => {
+    if (item.type === "group") {
+      return <GroupItemForm item={item} onChange={onChange} />;
+    }
+
+    if (item.type === "link") {
+      return <LinkItemForm item={item} onChange={onChange} />;
+    }
+
+    return <ToggleItemForm item={item} onChange={onChange} />;
+  },
+}
+```
+
+This is enough to model a menu where top-level items can be links, groups, theme toggles, or language toggles. The collection field only orchestrates the editor; your item forms decide which controls each item type needs.
+
+## Nested Collections
+
+Nested collections are supported by using the lower-level `CollectionEditor` inside an item form. This is useful for one-level menu groups: the top-level collection edits menu items, and a group item contains a nested collection for `group.items`.
+
+```tsx
+import { CollectionEditor } from "@/components/ui/yayaw-table/components/forms";
+import { Input } from "@/components/ui/input";
+
+function GroupItemForm({
+  item,
+  onChange,
+}: {
+  item: Record<string, unknown>;
+  onChange: (item: Record<string, unknown>) => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <Input
+        onChange={(event) => onChange({ ...item, label: event.target.value })}
+        value={String(item.label ?? "")}
+      />
+      <CollectionEditor
+        addLabel="Add nested link"
+        columns={[
+          { id: "label", header: "Label" },
+          { id: "href", header: "Href" },
+        ]}
+        createItem={() => ({
+          type: "link",
+          label: "",
+          href: "",
+          placement: "primary",
+          variant: "default",
+          external: false,
+        })}
+        emptyLabel="No nested links yet."
+        itemLabel="nested link"
+        label="Nested links"
+        onChange={(items) => onChange({ ...item, items })}
+        renderItemForm={({ item: nestedItem, onChange: onNestedChange }) => (
+          <div className="space-y-3">
+            <Input
+              onChange={(event) =>
+                onNestedChange({
+                  ...nestedItem,
+                  label: event.target.value,
+                })
+              }
+              value={String(nestedItem.label ?? "")}
+            />
+            <Input
+              onChange={(event) =>
+                onNestedChange({
+                  ...nestedItem,
+                  href: event.target.value,
+                })
+              }
+              value={String(nestedItem.href ?? "")}
+            />
+          </div>
+        )}
+        validateItem={(nestedItem) =>
+          nestedItem.type === "link" ? [] : ["Only links are allowed"]
+        }
+        value={item.items}
+      />
+    </div>
+  );
+}
+```
+
+The important detail is the nested `onChange`: it writes the next nested array back into the parent item with `onChange({ ...item, items })`.
+
+## Validation Layers
+
+Collections have three validation layers that can work together:
+
+1. `validateItem(item, index)` returns errors for one row. These errors are shown under the row and in the item dialog.
+2. `validateItems(items)` returns errors for the whole array, such as “Add at least one item”.
+3. The form `schema` still validates the final value with Zod.
+
+`validateItem` and `validateItems` are attached to TanStack Form as field validators. If either returns errors, `form.handleSubmit()` does not call the submit action.
+
+Use collection validators for UI-specific and business-specific messages, and keep Zod as the final structural contract. For example:
+
+```tsx
+validateItem: (item) => {
+  if (item.type === "link" && !item.href) {
+    return ["Href is required"];
+  }
+
+  if (item.type === "group") {
+    const nestedItems = Array.isArray(item.items) ? item.items : [];
+    return nestedItems.every(
+      (nestedItem) =>
+        typeof nestedItem === "object" &&
+        nestedItem !== null &&
+        "href" in nestedItem
+    )
+      ? []
+      : ["Group items must be links"];
+  }
+
+  return [];
+},
+validateItems: (items) =>
+  items.length > 0 ? [] : ["Add at least one menu item"],
+```
+
+## Modal and Drawer Forms
+
+Collection fields work in the same `CatalogueForm` surfaces as other fields. They can be used in the default right-side drawer or in a wider modal layout:
+
+```ts
+defineTableConfig({
+  form: {
+    layout: {
+      mode: "modal",
+      width: "80vw",
+    },
+  },
+});
+```
+
+Use a modal layout when item forms contain multiple controls, nested collections, or wide overview columns.
+
+## Translation and Labels
+
+Collection fields use sensible English defaults for built-in labels:
+
+- `Actions`
+- `Cancel`
+- `Save`
+- `Edit`
+- `Delete`
+- `Move up`
+- `Move down`
+
+Override them per field with `labels`:
+
+```tsx
+{
+  type: "collection",
+  labels: {
+    actions: "Row actions",
+    save: "Save item",
+    cancel: "Cancel item edit",
+  },
+  // ...
+}
+```
+
+Or use `labelKeys` when your app resolves labels from translations:
+
+```tsx
+{
+  type: "collection",
+  labelKeys: {
+    actions: "menu.fields.items.actions",
+    save: "menu.fields.items.save",
+    cancel: "menu.fields.items.cancel",
+  },
+  // ...
+}
+```
+
+## When to Use Custom Instead
+
+Keep using `type: "custom"` when a field is not an array editor, when it needs a completely different layout, or when it integrates a domain-specific component that already owns its UX.
+
+Use `type: "collection"` when the data is still an array of item records and the app only needs to define:
+
+- How new items are created.
+- Which columns summarize items.
+- Which item form controls are shown.
+- Which rules make an item or the whole array invalid.
+
+That split keeps the generic add/edit/delete/reorder behavior in YaYaw Table while leaving business-specific fields in the consuming app.
+
+## Common Pitfalls
+
+- Mutating `item` or `items` in place. Always create a new object or array before calling `onChange`.
+- Forgetting a stable `getItemKey` when items have durable IDs. Index fallback works, but IDs keep row identity clearer.
+- Encoding business rules only in Zod. Use `validateItem` / `validateItems` too when the user needs row-level feedback before submit.
+- Putting deeply nested business trees into one editor. Nested collections are best for one clear sub-list, such as group links.
+- Rebuilding a collection with `type: "custom"` when the built-in collection behavior already covers the array workflow.
+
+## Related Docs
+
+- [Provider & Setup](/docs/setup) for `getFormConfig`.
+- [DataTable Reference](/docs/datatable) for the `getFormConfig` prop.
+- [Translations](/docs/translations) for shared table and form translation setup.
