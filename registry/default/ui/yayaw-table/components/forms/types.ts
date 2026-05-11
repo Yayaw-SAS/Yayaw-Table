@@ -98,6 +98,7 @@ export interface CollectionFieldColumnDefinition {
 
 export interface CollectionFieldCreateAction {
   createItem: (items: readonly CollectionFieldItem[]) => CollectionFieldItem;
+  id?: string;
   label: string;
 }
 

@@ -99,7 +99,7 @@ export function useTableTranslations(
         : {};
 
       return t(originalKey, safeValues);
-    } catch (_error) {
+    } catch {
       // Log a warning in development mode only
       if (process.env.NODE_ENV === "development") {
         /* optional dev warning */

@@ -41,7 +41,7 @@ export function SelectionHeader<TData>({ table }: SelectionHeaderProps<TData>) {
         />
       </div>
     );
-  } catch (_error) {
+  } catch {
     return <div className="flex h-4 w-4 items-center justify-center" />;
   }
 }

@@ -300,10 +300,10 @@ export function CollectionEditor({
             {items.length} {itemLabel}
           </div>
           <div className="flex flex-wrap gap-2">
-            {addActions.map((action, index) => (
+            {addActions.map((action) => (
               <Button
                 disabled={disabled}
-                key={`${action.label}-${index}`}
+                key={action.id ?? action.label}
                 onClick={() => openCreateEditor(action.createItem)}
                 size="sm"
                 type="button"

@@ -438,7 +438,7 @@ export function ActionsCellWithTranslations<
               if (onRefresh && typeof onRefresh === "function") {
                 onRefresh();
               }
-            } catch (_error) {
+            } catch {
               // Ignore error in refresh
             }
           };
@@ -463,7 +463,7 @@ export function ActionsCellWithTranslations<
           return standardActions.onEdit(rowData);
         }
         return;
-      } catch (_error) {
+      } catch {
         return;
       }
     },

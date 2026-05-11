@@ -47,21 +47,26 @@ const SearchBar = ({
       caretPosRef.current = null;
     };
 
+    const scheduleRestoreFocus = () => {
+      if (typeof window !== "undefined" && window.requestAnimationFrame) {
+        window.requestAnimationFrame(restoreFocus);
+        return;
+      }
+
+      restoreFocus();
+    };
+
     // If the update was initiated locally, skip value overwrite but restore focus
     if (lastPushedRef.current === globalSearchParam) {
       lastPushedRef.current = null;
       // next frame to ensure mount completed if re-created
-      typeof window !== "undefined" && window.requestAnimationFrame
-        ? window.requestAnimationFrame(restoreFocus)
-        : restoreFocus();
+      scheduleRestoreFocus();
       return;
     }
 
     setValue(globalSearchParam || "");
     // Also attempt to restore focus if we previously had it
-    typeof window !== "undefined" && window.requestAnimationFrame
-      ? window.requestAnimationFrame(restoreFocus)
-      : restoreFocus();
+    scheduleRestoreFocus();
   }, [globalSearchParam]);
 
   useEffect(() => {

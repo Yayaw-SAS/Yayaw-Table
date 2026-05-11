@@ -126,7 +126,7 @@ export interface UseFilterPresetsReturn {
  * Generate unique ID for presets
  */
 function generatePresetId(): string {
-  return `preset_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  return `preset_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
 }
 
 /**

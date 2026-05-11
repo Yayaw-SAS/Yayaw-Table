@@ -22,7 +22,6 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -538,9 +537,15 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
         </div>
 
         <DialogFooter className="flex-row justify-end gap-2 px-0">
-          <DialogClose render={<Button type="button" variant="outline" />}>
+          <Button
+            onClick={() => {
+              handleOpenChange(false);
+            }}
+            type="button"
+            variant="outline"
+          >
             {translations.cancel}
-          </DialogClose>
+          </Button>
           <Button
             disabled={loading}
             onClick={() => {

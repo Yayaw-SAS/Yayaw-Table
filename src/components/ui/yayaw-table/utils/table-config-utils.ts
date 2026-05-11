@@ -67,7 +67,7 @@ export const tableConfigUtils = {
       } else {
         config = serializedConfig;
       }
-    } catch (_error) {
+    } catch {
       // Return empty config if parsing fails
       return {};
     }
@@ -99,7 +99,7 @@ export const tableConfigUtils = {
         } else {
           columnFilters = [];
         }
-      } catch (_error) {
+      } catch {
         columnFilters = [];
       }
     }
@@ -116,7 +116,7 @@ export const tableConfigUtils = {
         }
         // If it's already an object, return it directly
         return value as T;
-      } catch (_error) {
+      } catch {
         return defaultValue;
       }
     };

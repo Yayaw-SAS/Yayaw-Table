@@ -197,7 +197,7 @@ export function useBulkEdit<TData extends Record<string, unknown>>({
 
         toast.error("Failed to update items");
         return false;
-      } catch (_error) {
+      } catch {
         toast.error("Failed to update items");
         return false;
       }

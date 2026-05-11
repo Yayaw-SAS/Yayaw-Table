@@ -96,4 +96,15 @@ describe("createTranslationFunction", () => {
     assert.equal(t("menu.footer_calculations_on"), "On");
     assert.equal(t("menu.footer_calculations_off"), "Off");
   });
+
+  it("resolves backward-compatible action labels", () => {
+    const t = createTranslationFunction(defaultTranslations);
+
+    assert.equal(t("actions.close"), "Close");
+    assert.equal(t("actions.create"), "Create");
+    assert.equal(t("filter_types.option"), "Option");
+    assert.equal(t("filter_types.multiOption"), "Multiple options");
+    assert.equal(t("form"), "Form");
+    assert.equal(t("value"), "Value");
+  });
 });

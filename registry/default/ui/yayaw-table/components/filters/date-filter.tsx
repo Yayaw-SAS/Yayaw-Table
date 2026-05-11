@@ -318,9 +318,9 @@ export function DateFilter({
               {isBetween ? (
                 <Calendar
                   {...CALENDAR_NAVIGATION_PROPS}
+                  autoFocus
                   className="[--cell-size:--spacing(7)] sm:[--cell-size:--spacing(8)]"
                   disabled={disabled}
-                  initialFocus
                   mode="range"
                   onSelect={handleDateRangeSelect}
                   required
@@ -332,9 +332,9 @@ export function DateFilter({
               ) : (
                 <Calendar
                   {...CALENDAR_NAVIGATION_PROPS}
+                  autoFocus
                   className="[--cell-size:--spacing(7)] sm:[--cell-size:--spacing(8)]"
                   disabled={disabled}
-                  initialFocus
                   mode="single"
                   onSelect={handleSingleDateSelect}
                   selected={currentSingleValue}
@@ -380,9 +380,9 @@ export function DateFilter({
                     <div className="rounded-md border">
                       <Calendar
                         {...CALENDAR_NAVIGATION_PROPS}
+                        autoFocus
                         className="[--cell-size:--spacing(7)] sm:[--cell-size:--spacing(8)]"
                         disabled={disabled}
-                        initialFocus
                         mode="range"
                         onSelect={handleDateRangeSelect}
                         required
@@ -398,9 +398,9 @@ export function DateFilter({
                     <div className="rounded-md border">
                       <Calendar
                         {...CALENDAR_NAVIGATION_PROPS}
+                        autoFocus
                         className="[--cell-size:--spacing(7)] sm:[--cell-size:--spacing(8)]"
                         disabled={disabled}
-                        initialFocus
                         mode="single"
                         onSelect={handleSingleDateSelect}
                         selected={currentSingleValue}
@@ -545,8 +545,8 @@ export function CompactDateFilter({
         {isBetween ? (
           <Calendar
             {...CALENDAR_NAVIGATION_PROPS}
+            autoFocus
             disabled={disabled}
-            initialFocus
             mode="range"
             onSelect={handleDateRangeSelect}
             required
@@ -555,8 +555,8 @@ export function CompactDateFilter({
         ) : (
           <Calendar
             {...CALENDAR_NAVIGATION_PROPS}
+            autoFocus
             disabled={disabled}
-            initialFocus
             mode="single"
             onSelect={handleSingleDateSelect}
             selected={currentSingleValue}

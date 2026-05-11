@@ -5,6 +5,8 @@
 
 export interface DataTableTranslations {
   actions: {
+    close?: string;
+    create?: string;
     delete: string;
     edit: string;
     copy: string;
@@ -116,6 +118,8 @@ export interface DataTableTranslations {
       date?: string;
       select?: string;
       multiSelect?: string;
+      option?: string;
+      multiOption?: string;
     };
     date_shortcuts?: {
       today?: string;
@@ -235,6 +239,12 @@ export interface DataTableTranslations {
       };
     };
   };
+  filter_types?: {
+    option?: string;
+    multiOption?: string;
+  };
+  form?: string;
+  value?: string;
   pagination: {
     first: string;
     last: string;

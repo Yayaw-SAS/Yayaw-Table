@@ -378,7 +378,7 @@ function useFinalSetColumnVisibility(
         if (dataTableSetter) {
           dataTableSetter(value);
         }
-      } catch (_error) {
+      } catch {
         // ignore
       }
     },
