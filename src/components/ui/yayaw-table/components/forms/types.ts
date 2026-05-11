@@ -32,6 +32,7 @@ export interface FormFieldApi<TValue = unknown> {
  */
 export type AnyFieldDefinition<TFieldValues extends FieldValues = FieldValues> =
   | CheckboxFieldDefinition<TFieldValues>
+  | CollectionFieldDefinition<TFieldValues>
   | CustomFieldDefinition<TFieldValues>
   | DateFieldDefinition<TFieldValues>
   | DynamicValueFieldDefinition<TFieldValues>
@@ -87,6 +88,62 @@ export interface CheckboxFieldDefinition<
   variant?: "checkbox" | "switch";
 }
 
+export type CollectionFieldItem = Record<string, unknown>;
+
+export interface CollectionFieldColumnDefinition {
+  header: string;
+  id: string;
+  render?: (item: CollectionFieldItem, index: number) => ReactNode;
+}
+
+export interface CollectionFieldCreateAction {
+  createItem: (
+    items: readonly CollectionFieldItem[]
+  ) => CollectionFieldItem;
+  label: string;
+}
+
+export interface CollectionFieldActionLabels {
+  actions: string;
+  addTitle: string;
+  cancel: string;
+  deleteItem: string;
+  editItem: string;
+  editTitle: string;
+  moveDown: string;
+  moveUp: string;
+  save: string;
+}
+
+/**
+ * Collection field for editing array-like values with add/edit/delete/reorder
+ * controls. The form value remains the source of truth.
+ */
+export interface CollectionFieldDefinition<
+  TFieldValues extends FieldValues = FieldValues,
+> extends BaseFieldDefinition<TFieldValues> {
+  addLabel: string;
+  columns: CollectionFieldColumnDefinition[];
+  createActions?: CollectionFieldCreateAction[];
+  createItem: (
+    items: readonly CollectionFieldItem[]
+  ) => CollectionFieldItem;
+  emptyLabel?: string;
+  getItemKey?: (item: CollectionFieldItem, index: number) => string;
+  itemLabel: string;
+  labelKeys?: Partial<Record<keyof CollectionFieldActionLabels, string>>;
+  labels?: Partial<CollectionFieldActionLabels>;
+  renderItemForm: (props: {
+    disabled?: boolean;
+    index: number | null;
+    item: CollectionFieldItem;
+    onChange: (item: CollectionFieldItem) => void;
+  }) => ReactNode;
+  type: "collection";
+  validateItem?: (item: CollectionFieldItem, index: number | null) => string[];
+  validateItems?: (items: readonly CollectionFieldItem[]) => string[];
+}
+
 /**
  * Custom field for special cases
  */
@@ -124,6 +181,7 @@ export interface DynamicValueFieldDefinition<
 
 export type FieldDefinition =
   | CheckboxFieldDefinition
+  | CollectionFieldDefinition
   | DateFieldDefinition
   | DynamicValueFieldDefinition
   | NumberFieldDefinition

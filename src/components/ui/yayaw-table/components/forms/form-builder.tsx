@@ -10,6 +10,7 @@ import { Button } from "@/src/components/ui/button";
 import { useTranslations } from "../../providers/table-provider";
 import {
   CheckboxField,
+  CollectionField,
   DynamicValueField,
   NumberField,
   SelectField,
@@ -20,9 +21,11 @@ import {
   UrlField,
   ValueTypeField,
 } from "./fields";
+import { createCollectionFieldValidators } from "./fields/collection-field-utils";
 import type { FormBuilderFormInstance } from "./hooks/use-form-builder";
 import type {
   AnyFieldDefinition,
+  CollectionFieldDefinition,
   DynamicValueFieldDefinition,
   FieldValues,
   FormFieldApi,
@@ -93,6 +96,26 @@ function FormBuilderField<TFieldValues extends FieldValues>({
           }}
         </form.Field>
       );
+    case "collection": {
+      const collectionValidators = createCollectionFieldValidators(field);
+
+      return (
+        <form.Field
+          key={field.name}
+          name={field.name as Path<TFieldValues>}
+          validators={collectionValidators as never}
+        >
+          {(f) => (
+            <CollectionField
+              field={field as CollectionFieldDefinition<TFieldValues>}
+              fieldApi={
+                normalizeFieldApi(f) as unknown as FormFieldApi<unknown>
+              }
+            />
+          )}
+        </form.Field>
+      );
+    }
     case "custom":
       return (
         <form.Field key={field.name} name={field.name as Path<TFieldValues>}>

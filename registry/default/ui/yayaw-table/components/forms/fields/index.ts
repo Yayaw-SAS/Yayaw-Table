@@ -4,6 +4,8 @@
  */
 
 export * from "./checkbox-field";
+export * from "./collection-field";
+export * from "./collection-field-utils";
 export * from "./dynamic-value-field";
 export * from "./form-select-content";
 export * from "./number-field";

@@ -37,6 +37,25 @@ export type { BulkActionsMenuProps } from "./src/components/ui/yayaw-table/compo
 export { BulkActionsMenu } from "./src/components/ui/yayaw-table/components/bulk-actions";
 // Export main DataTable component (full-featured)
 export { DataTable } from "./src/components/ui/yayaw-table/components/data-table";
+export type {
+  AnyFieldDefinition,
+  CollectionFieldActionLabels,
+  CollectionFieldColumnDefinition,
+  CollectionFieldCreateAction,
+  CollectionFieldDefinition,
+  CollectionFieldItem,
+  FieldValues,
+  FormConfig,
+  FormFieldApi,
+} from "./src/components/ui/yayaw-table/components/forms";
+export {
+  CatalogueForm,
+  CollectionEditor,
+  CollectionField,
+  createCollectionField,
+  defineFormConfig,
+  FormBuilder,
+} from "./src/components/ui/yayaw-table/components/forms";
 // Export simplified components (alternative API)
 // SimpleDataTable removed in favor of unified DataTable
 export type {

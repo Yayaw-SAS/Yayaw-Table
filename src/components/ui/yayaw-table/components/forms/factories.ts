@@ -1,6 +1,7 @@
 import type {
   AnyFieldDefinition,
   CheckboxFieldDefinition,
+  CollectionFieldDefinition,
   CustomFieldDefinition,
   DateFieldDefinition,
   DynamicValueFieldDefinition,
@@ -43,6 +44,20 @@ export function createCheckboxField<
   return {
     ...options,
     type: "checkbox",
+  };
+}
+
+/**
+ * Create a collection field definition
+ */
+export function createCollectionField<
+  TFieldValues extends FieldValues = FieldValues,
+>(
+  options: Omit<CollectionFieldDefinition<TFieldValues>, "type">
+): CollectionFieldDefinition<TFieldValues> {
+  return {
+    ...options,
+    type: "collection",
   };
 }
 

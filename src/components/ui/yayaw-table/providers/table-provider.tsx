@@ -376,6 +376,15 @@ export const defaultTranslations: DataTableTranslations = {
     reset: "Reset",
     search: "Search",
   },
+  collection: {
+    actions: "Actions",
+    cancel: "Cancel",
+    deleteItem: "Delete",
+    editItem: "Edit",
+    moveDown: "Move down",
+    moveUp: "Move up",
+    save: "Save",
+  },
   inline: {
     edit_hint: "Double-click or press Enter to edit",
     invalid_value: "Invalid value",
