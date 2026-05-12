@@ -7,7 +7,7 @@
     "build": "fumadocs-mdx && next build",
     "build:watch": "next dev",
     "registry:sync": "node scripts/build-registry.mjs",
-    "registry:build": "node scripts/build-registry.mjs && bunx --bun shadcn@latest build registry/registry.json --output public/r",
+    "registry:build": "node scripts/build-registry.mjs && bunx --bun shadcn@latest build registry/registry.json --output public/r && bunx ultracite fix registry/registry.json public/r",
     "registry:snapshot": "node scripts/snapshot-registry-release.mjs",
     "registry:release": "bun run registry:build && bun run registry:snapshot",
     "changeset": "changeset",

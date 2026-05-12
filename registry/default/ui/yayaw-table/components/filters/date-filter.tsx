@@ -7,7 +7,6 @@
 import { CalendarIcon, ChevronDown } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
 import { Label } from "@/components/ui/label";
 import {
   Popover,
@@ -33,6 +32,7 @@ import {
   formatDateForDisplay,
   formatDateRangeForDisplay,
 } from "../../utils/date-display";
+import { Calendar } from "./calendar";
 import {
   getTranslatedOperatorLabel,
   translateWithFallback,
