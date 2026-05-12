@@ -1,7 +1,8 @@
 /**
  * Builds the Shadcn registry: copies src/components/ui/yayaw-table + ui-custom into
- * registry/default/ui/yayaw-table. Each file gets a "target" so the CLI
- * installs strictly under components/ui/yayaw-table/ (no files at components root).
+ * registry/default/ui/yayaw-table, plus selected internal shadcn-compatible
+ * helpers. Each file gets a "target" so the CLI installs only under
+ * components/ui/yayaw-table/ and does not overwrite app-level shadcn files.
  *
  * Source of truth: src/components/ui/yayaw-table (and listed src/components/ui/custom files).
  * Do not edit registry/default/ by hand — it is overwritten by this script.
@@ -21,13 +22,8 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
-const REGISTRY_BLOCK = path.join(
-  ROOT,
-  "registry",
-  "default",
-  "ui",
-  "yayaw-table"
-);
+const REGISTRY_UI_ROOT = path.join(ROOT, "registry", "default", "ui");
+const REGISTRY_BLOCK = path.join(REGISTRY_UI_ROOT, "yayaw-table");
 const SRC_YAYAW_TABLE = path.join(
   ROOT,
   "src",
@@ -35,8 +31,15 @@ const SRC_YAYAW_TABLE = path.join(
   "ui",
   "yayaw-table"
 );
+const SRC_UI = path.join(ROOT, "src", "components", "ui");
 const SRC_UI_CUSTOM = path.join(ROOT, "src", "components", "ui", "custom");
 const UI_CUSTOM_FILES = ["loader.tsx", "icon.tsx", "stack-menu.tsx"];
+const INTERNAL_UI_FILES = [
+  {
+    source: "calendar.tsx",
+    target: "components/filters/calendar.tsx",
+  },
+];
 const PACKAGE_JSON_PATH = path.join(ROOT, "package.json");
 const TABLE_REGISTRY_ITEM_NAME = "yayaw-table";
 
@@ -122,6 +125,15 @@ function transformContent(content, fileRel) {
     /from ["']@\/(?:src\/components\/ui\/custom|components\/ui\/custom)\/([^"']+)["']/g,
     (_, name) => `from "${relativeImport(fileRel, `ui-custom/${name}`)}"`
   );
+
+  // The date filter owns its calendar internally so registry updates never
+  // overwrite the host app's shadcn calendar component.
+  if (fileRel === "components/filters/date-filter.tsx") {
+    out = out.replace(
+      /from ["']@\/(?:src\/components\/ui|components\/ui)\/calendar["']/g,
+      'from "./calendar"'
+    );
+  }
 
   // @/src/components/ui/* or @/components/ui/* -> @/components/ui/*
   out = out.replace(
@@ -235,6 +247,7 @@ if (fs.existsSync(REGISTRY_BLOCK)) {
 }
 fs.mkdirSync(path.dirname(REGISTRY_BLOCK), { recursive: true });
 assertDirectoryExists(SRC_YAYAW_TABLE, "yayaw-table");
+assertDirectoryExists(SRC_UI, "ui");
 assertDirectoryExists(SRC_UI_CUSTOM, "ui/custom");
 copyRecursive(SRC_YAYAW_TABLE, REGISTRY_BLOCK);
 
@@ -248,7 +261,18 @@ for (const name of UI_CUSTOM_FILES) {
   }
 }
 
-// 3) Transform imports in all files
+// 3) Copy internal shadcn-compatible helpers that must not be installed at
+// app-level paths.
+for (const file of INTERNAL_UI_FILES) {
+  const src = path.join(SRC_UI, file.source);
+  const dest = path.join(REGISTRY_BLOCK, file.target);
+  if (fs.existsSync(src)) {
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.copyFileSync(src, dest);
+  }
+}
+
+// 4) Transform imports in all files
 const allRels = getAllFiles(REGISTRY_BLOCK);
 for (const rel of allRels) {
   const full = path.join(REGISTRY_BLOCK, rel);
@@ -257,7 +281,8 @@ for (const rel of allRels) {
   fs.writeFileSync(full, content, "utf8");
 }
 
-// 4) Build files array: path (in registry) + target (in project) so CLI installs only under components/ui/yayaw-table/
+// 5) Build files array: path (in registry) + target (in project) so CLI
+// installs only under components/ui/yayaw-table/
 const registryPathPrefix = ["registry", "default", "ui", "yayaw-table"];
 const targetDir = "components/ui/yayaw-table";
 
@@ -271,7 +296,7 @@ const files = allRels.map((rel) => {
   };
 });
 
-// 5) Update registry.json
+// 6) Update registry.json
 const registryPath = path.join(ROOT, "registry", "registry.json");
 const registry = readJson(registryPath);
 registry.homepage = packageJson.repository.url
@@ -306,7 +331,7 @@ fs.writeFileSync(
   "utf8"
 );
 
-// 6) Run formatter on registry output so generated files match project style
+// 7) Run formatter on registry output so generated files match project style
 try {
   execSync("bun x ultracite fix registry/default", {
     cwd: ROOT,
