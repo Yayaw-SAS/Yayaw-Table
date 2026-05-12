@@ -11,11 +11,12 @@ import type {
   ColumnFiltersState,
   ColumnSizingState,
   GroupingState,
+  Row,
   SortingState,
   Table,
   VisibilityState,
 } from "@tanstack/react-table";
-import { useSetAtom } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
 import { Download, Loader2, PlusIcon } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Button } from "@/src/components/ui/button";
@@ -173,6 +174,16 @@ interface DataTableAdvancedToolbarProps<_TData = Record<string, unknown>> {
   tableId: string;
 
   /**
+   * Table configuration type. Defaults to tableId for backwards compatibility.
+   */
+  tableType?: string;
+
+  /**
+   * Default form type for create/edit forms. Defaults to tableType.
+   */
+  formType?: string;
+
+  /**
    * View options
    */
   viewOptions?: Record<string, unknown>;
@@ -291,21 +302,22 @@ function createColumnOptions(
 /**
  * Helper function to setup table configuration and state
  */
-function useToolbarSetup(tableId: string) {
+function useToolbarSetup(tableId: string, tableType: string) {
   const { t } = useTranslations();
 
   const state = useDataTable({
-    tableType: tableId,
+    tableId,
+    tableType,
   }) as unknown as DataTableState;
 
-  const { config: tableConfig } = useTableConfig(tableId);
+  const { config: tableConfig } = useTableConfig(tableType);
 
   return { t, state, tableConfig };
 }
 
 // Extracted: setup advanced filters related memoized values
 function useAdvancedFiltersSetup(
-  tableId: string,
+  tableType: string,
   data: unknown[],
   columnOptions: {
     [key: string]: unknown;
@@ -333,7 +345,7 @@ function useAdvancedFiltersSetup(
   );
 
   const advancedFiltersResult = useDataTableAdvancedFilters({
-    tableType: tableId,
+    tableType,
     strategy: "client",
     data,
     advancedColumnsConfig,
@@ -389,6 +401,93 @@ function useFinalSetColumnVisibility(
 const EMPTY_DATA: never[] = [];
 const EMPTY_COLUMN_TYPE_MAPPING: Record<string, never> = {};
 
+function ToolbarCreateButton({
+  actionsAsIcons,
+  label,
+  onClick,
+}: {
+  actionsAsIcons: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  if (actionsAsIcons) {
+    return (
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              aria-label={label}
+              className="h-8 w-8"
+              onClick={onClick}
+              size="icon-sm"
+              variant="default"
+            >
+              <PlusIcon className="h-4 w-4" />
+            </Button>
+          }
+        />
+        <TooltipContent>{label}</TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return (
+    <Button className="h-8" onClick={onClick} size="sm" variant="default">
+      <PlusIcon className="mr-2 h-4 w-4" />
+      <span>{label}</span>
+    </Button>
+  );
+}
+
+function ToolbarExportButton({
+  actionsAsIcons,
+  disabled,
+  label,
+  onClick,
+}: {
+  actionsAsIcons: boolean;
+  disabled: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  if (actionsAsIcons) {
+    return (
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              aria-label={label}
+              className="h-8 w-8"
+              disabled={disabled}
+              onClick={onClick}
+              size="icon-sm"
+              type="button"
+              variant="outline"
+            >
+              <Download className="h-4 w-4" />
+            </Button>
+          }
+        />
+        <TooltipContent>{label}</TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return (
+    <Button
+      className="h-8 gap-2 px-3"
+      disabled={disabled}
+      onClick={onClick}
+      size="sm"
+      type="button"
+      variant="outline"
+    >
+      <Download className="h-4 w-4" />
+      <span>{label}</span>
+    </Button>
+  );
+}
+
 export function DataTableAdvancedToolbar<TData>({
   className: _className,
   hideGlobalFilter: _hideGlobalFilter,
@@ -406,10 +505,12 @@ export function DataTableAdvancedToolbar<TData>({
   ...props
 }: DataTableAdvancedToolbarProps<TData>) {
   // Ensure tableId is available
-  const tableId = props.tableId || "default";
+  const tableId = props.tableId ?? "default";
+  const tableType = props.tableType ?? tableId;
+  const formType = props.formType ?? tableType;
 
   // Setup configuration and state
-  const { t, state, tableConfig } = useToolbarSetup(tableId);
+  const { t, state, tableConfig } = useToolbarSetup(tableId, tableType);
   const [isExporting, setIsExporting] = useState(false);
   const [pendingToolbarActionIds, setPendingToolbarActionIds] = useState<
     Set<string>
@@ -417,9 +518,12 @@ export function DataTableAdvancedToolbar<TData>({
   const pendingToolbarActionIdsRef = useRef<Set<string>>(new Set());
   const getTableActions = useProviderTableActions();
   const tableActions = useMemo(
-    () => getTableActions?.(tableId),
-    [getTableActions, tableId]
+    () => getTableActions?.(tableType),
+    [getTableActions, tableType]
   );
+  const selectedRows = useAtomValue(selectedRowsAtom(tableId)) as Row<
+    Record<string, unknown>
+  >[];
   const {
     advancedFiltersParam,
     filtersParam,
@@ -444,7 +548,12 @@ export function DataTableAdvancedToolbar<TData>({
   );
 
   const { advancedColumnsConfig, advancedFiltersResult } =
-    useAdvancedFiltersSetup(tableId, data, columnOptions, columnTypeMapping);
+    useAdvancedFiltersSetup(
+      tableType,
+      data,
+      columnOptions,
+      columnTypeMapping
+    );
 
   // Get final columns and visibility
   const finalColumns = useFinalColumns(state, columnOptions);
@@ -461,7 +570,8 @@ export function DataTableAdvancedToolbar<TData>({
     setSorting,
     state: dataTableState,
   } = useDataTable({
-    tableType: tableId,
+    tableId,
+    tableType,
   });
 
   // Create a table instance to use with the TableMenu
@@ -636,19 +746,32 @@ export function DataTableAdvancedToolbar<TData>({
     tableConfig.table.enableColumnFilters !== false;
   const isSortingEnabled = tableConfig.table.enableSorting !== false;
   const isGroupingEnabled = tableConfig.table.enableGrouping !== false;
+  const createFormType = tableConfig.form?.createFormType ?? formType;
   const handleOpenCreateForm = useCallback(() => {
     if (!isCreateEnabled) {
       return;
     }
 
     setFormState(
-      openCreateForm(tableId, tableId, (_data) => {
-        queryClient.invalidateQueries({
-          queryKey: ["tableData", tableId],
-        });
-      })
+      openCreateForm(
+        createFormType,
+        tableId,
+        (_data) => {
+          queryClient.invalidateQueries({
+            queryKey: ["tableData", tableId],
+          });
+        },
+        tableType
+      )
     );
-  }, [isCreateEnabled, queryClient, setFormState, tableId]);
+  }, [
+    createFormType,
+    isCreateEnabled,
+    queryClient,
+    setFormState,
+    tableId,
+    tableType,
+  ]);
 
   const hasListAction = typeof tableActions?.list === "function";
 
@@ -716,8 +839,13 @@ export function DataTableAdvancedToolbar<TData>({
       isExportEnabled,
       isExporting,
       isMobile,
+      selectedCount: selectedRows.length,
+      selectedOriginalRows: selectedRows.map((row) => row.original),
+      selectedRowIds: selectedRows.map((row) => row.id),
+      selectedRows,
       tableActions,
       tableId,
+      tableType,
     }),
     [
       actionsAsIcons,
@@ -726,8 +854,10 @@ export function DataTableAdvancedToolbar<TData>({
       isExportEnabled,
       isExporting,
       isMobile,
+      selectedRows,
       tableActions,
       tableId,
+      tableType,
     ]
   );
 
@@ -784,12 +914,12 @@ export function DataTableAdvancedToolbar<TData>({
       }
 
       try {
-        await Promise.resolve(action.onClick());
+        await Promise.resolve(action.onClick(toolbarActionContext));
       } finally {
         setToolbarActionPending(action.id, false);
       }
     },
-    [setToolbarActionPending]
+    [setToolbarActionPending, toolbarActionContext]
   );
 
   const renderToolbarAction = useCallback(
@@ -894,79 +1024,28 @@ export function DataTableAdvancedToolbar<TData>({
         {toolbarActionsByPlacement.beforeCreate.map(renderToolbarAction)}
 
         {/* Create button */}
-        {isCreateEnabled &&
-          (actionsAsIcons ? (
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <Button
-                    aria-label={addItemLabel}
-                    className="h-8 w-8"
-                    onClick={handleOpenCreateForm}
-                    size="icon-sm"
-                    variant="default"
-                  >
-                    <PlusIcon className="h-4 w-4" />
-                  </Button>
-                }
-              />
-              <TooltipContent>{addItemLabel}</TooltipContent>
-            </Tooltip>
-          ) : (
-            <Button
-              className="h-8"
-              onClick={handleOpenCreateForm}
-              size="sm"
-              variant="default"
-            >
-              <PlusIcon className="mr-2 h-4 w-4" />
-              <span>{addItemLabel}</span>
-            </Button>
-          ))}
+        {isCreateEnabled && (
+          <ToolbarCreateButton
+            actionsAsIcons={actionsAsIcons}
+            label={addItemLabel}
+            onClick={handleOpenCreateForm}
+          />
+        )}
 
         {toolbarActionsByPlacement.betweenCreateAndExport.map(renderToolbarAction)}
 
-        {isExportEnabled &&
-          (actionsAsIcons ? (
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <Button
-                    aria-label={exportLabel}
-                    className="h-8 w-8"
-                    disabled={!hasListAction || isExporting}
-                    onClick={() => {
-                      handleExportAll().catch(() => {
-                        /* ignore export errors */
-                      });
-                    }}
-                    size="icon-sm"
-                    type="button"
-                    variant="outline"
-                  >
-                    <Download className="h-4 w-4" />
-                  </Button>
-                }
-              />
-              <TooltipContent>{exportLabel}</TooltipContent>
-            </Tooltip>
-          ) : (
-            <Button
-              className="h-8 gap-2 px-3"
-              disabled={!hasListAction || isExporting}
-              onClick={() => {
-                handleExportAll().catch(() => {
-                  /* ignore export errors */
-                });
-              }}
-              size="sm"
-              type="button"
-              variant="outline"
-            >
-              <Download className="h-4 w-4" />
-              <span>{exportLabel}</span>
-            </Button>
-          ))}
+        {isExportEnabled && (
+          <ToolbarExportButton
+            actionsAsIcons={actionsAsIcons}
+            disabled={!hasListAction || isExporting}
+            label={exportLabel}
+            onClick={() => {
+              handleExportAll().catch(() => {
+                /* ignore export errors */
+              });
+            }}
+          />
+        )}
 
         {toolbarActionsByPlacement.afterExport.map(renderToolbarAction)}
 
@@ -1024,9 +1103,11 @@ export function DataTableAdvancedToolbar<TData>({
             sorting: finalSorting as SortingState,
           }}
           tableId={tableId}
+          tableType={tableType}
           useAdvancedFilters={enableAdvancedFilters}
         />
       </div>
     </TooltipProvider>
   );
 }
+import { selectedRowsAtom } from "../../atoms/table-atoms";

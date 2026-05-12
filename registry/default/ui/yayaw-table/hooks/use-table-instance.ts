@@ -19,14 +19,17 @@ import {
   getSortedRowModel,
   type OnChangeFn,
   type PaginationState,
+  type Row,
   type RowSelectionState,
   type SortingState,
   type Table,
   useReactTable,
   type VisibilityState,
 } from "@tanstack/react-table";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useAtom } from "jotai";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
+import { rowSelectionAtom, selectedRowsAtom } from "../atoms/table-atoms";
 import { useTableUrlState } from "./use-table-url-state";
 
 const _DEBUG = false;
@@ -50,6 +53,7 @@ export interface UseTableInstanceOptions<TData> {
   enableRowSelection?: boolean;
   enableSorting?: boolean;
   getRowId?: (row: TData) => string;
+  canSelectRow?: (row: TData) => boolean;
   onRowSelectionChange?: (selection: Record<string, boolean>) => void;
   pageCount?: number;
   rowSelection?: Record<string, boolean>;
@@ -93,6 +97,7 @@ export function useTableInstance<TData>({
   enableRowSelection = true,
   enableSorting = true,
   getRowId,
+  canSelectRow,
   onRowSelectionChange,
   pageCount,
   rowSelection: externalRowSelection,
@@ -153,9 +158,11 @@ export function useTableInstance<TData>({
     visibilityParam,
   } = useTableUrlState({ tableId });
 
-  // Use React state for row selection (doesn't need to be in URL)
-  const [internalRowSelection, setInternalRowSelection] =
-    useState<RowSelectionState>({});
+  const [internalRowSelection, setInternalRowSelection] = useAtom(
+    rowSelectionAtom(tableId)
+  );
+  const [, setSelectedRows] = useAtom(selectedRowsAtom(tableId));
+  const selectedRowsSelectionKeyRef = useRef("");
 
   // Create wrapper functions to adapt our URL state setters to TanStack's OnChangeFn pattern
   const handleColumnFiltersChange = useCallback<OnChangeFn<ColumnFiltersState>>(
@@ -290,8 +297,26 @@ export function useTableInstance<TData>({
         onRowSelectionChange(newValue as Record<string, boolean>);
       }
     },
-    [onRowSelectionChange, internalRowSelection]
+    [onRowSelectionChange, internalRowSelection, setInternalRowSelection]
   );
+
+  const enableRowSelectionOption = useMemo(() => {
+    if (enableRowSelection === false) {
+      return false;
+    }
+
+    if (!canSelectRow) {
+      return true;
+    }
+
+    return (row: Row<TData>) => {
+      if (row.getIsGrouped?.()) {
+        return true;
+      }
+
+      return canSelectRow(row.original);
+    };
+  }, [canSelectRow, enableRowSelection]);
 
   // Helper function to collect all valid column IDs
   const getColumnIds = useCallback((cols: ColumnDef<TData>[]) => {
@@ -440,6 +465,7 @@ export function useTableInstance<TData>({
     columns: memoizedColumns,
     data: memoizedData,
     ...tableOptionsRef.current,
+    enableRowSelection: enableRowSelectionOption,
     // Keep grouped columns and move them to the start so group headers render in their own column
     groupedColumnMode: "reorder",
     getCoreRowModel: useMemo(() => getCoreRowModel(), []),
@@ -510,6 +536,25 @@ export function useTableInstance<TData>({
         : [],
     },
   });
+
+  useEffect(() => {
+    const selectionKey = JSON.stringify(internalRowSelection);
+    const selectedRows = tableInstance.getSelectedRowModel().rows as Row<
+      Record<string, unknown>
+    >[];
+
+    setSelectedRows((previousRows) => {
+      const hasSameSelection =
+        selectedRowsSelectionKeyRef.current === selectionKey;
+      const hasSameRows =
+        previousRows.length === selectedRows.length &&
+        previousRows.every((row, index) => row === selectedRows[index]);
+
+      selectedRowsSelectionKeyRef.current = selectionKey;
+
+      return hasSameSelection && hasSameRows ? previousRows : selectedRows;
+    });
+  }, [internalRowSelection, setSelectedRows, tableInstance]);
 
   // Helper function to check if column order should be updated
   const shouldUpdateColumnOrder = useCallback(

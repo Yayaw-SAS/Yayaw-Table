@@ -71,6 +71,36 @@ function DefaultTableDescription({
 
 const EMPTY_COLUMN_TYPE_MAPPING: Record<string, never> = {};
 
+function resolveDataTableHeaderContent({
+  configDescription,
+  configTitle,
+  description,
+  tableType,
+  title,
+  translations,
+}: {
+  configDescription?: string;
+  configTitle?: string;
+  description?: string;
+  tableType: string;
+  title?: string;
+  translations?: DataTableTranslations;
+}) {
+  const translationText = translations as
+    | (DataTableTranslations & { description?: string; title?: string })
+    | undefined;
+
+  return {
+    displayDescription:
+      description ||
+      translationText?.description ||
+      configDescription ||
+      `Manage your ${tableType}`,
+    displayTitle:
+      title || translationText?.title || configTitle || `${tableType} Table`,
+  };
+}
+
 function DataTableContent({
   className,
   loadingOverlay,
@@ -86,7 +116,9 @@ function DataTableContent({
   onExport,
   toolbarActions,
   toolbarActionsPlacement = "between-create-export",
+  tableId: tableIdProp,
   tableType,
+  formType,
   title,
   description,
   enableAdvancedFilters = false,
@@ -118,7 +150,17 @@ function DataTableContent({
   onExport?: (rows: Record<string, unknown>[]) => void | Promise<void>;
   toolbarActions?: ToolbarActionsInput;
   toolbarActionsPlacement?: ToolbarActionsPlacement;
+  /**
+   * Stable table instance id used for URL state, cache, selection, and invalidation.
+   * Defaults to tableType for backwards compatibility.
+   */
+  tableId?: string;
   tableType: string; // Required
+  /**
+   * Default form type used by create/edit forms when the table config does not
+   * provide a more specific createFormType/editFormType.
+   */
+  formType?: string;
   title?: string;
   description?: string;
   /** Whether to enable advanced filtering */
@@ -129,8 +171,8 @@ function DataTableContent({
     "text" | "number" | "date" | "select" | "multiSelect"
   >;
 }) {
-  // Utiliser directement le tableType comme tableId
-  const tableId = tableType;
+  const tableId = tableIdProp ?? tableType;
+  const defaultFormType = formType ?? tableType;
 
   // Nested translations from TableProvider (used to resolve for DataTableUIProvider)
   const { translations: nestedTranslations } = useTranslations();
@@ -146,6 +188,7 @@ function DataTableContent({
     rowCount,
     visibilityKey,
   } = useDataTable({
+    formType: defaultFormType,
     tableId,
     tableType,
   });
@@ -160,24 +203,14 @@ function DataTableContent({
 
   // Get the title and description from props, provider translations, config, or fallback
   const { TitleComponent, DescriptionComponent } = useTableComponents();
-  const displayTitle =
-    title ||
-    (
-      nestedTranslations as
-        | (DataTableTranslations & { title?: string })
-        | undefined
-    )?.title ||
-    config.translations?.keys?.title ||
-    `${tableType} Table`;
-  const displayDescription =
-    description ||
-    (
-      nestedTranslations as
-        | (DataTableTranslations & { description?: string })
-        | undefined
-    )?.description ||
-    config.translations?.keys?.description ||
-    `Manage your ${tableType}`;
+  const { displayDescription, displayTitle } = resolveDataTableHeaderContent({
+    configDescription: config.translations?.keys?.description,
+    configTitle: config.translations?.keys?.title,
+    description,
+    tableType,
+    title,
+    translations: nestedTranslations,
+  });
 
   // Use custom components if provided, otherwise use defaults
   const Title = TitleComponent || DefaultTableTitle;
@@ -258,8 +291,10 @@ function DataTableContent({
                       columnTypeMapping={columnTypeMapping}
                       data={baseData}
                       enableAdvancedFilters={enableAdvancedFilters}
+                      formType={defaultFormType}
                       onExport={onExport}
                       tableId={tableId}
+                      tableType={tableType}
                       toolbarActions={toolbarActions}
                       toolbarActionsPlacement={toolbarActionsPlacement}
                     />
@@ -292,6 +327,7 @@ function DataTableContent({
                 enablePagination={config.table.enablePagination !== false}
                 enableRowSelection={config.table.enableRowSelection}
                 enableSorting={config.table.enableSorting}
+                formType={defaultFormType}
                 key={`${tableId}-${visibilityKey}`}
                 loadingOverlay={loadingOverlay}
                 onBulkCopy={onBulkCopy}
@@ -358,9 +394,12 @@ export function DataTable(
     TitleComponent,
     DescriptionComponent,
     tableType,
+    tableId,
+    formType,
     children,
     ...rest
   } = props;
+  const resolvedTableId = tableId ?? tableType;
 
   type ContentProps = Parameters<typeof DataTableContent>[0];
   return (
@@ -374,14 +413,19 @@ export function DataTable(
       queryClient={queryClient}
       TitleComponent={TitleComponent}
       tableConfig={tableConfig}
-      tableId={tableType}
+      tableId={resolvedTableId}
       translations={
         (translations as DataTableTranslations | undefined) ??
         defaultTranslations
       }
     >
       {children}
-      <DataTableContent {...(rest as ContentProps)} tableType={tableType} />
+      <DataTableContent
+        {...(rest as ContentProps)}
+        formType={formType}
+        tableId={resolvedTableId}
+        tableType={tableType}
+      />
     </TableProvider>
   );
 }

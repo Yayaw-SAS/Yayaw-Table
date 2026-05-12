@@ -3,14 +3,20 @@
  */
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 
 import {
   useFormConfig,
   useTableActions,
 } from "../../../providers/table-provider";
-import type { AnyFieldDefinition, FieldValues, FormConfig } from "../types";
+import type {
+  AnyFieldDefinition,
+  FieldValues,
+  FormConfig,
+  FormConfigContext,
+  FormConfigMode,
+} from "../types";
 
 import { useFormBuilder } from "./use-form-builder";
 
@@ -31,6 +37,16 @@ export interface UseFormCatalogueOptions<TFieldValues extends FieldValues> {
   mode?: "create" | "update";
 
   /**
+   * Stable table instance id used for URL state, cache, selection, and invalidation
+   */
+  tableId?: string;
+
+  /**
+   * Table configuration type used to resolve columns/actions/configuration
+   */
+  tableType?: string;
+
+  /**
    * Optional wrapper for submit (e.g. loading, toast). Receives validated values and the actual submit function.
    * The wrapper can use form from its closure (e.g. via a ref updated after useFormCatalogue returns).
    */
@@ -38,6 +54,76 @@ export interface UseFormCatalogueOptions<TFieldValues extends FieldValues> {
     values: TFieldValues,
     doSubmit: (values: TFieldValues) => Promise<unknown>
   ) => Promise<void>;
+}
+
+export function resolveFormConfigMode(
+  mode: "create" | "update"
+): FormConfigMode {
+  return mode === "update" ? "edit" : "create";
+}
+
+function areFieldValuesEqual(
+  left: Partial<FieldValues> | undefined,
+  right: Partial<FieldValues> | undefined
+): boolean {
+  if (left === right) {
+    return true;
+  }
+
+  try {
+    return JSON.stringify(left ?? {}) === JSON.stringify(right ?? {});
+  } catch {
+    return false;
+  }
+}
+
+export function createFormConfigContext<
+  TFieldValues extends FieldValues = FieldValues,
+>({
+  formType,
+  initialData,
+  mode,
+  tableId,
+  tableType,
+  values,
+}: {
+  formType: string;
+  initialData?: Partial<TFieldValues>;
+  mode: "create" | "update";
+  tableId?: string;
+  tableType?: string;
+  values?: Partial<TFieldValues>;
+}): FormConfigContext<TFieldValues> {
+  const resolvedTableId = tableId || tableType || formType;
+  const resolvedTableType = tableType || tableId || formType;
+
+  return {
+    formType,
+    initialData,
+    mode: resolveFormConfigMode(mode),
+    row:
+      mode === "update" && initialData
+        ? (initialData as Record<string, unknown>)
+        : undefined,
+    tableId: resolvedTableId,
+    tableType: resolvedTableType,
+    values,
+  };
+}
+
+function createFallbackFormConfig<TFieldValues extends FieldValues>(
+  formType: string
+): FormConfig<TFieldValues> {
+  return {
+    id: formType,
+    fields: [],
+    defaultValues: {} as Partial<TFieldValues>,
+    schema: z.any() as z.ZodType<TFieldValues>,
+    translations: {
+      namespace: "common",
+      keys: {},
+    },
+  };
 }
 
 /**
@@ -50,32 +136,58 @@ export function useFormCatalogue<TFieldValues extends FieldValues>({
   initialData,
   mode = "create",
   onFormSubmit,
+  tableId,
+  tableType,
 }: UseFormCatalogueOptions<TFieldValues>) {
   // Get the configuration helpers from the provider
   const getFormConfig = useFormConfig();
   const getTableActions = useTableActions();
+  const [currentValues, setCurrentValues] = useState<
+    Partial<TFieldValues> | undefined
+  >(initialData);
+
+  useEffect(() => {
+    setCurrentValues((previousValues) =>
+      areFieldValuesEqual(previousValues, initialData)
+        ? previousValues
+        : initialData
+    );
+  }, [initialData]);
+
+  const formConfigContext = useMemo(
+    () =>
+      createFormConfigContext<TFieldValues>({
+        formType,
+        initialData,
+        mode,
+        tableId,
+        tableType,
+        values: currentValues,
+      }),
+    [formType, initialData, mode, tableId, tableType, currentValues]
+  );
 
   // Stabilize the form configuration object to prevent recreation
   const config = useMemo(() => {
     return (
-      getFormConfig?.<TFieldValues>(formType) ||
-      ({
-        id: formType,
-        fields: [],
-        defaultValues: {} as Partial<TFieldValues>,
-        schema: z.any() as z.ZodType<TFieldValues>,
-        translations: {
-          namespace: "common",
-          keys: {},
-        },
-      } as FormConfig<TFieldValues>)
+      getFormConfig?.<TFieldValues>(formType, formConfigContext) ||
+      createFallbackFormConfig<TFieldValues>(formType)
     );
-  }, [getFormConfig, formType]);
+  }, [getFormConfig, formType, formConfigContext]);
 
   // Stabilize the table actions object to prevent recreation
   const actions = useMemo(() => {
-    return getTableActions?.(formType) || {};
-  }, [getTableActions, formType]);
+    const parentActionsKey = tableType || tableId || formType;
+    return (
+      getTableActions?.(parentActionsKey) || getTableActions?.(formType) || {}
+    );
+  }, [getTableActions, formType, tableId, tableType]);
+
+  const handleValuesChange = useCallback((values: TFieldValues) => {
+    setCurrentValues((previousValues) =>
+      areFieldValuesEqual(previousValues, values) ? previousValues : values
+    );
+  }, []);
 
   // Helper function to sanitize a single field value
   const sanitizeFieldValue = useCallback(
@@ -278,6 +390,7 @@ export function useFormCatalogue<TFieldValues extends FieldValues>({
           },
     },
     initialData,
+    onValuesChange: handleValuesChange,
   });
 
   return {

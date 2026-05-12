@@ -466,6 +466,7 @@ type ModernDataTableProps<
   ) => Promise<{ data: TData[]; pageCount: number; rowCount: number }>;
   rowSelection?: Record<string, boolean>;
   tableType?: string;
+  formType?: string;
 };
 
 // Separate cell rendering into its own memoized component
@@ -587,6 +588,7 @@ function ModernDataTable<
   rowSelection: _rowSelection,
   tableId,
   tableType,
+  formType,
 }: ModernDataTableProps<TData, TValue>) {
   // Set global table ID - only once when component mounts or tableId changes
   const [, setGlobalTableId] = useAtom(tableIdAtom);
@@ -659,10 +661,12 @@ function ModernDataTable<
   const { t } = useTranslations();
   const getFormConfig = useFormConfig();
   const resolvedTableType = tableType || tableId;
+  const defaultFormType = formType || resolvedTableType;
 
   // Use proper data table hook like in production
   const dataTableResult = useDataTable({
     enabled: true,
+    formType: defaultFormType,
     tableId,
     tableType: resolvedTableType,
   });
@@ -742,11 +746,16 @@ function ModernDataTable<
     );
   }
 
-  const inlineEditFormType =
-    tableConfig.form?.editFormType || resolvedTableType;
+  const inlineEditFormType = tableConfig.form?.editFormType || defaultFormType;
   const inlineEditFormConfig = useMemo(
-    () => getFormConfig?.(inlineEditFormType),
-    [getFormConfig, inlineEditFormType]
+    () =>
+      getFormConfig?.(inlineEditFormType, {
+        formType: inlineEditFormType,
+        mode: "edit",
+        tableId,
+        tableType: resolvedTableType,
+      }),
+    [getFormConfig, inlineEditFormType, resolvedTableType, tableId]
   );
   const inlineEditSchema = useMemo(() => {
     const schema = inlineEditFormConfig?.schema;
@@ -779,16 +788,31 @@ function ModernDataTable<
         }
       };
 
+      const rowData = row.original as Record<string, unknown>;
+      const editFormType =
+        tableConfig.form?.resolveEditFormType?.(rowData) ||
+        tableConfig.form?.editFormType ||
+        defaultFormType;
+
       const formState = openUpdateForm(
+        editFormType,
         tableId,
-        tableId,
-        row.original as Record<string, unknown>,
-        handleSuccess
+        rowData,
+        handleSuccess,
+        resolvedTableType
       );
 
       setFormState(formState as CatalogueFormState<Record<string, unknown>>);
     },
-    [queryClient, refetch, setFormState, tableId]
+    [
+      defaultFormType,
+      queryClient,
+      refetch,
+      resolvedTableType,
+      setFormState,
+      tableConfig.form,
+      tableId,
+    ]
   );
 
   const commitInlineEdit = useCallback(
@@ -892,6 +916,9 @@ function ModernDataTable<
       enableGrouping,
       enableSorting,
       getRowId,
+      canSelectRow: tableConfig.table.canSelectRow as
+        | ((row: TData) => boolean)
+        | undefined,
       pageCount,
       tableId: tableId || "",
     }),
@@ -906,6 +933,7 @@ function ModernDataTable<
       enableGrouping,
       enableSorting,
       getRowId,
+      tableConfig.table.canSelectRow,
       pageCount,
       tableId,
     ]
@@ -1022,7 +1050,7 @@ function ModernDataTable<
   });
 
   // Cursor during drag (column or row)
-  const activeRowDragId = useAtomValue(activeRowDragAtom(resolvedTableType));
+  const activeRowDragId = useAtomValue(activeRowDragAtom(tableId));
   useEffect(() => {
     const isDragging = !!activeColumn || activeRowDragId !== null;
     if (!isDragging) {
@@ -1044,7 +1072,7 @@ function ModernDataTable<
     csvExportColumns,
     onBulkExport,
     table,
-    tableId: resolvedTableType,
+    tableId,
     tableType: resolvedTableType,
     onBulkEdit,
     onBulkDelete,
@@ -1402,41 +1430,49 @@ function ModernDataTable<
     const renderRegularRow = (
       row: Row<TData>,
       visibleCells: ReturnType<Row<TData>["getVisibleCells"]>
-    ) => (
-      <TableRow
-        className={cn(
-          "group",
-          "data-[state=selected]:bg-muted/50",
-          row.getIsSelected() && "bg-muted/50",
-          (isRowClickEditEnabled || handleRowLinkClick) &&
-            "cursor-pointer hover:bg-muted/40"
-        )}
-        data-state={row.getIsSelected() ? "selected" : ""}
-        key={row.id}
-        onClick={
-          isRowClickEditEnabled || handleRowLinkClick
-            ? (event) => {
-                const target = event.target as HTMLElement;
-                if (target.closest(ROW_CLICK_INTERACTIVE_SELECTOR)) {
-                  return;
-                }
-                if (target.closest(ROW_CLICK_SYSTEM_COLUMN_SELECTOR)) {
-                  return;
-                }
+    ) => {
+      const canEditRow =
+        tableConfig.table.canEditRow?.(
+          row.original as Record<string, unknown>
+        ) !== false;
+      const canClickRow =
+        (isRowClickEditEnabled && canEditRow) || handleRowLinkClick;
 
-                if (isRowClickEditEnabled) {
-                  handleRowEditClick(row);
-                  return;
-                }
+      return (
+        <TableRow
+          className={cn(
+            "group",
+            "data-[state=selected]:bg-muted/50",
+            row.getIsSelected() && "bg-muted/50",
+            canClickRow && "cursor-pointer hover:bg-muted/40"
+          )}
+          data-state={row.getIsSelected() ? "selected" : ""}
+          key={row.id}
+          onClick={
+            canClickRow
+              ? (event) => {
+                  const target = event.target as HTMLElement;
+                  if (target.closest(ROW_CLICK_INTERACTIVE_SELECTOR)) {
+                    return;
+                  }
+                  if (target.closest(ROW_CLICK_SYSTEM_COLUMN_SELECTOR)) {
+                    return;
+                  }
 
-                handleRowLinkClick?.(row, event);
-              }
-            : undefined
-        }
-      >
-        {visibleCells.map((cell) => renderRegularCell(row, cell))}
-      </TableRow>
-    );
+                  if (isRowClickEditEnabled && canEditRow) {
+                    handleRowEditClick(row);
+                    return;
+                  }
+
+                  handleRowLinkClick?.(row, event);
+                }
+              : undefined
+          }
+        >
+          {visibleCells.map((cell) => renderRegularCell(row, cell))}
+        </TableRow>
+      );
+    };
 
     const rowElements: ReactNode[] = [];
 
@@ -1584,6 +1620,7 @@ function ModernDataTable<
     isLargeDensity,
     rowLinkAccessorKey,
     isRowClickEditEnabled,
+    tableConfig.table.canEditRow,
     handleRowEditClick,
     onRowClick,
   ]);

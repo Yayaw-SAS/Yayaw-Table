@@ -60,7 +60,7 @@ export function SelectionCell<TData>({
         aria-label="Select row"
         checked={isSelected}
         className="hover:cursor-pointer data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
-        disabled={disabled}
+        disabled={disabled || !row.getCanSelect()}
         onCheckedChange={handleSelectionChange}
       />
     </div>

@@ -90,6 +90,11 @@ interface CatalogueFormProps<TFieldValues extends FieldValues = FieldValues> {
    * Table ID associated with the form
    */
   tableId?: string;
+
+  /**
+   * Table type associated with the parent table configuration
+   */
+  tableType?: string;
 }
 
 type CatalogueFormContentStyle = CSSProperties & {
@@ -258,6 +263,7 @@ function useFormStateResolution<TFieldValues extends FieldValues>(
     mode: atomMode = "create",
     onSuccess: atomOnSuccess,
     tableId: atomTableId,
+    tableType: atomTableType,
   } = formState;
 
   // Determine which values to use (props take precedence over atom)
@@ -266,6 +272,7 @@ function useFormStateResolution<TFieldValues extends FieldValues>(
   const mode = props.mode || atomMode;
   const onSuccess = props.onSuccess || atomOnSuccess;
   const tableId = props.tableId || atomTableId;
+  const tableType = props.tableType || atomTableType || tableId;
 
   // Stable references to prevent callback recreation
   const onSuccessRef = useRef(onSuccess);
@@ -288,6 +295,7 @@ function useFormStateResolution<TFieldValues extends FieldValues>(
     initialData,
     mode,
     tableId,
+    tableType,
     onSuccessRef,
     initialDataRef,
     modeRef,
@@ -310,10 +318,11 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
     initialData,
     mode,
     tableId,
+    tableType,
     onSuccessRef,
   } = useFormStateResolution(props);
   const { config: tableConfig } = useTableConfig(
-    tableId || formType || "default-table"
+    tableType || tableId || formType || "default-table"
   );
   const formLayout = resolveCatalogueFormLayout(tableConfig.form?.layout);
   const isModalLayout = formLayout.mode === "modal";
@@ -337,8 +346,10 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
       formType: formType || "",
       initialData: initialData as Partial<TFieldValues>,
       mode,
+      tableId,
+      tableType,
     }),
-    [formType, initialData, mode]
+    [formType, initialData, mode, tableId, tableType]
   );
 
   const translationsRef = useRef<CatalogueFormTranslations>({});

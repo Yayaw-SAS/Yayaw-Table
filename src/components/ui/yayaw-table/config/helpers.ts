@@ -275,6 +275,30 @@ export interface TableBehaviorConfig {
   allowInlineEdit: boolean;
 
   /**
+   * Row-aware guard for standard edit actions.
+   * Return false to disable the built-in edit action for that row.
+   */
+  canEditRow?: (row: Record<string, unknown>) => boolean;
+
+  /**
+   * Row-aware guard for standard delete actions.
+   * Return false to disable the built-in delete action for that row.
+   */
+  canDeleteRow?: (row: Record<string, unknown>) => boolean;
+
+  /**
+   * Row-aware guard for standard duplicate actions.
+   * Return false to disable the built-in duplicate action for that row.
+   */
+  canDuplicateRow?: (row: Record<string, unknown>) => boolean;
+
+  /**
+   * Row-aware guard for selection checkboxes.
+   * Return false to prevent selecting that row.
+   */
+  canSelectRow?: (row: Record<string, unknown>) => boolean;
+
+  /**
    * Show the table toolbar (search and actions)
    */
   showToolbar: boolean;

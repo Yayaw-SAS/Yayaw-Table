@@ -40,6 +40,12 @@ export interface TableFormConfig {
   editFormType?: string;
 
   /**
+   * Resolve the edit form type from the row being edited.
+   * Useful when a single table renders rows from several business models.
+   */
+  resolveEditFormType?: (row: Record<string, unknown>) => string | undefined;
+
+  /**
    * Whether to enable the create form
    * If true, a create button will be shown in the table toolbar
    */

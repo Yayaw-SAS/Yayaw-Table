@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { Row } from "@tanstack/react-table";
 import type { TableActions } from "../providers/table-provider";
 
 export type ToolbarActionVariant =
@@ -20,8 +21,13 @@ export interface ToolbarActionContext {
   isExportEnabled: boolean;
   isExporting: boolean;
   isMobile: boolean;
+  selectedCount: number;
+  selectedOriginalRows: Record<string, unknown>[];
+  selectedRowIds: string[];
+  selectedRows: Row<Record<string, unknown>>[];
   tableActions?: TableActions;
   tableId: string;
+  tableType?: string;
 }
 
 export interface ToolbarAction {
@@ -30,7 +36,7 @@ export interface ToolbarAction {
   id: string;
   label: string;
   loading?: boolean;
-  onClick: () => void | Promise<void>;
+  onClick: (ctx: ToolbarActionContext) => void | Promise<void>;
   showInIconMode?: boolean;
   tooltip?: string;
   variant?: ToolbarActionVariant;

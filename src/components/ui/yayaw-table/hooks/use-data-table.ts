@@ -15,6 +15,7 @@ import {
   getSortedRowModel,
   type OnChangeFn,
   type PaginationState,
+  type Row,
   useReactTable,
   type VisibilityState,
 } from "@tanstack/react-table";
@@ -77,6 +78,24 @@ function applyColumnSizingConfig<TData>(
   return sizedColumnDef;
 }
 
+function resolveRowSelectionOption<TData extends Record<string, unknown>>({
+  canSelectRow,
+  enableRowSelection,
+}: {
+  canSelectRow?: (row: Record<string, unknown>) => boolean;
+  enableRowSelection: boolean;
+}): boolean | ((row: Row<TData>) => boolean) {
+  if (enableRowSelection === false) {
+    return false;
+  }
+
+  if (!canSelectRow) {
+    return true;
+  }
+
+  return (row) => canSelectRow(row.original) !== false;
+}
+
 /**
  * Options for the useDataTable hook
  */
@@ -103,6 +122,12 @@ export interface UseDataTableOptions<_TData = Record<string, unknown>> {
    * Type of table to use (corresponds to a key in the table catalogue)
    */
   tableType: string;
+
+  /**
+   * Default form type for create/edit forms.
+   * Defaults to tableType for backwards compatibility.
+   */
+  formType?: string;
 }
 
 /**
@@ -118,6 +143,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
     initialPageSize: _initialPageSize = 10,
     tableType,
     tableId = tableType,
+    formType = tableType,
   } = options;
 
   // Get QueryClient instance
@@ -451,6 +477,10 @@ export function useDataTable<TData extends Record<string, unknown>>(
         includeDuplicate: isDuplicateAllowed && !!actions.duplicate,
         includeEdit: isEditAllowed,
         includeView,
+        canDeleteRow: config.table.canDeleteRow,
+        canDuplicateRow: config.table.canDuplicateRow,
+        canEditRow: config.table.canEditRow,
+        formType: config.form?.editFormType || formType,
         onDelete: async (row: TData) => {
           return await handleDelete(row as TData & { id: string });
         },
@@ -470,13 +500,21 @@ export function useDataTable<TData extends Record<string, unknown>>(
           // Return success even though no behavior is attached yet.
           return Promise.resolve(true);
         },
+        resolveEditFormType: config.form?.resolveEditFormType,
         tableId,
+        tableType,
       } as ActionsColumnProps<TData>);
     },
     [
       actions.duplicate,
       column,
+      config.form?.editFormType,
+      config.form?.resolveEditFormType,
+      config.table.canDeleteRow,
+      config.table.canDuplicateRow,
+      config.table.canEditRow,
       enhancedRefetch,
+      formType,
       handleDelete,
       handleDuplicate,
       handleEdit,
@@ -484,6 +522,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
       isDuplicateAllowed,
       isEditAllowed,
       tableId,
+      tableType,
     ]
   );
 
@@ -712,7 +751,10 @@ export function useDataTable<TData extends Record<string, unknown>>(
     data: data || [],
     enableColumnFilters: config.table.enableColumnFilters,
     enableMultiRowSelection: config.table.enableMultiRowSelection !== false,
-    enableRowSelection: config.table.enableRowSelection,
+    enableRowSelection: resolveRowSelectionOption<TData>({
+      canSelectRow: config.table.canSelectRow,
+      enableRowSelection: config.table.enableRowSelection,
+    }),
     enableSorting: config.table.enableSorting,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),

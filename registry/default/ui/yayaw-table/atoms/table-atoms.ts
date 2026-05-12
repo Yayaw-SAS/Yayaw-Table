@@ -3,6 +3,7 @@ import type {
   ExpandedState,
   GroupingState,
   PaginationState,
+  Row,
   RowSelectionState,
   SortingState,
   VisibilityState,
@@ -118,6 +119,10 @@ export const paginationAtom = atomFamily((_tableId: string) =>
  */
 export const rowSelectionAtom = atomFamily((_tableId: string) =>
   atom<RowSelectionState>({})
+);
+
+export const selectedRowsAtom = atomFamily((_tableId: string) =>
+  atom<Row<Record<string, unknown>>[]>([])
 );
 
 /**

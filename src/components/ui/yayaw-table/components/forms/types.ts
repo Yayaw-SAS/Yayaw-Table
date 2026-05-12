@@ -13,6 +13,21 @@ export type Path<T extends FieldValues> = keyof T extends string
   ? keyof T
   : string;
 
+export type FormConfigMode = "create" | "edit";
+
+export interface FormConfigContext<
+  TFieldValues extends FieldValues = FieldValues,
+  TRowData extends Record<string, unknown> = Record<string, unknown>,
+> {
+  formType: string;
+  initialData?: Partial<TFieldValues>;
+  mode: FormConfigMode;
+  row?: TRowData;
+  tableId: string;
+  tableType: string;
+  values?: Partial<TFieldValues>;
+}
+
 /**
  * Minimal field API shape passed from TanStack Form's form.Field children.
  * Used by field components to avoid depending on @tanstack/react-form in types.

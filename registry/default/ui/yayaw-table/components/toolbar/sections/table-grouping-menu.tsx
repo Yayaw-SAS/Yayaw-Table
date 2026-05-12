@@ -21,6 +21,7 @@ export interface TableGroupingMenuProps {
   invalidateTable: () => Promise<void>;
   setGrouping: (state: GroupingState) => void;
   tableId: string;
+  tableType?: string;
 }
 
 export function TableGroupingMenu({
@@ -28,10 +29,11 @@ export function TableGroupingMenu({
   grouping,
   setGrouping,
   tableId: _tableId,
+  tableType,
 }: TableGroupingMenuProps) {
   const _t = useTranslations();
   const { setExpandedFromUI } = useTableUrlState({ tableId: _tableId });
-  const { config } = useTableConfig(_tableId);
+  const { config } = useTableConfig(tableType || _tableId);
 
   // Get groupable columns with types from config
   const groupableColumns = useMemo(() => {

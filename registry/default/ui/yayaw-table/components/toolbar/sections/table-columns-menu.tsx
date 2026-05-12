@@ -92,6 +92,7 @@ interface TableColumnsMenuProps {
   onVisibleCountChange: (count: number) => void;
   setColumnVisibility: (state: VisibilityState) => void;
   tableId?: string;
+  tableType?: string;
 }
 
 // Get the appropriate icon for a column based on its type or ID
@@ -266,17 +267,19 @@ export function TableColumnsMenu({
   onVisibleCountChange,
   setColumnVisibility,
   tableId,
+  tableType,
 }: TableColumnsMenuProps) {
   const { t } = useTranslations();
   const [globalTableId] = useAtom(tableIdAtom);
 
   // Get the table ID to use
   const effectiveTableId = tableId || globalTableId;
+  const effectiveTableType = tableType || effectiveTableId;
 
   // Get table configuration
   const { columnsConfig: _columnsConfig, tableConfig: _tableConfig } =
     useTableUIConfig(effectiveTableId);
-  const tableConfigRes = useTableConfig(effectiveTableId);
+  const tableConfigRes = useTableConfig(effectiveTableType);
   const dndFeatureEnabled =
     tableConfigRes.config?.table?.enableColumnDnd !== false;
 
@@ -299,7 +302,7 @@ export function TableColumnsMenu({
     tableInstance: table,
   } = useDataTable({
     tableId: effectiveTableId,
-    tableType: effectiveTableId,
+    tableType: effectiveTableType,
   });
 
   // Get columns that can be hidden from the menu UI.

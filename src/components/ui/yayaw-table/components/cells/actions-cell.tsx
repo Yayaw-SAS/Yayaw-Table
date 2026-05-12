@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Row } from "@tanstack/react-table";
 import { useSetAtom } from "jotai";
 import { MoreHorizontal } from "lucide-react";
-import { memo, useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,27 @@ interface ActionsCellProps<TData> {
   row: Row<TData>;
   /** When set, invalidations target ["tableData", tableId] per YaYaw Table contract */
   tableId?: string;
+}
+
+export function isStandardActionAllowed<TData>(
+  rowData: TData,
+  guard: ((row: TData) => boolean) | undefined
+): boolean {
+  return guard?.(rowData) !== false;
+}
+
+export function resolveEditFormTypeForRow<TData>({
+  fallbackFormType,
+  resolveEditFormType,
+  rowData,
+  tableId,
+}: {
+  fallbackFormType?: string;
+  resolveEditFormType?: (row: TData) => string | undefined;
+  rowData: TData;
+  tableId?: string;
+}): string | undefined {
+  return resolveEditFormType?.(rowData) || fallbackFormType || tableId;
 }
 
 /**
@@ -311,47 +332,7 @@ function ActionsCellBase<TData>({
   );
 }
 
-// Create memoized version with custom equality check
-export const ActionsCell = memo(
-  ActionsCellBase,
-  (
-    prevProps: ActionsCellProps<unknown>,
-    nextProps: ActionsCellProps<unknown>
-  ) => {
-    // 1. Check row ID equality
-    if (prevProps.row.id !== nextProps.row.id) {
-      return false;
-    }
-
-    // 2. Compare actions array more deeply
-    if (prevProps.actions.length !== nextProps.actions.length) {
-      return false;
-    }
-
-    // 3. Compare action labels to detect changes in action options
-    for (let i = 0; i < prevProps.actions.length; i++) {
-      if (prevProps.actions[i].label !== nextProps.actions[i].label) {
-        return false;
-      }
-      if (prevProps.actions[i].type !== nextProps.actions[i].type) {
-        return false;
-      }
-    }
-
-    // 4. Check for refresh function reference changes
-    if (prevProps.onRefresh !== nextProps.onRefresh) {
-      return false;
-    }
-
-    // 5. tableId affects invalidation target
-    if (prevProps.tableId !== nextProps.tableId) {
-      return false;
-    }
-
-    // If we get here, consider props equal enough to prevent re-render
-    return true;
-  }
-) as typeof ActionsCellBase;
+export const ActionsCell = ActionsCellBase;
 
 /**
  * Wrapper component that creates the cell content with translations
@@ -373,15 +354,21 @@ export function ActionsCellWithTranslations<
     includeDuplicate?: boolean;
     includeEdit: boolean;
     includeView?: boolean;
+    canDeleteRow?: (rowData: TData) => boolean;
+    canDuplicateRow?: (rowData: TData) => boolean;
+    canEditRow?: (rowData: TData) => boolean;
+    formType?: string;
     onDelete?: (rowData: TData) => Promise<boolean | undefined> | undefined;
     onDuplicate?: (rowData: TData) => Promise<boolean | undefined> | undefined;
     onEdit?: (rowData: TData) => Promise<boolean | undefined> | undefined;
     onView?: (rowData: TData) => Promise<boolean | undefined> | undefined;
+    resolveEditFormType?: (rowData: TData) => string | undefined;
     /**
      * Table ID to use for the form
      * If provided, will be used to determine the form type
      */
     tableId?: string;
+    tableType?: string;
   };
 }) {
   const { t } = useTranslations();
@@ -410,7 +397,10 @@ export function ActionsCellWithTranslations<
     (rowData: TData): Promise<boolean | undefined> | undefined => {
       try {
         // Only proceed if edit action is included
-        if (!standardActions.includeEdit) {
+        if (
+          !standardActions.includeEdit ||
+          !isStandardActionAllowed(rowData, standardActions.canEditRow)
+        ) {
           return;
         }
 
@@ -420,9 +410,15 @@ export function ActionsCellWithTranslations<
           (rowData && typeof rowData === "object" && "tableId" in rowData
             ? String(rowData.tableId)
             : undefined);
+        const editFormType = resolveEditFormTypeForRow({
+          fallbackFormType: standardActions.formType,
+          resolveEditFormType: standardActions.resolveEditFormType,
+          rowData,
+          tableId,
+        });
 
         // If we have a tableId, use it to open the form
-        if (tableId) {
+        if (tableId && editFormType) {
           // Pass the row data directly to maintain the generic nature of the component
           const initialData = rowData;
 
@@ -445,10 +441,11 @@ export function ActionsCellWithTranslations<
 
           // Create the initial state for the form
           const formState = openUpdateForm(
-            tableId, // Use tableId directly as form type
+            editFormType,
             tableId,
             initialData, // Use the row data as initial form data
-            handleSuccess
+            handleSuccess,
+            standardActions.tableType
           );
 
           // Set the form state directly
@@ -470,6 +467,10 @@ export function ActionsCellWithTranslations<
     [
       standardActions.includeEdit,
       standardActions.onEdit,
+      standardActions.canEditRow,
+      standardActions.formType,
+      standardActions.resolveEditFormType,
+      standardActions.tableType,
       onRefresh,
       setFormState,
       queryClient,
@@ -479,6 +480,8 @@ export function ActionsCellWithTranslations<
   // Add edit action to the dropdown menu if edit is included
   if (standardActions.includeEdit) {
     allActions.unshift({
+      disabled: (rowData) =>
+        !isStandardActionAllowed(rowData, standardActions.canEditRow),
       icon: <Icon name="Pencil" size="sm" />,
       label: t("actions.edit"),
       onClick: handleEdit,
@@ -489,9 +492,16 @@ export function ActionsCellWithTranslations<
   // Add standard duplicate action if requested
   if (standardActions.includeDuplicate && standardActions.onDuplicate) {
     allActions.push({
+      disabled: (rowData) =>
+        !isStandardActionAllowed(rowData, standardActions.canDuplicateRow),
       icon: <Icon name="Copy" size="sm" />,
       label: t("actions.duplicate"),
-      onClick: standardActions.onDuplicate,
+      onClick: (rowData) => {
+        if (!isStandardActionAllowed(rowData, standardActions.canDuplicateRow)) {
+          return;
+        }
+        return standardActions.onDuplicate?.(rowData);
+      },
       type: "duplicate",
     });
   }
@@ -499,9 +509,16 @@ export function ActionsCellWithTranslations<
   // Add standard delete action if requested
   if (standardActions.includeDelete && standardActions.onDelete) {
     allActions.push({
+      disabled: (rowData) =>
+        !isStandardActionAllowed(rowData, standardActions.canDeleteRow),
       icon: <Icon name="Trash" size="sm" />,
       label: t("actions.delete"),
-      onClick: standardActions.onDelete,
+      onClick: (rowData) => {
+        if (!isStandardActionAllowed(rowData, standardActions.canDeleteRow)) {
+          return;
+        }
+        return standardActions.onDelete?.(rowData);
+      },
       type: "delete",
     });
   }

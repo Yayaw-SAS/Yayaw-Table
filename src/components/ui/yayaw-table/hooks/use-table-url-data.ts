@@ -5,8 +5,10 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useMemo, useState } from "react";
+import { useAtom } from "jotai";
+import { useCallback, useMemo } from "react";
 
+import { rowSelectionAtom } from "../atoms/table-atoms";
 import { processServerFilters } from "../utils/server-filters";
 
 import { invalidateAndRefetchTableData } from "./query-cache-utils";
@@ -64,8 +66,7 @@ export function useTableUrlData<TData>({
     tableId,
   });
 
-  // Use React state for row selection (client-side only)
-  const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
+  const [rowSelection, setRowSelection] = useAtom(rowSelectionAtom(tableId));
 
   // Get query client
   const queryClient = useQueryClient();
