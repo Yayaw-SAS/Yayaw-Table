@@ -30,7 +30,6 @@ import {
 } from "@/components/ui/dialog";
 import {
   Drawer,
-  DrawerClose,
   DrawerContent,
   DrawerDescription,
   DrawerFooter,
@@ -587,11 +586,15 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
         </div>
 
         <DrawerFooter className="flex-row justify-end gap-2 px-0">
-          <DrawerClose asChild>
-            <Button type="button" variant="outline">
-              {translations.cancel}
-            </Button>
-          </DrawerClose>
+          <Button
+            onClick={() => {
+              handleOpenChange(false);
+            }}
+            type="button"
+            variant="outline"
+          >
+            {translations.cancel}
+          </Button>
           <Button
             disabled={loading}
             onClick={() => {
