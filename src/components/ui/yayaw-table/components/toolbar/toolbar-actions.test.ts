@@ -20,7 +20,12 @@ const baseContext: ToolbarActionContext = {
   isExportEnabled: true,
   isExporting: false,
   isMobile: false,
+  selectedCount: 0,
+  selectedOriginalRows: [],
+  selectedRowIds: [],
+  selectedRows: [],
   tableId: "products",
+  tableType: "products",
 };
 
 function createAction(overrides?: Partial<ToolbarAction>): ToolbarAction {
@@ -136,6 +141,32 @@ describe("resolveToolbarActionState", () => {
 
     assert.equal(disabledByBoolean.disabled, true);
     assert.equal(disabledByCallback.disabled, true);
+  });
+
+  it("exposes selection context to disabled callbacks", () => {
+    const disabledBySelection = resolveToolbarActionState({
+      action: createAction({
+        disabled: (context) => context.selectedCount === 0,
+        id: "requires-selection",
+      }),
+      context: baseContext,
+    });
+
+    const enabledWithSelection = resolveToolbarActionState({
+      action: createAction({
+        disabled: (context) => context.selectedRowIds.includes("row-1") === false,
+        id: "requires-row",
+      }),
+      context: {
+        ...baseContext,
+        selectedCount: 1,
+        selectedOriginalRows: [{ id: "row-1" }],
+        selectedRowIds: ["row-1"],
+      },
+    });
+
+    assert.equal(disabledBySelection.disabled, true);
+    assert.equal(enabledWithSelection.disabled, false);
   });
 
   it("supports loading prop and pending async state", () => {

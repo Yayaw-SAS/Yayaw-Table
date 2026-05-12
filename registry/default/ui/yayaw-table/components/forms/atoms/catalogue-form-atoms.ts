@@ -37,6 +37,11 @@ export interface CatalogueFormState<TData = Record<string, unknown>> {
    * Table ID associated with the form
    */
   tableId?: string;
+
+  /**
+   * Table type associated with the parent table configuration
+   */
+  tableType?: string;
 }
 
 /**
@@ -49,6 +54,7 @@ const defaultState: CatalogueFormState = {
   mode: "create",
   onSuccess: undefined,
   tableId: undefined,
+  tableType: undefined,
 };
 
 /**
@@ -85,7 +91,8 @@ export const formRendererAtom = atom<FormRenderer>(FormRenderer.NONE);
 export const openCreateForm = <TData = Record<string, unknown>>(
   formType: string,
   tableId: string,
-  onSuccess?: (data: TData) => void
+  onSuccess?: (data: TData) => void,
+  tableType?: string
 ): CatalogueFormState<TData> => ({
   formType,
   initialData: undefined,
@@ -93,6 +100,7 @@ export const openCreateForm = <TData = Record<string, unknown>>(
   mode: "create",
   onSuccess,
   tableId,
+  tableType,
 });
 
 /**
@@ -102,7 +110,8 @@ export const openUpdateForm = <TData = Record<string, unknown>>(
   formType: string,
   tableId: string,
   initialData: TData,
-  onSuccess?: (data: TData) => void
+  onSuccess?: (data: TData) => void,
+  tableType?: string
 ): CatalogueFormState<TData> => ({
   formType,
   initialData,
@@ -110,6 +119,7 @@ export const openUpdateForm = <TData = Record<string, unknown>>(
   mode: "update",
   onSuccess,
   tableId,
+  tableType,
 });
 
 /**
@@ -124,6 +134,7 @@ export const closeForm = <
   mode: "create",
   onSuccess: undefined,
   tableId: undefined,
+  tableType: undefined,
 });
 
 /**
@@ -157,6 +168,7 @@ export const handleFormOpenChange = <TData = Record<string, unknown>>(
       mode: "create",
       onSuccess: undefined,
       tableId: undefined,
+      tableType: undefined,
     };
   }
 

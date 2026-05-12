@@ -15,6 +15,8 @@ export type {
   CollectionFieldItem,
   FieldValues,
   FormConfig,
+  FormConfigContext,
+  FormConfigMode,
   FormFieldApi,
 } from "./components/ui/yayaw-table/components/forms";
 export {

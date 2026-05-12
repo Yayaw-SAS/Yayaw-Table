@@ -51,9 +51,12 @@ function SelectionHeaderBase<TData>({ table }: SelectionHeaderProps<TData>) {
   const rowSelection = table.getState().rowSelection;
   const allRows = table.getRowModel().rows;
   const coreRows = table.getCoreRowModel().rows;
-  const selectedCount = coreRows.filter((row) => rowSelection[row.id]).length;
+  const selectableCoreRows = coreRows.filter((row) => row.getCanSelect());
+  const selectedCount = selectableCoreRows.filter(
+    (row) => rowSelection[row.id]
+  ).length;
   // With grouping, allRows can be group rows only; count visible leaf rows by recursing
-  const visibleLeafIds = allRows.flatMap((row) => getLeafRowIds(row));
+  const visibleLeafIds = allRows.flatMap((row) => getSelectableLeafRowIds(row));
   const totalCount = visibleLeafIds.length;
 
   const isAllSelected = selectedCount === totalCount && totalCount > 0;
@@ -81,6 +84,7 @@ function SelectionHeaderBase<TData>({ table }: SelectionHeaderProps<TData>) {
         aria-label="Select all rows"
         checked={isAllSelected}
         className="translate-y-[2px] cursor-pointer data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+        disabled={totalCount === 0}
         onCheckedChange={handleToggle}
         ref={(el: HTMLButtonElement & { indeterminate?: boolean }) => {
           if (el) {
@@ -92,13 +96,12 @@ function SelectionHeaderBase<TData>({ table }: SelectionHeaderProps<TData>) {
   );
 }
 
-/** Collect all leaf row IDs under a row (for group rows, recurse into subRows) */
-function getLeafRowIds<TData>(row: Row<TData>): string[] {
+function getSelectableLeafRowIds<TData>(row: Row<TData>): string[] {
   if (!row.getIsGrouped?.()) {
-    return [row.id];
+    return row.getCanSelect() ? [row.id] : [];
   }
   const sub = (row.subRows ?? []) as Row<TData>[];
-  return sub.flatMap((r) => getLeafRowIds(r));
+  return sub.flatMap((r) => getSelectableLeafRowIds(r));
 }
 
 /** Group row selection control: checkbox to select/deselect whole group (exported for use in custom table body) */
@@ -109,7 +112,7 @@ export function GroupRowSelectionCell<TData>({
   row: Row<TData>;
   table: Table<TData>;
 }) {
-  const leafIds = getLeafRowIds(row);
+  const leafIds = getSelectableLeafRowIds(row);
   const rowSelection = table.getState().rowSelection || {};
   const selectedInGroup = leafIds.filter((id) => rowSelection[id]).length;
   const allSelected = selectedInGroup === leafIds.length && leafIds.length > 0;
@@ -134,6 +137,7 @@ export function GroupRowSelectionCell<TData>({
         aria-label="Select group"
         checked={allSelected}
         className="translate-y-[2px] cursor-pointer data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+        disabled={leafIds.length === 0}
         onCheckedChange={handleGroupToggle}
         ref={(el: HTMLButtonElement & { indeterminate?: boolean }) => {
           if (el) {

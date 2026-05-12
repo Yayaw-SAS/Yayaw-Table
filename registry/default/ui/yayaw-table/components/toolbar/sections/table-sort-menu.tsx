@@ -23,6 +23,7 @@ export interface TableSortMenuProps {
   setSorting: (state: SortingState) => void;
   sorting: SortingState;
   tableId: string;
+  tableType?: string;
 }
 
 export function TableSortMenu({
@@ -31,13 +32,15 @@ export function TableSortMenu({
   setSorting,
   sorting,
   tableId,
+  tableType,
 }: TableSortMenuProps) {
   const { t } = useTranslations();
   const stackMenu = useStackMenu();
 
   // Get table configuration to access column headers with translations
   const { config } = useDataTable({
-    tableType: tableId,
+    tableId,
+    tableType: tableType || tableId,
   });
 
   // Get sortable columns

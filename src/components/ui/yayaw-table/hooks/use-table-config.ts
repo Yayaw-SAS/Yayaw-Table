@@ -58,6 +58,10 @@ export interface TableCatalogueTableConfig {
   allowBulkEdit?: boolean;
   allowBulkDelete?: boolean;
   allowInlineEdit?: boolean;
+  canEditRow?: (row: Record<string, unknown>) => boolean;
+  canDeleteRow?: (row: Record<string, unknown>) => boolean;
+  canDuplicateRow?: (row: Record<string, unknown>) => boolean;
+  canSelectRow?: (row: Record<string, unknown>) => boolean;
   showToolbar?: boolean;
   showToolbarHeader?: boolean;
   export?: boolean;
@@ -219,6 +223,10 @@ function resolveTableBehaviorConfig(
     allowBulkEdit: providerConfig.allowBulkEdit ?? true,
     allowBulkDelete: providerConfig.allowBulkDelete ?? true,
     allowInlineEdit: providerConfig.allowInlineEdit ?? true,
+    canEditRow: providerConfig.canEditRow,
+    canDeleteRow: providerConfig.canDeleteRow,
+    canDuplicateRow: providerConfig.canDuplicateRow,
+    canSelectRow: providerConfig.canSelectRow,
     showToolbar: providerConfig.showToolbar ?? true,
     showToolbarHeader: providerConfig.showToolbarHeader ?? true,
     export: providerConfig.export ?? true,

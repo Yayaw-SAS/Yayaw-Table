@@ -4,7 +4,7 @@
  */
 "use client";
 
-import { useForm } from "@tanstack/react-form";
+import { useForm, useStore } from "@tanstack/react-form";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useTranslations } from "../../../providers/table-provider";
 
@@ -21,6 +21,7 @@ export interface UseFormBuilderOptions<TFieldValues extends FieldValues> {
     onSubmit?: (values: TFieldValues) => void | Promise<void>;
   };
   initialData?: Partial<TFieldValues>;
+  onValuesChange?: (values: TFieldValues) => void;
 }
 
 /**
@@ -32,6 +33,7 @@ export function useFormBuilder<TFieldValues extends FieldValues>({
   config,
   formOptions = {},
   initialData,
+  onValuesChange,
 }: UseFormBuilderOptions<TFieldValues>) {
   const { t } = useTranslations();
   const prevInitialDataRef = useRef<Partial<TFieldValues> | undefined>(
@@ -59,6 +61,12 @@ export function useFormBuilder<TFieldValues extends FieldValues>({
       : undefined,
   });
 
+  const values = useStore(form.store, (state) => state.values as TFieldValues);
+
+  useEffect(() => {
+    onValuesChange?.(values);
+  }, [onValuesChange, values]);
+
   useEffect(() => {
     if (
       initialData &&
@@ -77,6 +85,27 @@ export function useFormBuilder<TFieldValues extends FieldValues>({
       }, 10);
     }
   }, [initialData, config.defaultValues, form]);
+
+  useEffect(() => {
+    const nextDefaultValues = config.defaultValues as Record<string, unknown>;
+    for (const [fieldName, defaultValue] of Object.entries(nextDefaultValues)) {
+      if (
+        form.getFieldValue(fieldName as keyof TFieldValues & string) !==
+        undefined
+      ) {
+        continue;
+      }
+
+      if (defaultValue === undefined) {
+        continue;
+      }
+
+      form.setFieldValue(
+        fieldName as keyof TFieldValues & string,
+        defaultValue as Parameters<typeof form.setFieldValue>[1]
+      );
+    }
+  }, [config.defaultValues, form]);
 
   const translateField = useCallback(
     (

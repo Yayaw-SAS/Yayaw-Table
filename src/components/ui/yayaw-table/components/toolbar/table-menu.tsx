@@ -68,6 +68,7 @@ export interface TableMenuProps {
   setSorting: (state: TableState["sorting"]) => void;
   state: TableState;
   tableId: string;
+  tableType?: string;
   /** Whether to use advanced filters menu */
   useAdvancedFilters?: boolean;
   /** Advanced filters configuration */
@@ -414,6 +415,7 @@ export function TableMenu({
   setSorting,
   state,
   tableId,
+  tableType,
   useAdvancedFilters = false,
   advancedFiltersConfig,
 }: TableMenuProps) {
@@ -610,6 +612,7 @@ export function TableMenu({
               setColumnVisibility({ ...value });
             }}
             tableId={tableId}
+            tableType={tableType}
           />
         </StackMenuView>
       )}
@@ -646,6 +649,7 @@ export function TableMenu({
             setSorting={setSorting}
             sorting={state.sorting}
             tableId={tableId}
+            tableType={tableType}
           />
         </StackMenuView>
       )}
@@ -658,6 +662,7 @@ export function TableMenu({
             invalidateTable={invalidateTable}
             setGrouping={finalSetGrouping}
             tableId={tableId}
+            tableType={tableType}
           />
         </StackMenuView>
       )}

@@ -25,7 +25,8 @@ export function CatalogueFormContainer() {
   const formState = useAtomValue(catalogueFormAtom);
 
   // Extract the necessary values from the form state
-  const { formType, initialData, mode, onSuccess, tableId } = formState;
+  const { formType, initialData, mode, onSuccess, tableId, tableType } =
+    formState;
 
   // If no form type is provided, don't render anything
   if (!formType) {
@@ -42,6 +43,7 @@ export function CatalogueFormContainer() {
         mode={mode}
         onSuccess={onSuccess as ((data: unknown) => void) | undefined}
         tableId={tableId}
+        tableType={tableType}
       />
     </Suspense>
   );

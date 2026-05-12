@@ -83,6 +83,26 @@ export interface ActionsColumnProps<TData> {
   includeView?: boolean;
 
   /**
+   * Row-aware guard for the built-in edit action
+   */
+  canEditRow?: (row: TData) => boolean;
+
+  /**
+   * Row-aware guard for the built-in delete action
+   */
+  canDeleteRow?: (row: TData) => boolean;
+
+  /**
+   * Row-aware guard for the built-in duplicate action
+   */
+  canDuplicateRow?: (row: TData) => boolean;
+
+  /**
+   * Default form type used by the built-in edit action
+   */
+  formType?: string;
+
+  /**
    * Handler for the delete action (required if includeDelete is true)
    * Can return a boolean to indicate success/failure or void
    */
@@ -112,10 +132,19 @@ export interface ActionsColumnProps<TData> {
   onView?: (row: TData) => Promise<boolean | undefined> | undefined;
 
   /**
-   * Table ID to use for the form
-   * If provided, will be used to determine the form type for edit actions
+   * Resolve the built-in edit action form type from a row
+   */
+  resolveEditFormType?: (row: TData) => string | undefined;
+
+  /**
+   * Table ID to use for cache/query invalidation and form parent state
    */
   tableId?: string;
+
+  /**
+   * Table type used to resolve parent table configuration
+   */
+  tableType?: string;
 }
 
 export function createActionsColumn<TData extends Record<string, unknown>>({
@@ -125,12 +154,18 @@ export function createActionsColumn<TData extends Record<string, unknown>>({
   includeDuplicate = false,
   includeEdit = true,
   includeView = false,
+  canDeleteRow,
+  canDuplicateRow,
+  canEditRow,
+  formType,
   onDelete,
   onDuplicate,
   onEdit,
   onRefresh,
   onView,
+  resolveEditFormType,
   tableId,
+  tableType,
 }: ActionsColumnProps<TData>) {
   // Validate standard actions (handlers optional; no-op when missing)
   if (includeView && !onView) {
@@ -158,11 +193,17 @@ export function createActionsColumn<TData extends Record<string, unknown>>({
             includeDuplicate,
             includeEdit,
             includeView,
+            canDeleteRow,
+            canDuplicateRow,
+            canEditRow,
+            formType,
             onDelete,
             onDuplicate,
             onEdit,
             onView,
+            resolveEditFormType,
             tableId,
+            tableType,
           }}
         />
       );

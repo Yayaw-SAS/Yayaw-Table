@@ -22,6 +22,8 @@ export type {
   CollectionFieldItem,
   FieldValues,
   FormConfig,
+  FormConfigContext,
+  FormConfigMode,
   FormFieldApi,
 } from "./components/forms";
 export type {

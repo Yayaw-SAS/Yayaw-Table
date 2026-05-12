@@ -20,13 +20,25 @@ If no QueryClient is available from context (and no explicit `queryClient` prop 
 List of available props for configuring `DataTable`.
 
 ### tableType
-The identifier of your table. Used to resolve config and actions (e.g. `getTableConfig("products")`, `getTableActions("products")`).
+The type of table configuration to use. Used to resolve config and actions (e.g. `getTableConfig("products")`, `getTableActions("products")`).
 
 ```tsx
 <DataTable tableType="products" />
 ```
 
 Required: `true`
+
+### tableId
+Stable table instance id for URL state, cache keys, selection, pagination, and toolbar state. Defaults to `tableType`.
+
+Use it when one table instance displays several business models but should still share one URL/cache/selection surface.
+
+Type: `string`
+
+### formType
+Default form configuration type for create/edit forms. Defaults to `tableType`. Table config can still override it with `form.createFormType`, `form.editFormType`, or `form.resolveEditFormType(row)`.
+
+Type: `string`
 
 ### getTableConfig
 Function that returns table and column configuration for the given `tableType`. Required for the table to know columns, sort, visibility, and options. See [Configuration](/docs/configuration) and [Setup](/docs/setup).
@@ -41,7 +53,9 @@ Type: `(tableType: string) => TableActions | undefined`
 ### getFormConfig
 Function that returns form field definitions for create/edit and bulk edit dialogs. Optional but needed for forms.
 
-Type: `(formType: string) => FormConfig | undefined`
+Type: `(formType: string, ctx?: FormConfigContext) => FormConfig | undefined`
+
+`ctx` includes `{ mode, tableId, tableType, formType, row, initialData, values }`, so form fields can change for edit rows or for current create-form values.
 
 ### queryClient
 Optional explicit TanStack Query client instance. YaYaw Table no longer creates one internally. In most apps you should provide a shared app-level `QueryClientProvider` and omit this prop.
@@ -108,7 +122,7 @@ type ToolbarAction = {
   id: string;
   label: string;
   icon?: ReactNode;
-  onClick: () => void | Promise<void>;
+  onClick: (ctx: ToolbarActionContext) => void | Promise<void>;
   disabled?: boolean | ((ctx: ToolbarActionContext) => boolean);
   loading?: boolean;
   variant?: "default" | "outline" | "secondary" | "ghost" | "destructive";
@@ -124,9 +138,48 @@ type ToolbarActionContext = {
   isExportEnabled: boolean;
   isExporting: boolean;
   hasListAction: boolean;
+  selectedRows: Row<Record<string, unknown>>[];
+  selectedOriginalRows: Record<string, unknown>[];
+  selectedRowIds: string[];
+  selectedCount: number;
   tableActions?: TableActions;
 };
 ```
+
+## Multi-Model Table
+
+A single table can keep one `tableId` while resolving table config and form config separately:
+
+```tsx
+<DataTable
+  tableId="cms-entries"
+  tableType="content-index"
+  formType="content-entry"
+  getTableConfig={(tableType) => ({
+    ...configs[tableType],
+    form: {
+      createFormType: "content-entry",
+      resolveEditFormType: (row) => `${row.modelId}-entry`,
+    },
+  })}
+  getFormConfig={(formType, ctx) =>
+    buildEntryForm({
+      formType,
+      modelId: String(ctx?.values?.modelId ?? ctx?.row?.modelId ?? ""),
+    })
+  }
+  toolbarActions={(ctx) => [
+    {
+      id: "publish-selected",
+      label: "Publish",
+      disabled: () => ctx.selectedCount === 0,
+      onClick: async () => publishEntries(ctx.selectedOriginalRows),
+    },
+  ]}
+/>
+```
+
+Here `cms-entries` owns URL/cache/selection, `content-index` owns the table columns and filters, and each row can open its own edit form type.
 
 ### enableAdvancedFilters
 Enable advanced filters UI when available in your configuration.

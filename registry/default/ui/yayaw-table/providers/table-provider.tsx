@@ -15,7 +15,11 @@ import {
   tableConfigAtom,
 } from "../atoms/config-atoms";
 // Import form config type
-import type { FieldValues, FormConfig } from "../components/forms/types";
+import type {
+  FieldValues,
+  FormConfig,
+  FormConfigContext,
+} from "../components/forms/types";
 import type { TableConfig } from "../config/helpers";
 import type { CalculationType } from "../types/footer-types";
 import type {
@@ -88,9 +92,10 @@ interface TableProviderContextType {
   locale: string;
   t: (key: string, params?: TranslationParams) => string;
   getFormConfig?: <TFieldValues extends FieldValues = FieldValues>(
-    formType: string
+    formType: string,
+    context?: FormConfigContext<TFieldValues>
   ) => FormConfig<TFieldValues> | undefined;
-  getTableActions?: (formType: string) => TableActions | undefined;
+  getTableActions?: (tableType: string) => TableActions | undefined;
   getTableConfig?: (
     tableType: string
   ) => TableConfig | DataTableConfig | undefined;
@@ -115,9 +120,10 @@ interface TableProviderProps {
   translations: DataTableTranslations;
   locale?: string;
   getFormConfig?: <TFieldValues extends FieldValues = FieldValues>(
-    formType: string
+    formType: string,
+    context?: FormConfigContext<TFieldValues>
   ) => FormConfig<TFieldValues> | undefined;
-  getTableActions?: (formType: string) => TableActions | undefined;
+  getTableActions?: (tableType: string) => TableActions | undefined;
   getTableConfig?: (
     tableType: string
   ) => TableConfig | DataTableConfig | undefined;
