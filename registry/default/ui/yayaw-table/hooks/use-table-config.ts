@@ -9,6 +9,7 @@ import { useMemo } from "react";
 import type { TableFormConfig } from "../config/form-config";
 import type {
   InlineEditColumnConfig,
+  TableConfig,
   TableInlineEditConfig,
 } from "../config/helpers";
 import {
@@ -99,6 +100,8 @@ type ProviderTableConfig = TableCatalogueTableConfig & {
     sort?: ColumnSort[];
   };
 };
+
+type ProviderTableConfigInput = Partial<ProviderTableConfig> | TableConfig;
 
 /**
  * Full configuration for a table type in the catalogue
@@ -213,7 +216,7 @@ function resolveInlineEditConfig(
 }
 
 function resolveTableBehaviorConfig(
-  providerConfig: ProviderTableConfig
+  providerConfig: Partial<TableCatalogueTableConfig>
 ): TableCatalogueTableConfig {
   return {
     allowCreate: providerConfig.allowCreate ?? true,
@@ -233,10 +236,10 @@ function resolveTableBehaviorConfig(
     bulkExport: providerConfig.bulkExport ?? true,
     actionsAsIcons: providerConfig.actionsAsIcons ?? false,
     density: normalizeDensityMode(providerConfig.density),
-    enableRowSelection: providerConfig.enableRowSelection,
+    enableRowSelection: providerConfig.enableRowSelection ?? true,
     enableRowClickEdit: providerConfig.enableRowClickEdit ?? false,
-    enableColumnFilters: providerConfig.enableColumnFilters,
-    enableSorting: providerConfig.enableSorting,
+    enableColumnFilters: providerConfig.enableColumnFilters ?? true,
+    enableSorting: providerConfig.enableSorting ?? true,
     enableGrouping: providerConfig.enableGrouping,
     enableColumnDnd: providerConfig.enableColumnDnd ?? true,
     enableColumnDragDropByDefault: providerConfig.enableColumnDragDropByDefault,
@@ -253,7 +256,8 @@ function resolveTableBehaviorConfig(
 }
 
 function resolveColumnsConfig(
-  providerConfig: ProviderTableConfig
+  providerConfig: Pick<ProviderTableConfig, "columns"> &
+    Pick<TableCatalogueTableConfig, "enableRowSelection">
 ): TableCatalogueConfig["columns"] {
   const definitions = providerConfig?.columns?.definitions || [];
   const order = providerConfig?.columns?.order || [];
@@ -278,9 +282,35 @@ function resolveColumnsConfig(
   return {
     definitions,
     order: orderWithSelect,
-    sort: [],
+    sort: providerConfig?.columns?.sort || [],
     visible: visibleWithSelect,
     mandatory,
+  };
+}
+
+export function resolveTableCatalogueConfig(
+  providerConfig?: ProviderTableConfigInput
+): TableCatalogueConfig {
+  if (!providerConfig) {
+    return DEFAULT_TABLE_CONFIG;
+  }
+
+  const hasNestedShape = "table" in providerConfig;
+  const tableOptions = hasNestedShape ? providerConfig.table : providerConfig;
+  const columns = providerConfig.columns as ProviderTableConfig["columns"];
+  const translations = hasNestedShape ? providerConfig.translations : undefined;
+
+  return {
+    table: resolveTableBehaviorConfig(tableOptions),
+    form: providerConfig.form,
+    columns: resolveColumnsConfig({
+      columns,
+      enableRowSelection: tableOptions.enableRowSelection ?? true,
+    }),
+    translations: translations ?? {
+      namespace: "common",
+      keys: {},
+    },
   };
 }
 
@@ -301,22 +331,7 @@ export function useTableConfig(tableType: string) {
       | undefined;
     // columnsConfig removed since useColumnsConfig is not exported
 
-    if (!providerConfig) {
-      return DEFAULT_TABLE_CONFIG;
-    }
-
-    // Transform DataTableConfig to TableCatalogueConfig
-    const tableConfig: TableCatalogueConfig = {
-      table: resolveTableBehaviorConfig(providerConfig),
-      form: providerConfig.form,
-      columns: resolveColumnsConfig(providerConfig),
-      translations: {
-        namespace: "common",
-        keys: {},
-      },
-    };
-
-    return tableConfig;
+    return resolveTableCatalogueConfig(providerConfig);
   }, [getTableConfig, tableType]);
 
   // Create enhanced translations object
