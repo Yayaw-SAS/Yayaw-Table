@@ -1,7 +1,6 @@
 import type {
   ColumnDef,
   ColumnFiltersState,
-  Table,
 } from "@tanstack/react-table";
 
 /**
@@ -30,11 +29,6 @@ export interface DataTableHeaderProps {
   showSearch?: boolean;
   tableId: string;
   title?: string;
-}
-
-export interface DataTablePaginationProps<TData> {
-  table: Table<TData>;
-  tableId: string;
 }
 
 /**

@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   getBulkActionsViewportBottomOffset,
   shouldRenderBulkActionsInFooter,
+  shouldRenderPaginationControls,
   shouldShowCalculationsFooter,
 } from "./table-component";
 
@@ -73,6 +74,67 @@ describe("shouldRenderBulkActionsInFooter", () => {
       shouldRenderBulkActionsInFooter({
         enablePagination: false,
         isTableBottomVisible: true,
+      }),
+      false
+    );
+  });
+});
+
+describe("shouldRenderPaginationControls", () => {
+  it("returns false when total rows are below the page size", () => {
+    assert.equal(
+      shouldRenderPaginationControls({
+        enablePagination: true,
+        pageCount: 1,
+        pageSize: 10,
+        rowCount: 5,
+      }),
+      false
+    );
+  });
+
+  it("returns false when total rows equal the page size", () => {
+    assert.equal(
+      shouldRenderPaginationControls({
+        enablePagination: true,
+        pageCount: 1,
+        pageSize: 10,
+        rowCount: 10,
+      }),
+      false
+    );
+  });
+
+  it("returns true when total rows exceed the page size", () => {
+    assert.equal(
+      shouldRenderPaginationControls({
+        enablePagination: true,
+        pageCount: 2,
+        pageSize: 10,
+        rowCount: 11,
+      }),
+      true
+    );
+  });
+
+  it("falls back to page count when total rows are unavailable", () => {
+    assert.equal(
+      shouldRenderPaginationControls({
+        enablePagination: true,
+        pageCount: 2,
+        pageSize: 10,
+      }),
+      true
+    );
+  });
+
+  it("returns false when pagination is disabled", () => {
+    assert.equal(
+      shouldRenderPaginationControls({
+        enablePagination: false,
+        pageCount: 2,
+        pageSize: 10,
+        rowCount: 20,
       }),
       false
     );

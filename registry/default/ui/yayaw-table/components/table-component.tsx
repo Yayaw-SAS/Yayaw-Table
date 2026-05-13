@@ -109,6 +109,36 @@ export const shouldRenderBulkActionsInFooter = ({
   return enablePagination && isTableBottomVisible;
 };
 
+export const shouldRenderPaginationControls = ({
+  enablePagination,
+  pageCount,
+  pageSize,
+  rowCount,
+}: {
+  enablePagination: boolean;
+  pageCount?: number;
+  pageSize: number;
+  rowCount?: number;
+}): boolean => {
+  if (!(enablePagination && Number.isFinite(pageSize)) || pageSize <= 0) {
+    return false;
+  }
+
+  if (
+    typeof pageCount === "number" &&
+    Number.isFinite(pageCount) &&
+    pageCount > 1
+  ) {
+    return true;
+  }
+
+  if (typeof rowCount === "number" && Number.isFinite(rowCount)) {
+    return rowCount > pageSize;
+  }
+
+  return false;
+};
+
 export const getBulkActionsViewportBottomOffset = ({
   isPaginationVisible,
   paginationHeight,
@@ -1718,6 +1748,14 @@ function ModernDataTable<
         enablePagination,
         isTableBottomVisible: isBulkActionsAnchorVisible,
       });
+    const showPaginationControls = shouldRenderPaginationControls({
+      enablePagination,
+      pageCount: table.getPageCount(),
+      pageSize: table.getState().pagination.pageSize,
+      rowCount,
+    });
+    const showPaginationArea =
+      enablePagination && (showPaginationControls || renderBulkActionsInFooter);
     const fixedBulkActionsViewportOffset = getBulkActionsViewportBottomOffset({
       isPaginationVisible,
       paginationHeight,
@@ -1765,7 +1803,7 @@ function ModernDataTable<
             </div>
 
             {/* Pagination is outside the table container to avoid focus issues */}
-            {enablePagination && (
+            {showPaginationArea && (
               <SafePagination
                 containerRef={handlePaginationContainerRef}
                 controlsRef={handlePaginationControlsRef}
@@ -1795,6 +1833,7 @@ function ModernDataTable<
                   ]
                 }
                 rowCount={rowCount}
+                showControls={showPaginationControls}
                 table={table}
               />
             )}

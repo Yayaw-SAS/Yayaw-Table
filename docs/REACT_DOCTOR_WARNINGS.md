@@ -25,7 +25,7 @@ Commande : `npx -y react-doctor@latest .`
 | **no-effect-event-handler** | 4 | `table-menu.tsx`, `table-columns-menu.tsx` | Déplacer la logique des `useEffect` concernés vers des vrais handlers (`onClick`, `onChange`, etc.). |
 | **no-cascading-set-state** | 1 | `app/[locale]/example/page.tsx` | Regrouper les 4 `setState` dans un seul `useReducer` (ou un seul `setState` avec un objet). |
 | **prefer-useReducer** | 2 | `filter-presets-panel.tsx` (SavePresetDialog) | Regrouper les 5 `useState` liés dans un `useReducer`. |
-| **rendering-hydration-no-flicker** | 7 | `theme-toggle`, `column-header`, `table-component`, `data-table-pagination` | Pour état venant du DOM/localStorage : `useSyncExternalStore` ou `suppressHydrationWarning` sur l’élément qui flashe. |
+| **rendering-hydration-no-flicker** | 7 | `theme-toggle`, `column-header`, `table-component`, `safe-pagination` | Pour état venant du DOM/localStorage : `useSyncExternalStore` ou `suppressHydrationWarning` sur l’élément qui flashe. |
 
 ---
 

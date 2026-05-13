@@ -306,11 +306,6 @@
           "target": "components/ui/yayaw-table/components/columns/url-column.tsx"
         },
         {
-          "path": "registry/default/ui/yayaw-table/components/data-table-pagination.tsx",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/data-table-pagination.tsx"
-        },
-        {
           "path": "registry/default/ui/yayaw-table/components/data-table-skeleton.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/data-table-skeleton.tsx"
