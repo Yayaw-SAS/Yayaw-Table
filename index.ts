@@ -32,7 +32,17 @@ export * from "./src/components/ui/separator";
 export * from "./src/components/ui/skeleton";
 // Export core UI components (cleaned versions)
 export * from "./src/components/ui/table";
-export type { BulkActionsMenuProps } from "./src/components/ui/yayaw-table/components/bulk-actions";
+export type {
+  BulkAction,
+  BulkActionConfirmConfig,
+  BulkActionContext,
+  BulkActionHandler,
+  BulkActionHandlerResult,
+  BulkActionResult,
+  BulkActionsMenuProps,
+  BulkActionVariant,
+  CustomBulkActionsInput,
+} from "./src/components/ui/yayaw-table/components/bulk-actions";
 // Export bulk actions components
 export { BulkActionsMenu } from "./src/components/ui/yayaw-table/components/bulk-actions";
 // Export main DataTable component (full-featured)

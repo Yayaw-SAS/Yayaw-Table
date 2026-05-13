@@ -57,6 +57,7 @@ import { InlineEditableCell } from "./cells/inline-editable-cell";
 import {
   BulkActionsMenu,
   getBulkActionsMenuPositionMode,
+  type CustomBulkActionsInput,
 } from "./bulk-actions/bulk-actions-menu";
 import { GroupRowSelectionCell } from "./columns/selection-column";
 import { DataTableColumnHeader } from "./columns/header/column-header";
@@ -486,6 +487,7 @@ type ModernDataTableProps<
   onBulkExport?: (
     rows: Row<TData>[]
   ) => Promise<BulkActionCustomHandlerResult> | BulkActionCustomHandlerResult;
+  customBulkActions?: CustomBulkActionsInput<TData>;
   closeOnError?: boolean;
   /**
    * Called when a row is clicked in row-link mode (url column with displayMode "row-link").
@@ -613,6 +615,7 @@ function ModernDataTable<
   onBulkDelete,
   onBulkCopy,
   onBulkExport,
+  customBulkActions,
   closeOnError,
   onRowClick,
   showDefaultToastsForCustomHandlers,
@@ -1820,7 +1823,9 @@ function ModernDataTable<
                     <BulkActionsMenu
                       canSelectAll={bulkActions.canSelectAll}
                       isSelectingAll={bulkActions.isSelectingAll}
+                      customBulkActions={customBulkActions}
                       onBulkCopy={bulkActions.handleBulkCopy}
+                      onClearSelection={bulkActions.clearSelection}
                       onBulkDelete={bulkActions.handleBulkDelete}
                       onBulkEdit={bulkActions.handleBulkEdit}
                       onBulkExport={bulkActions.handleBulkExport}
@@ -1849,7 +1854,9 @@ function ModernDataTable<
             <BulkActionsMenu
               canSelectAll={bulkActions.canSelectAll}
               isSelectingAll={bulkActions.isSelectingAll}
+              customBulkActions={customBulkActions}
               onBulkCopy={bulkActions.handleBulkCopy}
+              onClearSelection={bulkActions.clearSelection}
               onBulkDelete={bulkActions.handleBulkDelete}
               onBulkEdit={bulkActions.handleBulkEdit}
               onBulkExport={bulkActions.handleBulkExport}

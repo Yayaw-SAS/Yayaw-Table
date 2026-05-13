@@ -3,11 +3,17 @@ import { describe, it } from "node:test";
 import type { Row } from "@tanstack/react-table";
 
 import {
+  applyCustomBulkActionResult,
+  type BulkAction,
+  buildBulkActionsMenuActionTabs,
+  createBulkActionContext,
   executeConfirmableBulkActionWithLock,
+  executeCustomBulkAction,
   getBulkActionsMenuPositionMode,
   getBulkActionsMenuWrapperClassName,
   getBulkActionsMenuWrapperStyle,
   getBulkMenuStateAfterOutsideClick,
+  shouldRenderBulkActionsMenu,
 } from "./bulk-actions-menu";
 
 const FIXED_INSET_PATTERN = /\binset-x-0\b/;
@@ -23,6 +29,10 @@ function createSelectedRows(ids: string[]): Row<Record<string, unknown>>[] {
         original: { id },
       }) as unknown as Row<Record<string, unknown>>
   );
+}
+
+function TestIcon(_props: { className?: string; size?: number }) {
+  return null;
 }
 
 describe("bulk confirmation flow", () => {
@@ -158,5 +168,114 @@ describe("bulk confirmation flow", () => {
     assert.equal(nextState.selectedAction, "delete");
     assert.equal(nextState.showConfirmation, true);
     assert.equal(nextState.hoveredAction, "delete");
+  });
+});
+
+describe("custom bulk actions", () => {
+  it("renders custom actions between export and delete when rows are selected", () => {
+    const selectedRows = createSelectedRows(["row-1", "row-2"]);
+    const tabs = buildBulkActionsMenuActionTabs({
+      canSelectAll: false,
+      customBulkActions: [
+        {
+          id: "publish",
+          icon: TestIcon,
+          label: "Publish",
+          onClick: () => undefined,
+        },
+      ],
+      isSelectingAll: false,
+      selectedRows,
+      showBulkDelete: true,
+      showBulkEdit: true,
+      showBulkExport: true,
+    });
+
+    assert.equal(shouldRenderBulkActionsMenu(selectedRows), true);
+    assert.deepEqual(
+      tabs.map((tab) => (tab.kind === "custom" ? tab.label : tab.id)),
+      ["edit", "copy", "export", "Publish", "delete"]
+    );
+  });
+
+  it("does not run disabled custom actions", async () => {
+    const selectedRows = createSelectedRows(["row-1"]);
+    const context = createBulkActionContext(selectedRows);
+    let callCount = 0;
+    const action: BulkAction<Record<string, unknown>> = {
+      disabled: true,
+      icon: TestIcon,
+      id: "archive",
+      label: "Archive",
+      onClick: () => {
+        callCount += 1;
+      },
+    };
+
+    const result = await executeCustomBulkAction({ action, context });
+
+    assert.equal(result, undefined);
+    assert.equal(callCount, 0);
+  });
+
+  it("passes selected rows, original rows, and count to custom actions", async () => {
+    const selectedRows = createSelectedRows(["row-1", "row-2"]);
+    const context = createBulkActionContext(selectedRows);
+    let receivedContext:
+      | Parameters<BulkAction<Record<string, unknown>>["onClick"]>[0]
+      | undefined;
+    const action: BulkAction<Record<string, unknown>> = {
+      icon: TestIcon,
+      id: "publish",
+      label: "Publish",
+      onClick: (ctx) => {
+        receivedContext = ctx;
+      },
+    };
+
+    await executeCustomBulkAction({ action, context });
+
+    assert.equal(receivedContext?.selectedRows, selectedRows);
+    assert.deepEqual(receivedContext?.selectedOriginalRows, [
+      { id: "row-1" },
+      { id: "row-2" },
+    ]);
+    assert.equal(receivedContext?.selectedCount, 2);
+  });
+
+  it("applies closeMenu and clearSelection from BulkActionResult independently", () => {
+    let clearSelectionCount = 0;
+    let dismissMenuCount = 0;
+
+    applyCustomBulkActionResult({
+      onClearSelection: () => {
+        clearSelectionCount += 1;
+      },
+      onDismissMenu: () => {
+        dismissMenuCount += 1;
+      },
+      result: {
+        clearSelection: true,
+        closeMenu: false,
+        success: true,
+      },
+    });
+
+    applyCustomBulkActionResult({
+      onClearSelection: () => {
+        clearSelectionCount += 1;
+      },
+      onDismissMenu: () => {
+        dismissMenuCount += 1;
+      },
+      result: {
+        clearSelection: false,
+        closeMenu: true,
+        success: true,
+      },
+    });
+
+    assert.equal(clearSelectionCount, 1);
+    assert.equal(dismissMenuCount, 1);
   });
 });

@@ -3,6 +3,16 @@
  * This file exports all components, hooks, and atoms for the DataTable
  */
 
+export type {
+  BulkAction,
+  BulkActionConfirmConfig,
+  BulkActionContext,
+  BulkActionHandler,
+  BulkActionHandlerResult,
+  BulkActionResult,
+  BulkActionVariant,
+  CustomBulkActionsInput,
+} from "./components/bulk-actions";
 // Main component
 export { DataTable } from "./components/data-table";
 export type {
