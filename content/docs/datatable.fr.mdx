@@ -168,12 +168,25 @@ Une seule table peut garder un `tableId` commun tout en séparant la config tabl
       modelId: String(ctx?.values?.modelId ?? ctx?.row?.modelId ?? ""),
     })
   }
-  toolbarActions={(ctx) => [
+  customBulkActions={(ctx) => [
     {
       id: "publish-selected",
-      label: "Publier",
-      disabled: () => ctx.selectedCount === 0,
+      label: "Publish",
+      icon: Send,
+      disabled: ctx.selectedCount === 0,
       onClick: async () => publishEntries(ctx.selectedOriginalRows),
+    },
+    {
+      id: "archive-selected",
+      label: "Archive",
+      icon: Archive,
+      variant: "destructive",
+      disabled: ctx.selectedCount === 0,
+      confirm: {
+        title: "Archive selected entries?",
+        description: `Archive ${ctx.selectedCount} selected entries.`,
+      },
+      onClick: async () => archiveEntries(ctx.selectedOriginalRows),
     },
   ]}
 />

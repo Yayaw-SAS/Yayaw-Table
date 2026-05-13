@@ -52,6 +52,7 @@ import { ColumnIcon } from "../utils/column-icons";
 import { buildCsvExportColumns } from "../utils/csv-export";
 import {
   BulkActionsMenu,
+  type CustomBulkActionsInput,
   getBulkActionsMenuPositionMode,
 } from "./bulk-actions/bulk-actions-menu";
 import { InlineEditableCell } from "./cells/inline-editable-cell";
@@ -484,6 +485,7 @@ type ModernDataTableProps<
   onBulkExport?: (
     rows: Row<TData>[]
   ) => Promise<BulkActionCustomHandlerResult> | BulkActionCustomHandlerResult;
+  customBulkActions?: CustomBulkActionsInput<TData>;
   closeOnError?: boolean;
   /**
    * Called when a row is clicked in row-link mode (url column with displayMode "row-link").
@@ -611,6 +613,7 @@ function ModernDataTable<
   onBulkDelete,
   onBulkCopy,
   onBulkExport,
+  customBulkActions,
   closeOnError,
   onRowClick,
   showDefaultToastsForCustomHandlers,
@@ -1811,11 +1814,13 @@ function ModernDataTable<
                   renderBulkActionsInFooter ? (
                     <BulkActionsMenu
                       canSelectAll={bulkActions.canSelectAll}
+                      customBulkActions={customBulkActions}
                       isSelectingAll={bulkActions.isSelectingAll}
                       onBulkCopy={bulkActions.handleBulkCopy}
                       onBulkDelete={bulkActions.handleBulkDelete}
                       onBulkEdit={bulkActions.handleBulkEdit}
                       onBulkExport={bulkActions.handleBulkExport}
+                      onClearSelection={bulkActions.clearSelection}
                       onClose={bulkActions.closeBulkActions}
                       onSelectAll={bulkActions.handleSelectAll}
                       positionMode="anchored"
@@ -1842,11 +1847,13 @@ function ModernDataTable<
           {bulkActions.showBulkActions && !renderBulkActionsInFooter && (
             <BulkActionsMenu
               canSelectAll={bulkActions.canSelectAll}
+              customBulkActions={customBulkActions}
               isSelectingAll={bulkActions.isSelectingAll}
               onBulkCopy={bulkActions.handleBulkCopy}
               onBulkDelete={bulkActions.handleBulkDelete}
               onBulkEdit={bulkActions.handleBulkEdit}
               onBulkExport={bulkActions.handleBulkExport}
+              onClearSelection={bulkActions.clearSelection}
               onClose={bulkActions.closeBulkActions}
               onSelectAll={bulkActions.handleSelectAll}
               positionMode={getBulkActionsMenuPositionMode(

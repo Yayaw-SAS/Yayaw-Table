@@ -2,6 +2,7 @@ import type {
   ColumnDef,
   ColumnFiltersState,
 } from "@tanstack/react-table";
+import type { CustomBulkActionsInput } from "../components/bulk-actions";
 
 /**
  * Column filter object
@@ -100,6 +101,7 @@ export interface DataTableProps<
   columns: ColumnDef<TData, TValue>[];
   tableId: string;
   tableType?: string;
+  customBulkActions?: CustomBulkActionsInput<TData>;
   children?: React.ReactNode;
   initialActiveViewId?: string;
   initialViews?: unknown[];

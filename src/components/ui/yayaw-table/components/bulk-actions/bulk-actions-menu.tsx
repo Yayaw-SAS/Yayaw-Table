@@ -7,7 +7,15 @@
 import type { Row } from "@tanstack/react-table";
 import { AnimatePresence, LazyMotion, domAnimation, m } from "framer-motion";
 import { CheckCheck, Copy, Download, Edit, Loader2, Trash2, X } from "lucide-react";
-import { useRef, useState, type CSSProperties } from "react";
+import {
+  useMemo,
+  useRef,
+  useState,
+  type ComponentType,
+  type CSSProperties,
+  type RefObject,
+} from "react";
+import { toast } from "sonner";
 import { useOnClickOutside } from "usehooks-ts";
 import { cn } from "@/lib/utils";
 import {
@@ -28,6 +36,42 @@ import type {
 } from "../../hooks/use-bulk-actions";
 import { normalizeBulkActionResult } from "../../hooks/use-bulk-actions";
 import { useTranslations } from "../../providers/table-provider";
+
+export interface BulkActionContext<TData> {
+  selectedRows: Row<TData>[];
+  selectedOriginalRows: TData[];
+  selectedCount: number;
+}
+
+export interface BulkActionConfirmConfig<TData> {
+  cancelLabel?: string | ((ctx: BulkActionContext<TData>) => string);
+  confirmLabel?: string | ((ctx: BulkActionContext<TData>) => string);
+  description?: string | ((ctx: BulkActionContext<TData>) => string);
+  title?: string | ((ctx: BulkActionContext<TData>) => string);
+}
+
+export type BulkActionVariant = "default" | "destructive";
+
+// biome-ignore lint/suspicious/noConfusingVoidType: Bulk handlers may intentionally return void when the app owns feedback and follow-up behavior.
+export type BulkActionHandlerResult = BulkActionResult | void;
+
+export type BulkActionHandler<TData> = (
+  ctx: BulkActionContext<TData>
+) => Promise<BulkActionHandlerResult> | BulkActionHandlerResult;
+
+export interface BulkAction<TData> {
+  confirm?: BulkActionConfirmConfig<TData>;
+  disabled?: boolean | ((ctx: BulkActionContext<TData>) => boolean);
+  icon: ComponentType<{ className?: string; size?: number }>;
+  id: string;
+  label: string;
+  onClick: BulkActionHandler<TData>;
+  variant?: BulkActionVariant;
+}
+
+export type CustomBulkActionsInput<TData> =
+  | BulkAction<TData>[]
+  | ((ctx: BulkActionContext<TData>) => BulkAction<TData>[]);
 
 /**
  * Props for the BulkActionsMenu component
@@ -65,6 +109,16 @@ export interface BulkActionsMenuProps<TData> {
   onBulkExport?: (
     rows: Row<TData>[]
   ) => Promise<BulkActionCustomHandlerResult> | BulkActionCustomHandlerResult;
+
+  /**
+   * Custom actions rendered in the bulk actions menu after export and before delete.
+   */
+  customBulkActions?: CustomBulkActionsInput<TData>;
+
+  /**
+   * Callback used by custom actions that explicitly request selection clearing.
+   */
+  onClearSelection?: () => void;
 
   /**
    * Callback when menu is closed
@@ -122,14 +176,39 @@ export interface BulkActionsMenuProps<TData> {
   viewportBottomOffset?: number;
 }
 
-// Configuration pour les tabs d'actions
-interface ActionTab {
+export interface BuiltInBulkActionTab {
+  disabled?: boolean;
+  icon: ComponentType<{ className?: string; size?: number }>;
   id: MenuActionId;
-  icon: React.ComponentType<{ className?: string; size?: number }>;
+  kind: "built-in";
   translationKey: string;
   translationParams?: Record<string, number | string>;
-  variant: "default" | "destructive";
-  disabled?: boolean;
+  variant: BulkActionVariant;
+}
+
+export interface CustomBulkActionTab<TData> {
+  action: BulkAction<TData>;
+  disabled: boolean;
+  icon: ComponentType<{ className?: string; size?: number }>;
+  id: string;
+  kind: "custom";
+  label: string;
+  variant: BulkActionVariant;
+}
+
+export type BulkActionsMenuActionTab<TData> =
+  | BuiltInBulkActionTab
+  | CustomBulkActionTab<TData>;
+
+interface BulkActionsMenuActionTabsOptions<TData> {
+  canSelectAll: boolean;
+  customBulkActions?: CustomBulkActionsInput<TData>;
+  isSelectingAll: boolean;
+  selectAllCount?: number;
+  selectedRows: Row<TData>[];
+  showBulkDelete: boolean;
+  showBulkEdit: boolean;
+  showBulkExport: boolean;
 }
 
 type MenuActionId = "copy" | "delete" | "edit" | "export" | "selectAll";
@@ -140,7 +219,7 @@ export type BulkActionsMenuPositionMode = "anchored" | "fixed";
 interface BulkMenuOutsideClickState {
   hoveredAction: string | null;
   isConfirmingAction: boolean;
-  selectedAction: ConfirmableMenuActionId | null;
+  selectedAction: string | null;
   showConfirmation: boolean;
 }
 
@@ -170,7 +249,19 @@ const DEFAULT_BULK_ACTION_RESULTS: Record<
   },
 };
 
-// Variants pour les animations
+const DEFAULT_CUSTOM_BULK_ACTION_RESULT: BulkActionResult = {
+  clearSelection: false,
+  closeMenu: true,
+  success: true,
+};
+
+const DEFAULT_CUSTOM_BULK_ACTION_FAILURE_RESULT: BulkActionResult = {
+  clearSelection: false,
+  closeMenu: false,
+  success: false,
+};
+
+// Animation variants.
 const buttonVariants = {
   initial: {
     gap: 0,
@@ -234,6 +325,223 @@ export function getBulkActionsMenuWrapperStyle({
   return {
     bottom: viewportBottomOffset,
   };
+}
+
+export function shouldRenderBulkActionsMenu<TData>(
+  selectedRows: Row<TData>[] | undefined
+): boolean {
+  return Boolean(selectedRows && selectedRows.length > 0);
+}
+
+export function createBulkActionContext<TData>(
+  selectedRows: Row<TData>[]
+): BulkActionContext<TData> {
+  return {
+    selectedRows,
+    selectedOriginalRows: selectedRows.map((row) => row.original),
+    selectedCount: selectedRows.length,
+  };
+}
+
+const isValidBulkAction = <TData,>(
+  value: unknown
+): value is BulkAction<TData> => {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const action = value as Partial<BulkAction<TData>>;
+
+  return (
+    typeof action.id === "string" &&
+    action.id.length > 0 &&
+    typeof action.label === "string" &&
+    action.label.length > 0 &&
+    typeof action.icon === "function" &&
+    typeof action.onClick === "function"
+  );
+};
+
+export function resolveCustomBulkActions<TData>({
+  context,
+  customBulkActions,
+}: {
+  context: BulkActionContext<TData>;
+  customBulkActions?: CustomBulkActionsInput<TData>;
+}): BulkAction<TData>[] {
+  if (!customBulkActions) {
+    return [];
+  }
+
+  const resolvedActions =
+    typeof customBulkActions === "function"
+      ? customBulkActions(context)
+      : customBulkActions;
+
+  if (!Array.isArray(resolvedActions)) {
+    return [];
+  }
+
+  return resolvedActions.filter(isValidBulkAction<TData>);
+}
+
+export function resolveBulkActionDisabled<TData>({
+  action,
+  context,
+}: {
+  action: BulkAction<TData>;
+  context: BulkActionContext<TData>;
+}): boolean {
+  if (typeof action.disabled === "function") {
+    return action.disabled(context);
+  }
+
+  return action.disabled === true;
+}
+
+export function buildBulkActionsMenuActionTabs<TData>({
+  canSelectAll,
+  customBulkActions,
+  isSelectingAll,
+  selectAllCount,
+  selectedRows,
+  showBulkDelete,
+  showBulkEdit,
+  showBulkExport,
+}: BulkActionsMenuActionTabsOptions<TData>): BulkActionsMenuActionTab<TData>[] {
+  const selectedCount = selectedRows.length;
+  const context = createBulkActionContext(selectedRows);
+  const customActionTabs = resolveCustomBulkActions({
+    context,
+    customBulkActions,
+  }).map((action) => ({
+    action,
+    disabled: resolveBulkActionDisabled({ action, context }),
+    icon: action.icon,
+    id: action.id,
+    kind: "custom" as const,
+    label: action.label,
+    variant: action.variant ?? "default",
+  }));
+
+  return [
+    ...(canSelectAll
+      ? [
+          {
+            id: "selectAll" as const,
+            icon: isSelectingAll ? Loader2 : CheckCheck,
+            kind: "built-in" as const,
+            translationKey: "bulk.select_all",
+            translationParams: {
+              count: selectAllCount ?? selectedCount,
+            },
+            variant: "default" as const,
+            disabled: isSelectingAll,
+          },
+        ]
+      : []),
+    ...(showBulkEdit
+      ? [
+          {
+            id: "edit" as const,
+            icon: Edit,
+            kind: "built-in" as const,
+            translationKey: "actions.edit",
+            variant: "default" as const,
+          },
+        ]
+      : []),
+    {
+      id: "copy" as const,
+      icon: Copy,
+      kind: "built-in" as const,
+      translationKey: "actions.copy",
+      variant: "default" as const,
+    },
+    ...(showBulkExport
+      ? [
+          {
+            id: "export" as const,
+            icon: Download,
+            kind: "built-in" as const,
+            translationKey: "actions.export",
+            variant: "default" as const,
+          },
+        ]
+      : []),
+    ...customActionTabs,
+    ...(showBulkDelete
+      ? [
+          {
+            id: "delete" as const,
+            icon: Trash2,
+            kind: "built-in" as const,
+            translationKey: "actions.delete",
+            variant: "destructive" as const,
+          },
+        ]
+      : []),
+  ];
+}
+
+export async function executeCustomBulkAction<TData>({
+  action,
+  context,
+}: {
+  action: BulkAction<TData>;
+  context: BulkActionContext<TData>;
+}): Promise<BulkActionResult | undefined> {
+  if (resolveBulkActionDisabled({ action, context })) {
+    return;
+  }
+
+  try {
+    const rawResult = await Promise.resolve(action.onClick(context));
+    return normalizeBulkActionResult(
+      rawResult,
+      DEFAULT_CUSTOM_BULK_ACTION_RESULT
+    );
+  } catch (error) {
+    const message =
+      error instanceof Error && error.message.trim().length > 0
+        ? error.message
+        : "Bulk action failed.";
+    return {
+      ...DEFAULT_CUSTOM_BULK_ACTION_FAILURE_RESULT,
+      message,
+    };
+  }
+}
+
+export function applyCustomBulkActionResult({
+  onClearSelection,
+  onDismissMenu,
+  result,
+}: {
+  onClearSelection?: () => void;
+  onDismissMenu?: () => void;
+  result: BulkActionResult;
+}): void {
+  if (result.clearSelection) {
+    onClearSelection?.();
+  }
+
+  if (result.closeMenu) {
+    onDismissMenu?.();
+  }
+}
+
+function showBulkActionResultMessage(result: BulkActionResult): void {
+  if (!result.message || result.message.trim().length === 0) {
+    return;
+  }
+
+  if (result.success) {
+    toast.success(result.message);
+    return;
+  }
+
+  toast.error(result.message);
 }
 
 export function shouldIgnoreOutsideClickForBulkMenu(
@@ -379,6 +687,8 @@ export function BulkActionsMenu<TData>({
   onBulkDelete,
   onBulkCopy,
   onBulkExport,
+  customBulkActions,
+  onClearSelection,
   onClose,
   className,
   showBulkExport = true,
@@ -391,73 +701,51 @@ export function BulkActionsMenu<TData>({
   isSelectingAll = false,
   viewportBottomOffset,
 }: BulkActionsMenuProps<TData>) {
-  const [selectedAction, setSelectedAction] =
-    useState<ConfirmableMenuActionId | null>(null);
+  const [selectedAction, setSelectedAction] = useState<string | null>(null);
   const [hoveredAction, setHoveredAction] = useState<string | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [isConfirmingAction, setIsConfirmingAction] = useState(false);
-  const pendingActionRef = useRef<ConfirmableMenuActionId | null>(null);
+  const [dismissedSelectionKey, setDismissedSelectionKey] =
+    useState<string | null>(null);
+  const pendingActionRef = useRef<BulkActionsMenuActionTab<TData> | null>(null);
   const confirmationLockRef = useRef(false);
   const outsideClickRef = useRef<HTMLDivElement>(null);
   const { t } = useTranslations();
   const showSelectAllAction = canSelectAll && typeof onSelectAll === "function";
-  const selectedCount = selectedRows.length;
+  const selectedRowsKey = useMemo(
+    () => selectedRows.map((row) => row.id).join("|"),
+    [selectedRows]
+  );
+  const actionContext = useMemo(
+    () => createBulkActionContext(selectedRows),
+    [selectedRows]
+  );
+  const selectedCount = actionContext.selectedCount;
+  const actionTabs = useMemo(
+    () =>
+      buildBulkActionsMenuActionTabs({
+        canSelectAll: showSelectAllAction,
+        customBulkActions,
+        isSelectingAll,
+        selectAllCount,
+        selectedRows,
+        showBulkDelete,
+        showBulkEdit,
+        showBulkExport,
+      }),
+    [
+      customBulkActions,
+      isSelectingAll,
+      selectAllCount,
+      selectedRows,
+      showBulkDelete,
+      showBulkEdit,
+      showBulkExport,
+      showSelectAllAction,
+    ]
+  );
 
-  // Action visibility is driven by explicit props.
-  const actionTabs: ActionTab[] = [
-    ...(showSelectAllAction
-      ? [
-          {
-            id: "selectAll" as const,
-            icon: isSelectingAll ? Loader2 : CheckCheck,
-            translationKey: "bulk.select_all",
-            translationParams: {
-              count: selectAllCount ?? selectedCount,
-            },
-            variant: "default" as const,
-            disabled: isSelectingAll,
-          },
-        ]
-      : []),
-    ...(showBulkEdit
-      ? [
-          {
-            id: "edit" as const,
-            icon: Edit,
-            translationKey: "actions.edit",
-            variant: "default" as const,
-          },
-        ]
-      : []),
-    {
-      id: "copy" as const,
-      icon: Copy,
-      translationKey: "actions.copy",
-      variant: "default",
-    },
-    ...(showBulkExport
-      ? [
-          {
-            id: "export" as const,
-            icon: Download,
-            translationKey: "actions.export",
-            variant: "default" as const,
-          },
-        ]
-      : []),
-    ...(showBulkDelete
-      ? [
-          {
-            id: "delete" as const,
-            icon: Trash2,
-            translationKey: "actions.delete",
-            variant: "destructive" as const,
-          },
-        ]
-      : []),
-  ];
-
-  useOnClickOutside(outsideClickRef as React.RefObject<HTMLElement>, () => {
+  useOnClickOutside(outsideClickRef as RefObject<HTMLElement>, () => {
     const nextState = getBulkMenuStateAfterOutsideClick({
       hoveredAction,
       isConfirmingAction,
@@ -470,17 +758,55 @@ export function BulkActionsMenu<TData>({
     setShowConfirmation(nextState.showConfirmation);
   });
 
-  // Don't render if no rows are selected
-  if (!selectedRows || selectedRows.length === 0) {
+  if (
+    !shouldRenderBulkActionsMenu(selectedRows) ||
+    dismissedSelectionKey === selectedRowsKey
+  ) {
     return null;
   }
 
-  const handleTabClick = (actionId: MenuActionId) => {
+  const dismissMenu = () => {
+    setDismissedSelectionKey(selectedRowsKey);
+  };
+
+  const handleCustomActionResult = (result: BulkActionResult | undefined) => {
+    if (!result) {
+      return;
+    }
+
+    showBulkActionResultMessage(result);
+    applyCustomBulkActionResult({
+      result,
+      onClearSelection: onClearSelection ?? onClose,
+      onDismissMenu: dismissMenu,
+    });
+  };
+
+  const handleTabClick = (tab: BulkActionsMenuActionTab<TData>) => {
     if (isConfirmingAction) {
       return;
     }
 
-    if (actionId === "selectAll") {
+    if (tab.disabled) {
+      return;
+    }
+
+    if (tab.kind === "custom") {
+      if (tab.action.confirm) {
+        pendingActionRef.current = tab;
+        setSelectedAction(tab.id);
+        setShowConfirmation(true);
+        return;
+      }
+
+      executeCustomBulkAction({
+        action: tab.action,
+        context: actionContext,
+      }).then(handleCustomActionResult);
+      return;
+    }
+
+    if (tab.id === "selectAll") {
       if (!onSelectAll || isSelectingAll) {
         return;
       }
@@ -489,9 +815,9 @@ export function BulkActionsMenu<TData>({
       return;
     }
 
-    if (actionId === "edit" || actionId === "export") {
+    if (tab.id === "edit" || tab.id === "export") {
       executeImmediateBulkAction({
-        actionId,
+        actionId: tab.id,
         onBulkEdit,
         onBulkExport,
         selectedRows,
@@ -503,8 +829,8 @@ export function BulkActionsMenu<TData>({
       return;
     }
 
-    pendingActionRef.current = actionId;
-    setSelectedAction(actionId);
+    pendingActionRef.current = tab;
+    setSelectedAction(tab.id);
     setShowConfirmation(true);
   };
 
@@ -519,8 +845,33 @@ export function BulkActionsMenu<TData>({
     }
 
     setIsConfirmingAction(true);
+    if (pendingAction.kind === "custom") {
+      confirmationLockRef.current = true;
+      executeCustomBulkAction({
+        action: pendingAction.action,
+        context: actionContext,
+      })
+        .then(handleCustomActionResult)
+        .finally(() => {
+          confirmationLockRef.current = false;
+          pendingActionRef.current = null;
+          setSelectedAction(null);
+          setShowConfirmation(false);
+          setIsConfirmingAction(false);
+        });
+      return;
+    }
+
+    if (pendingAction.id !== "copy" && pendingAction.id !== "delete") {
+      pendingActionRef.current = null;
+      setSelectedAction(null);
+      setShowConfirmation(false);
+      setIsConfirmingAction(false);
+      return;
+    }
+
     executeConfirmableBulkActionWithLock({
-      action: pendingAction,
+      action: pendingAction.id,
       lockRef: confirmationLockRef,
       onBulkCopy,
       onBulkDelete,
@@ -563,7 +914,90 @@ export function BulkActionsMenu<TData>({
     return actionTabs.find((tab) => tab.id === selectedAction);
   };
 
-  // deprecated: button variant now handled by AlertDialogAction styling
+  const getActionLabel = (tab: BulkActionsMenuActionTab<TData> | undefined) => {
+    if (!tab) {
+      return "";
+    }
+
+    return tab.kind === "custom"
+      ? tab.label
+      : t(tab.translationKey, tab.translationParams);
+  };
+
+  const resolveConfirmText = (
+    value: string | ((ctx: BulkActionContext<TData>) => string) | undefined
+  ) => {
+    return typeof value === "function" ? value(actionContext) : value;
+  };
+
+  const getConfirmationTitle = () => {
+    const currentAction = getSelectedAction();
+    if (currentAction?.kind === "custom") {
+      const customTitle = resolveConfirmText(currentAction.action.confirm?.title);
+      if (customTitle) {
+        return customTitle;
+      }
+    }
+
+    return t("bulk.confirm_title", {
+      action: getActionLabel(currentAction),
+      count: selectedCount,
+    });
+  };
+
+  const getConfirmationDescription = () => {
+    const currentAction = getSelectedAction();
+    if (currentAction?.kind === "custom") {
+      const customDescription = resolveConfirmText(
+        currentAction.action.confirm?.description
+      );
+      if (customDescription) {
+        return customDescription;
+      }
+    }
+
+    if (currentAction?.variant === "destructive") {
+      return t("bulk.confirm_delete_description");
+    }
+
+    return t("bulk.confirm_copy_description", {
+      count: selectedCount,
+    });
+  };
+
+  const getCancelLabel = () => {
+    const currentAction = getSelectedAction();
+    if (currentAction?.kind === "custom") {
+      const cancelLabel = resolveConfirmText(
+        currentAction.action.confirm?.cancelLabel
+      );
+      if (cancelLabel) {
+        return cancelLabel;
+      }
+    }
+
+    return t("actions.cancel");
+  };
+
+  const getConfirmLabel = () => {
+    const currentAction = getSelectedAction();
+    if (isConfirmingAction) {
+      return t("common.loading");
+    }
+
+    if (currentAction?.kind === "custom") {
+      const confirmLabel = resolveConfirmText(
+        currentAction.action.confirm?.confirmLabel
+      );
+      if (confirmLabel) {
+        return confirmLabel;
+      }
+    }
+
+    return t("actions.confirm");
+  };
+
+  const selectedActionTab = getSelectedAction();
 
   return (
     <LazyMotion features={domAnimation}>
@@ -589,43 +1023,28 @@ export function BulkActionsMenu<TData>({
           >
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>
-                  {t("bulk.confirm_title", {
-                    action: t(getSelectedAction()?.translationKey || ""),
-                    count: selectedCount,
-                  })}
-                </AlertDialogTitle>
-                {selectedAction === "delete" ? (
-                  <AlertDialogDescription>
-                    {t("bulk.confirm_delete_description")}
-                  </AlertDialogDescription>
-                ) : (
-                  <AlertDialogDescription>
-                    {t("bulk.confirm_copy_description", {
-                      count: selectedCount,
-                    })}
-                  </AlertDialogDescription>
-                )}
+                <AlertDialogTitle>{getConfirmationTitle()}</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {getConfirmationDescription()}
+                </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel
                   disabled={isConfirmingAction}
                   onClick={handleCancel}
                 >
-                  {t("actions.cancel")}
+                  {getCancelLabel()}
                 </AlertDialogCancel>
                 <AlertDialogAction
                   className={
-                    selectedAction === "delete"
+                    selectedActionTab?.variant === "destructive"
                       ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
                       : undefined
                   }
                   disabled={isConfirmingAction}
                   onClick={handleConfirmAction}
                 >
-                  {isConfirmingAction
-                    ? t("common.loading")
-                    : t("actions.confirm")}
+                  {getConfirmLabel()}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -655,7 +1074,10 @@ export function BulkActionsMenu<TData>({
                   animate="animate"
                   className={cn(
                     "relative flex items-center rounded-xl px-4 py-2 font-medium text-sm transition-colors duration-300",
-                    tab.disabled && "cursor-wait opacity-70",
+                    tab.disabled &&
+                      (tab.kind === "built-in" && tab.id === "selectAll"
+                        ? "cursor-wait opacity-70"
+                        : "cursor-not-allowed opacity-50"),
                     tab.variant === "destructive"
                       ? "text-destructive hover:bg-destructive/10 hover:text-destructive"
                       : "text-secondary-foreground/70 hover:bg-background/80 hover:text-secondary-foreground"
@@ -664,7 +1086,7 @@ export function BulkActionsMenu<TData>({
                   disabled={tab.disabled}
                   initial={false}
                   key={tab.id}
-                  onClick={() => handleTabClick(tab.id)}
+                  onClick={() => handleTabClick(tab)}
                   onMouseEnter={() => setHoveredAction(tab.id)}
                   onMouseLeave={() => setHoveredAction(null)}
                   type="button"
@@ -673,7 +1095,8 @@ export function BulkActionsMenu<TData>({
                 >
                   <Icon
                     className={cn(
-                      tab.id === "selectAll" &&
+                      tab.kind === "built-in" &&
+                        tab.id === "selectAll" &&
                         isSelectingAll &&
                         "animate-spin"
                     )}
@@ -689,7 +1112,7 @@ export function BulkActionsMenu<TData>({
                         transition={transition}
                         variants={spanVariants}
                       >
-                        {t(tab.translationKey, tab.translationParams)}
+                        {getActionLabel(tab)}
                       </m.span>
                     )}
                   </AnimatePresence>

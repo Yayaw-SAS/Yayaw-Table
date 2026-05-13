@@ -5,6 +5,16 @@
 
 // Main component
 export { DataTable } from "./components/data-table";
+export type {
+  BulkAction,
+  BulkActionConfirmConfig,
+  BulkActionContext,
+  BulkActionHandler,
+  BulkActionHandlerResult,
+  BulkActionResult,
+  BulkActionVariant,
+  CustomBulkActionsInput,
+} from "./components/bulk-actions";
 export {
   CatalogueForm,
   CollectionEditor,

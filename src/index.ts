@@ -4,6 +4,16 @@ export type {
   DataTableColumnsConfig,
   DataTableConfig,
 } from "./components/ui/yayaw-table/atoms/config-atoms";
+export type {
+  BulkAction,
+  BulkActionConfirmConfig,
+  BulkActionContext,
+  BulkActionHandler,
+  BulkActionHandlerResult,
+  BulkActionResult,
+  BulkActionVariant,
+  CustomBulkActionsInput,
+} from "./components/ui/yayaw-table/components/bulk-actions";
 // Export main components
 export { DataTable } from "./components/ui/yayaw-table/components/data-table";
 export type {

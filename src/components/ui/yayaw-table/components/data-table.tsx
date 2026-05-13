@@ -27,6 +27,7 @@ import type {
   ToolbarActionsPlacement,
 } from "../types/toolbar-types";
 import type { DataTableTranslations } from "../types/translations";
+import type { CustomBulkActionsInput } from "./bulk-actions";
 import { DataTableSkeleton } from "./data-table-skeleton";
 // Lazy load heavy components using React.lazy inside './forms/lazy-forms'
 import { LazyCatalogueFormContainer as CatalogueFormContainer } from "./forms/lazy-forms";
@@ -113,6 +114,7 @@ function DataTableContent({
   onBulkDelete,
   onBulkCopy,
   onBulkExport,
+  customBulkActions,
   closeOnError,
   onRowClick,
   showDefaultToastsForCustomHandlers,
@@ -143,6 +145,7 @@ function DataTableContent({
   onBulkExport?: (
     rows: Row<Record<string, unknown>>[]
   ) => Promise<BulkActionCustomHandlerResult> | BulkActionCustomHandlerResult;
+  customBulkActions?: CustomBulkActionsInput<Record<string, unknown>>;
   closeOnError?: boolean;
   onRowClick?: (
     url: string,
@@ -330,6 +333,7 @@ function DataTableContent({
                 key={`${tableId}-${visibilityKey}`}
                 loadingOverlay={loadingOverlay}
                 closeOnError={closeOnError}
+                customBulkActions={customBulkActions}
                 onBulkCopy={onBulkCopy}
                 onBulkDelete={onBulkDelete}
                 onBulkEdit={onBulkEdit}
