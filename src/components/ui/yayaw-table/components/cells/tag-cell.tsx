@@ -96,7 +96,7 @@ export interface TagCellProps {
   className?: string;
 
   /**
-   * Optional map of tag value → Tailwind color class (e.g. "bg-red-500/80 text-white").
+   * Optional map of tag value → Tailwind color class (e.g. "bg-red-500/80 text-white dark:bg-red-600/90").
    * When provided, matching values use this class; others use the deterministic hash.
    * Lookup tries the raw value then the normalized (trim + lowerCase) value.
    */

@@ -29,6 +29,9 @@
     "closeMenu": "Close navigation menu",
     "language": "Language",
     "theme": "Theme",
+    "themeDark": "Dark",
+    "themeLight": "Light",
+    "themeSystem": "System",
     "home": "Home"
   },
   "Home": {

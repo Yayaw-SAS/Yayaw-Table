@@ -63,6 +63,10 @@ export default async function ExampleLayout({
           install: nav("install"),
           language: nav("language"),
           openMenu: nav("openMenu"),
+          theme: nav("theme"),
+          themeDark: nav("themeDark"),
+          themeLight: nav("themeLight"),
+          themeSystem: nav("themeSystem"),
         }}
         locale={currentLocale}
       />

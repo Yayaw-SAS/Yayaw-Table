@@ -99,6 +99,10 @@ export default async function HomePage({
           install: nav("install"),
           language: nav("language"),
           openMenu: nav("openMenu"),
+          theme: nav("theme"),
+          themeDark: nav("themeDark"),
+          themeLight: nav("themeLight"),
+          themeSystem: nav("themeSystem"),
         }}
         locale={currentLocale}
       />

@@ -38,11 +38,14 @@ import { translateWithFallback } from "./i18n-utils";
 
 // Colors for different data types
 const typeColors = {
-  text: "text-blue-600 bg-blue-50 border-blue-200",
-  number: "text-emerald-600 bg-emerald-50 border-emerald-200",
-  date: "text-purple-600 bg-purple-50 border-purple-200",
-  select: "text-orange-600 bg-orange-50 border-orange-200",
-  multiSelect: "text-pink-600 bg-pink-50 border-pink-200",
+  date: "border-purple-200 bg-purple-50 text-purple-600 dark:border-purple-400/30 dark:bg-purple-500/15 dark:text-purple-300",
+  multiSelect:
+    "border-pink-200 bg-pink-50 text-pink-600 dark:border-pink-400/30 dark:bg-pink-500/15 dark:text-pink-300",
+  number:
+    "border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-400/30 dark:bg-emerald-500/15 dark:text-emerald-300",
+  select:
+    "border-orange-200 bg-orange-50 text-orange-600 dark:border-orange-400/30 dark:bg-orange-500/15 dark:text-orange-300",
+  text: "border-blue-200 bg-blue-50 text-blue-600 dark:border-blue-400/30 dark:bg-blue-500/15 dark:text-blue-300",
 } as const;
 
 // Categories for organizing columns
@@ -57,31 +60,31 @@ const categories = {
     label: "Popular",
     labelKey: "filters.add_menu.categories.popular",
     icon: Zap,
-    color: "text-amber-600",
+    color: "text-amber-600 dark:text-amber-400",
   },
   text: {
     label: "Text fields",
     labelKey: "filters.add_menu.categories.text",
     icon: Type,
-    color: "text-blue-600",
+    color: "text-blue-600 dark:text-blue-400",
   },
   number: {
     label: "Number fields",
     labelKey: "filters.add_menu.categories.number",
     icon: Hash,
-    color: "text-emerald-600",
+    color: "text-emerald-600 dark:text-emerald-400",
   },
   date: {
     label: "Date fields",
     labelKey: "filters.add_menu.categories.date",
     icon: Calendar,
-    color: "text-purple-600",
+    color: "text-purple-600 dark:text-purple-400",
   },
   select: {
     label: "Selection fields",
     labelKey: "filters.add_menu.categories.select",
     icon: Tag,
-    color: "text-orange-600",
+    color: "text-orange-600 dark:text-orange-400",
   },
 } as const;
 
