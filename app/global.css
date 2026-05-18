@@ -177,6 +177,16 @@
 }
 
 @layer utilities {
+  /* Keep the Fumadocs sidebar utility footer compact around the GitHub and theme controls. */
+  #nd-sidebar > div.flex.flex-col.p-4.pt-2 > div:has(> [data-theme-toggle]) {
+    width: fit-content;
+    margin-inline-start: auto;
+  }
+
+  #nd-sidebar [data-theme-toggle] {
+    margin-inline-start: 0;
+  }
+
   .bg-site-gradient {
     background-image:
       radial-gradient(
