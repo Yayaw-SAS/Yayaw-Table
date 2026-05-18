@@ -26,6 +26,91 @@ This prevents a no-op scenario where outside-click events would reset state whil
 - `copy`: always requires confirmation.
 - `delete`: always requires confirmation.
 
+## Custom bulk actions
+
+Use `customBulkActions` on `DataTable` when selected rows need app-specific operations such as publish, archive, approve, or sync. The prop accepts either a static array or a callback that receives the current selection context.
+
+Custom actions render after the built-in export action and before the built-in delete action. They use the same execution result contract as built-in bulk callbacks.
+
+```tsx
+import { Archive, Send } from "lucide-react";
+import { DataTable } from "@/components/ui/yayaw-table";
+
+<DataTable
+  tableType="entries"
+  customBulkActions={(ctx) => [
+    {
+      id: "publish-selected",
+      label: "Publish",
+      icon: Send,
+      disabled: ctx.selectedCount === 0,
+      onClick: async () => {
+        await publishEntries(ctx.selectedOriginalRows);
+
+        return {
+          success: true,
+          closeMenu: true,
+          clearSelection: true,
+          message: `Published ${ctx.selectedCount} entries`,
+        };
+      },
+    },
+    {
+      id: "archive-selected",
+      label: "Archive",
+      icon: Archive,
+      variant: "destructive",
+      confirm: {
+        title: "Archive selected entries?",
+        description: `Archive ${ctx.selectedCount} selected entries.`,
+        confirmLabel: "Archive",
+      },
+      onClick: async () => {
+        await archiveEntries(ctx.selectedOriginalRows);
+
+        return {
+          success: true,
+          closeMenu: true,
+          clearSelection: true,
+        };
+      },
+    },
+  ]}
+/>
+```
+
+The selection context contains:
+
+```ts
+type BulkActionContext<TData> = {
+  selectedRows: Row<TData>[];
+  selectedOriginalRows: TData[];
+  selectedCount: number;
+};
+```
+
+The action definition is:
+
+```ts
+type BulkAction<TData> = {
+  id: string;
+  label: string;
+  icon: ComponentType<{ className?: string; size?: number }>;
+  onClick: (ctx: BulkActionContext<TData>) =>
+    | BulkActionResult
+    | void
+    | Promise<BulkActionResult | void>;
+  disabled?: boolean | ((ctx: BulkActionContext<TData>) => boolean);
+  variant?: "default" | "destructive";
+  confirm?: {
+    title?: string | ((ctx: BulkActionContext<TData>) => string);
+    description?: string | ((ctx: BulkActionContext<TData>) => string);
+    confirmLabel?: string | ((ctx: BulkActionContext<TData>) => string);
+    cancelLabel?: string | ((ctx: BulkActionContext<TData>) => string);
+  };
+};
+```
+
 ## Bulk callback contract
 
 Recommended return shape:

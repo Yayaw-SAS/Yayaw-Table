@@ -111,6 +111,34 @@ Inject custom actions in the selected-row bulk actions menu. Supports a static a
 
 Type: `BulkAction<TData>[] | ((ctx: BulkActionContext<TData>) => BulkAction<TData>[])` | Default: `undefined`
 
+Custom actions render after the built-in export action and before the built-in delete action. A custom action can be disabled from the current selection context, can ask for confirmation, and can return a `BulkActionResult` to control menu closing, selection clearing, and user feedback.
+
+```ts
+type BulkActionContext<TData> = {
+  selectedRows: Row<TData>[];
+  selectedOriginalRows: TData[];
+  selectedCount: number;
+};
+
+type BulkAction<TData> = {
+  id: string;
+  label: string;
+  icon: ComponentType<{ className?: string; size?: number }>;
+  onClick: (ctx: BulkActionContext<TData>) =>
+    | BulkActionResult
+    | void
+    | Promise<BulkActionResult | void>;
+  disabled?: boolean | ((ctx: BulkActionContext<TData>) => boolean);
+  variant?: "default" | "destructive";
+  confirm?: {
+    title?: string | ((ctx: BulkActionContext<TData>) => string);
+    description?: string | ((ctx: BulkActionContext<TData>) => string);
+    confirmLabel?: string | ((ctx: BulkActionContext<TData>) => string);
+    cancelLabel?: string | ((ctx: BulkActionContext<TData>) => string);
+  };
+};
+```
+
 ### toolbarActions
 Inject custom actions in the main toolbar. Supports a static array or a callback receiving live toolbar context.
 

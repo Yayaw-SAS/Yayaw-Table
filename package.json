@@ -1,7 +1,7 @@
 {
   "name": "yayaw-table-workspace",
   "private": true,
-  "version": "0.3.0",
+  "version": "1.0.0",
   "description": "A flexible data table component library for React with user-defined configurations",
   "scripts": {
     "build": "fumadocs-mdx && next build",

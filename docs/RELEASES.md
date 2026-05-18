@@ -28,13 +28,13 @@ npx shadcn@latest add https://table.yayaw.eu
 Pinned installs use a release snapshot:
 
 ```bash
-pnpm dlx shadcn@latest add https://table.yayaw.eu/r/v0.1.0/yayaw-table.json
+pnpm dlx shadcn@latest add https://table.yayaw.eu/r/v1.0.0/yayaw-table.json
 # or
-npx shadcn@latest add https://table.yayaw.eu/r/v0.1.0/yayaw-table.json
+npx shadcn@latest add https://table.yayaw.eu/r/v1.0.0/yayaw-table.json
 # or
-yarn dlx shadcn@latest add https://table.yayaw.eu/r/v0.1.0/yayaw-table.json
+yarn dlx shadcn@latest add https://table.yayaw.eu/r/v1.0.0/yayaw-table.json
 # or
-bunx --bun shadcn@latest add https://table.yayaw.eu/r/v0.1.0/yayaw-table.json
+bunx --bun shadcn@latest add https://table.yayaw.eu/r/v1.0.0/yayaw-table.json
 ```
 
 Optional CLI v4 items are published alongside the default block:

@@ -1,0 +1,20 @@
+{
+  "name": "yayaw-table",
+  "version": "1.0.0",
+  "files": {
+    "registry": "registry.json",
+    "items": {
+      "yayaw-table": "yayaw-table.json",
+      "font-yayaw-sans": "font-yayaw-sans.json",
+      "yayaw-table-base": "yayaw-table-base.json"
+    }
+  },
+  "latest": {
+    "registry": "../registry.json",
+    "items": {
+      "yayaw-table": "../yayaw-table.json",
+      "font-yayaw-sans": "../font-yayaw-sans.json",
+      "yayaw-table-base": "../yayaw-table-base.json"
+    }
+  }
+}

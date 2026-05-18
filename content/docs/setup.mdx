@@ -546,6 +546,7 @@ All props are optional except `tableType`.
 | `onExport` | `(rows) => void \| Promise<void>` | Override toolbar export behavior (all filtered rows). |
 | `onBulkExport` | `(rows) => void \| Promise<void>` | Override bulk CSV export behavior (selected rows). |
 | `onBulkEdit`, `onBulkDelete`, `onBulkCopy` | `(rows) => BulkActionResult \| void` | Override bulk behavior; explicit result contract is recommended for deterministic close/selection behavior. |
+| `customBulkActions` | `BulkAction<TData>[] \| ((ctx) => BulkAction<TData>[])` | Add typed custom actions to the selected-row bulk actions menu. |
 | `loadingOverlay` | `ReactNode` | Custom loading UI. |
 | `TitleComponent`, `DescriptionComponent` | `ComponentType` | Custom title/description components. |
 
