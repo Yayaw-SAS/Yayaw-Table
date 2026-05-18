@@ -1,6 +1,6 @@
 "use client";
 
-import { Menu, X } from "lucide-react";
+import { Github, Menu, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -12,6 +12,7 @@ import { ThemeToggle } from "@/src/components/ui/custom/theme-toggle";
 import { getLocalizedHref, stripLocalePrefix } from "@/src/i18n/pathnames";
 import type { AppLocale } from "@/src/i18n/routing";
 import { LATEST_INSTALL_COMMANDS } from "@/src/lib/package-manager";
+import { siteConfig } from "@/src/lib/site-config";
 import { LanguageSwitcher } from "./language-switcher";
 import { usePackageManager } from "./package-manager-provider";
 
@@ -101,6 +102,15 @@ export function SiteHeader({ labels, locale }: SiteHeaderProps) {
             className="rounded-md border border-border/60"
             variant="switch"
           />
+          <a
+            aria-label="GitHub"
+            className={buttonVariants({ size: "icon-sm", variant: "ghost" })}
+            href={siteConfig.githubUrl}
+            rel="noopener"
+            target="_blank"
+          >
+            <Github className="size-4" />
+          </a>
           <CopyTextButton
             className="font-medium"
             copiedLabel={labels.copied}
@@ -145,6 +155,18 @@ export function SiteHeader({ labels, locale }: SiteHeaderProps) {
             <div className="mt-2 flex items-center justify-between gap-2">
               <LanguageSwitcher ariaLabel={labels.language} locale={locale} />
               <ThemeToggle variant="switch" />
+              <a
+                aria-label="GitHub"
+                className={buttonVariants({
+                  size: "icon-sm",
+                  variant: "ghost",
+                })}
+                href={siteConfig.githubUrl}
+                rel="noopener"
+                target="_blank"
+              >
+                <Github className="size-4" />
+              </a>
             </div>
             <CopyTextButton
               className="mt-2 w-full"
