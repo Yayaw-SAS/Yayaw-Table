@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.0.0
+
+### Major Changes
+
+- Promote YaYaw Table to the first stable Shadcn registry release. Versioned registry snapshots now publish under `public/r/v1.0.0/`, with the moving latest registry still available at `/r/yayaw-table.json`.
+
+### Minor Changes
+
+- 76e5936: Add an opt-in catalogue form modal layout with configurable width while keeping the right-side drawer as the default.
+- 141a46f: Add a typed `customBulkActions` API for rendering selected-row actions inside the bulk actions menu.
+- 4e4468c: Hide pagination controls when the known total fits on one page and remove the legacy direct `DataTablePagination` export. Consumers should use the main `DataTable` API; direct `DataTablePagination` imports are no longer supported.
+- 3e9d369: Add a native collection form field for controlled array editing, including row actions, validation, nested collection support, documentation, and tests.
+- c02bda4: Add first-class polymorphic table support by separating table ids, table config types, and form config types. Form configs now receive row/value context for dynamic fields, edit forms can resolve their form type per row, toolbar actions receive selected-row context, and standard row actions support row-aware guards.
+
+### Patch Changes
+
+- 767d53c: Restore table config normalization for nested `defineTableConfig` consumers, preserving table options, sort state, translations, and row-aware guards in registry installs.
+- b217953: Keep the date-filter calendar internal to the YaYaw Table registry so installs do not overwrite the host app's shadcn calendar component.
+- d8e9f57: Disable footer column calculations by default so tables opt in with `enableCalculations: true`.
+- 340109b: Avoid `DrawerClose asChild` in the registry form drawer so shadcn base-style transforms do not emit invalid Vaul `render` props.
+- 4047011: Fix registry compatibility with react-day-picker v10, restore backward-compatible translation keys for existing consumers, and avoid relying on DialogClose render props in the catalogue form modal.
+- 30fee24: Avoid pinning YaYaw Table registry dependencies so updates do not downgrade consumer package ranges.
+
 ## 0.3.0
 
 ### Minor Changes

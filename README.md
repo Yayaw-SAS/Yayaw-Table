@@ -11,7 +11,7 @@ Flexible, type-safe data table for React. One component, clean API, minimal boil
 - **Filters** – Column filters and advanced filters panel; filter presets supported
 - **Number & currency** – Right-aligned number columns with configurable format (thousands/decimal separators, prefix/suffix)
 - **Column types** – Text, tag, number, boolean, date; extensible via `columnTypeMapping`
-- **Bulk actions** – Edit, copy, export (CSV), delete; bulk edit with generated forms
+- **Bulk actions** – Edit, copy, export (CSV), delete, and typed custom actions for selected rows
 - **Type-safe** – Strong TypeScript types out of the box
 - **Accessible** – Keyboard navigation and ARIA-friendly UI
 - **Tailwind-ready** – Easy to style; works with Shadcn UI
@@ -39,13 +39,13 @@ bunx --bun shadcn@latest add https://table.yayaw.eu/r/yayaw-table.json
 To install a pinned release instead of the moving latest registry item:
 
 ```bash
-pnpm dlx shadcn@latest add https://table.yayaw.eu/r/v0.1.0/yayaw-table.json
+pnpm dlx shadcn@latest add https://table.yayaw.eu/r/v1.0.0/yayaw-table.json
 # or
-npx shadcn@latest add https://table.yayaw.eu/r/v0.1.0/yayaw-table.json
+npx shadcn@latest add https://table.yayaw.eu/r/v1.0.0/yayaw-table.json
 # or
-yarn dlx shadcn@latest add https://table.yayaw.eu/r/v0.1.0/yayaw-table.json
+yarn dlx shadcn@latest add https://table.yayaw.eu/r/v1.0.0/yayaw-table.json
 # or
-bunx --bun shadcn@latest add https://table.yayaw.eu/r/v0.1.0/yayaw-table.json
+bunx --bun shadcn@latest add https://table.yayaw.eu/r/v1.0.0/yayaw-table.json
 ```
 
 If your project has the `@yayaw` registry namespace configured:
@@ -116,6 +116,7 @@ Common props:
 - **getTableConfig** / **getTableActions** – Configuration and server actions resolver
 - **loadingOverlay** – Custom loading UI
 - **onRowSelectionChange**, **onBulkDelete**, **onBulkEdit**, **onBulkCopy**
+- **customBulkActions** – Add selected-row actions to the bulk actions menu
 - **enableAdvancedFilters** – Toggle advanced filters UI
 - **columnTypeMapping** – Map backend data types to internal renderers
 
@@ -127,6 +128,7 @@ Docs live in this repo under `content/docs/`. Full documentation (when the site 
 - [Installation](./content/docs/installation.mdx)
 - [Provider & setup](./content/docs/setup.mdx)
 - [DataTable reference](./content/docs/datatable.mdx)
+- [Bulk Actions](./content/docs/bulk-actions.mdx)
 - [Configuration](./content/docs/configuration.mdx)
 - [Columns](./content/docs/columns.mdx)
 - [Actions](./content/docs/actions.mdx)
