@@ -1,7 +1,9 @@
 import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared";
 import Image from "next/image";
+import { siteConfig } from "@/src/lib/site-config";
 
 export const baseOptions: BaseLayoutProps = {
+  githubUrl: siteConfig.githubUrl,
   nav: {
     title: (
       <span className="inline-flex items-center gap-2">
