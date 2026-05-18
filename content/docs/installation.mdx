@@ -117,6 +117,49 @@ If no QueryClient is available, YaYaw Table throws an explicit developer error a
 
 YaYaw Table uses Tailwind CSS. Ensure Tailwind is configured in your project.
 
+## Theme support
+
+YaYaw Table follows the host Shadcn theme. The copied components use CSS
+variables such as `background`, `foreground`, `muted`, and `border`, plus
+`dark:` variants for the few places that need explicit dark styling.
+
+For `light`, `dark`, and `system` modes, your app should map the active theme
+to the `.dark` class. In a Next.js app, the common setup is `next-themes`:
+
+```tsx
+"use client";
+
+import { ThemeProvider } from "next-themes";
+import type { ReactNode } from "react";
+
+export function Providers({ children }: { children: ReactNode }) {
+  return (
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="system"
+      disableTransitionOnChange
+      enableSystem
+    >
+      {children}
+    </ThemeProvider>
+  );
+}
+```
+
+With Tailwind CSS v4, keep the Shadcn dark variant in your global CSS:
+
+```css
+@custom-variant dark (&:is(.dark *));
+```
+
+With Tailwind CSS v3, use class-based dark mode in `tailwind.config`:
+
+```ts
+export default {
+  darkMode: "class",
+};
+```
+
 ## TypeScript
 
 YaYaw Table is fully typed and ships type-safe configuration helpers in the copied source.

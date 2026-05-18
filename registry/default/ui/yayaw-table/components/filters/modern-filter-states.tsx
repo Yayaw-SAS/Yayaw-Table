@@ -144,11 +144,11 @@ export function FilterEmptyState({
       {/* Animated Icon */}
       <div className="relative mb-4">
         <div className="absolute inset-0 animate-pulse">
-          <div className="mx-auto h-16 w-16 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 opacity-50" />
+          <div className="mx-auto h-16 w-16 rounded-full bg-primary/10 opacity-70" />
         </div>
         <div className="relative">
           <Filter className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
-          <Sparkles className="absolute -top-1 -right-1 h-4 w-4 animate-bounce text-blue-400" />
+          <Sparkles className="absolute -top-1 -right-1 h-4 w-4 animate-bounce text-primary" />
         </div>
       </div>
 
@@ -163,10 +163,7 @@ export function FilterEmptyState({
       {/* Actions */}
       {showAddButton && onAddFilter && (
         <div className="space-y-3">
-          <Button
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-            onClick={onAddFilter}
-          >
+          <Button onClick={onAddFilter}>
             <Plus className="mr-2 h-4 w-4" />
             {translateWithFallback(
               t,

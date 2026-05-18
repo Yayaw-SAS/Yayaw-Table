@@ -1,5 +1,6 @@
 "use client";
 
+import { Check, Monitor, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
@@ -11,16 +12,57 @@ import {
   DropdownMenuTrigger,
 } from "@/src/components/ui/dropdown-menu";
 
-import { Icon } from "./icon";
+type ThemeMode = "dark" | "light" | "system";
+
+interface ThemeToggleLabels {
+  dark: string;
+  light: string;
+  system: string;
+  theme: string;
+}
 
 interface ThemeToggleProps {
   className?: string;
+  labels?: Partial<ThemeToggleLabels>;
   variant?: "dropdown" | "switch";
 }
 
-function ThemeToggle({ className, variant = "dropdown" }: ThemeToggleProps) {
-  const { setTheme, resolvedTheme } = useTheme();
+const DEFAULT_LABELS: ThemeToggleLabels = {
+  dark: "Dark",
+  light: "Light",
+  system: "System",
+  theme: "Theme",
+};
+
+const THEME_OPTIONS: Array<{ labelKey: keyof ThemeToggleLabels; value: ThemeMode }> =
+  [
+    { labelKey: "light", value: "light" },
+    { labelKey: "dark", value: "dark" },
+    { labelKey: "system", value: "system" },
+  ];
+
+const THEME_ICONS = {
+  dark: Moon,
+  light: Sun,
+  system: Monitor,
+} as const;
+
+function normalizeTheme(theme: string | undefined): ThemeMode {
+  if (theme === "dark" || theme === "light") {
+    return theme;
+  }
+
+  return "system";
+}
+
+function ThemeToggle({
+  className,
+  labels,
+  variant = "dropdown",
+}: ThemeToggleProps) {
+  const { setTheme, theme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const resolvedLabels = { ...DEFAULT_LABELS, ...labels };
 
   useEffect(() => {
     setMounted(true);
@@ -36,6 +78,8 @@ function ThemeToggle({ className, variant = "dropdown" }: ThemeToggleProps) {
   const handleSwitchClick = useCallback(() => {
     toggleTheme(resolvedTheme === "dark" ? "light" : "dark");
   }, [resolvedTheme, toggleTheme]);
+  const activeTheme = normalizeTheme(theme);
+  const TriggerIcon = THEME_ICONS[activeTheme];
 
   if (!mounted) {
     return (
@@ -44,13 +88,13 @@ function ThemeToggle({ className, variant = "dropdown" }: ThemeToggleProps) {
         suppressHydrationWarning
       >
         <Button
-          aria-label="Theme"
+          aria-label={resolvedLabels.theme}
           className="group/toggle h-8 w-8 px-0 [&_svg]:size-4"
           disabled
           type="button"
           variant="ghost"
         >
-          <span className="sr-only">Theme</span>
+          <span className="sr-only">{resolvedLabels.theme}</span>
         </Button>
       </div>
     );
@@ -63,15 +107,15 @@ function ThemeToggle({ className, variant = "dropdown" }: ThemeToggleProps) {
         suppressHydrationWarning
       >
         <Button
-          aria-label="Theme"
+          aria-label={resolvedLabels.theme}
           className="group/toggle h-8 w-8 px-0 [&_svg]:size-4"
           onClick={handleSwitchClick}
           type="button"
           variant="ghost"
         >
-          <Icon className="hidden dark:block" name="Sun" />
-          <Icon className="block dark:hidden" name="Moon" />
-          <span className="sr-only">Theme</span>
+          <Sun className="hidden size-4 dark:block" />
+          <Moon className="block size-4 dark:hidden" />
+          <span className="sr-only">{resolvedLabels.theme}</span>
         </Button>
       </div>
     );
@@ -85,38 +129,34 @@ function ThemeToggle({ className, variant = "dropdown" }: ThemeToggleProps) {
       <DropdownMenu>
         <DropdownMenuTrigger
           render={
-            <Button size="icon" type="button" variant="ghost">
-              <Icon
-                className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0"
-                name="Sun"
-              />
-              <Icon
-                className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100"
-                name="Moon"
-              />
-              <span className="sr-only">Theme</span>
+            <Button
+              aria-label={resolvedLabels.theme}
+              size="icon"
+              type="button"
+              variant="ghost"
+            >
+              <TriggerIcon className="size-4" />
+              <span className="sr-only">{resolvedLabels.theme}</span>
             </Button>
           }
         />
         <DropdownMenuContent align="end">
-          <DropdownMenuItem
-            className="cursor-pointer"
-            onClick={() => toggleTheme("light")}
-          >
-            Light
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            className="cursor-pointer"
-            onClick={() => toggleTheme("dark")}
-          >
-            Dark
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            className="cursor-pointer"
-            onClick={() => toggleTheme("system")}
-          >
-            System
-          </DropdownMenuItem>
+          {THEME_OPTIONS.map((option) => {
+            const OptionIcon = THEME_ICONS[option.value];
+            const isActive = activeTheme === option.value;
+
+            return (
+              <DropdownMenuItem
+                className="cursor-pointer gap-2"
+                key={option.value}
+                onClick={() => toggleTheme(option.value)}
+              >
+                <OptionIcon className="size-4" />
+                <span>{resolvedLabels[option.labelKey]}</span>
+                {isActive && <Check className="ml-auto size-4" />}
+              </DropdownMenuItem>
+            );
+          })}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

@@ -694,7 +694,7 @@ export function TableColumnsMenu({
 
         {/* Hidden columns section */}
         {hasHiddenColumns && (
-          <div className="mt-4 border-gray-800 border-t pt-4">
+          <div className="mt-4 border-border border-t pt-4">
             <div className="mb-2 flex items-center justify-between">
               <div className="px-2 font-medium text-foreground text-sm">
                 {t("columns.hidden")}

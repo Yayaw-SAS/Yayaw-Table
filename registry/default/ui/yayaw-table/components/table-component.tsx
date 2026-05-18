@@ -1577,10 +1577,13 @@ function ModernDataTable<
             selectedGroupId,
             visibleCells.length,
             level,
-            <ColumnIcon className="text-green-600" columnType="select" />,
+            <ColumnIcon
+              className="text-green-600 dark:text-green-400"
+              columnType="select"
+            />,
             "☑️ Selected",
             selectedRows.length,
-            "rounded-full bg-green-100 px-2 py-0.5 text-green-700 text-xs"
+            "rounded-full bg-green-500/10 px-2 py-0.5 text-green-700 text-xs dark:bg-green-500/20 dark:text-green-300"
           )
         );
         if (localExpanded[selectedGroupId]) {
@@ -1598,7 +1601,7 @@ function ModernDataTable<
             null,
             "☐ Unselected",
             unselectedRows.length,
-            "rounded-full bg-gray-100 px-2 py-0.5 text-gray-700 text-xs"
+            "rounded-full bg-muted px-2 py-0.5 text-muted-foreground text-xs"
           )
         );
         if (localExpanded[unselectedGroupId]) {

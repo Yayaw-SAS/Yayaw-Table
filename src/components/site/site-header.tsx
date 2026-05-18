@@ -27,6 +27,10 @@ interface SiteHeaderLabels {
   install: string;
   language: string;
   openMenu: string;
+  theme: string;
+  themeDark: string;
+  themeLight: string;
+  themeSystem: string;
 }
 
 interface SiteHeaderProps {
@@ -44,6 +48,12 @@ export function SiteHeader({ labels, locale }: SiteHeaderProps) {
   const exampleHref = getLocalizedHref(locale, "/example");
   const installHref = getLocalizedHref(locale, "/docs/installation");
   const installCommand = LATEST_INSTALL_COMMANDS[packageManager];
+  const themeLabels = {
+    dark: labels.themeDark,
+    light: labels.themeLight,
+    system: labels.themeSystem,
+    theme: labels.theme,
+  };
   const items = [
     { href: docsHref, label: labels.docs, matchPathname: "/docs" },
     { href: exampleHref, label: labels.example, matchPathname: "/example" },
@@ -100,7 +110,7 @@ export function SiteHeader({ labels, locale }: SiteHeaderProps) {
           <LanguageSwitcher ariaLabel={labels.language} locale={locale} />
           <ThemeToggle
             className="rounded-md border border-border/60"
-            variant="switch"
+            labels={themeLabels}
           />
           <a
             aria-label="GitHub"
@@ -154,7 +164,7 @@ export function SiteHeader({ labels, locale }: SiteHeaderProps) {
             ))}
             <div className="mt-2 flex items-center justify-between gap-2">
               <LanguageSwitcher ariaLabel={labels.language} locale={locale} />
-              <ThemeToggle variant="switch" />
+              <ThemeToggle labels={themeLabels} />
               <a
                 aria-label="GitHub"
                 className={buttonVariants({
