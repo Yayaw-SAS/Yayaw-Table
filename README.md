@@ -27,25 +27,25 @@ Flexible, type-safe data table for React. One component, clean API, minimal boil
 From your project root:
 
 ```bash
-pnpm dlx shadcn@latest add https://table.yayaw.eu/r/yayaw-table.json
+pnpm dlx shadcn@latest add https://table.yayaw.app/r/yayaw-table.json
 # or
-npx shadcn@latest add https://table.yayaw.eu/r/yayaw-table.json
+npx shadcn@latest add https://table.yayaw.app/r/yayaw-table.json
 # or
-yarn dlx shadcn@latest add https://table.yayaw.eu/r/yayaw-table.json
+yarn dlx shadcn@latest add https://table.yayaw.app/r/yayaw-table.json
 # or
-bunx --bun shadcn@latest add https://table.yayaw.eu/r/yayaw-table.json
+bunx --bun shadcn@latest add https://table.yayaw.app/r/yayaw-table.json
 ```
 
 To install a pinned release instead of the moving latest registry item:
 
 ```bash
-pnpm dlx shadcn@latest add https://table.yayaw.eu/r/v1.0.0/yayaw-table.json
+pnpm dlx shadcn@latest add https://table.yayaw.app/r/v1.0.0/yayaw-table.json
 # or
-npx shadcn@latest add https://table.yayaw.eu/r/v1.0.0/yayaw-table.json
+npx shadcn@latest add https://table.yayaw.app/r/v1.0.0/yayaw-table.json
 # or
-yarn dlx shadcn@latest add https://table.yayaw.eu/r/v1.0.0/yayaw-table.json
+yarn dlx shadcn@latest add https://table.yayaw.app/r/v1.0.0/yayaw-table.json
 # or
-bunx --bun shadcn@latest add https://table.yayaw.eu/r/v1.0.0/yayaw-table.json
+bunx --bun shadcn@latest add https://table.yayaw.app/r/v1.0.0/yayaw-table.json
 ```
 
 If your project has the `@yayaw` registry namespace configured:
@@ -64,7 +64,7 @@ With shadcn CLI v4, the site root also supports content negotiation for CLI
 requests:
 
 ```bash
-npx shadcn@latest add https://table.yayaw.eu
+npx shadcn@latest add https://table.yayaw.app
 ```
 
 The CLI copies the code to `components/ui/yayaw-table` (or your `ui` alias) and installs required dependencies.
@@ -83,9 +83,9 @@ backward-compatible path.
 Useful shadcn CLI v4 inspection commands:
 
 ```bash
-npx shadcn@latest add https://table.yayaw.eu/r/yayaw-table.json --dry-run
-npx shadcn@latest add https://table.yayaw.eu/r/yayaw-table.json --diff
-npx shadcn@latest add https://table.yayaw.eu/r/yayaw-table.json --view
+npx shadcn@latest add https://table.yayaw.app/r/yayaw-table.json --dry-run
+npx shadcn@latest add https://table.yayaw.app/r/yayaw-table.json --diff
+npx shadcn@latest add https://table.yayaw.app/r/yayaw-table.json --view
 npx shadcn@latest view @yayaw/yayaw-table
 npx shadcn@latest search @yayaw
 npx shadcn@latest list @yayaw

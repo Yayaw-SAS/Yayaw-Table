@@ -9,32 +9,32 @@ published npm package. Versioning therefore has two responsibilities:
 The moving install URL remains:
 
 ```bash
-pnpm dlx shadcn@latest add https://table.yayaw.eu/r/yayaw-table.json
+pnpm dlx shadcn@latest add https://table.yayaw.app/r/yayaw-table.json
 # or
-npx shadcn@latest add https://table.yayaw.eu/r/yayaw-table.json
+npx shadcn@latest add https://table.yayaw.app/r/yayaw-table.json
 # or
-yarn dlx shadcn@latest add https://table.yayaw.eu/r/yayaw-table.json
+yarn dlx shadcn@latest add https://table.yayaw.app/r/yayaw-table.json
 # or
-bunx --bun shadcn@latest add https://table.yayaw.eu/r/yayaw-table.json
+bunx --bun shadcn@latest add https://table.yayaw.app/r/yayaw-table.json
 ```
 
 The shadcn CLI v4 can also install the default item from the site root via
 content negotiation:
 
 ```bash
-npx shadcn@latest add https://table.yayaw.eu
+npx shadcn@latest add https://table.yayaw.app
 ```
 
 Pinned installs use a release snapshot:
 
 ```bash
-pnpm dlx shadcn@latest add https://table.yayaw.eu/r/v1.0.0/yayaw-table.json
+pnpm dlx shadcn@latest add https://table.yayaw.app/r/v1.0.0/yayaw-table.json
 # or
-npx shadcn@latest add https://table.yayaw.eu/r/v1.0.0/yayaw-table.json
+npx shadcn@latest add https://table.yayaw.app/r/v1.0.0/yayaw-table.json
 # or
-yarn dlx shadcn@latest add https://table.yayaw.eu/r/v1.0.0/yayaw-table.json
+yarn dlx shadcn@latest add https://table.yayaw.app/r/v1.0.0/yayaw-table.json
 # or
-bunx --bun shadcn@latest add https://table.yayaw.eu/r/v1.0.0/yayaw-table.json
+bunx --bun shadcn@latest add https://table.yayaw.app/r/v1.0.0/yayaw-table.json
 ```
 
 Optional CLI v4 items are published alongside the default block:

@@ -13,8 +13,8 @@ export const DEFAULT_PACKAGE_MANAGER: PackageManager = "npm";
 
 export const PACKAGE_MANAGER_STORAGE_KEY = "yayaw-package-manager";
 
-export const LATEST_REGISTRY_URL = "https://table.yayaw.eu/r/yayaw-table.json";
-export const ROOT_REGISTRY_URL = "https://table.yayaw.eu";
+export const LATEST_REGISTRY_URL = "https://table.yayaw.app/r/yayaw-table.json";
+export const ROOT_REGISTRY_URL = "https://table.yayaw.app";
 export const YAYAW_BASE_REGISTRY_ITEM = "@yayaw/yayaw-table-base";
 export const YAYAW_FONT_REGISTRY_ITEM = "@yayaw/font-yayaw-sans";
 

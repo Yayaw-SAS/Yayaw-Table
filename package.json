@@ -110,7 +110,7 @@
   "bugs": {
     "url": "https://github.com/Yayaw-eu/Yayaw-Table/issues"
   },
-  "homepage": "https://table.yayaw.eu",
+  "homepage": "https://table.yayaw.app",
   "lint-staged": {
     "*.{js,jsx,ts,tsx,json,jsonc,css,scss,md,mdx}": [
       "bunx ultracite format"

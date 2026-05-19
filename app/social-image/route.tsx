@@ -111,7 +111,7 @@ export function GET() {
               fontSize: 24,
             }}
           >
-            table.yayaw.eu
+            table.yayaw.app
           </div>
         </div>
 

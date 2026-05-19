@@ -952,9 +952,9 @@
         }
       ],
       "meta": {
-        "registryUrl": "https://table.yayaw.eu/r/yayaw-table.json",
+        "registryUrl": "https://table.yayaw.app/r/yayaw-table.json",
         "version": "0.1.0",
-        "versionedRegistryUrl": "https://table.yayaw.eu/r/v0.1.0/yayaw-table.json"
+        "versionedRegistryUrl": "https://table.yayaw.app/r/v0.1.0/yayaw-table.json"
       }
     }
   ]

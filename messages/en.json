@@ -10,7 +10,7 @@
     "docsDescription": "Install, configure, and ship an open-source React data table for Shadcn UI and TanStack Table with complete guides and API references."
   },
   "Common": {
-    "installCommand": "npx shadcn@latest add https://table.yayaw.eu/r/yayaw-table.json",
+    "installCommand": "npx shadcn@latest add https://table.yayaw.app/r/yayaw-table.json",
     "copy": "Copy",
     "copied": "Copied",
     "copiedInstallCommand": "Installation command copied to clipboard.",
