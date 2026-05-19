@@ -34,9 +34,9 @@ Le site de doc (Next) sert tout ce qui est dans `public/` : une fois déployé, 
 
 Le registry a deux URLs publiques :
 
-- `https://table.yayaw.eu/r/yayaw-table.json` : canal `latest`, mis à jour à chaque build de registry.
-- `https://table.yayaw.eu/r/vX.Y.Z/yayaw-table.json` : snapshot immuable d'une release.
-- `https://table.yayaw.eu` : raccourci CLI v4 par négociation de contenu, équivalent à l'item `yayaw-table`.
+- `https://table.yayaw.app/r/yayaw-table.json` : canal `latest`, mis à jour à chaque build de registry.
+- `https://table.yayaw.app/r/vX.Y.Z/yayaw-table.json` : snapshot immuable d'une release.
+- `https://table.yayaw.app` : raccourci CLI v4 par négociation de contenu, équivalent à l'item `yayaw-table`.
 
 Le registry publie aussi deux items optionnels CLI v4 :
 

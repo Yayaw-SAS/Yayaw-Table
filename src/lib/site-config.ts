@@ -5,7 +5,7 @@ export const siteConfig = {
   name: "YaYaw Table",
   ogImageAlt: "YaYaw Table preview",
   title: "YaYaw Table",
-  url: "https://table.yayaw.eu",
+  url: "https://table.yayaw.app",
 } as const;
 
 export function getSiteUrl(pathname = "/"): string {

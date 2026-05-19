@@ -28,9 +28,9 @@
     }
   },
   "meta": {
-    "registryUrl": "https://table.yayaw.eu/r/yayaw-table-base.json",
+    "registryUrl": "https://table.yayaw.app/r/yayaw-table-base.json",
     "version": "0.2.0",
-    "versionedRegistryUrl": "https://table.yayaw.eu/r/v0.2.0/yayaw-table-base.json"
+    "versionedRegistryUrl": "https://table.yayaw.app/r/v0.2.0/yayaw-table-base.json"
   },
   "docs": "Installs a YaYaw-ready Shadcn base, the optional YaYaw Sans font preset, and YaYaw Table. Existing consumers can keep installing `yayaw-table` directly.",
   "categories": ["base", "theme", "yayaw-table"],
@@ -57,7 +57,7 @@
       "hooks": "@/hooks"
     },
     "registries": {
-      "@yayaw": "https://table.yayaw.eu/r/{name}.json"
+      "@yayaw": "https://table.yayaw.app/r/{name}.json"
     }
   }
 }
