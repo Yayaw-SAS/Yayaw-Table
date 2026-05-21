@@ -142,6 +142,60 @@ export const getTableActions = (tableType: string) => {
 
 Quand la table a besoin de données ou exécute une action, elle appellera ces fonctions. Dans Next.js, elles s'exécutent côté serveur ; les paramètres et valeurs de retour sont sérialisés automatiquement.
 
+### 4. Précharger la première page côté serveur
+
+Pour les dashboards et les pages d'administration, privilégiez un Server Component pour la première lecture. La table client reçoit cette même première page via `initialData`, puis TanStack Query gère les refresh, retry, tri, filtres et pagination suivants avec la même Server Action `list`.
+
+```tsx
+// app/example/products-page.tsx
+import { listProducts } from "./actions/products";
+import { ProductsTableClient } from "./products-table-client";
+
+export default async function ProductsPage() {
+  const initial = await listProducts({ limit: 10, page: 1 });
+
+  return (
+    <ProductsTableClient
+      initialData={initial.data}
+      initialPageCount={initial.meta.pageCount}
+      initialRowCount={initial.meta.totalCount}
+    />
+  );
+}
+```
+
+```tsx
+// app/example/products-table-client.tsx
+"use client";
+
+import { DataTable } from "@/components/ui/yayaw-table";
+import { listProducts } from "./actions/products";
+import { getTableConfig } from "./setup/table-config";
+
+export function ProductsTableClient({
+  initialData,
+  initialPageCount,
+  initialRowCount,
+}: {
+  initialData: Record<string, unknown>[];
+  initialPageCount: number;
+  initialRowCount: number;
+}) {
+  return (
+    <DataTable
+      getTableActions={() => ({ list: listProducts })}
+      getTableConfig={getTableConfig}
+      initialData={initialData}
+      initialPageCount={initialPageCount}
+      initialRowCount={initialRowCount}
+      tableType="products"
+    />
+  );
+}
+```
+
+Gardez l'autorisation, le scope tenant et le filtrage des données sensibles dans le code serveur qui appelle `listProducts`. Les props `initial*` sont seulement des lignes et compteurs sérialisés pour le premier rendu ; elles ne remplacent pas la Server Action utilisée par la table après hydratation.
+
 ## Structure des paramètres `list`
 
 L'action **list** reçoit un objet unique avec :

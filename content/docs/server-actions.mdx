@@ -142,6 +142,60 @@ export const getTableActions = (tableType: string) => {
 
 When the table needs data or runs an action, it will call these functions. In Next.js they run on the server; params and return values are serialized automatically.
 
+### 4. Preload the first page on the server
+
+For dashboards and admin pages, prefer a Server Component for the initial read. The client table receives the same first page as `initialData`, then TanStack Query handles later refreshes, retries, sorting, filtering, and pagination through the same `list` Server Action.
+
+```tsx
+// app/example/products-page.tsx
+import { listProducts } from "./actions/products";
+import { ProductsTableClient } from "./products-table-client";
+
+export default async function ProductsPage() {
+  const initial = await listProducts({ limit: 10, page: 1 });
+
+  return (
+    <ProductsTableClient
+      initialData={initial.data}
+      initialPageCount={initial.meta.pageCount}
+      initialRowCount={initial.meta.totalCount}
+    />
+  );
+}
+```
+
+```tsx
+// app/example/products-table-client.tsx
+"use client";
+
+import { DataTable } from "@/components/ui/yayaw-table";
+import { listProducts } from "./actions/products";
+import { getTableConfig } from "./setup/table-config";
+
+export function ProductsTableClient({
+  initialData,
+  initialPageCount,
+  initialRowCount,
+}: {
+  initialData: Record<string, unknown>[];
+  initialPageCount: number;
+  initialRowCount: number;
+}) {
+  return (
+    <DataTable
+      getTableActions={() => ({ list: listProducts })}
+      getTableConfig={getTableConfig}
+      initialData={initialData}
+      initialPageCount={initialPageCount}
+      initialRowCount={initialRowCount}
+      tableType="products"
+    />
+  );
+}
+```
+
+Keep authorization, tenant scoping, and sensitive data filtering in the server code that calls `listProducts`. The `initial*` props are serialized rows and counts for the first render; they do not replace the server action used by the table after hydration.
+
 ## list params shape
 
 The **list** action receives a single object with:
