@@ -62,6 +62,21 @@ Instance TanStack Query explicite optionnelle. YaYaw Table n'en crée plus en in
 
 **Type :** `QueryClient`
 
+### initialData
+Lignes injectées dans le premier état client de la table. Utilisez cette prop quand un Server Component a déjà chargé la première page et que vous voulez hydrater la table avec des données utiles avant le refresh client TanStack Query.
+
+**Type :** `Record<string, unknown>[]` | **Par défaut :** `[]`
+
+### initialPageCount
+Nombre total de pages correspondant à `initialData`. Fournissez-le pour les jeux de données paginés côté serveur afin que le premier rendu garde les bons contrôles de pagination au lieu de supposer une seule page.
+
+**Type :** `number` | **Par défaut :** `1` quand `initialData` est présent
+
+### initialRowCount
+Nombre total de lignes correspondant à `initialData`. Fournissez-le quand le serveur connaît le total filtré complet de la première page.
+
+**Type :** `number` | **Par défaut :** `initialData.length`
+
 ### className
 Classes additionnelles appliquées au wrapper racine.
 
@@ -193,6 +208,60 @@ Une seule table peut garder un `tableId` commun tout en séparant la config tabl
 ```
 
 Ici `cms-entries` pilote URL/cache/sélection, `content-index` pilote les colonnes et filtres, et chaque ligne peut ouvrir son propre type de formulaire d'édition.
+
+## Données initiales server-first
+
+Pour les pages Next.js App Router, chargez la première page dans un Server Component, puis passez les lignes et la pagination à un petit Client Component qui rend `DataTable`.
+
+```tsx
+// app/products/page.tsx
+import { listProducts } from "./actions/products";
+import { ProductsTableClient } from "./products-table-client";
+
+export default async function ProductsPage() {
+  const initial = await listProducts({ limit: 10, page: 1 });
+
+  return (
+    <ProductsTableClient
+      initialData={initial.data}
+      initialPageCount={initial.meta.pageCount}
+      initialRowCount={initial.meta.totalCount}
+    />
+  );
+}
+```
+
+```tsx
+// app/products/products-table-client.tsx
+"use client";
+
+import { DataTable } from "@/components/ui/yayaw-table";
+import { listProducts } from "./actions/products";
+import { getTableConfig } from "./table-config";
+
+export function ProductsTableClient({
+  initialData,
+  initialPageCount,
+  initialRowCount,
+}: {
+  initialData: Record<string, unknown>[];
+  initialPageCount: number;
+  initialRowCount: number;
+}) {
+  return (
+    <DataTable
+      getTableActions={() => ({ list: listProducts })}
+      getTableConfig={getTableConfig}
+      initialData={initialData}
+      initialPageCount={initialPageCount}
+      initialRowCount={initialRowCount}
+      tableType="products"
+    />
+  );
+}
+```
+
+`initialData` est uniquement la première valeur de cache. Tri, filtres, pagination, retry et refresh continuent d'appeler votre action `getTableActions().list` via TanStack Query, donc l'autorisation et l'accès aux données restent dans votre couche serveur.
 
 ### enableAdvancedFilters
 Active l'UI de filtres avancés si disponible dans votre configuration.

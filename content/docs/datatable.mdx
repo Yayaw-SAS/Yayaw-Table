@@ -62,6 +62,21 @@ Optional explicit TanStack Query client instance. YaYaw Table no longer creates 
 
 Type: `QueryClient`
 
+### initialData
+Rows rendered into the first client table state. Use this when a Server Component has already loaded the first page and you want the table to hydrate with useful data before TanStack Query performs its client refresh.
+
+Type: `Record<string, unknown>[]` | Default: `[]`
+
+### initialPageCount
+Total page count that matches `initialData`. Provide it for server-paginated datasets so the first render keeps the correct pagination controls instead of assuming a single page.
+
+Type: `number` | Default: `1` when `initialData` is present
+
+### initialRowCount
+Total row count that matches `initialData`. Provide it when the server knows the full filtered total for the initial page.
+
+Type: `number` | Default: `initialData.length`
+
 ### className
 Additional class names applied to the root wrapper.
 
@@ -226,6 +241,60 @@ A single table can keep one `tableId` while resolving table config and form conf
 ```
 
 Here `cms-entries` owns URL/cache/selection, `content-index` owns the table columns and filters, and each row can open its own edit form type.
+
+## Server-first initial data
+
+For Next.js App Router pages, load the first page in a Server Component, then pass the rows and pagination metadata into a small Client Component that renders `DataTable`.
+
+```tsx
+// app/products/page.tsx
+import { listProducts } from "./actions/products";
+import { ProductsTableClient } from "./products-table-client";
+
+export default async function ProductsPage() {
+  const initial = await listProducts({ limit: 10, page: 1 });
+
+  return (
+    <ProductsTableClient
+      initialData={initial.data}
+      initialPageCount={initial.meta.pageCount}
+      initialRowCount={initial.meta.totalCount}
+    />
+  );
+}
+```
+
+```tsx
+// app/products/products-table-client.tsx
+"use client";
+
+import { DataTable } from "@/components/ui/yayaw-table";
+import { listProducts } from "./actions/products";
+import { getTableConfig } from "./table-config";
+
+export function ProductsTableClient({
+  initialData,
+  initialPageCount,
+  initialRowCount,
+}: {
+  initialData: Record<string, unknown>[];
+  initialPageCount: number;
+  initialRowCount: number;
+}) {
+  return (
+    <DataTable
+      getTableActions={() => ({ list: listProducts })}
+      getTableConfig={getTableConfig}
+      initialData={initialData}
+      initialPageCount={initialPageCount}
+      initialRowCount={initialRowCount}
+      tableType="products"
+    />
+  );
+}
+```
+
+`initialData` is only the first cache value. Sorting, filtering, pagination, retry, and refresh still call your `getTableActions().list` action through TanStack Query, so authorization and data access stay in your server layer.
 
 ### enableAdvancedFilters
 Enable advanced filters UI when available in your configuration.
