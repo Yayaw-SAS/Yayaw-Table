@@ -125,6 +125,9 @@ function DataTableContent({
   description,
   enableAdvancedFilters = false,
   columnTypeMapping = EMPTY_COLUMN_TYPE_MAPPING,
+  initialData,
+  initialPageCount,
+  initialRowCount,
 }: {
   className?: string;
   loadingOverlay?: React.ReactNode;
@@ -173,6 +176,14 @@ function DataTableContent({
     string,
     "text" | "number" | "date" | "select" | "multiSelect"
   >;
+  /**
+   * Server-rendered rows used to hydrate the first table view before the client
+   * query refreshes. Pair with initialPageCount and initialRowCount for
+   * server-paginated datasets.
+   */
+  initialData?: Record<string, unknown>[];
+  initialPageCount?: number;
+  initialRowCount?: number;
 }) {
   const tableId = tableIdProp ?? tableType;
   const defaultFormType = formType ?? tableType;
@@ -192,6 +203,9 @@ function DataTableContent({
     visibilityKey,
   } = useDataTable({
     formType: defaultFormType,
+    initialData,
+    initialPageCount,
+    initialRowCount,
     tableId,
     tableType,
   });

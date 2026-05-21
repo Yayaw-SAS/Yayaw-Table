@@ -20,6 +20,8 @@ interface UseTableUrlDataOptions<TData> {
   enabled?: boolean;
   getRowId?: (row: TData) => string;
   initialData?: TData[];
+  initialPageCount?: number;
+  initialRowCount?: number;
   queryFn: (params: {
     columnFilters: Array<{ id: string; value: unknown }>;
     complexFilters: unknown[];
@@ -51,6 +53,8 @@ export function useTableUrlData<TData>({
   enabled = true,
   getRowId = (row: TData) => (row as Record<string, unknown>).id as string,
   initialData = [],
+  initialPageCount,
+  initialRowCount,
   queryFn,
   tableId,
 }: UseTableUrlDataOptions<TData>) {
@@ -163,8 +167,8 @@ export function useTableUrlData<TData>({
     initialData: initialData.length
       ? {
           data: initialData,
-          pageCount: 1,
-          rowCount: initialData.length,
+          pageCount: initialPageCount ?? 1,
+          rowCount: initialRowCount ?? initialData.length,
         }
       : undefined,
     queryFn: async () => {
@@ -271,9 +275,10 @@ export function useTableUrlData<TData>({
     error,
     isError,
     isLoading,
+    pageCount: queryResult?.pageCount ?? initialPageCount ?? 0,
     pagination,
     refetch,
-    rowCount: queryResult?.rowCount || initialData.length || 0,
+    rowCount: queryResult?.rowCount ?? initialRowCount ?? initialData.length,
     rowSelection,
     setRowSelection,
     status,

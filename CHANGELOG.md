@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.0
+
+### Minor Changes
+
+- Add initial server data options for tables so consumers can hydrate rows, page counts, and row counts before the client query refreshes.
+
+### Patch Changes
+
+- 1459b52: Improve light, dark, and system theme support for the table and site theme picker.
+
 ## 1.0.0
 
 ### Major Changes
