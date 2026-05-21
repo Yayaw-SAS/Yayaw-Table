@@ -99,7 +99,7 @@ function resolveRowSelectionOption<TData extends Record<string, unknown>>({
 /**
  * Options for the useDataTable hook
  */
-export interface UseDataTableOptions<_TData = Record<string, unknown>> {
+export interface UseDataTableOptions<TData = Record<string, unknown>> {
   /**
    * Whether to enable data fetching
    * Defaults to true
@@ -111,6 +111,18 @@ export interface UseDataTableOptions<_TData = Record<string, unknown>> {
    * Defaults to 10
    */
   initialPageSize?: number;
+  /**
+   * Initial rows provided by the server for the first client render.
+   */
+  initialData?: TData[];
+  /**
+   * Total page count that matches the initial rows.
+   */
+  initialPageCount?: number;
+  /**
+   * Total row count that matches the initial rows.
+   */
+  initialRowCount?: number;
 
   /**
    * Unique identifier for this table instance
@@ -141,6 +153,9 @@ export function useDataTable<TData extends Record<string, unknown>>(
   const {
     enabled = true,
     initialPageSize: _initialPageSize = 10,
+    initialData,
+    initialPageCount,
+    initialRowCount,
     tableType,
     tableId = tableType,
     formType = tableType,
@@ -359,6 +374,9 @@ export function useDataTable<TData extends Record<string, unknown>>(
   // Use the tableUrlData hook for proper API data fetching
   const urlDataResult = useTableUrlData<TData>({
     enabled,
+    initialData,
+    initialPageCount,
+    initialRowCount,
     queryFn,
     tableId,
   });
@@ -369,7 +387,9 @@ export function useDataTable<TData extends Record<string, unknown>>(
   const isError = urlDataResult?.isError;
   const isLoading = urlDataResult?.isLoading;
   const baseRefetch = urlDataResult?.refetch || (() => Promise.resolve());
-  const rowCount = urlDataResult?.rowCount || 0;
+  const rowCount = urlDataResult?.rowCount ?? 0;
+  const pageCount =
+    urlDataResult?.pageCount ?? Math.ceil(rowCount / pagination.pageSize);
   const rowSelection = urlDataResult?.rowSelection || {};
   const setRowSelection =
     urlDataResult?.setRowSelection ||
@@ -780,7 +800,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
       tableUrlState.setPaginationFromUI as OnChangeFn<PaginationState>,
     onRowSelectionChange: setRowSelection,
     onSortingChange: tableUrlState.setSorting as OnChangeFn<typeof sorting>,
-    pageCount: Math.ceil(rowCount / pagination.pageSize),
+    pageCount,
     state: {
       columnFilters,
       columnOrder,
@@ -823,7 +843,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
     handleEdit,
     isError,
     isLoading,
-    pageCount: Math.ceil(rowCount / pagination.pageSize),
+    pageCount,
 
     refetch: enhancedRefetch,
     resetFilters: tableUrlState.resetFilters,
