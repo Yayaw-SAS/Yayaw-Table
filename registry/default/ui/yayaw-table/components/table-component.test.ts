@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   getBulkActionsViewportBottomOffset,
+  getRegularCellClassName,
   isRowIdActive,
   resolveEffectiveRowClickMode,
   shouldRenderBulkActionsInFooter,
@@ -9,6 +10,18 @@ import {
   shouldRenderTableEmptyState,
   shouldShowCalculationsFooter,
 } from "./table-component";
+
+const FLEX_CLASS_PATTERN = /\bflex\b/;
+const TEXT_CENTER_CLASS_PATTERN = /text-center/;
+
+function createCellForColumn(id: string) {
+  return {
+    column: {
+      columnDef: {},
+      id,
+    },
+  };
+}
 
 describe("shouldShowCalculationsFooter", () => {
   it("returns true when footer toggle is on and calculations are enabled", () => {
@@ -48,6 +61,18 @@ describe("shouldShowCalculationsFooter", () => {
       }),
       false
     );
+  });
+});
+
+describe("getRegularCellClassName", () => {
+  it("keeps selection body cells as table cells so they align with the header", () => {
+    const className = getRegularCellClassName({
+      cell: createCellForColumn("select") as never,
+      densityMode: "medium",
+    });
+
+    assert.match(className, TEXT_CENTER_CLASS_PATTERN);
+    assert.doesNotMatch(className, FLEX_CLASS_PATTERN);
   });
 });
 

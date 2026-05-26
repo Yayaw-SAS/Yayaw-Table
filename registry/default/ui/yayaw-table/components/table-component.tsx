@@ -374,7 +374,7 @@ function getFixedColumnPaddingClass(
   return "px-2";
 }
 
-function getRegularCellClassName<TData>({
+export function getRegularCellClassName<TData>({
   cell,
   densityMode,
 }: {
@@ -389,10 +389,7 @@ function getRegularCellClassName<TData>({
 
   return cn(
     isSelectColumn &&
-      cn(
-        "flex justify-center [&:has([role=checkbox])]:pr-2!",
-        fixedColumnPaddingClass
-      ),
+      cn("text-center [&:has([role=checkbox])]:pr-2!", fixedColumnPaddingClass),
     isActionsColumn &&
       cn(
         "sticky right-0 z-10 flex justify-center bg-card shadow-[-1px_0_0_0_hsl(var(--border))] group-hover:bg-muted/50 group-data-[state=selected]:bg-muted/50",
