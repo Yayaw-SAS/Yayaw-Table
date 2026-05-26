@@ -35,8 +35,15 @@ const parsePositiveInt = (
   }
 
   const parsed = Number.parseInt(value, 10);
-  return Number.isNaN(parsed) ? fallback : parsed;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 };
+
+const DEFAULT_PAGE_SIZE = 10;
+
+const normalizePageSize = (value: number | undefined) =>
+  typeof value === "number" && Number.isFinite(value) && value > 0
+    ? Math.trunc(value)
+    : DEFAULT_PAGE_SIZE;
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === "object" && value !== null;
@@ -175,6 +182,12 @@ interface PaginationParams {
  */
 interface UseTableUrlStateOptions {
   /**
+   * Page size used when the URL does not already carry table pagination state.
+   * @default 10
+   */
+  defaultPageSize?: number;
+
+  /**
    * Whether URL state management is enabled
    * @default true
    */
@@ -194,9 +207,13 @@ interface UseTableUrlStateOptions {
  * @returns Object with URL state utilities and parameters
  */
 export function useTableUrlState({
+  defaultPageSize,
   enabled: _enabled = true,
   tableId,
 }: UseTableUrlStateOptions) {
+  const resolvedDefaultPageSize = normalizePageSize(defaultPageSize);
+  const defaultPageSizeParam = resolvedDefaultPageSize.toString();
+
   // Track if we're currently syncing to prevent loops
   const isSyncing = useRef(false);
 
@@ -282,7 +299,7 @@ export function useTableUrlState({
   const [pageSizeParam, setPageSizeParam] = useQueryState(
     `${tableId}-pageSize`,
     {
-      defaultValue: "10",
+      defaultValue: defaultPageSizeParam,
     }
   );
 
@@ -479,9 +496,12 @@ export function useTableUrlState({
     (paginationParams: PaginationParams) => {
       // Use default values if pageIndex or pageSize are undefined
       const pageIndex = paginationParams.pageIndex ?? 0;
-      const pageSize = paginationParams.pageSize ?? 10;
+      const pageSize = paginationParams.pageSize ?? resolvedDefaultPageSize;
       const currentPageIndex = parsePositiveInt(pageParam, 0);
-      const currentPageSize = parsePositiveInt(pageSizeParam, 10);
+      const currentPageSize = parsePositiveInt(
+        pageSizeParam,
+        resolvedDefaultPageSize
+      );
 
       // Avoid redundant URL writes (prevents replaceState flood / browser throttling)
       if (currentPageIndex !== pageIndex) {
@@ -492,7 +512,14 @@ export function useTableUrlState({
         queueUrlUpdate(setPageSizeParam, pageSize.toString());
       }
     },
-    [pageParam, pageSizeParam, queueUrlUpdate, setPageParam, setPageSizeParam]
+    [
+      pageParam,
+      pageSizeParam,
+      queueUrlUpdate,
+      resolvedDefaultPageSize,
+      setPageParam,
+      setPageSizeParam,
+    ]
   );
 
   const setVisibilityFromUI = useCallback(
@@ -669,9 +696,9 @@ export function useTableUrlState({
   const pagination = useMemo(
     () => ({
       pageIndex: Number.parseInt(pageParam || "0", 10),
-      pageSize: Number.parseInt(pageSizeParam || "10", 10),
+      pageSize: parsePositiveInt(pageSizeParam, resolvedDefaultPageSize),
     }),
-    [pageParam, pageSizeParam]
+    [pageParam, pageSizeParam, resolvedDefaultPageSize]
   );
 
   // Cleanup timeout on unmount
@@ -694,7 +721,7 @@ export function useTableUrlState({
     historyIndexParam,
     orderParam: orderParam || [],
     pageParam: pageParam || "0",
-    pageSizeParam: pageSizeParam || "10",
+    pageSizeParam: pageSizeParam || defaultPageSizeParam,
     // Processed state
     pagination,
     pinningParam,

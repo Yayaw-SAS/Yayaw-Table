@@ -45,6 +45,7 @@ export interface UseTableInstanceOptions<TData> {
    * When empty or undefined, all columns default to visible (original behaviour).
    */
   defaultVisibleColumns?: string[];
+  defaultPageSize?: number;
   enableColumnFilters?: boolean;
   enableColumnPinning?: boolean;
   enableGrouping?: boolean;
@@ -88,6 +89,7 @@ export function resolveTablePageCount({
 export function useTableInstance<TData>({
   columns,
   data,
+  defaultPageSize,
   defaultVisibleColumns,
   enableColumnFilters = true,
   enableColumnPinning = true,
@@ -156,7 +158,7 @@ export function useTableInstance<TData>({
     setVisibilityFromUI,
     sortParam,
     visibilityParam,
-  } = useTableUrlState({ tableId });
+  } = useTableUrlState({ defaultPageSize, tableId });
 
   const [internalRowSelection, setInternalRowSelection] = useAtom(
     rowSelectionAtom(tableId)
