@@ -96,6 +96,31 @@ Callback fired when selected rows change.
 
 Type: `(rows: Row<Record<string, unknown>>[]) => void` | Default: `undefined`
 
+### activeRowId
+Mark one row as active. Use this for master-detail tables where the table is the inventory surface and another panel renders the selected row.
+
+Type: `string` | Default: `undefined`
+
+### getRowId
+Return a stable row id for active-row highlighting, selection, and row metadata. If omitted, the table falls back to common `id` fields and the React Table row id.
+
+Type: `(row: Record<string, unknown>) => string` | Default: `undefined`
+
+### onRowActivate
+Callback fired when `table.rowClickMode` is set to `'activate'` and a non-interactive row area is clicked.
+
+Type: `(row: Record<string, unknown>, event: React.MouseEvent) => void` | Default: `undefined`
+
+### onRowClick
+Callback fired by link-style row interactions. Use it to route through app navigation or analytics instead of relying on the browser default.
+
+Type: `(url: string, row: Record<string, unknown>, event: React.MouseEvent) => void` | Default: `undefined`
+
+### emptyState
+Per-instance empty/no-results state override. It is merged over `table.emptyState` from configuration.
+
+Type: `{ show?: boolean; title?: string; description?: string }` | Default: `undefined`
+
 ### onBulkEdit
 Handle bulk edit of selected rows.
 
@@ -359,6 +384,48 @@ Custom action in icon mode with tooltip and explicit placement:
 ```
 
 Backward compatibility: if `toolbarActions` is omitted, toolbar behavior stays unchanged.
+
+Master-detail row activation:
+
+```tsx
+"use client";
+
+import { useState } from "react";
+import { DataTable } from "@/components/ui/yayaw-table";
+import { getTableActions, getTableConfig } from "./table-config";
+
+export function ProductsInventoryTable() {
+  const [activeProductId, setActiveProductId] = useState<string>();
+
+  return (
+    <DataTable
+      activeRowId={activeProductId}
+      emptyState={{
+        title: "No products found",
+        description: "Try changing your search or filters.",
+      }}
+      getRowId={(row) => String(row.id)}
+      getTableActions={getTableActions}
+      getTableConfig={(tableType) => {
+        const config = getTableConfig(tableType);
+
+        return {
+          ...config,
+          table: {
+            ...config?.table,
+            layoutPreset: "preview",
+            rowClickMode: "activate",
+          },
+        };
+      }}
+      onRowActivate={(row) => {
+        setActiveProductId(String(row.id));
+      }}
+      tableType="products"
+    />
+  );
+}
+```
 
 See also:
 - [Provider & Setup](/docs/setup)

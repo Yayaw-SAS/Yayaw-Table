@@ -28,6 +28,10 @@ import {
   catalogueFormAtom,
   openUpdateForm,
 } from "@/src/components/ui/yayaw-table/components/forms/atoms/catalogue-form-atoms";
+import type {
+  TableLayoutPreset,
+  TableRowClickMode,
+} from "@/src/components/ui/yayaw-table/config/helpers";
 import type { TableActions } from "@/src/components/ui/yayaw-table/providers/table-provider";
 import type {
   ToolbarAction,
@@ -48,6 +52,8 @@ const PRODUCTS_TABLE_TYPE = "products";
 const PRODUCTS_BULK_FORM_TYPE = "products-bulk";
 const BULK_EDIT_SYNTHETIC_ID = "__bulk-edit__";
 const DEFAULT_DENSITY_MODE = "medium" as const;
+const DEFAULT_LAYOUT_PRESET = "default" as const;
+const DEFAULT_ROW_CLICK_MODE = "default" as const;
 
 type ExampleDensityMode = "small" | "medium" | "large";
 
@@ -86,6 +92,12 @@ interface BooleanQuerySettingController {
   resetValue: () => void;
   setValue: (nextValue: boolean) => void;
   value: boolean;
+}
+
+interface ChoiceQuerySettingController<TValue extends string> {
+  resetValue: () => void;
+  setValue: (nextValue: TValue) => void;
+  value: TValue;
 }
 
 const DEFAULT_TABLE_SETTINGS: ExampleTableSettings = {
@@ -221,6 +233,37 @@ function parseDensityQueryValue(rawValue: string | null): ExampleDensityMode {
   return DEFAULT_DENSITY_MODE;
 }
 
+function parseLayoutPresetQueryValue(
+  rawValue: string | null
+): TableLayoutPreset {
+  if (
+    rawValue === "admin" ||
+    rawValue === "catalog" ||
+    rawValue === "default" ||
+    rawValue === "preview"
+  ) {
+    return rawValue;
+  }
+
+  return DEFAULT_LAYOUT_PRESET;
+}
+
+function parseRowClickModeQueryValue(
+  rawValue: string | null
+): TableRowClickMode {
+  if (
+    rawValue === "activate" ||
+    rawValue === "default" ||
+    rawValue === "edit" ||
+    rawValue === "link" ||
+    rawValue === "none"
+  ) {
+    return rawValue;
+  }
+
+  return DEFAULT_ROW_CLICK_MODE;
+}
+
 function resolveConflictingEditModes(
   settings: ExampleTableSettings
 ): ExampleTableSettings {
@@ -289,6 +332,31 @@ function useBooleanQuerySetting(
   const setValue = useCallback(
     (nextValue: boolean) => {
       setRawValue(nextValue ? "1" : "0");
+    },
+    [setRawValue]
+  );
+
+  const resetValue = useCallback(() => {
+    setRawValue(null);
+  }, [setRawValue]);
+
+  return useMemo(
+    () => ({ value, setValue, resetValue }),
+    [value, setValue, resetValue]
+  );
+}
+
+function useChoiceQuerySetting<TValue extends string>(
+  queryKey: string,
+  parseValue: (rawValue: string | null) => TValue
+): ChoiceQuerySettingController<TValue> {
+  const [rawValue, setRawValue] = useQueryState(queryKey);
+
+  const value = useMemo(() => parseValue(rawValue), [rawValue, parseValue]);
+
+  const setValue = useCallback(
+    (nextValue: TValue) => {
+      setRawValue(nextValue);
     },
     [setRawValue]
   );
@@ -387,19 +455,116 @@ function DensitySettingCard({
   );
 }
 
+function LayoutPresetSettingCard({
+  layoutPreset,
+  onLayoutPresetChange,
+}: {
+  layoutPreset: TableLayoutPreset;
+  onLayoutPresetChange: (nextPreset: TableLayoutPreset) => void;
+}) {
+  const t = useTranslations("Example");
+  const layoutPresetOptions: TableLayoutPreset[] = [
+    "default",
+    "admin",
+    "catalog",
+    "preview",
+  ];
+
+  return (
+    <div className="space-y-2 rounded-md border border-border p-3">
+      <div className="space-y-1">
+        <p className="font-medium text-card-foreground text-sm">
+          {t("layoutPreset.label")}
+        </p>
+        <p className="text-muted-foreground text-xs">
+          {t("layoutPreset.description")}
+        </p>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        {layoutPresetOptions.map((option) => (
+          <Button
+            key={option}
+            onClick={() => {
+              onLayoutPresetChange(option);
+            }}
+            size="sm"
+            type="button"
+            variant={layoutPreset === option ? "default" : "outline"}
+          >
+            {t(`layoutPreset.${option}`)}
+          </Button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RowClickModeSettingCard({
+  onRowClickModeChange,
+  rowClickMode,
+}: {
+  onRowClickModeChange: (nextMode: TableRowClickMode) => void;
+  rowClickMode: TableRowClickMode;
+}) {
+  const t = useTranslations("Example");
+  const rowClickModeOptions: TableRowClickMode[] = [
+    "default",
+    "activate",
+    "edit",
+    "link",
+    "none",
+  ];
+
+  return (
+    <div className="space-y-2 rounded-md border border-border p-3">
+      <div className="space-y-1">
+        <p className="font-medium text-card-foreground text-sm">
+          {t("rowClickMode.label")}
+        </p>
+        <p className="text-muted-foreground text-xs">
+          {t("rowClickMode.description")}
+        </p>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        {rowClickModeOptions.map((option) => (
+          <Button
+            key={option}
+            onClick={() => {
+              onRowClickModeChange(option);
+            }}
+            size="sm"
+            type="button"
+            variant={rowClickMode === option ? "default" : "outline"}
+          >
+            {t(`rowClickMode.${option}`)}
+          </Button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ExampleSettingsPanel({
   density,
+  layoutPreset,
   onDensityChange,
+  onLayoutPresetChange,
   onResetData,
   onResetSettings,
+  onRowClickModeChange,
   onSettingChange,
+  rowClickMode,
   tableSettings,
 }: {
   density: ExampleDensityMode;
+  layoutPreset: TableLayoutPreset;
   onDensityChange: (nextDensity: ExampleDensityMode) => void;
+  onLayoutPresetChange: (nextPreset: TableLayoutPreset) => void;
   onResetData: () => void;
   onResetSettings: () => void;
+  onRowClickModeChange: (nextMode: TableRowClickMode) => void;
   onSettingChange: (key: TableSettingKey, value: boolean) => void;
+  rowClickMode: TableRowClickMode;
   tableSettings: ExampleTableSettings;
 }) {
   const t = useTranslations("Example");
@@ -445,6 +610,14 @@ function ExampleSettingsPanel({
               density={density}
               onDensityChange={onDensityChange}
             />
+            <LayoutPresetSettingCard
+              layoutPreset={layoutPreset}
+              onLayoutPresetChange={onLayoutPresetChange}
+            />
+            <RowClickModeSettingCard
+              onRowClickModeChange={onRowClickModeChange}
+              rowClickMode={rowClickMode}
+            />
           </div>
           <SettingsGroup
             onSettingChange={onSettingChange}
@@ -466,10 +639,14 @@ function ExampleSettingsPanel({
 
 function BulkActionsSection({
   densityMode,
+  layoutPreset,
+  rowClickMode,
   tableActions,
   tableSettings,
 }: {
   densityMode: ExampleDensityMode;
+  layoutPreset: TableLayoutPreset;
+  rowClickMode: TableRowClickMode;
   tableActions: ProductsLocalActions;
   tableSettings: ExampleTableSettings;
 }) {
@@ -477,6 +654,7 @@ function BulkActionsSection({
   const locale = useLocale() as AppLocale;
   const setFormState = useSetAtom(catalogueFormAtom);
   const [isRecalculatingPrices, setIsRecalculatingPrices] = useState(false);
+  const [activeRowId, setActiveRowId] = useState<string>();
 
   const handleRecalculatePrices = useCallback(async () => {
     setIsRecalculatingPrices(true);
@@ -691,8 +869,11 @@ function BulkActionsSection({
         showSelectionColumn,
         ...tableBehaviorSettings
       } = tableSettings;
-      const isRowClickEditMode =
-        tableBehaviorSettings.enableRowClickEdit === true;
+      const effectiveRowClickMode =
+        rowClickMode === "default" && tableBehaviorSettings.enableRowClickEdit
+          ? "edit"
+          : rowClickMode;
+      const isRowClickEditMode = effectiveRowClickMode === "edit";
       const baseVisibleColumns = baseConfig.columns?.visible ?? [];
       const visibleColumns = baseVisibleColumns.filter(
         (columnId) => columnId !== "select" && columnId !== "actions"
@@ -724,6 +905,8 @@ function BulkActionsSection({
               enabled: false,
             }
           : baseConfig.inlineEdit,
+        layoutPreset,
+        rowClickMode: effectiveRowClickMode,
         columns: baseConfig.columns
           ? {
               ...baseConfig.columns,
@@ -734,7 +917,7 @@ function BulkActionsSection({
         density: densityMode,
       };
     },
-    [locale, tableSettings, densityMode]
+    [locale, tableSettings, densityMode, layoutPreset, rowClickMode]
   );
 
   const getFormConfigWithLocale = useCallback(
@@ -768,8 +951,18 @@ function BulkActionsSection({
     [handleRecalculatePrices, isRecalculatingPrices, t]
   );
 
+  const handleRowActivate = useCallback((row: Record<string, unknown>) => {
+    const nextActiveRowId = row.id == null ? undefined : String(row.id);
+    setActiveRowId(nextActiveRowId);
+  }, []);
+
+  const getRowId = useCallback((row: Record<string, unknown>) => {
+    return row.id == null ? "" : String(row.id);
+  }, []);
+
   return (
     <DataTable
+      activeRowId={activeRowId}
       className="w-full"
       columnTypeMapping={{
         name: "text",
@@ -783,9 +976,14 @@ function BulkActionsSection({
       }}
       DescriptionComponent={CustomDescription}
       description={t("tableDescription")}
+      emptyState={{
+        description: t("emptyState.description"),
+        title: t("emptyState.title"),
+      }}
       enableAdvancedFilters={true}
       enableToolbar={true}
       getFormConfig={getFormConfigWithLocale}
+      getRowId={getRowId}
       getTableActions={getLocalTableActions}
       getTableConfig={getTableConfigWithOverrides}
       loadingOverlay={
@@ -797,6 +995,7 @@ function BulkActionsSection({
       onBulkCopy={handleBulkCopy}
       onBulkDelete={handleBulkDelete}
       onBulkEdit={handleBulkEdit}
+      onRowActivate={handleRowActivate}
       onRowSelectionChange={undefined}
       queryClient={queryClient}
       TitleComponent={CustomTitle}
@@ -907,6 +1106,14 @@ export default function ExamplePage() {
   const densityMode = useMemo(
     () => parseDensityQueryValue(densityQueryValue),
     [densityQueryValue]
+  );
+  const layoutPresetSetting = useChoiceQuerySetting(
+    "excfg-lp",
+    parseLayoutPresetQueryValue
+  );
+  const rowClickModeSetting = useChoiceQuerySetting(
+    "excfg-rm",
+    parseRowClickModeQueryValue
   );
   const fullWidthSetting = useBooleanQuerySetting("excfg-fw", false);
 
@@ -1036,18 +1243,33 @@ export default function ExamplePage() {
 
       if (key === "allowInlineEdit" && value) {
         settingControllers.enableRowClickEdit.setValue(false);
+        if (rowClickModeSetting.value === "edit") {
+          rowClickModeSetting.setValue("default");
+        }
         settingControllers.allowInlineEdit.setValue(true);
         return;
       }
 
       settingControllers[key].setValue(value);
     },
-    [settingControllers]
+    [settingControllers, rowClickModeSetting]
+  );
+
+  const setRowClickMode = useCallback(
+    (nextMode: TableRowClickMode) => {
+      if (nextMode === "edit") {
+        allowInlineEditSetting.setValue(false);
+      }
+
+      rowClickModeSetting.setValue(nextMode);
+    },
+    [allowInlineEditSetting, rowClickModeSetting]
   );
 
   useEffect(() => {
     if (
-      enableRowClickEditSetting.value !== true ||
+      (enableRowClickEditSetting.value !== true &&
+        rowClickModeSetting.value !== "edit") ||
       allowInlineEditSetting.value !== true
     ) {
       return;
@@ -1056,6 +1278,7 @@ export default function ExamplePage() {
     allowInlineEditSetting.setValue(false);
   }, [
     enableRowClickEditSetting.value,
+    rowClickModeSetting.value,
     allowInlineEditSetting.value,
     allowInlineEditSetting.setValue,
   ]);
@@ -1065,7 +1288,14 @@ export default function ExamplePage() {
       settingControllers[key].resetValue();
     }
     resetDensityMode();
-  }, [settingControllers, resetDensityMode]);
+    layoutPresetSetting.resetValue();
+    rowClickModeSetting.resetValue();
+  }, [
+    settingControllers,
+    resetDensityMode,
+    layoutPresetSetting,
+    rowClickModeSetting,
+  ]);
 
   const handleResetData = useCallback(async () => {
     const result = await localTableActions.resetData();
@@ -1212,6 +1442,8 @@ export default function ExamplePage() {
               <QueryClientProvider client={queryClient}>
                 <BulkActionsSection
                   densityMode={densityMode}
+                  layoutPreset={layoutPresetSetting.value}
+                  rowClickMode={rowClickModeSetting.value}
                   tableActions={localTableActions}
                   tableSettings={tableSettings}
                 />
@@ -1222,10 +1454,14 @@ export default function ExamplePage() {
           <div className="mt-8">
             <ExampleSettingsPanel
               density={densityMode}
+              layoutPreset={layoutPresetSetting.value}
               onDensityChange={setDensityMode}
+              onLayoutPresetChange={layoutPresetSetting.setValue}
               onResetData={handleResetData}
               onResetSettings={resetTableSettings}
+              onRowClickModeChange={setRowClickMode}
               onSettingChange={setTableSetting}
+              rowClickMode={rowClickModeSetting.value}
               tableSettings={tableSettings}
             />
           </div>
@@ -1265,6 +1501,12 @@ const getTableConfig = (tableType: string) => {
         showToolbar: true,
         showToolbarHeader: true,
         density: "medium",
+        layoutPreset: "catalog",
+        emptyState: {
+          title: "No products found",
+          description: "Try changing your search or filters.",
+        },
+        rowClickMode: "activate",
         actionsAsIcons: false
       },
       columns: {
@@ -1323,9 +1565,14 @@ const getTableConfig = (tableType: string) => {
 }
 
 // 2. Production Table with Real API
+const [activeRowId, setActiveRowId] = useState<string>();
+
 <DataTable 
+  activeRowId={activeRowId}
   tableType="products"
   enableAdvancedFilters={true}
+  getRowId={(row) => String(row.id)}
+  onRowActivate={(row) => setActiveRowId(String(row.id))}
   columnTypeMapping={{
     name: 'text',
     brand: 'text', 

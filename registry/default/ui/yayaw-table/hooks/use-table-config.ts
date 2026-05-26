@@ -16,6 +16,10 @@ import type {
   TableRowClickMode,
 } from "../config/helpers";
 import {
+  getTableLayoutPresetDefaults,
+  resolveTableLayoutPreset,
+} from "../config/helpers";
+import {
   useTableConfig as useProviderTableConfig,
   useTranslations,
 } from "../providers/table-provider";
@@ -199,54 +203,6 @@ function normalizeDensityMode(
   return "medium";
 }
 
-function resolveLayoutPreset(
-  layoutPreset: TableLayoutPreset | undefined
-): TableLayoutPreset {
-  if (
-    layoutPreset === "admin" ||
-    layoutPreset === "catalog" ||
-    layoutPreset === "preview"
-  ) {
-    return layoutPreset;
-  }
-
-  return "default";
-}
-
-function getLayoutPresetDefaults(
-  layoutPreset: TableLayoutPreset
-): Partial<TableCatalogueTableConfig> {
-  if (layoutPreset === "admin") {
-    return {
-      actionsAsIcons: true,
-      defaultPageSize: 20,
-      density: "small",
-      pageSizeOptions: [10, 20, 50, 100],
-    };
-  }
-
-  if (layoutPreset === "catalog") {
-    return {
-      actionsAsIcons: true,
-      defaultPageSize: 20,
-      density: "medium",
-      pageSizeOptions: [10, 20, 50],
-    };
-  }
-
-  if (layoutPreset === "preview") {
-    return {
-      actionsAsIcons: true,
-      defaultPageSize: 20,
-      density: "small",
-      pageSizeOptions: [10, 20, 50],
-      showToolbarHeader: false,
-    };
-  }
-
-  return {};
-}
-
 function resolveInlineEditConfig(
   inlineEdit: TableInlineEditConfig | undefined
 ): TableInlineEditConfig {
@@ -277,8 +233,8 @@ function resolveInlineEditConfig(
 function resolveTableBehaviorConfig(
   providerConfig: Partial<TableCatalogueTableConfig>
 ): TableCatalogueTableConfig {
-  const layoutPreset = resolveLayoutPreset(providerConfig.layoutPreset);
-  const presetDefaults = getLayoutPresetDefaults(layoutPreset);
+  const layoutPreset = resolveTableLayoutPreset(providerConfig.layoutPreset);
+  const presetDefaults = getTableLayoutPresetDefaults(layoutPreset);
   const mergedConfig = {
     ...presetDefaults,
     ...providerConfig,

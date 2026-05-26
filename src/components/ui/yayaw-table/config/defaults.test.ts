@@ -56,4 +56,45 @@ describe("defineTableConfig", () => {
     assert.equal(config.table.emptyState?.show, true);
     assert.equal(config.table.emptyState?.title, "No products");
   });
+
+  it("applies layout preset defaults before explicit overrides", () => {
+    const adminConfig = defineTableConfig({
+      columns: {
+        definitions: [],
+        mandatory: [],
+        order: [],
+        visible: [],
+      },
+      id: "admin-products",
+      table: {
+        layoutPreset: "admin",
+      },
+      translations: {
+        keys: {},
+        namespace: "common",
+      },
+    });
+
+    const explicitDensityConfig = defineTableConfig({
+      columns: {
+        definitions: [],
+        mandatory: [],
+        order: [],
+        visible: [],
+      },
+      id: "wide-products",
+      table: {
+        density: "large",
+        layoutPreset: "admin",
+      },
+      translations: {
+        keys: {},
+        namespace: "common",
+      },
+    });
+
+    assert.equal(adminConfig.table.density, "small");
+    assert.equal(adminConfig.table.defaultPageSize, 20);
+    assert.equal(explicitDensityConfig.table.density, "large");
+  });
 });
