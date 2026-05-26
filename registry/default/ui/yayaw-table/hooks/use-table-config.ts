@@ -10,7 +10,10 @@ import type { TableFormConfig } from "../config/form-config";
 import type {
   InlineEditColumnConfig,
   TableConfig,
+  TableEmptyStateConfig,
   TableInlineEditConfig,
+  TableLayoutPreset,
+  TableRowClickMode,
 } from "../config/helpers";
 import {
   useTableConfig as useProviderTableConfig,
@@ -69,8 +72,11 @@ export interface TableCatalogueTableConfig {
   bulkExport?: boolean;
   actionsAsIcons?: boolean;
   density?: "small" | "medium" | "large";
+  layoutPreset?: TableLayoutPreset;
+  emptyState?: TableEmptyStateConfig;
   enableRowSelection: boolean;
   enableRowClickEdit?: boolean;
+  rowClickMode?: TableRowClickMode;
   enableColumnFilters: boolean;
   enableSorting: boolean;
   enableGrouping?: boolean;
@@ -140,8 +146,13 @@ const DEFAULT_TABLE_CONFIG: TableCatalogueConfig = {
     bulkExport: true,
     actionsAsIcons: false,
     density: "medium",
+    layoutPreset: "default",
+    emptyState: {
+      show: true,
+    },
     enableRowSelection: true,
     enableRowClickEdit: false,
+    rowClickMode: "default",
     enableColumnFilters: true,
     enableSorting: true,
     enableGrouping: true,
@@ -188,6 +199,54 @@ function normalizeDensityMode(
   return "medium";
 }
 
+function resolveLayoutPreset(
+  layoutPreset: TableLayoutPreset | undefined
+): TableLayoutPreset {
+  if (
+    layoutPreset === "admin" ||
+    layoutPreset === "catalog" ||
+    layoutPreset === "preview"
+  ) {
+    return layoutPreset;
+  }
+
+  return "default";
+}
+
+function getLayoutPresetDefaults(
+  layoutPreset: TableLayoutPreset
+): Partial<TableCatalogueTableConfig> {
+  if (layoutPreset === "admin") {
+    return {
+      actionsAsIcons: true,
+      defaultPageSize: 20,
+      density: "small",
+      pageSizeOptions: [10, 20, 50, 100],
+    };
+  }
+
+  if (layoutPreset === "catalog") {
+    return {
+      actionsAsIcons: true,
+      defaultPageSize: 20,
+      density: "medium",
+      pageSizeOptions: [10, 20, 50],
+    };
+  }
+
+  if (layoutPreset === "preview") {
+    return {
+      actionsAsIcons: true,
+      defaultPageSize: 20,
+      density: "small",
+      pageSizeOptions: [10, 20, 50],
+      showToolbarHeader: false,
+    };
+  }
+
+  return {};
+}
+
 function resolveInlineEditConfig(
   inlineEdit: TableInlineEditConfig | undefined
 ): TableInlineEditConfig {
@@ -218,40 +277,53 @@ function resolveInlineEditConfig(
 function resolveTableBehaviorConfig(
   providerConfig: Partial<TableCatalogueTableConfig>
 ): TableCatalogueTableConfig {
+  const layoutPreset = resolveLayoutPreset(providerConfig.layoutPreset);
+  const presetDefaults = getLayoutPresetDefaults(layoutPreset);
+  const mergedConfig = {
+    ...presetDefaults,
+    ...providerConfig,
+  };
+
   return {
-    allowCreate: providerConfig.allowCreate ?? true,
-    allowEdit: providerConfig.allowEdit ?? true,
-    allowDuplicate: providerConfig.allowDuplicate ?? true,
-    allowDelete: providerConfig.allowDelete ?? true,
-    allowBulkEdit: providerConfig.allowBulkEdit ?? true,
-    allowBulkDelete: providerConfig.allowBulkDelete ?? true,
-    allowInlineEdit: providerConfig.allowInlineEdit ?? true,
-    canEditRow: providerConfig.canEditRow,
-    canDeleteRow: providerConfig.canDeleteRow,
-    canDuplicateRow: providerConfig.canDuplicateRow,
-    canSelectRow: providerConfig.canSelectRow,
-    showToolbar: providerConfig.showToolbar ?? true,
-    showToolbarHeader: providerConfig.showToolbarHeader ?? true,
-    export: providerConfig.export ?? true,
-    bulkExport: providerConfig.bulkExport ?? true,
-    actionsAsIcons: providerConfig.actionsAsIcons ?? false,
-    density: normalizeDensityMode(providerConfig.density),
-    enableRowSelection: providerConfig.enableRowSelection ?? true,
-    enableRowClickEdit: providerConfig.enableRowClickEdit ?? false,
-    enableColumnFilters: providerConfig.enableColumnFilters ?? true,
-    enableSorting: providerConfig.enableSorting ?? true,
-    enableGrouping: providerConfig.enableGrouping,
-    enableColumnDnd: providerConfig.enableColumnDnd ?? true,
-    enableColumnDragDropByDefault: providerConfig.enableColumnDragDropByDefault,
-    enableMultiRowSelection: providerConfig.enableMultiRowSelection,
-    enablePagination: providerConfig.enablePagination,
-    defaultPageSize: providerConfig.defaultPageSize,
-    pageSizeOptions: providerConfig.pageSizeOptions,
+    allowCreate: mergedConfig.allowCreate ?? true,
+    allowEdit: mergedConfig.allowEdit ?? true,
+    allowDuplicate: mergedConfig.allowDuplicate ?? true,
+    allowDelete: mergedConfig.allowDelete ?? true,
+    allowBulkEdit: mergedConfig.allowBulkEdit ?? true,
+    allowBulkDelete: mergedConfig.allowBulkDelete ?? true,
+    allowInlineEdit: mergedConfig.allowInlineEdit ?? true,
+    canEditRow: mergedConfig.canEditRow,
+    canDeleteRow: mergedConfig.canDeleteRow,
+    canDuplicateRow: mergedConfig.canDuplicateRow,
+    canSelectRow: mergedConfig.canSelectRow,
+    showToolbar: mergedConfig.showToolbar ?? true,
+    showToolbarHeader: mergedConfig.showToolbarHeader ?? true,
+    export: mergedConfig.export ?? true,
+    bulkExport: mergedConfig.bulkExport ?? true,
+    actionsAsIcons: mergedConfig.actionsAsIcons ?? false,
+    density: normalizeDensityMode(mergedConfig.density),
+    layoutPreset,
+    emptyState: {
+      show: true,
+      ...mergedConfig.emptyState,
+    },
+    enableRowSelection: mergedConfig.enableRowSelection ?? true,
+    enableRowClickEdit: mergedConfig.enableRowClickEdit ?? false,
+    rowClickMode: mergedConfig.rowClickMode ?? "default",
+    enableColumnFilters: mergedConfig.enableColumnFilters ?? true,
+    enableSorting: mergedConfig.enableSorting ?? true,
+    enableGrouping: mergedConfig.enableGrouping,
+    enableColumnDnd: mergedConfig.enableColumnDnd ?? true,
+    enableColumnDragDropByDefault: mergedConfig.enableColumnDragDropByDefault,
+    enableMultiRowSelection: mergedConfig.enableMultiRowSelection,
+    enablePagination: mergedConfig.enablePagination,
+    defaultPageSize: mergedConfig.defaultPageSize,
+    pageSizeOptions: mergedConfig.pageSizeOptions,
     dateDisplayPreset:
-      providerConfig.dateDisplayPreset ??
+      mergedConfig.dateDisplayPreset ??
       DEFAULT_TABLE_CONFIG.table.dateDisplayPreset,
-    inlineEdit: resolveInlineEditConfig(providerConfig.inlineEdit),
-    enableCalculations: providerConfig.enableCalculations ?? false,
+    inlineEdit: resolveInlineEditConfig(mergedConfig.inlineEdit),
+    enableCalculations: mergedConfig.enableCalculations ?? false,
   };
 }
 

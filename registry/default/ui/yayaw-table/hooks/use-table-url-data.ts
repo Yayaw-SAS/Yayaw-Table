@@ -44,6 +44,32 @@ interface UseTableUrlDataOptions<TData> {
   tableId: string;
 }
 
+export function resolveInitialTableQueryData<TData>({
+  initialData,
+  initialPageCount,
+  initialRowCount,
+}: {
+  initialData: TData[];
+  initialPageCount?: number;
+  initialRowCount?: number;
+}):
+  | {
+      data: TData[];
+      pageCount: number;
+      rowCount: number;
+    }
+  | undefined {
+  if (initialData.length === 0) {
+    return undefined;
+  }
+
+  return {
+    data: initialData,
+    pageCount: initialPageCount ?? 1,
+    rowCount: initialRowCount ?? initialData.length,
+  };
+}
+
 /**
  * Hook for fetching and managing table data with URL state
  * @param options - Configuration options for data fetching
@@ -164,13 +190,11 @@ export function useTableUrlData<TData>({
   } = useQuery({
     // Enable the query when processedFiltersQuery is complete or when we have initial data
     enabled: shouldEnableQuery,
-    initialData: initialData.length
-      ? {
-          data: initialData,
-          pageCount: initialPageCount ?? 1,
-          rowCount: initialRowCount ?? initialData.length,
-        }
-      : undefined,
+    initialData: resolveInitialTableQueryData({
+      initialData,
+      initialPageCount,
+      initialRowCount,
+    }),
     queryFn: async () => {
       // Convert serverFilters to columnFilters format for compatibility
       const columnFilters = Object.entries(serverFilters).map(

@@ -22,6 +22,7 @@ import {
   useTranslations,
 } from "../providers/table-provider";
 import { resolveTranslationsToUiStrings } from "../providers/translation-cache";
+import type { TableEmptyStateConfig } from "../config/helpers";
 import type {
   ToolbarActionsInput,
   ToolbarActionsPlacement,
@@ -116,7 +117,11 @@ function DataTableContent({
   onBulkExport,
   customBulkActions,
   closeOnError,
+  activeRowId,
+  emptyState,
+  getRowId,
   onRowClick,
+  onRowActivate,
   showDefaultToastsForCustomHandlers,
   onExport,
   toolbarActions,
@@ -150,8 +155,15 @@ function DataTableContent({
   ) => Promise<BulkActionCustomHandlerResult> | BulkActionCustomHandlerResult;
   customBulkActions?: CustomBulkActionsInput<Record<string, unknown>>;
   closeOnError?: boolean;
+  activeRowId?: string;
+  emptyState?: TableEmptyStateConfig;
+  getRowId?: (row: Record<string, unknown>) => string;
   onRowClick?: (
     url: string,
+    row: Record<string, unknown>,
+    event: React.MouseEvent
+  ) => void;
+  onRowActivate?: (
     row: Record<string, unknown>,
     event: React.MouseEvent
   ) => void;
@@ -260,6 +272,7 @@ function DataTableContent({
             bulkExport: config.table.bulkExport,
             defaultPageSize: config.table.defaultPageSize || 10,
             density: config.table.density,
+            emptyState: config.table.emptyState,
             export: config.table.export,
             showToolbar: config.table.showToolbar,
             showToolbarHeader: config.table.showToolbarHeader,
@@ -275,9 +288,11 @@ function DataTableContent({
             enableRowClickEdit: config.table.enableRowClickEdit,
             enableSorting: config.table.enableSorting,
             inlineEdit: config.table.inlineEdit,
+            layoutPreset: config.table.layoutPreset,
             pageSizeOptions: config.table.pageSizeOptions || [
               10, 20, 50, 100, 200, 500,
             ],
+            rowClickMode: config.table.rowClickMode,
           }}
           tableId={tableId}
           translations={resolveTranslationsToUiStrings(
@@ -327,12 +342,14 @@ function DataTableContent({
             ) : (
               <DataTableClient
                 className={className}
+                activeRowId={activeRowId}
                 columns={
                   columns as import("@tanstack/react-table").ColumnDef<
                     Record<string, unknown>
                   >[]
                 }
                 data={finalData}
+                emptyState={emptyState}
                 enableColumnDragDropByDefault={Boolean(
                   config.table.enableColumnDragDropByDefault
                 )}
@@ -344,6 +361,7 @@ function DataTableContent({
                 enablePagination={config.table.enablePagination !== false}
                 enableRowSelection={config.table.enableRowSelection}
                 enableSorting={config.table.enableSorting}
+                getRowId={getRowId}
                 key={`${tableId}-${visibilityKey}`}
                 loadingOverlay={loadingOverlay}
                 closeOnError={closeOnError}
@@ -352,6 +370,7 @@ function DataTableContent({
                 onBulkDelete={onBulkDelete}
                 onBulkEdit={onBulkEdit}
                 onBulkExport={onBulkExport}
+                onRowActivate={onRowActivate}
                 onRowClick={onRowClick}
                 onRowSelectionChange={onRowSelectionChange}
                 showDefaultToastsForCustomHandlers={

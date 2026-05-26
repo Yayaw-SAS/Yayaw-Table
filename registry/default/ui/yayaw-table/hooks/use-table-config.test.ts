@@ -27,9 +27,15 @@ describe("resolveTableCatalogueConfig", () => {
         canEditRow: (row) => row.canManage === true,
         enableCalculations: false,
         enableColumnFilters: true,
+        emptyState: {
+          description: "Create a model to get started.",
+          title: "No models",
+        },
         enableRowClickEdit: true,
         enableRowSelection: false,
         enableSorting: true,
+        layoutPreset: "admin",
+        rowClickMode: "edit",
       },
       translations: {
         keys: { title: "models.title" },
@@ -42,6 +48,15 @@ describe("resolveTableCatalogueConfig", () => {
     assert.equal(resolvedConfig.table.enableCalculations, false);
     assert.equal(resolvedConfig.table.enableRowClickEdit, true);
     assert.equal(resolvedConfig.table.enableRowSelection, false);
+    assert.equal(resolvedConfig.table.layoutPreset, "admin");
+    assert.equal(resolvedConfig.table.density, "small");
+    assert.equal(resolvedConfig.table.defaultPageSize, 20);
+    assert.equal(resolvedConfig.table.rowClickMode, "edit");
+    assert.deepEqual(resolvedConfig.table.emptyState, {
+      description: "Create a model to get started.",
+      show: true,
+      title: "No models",
+    });
     assert.equal(resolvedConfig.table.canEditRow?.({ canManage: true }), true);
     assert.deepEqual(resolvedConfig.columns.sort, [{ desc: true, id: "name" }]);
     assert.deepEqual(resolvedConfig.translations?.keys, {
@@ -66,5 +81,26 @@ describe("resolveTableCatalogueConfig", () => {
     assert.equal(resolvedConfig.table.enableCalculations, false);
     assert.equal(resolvedConfig.table.enableRowClickEdit, true);
     assert.equal(resolvedConfig.table.enableColumnFilters, true);
+  });
+
+  it("applies preview layout defaults while preserving explicit overrides", () => {
+    const resolvedConfig = resolveTableCatalogueConfig({
+      columns: {
+        definitions: [],
+        mandatory: [],
+        order: [],
+        visible: [],
+      },
+      defaultPageSize: 50,
+      enableRowSelection: true,
+      layoutPreset: "preview",
+      showToolbarHeader: true,
+    });
+
+    assert.equal(resolvedConfig.table.layoutPreset, "preview");
+    assert.equal(resolvedConfig.table.density, "small");
+    assert.equal(resolvedConfig.table.actionsAsIcons, true);
+    assert.equal(resolvedConfig.table.defaultPageSize, 50);
+    assert.equal(resolvedConfig.table.showToolbarHeader, true);
   });
 });

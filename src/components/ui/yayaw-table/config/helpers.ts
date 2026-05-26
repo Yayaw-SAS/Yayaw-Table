@@ -94,6 +94,41 @@ export interface TableInlineEditConfig {
 }
 
 /**
+ * High-level layout preset for common table surfaces.
+ */
+export type TableLayoutPreset = "admin" | "catalog" | "default" | "preview";
+
+/**
+ * Row click behavior used by table rows.
+ */
+export type TableRowClickMode =
+  | "activate"
+  | "default"
+  | "edit"
+  | "link"
+  | "none";
+
+/**
+ * Empty/no-results state override for a table.
+ */
+export interface TableEmptyStateConfig {
+  /**
+   * Description shown below the empty-state title.
+   */
+  description?: string;
+
+  /**
+   * Whether the empty-state row should be rendered.
+   */
+  show?: boolean;
+
+  /**
+   * Title shown when the table has no rows.
+   */
+  title?: string;
+}
+
+/**
  * Column definition for a data table
  */
 export interface ColumnDefinition {
@@ -329,6 +364,16 @@ export interface TableBehaviorConfig {
   density: "small" | "medium" | "large";
 
   /**
+   * Opinionated layout preset for common admin/catalog surfaces.
+   */
+  layoutPreset?: TableLayoutPreset;
+
+  /**
+   * Empty/no-results state behavior.
+   */
+  emptyState?: TableEmptyStateConfig;
+
+  /**
    * Default number of rows per page
    */
   defaultPageSize: number;
@@ -369,6 +414,11 @@ export interface TableBehaviorConfig {
    * Incompatible with inline edit (`table.inlineEdit` / column `inlineEdit`).
    */
   enableRowClickEdit?: boolean;
+
+  /**
+   * Generic row click behavior. The default preserves legacy row-link/edit behavior.
+   */
+  rowClickMode?: TableRowClickMode;
 
   /**
    * Enable sorting
@@ -510,6 +560,10 @@ export function defineTableConfig(config: {
       showDelayIndicator:
         config.table?.inlineEdit?.showDelayIndicator ??
         defaultTableConfig.inlineEdit?.showDelayIndicator,
+    },
+    emptyState: {
+      ...defaultTableConfig.emptyState,
+      ...config.table?.emptyState,
     },
     dateDisplayPreset:
       config.table?.dateDisplayPreset ??

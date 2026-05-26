@@ -8,12 +8,12 @@ import type { Row } from "@tanstack/react-table";
 import type React from "react";
 // Import advanced filters hook directly
 import { Suspense } from "react";
+import type { TableEmptyStateConfig } from "../config/helpers";
 import type {
   BulkActionCustomHandlerResult,
   BulkDeleteCustomHandlerResult,
 } from "../hooks/use-bulk-actions";
 import { useDataTable } from "../hooks/use-data-table";
-
 import { DataTableUIProvider } from "../providers/data-table-ui-provider";
 import {
   defaultTranslations,
@@ -113,7 +113,11 @@ function DataTableContent({
   onBulkExport,
   customBulkActions,
   closeOnError,
+  activeRowId,
+  emptyState,
+  getRowId,
   onRowClick,
+  onRowActivate,
   showDefaultToastsForCustomHandlers,
   onExport,
   toolbarActions,
@@ -147,8 +151,15 @@ function DataTableContent({
   ) => Promise<BulkActionCustomHandlerResult> | BulkActionCustomHandlerResult;
   customBulkActions?: CustomBulkActionsInput<Record<string, unknown>>;
   closeOnError?: boolean;
+  activeRowId?: string;
+  emptyState?: TableEmptyStateConfig;
+  getRowId?: (row: Record<string, unknown>) => string;
   onRowClick?: (
     url: string,
+    row: Record<string, unknown>,
+    event: React.MouseEvent
+  ) => void;
+  onRowActivate?: (
     row: Record<string, unknown>,
     event: React.MouseEvent
   ) => void;
@@ -257,6 +268,7 @@ function DataTableContent({
             bulkExport: config.table.bulkExport,
             defaultPageSize: config.table.defaultPageSize || 10,
             density: config.table.density,
+            emptyState: config.table.emptyState,
             export: config.table.export,
             showToolbar: config.table.showToolbar,
             showToolbarHeader: config.table.showToolbarHeader,
@@ -272,9 +284,11 @@ function DataTableContent({
             enableRowClickEdit: config.table.enableRowClickEdit,
             enableSorting: config.table.enableSorting,
             inlineEdit: config.table.inlineEdit,
+            layoutPreset: config.table.layoutPreset,
             pageSizeOptions: config.table.pageSizeOptions || [
               10, 20, 50, 100, 200, 500,
             ],
+            rowClickMode: config.table.rowClickMode,
           }}
           tableId={tableId}
           translations={resolveTranslationsToUiStrings(
@@ -325,6 +339,7 @@ function DataTableContent({
               <DataTableSkeleton />
             ) : (
               <DataTableClient
+                activeRowId={activeRowId}
                 className={className}
                 closeOnError={closeOnError}
                 columns={
@@ -334,6 +349,7 @@ function DataTableContent({
                 }
                 customBulkActions={customBulkActions}
                 data={finalData}
+                emptyState={emptyState}
                 enableColumnDragDropByDefault={Boolean(
                   config.table.enableColumnDragDropByDefault
                 )}
@@ -346,12 +362,14 @@ function DataTableContent({
                 enableRowSelection={config.table.enableRowSelection}
                 enableSorting={config.table.enableSorting}
                 formType={defaultFormType}
+                getRowId={getRowId}
                 key={`${tableId}-${visibilityKey}`}
                 loadingOverlay={loadingOverlay}
                 onBulkCopy={onBulkCopy}
                 onBulkDelete={onBulkDelete}
                 onBulkEdit={onBulkEdit}
                 onBulkExport={onBulkExport}
+                onRowActivate={onRowActivate}
                 onRowClick={onRowClick}
                 onRowSelectionChange={onRowSelectionChange}
                 queryFn={async (_params) => {
