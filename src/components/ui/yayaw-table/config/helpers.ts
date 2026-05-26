@@ -128,6 +128,54 @@ export interface TableEmptyStateConfig {
   title?: string;
 }
 
+export function resolveTableLayoutPreset(
+  layoutPreset: TableLayoutPreset | undefined
+): TableLayoutPreset {
+  if (
+    layoutPreset === "admin" ||
+    layoutPreset === "catalog" ||
+    layoutPreset === "preview"
+  ) {
+    return layoutPreset;
+  }
+
+  return "default";
+}
+
+export function getTableLayoutPresetDefaults(
+  layoutPreset: TableLayoutPreset
+): Partial<TableBehaviorConfig> {
+  if (layoutPreset === "admin") {
+    return {
+      actionsAsIcons: true,
+      defaultPageSize: 20,
+      density: "small",
+      pageSizeOptions: [10, 20, 50, 100],
+    };
+  }
+
+  if (layoutPreset === "catalog") {
+    return {
+      actionsAsIcons: true,
+      defaultPageSize: 20,
+      density: "medium",
+      pageSizeOptions: [10, 20, 50],
+    };
+  }
+
+  if (layoutPreset === "preview") {
+    return {
+      actionsAsIcons: true,
+      defaultPageSize: 20,
+      density: "small",
+      pageSizeOptions: [10, 20, 50],
+      showToolbarHeader: false,
+    };
+  }
+
+  return {};
+}
+
 /**
  * Column definition for a data table
  */
@@ -538,10 +586,15 @@ export function defineTableConfig(config: {
   table?: Partial<TableBehaviorConfig>;
   translations: TableTranslationsConfig;
 }): TableConfig {
+  const layoutPreset = resolveTableLayoutPreset(config.table?.layoutPreset);
+  const layoutPresetDefaults = getTableLayoutPresetDefaults(layoutPreset);
+
   // Merge the table behavior config with defaults
   const tableDefaults: TableBehaviorConfig = {
     ...defaultTableConfig,
+    ...layoutPresetDefaults,
     ...config.table,
+    layoutPreset,
     inlineEdit: {
       enabled:
         config.table?.inlineEdit?.enabled ??
