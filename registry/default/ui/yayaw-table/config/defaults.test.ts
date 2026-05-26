@@ -7,6 +7,11 @@ describe("defaultTableConfig", () => {
   it("disables footer calculations by default", () => {
     assert.equal(defaultTableConfig.enableCalculations, false);
   });
+
+  it("uses the default layout and empty-state behavior by default", () => {
+    assert.equal(defaultTableConfig.layoutPreset, "default");
+    assert.equal(defaultTableConfig.emptyState.show, true);
+  });
 });
 
 describe("defineTableConfig", () => {
@@ -26,5 +31,29 @@ describe("defineTableConfig", () => {
     });
 
     assert.equal(config.table.enableCalculations, false);
+  });
+
+  it("merges nested empty-state overrides", () => {
+    const config = defineTableConfig({
+      columns: {
+        definitions: [],
+        mandatory: [],
+        order: [],
+        visible: [],
+      },
+      id: "products",
+      table: {
+        emptyState: {
+          title: "No products",
+        },
+      },
+      translations: {
+        keys: {},
+        namespace: "common",
+      },
+    });
+
+    assert.equal(config.table.emptyState?.show, true);
+    assert.equal(config.table.emptyState?.title, "No products");
   });
 });

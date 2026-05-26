@@ -73,6 +73,10 @@ export function DataTableUIProvider({
     return {
       ...defaultTableConfig,
       ...tableConfig,
+      emptyState: {
+        ...defaultTableConfig.emptyState,
+        ...tableConfig.emptyState,
+      },
       inlineEdit: {
         ...defaultTableConfig.inlineEdit,
         ...tableConfig.inlineEdit,

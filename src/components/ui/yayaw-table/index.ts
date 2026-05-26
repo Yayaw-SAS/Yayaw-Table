@@ -48,7 +48,10 @@ export type {
   TableBehaviorConfig,
   TableColumnsConfig,
   TableConfig,
+  TableEmptyStateConfig,
   TableInlineEditConfig,
+  TableLayoutPreset,
+  TableRowClickMode,
   TableTranslationsConfig,
 } from "./config/helpers";
 // Config helper and types

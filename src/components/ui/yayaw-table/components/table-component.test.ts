@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   getBulkActionsViewportBottomOffset,
+  isRowIdActive,
+  resolveEffectiveRowClickMode,
   shouldRenderBulkActionsInFooter,
+  shouldRenderTableEmptyState,
   shouldRenderPaginationControls,
   shouldShowCalculationsFooter,
 } from "./table-component";
@@ -159,6 +162,119 @@ describe("getBulkActionsViewportBottomOffset", () => {
         paginationHeight: 72,
       }),
       24
+    );
+  });
+});
+
+describe("shouldRenderTableEmptyState", () => {
+  it("renders when the table is loaded and has no rows", () => {
+    assert.equal(
+      shouldRenderTableEmptyState({
+        dataLength: 0,
+        isError: false,
+        isLoading: false,
+        rowCount: 0,
+      }),
+      true
+    );
+  });
+
+  it("does not render while loading or when disabled", () => {
+    assert.equal(
+      shouldRenderTableEmptyState({
+        dataLength: 0,
+        isError: false,
+        isLoading: true,
+        rowCount: 0,
+      }),
+      false
+    );
+    assert.equal(
+      shouldRenderTableEmptyState({
+        dataLength: 0,
+        isError: false,
+        isLoading: false,
+        rowCount: 0,
+        showEmptyState: false,
+      }),
+      false
+    );
+  });
+
+  it("falls back to data length when row count is unavailable", () => {
+    assert.equal(
+      shouldRenderTableEmptyState({
+        dataLength: 1,
+        isError: false,
+        isLoading: false,
+      }),
+      false
+    );
+  });
+});
+
+describe("isRowIdActive", () => {
+  it("matches active rows by table row id or original id", () => {
+    assert.equal(
+      isRowIdActive({
+        activeRowId: "row-1",
+        rowId: "row-1",
+      }),
+      true
+    );
+    assert.equal(
+      isRowIdActive({
+        activeRowId: "entity-1",
+        rowId: "0",
+        rowOriginal: { id: "entity-1" },
+      }),
+      true
+    );
+  });
+
+  it("returns false when no active row id is provided", () => {
+    assert.equal(
+      isRowIdActive({
+        rowId: "row-1",
+      }),
+      false
+    );
+  });
+});
+
+describe("resolveEffectiveRowClickMode", () => {
+  it("preserves explicit row click modes", () => {
+    assert.equal(
+      resolveEffectiveRowClickMode({
+        configuredMode: "activate",
+        hasRowLink: true,
+        isRowClickEditEnabled: true,
+      }),
+      "activate"
+    );
+  });
+
+  it("keeps legacy edit and row-link behavior by default", () => {
+    assert.equal(
+      resolveEffectiveRowClickMode({
+        hasRowLink: true,
+        isRowClickEditEnabled: true,
+      }),
+      "edit"
+    );
+    assert.equal(
+      resolveEffectiveRowClickMode({
+        hasRowLink: true,
+        isRowClickEditEnabled: false,
+      }),
+      "link"
+    );
+    assert.equal(
+      resolveEffectiveRowClickMode({
+        hasRowLink: false,
+        isRowClickEditEnabled: false,
+      }),
+      "none"
     );
   });
 });

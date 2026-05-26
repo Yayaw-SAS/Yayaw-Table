@@ -5,7 +5,12 @@
 import { atom } from "jotai";
 import { atomFamily } from "jotai-family";
 
-import type { TableInlineEditConfig } from "../config/helpers";
+import type {
+  TableEmptyStateConfig,
+  TableInlineEditConfig,
+  TableLayoutPreset,
+  TableRowClickMode,
+} from "../config/helpers";
 import type { TableFormConfig } from "../config/form-config";
 import type { DateDisplayPreset } from "../types/date-types";
 
@@ -104,6 +109,16 @@ export interface DataTableConfig {
   density?: "small" | "medium" | "large";
 
   /**
+   * Opinionated layout preset for common table surfaces.
+   */
+  layoutPreset?: TableLayoutPreset;
+
+  /**
+   * Empty/no-results state behavior.
+   */
+  emptyState?: TableEmptyStateConfig;
+
+  /**
    * Default page size
    */
   defaultPageSize: number;
@@ -155,6 +170,11 @@ export interface DataTableConfig {
    * Incompatible with inline edit (`table.inlineEdit` / column `inlineEdit`).
    */
   enableRowClickEdit?: boolean;
+
+  /**
+   * Generic row click behavior. The default preserves legacy row-link/edit behavior.
+   */
+  rowClickMode?: TableRowClickMode;
 
   /**
    * Enable sorting
@@ -217,6 +237,10 @@ const defaultTableConfig: DataTableConfig = {
   bulkExport: true,
   actionsAsIcons: false,
   density: "medium",
+  layoutPreset: "default",
+  emptyState: {
+    show: true,
+  },
   defaultPageSize: 10,
   enableColumnDragDropByDefault: true,
   enableColumnDnd: true,
@@ -226,6 +250,7 @@ const defaultTableConfig: DataTableConfig = {
   enableRowDragDrop: false,
   enableRowSelection: true,
   enableRowClickEdit: false,
+  rowClickMode: "default",
   enableSorting: true,
   enableCalculations: false,
   enableGrouping: true,

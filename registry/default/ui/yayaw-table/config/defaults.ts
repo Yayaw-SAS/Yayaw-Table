@@ -20,7 +20,11 @@ export const defaultTableConfig = {
   bulkExport: true,
   actionsAsIcons: false,
   density: "medium" as const,
+  layoutPreset: "default" as const,
   defaultPageSize: 10,
+  emptyState: {
+    show: true,
+  },
   enableColumnDragDropByDefault: false,
   enableColumnFilters: true,
   enableColumnPinning: true,

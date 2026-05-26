@@ -831,6 +831,11 @@
           "target": "components/ui/yayaw-table/hooks/use-table-ui-config.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/hooks/use-table-url-data.test.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/hooks/use-table-url-data.test.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/hooks/use-table-url-data.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/hooks/use-table-url-data.ts"

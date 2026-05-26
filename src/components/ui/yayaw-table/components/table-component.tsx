@@ -36,6 +36,10 @@ import {
   tableIdAtom,
 } from "../atoms/table-atoms";
 import { footerVisibleAtom } from "../atoms/footer-atoms";
+import type {
+  TableEmptyStateConfig,
+  TableRowClickMode,
+} from "../config/helpers";
 import {
   type BulkActionCustomHandlerResult,
   type BulkDeleteCustomHandlerResult,
@@ -153,6 +157,125 @@ export const getBulkActionsViewportBottomOffset = ({
   viewportMargin?: number;
 }): number => {
   return viewportMargin + (isPaginationVisible ? paginationHeight : 0);
+};
+
+export const shouldRenderTableEmptyState = ({
+  isError,
+  isLoading,
+  rowCount,
+  dataLength,
+  showEmptyState = true,
+}: {
+  isError: boolean;
+  isLoading: boolean;
+  rowCount?: number;
+  dataLength: number;
+  showEmptyState?: boolean;
+}): boolean => {
+  if (isError || isLoading || !showEmptyState) {
+    return false;
+  }
+
+  if (typeof rowCount === "number" && Number.isFinite(rowCount)) {
+    return rowCount === 0;
+  }
+
+  return dataLength === 0;
+};
+
+export const isRowIdActive = ({
+  activeRowId,
+  rowId,
+  rowOriginal,
+}: {
+  activeRowId?: string;
+  rowId: string;
+  rowOriginal?: Record<string, unknown>;
+}): boolean => {
+  if (!activeRowId) {
+    return false;
+  }
+
+  if (rowId === activeRowId) {
+    return true;
+  }
+
+  const originalId = rowOriginal?.id;
+  return (
+    (typeof originalId === "number" || typeof originalId === "string") &&
+    String(originalId) === activeRowId
+  );
+};
+
+export const resolveEffectiveRowClickMode = ({
+  configuredMode,
+  hasRowLink,
+  isRowClickEditEnabled,
+}: {
+  configuredMode?: TableRowClickMode;
+  hasRowLink: boolean;
+  isRowClickEditEnabled: boolean;
+}): Exclude<TableRowClickMode, "default"> => {
+  if (configuredMode && configuredMode !== "default") {
+    return configuredMode;
+  }
+
+  if (isRowClickEditEnabled) {
+    return "edit";
+  }
+
+  if (hasRowLink) {
+    return "link";
+  }
+
+  return "none";
+};
+
+export const shouldIgnoreRowClickTarget = (target: EventTarget | null) => {
+  if (typeof HTMLElement === "undefined" || !(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  return Boolean(
+    target.closest(ROW_CLICK_INTERACTIVE_SELECTOR) ||
+      target.closest(ROW_CLICK_SYSTEM_COLUMN_SELECTOR)
+  );
+};
+
+const handleDataTableRowClick = <TData,>({
+  canEditRow,
+  event,
+  onRowActivate,
+  onRowEdit,
+  onRowLink,
+  row,
+  rowClickMode,
+}: {
+  canEditRow: boolean;
+  event: React.MouseEvent;
+  onRowActivate?: (row: TData, event: React.MouseEvent) => void;
+  onRowEdit: (row: Row<TData>) => void;
+  onRowLink?: (row: Row<TData>, event: React.MouseEvent) => void;
+  row: Row<TData>;
+  rowClickMode: Exclude<TableRowClickMode, "default">;
+}) => {
+  if (shouldIgnoreRowClickTarget(event.target)) {
+    return;
+  }
+
+  if (rowClickMode === "activate") {
+    onRowActivate?.(row.original, event);
+    return;
+  }
+
+  if (rowClickMode === "edit" && canEditRow) {
+    onRowEdit(row);
+    return;
+  }
+
+  if (rowClickMode === "link") {
+    onRowLink?.(row, event);
+  }
 };
 
 interface ColumnSizingDefinition {
@@ -590,6 +713,21 @@ const MemoizedSkeletonRow = memo<{
 
 MemoizedSkeletonRow.displayName = "MemoizedSkeletonRow";
 
+function TableEmptyStateContent({
+  description,
+  title,
+}: {
+  description?: string;
+  title: string;
+}) {
+  return (
+    <div className="flex min-h-40 flex-col items-center justify-center px-4 py-10 text-center text-muted-foreground">
+      <p className="font-semibold text-foreground text-sm">{title}</p>
+      {description ? <p className="mt-1 text-sm">{description}</p> : null}
+    </div>
+  );
+}
+
 /**
  * Modern implementation of DataTable using the new hooks and components
  */
@@ -617,7 +755,10 @@ function ModernDataTable<
   onBulkExport,
   customBulkActions,
   closeOnError,
+  activeRowId,
+  emptyState,
   onRowClick,
+  onRowActivate,
   showDefaultToastsForCustomHandlers,
   queryFn: _queryFn,
   rowSelection: _rowSelection,
@@ -1139,16 +1280,40 @@ function ModernDataTable<
     </div>
   );
   const loadingOverlay = loadingOverlayProp ?? defaultLoadingOverlay;
+  const {
+    advancedFiltersParam,
+    expandedParam,
+    filtersParam,
+    globalSearchParam,
+    setExpandedFromUI,
+  } = useTableUrlState({
+    tableId: tableId || "",
+  });
+  const resolvedEmptyState = useMemo<TableEmptyStateConfig>(
+    () => ({
+      ...tableConfig.table.emptyState,
+      ...emptyState,
+    }),
+    [emptyState, tableConfig.table.emptyState]
+  );
+  const hasActiveSearchOrFilters = useMemo(() => {
+    return (
+      globalSearchParam.trim().length > 0 ||
+      filtersParam.length > 0 ||
+      advancedFiltersParam.length > 0
+    );
+  }, [advancedFiltersParam, filtersParam, globalSearchParam]);
+  const emptyStateTitle =
+    resolvedEmptyState.title ??
+    (hasActiveSearchOrFilters ? t("table.no_results") : t("state.noData"));
+  const emptyStateDescription =
+    resolvedEmptyState.description ??
+    (hasActiveSearchOrFilters ? t("table.no_results_description") : undefined);
 
   // Local state to track expanded groups (bypass TanStack issues)
   const [localExpanded, setLocalExpanded] = useState<Record<string, boolean>>(
     {}
   );
-
-  // Bridge URL-driven expand/collapse controls with local expansion state
-  const { expandedParam, setExpandedFromUI } = useTableUrlState({
-    tableId: tableId || "",
-  });
 
   // When grouping changes, expand all by default. Only update URL when desired value differs to avoid loops.
   const groupingKey = Array.isArray(state.grouping)
@@ -1248,6 +1413,27 @@ function ModernDataTable<
     }
 
     const rows = table.getRowModel().rows as Row<TData>[];
+    const showEmptyState = shouldRenderTableEmptyState({
+      dataLength: data.length,
+      isError,
+      isLoading,
+      rowCount,
+      showEmptyState: resolvedEmptyState.show !== false,
+    });
+    if (showEmptyState) {
+      return (
+        <TableBody>
+          <TableRow>
+            <TableCell colSpan={Math.max(table.getVisibleLeafColumns().length, 1)}>
+              <TableEmptyStateContent
+                description={emptyStateDescription}
+                title={emptyStateTitle}
+              />
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      );
+    }
 
     // Helper to get selection counts
     const getSelectionCounts = (row: Row<TData>) => {
@@ -1474,7 +1660,20 @@ function ModernDataTable<
       const canEditRow =
         tableConfig.table.canEditRow?.(row.original as Record<string, unknown>) !==
         false;
-      const canClickRow = (isRowClickEditEnabled && canEditRow) || handleRowLinkClick;
+      const rowClickMode = resolveEffectiveRowClickMode({
+        configuredMode: tableConfig.table.rowClickMode,
+        hasRowLink: Boolean(handleRowLinkClick),
+        isRowClickEditEnabled,
+      });
+      const canClickRow =
+        (rowClickMode === "activate" && Boolean(onRowActivate)) ||
+        (rowClickMode === "edit" && canEditRow) ||
+        (rowClickMode === "link" && Boolean(handleRowLinkClick));
+      const isActiveRow = isRowIdActive({
+        activeRowId,
+        rowId: row.id,
+        rowOriginal: row.original as Record<string, unknown>,
+      });
 
       return (
         <TableRow
@@ -1482,28 +1681,25 @@ function ModernDataTable<
             "group",
             "data-[state=selected]:bg-muted/50",
             row.getIsSelected() && "bg-muted/50",
+            isActiveRow &&
+              "bg-primary/5 shadow-[inset_2px_0_0_hsl(var(--primary))]",
             canClickRow && "cursor-pointer hover:bg-muted/40"
           )}
+          data-active={isActiveRow ? "true" : undefined}
           data-state={row.getIsSelected() ? "selected" : ""}
           key={row.id}
           onClick={
             canClickRow
-              ? (event) => {
-                  const target = event.target as HTMLElement;
-                  if (target.closest(ROW_CLICK_INTERACTIVE_SELECTOR)) {
-                    return;
-                  }
-                  if (target.closest(ROW_CLICK_SYSTEM_COLUMN_SELECTOR)) {
-                    return;
-                  }
-
-                  if (isRowClickEditEnabled && canEditRow) {
-                    handleRowEditClick(row);
-                    return;
-                  }
-
-                  handleRowLinkClick?.(row, event);
-                }
+              ? (event) =>
+                  handleDataTableRowClick({
+                    canEditRow,
+                    event,
+                    onRowActivate,
+                    onRowEdit: handleRowEditClick,
+                    onRowLink: handleRowLinkClick,
+                    row,
+                    rowClickMode,
+                  })
               : undefined
           }
         >
@@ -1654,6 +1850,11 @@ function ModernDataTable<
     data,
     table,
     hasMounted,
+    isError,
+    rowCount,
+    resolvedEmptyState.show,
+    emptyStateDescription,
+    emptyStateTitle,
     inlineEditFieldMap,
     inlineEditSchema,
     localExpanded,
@@ -1665,7 +1866,10 @@ function ModernDataTable<
     rowLinkAccessorKey,
     isRowClickEditEnabled,
     tableConfig.table.canEditRow,
+    tableConfig.table.rowClickMode,
     handleRowEditClick,
+    activeRowId,
+    onRowActivate,
     onRowClick,
   ]);
 
@@ -1715,20 +1919,6 @@ function ModernDataTable<
     densityMode,
   ]);
 
-  // Always keep table UI visible for server-driven tables.
-  const showEmptyState = false;
-
-  // Create empty state content
-  const emptyStateContent = useMemo(
-    () => (
-      <div className="flex h-64 flex-col items-center justify-center text-muted-foreground">
-        <p className="font-semibold text-lg">No results found</p>
-        <p className="text-sm">Try adjusting your search or filters</p>
-      </div>
-    ),
-    []
-  );
-
   // Render the content based on state
   const renderContent = () => {
     // Render error state
@@ -1748,11 +1938,6 @@ function ModernDataTable<
           </div>
         </div>
       );
-    }
-
-    // Show empty state if applicable
-    if (showEmptyState) {
-      return emptyStateContent;
     }
 
     // Otherwise render the full table
