@@ -233,6 +233,27 @@
       "medium": "Normal",
       "large": "Large"
     },
+    "layoutPreset": {
+      "label": "Preset d'agencement",
+      "description": "Applique des valeurs par défaut réutilisables pour les tables admin, catalogue ou aperçu.",
+      "default": "Défaut",
+      "admin": "Admin",
+      "catalog": "Catalogue",
+      "preview": "Aperçu"
+    },
+    "rowClickMode": {
+      "label": "Interaction de ligne",
+      "description": "Choisissez le comportement par défaut au clic sur les zones non interactives des lignes.",
+      "default": "Défaut",
+      "activate": "Activer",
+      "edit": "Éditer",
+      "link": "Lien",
+      "none": "Aucun"
+    },
+    "emptyState": {
+      "title": "Aucun produit trouvé",
+      "description": "Essayez de modifier la recherche ou les filtres."
+    },
     "toasts": {
       "deleteUnavailable": "L'action de suppression n'est pas disponible",
       "copyUnavailable": "L'action de copie n'est pas disponible",

@@ -233,6 +233,27 @@
       "medium": "Medium",
       "large": "Large"
     },
+    "layoutPreset": {
+      "label": "Layout preset",
+      "description": "Apply reusable defaults for common admin, catalog, or preview table surfaces.",
+      "default": "Default",
+      "admin": "Admin",
+      "catalog": "Catalog",
+      "preview": "Preview"
+    },
+    "rowClickMode": {
+      "label": "Row interaction",
+      "description": "Choose the default behavior for clicks on non-interactive row areas.",
+      "default": "Default",
+      "activate": "Activate",
+      "edit": "Edit",
+      "link": "Link",
+      "none": "None"
+    },
+    "emptyState": {
+      "title": "No products found",
+      "description": "Try changing your search or filters."
+    },
     "toasts": {
       "deleteUnavailable": "Delete action is not available",
       "copyUnavailable": "Copy action is not available",

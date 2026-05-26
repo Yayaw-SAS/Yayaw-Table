@@ -22,8 +22,15 @@ table: {
   bulkExport: true,
   actionsAsIcons: false,
   density: 'medium',
+  layoutPreset: 'default',
+  emptyState: {
+    show: true,
+    title: 'No rows found',
+    description: 'Try changing your search or filters.',
+  },
   enableRowSelection: true,
   enableRowClickEdit: false,
+  rowClickMode: 'default',
   enableColumnFilters: true,
   enableSorting: true,
   enableGrouping: true,
@@ -55,6 +62,8 @@ Type: `boolean` | Default: `true`
 Open the edit drawer when a non-interactive row area is clicked.
 
 Type: `boolean` | Default: `false`
+
+For new tables, prefer `rowClickMode: 'edit'` when you need explicit row interaction behavior. `enableRowClickEdit` remains supported as the legacy shortcut.
 
 Constraints:
 - Works only when `allowEdit` is enabled.
@@ -125,6 +134,58 @@ Type: `boolean` | Default: `false`
 Table row density mode.
 
 Type: `'small' | 'medium' | 'large'` | Default: `'medium'`
+
+### layoutPreset
+Apply opinionated defaults for common table surfaces while keeping every individual option overrideable.
+
+Type: `'default' | 'admin' | 'catalog' | 'preview'` | Default: `'default'`
+
+Preset defaults:
+
+- `default`: no additional defaults.
+- `admin`: compact density, icon toolbar actions, 20-row pages, and page sizes `[10, 20, 50, 100]`.
+- `catalog`: medium density, icon toolbar actions, 20-row pages, and page sizes `[10, 20, 50]`.
+- `preview`: compact density, icon toolbar actions, 20-row pages, page sizes `[10, 20, 50]`, and no toolbar header.
+
+Explicit table config values still win over preset defaults.
+
+### emptyState
+Customize the row shown when the current table query returns no rows.
+
+Type:
+
+```ts
+{
+  show?: boolean;
+  title?: string;
+  description?: string;
+}
+```
+
+Default:
+
+```ts
+{
+  show: true,
+  title: "No results",
+  description: "Try adjusting your search or filters.",
+}
+```
+
+The same shape can be provided through `DataTable` props for per-instance copy overrides.
+
+### rowClickMode
+Control what happens when a user clicks a non-interactive row area.
+
+Type: `'default' | 'activate' | 'edit' | 'link' | 'none'` | Default: `'default'`
+
+Modes:
+
+- `default`: keeps backwards-compatible behavior, including `enableRowClickEdit`.
+- `activate`: calls the `DataTable` `onRowActivate(row, event)` callback for master-detail or preview layouts.
+- `edit`: opens the edit drawer when the row can be edited.
+- `link`: uses row link behavior for URL-backed rows and calls `onRowClick(url, row, event)` when provided.
+- `none`: disables row click behavior.
 
 ### enableColumnFilters
 Enable per-column filters.
