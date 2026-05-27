@@ -1082,6 +1082,7 @@ function ModernDataTable<
     () => ({
       columns: columns as ColumnDef<TData>[],
       data: data as TData[],
+      defaultPageSize: tableConfig.table.defaultPageSize,
       defaultVisibleColumns: tableConfig.columns.visible,
       enableColumnFilters,
       enableMultiRowSelection,
@@ -1099,6 +1100,7 @@ function ModernDataTable<
     [
       columns,
       data,
+      tableConfig.table.defaultPageSize,
       tableConfig.columns.visible,
       enableColumnFilters,
       enableMultiRowSelection,

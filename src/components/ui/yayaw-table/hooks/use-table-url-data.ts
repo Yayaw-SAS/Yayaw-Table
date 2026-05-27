@@ -17,6 +17,7 @@ import { useTableUrlState } from "./use-table-url-state";
 const _DEBUG = false;
 
 interface UseTableUrlDataOptions<TData> {
+  defaultPageSize?: number;
   enabled?: boolean;
   getRowId?: (row: TData) => string;
   initialData?: TData[];
@@ -42,6 +43,55 @@ interface UseTableUrlDataOptions<TData> {
     rowCount: number;
   }>;
   tableId: string;
+}
+
+function hasStateValue(value: unknown): boolean {
+  if (Array.isArray(value)) {
+    return value.length > 0;
+  }
+
+  if (typeof value === "string") {
+    return value.trim().length > 0;
+  }
+
+  if (value && typeof value === "object") {
+    return Object.keys(value).length > 0;
+  }
+
+  return false;
+}
+
+export function shouldUseInitialTableQueryData({
+  advancedFiltersParam,
+  defaultPageSize,
+  filtersParam,
+  globalSearchParam,
+  pagination,
+  serverFilters,
+  sortParam,
+}: {
+  advancedFiltersParam?: unknown;
+  defaultPageSize: number;
+  filtersParam?: unknown;
+  globalSearchParam?: string | null;
+  pagination: { pageIndex: number; pageSize: number };
+  serverFilters?: Record<string, unknown>;
+  sortParam?: unknown;
+}): boolean {
+  const resolvedDefaultPageSize =
+    Number.isFinite(defaultPageSize) && defaultPageSize > 0
+      ? Math.trunc(defaultPageSize)
+      : 10;
+
+  return (
+    pagination.pageIndex === 0 &&
+    pagination.pageSize === resolvedDefaultPageSize &&
+    !hasStateValue(filtersParam) &&
+    !hasStateValue(advancedFiltersParam) &&
+    !hasStateValue(globalSearchParam) &&
+    !hasStateValue(serverFilters) &&
+    !hasStateValue(sortParam)
+  );
 }
 
 export function resolveInitialTableQueryData<TData>({
@@ -76,6 +126,7 @@ export function resolveInitialTableQueryData<TData>({
  * @returns Object with data and loading state
  */
 export function useTableUrlData<TData>({
+  defaultPageSize = 10,
   enabled = true,
   getRowId = (row: TData) => (row as Record<string, unknown>).id as string,
   initialData = [],
@@ -84,6 +135,11 @@ export function useTableUrlData<TData>({
   queryFn,
   tableId,
 }: UseTableUrlDataOptions<TData>) {
+  const resolvedDefaultPageSize =
+    Number.isFinite(defaultPageSize) && defaultPageSize > 0
+      ? Math.trunc(defaultPageSize)
+      : 10;
+
   // Get URL state - include advanced filters!
   const {
     filtersParam,
@@ -93,6 +149,7 @@ export function useTableUrlData<TData>({
     sortParam,
     globalSearchParam,
   } = useTableUrlState({
+    defaultPageSize: resolvedDefaultPageSize,
     tableId,
   });
 
@@ -177,7 +234,33 @@ export function useTableUrlData<TData>({
     Boolean(tableId) &&
     enabled &&
     (processedFiltersQuery.status === "success" ||
-      (processedFiltersQuery.status === "pending" && initialData.length > 0));
+      (processedFiltersQuery.status === "pending" &&
+        shouldUseInitialTableQueryData({
+          advancedFiltersParam,
+          defaultPageSize: resolvedDefaultPageSize,
+          filtersParam,
+          globalSearchParam,
+          pagination,
+          serverFilters,
+          sortParam,
+        }) &&
+        initialData.length > 0));
+
+  const initialQueryData = shouldUseInitialTableQueryData({
+    advancedFiltersParam,
+    defaultPageSize: resolvedDefaultPageSize,
+    filtersParam,
+    globalSearchParam,
+    pagination,
+    serverFilters,
+    sortParam,
+  })
+    ? resolveInitialTableQueryData({
+        initialData,
+        initialPageCount,
+        initialRowCount,
+      })
+    : undefined;
 
   // Query for fetching data
   const {
@@ -190,11 +273,7 @@ export function useTableUrlData<TData>({
   } = useQuery({
     // Enable the query when processedFiltersQuery is complete or when we have initial data
     enabled: shouldEnableQuery,
-    initialData: resolveInitialTableQueryData({
-      initialData,
-      initialPageCount,
-      initialRowCount,
-    }),
+    initialData: initialQueryData,
     queryFn: async () => {
       // Convert serverFilters to columnFilters format for compatibility
       const columnFilters = Object.entries(serverFilters).map(

@@ -152,7 +152,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
 ) {
   const {
     enabled = true,
-    initialPageSize: _initialPageSize = 10,
+    initialPageSize = 10,
     initialData,
     initialPageCount,
     initialRowCount,
@@ -180,7 +180,8 @@ export function useDataTable<TData extends Record<string, unknown>>(
   const { t } = useTranslations();
 
   // Set up URL state for the table
-  const tableUrlState = useTableUrlState({ tableId });
+  const defaultPageSize = config.table.defaultPageSize ?? initialPageSize;
+  const tableUrlState = useTableUrlState({ defaultPageSize, tableId });
 
   // Create a function to invalidate table data
   const invalidateTable = useCallback(async () => {
@@ -373,6 +374,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
 
   // Use the tableUrlData hook for proper API data fetching
   const urlDataResult = useTableUrlData<TData>({
+    defaultPageSize,
     enabled,
     initialData,
     initialPageCount,
