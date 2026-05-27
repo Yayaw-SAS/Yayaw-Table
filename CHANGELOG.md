@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.2.0
+
+### Minor Changes
+
+- f67365e: Add reusable dashboard table UX primitives for layout presets, empty states, active rows, row click modes, and initial data hydration.
+
+### Patch Changes
+
+- 1c1fec0: Fix table initial data hydration so server-paginated tables do not reuse first-page rows after pagination, filtering, search, sorting, or page-size changes.
+- 97941be: Fix selection column body cell alignment so row checkboxes stay horizontally aligned with the select-all header checkbox.
+- 37e57b1: Apply layout preset defaults inside defineTableConfig before explicit table overrides so nested configs receive the same admin, catalog, and preview defaults as flat provider configs.
+
 ## 1.1.1
 
 ### Patch Changes
