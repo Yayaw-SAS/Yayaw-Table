@@ -84,6 +84,7 @@ export interface TableCatalogueTableConfig {
   enableColumnFilters: boolean;
   enableSorting: boolean;
   enableGrouping?: boolean;
+  enableViews?: boolean;
   /** Gate for column DnD feature and UI */
   enableColumnDnd?: boolean;
   enableColumnDragDropByDefault?: boolean;
@@ -160,6 +161,7 @@ const DEFAULT_TABLE_CONFIG: TableCatalogueConfig = {
     enableColumnFilters: true,
     enableSorting: true,
     enableGrouping: true,
+    enableViews: true,
     enableColumnDnd: true,
     enableColumnDragDropByDefault: false,
     enableMultiRowSelection: true,
@@ -269,6 +271,7 @@ function resolveTableBehaviorConfig(
     enableColumnFilters: mergedConfig.enableColumnFilters ?? true,
     enableSorting: mergedConfig.enableSorting ?? true,
     enableGrouping: mergedConfig.enableGrouping,
+    enableViews: mergedConfig.enableViews !== false,
     enableColumnDnd: mergedConfig.enableColumnDnd ?? true,
     enableColumnDragDropByDefault: mergedConfig.enableColumnDragDropByDefault,
     enableMultiRowSelection: mergedConfig.enableMultiRowSelection,

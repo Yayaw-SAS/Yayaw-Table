@@ -666,6 +666,11 @@
           "target": "components/ui/yayaw-table/components/toolbar/table-menu.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/toolbar/table-view-manager.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/toolbar/table-view-manager.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/toolbar/toolbar-actions.test.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/toolbar/toolbar-actions.test.ts"
@@ -1004,6 +1009,26 @@
           "path": "registry/default/ui/yayaw-table/utils/table-config-utils.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/table-config-utils.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/table-view-state.test.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/table-view-state.test.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/table-view-state.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/table-view-state.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/table-view-storage.test.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/table-view-storage.test.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/table-view-storage.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/table-view-storage.ts"
         }
       ],
       "meta": {

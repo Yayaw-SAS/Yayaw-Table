@@ -64,4 +64,13 @@ export * from "./types/table-types";
 export * from "./types/toolbar-types";
 export * from "./types/translations";
 // Core types used in docs
-export type { TableView, TableViewConfig } from "./types/view-types";
+export type {
+  CreateTableViewInput,
+  TableView,
+  TableViewActionContext,
+  TableViewActionResult,
+  TableViewActions,
+  TableViewConfig,
+  UpdateTableViewInput,
+} from "./types/view-types";
+export { createLocalTableViewActions } from "./utils/table-view-storage";

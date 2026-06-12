@@ -5,9 +5,11 @@
 
 import type {
   ColumnFiltersState,
+  ColumnPinningState,
   SortingState,
   VisibilityState,
 } from "@tanstack/react-table";
+import type { AdvancedFiltersState } from "./filter-types";
 
 /**
  * Table view
@@ -78,6 +80,11 @@ export interface TableView {
  */
 export interface TableViewConfig {
   /**
+   * Advanced filter rules
+   */
+  advancedFilters?: AdvancedFiltersState;
+
+  /**
    * Column filters
    */
   columnFilters?: ColumnFiltersState;
@@ -88,12 +95,142 @@ export interface TableViewConfig {
   columnOrder?: string[];
 
   /**
+   * Pinned columns
+   */
+  columnPinning?: ColumnPinningState;
+
+  /**
    * Column visibility
    */
   columnVisibility?: VisibilityState;
 
   /**
+   * Global search value
+   */
+  globalSearch?: string;
+
+  /**
+   * Grouping column IDs
+   */
+  grouping?: string[];
+
+  /**
+   * Page size to restore when applying the view
+   */
+  pageSize?: number;
+
+  /**
    * Sorting
    */
   sorting?: SortingState;
+}
+
+/**
+ * Context passed to view persistence actions.
+ */
+export interface TableViewActionContext {
+  /**
+   * Stable table instance ID used for URL state
+   */
+  tableId: string;
+
+  /**
+   * Table catalogue key
+   */
+  tableType: string;
+}
+
+/**
+ * Input used to create a saved view.
+ */
+export interface CreateTableViewInput extends TableViewActionContext {
+  /**
+   * View configuration to persist
+   */
+  config: TableViewConfig;
+
+  /**
+   * Whether the view should become the default view
+   */
+  isDefault?: boolean;
+
+  /**
+   * Whether the view is shared globally
+   */
+  isGlobal?: boolean;
+
+  /**
+   * Display name for the new view
+   */
+  name: string;
+}
+
+/**
+ * Input used to update an existing saved view.
+ */
+export interface UpdateTableViewInput extends Partial<CreateTableViewInput> {
+  /**
+   * Stable table instance ID used for URL state
+   */
+  tableId: string;
+
+  /**
+   * Table catalogue key
+   */
+  tableType: string;
+}
+
+/**
+ * Standard result shape for view mutations.
+ */
+export interface TableViewActionResult<TData = TableView> {
+  /**
+   * Updated or created payload
+   */
+  data?: TData;
+
+  /**
+   * Human-readable error message
+   */
+  error?: string;
+
+  /**
+   * Whether the mutation succeeded
+   */
+  success: boolean;
+}
+
+/**
+ * View persistence contract exposed through table actions.
+ */
+export interface TableViewActions {
+  /**
+   * Create a saved view from the current table state
+   */
+  create?: (
+    input: CreateTableViewInput
+  ) => Promise<TableViewActionResult<TableView>>;
+
+  /**
+   * Delete a saved view
+   */
+  delete?: (
+    id: string,
+    context: TableViewActionContext
+  ) => Promise<TableViewActionResult<{ id: string }>>;
+
+  /**
+   * List saved views for the table
+   */
+  list?: (
+    context: TableViewActionContext
+  ) => Promise<{ data: TableView[] }>;
+
+  /**
+   * Update a saved view with a new name or configuration
+   */
+  update?: (
+    id: string,
+    input: UpdateTableViewInput
+  ) => Promise<TableViewActionResult<TableView>>;
 }

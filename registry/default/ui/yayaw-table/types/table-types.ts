@@ -1,6 +1,7 @@
 import type { ColumnDef, ColumnFiltersState } from "@tanstack/react-table";
 import type { CustomBulkActionsInput } from "../components/bulk-actions";
 import type { TableEmptyStateConfig } from "../config/helpers";
+import type { TableView } from "./view-types";
 
 /**
  * Column filter object
@@ -102,9 +103,10 @@ export interface DataTableProps<
   activeRowId?: string;
   customBulkActions?: CustomBulkActionsInput<TData>;
   emptyState?: TableEmptyStateConfig;
+  enableViews?: boolean;
   getRowId?: (row: TData) => string;
   children?: React.ReactNode;
   initialActiveViewId?: string;
-  initialViews?: unknown[];
+  initialViews?: TableView[];
   onRowActivate?: (row: TData, event: React.MouseEvent) => void;
 }

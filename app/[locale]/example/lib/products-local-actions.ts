@@ -3,6 +3,8 @@
  * Data is persisted in localStorage and shared across locales.
  */
 
+import type { TableViewActions } from "@/src/components/ui/yayaw-table";
+import { createLocalTableViewActions } from "@/src/components/ui/yayaw-table";
 import { products as seedProducts } from "../data";
 import type { Product } from "../setup/types";
 
@@ -67,6 +69,7 @@ export interface ProductsLocalActions {
     updateData: Record<string, unknown>
   ) => Promise<ActionResult<Product[]>>;
   resetData: () => Promise<ActionResult<Product[]>>;
+  views: TableViewActions;
 }
 
 export interface CreateProductsLocalActionsOptions {
@@ -752,8 +755,10 @@ export function createProductsLocalActions(
   const storage = resolveStorage(options.storage);
   const latencyMs = options.latencyMs ?? DEFAULT_LATENCY_MS;
   const now = options.now ?? (() => new Date());
+  const viewActions = createLocalTableViewActions({ storage, now });
 
   return {
+    views: viewActions,
     list: async (params) => {
       const {
         page = 1,

@@ -75,6 +75,7 @@ interface ExampleTableSettings {
   enableRowClickEdit: boolean;
   enableRowSelection: boolean;
   enableSorting: boolean;
+  enableViews: boolean;
   export: boolean;
   showActionsColumn: boolean;
   showSelectionColumn: boolean;
@@ -118,6 +119,7 @@ const DEFAULT_TABLE_SETTINGS: ExampleTableSettings = {
   enableRowClickEdit: false,
   enableRowSelection: true,
   enableSorting: true,
+  enableViews: true,
   export: true,
   showActionsColumn: true,
   showSelectionColumn: true,
@@ -164,6 +166,9 @@ const FEATURE_SETTINGS: SettingDefinition[] = [
   },
   {
     key: "enableGrouping",
+  },
+  {
+    key: "enableViews",
   },
   {
     key: "enableColumnDnd",
@@ -1038,6 +1043,10 @@ export default function ExamplePage() {
     "excfg-gp",
     DEFAULT_TABLE_SETTINGS.enableGrouping
   );
+  const enableViewsSetting = useBooleanQuerySetting(
+    "excfg-vw",
+    DEFAULT_TABLE_SETTINGS.enableViews
+  );
   const enablePaginationSetting = useBooleanQuerySetting(
     "excfg-pg",
     DEFAULT_TABLE_SETTINGS.enablePagination
@@ -1148,6 +1157,7 @@ export default function ExamplePage() {
         enableRowClickEdit: enableRowClickEditSetting.value,
         enableRowSelection: enableRowSelectionSetting.value,
         enableSorting: enableSortingSetting.value,
+        enableViews: enableViewsSetting.value,
         export: exportSetting.value,
         showActionsColumn: showActionsColumnSetting.value,
         showSelectionColumn: showSelectionColumnSetting.value,
@@ -1172,6 +1182,7 @@ export default function ExamplePage() {
       enableRowClickEditSetting.value,
       enableRowSelectionSetting.value,
       enableSortingSetting.value,
+      enableViewsSetting.value,
       exportSetting.value,
       showActionsColumnSetting.value,
       showSelectionColumnSetting.value,
@@ -1201,6 +1212,7 @@ export default function ExamplePage() {
       enableRowClickEdit: enableRowClickEditSetting,
       enableRowSelection: enableRowSelectionSetting,
       enableSorting: enableSortingSetting,
+      enableViews: enableViewsSetting,
       export: exportSetting,
       showActionsColumn: showActionsColumnSetting,
       showSelectionColumn: showSelectionColumnSetting,
@@ -1225,6 +1237,7 @@ export default function ExamplePage() {
       enableRowClickEditSetting,
       enableRowSelectionSetting,
       enableSortingSetting,
+      enableViewsSetting,
       exportSetting,
       showActionsColumnSetting,
       showSelectionColumnSetting,
