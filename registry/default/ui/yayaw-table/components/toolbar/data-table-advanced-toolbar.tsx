@@ -834,6 +834,8 @@ export function DataTableAdvancedToolbar<TData>({
       isCreateEnabled,
       isExportEnabled,
       isExporting,
+      isFooterCalculationsEnabled:
+        tableConfig.table.enableCalculations === true,
       isMobile,
       selectedCount: selectedRows.length,
       selectedOriginalRows: selectedRows.map((row) => row.original),
@@ -854,6 +856,7 @@ export function DataTableAdvancedToolbar<TData>({
       tableActions,
       tableId,
       tableType,
+      tableConfig.table.enableCalculations,
     ]
   );
 

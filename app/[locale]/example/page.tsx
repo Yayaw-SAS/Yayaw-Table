@@ -939,6 +939,7 @@ function BulkActionsSection({
         icon: <RefreshCw className="h-4 w-4" />,
         loading: isRecalculatingPrices,
         onClick: handleRecalculatePrices,
+        requiresFooterCalculations: true,
         disabled: (ctx: ToolbarActionContext) =>
           !ctx.hasListAction || ctx.isExporting,
         tooltip: t("toolbarActions.recalculatePricesTooltip"),
