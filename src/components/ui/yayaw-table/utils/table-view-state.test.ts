@@ -22,9 +22,11 @@ describe("createTableViewConfigSnapshot", () => {
           values: filterDate,
         },
       ],
+      displayModeParam: "kanban",
       filtersParam: [{ id: "status", value: "available" }],
       globalSearchParam: "  laptop  ",
       groupingParam: ["brand"],
+      kanbanGroupByParam: "status",
       orderParam: ["name", "status"],
       pageSizeParam: "50",
       pinningParam: { left: ["name"], right: [] },
@@ -49,8 +51,10 @@ describe("createTableViewConfigSnapshot", () => {
       columnOrder: ["name", "status"],
       columnPinning: { left: ["name"], right: [] },
       columnVisibility: { website: false },
+      displayMode: "kanban",
       globalSearch: "laptop",
       grouping: ["brand"],
+      kanban: { groupBy: "status" },
       pageSize: 50,
       sorting: [{ desc: false, id: "name" }],
     });
@@ -59,9 +63,11 @@ describe("createTableViewConfigSnapshot", () => {
   it("drops empty transient values", () => {
     const snapshot = createTableViewConfigSnapshot({
       advancedFiltersParam: [],
+      displayModeParam: "table",
       filtersParam: [],
       globalSearchParam: "",
       groupingParam: [],
+      kanbanGroupByParam: "",
       orderParam: [],
       pageSizeParam: "20",
       pinningParam: { left: [], right: [] },
@@ -69,7 +75,7 @@ describe("createTableViewConfigSnapshot", () => {
       visibilityParam: {},
     });
 
-    assert.deepEqual(snapshot, { pageSize: 20 });
+    assert.deepEqual(snapshot, { displayMode: "table", pageSize: 20 });
   });
 });
 
@@ -81,6 +87,23 @@ describe("normalizeTableViewConfig", () => {
     });
 
     assert.deepEqual(config, {});
+  });
+
+  it("preserves table and kanban display modes", () => {
+    assert.deepEqual(
+      normalizeTableViewConfig({
+        displayMode: "table",
+        kanban: { groupBy: "" },
+      }),
+      { displayMode: "table" }
+    );
+    assert.deepEqual(
+      normalizeTableViewConfig({
+        displayMode: "kanban",
+        kanban: { groupBy: "status" },
+      }),
+      { displayMode: "kanban", kanban: { groupBy: "status" } }
+    );
   });
 });
 

@@ -12,6 +12,7 @@ import type {
 } from "@tanstack/react-table";
 import { createParser, useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import type { TableDisplayMode } from "../types/display-types";
 import type { AdvancedFiltersState } from "../types/filter-types";
 import type { TableViewConfig } from "../types/view-types";
 import {
@@ -49,11 +50,22 @@ const parsePositiveInt = (
 };
 
 const DEFAULT_PAGE_SIZE = 10;
+const DEFAULT_DISPLAY_MODE: TableDisplayMode = "table";
 
 const normalizePageSize = (value: number | undefined) =>
   typeof value === "number" && Number.isFinite(value) && value > 0
     ? Math.trunc(value)
     : DEFAULT_PAGE_SIZE;
+
+const normalizeDisplayMode = (
+  value: null | string | undefined
+): TableDisplayMode | undefined => {
+  if (value === "kanban" || value === "table") {
+    return value;
+  }
+
+  return;
+};
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === "object" && value !== null;
@@ -192,6 +204,12 @@ interface PaginationParams {
  */
 interface UseTableUrlStateOptions {
   /**
+   * Display mode used when the URL does not already carry table display state.
+   * @default "table"
+   */
+  defaultDisplayMode?: TableDisplayMode;
+
+  /**
    * Page size used when the URL does not already carry table pagination state.
    * @default 10
    */
@@ -217,12 +235,15 @@ interface UseTableUrlStateOptions {
  * @returns Object with URL state utilities and parameters
  */
 export function useTableUrlState({
+  defaultDisplayMode,
   defaultPageSize,
   enabled: _enabled = true,
   tableId,
 }: UseTableUrlStateOptions) {
   const resolvedDefaultPageSize = normalizePageSize(defaultPageSize);
   const defaultPageSizeParam = resolvedDefaultPageSize.toString();
+  const resolvedDefaultDisplayMode =
+    normalizeDisplayMode(defaultDisplayMode) ?? DEFAULT_DISPLAY_MODE;
 
   // Track if we're currently syncing to prevent loops
   const isSyncing = useRef(false);
@@ -371,6 +392,14 @@ export function useTableUrlState({
     arrayParser
   );
 
+  const [displayModeParam, setDisplayModeParam] = useQueryState(
+    `${tableId}-display`
+  );
+
+  const [kanbanGroupByParam, setKanbanGroupByParam] = useQueryState(
+    `${tableId}-kanbanGroupBy`
+  );
+
   // Global search parameter (server-side global filter)
   const [globalSearchParam, setGlobalSearchParam] = useQueryState(
     `${tableId}-q`
@@ -397,7 +426,8 @@ export function useTableUrlState({
     | Record<string, boolean>
     | string[]
     | AdvancedFiltersState
-    | string;
+    | string
+    | null;
 
   const debouncedSetParamRef = useRef<
     ((key: string, value: TableParamValue) => void) | null
@@ -562,6 +592,27 @@ export function useTableUrlState({
     [setGroupingParam]
   );
 
+  const getDisplayModeUrlValue = useCallback(
+    (displayMode: TableDisplayMode): null | string => {
+      return displayMode === resolvedDefaultDisplayMode ? null : displayMode;
+    },
+    [resolvedDefaultDisplayMode]
+  );
+
+  const setDisplayModeFromUI = useCallback(
+    (displayMode: TableDisplayMode) => {
+      setDisplayModeParam(getDisplayModeUrlValue(displayMode));
+    },
+    [getDisplayModeUrlValue, setDisplayModeParam]
+  );
+
+  const setKanbanGroupByFromUI = useCallback(
+    (groupBy: string | undefined) => {
+      setKanbanGroupByParam(groupBy || null);
+    },
+    [setKanbanGroupByParam]
+  );
+
   // Handler for column pinning changes from UI
   const setPinningFromUI = useCallback(
     (pinning: { left: string[]; right: string[] }) => {
@@ -574,9 +625,12 @@ export function useTableUrlState({
     return createTableViewConfigSnapshot({
       advancedFiltersParam: (advancedFiltersParam ||
         []) as AdvancedFiltersState,
+      displayModeParam:
+        normalizeDisplayMode(displayModeParam) ?? resolvedDefaultDisplayMode,
       filtersParam: (filtersParam || []) as ColumnFiltersState,
       globalSearchParam: globalSearchParam || "",
       groupingParam: (groupingParam || []) as string[],
+      kanbanGroupByParam: kanbanGroupByParam || "",
       orderParam: (orderParam || []) as string[],
       pageSizeParam: pageSizeParam || defaultPageSizeParam,
       pinningParam: normalizeColumnPinning(
@@ -588,12 +642,15 @@ export function useTableUrlState({
   }, [
     advancedFiltersParam,
     defaultPageSizeParam,
+    displayModeParam,
     filtersParam,
     globalSearchParam,
     groupingParam,
+    kanbanGroupByParam,
     orderParam,
     pageSizeParam,
     pinningParam,
+    resolvedDefaultDisplayMode,
     sortParam,
     visibilityParam,
   ]);
@@ -612,6 +669,11 @@ export function useTableUrlState({
       queueUrlUpdate(setFiltersParam, config.columnFilters ?? []);
       queueUrlUpdate(setAdvancedFiltersParam, config.advancedFilters ?? []);
       queueUrlUpdate(setGlobalSearchParam, config.globalSearch || null);
+      queueUrlUpdate(
+        setDisplayModeParam,
+        getDisplayModeUrlValue(config.displayMode ?? resolvedDefaultDisplayMode)
+      );
+      queueUrlUpdate(setKanbanGroupByParam, config.kanban?.groupBy || null);
       queueUrlUpdate(setPageParam, "0");
       queueUrlUpdate(
         setPageSizeParam,
@@ -625,13 +687,17 @@ export function useTableUrlState({
     },
     [
       queueUrlUpdate,
+      getDisplayModeUrlValue,
+      resolvedDefaultDisplayMode,
       resolvedDefaultPageSize,
       setAdvancedFiltersParam,
+      setDisplayModeParam,
       setExpandedParam,
       setFiltersParam,
       setGlobalSearchParam,
       setGroupingParam,
       setHistoryIndexParam,
+      setKanbanGroupByParam,
       setOrderParam,
       setPageParam,
       setPageSizeParam,
@@ -683,6 +749,8 @@ export function useTableUrlState({
       setUrlParam(url, `${tableId}-order`, orderParam);
       setUrlParam(url, `${tableId}-expanded`, expandedParam);
       setUrlParam(url, `${tableId}-grouping`, groupingParam);
+      setUrlParam(url, `${tableId}-display`, displayModeParam);
+      setUrlParam(url, `${tableId}-kanbanGroupBy`, kanbanGroupByParam);
 
       // Special case for pinning
       if (
@@ -703,6 +771,8 @@ export function useTableUrlState({
       orderParam,
       expandedParam,
       groupingParam,
+      displayModeParam,
+      kanbanGroupByParam,
       globalSearchParam,
       pinningParam,
       setUrlParam,
@@ -746,6 +816,8 @@ export function useTableUrlState({
       setOrderParam([]);
       setExpandedParam({});
       setGroupingParam([]);
+      setDisplayModeParam(null);
+      setKanbanGroupByParam(null);
       setGlobalSearchParam(null);
       setPinningParam({ left: [], right: [] });
     } finally {
@@ -772,6 +844,8 @@ export function useTableUrlState({
     setOrderParam,
     setExpandedParam,
     setGroupingParam,
+    setDisplayModeParam,
+    setKanbanGroupByParam,
     setGlobalSearchParam,
     setPinningParam,
     defaultPageSizeParam,
@@ -802,10 +876,13 @@ export function useTableUrlState({
     getCurrentViewConfig,
     // Raw URL parameters
     advancedFiltersParam: advancedFiltersParam || [],
+    displayModeParam:
+      normalizeDisplayMode(displayModeParam) ?? resolvedDefaultDisplayMode,
     expandedParam,
     filtersParam: filtersParam || [],
     groupingParam: groupingParam || [],
     historyIndexParam,
+    kanbanGroupByParam: kanbanGroupByParam || "",
     orderParam: orderParam || [],
     pageParam: pageParam || "0",
     pageSizeParam: pageSizeParam || defaultPageSizeParam,
@@ -821,6 +898,8 @@ export function useTableUrlState({
     setAdvancedFiltersFromUI,
     setAdvancedFiltersParam,
     setColumnFiltersFromUI,
+    setDisplayModeFromUI,
+    setDisplayModeParam,
     setExpandedFromUI,
     setGlobalSearchFromUI,
     // Raw setters (should generally not be used directly)
@@ -829,6 +908,8 @@ export function useTableUrlState({
     setGroupingFromUI,
     setGroupingParam,
     setHistoryIndexParam,
+    setKanbanGroupByFromUI,
+    setKanbanGroupByParam,
     setOrderFromUI,
 
     setOrderParam,

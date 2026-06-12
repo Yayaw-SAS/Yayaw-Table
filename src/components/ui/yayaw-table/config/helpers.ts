@@ -4,6 +4,10 @@
 import { defaultTableConfig, defaultTranslations } from "./defaults";
 import type { TableFormConfig } from "./form-config";
 import type { DateDisplayPreset } from "../types/date-types";
+import type {
+  TableDisplayMode,
+  TableKanbanConfig,
+} from "../types/display-types";
 
 /**
  * Supported editor types for inline cell editing.
@@ -174,6 +178,34 @@ export function getTableLayoutPresetDefaults(
   }
 
   return {};
+}
+
+const TABLE_DISPLAY_MODES: TableDisplayMode[] = ["table", "kanban"];
+
+export function resolveTableDisplayModes(
+  displayModes: TableDisplayMode[] | undefined
+): TableDisplayMode[] {
+  const resolvedModes = (displayModes ?? ["table"]).filter(
+    (mode, index, modes): mode is TableDisplayMode => {
+      return TABLE_DISPLAY_MODES.includes(mode) && modes.indexOf(mode) === index;
+    }
+  );
+
+  return resolvedModes.length > 0 ? resolvedModes : ["table"];
+}
+
+export function resolveTableDisplayMode({
+  allowedModes,
+  displayMode,
+}: {
+  allowedModes: TableDisplayMode[];
+  displayMode?: TableDisplayMode;
+}): TableDisplayMode {
+  if (displayMode && allowedModes.includes(displayMode)) {
+    return displayMode;
+  }
+
+  return allowedModes[0] ?? "table";
 }
 
 /**
@@ -425,6 +457,21 @@ export interface TableBehaviorConfig {
    * Opinionated layout preset for common admin/catalog surfaces.
    */
   layoutPreset?: TableLayoutPreset;
+
+  /**
+   * Display modes available to users.
+   */
+  displayModes?: TableDisplayMode[];
+
+  /**
+   * Display mode used when no URL/view state overrides it.
+   */
+  defaultDisplayMode?: TableDisplayMode;
+
+  /**
+   * Kanban display mode configuration.
+   */
+  kanban?: TableKanbanConfig;
 
   /**
    * Empty/no-results state behavior.

@@ -1544,6 +1544,19 @@ const getTableConfig = (tableType: string) => {
         showToolbarHeader: true,
         density: "medium",
         layoutPreset: "catalog",
+        displayModes: ["table", "kanban"],
+        defaultDisplayMode: "table",
+        kanban: {
+          groupBy: "status",
+          titleColumn: "name",
+          cardColumnIds: ["brand", "category", "price", "isActive"],
+          groups: [
+            { value: "In Stock" },
+            { value: "Low Stock" },
+            { value: "Out of Stock" }
+          ],
+          allowDragUpdate: true
+        },
         emptyState: {
           title: "No products found",
           description: "Try changing your search or filters.",
@@ -1581,9 +1594,9 @@ const getTableConfig = (tableType: string) => {
             displayVariant: "tag",
             header: "Status",
             tagColorMap: {
-              available: "bg-green-500/80 text-white dark:bg-green-600/90",
-              low_stock: "bg-orange-500/80 text-white dark:bg-orange-600/90",
-              out_of_stock: "bg-red-500/80 text-white dark:bg-red-600/90"
+              "In Stock": "bg-green-500/80 text-white dark:bg-green-600/90",
+              "Low Stock": "bg-orange-500/80 text-white dark:bg-orange-600/90",
+              "Out of Stock": "bg-red-500/80 text-white dark:bg-red-600/90"
             }
           },
           { id: "createdAt", type: "date", header: "Created" },

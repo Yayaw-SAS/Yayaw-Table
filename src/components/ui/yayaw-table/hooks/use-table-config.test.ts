@@ -27,6 +27,8 @@ describe("resolveTableCatalogueConfig", () => {
         allowViewSave: false,
         allowViewSharing: true,
         canEditRow: (row) => row.canManage === true,
+        defaultDisplayMode: "kanban",
+        displayModes: ["table", "kanban"],
         enableCalculations: false,
         enableColumnFilters: true,
         emptyState: {
@@ -36,6 +38,9 @@ describe("resolveTableCatalogueConfig", () => {
         enableRowClickEdit: true,
         enableRowSelection: false,
         enableSorting: true,
+        kanban: {
+          groupBy: "status",
+        },
         layoutPreset: "admin",
         rowClickMode: "edit",
       },
@@ -50,6 +55,9 @@ describe("resolveTableCatalogueConfig", () => {
     assert.equal(resolvedConfig.table.enableCalculations, false);
     assert.equal(resolvedConfig.table.allowViewSave, false);
     assert.equal(resolvedConfig.table.allowViewSharing, true);
+    assert.deepEqual(resolvedConfig.table.displayModes, ["table", "kanban"]);
+    assert.equal(resolvedConfig.table.defaultDisplayMode, "kanban");
+    assert.deepEqual(resolvedConfig.table.kanban, { groupBy: "status" });
     assert.equal(resolvedConfig.table.enableRowClickEdit, true);
     assert.equal(resolvedConfig.table.enableRowSelection, false);
     assert.equal(resolvedConfig.table.layoutPreset, "admin");
@@ -87,6 +95,8 @@ describe("resolveTableCatalogueConfig", () => {
     assert.equal(resolvedConfig.table.enableColumnFilters, true);
     assert.equal(resolvedConfig.table.allowViewSave, true);
     assert.equal(resolvedConfig.table.allowViewSharing, false);
+    assert.deepEqual(resolvedConfig.table.displayModes, ["table"]);
+    assert.equal(resolvedConfig.table.defaultDisplayMode, "table");
   });
 
   it("applies preview layout defaults while preserving explicit overrides", () => {

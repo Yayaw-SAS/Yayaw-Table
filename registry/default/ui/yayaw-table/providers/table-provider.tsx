@@ -642,6 +642,11 @@ export const defaultTranslations: DataTableTranslations = {
     error_updating_view: "Error updating view",
     error_deleting_view: "Error deleting view",
     error_loading_views: "Error loading views",
+    display: {
+      title: "Display mode",
+      table: "Table",
+      kanban: "Kanban",
+    },
     history: {
       undo: "Undo change",
       redo: "Redo change",

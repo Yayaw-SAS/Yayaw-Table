@@ -304,6 +304,12 @@ const FRENCH_TABLE_TRANSLATIONS: DataTableTranslations = {
     error_updating_view: "Erreur lors de la mise à jour de la vue",
     error_deleting_view: "Erreur lors de la suppression de la vue",
     error_loading_views: "Erreur lors du chargement des vues",
+    display: {
+      ...defaultTableTranslations.views.display,
+      title: "Mode d'affichage",
+      table: "Table",
+      kanban: "Kanban",
+    },
     history: {
       ...defaultTableTranslations.views.history,
       undo: "Annuler",

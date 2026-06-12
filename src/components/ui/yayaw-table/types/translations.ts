@@ -301,6 +301,11 @@ export interface DataTableTranslations {
     error_updating_view: string;
     error_deleting_view: string;
     error_loading_views: string;
+    display: {
+      title: string;
+      table: string;
+      kanban: string;
+    };
     history: {
       undo: string;
       redo: string;

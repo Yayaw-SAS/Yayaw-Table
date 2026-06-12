@@ -10,6 +10,10 @@ import type {
   ColumnPinningState,
   SortingState,
 } from "@tanstack/react-table";
+import type {
+  TableDisplayMode,
+  TableKanbanViewConfig,
+} from "../types/display-types";
 import type { AdvancedFiltersState } from "../types/filter-types";
 // Import TableViewConfig type from types
 import type { TableViewConfig } from "../types/view-types";
@@ -28,8 +32,10 @@ export interface SerializedTableViewConfig {
   columnOrder?: string; // JSON string of column order
   columnPinning?: string; // JSON string of pinned columns
   columnVisibility?: string; // JSON string of column visibility
+  displayMode?: TableDisplayMode; // Display mode for this view
   globalSearch?: string; // Global search value
   grouping?: string; // JSON string of grouping columns
+  kanban?: string; // JSON string of Kanban view configuration
   pageSize?: number; // Page size restored with the view
   sorting?: string; // JSON string of sort configuration
 }
@@ -147,9 +153,14 @@ export const tableConfigUtils = {
         config.columnVisibility,
         {}
       ),
+      displayMode:
+        config.displayMode === "kanban" || config.displayMode === "table"
+          ? config.displayMode
+          : undefined,
       globalSearch:
         typeof config.globalSearch === "string" ? config.globalSearch : "",
       grouping: safelyParse<string[]>(config.grouping, []),
+      kanban: safelyParse<TableKanbanViewConfig>(config.kanban, {}),
       pageSize:
         typeof config.pageSize === "number" && Number.isFinite(config.pageSize)
           ? config.pageSize
@@ -211,9 +222,13 @@ export const tableConfigUtils = {
       columnVisibility: normalizedConfig.columnVisibility
         ? JSON.stringify(normalizedConfig.columnVisibility)
         : undefined,
+      displayMode: normalizedConfig.displayMode,
       globalSearch: normalizedConfig.globalSearch,
       grouping: normalizedConfig.grouping
         ? JSON.stringify(normalizedConfig.grouping)
+        : undefined,
+      kanban: normalizedConfig.kanban
+        ? JSON.stringify(normalizedConfig.kanban)
         : undefined,
       pageSize: normalizedConfig.pageSize,
       sorting: normalizedConfig.sorting
