@@ -78,6 +78,16 @@ export interface DataTableConfig {
   allowInlineEdit?: boolean;
 
   /**
+   * Allow users to create, update, and delete saved table views.
+   */
+  allowViewSave?: boolean;
+
+  /**
+   * Allow users to save views as shared team views.
+   */
+  allowViewSharing?: boolean;
+
+  /**
    * Show the table toolbar (search and actions)
    */
   showToolbar?: boolean;
@@ -235,6 +245,8 @@ const defaultTableConfig: DataTableConfig = {
   allowBulkEdit: true,
   allowBulkDelete: true,
   allowInlineEdit: true,
+  allowViewSave: true,
+  allowViewSharing: false,
   showToolbar: true,
   showToolbarHeader: true,
   export: true,

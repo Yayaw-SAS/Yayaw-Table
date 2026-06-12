@@ -12,6 +12,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -40,6 +41,8 @@ import { areTableViewConfigsEqual } from "../../utils/table-view-state";
 import { createLocalTableViewActions } from "../../utils/table-view-storage";
 
 interface DataTableViewManagerProps {
+  allowViewSave?: boolean;
+  allowViewSharing?: boolean;
   className?: string;
   initialActiveViewId?: string;
   initialViews?: TableView[];
@@ -111,7 +114,152 @@ function mergeViewActions({
   };
 }
 
+interface ViewWriteMenuItemsProps {
+  canCreateView: boolean;
+  canDeleteActiveView: boolean;
+  onDeleteActiveView: () => Promise<void>;
+  onOpenSaveDialog: () => void;
+  t: ReturnType<typeof useTranslations>["t"];
+}
+
+function ViewWriteMenuItems({
+  canCreateView,
+  canDeleteActiveView,
+  onDeleteActiveView,
+  onOpenSaveDialog,
+  t,
+}: ViewWriteMenuItemsProps) {
+  if (!(canCreateView || canDeleteActiveView)) {
+    return null;
+  }
+
+  return (
+    <>
+      <DropdownMenuSeparator />
+      <DropdownMenuGroup>
+        {canCreateView && (
+          <DropdownMenuItem onClick={onOpenSaveDialog}>
+            <Plus className="h-4 w-4" />
+            <span>{t("views.saveAs")}</span>
+          </DropdownMenuItem>
+        )}
+        {canDeleteActiveView && (
+          <DropdownMenuItem
+            onClick={() => {
+              onDeleteActiveView().catch(() => {
+                /* Error state is handled by the mutation branch. */
+              });
+            }}
+            variant="destructive"
+          >
+            <Trash2 className="h-4 w-4" />
+            <span>{t("views.delete")}</span>
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuGroup>
+    </>
+  );
+}
+
+interface ViewWriteButtonsProps {
+  allowViewSave: boolean;
+  canCreateView: boolean;
+  canUpdateActiveView: boolean;
+  isActiveViewDirty: boolean;
+  isMutating: boolean;
+  onOpenSaveDialog: () => void;
+  onUpdateActiveView: () => Promise<void>;
+  t: ReturnType<typeof useTranslations>["t"];
+}
+
+function ViewWriteButtons({
+  allowViewSave,
+  canCreateView,
+  canUpdateActiveView,
+  isActiveViewDirty,
+  isMutating,
+  onOpenSaveDialog,
+  onUpdateActiveView,
+  t,
+}: ViewWriteButtonsProps) {
+  if (!allowViewSave) {
+    return null;
+  }
+
+  return (
+    <>
+      <Button
+        aria-label={t("views.saveChanges")}
+        className="h-8 w-8 shrink-0"
+        disabled={!(canUpdateActiveView && isActiveViewDirty) || isMutating}
+        onClick={() => {
+          onUpdateActiveView().catch(() => {
+            /* Error state is handled by the mutation branch. */
+          });
+        }}
+        size="icon-sm"
+        title={t("views.saveChangesTooltip")}
+        type="button"
+        variant={isActiveViewDirty ? "default" : "outline"}
+      >
+        <Save className="h-4 w-4" />
+      </Button>
+
+      <Button
+        aria-label={t("views.add_view")}
+        className="h-8 w-8 shrink-0"
+        disabled={isMutating || !canCreateView}
+        onClick={onOpenSaveDialog}
+        size="icon-sm"
+        title={t("views.add_view")}
+        type="button"
+        variant="outline"
+      >
+        <Plus className="h-4 w-4" />
+      </Button>
+    </>
+  );
+}
+
+interface ViewShareOptionProps {
+  canShareView: boolean;
+  isSharedView: boolean;
+  onSharedViewChange: (value: boolean) => void;
+  t: ReturnType<typeof useTranslations>["t"];
+}
+
+function ViewShareOption({
+  canShareView,
+  isSharedView,
+  onSharedViewChange,
+  t,
+}: ViewShareOptionProps) {
+  if (!canShareView) {
+    return null;
+  }
+
+  return (
+    <label
+      className="flex cursor-pointer items-start gap-3 rounded-md border p-3"
+      htmlFor="table-view-shared"
+    >
+      <Checkbox
+        checked={isSharedView}
+        id="table-view-shared"
+        onCheckedChange={(value) => {
+          onSharedViewChange(Boolean(value));
+        }}
+      />
+      <span className="font-medium text-sm">
+        {t("views.dialog.save.global")}
+      </span>
+    </label>
+  );
+}
+
 export function DataTableViewManager({
+  allowViewSave = true,
+  allowViewSharing = false,
   className,
   initialActiveViewId,
   initialViews = [],
@@ -135,6 +283,7 @@ export function DataTableViewManager({
   );
   const queryClient = useQueryClient();
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+  const [isSharedView, setIsSharedView] = useState(false);
   const [viewName, setViewName] = useState("");
   const [dialogError, setDialogError] = useState<string>();
   const [inlineError, setInlineError] = useState<string>();
@@ -171,11 +320,13 @@ export function DataTableViewManager({
     activeView && !areTableViewConfigsEqual(currentConfig, activeView.config)
   );
   const canUpdateActiveView = Boolean(
-    activeView && !activeView.isSystem && viewActions.update
+    allowViewSave && activeView && !activeView.isSystem && viewActions.update
   );
   const canDeleteActiveView = Boolean(
-    activeView && !activeView.isSystem && viewActions.delete
+    allowViewSave && activeView && !activeView.isSystem && viewActions.delete
   );
+  const canCreateView = allowViewSave && Boolean(viewActions.create);
+  const canShareView = canCreateView && allowViewSharing;
   const currentViewLabel = getCurrentViewLabel({
     activeView,
     fallbackDefaultLabel: t("views.defaultView"),
@@ -232,10 +383,15 @@ export function DataTableViewManager({
   );
 
   const openSaveDialog = useCallback(() => {
+    if (!canCreateView) {
+      return;
+    }
+
     setDialogError(undefined);
+    setIsSharedView(false);
     setViewName("");
     setIsSaveDialogOpen(true);
-  }, []);
+  }, [canCreateView]);
 
   const handleCreateView = useCallback(async () => {
     const trimmedName = viewName.trim();
@@ -249,6 +405,7 @@ export function DataTableViewManager({
     try {
       const result = await viewActions.create({
         config: currentConfig,
+        isGlobal: canShareView ? isSharedView : false,
         name: trimmedName,
         tableId,
         tableType,
@@ -272,7 +429,9 @@ export function DataTableViewManager({
     }
   }, [
     applyViewConfig,
+    canShareView,
     currentConfig,
+    isSharedView,
     refreshViews,
     tableId,
     tableType,
@@ -412,58 +571,26 @@ export function DataTableViewManager({
                 </DropdownMenuItem>
               ))}
             </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem onClick={openSaveDialog}>
-                <Plus className="h-4 w-4" />
-                <span>{t("views.saveAs")}</span>
-              </DropdownMenuItem>
-              {canDeleteActiveView && (
-                <DropdownMenuItem
-                  onClick={() => {
-                    handleDeleteActiveView().catch(() => {
-                      /* Error state is handled by the mutation branch. */
-                    });
-                  }}
-                  variant="destructive"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  <span>{t("views.delete")}</span>
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuGroup>
+            <ViewWriteMenuItems
+              canCreateView={canCreateView}
+              canDeleteActiveView={canDeleteActiveView}
+              onDeleteActiveView={handleDeleteActiveView}
+              onOpenSaveDialog={openSaveDialog}
+              t={t}
+            />
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <Button
-          aria-label={t("views.saveChanges")}
-          className="h-8 w-8 shrink-0"
-          disabled={!(canUpdateActiveView && isActiveViewDirty) || isMutating}
-          onClick={() => {
-            handleUpdateActiveView().catch(() => {
-              /* Error state is handled by the mutation branch. */
-            });
-          }}
-          size="icon-sm"
-          title={t("views.saveChangesTooltip")}
-          type="button"
-          variant={isActiveViewDirty ? "default" : "outline"}
-        >
-          <Save className="h-4 w-4" />
-        </Button>
-
-        <Button
-          aria-label={t("views.add_view")}
-          className="h-8 w-8 shrink-0"
-          disabled={isMutating}
-          onClick={openSaveDialog}
-          size="icon-sm"
-          title={t("views.add_view")}
-          type="button"
-          variant="outline"
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
+        <ViewWriteButtons
+          allowViewSave={allowViewSave}
+          canCreateView={canCreateView}
+          canUpdateActiveView={canUpdateActiveView}
+          isActiveViewDirty={isActiveViewDirty}
+          isMutating={isMutating}
+          onOpenSaveDialog={openSaveDialog}
+          onUpdateActiveView={handleUpdateActiveView}
+          t={t}
+        />
       </div>
 
       {inlineError && (
@@ -506,6 +633,12 @@ export function DataTableViewManager({
                 <p className="text-destructive text-sm">{dialogError}</p>
               )}
             </div>
+            <ViewShareOption
+              canShareView={canShareView}
+              isSharedView={isSharedView}
+              onSharedViewChange={setIsSharedView}
+              t={t}
+            />
             <DialogFooter>
               <Button
                 disabled={isMutating}

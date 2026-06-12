@@ -335,7 +335,7 @@ const FRENCH_TABLE_TRANSLATIONS: DataTableTranslations = {
         name: "Nom",
         namePlaceholder: "Ma vue personnalisée",
         default: "Définir comme vue par défaut",
-        global: "Rendre cette vue globale",
+        global: "Partager avec l'équipe",
         save: "Enregistrer",
         saving: "Enregistrement...",
       },

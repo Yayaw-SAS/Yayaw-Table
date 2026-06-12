@@ -65,6 +65,8 @@ interface ExampleTableSettings {
   allowDuplicate: boolean;
   allowEdit: boolean;
   allowInlineEdit: boolean;
+  allowViewSave: boolean;
+  allowViewSharing: boolean;
   actionsAsIcons: boolean;
   bulkExport: boolean;
   enableColumnDnd: boolean;
@@ -109,6 +111,8 @@ const DEFAULT_TABLE_SETTINGS: ExampleTableSettings = {
   allowDuplicate: true,
   allowEdit: true,
   allowInlineEdit: true,
+  allowViewSave: true,
+  allowViewSharing: false,
   actionsAsIcons: true,
   bulkExport: true,
   enableColumnDnd: true,
@@ -202,6 +206,12 @@ const AUTHORIZATION_SETTINGS: SettingDefinition[] = [
   },
   {
     key: "allowInlineEdit",
+  },
+  {
+    key: "allowViewSave",
+  },
+  {
+    key: "allowViewSharing",
   },
 ];
 
@@ -1104,6 +1114,14 @@ export default function ExamplePage() {
     "excfg-ie",
     DEFAULT_TABLE_SETTINGS.allowInlineEdit
   );
+  const allowViewSaveSetting = useBooleanQuerySetting(
+    "excfg-vs",
+    DEFAULT_TABLE_SETTINGS.allowViewSave
+  );
+  const allowViewSharingSetting = useBooleanQuerySetting(
+    "excfg-vh",
+    DEFAULT_TABLE_SETTINGS.allowViewSharing
+  );
   const showToolbarSetting = useBooleanQuerySetting(
     "excfg-tb",
     DEFAULT_TABLE_SETTINGS.showToolbar
@@ -1148,6 +1166,8 @@ export default function ExamplePage() {
         allowDuplicate: allowDuplicateSetting.value,
         allowEdit: allowEditSetting.value,
         allowInlineEdit: allowInlineEditSetting.value,
+        allowViewSave: allowViewSaveSetting.value,
+        allowViewSharing: allowViewSharingSetting.value,
         actionsAsIcons: actionsAsIconsSetting.value,
         bulkExport: bulkExportSetting.value,
         enableColumnDnd: enableColumnDndSetting.value,
@@ -1173,6 +1193,8 @@ export default function ExamplePage() {
       allowDuplicateSetting.value,
       allowEditSetting.value,
       allowInlineEditSetting.value,
+      allowViewSaveSetting.value,
+      allowViewSharingSetting.value,
       actionsAsIconsSetting.value,
       bulkExportSetting.value,
       enableColumnDndSetting.value,
@@ -1203,6 +1225,8 @@ export default function ExamplePage() {
       allowDuplicate: allowDuplicateSetting,
       allowEdit: allowEditSetting,
       allowInlineEdit: allowInlineEditSetting,
+      allowViewSave: allowViewSaveSetting,
+      allowViewSharing: allowViewSharingSetting,
       actionsAsIcons: actionsAsIconsSetting,
       bulkExport: bulkExportSetting,
       enableColumnDnd: enableColumnDndSetting,
@@ -1228,6 +1252,8 @@ export default function ExamplePage() {
       allowDuplicateSetting,
       allowEditSetting,
       allowInlineEditSetting,
+      allowViewSaveSetting,
+      allowViewSharingSetting,
       actionsAsIconsSetting,
       bulkExportSetting,
       enableColumnDndSetting,
@@ -1502,6 +1528,8 @@ const getTableConfig = (tableType: string) => {
         allowBulkEdit: true,
         allowBulkDelete: true,
         allowInlineEdit: true,
+        allowViewSave: true,
+        allowViewSharing: false,
         enableRowSelection: true,
         enableColumnFilters: true,
         enableCalculations: false,
