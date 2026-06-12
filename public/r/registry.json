@@ -591,6 +591,11 @@
           "target": "components/ui/yayaw-table/components/index.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/kanban-view.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/kanban-view.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/safe-pagination.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/safe-pagination.tsx"
@@ -654,6 +659,11 @@
           "path": "registry/default/ui/yayaw-table/components/toolbar/sections/table-sort-menu.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/toolbar/sections/table-sort-menu.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/toolbar/table-display-mode-switcher.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/toolbar/table-display-mode-switcher.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/toolbar/table-menu.test.ts",
@@ -904,6 +914,11 @@
           "path": "registry/default/ui/yayaw-table/types/date-types.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/types/date-types.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/types/display-types.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/types/display-types.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/types/filter-types.ts",
