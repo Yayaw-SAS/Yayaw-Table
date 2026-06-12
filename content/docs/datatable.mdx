@@ -199,6 +199,7 @@ type ToolbarAction = {
   disabled?: boolean | ((ctx: ToolbarActionContext) => boolean);
   loading?: boolean;
   variant?: "default" | "outline" | "secondary" | "ghost" | "destructive";
+  requiresFooterCalculations?: boolean;
   showInIconMode?: boolean; // default true
   tooltip?: string;
 };
@@ -210,6 +211,7 @@ type ToolbarActionContext = {
   isCreateEnabled: boolean;
   isExportEnabled: boolean;
   isExporting: boolean;
+  isFooterCalculationsEnabled: boolean;
   hasListAction: boolean;
   selectedRows: Row<Record<string, unknown>>[];
   selectedOriginalRows: Record<string, unknown>[];
@@ -373,6 +375,7 @@ Custom action in icon mode with tooltip and explicit placement:
       label: "Recalculate prices",
       tooltip: "Recalculate prices",
       icon: <RefreshCw className="h-4 w-4" />,
+      requiresFooterCalculations: true,
       disabled: () => !ctx.hasListAction || ctx.isExporting,
       onClick: async () => {
         await recalculatePrices();
@@ -384,6 +387,8 @@ Custom action in icon mode with tooltip and explicit placement:
 ```
 
 Backward compatibility: if `toolbarActions` is omitted, toolbar behavior stays unchanged.
+
+Use `requiresFooterCalculations: true` for custom actions that only make sense when `table.enableCalculations` is enabled. The table hides those actions while footer calculations are disabled.
 
 Master-detail row activation:
 

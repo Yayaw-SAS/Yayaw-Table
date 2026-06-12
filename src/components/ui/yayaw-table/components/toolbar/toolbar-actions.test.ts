@@ -19,6 +19,7 @@ const baseContext: ToolbarActionContext = {
   isCreateEnabled: true,
   isExportEnabled: true,
   isExporting: false,
+  isFooterCalculationsEnabled: false,
   isMobile: false,
   selectedCount: 0,
   selectedOriginalRows: [],
@@ -116,6 +117,34 @@ describe("resolveToolbarActions", () => {
     });
 
     assert.equal(receivedContext, baseContext);
+    assert.equal(resolvedActions.length, 1);
+    assert.equal(resolvedActions[0].id, "recalculate-prices");
+  });
+
+  it("hides actions that require footer calculations when disabled", () => {
+    const resolvedActions = resolveToolbarActions({
+      context: baseContext,
+      toolbarActions: [
+        createAction({ requiresFooterCalculations: true }),
+        createAction({ id: "always-visible" }),
+      ],
+    });
+
+    assert.deepEqual(
+      resolvedActions.map((action) => action.id),
+      ["always-visible"]
+    );
+  });
+
+  it("keeps footer calculation actions when calculations are enabled", () => {
+    const resolvedActions = resolveToolbarActions({
+      context: {
+        ...baseContext,
+        isFooterCalculationsEnabled: true,
+      },
+      toolbarActions: [createAction({ requiresFooterCalculations: true })],
+    });
+
     assert.equal(resolvedActions.length, 1);
     assert.equal(resolvedActions[0].id, "recalculate-prices");
   });

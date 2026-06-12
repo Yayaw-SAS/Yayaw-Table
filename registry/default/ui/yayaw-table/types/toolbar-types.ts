@@ -20,6 +20,7 @@ export interface ToolbarActionContext {
   isCreateEnabled: boolean;
   isExportEnabled: boolean;
   isExporting: boolean;
+  isFooterCalculationsEnabled: boolean;
   isMobile: boolean;
   selectedCount: number;
   selectedOriginalRows: Record<string, unknown>[];
@@ -37,6 +38,7 @@ export interface ToolbarAction {
   label: string;
   loading?: boolean;
   onClick: (ctx: ToolbarActionContext) => void | Promise<void>;
+  requiresFooterCalculations?: boolean;
   showInIconMode?: boolean;
   tooltip?: string;
   variant?: ToolbarActionVariant;

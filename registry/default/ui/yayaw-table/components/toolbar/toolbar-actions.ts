@@ -96,7 +96,15 @@ export const resolveToolbarActions = ({
     return [];
   }
 
-  return resolvedActions.filter(isValidToolbarAction);
+  return resolvedActions
+    .filter(isValidToolbarAction)
+    .filter(
+      (action) =>
+        !(
+          action.requiresFooterCalculations &&
+          !context.isFooterCalculationsEnabled
+        )
+    );
 };
 
 export const partitionToolbarActions = <TAction>({
