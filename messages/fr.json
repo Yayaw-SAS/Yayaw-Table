@@ -228,6 +228,14 @@
       "allowInlineEdit": {
         "label": "Autoriser l'édition directe des cellules",
         "description": "Autorise la modification directe des cellules dans les lignes du tableau. L'activer désactive le mode édition au clic ligne dans cette démo."
+      },
+      "allowViewSave": {
+        "label": "Autoriser l'enregistrement des vues",
+        "description": "Autorise la création, la mise à jour et la suppression des vues enregistrées."
+      },
+      "allowViewSharing": {
+        "label": "Autoriser les vues partagées avec l'équipe",
+        "description": "Autorise l'enregistrement de vues partagées avec l'équipe."
       }
     },
     "densityMode": {

@@ -228,6 +228,14 @@
       "allowInlineEdit": {
         "label": "Allow direct cell editing",
         "description": "Allow direct cell editing inside table rows. Enabling this disables row click edit in this demo."
+      },
+      "allowViewSave": {
+        "label": "Allow saving views",
+        "description": "Allow users to create, update, and delete saved table views."
+      },
+      "allowViewSharing": {
+        "label": "Allow team-shared views",
+        "description": "Allow users to save views as shared team views."
       }
     },
     "densityMode": {

@@ -126,6 +126,8 @@ Common props:
 
 YaYaw Table includes a saved views manager above the table. A view stores the same state that is already represented in URL params: search, filters, advanced filters, sorting, column visibility, column order, grouping, pinning, and page size. Applying a view updates the URL-backed state and resets pagination to the first page.
 
+Use `table.allowViewSave: false` when users can select existing views but should not create, update, or delete them. Use `table.allowViewSharing: true` to show the “Share with team” option when saving a view; the value is sent to `views.create` as `input.isGlobal`.
+
 For prototypes, the copied component falls back to localStorage so the UI is usable without a backend. In production, expose database-backed view actions from `getTableActions`:
 
 ```tsx

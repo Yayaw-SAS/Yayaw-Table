@@ -12,6 +12,11 @@ describe("defaultTableConfig", () => {
     assert.equal(defaultTableConfig.layoutPreset, "default");
     assert.equal(defaultTableConfig.emptyState.show, true);
   });
+
+  it("allows saving views but not sharing them by default", () => {
+    assert.equal(defaultTableConfig.allowViewSave, true);
+    assert.equal(defaultTableConfig.allowViewSharing, false);
+  });
 });
 
 describe("defineTableConfig", () => {

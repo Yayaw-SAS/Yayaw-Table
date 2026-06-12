@@ -359,6 +359,16 @@ export interface TableBehaviorConfig {
   allowInlineEdit: boolean;
 
   /**
+   * Allow users to create, update, and delete saved table views.
+   */
+  allowViewSave?: boolean;
+
+  /**
+   * Allow users to save views as shared team views.
+   */
+  allowViewSharing?: boolean;
+
+  /**
    * Row-aware guard for standard edit actions.
    * Return false to disable the built-in edit action for that row.
    */

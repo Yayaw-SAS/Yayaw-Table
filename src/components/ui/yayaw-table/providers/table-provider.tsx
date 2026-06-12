@@ -666,7 +666,7 @@ export const defaultTranslations: DataTableTranslations = {
         name: "Name",
         namePlaceholder: "My custom view",
         default: "Set as default view",
-        global: "Make this view global",
+        global: "Share with team",
         save: "Save",
         saving: "Saving...",
       },

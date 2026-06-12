@@ -14,6 +14,8 @@ export const defaultTableConfig = {
   allowBulkEdit: true,
   allowBulkDelete: true,
   allowInlineEdit: true,
+  allowViewSave: true,
+  allowViewSharing: false,
   showToolbar: true,
   showToolbarHeader: true,
   export: true,

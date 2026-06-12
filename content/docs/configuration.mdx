@@ -16,6 +16,8 @@ table: {
   allowBulkEdit: true,
   allowBulkDelete: true,
   allowInlineEdit: true,
+  allowViewSave: true,
+  allowViewSharing: false,
   showToolbar: true,
   showToolbarHeader: true,
   export: true,
@@ -104,6 +106,16 @@ Type: `boolean` | Default: `true`
 Allow inline editing interactions in table cells.
 
 Type: `boolean` | Default: `true`
+
+### allowViewSave
+Allow users to create saved views, save changes to an existing view, and delete user-created views. Users can still select existing views when this is disabled.
+
+Type: `boolean` | Default: `true`
+
+### allowViewSharing
+Allow users to save a view as shared with their team. This only controls the UI and the `isGlobal` flag sent to `views.create`; your backend should still enforce team/workspace permissions.
+
+Type: `boolean` | Default: `false`
 
 ### showToolbar
 Show the whole table toolbar (search and action buttons).

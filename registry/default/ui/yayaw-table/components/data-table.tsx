@@ -283,6 +283,8 @@ function DataTableContent({
             allowDuplicate: config.table.allowDuplicate,
             allowEdit: config.table.allowEdit,
             allowInlineEdit: config.table.allowInlineEdit,
+            allowViewSave: config.table.allowViewSave,
+            allowViewSharing: config.table.allowViewSharing,
             actionsAsIcons: config.table.actionsAsIcons,
             bulkExport: config.table.bulkExport,
             defaultPageSize: config.table.defaultPageSize || 10,
@@ -336,6 +338,10 @@ function DataTableContent({
                   >
                     {shouldShowViews && (
                       <DataTableViewManager
+                        allowViewSave={config.table.allowViewSave !== false}
+                        allowViewSharing={
+                          config.table.allowViewSharing === true
+                        }
                         initialActiveViewId={initialActiveViewId}
                         initialViews={initialViews}
                         tableId={tableId}

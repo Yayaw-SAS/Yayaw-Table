@@ -59,7 +59,7 @@ Values are JSON-encoded or plain strings. The table reads and writes these via N
 
 ## Saved views
 
-Saved views are built from the same URL-backed state. The view manager is enabled by default and can be disabled with `enableViews: false`.
+Saved views are built from the same URL-backed state. The view manager is enabled by default and can be disabled with `enableViews: false`. Use `allowViewSave: false` when users can select existing views but should not create, update, or delete them. Use `allowViewSharing: true` to show the “Share with team” option when saving a view.
 
 When a view is saved, YaYaw Table persists this DB-friendly snapshot:
 
@@ -85,7 +85,7 @@ const getTableActions = (tableType: string) => {
     list: listProducts,
     views: {
       list: async ({ tableId }) => ({ data: await db.views.list(tableId) }),
-      create: async (input) => await db.views.create(input),
+      create: async (input) => await db.views.create(input), // input.isGlobal is true for team-shared views
       update: async (id, input) => await db.views.update(id, input),
       delete: async (id, context) => await db.views.delete(id, context),
     },

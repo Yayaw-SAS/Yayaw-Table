@@ -66,6 +66,8 @@ export interface TableCatalogueTableConfig {
   allowBulkEdit?: boolean;
   allowBulkDelete?: boolean;
   allowInlineEdit?: boolean;
+  allowViewSave?: boolean;
+  allowViewSharing?: boolean;
   canEditRow?: (row: Record<string, unknown>) => boolean;
   canDeleteRow?: (row: Record<string, unknown>) => boolean;
   canDuplicateRow?: (row: Record<string, unknown>) => boolean;
@@ -145,6 +147,8 @@ const DEFAULT_TABLE_CONFIG: TableCatalogueConfig = {
     allowBulkEdit: true,
     allowBulkDelete: true,
     allowInlineEdit: true,
+    allowViewSave: true,
+    allowViewSharing: false,
     showToolbar: true,
     showToolbarHeader: true,
     export: true,
@@ -232,6 +236,41 @@ function resolveInlineEditConfig(
   };
 }
 
+function resolveTablePermissionConfig(
+  mergedConfig: Partial<TableCatalogueTableConfig>
+): Pick<
+  TableCatalogueTableConfig,
+  | "allowBulkDelete"
+  | "allowBulkEdit"
+  | "allowCreate"
+  | "allowDelete"
+  | "allowDuplicate"
+  | "allowEdit"
+  | "allowInlineEdit"
+  | "allowViewSave"
+  | "allowViewSharing"
+  | "canDeleteRow"
+  | "canDuplicateRow"
+  | "canEditRow"
+  | "canSelectRow"
+> {
+  return {
+    allowCreate: mergedConfig.allowCreate ?? true,
+    allowEdit: mergedConfig.allowEdit ?? true,
+    allowDuplicate: mergedConfig.allowDuplicate ?? true,
+    allowDelete: mergedConfig.allowDelete ?? true,
+    allowBulkEdit: mergedConfig.allowBulkEdit ?? true,
+    allowBulkDelete: mergedConfig.allowBulkDelete ?? true,
+    allowInlineEdit: mergedConfig.allowInlineEdit ?? true,
+    allowViewSave: mergedConfig.allowViewSave ?? true,
+    allowViewSharing: mergedConfig.allowViewSharing ?? false,
+    canEditRow: mergedConfig.canEditRow,
+    canDeleteRow: mergedConfig.canDeleteRow,
+    canDuplicateRow: mergedConfig.canDuplicateRow,
+    canSelectRow: mergedConfig.canSelectRow,
+  };
+}
+
 function resolveTableBehaviorConfig(
   providerConfig: Partial<TableCatalogueTableConfig>
 ): TableCatalogueTableConfig {
@@ -243,17 +282,7 @@ function resolveTableBehaviorConfig(
   };
 
   return {
-    allowCreate: mergedConfig.allowCreate ?? true,
-    allowEdit: mergedConfig.allowEdit ?? true,
-    allowDuplicate: mergedConfig.allowDuplicate ?? true,
-    allowDelete: mergedConfig.allowDelete ?? true,
-    allowBulkEdit: mergedConfig.allowBulkEdit ?? true,
-    allowBulkDelete: mergedConfig.allowBulkDelete ?? true,
-    allowInlineEdit: mergedConfig.allowInlineEdit ?? true,
-    canEditRow: mergedConfig.canEditRow,
-    canDeleteRow: mergedConfig.canDeleteRow,
-    canDuplicateRow: mergedConfig.canDuplicateRow,
-    canSelectRow: mergedConfig.canSelectRow,
+    ...resolveTablePermissionConfig(mergedConfig),
     showToolbar: mergedConfig.showToolbar ?? true,
     showToolbarHeader: mergedConfig.showToolbarHeader ?? true,
     export: mergedConfig.export ?? true,

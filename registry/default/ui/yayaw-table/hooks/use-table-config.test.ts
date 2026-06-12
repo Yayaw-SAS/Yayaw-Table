@@ -24,6 +24,8 @@ describe("resolveTableCatalogueConfig", () => {
       },
       table: {
         allowEdit: true,
+        allowViewSave: false,
+        allowViewSharing: true,
         canEditRow: (row) => row.canManage === true,
         enableCalculations: false,
         enableColumnFilters: true,
@@ -46,6 +48,8 @@ describe("resolveTableCatalogueConfig", () => {
     const resolvedConfig = resolveTableCatalogueConfig(nestedConfig);
 
     assert.equal(resolvedConfig.table.enableCalculations, false);
+    assert.equal(resolvedConfig.table.allowViewSave, false);
+    assert.equal(resolvedConfig.table.allowViewSharing, true);
     assert.equal(resolvedConfig.table.enableRowClickEdit, true);
     assert.equal(resolvedConfig.table.enableRowSelection, false);
     assert.equal(resolvedConfig.table.layoutPreset, "admin");
@@ -81,6 +85,8 @@ describe("resolveTableCatalogueConfig", () => {
     assert.equal(resolvedConfig.table.enableCalculations, false);
     assert.equal(resolvedConfig.table.enableRowClickEdit, true);
     assert.equal(resolvedConfig.table.enableColumnFilters, true);
+    assert.equal(resolvedConfig.table.allowViewSave, true);
+    assert.equal(resolvedConfig.table.allowViewSharing, false);
   });
 
   it("applies preview layout defaults while preserving explicit overrides", () => {
