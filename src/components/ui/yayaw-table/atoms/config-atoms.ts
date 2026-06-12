@@ -13,6 +13,10 @@ import type {
 } from "../config/helpers";
 import type { TableFormConfig } from "../config/form-config";
 import type { DateDisplayPreset } from "../types/date-types";
+import type {
+  TableDisplayMode,
+  TableKanbanConfig,
+} from "../types/display-types";
 
 /**
  * Interface for column-specific configuration options
@@ -122,6 +126,21 @@ export interface DataTableConfig {
    * Opinionated layout preset for common table surfaces.
    */
   layoutPreset?: TableLayoutPreset;
+
+  /**
+   * Display modes available to users.
+   */
+  displayModes?: TableDisplayMode[];
+
+  /**
+   * Display mode used when no URL/view state overrides it.
+   */
+  defaultDisplayMode?: TableDisplayMode;
+
+  /**
+   * Kanban display mode configuration.
+   */
+  kanban?: TableKanbanConfig;
 
   /**
    * Empty/no-results state behavior.
@@ -255,6 +274,8 @@ const defaultTableConfig: DataTableConfig = {
   actionsAsIcons: false,
   density: "medium",
   layoutPreset: "default",
+  displayModes: ["table"],
+  defaultDisplayMode: "table",
   emptyState: {
     show: true,
   },

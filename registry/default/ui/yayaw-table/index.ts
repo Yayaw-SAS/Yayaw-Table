@@ -58,6 +58,7 @@ export type {
 export { defineTableConfig } from "./config/helpers";
 export * from "./types/column-types";
 export * from "./types/date-types";
+export * from "./types/display-types";
 export * from "./types/filter-types";
 export * from "./types/footer-types";
 export * from "./types/table-types";

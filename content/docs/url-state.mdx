@@ -5,7 +5,7 @@ description: Sort, filters, pagination and column state in the URL with Nuqs
 
 # URL State (Nuqs)
 
-The table keeps **sort, filters, pagination, column visibility, grouping, and pinning** in the URL using [Nuqs](https://nuqs.io). This provides:
+The table keeps **sort, filters, pagination, column visibility, display mode, grouping, and pinning** in the URL using [Nuqs](https://nuqs.io). This provides:
 
 - **Shareable links** – Send a link and the recipient sees the same view (same sort, filters, page).
 - **Back/forward** – Browser history reflects table state.
@@ -52,6 +52,8 @@ Query params are prefixed by **table id** (your `tableType`, e.g. `products`). T
 | `{tableId}-pageSize` | `products-pageSize` | Page size. |
 | `{tableId}-visibility` | `products-visibility` | Column visibility (object). |
 | `{tableId}-order` | `products-order` | Column order. |
+| `{tableId}-display` | `products-display` | Display mode (`table` or `kanban`). |
+| `{tableId}-kanbanGroupBy` | `products-kanbanGroupBy` | Kanban grouping column override. |
 | `{tableId}-grouping` | `products-grouping` | Grouping column ids. |
 | `{tableId}-pinning` | `products-pinning` | Pinned columns (left/right). |
 
@@ -67,6 +69,7 @@ When a view is saved, YaYaw Table persists this DB-friendly snapshot:
 - Column filters and advanced filters
 - Sorting
 - Column visibility and column order
+- Display mode and Kanban grouping
 - Grouping
 - Column pinning
 - Page size
@@ -127,6 +130,8 @@ Store the normalized view config in `config` rather than the full URL string. Ke
   "globalSearch": "samsung",
   "columnVisibility": {},
   "columnOrder": [],
+  "displayMode": "kanban",
+  "kanban": { "groupBy": "status" },
   "columnPinning": { "left": [], "right": [] },
   "grouping": [],
   "pageSize": 50

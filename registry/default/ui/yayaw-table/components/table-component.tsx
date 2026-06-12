@@ -49,8 +49,13 @@ import type {
 import { useTableConfig } from "../hooks/use-table-config";
 import { useTableInstance } from "../hooks/use-table-instance";
 import { useTableUrlState } from "../hooks/use-table-url-state";
-import { useFormConfig, useTranslations } from "../providers/table-provider";
+import {
+  useFormConfig,
+  useTableActions as useProviderTableActions,
+  useTranslations,
+} from "../providers/table-provider";
 import type { DataTableProps } from "../types";
+import type { TableDisplayMode } from "../types/display-types";
 import { Loader } from "../ui-custom/loader";
 import { ColumnIcon } from "../utils/column-icons";
 import { buildCsvExportColumns } from "../utils/csv-export";
@@ -73,6 +78,7 @@ import {
   openUpdateForm,
 } from "./forms/atoms/catalogue-form-atoms";
 import type { AnyFieldDefinition } from "./forms/types";
+import { DataTableKanbanView } from "./kanban-view";
 import { SafePagination } from "./safe-pagination";
 import { useOnScreen } from "./utils/use-on-screen";
 
@@ -242,6 +248,7 @@ export const shouldIgnoreRowClickTarget = (target: EventTarget | null) => {
 const handleDataTableRowClick = <TData,>({
   canEditRow,
   event,
+  ignoreInteractiveTarget,
   onRowActivate,
   onRowEdit,
   onRowLink,
@@ -250,13 +257,17 @@ const handleDataTableRowClick = <TData,>({
 }: {
   canEditRow: boolean;
   event: React.MouseEvent;
+  ignoreInteractiveTarget?: boolean;
   onRowActivate?: (row: TData, event: React.MouseEvent) => void;
   onRowEdit: (row: Row<TData>) => void;
   onRowLink?: (row: Row<TData>, event: React.MouseEvent) => void;
   row: Row<TData>;
   rowClickMode: Exclude<TableRowClickMode, "default">;
 }) => {
-  if (shouldIgnoreRowClickTarget(event.target)) {
+  if (
+    ignoreInteractiveTarget !== false &&
+    shouldIgnoreRowClickTarget(event.target)
+  ) {
     return;
   }
 
@@ -274,6 +285,57 @@ const handleDataTableRowClick = <TData,>({
     onRowLink?.(row, event);
   }
 };
+
+function resolveActiveDisplayMode({
+  defaultDisplayMode,
+  displayModeParam,
+  displayModes,
+}: {
+  defaultDisplayMode?: TableDisplayMode;
+  displayModeParam: TableDisplayMode;
+  displayModes: TableDisplayMode[];
+}): TableDisplayMode {
+  if (displayModes.includes(displayModeParam)) {
+    return displayModeParam;
+  }
+
+  return defaultDisplayMode ?? "table";
+}
+
+function shouldUseKanbanDisplayMode({
+  activeDisplayMode,
+  displayModes,
+  groupBy,
+}: {
+  activeDisplayMode: TableDisplayMode;
+  displayModes: TableDisplayMode[];
+  groupBy: string;
+}): boolean {
+  return (
+    activeDisplayMode === "kanban" &&
+    displayModes.includes("kanban") &&
+    groupBy.length > 0
+  );
+}
+
+function canUpdateKanbanRows({
+  allowDragUpdate,
+  allowEdit,
+  hasUpdateAction,
+  isKanbanMode,
+}: {
+  allowDragUpdate?: boolean;
+  allowEdit?: boolean;
+  hasUpdateAction: boolean;
+  isKanbanMode: boolean;
+}): boolean {
+  return Boolean(
+    isKanbanMode &&
+      allowDragUpdate === true &&
+      allowEdit !== false &&
+      hasUpdateAction
+  );
+}
 
 interface ColumnSizingDefinition {
   maxSize?: number;
@@ -833,6 +895,11 @@ function ModernDataTable<
   const getFormConfig = useFormConfig();
   const resolvedTableType = tableType || tableId;
   const defaultFormType = formType || resolvedTableType;
+  const getProviderTableActions = useProviderTableActions();
+  const providerTableActions = useMemo(
+    () => getProviderTableActions?.(resolvedTableType),
+    [getProviderTableActions, resolvedTableType]
+  );
 
   // Use proper data table hook like in production
   const dataTableResult = useDataTable({
@@ -1271,11 +1338,14 @@ function ModernDataTable<
   const loadingOverlay = loadingOverlayProp ?? defaultLoadingOverlay;
   const {
     advancedFiltersParam,
+    displayModeParam,
     expandedParam,
     filtersParam,
     globalSearchParam,
+    kanbanGroupByParam,
     setExpandedFromUI,
   } = useTableUrlState({
+    defaultDisplayMode: tableConfig.table.defaultDisplayMode,
     tableId: tableId || "",
   });
   const resolvedEmptyState = useMemo<TableEmptyStateConfig>(
@@ -1298,6 +1368,133 @@ function ModernDataTable<
   const emptyStateDescription =
     resolvedEmptyState.description ??
     (hasActiveSearchOrFilters ? t("table.no_results_description") : undefined);
+  const configuredDisplayModes = tableConfig.table.displayModes ?? ["table"];
+  const activeDisplayMode = resolveActiveDisplayMode({
+    defaultDisplayMode: tableConfig.table.defaultDisplayMode,
+    displayModeParam,
+    displayModes: configuredDisplayModes,
+  });
+  const kanbanGroupBy =
+    kanbanGroupByParam || tableConfig.table.kanban?.groupBy || "";
+  const isKanbanMode = shouldUseKanbanDisplayMode({
+    activeDisplayMode,
+    displayModes: configuredDisplayModes,
+    groupBy: kanbanGroupBy,
+  });
+  const canDragKanbanRows = canUpdateKanbanRows({
+    allowDragUpdate: tableConfig.table.kanban?.allowDragUpdate,
+    allowEdit: tableConfig.table.allowEdit,
+    hasUpdateAction: typeof providerTableActions?.update === "function",
+    isKanbanMode,
+  });
+
+  const handleRowLinkClick = useCallback(
+    (row: Row<TData>, event: React.MouseEvent) => {
+      if (!rowLinkAccessorKey) {
+        return;
+      }
+
+      const url = String(
+        (row.original as Record<string, unknown>)[rowLinkAccessorKey] ?? ""
+      );
+      if (!url) {
+        return;
+      }
+      if (onRowClick) {
+        onRowClick(url, row.original, event);
+        return;
+      }
+      if (event.metaKey || event.ctrlKey) {
+        window.open(url, "_blank", "noopener");
+        return;
+      }
+      window.location.href = url;
+    },
+    [onRowClick, rowLinkAccessorKey]
+  );
+
+  const getRowClickMode = useCallback(
+    (row: Row<TData>) => {
+      const canEditRow =
+        tableConfig.table.canEditRow?.(
+          row.original as Record<string, unknown>
+        ) !== false;
+      const rowClickMode = resolveEffectiveRowClickMode({
+        configuredMode: tableConfig.table.rowClickMode,
+        hasRowLink: Boolean(rowLinkAccessorKey),
+        isRowClickEditEnabled,
+      });
+      const canClickRow =
+        (rowClickMode === "activate" && Boolean(onRowActivate)) ||
+        (rowClickMode === "edit" && canEditRow) ||
+        (rowClickMode === "link" && Boolean(rowLinkAccessorKey));
+
+      return { canClickRow, canEditRow, rowClickMode };
+    },
+    [
+      isRowClickEditEnabled,
+      onRowActivate,
+      rowLinkAccessorKey,
+      tableConfig.table.canEditRow,
+      tableConfig.table.rowClickMode,
+    ]
+  );
+
+  const handleInteractiveRowClick = useCallback(
+    (
+      row: Row<TData>,
+      event: React.MouseEvent,
+      options?: { ignoreInteractiveTarget?: boolean }
+    ) => {
+      const { canEditRow, rowClickMode } = getRowClickMode(row);
+      handleDataTableRowClick({
+        canEditRow,
+        event,
+        ignoreInteractiveTarget: options?.ignoreInteractiveTarget,
+        onRowActivate,
+        onRowEdit: handleRowEditClick,
+        onRowLink: rowLinkAccessorKey
+          ? (clickedRow, clickEvent) => {
+              handleRowLinkClick(clickedRow, clickEvent);
+            }
+          : undefined,
+        row,
+        rowClickMode,
+      });
+    },
+    [
+      getRowClickMode,
+      handleRowEditClick,
+      handleRowLinkClick,
+      onRowActivate,
+      rowLinkAccessorKey,
+    ]
+  );
+
+  const handleKanbanMoveRow = useCallback(
+    async (row: Row<TData>, nextValue: string) => {
+      if (!(canDragKanbanRows && kanbanGroupBy)) {
+        return;
+      }
+
+      const rowId = resolveRowEntityId(row);
+      const success = await dataTableResult.actions.edit(
+        {
+          ...(row.original as Record<string, unknown>),
+          id: rowId,
+        } as TData & { id: string },
+        { [kanbanGroupBy]: nextValue } as Partial<TData>
+      );
+
+      if (!success) {
+        toast.error(t("common.error"));
+        return;
+      }
+
+      await refetch();
+    },
+    [canDragKanbanRows, dataTableResult.actions.edit, kanbanGroupBy, refetch, t]
+  );
 
   // Local state to track expanded groups (bypass TanStack issues)
   const [localExpanded, setLocalExpanded] = useState<Record<string, boolean>>(
@@ -1627,43 +1824,11 @@ function ModernDataTable<
       );
     };
 
-    const handleRowLinkClick = rowLinkAccessorKey
-      ? (row: Row<TData>, event: React.MouseEvent) => {
-          const url = String(
-            (row.original as Record<string, unknown>)[rowLinkAccessorKey] ?? ""
-          );
-          if (!url) {
-            return;
-          }
-          if (onRowClick) {
-            onRowClick(url, row.original, event);
-            return;
-          }
-          if (event.metaKey || event.ctrlKey) {
-            window.open(url, "_blank", "noopener");
-            return;
-          }
-          window.location.href = url;
-        }
-      : undefined;
-
     const renderRegularRow = (
       row: Row<TData>,
       visibleCells: ReturnType<Row<TData>["getVisibleCells"]>
     ) => {
-      const canEditRow =
-        tableConfig.table.canEditRow?.(
-          row.original as Record<string, unknown>
-        ) !== false;
-      const rowClickMode = resolveEffectiveRowClickMode({
-        configuredMode: tableConfig.table.rowClickMode,
-        hasRowLink: Boolean(handleRowLinkClick),
-        isRowClickEditEnabled,
-      });
-      const canClickRow =
-        (rowClickMode === "activate" && Boolean(onRowActivate)) ||
-        (rowClickMode === "edit" && canEditRow) ||
-        (rowClickMode === "link" && Boolean(handleRowLinkClick));
+      const { canClickRow } = getRowClickMode(row);
       const isActiveRow = isRowIdActive({
         activeRowId,
         rowId: row.id,
@@ -1685,16 +1850,9 @@ function ModernDataTable<
           key={row.id}
           onClick={
             canClickRow
-              ? (event) =>
-                  handleDataTableRowClick({
-                    canEditRow,
-                    event,
-                    onRowActivate,
-                    onRowEdit: handleRowEditClick,
-                    onRowLink: handleRowLinkClick,
-                    row,
-                    rowClickMode,
-                  })
+              ? (event) => {
+                  handleInteractiveRowClick(row, event);
+                }
               : undefined
           }
         >
@@ -1855,14 +2013,9 @@ function ModernDataTable<
     densityMode,
     isSmallDensity,
     isLargeDensity,
-    rowLinkAccessorKey,
-    isRowClickEditEnabled,
-    tableConfig.table.canEditRow,
-    tableConfig.table.rowClickMode,
-    handleRowEditClick,
+    getRowClickMode,
+    handleInteractiveRowClick,
     activeRowId,
-    onRowActivate,
-    onRowClick,
   ]);
 
   // Optimize table header with better memoization (columnOrder in deps so header re-renders when order changes)
@@ -1962,36 +2115,79 @@ function ModernDataTable<
       >
         <div className="relative">
           <div className="space-y-4">
-            <div className="relative overflow-hidden rounded-md border">
-              {/* Show loading overlay during data fetches when we already have data */}
-              {isLoading && data && data.length > 0 && loadingOverlay}
-
-              {/* Container for the table */}
-              <div
-                className={cn("relative w-full overflow-auto", "contain-paint")}
-                ref={tableRef}
-              >
-                <Table className={cn("w-full", className)}>
-                  {tableHeader}
-                  {tableBodyContent}
-                  {showCalculationsFooter && (
-                    <TableFooter className="sticky bottom-0 z-10 overflow-hidden rounded-b-md bg-card">
-                      <FooterRow
-                        densityMode={densityMode}
-                        table={table}
-                        tableId={tableId}
-                        tableType={resolvedTableType}
-                      />
-                    </TableFooter>
-                  )}
-                </Table>
+            {isKanbanMode ? (
+              <div className="relative">
+                {isLoading && data && data.length > 0 && loadingOverlay}
+                <DataTableKanbanView
+                  canDragUpdate={canDragKanbanRows}
+                  cardColumnIds={tableConfig.table.kanban?.cardColumnIds}
+                  className={className}
+                  columnDefinitions={tableConfig.columns.definitions}
+                  config={tableConfig.table.kanban}
+                  emptyState={
+                    <TableEmptyStateContent
+                      description={emptyStateDescription}
+                      title={emptyStateTitle}
+                    />
+                  }
+                  groupBy={kanbanGroupBy}
+                  isRowActive={(row) =>
+                    isRowIdActive({
+                      activeRowId,
+                      rowId: row.id,
+                      rowOriginal: row.original as Record<string, unknown>,
+                    })
+                  }
+                  isRowClickable={(row) => getRowClickMode(row).canClickRow}
+                  onMoveRow={handleKanbanMoveRow}
+                  onRowClick={(row, event) => {
+                    handleInteractiveRowClick(row, event, {
+                      ignoreInteractiveTarget: false,
+                    });
+                  }}
+                  table={table}
+                />
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-x-0 bottom-0 h-px"
+                  ref={bulkActionsAnchorRef}
+                />
               </div>
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-x-0 bottom-0 h-px"
-                ref={bulkActionsAnchorRef}
-              />
-            </div>
+            ) : (
+              <div className="relative overflow-hidden rounded-md border">
+                {/* Show loading overlay during data fetches when we already have data */}
+                {isLoading && data && data.length > 0 && loadingOverlay}
+
+                {/* Container for the table */}
+                <div
+                  className={cn(
+                    "relative w-full overflow-auto",
+                    "contain-paint"
+                  )}
+                  ref={tableRef}
+                >
+                  <Table className={cn("w-full", className)}>
+                    {tableHeader}
+                    {tableBodyContent}
+                    {showCalculationsFooter && (
+                      <TableFooter className="sticky bottom-0 z-10 overflow-hidden rounded-b-md bg-card">
+                        <FooterRow
+                          densityMode={densityMode}
+                          table={table}
+                          tableId={tableId}
+                          tableType={resolvedTableType}
+                        />
+                      </TableFooter>
+                    )}
+                  </Table>
+                </div>
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-x-0 bottom-0 h-px"
+                  ref={bulkActionsAnchorRef}
+                />
+              </div>
+            )}
 
             {/* Pagination is outside the table container to avoid focus issues */}
             {showPaginationArea && (

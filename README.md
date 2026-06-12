@@ -7,7 +7,8 @@ Flexible, type-safe data table for React. One component, clean API, minimal boil
 - **Simple API** – One component to render a full data table; pass `getTableConfig` and `getTableActions` and you’re set
 - **Server-first** – Built for Next.js 15 and 16 with Server Actions for list/create/update/delete and bulk operations
 - **URL state** – Sort, filters, and pagination in the URL via [Nuqs](https://nuqs.io) (optional)
-- **Saved views** – Users can save and restore URL-backed table setups such as filters, sort, search, column layout, grouping, pinning, and page size
+- **Saved views** – Users can save and restore URL-backed table setups such as filters, sort, search, column layout, display mode, grouping, pinning, and page size
+- **Display modes** – Keep the default table view or add a Notion-style Kanban view grouped by one of your columns
 - **Built-in UX** – Sorting, pagination, grouping, column visibility, column reorder (drag-and-drop), global search
 - **Filters** – Column filters and advanced filters panel; filter presets supported
 - **Number & currency** – Right-aligned number columns with configurable format (thousands/decimal separators, prefix/suffix)
@@ -124,9 +125,33 @@ Common props:
 
 ## Saved views
 
-YaYaw Table includes a saved views manager above the table. A view stores the same state that is already represented in URL params: search, filters, advanced filters, sorting, column visibility, column order, grouping, pinning, and page size. Applying a view updates the URL-backed state and resets pagination to the first page.
+YaYaw Table includes a saved views manager above the table. A view stores the same state that is already represented in URL params: search, filters, advanced filters, sorting, column visibility, column order, display mode, Kanban lane grouping, row grouping, pinning, and page size. Applying a view updates the URL-backed state and resets pagination to the first page.
 
 Use `table.allowViewSave: false` when users can select existing views but should not create, update, or delete them. Use `table.allowViewSharing: true` to show the “Share with team” option when saving a view; the value is sent to `views.create` as `input.isGlobal`.
+
+## Display modes
+
+Tables render in `"table"` mode by default. Add `"kanban"` to `table.displayModes` to show a compact display switcher next to saved views. Kanban uses the same data, URL state, row actions, selection, filters, sorting, and saved-view model as the table view.
+
+```ts
+table: {
+  displayModes: ["table", "kanban"],
+  defaultDisplayMode: "table",
+  kanban: {
+    groupBy: "status",
+    titleColumn: "name",
+    cardColumnIds: ["brand", "category", "price"],
+    groups: [
+      { value: "In Stock" },
+      { value: "Low Stock" },
+      { value: "Out of Stock" },
+    ],
+    allowDragUpdate: true,
+  },
+}
+```
+
+When `allowDragUpdate` is enabled, moving a card between lanes calls your `update` action with the grouped column value. Your backend should still validate whether that transition is allowed.
 
 For prototypes, the copied component falls back to localStorage so the UI is usable without a backend. In production, expose database-backed view actions from `getTableActions`:
 

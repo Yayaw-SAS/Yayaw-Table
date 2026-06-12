@@ -36,6 +36,7 @@ import {
   useTableActions as useProviderTableActions,
   useTranslations,
 } from "../../providers/table-provider";
+import type { TableDisplayMode } from "../../types/display-types";
 import type {
   TableView,
   TableViewActions,
@@ -48,6 +49,7 @@ interface DataTableViewManagerProps {
   allowViewSave?: boolean;
   allowViewSharing?: boolean;
   className?: string;
+  defaultDisplayMode?: TableDisplayMode;
   initialActiveViewId?: string;
   initialViews?: TableView[];
   tableId: string;
@@ -265,6 +267,7 @@ export function DataTableViewManager({
   allowViewSave = true,
   allowViewSharing = false,
   className,
+  defaultDisplayMode,
   initialActiveViewId,
   initialViews = [],
   tableId,
@@ -299,6 +302,7 @@ export function DataTableViewManager({
     resetUrlState,
     viewParam,
   } = useTableUrlState({
+    defaultDisplayMode,
     tableId,
   });
   const viewQueryKey = useMemo(

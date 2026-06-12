@@ -17,6 +17,11 @@ describe("defaultTableConfig", () => {
     assert.equal(defaultTableConfig.allowViewSave, true);
     assert.equal(defaultTableConfig.allowViewSharing, false);
   });
+
+  it("uses the table display mode by default", () => {
+    assert.deepEqual(defaultTableConfig.displayModes, ["table"]);
+    assert.equal(defaultTableConfig.defaultDisplayMode, "table");
+  });
 });
 
 describe("defineTableConfig", () => {
@@ -101,5 +106,32 @@ describe("defineTableConfig", () => {
     assert.equal(adminConfig.table.density, "small");
     assert.equal(adminConfig.table.defaultPageSize, 20);
     assert.equal(explicitDensityConfig.table.density, "large");
+  });
+
+  it("normalizes display modes and default display mode", () => {
+    const config = defineTableConfig({
+      columns: {
+        definitions: [],
+        mandatory: [],
+        order: [],
+        visible: [],
+      },
+      id: "products",
+      table: {
+        defaultDisplayMode: "kanban",
+        displayModes: ["table", "kanban"],
+        kanban: {
+          groupBy: "status",
+        },
+      },
+      translations: {
+        keys: {},
+        namespace: "common",
+      },
+    });
+
+    assert.deepEqual(config.table.displayModes, ["table", "kanban"]);
+    assert.equal(config.table.defaultDisplayMode, "kanban");
+    assert.deepEqual(config.table.kanban, { groupBy: "status" });
   });
 });

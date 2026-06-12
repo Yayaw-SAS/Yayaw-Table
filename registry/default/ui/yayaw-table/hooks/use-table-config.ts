@@ -17,6 +17,8 @@ import type {
 } from "../config/helpers";
 import {
   getTableLayoutPresetDefaults,
+  resolveTableDisplayMode,
+  resolveTableDisplayModes,
   resolveTableLayoutPreset,
 } from "../config/helpers";
 import {
@@ -24,6 +26,10 @@ import {
   useTranslations,
 } from "../providers/table-provider";
 import type { DateDisplayPreset } from "../types/date-types";
+import type {
+  TableDisplayMode,
+  TableKanbanConfig,
+} from "../types/display-types";
 import type { CalculationType } from "../types/footer-types";
 import type { NumberFormatConfig } from "../utils/number-format";
 import { useTableTranslations } from "./use-table-translations";
@@ -79,6 +85,9 @@ export interface TableCatalogueTableConfig {
   actionsAsIcons?: boolean;
   density?: "small" | "medium" | "large";
   layoutPreset?: TableLayoutPreset;
+  displayModes?: TableDisplayMode[];
+  defaultDisplayMode?: TableDisplayMode;
+  kanban?: TableKanbanConfig;
   emptyState?: TableEmptyStateConfig;
   enableRowSelection: boolean;
   enableRowClickEdit?: boolean;
@@ -156,6 +165,8 @@ const DEFAULT_TABLE_CONFIG: TableCatalogueConfig = {
     actionsAsIcons: false,
     density: "medium",
     layoutPreset: "default",
+    displayModes: ["table"],
+    defaultDisplayMode: "table",
     emptyState: {
       show: true,
     },
@@ -280,6 +291,7 @@ function resolveTableBehaviorConfig(
     ...presetDefaults,
     ...providerConfig,
   };
+  const displayModes = resolveTableDisplayModes(mergedConfig.displayModes);
 
   return {
     ...resolveTablePermissionConfig(mergedConfig),
@@ -290,6 +302,12 @@ function resolveTableBehaviorConfig(
     actionsAsIcons: mergedConfig.actionsAsIcons ?? false,
     density: normalizeDensityMode(mergedConfig.density),
     layoutPreset,
+    displayModes,
+    defaultDisplayMode: resolveTableDisplayMode({
+      allowedModes: displayModes,
+      displayMode: mergedConfig.defaultDisplayMode,
+    }),
+    kanban: mergedConfig.kanban,
     emptyState: {
       show: true,
       ...mergedConfig.emptyState,

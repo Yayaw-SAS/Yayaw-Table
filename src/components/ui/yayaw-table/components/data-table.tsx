@@ -28,6 +28,8 @@ import type {
   ToolbarActionsPlacement,
 } from "../types/toolbar-types";
 import type { DataTableTranslations } from "../types/translations";
+import type { TableView } from "../types/view-types";
+import type { TableDisplayMode } from "../types/display-types";
 import type { CustomBulkActionsInput } from "./bulk-actions";
 import { DataTableSkeleton } from "./data-table-skeleton";
 // Lazy load heavy components using React.lazy inside './forms/lazy-forms'
@@ -37,6 +39,7 @@ import { TableComponent as DataTableClient } from "./table-component";
 
 // Direct import keeps the toolbar available without a client-only dynamic wrapper.
 import { DataTableAdvancedToolbar } from "./toolbar/data-table-advanced-toolbar";
+import { TableDisplayModeSwitcher } from "./toolbar/table-display-mode-switcher";
 import { DataTableViewManager } from "./toolbar/table-view-manager";
 
 // Default UI components
@@ -105,6 +108,91 @@ function resolveDataTableHeaderContent({
       configTitle ||
       `${tableType} Table`,
   };
+}
+
+function DataTableHeaderControls({
+  allowViewSave,
+  allowViewSharing,
+  baseData,
+  columnTypeMapping,
+  defaultDisplayMode,
+  defaultFormType,
+  displayModes,
+  enableAdvancedFilters,
+  initialActiveViewId,
+  initialViews,
+  onExport,
+  shouldShowViewControls,
+  shouldShowViews,
+  tableId,
+  tableType,
+  toolbarActions,
+  toolbarActionsPlacement,
+}: {
+  allowViewSave?: boolean;
+  allowViewSharing?: boolean;
+  baseData: Record<string, unknown>[];
+  columnTypeMapping: Record<
+    string,
+    "date" | "multiSelect" | "number" | "select" | "text"
+  >;
+  defaultDisplayMode?: TableDisplayMode;
+  defaultFormType: string;
+  displayModes?: TableDisplayMode[];
+  enableAdvancedFilters: boolean;
+  initialActiveViewId?: string;
+  initialViews?: TableView[];
+  onExport?: (rows: Record<string, unknown>[]) => Promise<void> | void;
+  shouldShowViewControls: boolean;
+  shouldShowViews: boolean;
+  tableId: string;
+  tableType: string;
+  toolbarActions?: ToolbarActionsInput;
+  toolbarActionsPlacement: ToolbarActionsPlacement;
+}) {
+  return (
+    <div
+      className={
+        shouldShowViewControls
+          ? "flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between"
+          : "flex justify-end"
+      }
+    >
+      {shouldShowViewControls ? (
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          {shouldShowViews ? (
+            <DataTableViewManager
+              allowViewSave={allowViewSave !== false}
+              allowViewSharing={allowViewSharing === true}
+              defaultDisplayMode={defaultDisplayMode}
+              initialActiveViewId={initialActiveViewId}
+              initialViews={initialViews}
+              tableId={tableId}
+              tableType={tableType}
+            />
+          ) : null}
+          <TableDisplayModeSwitcher
+            defaultDisplayMode={defaultDisplayMode}
+            displayModes={displayModes}
+            tableId={tableId}
+          />
+        </div>
+      ) : null}
+      <div className="flex-shrink-0">
+        <DataTableAdvancedToolbar
+          columnTypeMapping={columnTypeMapping}
+          data={baseData}
+          enableAdvancedFilters={enableAdvancedFilters}
+          formType={defaultFormType}
+          onExport={onExport}
+          tableId={tableId}
+          tableType={tableType}
+          toolbarActions={toolbarActions}
+          toolbarActionsPlacement={toolbarActionsPlacement}
+        />
+      </div>
+    </div>
+  );
 }
 
 function DataTableContent({
@@ -215,7 +303,7 @@ function DataTableContent({
   /**
    * Initial saved views used before the view action list resolves.
    */
-  initialViews?: import("../types/view-types").TableView[];
+  initialViews?: TableView[];
 }) {
   const tableId = tableIdProp ?? tableType;
   const defaultFormType = formType ?? tableType;
@@ -267,6 +355,8 @@ function DataTableContent({
   const shouldShowToolbar = enableToolbar && config.table.showToolbar !== false;
   const shouldShowToolbarHeader = config.table.showToolbarHeader !== false;
   const shouldShowViews = enableViews !== false && config.table.enableViews !== false;
+  const shouldShowDisplayModes = (config.table.displayModes?.length ?? 1) > 1;
+  const shouldShowViewControls = shouldShowViews || shouldShowDisplayModes;
 
   return (
     <>
@@ -290,8 +380,10 @@ function DataTableContent({
             allowViewSharing: config.table.allowViewSharing,
             actionsAsIcons: config.table.actionsAsIcons,
             bulkExport: config.table.bulkExport,
+            defaultDisplayMode: config.table.defaultDisplayMode,
             defaultPageSize: config.table.defaultPageSize || 10,
             density: config.table.density,
+            displayModes: config.table.displayModes,
             emptyState: config.table.emptyState,
             export: config.table.export,
             showToolbar: config.table.showToolbar,
@@ -309,6 +401,7 @@ function DataTableContent({
             enableSorting: config.table.enableSorting,
             enableViews: config.table.enableViews,
             inlineEdit: config.table.inlineEdit,
+            kanban: config.table.kanban,
             layoutPreset: config.table.layoutPreset,
             pageSizeOptions: config.table.pageSizeOptions || [
               10, 20, 50, 100, 200, 500,
@@ -332,37 +425,25 @@ function DataTableContent({
                 )}
 
                 {!isLoading && (
-                  <div
-                    className={
-                      shouldShowViews
-                        ? "flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between"
-                        : "flex justify-end"
-                    }
-                  >
-                    {shouldShowViews && (
-                      <DataTableViewManager
-                        allowViewSave={config.table.allowViewSave !== false}
-                        allowViewSharing={config.table.allowViewSharing === true}
-                        initialActiveViewId={initialActiveViewId}
-                        initialViews={initialViews}
-                        tableId={tableId}
-                        tableType={tableType}
-                      />
-                    )}
-                    <div className="flex-shrink-0">
-                      <DataTableAdvancedToolbar
-                        columnTypeMapping={columnTypeMapping}
-                        data={baseData}
-                        enableAdvancedFilters={enableAdvancedFilters}
-                        onExport={onExport}
-                        toolbarActions={toolbarActions}
-                        toolbarActionsPlacement={toolbarActionsPlacement}
-                        tableId={tableId}
-                        tableType={tableType}
-                        formType={defaultFormType}
-                      />
-                    </div>
-                  </div>
+                  <DataTableHeaderControls
+                    allowViewSave={config.table.allowViewSave}
+                    allowViewSharing={config.table.allowViewSharing}
+                    baseData={baseData}
+                    columnTypeMapping={columnTypeMapping}
+                    defaultDisplayMode={config.table.defaultDisplayMode}
+                    defaultFormType={defaultFormType}
+                    displayModes={config.table.displayModes}
+                    enableAdvancedFilters={enableAdvancedFilters}
+                    initialActiveViewId={initialActiveViewId}
+                    initialViews={initialViews}
+                    onExport={onExport}
+                    shouldShowViewControls={shouldShowViewControls}
+                    shouldShowViews={shouldShowViews}
+                    tableId={tableId}
+                    tableType={tableType}
+                    toolbarActions={toolbarActions}
+                    toolbarActionsPlacement={toolbarActionsPlacement}
+                  />
                 )}
               </div>
             )}

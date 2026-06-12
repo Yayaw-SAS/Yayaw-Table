@@ -4,6 +4,7 @@ import type {
   SortingState,
   VisibilityState,
 } from "@tanstack/react-table";
+import type { TableDisplayMode } from "../types/display-types";
 import type { AdvancedFiltersState } from "../types/filter-types";
 import type { TableViewConfig } from "../types/view-types";
 
@@ -30,6 +31,27 @@ function normalizePageSize(value: number | string | undefined): number | undefin
   }
 
   return Math.trunc(numericValue);
+}
+
+function normalizeDisplayMode(
+  value: TableDisplayMode | undefined
+): TableDisplayMode | undefined {
+  if (value === "kanban" || value === "table") {
+    return value;
+  }
+
+  return;
+}
+
+function normalizeKanbanViewConfig(
+  config: TableViewConfig["kanban"]
+): TableViewConfig["kanban"] {
+  const groupBy = config?.groupBy?.trim();
+  if (!groupBy) {
+    return;
+  }
+
+  return { groupBy };
 }
 
 export function normalizeColumnPinning(
@@ -65,7 +87,9 @@ export function normalizeTableViewConfig(
     typeof config.globalSearch === "string" && config.globalSearch.trim()
       ? config.globalSearch.trim()
       : undefined;
+  const displayMode = normalizeDisplayMode(config.displayMode);
   const grouping = hasArrayValues(config.grouping) ? config.grouping : undefined;
+  const kanban = normalizeKanbanViewConfig(config.kanban);
   const pageSize = normalizePageSize(config.pageSize);
   const sorting = hasArrayValues(config.sorting)
     ? (config.sorting as SortingState)
@@ -89,8 +113,14 @@ export function normalizeTableViewConfig(
   if (globalSearch) {
     normalized.globalSearch = globalSearch;
   }
+  if (displayMode) {
+    normalized.displayMode = displayMode;
+  }
   if (grouping) {
     normalized.grouping = grouping;
+  }
+  if (kanban) {
+    normalized.kanban = kanban;
   }
   if (pageSize) {
     normalized.pageSize = pageSize;
@@ -104,9 +134,11 @@ export function normalizeTableViewConfig(
 
 export function createTableViewConfigSnapshot({
   advancedFiltersParam,
+  displayModeParam,
   filtersParam,
   globalSearchParam,
   groupingParam,
+  kanbanGroupByParam,
   orderParam,
   pageSizeParam,
   pinningParam,
@@ -114,9 +146,11 @@ export function createTableViewConfigSnapshot({
   visibilityParam,
 }: {
   advancedFiltersParam: AdvancedFiltersState;
+  displayModeParam: TableDisplayMode;
   filtersParam: ColumnFiltersState;
   globalSearchParam: string;
   groupingParam: string[];
+  kanbanGroupByParam: string;
   orderParam: string[];
   pageSizeParam: string;
   pinningParam?: ColumnPinningState;
@@ -129,8 +163,10 @@ export function createTableViewConfigSnapshot({
     columnOrder: orderParam,
     columnPinning: normalizeColumnPinning(pinningParam) ?? EMPTY_PINNING,
     columnVisibility: visibilityParam,
+    displayMode: displayModeParam,
     globalSearch: globalSearchParam,
     grouping: groupingParam,
+    kanban: { groupBy: kanbanGroupByParam },
     pageSize: normalizePageSize(pageSizeParam),
     sorting: sortParam,
   });

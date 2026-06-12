@@ -147,6 +147,8 @@ export const getTableConfig = (
 
   return {
     defaultPageSize: 10,
+    defaultDisplayMode: "table",
+    displayModes: ["table", "kanban"],
     enableColumnDnd: true,
     enableColumnDragDropByDefault: true,
     enableColumnFilters: true,
@@ -163,6 +165,17 @@ export const getTableConfig = (
       trigger: "doubleClickEnter",
       optimistic: true,
       showDelayIndicator: true,
+    },
+    kanban: {
+      allowDragUpdate: true,
+      cardColumnIds: ["brand", "category", "price", "isActive"],
+      groupBy: "status",
+      groups: [
+        { value: "In Stock" },
+        { value: "Low Stock" },
+        { value: "Out of Stock" },
+      ],
+      titleColumn: "name",
     },
     pageSizeOptions: [10, 50, 100],
     dateDisplayPreset: "localized-medium",
@@ -233,9 +246,9 @@ export const getTableConfig = (
           enableSorting: true,
           enableColumnFilter: true,
           tagColorMap: {
-            available: "bg-green-500/80 text-white dark:bg-green-600/90",
-            low_stock: "bg-orange-500/80 text-white dark:bg-orange-600/90",
-            out_of_stock: "bg-red-500/80 text-white dark:bg-red-600/90",
+            "In Stock": "bg-green-500/80 text-white dark:bg-green-600/90",
+            "Low Stock": "bg-orange-500/80 text-white dark:bg-orange-600/90",
+            "Out of Stock": "bg-red-500/80 text-white dark:bg-red-600/90",
           },
         },
         {

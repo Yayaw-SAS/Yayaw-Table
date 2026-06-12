@@ -23,6 +23,8 @@ export const defaultTableConfig = {
   actionsAsIcons: false,
   density: "medium" as const,
   layoutPreset: "default" as const,
+  displayModes: ["table" as const],
+  defaultDisplayMode: "table" as const,
   defaultPageSize: 10,
   emptyState: {
     show: true,
