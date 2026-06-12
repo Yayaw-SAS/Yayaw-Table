@@ -95,6 +95,58 @@ const getTableActions = (tableType: string) => {
 
 If no `views` actions are provided, the copied component uses a localStorage fallback so the UI remains usable in prototypes. Consumer applications should replace that fallback with database-backed actions when saved views need to follow authenticated users or teams.
 
+### Recommended database model
+
+Use one generic `table_views` table for all YaYaw Table instances instead of creating one view table per business entity. A saved view describes UI state, not a database table, so identify the target table with a stable application key such as `products`, `customers`, or `orders`. Avoid using a SQL table name as the long-term identifier because one UI table can be backed by joins, search indexes, API responses, or renamed database tables.
+
+```sql
+create table table_views (
+  id uuid primary key,
+  workspace_id uuid not null,
+  table_key text not null,
+  name text not null,
+  config jsonb not null,
+  visibility text not null default 'private',
+  owner_user_id uuid,
+  created_by_id uuid,
+  is_system boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  deleted_at timestamptz
+);
+```
+
+Store the normalized view config in `config` rather than the full URL string. Keeping the snapshot structured makes it easier to validate, migrate, inspect, and apply across clients.
+
+```json
+{
+  "version": 1,
+  "sorting": [],
+  "columnFilters": [],
+  "advancedFilters": [],
+  "globalSearch": "samsung",
+  "columnVisibility": {},
+  "columnOrder": [],
+  "columnPinning": { "left": [], "right": [] },
+  "grouping": [],
+  "pageSize": 50
+}
+```
+
+Use `visibility` to model whether a view is private to one user, shared with a workspace, or provided by the system. If users can choose their own default view, keep that preference outside `table_views` so the default is unambiguous:
+
+```sql
+create table table_view_preferences (
+  user_id uuid not null,
+  workspace_id uuid not null,
+  table_key text not null,
+  default_view_id uuid references table_views(id),
+  primary key (user_id, workspace_id, table_key)
+);
+```
+
+This lets the same shared view be the default for one user without becoming the default for everyone else. For workspace-wide defaults, store that separately as a workspace preference or add an explicit `scope` column to the preference table.
+
 ## Sharing and reset
 
 - **Copy link** – The toolbar can offer “Copy link” / “Share” using the current URL (all table params are already in it).
