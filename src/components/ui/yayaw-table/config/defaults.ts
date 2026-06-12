@@ -33,6 +33,7 @@ export const defaultTableConfig = {
   enableRowSelection: true,
   enableRowClickEdit: false,
   enableSorting: true,
+  enableViews: true,
   enableCalculations: false,
   inlineEdit: {
     enabled: false,

@@ -35,8 +35,9 @@ import { LazyCatalogueFormContainer as CatalogueFormContainer } from "./forms/la
 // Import DataTableClient directly for better SSR compatibility
 import { TableComponent as DataTableClient } from "./table-component";
 
-// Import direct pour déboguer (au lieu de dynamic)
+// Direct import keeps the toolbar available without a client-only dynamic wrapper.
 import { DataTableAdvancedToolbar } from "./toolbar/data-table-advanced-toolbar";
+import { DataTableViewManager } from "./toolbar/table-view-manager";
 
 // Default UI components
 function DefaultTableTitle({
@@ -132,10 +133,13 @@ function DataTableContent({
   title,
   description,
   enableAdvancedFilters = false,
+  enableViews = true,
   columnTypeMapping = EMPTY_COLUMN_TYPE_MAPPING,
   initialData,
   initialPageCount,
   initialRowCount,
+  initialActiveViewId,
+  initialViews,
 }: {
   className?: string;
   loadingOverlay?: React.ReactNode;
@@ -186,6 +190,11 @@ function DataTableContent({
   description?: string;
   /** Whether to enable advanced filtering */
   enableAdvancedFilters?: boolean;
+  /**
+   * Whether to show the saved views manager.
+   * Defaults to true and can also be disabled from table config.
+   */
+  enableViews?: boolean;
   /** Column type mapping for advanced filters */
   columnTypeMapping?: Record<
     string,
@@ -199,6 +208,14 @@ function DataTableContent({
   initialData?: Record<string, unknown>[];
   initialPageCount?: number;
   initialRowCount?: number;
+  /**
+   * Saved view to apply on first render when no URL state is already present.
+   */
+  initialActiveViewId?: string;
+  /**
+   * Initial saved views used before the view action list resolves.
+   */
+  initialViews?: import("../types/view-types").TableView[];
 }) {
   const tableId = tableIdProp ?? tableType;
   const defaultFormType = formType ?? tableType;
@@ -249,6 +266,7 @@ function DataTableContent({
   const Description = DescriptionComponent || DefaultTableDescription;
   const shouldShowToolbar = enableToolbar && config.table.showToolbar !== false;
   const shouldShowToolbarHeader = config.table.showToolbarHeader !== false;
+  const shouldShowViews = enableViews !== false && config.table.enableViews !== false;
 
   return (
     <>
@@ -287,6 +305,7 @@ function DataTableContent({
             enableRowSelection: config.table.enableRowSelection,
             enableRowClickEdit: config.table.enableRowClickEdit,
             enableSorting: config.table.enableSorting,
+            enableViews: config.table.enableViews,
             inlineEdit: config.table.inlineEdit,
             layoutPreset: config.table.layoutPreset,
             pageSizeOptions: config.table.pageSizeOptions || [
@@ -302,14 +321,7 @@ function DataTableContent({
           <div className="space-y-4">
             {/* Header with title/description and toolbar */}
             {shouldShowToolbar && (
-              <div
-                className={
-                  shouldShowToolbarHeader
-                    ? "flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"
-                    : "flex justify-end"
-                }
-              >
-                {/* Title and description section */}
+              <div className="space-y-3">
                 {shouldShowToolbarHeader && (
                   <div className="space-y-1">
                     <Title>{displayTitle}</Title>
@@ -317,20 +329,35 @@ function DataTableContent({
                   </div>
                 )}
 
-                {/* Toolbar section */}
                 {!isLoading && (
-                  <div className={shouldShowToolbarHeader ? "flex-shrink-0" : ""}>
-                    <DataTableAdvancedToolbar
-                      columnTypeMapping={columnTypeMapping}
-                      data={baseData}
-                      enableAdvancedFilters={enableAdvancedFilters}
-                      onExport={onExport}
-                      toolbarActions={toolbarActions}
-                      toolbarActionsPlacement={toolbarActionsPlacement}
-                      tableId={tableId}
-                      tableType={tableType}
-                      formType={defaultFormType}
-                    />
+                  <div
+                    className={
+                      shouldShowViews
+                        ? "flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between"
+                        : "flex justify-end"
+                    }
+                  >
+                    {shouldShowViews && (
+                      <DataTableViewManager
+                        initialActiveViewId={initialActiveViewId}
+                        initialViews={initialViews}
+                        tableId={tableId}
+                        tableType={tableType}
+                      />
+                    )}
+                    <div className="flex-shrink-0">
+                      <DataTableAdvancedToolbar
+                        columnTypeMapping={columnTypeMapping}
+                        data={baseData}
+                        enableAdvancedFilters={enableAdvancedFilters}
+                        onExport={onExport}
+                        toolbarActions={toolbarActions}
+                        toolbarActionsPlacement={toolbarActionsPlacement}
+                        tableId={tableId}
+                        tableType={tableType}
+                        formType={defaultFormType}
+                      />
+                    </div>
                   </div>
                 )}
               </div>

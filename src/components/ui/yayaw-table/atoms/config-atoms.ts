@@ -182,6 +182,11 @@ export interface DataTableConfig {
   enableSorting: boolean;
 
   /**
+   * Enable saved table views in the toolbar header
+   */
+  enableViews?: boolean;
+
+  /**
    * Enable footer calculations (sum, count, average, etc.)
    */
   enableCalculations?: boolean;
@@ -252,6 +257,7 @@ const defaultTableConfig: DataTableConfig = {
   enableRowClickEdit: false,
   rowClickMode: "default",
   enableSorting: true,
+  enableViews: true,
   enableCalculations: false,
   enableGrouping: true,
   inlineEdit: {

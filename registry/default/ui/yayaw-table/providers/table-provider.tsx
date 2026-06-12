@@ -26,6 +26,7 @@ import type {
   DataTableTranslations,
   TranslationParams,
 } from "../types/translations";
+import type { TableViewActions } from "../types/view-types";
 import { resolveTableQueryClient } from "./query-client-requirements";
 import { createTranslationFunction } from "./translation-cache";
 
@@ -80,6 +81,7 @@ export interface TableActions {
     ids: string[],
     data: Record<string, unknown>
   ) => Promise<{ success: boolean; data?: unknown; error?: string }>;
+  views?: TableViewActions;
   [key: string]: unknown;
 }
 

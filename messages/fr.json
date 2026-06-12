@@ -169,6 +169,10 @@
         "label": "Activer le regroupement",
         "description": "Active les contrôles de regroupement de lignes."
       },
+      "enableViews": {
+        "label": "Activer les vues enregistrées",
+        "description": "Affiche le gestionnaire de vues enregistrées au-dessus de la table."
+      },
       "enableColumnDnd": {
         "label": "Activer le drag and drop des colonnes",
         "description": "Active le drag and drop dans les en-têtes et menus."

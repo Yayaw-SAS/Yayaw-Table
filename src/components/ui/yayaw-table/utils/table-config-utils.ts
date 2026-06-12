@@ -7,19 +7,30 @@
 import type {
   ColumnFiltersState,
   ColumnOrderState,
+  ColumnPinningState,
   SortingState,
 } from "@tanstack/react-table";
+import type { AdvancedFiltersState } from "../types/filter-types";
 // Import TableViewConfig type from types
 import type { TableViewConfig } from "../types/view-types";
+import {
+  areTableViewConfigsEqual,
+  normalizeTableViewConfig,
+} from "./table-view-state";
 
 /**
  * Type definition for a serialized table configuration
  * Ensures all properties are JSON-serializable
  */
 export interface SerializedTableViewConfig {
+  advancedFilters?: string; // JSON string of advanced filter rules
   columnFilters?: string; // JSON string of filter configurations
   columnOrder?: string; // JSON string of column order
+  columnPinning?: string; // JSON string of pinned columns
   columnVisibility?: string; // JSON string of column visibility
+  globalSearch?: string; // Global search value
+  grouping?: string; // JSON string of grouping columns
+  pageSize?: number; // Page size restored with the view
   sorting?: string; // JSON string of sort configuration
 }
 
@@ -39,7 +50,7 @@ export const tableConfigUtils = {
    * @returns True if configurations are equivalent
    */
   areEqual: (config1: TableViewConfig, config2: TableViewConfig): boolean => {
-    return JSON.stringify(config1) === JSON.stringify(config2);
+    return areTableViewConfigsEqual(config1, config2);
   },
 
   /**
@@ -121,16 +132,33 @@ export const tableConfigUtils = {
       }
     };
 
-    // Create TableViewConfig with parsed JSON properties
-    return {
+    const parsedConfig: TableViewConfig = {
+      advancedFilters: safelyParse<AdvancedFiltersState>(
+        config.advancedFilters,
+        []
+      ),
       columnFilters,
       columnOrder: safelyParse<ColumnOrderState>(config.columnOrder, []),
+      columnPinning: safelyParse<ColumnPinningState>(
+        config.columnPinning,
+        { left: [], right: [] }
+      ),
       columnVisibility: safelyParse<ColumnVisibilityState>(
         config.columnVisibility,
         {}
       ),
+      globalSearch:
+        typeof config.globalSearch === "string" ? config.globalSearch : "",
+      grouping: safelyParse<string[]>(config.grouping, []),
+      pageSize:
+        typeof config.pageSize === "number" && Number.isFinite(config.pageSize)
+          ? config.pageSize
+          : undefined,
       sorting: safelyParse<SortingState>(config.sorting, []),
     };
+
+    // Create TableViewConfig with parsed JSON properties
+    return normalizeTableViewConfig(parsedConfig);
   },
 
   /**
@@ -161,18 +189,36 @@ export const tableConfigUtils = {
       };
     });
 
+    const normalizedConfig = normalizeTableViewConfig({
+      ...config,
+      columnFilters: normalizedColumnFilters,
+    });
+
     // Convert each property to a JSON string for storage
     return {
-      columnFilters: normalizedColumnFilters
-        ? JSON.stringify(normalizedColumnFilters)
+      advancedFilters: normalizedConfig.advancedFilters
+        ? JSON.stringify(normalizedConfig.advancedFilters)
         : undefined,
-      columnOrder: config.columnOrder
-        ? JSON.stringify(config.columnOrder)
+      columnFilters: normalizedConfig.columnFilters
+        ? JSON.stringify(normalizedConfig.columnFilters)
         : undefined,
-      columnVisibility: config.columnVisibility
-        ? JSON.stringify(config.columnVisibility)
+      columnOrder: normalizedConfig.columnOrder
+        ? JSON.stringify(normalizedConfig.columnOrder)
         : undefined,
-      sorting: config.sorting ? JSON.stringify(config.sorting) : undefined,
+      columnPinning: normalizedConfig.columnPinning
+        ? JSON.stringify(normalizedConfig.columnPinning)
+        : undefined,
+      columnVisibility: normalizedConfig.columnVisibility
+        ? JSON.stringify(normalizedConfig.columnVisibility)
+        : undefined,
+      globalSearch: normalizedConfig.globalSearch,
+      grouping: normalizedConfig.grouping
+        ? JSON.stringify(normalizedConfig.grouping)
+        : undefined,
+      pageSize: normalizedConfig.pageSize,
+      sorting: normalizedConfig.sorting
+        ? JSON.stringify(normalizedConfig.sorting)
+        : undefined,
     };
   },
 };

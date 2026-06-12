@@ -57,6 +57,44 @@ Query params are prefixed by **table id** (your `tableType`, e.g. `products`). T
 
 Values are JSON-encoded or plain strings. The table reads and writes these via Nuqs; you don’t need to read them yourself unless you want to use them on the server (e.g. for SSR).
 
+## Saved views
+
+Saved views are built from the same URL-backed state. The view manager is enabled by default and can be disabled with `enableViews: false`.
+
+When a view is saved, YaYaw Table persists this DB-friendly snapshot:
+
+- Global search (`{tableId}-q`)
+- Column filters and advanced filters
+- Sorting
+- Column visibility and column order
+- Grouping
+- Column pinning
+- Page size
+
+The current page, expanded rows, and browser history index are not persisted. Applying a view always resets `{tableId}-page` to `0` so a filtered view does not open on an out-of-range page.
+
+For production persistence, expose view actions from `getTableActions`:
+
+```tsx
+const getTableActions = (tableType: string) => {
+  if (tableType !== "products") {
+    return;
+  }
+
+  return {
+    list: listProducts,
+    views: {
+      list: async ({ tableId }) => ({ data: await db.views.list(tableId) }),
+      create: async (input) => await db.views.create(input),
+      update: async (id, input) => await db.views.update(id, input),
+      delete: async (id, context) => await db.views.delete(id, context),
+    },
+  };
+};
+```
+
+If no `views` actions are provided, the copied component uses a localStorage fallback so the UI remains usable in prototypes. Consumer applications should replace that fallback with database-backed actions when saved views need to follow authenticated users or teams.
+
 ## Sharing and reset
 
 - **Copy link** – The toolbar can offer “Copy link” / “Share” using the current URL (all table params are already in it).

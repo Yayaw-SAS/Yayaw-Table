@@ -4,10 +4,20 @@
  */
 "use client";
 
-import type { ColumnFiltersState, SortingState } from "@tanstack/react-table";
+import type {
+  ColumnFiltersState,
+  ColumnPinningState,
+  SortingState,
+  VisibilityState,
+} from "@tanstack/react-table";
 import { createParser, useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { AdvancedFiltersState } from "../types/filter-types";
+import type { TableViewConfig } from "../types/view-types";
+import {
+  createTableViewConfigSnapshot,
+  normalizeColumnPinning,
+} from "../utils/table-view-state";
 
 // Simple debounce implementation to avoid lodash dependency
 function debounce<T extends (...args: unknown[]) => void>(
@@ -560,6 +570,78 @@ export function useTableUrlState({
     [queueUrlUpdate, setPinningParam]
   );
 
+  const getCurrentViewConfig = useCallback((): TableViewConfig => {
+    return createTableViewConfigSnapshot({
+      advancedFiltersParam: (advancedFiltersParam ||
+        []) as AdvancedFiltersState,
+      filtersParam: (filtersParam || []) as ColumnFiltersState,
+      globalSearchParam: globalSearchParam || "",
+      groupingParam: (groupingParam || []) as string[],
+      orderParam: (orderParam || []) as string[],
+      pageSizeParam: pageSizeParam || defaultPageSizeParam,
+      pinningParam: normalizeColumnPinning(
+        pinningParam as ColumnPinningState | undefined
+      ),
+      sortParam: (sortParam || []) as SortingState,
+      visibilityParam: (visibilityParam || {}) as VisibilityState,
+    });
+  }, [
+    advancedFiltersParam,
+    defaultPageSizeParam,
+    filtersParam,
+    globalSearchParam,
+    groupingParam,
+    orderParam,
+    pageSizeParam,
+    pinningParam,
+    sortParam,
+    visibilityParam,
+  ]);
+
+  const applyViewConfig = useCallback(
+    (config: TableViewConfig, options?: { viewId?: null | string }) => {
+      const nextPinning = normalizeColumnPinning(config.columnPinning) ?? {
+        left: [],
+        right: [],
+      };
+      const nextPageSize = normalizePageSize(config.pageSize);
+
+      queueUrlUpdate(setViewParam, options?.viewId ?? null);
+      queueUrlUpdate(setHistoryIndexParam, "0");
+      queueUrlUpdate(setSortParam, config.sorting ?? []);
+      queueUrlUpdate(setFiltersParam, config.columnFilters ?? []);
+      queueUrlUpdate(setAdvancedFiltersParam, config.advancedFilters ?? []);
+      queueUrlUpdate(setGlobalSearchParam, config.globalSearch || null);
+      queueUrlUpdate(setPageParam, "0");
+      queueUrlUpdate(
+        setPageSizeParam,
+        (nextPageSize ?? resolvedDefaultPageSize).toString()
+      );
+      queueUrlUpdate(setVisibilityParam, config.columnVisibility ?? {});
+      queueUrlUpdate(setOrderParam, config.columnOrder ?? []);
+      queueUrlUpdate(setExpandedParam, {});
+      queueUrlUpdate(setGroupingParam, config.grouping ?? []);
+      queueUrlUpdate(setPinningParam, nextPinning);
+    },
+    [
+      queueUrlUpdate,
+      resolvedDefaultPageSize,
+      setAdvancedFiltersParam,
+      setExpandedParam,
+      setFiltersParam,
+      setGlobalSearchParam,
+      setGroupingParam,
+      setHistoryIndexParam,
+      setOrderParam,
+      setPageParam,
+      setPageSizeParam,
+      setPinningParam,
+      setSortParam,
+      setViewParam,
+      setVisibilityParam,
+    ]
+  );
+
   // Helper function to set URL parameter if value exists
   const setUrlParam = useCallback(
     (url: URL, paramName: string, value: unknown, condition?: boolean) => {
@@ -659,11 +741,12 @@ export function useTableUrlState({
       setFiltersParam([]);
       setAdvancedFiltersParam([]);
       setPageParam("0");
-      setPageSizeParam("10");
+      setPageSizeParam(defaultPageSizeParam);
       setVisibilityParam({});
       setOrderParam([]);
       setExpandedParam({});
       setGroupingParam([]);
+      setGlobalSearchParam(null);
       setPinningParam({ left: [], right: [] });
     } finally {
       // Schedule after paint (SSR-safe)
@@ -689,7 +772,9 @@ export function useTableUrlState({
     setOrderParam,
     setExpandedParam,
     setGroupingParam,
+    setGlobalSearchParam,
     setPinningParam,
+    defaultPageSizeParam,
   ]);
 
   // Get pagination state from URL parameters
@@ -712,7 +797,9 @@ export function useTableUrlState({
 
   return {
     // Utility functions
+    applyViewConfig,
     createShareableUrl,
+    getCurrentViewConfig,
     // Raw URL parameters
     advancedFiltersParam: advancedFiltersParam || [],
     expandedParam,

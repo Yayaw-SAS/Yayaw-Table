@@ -169,6 +169,10 @@
         "label": "Enable grouping",
         "description": "Enable row grouping controls."
       },
+      "enableViews": {
+        "label": "Enable saved views",
+        "description": "Show the saved views manager above the table."
+      },
       "enableColumnDnd": {
         "label": "Enable column drag and drop",
         "description": "Enable drag and drop controls in headers and menus."

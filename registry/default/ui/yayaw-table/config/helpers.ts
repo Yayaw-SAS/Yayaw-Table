@@ -475,6 +475,11 @@ export interface TableBehaviorConfig {
   enableSorting: boolean;
 
   /**
+   * Enable saved table views in the toolbar header
+   */
+  enableViews?: boolean;
+
+  /**
    * Available options in the page size selector
    */
   pageSizeOptions: number[];
