@@ -7,6 +7,7 @@ Flexible, type-safe data table for React. One component, clean API, minimal boil
 - **Simple API** – One component to render a full data table; pass `getTableConfig` and `getTableActions` and you’re set
 - **Server-first** – Built for Next.js 15 and 16 with Server Actions for list/create/update/delete and bulk operations
 - **URL state** – Sort, filters, and pagination in the URL via [Nuqs](https://nuqs.io) (optional)
+- **Saved views** – Users can save and restore URL-backed table setups such as filters, sort, search, column layout, grouping, pinning, and page size
 - **Built-in UX** – Sorting, pagination, grouping, column visibility, column reorder (drag-and-drop), global search
 - **Filters** – Column filters and advanced filters panel; filter presets supported
 - **Number & currency** – Right-aligned number columns with configurable format (thousands/decimal separators, prefix/suffix)
@@ -117,8 +118,29 @@ Common props:
 - **loadingOverlay** – Custom loading UI
 - **onRowSelectionChange**, **onBulkDelete**, **onBulkEdit**, **onBulkCopy**
 - **customBulkActions** – Add selected-row actions to the bulk actions menu
+- **initialViews** / **initialActiveViewId** – Seed saved table views before your view actions load
 - **enableAdvancedFilters** – Toggle advanced filters UI
 - **columnTypeMapping** – Map backend data types to internal renderers
+
+## Saved views
+
+YaYaw Table includes a saved views manager above the table. A view stores the same state that is already represented in URL params: search, filters, advanced filters, sorting, column visibility, column order, grouping, pinning, and page size. Applying a view updates the URL-backed state and resets pagination to the first page.
+
+For prototypes, the copied component falls back to localStorage so the UI is usable without a backend. In production, expose database-backed view actions from `getTableActions`:
+
+```tsx
+const getTableActions = (tableType: string) => ({
+  list: listProducts,
+  views: {
+    list: async ({ tableId }) => ({ data: await db.views.list(tableId) }),
+    create: async (input) => await db.views.create(input),
+    update: async (id, input) => await db.views.update(id, input),
+    delete: async (id, context) => await db.views.delete(id, context),
+  },
+});
+```
+
+For the recommended database shape, use one generic `table_views` table keyed by a stable application `table_key` rather than SQL table names. See [URL state and saved views](./content/docs/url-state.mdx).
 
 ## Documentation
 
@@ -138,7 +160,7 @@ Docs live in this repo under `content/docs/`. Full documentation (when the site 
 
 ## Example
 
-See the **/example** app in this repo for a full UI integration setup: URL state (Nuqs), advanced filters, bulk edit, and local persisted demo data (`localStorage` + dataset reset).
+See the **/example** app in this repo for a full UI integration setup: URL state (Nuqs), saved views, advanced filters, bulk edit, and local persisted demo data (`localStorage` + dataset reset).
 
 For a server-driven implementation, follow [Server-side & Server Actions](./content/docs/server-actions.mdx).
 
