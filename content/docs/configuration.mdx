@@ -201,13 +201,13 @@ Type:
 }
 ```
 
-- `groupBy` is the column used to split rows into lanes.
+- `groupBy` is the default column used to split rows into lanes.
 - `titleColumn` is the column rendered as the card title. The first non-system visible column is used when omitted.
 - `cardColumnIds` limits the compact properties shown on each card. When omitted, visible non-system columns are shown except the title and grouping columns.
 - `groups` defines the preferred lane order. Row values not listed there are appended after the configured lanes.
 - `allowDragUpdate` lets users move cards between lanes when `allowEdit` is enabled and an `update` action exists.
 
-Kanban uses the same TanStack table instance as table mode, so sorting, filters, selection, row actions, pagination, and saved views keep working. Moving a card calls `actions.update(rowId, { [groupBy]: nextValue })`; your backend remains responsible for validating permissions and state transitions.
+Kanban uses the same TanStack table instance as table mode, so sorting, filters, selection, row actions, pagination, and saved views keep working. When Kanban is active, the toolbar reuses the grouping picker as a single-field lane selector and writes the selected field to `{tableId}-kanbanGroupBy`. Moving a card calls `actions.update(rowId, { [groupBy]: nextValue })`; your backend remains responsible for validating permissions and state transitions.
 
 ### emptyState
 Customize the row shown when the current table query returns no rows.

@@ -145,7 +145,7 @@ const StackMenu = forwardRef<HTMLDivElement, StackMenuProps>(
     const [viewHistory, setViewHistory] = useState<
       Array<{ name: string; title?: string }>
     >([{ name: defaultView }]);
-    const [isOpen, setIsOpen] = useState(open);
+    const [isOpen, setIsOpen] = useState(open ?? false);
 
     const navigate = useCallback((view: string, title?: string) => {
       setActiveView(view);
@@ -211,7 +211,10 @@ const StackMenu = forwardRef<HTMLDivElement, StackMenuProps>(
     });
 
     // Get current view title
-    const currentViewTitle = viewHistory.at(-1)?.title;
+    const activeViewTitle = isValidElement(activeViewChild)
+      ? (activeViewChild.props as StackMenuViewProps).title
+      : undefined;
+    const currentViewTitle = viewHistory.at(-1)?.title ?? activeViewTitle;
 
     const menuContent = (
       <StackMenuContext.Provider

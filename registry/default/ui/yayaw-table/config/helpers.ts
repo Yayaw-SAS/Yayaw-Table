@@ -239,6 +239,11 @@ export interface ColumnDefinition {
   enableSorting?: boolean;
 
   /**
+   * Whether the column can be used as a table or Kanban grouping field.
+   */
+  enableGrouping?: boolean;
+
+  /**
    * Translation key for the column header
    */
   header: string;
