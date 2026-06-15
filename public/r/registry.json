@@ -142,6 +142,11 @@
           "target": "components/ui/yayaw-table/components/cells/date-cell.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/cells/image-cell.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/cells/image-cell.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/cells/index.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/cells/index.ts"
@@ -265,6 +270,11 @@
           "path": "registry/default/ui/yayaw-table/components/columns/hooks/use-columns.ts",
           "type": "registry:hook",
           "target": "components/ui/yayaw-table/components/columns/hooks/use-columns.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/columns/image-column.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/columns/image-column.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/columns/index.ts",
@@ -587,6 +597,16 @@
           "target": "components/ui/yayaw-table/components/forms/types.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/gallery-view.test.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/gallery-view.test.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/gallery-view.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/gallery-view.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/index.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/index.ts"
@@ -632,6 +652,11 @@
           "target": "components/ui/yayaw-table/components/toolbar/sections/advanced-table-filters-menu.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/toolbar/sections/group-picker.test.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/toolbar/sections/group-picker.test.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/toolbar/sections/group-picker.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/toolbar/sections/group-picker.tsx"
@@ -670,6 +695,11 @@
           "path": "registry/default/ui/yayaw-table/components/toolbar/table-display-mode-switcher.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/toolbar/table-display-mode-switcher.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/toolbar/table-gallery-menu.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/toolbar/table-gallery-menu.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/toolbar/table-kanban-grouping-menu.tsx",
@@ -1025,6 +1055,11 @@
           "path": "registry/default/ui/yayaw-table/utils/filtered-rows.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/filtered-rows.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/image-source.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/image-source.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/utils/number-format.ts",
