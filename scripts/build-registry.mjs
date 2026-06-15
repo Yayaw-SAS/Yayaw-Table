@@ -33,7 +33,12 @@ const SRC_YAYAW_TABLE = path.join(
 );
 const SRC_UI = path.join(ROOT, "src", "components", "ui");
 const SRC_UI_CUSTOM = path.join(ROOT, "src", "components", "ui", "custom");
-const UI_CUSTOM_FILES = ["loader.tsx", "icon.tsx", "stack-menu.tsx"];
+const UI_CUSTOM_FILES = [
+  "loader.tsx",
+  "icon.tsx",
+  "stack-menu.tsx",
+  "kanban.tsx",
+];
 const INTERNAL_UI_FILES = [
   {
     source: "calendar.tsx",
