@@ -29,7 +29,7 @@ const SYSTEM_COLUMN_IDS = new Set(["actions", "select"]);
 const EMPTY_GROUP_VALUE = "";
 const EMPTY_GROUP_LABEL = "No value";
 
-interface KanbanGroup {
+export interface KanbanGroup {
   id: string;
   label: string;
   value: string;
@@ -89,7 +89,7 @@ function getColumnLabel(
   );
 }
 
-function createConfiguredGroups(
+export function createConfiguredGroups(
   groups: TableKanbanGroupConfig[] | undefined
 ): KanbanGroup[] {
   if (!groups?.length) {
@@ -106,7 +106,17 @@ function createConfiguredGroups(
   });
 }
 
-function createKanbanGroups<TData extends Record<string, unknown>>({
+export function shouldUseConfiguredKanbanGroups({
+  configuredGroupBy,
+  groupBy,
+}: {
+  configuredGroupBy?: string;
+  groupBy: string;
+}): boolean {
+  return Boolean(configuredGroupBy) && configuredGroupBy === groupBy;
+}
+
+export function createKanbanGroups<TData extends Record<string, unknown>>({
   configuredGroups,
   groupBy,
   rows,
@@ -327,9 +337,14 @@ export function DataTableKanbanView<TData extends Record<string, unknown>>({
   titleColumnId,
 }: DataTableKanbanViewProps<TData>) {
   const rows = table.getRowModel().rows as Row<TData>[];
+  const shouldUseConfiguredGroups = shouldUseConfiguredKanbanGroups({
+    configuredGroupBy: config?.groupBy,
+    groupBy,
+  });
   const configuredGroups = useMemo(
-    () => createConfiguredGroups(config?.groups),
-    [config?.groups]
+    () =>
+      createConfiguredGroups(shouldUseConfiguredGroups ? config?.groups : undefined),
+    [config?.groups, shouldUseConfiguredGroups]
   );
   const groups = useMemo(
     () => createKanbanGroups({ configuredGroups, groupBy, rows }),

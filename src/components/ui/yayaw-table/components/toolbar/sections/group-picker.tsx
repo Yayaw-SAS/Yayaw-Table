@@ -16,10 +16,14 @@ export interface GroupPickerColumn {
 export interface GroupPickerProps {
   columns: GroupPickerColumn[];
   grouping: string[];
+  maxGroups?: number;
   onChange: (next: string[]) => void;
   onReset: () => void;
   onExpandAll: () => void;
   onCollapseAll: () => void;
+  disableRemoveLastGroup?: boolean;
+  resetDisabled?: boolean;
+  showExpandCollapse?: boolean;
 }
 
 /**
@@ -29,9 +33,14 @@ export interface GroupPickerProps {
 export function GroupPicker({
   columns,
   grouping,
+  maxGroups = 2,
   onChange,
+  onReset,
   onExpandAll,
   onCollapseAll,
+  disableRemoveLastGroup = false,
+  resetDisabled,
+  showExpandCollapse = true,
 }: GroupPickerProps) {
   const { t } = useTranslations();
 
@@ -64,6 +73,8 @@ export function GroupPicker({
   }, [columns, grouping]);
 
   const activeCount = grouping.length;
+  const hasReachedMaxGroups = grouping.length >= maxGroups;
+  const shouldReplaceWhenMaxed = maxGroups === 1 && grouping.length === 1;
   // const availableCount = availableColumns.length; // count not shown in UI
 
   const move = (index: number, dir: -1 | 1) => {
@@ -90,8 +101,8 @@ export function GroupPicker({
           </div>
           <div className="flex items-center gap-2">
             <Button
-              disabled={activeCount === 0}
-              onClick={() => onChange([])}
+              disabled={resetDisabled ?? activeCount === 0}
+              onClick={onReset}
               size="sm"
               variant="outline"
             >
@@ -147,6 +158,7 @@ export function GroupPicker({
                   <Button
                     aria-label="Remove"
                     className="h-7 w-7 p-0"
+                    disabled={disableRemoveLastGroup && grouping.length === 1}
                     onClick={() =>
                       onChange(grouping.filter((id) => id !== col.id))
                     }
@@ -158,26 +170,28 @@ export function GroupPicker({
                 </div>
               </div>
             ))}
-            <div className="mt-3 mb-1 flex items-center justify-between px-2">
-              <Button
-                className="h-auto p-0 text-xs underline"
-                onClick={onCollapseAll}
-                size="sm"
-                type="button"
-                variant="link"
-              >
-                Collapse all
-              </Button>
-              <Button
-                className="h-auto p-0 text-xs underline"
-                onClick={onExpandAll}
-                size="sm"
-                type="button"
-                variant="link"
-              >
-                Expand all
-              </Button>
-            </div>
+            {showExpandCollapse && (
+              <div className="mt-3 mb-1 flex items-center justify-between px-2">
+                <Button
+                  className="h-auto p-0 text-xs underline"
+                  onClick={onCollapseAll}
+                  size="sm"
+                  type="button"
+                  variant="link"
+                >
+                  Collapse all
+                </Button>
+                <Button
+                  className="h-auto p-0 text-xs underline"
+                  onClick={onExpandAll}
+                  size="sm"
+                  type="button"
+                  variant="link"
+                >
+                  Expand all
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -193,20 +207,23 @@ export function GroupPicker({
       <div className="min-h-0 flex-1 overflow-auto">
         {availableColumns.length === 0 ? (
           <div className="px-3 py-2 text-muted-foreground text-sm">
-            {grouping.length >= 2
-              ? "Maximum 2 levels reached"
+            {hasReachedMaxGroups
+              ? `Maximum ${maxGroups} ${maxGroups === 1 ? "group" : "levels"} reached`
               : t("filters.noResults")}
           </div>
         ) : (
           availableColumns.map((column) => {
-            const isMax = grouping.length >= 2;
             return (
               <Button
                 className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={isMax}
+                disabled={hasReachedMaxGroups && !shouldReplaceWhenMaxed}
                 key={column.id}
                 onClick={() => {
-                  if (isMax) {
+                  if (shouldReplaceWhenMaxed) {
+                    onChange([column.id]);
+                    return;
+                  }
+                  if (hasReachedMaxGroups) {
                     return;
                   }
                   onChange([...grouping, column.id]);

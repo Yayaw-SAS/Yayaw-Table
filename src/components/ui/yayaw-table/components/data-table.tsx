@@ -7,7 +7,7 @@
 import type { Row } from "@tanstack/react-table";
 import type React from "react";
 // Import advanced filters hook directly
-import { Suspense } from "react";
+import { Suspense, useMemo } from "react";
 import type {
   BulkActionCustomHandlerResult,
   BulkDeleteCustomHandlerResult,
@@ -40,6 +40,7 @@ import { TableComponent as DataTableClient } from "./table-component";
 // Direct import keeps the toolbar available without a client-only dynamic wrapper.
 import { DataTableAdvancedToolbar } from "./toolbar/data-table-advanced-toolbar";
 import { TableDisplayModeSwitcher } from "./toolbar/table-display-mode-switcher";
+import { TableKanbanGroupingMenu } from "./toolbar/table-kanban-grouping-menu";
 import { DataTableViewManager } from "./toolbar/table-view-manager";
 
 // Default UI components
@@ -76,6 +77,52 @@ function DefaultTableDescription({
 // Hook removed - advanced filters are now handled directly in DataTableAdvancedToolbar
 
 const EMPTY_COLUMN_TYPE_MAPPING: Record<string, never> = {};
+const KANBAN_GROUPING_SYSTEM_COLUMNS = new Set(["actions", "select"]);
+
+interface KanbanGroupingColumn {
+  id: string;
+  label: string;
+  type?: string;
+}
+
+interface KanbanGroupingColumnDefinition {
+  enableGrouping?: boolean;
+  header: string;
+  id: string;
+  type?: string;
+}
+
+function getKanbanGroupingColumns(
+  definitions: KanbanGroupingColumnDefinition[]
+): KanbanGroupingColumn[] {
+  return definitions
+    .filter(
+      (column) =>
+        !KANBAN_GROUPING_SYSTEM_COLUMNS.has(column.id) &&
+        column.enableGrouping !== false
+    )
+    .map((column) => ({
+      id: column.id,
+      label: column.header,
+      type: column.type || "text",
+    }));
+}
+
+function shouldShowKanbanGroupingControl({
+  displayModes,
+  enableGrouping,
+  groupingColumnsCount,
+}: {
+  displayModes?: TableDisplayMode[];
+  enableGrouping?: boolean;
+  groupingColumnsCount: number;
+}): boolean {
+  return (
+    enableGrouping !== false &&
+    (displayModes ?? ["table"]).includes("kanban") &&
+    groupingColumnsCount > 0
+  );
+}
 
 function resolveDataTableHeaderContent({
   configDescription,
@@ -118,9 +165,12 @@ function DataTableHeaderControls({
   defaultDisplayMode,
   defaultFormType,
   displayModes,
+  enableKanbanGrouping,
   enableAdvancedFilters,
   initialActiveViewId,
   initialViews,
+  kanbanDefaultGroupBy,
+  kanbanGroupingColumns,
   onExport,
   shouldShowViewControls,
   shouldShowViews,
@@ -139,9 +189,12 @@ function DataTableHeaderControls({
   defaultDisplayMode?: TableDisplayMode;
   defaultFormType: string;
   displayModes?: TableDisplayMode[];
+  enableKanbanGrouping: boolean;
   enableAdvancedFilters: boolean;
   initialActiveViewId?: string;
   initialViews?: TableView[];
+  kanbanDefaultGroupBy?: string;
+  kanbanGroupingColumns: KanbanGroupingColumn[];
   onExport?: (rows: Record<string, unknown>[]) => Promise<void> | void;
   shouldShowViewControls: boolean;
   shouldShowViews: boolean;
@@ -174,6 +227,13 @@ function DataTableHeaderControls({
           <TableDisplayModeSwitcher
             defaultDisplayMode={defaultDisplayMode}
             displayModes={displayModes}
+            tableId={tableId}
+          />
+          <TableKanbanGroupingMenu
+            columns={kanbanGroupingColumns}
+            defaultDisplayMode={defaultDisplayMode}
+            defaultGroupBy={kanbanDefaultGroupBy}
+            enabled={enableKanbanGrouping}
             tableId={tableId}
           />
         </div>
@@ -356,7 +416,17 @@ function DataTableContent({
   const shouldShowToolbarHeader = config.table.showToolbarHeader !== false;
   const shouldShowViews = enableViews !== false && config.table.enableViews !== false;
   const shouldShowDisplayModes = (config.table.displayModes?.length ?? 1) > 1;
-  const shouldShowViewControls = shouldShowViews || shouldShowDisplayModes;
+  const kanbanGroupingColumns = useMemo(
+    () => getKanbanGroupingColumns(config.columns.definitions),
+    [config.columns.definitions]
+  );
+  const shouldShowKanbanGrouping = shouldShowKanbanGroupingControl({
+    displayModes: config.table.displayModes,
+    enableGrouping: config.table.enableGrouping,
+    groupingColumnsCount: kanbanGroupingColumns.length,
+  });
+  const shouldShowViewControls =
+    shouldShowViews || shouldShowDisplayModes || shouldShowKanbanGrouping;
 
   return (
     <>
@@ -433,9 +503,12 @@ function DataTableContent({
                     defaultDisplayMode={config.table.defaultDisplayMode}
                     defaultFormType={defaultFormType}
                     displayModes={config.table.displayModes}
+                    enableKanbanGrouping={shouldShowKanbanGrouping}
                     enableAdvancedFilters={enableAdvancedFilters}
                     initialActiveViewId={initialActiveViewId}
                     initialViews={initialViews}
+                    kanbanDefaultGroupBy={config.table.kanban?.groupBy}
+                    kanbanGroupingColumns={kanbanGroupingColumns}
                     onExport={onExport}
                     shouldShowViewControls={shouldShowViewControls}
                     shouldShowViews={shouldShowViews}

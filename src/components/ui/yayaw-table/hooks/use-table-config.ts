@@ -41,6 +41,7 @@ export interface TableCatalogueColumnConfig {
   id: string;
   type: string;
   header: string;
+  enableGrouping?: boolean;
   enableSorting?: boolean;
   enableColumnFilter?: boolean;
   displayVariant?: "default" | "tag";
