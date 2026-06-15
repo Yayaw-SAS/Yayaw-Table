@@ -632,6 +632,11 @@
           "target": "components/ui/yayaw-table/components/toolbar/sections/advanced-table-filters-menu.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/toolbar/sections/group-picker.test.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/toolbar/sections/group-picker.test.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/toolbar/sections/group-picker.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/toolbar/sections/group-picker.tsx"
