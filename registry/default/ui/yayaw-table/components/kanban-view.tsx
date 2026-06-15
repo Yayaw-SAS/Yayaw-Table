@@ -58,6 +58,7 @@ interface DataTableKanbanViewProps<TData extends Record<string, unknown>> {
 interface KanbanCardProps<TData extends Record<string, unknown>> {
   canDragUpdate: boolean;
   columnId: string;
+  columnDefinitionsById: Map<string, TableCatalogueColumnConfig>;
   isActive: boolean;
   isClickable: boolean;
   propertyCells: ReturnType<Row<TData>["getVisibleCells"]>;
@@ -67,6 +68,14 @@ interface KanbanCardProps<TData extends Record<string, unknown>> {
   titleCell?: ReturnType<Row<TData>["getVisibleCells"]>[number];
   actionsCell?: ReturnType<Row<TData>["getVisibleCells"]>[number];
   onRowClick?: (row: Row<TData>, event: MouseEvent<HTMLElement>) => void;
+  showCardLabels: boolean;
+}
+
+interface KanbanCardPropertiesProps<TData extends Record<string, unknown>> {
+  columnDefinitionsById: Map<string, TableCatalogueColumnConfig>;
+  propertyCells: ReturnType<Row<TData>["getVisibleCells"]>;
+  propertyLabels: Map<string, string>;
+  showCardLabels: boolean;
 }
 
 interface DataTableKanbanColumn extends KiboKanbanColumnProps {
@@ -232,10 +241,110 @@ function getCardPropertyCells<TData extends Record<string, unknown>>({
     .filter(Boolean) as ReturnType<Row<TData>["getVisibleCells"]>;
 }
 
+export function shouldShowKanbanCardLabels(
+  config: TableKanbanConfig | undefined
+): boolean {
+  return config?.showCardLabels === true;
+}
+
+function getKanbanPropertyValueClassName(
+  columnDefinition: TableCatalogueColumnConfig | undefined,
+  showCardLabels: boolean
+): string {
+  if (showCardLabels) {
+    return "min-w-0 truncate text-xs";
+  }
+
+  if (
+    columnDefinition?.displayVariant === "tag" ||
+    columnDefinition?.type === "boolean"
+  ) {
+    return "inline-flex min-w-0 max-w-full items-center";
+  }
+
+  if (columnDefinition?.type === "number") {
+    return "inline-flex min-w-0 max-w-full items-center rounded-full bg-muted/70 px-2 py-0.5 font-medium text-[11px] tabular-nums";
+  }
+
+  if (columnDefinition?.type === "date") {
+    return "inline-flex min-w-0 max-w-full items-center rounded-full bg-muted/70 px-2 py-0.5 text-[11px] text-muted-foreground";
+  }
+
+  if (
+    columnDefinition?.type === "select" ||
+    columnDefinition?.type === "multiSelect"
+  ) {
+    return "inline-flex min-w-0 max-w-full items-center rounded-full bg-muted px-2 py-0.5 text-[11px]";
+  }
+
+  if (columnDefinition?.type === "url") {
+    return "min-w-0 max-w-full truncate text-muted-foreground text-xs";
+  }
+
+  return "min-w-0 max-w-full truncate text-muted-foreground text-xs";
+}
+
+function KanbanCardProperties<TData extends Record<string, unknown>>({
+  columnDefinitionsById,
+  propertyCells,
+  propertyLabels,
+  showCardLabels,
+}: KanbanCardPropertiesProps<TData>) {
+  if (propertyCells.length === 0) {
+    return null;
+  }
+
+  if (showCardLabels) {
+    return (
+      <dl className="mt-3 space-y-2">
+        {propertyCells.map((cell) => (
+          <div
+            className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-2"
+            key={cell.id}
+          >
+            <dt className="truncate text-muted-foreground text-xs">
+              {propertyLabels.get(cell.column.id) ?? cell.column.id}
+            </dt>
+            <dd
+              className={getKanbanPropertyValueClassName(
+                columnDefinitionsById.get(cell.column.id),
+                showCardLabels
+              )}
+            >
+              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    );
+  }
+
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-1.5">
+      {propertyCells.map((cell) => {
+        const label = propertyLabels.get(cell.column.id) ?? cell.column.id;
+        return (
+          <div
+            className={getKanbanPropertyValueClassName(
+              columnDefinitionsById.get(cell.column.id),
+              showCardLabels
+            )}
+            key={cell.id}
+          >
+            <span className="sr-only">{label}: </span>
+            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function DataTableKanbanCard<TData extends Record<string, unknown>>({
   actionsCell,
   canDragUpdate,
   columnId,
+  columnDefinitionsById,
   isActive,
   isClickable,
   onRowClick,
@@ -243,6 +352,7 @@ function DataTableKanbanCard<TData extends Record<string, unknown>>({
   propertyLabels,
   row,
   selectionCell,
+  showCardLabels,
   titleCell,
 }: KanbanCardProps<TData>) {
   const cardClassName = cn(
@@ -292,23 +402,12 @@ function DataTableKanbanCard<TData extends Record<string, unknown>>({
         ) : null}
       </div>
 
-      {propertyCells.length > 0 ? (
-        <dl className="mt-3 space-y-2">
-          {propertyCells.map((cell) => (
-            <div
-              className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-2"
-              key={cell.id}
-            >
-              <dt className="truncate text-muted-foreground text-xs">
-                {propertyLabels.get(cell.column.id) ?? cell.column.id}
-              </dt>
-              <dd className="min-w-0 truncate text-xs">
-                {flexRender(cell.column.columnDef.cell, cell.getContext())}
-              </dd>
-            </div>
-          ))}
-        </dl>
-      ) : null}
+      <KanbanCardProperties
+        columnDefinitionsById={columnDefinitionsById}
+        propertyCells={propertyCells}
+        propertyLabels={propertyLabels}
+        showCardLabels={showCardLabels}
+      />
     </>
   );
 
@@ -401,6 +500,12 @@ export function DataTableKanbanView<TData extends Record<string, unknown>>({
       ])
     );
   }, [columnDefinitions]);
+  const columnDefinitionsById = useMemo(() => {
+    return new Map(
+      columnDefinitions.map((definition) => [definition.id, definition])
+    );
+  }, [columnDefinitions]);
+  const showCardLabels = shouldShowKanbanCardLabels(config);
   const rowCountByColumnId = useMemo(() => {
     const next = new Map<string, number>();
     for (const column of kanbanColumns) {
@@ -491,6 +596,7 @@ export function DataTableKanbanView<TData extends Record<string, unknown>>({
                   <DataTableKanbanCard
                     actionsCell={actionsCell}
                     canDragUpdate={canDragUpdate}
+                    columnDefinitionsById={columnDefinitionsById}
                     columnId={item.column}
                     isActive={isRowActive?.(row) ?? false}
                     isClickable={isRowClickable?.(row) ?? false}
@@ -505,6 +611,7 @@ export function DataTableKanbanView<TData extends Record<string, unknown>>({
                     propertyLabels={propertyLabels}
                     row={row}
                     selectionCell={selectionCell}
+                    showCardLabels={showCardLabels}
                     titleCell={titleCell}
                   />
                 );

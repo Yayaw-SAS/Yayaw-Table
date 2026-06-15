@@ -33,6 +33,11 @@ export interface TableKanbanConfig {
   cardColumnIds?: string[];
 
   /**
+   * Show property labels on each card. Hidden by default for a lighter Kanban scan.
+   */
+  showCardLabels?: boolean;
+
+  /**
    * Optional fixed lane order. Missing row values are appended after these groups.
    */
   groups?: TableKanbanGroupConfig[];

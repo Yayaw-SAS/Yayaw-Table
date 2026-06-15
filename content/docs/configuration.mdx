@@ -196,6 +196,7 @@ Type:
   groupBy?: string;
   titleColumn?: string;
   cardColumnIds?: string[];
+  showCardLabels?: boolean;
   groups?: Array<{ value: string; label?: string }>;
   allowDragUpdate?: boolean;
 }
@@ -204,6 +205,7 @@ Type:
 - `groupBy` is the default column used to split rows into lanes.
 - `titleColumn` is the column rendered as the card title. The first non-system visible column is used when omitted.
 - `cardColumnIds` limits the compact properties shown on each card. When omitted, visible non-system columns are shown except the title and grouping columns.
+- `showCardLabels` shows property labels on cards. The default is `false`, so cards render compact values and reuse the column type rendering for tags, booleans, dates, numbers, and URLs.
 - `groups` defines the preferred lane order. Row values not listed there are appended after the configured lanes.
 - `allowDragUpdate` lets users move cards between lanes when `allowEdit` is enabled and an `update` action exists.
 

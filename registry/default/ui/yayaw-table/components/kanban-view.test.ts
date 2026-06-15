@@ -4,6 +4,7 @@ import type { Row } from "@tanstack/react-table";
 import {
   createConfiguredGroups,
   createKanbanGroups,
+  shouldShowKanbanCardLabels,
   shouldUseConfiguredKanbanGroups,
 } from "./kanban-view";
 
@@ -43,5 +44,14 @@ describe("Kanban group resolution", () => {
       groups.map((group) => group.label),
       ["Laptops", "Phones"]
     );
+  });
+});
+
+describe("Kanban card labels", () => {
+  it("hides property labels by default and keeps an opt-in", () => {
+    assert.equal(shouldShowKanbanCardLabels(undefined), false);
+    assert.equal(shouldShowKanbanCardLabels({}), false);
+    assert.equal(shouldShowKanbanCardLabels({ showCardLabels: false }), false);
+    assert.equal(shouldShowKanbanCardLabels({ showCardLabels: true }), true);
   });
 });
