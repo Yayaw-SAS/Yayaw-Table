@@ -131,7 +131,7 @@ Use `table.allowViewSave: false` when users can select existing views but should
 
 ## Display modes
 
-Tables render in `"table"` mode by default. Add `"kanban"` to `table.displayModes` to show a compact display switcher next to saved views. Kanban is powered by Kibo UI primitives while keeping the same data, URL state, row actions, selection, filters, sorting, and saved-view model as the table view. When Kanban is active, the toolbar shows the existing grouping picker as a one-column lane selector; selecting a field writes `{tableId}-kanbanGroupBy` so links and saved views keep the chosen lanes.
+Tables render in `"table"` mode by default. Add `"kanban"` to `table.displayModes` to show a compact display switcher next to saved views. Kanban is powered by Kibo UI primitives while keeping the same data, URL state, row actions, selection, filters, sorting, and saved-view model as the table view. Card property labels are hidden by default for a cleaner board scan; set `kanban.showCardLabels: true` when a denser labeled card is better. When Kanban is active, the toolbar shows the existing grouping picker as a one-column lane selector; selecting a field writes `{tableId}-kanbanGroupBy` so links and saved views keep the chosen lanes.
 
 ```ts
 table: {
