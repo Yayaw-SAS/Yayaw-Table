@@ -29,7 +29,10 @@ import type {
 } from "../types/toolbar-types";
 import type { DataTableTranslations } from "../types/translations";
 import type { TableView } from "../types/view-types";
-import type { TableDisplayMode } from "../types/display-types";
+import type {
+  TableDisplayMode,
+  TableGalleryConfig,
+} from "../types/display-types";
 import type { CustomBulkActionsInput } from "./bulk-actions";
 import { DataTableSkeleton } from "./data-table-skeleton";
 // Lazy load heavy components using React.lazy inside './forms/lazy-forms'
@@ -40,6 +43,7 @@ import { TableComponent as DataTableClient } from "./table-component";
 // Direct import keeps the toolbar available without a client-only dynamic wrapper.
 import { DataTableAdvancedToolbar } from "./toolbar/data-table-advanced-toolbar";
 import { TableDisplayModeSwitcher } from "./toolbar/table-display-mode-switcher";
+import { TableGalleryMenu } from "./toolbar/table-gallery-menu";
 import { TableKanbanGroupingMenu } from "./toolbar/table-kanban-grouping-menu";
 import { DataTableViewManager } from "./toolbar/table-view-manager";
 
@@ -78,6 +82,7 @@ function DefaultTableDescription({
 
 const EMPTY_COLUMN_TYPE_MAPPING: Record<string, never> = {};
 const KANBAN_GROUPING_SYSTEM_COLUMNS = new Set(["actions", "select"]);
+const GALLERY_SYSTEM_COLUMNS = new Set(["actions", "select"]);
 
 interface KanbanGroupingColumn {
   id: string;
@@ -87,6 +92,18 @@ interface KanbanGroupingColumn {
 
 interface KanbanGroupingColumnDefinition {
   enableGrouping?: boolean;
+  header: string;
+  id: string;
+  type?: string;
+}
+
+interface GalleryControlColumn {
+  id: string;
+  label: string;
+  type?: string;
+}
+
+interface GalleryControlColumnDefinition {
   header: string;
   id: string;
   type?: string;
@@ -122,6 +139,28 @@ function shouldShowKanbanGroupingControl({
     (displayModes ?? ["table"]).includes("kanban") &&
     groupingColumnsCount > 0
   );
+}
+
+function getGalleryControlColumns(
+  definitions: GalleryControlColumnDefinition[]
+): GalleryControlColumn[] {
+  return definitions
+    .filter((column) => !GALLERY_SYSTEM_COLUMNS.has(column.id))
+    .map((column) => ({
+      id: column.id,
+      label: column.header,
+      type: column.type || "text",
+    }));
+}
+
+function shouldShowGalleryControl({
+  columnsCount,
+  displayModes,
+}: {
+  columnsCount: number;
+  displayModes?: TableDisplayMode[];
+}): boolean {
+  return (displayModes ?? ["table"]).includes("gallery") && columnsCount > 0;
 }
 
 function resolveDataTableHeaderContent({
@@ -166,7 +205,10 @@ function DataTableHeaderControls({
   defaultFormType,
   displayModes,
   enableKanbanGrouping,
+  enableGalleryControl,
   enableAdvancedFilters,
+  galleryColumns,
+  galleryConfig,
   initialActiveViewId,
   initialViews,
   kanbanDefaultGroupBy,
@@ -190,7 +232,10 @@ function DataTableHeaderControls({
   defaultFormType: string;
   displayModes?: TableDisplayMode[];
   enableKanbanGrouping: boolean;
+  enableGalleryControl: boolean;
   enableAdvancedFilters: boolean;
+  galleryColumns: GalleryControlColumn[];
+  galleryConfig?: TableGalleryConfig;
   initialActiveViewId?: string;
   initialViews?: TableView[];
   kanbanDefaultGroupBy?: string;
@@ -234,6 +279,13 @@ function DataTableHeaderControls({
             defaultDisplayMode={defaultDisplayMode}
             defaultGroupBy={kanbanDefaultGroupBy}
             enabled={enableKanbanGrouping}
+            tableId={tableId}
+          />
+          <TableGalleryMenu
+            columns={galleryColumns}
+            defaultConfig={galleryConfig}
+            defaultDisplayMode={defaultDisplayMode}
+            enabled={enableGalleryControl}
             tableId={tableId}
           />
         </div>
@@ -420,13 +472,24 @@ function DataTableContent({
     () => getKanbanGroupingColumns(config.columns.definitions),
     [config.columns.definitions]
   );
+  const galleryColumns = useMemo(
+    () => getGalleryControlColumns(config.columns.definitions),
+    [config.columns.definitions]
+  );
   const shouldShowKanbanGrouping = shouldShowKanbanGroupingControl({
     displayModes: config.table.displayModes,
     enableGrouping: config.table.enableGrouping,
     groupingColumnsCount: kanbanGroupingColumns.length,
   });
+  const shouldShowGallery = shouldShowGalleryControl({
+    columnsCount: galleryColumns.length,
+    displayModes: config.table.displayModes,
+  });
   const shouldShowViewControls =
-    shouldShowViews || shouldShowDisplayModes || shouldShowKanbanGrouping;
+    shouldShowViews ||
+    shouldShowDisplayModes ||
+    shouldShowKanbanGrouping ||
+    shouldShowGallery;
 
   return (
     <>
@@ -471,6 +534,7 @@ function DataTableContent({
             enableSorting: config.table.enableSorting,
             enableViews: config.table.enableViews,
             inlineEdit: config.table.inlineEdit,
+            gallery: config.table.gallery,
             kanban: config.table.kanban,
             layoutPreset: config.table.layoutPreset,
             pageSizeOptions: config.table.pageSizeOptions || [
@@ -503,8 +567,11 @@ function DataTableContent({
                     defaultDisplayMode={config.table.defaultDisplayMode}
                     defaultFormType={defaultFormType}
                     displayModes={config.table.displayModes}
+                    enableGalleryControl={shouldShowGallery}
                     enableKanbanGrouping={shouldShowKanbanGrouping}
                     enableAdvancedFilters={enableAdvancedFilters}
+                    galleryColumns={galleryColumns}
+                    galleryConfig={config.table.gallery}
                     initialActiveViewId={initialActiveViewId}
                     initialViews={initialViews}
                     kanbanDefaultGroupBy={config.table.kanban?.groupBy}

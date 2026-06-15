@@ -14,6 +14,7 @@ import {
   createBooleanColumn,
   createCodeColumn,
   createDateColumn,
+  createImageColumn,
   createJsonColumn,
   createSelectionColumn,
   createTextColumn,
@@ -167,6 +168,21 @@ export function useColumns<
     };
   }, []);
 
+  const createImage = useMemo(() => {
+    return <K extends keyof TData>(
+      accessorKey: K,
+      options?: Omit<
+        Parameters<typeof createImageColumn<TData>>[0],
+        "accessorKey"
+      >
+    ) => {
+      return createImageColumn<TData>({
+        accessorKey: accessorKey as string,
+        ...options,
+      });
+    };
+  }, []);
+
   // Create an actions column with the given options
   const createActions = useMemo(() => {
     return (
@@ -258,6 +274,7 @@ export function useColumns<
       code: createCode,
       date: createDate,
       dynamicType: createDynamicType,
+      image: createImage,
       json: createJson,
       number: createNumber,
       selection: createSelection,
@@ -272,6 +289,7 @@ export function useColumns<
     createCode,
     createDate,
     createDynamicType,
+    createImage,
     createJson,
     createNumber,
     createSelection,

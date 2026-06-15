@@ -28,6 +28,7 @@ import {
 import type { DateDisplayPreset } from "../types/date-types";
 import type {
   TableDisplayMode,
+  TableGalleryConfig,
   TableKanbanConfig,
 } from "../types/display-types";
 import type { CalculationType } from "../types/footer-types";
@@ -89,6 +90,7 @@ export interface TableCatalogueTableConfig {
   displayModes?: TableDisplayMode[];
   defaultDisplayMode?: TableDisplayMode;
   kanban?: TableKanbanConfig;
+  gallery?: TableGalleryConfig;
   emptyState?: TableEmptyStateConfig;
   enableRowSelection: boolean;
   enableRowClickEdit?: boolean;
@@ -309,6 +311,7 @@ function resolveTableBehaviorConfig(
       displayMode: mergedConfig.defaultDisplayMode,
     }),
     kanban: mergedConfig.kanban,
+    gallery: mergedConfig.gallery,
     emptyState: {
       show: true,
       ...mergedConfig.emptyState,

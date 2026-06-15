@@ -5,7 +5,7 @@
 
 import type { CalculationType } from "@/src/components/ui/yayaw-table/types/footer-types";
 import { calculateColumn } from "@/src/components/ui/yayaw-table/utils/column-calculations";
-import { products as initialProducts } from "../data";
+import { getProductImageUrl, products as initialProducts } from "../data";
 import type { Product } from "../setup/types";
 
 function evaluateTextFilter(
@@ -450,13 +450,17 @@ export async function createProduct(data: Record<string, unknown>) {
   try {
     const newId =
       Math.max(...productsStore.map((p) => Number.parseInt(p.id, 10)), 0) + 1;
+    const category = (data.category as string) || "";
     const newProduct: Product = {
       id: String(newId),
       name: (data.name as string) || "",
       price: (data.price as number) || 0,
       status: (data.status as Product["status"]) || "In Stock",
-      category: (data.category as string) || "",
+      category,
       brand: (data.brand as string) || "",
+      imageUrl:
+        (data.imageUrl as string | undefined) ||
+        getProductImageUrl({ category }),
       isActive: (data.isActive as boolean) ?? true,
       createdAt: new Date(),
     };
@@ -478,13 +482,18 @@ export async function updateProduct(id: string, data: Record<string, unknown>) {
     if (index === -1) {
       throw new Error(`Product with id ${id} not found`);
     }
+    const category =
+      (data.category as string | undefined) ?? productsStore[index].category;
     const updated: Product = {
       ...productsStore[index],
       name: (data.name as string) ?? productsStore[index].name,
       price: (data.price as number) ?? productsStore[index].price,
       status: (data.status as Product["status"]) ?? productsStore[index].status,
-      category: (data.category as string) ?? productsStore[index].category,
+      category,
       brand: (data.brand as string) ?? productsStore[index].brand,
+      imageUrl:
+        (data.imageUrl as string | undefined) ||
+        getProductImageUrl({ category }),
       isActive: (data.isActive as boolean) ?? productsStore[index].isActive,
       id,
     };

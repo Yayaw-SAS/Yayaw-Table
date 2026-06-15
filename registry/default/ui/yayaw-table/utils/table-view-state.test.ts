@@ -24,6 +24,13 @@ describe("createTableViewConfigSnapshot", () => {
       ],
       displayModeParam: "kanban",
       filtersParam: [{ id: "status", value: "available" }],
+      galleryParam: {
+        aspectRatio: "square",
+        cardColumnIds: ["brand", "category", "price", "status"],
+        imageColumn: "imageUrl",
+        imageFit: "contain",
+        titleColumn: "name",
+      },
       globalSearchParam: "  laptop  ",
       groupingParam: ["brand"],
       kanbanGroupByParam: "status",
@@ -52,6 +59,13 @@ describe("createTableViewConfigSnapshot", () => {
       columnPinning: { left: ["name"], right: [] },
       columnVisibility: { website: false },
       displayMode: "kanban",
+      gallery: {
+        aspectRatio: "square",
+        cardColumnIds: ["brand", "category", "price", "status"],
+        imageColumn: "imageUrl",
+        imageFit: "contain",
+        titleColumn: "name",
+      },
       globalSearch: "laptop",
       grouping: ["brand"],
       kanban: { groupBy: "status" },
@@ -65,6 +79,7 @@ describe("createTableViewConfigSnapshot", () => {
       advancedFiltersParam: [],
       displayModeParam: "table",
       filtersParam: [],
+      galleryParam: {},
       globalSearchParam: "",
       groupingParam: [],
       kanbanGroupByParam: "",
@@ -89,7 +104,7 @@ describe("normalizeTableViewConfig", () => {
     assert.deepEqual(config, {});
   });
 
-  it("preserves table and kanban display modes", () => {
+  it("preserves table, kanban, and gallery display modes", () => {
     assert.deepEqual(
       normalizeTableViewConfig({
         displayMode: "table",
@@ -103,6 +118,44 @@ describe("normalizeTableViewConfig", () => {
         kanban: { groupBy: "status" },
       }),
       { displayMode: "kanban", kanban: { groupBy: "status" } }
+    );
+    assert.deepEqual(
+      normalizeTableViewConfig({
+        displayMode: "gallery",
+        gallery: {
+          aspectRatio: "portrait",
+          cardColumnIds: [" brand ", "", "price"],
+          cardSize: "large",
+          imageColumn: " imageUrl ",
+          imageFit: "cover",
+          showCardLabels: true,
+          titleColumn: " name ",
+        },
+      }),
+      {
+        displayMode: "gallery",
+        gallery: {
+          aspectRatio: "portrait",
+          cardColumnIds: ["brand", "price"],
+          cardSize: "large",
+          imageColumn: "imageUrl",
+          imageFit: "cover",
+          showCardLabels: true,
+          titleColumn: "name",
+        },
+      }
+    );
+  });
+
+  it("preserves an explicit empty gallery property list", () => {
+    assert.deepEqual(
+      normalizeTableViewConfig({
+        gallery: {
+          cardColumnIds: [],
+          showCardLabels: false,
+        },
+      }),
+      { gallery: { cardColumnIds: [], showCardLabels: false } }
     );
   });
 });

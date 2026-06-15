@@ -4,7 +4,12 @@ import type {
   SortingState,
   VisibilityState,
 } from "@tanstack/react-table";
-import type { TableDisplayMode } from "../types/display-types";
+import type {
+  TableDisplayMode,
+  TableGalleryAspectRatio,
+  TableGalleryCardSize,
+  TableGalleryImageFit,
+} from "../types/display-types";
 import type { AdvancedFiltersState } from "../types/filter-types";
 import type { TableViewConfig } from "../types/view-types";
 
@@ -36,7 +41,7 @@ function normalizePageSize(value: number | string | undefined): number | undefin
 function normalizeDisplayMode(
   value: TableDisplayMode | undefined
 ): TableDisplayMode | undefined {
-  if (value === "kanban" || value === "table") {
+  if (value === "gallery" || value === "kanban" || value === "table") {
     return value;
   }
 
@@ -52,6 +57,92 @@ function normalizeKanbanViewConfig(
   }
 
   return { groupBy };
+}
+
+function normalizeGalleryColumnIds(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) {
+    return;
+  }
+
+  return value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function normalizeGalleryAspectRatio(
+  value: unknown
+): TableGalleryAspectRatio | undefined {
+  if (
+    value === "portrait" ||
+    value === "square" ||
+    value === "video" ||
+    value === "wide"
+  ) {
+    return value;
+  }
+
+  return;
+}
+
+function normalizeGalleryImageFit(
+  value: unknown
+): TableGalleryImageFit | undefined {
+  if (value === "contain" || value === "cover") {
+    return value;
+  }
+
+  return;
+}
+
+function normalizeGalleryCardSize(
+  value: unknown
+): TableGalleryCardSize | undefined {
+  if (value === "large" || value === "medium" || value === "small") {
+    return value;
+  }
+
+  return;
+}
+
+function normalizeGalleryViewConfig(
+  config: TableViewConfig["gallery"]
+): TableViewConfig["gallery"] {
+  if (!config) {
+    return;
+  }
+
+  const normalized: NonNullable<TableViewConfig["gallery"]> = {};
+  const imageColumn = config.imageColumn?.trim();
+  const titleColumn = config.titleColumn?.trim();
+  const cardColumnIds = normalizeGalleryColumnIds(config.cardColumnIds);
+  const aspectRatio = normalizeGalleryAspectRatio(config.aspectRatio);
+  const imageFit = normalizeGalleryImageFit(config.imageFit);
+  const cardSize = normalizeGalleryCardSize(config.cardSize);
+
+  if (imageColumn) {
+    normalized.imageColumn = imageColumn;
+  }
+  if (titleColumn) {
+    normalized.titleColumn = titleColumn;
+  }
+  if (cardColumnIds !== undefined) {
+    normalized.cardColumnIds = cardColumnIds;
+  }
+  if (aspectRatio) {
+    normalized.aspectRatio = aspectRatio;
+  }
+  if (imageFit) {
+    normalized.imageFit = imageFit;
+  }
+  if (cardSize) {
+    normalized.cardSize = cardSize;
+  }
+  if (typeof config.showCardLabels === "boolean") {
+    normalized.showCardLabels = config.showCardLabels;
+  }
+
+  return hasObjectValues(normalized) ? normalized : undefined;
 }
 
 export function normalizeColumnPinning(
@@ -90,6 +181,7 @@ export function normalizeTableViewConfig(
   const displayMode = normalizeDisplayMode(config.displayMode);
   const grouping = hasArrayValues(config.grouping) ? config.grouping : undefined;
   const kanban = normalizeKanbanViewConfig(config.kanban);
+  const gallery = normalizeGalleryViewConfig(config.gallery);
   const pageSize = normalizePageSize(config.pageSize);
   const sorting = hasArrayValues(config.sorting)
     ? (config.sorting as SortingState)
@@ -122,6 +214,9 @@ export function normalizeTableViewConfig(
   if (kanban) {
     normalized.kanban = kanban;
   }
+  if (gallery) {
+    normalized.gallery = gallery;
+  }
   if (pageSize) {
     normalized.pageSize = pageSize;
   }
@@ -138,6 +233,7 @@ export function createTableViewConfigSnapshot({
   filtersParam,
   globalSearchParam,
   groupingParam,
+  galleryParam,
   kanbanGroupByParam,
   orderParam,
   pageSizeParam,
@@ -150,6 +246,7 @@ export function createTableViewConfigSnapshot({
   filtersParam: ColumnFiltersState;
   globalSearchParam: string;
   groupingParam: string[];
+  galleryParam: TableViewConfig["gallery"];
   kanbanGroupByParam: string;
   orderParam: string[];
   pageSizeParam: string;
@@ -166,6 +263,7 @@ export function createTableViewConfigSnapshot({
     displayMode: displayModeParam,
     globalSearch: globalSearchParam,
     grouping: groupingParam,
+    gallery: galleryParam,
     kanban: { groupBy: kanbanGroupByParam },
     pageSize: normalizePageSize(pageSizeParam),
     sorting: sortParam,

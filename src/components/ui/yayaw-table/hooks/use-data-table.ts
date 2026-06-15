@@ -602,6 +602,13 @@ export function useDataTable<TData extends Record<string, unknown>>(
             }
           );
         }
+        case "image": {
+          return column.image(colDef.id as keyof TData, {
+            enableColumnFilter: colDef.enableColumnFilter,
+            enableSorting: colDef.enableSorting,
+            header: getTranslationSafe(colDef.header),
+          });
+        }
         case "number": {
           const numberColDef = colDef as {
             numberFormat?: import("../utils/number-format").NumberFormatConfig;

@@ -5,7 +5,7 @@
 
 import type { TableViewActions } from "@/src/components/ui/yayaw-table";
 import { createLocalTableViewActions } from "@/src/components/ui/yayaw-table";
-import { products as seedProducts } from "../data";
+import { getProductImageUrl, products as seedProducts } from "../data";
 import type { Product } from "../setup/types";
 
 export const EXAMPLE_PRODUCTS_STORAGE_KEY = "yayaw-example-products:v1";
@@ -198,6 +198,10 @@ function parseProducts(raw: string): Product[] {
       status: record.status as Product["status"],
       category: record.category,
       brand: record.brand,
+      imageUrl: toStringValue(
+        record.imageUrl,
+        getProductImageUrl({ category: record.category })
+      ),
       website: normalizeWebsiteValue({
         brand: record.brand,
         fallback: "",
@@ -654,6 +658,15 @@ function applyBulkUpdatePayload(
         nextProduct = {
           ...nextProduct,
           category: toStringValue(value, nextProduct.category),
+          imageUrl: getProductImageUrl({
+            category: toStringValue(value, nextProduct.category),
+          }),
+        };
+        break;
+      case "imageUrl":
+        nextProduct = {
+          ...nextProduct,
+          imageUrl: toStringValue(value, nextProduct.imageUrl ?? ""),
         };
         break;
       case "brand":
@@ -708,6 +721,10 @@ function applyProductUpdatePayload({
     data.brand == null
       ? current.brand
       : toStringValue(data.brand, current.brand);
+  const nextCategory =
+    data.category == null
+      ? current.category
+      : toStringValue(data.category, current.category);
 
   return {
     ...current,
@@ -720,11 +737,12 @@ function applyProductUpdatePayload({
       data.status == null
         ? current.status
         : normalizeStatus(data.status, current.status),
-    category:
-      data.category == null
-        ? current.category
-        : toStringValue(data.category, current.category),
+    category: nextCategory,
     brand: nextBrand,
+    imageUrl:
+      data.imageUrl == null
+        ? current.imageUrl || getProductImageUrl({ category: nextCategory })
+        : toStringValue(data.imageUrl, current.imageUrl ?? ""),
     website: normalizeWebsiteValue({
       brand: nextBrand,
       fallback: current.website ?? "",
@@ -796,13 +814,18 @@ export function createProductsLocalActions(
         const productsList = readProducts(storage);
         const productName = toStringValue(data.name, "");
         const productBrand = toStringValue(data.brand, "");
+        const productCategory = toStringValue(data.category, "");
         const newProduct: Product = {
           id: getNextProductId(productsList),
           name: productName,
           price: normalizeNumber(data.price, 0),
           status: normalizeStatus(data.status, "In Stock"),
-          category: toStringValue(data.category, ""),
+          category: productCategory,
           brand: productBrand,
+          imageUrl: toStringValue(
+            data.imageUrl,
+            getProductImageUrl({ category: productCategory })
+          ),
           website: normalizeWebsiteValue({
             brand: productBrand,
             fallback: "",

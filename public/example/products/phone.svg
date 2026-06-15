@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" role="img" aria-labelledby="title">
+  <title id="title">Phone product illustration</title>
+  <rect width="640" height="480" fill="#f8f5ff"/>
+  <rect x="228" y="54" width="184" height="372" rx="38" fill="#111827"/>
+  <rect x="248" y="92" width="144" height="286" rx="20" fill="#a78bfa"/>
+  <circle cx="320" cy="402" r="12" fill="#e5e7eb"/>
+  <circle cx="320" cy="118" r="8" fill="#111827"/>
+</svg>

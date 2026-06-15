@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" role="img" aria-labelledby="title">
+  <title id="title">Home product illustration</title>
+  <rect width="640" height="480" fill="#f0fdfa"/>
+  <path d="M116 246 320 92l204 154v168H116z" fill="#14b8a6"/>
+  <path d="M320 92 98 260l28 36 194-146 194 146 28-36z" fill="#0f766e"/>
+  <rect x="260" y="292" width="120" height="122" rx="12" fill="#f8fafc"/>
+  <rect x="164" y="278" width="72" height="66" rx="10" fill="#ccfbf1"/>
+  <rect x="404" y="278" width="72" height="66" rx="10" fill="#ccfbf1"/>
+</svg>

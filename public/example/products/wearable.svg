@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" role="img" aria-labelledby="title">
+  <title id="title">Wearable product illustration</title>
+  <rect width="640" height="480" fill="#fdf2f8"/>
+  <rect x="276" y="48" width="88" height="104" rx="22" fill="#f9a8d4"/>
+  <rect x="276" y="328" width="88" height="104" rx="22" fill="#f9a8d4"/>
+  <rect x="220" y="138" width="200" height="204" rx="48" fill="#831843"/>
+  <rect x="248" y="166" width="144" height="148" rx="30" fill="#f472b6"/>
+  <circle cx="320" cy="240" r="46" fill="#fce7f3"/>
+</svg>

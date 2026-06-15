@@ -17,6 +17,7 @@ columns: {
       header: 'Price',
       numberFormat: { thousandsSeparator: ' ', decimals: 0, suffix: ' €' },
     },
+    { id: 'imageUrl', type: 'image', header: 'Image', enableSorting: false, enableColumnFilter: false },
     { id: 'status', type: 'tag', header: 'Status' },
     { id: 'createdAt', type: 'date', header: 'Created', dateDisplayPreset: 'dmy-numeric' },
     { id: 'isActive', type: 'boolean', header: 'Active' },
@@ -38,6 +39,7 @@ Supported column types:
 - `boolean`
 - `date`
 - `tag`
+- `image` (URL string with an automatic fallback when empty or invalid)
 - `actions`
 - `dynamicType` (renderer selected via `typeKey`)
 - `select` (row selection checkbox; virtual column)
@@ -58,6 +60,7 @@ Common properties:
 - `inlineEdit?: boolean | InlineEditColumnConfig` – enable/configure inline editing for this column
 - For **number** columns: `numberFormat?: NumberFormatConfig` – display format (thousands/decimal separators, decimals, prefix/suffix for currency). See [Number column](#number-column-number) below.
 - For **tag** columns: `tagColorMap?: Record<string, string>` – optional value → Tailwind class map (see below).
+- For **image** columns: values are URL strings. Relative app paths such as `/example/products/laptop.svg`, `http(s)` URLs, `blob:` URLs, and base64 `data:image/*` URLs are accepted. Empty or invalid values render a compact fallback.
 
 ## Footer calculations by column
 

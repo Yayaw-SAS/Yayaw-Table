@@ -2,7 +2,13 @@
  * Display mode types shared by table configuration and saved views.
  */
 
-export type TableDisplayMode = "kanban" | "table";
+export type TableDisplayMode = "gallery" | "kanban" | "table";
+
+export type TableGalleryAspectRatio = "portrait" | "square" | "video" | "wide";
+
+export type TableGalleryCardSize = "large" | "medium" | "small";
+
+export type TableGalleryImageFit = "contain" | "cover";
 
 export interface TableKanbanGroupConfig {
   /**
@@ -53,4 +59,78 @@ export interface TableKanbanViewConfig {
    * Grouping column saved with a view.
    */
   groupBy?: string;
+}
+
+export interface TableGalleryConfig {
+  /**
+   * Column used as the gallery media source.
+   */
+  imageColumn?: string;
+
+  /**
+   * Column used as the card title.
+   */
+  titleColumn?: string;
+
+  /**
+   * Columns shown as compact card properties.
+   */
+  cardColumnIds?: string[];
+
+  /**
+   * Media aspect ratio for gallery cards.
+   */
+  aspectRatio?: TableGalleryAspectRatio;
+
+  /**
+   * How images should fit inside their media area.
+   */
+  imageFit?: TableGalleryImageFit;
+
+  /**
+   * Responsive card width preset.
+   */
+  cardSize?: TableGalleryCardSize;
+
+  /**
+   * Show property labels on each card. Hidden by default for a lighter gallery scan.
+   */
+  showCardLabels?: boolean;
+}
+
+export interface TableGalleryViewConfig {
+  /**
+   * Column used as the gallery media source.
+   */
+  imageColumn?: string;
+
+  /**
+   * Column used as the card title.
+   */
+  titleColumn?: string;
+
+  /**
+   * Columns shown as compact card properties.
+   */
+  cardColumnIds?: string[];
+
+  /**
+   * Media aspect ratio for gallery cards.
+   */
+  aspectRatio?: TableGalleryAspectRatio;
+
+  /**
+   * How images should fit inside their media area.
+   */
+  imageFit?: TableGalleryImageFit;
+
+  /**
+   * Responsive card width preset.
+   */
+  cardSize?: TableGalleryCardSize;
+
+  /**
+   * Show property labels on each card.
+   */
+  showCardLabels?: boolean;
 }

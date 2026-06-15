@@ -982,6 +982,7 @@ function BulkActionsSection({
       className="w-full"
       columnTypeMapping={{
         name: "text",
+        imageUrl: "text",
         brand: "text",
         category: "select",
         price: "number",
@@ -1544,7 +1545,7 @@ const getTableConfig = (tableType: string) => {
         showToolbarHeader: true,
         density: "medium",
         layoutPreset: "catalog",
-        displayModes: ["table", "kanban"],
+        displayModes: ["table", "kanban", "gallery"],
         defaultDisplayMode: "table",
         kanban: {
           groupBy: "status",
@@ -1557,6 +1558,14 @@ const getTableConfig = (tableType: string) => {
           ],
           allowDragUpdate: true
         },
+        gallery: {
+          imageColumn: "imageUrl",
+          titleColumn: "name",
+          cardColumnIds: ["brand", "category", "price", "status"],
+          aspectRatio: "square",
+          imageFit: "contain",
+          cardSize: "medium"
+        },
         emptyState: {
           title: "No products found",
           description: "Try changing your search or filters.",
@@ -1566,6 +1575,7 @@ const getTableConfig = (tableType: string) => {
       },
       columns: {
         definitions: [
+          { id: "imageUrl", type: "image", header: "Image" },
           { id: "name", type: "text", header: "Product Name" },
           { id: "brand", type: "text", header: "Brand" },
           {
@@ -1605,6 +1615,7 @@ const getTableConfig = (tableType: string) => {
         ],
         visible: [
           "select",
+          "imageUrl",
           "name",
           "brand",
           "category",
@@ -1630,6 +1641,7 @@ const [activeRowId, setActiveRowId] = useState<string>();
   onRowActivate={(row) => setActiveRowId(String(row.id))}
   columnTypeMapping={{
     name: 'text',
+    imageUrl: 'text',
     brand: 'text', 
     category: 'select',  // select with tag display variant
     price: 'number',

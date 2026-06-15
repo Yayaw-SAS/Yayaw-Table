@@ -131,11 +131,11 @@ Use `table.allowViewSave: false` when users can select existing views but should
 
 ## Display modes
 
-Tables render in `"table"` mode by default. Add `"kanban"` to `table.displayModes` to show a compact display switcher next to saved views. Kanban is powered by Kibo UI primitives while keeping the same data, URL state, row actions, selection, filters, sorting, and saved-view model as the table view. Card property labels are hidden by default for a cleaner board scan; set `kanban.showCardLabels: true` when a denser labeled card is better. When Kanban is active, the toolbar shows the existing grouping picker as a one-column lane selector; selecting a field writes `{tableId}-kanbanGroupBy` so links and saved views keep the chosen lanes.
+Tables render in `"table"` mode by default. Add `"kanban"` and/or `"gallery"` to `table.displayModes` to show a compact display switcher next to saved views. Kanban is powered by Kibo UI primitives while keeping the same data, URL state, row actions, selection, filters, sorting, and saved-view model as the table view. Gallery renders the same rows as responsive image cards and uses `type: "image"` columns for media. Card property labels are hidden by default for a cleaner scan in both Kanban and Gallery; set `kanban.showCardLabels` or `gallery.showCardLabels` to `true` when a denser labeled card is better.
 
 ```ts
 table: {
-  displayModes: ["table", "kanban"],
+  displayModes: ["table", "kanban", "gallery"],
   defaultDisplayMode: "table",
   kanban: {
     groupBy: "status",
@@ -148,10 +148,18 @@ table: {
     ],
     allowDragUpdate: true,
   },
+  gallery: {
+    imageColumn: "imageUrl",
+    titleColumn: "name",
+    cardColumnIds: ["brand", "category", "price", "status"],
+    aspectRatio: "square",
+    imageFit: "cover",
+    cardSize: "medium",
+  },
 }
 ```
 
-When `allowDragUpdate` is enabled, moving a card between lanes calls your `update` action with the grouped column value. Your backend should still validate whether that transition is allowed.
+When Kanban is active, the toolbar shows the existing grouping picker as a one-column lane selector; selecting a field writes `{tableId}-kanbanGroupBy` so links and saved views keep the chosen lanes. When `allowDragUpdate` is enabled, moving a card between lanes calls your `update` action with the grouped column value. Your backend should still validate whether that transition is allowed. When Gallery is active, the toolbar shows media, title, property, ratio, fit, size, and label controls; overrides are stored in `{tableId}-gallery` and in saved views.
 
 For prototypes, the copied component falls back to localStorage so the UI is usable without a backend. In production, expose database-backed view actions from `getTableActions`:
 

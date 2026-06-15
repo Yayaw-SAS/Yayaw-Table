@@ -27,8 +27,8 @@ describe("resolveTableCatalogueConfig", () => {
         allowViewSave: false,
         allowViewSharing: true,
         canEditRow: (row) => row.canManage === true,
-        defaultDisplayMode: "kanban",
-        displayModes: ["table", "kanban"],
+        defaultDisplayMode: "gallery",
+        displayModes: ["table", "kanban", "gallery"],
         enableCalculations: false,
         enableColumnFilters: true,
         emptyState: {
@@ -38,6 +38,13 @@ describe("resolveTableCatalogueConfig", () => {
         enableRowClickEdit: true,
         enableRowSelection: false,
         enableSorting: true,
+        gallery: {
+          aspectRatio: "square",
+          cardColumnIds: ["brand", "status"],
+          imageColumn: "imageUrl",
+          imageFit: "contain",
+          titleColumn: "name",
+        },
         kanban: {
           groupBy: "status",
         },
@@ -55,8 +62,19 @@ describe("resolveTableCatalogueConfig", () => {
     assert.equal(resolvedConfig.table.enableCalculations, false);
     assert.equal(resolvedConfig.table.allowViewSave, false);
     assert.equal(resolvedConfig.table.allowViewSharing, true);
-    assert.deepEqual(resolvedConfig.table.displayModes, ["table", "kanban"]);
-    assert.equal(resolvedConfig.table.defaultDisplayMode, "kanban");
+    assert.deepEqual(resolvedConfig.table.displayModes, [
+      "table",
+      "kanban",
+      "gallery",
+    ]);
+    assert.equal(resolvedConfig.table.defaultDisplayMode, "gallery");
+    assert.deepEqual(resolvedConfig.table.gallery, {
+      aspectRatio: "square",
+      cardColumnIds: ["brand", "status"],
+      imageColumn: "imageUrl",
+      imageFit: "contain",
+      titleColumn: "name",
+    });
     assert.deepEqual(resolvedConfig.table.kanban, { groupBy: "status" });
     assert.equal(resolvedConfig.table.enableRowClickEdit, true);
     assert.equal(resolvedConfig.table.enableRowSelection, false);
