@@ -71,7 +71,6 @@ export function TableKanbanGroupingMenu({
           variant="outline"
         >
           <Layers className="h-3.5 w-3.5 shrink-0" />
-          <span className="shrink-0 text-muted-foreground">{groupLabel}</span>
           <span className="truncate font-medium">{triggerLabel}</span>
         </Button>
       }

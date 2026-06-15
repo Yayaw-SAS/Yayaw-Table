@@ -4,6 +4,7 @@ import { ArrowDown, ArrowUp, Minus, Plus } from "lucide-react";
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 import { useTranslations } from "../../../providers/table-provider";
 import { ColumnIcon } from "../../../utils/column-icons";
 
@@ -24,6 +25,10 @@ export interface GroupPickerProps {
   disableRemoveLastGroup?: boolean;
   resetDisabled?: boolean;
   showExpandCollapse?: boolean;
+}
+
+export function shouldShowGroupStackControls(maxGroups: number): boolean {
+  return maxGroups > 1;
 }
 
 /**
@@ -74,6 +79,7 @@ export function GroupPicker({
 
   const activeCount = grouping.length;
   const hasReachedMaxGroups = grouping.length >= maxGroups;
+  const showGroupStackControls = shouldShowGroupStackControls(maxGroups);
   const shouldReplaceWhenMaxed = maxGroups === 1 && grouping.length === 1;
   // const availableCount = availableColumns.length; // count not shown in UI
 
@@ -114,16 +120,25 @@ export function GroupPicker({
         {grouping.length > 0 && (
           <div className="space-y-1">
             {groupedColumns.map((col, index) => (
-              <div className="group flex items-center py-1.5" key={col.id}>
-                <div className="px-2">
-                  <span className="inline-flex h-4.5 w-4.5 items-center justify-center rounded-full bg-muted text-[10px]">
-                    {index + 1}
-                  </span>
-                </div>
-                <Button
-                  className="h-7 flex-1 justify-start px-1 text-left"
-                  size="sm"
-                  variant="ghost"
+              <div
+                className={cn(
+                  "group flex items-center py-1.5",
+                  !showGroupStackControls && "px-2"
+                )}
+                key={col.id}
+              >
+                {showGroupStackControls && (
+                  <div className="px-2">
+                    <span className="inline-flex h-4.5 w-4.5 items-center justify-center rounded-full bg-muted text-[10px]">
+                      {index + 1}
+                    </span>
+                  </div>
+                )}
+                <div
+                  className={cn(
+                    "flex h-7 flex-1 items-center justify-start rounded-md text-left",
+                    showGroupStackControls ? "px-1" : "px-2"
+                  )}
                 >
                   <div className="flex items-center gap-2">
                     <ColumnIcon
@@ -133,41 +148,43 @@ export function GroupPicker({
                     />
                     <span className="text-sm">{col.label}</span>
                   </div>
-                </Button>
-                <div className="ml-auto flex items-center gap-2 pr-3">
-                  <Button
-                    aria-label="Move up"
-                    className="h-7 w-7 p-0"
-                    disabled={index === 0}
-                    onClick={() => move(index, -1)}
-                    size="sm"
-                    variant="ghost"
-                  >
-                    <ArrowUp className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    aria-label="Move down"
-                    className="h-7 w-7 p-0"
-                    disabled={index === grouping.length - 1}
-                    onClick={() => move(index, 1)}
-                    size="sm"
-                    variant="ghost"
-                  >
-                    <ArrowDown className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    aria-label="Remove"
-                    className="h-7 w-7 p-0"
-                    disabled={disableRemoveLastGroup && grouping.length === 1}
-                    onClick={() =>
-                      onChange(grouping.filter((id) => id !== col.id))
-                    }
-                    size="sm"
-                    variant="ghost"
-                  >
-                    <Minus className="h-3.5 w-3.5" />
-                  </Button>
                 </div>
+                {showGroupStackControls && (
+                  <div className="ml-auto flex items-center gap-2 pr-3">
+                    <Button
+                      aria-label="Move up"
+                      className="h-7 w-7 p-0"
+                      disabled={index === 0}
+                      onClick={() => move(index, -1)}
+                      size="sm"
+                      variant="ghost"
+                    >
+                      <ArrowUp className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      aria-label="Move down"
+                      className="h-7 w-7 p-0"
+                      disabled={index === grouping.length - 1}
+                      onClick={() => move(index, 1)}
+                      size="sm"
+                      variant="ghost"
+                    >
+                      <ArrowDown className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      aria-label="Remove"
+                      className="h-7 w-7 p-0"
+                      disabled={disableRemoveLastGroup && grouping.length === 1}
+                      onClick={() =>
+                        onChange(grouping.filter((id) => id !== col.id))
+                      }
+                      size="sm"
+                      variant="ghost"
+                    >
+                      <Minus className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                )}
               </div>
             ))}
             {showExpandCollapse && (
@@ -215,7 +232,10 @@ export function GroupPicker({
           availableColumns.map((column) => {
             return (
               <Button
-                className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                className={cn(
+                  "flex w-full items-center px-3 py-1.5 text-left hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50",
+                  showGroupStackControls ? "justify-between" : "justify-start"
+                )}
                 disabled={hasReachedMaxGroups && !shouldReplaceWhenMaxed}
                 key={column.id}
                 onClick={() => {
@@ -239,9 +259,11 @@ export function GroupPicker({
                   />
                   <span className="text-sm">{column.label}</span>
                 </span>
-                <span className="flex h-5 w-5 items-center justify-center">
-                  <Plus className="h-3.5 w-3.5 text-muted-foreground" />
-                </span>
+                {showGroupStackControls && (
+                  <span className="flex h-5 w-5 items-center justify-center">
+                    <Plus className="h-3.5 w-3.5 text-muted-foreground" />
+                  </span>
+                )}
               </Button>
             );
           })
