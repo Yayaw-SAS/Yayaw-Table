@@ -591,6 +591,11 @@
           "target": "components/ui/yayaw-table/components/index.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/kanban-view.test.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/kanban-view.test.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/kanban-view.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/kanban-view.tsx"
@@ -664,6 +669,11 @@
           "path": "registry/default/ui/yayaw-table/components/toolbar/table-display-mode-switcher.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/toolbar/table-display-mode-switcher.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/toolbar/table-kanban-grouping-menu.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/toolbar/table-kanban-grouping-menu.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/toolbar/table-menu.test.ts",
