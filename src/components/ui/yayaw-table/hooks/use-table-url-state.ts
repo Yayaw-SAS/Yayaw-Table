@@ -12,7 +12,10 @@ import type {
 } from "@tanstack/react-table";
 import { createParser, useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import type { TableDisplayMode } from "../types/display-types";
+import type {
+  TableDisplayMode,
+  TableGalleryViewConfig,
+} from "../types/display-types";
 import type { AdvancedFiltersState } from "../types/filter-types";
 import type { TableViewConfig } from "../types/view-types";
 import {
@@ -60,7 +63,7 @@ const normalizePageSize = (value: number | undefined) =>
 const normalizeDisplayMode = (
   value: null | string | undefined
 ): TableDisplayMode | undefined => {
-  if (value === "kanban" || value === "table") {
+  if (value === "gallery" || value === "kanban" || value === "table") {
     return value;
   }
 
@@ -161,6 +164,19 @@ const arrayParser = createParser({
 const objectParser = createParser({
   parse: (value: string) => (value ? JSON.parse(value) : {}),
   serialize: (value: object) =>
+    Object.keys(value || {}).length ? JSON.stringify(value) : "",
+});
+
+const galleryParser = createParser({
+  parse: (value: string): TableGalleryViewConfig => {
+    try {
+      const parsed = value ? JSON.parse(value) : {};
+      return isRecord(parsed) ? (parsed as TableGalleryViewConfig) : {};
+    } catch {
+      return {};
+    }
+  },
+  serialize: (value: TableGalleryViewConfig) =>
     Object.keys(value || {}).length ? JSON.stringify(value) : "",
 });
 
@@ -400,6 +416,11 @@ export function useTableUrlState({
     `${tableId}-kanbanGroupBy`
   );
 
+  const [galleryParam, setGalleryParam] = useQueryState(
+    `${tableId}-gallery`,
+    galleryParser
+  );
+
   // Global search parameter (server-side global filter)
   const [globalSearchParam, setGlobalSearchParam] = useQueryState(
     `${tableId}-q`
@@ -613,6 +634,21 @@ export function useTableUrlState({
     [setKanbanGroupByParam]
   );
 
+  const setGalleryFromUI = useCallback(
+    (gallery: TableGalleryViewConfig | undefined) => {
+      const hasGalleryValues = Boolean(
+        gallery && Object.keys(gallery).length > 0
+      );
+      if (hasGalleryValues && gallery) {
+        setGalleryParam(gallery);
+        return;
+      }
+
+      setGalleryParam(null);
+    },
+    [setGalleryParam]
+  );
+
   // Handler for column pinning changes from UI
   const setPinningFromUI = useCallback(
     (pinning: { left: string[]; right: string[] }) => {
@@ -628,6 +664,7 @@ export function useTableUrlState({
         normalizeDisplayMode(displayModeParam) ?? resolvedDefaultDisplayMode,
       filtersParam: (filtersParam || []) as ColumnFiltersState,
       globalSearchParam: globalSearchParam || "",
+      galleryParam: (galleryParam || {}) as TableGalleryViewConfig,
       groupingParam: (groupingParam || []) as string[],
       kanbanGroupByParam: kanbanGroupByParam || "",
       orderParam: (orderParam || []) as string[],
@@ -643,6 +680,7 @@ export function useTableUrlState({
     defaultPageSizeParam,
     displayModeParam,
     filtersParam,
+    galleryParam,
     globalSearchParam,
     groupingParam,
     kanbanGroupByParam,
@@ -671,6 +709,7 @@ export function useTableUrlState({
         getDisplayModeUrlValue(config.displayMode ?? resolvedDefaultDisplayMode)
       );
       queueUrlUpdate(setKanbanGroupByParam, config.kanban?.groupBy || null);
+      queueUrlUpdate(setGalleryParam, config.gallery || null);
       queueUrlUpdate(setPageParam, "0");
       queueUrlUpdate(
         setPageSizeParam,
@@ -691,6 +730,7 @@ export function useTableUrlState({
       setDisplayModeParam,
       setExpandedParam,
       setFiltersParam,
+      setGalleryParam,
       setGlobalSearchParam,
       setGroupingParam,
       setHistoryIndexParam,
@@ -748,6 +788,7 @@ export function useTableUrlState({
       setUrlParam(url, `${tableId}-grouping`, groupingParam);
       setUrlParam(url, `${tableId}-display`, displayModeParam);
       setUrlParam(url, `${tableId}-kanbanGroupBy`, kanbanGroupByParam);
+      setUrlParam(url, `${tableId}-gallery`, galleryParam);
 
       // Special case for pinning
       if (
@@ -770,6 +811,7 @@ export function useTableUrlState({
       groupingParam,
       displayModeParam,
       kanbanGroupByParam,
+      galleryParam,
       globalSearchParam,
       pinningParam,
       setUrlParam,
@@ -815,6 +857,7 @@ export function useTableUrlState({
       setGroupingParam([]);
       setDisplayModeParam(null);
       setKanbanGroupByParam(null);
+      setGalleryParam(null);
       setGlobalSearchParam(null);
       setPinningParam({ left: [], right: [] });
     } finally {
@@ -843,6 +886,7 @@ export function useTableUrlState({
     setGroupingParam,
     setDisplayModeParam,
     setKanbanGroupByParam,
+    setGalleryParam,
     setGlobalSearchParam,
     setPinningParam,
     defaultPageSizeParam,
@@ -878,6 +922,7 @@ export function useTableUrlState({
     expandedParam,
     filtersParam: filtersParam || [],
     groupingParam: groupingParam || [],
+    galleryParam: (galleryParam || {}) as TableGalleryViewConfig,
     historyIndexParam,
     kanbanGroupByParam: kanbanGroupByParam || "",
     orderParam: orderParam || [],
@@ -899,6 +944,7 @@ export function useTableUrlState({
     setDisplayModeParam,
     setExpandedFromUI,
     setGlobalSearchFromUI,
+    setGalleryFromUI,
     // Raw setters (should generally not be used directly)
     setExpandedParam,
     setFiltersParam,
@@ -907,6 +953,7 @@ export function useTableUrlState({
     setHistoryIndexParam,
     setKanbanGroupByFromUI,
     setKanbanGroupByParam,
+    setGalleryParam,
     setOrderFromUI,
 
     setOrderParam,

@@ -15,6 +15,7 @@ import type { TableFormConfig } from "../config/form-config";
 import type { DateDisplayPreset } from "../types/date-types";
 import type {
   TableDisplayMode,
+  TableGalleryConfig,
   TableKanbanConfig,
 } from "../types/display-types";
 
@@ -141,6 +142,11 @@ export interface DataTableConfig {
    * Kanban display mode configuration.
    */
   kanban?: TableKanbanConfig;
+
+  /**
+   * Gallery display mode configuration.
+   */
+  gallery?: TableGalleryConfig;
 
   /**
    * Empty/no-results state behavior.

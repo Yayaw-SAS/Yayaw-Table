@@ -78,6 +78,7 @@ import {
   openUpdateForm,
 } from "./forms/atoms/catalogue-form-atoms";
 import type { AnyFieldDefinition } from "./forms/types";
+import { DataTableGalleryView } from "./gallery-view";
 import { DataTableKanbanView } from "./kanban-view";
 import { SafePagination } from "./safe-pagination";
 import { useOnScreen } from "./utils/use-on-screen";
@@ -316,6 +317,16 @@ function shouldUseKanbanDisplayMode({
     displayModes.includes("kanban") &&
     groupBy.length > 0
   );
+}
+
+function shouldUseGalleryDisplayMode({
+  activeDisplayMode,
+  displayModes,
+}: {
+  activeDisplayMode: TableDisplayMode;
+  displayModes: TableDisplayMode[];
+}): boolean {
+  return activeDisplayMode === "gallery" && displayModes.includes("gallery");
 }
 
 function canUpdateKanbanRows({
@@ -1341,6 +1352,7 @@ function ModernDataTable<
     displayModeParam,
     expandedParam,
     filtersParam,
+    galleryParam,
     globalSearchParam,
     kanbanGroupByParam,
     setExpandedFromUI,
@@ -1381,6 +1393,17 @@ function ModernDataTable<
     displayModes: configuredDisplayModes,
     groupBy: kanbanGroupBy,
   });
+  const isGalleryMode = shouldUseGalleryDisplayMode({
+    activeDisplayMode,
+    displayModes: configuredDisplayModes,
+  });
+  const galleryConfig = useMemo(
+    () => ({
+      ...tableConfig.table.gallery,
+      ...galleryParam,
+    }),
+    [galleryParam, tableConfig.table.gallery]
+  );
   const canDragKanbanRows = canUpdateKanbanRows({
     allowDragUpdate: tableConfig.table.kanban?.allowDragUpdate,
     allowEdit: tableConfig.table.allowEdit,
@@ -2064,6 +2087,121 @@ function ModernDataTable<
     densityMode,
   ]);
 
+  const renderDisplayContent = () => {
+    if (isKanbanMode) {
+      return (
+        <div className="relative">
+          {isLoading && data && data.length > 0 && loadingOverlay}
+          <DataTableKanbanView
+            canDragUpdate={canDragKanbanRows}
+            cardColumnIds={tableConfig.table.kanban?.cardColumnIds}
+            className={className}
+            columnDefinitions={tableConfig.columns.definitions}
+            config={tableConfig.table.kanban}
+            emptyState={
+              <TableEmptyStateContent
+                description={emptyStateDescription}
+                title={emptyStateTitle}
+              />
+            }
+            groupBy={kanbanGroupBy}
+            isRowActive={(row) =>
+              isRowIdActive({
+                activeRowId,
+                rowId: row.id,
+                rowOriginal: row.original as Record<string, unknown>,
+              })
+            }
+            isRowClickable={(row) => getRowClickMode(row).canClickRow}
+            onMoveRow={handleKanbanMoveRow}
+            onRowClick={(row, event) => {
+              handleInteractiveRowClick(row, event, {
+                ignoreInteractiveTarget: false,
+              });
+            }}
+            table={table}
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-px"
+            ref={bulkActionsAnchorRef}
+          />
+        </div>
+      );
+    }
+
+    if (isGalleryMode) {
+      return (
+        <div className="relative">
+          {isLoading && data && data.length > 0 && loadingOverlay}
+          <DataTableGalleryView
+            className={className}
+            columnDefinitions={tableConfig.columns.definitions}
+            config={galleryConfig}
+            emptyState={
+              <TableEmptyStateContent
+                description={emptyStateDescription}
+                title={emptyStateTitle}
+              />
+            }
+            isRowActive={(row) =>
+              isRowIdActive({
+                activeRowId,
+                rowId: row.id,
+                rowOriginal: row.original as Record<string, unknown>,
+              })
+            }
+            isRowClickable={(row) => getRowClickMode(row).canClickRow}
+            onRowClick={(row, event) => {
+              handleInteractiveRowClick(row, event, {
+                ignoreInteractiveTarget: false,
+              });
+            }}
+            table={table}
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-px"
+            ref={bulkActionsAnchorRef}
+          />
+        </div>
+      );
+    }
+
+    return (
+      <div className="relative overflow-hidden rounded-md border">
+        {/* Show loading overlay during data fetches when we already have data */}
+        {isLoading && data && data.length > 0 && loadingOverlay}
+
+        {/* Container for the table */}
+        <div
+          className={cn("relative w-full overflow-auto", "contain-paint")}
+          ref={tableRef}
+        >
+          <Table className={cn("w-full", className)}>
+            {tableHeader}
+            {tableBodyContent}
+            {showCalculationsFooter && (
+              <TableFooter className="sticky bottom-0 z-10 overflow-hidden rounded-b-md bg-card">
+                <FooterRow
+                  densityMode={densityMode}
+                  table={table}
+                  tableId={tableId}
+                  tableType={resolvedTableType}
+                />
+              </TableFooter>
+            )}
+          </Table>
+        </div>
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-px"
+          ref={bulkActionsAnchorRef}
+        />
+      </div>
+    );
+  };
+
   // Render the content based on state
   const renderContent = () => {
     // Render error state
@@ -2115,79 +2253,7 @@ function ModernDataTable<
       >
         <div className="relative">
           <div className="space-y-4">
-            {isKanbanMode ? (
-              <div className="relative">
-                {isLoading && data && data.length > 0 && loadingOverlay}
-                <DataTableKanbanView
-                  canDragUpdate={canDragKanbanRows}
-                  cardColumnIds={tableConfig.table.kanban?.cardColumnIds}
-                  className={className}
-                  columnDefinitions={tableConfig.columns.definitions}
-                  config={tableConfig.table.kanban}
-                  emptyState={
-                    <TableEmptyStateContent
-                      description={emptyStateDescription}
-                      title={emptyStateTitle}
-                    />
-                  }
-                  groupBy={kanbanGroupBy}
-                  isRowActive={(row) =>
-                    isRowIdActive({
-                      activeRowId,
-                      rowId: row.id,
-                      rowOriginal: row.original as Record<string, unknown>,
-                    })
-                  }
-                  isRowClickable={(row) => getRowClickMode(row).canClickRow}
-                  onMoveRow={handleKanbanMoveRow}
-                  onRowClick={(row, event) => {
-                    handleInteractiveRowClick(row, event, {
-                      ignoreInteractiveTarget: false,
-                    });
-                  }}
-                  table={table}
-                />
-                <div
-                  aria-hidden="true"
-                  className="pointer-events-none absolute inset-x-0 bottom-0 h-px"
-                  ref={bulkActionsAnchorRef}
-                />
-              </div>
-            ) : (
-              <div className="relative overflow-hidden rounded-md border">
-                {/* Show loading overlay during data fetches when we already have data */}
-                {isLoading && data && data.length > 0 && loadingOverlay}
-
-                {/* Container for the table */}
-                <div
-                  className={cn(
-                    "relative w-full overflow-auto",
-                    "contain-paint"
-                  )}
-                  ref={tableRef}
-                >
-                  <Table className={cn("w-full", className)}>
-                    {tableHeader}
-                    {tableBodyContent}
-                    {showCalculationsFooter && (
-                      <TableFooter className="sticky bottom-0 z-10 overflow-hidden rounded-b-md bg-card">
-                        <FooterRow
-                          densityMode={densityMode}
-                          table={table}
-                          tableId={tableId}
-                          tableType={resolvedTableType}
-                        />
-                      </TableFooter>
-                    )}
-                  </Table>
-                </div>
-                <div
-                  aria-hidden="true"
-                  className="pointer-events-none absolute inset-x-0 bottom-0 h-px"
-                  ref={bulkActionsAnchorRef}
-                />
-              </div>
-            )}
+            {renderDisplayContent()}
 
             {/* Pagination is outside the table container to avoid focus issues */}
             {showPaginationArea && (

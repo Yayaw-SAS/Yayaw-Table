@@ -303,8 +303,28 @@ export interface DataTableTranslations {
     error_loading_views: string;
     display: {
       title: string;
+      gallery: string;
       table: string;
       kanban: string;
+    };
+    gallery: {
+      title: string;
+      image: string;
+      titleColumn: string;
+      properties: string;
+      aspectRatio: string;
+      imageFit: string;
+      cardSize: string;
+      showLabels: string;
+      wide: string;
+      square: string;
+      video: string;
+      portrait: string;
+      cover: string;
+      contain: string;
+      small: string;
+      medium: string;
+      large: string;
     };
     history: {
       undo: string;

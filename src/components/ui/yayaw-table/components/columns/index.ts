@@ -10,6 +10,7 @@ export * from "./date-column";
 export * from "./dynamic-type-column";
 export * from "./header";
 export * from "./hooks";
+export * from "./image-column";
 export * from "./json-column";
 export * from "./selection-column";
 export * from "./text-column";

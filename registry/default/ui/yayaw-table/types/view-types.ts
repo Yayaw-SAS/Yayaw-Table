@@ -9,7 +9,11 @@ import type {
   SortingState,
   VisibilityState,
 } from "@tanstack/react-table";
-import type { TableDisplayMode, TableKanbanViewConfig } from "./display-types";
+import type {
+  TableDisplayMode,
+  TableGalleryViewConfig,
+  TableKanbanViewConfig,
+} from "./display-types";
 import type { AdvancedFiltersState } from "./filter-types";
 
 /**
@@ -124,6 +128,11 @@ export interface TableViewConfig {
    * Kanban-specific view state.
    */
   kanban?: TableKanbanViewConfig;
+
+  /**
+   * Gallery-specific view state.
+   */
+  gallery?: TableGalleryViewConfig;
 
   /**
    * Page size to restore when applying the view

@@ -118,8 +118,14 @@ describe("defineTableConfig", () => {
       },
       id: "products",
       table: {
-        defaultDisplayMode: "kanban",
-        displayModes: ["table", "kanban"],
+        defaultDisplayMode: "gallery",
+        displayModes: ["table", "kanban", "gallery"],
+        gallery: {
+          aspectRatio: "square",
+          cardColumnIds: ["brand", "category"],
+          imageColumn: "imageUrl",
+          titleColumn: "name",
+        },
         kanban: {
           groupBy: "status",
         },
@@ -130,8 +136,14 @@ describe("defineTableConfig", () => {
       },
     });
 
-    assert.deepEqual(config.table.displayModes, ["table", "kanban"]);
-    assert.equal(config.table.defaultDisplayMode, "kanban");
+    assert.deepEqual(config.table.displayModes, ["table", "kanban", "gallery"]);
+    assert.equal(config.table.defaultDisplayMode, "gallery");
+    assert.deepEqual(config.table.gallery, {
+      aspectRatio: "square",
+      cardColumnIds: ["brand", "category"],
+      imageColumn: "imageUrl",
+      titleColumn: "name",
+    });
     assert.deepEqual(config.table.kanban, { groupBy: "status" });
   });
 });

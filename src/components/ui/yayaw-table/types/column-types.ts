@@ -65,6 +65,7 @@ export interface DataTableColumnDef<
     | "code"
     | "custom"
     | "date"
+    | "image"
     | "multiSelect"
     | "number"
     | "select"

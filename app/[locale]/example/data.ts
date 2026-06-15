@@ -1,5 +1,31 @@
 import type { Product } from "./setup/types";
 
+const CATEGORY_IMAGE_URLS: Record<string, string> = {
+  Accessories: "/example/products/product.svg",
+  Audio: "/example/products/audio.svg",
+  Automotive: "/example/products/product.svg",
+  Cameras: "/example/products/product.svg",
+  Creative: "/example/products/product.svg",
+  Drones: "/example/products/product.svg",
+  Electronics: "/example/products/product.svg",
+  Furniture: "/example/products/home.svg",
+  Gaming: "/example/products/product.svg",
+  Home: "/example/products/home.svg",
+  Kitchen: "/example/products/home.svg",
+  Laptops: "/example/products/laptop.svg",
+  Phones: "/example/products/phone.svg",
+  "Smart Home": "/example/products/smart-home.svg",
+  Tablets: "/example/products/tablet.svg",
+  VR: "/example/products/product.svg",
+  Wearables: "/example/products/wearable.svg",
+};
+
+export function getProductImageUrl(product: Pick<Product, "category">): string {
+  return (
+    CATEGORY_IMAGE_URLS[product.category] ?? "/example/products/product.svg"
+  );
+}
+
 /**
  * Seed data for products used by the local example actions
  * (app/[locale]/example/lib/products-local-actions.ts).
@@ -7,7 +33,7 @@ import type { Product } from "./setup/types";
  * app/[locale]/example/actions/products.ts and
  * app/[locale]/example/lib/products-server.ts.
  */
-export const products: Product[] = [
+const productSeedData = [
   {
     id: "1",
     name: 'MacBook Pro 16"',
@@ -584,4 +610,9 @@ export const products: Product[] = [
     createdAt: new Date("2024-01-03"),
     isActive: true,
   },
-];
+] satisfies Omit<Product, "imageUrl">[];
+
+export const products: Product[] = productSeedData.map((product) => ({
+  ...product,
+  imageUrl: getProductImageUrl(product),
+}));

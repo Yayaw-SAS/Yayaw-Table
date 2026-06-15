@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" role="img" aria-labelledby="title">
+  <title id="title">Tablet product illustration</title>
+  <rect width="640" height="480" fill="#effdf5"/>
+  <rect x="126" y="78" width="388" height="324" rx="34" fill="#14532d"/>
+  <rect x="158" y="110" width="324" height="260" rx="18" fill="#86efac"/>
+  <rect x="236" y="168" width="168" height="24" rx="12" fill="#166534"/>
+  <rect x="206" y="224" width="228" height="26" rx="13" fill="#22c55e"/>
+  <rect x="248" y="282" width="144" height="22" rx="11" fill="#15803d"/>
+</svg>

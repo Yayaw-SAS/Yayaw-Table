@@ -12,6 +12,7 @@ import type {
 } from "@tanstack/react-table";
 import type {
   TableDisplayMode,
+  TableGalleryViewConfig,
   TableKanbanViewConfig,
 } from "../types/display-types";
 import type { AdvancedFiltersState } from "../types/filter-types";
@@ -33,6 +34,7 @@ export interface SerializedTableViewConfig {
   columnPinning?: string; // JSON string of pinned columns
   columnVisibility?: string; // JSON string of column visibility
   displayMode?: TableDisplayMode; // Display mode for this view
+  gallery?: string; // JSON string of Gallery view configuration
   globalSearch?: string; // Global search value
   grouping?: string; // JSON string of grouping columns
   kanban?: string; // JSON string of Kanban view configuration
@@ -154,9 +156,12 @@ export const tableConfigUtils = {
         {}
       ),
       displayMode:
-        config.displayMode === "kanban" || config.displayMode === "table"
+        config.displayMode === "gallery" ||
+        config.displayMode === "kanban" ||
+        config.displayMode === "table"
           ? config.displayMode
           : undefined,
+      gallery: safelyParse<TableGalleryViewConfig>(config.gallery, {}),
       globalSearch:
         typeof config.globalSearch === "string" ? config.globalSearch : "",
       grouping: safelyParse<string[]>(config.grouping, []),
@@ -223,6 +228,9 @@ export const tableConfigUtils = {
         ? JSON.stringify(normalizedConfig.columnVisibility)
         : undefined,
       displayMode: normalizedConfig.displayMode,
+      gallery: normalizedConfig.gallery
+        ? JSON.stringify(normalizedConfig.gallery)
+        : undefined,
       globalSearch: normalizedConfig.globalSearch,
       grouping: normalizedConfig.grouping
         ? JSON.stringify(normalizedConfig.grouping)

@@ -8,6 +8,7 @@ export const ProductSchema = z.object({
   status: z.enum(["In Stock", "Low Stock", "Out of Stock"]),
   category: z.string().min(1, "Category is required"),
   brand: z.string().min(1, "Brand is required"),
+  imageUrl: z.string().optional().or(z.literal("")),
   website: z.string().url().optional().or(z.literal("")),
   createdAt: z.date(),
   isActive: z.boolean().default(true),

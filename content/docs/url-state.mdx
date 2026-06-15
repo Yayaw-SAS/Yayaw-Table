@@ -52,8 +52,9 @@ Query params are prefixed by **table id** (your `tableType`, e.g. `products`). T
 | `{tableId}-pageSize` | `products-pageSize` | Page size. |
 | `{tableId}-visibility` | `products-visibility` | Column visibility (object). |
 | `{tableId}-order` | `products-order` | Column order. |
-| `{tableId}-display` | `products-display` | Display mode (`table` or `kanban`). |
+| `{tableId}-display` | `products-display` | Display mode (`table`, `kanban`, or `gallery`). |
 | `{tableId}-kanbanGroupBy` | `products-kanbanGroupBy` | Kanban lane grouping column selected from the toolbar. |
+| `{tableId}-gallery` | `products-gallery` | Gallery overrides such as image column, title column, card properties, media ratio, fit, size, and label visibility. |
 | `{tableId}-grouping` | `products-grouping` | Grouping column ids. |
 | `{tableId}-pinning` | `products-pinning` | Pinned columns (left/right). |
 
@@ -69,12 +70,14 @@ When a view is saved, YaYaw Table persists this DB-friendly snapshot:
 - Column filters and advanced filters
 - Sorting
 - Column visibility and column order
-- Display mode and Kanban grouping
+- Display mode, Kanban grouping, and Gallery overrides
 - Grouping
 - Column pinning
 - Page size
 
 The current page, expanded rows, and browser history index are not persisted. Applying a view always resets `{tableId}-page` to `0` so a filtered view does not open on an out-of-range page.
+
+Gallery views persist display choices only. The saved view stores the selected image/title/property columns and card layout settings, not image data.
 
 For production persistence, expose view actions from `getTableActions`:
 
@@ -130,8 +133,16 @@ Store the normalized view config in `config` rather than the full URL string. Ke
   "globalSearch": "samsung",
   "columnVisibility": {},
   "columnOrder": [],
-  "displayMode": "kanban",
+  "displayMode": "gallery",
   "kanban": { "groupBy": "status" },
+  "gallery": {
+    "imageColumn": "imageUrl",
+    "titleColumn": "name",
+    "cardColumnIds": ["brand", "category", "price", "status"],
+    "aspectRatio": "square",
+    "imageFit": "cover",
+    "cardSize": "medium"
+  },
   "columnPinning": { "left": [], "right": [] },
   "grouping": [],
   "pageSize": 50

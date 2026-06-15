@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" role="img" aria-labelledby="title">
+  <title id="title">Audio product illustration</title>
+  <rect width="640" height="480" fill="#fff7ed"/>
+  <path d="M204 260c0-102 52-170 116-170s116 68 116 170" fill="none" stroke="#ea580c" stroke-width="26" stroke-linecap="round"/>
+  <rect x="154" y="246" width="86" height="128" rx="34" fill="#0f172a"/>
+  <rect x="400" y="246" width="86" height="128" rx="34" fill="#0f172a"/>
+  <circle cx="320" cy="258" r="58" fill="#fed7aa"/>
+  <rect x="278" y="250" width="84" height="18" rx="9" fill="#fb923c"/>
+</svg>

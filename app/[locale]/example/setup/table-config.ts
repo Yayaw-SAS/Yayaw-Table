@@ -92,6 +92,7 @@ const TABLE_COPY: Record<
       brand: string;
       category: string;
       created: string;
+      image: string;
       name: string;
       price: string;
       status: string;
@@ -108,6 +109,7 @@ const TABLE_COPY: Record<
       brand: "Brand",
       category: "Category",
       created: "Created",
+      image: "Image",
       name: "Product Name",
       price: "Price",
       status: "Status",
@@ -124,6 +126,7 @@ const TABLE_COPY: Record<
       brand: "Marque",
       category: "Catégorie",
       created: "Créé le",
+      image: "Image",
       name: "Nom du produit",
       price: "Prix",
       status: "Statut",
@@ -148,7 +151,7 @@ export const getTableConfig = (
   return {
     defaultPageSize: 10,
     defaultDisplayMode: "table",
-    displayModes: ["table", "kanban"],
+    displayModes: ["table", "kanban", "gallery"],
     enableColumnDnd: true,
     enableColumnDragDropByDefault: true,
     enableColumnFilters: true,
@@ -177,10 +180,28 @@ export const getTableConfig = (
       ],
       titleColumn: "name",
     },
+    gallery: {
+      aspectRatio: "square",
+      cardColumnIds: ["brand", "category", "price", "status"],
+      cardSize: "medium",
+      imageColumn: "imageUrl",
+      imageFit: "contain",
+      titleColumn: "name",
+    },
     pageSizeOptions: [10, 50, 100],
     dateDisplayPreset: "localized-medium",
     columns: {
       definitions: [
+        {
+          id: "imageUrl",
+          type: "image",
+          header: copy.headers.image,
+          size: 92,
+          minSize: 76,
+          maxSize: 120,
+          enableSorting: false,
+          enableColumnFilter: false,
+        },
         {
           id: "name",
           type: "text",
@@ -297,6 +318,7 @@ export const getTableConfig = (
       ],
       order: [
         "name",
+        "imageUrl",
         "brand",
         "category",
         "price",
@@ -308,6 +330,7 @@ export const getTableConfig = (
       ],
       visible: [
         "name",
+        "imageUrl",
         "brand",
         "category",
         "price",

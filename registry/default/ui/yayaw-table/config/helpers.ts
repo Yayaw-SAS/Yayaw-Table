@@ -5,6 +5,7 @@
 import type { DateDisplayPreset } from "../types/date-types";
 import type {
   TableDisplayMode,
+  TableGalleryConfig,
   TableKanbanConfig,
 } from "../types/display-types";
 import { defaultTableConfig, defaultTranslations } from "./defaults";
@@ -181,7 +182,7 @@ export function getTableLayoutPresetDefaults(
   return {};
 }
 
-const TABLE_DISPLAY_MODES: TableDisplayMode[] = ["table", "kanban"];
+const TABLE_DISPLAY_MODES: TableDisplayMode[] = ["table", "kanban", "gallery"];
 
 export function resolveTableDisplayModes(
   displayModes: TableDisplayMode[] | undefined
@@ -264,6 +265,7 @@ export interface ColumnDefinition {
     | "custom"
     | "date"
     | "dynamicType"
+    | "image"
     | "multiSelect"
     | "number"
     | "select"
@@ -480,6 +482,11 @@ export interface TableBehaviorConfig {
    * Kanban display mode configuration.
    */
   kanban?: TableKanbanConfig;
+
+  /**
+   * Gallery display mode configuration.
+   */
+  gallery?: TableGalleryConfig;
 
   /**
    * Empty/no-results state behavior.
