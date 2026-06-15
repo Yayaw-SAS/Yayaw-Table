@@ -56,6 +56,7 @@
         "react-day-picker",
         "sonner",
         "tailwind-merge",
+        "tunnel-rat",
         "usehooks-ts",
         "zod"
       ],
@@ -969,6 +970,11 @@
           "path": "registry/default/ui/yayaw-table/ui-custom/icon.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/ui-custom/icon.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/ui-custom/kanban.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/ui-custom/kanban.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/ui-custom/loader.tsx",
