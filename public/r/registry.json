@@ -1032,6 +1032,16 @@
           "target": "components/ui/yayaw-table/utils/card-interaction.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/utils/card-properties.test.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/card-properties.test.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/card-properties.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/card-properties.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/utils/column-calculations.test.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/column-calculations.test.ts"
