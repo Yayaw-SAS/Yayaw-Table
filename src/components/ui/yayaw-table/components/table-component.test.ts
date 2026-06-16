@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  canEditRowWithTablePermissions,
   getBulkActionsViewportBottomOffset,
   getRegularCellClassName,
   isRowIdActive,
   resolveEffectiveRowClickMode,
+  shouldIgnoreRowClickElement,
   shouldRenderBulkActionsInFooter,
   shouldRenderTableEmptyState,
   shouldRenderPaginationControls,
@@ -21,6 +23,34 @@ function createCellForColumn(id: string) {
       id,
     },
   };
+}
+
+function createClosestTarget(
+  matchedSelector: "actions" | "button" | "none" | "select"
+) {
+  return {
+    closest: (selector: string) => {
+      if (matchedSelector === "button" && selector.includes("button")) {
+        return {};
+      }
+
+      if (
+        matchedSelector === "select" &&
+        selector.includes('data-column-id="select"')
+      ) {
+        return {};
+      }
+
+      if (
+        matchedSelector === "actions" &&
+        selector.includes('data-column-id="actions"')
+      ) {
+        return {};
+      }
+
+      return null;
+    },
+  } as Pick<HTMLElement, "closest">;
 }
 
 describe("shouldShowCalculationsFooter", () => {
@@ -301,5 +331,49 @@ describe("resolveEffectiveRowClickMode", () => {
       }),
       "none"
     );
+  });
+});
+
+describe("card and row click guards", () => {
+  it("keeps edit row-click disabled when table editing is not allowed", () => {
+    assert.equal(
+      canEditRowWithTablePermissions({
+        allowEdit: false,
+        canEditRow: () => true,
+        row: {},
+      }),
+      false
+    );
+    assert.equal(
+      canEditRowWithTablePermissions({
+        allowEdit: true,
+        canEditRow: () => false,
+        row: {},
+      }),
+      false
+    );
+    assert.equal(
+      canEditRowWithTablePermissions({
+        allowEdit: true,
+        row: {},
+      }),
+      true
+    );
+  });
+
+  it("ignores nested card controls before applying row-click behavior", () => {
+    assert.equal(
+      shouldIgnoreRowClickElement(createClosestTarget("button")),
+      true
+    );
+    assert.equal(
+      shouldIgnoreRowClickElement(createClosestTarget("select")),
+      true
+    );
+    assert.equal(
+      shouldIgnoreRowClickElement(createClosestTarget("actions")),
+      true
+    );
+    assert.equal(shouldIgnoreRowClickElement(createClosestTarget("none")), false);
   });
 });

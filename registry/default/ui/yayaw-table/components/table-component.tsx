@@ -240,11 +240,33 @@ export const shouldIgnoreRowClickTarget = (target: EventTarget | null) => {
     return false;
   }
 
+  return shouldIgnoreRowClickElement(target);
+};
+
+export const shouldIgnoreRowClickElement = (
+  target: Pick<HTMLElement, "closest"> | null
+) => {
+  if (!target) {
+    return false;
+  }
+
   return Boolean(
     target.closest(ROW_CLICK_INTERACTIVE_SELECTOR) ||
       target.closest(ROW_CLICK_SYSTEM_COLUMN_SELECTOR)
   );
 };
+
+export function canEditRowWithTablePermissions({
+  allowEdit,
+  canEditRow,
+  row,
+}: {
+  allowEdit?: boolean;
+  canEditRow?: (row: Record<string, unknown>) => boolean;
+  row: Record<string, unknown>;
+}): boolean {
+  return allowEdit !== false && canEditRow?.(row) !== false;
+}
 
 const handleDataTableRowClick = <TData,>({
   canEditRow,
@@ -1444,10 +1466,11 @@ function ModernDataTable<
 
   const getRowClickMode = useCallback(
     (row: Row<TData>) => {
-      const canEditRow =
-        tableConfig.table.canEditRow?.(
-          row.original as Record<string, unknown>
-        ) !== false;
+      const canEditRow = canEditRowWithTablePermissions({
+        allowEdit: tableConfig.table.allowEdit,
+        canEditRow: tableConfig.table.canEditRow,
+        row: row.original as Record<string, unknown>,
+      });
       const rowClickMode = resolveEffectiveRowClickMode({
         configuredMode: tableConfig.table.rowClickMode,
         hasRowLink: Boolean(rowLinkAccessorKey),
@@ -1464,6 +1487,7 @@ function ModernDataTable<
       isRowClickEditEnabled,
       onRowActivate,
       rowLinkAccessorKey,
+      tableConfig.table.allowEdit,
       tableConfig.table.canEditRow,
       tableConfig.table.rowClickMode,
     ]
@@ -2121,9 +2145,7 @@ function ModernDataTable<
             isRowClickable={(row) => getRowClickMode(row).canClickRow}
             onMoveRow={handleKanbanMoveRow}
             onRowClick={(row, event) => {
-              handleInteractiveRowClick(row, event, {
-                ignoreInteractiveTarget: false,
-              });
+              handleInteractiveRowClick(row, event);
             }}
             table={table}
           />
@@ -2159,9 +2181,7 @@ function ModernDataTable<
             }
             isRowClickable={(row) => getRowClickMode(row).canClickRow}
             onRowClick={(row, event) => {
-              handleInteractiveRowClick(row, event, {
-                ignoreInteractiveTarget: false,
-              });
+              handleInteractiveRowClick(row, event);
             }}
             table={table}
           />
