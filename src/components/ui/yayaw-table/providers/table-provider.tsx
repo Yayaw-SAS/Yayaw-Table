@@ -666,6 +666,11 @@ export const defaultTranslations: DataTableTranslations = {
       medium: "Medium",
       large: "Large",
     },
+    kanban: {
+      titleColumn: "Title",
+      properties: "Properties",
+      showLabels: "Show property labels",
+    },
     history: {
       undo: "Undo change",
       redo: "Redo change",

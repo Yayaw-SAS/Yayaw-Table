@@ -32,6 +32,7 @@ import type { TableView } from "../types/view-types";
 import type {
   TableDisplayMode,
   TableGalleryConfig,
+  TableKanbanConfig,
 } from "../types/display-types";
 import type { CustomBulkActionsInput } from "./bulk-actions";
 import { DataTableSkeleton } from "./data-table-skeleton";
@@ -211,6 +212,8 @@ function DataTableHeaderControls({
   galleryConfig,
   initialActiveViewId,
   initialViews,
+  kanbanConfig,
+  kanbanControlColumns,
   kanbanDefaultGroupBy,
   kanbanGroupingColumns,
   onExport,
@@ -238,6 +241,8 @@ function DataTableHeaderControls({
   galleryConfig?: TableGalleryConfig;
   initialActiveViewId?: string;
   initialViews?: TableView[];
+  kanbanConfig?: TableKanbanConfig;
+  kanbanControlColumns: KanbanGroupingColumn[];
   kanbanDefaultGroupBy?: string;
   kanbanGroupingColumns: KanbanGroupingColumn[];
   onExport?: (rows: Record<string, unknown>[]) => Promise<void> | void;
@@ -276,6 +281,8 @@ function DataTableHeaderControls({
           />
           <TableKanbanGroupingMenu
             columns={kanbanGroupingColumns}
+            controlColumns={kanbanControlColumns}
+            defaultConfig={kanbanConfig}
             defaultDisplayMode={defaultDisplayMode}
             defaultGroupBy={kanbanDefaultGroupBy}
             enabled={enableKanbanGrouping}
@@ -574,6 +581,8 @@ function DataTableContent({
                     galleryConfig={config.table.gallery}
                     initialActiveViewId={initialActiveViewId}
                     initialViews={initialViews}
+                    kanbanConfig={config.table.kanban}
+                    kanbanControlColumns={galleryColumns}
                     kanbanDefaultGroupBy={config.table.kanban?.groupBy}
                     kanbanGroupingColumns={kanbanGroupingColumns}
                     onExport={onExport}

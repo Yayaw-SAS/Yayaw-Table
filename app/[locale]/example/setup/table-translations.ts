@@ -331,6 +331,12 @@ const FRENCH_TABLE_TRANSLATIONS: DataTableTranslations = {
       medium: "Moyenne",
       large: "Grande",
     },
+    kanban: {
+      ...defaultTableTranslations.views.kanban,
+      titleColumn: "Titre",
+      properties: "Propriétés",
+      showLabels: "Afficher les libellés",
+    },
     history: {
       ...defaultTableTranslations.views.history,
       undo: "Annuler",

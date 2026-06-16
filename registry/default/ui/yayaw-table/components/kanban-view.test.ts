@@ -4,6 +4,7 @@ import type { Row } from "@tanstack/react-table";
 import {
   createConfiguredGroups,
   createKanbanGroups,
+  getCardPropertyCells,
   shouldShowKanbanCardLabels,
   shouldUseConfiguredKanbanGroups,
 } from "./kanban-view";
@@ -53,5 +54,39 @@ describe("Kanban card labels", () => {
     assert.equal(shouldShowKanbanCardLabels({}), false);
     assert.equal(shouldShowKanbanCardLabels({ showCardLabels: false }), false);
     assert.equal(shouldShowKanbanCardLabels({ showCardLabels: true }), true);
+  });
+});
+
+describe("Kanban card properties", () => {
+  it("preserves an explicit empty property list", () => {
+    const row = {
+      getVisibleCells: () => [
+        { column: { id: "select" }, id: "select" },
+        { column: { id: "name" }, id: "name" },
+        { column: { id: "brand" }, id: "brand" },
+        { column: { id: "price" }, id: "price" },
+        { column: { id: "status" }, id: "status" },
+        { column: { id: "actions" }, id: "actions" },
+      ],
+    } as unknown as Row<Record<string, unknown>>;
+
+    assert.deepEqual(
+      getCardPropertyCells({
+        cardColumnIds: [],
+        groupBy: "status",
+        row,
+        titleColumnId: "name",
+      }),
+      []
+    );
+    assert.deepEqual(
+      getCardPropertyCells({
+        cardColumnIds: ["price"],
+        groupBy: "status",
+        row,
+        titleColumnId: "name",
+      }).map((cell) => cell.column.id),
+      ["price"]
+    );
   });
 });
