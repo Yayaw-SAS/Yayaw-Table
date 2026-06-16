@@ -15,6 +15,10 @@ import type { TableCatalogueColumnConfig } from "../hooks/use-table-config";
 import type { TableGalleryConfig } from "../types/display-types";
 import { shouldActivateCardFromKeyboard } from "../utils/card-interaction";
 import {
+  getCompactCardPropertiesClassName,
+  getCompactCardPropertyClassName,
+} from "../utils/card-properties";
+import {
   getImageFallbackInitial,
   resolveImageSource,
 } from "../utils/image-source";
@@ -307,11 +311,11 @@ function GalleryCardProperties<TData extends Record<string, unknown>>({
   }
 
   return (
-    <div className="mt-3 space-y-1.5">
+    <div className={getCompactCardPropertiesClassName()}>
       {propertyCells.map((cell) => {
         const label = propertyLabels.get(cell.column.id) ?? cell.column.id;
         return (
-          <div className="flex min-w-0 items-center" key={cell.id}>
+          <div className={getCompactCardPropertyClassName()} key={cell.id}>
             <span className="sr-only">{label}: </span>
             <div className={getGalleryPropertyValueClassName(showCardLabels)}>
               {flexRender(cell.column.columnDef.cell, cell.getContext())}
