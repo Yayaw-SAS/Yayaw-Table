@@ -2,8 +2,9 @@
 
 import type { Row, Table as TanStackTable } from "@tanstack/react-table";
 import { flexRender } from "@tanstack/react-table";
-import { ImageIcon } from "lucide-react";
+import { ExternalLink, ImageIcon, Pencil } from "lucide-react";
 import { type MouseEvent, type ReactNode, useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { TableCatalogueColumnConfig } from "../hooks/use-table-config";
 import type { TableGalleryConfig } from "../types/display-types";
@@ -33,12 +34,21 @@ const GALLERY_IMAGE_FIT_CLASS = {
 } as const;
 
 interface DataTableGalleryViewProps<TData extends Record<string, unknown>> {
+  canEditRow?: (row: Row<TData>) => boolean;
   className?: string;
   columnDefinitions: TableCatalogueColumnConfig[];
   config?: TableGalleryConfig;
+  editRowLabel?: string;
   emptyState: ReactNode;
+  getRowLinkUrl?: (row: Row<TData>) => string | undefined;
   isRowActive?: (row: Row<TData>) => boolean;
   isRowClickable?: (row: Row<TData>) => boolean;
+  linkRowLabel?: string;
+  onEditRow?: (row: Row<TData>, event: MouseEvent<HTMLButtonElement>) => void;
+  onOpenRowLink?: (
+    row: Row<TData>,
+    event: MouseEvent<HTMLButtonElement>
+  ) => void;
   onRowClick?: (row: Row<TData>, event: MouseEvent<HTMLElement>) => void;
   table: TanStackTable<TData>;
 }
@@ -46,10 +56,19 @@ interface DataTableGalleryViewProps<TData extends Record<string, unknown>> {
 interface GalleryCardProps<TData extends Record<string, unknown>> {
   actionsCell?: ReturnType<Row<TData>["getVisibleCells"]>[number];
   aspectRatio: NonNullable<TableGalleryConfig["aspectRatio"]>;
+  canEditRow: boolean;
+  editRowLabel: string;
   imageColumnId?: string;
   imageFit: NonNullable<TableGalleryConfig["imageFit"]>;
   isActive: boolean;
   isClickable: boolean;
+  linkRowLabel: string;
+  linkUrl?: string;
+  onEditRow?: (row: Row<TData>, event: MouseEvent<HTMLButtonElement>) => void;
+  onOpenRowLink?: (
+    row: Row<TData>,
+    event: MouseEvent<HTMLButtonElement>
+  ) => void;
   onRowClick?: (row: Row<TData>, event: MouseEvent<HTMLElement>) => void;
   propertyCells: ReturnType<Row<TData>["getVisibleCells"]>;
   propertyLabels: Map<string, string>;
@@ -121,6 +140,38 @@ export function resolveGalleryTitleColumnId({
   return columnDefinitions.find((column) => {
     return column.type !== "image" && !SYSTEM_COLUMN_IDS.has(column.id);
   })?.id;
+}
+
+export function resolveGalleryLinkColumnId({
+  columnDefinitions,
+}: {
+  columnDefinitions: TableCatalogueColumnConfig[];
+}): string | undefined {
+  const rowLinkColumn = columnDefinitions.find(
+    (column) => column.type === "url" && column.urlDisplayMode === "row-link"
+  );
+
+  return (
+    rowLinkColumn?.id ??
+    columnDefinitions.find((column) => column.type === "url")?.id
+  );
+}
+
+export function resolveGalleryLinkUrl(value: unknown): string | undefined {
+  if (value === null || value === undefined || value === "") {
+    return;
+  }
+
+  const url = String(value);
+
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      return url;
+    }
+  } catch {
+    return;
+  }
 }
 
 export function resolveGalleryPropertyColumnIds({
@@ -312,13 +363,84 @@ function GalleryCardMedia({
   );
 }
 
+function GalleryCardActions<TData extends Record<string, unknown>>({
+  canEditRow,
+  editRowLabel,
+  linkRowLabel,
+  linkUrl,
+  onEditRow,
+  onOpenRowLink,
+  row,
+}: {
+  canEditRow: boolean;
+  editRowLabel: string;
+  linkRowLabel: string;
+  linkUrl?: string;
+  onEditRow?: (row: Row<TData>, event: MouseEvent<HTMLButtonElement>) => void;
+  onOpenRowLink?: (
+    row: Row<TData>,
+    event: MouseEvent<HTMLButtonElement>
+  ) => void;
+  row: Row<TData>;
+}) {
+  const canOpenLink = Boolean(linkUrl && onOpenRowLink);
+  const canEdit = canEditRow && Boolean(onEditRow);
+
+  if (!(canOpenLink || canEdit)) {
+    return null;
+  }
+
+  return (
+    <div className="flex shrink-0 items-center gap-1">
+      {canOpenLink ? (
+        <Button
+          aria-label={linkRowLabel}
+          className="size-7 text-muted-foreground hover:text-foreground"
+          onClick={(event) => {
+            event.stopPropagation();
+            onOpenRowLink?.(row, event);
+          }}
+          size="icon"
+          title={linkRowLabel}
+          type="button"
+          variant="ghost"
+        >
+          <ExternalLink aria-hidden className="size-4" />
+        </Button>
+      ) : null}
+      {canEdit ? (
+        <Button
+          aria-label={editRowLabel}
+          className="size-7 text-muted-foreground hover:text-foreground"
+          onClick={(event) => {
+            event.stopPropagation();
+            onEditRow?.(row, event);
+          }}
+          size="icon"
+          title={editRowLabel}
+          type="button"
+          variant="ghost"
+        >
+          <Pencil aria-hidden className="size-4" />
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
 function DataTableGalleryCard<TData extends Record<string, unknown>>({
   actionsCell,
   aspectRatio,
+  canEditRow,
+  editRowLabel,
   imageColumnId,
   imageFit,
   isActive,
   isClickable,
+  linkRowLabel,
+  linkUrl,
+  onEditRow,
+  onOpenRowLink,
   onRowClick,
   propertyCells,
   propertyLabels,
@@ -360,6 +482,10 @@ function DataTableGalleryCard<TData extends Record<string, unknown>>({
       onKeyDown={
         isClickable
           ? (event) => {
+              if (event.target !== event.currentTarget) {
+                return;
+              }
+
               if (event.key === "Enter" || event.key === " ") {
                 event.preventDefault();
                 event.currentTarget.click();
@@ -391,6 +517,15 @@ function DataTableGalleryCard<TData extends Record<string, unknown>>({
               {titleContent}
             </div>
           </div>
+          <GalleryCardActions
+            canEditRow={canEditRow}
+            editRowLabel={editRowLabel}
+            linkRowLabel={linkRowLabel}
+            linkUrl={linkUrl}
+            onEditRow={onEditRow}
+            onOpenRowLink={onOpenRowLink}
+            row={row}
+          />
           {actionsCell ? (
             <div className="shrink-0" data-column-id="actions">
               {flexRender(
@@ -412,12 +547,18 @@ function DataTableGalleryCard<TData extends Record<string, unknown>>({
 }
 
 export function DataTableGalleryView<TData extends Record<string, unknown>>({
+  canEditRow,
   className,
   columnDefinitions,
   config,
+  editRowLabel = "Edit",
   emptyState,
+  getRowLinkUrl,
   isRowActive,
   isRowClickable,
+  linkRowLabel = "View",
+  onEditRow,
+  onOpenRowLink,
   onRowClick,
   table,
 }: DataTableGalleryViewProps<TData>) {
@@ -460,11 +601,17 @@ export function DataTableGalleryView<TData extends Record<string, unknown>>({
                 (cell) => cell.column.id === "actions"
               )}
               aspectRatio={resolvedConfig.aspectRatio}
+              canEditRow={canEditRow?.(row) ?? false}
+              editRowLabel={editRowLabel}
               imageColumnId={imageColumnId}
               imageFit={resolvedConfig.imageFit}
               isActive={isRowActive?.(row) ?? false}
               isClickable={isRowClickable?.(row) ?? false}
               key={row.id}
+              linkRowLabel={linkRowLabel}
+              linkUrl={getRowLinkUrl?.(row)}
+              onEditRow={onEditRow}
+              onOpenRowLink={onOpenRowLink}
               onRowClick={onRowClick}
               propertyCells={getGalleryPropertyCells({
                 cardColumnIds: resolvedConfig.cardColumnIds,

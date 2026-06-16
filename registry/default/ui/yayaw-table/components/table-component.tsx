@@ -78,7 +78,11 @@ import {
   openUpdateForm,
 } from "./forms/atoms/catalogue-form-atoms";
 import type { AnyFieldDefinition } from "./forms/types";
-import { DataTableGalleryView } from "./gallery-view";
+import {
+  DataTableGalleryView,
+  resolveGalleryLinkColumnId,
+  resolveGalleryLinkUrl,
+} from "./gallery-view";
 import { DataTableKanbanView } from "./kanban-view";
 import { SafePagination } from "./safe-pagination";
 import { useOnScreen } from "./utils/use-on-screen";
@@ -948,6 +952,13 @@ function ModernDataTable<
     );
     return rowLinkCol?.id;
   }, [tableConfig.columns.definitions]);
+  const galleryLinkColumnId = useMemo(
+    () =>
+      resolveGalleryLinkColumnId({
+        columnDefinitions: tableConfig.columns.definitions,
+      }),
+    [tableConfig.columns.definitions]
+  );
   const isRowClickEditEnabled =
     tableConfig.table.enableRowClickEdit === true &&
     tableConfig.table.allowEdit !== false;
@@ -1434,6 +1445,46 @@ function ModernDataTable<
       window.location.href = url;
     },
     [onRowClick, rowLinkAccessorKey]
+  );
+
+  const getGalleryRowLinkUrl = useCallback(
+    (row: Row<TData>) => {
+      if (!galleryLinkColumnId) {
+        return;
+      }
+
+      return resolveGalleryLinkUrl(
+        (row.original as Record<string, unknown>)[galleryLinkColumnId]
+      );
+    },
+    [galleryLinkColumnId]
+  );
+
+  const canEditGalleryRow = useCallback(
+    (row: Row<TData>) => {
+      if (tableConfig.table.allowEdit === false) {
+        return false;
+      }
+
+      return (
+        tableConfig.table.canEditRow?.(
+          row.original as Record<string, unknown>
+        ) !== false
+      );
+    },
+    [tableConfig.table.allowEdit, tableConfig.table.canEditRow]
+  );
+
+  const handleGalleryRowLinkClick = useCallback(
+    (row: Row<TData>) => {
+      const url = getGalleryRowLinkUrl(row);
+      if (!url) {
+        return;
+      }
+
+      window.open(url, "_blank", "noopener");
+    },
+    [getGalleryRowLinkUrl]
   );
 
   const getRowClickMode = useCallback(
@@ -2135,15 +2186,18 @@ function ModernDataTable<
         <div className="relative">
           {isLoading && data && data.length > 0 && loadingOverlay}
           <DataTableGalleryView
+            canEditRow={canEditGalleryRow}
             className={className}
             columnDefinitions={tableConfig.columns.definitions}
             config={galleryConfig}
+            editRowLabel={t("actions.edit")}
             emptyState={
               <TableEmptyStateContent
                 description={emptyStateDescription}
                 title={emptyStateTitle}
               />
             }
+            getRowLinkUrl={getGalleryRowLinkUrl}
             isRowActive={(row) =>
               isRowIdActive({
                 activeRowId,
@@ -2152,6 +2206,11 @@ function ModernDataTable<
               })
             }
             isRowClickable={(row) => getRowClickMode(row).canClickRow}
+            linkRowLabel={t("actions.view")}
+            onEditRow={(row) => {
+              handleRowEditClick(row);
+            }}
+            onOpenRowLink={handleGalleryRowLinkClick}
             onRowClick={(row, event) => {
               handleInteractiveRowClick(row, event, {
                 ignoreInteractiveTarget: false,
