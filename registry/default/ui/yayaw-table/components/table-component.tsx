@@ -244,11 +244,33 @@ export const shouldIgnoreRowClickTarget = (target: EventTarget | null) => {
     return false;
   }
 
+  return shouldIgnoreRowClickElement(target);
+};
+
+export const shouldIgnoreRowClickElement = (
+  target: Pick<HTMLElement, "closest"> | null
+) => {
+  if (!target) {
+    return false;
+  }
+
   return Boolean(
     target.closest(ROW_CLICK_INTERACTIVE_SELECTOR) ||
       target.closest(ROW_CLICK_SYSTEM_COLUMN_SELECTOR)
   );
 };
+
+export function canEditRowWithTablePermissions({
+  allowEdit,
+  canEditRow,
+  row,
+}: {
+  allowEdit?: boolean;
+  canEditRow?: (row: Record<string, unknown>) => boolean;
+  row: Record<string, unknown>;
+}): boolean {
+  return allowEdit !== false && canEditRow?.(row) !== false;
+}
 
 const handleDataTableRowClick = <TData,>({
   canEditRow,
@@ -1365,7 +1387,7 @@ function ModernDataTable<
     filtersParam,
     galleryParam,
     globalSearchParam,
-    kanbanGroupByParam,
+    kanbanParam,
     setExpandedFromUI,
   } = useTableUrlState({
     defaultDisplayMode: tableConfig.table.defaultDisplayMode,
@@ -1397,8 +1419,14 @@ function ModernDataTable<
     displayModeParam,
     displayModes: configuredDisplayModes,
   });
-  const kanbanGroupBy =
-    kanbanGroupByParam || tableConfig.table.kanban?.groupBy || "";
+  const kanbanConfig = useMemo(
+    () => ({
+      ...tableConfig.table.kanban,
+      ...kanbanParam,
+    }),
+    [kanbanParam, tableConfig.table.kanban]
+  );
+  const kanbanGroupBy = kanbanConfig.groupBy || "";
   const isKanbanMode = shouldUseKanbanDisplayMode({
     activeDisplayMode,
     displayModes: configuredDisplayModes,
@@ -1489,10 +1517,11 @@ function ModernDataTable<
 
   const getRowClickMode = useCallback(
     (row: Row<TData>) => {
-      const canEditRow =
-        tableConfig.table.canEditRow?.(
-          row.original as Record<string, unknown>
-        ) !== false;
+      const canEditRow = canEditRowWithTablePermissions({
+        allowEdit: tableConfig.table.allowEdit,
+        canEditRow: tableConfig.table.canEditRow,
+        row: row.original as Record<string, unknown>,
+      });
       const rowClickMode = resolveEffectiveRowClickMode({
         configuredMode: tableConfig.table.rowClickMode,
         hasRowLink: Boolean(rowLinkAccessorKey),
@@ -1509,6 +1538,7 @@ function ModernDataTable<
       isRowClickEditEnabled,
       onRowActivate,
       rowLinkAccessorKey,
+      tableConfig.table.allowEdit,
       tableConfig.table.canEditRow,
       tableConfig.table.rowClickMode,
     ]
@@ -2145,10 +2175,10 @@ function ModernDataTable<
           {isLoading && data && data.length > 0 && loadingOverlay}
           <DataTableKanbanView
             canDragUpdate={canDragKanbanRows}
-            cardColumnIds={tableConfig.table.kanban?.cardColumnIds}
+            cardColumnIds={kanbanConfig.cardColumnIds}
             className={className}
             columnDefinitions={tableConfig.columns.definitions}
-            config={tableConfig.table.kanban}
+            config={kanbanConfig}
             emptyState={
               <TableEmptyStateContent
                 description={emptyStateDescription}
@@ -2166,9 +2196,7 @@ function ModernDataTable<
             isRowClickable={(row) => getRowClickMode(row).canClickRow}
             onMoveRow={handleKanbanMoveRow}
             onRowClick={(row, event) => {
-              handleInteractiveRowClick(row, event, {
-                ignoreInteractiveTarget: false,
-              });
+              handleInteractiveRowClick(row, event);
             }}
             table={table}
           />
@@ -2212,9 +2240,7 @@ function ModernDataTable<
             }}
             onOpenRowLink={handleGalleryRowLinkClick}
             onRowClick={(row, event) => {
-              handleInteractiveRowClick(row, event, {
-                ignoreInteractiveTarget: false,
-              });
+              handleInteractiveRowClick(row, event);
             }}
             table={table}
           />

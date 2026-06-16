@@ -59,6 +59,21 @@ export interface TableKanbanViewConfig {
    * Grouping column saved with a view.
    */
   groupBy?: string;
+
+  /**
+   * Column used as the card title.
+   */
+  titleColumn?: string;
+
+  /**
+   * Columns shown as compact card properties.
+   */
+  cardColumnIds?: string[];
+
+  /**
+   * Show property labels on each card.
+   */
+  showCardLabels?: boolean;
 }
 
 export interface TableGalleryConfig {

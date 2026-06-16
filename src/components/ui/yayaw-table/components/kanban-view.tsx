@@ -4,6 +4,7 @@ import type { Row, Table as TanStackTable } from "@tanstack/react-table";
 import { flexRender } from "@tanstack/react-table";
 import { GripVertical } from "lucide-react";
 import {
+  type KeyboardEvent,
   useCallback,
   useEffect,
   useMemo,
@@ -28,6 +29,7 @@ import type {
   TableKanbanConfig,
   TableKanbanGroupConfig,
 } from "../types/display-types";
+import { shouldActivateCardFromKeyboard } from "../utils/card-interaction";
 
 const SYSTEM_COLUMN_IDS = new Set(["actions", "select"]);
 const EMPTY_GROUP_VALUE = "";
@@ -212,7 +214,7 @@ function getDefaultTitleColumnId<TData extends Record<string, unknown>>(
     .find((column) => !SYSTEM_COLUMN_IDS.has(column.id))?.id;
 }
 
-function getCardPropertyCells<TData extends Record<string, unknown>>({
+export function getCardPropertyCells<TData extends Record<string, unknown>>({
   cardColumnIds,
   groupBy,
   row,
@@ -231,7 +233,7 @@ function getCardPropertyCells<TData extends Record<string, unknown>>({
     );
   });
 
-  if (!cardColumnIds?.length) {
+  if (cardColumnIds === undefined) {
     return cells;
   }
 
@@ -367,8 +369,30 @@ function DataTableKanbanCard<TData extends Record<string, unknown>>({
   const cardName = titleCell
     ? getStringValue(row.original[titleCell.column.id]) || row.id
     : row.id;
+  const cardInteractionProps = isClickable
+    ? {
+        onClick: (event: MouseEvent<HTMLDivElement>) => {
+          onRowClick?.(row, event);
+        },
+        onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => {
+          if (shouldActivateCardFromKeyboard(event)) {
+            event.preventDefault();
+            event.currentTarget.click();
+          }
+        },
+        role: "button" as const,
+        tabIndex: 0,
+      }
+    : {};
   const cardContent = (
-    <>
+    <div
+      className={cn(
+        "min-w-0 outline-none",
+        isClickable && "cursor-pointer focus-visible:ring-2 focus-visible:ring-ring"
+      )}
+      data-active={isActive ? "true" : undefined}
+      {...cardInteractionProps}
+    >
       <div className="flex items-start gap-2">
         {selectionCell ? (
           <div className="mt-0.5 shrink-0" data-column-id="select">
@@ -376,19 +400,7 @@ function DataTableKanbanCard<TData extends Record<string, unknown>>({
           </div>
         ) : null}
         <div className="min-w-0 flex-1">
-          {isClickable ? (
-            <button
-              className="line-clamp-2 w-full text-left font-medium text-sm"
-              onClick={(event) => onRowClick?.(row, event)}
-              type="button"
-            >
-              {titleContent}
-            </button>
-          ) : (
-            <div className="line-clamp-2 font-medium text-sm">
-              {titleContent}
-            </div>
-          )}
+          <div className="line-clamp-2 font-medium text-sm">{titleContent}</div>
         </div>
         {actionsCell ? (
           <div className="shrink-0" data-column-id="actions">
@@ -403,7 +415,7 @@ function DataTableKanbanCard<TData extends Record<string, unknown>>({
         propertyLabels={propertyLabels}
         showCardLabels={showCardLabels}
       />
-    </>
+    </div>
   );
 
   return (
@@ -432,7 +444,7 @@ function DataTableKanbanCard<TData extends Record<string, unknown>>({
       id={row.id}
       name={cardName}
     >
-      <div data-active={isActive ? "true" : undefined}>{cardContent}</div>
+      {cardContent}
     </KiboKanbanCard>
   );
 }

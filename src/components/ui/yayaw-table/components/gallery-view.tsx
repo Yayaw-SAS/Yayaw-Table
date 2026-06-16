@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/src/components/ui/button";
 import type { TableCatalogueColumnConfig } from "../hooks/use-table-config";
 import type { TableGalleryConfig } from "../types/display-types";
+import { shouldActivateCardFromKeyboard } from "../utils/card-interaction";
 import {
   getImageFallbackInitial,
   resolveImageSource,
@@ -485,11 +486,7 @@ function DataTableGalleryCard<TData extends Record<string, unknown>>({
       onKeyDown={
         isClickable
           ? (event) => {
-              if (event.target !== event.currentTarget) {
-                return;
-              }
-
-              if (event.key === "Enter" || event.key === " ") {
+              if (shouldActivateCardFromKeyboard(event)) {
                 event.preventDefault();
                 event.currentTarget.click();
               }

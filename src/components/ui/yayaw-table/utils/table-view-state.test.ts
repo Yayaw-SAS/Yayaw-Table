@@ -33,6 +33,11 @@ describe("createTableViewConfigSnapshot", () => {
       },
       globalSearchParam: "  laptop  ",
       groupingParam: ["brand"],
+      kanbanParam: {
+        cardColumnIds: ["brand", "price"],
+        showCardLabels: true,
+        titleColumn: "name",
+      },
       kanbanGroupByParam: "status",
       orderParam: ["name", "status"],
       pageSizeParam: "50",
@@ -68,7 +73,12 @@ describe("createTableViewConfigSnapshot", () => {
       },
       globalSearch: "laptop",
       grouping: ["brand"],
-      kanban: { groupBy: "status" },
+      kanban: {
+        cardColumnIds: ["brand", "price"],
+        groupBy: "status",
+        showCardLabels: true,
+        titleColumn: "name",
+      },
       pageSize: 50,
       sorting: [{ desc: false, id: "name" }],
     });
@@ -82,6 +92,7 @@ describe("createTableViewConfigSnapshot", () => {
       galleryParam: {},
       globalSearchParam: "",
       groupingParam: [],
+      kanbanParam: {},
       kanbanGroupByParam: "",
       orderParam: [],
       pageSizeParam: "20",
@@ -115,9 +126,22 @@ describe("normalizeTableViewConfig", () => {
     assert.deepEqual(
       normalizeTableViewConfig({
         displayMode: "kanban",
-        kanban: { groupBy: "status" },
+        kanban: {
+          cardColumnIds: [" brand ", "", "price"],
+          groupBy: " status ",
+          showCardLabels: true,
+          titleColumn: " name ",
+        },
       }),
-      { displayMode: "kanban", kanban: { groupBy: "status" } }
+      {
+        displayMode: "kanban",
+        kanban: {
+          cardColumnIds: ["brand", "price"],
+          groupBy: "status",
+          showCardLabels: true,
+          titleColumn: "name",
+        },
+      }
     );
     assert.deepEqual(
       normalizeTableViewConfig({
@@ -156,6 +180,18 @@ describe("normalizeTableViewConfig", () => {
         },
       }),
       { gallery: { cardColumnIds: [], showCardLabels: false } }
+    );
+  });
+
+  it("preserves an explicit empty Kanban property list", () => {
+    assert.deepEqual(
+      normalizeTableViewConfig({
+        kanban: {
+          cardColumnIds: [],
+          showCardLabels: false,
+        },
+      }),
+      { kanban: { cardColumnIds: [], showCardLabels: false } }
     );
   });
 });

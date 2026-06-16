@@ -218,7 +218,7 @@ Type:
 - `groups` defines the preferred lane order. Row values not listed there are appended after the configured lanes.
 - `allowDragUpdate` lets users move cards between lanes when `allowEdit` is enabled and an `update` action exists.
 
-Kanban uses Kibo UI primitives on top of the same TanStack table instance as table mode, so sorting, filters, selection, row actions, pagination, and saved views keep working. When Kanban is active, the toolbar reuses the grouping picker as a single-field lane selector and writes the selected field to `{tableId}-kanbanGroupBy`. Moving a card calls `actions.update(rowId, { [groupBy]: nextValue })`; your backend remains responsible for validating permissions and state transitions.
+Kanban uses Kibo UI primitives on top of the same TanStack table instance as table mode, so sorting, filters, selection, row actions, pagination, and saved views keep working. When Kanban is active, the toolbar lets users choose the lane grouping, title column, card properties, and label visibility. These overrides are stored in `{tableId}-kanban` and saved views; older `{tableId}-kanbanGroupBy` links are still read as a legacy fallback. Moving a card calls `actions.update(rowId, { [groupBy]: nextValue })`; your backend remains responsible for validating permissions and state transitions.
 
 ### gallery
 Configuration for the Gallery display mode.
@@ -284,6 +284,8 @@ Modes:
 - `edit`: opens the edit drawer when the row can be edited.
 - `link`: uses row link behavior for URL-backed rows and calls `onRowClick(url, row, event)` when provided.
 - `none`: disables row click behavior.
+
+The same row click behavior applies in table, Kanban, and Gallery display modes. Card-level clicks honor `allowEdit` and `canEditRow`, while nested controls such as selection checkboxes, links, drag handles, and row action buttons stay interactive without opening the row.
 
 ### enableColumnFilters
 Enable per-column filters.

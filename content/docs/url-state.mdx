@@ -53,7 +53,8 @@ Query params are prefixed by **table id** (your `tableType`, e.g. `products`). T
 | `{tableId}-visibility` | `products-visibility` | Column visibility (object). |
 | `{tableId}-order` | `products-order` | Column order. |
 | `{tableId}-display` | `products-display` | Display mode (`table`, `kanban`, or `gallery`). |
-| `{tableId}-kanbanGroupBy` | `products-kanbanGroupBy` | Kanban lane grouping column selected from the toolbar. |
+| `{tableId}-kanban` | `products-kanban` | Kanban overrides such as lane grouping, title column, card properties, and label visibility. |
+| `{tableId}-kanbanGroupBy` | `products-kanbanGroupBy` | Legacy Kanban lane grouping param. Still read as a fallback when `{tableId}-kanban.groupBy` is absent. |
 | `{tableId}-gallery` | `products-gallery` | Gallery overrides such as image column, title column, card properties, media ratio, fit, size, and label visibility. |
 | `{tableId}-grouping` | `products-grouping` | Grouping column ids. |
 | `{tableId}-pinning` | `products-pinning` | Pinned columns (left/right). |
@@ -70,14 +71,14 @@ When a view is saved, YaYaw Table persists this DB-friendly snapshot:
 - Column filters and advanced filters
 - Sorting
 - Column visibility and column order
-- Display mode, Kanban grouping, and Gallery overrides
+- Display mode, Kanban overrides, and Gallery overrides
 - Grouping
 - Column pinning
 - Page size
 
 The current page, expanded rows, and browser history index are not persisted. Applying a view always resets `{tableId}-page` to `0` so a filtered view does not open on an out-of-range page.
 
-Gallery views persist display choices only. The saved view stores the selected image/title/property columns and card layout settings, not image data.
+Kanban and Gallery views persist display choices only. Kanban stores the selected lane/title/property columns and label visibility; Gallery stores the selected image/title/property columns and card layout settings. Neither view stores row data or image data.
 
 For production persistence, expose view actions from `getTableActions`:
 
@@ -134,7 +135,12 @@ Store the normalized view config in `config` rather than the full URL string. Ke
   "columnVisibility": {},
   "columnOrder": [],
   "displayMode": "gallery",
-  "kanban": { "groupBy": "status" },
+  "kanban": {
+    "groupBy": "status",
+    "titleColumn": "name",
+    "cardColumnIds": ["brand", "price"],
+    "showCardLabels": false
+  },
   "gallery": {
     "imageColumn": "imageUrl",
     "titleColumn": "name",
