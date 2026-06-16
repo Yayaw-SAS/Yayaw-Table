@@ -8,11 +8,11 @@ Flexible, type-safe data table for React. One component, clean API, minimal boil
 - **Server-first** – Built for Next.js 15 and 16 with Server Actions for list/create/update/delete and bulk operations
 - **URL state** – Sort, filters, and pagination in the URL via [Nuqs](https://nuqs.io) (optional)
 - **Saved views** – Users can save and restore URL-backed table setups such as filters, sort, search, column layout, display mode, grouping, pinning, and page size
-- **Display modes** – Keep the default table view or add a Notion-style Kanban view grouped by one of your columns
+- **Display modes** – Keep the default table view or add Notion-style Kanban and Gallery views backed by the same URL/saved-view state
 - **Built-in UX** – Sorting, pagination, grouping, column visibility, column reorder (drag-and-drop), global search
 - **Filters** – Column filters and advanced filters panel; filter presets supported
 - **Number & currency** – Right-aligned number columns with configurable format (thousands/decimal separators, prefix/suffix)
-- **Column types** – Text, tag, number, boolean, date; extensible via `columnTypeMapping`
+- **Column types** – Text, tag, image, URL, number, boolean, date; extensible via `columnTypeMapping`
 - **Bulk actions** – Edit, copy, export (CSV), delete, and typed custom actions for selected rows
 - **Type-safe** – Strong TypeScript types out of the box
 - **Accessible** – Keyboard navigation and ARIA-friendly UI
@@ -159,7 +159,7 @@ table: {
 }
 ```
 
-When Kanban is active, the toolbar shows lane, title, property, and label controls; overrides are stored in `{tableId}-kanban` and in saved views. Older links using `{tableId}-kanbanGroupBy` are still read as a legacy fallback. When `allowDragUpdate` is enabled, moving a card between lanes calls your `update` action with the grouped column value. Your backend should still validate whether that transition is allowed. When Gallery is active, the toolbar shows media, title, property, ratio, fit, size, and label controls; overrides are stored in `{tableId}-gallery` and in saved views. `rowClickMode`, `enableRowClickEdit`, `allowEdit`, and row-level guards such as `canEditRow` apply consistently across table, Kanban, and Gallery modes; nested card controls like selection and row actions do not trigger row click behavior.
+When Kanban is active, the toolbar shows lane, title, property, and label controls; overrides are stored in `{tableId}-kanban` and in saved views. Older links using `{tableId}-kanbanGroupBy` are still read as a legacy fallback. When `allowDragUpdate` is enabled, moving a card between lanes calls your `update` action with the grouped column value. Your backend should still validate whether that transition is allowed. When Gallery is active, the toolbar shows media, title, property, ratio, fit, size, and label controls; overrides are stored in `{tableId}-gallery` and in saved views. Gallery cards can also show URL and edit buttons when URL columns and edit actions are configured. `rowClickMode`, `enableRowClickEdit`, `allowEdit`, and row-level guards such as `canEditRow` apply consistently across table, Kanban, and Gallery modes; nested card controls like selection and row actions do not trigger row click behavior.
 
 For prototypes, the copied component falls back to localStorage so the UI is usable without a backend. In production, expose database-backed view actions from `getTableActions`:
 

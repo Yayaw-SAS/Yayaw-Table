@@ -96,6 +96,26 @@ Callback déclenché quand la sélection de lignes change.
 
 **Type :** `(rows: Row<Record<string, unknown>>[]) => void` | **Par défaut :** `undefined`
 
+### activeRowId
+Marque une ligne comme active. Utile pour les tables master-detail où la table est la surface d'inventaire et un autre panneau affiche la ligne sélectionnée.
+
+**Type :** `string` | **Par défaut :** `undefined`
+
+### getRowId
+Retourne un id de ligne stable pour le surlignage actif, la sélection et les métadonnées de ligne. Si omis, la table utilise les champs `id` courants puis l'id React Table.
+
+**Type :** `(row: Record<string, unknown>) => string` | **Par défaut :** `undefined`
+
+### onRowActivate
+Callback déclenché quand `table.rowClickMode` vaut `'activate'` et qu'une zone non interactive de ligne ou de carte est cliquée.
+
+**Type :** `(row: Record<string, unknown>, event: React.MouseEvent) => void` | **Par défaut :** `undefined`
+
+### onRowClick
+Callback déclenché par les interactions de lien, y compris les clics de ligne en mode row-link et les boutons lien de Gallery. Utilisez-le pour router via votre app ou suivre de l'analytics au lieu de dépendre du comportement navigateur par défaut.
+
+**Type :** `(url: string, row: Record<string, unknown>, event: React.MouseEvent) => void` | **Par défaut :** `undefined`
+
 ### onBulkEdit
 Gère l'édition de masse des lignes sélectionnées.
 

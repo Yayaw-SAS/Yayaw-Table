@@ -228,7 +228,7 @@ Puis passez-la :
 Après les 4 étapes principales, votre table doit :
 
 - Charger les données via `list(params)`.
-- Garder tri, filtres et pagination dans les paramètres URL.
+- Garder tri, filtres, mode d'affichage et pagination dans les paramètres URL.
 - Appeler `create`/`update`/`delete` via les actions de ligne.
 - Utiliser vos colonnes/ordre/visibilité définis dans `getTableConfig`.
 
@@ -236,7 +236,7 @@ Après les 4 étapes principales, votre table doit :
 
 `getTableConfig(tableType)` doit retourner :
 
-- Les clés de comportement de table (`enableRowSelection`, `enableRowClickEdit`, `enableSorting`, `enableColumnFilters`, `defaultPageSize`, `pageSizeOptions`, `export`, `bulkExport`, `actionsAsIcons`).
+- Les clés de comportement de table (`layoutPreset`, `emptyState`, `rowClickMode`, `displayModes`, `defaultDisplayMode`, `kanban`, `gallery`, `allowViewSave`, `allowViewSharing`, `enableRowSelection`, `enableRowClickEdit`, `enableSorting`, `enableColumnFilters`, `defaultPageSize`, `pageSizeOptions`, `export`, `bulkExport`, `actionsAsIcons`).
 - `enableRowClickEdit` ouvre le drawer d'édition au clic ligne et ne peut pas être combiné avec `urlDisplayMode: "row-link"` ni avec l'inline edit.
 - **columns** – `definitions` (array de `{ id, type, header, enableSorting?, enableColumnFilter? }`), `order`, `visible`, `mandatory`, `sort`.
 - **translations** (optionnel) – `namespace`, `keys` pour title/description.
