@@ -1354,7 +1354,7 @@ function ModernDataTable<
     filtersParam,
     galleryParam,
     globalSearchParam,
-    kanbanGroupByParam,
+    kanbanParam,
     setExpandedFromUI,
   } = useTableUrlState({
     defaultDisplayMode: tableConfig.table.defaultDisplayMode,
@@ -1386,8 +1386,14 @@ function ModernDataTable<
     displayModeParam,
     displayModes: configuredDisplayModes,
   });
-  const kanbanGroupBy =
-    kanbanGroupByParam || tableConfig.table.kanban?.groupBy || "";
+  const kanbanConfig = useMemo(
+    () => ({
+      ...tableConfig.table.kanban,
+      ...kanbanParam,
+    }),
+    [kanbanParam, tableConfig.table.kanban]
+  );
+  const kanbanGroupBy = kanbanConfig.groupBy || "";
   const isKanbanMode = shouldUseKanbanDisplayMode({
     activeDisplayMode,
     displayModes: configuredDisplayModes,
@@ -2094,10 +2100,10 @@ function ModernDataTable<
           {isLoading && data && data.length > 0 && loadingOverlay}
           <DataTableKanbanView
             canDragUpdate={canDragKanbanRows}
-            cardColumnIds={tableConfig.table.kanban?.cardColumnIds}
+            cardColumnIds={kanbanConfig.cardColumnIds}
             className={className}
             columnDefinitions={tableConfig.columns.definitions}
-            config={tableConfig.table.kanban}
+            config={kanbanConfig}
             emptyState={
               <TableEmptyStateContent
                 description={emptyStateDescription}

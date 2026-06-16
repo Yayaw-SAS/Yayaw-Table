@@ -326,6 +326,11 @@ export interface DataTableTranslations {
       medium: string;
       large: string;
     };
+    kanban: {
+      titleColumn: string;
+      properties: string;
+      showLabels: string;
+    };
     history: {
       undo: string;
       redo: string;

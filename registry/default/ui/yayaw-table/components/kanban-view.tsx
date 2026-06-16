@@ -212,7 +212,7 @@ function getDefaultTitleColumnId<TData extends Record<string, unknown>>(
     .find((column) => !SYSTEM_COLUMN_IDS.has(column.id))?.id;
 }
 
-function getCardPropertyCells<TData extends Record<string, unknown>>({
+export function getCardPropertyCells<TData extends Record<string, unknown>>({
   cardColumnIds,
   groupBy,
   row,
@@ -231,7 +231,7 @@ function getCardPropertyCells<TData extends Record<string, unknown>>({
     );
   });
 
-  if (!cardColumnIds?.length) {
+  if (cardColumnIds === undefined) {
     return cells;
   }
 

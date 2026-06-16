@@ -53,15 +53,32 @@ function normalizeDisplayMode(
 function normalizeKanbanViewConfig(
   config: TableViewConfig["kanban"]
 ): TableViewConfig["kanban"] {
-  const groupBy = config?.groupBy?.trim();
-  if (!groupBy) {
+  if (!config) {
     return;
   }
 
-  return { groupBy };
+  const normalized: NonNullable<TableViewConfig["kanban"]> = {};
+  const groupBy = config?.groupBy?.trim();
+  const titleColumn = config.titleColumn?.trim();
+  const cardColumnIds = normalizeColumnIds(config.cardColumnIds);
+
+  if (groupBy) {
+    normalized.groupBy = groupBy;
+  }
+  if (titleColumn) {
+    normalized.titleColumn = titleColumn;
+  }
+  if (cardColumnIds !== undefined) {
+    normalized.cardColumnIds = cardColumnIds;
+  }
+  if (typeof config.showCardLabels === "boolean") {
+    normalized.showCardLabels = config.showCardLabels;
+  }
+
+  return hasObjectValues(normalized) ? normalized : undefined;
 }
 
-function normalizeGalleryColumnIds(value: unknown): string[] | undefined {
+function normalizeColumnIds(value: unknown): string[] | undefined {
   if (!Array.isArray(value)) {
     return;
   }
@@ -117,7 +134,7 @@ function normalizeGalleryViewConfig(
   const normalized: NonNullable<TableViewConfig["gallery"]> = {};
   const imageColumn = config.imageColumn?.trim();
   const titleColumn = config.titleColumn?.trim();
-  const cardColumnIds = normalizeGalleryColumnIds(config.cardColumnIds);
+  const cardColumnIds = normalizeColumnIds(config.cardColumnIds);
   const aspectRatio = normalizeGalleryAspectRatio(config.aspectRatio);
   const imageFit = normalizeGalleryImageFit(config.imageFit);
   const cardSize = normalizeGalleryCardSize(config.cardSize);
@@ -238,6 +255,7 @@ export function createTableViewConfigSnapshot({
   globalSearchParam,
   groupingParam,
   galleryParam,
+  kanbanParam,
   kanbanGroupByParam,
   orderParam,
   pageSizeParam,
@@ -251,6 +269,7 @@ export function createTableViewConfigSnapshot({
   globalSearchParam: string;
   groupingParam: string[];
   galleryParam: TableViewConfig["gallery"];
+  kanbanParam: TableViewConfig["kanban"];
   kanbanGroupByParam: string;
   orderParam: string[];
   pageSizeParam: string;
@@ -268,7 +287,10 @@ export function createTableViewConfigSnapshot({
     globalSearch: globalSearchParam,
     grouping: groupingParam,
     gallery: galleryParam,
-    kanban: { groupBy: kanbanGroupByParam },
+    kanban: {
+      ...kanbanParam,
+      groupBy: kanbanParam?.groupBy ?? kanbanGroupByParam,
+    },
     pageSize: normalizePageSize(pageSizeParam),
     sorting: sortParam,
   });

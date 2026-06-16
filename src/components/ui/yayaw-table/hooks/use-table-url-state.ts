@@ -15,6 +15,7 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import type {
   TableDisplayMode,
   TableGalleryViewConfig,
+  TableKanbanViewConfig,
 } from "../types/display-types";
 import type { AdvancedFiltersState } from "../types/filter-types";
 import type { TableViewConfig } from "../types/view-types";
@@ -177,6 +178,19 @@ const galleryParser = createParser({
     }
   },
   serialize: (value: TableGalleryViewConfig) =>
+    Object.keys(value || {}).length ? JSON.stringify(value) : "",
+});
+
+const kanbanParser = createParser({
+  parse: (value: string): TableKanbanViewConfig => {
+    try {
+      const parsed = value ? JSON.parse(value) : {};
+      return isRecord(parsed) ? (parsed as TableKanbanViewConfig) : {};
+    } catch {
+      return {};
+    }
+  },
+  serialize: (value: TableKanbanViewConfig) =>
     Object.keys(value || {}).length ? JSON.stringify(value) : "",
 });
 
@@ -416,10 +430,26 @@ export function useTableUrlState({
     `${tableId}-kanbanGroupBy`
   );
 
+  const [kanbanParam, setKanbanParam] = useQueryState(
+    `${tableId}-kanban`,
+    kanbanParser
+  );
+
   const [galleryParam, setGalleryParam] = useQueryState(
     `${tableId}-gallery`,
     galleryParser
   );
+
+  const resolvedKanbanParam = useMemo<TableKanbanViewConfig>(() => {
+    if (kanbanParam?.groupBy || !kanbanGroupByParam) {
+      return (kanbanParam || {}) as TableKanbanViewConfig;
+    }
+
+    return {
+      ...(kanbanParam || {}),
+      groupBy: kanbanGroupByParam,
+    };
+  }, [kanbanGroupByParam, kanbanParam]);
 
   // Global search parameter (server-side global filter)
   const [globalSearchParam, setGlobalSearchParam] = useQueryState(
@@ -629,9 +659,42 @@ export function useTableUrlState({
 
   const setKanbanGroupByFromUI = useCallback(
     (groupBy: string | undefined) => {
-      setKanbanGroupByParam(groupBy || null);
+      const nextConfig: TableKanbanViewConfig = {
+        ...(kanbanParam || {}),
+        groupBy: groupBy || undefined,
+      };
+
+      for (const key of Object.keys(nextConfig) as Array<
+        keyof TableKanbanViewConfig
+      >) {
+        if (nextConfig[key] === undefined) {
+          delete nextConfig[key];
+        }
+      }
+
+      setKanbanParam(
+        Object.keys(nextConfig).length > 0 ? nextConfig : null
+      );
+      setKanbanGroupByParam(null);
     },
-    [setKanbanGroupByParam]
+    [kanbanParam, setKanbanGroupByParam, setKanbanParam]
+  );
+
+  const setKanbanFromUI = useCallback(
+    (kanban: TableKanbanViewConfig | undefined) => {
+      const hasKanbanValues = Boolean(
+        kanban && Object.keys(kanban).length > 0
+      );
+      if (hasKanbanValues && kanban) {
+        setKanbanParam(kanban);
+        setKanbanGroupByParam(null);
+        return;
+      }
+
+      setKanbanParam(null);
+      setKanbanGroupByParam(null);
+    },
+    [setKanbanGroupByParam, setKanbanParam]
   );
 
   const setGalleryFromUI = useCallback(
@@ -666,6 +729,7 @@ export function useTableUrlState({
       globalSearchParam: globalSearchParam || "",
       galleryParam: (galleryParam || {}) as TableGalleryViewConfig,
       groupingParam: (groupingParam || []) as string[],
+      kanbanParam: resolvedKanbanParam,
       kanbanGroupByParam: kanbanGroupByParam || "",
       orderParam: (orderParam || []) as string[],
       pageSizeParam: pageSizeParam || defaultPageSizeParam,
@@ -688,6 +752,7 @@ export function useTableUrlState({
     pageSizeParam,
     pinningParam,
     resolvedDefaultDisplayMode,
+    resolvedKanbanParam,
     sortParam,
     visibilityParam,
   ]);
@@ -708,7 +773,8 @@ export function useTableUrlState({
         setDisplayModeParam,
         getDisplayModeUrlValue(config.displayMode ?? resolvedDefaultDisplayMode)
       );
-      queueUrlUpdate(setKanbanGroupByParam, config.kanban?.groupBy || null);
+      queueUrlUpdate(setKanbanParam, config.kanban || null);
+      queueUrlUpdate(setKanbanGroupByParam, null);
       queueUrlUpdate(setGalleryParam, config.gallery || null);
       queueUrlUpdate(setPageParam, "0");
       queueUrlUpdate(
@@ -735,6 +801,7 @@ export function useTableUrlState({
       setGroupingParam,
       setHistoryIndexParam,
       setKanbanGroupByParam,
+      setKanbanParam,
       setOrderParam,
       setPageParam,
       setPageSizeParam,
@@ -787,7 +854,9 @@ export function useTableUrlState({
       setUrlParam(url, `${tableId}-expanded`, expandedParam);
       setUrlParam(url, `${tableId}-grouping`, groupingParam);
       setUrlParam(url, `${tableId}-display`, displayModeParam);
-      setUrlParam(url, `${tableId}-kanbanGroupBy`, kanbanGroupByParam);
+      url.searchParams.delete(`${tableId}-kanbanGroupBy`);
+      url.searchParams.delete(`${tableId}-kanban`);
+      setUrlParam(url, `${tableId}-kanban`, resolvedKanbanParam);
       setUrlParam(url, `${tableId}-gallery`, galleryParam);
 
       // Special case for pinning
@@ -810,7 +879,7 @@ export function useTableUrlState({
       expandedParam,
       groupingParam,
       displayModeParam,
-      kanbanGroupByParam,
+      resolvedKanbanParam,
       galleryParam,
       globalSearchParam,
       pinningParam,
@@ -857,6 +926,7 @@ export function useTableUrlState({
       setGroupingParam([]);
       setDisplayModeParam(null);
       setKanbanGroupByParam(null);
+      setKanbanParam(null);
       setGalleryParam(null);
       setGlobalSearchParam(null);
       setPinningParam({ left: [], right: [] });
@@ -886,6 +956,7 @@ export function useTableUrlState({
     setGroupingParam,
     setDisplayModeParam,
     setKanbanGroupByParam,
+    setKanbanParam,
     setGalleryParam,
     setGlobalSearchParam,
     setPinningParam,
@@ -924,6 +995,7 @@ export function useTableUrlState({
     groupingParam: groupingParam || [],
     galleryParam: (galleryParam || {}) as TableGalleryViewConfig,
     historyIndexParam,
+    kanbanParam: resolvedKanbanParam,
     kanbanGroupByParam: kanbanGroupByParam || "",
     orderParam: orderParam || [],
     pageParam: pageParam || "0",
@@ -945,6 +1017,7 @@ export function useTableUrlState({
     setExpandedFromUI,
     setGlobalSearchFromUI,
     setGalleryFromUI,
+    setKanbanFromUI,
     // Raw setters (should generally not be used directly)
     setExpandedParam,
     setFiltersParam,
@@ -953,6 +1026,7 @@ export function useTableUrlState({
     setHistoryIndexParam,
     setKanbanGroupByFromUI,
     setKanbanGroupByParam,
+    setKanbanParam,
     setGalleryParam,
     setOrderFromUI,
 
