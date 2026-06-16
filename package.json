@@ -5,7 +5,7 @@
   "description": "A flexible data table component library for React with user-defined configurations",
   "scripts": {
     "build": "fumadocs-mdx && next build",
-    "build:watch": "next dev",
+    "build:watch": "next dev -p 3070",
     "registry:sync": "node scripts/build-registry.mjs",
     "registry:build": "node scripts/build-registry.mjs && bunx --bun shadcn@latest build registry/registry.json --output public/r && bunx ultracite fix registry/registry.json public/r",
     "registry:snapshot": "node scripts/snapshot-registry-release.mjs",
@@ -14,7 +14,7 @@
     "version": "changeset version && bun run registry:release",
     "release:check": "bun run check && bun run type-check && bun run test",
     "release:verify": "node scripts/verify-registry-release.mjs",
-    "dev": "next dev",
+    "dev": "next dev -p 3070",
     "start": "next start",
     "build:app": "fumadocs-mdx && next build",
     "type-check": "tsc --noEmit",
