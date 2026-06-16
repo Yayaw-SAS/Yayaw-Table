@@ -5,6 +5,8 @@ import { getImageFallbackInitial, resolveImageSource } from "../utils/image-sour
 import {
   resolveGalleryDisplayConfig,
   resolveGalleryImageColumnId,
+  resolveGalleryLinkColumnId,
+  resolveGalleryLinkUrl,
   resolveGalleryPropertyColumnIds,
   resolveGalleryTitleColumnId,
   shouldShowGalleryCardLabels,
@@ -16,6 +18,7 @@ const columns: TableCatalogueColumnConfig[] = [
   { header: "Name", id: "name", type: "text" },
   { header: "Brand", id: "brand", type: "text" },
   { header: "Status", id: "status", type: "tag" },
+  { header: "Website", id: "website", type: "url", urlDisplayMode: "icon" },
   { header: "Actions", id: "actions", type: "actions" },
 ];
 
@@ -50,7 +53,7 @@ describe("Gallery display helpers", () => {
         imageColumnId,
         titleColumnId,
       }),
-      ["brand", "status"]
+      ["brand", "status", "website"]
     );
   });
 
@@ -74,6 +77,25 @@ describe("Gallery display helpers", () => {
       []
     );
   });
+
+  it("resolves the gallery link column from row-link or URL columns", () => {
+    assert.equal(resolveGalleryLinkColumnId({ columnDefinitions: columns }), "website");
+
+    assert.equal(
+      resolveGalleryLinkColumnId({
+        columnDefinitions: [
+          ...columns,
+          {
+            header: "Details",
+            id: "detailsUrl",
+            type: "url",
+            urlDisplayMode: "row-link",
+          },
+        ],
+      }),
+      "detailsUrl"
+    );
+  });
 });
 
 describe("Gallery image source helpers", () => {
@@ -90,5 +112,16 @@ describe("Gallery image source helpers", () => {
     assert.equal(getImageFallbackInitial("Laptop"), "L");
     assert.equal(getImageFallbackInitial(""), "?");
     assert.equal(getImageFallbackInitial(undefined), "?");
+  });
+});
+
+describe("Gallery link helpers", () => {
+  it("accepts HTTP URLs and rejects unsafe or empty link values", () => {
+    assert.equal(resolveGalleryLinkUrl("https://example.com/product"), "https://example.com/product");
+    assert.equal(resolveGalleryLinkUrl("http://example.com/product"), "http://example.com/product");
+    assert.equal(resolveGalleryLinkUrl("mailto:sales@example.com"), undefined);
+    assert.equal(resolveGalleryLinkUrl("javascript:alert(1)"), undefined);
+    assert.equal(resolveGalleryLinkUrl(""), undefined);
+    assert.equal(resolveGalleryLinkUrl(undefined), undefined);
   });
 });
