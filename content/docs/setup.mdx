@@ -228,7 +228,7 @@ Then pass it:
 After the 4 core steps above, your table should:
 
 - Load data through `list(params)`.
-- Keep sorting, filters, and pagination in URL params.
+- Keep sorting, filters, display mode, and pagination in URL params.
 - Call `create`/`update`/`delete` when row actions are used.
 - Use your columns/order/visibility from `getTableConfig`.
 
@@ -236,7 +236,7 @@ After the 4 core steps above, your table should:
 
 `getTableConfig(tableType)` should return:
 
-- Top-level table behavior keys like `layoutPreset`, `emptyState`, `rowClickMode`, `enableRowSelection`, `enableRowClickEdit`, `enableSorting`, `enableColumnFilters`, `defaultPageSize`, `pageSizeOptions`, `export`, `bulkExport`, `actionsAsIcons`.
+- Top-level table behavior keys like `layoutPreset`, `emptyState`, `rowClickMode`, `displayModes`, `defaultDisplayMode`, `kanban`, `gallery`, `allowViewSave`, `allowViewSharing`, `enableRowSelection`, `enableRowClickEdit`, `enableSorting`, `enableColumnFilters`, `defaultPageSize`, `pageSizeOptions`, `export`, `bulkExport`, `actionsAsIcons`.
 - `enableRowClickEdit` opens the edit drawer on row click and cannot be combined with `urlDisplayMode: "row-link"` or inline edit.
 - **columns** – `definitions` (array of `{ id, type, header, enableSorting?, enableColumnFilter? }`), `order`, `visible`, `mandatory`, `sort`.
 - **translations** (optional) – `namespace`, `keys` for title/description.

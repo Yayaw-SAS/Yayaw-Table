@@ -1517,15 +1517,20 @@ function ModernDataTable<
   );
 
   const handleGalleryRowLinkClick = useCallback(
-    (row: Row<TData>) => {
+    (row: Row<TData>, event: React.MouseEvent<HTMLButtonElement>) => {
       const url = getGalleryRowLinkUrl(row);
       if (!url) {
         return;
       }
 
+      if (onRowClick) {
+        onRowClick(url, row.original, event);
+        return;
+      }
+
       window.open(url, "_blank", "noopener");
     },
-    [getGalleryRowLinkUrl]
+    [getGalleryRowLinkUrl, onRowClick]
   );
 
   const getRowClickMode = useCallback(

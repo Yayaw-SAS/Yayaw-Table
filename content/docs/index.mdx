@@ -42,6 +42,12 @@ You need at least **getTableConfig** (columns, table options) and **getTableActi
 ### Grouping
 Grouping, pagination, and sorting are enabled via table configuration and column types. No heavy wiring needed.
 
+### Saved views
+Users can save and restore URL-backed views that include filters, search, sorting, column layout, display mode, Kanban settings, Gallery settings, grouping, pinning, and page size.
+
+### Display modes
+Use the default table view, a Kibo UI-powered Kanban board, or a responsive Gallery card grid from the same data source. Kanban and Gallery keep selection, row actions, row click behavior, filters, sorting, pagination, and saved views aligned with table mode.
+
 ### Pagination
 Accessible pagination controls with proper ARIA and keyboard navigation.
 
@@ -66,6 +72,7 @@ Everything is available from the table toolbar:
 - Column filters and an advanced filters panel
 - Grouping toggles when supported by column types
 - Column visibility menu (show/hide, reset order)
+- Saved views and a display switcher for table, Kanban, and Gallery modes
 - Global search input
 - CSV export from toolbar (all filtered rows)
 - Compact toolbar actions mode (icon + tooltip) via `table.actionsAsIcons`
@@ -86,7 +93,7 @@ Everything is available from the table toolbar:
 - [Query Integration](/docs/query-integration) – Shared QueryClient architecture and invalidation
 - [Bulk Actions](/docs/bulk-actions) – Confirmation flow and callback contract
 - [Server-side & Server Actions](/docs/server-actions) – Next.js Server Actions for list and CRUD
-- [URL state (Nuqs)](/docs/url-state) – Sort, filters, pagination in the URL
+- [URL state (Nuqs)](/docs/url-state) – Sort, filters, display modes, saved views, and pagination in the URL
 - [Troubleshooting](/docs/troubleshooting) – Fix common runtime issues
 - [Translations](/docs/translations) – Override UI strings
 
@@ -96,7 +103,7 @@ The table uses Tailwind by default. You can customize classes via standard `clas
 
 ## 🔗 Example
 
-See **/example** in this repo for a full UI integration example: URL state (Nuqs), advanced filters, bulk edit, and locally persisted demo data (`localStorage` + dataset reset).
+See **/example** in this repo for a full UI integration example: URL state (Nuqs), saved views, table/Kanban/Gallery display modes, advanced filters, bulk edit, and locally persisted demo data (`localStorage` + dataset reset).
 
 For the server-driven pattern, see [Server-side & Server Actions](/docs/server-actions).
 

@@ -107,12 +107,12 @@ Return a stable row id for active-row highlighting, selection, and row metadata.
 Type: `(row: Record<string, unknown>) => string` | Default: `undefined`
 
 ### onRowActivate
-Callback fired when `table.rowClickMode` is set to `'activate'` and a non-interactive row area is clicked.
+Callback fired when `table.rowClickMode` is set to `'activate'` and a non-interactive row or card area is clicked.
 
 Type: `(row: Record<string, unknown>, event: React.MouseEvent) => void` | Default: `undefined`
 
 ### onRowClick
-Callback fired by link-style row interactions. Use it to route through app navigation or analytics instead of relying on the browser default.
+Callback fired by link-style row interactions, including row-link table clicks and Gallery link buttons. Use it to route through app navigation or analytics instead of relying on the browser default.
 
 Type: `(url: string, row: Record<string, unknown>, event: React.MouseEvent) => void` | Default: `undefined`
 

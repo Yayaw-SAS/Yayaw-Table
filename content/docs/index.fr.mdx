@@ -42,6 +42,12 @@ Il vous faut au minimum **getTableConfig** (colonnes, options de table) et **get
 ### Groupement
 Le groupement, la pagination et le tri sont activés via la configuration de table et les types de colonnes. Pas de **câblage** lourd.
 
+### Vues enregistrées
+Les utilisateurs peuvent enregistrer et restaurer des vues basées sur l'état URL : filtres, recherche, tri, layout de colonnes, mode d'affichage, réglages Kanban, réglages Gallery, groupement, pinning et taille de page.
+
+### Modes d'affichage
+Utilisez la vue table par défaut, un Kanban basé sur Kibo UI ou une grille Gallery responsive depuis la même source de données. Kanban et Gallery conservent la sélection, les actions de ligne, le comportement de clic, les filtres, le tri, la pagination et les vues enregistrées comme la table.
+
 ### Pagination
 Contrôles de pagination accessibles avec ARIA correct et navigation clavier.
 
@@ -66,6 +72,7 @@ Tout est accessible depuis la barre d'outils :
 - Filtres de colonnes et panneau de filtres avancés
 - **Bascules** de regroupement quand le type de colonne le permet
 - Menu de visibilité des colonnes (afficher/masquer, **réinitialiser l'ordre**)
+- Vues enregistrées et sélecteur d'affichage table, Kanban et Gallery
 - Recherche globale
 - Export CSV depuis la barre d'outils (toutes les lignes filtrées)
 - Mode barre d'outils compact (icône + tooltip) via `table.actionsAsIcons`
@@ -84,7 +91,7 @@ Tout est accessible depuis la barre d'outils :
 - [Query Integration](/docs/query-integration) – Architecture QueryClient partagé et invalidation
 - [Bulk Actions](/docs/bulk-actions) – Flux de confirmation et contrat des callbacks
 - [Server-side & Server Actions](/docs/server-actions) – Server Actions Next.js pour list et CRUD
-- [URL state (Nuqs)](/docs/url-state) – Tri, filtres, pagination dans l'URL
+- [URL state (Nuqs)](/docs/url-state) – Tri, filtres, modes d'affichage, vues enregistrées et pagination dans l'URL
 - [Troubleshooting](/docs/troubleshooting) – Résoudre les problèmes runtime fréquents
 - [Translations](/docs/translations) – Surcharger les chaînes UI
 
@@ -94,7 +101,7 @@ La table utilise Tailwind par défaut. Vous pouvez personnaliser les classes via
 
 ## 🔗 Exemple
 
-Consultez **/example** dans ce repo pour un exemple complet d'intégration UI : état URL (Nuqs), filtres avancés, **édition de masse** et données de démonstration **conservées** en local (`localStorage` + **réinitialisation du jeu de données**).
+Consultez **/example** dans ce repo pour un exemple complet d'intégration UI : état URL (Nuqs), vues enregistrées, modes table/Kanban/Gallery, filtres avancés, **édition de masse** et données de démonstration **conservées** en local (`localStorage` + **réinitialisation du jeu de données**).
 
 Pour l'**approche** server-driven, voir [Server-side & Server Actions](/docs/server-actions).
 

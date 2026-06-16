@@ -245,7 +245,7 @@ Type:
 - `cardSize` controls the responsive card width. The default is `'medium'`.
 - `showCardLabels` shows property labels on cards. The default is `false`, so cards render compact type-aware values like Kanban.
 
-Gallery uses the same TanStack table instance as table mode, so sorting, filters, selection, row actions, pagination, row click behavior, and saved views keep working. When Gallery is active, the toolbar shows image, title, property, ratio, fit, size, and label controls and writes overrides to `{tableId}-gallery`.
+Gallery uses the same TanStack table instance as table mode, so sorting, filters, selection, row actions, pagination, row click behavior, and saved views keep working. When Gallery is active, the toolbar shows image, title, property, ratio, fit, size, and label controls and writes overrides to `{tableId}-gallery`. Gallery cards can show an external-link button for URL columns and an edit button when `allowEdit`, `canEditRow`, and edit actions allow it.
 
 ### emptyState
 Customize the row shown when the current table query returns no rows.
@@ -303,7 +303,7 @@ Enable grouping UI and grouped row rendering when column types allow it.
 Type: `boolean` | Default: `true`
 
 ### enableViews
-Show the saved views manager above the table. The manager stores and restores useful URL-backed table state such as search, filters, sorting, visible columns, column order, grouping, pinning, and page size.
+Show the saved views manager above the table. The manager stores and restores useful URL-backed table state such as search, filters, sorting, visible columns, column order, display mode, Kanban/Gallery settings, grouping, pinning, and page size.
 
 Type: `boolean` | Default: `true`
 

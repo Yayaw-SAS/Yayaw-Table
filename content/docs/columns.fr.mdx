@@ -17,6 +17,7 @@ columns: {
       header: 'Price',
       numberFormat: { thousandsSeparator: ' ', decimals: 0, suffix: ' €' },
     },
+    { id: 'imageUrl', type: 'image', header: 'Image', enableSorting: false, enableColumnFilter: false },
     { id: 'status', type: 'tag', header: 'Status' },
     { id: 'createdAt', type: 'date', header: 'Created', dateDisplayPreset: 'dmy-numeric' },
     { id: 'isActive', type: 'boolean', header: 'Active' },
@@ -38,6 +39,7 @@ Types de colonnes supportés :
 - `boolean`
 - `date`
 - `tag`
+- `image` (chaîne URL avec fallback automatique si vide ou invalide)
 - `actions`
 - `dynamicType` (renderer sélectionné via `typeKey`)
 - `select` (checkbox de sélection de ligne ; colonne virtuelle)
@@ -55,8 +57,10 @@ Propriétés communes :
 - `dateFormat?: string` – **repli hérité** au format date-fns pour les colonnes date
 - `enableCalculation?: boolean` – active/désactive les calculs du footer pour cette colonne une fois `table.enableCalculations` activé (par défaut `true`, sauf colonnes système `select`/`actions`)
 - `defaultCalculation?: CalculationType` – calcul par défaut affiché pour cette colonne (validé selon le type de colonne)
+- `inlineEdit?: boolean | InlineEditColumnConfig` – active/configure l'édition inline pour cette colonne
 - Pour les colonnes **number** : `numberFormat?: NumberFormatConfig` – format d'affichage (séparateurs milliers/décimales, décimales, préfixe/suffixe monétaire). Voir [Number column](#number-column-number) ci-dessous.
 - Pour les colonnes **tag** : `tagColorMap?: Record<string, string>` – map optionnelle valeur → classe Tailwind (voir ci-dessous).
+- Pour les colonnes **image** : les valeurs sont des chaînes URL. Les chemins relatifs d'app comme `/example/products/laptop.svg`, les URLs `http(s)`, les URLs `blob:` et les URLs base64 `data:image/*` sont acceptés. Les valeurs vides ou invalides affichent un fallback compact.
 
 ## Calculs de footer par colonne
 
