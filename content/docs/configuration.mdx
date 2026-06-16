@@ -285,6 +285,8 @@ Modes:
 - `link`: uses row link behavior for URL-backed rows and calls `onRowClick(url, row, event)` when provided.
 - `none`: disables row click behavior.
 
+The same row click behavior applies in table, Kanban, and Gallery display modes. Card-level clicks honor `allowEdit` and `canEditRow`, while nested controls such as selection checkboxes, links, drag handles, and row action buttons stay interactive without opening the row.
+
 ### enableColumnFilters
 Enable per-column filters.
 
