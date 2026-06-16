@@ -255,16 +255,15 @@ function GalleryCardProperties<TData extends Record<string, unknown>>({
   }
 
   return (
-    <div className="mt-3 flex flex-wrap items-center gap-1.5">
+    <div className="mt-3 space-y-1.5">
       {propertyCells.map((cell) => {
         const label = propertyLabels.get(cell.column.id) ?? cell.column.id;
         return (
-          <div
-            className={getGalleryPropertyValueClassName(showCardLabels)}
-            key={cell.id}
-          >
+          <div className="flex min-w-0 items-center" key={cell.id}>
             <span className="sr-only">{label}: </span>
-            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+            <div className={getGalleryPropertyValueClassName(showCardLabels)}>
+              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+            </div>
           </div>
         );
       })}
