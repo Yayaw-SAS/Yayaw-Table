@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.3.0
+
+### Minor Changes
+
+- aef7d4f: Add gallery card buttons to open URL columns and edit rows through the catalogue form.
+- abbc7c8: Add a URL-backed Gallery display mode with image columns, gallery toolbar settings, saved-view support, and local product demo media.
+- 89f9d16: Add configurable table display modes with a URL-backed Kanban view that can be stored in saved views.
+- 49d7ecf: Store Kanban lane, title, property, and label settings in URL-backed saved views.
+- 46e984c: Use the Kibo UI Kanban primitives for the table Kanban display mode and render card properties without visible labels by default.
+- 7890d9a: Add a saved views manager for YaYaw Table with URL-backed view snapshots and a database-ready view actions contract.
+- 3b56a05: Add saved view permissions for saving views and sharing them with a team.
+
+### Patch Changes
+
+- 3e830b7: Honor row interaction permission flags consistently in Kanban and Gallery cards.
+- c34a48d: Render unlabeled Kanban and Gallery card properties in a compact two-column grid.
+- 16072dd: Align Gallery link buttons with row-link navigation callbacks and update Kanban/Gallery documentation before release.
+- 270c85b: Hide custom toolbar actions that require footer calculations when footer calculations are disabled.
+- aff6472: Expose Kanban lane grouping in the toolbar by reusing the existing grouping picker.
+- 15599eb: Hide stacked grouping controls in single-level group pickers and simplify the Kanban grouping trigger label.
+
 ## 1.2.0
 
 ### Minor Changes
