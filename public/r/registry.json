@@ -1119,8 +1119,8 @@
       ],
       "meta": {
         "registryUrl": "https://table.yayaw.app/r/yayaw-table.json",
-        "version": "1.2.0",
-        "versionedRegistryUrl": "https://table.yayaw.app/r/v1.2.0/yayaw-table.json"
+        "version": "1.3.0",
+        "versionedRegistryUrl": "https://table.yayaw.app/r/v1.3.0/yayaw-table.json"
       }
     },
     {
@@ -1140,8 +1140,8 @@
       "categories": ["font", "theme", "yayaw-table"],
       "meta": {
         "registryUrl": "https://table.yayaw.app/r/font-yayaw-sans.json",
-        "version": "1.2.0",
-        "versionedRegistryUrl": "https://table.yayaw.app/r/v1.2.0/font-yayaw-sans.json"
+        "version": "1.3.0",
+        "versionedRegistryUrl": "https://table.yayaw.app/r/v1.3.0/font-yayaw-sans.json"
       }
     },
     {
@@ -1202,8 +1202,8 @@
       "categories": ["base", "theme", "yayaw-table"],
       "meta": {
         "registryUrl": "https://table.yayaw.app/r/yayaw-table-base.json",
-        "version": "1.2.0",
-        "versionedRegistryUrl": "https://table.yayaw.app/r/v1.2.0/yayaw-table-base.json"
+        "version": "1.3.0",
+        "versionedRegistryUrl": "https://table.yayaw.app/r/v1.3.0/yayaw-table-base.json"
       }
     }
   ]
