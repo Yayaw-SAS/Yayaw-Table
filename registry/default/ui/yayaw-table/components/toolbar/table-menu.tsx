@@ -28,6 +28,7 @@ import {
 import { useTableUrlState } from "../../hooks/use-table-url-state";
 import { useTranslations } from "../../providers/table-provider";
 import type { ColumnDataType } from "../../types";
+import type { TableDisplayMode } from "../../types/display-types";
 import type {
   AdvancedFiltersState,
   ColumnsFilterConfig,
@@ -40,6 +41,7 @@ import {
   StackMenuSection,
   StackMenuView,
 } from "../../ui-custom/stack-menu";
+import { getDisplayModeGrouping } from "../../utils/table-view-state";
 import { TableColumnsMenu } from "./sections/table-columns-menu";
 import { TableFiltersMenu } from "./sections/table-filters-menu";
 import { TableGroupingMenu } from "./sections/table-grouping-menu";
@@ -50,6 +52,7 @@ const EMPTY_COLUMNS: never[] = [];
 export interface TableMenuProps {
   actionsAsIcons?: boolean;
   columns: TableColumn[];
+  defaultDisplayMode?: TableDisplayMode;
   enableColumnFilters?: boolean;
   enableCalculations?: boolean;
   enableGrouping?: boolean;
@@ -397,6 +400,7 @@ function renderMainMenuView({
 export function TableMenu({
   actionsAsIcons = false,
   columns = EMPTY_COLUMNS,
+  defaultDisplayMode,
   enableColumnFilters = true,
   enableCalculations = false,
   enableGrouping = true,
@@ -428,19 +432,34 @@ export function TableMenu({
   const effectiveOpen = open || Boolean(openToView);
 
   // URL-state fallback to avoid stale grouping passed from parents
-  const { groupingParam: urlGrouping, setGroupingFromUI } = useTableUrlState({
+  const {
+    displayModeParam,
+    groupingParam: urlGrouping,
+    setGroupingFromUI,
+  } = useTableUrlState({
+    defaultDisplayMode,
     tableId,
   });
 
-  const finalGrouping = (
+  const groupingMaxGroups =
+    displayModeParam === "kanban" || displayModeParam === "gallery" ? 1 : 2;
+  const rawFinalGrouping = (
     state?.grouping?.length ? state.grouping : urlGrouping || []
   ) as string[];
+  const finalGrouping = getDisplayModeGrouping({
+    displayMode: displayModeParam,
+    grouping: rawFinalGrouping,
+  });
   const finalSetGrouping = useCallback(
     (next: TableState["grouping"]) => {
-      setGrouping(next);
-      setGroupingFromUI(next as string[]);
+      const displayGrouping = getDisplayModeGrouping({
+        displayMode: displayModeParam,
+        grouping: next as string[],
+      });
+      setGrouping(displayGrouping);
+      setGroupingFromUI(displayGrouping);
     },
-    [setGrouping, setGroupingFromUI]
+    [displayModeParam, setGrouping, setGroupingFromUI]
   );
 
   // Calculate visible columns count
@@ -653,6 +672,7 @@ export function TableMenu({
             columns={columns}
             grouping={finalGrouping}
             invalidateTable={invalidateTable}
+            maxGroups={groupingMaxGroups}
             setGrouping={finalSetGrouping}
             tableId={tableId}
             tableType={tableType}

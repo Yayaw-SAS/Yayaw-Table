@@ -22,6 +22,8 @@ import type { TableViewConfig } from "../types/view-types";
 import {
   createTableViewConfigSnapshot,
   normalizeColumnPinning,
+  normalizeGroupingState,
+  normalizeTableViewConfig,
 } from "../utils/table-view-state";
 
 // Simple debounce implementation to avoid lodash dependency
@@ -73,6 +75,26 @@ const normalizeDisplayMode = (
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === "object" && value !== null;
+};
+
+const stripKanbanGrouping = (
+  config: TableKanbanViewConfig | null | undefined
+): TableKanbanViewConfig | undefined => {
+  if (!config) {
+    return;
+  }
+
+  const { groupBy: _groupBy, ...rest } = config;
+  const normalized: TableKanbanViewConfig = { ...rest };
+  for (const key of Object.keys(normalized) as Array<
+    keyof TableKanbanViewConfig
+  >) {
+    if (normalized[key] === undefined) {
+      delete normalized[key];
+    }
+  }
+
+  return Object.keys(normalized).length > 0 ? normalized : undefined;
 };
 
 const toValidDate = (value: unknown): Date | undefined => {
@@ -190,8 +212,10 @@ const kanbanParser = createParser({
       return {};
     }
   },
-  serialize: (value: TableKanbanViewConfig) =>
-    Object.keys(value || {}).length ? JSON.stringify(value) : "",
+  serialize: (value: TableKanbanViewConfig) => {
+    const nextValue = stripKanbanGrouping(value);
+    return nextValue ? JSON.stringify(nextValue) : "";
+  },
 });
 
 // Parser for advanced filters
@@ -450,6 +474,18 @@ export function useTableUrlState({
       groupBy: kanbanGroupByParam,
     };
   }, [kanbanGroupByParam, kanbanParam]);
+  const resolvedGroupingParam = useMemo(
+    () =>
+      normalizeGroupingState(
+        groupingParam,
+        resolvedKanbanParam.groupBy || kanbanGroupByParam || undefined
+      ),
+    [groupingParam, kanbanGroupByParam, resolvedKanbanParam.groupBy]
+  );
+  const resolvedKanbanCardParam = useMemo(
+    () => stripKanbanGrouping(resolvedKanbanParam) ?? {},
+    [resolvedKanbanParam]
+  );
 
   // Global search parameter (server-side global filter)
   const [globalSearchParam, setGlobalSearchParam] = useQueryState(
@@ -637,10 +673,15 @@ export function useTableUrlState({
 
   const setGroupingFromUI = useCallback(
     (grouping: string[]) => {
+      const nextGrouping = normalizeGroupingState(grouping);
       // Apply immediately to keep TanStack grouping in sync with UI without batching lag
-      setGroupingParam(grouping);
+      setGroupingParam(nextGrouping);
+      setKanbanGroupByParam(null);
+      if (kanbanParam?.groupBy) {
+        setKanbanParam(stripKanbanGrouping(kanbanParam) ?? null);
+      }
     },
-    [setGroupingParam]
+    [kanbanParam, setGroupingParam, setKanbanGroupByParam, setKanbanParam]
   );
 
   const getDisplayModeUrlValue = useCallback(
@@ -659,30 +700,25 @@ export function useTableUrlState({
 
   const setKanbanGroupByFromUI = useCallback(
     (groupBy: string | undefined) => {
-      const nextConfig: TableKanbanViewConfig = {
-        ...(kanbanParam || {}),
-        groupBy: groupBy || undefined,
-      };
-
-      for (const key of Object.keys(nextConfig) as Array<
-        keyof TableKanbanViewConfig
-      >) {
-        if (nextConfig[key] === undefined) {
-          delete nextConfig[key];
-        }
-      }
-
-      setKanbanParam(Object.keys(nextConfig).length > 0 ? nextConfig : null);
+      setGroupingParam(groupBy ? [groupBy] : []);
+      setKanbanParam(stripKanbanGrouping(kanbanParam) ?? null);
       setKanbanGroupByParam(null);
     },
-    [kanbanParam, setKanbanGroupByParam, setKanbanParam]
+    [kanbanParam, setGroupingParam, setKanbanGroupByParam, setKanbanParam]
   );
 
   const setKanbanFromUI = useCallback(
     (kanban: TableKanbanViewConfig | undefined) => {
-      const hasKanbanValues = Boolean(kanban && Object.keys(kanban).length > 0);
-      if (hasKanbanValues && kanban) {
-        setKanbanParam(kanban);
+      if (kanban?.groupBy) {
+        setGroupingParam([kanban.groupBy]);
+      }
+
+      const nextKanban = stripKanbanGrouping(kanban);
+      const hasKanbanValues = Boolean(
+        nextKanban && Object.keys(nextKanban).length > 0
+      );
+      if (hasKanbanValues && nextKanban) {
+        setKanbanParam(nextKanban);
         setKanbanGroupByParam(null);
         return;
       }
@@ -690,7 +726,7 @@ export function useTableUrlState({
       setKanbanParam(null);
       setKanbanGroupByParam(null);
     },
-    [setKanbanGroupByParam, setKanbanParam]
+    [setGroupingParam, setKanbanGroupByParam, setKanbanParam]
   );
 
   const setGalleryFromUI = useCallback(
@@ -725,8 +761,8 @@ export function useTableUrlState({
       filtersParam: (filtersParam || []) as ColumnFiltersState,
       globalSearchParam: globalSearchParam || "",
       galleryParam: (galleryParam || {}) as TableGalleryViewConfig,
-      groupingParam: (groupingParam || []) as string[],
-      kanbanParam: resolvedKanbanParam,
+      groupingParam: resolvedGroupingParam,
+      kanbanParam: resolvedKanbanCardParam,
       kanbanGroupByParam: kanbanGroupByParam || "",
       orderParam: (orderParam || []) as string[],
       pageSizeParam: pageSizeParam || defaultPageSizeParam,
@@ -743,13 +779,13 @@ export function useTableUrlState({
     filtersParam,
     galleryParam,
     globalSearchParam,
-    groupingParam,
+    resolvedGroupingParam,
     kanbanGroupByParam,
     orderParam,
     pageSizeParam,
     pinningParam,
     resolvedDefaultDisplayMode,
-    resolvedKanbanParam,
+    resolvedKanbanCardParam,
     sortParam,
     visibilityParam,
   ]);
@@ -761,6 +797,7 @@ export function useTableUrlState({
         right: [],
       };
       const nextPageSize = normalizePageSize(config.pageSize);
+      const normalizedConfig = normalizeTableViewConfig(config);
 
       queueUrlUpdate(setViewParam, options?.viewId ?? null);
       queueUrlUpdate(setHistoryIndexParam, "0");
@@ -772,7 +809,7 @@ export function useTableUrlState({
         setDisplayModeParam,
         getDisplayModeUrlValue(config.displayMode ?? resolvedDefaultDisplayMode)
       );
-      queueUrlUpdate(setKanbanParam, config.kanban || null);
+      queueUrlUpdate(setKanbanParam, normalizedConfig.kanban || null);
       queueUrlUpdate(setKanbanGroupByParam, null);
       queueUrlUpdate(setGalleryParam, config.gallery || null);
       queueUrlUpdate(setPageParam, "0");
@@ -783,7 +820,7 @@ export function useTableUrlState({
       queueUrlUpdate(setVisibilityParam, config.columnVisibility ?? {});
       queueUrlUpdate(setOrderParam, config.columnOrder ?? []);
       queueUrlUpdate(setExpandedParam, {});
-      queueUrlUpdate(setGroupingParam, config.grouping ?? []);
+      queueUrlUpdate(setGroupingParam, normalizedConfig.grouping ?? []);
       queueUrlUpdate(setPinningParam, nextPinning);
     },
     [
@@ -851,11 +888,11 @@ export function useTableUrlState({
       setUrlParam(url, `${tableId}-visibility`, visibilityParam);
       setUrlParam(url, `${tableId}-order`, orderParam);
       setUrlParam(url, `${tableId}-expanded`, expandedParam);
-      setUrlParam(url, `${tableId}-grouping`, groupingParam);
+      setUrlParam(url, `${tableId}-grouping`, resolvedGroupingParam);
       setUrlParam(url, `${tableId}-display`, displayModeParam);
       url.searchParams.delete(`${tableId}-kanbanGroupBy`);
       url.searchParams.delete(`${tableId}-kanban`);
-      setUrlParam(url, `${tableId}-kanban`, resolvedKanbanParam);
+      setUrlParam(url, `${tableId}-kanban`, resolvedKanbanCardParam);
       setUrlParam(url, `${tableId}-gallery`, galleryParam);
 
       // Special case for pinning
@@ -876,9 +913,9 @@ export function useTableUrlState({
       visibilityParam,
       orderParam,
       expandedParam,
-      groupingParam,
+      resolvedGroupingParam,
       displayModeParam,
-      resolvedKanbanParam,
+      resolvedKanbanCardParam,
       galleryParam,
       globalSearchParam,
       pinningParam,
@@ -991,10 +1028,10 @@ export function useTableUrlState({
       normalizeDisplayMode(displayModeParam) ?? resolvedDefaultDisplayMode,
     expandedParam,
     filtersParam: filtersParam || [],
-    groupingParam: groupingParam || [],
+    groupingParam: resolvedGroupingParam,
     galleryParam: (galleryParam || {}) as TableGalleryViewConfig,
     historyIndexParam,
-    kanbanParam: resolvedKanbanParam,
+    kanbanParam: resolvedKanbanCardParam,
     kanbanGroupByParam: kanbanGroupByParam || "",
     orderParam: orderParam || [],
     pageParam: pageParam || "0",

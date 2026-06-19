@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   areTableViewConfigsEqual,
   createTableViewConfigSnapshot,
+  getDisplayModeGrouping,
   normalizeTableViewConfig,
 } from "./table-view-state";
 
@@ -75,7 +76,6 @@ describe("createTableViewConfigSnapshot", () => {
       grouping: ["brand"],
       kanban: {
         cardColumnIds: ["brand", "price"],
-        groupBy: "status",
         showCardLabels: true,
         titleColumn: "name",
       },
@@ -102,6 +102,36 @@ describe("createTableViewConfigSnapshot", () => {
     });
 
     assert.deepEqual(snapshot, { displayMode: "table", pageSize: 20 });
+  });
+
+  it("migrates legacy Kanban group state into shared grouping", () => {
+    const snapshot = createTableViewConfigSnapshot({
+      advancedFiltersParam: [],
+      displayModeParam: "kanban",
+      filtersParam: [],
+      galleryParam: {},
+      globalSearchParam: "",
+      groupingParam: [],
+      kanbanParam: {
+        groupBy: " status ",
+        titleColumn: "name",
+      },
+      kanbanGroupByParam: "",
+      orderParam: [],
+      pageSizeParam: "20",
+      pinningParam: { left: [], right: [] },
+      sortParam: [],
+      visibilityParam: {},
+    });
+
+    assert.deepEqual(snapshot, {
+      displayMode: "kanban",
+      grouping: ["status"],
+      kanban: {
+        titleColumn: "name",
+      },
+      pageSize: 20,
+    });
   });
 });
 
@@ -135,9 +165,9 @@ describe("normalizeTableViewConfig", () => {
       }),
       {
         displayMode: "kanban",
+        grouping: ["status"],
         kanban: {
           cardColumnIds: ["brand", "price"],
-          groupBy: "status",
           showCardLabels: true,
           titleColumn: "name",
         },
@@ -192,6 +222,23 @@ describe("normalizeTableViewConfig", () => {
         },
       }),
       { kanban: { cardColumnIds: [], showCardLabels: false } }
+    );
+  });
+
+  it("limits card display modes to the primary grouping level", () => {
+    const grouping = ["status", "category"];
+
+    assert.deepEqual(
+      getDisplayModeGrouping({ displayMode: "table", grouping }),
+      ["status", "category"]
+    );
+    assert.deepEqual(
+      getDisplayModeGrouping({ displayMode: "kanban", grouping }),
+      ["status"]
+    );
+    assert.deepEqual(
+      getDisplayModeGrouping({ displayMode: "gallery", grouping }),
+      ["status"]
     );
   });
 });

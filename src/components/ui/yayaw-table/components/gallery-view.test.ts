@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import type { TableCatalogueColumnConfig } from "../hooks/use-table-config";
 import { getImageFallbackInitial, resolveImageSource } from "../utils/image-source";
 import {
+  createGalleryGroups,
   resolveGalleryDisplayConfig,
   resolveGalleryImageColumnId,
   resolveGalleryLinkColumnId,
@@ -94,6 +95,31 @@ describe("Gallery display helpers", () => {
         ],
       }),
       "detailsUrl"
+    );
+  });
+
+  it("builds gallery sections from the primary group value", () => {
+    const rows = [
+      { id: "1", original: { status: "Draft" } },
+      { id: "2", original: { status: "Published" } },
+      { id: "3", original: { status: "Draft" } },
+      { id: "4", original: { status: null } },
+    ] as unknown as import("@tanstack/react-table").Row<
+      Record<string, unknown>
+    >[];
+
+    const groups = createGalleryGroups({ groupBy: "status", rows });
+
+    assert.deepEqual(
+      groups.map((group) => ({
+        label: group.label,
+        rowIds: group.rows.map((row) => row.id),
+      })),
+      [
+        { label: "Draft", rowIds: ["1", "3"] },
+        { label: "Published", rowIds: ["2"] },
+        { label: "No value", rowIds: ["4"] },
+      ]
     );
   });
 });

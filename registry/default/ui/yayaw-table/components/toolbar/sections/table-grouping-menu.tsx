@@ -19,6 +19,7 @@ export interface TableGroupingMenuProps {
   }[];
   grouping: GroupingState;
   invalidateTable: () => Promise<void>;
+  maxGroups?: number;
   setGrouping: (state: GroupingState) => void;
   tableId: string;
   tableType?: string;
@@ -27,6 +28,7 @@ export interface TableGroupingMenuProps {
 export function TableGroupingMenu({
   columns,
   grouping,
+  maxGroups,
   setGrouping,
   tableId: _tableId,
   tableType,
@@ -66,6 +68,7 @@ export function TableGroupingMenu({
             type: c.type || "text",
           }))}
           grouping={grouping as string[]}
+          maxGroups={maxGroups}
           onChange={(next) => setGrouping(next as typeof grouping)}
           onCollapseAll={() => setExpandedFromUI({})}
           onExpandAll={() => setExpandedFromUI({ _all: true })}
