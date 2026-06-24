@@ -468,7 +468,12 @@ export function DataTableKanbanView<TData extends Record<string, unknown>>({
   table,
   titleColumnId,
 }: DataTableKanbanViewProps<TData>) {
-  const rows = table.getRowModel().rows as Row<TData>[];
+  const hasTableGrouping = table.getState().grouping.length > 0;
+  const rows = (
+    hasTableGrouping
+      ? table.getPreGroupedRowModel().rows
+      : table.getRowModel().rows
+  ) as Row<TData>[];
   const shouldUseConfiguredGroups = shouldUseConfiguredKanbanGroups({
     configuredGroupBy: config?.groupBy,
     groupBy,

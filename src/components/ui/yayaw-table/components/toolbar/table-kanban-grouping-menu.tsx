@@ -99,7 +99,9 @@ export function TableKanbanGroupingMenu({
   const { t } = useTranslations();
   const {
     displayModeParam,
+    groupingParam,
     kanbanParam,
+    setGroupingFromUI,
     setKanbanFromUI,
   } = useTableUrlState({
     defaultDisplayMode,
@@ -110,7 +112,7 @@ export function TableKanbanGroupingMenu({
     defaults: defaultConfig,
     override: kanbanParam,
   });
-  const activeGroupBy = activeConfig.groupBy || defaultGroupBy || "";
+  const activeGroupBy = groupingParam[0] || defaultGroupBy || "";
   const activeColumn = columns.find((column) => column.id === activeGroupBy);
   const activeTitleColumn =
     activeConfig.titleColumn ||
@@ -123,8 +125,9 @@ export function TableKanbanGroupingMenu({
       titleColumn: activeTitleColumn,
     });
   const showCardLabels = activeConfig.showCardLabels === true;
-  const hasOverride = Object.keys(kanbanParam || {}).length > 0;
-  const hasGroupOverride = Boolean(kanbanParam?.groupBy);
+  const hasGroupOverride = groupingParam.length > 0;
+  const hasOverride =
+    Object.keys(kanbanParam || {}).length > 0 || hasGroupOverride;
   const triggerLabel = activeColumn?.label || activeGroupBy || t("menu.select_column");
   const groupLabel = t("menu.group");
   const pickerColumns =
@@ -182,11 +185,14 @@ export function TableKanbanGroupingMenu({
               grouping={activeGroupBy ? [activeGroupBy] : []}
               maxGroups={1}
               onChange={(next) => {
-                updateKanban({ groupBy: next[0] });
+                setGroupingFromUI(next.slice(0, 1));
               }}
               onCollapseAll={noop}
               onExpandAll={noop}
-              onReset={() => setKanbanFromUI(undefined)}
+              onReset={() => {
+                setKanbanFromUI(undefined);
+                setGroupingFromUI([]);
+              }}
               resetDisabled={!hasOverride}
               showExpandCollapse={false}
             />

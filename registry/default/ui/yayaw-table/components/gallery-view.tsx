@@ -19,6 +19,8 @@ import {
 } from "../utils/image-source";
 
 const SYSTEM_COLUMN_IDS = new Set(["actions", "select"]);
+const EMPTY_GROUP_VALUE = "";
+const EMPTY_GROUP_LABEL = "No value";
 
 const GALLERY_ASPECT_RATIO_CLASS = {
   portrait: "aspect-[3/4]",
@@ -46,6 +48,8 @@ interface DataTableGalleryViewProps<TData extends Record<string, unknown>> {
   editRowLabel?: string;
   emptyState: ReactNode;
   getRowLinkUrl?: (row: Row<TData>) => string | undefined;
+  groupBy?: string;
+  groupLabel?: string;
   isRowActive?: (row: Row<TData>) => boolean;
   isRowClickable?: (row: Row<TData>) => boolean;
   linkRowLabel?: string;
@@ -88,6 +92,13 @@ interface GalleryCardPropertiesProps<TData extends Record<string, unknown>> {
   propertyCells: ReturnType<Row<TData>["getVisibleCells"]>;
   propertyLabels: Map<string, string>;
   showCardLabels: boolean;
+}
+
+export interface GalleryGroup<TData extends Record<string, unknown>> {
+  id: string;
+  label: string;
+  rows: Row<TData>[];
+  value: string;
 }
 
 export function resolveGalleryDisplayConfig(
@@ -218,6 +229,56 @@ function getStringValue(value: unknown): string {
   return String(value);
 }
 
+function getGalleryGroupValue(value: unknown): string {
+  if (value === null || value === undefined) {
+    return EMPTY_GROUP_VALUE;
+  }
+
+  return String(value);
+}
+
+export function createGalleryGroups<TData extends Record<string, unknown>>({
+  groupBy,
+  rows,
+}: {
+  groupBy: string;
+  rows: Row<TData>[];
+}): GalleryGroup<TData>[] {
+  if (!groupBy) {
+    return [
+      {
+        id: "gallery-group-all",
+        label: "",
+        rows,
+        value: "",
+      },
+    ];
+  }
+
+  const groups: GalleryGroup<TData>[] = [];
+  const groupByValue = new Map<string, GalleryGroup<TData>>();
+
+  for (const row of rows) {
+    const value = getGalleryGroupValue(row.original[groupBy]);
+    const existingGroup = groupByValue.get(value);
+    if (existingGroup) {
+      existingGroup.rows.push(row);
+      continue;
+    }
+
+    const group = {
+      id: `gallery-group-${value || "empty"}`,
+      label: value || EMPTY_GROUP_LABEL,
+      rows: [row],
+      value,
+    };
+    groupByValue.set(value, group);
+    groups.push(group);
+  }
+
+  return groups;
+}
+
 function getColumnLabel(
   columnDefinitions: TableCatalogueColumnConfig[],
   columnId: string
@@ -241,11 +302,13 @@ function getCellByColumnId<TData extends Record<string, unknown>>(
 
 function getGalleryPropertyCells<TData extends Record<string, unknown>>({
   cardColumnIds,
+  groupBy,
   imageColumnId,
   row,
   titleColumnId,
 }: {
   cardColumnIds?: string[];
+  groupBy?: string;
   imageColumnId?: string;
   row: Row<TData>;
   titleColumnId?: string;
@@ -254,7 +317,8 @@ function getGalleryPropertyCells<TData extends Record<string, unknown>>({
     return (
       !SYSTEM_COLUMN_IDS.has(cell.column.id) &&
       cell.column.id !== titleColumnId &&
-      cell.column.id !== imageColumnId
+      cell.column.id !== imageColumnId &&
+      cell.column.id !== groupBy
     );
   });
 
@@ -555,6 +619,8 @@ export function DataTableGalleryView<TData extends Record<string, unknown>>({
   editRowLabel = "Edit",
   emptyState,
   getRowLinkUrl,
+  groupBy = "",
+  groupLabel,
   isRowActive,
   isRowClickable,
   linkRowLabel = "View",
@@ -563,7 +629,12 @@ export function DataTableGalleryView<TData extends Record<string, unknown>>({
   onRowClick,
   table,
 }: DataTableGalleryViewProps<TData>) {
-  const rows = table.getRowModel().rows as Row<TData>[];
+  const hasTableGrouping = table.getState().grouping.length > 0;
+  const rows = (
+    hasTableGrouping
+      ? table.getPreGroupedRowModel().rows
+      : table.getRowModel().rows
+  ) as Row<TData>[];
   const resolvedConfig = resolveGalleryDisplayConfig(config);
   const imageColumnId = resolveGalleryImageColumnId({
     columnDefinitions,
@@ -581,57 +652,90 @@ export function DataTableGalleryView<TData extends Record<string, unknown>>({
       ])
     );
   }, [columnDefinitions]);
+  const galleryGroups = useMemo(
+    () => createGalleryGroups({ groupBy, rows }),
+    [groupBy, rows]
+  );
 
   if (rows.length === 0) {
     return <div className="rounded-md border">{emptyState}</div>;
   }
 
+  const renderCard = (row: Row<TData>) => {
+    const visibleCells = row.getVisibleCells();
+    return (
+      <DataTableGalleryCard
+        actionsCell={visibleCells.find((cell) => cell.column.id === "actions")}
+        aspectRatio={resolvedConfig.aspectRatio}
+        canEditRow={canEditRow?.(row) ?? false}
+        editRowLabel={editRowLabel}
+        imageColumnId={imageColumnId}
+        imageFit={resolvedConfig.imageFit}
+        isActive={isRowActive?.(row) ?? false}
+        isClickable={isRowClickable?.(row) ?? false}
+        key={row.id}
+        linkRowLabel={linkRowLabel}
+        linkUrl={getRowLinkUrl?.(row)}
+        onEditRow={onEditRow}
+        onOpenRowLink={onOpenRowLink}
+        onRowClick={onRowClick}
+        propertyCells={getGalleryPropertyCells({
+          cardColumnIds: resolvedConfig.cardColumnIds,
+          groupBy,
+          imageColumnId,
+          row,
+          titleColumnId,
+        })}
+        propertyLabels={propertyLabels}
+        row={row}
+        selectionCell={visibleCells.find((cell) => cell.column.id === "select")}
+        showCardLabels={shouldShowGalleryCardLabels(resolvedConfig)}
+        titleCell={getCellByColumnId(row, titleColumnId)}
+        titleColumnId={titleColumnId}
+      />
+    );
+  };
+
   return (
     <div className={cn("rounded-md border bg-background p-3", className)}>
-      <div
-        className={cn(
-          "grid gap-3",
-          GALLERY_CARD_SIZE_CLASS[resolvedConfig.cardSize]
-        )}
-      >
-        {rows.map((row) => {
-          const visibleCells = row.getVisibleCells();
-          return (
-            <DataTableGalleryCard
-              actionsCell={visibleCells.find(
-                (cell) => cell.column.id === "actions"
-              )}
-              aspectRatio={resolvedConfig.aspectRatio}
-              canEditRow={canEditRow?.(row) ?? false}
-              editRowLabel={editRowLabel}
-              imageColumnId={imageColumnId}
-              imageFit={resolvedConfig.imageFit}
-              isActive={isRowActive?.(row) ?? false}
-              isClickable={isRowClickable?.(row) ?? false}
-              key={row.id}
-              linkRowLabel={linkRowLabel}
-              linkUrl={getRowLinkUrl?.(row)}
-              onEditRow={onEditRow}
-              onOpenRowLink={onOpenRowLink}
-              onRowClick={onRowClick}
-              propertyCells={getGalleryPropertyCells({
-                cardColumnIds: resolvedConfig.cardColumnIds,
-                imageColumnId,
-                row,
-                titleColumnId,
-              })}
-              propertyLabels={propertyLabels}
-              row={row}
-              selectionCell={visibleCells.find(
-                (cell) => cell.column.id === "select"
-              )}
-              showCardLabels={shouldShowGalleryCardLabels(resolvedConfig)}
-              titleCell={getCellByColumnId(row, titleColumnId)}
-              titleColumnId={titleColumnId}
-            />
-          );
-        })}
-      </div>
+      {groupBy ? (
+        <div className="space-y-5">
+          {galleryGroups.map((group) => (
+            <section key={group.id}>
+              <div className="mb-2 flex items-center justify-between gap-3 px-1">
+                <h3 className="min-w-0 truncate font-medium text-sm">
+                  {groupLabel ? (
+                    <span className="text-muted-foreground">
+                      {groupLabel}:{" "}
+                    </span>
+                  ) : null}
+                  {group.label}
+                </h3>
+                <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground text-xs">
+                  {group.rows.length}
+                </span>
+              </div>
+              <div
+                className={cn(
+                  "grid gap-3",
+                  GALLERY_CARD_SIZE_CLASS[resolvedConfig.cardSize]
+                )}
+              >
+                {group.rows.map((row) => renderCard(row))}
+              </div>
+            </section>
+          ))}
+        </div>
+      ) : (
+        <div
+          className={cn(
+            "grid gap-3",
+            GALLERY_CARD_SIZE_CLASS[resolvedConfig.cardSize]
+          )}
+        >
+          {rows.map((row) => renderCard(row))}
+        </div>
+      )}
     </div>
   );
 }

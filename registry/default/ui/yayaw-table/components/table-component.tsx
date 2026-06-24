@@ -59,6 +59,7 @@ import type { TableDisplayMode } from "../types/display-types";
 import { Loader } from "../ui-custom/loader";
 import { ColumnIcon } from "../utils/column-icons";
 import { buildCsvExportColumns } from "../utils/csv-export";
+import { getPrimaryGrouping } from "../utils/table-view-state";
 import {
   BulkActionsMenu,
   type CustomBulkActionsInput,
@@ -353,6 +354,22 @@ function shouldUseGalleryDisplayMode({
   displayModes: TableDisplayMode[];
 }): boolean {
   return activeDisplayMode === "gallery" && displayModes.includes("gallery");
+}
+
+function resolvePrimaryGroupingDisplay({
+  columnDefinitions,
+  grouping,
+}: {
+  columnDefinitions: { header: string; id: string }[];
+  grouping: unknown;
+}) {
+  const groupBy = getPrimaryGrouping(grouping);
+  return {
+    groupBy,
+    groupLabel:
+      columnDefinitions.find((definition) => definition.id === groupBy)
+        ?.header ?? groupBy,
+  };
 }
 
 function canUpdateKanbanRows({
@@ -1387,6 +1404,7 @@ function ModernDataTable<
     filtersParam,
     galleryParam,
     globalSearchParam,
+    groupingParam,
     kanbanParam,
     setExpandedFromUI,
   } = useTableUrlState({
@@ -1426,7 +1444,12 @@ function ModernDataTable<
     }),
     [kanbanParam, tableConfig.table.kanban]
   );
-  const kanbanGroupBy = kanbanConfig.groupBy || "";
+  const { groupBy: primaryGrouping, groupLabel: primaryGroupingLabel } =
+    resolvePrimaryGroupingDisplay({
+      columnDefinitions: tableConfig.columns.definitions,
+      grouping: groupingParam,
+    });
+  const kanbanGroupBy = primaryGrouping || kanbanConfig.groupBy || "";
   const isKanbanMode = shouldUseKanbanDisplayMode({
     activeDisplayMode,
     displayModes: configuredDisplayModes,
@@ -2231,6 +2254,8 @@ function ModernDataTable<
               />
             }
             getRowLinkUrl={getGalleryRowLinkUrl}
+            groupBy={primaryGrouping}
+            groupLabel={primaryGroupingLabel}
             isRowActive={(row) =>
               isRowIdActive({
                 activeRowId,

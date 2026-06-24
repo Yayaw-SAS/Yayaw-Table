@@ -14,6 +14,10 @@ import type { AdvancedFiltersState } from "../types/filter-types";
 import type { TableViewConfig } from "../types/view-types";
 
 const EMPTY_PINNING: ColumnPinningState = { left: [], right: [] };
+const SINGLE_GROUP_DISPLAY_MODES = new Set<TableDisplayMode>([
+  "gallery",
+  "kanban",
+]);
 
 function hasArrayValues(value: unknown): value is unknown[] {
   return Array.isArray(value) && value.length > 0;
@@ -38,6 +42,42 @@ function normalizePageSize(value: number | string | undefined): number | undefin
   return Math.trunc(numericValue);
 }
 
+export function normalizeGroupingState(
+  value: unknown,
+  fallbackGroupBy?: string
+): string[] {
+  const grouping = Array.isArray(value)
+    ? value
+        .filter((item): item is string => typeof item === "string")
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
+
+  if (grouping.length > 0) {
+    return grouping;
+  }
+
+  const fallback = fallbackGroupBy?.trim();
+  return fallback ? [fallback] : [];
+}
+
+export function getPrimaryGrouping(value: unknown): string {
+  return normalizeGroupingState(value)[0] ?? "";
+}
+
+export function getDisplayModeGrouping({
+  displayMode,
+  grouping,
+}: {
+  displayMode: TableDisplayMode;
+  grouping: unknown;
+}): string[] {
+  const normalizedGrouping = normalizeGroupingState(grouping);
+  return SINGLE_GROUP_DISPLAY_MODES.has(displayMode)
+    ? normalizedGrouping.slice(0, 1)
+    : normalizedGrouping;
+}
+
 function normalizeDisplayMode(
   value: TableDisplayMode | undefined
 ): TableDisplayMode | undefined {
@@ -56,13 +96,9 @@ function normalizeKanbanViewConfig(
   }
 
   const normalized: NonNullable<TableViewConfig["kanban"]> = {};
-  const groupBy = config?.groupBy?.trim();
   const titleColumn = config.titleColumn?.trim();
   const cardColumnIds = normalizeColumnIds(config.cardColumnIds);
 
-  if (groupBy) {
-    normalized.groupBy = groupBy;
-  }
   if (titleColumn) {
     normalized.titleColumn = titleColumn;
   }
@@ -196,7 +232,7 @@ export function normalizeTableViewConfig(
       ? config.globalSearch.trim()
       : undefined;
   const displayMode = normalizeDisplayMode(config.displayMode);
-  const grouping = hasArrayValues(config.grouping) ? config.grouping : undefined;
+  const grouping = normalizeGroupingState(config.grouping, config.kanban?.groupBy);
   const kanban = normalizeKanbanViewConfig(config.kanban);
   const gallery = normalizeGalleryViewConfig(config.gallery);
   const pageSize = normalizePageSize(config.pageSize);
@@ -225,7 +261,7 @@ export function normalizeTableViewConfig(
   if (displayMode) {
     normalized.displayMode = displayMode;
   }
-  if (grouping) {
+  if (grouping.length > 0) {
     normalized.grouping = grouping;
   }
   if (kanban) {
@@ -281,12 +317,9 @@ export function createTableViewConfigSnapshot({
     columnVisibility: visibilityParam,
     displayMode: displayModeParam,
     globalSearch: globalSearchParam,
-    grouping: groupingParam,
+    grouping: normalizeGroupingState(groupingParam, kanbanParam?.groupBy ?? kanbanGroupByParam),
     gallery: galleryParam,
-    kanban: {
-      ...kanbanParam,
-      groupBy: kanbanParam?.groupBy ?? kanbanGroupByParam,
-    },
+    kanban: kanbanParam,
     pageSize: normalizePageSize(pageSizeParam),
     sorting: sortParam,
   });

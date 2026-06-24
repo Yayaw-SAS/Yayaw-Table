@@ -56,7 +56,11 @@ export interface TableKanbanConfig {
 
 export interface TableKanbanViewConfig {
   /**
-   * Grouping column saved with a view.
+   * Legacy grouping column saved with older views.
+   * New views use TableViewConfig.grouping so table, Kanban, and gallery share
+   * the same grouping state.
+   *
+   * @deprecated Use TableViewConfig.grouping.
    */
   groupBy?: string;
 

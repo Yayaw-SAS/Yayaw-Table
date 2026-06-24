@@ -1069,6 +1069,7 @@ export function DataTableAdvancedToolbar<TData>({
               : undefined
           }
           columns={tableMenuColumns}
+          defaultDisplayMode={tableConfig.table.defaultDisplayMode}
           enableColumnFilters={isColumnFiltersEnabled}
           enableCalculations={tableConfig.table.enableCalculations === true}
           enableGrouping={isGroupingEnabled}
