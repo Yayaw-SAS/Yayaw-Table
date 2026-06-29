@@ -1,6 +1,11 @@
 "use client";
 
-import { Field, FieldError, FieldLabel } from "@/components/ui/field";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Textarea } from "@/components/ui/textarea";
 import { useTranslations } from "../../../providers/table-provider";
 import type { FormFieldApi, TextareaFieldDefinition } from "../types";
@@ -25,14 +30,21 @@ export function TextareaField({ field, fieldApi }: TextareaFieldProps) {
       <Textarea
         aria-invalid={!fieldApi.state.meta.isValid}
         className="min-h-[100px]"
+        disabled={field.disabled}
         name={fieldApi.name}
         onBlur={fieldApi.handleBlur}
         onChange={(e) => fieldApi.handleChange(e.target.value)}
         placeholder={
           field.placeholderKey ? t(field.placeholderKey) : field.placeholder
         }
+        rows={field.rows}
         value={String(fieldApi.state.value ?? "")}
       />
+      {field.description != null && (
+        <FieldDescription>
+          {field.descriptionKey ? t(field.descriptionKey) : field.description}
+        </FieldDescription>
+      )}
       <FieldError errors={errorMessages.map((message) => ({ message }))} />
     </Field>
   );

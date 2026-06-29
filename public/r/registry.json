@@ -22,6 +22,7 @@
         "input",
         "label",
         "popover",
+        "radio-group",
         "scroll-area",
         "select",
         "separator",
@@ -467,6 +468,11 @@
           "target": "components/ui/yayaw-table/components/forms/drawer-form-portal-context.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/forms/factories.test.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/forms/factories.test.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/forms/factories.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/forms/factories.ts"
@@ -497,6 +503,11 @@
           "target": "components/ui/yayaw-table/components/forms/fields/collection-field.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/forms/fields/date-field.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/forms/fields/date-field.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/forms/fields/dynamic-value-field.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/forms/fields/dynamic-value-field.tsx"
@@ -515,6 +526,11 @@
           "path": "registry/default/ui/yayaw-table/components/forms/fields/number-field.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/forms/fields/number-field.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/forms/fields/radio-field.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/forms/fields/radio-field.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/forms/fields/select-field.tsx",

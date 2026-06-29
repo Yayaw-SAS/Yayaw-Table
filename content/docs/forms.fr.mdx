@@ -7,7 +7,57 @@ description: Construire des formulaires create/edit avec éditeurs de tableaux n
 
 YaYaw Table peut rendre des formulaires de création, d'édition et d'édition de masse à partir d'une configuration. Vous fournissez un `FormConfig` via `getFormConfig`, et la table ouvre le formulaire correspondant dans le drawer ou la modal intégrée quand l'utilisateur crée ou modifie une ligne.
 
-La plupart des champs correspondent à une valeur primitive : `text`, `number`, `select`, `switch`, `textarea`, `url`, `value-type` ou `custom`. Le champ `collection` est différent : il édite un tableau d'objets avec une interface structurée. Il est conçu pour les données de type JSON qui forceraient sinon chaque application consommatrice à construire son propre mini éditeur.
+La plupart des champs correspondent à une valeur primitive : `text`, `number`, `date`, `radio`, `select`, `switch`, `textarea`, `url`, `value-type` ou `custom`. Le champ `collection` est différent : il édite un tableau d'objets avec une interface structurée. Il est conçu pour les données de type JSON qui forceraient sinon chaque application consommatrice à construire son propre mini éditeur.
+
+## Champs primitifs
+
+Les champs primitifs sont conçus pour être pilotés par configuration, afin que les control planes et les outils MCP puissent générer des formulaires sans React personnalisé pour chaque modèle.
+
+| Type | Rôle |
+|---|---|
+| `text` | Texte sur une ligne. Utilisez `inputType` pour `email`, `password`, `tel`, `text` ou `url`. |
+| `number` | Saisie numérique avec `min`, `max` et `step` optionnels. |
+| `date` | Saisie date native qui soumet une chaîne sérialisée `yyyy-MM-dd`. `minDate` et `maxDate` acceptent des objets `Date` ou des chaînes de date sérialisées. |
+| `radio` | Énumération à choix unique rendue en radio group. Utilise la même forme d'options que `select`. |
+| `select` | Liste déroulante à choix unique pour les valeurs de type énumération. |
+| `switch` / `checkbox` | Saisie booléenne, sous forme de switch ou de checkbox. |
+| `textarea` | Texte multiligne avec `rows` optionnel. |
+| `url` | Saisie d'URL avec support optionnel de prévisualisation de métadonnées. |
+| `value-type` | Saisie dynamique pilotée par un champ de type voisin. |
+| `custom` | Échappatoire pour des contrôles spécifiques à l'application. |
+
+```tsx
+defineFormConfig({
+  id: "article",
+  schema: ArticleSchema,
+  defaultValues: {
+    status: "draft",
+  },
+  fields: [
+    {
+      type: "text",
+      name: "contactEmail",
+      label: "Contact email",
+      inputType: "email",
+    },
+    {
+      type: "date",
+      name: "publishedAt",
+      label: "Publication date",
+      minDate: "2026-01-01",
+    },
+    {
+      type: "radio",
+      name: "status",
+      label: "Status",
+      options: [
+        { label: "Draft", value: "draft" },
+        { label: "Published", value: "published" },
+      ],
+    },
+  ],
+});
+```
 
 ## Ce que permettent les champs collection
 

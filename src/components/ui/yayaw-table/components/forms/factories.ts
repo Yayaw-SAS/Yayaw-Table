@@ -8,6 +8,7 @@ import type {
   FieldValues,
   NumberFieldDefinition,
   Path,
+  RadioFieldDefinition,
   SelectFieldDefinition,
   SelectWithAddNewFieldDefinition,
   SwitchFieldDefinition,
@@ -78,16 +79,37 @@ export function createCustomField<
 /**
  * Create a date field definition
  */
-export const createDateField = (
+export function createDateField<
+  TFieldValues extends FieldValues = FieldValues,
+>(
+  options: Omit<DateFieldDefinition<TFieldValues>, "type">
+): DateFieldDefinition<TFieldValues>;
+export function createDateField(
   name: string,
   label: string,
+  options?: Partial<DateFieldDefinition>
+): DateFieldDefinition;
+export function createDateField<
+  TFieldValues extends FieldValues = FieldValues,
+>(
+  input: Omit<DateFieldDefinition<TFieldValues>, "type"> | string,
+  label?: string,
   options: Partial<DateFieldDefinition> = {}
-): DateFieldDefinition => ({
-  label,
-  name,
-  type: "date",
-  ...options,
-});
+): DateFieldDefinition<TFieldValues> {
+  if (typeof input === "string") {
+    return {
+      ...(options as Partial<DateFieldDefinition<TFieldValues>>),
+      label: label ?? input,
+      name: input as Path<TFieldValues>,
+      type: "date",
+    };
+  }
+
+  return {
+    ...input,
+    type: "date",
+  };
+}
 
 /**
  * Create a dynamic value field definition
@@ -137,6 +159,20 @@ export function createNumberField<
   return {
     ...options,
     type: "number",
+  };
+}
+
+/**
+ * Create a radio group field definition
+ */
+export function createRadioField<
+  TFieldValues extends FieldValues = FieldValues,
+>(
+  options: Omit<RadioFieldDefinition<TFieldValues>, "type">
+): RadioFieldDefinition<TFieldValues> {
+  return {
+    ...options,
+    type: "radio",
   };
 }
 
