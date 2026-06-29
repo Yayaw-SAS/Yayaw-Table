@@ -12,6 +12,7 @@ import type {
   AnyFieldDefinition,
   FieldValues,
   FormConfig,
+  RadioFieldDefinition,
   SelectFieldDefinition,
 } from "../types";
 
@@ -127,6 +128,20 @@ export function useFormBuilder<TFieldValues extends FieldValues>({
           return {
             ...selectField,
             options: selectField.options.map((option, index) => ({
+              label:
+                index < optionKeys.length ? t(optionKeys[index]) : option.label,
+              value: option.value,
+            })),
+          };
+        }
+      }
+      if (field.type === "radio") {
+        const radioField = field as RadioFieldDefinition<TFieldValues>;
+        const optionKeys = radioField.optionKeys;
+        if (optionKeys?.length) {
+          return {
+            ...radioField,
+            options: radioField.options.map((option, index) => ({
               label:
                 index < optionKeys.length ? t(optionKeys[index]) : option.label,
               value: option.value,

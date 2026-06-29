@@ -11,8 +11,10 @@ import { useTranslations } from "../../providers/table-provider";
 import {
   CheckboxField,
   CollectionField,
+  DateField,
   DynamicValueField,
   NumberField,
+  RadioField,
   SelectField,
   SelectWithAddNewField,
   SwitchField,
@@ -137,6 +139,21 @@ function FormBuilderField<TFieldValues extends FieldValues>({
           }
         </form.Field>
       );
+    case "date":
+      return (
+        <form.Field key={field.name} name={field.name as Path<TFieldValues>}>
+          {(f) => (
+            <DateField
+              field={field}
+              fieldApi={
+                normalizeFieldApi(f) as unknown as FormFieldApi<
+                  Date | string | null
+                >
+              }
+            />
+          )}
+        </form.Field>
+      );
     case "dynamic-value": {
       if (!("dependsOn" in field)) {
         return null;
@@ -184,6 +201,21 @@ function FormBuilderField<TFieldValues extends FieldValues>({
               fieldApi={
                 normalizeFieldApi(f) as unknown as FormFieldApi<
                   number | string
+                >
+              }
+            />
+          )}
+        </form.Field>
+      );
+    case "radio":
+      return (
+        <form.Field key={field.name} name={field.name as Path<TFieldValues>}>
+          {(f) => (
+            <RadioField
+              field={field}
+              fieldApi={
+                normalizeFieldApi(f) as unknown as FormFieldApi<
+                  string | number | null
                 >
               }
             />

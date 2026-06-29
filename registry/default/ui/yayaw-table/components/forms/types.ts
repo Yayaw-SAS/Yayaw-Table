@@ -52,6 +52,7 @@ export type AnyFieldDefinition<TFieldValues extends FieldValues = FieldValues> =
   | DateFieldDefinition<TFieldValues>
   | DynamicValueFieldDefinition<TFieldValues>
   | NumberFieldDefinition<TFieldValues>
+  | RadioFieldDefinition<TFieldValues>
   | SelectFieldDefinition<TFieldValues>
   | SelectWithAddNewFieldDefinition<TFieldValues>
   | SwitchFieldDefinition<TFieldValues>
@@ -167,14 +168,14 @@ export interface CustomFieldDefinition<
 }
 
 /**
- * Date field using shadcn DatePicker
+ * Date field using a native date input for predictable serialized values.
  */
 export interface DateFieldDefinition<
   TFieldValues extends FieldValues = FieldValues,
 > extends BaseFieldDefinition<TFieldValues> {
-  format?: string; // Format de date (ex: "yyyy-MM-dd")
-  maxDate?: Date;
-  minDate?: Date;
+  format?: string;
+  maxDate?: Date | string;
+  minDate?: Date | string;
   type: "date";
 }
 
@@ -197,6 +198,7 @@ export type FieldDefinition =
   | DateFieldDefinition
   | DynamicValueFieldDefinition
   | NumberFieldDefinition
+  | RadioFieldDefinition
   | SelectFieldDefinition
   | SelectWithAddNewFieldDefinition
   | TextFieldDefinition
@@ -233,6 +235,17 @@ export interface NumberFieldDefinition<
   min?: number;
   step?: number;
   type: "number";
+}
+
+/**
+ * Radio group field for single-choice enum values.
+ */
+export interface RadioFieldDefinition<
+  TFieldValues extends FieldValues = FieldValues,
+> extends BaseFieldDefinition<TFieldValues> {
+  optionKeys?: string[];
+  options: Array<{ label: string; value: number | string }>;
+  type: "radio";
 }
 
 /**

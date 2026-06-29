@@ -21,6 +21,8 @@ export {
   CollectionField,
   FormBuilder,
   createCollectionField,
+  createDateField,
+  createRadioField,
   defineFormConfig,
 } from "./components/forms";
 export type {
@@ -30,11 +32,13 @@ export type {
   CollectionFieldCreateAction,
   CollectionFieldDefinition,
   CollectionFieldItem,
+  DateFieldDefinition,
   FieldValues,
   FormConfig,
   FormConfigContext,
   FormConfigMode,
   FormFieldApi,
+  RadioFieldDefinition,
 } from "./components/forms";
 export type {
   CatalogueFormLayoutConfig,

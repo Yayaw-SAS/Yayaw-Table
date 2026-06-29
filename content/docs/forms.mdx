@@ -7,7 +7,57 @@ description: Build create/edit forms with native array editors, validation, and 
 
 YaYaw Table can render create, edit, and bulk-edit forms from configuration. You provide a `FormConfig` through `getFormConfig`, and the table opens the matching form in the built-in drawer or modal when users create or edit rows.
 
-Most fields map to one primitive value: `text`, `number`, `select`, `switch`, `textarea`, `url`, `value-type`, or `custom`. The `collection` field is different: it edits an array of objects as a structured UI. It is designed for JSON-like data that would otherwise force every consuming app to build its own mini editor.
+Most fields map to one primitive value: `text`, `number`, `date`, `radio`, `select`, `switch`, `textarea`, `url`, `value-type`, or `custom`. The `collection` field is different: it edits an array of objects as a structured UI. It is designed for JSON-like data that would otherwise force every consuming app to build its own mini editor.
+
+## Primitive Fields
+
+Primitive fields are designed to be configuration-driven, so control planes and MCP tools can generate forms without custom React for every model.
+
+| Type | Purpose |
+|---|---|
+| `text` | Single-line text. Use `inputType` for `email`, `password`, `tel`, `text`, or `url`. |
+| `number` | Numeric input with optional `min`, `max`, and `step`. |
+| `date` | Native date input that submits a serialized `yyyy-MM-dd` string. `minDate` and `maxDate` can be `Date` objects or serialized date strings. |
+| `radio` | Single-choice enum rendered as a radio group. Uses the same option shape as `select`. |
+| `select` | Single-choice dropdown for enum-like values. |
+| `switch` / `checkbox` | Boolean input, either as a switch or checkbox. |
+| `textarea` | Multi-line text input with optional `rows`. |
+| `url` | URL input with optional metadata preview support. |
+| `value-type` | Dynamic value input driven by a sibling type field. |
+| `custom` | Escape hatch for application-specific controls. |
+
+```tsx
+defineFormConfig({
+  id: "article",
+  schema: ArticleSchema,
+  defaultValues: {
+    status: "draft",
+  },
+  fields: [
+    {
+      type: "text",
+      name: "contactEmail",
+      label: "Contact email",
+      inputType: "email",
+    },
+    {
+      type: "date",
+      name: "publishedAt",
+      label: "Publication date",
+      minDate: "2026-01-01",
+    },
+    {
+      type: "radio",
+      name: "status",
+      label: "Status",
+      options: [
+        { label: "Draft", value: "draft" },
+        { label: "Published", value: "published" },
+      ],
+    },
+  ],
+});
+```
 
 ## What Collection Fields Enable
 

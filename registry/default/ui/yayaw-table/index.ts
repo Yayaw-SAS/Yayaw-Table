@@ -22,17 +22,21 @@ export type {
   CollectionFieldCreateAction,
   CollectionFieldDefinition,
   CollectionFieldItem,
+  DateFieldDefinition,
   FieldValues,
   FormConfig,
   FormConfigContext,
   FormConfigMode,
   FormFieldApi,
+  RadioFieldDefinition,
 } from "./components/forms";
 export {
   CatalogueForm,
   CollectionEditor,
   CollectionField,
   createCollectionField,
+  createDateField,
+  createRadioField,
   defineFormConfig,
   FormBuilder,
 } from "./components/forms";
