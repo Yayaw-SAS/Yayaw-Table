@@ -38,6 +38,7 @@ export type {
   FormConfigContext,
   FormConfigMode,
   FormFieldApi,
+  FormSectionDefinition,
   RadioFieldDefinition,
 } from "./components/forms";
 export type {
