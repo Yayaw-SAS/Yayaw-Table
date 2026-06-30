@@ -119,6 +119,7 @@ function createFallbackFormConfig<TFieldValues extends FieldValues>(
     fields: [],
     defaultValues: {} as Partial<TFieldValues>,
     schema: z.any() as z.ZodType<TFieldValues>,
+    sections: [],
     translations: {
       namespace: "common",
       keys: {},
@@ -378,7 +379,8 @@ export function useFormCatalogue<TFieldValues extends FieldValues>({
     ]
   );
 
-  const { fields, form, translations } = useFormBuilder<TFieldValues>({
+  const { fields, form, sections, translations } =
+    useFormBuilder<TFieldValues>({
     config,
     formOptions: {
       onSubmit: onFormSubmit
@@ -397,6 +399,7 @@ export function useFormCatalogue<TFieldValues extends FieldValues>({
     fields,
     form,
     handleSubmit,
+    sections,
     translations,
   };
 }

@@ -12,6 +12,7 @@ import type {
   AnyFieldDefinition,
   FieldValues,
   FormConfig,
+  FormSectionDefinition,
   RadioFieldDefinition,
   SelectFieldDefinition,
 } from "../types";
@@ -163,6 +164,11 @@ export function useFormBuilder<TFieldValues extends FieldValues>({
     [config.fields, translateField]
   );
 
+  const sections = useMemo(
+    () => (config.sections ?? []) as FormSectionDefinition<TFieldValues>[],
+    [config.sections]
+  );
+
   const translations = useMemo(() => {
     return Object.entries(config.translations.keys).reduce(
       (acc, [key, value]) => {
@@ -176,6 +182,7 @@ export function useFormBuilder<TFieldValues extends FieldValues>({
   return {
     fields,
     form,
+    sections,
     translations,
   };
 }

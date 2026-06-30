@@ -1,9 +1,9 @@
 ---
-title: Formulaires et champs collection
-description: Construire des formulaires create/edit avec éditeurs de tableaux natifs, validation et collections imbriquées
+title: Formulaires, sections et champs collection
+description: Construire des formulaires create/edit avec champs groupés, éditeurs de tableaux natifs, validation et collections imbriquées
 ---
 
-# Formulaires et champs collection
+# Formulaires, sections et champs collection
 
 YaYaw Table peut rendre des formulaires de création, d'édition et d'édition de masse à partir d'une configuration. Vous fournissez un `FormConfig` via `getFormConfig`, et la table ouvre le formulaire correspondant dans le drawer ou la modal intégrée quand l'utilisateur crée ou modifie une ligne.
 
@@ -68,6 +68,38 @@ defineFormConfig({
   ],
 });
 ```
+
+## Sections de formulaire
+
+Utilisez `sections` quand un formulaire admin généré doit présenter des groupes clairs sans React personnalisé. Les sections référencent des champs existants, donc la forme des données et le schéma de validation ne changent pas.
+
+```tsx
+defineFormConfig({
+  id: "article",
+  schema: ArticleSchema,
+  defaultValues: {},
+  fields: [
+    { type: "text", name: "title", label: "Title" },
+    { type: "textarea", name: "summary", label: "Summary" },
+    { type: "switch", name: "published", label: "Published" },
+  ],
+  sections: [
+    {
+      id: "content",
+      title: "Content",
+      description: "Editorial fields shown to authors.",
+      fields: ["title", "summary"],
+    },
+    {
+      id: "publishing",
+      title: "Publishing",
+      fields: ["published"],
+    },
+  ],
+});
+```
+
+Les champs qui ne sont référencés par aucune section restent rendus après les sections déclarées, dans leur ordre initial. Les noms de champs inconnus sont ignorés, ce qui rend la configuration générée tolérante tout en continuant à rendre chaque champ connu.
 
 ## Ce que permettent les champs collection
 
