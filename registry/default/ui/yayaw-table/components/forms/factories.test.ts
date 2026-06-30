@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   createDateField,
+  createMultiSelectField,
   createRadioField,
   createTextField,
 } from "./factories";
@@ -53,6 +54,23 @@ describe("form field factories", () => {
     assert.deepEqual(field.options, [
       { label: "Draft", value: "draft" },
       { label: "Published", value: "published" },
+    ]);
+  });
+
+  it("creates multi-select field definitions with options", () => {
+    const field = createMultiSelectField({
+      label: "Capabilities",
+      name: "capabilities",
+      options: [
+        { label: "Native tables", value: "native_tables" },
+        { label: "Runtime API", value: "runtime_api" },
+      ],
+    });
+
+    assert.equal(field.type, "multiSelect");
+    assert.deepEqual(field.options, [
+      { label: "Native tables", value: "native_tables" },
+      { label: "Runtime API", value: "runtime_api" },
     ]);
   });
 

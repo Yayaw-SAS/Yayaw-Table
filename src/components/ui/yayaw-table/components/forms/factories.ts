@@ -6,6 +6,7 @@ import type {
   DateFieldDefinition,
   DynamicValueFieldDefinition,
   FieldValues,
+  MultiSelectFieldDefinition,
   NumberFieldDefinition,
   Path,
   RadioFieldDefinition,
@@ -122,6 +123,20 @@ export function createDynamicValueField<
   return {
     ...options,
     type: "dynamic-value",
+  };
+}
+
+/**
+ * Create a multi-select field definition
+ */
+export function createMultiSelectField<
+  TFieldValues extends FieldValues = FieldValues,
+>(
+  options: Omit<MultiSelectFieldDefinition<TFieldValues>, "type">
+): MultiSelectFieldDefinition<TFieldValues> {
+  return {
+    ...options,
+    type: "multiSelect",
   };
 }
 

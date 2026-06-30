@@ -7,7 +7,7 @@ description: Build create/edit forms with native array editors, validation, and 
 
 YaYaw Table can render create, edit, and bulk-edit forms from configuration. You provide a `FormConfig` through `getFormConfig`, and the table opens the matching form in the built-in drawer or modal when users create or edit rows.
 
-Most fields map to one primitive value: `text`, `number`, `date`, `radio`, `select`, `switch`, `textarea`, `url`, `value-type`, or `custom`. The `collection` field is different: it edits an array of objects as a structured UI. It is designed for JSON-like data that would otherwise force every consuming app to build its own mini editor.
+Most fields map to one primitive value: `text`, `number`, `date`, `radio`, `select`, `multiSelect`, `switch`, `textarea`, `url`, `value-type`, or `custom`. The `collection` field is different: it edits an array of objects as a structured UI. It is designed for JSON-like data that would otherwise force every consuming app to build its own mini editor.
 
 ## Primitive Fields
 
@@ -20,6 +20,7 @@ Primitive fields are designed to be configuration-driven, so control planes and 
 | `date` | Native date input that submits a serialized `yyyy-MM-dd` string. `minDate` and `maxDate` can be `Date` objects or serialized date strings. |
 | `radio` | Single-choice enum rendered as a radio group. Uses the same option shape as `select`. |
 | `select` | Single-choice dropdown for enum-like values. |
+| `multiSelect` | Multi-choice checkbox list for array values from a finite option set. |
 | `switch` / `checkbox` | Boolean input, either as a switch or checkbox. |
 | `textarea` | Multi-line text input with optional `rows`. |
 | `url` | URL input with optional metadata preview support. |
@@ -53,6 +54,15 @@ defineFormConfig({
       options: [
         { label: "Draft", value: "draft" },
         { label: "Published", value: "published" },
+      ],
+    },
+    {
+      type: "multiSelect",
+      name: "capabilities",
+      label: "Capabilities",
+      options: [
+        { label: "Native tables", value: "native_tables" },
+        { label: "Runtime API", value: "runtime_api" },
       ],
     },
   ],

@@ -51,6 +51,7 @@ export type AnyFieldDefinition<TFieldValues extends FieldValues = FieldValues> =
   | CustomFieldDefinition<TFieldValues>
   | DateFieldDefinition<TFieldValues>
   | DynamicValueFieldDefinition<TFieldValues>
+  | MultiSelectFieldDefinition<TFieldValues>
   | NumberFieldDefinition<TFieldValues>
   | RadioFieldDefinition<TFieldValues>
   | SelectFieldDefinition<TFieldValues>
@@ -201,6 +202,7 @@ export type FieldDefinition =
   | CollectionFieldDefinition
   | DateFieldDefinition
   | DynamicValueFieldDefinition
+  | MultiSelectFieldDefinition
   | NumberFieldDefinition
   | RadioFieldDefinition
   | SelectFieldDefinition
@@ -261,6 +263,17 @@ export interface SelectFieldDefinition<
   optionKeys?: string[];
   options: Array<{ label: string; value: number | string }>;
   type: "select";
+}
+
+/**
+ * Multi-select field for editing array values from a finite option set.
+ */
+export interface MultiSelectFieldDefinition<
+  TFieldValues extends FieldValues = FieldValues,
+> extends BaseFieldDefinition<TFieldValues> {
+  optionKeys?: string[];
+  options: Array<{ label: string; value: number | string }>;
+  type: "multiSelect";
 }
 
 /**
