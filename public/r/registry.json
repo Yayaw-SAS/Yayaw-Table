@@ -588,6 +588,11 @@
           "target": "components/ui/yayaw-table/components/forms/fields/value-type-selector.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/forms/form-builder.test.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/forms/form-builder.test.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/forms/form-builder.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/forms/form-builder.tsx"
