@@ -13,6 +13,7 @@ import {
   CollectionField,
   DateField,
   DynamicValueField,
+  MultiSelectField,
   NumberField,
   RadioField,
   SelectField,
@@ -200,6 +201,21 @@ function FormBuilderField<TFieldValues extends FieldValues>({
               }
               fieldApi={
                 normalizeFieldApi(f) as unknown as FormFieldApi<number | string>
+              }
+            />
+          )}
+        </form.Field>
+      );
+    case "multiSelect":
+      return (
+        <form.Field key={field.name} name={field.name as Path<TFieldValues>}>
+          {(f) => (
+            <MultiSelectField
+              field={field}
+              fieldApi={
+                normalizeFieldApi(f) as unknown as FormFieldApi<
+                  Array<number | string>
+                >
               }
             />
           )}

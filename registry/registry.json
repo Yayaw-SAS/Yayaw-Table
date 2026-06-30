@@ -528,6 +528,16 @@
           "target": "components/ui/yayaw-table/components/forms/fields/index.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/forms/fields/multi-select-field.test.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/forms/fields/multi-select-field.test.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/forms/fields/multi-select-field.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/forms/fields/multi-select-field.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/forms/fields/number-field.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/forms/fields/number-field.tsx"
