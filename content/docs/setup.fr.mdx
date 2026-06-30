@@ -373,7 +373,7 @@ Toutes les props sont optionnelles sauf `tableType`.
 | `description` | `string` | Description courte sous le titre. |
 | `enableToolbar` | `boolean` | Affiche la barre d'outils (filtres, tri, colonnes, etc.). |
 | `enableAdvancedFilters` | `boolean` | Active le panneau de filtres avancés. |
-| `columnTypeMapping` | `Record<string, 'text' \| 'number' \| 'date' \| 'option' \| 'multiOption'>` | Mappe vos types backend vers les types internes de colonnes/filtres. |
+| `columnTypeMapping` | `Record<string, 'text' \| 'number' \| 'date' \| 'select' \| 'multiSelect'>` | Mappe vos types backend vers les types internes de colonnes/filtres. |
 | `onExport` | `(rows) => void \| Promise<void>` | Surcharge l'export de la barre d'outils (toutes les lignes filtrées). |
 | `onBulkExport` | `(rows) => void \| Promise<void>` | Surcharge l'export bulk (lignes sélectionnées). |
 | `onBulkEdit`, `onBulkDelete`, `onBulkCopy` | `(rows) => BulkActionResult \| void` | Surcharge des **actions de masse** ; contrat explicite recommandé pour un comportement déterministe. |

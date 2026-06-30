@@ -12,7 +12,7 @@ Flexible, type-safe data table for React. One component, clean API, minimal boil
 - **Built-in UX** – Sorting, pagination, grouping, column visibility, column reorder (drag-and-drop), global search
 - **Filters** – Column filters and advanced filters panel; filter presets supported
 - **Number & currency** – Right-aligned number columns with configurable format (thousands/decimal separators, prefix/suffix)
-- **Column types** – Text, tag, image, URL, number, boolean, date; extensible via `columnTypeMapping`
+- **Column types** – Text, string, code, JSON, tag, image, URL, number, boolean, date, select, multi-select, and dynamic values
 - **Bulk actions** – Edit, copy, export (CSV), delete, and typed custom actions for selected rows
 - **Type-safe** – Strong TypeScript types out of the box
 - **Accessible** – Keyboard navigation and ARIA-friendly UI

@@ -608,6 +608,16 @@ export function useDataTable<TData extends Record<string, unknown>>(
             header: getTranslationSafe(colDef.header),
           });
         }
+        case "json": {
+          const jsonColDef = colDef as {
+            maxItems?: number;
+          };
+          return column.json(colDef.id as keyof TData, {
+            enableSorting: colDef.enableSorting,
+            header: getTranslationSafe(colDef.header),
+            maxItems: jsonColDef.maxItems,
+          });
+        }
         case "number": {
           const numberColDef = colDef as {
             numberFormat?: import("../utils/number-format").NumberFormatConfig;
@@ -641,6 +651,16 @@ export function useDataTable<TData extends Record<string, unknown>>(
             enableColumnFilter: colDef.enableColumnFilter,
             enableSorting: colDef.enableSorting,
             header: getTranslationSafe(colDef.header),
+          });
+        }
+        case "string": {
+          const stringColDef = colDef as {
+            showQuotes?: boolean;
+          };
+          return column.string(colDef.id as keyof TData, {
+            enableSorting: colDef.enableSorting,
+            header: getTranslationSafe(colDef.header),
+            showQuotes: stringColDef.showQuotes,
           });
         }
         case "url": {
