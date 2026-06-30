@@ -32,8 +32,12 @@ import type {
   DynamicValueFieldDefinition,
   FieldValues,
   FormFieldApi,
+  FormSectionDefinition,
   Path,
 } from "./types";
+
+const DEFAULT_FORM_SECTION_ID = "__default";
+const UNGROUPED_FORM_SECTION_ID = "__ungrouped";
 
 interface FormBuilderProps<TFieldValues extends FieldValues> {
   actions?: ReactNode;
@@ -42,11 +46,95 @@ interface FormBuilderProps<TFieldValues extends FieldValues> {
   fields: AnyFieldDefinition<TFieldValues>[];
   form: FormBuilderFormInstance<TFieldValues>;
   isSubmitting?: boolean;
+  sections?: FormSectionDefinition<TFieldValues>[];
   submitText?: null | string;
+}
+
+export interface ResolvedFormBuilderSection<
+  TFieldValues extends FieldValues = FieldValues,
+> {
+  description?: string;
+  descriptionKey?: string;
+  fields: AnyFieldDefinition<TFieldValues>[];
+  id: string;
+  isDefault?: boolean;
+  isUngrouped?: boolean;
+  title?: string;
+  titleKey?: string;
 }
 
 interface WindowWithDynamicUpdates extends Window {
   __dynamicFieldUpdates?: Map<string, { name: string; value: unknown }>;
+}
+
+export function resolveFormBuilderSections<
+  TFieldValues extends FieldValues = FieldValues,
+>(input: {
+  fields: AnyFieldDefinition<TFieldValues>[];
+  sections?: FormSectionDefinition<TFieldValues>[];
+}): ResolvedFormBuilderSection<TFieldValues>[] {
+  if (!input.sections?.length) {
+    return [
+      {
+        fields: input.fields,
+        id: DEFAULT_FORM_SECTION_ID,
+        isDefault: true,
+      },
+    ];
+  }
+
+  const fieldsByName = new Map(
+    input.fields.map((field) => [String(field.name), field] as const)
+  );
+  const groupedFieldNames = new Set<string>();
+  const resolvedSections: ResolvedFormBuilderSection<TFieldValues>[] = [];
+
+  for (const section of input.sections) {
+    const sectionFields = section.fields
+      .map((fieldName) => fieldsByName.get(String(fieldName)))
+      .filter((field): field is AnyFieldDefinition<TFieldValues> =>
+        Boolean(field)
+      );
+    if (sectionFields.length === 0) {
+      continue;
+    }
+
+    for (const field of sectionFields) {
+      groupedFieldNames.add(String(field.name));
+    }
+
+    resolvedSections.push({
+      description: section.description,
+      descriptionKey: section.descriptionKey,
+      fields: sectionFields,
+      id: section.id,
+      title: section.title,
+      titleKey: section.titleKey,
+    });
+  }
+
+  const ungroupedFields = input.fields.filter(
+    (field) => !groupedFieldNames.has(String(field.name))
+  );
+  if (ungroupedFields.length > 0) {
+    resolvedSections.push({
+      fields: ungroupedFields,
+      id: UNGROUPED_FORM_SECTION_ID,
+      isUngrouped: true,
+    });
+  }
+
+  if (resolvedSections.length === 0) {
+    return [
+      {
+        fields: input.fields,
+        id: DEFAULT_FORM_SECTION_ID,
+        isDefault: true,
+      },
+    ];
+  }
+
+  return resolvedSections;
 }
 
 function normalizeFieldApi<T>(field: {
@@ -368,9 +456,11 @@ export function FormBuilder<TFieldValues extends FieldValues>({
   fields,
   form,
   isSubmitting = false,
+  sections,
   submitText,
 }: FormBuilderProps<TFieldValues>) {
   const { t } = useTranslations();
+  const resolvedSections = resolveFormBuilderSections({ fields, sections });
 
   useEffect(() => {
     const fieldsWithDeps = fields.filter(
@@ -436,12 +526,40 @@ export function FormBuilder<TFieldValues extends FieldValues>({
         form.handleSubmit();
       }}
     >
-      <div className="space-y-4">
-        {fields.map((field) => (
-          <div key={String(field.name)}>
-            <FormBuilderField field={field} form={form} />
-          </div>
-        ))}
+      <div className="space-y-5">
+        {resolvedSections.map((section) => {
+          const title = section.titleKey ? t(section.titleKey) : section.title;
+          const description = section.descriptionKey
+            ? t(section.descriptionKey)
+            : section.description;
+          const hasHeader = Boolean(title || description);
+          const sectionClassName =
+            section.isDefault || section.isUngrouped
+              ? "space-y-4"
+              : "space-y-4 rounded-md border p-4";
+
+          return (
+            <section className={sectionClassName} key={section.id}>
+              {hasHeader && (
+                <div className="space-y-1">
+                  {title && <h3 className="font-medium text-sm">{title}</h3>}
+                  {description && (
+                    <p className="text-muted-foreground text-sm">
+                      {description}
+                    </p>
+                  )}
+                </div>
+              )}
+              <div className="space-y-4">
+                {section.fields.map((field) => (
+                  <div key={String(field.name)}>
+                    <FormBuilderField field={field} form={form} />
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        })}
       </div>
       {submitText != null && (
         <div className="mt-6 flex items-center justify-between">

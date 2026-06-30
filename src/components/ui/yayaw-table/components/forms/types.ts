@@ -43,6 +43,20 @@ export interface FormFieldApi<TValue = unknown> {
 }
 
 /**
+ * Declarative form section that groups existing fields for clearer admin forms.
+ */
+export interface FormSectionDefinition<
+  TFieldValues extends FieldValues = FieldValues,
+> {
+  description?: string;
+  descriptionKey?: string;
+  fields: Path<TFieldValues>[];
+  id: string;
+  title?: string;
+  titleKey?: string;
+}
+
+/**
  * Union type of all possible field definitions
  */
 export type AnyFieldDefinition<TFieldValues extends FieldValues = FieldValues> =
@@ -223,6 +237,7 @@ export interface FormConfig<TFieldValues extends FieldValues = FieldValues> {
   fields: AnyFieldDefinition<TFieldValues>[];
   id: string;
   schema: z.ZodType<TFieldValues>;
+  sections?: FormSectionDefinition<TFieldValues>[];
   translations: {
     keys: {
       [key: string]: string;

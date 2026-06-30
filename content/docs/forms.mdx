@@ -1,9 +1,9 @@
 ---
-title: Forms and Collection Fields
-description: Build create/edit forms with native array editors, validation, and nested collection support
+title: Forms, Sections, and Collection Fields
+description: Build create/edit forms with grouped fields, native array editors, validation, and nested collection support
 ---
 
-# Forms and Collection Fields
+# Forms, Sections, and Collection Fields
 
 YaYaw Table can render create, edit, and bulk-edit forms from configuration. You provide a `FormConfig` through `getFormConfig`, and the table opens the matching form in the built-in drawer or modal when users create or edit rows.
 
@@ -68,6 +68,38 @@ defineFormConfig({
   ],
 });
 ```
+
+## Form Sections
+
+Use `sections` when a generated admin form needs clear groups without custom React. Sections reference existing field names, so the form data shape and validation schema stay unchanged.
+
+```tsx
+defineFormConfig({
+  id: "article",
+  schema: ArticleSchema,
+  defaultValues: {},
+  fields: [
+    { type: "text", name: "title", label: "Title" },
+    { type: "textarea", name: "summary", label: "Summary" },
+    { type: "switch", name: "published", label: "Published" },
+  ],
+  sections: [
+    {
+      id: "content",
+      title: "Content",
+      description: "Editorial fields shown to authors.",
+      fields: ["title", "summary"],
+    },
+    {
+      id: "publishing",
+      title: "Publishing",
+      fields: ["published"],
+    },
+  ],
+});
+```
+
+Fields not referenced by any section still render after the declared sections, preserving the original field order. Unknown field names are ignored, which keeps generated configuration tolerant while still rendering every known field.
 
 ## What Collection Fields Enable
 

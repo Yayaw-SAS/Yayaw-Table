@@ -4,7 +4,12 @@
  */
 
 import type { z } from "zod";
-import type { AnyFieldDefinition, FieldValues, FormConfig } from "./types";
+import type {
+  AnyFieldDefinition,
+  FieldValues,
+  FormConfig,
+  FormSectionDefinition,
+} from "./types";
 
 /**
  * Default form translations
@@ -53,6 +58,11 @@ export function defineFormConfig<
   schema: z.ZodType<TFieldValues>;
 
   /**
+   * Optional visual sections that group fields in the form builder
+   */
+  sections?: FormSectionDefinition<TFieldValues>[];
+
+  /**
    * Translation configuration
    */
   translations?: Partial<FormConfig<TFieldValues>["translations"]>;
@@ -68,6 +78,7 @@ export function defineFormConfig<
     fields: config.fields,
     id: config.id,
     schema: config.schema,
+    sections: config.sections,
     translations,
   };
 }

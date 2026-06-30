@@ -415,9 +415,8 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
     [formCatalogueParams, onFormSubmit]
   );
 
-  const { fields, form, translations } = useFormCatalogue<TFieldValues>(
-    formCatalogueParamsWithSubmit
-  );
+  const { fields, form, sections, translations } =
+    useFormCatalogue<TFieldValues>(formCatalogueParamsWithSubmit);
 
   translationsRef.current = translations;
   formRef.current = form;
@@ -543,7 +542,12 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
         </DialogHeader>
 
         <div className="py-4">
-          <FormBuilder fields={fields} form={form} submitText={null} />
+          <FormBuilder
+            fields={fields}
+            form={form}
+            sections={sections}
+            submitText={null}
+          />
         </div>
 
         <DialogFooter className="flex-row justify-end gap-2 px-0">
@@ -582,7 +586,12 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
         </DrawerHeader>
 
         <div className="py-4">
-          <FormBuilder fields={fields} form={form} submitText={null} />
+          <FormBuilder
+            fields={fields}
+            form={form}
+            sections={sections}
+            submitText={null}
+          />
         </div>
 
         <DrawerFooter className="flex-row justify-end gap-2 px-0">
