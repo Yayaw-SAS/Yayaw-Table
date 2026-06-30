@@ -43,6 +43,38 @@ describe("defineTableConfig", () => {
     assert.equal(config.table.enableCalculations, false);
   });
 
+  it("accepts native JSON and string column definitions", () => {
+    const config = defineTableConfig({
+      columns: {
+        definitions: [
+          {
+            header: "Metadata",
+            id: "metadata",
+            type: "json",
+          },
+          {
+            header: "Token",
+            id: "token",
+            type: "string",
+          },
+        ],
+        mandatory: [],
+        order: ["metadata", "token"],
+        visible: ["metadata", "token"],
+      },
+      id: "records",
+      translations: {
+        keys: {},
+        namespace: "common",
+      },
+    });
+
+    assert.deepEqual(
+      config.columns.definitions.map((column) => column.type),
+      ["json", "string"]
+    );
+  });
+
   it("merges nested empty-state overrides", () => {
     const config = defineTableConfig({
       columns: {
