@@ -4,7 +4,6 @@
  */
 "use client";
 
-import { useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -89,6 +88,59 @@ const getColorIndexForTag = (tagValue: string): number => {
   return hashString(normalized) % TAG_COLORS.length;
 };
 
+function unwrapTagValue(value: unknown): unknown {
+  if (value && typeof value === "object" && "set" in value) {
+    return (value as { set: unknown }).set;
+  }
+
+  return value;
+}
+
+function toTagValue(value: unknown): string | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  const tagValue = String(value).trim();
+  return tagValue ? tagValue : null;
+}
+
+function toTagValues(value: unknown): string[] {
+  const processedValue = unwrapTagValue(value);
+  const seen = new Set<string>();
+  const tagValues = Array.isArray(processedValue)
+    ? processedValue
+        .map(toTagValue)
+        .filter((tagValue): tagValue is string => tagValue !== null)
+    : [toTagValue(processedValue)].filter(
+        (tagValue): tagValue is string => tagValue !== null
+      );
+
+  const uniqueTagValues: string[] = [];
+  for (const tagValue of tagValues) {
+    if (seen.has(tagValue)) {
+      continue;
+    }
+    seen.add(tagValue);
+    uniqueTagValues.push(tagValue);
+  }
+
+  return uniqueTagValues;
+}
+
+function getColorClassForTag(
+  tagValue: string,
+  tagColorMap?: Record<string, string>
+): string {
+  const normalized = tagValue.trim().toLowerCase();
+  const fromMap =
+    tagColorMap?.[tagValue] ??
+    (normalized ? tagColorMap?.[normalized] : undefined);
+  if (fromMap) {
+    return fromMap;
+  }
+  return TAG_COLORS[getColorIndexForTag(tagValue)].className;
+}
+
 export interface TagCellProps {
   /**
    * Optional CSS class name
@@ -113,51 +165,26 @@ export interface TagCellProps {
  * Color is derived deterministically from the tag value (same value = same color across sessions).
  */
 export function TagCell({ className = "", tagColorMap, value }: TagCellProps) {
-  // Handle Prisma JSON objects with 'set' property
-  let processedValue = value;
-  if (
-    processedValue &&
-    typeof processedValue === "object" &&
-    "set" in processedValue
-  ) {
-    processedValue = (processedValue as { set: unknown }).set;
-  }
+  const tagValues = toTagValues(value);
 
-  // Convert to string, handling null/undefined
-  const tagValue =
-    processedValue === null || processedValue === undefined
-      ? ""
-      : String(processedValue);
-
-  const colorClass = useMemo(() => {
-    if (!tagValue) {
-      return TAG_COLORS[0].className;
-    }
-    const normalized = tagValue.trim().toLowerCase();
-    const fromMap =
-      tagColorMap?.[tagValue] ??
-      (normalized ? tagColorMap?.[normalized] : undefined);
-    if (fromMap) {
-      return fromMap;
-    }
-    return TAG_COLORS[getColorIndexForTag(tagValue)].className;
-  }, [tagValue, tagColorMap]);
-
-  // Handle null or undefined after computing the color (to avoid hook conditional error)
-  if (processedValue === null || processedValue === undefined) {
+  if (tagValues.length === 0) {
     return <span className="text-muted-foreground">-</span>;
   }
 
-  // Display with tag styling
   return (
-    <Badge
-      className={cn(
-        "inline-flex items-center rounded-full px-2.5 py-0.5 font-medium text-xs",
-        colorClass,
-        className
-      )}
-    >
-      {tagValue}
-    </Badge>
+    <div className="flex flex-wrap items-center gap-1">
+      {tagValues.map((tagValue) => (
+        <Badge
+          className={cn(
+            "inline-flex items-center rounded-full px-2.5 py-0.5 font-medium text-xs",
+            getColorClassForTag(tagValue, tagColorMap),
+            className
+          )}
+          key={tagValue}
+        >
+          {tagValue}
+        </Badge>
+      ))}
+    </div>
   );
 }
