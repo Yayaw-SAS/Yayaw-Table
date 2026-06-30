@@ -66,9 +66,11 @@ export interface DataTableColumnDef<
     | "custom"
     | "date"
     | "image"
+    | "json"
     | "multiSelect"
     | "number"
     | "select"
+    | "string"
     | "text"
     | "url";
 }

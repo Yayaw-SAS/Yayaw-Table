@@ -19,6 +19,8 @@ columns: {
     },
     { id: 'imageUrl', type: 'image', header: 'Image', enableSorting: false, enableColumnFilter: false },
     { id: 'status', type: 'tag', header: 'Status' },
+    { id: 'metadata', type: 'json', header: 'Metadata', maxItems: 4 },
+    { id: 'externalUrl', type: 'url', header: 'External URL' },
     { id: 'createdAt', type: 'date', header: 'Created', dateDisplayPreset: 'dmy-numeric' },
     { id: 'isActive', type: 'boolean', header: 'Active' },
     { id: 'actions', type: 'actions', header: 'Actions' },
@@ -35,14 +37,22 @@ columns: {
 Types de colonnes supportés :
 
 - `text`
+- `string`
 - `number`
 - `boolean`
 - `date`
+- `select`
+- `multiSelect`
 - `tag`
+- `code`
+- `json`
+- `url`
 - `image` (chaîne URL avec fallback automatique si vide ou invalide)
 - `actions`
 - `dynamicType` (renderer sélectionné via `typeKey`)
-- `select` (checkbox de sélection de ligne ; colonne virtuelle)
+
+La checkbox de sélection de ligne est une colonne virtuelle avec l'id `select`;
+elle est séparée des colonnes de données qui utilisent `type: 'select'`.
 
 ## Options par colonne
 
@@ -59,6 +69,8 @@ Propriétés communes :
 - `defaultCalculation?: CalculationType` – calcul par défaut affiché pour cette colonne (validé selon le type de colonne)
 - `inlineEdit?: boolean | InlineEditColumnConfig` – active/configure l'édition inline pour cette colonne
 - Pour les colonnes **number** : `numberFormat?: NumberFormatConfig` – format d'affichage (séparateurs milliers/décimales, décimales, préfixe/suffixe monétaire). Voir [Number column](#number-column-number) ci-dessous.
+- Pour les colonnes **json** : `maxItems?: number` – nombre maximum d'items objet/tableau affichés avant troncature.
+- Pour les colonnes **string** : `showQuotes?: boolean` – affiche des guillemets autour des valeurs de type token.
 - Pour les colonnes **tag** : `tagColorMap?: Record<string, string>` – map optionnelle valeur → classe Tailwind (voir ci-dessous).
 - Pour les colonnes **image** : les valeurs sont des chaînes URL. Les chemins relatifs d'app comme `/example/products/laptop.svg`, les URLs `http(s)`, les URLs `blob:` et les URLs base64 `data:image/*` sont acceptés. Les valeurs vides ou invalides affichent un fallback compact.
 

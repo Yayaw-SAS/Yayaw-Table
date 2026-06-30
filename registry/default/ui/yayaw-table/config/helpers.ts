@@ -266,9 +266,11 @@ export interface ColumnDefinition {
     | "date"
     | "dynamicType"
     | "image"
+    | "json"
     | "multiSelect"
     | "number"
     | "select"
+    | "string"
     | "text"
     | "url";
 
