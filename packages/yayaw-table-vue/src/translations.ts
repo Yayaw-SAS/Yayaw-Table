@@ -19,6 +19,27 @@ export const defaultTranslations: Required<
     | "next"
     | "selected"
     | "rowsPerPage"
+    | "actions"
+    | "openActions"
+    | "options"
+    | "properties"
+    | "sort"
+    | "group"
+    | "calculations"
+    | "calculationsOn"
+    | "calculationsOff"
+    | "reset"
+    | "copyLink"
+    | "ascending"
+    | "descending"
+    | "addSort"
+    | "all"
+    | "none"
+    | "selectAll"
+    | "bulkEdit"
+    | "copy"
+    | "cancel"
+    | "confirm"
   >
 > &
   DataTableTranslations = {
@@ -38,6 +59,27 @@ export const defaultTranslations: Required<
   next: "Next",
   selected: "selected",
   rowsPerPage: "Rows per page",
+  actions: "Actions",
+  openActions: "Open actions menu",
+  options: "Options",
+  properties: "Properties",
+  sort: "Sort",
+  group: "Group",
+  calculations: "Footer calculations",
+  calculationsOn: "Shown",
+  calculationsOff: "Hidden",
+  reset: "Reset",
+  copyLink: "Copy link",
+  ascending: "Ascending",
+  descending: "Descending",
+  addSort: "Add sort",
+  all: "All",
+  none: "None",
+  selectAll: "Select all",
+  bulkEdit: "Bulk edit",
+  copy: "Copy",
+  cancel: "Cancel",
+  confirm: "Confirm",
 };
 
 export const frenchTranslations: DataTableTranslations = {
@@ -57,6 +99,27 @@ export const frenchTranslations: DataTableTranslations = {
   next: "Suivant",
   selected: "sélectionné(s)",
   rowsPerPage: "Lignes par page",
+  actions: "Actions",
+  openActions: "Ouvrir le menu des actions",
+  options: "Options",
+  properties: "Propriétés",
+  sort: "Trier",
+  group: "Grouper",
+  calculations: "Calculs de pied de tableau",
+  calculationsOn: "Affichés",
+  calculationsOff: "Masqués",
+  reset: "Réinitialiser",
+  copyLink: "Copier le lien",
+  ascending: "Croissant",
+  descending: "Décroissant",
+  addSort: "Ajouter un tri",
+  all: "Tous",
+  none: "Aucun",
+  selectAll: "Tout sélectionner",
+  bulkEdit: "Modification groupée",
+  copy: "Copier",
+  cancel: "Annuler",
+  confirm: "Confirmer",
 };
 
 export const createTranslations = (

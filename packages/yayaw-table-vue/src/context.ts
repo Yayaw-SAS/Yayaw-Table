@@ -34,6 +34,7 @@ export interface TableContextValue<TData extends TableRecord = TableRecord> {
   customBulkActions: ComputedRef<BulkAction<TData>[]>;
   toolbarActions: ComputedRef<ToolbarAction<TData>[]>;
   form: Ref<OpenFormState>;
+  footerCalculationsVisible: Ref<boolean>;
   getRowId: (row: TData, index?: number) => string;
   getFormConfig?: (
     formType: string,

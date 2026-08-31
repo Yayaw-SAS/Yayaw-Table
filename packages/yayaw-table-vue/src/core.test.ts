@@ -90,6 +90,30 @@ describe("defineTableConfig", () => {
     expect(config.columns.order).toEqual(["name"]);
     expect(config.columns.visible).toEqual(["name"]);
   });
+
+  it("applies the table date preset to date columns without an override", () => {
+    const config = defineTableConfig({
+      id: "items",
+      columns: {
+        definitions: [
+          { id: "createdAt", header: "Created", type: "date" },
+          {
+            id: "updatedAt",
+            header: "Updated",
+            type: "date",
+            dateDisplayPreset: "relative",
+          },
+        ],
+        mandatory: [],
+        order: ["createdAt", "updatedAt"],
+        visible: ["createdAt", "updatedAt"],
+      },
+      table: { dateDisplayPreset: "iso-date" },
+      translations: { namespace: "items", keys: {} },
+    });
+    expect(config.columns.definitions[0]?.dateDisplayPreset).toBe("iso-date");
+    expect(config.columns.definitions[1]?.dateDisplayPreset).toBe("relative");
+  });
 });
 
 describe("advanced filtering", () => {

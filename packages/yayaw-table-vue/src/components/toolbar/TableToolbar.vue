@@ -1,19 +1,41 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import {
+  ArrowDownAZ,
+  Calculator,
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  Download,
+  Layers,
+  ListFilter,
+  Plus,
+  RotateCcw,
+  SlidersHorizontal,
+  X,
+} from "lucide-vue-next";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useTableContext } from "../../context";
 import { downloadCsv } from "../../core";
 import type {
   AdvancedFilter,
+  ColumnDefinition,
   TableDisplayMode,
   TableView,
+  ToolbarAction,
   ToolbarActionContext,
 } from "../../types";
 import SavedViews from "./SavedViews.vue";
 
-defineProps<{ enableAdvancedFilters: boolean; initialViews: TableView[] }>();
+const props = defineProps<{
+  enableAdvancedFilters: boolean;
+  initialViews: TableView[];
+}>();
 const context = useTableContext();
-const showColumns = ref(false);
-const showFilters = ref(false);
+type OptionsView = "columns" | "filters" | "group" | "main" | "sort";
+
+const optionsRoot = ref<HTMLElement>();
+const optionsOpen = ref(false);
+const optionsView = ref<OptionsView>("main");
 const pendingAction = ref<string>();
 const search = computed({
   get: () => context.state.search.value,
@@ -30,19 +52,114 @@ const displayMode = computed({
     context.state.displayMode.value = value;
   },
 });
-const copyShareLink = async (): Promise<void> => {
-  if (typeof navigator !== "undefined") {
-    await navigator.clipboard?.writeText(context.state.shareableUrl());
+const dataColumns = computed(() =>
+  context.config.columns.definitions.filter(
+    (column) => column.id !== "select" && column.type !== "actions"
+  )
+);
+const filterableColumns = computed(() =>
+  dataColumns.value.filter((column) => column.enableFiltering !== false)
+);
+const sortableColumns = computed(() =>
+  dataColumns.value.filter((column) => column.enableSorting !== false)
+);
+const groupableColumns = computed(() =>
+  dataColumns.value.filter((column) => column.enableGrouping !== false)
+);
+const visibleColumnCount = computed(
+  () =>
+    dataColumns.value.filter(
+      (column) => context.state.visibility.value[column.id] !== false
+    ).length
+);
+const activeFilterCount = computed(
+  () =>
+    context.state.filters.value.length +
+    context.state.advancedFilters.value.filters.length
+);
+const activeOptionCount = computed(
+  () =>
+    activeFilterCount.value +
+    context.state.sorting.value.length +
+    context.state.grouping.value.length
+);
+const maxGroupingCount = computed(() =>
+  context.state.displayMode.value === "table" ? 2 : 1
+);
+const actionsAsIcons = computed(
+  () => context.config.table.actionsAsIcons === true
+);
+const actionContext = computed<ToolbarActionContext>(() => ({
+  data: context.data.rows.value,
+  selectedRows: context.selectedRows.value,
+  selectedIds: Object.keys(context.selection.value).filter(
+    (id) => context.selection.value[id]
+  ),
+  count: context.selectedRows.value.length,
+  clearSelection: context.clearSelection,
+  refresh: context.refresh,
+}));
+const visibleToolbarActions = computed(() =>
+  context.toolbarActions.value.filter(
+    (action) => !actionsAsIcons.value || action.showInIconMode !== false
+  )
+);
+
+const translate = (key: string, fallback: string): string =>
+  String(context.translations.value[key] ?? fallback);
+const columnLabel = (columnId: string): string =>
+  String(
+    dataColumns.value.find((column) => column.id === columnId)?.header ??
+      columnId
+  );
+const toolbarActionDisabled = (action: ToolbarAction): boolean => {
+  const disabled =
+    typeof action.disabled === "function"
+      ? action.disabled(actionContext.value)
+      : action.disabled;
+  return Boolean(disabled || action.loading || pendingAction.value);
+};
+const toolbarActionVariant = (action: ToolbarAction): string => {
+  if (action.variant === "default") {
+    return "";
+  }
+  return action.variant === "ghost"
+    ? "yayaw-button-ghost"
+    : "yayaw-button-outline";
+};
+const openOptions = (): void => {
+  optionsView.value = "main";
+  optionsOpen.value = !optionsOpen.value;
+};
+const closeOptions = (): void => {
+  optionsOpen.value = false;
+  optionsView.value = "main";
+};
+const handleDocumentPointer = (event: PointerEvent): void => {
+  if (!optionsRoot.value?.contains(event.target as Node)) {
+    closeOptions();
   }
 };
+const handleDocumentKey = (event: KeyboardEvent): void => {
+  if (event.key === "Escape") {
+    closeOptions();
+  }
+};
+onMounted(() => {
+  document.addEventListener("pointerdown", handleDocumentPointer);
+  document.addEventListener("keydown", handleDocumentKey);
+});
+onBeforeUnmount(() => {
+  document.removeEventListener("pointerdown", handleDocumentPointer);
+  document.removeEventListener("keydown", handleDocumentKey);
+});
 
+const copyShareLink = async (): Promise<void> => {
+  await navigator.clipboard?.writeText(context.state.shareableUrl());
+  closeOptions();
+};
 const addAdvancedFilter = (): void => {
-  const column = context.config.columns.definitions.find(
-    (item) =>
-      item.enableFiltering !== false &&
-      item.id !== "select" &&
-      item.type !== "actions"
-  );
+  const column = filterableColumns.value[0];
   if (!column) {
     return;
   }
@@ -59,61 +176,109 @@ const addAdvancedFilter = (): void => {
   };
 };
 const setColumnFilter = (columnId: string, value: unknown): void => {
-  const others = context.state.filters.value.filter(
+  const otherFilters = context.state.filters.value.filter(
     (filter) => filter.id !== columnId
   );
   context.state.filters.value =
     value === "" || value === undefined
-      ? others
-      : [...others, { id: columnId, value }];
+      ? otherFilters
+      : [...otherFilters, { id: columnId, value }];
 };
 const columnFilterValue = (columnId: string): unknown =>
   context.state.filters.value.find((filter) => filter.id === columnId)?.value ??
   "";
 const setOptionFilter = (columnId: string, event: Event): void => {
-  const raw = (event.target as HTMLSelectElement).value;
-  const option = context.config.columns.definitions
+  const rawValue = (event.target as HTMLSelectElement).value;
+  const option = dataColumns.value
     .find((column) => column.id === columnId)
-    ?.options?.find((item) => String(item.value) === raw);
-  setColumnFilter(columnId, raw === "" ? "" : (option?.value ?? raw));
+    ?.options?.find((item) => String(item.value) === rawValue);
+  setColumnFilter(columnId, rawValue === "" ? "" : (option?.value ?? rawValue));
 };
-const setVisible = (columnId: string, visible: boolean): void => {
-  if (context.config.columns.mandatory.includes(columnId)) {
+const setVisible = (column: ColumnDefinition, visible: boolean): void => {
+  if (
+    context.config.columns.mandatory.includes(column.id) ||
+    column.enableHiding === false
+  ) {
     return;
   }
   context.state.visibility.value = {
     ...context.state.visibility.value,
-    [columnId]: visible,
+    [column.id]: visible,
   };
 };
-const setGrouping = (columnId: string): void => {
-  context.state.grouping.value = columnId ? [columnId] : [];
+const addSort = (): void => {
+  const used = new Set(context.state.sorting.value.map((sort) => sort.id));
+  const column = sortableColumns.value.find((item) => !used.has(item.id));
+  if (column) {
+    context.state.sorting.value = [
+      ...context.state.sorting.value,
+      { id: column.id, desc: false },
+    ];
+  }
 };
-const actionContext = computed<ToolbarActionContext>(() => ({
-  data: context.data.rows.value,
-  selectedRows: context.selectedRows.value,
-  selectedIds: Object.keys(context.selection.value).filter(
-    (id) => context.selection.value[id]
-  ),
-  count: context.selectedRows.value.length,
-  clearSelection: context.clearSelection,
-  refresh: context.refresh,
-}));
+const updateSortColumn = (index: number, columnId: string): void => {
+  const sorting = [...context.state.sorting.value];
+  sorting[index] = { ...sorting[index], id: columnId };
+  context.state.sorting.value = sorting;
+};
+const toggleSortDirection = (index: number): void => {
+  const sorting = [...context.state.sorting.value];
+  sorting[index] = { ...sorting[index], desc: !sorting[index]?.desc };
+  context.state.sorting.value = sorting;
+};
+const removeSort = (index: number): void => {
+  context.state.sorting.value = context.state.sorting.value.filter(
+    (_, itemIndex) => itemIndex !== index
+  );
+};
+const addGrouping = (): void => {
+  const used = new Set(context.state.grouping.value);
+  const column = groupableColumns.value.find((item) => !used.has(item.id));
+  if (
+    column &&
+    context.state.grouping.value.length < maxGroupingCount.value
+  ) {
+    context.state.grouping.value = [
+      ...context.state.grouping.value,
+      column.id,
+    ];
+  }
+};
+const updateGrouping = (index: number, columnId: string): void => {
+  const grouping = [...context.state.grouping.value];
+  grouping[index] = columnId;
+  context.state.grouping.value = grouping;
+};
+const removeGrouping = (index: number): void => {
+  context.state.grouping.value = context.state.grouping.value.filter(
+    (_, itemIndex) => itemIndex !== index
+  );
+};
+const resetOptions = (): void => {
+  context.state.filters.value = [];
+  context.state.advancedFilters.value = { filters: [], joinOperator: "and" };
+  context.state.sorting.value = context.config.columns.sort ?? [];
+  context.state.grouping.value = [];
+  context.state.visibility.value = Object.fromEntries(
+    dataColumns.value.map((column) => [
+      column.id,
+      context.config.columns.visible.includes(column.id),
+    ])
+  );
+};
 const runAction = async (id: string): Promise<void> => {
   const action = context.toolbarActions.value.find((item) => item.id === id);
-  if (!action) {
-    return;
-  }
-  const disabled =
-    typeof action.disabled === "function"
-      ? action.disabled(actionContext.value)
-      : action.disabled;
-  if (disabled) {
+  if (!action || toolbarActionDisabled(action)) {
     return;
   }
   pendingAction.value = id;
   try {
     await action.handler(actionContext.value);
+  } catch (cause) {
+    context.status.value = {
+      type: "error",
+      message: cause instanceof Error ? cause.message : String(cause),
+    };
   } finally {
     pendingAction.value = undefined;
   }
@@ -121,13 +286,13 @@ const runAction = async (id: string): Promise<void> => {
 const exportRows = async (): Promise<void> => {
   if (context.onExport) {
     await context.onExport(context.data.rows.value);
-  } else {
-    downloadCsv(
-      context.data.rows.value,
-      context.config.columns.definitions,
-      context.config.id
-    );
+    return;
   }
+  downloadCsv(
+    context.data.rows.value,
+    context.config.columns.definitions,
+    context.config.id
+  );
 };
 </script>
 
@@ -135,61 +300,341 @@ const exportRows = async (): Promise<void> => {
   <div class="yayaw-toolbar">
     <div class="yayaw-toolbar-row">
       <div class="yayaw-toolbar-left">
-        <SavedViews v-if="context.config.table.enableViews" :initial-views="initialViews" />
-        <div v-if="modes.length > 1" class="yayaw-segmented" role="group" aria-label="Display mode">
-          <button v-for="mode in modes" :key="mode" type="button" :class="{ active: displayMode === mode }" @click="displayMode = mode">{{ mode }}</button>
+        <SavedViews
+          v-if="context.config.table.enableViews"
+          :initial-views="initialViews"
+        />
+        <div
+          v-if="modes.length > 1"
+          class="yayaw-segmented"
+          role="group"
+          aria-label="Display mode"
+        >
+          <button
+            v-for="mode in modes"
+            :key="mode"
+            type="button"
+            :class="{ active: displayMode === mode }"
+            @click="displayMode = mode"
+          >
+            {{ mode }}
+          </button>
         </div>
       </div>
+
       <div class="yayaw-toolbar-right">
-        <input v-model="search" type="search" class="yayaw-input yayaw-search" :placeholder="String(context.translations.value.search)" />
-        <button v-if="context.config.table.enableColumnFilters" type="button" class="yayaw-button yayaw-button-outline" @click="showFilters = !showFilters">
-          {{ context.translations.value.filters }}
-          <span v-if="context.state.filters.value.length" class="yayaw-count">{{ context.state.filters.value.length }}</span>
-        </button>
-        <button v-if="enableAdvancedFilters" type="button" class="yayaw-button yayaw-button-outline" @click="addAdvancedFilter">+ Filter</button>
-        <button type="button" class="yayaw-button yayaw-button-outline" @click="showColumns = !showColumns">{{ context.translations.value.columns }}</button>
+        <input
+          v-model="search"
+          type="search"
+          class="yayaw-input yayaw-search"
+          :placeholder="String(context.translations.value.search)"
+        />
+
+        <div ref="optionsRoot" class="yayaw-options-root">
+          <button
+            type="button"
+            class="yayaw-button yayaw-button-outline"
+            :class="{ 'yayaw-icon-only': actionsAsIcons }"
+            :aria-label="translate('options', 'Options')"
+            :aria-expanded="optionsOpen"
+            aria-haspopup="menu"
+            :title="actionsAsIcons ? translate('options', 'Options') : undefined"
+            @click="openOptions"
+          >
+            <SlidersHorizontal :size="16" aria-hidden="true" />
+            <span v-if="!actionsAsIcons">{{ translate("options", "Options") }}</span>
+            <span
+              v-if="activeOptionCount"
+              :class="actionsAsIcons ? 'yayaw-icon-count' : 'yayaw-count'"
+            >{{ activeOptionCount }}</span>
+          </button>
+
+          <section
+            v-if="optionsOpen"
+            class="yayaw-options-menu"
+            role="menu"
+            :aria-label="translate('options', 'Options')"
+          >
+            <header v-if="optionsView !== 'main'" class="yayaw-options-header">
+              <button
+                type="button"
+                class="yayaw-icon-button"
+                aria-label="Back"
+                @click="optionsView = 'main'"
+              >
+                <ChevronLeft :size="16" aria-hidden="true" />
+              </button>
+              <strong>{{ translate(optionsView === "columns" ? "properties" : optionsView, optionsView) }}</strong>
+            </header>
+
+            <div v-if="optionsView === 'main'" class="yayaw-options-list">
+              <button
+                type="button"
+                class="yayaw-options-item"
+                @click="optionsView = 'columns'"
+              >
+                <SlidersHorizontal :size="16" aria-hidden="true" />
+                <span>{{ translate("properties", "Properties") }}</span>
+                <small>{{ visibleColumnCount }}</small>
+                <ChevronRight :size="15" aria-hidden="true" />
+              </button>
+              <button
+                v-if="context.config.table.enableColumnFilters"
+                type="button"
+                class="yayaw-options-item"
+                @click="optionsView = 'filters'"
+              >
+                <ListFilter :size="16" aria-hidden="true" />
+                <span>{{ translate("filters", "Filters") }}</span>
+                <small v-if="activeFilterCount">{{ activeFilterCount }}</small>
+                <ChevronRight :size="15" aria-hidden="true" />
+              </button>
+              <button
+                v-if="context.config.table.enableSorting"
+                type="button"
+                class="yayaw-options-item"
+                @click="optionsView = 'sort'"
+              >
+                <ArrowDownAZ :size="16" aria-hidden="true" />
+                <span>{{ translate("sort", "Sort") }}</span>
+                <small v-if="context.state.sorting.value.length">{{ context.state.sorting.value.length }}</small>
+                <ChevronRight :size="15" aria-hidden="true" />
+              </button>
+              <button
+                v-if="context.config.table.enableGrouping"
+                type="button"
+                class="yayaw-options-item"
+                @click="optionsView = 'group'"
+              >
+                <Layers :size="16" aria-hidden="true" />
+                <span>{{ translate("group", "Group") }}</span>
+                <small v-if="context.state.grouping.value.length">{{ context.state.grouping.value.length }}</small>
+                <ChevronRight :size="15" aria-hidden="true" />
+              </button>
+              <button
+                v-if="context.config.table.enableCalculations"
+                type="button"
+                class="yayaw-options-item"
+                role="menuitemcheckbox"
+                :aria-checked="context.footerCalculationsVisible.value"
+                @click="context.footerCalculationsVisible.value = !context.footerCalculationsVisible.value"
+              >
+                <Calculator :size="16" aria-hidden="true" />
+                <span>{{ translate("calculations", "Footer calculations") }}</span>
+                <small>{{ context.footerCalculationsVisible.value ? translate("calculationsOn", "Shown") : translate("calculationsOff", "Hidden") }}</small>
+              </button>
+            </div>
+
+            <div v-else-if="optionsView === 'columns'" class="yayaw-options-content">
+              <label
+                v-for="column in dataColumns"
+                :key="column.id"
+                class="yayaw-checkbox-label yayaw-options-check"
+              >
+                <input
+                  type="checkbox"
+                  :checked="context.state.visibility.value[column.id] !== false"
+                  :disabled="context.config.columns.mandatory.includes(column.id) || column.enableHiding === false"
+                  @change="setVisible(column, ($event.target as HTMLInputElement).checked)"
+                />
+                <span>{{ column.header }}</span>
+              </label>
+            </div>
+
+            <div v-else-if="optionsView === 'filters'" class="yayaw-options-content">
+              <label
+                v-for="column in filterableColumns"
+                :key="column.id"
+                class="yayaw-field-inline"
+              >
+                <span>{{ column.header }}</span>
+                <select
+                  v-if="column.options?.length"
+                  class="yayaw-select"
+                  :value="columnFilterValue(column.id)"
+                  @change="setOptionFilter(column.id, $event)"
+                >
+                  <option value="">{{ translate("all", "All") }}</option>
+                  <option
+                    v-for="option in column.options"
+                    :key="String(option.value)"
+                    :value="option.value"
+                  >
+                    {{ option.label }}
+                  </option>
+                </select>
+                <input
+                  v-else
+                  class="yayaw-input"
+                  :type="column.type === 'number' ? 'number' : 'search'"
+                  :value="columnFilterValue(column.id)"
+                  @input="setColumnFilter(column.id, ($event.target as HTMLInputElement).value)"
+                />
+              </label>
+              <button
+                v-if="props.enableAdvancedFilters"
+                type="button"
+                class="yayaw-button yayaw-button-outline"
+                @click="addAdvancedFilter"
+              >
+                <Plus :size="15" aria-hidden="true" />
+                {{ translate("filters", "Filters") }}
+              </button>
+            </div>
+
+            <div v-else-if="optionsView === 'sort'" class="yayaw-options-content">
+              <div
+                v-for="(sort, index) in context.state.sorting.value"
+                :key="`${sort.id}-${index}`"
+                class="yayaw-options-rule"
+              >
+                <select
+                  class="yayaw-select"
+                  :value="sort.id"
+                  :aria-label="`${translate('sort', 'Sort')} ${index + 1}`"
+                  @change="updateSortColumn(index, ($event.target as HTMLSelectElement).value)"
+                >
+                  <option
+                    v-for="column in sortableColumns"
+                    :key="column.id"
+                    :value="column.id"
+                  >
+                    {{ column.header }}
+                  </option>
+                </select>
+                <button
+                  type="button"
+                  class="yayaw-button yayaw-button-outline"
+                  @click="toggleSortDirection(index)"
+                >
+                  {{ sort.desc ? translate("descending", "Descending") : translate("ascending", "Ascending") }}
+                </button>
+                <button
+                  type="button"
+                  class="yayaw-icon-button"
+                  :aria-label="`Remove ${columnLabel(sort.id)}`"
+                  @click="removeSort(index)"
+                >
+                  <X :size="15" aria-hidden="true" />
+                </button>
+              </div>
+              <button
+                v-if="context.state.sorting.value.length < sortableColumns.length"
+                type="button"
+                class="yayaw-button yayaw-button-outline"
+                @click="addSort"
+              >
+                <Plus :size="15" aria-hidden="true" />
+                {{ translate("addSort", "Add sort") }}
+              </button>
+            </div>
+
+            <div v-else class="yayaw-options-content">
+              <div
+                v-for="(columnId, index) in context.state.grouping.value"
+                :key="`${columnId}-${index}`"
+                class="yayaw-options-rule"
+              >
+                <select
+                  class="yayaw-select"
+                  :value="columnId"
+                  :aria-label="`${translate('group', 'Group')} ${index + 1}`"
+                  @change="updateGrouping(index, ($event.target as HTMLSelectElement).value)"
+                >
+                  <option
+                    v-for="column in groupableColumns"
+                    :key="column.id"
+                    :value="column.id"
+                  >
+                    {{ column.header }}
+                  </option>
+                </select>
+                <button
+                  type="button"
+                  class="yayaw-icon-button"
+                  :aria-label="`Remove ${columnLabel(columnId)}`"
+                  @click="removeGrouping(index)"
+                >
+                  <X :size="15" aria-hidden="true" />
+                </button>
+              </div>
+              <button
+                v-if="context.state.grouping.value.length < Math.min(maxGroupingCount, groupableColumns.length)"
+                type="button"
+                class="yayaw-button yayaw-button-outline"
+                @click="addGrouping"
+              >
+                <Plus :size="15" aria-hidden="true" />
+                {{ translate("group", "Group") }}
+              </button>
+            </div>
+
+            <footer class="yayaw-options-footer">
+              <button
+                type="button"
+                class="yayaw-button yayaw-button-ghost"
+                @click="resetOptions"
+              >
+                <RotateCcw :size="15" aria-hidden="true" />
+                {{ translate("reset", "Reset") }}
+              </button>
+              <button
+                type="button"
+                class="yayaw-button yayaw-button-ghost"
+                @click="copyShareLink"
+              >
+                <Copy :size="15" aria-hidden="true" />
+                {{ translate("copyLink", "Copy link") }}
+              </button>
+            </footer>
+          </section>
+        </div>
+
         <button
-          v-for="action in context.toolbarActions.value"
+          v-for="action in visibleToolbarActions"
           :key="action.id"
           type="button"
-          class="yayaw-button yayaw-button-outline"
-          :disabled="pendingAction === action.id || (typeof action.disabled === 'boolean' && action.disabled)"
+          class="yayaw-button"
+          :class="[
+            toolbarActionVariant(action),
+            { 'yayaw-icon-only': actionsAsIcons },
+          ]"
+          :disabled="toolbarActionDisabled(action)"
+          :aria-label="actionsAsIcons ? action.label : undefined"
+          :title="actionsAsIcons ? (action.tooltip ?? action.label) : action.tooltip"
           @click="runAction(action.id)"
-        >{{ pendingAction === action.id ? '…' : action.label }}</button>
-        <button v-if="context.config.table.export" type="button" class="yayaw-button yayaw-button-outline" @click="exportRows">
-          {{ context.translations.value.export }}
+        >
+          <span v-if="pendingAction === action.id || action.loading" class="yayaw-spinner" aria-hidden="true" />
+          <component v-else-if="action.icon" :is="action.icon" :size="16" aria-hidden="true" />
+          <span v-else-if="actionsAsIcons" aria-hidden="true">{{ action.label.slice(0, 1) }}</span>
+          <span v-if="!actionsAsIcons">{{ action.label }}</span>
         </button>
-        <button v-if="context.config.table.allowCreate && context.actions.value?.create" type="button" class="yayaw-button" @click="context.openCreate">
-          {{ context.translations.value.create }}
+
+        <button
+          v-if="context.config.table.export"
+          type="button"
+          class="yayaw-button yayaw-button-outline"
+          :class="{ 'yayaw-icon-only': actionsAsIcons }"
+          :aria-label="translate('export', 'Export')"
+          :title="actionsAsIcons ? translate('export', 'Export') : undefined"
+          @click="exportRows"
+        >
+          <Download :size="16" aria-hidden="true" />
+          <span v-if="!actionsAsIcons">{{ translate("export", "Export") }}</span>
+        </button>
+        <button
+          v-if="context.config.table.allowCreate && context.actions.value?.create"
+          type="button"
+          class="yayaw-button"
+          :class="{ 'yayaw-icon-only': actionsAsIcons }"
+          :aria-label="translate('create', 'Create')"
+          :title="actionsAsIcons ? translate('create', 'Create') : undefined"
+          @click="context.openCreate"
+        >
+          <Plus :size="16" aria-hidden="true" />
+          <span v-if="!actionsAsIcons">{{ translate("create", "Create") }}</span>
         </button>
       </div>
-    </div>
-    <div v-if="showFilters" class="yayaw-column-filters">
-      <label v-for="column in context.config.columns.definitions.filter((item) => item.enableFiltering !== false && item.id !== 'select' && item.type !== 'actions')" :key="column.id" class="yayaw-field-inline">
-        <span>{{ column.header }}</span>
-        <select v-if="column.options?.length" class="yayaw-select" :value="columnFilterValue(column.id)" @change="setOptionFilter(column.id, $event)">
-          <option value="">All</option>
-          <option v-for="option in column.options" :key="String(option.value)" :value="option.value">{{ option.label }}</option>
-        </select>
-        <input v-else class="yayaw-input" :type="column.type === 'number' ? 'number' : 'search'" :value="columnFilterValue(column.id)" @input="setColumnFilter(column.id, ($event.target as HTMLInputElement).value)" />
-      </label>
-    </div>
-    <div v-if="showColumns" class="yayaw-columns-panel">
-      <div class="yayaw-column-toggles">
-        <label v-for="column in context.config.columns.definitions.filter((item) => item.id !== 'select' && item.type !== 'actions')" :key="column.id" class="yayaw-checkbox-label">
-          <input type="checkbox" :checked="context.state.visibility.value[column.id] !== false" :disabled="context.config.columns.mandatory.includes(column.id)" @change="setVisible(column.id, ($event.target as HTMLInputElement).checked)" />
-          {{ column.header }}
-        </label>
-      </div>
-      <label class="yayaw-field-inline">
-        <span>Group by</span>
-        <select class="yayaw-select" :value="context.state.grouping.value[0] ?? ''" @change="setGrouping(($event.target as HTMLSelectElement).value)">
-          <option value="">None</option>
-          <option v-for="column in context.config.columns.definitions.filter((item) => item.enableGrouping !== false && item.id !== 'select' && item.type !== 'actions')" :key="column.id" :value="column.id">{{ column.header }}</option>
-        </select>
-      </label>
-      <button type="button" class="yayaw-button yayaw-button-ghost" @click="context.state.reset">Reset</button>
-      <button type="button" class="yayaw-button yayaw-button-ghost" @click="copyShareLink">Copy link</button>
     </div>
   </div>
 </template>

@@ -78,9 +78,13 @@ const canEdit = computed(() => {
   if (
     !(
       context.config.table.allowInlineEdit &&
-      context.config.table.inlineEdit?.enabled
+      context.config.table.inlineEdit?.enabled &&
+      context.actions.value?.update
     )
   ) {
+    return false;
+  }
+  if (context.config.table.canEditRow?.(props.row) === false) {
     return false;
   }
   if (inlineConfig.value.readonly) {

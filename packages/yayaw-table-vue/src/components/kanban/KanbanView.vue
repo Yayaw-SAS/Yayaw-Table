@@ -113,9 +113,12 @@ const toggleProperty = (id: string, checked: boolean): void => {
 const canDrag = computed(
   () =>
     context.config.table.kanban?.allowDragUpdate &&
+    context.config.table.allowEdit &&
     Boolean(context.actions.value?.update) &&
     Boolean(groupBy.value)
 );
+const canEditRow = (row: TableRecord): boolean =>
+  context.config.table.canEditRow?.(row) !== false;
 const drop = async (target: string): Promise<void> => {
   const row = dragged.value;
   const definition = column(groupBy.value);
@@ -201,7 +204,7 @@ const toggleSelection = (row: TableRecord, checked: boolean): void => {
             :key="context.getRowId(row)"
             class="yayaw-card yayaw-kanban-card"
             :class="{ pending: pending === context.getRowId(row) }"
-            :draggable="canDrag"
+            :draggable="canDrag && canEditRow(row)"
             tabindex="0"
             @dragstart="dragged = row"
             @click="activate(row, $event)"

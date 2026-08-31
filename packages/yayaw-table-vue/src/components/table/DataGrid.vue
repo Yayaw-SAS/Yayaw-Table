@@ -117,13 +117,14 @@ const columns = computed<ColumnDef<TableRecord>[]>(() => {
     });
   }
   const hasActions =
-    context.config.table.allowEdit ||
-    context.config.table.allowDelete ||
-    context.config.table.allowDuplicate;
+    (context.config.table.allowEdit && Boolean(context.actions.value?.update)) ||
+    (context.config.table.allowDelete && Boolean(context.actions.value?.delete)) ||
+    (context.config.table.allowDuplicate &&
+      Boolean(context.actions.value?.duplicate));
   if (hasActions) {
     definitions.push({
       id: "actions",
-      size: 96,
+      size: 48,
       enableSorting: false,
       enableHiding: false,
       header: "",
@@ -143,9 +144,18 @@ const table = useVueTable({
   getCoreRowModel: getCoreRowModel(),
   getFilteredRowModel: getFilteredRowModel(),
   getSortedRowModel: getSortedRowModel(),
-  getPaginationRowModel: getPaginationRowModel(),
-  getGroupedRowModel: getGroupedRowModel(),
+  getPaginationRowModel: context.config.table.enablePagination
+    ? getPaginationRowModel()
+    : undefined,
+  getGroupedRowModel: context.config.table.enableGrouping
+    ? getGroupedRowModel()
+    : undefined,
   getExpandedRowModel: getExpandedRowModel(),
+  enableColumnFilters: context.config.table.enableColumnFilters,
+  enableColumnPinning: context.config.table.enableColumnPinning,
+  enableGrouping: context.config.table.enableGrouping,
+  enablePagination: context.config.table.enablePagination,
+  enableSorting: context.config.table.enableSorting,
   getRowId: (row, index) => context.getRowId(row, index),
   getSubRows: (row) => row.subRows as TableRecord[] | undefined,
   get enableRowSelection() {
@@ -501,7 +511,7 @@ const pinnedStyle = (column: Column<TableRecord>): CSSProperties => {
           </tr>
         </thead>
         <tbody>
-          <tr v-if="!visibleRows.length && !context.data.isLoading.value">
+          <tr v-if="!visibleRows.length && !context.data.isLoading.value && context.config.table.emptyState?.show !== false">
             <td :colspan="table.getVisibleLeafColumns().length" class="yayaw-empty">
               <strong>{{ context.config.table.emptyState?.title ?? context.translations.value.noResults }}</strong>
               <span v-if="context.config.table.emptyState?.description">{{ context.config.table.emptyState.description }}</span>
@@ -519,7 +529,7 @@ const pinnedStyle = (column: Column<TableRecord>): CSSProperties => {
             </td>
           </tr>
         </tbody>
-        <tfoot v-if="context.config.table.enableCalculations && calculationColumns.length">
+        <tfoot v-if="context.config.table.enableCalculations && context.footerCalculationsVisible.value && calculationColumns.length">
           <tr>
             <td v-for="column in table.getVisibleLeafColumns()" :key="column.id" class="yayaw-calculation">
               <template v-if="calculationColumns.find((item) => item.id === column.id)">

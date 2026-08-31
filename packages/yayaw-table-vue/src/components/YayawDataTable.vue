@@ -154,6 +154,7 @@ const selection = ref<Record<string, boolean>>({});
 const selectedRowCache = ref<Record<string, TableRecord>>({});
 const isSelectingAll = ref(false);
 const form = ref<OpenFormState>({ open: false, mode: "create" });
+const footerCalculationsVisible = ref(config.table.enableCalculations === true);
 const status = ref<{ type: "error" | "success"; message: string }>();
 const translations = computed(() =>
   createTranslations(props.locale, props.translations)
@@ -281,8 +282,17 @@ const resolveRowClickMode = (): NonNullable<typeof config.table.rowClickMode> =>
 };
 const activateRow = (row: TableRecord, event: MouseEvent): void => {
   const mode = resolveRowClickMode();
-  if (mode === "edit" && config.table.allowEdit) {
-    openEdit(row);
+  if (mode === "none") {
+    return;
+  }
+  if (mode === "edit") {
+    if (
+      config.table.allowEdit &&
+      config.table.canEditRow?.(row) !== false
+    ) {
+      openEdit(row);
+    }
+    return;
   }
   if (mode === "link") {
     const linkColumn = config.columns.definitions.find(
@@ -298,6 +308,7 @@ const activateRow = (row: TableRecord, event: MouseEvent): void => {
         window.location.assign(url);
       }
     }
+    return;
   }
   emit("rowActivate", row, event);
 };
@@ -336,6 +347,7 @@ provide(tableContextKey, {
   customBulkActions,
   toolbarActions,
   form,
+  footerCalculationsVisible,
   getRowId,
   getFormConfig: props.getFormConfig,
   refresh,
@@ -375,10 +387,10 @@ provide(tableContextKey, {
 
     <TableToolbar
       v-if="config.table.showToolbar"
-      :enable-advanced-filters="enableAdvancedFilters"
+      :enable-advanced-filters="enableAdvancedFilters && config.table.enableColumnFilters"
       :initial-views="initialViews"
     />
-    <AdvancedFilters v-if="enableAdvancedFilters && state.advancedFilters.value.filters.length" />
+    <AdvancedFilters v-if="enableAdvancedFilters && config.table.enableColumnFilters && state.advancedFilters.value.filters.length" />
 
     <div v-if="tableData.error.value" class="yayaw-error" role="alert">
       {{ tableData.error.value.message }}

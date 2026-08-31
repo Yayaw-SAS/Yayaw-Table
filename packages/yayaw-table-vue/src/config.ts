@@ -46,6 +46,7 @@ export const defaultTableBehavior: TableBehaviorConfig = {
     trigger: "doubleClickEnter",
   },
   enableCalculations: false,
+  enableGrouping: true,
   dateDisplayPreset: "localized-short",
 };
 
@@ -102,6 +103,15 @@ export const defineTableConfig = <TData extends TableRecord>(
     ...input,
     columns: {
       ...input.columns,
+      definitions: input.columns.definitions.map((column) => ({
+        ...column,
+        dateDisplayPreset:
+          column.type === "date"
+            ? (column.dateDisplayPreset ??
+              input.table?.dateDisplayPreset ??
+              defaultTableBehavior.dateDisplayPreset)
+            : column.dateDisplayPreset,
+      })),
       sort: input.columns.sort ?? [],
       mandatory: input.columns.mandatory ?? [],
       order:
