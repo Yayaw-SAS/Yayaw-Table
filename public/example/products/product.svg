@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" role="img" aria-labelledby="title">
-  <title id="title">Generic product illustration</title>
-  <rect width="640" height="480" fill="#f4f7fb"/>
-  <rect x="154" y="112" width="332" height="256" rx="42" fill="#ffffff" stroke="#cbd5e1" stroke-width="8"/>
-  <circle cx="240" cy="202" r="46" fill="#22c55e"/>
-  <rect x="300" y="176" width="110" height="22" rx="11" fill="#0f172a"/>
-  <rect x="300" y="218" width="148" height="18" rx="9" fill="#64748b"/>
-  <rect x="206" y="290" width="228" height="34" rx="17" fill="#e2e8f0"/>
-</svg>

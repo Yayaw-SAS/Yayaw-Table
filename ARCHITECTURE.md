@@ -79,7 +79,8 @@ yayaw-table/
 ├── registry/
 │   ├── default/ui/yayaw-table/          # Generated from src (do not edit by hand)
 │   └── registry.json                    # Shadcn registry manifest
-├── public/r/                            # Built registry artifacts served by docs site
+├── packages/yayaw-table-vue/            # Vue 3 package, tests, demo, and registry source
+├── public/r/                            # Built registry artifacts served by GitHub Pages
 └── scripts/build-registry.mjs           # Sync/generate registry files
 ```
 

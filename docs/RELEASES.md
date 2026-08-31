@@ -18,13 +18,6 @@ yarn dlx shadcn@latest add https://table.yayaw.app/r/yayaw-table.json
 bunx --bun shadcn@latest add https://table.yayaw.app/r/yayaw-table.json
 ```
 
-The shadcn CLI v4 can also install the default item from the site root via
-content negotiation:
-
-```bash
-npx shadcn@latest add https://table.yayaw.app
-```
-
 Pinned installs use a release snapshot:
 
 ```bash
