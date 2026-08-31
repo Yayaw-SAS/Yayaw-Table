@@ -14,6 +14,7 @@ const publicRegistryDir = path.join(ROOT, "public", "r");
 const latestIndexPath = path.join(publicRegistryDir, "registry.json");
 const versionedRegistryDir = path.join(publicRegistryDir, expectedTag);
 const manifestPath = path.join(publicRegistryDir, expectedTag, "release.json");
+const standaloneRegistryItems = ["yayaw-table-vue"];
 
 function fail(message) {
   throw new Error(message);
@@ -42,9 +43,13 @@ if (!fs.existsSync(manifestPath)) {
 
 const latestRegistry = JSON.parse(fs.readFileSync(latestIndexPath, "utf8"));
 const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+const itemNames = [
+  ...latestRegistry.items.map((item) => item.name),
+  ...standaloneRegistryItems,
+];
 const expectedFileNames = [
   "registry.json",
-  ...latestRegistry.items.map((item) => `${item.name}.json`),
+  ...itemNames.map((itemName) => `${itemName}.json`),
 ];
 
 for (const fileName of expectedFileNames) {
@@ -72,10 +77,10 @@ for (const fileName of expectedFileNames) {
   }
 }
 
-for (const item of latestRegistry.items) {
-  const itemFileName = `${item.name}.json`;
-  if (manifest.files?.items?.[item.name] !== itemFileName) {
-    fail(`Release manifest is missing item "${item.name}".`);
+for (const itemName of itemNames) {
+  const itemFileName = `${itemName}.json`;
+  if (manifest.files?.items?.[itemName] !== itemFileName) {
+    fail(`Release manifest is missing item "${itemName}".`);
   }
 }
 

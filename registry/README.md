@@ -36,7 +36,9 @@ Le registry a deux URLs publiques :
 
 - `https://table.yayaw.app/r/yayaw-table.json` : canal `latest`, mis à jour à chaque build de registry.
 - `https://table.yayaw.app/r/vX.Y.Z/yayaw-table.json` : snapshot immuable d'une release.
-- `https://table.yayaw.app` : raccourci CLI v4 par négociation de contenu, équivalent à l'item `yayaw-table`.
+- `https://table.yayaw.app/r/yayaw-table-vue.json` : canal `latest` de l'édition Vue, installable avec `shadcn-vue`.
+
+Le domaine sert uniquement les fichiers statiques de `public/r` via GitHub Pages. Il n'a besoin ni de Next.js ni d'un frontend déployé. La racine du domaine n'est pas une URL de registry : utilisez toujours un chemin `/r/*.json`.
 
 Le registry publie aussi deux items optionnels CLI v4 :
 

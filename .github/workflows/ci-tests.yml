@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -36,3 +36,6 @@ jobs:
 
       - name: Build Vue package
         run: bun run vue:build
+
+      - name: Build static registries
+        run: bun run registry:pages

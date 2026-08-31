@@ -1,7 +1,7 @@
 {
   "$schema": "https://ui.shadcn.com/schema/registry.json",
   "name": "yayaw-table",
-  "homepage": "https://github.com/Yayaw-eu/Yayaw-Table",
+  "homepage": "https://github.com/Yayaw-SAS/Yayaw-Table",
   "items": [
     {
       "name": "yayaw-table",
