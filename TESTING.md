@@ -1,59 +1,35 @@
-# YaYaw Table - Testing Guide
+# YaYaw Table testing guide
 
-## Goals
-
-Validate that source changes under `src/components/ui/yayaw-table` are correctly synced to the Shadcn registry output and that the docs app still builds.
-
-## 1. Static checks
+## Complete local verification
 
 ```bash
-bun x ultracite check
+bun install
+bun install --cwd packages/yayaw-table-vue
+bun run check
 bun run type-check
+bun run test
+bun run vue:test
+bun run vue:build
+bun run registry:pages
 ```
 
-## 2. Registry sync check
+The final command rebuilds both registry editions and prepares the exact static artifact deployed by GitHub Pages under `dist/registry-pages/r`.
 
-After editing source files, regenerate the registry files:
+## Registry smoke tests
+
+Serve `dist/registry-pages` with any static HTTP server, then verify:
 
 ```bash
-bun run registry:sync
+npx shadcn@latest view http://127.0.0.1:8080/r/yayaw-table.json
+npx shadcn-vue@latest view http://127.0.0.1:8080/r/yayaw-table-vue.json
 ```
 
-Then verify expected generated changes in:
+The static host intentionally has no application frontend. Documentation and the interactive demo are tested in the Yayaw repository.
 
-- `registry/default/ui/yayaw-table`
-- `registry/registry.json`
+## Pre-PR checklist
 
-## 3. Registry build check
-
-Generate distributable JSON files served by the docs app:
-
-```bash
-bun run registry:build
-```
-
-This updates:
-
-- `public/r/registry.json`
-- `public/r/yayaw-table.json`
-
-## 4. Local smoke test
-
-Run the docs app and verify installation snippets and examples:
-
-```bash
-bun run dev
-```
-
-Recommended checks:
-
-- `/docs/installation` shows Shadcn-only install flow
-- `/docs/setup` examples import from `@/components/ui/yayaw-table`
-- `/example` renders and table interactions still work
-
-## 5. Pre-PR checklist
-
-- `bun x ultracite check` passes
-- `bun run type-check` passes
-- registry files are synced if source files changed
-- docs do not mention npm package publishing/install paths
+- React and Vue tests pass.
+- Type checking passes.
+- `registry/default`, `registry/registry.json`, and `public/r` match the source.
+- `dist/registry-pages` contains only static registry delivery files.
+- Changesets are added only for consumer-facing changes.

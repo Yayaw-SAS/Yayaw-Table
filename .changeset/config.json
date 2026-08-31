@@ -3,7 +3,7 @@
   "changelog": [
     "@changesets/cli/changelog",
     {
-      "repo": "Yayaw-eu/Yayaw-Table"
+      "repo": "Yayaw-SAS/Yayaw-Table"
     }
   ],
   "commit": false,
