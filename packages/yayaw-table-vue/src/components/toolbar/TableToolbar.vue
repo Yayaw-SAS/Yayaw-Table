@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import {
+  ArrowLeft,
   ArrowDownAZ,
   Calculator,
-  ChevronLeft,
   ChevronRight,
-  Copy,
   Download,
   Layers,
+  List,
   ListFilter,
   Plus,
   RotateCcw,
@@ -57,6 +57,13 @@ const dataColumns = computed(() =>
     (column) => column.id !== "select" && column.type !== "actions"
   )
 );
+const hideableColumns = computed(() =>
+  dataColumns.value.filter(
+    (column) =>
+      column.enableHiding !== false &&
+      !context.config.columns.mandatory.includes(column.id)
+  )
+);
 const filterableColumns = computed(() =>
   dataColumns.value.filter((column) => column.enableFiltering !== false)
 );
@@ -79,9 +86,33 @@ const activeFilterCount = computed(
 );
 const activeOptionCount = computed(
   () =>
-    activeFilterCount.value +
-    context.state.sorting.value.length +
-    context.state.grouping.value.length
+    (context.config.table.enableColumnFilters ? activeFilterCount.value : 0) +
+    (context.config.table.enableSorting
+      ? context.state.sorting.value.length
+      : 0)
+);
+const hasHiddenColumns = computed(() =>
+  dataColumns.value.some(
+    (column) => context.state.visibility.value[column.id] === false
+  )
+);
+const hasAnythingToReset = computed(
+  () =>
+    (context.config.table.enableColumnFilters && activeFilterCount.value > 0) ||
+    (context.config.table.enableSorting &&
+      context.state.sorting.value.length > 0) ||
+    (context.config.table.enableGrouping &&
+      context.state.grouping.value.length > 0) ||
+    hasHiddenColumns.value
+);
+const hasAnyMenuSection = computed(
+  () =>
+    hideableColumns.value.length > 0 ||
+    (context.config.table.enableColumnFilters &&
+      (filterableColumns.value.length > 0 || props.enableAdvancedFilters)) ||
+    (context.config.table.enableSorting && sortableColumns.value.length > 0) ||
+    (context.config.table.enableGrouping && groupableColumns.value.length > 0) ||
+    context.config.table.enableCalculations
 );
 const maxGroupingCount = computed(() =>
   context.state.displayMode.value === "table" ? 2 : 1
@@ -154,10 +185,6 @@ onBeforeUnmount(() => {
   document.removeEventListener("keydown", handleDocumentKey);
 });
 
-const copyShareLink = async (): Promise<void> => {
-  await navigator.clipboard?.writeText(context.state.shareableUrl());
-  closeOptions();
-};
 const addAdvancedFilter = (): void => {
   const column = filterableColumns.value[0];
   if (!column) {
@@ -218,12 +245,20 @@ const addSort = (): void => {
 };
 const updateSortColumn = (index: number, columnId: string): void => {
   const sorting = [...context.state.sorting.value];
-  sorting[index] = { ...sorting[index], id: columnId };
+  const currentSort = sorting[index];
+  if (!currentSort) {
+    return;
+  }
+  sorting[index] = { ...currentSort, id: columnId };
   context.state.sorting.value = sorting;
 };
 const toggleSortDirection = (index: number): void => {
   const sorting = [...context.state.sorting.value];
-  sorting[index] = { ...sorting[index], desc: !sorting[index]?.desc };
+  const currentSort = sorting[index];
+  if (!currentSort) {
+    return;
+  }
+  sorting[index] = { ...currentSort, desc: !currentSort.desc };
   context.state.sorting.value = sorting;
 };
 const removeSort = (index: number): void => {
@@ -330,7 +365,7 @@ const exportRows = async (): Promise<void> => {
           :placeholder="String(context.translations.value.search)"
         />
 
-        <div ref="optionsRoot" class="yayaw-options-root">
+        <div v-if="hasAnyMenuSection" ref="optionsRoot" class="yayaw-options-root">
           <button
             type="button"
             class="yayaw-button yayaw-button-outline"
@@ -345,7 +380,8 @@ const exportRows = async (): Promise<void> => {
             <span v-if="!actionsAsIcons">{{ translate("options", "Options") }}</span>
             <span
               v-if="activeOptionCount"
-              :class="actionsAsIcons ? 'yayaw-icon-count' : 'yayaw-count'"
+              class="yayaw-options-trigger-count"
+              :class="{ 'yayaw-options-trigger-count-icon': actionsAsIcons }"
             >{{ activeOptionCount }}</span>
           </button>
 
@@ -355,16 +391,36 @@ const exportRows = async (): Promise<void> => {
             role="menu"
             :aria-label="translate('options', 'Options')"
           >
-            <header v-if="optionsView !== 'main'" class="yayaw-options-header">
+            <header class="yayaw-options-header">
               <button
+                v-if="optionsView !== 'main'"
                 type="button"
                 class="yayaw-icon-button"
                 aria-label="Back"
                 @click="optionsView = 'main'"
               >
-                <ChevronLeft :size="16" aria-hidden="true" />
+                <ArrowLeft :size="16" aria-hidden="true" />
               </button>
-              <strong>{{ translate(optionsView === "columns" ? "properties" : optionsView, optionsView) }}</strong>
+              <strong>{{ optionsView === "main" ? "Menu" : translate(optionsView === "columns" ? "properties" : optionsView, optionsView) }}</strong>
+              <button
+                v-if="hideableColumns.length"
+                type="button"
+                class="yayaw-icon-button"
+                :disabled="!hasAnythingToReset"
+                :aria-label="translate('reset', 'Reset')"
+                :title="translate('reset', 'Reset')"
+                @click="resetOptions"
+              >
+                <RotateCcw :size="16" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                class="yayaw-icon-button"
+                aria-label="Close"
+                @click="closeOptions"
+              >
+                <X :size="16" aria-hidden="true" />
+              </button>
             </header>
 
             <div v-if="optionsView === 'main'" class="yayaw-options-list">
@@ -373,43 +429,62 @@ const exportRows = async (): Promise<void> => {
                 class="yayaw-options-item"
                 @click="optionsView = 'columns'"
               >
-                <SlidersHorizontal :size="16" aria-hidden="true" />
-                <span>{{ translate("properties", "Properties") }}</span>
-                <small>{{ visibleColumnCount }}</small>
-                <ChevronRight :size="15" aria-hidden="true" />
+                <span class="yayaw-options-item-icon"><List :size="16" aria-hidden="true" /></span>
+                <span class="yayaw-options-item-copy">
+                  <span>{{ translate("properties", "Properties") }}</span>
+                  <small>{{ visibleColumnCount }} visible</small>
+                </span>
+                <span class="yayaw-options-item-end">
+                  <span class="yayaw-options-item-count">{{ visibleColumnCount }}</span>
+                </span>
               </button>
               <button
-                v-if="context.config.table.enableColumnFilters"
+                v-if="context.config.table.enableColumnFilters && (filterableColumns.length || props.enableAdvancedFilters)"
                 type="button"
                 class="yayaw-options-item"
                 @click="optionsView = 'filters'"
               >
-                <ListFilter :size="16" aria-hidden="true" />
-                <span>{{ translate("filters", "Filters") }}</span>
-                <small v-if="activeFilterCount">{{ activeFilterCount }}</small>
-                <ChevronRight :size="15" aria-hidden="true" />
+                <span class="yayaw-options-item-icon"><ListFilter :size="16" aria-hidden="true" /></span>
+                <span class="yayaw-options-item-copy">
+                  <span>{{ translate("filters", "Filters") }}</span>
+                  <small v-if="activeFilterCount">{{ activeFilterCount }} active</small>
+                </span>
+                <span class="yayaw-options-item-end">
+                  <span v-if="activeFilterCount" class="yayaw-options-item-count">{{ activeFilterCount }}</span>
+                  <ChevronRight v-else :size="16" aria-hidden="true" />
+                </span>
               </button>
               <button
-                v-if="context.config.table.enableSorting"
+                v-if="context.config.table.enableSorting && sortableColumns.length"
                 type="button"
                 class="yayaw-options-item"
                 @click="optionsView = 'sort'"
               >
-                <ArrowDownAZ :size="16" aria-hidden="true" />
-                <span>{{ translate("sort", "Sort") }}</span>
-                <small v-if="context.state.sorting.value.length">{{ context.state.sorting.value.length }}</small>
-                <ChevronRight :size="15" aria-hidden="true" />
+                <span class="yayaw-options-item-icon"><ArrowDownAZ :size="16" aria-hidden="true" /></span>
+                <span class="yayaw-options-item-copy">
+                  <span>{{ translate("sort", "Sort") }}</span>
+                  <small v-if="context.state.sorting.value.length">{{ context.state.sorting.value.length }} active</small>
+                </span>
+                <span class="yayaw-options-item-end">
+                  <span v-if="context.state.sorting.value.length" class="yayaw-options-item-count">{{ context.state.sorting.value.length }}</span>
+                  <ChevronRight v-else :size="16" aria-hidden="true" />
+                </span>
               </button>
               <button
-                v-if="context.config.table.enableGrouping"
+                v-if="context.config.table.enableGrouping && groupableColumns.length"
                 type="button"
                 class="yayaw-options-item"
                 @click="optionsView = 'group'"
               >
-                <Layers :size="16" aria-hidden="true" />
-                <span>{{ translate("group", "Group") }}</span>
-                <small v-if="context.state.grouping.value.length">{{ context.state.grouping.value.length }}</small>
-                <ChevronRight :size="15" aria-hidden="true" />
+                <span class="yayaw-options-item-icon"><Layers :size="16" aria-hidden="true" /></span>
+                <span class="yayaw-options-item-copy">
+                  <span>{{ translate("group", "Group") }}</span>
+                  <small v-if="context.state.grouping.value.length">{{ context.state.grouping.value.length }} active</small>
+                </span>
+                <span class="yayaw-options-item-end">
+                  <span v-if="context.state.grouping.value.length" class="yayaw-options-item-count">{{ context.state.grouping.value.length }}</span>
+                  <ChevronRight v-else :size="16" aria-hidden="true" />
+                </span>
               </button>
               <button
                 v-if="context.config.table.enableCalculations"
@@ -419,9 +494,12 @@ const exportRows = async (): Promise<void> => {
                 :aria-checked="context.footerCalculationsVisible.value"
                 @click="context.footerCalculationsVisible.value = !context.footerCalculationsVisible.value"
               >
-                <Calculator :size="16" aria-hidden="true" />
-                <span>{{ translate("calculations", "Footer calculations") }}</span>
-                <small>{{ context.footerCalculationsVisible.value ? translate("calculationsOn", "Shown") : translate("calculationsOff", "Hidden") }}</small>
+                <span class="yayaw-options-item-icon"><Calculator :size="16" aria-hidden="true" /></span>
+                <span class="yayaw-options-item-copy">
+                  <span>{{ translate("calculations", "Footer calculations") }}</span>
+                  <small>{{ context.footerCalculationsVisible.value ? translate("calculationsOn", "Shown") : translate("calculationsOff", "Hidden") }}</small>
+                </span>
+                <span class="yayaw-options-item-end" />
               </button>
             </div>
 
@@ -569,24 +647,6 @@ const exportRows = async (): Promise<void> => {
               </button>
             </div>
 
-            <footer class="yayaw-options-footer">
-              <button
-                type="button"
-                class="yayaw-button yayaw-button-ghost"
-                @click="resetOptions"
-              >
-                <RotateCcw :size="15" aria-hidden="true" />
-                {{ translate("reset", "Reset") }}
-              </button>
-              <button
-                type="button"
-                class="yayaw-button yayaw-button-ghost"
-                @click="copyShareLink"
-              >
-                <Copy :size="15" aria-hidden="true" />
-                {{ translate("copyLink", "Copy link") }}
-              </button>
-            </footer>
           </section>
         </div>
 

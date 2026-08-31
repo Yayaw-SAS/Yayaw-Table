@@ -198,9 +198,11 @@ describe("YayawDataTable", () => {
     expect(
       document.body.querySelector(".yayaw-row-actions-menu")?.textContent
     ).toContain("Duplicate");
-    expect(
-      document.body.querySelector(".yayaw-row-actions-menu")?.textContent
-    ).not.toContain("Delete");
+    const deleteAction = document.body.querySelector<HTMLButtonElement>(
+      ".yayaw-row-action-danger"
+    );
+    expect(deleteAction?.textContent).toContain("Delete");
+    expect(deleteAction?.disabled).toBe(true);
   });
 
   it("enforces global action permissions and avoids an empty action column", async () => {

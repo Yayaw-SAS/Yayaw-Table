@@ -405,6 +405,7 @@ provide(tableContextKey, {
       <div v-else-if="tableData.isLoading.value" class="yayaw-loading-overlay">{{ translations.loading }}</div>
     </div>
 
+    <div class="yayaw-bulk-anchor" aria-hidden="true" />
     <BulkActions v-if="selectedRows.length" />
     <CatalogueForm v-if="form.open" />
   </section>

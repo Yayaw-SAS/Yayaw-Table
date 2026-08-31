@@ -154,7 +154,6 @@ const table = useVueTable({
   enableColumnFilters: context.config.table.enableColumnFilters,
   enableColumnPinning: context.config.table.enableColumnPinning,
   enableGrouping: context.config.table.enableGrouping,
-  enablePagination: context.config.table.enablePagination,
   enableSorting: context.config.table.enableSorting,
   getRowId: (row, index) => context.getRowId(row, index),
   getSubRows: (row) => row.subRows as TableRecord[] | undefined,

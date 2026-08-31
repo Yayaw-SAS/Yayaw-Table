@@ -18,26 +18,38 @@ const pending = ref<string>();
 const confirmingDelete = ref(false);
 const menuPosition = ref({ right: 0, top: 0 });
 
-const canEdit = computed(
+const includeEdit = computed(
   () =>
     context.config.table.allowEdit &&
-    Boolean(context.actions.value?.update) &&
+    Boolean(context.actions.value?.update)
+);
+const includeDuplicate = computed(
+  () =>
+    context.config.table.allowDuplicate &&
+    Boolean(context.actions.value?.duplicate)
+);
+const includeDelete = computed(
+  () =>
+    context.config.table.allowDelete &&
+    Boolean(context.actions.value?.delete)
+);
+const canEdit = computed(
+  () =>
+    includeEdit.value &&
     context.config.table.canEditRow?.(props.row) !== false
 );
 const canDuplicate = computed(
   () =>
-    context.config.table.allowDuplicate &&
-    Boolean(context.actions.value?.duplicate) &&
+    includeDuplicate.value &&
     context.config.table.canDuplicateRow?.(props.row) !== false
 );
 const canDelete = computed(
   () =>
-    context.config.table.allowDelete &&
-    Boolean(context.actions.value?.delete) &&
+    includeDelete.value &&
     context.config.table.canDeleteRow?.(props.row) !== false
 );
 const hasActions = computed(
-  () => canEdit.value || canDuplicate.value || canDelete.value
+  () => includeEdit.value || includeDuplicate.value || includeDelete.value
 );
 const menuStyle = computed<CSSProperties>(() => ({
   right: `${menuPosition.value.right}px`,
@@ -56,9 +68,22 @@ const toggleMenu = (): void => {
   }
   const bounds = trigger.value?.getBoundingClientRect();
   if (bounds) {
+    const actionCount =
+      Number(includeEdit.value) +
+      Number(includeDuplicate.value) +
+      Number(includeDelete.value);
+    const separatorHeight =
+      includeDelete.value && (includeEdit.value || includeDuplicate.value)
+        ? 9
+        : 0;
+    const menuHeight = 8 + actionCount * 32 + separatorHeight;
+    const opensUpward = bounds.bottom + 4 + menuHeight > window.innerHeight - 8;
     menuPosition.value = {
       right: Math.max(8, window.innerWidth - bounds.right),
-      top: bounds.bottom + 4,
+      top: Math.max(
+        8,
+        opensUpward ? bounds.top - menuHeight - 4 : bounds.bottom + 4
+      ),
     };
   }
   menuOpen.value = true;
@@ -90,7 +115,16 @@ onBeforeUnmount(() => {
 const run = async (kind: "delete" | "duplicate" | "edit"): Promise<void> => {
   closeMenu();
   if (kind === "edit") {
+    if (!canEdit.value) {
+      return;
+    }
     context.openEdit(props.row);
+    return;
+  }
+  if (
+    (kind === "duplicate" && !canDuplicate.value) ||
+    (kind === "delete" && !canDelete.value)
+  ) {
     return;
   }
   const id = context.getRowId(props.row);
@@ -122,6 +156,9 @@ const run = async (kind: "delete" | "duplicate" | "edit"): Promise<void> => {
   }
 };
 const requestDelete = (): void => {
+  if (!canDelete.value) {
+    return;
+  }
   closeMenu();
   confirmingDelete.value = true;
 };
@@ -144,7 +181,7 @@ const confirmDelete = async (): Promise<void> => {
       aria-haspopup="menu"
       @click="toggleMenu"
     >
-      <MoreHorizontal :size="17" aria-hidden="true" />
+      <MoreHorizontal :size="16" aria-hidden="true" />
     </button>
   </div>
 
@@ -158,33 +195,41 @@ const confirmDelete = async (): Promise<void> => {
       @click.stop
     >
       <button
-        v-if="canEdit"
+        v-if="includeEdit"
         type="button"
         class="yayaw-row-action-item"
+        :disabled="!canEdit"
         role="menuitem"
         @click="run('edit')"
       >
-        <Pencil :size="15" aria-hidden="true" />
+        <Pencil :size="16" aria-hidden="true" />
         {{ translate("edit", "Edit") }}
       </button>
       <button
-        v-if="canDuplicate"
+        v-if="includeDuplicate"
         type="button"
         class="yayaw-row-action-item"
+        :disabled="!canDuplicate"
         role="menuitem"
         @click="run('duplicate')"
       >
-        <Copy :size="15" aria-hidden="true" />
+        <Copy :size="16" aria-hidden="true" />
         {{ translate("duplicate", "Duplicate") }}
       </button>
+      <span
+        v-if="includeDelete && (includeEdit || includeDuplicate)"
+        class="yayaw-row-actions-divider"
+        role="separator"
+      />
       <button
-        v-if="canDelete"
+        v-if="includeDelete"
         type="button"
         class="yayaw-row-action-item yayaw-row-action-danger"
+        :disabled="!canDelete"
         role="menuitem"
         @click="requestDelete"
       >
-        <Trash2 :size="15" aria-hidden="true" />
+        <Trash2 :size="16" aria-hidden="true" />
         {{ translate("delete", "Delete") }}
       </button>
     </div>

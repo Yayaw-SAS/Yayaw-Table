@@ -8,12 +8,15 @@ import {
   Trash2,
   X,
 } from "lucide-vue-next";
-import { computed, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useTableContext } from "../../context";
 import { downloadCsv } from "../../core";
 import type { BulkAction, BulkActionContext, TableRecord } from "../../types";
 
 const context = useTableContext();
+const root = ref<HTMLElement>();
+const positionMode = ref<"anchored" | "fixed">("fixed");
+let anchorObserver: IntersectionObserver | undefined;
 const pending = ref<string>();
 const confirmation = ref<{
   title: string;
@@ -55,6 +58,21 @@ const canBulkCopy = computed(() =>
 );
 const translate = (key: string, fallback: string): string =>
   String(context.translations.value[key] ?? fallback);
+onMounted(() => {
+  const anchor = root.value
+    ?.closest(".yayaw-table")
+    ?.querySelector(".yayaw-bulk-anchor");
+  if (!(anchor instanceof HTMLElement) || !globalThis.IntersectionObserver) {
+    return;
+  }
+  anchorObserver = new IntersectionObserver(([entry]) => {
+    positionMode.value = entry?.isIntersecting ? "anchored" : "fixed";
+  });
+  anchorObserver.observe(anchor);
+});
+onBeforeUnmount(() => {
+  anchorObserver?.disconnect();
+});
 const customActionDisabled = (action: BulkAction): boolean => {
   const disabled =
     typeof action.disabled === "function"
@@ -228,15 +246,20 @@ const bulkExport = async (): Promise<void> => {
 </script>
 
 <template>
-  <div class="yayaw-bulk-menu-wrapper">
+  <div
+    ref="root"
+    class="yayaw-bulk-menu-wrapper"
+    :data-position="positionMode"
+  >
     <div
       class="yayaw-bulk-bar"
       role="toolbar"
       :aria-label="translate('actions', 'Bulk actions')"
     >
-      <strong class="yayaw-bulk-count">
-        {{ ids.length }} {{ context.translations.value.selected }}
-      </strong>
+      <div class="yayaw-bulk-count">
+        <span class="yayaw-bulk-count-dot" aria-hidden="true" />
+        <strong>{{ ids.length }} {{ context.translations.value.selected }}</strong>
+      </div>
 
       <button
         v-if="context.config.table.enableMultiRowSelection && context.matchingRowCount.value > ids.length"
@@ -249,11 +272,11 @@ const bulkExport = async (): Promise<void> => {
       >
         <LoaderCircle
           v-if="context.isSelectingAll.value"
-          :size="16"
+          :size="20"
           class="yayaw-spin"
           aria-hidden="true"
         />
-        <CheckCheck v-else :size="16" aria-hidden="true" />
+        <CheckCheck v-else :size="20" aria-hidden="true" />
         <span class="yayaw-bulk-action-label">
           {{ translate("selectAll", "Select all") }} {{ context.matchingRowCount.value }}
         </span>
@@ -268,7 +291,7 @@ const bulkExport = async (): Promise<void> => {
         :title="translate('export', 'Export')"
         @click="bulkExport"
       >
-        <Download :size="16" aria-hidden="true" />
+        <Download :size="20" aria-hidden="true" />
         <span class="yayaw-bulk-action-label">{{ translate("export", "Export") }}</span>
       </button>
 
@@ -281,7 +304,7 @@ const bulkExport = async (): Promise<void> => {
         :title="translate('bulkEdit', 'Bulk edit')"
         @click="bulkEdit"
       >
-        <Pencil :size="16" aria-hidden="true" />
+        <Pencil :size="20" aria-hidden="true" />
         <span class="yayaw-bulk-action-label">{{ translate("bulkEdit", "Bulk edit") }}</span>
       </button>
 
@@ -294,7 +317,7 @@ const bulkExport = async (): Promise<void> => {
         :title="translate('copy', 'Copy')"
         @click="bulkCopy"
       >
-        <Copy :size="16" aria-hidden="true" />
+        <Copy :size="20" aria-hidden="true" />
         <span class="yayaw-bulk-action-label">{{ translate("copy", "Copy") }}</span>
       </button>
 
@@ -311,14 +334,14 @@ const bulkExport = async (): Promise<void> => {
       >
         <LoaderCircle
           v-if="pending === action.id"
-          :size="16"
+          :size="20"
           class="yayaw-spin"
           aria-hidden="true"
         />
         <component
           :is="action.icon"
           v-else-if="action.icon"
-          :size="16"
+          :size="20"
           aria-hidden="true"
         />
         <span v-else class="yayaw-bulk-action-fallback" aria-hidden="true">
@@ -336,7 +359,7 @@ const bulkExport = async (): Promise<void> => {
         :title="translate('delete', 'Delete')"
         @click="requestBulkDelete"
       >
-        <Trash2 :size="16" aria-hidden="true" />
+        <Trash2 :size="20" aria-hidden="true" />
         <span class="yayaw-bulk-action-label">{{ translate("delete", "Delete") }}</span>
       </button>
 
@@ -348,7 +371,7 @@ const bulkExport = async (): Promise<void> => {
         :title="translate('cancel', 'Clear selection')"
         @click="context.clearSelection"
       >
-        <X :size="16" aria-hidden="true" />
+        <X :size="12" aria-hidden="true" />
       </button>
     </div>
   </div>
