@@ -22,8 +22,17 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Install Vue dependencies
+        run: bun install --cwd packages/yayaw-table-vue --frozen-lockfile
+
       - name: Type check
         run: bun run type-check
 
       - name: Run tests
         run: bun run test
+
+      - name: Run Vue tests
+        run: bun run vue:test
+
+      - name: Build Vue package
+        run: bun run vue:build

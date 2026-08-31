@@ -1,0 +1,45 @@
+---
+title: Vue 3
+description: Install and use the full Vue 3 and Nuxt-compatible port of YaYaw Table
+---
+
+# Vue 3 port
+
+YaYaw Table now includes a Vue 3 edition under `packages/yayaw-table-vue`. It preserves the config-driven table and action contracts while replacing React-specific state, rendering, URL, and drag-and-drop layers with Vue implementations.
+
+## Run the demo
+
+```bash
+bun install
+bun run vue:install
+bun run vue:dev
+```
+
+The Vue demo covers table, Kanban and Gallery modes, advanced filters, URL state, saved views, CRUD forms, inline editing, bulk operations and calculations.
+
+## Install as a package
+
+```ts
+import { createApp } from "vue";
+import { YayawTablePlugin } from "@yayaw/table-vue";
+import "@yayaw/table-vue/style.css";
+
+createApp(App).use(YayawTablePlugin).mount("#app");
+```
+
+Use the component with the same `tableType`, `getTableConfig`, `getTableActions`, and `getFormConfig` concepts as the React edition:
+
+```vue
+<DataTable
+  table-type="products"
+  :get-table-config="getTableConfig"
+  :get-table-actions="getTableActions"
+  :get-form-config="getFormConfig"
+/>
+```
+
+## Nuxt
+
+Register the plugin in `plugins/yayaw-table.client.ts`. URL and localStorage access is SSR-safe, while list and mutation actions can call Nuxt server routes or server functions.
+
+See `packages/yayaw-table-vue/README.md` for the complete configuration, action, registry, and migration guide.

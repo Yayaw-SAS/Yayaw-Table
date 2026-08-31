@@ -1,0 +1,21 @@
+{
+  "$schema": "https://shadcn-vue.com/schema/registry.json",
+  "name": "yayaw-table-vue",
+  "homepage": "https://github.com/Yayaw-SAS/Yayaw-Table",
+  "items": [
+    {
+      "name": "yayaw-table-vue",
+      "type": "registry:block",
+      "title": "YaYaw Table Vue",
+      "description": "Full-featured Vue 3 port of YaYaw Table with table, Kanban, Gallery, filters, saved views, forms, inline editing, and bulk actions.",
+      "dependencies": [
+        "@tanstack/vue-query@^5.90.0",
+        "@tanstack/vue-table@8.21.3",
+        "date-fns@^4.1.0",
+        "vue@^3.5.0",
+        "zod@^4.3.0"
+      ],
+      "registryDependencies": []
+    }
+  ]
+}

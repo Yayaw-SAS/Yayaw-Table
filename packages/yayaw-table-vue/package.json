@@ -1,0 +1,45 @@
+{
+  "name": "@yayaw/table-vue",
+  "version": "1.3.0",
+  "private": true,
+  "type": "module",
+  "description": "Full-featured, type-safe YaYaw data table for Vue 3",
+  "exports": {
+    ".": {
+      "types": "./dist/public-types.d.ts",
+      "import": "./dist/yayaw-table-vue.js"
+    },
+    "./style.css": "./dist/yayaw-table-vue.css"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build && vue-tsc -p tsconfig.build.json --declaration --emitDeclarationOnly",
+    "type-check": "vue-tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "registry:build": "node scripts/build-registry.mjs"
+  },
+  "dependencies": {
+    "@tanstack/vue-query": "^5.90.0",
+    "@tanstack/vue-table": "8.21.3",
+    "date-fns": "^4.1.0",
+    "vue": "^3.5.0",
+    "zod": "^4.3.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.0",
+    "@vue/test-utils": "^2.4.6",
+    "jsdom": "^26.0.0",
+    "typescript": "^5.9.0",
+    "vite": "^7.0.0",
+    "vitest": "^3.0.0",
+    "vue-tsc": "^3.0.0"
+  },
+  "peerDependencies": {
+    "vue": "^3.5.0"
+  }
+}

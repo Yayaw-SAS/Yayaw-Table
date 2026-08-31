@@ -3,6 +3,7 @@
   "pages": [
     "index",
     "installation",
+    "vue",
     "setup",
     "forms",
     "datatable",

@@ -2,7 +2,7 @@
   "name": "yayaw-table-workspace",
   "private": true,
   "version": "1.3.0",
-  "description": "A flexible data table component library for React with user-defined configurations",
+  "description": "A flexible, config-driven data table component library for React and Vue 3",
   "scripts": {
     "build": "fumadocs-mdx && next build",
     "build:watch": "next dev -p 3070",
@@ -11,7 +11,7 @@
     "registry:snapshot": "node scripts/snapshot-registry-release.mjs",
     "registry:release": "bun run registry:build && bun run registry:snapshot",
     "changeset": "changeset",
-    "version": "changeset version && bun run registry:release",
+    "version": "changeset version && node scripts/sync-vue-version.mjs && bun run registry:release",
     "release:check": "bun run check && bun run type-check && bun run test",
     "release:verify": "node scripts/verify-registry-release.mjs",
     "dev": "next dev -p 3070",
@@ -20,10 +20,16 @@
     "type-check": "tsc --noEmit",
     "test": "bun test src/components/ui/yayaw-table",
     "check": "ultracite check",
-    "fix": "ultracite fix"
+    "fix": "ultracite fix",
+    "vue:install": "bun install --cwd packages/yayaw-table-vue",
+    "vue:dev": "bun run --cwd packages/yayaw-table-vue dev",
+    "vue:build": "bun run --cwd packages/yayaw-table-vue build",
+    "vue:test": "bun run --cwd packages/yayaw-table-vue test"
   },
   "keywords": [
     "react",
+    "vue",
+    "vue3",
     "table",
     "datatable",
     "user-defined",
