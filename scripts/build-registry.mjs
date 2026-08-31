@@ -56,7 +56,9 @@ function readJson(filePath) {
 }
 
 function getAllFiles(dir, base = dir) {
-  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  const entries = fs
+    .readdirSync(dir, { withFileTypes: true })
+    .sort((left, right) => left.name.localeCompare(right.name));
   const out = [];
   for (const e of entries) {
     const full = path.join(dir, e.name);
@@ -82,7 +84,7 @@ function assertDirectoryExists(dirPath, label) {
 
 function copyRecursive(src, dest) {
   fs.mkdirSync(dest, { recursive: true });
-  for (const name of fs.readdirSync(src)) {
+  for (const name of fs.readdirSync(src).sort()) {
     const s = path.join(src, name);
     const d = path.join(dest, name);
     if (fs.statSync(s).isDirectory()) {

@@ -7,7 +7,9 @@
     "build": "fumadocs-mdx && next build",
     "build:watch": "next dev -p 3070",
     "registry:sync": "node scripts/build-registry.mjs",
-    "registry:build": "node scripts/build-registry.mjs && bunx --bun shadcn@latest build registry/registry.json --output public/r && bunx ultracite fix registry/registry.json public/r",
+    "registry:build": "node scripts/build-registry.mjs && bunx --bun shadcn@latest build registry/registry.json --output public/r && bun run registry:build:vue && bunx ultracite fix registry/registry.json public/r",
+    "registry:build:vue": "bun run --cwd packages/yayaw-table-vue registry:build && node scripts/sync-vue-registry.mjs",
+    "registry:pages": "bun run registry:build && node scripts/prepare-registry-pages.mjs",
     "registry:snapshot": "node scripts/snapshot-registry-release.mjs",
     "registry:release": "bun run registry:build && bun run registry:snapshot",
     "changeset": "changeset",
@@ -112,10 +114,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Yayaw-eu/Yayaw-Table.git"
+    "url": "https://github.com/Yayaw-SAS/Yayaw-Table.git"
   },
   "bugs": {
-    "url": "https://github.com/Yayaw-eu/Yayaw-Table/issues"
+    "url": "https://github.com/Yayaw-SAS/Yayaw-Table/issues"
   },
   "homepage": "https://table.yayaw.app",
   "lint-staged": {

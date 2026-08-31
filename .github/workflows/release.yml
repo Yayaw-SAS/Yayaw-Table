@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -48,16 +48,16 @@ jobs:
           Install the latest registry item:
 
           \`\`\`bash
-          npx shadcn@latest add https://table.yayaw.eu/r/yayaw-table.json
+          npx shadcn@latest add https://table.yayaw.app/r/yayaw-table.json
           \`\`\`
 
           Install this pinned release:
 
           \`\`\`bash
-          npx shadcn@latest add https://table.yayaw.eu/r/${RELEASE_TAG}/yayaw-table.json
+          npx shadcn@latest add https://table.yayaw.app/r/${RELEASE_TAG}/yayaw-table.json
           \`\`\`
 
-          Optional CLI v4 base and font registry items are attached to this release.
+          The React and Vue registry items, optional base, and font are attached to this release.
 
           EOF
           )

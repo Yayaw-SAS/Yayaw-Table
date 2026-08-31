@@ -8,6 +8,7 @@ const PUBLIC_REGISTRY_DIR = path.join(ROOT, "public", "r");
 const PACKAGE_JSON_PATH = path.join(ROOT, "package.json");
 const SEMVER_PATTERN =
   /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
+const STANDALONE_REGISTRY_ITEMS = ["yayaw-table-vue"];
 
 const packageJson = JSON.parse(fs.readFileSync(PACKAGE_JSON_PATH, "utf8"));
 const version = packageJson.version;
@@ -52,7 +53,11 @@ assertFileExists(latestIndexPath, "Latest registry index");
 fs.mkdirSync(versionedRegistryDir, { recursive: true });
 
 const latestRegistry = JSON.parse(fs.readFileSync(latestIndexPath, "utf8"));
-const itemFileNames = latestRegistry.items.map((item) => `${item.name}.json`);
+const itemNames = [
+  ...latestRegistry.items.map((item) => item.name),
+  ...STANDALONE_REGISTRY_ITEMS,
+];
+const itemFileNames = itemNames.map((itemName) => `${itemName}.json`);
 
 for (const itemFileName of itemFileNames) {
   assertFileExists(
@@ -79,16 +84,13 @@ fs.writeFileSync(
       files: {
         registry: "registry.json",
         items: Object.fromEntries(
-          latestRegistry.items.map((item) => [item.name, `${item.name}.json`])
+          itemNames.map((itemName) => [itemName, `${itemName}.json`])
         ),
       },
       latest: {
         registry: "../registry.json",
         items: Object.fromEntries(
-          latestRegistry.items.map((item) => [
-            item.name,
-            `../${item.name}.json`,
-          ])
+          itemNames.map((itemName) => [itemName, `../${itemName}.json`])
         ),
       },
     },

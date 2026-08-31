@@ -118,7 +118,7 @@ bun run --cwd packages/yayaw-table-vue registry:build
 The result is written to `packages/yayaw-table-vue/public/r/yayaw-table-vue.json` and can be installed with:
 
 ```bash
-pnpm dlx shadcn-vue@latest add https://your-domain.example/r/yayaw-table-vue.json
+pnpm dlx shadcn-vue@latest add https://table.yayaw.app/r/yayaw-table-vue.json
 ```
 
 ## React-to-Vue mapping

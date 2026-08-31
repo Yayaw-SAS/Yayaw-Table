@@ -53,6 +53,7 @@ const files = await Promise.all(
 const item = {
   $schema: "https://shadcn-vue.com/schema/registry-item.json",
   name: "yayaw-table-vue",
+  type: "registry:block",
   title: "YaYaw Table Vue",
   description:
     "Full-featured Vue 3 data table with filters, URL state, saved views, CRUD forms, bulk actions, inline editing, Kanban, Gallery, and CSV export.",
