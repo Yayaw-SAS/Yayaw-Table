@@ -204,6 +204,16 @@ const updateMulti = (event: Event): void => {
   ).map((option) => option.value);
 };
 const url = computed(() => safeHttpUrl(props.value));
+const urlDomain = computed(() => {
+  if (!url.value) {
+    return "";
+  }
+  try {
+    return new URL(url.value).hostname;
+  } catch {
+    return url.value;
+  }
+});
 const imageUrl = computed(() =>
   dynamicType.value === "image" ? safeHttpUrl(props.value) : undefined
 );
@@ -232,7 +242,7 @@ const tags = computed(() =>
     <img v-else-if="imageUrl" :src="imageUrl" :alt="column.header" class="yayaw-cell-image" loading="lazy" />
     <a v-else-if="effectiveColumn.type === 'url' && url" :href="url" target="_blank" rel="noopener noreferrer" class="yayaw-link" @click.stop>
       <template v-if="effectiveColumn.urlDisplayMode === 'icon'">↗</template>
-      <template v-else-if="effectiveColumn.urlDisplayMode === 'domain'">{{ new URL(url).hostname }}</template>
+      <template v-else-if="effectiveColumn.urlDisplayMode === 'domain'">{{ urlDomain }}</template>
       <template v-else>{{ url }}</template>
     </a>
     <span v-else-if="effectiveColumn.type === 'select' || effectiveColumn.type === 'multiSelect' || effectiveColumn.type === 'tag' || effectiveColumn.displayVariant === 'tag'" class="yayaw-tags">

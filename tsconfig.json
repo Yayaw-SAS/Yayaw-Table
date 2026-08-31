@@ -39,5 +39,11 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules", "dist", ".source", "registry"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    ".source",
+    "registry",
+    "packages/yayaw-table-vue"
+  ]
 }

@@ -21,13 +21,20 @@ const search = computed({
     context.state.search.value = value;
   },
 });
-const modes = computed(() => context.config.table.displayModes ?? ["table"]);
+const modes = computed<TableDisplayMode[]>(
+  () => context.config.table.displayModes ?? ["table"]
+);
 const displayMode = computed({
   get: () => context.state.displayMode.value,
   set: (value: TableDisplayMode) => {
     context.state.displayMode.value = value;
   },
 });
+const copyShareLink = async (): Promise<void> => {
+  if (typeof navigator !== "undefined") {
+    await navigator.clipboard?.writeText(context.state.shareableUrl());
+  }
+};
 
 const addAdvancedFilter = (): void => {
   const column = context.config.columns.definitions.find(
@@ -182,7 +189,7 @@ const exportRows = async (): Promise<void> => {
         </select>
       </label>
       <button type="button" class="yayaw-button yayaw-button-ghost" @click="context.state.reset">Reset</button>
-      <button type="button" class="yayaw-button yayaw-button-ghost" @click="navigator.clipboard?.writeText(context.state.shareableUrl())">Copy link</button>
+      <button type="button" class="yayaw-button yayaw-button-ghost" @click="copyShareLink">Copy link</button>
     </div>
   </div>
 </template>

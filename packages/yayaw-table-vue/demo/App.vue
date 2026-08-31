@@ -5,7 +5,9 @@ import {
   DataTable,
   defineFormConfig,
   defineTableConfig,
+  type FormConfig,
   type TableActions,
+  type TableConfig,
   type TableRecord,
 } from "../src";
 
@@ -249,10 +251,10 @@ const actions: TableActions<Product> = {
     <h1 class="yayaw-sr-only">YaYaw Table Vue demo</h1>
     <DataTable
       table-type="products"
-      :config="config"
+      :config="config as unknown as TableConfig"
       :data="products"
       :get-table-actions="() => actions"
-      :get-form-config="() => formConfig as FormConfig"
+      :get-form-config="() => formConfig as unknown as FormConfig"
       locale="en"
       @row-activate="(row) => console.info('Activated', row.id)"
     />

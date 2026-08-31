@@ -242,10 +242,14 @@ const table = useVueTable({
     );
   },
   onColumnPinningChange: (updater) => {
-    context.state.pinning.value = updaterValue(
+    const next = updaterValue(
       updater,
       context.state.pinning.value
     );
+    context.state.pinning.value = {
+      left: next.left ?? [],
+      right: next.right ?? [],
+    };
   },
   onPaginationChange: (updater) => {
     context.state.pagination.value = updaterValue(
@@ -373,10 +377,12 @@ const refreshCalculations = async (): Promise<void> => {
             }),
           staleTime: 15_000,
         });
-        if (request === calculationRequest) {
+        if (result && request === calculationRequest) {
           aggregateResults.value = result.results ?? {};
         }
-        return;
+        if (result) {
+          return;
+        }
       } catch {
         /* use the list fallback below */
       }
