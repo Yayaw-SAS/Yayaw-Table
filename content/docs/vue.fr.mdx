@@ -1,0 +1,34 @@
+---
+title: Vue 3
+description: Installer et utiliser le port complet Vue 3 et Nuxt de YaYaw Table
+---
+
+# Port Vue 3
+
+YaYaw Table contient désormais une édition Vue 3 dans `packages/yayaw-table-vue`. Elle conserve les contrats de configuration et d'actions tout en remplaçant les couches React de rendu, d'état, d'URL et de drag-and-drop par des implémentations Vue.
+
+## Lancer la démo
+
+```bash
+bun install
+bun run vue:install
+bun run vue:dev
+```
+
+La démo couvre les modes table, Kanban et Galerie, les filtres avancés, l'état URL, les vues enregistrées, les formulaires CRUD, l'édition inline, les actions groupées et les calculs.
+
+## Installer le package
+
+```ts
+import { createApp } from "vue";
+import { YayawTablePlugin } from "@yayaw/table-vue";
+import "@yayaw/table-vue/style.css";
+
+createApp(App).use(YayawTablePlugin).mount("#app");
+```
+
+Le composant reprend les concepts `tableType`, `getTableConfig`, `getTableActions` et `getFormConfig` de l'édition React.
+
+Pour Nuxt, enregistrez le plugin dans `plugins/yayaw-table.client.ts`. L'accès à l'URL et au localStorage est compatible SSR, tandis que les actions peuvent appeler des routes serveur Nuxt.
+
+Consultez `packages/yayaw-table-vue/README.md` pour le guide complet de configuration, migration et publication du registre.

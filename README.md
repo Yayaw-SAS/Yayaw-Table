@@ -1,6 +1,8 @@
 # YaYaw Table
 
-Flexible, type-safe data table for React. One component, clean API, minimal boilerplate. Built on **TanStack Table** with first-class TypeScript support. Data and state can be driven by **Next.js Server Actions** and **Nuqs** (URL state).
+Flexible, type-safe data table for React and Vue 3. One component, clean API, minimal boilerplate. Built on **TanStack Table** with first-class TypeScript support.
+
+The React edition supports Next.js Server Actions and Nuqs URL state. The complete Vue 3 and Nuxt-compatible edition lives in [`packages/yayaw-table-vue`](./packages/yayaw-table-vue), with its own package build, demo, tests, and shadcn-vue registry artifact.
 
 ## Features
 
