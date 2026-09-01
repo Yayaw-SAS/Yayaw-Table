@@ -237,6 +237,7 @@ export interface TableBehaviorConfig<TData extends TableRecord = TableRecord> {
   dateDisplayPreset?: DateDisplayPreset;
   inlineEdit?: TableInlineEditConfig;
   enableCalculations?: boolean;
+  enableGrouping?: boolean;
 }
 
 export interface TableTranslationsConfig {
@@ -593,6 +594,9 @@ export interface ToolbarAction<TData extends TableRecord = TableRecord> {
   icon?: Component;
   variant?: "default" | "outline" | "ghost";
   disabled?: boolean | ((context: ToolbarActionContext<TData>) => boolean);
+  loading?: boolean;
+  showInIconMode?: boolean;
+  tooltip?: string;
   handler: (context: ToolbarActionContext<TData>) => MaybePromise<void>;
 }
 
@@ -614,6 +618,27 @@ export interface DataTableTranslations {
   next?: string;
   selected?: string;
   rowsPerPage?: string;
+  actions?: string;
+  openActions?: string;
+  options?: string;
+  properties?: string;
+  sort?: string;
+  group?: string;
+  calculations?: string;
+  calculationsOn?: string;
+  calculationsOff?: string;
+  reset?: string;
+  copyLink?: string;
+  ascending?: string;
+  descending?: string;
+  addSort?: string;
+  all?: string;
+  none?: string;
+  selectAll?: string;
+  bulkEdit?: string;
+  copy?: string;
+  cancel?: string;
+  confirm?: string;
 }
 
 export interface YayawTableProps<TData extends TableRecord = TableRecord> {

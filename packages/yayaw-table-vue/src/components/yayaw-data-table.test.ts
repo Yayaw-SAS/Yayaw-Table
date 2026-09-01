@@ -93,6 +93,366 @@ describe("YayawDataTable", () => {
     expect(wrapper.find(".yayaw-bulk-bar").text()).toContain("1 selected");
   });
 
+  it("provides the full Options system", async () => {
+    const wrapper = mount(YayawDataTable, {
+      props: { tableType: "test", config, data, syncUrl: false },
+      attachTo: document.body,
+    });
+    await wrapper.get('[aria-label="Options"]').trigger("click");
+    const menu = wrapper.get(".yayaw-options-menu");
+    expect(menu.text()).toContain("Properties");
+    expect(menu.text()).toContain("Filters");
+    expect(menu.text()).toContain("Sort");
+    expect(menu.text()).toContain("Group");
+    expect(menu.text()).toContain("Footer calculations");
+
+    await menu
+      .findAll(".yayaw-options-item")
+      .find((button) => button.text().includes("Properties"))
+      ?.trigger("click");
+    const propertyInputs = wrapper.findAll(
+      '.yayaw-options-content input[type="checkbox"]'
+    );
+    expect(propertyInputs).toHaveLength(4);
+    expect(propertyInputs[0]?.attributes("disabled")).toBeDefined();
+  });
+
+  it("uses icon actions and resolves function-based toolbar permissions", () => {
+    const iconConfig = defineTableConfig({
+      ...config,
+      table: { ...config.table, actionsAsIcons: true },
+    });
+    const handler = vi.fn();
+    const wrapper = mount(YayawDataTable, {
+      props: {
+        tableType: "test",
+        config: iconConfig,
+        data,
+        getTableActions: () => ({
+          create: async () => ({ success: true }),
+        }),
+        syncUrl: false,
+        toolbarActions: [
+          { id: "refresh", label: "Refresh", variant: "ghost", handler },
+          {
+            id: "locked",
+            label: "Locked",
+            disabled: () => true,
+            handler,
+          },
+          {
+            id: "hidden",
+            label: "Hidden in icon mode",
+            showInIconMode: false,
+            handler,
+          },
+        ],
+      },
+    });
+    expect(wrapper.get('[aria-label="Options"]').classes()).toContain(
+      "yayaw-icon-only"
+    );
+    expect(wrapper.get('[aria-label="Export"]').text()).toBe("");
+    expect(wrapper.get('[aria-label="Create"]').text()).toBe("");
+    expect(wrapper.get('[aria-label="Refresh"]').text()).toBe("R");
+    expect(wrapper.get('[aria-label="Refresh"]').classes()).toContain(
+      "yayaw-button-ghost"
+    );
+    expect(
+      wrapper.get('[aria-label="Locked"]').attributes("disabled")
+    ).toBeDefined();
+    expect(wrapper.find('[aria-label="Hidden in icon mode"]').exists()).toBe(
+      false
+    );
+  });
+
+  it("renders one row menu and applies row-level permissions", async () => {
+    const rowConfig = defineTableConfig({
+      ...config,
+      table: {
+        ...config.table,
+        canDeleteRow: (row) => row.id !== "1",
+      },
+    });
+    const wrapper = mount(YayawDataTable, {
+      props: {
+        tableType: "test",
+        config: rowConfig,
+        data,
+        getTableActions: () => ({
+          update: async () => ({ success: true }),
+          duplicate: async () => ({ success: true }),
+          delete: async () => ({ success: true }),
+        }),
+        syncUrl: false,
+      },
+      attachTo: document.body,
+    });
+    const triggers = wrapper.findAll('[aria-label="Open actions menu"]');
+    expect(triggers).toHaveLength(3);
+    await triggers[0]?.trigger("click");
+    await nextTick();
+    expect(
+      document.body.querySelector(".yayaw-row-actions-menu")?.textContent
+    ).toContain("Edit");
+    expect(
+      document.body.querySelector(".yayaw-row-actions-menu")?.textContent
+    ).toContain("Duplicate");
+    const deleteAction = document.body.querySelector<HTMLButtonElement>(
+      ".yayaw-row-action-danger"
+    );
+    expect(deleteAction?.textContent).toContain("Delete");
+    expect(deleteAction?.disabled).toBe(true);
+  });
+
+  it("enforces global action permissions and avoids an empty action column", async () => {
+    const restrictedConfig = defineTableConfig({
+      ...config,
+      table: {
+        ...config.table,
+        actionsAsIcons: true,
+        allowCreate: false,
+        allowEdit: false,
+        allowDuplicate: false,
+        allowDelete: false,
+        allowBulkEdit: false,
+        allowBulkDelete: false,
+        export: false,
+        bulkExport: false,
+      },
+    });
+    const wrapper = mount(YayawDataTable, {
+      props: {
+        tableType: "test",
+        config: restrictedConfig,
+        data,
+        getTableActions: () => ({
+          create: async () => ({ success: true }),
+          update: async () => ({ success: true }),
+          duplicate: async () => ({ success: true }),
+          delete: async () => ({ success: true }),
+          bulkDelete: async () => ({ success: true }),
+          bulkUpdate: async () => ({ success: true }),
+        }),
+        syncUrl: false,
+      },
+    });
+    expect(wrapper.find('[aria-label="Create"]').exists()).toBe(false);
+    expect(wrapper.find('[aria-label="Export"]').exists()).toBe(false);
+    expect(wrapper.find('[aria-label="Open actions menu"]').exists()).toBe(
+      false
+    );
+    expect(wrapper.find('th[aria-label="Actions"]').exists()).toBe(false);
+    await wrapper.get('tbody input[type="checkbox"]').setValue(true);
+    const bulkMenu = wrapper.get(".yayaw-bulk-menu-wrapper");
+    expect(bulkMenu.find('[aria-label="Bulk edit"]').exists()).toBe(false);
+    expect(bulkMenu.find('[aria-label="Delete"]').exists()).toBe(false);
+    expect(bulkMenu.find('[aria-label="Export"]').exists()).toBe(false);
+  });
+
+  it("renders a floating bulk menu and resolves custom bulk permissions", async () => {
+    const handler = vi.fn();
+    const wrapper = mount(YayawDataTable, {
+      props: {
+        tableType: "test",
+        config,
+        data,
+        syncUrl: false,
+        customBulkActions: [
+          {
+            id: "archive",
+            label: "Archive",
+            disabled: ({ count }: { count: number }) => count < 2,
+            handler,
+          },
+        ],
+      },
+    });
+    const checkboxes = wrapper.findAll('tbody input[type="checkbox"]');
+    await checkboxes[0]?.setValue(true);
+    expect(wrapper.find(".yayaw-bulk-menu-wrapper").exists()).toBe(true);
+    expect(
+      wrapper.get('[aria-label="Archive"]').attributes("disabled")
+    ).toBeDefined();
+    await checkboxes[1]?.setValue(true);
+    expect(
+      wrapper.get('[aria-label="Archive"]').attributes("disabled")
+    ).toBeUndefined();
+  });
+
+  it("disables every structural table feature behind its flag", async () => {
+    const rows = Array.from({ length: 12 }, (_, index) => ({
+      id: String(index + 1),
+      name: `Row ${index + 1}`,
+      status: "Open",
+      amount: index,
+      active: true,
+    }));
+    const structuralConfig = defineTableConfig({
+      ...config,
+      table: {
+        ...config.table,
+        defaultPageSize: 2,
+        density: "small",
+        emptyState: { show: false },
+        enableCalculations: false,
+        enableColumnDragDropByDefault: false,
+        enableColumnPinning: false,
+        enableGrouping: false,
+        enablePagination: false,
+        enableRowSelection: false,
+        enableSorting: false,
+        showToolbar: false,
+        showToolbarHeader: false,
+      },
+    });
+    const wrapper = mount(YayawDataTable, {
+      props: {
+        tableType: "test",
+        config: structuralConfig,
+        data: rows,
+        syncUrl: false,
+      },
+    });
+    await flushPromises();
+    expect(wrapper.get(".yayaw-table").attributes("data-density")).toBe(
+      "small"
+    );
+    expect(wrapper.find(".yayaw-header").exists()).toBe(false);
+    expect(wrapper.find(".yayaw-toolbar").exists()).toBe(false);
+    expect(wrapper.find('input[type="checkbox"]').exists()).toBe(false);
+    expect(wrapper.find(".yayaw-pagination").exists()).toBe(false);
+    expect(wrapper.find("tfoot").exists()).toBe(false);
+    expect(wrapper.find("th.sortable").exists()).toBe(false);
+    expect(wrapper.find(".yayaw-pin").exists()).toBe(false);
+    expect(wrapper.findAll("tbody tr")).toHaveLength(12);
+  });
+
+  it("removes disabled features from Options and honors emptyState.show", async () => {
+    const featureConfig = defineTableConfig({
+      ...config,
+      table: {
+        ...config.table,
+        emptyState: { show: false },
+        enableCalculations: false,
+        enableColumnFilters: false,
+        enableGrouping: false,
+        enableSorting: false,
+        enableViews: false,
+      },
+    });
+    const wrapper = mount(YayawDataTable, {
+      props: {
+        tableType: "test",
+        config: featureConfig,
+        data: [],
+        syncUrl: false,
+      },
+    });
+    expect(wrapper.find('[aria-label="Views"]').exists()).toBe(false);
+    expect(wrapper.find(".yayaw-empty").exists()).toBe(false);
+    await wrapper.get('[aria-label="Options"]').trigger("click");
+    const menuItems = wrapper
+      .findAll(".yayaw-options-item")
+      .map((item) => item.text());
+    expect(menuItems).toHaveLength(1);
+    expect(menuItems[0]).toContain("Properties");
+  });
+
+  it("enforces canEditRow for row clicks, inline edit, and Kanban drag", async () => {
+    const editConfig = defineTableConfig({
+      ...config,
+      table: {
+        ...config.table,
+        allowEdit: true,
+        allowInlineEdit: true,
+        canEditRow: () => false,
+        defaultDisplayMode: "table",
+        enableRowClickEdit: true,
+        inlineEdit: { enabled: true },
+        kanban: { ...config.table.kanban, allowDragUpdate: true },
+      },
+    });
+    const wrapper = mount(YayawDataTable, {
+      props: {
+        tableType: "test",
+        config: editConfig,
+        data,
+        getFormConfig: () => ({
+          id: "test",
+          fields: [{ name: "name", label: "Name", type: "text" }],
+        }),
+        getTableActions: () => ({
+          update: async () => ({ success: true }),
+        }),
+        syncUrl: false,
+      },
+    });
+    await wrapper.get("tbody .yayaw-cell").trigger("dblclick");
+    expect(wrapper.find(".yayaw-inline-editor").exists()).toBe(false);
+    await wrapper.get("tbody tr").trigger("click");
+    expect(wrapper.find(".yayaw-dialog-backdrop").exists()).toBe(false);
+    await wrapper
+      .findAll(".yayaw-segmented button")
+      .find((button) => button.text() === "kanban")
+      ?.trigger("click");
+    expect(wrapper.get(".yayaw-kanban-card").attributes("draggable")).toBe(
+      "false"
+    );
+  });
+
+  it("honors rowClickMode none and single-row selection", async () => {
+    const interactionConfig = defineTableConfig({
+      ...config,
+      table: {
+        ...config.table,
+        enableMultiRowSelection: false,
+        rowClickMode: "none",
+      },
+    });
+    const wrapper = mount(YayawDataTable, {
+      props: {
+        tableType: "test",
+        config: interactionConfig,
+        data,
+        syncUrl: false,
+      },
+    });
+    expect(wrapper.find('thead input[type="checkbox"]').exists()).toBe(false);
+    await wrapper.get("tbody tr").trigger("click");
+    expect(wrapper.emitted("rowActivate")).toBeUndefined();
+    const checkboxes = wrapper.findAll('tbody input[type="checkbox"]');
+    await checkboxes[0]?.setValue(true);
+    await checkboxes[1]?.setValue(true);
+    expect(wrapper.get(".yayaw-bulk-count").text()).toContain("1 selected");
+  });
+
+  it("separates view save and sharing permissions", async () => {
+    const privateViewsConfig = defineTableConfig({
+      ...config,
+      table: {
+        ...config.table,
+        allowViewSave: true,
+        allowViewSharing: false,
+        enableViews: true,
+      },
+    });
+    const wrapper = mount(YayawDataTable, {
+      props: {
+        tableType: "test",
+        config: privateViewsConfig,
+        data,
+        syncUrl: false,
+      },
+    });
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text() === "Save view")
+      ?.trigger("click");
+    expect(wrapper.find(".yayaw-save-view").exists()).toBe(true);
+    expect(wrapper.text()).not.toContain("Share with team");
+  });
+
   it("loads data through the server action contract", async () => {
     const list = vi.fn(async () => ({
       data: data.slice(1, 2),

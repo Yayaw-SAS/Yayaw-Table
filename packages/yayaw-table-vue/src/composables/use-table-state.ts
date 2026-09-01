@@ -110,20 +110,36 @@ export const useTableState = <TData extends TableRecord>({
   const activeViewId = ref<string>();
   let hydrating = true;
   let urlTimer: ReturnType<typeof setTimeout> | undefined;
+  const enabledFilters = (value: ColumnFiltersState): ColumnFiltersState =>
+    config.table.enableColumnFilters ? value : [];
+  const enabledAdvancedFilters = (
+    value: AdvancedFiltersState
+  ): AdvancedFiltersState =>
+    config.table.enableColumnFilters ? value : emptyAdvancedFilters();
+  const enabledGrouping = (value: string[]): string[] =>
+    config.table.enableGrouping ? value : [];
+  const enabledPinning = (value: ColumnPinningState): ColumnPinningState =>
+    config.table.enableColumnPinning ? value : emptyPinning();
+  const enabledDisplayMode = (
+    requested?: TableDisplayMode
+  ): TableDisplayMode =>
+    requested && config.table.displayModes?.includes(requested)
+      ? requested
+      : (config.table.defaultDisplayMode ?? "table");
 
   const snapshot = computed<TableViewConfig>(() =>
     createTableViewSnapshot({
       search: search.value,
-      filters: filters.value,
-      advancedFilters: advancedFilters.value,
+      filters: enabledFilters(filters.value),
+      advancedFilters: enabledAdvancedFilters(advancedFilters.value),
       sorting: sorting.value,
       columnVisibility: visibility.value,
       columnOrder: order.value,
       displayMode: displayMode.value,
       kanban: kanban.value,
       gallery: gallery.value,
-      grouping: grouping.value,
-      pinning: pinning.value,
+      grouping: enabledGrouping(grouping.value),
+      pinning: enabledPinning(pinning.value),
       pageSize: pagination.value.pageSize,
     })
   );
@@ -135,10 +151,14 @@ export const useTableState = <TData extends TableRecord>({
     }
     const params = new URLSearchParams(window.location.search);
     search.value = params.get(`${tableId}-q`) ?? "";
-    filters.value = parseJson(params.get(`${tableId}-filters`), []);
-    advancedFilters.value = parseJson(
-      params.get(`${tableId}-advancedFilters`),
-      emptyAdvancedFilters()
+    filters.value = enabledFilters(
+      parseJson(params.get(`${tableId}-filters`), [])
+    );
+    advancedFilters.value = enabledAdvancedFilters(
+      parseJson(
+        params.get(`${tableId}-advancedFilters`),
+        emptyAdvancedFilters()
+      )
     );
     sorting.value = parseJson(
       params.get(`${tableId}-sort`),
@@ -152,8 +172,12 @@ export const useTableState = <TData extends TableRecord>({
       params.get(`${tableId}-order`),
       config.columns.order
     );
-    grouping.value = parseJson(params.get(`${tableId}-grouping`), []);
-    pinning.value = parseJson(params.get(`${tableId}-pinning`), emptyPinning());
+    grouping.value = enabledGrouping(
+      parseJson(params.get(`${tableId}-grouping`), [])
+    );
+    pinning.value = enabledPinning(
+      parseJson(params.get(`${tableId}-pinning`), emptyPinning())
+    );
     pagination.value = {
       pageIndex: Math.max(0, Number(params.get(`${tableId}-page`) ?? 0)),
       pageSize: Math.max(
@@ -251,17 +275,18 @@ export const useTableState = <TData extends TableRecord>({
 
   const applyView = (view: TableViewConfig, viewId?: string): void => {
     search.value = view.search ?? "";
-    filters.value = view.filters ?? [];
-    advancedFilters.value = view.advancedFilters ?? emptyAdvancedFilters();
+    filters.value = enabledFilters(view.filters ?? []);
+    advancedFilters.value = enabledAdvancedFilters(
+      view.advancedFilters ?? emptyAdvancedFilters()
+    );
     sorting.value = view.sorting ?? [];
     visibility.value = view.columnVisibility ?? visibility.value;
     order.value = view.columnOrder ?? config.columns.order;
-    displayMode.value =
-      view.displayMode ?? config.table.defaultDisplayMode ?? "table";
+    displayMode.value = enabledDisplayMode(view.displayMode);
     kanban.value = view.kanban ?? {};
     gallery.value = view.gallery ?? {};
-    grouping.value = view.grouping ?? [];
-    pinning.value = view.pinning ?? emptyPinning();
+    grouping.value = enabledGrouping(view.grouping ?? []);
+    pinning.value = enabledPinning(view.pinning ?? emptyPinning());
     pagination.value = {
       pageIndex: 0,
       pageSize: view.pageSize ?? config.table.defaultPageSize,
