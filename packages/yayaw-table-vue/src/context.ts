@@ -25,6 +25,8 @@ export interface OpenFormState {
 
 export interface TableContextValue<TData extends TableRecord = TableRecord> {
   config: TableConfig<TData>;
+  tableType?: string;
+  formType?: string;
   actions: ComputedRef<TableActions<TData> | undefined>;
   state: TableStateRefs;
   data: TableDataResult<TData>;

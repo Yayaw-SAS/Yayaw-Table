@@ -271,7 +271,7 @@ const openEdit = (row: TableRecord): void => {
     open: true,
     mode: "edit",
     row,
-    formType: config.form?.editFormType ?? props.formType ?? props.tableType,
+    formType: config.form?.resolveEditFormType?.(row) ?? config.form?.editFormType ?? props.formType ?? props.tableType,
   };
 };
 const resolveRowClickMode = (): NonNullable<typeof config.table.rowClickMode> => {
@@ -337,6 +337,8 @@ watch(
 
 provide(tableContextKey, {
   config,
+  tableType: props.tableType,
+  formType: props.formType,
   actions,
   state,
   data: tableData,

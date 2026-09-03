@@ -547,6 +547,8 @@ describe("YayawDataTable", () => {
       ],
     }));
     const wrapper = mount(YayawDataTable, {
+      global: { stubs: { DialogPortal: { template: "<div><slot /></div>" } } },
+      attachTo: document.body,
       props: {
         tableType: "test",
         config,
@@ -561,17 +563,25 @@ describe("YayawDataTable", () => {
       .find((button) => button.text() === "Create")
       ?.trigger("click");
     await flushPromises();
-    expect(wrapper.get("#yayaw-field-value").attributes("type")).toBe("text");
     expect(
-      (wrapper.get("#yayaw-field-value").element as HTMLInputElement).value
+      wrapper.get('[data-field-name="value"] input').attributes("type")
+    ).toBe("text");
+    expect(
+      (
+        wrapper.get('[data-field-name="value"] input')
+          .element as HTMLInputElement
+      ).value
     ).toBe("hello");
-    await wrapper.get("#yayaw-field-kind").setValue("number");
+    await wrapper.get('[data-field-name="kind"] select').setValue("number");
     await nextTick();
-    expect(wrapper.get("#yayaw-field-value").attributes("type")).toBe("number");
+    expect(
+      wrapper.get('[data-field-name="value"] input').attributes("type")
+    ).toBe("number");
     expect(getFormConfig).toHaveBeenCalledWith(
       "test",
       expect.objectContaining({ tableId: "test", tableType: "test" })
     );
+    wrapper.unmount();
   });
 
   it("syncs meaningful state to compatible URL keys", async () => {
