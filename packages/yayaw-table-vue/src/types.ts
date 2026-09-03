@@ -273,13 +273,18 @@ export interface FormFieldContext<TData extends TableRecord = TableRecord> {
   tableId?: string;
   tableType?: string;
   values: TableRecord;
+  setFieldValue?: (name: string, value: unknown) => void;
+  touchField?: (name: string) => void;
 }
 
 export interface VueFormFieldApi {
   handleBlur: () => void;
   handleChange: (value: unknown) => void;
   name: string;
-  state: { meta: { errors: string[]; isValid: boolean }; value: unknown };
+  state: {
+    meta: { errors: string[]; isValid: boolean; isTouched?: boolean };
+    value: unknown;
+  };
 }
 
 export interface CollectionFieldCreateAction {
@@ -299,6 +304,9 @@ export interface FormFieldDefinition<TData extends TableRecord = TableRecord> {
   label: string;
   type: FormFieldType;
   description?: string;
+  labelKey?: string;
+  descriptionKey?: string;
+  placeholderKey?: string;
   placeholder?: string;
   required?: boolean;
   disabled?: boolean | ((context: FormFieldContext<TData>) => boolean);
@@ -307,6 +315,27 @@ export interface FormFieldDefinition<TData extends TableRecord = TableRecord> {
   options?:
     | SelectOption[]
     | ((context: FormFieldContext<TData>) => MaybePromise<SelectOption[]>);
+  /** Only these value changes reload dependent options. */
+  optionDependencies?: string[];
+  /** Change this key when the tenant or permission scope changes. */
+  optionsScope?: string | number;
+  searchOptions?: (
+    query: string,
+    context: FormFieldContext<TData>,
+    signal: AbortSignal
+  ) => MaybePromise<SelectOption[]>;
+  resolveOptions?: (
+    values: unknown[],
+    context: FormFieldContext<TData>,
+    signal: AbortSignal
+  ) => MaybePromise<SelectOption[]>;
+  createOption?: (
+    label: string,
+    context: FormFieldContext<TData>,
+    signal: AbortSignal
+  ) => MaybePromise<SelectOption>;
+  searchMinLength?: number;
+  searchDebounceMs?: number;
   schema?: ZodType;
   inputType?: "email" | "password" | "search" | "tel" | "text";
   min?: number;
@@ -314,6 +343,7 @@ export interface FormFieldDefinition<TData extends TableRecord = TableRecord> {
   step?: number;
   rows?: number;
   itemFields?: FormFieldDefinition[];
+  collectionMode?: "inline" | "dialog";
   createItem?: (items: readonly TableRecord[]) => TableRecord;
   createActions?: CollectionFieldCreateAction[];
   columns?: CollectionFieldColumnDefinition[];
@@ -371,6 +401,13 @@ export interface FormConfig<TData extends TableRecord = TableRecord> {
   width?: string;
   submitLabel?: string;
   cancelLabel?: string;
+  /** Full values remain the default; patch mode sends only changed declared fields. */
+  submitMode?: "full" | "patch";
+  loadInitialValues?: (
+    row: TData | undefined,
+    context: FormFieldContext<TData>,
+    signal: AbortSignal
+  ) => MaybePromise<TableRecord>;
   schema?: ZodType;
   translations?: { keys: Record<string, string>; namespace: string };
   transform?: (
@@ -382,6 +419,7 @@ export interface FormConfig<TData extends TableRecord = TableRecord> {
 export interface TableFormConfig {
   createFormType?: string;
   editFormType?: string;
+  resolveEditFormType?: (row: TableRecord) => string | undefined;
   presentation?: FormPresentation;
   width?: string;
 }
@@ -530,6 +568,7 @@ export interface TableActionResult<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
+  fieldErrors?: Record<string, string>;
 }
 
 export interface BulkActionResult extends TableActionResult {

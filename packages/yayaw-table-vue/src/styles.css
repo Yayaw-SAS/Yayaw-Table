@@ -20,7 +20,9 @@
   --yayaw-primary-foreground: #18181b;
 }
 .yayaw-table,
-.yayaw-table * {
+.yayaw-table *,
+.yayaw-dialog-layer,
+.yayaw-dialog-layer * {
   box-sizing: border-box;
 }
 .yayaw-table {
@@ -1049,6 +1051,8 @@
   height: 100%;
   overflow: auto;
   background: var(--yayaw-background);
+  color: var(--yayaw-foreground);
+  max-width: 100vw;
   box-shadow: var(--yayaw-shadow);
 }
 .yayaw-form-surface[data-presentation="modal"] {
@@ -1097,6 +1101,28 @@
   display: grid;
   gap: 20px;
   padding: 20px;
+}
+.yayaw-form-fields {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+.yayaw-collection-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.yayaw-collection-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.yayaw-collection-table th,
+.yayaw-collection-table td {
+  padding: 8px;
+  border-bottom: 1px solid var(--yayaw-border);
+  text-align: start;
 }
 .yayaw-form-section {
   display: grid;
