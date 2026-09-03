@@ -4,10 +4,12 @@ import type { TableDataResult } from "./composables/use-table-data";
 import type { TableStateRefs } from "./composables/use-table-state";
 import type {
   BulkAction,
+  BulkActionHandlerResult,
   DataTableTranslations,
   FormConfig,
   FormFieldContext,
   FormMode,
+  MaybePromise,
   TableActions,
   TableConfig,
   TableRecord,
@@ -51,13 +53,13 @@ export interface TableContextValue<TData extends TableRecord = TableRecord> {
   status: Ref<{ type: "error" | "success"; message: string } | undefined>;
   queryClient: QueryClient;
   locale: string;
-  onBulkDelete?: (rows: TData[]) => Promise<unknown> | unknown;
+  onBulkDelete?: (rows: TData[]) => MaybePromise<BulkActionHandlerResult>;
   onBulkEdit?: (
     rows: TData[],
     patch?: TableRecord
-  ) => Promise<unknown> | unknown;
-  onBulkCopy?: (rows: TData[]) => Promise<unknown> | unknown;
-  onBulkExport?: (rows: TData[]) => Promise<unknown> | unknown;
+  ) => MaybePromise<BulkActionHandlerResult>;
+  onBulkCopy?: (rows: TData[]) => MaybePromise<BulkActionHandlerResult>;
+  onBulkExport?: (rows: TData[]) => MaybePromise<BulkActionHandlerResult>;
   onExport?: (rows: TData[]) => Promise<void> | void;
 }
 
