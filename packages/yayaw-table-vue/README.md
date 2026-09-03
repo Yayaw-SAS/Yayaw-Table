@@ -93,6 +93,23 @@ const getTableActions = () => ({
 
 `DataTable` creates a local Vue Query client by default. Pass `:query-client="queryClient"` to share the application's cache.
 
+## Bulk actions
+
+Provide `onBulkEdit`, `onBulkCopy`, `onBulkDelete`, or `onBulkExport` when the application owns the corresponding workflow. For example, `onBulkEdit` is called immediately with the selected source records so the application can open its own edit form. Without that callback, the built-in JSON editor writes through `actions.bulkUpdate(ids, patch)`.
+
+Callbacks and custom bulk actions can return a result that controls feedback, selection, and menu state independently:
+
+```ts
+return {
+  success: true,
+  message: "Products archived",
+  clearSelection: true,
+  closeMenu: true,
+};
+```
+
+Returning `void` leaves follow-up behavior to the application. Failed results preserve the selection by default. When individual fallback deletions partly fail, the table refreshes the successful mutations and retains only the failed IDs for retry.
+
 ## Nuxt
 
 The component is SSR-safe: browser APIs are accessed only after mount. Register it in a client plugin when the table should be globally available:

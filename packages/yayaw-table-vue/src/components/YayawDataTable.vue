@@ -13,11 +13,11 @@ import { applyTableQuery } from "../core";
 import { createTranslations } from "../translations";
 import type {
   BulkAction,
+  BulkActionHandlerResult,
   DataTableTranslations,
   FormConfig,
   FormFieldContext,
   MaybePromise,
-  TableActionResult,
   TableActions,
   TableConfig,
   TableRecord,
@@ -69,17 +69,18 @@ const props = withDefaults(
     onRowClick?: (url: string, row: TableRecord, event: MouseEvent) => void;
     onBulkDelete?: (
       rows: TableRecord[]
-    ) => MaybePromise<TableActionResult | undefined>;
+    ) => MaybePromise<BulkActionHandlerResult>;
     onBulkEdit?: (
       rows: TableRecord[],
+      /** Retained for source compatibility; application-owned callbacks are triggered without a built-in patch. */
       patch?: TableRecord
-    ) => MaybePromise<TableActionResult | undefined>;
+    ) => MaybePromise<BulkActionHandlerResult>;
     onBulkCopy?: (
       rows: TableRecord[]
-    ) => MaybePromise<TableActionResult | undefined>;
+    ) => MaybePromise<BulkActionHandlerResult>;
     onBulkExport?: (
       rows: TableRecord[]
-    ) => MaybePromise<TableActionResult | undefined>;
+    ) => MaybePromise<BulkActionHandlerResult>;
     onExport?: (rows: TableRecord[]) => MaybePromise<void>;
     columnTypeMapping?: Record<
       string,

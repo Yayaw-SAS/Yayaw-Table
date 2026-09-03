@@ -8,16 +8,26 @@ import {
   Trash2,
   X,
 } from "lucide-vue-next";
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { parseBulkEditPatch, resolveBulkActionResult } from "../../bulk-actions";
 import { useTableContext } from "../../context";
 import { downloadCsv } from "../../core";
-import type { BulkAction, BulkActionContext, TableRecord } from "../../types";
+import type {
+  BulkAction,
+  BulkActionContext,
+  BulkActionHandlerResult,
+  TableRecord,
+} from "../../types";
 
 const context = useTableContext();
 const root = ref<HTMLElement>();
 const positionMode = ref<"anchored" | "fixed">("fixed");
 let anchorObserver: IntersectionObserver | undefined;
 const pending = ref<string>();
+const dismissedSelectionKey = ref<string>();
+const isBusy = computed(
+  () => Boolean(pending.value) || context.isSelectingAll.value
+);
 const confirmation = ref<{
   title: string;
   description?: string;
@@ -32,6 +42,10 @@ const ids = computed(() =>
     (id) => context.selection.value[id]
   )
 );
+const selectionKey = computed(() => JSON.stringify([...ids.value].sort()));
+watch(selectionKey, () => {
+  dismissedSelectionKey.value = undefined;
+});
 const actionContext = computed<BulkActionContext>(() => ({
   selectedRows: context.selectedRows.value,
   selectedIds: ids.value,
@@ -78,17 +92,42 @@ const customActionDisabled = (action: BulkAction): boolean => {
     typeof action.disabled === "function"
       ? action.disabled(actionContext.value)
       : action.disabled;
-  return Boolean(disabled || pending.value);
+  return Boolean(disabled || isBusy.value);
 };
-const assertSuccess = (result: unknown, fallback: string): void => {
-  if (
-    result &&
-    typeof result === "object" &&
-    "success" in result &&
-    (result as { success?: boolean }).success === false
-  ) {
-    throw new Error(String((result as { error?: unknown }).error ?? fallback));
+const clearSelectedIds = (selectedIds: string[]): void => {
+  const completed = new Set(selectedIds);
+  context.selection.value = Object.fromEntries(
+    Object.entries(context.selection.value).filter(
+      ([id, selected]) => selected && !completed.has(id)
+    )
+  );
+};
+const applyResult = (
+  result: BulkActionHandlerResult,
+  fallback: string,
+  selectedIds: string[],
+  defaults = { clearSelection: false, closeMenu: true }
+): boolean => {
+  const resolved = resolveBulkActionResult(
+    result || undefined,
+    fallback,
+    defaults
+  );
+  if (resolved.message) {
+    context.status.value = {
+      type: resolved.success ? "success" : "error",
+      message: resolved.message,
+    };
+  } else if (resolved.success) {
+    context.status.value = undefined;
   }
+  if (resolved.closeMenu) {
+    dismissedSelectionKey.value = JSON.stringify([...selectedIds].sort());
+  }
+  if (resolved.clearSelection) {
+    clearSelectedIds(selectedIds);
+  }
+  return resolved.success;
 };
 const reportError = (cause: unknown): void => {
   context.status.value = {
@@ -102,9 +141,10 @@ const executeCustom = async (id: string): Promise<void> => {
     return;
   }
   pending.value = id;
+  const selectedIds = [...ids.value];
   try {
     const result = await action.handler(actionContext.value);
-    assertSuccess(result, `${action.label} failed`);
+    applyResult(result, `${action.label} failed`, selectedIds);
   } finally {
     pending.value = undefined;
   }
@@ -123,40 +163,75 @@ const runCustom = (id: string): void => {
   }
   executeCustom(id).catch(reportError);
 };
-const executeBulkDelete = async (): Promise<void> => {
+const executeBulkDelete = async (
+  selectedIds: string[],
+  selectedRows: TableRecord[]
+): Promise<void> => {
+  if (isBusy.value || !canBulkDelete.value) {
+    return;
+  }
   pending.value = "delete";
+  let shouldRefresh = true;
   try {
     if (context.onBulkDelete) {
-      assertSuccess(
-        await context.onBulkDelete(context.selectedRows.value),
-        "Bulk delete failed"
-      );
+      const result = await context.onBulkDelete(selectedRows);
+      shouldRefresh = result !== undefined;
+      applyResult(result, "Bulk delete failed", selectedIds, {
+        clearSelection: Boolean(result),
+        closeMenu: Boolean(result),
+      });
     } else if (context.actions.value?.bulkDelete) {
-      const result = await context.actions.value.bulkDelete(ids.value);
-      assertSuccess(result, "Bulk delete failed");
+      const result = await context.actions.value.bulkDelete(selectedIds);
+      applyResult(result, "Bulk delete failed", selectedIds, {
+        clearSelection: true,
+        closeMenu: true,
+      });
     } else if (context.actions.value?.delete) {
-      const results = await Promise.all(
-        ids.value.map((id) => context.actions.value?.delete?.(id))
+      const deleteRow = context.actions.value.delete;
+      // Wait for every request before refreshing; a rejected request must not hide later successes.
+      const results = await Promise.allSettled(
+        selectedIds.map(async (id) => ({ id, result: await deleteRow(id) }))
       );
-      const failed = results.filter((result) => !result?.success);
-      if (failed.length) {
-        throw new Error(`${failed.length} rows could not be deleted`);
+      const completedIds: string[] = [];
+      for (const result of results) {
+        if (result.status === "fulfilled" && result.value.result.success) {
+          completedIds.push(result.value.id);
+        }
+      }
+      clearSelectedIds(completedIds);
+      const failedCount = selectedIds.length - completedIds.length;
+      if (failedCount) {
+        throw new Error(
+          `${failedCount} of ${selectedIds.length} rows could not be deleted`
+        );
       }
     }
-    context.clearSelection();
-    await context.refresh();
   } catch (cause) {
     reportError(cause);
   } finally {
-    pending.value = undefined;
+    // Bulk endpoints can also partially mutate data before reporting an error.
+    try {
+      if (shouldRefresh) {
+        await context.refresh();
+      }
+    } catch (cause) {
+      reportError(cause);
+    } finally {
+      pending.value = undefined;
+    }
   }
 };
 const requestBulkDelete = (): void => {
+  if (isBusy.value || !canBulkDelete.value) {
+    return;
+  }
+  const selectedIds = [...ids.value];
+  const selectedRows = [...context.selectedRows.value];
   confirmation.value = {
-    title: `Delete ${ids.value.length} rows?`,
+    title: `Delete ${selectedIds.length} rows?`,
     description: "This action cannot be undone.",
     confirmLabel: translate("delete", "Delete"),
-    execute: executeBulkDelete,
+    execute: () => executeBulkDelete(selectedIds, selectedRows),
   };
 };
 const confirmPendingAction = async (): Promise<void> => {
@@ -169,6 +244,9 @@ const confirmPendingAction = async (): Promise<void> => {
   }
 };
 const selectAllMatching = async (): Promise<void> => {
+  if (isBusy.value) {
+    return;
+  }
   try {
     await context.selectAllMatching();
   } catch (cause) {
@@ -176,24 +254,41 @@ const selectAllMatching = async (): Promise<void> => {
   }
 };
 const bulkCopy = async (): Promise<void> => {
-  if (!canBulkCopy.value) {
+  if (!canBulkCopy.value || isBusy.value) {
     return;
   }
   pending.value = "copy";
+  const selectedIds = [...ids.value];
   try {
     const result = context.onBulkCopy
       ? await context.onBulkCopy(context.selectedRows.value)
-      : await context.actions.value?.bulkCopy?.(ids.value);
-    assertSuccess(result, "Bulk copy failed");
-    await context.refresh();
+      : await context.actions.value?.bulkCopy?.(selectedIds);
+    applyResult(result, "Bulk copy failed", selectedIds);
+    if (!context.onBulkCopy) {
+      await context.refresh();
+    }
   } catch (cause) {
     reportError(cause);
   } finally {
     pending.value = undefined;
   }
 };
-const bulkEdit = (): void => {
-  if (!canBulkEdit.value) {
+const bulkEdit = async (): Promise<void> => {
+  if (!canBulkEdit.value || isBusy.value) {
+    return;
+  }
+  if (context.onBulkEdit) {
+    pending.value = "edit";
+    const selectedIds = [...ids.value];
+    try {
+      // The application owns its edit form and any later persistence or refresh.
+      const result = await context.onBulkEdit(context.selectedRows.value);
+      applyResult(result, "Bulk update failed", selectedIds);
+    } catch (cause) {
+      reportError(cause);
+    } finally {
+      pending.value = undefined;
+    }
     return;
   }
   editValue.value = "{}";
@@ -201,34 +296,46 @@ const bulkEdit = (): void => {
   editOpen.value = true;
 };
 const applyBulkEdit = async (): Promise<void> => {
+  if (isBusy.value || !canBulkEdit.value || !editOpen.value) {
+    return;
+  }
   let patch: TableRecord;
   try {
-    patch = JSON.parse(editValue.value) as TableRecord;
+    patch = parseBulkEditPatch(editValue.value);
   } catch {
     editError.value = "Enter a valid JSON object.";
     return;
   }
-  editOpen.value = false;
+  editError.value = undefined;
   pending.value = "edit";
+  const selectedIds = [...ids.value];
   try {
-    const result = context.onBulkEdit
-      ? await context.onBulkEdit(context.selectedRows.value, patch)
-      : await context.actions.value?.bulkUpdate?.(ids.value, patch);
-    assertSuccess(result, "Bulk update failed");
-    await context.refresh();
+    const result = await context.actions.value?.bulkUpdate?.(selectedIds, patch);
+    if (applyResult(result, "Bulk update failed", selectedIds)) {
+      editOpen.value = false;
+      await context.refresh();
+    } else {
+      editError.value = context.status.value?.message;
+    }
   } catch (cause) {
     reportError(cause);
+    editError.value = context.status.value?.message;
   } finally {
     pending.value = undefined;
   }
 };
 const bulkExport = async (): Promise<void> => {
+  if (isBusy.value || !context.config.table.bulkExport) {
+    return;
+  }
   pending.value = "export";
+  const selectedIds = [...ids.value];
   try {
     if (context.onBulkExport) {
-      assertSuccess(
+      applyResult(
         await context.onBulkExport(context.selectedRows.value),
-        "Bulk export failed"
+        "Bulk export failed",
+        selectedIds
       );
       return;
     }
@@ -236,6 +343,11 @@ const bulkExport = async (): Promise<void> => {
       context.selectedRows.value,
       context.config.columns.definitions,
       `${context.config.id}-selection`
+    );
+    applyResult(
+      { success: true, clearSelection: false, closeMenu: true },
+      "Bulk export failed",
+      selectedIds
     );
   } catch (cause) {
     reportError(cause);
@@ -247,6 +359,7 @@ const bulkExport = async (): Promise<void> => {
 
 <template>
   <div
+    v-if="dismissedSelectionKey !== selectionKey"
     ref="root"
     class="yayaw-bulk-menu-wrapper"
     :data-position="positionMode"
@@ -265,7 +378,7 @@ const bulkExport = async (): Promise<void> => {
         v-if="context.config.table.enableMultiRowSelection && context.matchingRowCount.value > ids.length"
         type="button"
         class="yayaw-bulk-action-tab"
-        :disabled="context.isSelectingAll.value || Boolean(pending)"
+        :disabled="isBusy"
         :aria-label="`${translate('selectAll', 'Select all')} ${context.matchingRowCount.value}`"
         :title="`${translate('selectAll', 'Select all')} ${context.matchingRowCount.value}`"
         @click="selectAllMatching"
@@ -286,7 +399,7 @@ const bulkExport = async (): Promise<void> => {
         v-if="context.config.table.bulkExport"
         type="button"
         class="yayaw-bulk-action-tab"
-        :disabled="Boolean(pending)"
+        :disabled="isBusy"
         :aria-label="translate('export', 'Export')"
         :title="translate('export', 'Export')"
         @click="bulkExport"
@@ -299,7 +412,7 @@ const bulkExport = async (): Promise<void> => {
         v-if="canBulkEdit"
         type="button"
         class="yayaw-bulk-action-tab"
-        :disabled="Boolean(pending)"
+        :disabled="isBusy"
         :aria-label="translate('bulkEdit', 'Bulk edit')"
         :title="translate('bulkEdit', 'Bulk edit')"
         @click="bulkEdit"
@@ -312,7 +425,7 @@ const bulkExport = async (): Promise<void> => {
         v-if="canBulkCopy"
         type="button"
         class="yayaw-bulk-action-tab"
-        :disabled="Boolean(pending)"
+        :disabled="isBusy"
         :aria-label="translate('copy', 'Copy')"
         :title="translate('copy', 'Copy')"
         @click="bulkCopy"
@@ -354,7 +467,7 @@ const bulkExport = async (): Promise<void> => {
         v-if="canBulkDelete"
         type="button"
         class="yayaw-bulk-action-tab yayaw-bulk-action-danger"
-        :disabled="Boolean(pending)"
+        :disabled="isBusy"
         :aria-label="translate('delete', 'Delete')"
         :title="translate('delete', 'Delete')"
         @click="requestBulkDelete"
@@ -367,6 +480,7 @@ const bulkExport = async (): Promise<void> => {
       <button
         type="button"
         class="yayaw-bulk-action-tab"
+        :disabled="isBusy"
         :aria-label="translate('cancel', 'Clear selection')"
         :title="translate('cancel', 'Clear selection')"
         @click="context.clearSelection"
@@ -416,7 +530,7 @@ const bulkExport = async (): Promise<void> => {
   <div
     v-if="editOpen"
     class="yayaw-dialog-backdrop"
-    @mousedown.self="editOpen = false"
+    @mousedown.self="!isBusy && (editOpen = false)"
   >
     <section
       class="yayaw-form-surface yayaw-confirm-surface"
@@ -434,6 +548,7 @@ const bulkExport = async (): Promise<void> => {
       <div class="yayaw-confirm-body yayaw-bulk-editor">
         <textarea
           v-model="editValue"
+          :disabled="isBusy"
           class="yayaw-textarea yayaw-json-editor"
           rows="8"
           aria-label="JSON fields"
@@ -445,11 +560,12 @@ const bulkExport = async (): Promise<void> => {
           <button
             type="button"
             class="yayaw-button yayaw-button-outline"
+            :disabled="isBusy"
             @click="editOpen = false"
           >
             {{ translate("cancel", "Cancel") }}
           </button>
-          <button type="button" class="yayaw-button" @click="applyBulkEdit">
+          <button type="button" class="yayaw-button" :disabled="isBusy" @click="applyBulkEdit">
             {{ translate("confirm", "Apply") }}
           </button>
         </div>

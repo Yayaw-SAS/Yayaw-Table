@@ -532,6 +532,18 @@ export interface TableActionResult<T = unknown> {
   error?: string;
 }
 
+export interface BulkActionResult extends TableActionResult {
+  /** Clear the rows targeted when the action started without affecting later selections. */
+  clearSelection?: boolean;
+  /** Dismiss the bulk menu independently from row selection. */
+  closeMenu?: boolean;
+  /** Display application-provided success or error feedback above the table. */
+  message?: string;
+}
+
+// biome-ignore lint/suspicious/noConfusingVoidType: Bulk callbacks may let the application own its form, feedback, and follow-up behavior.
+export type BulkActionHandlerResult = BulkActionResult | void;
+
 export interface TableAggregateParams {
   filters: Record<string, unknown>;
   advancedFilters: AdvancedFilter[];
@@ -580,7 +592,7 @@ export interface BulkAction<TData extends TableRecord = TableRecord> {
   confirm?: { title: string; description?: string; confirmLabel?: string };
   handler: (
     context: BulkActionContext<TData>
-  ) => MaybePromise<TableActionResult | undefined>;
+  ) => MaybePromise<BulkActionHandlerResult>;
 }
 
 export interface ToolbarActionContext<TData extends TableRecord = TableRecord>
@@ -673,13 +685,14 @@ export interface YayawTableProps<TData extends TableRecord = TableRecord> {
   onRowActivate?: (row: TData, event: MouseEvent) => void;
   onRowClick?: (url: string, row: TData, event: MouseEvent) => void;
   onRowSelectionChange?: (selection: Record<string, boolean>) => void;
-  onBulkDelete?: (rows: TData[]) => MaybePromise<TableActionResult | undefined>;
+  onBulkDelete?: (rows: TData[]) => MaybePromise<BulkActionHandlerResult>;
   onBulkEdit?: (
     rows: TData[],
+    /** Retained for source compatibility; application-owned callbacks are triggered without a built-in patch. */
     patch?: TableRecord
-  ) => MaybePromise<TableActionResult | undefined>;
-  onBulkCopy?: (rows: TData[]) => MaybePromise<TableActionResult | undefined>;
-  onBulkExport?: (rows: TData[]) => MaybePromise<TableActionResult | undefined>;
+  ) => MaybePromise<BulkActionHandlerResult>;
+  onBulkCopy?: (rows: TData[]) => MaybePromise<BulkActionHandlerResult>;
+  onBulkExport?: (rows: TData[]) => MaybePromise<BulkActionHandlerResult>;
   onExport?: (rows: TData[]) => MaybePromise<void>;
   columnTypeMapping?: Record<
     string,
