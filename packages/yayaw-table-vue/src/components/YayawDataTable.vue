@@ -143,10 +143,11 @@ const advancedFiltersEnabled = computed(
 const searchDebounceMs = computed(
   () => props.searchDebounceMs ?? config.table.searchDebounceMs ?? 0
 );
-const state = useTableState({ config, syncUrl: props.syncUrl ?? config.table.syncUrl ?? true });
-if (props.initialActiveViewId) {
-  state.activeViewId.value = props.initialActiveViewId;
-}
+const state = useTableState({
+  config,
+  syncUrl: props.syncUrl ?? config.table.syncUrl ?? true,
+  initialActiveViewId: props.initialActiveViewId,
+});
 const tableData = useTableData({
   actions,
   inputData,

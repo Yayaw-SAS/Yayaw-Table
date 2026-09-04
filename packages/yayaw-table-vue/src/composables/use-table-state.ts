@@ -12,6 +12,7 @@ import {
   lockedColumnVisibility,
 } from "../column-locks";
 import { createTableViewSnapshot } from "../core";
+import { cloneFormValue } from "../form-runtime";
 import {
   normalizeFilterEnvelope,
   normalizeViewAliases,
@@ -74,6 +75,9 @@ export interface TableStateRefs {
   kanban: Ref<TableKanbanViewConfig>;
   gallery: Ref<TableGalleryViewConfig>;
   activeViewId: Ref<string | undefined>;
+  initialViewId?: string;
+  hasInitialTableUrlState: boolean;
+  resolveView: (config: TableViewConfig) => TableViewConfig;
   snapshot: Readonly<Ref<TableViewConfig>>;
   applyView: (config: TableViewConfig, viewId?: string) => void;
   reset: () => void;
@@ -84,9 +88,11 @@ export interface TableStateRefs {
 export const useTableState = <TData extends TableRecord>({
   config,
   syncUrl,
+  initialActiveViewId,
 }: {
   config: TableConfig<TData>;
   syncUrl: boolean;
+  initialActiveViewId?: string;
 }): TableStateRefs => {
   const tableId = config.id;
   const search = ref("");
@@ -144,7 +150,17 @@ export const useTableState = <TData extends TableRecord>({
     showCardLabels: config.table.kanban?.showCardLabels,
   });
   const gallery = ref<TableGalleryViewConfig>({ ...config.table.gallery });
-  const activeViewId = ref<string>();
+  // Capture the incoming URL before this table starts writing its own state.
+  const initialParams = new URLSearchParams(
+    syncUrl && typeof window !== "undefined" ? window.location.search : ""
+  );
+  const hasInitialTableUrlState = [...initialParams.keys()].some((key) =>
+    key.startsWith(`${tableId}-`)
+  );
+  const initialViewId =
+    initialParams.get("view") ??
+    (hasInitialTableUrlState ? undefined : initialActiveViewId);
+  const activeViewId = ref<string | undefined>(initialViewId);
   let hydrating = true;
   let urlTimer: ReturnType<typeof setTimeout> | undefined;
   const enabledFilters = (value: ColumnFiltersState): ColumnFiltersState =>
@@ -166,8 +182,8 @@ export const useTableState = <TData extends TableRecord>({
       ? requested
       : (config.table.defaultDisplayMode ?? "table");
 
-  const snapshot = computed<TableViewConfig>(() =>
-    createTableViewSnapshot({
+  const snapshot = computed<TableViewConfig>(() => ({
+    ...createTableViewSnapshot({
       globalSearch: search.value,
       columnFilters: enabledFilters(filters.value),
       columnPinning: enabledPinning(pinning.value),
@@ -183,8 +199,10 @@ export const useTableState = <TData extends TableRecord>({
       grouping: enabledGrouping(grouping.value),
       pinning: enabledPinning(pinning.value),
       pageSize: pagination.value.pageSize,
-    })
-  );
+    }),
+    // Empty grouping is intentional, even when a Kanban lane is configured.
+    grouping: enabledGrouping(grouping.value),
+  }));
 
   const fromUrl = (): void => {
     if (!syncUrl || typeof window === "undefined") {
@@ -192,6 +210,7 @@ export const useTableState = <TData extends TableRecord>({
       return;
     }
     const params = new URLSearchParams(window.location.search);
+    const defaults = resolveView({});
     search.value = params.get(`${tableId}-q`) ?? "";
     filters.value = enabledFilters(
       parseJson(params.get(`${tableId}-filters`), [])
@@ -208,7 +227,7 @@ export const useTableState = <TData extends TableRecord>({
     );
     visibility.value = parseJson(
       params.get(`${tableId}-visibility`),
-      visibility.value
+      defaults.columnVisibility ?? {}
     );
     order.value = parseJson(
       params.get(`${tableId}-order`),
@@ -230,10 +249,11 @@ export const useTableState = <TData extends TableRecord>({
     const requestedMode = params.get(
       `${tableId}-display`
     ) as TableDisplayMode | null;
-    if (requestedMode && config.table.displayModes?.includes(requestedMode)) {
-      displayMode.value = requestedMode;
-    }
-    kanban.value = parseJson(params.get(`${tableId}-kanban`), kanban.value);
+    displayMode.value = enabledDisplayMode(requestedMode ?? undefined);
+    kanban.value = parseJson(
+      params.get(`${tableId}-kanban`),
+      defaults.kanban ?? {}
+    );
     if (!kanban.value.groupBy) {
       kanban.value = {
         ...kanban.value,
@@ -243,6 +263,7 @@ export const useTableState = <TData extends TableRecord>({
       };
     }
     if (
+      displayMode.value === "kanban" &&
       !params.has(`${tableId}-grouping`) &&
       (params.has(`${tableId}-kanban`) ||
         params.has(`${tableId}-kanbanGroupBy`)) &&
@@ -250,11 +271,20 @@ export const useTableState = <TData extends TableRecord>({
     ) {
       grouping.value = enabledGrouping([kanban.value.groupBy]);
     }
-    gallery.value = parseJson(params.get(`${tableId}-gallery`), gallery.value);
-    activeViewId.value = params.get("view") ?? activeViewId.value;
+    gallery.value = parseJson(
+      params.get(`${tableId}-gallery`),
+      defaults.gallery ?? {}
+    );
+    activeViewId.value =
+      params.get("view") ?? (hydrating ? initialViewId : undefined);
     hydrating = false;
   };
 
+  const serializedGrouping = computed(() =>
+    grouping.value.length || kanban.value.groupBy
+      ? serialize(grouping.value)
+      : undefined
+  );
   const commitUrl = (): void => {
     const url = new URL(window.location.href);
     const set = (key: string, value: string | undefined): void =>
@@ -276,10 +306,7 @@ export const useTableState = <TData extends TableRecord>({
     );
     set(`${tableId}-visibility`, serialize(visibility.value));
     set(`${tableId}-order`, serialize(order.value));
-    set(
-      `${tableId}-grouping`,
-      grouping.value.length ? serialize(grouping.value) : undefined
-    );
+    set(`${tableId}-grouping`, serializedGrouping.value);
     set(`${tableId}-pinning`, serializeEncoded(pinning.value));
     set(
       `${tableId}-page`,
@@ -321,30 +348,82 @@ export const useTableState = <TData extends TableRecord>({
     urlTimer = setTimeout(commitUrl, 40);
   };
 
-  const applyView = (input: TableViewConfig, viewId?: string): void => {
+  /** Resolve partial saved views against catalogue defaults, never the previously selected view. */
+  const resolveView = (input: TableViewConfig): TableViewConfig => {
     const aliases = normalizeViewAliases(input);
-    const view = {
-      ...input,
-      search: aliases.globalSearch,
-      filters: aliases.columnFilters,
-      pinning: aliases.columnPinning,
-      grouping: aliases.grouping,
-    } as TableViewConfig;
+    const globalSearch = String(aliases.globalSearch ?? "");
+    const columnFilters = enabledFilters(
+      aliases.columnFilters as ColumnFiltersState
+    );
+    const columnPinning = lockedColumnPinning(
+      enabledPinning(aliases.columnPinning as ColumnPinningState),
+      columnIds,
+      config.table.enableColumnPinning
+    );
+    return cloneFormValue(
+      createTableViewSnapshot({
+        globalSearch,
+        search: globalSearch,
+        columnFilters,
+        filters: columnFilters,
+        columnPinning,
+        pinning: columnPinning,
+        advancedFilters: enabledAdvancedFilters(
+          normalizeFilterEnvelope(
+            input.advancedFilters
+          ) as unknown as AdvancedFiltersState
+        ),
+        sorting: input.sorting ?? config.columns.sort ?? [],
+        columnVisibility: lockedColumnVisibility(
+          input.columnVisibility ??
+            Object.fromEntries(
+              config.columns.definitions.map((column) => [
+                column.id,
+                config.columns.visible.includes(column.id),
+              ])
+            ),
+          config.columns.mandatory
+        ),
+        columnOrder: lockedColumnOrder(
+          input.columnOrder ?? config.columns.order,
+          columnIds
+        ),
+        displayMode: enabledDisplayMode(input.displayMode),
+        kanban: input.kanban ?? {
+          groupBy: config.table.kanban?.groupBy,
+          titleColumn: config.table.kanban?.titleColumn,
+          cardColumnIds: config.table.kanban?.cardColumnIds,
+          showCardLabels: config.table.kanban?.showCardLabels,
+        },
+        gallery: input.gallery ?? { ...config.table.gallery },
+        grouping: enabledGrouping(
+          input.grouping ??
+            (enabledDisplayMode(input.displayMode) === "kanban"
+              ? (aliases.grouping as string[])
+              : [])
+        ),
+        pageSize: positiveInteger(input.pageSize, config.table.defaultPageSize),
+      })
+    );
+  };
+
+  const applyView = (input: TableViewConfig, viewId?: string): void => {
+    const view = resolveView(input);
     search.value = view.search ?? "";
-    filters.value = enabledFilters(view.filters ?? []);
+    filters.value = view.filters ?? [];
     advancedFilters.value = enabledAdvancedFilters(
       normalizeFilterEnvelope(
         view.advancedFilters
       ) as unknown as AdvancedFiltersState
     );
     sorting.value = view.sorting ?? [];
-    visibility.value = view.columnVisibility ?? visibility.value;
-    order.value = view.columnOrder ?? config.columns.order;
-    displayMode.value = enabledDisplayMode(view.displayMode);
+    visibility.value = view.columnVisibility ?? {};
+    order.value = view.columnOrder ?? [];
+    displayMode.value = view.displayMode ?? "table";
     kanban.value = view.kanban ?? {};
     gallery.value = view.gallery ?? {};
-    grouping.value = enabledGrouping(view.grouping ?? []);
-    pinning.value = enabledPinning(view.pinning ?? emptyPinning());
+    grouping.value = view.grouping ?? [];
+    pinning.value = view.pinning ?? emptyPinning();
     pagination.value = {
       pageIndex: 0,
       pageSize: view.pageSize ?? config.table.defaultPageSize,
@@ -432,6 +511,9 @@ export const useTableState = <TData extends TableRecord>({
     kanban,
     gallery,
     activeViewId,
+    initialViewId,
+    hasInitialTableUrlState,
+    resolveView,
     snapshot,
     applyView,
     reset,

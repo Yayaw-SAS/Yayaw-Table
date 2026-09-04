@@ -121,6 +121,14 @@ catalogue defaults; `toolbarActions: []` deliberately suppresses configured cust
 actions. Server search debounce affects search only; filters, sort, pagination and
 explicit refresh remain immediate, and pending searches are cancelled on unmount.
 
+### Saved views
+
+With `table.enableViews`, the toolbar shows the current view in a keyboard-accessible menu. The save icon updates a modified, editable view; the plus icon opens a dialog to save a new view. The menu also offers the catalogue's default view, saved views, and deletion of the active editable view. `allowViewSave: false` hides write actions; `allowViewSharing` enables sharing in the dialog. System views can be selected and copied but cannot be updated or deleted.
+
+`actions.views` can provide `list`, `create`, `update`, and `delete` individually, with local storage as the fallback for omitted handlers. Every action receives `tableId` and `tableType`; update/delete also receive the view ID. English and French labels are included. Existing flat Vue translation keys and corresponding React `views.*` keys are accepted, with explicit React keys taking precedence.
+
+An incoming URL with table options keeps those options, including unsaved changes to a referenced view. A URL containing only `view=<id>` restores that view. Without URL state, `initialActiveViewId` takes precedence over an `isDefault` view. With URL synchronization disabled, unrelated URL parameters are ignored. Default/partial views restore catalogue defaults rather than inheriting the previous view's display options. Empty grouping is saved explicitly, so configuring Kanban lanes does not group the table after saving or reloading a view. Pending loads and writes do not discard newer table edits; failed writes preserve the draft and expose a retryable error.
+
 ### List and mutation handlers
 
 The same `getTableActions(tableType)` pattern is supported. Actions may be regular API-client functions, Nuxt server functions, or RPC calls.

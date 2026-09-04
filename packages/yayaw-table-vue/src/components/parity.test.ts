@@ -1,4 +1,9 @@
-import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
+import {
+  DOMWrapper,
+  flushPromises,
+  mount,
+  type VueWrapper,
+} from "@vue/test-utils";
 import { afterEach, expect, it, vi } from "vitest";
 import { h } from "vue";
 import { defineTableConfig } from "../config";
@@ -182,19 +187,18 @@ it("honors default and system views, and reports failed saves without closing th
     "Beta"
   );
   expect(wrapper.find('button[title="Delete view"]').exists()).toBe(false);
-  await wrapper
-    .findAll("button")
-    .find((button) => button.text() === "Save view")
-    ?.trigger("click");
-  await wrapper.get('input[placeholder="View name"]').setValue("Mine");
-  await wrapper.get(".yayaw-save-view").trigger("submit");
+  await wrapper.get('[aria-label="Add view"]').trigger("click");
   await flushPromises();
-  expect(wrapper.get('.yayaw-status[data-type="error"]').text()).toContain(
+  const dialog = new DOMWrapper(document.body);
+  await dialog.get('input[placeholder="Enter a view name"]').setValue("Mine");
+  await dialog.get(".yayaw-view-form").trigger("submit");
+  await flushPromises();
+  expect(dialog.get('.yayaw-view-form [role="alert"]').text()).toContain(
     "View rejected"
   );
-  expect(wrapper.find(".yayaw-save-view").exists()).toBe(true);
+  expect(dialog.find(".yayaw-view-form").exists()).toBe(true);
   expect(
-    wrapper.get('.yayaw-save-view button[type="submit"]').attributes("disabled")
+    dialog.get('.yayaw-view-form button[type="submit"]').attributes("disabled")
   ).toBeUndefined();
 });
 

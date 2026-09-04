@@ -237,7 +237,6 @@
   color: var(--yayaw-foreground);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
-.yayaw-save-view,
 .yayaw-columns-panel,
 .yayaw-card-properties-menu {
   position: absolute;
@@ -252,12 +251,90 @@
   box-shadow: var(--yayaw-shadow);
   padding: 12px;
 }
-.yayaw-save-view {
-  top: 38px;
-  left: 0;
+.yayaw-view-manager {
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+  flex-direction: column;
+  gap: 4px;
 }
 .yayaw-views {
-  position: relative;
+  min-width: 0;
+}
+.yayaw-views .yayaw-button {
+  height: 32px;
+  min-height: 32px;
+  flex-shrink: 0;
+  gap: 8px;
+}
+.yayaw-views .yayaw-view-trigger {
+  min-width: 0;
+  max-width: 16rem;
+  flex-shrink: 1;
+  justify-content: space-between;
+}
+.yayaw-view-trigger svg {
+  flex-shrink: 0;
+}
+.yayaw-view-name {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+.yayaw-view-menu {
+  width: min(256px, calc(100vw - 16px));
+  max-height: var(--reka-dropdown-menu-content-available-height);
+  overflow-y: auto;
+}
+.yayaw-view-menu-label {
+  padding: 6px 8px;
+  font-size: 12px;
+  font-weight: 550;
+  color: var(--yayaw-muted-foreground);
+}
+.yayaw-view-menu-danger {
+  color: var(--yayaw-danger);
+}
+.yayaw-view-check-hidden {
+  visibility: hidden;
+}
+.yayaw-view-error {
+  margin: 0;
+  max-width: 32rem;
+  color: var(--yayaw-danger);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.yayaw-view-form,
+.yayaw-view-field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.yayaw-view-form {
+  gap: 20px;
+  padding: 20px;
+}
+.yayaw-view-share {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--yayaw-border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.yayaw-view-form-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.yayaw-views .yayaw-button:focus-visible {
+  outline: 2px solid var(--yayaw-primary);
+  outline-offset: 2px;
 }
 .yayaw-columns-panel {
   right: 0;
@@ -532,14 +609,19 @@
 }
 .yayaw-column-sort svg,
 .yayaw-column-menu-trigger svg,
-.yayaw-column-menu-item svg {
+.yayaw-column-menu-item svg,
+.yayaw-view-menu-item svg {
   width: 16px;
   height: 16px;
   flex: 0 0 16px;
 }
-.yayaw-column-menu {
+.yayaw-column-menu,
+.yayaw-view-menu {
   box-sizing: border-box;
-  font: 13px / 1.4 ui-sans-serif, system-ui, sans-serif;
+  font:
+    13px / 1.4 ui-sans-serif,
+    system-ui,
+    sans-serif;
   z-index: 100;
   min-width: 180px;
   padding: 4px;
@@ -549,7 +631,8 @@
   color: var(--yayaw-foreground);
   box-shadow: 0 4px 12px rgb(0 0 0 / 0.12);
 }
-.yayaw-column-menu-item {
+.yayaw-column-menu-item,
+.yayaw-view-menu-item {
   box-sizing: border-box;
   display: flex;
   align-items: center;
@@ -560,16 +643,19 @@
   font-size: 13px;
   cursor: pointer;
 }
+.yayaw-view-menu-item[data-highlighted],
 .yayaw-column-menu-item[data-highlighted],
 .yayaw-column-menu-trigger:hover {
   background: var(--yayaw-muted);
   outline: none;
 }
+.yayaw-view-menu-item[data-disabled],
 .yayaw-column-menu-item[data-disabled] {
   opacity: 0.5;
   pointer-events: none;
 }
-.yayaw-column-menu-divider {
+.yayaw-column-menu-divider,
+.yayaw-view-menu-divider {
   height: 1px;
   margin: 4px 0;
   background: var(--yayaw-border);
