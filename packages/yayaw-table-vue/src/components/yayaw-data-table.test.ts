@@ -1,4 +1,4 @@
-import { flushPromises, mount } from "@vue/test-utils";
+import { DOMWrapper, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { nextTick } from "vue";
 import { defineTableConfig } from "../config";
@@ -445,12 +445,15 @@ describe("YayawDataTable", () => {
         syncUrl: false,
       },
     });
-    await wrapper
-      .findAll("button")
-      .find((button) => button.text() === "Save view")
-      ?.trigger("click");
-    expect(wrapper.find(".yayaw-save-view").exists()).toBe(true);
-    expect(wrapper.text()).not.toContain("Share with team");
+    await flushPromises();
+    await wrapper.get('[aria-label="Add view"]').trigger("click");
+    await flushPromises();
+    const dialog = new DOMWrapper(document.body);
+    expect(dialog.find(".yayaw-view-form").exists()).toBe(true);
+    expect(dialog.get(".yayaw-view-form").text()).not.toContain(
+      "Share with team"
+    );
+    wrapper.unmount();
   });
 
   it("loads data through the server action contract", async () => {

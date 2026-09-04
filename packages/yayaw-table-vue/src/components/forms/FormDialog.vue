@@ -17,8 +17,9 @@ const props = defineProps<{
   width?: string;
   busy?: boolean;
   returnFocus?: HTMLElement;
+  closeLabel?: string;
 }>();
-const emit = defineEmits<{ close: [] }>();
+const emit = defineEmits<{ close: []; openAutoFocus: [event: Event] }>();
 const anchor = ref<HTMLElement>();
 const theme = ref<CSSProperties>({});
 let opener: HTMLElement | undefined;
@@ -97,6 +98,7 @@ const restoreFocus = (event: Event): void => {
             }
           "
           @close-auto-focus="restoreFocus"
+          @open-auto-focus="emit('openAutoFocus', $event)"
         >
           <header class="yayaw-form-header">
             <div>
@@ -108,7 +110,7 @@ const restoreFocus = (event: Event): void => {
             <button
               type="button"
               class="yayaw-icon-button"
-              aria-label="Close"
+              :aria-label="closeLabel ?? 'Close'"
               :disabled="busy"
               @click="emit('close')"
             >

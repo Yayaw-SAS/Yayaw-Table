@@ -548,12 +548,15 @@ export interface TableView {
 
 export interface CreateTableViewInput {
   tableId: string;
+  tableType?: string;
   name: string;
   config: TableViewConfig;
   isGlobal?: boolean;
 }
 
 export interface UpdateTableViewInput {
+  tableId?: string;
+  tableType?: string;
   name?: string;
   config?: TableViewConfig;
   isGlobal?: boolean;
@@ -577,7 +580,7 @@ export interface TableViewActions {
   ) => MaybePromise<TableViewActionResult>;
   delete?: (
     id: string,
-    context: { tableId: string }
+    context: { tableId: string; tableType?: string }
   ) => MaybePromise<TableViewActionResult>;
 }
 

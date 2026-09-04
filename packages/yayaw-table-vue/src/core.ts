@@ -542,7 +542,7 @@ const storeLocalViews = (tableId: string, views: TableView[]): void => {
   }
 };
 
-export const createLocalTableViewActions = (): TableViewActions => ({
+export const createLocalTableViewActions = (): Required<TableViewActions> => ({
   list: ({ tableId }) => loadLocalViews(tableId),
   create: (input: CreateTableViewInput) => {
     const now = new Date().toISOString();
@@ -558,7 +558,8 @@ export const createLocalTableViewActions = (): TableViewActions => ({
   update: (id, input) => {
     let updated: TableView | undefined;
     const tableId =
-      typeof window === "undefined"
+      input.tableId ??
+      (typeof window === "undefined"
         ? ""
         : (Object.keys(localStorage)
             .map((key) => key.match(VIEW_STORAGE_KEY_PATTERN)?.[1])
@@ -566,7 +567,10 @@ export const createLocalTableViewActions = (): TableViewActions => ({
               (candidate) =>
                 candidate &&
                 loadLocalViews(candidate).some((view) => view.id === id)
-            ) ?? "");
+            ) ?? ""));
+    if (loadLocalViews(tableId).find((view) => view.id === id)?.isSystem) {
+      return { success: false, error: "System views cannot be updated" };
+    }
     const views = loadLocalViews(tableId).map((view) => {
       if (view.id !== id) {
         return view;
