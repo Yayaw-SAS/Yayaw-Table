@@ -1128,6 +1128,21 @@
   display: grid;
   gap: 12px;
 }
+.yayaw-bulk-field {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.yayaw-bulk-field-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
 .yayaw-form-grid {
   display: grid;
   grid-template-columns: repeat(var(--columns), minmax(0, 1fr));

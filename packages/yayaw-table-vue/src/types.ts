@@ -266,6 +266,12 @@ export type FormFieldType =
   | "value-type";
 
 export interface FormFieldContext<TData extends TableRecord = TableRecord> {
+  /** Present only in the generated bulk editor; the normal edit form stays independent. */
+  bulkEdit?: {
+    ids: readonly string[];
+    rows: readonly TData[];
+    fields: readonly string[];
+  };
   formType?: string;
   initialData?: Partial<TableRecord>;
   mode: FormMode;
@@ -300,6 +306,8 @@ export interface CollectionFieldColumnDefinition {
 }
 
 export interface FormFieldDefinition<TData extends TableRecord = TableRecord> {
+  /** Exclude unique or otherwise unsafe fields from the generated bulk editor. */
+  bulkEdit?: boolean;
   name: string;
   label: string;
   type: FormFieldType;
@@ -417,6 +425,8 @@ export interface FormConfig<TData extends TableRecord = TableRecord> {
 }
 
 export interface TableFormConfig {
+  /** Defaults to catalogue when getFormConfig is supplied, otherwise JSON. */
+  bulkEditMode?: "catalogue" | "json";
   createFormType?: string;
   editFormType?: string;
   resolveEditFormType?: (row: TableRecord) => string | undefined;
@@ -569,6 +579,8 @@ export interface TableActionResult<T = unknown> {
   data?: T;
   error?: string;
   fieldErrors?: Record<string, string>;
+  /** On partial bulk failure, the complete subset of targeted IDs that still need saving. */
+  failedIds?: string[];
 }
 
 export interface BulkActionResult extends TableActionResult {

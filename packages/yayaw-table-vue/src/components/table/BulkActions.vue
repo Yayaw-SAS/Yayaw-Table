@@ -9,7 +9,12 @@ import {
   X,
 } from "lucide-vue-next";
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { parseBulkEditPatch, resolveBulkActionResult } from "../../bulk-actions";
+import {
+  parseBulkEditPatch,
+  resolveBulkActionResult,
+} from "../../bulk-actions";
+import { commonBulkValues } from "../../bulk-form";
+import { cloneFormValue } from "../../form-runtime";
 import { useTableContext } from "../../context";
 import { downloadCsv } from "../../core";
 import type {
@@ -26,7 +31,10 @@ let anchorObserver: IntersectionObserver | undefined;
 const pending = ref<string>();
 const dismissedSelectionKey = ref<string>();
 const isBusy = computed(
-  () => Boolean(pending.value) || context.isSelectingAll.value
+  () =>
+    Boolean(pending.value) ||
+    context.isSelectingAll.value ||
+    context.form.value.open
 );
 const confirmation = ref<{
   title: string;
@@ -56,6 +64,9 @@ const actionContext = computed<BulkActionContext>(() => ({
 const canBulkEdit = computed(
   () =>
     context.config.table.allowBulkEdit &&
+    context.selectedRows.value.every(
+      (row) => context.config.table.canEditRow?.(row) !== false
+    ) &&
     Boolean(context.onBulkEdit || context.actions.value?.bulkUpdate)
 );
 const canBulkDelete = computed(
@@ -291,6 +302,49 @@ const bulkEdit = async (): Promise<void> => {
     }
     return;
   }
+  const mode =
+    context.config.form?.bulkEditMode ??
+    (context.getFormConfig ? "catalogue" : "json");
+  if (mode === "catalogue") {
+    const rows = context.selectedRows.value;
+    if (!rows.length || rows.length !== ids.value.length) {
+      context.status.value = { type: "error", message: translate("bulkEditDenied", "These rows can no longer be edited.") };
+      return;
+    }
+    const formTypes = new Set(
+      rows.map(
+        (row) =>
+          context.config.form?.resolveEditFormType?.(row) ??
+          context.config.form?.editFormType ??
+          context.formType ??
+          context.tableType ??
+          context.config.id
+      )
+    );
+    if (formTypes.size !== 1) {
+      context.status.value = {
+        type: "error",
+        message: translate(
+          "bulkMixedForms",
+          "Select rows with the same edit form."
+        ),
+      };
+      return;
+    }
+    context.form.value = {
+      open: true,
+      returnFocus: document.activeElement instanceof HTMLElement ? document.activeElement : undefined,
+      mode: "edit",
+      row: commonBulkValues(rows),
+      formType: [...formTypes][0],
+      bulk: {
+        ids: [...ids.value],
+        rows: cloneFormValue(rows),
+        completed: clearSelectedIds,
+      },
+    };
+    return;
+  }
   editValue.value = "{}";
   editError.value = undefined;
   editOpen.value = true;
@@ -310,7 +364,10 @@ const applyBulkEdit = async (): Promise<void> => {
   pending.value = "edit";
   const selectedIds = [...ids.value];
   try {
-    const result = await context.actions.value?.bulkUpdate?.(selectedIds, patch);
+    const result = await context.actions.value?.bulkUpdate?.(
+      selectedIds,
+      patch
+    );
     if (applyResult(result, "Bulk update failed", selectedIds)) {
       editOpen.value = false;
       await context.refresh();
@@ -371,16 +428,25 @@ const bulkExport = async (): Promise<void> => {
     >
       <div class="yayaw-bulk-count">
         <span class="yayaw-bulk-count-dot" aria-hidden="true" />
-        <strong>{{ ids.length }} {{ context.translations.value.selected }}</strong>
+        <strong
+          >{{ ids.length }} {{ context.translations.value.selected }}</strong
+        >
       </div>
 
       <button
-        v-if="context.config.table.enableMultiRowSelection && context.matchingRowCount.value > ids.length"
+        v-if="
+          context.config.table.enableMultiRowSelection &&
+          context.matchingRowCount.value > ids.length
+        "
         type="button"
         class="yayaw-bulk-action-tab"
         :disabled="isBusy"
-        :aria-label="`${translate('selectAll', 'Select all')} ${context.matchingRowCount.value}`"
-        :title="`${translate('selectAll', 'Select all')} ${context.matchingRowCount.value}`"
+        :aria-label="`${translate('selectAll', 'Select all')} ${
+          context.matchingRowCount.value
+        }`"
+        :title="`${translate('selectAll', 'Select all')} ${
+          context.matchingRowCount.value
+        }`"
         @click="selectAllMatching"
       >
         <LoaderCircle
@@ -391,7 +457,8 @@ const bulkExport = async (): Promise<void> => {
         />
         <CheckCheck v-else :size="20" aria-hidden="true" />
         <span class="yayaw-bulk-action-label">
-          {{ translate("selectAll", "Select all") }} {{ context.matchingRowCount.value }}
+          {{ translate("selectAll", "Select all") }}
+          {{ context.matchingRowCount.value }}
         </span>
       </button>
 
@@ -405,7 +472,9 @@ const bulkExport = async (): Promise<void> => {
         @click="bulkExport"
       >
         <Download :size="20" aria-hidden="true" />
-        <span class="yayaw-bulk-action-label">{{ translate("export", "Export") }}</span>
+        <span class="yayaw-bulk-action-label">{{
+          translate("export", "Export")
+        }}</span>
       </button>
 
       <button
@@ -418,7 +487,9 @@ const bulkExport = async (): Promise<void> => {
         @click="bulkEdit"
       >
         <Pencil :size="20" aria-hidden="true" />
-        <span class="yayaw-bulk-action-label">{{ translate("bulkEdit", "Bulk edit") }}</span>
+        <span class="yayaw-bulk-action-label">{{
+          translate("bulkEdit", "Bulk edit")
+        }}</span>
       </button>
 
       <button
@@ -431,7 +502,9 @@ const bulkExport = async (): Promise<void> => {
         @click="bulkCopy"
       >
         <Copy :size="20" aria-hidden="true" />
-        <span class="yayaw-bulk-action-label">{{ translate("copy", "Copy") }}</span>
+        <span class="yayaw-bulk-action-label">{{
+          translate("copy", "Copy")
+        }}</span>
       </button>
 
       <button
@@ -473,7 +546,9 @@ const bulkExport = async (): Promise<void> => {
         @click="requestBulkDelete"
       >
         <Trash2 :size="20" aria-hidden="true" />
-        <span class="yayaw-bulk-action-label">{{ translate("delete", "Delete") }}</span>
+        <span class="yayaw-bulk-action-label">{{
+          translate("delete", "Delete")
+        }}</span>
       </button>
 
       <span class="yayaw-bulk-divider" aria-hidden="true" />
@@ -565,7 +640,12 @@ const bulkExport = async (): Promise<void> => {
           >
             {{ translate("cancel", "Cancel") }}
           </button>
-          <button type="button" class="yayaw-button" :disabled="isBusy" @click="applyBulkEdit">
+          <button
+            type="button"
+            class="yayaw-button"
+            :disabled="isBusy"
+            @click="applyBulkEdit"
+          >
             {{ translate("confirm", "Apply") }}
           </button>
         </div>

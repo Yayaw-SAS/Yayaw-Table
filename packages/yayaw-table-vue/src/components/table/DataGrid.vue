@@ -272,6 +272,11 @@ const table = useVueTable({
 });
 
 const visibleRows = computed(() => table.getRowModel().rows);
+const visibleColumns = computed(() => [
+  ...table.getLeftVisibleLeafColumns(),
+  ...table.getCenterVisibleLeafColumns(),
+  ...table.getRightVisibleLeafColumns(),
+]);
 const totalPages = computed(() => Math.max(1, table.getPageCount()));
 const moveColumn = (target: string): void => {
   const source = draggedColumn.value;
@@ -530,7 +535,7 @@ const pinnedStyle = (column: Column<TableRecord>): CSSProperties => {
         </tbody>
         <tfoot v-if="context.config.table.enableCalculations && context.footerCalculationsVisible.value && calculationColumns.length">
           <tr>
-            <td v-for="column in table.getVisibleLeafColumns()" :key="column.id" class="yayaw-calculation">
+            <td v-for="column in visibleColumns" :key="column.id" class="yayaw-calculation" :style="pinnedStyle(column)">
               <template v-if="calculationColumns.find((item) => item.id === column.id)">
                 <select v-model="selectedCalculations[column.id]" class="yayaw-calculation-select" :aria-label="`Calculate ${column.id}`">
                   <option v-for="calculation in availableCalculations(calculationColumns.find((item) => item.id === column.id)!)" :key="calculation" :value="calculation">{{ calculation }}</option>

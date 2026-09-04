@@ -95,7 +95,37 @@ const getTableActions = () => ({
 
 ## Bulk actions
 
-Provide `onBulkEdit`, `onBulkCopy`, `onBulkDelete`, or `onBulkExport` when the application owns the corresponding workflow. For example, `onBulkEdit` is called immediately with the selected source records so the application can open its own edit form. Without that callback, the built-in JSON editor writes through `actions.bulkUpdate(ids, patch)`.
+With `getFormConfig` and `actions.bulkUpdate`, bulk editing automatically opens the table's existing catalogue form. No `onBulkEdit` callback or separate application form is required. Each table keeps its own columns, form configuration, and action provider; the library only shares the rendering engine.
+
+```ts
+const getFormConfig = () => defineFormConfig({
+  id: "products",
+  fields: [
+    { name: "name", label: "Name", type: "text", required: true },
+    { name: "price", label: "Price", type: "number", min: 0 },
+    { name: "active", label: "Active", type: "switch" },
+    { name: "sku", label: "SKU", type: "text", bulkEdit: false },
+  ],
+});
+const getTableActions = () => ({
+  update: (id, patch) => api.updateProduct(id, patch),
+  bulkUpdate: (ids, patch) => api.updateProducts(ids, patch),
+});
+```
+
+The editor initializes common values and asks users to check each field they want to apply. Unchecked fields are omitted, while explicitly checked `false`, `0`, empty strings, empty arrays, and `null` remain valid patch values when permitted by the field's validation. Required rules and field-level Zod schemas apply only to checked fields. Hidden and disabled predicates are checked against every target row, including explicitly changed dependencies. Set `field.bulkEdit: false` for unique or unsafe fields; IDs and timestamps are excluded automatically.
+
+The single-row `loadInitialValues` callback and full-row `schema` are not run for bulk edits. Include the data needed by conditional fields in the selected records. `transform` receives only the selected field patch and `context.bulkEdit` (`ids`, `rows`, and `fields`); it must preserve patch semantics instead of reconstructing an entire row. Validate authorization, uniqueness, and cross-field business rules on the server as usual. Selections resolving to different `resolveEditFormType` values cannot share one generated bulk editor.
+
+Target IDs are captured when the editor opens. A failed update keeps the draft and selection. For partial success, return the complete subset of failed targets:
+
+```ts
+return { success: false, failedIds: ["product-2"], error: "One product could not be updated." };
+```
+
+Successful targets are refreshed and removed from the selection, and retry only submits the remaining IDs. If completion is unknown, omit `failedIds` so no target is silently treated as successful. New selections are never included in an already-open operation.
+
+Without a catalogue provider, the legacy JSON editor remains the default. Set `form.bulkEditMode: "catalogue"` to generate fields from columns, or `form.bulkEditMode: "json"` to explicitly retain the JSON workflow. `onBulkEdit` still takes precedence when the application intentionally owns editing. The other callbacks (`onBulkCopy`, `onBulkDelete`, `onBulkExport`) retain their existing contracts.
 
 Callbacks and custom bulk actions can return a result that controls feedback, selection, and menu state independently:
 
@@ -109,6 +139,10 @@ return {
 ```
 
 Returning `void` leaves follow-up behavior to the application. Failed results preserve the selection by default. When individual fallback deletions partly fail, the table refreshes the successful mutations and retains only the failed IDs for retry.
+
+## Locked utility columns
+
+The selection column stays visible at the far left and row actions stay visible at the far right whenever those features are enabled. Neither utility column can be moved or unpinned, including through URL state or saved views. Mandatory data columns cannot be hidden. Data columns remain independently reorderable and pinnable, and calculation footers follow the same pinned order as the header and body.
 
 ## Nuxt
 

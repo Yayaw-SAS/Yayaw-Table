@@ -2,6 +2,12 @@
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { useTableContext } from "../../context";
 import {
+  bulkCompletion,
+  bulkFieldEditable,
+  bulkFormConfig,
+  bulkFormValues,
+} from "../../bulk-form";
+import {
   cloneFormValue,
   formSubmissionValues,
   initialFormValues,
@@ -25,6 +31,10 @@ const values = ref<TableRecord>({});
 const initial = ref<TableRecord>({});
 const errors = ref<Record<string, string>>({});
 const touched = ref<Record<string, boolean>>({});
+const applied = ref<string[]>([]);
+const isBulk = computed(() => Boolean(context.form.value.bulk));
+const label = (key: string, fallback: string): string =>
+  String(context.translations.value[key] ?? fallback);
 const submitting = ref(false);
 const loading = ref(false);
 const loadError = ref<string>();
@@ -64,6 +74,13 @@ const setFieldValue = (name: string, value: unknown): void => {
   if (touched.value[name]) void touchField(name);
 };
 const formContext = computed<FormFieldContext>(() => ({
+  bulkEdit: context.form.value.bulk
+    ? {
+        ids: context.form.value.bulk.ids,
+        rows: context.form.value.bulk.rows,
+        fields: applied.value,
+      }
+    : undefined,
   formType: formType.value,
   initialData: initial.value,
   mode: context.form.value.mode,
@@ -87,7 +104,9 @@ const config = computed<FormConfig>(() =>
   )
 );
 const title = computed(() =>
-  typeof config.value.title === "function"
+  isBulk.value
+    ? label("bulkEdit", "Bulk edit")
+    : typeof config.value.title === "function"
     ? config.value.title(context.form.value.mode, context.form.value.row)
     : config.value.title ??
       String(
@@ -99,6 +118,26 @@ const title = computed(() =>
 const sections = computed(() => resolveFormSections(config.value));
 const fieldFor = (name: string): FormFieldDefinition =>
   config.value.fields.find((field) => field.name === name)!;
+const renderedField = (name: string): FormFieldDefinition =>
+  isBulk.value
+    ? { ...fieldFor(name), hidden: false, disabled: false }
+    : fieldFor(name);
+const submissionConfig = (): FormConfig =>
+  isBulk.value ? bulkFormConfig(config.value, formContext.value) : config.value;
+const submissionValues = (current: FormConfig): TableRecord =>
+  isBulk.value
+    ? bulkFormValues(current, values.value)
+    : cloneFormValue(values.value);
+const bulkCanSave = (fields: FormFieldDefinition[]): boolean => {
+  const bulk = context.form.value.bulk;
+  if (!bulk) return true;
+  return context.config.table.allowBulkEdit &&
+    bulk.rows.every(row => context.config.table.canEditRow?.(row) !== false) &&
+    fields.every(field => {
+      const latest = config.value.fields.find(candidate => candidate.name === field.name);
+      return Boolean(latest && bulkFieldEditable(latest, formContext.value));
+    });
+};
 const close = (): void => {
   if (!submitting.value)
     context.form.value = { ...context.form.value, open: false };
@@ -107,9 +146,10 @@ const touchField = async (name: string): Promise<void> => {
   touched.value[name] = true;
   const version = ++validationVersion;
   try {
+    const current = submissionConfig();
     const result = await validateForm(
-      config.value,
-      cloneFormValue(values.value),
+      current,
+      submissionValues(current),
       formContext.value
     );
     if (version !== validationVersion) return;
@@ -131,13 +171,14 @@ const initialize = async (): Promise<void> => {
   validationVersion += 1;
   errors.value = {};
   touched.value = {};
+  applied.value = [];
   loadError.value = undefined;
   const selected = context.form.value;
   values.value = initialFormValues(config.value, selected.row);
   initial.value = cloneFormValue(values.value);
-  loading.value = Boolean(config.value.loadInitialValues);
+  loading.value = !selected.bulk && Boolean(config.value.loadInitialValues);
   try {
-    if (config.value.loadInitialValues) {
+    if (!selected.bulk && config.value.loadInitialValues) {
       const loaded = await config.value.loadInitialValues(
         selected.row,
         formContext.value,
@@ -176,15 +217,29 @@ const submit = async (): Promise<void> => {
   submitting.value = true;
   validationVersion += 1;
   const selected = context.form.value;
-  const currentConfig = config.value;
+  const currentConfig = submissionConfig();
   const currentContext = {
     ...formContext.value,
     values: cloneFormValue(values.value),
   };
   try {
+    if (!bulkCanSave(currentConfig.fields)) {
+      errors.value.form = label(
+        "bulkEditDenied",
+        "These rows can no longer be edited."
+      );
+      return;
+    }
+    if (selected.bulk && !currentConfig.fields.length) {
+      errors.value.form = label(
+        "bulkChooseFields",
+        "Choose at least one field to apply."
+      );
+      return;
+    }
     const validated = await validateForm(
       currentConfig,
-      currentContext.values,
+      submissionValues(currentConfig),
       currentContext
     );
     if (context.form.value !== selected) return;
@@ -200,25 +255,53 @@ const submit = async (): Promise<void> => {
       ? await currentConfig.transform(prepared, currentContext)
       : prepared;
     if (context.form.value !== selected) return;
-    const result =
-      selected.mode === "create"
-        ? await context.actions.value?.create?.(payload)
-        : await context.actions.value?.update?.(
-            context.getRowId(selected.row ?? {}),
-            payload
-          );
+    if (!bulkCanSave(currentConfig.fields)) {
+      errors.value.form = label(
+        "bulkEditDenied",
+        "These rows can no longer be edited."
+      );
+      return;
+    }
+    const result = selected.bulk
+      ? await context.actions.value?.bulkUpdate?.(
+          [...selected.bulk.ids],
+          payload
+        )
+      : selected.mode === "create"
+      ? await context.actions.value?.create?.(payload)
+      : await context.actions.value?.update?.(
+          context.getRowId(selected.row ?? {}),
+          payload
+        );
     if (context.form.value !== selected) return;
+    let completed: string[] = [];
+    if (selected.bulk && result) {
+      const bulk = selected.bulk;
+      const progress = bulkCompletion(bulk.ids, result);
+      completed = progress.completed;
+      bulk.completed(completed);
+      // Keep the draft but retry only failed targets after partial completion.
+      bulk.rows = bulk.rows.filter((_row, index) =>
+        progress.remaining.includes(bulk.ids[index] ?? "")
+      );
+      bulk.ids = progress.remaining;
+    }
     if (!result?.success) {
       errors.value = {
         ...result?.fieldErrors,
         form: result?.error ?? "The form could not be saved",
       };
+      if (completed.length) await context.refresh();
       return;
     }
     context.form.value = { ...selected, open: false };
     context.status.value = {
       type: "success",
-      message: selected.mode === "create" ? "Row created" : "Row updated",
+      message: selected.bulk
+        ? label("bulkUpdated", "Selected rows updated")
+        : selected.mode === "create"
+        ? "Row created"
+        : "Row updated",
     };
     await context.refresh();
   } catch (cause) {
@@ -240,13 +323,25 @@ const submit = async (): Promise<void> => {
   <FormDialog
     :open="context.form.value.open"
     :title="title"
-    :description="config.description"
+    :description="
+      isBulk
+        ? label(
+            'bulkEditDescription',
+            'Only checked fields are applied to the selected rows. Unchecked fields stay unchanged.'
+          )
+        : config.description
+    "
     :presentation="config.presentation"
     :width="config.width"
     :busy="submitting"
+    :return-focus="context.form.value.returnFocus"
     @close="close"
   >
     <form class="yayaw-form" @submit.prevent="submit">
+      <p v-if="isBulk" class="yayaw-bulk-selection-count">
+        {{ context.form.value.bulk?.ids.length }}
+        {{ label("selected", "selected") }}
+      </p>
       <p v-if="loading" role="status">Loading…</p>
       <p v-if="loadError || errors.form" class="yayaw-error" role="alert">
         {{ loadError ?? errors.form }}
@@ -276,17 +371,44 @@ const submit = async (): Promise<void> => {
             class="yayaw-form-grid"
             :style="{ '--columns': section.columns ?? 1 }"
           >
-            <DynamicField
-              v-for="name in section.fields"
-              :key="name"
-              :field="fieldFor(name)"
-              :model-value="values[name]"
-              :context="formContext"
-              :error="errors[name]"
-              :errors="errors"
-              :touched="touched[name]"
-              @update:model-value="setFieldValue(name, $event)"
-            />
+            <template v-for="name in section.fields" :key="name">
+              <div
+                v-if="isBulk && bulkFieldEditable(fieldFor(name), formContext)"
+                class="yayaw-bulk-field"
+                :data-bulk-field="name"
+              >
+                <label class="yayaw-bulk-field-toggle">
+                  <input
+                    v-model="applied"
+                    type="checkbox"
+                    :value="name"
+                    class="yayaw-checkbox"
+                  />
+                  {{ label("bulkApplyField", "Apply") }}
+                  {{ fieldFor(name).label }}
+                </label>
+                <DynamicField
+                  v-if="applied.includes(name)"
+                  :field="renderedField(name)"
+                  :model-value="values[name]"
+                  :context="formContext"
+                  :error="errors[name]"
+                  :errors="errors"
+                  :touched="touched[name]"
+                  @update:model-value="setFieldValue(name, $event)"
+                />
+              </div>
+              <DynamicField
+                v-else-if="!isBulk"
+                :field="fieldFor(name)"
+                :model-value="values[name]"
+                :context="formContext"
+                :error="errors[name]"
+                :errors="errors"
+                :touched="touched[name]"
+                @update:model-value="setFieldValue(name, $event)"
+              />
+            </template>
           </div>
         </section>
       </fieldset>
