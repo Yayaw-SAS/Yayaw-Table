@@ -290,6 +290,8 @@ export interface FormFieldContext<TData extends TableRecord = TableRecord> {
   };
   formType?: string;
   initialData?: Partial<TableRecord>;
+  /** Locale inherited from the table that owns the generated form. */
+  locale?: string;
   mode: FormMode;
   row?: TData;
   tableId?: string;
@@ -297,6 +299,8 @@ export interface FormFieldContext<TData extends TableRecord = TableRecord> {
   values: TableRecord;
   setFieldValue?: (name: string, value: unknown) => void;
   touchField?: (name: string) => void;
+  /** Resolved table translations inherited by nested declarative fields. */
+  translations?: DataTableTranslations;
 }
 
 export interface VueFormFieldApi {
