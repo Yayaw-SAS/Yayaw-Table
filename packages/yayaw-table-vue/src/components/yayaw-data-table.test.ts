@@ -104,6 +104,49 @@ describe("YayawDataTable", () => {
     expect(wrapper.find(".yayaw-bulk-bar").text()).toContain("1 selected");
   });
 
+  it("supports controlled selection that can survive query changes", async () => {
+    const persistentConfig = defineTableConfig({
+      ...config,
+      table: { ...config.table, preserveSelectionOnQuery: true },
+    });
+    const wrapper = mount(YayawDataTable, {
+      props: {
+        tableType: "test",
+        config: persistentConfig,
+        data,
+        rowSelection: { "1": true },
+        syncUrl: false,
+      },
+    });
+    expect(
+      (
+        wrapper.findAll('tbody input[type="checkbox"]')[0]?.element as
+          | HTMLInputElement
+          | undefined
+      )?.checked
+    ).toBe(true);
+
+    await wrapper.get('input[type="search"]').setValue("Beta");
+    await wrapper.get('input[type="search"]').setValue("");
+    expect(
+      (
+        wrapper.findAll('tbody input[type="checkbox"]')[0]?.element as
+          | HTMLInputElement
+          | undefined
+      )?.checked
+    ).toBe(true);
+
+    await wrapper.setProps({ rowSelection: { "2": true } });
+    await nextTick();
+    const checkboxes = wrapper.findAll('tbody input[type="checkbox"]');
+    expect(
+      (checkboxes[0]?.element as HTMLInputElement | undefined)?.checked
+    ).toBe(false);
+    expect(
+      (checkboxes[1]?.element as HTMLInputElement | undefined)?.checked
+    ).toBe(true);
+  });
+
   it("provides the full Options system", async () => {
     const wrapper = mount(YayawDataTable, {
       props: { tableType: "test", config, data, syncUrl: false },
