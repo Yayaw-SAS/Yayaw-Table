@@ -77,7 +77,7 @@
   flex-wrap: wrap;
 }
 .yayaw-toolbar-right > .yayaw-button,
-.yayaw-toolbar-right > .yayaw-options-root > .yayaw-button {
+.yayaw-toolbar-right > :where(.yayaw-options-root) > .yayaw-button {
   min-height: 32px;
   height: 32px;
   gap: 8px;
