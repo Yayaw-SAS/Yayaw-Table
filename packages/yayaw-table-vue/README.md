@@ -74,6 +74,21 @@ const config = defineTableConfig({
 
 ## Server actions
 
+### Toolbar shortcuts
+
+Set `table.actionsAsIcons: true` to render toolbar and bulk actions as icons.
+Set `table.showResetFilters: true` to show a dedicated reset icon next to the
+Options menu. It is disabled by default for compatibility with existing tables.
+The shortcut clears native search, column filters, advanced filters and the page
+index. Sorting, column order/visibility/pinning, grouping, display mode, page
+size and the selected saved view are preserved. It works with or without URL
+synchronization and never changes another table's query parameters.
+
+The icon has an accessible label and a tooltip using the `clearFilters`
+translation key (English and French defaults are included).
+
+### List and mutation handlers
+
 The same `getTableActions(tableType)` pattern is supported. Actions may be regular API-client functions, Nuxt server functions, or RPC calls.
 The `list` action receives a one-based `page` value, matching the React edition; URL pagination remains zero-based internally.
 

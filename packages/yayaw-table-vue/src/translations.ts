@@ -29,6 +29,7 @@ export const defaultTranslations: Required<
     | "calculationsOn"
     | "calculationsOff"
     | "reset"
+    | "clearFilters"
     | "copyLink"
     | "ascending"
     | "descending"
@@ -69,6 +70,7 @@ export const defaultTranslations: Required<
   calculationsOn: "Shown",
   calculationsOff: "Hidden",
   reset: "Reset",
+  clearFilters: "Clear filters",
   copyLink: "Copy link",
   ascending: "Ascending",
   descending: "Descending",
@@ -116,6 +118,7 @@ export const frenchTranslations: DataTableTranslations = {
   calculationsOn: "Affichés",
   calculationsOff: "Masqués",
   reset: "Réinitialiser",
+  clearFilters: "Effacer les filtres",
   copyLink: "Copier le lien",
   ascending: "Croissant",
   descending: "Décroissant",

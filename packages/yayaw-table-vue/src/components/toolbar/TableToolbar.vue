@@ -363,6 +363,7 @@ const exportRows = async (): Promise<void> => {
           type="search"
           class="yayaw-input yayaw-search"
           :placeholder="String(context.translations.value.search)"
+          :aria-label="String(context.translations.value.search)"
         />
 
         <div v-if="hasAnyMenuSection" ref="optionsRoot" class="yayaw-options-root">
@@ -649,6 +650,17 @@ const exportRows = async (): Promise<void> => {
 
           </section>
         </div>
+
+        <button
+          v-if="context.config.table.showResetFilters === true"
+          type="button"
+          class="yayaw-button yayaw-button-outline yayaw-icon-only"
+          :aria-label="translate('clearFilters', 'Clear filters')"
+          :title="translate('clearFilters', 'Clear filters')"
+          @click="context.state.resetFilters()"
+        >
+          <RotateCcw :size="16" aria-hidden="true" />
+        </button>
 
         <button
           v-for="action in visibleToolbarActions"

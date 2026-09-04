@@ -72,6 +72,7 @@ export interface TableStateRefs {
   snapshot: Readonly<Ref<TableViewConfig>>;
   applyView: (config: TableViewConfig, viewId?: string) => void;
   reset: () => void;
+  resetFilters: () => void;
   shareableUrl: () => string;
 }
 
@@ -325,6 +326,13 @@ export const useTableState = <TData extends TableRecord>({
     activeViewId.value = viewId;
   };
 
+  const resetFilters = (): void => {
+    search.value = "";
+    filters.value = [];
+    advancedFilters.value = emptyAdvancedFilters();
+    pagination.value = { ...pagination.value, pageIndex: 0 };
+  };
+
   const reset = (): void => {
     applyView({
       sorting: config.columns.sort ?? [],
@@ -401,6 +409,7 @@ export const useTableState = <TData extends TableRecord>({
     snapshot,
     applyView,
     reset,
+    resetFilters,
     shareableUrl,
   };
 };
