@@ -101,6 +101,8 @@ const config = defineTableConfig({
   table: {
     ...productCatalogue.table,
     actionsAsIcons: true,
+    enableColumnDnd: true,
+    enableColumnDragDropByDefault: false,
     enableColumnPinning: true,
     enableAdvancedFilters: false,
     syncUrl: false,
@@ -111,7 +113,10 @@ const config = defineTableConfig({
 ```
 
 The native column menu derives sorting, visibility and pinning actions from the
-table/column capabilities. Set `enablePinning: false` on a column to remove its
+table/column capabilities. `enableColumnDnd` gates column reordering and its UI,
+while `enableColumnDragDropByDefault` defines the initial user preference. Users
+can change that preference from a column menu or Properties, and it is persisted
+per table. Set `enablePinning: false` on a column to remove its
 pin controls. Mandatory columns cannot be hidden; selection stays locked left
 and actions locked right. Sorting remains available from the keyboard-accessible
 header label. Menus provide keyboard navigation, Escape dismissal and focus return.

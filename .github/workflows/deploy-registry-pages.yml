@@ -29,12 +29,16 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Install Vue dependencies
+        run: bun install --cwd packages/yayaw-table-vue --frozen-lockfile
+
       - name: Build registry artifact
         run: bun run registry:pages
 
       - name: Validate registry artifact
         run: |
           node -e 'for (const file of ["yayaw-table.json", "yayaw-table-base.json", "font-yayaw-sans.json", "yayaw-table-vue.json", "registry.json"]) JSON.parse(require("node:fs").readFileSync(`dist/registry-pages/r/${file}`, "utf8"));'
+          test -s dist/registry-pages/vue-example/index.html
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5

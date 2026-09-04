@@ -52,6 +52,7 @@ enableAutoUnmount((unmount) =>
 );
 beforeEach(() => {
   window.history.replaceState({}, "", "/");
+  window.localStorage.clear();
   vi.stubGlobal(
     "ResizeObserver",
     class {
@@ -144,6 +145,21 @@ describe("catalogue-owned controls", () => {
     );
   });
 
+  it("toggles column reordering from a native column menu", async () => {
+    const wrapper = mountTable();
+    await flushPromises();
+    expect(wrapper.findAll("th")[1]?.attributes("draggable")).toBe("true");
+
+    await openMenu(wrapper);
+    selectItem("Drag to reorder✓");
+    await flushPromises();
+
+    expect(wrapper.findAll("th")[1]?.attributes("draggable")).toBe("false");
+    expect(localStorage.getItem("catalogue-controls-column-drag-enabled")).toBe(
+      "false"
+    );
+  });
+
   it("omits menus when all data-column capabilities are disabled", () => {
     const wrapper = mountTable(
       defineTableConfig({
@@ -151,6 +167,7 @@ describe("catalogue-owned controls", () => {
         columns: { ...catalogue.columns, mandatory: ["name", "status"] },
         table: {
           ...catalogue.table,
+          enableColumnDnd: false,
           enableColumnPinning: false,
           enableSorting: false,
         },

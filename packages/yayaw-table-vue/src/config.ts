@@ -30,6 +30,7 @@ export const defaultTableBehavior: TableBehaviorConfig = {
   defaultDisplayMode: "table",
   emptyState: { show: true },
   defaultPageSize: 10,
+  enableColumnDnd: true,
   enableColumnDragDropByDefault: true,
   enableColumnFilters: true,
   enableColumnPinning: true,

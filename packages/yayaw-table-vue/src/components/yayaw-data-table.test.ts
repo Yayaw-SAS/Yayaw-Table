@@ -55,7 +55,10 @@ enableAutoUnmount((unmount) =>
 );
 
 describe("YayawDataTable", () => {
-  beforeEach(() => window.history.replaceState({}, "", "/"));
+  beforeEach(() => {
+    window.history.replaceState({}, "", "/");
+    window.localStorage.clear();
+  });
 
   it("renders columns, values and calculations", async () => {
     const wrapper = mount(YayawDataTable, {
@@ -167,8 +170,67 @@ describe("YayawDataTable", () => {
     const propertyInputs = wrapper.findAll(
       '.yayaw-options-content input[type="checkbox"]'
     );
-    expect(propertyInputs).toHaveLength(4);
+    expect(propertyInputs).toHaveLength(5);
     expect(propertyInputs[0]?.attributes("disabled")).toBeDefined();
+  });
+
+  it("lets users persistently disable column drag and drop", async () => {
+    const wrapper = mount(YayawDataTable, {
+      props: { tableType: "test", config, data, syncUrl: false },
+      attachTo: document.body,
+    });
+    await flushPromises();
+
+    expect(wrapper.findAll("th")[1]?.attributes("draggable")).toBe("true");
+    await wrapper.get('[aria-label="Options"]').trigger("click");
+    await wrapper
+      .findAll(".yayaw-options-item")
+      .find((button) => button.text().includes("Properties"))
+      ?.trigger("click");
+    const dragPreference = wrapper
+      .findAll(".yayaw-options-check")
+      .find((label) => label.text().includes("Drag to reorder"));
+    expect(dragPreference).toBeDefined();
+    await dragPreference?.get('input[type="checkbox"]').setValue(false);
+
+    expect(wrapper.findAll("th")[1]?.attributes("draggable")).toBe("false");
+    expect(localStorage.getItem("test-column-drag-enabled")).toBe("false");
+
+    wrapper.unmount();
+    const remounted = mount(YayawDataTable, {
+      props: { tableType: "test", config, data, syncUrl: false },
+      attachTo: document.body,
+    });
+    await flushPromises();
+    expect(remounted.findAll("th")[1]?.attributes("draggable")).toBe("false");
+  });
+
+  it("removes column drag controls and behavior behind the feature gate", async () => {
+    localStorage.setItem("test-column-drag-enabled", "true");
+    const gatedConfig = defineTableConfig({
+      ...config,
+      table: { ...config.table, enableColumnDnd: false },
+    });
+    const wrapper = mount(YayawDataTable, {
+      props: { tableType: "test", config: gatedConfig, data, syncUrl: false },
+      attachTo: document.body,
+    });
+    await flushPromises();
+
+    expect(
+      wrapper
+        .findAll("th")
+        .every((header) => header.attributes("draggable") === "false")
+    ).toBe(true);
+    await wrapper.get('[aria-label="Options"]').trigger("click");
+    await wrapper
+      .findAll(".yayaw-options-item")
+      .find((button) => button.text().includes("Properties"))
+      ?.trigger("click");
+    expect(wrapper.get(".yayaw-options-content").text()).not.toContain(
+      "Drag to reorder"
+    );
+    expect(localStorage.getItem("test-column-drag-enabled")).toBe("false");
   });
 
   it("uses icon actions and resolves function-based toolbar permissions", () => {

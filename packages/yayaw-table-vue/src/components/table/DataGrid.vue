@@ -29,6 +29,11 @@ import RowActions from "./RowActions.vue";
 
 const context = useTableContext();
 const draggedColumn = ref<string>();
+const columnDragEnabled = computed(
+  () =>
+    context.config.table.enableColumnDnd !== false &&
+    context.state.columnDragEnabled.value
+);
 const updaterValue = <T>(updater: Updater<T>, previous: T): T =>
   typeof updater === "function"
     ? (updater as (value: T) => T)(previous)
@@ -281,9 +286,26 @@ const visibleColumns = computed(() => [
   ...table.getRightVisibleLeafColumns(),
 ]);
 const totalPages = computed(() => Math.max(1, table.getPageCount()));
+const canDragColumn = (columnId: string): boolean =>
+  columnDragEnabled.value && !["select", "actions"].includes(columnId);
+const startColumnDrag = (columnId: string, event: DragEvent): void => {
+  if (!canDragColumn(columnId)) {
+    draggedColumn.value = undefined;
+    event.preventDefault();
+    return;
+  }
+  draggedColumn.value = columnId;
+};
+const allowColumnDrop = (event: DragEvent): void => {
+  if (columnDragEnabled.value) {
+    event.preventDefault();
+  }
+};
 const moveColumn = (target: string): void => {
   const source = draggedColumn.value;
+  draggedColumn.value = undefined;
   if (
+    !columnDragEnabled.value ||
     !source ||
     source === target ||
     ["select", "actions"].includes(source) ||
@@ -295,7 +317,6 @@ const moveColumn = (target: string): void => {
   const targetIndex = current.indexOf(target);
   current.splice(Math.max(0, targetIndex), 0, source);
   context.state.order.value = current;
-  draggedColumn.value = undefined;
 };
 const isInteractive = (target: EventTarget | null): boolean =>
   target instanceof Element &&
@@ -509,10 +530,11 @@ const pinnedStyle = (column: Column<TableRecord>): CSSProperties => {
               :style="pinnedStyle(header.column)"
               :aria-sort="header.column.getIsSorted() === 'asc' ? 'ascending' : header.column.getIsSorted() === 'desc' ? 'descending' : undefined"
               :aria-label="header.column.id === 'actions' ? String(context.translations.value.actions ?? 'Actions') : undefined"
-              :draggable="context.config.table.enableColumnDragDropByDefault && !['select', 'actions'].includes(header.column.id)"
+              :draggable="canDragColumn(header.column.id)"
               :class="{ sortable: header.column.getCanSort(), pinned: header.column.getIsPinned() }"
-              @dragstart="draggedColumn = header.column.id"
-              @dragover.prevent
+              @dragstart="startColumnDrag(header.column.id, $event)"
+              @dragend="draggedColumn = undefined"
+              @dragover="allowColumnDrop"
               @drop="moveColumn(header.column.id)"
               @click="header.column.getToggleSortingHandler()?.($event)"
             >

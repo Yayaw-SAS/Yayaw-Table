@@ -8,6 +8,7 @@ This repository contains the component sources, generated registry artifacts, te
 - [Documentation française](https://yayaw.app/fr/docs/table)
 - [Interactive React demo](https://yayaw.app/en/table/example)
 - [Démo React interactive](https://yayaw.app/fr/table/example)
+- [Interactive Vue demo](https://table.yayaw.app/vue-example/)
 - Static registry files under `https://table.yayaw.app/r/`, served by GitHub Pages
 
 The registry host root is not an install target. Always use an explicit `/r/*.json` URL or the `@yayaw` namespace.

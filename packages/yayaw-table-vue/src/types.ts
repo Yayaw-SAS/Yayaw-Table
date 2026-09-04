@@ -229,6 +229,9 @@ export interface TableBehaviorConfig<TData extends TableRecord = TableRecord> {
   gallery?: TableGalleryConfig;
   emptyState?: TableEmptyStateConfig;
   defaultPageSize: number;
+  /** Enable the column drag-and-drop feature and its controls. */
+  enableColumnDnd?: boolean;
+  /** Initial column drag-and-drop preference when no saved preference exists. */
   enableColumnDragDropByDefault: boolean;
   enableColumnFilters: boolean;
   /** Catalogue defaults; explicit component props take precedence. */
