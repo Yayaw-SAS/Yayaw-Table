@@ -12,6 +12,10 @@ import type {
 } from "../types/display-types";
 import type { AdvancedFiltersState } from "../types/filter-types";
 import type { TableViewConfig } from "../types/view-types";
+import {
+  normalizeFilterEnvelope,
+  normalizeViewAliases,
+} from "./table-contracts";
 
 const EMPTY_PINNING: ColumnPinningState = { left: [], right: [] };
 const SINGLE_GROUP_DISPLAY_MODES = new Set<TableDisplayMode>([
@@ -213,8 +217,11 @@ export function normalizeColumnPinning(
 }
 
 export function normalizeTableViewConfig(
-  config: TableViewConfig
+  input: TableViewConfig
 ): TableViewConfig {
+  const config = normalizeViewAliases(input) as TableViewConfig;
+  config.advancedFilters = normalizeFilterEnvelope(config.advancedFilters)
+    .filters as unknown as AdvancedFiltersState;
   const normalized: TableViewConfig = {};
   const advancedFilters = hasArrayValues(config.advancedFilters)
     ? (config.advancedFilters as AdvancedFiltersState)

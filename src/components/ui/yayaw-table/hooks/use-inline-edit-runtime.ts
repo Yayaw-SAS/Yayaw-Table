@@ -112,8 +112,7 @@ function normalizeInlineEditTableConfig(
 ): InlineEditTableRuntimeConfig {
   return {
     enabled: inlineConfig?.enabled ?? false,
-    debounceMs:
-      inlineConfig?.debounceMs ?? DEFAULT_INLINE_EDIT_DEBOUNCE_MS,
+    debounceMs: inlineConfig?.debounceMs ?? DEFAULT_INLINE_EDIT_DEBOUNCE_MS,
     trigger: inlineConfig?.trigger ?? "doubleClickEnter",
     optimistic: inlineConfig?.optimistic ?? true,
     showDelayIndicator: inlineConfig?.showDelayIndicator ?? true,
@@ -125,9 +124,8 @@ export function resolveInlineEditColumnConfig(
   tableInlineConfig?: TableInlineEditConfig,
   options?: ResolveInlineEditColumnConfigOptions
 ): InlineEditColumnRuntimeConfig {
-  const normalizedTableConfig = normalizeInlineEditTableConfig(
-    tableInlineConfig
-  );
+  const normalizedTableConfig =
+    normalizeInlineEditTableConfig(tableInlineConfig);
   const isFeatureEnabled = options?.featureEnabled ?? true;
   const inlineColumnConfig =
     typeof column.inlineEdit === "boolean"
@@ -244,17 +242,21 @@ export function resolveInlineEditOptions(
   }
 
   if (formField?.type === "select") {
-    return formField.options.map((option) => ({
-      label: option.label,
-      value: option.value,
-    }));
+    return (Array.isArray(formField.options) ? formField.options : []).map(
+      (option) => ({
+        label: option.label,
+        value: option.value,
+      })
+    );
   }
 
   if (formField?.type === "select-with-add-new" && formField.options) {
-    return formField.options.map((option) => ({
-      label: option.label,
-      value: option.value,
-    }));
+    return (Array.isArray(formField.options) ? formField.options : []).map(
+      (option) => ({
+        label: option.label,
+        value: option.value,
+      })
+    );
   }
 
   return [];
@@ -493,10 +495,7 @@ export function validateInlineEditValue({
 
   if (!schemaResult.success) {
     const issues = schemaResult.error?.issues ?? [];
-    const errorMessage = getSchemaErrorForField(
-      formField,
-      issues
-    );
+    const errorMessage = getSchemaErrorForField(formField, issues);
     return {
       success: false,
       errorMessage: errorMessage ?? "Inline edit validation failed.",
@@ -637,8 +636,7 @@ export function useInlineEditRuntime({
           return false;
         }
 
-        const nextCommittedValue =
-          commitResult.committedValue ?? valueToCommit;
+        const nextCommittedValue = commitResult.committedValue ?? valueToCommit;
         const normalizedCommittedDraft = toInlineEditDraftValue(
           nextCommittedValue,
           editor
@@ -656,9 +654,7 @@ export function useInlineEditRuntime({
         return true;
       } catch (error) {
         setErrorMessage(
-          error instanceof Error
-            ? error.message
-            : "Inline edit save failed."
+          error instanceof Error ? error.message : "Inline edit save failed."
         );
         return false;
       } finally {

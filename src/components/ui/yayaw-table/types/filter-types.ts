@@ -77,6 +77,8 @@ export type FilterValues<TType extends ColumnDataType = ColumnDataType> =
 export interface AdvancedFilterModel<
   TType extends ColumnDataType = ColumnDataType,
 > {
+  /** A shared envelope may retain OR semantics on its array entries. */
+  joinOperator?: "and" | "or";
   /** Unique identifier for the filter */
   id: string;
   /** Column ID this filter applies to */

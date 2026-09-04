@@ -37,7 +37,7 @@ export function NumberField({ field, fieldApi }: NumberFieldProps) {
       )}
       <Input
         aria-invalid={!fieldApi.state.meta.isValid}
-        disabled={field.disabled}
+        disabled={field.disabled === true}
         max={field.max}
         min={field.min}
         name={fieldApi.name}

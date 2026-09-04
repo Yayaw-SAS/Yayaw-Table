@@ -19,6 +19,13 @@ export interface FormConfigContext<
   TFieldValues extends FieldValues = FieldValues,
   TRowData extends Record<string, unknown> = Record<string, unknown>,
 > {
+  bulkEdit?: {
+    ids: readonly string[];
+    rows: readonly Record<string, unknown>[];
+    fields: readonly string[];
+  };
+  setFieldValue?: (name: string, value: unknown) => void;
+  touchField?: (name: string) => void;
   formType: string;
   initialData?: Partial<TFieldValues>;
   mode: FormConfigMode;
@@ -34,7 +41,7 @@ export interface FormConfigContext<
  */
 export interface FormFieldApi<TValue = unknown> {
   handleBlur: () => void;
-  handleChange: (value: TValue) => void;
+  handleChange(value: TValue): void;
   name: string;
   state: {
     meta: { errors: string[]; isValid: boolean };
@@ -50,6 +57,7 @@ export interface FormSectionDefinition<
 > {
   description?: string;
   descriptionKey?: string;
+  columns?: 1 | 2 | 3;
   fields: Path<TFieldValues>[];
   id: string;
   title?: string;
@@ -76,6 +84,18 @@ export type AnyFieldDefinition<TFieldValues extends FieldValues = FieldValues> =
   | UrlFieldDefinition<TFieldValues>
   | ValueTypeFieldDefinition<TFieldValues>;
 
+export interface FormSelectOption {
+  label: string;
+  value: boolean | number | string;
+  disabled?: boolean;
+  color?: string;
+}
+export type FormOptions =
+  | FormSelectOption[]
+  | ((
+      context: FormConfigContext
+    ) => FormSelectOption[] | Promise<FormSelectOption[]>);
+
 /**
  * Base field definition that all fields extend
  */
@@ -84,7 +104,39 @@ export interface BaseFieldDefinition<
 > {
   description?: string;
   descriptionKey?: string;
-  disabled?: boolean;
+  disabled?: boolean | ((context: FormConfigContext) => boolean);
+  hidden?: boolean | ((context: FormConfigContext) => boolean);
+  bulkEdit?: boolean;
+  defaultValue?: unknown;
+  schema?: z.ZodType;
+  options?: FormOptions;
+  optionDependencies?: string[];
+  optionsScope?: string | number;
+  searchOptions?: (
+    query: string,
+    context: FormConfigContext,
+    signal: AbortSignal
+  ) => FormSelectOption[] | Promise<FormSelectOption[]>;
+  resolveOptions?: (
+    values: unknown[],
+    context: FormConfigContext,
+    signal: AbortSignal
+  ) => FormSelectOption[] | Promise<FormSelectOption[]>;
+  createOption?: (
+    label: string,
+    context: FormConfigContext,
+    signal: AbortSignal
+  ) => FormSelectOption | Promise<FormSelectOption>;
+  searchMinLength?: number;
+  searchDebounceMs?: number;
+  itemFields?: AnyFieldDefinition[];
+  validateItem?: (item: FieldValues, index: number | null) => string[];
+  validateItems?: (items: readonly FieldValues[]) => string[];
+  min?: number;
+  max?: number;
+  valueTypeField?: string;
+  supportedTypes?: Array<"boolean" | "json" | "number" | "string">;
+  dependsOn?: { field: string; transform: (value: unknown) => unknown };
   label: string;
   labelKey?: string;
   name: Path<TFieldValues>;
@@ -152,16 +204,17 @@ export interface CollectionFieldActionLabels {
 export interface CollectionFieldDefinition<
   TFieldValues extends FieldValues = FieldValues,
 > extends BaseFieldDefinition<TFieldValues> {
-  addLabel: string;
-  columns: CollectionFieldColumnDefinition[];
+  addLabel?: string;
+  columns?: CollectionFieldColumnDefinition[];
+  collectionMode?: "inline" | "dialog";
   createActions?: CollectionFieldCreateAction[];
-  createItem: (items: readonly CollectionFieldItem[]) => CollectionFieldItem;
+  createItem?: (items: readonly CollectionFieldItem[]) => CollectionFieldItem;
   emptyLabel?: string;
   getItemKey?: (item: CollectionFieldItem, index: number) => string;
-  itemLabel: string;
+  itemLabel?: string;
   labelKeys?: Partial<Record<keyof CollectionFieldActionLabels, string>>;
   labels?: Partial<CollectionFieldActionLabels>;
-  renderItemForm: (props: {
+  renderItemForm?: (props: {
     disabled?: boolean;
     index: number | null;
     item: CollectionFieldItem;
@@ -229,12 +282,28 @@ export type FieldType = AnyFieldDefinition["type"];
  * Form configuration
  */
 export interface FormConfig<TFieldValues extends FieldValues = FieldValues> {
-  defaultValues: Partial<TFieldValues>;
+  defaultValues?: Partial<TFieldValues>;
+  title?: string | ((mode: FormConfigMode, row?: FieldValues) => string);
+  description?: string;
+  presentation?: "drawer" | "modal";
+  width?: string;
+  submitLabel?: string;
+  cancelLabel?: string;
+  submitMode?: "full" | "patch";
+  loadInitialValues?: (
+    row: FieldValues | undefined,
+    context: FormConfigContext,
+    signal: AbortSignal
+  ) => FieldValues | Promise<FieldValues>;
+  transform?: (
+    values: FieldValues,
+    context: FormConfigContext
+  ) => FieldValues | Promise<FieldValues>;
   fields: AnyFieldDefinition<TFieldValues>[];
   id: string;
-  schema: z.ZodType<TFieldValues>;
+  schema?: z.ZodType<TFieldValues>;
   sections?: FormSectionDefinition<TFieldValues>[];
-  translations: {
+  translations?: {
     keys: {
       [key: string]: string;
     };
@@ -261,7 +330,7 @@ export interface RadioFieldDefinition<
   TFieldValues extends FieldValues = FieldValues,
 > extends BaseFieldDefinition<TFieldValues> {
   optionKeys?: string[];
-  options: Array<{ label: string; value: number | string }>;
+  options?: FormOptions;
   type: "radio";
 }
 
@@ -272,7 +341,7 @@ export interface SelectFieldDefinition<
   TFieldValues extends FieldValues = FieldValues,
 > extends BaseFieldDefinition<TFieldValues> {
   optionKeys?: string[];
-  options: Array<{ label: string; value: number | string }>;
+  options?: FormOptions;
   type: "select";
 }
 
@@ -283,7 +352,7 @@ export interface MultiSelectFieldDefinition<
   TFieldValues extends FieldValues = FieldValues,
 > extends BaseFieldDefinition<TFieldValues> {
   optionKeys?: string[];
-  options: Array<{ label: string; value: number | string }>;
+  options?: FormOptions;
   type: "multiSelect";
 }
 
@@ -293,9 +362,9 @@ export interface MultiSelectFieldDefinition<
 export interface SelectWithAddNewFieldDefinition<
   TFieldValues extends FieldValues = FieldValues,
 > extends BaseFieldDefinition<TFieldValues> {
-  onAddNew: () => void;
+  onAddNew?: () => void;
   optionKeys?: string[];
-  options?: Array<{ label: string; value: number | string }>;
+  options?: FormOptions;
   optionsLoader?: () => Promise<string[]>;
   type: "select-with-add-new";
 }

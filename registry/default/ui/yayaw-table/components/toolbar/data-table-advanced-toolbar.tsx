@@ -1120,7 +1120,10 @@ export function DataTableAdvancedToolbar<TData>({
           tableType={tableType}
           useAdvancedFilters={enableAdvancedFilters}
         />
-        {tableConfig.table.showResetFilters === true && (
+        {[
+          tableConfig.table.showResetFilters,
+          tableConfig.table.showClearFilters,
+        ].includes(true) && (
           <Tooltip>
             <TooltipTrigger
               render={

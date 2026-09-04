@@ -13,7 +13,7 @@ import {
 import { useTranslations } from "../../../providers/table-provider";
 import type { FormFieldApi, MultiSelectFieldDefinition } from "../types";
 
-type MultiSelectOptionValue = number | string;
+type MultiSelectOptionValue = boolean | number | string;
 
 interface MultiSelectFieldProps<TFieldValues extends Record<string, unknown>> {
   field: MultiSelectFieldDefinition<TFieldValues>;
@@ -37,7 +37,9 @@ export function normalizeMultiSelectFieldValue(
   }
   return value.filter(
     (item): item is MultiSelectOptionValue =>
-      typeof item === "number" || typeof item === "string"
+      typeof item === "number" ||
+      typeof item === "string" ||
+      typeof item === "boolean"
   );
 }
 
@@ -89,34 +91,38 @@ export function MultiSelectField<TFieldValues extends Record<string, unknown>>({
         aria-invalid={!fieldApi.state.meta.isValid}
         className="grid gap-2 rounded-md border p-3"
       >
-        {field.options.map((option, index) => {
-          const optionId = getOptionId(fieldApi.name, option.value, index);
-          const optionValue = String(option.value);
+        {(Array.isArray(field.options) ? field.options : []).map(
+          (option, index) => {
+            const optionId = getOptionId(fieldApi.name, option.value, index);
+            const optionValue = String(option.value);
 
-          return (
-            <div className="flex items-center gap-2" key={optionValue}>
-              <Checkbox
-                checked={selectedValues.has(optionValue)}
-                disabled={field.disabled}
-                id={optionId}
-                onCheckedChange={() =>
-                  fieldApi.handleChange(
-                    toggleMultiSelectFieldValue({
-                      currentValue: fieldApi.state.value,
-                      optionValue: option.value,
-                      options: field.options,
-                    })
-                  )
-                }
-              />
-              <FieldLabel className="font-normal" htmlFor={optionId}>
-                {field.optionKeys?.[index]
-                  ? t(field.optionKeys[index])
-                  : option.label}
-              </FieldLabel>
-            </div>
-          );
-        })}
+            return (
+              <div className="flex items-center gap-2" key={optionValue}>
+                <Checkbox
+                  checked={selectedValues.has(optionValue)}
+                  disabled={field.disabled === true || option.disabled}
+                  id={optionId}
+                  onCheckedChange={() =>
+                    fieldApi.handleChange(
+                      toggleMultiSelectFieldValue({
+                        currentValue: fieldApi.state.value,
+                        optionValue: option.value,
+                        options: Array.isArray(field.options)
+                          ? field.options
+                          : [],
+                      })
+                    )
+                  }
+                />
+                <FieldLabel className="font-normal" htmlFor={optionId}>
+                  {field.optionKeys?.[index]
+                    ? t(field.optionKeys[index])
+                    : option.label}
+                </FieldLabel>
+              </div>
+            );
+          }
+        )}
       </div>
       <FieldError errors={errorMessages.map((message) => ({ message }))} />
     </Field>

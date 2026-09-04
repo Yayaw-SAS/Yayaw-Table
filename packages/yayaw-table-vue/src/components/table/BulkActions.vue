@@ -16,7 +16,7 @@ import {
 import { commonBulkValues } from "../../bulk-form";
 import { cloneFormValue } from "../../form-runtime";
 import { useTableContext } from "../../context";
-import { downloadCsv } from "../../core";
+import { downloadCsv, exportColumns } from "../../core";
 import type {
   BulkAction,
   BulkActionContext,
@@ -398,7 +398,7 @@ const bulkExport = async (): Promise<void> => {
     }
     downloadCsv(
       context.selectedRows.value,
-      context.config.columns.definitions,
+      exportColumns(context.config.columns.definitions, context.state.visibility.value, context.state.order.value),
       `${context.config.id}-selection`
     );
     applyResult(

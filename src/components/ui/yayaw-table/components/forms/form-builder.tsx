@@ -4,10 +4,12 @@
  */
 "use client";
 
+import { useStore } from "@tanstack/react-form";
 import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { Button } from "@/src/components/ui/button";
 import { useTranslations } from "../../providers/table-provider";
+import { RuntimeField } from "./field-runtime";
 import {
   CheckboxField,
   CollectionField,
@@ -31,6 +33,7 @@ import type {
   CollectionFieldDefinition,
   DynamicValueFieldDefinition,
   FieldValues,
+  FormConfigContext,
   FormFieldApi,
   FormSectionDefinition,
   Path,
@@ -41,6 +44,8 @@ const UNGROUPED_FORM_SECTION_ID = "__ungrouped";
 
 interface FormBuilderProps<TFieldValues extends FieldValues> {
   actions?: ReactNode;
+  context?: FormConfigContext;
+  asFieldset?: boolean;
   className?: string;
   disabled?: boolean;
   fields: AnyFieldDefinition<TFieldValues>[];
@@ -55,6 +60,7 @@ export interface ResolvedFormBuilderSection<
 > {
   description?: string;
   descriptionKey?: string;
+  columns?: 1 | 2 | 3;
   fields: AnyFieldDefinition<TFieldValues>[];
   id: string;
   isDefault?: boolean;
@@ -104,6 +110,7 @@ export function resolveFormBuilderSections<
     }
 
     resolvedSections.push({
+      columns: section.columns,
       description: section.description,
       descriptionKey: section.descriptionKey,
       fields: sectionFields,
@@ -159,9 +166,11 @@ function normalizeFieldApi<T>(field: {
 }
 
 function FormBuilderField<TFieldValues extends FieldValues>({
+  context,
   field,
   form,
 }: {
+  context?: FormConfigContext;
   field: AnyFieldDefinition<TFieldValues>;
   form: FormBuilderFormInstance<TFieldValues>;
 }) {
@@ -198,6 +207,7 @@ function FormBuilderField<TFieldValues extends FieldValues>({
         >
           {(f) => (
             <CollectionField
+              context={context}
               field={field as CollectionFieldDefinition<TFieldValues>}
               fieldApi={
                 normalizeFieldApi(f) as unknown as FormFieldApi<unknown>
@@ -288,9 +298,7 @@ function FormBuilderField<TFieldValues extends FieldValues>({
                 field as AnyFieldDefinition<TFieldValues> & { type: "number" }
               }
               fieldApi={
-                normalizeFieldApi(f) as unknown as FormFieldApi<
-                  number | string
-                >
+                normalizeFieldApi(f) as unknown as FormFieldApi<number | string>
               }
             />
           )}
@@ -319,7 +327,7 @@ function FormBuilderField<TFieldValues extends FieldValues>({
               field={field}
               fieldApi={
                 normalizeFieldApi(f) as unknown as FormFieldApi<
-                  string | number | null
+                  string | number | boolean | null
                 >
               }
             />
@@ -334,7 +342,7 @@ function FormBuilderField<TFieldValues extends FieldValues>({
               field={field}
               fieldApi={
                 normalizeFieldApi(f) as unknown as FormFieldApi<
-                  string | number | null
+                  string | number | boolean | null
                 >
               }
             />
@@ -349,7 +357,11 @@ function FormBuilderField<TFieldValues extends FieldValues>({
               fieldApi={
                 normalizeFieldApi(f) as unknown as FormFieldApi<string | null>
               }
-              items={field.options?.map((o) => String(o.value)) ?? []}
+              items={
+                (Array.isArray(field.options) ? field.options : []).map((o) =>
+                  String(o.value)
+                ) ?? []
+              }
               label={field.label}
               name={field.name as string}
               optionsLoader={field.optionsLoader}
@@ -377,9 +389,7 @@ function FormBuilderField<TFieldValues extends FieldValues>({
           {(f) => (
             <TextField
               field={field}
-              fieldApi={
-                normalizeFieldApi(f) as unknown as FormFieldApi<string>
-              }
+              fieldApi={normalizeFieldApi(f) as unknown as FormFieldApi<string>}
             />
           )}
         </form.Field>
@@ -394,9 +404,7 @@ function FormBuilderField<TFieldValues extends FieldValues>({
                   type: "textarea";
                 }
               }
-              fieldApi={
-                normalizeFieldApi(f) as unknown as FormFieldApi<string>
-              }
+              fieldApi={normalizeFieldApi(f) as unknown as FormFieldApi<string>}
             />
           )}
         </form.Field>
@@ -407,9 +415,7 @@ function FormBuilderField<TFieldValues extends FieldValues>({
           {(f) => (
             <UrlField
               field={field}
-              fieldApi={
-                normalizeFieldApi(f) as unknown as FormFieldApi<string>
-              }
+              fieldApi={normalizeFieldApi(f) as unknown as FormFieldApi<string>}
             />
           )}
         </form.Field>
@@ -451,6 +457,8 @@ function FormBuilderField<TFieldValues extends FieldValues>({
 
 export function FormBuilder<TFieldValues extends FieldValues>({
   actions,
+  context,
+  asFieldset = false,
   className,
   disabled = false,
   fields,
@@ -460,6 +468,18 @@ export function FormBuilder<TFieldValues extends FieldValues>({
   submitText,
 }: FormBuilderProps<TFieldValues>) {
   const { t } = useTranslations();
+  const values = useStore(form.store, (state) => state.values);
+  const runtimeContext: FormConfigContext = {
+    formType: "form",
+    tableId: "form",
+    tableType: "form",
+    mode: "create",
+    ...context,
+    values,
+    setFieldValue: (name, value) =>
+      form.setFieldValue(name as Path<TFieldValues>, value as never),
+  };
+  const Root = asFieldset ? "fieldset" : "form";
   const resolvedSections = resolveFormBuilderSections({ fields, sections });
 
   useEffect(() => {
@@ -518,7 +538,7 @@ export function FormBuilder<TFieldValues extends FieldValues>({
   });
 
   return (
-    <form
+    <Root
       className={className}
       onSubmit={(e) => {
         e.preventDefault();
@@ -550,10 +570,27 @@ export function FormBuilder<TFieldValues extends FieldValues>({
                   )}
                 </div>
               )}
-              <div className="space-y-4">
+              <div
+                className="grid gap-4"
+                style={{
+                  gridTemplateColumns: `repeat(${section.columns ?? 1}, minmax(0, 1fr))`,
+                }}
+              >
                 {section.fields.map((field) => (
                   <div key={String(field.name)}>
-                    <FormBuilderField field={field} form={form} />
+                    <RuntimeField
+                      context={runtimeContext}
+                      field={field as AnyFieldDefinition}
+                      value={values[field.name]}
+                    >
+                      {(resolved) => (
+                        <FormBuilderField
+                          context={runtimeContext}
+                          field={resolved as AnyFieldDefinition<TFieldValues>}
+                          form={form}
+                        />
+                      )}
+                    </RuntimeField>
                   </div>
                 ))}
               </div>
@@ -561,6 +598,17 @@ export function FormBuilder<TFieldValues extends FieldValues>({
           );
         })}
       </div>
+      <form.Subscribe selector={(state) => state.errors}>
+        {(errors) =>
+          errors.length > 0 && (
+            <div className="mt-3 text-destructive text-sm" role="alert">
+              {errors
+                .filter((error): error is string => typeof error === "string")
+                .join("; ")}
+            </div>
+          )
+        }
+      </form.Subscribe>
       {submitText != null && (
         <div className="mt-6 flex items-center justify-between">
           <div className="flex items-center gap-4">{actions}</div>
@@ -571,6 +619,6 @@ export function FormBuilder<TFieldValues extends FieldValues>({
           )}
         </div>
       )}
-    </form>
+    </Root>
   );
 }

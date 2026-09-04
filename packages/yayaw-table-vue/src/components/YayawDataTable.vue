@@ -24,6 +24,9 @@ import type {
   TableView,
   ToolbarAction,
 } from "../types";
+import { compatibleListParams } from "../table-contracts";
+import type { TableListParams } from "../types";
+import CardPagination from "./table/CardPagination.vue";
 import AdvancedFilters from "./filters/AdvancedFilters.vue";
 import CatalogueForm from "./forms/CatalogueForm.vue";
 import GalleryView from "./gallery/GalleryView.vue";
@@ -190,7 +193,10 @@ const matchingRowCount = computed(() => {
     sorting: state.sorting.value,
   }).length;
 });
-const refresh = async (): Promise<void> => tableData.refresh();
+const refresh = async (): Promise<void> => {
+  await queryClient.invalidateQueries({ queryKey: ["yayaw-table", config.id, "aggregate"] });
+  await tableData.refresh();
+};
 const clearSelection = (): void => {
   selection.value = {};
   selectedRowCache.value = {};
@@ -228,7 +234,7 @@ const loadAllMatchingRows = async (): Promise<TableRecord[]> => {
     };
     const result = await queryClient.fetchQuery({
       queryKey: ["yayaw-table", config.id, "all-matching", params],
-      queryFn: () => list(params),
+      queryFn: () => list(compatibleListParams(params) as unknown as TableListParams),
       staleTime: 0,
     });
     matching.push(...result.data);
@@ -314,7 +320,8 @@ const activateRow = (row: TableRecord, event: MouseEvent): void => {
       if (props.onRowClick) {
         props.onRowClick(url, row, event);
       } else {
-        window.location.assign(url);
+        if (event.metaKey || event.ctrlKey) window.open(url, "_blank", "noopener");
+        else window.location.assign(url);
       }
     }
     return;
@@ -412,6 +419,7 @@ provide(tableContextKey, {
       <DataGrid v-if="state.displayMode.value === 'table'" />
       <KanbanView v-else-if="state.displayMode.value === 'kanban'" />
       <GalleryView v-else />
+      <CardPagination v-if="state.displayMode.value !== 'table'" />
       <component :is="loadingOverlay" v-if="tableData.isLoading.value && loadingOverlay" />
       <div v-else-if="tableData.isLoading.value" class="yayaw-loading-overlay">{{ translations.loading }}</div>
     </div>

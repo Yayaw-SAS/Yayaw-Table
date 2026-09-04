@@ -24,6 +24,7 @@ import {
   toOrderByParam,
   toPageSize,
 } from "../utils/filtered-rows";
+import { normalizeFilterEnvelope } from "../utils/table-contracts";
 import { useTableUrlState } from "./use-table-url-state";
 
 interface ColumnCalculationDefinition {
@@ -332,6 +333,8 @@ export const loadGlobalColumnCalculationResults = async ({
       const response = await actions.aggregate({
         filters,
         advancedFilters,
+        advancedFilterJoin:
+          normalizeFilterEnvelope(advancedFiltersParam).joinOperator,
         search,
         calculations,
         locale,

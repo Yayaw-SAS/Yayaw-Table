@@ -1,0 +1,190 @@
+{
+  "rows": [
+    {
+      "id": "one",
+      "name": "Alpha",
+      "status": "open",
+      "amount": 0,
+      "tags": ["a", "b"],
+      "created": "2026-09-01T12:00:00"
+    },
+    {
+      "id": "two",
+      "name": "Beta",
+      "status": "closed",
+      "amount": 5,
+      "tags": ["b"],
+      "created": "2026-09-02T12:00:00"
+    },
+    {
+      "id": "three",
+      "name": "Gamma",
+      "status": "open",
+      "amount": 10,
+      "tags": [],
+      "created": "2026-09-03T12:00:00"
+    }
+  ],
+  "filters": [
+    {
+      "label": "legacy array",
+      "input": [
+        {
+          "columnId": "status",
+          "type": "select",
+          "operator": "is",
+          "values": "open"
+        }
+      ],
+      "ids": ["one", "three"]
+    },
+    {
+      "label": "OR envelope with inactive rule",
+      "input": {
+        "joinOperator": "or",
+        "filters": [
+          {
+            "columnId": "status",
+            "type": "select",
+            "operator": "equals",
+            "values": "closed"
+          },
+          {
+            "columnId": "amount",
+            "type": "number",
+            "operator": "equals",
+            "values": 0
+          },
+          {
+            "columnId": "name",
+            "type": "text",
+            "operator": "contains",
+            "values": "Gamma",
+            "isActive": false
+          }
+        ]
+      },
+      "ids": ["one", "two"]
+    },
+    {
+      "label": "all selected tags",
+      "input": [
+        {
+          "columnId": "tags",
+          "type": "multiSelect",
+          "operator": "containsAll",
+          "values": ["a", "b"]
+        }
+      ],
+      "ids": ["one"]
+    },
+    {
+      "label": "any selected tag",
+      "input": [
+        {
+          "columnId": "tags",
+          "type": "multiSelect",
+          "operator": "contains",
+          "values": ["a", "b"]
+        }
+      ],
+      "ids": ["one", "two"]
+    },
+    {
+      "label": "Vue selection operator",
+      "input": [
+        {
+          "columnId": "status",
+          "type": "select",
+          "operator": "notIn",
+          "values": ["closed"]
+        }
+      ],
+      "ids": ["one", "three"]
+    },
+    {
+      "label": "date includes the entire day",
+      "input": [
+        {
+          "columnId": "created",
+          "type": "date",
+          "operator": "equals",
+          "values": "2026-09-02"
+        }
+      ],
+      "ids": ["two"]
+    },
+    {
+      "label": "date reversed interval",
+      "input": [
+        {
+          "columnId": "created",
+          "type": "date",
+          "operator": "between",
+          "values": ["2026-09-03", "2026-09-02"]
+        }
+      ],
+      "ids": ["two", "three"]
+    },
+    {
+      "label": "date single-day interval",
+      "input": [
+        {
+          "columnId": "created",
+          "type": "date",
+          "operator": "between",
+          "values": ["2026-09-02"]
+        }
+      ],
+      "ids": ["two"]
+    }
+  ],
+  "requests": [
+    {
+      "input": {
+        "page": 2,
+        "limit": 20,
+        "orderBy": {
+          "amount": "desc",
+          "name": "asc"
+        },
+        "q": "Alpha"
+      },
+      "page": 2,
+      "size": 20,
+      "search": "Alpha",
+      "sorting": [
+        {
+          "id": "amount",
+          "desc": true
+        },
+        {
+          "id": "name",
+          "desc": false
+        }
+      ]
+    },
+    {
+      "input": {
+        "page": 3,
+        "pageSize": 50,
+        "sorting": [
+          {
+            "id": "name",
+            "desc": false
+          }
+        ],
+        "search": "Beta"
+      },
+      "page": 3,
+      "size": 50,
+      "search": "Beta",
+      "sorting": [
+        {
+          "id": "name",
+          "desc": false
+        }
+      ]
+    }
+  ]
+}

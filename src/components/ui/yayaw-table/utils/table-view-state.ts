@@ -12,6 +12,10 @@ import type {
 } from "../types/display-types";
 import type { AdvancedFiltersState } from "../types/filter-types";
 import type { TableViewConfig } from "../types/view-types";
+import {
+  normalizeFilterEnvelope,
+  normalizeViewAliases,
+} from "./table-contracts";
 
 const EMPTY_PINNING: ColumnPinningState = { left: [], right: [] };
 const SINGLE_GROUP_DISPLAY_MODES = new Set<TableDisplayMode>([
@@ -29,7 +33,9 @@ function hasObjectValues(value: unknown): value is Record<string, unknown> {
   );
 }
 
-function normalizePageSize(value: number | string | undefined): number | undefined {
+function normalizePageSize(
+  value: number | string | undefined
+): number | undefined {
   const numericValue = typeof value === "string" ? Number(value) : value;
   if (
     typeof numericValue !== "number" ||
@@ -211,8 +217,11 @@ export function normalizeColumnPinning(
 }
 
 export function normalizeTableViewConfig(
-  config: TableViewConfig
+  input: TableViewConfig
 ): TableViewConfig {
+  const config = normalizeViewAliases(input) as TableViewConfig;
+  config.advancedFilters = normalizeFilterEnvelope(config.advancedFilters)
+    .filters as unknown as AdvancedFiltersState;
   const normalized: TableViewConfig = {};
   const advancedFilters = hasArrayValues(config.advancedFilters)
     ? (config.advancedFilters as AdvancedFiltersState)
@@ -232,7 +241,10 @@ export function normalizeTableViewConfig(
       ? config.globalSearch.trim()
       : undefined;
   const displayMode = normalizeDisplayMode(config.displayMode);
-  const grouping = normalizeGroupingState(config.grouping, config.kanban?.groupBy);
+  const grouping = normalizeGroupingState(
+    config.grouping,
+    config.kanban?.groupBy
+  );
   const kanban = normalizeKanbanViewConfig(config.kanban);
   const gallery = normalizeGalleryViewConfig(config.gallery);
   const pageSize = normalizePageSize(config.pageSize);
@@ -317,7 +329,10 @@ export function createTableViewConfigSnapshot({
     columnVisibility: visibilityParam,
     displayMode: displayModeParam,
     globalSearch: globalSearchParam,
-    grouping: normalizeGroupingState(groupingParam, kanbanParam?.groupBy ?? kanbanGroupByParam),
+    grouping: normalizeGroupingState(
+      groupingParam,
+      kanbanParam?.groupBy ?? kanbanGroupByParam
+    ),
     gallery: galleryParam,
     kanban: kanbanParam,
     pageSize: normalizePageSize(pageSizeParam),

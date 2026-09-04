@@ -25,6 +25,7 @@ import { useCallback, useMemo } from "react";
 import type { ActionsColumnProps } from "../components/columns/actions-column";
 import { useColumns } from "../components/columns/hooks/use-columns";
 import { useTranslations } from "../providers/table-provider";
+import { compatibleListParams } from "../utils/table-contracts";
 import { invalidateTableDataQuery } from "./query-cache-utils";
 import type { InlineEditColumnRuntimeConfig } from "./use-inline-edit-runtime";
 import { resolveInlineEditColumnConfig } from "./use-inline-edit-runtime";
@@ -264,11 +265,13 @@ export function useDataTable<TData extends Record<string, unknown>>(
       return;
     }
 
-    const sortItem = sortingParam[0] as { id: string; desc?: boolean };
-    const sortField = sortItem.id;
-    const sortDirection = sortItem.desc ? "desc" : "asc";
-    const orderBy = { [sortField]: sortDirection };
-    return orderBy;
+    return Object.fromEntries(
+      sortingParam
+        .filter((sort): sort is { id: string; desc?: boolean } =>
+          Boolean(sort && typeof sort.id === "string")
+        )
+        .map((sort) => [sort.id, sort.desc ? "desc" : "asc"])
+    );
   }, []);
 
   // Helper function to clean column filters
@@ -350,7 +353,9 @@ export function useDataTable<TData extends Record<string, unknown>>(
 
         // Execute the request - safely handle the list action
         if (actions.list) {
-          const response = await actions.list(requestParams);
+          const response = await actions.list(
+            compatibleListParams(requestParams)
+          );
           return {
             data: (response.data || []) as TData[],
             pageCount: response.meta?.pageCount || 1,
@@ -358,8 +363,8 @@ export function useDataTable<TData extends Record<string, unknown>>(
           };
         }
         return { data: [] as TData[], pageCount: 0, rowCount: 0 };
-      } catch {
-        return { data: [] as TData[], pageCount: 0, rowCount: 0 };
+      } catch (error) {
+        throw error instanceof Error ? error : new Error(String(error));
       }
     },
     [
@@ -436,7 +441,8 @@ export function useDataTable<TData extends Record<string, unknown>>(
     // selection should still be visible by default.
     if (config.table.enableRowSelection) {
       const hasActionsDefinition = config.columns.definitions.some(
-        (definition) => definition.id === "actions" || definition.type === "actions"
+        (definition) =>
+          definition.id === "actions" || definition.type === "actions"
       );
       const shouldShowSelectByDefault =
         visibleSet.has("actions") || !hasActionsDefinition;
@@ -549,9 +555,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
   );
 
   const buildBaseColumnDef = useCallback(
-    (
-      colDef: (typeof config.columns.definitions)[number]
-    ): ColumnDef<TData> => {
+    (colDef: (typeof config.columns.definitions)[number]): ColumnDef<TData> => {
       switch (colDef.type) {
         case "actions": {
           return buildActionsColumnDef();
@@ -684,7 +688,12 @@ export function useDataTable<TData extends Record<string, unknown>>(
         }
       }
     },
-    [buildActionsColumnDef, column, config.table.dateDisplayPreset, getTranslationSafe]
+    [
+      buildActionsColumnDef,
+      column,
+      config.table.dateDisplayPreset,
+      getTranslationSafe,
+    ]
   );
 
   // Create columns based on configuration

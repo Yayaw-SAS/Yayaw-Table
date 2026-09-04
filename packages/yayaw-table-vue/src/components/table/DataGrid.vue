@@ -15,7 +15,7 @@ import {
   useVueTable,
 } from "@tanstack/vue-table";
 import { ArrowDown, ArrowUp } from "lucide-vue-next";
-import { type CSSProperties, computed, h, ref, watch } from "vue";
+import { type CSSProperties, computed, h, ref, watch, onBeforeUnmount } from "vue";
 import { useTableContext } from "../../context";
 import { applyTableQuery, calculateColumn, formatNumber } from "../../core";
 import type {
@@ -387,7 +387,8 @@ const refreshCalculations = async (): Promise<void> => {
                   filter.value,
                 ])
               ),
-              advancedFilters: context.state.advancedFilters.value.filters,
+              advancedFilters: context.state.advancedFilters.value.filters.filter(filter => filter.isActive !== false),
+              advancedFilterJoin: context.state.advancedFilters.value.joinOperator,
               search: context.state.search.value,
               calculations: activeCalculations.value,
               locale: context.locale,
@@ -434,6 +435,7 @@ watch(
   [
     activeCalculations,
     context.actions,
+    context.data.rows,
     context.state.search,
     context.state.filters,
     context.state.advancedFilters,
@@ -443,6 +445,11 @@ watch(
   },
   { deep: true, immediate: true }
 );
+const unsubscribeAggregates = context.queryClient.getQueryCache().subscribe(event => {
+  const key = event.query.queryKey;
+  if (key[0] === "yayaw-table" && key[1] === context.config.id && key[2] === "aggregate" && event.type === "updated" && event.action.type === "invalidate") void refreshCalculations();
+});
+onBeforeUnmount(unsubscribeAggregates);
 const calculationFor = (
   columnId: string,
   calculation: CalculationType
@@ -467,10 +474,11 @@ const calculationFor = (
         definition?.type,
         context.locale
       );
+  if (value && typeof value === "object" && "label" in value) return String(value.label);
   if (typeof value !== "number") {
     return String(value ?? "—");
   }
-  const formatted = formatNumber(value);
+  const formatted = formatNumber(value, { locale: context.locale });
   return calculation.startsWith("percent_") ? `${formatted}%` : formatted;
 };
 const pinnedStyle = (column: Column<TableRecord>): CSSProperties => {

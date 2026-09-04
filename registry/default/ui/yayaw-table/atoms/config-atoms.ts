@@ -103,6 +103,8 @@ export interface DataTableConfig {
   showToolbarHeader?: boolean;
 
   /** Show an icon in the toolbar to clear filters and global search. */
+  /** Clear search and filters while preserving display options. */
+  showClearFilters?: boolean;
   showResetFilters?: boolean;
 
   /**

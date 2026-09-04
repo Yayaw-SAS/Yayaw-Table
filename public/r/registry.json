@@ -73,11 +73,6 @@
           "target": "components/ui/yayaw-table/atoms/filter-atoms.ts"
         },
         {
-          "path": "registry/default/ui/yayaw-table/atoms/footer-atoms.test.ts",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/atoms/footer-atoms.test.ts"
-        },
-        {
           "path": "registry/default/ui/yayaw-table/atoms/footer-atoms.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/atoms/footer-atoms.ts"
@@ -103,11 +98,6 @@
           "target": "components/ui/yayaw-table/atoms/view-atoms.ts"
         },
         {
-          "path": "registry/default/ui/yayaw-table/components/bulk-actions/bulk-actions-menu.test.ts",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/bulk-actions/bulk-actions-menu.test.ts"
-        },
-        {
           "path": "registry/default/ui/yayaw-table/components/bulk-actions/bulk-actions-menu.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/bulk-actions/bulk-actions-menu.tsx"
@@ -118,11 +108,6 @@
           "target": "components/ui/yayaw-table/components/bulk-actions/index.ts"
         },
         {
-          "path": "registry/default/ui/yayaw-table/components/cells/actions-cell.test.tsx",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/cells/actions-cell.test.tsx"
-        },
-        {
           "path": "registry/default/ui/yayaw-table/components/cells/actions-cell.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/cells/actions-cell.tsx"
@@ -131,6 +116,11 @@
           "path": "registry/default/ui/yayaw-table/components/cells/boolean-cell.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/cells/boolean-cell.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/cells/catalogue-inline-cell.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/cells/catalogue-inline-cell.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/cells/code-cell.tsx",
@@ -176,11 +166,6 @@
           "path": "registry/default/ui/yayaw-table/components/cells/string-cell.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/cells/string-cell.tsx"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/components/cells/tag-cell.test.tsx",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/cells/tag-cell.test.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/cells/tag-cell.tsx",
@@ -433,11 +418,6 @@
           "target": "components/ui/yayaw-table/components/forms/atoms/atoms.ts"
         },
         {
-          "path": "registry/default/ui/yayaw-table/components/forms/atoms/catalogue-form-atoms.test.ts",
-          "type": "registry:lib",
-          "target": "components/ui/yayaw-table/components/forms/atoms/catalogue-form-atoms.test.ts"
-        },
-        {
           "path": "registry/default/ui/yayaw-table/components/forms/atoms/catalogue-form-atoms.ts",
           "type": "registry:lib",
           "target": "components/ui/yayaw-table/components/forms/atoms/catalogue-form-atoms.ts"
@@ -448,14 +428,19 @@
           "target": "components/ui/yayaw-table/components/forms/atoms/index.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/forms/bulk-form.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/forms/bulk-form.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/forms/catalogue-bulk-editor.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/forms/catalogue-bulk-editor.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/forms/catalogue-form-container.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/forms/catalogue-form-container.tsx"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/components/forms/catalogue-form-layout.test.ts",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/forms/catalogue-form-layout.test.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/forms/catalogue-form-layout.ts",
@@ -473,14 +458,14 @@
           "target": "components/ui/yayaw-table/components/forms/drawer-form-portal-context.tsx"
         },
         {
-          "path": "registry/default/ui/yayaw-table/components/forms/factories.test.ts",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/forms/factories.test.ts"
-        },
-        {
           "path": "registry/default/ui/yayaw-table/components/forms/factories.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/forms/factories.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/forms/field-runtime.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/forms/field-runtime.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/forms/fields/checkbox-field.tsx",
@@ -488,19 +473,9 @@
           "target": "components/ui/yayaw-table/components/forms/fields/checkbox-field.tsx"
         },
         {
-          "path": "registry/default/ui/yayaw-table/components/forms/fields/collection-field-utils.test.ts",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/forms/fields/collection-field-utils.test.ts"
-        },
-        {
           "path": "registry/default/ui/yayaw-table/components/forms/fields/collection-field-utils.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/forms/fields/collection-field-utils.ts"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/components/forms/fields/collection-field.test.tsx",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/forms/fields/collection-field.test.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/forms/fields/collection-field.tsx",
@@ -526,11 +501,6 @@
           "path": "registry/default/ui/yayaw-table/components/forms/fields/index.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/forms/fields/index.ts"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/components/forms/fields/multi-select-field.test.tsx",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/forms/fields/multi-select-field.test.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/forms/fields/multi-select-field.tsx",
@@ -588,14 +558,19 @@
           "target": "components/ui/yayaw-table/components/forms/fields/value-type-selector.tsx"
         },
         {
-          "path": "registry/default/ui/yayaw-table/components/forms/form-builder.test.ts",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/forms/form-builder.test.ts"
-        },
-        {
           "path": "registry/default/ui/yayaw-table/components/forms/form-builder.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/forms/form-builder.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/forms/form-runtime.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/forms/form-runtime.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/forms/generated-form-config.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/forms/generated-form-config.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/forms/helpers.ts",
@@ -608,11 +583,6 @@
           "target": "components/ui/yayaw-table/components/forms/hooks/use-form-builder.ts"
         },
         {
-          "path": "registry/default/ui/yayaw-table/components/forms/hooks/use-form-catalogue.test.ts",
-          "type": "registry:hook",
-          "target": "components/ui/yayaw-table/components/forms/hooks/use-form-catalogue.test.ts"
-        },
-        {
           "path": "registry/default/ui/yayaw-table/components/forms/hooks/use-form-catalogue.ts",
           "type": "registry:hook",
           "target": "components/ui/yayaw-table/components/forms/hooks/use-form-catalogue.ts"
@@ -621,6 +591,11 @@
           "path": "registry/default/ui/yayaw-table/components/forms/index.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/forms/index.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/forms/inline-form.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/forms/inline-form.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/forms/lazy-forms.tsx",
@@ -633,11 +608,6 @@
           "target": "components/ui/yayaw-table/components/forms/types.ts"
         },
         {
-          "path": "registry/default/ui/yayaw-table/components/gallery-view.test.ts",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/gallery-view.test.ts"
-        },
-        {
           "path": "registry/default/ui/yayaw-table/components/gallery-view.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/gallery-view.tsx"
@@ -646,11 +616,6 @@
           "path": "registry/default/ui/yayaw-table/components/index.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/index.ts"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/components/kanban-view.test.ts",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/kanban-view.test.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/kanban-view.tsx",
@@ -668,11 +633,6 @@
           "target": "components/ui/yayaw-table/components/sortable-row.tsx"
         },
         {
-          "path": "registry/default/ui/yayaw-table/components/table-component.test.ts",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/table-component.test.ts"
-        },
-        {
           "path": "registry/default/ui/yayaw-table/components/table-component.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/table-component.tsx"
@@ -686,11 +646,6 @@
           "path": "registry/default/ui/yayaw-table/components/toolbar/sections/advanced-table-filters-menu.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/toolbar/sections/advanced-table-filters-menu.tsx"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/components/toolbar/sections/group-picker.test.ts",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/toolbar/sections/group-picker.test.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/toolbar/sections/group-picker.tsx",
@@ -743,11 +698,6 @@
           "target": "components/ui/yayaw-table/components/toolbar/table-kanban-grouping-menu.tsx"
         },
         {
-          "path": "registry/default/ui/yayaw-table/components/toolbar/table-menu.test.ts",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/toolbar/table-menu.test.ts"
-        },
-        {
           "path": "registry/default/ui/yayaw-table/components/toolbar/table-menu.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/toolbar/table-menu.tsx"
@@ -756,11 +706,6 @@
           "path": "registry/default/ui/yayaw-table/components/toolbar/table-view-manager.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/toolbar/table-view-manager.tsx"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/components/toolbar/toolbar-actions.test.ts",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/toolbar/toolbar-actions.test.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/toolbar/toolbar-actions.ts",
@@ -776,11 +721,6 @@
           "path": "registry/default/ui/yayaw-table/components/utils/use-on-screen.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/utils/use-on-screen.tsx"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/config/defaults.test.ts",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/config/defaults.test.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/config/defaults.ts",
@@ -808,11 +748,6 @@
           "target": "components/ui/yayaw-table/hooks/index.ts"
         },
         {
-          "path": "registry/default/ui/yayaw-table/hooks/query-cache-utils.test.ts",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/hooks/query-cache-utils.test.ts"
-        },
-        {
           "path": "registry/default/ui/yayaw-table/hooks/query-cache-utils.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/hooks/query-cache-utils.ts"
@@ -821,11 +756,6 @@
           "path": "registry/default/ui/yayaw-table/hooks/use-advanced-filters.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/hooks/use-advanced-filters.ts"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/hooks/use-bulk-actions.test.ts",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/hooks/use-bulk-actions.test.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/hooks/use-bulk-actions.ts",
@@ -853,19 +783,9 @@
           "target": "components/ui/yayaw-table/hooks/use-filter-presets.ts"
         },
         {
-          "path": "registry/default/ui/yayaw-table/hooks/use-global-column-calculations.test.ts",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/hooks/use-global-column-calculations.test.ts"
-        },
-        {
           "path": "registry/default/ui/yayaw-table/hooks/use-global-column-calculations.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/hooks/use-global-column-calculations.ts"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/hooks/use-inline-edit-runtime.test.ts",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/hooks/use-inline-edit-runtime.test.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/hooks/use-inline-edit-runtime.ts",
@@ -893,19 +813,9 @@
           "target": "components/ui/yayaw-table/hooks/use-table-actions.ts"
         },
         {
-          "path": "registry/default/ui/yayaw-table/hooks/use-table-config.test.ts",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/hooks/use-table-config.test.ts"
-        },
-        {
           "path": "registry/default/ui/yayaw-table/hooks/use-table-config.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/hooks/use-table-config.ts"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/hooks/use-table-instance.test.ts",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/hooks/use-table-instance.test.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/hooks/use-table-instance.ts",
@@ -921,11 +831,6 @@
           "path": "registry/default/ui/yayaw-table/hooks/use-table-ui-config.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/hooks/use-table-ui-config.ts"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/hooks/use-table-url-data.test.ts",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/hooks/use-table-url-data.test.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/hooks/use-table-url-data.ts",
@@ -953,11 +858,6 @@
           "target": "components/ui/yayaw-table/providers/index.ts"
         },
         {
-          "path": "registry/default/ui/yayaw-table/providers/query-client-requirements.test.ts",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/providers/query-client-requirements.test.ts"
-        },
-        {
           "path": "registry/default/ui/yayaw-table/providers/query-client-requirements.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/providers/query-client-requirements.ts"
@@ -966,11 +866,6 @@
           "path": "registry/default/ui/yayaw-table/providers/table-provider.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/providers/table-provider.tsx"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/providers/translation-cache.test.ts",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/providers/translation-cache.test.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/providers/translation-cache.ts",
@@ -1058,29 +953,14 @@
           "target": "components/ui/yayaw-table/utils/advanced-filters.ts"
         },
         {
-          "path": "registry/default/ui/yayaw-table/utils/card-interaction.test.ts",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/utils/card-interaction.test.ts"
-        },
-        {
           "path": "registry/default/ui/yayaw-table/utils/card-interaction.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/card-interaction.ts"
         },
         {
-          "path": "registry/default/ui/yayaw-table/utils/card-properties.test.ts",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/utils/card-properties.test.ts"
-        },
-        {
           "path": "registry/default/ui/yayaw-table/utils/card-properties.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/card-properties.ts"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/utils/column-calculations.test.ts",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/utils/column-calculations.test.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/utils/column-calculations.ts",
@@ -1133,19 +1013,14 @@
           "target": "components/ui/yayaw-table/utils/table-config-utils.ts"
         },
         {
-          "path": "registry/default/ui/yayaw-table/utils/table-view-state.test.ts",
+          "path": "registry/default/ui/yayaw-table/utils/table-contracts.ts",
           "type": "registry:component",
-          "target": "components/ui/yayaw-table/utils/table-view-state.test.ts"
+          "target": "components/ui/yayaw-table/utils/table-contracts.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/utils/table-view-state.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/table-view-state.ts"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/utils/table-view-storage.test.ts",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/utils/table-view-storage.test.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/utils/table-view-storage.ts",

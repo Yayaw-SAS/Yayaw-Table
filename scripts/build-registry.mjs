@@ -49,6 +49,7 @@ const PACKAGE_JSON_PATH = path.join(ROOT, "package.json");
 const TABLE_REGISTRY_ITEM_NAME = "yayaw-table";
 
 const REGEX_TSX_CSS = /\.(tsx?|css)$/;
+const REGEX_TEST_FILE = /\.(test|spec)\.[^.]+$/;
 const REGEX_TS_EXT = /\.(tsx?|ts)$/;
 
 function readJson(filePath) {
@@ -85,6 +86,9 @@ function assertDirectoryExists(dirPath, label) {
 function copyRecursive(src, dest) {
   fs.mkdirSync(dest, { recursive: true });
   for (const name of fs.readdirSync(src).sort()) {
+    if (REGEX_TEST_FILE.test(name)) {
+      continue;
+    }
     const s = path.join(src, name);
     const d = path.join(dest, name);
     if (fs.statSync(s).isDirectory()) {

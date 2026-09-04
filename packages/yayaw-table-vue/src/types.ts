@@ -215,6 +215,8 @@ export interface TableBehaviorConfig<TData extends TableRecord = TableRecord> {
   showToolbar: boolean;
   showToolbarHeader: boolean;
   /** Show a shortcut that applies the same option defaults as the Options menu reset. */
+  /** Clear search and filters while preserving display options. */
+  showClearFilters?: boolean;
   showResetFilters?: boolean;
   export: boolean;
   bulkExport: boolean;
@@ -482,6 +484,12 @@ export type AdvancedFilterOperator =
   | "greaterThan"
   | "greaterThanOrEqual"
   | "in"
+  | "is"
+  | "isNot"
+  | "isAnyOf"
+  | "isNoneOf"
+  | "containsAll"
+  | "containsNone"
   | "isEmpty"
   | "isFalse"
   | "isNotEmpty"
@@ -498,6 +506,7 @@ export interface AdvancedFilter {
   columnId: string;
   operator: AdvancedFilterOperator;
   values?: unknown;
+  isActive?: boolean;
   type?: ColumnType;
 }
 
@@ -507,9 +516,13 @@ export interface AdvancedFiltersState {
 }
 
 export interface TableViewConfig {
+  /** Canonical aliases shared with React; historical Vue names remain supported. */
+  globalSearch?: string;
+  columnFilters?: ColumnFiltersState;
+  columnPinning?: ColumnPinningState;
   search?: string;
   filters?: ColumnFiltersState;
-  advancedFilters?: AdvancedFiltersState;
+  advancedFilters?: AdvancedFiltersState | AdvancedFilter[];
   sorting?: SortingState;
   columnVisibility?: ColumnVisibilityState;
   columnOrder?: string[];
@@ -555,6 +568,7 @@ export interface TableViewActionResult<T = TableView> {
 export interface TableViewActions {
   list?: (context: {
     tableId: string;
+    tableType?: string;
   }) => MaybePromise<TableViewActionResult<TableView[]> | TableView[]>;
   create?: (input: CreateTableViewInput) => MaybePromise<TableViewActionResult>;
   update?: (
@@ -568,6 +582,10 @@ export interface TableViewActions {
 }
 
 export interface TableListParams {
+  limit?: number;
+  orderBy?: Record<string, string>;
+  q?: string;
+  globalSearch?: string;
   page: number;
   pageSize: number;
   search: string;
@@ -605,6 +623,7 @@ export interface BulkActionResult extends TableActionResult {
 export type BulkActionHandlerResult = BulkActionResult | void;
 
 export interface TableAggregateParams {
+  advancedFilterJoin?: "and" | "or";
   filters: Record<string, unknown>;
   advancedFilters: AdvancedFilter[];
   search: string;

@@ -56,7 +56,7 @@ export function DateField<TFieldValues extends Record<string, unknown>>({
       </FieldLabel>
       <Input
         aria-invalid={!fieldApi.state.meta.isValid}
-        disabled={field.disabled}
+        disabled={field.disabled === true}
         max={toDateInputValue(field.maxDate)}
         min={toDateInputValue(field.minDate)}
         name={fieldApi.name}
