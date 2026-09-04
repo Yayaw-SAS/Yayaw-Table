@@ -103,6 +103,8 @@ const config = defineTableConfig<Product>({
     displayModes: ["table", "kanban", "gallery"],
     defaultDisplayMode: "table",
     allowInlineEdit: true,
+    enableColumnDnd: true,
+    enableColumnDragDropByDefault: true,
     inlineEdit: { enabled: true, optimistic: true },
     enableCalculations: true,
     kanban: {
@@ -248,7 +250,15 @@ const actions: TableActions<Product> = {
 
 <template>
   <main class="demo-shell">
-    <h1 class="yayaw-sr-only">YaYaw Table Vue demo</h1>
+    <header class="demo-header">
+      <p class="demo-eyebrow">YaYaw Table · Vue 3</p>
+      <h1>Interactive Vue example</h1>
+      <p>
+        Explore the table, Kanban, gallery, forms, filters, saved views, and bulk
+        actions. Column drag and drop can be changed from any column menu or from
+        Options → Properties.
+      </p>
+    </header>
     <DataTable
       table-type="products"
       :config="config as unknown as TableConfig"
@@ -264,4 +274,8 @@ const actions: TableActions<Product> = {
 <style>
 body { margin: 0; background: #f7f7f8; color: #18181b; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
 .demo-shell { max-width: 1500px; margin: 0 auto; padding: 40px 24px 100px; }
+.demo-header { max-width: 760px; margin-bottom: 28px; }
+.demo-header h1 { margin: 6px 0 10px; font-size: clamp(2rem, 5vw, 3.5rem); letter-spacing: -0.04em; line-height: 1; }
+.demo-header p { margin: 0; color: #52525b; line-height: 1.6; }
+.demo-eyebrow { color: #2563eb !important; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
 </style>

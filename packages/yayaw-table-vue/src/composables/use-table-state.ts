@@ -74,6 +74,7 @@ export interface TableStateRefs {
   displayMode: Ref<TableDisplayMode>;
   kanban: Ref<TableKanbanViewConfig>;
   gallery: Ref<TableGalleryViewConfig>;
+  columnDragEnabled: Ref<boolean>;
   activeViewId: Ref<string | undefined>;
   initialViewId?: string;
   hasInitialTableUrlState: boolean;
@@ -95,6 +96,20 @@ export const useTableState = <TData extends TableRecord>({
   initialActiveViewId?: string;
 }): TableStateRefs => {
   const tableId = config.id;
+  const columnDragStorageKey = `${tableId}-column-drag-enabled`;
+  const columnDndFeatureEnabled = config.table.enableColumnDnd !== false;
+  const initialColumnDragEnabled = (): boolean => {
+    if (!columnDndFeatureEnabled) {
+      return false;
+    }
+    if (typeof window === "undefined") {
+      return config.table.enableColumnDragDropByDefault;
+    }
+    const storedPreference = window.localStorage.getItem(columnDragStorageKey);
+    return storedPreference === null
+      ? config.table.enableColumnDragDropByDefault
+      : storedPreference === "true";
+  };
   const search = ref("");
   const filters = ref<ColumnFiltersState>([]);
   const advancedFilters = ref<AdvancedFiltersState>(emptyAdvancedFilters());
@@ -150,6 +165,24 @@ export const useTableState = <TData extends TableRecord>({
     showCardLabels: config.table.kanban?.showCardLabels,
   });
   const gallery = ref<TableGalleryViewConfig>({ ...config.table.gallery });
+  const columnDragEnabled = ref(initialColumnDragEnabled());
+  watch(
+    columnDragEnabled,
+    (enabled) => {
+      const effectiveValue = columnDndFeatureEnabled && enabled;
+      if (enabled !== effectiveValue) {
+        columnDragEnabled.value = effectiveValue;
+        return;
+      }
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(
+          columnDragStorageKey,
+          String(effectiveValue)
+        );
+      }
+    },
+    { immediate: true }
+  );
   // Capture the incoming URL before this table starts writing its own state.
   const initialParams = new URLSearchParams(
     syncUrl && typeof window !== "undefined" ? window.location.search : ""
@@ -510,6 +543,7 @@ export const useTableState = <TData extends TableRecord>({
     displayMode,
     kanban,
     gallery,
+    columnDragEnabled,
     activeViewId,
     initialViewId,
     hasInitialTableUrlState,

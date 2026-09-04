@@ -87,6 +87,14 @@ const visibleColumnCount = computed(
       (column) => context.state.visibility.value[column.id] !== false
     ).length
 );
+const columnDndFeatureEnabled = computed(
+  () => context.config.table.enableColumnDnd !== false
+);
+const defaultColumnDragEnabled = computed(
+  () =>
+    columnDndFeatureEnabled.value &&
+    context.config.table.enableColumnDragDropByDefault
+);
 const activeFilterCount = computed(
   () =>
     context.state.filters.value.length +
@@ -113,11 +121,14 @@ const hasAnythingToReset = computed(
       context.state.sorting.value.length > 0) ||
     (context.config.table.enableGrouping &&
       context.state.grouping.value.length > 0) ||
-    hasHiddenColumns.value
+    hasHiddenColumns.value ||
+    (columnDndFeatureEnabled.value &&
+      context.state.columnDragEnabled.value !== defaultColumnDragEnabled.value)
 );
 const hasAnyMenuSection = computed(
   () =>
     hideableColumns.value.length > 0 ||
+    columnDndFeatureEnabled.value ||
     (context.config.table.enableColumnFilters &&
       (filterableColumns.value.length > 0 || props.enableAdvancedFilters)) ||
     (context.config.table.enableSorting && sortableColumns.value.length > 0) ||
@@ -313,6 +324,7 @@ const resetOptions = (): void => {
       context.config.columns.visible.includes(column.id),
     ])
   );
+  context.state.columnDragEnabled.value = defaultColumnDragEnabled.value;
 };
 const runAction = async (id: string): Promise<void> => {
   const action = context.toolbarActions.value.find((item) => item.id === id);
@@ -431,7 +443,7 @@ const exportRows = async (): Promise<void> => {
               </button>
               <strong>{{ optionsView === "main" ? "Menu" : translate(optionsView === "columns" ? "properties" : optionsView, optionsView) }}</strong>
               <button
-                v-if="hideableColumns.length"
+                v-if="hideableColumns.length || columnDndFeatureEnabled"
                 type="button"
                 class="yayaw-icon-button"
                 :disabled="!hasAnythingToReset"
@@ -544,6 +556,17 @@ const exportRows = async (): Promise<void> => {
                   @change="setVisible(column, ($event.target as HTMLInputElement).checked)"
                 />
                 <span>{{ column.header }}</span>
+              </label>
+              <label
+                v-if="columnDndFeatureEnabled"
+                class="yayaw-checkbox-label yayaw-options-check"
+              >
+                <input
+                  type="checkbox"
+                  :checked="context.state.columnDragEnabled.value"
+                  @change="context.state.columnDragEnabled.value = ($event.target as HTMLInputElement).checked"
+                />
+                <span>{{ translate("columns.reorder", "Drag to reorder") }}</span>
               </label>
             </div>
 

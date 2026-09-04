@@ -88,6 +88,8 @@ Vue inline editing honors the column/table `debounceMs`, validates against the c
 
 Use **`showClearFilters: true` in either framework** to clear search and filters while preserving display options. The historical `showResetFilters` option keeps its existing behavior: React clears filters; Vue restores the Options defaults while preserving search. This avoids changing existing Vue interfaces unexpectedly.
 
+Both editions distinguish the column drag-and-drop feature gate from the user's preference. Set `enableColumnDnd: false` to remove the controls and disable reordering. `enableColumnDragDropByDefault` supplies the initial preference; users can toggle it from a column menu or the Vue Properties panel, and the choice is stored per table.
+
 ## Export, selection, and refresh
 
 Toolbar export retrieves **all matching rows**, respecting the current search, column filters, advanced-filter join, and sort. Vue applies the same query to local data before export. Server export and select-all use the shared page collector; a server page-size cap does not truncate results when `meta.pageCount` or `meta.totalCount` describes the full result. Without metadata, a short page ends the collection. An inconsistent empty page, a failed request, or the 1,000-page limit reports an error instead of handing partial rows to the export callback. An export already in progress keeps the query and column order captured when it started; its button stays disabled until completion.

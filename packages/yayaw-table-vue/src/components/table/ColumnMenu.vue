@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Column } from "@tanstack/vue-table";
-import { ArrowDown, ArrowLeftToLine, ArrowRightToLine, ArrowUp, ArrowUpDown, EyeOff, MoreHorizontal, PinOff } from "lucide-vue-next";
+import { ArrowDown, ArrowLeftToLine, ArrowRightToLine, ArrowUp, ArrowUpDown, EyeOff, GripVertical, MoreHorizontal, PinOff } from "lucide-vue-next";
 import { DropdownMenuContent, DropdownMenuItem, DropdownMenuPortal, DropdownMenuRoot, DropdownMenuSeparator, DropdownMenuTrigger } from "reka-ui";
 import { computed } from "vue";
 import { useTableContext } from "../../context";
@@ -9,8 +9,14 @@ import type { TableRecord } from "../../types";
 const props = defineProps<{ column: Column<TableRecord> }>();
 const context = useTableContext();
 const label = computed(() => context.config.columns.definitions.find(column => column.id === props.column.id)?.header ?? props.column.id);
-const available = computed(() => !["select", "actions"].includes(props.column.id) && (props.column.getCanSort() || props.column.getCanHide() || props.column.getCanPin()));
+const columnDndFeatureEnabled = computed(() => context.config.table.enableColumnDnd !== false);
+const available = computed(() => !["select", "actions"].includes(props.column.id) && (props.column.getCanSort() || props.column.getCanHide() || props.column.getCanPin() || columnDndFeatureEnabled.value));
 const translate = (key: string): string => String(context.translations.value[key]);
+const toggleColumnDrag = (): void => {
+  if (columnDndFeatureEnabled.value) {
+    context.state.columnDragEnabled.value = !context.state.columnDragEnabled.value;
+  }
+};
 </script>
 
 <template>
@@ -35,6 +41,8 @@ const translate = (key: string): string => String(context.translations.value[key
         </template>
         <DropdownMenuSeparator v-if="column.getCanPin() && column.getCanHide()" class="yayaw-column-menu-divider" />
         <DropdownMenuItem v-if="column.getCanHide()" class="yayaw-column-menu-item" @select="column.toggleVisibility(false)"><EyeOff :size="16" aria-hidden="true" />{{ translate('hideColumn') }}</DropdownMenuItem>
+        <DropdownMenuSeparator v-if="columnDndFeatureEnabled && (column.getCanSort() || column.getCanPin() || column.getCanHide())" class="yayaw-column-menu-divider" />
+        <DropdownMenuItem v-if="columnDndFeatureEnabled" class="yayaw-column-menu-item" @select="toggleColumnDrag"><GripVertical :size="16" aria-hidden="true" />{{ translate('columns.reorder') }}<span v-if="context.state.columnDragEnabled.value" aria-hidden="true">✓</span></DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenuPortal>
   </DropdownMenuRoot>
