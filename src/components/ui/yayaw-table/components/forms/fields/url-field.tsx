@@ -40,7 +40,7 @@ function useUrlMeta(url: string | undefined) {
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    if (!url || !isValidUrl(url)) {
+    if (!(url && isValidUrl(url))) {
       setMeta(undefined);
       setIsLoading(false);
       setError(undefined);
@@ -107,7 +107,11 @@ export function UrlField<TFieldValues extends Record<string, unknown>>({
 
   const currentValue = fieldApi.state.value ?? "";
   const showPreview = field.showMetaPreview !== false;
-  const { meta, isLoading, error: _metaError } = useUrlMeta(
+  const {
+    meta,
+    isLoading,
+    error: _metaError,
+  } = useUrlMeta(
     showPreview && isValidUrl(currentValue) ? currentValue : undefined
   );
 
@@ -126,14 +130,14 @@ export function UrlField<TFieldValues extends Record<string, unknown>>({
         <Input
           aria-invalid={!fieldApi.state.meta.isValid}
           className="pr-9"
-          disabled={field.disabled}
+          disabled={field.disabled === true}
           name={fieldApi.name}
           onBlur={fieldApi.handleBlur}
           onChange={(e) => fieldApi.handleChange(e.target.value)}
           placeholder={
             field.placeholderKey
               ? t(field.placeholderKey)
-              : field.placeholder ?? "https://..."
+              : (field.placeholder ?? "https://...")
           }
           type="url"
           value={currentValue}
@@ -143,7 +147,7 @@ export function UrlField<TFieldValues extends Record<string, unknown>>({
             className={cn(
               "absolute top-1/2 right-2 -translate-y-1/2 rounded-sm p-0.5",
               "text-muted-foreground transition-colors hover:text-foreground",
-              "focus-visible:ring-primary/30 focus-visible:outline-none focus-visible:ring-2"
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
             )}
             onClick={handleOpenUrl}
             tabIndex={0}
@@ -227,7 +231,10 @@ function UrlMetaPreview({
   if (isLoading) {
     return (
       <div className="mt-2 flex items-center gap-2 rounded-lg border border-border p-3">
-        <Loader2 aria-hidden className="size-4 animate-spin text-muted-foreground" />
+        <Loader2
+          aria-hidden
+          className="size-4 animate-spin text-muted-foreground"
+        />
         <span className="text-muted-foreground text-sm">Loading preview…</span>
       </div>
     );
@@ -247,7 +254,7 @@ function UrlMetaPreview({
       className={cn(
         "mt-2 flex gap-3 overflow-hidden rounded-lg border border-border",
         "bg-muted/30 transition-colors hover:bg-muted/50",
-        "focus-visible:ring-primary/30 focus-visible:outline-none focus-visible:ring-2"
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
       )}
       href={url}
       rel="noopener"

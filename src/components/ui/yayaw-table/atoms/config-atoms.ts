@@ -4,14 +4,13 @@
  */
 import { atom } from "jotai";
 import { atomFamily } from "jotai-family";
-
+import type { TableFormConfig } from "../config/form-config";
 import type {
   TableEmptyStateConfig,
   TableInlineEditConfig,
   TableLayoutPreset,
   TableRowClickMode,
 } from "../config/helpers";
-import type { TableFormConfig } from "../config/form-config";
 import type { DateDisplayPreset } from "../types/date-types";
 import type {
   TableDisplayMode,
@@ -104,6 +103,8 @@ export interface DataTableConfig {
   showToolbarHeader?: boolean;
 
   /** Show an icon in the toolbar to clear filters and global search. */
+  /** Clear search and filters while preserving display options. */
+  showClearFilters?: boolean;
   showResetFilters?: boolean;
 
   /**

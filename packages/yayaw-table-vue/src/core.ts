@@ -1,4 +1,8 @@
 import { format, formatDistanceToNow, isValid, parseISO } from "date-fns";
+import {
+  matchesContractFilter,
+  normalizeFilterEnvelope,
+} from "./table-contracts";
 import type {
   AdvancedFilter,
   AdvancedFiltersState,
@@ -37,8 +41,6 @@ const toComparable = (value: unknown): number | string => {
   return Number.isNaN(date) ? String(value ?? "").toLocaleLowerCase() : date;
 };
 
-const asArray = (value: unknown): unknown[] =>
-  Array.isArray(value) ? value : [value];
 const compareValues = (
   left: number | string,
   right: number | string
@@ -56,74 +58,19 @@ export const matchesAdvancedFilter = (
   row: TableRecord,
   filter: AdvancedFilter
 ): boolean => {
-  const actual = row[filter.columnId];
-  const expected = filter.values;
-  const actualArray = asArray(actual);
-  const expectedArray = asArray(expected);
-  const actualText = String(actual ?? "").toLocaleLowerCase();
-  const expectedText = String(expectedArray[0] ?? "").toLocaleLowerCase();
-  const left = toComparable(actual);
-  const right = toComparable(expectedArray[0]);
-
-  switch (filter.operator) {
-    case "isEmpty":
-      return isEmptyValue(actual);
-    case "isNotEmpty":
-      return !isEmptyValue(actual);
-    case "isTrue":
-      return actual === true;
-    case "isFalse":
-      return actual === false;
-    case "equals":
-      return actualArray.some((value) =>
-        expectedArray.some((item) => String(value) === String(item))
-      );
-    case "notEquals":
-      return !actualArray.some((value) =>
-        expectedArray.some((item) => String(value) === String(item))
-      );
-    case "contains":
-      return actualText.includes(expectedText);
-    case "notContains":
-      return !actualText.includes(expectedText);
-    case "startsWith":
-      return actualText.startsWith(expectedText);
-    case "endsWith":
-      return actualText.endsWith(expectedText);
-    case "in":
-      return actualArray.some((value) =>
-        expectedArray.some((item) => String(value) === String(item))
-      );
-    case "notIn":
-      return !actualArray.some((value) =>
-        expectedArray.some((item) => String(value) === String(item))
-      );
-    case "greaterThan":
-      return left > right;
-    case "greaterThanOrEqual":
-      return left >= right;
-    case "lessThan":
-      return left < right;
-    case "lessThanOrEqual":
-      return left <= right;
-    case "after":
-      return left > right;
-    case "before":
-      return left < right;
-    case "between": {
-      const end = toComparable(expectedArray[1]);
-      return left >= right && left <= end;
-    }
-    default:
-      return true;
-  }
+  return matchesContractFilter(row[filter.columnId], { ...filter });
 };
 
 export const applyAdvancedFilters = <TData extends TableRecord>(
   rows: TData[],
-  state?: AdvancedFiltersState
+  input?: AdvancedFiltersState | unknown[]
 ): TData[] => {
-  if (!state || state.filters.length === 0) {
+  const normalized = normalizeFilterEnvelope(input);
+  const state = {
+    ...normalized,
+    filters: normalized.filters.filter((filter) => filter.isActive !== false),
+  } as unknown as AdvancedFiltersState;
+  if (!state.filters.length) {
     return rows;
   }
   return rows.filter((row) =>
@@ -309,16 +256,22 @@ export const formatDateValue = (
 
 export const displayCellValue = (
   value: unknown,
-  column: ColumnDefinition
+  column: ColumnDefinition,
+  locale?: string
 ): string => {
   if (value === null || value === undefined || value === "") {
     return "—";
   }
   if (column.type === "date") {
-    return formatDateValue(value, column.dateDisplayPreset, column.dateFormat);
+    return formatDateValue(
+      value,
+      column.dateDisplayPreset,
+      column.dateFormat,
+      locale
+    );
   }
   if (column.type === "number") {
-    return formatNumber(value, column.numberFormat);
+    return formatNumber(value, { locale, ...column.numberFormat });
   }
   if (column.type === "boolean") {
     return value ? "Yes" : "No";
@@ -479,6 +432,18 @@ const csvEscape = (value: unknown): string => {
     : text;
 };
 
+export const exportColumns = (
+  columns: ColumnDefinition[],
+  visibility: Record<string, boolean>,
+  order: string[]
+): ColumnDefinition[] => {
+  const ids = [...new Set([...order, ...columns.map((column) => column.id)])];
+  return ids.flatMap((id) => {
+    const column = columns.find((item) => item.id === id);
+    return column && visibility[id] !== false ? [column] : [];
+  });
+};
+
 export const rowsToCsv = (
   rows: TableRecord[],
   columns: ColumnDefinition[]
@@ -524,14 +489,19 @@ export const downloadCsv = (
 export const createTableViewSnapshot = (
   config: TableViewConfig
 ): TableViewConfig => {
-  const snapshot: TableViewConfig = { ...config };
+  const snapshot: TableViewConfig = {
+    ...config,
+    advancedFilters: normalizeFilterEnvelope(
+      config.advancedFilters
+    ) as unknown as AdvancedFiltersState,
+  };
   if (!snapshot.search) {
     snapshot.search = undefined;
   }
   if (!snapshot.filters?.length) {
     snapshot.filters = undefined;
   }
-  if (!snapshot.advancedFilters?.filters.length) {
+  if (!normalizeFilterEnvelope(snapshot.advancedFilters).filters.length) {
     snapshot.advancedFilters = undefined;
   }
   if (!snapshot.sorting?.length) {
@@ -646,3 +616,10 @@ export const safeHttpUrl = (value: unknown): string | undefined => {
 
 export const rowId = (row: TableRecord, fallback: string): string =>
   String(row.id ?? row.key ?? fallback);
+
+const IMAGE_SOURCE =
+  /^(?:https?:\/\/|\/(?!\/)|data:image\/[a-z0-9.+-]+;base64,|blob:)/i;
+export const imageSource = (value: unknown): string | undefined =>
+  typeof value === "string" && IMAGE_SOURCE.test(value.trim())
+    ? value.trim()
+    : undefined;

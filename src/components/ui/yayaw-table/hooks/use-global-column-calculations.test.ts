@@ -1,5 +1,5 @@
+import { describe, it } from "bun:test";
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
 import type { TableActions } from "../providers/table-provider";
 import {
   loadGlobalColumnCalculationResults,
@@ -101,7 +101,13 @@ describe("loadGlobalColumnCalculationResults", () => {
     const results = await loadGlobalColumnCalculationResults({
       actions,
       advancedFiltersParam: [
-        { id: "active", isActive: true },
+        {
+          id: "active",
+          isActive: true,
+          columnId: "status",
+          operator: "equals",
+          values: "active",
+        },
         { id: "inactive", isActive: false },
       ],
       calculations: { price: "sum" },
@@ -122,7 +128,16 @@ describe("loadGlobalColumnCalculationResults", () => {
     assert.equal(listCalls, 0);
     assert.deepEqual(aggregateParams, {
       filters: { status: "active" },
-      advancedFilters: [{ id: "active", isActive: true }],
+      advancedFilterJoin: "and",
+      advancedFilters: [
+        {
+          id: "active",
+          isActive: true,
+          columnId: "status",
+          operator: "equals",
+          values: "active",
+        },
+      ],
       search: "acme",
       calculations: { price: "sum" },
       locale: "en-US",

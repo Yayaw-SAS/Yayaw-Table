@@ -30,7 +30,7 @@ export function TextareaField({ field, fieldApi }: TextareaFieldProps) {
       <Textarea
         aria-invalid={!fieldApi.state.meta.isValid}
         className="min-h-[100px]"
-        disabled={field.disabled}
+        disabled={field.disabled === true}
         name={fieldApi.name}
         onBlur={fieldApi.handleBlur}
         onChange={(e) => fieldApi.handleChange(e.target.value)}

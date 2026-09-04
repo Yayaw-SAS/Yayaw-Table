@@ -12,10 +12,14 @@ import type { FormFieldApi, RadioFieldDefinition } from "../types";
 
 interface RadioFieldProps<TFieldValues extends Record<string, unknown>> {
   field: RadioFieldDefinition<TFieldValues>;
-  fieldApi: FormFieldApi<string | number | null>;
+  fieldApi: FormFieldApi<string | number | boolean | null>;
 }
 
-function getOptionId(name: string, value: number | string, index: number) {
+function getOptionId(
+  name: string,
+  value: boolean | number | string,
+  index: number
+) {
   const safeValue = String(value).replace(/[^a-zA-Z0-9_-]+/g, "-");
   return `${name}-${index}-${safeValue}`;
 }
@@ -44,33 +48,39 @@ export function RadioField<TFieldValues extends Record<string, unknown>>({
       )}
       <RadioGroup
         aria-invalid={!fieldApi.state.meta.isValid}
-        disabled={field.disabled}
+        disabled={field.disabled === true}
         onValueChange={(nextValue) =>
           fieldApi.handleChange(
-            nextValue == null || nextValue === "" ? null : nextValue
+            nextValue == null || nextValue === ""
+              ? null
+              : ((Array.isArray(field.options) ? field.options : []).find(
+                  (option) => String(option.value) === nextValue
+                )?.value ?? nextValue)
           )
         }
         value={radioValue}
       >
-        {field.options.map((option, index) => {
-          const optionValue = String(option.value);
-          const optionId = getOptionId(fieldApi.name, option.value, index);
+        {(Array.isArray(field.options) ? field.options : []).map(
+          (option, index) => {
+            const optionValue = String(option.value);
+            const optionId = getOptionId(fieldApi.name, option.value, index);
 
-          return (
-            <div className="flex items-center gap-2" key={optionValue}>
-              <RadioGroupItem
-                disabled={field.disabled}
-                id={optionId}
-                value={optionValue}
-              />
-              <FieldLabel className="font-normal" htmlFor={optionId}>
-                {field.optionKeys?.[index]
-                  ? t(field.optionKeys[index])
-                  : option.label}
-              </FieldLabel>
-            </div>
-          );
-        })}
+            return (
+              <div className="flex items-center gap-2" key={optionValue}>
+                <RadioGroupItem
+                  disabled={field.disabled === true || option.disabled}
+                  id={optionId}
+                  value={optionValue}
+                />
+                <FieldLabel className="font-normal" htmlFor={optionId}>
+                  {field.optionKeys?.[index]
+                    ? t(field.optionKeys[index])
+                    : option.label}
+                </FieldLabel>
+              </div>
+            );
+          }
+        )}
       </RadioGroup>
       <FieldError errors={errorMessages.map((message) => ({ message }))} />
     </Field>

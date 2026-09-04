@@ -4,10 +4,13 @@ import { useQuery } from "@tanstack/react-query";
 import { useAtomValue } from "jotai";
 import { useMemo } from "react";
 import { columnCalculationsAtom } from "../atoms/footer-atoms";
-import { useLocale, useTableActions as useProviderTableActions } from "../providers/table-provider";
 import type {
   TableActions,
   TableAggregateResultValue,
+} from "../providers/table-provider";
+import {
+  useLocale,
+  useTableActions as useProviderTableActions,
 } from "../providers/table-provider";
 import {
   type CalculationType,
@@ -21,6 +24,7 @@ import {
   toOrderByParam,
   toPageSize,
 } from "../utils/filtered-rows";
+import { normalizeFilterEnvelope } from "../utils/table-contracts";
 import { useTableUrlState } from "./use-table-url-state";
 
 interface ColumnCalculationDefinition {
@@ -51,8 +55,7 @@ const resolveSelectedCalculation = ({
   defaultCalculation?: CalculationType;
   userCalculations: Record<string, CalculationType>;
 }): CalculationType | undefined => {
-  const selected =
-    userCalculations[columnId] ?? defaultCalculation ?? "none";
+  const selected = userCalculations[columnId] ?? defaultCalculation ?? "none";
 
   if (!isCalculationValidForColumn(selected, columnType)) {
     return;
@@ -247,7 +250,10 @@ export const useGlobalColumnCalculations = ({
     [calculations]
   );
 
-  const filtersKey = useMemo(() => JSON.stringify(filtersParam), [filtersParam]);
+  const filtersKey = useMemo(
+    () => JSON.stringify(filtersParam),
+    [filtersParam]
+  );
   const advancedFiltersKey = useMemo(
     () => JSON.stringify(advancedFiltersParam),
     [advancedFiltersParam]
@@ -327,6 +333,8 @@ export const loadGlobalColumnCalculationResults = async ({
       const response = await actions.aggregate({
         filters,
         advancedFilters,
+        advancedFilterJoin:
+          normalizeFilterEnvelope(advancedFiltersParam).joinOperator,
         search,
         calculations,
         locale,

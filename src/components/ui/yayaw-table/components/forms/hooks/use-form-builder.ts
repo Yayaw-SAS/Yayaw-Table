@@ -1,192 +1,148 @@
-/**
- * Form builder hook
- * This hook creates a form instance based on a form configuration (TanStack Form)
- */
 "use client";
 
 import { useForm, useStore } from "@tanstack/react-form";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useTranslations } from "../../../providers/table-provider";
-
+import {
+  formValuesEqual,
+  initialFormValues,
+  translateFormConfig,
+  validateForm,
+} from "../form-runtime";
 import type {
   AnyFieldDefinition,
   FieldValues,
   FormConfig,
-  FormSectionDefinition,
-  RadioFieldDefinition,
-  SelectFieldDefinition,
+  FormConfigContext,
 } from "../types";
 
 export interface UseFormBuilderOptions<TFieldValues extends FieldValues> {
   config: FormConfig<TFieldValues>;
-  formOptions?: {
-    onSubmit?: (values: TFieldValues) => void | Promise<void>;
-  };
+  context?: FormConfigContext;
+  formOptions?: { onSubmit?: (values: TFieldValues) => void | Promise<void> };
   initialData?: Partial<TFieldValues>;
   onValuesChange?: (values: TFieldValues) => void;
 }
 
-/**
- * Form builder hook
- * @param options - Hook options
- * @returns Form instance and fields
- */
+/** Keep the TanStack public API while using the same validation semantics as Vue. */
 export function useFormBuilder<TFieldValues extends FieldValues>({
   config,
+  context,
   formOptions = {},
   initialData,
   onValuesChange,
 }: UseFormBuilderOptions<TFieldValues>) {
   const { t } = useTranslations();
-  const prevInitialDataRef = useRef<Partial<TFieldValues> | undefined>(
-    undefined
+  const latest = useRef({ config, context, formOptions });
+  latest.current = { config, context, formOptions };
+  const submitted = useRef<{
+    input: FieldValues;
+    values: FieldValues;
+    errors: Record<string, string>;
+  } | null>(null);
+  const previousInitial = useRef(initialData);
+  const defaultValues = useMemo(
+    () => initialFormValues(config as FormConfig, initialData) as TFieldValues,
+    [config, initialData]
   );
-  const formResetInProgressRef = useRef(false);
-
-  const defaultValues = useMemo(() => {
-    return initialData
-      ? { ...(config.defaultValues as TFieldValues), ...initialData }
-      : (config.defaultValues as TFieldValues);
-  }, [config.defaultValues, initialData]);
-
+  const runtimeContext = (values: FieldValues): FormConfigContext => ({
+    formType: config.id,
+    tableId: config.id,
+    tableType: config.id,
+    mode: "create",
+    ...latest.current.context,
+    values,
+  });
   const form = useForm({
     defaultValues,
     validators: {
-      // Zod schema is a standard schema at runtime; this cast avoids a generic
-      // input/output mismatch from Zod's type signature.
-      onSubmit: config.schema as never,
-    },
-    onSubmit: formOptions.onSubmit
-      ? ({ value }) => {
-          formOptions.onSubmit?.(value as TFieldValues);
+      onSubmitAsync: async ({ value }) => {
+        const result = await validateForm(
+          latest.current.config as FormConfig,
+          value,
+          runtimeContext(value)
+        );
+        submitted.current = { input: value, ...result };
+        return Object.keys(result.errors).length
+          ? {
+              form: Object.values(result.errors).join("; "),
+              fields: result.errors,
+            }
+          : undefined;
+      },
+      onBlurAsync: async ({ value, formApi }) => {
+        // TanStack also runs blur validators during submit; the submit validator owns that pass.
+        if (formApi.state.isSubmitting) {
+          return undefined;
         }
-      : undefined,
+        const result = await validateForm(
+          latest.current.config as FormConfig,
+          value,
+          runtimeContext(value)
+        );
+        return Object.keys(result.errors).length
+          ? {
+              form: Object.values(result.errors).join("; "),
+              fields: result.errors,
+            }
+          : undefined;
+      },
+    },
+    onSubmit: async ({ value }) => {
+      const result =
+        submitted.current && formValuesEqual(submitted.current.input, value)
+          ? submitted.current
+          : await validateForm(
+              latest.current.config as FormConfig,
+              value,
+              runtimeContext(value)
+            );
+      if (!Object.keys(result.errors).length) {
+        await latest.current.formOptions.onSubmit?.(
+          result.values as TFieldValues
+        );
+      }
+    },
   });
-
-  const values = useStore(
-    form.store,
-    (state) => state.values as TFieldValues
-  );
-
+  const values = useStore(form.store, (state) => state.values as TFieldValues);
   useEffect(() => {
     onValuesChange?.(values);
   }, [onValuesChange, values]);
-
   useEffect(() => {
-    if (
-      initialData &&
-      !formResetInProgressRef.current &&
-      JSON.stringify(initialData) !== JSON.stringify(prevInitialDataRef.current)
-    ) {
-      formResetInProgressRef.current = true;
-      const newDefaultValues = {
-        ...(config.defaultValues as TFieldValues),
-        ...initialData,
-      };
-      form.reset(newDefaultValues);
-      prevInitialDataRef.current = initialData;
-      setTimeout(() => {
-        formResetInProgressRef.current = false;
-      }, 10);
-    }
-  }, [initialData, config.defaultValues, form]);
-
-  useEffect(() => {
-    const nextDefaultValues = config.defaultValues as Record<string, unknown>;
-    for (const [fieldName, defaultValue] of Object.entries(nextDefaultValues)) {
-      if (
-        form.getFieldValue(fieldName as keyof TFieldValues & string) !==
-        undefined
-      ) {
-        continue;
-      }
-
-      if (defaultValue === undefined) {
-        continue;
-      }
-
-      form.setFieldValue(
-        fieldName as keyof TFieldValues & string,
-        defaultValue as Parameters<typeof form.setFieldValue>[1]
+    if (!formValuesEqual(previousInitial.current, initialData)) {
+      previousInitial.current = initialData;
+      form.reset(
+        initialFormValues(
+          latest.current.config as FormConfig,
+          initialData
+        ) as TFieldValues
       );
     }
-  }, [config.defaultValues, form]);
-
-  const translateField = useCallback(
-    (
-      field: AnyFieldDefinition<TFieldValues>
-    ): AnyFieldDefinition<TFieldValues> => {
-      if (field.labelKey) {
-        return { ...field, label: t(field.labelKey) };
-      }
-      if (field.descriptionKey) {
-        return { ...field, description: t(field.descriptionKey) };
-      }
-      if (field.placeholderKey) {
-        return { ...field, placeholder: t(field.placeholderKey) };
-      }
-      if (field.type === "select") {
-        const selectField = field as SelectFieldDefinition<TFieldValues>;
-        const optionKeys = selectField.optionKeys;
-        if (optionKeys?.length) {
-          return {
-            ...selectField,
-            options: selectField.options.map((option, index) => ({
-              label:
-                index < optionKeys.length ? t(optionKeys[index]) : option.label,
-              value: option.value,
-            })),
-          };
-        }
-      }
-      if (field.type === "radio") {
-        const radioField = field as RadioFieldDefinition<TFieldValues>;
-        const optionKeys = radioField.optionKeys;
-        if (optionKeys?.length) {
-          return {
-            ...radioField,
-            options: radioField.options.map((option, index) => ({
-              label:
-                index < optionKeys.length ? t(optionKeys[index]) : option.label,
-              value: option.value,
-            })),
-          };
-        }
-      }
-      return field;
-    },
-    [t]
-  );
-
-  const fields = useMemo(
-    () =>
-      config.fields.map(translateField) as AnyFieldDefinition<TFieldValues>[],
-    [config.fields, translateField]
-  );
-
-  const sections = useMemo(
-    () => (config.sections ?? []) as FormSectionDefinition<TFieldValues>[],
-    [config.sections]
-  );
-
-  const translations = useMemo(() => {
-    return Object.entries(config.translations.keys).reduce(
-      (acc, [key, value]) => {
-        acc[key] = t(value);
-        return acc;
-      },
-      {} as Record<string, string>
-    );
-  }, [config.translations.keys, t]);
-
+  }, [form, initialData]);
+  const translated = translateFormConfig(config as FormConfig);
+  const fields = translated.fields.map((field) => ({
+    ...field,
+    label:
+      field.labelKey && !config.translations?.keys[field.labelKey]
+        ? t(field.labelKey)
+        : field.label,
+  })) as AnyFieldDefinition<TFieldValues>[];
   return {
-    fields,
     form,
-    sections,
-    translations,
+    fields,
+    sections: translated.sections ?? [],
+    context: { ...runtimeContext(values), values },
+    translations: {
+      submit: "Save",
+      update: "Save",
+      cancel: "Cancel",
+      create: "Create",
+      created: "Created",
+      updated: "Updated",
+      ...config.translations?.keys,
+    } as Record<string, string>,
   };
 }
 
-/** Form instance type returned by useFormBuilder (TanStack Form API) */
 export type FormBuilderFormInstance<TFieldValues extends FieldValues> =
   ReturnType<typeof useFormBuilder<TFieldValues>>["form"];

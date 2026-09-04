@@ -5,9 +5,9 @@
   "description": "A flexible, config-driven data table component library for React and Vue 3",
   "scripts": {
     "build": "bun run registry:pages",
-    "registry:sync": "node scripts/build-registry.mjs",
+    "registry:sync": "bun run contracts:sync && node scripts/build-registry.mjs",
     "registry:build": "node scripts/build-registry.mjs && bunx --bun shadcn@latest build registry/registry.json --output public/r && bun run registry:build:vue && bunx ultracite fix registry/registry.json public/r",
-    "registry:build:vue": "bun run --cwd packages/yayaw-table-vue registry:build && node scripts/sync-vue-registry.mjs",
+    "registry:build:vue": "bun run contracts:sync && bun run --cwd packages/yayaw-table-vue registry:build && node scripts/sync-vue-registry.mjs",
     "registry:pages": "bun run registry:build && node scripts/prepare-registry-pages.mjs",
     "registry:snapshot": "node scripts/snapshot-registry-release.mjs",
     "registry:release": "bun run registry:build && bun run registry:snapshot",
@@ -16,13 +16,14 @@
     "release:check": "bun run check && bun run type-check && bun run test && bun run vue:test && bun run vue:build && bun run registry:pages",
     "release:verify": "node scripts/verify-registry-release.mjs",
     "type-check": "tsc --noEmit",
-    "test": "bun test src/components/ui/yayaw-table tests",
+    "test": "bun test --preload ./tests/setup-dom.ts src/components/ui/yayaw-table tests",
     "check": "ultracite check",
     "fix": "ultracite fix",
     "vue:install": "bun install --cwd packages/yayaw-table-vue",
     "vue:dev": "bun run --cwd packages/yayaw-table-vue dev",
     "vue:build": "bun run --cwd packages/yayaw-table-vue build",
-    "vue:test": "bun run --cwd packages/yayaw-table-vue test"
+    "vue:test": "bun run --cwd packages/yayaw-table-vue test",
+    "contracts:sync": "node scripts/sync-table-contracts.mjs"
   },
   "keywords": [
     "react",

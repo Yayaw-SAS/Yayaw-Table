@@ -47,7 +47,7 @@ import { resolveCatalogueFormLayout } from "./catalogue-form-layout";
 import { DrawerFormPortalContainerContext } from "./drawer-form-portal-context";
 import { FormBuilder } from "./form-builder";
 import { useFormCatalogue } from "./hooks/use-form-catalogue";
-import type { FieldValues } from "./types";
+import type { FieldValues, FormConfig } from "./types";
 
 interface CatalogueFormTranslations {
   updated?: string;
@@ -132,7 +132,7 @@ function findFirstFocusable(container: HTMLElement): HTMLElement | null {
 /**
  * Prepare submission data based on mode
  */
-function prepareSubmissionData<T extends FieldValues>(
+function _prepareSubmissionData<T extends FieldValues>(
   values: T,
   mode: "create" | "update",
   initialData: Partial<T> | undefined
@@ -204,11 +204,6 @@ function handleSuccessFlow<TFieldValues extends FieldValues>(
       ...prev,
       initialData: result as Record<string, unknown>,
     }));
-  }
-
-  // Call the success callback first to trigger cache invalidation
-  if (currentOnSuccess) {
-    currentOnSuccess(result as Record<string, unknown>);
   }
 
   // Reset the form
@@ -323,15 +318,6 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
   const { config: tableConfig } = useTableConfig(
     tableType || tableId || formType || "default-table"
   );
-  const formLayout = resolveCatalogueFormLayout(tableConfig.form?.layout);
-  const isModalLayout = formLayout.mode === "modal";
-  const formContentStyle = useMemo<CatalogueFormContentStyle>(
-    () => ({
-      "--catalogue-form-width": formLayout.width,
-    }),
-    [formLayout.width]
-  );
-
   // Add a ref to track if we're in the middle of a state change
   const isChangingStateRef = useRef(false);
 
@@ -342,13 +328,14 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
 
   const formCatalogueParams = useMemo(
     () => ({
+      enabled: isOpen,
       formType: formType || "",
       initialData: initialData as Partial<TFieldValues>,
       mode,
       tableId,
       tableType,
     }),
-    [formType, initialData, mode, tableId, tableType]
+    [formType, initialData, mode, tableId, tableType, isOpen]
   );
 
   const translationsRef = useRef<CatalogueFormTranslations>({});
@@ -371,12 +358,7 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
           : (t.creating ?? "Creating...")
       );
       try {
-        const valuesToSubmit = prepareSubmissionData(
-          values,
-          mode,
-          initialData as Partial<TFieldValues> | undefined
-        );
-        const result = await doSubmit(valuesToSubmit as TFieldValues);
+        const result = await doSubmit(values);
         toast.dismiss(loadingToastId);
         handleSuccessFlow(
           result,
@@ -405,8 +387,7 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
       setLoading,
       setError,
       mode,
-      initialData,
-      onSuccessRef.current,
+      onSuccessRef,
     ]
   );
 
@@ -415,8 +396,18 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
     [formCatalogueParams, onFormSubmit]
   );
 
-  const { fields, form, sections, translations } = useFormCatalogue<TFieldValues>(
-    formCatalogueParamsWithSubmit
+  const builder = useFormCatalogue<TFieldValues>(formCatalogueParamsWithSubmit);
+  const { form, translations, config: formConfig } = builder;
+
+  const formLayout = resolveCatalogueFormLayout({
+    ...tableConfig.form?.layout,
+    ...(formConfig.presentation ? { mode: formConfig.presentation } : {}),
+    ...(formConfig.width ? { width: formConfig.width } : {}),
+  });
+  const isModalLayout = formLayout.mode === "modal";
+  const formContentStyle = useMemo<CatalogueFormContentStyle>(
+    () => ({ "--catalogue-form-width": formLayout.width }),
+    [formLayout.width]
   );
 
   translationsRef.current = translations;
@@ -425,8 +416,8 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
   // Handle open state changes with stable dependencies and protection
   const handleOpenChange = useCallback(
     (open: boolean) => {
-      // Prevent rapid state changes
-      if (isChangingStateRef.current) {
+      // Keep the submitted row stable until the action finishes.
+      if (loading || isChangingStateRef.current) {
         return;
       }
 
@@ -448,7 +439,7 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
         isChangingStateRef.current = false;
       }, 100);
     },
-    [setFormSubmitted, setFormState]
+    [setFormSubmitted, setFormState, loading]
   );
 
   // Determine if this is a standalone form (with its own button)
@@ -520,103 +511,29 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
     children
   );
 
+  const configuredTitle = resolveFormTitle(formConfig, mode, initialData);
   const formTitle =
-    mode === "update"
-      ? translations["updateForm.title"]
-      : translations["createForm.title"];
+    configuredTitle ??
+    (mode === "update"
+      ? (translations["updateForm.title"] ?? "Edit")
+      : (translations["createForm.title"] ?? "Create"));
   const formDescription =
-    mode === "update"
+    formConfig.description ??
+    (mode === "update"
       ? translations["updateForm.description"]
-      : translations["createForm.description"];
+      : translations["createForm.description"]);
 
-  const formBody = isModalLayout ? (
-    <DrawerFormPortalContainerContext.Provider value={drawerContentRef}>
-      <div
-        className="relative mx-auto w-full overflow-visible p-6"
-        ref={drawerContentRef}
-      >
-        <DialogHeader className="px-0 pr-10">
-          <DialogTitle>{formTitle}</DialogTitle>
-          {formDescription && (
-            <DialogDescription>{formDescription}</DialogDescription>
-          )}
-        </DialogHeader>
-
-        <div className="py-4">
-          <FormBuilder
-            fields={fields}
-            form={form}
-            sections={sections}
-            submitText={null}
-          />
-        </div>
-
-        <DialogFooter className="flex-row justify-end gap-2 px-0">
-          <Button
-            onClick={() => {
-              handleOpenChange(false);
-            }}
-            type="button"
-            variant="outline"
-          >
-            {translations.cancel}
-          </Button>
-          <Button
-            disabled={loading}
-            onClick={() => {
-              form.handleSubmit();
-            }}
-            type="button"
-          >
-            {mode === "update" ? translations.update : translations.submit}
-          </Button>
-        </DialogFooter>
-      </div>
-    </DrawerFormPortalContainerContext.Provider>
-  ) : (
-    <DrawerFormPortalContainerContext.Provider value={drawerContentRef}>
-      <div
-        className="relative mx-auto w-full overflow-visible p-6"
-        ref={drawerContentRef}
-      >
-        <DrawerHeader className="px-0">
-          <DrawerTitle>{formTitle}</DrawerTitle>
-          {formDescription && (
-            <DrawerDescription>{formDescription}</DrawerDescription>
-          )}
-        </DrawerHeader>
-
-        <div className="py-4">
-          <FormBuilder
-            fields={fields}
-            form={form}
-            sections={sections}
-            submitText={null}
-          />
-        </div>
-
-        <DrawerFooter className="flex-row justify-end gap-2 px-0">
-          <Button
-            onClick={() => {
-              handleOpenChange(false);
-            }}
-            type="button"
-            variant="outline"
-          >
-            {translations.cancel}
-          </Button>
-          <Button
-            disabled={loading}
-            onClick={() => {
-              form.handleSubmit();
-            }}
-            type="button"
-          >
-            {mode === "update" ? translations.update : translations.submit}
-          </Button>
-        </DrawerFooter>
-      </div>
-    </DrawerFormPortalContainerContext.Provider>
+  const formBody = (
+    <CatalogueFormBody
+      builder={builder}
+      drawerContentRef={drawerContentRef}
+      formDescription={formDescription}
+      formTitle={formTitle}
+      isModalLayout={isModalLayout}
+      loading={loading}
+      mode={mode}
+      onClose={() => handleOpenChange(false)}
+    />
   );
 
   if (isModalLayout) {
@@ -647,4 +564,100 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
       </DrawerContent>
     </Drawer>
   );
+}
+
+function CatalogueFormBody<TFieldValues extends FieldValues>({
+  builder,
+  mode,
+  formTitle,
+  formDescription,
+  loading,
+  drawerContentRef,
+  isModalLayout,
+  onClose,
+}: {
+  builder: ReturnType<typeof useFormCatalogue<TFieldValues>>;
+  mode: "create" | "update";
+  formTitle: string;
+  formDescription?: string;
+  loading: boolean;
+  drawerContentRef: React.RefObject<HTMLDivElement | null>;
+  isModalLayout: boolean;
+  onClose: () => void;
+}) {
+  const {
+    fields,
+    form,
+    sections,
+    translations,
+    config,
+    context,
+    loadingInitial,
+    loadError,
+    retryInitial,
+  } = builder;
+  const Header = isModalLayout ? DialogHeader : DrawerHeader;
+  const Title = isModalLayout ? DialogTitle : DrawerTitle;
+  const Description = isModalLayout ? DialogDescription : DrawerDescription;
+  const Footer = isModalLayout ? DialogFooter : DrawerFooter;
+  const disabled = loading || loadingInitial || Boolean(loadError);
+  return (
+    <DrawerFormPortalContainerContext.Provider value={drawerContentRef}>
+      <div
+        className="relative mx-auto w-full overflow-visible p-6"
+        ref={drawerContentRef}
+      >
+        <Header className="px-0 pr-10">
+          <Title>{formTitle}</Title>
+          {formDescription && <Description>{formDescription}</Description>}
+        </Header>
+        <div className="py-4">
+          {loadingInitial && (
+            <output>{translations.loading ?? "Loading…"}</output>
+          )}
+          {loadError && (
+            <div role="alert">
+              {loadError}{" "}
+              <Button onClick={retryInitial} type="button">
+                {translations.retry ?? "Retry"}
+              </Button>
+            </div>
+          )}
+          <fieldset disabled={disabled}>
+            <FormBuilder
+              context={context}
+              fields={fields}
+              form={form}
+              sections={sections}
+              submitText={null}
+            />
+          </fieldset>
+        </div>
+        <Footer className="flex-row justify-end gap-2 px-0">
+          <Button
+            disabled={loading}
+            onClick={onClose}
+            type="button"
+            variant="outline"
+          >
+            {config.cancelLabel ?? translations.cancel}
+          </Button>
+          <Button
+            disabled={disabled}
+            onClick={async () => {
+              await form.handleSubmit();
+            }}
+            type="button"
+          >
+            {config.submitLabel ??
+              (mode === "update" ? translations.update : translations.submit)}
+          </Button>
+        </Footer>
+      </div>
+    </DrawerFormPortalContainerContext.Provider>
+  );
+}
+
+function resolveFormTitle<T extends FieldValues>(config: FormConfig<T>, mode: "create" | "update", row?: FieldValues) {
+  return typeof config.title === "function" ? config.title(mode === "update" ? "edit" : "create", row) : config.title;
 }

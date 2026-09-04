@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
   computed,
+  onBeforeUnmount,
   defineComponent,
   h,
   type PropType,
@@ -10,9 +11,10 @@ import {
   type VNodeChild,
 } from "vue";
 import { useTableContext } from "../../context";
-import { displayCellValue, safeHttpUrl } from "../../core";
+import { displayCellValue, safeHttpUrl, imageSource } from "../../core";
 import {
   cloneFormValue,
+  formValuesEqual,
   fieldIsDisabled,
   fieldIsHidden,
   translateFormConfig,
@@ -129,7 +131,7 @@ const canEdit = computed(() => {
   if (
     !(
       context.config.table.allowInlineEdit &&
-      context.config.table.inlineEdit?.enabled &&
+      (inlineConfig.value.enabled ?? context.config.table.inlineEdit?.enabled) &&
       context.actions.value?.update
     )
   ) {
@@ -169,6 +171,7 @@ const editor = computed<InlineEditEditor>(() => {
   if (["select", "radio", "select-with-add-new"].includes(type)) {
     return "select";
   }
+  if (type === "textarea") return "textarea";
   if (type === "url") {
     return "url";
   }
@@ -190,7 +193,7 @@ const options = computed<SelectOption[]>(
 );
 const begin = async (): Promise<void> => {
   if (!canEdit.value || pending.value || optionsLoading.value) return;
-  draft.value = cloneFormValue(props.value);
+  draft.value = editor.value === "json" ? JSON.stringify(props.value, null, 2) : cloneFormValue(props.value);
   editing.value = true;
   error.value = undefined;
   loadedOptions.value = undefined;
@@ -229,7 +232,9 @@ const parseDraft = (): unknown => {
   }
   return draft.value;
 };
-const save = async (): Promise<void> => {
+let saveTimer: ReturnType<typeof setTimeout> | undefined;
+const save = async (close = true): Promise<void> => {
+  clearTimeout(saveTimer);
   if (
     !editing.value ||
     pending.value ||
@@ -249,6 +254,10 @@ const save = async (): Promise<void> => {
   error.value = undefined;
   try {
     value = parseDraft();
+    if (formValuesEqual(value, props.value)) {
+      if (close) editing.value = false;
+      return;
+    }
     const candidate = { ...cloneFormValue(row), [field]: value };
     if (formField.value) {
       const result = await validateFormFields([formField.value], candidate, {
@@ -287,7 +296,7 @@ const save = async (): Promise<void> => {
         result.fieldErrors?.[field] ?? result.error ?? "Update failed"
       );
     optimistic = false;
-    editing.value = false;
+    if (close) editing.value = false;
     await context.refresh();
   } catch (cause) {
     if (optimistic && Object.is(row[field], value)) row[field] = previous;
@@ -296,7 +305,15 @@ const save = async (): Promise<void> => {
     pending.value = false;
   }
 };
+watch(draft, () => {
+  clearTimeout(saveTimer);
+  if (!editing.value || pending.value || Object.is(draft.value, props.value)) return;
+  const delay = inlineConfig.value.debounceMs ?? context.config.table.inlineEdit?.debounceMs ?? 700;
+  saveTimer = setTimeout(() => { void save(false); }, Math.max(0, delay));
+}, { deep: true });
+onBeforeUnmount(() => clearTimeout(saveTimer));
 const resetEditing = (): void => {
+  clearTimeout(saveTimer);
   optionsVersion += 1;
   optionsLoading.value = false;
   editing.value = false;
@@ -306,7 +323,7 @@ const resetEditing = (): void => {
 const cancel = (): void => {
   if (!pending.value) resetEditing();
 };
-watch(() => props.row, resetEditing);
+watch(() => context.getRowId(props.row), resetEditing);
 const onKeydown = async (event: KeyboardEvent): Promise<void> => {
   if (!editing.value && event.key === "Enter") {
     await begin();
@@ -339,7 +356,7 @@ const urlDomain = computed(() => {
   }
 });
 const imageUrl = computed(() =>
-  dynamicType.value === "image" ? safeHttpUrl(props.value) : undefined
+  dynamicType.value === "image" ? imageSource(props.value) : undefined
 );
 const tags = computed(() =>
   Array.isArray(props.value) ? props.value : [props.value]
@@ -362,7 +379,7 @@ const tags = computed(() =>
         v-model="draft"
         type="checkbox"
         class="yayaw-checkbox"
-        @change="save"
+        @change="save()"
       />
       <select
         v-else-if="editor === 'select'"
@@ -371,8 +388,8 @@ const tags = computed(() =>
         :disabled="pending || optionsLoading"
         :aria-label="formField?.label ?? column.header"
         autofocus
-        @change="save"
-        @blur="save"
+        @change="save()"
+        @blur="save()"
       >
         <option
           v-for="option in options"
@@ -390,7 +407,7 @@ const tags = computed(() =>
         class="yayaw-select yayaw-inline-editor"
         autofocus
         @change="updateMulti"
-        @blur="save"
+        @blur="save()"
       >
         <option
           v-for="option in options"
@@ -411,7 +428,7 @@ const tags = computed(() =>
         :disabled="pending || optionsLoading"
         :aria-label="formField?.label ?? column.header"
         autofocus
-        @blur="save"
+        @blur="save()"
       />
       <input
         v-else
@@ -429,7 +446,7 @@ const tags = computed(() =>
         :disabled="pending || optionsLoading"
         :aria-label="formField?.label ?? column.header"
         autofocus
-        @blur="save"
+        @blur="save()"
       />
       <span v-if="error" class="yayaw-inline-error" role="alert">{{
         error
@@ -453,7 +470,7 @@ const tags = computed(() =>
       ><span aria-hidden="true">{{ value ? "✓" : "—" }}</span></span
     >
     <code v-else-if="effectiveColumn.type === 'code'" class="yayaw-code">{{
-      displayCellValue(value, effectiveColumn)
+      displayCellValue(value, effectiveColumn, context.locale)
     }}</code>
     <img
       v-else-if="imageUrl"
@@ -499,12 +516,12 @@ const tags = computed(() =>
       >
     </span>
     <pre v-else-if="effectiveColumn.type === 'json'" class="yayaw-json">{{
-      displayCellValue(value, effectiveColumn)
+      displayCellValue(value, effectiveColumn, context.locale)
     }}</pre>
     <span
       v-else
       :class="{ 'yayaw-number': effectiveColumn.type === 'number' }"
-      >{{ displayCellValue(value, effectiveColumn) }}</span
+      >{{ displayCellValue(value, effectiveColumn, context.locale) }}</span
     >
     <span v-if="error && !editing" class="yayaw-inline-error" role="alert">{{
       error

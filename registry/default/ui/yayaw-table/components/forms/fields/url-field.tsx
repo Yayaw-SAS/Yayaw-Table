@@ -130,7 +130,7 @@ export function UrlField<TFieldValues extends Record<string, unknown>>({
         <Input
           aria-invalid={!fieldApi.state.meta.isValid}
           className="pr-9"
-          disabled={field.disabled}
+          disabled={field.disabled === true}
           name={fieldApi.name}
           onBlur={fieldApi.handleBlur}
           onChange={(e) => fieldApi.handleChange(e.target.value)}

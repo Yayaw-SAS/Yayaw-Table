@@ -34,7 +34,7 @@ export function CheckboxField<TFieldValues extends Record<string, unknown>>({
       <div className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
         <Checkbox
           checked={checked}
-          disabled={field.disabled}
+          disabled={field.disabled === true}
           id={fieldApi.name}
           onCheckedChange={(val) => fieldApi.handleChange(Boolean(val))}
         />

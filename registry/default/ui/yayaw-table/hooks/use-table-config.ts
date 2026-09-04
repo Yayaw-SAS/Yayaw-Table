@@ -83,6 +83,8 @@ export interface TableCatalogueTableConfig {
   showToolbar?: boolean;
   showToolbarHeader?: boolean;
   /** Show an icon in the toolbar to clear filters and global search. */
+  /** Clear search and filters while preserving display options. */
+  showClearFilters?: boolean;
   showResetFilters?: boolean;
   export?: boolean;
   bulkExport?: boolean;
@@ -303,6 +305,7 @@ function resolveTableBehaviorConfig(
     ...resolveTablePermissionConfig(mergedConfig),
     showToolbar: mergedConfig.showToolbar ?? true,
     showToolbarHeader: mergedConfig.showToolbarHeader ?? true,
+    showClearFilters: mergedConfig.showClearFilters ?? false,
     showResetFilters: mergedConfig.showResetFilters ?? false,
     export: mergedConfig.export ?? true,
     bulkExport: mergedConfig.bulkExport ?? true,

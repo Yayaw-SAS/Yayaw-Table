@@ -88,3 +88,5 @@ Release notes and SemVer bumps use Changesets. See [the release workflow](./docs
 ## License
 
 MIT
+
+See [React and Vue compatibility](docs/FRAMEWORK-PARITY.md) for shared action contracts, catalogue forms, bulk editing, and reset behavior.

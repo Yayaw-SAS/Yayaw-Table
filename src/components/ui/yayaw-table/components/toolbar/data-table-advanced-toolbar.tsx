@@ -26,7 +26,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/src/components/ui/tooltip";
-import { filterResetVersionAtom, selectedRowsAtom } from "../../atoms/table-atoms";
+import {
+  filterResetVersionAtom,
+  selectedRowsAtom,
+} from "../../atoms/table-atoms";
 import { useDataTable } from "../../hooks/use-data-table";
 import {
   useColumnsFilterConfig,
@@ -41,8 +44,6 @@ import {
   useTableActions as useProviderTableActions,
   useTranslations,
 } from "../../providers/table-provider";
-import type { DateDisplayPreset } from "../../types/date-types";
-import { DATE_DISPLAY_PRESETS } from "../../types/date-types";
 import type {
   ColumnDataType,
   ToolbarAction,
@@ -50,14 +51,16 @@ import type {
   ToolbarActionsInput,
   ToolbarActionsPlacement,
 } from "../../types";
+import type { DateDisplayPreset } from "../../types/date-types";
+import { DATE_DISPLAY_PRESETS } from "../../types/date-types";
 import { buildCsvExportColumns, exportRowsAsCsv } from "../../utils/csv-export";
 import {
   fetchAllFilteredRows,
+  type TableListAction,
   toAdvancedFiltersParam,
   toFiltersParam,
   toOrderByParam,
   toPageSize,
-  type TableListAction,
 } from "../../utils/filtered-rows";
 import {
   catalogueFormAtom,
@@ -67,9 +70,9 @@ import { SearchBar } from "./sections/search-bar";
 import { TableMenu } from "./table-menu";
 import {
   partitionToolbarActions,
-  shouldRenderToolbarAction,
   resolveToolbarActionState,
   resolveToolbarActions,
+  shouldRenderToolbarAction,
 } from "./toolbar-actions";
 
 // Debug flag to help track issues - activated for debugging
@@ -262,8 +265,9 @@ function createColumnOptions(
   const options = columnDefinitions
     .filter((colDef) => colDef.id !== "select" && colDef.id !== "actions") // Skip system columns
     .map((colDef) => {
-      const columnDateDisplayPreset = (colDef as { dateDisplayPreset?: unknown })
-        .dateDisplayPreset;
+      const columnDateDisplayPreset = (
+        colDef as { dateDisplayPreset?: unknown }
+      ).dateDisplayPreset;
       const rawDateFormat =
         (colDef as { dateFormat?: unknown }).dateFormat ??
         (colDef as { meta?: { dateFormat?: unknown } }).meta?.dateFormat;
@@ -551,12 +555,7 @@ export function DataTableAdvancedToolbar<TData>({
   );
 
   const { advancedColumnsConfig, advancedFiltersResult } =
-    useAdvancedFiltersSetup(
-      tableType,
-      data,
-      columnOptions,
-      columnTypeMapping
-    );
+    useAdvancedFiltersSetup(tableType, data, columnOptions, columnTypeMapping);
 
   // Get final columns and visibility
   const finalColumns = useFinalColumns(state, columnOptions);
@@ -841,7 +840,8 @@ export function DataTableAdvancedToolbar<TData>({
       isCreateEnabled,
       isExportEnabled,
       isExporting,
-      isFooterCalculationsEnabled: tableConfig.table.enableCalculations === true,
+      isFooterCalculationsEnabled:
+        tableConfig.table.enableCalculations === true,
       isMobile,
       selectedCount: selectedRows.length,
       selectedOriginalRows: selectedRows.map((row) => row.original),
@@ -971,7 +971,9 @@ export function DataTableAdvancedToolbar<TData>({
                   variant={resolvedState.variant}
                 >
                   {iconContent || (
-                    <span className="font-medium text-xs">{iconOnlyFallback}</span>
+                    <span className="font-medium text-xs">
+                      {iconOnlyFallback}
+                    </span>
                   )}
                 </Button>
               }
@@ -1041,7 +1043,9 @@ export function DataTableAdvancedToolbar<TData>({
           />
         )}
 
-        {toolbarActionsByPlacement.betweenCreateAndExport.map(renderToolbarAction)}
+        {toolbarActionsByPlacement.betweenCreateAndExport.map(
+          renderToolbarAction
+        )}
 
         {isExportEnabled && (
           <ToolbarExportButton
@@ -1077,8 +1081,8 @@ export function DataTableAdvancedToolbar<TData>({
           }
           columns={tableMenuColumns}
           defaultDisplayMode={tableConfig.table.defaultDisplayMode}
-          enableColumnFilters={isColumnFiltersEnabled}
           enableCalculations={tableConfig.table.enableCalculations === true}
+          enableColumnFilters={isColumnFiltersEnabled}
           enableGrouping={isGroupingEnabled}
           enableSorting={isSortingEnabled}
           invalidateTable={async () => {
@@ -1116,7 +1120,10 @@ export function DataTableAdvancedToolbar<TData>({
           tableType={tableType}
           useAdvancedFilters={enableAdvancedFilters}
         />
-        {tableConfig.table.showResetFilters === true && (
+        {[
+          tableConfig.table.showResetFilters,
+          tableConfig.table.showClearFilters,
+        ].includes(true) && (
           <Tooltip>
             <TooltipTrigger
               render={

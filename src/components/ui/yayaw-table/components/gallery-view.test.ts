@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { describe, it } from "bun:test";
 import type { TableCatalogueColumnConfig } from "../hooks/use-table-config";
 import { getImageFallbackInitial, resolveImageSource } from "../utils/image-source";
 import {

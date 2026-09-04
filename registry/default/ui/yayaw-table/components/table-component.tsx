@@ -65,7 +65,7 @@ import {
   type CustomBulkActionsInput,
   getBulkActionsMenuPositionMode,
 } from "./bulk-actions/bulk-actions-menu";
-import { InlineEditableCell } from "./cells/inline-editable-cell";
+import { CatalogueInlineCell } from "./cells/catalogue-inline-cell";
 import { ColumnDragOverlay } from "./columns/header/column-drag-overlay";
 import { DataTableColumnHeader } from "./columns/header/column-header";
 import { SortableHeader } from "./columns/header/sortable-header";
@@ -78,7 +78,8 @@ import {
   catalogueFormAtom,
   openUpdateForm,
 } from "./forms/atoms/catalogue-form-atoms";
-import type { AnyFieldDefinition } from "./forms/types";
+import { CatalogueBulkEditor } from "./forms/catalogue-bulk-editor";
+import type { FormConfigContext } from "./forms/types";
 import {
   DataTableGalleryView,
   resolveGalleryLinkColumnId,
@@ -1045,34 +1046,31 @@ function ModernDataTable<
     );
   }
 
-  const inlineEditFormType = tableConfig.form?.editFormType || defaultFormType;
-  const inlineEditFormConfig = useMemo(
-    () =>
-      getFormConfig?.(inlineEditFormType, {
-        formType: inlineEditFormType,
+  const resolveInlineForm = useCallback(
+    (row: TData) => {
+      const formType =
+        tableConfig.form?.resolveEditFormType?.(row) ??
+        tableConfig.form?.editFormType ??
+        defaultFormType;
+      const context: FormConfigContext = {
+        formType,
         mode: "edit",
         tableId,
         tableType: resolvedTableType,
-      }),
-    [getFormConfig, inlineEditFormType, resolvedTableType, tableId]
+        row,
+        initialData: row,
+        values: row,
+      };
+      return { context, config: getFormConfig?.(formType, context) };
+    },
+    [
+      defaultFormType,
+      getFormConfig,
+      resolvedTableType,
+      tableConfig.form,
+      tableId,
+    ]
   );
-  const inlineEditSchema = useMemo(() => {
-    const schema = inlineEditFormConfig?.schema;
-    if (!schema) {
-      return undefined;
-    }
-
-    return {
-      safeParse: (data: unknown) => schema.safeParse(data),
-    };
-  }, [inlineEditFormConfig?.schema]);
-  const inlineEditFieldMap = useMemo(() => {
-    const fieldMap = new Map<string, AnyFieldDefinition>();
-    for (const field of inlineEditFormConfig?.fields ?? []) {
-      fieldMap.set(String(field.name), field as AnyFieldDefinition);
-    }
-    return fieldMap;
-  }, [inlineEditFormConfig?.fields]);
   const handleRowEditClick = useCallback(
     (row: Row<TData>) => {
       const handleSuccess = () => {
@@ -1903,19 +1901,18 @@ function ModernDataTable<
       );
       const inlineConfig = getInlineEditConfigFromCell(cell);
       const canInlineEdit = isCellInlineEditable(cell, inlineConfig);
-      if (!canInlineEdit) {
+      if (!(canInlineEdit && canEditGalleryRow(row))) {
         return defaultCellContent;
       }
 
-      const formFieldDefinition = inlineEditFieldMap.get(
-        inlineConfig.formField
-      );
+      const { config, context } = resolveInlineForm(row.original);
 
       return (
-        <InlineEditableCell
+        <CatalogueInlineCell
           cell={cell}
+          config={config}
+          context={context}
           displayValue={defaultCellContent}
-          formFieldDefinition={formFieldDefinition}
           inlineConfig={inlineConfig}
           onCommit={async (value) => {
             return await commitInlineEdit({
@@ -1925,8 +1922,6 @@ function ModernDataTable<
               value,
             });
           }}
-          rowData={row.original as Record<string, unknown>}
-          schema={inlineEditSchema}
         />
       );
     };
@@ -2137,8 +2132,8 @@ function ModernDataTable<
     resolvedEmptyState.show,
     emptyStateDescription,
     emptyStateTitle,
-    inlineEditFieldMap,
-    inlineEditSchema,
+    resolveInlineForm,
+    canEditGalleryRow,
     localExpanded,
     state.grouping,
     tableConfig.columns.definitions,
@@ -2448,6 +2443,13 @@ function ModernDataTable<
   return (
     <div className="space-y-4" suppressHydrationWarning>
       {renderContent()}
+      <CatalogueBulkEditor
+        onClose={bulkActions.closeBulkEdit}
+        onCompleted={bulkActions.completeBulkEdit}
+        tableId={tableId}
+        tableType={resolvedTableType}
+        targets={bulkActions.bulkEditTargets}
+      />
     </div>
   );
 }

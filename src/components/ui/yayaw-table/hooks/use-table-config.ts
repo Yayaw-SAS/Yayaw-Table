@@ -6,10 +6,11 @@
 
 import type { ColumnSort } from "@tanstack/react-table";
 import { useMemo } from "react";
+import type { TableFormConfig } from "../config/form-config";
 import type {
   InlineEditColumnConfig,
-  TableEmptyStateConfig,
   TableConfig,
+  TableEmptyStateConfig,
   TableInlineEditConfig,
   TableLayoutPreset,
   TableRowClickMode,
@@ -20,7 +21,10 @@ import {
   resolveTableDisplayModes,
   resolveTableLayoutPreset,
 } from "../config/helpers";
-import type { TableFormConfig } from "../config/form-config";
+import {
+  useTableConfig as useProviderTableConfig,
+  useTranslations,
+} from "../providers/table-provider";
 import type { DateDisplayPreset } from "../types/date-types";
 import type {
   TableDisplayMode,
@@ -28,10 +32,6 @@ import type {
   TableKanbanConfig,
 } from "../types/display-types";
 import type { CalculationType } from "../types/footer-types";
-import {
-  useTableConfig as useProviderTableConfig,
-  useTranslations,
-} from "../providers/table-provider";
 import type { NumberFormatConfig } from "../utils/number-format";
 import { useTableTranslations } from "./use-table-translations";
 
@@ -83,6 +83,8 @@ export interface TableCatalogueTableConfig {
   showToolbar?: boolean;
   showToolbarHeader?: boolean;
   /** Show an icon in the toolbar to clear filters and global search. */
+  /** Clear search and filters while preserving display options. */
+  showClearFilters?: boolean;
   showResetFilters?: boolean;
   export?: boolean;
   bulkExport?: boolean;
@@ -303,6 +305,7 @@ function resolveTableBehaviorConfig(
     ...resolveTablePermissionConfig(mergedConfig),
     showToolbar: mergedConfig.showToolbar ?? true,
     showToolbarHeader: mergedConfig.showToolbarHeader ?? true,
+    showClearFilters: mergedConfig.showClearFilters ?? false,
     showResetFilters: mergedConfig.showResetFilters ?? false,
     export: mergedConfig.export ?? true,
     bulkExport: mergedConfig.bulkExport ?? true,
@@ -347,7 +350,9 @@ function resolveColumnsConfig(
 ): TableCatalogueConfig["columns"] {
   const definitions = providerConfig?.columns?.definitions || [];
   const order = providerConfig?.columns?.order || [];
-  const hasExplicitVisibleConfig = Array.isArray(providerConfig?.columns?.visible);
+  const hasExplicitVisibleConfig = Array.isArray(
+    providerConfig?.columns?.visible
+  );
   const visible = providerConfig?.columns?.visible || [];
   const mandatory = providerConfig?.columns?.mandatory || [];
   const enableRowSelection = providerConfig.enableRowSelection !== false;

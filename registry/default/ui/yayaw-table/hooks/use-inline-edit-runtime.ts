@@ -242,17 +242,21 @@ export function resolveInlineEditOptions(
   }
 
   if (formField?.type === "select") {
-    return formField.options.map((option) => ({
-      label: option.label,
-      value: option.value,
-    }));
+    return (Array.isArray(formField.options) ? formField.options : []).map(
+      (option) => ({
+        label: option.label,
+        value: option.value,
+      })
+    );
   }
 
   if (formField?.type === "select-with-add-new" && formField.options) {
-    return formField.options.map((option) => ({
-      label: option.label,
-      value: option.value,
-    }));
+    return (Array.isArray(formField.options) ? formField.options : []).map(
+      (option) => ({
+        label: option.label,
+        value: option.value,
+      })
+    );
   }
 
   return [];

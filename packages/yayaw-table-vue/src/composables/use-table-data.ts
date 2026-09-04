@@ -7,12 +7,14 @@ import {
   ref,
   watch,
 } from "vue";
+import { compatibleListParams } from "../table-contracts";
 import type {
   AdvancedFiltersState,
   ColumnFiltersState,
   PaginationState,
   SortingState,
   TableActions,
+  TableListParams,
   TableRecord,
 } from "../types";
 
@@ -101,7 +103,8 @@ export const useTableData = <TData extends TableRecord>({
       const list = actions.value.list;
       const result = await queryClient.fetchQuery({
         queryKey: ["yayaw-table", tableId, params],
-        queryFn: () => list(params),
+        queryFn: () =>
+          list(compatibleListParams(params) as unknown as TableListParams),
         staleTime: 0,
       });
       if (currentRequest !== requestId) {
@@ -122,6 +125,19 @@ export const useTableData = <TData extends TableRecord>({
       }
     }
   };
+
+  const unsubscribe = queryClient.getQueryCache().subscribe(async (event) => {
+    const key = event.query.queryKey;
+    if (
+      key[0] === "yayaw-table" &&
+      key[1] === tableId &&
+      event.type === "updated" &&
+      event.action.type === "invalidate"
+    ) {
+      await refresh();
+    }
+  });
+  onScopeDispose(unsubscribe);
 
   watch(
     inputData,

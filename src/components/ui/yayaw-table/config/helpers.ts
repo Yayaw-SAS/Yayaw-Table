@@ -1,14 +1,15 @@
 /**
  * Helper functions for defining and working with table configurations
  */
-import { defaultTableConfig, defaultTranslations } from "./defaults";
-import type { TableFormConfig } from "./form-config";
+
 import type { DateDisplayPreset } from "../types/date-types";
 import type {
   TableDisplayMode,
   TableGalleryConfig,
   TableKanbanConfig,
 } from "../types/display-types";
+import { defaultTableConfig, defaultTranslations } from "./defaults";
+import type { TableFormConfig } from "./form-config";
 
 /**
  * Supported editor types for inline cell editing.
@@ -188,7 +189,9 @@ export function resolveTableDisplayModes(
 ): TableDisplayMode[] {
   const resolvedModes = (displayModes ?? ["table"]).filter(
     (mode, index, modes): mode is TableDisplayMode => {
-      return TABLE_DISPLAY_MODES.includes(mode) && modes.indexOf(mode) === index;
+      return (
+        TABLE_DISPLAY_MODES.includes(mode) && modes.indexOf(mode) === index
+      );
     }
   );
 
@@ -443,6 +446,8 @@ export interface TableBehaviorConfig {
   showToolbarHeader: boolean;
 
   /** Show an icon in the toolbar to clear filters and global search. */
+  /** Clear search and filters while preserving display options. */
+  showClearFilters?: boolean;
   showResetFilters?: boolean;
 
   /**

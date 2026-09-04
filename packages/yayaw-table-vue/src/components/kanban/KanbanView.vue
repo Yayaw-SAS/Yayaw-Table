@@ -1,23 +1,23 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { useTableContext } from "../../context";
-import { applyTableQuery, displayCellValue } from "../../core";
+import { displayCellValue } from "../../core";
 import type { ColumnDefinition, TableRecord } from "../../types";
+import { useCardRows } from "../../composables/use-card-rows";
+import CellRenderer from "../table/CellRenderer.vue";
 import RowActions from "../table/RowActions.vue";
 
 const context = useTableContext();
+const translate = (key: string, fallback: string) => String(context.translations.value[key] ?? fallback);
 const dragged = ref<TableRecord>();
 const pending = ref<string>();
 const groupBy = computed({
   get: () =>
-    context.state.kanban.value.groupBy ??
+    context.state.grouping.value[0] ??
     context.config.table.kanban?.groupBy ??
     "",
   set: (value: string) => {
-    context.state.kanban.value = {
-      ...context.state.kanban.value,
-      groupBy: value,
-    };
+    context.state.grouping.value = value ? [value] : [];
   },
 });
 const titleColumn = computed({
@@ -65,20 +65,9 @@ const showLabels = computed({
     };
   },
 });
-const rows = computed(() => {
-  if (context.data.isServer.value) {
-    return context.data.rows.value;
-  }
-  return applyTableQuery(context.data.rows.value, {
-    columns: context.config.columns.definitions,
-    search: context.state.search.value,
-    filters: context.state.filters.value,
-    advancedFilters: context.state.advancedFilters.value,
-    sorting: context.state.sorting.value,
-  });
-});
+const rows = useCardRows();
 const rawGroups = computed(() => {
-  const configured = context.config.table.kanban?.groups ?? [];
+  const configured = groupBy.value === context.config.table.kanban?.groupBy ? context.config.table.kanban?.groups ?? [] : [];
   const values = new Set(
     rows.value.map((row) => String(value(row, groupBy.value) ?? "Unassigned"))
   );
@@ -124,6 +113,7 @@ const drop = async (target: string): Promise<void> => {
   const definition = column(groupBy.value);
   const field = definition?.accessorKey ?? groupBy.value;
   if (
+    !canDrag.value || pending.value ||
     !(row && groupBy.value) ||
     String(value(row, groupBy.value)) === target ||
     !context.actions.value?.update ||
@@ -143,6 +133,7 @@ const drop = async (target: string): Promise<void> => {
     }
     await context.refresh();
   } catch (cause) {
+    if (Object.is(row[field], target)) row[field] = previous;
     context.status.value = {
       type: "error",
       message: cause instanceof Error ? cause.message : String(cause),
@@ -156,9 +147,11 @@ const activate = (
   row: TableRecord,
   event: MouseEvent | KeyboardEvent
 ): void => {
-  if (event instanceof KeyboardEvent && !["Enter", " "].includes(event.key)) {
+  if (event instanceof KeyboardEvent && (event.target !== event.currentTarget || !["Enter", " "].includes(event.key))) {
     return;
   }
+  if (event.target instanceof Element && event.target.closest("button,a,input,select,textarea,label")) return;
+  if (event instanceof KeyboardEvent) event.preventDefault();
   context.activateRow(row, event as MouseEvent);
 };
 const toggleSelection = (row: TableRecord, checked: boolean): void => {
@@ -175,23 +168,23 @@ const toggleSelection = (row: TableRecord, checked: boolean): void => {
 <template>
   <div class="yayaw-card-view-shell">
     <div class="yayaw-card-controls">
-      <label>Lane
+      <label>{{ translate('cardLane', 'Lane') }}
         <select v-model="groupBy" class="yayaw-select">
           <option v-for="item in context.config.columns.definitions.filter((entry) => entry.enableGrouping !== false && !['select', 'actions'].includes(entry.id))" :key="item.id" :value="item.id">{{ item.header }}</option>
         </select>
       </label>
-      <label>Title
+      <label>{{ translate('cardTitle', 'Title') }}
         <select v-model="titleColumn" class="yayaw-select">
           <option v-for="item in context.config.columns.definitions.filter((entry) => !['select', 'actions'].includes(entry.id))" :key="item.id" :value="item.id">{{ item.header }}</option>
         </select>
       </label>
       <details>
-        <summary class="yayaw-button yayaw-button-outline">Properties</summary>
+        <summary class="yayaw-button yayaw-button-outline">{{ translate('properties', 'Properties') }}</summary>
         <div class="yayaw-card-properties-menu">
           <label v-for="item in context.config.columns.definitions.filter((entry) => !['select', 'actions'].includes(entry.id))" :key="item.id" class="yayaw-checkbox-label">
             <input type="checkbox" :checked="propertyIds.includes(item.id)" @change="toggleProperty(item.id, ($event.target as HTMLInputElement).checked)" /> {{ item.header }}
           </label>
-          <label class="yayaw-checkbox-label"><input v-model="showLabels" type="checkbox" /> Show labels</label>
+          <label class="yayaw-checkbox-label"><input v-model="showLabels" type="checkbox" /> {{ translate('cardShowLabels', 'Show labels') }}</label>
         </div>
       </details>
     </div>
@@ -212,15 +205,15 @@ const toggleSelection = (row: TableRecord, checked: boolean): void => {
           >
             <div class="yayaw-card-header">
               <label v-if="context.config.table.enableRowSelection" class="yayaw-card-select" @click.stop>
-                <input type="checkbox" :checked="context.selection.value[context.getRowId(row)]" :disabled="context.config.table.canSelectRow?.(row) === false" @change="toggleSelection(row, ($event.target as HTMLInputElement).checked)" />
+                <input type="checkbox" :aria-label="translate('selectRow', 'Select') + ' ' + String(value(row, titleColumn))" :checked="context.selection.value[context.getRowId(row)]" :disabled="context.config.table.canSelectRow?.(row) === false" @change="toggleSelection(row, ($event.target as HTMLInputElement).checked)" />
               </label>
-              <strong>{{ displayCellValue(value(row, titleColumn), column(titleColumn) ?? { id: titleColumn, header: titleColumn }) }}</strong>
+              <strong>{{ displayCellValue(value(row, titleColumn), column(titleColumn) ?? { id: titleColumn, header: titleColumn }, context.locale) }}</strong>
               <RowActions :row="row" />
             </div>
             <dl class="yayaw-card-properties" :class="{ labeled: showLabels }">
               <template v-for="id in propertyIds.filter((item) => item !== titleColumn && item !== groupBy)" :key="id">
                 <dt v-if="showLabels">{{ column(id)?.header ?? id }}</dt>
-                <dd>{{ displayCellValue(value(row, id), column(id) ?? { id, header: id }) }}</dd>
+                <dd><CellRenderer :value="value(row, id)" :row="row" :column="column(id) ?? { id, header: id }" /></dd>
               </template>
             </dl>
           </article>

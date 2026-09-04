@@ -21,6 +21,7 @@ import type {
 } from "../types/display-types";
 import type { AdvancedFiltersState } from "../types/filter-types";
 import type { TableViewConfig } from "../types/view-types";
+import { normalizeFilterEnvelope } from "../utils/table-contracts";
 import {
   createTableViewConfigSnapshot,
   normalizeColumnPinning,
@@ -230,11 +231,9 @@ const advancedFiltersParser = createParser({
   parse: (value: string) => {
     try {
       const parsedValue = value ? JSON.parse(value) : [];
-      if (!Array.isArray(parsedValue)) {
-        return [];
-      }
-
-      return parsedValue.map(normalizeAdvancedFilter) as AdvancedFiltersState;
+      return normalizeFilterEnvelope(parsedValue).filters.map(
+        normalizeAdvancedFilter
+      ) as unknown as AdvancedFiltersState;
     } catch {
       return [];
     }

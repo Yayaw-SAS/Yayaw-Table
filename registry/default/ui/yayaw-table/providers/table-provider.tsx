@@ -37,6 +37,7 @@ export interface TableAggregateResultValue {
 }
 
 export interface TableAggregateParams {
+  advancedFilterJoin?: "and" | "or";
   filters: Record<string, unknown>;
   advancedFilters: unknown[];
   search: string;
@@ -58,29 +59,61 @@ export interface TableActions {
       totalCount?: number;
     };
   }>;
-  create?: (
-    data: Record<string, unknown>
-  ) => Promise<{ success: boolean; data?: unknown; error?: string }>;
+  create?: (data: Record<string, unknown>) => Promise<{
+    success: boolean;
+    data?: unknown;
+    error?: string;
+    fieldErrors?: Record<string, string>;
+    failedIds?: string[];
+  }>;
   update?: (
     id: string,
     data: Record<string, unknown>
-  ) => Promise<{ success: boolean; data?: unknown; error?: string }>;
-  delete?: (
-    id: string
-  ) => Promise<{ success: boolean; data?: unknown; error?: string }>;
-  duplicate?: (
-    id: string
-  ) => Promise<{ success: boolean; data?: unknown; error?: string }>;
-  bulkDelete?: (
-    ids: string[]
-  ) => Promise<{ success: boolean; data?: unknown; error?: string }>;
-  bulkCopy?: (
-    ids: string[]
-  ) => Promise<{ success: boolean; data?: unknown; error?: string }>;
+  ) => Promise<{
+    success: boolean;
+    data?: unknown;
+    error?: string;
+    fieldErrors?: Record<string, string>;
+    failedIds?: string[];
+  }>;
+  delete?: (id: string) => Promise<{
+    success: boolean;
+    data?: unknown;
+    error?: string;
+    fieldErrors?: Record<string, string>;
+    failedIds?: string[];
+  }>;
+  duplicate?: (id: string) => Promise<{
+    success: boolean;
+    data?: unknown;
+    error?: string;
+    fieldErrors?: Record<string, string>;
+    failedIds?: string[];
+  }>;
+  bulkDelete?: (ids: string[]) => Promise<{
+    success: boolean;
+    data?: unknown;
+    error?: string;
+    fieldErrors?: Record<string, string>;
+    failedIds?: string[];
+  }>;
+  bulkCopy?: (ids: string[]) => Promise<{
+    success: boolean;
+    data?: unknown;
+    error?: string;
+    fieldErrors?: Record<string, string>;
+    failedIds?: string[];
+  }>;
   bulkUpdate?: (
     ids: string[],
     data: Record<string, unknown>
-  ) => Promise<{ success: boolean; data?: unknown; error?: string }>;
+  ) => Promise<{
+    success: boolean;
+    data?: unknown;
+    error?: string;
+    fieldErrors?: Record<string, string>;
+    failedIds?: string[];
+  }>;
   views?: TableViewActions;
   [key: string]: unknown;
 }

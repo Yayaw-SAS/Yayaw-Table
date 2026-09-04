@@ -5,6 +5,7 @@
 
 import type { ColumnFiltersState } from "@tanstack/react-table";
 import { useCallback, useMemo } from "react";
+import type { DateDisplayPreset } from "../types/date-types";
 import type {
   AdvancedFilterModel,
   AdvancedFilterPreset,
@@ -16,7 +17,10 @@ import type {
   FilterOperators,
   FilterStrategy,
 } from "../types/filter-types";
-import type { DateDisplayPreset } from "../types/date-types";
+import {
+  matchesContractFilter,
+  normalizeFilterEnvelope,
+} from "../utils/table-contracts";
 import { useDataTable } from "./use-data-table";
 import { useTableUrlState } from "./use-table-url-state";
 
@@ -27,273 +31,27 @@ function generateId(): string {
   return Math.random().toString(36).slice(2, 11);
 }
 
-// Filter helper functions
-function applyTextFilter(value: unknown, filter: AdvancedFilterModel): boolean {
-  const textValue = String(value || "").toLowerCase();
-  const textFilter = String(filter.values || "").toLowerCase();
-
-  switch (filter.operator) {
-    case "contains":
-      return textValue.includes(textFilter);
-    case "equals":
-      return textValue === textFilter;
-    case "startsWith":
-      return textValue.startsWith(textFilter);
-    case "endsWith":
-      return textValue.endsWith(textFilter);
-    case "notContains":
-      return !textValue.includes(textFilter);
-    case "isEmpty":
-      return !textValue || textValue.trim() === "";
-    case "isNotEmpty":
-      return Boolean(textValue && textValue.trim() !== "");
-    default:
-      return true;
-  }
-}
-
-function applyNumberFilter(
+export const applyDateFilter = (
   value: unknown,
   filter: AdvancedFilterModel
-): boolean {
-  const numValue = Number(value);
-  const numFilter = Number(filter.values);
+): boolean => matchesContractFilter(value, { ...filter, type: "date" });
 
-  switch (filter.operator) {
-    case "equals":
-      return numValue === numFilter;
-    case "greaterThan":
-      return numValue > numFilter;
-    case "lessThan":
-      return numValue < numFilter;
-    case "greaterThanOrEqual":
-      return numValue >= numFilter;
-    case "lessThanOrEqual":
-      return numValue <= numFilter;
-    case "notEquals":
-      return numValue !== numFilter;
-    case "between":
-      if (Array.isArray(filter.values) && filter.values.length === 2) {
-        const min = Number(filter.values[0]);
-        const max = Number(filter.values[1]);
-        return numValue >= min && numValue <= max;
-      }
-      return true;
-    case "isEmpty":
-      return value == null || value === "";
-    case "isNotEmpty":
-      return value != null && value !== "";
-    default:
-      return true;
-  }
-}
-
-function applySelectFilter(
-  value: unknown,
-  filter: AdvancedFilterModel
-): boolean {
-  switch (filter.operator) {
-    case "is":
-      return value === filter.values;
-    case "isAnyOf":
-      return (
-        Array.isArray(filter.values) &&
-        (filter.values as unknown[]).includes(value)
-      );
-    case "isNot":
-      return value !== filter.values;
-    case "isNoneOf":
-      return (
-        Array.isArray(filter.values) &&
-        !(filter.values as unknown[]).includes(value)
-      );
-    case "isEmpty":
-      return value == null || value === "";
-    case "isNotEmpty":
-      return value != null && value !== "";
-    default:
-      return true;
-  }
-}
-
-const toValidDate = (value: unknown): Date | undefined => {
-  if (value instanceof Date) {
-    return Number.isNaN(value.getTime()) ? undefined : value;
-  }
-
-  if (typeof value === "string" || typeof value === "number") {
-    const parsedDate = new Date(value);
-    return Number.isNaN(parsedDate.getTime()) ? undefined : parsedDate;
-  }
-
-  return;
-};
-
-const startOfDay = (date: Date): Date => {
-  const normalizedDate = new Date(date);
-  normalizedDate.setHours(0, 0, 0, 0);
-  return normalizedDate;
-};
-
-const endOfDay = (date: Date): Date => {
-  const normalizedDate = new Date(date);
-  normalizedDate.setHours(23, 59, 59, 999);
-  return normalizedDate;
-};
-
-const getDateTarget = (values: unknown): Date | undefined => {
-  return toValidDate(Array.isArray(values) ? values[0] : values);
-};
-
-const getDateRange = (values: unknown): [Date, Date] | undefined => {
-  if (!Array.isArray(values)) {
-    const singleDate = toValidDate(values);
-    return singleDate ? [singleDate, singleDate] : undefined;
-  }
-
-  const startDate = toValidDate(values[0]);
-  const endDate = toValidDate(values[1] ?? values[0]);
-  if (!(startDate && endDate)) {
-    return;
-  }
-
-  return startDate.getTime() <= endDate.getTime()
-    ? [startDate, endDate]
-    : [endDate, startDate];
-};
-
-// Helper function for date filtering
-const applyDateFilter = (
-  value: unknown,
-  filter: AdvancedFilterModel
-): boolean => {
-  const dateValue = toValidDate(value);
-
-  if (filter.operator === "isEmpty") {
-    return !dateValue;
-  }
-
-  if (filter.operator === "isNotEmpty") {
-    return Boolean(dateValue);
-  }
-
-  if (!dateValue) {
-    return false;
-  }
-
-  switch (filter.operator) {
-    case "equals": {
-      const targetDate = getDateTarget(filter.values);
-      return targetDate
-        ? startOfDay(dateValue).getTime() === startOfDay(targetDate).getTime()
-        : false;
-    }
-    case "notEquals": {
-      const targetDate = getDateTarget(filter.values);
-      return targetDate
-        ? startOfDay(dateValue).getTime() !== startOfDay(targetDate).getTime()
-        : false;
-    }
-    case "before":
-    case "lessThan": {
-      const targetDate = getDateTarget(filter.values);
-      return targetDate
-        ? dateValue.getTime() < startOfDay(targetDate).getTime()
-        : false;
-    }
-    case "after":
-    case "greaterThan": {
-      const targetDate = getDateTarget(filter.values);
-      return targetDate
-        ? dateValue.getTime() > endOfDay(targetDate).getTime()
-        : false;
-    }
-    case "greaterThanOrEqual": {
-      const targetDate = getDateTarget(filter.values);
-      return targetDate
-        ? dateValue.getTime() >= startOfDay(targetDate).getTime()
-        : false;
-    }
-    case "lessThanOrEqual": {
-      const targetDate = getDateTarget(filter.values);
-      return targetDate
-        ? dateValue.getTime() <= endOfDay(targetDate).getTime()
-        : false;
-    }
-    case "between":
-      {
-        const range = getDateRange(filter.values);
-        if (!range) {
-          return false;
-        }
-
-        const [startDate, endDate] = range;
-        const valueTime = dateValue.getTime();
-        return (
-          valueTime >= startOfDay(startDate).getTime() &&
-          valueTime <= endOfDay(endDate).getTime()
-        );
-      }
-    default:
-      return true;
-  }
-};
-
-// Helper function for fallback filtering (backward compatibility)
-const applyFallbackFilter = (
-  value: unknown,
-  filter: AdvancedFilterModel
-): boolean => {
-  switch (filter.operator) {
-    case "contains":
-      return String(value)
-        .toLowerCase()
-        .includes(String(filter.values).toLowerCase());
-    case "equals":
-    case "is":
-      return value === filter.values;
-    default:
-      return true;
-  }
-};
-
-function applyFilters<TData>(
+export function applyFilters<TData>(
   data: TData[],
-  filters: AdvancedFilterModel[],
+  input: unknown,
   accessors: Record<string, (row: TData) => unknown>
 ): TData[] {
-  if (!filters.length) {
+  const { filters, joinOperator } = normalizeFilterEnvelope(input);
+  const active = filters.filter(
+    (filter) => filter.isActive !== false && accessors[String(filter.columnId)]
+  );
+  if (!active.length) {
     return data;
   }
-
   return data.filter((row) => {
-    return filters.every((filter) => {
-      if (!filter.isActive) {
-        return true;
-      }
-
-      const accessor = accessors[filter.columnId];
-      if (!accessor) {
-        return true;
-      }
-
-      const value = accessor(row);
-
-      // Enhanced filtering logic using helper functions
-      switch (filter.type) {
-        case "text":
-          return applyTextFilter(value, filter);
-        case "number":
-          return applyNumberFilter(value, filter);
-        case "select":
-        case "multiSelect":
-          return applySelectFilter(value, filter);
-        case "date":
-          return applyDateFilter(value, filter);
-        default:
-          return applyFallbackFilter(value, filter);
-      }
-    });
+    const matches = (filter: Record<string, unknown>) =>
+      matchesContractFilter(accessors[String(filter.columnId)](row), filter);
+    return joinOperator === "or" ? active.some(matches) : active.every(matches);
   });
 }
 
@@ -592,9 +350,7 @@ const isSystemColumn = (columnId: string): boolean => {
   return columnId === "select" || columnId === "actions";
 };
 
-const normalizeColumnDataType = (
-  type: unknown
-): ColumnDataType | undefined => {
+const normalizeColumnDataType = (type: unknown): ColumnDataType | undefined => {
   if (typeof type !== "string") {
     return;
   }

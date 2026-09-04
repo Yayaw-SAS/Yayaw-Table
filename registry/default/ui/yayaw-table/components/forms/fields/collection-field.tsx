@@ -37,12 +37,21 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "../../../providers/table-provider";
+import { FormBuilder } from "../form-builder";
+import {
+  defaultFieldValue,
+  formValuesEqual,
+  validateFormFields,
+} from "../form-runtime";
+import { useFormBuilder } from "../hooks/use-form-builder";
 import type {
+  AnyFieldDefinition,
   CollectionFieldActionLabels,
   CollectionFieldColumnDefinition,
   CollectionFieldCreateAction,
   CollectionFieldDefinition,
   FieldValues,
+  FormConfigContext,
   FormFieldApi,
 } from "../types";
 import {
@@ -56,6 +65,36 @@ import {
   removeCollectionItem,
   replaceCollectionItem,
 } from "./collection-field-utils";
+
+function DeclarativeCollectionItem({
+  fields,
+  item,
+  onChange,
+  disabled,
+  context,
+}: {
+  context?: FormConfigContext;
+  fields: AnyFieldDefinition[];
+  item: FieldValues;
+  onChange: (item: FieldValues) => void;
+  disabled?: boolean;
+}) {
+  const { form } = useFormBuilder({
+    config: { id: "collection-item", fields },
+    initialData: item,
+    context: context ? { ...context, values: item } : undefined,
+    onValuesChange: (values) => {
+      if (!formValuesEqual(values, item)) {
+        onChange(values);
+      }
+    },
+  });
+  return (
+    <fieldset disabled={disabled}>
+      <FormBuilder asFieldset context={context} fields={fields} form={form} />
+    </fieldset>
+  );
+}
 
 interface CollectionEditorState {
   draft: CollectionItem;
@@ -85,6 +124,9 @@ export interface CollectionEditorProps {
     item: CollectionItem;
     onChange: (item: CollectionItem) => void;
   }) => ReactNode;
+  validateDraft?: (
+    item: CollectionItem
+  ) => Promise<{ values: CollectionItem; errors: Record<string, string> }>;
   validateItem?: (item: CollectionItem, index: number | null) => string[];
   validateItems?: (items: readonly CollectionItem[]) => string[];
   value: unknown;
@@ -200,10 +242,13 @@ export function CollectionEditor({
   labels,
   onChange,
   renderItemForm,
+  validateDraft,
   validateItem,
   validateItems,
   value,
 }: CollectionEditorProps) {
+  const [saving, setSaving] = useState(false);
+  const [draftIssues, setDraftIssues] = useState<string[]>([]);
   const generatedId = useId();
   const fieldId = id ?? generatedId;
   const { t } = useTranslations();
@@ -242,6 +287,7 @@ export function CollectionEditor({
   const openCreateEditor = (
     actionCreateItem: (items: readonly CollectionItem[]) => CollectionItem
   ) => {
+    setDraftIssues([]);
     setEditorState({
       draft: cloneCollectionItem(actionCreateItem(items)),
       index: null,
@@ -250,6 +296,7 @@ export function CollectionEditor({
   };
 
   const openEditEditor = (item: CollectionItem, index: number) => {
+    setDraftIssues([]);
     setEditorState({
       draft: cloneCollectionItem(item),
       index,
@@ -261,16 +308,29 @@ export function CollectionEditor({
     setEditorState(null);
   };
 
-  const saveEditor = () => {
-    if (!editorState) {
+  const saveEditor = async () => {
+    if (!editorState || saving || disabled) {
       return;
     }
-    const nextItems =
-      editorState.index == null
-        ? insertCollectionItem(items, editorState.draft)
-        : replaceCollectionItem(items, editorState.index, editorState.draft);
-    onChange(nextItems);
-    closeEditor();
+    setSaving(true);
+    try {
+      const validated = await validateDraft?.(editorState.draft);
+      if (validated && Object.keys(validated.errors).length) {
+        setDraftIssues(Object.values(validated.errors));
+        return;
+      }
+      const item = validated?.values ?? editorState.draft;
+      onChange(
+        editorState.index == null
+          ? insertCollectionItem(items, item)
+          : replaceCollectionItem(items, editorState.index, item)
+      );
+      closeEditor();
+    } catch (cause) {
+      setDraftIssues([cause instanceof Error ? cause.message : String(cause)]);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const draftErrors = editorState
@@ -428,7 +488,7 @@ export function CollectionEditor({
       {editorState && (
         <Dialog
           onOpenChange={(open) => {
-            if (!open) {
+            if (!(open || saving)) {
               closeEditor();
             }
           }}
@@ -449,7 +509,7 @@ export function CollectionEditor({
             </DialogHeader>
             <div className="space-y-4">
               {renderItemForm({
-                disabled,
+                disabled: disabled || saving,
                 index: editorState.index,
                 item: editorState.draft,
                 onChange: (item) =>
@@ -460,14 +520,27 @@ export function CollectionEditor({
                   ),
               })}
               <FieldError
-                errors={draftErrors.map((message) => ({ message }))}
+                errors={[...draftErrors, ...draftIssues].map((message) => ({
+                  message,
+                }))}
               />
             </div>
             <DialogFooter>
-              <Button onClick={closeEditor} type="button" variant="outline">
+              <Button
+                disabled={saving}
+                onClick={closeEditor}
+                type="button"
+                variant="outline"
+              >
                 {resolvedLabels.cancel}
               </Button>
-              <Button disabled={disabled} onClick={saveEditor} type="button">
+              <Button
+                disabled={disabled || saving}
+                onClick={async () => {
+                  await saveEditor();
+                }}
+                type="button"
+              >
                 {resolvedLabels.save}
               </Button>
             </DialogFooter>
@@ -481,11 +554,13 @@ export function CollectionEditor({
 interface CollectionFieldProps<TFieldValues extends FieldValues> {
   field: CollectionFieldDefinition<TFieldValues>;
   fieldApi: FormFieldApi<unknown>;
+  context?: FormConfigContext;
 }
 
 export function CollectionField<TFieldValues extends FieldValues>({
   field,
   fieldApi,
+  context,
 }: CollectionFieldProps<TFieldValues>) {
   const { t } = useTranslations();
   const errors = fieldApi.state.meta.errors;
@@ -499,25 +574,137 @@ export function CollectionField<TFieldValues extends FieldValues>({
     }
   }, [fieldApi.handleChange, fieldApi.state.value]);
 
+  const itemContext: FormConfigContext = context ?? {
+    formType: "collection",
+    tableId: "collection",
+    tableType: "collection",
+    mode: "create",
+  };
+  const createItem =
+    field.createItem ??
+    (() =>
+      Object.fromEntries(
+        (field.itemFields ?? []).map((item) => [
+          item.name,
+          defaultFieldValue(item),
+        ])
+      ));
+  const renderItem =
+    field.renderItemForm ??
+    ((props) => (
+      <DeclarativeCollectionItem
+        {...props}
+        context={itemContext}
+        fields={field.itemFields ?? []}
+      />
+    ));
+  const items = normalizeCollectionItems(fieldApi.state.value);
+  if (field.collectionMode === "inline") {
+    return (
+      <fieldset className="space-y-3" disabled={field.disabled === true}>
+        <legend>{field.label}</legend>
+        {items.map((item, index) => (
+          <div
+            className="space-y-2 rounded-md border p-3"
+            key={field.getItemKey?.(item, index) ?? String(item.id ?? index)}
+          >
+            {renderItem({
+              item,
+              index,
+              disabled: field.disabled === true,
+              onChange: (next) =>
+                fieldApi.handleChange(
+                  replaceCollectionItem(items, index, next)
+                ),
+            })}
+            <div className="flex gap-2">
+              <Button
+                aria-label={`Move item ${index + 1} up`}
+                disabled={index === 0}
+                onClick={() =>
+                  fieldApi.handleChange(
+                    moveCollectionItem(items, index, index - 1)
+                  )
+                }
+                type="button"
+                variant="outline"
+              >
+                ↑
+              </Button>
+              <Button
+                aria-label={`Move item ${index + 1} down`}
+                disabled={index === items.length - 1}
+                onClick={() =>
+                  fieldApi.handleChange(
+                    moveCollectionItem(items, index, index + 1)
+                  )
+                }
+                type="button"
+                variant="outline"
+              >
+                ↓
+              </Button>
+              <Button
+                onClick={() =>
+                  fieldApi.handleChange(removeCollectionItem(items, index))
+                }
+                type="button"
+                variant="outline"
+              >
+                {field.labels?.deleteItem ?? "Delete"}
+              </Button>
+            </div>
+          </div>
+        ))}
+        <Button
+          onClick={() =>
+            fieldApi.handleChange(
+              insertCollectionItem(items, createItem(items))
+            )
+          }
+          type="button"
+        >
+          {field.addLabel ?? "Add item"}
+        </Button>
+        <FieldError errors={errorMessages.map((message) => ({ message }))} />
+      </fieldset>
+    );
+  }
+
   return (
     <CollectionEditor
-      addLabel={field.addLabel}
-      columns={field.columns}
+      addLabel={field.addLabel ?? "Add item"}
+      columns={
+        field.columns ??
+        (field.itemFields ?? []).map((item) => ({
+          id: item.name,
+          header: item.label,
+        }))
+      }
       createActions={field.createActions}
-      createItem={field.createItem}
+      createItem={createItem}
       description={
         field.descriptionKey ? t(field.descriptionKey) : field.description
       }
-      disabled={field.disabled}
+      disabled={field.disabled === true}
       emptyLabel={field.emptyLabel}
       errors={errorMessages}
       getItemKey={field.getItemKey}
-      itemLabel={field.itemLabel}
+      itemLabel={field.itemLabel ?? "item"}
       label={field.labelKey ? t(field.labelKey) : field.label}
       labelKeys={field.labelKeys}
       labels={field.labels}
       onChange={fieldApi.handleChange}
-      renderItemForm={field.renderItemForm}
+      renderItemForm={renderItem}
+      validateDraft={
+        field.itemFields
+          ? (item) =>
+              validateFormFields(field.itemFields ?? [], item, {
+                ...itemContext,
+                values: item,
+              })
+          : undefined
+      }
       validateItem={field.validateItem}
       validateItems={field.validateItems}
       value={fieldApi.state.value}

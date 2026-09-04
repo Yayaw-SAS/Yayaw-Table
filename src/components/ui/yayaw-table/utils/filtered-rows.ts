@@ -1,4 +1,8 @@
 import type { TableActions } from "../providers/table-provider";
+import {
+  compatibleListParams,
+  normalizeFilterEnvelope,
+} from "./table-contracts";
 
 export type FilteredRowsOrderBy = Record<string, "asc" | "desc">;
 
@@ -14,14 +18,13 @@ export const toOrderByParam = (
     return;
   }
 
-  const firstSort = sortParam[0] as { desc?: boolean; id?: string };
-  if (typeof firstSort?.id !== "string") {
-    return;
-  }
-
-  return {
-    [firstSort.id]: firstSort.desc ? "desc" : "asc",
-  };
+  return Object.fromEntries(
+    sortParam
+      .filter((sort): sort is { id: string; desc?: boolean } =>
+        Boolean(sort && typeof sort === "object" && typeof sort.id === "string")
+      )
+      .map((sort) => [sort.id, sort.desc ? "desc" : "asc"])
+  );
 };
 
 export const toFiltersParam = (
@@ -39,18 +42,12 @@ export const toFiltersParam = (
   );
 };
 
-export const toAdvancedFiltersParam = (advancedFiltersParam: unknown): unknown[] => {
-  if (!Array.isArray(advancedFiltersParam)) {
-    return [];
-  }
-
-  return advancedFiltersParam.filter((filter) => {
-    if (!(filter && typeof filter === "object")) {
-      return false;
-    }
-
-    return (filter as { isActive?: boolean }).isActive !== false;
-  });
+export const toAdvancedFiltersParam = (
+  advancedFiltersParam: unknown
+): unknown[] => {
+  return normalizeFilterEnvelope(advancedFiltersParam).filters.filter(
+    (filter) => filter.isActive !== false
+  );
 };
 
 export const toPageSize = (
@@ -108,7 +105,7 @@ export const fetchAllFilteredRows = async ({
       requestParams.globalSearch = search;
     }
 
-    const response = await listAction(requestParams);
+    const response = await listAction(compatibleListParams(requestParams));
     const pageRows = toRecordRows(response.data);
     collectedRows.push(...pageRows);
 

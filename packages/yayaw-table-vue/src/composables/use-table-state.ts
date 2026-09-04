@@ -12,6 +12,11 @@ import {
   lockedColumnVisibility,
 } from "../column-locks";
 import { createTableViewSnapshot } from "../core";
+import {
+  normalizeFilterEnvelope,
+  normalizeViewAliases,
+  positiveInteger,
+} from "../table-contracts";
 import type {
   AdvancedFiltersState,
   ColumnFiltersState,
@@ -147,7 +152,9 @@ export const useTableState = <TData extends TableRecord>({
   const enabledAdvancedFilters = (
     value: AdvancedFiltersState
   ): AdvancedFiltersState =>
-    config.table.enableColumnFilters ? value : emptyAdvancedFilters();
+    config.table.enableColumnFilters
+      ? (normalizeFilterEnvelope(value) as unknown as AdvancedFiltersState)
+      : emptyAdvancedFilters();
   const enabledGrouping = (value: string[]): string[] =>
     config.table.enableGrouping ? value : [];
   const enabledPinning = (value: ColumnPinningState): ColumnPinningState =>
@@ -161,6 +168,9 @@ export const useTableState = <TData extends TableRecord>({
 
   const snapshot = computed<TableViewConfig>(() =>
     createTableViewSnapshot({
+      globalSearch: search.value,
+      columnFilters: enabledFilters(filters.value),
+      columnPinning: enabledPinning(pinning.value),
       search: search.value,
       filters: enabledFilters(filters.value),
       advancedFilters: enabledAdvancedFilters(advancedFilters.value),
@@ -211,12 +221,10 @@ export const useTableState = <TData extends TableRecord>({
       parseJson(params.get(`${tableId}-pinning`), emptyPinning())
     );
     pagination.value = {
-      pageIndex: Math.max(0, Number(params.get(`${tableId}-page`) ?? 0)),
-      pageSize: Math.max(
-        1,
-        Number(
-          params.get(`${tableId}-pageSize`) ?? config.table.defaultPageSize
-        )
+      pageIndex: Math.max(0, positiveInteger(params.get(`${tableId}-page`), 0)),
+      pageSize: positiveInteger(
+        params.get(`${tableId}-pageSize`),
+        config.table.defaultPageSize
       ),
     };
     const requestedMode = params.get(
@@ -234,8 +242,16 @@ export const useTableState = <TData extends TableRecord>({
           config.table.kanban?.groupBy,
       };
     }
+    if (
+      !params.has(`${tableId}-grouping`) &&
+      (params.has(`${tableId}-kanban`) ||
+        params.has(`${tableId}-kanbanGroupBy`)) &&
+      kanban.value.groupBy
+    ) {
+      grouping.value = enabledGrouping([kanban.value.groupBy]);
+    }
     gallery.value = parseJson(params.get(`${tableId}-gallery`), gallery.value);
-    activeViewId.value = params.get("view") ?? undefined;
+    activeViewId.value = params.get("view") ?? activeViewId.value;
     hydrating = false;
   };
 
@@ -305,11 +321,21 @@ export const useTableState = <TData extends TableRecord>({
     urlTimer = setTimeout(commitUrl, 40);
   };
 
-  const applyView = (view: TableViewConfig, viewId?: string): void => {
+  const applyView = (input: TableViewConfig, viewId?: string): void => {
+    const aliases = normalizeViewAliases(input);
+    const view = {
+      ...input,
+      search: aliases.globalSearch,
+      filters: aliases.columnFilters,
+      pinning: aliases.columnPinning,
+      grouping: aliases.grouping,
+    } as TableViewConfig;
     search.value = view.search ?? "";
     filters.value = enabledFilters(view.filters ?? []);
     advancedFilters.value = enabledAdvancedFilters(
-      view.advancedFilters ?? emptyAdvancedFilters()
+      normalizeFilterEnvelope(
+        view.advancedFilters
+      ) as unknown as AdvancedFiltersState
     );
     sorting.value = view.sorting ?? [];
     visibility.value = view.columnVisibility ?? visibility.value;

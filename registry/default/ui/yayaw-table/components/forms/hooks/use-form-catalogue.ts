@@ -3,21 +3,22 @@
  */
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { z } from "zod";
-
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { TableConfig } from "../../../config/helpers";
 import {
   useFormConfig,
   useTableActions,
+  useTableConfig,
 } from "../../../providers/table-provider";
+
+import { formSubmissionValues, initialFormValues } from "../form-runtime";
+import { generateFormConfig } from "../generated-form-config";
 import type {
-  AnyFieldDefinition,
   FieldValues,
   FormConfig,
   FormConfigContext,
   FormConfigMode,
 } from "../types";
-
 import { useFormBuilder } from "./use-form-builder";
 
 export interface UseFormCatalogueOptions<TFieldValues extends FieldValues> {
@@ -25,6 +26,7 @@ export interface UseFormCatalogueOptions<TFieldValues extends FieldValues> {
    * Type of form to use (corresponds to a key in the form catalogue)
    */
   formType: string;
+  enabled?: boolean;
 
   /**
    * Initial data for the form (used for update operations)
@@ -111,22 +113,6 @@ export function createFormConfigContext<
   };
 }
 
-function createFallbackFormConfig<TFieldValues extends FieldValues>(
-  formType: string
-): FormConfig<TFieldValues> {
-  return {
-    id: formType,
-    fields: [],
-    defaultValues: {} as Partial<TFieldValues>,
-    schema: z.any() as z.ZodType<TFieldValues>,
-    sections: [],
-    translations: {
-      namespace: "common",
-      keys: {},
-    },
-  };
-}
-
 /**
  * Hook for using form configurations from the catalogue
  * @param options Hook options
@@ -139,22 +125,20 @@ export function useFormCatalogue<TFieldValues extends FieldValues>({
   onFormSubmit,
   tableId,
   tableType,
+  enabled = true,
 }: UseFormCatalogueOptions<TFieldValues>) {
-  // Get the configuration helpers from the provider
   const getFormConfig = useFormConfig();
   const getTableActions = useTableActions();
+  const getTableConfig = useTableConfig();
   const [currentValues, setCurrentValues] = useState<
     Partial<TFieldValues> | undefined
   >(initialData);
-
-  useEffect(() => {
-    setCurrentValues((previousValues) =>
-      areFieldValuesEqual(previousValues, initialData)
-        ? previousValues
-        : initialData
-    );
-  }, [initialData]);
-
+  const [loadedValues, setLoadedValues] = useState<
+    Partial<TFieldValues> | undefined
+  >(initialData);
+  const [loadingInitial, setLoadingInitial] = useState(false);
+  const [loadError, setLoadError] = useState<string>();
+  const [retry, setRetry] = useState(0);
   const formConfigContext = useMemo(
     () =>
       createFormConfigContext<TFieldValues>({
@@ -167,240 +151,123 @@ export function useFormCatalogue<TFieldValues extends FieldValues>({
       }),
     [formType, initialData, mode, tableId, tableType, currentValues]
   );
-
-  // Stabilize the form configuration object to prevent recreation
-  const config = useMemo(() => {
-    return (
-      getFormConfig?.<TFieldValues>(formType, formConfigContext) ||
-      createFallbackFormConfig<TFieldValues>(formType)
-    );
-  }, [getFormConfig, formType, formConfigContext]);
-
-  // Stabilize the table actions object to prevent recreation
-  const actions = useMemo(() => {
-    const parentActionsKey = tableType || tableId || formType;
-    return (
-      getTableActions?.(parentActionsKey) || getTableActions?.(formType) || {}
-    );
-  }, [getTableActions, formType, tableId, tableType]);
-
-  const handleValuesChange = useCallback((values: TFieldValues) => {
-    setCurrentValues((previousValues) =>
-      areFieldValuesEqual(previousValues, values) ? previousValues : values
-    );
-  }, []);
-
-  // Helper function to sanitize a single field value
-  const sanitizeFieldValue = useCallback(
-    (
-      _key: string,
-      value: unknown,
-      fieldDef: AnyFieldDefinition<TFieldValues> | undefined
-    ): unknown => {
-      if (!fieldDef) {
-        return value;
-      }
-
-      // Handle JSON fields
-      if (
-        fieldDef.type === "value-type" &&
-        fieldDef.supportedTypes?.includes("json") &&
-        typeof value === "string"
-      ) {
-        try {
-          return JSON.parse(value);
-        } catch {
-          return value; // Keep as string if parsing fails
-        }
-      }
-
-      // Handle boolean fields (ensure they're actual booleans)
-      if (fieldDef.type === "checkbox" || fieldDef.type === "switch") {
-        return Boolean(value);
-      }
-
-      return value;
-    },
-    []
-  );
-
-  // Helper function to sanitize form values
-  const sanitizeFormValues = useCallback(
-    (values: TFieldValues) => {
-      return Object.entries(values).reduce(
-        (acc, [key, value]) => {
-          // Find the field definition to check its type
-          const fieldDef = config?.fields?.find(
-            (f: AnyFieldDefinition<TFieldValues>) => f.name === key
-          );
-
-          acc[key] = sanitizeFieldValue(key, value, fieldDef);
-          return acc;
-        },
-        {} as Record<string, unknown>
-      );
-    },
-    [config?.fields, sanitizeFieldValue]
-  );
-
-  // Helper function to prepare update data
-  const prepareUpdateData = useCallback(
-    (
-      sanitizedValues: Record<string, unknown>,
-      operationMode: "create" | "update",
-      initialFormData?: Partial<TFieldValues>
-    ) => {
-      let dataToSubmit = sanitizedValues;
-      if (operationMode === "update" && initialFormData) {
-        // Merge the sanitized form values with the initial data
-        dataToSubmit = {
-          ...(initialFormData as Record<string, unknown>),
-          ...sanitizedValues,
-        };
-
-        // Remove null JSON fields entirely - this prevents validation errors
-        // and lets Prisma handle the fields appropriately
-        for (const key of Object.keys(dataToSubmit)) {
-          if (
-            dataToSubmit[key] === null &&
-            (key === "options" ||
-              key === "value" ||
-              key === "config" ||
-              key === "metadata")
-          ) {
-            // For JSON fields, omit them entirely if they're null
-            delete dataToSubmit[key];
-          }
-        }
-      }
-      return dataToSubmit;
-    },
-    []
-  );
-
-  // Helper function to execute form action
-  const executeFormAction = useCallback(
-    async (
-      operationMode: "create" | "update",
-      tableActions: {
-        create?: (data: Record<string, unknown>) => Promise<{
-          success: boolean;
-          data?: unknown;
-          error?: string | undefined;
-        }>;
-        update?: (
-          id: string,
-          data: Record<string, unknown>
-        ) => Promise<{
-          success: boolean;
-          data?: unknown;
-          error?: string | undefined;
-        }>;
-      },
-      formValues: TFieldValues,
-      initialFormData: Partial<TFieldValues> | undefined,
-      formTypeName: string,
-      dataToSubmit: Record<string, unknown>,
-      sanitizedValues: Record<string, unknown>
-    ) => {
-      if (operationMode === "update" && tableActions.update) {
-        // For update, we need the ID from the values or initialData
-        let id: string;
-
-        // Try to get ID from values first
-        if ("id" in formValues) {
-          id = String(formValues.id);
-        }
-        // Then try to get ID from initialData if available
-        else if (initialFormData && "id" in initialFormData) {
-          id = String((initialFormData as Record<string, unknown>).id);
-        }
-        // If no ID is found, throw an error
-        else {
-          throw new Error(
-            `ID not found for update operation on ${formTypeName}`
-          );
-        }
-
-        // Create a clean copy of the data without the ID for the update operation
-        const updateData = { ...dataToSubmit };
-        if ("id" in updateData) {
-          (updateData as Record<string, unknown>).id = undefined;
-        }
-
-        return await tableActions.update(
-          id as string,
-          updateData as Record<string, unknown>
-        );
-      }
-      if (operationMode === "create" && tableActions.create) {
-        return await tableActions.create(
-          sanitizedValues as Record<string, unknown>
-        );
-      }
-      throw new Error(
-        `Action ${operationMode} not available for ${formTypeName}`
-      );
-    },
-    []
-  );
-
-  // Handle form submission (passed to useFormBuilder as onSubmit)
-  const handleSubmit = useCallback(
-    async (values: TFieldValues) => {
-      const sanitizedValues = sanitizeFormValues(values);
-      const dataToSubmit = prepareUpdateData(
-        sanitizedValues,
-        mode,
-        initialData
-      );
-      const result = await executeFormAction(
-        mode,
-        actions,
-        values,
-        initialData,
-        formType,
-        dataToSubmit,
-        sanitizedValues
-      );
-      if (!result.success) {
-        throw new Error(result.error ?? `Failed to ${mode} ${formType}`);
-      }
-      return result.data;
-    },
-    [
+  const tableConfig = getTableConfig?.(tableType || tableId || formType) as
+    | TableConfig
+    | undefined;
+  const config =
+    getFormConfig?.<TFieldValues>(formType, formConfigContext) ??
+    (generateFormConfig(
       formType,
-      mode,
-      actions,
-      initialData,
-      executeFormAction,
-      sanitizeFormValues,
-      prepareUpdateData,
-    ]
-  );
-
-  const { fields, form, sections, translations } = useFormBuilder<TFieldValues>(
-    {
-      config,
-      formOptions: {
-        onSubmit: onFormSubmit
-          ? (values) => {
-              onFormSubmit(values, handleSubmit);
-            }
-          : (values) => {
-              handleSubmit(values);
-            },
-      },
-      initialData,
-      onValuesChange: handleValuesChange,
+      tableConfig?.columns?.definitions ?? []
+    ) as FormConfig<TFieldValues>);
+  const latest = useRef({ config, formConfigContext });
+  latest.current = { config, formConfigContext };
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Reopen, form identity, mode and retry invalidate the load; current values must not restart it.
+  useEffect(() => {
+    const request = new AbortController();
+    setLoadError(undefined);
+    setLoadingInitial(false);
+    setLoadedValues(initialData);
+    if (!enabled) {
+      return () => request.abort();
     }
-  );
-
+    const input = latest.current;
+    const loader = input.config.loadInitialValues;
+    if (!loader) {
+      return () => request.abort();
+    }
+    const initialize = async () => {
+      setLoadingInitial(true);
+      try {
+        const loaded = await loader(
+          initialData,
+          input.formConfigContext,
+          request.signal
+        );
+        if (!request.signal.aborted) {
+          setLoadedValues({
+            ...initialData,
+            ...loaded,
+          } as Partial<TFieldValues>);
+        }
+      } catch (error) {
+        if (!request.signal.aborted) {
+          setLoadError(error instanceof Error ? error.message : String(error));
+        }
+      } finally {
+        if (!request.signal.aborted) {
+          setLoadingInitial(false);
+        }
+      }
+    };
+    initialize();
+    return () => request.abort();
+  }, [enabled, formType, tableId, tableType, mode, initialData, retry]);
+  const actions =
+    getTableActions?.(tableType || tableId || formType) ??
+    getTableActions?.(formType) ??
+    {};
+  const builderRef = useRef<{ setErrorMap: (map: never) => void } | null>(null);
+  const handleSubmit = async (values: TFieldValues) => {
+    if (loadingInitial || loadError) {
+      throw new Error(loadError ?? "The form is still loading");
+    }
+    const baseline = initialFormValues(config as FormConfig, loadedValues);
+    const prepared = formSubmissionValues(
+      config as FormConfig,
+      values,
+      baseline,
+      formConfigContext
+    );
+    const payload = config.transform
+      ? await config.transform(prepared, formConfigContext)
+      : prepared;
+    const row = initialData as FieldValues | undefined;
+    const configuredId = row?.id ?? row?._id;
+    if (mode === "update" && configuredId == null) {
+      throw new Error(`ID not found for update operation on ${formType}`);
+    }
+    const updatePayload = { ...payload };
+    updatePayload.id = undefined;
+    const result =
+      mode === "update"
+        ? await actions.update?.(String(configuredId), updatePayload)
+        : await actions.create?.(payload);
+    if (!result?.success) {
+      if (result && "fieldErrors" in result) {
+        builderRef.current?.setErrorMap({
+          onServer: { fields: result.fieldErrors },
+        } as never);
+      }
+      throw new Error(result?.error ?? `Failed to ${mode} ${formType}`);
+    }
+    return result.data;
+  };
+  const builder = useFormBuilder<TFieldValues>({
+    config,
+    context: formConfigContext,
+    initialData: loadedValues,
+    onValuesChange: (values) =>
+      setCurrentValues((previous) =>
+        areFieldValuesEqual(previous, values) ? previous : values
+      ),
+    formOptions: {
+      onSubmit: async (values) => {
+        if (onFormSubmit) {
+          await onFormSubmit(values, handleSubmit);
+        } else {
+          await handleSubmit(values);
+        }
+      },
+    },
+  });
+  builderRef.current = builder.form;
   return {
-    fields,
-    form,
+    ...builder,
+    config,
     handleSubmit,
-    sections,
-    translations,
+    loadingInitial,
+    loadError,
+    retryInitial: () => setRetry((value) => value + 1),
   };
 }

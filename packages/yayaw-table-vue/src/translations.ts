@@ -37,6 +37,7 @@ export const defaultTranslations: Required<
     | "all"
     | "none"
     | "selectAll"
+    | "selectRow"
     | "bulkEdit"
     | "copy"
     | "cancel"
@@ -44,6 +45,22 @@ export const defaultTranslations: Required<
   >
 > &
   DataTableTranslations = {
+  cardImage: "Image",
+  cardTitle: "Title",
+  cardRatio: "Ratio",
+  cardFit: "Fit",
+  cardSize: "Size",
+  cardSquare: "Square",
+  cardPortrait: "Portrait",
+  cardVideo: "Video",
+  cardWide: "Wide",
+  cardCover: "Cover",
+  cardContain: "Contain",
+  cardSmall: "Small",
+  cardMedium: "Medium",
+  cardLarge: "Large",
+  cardShowLabels: "Show labels",
+  cardLane: "Lane",
   search: "Search…",
   columnOptions: "Column options",
   clearSort: "Clear sort",
@@ -84,6 +101,7 @@ export const defaultTranslations: Required<
   all: "All",
   none: "None",
   selectAll: "Select all",
+  selectRow: "Select",
   bulkEdit: "Bulk edit",
   bulkApplyField: "Apply",
   bulkChooseFields: "Choose at least one field to apply.",
@@ -98,6 +116,22 @@ export const defaultTranslations: Required<
 };
 
 export const frenchTranslations: DataTableTranslations = {
+  cardImage: "Image",
+  cardTitle: "Titre",
+  cardRatio: "Proportions",
+  cardFit: "Ajustement",
+  cardSize: "Taille",
+  cardSquare: "Carré",
+  cardPortrait: "Portrait",
+  cardVideo: "Vidéo",
+  cardWide: "Large",
+  cardCover: "Couvrir",
+  cardContain: "Contenir",
+  cardSmall: "Petit",
+  cardMedium: "Moyen",
+  cardLarge: "Grand",
+  cardShowLabels: "Afficher les libellés",
+  cardLane: "Colonne",
   search: "Rechercher…",
   columnOptions: "Options de colonne",
   clearSort: "Effacer le tri",
@@ -138,6 +172,7 @@ export const frenchTranslations: DataTableTranslations = {
   all: "Tous",
   none: "Aucun",
   selectAll: "Tout sélectionner",
+  selectRow: "Sélectionner",
   bulkEdit: "Modification groupée",
   bulkApplyField: "Appliquer",
   bulkChooseFields: "Choisissez au moins un champ à appliquer.",

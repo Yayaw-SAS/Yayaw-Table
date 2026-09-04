@@ -15,7 +15,7 @@ import {
 } from "lucide-vue-next";
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useTableContext } from "../../context";
-import { downloadCsv } from "../../core";
+import { downloadCsv, exportColumns } from "../../core";
 import type {
   AdvancedFilter,
   ColumnDefinition,
@@ -325,7 +325,7 @@ const exportRows = async (): Promise<void> => {
   }
   downloadCsv(
     context.data.rows.value,
-    context.config.columns.definitions,
+    exportColumns(context.config.columns.definitions, context.state.visibility.value, context.state.order.value),
     context.config.id
   );
 };
@@ -660,6 +660,17 @@ const exportRows = async (): Promise<void> => {
           @click="resetOptions"
         >
           <RotateCcw :size="16" aria-hidden="true" />
+        </button>
+
+        <button
+          v-if="context.config.table.showClearFilters === true"
+          type="button"
+          class="yayaw-button yayaw-button-outline yayaw-icon-only"
+          :aria-label="translate('clearFilters', 'Clear filters')"
+          :title="translate('clearFilters', 'Clear filters')"
+          @click="context.state.resetFilters()"
+        >
+          <X :size="16" aria-hidden="true" />
         </button>
 
         <button

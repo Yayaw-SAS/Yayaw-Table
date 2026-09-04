@@ -9,16 +9,17 @@ import type { Cell, ColumnDef, Header, Row } from "@tanstack/react-table";
 import { flexRender } from "@tanstack/react-table";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import {
+  type CSSProperties,
   memo,
+  type ReactNode,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
-  type ReactNode,
 } from "react";
 import { toast } from "sonner";
+import { Loader } from "@/components/ui/custom/loader";
 import { cn } from "@/lib/utils";
 import { Button } from "@/src/components/ui/button";
 import { Skeleton } from "@/src/components/ui/skeleton";
@@ -30,12 +31,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/src/components/ui/table";
-import { Loader } from "@/components/ui/custom/loader";
-import {
-  activeRowDragAtom,
-  tableIdAtom,
-} from "../atoms/table-atoms";
 import { footerVisibleAtom } from "../atoms/footer-atoms";
+import { activeRowDragAtom, tableIdAtom } from "../atoms/table-atoms";
 import type {
   TableEmptyStateConfig,
   TableRowClickMode,
@@ -45,12 +42,11 @@ import {
   type BulkDeleteCustomHandlerResult,
   useBulkActions,
 } from "../hooks/use-bulk-actions";
+import { useDataTable } from "../hooks/use-data-table";
 import type {
   InlineEditColumnRuntimeConfig,
   InlineEditCommitResult,
 } from "../hooks/use-inline-edit-runtime";
-import type { TableDisplayMode } from "../types/display-types";
-import { useDataTable } from "../hooks/use-data-table";
 import { useTableConfig } from "../hooks/use-table-config";
 import { useTableInstance } from "../hooks/use-table-instance";
 import { useTableUrlState } from "../hooks/use-table-url-state";
@@ -60,29 +56,30 @@ import {
   useTranslations,
 } from "../providers/table-provider";
 import type { DataTableProps } from "../types";
+import type { TableDisplayMode } from "../types/display-types";
 import { ColumnIcon } from "../utils/column-icons";
 import { buildCsvExportColumns } from "../utils/csv-export";
 import { getPrimaryGrouping } from "../utils/table-view-state";
-import { InlineEditableCell } from "./cells/inline-editable-cell";
 import {
   BulkActionsMenu,
-  getBulkActionsMenuPositionMode,
   type CustomBulkActionsInput,
+  getBulkActionsMenuPositionMode,
 } from "./bulk-actions/bulk-actions-menu";
-import { GroupRowSelectionCell } from "./columns/selection-column";
-import { DataTableColumnHeader } from "./columns/header/column-header";
+import { CatalogueInlineCell } from "./cells/catalogue-inline-cell";
 import { ColumnDragOverlay } from "./columns/header/column-drag-overlay";
+import { DataTableColumnHeader } from "./columns/header/column-header";
 import { SortableHeader } from "./columns/header/sortable-header";
 import { useColumnDnd } from "./columns/hooks/use-column-dnd";
 import { useColumnDragOverlay } from "./columns/hooks/use-column-drag-overlay";
-import { useOnScreen } from "./utils/use-on-screen";
+import { GroupRowSelectionCell } from "./columns/selection-column";
+import { FooterRow } from "./footer/footer-row";
 import {
   type CatalogueFormState,
   catalogueFormAtom,
   openUpdateForm,
 } from "./forms/atoms/catalogue-form-atoms";
-import type { AnyFieldDefinition } from "./forms/types";
-import { FooterRow } from "./footer/footer-row";
+import { CatalogueBulkEditor } from "./forms/catalogue-bulk-editor";
+import type { FormConfigContext } from "./forms/types";
 import {
   DataTableGalleryView,
   resolveGalleryLinkColumnId,
@@ -90,6 +87,7 @@ import {
 } from "./gallery-view";
 import { DataTableKanbanView } from "./kanban-view";
 import { SafePagination } from "./safe-pagination";
+import { useOnScreen } from "./utils/use-on-screen";
 
 const _DEBUG = false;
 
@@ -446,7 +444,11 @@ function getHeaderSizeStyle<TData>(
 ): CSSProperties | undefined {
   const isFixedColumn = header.id === "select" || header.id === "actions";
   const headerDef = header.column.columnDef as ColumnSizingDefinition;
-  return getColumnSizingStyle(headerDef, header.column.getSize(), isFixedColumn);
+  return getColumnSizingStyle(
+    headerDef,
+    header.column.getSize(),
+    isFixedColumn
+  );
 }
 
 function getHeaderCellClassName<TData>(
@@ -504,10 +506,7 @@ export function getRegularCellClassName<TData>({
 
   return cn(
     isSelectColumn &&
-      cn(
-        "text-center [&:has([role=checkbox])]:pr-2!",
-        fixedColumnPaddingClass
-      ),
+      cn("text-center [&:has([role=checkbox])]:pr-2!", fixedColumnPaddingClass),
     isActionsColumn &&
       cn(
         "sticky right-0 z-10 flex justify-center bg-card shadow-[-1px_0_0_0_hsl(var(--border))] group-hover:bg-muted/50 group-data-[state=selected]:bg-muted/50",
@@ -533,10 +532,7 @@ function renderHeaderContent<TData>(
     return null;
   }
   if (header.id === "select") {
-    return flexRender(
-      header.column.columnDef.header,
-      header.getContext()
-    );
+    return flexRender(header.column.columnDef.header, header.getContext());
   }
   return (
     <DataTableColumnHeader
@@ -583,10 +579,10 @@ function isCellInlineEditable<TData>(
     return false;
   }
 
-  return (
-    !cell.getIsAggregated() &&
-    !cell.getIsGrouped() &&
-    !cell.getIsPlaceholder()
+  return !(
+    cell.getIsAggregated() ||
+    cell.getIsGrouped() ||
+    cell.getIsPlaceholder()
   );
 }
 
@@ -608,7 +604,7 @@ function patchInlineEditInQueryPayload<TData extends Record<string, unknown>>(
   fieldName: string,
   value: unknown
 ): TableDataQueryPayload<TData> | undefined {
-  if (!payload || !Array.isArray(payload.data)) {
+  if (!(payload && Array.isArray(payload.data))) {
     return payload;
   }
 
@@ -894,14 +890,10 @@ function ModernDataTable<
   const _isVisibleRef = useRef(true);
   const tableRef = useRef<HTMLDivElement>(null);
   const _previousRowsRef = useRef<Row<TData>[]>([]);
-  const {
-    isVisible: isBulkActionsAnchorVisible,
-    ref: bulkActionsAnchorRef,
-  } = useOnScreen(BULK_ACTIONS_ANCHOR_VIEWPORT_OPTIONS);
-  const {
-    isVisible: isPaginationVisible,
-    ref: paginationVisibilityRef,
-  } = useOnScreen(PAGINATION_VIEWPORT_OPTIONS);
+  const { isVisible: isBulkActionsAnchorVisible, ref: bulkActionsAnchorRef } =
+    useOnScreen(BULK_ACTIONS_ANCHOR_VIEWPORT_OPTIONS);
+  const { isVisible: isPaginationVisible, ref: paginationVisibilityRef } =
+    useOnScreen(PAGINATION_VIEWPORT_OPTIONS);
   const [paginationControlsElement, setPaginationControlsElement] =
     useState<HTMLDivElement | null>(null);
   const [paginationHeight, setPaginationHeight] = useState(0);
@@ -1054,35 +1046,31 @@ function ModernDataTable<
     );
   }
 
-  const inlineEditFormType =
-    tableConfig.form?.editFormType || defaultFormType;
-  const inlineEditFormConfig = useMemo(
-    () =>
-      getFormConfig?.(inlineEditFormType, {
-        formType: inlineEditFormType,
+  const resolveInlineForm = useCallback(
+    (row: TData) => {
+      const formType =
+        tableConfig.form?.resolveEditFormType?.(row) ??
+        tableConfig.form?.editFormType ??
+        defaultFormType;
+      const context: FormConfigContext = {
+        formType,
         mode: "edit",
         tableId,
         tableType: resolvedTableType,
-      }),
-    [getFormConfig, inlineEditFormType, resolvedTableType, tableId]
+        row,
+        initialData: row,
+        values: row,
+      };
+      return { context, config: getFormConfig?.(formType, context) };
+    },
+    [
+      defaultFormType,
+      getFormConfig,
+      resolvedTableType,
+      tableConfig.form,
+      tableId,
+    ]
   );
-  const inlineEditSchema = useMemo(() => {
-    const schema = inlineEditFormConfig?.schema;
-    if (!schema) {
-      return undefined;
-    }
-
-    return {
-      safeParse: (data: unknown) => schema.safeParse(data),
-    };
-  }, [inlineEditFormConfig?.schema]);
-  const inlineEditFieldMap = useMemo(() => {
-    const fieldMap = new Map<string, AnyFieldDefinition>();
-    for (const field of inlineEditFormConfig?.fields ?? []) {
-      fieldMap.set(String(field.name), field as AnyFieldDefinition);
-    }
-    return fieldMap;
-  }, [inlineEditFormConfig?.fields]);
   const handleRowEditClick = useCallback(
     (row: Row<TData>) => {
       const handleSuccess = () => {
@@ -1145,10 +1133,7 @@ function ModernDataTable<
         return failInlineEditCommit(t("inline.missing_row_id"));
       }
 
-      const cacheSnapshots = getTableDataSnapshots<TData>(
-        queryClient,
-        tableId
-      );
+      const cacheSnapshots = getTableDataSnapshots<TData>(queryClient, tableId);
       if (optimistic) {
         applyInlineOptimisticPatch({
           snapshots: cacheSnapshots,
@@ -1638,13 +1623,7 @@ function ModernDataTable<
 
       await refetch();
     },
-    [
-      canDragKanbanRows,
-      dataTableResult.actions.edit,
-      kanbanGroupBy,
-      refetch,
-      t,
-    ]
+    [canDragKanbanRows, dataTableResult.actions.edit, kanbanGroupBy, refetch, t]
   );
 
   // Local state to track expanded groups (bypass TanStack issues)
@@ -1761,7 +1740,9 @@ function ModernDataTable<
       return (
         <TableBody>
           <TableRow>
-            <TableCell colSpan={Math.max(table.getVisibleLeafColumns().length, 1)}>
+            <TableCell
+              colSpan={Math.max(table.getVisibleLeafColumns().length, 1)}
+            >
               <TableEmptyStateContent
                 description={emptyStateDescription}
                 title={emptyStateTitle}
@@ -1856,12 +1837,15 @@ function ModernDataTable<
               isLargeDensity && "!px-3 !py-3"
             )}
             style={{
-              ...(typeof (visibleCells[0].column.columnDef as { maxSize?: number })
-                .maxSize === "number"
+              ...(typeof (
+                visibleCells[0].column.columnDef as { maxSize?: number }
+              ).maxSize === "number"
                 ? {
-                    maxWidth: (visibleCells[0].column.columnDef as {
-                      maxSize: number;
-                    }).maxSize,
+                    maxWidth: (
+                      visibleCells[0].column.columnDef as {
+                        maxSize: number;
+                      }
+                    ).maxSize,
                   }
                 : {}),
               minWidth: visibleCells[0].column.getSize(),
@@ -1917,19 +1901,18 @@ function ModernDataTable<
       );
       const inlineConfig = getInlineEditConfigFromCell(cell);
       const canInlineEdit = isCellInlineEditable(cell, inlineConfig);
-      if (!canInlineEdit) {
+      if (!(canInlineEdit && canEditGalleryRow(row))) {
         return defaultCellContent;
       }
 
-      const formFieldDefinition = inlineEditFieldMap.get(
-        inlineConfig.formField
-      );
+      const { config, context } = resolveInlineForm(row.original);
 
       return (
-        <InlineEditableCell
+        <CatalogueInlineCell
           cell={cell}
+          config={config}
+          context={context}
           displayValue={defaultCellContent}
-          formFieldDefinition={formFieldDefinition}
           inlineConfig={inlineConfig}
           onCommit={async (value) => {
             return await commitInlineEdit({
@@ -1939,8 +1922,6 @@ function ModernDataTable<
               value,
             });
           }}
-          rowData={row.original as Record<string, unknown>}
-          schema={inlineEditSchema}
         />
       );
     };
@@ -2020,10 +2001,7 @@ function ModernDataTable<
     ) => (
       <TableRow className="border-t bg-muted/20" key={groupId}>
         <TableCell
-          className={cn(
-            isSmallDensity && "!p-1.5",
-            isLargeDensity && "!p-3"
-          )}
+          className={cn(isSmallDensity && "!p-1.5", isLargeDensity && "!p-3")}
           colSpan={colSpan}
         >
           <Button
@@ -2154,8 +2132,8 @@ function ModernDataTable<
     resolvedEmptyState.show,
     emptyStateDescription,
     emptyStateTitle,
-    inlineEditFieldMap,
-    inlineEditSchema,
+    resolveInlineForm,
+    canEditGalleryRow,
     localExpanded,
     state.grouping,
     tableConfig.columns.definitions,
@@ -2173,7 +2151,7 @@ function ModernDataTable<
     return (
       <TableHeader
         className={cn(
-          "[&_th]:bg-muted/20 [&_th]:font-medium [&_th]:relative [&_th]:text-sm",
+          "[&_th]:relative [&_th]:bg-muted/20 [&_th]:font-medium [&_th]:text-sm",
           isSmallDensity && "[&_th]:!h-8 [&_th]:!px-1.5",
           isLargeDensity && "[&_th]:!h-12 [&_th]:!px-3"
         )}
@@ -2306,7 +2284,10 @@ function ModernDataTable<
         {isLoading && data && data.length > 0 && loadingOverlay}
 
         {/* Container for the table */}
-        <div className={cn("relative w-full overflow-auto", "contain-paint")} ref={tableRef}>
+        <div
+          className={cn("relative w-full overflow-auto", "contain-paint")}
+          ref={tableRef}
+        >
           <Table className={cn("w-full", className)}>
             {tableHeader}
             {tableBodyContent}
@@ -2393,13 +2374,13 @@ function ModernDataTable<
                   renderBulkActionsInFooter ? (
                     <BulkActionsMenu
                       canSelectAll={bulkActions.canSelectAll}
-                      isSelectingAll={bulkActions.isSelectingAll}
                       customBulkActions={customBulkActions}
+                      isSelectingAll={bulkActions.isSelectingAll}
                       onBulkCopy={bulkActions.handleBulkCopy}
-                      onClearSelection={bulkActions.clearSelection}
                       onBulkDelete={bulkActions.handleBulkDelete}
                       onBulkEdit={bulkActions.handleBulkEdit}
                       onBulkExport={bulkActions.handleBulkExport}
+                      onClearSelection={bulkActions.clearSelection}
                       onClose={bulkActions.closeBulkActions}
                       onSelectAll={bulkActions.handleSelectAll}
                       positionMode="anchored"
@@ -2412,7 +2393,9 @@ function ModernDataTable<
                   ) : undefined
                 }
                 pageSizeOptions={
-                  tableConfig.table.pageSizeOptions || [10, 20, 50, 100, 200, 500]
+                  tableConfig.table.pageSizeOptions || [
+                    10, 20, 50, 100, 200, 500,
+                  ]
                 }
                 rowCount={rowCount}
                 showControls={showPaginationControls}
@@ -2424,13 +2407,13 @@ function ModernDataTable<
           {bulkActions.showBulkActions && !renderBulkActionsInFooter && (
             <BulkActionsMenu
               canSelectAll={bulkActions.canSelectAll}
-              isSelectingAll={bulkActions.isSelectingAll}
               customBulkActions={customBulkActions}
+              isSelectingAll={bulkActions.isSelectingAll}
               onBulkCopy={bulkActions.handleBulkCopy}
-              onClearSelection={bulkActions.clearSelection}
               onBulkDelete={bulkActions.handleBulkDelete}
               onBulkEdit={bulkActions.handleBulkEdit}
               onBulkExport={bulkActions.handleBulkExport}
+              onClearSelection={bulkActions.clearSelection}
               onClose={bulkActions.closeBulkActions}
               onSelectAll={bulkActions.handleSelectAll}
               positionMode={getBulkActionsMenuPositionMode(
@@ -2460,6 +2443,13 @@ function ModernDataTable<
   return (
     <div className="space-y-4" suppressHydrationWarning>
       {renderContent()}
+      <CatalogueBulkEditor
+        onClose={bulkActions.closeBulkEdit}
+        onCompleted={bulkActions.completeBulkEdit}
+        tableId={tableId}
+        tableType={resolvedTableType}
+        targets={bulkActions.bulkEditTargets}
+      />
     </div>
   );
 }

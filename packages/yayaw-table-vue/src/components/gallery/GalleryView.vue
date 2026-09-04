@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useTableContext } from "../../context";
-import { applyTableQuery, displayCellValue, safeHttpUrl } from "../../core";
+import { displayCellValue, imageSource } from "../../core";
 import type {
   ColumnDefinition,
   TableGalleryAspectRatio,
@@ -9,9 +9,12 @@ import type {
   TableGalleryImageFit,
   TableRecord,
 } from "../../types";
+import { useCardRows } from "../../composables/use-card-rows";
+import CellRenderer from "../table/CellRenderer.vue";
 import RowActions from "../table/RowActions.vue";
 
 const context = useTableContext();
+const translate = (key: string, fallback: string) => String(context.translations.value[key] ?? fallback);
 const columns = computed(() =>
   context.config.columns.definitions.filter(
     (column) => !["select", "actions"].includes(column.id)
@@ -108,18 +111,7 @@ const showLabels = computed({
     };
   },
 });
-const rows = computed(() => {
-  if (context.data.isServer.value) {
-    return context.data.rows.value;
-  }
-  return applyTableQuery(context.data.rows.value, {
-    columns: context.config.columns.definitions,
-    search: context.state.search.value,
-    filters: context.state.filters.value,
-    advancedFilters: context.state.advancedFilters.value,
-    sorting: context.state.sorting.value,
-  });
-});
+const rows = useCardRows();
 const column = (id: string): ColumnDefinition | undefined =>
   columns.value.find((item) => item.id === id);
 const value = (row: TableRecord, id: string): unknown =>
@@ -147,7 +139,7 @@ const toggleProperty = (id: string, checked: boolean): void => {
     : propertyIds.value.filter((value) => value !== id);
 };
 const imageFor = (row: TableRecord): string | undefined =>
-  safeHttpUrl(value(row, imageColumn.value));
+  imageSource(value(row, imageColumn.value));
 const initialFor = (row: TableRecord): string =>
   String(value(row, titleColumn.value) ?? "?")
     .trim()
@@ -157,9 +149,11 @@ const activate = (
   row: TableRecord,
   event: MouseEvent | KeyboardEvent
 ): void => {
-  if (event instanceof KeyboardEvent && !["Enter", " "].includes(event.key)) {
+  if (event instanceof KeyboardEvent && (event.target !== event.currentTarget || !["Enter", " "].includes(event.key))) {
     return;
   }
+  if (event.target instanceof Element && event.target.closest("button,a,input,select,textarea,label")) return;
+  if (event instanceof KeyboardEvent) event.preventDefault();
   context.activateRow(row, event as MouseEvent);
 };
 const toggleSelection = (row: TableRecord, checked: boolean): void => {
@@ -176,14 +170,14 @@ const toggleSelection = (row: TableRecord, checked: boolean): void => {
 <template>
   <div class="yayaw-card-view-shell">
     <div class="yayaw-card-controls">
-      <label>Image <select v-model="imageColumn" class="yayaw-select"><option value="">None</option><option v-for="item in columns" :key="item.id" :value="item.id">{{ item.header }}</option></select></label>
-      <label>Title <select v-model="titleColumn" class="yayaw-select"><option v-for="item in columns" :key="item.id" :value="item.id">{{ item.header }}</option></select></label>
-      <label>Ratio <select v-model="aspectRatio" class="yayaw-select"><option value="square">Square</option><option value="portrait">Portrait</option><option value="video">Video</option><option value="wide">Wide</option></select></label>
-      <label>Fit <select v-model="imageFit" class="yayaw-select"><option value="cover">Cover</option><option value="contain">Contain</option></select></label>
-      <label>Size <select v-model="cardSize" class="yayaw-select"><option value="small">Small</option><option value="medium">Medium</option><option value="large">Large</option></select></label>
-      <details><summary class="yayaw-button yayaw-button-outline">Properties</summary><div class="yayaw-card-properties-menu">
+      <label>{{ translate('cardImage', 'Image') }} <select v-model="imageColumn" class="yayaw-select"><option value="">{{ translate('none', 'None') }}</option><option v-for="item in columns" :key="item.id" :value="item.id">{{ item.header }}</option></select></label>
+      <label>{{ translate('cardTitle', 'Title') }} <select v-model="titleColumn" class="yayaw-select"><option v-for="item in columns" :key="item.id" :value="item.id">{{ item.header }}</option></select></label>
+      <label>{{ translate('cardRatio', 'Ratio') }} <select v-model="aspectRatio" class="yayaw-select"><option value="square">{{ translate('cardSquare', 'Square') }}</option><option value="portrait">{{ translate('cardPortrait', 'Portrait') }}</option><option value="video">{{ translate('cardVideo', 'Video') }}</option><option value="wide">{{ translate('cardWide', 'Wide') }}</option></select></label>
+      <label>{{ translate('cardFit', 'Fit') }} <select v-model="imageFit" class="yayaw-select"><option value="cover">{{ translate('cardCover', 'Cover') }}</option><option value="contain">{{ translate('cardContain', 'Contain') }}</option></select></label>
+      <label>{{ translate('cardSize', 'Size') }} <select v-model="cardSize" class="yayaw-select"><option value="small">{{ translate('cardSmall', 'Small') }}</option><option value="medium">{{ translate('cardMedium', 'Medium') }}</option><option value="large">{{ translate('cardLarge', 'Large') }}</option></select></label>
+      <details><summary class="yayaw-button yayaw-button-outline">{{ translate('properties', 'Properties') }}</summary><div class="yayaw-card-properties-menu">
         <label v-for="item in columns" :key="item.id" class="yayaw-checkbox-label"><input type="checkbox" :checked="propertyIds.includes(item.id)" @change="toggleProperty(item.id, ($event.target as HTMLInputElement).checked)" /> {{ item.header }}</label>
-        <label class="yayaw-checkbox-label"><input v-model="showLabels" type="checkbox" /> Show labels</label>
+        <label class="yayaw-checkbox-label"><input v-model="showLabels" type="checkbox" /> {{ translate('cardShowLabels', 'Show labels') }}</label>
       </div></details>
     </div>
     <section v-for="section in sections" :key="section.label" class="yayaw-gallery-section">
@@ -193,12 +187,12 @@ const toggleSelection = (row: TableRecord, checked: boolean): void => {
           <div class="yayaw-gallery-media" :data-ratio="aspectRatio">
             <img v-if="imageFor(row)" :src="imageFor(row)" :alt="String(value(row, titleColumn) ?? '')" loading="lazy" :style="{ objectFit: imageFit }" />
             <span v-else>{{ initialFor(row) }}</span>
-            <label v-if="context.config.table.enableRowSelection" class="yayaw-card-select" @click.stop><input type="checkbox" :checked="context.selection.value[context.getRowId(row)]" :disabled="context.config.table.canSelectRow?.(row) === false" @change="toggleSelection(row, ($event.target as HTMLInputElement).checked)" /></label>
+            <label v-if="context.config.table.enableRowSelection" class="yayaw-card-select" @click.stop><input type="checkbox" :aria-label="translate('selectRow', 'Select') + ' ' + String(value(row, titleColumn))" :checked="context.selection.value[context.getRowId(row)]" :disabled="context.config.table.canSelectRow?.(row) === false" @change="toggleSelection(row, ($event.target as HTMLInputElement).checked)" /></label>
           </div>
           <div class="yayaw-gallery-body">
-            <div class="yayaw-card-header"><strong>{{ displayCellValue(value(row, titleColumn), column(titleColumn) ?? { id: titleColumn, header: titleColumn }) }}</strong><RowActions :row="row" /></div>
+            <div class="yayaw-card-header"><strong>{{ displayCellValue(value(row, titleColumn), column(titleColumn) ?? { id: titleColumn, header: titleColumn }, context.locale) }}</strong><RowActions :row="row" /></div>
             <dl class="yayaw-card-properties" :class="{ labeled: showLabels }">
-              <template v-for="id in propertyIds.filter((item) => ![titleColumn, imageColumn].includes(item))" :key="id"><dt v-if="showLabels">{{ column(id)?.header ?? id }}</dt><dd>{{ displayCellValue(value(row, id), column(id) ?? { id, header: id }) }}</dd></template>
+              <template v-for="id in propertyIds.filter((item) => ![titleColumn, imageColumn].includes(item))" :key="id"><dt v-if="showLabels">{{ column(id)?.header ?? id }}</dt><dd><CellRenderer :value="value(row, id)" :row="row" :column="column(id) ?? { id, header: id }" /></dd></template>
             </dl>
           </div>
         </article>

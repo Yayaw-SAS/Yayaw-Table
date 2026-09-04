@@ -3,19 +3,22 @@
  */
 "use client";
 
-import type { Row, Table } from "@tanstack/react-table";
 import { useQueryClient } from "@tanstack/react-query";
+import type { Row, Table } from "@tanstack/react-table";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import type { BulkEditTarget } from "../components/forms/catalogue-bulk-editor";
+import { cloneFormValue } from "../components/forms/form-runtime";
 import { type CsvExportColumn, exportRowsAsCsv } from "../utils/csv-export";
 import {
-  type TableListAction,
   fetchAllFilteredRows,
+  type TableListAction,
   toAdvancedFiltersParam,
   toFiltersParam,
   toOrderByParam,
   toPageSize,
 } from "../utils/filtered-rows";
+import { recordValue } from "../utils/table-contracts";
 import { invalidateTableDataQuery } from "./query-cache-utils";
 import { useTableActions } from "./use-table-actions";
 import { useTableUrlState } from "./use-table-url-state";
@@ -162,6 +165,9 @@ interface BulkActionsConfig<TData> {
  * Return type for the bulk actions hook
  */
 interface BulkActionsReturn<TData> {
+  bulkEditTargets: BulkEditTarget[] | null;
+  closeBulkEdit: () => void;
+  completeBulkEdit: (ids: string[]) => Promise<void>;
   /**
    * Currently selected rows
    */
@@ -334,7 +340,9 @@ export function normalizeBulkActionResult(
   }
 
   const success =
-    typeof result.success === "boolean" ? result.success : fallbackResult.success;
+    typeof result.success === "boolean"
+      ? result.success
+      : fallbackResult.success;
   const closeMenu =
     typeof result.closeMenu === "boolean"
       ? result.closeMenu
@@ -412,7 +420,9 @@ function readArrayLengthField(
   return;
 }
 
-function getRecordEntityId(record: Record<string, unknown>): string | undefined {
+function getRecordEntityId(
+  record: Record<string, unknown>
+): string | undefined {
   const candidateId = record.id ?? record._id;
 
   if (typeof candidateId === "string" && candidateId.trim().length > 0) {
@@ -444,16 +454,16 @@ function getSelectedRowId<TData>(
   return;
 }
 
-function getSortedSelectedIds(
-  rowSelection: Record<string, boolean>
-): string[] {
+function getSortedSelectedIds(rowSelection: Record<string, boolean>): string[] {
   return Object.entries(rowSelection)
     .filter(([, isSelected]) => isSelected)
     .map(([rowId]) => rowId)
     .sort();
 }
 
-export function buildRowSelectionState(rowIds: string[]): Record<string, boolean> {
+export function buildRowSelectionState(
+  rowIds: string[]
+): Record<string, boolean> {
   const selection: Record<string, boolean> = {};
 
   for (const rowId of rowIds) {
@@ -596,7 +606,9 @@ function inferBulkDeleteCounts(
   return { failureCount, successCount };
 }
 
-export function extractSelectedRowIds<TData>(selectedRows: Row<TData>[]): string[] {
+export function extractSelectedRowIds<TData>(
+  selectedRows: Row<TData>[]
+): string[] {
   const ids = new Set<string>();
 
   for (const row of selectedRows) {
@@ -672,7 +684,7 @@ export async function executeBulkDeleteOperation({
 
       const errorMessages = normalizeUniqueMessages([
         result.error ?? "",
-        !result.success ? DEFAULT_BULK_DELETE_ERROR : "",
+        result.success ? "" : DEFAULT_BULK_DELETE_ERROR,
       ]);
 
       return {
@@ -684,9 +696,7 @@ export async function executeBulkDeleteOperation({
       };
     } catch (error) {
       return {
-        errorMessages: [
-          toErrorMessage(error, DEFAULT_BULK_DELETE_ERROR),
-        ],
+        errorMessages: [toErrorMessage(error, DEFAULT_BULK_DELETE_ERROR)],
         failureCount: totalCount,
         mode: "bulkDelete",
         successCount: 0,
@@ -716,7 +726,9 @@ export async function executeBulkDeleteOperation({
         continue;
       }
 
-      errorMessages.push(toErrorMessage(result.reason, DEFAULT_BULK_DELETE_ERROR));
+      errorMessages.push(
+        toErrorMessage(result.reason, DEFAULT_BULK_DELETE_ERROR)
+      );
     }
 
     return {
@@ -830,10 +842,12 @@ function resolveBulkDeleteStructuredResult(options: {
   const isSuccess = feedback.tone === "success";
 
   return {
-    closeMenu: options.explicitCloseMenu ?? (isSuccess ? true : options.closeOnError),
+    closeMenu:
+      options.explicitCloseMenu ?? (isSuccess ? true : options.closeOnError),
     feedback,
     shouldClearSelection:
-      options.explicitClearSelection ?? (isSuccess ? true : options.closeOnError),
+      options.explicitClearSelection ??
+      (isSuccess ? true : options.closeOnError),
     success: isSuccess,
   };
 }
@@ -875,12 +889,13 @@ function resolveBulkDeleteExplicitSuccessResult(options: {
 
   return {
     closeMenu: options.explicitCloseMenu ?? shouldClearSelection,
-    feedback: feedbackMessage.length > 0
-      ? {
-          message: feedbackMessage,
-          tone: options.explicitSuccess ? "success" : "error",
-        }
-      : undefined,
+    feedback:
+      feedbackMessage.length > 0
+        ? {
+            message: feedbackMessage,
+            tone: options.explicitSuccess ? "success" : "error",
+          }
+        : undefined,
     shouldClearSelection,
     success: options.explicitSuccess,
   };
@@ -1124,6 +1139,9 @@ export function useBulkActions<TData>({
   const [crossPageSelection, setCrossPageSelection] =
     useState<CrossPageSelectionState<TData> | null>(null);
   const [isSelectingAll, setIsSelectingAll] = useState(false);
+  const [bulkEditTargets, setBulkEditTargets] = useState<
+    BulkEditTarget[] | null
+  >(null);
   const currentRowSelection =
     table && typeof table.getState === "function"
       ? table.getState().rowSelection || {}
@@ -1189,12 +1207,7 @@ export function useBulkActions<TData>({
     if (crossPageSelection.rowIdsKey !== currentSelectionIdsKey) {
       setCrossPageSelection(null);
     }
-  }, [
-    crossPageSelection,
-    currentSelectionIdsKey,
-    selectionContextKey,
-    table,
-  ]);
+  }, [crossPageSelection, currentSelectionIdsKey, selectionContextKey, table]);
 
   // Clear all selections
   const clearSelection = useCallback(() => {
@@ -1215,7 +1228,7 @@ export function useBulkActions<TData>({
   const handleSelectAll = useCallback(async (): Promise<void> => {
     const listAction = provider?.actions.list as TableListAction | undefined;
 
-    if (!table || !listAction || !canSelectAll) {
+    if (!(table && listAction && canSelectAll)) {
       return;
     }
 
@@ -1301,6 +1314,16 @@ export function useBulkActions<TData>({
           message: errorMessage,
         };
       }
+    }
+
+    if (provider?.actions.bulkUpdate) {
+      setBulkEditTargets(
+        selectedRows.map((row) => ({
+          id: row.id,
+          row: cloneFormValue(recordValue(row.original)),
+        }))
+      );
+      return successResult;
     }
 
     const resolution = resolveBulkEditWithoutCustom({
@@ -1443,7 +1466,10 @@ export function useBulkActions<TData>({
 
       throw new Error("Clipboard API is not available in this environment.");
     } catch (error) {
-      const errorMessage = toErrorMessage(error, "Failed to copy selected rows.");
+      const errorMessage = toErrorMessage(
+        error,
+        "Failed to copy selected rows."
+      );
       toast.error(errorMessage);
       return {
         ...DEFAULT_BULK_ACTION_FAILURE_RESULT,
@@ -1501,7 +1527,10 @@ export function useBulkActions<TData>({
       });
       return successResult;
     } catch (error) {
-      const errorMessage = toErrorMessage(error, "Failed to export selected rows.");
+      const errorMessage = toErrorMessage(
+        error,
+        "Failed to export selected rows."
+      );
       toast.error(errorMessage);
       return {
         ...DEFAULT_BULK_ACTION_FAILURE_RESULT,
@@ -1523,6 +1552,30 @@ export function useBulkActions<TData>({
   }, [clearSelection]);
 
   return {
+    bulkEditTargets,
+    closeBulkEdit: () => setBulkEditTargets(null),
+    completeBulkEdit: async (ids) => {
+      const completed = new Set(ids);
+      table.setRowSelection((previous) =>
+        Object.fromEntries(
+          Object.entries(previous).filter(([id]) => !completed.has(id))
+        )
+      );
+      setCrossPageSelection((previous) =>
+        previous
+          ? {
+              ...previous,
+              rows: previous.rows.filter((row) => !completed.has(row.id)),
+              rowIdsKey: previous.rows
+                .filter((row) => !completed.has(row.id))
+                .map((row) => row.id)
+                .sort()
+                .join("|"),
+            }
+          : null
+      );
+      await invalidateTableData();
+    },
     selectedRows,
     selectedCount: selectedRows.length,
     showBulkActions,

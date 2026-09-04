@@ -7,6 +7,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { Row, Table } from "@tanstack/react-table";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import type { BulkEditTarget } from "../components/forms/catalogue-bulk-editor";
+import { cloneFormValue } from "../components/forms/form-runtime";
 import { type CsvExportColumn, exportRowsAsCsv } from "../utils/csv-export";
 import {
   fetchAllFilteredRows,
@@ -16,6 +18,7 @@ import {
   toOrderByParam,
   toPageSize,
 } from "../utils/filtered-rows";
+import { recordValue } from "../utils/table-contracts";
 import { invalidateTableDataQuery } from "./query-cache-utils";
 import { useTableActions } from "./use-table-actions";
 import { useTableUrlState } from "./use-table-url-state";
@@ -162,6 +165,9 @@ interface BulkActionsConfig<TData> {
  * Return type for the bulk actions hook
  */
 interface BulkActionsReturn<TData> {
+  bulkEditTargets: BulkEditTarget[] | null;
+  closeBulkEdit: () => void;
+  completeBulkEdit: (ids: string[]) => Promise<void>;
   /**
    * Currently selected rows
    */
@@ -1133,6 +1139,9 @@ export function useBulkActions<TData>({
   const [crossPageSelection, setCrossPageSelection] =
     useState<CrossPageSelectionState<TData> | null>(null);
   const [isSelectingAll, setIsSelectingAll] = useState(false);
+  const [bulkEditTargets, setBulkEditTargets] = useState<
+    BulkEditTarget[] | null
+  >(null);
   const currentRowSelection =
     table && typeof table.getState === "function"
       ? table.getState().rowSelection || {}
@@ -1305,6 +1314,16 @@ export function useBulkActions<TData>({
           message: errorMessage,
         };
       }
+    }
+
+    if (provider?.actions.bulkUpdate) {
+      setBulkEditTargets(
+        selectedRows.map((row) => ({
+          id: row.id,
+          row: cloneFormValue(recordValue(row.original)),
+        }))
+      );
+      return successResult;
     }
 
     const resolution = resolveBulkEditWithoutCustom({
@@ -1533,6 +1552,30 @@ export function useBulkActions<TData>({
   }, [clearSelection]);
 
   return {
+    bulkEditTargets,
+    closeBulkEdit: () => setBulkEditTargets(null),
+    completeBulkEdit: async (ids) => {
+      const completed = new Set(ids);
+      table.setRowSelection((previous) =>
+        Object.fromEntries(
+          Object.entries(previous).filter(([id]) => !completed.has(id))
+        )
+      );
+      setCrossPageSelection((previous) =>
+        previous
+          ? {
+              ...previous,
+              rows: previous.rows.filter((row) => !completed.has(row.id)),
+              rowIdsKey: previous.rows
+                .filter((row) => !completed.has(row.id))
+                .map((row) => row.id)
+                .sort()
+                .join("|"),
+            }
+          : null
+      );
+      await invalidateTableData();
+    },
     selectedRows,
     selectedCount: selectedRows.length,
     showBulkActions,

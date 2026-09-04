@@ -35,7 +35,7 @@ export function TextField<TFieldValues extends Record<string, unknown>>({
       </FieldLabel>
       <Input
         aria-invalid={!fieldApi.state.meta.isValid}
-        disabled={field.disabled}
+        disabled={field.disabled === true}
         name={fieldApi.name}
         onBlur={fieldApi.handleBlur}
         onChange={(e) => fieldApi.handleChange(e.target.value)}

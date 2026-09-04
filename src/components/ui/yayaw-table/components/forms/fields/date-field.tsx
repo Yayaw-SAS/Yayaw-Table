@@ -34,7 +34,9 @@ function toDateInputValue(value: Date | string | null | undefined): string {
   }
 
   const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? "" : parsed.toISOString().slice(0, 10);
+  return Number.isNaN(parsed.getTime())
+    ? ""
+    : parsed.toISOString().slice(0, 10);
 }
 
 export function DateField<TFieldValues extends Record<string, unknown>>({
@@ -54,7 +56,7 @@ export function DateField<TFieldValues extends Record<string, unknown>>({
       </FieldLabel>
       <Input
         aria-invalid={!fieldApi.state.meta.isValid}
-        disabled={field.disabled}
+        disabled={field.disabled === true}
         max={toDateInputValue(field.maxDate)}
         min={toDateInputValue(field.minDate)}
         name={fieldApi.name}

@@ -21,7 +21,7 @@ import { FormSelectContent } from "./form-select-content";
 
 interface SelectFieldProps<TFieldValues extends Record<string, unknown>> {
   field: SelectFieldDefinition<TFieldValues>;
-  fieldApi: FormFieldApi<string | number | null>;
+  fieldApi: FormFieldApi<string | number | boolean | null>;
 }
 
 export function SelectField<TFieldValues extends Record<string, unknown>>({
@@ -42,13 +42,22 @@ export function SelectField<TFieldValues extends Record<string, unknown>>({
         {field.labelKey ? t(field.labelKey) : field.label}
       </FieldLabel>
       <Select
-        disabled={field.disabled}
+        disabled={field.disabled === true}
         onValueChange={(val) =>
-          fieldApi.handleChange(val == null || val === "" ? null : val)
+          fieldApi.handleChange(
+            val == null || val === ""
+              ? null
+              : ((Array.isArray(field.options) ? field.options : []).find(
+                  (option) => String(option.value) === val
+                )?.value ?? val)
+          )
         }
         value={selectValue}
       >
-        <SelectTrigger>
+        <SelectTrigger
+          aria-label={field.labelKey ? t(field.labelKey) : field.label}
+          onBlur={fieldApi.handleBlur}
+        >
           <SelectValue
             placeholder={
               field.placeholderKey ? t(field.placeholderKey) : field.placeholder
@@ -56,13 +65,19 @@ export function SelectField<TFieldValues extends Record<string, unknown>>({
           />
         </SelectTrigger>
         <FormSelectContent>
-          {field.options.map((option, index) => (
-            <SelectItem key={String(option.value)} value={String(option.value)}>
-              {field.optionKeys?.[index]
-                ? t(field.optionKeys[index])
-                : option.label}
-            </SelectItem>
-          ))}
+          {(Array.isArray(field.options) ? field.options : []).map(
+            (option, index) => (
+              <SelectItem
+                disabled={option.disabled}
+                key={String(option.value)}
+                value={String(option.value)}
+              >
+                {field.optionKeys?.[index]
+                  ? t(field.optionKeys[index])
+                  : option.label}
+              </SelectItem>
+            )
+          )}
         </FormSelectContent>
       </Select>
       {field.description != null && (
