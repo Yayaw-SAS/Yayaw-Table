@@ -131,6 +131,8 @@ export interface ColumnDefinition<TData extends TableRecord = TableRecord> {
   enableSorting?: boolean;
   enableGrouping?: boolean;
   enableHiding?: boolean;
+  /** Allow the native column menu to change this column's pinned position. */
+  enablePinning?: boolean;
   enableCalculation?: boolean;
   displayVariant?: "default" | "tag";
   dateDisplayPreset?: DateDisplayPreset;
@@ -227,6 +229,10 @@ export interface TableBehaviorConfig<TData extends TableRecord = TableRecord> {
   defaultPageSize: number;
   enableColumnDragDropByDefault: boolean;
   enableColumnFilters: boolean;
+  /** Catalogue defaults; explicit component props take precedence. */
+  enableAdvancedFilters?: boolean;
+  syncUrl?: boolean;
+  searchDebounceMs?: number;
   enableColumnPinning?: boolean;
   enableMultiRowSelection: boolean;
   enablePagination: boolean;
@@ -443,6 +449,7 @@ export interface TableConfig<TData extends TableRecord = TableRecord> {
   table: TableBehaviorConfig<TData>;
   translations: TableTranslationsConfig;
   form?: TableFormConfig;
+  toolbarActions?: ToolbarAction<TData>[];
 }
 
 export interface SortItem {
@@ -733,6 +740,7 @@ export interface YayawTableProps<TData extends TableRecord = TableRecord> {
   enableViews?: boolean;
   syncUrl?: boolean;
   customBulkActions?: BulkAction<TData>[];
+  searchDebounceMs?: number;
   toolbarActions?: ToolbarAction<TData>[];
   getRowId?: (row: TData) => string;
   onRowActivate?: (row: TData, event: MouseEvent) => void;

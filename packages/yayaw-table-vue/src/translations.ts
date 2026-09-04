@@ -45,6 +45,12 @@ export const defaultTranslations: Required<
 > &
   DataTableTranslations = {
   search: "Search…",
+  columnOptions: "Column options",
+  clearSort: "Clear sort",
+  pinLeft: "Pin left",
+  pinRight: "Pin right",
+  unpin: "Unpin",
+  hideColumn: "Hide column",
   create: "Create",
   edit: "Edit",
   delete: "Delete",
@@ -93,6 +99,12 @@ export const defaultTranslations: Required<
 
 export const frenchTranslations: DataTableTranslations = {
   search: "Rechercher…",
+  columnOptions: "Options de colonne",
+  clearSort: "Effacer le tri",
+  pinLeft: "Épingler à gauche",
+  pinRight: "Épingler à droite",
+  unpin: "Désépingler",
+  hideColumn: "Masquer la colonne",
   create: "Créer",
   edit: "Modifier",
   delete: "Supprimer",

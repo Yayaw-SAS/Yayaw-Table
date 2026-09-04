@@ -112,9 +112,13 @@ const selected = (wrapper: Wrapper) =>
     .findAll<HTMLInputElement>('tbody input[type="checkbox"]')
     .filter((input) => input.element.checked).length;
 
-enableAutoUnmount(afterEach);
+enableAutoUnmount((unmount) =>
+  afterEach(() => {
+    unmount();
+    document.body.replaceChildren();
+  })
+);
 beforeEach(() => window.history.replaceState({}, "", "/"));
-afterEach(() => document.body.replaceChildren());
 
 describe("generated bulk catalogue", () => {
   it("uses each table's catalogue by default and only validates checked fields", async () => {

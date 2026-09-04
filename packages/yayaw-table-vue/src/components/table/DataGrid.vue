@@ -14,6 +14,7 @@ import {
   type Updater,
   useVueTable,
 } from "@tanstack/vue-table";
+import { ArrowDown, ArrowUp } from "lucide-vue-next";
 import { type CSSProperties, computed, h, ref, watch } from "vue";
 import { useTableContext } from "../../context";
 import { applyTableQuery, calculateColumn, formatNumber } from "../../core";
@@ -23,6 +24,7 @@ import type {
   TableRecord,
 } from "../../types";
 import CellRenderer from "./CellRenderer.vue";
+import ColumnMenu from "./ColumnMenu.vue";
 import RowActions from "./RowActions.vue";
 
 const context = useTableContext();
@@ -60,6 +62,7 @@ const columns = computed<ColumnDef<TableRecord>[]>(() => {
         column.enableHiding !== false,
       enableSorting:
         context.config.table.enableSorting && column.enableSorting !== false,
+      enablePinning: column.enablePinning !== false,
       enableColumnFilter:
         context.config.table.enableColumnFilters &&
         column.enableFiltering !== false,
@@ -496,6 +499,7 @@ const pinnedStyle = (column: Column<TableRecord>): CSSProperties => {
               v-for="header in headerGroup.headers"
               :key="header.id"
               :style="pinnedStyle(header.column)"
+              :aria-sort="header.column.getIsSorted() === 'asc' ? 'ascending' : header.column.getIsSorted() === 'desc' ? 'descending' : undefined"
               :aria-label="header.column.id === 'actions' ? String(context.translations.value.actions ?? 'Actions') : undefined"
               :draggable="context.config.table.enableColumnDragDropByDefault && !['select', 'actions'].includes(header.column.id)"
               :class="{ sortable: header.column.getCanSort(), pinned: header.column.getIsPinned() }"
@@ -506,10 +510,13 @@ const pinnedStyle = (column: Column<TableRecord>): CSSProperties => {
             >
               <div class="yayaw-header-cell">
                 <span v-if="header.column.id === 'actions'" class="yayaw-sr-only">Actions</span>
-                <FlexRender v-if="!header.isPlaceholder" :render="header.column.columnDef.header" :props="header.getContext()" />
-                <span v-if="header.column.getIsSorted() === 'asc'" aria-hidden="true">↑</span>
-                <span v-else-if="header.column.getIsSorted() === 'desc'" aria-hidden="true">↓</span>
-                <button v-if="context.config.table.enableColumnPinning && !['select', 'actions'].includes(header.column.id)" type="button" class="yayaw-pin" :aria-label="`Pin ${header.column.id}`" @click.stop="header.column.pin(header.column.getIsPinned() ? false : 'left')"><span aria-hidden="true">{{ header.column.getIsPinned() ? '◆' : '◇' }}</span></button>
+                <button v-if="!header.isPlaceholder && header.column.getCanSort()" type="button" class="yayaw-column-sort" @click.stop="header.column.getToggleSortingHandler()?.($event)">
+                  <FlexRender :render="header.column.columnDef.header" :props="header.getContext()" />
+                  <ArrowUp v-if="header.column.getIsSorted() === 'asc'" :size="16" aria-hidden="true" />
+                  <ArrowDown v-else-if="header.column.getIsSorted() === 'desc'" :size="16" aria-hidden="true" />
+                </button>
+                <FlexRender v-else-if="!header.isPlaceholder" :render="header.column.columnDef.header" :props="header.getContext()" />
+                <ColumnMenu v-if="!header.isPlaceholder" :column="header.column" />
               </div>
             </th>
           </tr>
