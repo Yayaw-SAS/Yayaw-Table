@@ -86,3 +86,15 @@ export const useTableContext = <
   }
   return value as TableContextValue<TData>;
 };
+
+/** Translate reusable field controls without requiring a table provider for standalone forms. */
+export const useTableTranslation = (): ((
+  key: string,
+  fallback: string
+) => string) => {
+  const context = inject(tableContextKey, undefined);
+  return (key, fallback) => {
+    const value = context?.translations.value[key];
+    return typeof value === "string" ? value : fallback;
+  };
+};

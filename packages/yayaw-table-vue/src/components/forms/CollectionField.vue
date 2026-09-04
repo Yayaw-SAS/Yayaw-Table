@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useTableTranslation } from "../../context";
 import {
   computed,
   defineComponent,
@@ -23,6 +24,7 @@ import type {
 import DynamicField from "./DynamicField.vue";
 import FormDialog from "./FormDialog.vue";
 
+const label = useTableTranslation();
 const props = defineProps<{
   field: FormFieldDefinition;
   modelValue: unknown;
@@ -43,7 +45,7 @@ const dialogMode = computed(() =>
 const columns = computed<CollectionFieldColumnDefinition[]>(
   () =>
     props.field.columns ?? [
-      { id: "item", header: props.field.itemLabel ?? "Item" },
+      { id: "item", header: props.field.itemLabel ?? label("item", "Item") },
     ]
 );
 const edit = ref<{
@@ -205,7 +207,7 @@ const renderItem = (item: TableRecord, index: number | null, draft = false) =>
             <th v-for="column in columns" :key="column.id">
               {{ column.header }}
             </th>
-            <th><span class="yayaw-sr-only">Actions</span></th>
+            <th><span class="yayaw-sr-only">{{ label("actions", "Actions") }}</span></th>
           </tr>
         </thead>
         <tbody>
@@ -218,7 +220,7 @@ const renderItem = (item: TableRecord, index: number | null, draft = false) =>
                 v-if="column.render"
                 :node="column.render(item, index)"
               /><template v-else>{{
-                item[column.id] ?? `${field.itemLabel ?? "Item"} ${index + 1}`
+                item[column.id] ?? `${field.itemLabel ?? label("item", "Item")} ${index + 1}`
               }}</template>
             </td>
             <td>
@@ -233,7 +235,7 @@ const renderItem = (item: TableRecord, index: number | null, draft = false) =>
                 type="button"
                 class="yayaw-icon-button"
                 :disabled="disabled || index === 0"
-                aria-label="Move item up"
+                :aria-label="label('moveItemUp', 'Move item up')"
                 @click="move(index, -1)"
               >
                 ↑</button
@@ -241,7 +243,7 @@ const renderItem = (item: TableRecord, index: number | null, draft = false) =>
                 type="button"
                 class="yayaw-icon-button"
                 :disabled="disabled || index === items.length - 1"
-                aria-label="Move item down"
+                :aria-label="label('moveItemDown', 'Move item down')"
                 @click="move(index, 1)"
               >
                 ↓</button
@@ -249,7 +251,7 @@ const renderItem = (item: TableRecord, index: number | null, draft = false) =>
                 type="button"
                 class="yayaw-icon-button yayaw-danger"
                 :disabled="disabled"
-                aria-label="Remove item"
+                :aria-label="label('removeItem', 'Remove item')"
                 @click="remove(index)"
               >
                 ×
@@ -283,7 +285,7 @@ const renderItem = (item: TableRecord, index: number | null, draft = false) =>
             type="button"
             class="yayaw-icon-button"
             :disabled="disabled || index === 0"
-            aria-label="Move item up"
+            :aria-label="label('moveItemUp', 'Move item up')"
             @click="move(index, -1)"
           >
             ↑</button
@@ -291,7 +293,7 @@ const renderItem = (item: TableRecord, index: number | null, draft = false) =>
             type="button"
             class="yayaw-icon-button"
             :disabled="disabled || index === items.length - 1"
-            aria-label="Move item down"
+            :aria-label="label('moveItemDown', 'Move item down')"
             @click="move(index, 1)"
           >
             ↓</button
@@ -299,7 +301,7 @@ const renderItem = (item: TableRecord, index: number | null, draft = false) =>
             type="button"
             class="yayaw-icon-button yayaw-danger"
             :disabled="disabled"
-            aria-label="Remove item"
+            :aria-label="label('removeItem', 'Remove item')"
             @click="remove(index)"
           >
             ×
@@ -336,7 +338,7 @@ const renderItem = (item: TableRecord, index: number | null, draft = false) =>
       :disabled="disabled"
       @click="add()"
     >
-      + {{ field.addLabel ?? "Add item" }}
+      + {{ field.addLabel ?? label("addItem", "Add item") }}
     </button>
     <button
       v-for="action in field.createActions"
@@ -351,11 +353,12 @@ const renderItem = (item: TableRecord, index: number | null, draft = false) =>
     <FormDialog
       v-if="edit"
       :open="true"
-      :title="`${edit.index === null ? 'Add' : 'Edit'} ${
+      :title="`${edit.index === null ? label('add', 'Add') : label('edit', 'Edit')} ${
         field.itemLabel ?? field.label
       }`"
       presentation="modal"
       :busy="saving"
+      :close-label="label('close', 'Close')"
       @close="edit = undefined"
     >
       <div class="yayaw-form">
@@ -382,14 +385,14 @@ const renderItem = (item: TableRecord, index: number | null, draft = false) =>
             :disabled="saving"
             @click="edit = undefined"
           >
-            Cancel</button
+            {{ label("cancel", "Cancel") }}</button
           ><button
             type="button"
             class="yayaw-button"
             :disabled="saving || disabled"
             @click="save"
           >
-            {{ saving ? "Saving…" : "Save item" }}
+            {{ saving ? label("saving", "Saving…") : label("saveItem", "Save item") }}
           </button>
         </footer>
       </div>

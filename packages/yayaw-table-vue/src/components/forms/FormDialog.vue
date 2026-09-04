@@ -18,6 +18,7 @@ const props = defineProps<{
   busy?: boolean;
   returnFocus?: HTMLElement;
   closeLabel?: string;
+  role?: "alertdialog" | "dialog";
 }>();
 const emit = defineEmits<{ close: []; openAutoFocus: [event: Event] }>();
 const anchor = ref<HTMLElement>();
@@ -25,8 +26,9 @@ const theme = ref<CSSProperties>({});
 let opener: HTMLElement | undefined;
 let fallback: HTMLElement | null = null;
 onMounted(() => {
-  opener = props.returnFocus ?? (
-    document.activeElement instanceof HTMLElement
+  opener =
+    props.returnFocus ??
+    (document.activeElement instanceof HTMLElement
       ? document.activeElement
       : undefined);
   if (!anchor.value) return;
@@ -58,7 +60,8 @@ onMounted(() => {
   theme.value = values;
 });
 const restoreFocus = (event: Event): void => {
-  const target = opener?.isConnected && opener !== document.body ? opener : fallback;
+  const target =
+    opener?.isConnected && opener !== document.body ? opener : fallback;
   if (target?.isConnected) {
     event.preventDefault();
     // The bulk trigger is re-enabled by the same update that closes the form.
@@ -84,6 +87,7 @@ const restoreFocus = (event: Event): void => {
       >
         <DialogContent
           class="yayaw-form-surface"
+          :role="role ?? 'dialog'"
           :data-presentation="presentation ?? 'drawer'"
           :style="{ width }"
           v-bind="description ? {} : { 'aria-describedby': undefined }"

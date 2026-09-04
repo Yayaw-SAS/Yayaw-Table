@@ -4,6 +4,7 @@ import { computed, defineComponent, h, reactive, ref } from "vue";
 import { z } from "zod";
 import { defineTableConfig } from "../../config";
 import { type TableContextValue, tableContextKey } from "../../context";
+import { createTranslations } from "../../translations";
 import type {
   FormConfig,
   FormFieldContext,
@@ -491,4 +492,51 @@ describe("collection editor", () => {
         .every((button) => button.attributes("disabled") !== undefined)
     ).toBe(true);
   });
+});
+
+it("inherits translated collection controls from the enclosing table", async () => {
+  const wrapper = track(
+    mount(CollectionField, {
+      props: {
+        field: {
+          name: "items",
+          label: "Éléments",
+          type: "collection",
+          collectionMode: "dialog",
+          itemFields: [{ name: "name", label: "Nom", type: "text" }],
+        },
+        modelValue: [{ name: "Alpha" }],
+        context: fieldContext(),
+        path: "items",
+      },
+      global: {
+        provide: {
+          [tableContextKey as symbol]: {
+            translations: computed(() => createTranslations("fr")),
+          },
+        },
+        stubs: { DialogPortal: { template: "<div><slot /></div>" } },
+      },
+      attachTo: document.body,
+    })
+  );
+  expect(wrapper.find('[aria-label="Supprimer l’élément"]').exists()).toBe(
+    true
+  );
+  const addButton = wrapper
+    .findAll("button")
+    .find((button) => button.text().includes("Ajouter un élément"));
+  expect(addButton).toBeDefined();
+  await addButton?.trigger("click");
+  await flushPromises();
+  expect(wrapper.get('[role="dialog"]').text()).toContain("Ajouter Éléments");
+  expect(wrapper.find('[aria-label="Fermer"]').exists()).toBe(true);
+  expect(wrapper.text()).toContain("Enregistrer l’élément");
+  await wrapper
+    .findAll("button")
+    .find((button) => button.text() === "Annuler")
+    ?.trigger("click");
+  await flushPromises();
+  expect(wrapper.find('[role="dialog"]').exists()).toBe(false);
+  expect(wrapper.emitted("update:modelValue")).toBeUndefined();
 });

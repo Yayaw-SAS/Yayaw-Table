@@ -1,27 +1,30 @@
 <script setup lang="ts">
 import { Copy, MoreHorizontal, Pencil, Trash2 } from "lucide-vue-next";
 import {
-  computed,
-  type CSSProperties,
-  onBeforeUnmount,
-  onMounted,
-  ref,
-} from "vue";
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuPortal,
+  DropdownMenuRoot,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "reka-ui";
+import { computed, ref } from "vue";
 import { useTableContext } from "../../context";
 import type { TableRecord } from "../../types";
+import FormDialog from "../forms/FormDialog.vue";
 
 const props = defineProps<{ row: TableRecord }>();
 const context = useTableContext();
+const root = ref<HTMLElement>();
 const trigger = ref<HTMLElement>();
 const menuOpen = ref(false);
 const pending = ref<string>();
 const confirmingDelete = ref(false);
-const menuPosition = ref({ right: 0, top: 0 });
+const deleteError = ref("");
+const menuTheme = ref<Record<string, string>>({});
 
 const includeEdit = computed(
-  () =>
-    context.config.table.allowEdit &&
-    Boolean(context.actions.value?.update)
+  () => context.config.table.allowEdit && Boolean(context.actions.value?.update)
 );
 const includeDuplicate = computed(
   () =>
@@ -30,13 +33,11 @@ const includeDuplicate = computed(
 );
 const includeDelete = computed(
   () =>
-    context.config.table.allowDelete &&
-    Boolean(context.actions.value?.delete)
+    context.config.table.allowDelete && Boolean(context.actions.value?.delete)
 );
 const canEdit = computed(
   () =>
-    includeEdit.value &&
-    context.config.table.canEditRow?.(props.row) !== false
+    includeEdit.value && context.config.table.canEditRow?.(props.row) !== false
 );
 const canDuplicate = computed(
   () =>
@@ -51,81 +52,46 @@ const canDelete = computed(
 const hasActions = computed(
   () => includeEdit.value || includeDuplicate.value || includeDelete.value
 );
-const menuStyle = computed<CSSProperties>(() => ({
-  right: `${menuPosition.value.right}px`,
-  top: `${menuPosition.value.top}px`,
-}));
 const translate = (key: string, fallback: string): string =>
   String(context.translations.value[key] ?? fallback);
-
-const closeMenu = (): void => {
+const menuChanged = (open: boolean): void => {
+  menuOpen.value = open;
+  if (!open || !root.value) return;
+  const style = getComputedStyle(root.value);
+  menuTheme.value = Object.fromEntries(
+    [
+      "background",
+      "foreground",
+      "muted",
+      "muted-foreground",
+      "border",
+      "primary",
+      "primary-foreground",
+      "danger",
+      "radius",
+      "shadow",
+    ].map((token) => [
+      `--yayaw-${token}`,
+      style.getPropertyValue(`--yayaw-${token}`),
+    ])
+  );
+};
+const run = async (kind: "delete" | "duplicate" | "edit"): Promise<boolean> => {
+  if (pending.value) return false;
   menuOpen.value = false;
-};
-const toggleMenu = (): void => {
-  if (menuOpen.value) {
-    closeMenu();
-    return;
-  }
-  const bounds = trigger.value?.getBoundingClientRect();
-  if (bounds) {
-    const actionCount =
-      Number(includeEdit.value) +
-      Number(includeDuplicate.value) +
-      Number(includeDelete.value);
-    const separatorHeight =
-      includeDelete.value && (includeEdit.value || includeDuplicate.value)
-        ? 9
-        : 0;
-    const menuHeight = 8 + actionCount * 32 + separatorHeight;
-    const opensUpward = bounds.bottom + 4 + menuHeight > window.innerHeight - 8;
-    menuPosition.value = {
-      right: Math.max(8, window.innerWidth - bounds.right),
-      top: Math.max(
-        8,
-        opensUpward ? bounds.top - menuHeight - 4 : bounds.bottom + 4
-      ),
-    };
-  }
-  menuOpen.value = true;
-};
-const handleDocumentPointer = (event: PointerEvent): void => {
-  const target = event.target as Element;
-  if (!trigger.value?.contains(target) && !target.closest(".yayaw-row-actions-menu")) {
-    closeMenu();
-  }
-};
-const handleDocumentKey = (event: KeyboardEvent): void => {
-  if (event.key === "Escape") {
-    closeMenu();
-  }
-};
-onMounted(() => {
-  document.addEventListener("pointerdown", handleDocumentPointer);
-  document.addEventListener("keydown", handleDocumentKey);
-  window.addEventListener("resize", closeMenu);
-  window.addEventListener("scroll", closeMenu, true);
-});
-onBeforeUnmount(() => {
-  document.removeEventListener("pointerdown", handleDocumentPointer);
-  document.removeEventListener("keydown", handleDocumentKey);
-  window.removeEventListener("resize", closeMenu);
-  window.removeEventListener("scroll", closeMenu, true);
-});
-
-const run = async (kind: "delete" | "duplicate" | "edit"): Promise<void> => {
-  closeMenu();
   if (kind === "edit") {
     if (!canEdit.value) {
-      return;
+      return false;
     }
+    trigger.value?.focus();
     context.openEdit(props.row);
-    return;
+    return true;
   }
   if (
     (kind === "duplicate" && !canDuplicate.value) ||
     (kind === "delete" && !canDelete.value)
   ) {
-    return;
+    return false;
   }
   const id = context.getRowId(props.row);
   pending.value = kind;
@@ -135,7 +101,7 @@ const run = async (kind: "delete" | "duplicate" | "edit"): Promise<void> => {
         ? context.actions.value?.delete
         : context.actions.value?.duplicate;
     if (!action) {
-      return;
+      return false;
     }
     const result = await action(id);
     if (!result.success) {
@@ -143,14 +109,22 @@ const run = async (kind: "delete" | "duplicate" | "edit"): Promise<void> => {
     }
     context.status.value = {
       type: "success",
-      message: kind === "delete" ? "Row deleted" : "Row duplicated",
+      message:
+        kind === "delete"
+          ? translate("rowDeleted", "Row deleted")
+          : translate("rowDuplicated", "Row duplicated"),
     };
     await context.refresh();
+    return true;
   } catch (cause) {
+    if (kind === "delete")
+      deleteError.value =
+        cause instanceof Error ? cause.message : String(cause);
     context.status.value = {
       type: "error",
       message: cause instanceof Error ? cause.message : String(cause),
     };
+    return false;
   } finally {
     pending.value = undefined;
   }
@@ -159,117 +133,50 @@ const requestDelete = (): void => {
   if (!canDelete.value) {
     return;
   }
-  closeMenu();
+  menuOpen.value = false;
+  deleteError.value = "";
   confirmingDelete.value = true;
 };
 const confirmDelete = async (): Promise<void> => {
-  confirmingDelete.value = false;
-  await run("delete");
+  deleteError.value = "";
+  if (await run("delete")) confirmingDelete.value = false;
 };
 </script>
 
 <template>
-  <div v-if="hasActions" class="yayaw-row-actions" @click.stop>
-    <button
-      ref="trigger"
-      type="button"
-      class="yayaw-icon-button"
-      :disabled="Boolean(pending)"
-      :aria-label="translate('openActions', 'Open actions menu')"
-      :title="translate('actions', 'Actions')"
-      :aria-expanded="menuOpen"
-      aria-haspopup="menu"
-      @click="toggleMenu"
-    >
-      <MoreHorizontal :size="16" aria-hidden="true" />
-    </button>
+  <div v-if="hasActions" ref="root" class="yayaw-row-actions" @click.stop @keydown.stop>
+    <DropdownMenuRoot :open="menuOpen" :modal="false" @update:open="menuChanged">
+      <DropdownMenuTrigger as-child>
+        <button ref="trigger" type="button" class="yayaw-icon-button" :disabled="Boolean(pending)"
+          :aria-label="translate('openActions', 'Open actions menu')" :title="translate('actions', 'Actions')">
+          <MoreHorizontal :size="16" aria-hidden="true" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuPortal>
+        <DropdownMenuContent class="yayaw-row-actions-menu" :style="menuTheme" align="end" :side-offset="4" :collision-padding="8"
+          :aria-label="translate('actions', 'Actions')" @click.stop
+          @close-auto-focus="event => { if (confirmingDelete || context.form.value.open) event.preventDefault(); }">
+          <DropdownMenuItem v-if="includeEdit" as-child :disabled="!canEdit" @select="run('edit')">
+            <button type="button" class="yayaw-row-action-item" :disabled="!canEdit"><Pencil :size="16" aria-hidden="true" />{{ translate("edit", "Edit") }}</button>
+          </DropdownMenuItem>
+          <DropdownMenuItem v-if="includeDuplicate" as-child :disabled="!canDuplicate" @select="run('duplicate')">
+            <button type="button" class="yayaw-row-action-item" :disabled="!canDuplicate"><Copy :size="16" aria-hidden="true" />{{ translate("duplicate", "Duplicate") }}</button>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator v-if="includeDelete && (includeEdit || includeDuplicate)" class="yayaw-row-actions-divider" />
+          <DropdownMenuItem v-if="includeDelete" as-child :disabled="!canDelete" @select="requestDelete">
+            <button type="button" class="yayaw-row-action-item yayaw-row-action-danger" :disabled="!canDelete"><Trash2 :size="16" aria-hidden="true" />{{ translate("delete", "Delete") }}</button>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenuPortal>
+    </DropdownMenuRoot>
+    <FormDialog v-if="confirmingDelete" :open="confirmingDelete" role="alertdialog" presentation="modal" width="min(460px, 94vw)"
+      :title="translate('deleteRow', 'Delete row?')" :description="translate('deleteRowDescription', 'This action cannot be undone.')"
+      :close-label="translate('close', 'Close')" :return-focus="trigger" :busy="Boolean(pending)" @close="confirmingDelete = false">
+      <div class="yayaw-confirm-body">
+        <p v-if="deleteError" class="yayaw-error" role="alert">{{ deleteError }}</p>
+        <button type="button" class="yayaw-button yayaw-button-outline" :disabled="Boolean(pending)" @click="confirmingDelete = false">{{ translate("cancel", "Cancel") }}</button>
+        <button type="button" class="yayaw-button yayaw-button-danger" :disabled="Boolean(pending)" @click="confirmDelete">{{ translate("delete", "Delete") }}</button>
+      </div>
+    </FormDialog>
   </div>
-
-  <Teleport to="body">
-    <div
-      v-if="menuOpen"
-      class="yayaw-row-actions-menu"
-      role="menu"
-      :aria-label="translate('actions', 'Actions')"
-      :style="menuStyle"
-      @click.stop
-    >
-      <button
-        v-if="includeEdit"
-        type="button"
-        class="yayaw-row-action-item"
-        :disabled="!canEdit"
-        role="menuitem"
-        @click="run('edit')"
-      >
-        <Pencil :size="16" aria-hidden="true" />
-        {{ translate("edit", "Edit") }}
-      </button>
-      <button
-        v-if="includeDuplicate"
-        type="button"
-        class="yayaw-row-action-item"
-        :disabled="!canDuplicate"
-        role="menuitem"
-        @click="run('duplicate')"
-      >
-        <Copy :size="16" aria-hidden="true" />
-        {{ translate("duplicate", "Duplicate") }}
-      </button>
-      <span
-        v-if="includeDelete && (includeEdit || includeDuplicate)"
-        class="yayaw-row-actions-divider"
-        role="separator"
-      />
-      <button
-        v-if="includeDelete"
-        type="button"
-        class="yayaw-row-action-item yayaw-row-action-danger"
-        :disabled="!canDelete"
-        role="menuitem"
-        @click="requestDelete"
-      >
-        <Trash2 :size="16" aria-hidden="true" />
-        {{ translate("delete", "Delete") }}
-      </button>
-    </div>
-
-    <div
-      v-if="confirmingDelete"
-      class="yayaw-dialog-backdrop"
-      @mousedown.self="confirmingDelete = false"
-      @click.stop
-    >
-      <section
-        class="yayaw-form-surface yayaw-confirm-surface"
-        data-presentation="modal"
-        role="alertdialog"
-        aria-modal="true"
-        aria-label="Delete row"
-      >
-        <header class="yayaw-form-header">
-          <div>
-            <h3>Delete row?</h3>
-            <p>This action cannot be undone.</p>
-          </div>
-        </header>
-        <div class="yayaw-confirm-body">
-          <button
-            type="button"
-            class="yayaw-button yayaw-button-outline"
-            @click="confirmingDelete = false"
-          >
-            {{ translate("cancel", "Cancel") }}
-          </button>
-          <button
-            type="button"
-            class="yayaw-button yayaw-button-danger"
-            @click="confirmDelete"
-          >
-            {{ translate("delete", "Delete") }}
-          </button>
-        </div>
-      </section>
-    </div>
-  </Teleport>
 </template>

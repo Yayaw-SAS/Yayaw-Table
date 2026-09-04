@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useTableTranslation } from "../../context";
 import {
   computed,
   defineComponent,
@@ -19,6 +20,7 @@ import type {
   SelectOption,
 } from "../../types";
 
+const label = useTableTranslation();
 const props = defineProps<{
   field: FormFieldDefinition;
   modelValue: unknown;
@@ -265,12 +267,12 @@ watch(valueType, (next, previous) => {
         v-model="query"
         type="search"
         class="yayaw-input"
-        :aria-label="`${field.label} search`"
+        :aria-label="`${field.label} ${label('searchOptions', 'search')}`"
         :disabled="disabled"
         autocomplete="off"
       />
     </template>
-    <p v-if="optionsLoading" class="yayaw-help" role="status">Loading…</p>
+    <p v-if="optionsLoading" class="yayaw-help" role="status">{{ label("loading", "Loading…") }}</p>
     <div v-if="optionsError" class="yayaw-field-error" role="alert">
       {{ optionsError }}
       <button
@@ -278,7 +280,7 @@ watch(valueType, (next, previous) => {
         class="yayaw-button yayaw-button-outline"
         @click="reloadOptions"
       >
-        Retry
+        {{ label("retry", "Retry") }}
       </button>
     </div>
     <component
@@ -325,7 +327,7 @@ watch(valueType, (next, previous) => {
         <input
           v-model="newOption"
           class="yayaw-input"
-          :placeholder="field.placeholder ?? 'New item'"
+          :placeholder="field.placeholder ?? label('newItem', 'New item')"
           @keydown.enter.prevent="addOption"
           @keydown.esc.prevent="cancelAddingOption"
           :disabled="optionPending"
@@ -334,7 +336,7 @@ watch(valueType, (next, previous) => {
           type="button"
           class="yayaw-button"
           :disabled="optionPending || disabled"
-          aria-label="Create option"
+          :aria-label="label('createOption', 'Create option')"
           @click="addOption"
         >
           +
@@ -342,7 +344,7 @@ watch(valueType, (next, previous) => {
         <button
           type="button"
           class="yayaw-button yayaw-button-outline"
-          aria-label="Cancel new option"
+          :aria-label="label('cancelNewOption', 'Cancel new option')"
           @click="cancelAddingOption"
         >
           ×
@@ -356,7 +358,7 @@ watch(valueType, (next, previous) => {
           :disabled="disabled"
           :required="field.required"
         >
-          <option value="">{{ field.placeholder ?? "Choose…" }}</option>
+          <option value="">{{ field.placeholder ?? label("chooseOption", "Choose…") }}</option>
           <option
             v-for="option in allOptions"
             :key="`${typeof option.value}:${option.value}`"
@@ -392,7 +394,7 @@ watch(valueType, (next, previous) => {
           : undefined
       "
     >
-      <option value="">{{ field.placeholder ?? "Choose…" }}</option>
+      <option value="">{{ field.placeholder ?? label("chooseOption", "Choose…") }}</option>
       <option
         v-for="option in allOptions"
         :key="`${typeof option.value}:${option.value}`"

@@ -529,7 +529,7 @@ const tags = computed(() =>
     <span
       v-if="pending && context.config.table.inlineEdit?.showDelayIndicator"
       class="yayaw-saving"
-      aria-label="Saving"
+      :aria-label="String(context.translations.value.saving ?? 'Saving')"
     />
   </div>
 </template>
