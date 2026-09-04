@@ -21,6 +21,12 @@ export interface OpenFormState {
   mode: FormMode;
   row?: TableRecord;
   formType?: string;
+  returnFocus?: HTMLElement;
+  bulk?: {
+    ids: string[];
+    rows: TableRecord[];
+    completed: (ids: string[]) => void;
+  };
 }
 
 export interface TableContextValue<TData extends TableRecord = TableRecord> {

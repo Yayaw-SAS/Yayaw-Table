@@ -7,27 +7,29 @@ import {
   DialogRoot,
   DialogTitle,
 } from "reka-ui";
-import { onMounted, ref, type CSSProperties, useId } from "vue";
+import { nextTick, onMounted, ref, type CSSProperties } from "vue";
 
-defineProps<{
+const props = defineProps<{
   open: boolean;
   title: string;
   description?: string;
   presentation?: "drawer" | "modal";
   width?: string;
   busy?: boolean;
+  returnFocus?: HTMLElement;
 }>();
 const emit = defineEmits<{ close: [] }>();
-const descriptionId = useId();
 const anchor = ref<HTMLElement>();
 const theme = ref<CSSProperties>({});
 let opener: HTMLElement | undefined;
+let fallback: HTMLElement | null = null;
 onMounted(() => {
-  opener =
+  opener = props.returnFocus ?? (
     document.activeElement instanceof HTMLElement
       ? document.activeElement
-      : undefined;
+      : undefined);
   if (!anchor.value) return;
+  fallback = anchor.value.closest<HTMLElement>(".yayaw-table");
   const style = getComputedStyle(anchor.value);
   const tokens = [
     "background",
@@ -55,9 +57,11 @@ onMounted(() => {
   theme.value = values;
 });
 const restoreFocus = (event: Event): void => {
-  if (opener?.isConnected) {
+  const target = opener?.isConnected && opener !== document.body ? opener : fallback;
+  if (target?.isConnected) {
     event.preventDefault();
-    opener.focus();
+    // The bulk trigger is re-enabled by the same update that closes the form.
+    void nextTick(() => target.focus());
   }
 };
 </script>
@@ -81,7 +85,7 @@ const restoreFocus = (event: Event): void => {
           class="yayaw-form-surface"
           :data-presentation="presentation ?? 'drawer'"
           :style="{ width }"
-          :aria-describedby="description ? descriptionId : undefined"
+          v-bind="description ? {} : { 'aria-describedby': undefined }"
           @escape-key-down="
             (event) => {
               if (busy) event.preventDefault();
@@ -97,7 +101,7 @@ const restoreFocus = (event: Event): void => {
           <header class="yayaw-form-header">
             <div>
               <DialogTitle as="h3">{{ title }}</DialogTitle
-              ><DialogDescription v-if="description" :id="descriptionId">{{
+              ><DialogDescription v-if="description">{{
                 description
               }}</DialogDescription>
             </div>

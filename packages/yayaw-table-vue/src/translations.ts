@@ -77,6 +77,13 @@ export const defaultTranslations: Required<
   none: "None",
   selectAll: "Select all",
   bulkEdit: "Bulk edit",
+  bulkApplyField: "Apply",
+  bulkChooseFields: "Choose at least one field to apply.",
+  bulkEditDescription:
+    "Only checked fields are applied to the selected rows. Unchecked fields stay unchanged.",
+  bulkEditDenied: "These rows can no longer be edited.",
+  bulkMixedForms: "Select rows with the same edit form.",
+  bulkUpdated: "Selected rows updated",
   copy: "Copy",
   cancel: "Cancel",
   confirm: "Confirm",
@@ -117,6 +124,14 @@ export const frenchTranslations: DataTableTranslations = {
   none: "Aucun",
   selectAll: "Tout sélectionner",
   bulkEdit: "Modification groupée",
+  bulkApplyField: "Appliquer",
+  bulkChooseFields: "Choisissez au moins un champ à appliquer.",
+  bulkEditDescription:
+    "Seuls les champs cochés sont appliqués aux lignes sélectionnées. Les autres champs restent inchangés.",
+  bulkEditDenied: "Ces lignes ne peuvent plus être modifiées.",
+  bulkMixedForms:
+    "Sélectionnez des lignes utilisant le même formulaire de modification.",
+  bulkUpdated: "Lignes sélectionnées mises à jour",
   copy: "Copier",
   cancel: "Annuler",
   confirm: "Confirmer",

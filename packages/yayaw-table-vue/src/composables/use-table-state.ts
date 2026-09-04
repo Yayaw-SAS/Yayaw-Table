@@ -6,6 +6,11 @@ import {
   ref,
   watch,
 } from "vue";
+import {
+  lockedColumnOrder,
+  lockedColumnPinning,
+  lockedColumnVisibility,
+} from "../column-locks";
 import { createTableViewSnapshot } from "../core";
 import type {
   AdvancedFiltersState,
@@ -93,6 +98,32 @@ export const useTableState = <TData extends TableRecord>({
   const order = ref([...config.columns.order]);
   const grouping = ref<string[]>([]);
   const pinning = ref<ColumnPinningState>(emptyPinning());
+  const columnIds = config.columns.definitions.map((column) => column.id);
+  watch(
+    [visibility, order, pinning],
+    () => {
+      const nextVisibility = lockedColumnVisibility(
+        visibility.value,
+        config.columns.mandatory
+      );
+      const nextOrder = lockedColumnOrder(order.value, columnIds);
+      const nextPinning = lockedColumnPinning(
+        pinning.value,
+        columnIds,
+        config.table.enableColumnPinning
+      );
+      if (serialize(visibility.value) !== serialize(nextVisibility)) {
+        visibility.value = nextVisibility;
+      }
+      if (serialize(order.value) !== serialize(nextOrder)) {
+        order.value = nextOrder;
+      }
+      if (serialize(pinning.value) !== serialize(nextPinning)) {
+        pinning.value = nextPinning;
+      }
+    },
+    { deep: true, immediate: true, flush: "sync" }
+  );
   const pagination = ref<PaginationState>({
     pageIndex: 0,
     pageSize: config.table.defaultPageSize,

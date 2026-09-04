@@ -373,7 +373,7 @@ provide(tableContextKey, {
 </script>
 
 <template>
-  <section class="yayaw-table" :class="className" :data-density="config.table.density">
+  <section class="yayaw-table" :class="className" :data-density="config.table.density" tabindex="-1">
     <div v-if="status" class="yayaw-status" :data-type="status.type" role="status">
       <span>{{ status.message }}</span>
       <button type="button" aria-label="Dismiss" @click="status = undefined">×</button>
