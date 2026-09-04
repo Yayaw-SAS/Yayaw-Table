@@ -98,6 +98,25 @@ Both editions retain selected records across page and page-size changes. Deselec
 
 Vue refreshes the active list after built-in mutations and table query invalidation. Invalidating an aggregate or an older cached page does not reload the visible list. If a deletion removes the last server page, the table requests the preceding valid page; local data shrinkage also clamps pagination. Consumer-owned action callbacks remain responsible for their own persistence and follow-up refresh unless their documented result explicitly requests library handling.
 
+## Filter editing and keyboard interactions
+
+Vue advanced filters use the same operator families as React. A new rule starts inactive; changing the column resets its data type, operator, and values. Numeric/date ranges expose two inputs. Select and multi-select rules preserve multiple primitive values, including numeric zero and boolean false. Existing Vue operator aliases remain editable when loaded from saved views or URLs. Apply validates and commits the draft; Escape restores the last applied rule. Rules can be disabled without removing their values.
+
+Filter controls use the React `filters.*` translation keys, with English and French defaults. Table feedback and reusable field/collection controls inherit the table translations; standalone fields retain their English fallbacks. Date-only values from native inputs represent a local calendar date in both editions, including time zones west of UTC. The Options panel and row menus move focus when opened and restore it on dismissal. Row menus support arrow keys, skip disabled actions, and use a modal confirmation with trapped focus for deletion. A failed deletion retains its confirmation for retry.
+
+## Plan verification map
+
+This map follows the six steps of the accepted parity plan. It describes behavioral parity; framework-specific renderers and existing compatible configuration aliases remain supported.
+
+| Plan step | Implementation | Regression evidence |
+| --- | --- | --- |
+| 1. Shared action, request, filter and view contracts | `table-contracts.ts`, framework list adapters, saved-view normalization, aggregate result labels | Shared `parity.json` fixtures; both `contracts-parity.test.ts` suites; Vue `parity.test.ts`, `saved-views.test.ts`, `use-table-state.test.ts`; React view-state and bulk-action suites |
+| 2. Catalogue forms in both editions | Generated field fallback, conditional fields, async initial values/options, field/root validation, transforms, patch mode, nested `itemFields`, retained custom renderers | Shared `form-scenarios.json` and both `form-contracts.test.ts` suites; mounted React `form-parity.test.tsx`; Vue `form-components.test.ts` and `form-runtime.test.ts` |
+| 3. React catalogue bulk editing | Common initial values, checked-field patches, frozen targets, permissions, partial failure retry, callback precedence | Shared bulk completion fixtures; mounted React `form-parity.test.tsx`; React bulk-action tests; Vue `bulk-form.test.ts` and bulk-action tests |
+| 4. Table behavior | Shared page state for table/cards, current grouping, Kanban rollback, inline debounce, distinct clear/reset controls | Vue `parity.test.ts`, `table-actions-parity.test.ts`, `inline-edit.test.ts`, `filter-reset.test.ts`; React filter-reset and inline-form tests |
+| 5. Interaction parity | Default/system views, card renderers/images, translations, keyboard menus/dialogs, ordered visible-column exports, documented selection/refresh behavior | Vue saved-view, catalogue-control, advanced-filter and row-action keyboard tests; React `selection-parity.test.tsx`; shared paginated fixtures; browser checks for views, filters, menus and selection |
+| 6. Durable verification and distribution | Shared business fixtures executed in both test runners, framework-specific mounted tests, generated registries, compatibility documentation, Changesets | CI runs React/Vue suites, TypeScript, Vue build and static registry generation; published version snapshots are left unchanged |
+
 ## Verification and distribution
 
 `bun run test` registers all React tests through `bun:test` and preloads a browser environment for mounted form tests. `bun run vue:test` covers Vue and the shared fixtures. Run type checks, the Vue build, `registry:sync`, and `registry:pages` before publishing copied code. React test files are excluded from consumer registry output. Immutable released snapshots are unchanged by a feature PR.

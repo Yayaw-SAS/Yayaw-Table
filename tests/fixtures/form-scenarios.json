@@ -1,0 +1,129 @@
+{
+  "config": {
+    "id": "shared-product",
+    "submitMode": "patch",
+    "fields": [
+      {
+        "name": "active",
+        "label": "Active",
+        "type": "switch",
+        "defaultValue": false
+      },
+      {
+        "name": "amount",
+        "label": "Amount",
+        "type": "number",
+        "min": 0,
+        "defaultValue": 0
+      },
+      { "name": "name", "label": "Name", "type": "text" },
+      { "name": "note", "label": "Note", "type": "textarea" },
+      {
+        "name": "tags",
+        "label": "Tags",
+        "type": "multiSelect",
+        "options": [{ "label": "A", "value": "a" }]
+      },
+      {
+        "name": "lines",
+        "label": "Lines",
+        "type": "collection",
+        "itemFields": [
+          {
+            "name": "label",
+            "label": "Label",
+            "type": "text",
+            "required": true
+          },
+          {
+            "name": "quantity",
+            "label": "Quantity",
+            "type": "number",
+            "min": 0
+          }
+        ]
+      },
+      {
+        "name": "secret",
+        "label": "Secret",
+        "type": "text",
+        "hidden": true,
+        "required": true
+      },
+      {
+        "name": "locked",
+        "label": "Locked",
+        "type": "text",
+        "disabled": true,
+        "required": true
+      },
+      { "name": "unchanged", "label": "Unchanged", "type": "text" }
+    ]
+  },
+  "payloads": [
+    {
+      "label": "explicit clears and falsy values",
+      "initial": {
+        "active": true,
+        "amount": 5,
+        "name": "Old",
+        "note": "Old",
+        "tags": ["a"],
+        "lines": [{ "label": "Old", "quantity": 1 }],
+        "unchanged": "same"
+      },
+      "values": {
+        "active": false,
+        "amount": 0,
+        "name": "",
+        "note": null,
+        "tags": [],
+        "lines": [],
+        "secret": "hidden",
+        "locked": "read only",
+        "unchanged": "same"
+      },
+      "expected": {
+        "active": false,
+        "amount": 0,
+        "name": "",
+        "note": null,
+        "tags": [],
+        "lines": []
+      }
+    },
+    {
+      "label": "nested collection with zero quantity",
+      "initial": { "lines": [] },
+      "values": { "lines": [{ "label": "Valid", "quantity": 0 }] },
+      "expected": { "lines": [{ "label": "Valid", "quantity": 0 }] }
+    }
+  ],
+  "invalid": {
+    "values": { "lines": [{ "label": "", "quantity": -1 }] },
+    "paths": ["lines.0.label", "lines.0.quantity"]
+  },
+  "bulkRows": [
+    { "id": "1", "active": true, "amount": 0, "name": "Alpha" },
+    { "id": "2", "active": true, "amount": 0, "name": "Beta" }
+  ],
+  "common": { "active": true, "amount": 0 },
+  "completions": [
+    {
+      "result": { "success": true },
+      "expected": { "completed": ["1", "2"], "remaining": [] }
+    },
+    {
+      "result": { "success": false, "failedIds": ["2"] },
+      "expected": { "completed": ["1"], "remaining": ["2"] }
+    },
+    {
+      "result": { "success": false },
+      "expected": { "completed": [], "remaining": ["1", "2"] }
+    },
+    {
+      "result": { "success": false, "failedIds": ["unrelated"] },
+      "expected": { "completed": [], "remaining": ["1", "2"] }
+    }
+  ]
+}

@@ -1,4 +1,9 @@
-import { DOMWrapper, flushPromises, mount } from "@vue/test-utils";
+import {
+  DOMWrapper,
+  enableAutoUnmount,
+  flushPromises,
+  mount,
+} from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { nextTick } from "vue";
 import { defineTableConfig } from "../config";
@@ -42,9 +47,15 @@ const config = defineTableConfig({
   translations: { namespace: "test", keys: { title: "Test rows" } },
 });
 
+enableAutoUnmount((unmount) =>
+  afterEach(() => {
+    unmount();
+    document.body.replaceChildren();
+  })
+);
+
 describe("YayawDataTable", () => {
   beforeEach(() => window.history.replaceState({}, "", "/"));
-  afterEach(() => document.body.replaceChildren());
 
   it("renders columns, values and calculations", async () => {
     const wrapper = mount(YayawDataTable, {
@@ -187,11 +198,12 @@ describe("YayawDataTable", () => {
         syncUrl: false,
       },
       attachTo: document.body,
+      global: { stubs: { PopperContent: { template: "<div><slot /></div>" } } },
     });
     const triggers = wrapper.findAll('[aria-label="Open actions menu"]');
     expect(triggers).toHaveLength(3);
-    await triggers[0]?.trigger("click");
-    await nextTick();
+    await triggers[0]?.trigger("keydown", { key: "Enter" });
+    await flushPromises();
     expect(
       document.body.querySelector(".yayaw-row-actions-menu")?.textContent
     ).toContain("Edit");

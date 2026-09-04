@@ -4,6 +4,7 @@ import { computed, reactive } from "vue";
 import { z } from "zod";
 import { defineTableConfig } from "../../config";
 import { type TableContextValue, tableContextKey } from "../../context";
+import { createTranslations } from "../../translations";
 import type {
   ColumnDefinition,
   FormConfig,
@@ -44,6 +45,7 @@ const createCell = (
     }),
     tableType: "items",
     actions: computed(() => ({ update })),
+    translations: computed(() => createTranslations("en")),
     getFormConfig: vi.fn(() => input.form),
     getRowId: () => "1",
     refresh: vi.fn(async () => undefined),

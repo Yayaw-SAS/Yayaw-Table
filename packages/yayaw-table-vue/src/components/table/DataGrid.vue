@@ -563,7 +563,7 @@ const pinnedStyle = (column: Column<TableRecord>): CSSProperties => {
       </table>
     </div>
     <footer v-if="context.config.table.enablePagination" class="yayaw-pagination">
-      <span>{{ context.matchingRowCount.value }} rows</span>
+      <span>{{ context.matchingRowCount.value }} {{ context.translations.value.rows }}</span>
       <label>
         {{ context.translations.value.rowsPerPage }}
         <select :value="context.state.pagination.value.pageSize" class="yayaw-select" @change="table.setPageSize(Number(($event.target as HTMLSelectElement).value))">

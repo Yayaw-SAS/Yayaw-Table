@@ -1,4 +1,5 @@
 /** Framework-independent adapters. Also copied into the standalone Vue registry. */
+const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 export type ContractRecord = Record<string, unknown>;
 
 export function recordValue(value: unknown): ContractRecord {
@@ -227,7 +228,11 @@ function matchesDateFilter(
   const date = (input: unknown) =>
     input instanceof Date || typeof input === "number"
       ? new Date(input)
-      : new Date(String(input ?? ""));
+      : new Date(
+          DATE_ONLY_PATTERN.test(String(input))
+            ? `${String(input)}T00:00:00`
+            : String(input ?? "")
+        );
   const value = date(actual);
   if (operator === "isEmpty" || operator === "isNotEmpty") {
     const valid = Number.isFinite(value.getTime());

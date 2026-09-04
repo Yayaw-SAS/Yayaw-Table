@@ -13,11 +13,18 @@ import {
   SlidersHorizontal,
   X,
 } from "lucide-vue-next";
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+} from "vue";
 import { useTableContext } from "../../context";
+import { newFilter } from "../../filter-config";
 import { downloadCsv, exportColumns } from "../../core";
 import type {
-  AdvancedFilter,
   ColumnDefinition,
   TableDisplayMode,
   TableView,
@@ -83,7 +90,9 @@ const visibleColumnCount = computed(
 const activeFilterCount = computed(
   () =>
     context.state.filters.value.length +
-    context.state.advancedFilters.value.filters.length
+    context.state.advancedFilters.value.filters.filter(
+      (filter) => filter.isActive !== false
+    ).length
 );
 const activeOptionCount = computed(
   () =>
@@ -112,7 +121,8 @@ const hasAnyMenuSection = computed(
     (context.config.table.enableColumnFilters &&
       (filterableColumns.value.length > 0 || props.enableAdvancedFilters)) ||
     (context.config.table.enableSorting && sortableColumns.value.length > 0) ||
-    (context.config.table.enableGrouping && groupableColumns.value.length > 0) ||
+    (context.config.table.enableGrouping &&
+      groupableColumns.value.length > 0) ||
     context.config.table.enableCalculations
 );
 const maxGroupingCount = computed(() =>
@@ -159,17 +169,30 @@ const toolbarActionVariant = (action: ToolbarAction): string => {
     ? "yayaw-button-ghost"
     : "yayaw-button-outline";
 };
-const openOptions = (): void => {
+const focusOptions = async (): Promise<void> => {
+  await nextTick();
+  optionsRoot.value
+    ?.querySelector<HTMLElement>(".yayaw-options-menu button:not(:disabled)")
+    ?.focus();
+};
+const openOptions = async (): Promise<void> => {
   optionsView.value = "main";
   optionsOpen.value = !optionsOpen.value;
+  if (optionsOpen.value) await focusOptions();
 };
-const closeOptions = (): void => {
+const closeOptions = (restoreFocus = true): void => {
+  const wasOpen = optionsOpen.value;
   optionsOpen.value = false;
   optionsView.value = "main";
+  if (restoreFocus && wasOpen)
+    document.getElementById(`table-options-${context.config.id}`)?.focus();
 };
+watch(optionsView, async () => {
+  if (optionsOpen.value) await focusOptions();
+});
 const handleDocumentPointer = (event: PointerEvent): void => {
   if (!optionsRoot.value?.contains(event.target as Node)) {
-    closeOptions();
+    closeOptions(false);
   }
 };
 const handleDocumentKey = (event: KeyboardEvent): void => {
@@ -186,22 +209,17 @@ onBeforeUnmount(() => {
   document.removeEventListener("keydown", handleDocumentKey);
 });
 
-const addAdvancedFilter = (): void => {
+const addAdvancedFilter = async (): Promise<void> => {
   const column = filterableColumns.value[0];
-  if (!column) {
-    return;
-  }
-  const filter: AdvancedFilter = {
-    id: crypto.randomUUID(),
-    columnId: column.id,
-    operator: column.type === "boolean" ? "isTrue" : "contains",
-    type: column.type,
-    values: "",
-  };
+  if (!column) return;
+  const filter = newFilter(column);
   context.state.advancedFilters.value = {
     ...context.state.advancedFilters.value,
     filters: [...context.state.advancedFilters.value.filters, filter],
   };
+  closeOptions();
+  await nextTick();
+  document.getElementById(`filter-column-${filter.id}`)?.focus();
 };
 const setColumnFilter = (columnId: string, value: unknown): void => {
   const otherFilters = context.state.filters.value.filter(
@@ -270,14 +288,8 @@ const removeSort = (index: number): void => {
 const addGrouping = (): void => {
   const used = new Set(context.state.grouping.value);
   const column = groupableColumns.value.find((item) => !used.has(item.id));
-  if (
-    column &&
-    context.state.grouping.value.length < maxGroupingCount.value
-  ) {
-    context.state.grouping.value = [
-      ...context.state.grouping.value,
-      column.id,
-    ];
+  if (column && context.state.grouping.value.length < maxGroupingCount.value) {
+    context.state.grouping.value = [...context.state.grouping.value, column.id];
   }
 };
 const updateGrouping = (index: number, columnId: string): void => {
@@ -343,7 +355,6 @@ const exportRows = async (): Promise<void> => {
     isExporting.value = false;
   }
 };
-
 </script>
 
 <template>
@@ -358,7 +369,7 @@ const exportRows = async (): Promise<void> => {
           v-if="modes.length > 1"
           class="yayaw-segmented"
           role="group"
-          aria-label="Display mode"
+          :aria-label="translate('displayMode', 'Display mode')"
         >
           <button
             v-for="mode in modes"
@@ -367,7 +378,7 @@ const exportRows = async (): Promise<void> => {
             :class="{ active: displayMode === mode }"
             @click="displayMode = mode"
           >
-            {{ mode }}
+            {{ translate(`display.${mode}`, mode) }}
           </button>
         </div>
       </div>
@@ -388,9 +399,10 @@ const exportRows = async (): Promise<void> => {
             :class="{ 'yayaw-icon-only': actionsAsIcons }"
             :aria-label="translate('options', 'Options')"
             :aria-expanded="optionsOpen"
-            aria-haspopup="menu"
+            aria-haspopup="dialog"
             :title="actionsAsIcons ? translate('options', 'Options') : undefined"
-            @click="openOptions"
+            :id="`table-options-${context.config.id}`"
+          @click="openOptions"
           >
             <SlidersHorizontal :size="16" aria-hidden="true" />
             <span v-if="!actionsAsIcons">{{ translate("options", "Options") }}</span>
@@ -404,7 +416,7 @@ const exportRows = async (): Promise<void> => {
           <section
             v-if="optionsOpen"
             class="yayaw-options-menu"
-            role="menu"
+            role="dialog"
             :aria-label="translate('options', 'Options')"
           >
             <header class="yayaw-options-header">
@@ -412,7 +424,7 @@ const exportRows = async (): Promise<void> => {
                 v-if="optionsView !== 'main'"
                 type="button"
                 class="yayaw-icon-button"
-                aria-label="Back"
+                :aria-label="translate('back', 'Back')"
                 @click="optionsView = 'main'"
               >
                 <ArrowLeft :size="16" aria-hidden="true" />
@@ -432,8 +444,8 @@ const exportRows = async (): Promise<void> => {
               <button
                 type="button"
                 class="yayaw-icon-button"
-                aria-label="Close"
-                @click="closeOptions"
+                :aria-label="translate('close', 'Close')"
+                @click="closeOptions()"
               >
                 <X :size="16" aria-hidden="true" />
               </button>
@@ -448,7 +460,7 @@ const exportRows = async (): Promise<void> => {
                 <span class="yayaw-options-item-icon"><List :size="16" aria-hidden="true" /></span>
                 <span class="yayaw-options-item-copy">
                   <span>{{ translate("properties", "Properties") }}</span>
-                  <small>{{ visibleColumnCount }} visible</small>
+                  <small>{{ visibleColumnCount }} {{ translate("visible", "visible") }}</small>
                 </span>
                 <span class="yayaw-options-item-end">
                   <span class="yayaw-options-item-count">{{ visibleColumnCount }}</span>
@@ -463,7 +475,7 @@ const exportRows = async (): Promise<void> => {
                 <span class="yayaw-options-item-icon"><ListFilter :size="16" aria-hidden="true" /></span>
                 <span class="yayaw-options-item-copy">
                   <span>{{ translate("filters", "Filters") }}</span>
-                  <small v-if="activeFilterCount">{{ activeFilterCount }} active</small>
+                  <small v-if="activeFilterCount">{{ activeFilterCount }} {{ translate("active", "active") }}</small>
                 </span>
                 <span class="yayaw-options-item-end">
                   <span v-if="activeFilterCount" class="yayaw-options-item-count">{{ activeFilterCount }}</span>
@@ -479,7 +491,7 @@ const exportRows = async (): Promise<void> => {
                 <span class="yayaw-options-item-icon"><ArrowDownAZ :size="16" aria-hidden="true" /></span>
                 <span class="yayaw-options-item-copy">
                   <span>{{ translate("sort", "Sort") }}</span>
-                  <small v-if="context.state.sorting.value.length">{{ context.state.sorting.value.length }} active</small>
+                  <small v-if="context.state.sorting.value.length">{{ context.state.sorting.value.length }} {{ translate("active", "active") }}</small>
                 </span>
                 <span class="yayaw-options-item-end">
                   <span v-if="context.state.sorting.value.length" class="yayaw-options-item-count">{{ context.state.sorting.value.length }}</span>
@@ -495,7 +507,7 @@ const exportRows = async (): Promise<void> => {
                 <span class="yayaw-options-item-icon"><Layers :size="16" aria-hidden="true" /></span>
                 <span class="yayaw-options-item-copy">
                   <span>{{ translate("group", "Group") }}</span>
-                  <small v-if="context.state.grouping.value.length">{{ context.state.grouping.value.length }} active</small>
+                  <small v-if="context.state.grouping.value.length">{{ context.state.grouping.value.length }} {{ translate("active", "active") }}</small>
                 </span>
                 <span class="yayaw-options-item-end">
                   <span v-if="context.state.grouping.value.length" class="yayaw-options-item-count">{{ context.state.grouping.value.length }}</span>
@@ -506,7 +518,7 @@ const exportRows = async (): Promise<void> => {
                 v-if="context.config.table.enableCalculations"
                 type="button"
                 class="yayaw-options-item"
-                role="menuitemcheckbox"
+                role="switch"
                 :aria-checked="context.footerCalculationsVisible.value"
                 @click="context.footerCalculationsVisible.value = !context.footerCalculationsVisible.value"
               >
@@ -569,10 +581,11 @@ const exportRows = async (): Promise<void> => {
                 v-if="props.enableAdvancedFilters"
                 type="button"
                 class="yayaw-button yayaw-button-outline"
+                :aria-label="translate('filters.add', 'Add filter')"
                 @click="addAdvancedFilter"
               >
                 <Plus :size="15" aria-hidden="true" />
-                {{ translate("filters", "Filters") }}
+                {{ translate("filters.add", "Add filter") }}
               </button>
             </div>
 

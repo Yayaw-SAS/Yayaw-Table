@@ -300,8 +300,8 @@ const submit = async (): Promise<void> => {
       message: selected.bulk
         ? label("bulkUpdated", "Selected rows updated")
         : selected.mode === "create"
-        ? "Row created"
-        : "Row updated",
+        ? label("rowCreated", "Row created")
+        : label("rowUpdated", "Row updated"),
     };
     await context.refresh();
   } catch (cause) {
@@ -334,6 +334,7 @@ const submit = async (): Promise<void> => {
     :presentation="config.presentation"
     :width="config.width"
     :busy="submitting"
+    :close-label="label('close', 'Close')"
     :return-focus="context.form.value.returnFocus"
     @close="close"
   >
@@ -342,7 +343,7 @@ const submit = async (): Promise<void> => {
         {{ context.form.value.bulk?.ids.length }}
         {{ label("selected", "selected") }}
       </p>
-      <p v-if="loading" role="status">Loading…</p>
+      <p v-if="loading" role="status">{{ label("loading", "Loading…") }}</p>
       <p v-if="loadError || errors.form" class="yayaw-error" role="alert">
         {{ loadError ?? errors.form }}
       </p>
@@ -352,7 +353,7 @@ const submit = async (): Promise<void> => {
         class="yayaw-button"
         @click="initialize"
       >
-        Retry
+        {{ label("retry", "Retry") }}
       </button>
       <fieldset
         class="yayaw-form-fields"

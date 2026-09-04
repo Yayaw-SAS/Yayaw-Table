@@ -411,7 +411,7 @@ provide(tableContextKey, {
   <section class="yayaw-table" :class="className" :data-density="config.table.density" tabindex="-1">
     <div v-if="status" class="yayaw-status" :data-type="status.type" role="status">
       <span>{{ status.message }}</span>
-      <button type="button" aria-label="Dismiss" @click="status = undefined">×</button>
+      <button type="button" :aria-label="String(translations.dismiss)" @click="status = undefined">×</button>
     </div>
 
     <header v-if="config.table.showToolbarHeader" class="yayaw-header">
@@ -432,7 +432,7 @@ provide(tableContextKey, {
 
     <div v-if="tableData.error.value" class="yayaw-error" role="alert">
       {{ tableData.error.value.message }}
-      <button type="button" class="yayaw-button" @click="refresh">Retry</button>
+      <button type="button" class="yayaw-button" @click="refresh">{{ translations.retry }}</button>
     </div>
 
     <div class="yayaw-content" :aria-busy="tableData.isLoading.value">
