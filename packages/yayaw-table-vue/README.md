@@ -90,6 +90,37 @@ Both reset icons use the `reset` translation key for their accessible label and
 tooltip (English and French defaults are included). The narrower
 `useTableState().resetFilters()` API remains available for filtering-only resets.
 
+### Catalogue-owned controls
+
+Declare UI choices in `defineTableConfig`, not in a page-specific toolbar:
+
+```ts
+const config = defineTableConfig({
+  // Keep each table's own id, columns, translations and form references.
+  ...productCatalogue,
+  table: {
+    ...productCatalogue.table,
+    actionsAsIcons: true,
+    enableColumnPinning: true,
+    enableAdvancedFilters: false,
+    syncUrl: false,
+    searchDebounceMs: 250,
+  },
+  toolbarActions: [{ id: "refresh", label: "Refresh", handler: ({ refresh }) => refresh() }],
+});
+```
+
+The native column menu derives sorting, visibility and pinning actions from the
+table/column capabilities. Set `enablePinning: false` on a column to remove its
+pin controls. Mandatory columns cannot be hidden; selection stays locked left
+and actions locked right. Sorting remains available from the keyboard-accessible
+header label. Menus provide keyboard navigation, Escape dismissal and focus return.
+
+Catalogue translation keys apply automatically. Explicit component props override
+catalogue defaults; `toolbarActions: []` deliberately suppresses configured custom
+actions. Server search debounce affects search only; filters, sort, pagination and
+explicit refresh remain immediate, and pending searches are cancelled on unmount.
+
 ### List and mutation handlers
 
 The same `getTableActions(tableType)` pattern is supported. Actions may be regular API-client functions, Nuxt server functions, or RPC calls.

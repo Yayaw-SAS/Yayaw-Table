@@ -61,6 +61,7 @@ const props = withDefaults(
     enableToolbar?: boolean;
     enableViews?: boolean;
     syncUrl?: boolean;
+    searchDebounceMs?: number;
     customBulkActions?: BulkAction[];
     toolbarActions?: ToolbarAction[];
     getRowId?: (row: TableRecord) => string;
@@ -91,12 +92,12 @@ const props = withDefaults(
     data: () => [],
     initialData: () => [],
     locale: "en",
-    enableAdvancedFilters: true,
+    enableAdvancedFilters: undefined,
     enableToolbar: undefined,
     enableViews: undefined,
-    syncUrl: true,
+    syncUrl: undefined,
     customBulkActions: () => [],
-    toolbarActions: () => [],
+    toolbarActions: undefined,
     initialViews: () => [],
   }
 );
@@ -133,7 +134,13 @@ const queryClient = props.queryClient ?? new QueryClient();
 const inputData = computed(() =>
   props.data.length ? props.data : props.initialData
 );
-const state = useTableState({ config, syncUrl: props.syncUrl });
+const advancedFiltersEnabled = computed(
+  () => props.enableAdvancedFilters ?? config.table.enableAdvancedFilters ?? true
+);
+const searchDebounceMs = computed(
+  () => props.searchDebounceMs ?? config.table.searchDebounceMs ?? 0
+);
+const state = useTableState({ config, syncUrl: props.syncUrl ?? config.table.syncUrl ?? true });
 if (props.initialActiveViewId) {
   state.activeViewId.value = props.initialActiveViewId;
 }
@@ -149,6 +156,7 @@ const tableData = useTableData({
   initialRowCount: props.initialRowCount,
   initialPageCount: props.initialPageCount,
   queryClient,
+  searchDebounceMs,
   tableId: config.id,
 });
 const selection = ref<Record<string, boolean>>({});
@@ -158,10 +166,10 @@ const form = ref<OpenFormState>({ open: false, mode: "create" });
 const footerCalculationsVisible = ref(config.table.enableCalculations === true);
 const status = ref<{ type: "error" | "success"; message: string }>();
 const translations = computed(() =>
-  createTranslations(props.locale, props.translations)
+  createTranslations(props.locale, { ...config.translations.keys, ...props.translations })
 );
 const customBulkActions = computed(() => props.customBulkActions);
-const toolbarActions = computed(() => props.toolbarActions);
+const toolbarActions = computed(() => props.toolbarActions ?? config.toolbarActions ?? []);
 const getRowId = (row: TableRecord, index = 0): string =>
   props.getRowId?.(row) ?? String(row.id ?? row.key ?? index);
 const selectedRows = computed(() =>
@@ -390,10 +398,10 @@ provide(tableContextKey, {
 
     <TableToolbar
       v-if="config.table.showToolbar"
-      :enable-advanced-filters="enableAdvancedFilters && config.table.enableColumnFilters"
+      :enable-advanced-filters="advancedFiltersEnabled && config.table.enableColumnFilters"
       :initial-views="initialViews"
     />
-    <AdvancedFilters v-if="enableAdvancedFilters && config.table.enableColumnFilters && state.advancedFilters.value.filters.length" />
+    <AdvancedFilters v-if="advancedFiltersEnabled && config.table.enableColumnFilters && state.advancedFilters.value.filters.length" />
 
     <div v-if="tableData.error.value" class="yayaw-error" role="alert">
       {{ tableData.error.value.message }}

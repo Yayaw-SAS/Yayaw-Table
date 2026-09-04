@@ -1,5 +1,12 @@
 import type { QueryClient } from "@tanstack/vue-query";
-import { type ComputedRef, computed, type Ref, ref, watch } from "vue";
+import {
+  type ComputedRef,
+  computed,
+  onScopeDispose,
+  type Ref,
+  ref,
+  watch,
+} from "vue";
 import type {
   AdvancedFiltersState,
   ColumnFiltersState,
@@ -32,6 +39,7 @@ export const useTableData = <TData extends TableRecord>({
   initialPageCount,
   queryClient,
   tableId,
+  searchDebounceMs,
 }: {
   actions: ComputedRef<TableActions<TData> | undefined>;
   inputData: ComputedRef<TData[]>;
@@ -45,6 +53,7 @@ export const useTableData = <TData extends TableRecord>({
   initialPageCount?: number;
   queryClient: QueryClient;
   tableId: string;
+  searchDebounceMs?: Readonly<Ref<number>>;
 }): TableDataResult<TData> => {
   const rows = ref<TData[]>([...inputData.value]) as Ref<TData[]>;
   const rowCount = ref(initialRowCount ?? inputData.value.length);
@@ -55,8 +64,18 @@ export const useTableData = <TData extends TableRecord>({
   const error = ref<Error>();
   const isServer = computed(() => typeof actions.value?.list === "function");
   let requestId = 0;
+  let searchTimer: ReturnType<typeof setTimeout> | undefined;
+  const cancelSearch = (): void => {
+    clearTimeout(searchTimer);
+    searchTimer = undefined;
+  };
+  onScopeDispose(() => {
+    cancelSearch();
+    requestId += 1;
+  });
 
   const refresh = async (): Promise<void> => {
+    cancelSearch();
     if (!actions.value?.list) {
       rows.value = [...inputData.value];
       rowCount.value = inputData.value.length;
@@ -115,8 +134,21 @@ export const useTableData = <TData extends TableRecord>({
   );
   watch(
     [actions, search, filters, advancedFilters, sorting, grouping, pagination],
-    async () => {
-      await refresh();
+    async (current, previous) => {
+      cancelSearch();
+      // Invalidate in-flight results before the debounce window starts.
+      requestId += 1;
+      const delay = Math.max(0, searchDebounceMs?.value ?? 0);
+      if (
+        previous.length &&
+        current[1] !== previous[1] &&
+        delay &&
+        isServer.value
+      ) {
+        searchTimer = setTimeout(refresh, delay);
+      } else {
+        await refresh();
+      }
     },
     { deep: true, immediate: true }
   );
