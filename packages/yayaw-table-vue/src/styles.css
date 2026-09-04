@@ -1384,6 +1384,12 @@
   display: grid;
   gap: 7px;
 }
+.yayaw-table-picker {
+  min-width: 0;
+}
+.yayaw-table-picker .yayaw-table-scroll {
+  max-height: var(--yayaw-table-picker-max-height, 480px);
+}
 .yayaw-checkbox-label,
 .yayaw-switch {
   display: flex;

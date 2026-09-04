@@ -387,6 +387,103 @@ describe("field controls", () => {
     await flushPromises();
     expect(wrapper.emitted("update:modelValue")?.at(-1)).toEqual([7]);
   });
+
+  it("renders a declarative table picker and preserves typed selections", async () => {
+    const pickerConfig = defineTableConfig({
+      id: "media-picker",
+      columns: {
+        definitions: [{ id: "name", header: "Name", type: "text" }],
+        mandatory: ["name"],
+        order: ["select", "name"],
+        visible: ["name"],
+      },
+      table: {
+        enableViews: false,
+        showToolbarHeader: false,
+      },
+      translations: { keys: { title: "Media" }, namespace: "media" },
+    });
+    const wrapper = track(
+      mount(DynamicField, {
+        props: {
+          field: {
+            name: "mediaIds",
+            label: "Media",
+            type: "tablePicker",
+            tablePicker: {
+              tableType: "media-picker",
+              config: pickerConfig,
+              data: [
+                { id: 1, name: "Alpha" },
+                { id: 2, name: "Beta" },
+              ],
+              parseValue: Number,
+            },
+          },
+          context: fieldContext(),
+          modelValue: [1],
+        },
+      })
+    );
+    await vi.dynamicImportSettled();
+    await flushPromises();
+
+    expect(wrapper.find(".yayaw-table-picker").exists()).toBe(true);
+    expect(wrapper.find('input[type="search"]').exists()).toBe(true);
+    const checkboxes = wrapper.findAll('tbody input[type="checkbox"]');
+    expect(
+      (checkboxes[0]?.element as HTMLInputElement | undefined)?.checked
+    ).toBe(true);
+    await checkboxes[1]?.setValue(true);
+    expect(wrapper.emitted("update:modelValue")?.at(-1)).toEqual([[1, 2]]);
+
+    await wrapper.setProps({ modelValue: [1, 2] });
+    await wrapper.get('input[type="search"]').setValue("Beta");
+    await wrapper.get('input[type="search"]').setValue("");
+    expect(
+      (
+        wrapper.findAll('tbody input[type="checkbox"]')[0]?.element as
+          | HTMLInputElement
+          | undefined
+      )?.checked
+    ).toBe(true);
+  });
+
+  it("disables selection in a disabled table picker", async () => {
+    const wrapper = track(
+      mount(DynamicField, {
+        props: {
+          field: {
+            name: "itemIds",
+            label: "Items",
+            type: "tablePicker",
+            disabled: true,
+            tablePicker: {
+              tableType: "item-picker",
+              config: defineTableConfig({
+                id: "item-picker",
+                columns: {
+                  definitions: [{ id: "name", header: "Name" }],
+                  mandatory: ["name"],
+                  order: ["select", "name"],
+                  visible: ["name"],
+                },
+                translations: { keys: {}, namespace: "items" },
+              }),
+              data: [{ id: "1", name: "Alpha" }],
+            },
+          },
+          context: fieldContext(),
+          modelValue: [],
+        },
+      })
+    );
+    await vi.dynamicImportSettled();
+    await flushPromises();
+    expect(
+      wrapper.get('tbody input[type="checkbox"]').attributes("disabled")
+    ).toBeDefined();
+  });
 });
 
 describe("collection editor", () => {

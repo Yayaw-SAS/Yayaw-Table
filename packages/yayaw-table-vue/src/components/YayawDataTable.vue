@@ -68,6 +68,7 @@ const props = withDefaults(
     searchDebounceMs?: number;
     customBulkActions?: BulkAction[];
     toolbarActions?: ToolbarAction[];
+    rowSelection?: Record<string, boolean>;
     getRowId?: (row: TableRecord) => string;
     queryClient?: QueryClient;
     loadingOverlay?: Component;
@@ -164,7 +165,7 @@ const tableData = useTableData({
   searchDebounceMs,
   tableId: config.id,
 });
-const selection = ref<Record<string, boolean>>({});
+const selection = ref<Record<string, boolean>>({ ...props.rowSelection });
 const selectedRowCache = ref<Record<string, TableRecord>>({});
 const isSelectingAll = ref(false);
 const form = ref<OpenFormState>({ open: false, mode: "create" });
@@ -217,6 +218,22 @@ const clearSelection = (): void => {
   selection.value = {};
   selectedRowCache.value = {};
 };
+const sameSelection = (
+  left: Record<string, boolean>,
+  right: Record<string, boolean>
+): boolean => {
+  const keys = new Set([...Object.keys(left), ...Object.keys(right)]);
+  return [...keys].every((key) => Boolean(left[key]) === Boolean(right[key]));
+};
+watch(
+  () => props.rowSelection,
+  (next) => {
+    if (next && !sameSelection(selection.value, next)) {
+      selection.value = { ...next };
+    }
+  },
+  { deep: true }
+);
 const loadAllMatchingRows = async (): Promise<TableRecord[]> => {
   if (!actions.value?.list) {
     return applyTableQuery(inputData.value, {
@@ -250,7 +267,7 @@ watch(
   [state.search, state.filters, state.advancedFilters, state.sorting, state.grouping],
   () => {
     selectionVersion += 1;
-    clearSelection();
+    if (!config.table.preserveSelectionOnQuery) clearSelection();
   },
   { deep: true, flush: "sync" }
 );

@@ -48,6 +48,7 @@ export const defaultTableBehavior: TableBehaviorConfig = {
   },
   enableCalculations: false,
   enableGrouping: true,
+  preserveSelectionOnQuery: false,
   dateDisplayPreset: "localized-short",
 };
 
@@ -248,6 +249,9 @@ export const createSelectWithAddNewField = (
   });
 export const createSwitchField = (options: FieldOptions): FormFieldDefinition =>
   fromOptions("switch", options);
+export const createTablePickerField = (
+  options: FieldOptions
+): FormFieldDefinition => fromOptions("tablePicker", options);
 export const createTextareaField = (
   options: FieldOptions
 ): FormFieldDefinition => fromOptions("textarea", options);

@@ -248,6 +248,8 @@ export interface TableBehaviorConfig<TData extends TableRecord = TableRecord> {
   inlineEdit?: TableInlineEditConfig;
   enableCalculations?: boolean;
   enableGrouping?: boolean;
+  /** Keep selected row IDs when search, filters, sorting, or grouping changes. */
+  preserveSelectionOnQuery?: boolean;
 }
 
 export interface TableTranslationsConfig {
@@ -270,6 +272,7 @@ export type FormFieldType =
   | "select"
   | "select-with-add-new"
   | "switch"
+  | "tablePicker"
   | "text"
   | "textarea"
   | "url"
@@ -313,6 +316,42 @@ export interface CollectionFieldColumnDefinition {
   id: string;
   header: string;
   render?: (item: TableRecord, index: number) => VNodeChild;
+}
+
+export interface TablePickerFieldConfig<
+  TRow extends TableRecord = TableRecord,
+  TFormData extends TableRecord = TableRecord,
+> {
+  /** The nested table catalogue identifier. */
+  tableType: string;
+  /** A complete table catalogue, optionally derived from the current form. */
+  config:
+    | TableConfig<TRow>
+    | ((context: FormFieldContext<TFormData>) => TableConfig<TRow>);
+  /** Optional local rows, optionally derived from the current form. */
+  data?: TRow[] | ((context: FormFieldContext<TFormData>) => TRow[]);
+  /** Optional server and view contracts for the nested table. */
+  actions?:
+    | TableActions<TRow>
+    | ((
+        context: FormFieldContext<TFormData>
+      ) => TableActions<TRow> | undefined);
+  /** Convert a table row to the stable string ID used by table selection. */
+  getRowId?: (row: TRow) => string;
+  /** Convert a selected string row ID to the value stored in the form. */
+  parseValue?: (id: string) => unknown;
+  /** Allow several selected values. Defaults to true. */
+  multiple?: boolean;
+  /** Toggle a row when its non-interactive area is clicked. Defaults to true. */
+  selectOnRowClick?: boolean;
+  /** Limit the scrolling table body height. */
+  maxHeight?: string;
+  /** Keep the nested table state out of the page URL by default. */
+  syncUrl?: boolean;
+  locale?: string;
+  translations?: DataTableTranslations;
+  initialViews?: TableView[];
+  initialActiveViewId?: string;
 }
 
 export interface FormFieldDefinition<TData extends TableRecord = TableRecord> {
@@ -365,6 +404,7 @@ export interface FormFieldDefinition<TData extends TableRecord = TableRecord> {
   createItem?: (items: readonly TableRecord[]) => TableRecord;
   createActions?: CollectionFieldCreateAction[];
   columns?: CollectionFieldColumnDefinition[];
+  tablePicker?: TablePickerFieldConfig<TableRecord, TData>;
   addLabel?: string;
   emptyLabel?: string;
   itemLabel?: string;
@@ -764,6 +804,7 @@ export interface YayawTableProps<TData extends TableRecord = TableRecord> {
   customBulkActions?: BulkAction<TData>[];
   searchDebounceMs?: number;
   toolbarActions?: ToolbarAction<TData>[];
+  rowSelection?: Record<string, boolean>;
   getRowId?: (row: TData) => string;
   onRowActivate?: (row: TData, event: MouseEvent) => void;
   onRowClick?: (url: string, row: TData, event: MouseEvent) => void;

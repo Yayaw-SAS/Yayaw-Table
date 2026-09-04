@@ -10,7 +10,7 @@ The Vue 3 port of YaYaw Table. It keeps the React edition's config-driven API an
 - Saved personal/team views with localStorage fallback
 - Column visibility, ordering, pinning, and native drag-and-drop
 - Row selection, bulk edit/copy/delete/export, and custom bulk actions
-- Create/edit forms, sections, Zod validation, async options, and collections
+- Create/edit forms, sections, Zod validation, async options, collections, and table pickers
 - Inline cell editing with optimistic updates
 - Text, code, JSON, image, URL, number, boolean, date, select, and multi-select cells
 - Footer calculations and CSV export
@@ -196,6 +196,60 @@ return {
 ```
 
 Returning `void` leaves follow-up behavior to the application. Failed results preserve the selection by default. When individual fallback deletions partly fail, the table refreshes the successful mutations and retains only the failed IDs for retry.
+
+## Table picker form fields
+
+Use `tablePicker` when a relation needs the native table experience instead of a
+finite select. The field renders its own catalogue, server search, filters,
+sorting, pagination, saved views, and row selection inside the generated form.
+No custom component or form renderer is required.
+
+```ts
+const mediaPicker = defineTableConfig({
+  id: "media-picker",
+  columns: {
+    definitions: [
+      { id: "name", header: "Name", type: "text" },
+      { id: "type", header: "Type", type: "select", options: mediaTypes },
+      { id: "country", header: "Country", type: "select", options: countries },
+    ],
+    mandatory: ["name"],
+    order: ["select", "name", "type", "country"],
+    visible: ["name", "type", "country"],
+  },
+  table: { showToolbarHeader: false },
+  translations: { namespace: "mediaPicker", keys: { title: "Media" } },
+});
+
+const form = defineFormConfig({
+  id: "collection",
+  fields: [
+    { name: "name", label: "Name", type: "text", required: true },
+    createTablePickerField({
+      name: "mediaIds",
+      label: "Media",
+      required: true,
+      tablePicker: {
+        tableType: "media-picker",
+        config: mediaPicker,
+        actions: { list: listMedia },
+        getRowId: (row) => String(row.id),
+        parseValue: Number,
+      },
+    }),
+  ],
+});
+```
+
+Selection is controlled by the form value and survives search, filter, sort,
+group, and pagination changes. `parseValue` preserves typed relation IDs;
+without it, selected values are strings. Set `multiple: false` for a scalar
+field, `selectOnRowClick: false` to require the checkbox, or `maxHeight` to
+change the scrolling body limit. The nested table does not synchronize with the
+page URL unless `syncUrl: true` is explicit. Mutating table actions and exports
+are suppressed in picker mode; `list`, `aggregate`, and `views` remain available.
+Use `optionDependencies` on the field when changes to other form values should
+recreate a context-derived picker catalogue.
 
 ## Locked utility columns
 

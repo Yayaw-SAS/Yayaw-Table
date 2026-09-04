@@ -14,6 +14,7 @@ import {
 import { dynamicFieldType } from "../../form-runtime";
 import { useFieldOptions } from "../../composables/use-field-options";
 import CollectionField from "./CollectionField.vue";
+import TablePickerField from "./TablePickerField.vue";
 import type {
   FormFieldContext,
   FormFieldDefinition,
@@ -256,7 +257,7 @@ watch(valueType, (next, previous) => {
     :data-field-name="field.name"
     @focusout="touch"
   >
-    <label :for="fieldId" class="yayaw-label">
+    <label :id="`${fieldId}-label`" :for="fieldId" class="yayaw-label">
       {{ field.label }} <span v-if="field.required" aria-hidden="true">*</span>
     </label>
     <p v-if="field.description" :id="`${fieldId}-help`" class="yayaw-help">
@@ -458,6 +459,15 @@ watch(valueType, (next, previous) => {
       :context="context"
       :errors="errors"
       :path="path ?? field.name"
+      :disabled="disabled"
+      @update:model-value="update"
+    />
+    <TablePickerField
+      v-else-if="field.type === 'tablePicker'"
+      :id="fieldId"
+      :field="field"
+      :model-value="modelValue"
+      :context="context"
       :disabled="disabled"
       @update:model-value="update"
     />
