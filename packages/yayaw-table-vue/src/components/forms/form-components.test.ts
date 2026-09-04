@@ -68,6 +68,7 @@ const mountForm = (
     getRowId: () => "1",
     refresh: vi.fn(async () => undefined),
     translations: computed(() => ({ create: "Create", edit: "Edit" })),
+    locale: "fr",
     status: ref(),
   } as unknown as TableContextValue;
   const wrapper = track(
@@ -178,7 +179,12 @@ describe("catalogue form", () => {
     await flushPromises();
     expect(context.getFormConfig).toHaveBeenCalledWith(
       "item-form",
-      expect.objectContaining({ tableId: "instance", tableType: "items" })
+      expect.objectContaining({
+        locale: "fr",
+        tableId: "instance",
+        tableType: "items",
+        translations: { create: "Create", edit: "Edit" },
+      })
     );
   });
 });
@@ -420,7 +426,11 @@ describe("field controls", () => {
               parseValue: Number,
             },
           },
-          context: fieldContext(),
+          context: {
+            ...fieldContext(),
+            locale: "fr",
+            translations: createTranslations("fr"),
+          },
           modelValue: [1],
         },
       })
@@ -429,7 +439,9 @@ describe("field controls", () => {
     await flushPromises();
 
     expect(wrapper.find(".yayaw-table-picker").exists()).toBe(true);
-    expect(wrapper.find('input[type="search"]').exists()).toBe(true);
+    expect(wrapper.get('input[type="search"]').attributes("placeholder")).toBe(
+      "Rechercher…"
+    );
     const checkboxes = wrapper.findAll('tbody input[type="checkbox"]');
     expect(
       (checkboxes[0]?.element as HTMLInputElement | undefined)?.checked

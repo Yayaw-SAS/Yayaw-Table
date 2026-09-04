@@ -83,6 +83,7 @@ const formContext = computed<FormFieldContext>(() => ({
     : undefined,
   formType: formType.value,
   initialData: initial.value,
+  locale: context.locale,
   mode: context.form.value.mode,
   row: context.form.value.row,
   tableId: context.config.id,
@@ -92,6 +93,7 @@ const formContext = computed<FormFieldContext>(() => ({
   touchField: (name) => {
     void touchField(name);
   },
+  translations: context.translations.value,
 }));
 const config = computed<FormConfig>(() =>
   translateFormConfig(
