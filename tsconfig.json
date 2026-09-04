@@ -23,6 +23,12 @@
     "lib": ["dom", "dom.iterable", "esnext"],
     "incremental": true
   },
-  "include": ["index.ts", "scripts/**/*.mjs", "src/**/*.ts", "src/**/*.tsx"],
+  "include": [
+    "index.ts",
+    "scripts/**/*.mjs",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "tests/**/*.tsx"
+  ],
   "exclude": ["node_modules", "dist", "registry", "packages/yayaw-table-vue"]
 }

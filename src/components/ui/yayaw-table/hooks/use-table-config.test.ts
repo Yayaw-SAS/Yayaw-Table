@@ -30,6 +30,7 @@ describe("resolveTableCatalogueConfig", () => {
         defaultDisplayMode: "gallery",
         displayModes: ["table", "kanban", "gallery"],
         enableCalculations: false,
+        showResetFilters: true,
         enableColumnFilters: true,
         emptyState: {
           description: "Create a model to get started.",
@@ -59,6 +60,7 @@ describe("resolveTableCatalogueConfig", () => {
 
     const resolvedConfig = resolveTableCatalogueConfig(nestedConfig);
 
+    assert.equal(resolvedConfig.table.showResetFilters, true);
     assert.equal(resolvedConfig.table.enableCalculations, false);
     assert.equal(resolvedConfig.table.allowViewSave, false);
     assert.equal(resolvedConfig.table.allowViewSharing, true);
@@ -107,6 +109,7 @@ describe("resolveTableCatalogueConfig", () => {
       enableRowClickEdit: true,
     });
 
+    assert.equal(resolvedConfig.table.showResetFilters, false);
     assert.equal(resolvedConfig.table.allowEdit, false);
     assert.equal(resolvedConfig.table.enableCalculations, false);
     assert.equal(resolvedConfig.table.enableRowClickEdit, true);

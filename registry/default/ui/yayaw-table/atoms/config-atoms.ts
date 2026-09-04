@@ -102,6 +102,9 @@ export interface DataTableConfig {
    */
   showToolbarHeader?: boolean;
 
+  /** Show an icon in the toolbar to clear filters and global search. */
+  showResetFilters?: boolean;
+
   /**
    * Enable toolbar CSV export button
    */
@@ -277,6 +280,7 @@ const defaultTableConfig: DataTableConfig = {
   export: true,
   bulkExport: true,
   actionsAsIcons: false,
+  showResetFilters: false,
   density: "medium",
   layoutPreset: "default",
   displayModes: ["table"],
