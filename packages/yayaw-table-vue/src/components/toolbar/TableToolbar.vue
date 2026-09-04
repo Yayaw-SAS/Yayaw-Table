@@ -37,6 +37,7 @@ const optionsRoot = ref<HTMLElement>();
 const optionsOpen = ref(false);
 const optionsView = ref<OptionsView>("main");
 const pendingAction = ref<string>();
+const isExporting = ref(false);
 const search = computed({
   get: () => context.state.search.value,
   set: (value: string) => {
@@ -319,16 +320,30 @@ const runAction = async (id: string): Promise<void> => {
   }
 };
 const exportRows = async (): Promise<void> => {
-  if (context.onExport) {
-    await context.onExport(context.data.rows.value);
-    return;
-  }
-  downloadCsv(
-    context.data.rows.value,
-    exportColumns(context.config.columns.definitions, context.state.visibility.value, context.state.order.value),
-    context.config.id
+  if (isExporting.value) return;
+  const columns = exportColumns(
+    context.config.columns.definitions,
+    context.state.visibility.value,
+    context.state.order.value
   );
+  isExporting.value = true;
+  try {
+    const rows = await context.loadAllMatchingRows();
+    if (context.onExport) {
+      await context.onExport(rows);
+    } else {
+      downloadCsv(rows, columns, context.config.id);
+    }
+  } catch (cause) {
+    context.status.value = {
+      type: "error",
+      message: cause instanceof Error ? cause.message : String(cause),
+    };
+  } finally {
+    isExporting.value = false;
+  }
 };
+
 </script>
 
 <template>
@@ -700,6 +715,8 @@ const exportRows = async (): Promise<void> => {
           :class="{ 'yayaw-icon-only': actionsAsIcons }"
           :aria-label="translate('export', 'Export')"
           :title="actionsAsIcons ? translate('export', 'Export') : undefined"
+          :disabled="isExporting"
+          :aria-busy="isExporting"
           @click="exportRows"
         >
           <Download :size="16" aria-hidden="true" />

@@ -4,7 +4,6 @@
  */
 "use client";
 
-// Import table configuration
 import { useQueryClient } from "@tanstack/react-query";
 import type {
   ColumnDef,
@@ -19,6 +18,7 @@ import type {
 import { useAtomValue, useSetAtom } from "jotai";
 import { Download, Loader2, PlusIcon, RotateCcw } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -816,6 +816,10 @@ export function DataTableAdvancedToolbar<TData>({
         rows: collectedRows,
         tableId,
       });
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to export rows."
+      );
     } finally {
       setIsExporting(false);
     }

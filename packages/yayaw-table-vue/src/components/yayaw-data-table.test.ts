@@ -524,7 +524,9 @@ describe("YayawDataTable", () => {
     await selectAll?.trigger("click");
     await flushPromises();
     expect(wrapper.find(".yayaw-bulk-bar").text()).toContain("3 selected");
-    expect(list).toHaveBeenCalledWith(expect.objectContaining({ pageSize: 3 }));
+    expect(list).toHaveBeenCalledWith(
+      expect.objectContaining({ page: 3, pageSize: 1 })
+    );
   });
 
   it("renders catalogue defaults and changes dynamic field input types", async () => {

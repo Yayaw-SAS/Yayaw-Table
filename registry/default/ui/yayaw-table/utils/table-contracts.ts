@@ -80,6 +80,48 @@ export function positiveInteger(value: unknown, fallback: number): number {
     : fallback;
 }
 
+/** Collect every result using the server's pagination metadata, including capped page sizes. */
+export async function fetchAllContractRows<T>({
+  list,
+  params,
+  maxPages = 1000,
+}: {
+  list: (params: ContractRecord) => Promise<{
+    data: T[];
+    meta?: { pageCount?: number; totalCount?: number };
+  }>;
+  params: ContractRecord;
+  maxPages?: number;
+}): Promise<T[]> {
+  const request = compatibleListParams(params);
+  const rows: T[] = [];
+  for (let page = 1; page <= maxPages; page += 1) {
+    const result = await list({ ...request, page });
+    rows.push(...result.data);
+    const pageCount = result.meta?.pageCount;
+    const totalCount = result.meta?.totalCount;
+    const hasPageCount = Number.isFinite(pageCount) && (pageCount ?? 0) > 0;
+    const hasTotalCount =
+      Number.isFinite(totalCount) && (totalCount ?? -1) >= 0;
+    if (
+      (hasPageCount && page >= (pageCount ?? 0)) ||
+      (hasTotalCount && rows.length >= (totalCount ?? 0)) ||
+      (!(hasPageCount || hasTotalCount) &&
+        result.data.length < Number(request.pageSize))
+    ) {
+      return rows;
+    }
+    if (!result.data.length) {
+      throw new Error(
+        "The list action returned an empty page before all matching rows were loaded."
+      );
+    }
+  }
+  throw new Error(
+    "Too many pages to load all matching rows. Narrow the filters and try again."
+  );
+}
+
 /** Canonical saved-view names are React's; legacy Vue names remain readable. */
 export function normalizeViewAliases(value: unknown): ContractRecord {
   const view = recordValue(value);

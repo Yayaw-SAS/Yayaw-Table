@@ -1,0 +1,38 @@
+[
+  {
+    "label": "server caps requested pages",
+    "pageSize": 10,
+    "pages": [
+      {
+        "data": [{ "id": "1" }, { "id": "2" }],
+        "meta": { "pageCount": 2, "totalCount": 3 }
+      },
+      { "data": [{ "id": "3" }], "meta": { "pageCount": 2, "totalCount": 3 } }
+    ],
+    "ids": ["1", "2", "3"]
+  },
+  {
+    "label": "total count without page count",
+    "pageSize": 10,
+    "pages": [
+      { "data": [{ "id": "1" }], "meta": { "totalCount": 2 } },
+      { "data": [{ "id": "2" }], "meta": { "totalCount": 2 } }
+    ],
+    "ids": ["1", "2"]
+  },
+  {
+    "label": "unknown counts use a short last page",
+    "pageSize": 2,
+    "pages": [
+      { "data": [{ "id": "1" }, { "id": "2" }] },
+      { "data": [{ "id": "3" }] }
+    ],
+    "ids": ["1", "2", "3"]
+  },
+  {
+    "label": "empty result",
+    "pageSize": 2,
+    "pages": [{ "data": [], "meta": { "pageCount": 0, "totalCount": 0 } }],
+    "ids": []
+  }
+]

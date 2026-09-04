@@ -66,6 +66,7 @@ export const useTableData = <TData extends TableRecord>({
   const error = ref<Error>();
   const isServer = computed(() => typeof actions.value?.list === "function");
   let requestId = 0;
+  let activeQueryKey = "";
   let searchTimer: ReturnType<typeof setTimeout> | undefined;
   const cancelSearch = (): void => {
     clearTimeout(searchTimer);
@@ -76,7 +77,7 @@ export const useTableData = <TData extends TableRecord>({
     requestId += 1;
   });
 
-  const refresh = async (): Promise<void> => {
+  const loadRows = async (): Promise<void> => {
     cancelSearch();
     if (!actions.value?.list) {
       rows.value = [...inputData.value];
@@ -101,6 +102,7 @@ export const useTableData = <TData extends TableRecord>({
         grouping: grouping.value,
       };
       const list = actions.value.list;
+      activeQueryKey = JSON.stringify(["yayaw-table", tableId, params]);
       const result = await queryClient.fetchQuery({
         queryKey: ["yayaw-table", tableId, params],
         queryFn: () =>
@@ -110,11 +112,17 @@ export const useTableData = <TData extends TableRecord>({
       if (currentRequest !== requestId) {
         return;
       }
-      rows.value = result.data;
       rowCount.value = result.meta?.totalCount ?? result.data.length;
       pageCount.value =
         result.meta?.pageCount ??
         Math.ceil(rowCount.value / pagination.value.pageSize);
+      const lastPage = Math.max(0, pageCount.value - 1);
+      if (pagination.value.pageIndex > lastPage) {
+        // A deletion can remove the last page. Let the pagination watcher load its predecessor.
+        pagination.value = { ...pagination.value, pageIndex: lastPage };
+        return;
+      }
+      rows.value = result.data;
     } catch (cause) {
       if (currentRequest === requestId) {
         error.value = cause instanceof Error ? cause : new Error(String(cause));
@@ -126,11 +134,22 @@ export const useTableData = <TData extends TableRecord>({
     }
   };
 
+  const refresh = async (): Promise<void> => {
+    // A mutation must not reuse a pending list response captured before the write.
+    requestId += 1;
+    await queryClient.cancelQueries({
+      queryKey: ["yayaw-table", tableId],
+      predicate: (query) => JSON.stringify(query.queryKey) === activeQueryKey,
+    });
+    await loadRows();
+  };
+
   const unsubscribe = queryClient.getQueryCache().subscribe(async (event) => {
     const key = event.query.queryKey;
     if (
       key[0] === "yayaw-table" &&
       key[1] === tableId &&
+      JSON.stringify(key) === activeQueryKey &&
       event.type === "updated" &&
       event.action.type === "invalidate"
     ) {
@@ -143,7 +162,7 @@ export const useTableData = <TData extends TableRecord>({
     inputData,
     async () => {
       if (!isServer.value) {
-        await refresh();
+        await loadRows();
       }
     },
     { deep: true }
@@ -161,9 +180,9 @@ export const useTableData = <TData extends TableRecord>({
         delay &&
         isServer.value
       ) {
-        searchTimer = setTimeout(refresh, delay);
+        searchTimer = setTimeout(loadRows, delay);
       } else {
-        await refresh();
+        await loadRows();
       }
     },
     { deep: true, immediate: true }
