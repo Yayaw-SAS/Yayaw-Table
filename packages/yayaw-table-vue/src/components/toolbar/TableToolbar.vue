@@ -655,9 +655,9 @@ const exportRows = async (): Promise<void> => {
           v-if="context.config.table.showResetFilters === true"
           type="button"
           class="yayaw-button yayaw-button-outline yayaw-icon-only"
-          :aria-label="translate('clearFilters', 'Clear filters')"
-          :title="translate('clearFilters', 'Clear filters')"
-          @click="context.state.resetFilters()"
+          :aria-label="translate('reset', 'Reset')"
+          :title="translate('reset', 'Reset')"
+          @click="resetOptions"
         >
           <RotateCcw :size="16" aria-hidden="true" />
         </button>

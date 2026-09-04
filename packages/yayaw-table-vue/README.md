@@ -79,13 +79,16 @@ const config = defineTableConfig({
 Set `table.actionsAsIcons: true` to render toolbar and bulk actions as icons.
 Set `table.showResetFilters: true` to show a dedicated reset icon next to the
 Options menu. It is disabled by default for compatibility with existing tables.
-The shortcut clears native search, column filters, advanced filters and the page
-index. Sorting, column order/visibility/pinning, grouping, display mode, page
-size and the selected saved view are preserved. It works with or without URL
-synchronization and never changes another table's query parameters.
+The shortcut invokes the same handler as the reset button inside the Options
+menu: column and advanced filters are cleared, configured default sorting and
+column visibility are restored, and grouping is cleared. Native search, column
+order/pinning, display mode, page size and the selected saved view are preserved,
+matching the menu reset. It works with or without URL synchronization and never
+changes another table's query parameters.
 
-The icon has an accessible label and a tooltip using the `clearFilters`
-translation key (English and French defaults are included).
+Both reset icons use the `reset` translation key for their accessible label and
+tooltip (English and French defaults are included). The narrower
+`useTableState().resetFilters()` API remains available for filtering-only resets.
 
 ### List and mutation handlers
 
