@@ -62,3 +62,53 @@ it("reads Vue saved-view names without discarding canonical names", () => {
     columnPinning: { left: ["name"] },
   });
 });
+
+import { fetchAllContractRows } from "../src/components/ui/yayaw-table/utils/table-contracts";
+import pages from "./fixtures/paginated-rows.json";
+
+for (const fixture of pages) {
+  it(`all matching rows: ${fixture.label}`, async () => {
+    const requests: Record<string, unknown>[] = [];
+    const rows = await fetchAllContractRows({
+      params: {
+        pageSize: fixture.pageSize,
+        search: "captured",
+        sorting: [{ id: "name", desc: true }],
+      },
+      list: (params) => {
+        requests.push(params);
+        const page = fixture.pages[Number(params.page) - 1];
+        if (!page) {
+          throw new Error("Unexpected extra page");
+        }
+        return Promise.resolve(page);
+      },
+    });
+    expect(rows.map((row) => row.id)).toEqual(fixture.ids);
+    expect(requests).toHaveLength(fixture.pages.length);
+    expect(
+      requests.every(
+        (request) =>
+          request.search === "captured" && request.limit === fixture.pageSize
+      )
+    ).toBe(true);
+  });
+}
+it("rejects inconsistent pagination and the page limit instead of returning truncated results", async () => {
+  await expect(
+    fetchAllContractRows({
+      params: { pageSize: 2 },
+      list: async () => ({ data: [], meta: { totalCount: 3, pageCount: 2 } }),
+    })
+  ).rejects.toThrow("empty page");
+  await expect(
+    fetchAllContractRows({
+      params: { pageSize: 2 },
+      maxPages: 1,
+      list: async () => ({
+        data: [{ id: "1" }],
+        meta: { totalCount: 3, pageCount: 3 },
+      }),
+    })
+  ).rejects.toThrow("Too many pages");
+});

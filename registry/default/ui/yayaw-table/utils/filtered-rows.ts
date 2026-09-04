@@ -1,6 +1,6 @@
 import type { TableActions } from "../providers/table-provider";
 import {
-  compatibleListParams,
+  fetchAllContractRows,
   normalizeFilterEnvelope,
 } from "./table-contracts";
 
@@ -83,50 +83,11 @@ export const fetchAllFilteredRows = async ({
   pageSize: number;
   search: string;
 }): Promise<Record<string, unknown>[]> => {
-  const collectedRows: Record<string, unknown>[] = [];
-  let page = 1;
-  let knownPageCount: number | undefined;
-
-  while (page <= MAX_FETCH_PAGES) {
-    const requestParams: Record<string, unknown> = {
-      advancedFilters,
-      filters,
-      limit: pageSize,
-      page,
-    };
-
-    if (orderBy) {
-      requestParams.orderBy = orderBy;
-    }
-
-    if (search.length > 0) {
-      requestParams.search = search;
-      requestParams.q = search;
-      requestParams.globalSearch = search;
-    }
-
-    const response = await listAction(compatibleListParams(requestParams));
-    const pageRows = toRecordRows(response.data);
-    collectedRows.push(...pageRows);
-
-    if (
-      typeof response.meta?.pageCount === "number" &&
-      response.meta.pageCount > 0
-    ) {
-      knownPageCount = response.meta.pageCount;
-    }
-
-    const reachedLastKnownPage =
-      typeof knownPageCount === "number" && page >= knownPageCount;
-    const reachedLastByPageSize = pageRows.length < pageSize;
-    const hasNoMoreData = pageRows.length === 0;
-
-    if (reachedLastKnownPage || reachedLastByPageSize || hasNoMoreData) {
-      break;
-    }
-
-    page += 1;
-  }
-
-  return collectedRows;
+  return toRecordRows(
+    await fetchAllContractRows({
+      list: listAction,
+      params: { advancedFilters, filters, orderBy, pageSize, search },
+      maxPages: MAX_FETCH_PAGES,
+    })
+  );
 };

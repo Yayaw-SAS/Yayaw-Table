@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { QueryClient } from "@tanstack/vue-query";
-import { type Component, computed, provide, ref, watch } from "vue";
+import { type Component, computed, onBeforeUnmount, provide, ref, watch } from "vue";
 import { useTableData } from "../composables/use-table-data";
 import { useTableState } from "../composables/use-table-state";
 import { defineTableConfig } from "../config";
@@ -10,6 +10,7 @@ import {
   tableContextKey,
 } from "../context";
 import { applyTableQuery } from "../core";
+import { cloneFormValue } from "../form-runtime";
 import { createTranslations } from "../translations";
 import type {
   BulkAction,
@@ -24,7 +25,7 @@ import type {
   TableView,
   ToolbarAction,
 } from "../types";
-import { compatibleListParams } from "../table-contracts";
+import { fetchAllContractRows } from "../table-contracts";
 import type { TableListParams } from "../types";
 import CardPagination from "./table/CardPagination.vue";
 import AdvancedFilters from "./filters/AdvancedFilters.vue";
@@ -175,7 +176,7 @@ const translations = computed(() =>
 const customBulkActions = computed(() => props.customBulkActions);
 const toolbarActions = computed(() => props.toolbarActions ?? config.toolbarActions ?? []);
 const getRowId = (row: TableRecord, index = 0): string =>
-  props.getRowId?.(row) ?? String(row.id ?? row.key ?? index);
+  props.getRowId?.(row) ?? String(row.id ?? row._id ?? row.key ?? index);
 const selectedRows = computed(() =>
   Object.keys(selection.value)
     .filter((id) => selection.value[id])
@@ -194,9 +195,23 @@ const matchingRowCount = computed(() => {
     sorting: state.sorting.value,
   }).length;
 });
+watch(
+  [matchingRowCount, state.pagination],
+  () => {
+    if (tableData.isServer.value) return;
+    const lastPage = Math.max(
+      0,
+      Math.ceil(matchingRowCount.value / state.pagination.value.pageSize) - 1
+    );
+    if (state.pagination.value.pageIndex > lastPage) {
+      state.pagination.value = { ...state.pagination.value, pageIndex: lastPage };
+    }
+  },
+  { immediate: true }
+);
 const refresh = async (): Promise<void> => {
-  await queryClient.invalidateQueries({ queryKey: ["yayaw-table", config.id, "aggregate"] });
   await tableData.refresh();
+  await queryClient.invalidateQueries({ queryKey: ["yayaw-table", config.id, "aggregate"] });
 };
 const clearSelection = (): void => {
   selection.value = {};
@@ -212,68 +227,72 @@ const loadAllMatchingRows = async (): Promise<TableRecord[]> => {
       sorting: state.sorting.value,
     });
   }
-  const matching: TableRecord[] = [];
-  const pageSize = Math.min(
-    Math.max(tableData.rowCount.value, config.table.defaultPageSize, 1),
-    1000
-  );
+  // Capture the query once so changing filters during export cannot mix result sets.
+  const params = cloneFormValue({
+    pageSize: state.pagination.value.pageSize,
+    search: state.search.value,
+    filters: Object.fromEntries(
+      state.filters.value.map((filter) => [filter.id, filter.value])
+    ),
+    advancedFilters: state.advancedFilters.value,
+    sorting: state.sorting.value,
+    grouping: state.grouping.value,
+  });
   const list = actions.value.list;
-  let page = 1;
-  let totalCount = tableData.rowCount.value;
-  while (matching.length < totalCount && page < 10_000) {
-    const params = {
-      page,
-      pageSize,
-      search: state.search.value,
-      filters: Object.fromEntries(
-        state.filters.value.map((filter) => [filter.id, filter.value])
-      ),
-      advancedFilters: state.advancedFilters.value.filters,
-      advancedFilterJoin: state.advancedFilters.value.joinOperator,
-      sorting: state.sorting.value,
-      grouping: state.grouping.value,
-    };
-    const result = await queryClient.fetchQuery({
-      queryKey: ["yayaw-table", config.id, "all-matching", params],
-      queryFn: () => list(compatibleListParams(params) as unknown as TableListParams),
-      staleTime: 0,
-    });
-    matching.push(...result.data);
-    totalCount = result.meta?.totalCount ?? matching.length;
-    if (!result.data.length || result.data.length < pageSize) {
-      break;
-    }
-    page += 1;
-  }
-  return matching;
+  return await fetchAllContractRows({
+    list: async (request) => await list(request as unknown as TableListParams),
+    params,
+  });
 };
+let selectionVersion = 0;
+watch(selection, () => { selectionVersion += 1; }, { deep: true, flush: "sync" });
+watch(
+  [state.search, state.filters, state.advancedFilters, state.sorting, state.grouping],
+  () => {
+    selectionVersion += 1;
+    clearSelection();
+  },
+  { deep: true, flush: "sync" }
+);
+onBeforeUnmount(() => { selectionVersion += 1; });
 const selectAllMatching = async (): Promise<number> => {
+  if (
+    isSelectingAll.value ||
+    !config.table.enableRowSelection ||
+    !config.table.enableMultiRowSelection
+  ) return 0;
+  const version = selectionVersion;
   isSelectingAll.value = true;
   try {
     const matching = await loadAllMatchingRows();
+    // Do not overwrite a newer query or a selection edited while the request was pending.
+    if (version !== selectionVersion) return 0;
     const selectable = matching.filter(
       (row) => config.table.canSelectRow?.(row) !== false
     );
     const cache: Record<string, TableRecord> = {};
     const nextSelection: Record<string, boolean> = {};
-    selectable.forEach((row, index) => {
+    for (const [index, row] of selectable.entries()) {
       const id = getRowId(row, index);
       cache[id] = row;
       nextSelection[id] = true;
-    });
+    }
     selectedRowCache.value = cache;
     selection.value = nextSelection;
     return selectable.length;
   } catch (cause) {
-    status.value = {
-      type: "error",
-      message: cause instanceof Error ? cause.message : String(cause),
-    };
+    if (version === selectionVersion) {
+      status.value = {
+        type: "error",
+        message: cause instanceof Error ? cause.message : String(cause),
+      };
+    }
     return 0;
   } finally {
     isSelectingAll.value = false;
   }
 };
+
 const openCreate = (): void => {
   form.value = {
     open: true,
