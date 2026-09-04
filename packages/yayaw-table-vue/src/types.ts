@@ -212,6 +212,8 @@ export interface TableBehaviorConfig<TData extends TableRecord = TableRecord> {
   canSelectRow?: (row: TData) => boolean;
   showToolbar: boolean;
   showToolbarHeader: boolean;
+  /** Show a shortcut that clears search and filters without resetting the layout. */
+  showResetFilters?: boolean;
   export: boolean;
   bulkExport: boolean;
   actionsAsIcons: boolean;

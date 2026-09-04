@@ -20,6 +20,7 @@ export const defaultTableBehavior: TableBehaviorConfig = {
   allowViewSharing: false,
   showToolbar: true,
   showToolbarHeader: true,
+  showResetFilters: false,
   export: true,
   bulkExport: true,
   actionsAsIcons: false,
