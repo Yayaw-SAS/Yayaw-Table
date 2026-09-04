@@ -82,6 +82,8 @@ export interface TableCatalogueTableConfig {
   canSelectRow?: (row: Record<string, unknown>) => boolean;
   showToolbar?: boolean;
   showToolbarHeader?: boolean;
+  /** Show an icon in the toolbar to clear filters and global search. */
+  showResetFilters?: boolean;
   export?: boolean;
   bulkExport?: boolean;
   actionsAsIcons?: boolean;
@@ -163,6 +165,7 @@ const DEFAULT_TABLE_CONFIG: TableCatalogueConfig = {
     allowViewSharing: false,
     showToolbar: true,
     showToolbarHeader: true,
+    showResetFilters: false,
     export: true,
     bulkExport: true,
     actionsAsIcons: false,
@@ -300,6 +303,7 @@ function resolveTableBehaviorConfig(
     ...resolveTablePermissionConfig(mergedConfig),
     showToolbar: mergedConfig.showToolbar ?? true,
     showToolbarHeader: mergedConfig.showToolbarHeader ?? true,
+    showResetFilters: mergedConfig.showResetFilters ?? false,
     export: mergedConfig.export ?? true,
     bulkExport: mergedConfig.bulkExport ?? true,
     actionsAsIcons: mergedConfig.actionsAsIcons ?? false,

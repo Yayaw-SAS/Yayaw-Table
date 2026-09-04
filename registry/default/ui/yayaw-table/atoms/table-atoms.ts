@@ -76,6 +76,9 @@ export const columnFiltersAtom = atomFamily((_tableId: string) =>
   atom<ColumnFiltersState>([])
 );
 
+/** Invalidates pending filter edits across hooks belonging to the same table. */
+export const filterResetVersionAtom = atomFamily((_tableId: string) => atom(0));
+
 /**
  * Atom family to store global filter state for a specific table
  * Used for filtering across all columns

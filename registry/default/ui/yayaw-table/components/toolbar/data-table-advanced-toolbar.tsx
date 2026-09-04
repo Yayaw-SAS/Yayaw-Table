@@ -17,7 +17,7 @@ import type {
   VisibilityState,
 } from "@tanstack/react-table";
 import { useAtomValue, useSetAtom } from "jotai";
-import { Download, Loader2, PlusIcon } from "lucide-react";
+import { Download, Loader2, PlusIcon, RotateCcw } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +26,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  filterResetVersionAtom,
+  selectedRowsAtom,
+} from "../../atoms/table-atoms";
 import { useDataTable } from "../../hooks/use-data-table";
 import {
   useColumnsFilterConfig,
@@ -509,6 +513,7 @@ export function DataTableAdvancedToolbar<TData>({
   const tableId = props.tableId ?? "default";
   const tableType = props.tableType ?? tableId;
   const formType = props.formType ?? tableType;
+  const filterResetVersion = useAtomValue(filterResetVersionAtom(tableId));
 
   // Setup configuration and state
   const { t, state, tableConfig } = useToolbarSetup(tableId, tableType);
@@ -531,6 +536,7 @@ export function DataTableAdvancedToolbar<TData>({
     globalSearchParam,
     orderParam,
     pageSizeParam,
+    resetFilters,
     sortParam,
     visibilityParam,
   } = useTableUrlState({
@@ -1019,7 +1025,11 @@ export function DataTableAdvancedToolbar<TData>({
         }
       >
         {isColumnFiltersEnabled && (
-          <SearchBar placeholder={t("search.placeholder")} tableId={tableId} />
+          <SearchBar
+            key={filterResetVersion}
+            placeholder={t("search.placeholder")}
+            tableId={tableId}
+          />
         )}
 
         {toolbarActionsByPlacement.beforeCreate.map(renderToolbarAction)}
@@ -1110,9 +1120,26 @@ export function DataTableAdvancedToolbar<TData>({
           tableType={tableType}
           useAdvancedFilters={enableAdvancedFilters}
         />
+        {tableConfig.table.showResetFilters === true && (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  aria-label={t("filters.clear")}
+                  className="h-8 w-8 shrink-0"
+                  onClick={resetFilters}
+                  size="icon-sm"
+                  type="button"
+                  variant="outline"
+                >
+                  <RotateCcw aria-hidden="true" className="h-4 w-4" />
+                </Button>
+              }
+            />
+            <TooltipContent>{t("filters.clear")}</TooltipContent>
+          </Tooltip>
+        )}
       </div>
     </TooltipProvider>
   );
 }
-
-import { selectedRowsAtom } from "../../atoms/table-atoms";

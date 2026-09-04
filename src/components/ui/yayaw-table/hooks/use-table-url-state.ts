@@ -10,8 +10,10 @@ import type {
   SortingState,
   VisibilityState,
 } from "@tanstack/react-table";
+import { useStore } from "jotai";
 import { createParser, useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import { filterResetVersionAtom } from "../atoms/table-atoms";
 import type {
   TableDisplayMode,
   TableGalleryViewConfig,
@@ -30,14 +32,19 @@ import {
 function debounce<T extends (...args: unknown[]) => void>(
   func: T,
   wait: number
-): T {
+): T & { cancel: () => void } {
   let timeout: NodeJS.Timeout | null = null;
-  return ((...args: unknown[]) => {
+  const cancel = () => {
     if (timeout) {
       clearTimeout(timeout);
+      timeout = null;
     }
+  };
+  const debounced = ((...args: unknown[]) => {
+    cancel();
     timeout = setTimeout(() => func(...args), wait);
   }) as T;
+  return Object.assign(debounced, { cancel });
 }
 
 // Debug flag to help track sorting issues
@@ -294,6 +301,8 @@ export function useTableUrlState({
   enabled: _enabled = true,
   tableId,
 }: UseTableUrlStateOptions) {
+  const store = useStore();
+  const resetVersionAtom = filterResetVersionAtom(tableId);
   const resolvedDefaultPageSize = normalizePageSize(defaultPageSize);
   const defaultPageSizeParam = resolvedDefaultPageSize.toString();
   const resolvedDefaultDisplayMode =
@@ -517,59 +526,75 @@ export function useTableUrlState({
     | null;
 
   const debouncedSetParamRef = useRef<
-    ((key: string, value: TableParamValue) => void) | null
+    ((key: string, value: TableParamValue, resetVersion?: number) => void) | null
   >(null);
 
   // Create debounced setter on mount
   useEffect(() => {
-    if (!debouncedSetParamRef.current) {
-      debouncedSetParamRef.current = debounce((...args: unknown[]) => {
-        const [key, value] = args as [string, TableParamValue];
-        if (key.includes("filters") && !key.includes("advancedFilters")) {
-          (
-            setFiltersParam as unknown as (
-              v: ColumnFiltersState,
-              o?: unknown
-            ) => void
-          )(value as ColumnFiltersState, {
+    const debouncedSetParam = debounce((...args: unknown[]) => {
+      const [key, value, resetVersion] = args as [
+        string,
+        TableParamValue,
+        number?,
+      ];
+      // A reset in any hook for this table supersedes pending filter edits.
+      if (
+        resetVersion !== undefined &&
+        resetVersion !== store.get(resetVersionAtom)
+      ) {
+        return;
+      }
+      if (key.includes("filters") && !key.includes("advancedFilters")) {
+        (
+          setFiltersParam as unknown as (
+            v: ColumnFiltersState,
+            o?: unknown
+          ) => void
+        )(value as ColumnFiltersState, {
+          shallow: true,
+          history: "replace",
+          scroll: false,
+        });
+      } else if (key.includes("advancedFilters")) {
+        (
+          setAdvancedFiltersParam as unknown as (
+            v: AdvancedFiltersState,
+            o?: unknown
+          ) => void
+        )(value as AdvancedFiltersState, {
+          shallow: true,
+          history: "replace",
+          scroll: false,
+        });
+      } else if (key.includes("sort")) {
+        (setSortParam as unknown as (v: SortingState, o?: unknown) => void)(
+          value as SortingState,
+          {
             shallow: true,
             history: "replace",
             scroll: false,
-          });
-        } else if (key.includes("advancedFilters")) {
-          (
-            setAdvancedFiltersParam as unknown as (
-              v: AdvancedFiltersState,
-              o?: unknown
-            ) => void
-          )(value as AdvancedFiltersState, {
+          }
+        );
+      } else if (key.endsWith("-q")) {
+        (setGlobalSearchParam as unknown as (v: string, o?: unknown) => void)(
+          value as unknown as string,
+          {
             shallow: true,
             history: "replace",
             scroll: false,
-          });
-        } else if (key.includes("sort")) {
-          (setSortParam as unknown as (v: SortingState, o?: unknown) => void)(
-            value as SortingState,
-            {
-              shallow: true,
-              history: "replace",
-              scroll: false,
-            }
-          );
-        } else if (key.endsWith("-q")) {
-          (setGlobalSearchParam as unknown as (v: string, o?: unknown) => void)(
-            value as unknown as string,
-            {
-              shallow: true,
-              history: "replace",
-              scroll: false,
-            }
-          );
-        }
-        // Add other param setters as needed
-      }, 150);
-    }
+          }
+        );
+      }
+      // Add other param setters as needed
+    }, 150);
+    debouncedSetParamRef.current = debouncedSetParam;
+    return () => {
+      debouncedSetParam.cancel();
+      debouncedSetParamRef.current = null;
+    };
   }, [
+    resetVersionAtom,
+    store,
     setFiltersParam,
     setAdvancedFiltersParam,
     setSortParam,
@@ -578,18 +603,26 @@ export function useTableUrlState({
 
   const setColumnFiltersFromUI = useCallback(
     (filters: ColumnFiltersState) => {
-      debouncedSetParamRef.current?.(`${tableId}-filters`, filters);
+      debouncedSetParamRef.current?.(
+        `${tableId}-filters`,
+        filters,
+        store.get(resetVersionAtom)
+      );
     },
-    [tableId]
+    [resetVersionAtom, store, tableId]
   );
 
   // Advanced filters setter
   const setAdvancedFiltersFromUI = useCallback(
     (filters: AdvancedFiltersState) => {
       // Write as-is; server/mock layer ignores inactive or empty filters
-      debouncedSetParamRef.current?.(`${tableId}-advancedFilters`, filters);
+      debouncedSetParamRef.current?.(
+        `${tableId}-advancedFilters`,
+        filters,
+        store.get(resetVersionAtom)
+      );
     },
-    [tableId]
+    [resetVersionAtom, store, tableId]
   );
 
   const setSorting = useCallback(
@@ -602,16 +635,31 @@ export function useTableUrlState({
   // Global search setter
   const setGlobalSearchFromUI = useCallback(
     (value: string) => {
-      debouncedSetParamRef.current?.(`${tableId}-q`, value || "");
+      debouncedSetParamRef.current?.(
+        `${tableId}-q`,
+        value || "",
+        store.get(resetVersionAtom)
+      );
     },
-    [tableId]
+    [resetVersionAtom, store, tableId]
   );
 
-  // Method to reset all filters
+  // Clear every filtering input while preserving the table's presentation.
   const resetFilters = useCallback(() => {
-    queueUrlUpdate(setFiltersParam, []);
-    queueUrlUpdate(setAdvancedFiltersParam, []);
-  }, [queueUrlUpdate, setFiltersParam, setAdvancedFiltersParam]);
+    store.set(resetVersionAtom, (version) => version + 1);
+    queueUrlUpdate(setFiltersParam, null);
+    queueUrlUpdate(setAdvancedFiltersParam, null);
+    queueUrlUpdate(setGlobalSearchParam, null);
+    queueUrlUpdate(setPageParam, "0");
+  }, [
+    queueUrlUpdate,
+    resetVersionAtom,
+    setFiltersParam,
+    setAdvancedFiltersParam,
+    setGlobalSearchParam,
+    setPageParam,
+    store,
+  ]);
 
   // Method to reset only advanced filters
   const resetAdvancedFilters = useCallback(() => {
