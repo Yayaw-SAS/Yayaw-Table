@@ -23,6 +23,7 @@ interface UseTableUrlDataOptions<TData> {
   initialData?: TData[];
   initialPageCount?: number;
   initialRowCount?: number;
+  syncUrl?: boolean;
   queryFn: (params: {
     columnFilters: Array<{ id: string; value: unknown }>;
     complexFilters: unknown[];
@@ -133,6 +134,7 @@ export function useTableUrlData<TData>({
   initialPageCount,
   initialRowCount,
   queryFn,
+  syncUrl,
   tableId,
 }: UseTableUrlDataOptions<TData>) {
   const resolvedDefaultPageSize =
@@ -150,6 +152,7 @@ export function useTableUrlData<TData>({
     globalSearchParam,
   } = useTableUrlState({
     defaultPageSize: resolvedDefaultPageSize,
+    enabled: syncUrl,
     tableId,
   });
 

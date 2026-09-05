@@ -20,9 +20,11 @@ export {
   CollectionEditor,
   CollectionField,
   FormBuilder,
+  TablePickerField,
   createCollectionField,
   createDateField,
   createRadioField,
+  createTablePickerField,
   defineFormConfig,
 } from "./components/forms";
 export type {
@@ -40,6 +42,8 @@ export type {
   FormFieldApi,
   FormSectionDefinition,
   RadioFieldDefinition,
+  TablePickerFieldConfig,
+  TablePickerFieldDefinition,
 } from "./components/forms";
 export type {
   CatalogueFormLayoutConfig,

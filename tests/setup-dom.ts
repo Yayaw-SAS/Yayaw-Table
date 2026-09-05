@@ -25,7 +25,10 @@ for (const name of [
   "ResizeObserver",
   "Event",
   "MouseEvent",
+  "PointerEvent",
   "KeyboardEvent",
+  "localStorage",
+  "sessionStorage",
 ] as const) {
   const value = name === "window" ? browser : browser[name];
   Object.defineProperty(globalThis, name, {
@@ -40,3 +43,15 @@ Object.assign(globalThis, {
   cancelAnimationFrame: browser.cancelAnimationFrame.bind(browser),
   IS_REACT_ACT_ENVIRONMENT: true,
 });
+
+if (!("IntersectionObserver" in globalThis)) {
+  Object.defineProperty(globalThis, "IntersectionObserver", {
+    configurable: true,
+    value: class {
+      disconnect = () => undefined;
+      observe = () => undefined;
+      unobserve = () => undefined;
+    },
+    writable: true,
+  });
+}

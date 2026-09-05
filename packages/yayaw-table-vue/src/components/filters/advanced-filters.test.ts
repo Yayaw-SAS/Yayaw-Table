@@ -37,7 +37,11 @@ const rows = [
 const config = defineTableConfig({
   id: "filters",
   translations: { namespace: "filters", keys: {} },
-  table: { enableViews: false, syncUrl: false },
+  table: {
+    enableAdvancedFilters: true,
+    enableViews: false,
+    syncUrl: false,
+  },
   columns: {
     definitions: [
       { id: "name", header: "Name", type: "text" },

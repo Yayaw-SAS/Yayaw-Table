@@ -533,6 +533,11 @@
           "target": "components/ui/yayaw-table/components/forms/fields/switch-field.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/forms/fields/table-picker-field.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/forms/fields/table-picker-field.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/forms/fields/text-field.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/forms/fields/text-field.tsx"
@@ -866,6 +871,11 @@
           "path": "registry/default/ui/yayaw-table/providers/table-provider.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/providers/table-provider.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/providers/table-state-sync-provider.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/providers/table-state-sync-provider.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/providers/translation-cache.ts",

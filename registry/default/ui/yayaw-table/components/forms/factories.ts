@@ -13,6 +13,7 @@ import type {
   SelectFieldDefinition,
   SelectWithAddNewFieldDefinition,
   SwitchFieldDefinition,
+  TablePickerFieldDefinition,
   TextareaFieldDefinition,
   TextFieldDefinition,
   UrlFieldDefinition,
@@ -227,6 +228,18 @@ export function createSwitchField<
   return {
     ...options,
     type: "switch",
+  };
+}
+
+/** Create a nested table selection field definition. */
+export function createTablePickerField<
+  TFieldValues extends FieldValues = FieldValues,
+>(
+  options: Omit<TablePickerFieldDefinition<TFieldValues>, "type">
+): TablePickerFieldDefinition<TFieldValues> {
+  return {
+    ...options,
+    type: "tablePicker",
   };
 }
 

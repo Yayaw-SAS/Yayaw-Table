@@ -21,6 +21,7 @@ import {
   SelectField,
   SelectWithAddNewField,
   SwitchField,
+  TablePickerField,
   TextareaField,
   TextField,
   UrlField,
@@ -37,6 +38,7 @@ import type {
   FormFieldApi,
   FormSectionDefinition,
   Path,
+  TablePickerFieldDefinition,
 } from "./types";
 
 const DEFAULT_FORM_SECTION_ID = "__default";
@@ -383,6 +385,25 @@ function FormBuilderField<TFieldValues extends FieldValues>({
           )}
         </form.Field>
       );
+    case "tablePicker":
+      return (
+        <form.Field key={field.name} name={field.name as Path<TFieldValues>}>
+          {(f) => (
+            <TablePickerField
+              context={
+                (context ?? {
+                  formType: "form",
+                  mode: "create",
+                  tableId: "form",
+                  tableType: "form",
+                }) as FormConfigContext<TFieldValues>
+              }
+              field={field as TablePickerFieldDefinition<TFieldValues>}
+              fieldApi={normalizeFieldApi(f)}
+            />
+          )}
+        </form.Field>
+      );
     case "text":
       return (
         <form.Field key={field.name} name={field.name as Path<TFieldValues>}>
@@ -467,13 +488,15 @@ export function FormBuilder<TFieldValues extends FieldValues>({
   sections,
   submitText,
 }: FormBuilderProps<TFieldValues>) {
-  const { t } = useTranslations();
+  const { locale, t, translations } = useTranslations();
   const values = useStore(form.store, (state) => state.values);
   const runtimeContext: FormConfigContext = {
     formType: "form",
     tableId: "form",
     tableType: "form",
     mode: "create",
+    locale,
+    translations,
     ...context,
     values,
     setFieldValue: (name, value) =>

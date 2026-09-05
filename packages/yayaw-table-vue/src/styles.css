@@ -154,6 +154,11 @@
   background: var(--yayaw-danger);
   color: #fff;
 }
+.yayaw-button-secondary {
+  border-color: var(--yayaw-border);
+  background: var(--yayaw-muted);
+  color: var(--yayaw-foreground);
+}
 .yayaw-icon-button {
   min-width: 30px;
   min-height: 30px;
@@ -628,7 +633,8 @@
   align-items: center;
   gap: 6px;
 }
-.yayaw-column-menu-trigger {
+.yayaw-column-menu-trigger,
+.yayaw-column-drag-handle {
   margin-left: auto;
   display: inline-flex;
   align-items: center;
@@ -655,6 +661,7 @@
 }
 .yayaw-column-sort svg,
 .yayaw-column-menu-trigger svg,
+.yayaw-column-drag-handle svg,
 .yayaw-column-menu-item svg,
 .yayaw-view-menu-item svg {
   width: 16px;
@@ -695,6 +702,11 @@
   background: var(--yayaw-muted);
   outline: none;
 }
+.yayaw-column-drag-handle:hover,
+.yayaw-column-drag-handle[aria-pressed="true"] {
+  background: var(--yayaw-muted);
+  outline: none;
+}
 .yayaw-view-menu-item[data-disabled],
 .yayaw-column-menu-item[data-disabled] {
   opacity: 0.5;
@@ -707,6 +719,7 @@
   background: var(--yayaw-border);
 }
 .yayaw-column-menu-trigger:focus-visible,
+.yayaw-column-drag-handle:focus-visible,
 .yayaw-column-sort:focus-visible {
   outline: 2px solid var(--yayaw-primary);
   outline-offset: 2px;
@@ -804,6 +817,11 @@
 .yayaw-empty strong,
 .yayaw-empty span {
   display: block;
+}
+.yayaw-card-empty {
+  display: grid;
+  min-height: 160px;
+  place-content: center;
 }
 .yayaw-calculation small,
 .yayaw-calculation strong {
@@ -1154,6 +1172,10 @@
 .yayaw-card-header strong {
   min-width: 0;
   flex: 1;
+}
+.yayaw-kanban-move-actions {
+  display: inline-flex;
+  gap: 2px;
 }
 .yayaw-card-select {
   cursor: pointer;

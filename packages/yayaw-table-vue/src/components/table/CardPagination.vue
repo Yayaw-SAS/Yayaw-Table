@@ -20,7 +20,7 @@ const resize = (event: Event) => {
 </script>
 
 <template>
-  <footer v-if="context.config.table.enablePagination" class="yayaw-pagination">
+  <footer v-if="context.config.table.enablePagination && pages > 1" class="yayaw-pagination">
     <span>{{ context.matchingRowCount.value }}</span>
     <label>{{ context.translations.value.rowsPerPage }}
       <select class="yayaw-select" :value="context.state.pagination.value.pageSize" @change="resize">

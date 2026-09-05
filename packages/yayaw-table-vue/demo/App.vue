@@ -9,6 +9,7 @@ import {
   type TableActions,
   type TableConfig,
   type TableRecord,
+  type ToolbarActionsInput,
 } from "../src";
 
 interface Product extends TableRecord {
@@ -33,6 +34,7 @@ const seed: Product[] = Array.from({ length: 34 }, (_, index) => ({
   createdAt: new Date(2026, index % 8, (index % 27) + 1).toISOString(),
 }));
 const products = ref<Product[]>(seed);
+const activity = ref("Select rows to try the catalogue toolbar action.");
 
 const config = defineTableConfig<Product>({
   id: "products",
@@ -246,6 +248,20 @@ const actions: TableActions<Product> = {
     return { success: true, data: copies };
   },
 };
+const toolbarActions: ToolbarActionsInput = (context) => [
+  {
+    id: "selection-summary",
+    label: `Use ${context.selectedCount} selected`,
+    disabled: context.selectedCount === 0,
+    onClick: () => {
+      activity.value = `Selected: ${context.selectedRowIds.join(", ")}`;
+    },
+    variant: "secondary",
+  },
+];
+const activateProduct = (row: TableRecord): void => {
+  activity.value = `Activated: ${String(row.name ?? row.id)}`;
+};
 </script>
 
 <template>
@@ -258,6 +274,7 @@ const actions: TableActions<Product> = {
         actions. Column drag and drop can be changed from any column menu or from
         Options → Properties.
       </p>
+      <p class="demo-status" role="status">{{ activity }}</p>
     </header>
     <DataTable
       table-type="products"
@@ -265,8 +282,10 @@ const actions: TableActions<Product> = {
       :data="products"
       :get-table-actions="() => actions"
       :get-form-config="() => formConfig as unknown as FormConfig"
+      :toolbar-actions="toolbarActions"
+      toolbar-actions-placement="after-export"
       locale="en"
-      @row-activate="(row) => console.info('Activated', row.id)"
+      @row-activate="activateProduct"
     />
   </main>
 </template>
@@ -278,4 +297,5 @@ body { margin: 0; background: #f7f7f8; color: #18181b; font-family: Inter, ui-sa
 .demo-header h1 { margin: 6px 0 10px; font-size: clamp(2rem, 5vw, 3.5rem); letter-spacing: -0.04em; line-height: 1; }
 .demo-header p { margin: 0; color: #52525b; line-height: 1.6; }
 .demo-eyebrow { color: #2563eb !important; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+.demo-status { margin-top: 12px !important; font-weight: 600; }
 </style>

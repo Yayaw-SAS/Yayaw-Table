@@ -8,6 +8,10 @@ import type {
   TableGalleryConfig,
   TableKanbanConfig,
 } from "../types/display-types";
+import type {
+  ToolbarActionsInput,
+  ToolbarActionsPlacement,
+} from "../types/toolbar-types";
 import { defaultTableConfig, defaultTranslations } from "./defaults";
 import type { TableFormConfig } from "./form-config";
 
@@ -296,6 +300,11 @@ export interface ColumnDefinition {
   inlineEdit?: boolean | InlineEditColumnConfig;
 
   /**
+   * Allow the column to be pinned from the column menu.
+   */
+  enablePinning?: boolean;
+
+  /**
    * Optional map of tag value -> Tailwind class used by tag columns.
    */
   tagColorMap?: Record<string, string>;
@@ -446,8 +455,8 @@ export interface TableBehaviorConfig {
   showToolbarHeader: boolean;
 
   /** Show an icon in the toolbar to clear filters and global search. */
-  /** Clear search and filters while preserving display options. */
   showClearFilters?: boolean;
+  /** Backwards-compatible alias for `showClearFilters`. */
   showResetFilters?: boolean;
 
   /**
@@ -506,6 +515,11 @@ export interface TableBehaviorConfig {
   defaultPageSize: number;
 
   /**
+   * Enable the column drag-and-drop feature and its controls.
+   */
+  enableColumnDnd?: boolean;
+
+  /**
    * Enable drag and drop for columns
    */
   enableColumnDragDropByDefault: boolean;
@@ -514,6 +528,11 @@ export interface TableBehaviorConfig {
    * Enable column filters
    */
   enableColumnFilters: boolean;
+
+  /**
+   * Enable the advanced filter builder.
+   */
+  enableAdvancedFilters?: boolean;
 
   /**
    * Enable column pinning
@@ -577,6 +596,26 @@ export interface TableBehaviorConfig {
    * @default false
    */
   enableCalculations?: boolean;
+
+  /**
+   * Enable grouping controls and grouped rows.
+   */
+  enableGrouping?: boolean;
+
+  /**
+   * Keep selected row IDs when search, filters, sorting, or grouping changes.
+   */
+  preserveSelectionOnQuery?: boolean;
+
+  /**
+   * Delay before applying global search, in milliseconds.
+   */
+  searchDebounceMs?: number;
+
+  /**
+   * Synchronize table state with the URL.
+   */
+  syncUrl?: boolean;
 }
 
 /**
@@ -638,6 +677,12 @@ export interface TableConfig {
    */
   table: TableBehaviorConfig;
 
+  /** Custom actions rendered with the built-in create and export controls. */
+  toolbarActions?: ToolbarActionsInput;
+
+  /** Position of catalogue toolbar actions relative to create and export. */
+  toolbarActionsPlacement?: ToolbarActionsPlacement;
+
   /**
    * Configuration for table translations
    */
@@ -668,6 +713,8 @@ export function defineTableConfig(config: {
   icon?: string;
   id: string;
   table?: Partial<TableBehaviorConfig>;
+  toolbarActions?: ToolbarActionsInput;
+  toolbarActionsPlacement?: ToolbarActionsPlacement;
   translations: TableTranslationsConfig;
 }): TableConfig {
   const layoutPreset = resolveTableLayoutPreset(config.table?.layoutPreset);
@@ -719,6 +766,8 @@ export function defineTableConfig(config: {
     icon: config.icon,
     id: config.id,
     table: tableDefaults,
+    toolbarActions: config.toolbarActions,
+    toolbarActionsPlacement: config.toolbarActionsPlacement,
     translations: config.translations,
   };
 }

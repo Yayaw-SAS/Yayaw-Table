@@ -214,9 +214,9 @@ export interface TableBehaviorConfig<TData extends TableRecord = TableRecord> {
   canSelectRow?: (row: TData) => boolean;
   showToolbar: boolean;
   showToolbarHeader: boolean;
-  /** Show a shortcut that applies the same option defaults as the Options menu reset. */
   /** Clear search and filters while preserving display options. */
   showClearFilters?: boolean;
+  /** Backwards-compatible alias for `showClearFilters`. */
   showResetFilters?: boolean;
   export: boolean;
   bulkExport: boolean;
@@ -498,7 +498,8 @@ export interface TableConfig<TData extends TableRecord = TableRecord> {
   table: TableBehaviorConfig<TData>;
   translations: TableTranslationsConfig;
   form?: TableFormConfig;
-  toolbarActions?: ToolbarAction<TData>[];
+  toolbarActions?: ToolbarActionsInput<TData>;
+  toolbarActionsPlacement?: ToolbarActionsPlacement;
 }
 
 export interface SortItem {
@@ -726,20 +727,46 @@ export interface BulkAction<TData extends TableRecord = TableRecord> {
 
 export interface ToolbarActionContext<TData extends TableRecord = TableRecord>
   extends BulkActionContext<TData> {
+  actionsAsIcons: boolean;
   data: TData[];
+  hasListAction: boolean;
+  isCreateEnabled: boolean;
+  isExportEnabled: boolean;
+  isExporting: boolean;
+  isFooterCalculationsEnabled: boolean;
+  isMobile: boolean;
+  selectedCount: number;
+  selectedOriginalRows: TData[];
+  selectedRowIds: string[];
+  tableActions?: TableActions<TData>;
+  tableId: string;
+  tableType?: string;
 }
 
 export interface ToolbarAction<TData extends TableRecord = TableRecord> {
   id: string;
   label: string;
   icon?: Component;
-  variant?: "default" | "outline" | "ghost";
+  variant?: "default" | "destructive" | "ghost" | "outline" | "secondary";
   disabled?: boolean | ((context: ToolbarActionContext<TData>) => boolean);
   loading?: boolean;
   showInIconMode?: boolean;
   tooltip?: string;
-  handler: (context: ToolbarActionContext<TData>) => MaybePromise<void>;
+  /** React-compatible action callback. */
+  onClick?: (context: ToolbarActionContext<TData>) => MaybePromise<void>;
+  /** @deprecated Use `onClick` for cross-framework catalogues. */
+  handler?: (context: ToolbarActionContext<TData>) => MaybePromise<void>;
+  requiresFooterCalculations?: boolean;
 }
+
+export type ToolbarActionsInput<TData extends TableRecord = TableRecord> =
+  | ToolbarAction<TData>[]
+  | ((context: ToolbarActionContext<TData>) => ToolbarAction<TData>[]);
+
+export type ToolbarActionsPlacement =
+  | "after-export"
+  | "before-create"
+  | "between-create-export";
 
 export interface DataTableTranslations {
   [key: string]: unknown;
@@ -810,7 +837,8 @@ export interface YayawTableProps<TData extends TableRecord = TableRecord> {
   syncUrl?: boolean;
   customBulkActions?: BulkAction<TData>[];
   searchDebounceMs?: number;
-  toolbarActions?: ToolbarAction<TData>[];
+  toolbarActions?: ToolbarActionsInput<TData>;
+  toolbarActionsPlacement?: ToolbarActionsPlacement;
   rowSelection?: Record<string, boolean>;
   getRowId?: (row: TData) => string;
   onRowActivate?: (row: TData, event: MouseEvent) => void;

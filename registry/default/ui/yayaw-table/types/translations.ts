@@ -39,6 +39,9 @@ export interface DataTableTranslations {
     filter: string;
     hide_in_view: string;
     reorder: string;
+    pin_left?: string;
+    pin_right?: string;
+    unpin?: string;
     sort_ascending: string;
     sort_descending: string;
   };

@@ -60,15 +60,16 @@ export function ProductsTable() {
 
 The React edition supports shared TanStack Query state, typed filters, URL state with Nuqs, saved views, table/Kanban/gallery modes, forms, inline editing, and bulk actions. It can use Next.js Server Actions, regular HTTP APIs, or any backend adapter that implements the action contracts.
 
-### Clear filters from the React toolbar
+### Clear filters from either toolbar
 
-Set `table.showResetFilters: true` in your table configuration to display an
+Set `table.showClearFilters: true` in your table configuration to display an
 icon at the far right of the toolbar. It clears column filters, advanced filters,
 and global search, and returns to the first page. Sorting, grouping, column
 layout, page size, and saved views are preserved. The flag defaults to `false`
 and requires the toolbar to be visible. The icon stays available in both text
 and icon action modes, including on mobile. Its tooltip and accessible label use
-`filters.clear` from your translations.
+`filters.clear` from your translations. `showResetFilters` remains a supported
+alias and now has the same behavior in React and Vue.
 
 ## Development
 

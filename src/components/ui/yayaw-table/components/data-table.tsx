@@ -13,6 +13,7 @@ import type {
   BulkDeleteCustomHandlerResult,
 } from "../hooks/use-bulk-actions";
 import { useDataTable } from "../hooks/use-data-table";
+import type { TableCatalogueConfig } from "../hooks/use-table-config";
 
 import { DataTableUIProvider } from "../providers/data-table-ui-provider";
 import {
@@ -22,6 +23,7 @@ import {
   useTranslations,
 } from "../providers/table-provider";
 import { resolveTranslationsToUiStrings } from "../providers/translation-cache";
+import { TableStateSyncProvider } from "../providers/table-state-sync-provider";
 import type { TableEmptyStateConfig } from "../config/helpers";
 import type {
   ToolbarActionsInput,
@@ -164,6 +166,32 @@ function shouldShowGalleryControl({
   return (displayModes ?? ["table"]).includes("gallery") && columnsCount > 0;
 }
 
+function resolveToolbarRuntime({
+  config,
+  enableAdvancedFilters,
+  searchDebounceMs,
+  toolbarActions,
+  toolbarActionsPlacement,
+}: {
+  config: TableCatalogueConfig;
+  enableAdvancedFilters?: boolean;
+  searchDebounceMs?: number;
+  toolbarActions?: ToolbarActionsInput;
+  toolbarActionsPlacement?: ToolbarActionsPlacement;
+}) {
+  return {
+    resolvedSearchDebounceMs:
+      searchDebounceMs ?? config.table.searchDebounceMs ?? 300,
+    resolvedToolbarActions: toolbarActions ?? config.toolbarActions,
+    resolvedToolbarActionsPlacement:
+      toolbarActionsPlacement ??
+      config.toolbarActionsPlacement ??
+      "between-create-export",
+    shouldEnableAdvancedFilters:
+      enableAdvancedFilters ?? config.table.enableAdvancedFilters ?? false,
+  } as const;
+}
+
 function resolveDataTableHeaderContent({
   configDescription,
   configTitle,
@@ -208,6 +236,7 @@ function DataTableHeaderControls({
   enableKanbanGrouping,
   enableGalleryControl,
   enableAdvancedFilters,
+  searchDebounceMs,
   galleryColumns,
   galleryConfig,
   initialActiveViewId,
@@ -237,6 +266,7 @@ function DataTableHeaderControls({
   enableKanbanGrouping: boolean;
   enableGalleryControl: boolean;
   enableAdvancedFilters: boolean;
+  searchDebounceMs: number;
   galleryColumns: GalleryControlColumn[];
   galleryConfig?: TableGalleryConfig;
   initialActiveViewId?: string;
@@ -304,6 +334,7 @@ function DataTableHeaderControls({
           enableAdvancedFilters={enableAdvancedFilters}
           formType={defaultFormType}
           onExport={onExport}
+          searchDebounceMs={searchDebounceMs}
           tableId={tableId}
           tableType={tableType}
           toolbarActions={toolbarActions}
@@ -319,6 +350,8 @@ function DataTableContent({
   loadingOverlay,
   enableToolbar = true,
   onRowSelectionChange,
+  onRowSelectionStateChange,
+  rowSelection,
   onBulkEdit,
   onBulkDelete,
   onBulkCopy,
@@ -333,13 +366,14 @@ function DataTableContent({
   showDefaultToastsForCustomHandlers,
   onExport,
   toolbarActions,
-  toolbarActionsPlacement = "between-create-export",
+  toolbarActionsPlacement,
   tableId: tableIdProp,
   tableType,
   formType,
   title,
   description,
-  enableAdvancedFilters = false,
+  enableAdvancedFilters,
+  searchDebounceMs,
   enableViews = true,
   columnTypeMapping = EMPTY_COLUMN_TYPE_MAPPING,
   initialData,
@@ -352,6 +386,10 @@ function DataTableContent({
   loadingOverlay?: React.ReactNode;
   enableToolbar?: boolean;
   onRowSelectionChange?: (rows: Row<Record<string, unknown>>[]) => void;
+  onRowSelectionStateChange?: (
+    selection: Record<string, boolean>
+  ) => void;
+  rowSelection?: Record<string, boolean>;
   onBulkEdit?: (
     rows: Row<Record<string, unknown>>[]
   ) => Promise<BulkActionCustomHandlerResult> | BulkActionCustomHandlerResult;
@@ -397,6 +435,8 @@ function DataTableContent({
   description?: string;
   /** Whether to enable advanced filtering */
   enableAdvancedFilters?: boolean;
+  /** Delay before applying global search, in milliseconds. */
+  searchDebounceMs?: number;
   /**
    * Whether to show the saved views manager.
    * Defaults to true and can also be disabled from table config.
@@ -474,6 +514,18 @@ function DataTableContent({
   const shouldShowToolbar = enableToolbar && config.table.showToolbar !== false;
   const shouldShowToolbarHeader = config.table.showToolbarHeader !== false;
   const shouldShowViews = enableViews !== false && config.table.enableViews !== false;
+  const {
+    resolvedSearchDebounceMs,
+    resolvedToolbarActions,
+    resolvedToolbarActionsPlacement,
+    shouldEnableAdvancedFilters,
+  } = resolveToolbarRuntime({
+    config,
+    enableAdvancedFilters,
+    searchDebounceMs,
+    toolbarActions,
+    toolbarActionsPlacement,
+  });
   const shouldShowDisplayModes = (config.table.displayModes?.length ?? 1) > 1;
   const kanbanGroupingColumns = useMemo(
     () => getKanbanGroupingColumns(config.columns.definitions),
@@ -499,7 +551,7 @@ function DataTableContent({
     shouldShowGallery;
 
   return (
-    <>
+    <TableStateSyncProvider enabled={config.table.syncUrl !== false}>
       <Suspense fallback={<DataTableSkeleton />}>
         <DataTableUIProvider
           columnsConfig={{
@@ -530,7 +582,10 @@ function DataTableContent({
             showToolbarHeader: config.table.showToolbarHeader,
             enableColumnDragDropByDefault:
               config.table.enableColumnDragDropByDefault,
+            enableColumnDnd: config.table.enableColumnDnd,
             enableColumnFilters: config.table.enableColumnFilters,
+            enableAdvancedFilters: shouldEnableAdvancedFilters,
+            enableColumnPinning: config.table.enableColumnPinning,
             enableCalculations: config.table.enableCalculations,
             enableGrouping: config.table.enableGrouping,
             enableMultiRowSelection:
@@ -540,6 +595,9 @@ function DataTableContent({
             enableRowClickEdit: config.table.enableRowClickEdit,
             enableSorting: config.table.enableSorting,
             enableViews: config.table.enableViews,
+            preserveSelectionOnQuery: config.table.preserveSelectionOnQuery,
+            searchDebounceMs: resolvedSearchDebounceMs,
+            syncUrl: config.table.syncUrl,
             inlineEdit: config.table.inlineEdit,
             gallery: config.table.gallery,
             kanban: config.table.kanban,
@@ -576,7 +634,7 @@ function DataTableContent({
                     displayModes={config.table.displayModes}
                     enableGalleryControl={shouldShowGallery}
                     enableKanbanGrouping={shouldShowKanbanGrouping}
-                    enableAdvancedFilters={enableAdvancedFilters}
+                    enableAdvancedFilters={shouldEnableAdvancedFilters}
                     galleryColumns={galleryColumns}
                     galleryConfig={config.table.gallery}
                     initialActiveViewId={initialActiveViewId}
@@ -586,12 +644,13 @@ function DataTableContent({
                     kanbanDefaultGroupBy={config.table.kanban?.groupBy}
                     kanbanGroupingColumns={kanbanGroupingColumns}
                     onExport={onExport}
+                    searchDebounceMs={resolvedSearchDebounceMs}
                     shouldShowViewControls={shouldShowViewControls}
                     shouldShowViews={shouldShowViews}
                     tableId={tableId}
                     tableType={tableType}
-                    toolbarActions={toolbarActions}
-                    toolbarActionsPlacement={toolbarActionsPlacement}
+                    toolbarActions={resolvedToolbarActions}
+                    toolbarActionsPlacement={resolvedToolbarActionsPlacement}
                   />
                 )}
               </div>
@@ -615,6 +674,7 @@ function DataTableContent({
                   config.table.enableColumnDragDropByDefault
                 )}
                 enableColumnFilters={config.table.enableColumnFilters}
+                enableColumnPinning={config.table.enableColumnPinning !== false}
                 enableGrouping={config.table.enableGrouping}
                 enableMultiRowSelection={
                   config.table.enableMultiRowSelection !== false
@@ -634,6 +694,8 @@ function DataTableContent({
                 onRowActivate={onRowActivate}
                 onRowClick={onRowClick}
                 onRowSelectionChange={onRowSelectionChange}
+                onRowSelectionStateChange={onRowSelectionStateChange}
+                rowSelection={rowSelection}
                 showDefaultToastsForCustomHandlers={
                   showDefaultToastsForCustomHandlers
                 }
@@ -659,7 +721,7 @@ function DataTableContent({
       <Suspense fallback={null}>
         <CatalogueFormContainer />
       </Suspense>
-    </>
+    </TableStateSyncProvider>
   );
 }
 

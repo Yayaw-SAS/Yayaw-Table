@@ -224,6 +224,9 @@ interface DataTableAdvancedToolbarProps<_TData = Record<string, unknown>> {
    * Placement for custom toolbar actions
    */
   toolbarActionsPlacement?: ToolbarActionsPlacement;
+
+  /** Delay before applying global search, in milliseconds. */
+  searchDebounceMs?: number;
 }
 
 // Define DataTableState type to handle state properties
@@ -507,6 +510,7 @@ export function DataTableAdvancedToolbar<TData>({
   onExport,
   toolbarActions,
   toolbarActionsPlacement = "between-create-export",
+  searchDebounceMs = 300,
   ...props
 }: DataTableAdvancedToolbarProps<TData>) {
   // Ensure tableId is available
@@ -1030,6 +1034,7 @@ export function DataTableAdvancedToolbar<TData>({
       >
         {isColumnFiltersEnabled && (
           <SearchBar
+            debounceMs={searchDebounceMs}
             key={filterResetVersion}
             placeholder={t("search.placeholder")}
             tableId={tableId}

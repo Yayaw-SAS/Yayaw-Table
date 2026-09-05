@@ -30,12 +30,14 @@ import type {
   TableView,
   ToolbarAction,
   ToolbarActionContext,
+  ToolbarActionsPlacement,
 } from "../../types";
 import SavedViews from "./SavedViews.vue";
 
 const props = defineProps<{
   enableAdvancedFilters: boolean;
   initialViews: TableView[];
+  toolbarActionsPlacement?: ToolbarActionsPlacement;
 }>();
 const context = useTableContext();
 type OptionsView = "columns" | "filters" | "group" | "main" | "sort";
@@ -142,21 +144,92 @@ const maxGroupingCount = computed(() =>
 const actionsAsIcons = computed(
   () => context.config.table.actionsAsIcons === true
 );
-const actionContext = computed<ToolbarActionContext>(() => ({
-  data: context.data.rows.value,
-  selectedRows: context.selectedRows.value,
-  selectedIds: Object.keys(context.selection.value).filter(
+const selectedIds = computed(() =>
+  Object.keys(context.selection.value).filter(
     (id) => context.selection.value[id]
-  ),
-  count: context.selectedRows.value.length,
+  )
+);
+const isCreateEnabled = computed(
+  () =>
+    context.config.table.allowCreate && Boolean(context.actions.value?.create)
+);
+const actionContext = computed<ToolbarActionContext>(() => ({
+  actionsAsIcons: actionsAsIcons.value,
   clearSelection: context.clearSelection,
+  count: context.selectedRows.value.length,
+  data: context.data.rows.value,
+  hasListAction: Boolean(context.actions.value?.list),
+  isCreateEnabled: isCreateEnabled.value,
+  isExportEnabled: context.config.table.export,
+  isExporting: isExporting.value,
+  isFooterCalculationsEnabled:
+    context.config.table.enableCalculations === true,
+  isMobile:
+    typeof window !== "undefined" &&
+    window.matchMedia?.("(max-width: 767px)").matches === true,
   refresh: context.refresh,
+  selectedCount: context.selectedRows.value.length,
+  selectedIds: selectedIds.value,
+  selectedOriginalRows: context.selectedRows.value,
+  selectedRowIds: selectedIds.value,
+  selectedRows: context.selectedRows.value,
+  tableActions: context.actions.value,
+  tableId: context.config.id,
+  tableType: context.tableType,
 }));
+const resolvedToolbarActions = computed(() => {
+  const input = context.toolbarActions.value;
+  const actions =
+    typeof input === "function" ? input(actionContext.value) : input;
+  return actions.filter(
+    (action) =>
+      Boolean(action.id && action.label && (action.onClick || action.handler)) &&
+      !(
+        action.requiresFooterCalculations &&
+        !actionContext.value.isFooterCalculationsEnabled
+      )
+  );
+});
 const visibleToolbarActions = computed(() =>
-  context.toolbarActions.value.filter(
+  resolvedToolbarActions.value.filter(
     (action) => !actionsAsIcons.value || action.showInIconMode !== false
   )
 );
+const toolbarActionsPlacement = computed<ToolbarActionsPlacement>(() =>
+  ["after-export", "before-create", "between-create-export"].includes(
+    props.toolbarActionsPlacement ?? ""
+  )
+    ? (props.toolbarActionsPlacement as ToolbarActionsPlacement)
+    : "between-create-export"
+);
+type ToolbarItem =
+  | { action: ToolbarAction; key: string; kind: "action" }
+  | { key: "create"; kind: "create" }
+  | { key: "export"; kind: "export" };
+const toolbarItems = computed<ToolbarItem[]>(() => {
+  const actionItems = visibleToolbarActions.value.map((action) => ({
+    action,
+    key: `action-${action.id}`,
+    kind: "action" as const,
+  }));
+  const items: ToolbarItem[] = [];
+  if (toolbarActionsPlacement.value === "before-create") {
+    items.push(...actionItems);
+  }
+  if (isCreateEnabled.value) {
+    items.push({ key: "create", kind: "create" });
+  }
+  if (toolbarActionsPlacement.value === "between-create-export") {
+    items.push(...actionItems);
+  }
+  if (context.config.table.export) {
+    items.push({ key: "export", kind: "export" });
+  }
+  if (toolbarActionsPlacement.value === "after-export") {
+    items.push(...actionItems);
+  }
+  return items;
+});
 
 const translate = (key: string, fallback: string): string =>
   String(context.translations.value[key] ?? fallback);
@@ -170,15 +243,24 @@ const toolbarActionDisabled = (action: ToolbarAction): boolean => {
     typeof action.disabled === "function"
       ? action.disabled(actionContext.value)
       : action.disabled;
-  return Boolean(disabled || action.loading || pendingAction.value);
+  return Boolean(
+    disabled || action.loading || pendingAction.value === action.id
+  );
 };
 const toolbarActionVariant = (action: ToolbarAction): string => {
   if (action.variant === "default") {
     return "";
   }
-  return action.variant === "ghost"
-    ? "yayaw-button-ghost"
-    : "yayaw-button-outline";
+  if (action.variant === "ghost") {
+    return "yayaw-button-ghost";
+  }
+  if (action.variant === "destructive") {
+    return "yayaw-button-danger";
+  }
+  if (action.variant === "secondary") {
+    return "yayaw-button-secondary";
+  }
+  return "yayaw-button-outline";
 };
 const focusOptions = async (): Promise<void> => {
   await nextTick();
@@ -201,6 +283,29 @@ const closeOptions = (restoreFocus = true): void => {
 watch(optionsView, async () => {
   if (optionsOpen.value) await focusOptions();
 });
+watch(
+  () => context.optionsRequest.value,
+  async (request) => {
+    if (!request) {
+      return;
+    }
+    optionsView.value = request.view;
+    optionsOpen.value = true;
+    await focusOptions();
+    if (request.columnId) {
+      const columnId = request.columnId;
+      setTimeout(() => {
+        const field = Array.from(
+          optionsRoot.value?.querySelectorAll<HTMLElement>(
+            "[data-filter-column]"
+          ) ?? []
+        ).find((element) => element.dataset.filterColumn === columnId);
+        field?.querySelector<HTMLElement>("input, select")?.focus();
+      }, 10);
+    }
+    context.optionsRequest.value = undefined;
+  }
+);
 const handleDocumentPointer = (event: PointerEvent): void => {
   if (!optionsRoot.value?.contains(event.target as Node)) {
     closeOptions(false);
@@ -326,14 +431,14 @@ const resetOptions = (): void => {
   );
   context.state.columnDragEnabled.value = defaultColumnDragEnabled.value;
 };
-const runAction = async (id: string): Promise<void> => {
-  const action = context.toolbarActions.value.find((item) => item.id === id);
-  if (!action || toolbarActionDisabled(action)) {
+const runAction = async (action: ToolbarAction): Promise<void> => {
+  const callback = action.onClick ?? action.handler;
+  if (!callback || toolbarActionDisabled(action)) {
     return;
   }
-  pendingAction.value = id;
+  pendingAction.value = action.id;
   try {
-    await action.handler(actionContext.value);
+    await callback(actionContext.value);
   } catch (cause) {
     context.status.value = {
       type: "error",
@@ -575,6 +680,7 @@ const exportRows = async (): Promise<void> => {
                 v-for="column in filterableColumns"
                 :key="column.id"
                 class="yayaw-field-inline"
+                :data-filter-column="column.id"
               >
                 <span>{{ column.header }}</span>
                 <select
@@ -703,73 +809,64 @@ const exportRows = async (): Promise<void> => {
         </div>
 
         <button
-          v-if="context.config.table.showResetFilters === true"
-          type="button"
-          class="yayaw-button yayaw-button-outline yayaw-icon-only"
-          :aria-label="translate('reset', 'Reset')"
-          :title="translate('reset', 'Reset')"
-          @click="resetOptions"
-        >
-          <RotateCcw :size="16" aria-hidden="true" />
-        </button>
-
-        <button
-          v-if="context.config.table.showClearFilters === true"
+          v-if="[context.config.table.showResetFilters, context.config.table.showClearFilters].includes(true)"
           type="button"
           class="yayaw-button yayaw-button-outline yayaw-icon-only"
           :aria-label="translate('clearFilters', 'Clear filters')"
           :title="translate('clearFilters', 'Clear filters')"
           @click="context.state.resetFilters()"
         >
-          <X :size="16" aria-hidden="true" />
+          <RotateCcw :size="16" aria-hidden="true" />
         </button>
 
-        <button
-          v-for="action in visibleToolbarActions"
-          :key="action.id"
-          type="button"
-          class="yayaw-button"
-          :class="[
-            toolbarActionVariant(action),
-            { 'yayaw-icon-only': actionsAsIcons },
-          ]"
-          :disabled="toolbarActionDisabled(action)"
-          :aria-label="actionsAsIcons ? action.label : undefined"
-          :title="actionsAsIcons ? (action.tooltip ?? action.label) : action.tooltip"
-          @click="runAction(action.id)"
-        >
-          <span v-if="pendingAction === action.id || action.loading" class="yayaw-spinner" aria-hidden="true" />
-          <component v-else-if="action.icon" :is="action.icon" :size="16" aria-hidden="true" />
-          <span v-else-if="actionsAsIcons" aria-hidden="true">{{ action.label.slice(0, 1) }}</span>
-          <span v-if="!actionsAsIcons">{{ action.label }}</span>
-        </button>
+        <template v-for="item in toolbarItems" :key="item.key">
+          <button
+            v-if="item.kind === 'action'"
+            type="button"
+            class="yayaw-button"
+            :class="[
+              toolbarActionVariant(item.action),
+              { 'yayaw-icon-only': actionsAsIcons },
+            ]"
+            :disabled="toolbarActionDisabled(item.action)"
+            :aria-label="actionsAsIcons ? item.action.label : undefined"
+            :title="actionsAsIcons ? (item.action.tooltip ?? item.action.label) : item.action.tooltip"
+            @click="runAction(item.action)"
+          >
+            <span v-if="pendingAction === item.action.id || item.action.loading" class="yayaw-spinner" aria-hidden="true" />
+            <component v-else-if="item.action.icon" :is="item.action.icon" :size="16" aria-hidden="true" />
+            <span v-else-if="actionsAsIcons" aria-hidden="true">{{ item.action.label.slice(0, 1) }}</span>
+            <span v-if="!actionsAsIcons">{{ item.action.label }}</span>
+          </button>
 
-        <button
-          v-if="context.config.table.export"
-          type="button"
-          class="yayaw-button yayaw-button-outline"
-          :class="{ 'yayaw-icon-only': actionsAsIcons }"
-          :aria-label="translate('export', 'Export')"
-          :title="actionsAsIcons ? translate('export', 'Export') : undefined"
-          :disabled="isExporting"
-          :aria-busy="isExporting"
-          @click="exportRows"
-        >
-          <Download :size="16" aria-hidden="true" />
-          <span v-if="!actionsAsIcons">{{ translate("export", "Export") }}</span>
-        </button>
-        <button
-          v-if="context.config.table.allowCreate && context.actions.value?.create"
-          type="button"
-          class="yayaw-button"
-          :class="{ 'yayaw-icon-only': actionsAsIcons }"
-          :aria-label="translate('create', 'Create')"
-          :title="actionsAsIcons ? translate('create', 'Create') : undefined"
-          @click="context.openCreate"
-        >
-          <Plus :size="16" aria-hidden="true" />
-          <span v-if="!actionsAsIcons">{{ translate("create", "Create") }}</span>
-        </button>
+          <button
+            v-else-if="item.kind === 'create'"
+            type="button"
+            class="yayaw-button"
+            :class="{ 'yayaw-icon-only': actionsAsIcons }"
+            :aria-label="translate('create', 'Create')"
+            :title="actionsAsIcons ? translate('create', 'Create') : undefined"
+            @click="context.openCreate"
+          >
+            <Plus :size="16" aria-hidden="true" />
+            <span v-if="!actionsAsIcons">{{ translate("create", "Create") }}</span>
+          </button>
+
+          <button
+            v-else
+            type="button"
+            class="yayaw-button yayaw-button-outline"
+            :class="{ 'yayaw-icon-only': actionsAsIcons }"
+            :aria-label="translate('export', 'Export')"
+            :title="actionsAsIcons ? translate('export', 'Export') : undefined"
+            :disabled="isExporting"
+            :aria-busy="isExporting"
+            @click="exportRows"
+          >
+            <Download :size="16" aria-hidden="true" />
+            <span v-if="!actionsAsIcons">{{ translate("export", "Export") }}</span>
+          </button>
+        </template>
       </div>
     </div>
   </div>

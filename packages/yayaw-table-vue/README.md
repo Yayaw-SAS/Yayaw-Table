@@ -79,16 +79,15 @@ const config = defineTableConfig({
 Set `table.actionsAsIcons: true` to render toolbar and bulk actions as icons.
 Set `table.showResetFilters: true` to show a dedicated reset icon next to the
 Options menu. It is disabled by default for compatibility with existing tables.
-The shortcut invokes the same handler as the reset button inside the Options
-menu: column and advanced filters are cleared, configured default sorting and
-column visibility are restored, and grouping is cleared. Native search, column
-order/pinning, display mode, page size and the selected saved view are preserved,
-matching the menu reset. It works with or without URL synchronization and never
-changes another table's query parameters.
+The shortcut clears search, column and advanced filters, and returns to the first
+page. Sorting, grouping, column visibility/order/pinning, display mode, page size,
+and the selected saved view are preserved. `showClearFilters` is the preferred
+name; `showResetFilters` remains a compatible alias with the same React/Vue
+behavior. The reset command inside Options separately restores presentation
+defaults. Both work with or without URL synchronization.
 
-Both reset icons use the `reset` translation key for their accessible label and
-tooltip (English and French defaults are included). The narrower
-`useTableState().resetFilters()` API remains available for filtering-only resets.
+The clear shortcut uses the `clearFilters` translation key and the Options reset
+uses `reset` (English and French defaults are included).
 
 ### Catalogue-owned controls
 
@@ -108,11 +107,11 @@ const config = defineTableConfig({
     syncUrl: false,
     searchDebounceMs: 250,
   },
-  toolbarActions: [{ id: "refresh", label: "Refresh", handler: ({ refresh }) => refresh() }],
+  toolbarActions: [{ id: "refresh", label: "Refresh", onClick: ({ refresh }) => refresh() }],
 });
 ```
 
-The native column menu derives sorting, visibility and pinning actions from the
+The native column menu derives sorting, filtering, visibility and pinning actions from the
 table/column capabilities. `enableColumnDnd` gates column reordering and its UI,
 while `enableColumnDragDropByDefault` defines the initial user preference. Users
 can change that preference from a column menu or Properties, and it is persisted
@@ -120,6 +119,13 @@ per table. Set `enablePinning: false` on a column to remove its
 pin controls. Mandatory columns cannot be hidden; selection stays locked left
 and actions locked right. Sorting remains available from the keyboard-accessible
 header label. Menus provide keyboard navigation, Escape dismissal and focus return.
+
+`toolbarActions` accepts a static array or a function of the live action context,
+matching React. The context includes selected IDs/rows, counts, permissions,
+layout mode, export state, table metadata, actions, refresh, and selection reset.
+Use `toolbarActionsPlacement` with `before-create`, `between-create-export`,
+or `after-export`. The earlier `handler` callback remains accepted as an
+alias for `onClick`.
 
 Catalogue translation keys apply automatically. Explicit component props override
 catalogue defaults; `toolbarActions: []` deliberately suppresses configured custom
@@ -297,7 +303,7 @@ pnpm dlx shadcn-vue@latest add https://table.yayaw.app/r/yayaw-table-vue.json
 | React hooks/Jotai | refs, computed values, provide/inject |
 | Nuqs | SSR-safe URL state composable |
 | React components/ReactNode | Vue SFCs, components, and VNode renderers |
-| dnd-kit | native pointer/HTML drag interactions |
+| dnd-kit | native pointer drag plus keyboard column and Kanban move controls |
 | Next Server Actions | async action contract, compatible with Nuxt server APIs |
 
 The public configuration and action vocabulary intentionally stays close to the React edition so applications can share backend contracts and most serializable table definitions.

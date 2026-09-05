@@ -35,7 +35,10 @@ afterEach(async () => {
   }
   document.body.replaceChildren();
 });
-async function mountSelection(actions: TableActions = {}) {
+async function mountSelection(
+  actions: TableActions = {},
+  preserveSelectionOnQuery = false
+) {
   let current!: {
     bulk: ReturnType<typeof useBulkActions<RecordRow>>;
     select: (ids: RowSelectionState) => void;
@@ -57,6 +60,7 @@ async function mountSelection(actions: TableActions = {}) {
     });
     current = {
       bulk: useBulkActions({
+        preserveSelectionOnQuery,
         table,
         tableId: "selection",
         tableType: "selection",
@@ -103,6 +107,16 @@ async function mountSelection(actions: TableActions = {}) {
     container,
   };
 }
+
+it("preserves selected rows across query changes when configured", async () => {
+  const view = await mountSelection({}, true);
+  await act(() => view.current.select({ "1": true }));
+  await act(async () => {
+    view.current.url.setGlobalSearchFromUI("other");
+    await new Promise((resolve) => setTimeout(resolve, 350));
+  });
+  expect(view.container.textContent).toBe("Alpha");
+});
 
 it("keeps manually selected rows across server pages, refreshes loaded records and removes only unchecked IDs", async () => {
   const view = await mountSelection();

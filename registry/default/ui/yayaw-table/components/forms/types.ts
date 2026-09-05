@@ -4,6 +4,10 @@
  */
 import type { ReactNode } from "react";
 import type { z } from "zod";
+import type { TableConfig } from "../../config/helpers";
+import type { TableActions } from "../../providers/table-provider";
+import type { DataTableTranslations } from "../../types/translations";
+import type { TableView } from "../../types/view-types";
 
 /** Form values type (generic record) */
 export type FieldValues = Record<string, unknown>;
@@ -33,6 +37,8 @@ export interface FormConfigContext<
   tableId: string;
   tableType: string;
   values?: Partial<TFieldValues>;
+  locale?: string;
+  translations?: DataTableTranslations;
 }
 
 /**
@@ -79,6 +85,7 @@ export type AnyFieldDefinition<TFieldValues extends FieldValues = FieldValues> =
   | SelectFieldDefinition<TFieldValues>
   | SelectWithAddNewFieldDefinition<TFieldValues>
   | SwitchFieldDefinition<TFieldValues>
+  | TablePickerFieldDefinition<TFieldValues>
   | TextareaFieldDefinition<TFieldValues>
   | TextFieldDefinition<TFieldValues>
   | UrlFieldDefinition<TFieldValues>
@@ -376,6 +383,47 @@ export interface SwitchFieldDefinition<
   TFieldValues extends FieldValues = FieldValues,
 > extends BaseFieldDefinition<TFieldValues> {
   type: "switch";
+}
+
+export interface TablePickerFieldConfig<
+  TRow extends Record<string, unknown> = Record<string, unknown>,
+  TFieldValues extends FieldValues = FieldValues,
+> {
+  /** Optional server and saved-view contracts for the nested table. */
+  actions?:
+    | TableActions
+    | ((context: FormConfigContext<TFieldValues>) => TableActions | undefined);
+  /** A complete table catalogue, optionally derived from the current form. */
+  config:
+    | TableConfig
+    | ((context: FormConfigContext<TFieldValues>) => TableConfig);
+  /** Optional local rows, optionally derived from the current form. */
+  data?: TRow[] | ((context: FormConfigContext<TFieldValues>) => TRow[]);
+  /** Convert a table row to the stable string ID used by table selection. */
+  getRowId?: (row: TRow) => string;
+  initialActiveViewId?: string;
+  initialViews?: TableView[];
+  locale?: string;
+  /** Limit the scrolling table body height. */
+  maxHeight?: string;
+  /** Allow several selected values. Defaults to true. */
+  multiple?: boolean;
+  /** Convert a selected row ID to the value stored in the form. */
+  parseValue?: (id: string) => unknown;
+  /** Toggle a row when its non-interactive area is clicked. Defaults to true. */
+  selectOnRowClick?: boolean;
+  /** Keep nested table state in the URL. Defaults to false for form fields. */
+  syncUrl?: boolean;
+  /** The nested table catalogue identifier. */
+  tableType: string;
+  translations?: DataTableTranslations;
+}
+
+export interface TablePickerFieldDefinition<
+  TFieldValues extends FieldValues = FieldValues,
+> extends BaseFieldDefinition<TFieldValues> {
+  tablePicker: TablePickerFieldConfig<Record<string, unknown>, TFieldValues>;
+  type: "tablePicker";
 }
 
 /**

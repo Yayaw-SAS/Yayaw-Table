@@ -10,10 +10,12 @@ import type {
   SortingState,
   VisibilityState,
 } from "@tanstack/react-table";
-import { useStore } from "jotai";
+import { atom, useAtom, useStore } from "jotai";
+import { atomFamily } from "jotai-family";
 import { createParser, useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { filterResetVersionAtom } from "../atoms/table-atoms";
+import { useTableStateSync } from "../providers/table-state-sync-provider";
 import type {
   TableDisplayMode,
   TableGalleryViewConfig,
@@ -65,6 +67,39 @@ const parsePositiveInt = (
 
 const DEFAULT_PAGE_SIZE = 10;
 const DEFAULT_DISPLAY_MODE: TableDisplayMode = "table";
+
+const localTableStateAtom = atomFamily((_tableId: string) =>
+  atom<Record<string, unknown>>({})
+);
+
+const useStateChannel = <T,>(
+  tableId: string,
+  shouldSyncUrl: boolean,
+  key: string,
+  urlValue: T,
+  urlSetter: unknown,
+  defaultValue: T
+): [T, (value: T | null, options?: unknown) => unknown] => {
+  const [localState, setLocalState] = useAtom(localTableStateAtom(tableId));
+  const setValue = useCallback(
+    (value: T | null, options?: unknown) => {
+      if (shouldSyncUrl) {
+        return (
+          urlSetter as (next: T | null, nextOptions?: unknown) => unknown
+        )(value, options);
+      }
+      setLocalState((current) => ({ ...current, [key]: value }));
+    },
+    [key, setLocalState, shouldSyncUrl, urlSetter]
+  );
+  let value = defaultValue;
+  if (shouldSyncUrl) {
+    value = urlValue;
+  } else if (Object.hasOwn(localState, key)) {
+    value = localState[key] as T;
+  }
+  return [value, setValue];
+};
 
 const normalizePageSize = (value: number | undefined) =>
   typeof value === "number" && Number.isFinite(value) && value > 0
@@ -297,10 +332,12 @@ interface UseTableUrlStateOptions {
 export function useTableUrlState({
   defaultDisplayMode,
   defaultPageSize,
-  enabled: _enabled = true,
+  enabled,
   tableId,
 }: UseTableUrlStateOptions) {
   const store = useStore();
+  const inheritedSync = useTableStateSync();
+  const shouldSyncUrl = enabled ?? inheritedSync;
   const resetVersionAtom = filterResetVersionAtom(tableId);
   const resolvedDefaultPageSize = normalizePageSize(defaultPageSize);
   const defaultPageSizeParam = resolvedDefaultPageSize.toString();
@@ -360,53 +397,125 @@ export function useTableUrlState({
 
   // URL parameters using nuqs
   // View and history management
-  const [viewParam, setViewParam] = useQueryState("view");
-  const [historyIndexParam, setHistoryIndexParam] = useQueryState(
+  const [urlViewParam, setUrlViewParam] = useQueryState("view");
+  const [viewParam, setViewParam] = useStateChannel(
+    tableId,
+    shouldSyncUrl,
+    "view",
+    urlViewParam,
+    setUrlViewParam,
+    null
+  );
+  const [urlHistoryIndexParam, setUrlHistoryIndexParam] = useQueryState(
     "historyIndex",
     {
       defaultValue: "0",
     }
   );
+  const [historyIndexParam, setHistoryIndexParam] = useStateChannel(
+    tableId,
+    shouldSyncUrl,
+    "historyIndex",
+    urlHistoryIndexParam,
+    setUrlHistoryIndexParam,
+    "0"
+  );
 
   // Table state parameters
-  const [sortParam, setSortParam] = useQueryState(
+  const [urlSortParam, setUrlSortParam] = useQueryState(
     `${tableId}-sort`,
     arrayParser
   );
+  const [sortParam, setSortParam] = useStateChannel(
+    tableId,
+    shouldSyncUrl,
+    "sort",
+    urlSortParam as SortingState,
+    setUrlSortParam,
+    [] as SortingState
+  );
 
-  const [filtersParam, setFiltersParam] = useQueryState(
+  const [urlFiltersParam, setUrlFiltersParam] = useQueryState(
     `${tableId}-filters`,
     arrayParser
   );
+  const [filtersParam, setFiltersParam] = useStateChannel(
+    tableId,
+    shouldSyncUrl,
+    "filters",
+    urlFiltersParam as ColumnFiltersState,
+    setUrlFiltersParam,
+    [] as ColumnFiltersState
+  );
 
   // Advanced filters parameter
-  const [advancedFiltersParam, setAdvancedFiltersParam] = useQueryState(
+  const [urlAdvancedFiltersParam, setUrlAdvancedFiltersParam] = useQueryState(
     `${tableId}-advancedFilters`,
     advancedFiltersParser
   );
+  const [advancedFiltersParam, setAdvancedFiltersParam] = useStateChannel(
+    tableId,
+    shouldSyncUrl,
+    "advancedFilters",
+    urlAdvancedFiltersParam,
+    setUrlAdvancedFiltersParam,
+    [] as AdvancedFiltersState
+  );
 
-  const [pageParam, setPageParam] = useQueryState(`${tableId}-page`, {
+  const [urlPageParam, setUrlPageParam] = useQueryState(`${tableId}-page`, {
     defaultValue: "0",
   });
+  const [pageParam, setPageParam] = useStateChannel(
+    tableId,
+    shouldSyncUrl,
+    "page",
+    urlPageParam,
+    setUrlPageParam,
+    "0"
+  );
 
-  const [pageSizeParam, setPageSizeParam] = useQueryState(
+  const [urlPageSizeParam, setUrlPageSizeParam] = useQueryState(
     `${tableId}-pageSize`,
     {
       defaultValue: defaultPageSizeParam,
     }
   );
+  const [pageSizeParam, setPageSizeParam] = useStateChannel(
+    tableId,
+    shouldSyncUrl,
+    "pageSize",
+    urlPageSizeParam,
+    setUrlPageSizeParam,
+    defaultPageSizeParam
+  );
 
-  const [visibilityParam, setVisibilityParam] = useQueryState(
+  const [urlVisibilityParam, setUrlVisibilityParam] = useQueryState(
     `${tableId}-visibility`,
     objectParser
   );
+  const [visibilityParam, setVisibilityParam] = useStateChannel(
+    tableId,
+    shouldSyncUrl,
+    "visibility",
+    urlVisibilityParam as VisibilityState,
+    setUrlVisibilityParam,
+    {} as VisibilityState
+  );
 
-  const [orderParam, setOrderParam] = useQueryState(
+  const [urlOrderParam, setUrlOrderParam] = useQueryState(
     `${tableId}-order`,
     arrayParser
   );
+  const [orderParam, setOrderParam] = useStateChannel(
+    tableId,
+    shouldSyncUrl,
+    "order",
+    urlOrderParam as string[],
+    setUrlOrderParam,
+    [] as string[]
+  );
 
-  const [expandedParam, setExpandedParam] = useQueryState<object>(
+  const [urlExpandedParam, setUrlExpandedParam] = useQueryState<object>(
     `${tableId}-expanded`,
     createParser({
       parse: (value: string) => {
@@ -448,28 +557,76 @@ export function useTableUrlState({
       },
     })
   );
+  const [expandedParam, setExpandedParam] = useStateChannel(
+    tableId,
+    shouldSyncUrl,
+    "expanded",
+    urlExpandedParam,
+    setUrlExpandedParam,
+    {}
+  );
 
-  const [groupingParam, setGroupingParam] = useQueryState(
+  const [urlGroupingParam, setUrlGroupingParam] = useQueryState(
     `${tableId}-grouping`,
     arrayParser
   );
+  const [groupingParam, setGroupingParam] = useStateChannel(
+    tableId,
+    shouldSyncUrl,
+    "grouping",
+    urlGroupingParam as string[],
+    setUrlGroupingParam,
+    [] as string[]
+  );
 
-  const [displayModeParam, setDisplayModeParam] = useQueryState(
+  const [urlDisplayModeParam, setUrlDisplayModeParam] = useQueryState(
     `${tableId}-display`
   );
-
-  const [kanbanGroupByParam, setKanbanGroupByParam] = useQueryState(
-    `${tableId}-kanbanGroupBy`
+  const [displayModeParam, setDisplayModeParam] = useStateChannel(
+    tableId,
+    shouldSyncUrl,
+    "displayMode",
+    urlDisplayModeParam,
+    setUrlDisplayModeParam,
+    null
   );
 
-  const [kanbanParam, setKanbanParam] = useQueryState(
+  const [urlKanbanGroupByParam, setUrlKanbanGroupByParam] = useQueryState(
+    `${tableId}-kanbanGroupBy`
+  );
+  const [kanbanGroupByParam, setKanbanGroupByParam] = useStateChannel(
+    tableId,
+    shouldSyncUrl,
+    "kanbanGroupBy",
+    urlKanbanGroupByParam,
+    setUrlKanbanGroupByParam,
+    null
+  );
+
+  const [urlKanbanParam, setUrlKanbanParam] = useQueryState(
     `${tableId}-kanban`,
     kanbanParser
   );
+  const [kanbanParam, setKanbanParam] = useStateChannel(
+    tableId,
+    shouldSyncUrl,
+    "kanban",
+    urlKanbanParam,
+    setUrlKanbanParam,
+    {} as TableKanbanViewConfig
+  );
 
-  const [galleryParam, setGalleryParam] = useQueryState(
+  const [urlGalleryParam, setUrlGalleryParam] = useQueryState(
     `${tableId}-gallery`,
     galleryParser
+  );
+  const [galleryParam, setGalleryParam] = useStateChannel(
+    tableId,
+    shouldSyncUrl,
+    "gallery",
+    urlGalleryParam,
+    setUrlGalleryParam,
+    {} as TableGalleryViewConfig
   );
 
   const resolvedKanbanParam = useMemo<TableKanbanViewConfig>(() => {
@@ -496,24 +653,43 @@ export function useTableUrlState({
   );
 
   // Global search parameter (server-side global filter)
-  const [globalSearchParam, setGlobalSearchParam] = useQueryState(
+  const [urlGlobalSearchParam, setUrlGlobalSearchParam] = useQueryState(
     `${tableId}-q`
+  );
+  const [globalSearchParam, setGlobalSearchParam] = useStateChannel(
+    tableId,
+    shouldSyncUrl,
+    "globalSearch",
+    urlGlobalSearchParam,
+    setUrlGlobalSearchParam,
+    null
   );
 
   // Column pinning parameter
-  const [pinningParam, setPinningParam] = useQueryState(`${tableId}-pinning`, {
-    defaultValue: "",
-    parse: (value) =>
-      value ? JSON.parse(decodeURIComponent(value)) : { left: [], right: [] },
-    serialize: (value) => {
-      // Only serialize if we have pinned columns
-      const hasLeft = value?.left?.length > 0;
-      const hasRight = value?.right?.length > 0;
-      return hasLeft || hasRight
-        ? encodeURIComponent(JSON.stringify(value))
-        : "";
-    },
-  });
+  const [urlPinningParam, setUrlPinningParam] = useQueryState(
+    `${tableId}-pinning`,
+    {
+      defaultValue: "",
+      parse: (value) =>
+        value ? JSON.parse(decodeURIComponent(value)) : { left: [], right: [] },
+      serialize: (value) => {
+        // Only serialize if we have pinned columns
+        const hasLeft = value?.left?.length > 0;
+        const hasRight = value?.right?.length > 0;
+        return hasLeft || hasRight
+          ? encodeURIComponent(JSON.stringify(value))
+          : "";
+      },
+    }
+  );
+  const [pinningParam, setPinningParam] = useStateChannel(
+    tableId,
+    shouldSyncUrl,
+    "pinning",
+    urlPinningParam,
+    setUrlPinningParam,
+    { left: [], right: [] }
+  );
 
   type TableParamValue =
     | ColumnFiltersState

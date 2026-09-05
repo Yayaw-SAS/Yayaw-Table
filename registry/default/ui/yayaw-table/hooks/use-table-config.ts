@@ -32,6 +32,10 @@ import type {
   TableKanbanConfig,
 } from "../types/display-types";
 import type { CalculationType } from "../types/footer-types";
+import type {
+  ToolbarActionsInput,
+  ToolbarActionsPlacement,
+} from "../types/toolbar-types";
 import type { NumberFormatConfig } from "../utils/number-format";
 import { useTableTranslations } from "./use-table-translations";
 
@@ -44,6 +48,7 @@ export interface TableCatalogueColumnConfig {
   header: string;
   enableGrouping?: boolean;
   enableSorting?: boolean;
+  enablePinning?: boolean;
   enableColumnFilter?: boolean;
   displayVariant?: "default" | "tag";
   dateDisplayPreset?: DateDisplayPreset;
@@ -83,8 +88,8 @@ export interface TableCatalogueTableConfig {
   showToolbar?: boolean;
   showToolbarHeader?: boolean;
   /** Show an icon in the toolbar to clear filters and global search. */
-  /** Clear search and filters while preserving display options. */
   showClearFilters?: boolean;
+  /** Backwards-compatible alias for `showClearFilters`. */
   showResetFilters?: boolean;
   export?: boolean;
   bulkExport?: boolean;
@@ -102,6 +107,7 @@ export interface TableCatalogueTableConfig {
   enableColumnFilters: boolean;
   enableSorting: boolean;
   enableGrouping?: boolean;
+  enableColumnPinning?: boolean;
   enableViews?: boolean;
   /** Gate for column DnD feature and UI */
   enableColumnDnd?: boolean;
@@ -113,6 +119,10 @@ export interface TableCatalogueTableConfig {
   dateDisplayPreset?: DateDisplayPreset;
   inlineEdit?: TableInlineEditConfig;
   enableCalculations?: boolean;
+  enableAdvancedFilters?: boolean;
+  preserveSelectionOnQuery?: boolean;
+  searchDebounceMs?: number;
+  syncUrl?: boolean;
 }
 
 /**
@@ -128,6 +138,8 @@ type ProviderTableConfig = TableCatalogueTableConfig & {
     mandatory?: string[];
     sort?: ColumnSort[];
   };
+  toolbarActions?: ToolbarActionsInput;
+  toolbarActionsPlacement?: ToolbarActionsPlacement;
 };
 
 type ProviderTableConfigInput = Partial<ProviderTableConfig> | TableConfig;
@@ -149,6 +161,8 @@ export interface TableCatalogueConfig {
     namespace: string;
     keys: Record<string, string>;
   };
+  toolbarActions?: ToolbarActionsInput;
+  toolbarActionsPlacement?: ToolbarActionsPlacement;
 }
 
 /**
@@ -167,6 +181,7 @@ const DEFAULT_TABLE_CONFIG: TableCatalogueConfig = {
     allowViewSharing: false,
     showToolbar: true,
     showToolbarHeader: true,
+    showClearFilters: false,
     showResetFilters: false,
     export: true,
     bulkExport: true,
@@ -182,6 +197,8 @@ const DEFAULT_TABLE_CONFIG: TableCatalogueConfig = {
     enableRowClickEdit: false,
     rowClickMode: "default",
     enableColumnFilters: true,
+    enableAdvancedFilters: false,
+    enableColumnPinning: true,
     enableSorting: true,
     enableGrouping: true,
     enableViews: true,
@@ -193,6 +210,9 @@ const DEFAULT_TABLE_CONFIG: TableCatalogueConfig = {
     pageSizeOptions: [10, 20, 50, 100, 200, 500],
     dateDisplayPreset: "localized-short",
     enableCalculations: false,
+    preserveSelectionOnQuery: false,
+    searchDebounceMs: 300,
+    syncUrl: true,
     inlineEdit: {
       enabled: false,
       debounceMs: 700,
@@ -327,6 +347,8 @@ function resolveTableBehaviorConfig(
     enableRowClickEdit: mergedConfig.enableRowClickEdit ?? false,
     rowClickMode: mergedConfig.rowClickMode ?? "default",
     enableColumnFilters: mergedConfig.enableColumnFilters ?? true,
+    enableAdvancedFilters: mergedConfig.enableAdvancedFilters ?? false,
+    enableColumnPinning: mergedConfig.enableColumnPinning ?? true,
     enableSorting: mergedConfig.enableSorting ?? true,
     enableGrouping: mergedConfig.enableGrouping,
     enableViews: mergedConfig.enableViews !== false,
@@ -341,6 +363,9 @@ function resolveTableBehaviorConfig(
       DEFAULT_TABLE_CONFIG.table.dateDisplayPreset,
     inlineEdit: resolveInlineEditConfig(mergedConfig.inlineEdit),
     enableCalculations: mergedConfig.enableCalculations ?? false,
+    preserveSelectionOnQuery: mergedConfig.preserveSelectionOnQuery ?? false,
+    searchDebounceMs: mergedConfig.searchDebounceMs ?? 300,
+    syncUrl: mergedConfig.syncUrl ?? true,
   };
 }
 
@@ -400,6 +425,8 @@ export function resolveTableCatalogueConfig(
       namespace: "common",
       keys: {},
     },
+    toolbarActions: providerConfig.toolbarActions,
+    toolbarActionsPlacement: providerConfig.toolbarActionsPlacement,
   };
 }
 

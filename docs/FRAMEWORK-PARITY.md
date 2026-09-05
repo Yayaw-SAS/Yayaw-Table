@@ -25,6 +25,8 @@ Saved views accept canonical `globalSearch`, `columnFilters`, and `columnPinning
 
 Both editions can generate standard fields from column definitions when the catalogue has no matching form. Register a form to customize validation, conditional behavior, labels, or field rendering. Existing React TanStack Form instances, factories, custom field renderers, and custom collection editors remain supported.
 
+Both editions also support the declarative `tablePicker` field. It embeds a read-only table with local or server data, search, filters, sorting, pagination, saved views, and controlled single or multiple selection. Selection survives query changes, `parseValue` preserves typed IDs, and the nested table keeps its state out of the page URL unless `syncUrl: true` is explicit.
+
 The following React configuration illustrates the shared form features:
 
 ```ts
@@ -84,11 +86,13 @@ Vue gallery and Kanban use the same pagination state as the table. Local rows ar
 
 React inline editing resolves the catalogue for each row and honors hidden/disabled predicates, row permissions, asynchronous field validation, and schema transforms. Collections, custom fields, and remote pickers use the full catalogue editor.
 
-Vue inline editing honors the column/table `debounceMs`, validates against the catalogue, cancels unsaved timers on Escape/unmount, and keeps errors available for correction. Enable it with `allowInlineEdit: true` and table or column `inlineEdit.enabled`; the existing Vue opt-in defaults are preserved.
+Vue inline editing honors the column/table `debounceMs`, validates against the catalogue, cancels unsaved timers on Escape/unmount, and keeps errors available for correction. `allowInlineEdit` now defaults to `true` in both editions; actual cell editing remains opt-in through table or column `inlineEdit.enabled`.
 
-Use **`showClearFilters: true` in either framework** to clear search and filters while preserving display options. The historical `showResetFilters` option keeps its existing behavior: React clears filters; Vue restores the Options defaults while preserving search. This avoids changing existing Vue interfaces unexpectedly.
+Use **`showClearFilters: true` in either framework** to clear search, column filters, advanced filters, and pagination while preserving sorting, grouping, column visibility/order/pinning, page size, display mode, and the selected view. The historical `showResetFilters` option remains a supported alias and invokes this same behavior in both editions. The reset command inside Vue Options remains a separate presentation reset.
 
-Both editions distinguish the column drag-and-drop feature gate from the user's preference. Set `enableColumnDnd: false` to remove the controls and disable reordering. `enableColumnDragDropByDefault` supplies the initial preference; users can toggle it from a column menu or the Vue Properties panel, and the choice is stored per table.
+Both editions distinguish the column drag-and-drop feature gate from the user's preference. Set `enableColumnDnd: false` to remove the controls and disable reordering. `enableColumnDragDropByDefault` supplies the initial preference and now defaults to `false` in both editions; users can toggle it from a column menu or the Vue Properties panel, and the choice is stored per table. Vue column headers include a keyboard drag handle. Vue Kanban cards expose previous/next lane controls alongside pointer dragging, matching the keyboard outcome provided by React's drag system.
+
+Column header menus expose the same outcomes: ascending/descending sort, filter this column, pin left/right, unpin, hide, and the persistent reordering preference when each capability is enabled. Table, gallery, and Kanban render the configured empty state, and pagination is hidden when all rows fit on one page.
 
 ## Export, selection, and refresh
 
@@ -96,7 +100,7 @@ Toolbar export retrieves **all matching rows**, respecting the current search, c
 
 CSV export includes visible data columns in display order. Bulk export includes only selected rows. The `onExport` and `onBulkExport` callbacks retain their existing signatures and take precedence over the built-in download.
 
-Both editions retain selected records across page and page-size changes. Deselecting one row keeps the other selected rows, including rows outside the current page. Returning to a page replaces cached selected records with the freshly loaded versions. Changing search, filters, sort, or grouping clears the selection. A delayed select-all result cannot replace a newer selection or query, and select-all respects row selection permissions. Provide stable row IDs (or `getRowId`) for server pagination; positional indexes cannot identify records across pages. Off-page selected rows retain their last loaded values until fetched again.
+Both editions retain selected records across page and page-size changes. Deselecting one row keeps the other selected rows, including rows outside the current page. Returning to a page replaces cached selected records with the freshly loaded versions. Changing search, filters, sort, or grouping clears the selection by default; set `preserveSelectionOnQuery: true` to retain it in either edition. Both tables accept controlled row-selection state. A delayed select-all result cannot replace a newer selection or query, and select-all respects row selection permissions. Provide stable row IDs (or `getRowId`) for server pagination; positional indexes cannot identify records across pages. Off-page selected rows retain their last loaded values until fetched again.
 
 Vue refreshes the active list after built-in mutations and table query invalidation. Invalidating an aggregate or an older cached page does not reload the visible list. If a deletion removes the last server page, the table requests the preceding valid page; local data shrinkage also clamps pagination. Consumer-owned action callbacks remain responsible for their own persistence and follow-up refresh unless their documented result explicitly requests library handling.
 
@@ -106,18 +110,28 @@ Vue advanced filters use the same operator families as React. A new rule starts 
 
 Filter controls use the React `filters.*` translation keys, with English and French defaults. Table feedback and reusable field/collection controls inherit the table translations; standalone fields retain their English fallbacks. Date-only values from native inputs represent a local calendar date in both editions, including time zones west of UTC. The Options panel and row menus move focus when opened and restore it on dismissal. Row menus support arrow keys, skip disabled actions, and use a modal confirmation with trapped focus for deletion. A failed deletion retains its confirmation for retry.
 
-## Plan verification map
+## Behavioral parity matrix
 
-This map follows the six steps of the accepted parity plan. It describes behavioral parity; framework-specific renderers and existing compatible configuration aliases remain supported.
+The parity contract covers user-visible behavior and serializable catalogue/action contracts. Component names, framework primitives, DOM structure, slots, and framework-native escape hatches remain specific to React or Vue.
 
-| Plan step | Implementation | Regression evidence |
+| Surface | Shared behavior | Regression evidence |
 | --- | --- | --- |
-| 1. Shared action, request, filter and view contracts | `table-contracts.ts`, framework list adapters, saved-view normalization, aggregate result labels | Shared `parity.json` fixtures; both `contracts-parity.test.ts` suites; Vue `parity.test.ts`, `saved-views.test.ts`, `use-table-state.test.ts`; React view-state and bulk-action suites |
-| 2. Catalogue forms in both editions | Generated field fallback, conditional fields, async initial values/options, field/root validation, transforms, patch mode, nested `itemFields`, retained custom renderers | Shared `form-scenarios.json` and both `form-contracts.test.ts` suites; mounted React `form-parity.test.tsx`; Vue `form-components.test.ts` and `form-runtime.test.ts` |
-| 3. React catalogue bulk editing | Common initial values, checked-field patches, frozen targets, permissions, partial failure retry, callback precedence | Shared bulk completion fixtures; mounted React `form-parity.test.tsx`; React bulk-action tests; Vue `bulk-form.test.ts` and bulk-action tests |
-| 4. Table behavior | Shared page state for table/cards, current grouping, Kanban rollback, inline debounce, distinct clear/reset controls | Vue `parity.test.ts`, `table-actions-parity.test.ts`, `inline-edit.test.ts`, `filter-reset.test.ts`; React filter-reset and inline-form tests |
-| 5. Interaction parity | Default/system views, card renderers/images, translations, keyboard menus/dialogs, ordered visible-column exports, documented selection/refresh behavior | Vue saved-view, catalogue-control, advanced-filter and row-action keyboard tests; React `selection-parity.test.tsx`; shared paginated fixtures; browser checks for views, filters, menus and selection |
-| 6. Durable verification and distribution | Shared business fixtures executed in both test runners, framework-specific mounted tests, generated registries, compatibility documentation, Changesets | CI runs React/Vue suites, TypeScript, Vue build and static registry generation; published version snapshots are left unchanged |
+| Defaults and feature gates | Common defaults for editing, filters, column DnD/pinning, grouping, pagination, selection, views, debounce, URL state, and page sizes | Shared `behavior-defaults.json`, executed by both test runners |
+| List/filter/view contracts | One-based action pages, both page-size/search aliases, multi-sort, simple and advanced filters, aggregate labels, normalized saved views | Shared `parity.json`; both `contracts-parity.test.ts` suites; view-state suites |
+| Toolbar | Create/export order, icon mode, callback/static custom actions, action context, three placements, clear-filter shortcut | Vue `yayaw-data-table.test.ts`, `filter-reset.test.ts`; React toolbar and filter-reset suites |
+| View manager | Default/system views, dirty state, create/update/delete/share permissions, recoverable persistence | Vue saved-view suites; React view-manager suites |
+| Columns | Sort/filter/pin/hide menus, mandatory/utility locks, persistent DnD preference, pointer and keyboard reorder | Vue `catalogue-controls.test.ts`, `yayaw-data-table.test.ts`; React column suites |
+| Display modes | Shared grouping and pagination, card renderers, configurable empty state, one-page pagination hiding | Vue `parity.test.ts`; React gallery/Kanban suites |
+| Kanban updates | Permission-aware moves, optimistic update, rollback and accessible non-pointer movement | Vue `parity.test.ts`; React Kanban suites |
+| Selection | Controlled state, cross-page cache, select-all race protection, optional query persistence | React `selection-parity.test.tsx`; Vue component/action suites |
+| Catalogue forms | Generated fields, conditions, async values/options, nested collections, validation, transforms, patch mode | Shared `form-scenarios.json`; both form-contract suites and mounted form suites |
+| Table picker | Local/server query, controlled single/multiple selection, typed IDs, isolated URL state | React `table-picker-parity.test.tsx` and picker unit tests; Vue form-component tests |
+| Bulk actions | Permissions, catalogue editing, frozen targets, partial failure retry, callback precedence | Shared bulk fixtures; React form/bulk suites; Vue bulk suites |
+| Inline editing | Catalogue validation, debounce, cancellation, permissions, optimistic rollback | React inline-form suites; Vue inline-edit suites |
+| Export and refresh | All matching pages, current query/order, partial-result protection, mutation refresh/clamping | Shared paginated fixtures; both action suites |
+| Accessibility and i18n | Translated controls, menu/dialog focus, row activation, column/Kanban keyboard alternatives | Vue keyboard suites; React mounted interaction suites |
+| URL state | Compatible query keys when enabled; isolated in-memory state when disabled | React `url-sync-parity.test.tsx`; Vue state/catalogue-control suites |
+| Distribution | Generated React and Vue registries plus repository Vue example | Type checks, full tests, Vue builds, registry sync/pages build |
 
 ## Verification and distribution
 

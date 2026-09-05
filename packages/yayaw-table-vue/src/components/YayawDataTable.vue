@@ -23,7 +23,8 @@ import type {
   TableConfig,
   TableRecord,
   TableView,
-  ToolbarAction,
+  ToolbarActionsInput,
+  ToolbarActionsPlacement,
 } from "../types";
 import { fetchAllContractRows } from "../table-contracts";
 import type { TableListParams } from "../types";
@@ -37,6 +38,7 @@ import DataGrid from "./table/DataGrid.vue";
 import TableToolbar from "./toolbar/TableToolbar.vue";
 
 const HTTP_URL_PATTERN = /^https?:\/\//;
+const optionsRequest = ref<TableContextValue["optionsRequest"]["value"]>();
 
 const props = withDefaults(
   defineProps<{
@@ -67,7 +69,8 @@ const props = withDefaults(
     syncUrl?: boolean;
     searchDebounceMs?: number;
     customBulkActions?: BulkAction[];
-    toolbarActions?: ToolbarAction[];
+    toolbarActions?: ToolbarActionsInput;
+    toolbarActionsPlacement?: ToolbarActionsPlacement;
     rowSelection?: Record<string, boolean>;
     getRowId?: (row: TableRecord) => string;
     queryClient?: QueryClient;
@@ -140,10 +143,10 @@ const inputData = computed(() =>
   props.data.length ? props.data : props.initialData
 );
 const advancedFiltersEnabled = computed(
-  () => props.enableAdvancedFilters ?? config.table.enableAdvancedFilters ?? true
+  () => props.enableAdvancedFilters ?? config.table.enableAdvancedFilters ?? false
 );
 const searchDebounceMs = computed(
-  () => props.searchDebounceMs ?? config.table.searchDebounceMs ?? 0
+  () => props.searchDebounceMs ?? config.table.searchDebounceMs ?? 300
 );
 const state = useTableState({
   config,
@@ -403,6 +406,7 @@ provide(tableContextKey, {
   toolbarActions,
   form,
   footerCalculationsVisible,
+  optionsRequest,
   getRowId,
   getFormConfig: props.getFormConfig,
   refresh,
@@ -444,6 +448,7 @@ provide(tableContextKey, {
       v-if="config.table.showToolbar"
       :enable-advanced-filters="advancedFiltersEnabled && config.table.enableColumnFilters"
       :initial-views="initialViews"
+      :toolbar-actions-placement="props.toolbarActionsPlacement ?? config.toolbarActionsPlacement"
     />
     <AdvancedFilters v-if="advancedFiltersEnabled && config.table.enableColumnFilters && state.advancedFilters.value.filters.length" />
 
