@@ -12,6 +12,31 @@ This project uses **Ultracite**, a zero-config preset that enforces strict code 
 - **Build release registry snapshot**: `bun run registry:release`
 - **Add release note / version intent**: `bun run changeset`
 
+## React/Vue Parity (Release Gate)
+
+YaYaw Table's React and Vue editions are one product. Every consumer-facing feature or change must ship with equivalent behavior in both frameworks in the same task. A change is incomplete while either edition has a known functional gap.
+
+- Keep public configuration names, defaults, aliases, serialized state, actions, permissions, validation, errors, retries, accessibility outcomes, and user-visible behavior aligned.
+- Cover table, gallery, Kanban, toolbar, saved views, filters, sorting, selection, export, inline editing, catalogue forms, and `tablePicker` behavior whenever the affected feature crosses those surfaces.
+- Framework-specific implementation details may differ, but observable outcomes and serializable public contracts must match. Document any unavoidable framework-native limitation explicitly instead of silently accepting a gap.
+- Add equivalent React and Vue regression coverage for every behavior change. Update shared parity fixtures when the contract is data-driven.
+- Keep the runnable Vue example in `packages/yayaw-table-vue/demo/App.vue` representative of the React example. Exercise user-facing changes in both examples with a real browser when interaction or layout is involved.
+- Update `docs/FRAMEWORK-PARITY.md` with every parity-affecting change, including new defaults, aliases, limitations, and verification coverage.
+- Run the relevant React and Vue tests, type checks, builds, and registry generation before opening the PR. For a full parity release gate, run `bun run release:check` and `bun run release:verify`.
+
+Do not merge a consumer-facing change with a temporary one-framework implementation. Split shared contracts into framework-neutral helpers where that reduces drift, while keeping each registry independently installable.
+
+## Yayaw Documentation and Protected Seed
+
+Public YaYaw Table documentation is maintained in the separate [Yayaw repository](https://github.com/Yayaw-SAS/Yayaw) and published from its database-backed documentation system. Any change to the public API, behavior, defaults, setup, examples, or migration path requires a companion documentation change in that repository.
+
+1. Start from the latest `main` in `Yayaw-SAS/Yayaw`, create a fresh `codex/` branch, and open a companion PR. Link the Table and Yayaw PRs to each other.
+2. Update the English and French snapshots under `content/docs/en/table` and `content/docs/fr/table` as one atomic documentation change.
+3. Add the exact reviewed source-hash transition to `src/lib/scripts/documentation/seed-updates.ts` and update its tests. Follow the existing protected migration pattern so known prior revisions can reach the new bilingual snapshot.
+4. Preserve CMS-authored or otherwise unknown revisions as conflicts. Never broaden a seed transition or overwrite protected database content merely to make a deployment pass.
+5. Regenerate and verify documentation artifacts with `bun run docs:generate`, `bun run docs:check-links`, `bun run docs:check-translations`, and `bun run docs:llm:check`, plus the repository's standard check, type-check, test, and build gates.
+6. Merge the companion Yayaw PR and verify the deployment seed reports `readyForCutover: true` and publishes the intended pages before considering the Table documentation complete.
+
 Biome (the underlying engine) provides robust linting and formatting. Most issues are automatically fixable.
 
 ### Registry (yayaw-table)
