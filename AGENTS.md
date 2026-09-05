@@ -22,7 +22,7 @@ YaYaw Table's React and Vue editions are one product. Every consumer-facing feat
 - Add equivalent React and Vue regression coverage for every behavior change. Update shared parity fixtures when the contract is data-driven.
 - Keep the runnable Vue example in `packages/yayaw-table-vue/demo/App.vue` representative of the React example. Exercise user-facing changes in both examples with a real browser when interaction or layout is involved.
 - Update `docs/FRAMEWORK-PARITY.md` with every parity-affecting change, including new defaults, aliases, limitations, and verification coverage.
-- Run the relevant React and Vue tests, type checks, builds, and registry generation before opening the PR. For a full parity release gate, run `bun run release:check` and `bun run release:verify`.
+- Run the relevant React and Vue tests, type checks, builds, and registry generation before opening the PR. Use `bun run release:check` as the full parity PR gate. Run `bun run release:verify` after `bun run version` only for an actual release commit.
 
 Do not merge a consumer-facing change with a temporary one-framework implementation. Split shared contracts into framework-neutral helpers where that reduces drift, while keeping each registry independently installable.
 
