@@ -15,6 +15,7 @@ export * from "./radio-field";
 export * from "./select-field";
 export * from "./select-with-add-new-field";
 export * from "./switch-field";
+export * from "./table-picker-field";
 export * from "./text-field";
 export * from "./textarea-field";
 export * from "./url-field";

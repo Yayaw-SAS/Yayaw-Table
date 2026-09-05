@@ -5,11 +5,14 @@ import type { Column, Table } from "@tanstack/react-table";
 import { useAtom, useSetAtom } from "jotai";
 import {
   ArrowDownIcon,
+  ArrowLeftToLine,
+  ArrowRightToLine,
   ArrowUpIcon,
   EyeOffIcon,
   FunnelIcon,
   GripVertical,
   MenuIcon,
+  PinOff,
 } from "lucide-react";
 import {
   createContext,
@@ -265,20 +268,25 @@ function ColumnMenuBase<TData>({
     tableType: tableId,
   }).setSorting;
 
-  // Memoize column capabilities to prevent unnecessary recalculations
-  const columnCapabilities = useMemo(
-    () => ({
-      canFilter: column.getCanFilter(),
-      canHide: column.getCanHide(),
-      canSort: column.getCanSort(),
-      isVisible: column.getIsVisible(),
-      sortDirection: column.getIsSorted(),
-    }),
-    [column]
-  );
+  const columnCapabilities = {
+    canFilter: column.getCanFilter(),
+    canHide: column.getCanHide(),
+    canPin: column.getCanPin(),
+    canSort: column.getCanSort(),
+    isVisible: column.getIsVisible(),
+    pinnedPosition: column.getIsPinned(),
+    sortDirection: column.getIsSorted(),
+  };
 
-  const { canFilter, canHide, canSort, isVisible, sortDirection } =
-    columnCapabilities;
+  const {
+    canFilter,
+    canHide,
+    canPin,
+    canSort,
+    isVisible,
+    pinnedPosition,
+    sortDirection,
+  } = columnCapabilities;
   const [isDragEnabled, setIsDragEnabled] = useAtom(
     columnDragEnabledAtom(tableId)
   );
@@ -316,6 +324,21 @@ function ColumnMenuBase<TData>({
     column.toggleVisibility(!isVisible);
     setIsOpen(false);
   }, [column, isVisible]);
+
+  const handlePinLeft = useCallback(() => {
+    column.pin("left");
+    setIsOpen(false);
+  }, [column]);
+
+  const handlePinRight = useCallback(() => {
+    column.pin("right");
+    setIsOpen(false);
+  }, [column]);
+
+  const handleUnpin = useCallback(() => {
+    column.pin(false);
+    setIsOpen(false);
+  }, [column]);
 
   const handleToggleDrag = useCallback(() => {
     if (!dndFeatureEnabled) {
@@ -384,6 +407,30 @@ function ColumnMenuBase<TData>({
               />
             )}
 
+            {canPin && (
+              <div className="mt-1 border-t pt-1">
+                <MenuItem
+                  disabled={pinnedPosition === "left"}
+                  icon={ArrowLeftToLine}
+                  label={translations.columnPinLeft}
+                  onClick={handlePinLeft}
+                />
+                <MenuItem
+                  disabled={pinnedPosition === "right"}
+                  icon={ArrowRightToLine}
+                  label={translations.columnPinRight}
+                  onClick={handlePinRight}
+                />
+                {pinnedPosition && (
+                  <MenuItem
+                    icon={PinOff}
+                    label={translations.columnUnpin}
+                    onClick={handleUnpin}
+                  />
+                )}
+              </div>
+            )}
+
             {canHide && (
               <MenuItem
                 icon={EyeOffIcon}
@@ -423,6 +470,11 @@ function ColumnMenuBase<TData>({
     translations,
     canFilter,
     handleOpenFilters,
+    canPin,
+    pinnedPosition,
+    handlePinLeft,
+    handlePinRight,
+    handleUnpin,
     canHide,
     handleToggleVisibility,
     handleToggleDrag,
@@ -440,28 +492,4 @@ function ColumnMenuBase<TData>({
   );
 }
 
-// Memoize with strict prop comparison
-export const ColumnMenu = memo(ColumnMenuBase, (prevProps, nextProps) => {
-  if (prevProps.column.id !== nextProps.column.id) {
-    return false;
-  }
-  if (prevProps.tableId !== nextProps.tableId) {
-    return false;
-  }
-  if (prevProps.children !== nextProps.children) {
-    return false;
-  }
-  if (prevProps.table !== nextProps.table) {
-    return false;
-  }
-  if (
-    prevProps.column.getCanFilter() !== nextProps.column.getCanFilter() ||
-    prevProps.column.getCanHide() !== nextProps.column.getCanHide() ||
-    prevProps.column.getCanSort() !== nextProps.column.getCanSort() ||
-    prevProps.column.getIsVisible() !== nextProps.column.getIsVisible() ||
-    prevProps.column.getIsSorted() !== nextProps.column.getIsSorted()
-  ) {
-    return false;
-  }
-  return true;
-}) as typeof ColumnMenuBase;
+export const ColumnMenu = ColumnMenuBase;

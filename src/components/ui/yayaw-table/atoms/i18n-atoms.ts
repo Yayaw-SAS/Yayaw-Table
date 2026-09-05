@@ -23,10 +23,13 @@ export interface DataTableUiStrings {
   columnEditProperty: string;
   columnFilter: string;
   columnHide: string;
+  columnPinLeft: string;
+  columnPinRight: string;
   columnReorder: string;
   columnSortAsc: string;
 
   columnSortDesc: string;
+  columnUnpin: string;
   columnsTitle: string;
   confirm: string;
   confirmDeleteView: string;
@@ -204,10 +207,13 @@ export const translationKeysMap: DataTableUiStrings = {
   columnEditProperty: "columns.edit_property",
   columnFilter: "columns.filter",
   columnHide: "columns.hide_in_view",
+  columnPinLeft: "columns.pin_left",
+  columnPinRight: "columns.pin_right",
   columnReorder: "columns.reorder",
   columnSortAsc: "columns.sort_ascending",
 
   columnSortDesc: "columns.sort_descending",
+  columnUnpin: "columns.unpin",
   columnsTitle: "columns.title",
   confirm: "actions.confirm",
   confirmDeleteView: "views.confirmDelete",

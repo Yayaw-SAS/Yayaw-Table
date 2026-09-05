@@ -159,6 +159,9 @@ interface BulkActionsConfig<TData> {
    * Whether to keep the previous default success toast behavior for custom delete handlers
    */
   showDefaultToastsForCustomHandlers?: boolean;
+
+  /** Keep selected rows when search, filters, sorting, or grouping changes. */
+  preserveSelectionOnQuery?: boolean;
 }
 
 /**
@@ -1124,6 +1127,7 @@ export function useBulkActions<TData>({
   onBulkExport,
   minimumSelection = 1,
   showDefaultToastsForCustomHandlers = false,
+  preserveSelectionOnQuery = false,
   tableId,
   tableType,
 }: BulkActionsConfig<TData>): BulkActionsReturn<TData> {
@@ -1191,6 +1195,9 @@ export function useBulkActions<TData>({
       sortParam,
     ]
   );
+  const selectionPersistenceKey = preserveSelectionOnQuery
+    ? resolvedTableId
+    : selectionContextKey;
 
   const latestSelection = useRef({
     contextKey: selectionContextKey,
@@ -1215,7 +1222,7 @@ export function useBulkActions<TData>({
   const selectedRows = useMemo(() => {
     if (
       crossPageSelection &&
-      crossPageSelection.contextKey !== selectionContextKey
+      crossPageSelection.contextKey !== selectionPersistenceKey
     ) {
       return [];
     }
@@ -1227,7 +1234,7 @@ export function useBulkActions<TData>({
     });
   }, [
     crossPageSelection,
-    selectionContextKey,
+    selectionPersistenceKey,
     currentRowSelection,
     currentPageSelectedRows,
   ]);
@@ -1236,7 +1243,7 @@ export function useBulkActions<TData>({
   useEffect(() => {
     if (
       crossPageSelection &&
-      crossPageSelection.contextKey !== selectionContextKey
+      crossPageSelection.contextKey !== selectionPersistenceKey
     ) {
       setCrossPageSelection(null);
       table?.setRowSelection({});
@@ -1248,12 +1255,17 @@ export function useBulkActions<TData>({
     if (
       crossPageSelection?.rowIdsKey === currentSelectionIdsKey &&
       crossPageSelection.rows.length === selectedRows.length &&
-      crossPageSelection.rows.every((row, index) => row === selectedRows[index])
+      crossPageSelection.rows.every((row, index) => {
+        const selectedRow = selectedRows[index];
+        return (
+          row.id === selectedRow?.id && row.original === selectedRow.original
+        );
+      })
     ) {
       return;
     }
     setCrossPageSelection({
-      contextKey: selectionContextKey,
+      contextKey: selectionPersistenceKey,
       rowIdsKey: currentSelectionIdsKey,
       rows: selectedRows,
     });
@@ -1261,7 +1273,7 @@ export function useBulkActions<TData>({
     crossPageSelection,
     selectedRows,
     currentSelectionIdsKey,
-    selectionContextKey,
+    selectionPersistenceKey,
     table,
   ]);
 

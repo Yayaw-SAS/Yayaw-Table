@@ -43,6 +43,7 @@ const config = defineTableConfig({
     kanban: { groupBy: "status", titleColumn: "name" },
     gallery: { titleColumn: "name" },
     enableCalculations: true,
+    enableColumnDragDropByDefault: true,
   },
   translations: { namespace: "test", keys: { title: "Test rows" } },
 });
@@ -205,6 +206,28 @@ describe("YayawDataTable", () => {
     expect(remounted.findAll("th")[1]?.attributes("draggable")).toBe("false");
   });
 
+  it("reorders enabled columns with the keyboard drag handle", async () => {
+    const wrapper = mount(YayawDataTable, {
+      props: { tableType: "test", config, data, syncUrl: false },
+      attachTo: document.body,
+    });
+    await flushPromises();
+    const nameHandle = wrapper.get(
+      'button[aria-label="Drag to reorder: Name"]'
+    );
+    await nameHandle.trigger("keydown", { key: " " });
+    expect(nameHandle.attributes("aria-pressed")).toBe("true");
+    await nameHandle.trigger("keydown", { key: "ArrowRight" });
+    await nextTick();
+    const headers = wrapper
+      .findAll("thead th")
+      .map((header) => header.text())
+      .filter(Boolean);
+    expect(headers.indexOf("Status")).toBeLessThan(headers.indexOf("Name"));
+    await nameHandle.trigger("keydown", { key: "Escape" });
+    expect(nameHandle.attributes("aria-pressed")).toBe("false");
+  });
+
   it("removes column drag controls and behavior behind the feature gate", async () => {
     localStorage.setItem("test-column-drag-enabled", "true");
     const gatedConfig = defineTableConfig({
@@ -279,6 +302,70 @@ describe("YayawDataTable", () => {
     ).toBeDefined();
     expect(wrapper.find('[aria-label="Hidden in icon mode"]').exists()).toBe(
       false
+    );
+  });
+
+  it("matches React toolbar callbacks, context, placement, and calculation gates", async () => {
+    const toolbarContext = vi.fn();
+    const onClick = vi.fn();
+    const wrapper = mount(YayawDataTable, {
+      props: {
+        tableType: "test",
+        config: defineTableConfig({
+          ...config,
+          table: { ...config.table, enableCalculations: false },
+        }),
+        data,
+        getTableActions: () => ({
+          create: async () => ({ success: true }),
+          list: async () => ({ data, meta: { totalCount: data.length } }),
+        }),
+        syncUrl: false,
+        toolbarActions: (context) => {
+          toolbarContext(context);
+          return [
+            { id: "run", label: "Run", onClick },
+            {
+              id: "calculation",
+              label: "Calculation",
+              onClick,
+              requiresFooterCalculations: true,
+            },
+          ];
+        },
+        toolbarActionsPlacement: "after-export",
+      },
+    });
+
+    expect(
+      wrapper
+        .findAll("button")
+        .some((button) => button.text() === "Calculation")
+    ).toBe(false);
+    const labels = wrapper
+      .findAll(".yayaw-toolbar-right > button")
+      .map((button) => button.attributes("aria-label") ?? button.text());
+    expect(labels.indexOf("Create")).toBeLessThan(labels.indexOf("Export"));
+    expect(labels.indexOf("Export")).toBeLessThan(labels.indexOf("Run"));
+    const runButton = wrapper
+      .findAll("button")
+      .find((button) => button.text() === "Run");
+    expect(runButton).toBeDefined();
+    await runButton?.trigger("click");
+    expect(onClick).toHaveBeenCalledOnce();
+    expect(toolbarContext).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionsAsIcons: false,
+        hasListAction: true,
+        isCreateEnabled: true,
+        isExportEnabled: true,
+        isFooterCalculationsEnabled: false,
+        selectedCount: 0,
+        selectedOriginalRows: [],
+        selectedRowIds: [],
+        tableId: "test",
+        tableType: "test",
+      })
     );
   });
 

@@ -5,7 +5,7 @@ import { CSS } from "@dnd-kit/utilities";
 import type { Column, Table } from "@tanstack/react-table";
 import { useAtomValue } from "jotai";
 import { ArrowDown, ArrowUp, GripVertical } from "lucide-react";
-import { memo, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -252,19 +252,6 @@ function DataTableColumnHeaderBase<TData, TValue>({
   return regularHeaderContent;
 }
 
-// Create a memoized version with a more effective memo implementation
-export const DataTableColumnHeader = memo(
-  DataTableColumnHeaderBase,
-  (prevProps, nextProps) => {
-    // Only re-render if these props change
-    return (
-      prevProps.column === nextProps.column &&
-      prevProps.tableId === nextProps.tableId &&
-      prevProps.title === nextProps.title &&
-      prevProps.className === nextProps.className &&
-      prevProps.table === nextProps.table
-    );
-  }
-) as typeof DataTableColumnHeaderBase;
+export const DataTableColumnHeader = DataTableColumnHeaderBase;
 
 export type { DataTableColumnHeaderProps };

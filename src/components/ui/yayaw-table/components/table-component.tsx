@@ -700,6 +700,7 @@ type ModernDataTableProps<
   className?: string;
   enableColumnDragDropByDefault?: boolean;
   enableColumnFilters?: boolean;
+  enableColumnPinning?: boolean;
   enableMultiRowSelection?: boolean;
   enablePagination?: boolean;
   enableRowDragDrop?: boolean;
@@ -710,6 +711,7 @@ type ModernDataTableProps<
   /** Optional custom overlay to render when loading */
   loadingOverlay?: ReactNode;
   onRowSelectionChange?: (rows: Row<TData>[]) => void;
+  onRowSelectionStateChange?: (selection: Record<string, boolean>) => void;
   onBulkEdit?: (
     rows: Row<TData>[]
   ) => Promise<BulkActionCustomHandlerResult> | BulkActionCustomHandlerResult;
@@ -850,8 +852,9 @@ function ModernDataTable<
   className,
   columns = EMPTY_COLUMNS,
   data: _initialData = EMPTY_DATA,
-  enableColumnDragDropByDefault = true,
+  enableColumnDragDropByDefault = false,
   enableColumnFilters = true,
+  enableColumnPinning = true,
   enableMultiRowSelection = true,
   enablePagination = true,
   enableRowDragDrop: _enableRowDragDrop = false,
@@ -861,6 +864,7 @@ function ModernDataTable<
   getRowId,
   loadingOverlay: loadingOverlayProp,
   onRowSelectionChange,
+  onRowSelectionStateChange,
   onBulkEdit,
   onBulkDelete,
   onBulkCopy,
@@ -873,7 +877,7 @@ function ModernDataTable<
   onRowActivate,
   showDefaultToastsForCustomHandlers,
   queryFn: _queryFn,
-  rowSelection: _rowSelection,
+  rowSelection,
   tableId,
   tableType,
   formType,
@@ -1208,6 +1212,7 @@ function ModernDataTable<
       defaultPageSize: tableConfig.table.defaultPageSize,
       defaultVisibleColumns: tableConfig.columns.visible,
       enableColumnFilters,
+      enableColumnPinning,
       enableMultiRowSelection,
       enablePagination,
       enableRowSelection,
@@ -1218,6 +1223,8 @@ function ModernDataTable<
         | ((row: TData) => boolean)
         | undefined,
       pageCount,
+      onRowSelectionChange: onRowSelectionStateChange,
+      rowSelection,
       tableId: tableId || "",
     }),
     [
@@ -1226,6 +1233,7 @@ function ModernDataTable<
       tableConfig.table.defaultPageSize,
       tableConfig.columns.visible,
       enableColumnFilters,
+      enableColumnPinning,
       enableMultiRowSelection,
       enablePagination,
       enableRowSelection,
@@ -1234,6 +1242,8 @@ function ModernDataTable<
       getRowId,
       tableConfig.table.canSelectRow,
       pageCount,
+      onRowSelectionStateChange,
+      rowSelection,
       tableId,
     ]
   );
@@ -1274,6 +1284,12 @@ function ModernDataTable<
 
   // Extract important state from the table - memoize derived values
   const { columnOrder, pagination: _pagination } = state;
+  const headerStateKey = JSON.stringify({
+    columnPinning: table.getState().columnPinning,
+    columnVisibility: table.getState().columnVisibility,
+    grouping: table.getState().grouping,
+    sorting: table.getState().sorting,
+  });
 
   // Get leaf column IDs in display order (so headers and SortableContext stay in sync with body)
   const leafColumnIds = useMemo(() => {
@@ -1378,6 +1394,8 @@ function ModernDataTable<
     onBulkCopy,
     rowCount,
     showDefaultToastsForCustomHandlers,
+    preserveSelectionOnQuery:
+      tableConfig.table.preserveSelectionOnQuery === true,
   });
 
   useEffect(() => {
@@ -2155,7 +2173,7 @@ function ModernDataTable<
           isSmallDensity && "[&_th]:!h-8 [&_th]:!px-1.5",
           isLargeDensity && "[&_th]:!h-12 [&_th]:!px-3"
         )}
-        key={orderKey}
+        key={`${orderKey}:${headerStateKey}`}
       >
         {table.getHeaderGroups().map((headerGroup) => (
           <TableRow key={headerGroup.id}>
@@ -2189,6 +2207,7 @@ function ModernDataTable<
     isSmallDensity,
     isLargeDensity,
     densityMode,
+    headerStateKey,
   ]);
 
   const renderDisplayContent = () => {

@@ -168,7 +168,14 @@ const toggleSelection = (row: TableRecord, checked: boolean): void => {
 </script>
 
 <template>
-  <div class="yayaw-card-view-shell">
+  <div
+    v-if="!rows.length && !context.data.isLoading.value && context.config.table.emptyState?.show !== false"
+    class="yayaw-empty yayaw-card-empty"
+  >
+    <strong>{{ context.config.table.emptyState?.title ?? context.translations.value.noResults }}</strong>
+    <span v-if="context.config.table.emptyState?.description">{{ context.config.table.emptyState.description }}</span>
+  </div>
+  <div v-else class="yayaw-card-view-shell">
     <div class="yayaw-card-controls">
       <label>{{ translate('cardImage', 'Image') }} <select v-model="imageColumn" class="yayaw-select"><option value="">{{ translate('none', 'None') }}</option><option v-for="item in columns" :key="item.id" :value="item.id">{{ item.header }}</option></select></label>
       <label>{{ translate('cardTitle', 'Title') }} <select v-model="titleColumn" class="yayaw-select"><option v-for="item in columns" :key="item.id" :value="item.id">{{ item.header }}</option></select></label>

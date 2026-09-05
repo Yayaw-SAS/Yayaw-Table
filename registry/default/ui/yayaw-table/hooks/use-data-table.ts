@@ -182,7 +182,11 @@ export function useDataTable<TData extends Record<string, unknown>>(
 
   // Set up URL state for the table
   const defaultPageSize = config.table.defaultPageSize ?? initialPageSize;
-  const tableUrlState = useTableUrlState({ defaultPageSize, tableId });
+  const tableUrlState = useTableUrlState({
+    defaultPageSize,
+    enabled: config.table.syncUrl !== false,
+    tableId,
+  });
 
   // Create a function to invalidate table data
   const invalidateTable = useCallback(async () => {
@@ -385,6 +389,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
     initialPageCount,
     initialRowCount,
     queryFn,
+    syncUrl: config.table.syncUrl !== false,
     tableId,
   });
 
@@ -725,10 +730,14 @@ export function useDataTable<TData extends Record<string, unknown>>(
         baseColumnDef,
         colDef as ColumnSizingConfig
       );
+      const configuredColumnDef = {
+        ...sizedColumnDef,
+        enablePinning: colDef.enablePinning !== false,
+      };
 
       columnDefs.push(
         withInlineEditMeta(
-          sizedColumnDef,
+          configuredColumnDef,
           resolveInlineEditColumnConfig(colDef, tableInlineEditConfig, {
             featureEnabled: isInlineEditAllowed,
           })

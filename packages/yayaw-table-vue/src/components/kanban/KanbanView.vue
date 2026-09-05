@@ -108,8 +108,10 @@ const canDrag = computed(
 );
 const canEditRow = (row: TableRecord): boolean =>
   context.config.table.canEditRow?.(row) !== false;
-const drop = async (target: string): Promise<void> => {
-  const row = dragged.value;
+const moveRow = async (
+  row: TableRecord | undefined,
+  target: string
+): Promise<void> => {
   const definition = column(groupBy.value);
   const field = definition?.accessorKey ?? groupBy.value;
   if (
@@ -143,6 +145,19 @@ const drop = async (target: string): Promise<void> => {
     pending.value = undefined;
   }
 };
+const drop = async (target: string): Promise<void> => {
+  await moveRow(dragged.value, target);
+};
+const adjacentGroup = (
+  row: TableRecord,
+  offset: -1 | 1
+): { label: string; value: string } | undefined => {
+  const currentValue = String(value(row, groupBy.value) ?? "Unassigned");
+  const currentIndex = rawGroups.value.findIndex(
+    (group) => group.value === currentValue
+  );
+  return rawGroups.value[currentIndex + offset];
+};
 const activate = (
   row: TableRecord,
   event: MouseEvent | KeyboardEvent
@@ -166,7 +181,14 @@ const toggleSelection = (row: TableRecord, checked: boolean): void => {
 </script>
 
 <template>
-  <div class="yayaw-card-view-shell">
+  <div
+    v-if="!rows.length && !context.data.isLoading.value && context.config.table.emptyState?.show !== false"
+    class="yayaw-empty yayaw-card-empty"
+  >
+    <strong>{{ context.config.table.emptyState?.title ?? context.translations.value.noResults }}</strong>
+    <span v-if="context.config.table.emptyState?.description">{{ context.config.table.emptyState.description }}</span>
+  </div>
+  <div v-else class="yayaw-card-view-shell">
     <div class="yayaw-card-controls">
       <label>{{ translate('cardLane', 'Lane') }}
         <select v-model="groupBy" class="yayaw-select">
@@ -208,6 +230,28 @@ const toggleSelection = (row: TableRecord, checked: boolean): void => {
                 <input type="checkbox" :aria-label="translate('selectRow', 'Select') + ' ' + String(value(row, titleColumn))" :checked="context.selection.value[context.getRowId(row)]" :disabled="context.config.table.canSelectRow?.(row) === false" @change="toggleSelection(row, ($event.target as HTMLInputElement).checked)" />
               </label>
               <strong>{{ displayCellValue(value(row, titleColumn), column(titleColumn) ?? { id: titleColumn, header: titleColumn }, context.locale) }}</strong>
+              <div v-if="canDrag && canEditRow(row)" class="yayaw-kanban-move-actions">
+                <button
+                  v-if="adjacentGroup(row, -1)"
+                  type="button"
+                  class="yayaw-icon-button"
+                  :aria-label="translate('moveTo', 'Move') + ' ' + String(value(row, titleColumn)) + ' ' + translate('to', 'to') + ' ' + adjacentGroup(row, -1)?.label"
+                  :disabled="Boolean(pending)"
+                  @click.stop="moveRow(row, adjacentGroup(row, -1)?.value ?? '')"
+                >
+                  ←
+                </button>
+                <button
+                  v-if="adjacentGroup(row, 1)"
+                  type="button"
+                  class="yayaw-icon-button"
+                  :aria-label="translate('moveTo', 'Move') + ' ' + String(value(row, titleColumn)) + ' ' + translate('to', 'to') + ' ' + adjacentGroup(row, 1)?.label"
+                  :disabled="Boolean(pending)"
+                  @click.stop="moveRow(row, adjacentGroup(row, 1)?.value ?? '')"
+                >
+                  →
+                </button>
+              </div>
               <RowActions :row="row" />
             </div>
             <dl class="yayaw-card-properties" :class="{ labeled: showLabels }">

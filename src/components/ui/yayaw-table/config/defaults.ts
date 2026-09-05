@@ -18,6 +18,8 @@ export const defaultTableConfig = {
   allowViewSharing: false,
   showToolbar: true,
   showToolbarHeader: true,
+  showClearFilters: false,
+  showResetFilters: false,
   export: true,
   bulkExport: true,
   actionsAsIcons: false,
@@ -29,6 +31,8 @@ export const defaultTableConfig = {
   emptyState: {
     show: true,
   },
+  enableAdvancedFilters: false,
+  enableColumnDnd: true,
   enableColumnDragDropByDefault: false,
   enableColumnFilters: true,
   enableColumnPinning: true,
@@ -39,6 +43,7 @@ export const defaultTableConfig = {
   enableSorting: true,
   enableViews: true,
   enableCalculations: false,
+  enableGrouping: true,
   inlineEdit: {
     enabled: false,
     debounceMs: 700,
@@ -48,6 +53,9 @@ export const defaultTableConfig = {
   },
   dateDisplayPreset: "localized-short",
   pageSizeOptions: [10, 20, 50, 100, 200, 500],
+  preserveSelectionOnQuery: false,
+  searchDebounceMs: 300,
+  syncUrl: true,
 };
 
 /**

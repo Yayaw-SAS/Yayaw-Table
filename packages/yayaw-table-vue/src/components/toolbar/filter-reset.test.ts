@@ -50,7 +50,9 @@ describe("toolbar filter reset", () => {
         syncUrl: false,
       },
     });
-    expect(hidden.find('button[aria-label="Reset"]').exists()).toBe(false);
+    expect(hidden.find('button[aria-label="Clear filters"]').exists()).toBe(
+      false
+    );
     expect(
       defineTableConfig({ ...config, table: {} }).table.showResetFilters
     ).toBe(false);
@@ -67,18 +69,15 @@ describe("toolbar filter reset", () => {
         locale: "fr",
       },
     });
-    const button = visible.get('button[aria-label="Réinitialiser"]');
+    const button = visible.get('button[aria-label="Effacer les filtres"]');
     expect(button.classes()).toContain("yayaw-icon-only");
-    expect(button.attributes("title")).toBe("Réinitialiser");
+    expect(button.attributes("title")).toBe("Effacer les filtres");
     expect(button.find("svg").exists()).toBe(true);
     expect(button.text()).toBe("");
     visible.unmount();
   });
 
-  it.each([
-    "shortcut",
-    "menu",
-  ])("%s restores the same option defaults and preserves unrelated state", async (trigger) => {
+  it("the Options reset restores option defaults and preserves search", async () => {
     const presentation = {
       "reset-order": JSON.stringify(["select", "status", "name", "actions"]),
       "reset-pinning": encodeURIComponent(
@@ -120,16 +119,10 @@ describe("toolbar filter reset", () => {
     const search = wrapper.get('input[type="search"]');
     expect(search.attributes("aria-label")).toBe("Search…");
     expect((search.element as HTMLInputElement).value).toBe("Alpha");
-    if (trigger === "menu") {
-      await wrapper.get('button[aria-label="Options"]').trigger("click");
-      await wrapper
-        .get('.yayaw-options-menu button[aria-label="Reset"]')
-        .trigger("click");
-    } else {
-      await wrapper
-        .get('.yayaw-toolbar-right > button[aria-label="Reset"]')
-        .trigger("click");
-    }
+    await wrapper.get('button[aria-label="Options"]').trigger("click");
+    await wrapper
+      .get('.yayaw-options-menu button[aria-label="Reset"]')
+      .trigger("click");
     await vi.runAllTimersAsync();
     expect((search.element as HTMLInputElement).value).toBe("Alpha");
     expect(wrapper.text()).toContain("Alpha");
@@ -158,6 +151,63 @@ describe("toolbar filter reset", () => {
     wrapper.unmount();
   });
 
+  it("the legacy reset shortcut clears the same query state as React", async () => {
+    const params = new URLSearchParams({
+      "reset-q": "Alpha",
+      "reset-sort": JSON.stringify([{ id: "status", desc: true }]),
+      "reset-visibility": JSON.stringify({ name: true, status: false }),
+      "reset-grouping": JSON.stringify(["status"]),
+      "reset-page": "2",
+      "reset-pageSize": "20",
+      "reset-filters": JSON.stringify([{ id: "status", value: "Open" }]),
+      "reset-advancedFilters": JSON.stringify({
+        filters: [
+          {
+            id: "test",
+            columnId: "name",
+            operator: "contains",
+            type: "text",
+            values: "Alpha",
+          },
+        ],
+        joinOperator: "and",
+      }),
+    });
+    window.history.replaceState({}, "", `/?${params}`);
+    const wrapper = mount(YayawDataTable, {
+      props: { tableType: "reset", config, data },
+    });
+    await flushPromises();
+    await wrapper
+      .get('.yayaw-toolbar-right > button[aria-label="Clear filters"]')
+      .trigger("click");
+    await vi.runAllTimersAsync();
+
+    const result = new URLSearchParams(window.location.search);
+    for (const key of [
+      "reset-q",
+      "reset-page",
+      "reset-filters",
+      "reset-advancedFilters",
+    ]) {
+      expect(result.has(key)).toBe(false);
+    }
+    expect(JSON.parse(result.get("reset-sort") ?? "[]")).toEqual([
+      { id: "status", desc: true },
+    ]);
+    expect(JSON.parse(result.get("reset-visibility") ?? "{}")).toEqual({
+      actions: true,
+      name: true,
+      select: true,
+      status: false,
+    });
+    expect(JSON.parse(result.get("reset-grouping") ?? "[]")).toEqual([
+      "status",
+    ]);
+    expect(result.get("reset-pageSize")).toBe("20");
+    wrapper.unmount();
+  });
+
   it("restores default sorting without URL synchronization and uses the menu translation", async () => {
     const wrapper = mount(YayawDataTable, {
       props: {
@@ -170,7 +220,10 @@ describe("toolbar filter reset", () => {
     });
     await wrapper.get("th.sortable").trigger("click");
     expect(wrapper.findAll("tbody tr")[0]?.text()).toContain("Beta");
-    await wrapper.get('button[aria-label="Start again"]').trigger("click");
+    await wrapper.get('button[aria-label="Options"]').trigger("click");
+    await wrapper
+      .get('.yayaw-options-menu button[aria-label="Start again"]')
+      .trigger("click");
     expect(wrapper.findAll("tbody tr")[0]?.text()).toContain("Alpha");
     expect(window.location.search).toBe("");
     wrapper.unmount();

@@ -14,7 +14,7 @@ import {
   type Updater,
   useVueTable,
 } from "@tanstack/vue-table";
-import { ArrowDown, ArrowUp } from "lucide-vue-next";
+import { ArrowDown, ArrowUp, GripVertical } from "lucide-vue-next";
 import { type CSSProperties, computed, h, ref, watch, onBeforeUnmount } from "vue";
 import { useTableContext } from "../../context";
 import { applyTableQuery, calculateColumn, formatNumber } from "../../core";
@@ -29,6 +29,8 @@ import RowActions from "./RowActions.vue";
 
 const context = useTableContext();
 const draggedColumn = ref<string>();
+const keyboardDraggedColumn = ref<string>();
+const keyboardAnnouncement = ref("");
 const columnDragEnabled = computed(
   () =>
     context.config.table.enableColumnDnd !== false &&
@@ -318,6 +320,62 @@ const moveColumn = (target: string): void => {
   current.splice(Math.max(0, targetIndex), 0, source);
   context.state.order.value = current;
 };
+const moveColumnByOffset = (columnId: string, offset: -1 | 1): void => {
+  if (!canDragColumn(columnId)) {
+    return;
+  }
+  const current = [...context.state.order.value];
+  const sourceIndex = current.indexOf(columnId);
+  if (sourceIndex < 0) {
+    return;
+  }
+  let targetIndex = sourceIndex + offset;
+  while (
+    targetIndex >= 0 &&
+    targetIndex < current.length &&
+    ["select", "actions"].includes(current[targetIndex] ?? "")
+  ) {
+    targetIndex += offset;
+  }
+  if (targetIndex < 0 || targetIndex >= current.length) {
+    return;
+  }
+  const target = current[targetIndex];
+  if (!target) {
+    return;
+  }
+  current[targetIndex] = columnId;
+  current[sourceIndex] = target;
+  context.state.order.value = current;
+  const label = sourceColumns.value.find((column) => column.id === columnId)?.header ?? columnId;
+  keyboardAnnouncement.value = `${label}: ${targetIndex + 1}`;
+};
+const handleColumnKeyboard = (
+  columnId: string,
+  event: KeyboardEvent
+): void => {
+  if (!canDragColumn(columnId)) {
+    return;
+  }
+  if (event.key === "Escape" && keyboardDraggedColumn.value === columnId) {
+    event.preventDefault();
+    keyboardDraggedColumn.value = undefined;
+    return;
+  }
+  if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault();
+    keyboardDraggedColumn.value =
+      keyboardDraggedColumn.value === columnId ? undefined : columnId;
+    return;
+  }
+  if (
+    keyboardDraggedColumn.value === columnId &&
+    (event.key === "ArrowLeft" || event.key === "ArrowRight")
+  ) {
+    event.preventDefault();
+    moveColumnByOffset(columnId, event.key === "ArrowLeft" ? -1 : 1);
+  }
+};
 const isInteractive = (target: EventTarget | null): boolean =>
   target instanceof Element &&
   Boolean(target.closest("button,a,input,select,textarea,[role='button']"));
@@ -520,6 +578,7 @@ const pinnedStyle = (column: Column<TableRecord>): CSSProperties => {
 
 <template>
   <div class="yayaw-grid-shell">
+    <span class="yayaw-sr-only" aria-live="polite">{{ keyboardAnnouncement }}</span>
     <div class="yayaw-table-scroll">
       <table class="yayaw-data-grid">
         <thead>
@@ -539,6 +598,17 @@ const pinnedStyle = (column: Column<TableRecord>): CSSProperties => {
               @click="header.column.getToggleSortingHandler()?.($event)"
             >
               <div class="yayaw-header-cell">
+                <button
+                  v-if="canDragColumn(header.column.id)"
+                  type="button"
+                  class="yayaw-column-drag-handle"
+                  :aria-label="`${String(context.translations.value['columns.reorder'] ?? 'Drag to reorder')}: ${String(header.column.columnDef.header ?? header.column.id)}`"
+                  :aria-pressed="keyboardDraggedColumn === header.column.id"
+                  @click.stop="keyboardDraggedColumn = keyboardDraggedColumn === header.column.id ? undefined : header.column.id"
+                  @keydown.stop="handleColumnKeyboard(header.column.id, $event)"
+                >
+                  <GripVertical :size="14" aria-hidden="true" />
+                </button>
                 <span v-if="header.column.id === 'actions'" class="yayaw-sr-only">Actions</span>
                 <button v-if="!header.isPlaceholder && header.column.getCanSort()" type="button" class="yayaw-column-sort" @click.stop="header.column.getToggleSortingHandler()?.($event)">
                   <FlexRender :render="header.column.columnDef.header" :props="header.getContext()" />
@@ -584,7 +654,7 @@ const pinnedStyle = (column: Column<TableRecord>): CSSProperties => {
         </tfoot>
       </table>
     </div>
-    <footer v-if="context.config.table.enablePagination" class="yayaw-pagination">
+    <footer v-if="context.config.table.enablePagination && totalPages > 1" class="yayaw-pagination">
       <span>{{ context.matchingRowCount.value }} {{ context.translations.value.rows }}</span>
       <label>
         {{ context.translations.value.rowsPerPage }}

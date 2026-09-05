@@ -103,8 +103,8 @@ export interface DataTableConfig {
   showToolbarHeader?: boolean;
 
   /** Show an icon in the toolbar to clear filters and global search. */
-  /** Clear search and filters while preserving display options. */
   showClearFilters?: boolean;
+  /** Backwards-compatible alias for `showClearFilters`. */
   showResetFilters?: boolean;
 
   /**
@@ -178,6 +178,9 @@ export interface DataTableConfig {
    */
   enableColumnFilters: boolean;
 
+  /** Enable the advanced filter builder. */
+  enableAdvancedFilters?: boolean;
+
   /**
    * Enable column pinning
    */
@@ -235,6 +238,15 @@ export interface DataTableConfig {
    */
   enableGrouping?: boolean;
 
+  /** Keep selection when the active query changes. */
+  preserveSelectionOnQuery?: boolean;
+
+  /** Delay before applying global search, in milliseconds. */
+  searchDebounceMs?: number;
+
+  /** Synchronize table state with the URL. */
+  syncUrl?: boolean;
+
   /**
    * Form configuration
    */
@@ -279,6 +291,7 @@ const defaultTableConfig: DataTableConfig = {
   allowViewSharing: false,
   showToolbar: true,
   showToolbarHeader: true,
+  showClearFilters: false,
   export: true,
   bulkExport: true,
   actionsAsIcons: false,
@@ -291,9 +304,11 @@ const defaultTableConfig: DataTableConfig = {
     show: true,
   },
   defaultPageSize: 10,
-  enableColumnDragDropByDefault: true,
+  enableColumnDragDropByDefault: false,
   enableColumnDnd: true,
   enableColumnFilters: true,
+  enableAdvancedFilters: false,
+  enableColumnPinning: true,
   enableMultiRowSelection: true,
   enablePagination: true,
   enableRowDragDrop: false,
@@ -304,6 +319,9 @@ const defaultTableConfig: DataTableConfig = {
   enableViews: true,
   enableCalculations: false,
   enableGrouping: true,
+  preserveSelectionOnQuery: false,
+  searchDebounceMs: 300,
+  syncUrl: true,
   inlineEdit: {
     enabled: false,
     debounceMs: 700,
@@ -312,7 +330,7 @@ const defaultTableConfig: DataTableConfig = {
     showDelayIndicator: true,
   },
   dateDisplayPreset: "localized-short",
-  pageSizeOptions: [5, 10, 20, 50, 100],
+  pageSizeOptions: [10, 20, 50, 100, 200, 500],
 };
 
 /**

@@ -406,9 +406,12 @@ export const defaultTranslations: DataTableTranslations = {
     edit_property: "Edit Property",
     filter: "Filter",
     hide_in_view: "Hide in View",
+    pin_left: "Pin left",
+    pin_right: "Pin right",
     reorder: "Drag to Reorder",
     sort_ascending: "Sort Ascending",
     sort_descending: "Sort Descending",
+    unpin: "Unpin",
   },
   common: {
     true: "True",

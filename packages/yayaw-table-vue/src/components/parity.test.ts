@@ -61,17 +61,23 @@ function create(
     actions?: TableActions;
     views?: TableView[];
     active?: string;
+    config?: typeof config;
+    data?: typeof data;
   } = {}
 ) {
+  const resolvedConfig = input.config ?? config;
   const wrapper = mount(YayawDataTable, {
     attachTo: document.body,
     props: {
       config: defineTableConfig({
-        ...config,
-        table: { ...config.table, defaultDisplayMode: input.mode ?? "table" },
+        ...resolvedConfig,
+        table: {
+          ...resolvedConfig.table,
+          defaultDisplayMode: input.mode ?? "table",
+        },
       }),
       tableType: "parity",
-      data: data.map((row) => ({ ...row })),
+      data: (input.data ?? data).map((row) => ({ ...row })),
       getTableActions: () => input.actions,
       initialViews: input.views,
       initialActiveViewId: input.active,
@@ -94,6 +100,16 @@ it.each([
   await wrapper.findAll(".yayaw-pagination button").at(-1)?.trigger("click");
   expect(wrapper.findAll("article")).toHaveLength(1);
   expect(wrapper.find("article").text()).toContain("Gamma");
+});
+
+it.each([
+  "table",
+  "gallery",
+] as const)("hides %s pagination when all rows fit on one page", async (mode) => {
+  const wrapper = create({ mode });
+  await flushPromises();
+  await wrapper.get(".yayaw-pagination select").setValue("10");
+  expect(wrapper.find(".yayaw-pagination").exists()).toBe(false);
 });
 
 it("loads the next server card page using both list parameter contracts", async () => {
@@ -146,6 +162,45 @@ it("rolls a failed Kanban move back and shares the toolbar grouping", async () =
       .findAll(".yayaw-kanban-lane")
       .map((lane) => lane.find("header strong").text())
   ).toEqual(["Alpha", "Beta"]);
+});
+
+it("moves Kanban cards without a pointer", async () => {
+  const update = vi.fn(async () => ({ success: true }));
+  const wrapper = create({
+    mode: "kanban",
+    actions: { update },
+  });
+  await flushPromises();
+  await wrapper
+    .get('button[aria-label="Move Alpha to Closed"]')
+    .trigger("click");
+  await flushPromises();
+  expect(update).toHaveBeenCalledWith("one", { status: "Closed" });
+});
+
+it.each([
+  "kanban",
+  "gallery",
+] as const)("renders the configured empty state in %s mode", async (mode) => {
+  const wrapper = create({
+    mode,
+    data: [],
+    config: defineTableConfig({
+      ...config,
+      table: {
+        ...config.table,
+        emptyState: {
+          description: "Create the first row",
+          title: "Nothing here",
+        },
+      },
+    }),
+  });
+  await flushPromises();
+  expect(wrapper.get(".yayaw-card-empty").text()).toContain("Nothing here");
+  expect(wrapper.get(".yayaw-card-empty").text()).toContain(
+    "Create the first row"
+  );
 });
 
 it("renders structured server aggregate labels", async () => {

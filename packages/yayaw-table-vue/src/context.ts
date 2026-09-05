@@ -13,7 +13,7 @@ import type {
   TableActions,
   TableConfig,
   TableRecord,
-  ToolbarAction,
+  ToolbarActionsInput,
 } from "./types";
 
 export interface OpenFormState {
@@ -29,6 +29,13 @@ export interface OpenFormState {
   };
 }
 
+export type TableOptionsView = "columns" | "filters" | "group" | "sort";
+
+export interface TableOptionsRequest {
+  columnId?: string;
+  view: TableOptionsView;
+}
+
 export interface TableContextValue<TData extends TableRecord = TableRecord> {
   config: TableConfig<TData>;
   tableType?: string;
@@ -42,9 +49,10 @@ export interface TableContextValue<TData extends TableRecord = TableRecord> {
   isSelectingAll: Ref<boolean>;
   translations: ComputedRef<DataTableTranslations>;
   customBulkActions: ComputedRef<BulkAction<TData>[]>;
-  toolbarActions: ComputedRef<ToolbarAction<TData>[]>;
+  toolbarActions: ComputedRef<ToolbarActionsInput<TData>>;
   form: Ref<OpenFormState>;
   footerCalculationsVisible: Ref<boolean>;
+  optionsRequest: Ref<TableOptionsRequest | undefined>;
   getRowId: (row: TData, index?: number) => string;
   getFormConfig?: (
     formType: string,

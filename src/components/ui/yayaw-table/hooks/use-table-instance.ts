@@ -163,6 +163,8 @@ export function useTableInstance<TData>({
   const [internalRowSelection, setInternalRowSelection] = useAtom(
     rowSelectionAtom(tableId)
   );
+  const effectiveRowSelection =
+    externalRowSelection ?? (internalRowSelection as RowSelectionState);
   const [, setSelectedRows] = useAtom(selectedRowsAtom(tableId));
   const selectedRowsSelectionKeyRef = useRef("");
 
@@ -531,8 +533,7 @@ export function useTableInstance<TData>({
       globalFilter: globalSearchParam || "",
       grouping: Array.isArray(groupingParam) ? (groupingParam as string[]) : [],
       pagination,
-      rowSelection:
-        externalRowSelection || (internalRowSelection as RowSelectionState),
+      rowSelection: effectiveRowSelection,
       sorting: Array.isArray(validatedSorting)
         ? (validatedSorting as SortingState)
         : [],
@@ -540,7 +541,7 @@ export function useTableInstance<TData>({
   });
 
   useEffect(() => {
-    const selectionKey = JSON.stringify(internalRowSelection);
+    const selectionKey = JSON.stringify(effectiveRowSelection);
     const selectedRows = tableInstance.getSelectedRowModel()
       .rows as Row<Record<string, unknown>>[];
 
@@ -555,7 +556,7 @@ export function useTableInstance<TData>({
 
       return hasSameSelection && hasSameRows ? previousRows : selectedRows;
     });
-  }, [internalRowSelection, setSelectedRows, tableInstance]);
+  }, [effectiveRowSelection, setSelectedRows, tableInstance]);
 
   // Helper function to check if column order should be updated
   const shouldUpdateColumnOrder = useCallback(

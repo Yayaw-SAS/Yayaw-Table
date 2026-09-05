@@ -21,6 +21,7 @@ const catalogue = defineTableConfig({
   },
   table: {
     syncUrl: false,
+    enableColumnDragDropByDefault: true,
     enableAdvancedFilters: false,
     searchDebounceMs: 250,
     actionsAsIcons: true,
@@ -160,6 +161,19 @@ describe("catalogue-owned controls", () => {
     );
   });
 
+  it("opens and focuses the current column filter from its menu", async () => {
+    const wrapper = mountTable();
+    await flushPromises();
+    await openMenu(wrapper);
+    selectItem("Filter column");
+    await flushPromises();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    const filter = wrapper.get('[data-filter-column="name"] input');
+    expect(wrapper.get(".yayaw-options-menu").text()).toContain("Filters");
+    expect(document.activeElement).toBe(filter.element);
+  });
+
   it("omits menus when all data-column capabilities are disabled", () => {
     const wrapper = mountTable(
       defineTableConfig({
@@ -168,6 +182,7 @@ describe("catalogue-owned controls", () => {
         table: {
           ...catalogue.table,
           enableColumnDnd: false,
+          enableColumnFilters: false,
           enableColumnPinning: false,
           enableSorting: false,
         },
