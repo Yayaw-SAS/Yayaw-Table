@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.0.0
+
+### Major Changes
+
+- 0749493: Migrate the React and Vue editions to TanStack Table 9.2.4 with matched explicit feature registration. Existing saved views and URLs retain their `left`/`right` pinning format, while consumers must support ESM, target ES2022, and update custom TanStack integrations to version 9.
+
+### Minor Changes
+
+- a017e6f: Add opt-in, accessible column resizing to the React and Vue tables. Resized widths persist in saved views and shareable URLs, while individual columns can remain fixed.
+
 ## 2.0.0
 
 ### Major Changes

@@ -1,7 +1,7 @@
 {
   "name": "yayaw-table-workspace",
   "private": true,
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "A flexible, config-driven data table component library for React and Vue 3",
   "scripts": {
     "build": "bun run registry:pages",
