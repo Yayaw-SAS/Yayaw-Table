@@ -13,6 +13,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -24,6 +26,13 @@ jobs:
 
       - name: Install Vue dependencies
         run: bun install --cwd packages/yayaw-table-vue --frozen-lockfile
+
+      - name: Validate changesets
+        run: |
+          if ! git show-ref --verify --quiet refs/heads/main; then
+            git branch main origin/main
+          fi
+          bun run changeset:status
 
       - name: Type check
         run: bun run type-check
