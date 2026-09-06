@@ -1,5 +1,58 @@
 # Changelog
 
+## 2.0.0
+
+### Major Changes
+
+- c4bdd56: Complete the public behavioral parity pass for React and Vue. Both editions now
+  share defaults, filter reset semantics, controlled query-persistent selection,
+  toolbar actions, column filter/pin/reorder controls, card pagination and empty
+  states, and isolated non-URL state. Add the declarative React table picker and
+  accessible Vue column and Kanban movement controls. `showResetFilters` now clears
+  filters in Vue like React; use the Options reset command to restore presentation
+  defaults.
+
+### Minor Changes
+
+- e241eaf: Add opt-in showResetFilters toolbar icon to clear column and advanced filters, global search, and pagination while preserving table presentation and discarding pending filter edits.
+- d5e4b86: Add date and radio form field primitives, render text input types, and honor textarea presentation options.
+- 8ad796d: Add declarative form sections for grouping existing form fields without custom React renderers.
+- 914e88e: Add a declarative Vue table-picker form field with native search, filters,
+  sorting, pagination, saved views, and controlled row selection. Selected values
+  survive table query changes, support typed IDs, and require no custom form
+  renderer.
+- fd7e5f1: Align React and Vue list/filter/view contracts and add shared conformance fixtures. React catalogue forms now support generated column fields, conditional fields, asynchronous initialization and options, patch submissions, declarative collections, and a built-in bulk editor with partial-failure retries. Vue cards now paginate, share grouping with the toolbar, render custom cells, and roll back rejected Kanban moves; inline editing honors its debounce. Vue saved views support defaults, system views, dirty state, and recoverable errors. Add the cross-framework `showClearFilters` option while preserving legacy reset behavior. Exclude development tests from the React registry.
+- 78ff405: Add native accessible Vue column menus for sorting, hiding and left/right pinning, replacing placeholder diamond glyphs. Column capabilities and mandatory utility-column locks determine the available controls, including the new per-column `enablePinning` permission.
+
+  Allow catalogues to declare toolbar actions, translations, advanced-filter visibility, URL synchronization and server-search debounce defaults. Existing explicit component props retain precedence, including empty toolbar actions and false boolean overrides.
+
+- 9a5e6b9: Generate Vue bulk-edit forms from each table's existing catalogue, with explicit field selection, field validation, per-row permissions, frozen targets, and safe partial-failure retries. Keep consumer callbacks and the JSON editor available for compatibility. Protect selection/actions column locks across saved views and URL state, and align pinned calculation footers. Regenerate the Vue registry distribution with these behaviors.
+- 1890621: Fix Vue form draft isolation, asynchronous validation, parsed submissions, nested collection errors, custom field bindings, and catalogue-backed inline editing with rollback on failed updates. Add scoped asynchronous option search and creation, initial-value loading, opt-in patch submission, per-row form selection, translated fields, and isolated collection dialogs. Use Reka UI dialog primitives for portalling, keyboard focus, dismissal, and focus restoration, and include the dependency in the Vue registry.
+- 02d85c7: Add the complete Vue 3 edition of YaYaw Table, including the standalone package, shadcn-vue registry artifact, interactive demo, tests, and documentation.
+- 17b3003: Bring the Vue toolbar, row actions, and floating bulk actions to React feature parity, including icon mode and permission-aware rendering.
+- b2e55f5: Add the optional Vue toolbar filter-reset shortcut through `table.showResetFilters`, matching the React API. Clear search, column filters, advanced filters and pagination without changing presentation or saved-view selection, and provide accessible English/French labels.
+
+### Patch Changes
+
+- 854237b: Allow table configs to use the native JSON and string column renderers.
+- 31db5a3: Add a multi-select form field for editing array values from finite option sets.
+- d735201: Render multi-select tag values as separate badges instead of a single comma-joined badge.
+- b912225: Fix Vue exports across all filtered pages, preserve cross-page selection in React and Vue, and refresh the active page after mutations.
+- 74a3561: Align the Vue saved-view manager with React: a compact current-view dropdown, save/add icon buttons, a save dialog, and contextual deletion. Preserve explicit empty grouping so saving or reloading a table view cannot activate its configured Kanban lanes. Restore partial views against catalogue defaults, preserve URL overrides and edits made during asynchronous persistence, pass table context to view actions, and expose recoverable localized errors. Keep legacy Vue translations and local-storage views compatible.
+- 3c7125c: Make the Vue toolbar reset shortcut invoke the same handler as the Options menu
+  reset. Both clear column and advanced filters, restore configured default sorting
+  and column visibility, and remove grouping. They preserve search and unrelated
+  presentation state, and use the same `reset` translation for their label and tooltip.
+- 1a0e0f2: Fix Vue typed filter editing and keyboard menus, align local-date filtering, and verify shared form and bulk contracts.
+- cbe6738: Fix the Vue Options icon being compressed in icon-only toolbars. Keep nested
+  Options button spacing at the same CSS specificity as direct toolbar actions so
+  the existing icon-only padding rule applies, including when a counter is shown.
+  Labeled toolbar buttons retain their existing spacing.
+- 597095c: Make declarative table-picker fields inherit the parent table locale and resolved translations by default.
+- eb56cb9: Unify table, Kanban, and gallery grouping state.
+- 0ac9b33: Fix Vue bulk action callback handling, JSON patch validation, asynchronous locking, and partial-delete refreshes while preserving failed or newly selected rows.
+- 39a6fcd: Add the missing Vue column drag-and-drop feature gate and persistent user toggle to match the React table behavior. Publish the maintained Vue example with the registry GitHub Pages site.
+
 ## 1.3.0
 
 ### Minor Changes

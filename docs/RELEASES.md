@@ -53,8 +53,13 @@ versioned independently; `bun run version` synchronizes its version from the
 root package. Validate the complete release plan before merging:
 
 ```bash
+bun run changeset:check
 bun run changeset:status
 ```
+
+`changeset:check` validates pending release targets and remains valid after a
+release has consumed the Changesets. `changeset:status` previews the next
+version while Changesets are still pending.
 
 ## Release steps
 

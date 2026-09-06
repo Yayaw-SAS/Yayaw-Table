@@ -28,11 +28,7 @@ jobs:
         run: bun install --cwd packages/yayaw-table-vue --frozen-lockfile
 
       - name: Validate changesets
-        run: |
-          if ! git show-ref --verify --quiet refs/heads/main; then
-            git branch main origin/main
-          fi
-          bun run changeset:status
+        run: bun run changeset:check
 
       - name: Type check
         run: bun run type-check
