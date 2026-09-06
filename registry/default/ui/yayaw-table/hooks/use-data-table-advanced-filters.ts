@@ -3,8 +3,8 @@
  * Provides backward compatibility while adding advanced filtering capabilities
  */
 
-import type { ColumnFiltersState } from "@tanstack/react-table";
 import { useCallback, useMemo } from "react";
+import type { ColumnFiltersState } from "../tanstack";
 import type { DateDisplayPreset } from "../types/date-types";
 import type {
   AdvancedFilterModel,

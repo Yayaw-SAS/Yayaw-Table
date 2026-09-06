@@ -2,6 +2,10 @@
 
 The Vue 3 port of YaYaw Table. It keeps the React edition's config-driven API and action contracts while using Vue reactivity and `@tanstack/vue-table`.
 
+The current edition uses TanStack Table 9.2.4 and requires an ESM build
+targeting ES2022 or newer. Vue support remains `^3.5.0`; the TanStack migration
+does not widen framework compatibility.
+
 ## Included
 
 - Table, Kanban, and Gallery display modes
@@ -28,6 +32,12 @@ bun run vue:build
 ```
 
 The interactive demo runs at `http://localhost:5173`.
+
+When migrating an existing installation from TanStack Table 8, reinstall the
+registry so `src/tanstack.ts` and `@tanstack/vue-table` are updated together.
+The adapter translates TanStack 9's internal `start`/`end` pinning state to the
+existing `left`/`right` saved-view and URL contract, so persisted views need no
+data migration.
 
 ## Package usage
 

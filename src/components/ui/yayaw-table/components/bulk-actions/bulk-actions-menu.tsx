@@ -4,7 +4,7 @@
  */
 "use client";
 
-import type { Row } from "@tanstack/react-table";
+import type { Row } from "@/components/ui/yayaw-table/tanstack";
 import { AnimatePresence, LazyMotion, domAnimation, m } from "framer-motion";
 import { CheckCheck, Copy, Download, Edit, Loader2, Trash2, X } from "lucide-react";
 import {

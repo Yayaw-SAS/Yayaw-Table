@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { Row } from "@tanstack/react-table";
+import type { Row } from "@/components/ui/yayaw-table/tanstack";
 import { useSetAtom } from "jotai";
 import { MoreHorizontal } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef } from "react";

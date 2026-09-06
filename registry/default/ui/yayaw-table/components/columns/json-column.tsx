@@ -4,8 +4,8 @@
  */
 "use client";
 
-import type { CellContext, ColumnDef } from "@tanstack/react-table";
 import { Braces, type LucideIcon } from "lucide-react";
+import type { CellContext, ColumnDef } from "../../tanstack";
 
 import { JsonCell } from "../cells/json-cell";
 

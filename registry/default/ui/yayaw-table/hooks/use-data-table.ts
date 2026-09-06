@@ -5,27 +5,22 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
+import type * as React from "react";
+import { useCallback, useMemo } from "react";
+import type { ActionsColumnProps } from "../components/columns/actions-column";
+import { useColumns } from "../components/columns/hooks/use-columns";
+import { useTranslations } from "../providers/table-provider";
 import {
   type ColumnDef,
   type ColumnFilter,
   type ColumnSizingState,
   type ColumnSort,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
   type OnChangeFn,
   type PaginationState,
   type Row,
-  useReactTable,
+  useYayawTable,
   type VisibilityState,
-} from "@tanstack/react-table";
-import type * as React from "react";
-import { useCallback, useMemo } from "react";
-
-import type { ActionsColumnProps } from "../components/columns/actions-column";
-import { useColumns } from "../components/columns/hooks/use-columns";
-import { useTranslations } from "../providers/table-provider";
+} from "../tanstack";
 import { compatibleListParams } from "../utils/table-contracts";
 import { invalidateTableDataQuery } from "./query-cache-utils";
 import type { InlineEditColumnRuntimeConfig } from "./use-inline-edit-runtime";
@@ -818,22 +813,19 @@ export function useDataTable<TData extends Record<string, unknown>>(
   }, [columns, getColumnLabel]);
 
   // Create table instance with configuration
-  const table = useReactTable({
+  const table = useYayawTable({
     columns,
     columnResizeMode: "onChange",
     data: data || [],
     enableColumnFilters: config.table.enableColumnFilters,
     enableColumnResizing: config.table.enableColumnResizing === true,
     enableMultiRowSelection: config.table.enableMultiRowSelection !== false,
+    enableRowRangeSelection: false,
     enableRowSelection: resolveRowSelectionOption<TData>({
       canSelectRow: config.table.canSelectRow,
       enableRowSelection: config.table.enableRowSelection,
     }),
     enableSorting: config.table.enableSorting,
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
     manualFiltering: true,
     manualPagination: true,
     manualSorting: true,

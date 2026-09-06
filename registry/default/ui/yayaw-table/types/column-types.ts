@@ -1,7 +1,7 @@
 /**
  * Type definitions for DataTable column management
  */
-import type { CellContext, Row } from "@tanstack/react-table";
+import type { CellContext, Row } from "../tanstack";
 import type { DateDisplayPreset } from "./date-types";
 
 /**

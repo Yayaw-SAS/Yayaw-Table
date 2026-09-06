@@ -4,7 +4,7 @@
  */
 "use client";
 
-import type { CellContext } from "@tanstack/react-table";
+import type { CellContext } from "@/components/ui/yayaw-table/tanstack";
 import { ToggleRight } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { BooleanCell } from "../cells/boolean-cell";

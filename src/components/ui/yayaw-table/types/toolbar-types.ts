@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { Row } from "@tanstack/react-table";
+import type { Row } from "@/components/ui/yayaw-table/tanstack";
 import type { TableActions } from "../providers/table-provider";
 
 export type ToolbarActionVariant =

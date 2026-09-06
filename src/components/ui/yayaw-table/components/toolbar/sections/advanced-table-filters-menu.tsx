@@ -4,7 +4,7 @@
  */
 "use client";
 
-import type { ColumnFiltersState } from "@tanstack/react-table";
+import type { ColumnFiltersState } from "@/components/ui/yayaw-table/tanstack";
 import { Filter, X } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { Badge } from "@/src/components/ui/badge";

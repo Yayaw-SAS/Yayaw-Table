@@ -1,7 +1,6 @@
 "use client";
 
 import { flip, offset, shift, useFloating } from "@floating-ui/react-dom";
-import type { Column, Table } from "@tanstack/react-table";
 import { useAtom, useSetAtom } from "jotai";
 import {
   ArrowDownIcon,
@@ -37,11 +36,12 @@ import { useDataTable } from "../../../hooks/use-data-table";
 import { useOnClickOutside } from "../../../hooks/use-on-click-outside";
 import { useTableConfig } from "../../../hooks/use-table-config";
 import { useTableTranslations } from "../../../hooks/use-table-translations";
+import type { Column, Table } from "../../../tanstack";
 
 // Debug flag to help track sorting issues
 const _DEBUG = false;
 
-interface ColumnMenuProps<TData> {
+interface ColumnMenuProps<TData, TValue> {
   /**
    * Children elements to render inside the trigger
    */
@@ -50,7 +50,7 @@ interface ColumnMenuProps<TData> {
   /**
    * The column to show the menu for
    */
-  column: Column<TData, unknown>;
+  column: Column<TData, TValue>;
 
   /**
    * The table instance
@@ -216,12 +216,12 @@ const floatingOptions = {
 /**
  * Column menu component that provides options for sorting, filtering, and visibility
  */
-function ColumnMenuBase<TData>({
+function ColumnMenuBase<TData, TValue>({
   children,
   column,
   table,
   tableId = "default-table",
-}: ColumnMenuProps<TData>) {
+}: ColumnMenuProps<TData, TValue>) {
   const [isOpen, setIsOpen] = useState(false);
   const translations = useTableTranslations(tableId);
 
@@ -326,12 +326,12 @@ function ColumnMenuBase<TData>({
   }, [column, isVisible]);
 
   const handlePinLeft = useCallback(() => {
-    column.pin("left");
+    column.pin("start");
     setIsOpen(false);
   }, [column]);
 
   const handlePinRight = useCallback(() => {
-    column.pin("right");
+    column.pin("end");
     setIsOpen(false);
   }, [column]);
 
@@ -410,13 +410,13 @@ function ColumnMenuBase<TData>({
             {canPin && (
               <div className="mt-1 border-t pt-1">
                 <MenuItem
-                  disabled={pinnedPosition === "left"}
+                  disabled={pinnedPosition === "start"}
                   icon={ArrowLeftToLine}
                   label={translations.columnPinLeft}
                   onClick={handlePinLeft}
                 />
                 <MenuItem
-                  disabled={pinnedPosition === "right"}
+                  disabled={pinnedPosition === "end"}
                   icon={ArrowRightToLine}
                   label={translations.columnPinRight}
                   onClick={handlePinRight}

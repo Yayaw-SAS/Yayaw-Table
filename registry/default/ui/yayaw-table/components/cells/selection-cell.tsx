@@ -4,10 +4,10 @@
  */
 "use client";
 
-import type { Row } from "@tanstack/react-table";
 import { useCallback, useEffect, useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import type { Row } from "../../tanstack";
 
 const _DEBUG = false;
 

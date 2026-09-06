@@ -1,11 +1,11 @@
 "use client";
 
-import type { Cell } from "@tanstack/react-table";
 import type { ReactNode } from "react";
 import type {
   InlineEditColumnRuntimeConfig,
   InlineEditCommitResult,
 } from "../../hooks/use-inline-edit-runtime";
+import type { Cell } from "../../tanstack";
 import {
   canEditInlineFormField,
   validateInlineFormValue,

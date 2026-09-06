@@ -4,9 +4,9 @@
  */
 "use client";
 
-import type { CellContext } from "@tanstack/react-table";
 import { ToggleRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import type { CellContext } from "../../tanstack";
 import { BooleanCell } from "../cells/boolean-cell";
 
 // GroupHeader removed (inlined) to reduce complexity and avoid unused symbol

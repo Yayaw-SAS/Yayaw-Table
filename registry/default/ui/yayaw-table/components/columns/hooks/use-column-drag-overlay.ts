@@ -1,8 +1,8 @@
 "use client";
 
 import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
-import type { Table } from "@tanstack/react-table";
 import { useCallback, useState } from "react";
+import type { Table } from "../../../tanstack";
 
 interface UseColumnDragOverlayProps<TData> {
   /**

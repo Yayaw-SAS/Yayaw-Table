@@ -4,7 +4,6 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import type { Row } from "@tanstack/react-table";
 import { useAtom } from "jotai";
 import { useCallback, useMemo } from "react";
 import { toast } from "sonner";
@@ -14,6 +13,7 @@ import {
   catalogueFormAtom,
   openUpdateForm,
 } from "../components/forms/atoms/catalogue-form-atoms";
+import type { Row } from "../tanstack";
 
 /**
  * Configuration for bulk edit

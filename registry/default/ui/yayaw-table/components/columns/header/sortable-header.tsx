@@ -1,9 +1,9 @@
 "use client";
 
-import type { Column } from "@tanstack/react-table";
 import type { CSSProperties, ReactNode } from "react";
 import { TableHead } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import type { Column } from "../../../tanstack";
 
 import { getColumnPinningStyles } from "../../../utils/column-pinning-styles";
 
@@ -31,10 +31,10 @@ export function SortableHeader({
 
   const headerStyles: CSSProperties = {
     boxShadow: pinningStyles.boxShadow || "none",
-    left: pinningStyles.left,
+    insetInlineStart: pinningStyles.insetInlineStart,
     opacity: pinningStyles.opacity || 1,
     position: (pinningStyles.position as "relative" | "sticky") || "relative",
-    right: pinningStyles.right,
+    insetInlineEnd: pinningStyles.insetInlineEnd,
     zIndex: pinningStyles.zIndex || 0,
     ...style,
   };

@@ -4,7 +4,7 @@
  */
 "use client";
 
-import type { Row } from "@tanstack/react-table";
+import type { Row } from "@/components/ui/yayaw-table/tanstack";
 import type React from "react";
 // Import advanced filters hook directly
 import { Suspense, useMemo } from "react";
@@ -665,7 +665,7 @@ function DataTableContent({
                 className={className}
                 activeRowId={activeRowId}
                 columns={
-                  columns as import("@tanstack/react-table").ColumnDef<
+                  columns as import("@/components/ui/yayaw-table/tanstack").ColumnDef<
                     Record<string, unknown>
                   >[]
                 }

@@ -4,8 +4,8 @@
  */
 "use client";
 
-import type { Row } from "@tanstack/react-table";
 import type { ReactNode } from "react";
+import type { Row } from "../../tanstack";
 
 import { ActionsCellWithTranslations } from "../cells/actions-cell";
 

@@ -1,12 +1,12 @@
 "use client";
 
-import type { Row, Table as TanStackTable } from "@tanstack/react-table";
-import { flexRender } from "@tanstack/react-table";
 import { ExternalLink, ImageIcon, Pencil } from "lucide-react";
 import { type MouseEvent, type ReactNode, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { TableCatalogueColumnConfig } from "../hooks/use-table-config";
+import type { Row, Table as TanStackTable } from "../tanstack";
+import { flexRender } from "../tanstack";
 import type { TableGalleryConfig } from "../types/display-types";
 import { shouldActivateCardFromKeyboard } from "../utils/card-interaction";
 import {
@@ -629,7 +629,7 @@ export function DataTableGalleryView<TData extends Record<string, unknown>>({
   onRowClick,
   table,
 }: DataTableGalleryViewProps<TData>) {
-  const hasTableGrouping = table.getState().grouping.length > 0;
+  const hasTableGrouping = table.store.state.grouping.length > 0;
   const rows = (
     hasTableGrouping
       ? table.getPreGroupedRowModel().rows

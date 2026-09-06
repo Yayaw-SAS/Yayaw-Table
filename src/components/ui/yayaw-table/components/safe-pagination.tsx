@@ -3,7 +3,7 @@
  */
 "use client";
 
-import type { Table } from "@tanstack/react-table";
+import type { Table } from "@/components/ui/yayaw-table/tanstack";
 import {
   ChevronDown,
   ChevronLeft,
@@ -40,7 +40,7 @@ export function SafePagination<TData>({
   const translations = useTableTranslations();
 
   // Get pagination state
-  const { pageIndex, pageSize } = table.getState().pagination;
+  const { pageIndex, pageSize } = table.store.state.pagination;
   const pageCount = table.getPageCount();
 
   // Calculate display info
@@ -65,7 +65,7 @@ export function SafePagination<TData>({
         return;
       }
 
-      const current = table.getState().pagination.pageSize;
+      const current = table.store.state.pagination.pageSize;
       if (parsedSize === current) {
         return;
       }

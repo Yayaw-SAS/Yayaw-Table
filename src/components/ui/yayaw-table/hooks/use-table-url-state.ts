@@ -10,7 +10,7 @@ import type {
   ColumnSizingState,
   SortingState,
   VisibilityState,
-} from "@tanstack/react-table";
+} from "@/components/ui/yayaw-table/tanstack";
 import { atom, useAtom, useStore } from "jotai";
 import { atomFamily } from "jotai-family";
 import { createParser, useQueryState } from "nuqs";

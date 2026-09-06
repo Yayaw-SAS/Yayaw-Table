@@ -3,17 +3,14 @@ import {
   FlexRender,
   type Column,
   type ColumnDef,
-  getCoreRowModel,
-  getExpandedRowModel,
-  getFilteredRowModel,
-  getGroupedRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
+  fromInternalColumnPinning,
+  type InternalColumnPinningState,
   type Row,
   type RowSelectionState,
+  toInternalColumnPinning,
   type Updater,
-  useVueTable,
-} from "@tanstack/vue-table";
+  useYayawTable,
+} from "../../tanstack";
 import { ArrowDown, ArrowUp, GripVertical } from "lucide-vue-next";
 import { type CSSProperties, computed, h, ref, watch, onBeforeUnmount } from "vue";
 import { useTableContext } from "../../context";
@@ -53,6 +50,12 @@ const clientRows = computed(() =>
         columns: context.config.columns.definitions,
         advancedFilters: context.state.advancedFilters.value,
       })
+);
+const internalRowSelection = computed<RowSelectionState>(
+  () =>
+    Object.fromEntries(
+      Object.entries(context.selection.value).filter(([, selected]) => selected)
+    ) as RowSelectionState
 );
 const columnValue = (column: ColumnDefinition, row: TableRecord): unknown =>
   column.accessorFn
@@ -112,7 +115,9 @@ const columns = computed<ColumnDef<TableRecord>[]>(() => {
               type: "checkbox",
               class: "yayaw-checkbox",
               checked: table.getIsAllPageRowsSelected(),
-              indeterminate: table.getIsSomePageRowsSelected(),
+              indeterminate:
+                table.getIsSomePageRowsSelected() &&
+                !table.getIsAllPageRowsSelected(),
               "aria-label": "Select page",
               onChange: table.getToggleAllPageRowsSelectedHandler(),
             })
@@ -148,28 +153,19 @@ const columns = computed<ColumnDef<TableRecord>[]>(() => {
   return definitions;
 });
 
-const table = useVueTable({
+const table = useYayawTable({
   get data() {
     return clientRows.value;
   },
   get columns() {
     return columns.value;
   },
-  getCoreRowModel: getCoreRowModel(),
-  getFilteredRowModel: getFilteredRowModel(),
-  getSortedRowModel: getSortedRowModel(),
-  getPaginationRowModel: context.config.table.enablePagination
-    ? getPaginationRowModel()
-    : undefined,
-  getGroupedRowModel: context.config.table.enableGrouping
-    ? getGroupedRowModel()
-    : undefined,
-  getExpandedRowModel: getExpandedRowModel(),
   enableColumnFilters: context.config.table.enableColumnFilters,
   enableColumnPinning: context.config.table.enableColumnPinning,
   enableColumnResizing: context.config.table.enableColumnResizing === true,
   columnResizeMode: "onChange",
   enableGrouping: context.config.table.enableGrouping,
+  enableRowRangeSelection: false,
   enableSorting: context.config.table.enableSorting,
   getRowId: (row, index) => context.getRowId(row, index),
   getSubRows: (row) => row.subRows as TableRecord[] | undefined,
@@ -193,7 +189,9 @@ const table = useVueTable({
     return context.data.isServer.value;
   },
   get manualPagination() {
-    return context.data.isServer.value;
+    return (
+      context.data.isServer.value || !context.config.table.enablePagination
+    );
   },
   get pageCount() {
     return context.data.isServer.value
@@ -224,13 +222,13 @@ const table = useVueTable({
       return context.state.grouping.value;
     },
     get columnPinning() {
-      return context.state.pinning.value;
+      return toInternalColumnPinning(context.state.pinning.value);
     },
     get pagination() {
       return context.state.pagination.value;
     },
     get rowSelection() {
-      return context.selection.value;
+      return internalRowSelection.value;
     },
   },
   onGlobalFilterChange: (updater) => {
@@ -278,12 +276,11 @@ const table = useVueTable({
   onColumnPinningChange: (updater) => {
     const next = updaterValue(
       updater,
-      context.state.pinning.value
+      toInternalColumnPinning(context.state.pinning.value)
     );
-    context.state.pinning.value = {
-      left: next.left ?? [],
-      right: next.right ?? [],
-    };
+    context.state.pinning.value = fromInternalColumnPinning(
+      next as InternalColumnPinningState
+    );
   },
   onPaginationChange: (updater) => {
     context.state.pagination.value = updaterValue(
@@ -292,15 +289,18 @@ const table = useVueTable({
     );
   },
   onRowSelectionChange: (updater: Updater<RowSelectionState>) => {
-    context.selection.value = updaterValue(updater, context.selection.value);
+    context.selection.value = updaterValue(
+      updater,
+      internalRowSelection.value
+    );
   },
 });
 
 const visibleRows = computed(() => table.getRowModel().rows);
 const visibleColumns = computed(() => [
-  ...table.getLeftVisibleLeafColumns(),
+  ...table.getStartVisibleLeafColumns(),
   ...table.getCenterVisibleLeafColumns(),
-  ...table.getRightVisibleLeafColumns(),
+  ...table.getEndVisibleLeafColumns(),
 ]);
 const totalPages = computed(() => Math.max(1, table.getPageCount()));
 const dataGridStyle = computed<CSSProperties | undefined>(() =>
@@ -615,8 +615,10 @@ const pinnedStyle = (column: Column<TableRecord>): CSSProperties => {
   return {
     ...sizingStyle,
     position: "sticky",
-    left: pinned === "left" ? `${column.getStart("left")}px` : undefined,
-    right: pinned === "right" ? `${column.getAfter("right")}px` : undefined,
+    insetInlineStart:
+      pinned === "start" ? `${column.getStart("start")}px` : undefined,
+    insetInlineEnd:
+      pinned === "end" ? `${column.getAfter("end")}px` : undefined,
     zIndex: 2,
     background: "var(--yayaw-background)",
   };

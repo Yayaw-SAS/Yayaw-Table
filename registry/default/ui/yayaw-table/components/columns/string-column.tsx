@@ -4,9 +4,9 @@
  */
 "use client";
 
-import type { CellContext, ColumnDef } from "@tanstack/react-table";
 import { Asterisk, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import type { CellContext, ColumnDef } from "../../tanstack";
 import { StringCell } from "../cells/string-cell";
 
 /**

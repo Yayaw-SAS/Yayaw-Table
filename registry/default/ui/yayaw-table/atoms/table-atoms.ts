@@ -1,3 +1,10 @@
+/**
+ * Base atoms for DataTable component
+ * These atoms provide core functionality used across the DataTable
+ */
+import { atom } from "jotai";
+import { atomWithStorage } from "jotai/utils";
+import { atomFamily } from "jotai-family";
 import type {
   ColumnFiltersState,
   ExpandedState,
@@ -7,14 +14,7 @@ import type {
   RowSelectionState,
   SortingState,
   VisibilityState,
-} from "@tanstack/react-table";
-/**
- * Base atoms for DataTable component
- * These atoms provide core functionality used across the DataTable
- */
-import { atom } from "jotai";
-import { atomWithStorage } from "jotai/utils";
-import { atomFamily } from "jotai-family";
+} from "../tanstack";
 
 import type { DataTableColumnDef } from "../types/column-types";
 

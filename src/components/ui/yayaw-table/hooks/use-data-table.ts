@@ -10,16 +10,12 @@ import {
   type ColumnFilter,
   type ColumnSort,
   type ColumnSizingState,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
   type OnChangeFn,
   type PaginationState,
   type Row,
-  useReactTable,
+  useYayawTable,
   type VisibilityState,
-} from "@tanstack/react-table";
+} from "@/components/ui/yayaw-table/tanstack";
 import type * as React from "react";
 import { useCallback, useMemo } from "react";
 
@@ -822,22 +818,19 @@ export function useDataTable<TData extends Record<string, unknown>>(
   }, [columns, getColumnLabel]);
 
   // Create table instance with configuration
-  const table = useReactTable({
+  const table = useYayawTable({
     columns,
     columnResizeMode: "onChange",
     data: data || [],
     enableColumnFilters: config.table.enableColumnFilters,
     enableColumnResizing: config.table.enableColumnResizing === true,
     enableMultiRowSelection: config.table.enableMultiRowSelection !== false,
+    enableRowRangeSelection: false,
     enableRowSelection: resolveRowSelectionOption<TData>({
       canSelectRow: config.table.canSelectRow,
       enableRowSelection: config.table.enableRowSelection,
     }),
     enableSorting: config.table.enableSorting,
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
     manualFiltering: true,
     manualPagination: true,
     manualSorting: true,

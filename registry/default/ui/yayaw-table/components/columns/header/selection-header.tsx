@@ -1,12 +1,14 @@
-import type { Column, Table } from "@tanstack/react-table";
 import { Checkbox } from "@/components/ui/checkbox";
+import type { Column, Table } from "../../../tanstack";
 
-interface SelectionHeaderProps<TData> {
-  column: Column<TData, unknown>;
+interface SelectionHeaderProps<TData, TValue> {
+  column: Column<TData, TValue>;
   table?: Table<TData>;
 }
 
-export function SelectionHeader<TData>({ table }: SelectionHeaderProps<TData>) {
+export function SelectionHeader<TData, TValue>({
+  table,
+}: SelectionHeaderProps<TData, TValue>) {
   if (!table) {
     return <div className="flex h-4 w-4 items-center justify-center" />;
   }

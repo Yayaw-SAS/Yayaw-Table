@@ -4,12 +4,11 @@
  */
 "use client";
 
-import type { CellContext, ColumnDef } from "@tanstack/react-table";
 import { type LucideIcon, Shapes } from "lucide-react";
 import { memo, type ReactNode, useCallback, useMemo } from "react";
-
 // Import necessary components
 import { useTableTranslations } from "../../hooks";
+import type { CellContext, ColumnDef } from "../../tanstack";
 import { BooleanCell } from "../cells/boolean-cell";
 import { JsonCell } from "../cells/json-cell";
 import { NumberCell } from "../cells/number-cell";

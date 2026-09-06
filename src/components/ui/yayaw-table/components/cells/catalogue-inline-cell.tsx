@@ -1,6 +1,6 @@
 "use client";
 
-import type { Cell } from "@tanstack/react-table";
+import type { Cell } from "@/components/ui/yayaw-table/tanstack";
 import type { ReactNode } from "react";
 import type {
   InlineEditColumnRuntimeConfig,

@@ -4,7 +4,7 @@
  */
 "use client";
 
-import type { ColumnSort } from "@tanstack/react-table";
+import type { ColumnSort } from "@/components/ui/yayaw-table/tanstack";
 import { useMemo } from "react";
 import type { TableFormConfig } from "../config/form-config";
 import type {

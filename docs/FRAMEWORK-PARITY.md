@@ -6,6 +6,8 @@ The two registries remain independently installable. Their shared adapter lives 
 
 React and Vue are editions of the same product. A consumer-facing change is ready to merge only when both editions expose equivalent public contracts and observable outcomes, with equivalent regression coverage and no known functional gap. Framework primitives and internal component structure may differ when their behavior remains equivalent.
 
+Both editions use TanStack Table 9.2.4 through framework-specific adapters with the same explicit feature, row-model, filter, sort, and aggregation registrations. The adapters preserve YaYaw's two-generic table types and `left`/`right` persisted pinning contract while translating to TanStack 9's internal `start`/`end` state. Existing saved views and table URLs therefore remain readable. TanStack 9 requires ESM and an ES2022 target. The Vue edition continues to require Vue `^3.5.0`; this migration does not expand the supported framework range.
+
 Every parity-affecting PR must update this document and keep the Vue example at `packages/yayaw-table-vue/demo/App.vue` representative of the React example. Public API, behavior, default, setup, example, or migration changes also require matching English and French documentation in [`Yayaw-SAS/Yayaw`](https://github.com/Yayaw-SAS/Yayaw), including an exact protected seed transition for the database-backed documentation system.
 
 ## Actions and views
@@ -88,7 +90,7 @@ Return `{ success: false, failedIds: ["remaining-id"], error: "..." }` for a par
 
 ## Cards, inline editing, and reset
 
-Vue gallery and Kanban use the same pagination state as the table. Local rows are filtered and sorted before slicing; server pages are not sliced twice. Kanban grouping follows toolbar grouping, configured lanes apply only to their configured field, and rejected updates restore the previous lane. Card properties use the column renderer, and image cells accept HTTP(S), relative paths, blob URLs, and supported image data URLs.
+Vue gallery and Kanban use the same pagination state as the table. Local rows are filtered and sorted before slicing, using natural text ordering and type-aware number/date comparisons that match the table; server pages are not sliced twice. Kanban grouping follows toolbar grouping, configured lanes apply only to their configured field, and rejected updates restore the previous lane. Card properties use the column renderer, and image cells accept HTTP(S), relative paths, blob URLs, and supported image data URLs.
 
 React inline editing resolves the catalogue for each row and honors hidden/disabled predicates, row permissions, asynchronous field validation, and schema transforms. Collections, custom fields, and remote pickers use the full catalogue editor.
 
@@ -139,7 +141,7 @@ The parity contract covers user-visible behavior and serializable catalogue/acti
 | Export and refresh | All matching pages, current query/order, partial-result protection, mutation refresh/clamping | Shared paginated fixtures; both action suites |
 | Accessibility and i18n | Translated controls, menu/dialog focus, row activation, column/Kanban keyboard alternatives | Vue keyboard suites; React mounted interaction suites |
 | URL state | Compatible query keys when enabled; isolated in-memory state when disabled | React `url-sync-parity.test.tsx`; Vue state/catalogue-control suites |
-| Distribution | Generated React and Vue registries plus repository Vue example | Type checks, full tests, Vue builds, registry sync/pages build |
+| Distribution | TanStack Table 9.2.4 with matched explicit features, generated React and Vue registries, and the repository Vue example | Adapter compatibility tests, type checks, full tests, Vue builds, registry sync/pages build |
 
 ## Verification and distribution
 

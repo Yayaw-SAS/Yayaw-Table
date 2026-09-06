@@ -1,7 +1,7 @@
 "use client";
 
 import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
-import type { Table } from "@tanstack/react-table";
+import type { Table } from "@/components/ui/yayaw-table/tanstack";
 import { useCallback, useState } from "react";
 
 interface UseColumnDragOverlayProps<TData> {

@@ -10,7 +10,7 @@ import type {
   ColumnPinningState,
   ColumnSizingState,
   SortingState,
-} from "@tanstack/react-table";
+} from "../tanstack";
 import type {
   TableDisplayMode,
   TableGalleryViewConfig,

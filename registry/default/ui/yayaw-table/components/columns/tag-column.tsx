@@ -4,9 +4,9 @@
  */
 "use client";
 
-import type { ColumnDef } from "@tanstack/react-table";
 import { type LucideIcon, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import type { ColumnDef } from "../../tanstack";
 import { TagCell } from "../cells/tag-cell";
 
 /**

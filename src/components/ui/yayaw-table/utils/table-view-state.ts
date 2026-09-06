@@ -4,7 +4,7 @@ import type {
   ColumnSizingState,
   SortingState,
   VisibilityState,
-} from "@tanstack/react-table";
+} from "@/components/ui/yayaw-table/tanstack";
 import type {
   TableDisplayMode,
   TableGalleryAspectRatio,

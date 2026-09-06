@@ -4,7 +4,11 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import type { Row, Table } from "@tanstack/react-table";
+import type {
+  Row,
+  RowSelectionState,
+  Table,
+} from "@/components/ui/yayaw-table/tanstack";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { BulkEditTarget } from "../components/forms/catalogue-bulk-editor";
@@ -466,8 +470,8 @@ function getSortedSelectedIds(rowSelection: Record<string, boolean>): string[] {
 
 export function buildRowSelectionState(
   rowIds: string[]
-): Record<string, boolean> {
-  const selection: Record<string, boolean> = {};
+): RowSelectionState {
+  const selection: RowSelectionState = {};
 
   for (const rowId of rowIds) {
     if (rowId.trim().length === 0) {
@@ -1156,18 +1160,11 @@ export function useBulkActions<TData>({
   const [bulkEditTargets, setBulkEditTargets] = useState<
     BulkEditTarget[] | null
   >(null);
-  const currentRowSelection =
-    table && typeof table.getState === "function"
-      ? table.getState().rowSelection || {}
-      : {};
-  const currentPageRows = table?.getCoreRowModel().rows;
+  const currentRowSelection = table.store.state.rowSelection;
+  const currentPageRows = table.getCoreRowModel().rows;
   const currentPageSelectedRows = useMemo(() => {
-    if (!table || typeof table.getState !== "function") {
-      return [] as Row<TData>[];
-    }
-
-    return (currentPageRows ?? []).filter((row) => currentRowSelection[row.id]);
-  }, [currentRowSelection, currentPageRows, table]);
+    return currentPageRows.filter((row) => currentRowSelection[row.id]);
+  }, [currentRowSelection, currentPageRows]);
   const currentSelectionIds = useMemo(
     () => getSortedSelectedIds(currentRowSelection),
     [currentRowSelection]
@@ -1315,7 +1312,13 @@ export function useBulkActions<TData>({
         listAction,
         pageSizeParam,
         sortParam,
-        getRowId: table.options.getRowId,
+        getRowId: table.options.getRowId
+          ? (row, index) =>
+              table.options.getRowId?.(
+                row as TData & Record<string, unknown>,
+                index
+              ) ?? ""
+          : undefined,
         canSelectRow:
           typeof table.options.enableRowSelection === "function"
             ? table.options.enableRowSelection

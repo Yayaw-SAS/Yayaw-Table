@@ -1,9 +1,9 @@
 "use client";
 
-import type { CellContext, ColumnDef } from "@tanstack/react-table";
 import { Link2, type LucideIcon } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import type { CellContext, ColumnDef } from "../../tanstack";
 import { UrlCell } from "../cells/url-cell";
 
 type UrlDisplayMode = "icon" | "domain" | "full" | "row-link";

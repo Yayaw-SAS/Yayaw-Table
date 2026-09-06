@@ -1,6 +1,6 @@
 "use client";
 
-import type { TableState } from "@tanstack/react-table";
+import type { TableState } from "@/components/ui/yayaw-table/tanstack";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import {
   ArrowUpDown,

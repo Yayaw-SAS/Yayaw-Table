@@ -2,16 +2,15 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import type { Column, Table } from "@tanstack/react-table";
 import { useAtomValue } from "jotai";
 import { ArrowDown, ArrowUp, GripVertical } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
 import { columnDragEnabledAtom } from "../../../atoms/table-atoms";
 import { useTableConfig } from "../../../hooks/use-table-config";
 import { useTableTranslations } from "../../../hooks/use-table-translations";
+import type { Column, Table } from "../../../tanstack";
 import { resizedColumnSizeFromKey } from "../../../utils/table-contracts";
 
 import { ActionsHeader } from "./actions-header";
@@ -191,7 +190,7 @@ function DataTableColumnHeaderBase<TData, TValue>({
   const selectionHeaderContent = useMemo(() => {
     if (isSelectionColumn) {
       return tableInstance ? (
-        <SelectionHeader<TData> column={column} table={tableInstance} />
+        <SelectionHeader<TData, TValue> column={column} table={tableInstance} />
       ) : (
         <div className="flex h-4 w-4 items-center justify-center" />
       );

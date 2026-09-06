@@ -1,6 +1,5 @@
 "use client";
 
-import type { Cell } from "@tanstack/react-table";
 import type { KeyboardEvent, ReactNode } from "react";
 import { memo, useCallback, useMemo } from "react";
 import {
@@ -37,6 +36,7 @@ import {
   validateInlineEditValue,
 } from "../../hooks/use-inline-edit-runtime";
 import { useTranslations } from "../../providers/table-provider";
+import type { Cell } from "../../tanstack";
 import type { AnyFieldDefinition } from "../forms/types";
 
 interface InlineEditableCellProps<TData extends Record<string, unknown>> {

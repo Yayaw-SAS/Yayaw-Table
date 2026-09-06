@@ -6,12 +6,12 @@
  */
 "use client";
 
-import type { Table } from "@tanstack/react-table";
 import { type CSSProperties, memo, useMemo } from "react";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { useGlobalColumnCalculations } from "../../hooks/use-global-column-calculations";
 import { useTableConfig } from "../../hooks/use-table-config";
+import type { Table } from "../../tanstack";
 import type { CalculationType } from "../../types/footer-types";
 import { isCalculationValidForColumn } from "../../types/footer-types";
 import { CalculationMenu } from "./calculation-menu";

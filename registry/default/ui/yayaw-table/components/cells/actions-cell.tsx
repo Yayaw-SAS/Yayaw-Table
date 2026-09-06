@@ -1,7 +1,6 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { Row } from "@tanstack/react-table";
 import { useSetAtom } from "jotai";
 import { MoreHorizontal } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
@@ -17,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "../../providers/table-provider";
+import type { Row } from "../../tanstack";
 import { Icon } from "../../ui-custom/icon";
 
 import type { ActionItem } from "../columns/actions-column";

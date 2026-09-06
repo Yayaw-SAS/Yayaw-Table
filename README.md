@@ -34,6 +34,10 @@ Vue 3:
 npx shadcn-vue@latest add https://table.yayaw.app/r/yayaw-table-vue.json
 ```
 
+Both editions use TanStack Table 9.2.4 and require an ESM build targeting
+ES2022 or newer. The Vue edition continues to require Vue `^3.5.0`; this
+migration does not widen framework compatibility.
+
 Pinned React releases are available under `/r/vX.Y.Z/yayaw-table.json`. Projects with the registry namespace configured can also use:
 
 ```bash
@@ -78,6 +82,15 @@ columns. Drag with a pointer or use Left/Right Arrow, Home, and End while a
 handle is focused. Double-click restores the configured width. Add
 `enableResizing: false` to an individual column to keep it fixed. Resized widths
 are included in saved views and shareable URLs in both React and Vue.
+
+### Migrate from TanStack Table 8
+
+Reinstall the registry so the generated `tanstack.ts` adapter and the TanStack
+Table 9 dependency are updated together. Import table-bound TanStack types from
+that local adapter when extending the copied components. TanStack 9 uses
+`start`/`end` for its internal pinning state, while YaYaw's public saved-view and
+URL contracts remain `left`/`right`; existing serialized views require no data
+migration.
 
 ## Development
 

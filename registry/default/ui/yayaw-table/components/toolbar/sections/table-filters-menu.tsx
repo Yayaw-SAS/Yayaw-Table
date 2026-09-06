@@ -1,6 +1,5 @@
 "use client";
 
-import type { ColumnFiltersState } from "@tanstack/react-table";
 import { useAtomValue, useSetAtom } from "jotai";
 import { Filter, X } from "lucide-react";
 import { useEffect } from "react";
@@ -8,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { tableMenuOpenFilterColumnIdAtom } from "../../../atoms/table-atoms";
 import { useTranslations } from "../../../providers/table-provider";
+import type { ColumnFiltersState } from "../../../tanstack";
 import type {
   AdvancedFiltersState,
   ColumnsFilterConfig,

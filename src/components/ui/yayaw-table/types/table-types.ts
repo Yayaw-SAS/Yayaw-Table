@@ -1,7 +1,7 @@
 import type {
   ColumnDef,
   ColumnFiltersState,
-} from "@tanstack/react-table";
+} from "@/components/ui/yayaw-table/tanstack";
 import type { CustomBulkActionsInput } from "../components/bulk-actions";
 import type { TableEmptyStateConfig } from "../config/helpers";
 import type { TableView } from "./view-types";

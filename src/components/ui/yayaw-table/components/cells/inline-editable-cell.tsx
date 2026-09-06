@@ -1,6 +1,6 @@
 "use client";
 
-import type { Cell } from "@tanstack/react-table";
+import type { Cell } from "@/components/ui/yayaw-table/tanstack";
 import type { KeyboardEvent, ReactNode } from "react";
 import { memo, useCallback, useMemo } from "react";
 import { cn } from "@/lib/utils";

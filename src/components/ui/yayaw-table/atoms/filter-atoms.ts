@@ -2,7 +2,7 @@
  * Filter atoms for DataTable component
  * These atoms manage filter-related state
  */
-import type { ColumnFiltersState } from "@tanstack/react-table";
+import type { ColumnFiltersState } from "@/components/ui/yayaw-table/tanstack";
 import { atom } from "jotai";
 import { atomFamily } from "jotai-family";
 

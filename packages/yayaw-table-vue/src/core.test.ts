@@ -7,6 +7,7 @@ import {
 } from "./config";
 import {
   applyAdvancedFilters,
+  applyTableQuery,
   calculateColumn,
   createLocalTableViewActions,
   createTableViewSnapshot,
@@ -179,6 +180,43 @@ describe("advanced filtering", () => {
     expect(
       applyAdvancedFilters(rows, { filters, joinOperator: "or" })
     ).toHaveLength(3);
+  });
+});
+
+describe("local sorting", () => {
+  it("uses natural text ordering without parsing labels as dates", () => {
+    const products = [1, 2, 9, 10, 12, 34].map((number) => ({
+      id: String(number),
+      name: `Product ${number}`,
+    }));
+
+    expect(
+      applyTableQuery(products, {
+        columns: [{ id: "name", header: "Name", type: "text" }],
+        sorting: [{ id: "name", desc: true }],
+      }).map((row) => row.name)
+    ).toEqual([
+      "Product 34",
+      "Product 12",
+      "Product 10",
+      "Product 9",
+      "Product 2",
+      "Product 1",
+    ]);
+  });
+
+  it("parses dates only for date columns", () => {
+    const datedRows = [
+      { id: "first", createdAt: "2026-12-01" },
+      { id: "second", createdAt: "2026-02-01" },
+    ];
+
+    expect(
+      applyTableQuery(datedRows, {
+        columns: [{ id: "createdAt", header: "Created", type: "date" }],
+        sorting: [{ id: "createdAt", desc: false }],
+      }).map((row) => row.id)
+    ).toEqual(["second", "first"]);
   });
 });
 

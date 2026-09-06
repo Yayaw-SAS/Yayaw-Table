@@ -3,7 +3,7 @@
  * Provides backward compatibility while adding advanced filtering capabilities
  */
 
-import type { ColumnFiltersState } from "@tanstack/react-table";
+import type { ColumnFiltersState } from "@/components/ui/yayaw-table/tanstack";
 import { useCallback, useMemo } from "react";
 import type { DateDisplayPreset } from "../types/date-types";
 import type {
