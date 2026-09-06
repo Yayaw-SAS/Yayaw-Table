@@ -6,6 +6,7 @@
 import type {
   ColumnFiltersState,
   ColumnPinningState,
+  ColumnSizingState,
   SortingState,
   VisibilityState,
 } from "@tanstack/react-table";
@@ -103,6 +104,11 @@ export interface TableViewConfig {
    * Pinned columns
    */
   columnPinning?: ColumnPinningState;
+
+  /**
+   * User-defined column widths
+   */
+  columnSizing?: ColumnSizingState;
 
   /**
    * Column visibility

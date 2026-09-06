@@ -130,6 +130,8 @@ export interface ColumnDefinition<TData extends TableRecord = TableRecord> {
   enableFiltering?: boolean;
   enableSorting?: boolean;
   enableGrouping?: boolean;
+  /** Allow the user to resize this column. */
+  enableResizing?: boolean;
   enableHiding?: boolean;
   /** Allow the native column menu to change this column's pinned position. */
   enablePinning?: boolean;
@@ -233,6 +235,8 @@ export interface TableBehaviorConfig<TData extends TableRecord = TableRecord> {
   enableColumnDnd?: boolean;
   /** Initial column drag-and-drop preference when no saved preference exists. */
   enableColumnDragDropByDefault: boolean;
+  /** Enable interactive column resizing and persist widths in views. */
+  enableColumnResizing?: boolean;
   enableColumnFilters: boolean;
   /** Catalogue defaults; explicit component props take precedence. */
   enableAdvancedFilters?: boolean;
@@ -574,6 +578,7 @@ export interface TableViewConfig {
   sorting?: SortingState;
   columnVisibility?: ColumnVisibilityState;
   columnOrder?: string[];
+  columnSizing?: Record<string, number>;
   displayMode?: TableDisplayMode;
   kanban?: TableKanbanViewConfig;
   gallery?: TableGalleryViewConfig;

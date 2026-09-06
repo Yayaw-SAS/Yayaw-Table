@@ -51,6 +51,11 @@ export interface DataTableState {
   columnOrder: string[];
 
   /**
+   * User-defined column widths
+   */
+  columnSizing: Record<string, number>;
+
+  /**
    * Column visibility
    */
   columnVisibility: Record<string, boolean>;

@@ -8,6 +8,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   type ColumnDef,
   type ColumnFilter,
+  type ColumnSizingState,
   type ColumnSort,
   getCoreRowModel,
   getFilteredRowModel,
@@ -411,6 +412,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
 
   // Get table state from URL parameters with proper type assertions
   const columnOrder = (tableUrlState.orderParam || []) as string[];
+  const columnSizing = tableUrlState.sizingParam as ColumnSizingState;
   const sorting = (tableUrlState.sortParam || []) as ColumnSort[];
 
   // Compute column visibility: when URL has no visibility state, derive it
@@ -718,9 +720,10 @@ export function useDataTable<TData extends Record<string, unknown>>(
     // Add selection column if enabled
     if (config.table.enableRowSelection) {
       // Use the selection column from the columns hook
-      columnDefs.push(
-        withInlineEditMeta(column.selection(), selectionInlineMeta)
-      );
+      columnDefs.push({
+        ...withInlineEditMeta(column.selection(), selectionInlineMeta),
+        enableResizing: false,
+      });
     }
 
     // Add columns from configuration
@@ -733,6 +736,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
       const configuredColumnDef = {
         ...sizedColumnDef,
         enablePinning: colDef.enablePinning !== false,
+        enableResizing: colDef.enableResizing !== false,
       };
 
       columnDefs.push(
@@ -747,8 +751,8 @@ export function useDataTable<TData extends Record<string, unknown>>(
 
     // Add actions column if not already added
     if (!columnDefs.some((col) => "id" in col && col.id === "actions")) {
-      columnDefs.push(
-        withInlineEditMeta(
+      columnDefs.push({
+        ...withInlineEditMeta(
           buildActionsColumnDef({
             includeView: true,
             withDuplicateHandler: true,
@@ -763,8 +767,9 @@ export function useDataTable<TData extends Record<string, unknown>>(
               featureEnabled: isInlineEditAllowed,
             }
           )
-        )
-      );
+        ),
+        enableResizing: false,
+      });
     }
 
     return createColumns(columnDefs);
@@ -815,8 +820,10 @@ export function useDataTable<TData extends Record<string, unknown>>(
   // Create table instance with configuration
   const table = useReactTable({
     columns,
+    columnResizeMode: "onChange",
     data: data || [],
     enableColumnFilters: config.table.enableColumnFilters,
+    enableColumnResizing: config.table.enableColumnResizing === true,
     enableMultiRowSelection: config.table.enableMultiRowSelection !== false,
     enableRowSelection: resolveRowSelectionOption<TData>({
       canSelectRow: config.table.canSelectRow,
@@ -836,6 +843,11 @@ export function useDataTable<TData extends Record<string, unknown>>(
     onColumnOrderChange: tableUrlState.setOrderFromUI as OnChangeFn<
       typeof columnOrder
     >,
+    onColumnSizingChange: (updater) => {
+      const nextSizing =
+        typeof updater === "function" ? updater(columnSizing) : updater;
+      tableUrlState.setSizingFromUI(nextSizing);
+    },
     onColumnVisibilityChange: tableUrlState.setVisibilityFromUI as OnChangeFn<
       typeof columnVisibility
     >,
@@ -847,6 +859,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
     state: {
       columnFilters,
       columnOrder,
+      columnSizing,
       columnVisibility,
       pagination,
       rowSelection,
@@ -900,6 +913,8 @@ export function useDataTable<TData extends Record<string, unknown>>(
     setColumnVisibility: tableUrlState.setVisibilityFromUI as OnChangeFn<
       typeof columnVisibility
     >,
+    setColumnSizing:
+      tableUrlState.setSizingFromUI as OnChangeFn<ColumnSizingState>,
     setGrouping: tableUrlState.setGroupingFromUI,
 
     setPageIndex: (pageIndex: number) =>
@@ -912,6 +927,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
     state: {
       columnFilters,
       columnOrder,
+      columnSizing,
       columnVisibility,
       grouping: tableUrlState.groupingParam || [],
       pagination,

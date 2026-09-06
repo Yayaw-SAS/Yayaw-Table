@@ -112,22 +112,27 @@ function FooterRowBase<TData>({
   ): CSSProperties | undefined => {
     const def = column.columnDef;
     const isFixed = column.id === "select" || column.id === "actions";
+    const isResizable = table.options.enableColumnResizing === true;
     const hasExplicitSizing =
       typeof (def as { size?: number }).size === "number" ||
       typeof (def as { minSize?: number }).minSize === "number" ||
       typeof (def as { maxSize?: number }).maxSize === "number";
 
-    if (!(isFixed || hasExplicitSizing)) {
+    if (!(isFixed || hasExplicitSizing || isResizable)) {
       return undefined;
     }
 
     const style: CSSProperties = {};
     const size = column.getSize();
 
-    if (isFixed || typeof (def as { size?: number }).size === "number") {
+    if (
+      isFixed ||
+      isResizable ||
+      typeof (def as { size?: number }).size === "number"
+    ) {
       style.width = size;
     }
-    if (isFixed) {
+    if (isFixed || isResizable) {
       style.minWidth = size;
     } else if (typeof (def as { minSize?: number }).minSize === "number") {
       style.minWidth = (def as { minSize: number }).minSize;

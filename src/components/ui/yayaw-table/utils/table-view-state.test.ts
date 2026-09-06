@@ -6,6 +6,7 @@ import {
   getDisplayModeGrouping,
   normalizeTableViewConfig,
 } from "./table-view-state";
+import { tableConfigUtils } from "./table-config-utils";
 
 describe("createTableViewConfigSnapshot", () => {
   it("captures useful URL state for saved views", () => {
@@ -43,6 +44,7 @@ describe("createTableViewConfigSnapshot", () => {
       orderParam: ["name", "status"],
       pageSizeParam: "50",
       pinningParam: { left: ["name"], right: [] },
+      sizingParam: { name: 280 },
       sortParam: [{ desc: false, id: "name" }],
       visibilityParam: { website: false },
     });
@@ -63,6 +65,7 @@ describe("createTableViewConfigSnapshot", () => {
       columnFilters: [{ id: "status", value: "available" }],
       columnOrder: ["name", "status"],
       columnPinning: { left: ["name"], right: [] },
+      columnSizing: { name: 280 },
       columnVisibility: { website: false },
       displayMode: "kanban",
       gallery: {
@@ -143,6 +146,15 @@ describe("normalizeTableViewConfig", () => {
     });
 
     assert.deepEqual(config, {});
+  });
+
+  it("keeps valid column widths and drops invalid values", () => {
+    assert.deepEqual(
+      normalizeTableViewConfig({
+        columnSizing: { name: 240.4, status: -1, total: Number.NaN },
+      }),
+      { columnSizing: { name: 240 } }
+    );
   });
 
   it("preserves table, kanban, and gallery display modes", () => {
@@ -259,5 +271,15 @@ describe("areTableViewConfigsEqual", () => {
       ),
       false
     );
+  });
+});
+
+describe("tableConfigUtils column sizing", () => {
+  it("round-trips resized widths through serialized storage", () => {
+    const stored = tableConfigUtils.toStorage({ columnSizing: { name: 240 } });
+    assert.equal(stored.columnSizing, '{"name":240}');
+    assert.deepEqual(tableConfigUtils.fromStorage(stored), {
+      columnSizing: { name: 240 },
+    });
   });
 });

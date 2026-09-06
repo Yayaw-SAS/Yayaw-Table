@@ -8,7 +8,7 @@ The Vue 3 port of YaYaw Table. It keeps the React edition's config-driven API an
 - Local and server-side sorting, filtering, pagination, grouping, and search
 - URL-backed state compatible with existing YaYaw table query keys
 - Saved personal/team views with localStorage fallback
-- Column visibility, ordering, pinning, and native drag-and-drop
+- Column visibility, ordering, pinning, native drag-and-drop, and optional resizing
 - Row selection, bulk edit/copy/delete/export, and custom bulk actions
 - Create/edit forms, sections, Zod validation, async options, collections, and table pickers
 - Inline cell editing with optimistic updates
@@ -62,6 +62,7 @@ const config = defineTableConfig({
     displayModes: ["table", "kanban", "gallery"],
     kanban: { groupBy: "status", titleColumn: "name" },
     gallery: { titleColumn: "name" },
+    enableColumnResizing: true,
   },
   translations: { namespace: "products", keys: { title: "Products" } },
 });
@@ -119,6 +120,12 @@ per table. Set `enablePinning: false` on a column to remove its
 pin controls. Mandatory columns cannot be hidden; selection stays locked left
 and actions locked right. Sorting remains available from the keyboard-accessible
 header label. Menus provide keyboard navigation, Escape dismissal and focus return.
+
+Set `enableColumnResizing: true` on the table to expose resize handles. Pointer
+and touch dragging resize continuously; focused handles accept Left/Right Arrow,
+Home, and End, and a double-click restores the configured width. Set
+`enableResizing: false` on an individual column to keep it fixed. Widths are
+stored in saved views and shareable URLs.
 
 `toolbarActions` accepts a static array or a function of the live action context,
 matching React. The context includes selected IDs/rows, counts, permissions,

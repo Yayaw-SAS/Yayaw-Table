@@ -409,6 +409,7 @@ export const defaultTranslations: DataTableTranslations = {
     pin_left: "Pin left",
     pin_right: "Pin right",
     reorder: "Drag to Reorder",
+    resize: "Resize column",
     sort_ascending: "Sort Ascending",
     sort_descending: "Sort Descending",
     unpin: "Unpin",

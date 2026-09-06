@@ -71,6 +71,14 @@ and icon action modes, including on mobile. Its tooltip and accessible label use
 `filters.clear` from your translations. `showResetFilters` remains a supported
 alias and now has the same behavior in React and Vue.
 
+### Resize columns
+
+Set `table.enableColumnResizing: true` to add accessible resize handles to data
+columns. Drag with a pointer or use Left/Right Arrow, Home, and End while a
+handle is focused. Double-click restores the configured width. Add
+`enableResizing: false` to an individual column to keep it fixed. Resized widths
+are included in saved views and shareable URLs in both React and Vue.
+
 ## Development
 
 ```bash

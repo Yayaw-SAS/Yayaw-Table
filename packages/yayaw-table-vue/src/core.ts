@@ -514,6 +514,12 @@ export const createTableViewSnapshot = (
     snapshot.columnOrder = undefined;
   }
   if (
+    !snapshot.columnSizing ||
+    Object.keys(snapshot.columnSizing).length === 0
+  ) {
+    snapshot.columnSizing = undefined;
+  }
+  if (
     snapshot.columnVisibility &&
     Object.keys(snapshot.columnVisibility).length === 0
   ) {

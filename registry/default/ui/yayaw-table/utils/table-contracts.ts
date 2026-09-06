@@ -1,6 +1,63 @@
 /** Framework-independent adapters. Also copied into the standalone Vue registry. */
 const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 export type ContractRecord = Record<string, unknown>;
+export type ContractColumnSizing = Record<string, number>;
+
+const DEFAULT_COLUMN_RESIZE_STEP = 10;
+
+/** Keep persisted column widths finite, positive, and scoped to known columns. */
+export function normalizeColumnSizing(
+  value: unknown,
+  allowedColumnIds?: readonly string[]
+): ContractColumnSizing {
+  const allowed = allowedColumnIds ? new Set(allowedColumnIds) : undefined;
+  const normalized: ContractColumnSizing = {};
+  for (const [columnId, width] of Object.entries(recordValue(value))) {
+    const numericWidth = Number(width);
+    if (
+      (!allowed || allowed.has(columnId)) &&
+      Number.isFinite(numericWidth) &&
+      numericWidth > 0
+    ) {
+      normalized[columnId] = Math.round(numericWidth);
+    }
+  }
+  return normalized;
+}
+
+/** Resolve the keyboard resize commands shared by the React and Vue headers. */
+export function resizedColumnSizeFromKey({
+  key,
+  maxSize,
+  minSize,
+  size,
+  step = DEFAULT_COLUMN_RESIZE_STEP,
+}: {
+  key: string;
+  maxSize: number;
+  minSize: number;
+  size: number;
+  step?: number;
+}): number | undefined {
+  let nextSize: number;
+  switch (key) {
+    case "ArrowLeft":
+      nextSize = size - step;
+      break;
+    case "ArrowRight":
+      nextSize = size + step;
+      break;
+    case "Home":
+      nextSize = minSize;
+      break;
+    case "End":
+      nextSize = maxSize;
+      break;
+    default:
+      return undefined;
+  }
+  return Math.min(maxSize, Math.max(minSize, nextSize));
+}
 
 export function recordValue(value: unknown): ContractRecord {
   return value && typeof value === "object" && !Array.isArray(value)

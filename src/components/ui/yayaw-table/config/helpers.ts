@@ -248,6 +248,9 @@ export interface ColumnDefinition {
    */
   enableGrouping?: boolean;
 
+  /** Allow the user to resize this column. */
+  enableResizing?: boolean;
+
   /**
    * Translation key for the column header
    */
@@ -523,6 +526,9 @@ export interface TableBehaviorConfig {
    * Enable drag and drop for columns
    */
   enableColumnDragDropByDefault: boolean;
+
+  /** Enable interactive column resizing and persist widths in views. */
+  enableColumnResizing?: boolean;
 
   /**
    * Enable column filters

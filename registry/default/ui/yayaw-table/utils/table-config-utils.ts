@@ -8,6 +8,7 @@ import type {
   ColumnFiltersState,
   ColumnOrderState,
   ColumnPinningState,
+  ColumnSizingState,
   SortingState,
 } from "@tanstack/react-table";
 import type {
@@ -32,6 +33,7 @@ export interface SerializedTableViewConfig {
   columnFilters?: string; // JSON string of filter configurations
   columnOrder?: string; // JSON string of column order
   columnPinning?: string; // JSON string of pinned columns
+  columnSizing?: string; // JSON string of user-defined column widths
   columnVisibility?: string; // JSON string of column visibility
   displayMode?: TableDisplayMode; // Display mode for this view
   gallery?: string; // JSON string of Gallery view configuration
@@ -151,6 +153,7 @@ export const tableConfigUtils = {
         left: [],
         right: [],
       }),
+      columnSizing: safelyParse<ColumnSizingState>(config.columnSizing, {}),
       columnVisibility: safelyParse<ColumnVisibilityState>(
         config.columnVisibility,
         {}
@@ -223,6 +226,9 @@ export const tableConfigUtils = {
         : undefined,
       columnPinning: normalizedConfig.columnPinning
         ? JSON.stringify(normalizedConfig.columnPinning)
+        : undefined,
+      columnSizing: normalizedConfig.columnSizing
+        ? JSON.stringify(normalizedConfig.columnSizing)
         : undefined,
       columnVisibility: normalizedConfig.columnVisibility
         ? JSON.stringify(normalizedConfig.columnVisibility)

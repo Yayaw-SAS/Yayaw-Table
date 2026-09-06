@@ -1,8 +1,37 @@
 import { expect, it } from "vitest";
 import fixtures from "../../../tests/fixtures/parity.json";
 import { applyAdvancedFilters } from "./core";
-import { compatibleListParams } from "./table-contracts";
+import {
+  compatibleListParams,
+  normalizeColumnSizing,
+  resizedColumnSizeFromKey,
+} from "./table-contracts";
 import type { AdvancedFiltersState } from "./types";
+
+it("normalizes persisted widths and keyboard resize commands", () => {
+  expect(
+    normalizeColumnSizing(
+      { name: 241.6, status: -1, unknown: 300, empty: Number.NaN },
+      ["name", "status"]
+    )
+  ).toEqual({ name: 242 });
+  expect(
+    resizedColumnSizeFromKey({
+      key: "ArrowRight",
+      maxSize: 260,
+      minSize: 80,
+      size: 255,
+    })
+  ).toBe(260);
+  expect(
+    resizedColumnSizeFromKey({
+      key: "Home",
+      maxSize: 260,
+      minSize: 80,
+      size: 150,
+    })
+  ).toBe(80);
+});
 
 for (const fixture of fixtures.filters) {
   it(`Vue filtering: ${fixture.label}`, () => {

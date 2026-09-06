@@ -14,6 +14,7 @@ import {
 import { createTableViewSnapshot } from "../core";
 import { cloneFormValue } from "../form-runtime";
 import {
+  normalizeColumnSizing,
   normalizeFilterEnvelope,
   normalizeViewAliases,
   positiveInteger,
@@ -68,6 +69,7 @@ export interface TableStateRefs {
   sorting: Ref<SortingState>;
   visibility: Ref<ColumnVisibilityState>;
   order: Ref<string[]>;
+  sizing: Ref<Record<string, number>>;
   grouping: Ref<string[]>;
   pinning: Ref<ColumnPinningState>;
   pagination: Ref<PaginationState>;
@@ -123,6 +125,7 @@ export const useTableState = <TData extends TableRecord>({
     )
   );
   const order = ref([...config.columns.order]);
+  const sizing = ref<Record<string, number>>({});
   const grouping = ref<string[]>([]);
   const pinning = ref<ColumnPinningState>(emptyPinning());
   const columnIds = config.columns.definitions.map((column) => column.id);
@@ -208,6 +211,10 @@ export const useTableState = <TData extends TableRecord>({
     config.table.enableGrouping ? value : [];
   const enabledPinning = (value: ColumnPinningState): ColumnPinningState =>
     config.table.enableColumnPinning ? value : emptyPinning();
+  const enabledSizing = (value: unknown): Record<string, number> =>
+    config.table.enableColumnResizing
+      ? normalizeColumnSizing(value, columnIds)
+      : {};
   const enabledDisplayMode = (
     requested?: TableDisplayMode
   ): TableDisplayMode =>
@@ -226,6 +233,7 @@ export const useTableState = <TData extends TableRecord>({
       sorting: sorting.value,
       columnVisibility: visibility.value,
       columnOrder: order.value,
+      columnSizing: enabledSizing(sizing.value),
       displayMode: displayMode.value,
       kanban: kanban.value,
       gallery: gallery.value,
@@ -265,6 +273,9 @@ export const useTableState = <TData extends TableRecord>({
     order.value = parseJson(
       params.get(`${tableId}-order`),
       config.columns.order
+    );
+    sizing.value = enabledSizing(
+      parseJson(params.get(`${tableId}-sizing`), {})
     );
     grouping.value = enabledGrouping(
       parseJson(params.get(`${tableId}-grouping`), [])
@@ -339,6 +350,10 @@ export const useTableState = <TData extends TableRecord>({
     );
     set(`${tableId}-visibility`, serialize(visibility.value));
     set(`${tableId}-order`, serialize(order.value));
+    set(
+      `${tableId}-sizing`,
+      Object.keys(sizing.value).length ? serialize(sizing.value) : undefined
+    );
     set(`${tableId}-grouping`, serializedGrouping.value);
     set(`${tableId}-pinning`, serializeEncoded(pinning.value));
     set(
@@ -421,6 +436,7 @@ export const useTableState = <TData extends TableRecord>({
           input.columnOrder ?? config.columns.order,
           columnIds
         ),
+        columnSizing: enabledSizing(input.columnSizing),
         displayMode: enabledDisplayMode(input.displayMode),
         kanban: input.kanban ?? {
           groupBy: config.table.kanban?.groupBy,
@@ -452,6 +468,7 @@ export const useTableState = <TData extends TableRecord>({
     sorting.value = view.sorting ?? [];
     visibility.value = view.columnVisibility ?? {};
     order.value = view.columnOrder ?? [];
+    sizing.value = enabledSizing(view.columnSizing);
     displayMode.value = view.displayMode ?? "table";
     kanban.value = view.kanban ?? {};
     gallery.value = view.gallery ?? {};
@@ -481,6 +498,7 @@ export const useTableState = <TData extends TableRecord>({
         ])
       ),
       columnOrder: config.columns.order,
+      columnSizing: {},
       displayMode: config.table.defaultDisplayMode,
       pageSize: config.table.defaultPageSize,
     });
@@ -497,6 +515,7 @@ export const useTableState = <TData extends TableRecord>({
       sorting,
       visibility,
       order,
+      sizing,
       grouping,
       pinning,
       pagination,
@@ -537,6 +556,7 @@ export const useTableState = <TData extends TableRecord>({
     sorting,
     visibility,
     order,
+    sizing,
     grouping,
     pinning,
     pagination,

@@ -39,6 +39,7 @@ export interface DataTableTranslations {
     filter: string;
     hide_in_view: string;
     reorder: string;
+    resize?: string;
     pin_left?: string;
     pin_right?: string;
     unpin?: string;

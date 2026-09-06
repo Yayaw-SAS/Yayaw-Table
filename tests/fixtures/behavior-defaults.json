@@ -20,6 +20,7 @@
   "enableCalculations": false,
   "enableColumnDnd": true,
   "enableColumnDragDropByDefault": false,
+  "enableColumnResizing": false,
   "enableColumnFilters": true,
   "enableColumnPinning": true,
   "enableGrouping": true,

@@ -582,6 +582,7 @@ function DataTableContent({
             showToolbarHeader: config.table.showToolbarHeader,
             enableColumnDragDropByDefault:
               config.table.enableColumnDragDropByDefault,
+            enableColumnResizing: config.table.enableColumnResizing,
             enableColumnDnd: config.table.enableColumnDnd,
             enableColumnFilters: config.table.enableColumnFilters,
             enableAdvancedFilters: shouldEnableAdvancedFilters,
@@ -673,6 +674,7 @@ function DataTableContent({
                 enableColumnDragDropByDefault={Boolean(
                   config.table.enableColumnDragDropByDefault
                 )}
+                enableColumnResizing={config.table.enableColumnResizing === true}
                 enableColumnFilters={config.table.enableColumnFilters}
                 enableColumnPinning={config.table.enableColumnPinning !== false}
                 enableGrouping={config.table.enableGrouping}

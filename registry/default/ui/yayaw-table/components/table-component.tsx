@@ -409,24 +409,25 @@ function isNumberColumn(def: {
 function getColumnSizingStyle(
   columnDef: ColumnSizingDefinition,
   columnSize: number,
-  isFixedColumn: boolean
+  isFixedColumn: boolean,
+  forceWidth = false
 ): CSSProperties | undefined {
   const hasExplicitSizing =
     typeof columnDef.size === "number" ||
     typeof columnDef.minSize === "number" ||
     typeof columnDef.maxSize === "number";
 
-  if (!(isFixedColumn || hasExplicitSizing)) {
+  if (!(isFixedColumn || hasExplicitSizing || forceWidth)) {
     return undefined;
   }
 
   const style: CSSProperties = {};
 
-  if (isFixedColumn || typeof columnDef.size === "number") {
+  if (isFixedColumn || forceWidth || typeof columnDef.size === "number") {
     style.width = columnSize;
   }
 
-  if (isFixedColumn) {
+  if (isFixedColumn || forceWidth) {
     style.minWidth = columnSize;
   } else if (typeof columnDef.minSize === "number") {
     style.minWidth = columnDef.minSize;
@@ -440,14 +441,16 @@ function getColumnSizingStyle(
 }
 
 function getHeaderSizeStyle<TData>(
-  header: Header<TData, unknown>
+  header: Header<TData, unknown>,
+  forceWidth = false
 ): CSSProperties | undefined {
   const isFixedColumn = header.id === "select" || header.id === "actions";
   const headerDef = header.column.columnDef as ColumnSizingDefinition;
   return getColumnSizingStyle(
     headerDef,
     header.column.getSize(),
-    isFixedColumn
+    isFixedColumn,
+    forceWidth
   );
 }
 
@@ -537,6 +540,7 @@ function renderHeaderContent<TData>(
   return (
     <DataTableColumnHeader
       column={header.column}
+      resizeHandler={header.getResizeHandler()}
       table={table as never}
       tableId={tableId}
       title={header.column.columnDef.header as string}
@@ -699,6 +703,7 @@ type ModernDataTableProps<
 > & {
   className?: string;
   enableColumnDragDropByDefault?: boolean;
+  enableColumnResizing?: boolean;
   enableColumnFilters?: boolean;
   enableColumnPinning?: boolean;
   enableMultiRowSelection?: boolean;
@@ -853,6 +858,7 @@ function ModernDataTable<
   columns = EMPTY_COLUMNS,
   data: _initialData = EMPTY_DATA,
   enableColumnDragDropByDefault = false,
+  enableColumnResizing = false,
   enableColumnFilters = true,
   enableColumnPinning = true,
   enableMultiRowSelection = true,
@@ -1213,6 +1219,7 @@ function ModernDataTable<
       defaultVisibleColumns: tableConfig.columns.visible,
       enableColumnFilters,
       enableColumnPinning,
+      enableColumnResizing,
       enableMultiRowSelection,
       enablePagination,
       enableRowSelection,
@@ -1234,6 +1241,7 @@ function ModernDataTable<
       tableConfig.columns.visible,
       enableColumnFilters,
       enableColumnPinning,
+      enableColumnResizing,
       enableMultiRowSelection,
       enablePagination,
       enableRowSelection,
@@ -1286,6 +1294,7 @@ function ModernDataTable<
   const { columnOrder, pagination: _pagination } = state;
   const headerStateKey = JSON.stringify({
     columnPinning: table.getState().columnPinning,
+    columnSizing: table.getState().columnSizing,
     columnVisibility: table.getState().columnVisibility,
     grouping: table.getState().grouping,
     sorting: table.getState().sorting,
@@ -1708,6 +1717,8 @@ function ModernDataTable<
   //   // Expansion logic disabled to prevent loops
   // }, [state.grouping]);
 
+  const columnSizingKey = JSON.stringify(state.columnSizing);
+
   // Optimize table body content with better memoization
   const tableBodyContent = useMemo(() => {
     // Avoid hydration mismatch: only show skeletons after mount
@@ -1743,7 +1754,11 @@ function ModernDataTable<
           rowIndex={5}
         />,
       ];
-      return <TableBody>{skeletonRows}</TableBody>;
+      return (
+        <TableBody data-column-sizing={columnSizingKey}>
+          {skeletonRows}
+        </TableBody>
+      );
     }
 
     const rows = table.getRowModel().rows as Row<TData>[];
@@ -1756,7 +1771,7 @@ function ModernDataTable<
     });
     if (showEmptyState) {
       return (
-        <TableBody>
+        <TableBody data-column-sizing={columnSizingKey}>
           <TableRow>
             <TableCell
               colSpan={Math.max(table.getVisibleLeafColumns().length, 1)}
@@ -1954,7 +1969,8 @@ function ModernDataTable<
       const sizeStyle = getColumnSizingStyle(
         def,
         cell.column.getSize(),
-        isFixedColumn
+        isFixedColumn,
+        enableColumnResizing
       );
 
       return (
@@ -2138,7 +2154,9 @@ function ModernDataTable<
       renderRowWithChildren(row);
     }
 
-    return <TableBody>{rowElements}</TableBody>;
+    return (
+      <TableBody data-column-sizing={columnSizingKey}>{rowElements}</TableBody>
+    );
   }, [
     commitInlineEdit,
     isLoading,
@@ -2154,6 +2172,7 @@ function ModernDataTable<
     canEditGalleryRow,
     localExpanded,
     state.grouping,
+    columnSizingKey,
     tableConfig.columns.definitions,
     densityMode,
     isSmallDensity,
@@ -2161,6 +2180,7 @@ function ModernDataTable<
     getRowClickMode,
     handleInteractiveRowClick,
     activeRowId,
+    enableColumnResizing,
   ]);
 
   // Optimize table header with better memoization (columnOrder in deps so header re-renders when order changes)
@@ -2188,7 +2208,7 @@ function ModernDataTable<
                   column={header.column as never}
                   id={header.id}
                   key={header.id}
-                  style={getHeaderSizeStyle(header)}
+                  style={getHeaderSizeStyle(header, enableColumnResizing)}
                 >
                   {renderHeaderContent(header, table, tableId)}
                 </SortableHeader>
@@ -2208,6 +2228,7 @@ function ModernDataTable<
     isLargeDensity,
     densityMode,
     headerStateKey,
+    enableColumnResizing,
   ]);
 
   const renderDisplayContent = () => {
@@ -2307,7 +2328,18 @@ function ModernDataTable<
           className={cn("relative w-full overflow-auto", "contain-paint")}
           ref={tableRef}
         >
-          <Table className={cn("w-full", className)}>
+          <Table
+            className={cn(
+              "w-full",
+              enableColumnResizing && "table-fixed",
+              className
+            )}
+            style={
+              enableColumnResizing
+                ? { minWidth: "100%", width: table.getTotalSize() }
+                : undefined
+            }
+          >
             {tableHeader}
             {tableBodyContent}
             {showCalculationsFooter && (

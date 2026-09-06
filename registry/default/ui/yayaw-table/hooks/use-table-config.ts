@@ -47,6 +47,7 @@ export interface TableCatalogueColumnConfig {
   type: string;
   header: string;
   enableGrouping?: boolean;
+  enableResizing?: boolean;
   enableSorting?: boolean;
   enablePinning?: boolean;
   enableColumnFilter?: boolean;
@@ -112,6 +113,7 @@ export interface TableCatalogueTableConfig {
   /** Gate for column DnD feature and UI */
   enableColumnDnd?: boolean;
   enableColumnDragDropByDefault?: boolean;
+  enableColumnResizing?: boolean;
   enableMultiRowSelection?: boolean;
   enablePagination?: boolean;
   defaultPageSize?: number;
@@ -204,6 +206,7 @@ const DEFAULT_TABLE_CONFIG: TableCatalogueConfig = {
     enableViews: true,
     enableColumnDnd: true,
     enableColumnDragDropByDefault: false,
+    enableColumnResizing: false,
     enableMultiRowSelection: true,
     enablePagination: true,
     defaultPageSize: 10,
@@ -354,6 +357,7 @@ function resolveTableBehaviorConfig(
     enableViews: mergedConfig.enableViews !== false,
     enableColumnDnd: mergedConfig.enableColumnDnd ?? true,
     enableColumnDragDropByDefault: mergedConfig.enableColumnDragDropByDefault,
+    enableColumnResizing: Boolean(mergedConfig.enableColumnResizing),
     enableMultiRowSelection: mergedConfig.enableMultiRowSelection,
     enablePagination: mergedConfig.enablePagination,
     defaultPageSize: mergedConfig.defaultPageSize,
