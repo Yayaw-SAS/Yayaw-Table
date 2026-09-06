@@ -39,15 +39,22 @@ npx shadcn@latest add @yayaw/font-yayaw-sans
 
 ## Version policy
 
-Stay on `0.x` until the public API is stable enough for `1.0.0`.
+YaYaw Table follows SemVer from the root `package.json`. React and Vue are
+released together under the same version because they are two editions of one
+product.
 
 - `patch`: bug fix or internal cleanup with no consumer migration.
 - `minor`: new option, component, helper, or backward-compatible behavior.
 - `major`: renamed/removed props, changed imports, changed required providers,
   or any migration that forces consumer code changes.
 
-While the package is below `1.0.0`, breaking consumer changes should usually be
-released as a `minor` bump and clearly documented as breaking in the changelog.
+Every changeset targets `yayaw-table-workspace`. The private Vue package is not
+versioned independently; `bun run version` synchronizes its version from the
+root package. Validate the complete release plan before merging:
+
+```bash
+bun run changeset:status
+```
 
 ## Release steps
 
@@ -63,8 +70,9 @@ released as a `minor` bump and clearly documented as breaking in the changelog.
    bun run version
    ```
 
-   This runs `changeset version`, updates `CHANGELOG.md`, rebuilds the latest
-   registry JSON, and writes every generated item into `public/r/vX.Y.Z/`.
+   This runs `changeset version`, synchronizes the Vue package version, updates
+   `CHANGELOG.md`, rebuilds the latest registry JSON, and writes every generated
+   item into `public/r/vX.Y.Z/`.
 
 3. Verify before tagging:
 
@@ -92,8 +100,8 @@ command prepended.
 
 `bun run registry:release` updates the latest files and creates the versioned
 snapshot for the current `package.json` version. The snapshot includes
-`registry.json`, `yayaw-table.json`, `font-yayaw-sans.json`, and
-`yayaw-table-base.json`.
+`registry.json`, `release.json`, `yayaw-table.json`, `yayaw-table-vue.json`,
+`font-yayaw-sans.json`, and `yayaw-table-base.json`.
 
 Versioned snapshots are immutable. If any file under `public/r/vX.Y.Z/` already
 exists with different content, bump the version before releasing. Use
