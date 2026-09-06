@@ -4,7 +4,6 @@
  */
 "use client";
 
-import type { ColumnSort } from "@tanstack/react-table";
 import { useMemo } from "react";
 import type { TableFormConfig } from "../config/form-config";
 import type {
@@ -25,6 +24,7 @@ import {
   useTableConfig as useProviderTableConfig,
   useTranslations,
 } from "../providers/table-provider";
+import type { ColumnSort } from "../tanstack";
 import type { DateDisplayPreset } from "../types/date-types";
 import type {
   TableDisplayMode,

@@ -1,6 +1,6 @@
 "use client";
 
-import type { GroupingState } from "@tanstack/react-table";
+import type { GroupingState } from "@/components/ui/yayaw-table/tanstack";
 import { useMemo } from "react";
 import { StackMenuContent, StackMenuView } from "@/components/ui/custom/stack-menu";
 import { useTableConfig } from "../../../hooks/use-table-config";

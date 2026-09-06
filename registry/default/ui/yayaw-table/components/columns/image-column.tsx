@@ -1,7 +1,7 @@
 "use client";
 
-import type { CellContext, ColumnDef } from "@tanstack/react-table";
 import { ImageIcon, type LucideIcon } from "lucide-react";
+import type { CellContext, ColumnDef } from "../../tanstack";
 import { ImageCell } from "../cells/image-cell";
 
 interface CustomColumnProps {

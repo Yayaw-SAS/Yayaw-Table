@@ -104,7 +104,7 @@ describe("Gallery display helpers", () => {
       { id: "2", original: { status: "Published" } },
       { id: "3", original: { status: "Draft" } },
       { id: "4", original: { status: null } },
-    ] as unknown as import("@tanstack/react-table").Row<
+    ] as unknown as import("@/components/ui/yayaw-table/tanstack").Row<
       Record<string, unknown>
     >[];
 

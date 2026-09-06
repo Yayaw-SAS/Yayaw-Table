@@ -4,7 +4,6 @@
  */
 "use client";
 
-import type { Row } from "@tanstack/react-table";
 import { AnimatePresence, domAnimation, LazyMotion, m } from "framer-motion";
 import {
   CheckCheck,
@@ -44,6 +43,7 @@ import type {
 } from "../../hooks/use-bulk-actions";
 import { normalizeBulkActionResult } from "../../hooks/use-bulk-actions";
 import { useTranslations } from "../../providers/table-provider";
+import type { Row } from "../../tanstack";
 
 export interface BulkActionContext<TData> {
   selectedRows: Row<TData>[];

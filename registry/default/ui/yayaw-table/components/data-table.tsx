@@ -4,7 +4,6 @@
  */
 "use client";
 
-import type { Row } from "@tanstack/react-table";
 import type React from "react";
 // Import advanced filters hook directly
 import { Suspense, useMemo } from "react";
@@ -15,6 +14,7 @@ import type {
 } from "../hooks/use-bulk-actions";
 import { useDataTable } from "../hooks/use-data-table";
 import type { TableCatalogueConfig } from "../hooks/use-table-config";
+
 import { DataTableUIProvider } from "../providers/data-table-ui-provider";
 import {
   defaultTranslations,
@@ -24,6 +24,7 @@ import {
 } from "../providers/table-provider";
 import { TableStateSyncProvider } from "../providers/table-state-sync-provider";
 import { resolveTranslationsToUiStrings } from "../providers/translation-cache";
+import type { Row } from "../tanstack";
 import type {
   TableDisplayMode,
   TableGalleryConfig,
@@ -661,7 +662,7 @@ function DataTableContent({
                 className={className}
                 closeOnError={closeOnError}
                 columns={
-                  columns as import("@tanstack/react-table").ColumnDef<
+                  columns as import("@/components/ui/yayaw-table/tanstack").ColumnDef<
                     Record<string, unknown>
                   >[]
                 }

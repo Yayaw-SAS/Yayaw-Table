@@ -1,6 +1,6 @@
 "use client";
 
-import type { ColumnFiltersState } from "@tanstack/react-table";
+import type { ColumnFiltersState } from "@/components/ui/yayaw-table/tanstack";
 import { useAtomValue, useSetAtom } from "jotai";
 import { Filter, X } from "lucide-react";
 import { useEffect } from "react";

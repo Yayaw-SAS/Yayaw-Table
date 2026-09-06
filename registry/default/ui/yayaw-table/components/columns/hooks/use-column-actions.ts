@@ -6,7 +6,6 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import type { AccessorFn, ColumnDef, ColumnMeta } from "@tanstack/react-table";
 import { useAtom } from "jotai";
 import { useCallback, useMemo, useRef } from "react";
 import {
@@ -18,6 +17,7 @@ import {
   columnTranslationsAtom,
 } from "../../../atoms/table-atoms";
 import { useTableUrlState } from "../../../hooks/use-table-url-state";
+import type { AccessorFn, ColumnDef, ColumnMeta } from "../../../tanstack";
 import type { DataTableColumnDef } from "../../../types/column-types";
 
 interface UseColumnActionsOptions<

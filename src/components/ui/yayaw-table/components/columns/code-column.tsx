@@ -4,7 +4,7 @@
  */
 "use client";
 
-import type { ColumnDef } from "@tanstack/react-table";
+import type { ColumnDef } from "@/components/ui/yayaw-table/tanstack";
 import { type LucideIcon, SquareCode } from "lucide-react";
 
 import { CodeCell } from "../cells/code-cell";

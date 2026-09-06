@@ -1,6 +1,6 @@
 "use client";
 
-import type { CellContext, ColumnDef } from "@tanstack/react-table";
+import type { CellContext, ColumnDef } from "@/components/ui/yayaw-table/tanstack";
 import { type LucideIcon, Link2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/src/components/ui/button";

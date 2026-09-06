@@ -129,7 +129,7 @@ describe("utility column locks", () => {
     expect(headers[1]?.text()).toContain("Amount");
     expect(headers[2]?.text()).toContain("Name");
     expect(headers[3]?.text()).toContain("Actions");
-    expect(headers[3]?.attributes("style")).toContain("right: 0px");
+    expect(headers[3]?.attributes("style")).toContain("inset-inline-end: 0px");
     expect(headers[0]?.attributes("draggable")).toBe("false");
     expect(headers[3]?.attributes("draggable")).toBe("false");
     expect(wrapper.findAll("tbody td")[1]?.text()).toContain("42");

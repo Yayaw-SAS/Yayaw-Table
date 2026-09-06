@@ -3,7 +3,6 @@
 import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import type { Column, VisibilityState } from "@tanstack/react-table";
 import { useAtom } from "jotai";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -32,6 +31,7 @@ import { useTableConfig } from "../../../hooks/use-table-config";
 import { useTableUIConfig } from "../../../hooks/use-table-ui-config";
 import { useTableUrlState } from "../../../hooks/use-table-url-state";
 import { useTranslations } from "../../../providers/table-provider";
+import type { Column, VisibilityState } from "../../../tanstack";
 import { StackMenuContent } from "../../../ui-custom/stack-menu";
 import { useColumnDnd } from "../../columns/hooks/use-column-dnd";
 

@@ -20,6 +20,10 @@ import type {
 
 const CSV_ESCAPE_PATTERN = /[",\n\r]/;
 const VIEW_STORAGE_KEY_PATTERN = /^yayaw-table:(.+):views$/;
+const NATURAL_SORT_COLLATOR = new Intl.Collator(undefined, {
+  numeric: true,
+  sensitivity: "base",
+});
 
 const isEmptyValue = (value: unknown): boolean =>
   value === null ||
@@ -27,7 +31,10 @@ const isEmptyValue = (value: unknown): boolean =>
   value === "" ||
   (Array.isArray(value) && value.length === 0);
 
-const toComparable = (value: unknown): number | string => {
+const toComparable = (
+  value: unknown,
+  columnType?: ColumnDefinition["type"]
+): number | string => {
   if (value instanceof Date) {
     return value.getTime();
   }
@@ -37,14 +44,28 @@ const toComparable = (value: unknown): number | string => {
   if (typeof value === "boolean") {
     return value ? 1 : 0;
   }
-  const date = typeof value === "string" ? Date.parse(value) : Number.NaN;
-  return Number.isNaN(date) ? String(value ?? "").toLocaleLowerCase() : date;
+  if (columnType === "date" && typeof value === "string") {
+    const date = Date.parse(value);
+    if (!Number.isNaN(date)) {
+      return date;
+    }
+  }
+  if (columnType === "number") {
+    const number = Number(value);
+    if (Number.isFinite(number)) {
+      return number;
+    }
+  }
+  return String(value ?? "").toLocaleLowerCase();
 };
 
 const compareValues = (
   left: number | string,
   right: number | string
 ): number => {
+  if (typeof left === "string" && typeof right === "string") {
+    return NATURAL_SORT_COLLATOR.compare(left, right);
+  }
   if (left < right) {
     return -1;
   }
@@ -96,8 +117,9 @@ export const applyTableQuery = <TData extends TableRecord>(
     sorting?: SortingState;
   }
 ): TData[] => {
+  const columnsById = new Map(columns.map((column) => [column.id, column]));
   const valueFor = (row: TData, columnId: string): unknown => {
-    const column = columns.find((item) => item.id === columnId);
+    const column = columnsById.get(columnId);
     return column?.accessorFn
       ? column.accessorFn(row)
       : row[column?.accessorKey ?? columnId];
@@ -143,8 +165,9 @@ export const applyTableQuery = <TData extends TableRecord>(
   }
   return [...advancedRows].sort((leftRow, rightRow) => {
     for (const sort of sorting) {
-      const left = toComparable(valueFor(leftRow, sort.id));
-      const right = toComparable(valueFor(rightRow, sort.id));
+      const columnType = columnsById.get(sort.id)?.type;
+      const left = toComparable(valueFor(leftRow, sort.id), columnType);
+      const right = toComparable(valueFor(rightRow, sort.id), columnType);
       const comparison = compareValues(left, right);
       if (comparison) {
         return sort.desc ? -comparison : comparison;

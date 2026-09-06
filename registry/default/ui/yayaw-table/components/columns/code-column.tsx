@@ -4,8 +4,8 @@
  */
 "use client";
 
-import type { ColumnDef } from "@tanstack/react-table";
 import { type LucideIcon, SquareCode } from "lucide-react";
+import type { ColumnDef } from "../../tanstack";
 
 import { CodeCell } from "../cells/code-cell";
 

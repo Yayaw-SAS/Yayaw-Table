@@ -1,6 +1,6 @@
-import type { Row } from "@tanstack/react-table";
 import type { ReactNode } from "react";
 import type { TableActions } from "../providers/table-provider";
+import type { Row } from "../tanstack";
 
 export type ToolbarActionVariant =
   | "default"

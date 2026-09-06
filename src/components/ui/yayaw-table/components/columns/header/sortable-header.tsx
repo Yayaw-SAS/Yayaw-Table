@@ -1,6 +1,6 @@
 "use client";
 
-import type { Column } from "@tanstack/react-table";
+import type { Column } from "@/components/ui/yayaw-table/tanstack";
 import type { CSSProperties, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { TableHead } from "@/src/components/ui/table";
@@ -31,10 +31,10 @@ export function SortableHeader({
 
   const headerStyles: CSSProperties = {
     boxShadow: pinningStyles.boxShadow || "none",
-    left: pinningStyles.left,
+    insetInlineStart: pinningStyles.insetInlineStart,
     opacity: pinningStyles.opacity || 1,
     position: (pinningStyles.position as "relative" | "sticky") || "relative",
-    right: pinningStyles.right,
+    insetInlineEnd: pinningStyles.insetInlineEnd,
     zIndex: pinningStyles.zIndex || 0,
     ...style,
   };

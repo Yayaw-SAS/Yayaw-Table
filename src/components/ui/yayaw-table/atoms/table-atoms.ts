@@ -7,7 +7,7 @@ import type {
   RowSelectionState,
   SortingState,
   VisibilityState,
-} from "@tanstack/react-table";
+} from "@/components/ui/yayaw-table/tanstack";
 /**
  * Base atoms for DataTable component
  * These atoms provide core functionality used across the DataTable

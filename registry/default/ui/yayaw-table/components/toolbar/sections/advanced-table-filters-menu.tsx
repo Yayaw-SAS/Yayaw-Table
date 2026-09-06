@@ -4,7 +4,6 @@
  */
 "use client";
 
-import type { ColumnFiltersState } from "@tanstack/react-table";
 import { Filter, X } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useTranslations } from "../../../providers/table-provider";
+import type { ColumnFiltersState } from "../../../tanstack";
 import type {
   AdvancedFiltersState,
   ColumnDataType,

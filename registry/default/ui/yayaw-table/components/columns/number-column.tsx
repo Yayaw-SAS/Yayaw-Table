@@ -4,9 +4,9 @@
  */
 "use client";
 
-import type { CellContext, ColumnDef } from "@tanstack/react-table";
 import { Hash, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import type { CellContext, ColumnDef } from "../../tanstack";
 import type { NumberFormatConfig } from "../../utils/number-format";
 import { formatNumber } from "../../utils/number-format";
 import { NumberCell } from "../cells/number-cell";

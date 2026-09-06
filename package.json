@@ -50,7 +50,7 @@
     "@floating-ui/react-dom": "^2.1.7",
     "@tanstack/react-form": "^1.28.0",
     "@tanstack/react-query": "^5.90.20",
-    "@tanstack/react-table": "^8.21.3",
+    "@tanstack/react-table": "^9.2.4",
     "@tanstack/zod-form-adapter": "^0.42.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

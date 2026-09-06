@@ -1,12 +1,14 @@
-import type { Column, Table } from "@tanstack/react-table";
+import type { Column, Table } from "@/components/ui/yayaw-table/tanstack";
 import { Checkbox } from "@/src/components/ui/checkbox";
 
-interface SelectionHeaderProps<TData> {
-  column: Column<TData, unknown>;
+interface SelectionHeaderProps<TData, TValue> {
+  column: Column<TData, TValue>;
   table?: Table<TData>;
 }
 
-export function SelectionHeader<TData>({ table }: SelectionHeaderProps<TData>) {
+export function SelectionHeader<TData, TValue>({
+  table,
+}: SelectionHeaderProps<TData, TValue>) {
   if (!table) {
     return <div className="flex h-4 w-4 items-center justify-center" />;
   }

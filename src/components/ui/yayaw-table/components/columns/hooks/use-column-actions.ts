@@ -6,7 +6,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import type { AccessorFn, ColumnDef, ColumnMeta } from "@tanstack/react-table";
+import type { AccessorFn, ColumnDef, ColumnMeta } from "@/components/ui/yayaw-table/tanstack";
 import { useAtom } from "jotai";
 import { useCallback, useMemo, useRef } from "react";
 import {

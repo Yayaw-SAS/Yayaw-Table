@@ -4,7 +4,6 @@
  */
 "use client";
 
-import type { CellContext, ColumnDef } from "@tanstack/react-table";
 import {
   CalendarDays,
   ChevronDown,
@@ -13,6 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocale } from "../../providers/table-provider";
+import type { CellContext, ColumnDef } from "../../tanstack";
 import type { DateDisplayPreset } from "../../types/date-types";
 import {
   formatYearMonthGroupLabel,

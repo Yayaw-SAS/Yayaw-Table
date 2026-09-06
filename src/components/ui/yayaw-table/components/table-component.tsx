@@ -5,8 +5,8 @@
 "use client";
 
 import { type QueryClient, useQueryClient } from "@tanstack/react-query";
-import type { Cell, ColumnDef, Header, Row } from "@tanstack/react-table";
-import { flexRender } from "@tanstack/react-table";
+import type { Cell, ColumnDef, Header, Row } from "@/components/ui/yayaw-table/tanstack";
+import { flexRender } from "@/components/ui/yayaw-table/tanstack";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import {
   type CSSProperties,
@@ -811,7 +811,7 @@ MemoizedTableRow.displayName = "MemoizedTableRow";
 
 // Optimize skeleton row with better memoization
 const MemoizedSkeletonRow = memo<{
-  columns: ColumnDef<Record<string, unknown>, unknown>[];
+  columns: readonly unknown[];
   rowIndex: number;
 }>(({ columns: _columns, rowIndex }) => (
   <TableRow key={`skeleton-row-${rowIndex}`}>
@@ -1293,11 +1293,11 @@ function ModernDataTable<
   // Extract important state from the table - memoize derived values
   const { columnOrder, pagination: _pagination } = state;
   const headerStateKey = JSON.stringify({
-    columnPinning: table.getState().columnPinning,
-    columnSizing: table.getState().columnSizing,
-    columnVisibility: table.getState().columnVisibility,
-    grouping: table.getState().grouping,
-    sorting: table.getState().sorting,
+    columnPinning: table.store.state.columnPinning,
+    columnSizing: table.store.state.columnSizing,
+    columnVisibility: table.store.state.columnVisibility,
+    grouping: table.store.state.grouping,
+    sorting: table.store.state.sorting,
   });
 
   // Get leaf column IDs in display order (so headers and SortableContext stay in sync with body)
@@ -1677,7 +1677,9 @@ function ModernDataTable<
   }, [groupingKey, expandedParam, setExpandedFromUI]);
 
   // Sync URL "expand all / collapse all" with local expanded mapping.
-  // Only depend on expandedParam to avoid loops from unstable `table` reference.
+  const expandedParamKey = JSON.stringify(expandedParam ?? {});
+
+  // Depend on serialized content because URL adapters may return a new object per render.
   useEffect(() => {
     const currentTable = tableInstanceRef.current;
     if (!currentTable) {
@@ -1686,7 +1688,11 @@ function ModernDataTable<
     const rows = currentTable.getRowModel().rows as Row<TData>[];
 
     // Expand all
-    if (expandedParam && (expandedParam as Record<string, unknown>)._all) {
+    const requestedExpansion = JSON.parse(expandedParamKey) as Record<
+      string,
+      unknown
+    >;
+    if (requestedExpansion._all) {
       const next: Record<string, boolean> = {};
       const collect = (r: Row<TData>[]) => {
         for (const row of r) {
@@ -1704,7 +1710,7 @@ function ModernDataTable<
 
     // Collapse all (or unsupported structure). Use stable ref to avoid re-render loops.
     setLocalExpanded(EMPTY_EXPANDED);
-  }, [expandedParam]);
+  }, [expandedParamKey]);
 
   // Auto-expand all groups when grouping is active - DISABLED to prevent infinite loops
   // TODO: Implement stable group expansion logic
@@ -1790,7 +1796,7 @@ function ModernDataTable<
     const getSelectionCounts = (row: Row<TData>) => {
       const selectedCount =
         row.subRows?.filter((subRow) => {
-          const selection = table.getState().rowSelection;
+          const selection = table.store.state.rowSelection;
           return selection[subRow.id];
         }).length ?? 0;
       const totalCount = row.subRows?.length ?? 0;
@@ -2074,7 +2080,7 @@ function ModernDataTable<
 
     const pushSelectionGroupRows = (row: Row<TData>, level: number) => {
       const visibleCells = row.getVisibleCells();
-      const selection = table.getState().rowSelection;
+      const selection = table.store.state.rowSelection;
       const selectedRows: Row<TData>[] = [];
       const unselectedRows: Row<TData>[] = [];
       for (const subRow of row.subRows || []) {
@@ -2396,7 +2402,7 @@ function ModernDataTable<
     const showPaginationControls = shouldRenderPaginationControls({
       enablePagination,
       pageCount: table.getPageCount(),
-      pageSize: table.getState().pagination.pageSize,
+      pageSize: table.store.state.pagination.pageSize,
       rowCount,
     });
     const showPaginationArea =

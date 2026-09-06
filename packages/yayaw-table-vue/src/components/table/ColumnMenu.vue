@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Column } from "@tanstack/vue-table";
+import type { Column } from "../../tanstack";
 import { ArrowDown, ArrowLeftToLine, ArrowRightToLine, ArrowUp, ArrowUpDown, EyeOff, Funnel, GripVertical, MoreHorizontal, PinOff } from "lucide-vue-next";
 import { DropdownMenuContent, DropdownMenuItem, DropdownMenuPortal, DropdownMenuRoot, DropdownMenuSeparator, DropdownMenuTrigger } from "reka-ui";
 import { computed } from "vue";
@@ -39,8 +39,8 @@ const openColumnFilter = (): void => {
         <DropdownMenuItem v-if="column.getCanFilter()" class="yayaw-column-menu-item" @select="openColumnFilter"><Funnel :size="16" aria-hidden="true" />{{ translate('filters.column') }}</DropdownMenuItem>
         <DropdownMenuSeparator v-if="(column.getCanSort() || column.getCanFilter()) && (column.getCanPin() || column.getCanHide())" class="yayaw-column-menu-divider" />
         <template v-if="column.getCanPin()">
-          <DropdownMenuItem class="yayaw-column-menu-item" :disabled="column.getIsPinned() === 'left'" @select="column.pin('left')"><ArrowLeftToLine :size="16" aria-hidden="true" />{{ translate('pinLeft') }}</DropdownMenuItem>
-          <DropdownMenuItem class="yayaw-column-menu-item" :disabled="column.getIsPinned() === 'right'" @select="column.pin('right')"><ArrowRightToLine :size="16" aria-hidden="true" />{{ translate('pinRight') }}</DropdownMenuItem>
+          <DropdownMenuItem class="yayaw-column-menu-item" :disabled="column.getIsPinned() === 'start'" @select="column.pin('start')"><ArrowLeftToLine :size="16" aria-hidden="true" />{{ translate('pinLeft') }}</DropdownMenuItem>
+          <DropdownMenuItem class="yayaw-column-menu-item" :disabled="column.getIsPinned() === 'end'" @select="column.pin('end')"><ArrowRightToLine :size="16" aria-hidden="true" />{{ translate('pinRight') }}</DropdownMenuItem>
           <DropdownMenuItem v-if="column.getIsPinned()" class="yayaw-column-menu-item" @select="column.pin(false)"><PinOff :size="16" aria-hidden="true" />{{ translate('unpin') }}</DropdownMenuItem>
         </template>
         <DropdownMenuSeparator v-if="column.getCanPin() && column.getCanHide()" class="yayaw-column-menu-divider" />

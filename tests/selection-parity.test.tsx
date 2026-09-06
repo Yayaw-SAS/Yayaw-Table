@@ -1,15 +1,14 @@
 import "./setup-dom";
 import { afterEach, expect, it } from "bun:test";
 import { QueryClient } from "@tanstack/react-query";
-import {
-  getCoreRowModel,
-  type RowSelectionState,
-  useReactTable,
-} from "@tanstack/react-table";
 import { createStore, Provider } from "jotai";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { act, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import {
+  type RowSelectionState,
+  useYayawTable,
+} from "@/components/ui/yayaw-table/tanstack";
 import { useBulkActions } from "../src/components/ui/yayaw-table/hooks/use-bulk-actions";
 import { useTableUrlState } from "../src/components/ui/yayaw-table/hooks/use-table-url-state";
 import {
@@ -48,11 +47,10 @@ async function mountSelection(
   function Probe() {
     const [data, setData] = useState(records.slice(0, 1));
     const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
-    const table = useReactTable({
+    const table = useYayawTable({
       data,
       columns: [{ accessorKey: "name" }],
       getRowId: (row) => row.id,
-      getCoreRowModel: getCoreRowModel(),
       state: { rowSelection },
       onRowSelectionChange: setRowSelection,
       enableRowSelection: (row) => row.original.id !== "3",

@@ -1,7 +1,5 @@
 "use client";
 
-import type { Row, Table as TanStackTable } from "@tanstack/react-table";
-import { flexRender } from "@tanstack/react-table";
 import { GripVertical } from "lucide-react";
 import {
   type KeyboardEvent,
@@ -15,6 +13,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { TableCatalogueColumnConfig } from "../hooks/use-table-config";
+import type { Row, Table as TanStackTable } from "../tanstack";
+import { flexRender } from "../tanstack";
 import type {
   TableKanbanConfig,
   TableKanbanGroupConfig,
@@ -475,7 +475,7 @@ export function DataTableKanbanView<TData extends Record<string, unknown>>({
   table,
   titleColumnId,
 }: DataTableKanbanViewProps<TData>) {
-  const hasTableGrouping = table.getState().grouping.length > 0;
+  const hasTableGrouping = table.store.state.grouping.length > 0;
   const rows = (
     hasTableGrouping
       ? table.getPreGroupedRowModel().rows

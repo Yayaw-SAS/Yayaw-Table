@@ -1,6 +1,6 @@
 "use client";
 
-import type { SortingState } from "@tanstack/react-table";
+import type { SortingState } from "@/components/ui/yayaw-table/tanstack";
 import { ArrowDownAZ, ArrowUpAZ, ArrowUpDown, Plus } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import {

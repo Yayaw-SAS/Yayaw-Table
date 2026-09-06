@@ -6,7 +6,7 @@
  */
 "use client";
 
-import type { Table } from "@tanstack/react-table";
+import type { Table } from "@/components/ui/yayaw-table/tanstack";
 import { memo, useMemo, type CSSProperties } from "react";
 import { cn } from "@/lib/utils";
 import { TableCell, TableRow } from "@/src/components/ui/table";

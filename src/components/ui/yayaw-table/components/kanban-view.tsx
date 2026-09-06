@@ -1,7 +1,7 @@
 "use client";
 
-import type { Row, Table as TanStackTable } from "@tanstack/react-table";
-import { flexRender } from "@tanstack/react-table";
+import type { Row, Table as TanStackTable } from "@/components/ui/yayaw-table/tanstack";
+import { flexRender } from "@/components/ui/yayaw-table/tanstack";
 import { GripVertical } from "lucide-react";
 import {
   type KeyboardEvent,
@@ -468,7 +468,7 @@ export function DataTableKanbanView<TData extends Record<string, unknown>>({
   table,
   titleColumnId,
 }: DataTableKanbanViewProps<TData>) {
-  const hasTableGrouping = table.getState().grouping.length > 0;
+  const hasTableGrouping = table.store.state.grouping.length > 0;
   const rows = (
     hasTableGrouping
       ? table.getPreGroupedRowModel().rows

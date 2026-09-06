@@ -4,10 +4,10 @@
  */
 "use client";
 
-import type { ColumnDef } from "@tanstack/react-table";
 import { useAtomValue } from "jotai";
 import { useMemo } from "react";
 import { tableConfigFamilyAtom } from "../../../atoms/config-atoms";
+import type { ColumnDef } from "../../../tanstack";
 import type { DataTableColumnDef } from "../../../types/column-types";
 import {
   createActionsColumn,

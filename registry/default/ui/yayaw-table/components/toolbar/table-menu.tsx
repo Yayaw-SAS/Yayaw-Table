@@ -1,6 +1,5 @@
 "use client";
 
-import type { TableState } from "@tanstack/react-table";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import {
   ArrowUpDown,
@@ -27,6 +26,7 @@ import {
 } from "../../atoms";
 import { useTableUrlState } from "../../hooks/use-table-url-state";
 import { useTranslations } from "../../providers/table-provider";
+import type { TableState } from "../../tanstack";
 import type { ColumnDataType } from "../../types";
 import type { TableDisplayMode } from "../../types/display-types";
 import type {

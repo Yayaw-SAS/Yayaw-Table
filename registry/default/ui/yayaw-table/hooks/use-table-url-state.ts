@@ -4,19 +4,19 @@
  */
 "use client";
 
-import type {
-  ColumnFiltersState,
-  ColumnPinningState,
-  ColumnSizingState,
-  SortingState,
-  VisibilityState,
-} from "@tanstack/react-table";
 import { atom, useAtom, useStore } from "jotai";
 import { atomFamily } from "jotai-family";
 import { createParser, useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { filterResetVersionAtom } from "../atoms/table-atoms";
 import { useTableStateSync } from "../providers/table-state-sync-provider";
+import type {
+  ColumnFiltersState,
+  ColumnPinningState,
+  ColumnSizingState,
+  SortingState,
+  VisibilityState,
+} from "../tanstack";
 import type {
   TableDisplayMode,
   TableGalleryViewConfig,

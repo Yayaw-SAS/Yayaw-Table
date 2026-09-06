@@ -4,7 +4,12 @@
  */
 "use client";
 
-import type { ColumnDef, Row, Table } from "@tanstack/react-table";
+import type {
+  ColumnDef,
+  Row,
+  RowSelectionState,
+  Table,
+} from "@/components/ui/yayaw-table/tanstack";
 import { useState } from "react";
 import { Checkbox } from "@/src/components/ui/checkbox";
 import { SelectionCell } from "../cells/selection-cell";
@@ -48,7 +53,7 @@ function SelectionHeaderBase<TData>({ table }: SelectionHeaderProps<TData>) {
     return <div className="flex h-4 w-4 items-center justify-center" />;
   }
 
-  const rowSelection = table.getState().rowSelection;
+  const rowSelection = table.store.state.rowSelection;
   const allRows = table.getRowModel().rows;
   const coreRows = table.getCoreRowModel().rows;
   const selectableCoreRows = coreRows.filter((row) => row.getCanSelect());
@@ -65,10 +70,10 @@ function SelectionHeaderBase<TData>({ table }: SelectionHeaderProps<TData>) {
 
   const handleToggle = (value: boolean) => {
     if (value) {
-      const newSelection: Record<string, boolean> = {
+      const newSelection = {
         ...rowSelection,
         ...Object.fromEntries(visibleLeafIds.map((id) => [id, true])),
-      };
+      } as RowSelectionState;
       table.setRowSelection(newSelection);
     } else {
       table.setRowSelection({});
@@ -113,21 +118,21 @@ export function GroupRowSelectionCell<TData>({
   table: Table<TData>;
 }) {
   const leafIds = getSelectableLeafRowIds(row);
-  const rowSelection = table.getState().rowSelection || {};
+  const rowSelection = table.store.state.rowSelection || {};
   const selectedInGroup = leafIds.filter((id) => rowSelection[id]).length;
   const allSelected = selectedInGroup === leafIds.length && leafIds.length > 0;
   const someSelected = selectedInGroup > 0;
 
   const handleGroupToggle = (value: boolean) => {
     const leafSet = new Set(leafIds);
-    const next: Record<string, boolean> = value
+    const next = (value
       ? {
           ...rowSelection,
           ...Object.fromEntries(leafIds.map((id) => [id, true])),
         }
       : Object.fromEntries(
           Object.entries(rowSelection).filter(([id]) => !leafSet.has(id))
-        );
+        )) as RowSelectionState;
     table.setRowSelection(next);
   };
 

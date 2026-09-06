@@ -14,7 +14,7 @@ import type {
   SortingState,
   Table,
   VisibilityState,
-} from "@tanstack/react-table";
+} from "@/components/ui/yayaw-table/tanstack";
 import { useAtomValue, useSetAtom } from "jotai";
 import { Download, Loader2, PlusIcon, RotateCcw } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
@@ -379,7 +379,7 @@ function useFinalColumnVisibility(
       return {} as VisibilityState;
     }
     return (state?.columnVisibility ??
-      table.getState().columnVisibility) as VisibilityState;
+      table.store.state.columnVisibility) as VisibilityState;
   }, [state?.columnVisibility, table]);
 }
 
@@ -1106,22 +1106,21 @@ export function DataTableAdvancedToolbar<TData>({
           state={{
             columnFilters: finalColumnFilters as ColumnFiltersState,
             columnOrder: [],
-            columnPinning: { left: [], right: [] },
+            columnPinning: { end: [], start: [] },
             columnSizing: {} as ColumnSizingState,
-            columnSizingInfo: {
+            columnResizing: {
               columnSizingStart: [],
-              deltaOffset: 0,
-              deltaPercentage: 0,
+              deltaOffset: null,
+              deltaPercentage: null,
               isResizingColumn: false,
-              startOffset: 0,
-              startSize: 0,
+              startOffset: null,
+              startSize: null,
             },
             columnVisibility: finalColumnVisibility as VisibilityState,
             expanded: {},
             globalFilter: "",
             grouping: finalGrouping as GroupingState,
             pagination: { pageIndex: 0, pageSize: 10 },
-            rowPinning: { bottom: [], top: [] },
             rowSelection: {},
             sorting: finalSorting as SortingState,
           }}

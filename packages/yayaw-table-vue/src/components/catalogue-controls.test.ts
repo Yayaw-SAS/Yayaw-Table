@@ -117,7 +117,7 @@ describe("catalogue-owned controls", () => {
     expect(wrapper.text()).not.toMatch(placeholderGlyphs);
     expect(wrapper.findAll(".yayaw-column-menu-trigger")).toHaveLength(2);
     expect(wrapper.findAll("th").at(-1)?.attributes("style")).toContain(
-      "right: 0px"
+      "inset-inline-end: 0px"
     );
     await openMenu(wrapper);
     expect(item("Hide column")).toBeUndefined();
@@ -125,7 +125,7 @@ describe("catalogue-owned controls", () => {
     await flushPromises();
     expect(
       wrapper.get('[aria-label="Manage column: Name"]').element.closest("th")
-        ?.style.right
+        ?.style.insetInlineEnd
     ).toBe("48px");
     await openMenu(wrapper);
     expect(item("Pin right")?.hasAttribute("data-disabled")).toBe(true);

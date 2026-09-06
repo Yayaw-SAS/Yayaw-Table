@@ -2,7 +2,7 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import type { Column, Table } from "@tanstack/react-table";
+import type { Column, Table } from "@/components/ui/yayaw-table/tanstack";
 import { useAtomValue } from "jotai";
 import { ArrowDown, ArrowUp, GripVertical } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -188,7 +188,10 @@ function DataTableColumnHeaderBase<TData, TValue>({
   const selectionHeaderContent = useMemo(() => {
     if (isSelectionColumn) {
       return tableInstance ? (
-        <SelectionHeader<TData> column={column} table={tableInstance} />
+        <SelectionHeader<TData, TValue>
+          column={column}
+          table={tableInstance}
+        />
       ) : (
         <div className="flex h-4 w-4 items-center justify-center" />
       );

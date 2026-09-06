@@ -4,40 +4,37 @@
  */
 "use client";
 
+import { useAtom } from "jotai";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { rowSelectionAtom, selectedRowsAtom } from "../atoms/table-atoms";
 import {
   type ColumnDef,
   type ColumnFiltersState,
   type ColumnOrderState,
-  type ColumnPinningState,
   type ColumnSizingState,
   type ExpandedState,
+  fromInternalColumnPinning,
   type GroupingState,
-  getCoreRowModel,
-  getExpandedRowModel,
-  getFilteredRowModel,
-  getGroupedRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
+  type InternalColumnPinningState,
   type OnChangeFn,
   type PaginationState,
   type Row,
   type RowSelectionState,
   type SortingState,
   type Table,
-  useReactTable,
+  toInternalColumnPinning,
+  useYayawTable,
   type VisibilityState,
-} from "@tanstack/react-table";
-import { useAtom } from "jotai";
-import { useCallback, useEffect, useMemo, useRef } from "react";
-
-import { rowSelectionAtom, selectedRowsAtom } from "../atoms/table-atoms";
+} from "../tanstack";
 import { useTableUrlState } from "./use-table-url-state";
 
 const _DEBUG = false;
 /**
  * Options for the useTableInstance hook
  */
-export interface UseTableInstanceOptions<TData> {
+export interface UseTableInstanceOptions<
+  TData extends Record<string, unknown>,
+> {
   columns: ColumnDef<TData>[];
   data: TData[];
   /**
@@ -88,7 +85,7 @@ export function resolveTablePageCount({
  * @param options - Configuration options for the table instance
  * @returns TanStack Table instance
  */
-export function useTableInstance<TData>({
+export function useTableInstance<TData extends Record<string, unknown>>({
   columns,
   data,
   defaultPageSize,
@@ -171,8 +168,15 @@ export function useTableInstance<TData>({
   const [internalRowSelection, setInternalRowSelection] = useAtom(
     rowSelectionAtom(tableId)
   );
-  const effectiveRowSelection =
-    externalRowSelection ?? (internalRowSelection as RowSelectionState);
+  const effectiveRowSelection = useMemo<RowSelectionState>(
+    () =>
+      Object.fromEntries(
+        Object.entries(externalRowSelection ?? internalRowSelection).filter(
+          ([, selected]) => selected
+        )
+      ) as RowSelectionState,
+    [externalRowSelection, internalRowSelection]
+  );
   const [, setSelectedRows] = useAtom(selectedRowsAtom(tableId));
   const selectedRowsSelectionKeyRef = useRef("");
 
@@ -201,20 +205,16 @@ export function useTableInstance<TData>({
   );
 
   // Handler for column pinning changes
-  const handleColumnPinningChange = useCallback<OnChangeFn<ColumnPinningState>>(
+  const handleColumnPinningChange = useCallback<
+    OnChangeFn<InternalColumnPinningState>
+  >(
     (updaterOrValue) => {
       const newValue =
         typeof updaterOrValue === "function"
-          ? updaterOrValue(pinningParam || { left: [], right: [] })
+          ? updaterOrValue(toInternalColumnPinning(pinningParam))
           : updaterOrValue;
 
-      // Ensure we have the correct structure for pinning state
-      const normalizedPinning = {
-        left: newValue.left || [],
-        right: newValue.right || [],
-      };
-
-      setPinningFromUI(normalizedPinning);
+      setPinningFromUI(fromInternalColumnPinning(newValue));
     },
     [pinningParam, setPinningFromUI]
   );
@@ -484,24 +484,15 @@ export function useTableInstance<TData>({
   }, [orderParam, initialColumnOrder]);
 
   // Create the table instance with memoized values
-  const tableInstance = useReactTable({
+  const tableInstance = useYayawTable({
     columns: memoizedColumns,
     columnResizeMode: "onChange",
     data: memoizedData,
     ...tableOptionsRef.current,
+    enableRowRangeSelection: false,
     enableRowSelection: enableRowSelectionOption,
     // Keep grouped columns and move them to the start so group headers render in their own column
     groupedColumnMode: "reorder",
-    getCoreRowModel: useMemo(() => getCoreRowModel(), []),
-    getFilteredRowModel: useMemo(() => getFilteredRowModel(), []),
-    getGroupedRowModel: useMemo(
-      () => (enableGrouping ? getGroupedRowModel() : undefined),
-      [enableGrouping]
-    ),
-    getPaginationRowModel: useMemo(
-      () => (enablePagination ? getPaginationRowModel() : undefined),
-      [enablePagination]
-    ),
     getRowId,
     // Explicitly allow expanding on rows that can expand (group headers)
     getRowCanExpand: (row) => {
@@ -516,9 +507,6 @@ export function useTableInstance<TData>({
         return false;
       }
     },
-    getSortedRowModel: useMemo(() => getSortedRowModel(), []),
-    // Needed so grouped rows can expand/collapse
-    getExpandedRowModel: useMemo(() => getExpandedRowModel(), []),
     getSubRows: (row: TData) =>
       (row as unknown as { subRows?: TData[] }).subRows,
     manualFiltering: true,
@@ -545,10 +533,12 @@ export function useTableInstance<TData>({
         ? (filtersParam as ColumnFiltersState)
         : [],
       columnOrder: resolvedColumnOrder,
-      columnPinning: pinningParam || {
-        left: ["select"],
-        right: ["actions"],
-      },
+      columnPinning: toInternalColumnPinning(
+        pinningParam || {
+          left: ["select"],
+          right: ["actions"],
+        }
+      ),
       columnSizing: sizingParam as ColumnSizingState,
       columnVisibility: initialColumnVisibility as VisibilityState,
       expanded: {},
@@ -573,7 +563,10 @@ export function useTableInstance<TData>({
         selectedRowsSelectionKeyRef.current === selectionKey;
       const hasSameRows =
         previousRows.length === selectedRows.length &&
-        previousRows.every((row, index) => row === selectedRows[index]);
+        previousRows.every((row, index) => {
+          const nextRow = selectedRows[index];
+          return row.id === nextRow?.id && row.original === nextRow.original;
+        });
 
       selectedRowsSelectionKeyRef.current = selectionKey;
 
@@ -597,7 +590,7 @@ export function useTableInstance<TData>({
   // Helper function to perform column order update
   const updateColumnOrder = useCallback(
     (tableInst: Table<TData>, urlOrder: string[]) => {
-      const currentOrder = tableInst.getState().columnOrder;
+      const currentOrder = tableInst.store.state.columnOrder;
       // Only update if the order actually changed
       if (JSON.stringify(currentOrder) !== JSON.stringify(urlOrder)) {
         tableInst.setColumnOrder(urlOrder);

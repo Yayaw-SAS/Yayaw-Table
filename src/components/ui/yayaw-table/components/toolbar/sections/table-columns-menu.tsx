@@ -3,7 +3,7 @@
 import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import type { Column, VisibilityState } from "@tanstack/react-table";
+import type { Column, VisibilityState } from "@/components/ui/yayaw-table/tanstack";
 import { useAtom } from "jotai";
 import type { LucideIcon } from "lucide-react";
 import {

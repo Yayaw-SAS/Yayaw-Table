@@ -4,8 +4,8 @@
  */
 "use client";
 
-import type { Column } from "@tanstack/react-table";
 import type { CSSProperties } from "react";
+import type { Column } from "../tanstack";
 
 /**
  * Get common styles for pinned columns
@@ -16,19 +16,21 @@ export function getColumnPinningStyles<TData>(
   column: Column<TData>
 ): CSSProperties {
   const isPinned = column.getIsPinned();
-  const _isLastLeftPinnedColumn =
-    isPinned === "left" && column.getIsLastColumn("left");
-  const _isFirstRightPinnedColumn =
-    isPinned === "right" && column.getIsFirstColumn("right");
+  const _isLastStartPinnedColumn =
+    isPinned === "start" && column.getIsLastColumn("start");
+  const _isFirstEndPinnedColumn =
+    isPinned === "end" && column.getIsFirstColumn("end");
 
   return {
     // Position the column based on its pinning
-    left: isPinned === "left" ? `${column.getStart("left")}px` : undefined,
+    insetInlineStart:
+      isPinned === "start" ? `${column.getStart("start")}px` : undefined,
     // Slight opacity difference for pinned columns
     opacity: isPinned ? 0.95 : 1,
     // Make pinned columns sticky
     position: isPinned ? "sticky" : "relative",
-    right: isPinned === "right" ? `${column.getAfter("right")}px` : undefined,
+    insetInlineEnd:
+      isPinned === "end" ? `${column.getAfter("end")}px` : undefined,
     // Set width based on column size
     width: column.getSize(),
     // Ensure pinned columns appear above other content

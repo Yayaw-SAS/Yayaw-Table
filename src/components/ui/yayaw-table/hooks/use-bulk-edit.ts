@@ -4,7 +4,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import type { Row } from "@tanstack/react-table";
+import type { Row } from "@/components/ui/yayaw-table/tanstack";
 import { useAtom } from "jotai";
 import { useCallback, useMemo } from "react";
 import { toast } from "sonner";

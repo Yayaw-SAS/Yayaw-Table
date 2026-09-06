@@ -1,10 +1,10 @@
 "use client";
 
-import type { GroupingState } from "@tanstack/react-table";
 import { useMemo } from "react";
 import { useTableConfig } from "../../../hooks/use-table-config";
 import { useTableUrlState } from "../../../hooks/use-table-url-state";
 import { useTranslations } from "../../../providers/table-provider";
+import type { GroupingState } from "../../../tanstack";
 import { StackMenuContent, StackMenuView } from "../../../ui-custom/stack-menu";
 import { GroupPicker } from "./group-picker";
 

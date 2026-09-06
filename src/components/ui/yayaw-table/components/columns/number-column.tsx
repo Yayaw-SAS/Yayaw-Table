@@ -4,7 +4,7 @@
  */
 "use client";
 
-import type { CellContext, ColumnDef } from "@tanstack/react-table";
+import type { CellContext, ColumnDef } from "@/components/ui/yayaw-table/tanstack";
 import { Hash, type LucideIcon } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { formatNumber } from "../../utils/number-format";
