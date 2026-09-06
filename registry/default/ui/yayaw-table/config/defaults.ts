@@ -34,6 +34,7 @@ export const defaultTableConfig = {
   enableAdvancedFilters: false,
   enableColumnDnd: true,
   enableColumnDragDropByDefault: false,
+  enableColumnResizing: false,
   enableColumnFilters: true,
   enableColumnPinning: true,
   enableMultiRowSelection: true,

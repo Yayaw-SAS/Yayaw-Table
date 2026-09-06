@@ -33,6 +33,7 @@ export const defaultTableBehavior: TableBehaviorConfig = {
   defaultPageSize: 10,
   enableColumnDnd: true,
   enableColumnDragDropByDefault: false,
+  enableColumnResizing: false,
   enableColumnFilters: true,
   enableColumnPinning: true,
   enableMultiRowSelection: true,

@@ -19,6 +19,7 @@ it("restores partial views from catalogue defaults and isolates saved configurat
       mandatory: ["name"],
     },
     table: {
+      enableColumnResizing: true,
       gallery: { titleColumn: "name", cardSize: "small" },
       kanban: { groupBy: "status", titleColumn: "name" },
     },
@@ -34,6 +35,7 @@ it("restores partial views from catalogue defaults and isolates saved configurat
   );
   try {
     const saved: TableViewConfig = {
+      columnSizing: { name: 260, unknown: 500, status: -10 },
       columnVisibility: { status: false },
       sorting: [{ id: "name", desc: true }],
       gallery: { cardSize: "large" },
@@ -47,9 +49,12 @@ it("restores partial views from catalogue defaults and isolates saved configurat
     state.gallery.value.cardSize = "medium";
     expect(saved.sorting).toEqual([{ id: "name", desc: true }]);
     expect(saved.gallery).toEqual({ cardSize: "large" });
+    expect(state.sizing.value).toEqual({ name: 260 });
+    expect(state.snapshot.value.columnSizing).toEqual({ name: 260 });
     state.applyView({ globalSearch: "Beta" }, "second");
     expect(state.visibility.value.status).toBe(true);
     expect(state.gallery.value.cardSize).toBe("small");
+    expect(state.sizing.value).toEqual({});
     expect(state.kanban.value.groupBy).toBe("status");
     state.reset();
     expect(state.search.value).toBe("");

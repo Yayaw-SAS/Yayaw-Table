@@ -7,6 +7,7 @@
 import type {
   ColumnFiltersState,
   ColumnPinningState,
+  ColumnSizingState,
   SortingState,
   VisibilityState,
 } from "@tanstack/react-table";
@@ -23,7 +24,10 @@ import type {
 } from "../types/display-types";
 import type { AdvancedFiltersState } from "../types/filter-types";
 import type { TableViewConfig } from "../types/view-types";
-import { normalizeFilterEnvelope } from "../utils/table-contracts";
+import {
+  normalizeColumnSizing,
+  normalizeFilterEnvelope,
+} from "../utils/table-contracts";
 import {
   createTableViewConfigSnapshot,
   normalizeColumnPinning,
@@ -515,6 +519,19 @@ export function useTableUrlState({
     [] as string[]
   );
 
+  const [urlSizingParam, setUrlSizingParam] = useQueryState(
+    `${tableId}-sizing`,
+    objectParser
+  );
+  const [sizingParam, setSizingParam] = useStateChannel(
+    tableId,
+    shouldSyncUrl,
+    "sizing",
+    normalizeColumnSizing(urlSizingParam) as ColumnSizingState,
+    setUrlSizingParam,
+    {} as ColumnSizingState
+  );
+
   const [urlExpandedParam, setUrlExpandedParam] = useQueryState<object>(
     `${tableId}-expanded`,
     createParser({
@@ -695,6 +712,7 @@ export function useTableUrlState({
     | ColumnFiltersState
     | SortingState
     | Record<string, boolean>
+    | Record<string, number>
     | string[]
     | AdvancedFiltersState
     | string
@@ -887,6 +905,13 @@ export function useTableUrlState({
     [queueUrlUpdate, setOrderParam]
   );
 
+  const setSizingFromUI = useCallback(
+    (sizing: ColumnSizingState) => {
+      queueUrlUpdate(setSizingParam, normalizeColumnSizing(sizing));
+    },
+    [queueUrlUpdate, setSizingParam]
+  );
+
   const setExpandedFromUI = useCallback(
     (expanded: Record<string, boolean>) => {
       // Apply immediately to avoid race conditions with grouping/expansion
@@ -993,6 +1018,7 @@ export function useTableUrlState({
       pinningParam: normalizeColumnPinning(
         pinningParam as ColumnPinningState | undefined
       ),
+      sizingParam: normalizeColumnSizing(sizingParam),
       sortParam: (sortParam || []) as SortingState,
       visibilityParam: (visibilityParam || {}) as VisibilityState,
     });
@@ -1008,6 +1034,7 @@ export function useTableUrlState({
     orderParam,
     pageSizeParam,
     pinningParam,
+    sizingParam,
     resolvedDefaultDisplayMode,
     resolvedKanbanCardParam,
     sortParam,
@@ -1043,6 +1070,7 @@ export function useTableUrlState({
       );
       queueUrlUpdate(setVisibilityParam, config.columnVisibility ?? {});
       queueUrlUpdate(setOrderParam, config.columnOrder ?? []);
+      queueUrlUpdate(setSizingParam, normalizedConfig.columnSizing ?? {});
       queueUrlUpdate(setExpandedParam, {});
       queueUrlUpdate(setGroupingParam, normalizedConfig.grouping ?? []);
       queueUrlUpdate(setPinningParam, nextPinning);
@@ -1066,6 +1094,7 @@ export function useTableUrlState({
       setPageParam,
       setPageSizeParam,
       setPinningParam,
+      setSizingParam,
       setSortParam,
       setViewParam,
       setVisibilityParam,
@@ -1111,6 +1140,7 @@ export function useTableUrlState({
       setUrlParam(url, `${tableId}-pageSize`, pageSizeParam);
       setUrlParam(url, `${tableId}-visibility`, visibilityParam);
       setUrlParam(url, `${tableId}-order`, orderParam);
+      setUrlParam(url, `${tableId}-sizing`, sizingParam);
       setUrlParam(url, `${tableId}-expanded`, expandedParam);
       setUrlParam(url, `${tableId}-grouping`, resolvedGroupingParam);
       setUrlParam(url, `${tableId}-display`, displayModeParam);
@@ -1136,6 +1166,7 @@ export function useTableUrlState({
       pageSizeParam,
       visibilityParam,
       orderParam,
+      sizingParam,
       expandedParam,
       resolvedGroupingParam,
       displayModeParam,
@@ -1182,6 +1213,7 @@ export function useTableUrlState({
       setPageSizeParam(defaultPageSizeParam);
       setVisibilityParam({});
       setOrderParam([]);
+      setSizingParam({});
       setExpandedParam({});
       setGroupingParam([]);
       setDisplayModeParam(null);
@@ -1212,6 +1244,7 @@ export function useTableUrlState({
     setPageSizeParam,
     setVisibilityParam,
     setOrderParam,
+    setSizingParam,
     setExpandedParam,
     setGroupingParam,
     setDisplayModeParam,
@@ -1289,6 +1322,7 @@ export function useTableUrlState({
     setKanbanParam,
     setGalleryParam,
     setOrderFromUI,
+    setSizingFromUI,
 
     setOrderParam,
     setPageParam,
@@ -1296,6 +1330,7 @@ export function useTableUrlState({
     setPaginationFromUI,
     setPinningFromUI,
     setPinningParam,
+    setSizingParam,
     setSorting,
     setSortParam,
     setViewParam,
@@ -1303,6 +1338,7 @@ export function useTableUrlState({
     setVisibilityParam,
 
     sortParam: sortParam || [],
+    sizingParam: normalizeColumnSizing(sizingParam),
     globalSearchParam: globalSearchParam || "",
     viewParam,
     visibilityParam: visibilityParam || {},

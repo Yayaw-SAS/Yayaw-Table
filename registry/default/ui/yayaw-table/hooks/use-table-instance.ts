@@ -9,6 +9,7 @@ import {
   type ColumnFiltersState,
   type ColumnOrderState,
   type ColumnPinningState,
+  type ColumnSizingState,
   type ExpandedState,
   type GroupingState,
   getCoreRowModel,
@@ -48,6 +49,7 @@ export interface UseTableInstanceOptions<TData> {
   defaultPageSize?: number;
   enableColumnFilters?: boolean;
   enableColumnPinning?: boolean;
+  enableColumnResizing?: boolean;
   enableGrouping?: boolean;
   enableMultiRowSelection?: boolean;
   enablePagination?: boolean;
@@ -93,6 +95,7 @@ export function useTableInstance<TData>({
   defaultVisibleColumns,
   enableColumnFilters = true,
   enableColumnPinning = true,
+  enableColumnResizing = false,
   enableGrouping = false,
   enableMultiRowSelection = true,
   enablePagination = true,
@@ -113,6 +116,7 @@ export function useTableInstance<TData>({
   const tableOptionsRef = useRef({
     enableColumnFilters,
     enableColumnPinning,
+    enableColumnResizing,
     enableGrouping,
     enableMultiRowSelection,
     enablePagination,
@@ -125,6 +129,7 @@ export function useTableInstance<TData>({
     tableOptionsRef.current = {
       enableColumnFilters,
       enableColumnPinning,
+      enableColumnResizing,
       enableGrouping,
       enableMultiRowSelection,
       enablePagination,
@@ -134,6 +139,7 @@ export function useTableInstance<TData>({
   }, [
     enableColumnFilters,
     enableColumnPinning,
+    enableColumnResizing,
     enableGrouping,
     enableMultiRowSelection,
     enablePagination,
@@ -154,9 +160,11 @@ export function useTableInstance<TData>({
     setOrderFromUI,
     setPaginationFromUI,
     setPinningFromUI,
+    setSizingFromUI,
     setSorting,
     setVisibilityFromUI,
     sortParam,
+    sizingParam,
     visibilityParam,
   } = useTableUrlState({ defaultPageSize, tableId });
 
@@ -221,6 +229,17 @@ export function useTableInstance<TData>({
       setVisibilityFromUI(newValue);
     },
     [visibilityParam, setVisibilityFromUI]
+  );
+
+  const handleColumnSizingChange = useCallback<OnChangeFn<ColumnSizingState>>(
+    (updaterOrValue) => {
+      const nextSizing =
+        typeof updaterOrValue === "function"
+          ? updaterOrValue(sizingParam as ColumnSizingState)
+          : updaterOrValue;
+      setSizingFromUI(nextSizing);
+    },
+    [setSizingFromUI, sizingParam]
   );
 
   // Expanded: disable handler to avoid loops
@@ -467,6 +486,7 @@ export function useTableInstance<TData>({
   // Create the table instance with memoized values
   const tableInstance = useReactTable({
     columns: memoizedColumns,
+    columnResizeMode: "onChange",
     data: memoizedData,
     ...tableOptionsRef.current,
     enableRowSelection: enableRowSelectionOption,
@@ -508,6 +528,7 @@ export function useTableInstance<TData>({
     onColumnFiltersChange: handleColumnFiltersChange,
     onColumnOrderChange: handleColumnOrderChange,
     onColumnPinningChange: handleColumnPinningChange,
+    onColumnSizingChange: handleColumnSizingChange,
     onColumnVisibilityChange: handleColumnVisibilityChange,
     onExpandedChange: handleExpandedChange,
     onGroupingChange: handleGroupingChange,
@@ -528,6 +549,7 @@ export function useTableInstance<TData>({
         left: ["select"],
         right: ["actions"],
       },
+      columnSizing: sizingParam as ColumnSizingState,
       columnVisibility: initialColumnVisibility as VisibilityState,
       expanded: {},
       globalFilter: globalSearchParam || "",

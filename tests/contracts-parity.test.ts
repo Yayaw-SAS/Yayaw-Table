@@ -3,8 +3,10 @@ import { readFileSync } from "node:fs";
 import { applyFilters } from "../src/components/ui/yayaw-table/hooks/use-data-table-advanced-filters";
 import {
   compatibleListParams,
+  normalizeColumnSizing,
   normalizeFilterEnvelope,
   normalizeViewAliases,
+  resizedColumnSizeFromKey,
 } from "../src/components/ui/yayaw-table/utils/table-contracts";
 import fixtures from "./fixtures/parity.json";
 
@@ -17,6 +19,31 @@ it("ships the same contract source in both standalone registries", () => {
       "utf8"
     )
   );
+});
+
+it("normalizes persisted widths and keyboard resize commands", () => {
+  expect(
+    normalizeColumnSizing(
+      { name: 241.6, status: -1, unknown: 300, empty: Number.NaN },
+      ["name", "status"]
+    )
+  ).toEqual({ name: 242 });
+  expect(
+    resizedColumnSizeFromKey({
+      key: "ArrowRight",
+      maxSize: 260,
+      minSize: 80,
+      size: 255,
+    })
+  ).toBe(260);
+  expect(
+    resizedColumnSizeFromKey({
+      key: "Home",
+      maxSize: 260,
+      minSize: 80,
+      size: 150,
+    })
+  ).toBe(80);
 });
 for (const fixture of fixtures.filters) {
   it(`React filtering: ${fixture.label}`, () => {

@@ -53,10 +53,12 @@ it("shares table state in memory without writing URL parameters", async () => {
   await act(async () => {
     primary.setGlobalSearchFromUI("Alpha");
     primary.setPinningFromUI({ left: ["name"], right: [] });
+    primary.setSizingFromUI({ name: 240 });
     await new Promise((resolve) => setTimeout(resolve, 200));
   });
   expect(secondary.globalSearchParam).toBe("Alpha");
   expect(secondary.pinningParam).toEqual({ left: ["name"], right: [] });
+  expect(secondary.sizingParam).toEqual({ name: 240 });
   expect(container.textContent).toBe("Alpha");
   expect(urlUpdates).toBe(0);
 });

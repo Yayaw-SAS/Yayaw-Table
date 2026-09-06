@@ -1,6 +1,7 @@
 import type {
   ColumnFiltersState,
   ColumnPinningState,
+  ColumnSizingState,
   SortingState,
   VisibilityState,
 } from "@tanstack/react-table";
@@ -14,6 +15,7 @@ import type { AdvancedFiltersState } from "../types/filter-types";
 import type { TableViewConfig } from "../types/view-types";
 import {
   normalizeFilterEnvelope,
+  normalizeColumnSizing,
   normalizeViewAliases,
 } from "./table-contracts";
 
@@ -233,6 +235,7 @@ export function normalizeTableViewConfig(
     ? config.columnOrder
     : undefined;
   const columnPinning = normalizeColumnPinning(config.columnPinning);
+  const columnSizing = normalizeColumnSizing(config.columnSizing);
   const columnVisibility = hasObjectValues(config.columnVisibility)
     ? (config.columnVisibility as VisibilityState)
     : undefined;
@@ -263,6 +266,9 @@ export function normalizeTableViewConfig(
   }
   if (columnPinning) {
     normalized.columnPinning = columnPinning;
+  }
+  if (hasObjectValues(columnSizing)) {
+    normalized.columnSizing = columnSizing;
   }
   if (columnVisibility) {
     normalized.columnVisibility = columnVisibility;
@@ -304,6 +310,7 @@ export function createTableViewConfigSnapshot({
   orderParam,
   pageSizeParam,
   pinningParam,
+  sizingParam,
   sortParam,
   visibilityParam,
 }: {
@@ -318,6 +325,7 @@ export function createTableViewConfigSnapshot({
   orderParam: string[];
   pageSizeParam: string;
   pinningParam?: ColumnPinningState;
+  sizingParam?: ColumnSizingState;
   sortParam: SortingState;
   visibilityParam: VisibilityState;
 }): TableViewConfig {
@@ -326,6 +334,7 @@ export function createTableViewConfigSnapshot({
     columnFilters: filtersParam,
     columnOrder: orderParam,
     columnPinning: normalizeColumnPinning(pinningParam) ?? EMPTY_PINNING,
+    columnSizing: sizingParam ?? {},
     columnVisibility: visibilityParam,
     displayMode: displayModeParam,
     globalSearch: globalSearchParam,

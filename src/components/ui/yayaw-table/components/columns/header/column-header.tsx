@@ -11,6 +11,8 @@ import { Button } from "@/src/components/ui/button";
 
 import { columnDragEnabledAtom } from "../../../atoms/table-atoms";
 import { useTableConfig } from "../../../hooks/use-table-config";
+import { useTableTranslations } from "../../../hooks/use-table-translations";
+import { resizedColumnSizeFromKey } from "../../../utils/table-contracts";
 
 import { ActionsHeader } from "./actions-header";
 import { ColumnMenu } from "./column-menu";
@@ -36,6 +38,68 @@ function DragHandleButton() {
   );
 }
 
+function ColumnResizeHandle<TData, TValue>({
+  column,
+  label,
+  resizeHandler,
+  table,
+}: {
+  column: Column<TData, TValue>;
+  label: string;
+  resizeHandler: (event: unknown) => void;
+  table: Table<TData>;
+}) {
+  const minSize = column.columnDef.minSize ?? 20;
+  const maxSize = column.columnDef.maxSize ?? Number.MAX_SAFE_INTEGER;
+  return (
+    <hr
+      aria-label={label}
+      aria-orientation="vertical"
+      aria-valuemax={maxSize}
+      aria-valuemin={minSize}
+      aria-valuenow={column.getSize()}
+      className={cn(
+        "absolute inset-y-0 right-0 z-20 m-0 h-auto w-2 cursor-col-resize touch-none border-0 p-0 outline-none",
+        "after:absolute after:inset-y-1 after:right-0 after:w-0.5 after:bg-border",
+        "hover:after:bg-primary focus-visible:after:bg-primary",
+        column.getIsResizing() && "after:bg-primary"
+      )}
+      data-column-resize-handle={column.id}
+      onClick={(event) => event.stopPropagation()}
+      onDoubleClick={(event) => {
+        event.stopPropagation();
+        column.resetSize();
+      }}
+      onKeyDown={(event) => {
+        const nextSize = resizedColumnSizeFromKey({
+          key: event.key,
+          maxSize,
+          minSize,
+          size: column.getSize(),
+        });
+        if (nextSize === undefined) {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        table.setColumnSizing((current) => ({
+          ...current,
+          [column.id]: nextSize,
+        }));
+      }}
+      onMouseDown={(event) => {
+        event.stopPropagation();
+        resizeHandler(event);
+      }}
+      onTouchStart={(event) => {
+        event.stopPropagation();
+        resizeHandler(event);
+      }}
+      tabIndex={0}
+    />
+  );
+}
+
 interface DataTableColumnHeaderProps<TData, TValue> {
   /**
    * Additional CSS classes for the header
@@ -51,6 +115,9 @@ interface DataTableColumnHeaderProps<TData, TValue> {
    * The table instance
    */
   table?: Table<TData>;
+
+  /** TanStack pointer/touch resize handler from the rendered header. */
+  resizeHandler?: (event: unknown) => void;
 
   /**
    * The ID of the table this column belongs to
@@ -72,11 +139,13 @@ function DataTableColumnHeaderBase<TData, TValue>({
   table,
   tableId = "default-table", // Default value if not provided
   title,
+  resizeHandler,
 }: DataTableColumnHeaderProps<TData, TValue>) {
   const tableInstance = table;
   const _canSort = column.getCanSort();
   const isDragEnabled = useAtomValue(columnDragEnabledAtom(tableId));
   const { config } = useTableConfig(tableId);
+  const translations = useTableTranslations(tableId);
   const dndFeatureEnabled = config?.table?.enableColumnDnd !== false;
 
   const {
@@ -134,6 +203,16 @@ function DataTableColumnHeaderBase<TData, TValue>({
     }
     return null;
   }, [isActionsColumn, title]);
+
+  const resizeHandleContent =
+    tableInstance && resizeHandler && column.getCanResize() ? (
+      <ColumnResizeHandle
+        column={column}
+        label={`${translations.columnResize}: ${title}`}
+        resizeHandler={resizeHandler}
+        table={tableInstance}
+      />
+    ) : null;
 
   // Memoize regularHeaderContent component to prevent recreating on each render
   const regularHeaderContent = useMemo(() => {
@@ -216,6 +295,7 @@ function DataTableColumnHeaderBase<TData, TValue>({
           )}
         >
           {content}
+          {resizeHandleContent}
         </div>
       </div>
     );
@@ -238,6 +318,7 @@ function DataTableColumnHeaderBase<TData, TValue>({
     className,
     sortDirection,
     isHydrated,
+    resizeHandleContent,
   ]);
 
   // Create the header content without using TableHead

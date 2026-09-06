@@ -577,6 +577,7 @@ function DataTableContent({
             showToolbarHeader: config.table.showToolbarHeader,
             enableColumnDragDropByDefault:
               config.table.enableColumnDragDropByDefault,
+            enableColumnResizing: config.table.enableColumnResizing,
             enableColumnDnd: config.table.enableColumnDnd,
             enableColumnFilters: config.table.enableColumnFilters,
             enableAdvancedFilters: shouldEnableAdvancedFilters,
@@ -672,6 +673,9 @@ function DataTableContent({
                 )}
                 enableColumnFilters={config.table.enableColumnFilters}
                 enableColumnPinning={config.table.enableColumnPinning !== false}
+                enableColumnResizing={
+                  config.table.enableColumnResizing === true
+                }
                 enableGrouping={config.table.enableGrouping}
                 enableMultiRowSelection={
                   config.table.enableMultiRowSelection !== false

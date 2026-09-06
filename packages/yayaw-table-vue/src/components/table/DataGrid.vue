@@ -18,6 +18,7 @@ import { ArrowDown, ArrowUp, GripVertical } from "lucide-vue-next";
 import { type CSSProperties, computed, h, ref, watch, onBeforeUnmount } from "vue";
 import { useTableContext } from "../../context";
 import { applyTableQuery, calculateColumn, formatNumber } from "../../core";
+import { resizedColumnSizeFromKey } from "../../table-contracts";
 import type {
   CalculationType,
   ColumnDefinition,
@@ -70,6 +71,7 @@ const columns = computed<ColumnDef<TableRecord>[]>(() => {
       enableSorting:
         context.config.table.enableSorting && column.enableSorting !== false,
       enablePinning: column.enablePinning !== false,
+      enableResizing: column.enableResizing !== false,
       enableColumnFilter:
         context.config.table.enableColumnFilters &&
         column.enableFiltering !== false,
@@ -103,6 +105,7 @@ const columns = computed<ColumnDef<TableRecord>[]>(() => {
       size: 42,
       enableSorting: false,
       enableHiding: false,
+      enableResizing: false,
       header: ({ table }) =>
         context.config.table.enableMultiRowSelection
           ? h("input", {
@@ -137,6 +140,7 @@ const columns = computed<ColumnDef<TableRecord>[]>(() => {
       size: 48,
       enableSorting: false,
       enableHiding: false,
+      enableResizing: false,
       header: "",
       cell: ({ row }) => h(RowActions, { row: row.original }),
     });
@@ -163,6 +167,8 @@ const table = useVueTable({
   getExpandedRowModel: getExpandedRowModel(),
   enableColumnFilters: context.config.table.enableColumnFilters,
   enableColumnPinning: context.config.table.enableColumnPinning,
+  enableColumnResizing: context.config.table.enableColumnResizing === true,
+  columnResizeMode: "onChange",
   enableGrouping: context.config.table.enableGrouping,
   enableSorting: context.config.table.enableSorting,
   getRowId: (row, index) => context.getRowId(row, index),
@@ -211,6 +217,9 @@ const table = useVueTable({
     get columnOrder() {
       return context.state.order.value;
     },
+    get columnSizing() {
+      return context.state.sizing.value;
+    },
     get grouping() {
       return context.state.grouping.value;
     },
@@ -254,6 +263,12 @@ const table = useVueTable({
       context.state.order.value
     );
   },
+  onColumnSizingChange: (updater) => {
+    context.state.sizing.value = updaterValue(
+      updater,
+      context.state.sizing.value
+    );
+  },
   onGroupingChange: (updater) => {
     context.state.grouping.value = updaterValue(
       updater,
@@ -288,6 +303,14 @@ const visibleColumns = computed(() => [
   ...table.getRightVisibleLeafColumns(),
 ]);
 const totalPages = computed(() => Math.max(1, table.getPageCount()));
+const dataGridStyle = computed<CSSProperties | undefined>(() =>
+  context.config.table.enableColumnResizing
+    ? {
+        minWidth: "100%",
+        width: `${table.getTotalSize()}px`,
+      }
+    : undefined
+);
 const canDragColumn = (columnId: string): boolean =>
   columnDragEnabled.value && !["select", "actions"].includes(columnId);
 const startColumnDrag = (columnId: string, event: DragEvent): void => {
@@ -375,6 +398,26 @@ const handleColumnKeyboard = (
     event.preventDefault();
     moveColumnByOffset(columnId, event.key === "ArrowLeft" ? -1 : 1);
   }
+};
+const handleColumnResizeKeyboard = (
+  column: Column<TableRecord>,
+  event: KeyboardEvent
+): void => {
+  const nextSize = resizedColumnSizeFromKey({
+    key: event.key,
+    maxSize: column.columnDef.maxSize ?? Number.MAX_SAFE_INTEGER,
+    minSize: column.columnDef.minSize ?? 20,
+    size: column.getSize(),
+  });
+  if (nextSize === undefined) {
+    return;
+  }
+  event.preventDefault();
+  event.stopPropagation();
+  table.setColumnSizing((current) => ({
+    ...current,
+    [column.id]: nextSize,
+  }));
 };
 const isInteractive = (target: EventTarget | null): boolean =>
   target instanceof Element &&
@@ -562,11 +605,15 @@ const calculationFor = (
 };
 const pinnedStyle = (column: Column<TableRecord>): CSSProperties => {
   const pinned = column.getIsPinned();
+  const size = `${column.getSize()}px`;
+  const sizingStyle = context.config.table.enableColumnResizing
+    ? { maxWidth: size, minWidth: size, width: size }
+    : { width: size };
   if (!pinned) {
-    return { width: `${column.getSize()}px` };
+    return sizingStyle;
   }
   return {
-    width: `${column.getSize()}px`,
+    ...sizingStyle,
     position: "sticky",
     left: pinned === "left" ? `${column.getStart("left")}px` : undefined,
     right: pinned === "right" ? `${column.getAfter("right")}px` : undefined,
@@ -580,7 +627,11 @@ const pinnedStyle = (column: Column<TableRecord>): CSSProperties => {
   <div class="yayaw-grid-shell">
     <span class="yayaw-sr-only" aria-live="polite">{{ keyboardAnnouncement }}</span>
     <div class="yayaw-table-scroll">
-      <table class="yayaw-data-grid">
+      <table
+        class="yayaw-data-grid"
+        :class="{ resizable: context.config.table.enableColumnResizing }"
+        :style="dataGridStyle"
+      >
         <thead>
           <tr v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">
             <th
@@ -617,6 +668,23 @@ const pinnedStyle = (column: Column<TableRecord>): CSSProperties => {
                 </button>
                 <FlexRender v-else-if="!header.isPlaceholder" :render="header.column.columnDef.header" :props="header.getContext()" />
                 <ColumnMenu v-if="!header.isPlaceholder" :column="header.column" />
+                <div
+                  v-if="header.column.getCanResize()"
+                  role="separator"
+                  tabindex="0"
+                  class="yayaw-column-resize-handle"
+                  :data-column-resize-handle="header.column.id"
+                  aria-orientation="vertical"
+                  :aria-label="`${String(context.translations.value['columns.resize'] ?? 'Resize column')}: ${String(header.column.columnDef.header ?? header.column.id)}`"
+                  :aria-valuemin="header.column.columnDef.minSize ?? 20"
+                  :aria-valuemax="header.column.columnDef.maxSize ?? Number.MAX_SAFE_INTEGER"
+                  :aria-valuenow="header.column.getSize()"
+                  @click.stop
+                  @dblclick.stop="header.column.resetSize()"
+                  @keydown="handleColumnResizeKeyboard(header.column, $event)"
+                  @mousedown.stop="header.getResizeHandler()($event)"
+                  @touchstart.stop="header.getResizeHandler()($event)"
+                />
               </div>
             </th>
           </tr>

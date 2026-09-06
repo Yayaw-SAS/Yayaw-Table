@@ -44,6 +44,7 @@ const config = defineTableConfig({
     gallery: { titleColumn: "name" },
     enableCalculations: true,
     enableColumnDragDropByDefault: true,
+    enableColumnResizing: true,
   },
   translations: { namespace: "test", keys: { title: "Test rows" } },
 });
@@ -71,6 +72,19 @@ describe("YayawDataTable", () => {
     expect(wrapper.text()).toContain("Alpha");
     expect(wrapper.text()).toContain("sum");
     expect(wrapper.text()).toContain("60");
+  });
+
+  it("resizes columns from the keyboard", async () => {
+    const wrapper = mount(YayawDataTable, {
+      props: { tableType: "test", config, data, syncUrl: false },
+      attachTo: document.body,
+    });
+    await flushPromises();
+    const handle = wrapper.get('[data-column-resize-handle="name"]');
+    const initialSize = Number(handle.attributes("aria-valuenow"));
+    await handle.trigger("keydown", { key: "ArrowRight" });
+    await nextTick();
+    expect(Number(handle.attributes("aria-valuenow"))).toBe(initialSize + 10);
   });
 
   it("filters static rows using global search", async () => {

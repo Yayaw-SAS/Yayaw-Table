@@ -26,6 +26,7 @@ export interface DataTableUiStrings {
   columnPinLeft: string;
   columnPinRight: string;
   columnReorder: string;
+  columnResize: string;
   columnSortAsc: string;
 
   columnSortDesc: string;
@@ -210,6 +211,7 @@ export const translationKeysMap: DataTableUiStrings = {
   columnPinLeft: "columns.pin_left",
   columnPinRight: "columns.pin_right",
   columnReorder: "columns.reorder",
+  columnResize: "columns.resize",
   columnSortAsc: "columns.sort_ascending",
 
   columnSortDesc: "columns.sort_descending",

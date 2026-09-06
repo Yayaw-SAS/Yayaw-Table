@@ -107,6 +107,7 @@ const config = defineTableConfig<Product>({
     allowInlineEdit: true,
     enableColumnDnd: true,
     enableColumnDragDropByDefault: true,
+    enableColumnResizing: true,
     inlineEdit: { enabled: true, optimistic: true },
     enableCalculations: true,
     kanban: {
@@ -272,7 +273,7 @@ const activateProduct = (row: TableRecord): void => {
       <p>
         Explore the table, Kanban, gallery, forms, filters, saved views, and bulk
         actions. Column drag and drop can be changed from any column menu or from
-        Options → Properties.
+        Options → Properties, and every data column can be resized.
       </p>
       <p class="demo-status" role="status">{{ activity }}</p>
     </header>
