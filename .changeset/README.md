@@ -14,4 +14,6 @@ Every changeset must target `yayaw-table-workspace`. Do not target the private
 `@yayaw/table-vue` package directly: it is not an independently versioned
 workspace, and its version is synchronized from the root package during a
 release. Run `bun run changeset:status` before committing a changeset so an
-invalid package name cannot block the release plan.
+invalid package name cannot block the release plan. CI and the full release
+gate run `bun run changeset:check`, which also works after `changeset version`
+has consumed every pending changeset.
