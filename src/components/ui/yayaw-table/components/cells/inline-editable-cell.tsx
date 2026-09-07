@@ -466,6 +466,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
         renderEditor()
       ) : (
         <button
+          data-density-control=""
           className={cn(
             "relative flex min-h-8 w-full items-center cursor-text rounded-sm px-0.5 py-1 outline-none",
             resolvedEditor === "number"

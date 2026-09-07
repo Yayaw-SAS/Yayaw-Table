@@ -12,12 +12,13 @@ import { cn } from "@/lib/utils";
 import { useGlobalColumnCalculations } from "../../hooks/use-global-column-calculations";
 import { useTableConfig } from "../../hooks/use-table-config";
 import type { Table } from "../../tanstack";
+import type { TableDensity } from "../../types/display-types";
 import type { CalculationType } from "../../types/footer-types";
 import { isCalculationValidForColumn } from "../../types/footer-types";
 import { CalculationMenu } from "./calculation-menu";
 
 interface FooterRowProps<TData> {
-  densityMode: "small" | "medium" | "large";
+  densityMode: TableDensity;
   table: Table<TData>;
   tableId: string;
   tableType: string;
@@ -34,9 +35,10 @@ const getColumnType = (def: {
 }): string | undefined =>
   (def.type as string) || (def.meta?.columnType as string) || undefined;
 
-const getFixedColumnPaddingClass = (
-  densityMode: "small" | "medium" | "large"
-): string => {
+const getFixedColumnPaddingClass = (densityMode: TableDensity): string => {
+  if (densityMode === "extra-large") {
+    return "!px-4";
+  }
   if (densityMode === "small") {
     return "!px-1.5";
   }
@@ -54,6 +56,7 @@ function FooterRowBase<TData>({
 }: FooterRowProps<TData>) {
   const isSmallDensity = densityMode === "small";
   const isLargeDensity = densityMode === "large";
+  const isExtraLargeDensity = densityMode === "extra-large";
   const fixedColumnPaddingClass = getFixedColumnPaddingClass(densityMode);
 
   const { config: tableConfig } = useTableConfig(tableType);
@@ -151,7 +154,8 @@ function FooterRowBase<TData>({
       className={cn(
         "border-t border-b-0 bg-card hover:bg-card [&>td:first-child]:rounded-bl-md [&>td:last-child]:rounded-br-md",
         isSmallDensity && "[&_td]:!h-7 [&_td]:!py-0",
-        isLargeDensity && "[&_td]:!h-10 [&_td]:!py-1"
+        isLargeDensity && "[&_td]:!h-10 [&_td]:!py-1",
+        isExtraLargeDensity && "[&_td]:!h-12 [&_td]:!py-2"
       )}
     >
       {visibleColumns.map((column) => {
@@ -200,6 +204,7 @@ function FooterRowBase<TData>({
             className={cn(
               isSmallDensity && "!px-1.5",
               isLargeDensity && "!px-3",
+              isExtraLargeDensity && "!px-4",
               numCol && "text-right"
             )}
             key={column.id}

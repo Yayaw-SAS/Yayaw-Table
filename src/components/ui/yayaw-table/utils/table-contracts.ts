@@ -3,6 +3,20 @@ const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 export type ContractRecord = Record<string, unknown>;
 export type ContractColumnSizing = Record<string, number>;
 
+/** Density labels preserve the existing configuration values in both editions. */
+export const TABLE_DENSITY_OPTIONS = [
+  { label: "S", value: "small" },
+  { label: "M", value: "medium" },
+  { label: "L", value: "large" },
+  { label: "XL", value: "extra-large" },
+] as const;
+
+export type TableDensity = (typeof TABLE_DENSITY_OPTIONS)[number]["value"];
+
+export function isTableDensity(value: unknown): value is TableDensity {
+  return TABLE_DENSITY_OPTIONS.some((option) => option.value === value);
+}
+
 const DEFAULT_COLUMN_RESIZE_STEP = 10;
 
 /** Keep persisted column widths finite, positive, and scoped to known columns. */

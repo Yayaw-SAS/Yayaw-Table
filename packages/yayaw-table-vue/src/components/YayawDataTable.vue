@@ -429,7 +429,7 @@ provide(tableContextKey, {
 </script>
 
 <template>
-  <section class="yayaw-table" :class="className" :data-density="config.table.density" tabindex="-1">
+  <section class="yayaw-table" :class="className" :data-density="state.density.value" tabindex="-1">
     <div v-if="status" class="yayaw-status" :data-type="status.type" role="status">
       <span>{{ status.message }}</span>
       <button type="button" :aria-label="String(translations.dismiss)" @click="status = undefined">×</button>

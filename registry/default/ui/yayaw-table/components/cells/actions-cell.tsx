@@ -304,6 +304,7 @@ function ActionsCellBase<TData>({
             <Button
               aria-label="Open actions menu"
               className="h-8 w-8 p-0"
+              data-density-action=""
               type="button"
               variant="ghost"
             >

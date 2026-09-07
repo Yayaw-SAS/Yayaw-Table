@@ -472,6 +472,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
               : "justify-start text-left",
             "focus-visible:ring-2 focus-visible:ring-primary/30"
           )}
+          data-density-control=""
           onDoubleClick={(event) => {
             event.stopPropagation();
             startEditing();

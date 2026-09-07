@@ -688,6 +688,11 @@
           "target": "components/ui/yayaw-table/components/toolbar/sections/table-sort-menu.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/toolbar/table-density-menu.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/toolbar/table-density-menu.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/toolbar/table-display-mode-switcher.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/toolbar/table-display-mode-switcher.tsx"

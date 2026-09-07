@@ -836,6 +836,7 @@ export const defaultTranslations: DataTableTranslations = {
     active_groups:
       "{count} {count, plural, one {active group} other {active groups}}",
     options: "Options",
+    density: "Table density",
     properties: "Properties",
     footer_calculations: "Footer calculations",
     footer_calculations_on: "On",

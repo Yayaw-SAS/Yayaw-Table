@@ -597,13 +597,18 @@
 }
 .yayaw-table[data-density="small"] .yayaw-data-grid th,
 .yayaw-table[data-density="small"] .yayaw-data-grid td {
-  height: 38px;
-  padding-block: 5px;
+  height: 28px;
+  padding: 2px 8px;
 }
 .yayaw-table[data-density="large"] .yayaw-data-grid th,
 .yayaw-table[data-density="large"] .yayaw-data-grid td {
   height: 58px;
   padding-block: 12px;
+}
+.yayaw-table[data-density="extra-large"] .yayaw-data-grid th,
+.yayaw-table[data-density="extra-large"] .yayaw-data-grid td {
+  height: 72px;
+  padding-block: 18px;
 }
 .yayaw-data-grid th {
   position: sticky;
@@ -1493,4 +1498,38 @@
     flex-wrap: wrap;
     justify-content: center;
   }
+}
+
+/* Compact cells keep built-in controls and thumbnails from inflating row height. */
+.yayaw-table[data-density="small"] .yayaw-data-grid
+  .yayaw-row-actions
+  > .yayaw-icon-button {
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  min-height: 24px;
+}
+.yayaw-table[data-density="small"] .yayaw-cell-image {
+  width: 24px;
+  height: 24px;
+}
+.yayaw-table[data-density="small"] .yayaw-inline-editor {
+  min-height: 24px;
+  padding-block: 2px;
+}
+.yayaw-table[data-density="small"] .yayaw-column-resize-handle {
+  top: -2px;
+  right: -8px;
+  bottom: -2px;
+}
+.yayaw-density-menu {
+  min-width: 128px;
+}
+.yayaw-density-label {
+  padding: 6px 8px;
+  color: var(--yayaw-muted-foreground);
+  font-size: 12px;
+}
+.yayaw-density-option {
+  justify-content: space-between;
 }
