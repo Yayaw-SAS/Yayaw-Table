@@ -1,5 +1,7 @@
 "use client";
 
+import { TableTooltip } from "../../utils/table-tooltip";
+
 import { Columns3, Images, Table2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/src/components/ui/button";
@@ -53,24 +55,24 @@ export function TableDisplayModeSwitcher({
         const label = t(`views.display.${mode}`);
 
         return (
-          <Button
-            aria-pressed={isActive}
-            className={cn(
-              "h-7 gap-1.5 rounded-sm border-0 px-2 text-xs",
-              !isActive && "text-muted-foreground"
-            )}
-            key={mode}
-            onClick={() => {
-              setDisplayModeFromUI(mode);
-            }}
-            size="sm"
-            title={label}
-            type="button"
-            variant={isActive ? "secondary" : "ghost"}
-          >
-            <Icon className="h-3.5 w-3.5" />
-            <span>{label}</span>
-          </Button>
+          <TableTooltip label={label} key={mode}>
+            <Button
+              aria-pressed={isActive}
+              className={cn(
+                "h-7 gap-1.5 rounded-sm border-0 px-2 text-xs",
+                !isActive && "text-muted-foreground"
+              )}
+              onClick={() => {
+                setDisplayModeFromUI(mode);
+              }}
+              size="sm"
+              type="button"
+              variant={isActive ? "secondary" : "ghost"}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              <span>{label}</span>
+            </Button>
+          </TableTooltip>
         );
       })}
     </fieldset>

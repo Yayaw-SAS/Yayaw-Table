@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import TableTooltip from "../toolbar/TableTooltip.vue";
 import {
   FlexRender,
   type Column,
@@ -651,17 +652,26 @@ const pinnedStyle = (column: Column<TableRecord>): CSSProperties => {
               @click="header.column.getToggleSortingHandler()?.($event)"
             >
               <div class="yayaw-header-cell">
-                <button
+                <TableTooltip
                   v-if="canDragColumn(header.column.id)"
-                  type="button"
-                  class="yayaw-column-drag-handle"
-                  :aria-label="`${String(context.translations.value['columns.reorder'] ?? 'Drag to reorder')}: ${String(header.column.columnDef.header ?? header.column.id)}`"
-                  :aria-pressed="keyboardDraggedColumn === header.column.id"
-                  @click.stop="keyboardDraggedColumn = keyboardDraggedColumn === header.column.id ? undefined : header.column.id"
-                  @keydown.stop="handleColumnKeyboard(header.column.id, $event)"
+                  :label="`${String(context.translations.value['columns.reorder'] ?? 'Drag to reorder')}: ${String(header.column.columnDef.header ?? header.column.id)}`"
                 >
-                  <GripVertical :size="14" aria-hidden="true" />
-                </button>
+                  <button
+                    type="button"
+                    class="yayaw-column-drag-handle"
+                    :aria-label="`${String(context.translations.value['columns.reorder'] ?? 'Drag to reorder')}: ${String(header.column.columnDef.header ?? header.column.id)}`"
+                    :aria-pressed="keyboardDraggedColumn === header.column.id"
+                    @click.stop="
+                      keyboardDraggedColumn =
+                        keyboardDraggedColumn === header.column.id
+                          ? undefined
+                          : header.column.id
+                    "
+                    @keydown.stop="handleColumnKeyboard(header.column.id, $event)"
+                  >
+                    <GripVertical :size="14" aria-hidden="true" />
+                  </button>
+                </TableTooltip>
                 <span v-if="header.column.id === 'actions'" class="yayaw-sr-only">Actions</span>
                 <button v-if="!header.isPlaceholder && header.column.getCanSort()" type="button" class="yayaw-column-sort" @click.stop="header.column.getToggleSortingHandler()?.($event)">
                   <FlexRender :render="header.column.columnDef.header" :props="header.getContext()" />

@@ -1,5 +1,7 @@
 "use client";
 
+import { TableTooltip } from "../../utils/table-tooltip";
+
 import { Check, Images, SlidersHorizontal } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
@@ -176,17 +178,18 @@ export function TableGalleryMenu({
       asDropdown
       defaultView="gallery"
       trigger={
-        <Button
-          aria-label={triggerLabel}
-          className={cn("h-8 gap-1.5 px-2 text-xs", className)}
-          size="sm"
-          title={triggerLabel}
-          type="button"
-          variant="outline"
-        >
-          <Images className="h-3.5 w-3.5 shrink-0" />
-          <span className="truncate font-medium">{triggerLabel}</span>
-        </Button>
+        <TableTooltip label={triggerLabel}>
+          <Button
+            aria-label={triggerLabel}
+            className={cn("h-8 gap-1.5 px-2 text-xs", className)}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            <Images className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate font-medium">{triggerLabel}</span>
+          </Button>
+        </TableTooltip>
       }
     >
       <StackMenuView name="gallery" title={triggerLabel}>

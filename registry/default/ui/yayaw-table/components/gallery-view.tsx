@@ -17,6 +17,7 @@ import {
   getImageFallbackInitial,
   resolveImageSource,
 } from "../utils/image-source";
+import { TableTooltip } from "../utils/table-tooltip";
 
 const SYSTEM_COLUMN_IDS = new Set(["actions", "select"]);
 const EMPTY_GROUP_VALUE = "";
@@ -462,36 +463,38 @@ function GalleryCardActions<TData extends Record<string, unknown>>({
   return (
     <div className="flex shrink-0 items-center gap-1">
       {canOpenLink ? (
-        <Button
-          aria-label={linkRowLabel}
-          className="size-7 text-muted-foreground hover:text-foreground"
-          onClick={(event) => {
-            event.stopPropagation();
-            onOpenRowLink?.(row, event);
-          }}
-          size="icon"
-          title={linkRowLabel}
-          type="button"
-          variant="ghost"
-        >
-          <ExternalLink aria-hidden className="size-4" />
-        </Button>
+        <TableTooltip label={linkRowLabel}>
+          <Button
+            aria-label={linkRowLabel}
+            className="size-7 text-muted-foreground hover:text-foreground"
+            onClick={(event) => {
+              event.stopPropagation();
+              onOpenRowLink?.(row, event);
+            }}
+            size="icon"
+            type="button"
+            variant="ghost"
+          >
+            <ExternalLink aria-hidden className="size-4" />
+          </Button>
+        </TableTooltip>
       ) : null}
       {canEdit ? (
-        <Button
-          aria-label={editRowLabel}
-          className="size-7 text-muted-foreground hover:text-foreground"
-          onClick={(event) => {
-            event.stopPropagation();
-            onEditRow?.(row, event);
-          }}
-          size="icon"
-          title={editRowLabel}
-          type="button"
-          variant="ghost"
-        >
-          <Pencil aria-hidden className="size-4" />
-        </Button>
+        <TableTooltip label={editRowLabel}>
+          <Button
+            aria-label={editRowLabel}
+            className="size-7 text-muted-foreground hover:text-foreground"
+            onClick={(event) => {
+              event.stopPropagation();
+              onEditRow?.(row, event);
+            }}
+            size="icon"
+            type="button"
+            variant="ghost"
+          >
+            <Pencil aria-hidden className="size-4" />
+          </Button>
+        </TableTooltip>
       ) : null}
     </div>
   );

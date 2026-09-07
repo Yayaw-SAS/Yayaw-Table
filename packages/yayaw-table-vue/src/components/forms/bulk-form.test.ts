@@ -83,7 +83,13 @@ const mountTable = (props: Partial<YayawTableProps> = {}) =>
       ...props,
     },
     attachTo: document.body,
-    global: { stubs: { DialogPortal: { template: "<div><slot /></div>" } } },
+    global: {
+      stubs: {
+        DialogPortal: { template: "<div><slot /></div>" },
+        // jsdom has no geometry for the tooltip restored with keyboard focus.
+        PopperContent: { template: "<div><slot /></div>" },
+      },
+    },
   });
 type Wrapper = ReturnType<typeof mountTable>;
 const open = async (wrapper: Wrapper) => {

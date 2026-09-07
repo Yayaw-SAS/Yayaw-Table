@@ -71,7 +71,7 @@ describe("toolbar filter reset", () => {
     });
     const button = visible.get('button[aria-label="Effacer les filtres"]');
     expect(button.classes()).toContain("yayaw-icon-only");
-    expect(button.attributes("title")).toBe("Effacer les filtres");
+    expect(button.attributes("title")).toBeUndefined();
     expect(button.find("svg").exists()).toBe(true);
     expect(button.text()).toBe("");
     visible.unmount();

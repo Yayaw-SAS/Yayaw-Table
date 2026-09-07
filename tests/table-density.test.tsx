@@ -6,12 +6,18 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { tableDensityAtom } from "../src/components/ui/yayaw-table/atoms/table-atoms";
 import { TableDensityMenu } from "../src/components/ui/yayaw-table/components/toolbar/table-density-menu";
+import { resolveTableCatalogueConfig } from "../src/components/ui/yayaw-table/hooks/use-table-config";
 import {
   defaultTranslations,
   TableProvider,
 } from "../src/components/ui/yayaw-table/providers/table-provider";
+import {
+  isTableDensity,
+  TABLE_DENSITY_METRICS,
+} from "../src/components/ui/yayaw-table/utils/table-contracts";
+import densityScale from "./fixtures/density-scale.json";
 
-it("selects S through the density menu without changing other tables or the configured default", async () => {
+it("selects XS through the density menu without changing other tables or the configured default", async () => {
   const container = document.createElement("div");
   document.body.append(container);
   const root = createRoot(container);
@@ -28,7 +34,7 @@ it("selects S through the density menu without changing other tables or the conf
               translations={defaultTranslations}
             >
               <TableDensityMenu
-                defaultDensity="extra-large"
+                defaultDensity="extra-extra-large"
                 tableId="density"
               />
               <TableDensityMenu defaultDensity="large" tableId="other" />
@@ -38,7 +44,7 @@ it("selects S through the density menu without changing other tables or the conf
       );
     });
     const trigger = container.querySelector<HTMLButtonElement>(
-      '[aria-label="Table density: XL"]'
+      '[aria-label="Table density: 2XL"]'
     );
     expect(trigger).not.toBeNull();
     expect(trigger?.textContent).toBe("");
@@ -47,17 +53,19 @@ it("selects S through the density menu without changing other tables or the conf
       '[role="menuitemradio"]'
     );
     expect(Array.from(items, (item) => item.textContent)).toEqual([
+      "XS",
       "S",
       "M",
       "L",
       "XL",
+      "2XL",
     ]);
-    expect(items[3]?.getAttribute("aria-checked")).toBe("true");
+    expect(items[5]?.getAttribute("aria-checked")).toBe("true");
     await act(() => items[0]?.click());
-    expect(store.get(tableDensityAtom("density"))).toBe("small");
+    expect(store.get(tableDensityAtom("density"))).toBe("extra-small");
     expect(store.get(tableDensityAtom("other"))).toBeUndefined();
     expect(
-      container.querySelector('[aria-label="Table density: S"]')
+      container.querySelector('[aria-label="Table density: XS"]')
     ).not.toBeNull();
     expect(
       container.querySelector('[aria-label="Table density: L"]')
@@ -68,3 +76,22 @@ it("selects S through the density menu without changing other tables or the conf
     queryClient.clear();
   }
 });
+
+for (const fixture of densityScale) {
+  it(`preserves the ${fixture.label} spacing contract and configuration`, () => {
+    const density = fixture.value;
+    expect(isTableDensity(density)).toBe(true);
+    if (!isTableDensity(density)) {
+      throw new Error("Invalid density fixture");
+    }
+    expect(resolveTableCatalogueConfig({ density }).table.density).toBe(
+      density
+    );
+    const metrics = TABLE_DENSITY_METRICS[density];
+    expect(metrics.rowHeight * 4).toBe(fixture.height);
+    expect(metrics.controlHeight * 4).toBe(fixture.control);
+    expect((metrics.controlHeight + 2 * metrics.paddingY) * 4).toBe(
+      fixture.height
+    );
+  });
+}

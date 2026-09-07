@@ -11,6 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "../../../providers/table-provider";
+import { TableTooltip } from "../../../utils/table-tooltip";
 import type { FormFieldApi, UrlFieldDefinition } from "../types";
 
 interface UrlMeta {
@@ -143,19 +144,21 @@ export function UrlField<TFieldValues extends Record<string, unknown>>({
           value={currentValue}
         />
         {currentValue && isValidUrl(currentValue) && (
-          <button
-            className={cn(
-              "absolute top-1/2 right-2 -translate-y-1/2 rounded-sm p-0.5",
-              "text-muted-foreground transition-colors hover:text-foreground",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-            )}
-            onClick={handleOpenUrl}
-            tabIndex={0}
-            title="Open URL"
-            type="button"
-          >
-            <ExternalLink aria-hidden className="size-4" />
-          </button>
+          <TableTooltip label={t("actions.view")}>
+            <button
+              aria-label={t("actions.view")}
+              className={cn(
+                "absolute top-1/2 right-2 -translate-y-1/2 rounded-sm p-0.5",
+                "text-muted-foreground transition-colors hover:text-foreground",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              )}
+              onClick={handleOpenUrl}
+              tabIndex={0}
+              type="button"
+            >
+              <ExternalLink aria-hidden className="size-4" />
+            </button>
+          </TableTooltip>
         )}
       </div>
 

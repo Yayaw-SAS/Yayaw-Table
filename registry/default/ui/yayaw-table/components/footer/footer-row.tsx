@@ -15,6 +15,7 @@ import type { Table } from "../../tanstack";
 import type { TableDensity } from "../../types/display-types";
 import type { CalculationType } from "../../types/footer-types";
 import { isCalculationValidForColumn } from "../../types/footer-types";
+import { TABLE_DENSITY_CLASSES } from "../../utils/table-density";
 import { CalculationMenu } from "./calculation-menu";
 
 interface FooterRowProps<TData> {
@@ -35,30 +36,12 @@ const getColumnType = (def: {
 }): string | undefined =>
   (def.type as string) || (def.meta?.columnType as string) || undefined;
 
-const getFixedColumnPaddingClass = (densityMode: TableDensity): string => {
-  if (densityMode === "extra-large") {
-    return "!px-4";
-  }
-  if (densityMode === "small") {
-    return "!px-1.5";
-  }
-  if (densityMode === "large") {
-    return "!px-3";
-  }
-  return "px-2";
-};
-
 function FooterRowBase<TData>({
   densityMode,
   table,
   tableId,
   tableType,
 }: FooterRowProps<TData>) {
-  const isSmallDensity = densityMode === "small";
-  const isLargeDensity = densityMode === "large";
-  const isExtraLargeDensity = densityMode === "extra-large";
-  const fixedColumnPaddingClass = getFixedColumnPaddingClass(densityMode);
-
   const { config: tableConfig } = useTableConfig(tableType);
 
   const columnDefMap = useMemo(() => {
@@ -152,10 +135,7 @@ function FooterRowBase<TData>({
   return (
     <TableRow
       className={cn(
-        "border-t border-b-0 bg-card hover:bg-card [&>td:first-child]:rounded-bl-md [&>td:last-child]:rounded-br-md",
-        isSmallDensity && "[&_td]:!h-7 [&_td]:!py-0",
-        isLargeDensity && "[&_td]:!h-10 [&_td]:!py-1",
-        isExtraLargeDensity && "[&_td]:!h-12 [&_td]:!py-2"
+        "border-t border-b-0 bg-card hover:bg-card [&>td:first-child]:rounded-bl-md [&>td:last-child]:rounded-br-md"
       )}
     >
       {visibleColumns.map((column) => {
@@ -169,11 +149,14 @@ function FooterRowBase<TData>({
               className={cn(
                 "text-muted-foreground",
                 isSelect &&
-                  cn("select-column rounded-bl-md", fixedColumnPaddingClass),
+                  cn(
+                    "select-column rounded-bl-md",
+                    TABLE_DENSITY_CLASSES[densityMode].cell
+                  ),
                 isActions &&
                   cn(
                     "sticky right-0 z-10 rounded-br-md bg-card shadow-[-1px_0_0_0_hsl(var(--border))]",
-                    fixedColumnPaddingClass
+                    TABLE_DENSITY_CLASSES[densityMode].cell
                   )
               )}
               key={column.id}
@@ -202,9 +185,7 @@ function FooterRowBase<TData>({
         return (
           <TableCell
             className={cn(
-              isSmallDensity && "!px-1.5",
-              isLargeDensity && "!px-3",
-              isExtraLargeDensity && "!px-4",
+              TABLE_DENSITY_CLASSES[densityMode].cell,
               numCol && "text-right"
             )}
             key={column.id}

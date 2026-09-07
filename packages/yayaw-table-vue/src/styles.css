@@ -589,26 +589,11 @@
 }
 .yayaw-data-grid th,
 .yayaw-data-grid td {
-  height: 48px;
+  height: var(--yayaw-density-height);
   border-bottom: 1px solid var(--yayaw-border);
-  padding: 8px 12px;
+  padding: var(--yayaw-density-py) var(--yayaw-density-px);
   text-align: left;
   vertical-align: middle;
-}
-.yayaw-table[data-density="small"] .yayaw-data-grid th,
-.yayaw-table[data-density="small"] .yayaw-data-grid td {
-  height: 28px;
-  padding: 2px 8px;
-}
-.yayaw-table[data-density="large"] .yayaw-data-grid th,
-.yayaw-table[data-density="large"] .yayaw-data-grid td {
-  height: 58px;
-  padding-block: 12px;
-}
-.yayaw-table[data-density="extra-large"] .yayaw-data-grid th,
-.yayaw-table[data-density="extra-large"] .yayaw-data-grid td {
-  height: 72px;
-  padding-block: 18px;
 }
 .yayaw-data-grid th {
   position: sticky;
@@ -1500,27 +1485,26 @@
   }
 }
 
-/* Compact cells keep built-in controls and thumbnails from inflating row height. */
-.yayaw-table[data-density="small"] .yayaw-data-grid
-  .yayaw-row-actions
-  > .yayaw-icon-button {
-  width: 24px;
-  min-width: 24px;
-  height: 24px;
-  min-height: 24px;
+/* Match the shared Tailwind spacing scale without inflating compact rows. */
+.yayaw-data-grid .yayaw-row-actions > .yayaw-icon-button {
+  width: var(--yayaw-density-control);
+  min-width: var(--yayaw-density-control);
+  height: var(--yayaw-density-control);
+  min-height: var(--yayaw-density-control);
 }
-.yayaw-table[data-density="small"] .yayaw-cell-image {
-  width: 24px;
-  height: 24px;
+.yayaw-data-grid .yayaw-cell-image {
+  display: block;
+  width: var(--yayaw-density-control);
+  height: var(--yayaw-density-control);
 }
-.yayaw-table[data-density="small"] .yayaw-inline-editor {
-  min-height: 24px;
-  padding-block: 2px;
+.yayaw-data-grid .yayaw-inline-editor {
+  min-height: var(--yayaw-density-control);
+  padding-block: 0;
 }
-.yayaw-table[data-density="small"] .yayaw-column-resize-handle {
-  top: -2px;
-  right: -8px;
-  bottom: -2px;
+.yayaw-data-grid .yayaw-column-resize-handle {
+  top: calc(-1 * var(--yayaw-density-py));
+  right: calc(-1 * var(--yayaw-density-px));
+  bottom: calc(-1 * var(--yayaw-density-py));
 }
 .yayaw-density-menu {
   min-width: 128px;
@@ -1532,4 +1516,19 @@
 }
 .yayaw-density-option {
   justify-content: space-between;
+}
+
+.yayaw-tooltip {
+  z-index: 100;
+  max-width: 20rem;
+  border-radius: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  background: var(--yayaw-foreground);
+  color: var(--yayaw-background);
+  font:
+    12px / 1.4 ui-sans-serif,
+    system-ui,
+    sans-serif;
+  box-shadow: var(--yayaw-shadow);
+  overflow-wrap: break-word;
 }

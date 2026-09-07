@@ -7,6 +7,8 @@
  */
 "use client";
 
+import { TableTooltip } from "../../utils/table-tooltip";
+
 import { flip, offset, shift, useFloating } from "@floating-ui/react-dom";
 import { useAtom } from "jotai";
 import {
@@ -432,6 +434,7 @@ function CalculationMenuBase({
       )}
       ref={triggerRef}
     >
+      <TableTooltip label={translations.calcCalculate}>
       <button
         aria-expanded={isOpen}
         aria-haspopup="menu"
@@ -447,7 +450,6 @@ function CalculationMenuBase({
           currentCalc === "none" && !shouldShowEmptyLabel && "justify-center"
         )}
         onClick={handleToggle}
-        title={currentCalc === "none" ? translations.calcCalculate : undefined}
         type="button"
       >
         {currentCalc === "none" ? (
@@ -481,6 +483,7 @@ function CalculationMenuBase({
           </>
         )}
       </button>
+      </TableTooltip>
       {menuContent && createPortal(menuContent, document.body)}
     </div>
   );

@@ -4,6 +4,8 @@
  */
 "use client";
 
+import { TableTooltip } from "../../utils/table-tooltip";
+
 import { useQueryClient } from "@tanstack/react-query";
 import type {
   ColumnDef,
@@ -993,23 +995,23 @@ export function DataTableAdvancedToolbar<TData>({
       }
 
       return (
-        <Button
-          className="h-8 gap-2 px-3"
-          disabled={resolvedState.disabled || resolvedState.loading}
-          key={action.id}
-          onClick={() => {
-            handleToolbarActionClick(action).catch(() => {
-              /* ignore custom action errors */
-            });
-          }}
-          size="sm"
-          title={action.tooltip}
-          type="button"
-          variant={resolvedState.variant}
-        >
-          {iconContent}
-          <span>{action.label}</span>
-        </Button>
+        <TableTooltip label={action.tooltip ?? action.label} key={action.id}>
+          <Button
+            className="h-8 gap-2 px-3"
+            disabled={resolvedState.disabled || resolvedState.loading}
+            onClick={() => {
+              handleToolbarActionClick(action).catch(() => {
+                /* ignore custom action errors */
+              });
+            }}
+            size="sm"
+            type="button"
+            variant={resolvedState.variant}
+          >
+            {iconContent}
+            <span>{action.label}</span>
+          </Button>
+        </TableTooltip>
       );
     },
     [

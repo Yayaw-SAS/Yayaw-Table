@@ -38,6 +38,7 @@ import type {
   ToolbarActionsPlacement,
 } from "../types/toolbar-types";
 import type { NumberFormatConfig } from "../utils/number-format";
+import { isTableDensity } from "../utils/table-contracts";
 import { useTableTranslations } from "./use-table-translations";
 
 /**
@@ -241,19 +242,7 @@ const DEFAULT_TABLE_CONFIG: TableCatalogueConfig = {
 function normalizeDensityMode(
   density: TableDensity | undefined
 ): TableDensity {
-  if (density === "extra-large") {
-    return "extra-large";
-  }
-
-  if (density === "small") {
-    return "small";
-  }
-
-  if (density === "large") {
-    return "large";
-  }
-
-  return "medium";
+  return isTableDensity(density) ? density : "medium";
 }
 
 function resolveInlineEditConfig(

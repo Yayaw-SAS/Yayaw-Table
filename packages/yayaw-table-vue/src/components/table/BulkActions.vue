@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import TableTooltip from "../toolbar/TableTooltip.vue";
 import {
   CheckCheck,
   Copy,
@@ -433,135 +434,145 @@ const bulkExport = async (): Promise<void> => {
         >
       </div>
 
-      <button
-        v-if="
-          context.config.table.enableMultiRowSelection &&
-          context.matchingRowCount.value > ids.length
-        "
-        type="button"
-        class="yayaw-bulk-action-tab"
-        :disabled="isBusy"
-        :aria-label="`${translate('selectAll', 'Select all')} ${
+      <TableTooltip
+        :label="`${translate('selectAll', 'Select all')} ${
           context.matchingRowCount.value
         }`"
-        :title="`${translate('selectAll', 'Select all')} ${
-          context.matchingRowCount.value
-        }`"
-        @click="selectAllMatching"
       >
-        <LoaderCircle
-          v-if="context.isSelectingAll.value"
-          :size="20"
-          class="yayaw-spin"
-          aria-hidden="true"
-        />
-        <CheckCheck v-else :size="20" aria-hidden="true" />
-        <span class="yayaw-bulk-action-label">
-          {{ translate("selectAll", "Select all") }}
-          {{ context.matchingRowCount.value }}
-        </span>
-      </button>
+        <button
+          v-if="
+            context.config.table.enableMultiRowSelection &&
+            context.matchingRowCount.value > ids.length
+          "
+          type="button"
+          class="yayaw-bulk-action-tab"
+          :disabled="isBusy"
+          :aria-label="`${translate('selectAll', 'Select all')} ${
+            context.matchingRowCount.value
+          }`"
+          @click="selectAllMatching"
+        >
+          <LoaderCircle
+            v-if="context.isSelectingAll.value"
+            :size="20"
+            class="yayaw-spin"
+            aria-hidden="true"
+          />
+          <CheckCheck v-else :size="20" aria-hidden="true" />
+          <span class="yayaw-bulk-action-label">
+            {{ translate("selectAll", "Select all") }}
+            {{ context.matchingRowCount.value }}
+          </span>
+        </button>
+      </TableTooltip>
 
-      <button
+      <TableTooltip
         v-if="context.config.table.bulkExport"
-        type="button"
-        class="yayaw-bulk-action-tab"
-        :disabled="isBusy"
-        :aria-label="translate('export', 'Export')"
-        :title="translate('export', 'Export')"
-        @click="bulkExport"
+        :label="translate('export', 'Export')"
       >
-        <Download :size="20" aria-hidden="true" />
-        <span class="yayaw-bulk-action-label">{{
-          translate("export", "Export")
-        }}</span>
-      </button>
+        <button
+          type="button"
+          class="yayaw-bulk-action-tab"
+          :disabled="isBusy"
+          :aria-label="translate('export', 'Export')"
+          @click="bulkExport"
+        >
+          <Download :size="20" aria-hidden="true" />
+          <span class="yayaw-bulk-action-label">{{
+            translate("export", "Export")
+          }}</span>
+        </button>
+      </TableTooltip>
 
-      <button
-        v-if="canBulkEdit"
-        type="button"
-        class="yayaw-bulk-action-tab"
-        :disabled="isBusy"
-        :aria-label="translate('bulkEdit', 'Bulk edit')"
-        :title="translate('bulkEdit', 'Bulk edit')"
-        @click="bulkEdit"
-      >
-        <Pencil :size="20" aria-hidden="true" />
-        <span class="yayaw-bulk-action-label">{{
-          translate("bulkEdit", "Bulk edit")
-        }}</span>
-      </button>
+      <TableTooltip v-if="canBulkEdit" :label="translate('bulkEdit', 'Bulk edit')">
+        <button
+          type="button"
+          class="yayaw-bulk-action-tab"
+          :disabled="isBusy"
+          :aria-label="translate('bulkEdit', 'Bulk edit')"
+          @click="bulkEdit"
+        >
+          <Pencil :size="20" aria-hidden="true" />
+          <span class="yayaw-bulk-action-label">{{
+            translate("bulkEdit", "Bulk edit")
+          }}</span>
+        </button>
+      </TableTooltip>
 
-      <button
-        v-if="canBulkCopy"
-        type="button"
-        class="yayaw-bulk-action-tab"
-        :disabled="isBusy"
-        :aria-label="translate('copy', 'Copy')"
-        :title="translate('copy', 'Copy')"
-        @click="bulkCopy"
-      >
-        <Copy :size="20" aria-hidden="true" />
-        <span class="yayaw-bulk-action-label">{{
-          translate("copy", "Copy")
-        }}</span>
-      </button>
+      <TableTooltip v-if="canBulkCopy" :label="translate('copy', 'Copy')">
+        <button
+          type="button"
+          class="yayaw-bulk-action-tab"
+          :disabled="isBusy"
+          :aria-label="translate('copy', 'Copy')"
+          @click="bulkCopy"
+        >
+          <Copy :size="20" aria-hidden="true" />
+          <span class="yayaw-bulk-action-label">{{
+            translate("copy", "Copy")
+          }}</span>
+        </button>
+      </TableTooltip>
 
-      <button
+      <TableTooltip
         v-for="action in context.customBulkActions.value"
         :key="action.id"
-        type="button"
-        class="yayaw-bulk-action-tab"
-        :class="{ 'yayaw-bulk-action-danger': action.variant === 'danger' }"
-        :disabled="customActionDisabled(action)"
-        :aria-label="action.label"
-        :title="action.label"
-        @click="runCustom(action.id)"
+        :label="action.label"
       >
-        <LoaderCircle
-          v-if="pending === action.id"
-          :size="20"
-          class="yayaw-spin"
-          aria-hidden="true"
-        />
-        <component
-          :is="action.icon"
-          v-else-if="action.icon"
-          :size="20"
-          aria-hidden="true"
-        />
-        <span v-else class="yayaw-bulk-action-fallback" aria-hidden="true">
-          {{ action.label.slice(0, 1) }}
-        </span>
-        <span class="yayaw-bulk-action-label">{{ action.label }}</span>
-      </button>
+        <button
+          type="button"
+          class="yayaw-bulk-action-tab"
+          :class="{ 'yayaw-bulk-action-danger': action.variant === 'danger' }"
+          :disabled="customActionDisabled(action)"
+          :aria-label="action.label"
+          @click="runCustom(action.id)"
+        >
+          <LoaderCircle
+            v-if="pending === action.id"
+            :size="20"
+            class="yayaw-spin"
+            aria-hidden="true"
+          />
+          <component
+            :is="action.icon"
+            v-else-if="action.icon"
+            :size="20"
+            aria-hidden="true"
+          />
+          <span v-else class="yayaw-bulk-action-fallback" aria-hidden="true">
+            {{ action.label.slice(0, 1) }}
+          </span>
+          <span class="yayaw-bulk-action-label">{{ action.label }}</span>
+        </button>
+      </TableTooltip>
 
-      <button
-        v-if="canBulkDelete"
-        type="button"
-        class="yayaw-bulk-action-tab yayaw-bulk-action-danger"
-        :disabled="isBusy"
-        :aria-label="translate('delete', 'Delete')"
-        :title="translate('delete', 'Delete')"
-        @click="requestBulkDelete"
-      >
-        <Trash2 :size="20" aria-hidden="true" />
-        <span class="yayaw-bulk-action-label">{{
-          translate("delete", "Delete")
-        }}</span>
-      </button>
+      <TableTooltip v-if="canBulkDelete" :label="translate('delete', 'Delete')">
+        <button
+          type="button"
+          class="yayaw-bulk-action-tab yayaw-bulk-action-danger"
+          :disabled="isBusy"
+          :aria-label="translate('delete', 'Delete')"
+          @click="requestBulkDelete"
+        >
+          <Trash2 :size="20" aria-hidden="true" />
+          <span class="yayaw-bulk-action-label">{{
+            translate("delete", "Delete")
+          }}</span>
+        </button>
+      </TableTooltip>
 
       <span class="yayaw-bulk-divider" aria-hidden="true" />
-      <button
-        type="button"
-        class="yayaw-bulk-action-tab"
-        :disabled="isBusy"
-        :aria-label="translate('cancel', 'Clear selection')"
-        :title="translate('cancel', 'Clear selection')"
-        @click="context.clearSelection"
-      >
-        <X :size="12" aria-hidden="true" />
-      </button>
+      <TableTooltip :label="translate('cancel', 'Clear selection')">
+        <button
+          type="button"
+          class="yayaw-bulk-action-tab"
+          :disabled="isBusy"
+          :aria-label="translate('cancel', 'Clear selection')"
+          @click="context.clearSelection"
+        >
+          <X :size="12" aria-hidden="true" />
+        </button>
+      </TableTooltip>
     </div>
   </div>
 

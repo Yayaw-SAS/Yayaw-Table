@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import TableTooltip from "./TableTooltip.vue";
 import { Check, Rows3 } from "lucide-vue-next";
 import {
   DropdownMenuContent,
@@ -28,16 +29,17 @@ const setDensity = (value: unknown): void => {
 
 <template>
   <DropdownMenuRoot :modal="false">
-    <DropdownMenuTrigger as-child>
-      <button
-        type="button"
-        class="yayaw-button yayaw-button-outline yayaw-icon-only"
-        :aria-label="`${label}: ${size}`"
-        :title="`${label}: ${size}`"
-      >
-        <Rows3 :size="16" aria-hidden="true" />
-      </button>
-    </DropdownMenuTrigger>
+    <TableTooltip :label="`${label}: ${size}`">
+      <DropdownMenuTrigger as-child>
+        <button
+          type="button"
+          class="yayaw-button yayaw-button-outline yayaw-icon-only"
+          :aria-label="`${label}: ${size}`"
+        >
+          <Rows3 :size="16" aria-hidden="true" />
+        </button>
+      </DropdownMenuTrigger>
+    </TableTooltip>
     <DropdownMenuPortal>
       <DropdownMenuContent class="yayaw-column-menu yayaw-density-menu" align="end" :side-offset="4" :aria-label="label">
         <DropdownMenuLabel class="yayaw-density-label">{{ label }}</DropdownMenuLabel>

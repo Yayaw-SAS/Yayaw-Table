@@ -26,7 +26,7 @@ import type {
   ToolbarActionsInput,
   ToolbarActionsPlacement,
 } from "../types";
-import { fetchAllContractRows } from "../table-contracts";
+import { fetchAllContractRows, TABLE_DENSITY_METRICS } from "../table-contracts";
 import type { TableListParams } from "../types";
 import CardPagination from "./table/CardPagination.vue";
 import AdvancedFilters from "./filters/AdvancedFilters.vue";
@@ -313,6 +313,17 @@ const selectAllMatching = async (): Promise<number> => {
   }
 };
 
+const densityStyle = computed(() => {
+  const metrics = TABLE_DENSITY_METRICS[state.density.value];
+  const spacing = (units: number) => `calc(var(--spacing, 0.25rem) * ${units})`;
+  return {
+    "--yayaw-density-height": spacing(metrics.rowHeight),
+    "--yayaw-density-control": spacing(metrics.controlHeight),
+    "--yayaw-density-px": spacing(metrics.paddingX),
+    "--yayaw-density-py": spacing(metrics.paddingY),
+  };
+});
+
 const openCreate = (): void => {
   form.value = {
     open: true,
@@ -429,7 +440,7 @@ provide(tableContextKey, {
 </script>
 
 <template>
-  <section class="yayaw-table" :class="className" :data-density="state.density.value" tabindex="-1">
+  <section class="yayaw-table" :class="className" :data-density="state.density.value" :style="densityStyle" tabindex="-1">
     <div v-if="status" class="yayaw-status" :data-type="status.type" role="status">
       <span>{{ status.message }}</span>
       <button type="button" :aria-label="String(translations.dismiss)" @click="status = undefined">×</button>

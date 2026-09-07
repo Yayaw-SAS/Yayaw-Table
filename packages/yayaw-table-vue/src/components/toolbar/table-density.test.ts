@@ -5,7 +5,9 @@ import {
   mount,
 } from "@vue/test-utils";
 import { afterEach, beforeEach, expect, it } from "vitest";
+import densityScale from "../../../../../tests/fixtures/density-scale.json";
 import { defineTableConfig } from "../../config";
+import { isTableDensity } from "../../table-contracts";
 import YayawDataTable from "../YayawDataTable.vue";
 
 const config = defineTableConfig({
@@ -18,7 +20,7 @@ const config = defineTableConfig({
   },
   translations: { namespace: "density", keys: {} },
   table: {
-    density: "extra-large",
+    density: "extra-extra-large",
     displayModes: ["table", "gallery"],
     enableViews: false,
   },
@@ -51,7 +53,7 @@ beforeEach(() => window.history.replaceState({}, "", "/"));
 it("uses the configured density, updates only its instance and retains it across display modes", async () => {
   const wrapper = mountTable();
   const other = mountTable();
-  const trigger = wrapper.get('[aria-label="Densité du tableau: XL"]');
+  const trigger = wrapper.get('[aria-label="Densité du tableau: 2XL"]');
   expect(trigger.classes()).toContain("yayaw-icon-only");
   expect(trigger.text()).toBe("");
   expect(
@@ -60,31 +62,42 @@ it("uses the configured density, updates only its instance and retains it across
   await trigger.trigger("keydown", { key: "Enter" });
   await settle();
   const items = body().findAll('[role="menuitemradio"]');
-  expect(items.map((item) => item.text())).toEqual(["S", "M", "L", "XL"]);
-  expect(items[3]?.attributes("aria-checked")).toBe("true");
+  expect(items.map((item) => item.text())).toEqual([
+    "XS",
+    "S",
+    "M",
+    "L",
+    "XL",
+    "2XL",
+  ]);
+  expect(items[5]?.attributes("aria-checked")).toBe("true");
   await items[0]?.trigger("click");
   await settle();
-  expect(wrapper.get(".yayaw-table").attributes("data-density")).toBe("small");
-  expect(other.get(".yayaw-table").attributes("data-density")).toBe(
-    "extra-large"
+  expect(wrapper.get(".yayaw-table").attributes("data-density")).toBe(
+    "extra-small"
   );
-  expect(config.table.density).toBe("extra-large");
+  expect(other.get(".yayaw-table").attributes("data-density")).toBe(
+    "extra-extra-large"
+  );
+  expect(config.table.density).toBe("extra-extra-large");
 
   const modes = wrapper.get('[role="group"]').findAll("button");
   await modes[1]?.trigger("click");
-  expect(wrapper.find('[aria-label="Densité du tableau: S"]').exists()).toBe(
+  expect(wrapper.find('[aria-label="Densité du tableau: XS"]').exists()).toBe(
     false
   );
   await modes[0]?.trigger("click");
-  expect(wrapper.get(".yayaw-table").attributes("data-density")).toBe("small");
-  expect(wrapper.find('[aria-label="Densité du tableau: S"]').exists()).toBe(
+  expect(wrapper.get(".yayaw-table").attributes("data-density")).toBe(
+    "extra-small"
+  );
+  expect(wrapper.find('[aria-label="Densité du tableau: XS"]').exists()).toBe(
     true
   );
 });
 
 it("closes on Escape and restores focus without changing density", async () => {
   const wrapper = mountTable();
-  const trigger = wrapper.get('[aria-label="Densité du tableau: XL"]');
+  const trigger = wrapper.get('[aria-label="Densité du tableau: 2XL"]');
   (trigger.element as HTMLElement).focus();
   await trigger.trigger("keydown", { key: "Enter" });
   await settle();
@@ -98,6 +111,41 @@ it("closes on Escape and restores focus without changing density", async () => {
   expect(body().find('[role="menu"]').exists()).toBe(false);
   expect(document.activeElement).toBe(trigger.element);
   expect(wrapper.get(".yayaw-table").attributes("data-density")).toBe(
-    "extra-large"
+    "extra-extra-large"
   );
+});
+
+for (const fixture of densityScale) {
+  it(`applies the shared ${fixture.label} spacing without changing the default`, async () => {
+    const wrapper = mountTable();
+    await wrapper
+      .get('[aria-label="Densité du tableau: 2XL"]')
+      .trigger("click");
+    await settle();
+    const item = body()
+      .findAll('[role="menuitemradio"]')
+      .find((option) => option.text() === fixture.label);
+    expect(item).toBeDefined();
+    await item?.trigger("click");
+    await settle();
+    expect(isTableDensity(fixture.value)).toBe(true);
+    const table = wrapper.get(".yayaw-table").element as HTMLElement;
+    expect(table.dataset.density).toBe(fixture.value);
+    expect(table.style.getPropertyValue("--yayaw-density-height")).toBe(
+      `calc(var(--spacing, 0.25rem) * ${fixture.height / 4})`
+    );
+    expect(table.style.getPropertyValue("--yayaw-density-control")).toBe(
+      `calc(var(--spacing, 0.25rem) * ${fixture.control / 4})`
+    );
+    expect(config.table.density).toBe("extra-extra-large");
+  });
+}
+
+it("shows the localized density tooltip on keyboard focus without a native duplicate", async () => {
+  const wrapper = mountTable();
+  const trigger = wrapper.get('[aria-label="Densité du tableau: 2XL"]');
+  expect(trigger.attributes("title")).toBeUndefined();
+  (trigger.element as HTMLButtonElement).focus();
+  await settle();
+  expect(body().get('[role="tooltip"]').text()).toBe("Densité du tableau: 2XL");
 });
