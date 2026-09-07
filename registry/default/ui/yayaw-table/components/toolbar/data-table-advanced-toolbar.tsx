@@ -67,6 +67,7 @@ import {
   openCreateForm,
 } from "../forms/atoms/catalogue-form-atoms";
 import { SearchBar } from "./sections/search-bar";
+import { TableDensityMenu } from "./table-density-menu";
 import { TableMenu } from "./table-menu";
 import {
   partitionToolbarActions,
@@ -1070,6 +1071,12 @@ export function DataTableAdvancedToolbar<TData>({
         )}
 
         {toolbarActionsByPlacement.afterExport.map(renderToolbarAction)}
+
+        <TableDensityMenu
+          defaultDensity={tableConfig.table.density}
+          defaultDisplayMode={tableConfig.table.defaultDisplayMode}
+          tableId={tableId}
+        />
 
         {/* Options menu */}
         <TableMenu

@@ -27,6 +27,7 @@ import type {
   PaginationState,
   SortingState,
   TableConfig,
+  TableDensity,
   TableDisplayMode,
   TableGalleryViewConfig,
   TableKanbanViewConfig,
@@ -74,6 +75,7 @@ export interface TableStateRefs {
   pinning: Ref<ColumnPinningState>;
   pagination: Ref<PaginationState>;
   displayMode: Ref<TableDisplayMode>;
+  density: Ref<TableDensity>;
   kanban: Ref<TableKanbanViewConfig>;
   gallery: Ref<TableGalleryViewConfig>;
   columnDragEnabled: Ref<boolean>;
@@ -157,6 +159,14 @@ export const useTableState = <TData extends TableRecord>({
   const pagination = ref<PaginationState>({
     pageIndex: 0,
     pageSize: config.table.defaultPageSize,
+  });
+  // Keep toolbar choices local to this instance without mutating shared configuration.
+  const densityOverride = ref<TableDensity>();
+  const density = computed({
+    get: () => densityOverride.value ?? config.table.density,
+    set: (value: TableDensity) => {
+      densityOverride.value = value;
+    },
   });
   const displayMode = ref<TableDisplayMode>(
     config.table.defaultDisplayMode ?? "table"
@@ -561,6 +571,7 @@ export const useTableState = <TData extends TableRecord>({
     pinning,
     pagination,
     displayMode,
+    density,
     kanban,
     gallery,
     columnDragEnabled,

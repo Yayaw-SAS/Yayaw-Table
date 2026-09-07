@@ -33,6 +33,7 @@ import type {
   ToolbarActionsPlacement,
 } from "../../types";
 import SavedViews from "./SavedViews.vue";
+import TableDensityMenu from "./TableDensityMenu.vue";
 
 const props = defineProps<{
   enableAdvancedFilters: boolean;
@@ -508,6 +509,8 @@ const exportRows = async (): Promise<void> => {
           :placeholder="String(context.translations.value.search)"
           :aria-label="String(context.translations.value.search)"
         />
+
+        <TableDensityMenu v-if="displayMode === 'table'" />
 
         <div v-if="hasAnyMenuSection" ref="optionsRoot" class="yayaw-options-root">
           <button

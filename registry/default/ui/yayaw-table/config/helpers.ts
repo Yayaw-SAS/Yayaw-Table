@@ -4,6 +4,7 @@
 
 import type { DateDisplayPreset } from "../types/date-types";
 import type {
+  TableDensity,
   TableDisplayMode,
   TableGalleryConfig,
   TableKanbanConfig,
@@ -480,7 +481,7 @@ export interface TableBehaviorConfig {
   /**
    * Table density mode
    */
-  density: "small" | "medium" | "large";
+  density: TableDensity;
 
   /**
    * Opinionated layout preset for common admin/catalog surfaces.

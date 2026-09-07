@@ -146,3 +146,5 @@ The parity contract covers user-visible behavior and serializable catalogue/acti
 ## Verification and distribution
 
 `bun run test` registers all React tests through `bun:test` and preloads a browser environment for mounted form tests. `bun run vue:test` covers Vue and the shared fixtures. Run type checks, the Vue build, `registry:sync`, and `registry:pages` before publishing copied code. React test files are excluded from consumer registry output. Immutable released snapshots are unchanged by a feature PR.
+
+Both toolbars include an icon beside the filter/options menu for S, M, L, and XL table density. `table.density` accepts `small`, `medium`, `large`, and `extra-large`; S compacts built-in controls as well as cell spacing. UI choices are scoped to the table and retained across display mode changes without affecting saved views or URL state.

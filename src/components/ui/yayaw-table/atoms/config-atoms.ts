@@ -13,6 +13,7 @@ import type {
 } from "../config/helpers";
 import type { DateDisplayPreset } from "../types/date-types";
 import type {
+  TableDensity,
   TableDisplayMode,
   TableGalleryConfig,
   TableKanbanConfig,
@@ -125,7 +126,7 @@ export interface DataTableConfig {
   /**
    * Table density mode
    */
-  density?: "small" | "medium" | "large";
+  density?: TableDensity;
 
   /**
    * Opinionated layout preset for common table surfaces.

@@ -27,6 +27,7 @@ import {
 import type { ColumnSort } from "../tanstack";
 import type { DateDisplayPreset } from "../types/date-types";
 import type {
+  TableDensity,
   TableDisplayMode,
   TableGalleryConfig,
   TableKanbanConfig,
@@ -95,7 +96,7 @@ export interface TableCatalogueTableConfig {
   export?: boolean;
   bulkExport?: boolean;
   actionsAsIcons?: boolean;
-  density?: "small" | "medium" | "large";
+  density?: TableDensity;
   layoutPreset?: TableLayoutPreset;
   displayModes?: TableDisplayMode[];
   defaultDisplayMode?: TableDisplayMode;
@@ -237,9 +238,11 @@ const DEFAULT_TABLE_CONFIG: TableCatalogueConfig = {
   },
 };
 
-function normalizeDensityMode(
-  density: "small" | "medium" | "large" | undefined
-): "small" | "medium" | "large" {
+function normalizeDensityMode(density: TableDensity | undefined): TableDensity {
+  if (density === "extra-large") {
+    return "extra-large";
+  }
+
   if (density === "small") {
     return "small";
   }

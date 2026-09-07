@@ -2,6 +2,8 @@
  * Display mode types shared by table configuration and saved views.
  */
 
+export type { TableDensity } from "../utils/table-contracts";
+
 export type TableDisplayMode = "gallery" | "kanban" | "table";
 
 export type TableGalleryAspectRatio = "portrait" | "square" | "video" | "wide";

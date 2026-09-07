@@ -141,3 +141,21 @@ describe("resolveTableCatalogueConfig", () => {
     assert.equal(resolvedConfig.table.showToolbarHeader, true);
   });
 });
+
+it("preserves XL density in both nested and legacy configuration", () => {
+  assert.equal(
+    resolveTableCatalogueConfig({ density: "extra-large" }).table.density,
+    "extra-large"
+  );
+  assert.equal(
+    resolveTableCatalogueConfig(
+      defineTableConfig({
+        id: "density",
+        columns: { definitions: [], visible: [], order: [], mandatory: [] },
+        translations: { namespace: "density", keys: {} },
+        table: { density: "extra-large" },
+      })
+    ).table.density,
+    "extra-large"
+  );
+});

@@ -460,6 +460,7 @@ export interface DataTableTranslations {
     current_groups: string;
     active_groups: string;
     options: string;
+    density?: string;
     properties: string;
     reset_all: string;
     reset_all_description: string;

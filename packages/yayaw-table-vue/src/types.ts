@@ -6,7 +6,10 @@ export type TableRecord = Record<string, unknown>;
 export type PrimitiveValue = boolean | number | string;
 export type MaybePromise<T> = Promise<T> | T;
 export type TableDisplayMode = "gallery" | "kanban" | "table";
-export type TableDensity = "large" | "medium" | "small";
+
+import type { TableDensity } from "./table-contracts";
+
+export type { TableDensity } from "./table-contracts";
 export type TableLayoutPreset = "admin" | "catalog" | "default" | "preview";
 export type TableRowClickMode =
   | "activate"

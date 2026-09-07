@@ -16,6 +16,8 @@ import { atom } from "jotai";
 import { atomWithStorage } from "jotai/utils";
 import { atomFamily } from "jotai-family";
 
+import type { TableDensity } from "../types/display-types";
+
 import type { DataTableColumnDef } from "../types/column-types";
 
 /**
@@ -23,6 +25,11 @@ import type { DataTableColumnDef } from "../types/column-types";
  * This is used to identify the table across the application
  */
 export const tableIdAtom = atom<string>("");
+
+/** Per-table UI override; undefined keeps the configured default density. */
+export const tableDensityAtom = atomFamily((_tableId: string) =>
+  atom<TableDensity | undefined>(undefined)
+);
 
 /**
  * Atom family to store column definitions for a specific table

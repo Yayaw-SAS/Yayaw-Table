@@ -75,6 +75,21 @@ and icon action modes, including on mobile. Its tooltip and accessible label use
 `filters.clear` from your translations. `showResetFilters` remains a supported
 alias and now has the same behavior in React and Vue.
 
+### Table density
+
+The density icon sits in the right toolbar next to the filter/options menu.
+Choose **S**, **M**, **L**, or **XL** to update the table immediately. S uses
+compact spacing and smaller built-in row controls; M remains the default.
+The control is available in table mode, including when other toolbar actions
+have text labels.
+
+Set the initial density with `table.density`: `"small"` (S), `"medium"` (M),
+`"large"` (L), or `"extra-large"` (XL). Existing configuration values remain
+supported. A toolbar choice applies to that table instance without changing
+shared configuration, filters, pagination, or saved views, and remains selected
+when switching between display modes. Density is a session preference and is
+not stored in saved views or shareable URLs.
+
 ### Resize columns
 
 Set `table.enableColumnResizing: true` to add accessible resize handles to data
