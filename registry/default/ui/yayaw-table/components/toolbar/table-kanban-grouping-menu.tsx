@@ -18,6 +18,7 @@ import {
   StackMenuView,
 } from "../../ui-custom/stack-menu";
 import { ColumnIcon } from "../../utils/column-icons";
+import { TableTooltip } from "../../utils/table-tooltip";
 import type { GroupPickerColumn } from "./sections/group-picker";
 import { GroupPicker } from "./sections/group-picker";
 
@@ -162,17 +163,18 @@ export function TableKanbanGroupingMenu({
       asDropdown
       defaultView="group"
       trigger={
-        <Button
-          aria-label={`${groupLabel}: ${triggerLabel}`}
-          className={cn("h-8 max-w-[16rem] gap-1.5 px-2 text-xs", className)}
-          size="sm"
-          title={`${groupLabel}: ${triggerLabel}`}
-          type="button"
-          variant="outline"
-        >
-          <Layers className="h-3.5 w-3.5 shrink-0" />
-          <span className="truncate font-medium">{triggerLabel}</span>
-        </Button>
+        <TableTooltip label={`${groupLabel}: ${triggerLabel}`}>
+          <Button
+            aria-label={`${groupLabel}: ${triggerLabel}`}
+            className={cn("h-8 max-w-[16rem] gap-1.5 px-2 text-xs", className)}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            <Layers className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate font-medium">{triggerLabel}</span>
+          </Button>
+        </TableTooltip>
       }
     >
       <StackMenuView name="group" title={groupLabel}>

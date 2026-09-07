@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import TableTooltip from "./TableTooltip.vue";
 import {
   ArrowLeft,
   ArrowDownAZ,
@@ -513,25 +514,29 @@ const exportRows = async (): Promise<void> => {
         <TableDensityMenu v-if="displayMode === 'table'" />
 
         <div v-if="hasAnyMenuSection" ref="optionsRoot" class="yayaw-options-root">
-          <button
-            type="button"
-            class="yayaw-button yayaw-button-outline"
-            :class="{ 'yayaw-icon-only': actionsAsIcons }"
-            :aria-label="translate('options', 'Options')"
-            :aria-expanded="optionsOpen"
-            aria-haspopup="dialog"
-            :title="actionsAsIcons ? translate('options', 'Options') : undefined"
-            :id="`table-options-${context.config.id}`"
-          @click="openOptions"
+          <TableTooltip
+            :label="actionsAsIcons ? translate('options', 'Options') : undefined"
           >
-            <SlidersHorizontal :size="16" aria-hidden="true" />
-            <span v-if="!actionsAsIcons">{{ translate("options", "Options") }}</span>
-            <span
-              v-if="activeOptionCount"
-              class="yayaw-options-trigger-count"
-              :class="{ 'yayaw-options-trigger-count-icon': actionsAsIcons }"
-            >{{ activeOptionCount }}</span>
-          </button>
+            <button
+              type="button"
+              class="yayaw-button yayaw-button-outline"
+              :class="{ 'yayaw-icon-only': actionsAsIcons }"
+              :aria-label="translate('options', 'Options')"
+              :aria-expanded="optionsOpen"
+              aria-haspopup="dialog"
+              :id="`table-options-${context.config.id}`"
+              @click="openOptions"
+            >
+              <SlidersHorizontal :size="16" aria-hidden="true" />
+              <span v-if="!actionsAsIcons">{{ translate("options", "Options") }}</span>
+              <span
+                v-if="activeOptionCount"
+                class="yayaw-options-trigger-count"
+                :class="{ 'yayaw-options-trigger-count-icon': actionsAsIcons }"
+                >{{ activeOptionCount }}</span
+              >
+            </button>
+          </TableTooltip>
 
           <section
             v-if="optionsOpen"
@@ -550,17 +555,20 @@ const exportRows = async (): Promise<void> => {
                 <ArrowLeft :size="16" aria-hidden="true" />
               </button>
               <strong>{{ optionsView === "main" ? "Menu" : translate(optionsView === "columns" ? "properties" : optionsView, optionsView) }}</strong>
-              <button
+              <TableTooltip
+                :label="translate('reset', 'Reset')"
                 v-if="hideableColumns.length || columnDndFeatureEnabled"
-                type="button"
-                class="yayaw-icon-button"
-                :disabled="!hasAnythingToReset"
-                :aria-label="translate('reset', 'Reset')"
-                :title="translate('reset', 'Reset')"
-                @click="resetOptions"
               >
-                <RotateCcw :size="16" aria-hidden="true" />
-              </button>
+                <button
+                  type="button"
+                  class="yayaw-icon-button"
+                  :disabled="!hasAnythingToReset"
+                  :aria-label="translate('reset', 'Reset')"
+                  @click="resetOptions"
+                >
+                  <RotateCcw :size="16" aria-hidden="true" />
+                </button>
+              </TableTooltip>
               <button
                 type="button"
                 class="yayaw-icon-button"
@@ -811,64 +819,96 @@ const exportRows = async (): Promise<void> => {
           </section>
         </div>
 
-        <button
-          v-if="[context.config.table.showResetFilters, context.config.table.showClearFilters].includes(true)"
-          type="button"
-          class="yayaw-button yayaw-button-outline yayaw-icon-only"
-          :aria-label="translate('clearFilters', 'Clear filters')"
-          :title="translate('clearFilters', 'Clear filters')"
-          @click="context.state.resetFilters()"
+        <TableTooltip
+          :label="translate('clearFilters', 'Clear filters')"
+          v-if="
+            [
+              context.config.table.showResetFilters,
+              context.config.table.showClearFilters,
+            ].includes(true)
+          "
         >
-          <RotateCcw :size="16" aria-hidden="true" />
-        </button>
+          <button
+            type="button"
+            class="yayaw-button yayaw-button-outline yayaw-icon-only"
+            :aria-label="translate('clearFilters', 'Clear filters')"
+            @click="context.state.resetFilters()"
+          >
+            <RotateCcw :size="16" aria-hidden="true" />
+          </button>
+        </TableTooltip>
 
         <template v-for="item in toolbarItems" :key="item.key">
-          <button
+          <TableTooltip
+            :label="
+              actionsAsIcons
+                ? (item.action.tooltip ?? item.action.label)
+                : item.action.tooltip
+            "
             v-if="item.kind === 'action'"
-            type="button"
-            class="yayaw-button"
-            :class="[
-              toolbarActionVariant(item.action),
-              { 'yayaw-icon-only': actionsAsIcons },
-            ]"
-            :disabled="toolbarActionDisabled(item.action)"
-            :aria-label="actionsAsIcons ? item.action.label : undefined"
-            :title="actionsAsIcons ? (item.action.tooltip ?? item.action.label) : item.action.tooltip"
-            @click="runAction(item.action)"
           >
-            <span v-if="pendingAction === item.action.id || item.action.loading" class="yayaw-spinner" aria-hidden="true" />
-            <component v-else-if="item.action.icon" :is="item.action.icon" :size="16" aria-hidden="true" />
-            <span v-else-if="actionsAsIcons" aria-hidden="true">{{ item.action.label.slice(0, 1) }}</span>
-            <span v-if="!actionsAsIcons">{{ item.action.label }}</span>
-          </button>
+            <button
+              type="button"
+              class="yayaw-button"
+              :class="[
+                toolbarActionVariant(item.action),
+                { 'yayaw-icon-only': actionsAsIcons },
+              ]"
+              :disabled="toolbarActionDisabled(item.action)"
+              :aria-label="actionsAsIcons ? item.action.label : undefined"
+              @click="runAction(item.action)"
+            >
+              <span
+                v-if="pendingAction === item.action.id || item.action.loading"
+                class="yayaw-spinner"
+                aria-hidden="true"
+              />
+              <component
+                v-else-if="item.action.icon"
+                :is="item.action.icon"
+                :size="16"
+                aria-hidden="true"
+              />
+              <span v-else-if="actionsAsIcons" aria-hidden="true">{{
+                item.action.label.slice(0, 1)
+              }}</span>
+              <span v-if="!actionsAsIcons">{{ item.action.label }}</span>
+            </button>
+          </TableTooltip>
 
-          <button
+          <TableTooltip
+            :label="actionsAsIcons ? translate('create', 'Create') : undefined"
             v-else-if="item.kind === 'create'"
-            type="button"
-            class="yayaw-button"
-            :class="{ 'yayaw-icon-only': actionsAsIcons }"
-            :aria-label="translate('create', 'Create')"
-            :title="actionsAsIcons ? translate('create', 'Create') : undefined"
-            @click="context.openCreate"
           >
-            <Plus :size="16" aria-hidden="true" />
-            <span v-if="!actionsAsIcons">{{ translate("create", "Create") }}</span>
-          </button>
+            <button
+              type="button"
+              class="yayaw-button"
+              :class="{ 'yayaw-icon-only': actionsAsIcons }"
+              :aria-label="translate('create', 'Create')"
+              @click="context.openCreate"
+            >
+              <Plus :size="16" aria-hidden="true" />
+              <span v-if="!actionsAsIcons">{{ translate("create", "Create") }}</span>
+            </button>
+          </TableTooltip>
 
-          <button
+          <TableTooltip
+            :label="actionsAsIcons ? translate('export', 'Export') : undefined"
             v-else
-            type="button"
-            class="yayaw-button yayaw-button-outline"
-            :class="{ 'yayaw-icon-only': actionsAsIcons }"
-            :aria-label="translate('export', 'Export')"
-            :title="actionsAsIcons ? translate('export', 'Export') : undefined"
-            :disabled="isExporting"
-            :aria-busy="isExporting"
-            @click="exportRows"
           >
-            <Download :size="16" aria-hidden="true" />
-            <span v-if="!actionsAsIcons">{{ translate("export", "Export") }}</span>
-          </button>
+            <button
+              type="button"
+              class="yayaw-button yayaw-button-outline"
+              :class="{ 'yayaw-icon-only': actionsAsIcons }"
+              :aria-label="translate('export', 'Export')"
+              :disabled="isExporting"
+              :aria-busy="isExporting"
+              @click="exportRows"
+            >
+              <Download :size="16" aria-hidden="true" />
+              <span v-if="!actionsAsIcons">{{ translate("export", "Export") }}</span>
+            </button>
+          </TableTooltip>
         </template>
       </div>
     </div>

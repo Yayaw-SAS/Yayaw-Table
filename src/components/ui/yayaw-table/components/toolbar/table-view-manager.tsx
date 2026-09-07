@@ -1,5 +1,7 @@
 "use client";
 
+import { TableTooltip } from "../../utils/table-tooltip";
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Check,
@@ -194,35 +196,39 @@ function ViewWriteButtons({
 
   return (
     <>
-      <Button
-        aria-label={t("views.saveChanges")}
-        className="h-8 w-8 shrink-0"
-        disabled={!canUpdateActiveView || !isActiveViewDirty || isMutating}
-        onClick={() => {
-          onUpdateActiveView().catch(() => {
-            /* Error state is handled by the mutation branch. */
-          });
-        }}
-        size="icon-sm"
-        title={t("views.saveChangesTooltip")}
-        type="button"
-        variant={isActiveViewDirty ? "default" : "outline"}
-      >
-        <Save className="h-4 w-4" />
-      </Button>
+      <TableTooltip label={t("views.saveChangesTooltip")}>
+        <Button
+          aria-label={t("views.saveChanges")}
+          className="h-8 w-8 shrink-0"
+          disabled={!canUpdateActiveView || !isActiveViewDirty || isMutating}
+          focusableWhenDisabled
+          onClick={() => {
+            onUpdateActiveView().catch(() => {
+              /* Error state is handled by the mutation branch. */
+            });
+          }}
+          size="icon-sm"
+          type="button"
+          variant={isActiveViewDirty ? "default" : "outline"}
+        >
+          <Save className="h-4 w-4" />
+        </Button>
+      </TableTooltip>
 
-      <Button
-        aria-label={t("views.add_view")}
-        className="h-8 w-8 shrink-0"
-        disabled={isMutating || !canCreateView}
-        onClick={onOpenSaveDialog}
-        size="icon-sm"
-        title={t("views.add_view")}
-        type="button"
-        variant="outline"
-      >
-        <Plus className="h-4 w-4" />
-      </Button>
+      <TableTooltip label={t("views.add_view")}>
+        <Button
+          aria-label={t("views.add_view")}
+          className="h-8 w-8 shrink-0"
+          disabled={isMutating || !canCreateView}
+          focusableWhenDisabled
+          onClick={onOpenSaveDialog}
+          size="icon-sm"
+          type="button"
+          variant="outline"
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
+      </TableTooltip>
     </>
   );
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import { TableTooltip } from "../../utils/table-tooltip";
+
 import { useAtom } from "jotai";
 import { Rows3 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
@@ -51,16 +53,17 @@ export function TableDensityMenu({
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button
-            aria-label={`${label}: ${size}`}
-            className="h-8 w-8"
-            size="icon-sm"
-            title={`${label}: ${size}`}
-            type="button"
-            variant="outline"
-          >
-            <Rows3 aria-hidden="true" className="h-4 w-4" />
-          </Button>
+          <TableTooltip label={`${label}: ${size}`}>
+            <Button
+              aria-label={`${label}: ${size}`}
+              className="h-8 w-8"
+              size="icon-sm"
+              type="button"
+              variant="outline"
+            >
+              <Rows3 aria-hidden="true" className="h-4 w-4" />
+            </Button>
+          </TableTooltip>
         }
       />
       <DropdownMenuContent align="end" className="min-w-32">

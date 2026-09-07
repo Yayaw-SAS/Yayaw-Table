@@ -1,5 +1,7 @@
 "use client";
 
+import { TableTooltip } from "../../../utils/table-tooltip";
+
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { Column, Table } from "@/components/ui/yayaw-table/tanstack";
@@ -10,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/src/components/ui/button";
 
 import { columnDragEnabledAtom } from "../../../atoms/table-atoms";
+import { useTranslations } from "../../../providers/table-provider";
 import { useTableConfig } from "../../../hooks/use-table-config";
 import { useTableTranslations } from "../../../hooks/use-table-translations";
 import { resizedColumnSizeFromKey } from "../../../utils/table-contracts";
@@ -22,19 +25,22 @@ import { SelectionHeader } from "./selection-header";
 const _DEBUG = false;
 
 function DragHandleButton() {
+  const { t } = useTranslations();
   return (
-    <Button
-      aria-label="Drag to reorder column"
-      className="size-7 cursor-grab border-0 bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground active:cursor-grabbing"
-      size="icon"
-      type="button"
-      variant="ghost"
-    >
-      <GripVertical
-        className="h-4 w-4 opacity-60 hover:opacity-100"
-        strokeWidth={2}
-      />
-    </Button>
+    <TableTooltip label={t("columns.drag")}>
+      <Button
+        aria-label={t("columns.drag")}
+        className="size-7 cursor-grab border-0 bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground active:cursor-grabbing"
+        size="icon"
+        type="button"
+        variant="ghost"
+      >
+        <GripVertical
+          className="h-4 w-4 opacity-60 hover:opacity-100"
+          strokeWidth={2}
+        />
+      </Button>
+    </TableTooltip>
   );
 }
 

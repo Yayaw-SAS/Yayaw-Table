@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useTableUrlState } from "../../hooks/use-table-url-state";
 import { useTranslations } from "../../providers/table-provider";
 import type { TableDisplayMode } from "../../types/display-types";
+import { TableTooltip } from "../../utils/table-tooltip";
 
 interface TableDisplayModeSwitcherProps {
   className?: string;
@@ -53,24 +54,24 @@ export function TableDisplayModeSwitcher({
         const label = t(`views.display.${mode}`);
 
         return (
-          <Button
-            aria-pressed={isActive}
-            className={cn(
-              "h-7 gap-1.5 rounded-sm border-0 px-2 text-xs",
-              !isActive && "text-muted-foreground"
-            )}
-            key={mode}
-            onClick={() => {
-              setDisplayModeFromUI(mode);
-            }}
-            size="sm"
-            title={label}
-            type="button"
-            variant={isActive ? "secondary" : "ghost"}
-          >
-            <Icon className="h-3.5 w-3.5" />
-            <span>{label}</span>
-          </Button>
+          <TableTooltip key={mode} label={label}>
+            <Button
+              aria-pressed={isActive}
+              className={cn(
+                "h-7 gap-1.5 rounded-sm border-0 px-2 text-xs",
+                !isActive && "text-muted-foreground"
+              )}
+              onClick={() => {
+                setDisplayModeFromUI(mode);
+              }}
+              size="sm"
+              type="button"
+              variant={isActive ? "secondary" : "ghost"}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              <span>{label}</span>
+            </Button>
+          </TableTooltip>
         );
       })}
     </fieldset>

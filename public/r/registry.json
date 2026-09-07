@@ -1038,6 +1038,16 @@
           "target": "components/ui/yayaw-table/utils/table-contracts.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/utils/table-density.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/table-density.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/table-tooltip.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/table-tooltip.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/utils/table-view-state.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/table-view-state.ts"

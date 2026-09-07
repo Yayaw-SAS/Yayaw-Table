@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import TableTooltip from "../toolbar/TableTooltip.vue";
 import type { Column } from "../../tanstack";
 import { ArrowDown, ArrowLeftToLine, ArrowRightToLine, ArrowUp, ArrowUpDown, EyeOff, Funnel, GripVertical, MoreHorizontal, PinOff } from "lucide-vue-next";
 import { DropdownMenuContent, DropdownMenuItem, DropdownMenuPortal, DropdownMenuRoot, DropdownMenuSeparator, DropdownMenuTrigger } from "reka-ui";
@@ -24,11 +25,19 @@ const openColumnFilter = (): void => {
 
 <template>
   <DropdownMenuRoot v-if="available" :modal="false">
-    <DropdownMenuTrigger as-child>
-      <button type="button" class="yayaw-column-menu-trigger" :aria-label="`${translate('columnOptions')}: ${label}`" :title="translate('columnOptions')" @click.stop @pointerdown.stop>
-        <MoreHorizontal :size="16" aria-hidden="true" />
-      </button>
-    </DropdownMenuTrigger>
+    <TableTooltip :label="translate('columnOptions')">
+      <DropdownMenuTrigger as-child>
+        <button
+          type="button"
+          class="yayaw-column-menu-trigger"
+          :aria-label="`${translate('columnOptions')}: ${label}`"
+          @click.stop
+          @pointerdown.stop
+        >
+          <MoreHorizontal :size="16" aria-hidden="true" />
+        </button>
+      </DropdownMenuTrigger>
+    </TableTooltip>
     <DropdownMenuPortal>
       <DropdownMenuContent class="yayaw-column-menu" :aria-label="`${translate('columnOptions')}: ${label}`" align="start" :side-offset="4" @click.stop>
         <template v-if="column.getCanSort()">

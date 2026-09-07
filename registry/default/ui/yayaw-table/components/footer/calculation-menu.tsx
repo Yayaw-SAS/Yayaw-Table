@@ -21,6 +21,7 @@ import {
 import type { TableAggregateResultValue } from "../../providers/table-provider";
 import type { CalculationType } from "../../types/footer-types";
 import { getCalculationGroups } from "../../types/footer-types";
+import { TableTooltip } from "../../utils/table-tooltip";
 
 interface CalculationMenuProps {
   columnId: string;
@@ -425,55 +426,56 @@ function CalculationMenuBase({
       )}
       ref={triggerRef}
     >
-      <button
-        aria-expanded={isOpen}
-        aria-haspopup="menu"
-        aria-label={translations.calcCalculate}
-        className={cn(
-          "flex h-full cursor-pointer rounded-sm px-1 py-0.5 text-xs transition-colors",
-          "hover:bg-accent hover:text-accent-foreground",
-          currentCalc === "none" && "items-center gap-1.5",
-          currentCalc !== "none" &&
-            "h-auto w-full min-w-0 flex-col items-start justify-center gap-0.5",
-          currentCalc !== "none" && isNumberColumn && "items-end text-right",
-          currentCalc === "none" && "text-muted-foreground",
-          currentCalc === "none" && !shouldShowEmptyLabel && "justify-center"
-        )}
-        onClick={handleToggle}
-        title={currentCalc === "none" ? translations.calcCalculate : undefined}
-        type="button"
-      >
-        {currentCalc === "none" ? (
-          <>
-            <CalculatorIcon
-              className={cn(
-                "h-3.5 w-3.5 text-muted-foreground",
-                !shouldShowEmptyLabel &&
-                  "opacity-0 transition-opacity group-hover/footer-cell:opacity-100"
+      <TableTooltip label={translations.calcCalculate}>
+        <button
+          aria-expanded={isOpen}
+          aria-haspopup="menu"
+          aria-label={translations.calcCalculate}
+          className={cn(
+            "flex h-full cursor-pointer rounded-sm px-1 py-0.5 text-xs transition-colors",
+            "hover:bg-accent hover:text-accent-foreground",
+            currentCalc === "none" && "items-center gap-1.5",
+            currentCalc !== "none" &&
+              "h-auto w-full min-w-0 flex-col items-start justify-center gap-0.5",
+            currentCalc !== "none" && isNumberColumn && "items-end text-right",
+            currentCalc === "none" && "text-muted-foreground",
+            currentCalc === "none" && !shouldShowEmptyLabel && "justify-center"
+          )}
+          onClick={handleToggle}
+          type="button"
+        >
+          {currentCalc === "none" ? (
+            <>
+              <CalculatorIcon
+                className={cn(
+                  "h-3.5 w-3.5 text-muted-foreground",
+                  !shouldShowEmptyLabel &&
+                    "opacity-0 transition-opacity group-hover/footer-cell:opacity-100"
+                )}
+              />
+              {shouldShowEmptyLabel && (
+                <span className="text-muted-foreground">
+                  {translations.calcCalculate}
+                </span>
               )}
-            />
-            {shouldShowEmptyLabel && (
-              <span className="text-muted-foreground">
-                {translations.calcCalculate}
+            </>
+          ) : (
+            <>
+              <span className="max-w-full truncate font-medium text-[10px] text-muted-foreground leading-none">
+                {shortLabel}
               </span>
-            )}
-          </>
-        ) : (
-          <>
-            <span className="max-w-full truncate font-medium text-[10px] text-muted-foreground leading-none">
-              {shortLabel}
-            </span>
-            <span
-              className={cn(
-                "max-w-full truncate font-medium text-foreground tabular-nums leading-none",
-                isNumberColumn && "font-mono"
-              )}
-            >
-              {resultLabel}
-            </span>
-          </>
-        )}
-      </button>
+              <span
+                className={cn(
+                  "max-w-full truncate font-medium text-foreground tabular-nums leading-none",
+                  isNumberColumn && "font-mono"
+                )}
+              >
+                {resultLabel}
+              </span>
+            </>
+          )}
+        </button>
+      </TableTooltip>
       {menuContent && createPortal(menuContent, document.body)}
     </div>
   );

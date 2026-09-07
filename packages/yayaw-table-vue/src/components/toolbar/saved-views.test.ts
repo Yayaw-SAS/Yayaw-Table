@@ -420,3 +420,14 @@ it("does not derive table grouping from a legacy saved Kanban lane or URL", asyn
   await flushPromises();
   expect(fromUrl.get("tbody").text()).toContain("Alpha");
 });
+
+it("shows a localized add-view tooltip on keyboard focus without a native duplicate", async () => {
+  const wrapper = mountTable({ locale: "fr" });
+  await flushPromises();
+  const trigger = wrapper.get('[aria-label="Ajouter une vue"]');
+  expect(trigger.attributes("title")).toBeUndefined();
+  (trigger.element as HTMLButtonElement).focus();
+  await flushPromises();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(body().get('[role="tooltip"]').text()).toBe("Ajouter une vue");
+});

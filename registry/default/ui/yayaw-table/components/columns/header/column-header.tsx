@@ -10,8 +10,10 @@ import { cn } from "@/lib/utils";
 import { columnDragEnabledAtom } from "../../../atoms/table-atoms";
 import { useTableConfig } from "../../../hooks/use-table-config";
 import { useTableTranslations } from "../../../hooks/use-table-translations";
+import { useTranslations } from "../../../providers/table-provider";
 import type { Column, Table } from "../../../tanstack";
 import { resizedColumnSizeFromKey } from "../../../utils/table-contracts";
+import { TableTooltip } from "../../../utils/table-tooltip";
 
 import { ActionsHeader } from "./actions-header";
 import { ColumnMenu } from "./column-menu";
@@ -21,19 +23,22 @@ import { SelectionHeader } from "./selection-header";
 const _DEBUG = false;
 
 function DragHandleButton() {
+  const { t } = useTranslations();
   return (
-    <Button
-      aria-label="Drag to reorder column"
-      className="size-7 cursor-grab border-0 bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground active:cursor-grabbing"
-      size="icon"
-      type="button"
-      variant="ghost"
-    >
-      <GripVertical
-        className="h-4 w-4 opacity-60 hover:opacity-100"
-        strokeWidth={2}
-      />
-    </Button>
+    <TableTooltip label={t("columns.drag")}>
+      <Button
+        aria-label={t("columns.drag")}
+        className="size-7 cursor-grab border-0 bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground active:cursor-grabbing"
+        size="icon"
+        type="button"
+        variant="ghost"
+      >
+        <GripVertical
+          className="h-4 w-4 opacity-60 hover:opacity-100"
+          strokeWidth={2}
+        />
+      </Button>
+    </TableTooltip>
   );
 }
 

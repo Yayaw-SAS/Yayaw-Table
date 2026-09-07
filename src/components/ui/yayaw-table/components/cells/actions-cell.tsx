@@ -1,5 +1,7 @@
 "use client";
 
+import { TableTooltip } from "../../utils/table-tooltip";
+
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Row } from "@/components/ui/yayaw-table/tanstack";
 import { useSetAtom } from "jotai";
@@ -301,15 +303,17 @@ function ActionsCellBase<TData>({
       <DropdownMenu>
         <DropdownMenuTrigger
           render={
-            <Button
-              aria-label="Open actions menu"
-              data-density-action=""
-              className="h-8 w-8 p-0"
-              type="button"
-              variant="ghost"
-            >
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
+            <TableTooltip label={t("actions.title")}>
+              <Button
+                aria-label={t("actions.title")}
+                data-density-action=""
+                className="h-8 w-8 p-0"
+                type="button"
+                variant="ghost"
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </TableTooltip>
           }
         />
         <DropdownMenuContent align="end">

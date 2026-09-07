@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import TableTooltip from "../toolbar/TableTooltip.vue";
 import { Copy, MoreHorizontal, Pencil, Trash2 } from "lucide-vue-next";
 import {
   DropdownMenuContent,
@@ -146,12 +147,19 @@ const confirmDelete = async (): Promise<void> => {
 <template>
   <div v-if="hasActions" ref="root" class="yayaw-row-actions" @click.stop @keydown.stop>
     <DropdownMenuRoot :open="menuOpen" :modal="false" @update:open="menuChanged">
-      <DropdownMenuTrigger as-child>
-        <button ref="trigger" type="button" class="yayaw-icon-button" :disabled="Boolean(pending)"
-          :aria-label="translate('openActions', 'Open actions menu')" :title="translate('actions', 'Actions')">
-          <MoreHorizontal :size="16" aria-hidden="true" />
-        </button>
-      </DropdownMenuTrigger>
+      <TableTooltip :label="translate('actions', 'Actions')">
+        <DropdownMenuTrigger as-child>
+          <button
+            ref="trigger"
+            type="button"
+            class="yayaw-icon-button"
+            :disabled="Boolean(pending)"
+            :aria-label="translate('openActions', 'Open actions menu')"
+          >
+            <MoreHorizontal :size="16" aria-hidden="true" />
+          </button>
+        </DropdownMenuTrigger>
+      </TableTooltip>
       <DropdownMenuPortal>
         <DropdownMenuContent class="yayaw-row-actions-menu" :style="menuTheme" align="end" :side-offset="4" :collision-padding="8"
           :aria-label="translate('actions', 'Actions')" @click.stop

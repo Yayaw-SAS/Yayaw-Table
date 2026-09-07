@@ -63,6 +63,7 @@ import type { TableDensity, TableDisplayMode } from "../types/display-types";
 import { Loader } from "../ui-custom/loader";
 import { ColumnIcon } from "../utils/column-icons";
 import { buildCsvExportColumns } from "../utils/csv-export";
+import { TABLE_DENSITY_CLASSES } from "../utils/table-density";
 import { getPrimaryGrouping } from "../utils/table-view-state";
 import {
   BulkActionsMenu,
@@ -458,58 +459,25 @@ function getHeaderSizeStyle<TData>(
   );
 }
 
-// Compact spacing also caps built-in controls and media that would otherwise stretch rows.
-const SMALL_DENSITY_CONTROL_CLASSES =
-  "[&_[data-density-control]]:!min-h-6 [&_[data-density-control]]:!py-0 [&_[data-density-action]]:!h-6 [&_[data-density-action]]:!w-6 [&_td_img]:!max-h-6 [&_td_img]:!max-w-6";
-
-const GROUP_BUTTON_PADDING_CLASSES: Record<TableDensity, string> = {
-  small: "px-1.5 py-0.5",
-  medium: "p-2",
-  large: "p-3",
-  "extra-large": "p-4",
-};
-
 function getHeaderCellClassName<TData>(
   header: Header<TData, unknown>,
   densityMode: TableDensity
 ): string {
-  const isSmallDensity = densityMode === "small";
-  const isLargeDensity = densityMode === "large";
-  const isExtraLargeDensity = densityMode === "extra-large";
-  const fixedColumnPaddingClass = getFixedColumnPaddingClass(densityMode);
-
   return cn(
     "relative whitespace-nowrap",
-    isSmallDensity && "!h-7 !px-1.5",
-    isLargeDensity && "!h-12 !px-3",
-    isExtraLargeDensity && "!h-16 !px-4",
+    TABLE_DENSITY_CLASSES[densityMode].header,
     header.id === "select" &&
       cn(
         "select-column text-center [&:has([role=checkbox])]:pr-2!",
-        fixedColumnPaddingClass
+        TABLE_DENSITY_CLASSES[densityMode].cell
       ),
     header.id === "actions" &&
       cn(
         "actions-column sticky right-0 z-20 text-center shadow-[-1px_0_0_0_hsl(var(--border))]",
-        fixedColumnPaddingClass
+        TABLE_DENSITY_CLASSES[densityMode].cell
       ),
     isNumberColumn(header.column.columnDef) && "text-right"
   );
-}
-
-function getFixedColumnPaddingClass(densityMode: TableDensity): string {
-  if (densityMode === "extra-large") {
-    return "!px-4";
-  }
-  if (densityMode === "small") {
-    return "!px-1.5";
-  }
-
-  if (densityMode === "large") {
-    return "!px-3";
-  }
-
-  return "px-2";
 }
 
 export function getRegularCellClassName<TData>({
@@ -519,25 +487,21 @@ export function getRegularCellClassName<TData>({
   cell: ReturnType<Row<TData>["getVisibleCells"]>[number];
   densityMode: TableDensity;
 }): string {
-  const fixedColumnPaddingClass = getFixedColumnPaddingClass(densityMode);
-  const isSmallDensity = densityMode === "small";
-  const isLargeDensity = densityMode === "large";
-  const isExtraLargeDensity = densityMode === "extra-large";
   const isSelectColumn = cell.column.id === "select";
   const isActionsColumn = cell.column.id === "actions";
 
   return cn(
     isSelectColumn &&
-      cn("text-center [&:has([role=checkbox])]:pr-2!", fixedColumnPaddingClass),
+      cn(
+        "text-center [&:has([role=checkbox])]:pr-2!",
+        TABLE_DENSITY_CLASSES[densityMode].cell
+      ),
     isActionsColumn &&
       cn(
         "sticky right-0 z-10 flex justify-center bg-card shadow-[-1px_0_0_0_hsl(var(--border))] group-hover:bg-muted/50 group-data-[state=selected]:bg-muted/50",
-        fixedColumnPaddingClass
+        TABLE_DENSITY_CLASSES[densityMode].cell
       ),
-    !(isSmallDensity || isLargeDensity || isExtraLargeDensity) && "p-2",
-    isSmallDensity && "!px-1.5 !py-0.5",
-    isLargeDensity && "!p-3",
-    isExtraLargeDensity && "!p-4",
+    TABLE_DENSITY_CLASSES[densityMode].cell,
     isNumberColumn(cell.column.columnDef) && "text-right"
   );
 }
@@ -1014,9 +978,6 @@ function ModernDataTable<
   });
   const densityOverride = useAtomValue(tableDensityAtom(tableId));
   const densityMode = densityOverride ?? tableConfig.table.density ?? "medium";
-  const isSmallDensity = densityMode === "small";
-  const isLargeDensity = densityMode === "large";
-  const isExtraLargeDensity = densityMode === "extra-large";
 
   const rowLinkAccessorKey = useMemo(() => {
     const rowLinkCol = tableConfig.columns.definitions.find(
@@ -1894,9 +1855,7 @@ function ModernDataTable<
           <TableCell
             className={cn(
               "flex justify-center align-middle [&:has([role=checkbox])]:pr-2!",
-              isSmallDensity ? "!px-1.5 !py-0.5" : "px-2",
-              isLargeDensity && "!px-3 !py-3",
-              isExtraLargeDensity && "!px-4 !py-4"
+              TABLE_DENSITY_CLASSES[densityMode].cell
             )}
             style={{
               ...(typeof (
@@ -1923,7 +1882,7 @@ function ModernDataTable<
             <Button
               className={cn(
                 "flex h-auto w-full cursor-pointer items-center justify-start gap-2",
-                GROUP_BUTTON_PADDING_CLASSES[densityMode]
+                TABLE_DENSITY_CLASSES[densityMode].groupButton
               )}
               onClick={() => {
                 const isCurrentlyExpanded = localExpanded[row.id] ?? false;
@@ -2062,18 +2021,11 @@ function ModernDataTable<
       badgeClassName: string
     ) => (
       <TableRow className="border-t bg-muted/20" key={groupId}>
-        <TableCell
-          className={cn(
-            isSmallDensity && "!px-1.5 !py-0.5",
-            isLargeDensity && "!p-3",
-            isExtraLargeDensity && "!p-4"
-          )}
-          colSpan={colSpan}
-        >
+        <TableCell className="!p-0" colSpan={colSpan}>
           <Button
             className={cn(
               "flex h-auto w-full cursor-pointer items-center justify-start gap-2",
-              GROUP_BUTTON_PADDING_CLASSES[densityMode]
+              TABLE_DENSITY_CLASSES[densityMode].groupButton
             )}
             onClick={() => {
               const isExpanded = localExpanded[groupId] ?? false;
@@ -2206,9 +2158,6 @@ function ModernDataTable<
     columnSizingKey,
     tableConfig.columns.definitions,
     densityMode,
-    isSmallDensity,
-    isLargeDensity,
-    isExtraLargeDensity,
     getRowClickMode,
     handleInteractiveRowClick,
     activeRowId,
@@ -2221,10 +2170,7 @@ function ModernDataTable<
     return (
       <TableHeader
         className={cn(
-          "[&_th]:relative [&_th]:bg-muted/20 [&_th]:font-medium [&_th]:text-sm",
-          isSmallDensity && "[&_th]:!h-7 [&_th]:!px-1.5",
-          isLargeDensity && "[&_th]:!h-12 [&_th]:!px-3",
-          isExtraLargeDensity && "[&_th]:!h-16 [&_th]:!px-4"
+          "[&_th]:relative [&_th]:bg-muted/20 [&_th]:font-medium [&_th]:text-sm"
         )}
         key={`${orderKey}:${headerStateKey}`}
       >
@@ -2257,9 +2203,6 @@ function ModernDataTable<
     tableId,
     horizontalListSortingStrategy,
     columnOrder,
-    isSmallDensity,
-    isLargeDensity,
-    isExtraLargeDensity,
     densityMode,
     headerStateKey,
     enableColumnResizing,
@@ -2366,7 +2309,8 @@ function ModernDataTable<
             className={cn(
               "w-full",
               enableColumnResizing && "table-fixed",
-              isSmallDensity && SMALL_DENSITY_CONTROL_CLASSES,
+              TABLE_DENSITY_CLASSES[densityMode].rows,
+              TABLE_DENSITY_CLASSES[densityMode].controls,
               className
             )}
             data-density={densityMode}

@@ -1,0 +1,50 @@
+[
+  {
+    "value": "extra-small",
+    "label": "XS",
+    "height": 28,
+    "control": 24,
+    "paddingX": 6,
+    "paddingY": 2
+  },
+  {
+    "value": "small",
+    "label": "S",
+    "height": 32,
+    "control": 24,
+    "paddingX": 8,
+    "paddingY": 4
+  },
+  {
+    "value": "medium",
+    "label": "M",
+    "height": 40,
+    "control": 28,
+    "paddingX": 8,
+    "paddingY": 6
+  },
+  {
+    "value": "large",
+    "label": "L",
+    "height": 48,
+    "control": 32,
+    "paddingX": 10,
+    "paddingY": 8
+  },
+  {
+    "value": "extra-large",
+    "label": "XL",
+    "height": 56,
+    "control": 36,
+    "paddingX": 12,
+    "paddingY": 10
+  },
+  {
+    "value": "extra-extra-large",
+    "label": "2XL",
+    "height": 64,
+    "control": 40,
+    "paddingX": 16,
+    "paddingY": 12
+  }
+]

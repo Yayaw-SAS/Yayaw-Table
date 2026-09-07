@@ -20,6 +20,7 @@ import {
   isTableDensity,
   TABLE_DENSITY_OPTIONS,
 } from "../../utils/table-contracts";
+import { TableTooltip } from "../../utils/table-tooltip";
 
 export function TableDensityMenu({
   defaultDensity = "medium",
@@ -51,16 +52,17 @@ export function TableDensityMenu({
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button
-            aria-label={`${label}: ${size}`}
-            className="h-8 w-8"
-            size="icon-sm"
-            title={`${label}: ${size}`}
-            type="button"
-            variant="outline"
-          >
-            <Rows3 aria-hidden="true" className="h-4 w-4" />
-          </Button>
+          <TableTooltip label={`${label}: ${size}`}>
+            <Button
+              aria-label={`${label}: ${size}`}
+              className="h-8 w-8"
+              size="icon-sm"
+              type="button"
+              variant="outline"
+            >
+              <Rows3 aria-hidden="true" className="h-4 w-4" />
+            </Button>
+          </TableTooltip>
         }
       />
       <DropdownMenuContent align="end" className="min-w-32">

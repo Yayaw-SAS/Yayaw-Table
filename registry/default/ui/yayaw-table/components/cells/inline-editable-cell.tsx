@@ -37,6 +37,7 @@ import {
 } from "../../hooks/use-inline-edit-runtime";
 import { useTranslations } from "../../providers/table-provider";
 import type { Cell } from "../../tanstack";
+import { TableTooltip } from "../../utils/table-tooltip";
 import type { AnyFieldDefinition } from "../forms/types";
 
 interface InlineEditableCellProps<TData extends Record<string, unknown>> {
@@ -464,25 +465,26 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
       {isEditing ? (
         renderEditor()
       ) : (
-        <button
-          className={cn(
-            "relative flex min-h-8 w-full cursor-text items-center rounded-sm px-0.5 py-1 outline-none",
-            resolvedEditor === "number"
-              ? "justify-end text-right"
-              : "justify-start text-left",
-            "focus-visible:ring-2 focus-visible:ring-primary/30"
-          )}
-          data-density-control=""
-          onDoubleClick={(event) => {
-            event.stopPropagation();
-            startEditing();
-          }}
-          onKeyDown={handleDisplayKeyDown}
-          title={t("inline.edit_hint")}
-          type="button"
-        >
-          {displayValue}
-        </button>
+        <TableTooltip label={t("inline.edit_hint")}>
+          <button
+            className={cn(
+              "relative flex min-h-8 w-full cursor-text items-center rounded-sm px-0.5 py-1 outline-none",
+              resolvedEditor === "number"
+                ? "justify-end text-right"
+                : "justify-start text-left",
+              "focus-visible:ring-2 focus-visible:ring-primary/30"
+            )}
+            data-density-control=""
+            onDoubleClick={(event) => {
+              event.stopPropagation();
+              startEditing();
+            }}
+            onKeyDown={handleDisplayKeyDown}
+            type="button"
+          >
+            {displayValue}
+          </button>
+        </TableTooltip>
       )}
 
       {isSaving && (

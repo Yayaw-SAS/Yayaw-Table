@@ -77,18 +77,20 @@ alias and now has the same behavior in React and Vue.
 
 ### Table density
 
-The density icon sits in the right toolbar next to the filter/options menu.
-Choose **S**, **M**, **L**, or **XL** to update the table immediately. S uses
-compact spacing and smaller built-in row controls; M remains the default.
-The control is available in table mode, including when other toolbar actions
-have text labels.
+The rows icon on the right of the toolbar offers six sizes. Tooltips appear on hover and keyboard focus and use the same translated labels as other table controls.
 
-Set the initial density with `table.density`: `"small"` (S), `"medium"` (M),
-`"large"` (L), or `"extra-large"` (XL). Existing configuration values remain
-supported. A toolbar choice applies to that table instance without changing
-shared configuration, filters, pagination, or saved views, and remains selected
-when switching between display modes. Density is a session preference and is
-not stored in saved views or shareable URLs.
+| Size | `table.density` | Row height before borders | Tailwind height |
+| --- | --- | --- | --- |
+| XS | `extra-small` | 28px | `h-7` |
+| S | `small` | 32px | `h-8` |
+| M | `medium` | 40px | `h-10` |
+| L | `large` | 48px | `h-12` |
+| XL | `extra-large` | 56px | `h-14` |
+| 2XL | `extra-extra-large` | 64px | `h-16` |
+
+XS preserves the previous compact S appearance. M remains the default. Padding, built-in controls, and thumbnails use coordinated Tailwind spacing units; text size stays unchanged and taller content can expand a row. Vue uses the same shared spacing factors without requiring Tailwind in the host application.
+
+The selection stays with the table across display-mode changes and does not modify the configured default, URL state, or saved views. The density icon is hidden in Kanban and Gallery.
 
 ### Resize columns
 

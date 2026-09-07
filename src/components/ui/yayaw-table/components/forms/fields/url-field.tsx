@@ -1,5 +1,7 @@
 "use client";
 
+import { TableTooltip } from "../../../utils/table-tooltip";
+
 import { ExternalLink, Globe, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
@@ -143,7 +145,8 @@ export function UrlField<TFieldValues extends Record<string, unknown>>({
           value={currentValue}
         />
         {currentValue && isValidUrl(currentValue) && (
-          <button
+          <TableTooltip label={t("actions.view")}>
+<button
             className={cn(
               "absolute top-1/2 right-2 -translate-y-1/2 rounded-sm p-0.5",
               "text-muted-foreground transition-colors hover:text-foreground",
@@ -151,11 +154,13 @@ export function UrlField<TFieldValues extends Record<string, unknown>>({
             )}
             onClick={handleOpenUrl}
             tabIndex={0}
-            title="Open URL"
+
+            aria-label={t("actions.view")}
             type="button"
           >
             <ExternalLink aria-hidden className="size-4" />
           </button>
+</TableTooltip>
         )}
       </div>
 

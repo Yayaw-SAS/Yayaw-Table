@@ -5,13 +5,48 @@ export type ContractColumnSizing = Record<string, number>;
 
 /** Density labels preserve the existing configuration values in both editions. */
 export const TABLE_DENSITY_OPTIONS = [
+  { label: "XS", value: "extra-small" },
   { label: "S", value: "small" },
   { label: "M", value: "medium" },
   { label: "L", value: "large" },
   { label: "XL", value: "extra-large" },
+  { label: "2XL", value: "extra-extra-large" },
 ] as const;
 
 export type TableDensity = (typeof TABLE_DENSITY_OPTIONS)[number]["value"];
+
+/** Dimensions are multiples of Tailwind's default spacing unit (0.25rem). */
+export const TABLE_DENSITY_METRICS = {
+  "extra-small": {
+    rowHeight: 7,
+    controlHeight: 6,
+    paddingX: 1.5,
+    paddingY: 0.5,
+  },
+  small: { rowHeight: 8, controlHeight: 6, paddingX: 2, paddingY: 1 },
+  medium: { rowHeight: 10, controlHeight: 7, paddingX: 2, paddingY: 1.5 },
+  large: { rowHeight: 12, controlHeight: 8, paddingX: 2.5, paddingY: 2 },
+  "extra-large": {
+    rowHeight: 14,
+    controlHeight: 9,
+    paddingX: 3,
+    paddingY: 2.5,
+  },
+  "extra-extra-large": {
+    rowHeight: 16,
+    controlHeight: 10,
+    paddingX: 4,
+    paddingY: 3,
+  },
+} as const satisfies Record<
+  TableDensity,
+  {
+    rowHeight: number;
+    controlHeight: number;
+    paddingX: number;
+    paddingY: number;
+  }
+>;
 
 export function isTableDensity(value: unknown): value is TableDensity {
   return TABLE_DENSITY_OPTIONS.some((option) => option.value === value);

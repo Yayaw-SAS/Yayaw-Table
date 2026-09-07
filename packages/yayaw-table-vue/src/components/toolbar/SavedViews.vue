@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import TableTooltip from "./TableTooltip.vue";
 import { Check, ChevronDown, LayoutList, Plus, Save, Trash2, Users } from "lucide-vue-next";
 import {
   DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel,
@@ -49,14 +50,21 @@ const focusName = (event: Event): void => {
   <div ref="root" class="yayaw-view-manager">
     <div class="yayaw-views">
       <DropdownMenuRoot :open="menuOpen" :modal="false" @update:open="menuChanged">
-        <DropdownMenuTrigger as-child>
-          <button ref="trigger" type="button" class="yayaw-button yayaw-button-outline yayaw-view-trigger"
-            :aria-label="`${label('views.current', 'currentView')}: ${currentLabel}`" :title="currentLabel" :disabled="loading || busy">
-            <LayoutList :size="16" aria-hidden="true" />
-            <span class="yayaw-view-name">{{ currentLabel }}</span>
-            <ChevronDown :size="16" aria-hidden="true" />
-          </button>
-        </DropdownMenuTrigger>
+        <TableTooltip :label="currentLabel">
+          <DropdownMenuTrigger as-child>
+            <button
+              ref="trigger"
+              type="button"
+              class="yayaw-button yayaw-button-outline yayaw-view-trigger"
+              :aria-label="`${label('views.current', 'currentView')}: ${currentLabel}`"
+              :disabled="loading || busy"
+            >
+              <LayoutList :size="16" aria-hidden="true" />
+              <span class="yayaw-view-name">{{ currentLabel }}</span>
+              <ChevronDown :size="16" aria-hidden="true" />
+            </button>
+          </DropdownMenuTrigger>
+        </TableTooltip>
         <DropdownMenuPortal>
           <DropdownMenuContent class="yayaw-view-menu" :style="menuTheme" align="start" :side-offset="4" :collision-padding="8"
             :aria-label="label('views.title', 'views')"
@@ -91,15 +99,29 @@ const focusName = (event: Event): void => {
         </DropdownMenuPortal>
       </DropdownMenuRoot>
       <template v-if="context.config.table.allowViewSave">
-        <button type="button" class="yayaw-button yayaw-icon-only" :class="{ 'yayaw-button-outline': !dirty }"
-          :disabled="loading || busy || !editable || !dirty" :aria-label="label('views.saveChanges', 'updateView')"
-          :title="label('views.saveChangesTooltip', 'updateViewTooltip')" @click="update">
-          <Save :size="16" aria-hidden="true" />
-        </button>
-        <button type="button" class="yayaw-button yayaw-button-outline yayaw-icon-only" :disabled="loading || busy"
-          :aria-label="label('views.add_view', 'addView')" :title="label('views.add_view', 'addView')" @click="openDialog">
-          <Plus :size="16" aria-hidden="true" />
-        </button>
+        <TableTooltip :label="label('views.saveChangesTooltip', 'updateViewTooltip')">
+          <button
+            type="button"
+            class="yayaw-button yayaw-icon-only"
+            :class="{ 'yayaw-button-outline': !dirty }"
+            :disabled="loading || busy || !editable || !dirty"
+            :aria-label="label('views.saveChanges', 'updateView')"
+            @click="update"
+          >
+            <Save :size="16" aria-hidden="true" />
+          </button>
+        </TableTooltip>
+        <TableTooltip :label="label('views.add_view', 'addView')">
+          <button
+            type="button"
+            class="yayaw-button yayaw-button-outline yayaw-icon-only"
+            :disabled="loading || busy"
+            :aria-label="label('views.add_view', 'addView')"
+            @click="openDialog"
+          >
+            <Plus :size="16" aria-hidden="true" />
+          </button>
+        </TableTooltip>
       </template>
       <span v-if="dirty" class="yayaw-sr-only" role="status">{{ label('views.modified', 'viewModified') }}</span>
     </div>

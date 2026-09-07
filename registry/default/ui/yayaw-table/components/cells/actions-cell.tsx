@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { useTranslations } from "../../providers/table-provider";
 import type { Row } from "../../tanstack";
 import { Icon } from "../../ui-custom/icon";
+import { TableTooltip } from "../../utils/table-tooltip";
 
 import type { ActionItem } from "../columns/actions-column";
 import {
@@ -301,15 +302,17 @@ function ActionsCellBase<TData>({
       <DropdownMenu>
         <DropdownMenuTrigger
           render={
-            <Button
-              aria-label="Open actions menu"
-              className="h-8 w-8 p-0"
-              data-density-action=""
-              type="button"
-              variant="ghost"
-            >
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
+            <TableTooltip label={t("actions.title")}>
+              <Button
+                aria-label={t("actions.title")}
+                className="h-8 w-8 p-0"
+                data-density-action=""
+                type="button"
+                variant="ghost"
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </TableTooltip>
           }
         />
         <DropdownMenuContent align="end">

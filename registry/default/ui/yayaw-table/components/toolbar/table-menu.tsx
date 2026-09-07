@@ -41,6 +41,7 @@ import {
   StackMenuSection,
   StackMenuView,
 } from "../../ui-custom/stack-menu";
+import { TableTooltip } from "../../utils/table-tooltip";
 import { getDisplayModeGrouping } from "../../utils/table-view-state";
 import { TableColumnsMenu } from "./sections/table-columns-menu";
 import { TableFiltersMenu } from "./sections/table-filters-menu";
@@ -232,7 +233,6 @@ const OptionsMenuTrigger = forwardRef<
       disabled={disabled}
       ref={ref}
       size={actionsAsIcons ? "icon-sm" : "sm"}
-      title={actionsAsIcons ? label : undefined}
       type="button"
       variant="outline"
       {...props}
@@ -562,18 +562,19 @@ export function TableMenu({
   ]);
 
   const resetAllButton = (
-    <Button
-      aria-label={t("menu.reset_all")}
-      className="h-8 w-8 shrink-0 p-0 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40"
-      disabled={!sectionState.hasAnythingToReset}
-      onClick={handleResetAll}
-      size="sm"
-      title={t("menu.reset_all_description")}
-      type="button"
-      variant="ghost"
-    >
-      <RotateCcw className="h-4 w-4" />
-    </Button>
+    <TableTooltip label={t("menu.reset_all_description")}>
+      <Button
+        aria-label={t("menu.reset_all")}
+        className="h-8 w-8 shrink-0 p-0 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40"
+        disabled={!sectionState.hasAnythingToReset}
+        onClick={handleResetAll}
+        size="sm"
+        type="button"
+        variant="ghost"
+      >
+        <RotateCcw className="h-4 w-4" />
+      </Button>
+    </TableTooltip>
   );
 
   // Hide options button entirely if nothing is available

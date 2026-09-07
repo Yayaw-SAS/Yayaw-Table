@@ -1,5 +1,7 @@
 "use client";
 
+import { TableTooltip } from "../../utils/table-tooltip";
+
 import type { Cell } from "@/components/ui/yayaw-table/tanstack";
 import type { KeyboardEvent, ReactNode } from "react";
 import { memo, useCallback, useMemo } from "react";
@@ -465,7 +467,8 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
       {isEditing ? (
         renderEditor()
       ) : (
-        <button
+        <TableTooltip label={t("inline.edit_hint")}>
+<button
           data-density-control=""
           className={cn(
             "relative flex min-h-8 w-full items-center cursor-text rounded-sm px-0.5 py-1 outline-none",
@@ -480,10 +483,11 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
           }}
           onKeyDown={handleDisplayKeyDown}
           type="button"
-          title={t("inline.edit_hint")}
+
         >
           {displayValue}
         </button>
+</TableTooltip>
       )}
 
       {isSaving && <span aria-live="polite" className="sr-only">{t("inline.saving")}</span>}
