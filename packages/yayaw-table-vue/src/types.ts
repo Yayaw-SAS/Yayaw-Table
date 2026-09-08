@@ -239,6 +239,8 @@ export interface TableBehaviorConfig<TData extends TableRecord = TableRecord> {
   enableSorting: boolean;
   enableViews?: boolean;
   enableAutoPageSize?: boolean;
+  /** Start table views in Automatic mode when automatic pagination is enabled. */
+  defaultAutoPageSize?: boolean;
   pageSizeOptions: number[];
   dateDisplayPreset?: DateDisplayPreset;
   inlineEdit?: TableInlineEditConfig;

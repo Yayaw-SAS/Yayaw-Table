@@ -109,6 +109,7 @@ const config = defineTableConfig<Product>({
   },
   table: {
     enableAutoPageSize: true,
+    defaultAutoPageSize: true,
     displayModes: ["table", "kanban", "gallery"],
     defaultDisplayMode: "table",
     allowInlineEdit: true,

@@ -2231,6 +2231,7 @@ function ModernDataTable<
     root: paginationRootRef,
     tableId,
     enabled: enableAutoPageSize,
+    defaultAutomatic: tableConfig.table.defaultAutoPageSize,
     resetKey: `${tableId}:${activeViewId}:${isGalleryMode}:${isKanbanMode}`,
     measurementKey: densityMode,
     pageSize: table.store.state.pagination.pageSize,

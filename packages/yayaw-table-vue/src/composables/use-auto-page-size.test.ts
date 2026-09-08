@@ -6,7 +6,10 @@ import { type TableContextValue, tableContextKey } from "../context";
 import { useAutoPageSize } from "./use-auto-page-size";
 
 describe("Vue automatic pagination", () => {
-  it("resizes, follows density, returns to fixed sizes and releases observers", async () => {
+  it.each([
+    false,
+    true,
+  ])("resizes, respects fixed choices and cleans up (default auto: %s)", async (defaultAutomatic) => {
     const layout = mockAutoPageLayout(window);
     const pagination = ref({ pageIndex: 0, pageSize: 10 });
     const density = ref("medium");
@@ -47,7 +50,12 @@ describe("Vue automatic pagination", () => {
     const Harness = defineComponent({
       setup() {
         provide(tableContextKey, {
-          config: { table: { enableAutoPageSize: true } },
+          config: {
+            table: {
+              enableAutoPageSize: true,
+              defaultAutoPageSize: defaultAutomatic,
+            },
+          },
           state: { pagination, density, activeViewId },
         } as unknown as TableContextValue);
         return () => h(Child);
@@ -61,6 +69,9 @@ describe("Vue automatic pagination", () => {
     };
     try {
       await flush();
+      expect(wrapper.get("select").element.value).toBe(
+        defaultAutomatic ? "auto" : "10"
+      );
       await wrapper.get("select").setValue("auto");
       await flush();
       expect(pagination.value.pageSize).toBe(9);
@@ -87,7 +98,9 @@ describe("Vue automatic pagination", () => {
       activeViewId.value = "another";
       await nextTick();
       await flush();
-      expect(wrapper.get("select").element.value).not.toBe("auto");
+      expect(wrapper.get("select").element.value === "auto").toBe(
+        defaultAutomatic
+      );
     } finally {
       wrapper.unmount();
       layout.resize(900);

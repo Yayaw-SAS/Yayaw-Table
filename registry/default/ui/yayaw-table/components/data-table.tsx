@@ -602,6 +602,7 @@ function DataTableContent({
             kanban: config.table.kanban,
             layoutPreset: config.table.layoutPreset,
             enableAutoPageSize: config.table.enableAutoPageSize,
+            defaultAutoPageSize: config.table.defaultAutoPageSize,
             pageSizeOptions: config.table.pageSizeOptions || [
               10, 20, 50, 100, 200, 500,
             ],

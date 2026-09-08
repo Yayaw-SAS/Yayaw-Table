@@ -211,13 +211,17 @@ record is used to choose the new page when capacity changes; selection follows
 the existing pagination contract. The selector remains available on a single
 non-empty page when the feature is enabled.
 
-Automatic is an instance-local display choice. Choosing a numeric size, another
-saved view, or Gallery/Kanban stops automatic sizing. URLs and saved views keep
-the effective numeric page size, so restoring them uses numeric pagination.
+`table.defaultAutoPageSize: true` (default: false) starts table views in
+Automatic mode when `enableAutoPageSize` is enabled. This includes a newly mounted
+table, a saved-view switch, and returning from Gallery/Kanban. Numeric sizes remain
+selectable and stay fixed through resize and server loading within the current view.
+Without this opt-in, switching views returns to fixed pagination as before. URLs
+and saved views retain the effective numeric size; with the opt-in, that number
+is only the initial fallback until rows can be measured.
 Gallery/Kanban do not claim to fit cards using table-row measurements. These
 limitations are identical in React and Vue. Empty/hidden tables wait for usable
 row measurements. Observers and animation frames are released on unmount.
 
 Regression coverage uses the same capacity fixtures in both test runners, with
-framework-specific selector tests and real-browser resize/density verification
+framework-specific default-mode/selector tests and real-browser resize/density verification
 in the runnable examples.
