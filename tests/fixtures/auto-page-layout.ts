@@ -6,6 +6,7 @@ export function mockAutoPageLayout(win: Window & typeof globalThis) {
   const originalCancel = win.cancelAnimationFrame;
   const originalHeight = win.innerHeight;
   let rowHeight = 40;
+  let tableWidth = 800;
   let nextId = 0;
   const frames = new Map<number, FrameRequestCallback>();
   win.requestAnimationFrame = (callback) => {
@@ -21,6 +22,7 @@ export function mockAutoPageLayout(win: Window & typeof globalThis) {
     writable: true,
   });
   win.HTMLElement.prototype.getBoundingClientRect = function () {
+    const width = this.tagName === "TABLE" ? tableWidth : 800;
     const top = this.tagName === "TBODY" ? 132 : 100;
     let height = this.hasAttribute("data-yayaw-pagination") ? 48 : 400;
     if (this.tagName === "TR") {
@@ -31,9 +33,9 @@ export function mockAutoPageLayout(win: Window & typeof globalThis) {
       y: top,
       left: 0,
       top,
-      right: 800,
+      right: width,
       bottom: top + height,
-      width: 800,
+      width,
       height,
       toJSON: () => ({}),
     };
@@ -56,6 +58,9 @@ export function mockAutoPageLayout(win: Window & typeof globalThis) {
         writable: true,
       });
       win.dispatchEvent(new win.Event("resize"));
+    },
+    tableWidth(width: number) {
+      tableWidth = width;
     },
     rowHeight(height: number) {
       rowHeight = height;
