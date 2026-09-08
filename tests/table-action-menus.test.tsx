@@ -14,10 +14,7 @@ const rows = [
   { id: "2", name: "Beta" },
 ];
 const actions: TableActions = {
-  list: async () => {
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    return { data: rows, meta: { pageCount: 1, totalCount: 2 } };
-  },
+  list: async () => ({ data: rows, meta: { pageCount: 1, totalCount: 2 } }),
   update: async () => ({ success: true }),
   create: async () => ({ success: true }),
 };
