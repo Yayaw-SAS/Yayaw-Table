@@ -564,7 +564,6 @@ export function useInlineEditRuntime({
   debounceMs,
   onCommit,
 }: UseInlineEditRuntimeOptions) {
-  const [committedValue, setCommittedValue] = useState(initialValue);
   const [draftValue, setDraftValue] = useState(() =>
     toInlineEditDraftValue(initialValue, editor)
   );
@@ -579,6 +578,11 @@ export function useInlineEditRuntime({
     null
   );
   const draftValueRef = useRef(draftValue);
+  const committedDraftRef = useRef(draftValue);
+  const externalDraftRef = useRef(draftValue);
+  const inFlightRef = useRef<Promise<boolean> | null>(null);
+  const closingRef = useRef<Promise<boolean> | null>(null);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
     draftValueRef.current = draftValue;
@@ -593,7 +597,9 @@ export function useInlineEditRuntime({
   }, []);
 
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
+      mountedRef.current = false;
       clearScheduledSave();
     };
   }, [clearScheduledSave]);
@@ -617,40 +623,67 @@ export function useInlineEditRuntime({
       return;
     }
 
-    setCommittedValue(initialValue);
-    setDraftValue(toInlineEditDraftValue(initialValue, editor));
+    const nextDraft = toInlineEditDraftValue(initialValue, editor);
+    if (
+      toComparableString(nextDraft) ===
+      toComparableString(externalDraftRef.current)
+    ) {
+      return;
+    }
+    externalDraftRef.current = nextDraft;
+    if (
+      toComparableString(nextDraft) ===
+      toComparableString(committedDraftRef.current)
+    ) {
+      return;
+    }
+    committedDraftRef.current = nextDraft;
+    draftValueRef.current = nextDraft;
+    setDraftValue(nextDraft);
   }, [editor, initialValue, isDirty, isEditing, isSaving]);
 
-  const commitDraftValue = useCallback(
-    async (valueToCommit: unknown): Promise<boolean> => {
-      clearScheduledSave();
-      setIsSaving(true);
-      setErrorMessage(undefined);
-
+  const commitDraftValue = useCallback(async (): Promise<boolean> => {
+    clearScheduledSave();
+    // Serialize autosave and dismissal so neither drops the other's result.
+    while (inFlightRef.current) {
+      if (!(await inFlightRef.current)) {
+        return false;
+      }
+    }
+    if (!mountedRef.current) {
+      return false;
+    }
+    const valueToCommit = draftValueRef.current;
+    if (
+      toComparableString(valueToCommit) ===
+      toComparableString(committedDraftRef.current)
+    ) {
+      return true;
+    }
+    setIsSaving(true);
+    setErrorMessage(undefined);
+    const request = Promise.resolve().then(async () => {
       try {
-        const commitResult = await onCommit(valueToCommit);
-        if (!commitResult.success) {
-          setErrorMessage(
-            commitResult.errorMessage ?? "Inline edit save failed."
-          );
+        const result = await onCommit(valueToCommit);
+        if (!result.success) {
+          setErrorMessage(result.errorMessage ?? "Inline edit save failed.");
           return false;
         }
-
-        const nextCommittedValue = commitResult.committedValue ?? valueToCommit;
-        const normalizedCommittedDraft = toInlineEditDraftValue(
-          nextCommittedValue,
-          editor
-        );
-
-        setCommittedValue(nextCommittedValue);
-        setDraftValue(normalizedCommittedDraft);
-        setErrorMessage(undefined);
-
-        const hasPendingChanges =
+        const nextCommittedValue = result.committedValue ?? valueToCommit;
+        const normalized = toInlineEditDraftValue(nextCommittedValue, editor);
+        committedDraftRef.current = normalized;
+        // An older response must never replace a newer selection or text draft.
+        if (
+          toComparableString(draftValueRef.current) ===
+          toComparableString(valueToCommit)
+        ) {
+          draftValueRef.current = normalized;
+          setDraftValue(normalized);
+        }
+        setIsDirty(
           toComparableString(draftValueRef.current) !==
-          toComparableString(normalizedCommittedDraft);
-        setIsDirty(hasPendingChanges);
-
+            toComparableString(normalized)
+        );
         return true;
       } catch (error) {
         setErrorMessage(
@@ -658,28 +691,27 @@ export function useInlineEditRuntime({
         );
         return false;
       } finally {
+        inFlightRef.current = null;
         setIsSaving(false);
       }
-    },
-    [clearScheduledSave, editor, onCommit]
-  );
+    });
+    inFlightRef.current = request;
+    return await request;
+  }, [clearScheduledSave, editor, onCommit]);
 
-  const scheduleSave = useCallback(
-    (nextValue: unknown) => {
-      clearScheduledSave();
+  const scheduleSave = useCallback(() => {
+    clearScheduledSave();
 
-      if (debounceMs <= 0) {
-        commitDraftValue(nextValue).catch(() => undefined);
-        return;
-      }
+    if (debounceMs <= 0) {
+      commitDraftValue().catch(() => undefined);
+      return;
+    }
 
-      setScheduledAt(Date.now() + debounceMs);
-      scheduledSaveTimerRef.current = setTimeout(() => {
-        commitDraftValue(nextValue).catch(() => undefined);
-      }, debounceMs);
-    },
-    [clearScheduledSave, commitDraftValue, debounceMs]
-  );
+    setScheduledAt(Date.now() + debounceMs);
+    scheduledSaveTimerRef.current = setTimeout(() => {
+      commitDraftValue().catch(() => undefined);
+    }, debounceMs);
+  }, [clearScheduledSave, commitDraftValue, debounceMs]);
 
   const updateDraftValue = useCallback(
     (
@@ -688,10 +720,11 @@ export function useInlineEditRuntime({
         disableAutoSave?: boolean;
       }
     ) => {
-      const baselineDraft = toInlineEditDraftValue(committedValue, editor);
+      const baselineDraft = committedDraftRef.current;
       const hasChanges =
         toComparableString(nextValue) !== toComparableString(baselineDraft);
 
+      draftValueRef.current = nextValue;
       setDraftValue(nextValue);
       setErrorMessage(undefined);
       setIsDirty(hasChanges);
@@ -705,42 +738,66 @@ export function useInlineEditRuntime({
         return;
       }
 
-      scheduleSave(nextValue);
+      scheduleSave();
     },
-    [clearScheduledSave, committedValue, editor, scheduleSave]
+    [clearScheduledSave, scheduleSave]
   );
 
   const flushChanges = useCallback(async (): Promise<boolean> => {
-    if (!isDirty || isSaving) {
-      clearScheduledSave();
-      return true;
-    }
-
-    return await commitDraftValue(draftValueRef.current);
-  }, [clearScheduledSave, commitDraftValue, isDirty, isSaving]);
+    do {
+      if (!(await commitDraftValue())) {
+        return false;
+      }
+    } while (
+      toComparableString(draftValueRef.current) !==
+      toComparableString(committedDraftRef.current)
+    );
+    return true;
+  }, [commitDraftValue]);
 
   const startEditing = useCallback(() => {
+    if (inFlightRef.current) {
+      return;
+    }
     setErrorMessage(undefined);
-    setDraftValue(toInlineEditDraftValue(committedValue, editor));
+    draftValueRef.current = committedDraftRef.current;
+    setDraftValue(committedDraftRef.current);
     setIsEditing(true);
-  }, [committedValue, editor]);
+  }, []);
 
   const stopEditing = useCallback(() => {
     setIsEditing(false);
   }, []);
 
   const cancelEditing = useCallback(() => {
+    // An acknowledged write cannot be cancelled by hiding its pending editor.
+    if (inFlightRef.current) {
+      return;
+    }
     clearScheduledSave();
     setErrorMessage(undefined);
     setIsDirty(false);
-    setDraftValue(toInlineEditDraftValue(committedValue, editor));
+    draftValueRef.current = committedDraftRef.current;
+    setDraftValue(committedDraftRef.current);
     setIsEditing(false);
-  }, [clearScheduledSave, committedValue, editor]);
+  }, [clearScheduledSave]);
 
-  const commitAndClose = useCallback(async (): Promise<boolean> => {
-    const committed = await flushChanges();
-    setIsEditing(false);
-    return committed;
+  const commitAndClose = useCallback((): Promise<boolean> => {
+    if (closingRef.current) {
+      return closingRef.current;
+    }
+    const closing = flushChanges()
+      .then((committed) => {
+        if (committed) {
+          setIsEditing(false);
+        }
+        return committed;
+      })
+      .finally(() => {
+        closingRef.current = null;
+      });
+    closingRef.current = closing;
+    return closing;
   }, [flushChanges]);
 
   const delayProgress = useMemo(() => {

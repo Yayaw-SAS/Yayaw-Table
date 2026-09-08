@@ -612,7 +612,7 @@ function DataTableContent({
           <div className="space-y-4">
             {/* Header with title/description and toolbar */}
             {shouldShowToolbar && (
-              <div className="space-y-3">
+              <div className="space-y-3 [&_button]:font-normal [&_button_.font-medium]:font-normal">
                 {shouldShowToolbarHeader && (
                   <div className="space-y-1">
                     <Title>{displayTitle}</Title>

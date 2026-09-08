@@ -52,6 +52,7 @@ interface InlineEditableCellProps<TData extends Record<string, unknown>> {
 }
 
 interface NormalizedSelectOption {
+  disabled?: boolean;
   label: string;
   value: string;
 }
@@ -94,6 +95,7 @@ function normalizeSelectOptions({
     normalizedOptions.set(normalizedValue, {
       label: option.label,
       value: normalizedValue,
+      disabled: option.disabled,
     });
   }
 
@@ -199,7 +201,6 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
     isSaving,
     scheduledAt,
     startEditing,
-    stopEditing,
     cancelEditing,
     updateDraftValue,
   } = useInlineEditRuntime({
@@ -242,6 +243,8 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
     [cancelEditing, commitAndClose]
   );
 
+  const focusEditor = useCallback((node: HTMLElement | null) => { node?.focus(); }, []);
+
   const handleEditorBlur = useCallback(() => {
     commitAndClose().catch(() => undefined);
   }, [commitAndClose]);
@@ -280,6 +283,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
   const renderTextareaEditor = useCallback(() => {
     return (
       <Textarea
+        ref={focusEditor}
         className="min-h-20 py-1 text-sm"
         onBlur={handleEditorBlur}
         onChange={(event) => {
@@ -292,6 +296,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
     );
   }, [
     editorValue,
+    focusEditor,
     handleEditorBlur,
     handleEditorKeyDown,
     resolvedEditor,
@@ -318,10 +323,10 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
   const renderSelectEditor = useCallback(() => {
     return (
       <Select
-        onOpenChange={(open) => {
-          if (!open) {
-            stopEditing();
-          }
+        open
+        onOpenChange={(open, details) => {
+          if (details.reason === "escape-key") { cancelEditing(); return; }
+          if (!open) { commitAndClose().catch(() => undefined); }
         }}
         onValueChange={(value) => {
           updateDraftValue(value ?? "");
@@ -338,7 +343,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
             </SelectItem>
           ) : (
             selectOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
+              <SelectItem disabled={option.disabled} key={option.value} value={option.value}>
                 {option.label}
               </SelectItem>
             ))
@@ -346,40 +351,55 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
         </SelectContent>
       </Select>
     );
-  }, [editorValue, selectOptions, stopEditing, t, updateDraftValue]);
+  }, [editorValue, selectOptions, cancelEditing, commitAndClose, t, updateDraftValue]);
 
   const renderMultiSelectEditor = useCallback(() => {
     return (
       <Combobox
+        open
         multiple
-        onOpenChange={(open) => {
-          if (!open) {
-            stopEditing();
-          }
+        items={selectOptions.map((option) => option.value)}
+        itemToStringLabel={getOptionLabel}
+        onOpenChange={(open, details) => {
+          if (details.reason === "escape-key") { cancelEditing(); return; }
+          if (!open) { commitAndClose().catch(() => undefined); }
         }}
         onValueChange={(values) => {
-          updateDraftValue(
-            Array.isArray(values) ? values.map((value) => String(value)) : []
-          );
+          const nextValues = Array.isArray(values) ? values.map((value) => String(value)) : [];
+          for (const selected of selectedMultiValues) {
+            if (selectOptions.find((option) => option.value === selected)?.disabled && !nextValues.includes(selected)) {
+              nextValues.push(selected);
+            }
+          }
+          updateDraftValue(nextValues);
         }}
         value={selectedMultiValues}
       >
-        <ComboboxChips className="w-full" ref={multiSelectAnchorRef}>
+        <ComboboxChips className="h-[var(--yayaw-inline-control-height,2rem)] min-h-[var(--yayaw-inline-control-height,2rem)] w-full flex-nowrap overflow-hidden py-0" ref={multiSelectAnchorRef}>
+          <div className="flex min-w-0 items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {selectedMultiValues.map((selectedValue) => (
-            <ComboboxChip key={selectedValue}>
+            <ComboboxChip className="shrink-0" showRemove={!selectOptions.find((option) => option.value === selectedValue)?.disabled} key={selectedValue}>
               {getOptionLabel(selectedValue)}
             </ComboboxChip>
           ))}
+          </div>
           <ComboboxChipsInput
+            aria-label={typeof cell.column.columnDef.header === "string" ? cell.column.columnDef.header : cell.column.id}
+            ref={focusEditor}
             className="h-6 min-w-16"
             onKeyDown={(event) => {
-              if (event.key !== "Escape") {
-                return;
+              if (event.nativeEvent.isComposing) { return; }
+              if (event.key === "Escape") {
+                event.preventDefault();
+                event.stopPropagation();
+                cancelEditing();
+              } else if (event.key === "Enter") {
+                event.stopPropagation();
+                if (!event.currentTarget.getAttribute("aria-activedescendant")) {
+                  event.preventDefault();
+                  commitAndClose().catch(() => undefined);
+                }
               }
-
-              event.preventDefault();
-              event.stopPropagation();
-              cancelEditing();
             }}
             placeholder={
               selectedMultiValues.length === 0
@@ -389,24 +409,27 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
           />
         </ComboboxChips>
         <ComboboxContent anchor={multiSelectAnchorRef}>
+          <ComboboxEmpty>{t("filters.noResults")}</ComboboxEmpty>
           <ComboboxList>
-            <ComboboxEmpty>{t("filters.noResults")}</ComboboxEmpty>
-            {selectOptions.map((option) => (
-              <ComboboxItem key={option.value} value={option.value}>
-                {option.label}
+            {(value: string) => (
+              <ComboboxItem disabled={selectOptions.find((option) => option.value === value)?.disabled} key={value} value={value}>
+                {getOptionLabel(value)}
               </ComboboxItem>
-            ))}
+            )}
           </ComboboxList>
         </ComboboxContent>
       </Combobox>
     );
   }, [
     cancelEditing,
+    commitAndClose,
+    cell.column.columnDef.header,
+    cell.column.id,
+    focusEditor,
     getOptionLabel,
     multiSelectAnchorRef,
     selectOptions,
     selectedMultiValues,
-    stopEditing,
     t,
     updateDraftValue,
   ]);
@@ -421,6 +444,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
 
     return (
       <Input
+        ref={focusEditor}
         className={cn(
           "h-8 py-1 text-sm",
           resolvedEditor === "number" && "text-right"
@@ -436,6 +460,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
     );
   }, [
     editorValue,
+    focusEditor,
     handleEditorBlur,
     handleEditorKeyDown,
     resolvedEditor,
@@ -492,17 +517,15 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
 
       {isSaving && <span aria-live="polite" className="sr-only">{t("inline.saving")}</span>}
 
-      {!isSaving &&
-        isDirty &&
-        scheduledAt != null &&
-        inlineConfig.showDelayIndicator && (
+      {inlineConfig.showDelayIndicator &&
+        (isSaving || (isDirty && scheduledAt != null)) && (
           <div
             className="absolute right-0 bottom-0 left-0 h-[2px] overflow-hidden rounded-full bg-muted"
-            title={t("inline.save_scheduled")}
+            title={t(isSaving ? "inline.saving" : "inline.save_scheduled")}
           >
             <div
-              className="h-full bg-primary transition-[width] duration-75"
-              style={{ width: `${delayProgress}%` }}
+              className={cn("h-full bg-primary transition-[width] duration-75 motion-reduce:transition-none", isSaving && "animate-pulse motion-reduce:animate-none")}
+              style={{ width: `${isSaving ? 100 : delayProgress}%` }}
             />
           </div>
         )}
