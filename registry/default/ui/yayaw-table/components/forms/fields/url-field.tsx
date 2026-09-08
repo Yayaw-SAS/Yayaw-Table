@@ -1,7 +1,7 @@
 "use client";
 
 import { ExternalLink, Globe, Loader2 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import {
   Field,
   FieldDescription,
@@ -101,6 +101,7 @@ export function UrlField<TFieldValues extends Record<string, unknown>>({
   fieldApi,
 }: UrlFieldProps<TFieldValues>) {
   const { t } = useTranslations();
+  const controlId = useId();
   const errors = fieldApi.state.meta.errors;
   const errorMessages = Array.isArray(errors)
     ? errors.map((e) => (typeof e === "string" ? e : String(e)))
@@ -124,7 +125,7 @@ export function UrlField<TFieldValues extends Record<string, unknown>>({
 
   return (
     <Field data-invalid={!fieldApi.state.meta.isValid}>
-      <FieldLabel>
+      <FieldLabel htmlFor={controlId}>
         {field.labelKey ? t(field.labelKey) : field.label}
       </FieldLabel>
       <div className="relative">
@@ -132,6 +133,7 @@ export function UrlField<TFieldValues extends Record<string, unknown>>({
           aria-invalid={!fieldApi.state.meta.isValid}
           className="pr-9"
           disabled={field.disabled === true}
+          id={controlId}
           name={fieldApi.name}
           onBlur={fieldApi.handleBlur}
           onChange={(e) => fieldApi.handleChange(e.target.value)}

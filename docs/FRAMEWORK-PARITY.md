@@ -173,3 +173,24 @@ The parity contract covers user-visible behavior and serializable catalogue/acti
 Both toolbars offer XS, S, M, L, XL, and 2XL density via `extra-small`, `small`, `medium`, `large`, `extra-large`, and `extra-extra-large`. Shared Tailwind spacing factors target 28, 32, 40, 48, 56, and 64px rows before borders, coordinating cell padding, controls, and thumbnails. XS retains the old S appearance; typography stays unchanged and content may expand rows. Shared density fixtures and interaction tests cover the scale, isolated selection, configured defaults, and display-mode round trips.
 
 Density, saved-view, toolbar-action, and row-action controls use styled tooltips on hover and keyboard focus, with translated labels and composed menu triggers. The host controls translations; Vue includes French defaults and the companion Yayaw example localizes its React labels. UI choices remain scoped to the table without affecting saved views or URL state.
+
+## Data types
+
+`TABLE_DATA_TYPES` in the shared contract is the source for generated form fields, inline editor selection and filter defaults. `tests/fixtures/data-types.json` enumerates every public type; `tests/data-types-parity.test.ts` verifies both runtimes, and React/Vue component tests verify the actual controls and invalid JSON correction flow.
+
+| Type | Generated form / inline editor | Filter family |
+| --- | --- | --- |
+| text, string | text / text | text |
+| code | textarea / textarea | text |
+| number | number / number | number |
+| boolean | switch / boolean | select with true/false |
+| date | date / date | date |
+| url, image | url / url | text |
+| json | json / json | text |
+| select, tag | select / select | select |
+| multiSelect | multiSelect / multiSelect | multiSelect |
+| dynamicType | resolved per row using typeKey | text across mixed types |
+| custom | explicit catalogue or editor required | text or application filter |
+| actions | no data editor | no data filter |
+
+JSON form drafts preserve incomplete input, validate before schemas, and submit parsed JSON values. Primitive option identities, unknown choices and whitespace survive selection edits. Calendar inline writes now use `YYYY-MM-DD` in both editions, matching generated form writes; React consumers with `Date`-only inline schemas must accept the date string. Multiline editors use Enter for a newline and Ctrl/Cmd+Enter or dismissal to commit. Explicit form catalogues retain authority over missing, hidden and disabled fields. Generated bulk fields exclude heterogeneous dynamic types. Computed accessors need an explicit write mapping before inline editing can be enabled.

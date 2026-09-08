@@ -60,19 +60,7 @@ export interface DataTableColumnDef<
   displayVariant?: "default" | "tag";
 
   // Column type for specialized rendering and filtering
-  type?:
-    | "boolean"
-    | "code"
-    | "custom"
-    | "date"
-    | "image"
-    | "json"
-    | "multiSelect"
-    | "number"
-    | "select"
-    | "string"
-    | "text"
-    | "url";
+  type?: import("../utils/table-contracts").TableDataType;
 }
 
 /**

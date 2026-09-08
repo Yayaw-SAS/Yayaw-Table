@@ -649,3 +649,29 @@ it("inherits translated collection controls from the enclosing table", async () 
   expect(wrapper.find('[role="dialog"]').exists()).toBe(false);
   expect(wrapper.emitted("update:modelValue")).toBeUndefined();
 });
+
+it("keeps an incomplete JSON form draft visible and blocks submission until corrected", async () => {
+  const { wrapper, update } = mountForm(
+    {
+      id: "json",
+      fields: [{ name: "payload", label: "Payload", type: "json" }],
+    },
+    { payload: { enabled: false } }
+  );
+  await flushPromises();
+  expect(
+    (wrapper.get("textarea").element as HTMLTextAreaElement).value
+  ).toContain('"enabled": false');
+  await wrapper.get("textarea").setValue("{ incomplete");
+  await wrapper.get("form").trigger("submit");
+  await flushPromises();
+  expect(update).not.toHaveBeenCalled();
+  expect(wrapper.text()).toContain("expected valid JSON");
+  expect((wrapper.get("textarea").element as HTMLTextAreaElement).value).toBe(
+    "{ incomplete"
+  );
+  await wrapper.get("textarea").setValue('{"enabled":true}');
+  await wrapper.get("form").trigger("submit");
+  await flushPromises();
+  expect(update).toHaveBeenCalledWith("1", { payload: { enabled: true } });
+});

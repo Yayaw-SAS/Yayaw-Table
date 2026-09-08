@@ -6,7 +6,11 @@
 
 import { useMemo } from "react";
 import type { TableFormConfig } from "../config/form-config";
+/**
+ * Configuration for table columns in the catalogue
+ */
 import type {
+  ColumnDefinition,
   InlineEditColumnConfig,
   TableConfig,
   TableEmptyStateConfig,
@@ -41,12 +45,9 @@ import type { NumberFormatConfig } from "../utils/number-format";
 import { isTableDensity } from "../utils/table-contracts";
 import { useTableTranslations } from "./use-table-translations";
 
-/**
- * Configuration for table columns in the catalogue
- */
-export interface TableCatalogueColumnConfig {
+export interface TableCatalogueColumnConfig extends ColumnDefinition {
   id: string;
-  type: string;
+  type: import("../utils/table-contracts").TableDataType;
   header: string;
   enableGrouping?: boolean;
   enableResizing?: boolean;

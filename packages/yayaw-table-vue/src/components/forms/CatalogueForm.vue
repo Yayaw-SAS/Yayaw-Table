@@ -16,13 +16,12 @@ import {
   validateForm,
 } from "../../form-runtime";
 import type {
-  ColumnType,
   FormConfig,
   FormFieldContext,
   FormFieldDefinition,
-  FormFieldType,
   TableRecord,
 } from "../../types";
+import { generateDataTypeFields } from "../../table-contracts";
 import DynamicField from "./DynamicField.vue";
 import FormDialog from "./FormDialog.vue";
 
@@ -47,26 +46,8 @@ const formType = computed(
     context.tableType ??
     context.config.id
 );
-const fieldTypes: Partial<Record<ColumnType, FormFieldType>> = {
-  boolean: "switch",
-  date: "date",
-  multiSelect: "multiSelect",
-  number: "number",
-  select: "select",
-  url: "url",
-};
 const generatedFields = (): FormFieldDefinition[] =>
-  context.config.columns.definitions
-    .filter(
-      (column) =>
-        !["actions", "select"].includes(column.id) && column.type !== "actions"
-    )
-    .map((column) => ({
-      name: column.accessorKey ?? column.id,
-      label: column.header,
-      type: fieldTypes[column.type ?? "text"] ?? "text",
-      options: column.options,
-    }));
+  generateDataTypeFields(context.config.columns.definitions, { ...context.form.value.row, ...values.value }, context.form.value.bulk?.rows) as FormFieldDefinition[];
 const setFieldValue = (name: string, value: unknown): void => {
   if (submitting.value || loading.value) return;
   values.value = { ...values.value, [name]: value };

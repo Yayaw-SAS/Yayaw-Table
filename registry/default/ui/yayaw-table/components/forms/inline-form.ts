@@ -19,7 +19,7 @@ export function canEditInlineFormField(
     field &&
       !fieldIsHidden(field, context) &&
       !fieldIsDisabled(field, context) &&
-      !["collection", "custom"].includes(field.type) &&
+      !["collection", "custom", "tablePicker"].includes(field.type) &&
       !field.searchOptions &&
       typeof field.options !== "function"
   );

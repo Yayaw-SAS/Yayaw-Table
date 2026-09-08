@@ -1,5 +1,7 @@
 "use client";
 
+import { useId } from "react";
+
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Switch } from "@/components/ui/switch";
 import { useTranslations } from "../../../providers/table-provider";
@@ -12,6 +14,7 @@ interface SwitchFieldProps {
 
 export function SwitchField({ field, fieldApi }: SwitchFieldProps) {
   const { t } = useTranslations();
+  const controlId = useId();
   const isChecked = Boolean(fieldApi.state.value);
   const errors = fieldApi.state.meta.errors;
   const errorMessages = Array.isArray(errors)
@@ -46,14 +49,18 @@ export function SwitchField({ field, fieldApi }: SwitchFieldProps) {
     <Field data-invalid={!fieldApi.state.meta.isValid}>
       <div className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
         <div className="space-y-0.5">
-          <FieldLabel>{fieldLabel}</FieldLabel>
+          <FieldLabel htmlFor={controlId}>{fieldLabel}</FieldLabel>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-muted-foreground text-xs">
             {switchStateLabel}
           </span>
           <Switch
+            aria-label={fieldLabel}
             checked={isChecked}
+            disabled={field.disabled === true}
+            id={controlId}
+            onBlur={fieldApi.handleBlur}
             onCheckedChange={(val) => fieldApi.handleChange(Boolean(val))}
           />
         </div>

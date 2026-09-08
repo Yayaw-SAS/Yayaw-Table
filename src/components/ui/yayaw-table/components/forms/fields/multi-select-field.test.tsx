@@ -25,7 +25,7 @@ describe("multi-select field state helpers", () => {
     );
   });
 
-  it("toggles option values in option order", () => {
+  it("appends new choices while preserving stored order", () => {
     const options = [
       { value: "native_tables" },
       { value: "runtime_api" },
@@ -38,7 +38,7 @@ describe("multi-select field state helpers", () => {
         optionValue: "native_tables",
         options,
       }),
-      ["native_tables", "runtime_api"]
+      ["runtime_api", "native_tables"]
     );
     assert.deepEqual(
       toggleMultiSelectFieldValue({

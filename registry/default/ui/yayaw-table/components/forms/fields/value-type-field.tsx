@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useTranslations } from "../../../providers/table-provider";
+import { jsonFormDraft, jsonFormText } from "../../../utils/table-contracts";
 import type { TranslationConfig } from "../atoms";
 import type { FormFieldApi } from "../types";
 
@@ -101,27 +102,11 @@ function ValueTypeFieldInput({
       return (
         <Textarea
           className="font-mono text-sm"
-          onChange={(e) => {
-            try {
-              const value =
-                e.target.value.trim() === "" ? {} : JSON.parse(e.target.value);
-              fieldApi.handleChange(value);
-            } catch {
-              // Keep invalid JSON in textarea
-            }
-          }}
+          onBlur={fieldApi.handleBlur}
+          onChange={(e) => fieldApi.handleChange(jsonFormDraft(e.target.value))}
           placeholder={placeholder ?? t("value.json_placeholder")}
           rows={5}
-          value={(() => {
-            const v = fieldApi.state.value;
-            if (v === undefined) {
-              return "";
-            }
-            if (typeof v === "object") {
-              return JSON.stringify(v, null, 2);
-            }
-            return String(v);
-          })()}
+          value={jsonFormText(fieldApi.state.value)}
         />
       );
     case "number":

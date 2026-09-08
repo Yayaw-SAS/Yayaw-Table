@@ -1,4 +1,10 @@
 import { toRaw } from "vue";
+import {
+  dataTypeValueError,
+  isJsonFormDraft,
+  jsonFormDraft,
+  parseJsonFormValue,
+} from "./table-contracts";
 import type {
   FormConfig,
   FormFieldContext,
@@ -9,6 +15,9 @@ import type {
 
 /** Clone editable data without sharing nested values with a row or configuration. */
 export const cloneFormValue = <T>(value: T): T => {
+  if (isJsonFormDraft(value)) {
+    return jsonFormDraft(value.text) as T;
+  }
   if (value instanceof Date) {
     return new Date(value.getTime()) as T;
   }
@@ -24,6 +33,13 @@ export const cloneFormValue = <T>(value: T): T => {
 };
 
 export const formValuesEqual = (left: unknown, right: unknown): boolean => {
+  if (isJsonFormDraft(left) || isJsonFormDraft(right)) {
+    return (
+      isJsonFormDraft(left) &&
+      isJsonFormDraft(right) &&
+      left.text === right.text
+    );
+  }
   if (Object.is(left, right)) {
     return true;
   }
@@ -77,6 +93,9 @@ export const fieldIsDisabled = (
 export const defaultFieldValue = (field: FormFieldDefinition): unknown => {
   if (field.defaultValue !== undefined) {
     return cloneFormValue(field.defaultValue);
+  }
+  if (["number", "date", "select", "json"].includes(field.type)) {
+    return null;
   }
   if (field.type === "collection" || field.type === "multiSelect") {
     return [];
@@ -191,6 +210,15 @@ const validateScalar = (
   if (field.required && missing(value)) {
     return `${field.label} is required`;
   }
+  const typeError = dataTypeValueError(
+    ["dynamic-value", "dynamicValue", "value-type"].includes(field.type)
+      ? dynamicFieldType(field, context)
+      : field.type,
+    value
+  );
+  if (typeError) {
+    return `${field.label}: ${typeError}`;
+  }
   const numeric =
     field.type === "number" || dynamicFieldType(field, context) === "number";
   if (
@@ -251,8 +279,21 @@ const validateField = async (
   context: FormFieldContext
 ): Promise<FormValidationResult> => {
   const values = { [field.name]: value };
+  if ((field.type === "number" || field.type === "date") && value === "") {
+    values[field.name] = null;
+  }
+  if (field.type === "json" || dynamicFieldType(field, context) === "json") {
+    try {
+      values[field.name] = parseJsonFormValue(value);
+    } catch {
+      return {
+        values,
+        errors: { [field.name]: `Invalid ${field.label}: expected valid JSON` },
+      };
+    }
+  }
   const errors: Record<string, string> = {};
-  const scalarError = validateScalar(field, value, context);
+  const scalarError = validateScalar(field, values[field.name], context);
   if (scalarError) {
     return { values, errors: { [field.name]: scalarError } };
   }

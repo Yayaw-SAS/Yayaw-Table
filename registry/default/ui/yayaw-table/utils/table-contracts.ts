@@ -3,6 +3,166 @@ const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 export type ContractRecord = Record<string, unknown>;
 export type ContractColumnSizing = Record<string, number>;
 
+/** One semantic declaration drives the built-in editors in both registries. */
+export const TABLE_DATA_TYPES = {
+  actions: { form: null, inline: null, filter: "text" },
+  boolean: { form: "switch", inline: "boolean", filter: "select" },
+  code: { form: "textarea", inline: "textarea", filter: "text" },
+  custom: { form: null, inline: null, filter: "text" },
+  date: { form: "date", inline: "date", filter: "date" },
+  dynamicType: { form: null, inline: null, filter: "text" },
+  image: { form: "url", inline: "url", filter: "text" },
+  json: { form: "json", inline: "json", filter: "text" },
+  multiSelect: {
+    form: "multiSelect",
+    inline: "multiSelect",
+    filter: "multiSelect",
+  },
+  number: { form: "number", inline: "number", filter: "number" },
+  select: { form: "select", inline: "select", filter: "select" },
+  string: { form: "text", inline: "text", filter: "text" },
+  tag: { form: "select", inline: "select", filter: "select" },
+  text: { form: "text", inline: "text", filter: "text" },
+  url: { form: "url", inline: "url", filter: "text" },
+} as const;
+
+export type TableDataType = keyof typeof TABLE_DATA_TYPES;
+export type DataTypeInlineEditor = NonNullable<
+  (typeof TABLE_DATA_TYPES)[TableDataType]["inline"]
+>;
+
+export function resolveDataType(
+  type?: string,
+  row?: ContractRecord,
+  typeKey = "type"
+): TableDataType {
+  const candidate =
+    type === "dynamicType"
+      ? String(row?.[typeKey] ?? "string")
+      : (type ?? "string");
+  return Object.hasOwn(TABLE_DATA_TYPES, candidate) &&
+    candidate !== "dynamicType"
+    ? (candidate as TableDataType)
+    : "string";
+}
+
+/** Explicit editor overrides win; semantic JSON and array values must retain their shape. */
+export function resolveDataTypeEditor({
+  explicitEditor,
+  columnType,
+  formFieldType,
+  hasOptions = false,
+}: {
+  explicitEditor?: string;
+  columnType?: string;
+  formFieldType?: string;
+  hasOptions?: boolean;
+}): DataTypeInlineEditor {
+  if (explicitEditor && explicitEditor !== "auto") {
+    return explicitEditor as DataTypeInlineEditor;
+  }
+  if (columnType === "multiSelect" || columnType === "json") {
+    return columnType;
+  }
+  const fields: Record<string, DataTypeInlineEditor> = {
+    checkbox: "boolean",
+    switch: "boolean",
+    date: "date",
+    json: "json",
+    number: "number",
+    select: "select",
+    radio: "select",
+    "select-with-add-new": "select",
+    multiSelect: "multiSelect",
+    textarea: "textarea",
+    text: "text",
+    url: "url",
+  };
+  return (
+    fields[formFieldType ?? ""] ??
+    (columnType && columnType !== "dynamicType"
+      ? TABLE_DATA_TYPES[resolveDataType(columnType)].inline
+      : undefined) ??
+    (hasOptions ? "select" : "text")
+  );
+}
+
+export interface DataTypeColumn {
+  id: string;
+  header: string;
+  type?: string;
+  typeKey?: string;
+  accessorKey?: unknown;
+  accessorFn?: unknown;
+  options?: unknown;
+}
+
+/** Custom and computed values require a catalogue field describing how to edit them. */
+export function generateDataTypeFields(
+  columns: DataTypeColumn[],
+  row?: ContractRecord,
+  rows: ContractRecord[] = []
+) {
+  return columns.flatMap((column) => {
+    if (
+      column.type === "dynamicType" &&
+      new Set(
+        rows.map((item) => resolveDataType(column.type, item, column.typeKey))
+      ).size > 1
+    ) {
+      return [];
+    }
+    const type =
+      TABLE_DATA_TYPES[
+        resolveDataType(column.type, { ...rows[0], ...row }, column.typeKey)
+      ].form;
+    if (
+      !type ||
+      ["select", "actions"].includes(column.id) ||
+      column.accessorFn
+    ) {
+      return [];
+    }
+    return [
+      {
+        name:
+          typeof column.accessorKey === "string"
+            ? column.accessorKey
+            : column.id,
+        label: column.header,
+        type,
+        ...(type === "select" || type === "multiSelect"
+          ? { options: column.options ?? [] }
+          : {}),
+      },
+    ];
+  });
+}
+
+/** Preserve incomplete JSON until validation, without confusing a JSON string with source text. */
+const JSON_FORM_DRAFT = Symbol.for("yayaw-table.json-form-draft");
+export const jsonFormDraft = (text: string) => ({
+  [JSON_FORM_DRAFT]: true as const,
+  text,
+});
+export const isJsonFormDraft = (
+  value: unknown
+): value is ReturnType<typeof jsonFormDraft> => {
+  const record = recordValue(value);
+  return (
+    (record as Record<symbol, unknown>)[JSON_FORM_DRAFT] === true &&
+    typeof record.text === "string"
+  );
+};
+export function jsonFormText(value: unknown): string {
+  if (isJsonFormDraft(value)) {
+    return value.text;
+  }
+  return value === undefined ? "" : JSON.stringify(value, null, 2);
+}
+export const parseJsonFormValue = (value: unknown): unknown =>
+  isJsonFormDraft(value) ? JSON.parse(value.text) : value;
+
 /** Density labels preserve the existing configuration values in both editions. */
 export const TABLE_DENSITY_OPTIONS = [
   { label: "XS", value: "extra-small" },
@@ -400,5 +560,91 @@ function matchesNumberFilter(
         actual >= (values[0] ?? Number.NaN) &&
         actual <= (values[1] ?? Number.NaN)
       );
+  }
+}
+
+/** Resolve labels with strict primitive identity, preserving unknown stored choices. */
+export function dataTypeOptionLabel(value: unknown, options?: unknown): string {
+  const option = Array.isArray(options)
+    ? options.find((item) => Object.is(item.value, value))
+    : undefined;
+  return option?.label ?? String(value ?? "");
+}
+
+export function dataTypeFilter(type?: string, hasOptions = false) {
+  if (!type) {
+    return hasOptions ? "select" : "text";
+  }
+  return TABLE_DATA_TYPES[resolveDataType(type)].filter;
+}
+
+export const optionControlKey = (value: unknown): string =>
+  JSON.stringify([typeof value, value]);
+export function optionControlValue(key: string): unknown {
+  try {
+    return JSON.parse(key)[1];
+  } catch {
+    return key;
+  }
+}
+
+/** Date-only inputs use local calendar components, never a UTC conversion. */
+export function dataTypeDateInput(value: unknown): string {
+  if (value == null || value === "") {
+    return "";
+  }
+  if (typeof value === "string" && DATE_ONLY_PATTERN.test(value)) {
+    return value;
+  }
+  const date =
+    value instanceof Date ? value : new Date(value as string | number);
+  if (!Number.isFinite(date.getTime())) {
+    return "";
+  }
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+/** Structural validation applies even when the application does not supply a schema. */
+export function dataTypeValueError(
+  type: string,
+  value: unknown
+): string | undefined {
+  if (value == null || value === "") {
+    return;
+  }
+  if (
+    type === "number" &&
+    (typeof value !== "number" || !Number.isFinite(value))
+  ) {
+    return "Expected a valid number";
+  }
+  if (
+    ["boolean", "switch", "checkbox"].includes(type) &&
+    typeof value !== "boolean"
+  ) {
+    return "Expected a boolean";
+  }
+  if (
+    type === "multiSelect" &&
+    (!Array.isArray(value) ||
+      value.some(
+        (item) => !["string", "number", "boolean"].includes(typeof item)
+      ))
+  ) {
+    return "Expected an array of option values";
+  }
+  if (type === "date") {
+    const date =
+      value instanceof Date ? value : new Date(value as string | number);
+    if (!Number.isFinite(date.getTime())) {
+      return "Expected a valid date";
+    }
+    if (
+      typeof value === "string" &&
+      DATE_ONLY_PATTERN.test(value) &&
+      date.toISOString().slice(0, 10) !== value
+    ) {
+      return "Expected a valid date";
+    }
   }
 }

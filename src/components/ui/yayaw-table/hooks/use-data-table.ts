@@ -17,8 +17,9 @@ import {
   type VisibilityState,
 } from "@/components/ui/yayaw-table/tanstack";
 import type * as React from "react";
-import { useCallback, useMemo } from "react";
+import { createElement, useCallback, useMemo } from "react";
 
+import { DataTypeCell } from "../components/cells/data-type-cell";
 import type { ActionsColumnProps } from "../components/columns/actions-column";
 import { useColumns } from "../components/columns/hooks/use-columns";
 import { useTranslations } from "../providers/table-provider";
@@ -716,12 +717,10 @@ export function useDataTable<TData extends Record<string, unknown>>(
     // Add selection column if enabled
     if (config.table.enableRowSelection) {
       // Use the selection column from the columns hook
-      columnDefs.push(
-        {
-          ...withInlineEditMeta(column.selection(), selectionInlineMeta),
-          enableResizing: false,
-        }
-      );
+      columnDefs.push({
+        ...withInlineEditMeta(column.selection(), selectionInlineMeta),
+        enableResizing: false,
+      });
     }
 
     // Add columns from configuration
@@ -733,6 +732,30 @@ export function useDataTable<TData extends Record<string, unknown>>(
       );
       const configuredColumnDef = {
         ...sizedColumnDef,
+        ...(typeof colDef.accessorKey === "string"
+          ? { accessorKey: colDef.accessorKey }
+          : {}),
+        ...(typeof colDef.accessorFn === "function"
+          ? { accessorFn: colDef.accessorFn as (row: TData) => unknown }
+          : {}),
+        ...(["select", "multiSelect", "tag", "dynamicType", "custom"].includes(
+          colDef.type
+        ) || colDef.cellRenderer
+          ? {
+              cell: (
+                info: import("@/components/ui/yayaw-table/tanstack").CellContext<
+                  TData,
+                  unknown
+                >
+              ) =>
+                createElement(DataTypeCell, {
+                  column: colDef,
+                  row: info.row.original,
+                  value: info.getValue(),
+                  fallbackDateDisplayPreset: config.table.dateDisplayPreset,
+                }),
+            }
+          : {}),
         enablePinning: colDef.enablePinning !== false,
         enableResizing: colDef.enableResizing !== false,
       };
@@ -749,27 +772,25 @@ export function useDataTable<TData extends Record<string, unknown>>(
 
     // Add actions column if not already added
     if (!columnDefs.some((col) => "id" in col && col.id === "actions")) {
-      columnDefs.push(
-        {
-          ...withInlineEditMeta(
-            buildActionsColumnDef({
-              includeView: true,
-              withDuplicateHandler: true,
-            }),
-            resolveInlineEditColumnConfig(
-              {
-                id: "actions",
-                type: "actions",
-              },
-              tableInlineEditConfig,
-              {
-                featureEnabled: isInlineEditAllowed,
-              }
-            )
-          ),
-          enableResizing: false,
-        }
-      );
+      columnDefs.push({
+        ...withInlineEditMeta(
+          buildActionsColumnDef({
+            includeView: true,
+            withDuplicateHandler: true,
+          }),
+          resolveInlineEditColumnConfig(
+            {
+              id: "actions",
+              type: "actions",
+            },
+            tableInlineEditConfig,
+            {
+              featureEnabled: isInlineEditAllowed,
+            }
+          )
+        ),
+        enableResizing: false,
+      });
     }
 
     return createColumns(columnDefs);
@@ -779,6 +800,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
     buildBaseColumnDef,
     config.columns.definitions,
     config.table.enableRowSelection,
+    config.table.dateDisplayPreset,
     createColumns,
     isInlineEditAllowed,
     tableInlineEditConfig,
@@ -910,7 +932,8 @@ export function useDataTable<TData extends Record<string, unknown>>(
     setColumnVisibility: tableUrlState.setVisibilityFromUI as OnChangeFn<
       typeof columnVisibility
     >,
-    setColumnSizing: tableUrlState.setSizingFromUI as OnChangeFn<ColumnSizingState>,
+    setColumnSizing:
+      tableUrlState.setSizingFromUI as OnChangeFn<ColumnSizingState>,
     setGrouping: tableUrlState.setGroupingFromUI,
 
     setPageIndex: (pageIndex: number) =>

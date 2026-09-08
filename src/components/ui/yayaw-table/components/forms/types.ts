@@ -398,9 +398,7 @@ export interface TablePickerFieldConfig<
     | TableConfig
     | ((context: FormConfigContext<TFieldValues>) => TableConfig);
   /** Optional local rows, optionally derived from the current form. */
-  data?:
-    | TRow[]
-    | ((context: FormConfigContext<TFieldValues>) => TRow[]);
+  data?: TRow[] | ((context: FormConfigContext<TFieldValues>) => TRow[]);
   /** Convert a table row to the stable string ID used by table selection. */
   getRowId?: (row: TRow) => string;
   initialActiveViewId?: string;
@@ -435,7 +433,7 @@ export interface TextareaFieldDefinition<
   TFieldValues extends FieldValues = FieldValues,
 > extends BaseFieldDefinition<TFieldValues> {
   rows?: number;
-  type: "textarea";
+  type: "textarea" | "json";
 }
 
 /**

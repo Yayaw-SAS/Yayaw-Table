@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import { dataTypeColumns, dataTypeRow } from "../../../examples/data-types";
 import { z } from "zod";
 import {
   DataTable,
@@ -270,6 +271,17 @@ const toolbarActions: ToolbarActionsInput = (context) => [
 const activateProduct = (row: TableRecord): void => {
   activity.value = `Activated: ${String(row.name ?? row.id)}`;
 };
+// This table deliberately has no form catalogue: column types generate every standard editor.
+const typeRows = ref<TableRecord[]>([{ ...dataTypeRow }]);
+const typesConfig = defineTableConfig({
+  id: "data-types", columns: { definitions: dataTypeColumns, visible: dataTypeColumns.map(column => column.id), order: dataTypeColumns.map(column => column.id), mandatory: [] },
+  table: { allowInlineEdit: true, inlineEdit: { enabled: true }, allowCreate: true, allowEdit: true, syncUrl: false },
+  translations: { namespace: "data-types", keys: { title: "Declare each type once", description: "Cells, inline editing, filters and generated forms share the same declaration." } },
+});
+const typesActions: TableActions = {
+  create: values => { typeRows.value = [...typeRows.value, { ...values, id: crypto.randomUUID() }]; return { success: true }; },
+  update: (id, values) => { typeRows.value = typeRows.value.map(row => row.id === id ? { ...row, ...values } : row); return { success: true }; },
+};
 </script>
 
 <template>
@@ -295,6 +307,10 @@ const activateProduct = (row: TableRecord): void => {
       locale="en"
       @row-activate="activateProduct"
     />
+    <section style="margin-top: 48px">
+      <DataTable table-type="data-types" :config="typesConfig" :data="typeRows" :get-table-actions="() => typesActions" locale="en" />
+      <pre aria-label="Saved typed values">{{ JSON.stringify(typeRows, null, 2) }}</pre>
+    </section>
   </main>
 </template>
 

@@ -384,3 +384,65 @@ it("serializes newer selections behind a pending save without dropping the draft
   ]);
   expect(wrapper.find("input").exists()).toBe(false);
 });
+
+for (const [type, value, selector] of [
+  ["string", "Alpha", 'input[type="text"]'],
+  ["text", "Alpha", 'input[type="text"]'],
+  ["code", "const a = 1;", "textarea"],
+  ["number", -12.5, 'input[type="number"]'],
+  ["boolean", false, 'input[type="checkbox"]'],
+  ["date", new Date(2026, 8, 8), 'input[type="date"]'],
+  ["url", "https://example.com", 'input[type="url"]'],
+  ["image", "https://example.com/image.png", 'input[type="url"]'],
+  ["json", { active: false }, "textarea"],
+  ["select", 1, "select"],
+  ["tag", 1, "select"],
+] as const) {
+  it(`derives the Vue ${type} inline control without a form catalogue`, async () => {
+    const { wrapper } = createCell({
+      row: { id: "1", value },
+      column: {
+        id: "value",
+        header: "Value",
+        type,
+        options: [{ label: "One", value: 1 }],
+      },
+    });
+    await wrapper.trigger("dblclick");
+    await flushPromises();
+    expect(wrapper.find(selector).exists()).toBe(true);
+    if (type === "date") {
+      expect((wrapper.get(selector).element as HTMLInputElement).value).toBe(
+        "2026-09-08"
+      );
+    }
+  });
+}
+it("resolves the dynamic row type for both display and editing", async () => {
+  const { wrapper } = createCell({
+    row: { id: "1", kind: "url", value: "https://example.com" },
+    column: {
+      id: "value",
+      header: "Value",
+      type: "dynamicType",
+      typeKey: "kind",
+    },
+  });
+  expect(wrapper.get("a").attributes("href")).toBe("https://example.com/");
+  await wrapper.trigger("dblclick");
+  await flushPromises();
+  expect(wrapper.find('input[type="url"]').exists()).toBe(true);
+});
+
+it("shows the image fallback after failure and recovers when the source changes", async () => {
+  const { wrapper } = createCell({
+    row: { id: "1", value: "https://example.com/missing.png" },
+    column: { id: "value", header: "Image", type: "image" },
+  });
+  await wrapper.get("img").trigger("error");
+  expect(wrapper.find('[role="img"][aria-label="Image"]').exists()).toBe(true);
+  await wrapper.setProps({ value: "https://example.com/new.png" });
+  expect(wrapper.get("img").attributes("src")).toBe(
+    "https://example.com/new.png"
+  );
+});

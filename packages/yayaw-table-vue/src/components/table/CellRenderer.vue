@@ -12,6 +12,8 @@ import {
   type VNodeChild,
 } from "vue";
 import { useTableContext } from "../../context";
+import { resolveDataType, resolveDataTypeEditor, TABLE_DATA_TYPES, dataTypeDateInput, dataTypeValueError } from "../../table-contracts";
+import { Image as ImageIcon } from "lucide-vue-next";
 import InlineMultiSelect from "./InlineMultiSelect.vue";
 import { displayCellValue, safeHttpUrl, imageSource } from "../../core";
 import {
@@ -52,30 +54,7 @@ const delayProgress = computed(() => scheduledAt.value == null || debounceMs.val
 const error = ref<string>();
 const editorElement = ref<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>();
 let closeRequested = false;
-const columnTypes = new Set<ColumnType>([
-  "boolean",
-  "code",
-  "custom",
-  "date",
-  "image",
-  "json",
-  "multiSelect",
-  "number",
-  "select",
-  "string",
-  "tag",
-  "text",
-  "url",
-]);
-const dynamicType = computed<ColumnType>(() => {
-  if (props.column.type !== "dynamicType") {
-    return props.column.type ?? "text";
-  }
-  const candidate = String(
-    props.row[props.column.typeKey ?? "type"] ?? "text"
-  ) as ColumnType;
-  return columnTypes.has(candidate) ? candidate : "text";
-});
+const dynamicType = computed<ColumnType>(() => resolveDataType(props.column.type, props.row, props.column.typeKey));
 const effectiveColumn = computed<ColumnDefinition>(() => ({
   ...props.column,
   type: dynamicType.value,
@@ -127,6 +106,9 @@ const formField = computed(() =>
   formConfig.value?.fields.find((field) => field.name === fieldName.value)
 );
 const canEdit = computed(() => {
+  if (props.column.accessorFn && !inlineConfig.value.formField) return false;
+  if (["actions", "select"].includes(props.column.id)) return false;
+  if (!TABLE_DATA_TYPES[dynamicType.value].inline && (!inlineConfig.value.editor || inlineConfig.value.editor === "auto")) return false;
   if (formConfig.value && !formField.value) return false;
   if (
     formField.value &&
@@ -136,7 +118,7 @@ const canEdit = computed(() => {
     return false;
   if (
     formField.value &&
-    (["collection", "custom"].includes(formField.value.type) ||
+    (["collection", "custom", "tablePicker"].includes(formField.value.type) ||
       formField.value.searchOptions)
   )
     return false;
@@ -160,35 +142,12 @@ const canEdit = computed(() => {
   }
   return inlineConfig.value.enabled ?? true;
 });
-const editor = computed<InlineEditEditor>(() => {
-  if (inlineConfig.value.editor && inlineConfig.value.editor !== "auto") {
-    return inlineConfig.value.editor;
-  }
-  const type = formField.value?.type ?? dynamicType.value;
-  if (["switch", "checkbox", "boolean"].includes(type)) {
-    return "boolean";
-  }
-  if (type === "date") {
-    return "date";
-  }
-  if (type === "json") {
-    return "json";
-  }
-  if (type === "multiSelect") {
-    return "multiSelect";
-  }
-  if (type === "number") {
-    return "number";
-  }
-  if (["select", "radio", "select-with-add-new"].includes(type)) {
-    return "select";
-  }
-  if (type === "textarea") return "textarea";
-  if (type === "url") {
-    return "url";
-  }
-  return "text";
-});
+const editor = computed<InlineEditEditor>(() => resolveDataTypeEditor({
+  explicitEditor: inlineConfig.value.editor,
+  columnType: dynamicType.value,
+  formFieldType: formField.value?.type,
+  hasOptions: options.value.length > 0,
+}));
 const loadedOptions = ref<SelectOption[]>();
 const optionsLoading = ref(false);
 const optionsFailed = ref(false);
@@ -205,7 +164,7 @@ const options = computed<SelectOption[]>(
 );
 const begin = async (): Promise<void> => {
   if (!canEdit.value || pending.value || optionsLoading.value || (editing.value && !optionsFailed.value)) return;
-  draft.value = editor.value === "json" ? JSON.stringify(props.value, null, 2) : cloneFormValue(props.value);
+  draft.value = editor.value === "json" ? (props.value == null ? "" : JSON.stringify(props.value, null, 2)) : editor.value === "date" ? dataTypeDateInput(props.value) : cloneFormValue(props.value);
   committed.value = cloneFormValue(draft.value);
   editing.value = true;
   closeRequested = false;
@@ -233,7 +192,7 @@ const begin = async (): Promise<void> => {
 };
 const parseDraft = (): unknown => {
   if (editor.value === "number") {
-    if (draft.value === "" || draft.value === null) return draft.value;
+    if (draft.value === "" || draft.value == null) return null;
     const parsed = Number(draft.value);
     if (!Number.isFinite(parsed)) {
       throw new Error("Invalid number");
@@ -244,9 +203,11 @@ const parseDraft = (): unknown => {
     if (typeof draft.value !== "string") {
       return draft.value;
     }
-    return JSON.parse(draft.value);
+    return draft.value.trim() ? JSON.parse(draft.value) : null;
   }
-  return draft.value;
+  const issue = dataTypeValueError(editor.value, draft.value);
+  if (issue) throw new Error(issue);
+  return editor.value === "date" && draft.value === "" ? null : draft.value;
 };
 let saveTimer: ReturnType<typeof setTimeout> | undefined;
 const clearScheduledSave = (): void => {
@@ -368,7 +329,7 @@ const onKeydown = async (event: KeyboardEvent): Promise<void> => {
   } else if (
     editing.value &&
     event.key === "Enter" &&
-    editor.value !== "textarea" &&
+    (!(editor.value === "textarea" || editor.value === "json") || event.ctrlKey || event.metaKey) &&
     !event.shiftKey
   ) {
     event.preventDefault();
@@ -386,9 +347,11 @@ const urlDomain = computed(() => {
     return url.value;
   }
 });
-const imageUrl = computed(() =>
-  dynamicType.value === "image" ? imageSource(props.value) : undefined
-);
+const failedImageUrl = ref<string>();
+const imageUrl = computed(() => {
+  const candidate = dynamicType.value === "image" ? imageSource(props.value) : undefined;
+  return failedImageUrl.value === candidate ? undefined : candidate;
+});
 const tags = computed(() =>
   Array.isArray(props.value) ? props.value : [props.value]
 );
@@ -501,7 +464,9 @@ const tags = computed(() =>
       :alt="column.header"
       class="yayaw-cell-image"
       loading="lazy"
+      @error="failedImageUrl = imageUrl"
     />
+    <span v-else-if="effectiveColumn.type === 'image'" class="yayaw-cell-image yayaw-image-placeholder" role="img" :aria-label="column.header"><ImageIcon :size="16" aria-hidden="true" /></span>
     <a
       v-else-if="effectiveColumn.type === 'url' && url"
       :href="url"

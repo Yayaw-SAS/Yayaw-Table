@@ -56,7 +56,7 @@ const values = computed<unknown[]>(() =>
   Array.isArray(draft.value.values) ? draft.value.values : [draft.value.values]
 );
 const options = computed(() => {
-  const result: SelectOption[] = [...(column.value?.options ?? [])];
+  const result: SelectOption[] = column.value?.type === "boolean" ? [{ label: t("common.true", "True"), value: true }, { label: t("common.false", "False"), value: false }] : [...(column.value?.options ?? [])];
   const add = (value: unknown) => {
     if (
       !["string", "number", "boolean"].includes(typeof value) ||

@@ -1,5 +1,6 @@
 import { format, formatDistanceToNow, isValid, parseISO } from "date-fns";
 import {
+  dataTypeOptionLabel,
   matchesContractFilter,
   normalizeFilterEnvelope,
 } from "./table-contracts";
@@ -305,6 +306,11 @@ export const displayCellValue = (
     } catch {
       return String(value);
     }
+  }
+  if (["select", "multiSelect", "tag"].includes(column.type ?? "")) {
+    return (Array.isArray(value) ? value : [value])
+      .map((item) => dataTypeOptionLabel(item, column.options))
+      .join(", ");
   }
   if (Array.isArray(value)) {
     return value.map(String).join(", ");

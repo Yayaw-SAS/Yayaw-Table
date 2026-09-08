@@ -1,0 +1,110 @@
+[
+  {
+    "type": "string",
+    "form": "text",
+    "inline": "text",
+    "filter": "text",
+    "value": "Alpha"
+  },
+  {
+    "type": "text",
+    "form": "text",
+    "inline": "text",
+    "filter": "text",
+    "value": "Alpha"
+  },
+  {
+    "type": "code",
+    "form": "textarea",
+    "inline": "textarea",
+    "filter": "text",
+    "value": "const a = 1;"
+  },
+  {
+    "type": "number",
+    "form": "number",
+    "inline": "number",
+    "filter": "number",
+    "value": -12.5
+  },
+  {
+    "type": "boolean",
+    "form": "switch",
+    "inline": "boolean",
+    "filter": "select",
+    "value": false
+  },
+  {
+    "type": "date",
+    "form": "date",
+    "inline": "date",
+    "filter": "date",
+    "value": "2026-09-08"
+  },
+  {
+    "type": "url",
+    "form": "url",
+    "inline": "url",
+    "filter": "text",
+    "value": "https://example.com"
+  },
+  {
+    "type": "image",
+    "form": "url",
+    "inline": "url",
+    "filter": "text",
+    "value": "https://example.com/image.png"
+  },
+  {
+    "type": "json",
+    "form": "json",
+    "inline": "json",
+    "filter": "text",
+    "value": {
+      "enabled": false,
+      "items": [1, "1"]
+    }
+  },
+  {
+    "type": "select",
+    "form": "select",
+    "inline": "select",
+    "filter": "select",
+    "value": 1
+  },
+  {
+    "type": "multiSelect",
+    "form": "multiSelect",
+    "inline": "multiSelect",
+    "filter": "multiSelect",
+    "value": [1, "1", false]
+  },
+  {
+    "type": "tag",
+    "form": "select",
+    "inline": "select",
+    "filter": "select",
+    "value": 1
+  },
+  {
+    "type": "custom",
+    "form": null,
+    "inline": null,
+    "filter": "text",
+    "value": "Custom"
+  },
+  {
+    "type": "actions",
+    "form": null,
+    "inline": null,
+    "filter": "text",
+    "value": null
+  },
+  {
+    "type": "dynamicType",
+    "form": null,
+    "inline": null,
+    "filter": "text",
+    "value": 10
+  }
+]

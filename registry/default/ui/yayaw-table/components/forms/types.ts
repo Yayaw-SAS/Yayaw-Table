@@ -433,7 +433,7 @@ export interface TextareaFieldDefinition<
   TFieldValues extends FieldValues = FieldValues,
 > extends BaseFieldDefinition<TFieldValues> {
   rows?: number;
-  type: "textarea";
+  type: "textarea" | "json";
 }
 
 /**

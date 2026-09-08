@@ -1,10 +1,8 @@
 "use client";
 
-import { TableTooltip } from "../../utils/table-tooltip";
-
-import type { Cell } from "@/components/ui/yayaw-table/tanstack";
 import type { KeyboardEvent, ReactNode } from "react";
 import { memo, useCallback, useMemo } from "react";
+import type { Cell } from "@/components/ui/yayaw-table/tanstack";
 import { cn } from "@/lib/utils";
 import {
   Combobox,
@@ -27,19 +25,24 @@ import {
 } from "@/src/components/ui/select";
 import { Switch } from "@/src/components/ui/switch";
 import { Textarea } from "@/src/components/ui/textarea";
-import type { AnyFieldDefinition } from "../forms/types";
 import {
-  parseInlineEditValue,
-  resolveInlineEditor,
-  resolveInlineEditOptions,
-  toInlineEditDraftValue,
   type InlineEditColumnRuntimeConfig,
   type InlineEditCommitResult,
   type InlineEditValidationSchema,
+  parseInlineEditValue,
+  resolveInlineEditOptions,
+  resolveInlineEditor,
   useInlineEditRuntime,
   validateInlineEditValue,
 } from "../../hooks/use-inline-edit-runtime";
 import { useTranslations } from "../../providers/table-provider";
+import {
+  optionControlKey,
+  optionControlValue,
+  resolveDataType,
+} from "../../utils/table-contracts";
+import { TableTooltip } from "../../utils/table-tooltip";
+import type { AnyFieldDefinition } from "../forms/types";
 
 interface InlineEditableCellProps<TData extends Record<string, unknown>> {
   cell: Cell<TData, unknown>;
@@ -65,10 +68,10 @@ function getEditorCurrentValues(
     if (!Array.isArray(editorValue)) {
       return [];
     }
-    return editorValue.map((value) => String(value));
+    return editorValue.map(optionControlKey);
   }
 
-  return [String(editorValue)];
+  return [optionControlKey(editorValue)];
 }
 
 function normalizeSelectOptions({
@@ -87,7 +90,7 @@ function normalizeSelectOptions({
   const normalizedOptions = new Map<string, NormalizedSelectOption>();
 
   for (const option of options) {
-    const normalizedValue = String(option.value);
+    const normalizedValue = optionControlKey(option.value);
     if (normalizedValue.length === 0) {
       continue;
     }
@@ -106,7 +109,7 @@ function normalizeSelectOptions({
     }
 
     normalizedOptions.set(currentValue, {
-      label: currentValue,
+      label: String(optionControlValue(currentValue)),
       value: currentValue,
     });
   }
@@ -134,13 +137,19 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
     () =>
       resolveInlineEditor({
         explicitEditor: inlineConfig.editor,
-        columnType: inlineConfig.columnType,
+        columnType: resolveDataType(
+          inlineConfig.columnType,
+          rowData,
+          inlineConfig.typeKey
+        ),
         formFieldType: formFieldDefinition?.type,
         hasOptions: resolvedOptions.length > 0,
       }),
     [
       formFieldDefinition?.type,
       inlineConfig.columnType,
+      inlineConfig.typeKey,
+      rowData,
       inlineConfig.editor,
       resolvedOptions.length,
     ]
@@ -157,8 +166,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
       if (!parsedResult.success) {
         return {
           success: false,
-          errorMessage:
-            parsedResult.errorMessage ?? t("inline.invalid_value"),
+          errorMessage: parsedResult.errorMessage ?? t("inline.invalid_value"),
         };
       }
 
@@ -236,22 +244,29 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
         return;
       }
 
+      if (
+        (resolvedEditor === "json" || resolvedEditor === "textarea") &&
+        !event.ctrlKey &&
+        !event.metaKey
+      ) {
+        return;
+      }
       event.preventDefault();
       event.stopPropagation();
       commitAndClose().catch(() => undefined);
     },
-    [cancelEditing, commitAndClose]
+    [cancelEditing, commitAndClose, resolvedEditor]
   );
 
-  const focusEditor = useCallback((node: HTMLElement | null) => { node?.focus(); }, []);
+  const focusEditor = useCallback((node: HTMLElement | null) => {
+    node?.focus();
+  }, []);
 
   const handleEditorBlur = useCallback(() => {
     commitAndClose().catch(() => undefined);
   }, [commitAndClose]);
 
-  const editorValue = useMemo(() => {
-    return toInlineEditDraftValue(draftValue, resolvedEditor);
-  }, [draftValue, resolvedEditor]);
+  const editorValue = draftValue;
 
   const selectOptions = useMemo(() => {
     return normalizeSelectOptions({
@@ -267,7 +282,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
       return [];
     }
 
-    return editorValue.map((value) => String(value));
+    return editorValue.map(optionControlKey);
   }, [editorValue, resolvedEditor]);
 
   const getOptionLabel = useCallback(
@@ -314,7 +329,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
           }}
         />
         <span className="text-muted-foreground text-xs">
-          {Boolean(editorValue) ? t("common.true") : t("common.false")}
+          {editorValue ? t("common.true") : t("common.false")}
         </span>
       </div>
     );
@@ -323,15 +338,21 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
   const renderSelectEditor = useCallback(() => {
     return (
       <Select
+        items={selectOptions}
         open
         onOpenChange={(open, details) => {
-          if (details.reason === "escape-key") { cancelEditing(); return; }
-          if (!open) { commitAndClose().catch(() => undefined); }
+          if (details.reason === "escape-key") {
+            cancelEditing();
+            return;
+          }
+          if (!open) {
+            commitAndClose().catch(() => undefined);
+          }
         }}
         onValueChange={(value) => {
-          updateDraftValue(value ?? "");
+          updateDraftValue(value == null ? "" : optionControlValue(value));
         }}
-        value={String(editorValue)}
+        value={optionControlKey(editorValue)}
       >
         <SelectTrigger className="h-8 w-full">
           <SelectValue placeholder={t("inline.select_no_options")} />
@@ -343,7 +364,11 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
             </SelectItem>
           ) : (
             selectOptions.map((option) => (
-              <SelectItem disabled={option.disabled} key={option.value} value={option.value}>
+              <SelectItem
+                disabled={option.disabled}
+                key={option.value}
+                value={option.value}
+              >
                 {option.label}
               </SelectItem>
             ))
@@ -351,7 +376,14 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
         </SelectContent>
       </Select>
     );
-  }, [editorValue, selectOptions, cancelEditing, commitAndClose, t, updateDraftValue]);
+  }, [
+    editorValue,
+    selectOptions,
+    cancelEditing,
+    commitAndClose,
+    t,
+    updateDraftValue,
+  ]);
 
   const renderMultiSelectEditor = useCallback(() => {
     return (
@@ -361,41 +393,71 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
         items={selectOptions.map((option) => option.value)}
         itemToStringLabel={getOptionLabel}
         onOpenChange={(open, details) => {
-          if (details.reason === "escape-key") { cancelEditing(); return; }
-          if (!open) { commitAndClose().catch(() => undefined); }
+          if (details.reason === "escape-key") {
+            cancelEditing();
+            return;
+          }
+          if (!open) {
+            commitAndClose().catch(() => undefined);
+          }
         }}
         onValueChange={(values) => {
-          const nextValues = Array.isArray(values) ? values.map((value) => String(value)) : [];
+          const nextValues = Array.isArray(values)
+            ? values.map((value) => String(value))
+            : [];
           for (const selected of selectedMultiValues) {
-            if (selectOptions.find((option) => option.value === selected)?.disabled && !nextValues.includes(selected)) {
+            if (
+              selectOptions.find((option) => option.value === selected)
+                ?.disabled &&
+              !nextValues.includes(selected)
+            ) {
               nextValues.push(selected);
             }
           }
-          updateDraftValue(nextValues);
+          updateDraftValue(nextValues.map(optionControlValue));
         }}
         value={selectedMultiValues}
       >
-        <ComboboxChips className="h-[var(--yayaw-inline-control-height,2rem)] min-h-[var(--yayaw-inline-control-height,2rem)] w-full flex-nowrap overflow-hidden py-0" ref={multiSelectAnchorRef}>
+        <ComboboxChips
+          className="h-[var(--yayaw-inline-control-height,2rem)] min-h-[var(--yayaw-inline-control-height,2rem)] w-full flex-nowrap overflow-hidden py-0"
+          ref={multiSelectAnchorRef}
+        >
           <div className="flex min-w-0 items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {selectedMultiValues.map((selectedValue) => (
-            <ComboboxChip className="shrink-0" showRemove={!selectOptions.find((option) => option.value === selectedValue)?.disabled} key={selectedValue}>
-              {getOptionLabel(selectedValue)}
-            </ComboboxChip>
-          ))}
+            {selectedMultiValues.map((selectedValue) => (
+              <ComboboxChip
+                className="shrink-0"
+                showRemove={
+                  !selectOptions.find(
+                    (option) => option.value === selectedValue
+                  )?.disabled
+                }
+                key={selectedValue}
+              >
+                {getOptionLabel(selectedValue)}
+              </ComboboxChip>
+            ))}
           </div>
           <ComboboxChipsInput
-            aria-label={typeof cell.column.columnDef.header === "string" ? cell.column.columnDef.header : cell.column.id}
+            aria-label={
+              typeof cell.column.columnDef.header === "string"
+                ? cell.column.columnDef.header
+                : cell.column.id
+            }
             ref={focusEditor}
             className="h-6 min-w-16"
             onKeyDown={(event) => {
-              if (event.nativeEvent.isComposing) { return; }
+              if (event.nativeEvent.isComposing) {
+                return;
+              }
               if (event.key === "Escape") {
                 event.preventDefault();
                 event.stopPropagation();
                 cancelEditing();
               } else if (event.key === "Enter") {
                 event.stopPropagation();
-                if (!event.currentTarget.getAttribute("aria-activedescendant")) {
+                if (
+                  !event.currentTarget.getAttribute("aria-activedescendant")
+                ) {
                   event.preventDefault();
                   commitAndClose().catch(() => undefined);
                 }
@@ -412,7 +474,14 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
           <ComboboxEmpty>{t("filters.noResults")}</ComboboxEmpty>
           <ComboboxList>
             {(value: string) => (
-              <ComboboxItem disabled={selectOptions.find((option) => option.value === value)?.disabled} key={value} value={value}>
+              <ComboboxItem
+                disabled={
+                  selectOptions.find((option) => option.value === value)
+                    ?.disabled
+                }
+                key={value}
+                value={value}
+              >
                 {getOptionLabel(value)}
               </ComboboxItem>
             )}
@@ -440,6 +509,8 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
       inputType = "number";
     } else if (resolvedEditor === "date") {
       inputType = "date";
+    } else if (resolvedEditor === "url") {
+      inputType = "url";
     }
 
     return (
@@ -493,29 +564,32 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
         renderEditor()
       ) : (
         <TableTooltip label={t("inline.edit_hint")}>
-<button
-          data-density-control=""
-          className={cn(
-            "relative flex min-h-8 w-full items-center cursor-text rounded-sm px-0.5 py-1 outline-none",
-            resolvedEditor === "number"
-              ? "justify-end text-right"
-              : "justify-start text-left",
-            "focus-visible:ring-primary/30 focus-visible:ring-2"
-          )}
-          onDoubleClick={(event) => {
-            event.stopPropagation();
-            startEditing();
-          }}
-          onKeyDown={handleDisplayKeyDown}
-          type="button"
-
-        >
-          {displayValue}
-        </button>
-</TableTooltip>
+          <button
+            data-density-control=""
+            className={cn(
+              "relative flex min-h-8 w-full items-center cursor-text rounded-sm px-0.5 py-1 outline-none",
+              resolvedEditor === "number"
+                ? "justify-end text-right"
+                : "justify-start text-left",
+              "focus-visible:ring-primary/30 focus-visible:ring-2"
+            )}
+            onDoubleClick={(event) => {
+              event.stopPropagation();
+              startEditing();
+            }}
+            onKeyDown={handleDisplayKeyDown}
+            type="button"
+          >
+            {displayValue}
+          </button>
+        </TableTooltip>
       )}
 
-      {isSaving && <span aria-live="polite" className="sr-only">{t("inline.saving")}</span>}
+      {isSaving && (
+        <span aria-live="polite" className="sr-only">
+          {t("inline.saving")}
+        </span>
+      )}
 
       {inlineConfig.showDelayIndicator &&
         (isSaving || (isDirty && scheduledAt != null)) && (
@@ -524,7 +598,10 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
             title={t(isSaving ? "inline.saving" : "inline.save_scheduled")}
           >
             <div
-              className={cn("h-full bg-primary transition-[width] duration-75 motion-reduce:transition-none", isSaving && "animate-pulse motion-reduce:animate-none")}
+              className={cn(
+                "h-full bg-primary transition-[width] duration-75 motion-reduce:transition-none",
+                isSaving && "animate-pulse motion-reduce:animate-none"
+              )}
               style={{ width: `${isSaving ? 100 : delayProgress}%` }}
             />
           </div>

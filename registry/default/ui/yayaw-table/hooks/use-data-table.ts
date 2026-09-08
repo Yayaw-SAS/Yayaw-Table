@@ -6,7 +6,8 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import type * as React from "react";
-import { useCallback, useMemo } from "react";
+import { createElement, useCallback, useMemo } from "react";
+import { DataTypeCell } from "../components/cells/data-type-cell";
 import type { ActionsColumnProps } from "../components/columns/actions-column";
 import { useColumns } from "../components/columns/hooks/use-columns";
 import { useTranslations } from "../providers/table-provider";
@@ -730,6 +731,30 @@ export function useDataTable<TData extends Record<string, unknown>>(
       );
       const configuredColumnDef = {
         ...sizedColumnDef,
+        ...(typeof colDef.accessorKey === "string"
+          ? { accessorKey: colDef.accessorKey }
+          : {}),
+        ...(typeof colDef.accessorFn === "function"
+          ? { accessorFn: colDef.accessorFn as (row: TData) => unknown }
+          : {}),
+        ...(["select", "multiSelect", "tag", "dynamicType", "custom"].includes(
+          colDef.type
+        ) || colDef.cellRenderer
+          ? {
+              cell: (
+                info: import("@/components/ui/yayaw-table/tanstack").CellContext<
+                  TData,
+                  unknown
+                >
+              ) =>
+                createElement(DataTypeCell, {
+                  column: colDef,
+                  row: info.row.original,
+                  value: info.getValue(),
+                  fallbackDateDisplayPreset: config.table.dateDisplayPreset,
+                }),
+            }
+          : {}),
         enablePinning: colDef.enablePinning !== false,
         enableResizing: colDef.enableResizing !== false,
       };
@@ -774,6 +799,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
     buildBaseColumnDef,
     config.columns.definitions,
     config.table.enableRowSelection,
+    config.table.dateDisplayPreset,
     createColumns,
     isInlineEditAllowed,
     tableInlineEditConfig,

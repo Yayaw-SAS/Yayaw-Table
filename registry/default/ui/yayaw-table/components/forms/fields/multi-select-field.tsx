@@ -48,21 +48,10 @@ export function toggleMultiSelectFieldValue(input: {
   optionValue: MultiSelectOptionValue;
   options: readonly { value: MultiSelectOptionValue }[];
 }): MultiSelectOptionValue[] {
-  const selected = new Set(
-    normalizeMultiSelectFieldValue(input.currentValue).map((value) =>
-      String(value)
-    )
-  );
-  const optionKey = String(input.optionValue);
-  if (selected.has(optionKey)) {
-    selected.delete(optionKey);
-  } else {
-    selected.add(optionKey);
-  }
-
-  return input.options
-    .filter((option) => selected.has(String(option.value)))
-    .map((option) => option.value);
+  const selected = normalizeMultiSelectFieldValue(input.currentValue);
+  return selected.some((value) => Object.is(value, input.optionValue))
+    ? selected.filter((value) => !Object.is(value, input.optionValue))
+    : [...selected, input.optionValue];
 }
 
 export function MultiSelectField<TFieldValues extends Record<string, unknown>>({
@@ -75,7 +64,6 @@ export function MultiSelectField<TFieldValues extends Record<string, unknown>>({
     ? errors.map((e) => (typeof e === "string" ? e : String(e)))
     : [];
   const value = normalizeMultiSelectFieldValue(fieldApi.state.value);
-  const selectedValues = new Set(value.map((item) => String(item)));
 
   return (
     <Field data-invalid={!fieldApi.state.meta.isValid}>
@@ -94,12 +82,12 @@ export function MultiSelectField<TFieldValues extends Record<string, unknown>>({
         {(Array.isArray(field.options) ? field.options : []).map(
           (option, index) => {
             const optionId = getOptionId(fieldApi.name, option.value, index);
-            const optionValue = String(option.value);
+            const optionValue = `${typeof option.value}:${option.value}`;
 
             return (
               <div className="flex items-center gap-2" key={optionValue}>
                 <Checkbox
-                  checked={selectedValues.has(optionValue)}
+                  checked={value.some((item) => Object.is(item, option.value))}
                   disabled={field.disabled === true || option.disabled}
                   id={optionId}
                   onCheckedChange={() =>

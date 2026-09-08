@@ -9,6 +9,11 @@ import type {
   TableInlineEditConfig,
 } from "../config/helpers";
 import { toValidDate } from "../utils/date-display";
+import {
+  resolveDataType,
+  resolveDataTypeEditor,
+  TABLE_DATA_TYPES,
+} from "../utils/table-contracts";
 
 const DEFAULT_INLINE_EDIT_DEBOUNCE_MS = 700;
 const INLINE_DATE_INPUT_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -48,11 +53,16 @@ export interface InlineEditColumnRuntimeConfig {
   options: InlineEditOption[];
   readonly: boolean;
   columnType?: string;
+  typeKey?: string;
 }
 
 interface InlineEditColumnLike {
   id: string;
   type?: string;
+  typeKey?: string;
+  accessorKey?: unknown;
+  accessorFn?: unknown;
+  options?: unknown;
   inlineEdit?: boolean | InlineEditColumnConfig;
 }
 
@@ -137,9 +147,17 @@ export function resolveInlineEditColumnConfig(
       ? column.inlineEdit
       : inlineColumnConfig.enabled;
 
-  const isReadonly = Boolean(inlineColumnConfig.readonly);
+  const isReadonly = Boolean(
+    inlineColumnConfig.readonly ||
+      (column.accessorFn && !inlineColumnConfig.formField)
+  );
   const isSystemColumn = column.id === "actions" || column.id === "select";
+  const supportsEditor =
+    column.type === "dynamicType" ||
+    TABLE_DATA_TYPES[resolveDataType(column.type)].inline !== null ||
+    (inlineColumnConfig.editor && inlineColumnConfig.editor !== "auto");
   const isEnabled =
+    Boolean(supportsEditor) &&
     isFeatureEnabled &&
     !isReadonly &&
     !isSystemColumn &&
@@ -153,85 +171,19 @@ export function resolveInlineEditColumnConfig(
     optimistic: normalizedTableConfig.optimistic,
     showDelayIndicator: normalizedTableConfig.showDelayIndicator,
     editor: inlineColumnConfig.editor ?? "auto",
-    formField: inlineColumnConfig.formField ?? column.id,
-    options: inlineColumnConfig.options ?? [],
+    formField:
+      inlineColumnConfig.formField ??
+      (typeof column.accessorKey === "string" ? column.accessorKey : column.id),
+    options:
+      inlineColumnConfig.options ??
+      (Array.isArray(column.options) ? column.options : []),
     readonly: isReadonly,
     columnType: column.type,
+    typeKey: column.typeKey,
   };
 }
 
-function mapFormFieldTypeToInlineEditor(
-  formFieldType?: FormFieldType
-): InlineEditEditor | undefined {
-  switch (formFieldType) {
-    case "checkbox":
-    case "switch":
-      return "boolean";
-    case "date":
-      return "date";
-    case "number":
-      return "number";
-    case "select":
-    case "select-with-add-new":
-      return "select";
-    case "textarea":
-      return "textarea";
-    case "text":
-    case "url":
-      return "text";
-    default:
-      return;
-  }
-}
-
-function mapColumnTypeToInlineEditor(columnType?: string): InlineEditEditor {
-  const normalizedType = columnType?.toLowerCase();
-
-  switch (normalizedType) {
-    case "boolean":
-      return "boolean";
-    case "date":
-      return "date";
-    case "number":
-      return "number";
-    case "select":
-      return "select";
-    case "multiselect":
-      return "multiSelect";
-    case "code":
-    case "text":
-    case "url":
-      return "text";
-    default:
-      return "text";
-  }
-}
-
-export function resolveInlineEditor({
-  explicitEditor,
-  columnType,
-  formFieldType,
-  hasOptions = false,
-}: ResolveInlineEditorInput): InlineEditEditor {
-  if (explicitEditor && explicitEditor !== "auto") {
-    return explicitEditor;
-  }
-
-  if (columnType?.toLowerCase() === "multiselect") {
-    return "multiSelect";
-  }
-
-  const formMappedEditor = mapFormFieldTypeToInlineEditor(formFieldType);
-  if (formMappedEditor) {
-    return formMappedEditor;
-  }
-
-  if (hasOptions) {
-    return "select";
-  }
-
-  return mapColumnTypeToInlineEditor(columnType);
-}
+export const resolveInlineEditor = resolveDataTypeEditor;
 
 export function resolveInlineEditOptions(
   columnOptions: InlineEditOption[],
@@ -241,11 +193,14 @@ export function resolveInlineEditOptions(
     return columnOptions;
   }
 
-  if (formField?.type === "select") {
+  if (
+    formField?.type === "select" ||
+    formField?.type === "multiSelect" ||
+    formField?.type === "radio"
+  ) {
     return (Array.isArray(formField.options) ? formField.options : []).map(
       (option) => ({
-        label: option.label,
-        value: option.value,
+        ...option,
       })
     );
   }
@@ -253,8 +208,7 @@ export function resolveInlineEditOptions(
   if (formField?.type === "select-with-add-new" && formField.options) {
     return (Array.isArray(formField.options) ? formField.options : []).map(
       (option) => ({
-        label: option.label,
-        value: option.value,
+        ...option,
       })
     );
   }
@@ -291,7 +245,7 @@ function parseDateValue(rawValue: unknown): ParseInlineEditValueResult {
         errorMessage: "Inline edit expects a valid date.",
       };
     }
-    return { success: true, value: rawValue };
+    return { success: true, value: toDraftDateInputValue(rawValue) };
   }
 
   const rawString = String(rawValue).trim();
@@ -308,7 +262,7 @@ function parseDateValue(rawValue: unknown): ParseInlineEditValueResult {
       date.getDate() === day;
 
     if (isExactMatch) {
-      return { success: true, value: date };
+      return { success: true, value: toDraftDateInputValue(date) };
     }
 
     return {
@@ -325,7 +279,7 @@ function parseDateValue(rawValue: unknown): ParseInlineEditValueResult {
     };
   }
 
-  return { success: true, value: parsedDate };
+  return { success: true, value: toDraftDateInputValue(parsedDate) };
 }
 
 function parseNumberValue(rawValue: unknown): ParseInlineEditValueResult {
@@ -334,9 +288,7 @@ function parseNumberValue(rawValue: unknown): ParseInlineEditValueResult {
   }
 
   const parsedValue =
-    typeof rawValue === "number"
-      ? rawValue
-      : Number.parseFloat(String(rawValue));
+    typeof rawValue === "number" ? rawValue : Number(String(rawValue));
 
   if (!Number.isFinite(parsedValue)) {
     return {
@@ -375,21 +327,26 @@ function mapOptionValue(
   rawValue: unknown,
   options: InlineEditOption[]
 ): boolean | number | string {
-  const normalizedValue = rawValue == null ? "" : String(rawValue);
-  const matchingOption = options.find(
-    (option) => String(option.value) === normalizedValue
+  const matchingOption = options.find((option) =>
+    Object.is(option.value, rawValue)
   );
-  return matchingOption?.value ?? normalizedValue;
+  if (matchingOption) {
+    return matchingOption.value;
+  }
+  if (["boolean", "number", "string"].includes(typeof rawValue)) {
+    return rawValue as boolean | number | string;
+  }
+  return "";
 }
 
-function toDraftMultiSelectValue(rawValue: unknown): string[] {
-  if (!Array.isArray(rawValue)) {
-    return [];
-  }
-
-  return rawValue
-    .map((value) => String(value).trim())
-    .filter((value) => value.length > 0);
+function toDraftMultiSelectValue(
+  rawValue: unknown
+): Array<boolean | number | string> {
+  return Array.isArray(rawValue)
+    ? rawValue.filter((value): value is boolean | number | string =>
+        ["boolean", "number", "string"].includes(typeof value)
+      )
+    : [];
 }
 
 export function parseInlineEditValue({
@@ -539,9 +496,6 @@ export function toInlineEditDraftValue(
       if (value == null || value === "") {
         return "";
       }
-      if (typeof value === "string") {
-        return value;
-      }
       try {
         return JSON.stringify(value, null, 2);
       } catch {
@@ -552,7 +506,7 @@ export function toInlineEditDraftValue(
     case "multiSelect":
       return toDraftMultiSelectValue(value);
     case "select":
-      return value == null ? "" : String(value);
+      return value ?? "";
     default:
       return value == null ? "" : String(value);
   }

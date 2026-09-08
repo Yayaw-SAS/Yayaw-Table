@@ -1671,3 +1671,12 @@
   box-shadow: var(--yayaw-shadow);
   overflow-wrap: break-word;
 }
+
+.yayaw-image-placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  border: 1px solid var(--border);
+}

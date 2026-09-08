@@ -156,10 +156,10 @@ export function useFormCatalogue<TFieldValues extends FieldValues>({
     | undefined;
   const config =
     getFormConfig?.<TFieldValues>(formType, formConfigContext) ??
-    (generateFormConfig(
-      formType,
-      tableConfig?.columns?.definitions ?? []
-    ) as FormConfig<TFieldValues>);
+    (generateFormConfig(formType, tableConfig?.columns?.definitions ?? [], {
+      ...initialData,
+      ...currentValues,
+    }) as FormConfig<TFieldValues>);
   const latest = useRef({ config, formConfigContext });
   latest.current = { config, formConfigContext };
   // biome-ignore lint/correctness/useExhaustiveDependencies: Reopen, form identity, mode and retry invalidate the load; current values must not restart it.

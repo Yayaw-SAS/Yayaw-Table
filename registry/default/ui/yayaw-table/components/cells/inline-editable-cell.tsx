@@ -31,12 +31,16 @@ import {
   parseInlineEditValue,
   resolveInlineEditOptions,
   resolveInlineEditor,
-  toInlineEditDraftValue,
   useInlineEditRuntime,
   validateInlineEditValue,
 } from "../../hooks/use-inline-edit-runtime";
 import { useTranslations } from "../../providers/table-provider";
 import type { Cell } from "../../tanstack";
+import {
+  optionControlKey,
+  optionControlValue,
+  resolveDataType,
+} from "../../utils/table-contracts";
 import { TableTooltip } from "../../utils/table-tooltip";
 import type { AnyFieldDefinition } from "../forms/types";
 
@@ -64,10 +68,10 @@ function getEditorCurrentValues(
     if (!Array.isArray(editorValue)) {
       return [];
     }
-    return editorValue.map((value) => String(value));
+    return editorValue.map(optionControlKey);
   }
 
-  return [String(editorValue)];
+  return [optionControlKey(editorValue)];
 }
 
 function normalizeSelectOptions({
@@ -86,7 +90,7 @@ function normalizeSelectOptions({
   const normalizedOptions = new Map<string, NormalizedSelectOption>();
 
   for (const option of options) {
-    const normalizedValue = String(option.value);
+    const normalizedValue = optionControlKey(option.value);
     if (normalizedValue.length === 0) {
       continue;
     }
@@ -105,7 +109,7 @@ function normalizeSelectOptions({
     }
 
     normalizedOptions.set(currentValue, {
-      label: currentValue,
+      label: String(optionControlValue(currentValue)),
       value: currentValue,
     });
   }
@@ -133,13 +137,19 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
     () =>
       resolveInlineEditor({
         explicitEditor: inlineConfig.editor,
-        columnType: inlineConfig.columnType,
+        columnType: resolveDataType(
+          inlineConfig.columnType,
+          rowData,
+          inlineConfig.typeKey
+        ),
         formFieldType: formFieldDefinition?.type,
         hasOptions: resolvedOptions.length > 0,
       }),
     [
       formFieldDefinition?.type,
       inlineConfig.columnType,
+      inlineConfig.typeKey,
+      rowData,
       inlineConfig.editor,
       resolvedOptions.length,
     ]
@@ -234,11 +244,18 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
         return;
       }
 
+      if (
+        (resolvedEditor === "json" || resolvedEditor === "textarea") &&
+        !event.ctrlKey &&
+        !event.metaKey
+      ) {
+        return;
+      }
       event.preventDefault();
       event.stopPropagation();
       commitAndClose().catch(() => undefined);
     },
-    [cancelEditing, commitAndClose]
+    [cancelEditing, commitAndClose, resolvedEditor]
   );
 
   const focusEditor = useCallback((node: HTMLElement | null) => {
@@ -249,9 +266,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
     commitAndClose().catch(() => undefined);
   }, [commitAndClose]);
 
-  const editorValue = useMemo(() => {
-    return toInlineEditDraftValue(draftValue, resolvedEditor);
-  }, [draftValue, resolvedEditor]);
+  const editorValue = draftValue;
 
   const selectOptions = useMemo(() => {
     return normalizeSelectOptions({
@@ -267,7 +282,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
       return [];
     }
 
-    return editorValue.map((value) => String(value));
+    return editorValue.map(optionControlKey);
   }, [editorValue, resolvedEditor]);
 
   const getOptionLabel = useCallback(
@@ -323,6 +338,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
   const renderSelectEditor = useCallback(() => {
     return (
       <Select
+        items={selectOptions}
         onOpenChange={(open, details) => {
           if (details.reason === "escape-key") {
             cancelEditing();
@@ -333,10 +349,10 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
           }
         }}
         onValueChange={(value) => {
-          updateDraftValue(value ?? "");
+          updateDraftValue(value == null ? "" : optionControlValue(value));
         }}
         open
-        value={String(editorValue)}
+        value={optionControlKey(editorValue)}
       >
         <SelectTrigger className="h-8 w-full">
           <SelectValue placeholder={t("inline.select_no_options")} />
@@ -397,7 +413,7 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
               nextValues.push(selected);
             }
           }
-          updateDraftValue(nextValues);
+          updateDraftValue(nextValues.map(optionControlValue));
         }}
         open
         value={selectedMultiValues}
@@ -493,6 +509,8 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
       inputType = "number";
     } else if (resolvedEditor === "date") {
       inputType = "date";
+    } else if (resolvedEditor === "url") {
+      inputType = "url";
     }
 
     return (

@@ -65,7 +65,7 @@ it.each([
     await close;
   });
   expect(runtime().isEditing).toBe(!success);
-  expect(runtime().draftValue).toEqual(success ? ["2"] : [2]);
+  expect(runtime().draftValue).toEqual([2]);
   expect(calls).toEqual([[2]]);
   if (!success) {
     expect(runtime().errorMessage).toBe("Offline");
@@ -108,7 +108,7 @@ it("serializes a newer draft behind an in-flight write without overwriting or du
     await close;
   });
   expect(calls).toEqual([[2], [2, false]]);
-  expect(runtime().draftValue).toEqual(["2", "false"]);
+  expect(runtime().draftValue).toEqual([2, false]);
   expect(runtime().isEditing).toBe(false);
 });
 
@@ -142,7 +142,7 @@ it("cancels unsaved selections and does not write on an unchanged dismissal", as
     runtime().updateDraftValue([2]);
     runtime().cancelEditing();
   });
-  expect(runtime().draftValue).toEqual(["1"]);
+  expect(runtime().draftValue).toEqual([1]);
   await act(async () => {
     runtime().startEditing();
     await runtime().commitAndClose();
