@@ -38,6 +38,7 @@ export function useAutoPageSize({
   root,
   tableId,
   enabled,
+  defaultAutomatic = false,
   resetKey,
   measurementKey,
   pageSize,
@@ -46,13 +47,15 @@ export function useAutoPageSize({
   root: RefObject<HTMLDivElement | null>;
   tableId: string;
   enabled: boolean;
+  defaultAutomatic?: boolean;
   resetKey: string;
   measurementKey: string;
   pageSize: number;
   setPageSize: (size: number) => void;
 }) {
   const [mode, setMode] = useAtom(autoPageState(tableId));
-  const automatic = enabled && mode.resetKey === resetKey && mode.automatic;
+  const automatic =
+    enabled && (mode.resetKey === resetKey ? mode.automatic : defaultAutomatic);
   const [measurement, setMeasurement] = useState<AutoPageMeasurement>();
   const previousSize = useRef(pageSize);
   const current = useRef({ automatic, pageSize, setPageSize, mode });
@@ -60,10 +63,15 @@ export function useAutoPageSize({
   useEffect(() => {
     setMode((previous) =>
       !enabled || previous.resetKey !== resetKey
-        ? { automatic: false, resetKey, expectedSize: undefined, fitKey: "" }
+        ? {
+            automatic: enabled && defaultAutomatic,
+            resetKey,
+            expectedSize: undefined,
+            fitKey: "",
+          }
         : previous
     );
-  }, [resetKey, enabled, setMode]);
+  }, [resetKey, enabled, defaultAutomatic, setMode]);
   // biome-ignore lint/correctness/useExhaustiveDependencies: Density and view changes invalidate measured row heights.
   useEffect(() => {
     if (!(enabled && root.current)) {
@@ -102,6 +110,7 @@ export function useAutoPageSize({
   useEffect(() => {
     if (
       automatic &&
+      mode.resetKey === resetKey &&
       previousSize.current !== pageSize &&
       mode.expectedSize !== undefined &&
       pageSize !== mode.expectedSize
@@ -109,7 +118,14 @@ export function useAutoPageSize({
       setMode((previous) => ({ ...previous, automatic: false }));
     }
     previousSize.current = pageSize;
-  }, [automatic, pageSize, mode.expectedSize, setMode]);
+  }, [
+    automatic,
+    pageSize,
+    mode.expectedSize,
+    mode.resetKey,
+    resetKey,
+    setMode,
+  ]);
   const selectSize = (value: string) => {
     const auto = value === "auto";
     const size = auto ? measurement?.pageSize : Number(value);

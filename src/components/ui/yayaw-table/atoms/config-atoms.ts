@@ -258,6 +258,8 @@ export interface DataTableConfig {
    * Available page size options
    */
   enableAutoPageSize?: boolean;
+  /** Start table views in Automatic mode when automatic pagination is enabled. */
+  defaultAutoPageSize?: boolean;
   pageSizeOptions: number[];
 
   /**

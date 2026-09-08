@@ -7,7 +7,12 @@ import { useTableContext } from "../context";
 
 export function useAutoPageSize(root: Ref<HTMLElement | undefined>) {
   const context = useTableContext();
-  const automatic = ref(false);
+  const defaultAutomatic = Boolean(
+    context.config.table.enablePagination !== false &&
+      context.config.table.enableAutoPageSize &&
+      context.config.table.defaultAutoPageSize
+  );
+  const automatic = ref(defaultAutomatic);
   const measurement = ref<AutoPageMeasurement>();
   let expectedSize: number | undefined;
   let fitKey = "";
@@ -62,7 +67,10 @@ export function useAutoPageSize(root: Ref<HTMLElement | undefined>) {
   watch(
     () => context.state.activeViewId.value,
     () => {
-      automatic.value = false;
+      expectedSize = undefined;
+      fitKey = "";
+      automatic.value = defaultAutomatic;
+      observe();
     }
   );
   watch(

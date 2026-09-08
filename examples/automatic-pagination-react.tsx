@@ -22,6 +22,7 @@ const config = defineTableConfig({
   },
   table: {
     enableAutoPageSize: true,
+    defaultAutoPageSize: true,
     defaultPageSize: 10,
     pageSizeOptions: [10, 20, 50],
     allowCreate: false,
@@ -35,7 +36,7 @@ const config = defineTableConfig({
     keys: {
       title: "Automatic pagination",
       description:
-        "Choose Automatic, then resize the viewport or change the row density.",
+        "Rows automatically fit the viewport. Resize it or choose a fixed page size.",
     },
   },
 });

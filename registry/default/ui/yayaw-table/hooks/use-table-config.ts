@@ -121,6 +121,8 @@ export interface TableCatalogueTableConfig {
   enablePagination?: boolean;
   defaultPageSize?: number;
   enableAutoPageSize?: boolean;
+  /** Start table views in Automatic mode when automatic pagination is enabled. */
+  defaultAutoPageSize?: boolean;
   pageSizeOptions?: number[];
   dateDisplayPreset?: DateDisplayPreset;
   inlineEdit?: TableInlineEditConfig;
@@ -357,6 +359,7 @@ function resolveTableBehaviorConfig(
     defaultPageSize: mergedConfig.defaultPageSize,
     pageSizeOptions: mergedConfig.pageSizeOptions,
     enableAutoPageSize: mergedConfig.enableAutoPageSize,
+    defaultAutoPageSize: mergedConfig.defaultAutoPageSize,
     dateDisplayPreset:
       mergedConfig.dateDisplayPreset ??
       DEFAULT_TABLE_CONFIG.table.dateDisplayPreset,
