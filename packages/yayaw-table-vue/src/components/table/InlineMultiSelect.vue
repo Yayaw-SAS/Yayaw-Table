@@ -69,9 +69,20 @@ onMounted(async () => { await nextTick(); anchor.value?.querySelector("input")?.
 </script>
 
 <template>
+  <div ref="anchor">
   <ComboboxRoot multiple :open="true" :model-value="selectedKeys" :disabled="disabled" @update:model-value="update" @update:open="dismiss">
+    <!-- Mount the list before the input so Reka assigns aria-controls on first render. -->
+    <ComboboxPortal force-mount>
+      <ComboboxContent class="yayaw-inline-options" position="popper" align="start" :side-offset="6" :collision-padding="8" :aria-label="label" :aria-busy="disabled" @escape-key-down.prevent="emit('cancel')">
+        <ComboboxEmpty class="yayaw-inline-empty">{{ translate('filters.noResults', 'No results') }}</ComboboxEmpty>
+        <ComboboxItem v-for="option in choices" :key="option.key" :value="option.key" :text-value="option.label" :disabled="option.disabled" class="yayaw-inline-option">
+          {{ option.label }}
+          <ComboboxItemIndicator class="yayaw-inline-check"><Check :size="16" aria-hidden="true" /></ComboboxItemIndicator>
+        </ComboboxItem>
+      </ComboboxContent>
+    </ComboboxPortal>
     <ComboboxAnchor as-child>
-      <div ref="anchor" class="yayaw-inline-editor yayaw-inline-selection">
+      <div class="yayaw-inline-editor yayaw-inline-selection">
         <div class="yayaw-inline-chips">
         <span v-for="option in selectedOptions" :key="option.key" class="yayaw-inline-chip">
           {{ option.label }}
@@ -81,14 +92,7 @@ onMounted(async () => { await nextTick(); anchor.value?.querySelector("input")?.
         <ComboboxInput v-model="query" class="yayaw-inline-search" :aria-label="label" :placeholder="selected.length ? undefined : translate('inline.select_no_options', 'Select an option')" autocomplete="off" @keydown="onKeydown" />
       </div>
     </ComboboxAnchor>
-    <ComboboxPortal>
-      <ComboboxContent class="yayaw-inline-options" position="popper" align="start" :side-offset="6" :collision-padding="8" :aria-label="label" :aria-busy="disabled" @escape-key-down.prevent="emit('cancel')">
-        <ComboboxEmpty class="yayaw-inline-empty">{{ translate('filters.noResults', 'No results') }}</ComboboxEmpty>
-        <ComboboxItem v-for="option in choices" :key="option.key" :value="option.key" :text-value="option.label" :disabled="option.disabled" class="yayaw-inline-option">
-          {{ option.label }}
-          <ComboboxItemIndicator class="yayaw-inline-check"><Check :size="16" aria-hidden="true" /></ComboboxItemIndicator>
-        </ComboboxItem>
-      </ComboboxContent>
-    </ComboboxPortal>
+
   </ComboboxRoot>
+  </div>
 </template>

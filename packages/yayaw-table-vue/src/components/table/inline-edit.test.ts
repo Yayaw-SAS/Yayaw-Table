@@ -246,6 +246,12 @@ it("renders searchable choices outside the cell and preserves primitive selectio
   });
   await wrapper.trigger("dblclick");
   await settle();
+  expect(document.activeElement).toBe(
+    wrapper.get('input[role="combobox"]').element
+  );
+  expect(
+    wrapper.get('input[role="combobox"]').attributes("aria-controls")
+  ).toBe(popup().attributes("id"));
   expect(wrapper.find("select[multiple]").exists()).toBe(false);
   expect(wrapper.find(".yayaw-inline-options").exists()).toBe(false);
   expect(
