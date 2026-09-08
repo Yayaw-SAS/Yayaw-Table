@@ -1,5 +1,7 @@
 "use client";
 
+import { useId } from "react";
+
 import {
   Field,
   FieldDescription,
@@ -10,40 +12,21 @@ import { Input } from "@/src/components/ui/input";
 import { useTranslations } from "../../../providers/table-provider";
 import type { DateFieldDefinition, FormFieldApi } from "../types";
 
-const DATE_INPUT_VALUE_PATTERN = /^\d{4}-\d{2}-\d{2}/;
+import { dataTypeDateInput } from "../../../utils/table-contracts";
 
 interface DateFieldProps<TFieldValues extends Record<string, unknown>> {
   field: DateFieldDefinition<TFieldValues>;
   fieldApi: FormFieldApi<Date | string | null>;
 }
 
-function toDateInputValue(value: Date | string | null | undefined): string {
-  if (value == null || value === "") {
-    return "";
-  }
-
-  if (value instanceof Date) {
-    return Number.isNaN(value.getTime())
-      ? ""
-      : value.toISOString().slice(0, 10);
-  }
-
-  const dateMatch = value.match(DATE_INPUT_VALUE_PATTERN);
-  if (dateMatch) {
-    return dateMatch[0];
-  }
-
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime())
-    ? ""
-    : parsed.toISOString().slice(0, 10);
-}
+const toDateInputValue = dataTypeDateInput;
 
 export function DateField<TFieldValues extends Record<string, unknown>>({
   field,
   fieldApi,
 }: DateFieldProps<TFieldValues>) {
   const { t } = useTranslations();
+  const controlId = useId();
   const errors = fieldApi.state.meta.errors;
   const errorMessages = Array.isArray(errors)
     ? errors.map((e) => (typeof e === "string" ? e : String(e)))
@@ -51,10 +34,11 @@ export function DateField<TFieldValues extends Record<string, unknown>>({
 
   return (
     <Field data-invalid={!fieldApi.state.meta.isValid}>
-      <FieldLabel>
+      <FieldLabel htmlFor={controlId}>
         {field.labelKey ? t(field.labelKey) : field.label}
       </FieldLabel>
       <Input
+        id={controlId}
         aria-invalid={!fieldApi.state.meta.isValid}
         disabled={field.disabled === true}
         max={toDateInputValue(field.maxDate)}

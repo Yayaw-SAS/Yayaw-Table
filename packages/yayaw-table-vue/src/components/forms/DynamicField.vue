@@ -11,6 +11,7 @@ import {
   type VNodeChild,
   watch,
 } from "vue";
+import { jsonFormDraft, jsonFormText, dataTypeDateInput } from "../../table-contracts";
 import { dynamicFieldType } from "../../form-runtime";
 import { useFieldOptions } from "../../composables/use-field-options";
 import CollectionField from "./CollectionField.vue";
@@ -139,8 +140,9 @@ watch(
   cancelAddingOption
 );
 onBeforeUnmount(() => createRequest?.abort());
-const valueType = computed(() => dynamicFieldType(props.field, props.context));
+const valueType = computed(() => props.field.type === "json" ? "json" : dynamicFieldType(props.field, props.context));
 const effectiveType = computed(() => {
+  if (props.field.type === "json") return "textarea";
   if (
     !["dynamic-value", "dynamicValue", "value-type"].includes(props.field.type)
   ) {
@@ -159,15 +161,9 @@ const effectiveType = computed(() => {
 });
 const inputValue = computed(() => {
   if (effectiveType.value === "date" && props.modelValue instanceof Date) {
-    return props.modelValue.toISOString().slice(0, 10);
+    return dataTypeDateInput(props.modelValue);
   }
-  if (
-    effectiveType.value === "textarea" &&
-    valueType.value === "json" &&
-    typeof props.modelValue === "object"
-  ) {
-    return JSON.stringify(props.modelValue, null, 2);
-  }
+  if (valueType.value === "json") return jsonFormText(props.modelValue);
   return props.modelValue;
 });
 const updateInput = (event: Event): void => {
@@ -177,11 +173,7 @@ const updateInput = (event: Event): void => {
     return;
   }
   if (effectiveType.value === "textarea" && valueType.value === "json") {
-    try {
-      update(raw.trim() ? JSON.parse(raw) : {});
-    } catch {
-      // Keep the last parsed value while the JSON draft is incomplete.
-    }
+    update(jsonFormDraft(raw));
     return;
   }
   update(raw);

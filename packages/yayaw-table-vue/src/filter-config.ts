@@ -1,3 +1,4 @@
+import { dataTypeFilter } from "./table-contracts";
 import type {
   AdvancedFilter,
   AdvancedFilterOperator,
@@ -40,10 +41,7 @@ const operators = {
 export const filterType = (
   column?: ColumnDefinition
 ): keyof typeof operators => {
-  if (column?.type && column.type in operators) {
-    return column.type as keyof typeof operators;
-  }
-  return column?.options?.length ? "select" : "text";
+  return dataTypeFilter(column?.type, Boolean(column?.options?.length));
 };
 export const filterOperators = (
   column: ColumnDefinition | undefined,
@@ -55,7 +53,7 @@ export const filterOperators = (
   const aliases: Partial<
     Record<keyof typeof operators, AdvancedFilterOperator[]>
   > = {
-    select: ["equals", "notEquals", "in", "notIn"],
+    select: ["equals", "notEquals", "in", "notIn", "isTrue", "isFalse"],
     multiSelect: ["in", "notIn", "notContains", "isAnyOf", "isNoneOf"],
     text: ["notEquals"],
     date: ["greaterThan", "lessThan", "greaterThanOrEqual", "lessThanOrEqual"],

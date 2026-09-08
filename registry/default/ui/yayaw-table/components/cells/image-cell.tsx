@@ -18,8 +18,9 @@ export function ImageCell({
   fallbackLabel,
   value,
 }: ImageCellProps) {
-  const [hasError, setHasError] = useState(false);
-  const source = hasError ? undefined : resolveImageSource(value);
+  const [failedSource, setFailedSource] = useState<string>();
+  const resolvedSource = resolveImageSource(value);
+  const source = failedSource === resolvedSource ? undefined : resolvedSource;
   const label = alt || fallbackLabel || "Image";
 
   if (!source) {
@@ -47,7 +48,7 @@ export function ImageCell({
       )}
       height={40}
       loading="lazy"
-      onError={() => setHasError(true)}
+      onError={() => setFailedSource(resolvedSource)}
       src={source}
       width={56}
     />

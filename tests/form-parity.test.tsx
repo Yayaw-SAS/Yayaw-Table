@@ -337,3 +337,51 @@ it("retries only failed bulk targets and sends checked fields including false", 
   expect(completed).toEqual([["one"], ["two"]]);
   expect(closed).toBe(true);
 });
+
+it("preserves an invalid JSON draft and only submits the corrected parsed value", async () => {
+  const view = mount();
+  const saved: FieldValues[] = [];
+  const config: FormConfig = {
+    id: "items",
+    fields: [{ name: "payload", label: "Payload", type: "json" }],
+  };
+  let builder!: ReturnType<typeof useFormBuilder<FieldValues>>;
+  function Probe() {
+    builder = useFormBuilder({
+      config,
+      initialData: { payload: { enabled: false } },
+      formOptions: {
+        onSubmit: (values) => {
+          saved.push(values);
+        },
+      },
+    });
+    return (
+      <FormBuilder
+        context={builder.context}
+        fields={builder.fields}
+        form={builder.form}
+      />
+    );
+  }
+  await view.render(provider(<Probe />, config));
+  const textarea = view.container.querySelector("textarea");
+  expect(textarea?.value).toContain('"enabled": false');
+  const fill = async (value: string) => {
+    await act(() => {
+      Object.getOwnPropertyDescriptor(
+        window.HTMLTextAreaElement.prototype,
+        "value"
+      )?.set?.call(textarea, value);
+      textarea?.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+  };
+  await fill("{ incomplete");
+  await act(() => builder.form.handleSubmit());
+  expect(saved).toEqual([]);
+  expect(textarea?.value).toBe("{ incomplete");
+  expect(view.container.textContent).toContain("expected valid JSON");
+  await fill('{"enabled":true}');
+  await act(() => builder.form.handleSubmit());
+  expect(saved).toEqual([{ payload: { enabled: true } }]);
+});

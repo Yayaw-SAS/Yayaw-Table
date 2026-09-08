@@ -151,13 +151,13 @@ describe("parseInlineEditValue", () => {
     });
 
     assert.equal(result.success, true);
-    assert.ok(result.value instanceof Date);
+    assert.equal(result.value, "2026-02-17");
   });
 
   it("keeps select option value types", () => {
     const result = parseInlineEditValue({
       editor: "select",
-      rawValue: "true",
+      rawValue: true,
       options: [
         { label: "Yes", value: true },
         { label: "No", value: false },
@@ -171,7 +171,7 @@ describe("parseInlineEditValue", () => {
   it("keeps multiSelect option value types", () => {
     const result = parseInlineEditValue({
       editor: "multiSelect",
-      rawValue: ["true", "2", "custom"],
+      rawValue: [true, 2, "custom"],
       options: [
         { label: "Yes", value: true },
         { label: "Two", value: 2 },

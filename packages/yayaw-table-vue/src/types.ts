@@ -39,22 +39,7 @@ export type DateDisplayPreset =
   | "short"
   | "time";
 
-export type ColumnType =
-  | "actions"
-  | "boolean"
-  | "code"
-  | "custom"
-  | "date"
-  | "dynamicType"
-  | "image"
-  | "json"
-  | "multiSelect"
-  | "number"
-  | "select"
-  | "string"
-  | "tag"
-  | "text"
-  | "url";
+export type ColumnType = import("./table-contracts").TableDataType;
 
 export type InlineEditEditor =
   | "auto"
@@ -284,6 +269,7 @@ export type FormFieldType =
   | "switch"
   | "tablePicker"
   | "text"
+  | "json"
   | "textarea"
   | "url"
   | "value-type";

@@ -267,21 +267,7 @@ export interface ColumnDefinition {
    * Type of column (text, number, date, boolean, code, select, etc.)
    * Used to determine how to render and filter the column.
    */
-  type?:
-    | "actions"
-    | "boolean"
-    | "code"
-    | "custom"
-    | "date"
-    | "dynamicType"
-    | "image"
-    | "json"
-    | "multiSelect"
-    | "number"
-    | "select"
-    | "string"
-    | "text"
-    | "url";
+  type?: import("../utils/table-contracts").TableDataType;
 
   /**
    * Visual rendering variant for option-like columns.
@@ -357,6 +343,7 @@ export interface ColumnDefinition {
    * @example "sum" for a price column, "count_all" for any column
    */
   defaultCalculation?:
+    | "none"
     | "average"
     | "count_all"
     | "count_empty"

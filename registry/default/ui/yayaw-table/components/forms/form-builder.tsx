@@ -415,6 +415,7 @@ function FormBuilderField<TFieldValues extends FieldValues>({
           )}
         </form.Field>
       );
+    case "json":
     case "textarea":
       return (
         <form.Field key={field.name} name={field.name as Path<TFieldValues>}>
@@ -422,7 +423,7 @@ function FormBuilderField<TFieldValues extends FieldValues>({
             <TextareaField
               field={
                 field as AnyFieldDefinition<TFieldValues> & {
-                  type: "textarea";
+                  type: "textarea" | "json";
                 }
               }
               fieldApi={normalizeFieldApi(f) as unknown as FormFieldApi<string>}

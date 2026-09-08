@@ -99,7 +99,12 @@ function BulkEditorForm({
   };
   const config =
     getFormConfig?.(formType, context) ??
-    generateFormConfig(formType, tableConfig.columns.definitions);
+    generateFormConfig(
+      formType,
+      tableConfig.columns.definitions,
+      values,
+      remaining.map((target) => target.row)
+    );
   const editable = config.fields.filter((field) =>
     bulkFieldEditable(field, context)
   );

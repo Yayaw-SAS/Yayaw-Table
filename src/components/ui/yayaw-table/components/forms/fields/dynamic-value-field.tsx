@@ -49,7 +49,7 @@ export function DynamicValueField({
           field={
             {
               ...field,
-              type: "textarea",
+              type: "json",
             } as TextareaFieldDefinition
           }
           fieldApi={fieldApi as FormFieldApi<string>}

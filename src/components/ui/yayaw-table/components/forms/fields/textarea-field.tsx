@@ -1,5 +1,7 @@
 "use client";
 
+import { useId } from "react";
+
 import {
   Field,
   FieldDescription,
@@ -7,16 +9,18 @@ import {
   FieldLabel,
 } from "@/src/components/ui/field";
 import { Textarea } from "@/src/components/ui/textarea";
+import { jsonFormDraft, jsonFormText } from "../../../utils/table-contracts";
 import { useTranslations } from "../../../providers/table-provider";
 import type { FormFieldApi, TextareaFieldDefinition } from "../types";
 
 interface TextareaFieldProps {
   field: TextareaFieldDefinition;
-  fieldApi: FormFieldApi<string>;
+  fieldApi: FormFieldApi<unknown>;
 }
 
 export function TextareaField({ field, fieldApi }: TextareaFieldProps) {
   const { t } = useTranslations();
+  const controlId = useId();
   const errors = fieldApi.state.meta.errors;
   const errorMessages = Array.isArray(errors)
     ? errors.map((e) => (typeof e === "string" ? e : String(e)))
@@ -24,21 +28,32 @@ export function TextareaField({ field, fieldApi }: TextareaFieldProps) {
 
   return (
     <Field data-invalid={!fieldApi.state.meta.isValid}>
-      <FieldLabel>
+      <FieldLabel htmlFor={controlId}>
         {field.labelKey ? t(field.labelKey) : field.label}
       </FieldLabel>
       <Textarea
+        id={controlId}
         aria-invalid={!fieldApi.state.meta.isValid}
         className="min-h-[100px]"
         disabled={field.disabled === true}
         name={fieldApi.name}
         onBlur={fieldApi.handleBlur}
-        onChange={(e) => fieldApi.handleChange(e.target.value)}
+        onChange={(e) =>
+          fieldApi.handleChange(
+            field.type === "json"
+              ? jsonFormDraft(e.target.value)
+              : e.target.value
+          )
+        }
         placeholder={
           field.placeholderKey ? t(field.placeholderKey) : field.placeholder
         }
         rows={field.rows}
-        value={String(fieldApi.state.value ?? "")}
+        value={
+          field.type === "json"
+            ? jsonFormText(fieldApi.state.value)
+            : String(fieldApi.state.value ?? "")
+        }
       />
       {field.description != null && (
         <FieldDescription>

@@ -3,7 +3,7 @@
 import { TableTooltip } from "../../../utils/table-tooltip";
 
 import { ExternalLink, Globe, Loader2 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   Field,
@@ -102,6 +102,7 @@ export function UrlField<TFieldValues extends Record<string, unknown>>({
   fieldApi,
 }: UrlFieldProps<TFieldValues>) {
   const { t } = useTranslations();
+  const controlId = useId();
   const errors = fieldApi.state.meta.errors;
   const errorMessages = Array.isArray(errors)
     ? errors.map((e) => (typeof e === "string" ? e : String(e)))
@@ -125,11 +126,12 @@ export function UrlField<TFieldValues extends Record<string, unknown>>({
 
   return (
     <Field data-invalid={!fieldApi.state.meta.isValid}>
-      <FieldLabel>
+      <FieldLabel htmlFor={controlId}>
         {field.labelKey ? t(field.labelKey) : field.label}
       </FieldLabel>
       <div className="relative">
         <Input
+          id={controlId}
           aria-invalid={!fieldApi.state.meta.isValid}
           className="pr-9"
           disabled={field.disabled === true}
@@ -146,21 +148,20 @@ export function UrlField<TFieldValues extends Record<string, unknown>>({
         />
         {currentValue && isValidUrl(currentValue) && (
           <TableTooltip label={t("actions.view")}>
-<button
-            className={cn(
-              "absolute top-1/2 right-2 -translate-y-1/2 rounded-sm p-0.5",
-              "text-muted-foreground transition-colors hover:text-foreground",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-            )}
-            onClick={handleOpenUrl}
-            tabIndex={0}
-
-            aria-label={t("actions.view")}
-            type="button"
-          >
-            <ExternalLink aria-hidden className="size-4" />
-          </button>
-</TableTooltip>
+            <button
+              className={cn(
+                "absolute top-1/2 right-2 -translate-y-1/2 rounded-sm p-0.5",
+                "text-muted-foreground transition-colors hover:text-foreground",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              )}
+              onClick={handleOpenUrl}
+              tabIndex={0}
+              aria-label={t("actions.view")}
+              type="button"
+            >
+              <ExternalLink aria-hidden className="size-4" />
+            </button>
+          </TableTooltip>
         )}
       </div>
 

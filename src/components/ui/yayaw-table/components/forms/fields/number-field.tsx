@@ -1,5 +1,7 @@
 "use client";
 
+import { useId } from "react";
+
 import {
   Field,
   FieldDescription,
@@ -17,6 +19,7 @@ interface NumberFieldProps {
 
 export function NumberField({ field, fieldApi }: NumberFieldProps) {
   const { t } = useTranslations();
+  const controlId = useId();
   const errors = fieldApi.state.meta.errors;
   const errorMessages = Array.isArray(errors)
     ? errors.map((e) => (typeof e === "string" ? e : String(e)))
@@ -27,7 +30,7 @@ export function NumberField({ field, fieldApi }: NumberFieldProps) {
 
   return (
     <Field data-invalid={!fieldApi.state.meta.isValid}>
-      <FieldLabel>
+      <FieldLabel htmlFor={controlId}>
         {field.labelKey ? t(field.labelKey) : field.label}
       </FieldLabel>
       {field.description != null && (
@@ -36,6 +39,7 @@ export function NumberField({ field, fieldApi }: NumberFieldProps) {
         </FieldDescription>
       )}
       <Input
+        id={controlId}
         aria-invalid={!fieldApi.state.meta.isValid}
         disabled={field.disabled === true}
         max={field.max}

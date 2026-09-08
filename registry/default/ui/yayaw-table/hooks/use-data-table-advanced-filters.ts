@@ -1,3 +1,5 @@
+import { dataTypeFilter } from "../utils/table-contracts";
+
 /**
  * Integration hook that combines existing useDataTable with advanced filters
  * Provides backward compatibility while adding advanced filtering capabilities
@@ -385,16 +387,12 @@ const resolveColumnFilterType = (
     return mappedType;
   }
 
-  const declaredType = normalizeColumnDataType(column.type);
-  if (declaredType) {
-    return declaredType;
-  }
-
-  if (Array.isArray(column.options) && column.options.length > 0) {
-    return "select";
-  }
-
-  return "text";
+  const declaredType = dataTypeFilter(
+    column.type,
+    Array.isArray(column.options) && column.options.length > 0
+  );
+  // Existing React saved views encode booleans as select filters with true/false choices.
+  return declaredType;
 };
 
 // Helper function to get operators by column type
@@ -468,21 +466,37 @@ const createColumnConfig = (
     type,
     filterable: column.canFilter !== false,
     faceted: type === "select" || type === "multiSelect",
-    placeholder: String(column.placeholder) || `Filter by ${column.label}...`,
+    placeholder:
+      (typeof column.placeholder === "string"
+        ? column.placeholder
+        : undefined) || `Filter by ${column.label}...`,
     ...(column.description ? { description: String(column.description) } : {}),
   };
 
+  const options: ColumnOption[] =
+    column.type === "boolean"
+      ? [
+          { label: "True", value: "true" },
+          { label: "False", value: "false" },
+        ]
+      : [];
+  if (column.type !== "boolean" && Array.isArray(column.options)) {
+    options.push(
+      ...column.options.map((option) => ({
+        ...option,
+        value: String(option.value),
+      }))
+    );
+  }
   // Type-specific configurations
   const typeConfigs = {
     number: {
-      min: Number(column.min) || 0,
-      max: Number(column.max) || 10_000,
+      min: typeof column.min === "number" ? column.min : undefined,
+      max: typeof column.max === "number" ? column.max : undefined,
       operators: getOperatorsByType("number"),
     },
     select: {
-      options: (Array.isArray(column.options)
-        ? column.options
-        : getOptionsForColumn(column.id, type)) as ColumnOption[],
+      options,
       operators: getOperatorsByType("select"),
     },
     text: {
@@ -495,9 +509,7 @@ const createColumnConfig = (
       operators: getOperatorsByType("date"),
     },
     multiSelect: {
-      options: (Array.isArray(column.options)
-        ? column.options
-        : getOptionsForColumn(column.id, type)) as ColumnOption[],
+      options,
       operators: getOperatorsByType("multiSelect"),
     },
   };
@@ -534,40 +546,6 @@ export function useColumnsFilterConfig(
     }
     return config;
   }, [columns, typeMapping]);
-}
-
-// Helper function to get options for select-type columns
-function getOptionsForColumn(
-  columnId: string,
-  type: ColumnDataType
-): ColumnOption[] | undefined {
-  if (type !== "select") {
-    return;
-  }
-
-  // Static options for our example - using consistent {value, label} format
-  switch (columnId) {
-    case "category":
-      return [
-        { value: "Laptops", label: "Laptops" },
-        { value: "Phones", label: "Phones" },
-        { value: "Tablets", label: "Tablets" },
-        { value: "Accessories", label: "Accessories" },
-      ];
-    case "status":
-      return [
-        { value: "In Stock", label: "In Stock" },
-        { value: "Low Stock", label: "Low Stock" },
-        { value: "Out of Stock", label: "Out of Stock" },
-      ];
-    case "isActive":
-      return [
-        { value: "true", label: "Active" },
-        { value: "false", label: "Inactive" },
-      ];
-    default:
-      return;
-  }
 }
 
 /**

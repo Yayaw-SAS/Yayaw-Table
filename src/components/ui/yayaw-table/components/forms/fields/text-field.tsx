@@ -3,6 +3,8 @@
  */
 "use client";
 
+import { useId } from "react";
+
 import {
   Field,
   FieldDescription,
@@ -23,6 +25,7 @@ export function TextField<TFieldValues extends Record<string, unknown>>({
   fieldApi,
 }: TextFieldProps<TFieldValues>) {
   const { t } = useTranslations();
+  const controlId = useId();
   const errors = fieldApi.state.meta.errors;
   const errorMessages = Array.isArray(errors)
     ? errors.map((e) => (typeof e === "string" ? e : String(e)))
@@ -30,10 +33,11 @@ export function TextField<TFieldValues extends Record<string, unknown>>({
 
   return (
     <Field data-invalid={!fieldApi.state.meta.isValid}>
-      <FieldLabel>
+      <FieldLabel htmlFor={controlId}>
         {field.labelKey ? t(field.labelKey) : field.label}
       </FieldLabel>
       <Input
+        id={controlId}
         aria-invalid={!fieldApi.state.meta.isValid}
         disabled={field.disabled === true}
         name={fieldApi.name}

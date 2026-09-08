@@ -44,9 +44,11 @@ import { useTableTranslations } from "./use-table-translations";
 /**
  * Configuration for table columns in the catalogue
  */
-export interface TableCatalogueColumnConfig {
+import type { ColumnDefinition } from "../config/helpers";
+
+export interface TableCatalogueColumnConfig extends ColumnDefinition {
   id: string;
-  type: string;
+  type: import("../utils/table-contracts").TableDataType;
   header: string;
   enableGrouping?: boolean;
   enableResizing?: boolean;
@@ -239,9 +241,7 @@ const DEFAULT_TABLE_CONFIG: TableCatalogueConfig = {
   },
 };
 
-function normalizeDensityMode(
-  density: TableDensity | undefined
-): TableDensity {
+function normalizeDensityMode(density: TableDensity | undefined): TableDensity {
   return isTableDensity(density) ? density : "medium";
 }
 
