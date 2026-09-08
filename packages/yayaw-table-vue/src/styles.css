@@ -127,7 +127,7 @@
   color: var(--yayaw-primary-foreground);
   padding: 7px 12px;
   font: inherit;
-  font-weight: 550;
+  font-weight: 400;
   cursor: pointer;
 }
 .yayaw-button:hover,
@@ -267,8 +267,8 @@
   min-width: 0;
 }
 .yayaw-views .yayaw-button {
-  height: 32px;
-  min-height: 32px;
+  height: var(--yayaw-density-control, 32px);
+  min-height: var(--yayaw-density-control, 32px);
   flex-shrink: 0;
   gap: 8px;
 }
@@ -386,8 +386,8 @@
 .yayaw-options-header .yayaw-icon-button {
   width: 32px;
   min-width: 32px;
-  height: 32px;
-  min-height: 32px;
+  height: var(--yayaw-density-control, 32px);
+  min-height: var(--yayaw-density-control, 32px);
   padding: 0;
 }
 .yayaw-options-list {
@@ -756,21 +756,160 @@
   width: 100%;
   min-width: 110px;
 }
+.yayaw-inline-selection {
+  display: flex;
+  height: var(--yayaw-density-control, 32px);
+  min-height: var(--yayaw-density-control, 32px);
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  border: 1px solid var(--yayaw-border);
+  border-radius: 6px;
+  padding: 0 6px;
+  white-space: nowrap;
+}
+.yayaw-inline-selection:focus-within {
+  border-color: var(--yayaw-primary);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--yayaw-primary) 20%, transparent);
+}
+.yayaw-inline-chips {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.yayaw-inline-chips::-webkit-scrollbar {
+  display: none;
+}
+.yayaw-inline-chip {
+  display: inline-flex;
+  flex-shrink: 0;
+  height: 22px;
+  align-items: center;
+  gap: 4px;
+  border-radius: 4px;
+  padding: 0 0 0 6px;
+  background: var(--yayaw-muted);
+  color: var(--yayaw-foreground);
+  font-size: 12px;
+  font-weight: 500;
+}
+.yayaw-inline-chip button {
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  opacity: 0.5;
+  cursor: pointer;
+}
+.yayaw-inline-chip button:hover,
+.yayaw-inline-chip button:focus-visible {
+  opacity: 1;
+}
+.yayaw-inline-chip button:disabled {
+  cursor: not-allowed;
+  opacity: 0.3;
+}
+.yayaw-inline-search {
+  flex: 1;
+  width: 0;
+  min-width: 64px;
+  height: 24px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  font: inherit;
+}
+.yayaw-inline-options {
+  z-index: 60;
+  box-sizing: border-box;
+  width: var(--reka-combobox-trigger-width);
+  max-width: calc(100vw - 16px);
+  max-height: min(252px, var(--reka-combobox-content-available-height));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--yayaw-border);
+  border-radius: 6px;
+  padding: 4px;
+  color: var(--yayaw-foreground);
+  background: var(--yayaw-background);
+  box-shadow: var(--yayaw-shadow);
+  font:
+    14px / 1.4 ui-sans-serif,
+    system-ui,
+    sans-serif;
+}
+.yayaw-inline-option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+  padding: 6px 32px 6px 8px;
+  outline: none;
+  cursor: default;
+  user-select: none;
+}
+.yayaw-inline-option[data-highlighted] {
+  background: var(--yayaw-muted);
+}
+.yayaw-inline-option[data-disabled] {
+  pointer-events: none;
+  opacity: 0.5;
+}
+.yayaw-inline-check {
+  position: absolute;
+  right: 8px;
+  display: flex;
+}
+.yayaw-inline-empty {
+  padding: 8px;
+  text-align: center;
+  color: var(--yayaw-muted-foreground);
+}
+.yayaw-inline-progress {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--yayaw-muted);
+}
+.yayaw-inline-progress-bar {
+  height: 100%;
+  background: var(--yayaw-primary);
+  transition: width 75ms;
+}
+.yayaw-inline-progress.is-saving .yayaw-inline-progress-bar {
+  animation: yayaw-inline-pulse 1.5s ease-in-out infinite;
+}
+@keyframes yayaw-inline-pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .yayaw-inline-progress-bar {
+    transition: none;
+    animation: none !important;
+  }
+}
 .yayaw-inline-error,
 .yayaw-field-error {
   display: block;
   margin-top: 4px;
   color: var(--yayaw-danger);
   font-size: 12px;
-}
-.yayaw-saving {
-  position: absolute;
-  right: 2px;
-  bottom: 2px;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #f59e0b;
 }
 .yayaw-code,
 .yayaw-json {
@@ -883,8 +1022,8 @@
 .yayaw-row-actions > .yayaw-icon-button {
   width: 32px;
   min-width: 32px;
-  height: 32px;
-  min-height: 32px;
+  height: var(--yayaw-density-control, 32px);
+  min-height: var(--yayaw-density-control, 32px);
   padding: 0;
 }
 .yayaw-row-actions-menu {

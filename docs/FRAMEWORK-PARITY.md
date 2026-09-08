@@ -88,6 +88,29 @@ When `onBulkEdit` is absent, `actions.bulkUpdate(ids, patch)` opens the React ca
 
 Return `{ success: false, failedIds: ["remaining-id"], error: "..." }` for a partial failure. `failedIds` must be the complete subset still requiring an update. Successful targets are removed from the selection, and retry sends only the remaining IDs with the retained draft. A failure without `failedIds` retains every target. Invalid completion reports never silently clear targets.
 
+## Inline selection dismissal
+
+React and Vue inline multi-selects use removable chips, search in the same field,
+and anchored listboxes with checkmarks and keyboard navigation. The editor height
+follows the table density. Toolbar and saved-view buttons use regular font weight. Options do
+not expand the table row, disabled options cannot be toggled, and clearing all
+choices submits an empty array. Selections retain their configured primitive types.
+Outside interaction or focus leaving the editor flushes the current draft and
+closes only after acknowledgement. A close requested during autosave waits for
+that save; validation and transport failures retain the draft for correction or
+retry. Escape cancels changes that have not been submitted. An in-flight write
+cannot be undone by Escape. Unchanged dismissal does not issue an update.
+`showDelayIndicator` displays the same thin debounce progress bar in both editions
+and keeps it visible while saving, with reduced-motion support. Arrow keys
+highlight options, Enter toggles the highlighted option or commits when none is
+highlighted, and Backspace removes the last enabled chip when search is empty.
+
+The Vue product demo now includes an editable Tags column. Regression coverage
+includes portalled Vue choices, filtering, primitive IDs, empty selections,
+focus dismissal, autosave/blur races, failure/retry and Escape. React runtime
+coverage also exercises same-event change/dismissal, overlapping close requests
+and a newer draft arriving during an in-flight write.
+
 ## Cards, inline editing, and reset
 
 Vue gallery and Kanban use the same pagination state as the table. Local rows are filtered and sorted before slicing, using natural text ordering and type-aware number/date comparisons that match the table; server pages are not sliced twice. Kanban grouping follows toolbar grouping, configured lanes apply only to their configured field, and rejected updates restore the previous lane. Card properties use the column renderer, and image cells accept HTTP(S), relative paths, blob URLs, and supported image data URLs.

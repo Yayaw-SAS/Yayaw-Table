@@ -35,6 +35,7 @@ export type InlineEditEditor =
  * Option used by inline edit select editors.
  */
 export interface InlineEditOption {
+  disabled?: boolean;
   label: string;
   value: boolean | number | string;
 }

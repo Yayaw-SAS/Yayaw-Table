@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
   computed,
+  nextTick,
   onBeforeUnmount,
   defineComponent,
   h,
@@ -11,6 +12,7 @@ import {
   type VNodeChild,
 } from "vue";
 import { useTableContext } from "../../context";
+import InlineMultiSelect from "./InlineMultiSelect.vue";
 import { displayCellValue, safeHttpUrl, imageSource } from "../../core";
 import {
   cloneFormValue,
@@ -39,7 +41,17 @@ const context = useTableContext();
 const editing = ref(false);
 const pending = ref(false);
 const draft = ref<unknown>(props.value);
+const committed = ref<unknown>(cloneFormValue(props.value));
+const scheduledAt = ref<number>();
+const currentTime = ref(Date.now());
+let progressTimer: ReturnType<typeof setInterval> | undefined;
+let mounted = true;
+const debounceMs = computed(() => inlineConfig.value.debounceMs ?? context.config.table.inlineEdit?.debounceMs ?? 700);
+const dirty = computed(() => !formValuesEqual(draft.value, committed.value));
+const delayProgress = computed(() => scheduledAt.value == null || debounceMs.value <= 0 ? 0 : Math.min(100, Math.max(0, 100 * (1 - (scheduledAt.value - currentTime.value) / debounceMs.value))));
 const error = ref<string>();
+const editorElement = ref<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>();
+let closeRequested = false;
 const columnTypes = new Set<ColumnType>([
   "boolean",
   "code",
@@ -192,9 +204,11 @@ const options = computed<SelectOption[]>(
     []
 );
 const begin = async (): Promise<void> => {
-  if (!canEdit.value || pending.value || optionsLoading.value) return;
+  if (!canEdit.value || pending.value || optionsLoading.value || (editing.value && !optionsFailed.value)) return;
   draft.value = editor.value === "json" ? JSON.stringify(props.value, null, 2) : cloneFormValue(props.value);
+  committed.value = cloneFormValue(draft.value);
   editing.value = true;
+  closeRequested = false;
   error.value = undefined;
   loadedOptions.value = undefined;
   optionsFailed.value = false;
@@ -214,6 +228,8 @@ const begin = async (): Promise<void> => {
       if (version === optionsVersion) optionsLoading.value = false;
     }
   }
+  await nextTick();
+  editorElement.value?.focus();
 };
 const parseDraft = (): unknown => {
   if (editor.value === "number") {
@@ -233,9 +249,17 @@ const parseDraft = (): unknown => {
   return draft.value;
 };
 let saveTimer: ReturnType<typeof setTimeout> | undefined;
-const save = async (close = true): Promise<void> => {
+const clearScheduledSave = (): void => {
   clearTimeout(saveTimer);
+  clearInterval(progressTimer);
+  scheduledAt.value = undefined;
+};
+const save = async (close = true): Promise<void> => {
+  clearScheduledSave();
+  // A dismissal during autosave must survive until that request settles.
+  if (close && editing.value) closeRequested = true;
   if (
+    !mounted ||
     !editing.value ||
     pending.value ||
     optionsLoading.value ||
@@ -250,12 +274,14 @@ const save = async (close = true): Promise<void> => {
   const previous = row[field];
   let optimistic = false;
   let value: unknown;
+  let saved = false;
+  const submittedDraft = cloneFormValue(draft.value);
   pending.value = true;
   error.value = undefined;
   try {
     value = parseDraft();
-    if (formValuesEqual(value, props.value)) {
-      if (close) editing.value = false;
+    if (!dirty.value) {
+      if (closeRequested) editing.value = false;
       return;
     }
     const candidate = { ...cloneFormValue(row), [field]: value };
@@ -296,28 +322,38 @@ const save = async (close = true): Promise<void> => {
         result.fieldErrors?.[field] ?? result.error ?? "Update failed"
       );
     optimistic = false;
-    if (close) editing.value = false;
+    saved = true;
+    committed.value = editor.value === "json" ? JSON.stringify(value, null, 2) : cloneFormValue(value);
+    // A response for an earlier draft must not replace a newer selection.
+    if (formValuesEqual(draft.value, submittedDraft)) draft.value = cloneFormValue(committed.value);
+    if (closeRequested && !dirty.value) editing.value = false;
     await context.refresh();
   } catch (cause) {
+    closeRequested = false;
     if (optimistic && Object.is(row[field], value)) row[field] = previous;
     error.value = cause instanceof Error ? cause.message : String(cause);
   } finally {
     pending.value = false;
+    if (mounted && saved && editing.value && dirty.value) void save(closeRequested);
   }
 };
 watch(draft, () => {
-  clearTimeout(saveTimer);
-  if (!editing.value || pending.value || Object.is(draft.value, props.value)) return;
-  const delay = inlineConfig.value.debounceMs ?? context.config.table.inlineEdit?.debounceMs ?? 700;
-  saveTimer = setTimeout(() => { void save(false); }, Math.max(0, delay));
+  clearScheduledSave();
+  if (!editing.value || !dirty.value) return;
+  const delay = Math.max(0, debounceMs.value);
+  currentTime.value = Date.now();
+  scheduledAt.value = currentTime.value + delay;
+  progressTimer = setInterval(() => { currentTime.value = Date.now(); }, 50);
+  saveTimer = setTimeout(() => { void save(false); }, delay);
 }, { deep: true });
-onBeforeUnmount(() => clearTimeout(saveTimer));
+onBeforeUnmount(() => { mounted = false; clearScheduledSave(); });
 const resetEditing = (): void => {
-  clearTimeout(saveTimer);
+  clearScheduledSave();
+  closeRequested = false;
   optionsVersion += 1;
   optionsLoading.value = false;
   editing.value = false;
-  draft.value = props.value;
+  draft.value = cloneFormValue(committed.value);
   error.value = undefined;
 };
 const cancel = (): void => {
@@ -338,11 +374,6 @@ const onKeydown = async (event: KeyboardEvent): Promise<void> => {
     event.preventDefault();
     await save();
   }
-};
-const updateMulti = (event: Event): void => {
-  draft.value = Array.from(
-    (event.target as HTMLSelectElement).selectedOptions
-  ).map((option) => options.value[option.index]?.value ?? option.value);
 };
 const url = computed(() => safeHttpUrl(props.value));
 const urlDomain = computed(() => {
@@ -374,7 +405,8 @@ const tags = computed(() =>
     <template v-if="editing">
       <input
         v-if="editor === 'boolean'"
-        :disabled="pending || optionsLoading"
+        ref="editorElement"
+        :disabled="optionsLoading"
         :aria-label="formField?.label ?? column.header"
         v-model="draft"
         type="checkbox"
@@ -383,9 +415,10 @@ const tags = computed(() =>
       />
       <select
         v-else-if="editor === 'select'"
+        ref="editorElement"
         v-model="draft"
         class="yayaw-select yayaw-inline-editor"
-        :disabled="pending || optionsLoading"
+        :disabled="optionsLoading"
         :aria-label="formField?.label ?? column.header"
         autofocus
         @change="save()"
@@ -395,43 +428,33 @@ const tags = computed(() =>
           v-for="option in options"
           :key="`${typeof option.value}:${option.value}`"
           :value="option.value"
+          :disabled="option.disabled"
         >
           {{ option.label }}
         </option>
       </select>
-      <select
+      <InlineMultiSelect
         v-else-if="editor === 'multiSelect'"
-        multiple
-        :disabled="pending || optionsLoading"
-        :aria-label="formField?.label ?? column.header"
-        class="yayaw-select yayaw-inline-editor"
-        autofocus
-        @change="updateMulti"
-        @blur="save()"
-      >
-        <option
-          v-for="option in options"
-          :key="`${typeof option.value}:${option.value}`"
-          :value="option.value"
-          :selected="
-            Array.isArray(draft) &&
-            draft.some((value) => Object.is(value, option.value))
-          "
-        >
-          {{ option.label }}
-        </option>
-      </select>
+        v-model="draft"
+        :options="options"
+        :disabled="optionsLoading"
+        :label="formField?.label ?? column.header"
+        @commit="save()"
+        @cancel="cancel"
+      />
       <textarea
         v-else-if="editor === 'textarea' || editor === 'json'"
+        ref="editorElement"
         v-model="draft as string"
         class="yayaw-textarea yayaw-inline-editor"
-        :disabled="pending || optionsLoading"
+        :disabled="optionsLoading"
         :aria-label="formField?.label ?? column.header"
         autofocus
         @blur="save()"
       />
       <input
         v-else
+        ref="editorElement"
         v-model="draft"
         :type="
           editor === 'number'
@@ -443,7 +466,7 @@ const tags = computed(() =>
             : 'text'
         "
         class="yayaw-input yayaw-inline-editor"
-        :disabled="pending || optionsLoading"
+        :disabled="optionsLoading"
         :aria-label="formField?.label ?? column.header"
         autofocus
         @blur="save()"
@@ -526,10 +549,14 @@ const tags = computed(() =>
     <span v-if="error && !editing" class="yayaw-inline-error" role="alert">{{
       error
     }}</span>
-    <span
-      v-if="pending && context.config.table.inlineEdit?.showDelayIndicator"
-      class="yayaw-saving"
-      :aria-label="String(context.translations.value.saving ?? 'Saving')"
-    />
+    <span v-if="pending" class="yayaw-sr-only" aria-live="polite">{{ context.translations.value.saving ?? 'Saving…' }}</span>
+    <div
+      v-if="context.config.table.inlineEdit?.showDelayIndicator !== false && (pending || (dirty && scheduledAt != null))"
+      class="yayaw-inline-progress"
+      :class="{ 'is-saving': pending }"
+      :title="String(pending ? context.translations.value.saving ?? 'Saving…' : context.translations.value['inline.save_scheduled'] ?? 'Save scheduled')"
+    >
+      <div class="yayaw-inline-progress-bar" :style="{ width: `${pending ? 100 : delayProgress}%` }" />
+    </div>
   </div>
 </template>

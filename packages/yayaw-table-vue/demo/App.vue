@@ -16,6 +16,7 @@ interface Product extends TableRecord {
   id: string;
   name: string;
   category: string;
+  tags: string[];
   price: number;
   status: string;
   active: boolean;
@@ -27,6 +28,7 @@ const seed: Product[] = Array.from({ length: 34 }, (_, index) => ({
   id: `product-${index + 1}`,
   name: `Product ${index + 1}`,
   category: ["Hardware", "Software", "Service"][index % 3] ?? "Hardware",
+  tags: index % 2 ? ["Popular"] : ["Featured", "New"],
   price: 29 + index * 7.5,
   status: ["In Stock", "Low Stock", "Out of Stock"][index % 3] ?? "In Stock",
   active: index % 4 !== 0,
@@ -77,6 +79,8 @@ const config = defineTableConfig<Product>({
         })),
         inlineEdit: true,
       },
+      { id: "tags", header: "Tags", type: "multiSelect", inlineEdit: true,
+        options: ["Featured", "New", "Popular"].map(value => ({ label: value, value })) },
       { id: "active", header: "Active", type: "boolean", inlineEdit: true },
       { id: "imageUrl", header: "Image", type: "image", enableSorting: false },
       {
@@ -91,6 +95,7 @@ const config = defineTableConfig<Product>({
       "select",
       "name",
       "category",
+      "tags",
       "price",
       "status",
       "active",
@@ -98,7 +103,7 @@ const config = defineTableConfig<Product>({
       "imageUrl",
       "actions",
     ],
-    visible: ["name", "category", "price", "status", "active", "createdAt"],
+    visible: ["name", "category", "tags", "price", "status", "active", "createdAt"],
     sort: [{ id: "name", desc: false }],
   },
   table: {
@@ -170,6 +175,8 @@ const formConfig = defineFormConfig<Product>({
         value,
       })),
     },
+    { name: "tags", label: "Tags", type: "multiSelect",
+      options: ["Featured", "New", "Popular"].map(value => ({ label: value, value })) },
     { name: "active", label: "Active", type: "switch" },
     { name: "imageUrl", label: "Image URL", type: "url" },
     { name: "createdAt", label: "Created", type: "date" },
@@ -178,7 +185,7 @@ const formConfig = defineFormConfig<Product>({
     {
       id: "main",
       title: "Product",
-      fields: ["name", "category", "price", "status"],
+      fields: ["name", "category", "tags", "price", "status"],
       columns: 2,
     },
     {
