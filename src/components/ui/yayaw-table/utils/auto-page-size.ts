@@ -1,6 +1,6 @@
 const SCROLLABLE_OVERFLOW = /auto|scroll|hidden/;
 
-/** Conservative sizing keeps variable-height rows and pagination inside the available viewport. */
+/** Bound the numeric page size sent to both local and server-backed tables. */
 export function fitPageSize(
   availableHeight: number,
   rowHeight: number
@@ -17,9 +17,36 @@ export function fitPageSize(
   );
 }
 
+/** Count measured rows in order, then estimate unseen rows using the smallest visible row. */
+export function fitMeasuredPageSize(
+  availableHeight: number,
+  heights: number[]
+): number {
+  const measured = heights.filter(
+    (height) => Number.isFinite(height) && height > 0
+  );
+  if (!measured.length) {
+    return 1;
+  }
+  let remaining = Math.max(0, availableHeight);
+  let count = 0;
+  for (const height of measured) {
+    if (height > remaining) {
+      return Math.max(1, count);
+    }
+    remaining -= height;
+    count += 1;
+    if (count === 500) {
+      return count;
+    }
+  }
+  return Math.min(500, count + Math.floor(remaining / Math.min(...measured)));
+}
+
 export interface AutoPageMeasurement {
   pageSize: number;
   tableHeight: number;
+  layoutKey: string;
 }
 
 /** Observe layout, not scroll position, so scrolling to the selector does not change the capacity. */
@@ -33,8 +60,6 @@ export function observeAutoPageSize(
   }
   let disposed = false;
   let frame = 0;
-  let tallestRow = 0;
-  let previousWidth = 0;
   const ancestors: HTMLElement[] = [];
   for (
     let element = root.parentElement;
@@ -57,14 +82,10 @@ export function observeAutoPageSize(
       (row) => row.querySelector("td")?.colSpan === 1
     );
     const width = table.getBoundingClientRect().width;
-    if (width !== previousWidth) {
-      tallestRow = 0;
-      previousWidth = width;
-    }
-    for (const row of rows) {
-      tallestRow = Math.max(tallestRow, row.getBoundingClientRect().height);
-    }
-    if (tallestRow <= 0) {
+    const heights = rows
+      .map((row) => row.getBoundingClientRect().height)
+      .filter((height) => height > 0);
+    if (!heights.length) {
       return;
     }
     const scroller = ancestors.find((element) => {
@@ -93,7 +114,18 @@ export function observeAutoPageSize(
     );
     const available =
       viewportHeight - bodyTop - footerHeight - calculationsHeight - 24;
-    onMeasure({ pageSize: fitPageSize(available, tallestRow), tableHeight });
+    onMeasure({
+      pageSize: fitMeasuredPageSize(available, heights),
+      tableHeight,
+      layoutKey: [
+        viewportHeight,
+        width,
+        tableTop,
+        bodyTop,
+        footerHeight,
+        calculationsHeight,
+      ].join(":"),
+    });
   };
   const schedule = () => {
     if (!(disposed || frame)) {

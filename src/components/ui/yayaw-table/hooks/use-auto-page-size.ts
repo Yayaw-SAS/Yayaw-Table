@@ -14,6 +14,7 @@ const autoPageState = atomFamily((_tableId: string) =>
     automatic: false,
     resetKey: "",
     expectedSize: undefined as number | undefined,
+    fitKey: "",
   })
 );
 
@@ -22,7 +23,12 @@ export function useAutoPageSizeLifetime(tableId: string) {
   const setMode = useSetAtom(autoPageState(tableId));
   useEffect(
     () => () => {
-      setMode({ automatic: false, resetKey: "", expectedSize: undefined });
+      setMode({
+        automatic: false,
+        resetKey: "",
+        expectedSize: undefined,
+        fitKey: "",
+      });
     },
     [setMode]
   );
@@ -49,12 +55,12 @@ export function useAutoPageSize({
   const automatic = enabled && mode.resetKey === resetKey && mode.automatic;
   const [measurement, setMeasurement] = useState<AutoPageMeasurement>();
   const previousSize = useRef(pageSize);
-  const current = useRef({ automatic, pageSize, setPageSize });
-  current.current = { automatic, pageSize, setPageSize };
+  const current = useRef({ automatic, pageSize, setPageSize, mode });
+  current.current = { automatic, pageSize, setPageSize, mode };
   useEffect(() => {
     setMode((previous) =>
       !enabled || previous.resetKey !== resetKey
-        ? { automatic: false, resetKey, expectedSize: undefined }
+        ? { automatic: false, resetKey, expectedSize: undefined, fitKey: "" }
         : previous
     );
   }, [resetKey, enabled, setMode]);
@@ -65,17 +71,31 @@ export function useAutoPageSize({
     }
     return observeAutoPageSize(root.current, (value) => {
       setMeasurement((previous) =>
+        previous?.layoutKey === value.layoutKey &&
         previous?.pageSize === value.pageSize &&
         previous.tableHeight === value.tableHeight
           ? previous
           : value
       );
-      if (
-        current.current.automatic &&
-        current.current.pageSize !== value.pageSize
-      ) {
-        setMode((previous) => ({ ...previous, expectedSize: value.pageSize }));
-        current.current.setPageSize(value.pageSize);
+      const fitKey = `${measurementKey}:${value.layoutKey}`;
+      const previousMode = current.current.mode;
+      // A new page can reduce capacity; only a layout change raises the ceiling.
+      const size =
+        previousMode.fitKey === fitKey
+          ? Math.min(
+              value.pageSize,
+              previousMode.expectedSize ?? value.pageSize
+            )
+          : value.pageSize;
+      if (current.current.automatic) {
+        setMode((previous) =>
+          previous.expectedSize === size && previous.fitKey === fitKey
+            ? previous
+            : { ...previous, expectedSize: size, fitKey }
+        );
+        if (current.current.pageSize !== size) {
+          current.current.setPageSize(size);
+        }
       }
     });
   }, [root, enabled, resetKey, measurementKey, setMode]);
@@ -94,7 +114,12 @@ export function useAutoPageSize({
     const auto = value === "auto";
     const size = auto ? measurement?.pageSize : Number(value);
     if (size && Number.isInteger(size) && size > 0) {
-      setMode({ automatic: auto, resetKey, expectedSize: size });
+      setMode({
+        automatic: auto,
+        resetKey,
+        expectedSize: size,
+        fitKey: `${measurementKey}:${measurement?.layoutKey}`,
+      });
       setPageSize(size);
     } else {
       setMode((previous) => ({ ...previous, automatic: auto, resetKey }));

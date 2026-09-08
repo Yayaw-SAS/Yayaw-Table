@@ -64,6 +64,11 @@ describe("Vue automatic pagination", () => {
       await wrapper.get("select").setValue("auto");
       await flush();
       expect(pagination.value.pageSize).toBe(9);
+      layout.rowHeight(20);
+      layout.resize(600);
+      await flush();
+      expect(pagination.value.pageSize).toBe(9);
+      layout.rowHeight(40);
       layout.resize(800);
       await flush();
       expect(pagination.value.pageSize).toBe(14);

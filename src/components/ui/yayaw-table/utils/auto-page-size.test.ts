@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import cases from '../../../../../tests/fixtures/auto-page-size.json';
-import { fitPageSize } from './auto-page-size';
+import { fitPageSize, fitMeasuredPageSize } from './auto-page-size';
 
 describe('automatic pagination capacity', () => {
   for (const test of cases) {
@@ -12,4 +12,12 @@ describe('automatic pagination capacity', () => {
     expect(fitPageSize(Number.NaN, 40)).toBe(1);
     expect(fitPageSize(400, Number.POSITIVE_INFINITY)).toBe(1);
   });
+});
+
+// A wrapped first row must not reserve its extra height for every other row.
+it('fits mixed row heights without multiplying the tallest row', () => {
+  expect(fitMeasuredPageSize(360, [108, 41, 41, 41, 41, 41, 41, 41])).toBe(7);
+  expect(fitMeasuredPageSize(360, [108, 41, 41])).toBe(7);
+  expect(fitMeasuredPageSize(50, [108, 41])).toBe(1);
+  expect(fitMeasuredPageSize(50, [])).toBe(1);
 });

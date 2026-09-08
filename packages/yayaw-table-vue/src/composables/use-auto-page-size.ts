@@ -10,6 +10,7 @@ export function useAutoPageSize(root: Ref<HTMLElement | undefined>) {
   const automatic = ref(false);
   const measurement = ref<AutoPageMeasurement>();
   let expectedSize: number | undefined;
+  let fitKey = "";
   let stop: (() => void) | undefined;
   let mounted = false;
   const setPageSize = (pageSize: number) => {
@@ -31,13 +32,21 @@ export function useAutoPageSize(root: Ref<HTMLElement | undefined>) {
     }
     stop = observeAutoPageSize(root.value, (value) => {
       if (
+        measurement.value?.layoutKey !== value.layoutKey ||
         measurement.value?.pageSize !== value.pageSize ||
         measurement.value?.tableHeight !== value.tableHeight
       ) {
         measurement.value = value;
       }
       if (automatic.value) {
-        setPageSize(value.pageSize);
+        const nextFitKey = `${context.state.density.value}:${value.layoutKey}`;
+        // Keep the capacity stable across pages with different row heights.
+        const size =
+          fitKey === nextFitKey
+            ? Math.min(value.pageSize, expectedSize ?? value.pageSize)
+            : value.pageSize;
+        fitKey = nextFitKey;
+        setPageSize(size);
       }
     });
   };
@@ -70,6 +79,7 @@ export function useAutoPageSize(root: Ref<HTMLElement | undefined>) {
   );
   const selectSize = (value: string) => {
     automatic.value = value === "auto";
+    fitKey = `${context.state.density.value}:${measurement.value?.layoutKey}`;
     const size = automatic.value ? measurement.value?.pageSize : Number(value);
     if (size && Number.isInteger(size) && size > 0) {
       setPageSize(size);

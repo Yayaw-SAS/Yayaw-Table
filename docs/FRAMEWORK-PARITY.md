@@ -200,7 +200,10 @@ JSON form drafts preserve incomplete input, validate before schemas, and submit 
 Both editions accept `table.enableAutoPageSize: true` (default: false). In table
 mode the rows-per-page selector offers Automatic, followed by the computed row
 count while active. Capacity uses the available viewport or scroll container,
-header/footer space and the tallest measured row. Resize, density, column width
+header/footer space and the measured row heights in their display order.
+Unseen rows use the smallest visible row as an estimate. Capacity may decrease
+for later pages with taller rows and grows again after viewport/density changes
+to avoid oscillating page-size requests. Resize, density, column width
 and asynchronous content changes trigger recalculation; the table scroll area
 is bounded for unusually tall rows or expanded groups. Page sizes stay positive
 integers capped at 500, including in server `list` requests. The current first

@@ -29,6 +29,9 @@ describe('React automatic pagination', () => {
       await act(async () => { app.render(<div>Loading</div>); });
       await act(async () => { app.render(<Harness />); }); await flush();
       expect(host.querySelector('select')?.value).toBe('auto');
+      layout.rowHeight(20); layout.resize(600); await flush();
+      expect(host.querySelector('output')?.textContent).toBe('9');
+      layout.rowHeight(40);
       layout.resize(800); await flush();
       expect(host.querySelector('output')?.textContent).toBe('14');
       layout.rowHeight(20);
