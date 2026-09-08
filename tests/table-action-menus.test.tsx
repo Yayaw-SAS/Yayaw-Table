@@ -14,7 +14,10 @@ const rows = [
   { id: "2", name: "Beta" },
 ];
 const actions: TableActions = {
-  list: async () => ({ data: rows, meta: { pageCount: 1, totalCount: 2 } }),
+  list: async () => {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    return { data: rows, meta: { pageCount: 1, totalCount: 2 } };
+  },
   update: async () => ({ success: true }),
   create: async () => ({ success: true }),
 };
@@ -59,7 +62,7 @@ for (const syncUrl of [false, true]) {
       const result = originalSet(...args);
       try {
         recentWrites.push(
-          `${args[0]}: ${JSON.stringify(store.get(args[0])).slice(0, 1000)}`
+          `${args[0]}: ${JSON.stringify(store.get(args[0])).slice(0, 500)} ${new Error("State update").stack?.split("\n").slice(1, 9).join(" | ")}`
         );
       } catch {
         recentWrites.push(`${args[0]}: cyclic value`);
