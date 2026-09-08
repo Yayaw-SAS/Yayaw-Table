@@ -120,6 +120,7 @@ export interface TableCatalogueTableConfig {
   enableMultiRowSelection?: boolean;
   enablePagination?: boolean;
   defaultPageSize?: number;
+  enableAutoPageSize?: boolean;
   pageSizeOptions?: number[];
   dateDisplayPreset?: DateDisplayPreset;
   inlineEdit?: TableInlineEditConfig;
@@ -355,6 +356,7 @@ function resolveTableBehaviorConfig(
     enablePagination: mergedConfig.enablePagination,
     defaultPageSize: mergedConfig.defaultPageSize,
     pageSizeOptions: mergedConfig.pageSizeOptions,
+    enableAutoPageSize: mergedConfig.enableAutoPageSize,
     dateDisplayPreset:
       mergedConfig.dateDisplayPreset ??
       DEFAULT_TABLE_CONFIG.table.dateDisplayPreset,

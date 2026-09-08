@@ -8,3 +8,11 @@ await copyFile(
   ),
   new URL("../packages/yayaw-table-vue/src/table-contracts.ts", import.meta.url)
 );
+
+await copyFile(
+  new URL(
+    "../src/components/ui/yayaw-table/utils/auto-page-size.ts",
+    import.meta.url
+  ),
+  new URL("../packages/yayaw-table-vue/src/auto-page-size.ts", import.meta.url)
+);

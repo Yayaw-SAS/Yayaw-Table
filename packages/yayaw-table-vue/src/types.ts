@@ -238,6 +238,7 @@ export interface TableBehaviorConfig<TData extends TableRecord = TableRecord> {
   rowClickMode?: TableRowClickMode;
   enableSorting: boolean;
   enableViews?: boolean;
+  enableAutoPageSize?: boolean;
   pageSizeOptions: number[];
   dateDisplayPreset?: DateDisplayPreset;
   inlineEdit?: TableInlineEditConfig;

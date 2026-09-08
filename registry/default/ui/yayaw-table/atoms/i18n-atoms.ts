@@ -86,6 +86,7 @@ export interface DataTableUiStrings {
   resetColumns: string;
 
   rowsPerPage: string;
+  autoPageSize: string;
   // Actions
   save: string;
 
@@ -272,6 +273,7 @@ export const translationKeysMap: DataTableUiStrings = {
   resetColumns: "columns.resetOrder",
 
   rowsPerPage: "pagination.rowsPerPage",
+  autoPageSize: "pagination.autoPageSize",
   // Actions
   save: "actions.save",
   saveView: "views.save",

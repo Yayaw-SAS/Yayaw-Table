@@ -89,6 +89,8 @@ import {
   resolveGalleryLinkUrl,
 } from "./gallery-view";
 import { DataTableKanbanView } from "./kanban-view";
+import { useAutoPageSize } from '../hooks/use-auto-page-size';
+import { activeViewIdAtom } from '../atoms/view-atoms';
 import { SafePagination } from "./safe-pagination";
 import { useOnScreen } from "./utils/use-on-screen";
 
@@ -830,6 +832,10 @@ function TableEmptyStateContent({
 /**
  * Modern implementation of DataTable using the new hooks and components
  */
+function supportsAutomaticPageSize(pagination: boolean, automatic: boolean | undefined, gallery: boolean, kanban: boolean) {
+  return pagination && automatic === true && !gallery && !kanban;
+}
+
 function ModernDataTable<
   TData extends Record<string, unknown>,
   TValue = unknown,
@@ -879,6 +885,8 @@ function ModernDataTable<
   const isTableUpdatingRef = useRef(false);
   const _isVisibleRef = useRef(true);
   const tableRef = useRef<HTMLDivElement>(null);
+  const paginationRootRef = useRef<HTMLDivElement>(null);
+  const activeViewId = useAtomValue(activeViewIdAtom(tableId));
   const _previousRowsRef = useRef<Row<TData>[]>([]);
   const { isVisible: isBulkActionsAnchorVisible, ref: bulkActionsAnchorRef } =
     useOnScreen(BULK_ACTIONS_ANCHOR_VIEWPORT_OPTIONS);
@@ -2209,6 +2217,17 @@ function ModernDataTable<
     enableColumnResizing,
   ]);
 
+  const enableAutoPageSize = supportsAutomaticPageSize(enablePagination, tableConfig.table.enableAutoPageSize, isGalleryMode, isKanbanMode);
+  const autoPageSizing = useAutoPageSize({
+    root: paginationRootRef,
+    tableId,
+    enabled: enableAutoPageSize,
+    resetKey: `${tableId}:${activeViewId}:${isGalleryMode}:${isKanbanMode}`,
+    measurementKey: densityMode,
+    pageSize: table.store.state.pagination.pageSize,
+    setPageSize: size => table.setPageSize(size),
+  });
+
   const renderDisplayContent = () => {
     if (isKanbanMode) {
       return (
@@ -2305,6 +2324,7 @@ function ModernDataTable<
         <div
           className={cn("relative w-full overflow-auto", "contain-paint")}
           ref={tableRef}
+          style={{ maxHeight: autoPageSizing.tableHeight, overflowY: autoPageSizing.automatic ? "auto" : undefined }}
         >
           <Table
             data-density={densityMode}
@@ -2371,7 +2391,7 @@ function ModernDataTable<
         enablePagination,
         isTableBottomVisible: isBulkActionsAnchorVisible,
       });
-    const showPaginationControls = shouldRenderPaginationControls({
+    const showPaginationControls = (enableAutoPageSize && rowCount > 0) || shouldRenderPaginationControls({
       enablePagination,
       pageCount: table.getPageCount(),
       pageSize: table.store.state.pagination.pageSize,
@@ -2392,13 +2412,16 @@ function ModernDataTable<
         onDragStart={handleDragStartWithOverlay}
         sensors={columnSensors}
       >
-        <div className="relative">
+        <div className="relative" ref={paginationRootRef}>
           <div className="space-y-4">
             {renderDisplayContent()}
 
             {/* Pagination is outside the table container to avoid focus issues */}
             {showPaginationArea && (
               <SafePagination
+                automatic={autoPageSizing.automatic}
+                enableAutoPageSize={enableAutoPageSize}
+                onPageSizeSelect={autoPageSizing.selectSize}
                 containerRef={handlePaginationContainerRef}
                 controlsRef={handlePaginationControlsRef}
                 footerSlot={

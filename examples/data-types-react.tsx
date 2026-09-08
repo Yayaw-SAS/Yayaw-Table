@@ -15,6 +15,7 @@ const config = defineTableConfig({
     mandatory: [],
   },
   table: {
+    enableAutoPageSize: true,
     allowInlineEdit: true,
     inlineEdit: { enabled: true },
     allowCreate: true,

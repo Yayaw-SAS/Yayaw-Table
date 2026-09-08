@@ -1,0 +1,79 @@
+import { onBeforeUnmount, onMounted, type Ref, ref, watch } from "vue";
+import {
+  type AutoPageMeasurement,
+  observeAutoPageSize,
+} from "../auto-page-size";
+import { useTableContext } from "../context";
+
+export function useAutoPageSize(root: Ref<HTMLElement | undefined>) {
+  const context = useTableContext();
+  const automatic = ref(false);
+  const measurement = ref<AutoPageMeasurement>();
+  let expectedSize: number | undefined;
+  let stop: (() => void) | undefined;
+  let mounted = false;
+  const setPageSize = (pageSize: number) => {
+    const previous = context.state.pagination.value;
+    expectedSize = pageSize;
+    if (previous.pageSize !== pageSize) {
+      context.state.pagination.value = {
+        pageIndex: Math.floor(
+          (previous.pageIndex * previous.pageSize) / pageSize
+        ),
+        pageSize,
+      };
+    }
+  };
+  const observe = () => {
+    stop?.();
+    if (!(mounted && root.value && context.config.table.enableAutoPageSize)) {
+      return;
+    }
+    stop = observeAutoPageSize(root.value, (value) => {
+      if (
+        measurement.value?.pageSize !== value.pageSize ||
+        measurement.value?.tableHeight !== value.tableHeight
+      ) {
+        measurement.value = value;
+      }
+      if (automatic.value) {
+        setPageSize(value.pageSize);
+      }
+    });
+  };
+  onMounted(() => {
+    mounted = true;
+    observe();
+  });
+  onBeforeUnmount(() => {
+    mounted = false;
+    stop?.();
+  });
+  watch(() => context.state.density.value, observe);
+  watch(
+    () => context.state.activeViewId.value,
+    () => {
+      automatic.value = false;
+    }
+  );
+  watch(
+    () => context.state.pagination.value.pageSize,
+    (value) => {
+      if (
+        automatic.value &&
+        expectedSize !== undefined &&
+        value !== expectedSize
+      ) {
+        automatic.value = false;
+      }
+    }
+  );
+  const selectSize = (value: string) => {
+    automatic.value = value === "auto";
+    const size = automatic.value ? measurement.value?.pageSize : Number(value);
+    if (size && Number.isInteger(size) && size > 0) {
+      setPageSize(size);
+    }
+  };
+  return { automatic, measurement, selectSize };
+}

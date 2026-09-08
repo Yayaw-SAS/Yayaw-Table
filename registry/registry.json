@@ -773,6 +773,11 @@
           "target": "components/ui/yayaw-table/hooks/use-advanced-filters.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/hooks/use-auto-page-size.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/hooks/use-auto-page-size.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/hooks/use-bulk-actions.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/hooks/use-bulk-actions.ts"
@@ -976,6 +981,11 @@
           "path": "registry/default/ui/yayaw-table/utils/advanced-filters.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/advanced-filters.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/auto-page-size.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/auto-page-size.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/utils/card-interaction.ts",

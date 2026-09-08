@@ -108,6 +108,7 @@ const config = defineTableConfig<Product>({
     sort: [{ id: "name", desc: false }],
   },
   table: {
+    enableAutoPageSize: true,
     displayModes: ["table", "kanban", "gallery"],
     defaultDisplayMode: "table",
     allowInlineEdit: true,
