@@ -9,6 +9,30 @@ import { catalogueFormAtom } from "../src/components/ui/yayaw-table/components/f
 import { defineTableConfig } from "../src/components/ui/yayaw-table/config/helpers";
 import type { TableActions } from "../src/components/ui/yayaw-table/providers/table-provider";
 
+interface RenderFiber {
+  actualDuration?: number;
+  alternate?: RenderFiber;
+  child?: RenderFiber;
+  flags: number;
+  sibling?: RenderFiber;
+  type?: { name?: string; displayName?: string; render?: { name?: string } };
+  memoizedState?: unknown;
+}
+
+function describeRenderedFibers(fiber?: RenderFiber): string[] {
+  if (!fiber) {
+    return [];
+  }
+  const name =
+    fiber.type?.displayName ?? fiber.type?.name ?? fiber.type?.render?.name;
+  const changed = name && fiber.flags % 2 === 1 ? [name] : [];
+  return [
+    ...changed,
+    ...describeRenderedFibers(fiber.child),
+    ...describeRenderedFibers(fiber.sibling),
+  ];
+}
+
 const rows = [
   { id: "1", name: "Alpha" },
   { id: "2", name: "Beta" },
@@ -53,6 +77,7 @@ for (const syncUrl of [false, true]) {
     const editedIds: unknown[][] = [];
     let commits = 0;
     let stage = "mount";
+    const recentRenders: string[][] = [];
     const render = (description: string) => {
       root.render(
         <Provider store={store}>
@@ -61,10 +86,21 @@ for (const syncUrl of [false, true]) {
               id="table"
               onRender={() => {
                 commits += 1;
+                if (commits > 195) {
+                  recentRenders.push(
+                    describeRenderedFibers(
+                      (
+                        root as unknown as {
+                          _internalRoot: { current: RenderFiber };
+                        }
+                      )._internalRoot.current
+                    )
+                  );
+                }
                 // Fail promptly if a controlled-state feedback loop returns.
                 if (commits > 200) {
                   throw new Error(
-                    `Table did not settle after 200 commits during ${stage}`
+                    `Table did not settle after 200 commits during ${stage}: ${JSON.stringify(recentRenders)}`
                   );
                 }
               }}
