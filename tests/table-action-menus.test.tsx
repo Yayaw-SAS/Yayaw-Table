@@ -52,6 +52,7 @@ for (const syncUrl of [false, true]) {
     const root = createRoot(container);
     const editedIds: unknown[][] = [];
     let commits = 0;
+    let stage = "mount";
     const render = (description: string) => {
       root.render(
         <Provider store={store}>
@@ -62,7 +63,9 @@ for (const syncUrl of [false, true]) {
                 commits += 1;
                 // Fail promptly if a controlled-state feedback loop returns.
                 if (commits > 200) {
-                  throw new Error("Table did not settle after 200 commits");
+                  throw new Error(
+                    `Table did not settle after 200 commits during ${stage}`
+                  );
                 }
               }}
             >
@@ -116,10 +119,12 @@ for (const syncUrl of [false, true]) {
           'tbody [aria-label="Actions"]'
         )
       );
+      stage = "open row menu";
       await act(() => trigger.click());
       await act(settle);
       expect(trigger.getAttribute("aria-expanded")).toBe("true");
       await act(async () => {
+        stage = "rerender open menu";
         render("Updated description");
         await settle();
       });
@@ -133,11 +138,13 @@ for (const syncUrl of [false, true]) {
         )
       );
       await act(async () => {
+        stage = "open edit form";
         edit.click();
         await settle();
       });
       expect(store.get(catalogueFormAtom).isOpen).toBe(true);
       expect(store.get(catalogueFormAtom).initialData?.id).toBe("1");
+      stage = "close edit form";
       await act(() =>
         store.set(catalogueFormAtom, (previous) => ({
           ...previous,
@@ -150,6 +157,7 @@ for (const syncUrl of [false, true]) {
         )
       );
       await act(async () => {
+        stage = "select row";
         checkbox.click();
         await settle();
       });
@@ -160,6 +168,7 @@ for (const syncUrl of [false, true]) {
         )
       );
       await act(async () => {
+        stage = "rerender bulk selection";
         render("Selection preserved");
         await settle();
       });
@@ -172,6 +181,7 @@ for (const syncUrl of [false, true]) {
         )
       );
       await act(async () => {
+        stage = "bulk edit";
         bulkEdit.click();
         await settle();
       });
@@ -190,6 +200,7 @@ for (const syncUrl of [false, true]) {
         )
       );
       await act(async () => {
+        stage = "select all";
         selectAll.click();
         await settle();
       });
@@ -212,6 +223,7 @@ for (const syncUrl of [false, true]) {
         ].every((item) => item.getAttribute("aria-checked") === "false")
       ).toBe(true);
     } finally {
+      stage = "unmount";
       await act(() => root.unmount());
       client.clear();
       container.remove();
