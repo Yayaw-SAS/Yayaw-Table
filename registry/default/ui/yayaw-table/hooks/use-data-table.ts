@@ -32,6 +32,7 @@ import { useTableUrlData } from "./use-table-url-data";
 import { useTableUrlState } from "./use-table-url-state";
 
 const DEBUG = false;
+const EMPTY_ARRAY: never[] = [];
 
 interface ColumnSizingConfig {
   maxSize?: number;
@@ -190,6 +191,12 @@ export function useDataTable<TData extends Record<string, unknown>>(
     await invalidateTableDataQuery({ queryClient, tableId });
   }, [queryClient, tableId]);
 
+  const { setPageParam } = tableUrlState;
+  const handleActionSuccess = useCallback(async () => {
+    setPageParam("0");
+    await invalidateTable();
+  }, [setPageParam, invalidateTable]);
+
   // Get table actions using extracted hook (before queryFn to avoid circular reference)
   const {
     actions,
@@ -201,11 +208,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
     isActionsAvailable: _isActionsAvailable,
   } = useTableActions<TData>({
     tableType,
-    onSuccess: async () => {
-      // This will be defined later
-      tableUrlState.setPageParam("0");
-      await invalidateTable();
-    },
+    onSuccess: handleActionSuccess,
   });
 
   const isCreateAllowed = config.table.allowCreate !== false;
@@ -257,7 +260,8 @@ export function useDataTable<TData extends Record<string, unknown>>(
   );
 
   // Get table state from URL parameters with proper type assertions
-  const columnFilters = (tableUrlState.filtersParam || []) as ColumnFilter[];
+  const columnFilters = (tableUrlState.filtersParam ||
+    EMPTY_ARRAY) as ColumnFilter[];
   const { pagination } = tableUrlState;
 
   // Helper function to build orderBy parameter
@@ -395,7 +399,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
   const error = urlDataResult?.error;
   const isError = urlDataResult?.isError;
   const isLoading = urlDataResult?.isLoading;
-  const baseRefetch = urlDataResult?.refetch || (() => Promise.resolve());
+  const baseRefetch = urlDataResult.refetch;
   const rowCount = urlDataResult?.rowCount ?? 0;
   const pageCount =
     urlDataResult?.pageCount ?? Math.ceil(rowCount / pagination.pageSize);
@@ -407,9 +411,9 @@ export function useDataTable<TData extends Record<string, unknown>>(
     });
 
   // Get table state from URL parameters with proper type assertions
-  const columnOrder = (tableUrlState.orderParam || []) as string[];
+  const columnOrder = (tableUrlState.orderParam || EMPTY_ARRAY) as string[];
   const columnSizing = tableUrlState.sizingParam as ColumnSizingState;
-  const sorting = (tableUrlState.sortParam || []) as ColumnSort[];
+  const sorting = (tableUrlState.sortParam || EMPTY_ARRAY) as ColumnSort[];
 
   // Compute column visibility: when URL has no visibility state, derive it
   // from config.columns.visible so columns in order/definitions but NOT in
@@ -462,10 +466,10 @@ export function useDataTable<TData extends Record<string, unknown>>(
 
   // Enhanced refetch function that resets pagination and invalidates queries
   const enhancedRefetch = useCallback(async () => {
-    tableUrlState.setPageParam("0");
+    setPageParam("0");
     await invalidateTable();
     await baseRefetch();
-  }, [tableUrlState, invalidateTable, baseRefetch]);
+  }, [setPageParam, invalidateTable, baseRefetch]);
 
   // Use our columns hook to define columns in a modular way
   const { column, createColumns } = useColumns<TData>({

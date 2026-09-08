@@ -483,6 +483,45 @@ export function useTableInstance<TData extends Record<string, unknown>>({
     return combined;
   }, [orderParam, initialColumnOrder]);
 
+  // TanStack v9 publishes controlled slices after each commit. Preserve their
+  // references between updates so an unchanged state cannot trigger a render loop.
+  const controlledState = useMemo(
+    () => ({
+      columnFilters: Array.isArray(filtersParam)
+        ? (filtersParam as ColumnFiltersState)
+        : [],
+      columnOrder: resolvedColumnOrder,
+      columnPinning: toInternalColumnPinning(
+        pinningParam || {
+          left: ["select"],
+          right: ["actions"],
+        }
+      ),
+      columnSizing: sizingParam as ColumnSizingState,
+      columnVisibility: initialColumnVisibility as VisibilityState,
+      expanded: {},
+      globalFilter: globalSearchParam || "",
+      grouping: Array.isArray(groupingParam) ? (groupingParam as string[]) : [],
+      pagination,
+      rowSelection: effectiveRowSelection,
+      sorting: Array.isArray(validatedSorting)
+        ? (validatedSorting as SortingState)
+        : [],
+    }),
+    [
+      filtersParam,
+      resolvedColumnOrder,
+      pinningParam,
+      sizingParam,
+      initialColumnVisibility,
+      globalSearchParam,
+      groupingParam,
+      pagination,
+      effectiveRowSelection,
+      validatedSorting,
+    ]
+  );
+
   // Create the table instance with memoized values
   const tableInstance = useYayawTable({
     columns: memoizedColumns,
@@ -528,28 +567,7 @@ export function useTableInstance<TData extends Record<string, unknown>>({
       pageCount,
       pageSize: pagination.pageSize,
     }),
-    state: {
-      columnFilters: Array.isArray(filtersParam)
-        ? (filtersParam as ColumnFiltersState)
-        : [],
-      columnOrder: resolvedColumnOrder,
-      columnPinning: toInternalColumnPinning(
-        pinningParam || {
-          left: ["select"],
-          right: ["actions"],
-        }
-      ),
-      columnSizing: sizingParam as ColumnSizingState,
-      columnVisibility: initialColumnVisibility as VisibilityState,
-      expanded: {},
-      globalFilter: globalSearchParam || "",
-      grouping: Array.isArray(groupingParam) ? (groupingParam as string[]) : [],
-      pagination,
-      rowSelection: effectiveRowSelection,
-      sorting: Array.isArray(validatedSorting)
-        ? (validatedSorting as SortingState)
-        : [],
-    },
+    state: controlledState,
   });
 
   useEffect(() => {

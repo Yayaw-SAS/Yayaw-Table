@@ -16,6 +16,9 @@ import { useTableUrlState } from "./use-table-url-state";
 
 const _DEBUG = false;
 
+const defaultGetRowId = <TData>(row: TData): string =>
+  (row as Record<string, unknown>).id as string;
+
 interface UseTableUrlDataOptions<TData> {
   defaultPageSize?: number;
   enabled?: boolean;
@@ -129,7 +132,7 @@ export function resolveInitialTableQueryData<TData>({
 export function useTableUrlData<TData>({
   defaultPageSize = 10,
   enabled = true,
-  getRowId = (row: TData) => (row as Record<string, unknown>).id as string,
+  getRowId = defaultGetRowId,
   initialData = [],
   initialPageCount,
   initialRowCount,

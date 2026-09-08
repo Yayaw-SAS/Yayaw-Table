@@ -24,6 +24,7 @@ for (const name of [
   "MutationObserver",
   "ResizeObserver",
   "Event",
+  "CustomEvent",
   "MouseEvent",
   "PointerEvent",
   "KeyboardEvent",
