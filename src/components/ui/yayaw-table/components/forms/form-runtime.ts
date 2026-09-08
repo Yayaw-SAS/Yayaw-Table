@@ -1,3 +1,4 @@
+import { translateFormBlocks } from "../../utils/form-layout";
 import {
   dataTypeValueError,
   parseJsonFormValue,
@@ -174,6 +175,9 @@ export const translateFormConfig = (config: FormConfig): FormConfig => {
   return {
     ...config,
     fields: config.fields.map(field),
+    blocks: config.blocks
+      ? translateFormBlocks(config.blocks, keys)
+      : undefined,
     sections: config.sections?.map((section) => ({
       ...section,
       title: translate(section.titleKey, section.title),
@@ -232,7 +236,12 @@ const validateScalar = (
   if (field.required && missing(value)) {
     return `${field.label} is required`;
   }
-  const typeError = dataTypeValueError(["dynamic-value", "dynamicValue", "value-type"].includes(field.type) ? dynamicFieldType(field, context) : field.type, value);
+  const typeError = dataTypeValueError(
+    ["dynamic-value", "dynamicValue", "value-type"].includes(field.type)
+      ? dynamicFieldType(field, context)
+      : field.type,
+    value
+  );
   if (typeError) {
     return `${field.label}: ${typeError}`;
   }

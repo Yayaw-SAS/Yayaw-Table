@@ -224,6 +224,7 @@ function resolveDataTableHeaderContent({
 }
 
 function DataTableHeaderControls({
+  defaultDensity,
   allowViewSave,
   allowViewSharing,
   baseData,
@@ -259,6 +260,7 @@ function DataTableHeaderControls({
     "date" | "multiSelect" | "number" | "select" | "text"
   >;
   defaultDisplayMode?: TableDisplayMode;
+  defaultDensity?: TableView["config"]["density"];
   defaultFormType: string;
   displayModes?: TableDisplayMode[];
   enableKanbanGrouping: boolean;
@@ -295,6 +297,7 @@ function DataTableHeaderControls({
             <DataTableViewManager
               allowViewSave={allowViewSave !== false}
               allowViewSharing={allowViewSharing === true}
+              defaultDensity={defaultDensity}
               defaultDisplayMode={defaultDisplayMode}
               initialActiveViewId={initialActiveViewId}
               initialViews={initialViews}
@@ -630,6 +633,7 @@ function DataTableContent({
                     allowViewSharing={config.table.allowViewSharing}
                     baseData={baseData}
                     columnTypeMapping={columnTypeMapping}
+                    defaultDensity={config.table.density}
                     defaultDisplayMode={config.table.defaultDisplayMode}
                     defaultFormType={defaultFormType}
                     displayModes={config.table.displayModes}

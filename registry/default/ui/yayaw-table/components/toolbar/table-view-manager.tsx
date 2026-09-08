@@ -37,12 +37,17 @@ import {
   useTranslations,
 } from "../../providers/table-provider";
 import type { TableDisplayMode } from "../../types/display-types";
-import type { TableView, TableViewActions } from "../../types/view-types";
+import type {
+  TableView,
+  TableViewActions,
+  TableViewConfig,
+} from "../../types/view-types";
 import { TableTooltip } from "../../utils/table-tooltip";
 import { areTableViewConfigsEqual } from "../../utils/table-view-state";
 import { createLocalTableViewActions } from "../../utils/table-view-storage";
 
 interface DataTableViewManagerProps {
+  defaultDensity?: TableViewConfig["density"];
   allowViewSave?: boolean;
   allowViewSharing?: boolean;
   className?: string;
@@ -265,6 +270,7 @@ function ViewShareOption({
 }
 
 export function DataTableViewManager({
+  defaultDensity = "medium",
   allowViewSave = true,
   allowViewSharing = false,
   className,
@@ -299,6 +305,7 @@ export function DataTableViewManager({
   const hasAppliedInitialViewRef = useRef(false);
   const { applyViewConfig, getCurrentViewConfig, resetUrlState, viewParam } =
     useTableUrlState({
+      defaultDensity,
       defaultDisplayMode,
       tableId,
     });
@@ -326,7 +333,11 @@ export function DataTableViewManager({
     [savedViews, viewParam]
   );
   const isActiveViewDirty = Boolean(
-    activeView && !areTableViewConfigsEqual(currentConfig, activeView.config)
+    activeView &&
+      !areTableViewConfigsEqual(currentConfig, {
+        ...activeView.config,
+        density: activeView.config.density ?? defaultDensity,
+      })
   );
   const canUpdateActiveView = Boolean(
     allowViewSave && activeView && !activeView.isSystem && viewActions.update

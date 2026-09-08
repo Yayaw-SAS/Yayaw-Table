@@ -675,3 +675,140 @@ it("keeps an incomplete JSON form draft visible and blocks submission until corr
   await flushPromises();
   expect(update).toHaveBeenCalledWith("1", { payload: { enabled: true } });
 });
+
+it("composes translated blocks and async actions while preserving field validation and submission", async () => {
+  const gate = deferred<void>();
+  let calls = 0;
+  const { wrapper, update } = mountForm(
+    {
+      id: "layout",
+      translations: {
+        namespace: "layout",
+        keys: { note: "Reviewed information" },
+      },
+      fields: [
+        { name: "name", label: "Name", type: "text", required: true },
+        { name: "amount", label: "Amount", type: "number" },
+      ],
+      blocks: [
+        {
+          type: "section",
+          id: "details",
+          columns: 2,
+          blocks: [
+            { type: "field", name: "name" },
+            { type: "field", name: "name" },
+            { type: "field", name: "unknown" },
+            {
+              type: "content",
+              id: "note",
+              text: "Fallback",
+              textKey: "note",
+              span: "full",
+            },
+            {
+              type: "custom",
+              id: "preview",
+              render: ({ values }) =>
+                h("output", String(values?.name || "Empty")),
+            },
+          ],
+        },
+        {
+          type: "actions",
+          id: "tools",
+          actions: [
+            {
+              id: "enrich",
+              label: "Enrich",
+              validate: true,
+              onClick: async (ctx) => {
+                calls++;
+                if (calls === 1) {
+                  throw new Error("Try again");
+                }
+                await gate.promise;
+                ctx.setFieldValue("name", "Enriched");
+              },
+            },
+          ],
+        },
+      ],
+    },
+    { name: "", amount: 7 }
+  );
+  await flushPromises();
+  expect(wrapper.findAll('[data-field-name="name"] input')).toHaveLength(1);
+  expect(wrapper.text()).toContain("Reviewed information");
+  expect(wrapper.find('[data-form-columns="2"]').exists()).toBe(true);
+  expect(wrapper.find('[data-form-block="field-amount"]').exists()).toBe(true);
+  const button = wrapper.get('[data-form-block="tools"] button');
+  await button.trigger("click");
+  await flushPromises();
+  expect(calls).toBe(0);
+  expect(wrapper.text()).toContain("Name is required");
+  await wrapper.get('[data-field-name="name"] input').setValue("Draft");
+  await flushPromises();
+  expect(wrapper.get("output").text()).toBe("Draft");
+  await button.trigger("click");
+  await flushPromises();
+  expect(wrapper.text()).toContain("Try again");
+  await button.trigger("click");
+  await button.trigger("click");
+  await flushPromises();
+  expect(calls).toBe(2);
+  expect(button.attributes("disabled")).toBeDefined();
+  expect(update).not.toHaveBeenCalled();
+  gate.resolve();
+  await flushPromises();
+  expect(button.attributes("disabled")).toBeUndefined();
+  expect(wrapper.get("output").text()).toBe("Enriched");
+  await wrapper.get("form").trigger("submit");
+  await flushPromises();
+  expect(update).toHaveBeenCalledWith("1", { name: "Enriched", amount: 7 });
+});
+
+it("aborts a custom action on unmount and ignores late writes", async () => {
+  const gate = deferred<void>();
+  let signal: AbortSignal | undefined;
+  let liveValues: TableRecord | undefined;
+  const { wrapper } = mountForm(
+    {
+      id: "abort",
+      fields: [{ name: "name", label: "Name", type: "text" }],
+      blocks: [
+        {
+          type: "custom",
+          id: "preview",
+          render: ({ values }) => {
+            liveValues = values;
+            return null;
+          },
+        },
+        {
+          type: "actions",
+          id: "tools",
+          actions: [
+            {
+              id: "load",
+              label: "Load",
+              onClick: async (ctx, currentSignal) => {
+                signal = currentSignal;
+                await gate.promise;
+                ctx.setFieldValue("name", "Late");
+              },
+            },
+          ],
+        },
+      ],
+    },
+    { name: "Draft" }
+  );
+  await flushPromises();
+  await wrapper.get('[data-form-block="tools"] button').trigger("click");
+  wrapper.unmount();
+  expect(signal?.aborted).toBe(true);
+  gate.resolve();
+  await flushPromises();
+  expect(liveValues?.name).toBe("Draft");
+});

@@ -568,6 +568,11 @@
           "target": "components/ui/yayaw-table/components/forms/fields/value-type-selector.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/forms/form-blocks.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/forms/form-blocks.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/forms/form-builder.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/forms/form-builder.tsx"
@@ -1026,6 +1031,11 @@
           "path": "registry/default/ui/yayaw-table/utils/filtered-rows.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/filtered-rows.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/form-layout.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/form-layout.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/utils/image-source.ts",

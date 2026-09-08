@@ -1,3 +1,4 @@
+import { translateFormBlocks } from "../../utils/form-layout";
 import {
   dataTypeValueError,
   isJsonFormDraft,
@@ -174,6 +175,9 @@ export const translateFormConfig = (config: FormConfig): FormConfig => {
   return {
     ...config,
     fields: config.fields.map(field),
+    blocks: config.blocks
+      ? translateFormBlocks(config.blocks, keys)
+      : undefined,
     sections: config.sections?.map((section) => ({
       ...section,
       title: translate(section.titleKey, section.title),

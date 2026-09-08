@@ -48,6 +48,7 @@ import { createLocalTableViewActions } from "../../utils/table-view-storage";
 import { areTableViewConfigsEqual } from "../../utils/table-view-state";
 
 interface DataTableViewManagerProps {
+  defaultDensity?: TableViewConfig["density"];
   allowViewSave?: boolean;
   allowViewSharing?: boolean;
   className?: string;
@@ -270,6 +271,7 @@ function ViewShareOption({
 }
 
 export function DataTableViewManager({
+  defaultDensity = "medium",
   allowViewSave = true,
   allowViewSharing = false,
   className,
@@ -302,15 +304,12 @@ export function DataTableViewManager({
   const [inlineError, setInlineError] = useState<string>();
   const [isMutating, setIsMutating] = useState(false);
   const hasAppliedInitialViewRef = useRef(false);
-  const {
-    applyViewConfig,
-    getCurrentViewConfig,
-    resetUrlState,
-    viewParam,
-  } = useTableUrlState({
-    defaultDisplayMode,
-    tableId,
-  });
+  const { applyViewConfig, getCurrentViewConfig, resetUrlState, viewParam } =
+    useTableUrlState({
+      defaultDensity,
+      defaultDisplayMode,
+      tableId,
+    });
   const viewQueryKey = useMemo(
     () => ["tableViews", tableId, tableType],
     [tableId, tableType]
@@ -335,7 +334,11 @@ export function DataTableViewManager({
     [savedViews, viewParam]
   );
   const isActiveViewDirty = Boolean(
-    activeView && !areTableViewConfigsEqual(currentConfig, activeView.config)
+    activeView &&
+      !areTableViewConfigsEqual(currentConfig, {
+        ...activeView.config,
+        density: activeView.config.density ?? defaultDensity,
+      })
   );
   const canUpdateActiveView = Boolean(
     allowViewSave && activeView && !activeView.isSystem && viewActions.update
@@ -362,7 +365,9 @@ export function DataTableViewManager({
       return;
     }
 
-    const initialView = savedViews.find((view) => view.id === preferredInitialViewId);
+    const initialView = savedViews.find(
+      (view) => view.id === preferredInitialViewId
+    );
     if (!initialView) {
       return;
     }

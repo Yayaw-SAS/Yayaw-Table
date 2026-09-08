@@ -431,3 +431,39 @@ it("shows a localized add-view tooltip on keyboard focus without a native duplic
   await new Promise((resolve) => setTimeout(resolve, 0));
   expect(body().get('[role="tooltip"]').text()).toBe("Ajouter une vue");
 });
+
+it("tracks density-only changes and restores a saved density or legacy default", async () => {
+  const wrapper = mountTable({
+    views: [
+      saved,
+      {
+        ...saved,
+        id: "compact",
+        name: "Compact",
+        config: { density: "extra-small" },
+      },
+    ],
+    active: saved.id,
+    table: { density: "large" },
+  });
+  await flushPromises();
+  expect(saveButton(wrapper).attributes("disabled")).toBeDefined();
+  await wrapper
+    .get('[aria-label="Table density: L"]')
+    .trigger("keydown", { key: "Enter" });
+  await flushPromises();
+  await body()
+    .findAll('[role="menuitemradio"]')
+    .find((item) => item.text() === "XS")
+    ?.trigger("click");
+  await flushPromises();
+  expect(saveButton(wrapper).attributes("disabled")).toBeUndefined();
+  await openMenu(wrapper);
+  await choose("Compact");
+  expect(wrapper.find('[aria-label="Table density: XS"]').exists()).toBe(true);
+  expect(saveButton(wrapper).attributes("disabled")).toBeDefined();
+  await openMenu(wrapper);
+  await choose("My view");
+  expect(wrapper.find('[aria-label="Table density: L"]').exists()).toBe(true);
+  expect(saveButton(wrapper).attributes("disabled")).toBeDefined();
+});

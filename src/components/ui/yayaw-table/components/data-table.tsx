@@ -12,7 +12,7 @@ import type {
   BulkActionCustomHandlerResult,
   BulkDeleteCustomHandlerResult,
 } from "../hooks/use-bulk-actions";
-import { useAutoPageSizeLifetime } from '../hooks/use-auto-page-size';
+import { useAutoPageSizeLifetime } from "../hooks/use-auto-page-size";
 import { useDataTable } from "../hooks/use-data-table";
 import type { TableCatalogueConfig } from "../hooks/use-table-config";
 
@@ -219,14 +219,12 @@ function resolveDataTableHeaderContent({
       configDescription ||
       `Manage your ${tableType}`,
     displayTitle:
-      title ||
-      translationText?.title ||
-      configTitle ||
-      `${tableType} Table`,
+      title || translationText?.title || configTitle || `${tableType} Table`,
   };
 }
 
 function DataTableHeaderControls({
+  defaultDensity,
   allowViewSave,
   allowViewSharing,
   baseData,
@@ -262,6 +260,7 @@ function DataTableHeaderControls({
     "date" | "multiSelect" | "number" | "select" | "text"
   >;
   defaultDisplayMode?: TableDisplayMode;
+  defaultDensity?: TableView["config"]["density"];
   defaultFormType: string;
   displayModes?: TableDisplayMode[];
   enableKanbanGrouping: boolean;
@@ -296,6 +295,7 @@ function DataTableHeaderControls({
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           {shouldShowViews ? (
             <DataTableViewManager
+              defaultDensity={defaultDensity}
               allowViewSave={allowViewSave !== false}
               allowViewSharing={allowViewSharing === true}
               defaultDisplayMode={defaultDisplayMode}
@@ -387,9 +387,7 @@ function DataTableContent({
   loadingOverlay?: React.ReactNode;
   enableToolbar?: boolean;
   onRowSelectionChange?: (rows: Row<Record<string, unknown>>[]) => void;
-  onRowSelectionStateChange?: (
-    selection: Record<string, boolean>
-  ) => void;
+  onRowSelectionStateChange?: (selection: Record<string, boolean>) => void;
   rowSelection?: Record<string, boolean>;
   onBulkEdit?: (
     rows: Row<Record<string, unknown>>[]
@@ -515,7 +513,8 @@ function DataTableContent({
   const Description = DescriptionComponent || DefaultTableDescription;
   const shouldShowToolbar = enableToolbar && config.table.showToolbar !== false;
   const shouldShowToolbarHeader = config.table.showToolbarHeader !== false;
-  const shouldShowViews = enableViews !== false && config.table.enableViews !== false;
+  const shouldShowViews =
+    enableViews !== false && config.table.enableViews !== false;
   const {
     resolvedSearchDebounceMs,
     resolvedToolbarActions,
@@ -630,6 +629,7 @@ function DataTableContent({
 
                 {!isLoading && (
                   <DataTableHeaderControls
+                    defaultDensity={config.table.density}
                     allowViewSave={config.table.allowViewSave}
                     allowViewSharing={config.table.allowViewSharing}
                     baseData={baseData}
@@ -678,7 +678,9 @@ function DataTableContent({
                 enableColumnDragDropByDefault={Boolean(
                   config.table.enableColumnDragDropByDefault
                 )}
-                enableColumnResizing={config.table.enableColumnResizing === true}
+                enableColumnResizing={
+                  config.table.enableColumnResizing === true
+                }
                 enableColumnFilters={config.table.enableColumnFilters}
                 enableColumnPinning={config.table.enableColumnPinning !== false}
                 enableGrouping={config.table.enableGrouping}

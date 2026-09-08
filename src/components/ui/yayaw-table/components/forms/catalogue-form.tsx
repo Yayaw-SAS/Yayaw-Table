@@ -381,14 +381,7 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
         setLoading(false);
       }
     },
-    [
-      setFormState,
-      setFormSubmitted,
-      setLoading,
-      setError,
-      mode,
-      onSuccessRef,
-    ]
+    [setFormState, setFormSubmitted, setLoading, setError, mode, onSuccessRef]
   );
 
   const formCatalogueParamsWithSubmit = useMemo(
@@ -625,6 +618,9 @@ function CatalogueFormBody<TFieldValues extends FieldValues>({
           )}
           <fieldset disabled={disabled}>
             <FormBuilder
+              blocks={builder.blocks}
+              disabled={disabled}
+              isSubmitting={loading}
               context={context}
               fields={fields}
               form={form}
@@ -658,6 +654,12 @@ function CatalogueFormBody<TFieldValues extends FieldValues>({
   );
 }
 
-function resolveFormTitle<T extends FieldValues>(config: FormConfig<T>, mode: "create" | "update", row?: FieldValues) {
-  return typeof config.title === "function" ? config.title(mode === "update" ? "edit" : "create", row) : config.title;
+function resolveFormTitle<T extends FieldValues>(
+  config: FormConfig<T>,
+  mode: "create" | "update",
+  row?: FieldValues
+) {
+  return typeof config.title === "function"
+    ? config.title(mode === "update" ? "edit" : "create", row)
+    : config.title;
 }

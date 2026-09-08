@@ -14,6 +14,7 @@ import {
 import { createTableViewSnapshot } from "../core";
 import { cloneFormValue } from "../form-runtime";
 import {
+  isTableDensity,
   normalizeColumnSizing,
   normalizeFilterEnvelope,
   normalizeViewAliases,
@@ -234,6 +235,7 @@ export const useTableState = <TData extends TableRecord>({
 
   const snapshot = computed<TableViewConfig>(() => ({
     ...createTableViewSnapshot({
+      density: density.value,
       globalSearch: search.value,
       columnFilters: enabledFilters(filters.value),
       columnPinning: enabledPinning(pinning.value),
@@ -420,6 +422,9 @@ export const useTableState = <TData extends TableRecord>({
     );
     return cloneFormValue(
       createTableViewSnapshot({
+        density: isTableDensity(input.density)
+          ? input.density
+          : config.table.density,
         globalSearch,
         search: globalSearch,
         columnFilters,
@@ -468,6 +473,7 @@ export const useTableState = <TData extends TableRecord>({
 
   const applyView = (input: TableViewConfig, viewId?: string): void => {
     const view = resolveView(input);
+    densityOverride.value = view.density;
     search.value = view.search ?? "";
     filters.value = view.filters ?? [];
     advancedFilters.value = enabledAdvancedFilters(

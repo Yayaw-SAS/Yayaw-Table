@@ -385,3 +385,186 @@ it("preserves an invalid JSON draft and only submits the corrected parsed value"
   await act(() => builder.form.handleSubmit());
   expect(saved).toEqual([{ payload: { enabled: true } }]);
 });
+
+it("composes fields, translated content and asynchronous actions without changing the submitted shape", async () => {
+  const view = mount();
+  let builder!: ReturnType<typeof useFormBuilder<FieldValues>>;
+  const saved: FieldValues[] = [];
+  let calls = 0;
+  const gate = deferred<void>();
+  const config: FormConfig = {
+    id: "layout",
+    defaultValues: { name: "", amount: 7 },
+    translations: {
+      namespace: "layout",
+      keys: { note: "Reviewed information" },
+    },
+    fields: [
+      { name: "name", label: "Name", type: "text", required: true },
+      { name: "amount", label: "Amount", type: "number" },
+    ],
+    blocks: [
+      {
+        type: "section",
+        id: "details",
+        columns: 2,
+        blocks: [
+          { type: "field", name: "name" },
+          { type: "field", name: "name" },
+          { type: "field", name: "unknown" },
+          {
+            type: "content",
+            id: "note",
+            text: "Fallback",
+            textKey: "note",
+            span: "full",
+          },
+          {
+            type: "custom",
+            id: "preview",
+            render: ({ values }) => (
+              <output>{String(values?.name || "Empty")}</output>
+            ),
+          },
+        ],
+      },
+      {
+        type: "actions",
+        id: "tools",
+        actions: [
+          {
+            id: "enrich",
+            label: "Enrich",
+            validate: true,
+            onClick: async (ctx) => {
+              calls++;
+              if (calls === 1) {
+                throw new Error("Try again");
+              }
+              await gate.promise;
+              ctx.setFieldValue("name", "Enriched");
+            },
+          },
+        ],
+      },
+    ],
+  };
+  function Probe() {
+    builder = useFormBuilder({
+      config,
+      formOptions: {
+        onSubmit: (values) => {
+          saved.push(values);
+        },
+      },
+    });
+    return (
+      <FormBuilder
+        blocks={builder.blocks}
+        context={builder.context}
+        fields={builder.fields}
+        form={builder.form}
+      />
+    );
+  }
+  await view.render(provider(<Probe />, config));
+  expect(view.container.querySelectorAll('input[name="name"]')).toHaveLength(1);
+  expect(view.container.textContent).toContain("Reviewed information");
+  expect(
+    view.container.querySelector('[data-form-columns="2"]')
+  ).not.toBeNull();
+  expect(
+    view.container.querySelector('[data-form-block="field-amount"]')
+  ).not.toBeNull();
+  const button = view.container.querySelector<HTMLButtonElement>(
+    '[data-form-block="tools"] button'
+  );
+  if (!button) {
+    throw new Error("Missing custom action button");
+  }
+  await act(async () => {
+    button.click();
+    await settle();
+  });
+  expect(calls).toBe(0);
+  expect(view.container.textContent).toContain("Name is required");
+  await act(() => builder.form.setFieldValue("name", "Draft"));
+  expect(view.container.querySelector("output")?.textContent).toBe("Draft");
+  await act(async () => {
+    button.click();
+    await settle();
+  });
+  expect(view.container.textContent).toContain("Try again");
+  await act(async () => {
+    button.click();
+    button.click();
+    await settle();
+  });
+  expect(calls).toBe(2);
+  expect(button.disabled).toBe(true);
+  expect(saved).toHaveLength(0);
+  await act(async () => {
+    gate.resolve();
+    await settle();
+  });
+  expect(button.disabled).toBe(false);
+  expect(view.container.querySelector("output")?.textContent).toBe("Enriched");
+  await act(() => builder.form.handleSubmit());
+  expect(saved).toEqual([{ name: "Enriched", amount: 7 }]);
+});
+
+it("aborts custom actions when the form unmounts and ignores late field writes", async () => {
+  const view = mount();
+  const gate = deferred<void>();
+  let signal: AbortSignal | undefined;
+  let builder!: ReturnType<typeof useFormBuilder<FieldValues>>;
+  const config: FormConfig = {
+    id: "abort",
+    defaultValues: { name: "Draft" },
+    fields: [{ name: "name", label: "Name", type: "text" }],
+    blocks: [
+      {
+        type: "actions",
+        id: "tools",
+        actions: [
+          {
+            id: "load",
+            label: "Load",
+            onClick: async (ctx, currentSignal) => {
+              signal = currentSignal;
+              await gate.promise;
+              ctx.setFieldValue("name", "Late");
+            },
+          },
+        ],
+      },
+    ],
+  };
+  function Probe() {
+    builder = useFormBuilder({
+      config,
+      formOptions: { onSubmit: () => undefined },
+    });
+    return (
+      <FormBuilder
+        blocks={builder.blocks}
+        context={builder.context}
+        fields={builder.fields}
+        form={builder.form}
+      />
+    );
+  }
+  await view.render(provider(<Probe />, config));
+  await act(() =>
+    view.container
+      .querySelector<HTMLButtonElement>('[data-form-block="tools"] button')
+      ?.click()
+  );
+  await view.render(null);
+  expect(signal?.aborted).toBe(true);
+  await act(async () => {
+    gate.resolve();
+    await settle();
+  });
+  expect(builder.form.getFieldValue("name")).toBe("Draft");
+});

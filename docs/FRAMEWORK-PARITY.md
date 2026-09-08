@@ -29,9 +29,19 @@ Advanced filter input accepts either an array or `{ filters, joinOperator }`. In
 
 Saved views accept canonical `globalSearch`, `columnFilters`, and `columnPinning`, as well as Vue's earlier `search`, `filters`, and `pinning`. Canonical values take precedence when both are present. Legacy Kanban grouping is migrated to `grouping`. Vue applies a default view when there is no requested view or explicit table URL state, protects system views from update/deletion in the UI, indicates modified views, and preserves drafts when persistence fails.
 
+Saved snapshots now include the effective `density` (XS through 2XL). Applying or resetting a legacy view without density restores the configured table default. Density participates in dirty detection; it remains local until a view is saved and is not an independent URL parameter.
+
+The Create button is the final toolbar action and keeps the primary style, in text and icon modes. Built-in secondary actions remain outlined. Existing custom placement values remain accepted: `before-create` and `between-create-export` put custom actions before Export; `after-export` puts them after Export. Create follows all of these groups.
+
 ## Catalogue forms
 
 Both editions can generate standard fields from column definitions when the catalogue has no matching form. Register a form to customize validation, conditional behavior, labels, or field rendering. Existing React TanStack Form instances, factories, custom field renderers, and custom collection editors remain supported.
+
+`FormConfig.blocks` or `TableConfig.form.blocks` can compose generated fields without redefining them. Explicit form blocks take precedence over table blocks and legacy `sections`. Blocks support nested `section` containers with 1–3 columns, `field` references, escaped informational `content`, `actions`, and framework-native `custom` rendering. Each declared field appears once; unknown references are ignored and omitted fields are appended. `span: "full"` fills the parent grid; narrow form containers collapse to one column. Bulk editing retains its checked-field sections and does not render these create/edit blocks.
+
+Actions receive current values, `setFieldValue`, `validate`, `submit`, `disabled`, `isSubmitting`, and `isValidating`. `validate: true` validates without submitting before the callback. Pending actions block duplicate clicks, show failures inline, allow retry, and receive an `AbortSignal` when closed, disabled, hidden, or switched to another record. Custom React/Vue render callbacks receive the same context; Vue also forwards `form-{id}` slots through the table and nested sections. Form-local translation keys resolve before provider keys. No layout block adds values to the submission payload.
+
+Equivalent regression tests exercise saved density, legacy defaults, block field deduplication, translation, validation, async retry/duplicate locking, and unmount cancellation. The Vue product demo and `examples/form-layout-react.tsx` share `examples/form-layout.ts` and demonstrate a live preview and a name-normalization action.
 
 Both editions also support the declarative `tablePicker` field. It embeds a read-only table with local or server data, search, filters, sorting, pagination, saved views, and controlled single or multiple selection. Selection survives query changes, `parseValue` preserves typed IDs, and the nested table keeps its state out of the page URL unless `syncUrl: true` is explicit.
 

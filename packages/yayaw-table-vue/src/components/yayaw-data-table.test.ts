@@ -359,7 +359,8 @@ describe("YayawDataTable", () => {
     const labels = wrapper
       .findAll(".yayaw-toolbar-right > button")
       .map((button) => button.attributes("aria-label") ?? button.text());
-    expect(labels.indexOf("Create")).toBeLessThan(labels.indexOf("Export"));
+    expect(labels.indexOf("Run")).toBeLessThan(labels.indexOf("Create"));
+    expect(labels.at(-1)).toBe("Create");
     expect(labels.indexOf("Export")).toBeLessThan(labels.indexOf("Run"));
     const runButton = wrapper
       .findAll("button")

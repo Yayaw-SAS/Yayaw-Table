@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { useTableContext } from "../../context";
+import { resolveFormBlocks } from "../../form-layout";
 import {
   bulkCompletion,
   bulkFieldEditable,
@@ -17,6 +18,7 @@ import {
 } from "../../form-runtime";
 import type {
   FormConfig,
+  FormBlockContext,
   FormFieldContext,
   FormFieldDefinition,
   TableRecord,
@@ -24,6 +26,7 @@ import type {
 import { generateDataTypeFields } from "../../table-contracts";
 import DynamicField from "./DynamicField.vue";
 import FormDialog from "./FormDialog.vue";
+import FormBlocks from "./FormBlocks.vue";
 
 const context = useTableContext();
 const values = ref<TableRecord>({});
@@ -36,6 +39,7 @@ const label = (key: string, fallback: string): string =>
   String(context.translations.value[key] ?? fallback);
 const submitting = ref(false);
 const loading = ref(false);
+const validating = ref(false);
 const loadError = ref<string>();
 let validationVersion = 0;
 let initializer: AbortController | undefined;
@@ -76,16 +80,15 @@ const formContext = computed<FormFieldContext>(() => ({
   },
   translations: context.translations.value,
 }));
-const config = computed<FormConfig>(() =>
-  translateFormConfig(
-    context.getFormConfig?.(formType.value, formContext.value) ?? {
+const config = computed<FormConfig>(() => {
+  const selected = context.getFormConfig?.(formType.value, formContext.value) ?? {
       id: formType.value,
       fields: generatedFields(),
       presentation: context.config.form?.presentation ?? "drawer",
       width: context.config.form?.width,
-    }
-  )
-);
+    };
+  return translateFormConfig({ ...selected, blocks: selected.blocks ?? context.config.form?.blocks });
+});
 const title = computed(() =>
   isBulk.value
     ? label("bulkEdit", "Bulk edit")
@@ -99,6 +102,10 @@ const title = computed(() =>
       )
 );
 const sections = computed(() => resolveFormSections(config.value));
+// Bulk editing retains its explicit per-field opt-in controls.
+const blocks = computed(() => !isBulk.value && config.value.blocks
+  ? resolveFormBlocks(config.value.blocks, config.value.fields.map(field => field.name))
+  : undefined);
 const fieldFor = (name: string): FormFieldDefinition =>
   config.value.fields.find((field) => field.name === name)!;
 const renderedField = (name: string): FormFieldDefinition =>
@@ -300,6 +307,32 @@ const submit = async (): Promise<void> => {
     submitting.value = false;
   }
 };
+const validate = async (): Promise<boolean> => {
+  if (submitting.value || loading.value || loadError.value) return false;
+  const version = ++validationVersion;
+  validating.value = true;
+  try {
+    const result = await validateForm(config.value, cloneFormValue(values.value), formContext.value);
+    if (version !== validationVersion) return false;
+    errors.value = result.errors;
+    touched.value = Object.fromEntries(config.value.fields.map(field => [field.name, true]));
+    return Object.keys(result.errors).length === 0;
+  } catch (cause) {
+    if (version === validationVersion) errors.value.form = cause instanceof Error ? cause.message : String(cause);
+    return false;
+  } finally {
+    validating.value = false;
+  }
+};
+const blockContext = computed<FormBlockContext>(() => ({
+  ...formContext.value,
+  disabled: submitting.value || loading.value || Boolean(loadError.value),
+  isSubmitting: submitting.value,
+  isValidating: validating.value,
+  setFieldValue,
+  validate,
+  submit,
+}));
 </script>
 
 <template>
@@ -342,6 +375,20 @@ const submit = async (): Promise<void> => {
         class="yayaw-form-fields"
         :disabled="submitting || loading || Boolean(loadError)"
       >
+        <FormBlocks v-if="blocks" :blocks="blocks" :context="blockContext" :custom-slots="$slots">
+          <template #field="{ fieldName }">
+            <DynamicField
+              :field="fieldFor(fieldName)"
+              :model-value="values[fieldName]"
+              :context="formContext"
+              :error="errors[fieldName]"
+              :errors="errors"
+              :touched="touched[fieldName]"
+              @update:model-value="setFieldValue(fieldName, $event)"
+            />
+          </template>
+        </FormBlocks>
+        <template v-else>
         <section
           v-for="section in sections"
           :key="section.id"
@@ -395,6 +442,7 @@ const submit = async (): Promise<void> => {
             </template>
           </div>
         </section>
+        </template>
       </fieldset>
       <footer class="yayaw-form-footer">
         <button

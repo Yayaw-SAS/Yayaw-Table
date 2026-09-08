@@ -14,6 +14,7 @@ import type {
 import type { AdvancedFiltersState } from "../types/filter-types";
 import type { TableViewConfig } from "../types/view-types";
 import {
+  isTableDensity,
   normalizeFilterEnvelope,
   normalizeColumnSizing,
   normalizeViewAliases,
@@ -218,13 +219,19 @@ export function normalizeColumnPinning(
   return { left, right };
 }
 
+function normalizeViewDensity(
+  density: TableViewConfig["density"]
+): TableViewConfig {
+  return isTableDensity(density) ? { density } : {};
+}
+
 export function normalizeTableViewConfig(
   input: TableViewConfig
 ): TableViewConfig {
   const config = normalizeViewAliases(input) as TableViewConfig;
   config.advancedFilters = normalizeFilterEnvelope(config.advancedFilters)
     .filters as unknown as AdvancedFiltersState;
-  const normalized: TableViewConfig = {};
+  const normalized: TableViewConfig = normalizeViewDensity(config.density);
   const advancedFilters = hasArrayValues(config.advancedFilters)
     ? (config.advancedFilters as AdvancedFiltersState)
     : undefined;
@@ -300,6 +307,7 @@ export function normalizeTableViewConfig(
 
 export function createTableViewConfigSnapshot({
   advancedFiltersParam,
+  density,
   displayModeParam,
   filtersParam,
   globalSearchParam,
@@ -314,6 +322,7 @@ export function createTableViewConfigSnapshot({
   sortParam,
   visibilityParam,
 }: {
+  density?: TableViewConfig["density"];
   advancedFiltersParam: AdvancedFiltersState;
   displayModeParam: TableDisplayMode;
   filtersParam: ColumnFiltersState;
@@ -330,6 +339,7 @@ export function createTableViewConfigSnapshot({
   visibilityParam: VisibilityState;
 }): TableViewConfig {
   return normalizeTableViewConfig({
+    density,
     advancedFilters: advancedFiltersParam,
     columnFilters: filtersParam,
     columnOrder: orderParam,

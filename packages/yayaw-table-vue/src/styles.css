@@ -1482,6 +1482,7 @@
   padding: 20px;
 }
 .yayaw-form-fields {
+  container: yayaw-form / inline-size;
   display: grid;
   gap: 20px;
   min-width: 0;
@@ -1524,8 +1525,56 @@
 
 .yayaw-form-grid {
   display: grid;
-  grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
+}
+.yayaw-form-block-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+.yayaw-form-block {
+  min-width: 0;
+}
+.yayaw-form-block > .yayaw-form-section,
+.yayaw-form-content {
+  border: 1px solid var(--yayaw-border);
+  border-radius: 6px;
+  padding: 16px;
+}
+.yayaw-form-content {
+  background: var(--yayaw-muted);
+}
+.yayaw-form-content[data-tone="warning"] {
+  border-color: #f59e0b66;
+  background: #f59e0b1a;
+}
+.yayaw-form-content p {
+  white-space: pre-wrap;
+}
+.yayaw-form-block h3,
+.yayaw-form-block p {
+  margin: 0;
+}
+.yayaw-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  gap: 8px;
+}
+@container yayaw-form (min-width: 28rem) {
+  .yayaw-form-grid {
+    grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
+  }
+  .yayaw-form-block-grid {
+    grid-template-columns: repeat(var(--form-columns), minmax(0, 1fr));
+  }
+  .yayaw-form-block {
+    grid-column: span var(--form-span);
+  }
+  .yayaw-form-block[data-full-span="true"] {
+    grid-column: 1 / -1;
+  }
 }
 .yayaw-form-field {
   min-width: 0;

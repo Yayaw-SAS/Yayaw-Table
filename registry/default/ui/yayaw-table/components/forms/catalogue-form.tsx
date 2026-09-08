@@ -618,9 +618,12 @@ function CatalogueFormBody<TFieldValues extends FieldValues>({
           )}
           <fieldset disabled={disabled}>
             <FormBuilder
+              blocks={builder.blocks}
               context={context}
+              disabled={disabled}
               fields={fields}
               form={form}
+              isSubmitting={loading}
               sections={sections}
               submitText={null}
             />
