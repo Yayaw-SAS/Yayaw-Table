@@ -53,22 +53,6 @@ for (const syncUrl of [false, true]) {
     const editedIds: unknown[][] = [];
     let commits = 0;
     let stage = "mount";
-    const recentWrites: string[] = [];
-    const originalSet = store.set;
-    store.set = ((...args: Parameters<typeof store.set>) => {
-      const result = originalSet(...args);
-      try {
-        recentWrites.push(
-          `${args[0]}: ${JSON.stringify(store.get(args[0])).slice(0, 500)} ${new Error("State update").stack?.split("\n").slice(1, 9).join(" | ")}`
-        );
-      } catch {
-        recentWrites.push(`${args[0]}: cyclic value`);
-      }
-      if (recentWrites.length > 12) {
-        recentWrites.shift();
-      }
-      return result;
-    }) as typeof store.set;
     const render = (description: string) => {
       root.render(
         <Provider store={store}>
@@ -80,7 +64,7 @@ for (const syncUrl of [false, true]) {
                 // Fail promptly if a controlled-state feedback loop returns.
                 if (commits > 200) {
                   throw new Error(
-                    `Table did not settle after 200 commits during ${stage}: ${JSON.stringify(recentWrites)}`
+                    `Table did not settle after 200 commits during ${stage}`
                   );
                 }
               }}

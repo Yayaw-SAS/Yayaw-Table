@@ -36,7 +36,7 @@ jobs:
       - name: Run tests
         run: bun run test
 
-      - name: Reproduce intermittent menu rendering
+      - name: Verify menu stability across repeated mounts
         run: bun test --preload ./tests/setup-dom.ts --rerun-each 5 tests/table-action-menus.test.tsx
 
       - name: Run Vue tests
