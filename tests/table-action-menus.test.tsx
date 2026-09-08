@@ -16,6 +16,7 @@ const rows = [
 const actions: TableActions = {
   list: async () => ({ data: rows, meta: { pageCount: 1, totalCount: 2 } }),
   update: async () => ({ success: true }),
+  create: async () => ({ success: true }),
 };
 const getTableActions = () => actions;
 const settle = () => new Promise((resolve) => setTimeout(resolve, 60));
@@ -38,7 +39,7 @@ for (const syncUrl of [false, true]) {
         mandatory: ["name"],
         order: ["select", "name", "actions"],
       },
-      table: { syncUrl, allowCreate: false },
+      table: { syncUrl, allowCreate: true, actionsAsIcons: syncUrl },
       translations: { namespace: tableId, keys: { title: "Action menus" } },
     });
     const getTableConfig = () => config;
@@ -94,6 +95,22 @@ for (const syncUrl of [false, true]) {
         await settle();
       });
       await act(settle);
+      const create = required(
+        Array.from(
+          container.querySelectorAll<HTMLButtonElement>("button")
+        ).find(
+          (button) =>
+            (button.getAttribute("aria-label") ?? button.textContent) ===
+            "Add Item"
+        )
+      );
+      expect(create.className).toContain("bg-primary");
+      const toolbar = required(
+        create.closest('[role="toolbar"]') ?? create.parentElement
+      );
+      expect(Array.from(toolbar.querySelectorAll("button")).at(-1)).toBe(
+        create
+      );
       const trigger = required(
         container.querySelector<HTMLButtonElement>(
           'tbody [aria-label="Actions"]'

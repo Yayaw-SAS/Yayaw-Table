@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import { productFormBlocks } from "../../../examples/form-layout";
 import { dataTypeColumns, dataTypeRow } from "../../../examples/data-types";
 import { z } from "zod";
 import {
@@ -138,6 +139,7 @@ const config = defineTableConfig<Product>({
     createFormType: "product",
     editFormType: "product",
     presentation: "drawer",
+    blocks: productFormBlocks(),
   },
   translations: {
     namespace: "products",
@@ -308,7 +310,9 @@ const typesActions: TableActions = {
       toolbar-actions-placement="after-export"
       locale="en"
       @row-activate="activateProduct"
-    />
+    >
+      <template #form-preview="{ values }"><output>Preview: {{ values.name || "Untitled" }} · {{ values.price ?? 0 }} €</output></template>
+    </DataTable>
     <section style="margin-top: 48px">
       <DataTable table-type="data-types" :config="typesConfig" :data="typeRows" :get-table-actions="() => typesActions" locale="en" />
       <pre aria-label="Saved typed values">{{ JSON.stringify(typeRows, null, 2) }}</pre>

@@ -1046,15 +1046,6 @@ export function DataTableAdvancedToolbar<TData>({
 
         {toolbarActionsByPlacement.beforeCreate.map(renderToolbarAction)}
 
-        {/* Create button */}
-        {isCreateEnabled && (
-          <ToolbarCreateButton
-            actionsAsIcons={actionsAsIcons}
-            label={addItemLabel}
-            onClick={handleOpenCreateForm}
-          />
-        )}
-
         {toolbarActionsByPlacement.betweenCreateAndExport.map(
           renderToolbarAction
         )}
@@ -1158,6 +1149,14 @@ export function DataTableAdvancedToolbar<TData>({
             />
             <TooltipContent>{t("filters.clear")}</TooltipContent>
           </Tooltip>
+        )}
+        {/* Create button */}
+        {isCreateEnabled && (
+          <ToolbarCreateButton
+            actionsAsIcons={actionsAsIcons}
+            label={addItemLabel}
+            onClick={handleOpenCreateForm}
+          />
         )}
       </div>
     </TooltipProvider>

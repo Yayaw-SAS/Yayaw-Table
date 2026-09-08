@@ -9,6 +9,7 @@ import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "../../providers/table-provider";
+import { resolveFormBlocks } from "../../utils/form-layout";
 import { RuntimeField } from "./field-runtime";
 import {
   CheckboxField,
@@ -28,12 +29,15 @@ import {
   ValueTypeField,
 } from "./fields";
 import { createCollectionFieldValidators } from "./fields/collection-field-utils";
+import { FormBlocks } from "./form-blocks";
 import type { FormBuilderFormInstance } from "./hooks/use-form-builder";
 import type {
   AnyFieldDefinition,
   CollectionFieldDefinition,
   DynamicValueFieldDefinition,
   FieldValues,
+  FormBlock,
+  FormBlockContext,
   FormConfigContext,
   FormFieldApi,
   FormSectionDefinition,
@@ -46,6 +50,7 @@ const UNGROUPED_FORM_SECTION_ID = "__ungrouped";
 
 interface FormBuilderProps<TFieldValues extends FieldValues> {
   actions?: ReactNode;
+  blocks?: FormBlock[];
   context?: FormConfigContext;
   asFieldset?: boolean;
   className?: string;
@@ -479,6 +484,7 @@ function FormBuilderField<TFieldValues extends FieldValues>({
 
 export function FormBuilder<TFieldValues extends FieldValues>({
   actions,
+  blocks,
   context,
   asFieldset = false,
   className,
@@ -491,6 +497,14 @@ export function FormBuilder<TFieldValues extends FieldValues>({
 }: FormBuilderProps<TFieldValues>) {
   const { locale, t, translations } = useTranslations();
   const values = useStore(form.store, (state) => state.values);
+  const formSubmitting = useStore(form.store, (state) => state.isSubmitting);
+  const isValidating = useStore(form.store, (state) => state.isValidating);
+  const blocked = disabled || isSubmitting || formSubmitting;
+  const setFieldValue = (name: string, value: unknown) => {
+    if (!blocked) {
+      form.setFieldValue(name as Path<TFieldValues>, value as never);
+    }
+  };
   const runtimeContext: FormConfigContext = {
     formType: "form",
     tableId: "form",
@@ -500,8 +514,54 @@ export function FormBuilder<TFieldValues extends FieldValues>({
     translations,
     ...context,
     values,
-    setFieldValue: (name, value) =>
-      form.setFieldValue(name as Path<TFieldValues>, value as never),
+    setFieldValue,
+  };
+  const blockContext: FormBlockContext = {
+    ...runtimeContext,
+    setFieldValue,
+    disabled: blocked,
+    isSubmitting: isSubmitting || formSubmitting,
+    isValidating,
+    validate: async () => {
+      if (blocked) {
+        return false;
+      }
+      await form.validateAllFields("submit");
+      await form.validate("submit");
+      return form.state.isValid;
+    },
+    submit: async () => {
+      if (!blocked) {
+        await form.handleSubmit();
+      }
+    },
+  };
+  const resolvedBlocks = blocks
+    ? resolveFormBlocks(
+        blocks,
+        fields.map((field) => String(field.name))
+      )
+    : undefined;
+  const renderField = (name: string) => {
+    const field = fields.find((candidate) => candidate.name === name);
+    if (!field) {
+      return null;
+    }
+    return (
+      <RuntimeField
+        context={runtimeContext}
+        field={field as AnyFieldDefinition}
+        value={values[field.name]}
+      >
+        {(resolved) => (
+          <FormBuilderField
+            context={runtimeContext}
+            field={resolved as AnyFieldDefinition<TFieldValues>}
+            form={form}
+          />
+        )}
+      </RuntimeField>
+    );
   };
   const Root = asFieldset ? "fieldset" : "form";
   const resolvedSections = resolveFormBuilderSections({ fields, sections });
@@ -567,60 +627,76 @@ export function FormBuilder<TFieldValues extends FieldValues>({
       onSubmit={(e) => {
         e.preventDefault();
         e.stopPropagation();
-        form.handleSubmit();
+        if (!blocked) {
+          form.handleSubmit();
+        }
       }}
     >
-      <div className="space-y-5">
-        {resolvedSections.map((section) => {
-          const title = section.titleKey ? t(section.titleKey) : section.title;
-          const description = section.descriptionKey
-            ? t(section.descriptionKey)
-            : section.description;
-          const hasHeader = Boolean(title || description);
-          const sectionClassName =
-            section.isDefault || section.isUngrouped
-              ? "space-y-4"
-              : "space-y-4 rounded-md border p-4";
+      <div className="@container/form space-y-5">
+        {resolvedBlocks ? (
+          <fieldset disabled={blocked}>
+            <FormBlocks
+              blocks={resolvedBlocks}
+              context={blockContext}
+              renderField={renderField}
+            />
+          </fieldset>
+        ) : (
+          resolvedSections.map((section) => {
+            const title = section.titleKey
+              ? t(section.titleKey)
+              : section.title;
+            const description = section.descriptionKey
+              ? t(section.descriptionKey)
+              : section.description;
+            const hasHeader = Boolean(title || description);
+            const sectionClassName =
+              section.isDefault || section.isUngrouped
+                ? "space-y-4"
+                : "space-y-4 rounded-md border p-4";
 
-          return (
-            <section className={sectionClassName} key={section.id}>
-              {hasHeader && (
-                <div className="space-y-1">
-                  {title && <h3 className="font-medium text-sm">{title}</h3>}
-                  {description && (
-                    <p className="text-muted-foreground text-sm">
-                      {description}
-                    </p>
-                  )}
-                </div>
-              )}
-              <div
-                className="grid gap-4"
-                style={{
-                  gridTemplateColumns: `repeat(${section.columns ?? 1}, minmax(0, 1fr))`,
-                }}
-              >
-                {section.fields.map((field) => (
-                  <div key={String(field.name)}>
-                    <RuntimeField
-                      context={runtimeContext}
-                      field={field as AnyFieldDefinition}
-                      value={values[field.name]}
-                    >
-                      {(resolved) => (
-                        <FormBuilderField
-                          context={runtimeContext}
-                          field={resolved as AnyFieldDefinition<TFieldValues>}
-                          form={form}
-                        />
-                      )}
-                    </RuntimeField>
+            return (
+              <section className={sectionClassName} key={section.id}>
+                {hasHeader && (
+                  <div className="space-y-1">
+                    {title && <h3 className="font-medium text-sm">{title}</h3>}
+                    {description && (
+                      <p className="text-muted-foreground text-sm">
+                        {description}
+                      </p>
+                    )}
                   </div>
-                ))}
-              </div>
-            </section>
-          );
-        })}
+                )}
+                <div
+                  className="grid @md/form:grid-cols-[repeat(var(--form-columns),minmax(0,1fr))] grid-cols-1 gap-4"
+                  style={
+                    {
+                      "--form-columns": section.columns ?? 1,
+                    } as import("react").CSSProperties
+                  }
+                >
+                  {section.fields.map((field) => (
+                    <div key={String(field.name)}>
+                      <RuntimeField
+                        context={runtimeContext}
+                        field={field as AnyFieldDefinition}
+                        value={values[field.name]}
+                      >
+                        {(resolved) => (
+                          <FormBuilderField
+                            context={runtimeContext}
+                            field={resolved as AnyFieldDefinition<TFieldValues>}
+                            form={form}
+                          />
+                        )}
+                      </RuntimeField>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            );
+          })
+        )}
       </div>
       <form.Subscribe selector={(state) => state.errors}>
         {(errors) =>

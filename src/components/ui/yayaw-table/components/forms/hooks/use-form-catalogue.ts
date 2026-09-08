@@ -154,12 +154,18 @@ export function useFormCatalogue<TFieldValues extends FieldValues>({
   const tableConfig = getTableConfig?.(tableType || tableId || formType) as
     | TableConfig
     | undefined;
-  const config =
+  const resolvedConfig =
     getFormConfig?.<TFieldValues>(formType, formConfigContext) ??
     (generateFormConfig(formType, tableConfig?.columns?.definitions ?? [], {
       ...initialData,
       ...currentValues,
     }) as FormConfig<TFieldValues>);
+  const config: FormConfig<TFieldValues> = {
+    ...resolvedConfig,
+    blocks:
+      resolvedConfig.blocks ??
+      (tableConfig?.form?.blocks as FormConfig<TFieldValues>["blocks"]),
+  };
   const latest = useRef({ config, formConfigContext });
   latest.current = { config, formConfigContext };
   // biome-ignore lint/correctness/useExhaustiveDependencies: Reopen, form identity, mode and retry invalidate the load; current values must not restart it.

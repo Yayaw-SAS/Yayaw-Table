@@ -95,3 +95,69 @@ for (const fixture of densityScale) {
     );
   });
 }
+
+it("marks density-only edits dirty and keeps legacy saved views clean at the configured default", async () => {
+  const { DataTableViewManager } = await import(
+    "../src/components/ui/yayaw-table/components/toolbar/table-view-manager"
+  );
+  const { TableStateSyncProvider } = await import(
+    "../src/components/ui/yayaw-table/providers/table-state-sync-provider"
+  );
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  const store = createStore();
+  const queryClient = new QueryClient();
+  const view = {
+    id: "legacy-density",
+    createdById: "tester",
+    name: "Legacy",
+    tableId: "density-dirty",
+    config: { pageSize: 10, displayMode: "table" as const },
+  };
+  try {
+    await act(async () => {
+      root.render(
+        <Provider store={store}>
+          <NuqsTestingAdapter hasMemory>
+            <TableStateSyncProvider enabled={false}>
+              <TableProvider
+                getTableActions={() => ({
+                  views: { list: async () => ({ data: [view] }) },
+                })}
+                queryClient={queryClient}
+                tableId={view.tableId}
+                translations={defaultTranslations}
+              >
+                <DataTableViewManager
+                  defaultDensity="large"
+                  initialActiveViewId={view.id}
+                  initialViews={[view]}
+                  tableId={view.tableId}
+                  tableType={view.tableId}
+                />
+              </TableProvider>
+            </TableStateSyncProvider>
+          </NuqsTestingAdapter>
+        </Provider>
+      );
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+    const save = container.querySelector<HTMLButtonElement>(
+      '[aria-label="Save changes"]'
+    );
+    if (!save) {
+      throw new Error("Missing save view button");
+    }
+    expect(save.getAttribute("aria-disabled")).toBe("true");
+    await act(() => store.set(tableDensityAtom(view.tableId), "extra-small"));
+    expect(save.getAttribute("aria-disabled")).not.toBe("true");
+    await act(() => store.set(tableDensityAtom(view.tableId), "large"));
+    expect(save.getAttribute("aria-disabled")).toBe("true");
+  } finally {
+    await act(() => root.unmount());
+    container.remove();
+    queryClient.clear();
+  }
+});

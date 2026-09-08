@@ -85,6 +85,9 @@ export interface TableView {
  * Contains all state that can be saved in a view
  */
 export interface TableViewConfig {
+  /** Row and header spacing restored when applying the view. */
+  density?: import("./display-types").TableDensity;
+
   /**
    * Advanced filter rules
    */
@@ -248,9 +251,7 @@ export interface TableViewActions {
   /**
    * List saved views for the table
    */
-  list?: (
-    context: TableViewActionContext
-  ) => Promise<{ data: TableView[] }>;
+  list?: (context: TableViewActionContext) => Promise<{ data: TableView[] }>;
 
   /**
    * Update a saved view with a new name or configuration

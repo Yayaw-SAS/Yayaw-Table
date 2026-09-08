@@ -64,3 +64,42 @@ it("restores partial views from catalogue defaults and isolates saved configurat
     wrapper.unmount();
   }
 });
+
+it("captures every saved density and restores the catalogue default for legacy views", () => {
+  const config = defineTableConfig({
+    id: "density-views",
+    table: { density: "large" },
+    columns: { definitions: [], visible: [], order: [], mandatory: [] },
+    translations: { namespace: "table", keys: {} },
+  });
+  let state!: TableStateRefs;
+  const wrapper = mount(
+    defineComponent({
+      setup() {
+        state = useTableState({ config, syncUrl: false });
+        return () => null;
+      },
+    })
+  );
+  try {
+    expect(state.snapshot.value.density).toBe("large");
+    for (const density of [
+      "extra-small",
+      "small",
+      "medium",
+      "large",
+      "extra-large",
+      "extra-extra-large",
+    ] as const) {
+      state.applyView({ density }, density);
+      expect(state.density.value).toBe(density);
+      expect(state.snapshot.value.density).toBe(density);
+    }
+    state.applyView({ globalSearch: "legacy" }, "legacy");
+    expect(state.density.value).toBe("large");
+    state.reset();
+    expect(state.snapshot.value.density).toBe("large");
+  } finally {
+    wrapper.unmount();
+  }
+});

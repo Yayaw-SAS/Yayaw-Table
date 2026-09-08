@@ -1,6 +1,11 @@
 import type { QueryClient } from "@tanstack/vue-query";
 import type { Component, VNodeChild } from "vue";
 import type { ZodType } from "zod";
+import type {
+  FormLayoutAction,
+  FormLayoutBlock,
+  FormLayoutRuntime,
+} from "./form-layout";
 
 export type TableRecord = Record<string, unknown>;
 export type PrimitiveValue = boolean | number | string;
@@ -441,6 +446,13 @@ export interface FormFieldDefinition<TData extends TableRecord = TableRecord> {
   showMetaPreview?: boolean;
 }
 
+export type FormBlockContext<TData extends TableRecord = TableRecord> =
+  FormFieldContext<TData> & FormLayoutRuntime;
+export type FormBlock<TData extends TableRecord = TableRecord> =
+  FormLayoutBlock<FormBlockContext<TData>, VNodeChild>;
+export type FormAction<TData extends TableRecord = TableRecord> =
+  FormLayoutAction<FormBlockContext<TData>>;
+
 export interface FormSectionDefinition {
   id: string;
   title?: string;
@@ -458,6 +470,7 @@ export interface FormConfig<TData extends TableRecord = TableRecord> {
   fields: FormFieldDefinition<TData>[];
   defaultValues?: Partial<TableRecord>;
   sections?: FormSectionDefinition[];
+  blocks?: FormBlock<TData>[];
   presentation?: FormPresentation;
   width?: string;
   submitLabel?: string;
@@ -478,6 +491,7 @@ export interface FormConfig<TData extends TableRecord = TableRecord> {
 }
 
 export interface TableFormConfig {
+  blocks?: FormBlock[];
   /** Defaults to catalogue when getFormConfig is supplied, otherwise JSON. */
   bulkEditMode?: "catalogue" | "json";
   createFormType?: string;
@@ -560,6 +574,8 @@ export interface AdvancedFiltersState {
 }
 
 export interface TableViewConfig {
+  /** Row and header spacing restored when applying the view. */
+  density?: TableDensity;
   /** Canonical aliases shared with React; historical Vue names remain supported. */
   globalSearch?: string;
   columnFilters?: ColumnFiltersState;

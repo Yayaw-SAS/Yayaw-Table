@@ -9,6 +9,20 @@ import type { TableActions } from "../../providers/table-provider";
 import type { DataTableTranslations } from "../../types/translations";
 import type { TableView } from "../../types/view-types";
 
+import type {
+  FormLayoutAction,
+  FormLayoutBlock,
+  FormLayoutRuntime,
+} from "../../utils/form-layout";
+
+/** Live state exposed to layout renderers and custom form actions. */
+export type FormBlockContext<TFieldValues extends FieldValues = FieldValues> =
+  FormConfigContext<TFieldValues> & FormLayoutRuntime;
+export type FormBlock<TFieldValues extends FieldValues = FieldValues> =
+  FormLayoutBlock<FormBlockContext<TFieldValues>, ReactNode>;
+export type FormAction<TFieldValues extends FieldValues = FieldValues> =
+  FormLayoutAction<FormBlockContext<TFieldValues>>;
+
 /** Form values type (generic record) */
 export type FieldValues = Record<string, unknown>;
 
@@ -310,6 +324,8 @@ export interface FormConfig<TFieldValues extends FieldValues = FieldValues> {
   id: string;
   schema?: z.ZodType<TFieldValues>;
   sections?: FormSectionDefinition<TFieldValues>[];
+  /** Optional composition around automatically generated or configured fields. */
+  blocks?: FormBlock<TFieldValues>[];
   translations?: {
     keys: {
       [key: string]: string;

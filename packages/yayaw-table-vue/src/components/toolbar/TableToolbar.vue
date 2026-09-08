@@ -218,9 +218,6 @@ const toolbarItems = computed<ToolbarItem[]>(() => {
   if (toolbarActionsPlacement.value === "before-create") {
     items.push(...actionItems);
   }
-  if (isCreateEnabled.value) {
-    items.push({ key: "create", kind: "create" });
-  }
   if (toolbarActionsPlacement.value === "between-create-export") {
     items.push(...actionItems);
   }
@@ -229,6 +226,9 @@ const toolbarItems = computed<ToolbarItem[]>(() => {
   }
   if (toolbarActionsPlacement.value === "after-export") {
     items.push(...actionItems);
+  }
+  if (isCreateEnabled.value) {
+    items.push({ key: "create", kind: "create" });
   }
   return items;
 });

@@ -131,6 +131,7 @@ export function useFormBuilder<TFieldValues extends FieldValues>({
     form,
     fields,
     sections: translated.sections ?? [],
+    blocks: translated.blocks,
     context: { ...runtimeContext(values), values },
     translations: {
       submit: "Save",

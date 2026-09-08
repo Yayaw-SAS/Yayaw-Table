@@ -479,6 +479,8 @@ provide(tableContextKey, {
 
     <div class="yayaw-bulk-anchor" aria-hidden="true" />
     <BulkActions v-if="selectedRows.length" />
-    <CatalogueForm v-if="form.open" />
+    <CatalogueForm v-if="form.open">
+      <template v-for="(_, name) in $slots" #[name]="scope"><slot :name="name" v-bind="scope" /></template>
+    </CatalogueForm>
   </section>
 </template>

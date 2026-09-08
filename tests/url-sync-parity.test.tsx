@@ -62,3 +62,54 @@ it("shares table state in memory without writing URL parameters", async () => {
   expect(container.textContent).toBe("Alpha");
   expect(urlUpdates).toBe(0);
 });
+
+it("captures and restores saved density, including legacy defaults and isolated tables", async () => {
+  const store = createStore();
+  const { tableDensityAtom } = await import(
+    "../src/components/ui/yayaw-table/atoms/table-atoms"
+  );
+  let state!: ReturnType<typeof useTableUrlState>;
+  function Probe() {
+    state = useTableUrlState({
+      tableId: "density-view",
+      defaultDensity: "large",
+    });
+    return null;
+  }
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  roots.push(root);
+  await act(() =>
+    root.render(
+      <Provider store={store}>
+        <NuqsTestingAdapter hasMemory>
+          <TableStateSyncProvider enabled={false}>
+            <Probe />
+          </TableStateSyncProvider>
+        </NuqsTestingAdapter>
+      </Provider>
+    )
+  );
+  expect(state.getCurrentViewConfig().density).toBe("large");
+  for (const density of [
+    "extra-small",
+    "small",
+    "medium",
+    "large",
+    "extra-large",
+    "extra-extra-large",
+  ] as const) {
+    await act(() => store.set(tableDensityAtom("density-view"), density));
+    const snapshot = state.getCurrentViewConfig();
+    expect(snapshot.density).toBe(density);
+    await act(() => state.applyViewConfig({ density: "medium" }));
+    await act(() => state.applyViewConfig(snapshot));
+    expect(store.get(tableDensityAtom("density-view"))).toBe(density);
+  }
+  await act(() => state.applyViewConfig({ globalSearch: "legacy" }));
+  expect(state.getCurrentViewConfig().density).toBe("large");
+  expect(store.get(tableDensityAtom("other"))).toBeUndefined();
+  await act(() => state.resetUrlState());
+  expect(state.getCurrentViewConfig().density).toBe("large");
+});

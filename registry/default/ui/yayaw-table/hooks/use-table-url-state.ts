@@ -8,7 +8,7 @@ import { atom, useAtom, useStore } from "jotai";
 import { atomFamily } from "jotai-family";
 import { createParser, useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { filterResetVersionAtom } from "../atoms/table-atoms";
+import { filterResetVersionAtom, tableDensityAtom } from "../atoms/table-atoms";
 import { useTableStateSync } from "../providers/table-state-sync-provider";
 import type {
   ColumnFiltersState,
@@ -306,6 +306,7 @@ interface PaginationParams {
  * Options for the useTableUrlState hook
  */
 interface UseTableUrlStateOptions {
+  defaultDensity?: TableViewConfig["density"];
   /**
    * Display mode used when the URL does not already carry table display state.
    * @default "table"
@@ -338,12 +339,14 @@ interface UseTableUrlStateOptions {
  * @returns Object with URL state utilities and parameters
  */
 export function useTableUrlState({
+  defaultDensity = "medium",
   defaultDisplayMode,
   defaultPageSize,
   enabled,
   tableId,
 }: UseTableUrlStateOptions) {
   const store = useStore();
+  const [densityOverride, setDensity] = useAtom(tableDensityAtom(tableId));
   const inheritedSync = useTableStateSync();
   const shouldSyncUrl = enabled ?? inheritedSync;
   const resetVersionAtom = filterResetVersionAtom(tableId);
@@ -1007,6 +1010,7 @@ export function useTableUrlState({
 
   const getCurrentViewConfig = useCallback((): TableViewConfig => {
     return createTableViewConfigSnapshot({
+      density: densityOverride ?? defaultDensity,
       advancedFiltersParam: (advancedFiltersParam ||
         []) as AdvancedFiltersState,
       displayModeParam:
@@ -1027,6 +1031,8 @@ export function useTableUrlState({
       visibilityParam: (visibilityParam || {}) as VisibilityState,
     });
   }, [
+    densityOverride,
+    defaultDensity,
     advancedFiltersParam,
     defaultPageSizeParam,
     displayModeParam,
@@ -1053,6 +1059,8 @@ export function useTableUrlState({
       };
       const nextPageSize = normalizePageSize(config.pageSize);
       const normalizedConfig = normalizeTableViewConfig(config);
+      // Legacy views inherit the catalogue density instead of the previous view.
+      setDensity(normalizedConfig.density);
 
       queueUrlUpdate(setViewParam, options?.viewId ?? null);
       queueUrlUpdate(setHistoryIndexParam, "0");
@@ -1080,6 +1088,7 @@ export function useTableUrlState({
       queueUrlUpdate(setPinningParam, nextPinning);
     },
     [
+      setDensity,
       queueUrlUpdate,
       getDisplayModeUrlValue,
       resolvedDefaultDisplayMode,
@@ -1207,6 +1216,7 @@ export function useTableUrlState({
 
     try {
       isSyncing.current = true;
+      setDensity(undefined);
       // Reset all URL parameters
       setViewParam(null);
       setHistoryIndexParam("0");
@@ -1239,6 +1249,7 @@ export function useTableUrlState({
       });
     }
   }, [
+    setDensity,
     setViewParam,
     setHistoryIndexParam,
     setSortParam,

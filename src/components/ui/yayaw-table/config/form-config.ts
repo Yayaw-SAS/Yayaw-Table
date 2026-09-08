@@ -1,3 +1,5 @@
+import type { FormBlock } from "../components/forms/types";
+
 /**
  * Form configuration for data tables
  * This file defines the types for form configuration in data tables
@@ -27,6 +29,8 @@ export interface CatalogueFormLayoutConfig {
  * Form configuration for a data table
  */
 export interface TableFormConfig {
+  /** Optional composition for generated forms; a catalogue form can override it. */
+  blocks?: FormBlock[];
   /**
    * Form type for the create form
    * This should correspond to a key in the form catalogue
