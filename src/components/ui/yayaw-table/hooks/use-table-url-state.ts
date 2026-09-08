@@ -69,6 +69,10 @@ const parsePositiveInt = (
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 };
 
+// Shared empty defaults keep controlled table state stable between renders.
+const EMPTY_ARRAY: never[] = [];
+const EMPTY_OBJECT = {};
+const EMPTY_PINNING = { left: [] as string[], right: [] as string[] };
 const DEFAULT_PAGE_SIZE = 10;
 const DEFAULT_DISPLAY_MODE: TableDisplayMode = "table";
 
@@ -436,7 +440,7 @@ export function useTableUrlState({
     "sort",
     urlSortParam as SortingState,
     setUrlSortParam,
-    [] as SortingState
+    EMPTY_ARRAY as SortingState
   );
 
   const [urlFiltersParam, setUrlFiltersParam] = useQueryState(
@@ -449,7 +453,7 @@ export function useTableUrlState({
     "filters",
     urlFiltersParam as ColumnFiltersState,
     setUrlFiltersParam,
-    [] as ColumnFiltersState
+    EMPTY_ARRAY as ColumnFiltersState
   );
 
   // Advanced filters parameter
@@ -463,7 +467,7 @@ export function useTableUrlState({
     "advancedFilters",
     urlAdvancedFiltersParam,
     setUrlAdvancedFiltersParam,
-    [] as AdvancedFiltersState
+    EMPTY_ARRAY as AdvancedFiltersState
   );
 
   const [urlPageParam, setUrlPageParam] = useQueryState(`${tableId}-page`, {
@@ -503,7 +507,7 @@ export function useTableUrlState({
     "visibility",
     urlVisibilityParam as VisibilityState,
     setUrlVisibilityParam,
-    {} as VisibilityState
+    EMPTY_OBJECT as VisibilityState
   );
 
   const [urlOrderParam, setUrlOrderParam] = useQueryState(
@@ -516,7 +520,7 @@ export function useTableUrlState({
     "order",
     urlOrderParam as string[],
     setUrlOrderParam,
-    [] as string[]
+    EMPTY_ARRAY as string[]
   );
 
   const [urlSizingParam, setUrlSizingParam] = useQueryState(
@@ -527,9 +531,9 @@ export function useTableUrlState({
     tableId,
     shouldSyncUrl,
     "sizing",
-    normalizeColumnSizing(urlSizingParam) as ColumnSizingState,
+    urlSizingParam as ColumnSizingState,
     setUrlSizingParam,
-    {} as ColumnSizingState
+    EMPTY_OBJECT as ColumnSizingState
   );
 
   const [urlExpandedParam, setUrlExpandedParam] = useQueryState<object>(
@@ -593,7 +597,7 @@ export function useTableUrlState({
     "grouping",
     urlGroupingParam as string[],
     setUrlGroupingParam,
-    [] as string[]
+    EMPTY_ARRAY as string[]
   );
 
   const [urlDisplayModeParam, setUrlDisplayModeParam] = useQueryState(
@@ -630,7 +634,7 @@ export function useTableUrlState({
     "kanban",
     urlKanbanParam,
     setUrlKanbanParam,
-    {} as TableKanbanViewConfig
+    EMPTY_OBJECT as TableKanbanViewConfig
   );
 
   const [urlGalleryParam, setUrlGalleryParam] = useQueryState(
@@ -643,7 +647,7 @@ export function useTableUrlState({
     "gallery",
     urlGalleryParam,
     setUrlGalleryParam,
-    {} as TableGalleryViewConfig
+    EMPTY_OBJECT as TableGalleryViewConfig
   );
 
   const resolvedKanbanParam = useMemo<TableKanbanViewConfig>(() => {
@@ -705,7 +709,7 @@ export function useTableUrlState({
     "pinning",
     urlPinningParam,
     setUrlPinningParam,
-    { left: [], right: [] }
+    EMPTY_PINNING
   );
 
   type TableParamValue =
@@ -1274,23 +1278,28 @@ export function useTableUrlState({
     };
   }, []);
 
+  const normalizedSizing = useMemo(
+    () => normalizeColumnSizing(sizingParam),
+    [sizingParam]
+  );
+
   return {
     // Utility functions
     applyViewConfig,
     createShareableUrl,
     getCurrentViewConfig,
     // Raw URL parameters
-    advancedFiltersParam: advancedFiltersParam || [],
+    advancedFiltersParam: advancedFiltersParam || EMPTY_ARRAY,
     displayModeParam:
       normalizeDisplayMode(displayModeParam) ?? resolvedDefaultDisplayMode,
     expandedParam,
-    filtersParam: filtersParam || [],
+    filtersParam: filtersParam || EMPTY_ARRAY,
     groupingParam: resolvedGroupingParam,
-    galleryParam: (galleryParam || {}) as TableGalleryViewConfig,
+    galleryParam: (galleryParam || EMPTY_OBJECT) as TableGalleryViewConfig,
     historyIndexParam,
     kanbanParam: resolvedKanbanCardParam,
     kanbanGroupByParam: kanbanGroupByParam || "",
-    orderParam: orderParam || [],
+    orderParam: orderParam || EMPTY_ARRAY,
     pageParam: pageParam || "0",
     pageSizeParam: pageSizeParam || defaultPageSizeParam,
     // Processed state
@@ -1337,11 +1346,11 @@ export function useTableUrlState({
     setVisibilityFromUI,
     setVisibilityParam,
 
-    sortParam: sortParam || [],
-    sizingParam: normalizeColumnSizing(sizingParam),
+    sortParam: sortParam || EMPTY_ARRAY,
+    sizingParam: normalizedSizing,
     globalSearchParam: globalSearchParam || "",
     viewParam,
-    visibilityParam: visibilityParam || {},
+    visibilityParam: visibilityParam || EMPTY_OBJECT,
   };
 }
 

@@ -5,7 +5,7 @@
 "use client";
 
 import type { Row } from "@/components/ui/yayaw-table/tanstack";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/src/components/ui/checkbox";
 
@@ -36,20 +36,12 @@ export function SelectionCell<TData>({
   disabled = false,
   row,
 }: SelectionCellProps<TData>) {
-  // Track selection state locally
-  const [isSelected, setIsSelected] = useState(() => row.getIsSelected());
-
-  // Update local state when row selection changes
-  useEffect(() => {
-    setIsSelected(row.getIsSelected());
-  }, [row]);
+  // Rows keep their identity when selection changes; read the controlled state.
+  const isSelected = row.getIsSelected();
 
   // Create a stable callback for selection changes
   const handleSelectionChange = useCallback(
     (value: boolean) => {
-      // Update local state first for immediate feedback
-      setIsSelected(value);
-      // Then update the row selection
       row.toggleSelected(value);
     },
     [row]
