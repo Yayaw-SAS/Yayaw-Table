@@ -630,6 +630,7 @@ export const defaultTranslations: DataTableTranslations = {
     of: "of",
     page: "Page",
     rowsPerPage: "Rows per page",
+    autoPageSize: "Automatic",
     showing: "Page {page} of {total}",
     selectedCount:
       "{selected} of {total} {total, plural, one {row} other {rows}} selected",

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useAutoPageSize } from "../../composables/use-auto-page-size";
 import TableTooltip from "../toolbar/TableTooltip.vue";
 import {
   FlexRender,
@@ -27,6 +28,8 @@ import ColumnMenu from "./ColumnMenu.vue";
 import RowActions from "./RowActions.vue";
 
 const context = useTableContext();
+const paginationRoot = ref<HTMLElement>();
+const { automatic, measurement, selectSize } = useAutoPageSize(paginationRoot);
 const draggedColumn = ref<string>();
 const keyboardDraggedColumn = ref<string>();
 const keyboardAnnouncement = ref("");
@@ -627,9 +630,9 @@ const pinnedStyle = (column: Column<TableRecord>): CSSProperties => {
 </script>
 
 <template>
-  <div class="yayaw-grid-shell">
+  <div ref="paginationRoot" class="yayaw-grid-shell">
     <span class="yayaw-sr-only" aria-live="polite">{{ keyboardAnnouncement }}</span>
-    <div class="yayaw-table-scroll">
+    <div class="yayaw-table-scroll" :style="automatic ? { maxHeight: `${measurement?.tableHeight}px`, overflowY: 'auto' } : undefined">
       <table
         class="yayaw-data-grid"
         :class="{ resizable: context.config.table.enableColumnResizing }"
@@ -734,12 +737,13 @@ const pinnedStyle = (column: Column<TableRecord>): CSSProperties => {
         </tfoot>
       </table>
     </div>
-    <footer v-if="context.config.table.enablePagination && totalPages > 1" class="yayaw-pagination">
+    <footer v-if="context.config.table.enablePagination && (totalPages > 1 || (context.config.table.enableAutoPageSize && context.matchingRowCount.value > 0))" data-yayaw-pagination class="yayaw-pagination">
       <span>{{ context.matchingRowCount.value }} {{ context.translations.value.rows }}</span>
       <label>
         {{ context.translations.value.rowsPerPage }}
-        <select :value="context.state.pagination.value.pageSize" class="yayaw-select" @change="table.setPageSize(Number(($event.target as HTMLSelectElement).value))">
-          <option v-for="size in context.config.table.pageSizeOptions" :key="size" :value="size">{{ size }}</option>
+        <select :value="automatic ? 'auto' : context.state.pagination.value.pageSize" class="yayaw-select" @change="selectSize(($event.target as HTMLSelectElement).value)">
+          <option v-if="context.config.table.enableAutoPageSize" value="auto">{{ context.translations.value.autoPageSize ?? 'Automatic' }}{{ automatic ? ` (${context.state.pagination.value.pageSize})` : '' }}</option>
+          <option v-for="size in [...new Set([...context.config.table.pageSizeOptions, context.state.pagination.value.pageSize])].sort((a, b) => a - b)" :key="size" :value="size">{{ size }}</option>
         </select>
       </label>
       <span>{{ context.state.pagination.value.pageIndex + 1 }} / {{ totalPages }}</span>

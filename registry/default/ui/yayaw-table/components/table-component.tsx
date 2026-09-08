@@ -34,10 +34,12 @@ import {
   tableDensityAtom,
   tableIdAtom,
 } from "../atoms/table-atoms";
+import { activeViewIdAtom } from "../atoms/view-atoms";
 import type {
   TableEmptyStateConfig,
   TableRowClickMode,
 } from "../config/helpers";
+import { useAutoPageSize } from "../hooks/use-auto-page-size";
 import {
   type BulkActionCustomHandlerResult,
   type BulkDeleteCustomHandlerResult,
@@ -834,6 +836,15 @@ function TableEmptyStateContent({
 /**
  * Modern implementation of DataTable using the new hooks and components
  */
+function supportsAutomaticPageSize(
+  pagination: boolean,
+  automatic: boolean | undefined,
+  gallery: boolean,
+  kanban: boolean
+) {
+  return pagination && automatic === true && !gallery && !kanban;
+}
+
 function ModernDataTable<
   TData extends Record<string, unknown>,
   TValue = unknown,
@@ -883,6 +894,8 @@ function ModernDataTable<
   const isTableUpdatingRef = useRef(false);
   const _isVisibleRef = useRef(true);
   const tableRef = useRef<HTMLDivElement>(null);
+  const paginationRootRef = useRef<HTMLDivElement>(null);
+  const activeViewId = useAtomValue(activeViewIdAtom(tableId));
   const _previousRowsRef = useRef<Row<TData>[]>([]);
   const { isVisible: isBulkActionsAnchorVisible, ref: bulkActionsAnchorRef } =
     useOnScreen(BULK_ACTIONS_ANCHOR_VIEWPORT_OPTIONS);
@@ -2208,6 +2221,22 @@ function ModernDataTable<
     enableColumnResizing,
   ]);
 
+  const enableAutoPageSize = supportsAutomaticPageSize(
+    enablePagination,
+    tableConfig.table.enableAutoPageSize,
+    isGalleryMode,
+    isKanbanMode
+  );
+  const autoPageSizing = useAutoPageSize({
+    root: paginationRootRef,
+    tableId,
+    enabled: enableAutoPageSize,
+    resetKey: `${tableId}:${activeViewId}:${isGalleryMode}:${isKanbanMode}`,
+    measurementKey: densityMode,
+    pageSize: table.store.state.pagination.pageSize,
+    setPageSize: (size) => table.setPageSize(size),
+  });
+
   const renderDisplayContent = () => {
     if (isKanbanMode) {
       return (
@@ -2304,6 +2333,10 @@ function ModernDataTable<
         <div
           className={cn("relative w-full overflow-auto", "contain-paint")}
           ref={tableRef}
+          style={{
+            maxHeight: autoPageSizing.tableHeight,
+            overflowY: autoPageSizing.automatic ? "auto" : undefined,
+          }}
         >
           <Table
             className={cn(
@@ -2371,12 +2404,14 @@ function ModernDataTable<
         enablePagination,
         isTableBottomVisible: isBulkActionsAnchorVisible,
       });
-    const showPaginationControls = shouldRenderPaginationControls({
-      enablePagination,
-      pageCount: table.getPageCount(),
-      pageSize: table.store.state.pagination.pageSize,
-      rowCount,
-    });
+    const showPaginationControls =
+      (enableAutoPageSize && rowCount > 0) ||
+      shouldRenderPaginationControls({
+        enablePagination,
+        pageCount: table.getPageCount(),
+        pageSize: table.store.state.pagination.pageSize,
+        rowCount,
+      });
     const showPaginationArea =
       enablePagination && (showPaginationControls || renderBulkActionsInFooter);
     const fixedBulkActionsViewportOffset = getBulkActionsViewportBottomOffset({
@@ -2392,15 +2427,17 @@ function ModernDataTable<
         onDragStart={handleDragStartWithOverlay}
         sensors={columnSensors}
       >
-        <div className="relative">
+        <div className="relative" ref={paginationRootRef}>
           <div className="space-y-4">
             {renderDisplayContent()}
 
             {/* Pagination is outside the table container to avoid focus issues */}
             {showPaginationArea && (
               <SafePagination
+                automatic={autoPageSizing.automatic}
                 containerRef={handlePaginationContainerRef}
                 controlsRef={handlePaginationControlsRef}
+                enableAutoPageSize={enableAutoPageSize}
                 footerSlot={
                   renderBulkActionsInFooter ? (
                     <BulkActionsMenu
@@ -2423,6 +2460,7 @@ function ModernDataTable<
                     />
                   ) : undefined
                 }
+                onPageSizeSelect={autoPageSizing.selectSize}
                 pageSizeOptions={
                   tableConfig.table.pageSizeOptions || [
                     10, 20, 50, 100, 200, 500,

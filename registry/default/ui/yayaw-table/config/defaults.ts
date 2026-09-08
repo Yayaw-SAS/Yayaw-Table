@@ -91,6 +91,7 @@ export const defaultTranslations = {
   of: "of",
   resetColumns: "Reset columns",
   rowsPerPage: "Rows per page",
+  autoPageSize: "Automatic",
   rowsSelected: "rows selected",
   saveView: "Save view",
   search: "Search",

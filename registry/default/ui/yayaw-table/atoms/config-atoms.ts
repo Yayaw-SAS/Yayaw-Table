@@ -257,6 +257,7 @@ export interface DataTableConfig {
   /**
    * Available page size options
    */
+  enableAutoPageSize?: boolean;
   pageSizeOptions: number[];
 
   /**

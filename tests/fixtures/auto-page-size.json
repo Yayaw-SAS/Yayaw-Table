@@ -1,0 +1,10 @@
+[
+  { "availableHeight": 400, "rowHeight": 40, "expected": 10 },
+  { "availableHeight": 439, "rowHeight": 40, "expected": 10 },
+  { "availableHeight": 400, "rowHeight": 80, "expected": 5 },
+  { "availableHeight": 400, "rowHeight": 20, "expected": 20 },
+  { "availableHeight": -10, "rowHeight": 40, "expected": 1 },
+  { "availableHeight": 20, "rowHeight": 40, "expected": 1 },
+  { "availableHeight": 1000000, "rowHeight": 1, "expected": 500 },
+  { "availableHeight": 400, "rowHeight": 0, "expected": 1 }
+]

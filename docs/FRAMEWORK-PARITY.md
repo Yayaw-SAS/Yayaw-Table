@@ -194,3 +194,27 @@ Density, saved-view, toolbar-action, and row-action controls use styled tooltips
 | actions | no data editor | no data filter |
 
 JSON form drafts preserve incomplete input, validate before schemas, and submit parsed JSON values. Primitive option identities, unknown choices and whitespace survive selection edits. Calendar inline writes now use `YYYY-MM-DD` in both editions, matching generated form writes; React consumers with `Date`-only inline schemas must accept the date string. Multiline editors use Enter for a newline and Ctrl/Cmd+Enter or dismissal to commit. Explicit form catalogues retain authority over missing, hidden and disabled fields. Generated bulk fields exclude heterogeneous dynamic types. Computed accessors need an explicit write mapping before inline editing can be enabled.
+
+## Automatic page size
+
+Both editions accept `table.enableAutoPageSize: true` (default: false). In table
+mode the rows-per-page selector offers Automatic, followed by the computed row
+count while active. Capacity uses the available viewport or scroll container,
+header/footer space and the tallest measured row. Resize, density, column width
+and asynchronous content changes trigger recalculation; the table scroll area
+is bounded for unusually tall rows or expanded groups. Page sizes stay positive
+integers capped at 500, including in server `list` requests. The current first
+record is used to choose the new page when capacity changes; selection follows
+the existing pagination contract. The selector remains available on a single
+non-empty page when the feature is enabled.
+
+Automatic is an instance-local display choice. Choosing a numeric size, another
+saved view, or Gallery/Kanban stops automatic sizing. URLs and saved views keep
+the effective numeric page size, so restoring them uses numeric pagination.
+Gallery/Kanban do not claim to fit cards using table-row measurements. These
+limitations are identical in React and Vue. Empty/hidden tables wait for usable
+row measurements. Observers and animation frames are released on unmount.
+
+Regression coverage uses the same capacity fixtures in both test runners, with
+framework-specific selector tests and real-browser resize/density verification
+in the runnable examples.

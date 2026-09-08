@@ -8,6 +8,7 @@ import type React from "react";
 // Import advanced filters hook directly
 import { Suspense, useMemo } from "react";
 import type { TableEmptyStateConfig } from "../config/helpers";
+import { useAutoPageSizeLifetime } from "../hooks/use-auto-page-size";
 import type {
   BulkActionCustomHandlerResult,
   BulkDeleteCustomHandlerResult,
@@ -460,6 +461,7 @@ function DataTableContent({
   initialViews?: TableView[];
 }) {
   const tableId = tableIdProp ?? tableType;
+  useAutoPageSizeLifetime(tableId);
   const defaultFormType = formType ?? tableType;
 
   // Nested translations from TableProvider (used to resolve for DataTableUIProvider)
@@ -599,6 +601,7 @@ function DataTableContent({
             gallery: config.table.gallery,
             kanban: config.table.kanban,
             layoutPreset: config.table.layoutPreset,
+            enableAutoPageSize: config.table.enableAutoPageSize,
             pageSizeOptions: config.table.pageSizeOptions || [
               10, 20, 50, 100, 200, 500,
             ],

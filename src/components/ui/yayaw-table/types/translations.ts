@@ -257,6 +257,7 @@ export interface DataTableTranslations {
     of: string;
     page: string;
     rowsPerPage: string;
+    autoPageSize?: string;
     showing: string;
     selectedCount: string;
   };

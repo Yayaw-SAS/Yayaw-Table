@@ -24,6 +24,9 @@ interface SafePaginationProps<TData> {
   className?: string;
   footerSlot?: ReactNode;
   pageSizeOptions?: number[];
+  automatic?: boolean;
+  enableAutoPageSize?: boolean;
+  onPageSizeSelect?: (value: string) => void;
   showControls?: boolean;
 }
 
@@ -36,6 +39,9 @@ export function SafePagination<TData>({
   footerSlot,
   pageSizeOptions = [10, 20, 50, 100, 200, 500],
   showControls = true,
+  automatic = false,
+  enableAutoPageSize = false,
+  onPageSizeSelect,
 }: SafePaginationProps<TData>) {
   const translations = useTableTranslations();
 
@@ -82,6 +88,7 @@ export function SafePagination<TData>({
 
   return (
     <div
+      data-yayaw-pagination=""
       className={cn("flex flex-col gap-4 py-4", className)}
       ref={containerRef}
     >
@@ -107,9 +114,10 @@ export function SafePagination<TData>({
               <select
                 aria-label={translations.rowsPerPage}
                 className="h-8 min-w-20 appearance-none rounded-md border bg-background py-1.5 pr-8 pl-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                onChange={(event) => handlePageSizeChange(event.target.value)}
-                value={pageSize.toString()}
+                onChange={(event) => (onPageSizeSelect ?? handlePageSizeChange)(event.target.value)}
+                value={automatic ? "auto" : pageSize.toString()}
               >
+                {enableAutoPageSize && <option value="auto">{translations.autoPageSize}{automatic ? ` (${pageSize})` : ''}</option>}
                 {availablePageSizes.map((size) => (
                   <option key={size} value={size.toString()}>
                     {size}
