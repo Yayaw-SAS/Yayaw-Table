@@ -316,7 +316,8 @@ export function DataTableViewManager({
   );
 
   const { data: savedViews = [], isLoading } = useQuery({
-    initialData: initialViews,
+    // Empty bootstrap data must still load persisted local or remote views.
+    initialData: initialViews.length > 0 ? initialViews : undefined,
     queryFn: async () => {
       const result = await viewActions.list({ tableId, tableType });
       return result.data;

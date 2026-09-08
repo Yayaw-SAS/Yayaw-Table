@@ -467,3 +467,26 @@ it("tracks density-only changes and restores a saved density or legacy default",
   expect(wrapper.find('[aria-label="Table density: L"]').exists()).toBe(true);
   expect(saveButton(wrapper).attributes("disabled")).toBeDefined();
 });
+
+it("loads persisted default views without initialViews again after remount", async () => {
+  const view: TableView = {
+    ...saved,
+    name: "Persisted compact view",
+    isDefault: true,
+    config: { density: "extra-small" },
+  };
+  const list = vi.fn(async () => ({ data: [view] }));
+  for (let mountIndex = 0; mountIndex < 2; mountIndex++) {
+    const wrapper = mountTable({
+      actions: { list },
+      table: { density: "large" },
+    });
+    await flushPromises();
+    expect(current(wrapper).text()).toBe(view.name);
+    expect(wrapper.find('[aria-label="Table density: XS"]').exists()).toBe(
+      true
+    );
+    wrapper.unmount();
+  }
+  expect(list).toHaveBeenCalledTimes(2);
+});
