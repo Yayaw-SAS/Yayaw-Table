@@ -80,6 +80,15 @@ const localTableStateAtom = atomFamily((_tableId: string) =>
   atom<Record<string, unknown>>({})
 );
 
+// Table channels contain the JSON-compatible values shared with URL parsers.
+const areStateChannelValuesEqual = (left: unknown, right: unknown): boolean =>
+  Object.is(left, right) ||
+  (left !== null &&
+    right !== null &&
+    typeof left === "object" &&
+    typeof right === "object" &&
+    JSON.stringify(left) === JSON.stringify(right));
+
 const useStateChannel = <T>(
   tableId: string,
   shouldSyncUrl: boolean,
@@ -89,14 +98,25 @@ const useStateChannel = <T>(
   defaultValue: T
 ): [T, (value: T | null, options?: unknown) => unknown] => {
   const [localState, setLocalState] = useAtom(localTableStateAtom(tableId));
+  const latestUrlValue = useRef<T | null>(urlValue);
+  latestUrlValue.current = urlValue;
   const setValue = useCallback(
     (value: T | null, options?: unknown) => {
       if (shouldSyncUrl) {
+        if (areStateChannelValuesEqual(latestUrlValue.current, value)) {
+          return;
+        }
+        latestUrlValue.current = value;
         return (
           urlSetter as (next: T | null, nextOptions?: unknown) => unknown
         )(value, options);
       }
-      setLocalState((current) => ({ ...current, [key]: value }));
+      // Replayed column-order effects must not notify every subscriber again.
+      setLocalState((current) =>
+        areStateChannelValuesEqual(current[key], value)
+          ? current
+          : { ...current, [key]: value }
+      );
     },
     [key, setLocalState, shouldSyncUrl, urlSetter]
   );

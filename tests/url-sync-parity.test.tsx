@@ -113,3 +113,54 @@ it("captures and restores saved density, including legacy defaults and isolated 
   await act(() => state.resetUrlState());
   expect(state.getCurrentViewConfig().density).toBe("large");
 });
+
+for (const syncUrl of [false, true]) {
+  it(`keeps equivalent column-order writes idle with syncUrl=${syncUrl}`, async () => {
+    let state!: ReturnType<typeof useTableUrlState>;
+    let renders = 0;
+    let urlUpdates = 0;
+    function Probe() {
+      state = useTableUrlState({ tableId: "stable-order" });
+      renders++;
+      return <span>{state.orderParam.join(",")}</span>;
+    }
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+    roots.push(root);
+    await act(() =>
+      root.render(
+        <Provider store={createStore()}>
+          <NuqsTestingAdapter
+            hasMemory
+            onUrlUpdate={() => {
+              urlUpdates++;
+            }}
+          >
+            <TableStateSyncProvider enabled={syncUrl}>
+              <Probe />
+            </TableStateSyncProvider>
+          </NuqsTestingAdapter>
+        </Provider>
+      )
+    );
+    await act(async () => {
+      state.setOrderFromUI(["select", "name", "actions"]);
+      await new Promise((resolve) => setTimeout(resolve, 30));
+    });
+    const settledRenders = renders;
+    const settledUpdates = urlUpdates;
+    await act(async () => {
+      state.setOrderFromUI(["select", "name", "actions"]);
+      await new Promise((resolve) => setTimeout(resolve, 30));
+    });
+    expect(container.textContent).toBe("select,name,actions");
+    expect(renders).toBe(settledRenders);
+    expect(urlUpdates).toBe(settledUpdates);
+    await act(async () => {
+      state.setOrderFromUI(["select", "actions", "name"]);
+      await new Promise((resolve) => setTimeout(resolve, 30));
+    });
+    expect(container.textContent).toBe("select,actions,name");
+  });
+}

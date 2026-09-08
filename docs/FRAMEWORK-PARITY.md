@@ -31,6 +31,8 @@ Saved views accept canonical `globalSearch`, `columnFilters`, and `columnPinning
 
 Saved snapshots now include the effective `density` (XS through 2XL). Applying or resetting a legacy view without density restores the configured table default. Both editions load persisted views on mount when no initial views are provided, including after a full reload. Density participates in dirty detection; it remains local until a view is saved and is not an independent URL parameter.
 
+React ignores repeated writes of equivalent table state in both URL and memory modes, preventing column-order synchronization from retriggering subscribers during an action refresh.
+
 The Create button is the final toolbar action and keeps the primary style, in text and icon modes. Built-in secondary actions remain outlined. Existing custom placement values remain accepted: `before-create` and `between-create-export` put custom actions before Export; `after-export` puts them after Export. Create follows all of these groups.
 
 ## Catalogue forms
