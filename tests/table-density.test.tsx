@@ -161,3 +161,73 @@ it("marks density-only edits dirty and keeps legacy saved views clean at the con
     queryClient.clear();
   }
 });
+
+it("loads persisted views without initialViews on every mount and restores their density", async () => {
+  const { DataTableViewManager } = await import(
+    "../src/components/ui/yayaw-table/components/toolbar/table-view-manager"
+  );
+  const { TableStateSyncProvider } = await import(
+    "../src/components/ui/yayaw-table/providers/table-state-sync-provider"
+  );
+  const view = {
+    id: "persisted",
+    name: "Persisted compact view",
+    tableId: "density-reload",
+    createdById: "local",
+    isDefault: true,
+    config: {
+      density: "extra-small" as const,
+      displayMode: "table" as const,
+      pageSize: 10,
+    },
+  };
+  let calls = 0;
+  const getTableActions = () => ({
+    views: {
+      list: () => {
+        calls++;
+        return Promise.resolve({ data: [view] });
+      },
+    },
+  });
+  for (let mountIndex = 0; mountIndex < 2; mountIndex++) {
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+    const store = createStore();
+    const queryClient = new QueryClient();
+    try {
+      await act(async () => {
+        root.render(
+          <Provider store={store}>
+            <NuqsTestingAdapter hasMemory>
+              <TableStateSyncProvider enabled={false}>
+                <TableProvider
+                  getTableActions={getTableActions}
+                  queryClient={queryClient}
+                  tableId={view.tableId}
+                  translations={defaultTranslations}
+                >
+                  <DataTableViewManager
+                    defaultDensity="large"
+                    tableId={view.tableId}
+                    tableType={view.tableId}
+                  />
+                </TableProvider>
+              </TableStateSyncProvider>
+            </NuqsTestingAdapter>
+          </Provider>
+        );
+        await new Promise((resolve) => setTimeout(resolve, 30));
+      });
+      await act(() => new Promise((resolve) => setTimeout(resolve, 30)));
+      expect(container.textContent).toContain(view.name);
+      expect(store.get(tableDensityAtom(view.tableId))).toBe("extra-small");
+    } finally {
+      await act(() => root.unmount());
+      container.remove();
+      queryClient.clear();
+    }
+  }
+  expect(calls).toBe(2);
+});
