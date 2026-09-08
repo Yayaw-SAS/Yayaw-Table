@@ -75,6 +75,8 @@ describe("Vue automatic pagination", () => {
       await wrapper.get("select").setValue("auto");
       await flush();
       expect(pagination.value.pageSize).toBe(9);
+      // Shorter content also narrows an intrinsic-width table on the next page.
+      layout.tableWidth(700);
       layout.rowHeight(20);
       layout.resize(600);
       await flush();

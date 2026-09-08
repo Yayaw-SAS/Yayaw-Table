@@ -81,7 +81,8 @@ export function observeAutoPageSize(
     const rows = [...body.querySelectorAll("tr")].filter(
       (row) => row.querySelector("td")?.colSpan === 1
     );
-    const width = table.getBoundingClientRect().width;
+    // Intrinsic table width can change between pages; only the container is a layout boundary.
+    const width = root.getBoundingClientRect().width;
     const heights = rows
       .map((row) => row.getBoundingClientRect().height)
       .filter((height) => height > 0);
