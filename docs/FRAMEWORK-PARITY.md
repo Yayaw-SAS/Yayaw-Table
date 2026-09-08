@@ -205,7 +205,9 @@ Unseen rows use the smallest visible row as an estimate. Capacity may decrease
 for later pages with taller rows and grows again after viewport/density changes
 to avoid oscillating page-size requests. The layout identity uses the container
 width, since an intrinsic table width can shrink on a later page without any
-viewport change. Resize, density, column width
+viewport change. Header wrapping and footer dimensions affect the measured fit
+but do not invalidate that capacity ceiling when navigating between pages.
+Resize, density, column width
 and asynchronous content changes trigger recalculation; the table scroll area
 is bounded for unusually tall rows or expanded groups. Page sizes stay positive
 integers capped at 500, including in server `list` requests. The current first

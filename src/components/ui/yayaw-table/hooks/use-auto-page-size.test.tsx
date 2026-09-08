@@ -32,8 +32,10 @@ describe('React automatic pagination', () => {
       expect(host.querySelector('select')?.value).toBe('auto');
       // Shorter content also narrows an intrinsic-width table on the next page.
       layout.tableWidth(700);
+      layout.bodyTop(148);
       layout.rowHeight(20); layout.resize(600); await flush();
       expect(host.querySelector('output')?.textContent).toBe('9');
+      layout.bodyTop(132);
       layout.rowHeight(40);
       layout.resize(800); await flush();
       expect(host.querySelector('output')?.textContent).toBe('14');
