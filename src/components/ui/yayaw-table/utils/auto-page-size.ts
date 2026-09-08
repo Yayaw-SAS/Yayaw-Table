@@ -118,14 +118,9 @@ export function observeAutoPageSize(
     onMeasure({
       pageSize: fitMeasuredPageSize(available, heights),
       tableHeight,
-      layoutKey: [
-        viewportHeight,
-        width,
-        tableTop,
-        bodyTop,
-        footerHeight,
-        calculationsHeight,
-      ].join(":"),
+      // Header wrapping and footer content can vary between pages just like row heights.
+      // They affect measured capacity, but must not raise the existing capacity ceiling.
+      layoutKey: [viewportHeight, width].join(":"),
     });
   };
   const schedule = () => {
