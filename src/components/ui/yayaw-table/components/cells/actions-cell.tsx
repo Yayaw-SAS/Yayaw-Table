@@ -145,6 +145,11 @@ function ActionsCellBase<TData>({
   const handleActionClick = useCallback(
     async (action: ActionItem<TData>) => {
       try {
+        // Consultation does not mutate data or reset the current page through a refresh.
+        if (action.type === "view") {
+          await action.onClick?.(rowData);
+          return;
+        }
         const isForm = isFormAction(action);
 
         // Show loading toast for non-form actions
@@ -163,7 +168,7 @@ function ActionsCellBase<TData>({
         toast.error(error instanceof Error ? error.message : t("common.error"));
       }
     },
-    [t, isFormAction, executeAction, handleToasts]
+    [t, isFormAction, executeAction, handleToasts, rowData]
   );
 
   // Memoize action groups to prevent recalculation on every render

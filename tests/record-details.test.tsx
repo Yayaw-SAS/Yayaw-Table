@@ -76,10 +76,10 @@ for (const explicitActions of [false, true]) {
       defaultOptions: { queries: { retry: false } },
     });
     const actions = {
-      list: async () => ({
+      list: mock(async () => ({
         data: [row],
         meta: { pageCount: 1, totalCount: 1 },
-      }),
+      })),
     };
     const host = document.createElement("div");
     document.body.append(host);
@@ -122,11 +122,13 @@ for (const explicitActions of [false, true]) {
       if (!view) {
         throw new Error("Missing View action");
       }
+      const listCalls = actions.list.mock.calls.length;
       await act(async () => {
         view.click();
         await settle();
       });
       const detail = host.querySelector(".yayaw-detail");
+      expect(actions.list.mock.calls.length).toBe(listCalls);
       expect(detail?.textContent).toContain("Example record");
       expect(detail?.querySelector("input")).toBeNull();
       expect(
