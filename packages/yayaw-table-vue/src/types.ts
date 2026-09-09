@@ -840,6 +840,8 @@ export interface DataTableTranslations {
 
 export interface YayawTableProps<TData extends TableRecord = TableRecord> {
   details?: import("./record-details").RecordDetailsConfig;
+  /** Open an application-owned record route or drawer instead of the built-in details. */
+  onOpenDetails?: (row: TData) => void;
   onRevertActivity?: import("./record-details").DetailRevertHandler;
   tableType: string;
   tableId?: string;

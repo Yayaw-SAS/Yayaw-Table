@@ -52,6 +52,59 @@ const button = (scope: Pick<DOMWrapper<Element>, "findAll">, text: string) => {
 };
 
 describe("RecordDetails", () => {
+  it.each([
+    false,
+    true,
+  ])("delegates menu and row consultation to the host (built-in config: %s)", async (withDetails) => {
+    const onOpenDetails = vi.fn();
+    const wrapper = mount(YayawDataTable, {
+      props: {
+        tableType: "host-details",
+        config: defineTableConfig({
+          id: "host-details",
+          columns: {
+            definitions: [{ id: "name", header: "Name", type: "text" }],
+            visible: ["name"],
+            order: ["name"],
+            mandatory: [],
+          },
+          table: {
+            rowClickMode: "activate",
+            syncUrl: false,
+            allowEdit: false,
+            allowDelete: false,
+            allowDuplicate: false,
+            enableRowSelection: false,
+          },
+          translations: { namespace: "test", keys: {} },
+        }),
+        details: withDetails ? config : undefined,
+        onOpenDetails,
+        data: [row],
+      },
+      attachTo: document.body,
+      global: { stubs: { PopperContent: { template: "<div><slot /></div>" } } },
+    });
+    const body = new DOMWrapper(document.body);
+    await wrapper
+      .get('[aria-label="Open actions menu"]')
+      .trigger("keydown", { key: "Enter" });
+    await flushPromises();
+    await body.get('[role="menuitem"]').trigger("click");
+    await flushPromises();
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(onOpenDetails).toHaveBeenCalledExactlyOnceWith(row);
+    expect(body.find(".yayaw-detail").exists()).toBe(false);
+    expect(wrapper.emitted("rowActivate")).toBeUndefined();
+    await wrapper.get("tbody td").trigger("click");
+    expect(onOpenDetails).toHaveBeenCalledTimes(2);
+    expect(wrapper.emitted("rowActivate")).toHaveLength(1);
+    expect(body.find(".yayaw-detail").exists()).toBe(false);
+    await wrapper.setProps({ onOpenDetails: undefined, details: undefined });
+    expect(wrapper.find('[aria-label="Open actions menu"]').exists()).toBe(
+      false
+    );
+  });
   it("opens a consultation modal from the row action menu", async () => {
     const tableConfig = defineTableConfig({
       id: "details-menu",

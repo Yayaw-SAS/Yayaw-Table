@@ -46,102 +46,121 @@ const button = (label: string, scope: ParentNode = document) => {
   return found;
 };
 
-for (const explicitActions of [false, true]) {
-  it(`opens a read-only record from an ${explicitActions ? "explicit" : "automatic"} actions column`, async () => {
-    const id = `record-actions-${explicitActions}`;
-    const tableConfig = defineTableConfig({
-      id,
-      columns: {
-        definitions: [
-          { id: "name", header: "Name", type: "text" },
-          ...(explicitActions
-            ? [{ id: "actions", header: "Actions", type: "actions" as const }]
-            : []),
-        ],
-        visible: ["name", "actions"],
-        order: ["name", "actions"],
-        mandatory: ["name"],
-      },
-      table: {
-        syncUrl: false,
-        allowCreate: false,
-        allowEdit: false,
-        allowDelete: false,
-        allowDuplicate: false,
-        enableRowSelection: false,
-      },
-      translations: { namespace: id, keys: {} },
-    });
-    const client = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-    const actions = {
-      list: mock(async () => ({
-        data: [row],
-        meta: { pageCount: 1, totalCount: 1 },
-      })),
-    };
-    const host = document.createElement("div");
-    document.body.append(host);
-    const root = createRoot(host);
-    const settle = () => new Promise((resolve) => setTimeout(resolve, 60));
-    try {
-      await act(async () => {
-        root.render(
-          <Provider store={createStore()}>
-            <NuqsTestingAdapter hasMemory>
-              <DataTable
-                details={config}
-                enableToolbar={false}
-                getTableActions={() => actions}
-                getTableConfig={() => tableConfig}
-                initialData={[row]}
-                initialPageCount={1}
-                initialRowCount={1}
-                queryClient={client}
-                tableType={id}
-              />
-            </NuqsTestingAdapter>
-          </Provider>
+for (const mode of ["builtin", "external", "override"] as const) {
+  for (const explicitActions of [false, true]) {
+    it(`opens a ${mode} read-only record from an ${explicitActions ? "explicit" : "automatic"} actions column`, async () => {
+      const id = `record-actions-${mode}-${explicitActions}`;
+      const onOpenDetails =
+        mode === "builtin" ? undefined : mock(() => undefined);
+      const tableConfig = defineTableConfig({
+        id,
+        columns: {
+          definitions: [
+            { id: "name", header: "Name", type: "text" },
+            ...(explicitActions
+              ? [{ id: "actions", header: "Actions", type: "actions" as const }]
+              : []),
+          ],
+          visible: ["name", "actions"],
+          order: ["name", "actions"],
+          mandatory: ["name"],
+        },
+        table: {
+          rowClickMode: "activate",
+          syncUrl: false,
+          allowCreate: false,
+          allowEdit: false,
+          allowDelete: false,
+          allowDuplicate: false,
+          enableRowSelection: false,
+        },
+        translations: { namespace: id, keys: {} },
+      });
+      const client = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const actions = {
+        list: mock(async () => ({
+          data: [row],
+          meta: { pageCount: 1, totalCount: 1 },
+        })),
+      };
+      const host = document.createElement("div");
+      document.body.append(host);
+      const root = createRoot(host);
+      const settle = () => new Promise((resolve) => setTimeout(resolve, 60));
+      try {
+        await act(async () => {
+          root.render(
+            <Provider store={createStore()}>
+              <NuqsTestingAdapter hasMemory>
+                <DataTable
+                  details={mode === "external" ? undefined : config}
+                  enableToolbar={false}
+                  getTableActions={() => actions}
+                  getTableConfig={() => tableConfig}
+                  initialData={[row]}
+                  initialPageCount={1}
+                  initialRowCount={1}
+                  onOpenDetails={onOpenDetails}
+                  queryClient={client}
+                  tableType={id}
+                />
+              </NuqsTestingAdapter>
+            </Provider>
+          );
+          await settle();
+        });
+        const trigger = host.querySelector<HTMLButtonElement>(
+          'tbody [aria-label="Actions"]'
         );
-        await settle();
-      });
-      const trigger = host.querySelector<HTMLButtonElement>(
-        'tbody [aria-label="Actions"]'
-      );
-      if (!trigger) {
-        throw new Error("Missing record actions");
+        if (!trigger) {
+          throw new Error("Missing record actions");
+        }
+        await act(async () => {
+          trigger.click();
+          await settle();
+        });
+        const view = Array.from(
+          document.querySelectorAll<HTMLElement>('[role="menuitem"]')
+        ).find((item) => item.textContent?.trim() === "View");
+        if (!view) {
+          throw new Error("Missing View action");
+        }
+        const listCalls = actions.list.mock.calls.length;
+        await act(async () => {
+          view.click();
+          await settle();
+        });
+        const detail = host.querySelector(".yayaw-detail");
+        expect(actions.list.mock.calls.length).toBe(listCalls);
+        if (onOpenDetails) {
+          expect(onOpenDetails).toHaveBeenCalledTimes(1);
+          expect(onOpenDetails).toHaveBeenCalledWith(row);
+          expect(detail).toBeNull();
+          await act(async () => {
+            host.querySelector<HTMLTableCellElement>("tbody td")?.click();
+            await settle();
+          });
+          expect(onOpenDetails).toHaveBeenCalledTimes(2);
+          expect(host.querySelector(".yayaw-detail")).toBeNull();
+        } else {
+          expect(detail?.textContent).toContain("Example record");
+        }
+        expect(detail?.querySelector("input") ?? null).toBeNull();
+        expect(
+          Array.from(detail?.querySelectorAll("button") ?? []).some(
+            (item) =>
+              item.textContent === "Edit" || item.textContent === "Delete"
+          )
+        ).toBe(false);
+      } finally {
+        await act(() => root.unmount());
+        client.clear();
+        host.remove();
       }
-      await act(async () => {
-        trigger.click();
-        await settle();
-      });
-      const view = Array.from(
-        document.querySelectorAll<HTMLElement>('[role="menuitem"]')
-      ).find((item) => item.textContent?.trim() === "View");
-      if (!view) {
-        throw new Error("Missing View action");
-      }
-      const listCalls = actions.list.mock.calls.length;
-      await act(async () => {
-        view.click();
-        await settle();
-      });
-      const detail = host.querySelector(".yayaw-detail");
-      expect(actions.list.mock.calls.length).toBe(listCalls);
-      expect(detail?.textContent).toContain("Example record");
-      expect(detail?.querySelector("input")).toBeNull();
-      expect(
-        Array.from(detail?.querySelectorAll("button") ?? []).some(
-          (item) => item.textContent === "Edit" || item.textContent === "Delete"
-        )
-      ).toBe(false);
-    } finally {
-      await act(() => root.unmount());
-      client.clear();
-      host.remove();
-    }
-  });
+    });
+  }
 }
 
 it("consults without inputs and confirms a failed then successful deletion", async () => {

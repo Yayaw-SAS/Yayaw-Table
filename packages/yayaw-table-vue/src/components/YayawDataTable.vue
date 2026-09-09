@@ -48,6 +48,7 @@ const props = withDefaults(
   defineProps<{
     tableType: string;
     details?: RecordDetailsConfig;
+    onOpenDetails?: (row: TableRecord) => void;
     onRevertActivity?: DetailRevertHandler;
     tableId?: string;
     formType?: string;
@@ -185,7 +186,10 @@ const currentDetailRow = computed(() => {
   const selected = detailRow.value;
   return selected && (tableData.rows.value.find(row => getRowId(row) === getRowId(selected)) ?? selected);
 });
-const openDetails = (row: TableRecord): void => { detailRow.value = row; };
+const openDetails = (row: TableRecord): void => {
+  if (props.onOpenDetails) props.onOpenDetails(row);
+  else if (props.details) detailRow.value = row;
+};
 const deleteDetail = async (row: TableRecord) => {
   if (!config.table.allowDelete || config.table.canDeleteRow?.(row) === false || !actions.value?.delete) return { success: false };
   return await actions.value.delete(getRowId(row));
@@ -411,7 +415,7 @@ const activateRow = (row: TableRecord, event: MouseEvent): void => {
     }
     return;
   }
-  if (props.details) openDetails(row);
+  openDetails(row);
   emit("rowActivate", row, event);
 };
 const emitSelection = (): void =>
@@ -458,7 +462,7 @@ provide(tableContextKey, {
   refresh,
   openCreate,
   openEdit,
-  openDetails: props.details ? openDetails : undefined,
+  get openDetails() { return props.onOpenDetails || props.details ? openDetails : undefined; },
   activateRow,
   emitSelection,
   clearSelection,
