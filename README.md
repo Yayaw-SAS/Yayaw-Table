@@ -75,6 +75,14 @@ and icon action modes, including on mobile. Its tooltip and accessible label use
 `filters.clear` from your translations. `showResetFilters` remains a supported
 alias and now has the same behavior in React and Vue.
 
+### Empty states and filter recovery
+
+Table, Kanban, and Gallery use the [Shadcn Empty component](https://ui.shadcn.com/docs/components/empty) in both editions. A filtered empty result offers a **Clear filters** button, even when the toolbar shortcut is disabled or the toolbar is hidden. It clears global search, column filters, and advanced filters and returns to page one. Sorting, grouping, column layout, display mode, page size, and the selected view remain unchanged; the saved view is not overwritten.
+
+Without active filters, the state says **No data available** and hides the reset action. Inactive advanced rules do not count as active filters. `table.emptyState.title` and `description` override the default copy; `table.emptyState.show: false` hides the entire state in every display mode. Loading and errors do not show an empty result.
+
+The React registry now declares `empty` as a Shadcn dependency. Reinstall the registry when upgrading, or run `bunx shadcn@latest add empty` if copying changes manually. Vue includes the Empty components and styles in its registry payload. No saved-view migration is required.
+
 ### Table density
 
 The rows icon on the right of the toolbar offers six sizes. Tooltips appear on hover and keyboard focus and use the same translated labels as other table controls.

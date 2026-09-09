@@ -798,6 +798,8 @@ export interface DataTableTranslations {
   views?: string;
   saveView?: string;
   noResults?: string;
+  noResultsDescription?: string;
+  noDataAvailable?: string;
   loading?: string;
   previous?: string;
   next?: string;

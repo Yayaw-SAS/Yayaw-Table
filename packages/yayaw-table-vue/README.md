@@ -9,6 +9,7 @@ does not widen framework compatibility.
 ## Included
 
 - Table, Kanban, and Gallery display modes
+- Kanban/Gallery settings, card selection, and page-size controls use Shadcn-style Reka UI primitives. Selects support keyboard navigation; the Properties menu stays open for multiple choices and restores focus on Escape. Popups inherit the table theme, including scoped CSS variables.
 - Local and server-side sorting, filtering, pagination, grouping, and search
 - URL-backed state compatible with existing YaYaw table query keys
 - Saved personal/team views with localStorage fallback
@@ -99,6 +100,12 @@ defaults. Both work with or without URL synchronization.
 
 The clear shortcut uses the `clearFilters` translation key and the Options reset
 uses `reset` (English and French defaults are included).
+
+### Empty states
+
+Table, Kanban, and Gallery compose the Shadcn Vue Empty parts with the registry's standalone CSS tokens. Filtered empty results offer **Clear filters** independently of toolbar visibility and `showClearFilters`. The action clears search, column filters, and advanced filters and returns to page one while preserving presentation and the selected view. It does not save or overwrite a view.
+
+The default copy uses `noResults`, `noResultsDescription`, `noDataAvailable`, and `clearFilters` (English/French defaults included). Inactive advanced filters do not activate the reset action. `table.emptyState.title` and `description` still override the copy, and `show: false` hides the complete state across all three modes. Loading and failed requests do not display an empty result.
 
 ### Catalogue-owned controls
 

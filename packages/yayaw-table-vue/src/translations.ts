@@ -14,6 +14,8 @@ export const defaultTranslations: Required<
     | "views"
     | "saveView"
     | "noResults"
+    | "noResultsDescription"
+    | "noDataAvailable"
     | "loading"
     | "previous"
     | "next"
@@ -197,7 +199,9 @@ export const defaultTranslations: Required<
   viewCreated: "View created",
   viewUpdated: "View updated",
   viewDeleted: "View deleted",
-  noResults: "No results",
+  noResults: "No results found",
+  noResultsDescription: "No data matches your current filters",
+  noDataAvailable: "No data available",
   loading: "Loading…",
   previous: "Previous",
   next: "Next",
@@ -394,6 +398,8 @@ export const frenchTranslations: DataTableTranslations = {
   viewUpdated: "Vue mise à jour",
   viewDeleted: "Vue supprimée",
   noResults: "Aucun résultat",
+  noResultsDescription: "Aucune donnée ne correspond à vos filtres actuels",
+  noDataAvailable: "Aucune donnée disponible",
   loading: "Chargement…",
   previous: "Précédent",
   next: "Suivant",
