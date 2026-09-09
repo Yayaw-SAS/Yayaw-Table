@@ -6,55 +6,85 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
+  pull-requests: read
   id-token: write
   pages: write
 
+# Serialize publication without interrupting a Pages deployment already started.
 concurrency:
   group: github-pages
   cancel-in-progress: false
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Install Vue dependencies
-        run: bun install --cwd packages/yayaw-table-vue --frozen-lockfile
-
-      - name: Build registry artifact
-        run: bun run registry:pages
-
-      - name: Validate registry artifact
-        run: |
-          node -e 'for (const file of ["yayaw-table.json", "yayaw-table-base.json", "font-yayaw-sans.json", "yayaw-table-vue.json", "registry.json"]) JSON.parse(require("node:fs").readFileSync(`dist/registry-pages/r/${file}`, "utf8"));'
-          test -s dist/registry-pages/vue-example/index.html
-
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v6
-
-      - name: Upload GitHub Pages artifact
-        uses: actions/upload-pages-artifact@v5
-        with:
-          path: dist/registry-pages
-
   deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    needs: build
-    runs-on: ubuntu-latest
     steps:
+      - name: Checkout trusted publication tooling
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          path: control-plane
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Authorize the validated PR artifact
+        id: authorize
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          TARGET_SHA: ${{ github.sha }}
+        run: node control-plane/.github/scripts/pages-provenance.mjs
+
+      # Download only the immutable artifact from the verified successful attempt.
+      # Its tarball is data: never extract or execute PR-supplied files here.
+      - name: Download the validated Pages tarball
+        if: steps.authorize.outputs.eligibility == 'eligible'
+        uses: actions/download-artifact@v8
+        with:
+          artifact-ids: ${{ steps.authorize.outputs.artifact_id }}
+          run-id: ${{ steps.authorize.outputs.quality_run_id }}
+          github-token: ${{ github.token }}
+          path: pages-artifact
+          merge-multiple: true
+          digest-mismatch: error
+
+      - name: Recheck current main and artifact before publication
+        if: steps.authorize.outputs.eligibility == 'eligible'
+        id: current
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          TARGET_SHA: ${{ github.sha }}
+          EXPECTED_ARTIFACT_ID: ${{ steps.authorize.outputs.artifact_id }}
+        run: node control-plane/.github/scripts/pages-provenance.mjs
+
+      - name: Configure GitHub Pages
+        if: steps.current.outputs.eligibility == 'eligible'
+        uses: actions/configure-pages@v6
+
+      # deploy-pages looks in the current workflow run. Transfer the original
+      # upload-pages-artifact tarball unchanged; no registry build is needed.
+      - name: Transfer the validated tarball to this publication
+        if: steps.current.outputs.eligibility == 'eligible'
+        uses: actions/upload-artifact@v7
+        with:
+          name: github-pages
+          path: pages-artifact/artifact.tar
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+          overwrite: true
+
       - name: Deploy registry
+        if: steps.current.outputs.eligibility == 'eligible'
         id: deployment
         uses: actions/deploy-pages@v5

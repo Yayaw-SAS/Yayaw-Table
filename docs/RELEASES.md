@@ -86,11 +86,17 @@ version while Changesets are still pending.
    bun run release:verify
    ```
 
-4. Commit the release files and tag the same version:
+4. Commit the release files on a branch, open a PR, wait for its CI, and merge
+   the validated content into `main`. Pages publishes the artifact from that PR
+   without rebuilding it. Do not push a release commit directly to `main`.
+
+5. Update local `main` and tag the merged release version:
 
    ```bash
+   git checkout main
+   git pull --ff-only origin main
    git tag vX.Y.Z
-   git push origin main --tags
+   git push origin vX.Y.Z
    ```
 
 The tag workflow verifies that the committed versioned snapshot exists for
@@ -101,7 +107,10 @@ command prepended.
 
 ## Registry snapshots
 
-`bun run registry:build` updates the latest files in `public/r/`.
+`bun run registry:build` updates the latest files in `public/r/` locally.
+Pages serves the immutable build artifact from the validated PR; no bot commits
+generated files to `main` after deployment. See [CI maintenance](CI-MAINTENANCE.md)
+for artifact retention and publication recovery.
 
 `bun run registry:release` updates the latest files and creates the versioned
 snapshot for the current `package.json` version. The snapshot includes
