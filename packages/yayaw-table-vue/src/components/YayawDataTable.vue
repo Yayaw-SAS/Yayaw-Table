@@ -458,13 +458,13 @@ provide(tableContextKey, {
       </div>
     </header>
 
+    <TableFilterBar v-if="props.showFilterBar ?? config.table.showFilterBar" />
     <TableToolbar
       v-if="config.table.showToolbar"
       :enable-advanced-filters="advancedFiltersEnabled && config.table.enableColumnFilters"
       :initial-views="initialViews"
       :toolbar-actions-placement="props.toolbarActionsPlacement ?? config.toolbarActionsPlacement"
     />
-    <TableFilterBar v-if="props.showFilterBar ?? config.table.showFilterBar" />
     <AdvancedFilters v-if="advancedFiltersEnabled && config.table.enableColumnFilters && state.advancedFilters.value.filters.length" />
 
     <div v-if="tableData.error.value" class="yayaw-error" role="alert">
