@@ -490,3 +490,140 @@ it("loads persisted default views without initialViews again after remount", asy
   }
   expect(list).toHaveBeenCalledTimes(2);
 });
+
+it("favorites a shared system view independently of write permissions, restores it, and clears it", async () => {
+  const shared = { ...saved, isGlobal: true, isSystem: true };
+  const options = { views: [shared], table: { allowViewSave: false } };
+  const wrapper = mountTable({ ...options, active: shared.id });
+  await flushPromises();
+  await search(wrapper).setValue("Beta");
+  await wrapper.get('[aria-label="Use this view on arrival"]').trigger("click");
+  await flushPromises();
+  expect(
+    wrapper
+      .get('[aria-label="Remove favorite view"]')
+      .attributes("aria-pressed")
+  ).toBe("true");
+  expect(search(wrapper).element).toHaveProperty("value", "Beta");
+  expect(shared.isDefault).toBeUndefined();
+  wrapper.unmount();
+  const reloaded = mountTable(options);
+  await flushPromises();
+  expect(current(reloaded).text()).toBe(shared.name);
+  expect(search(reloaded).element).toHaveProperty("value", "Alpha");
+  await reloaded.get('[aria-label="Remove favorite view"]').trigger("click");
+  await flushPromises();
+  reloaded.unmount();
+  const cleared = mountTable(options);
+  await flushPromises();
+  expect(current(cleared).text()).toBe("Default view");
+});
+
+it("loads a remote favorite before the shared default and replaces it without updating view records", async () => {
+  const setFavorite = vi.fn(async (viewId: string | null) => ({
+    success: true,
+    data: { viewId },
+  }));
+  const update = vi.fn();
+  const standard = {
+    ...saved,
+    id: "default",
+    name: "Team default",
+    isDefault: true,
+  };
+  const wrapper = mountTable({
+    views: [standard, saved],
+    actions: {
+      getFavorite: () => ({ data: { viewId: saved.id } }),
+      setFavorite,
+      update,
+    },
+  });
+  await flushPromises();
+  expect(current(wrapper).text()).toBe(saved.name);
+  await openMenu(wrapper);
+  await choose(standard.name);
+  await wrapper.get('[aria-label="Use this view on arrival"]').trigger("click");
+  await flushPromises();
+  expect(setFavorite).toHaveBeenCalledWith(standard.id, {
+    tableId: config.id,
+    tableType: "products",
+  });
+  expect(update).not.toHaveBeenCalled();
+  expect(
+    wrapper
+      .get('[aria-label="Remove favorite view"]')
+      .attributes("aria-pressed")
+  ).toBe("true");
+});
+
+it("ignores an inaccessible favorite and respects an explicit initial view", async () => {
+  const standard = {
+    ...saved,
+    id: "default",
+    name: "Team default",
+    isDefault: true,
+  };
+  const actions = { getFavorite: () => ({ data: { viewId: "removed" } }) };
+  const wrapper = mountTable({ views: [standard, saved], actions });
+  await flushPromises();
+  expect(current(wrapper).text()).toBe(standard.name);
+  wrapper.unmount();
+  const explicit = mountTable({
+    views: [standard, saved],
+    active: standard.id,
+    actions: {
+      getFavorite: () => ({ data: { viewId: saved.id } }),
+    },
+  });
+  await flushPromises();
+  expect(current(explicit).text()).toBe(standard.name);
+});
+
+it("does not replace edits while the favorite loads, or after choosing the default view", async () => {
+  const pending = deferred<TableViewActionResult<{ viewId: string | null }>>();
+  const wrapper = mountTable({
+    views: [saved],
+    actions: { getFavorite: () => pending.promise },
+  });
+  await flushPromises();
+  await search(wrapper).setValue("Beta");
+  pending.resolve({ data: { viewId: saved.id } });
+  await flushPromises();
+  expect(search(wrapper).element).toHaveProperty("value", "Beta");
+  expect(current(wrapper).text()).toBe("Default view");
+  await openMenu(wrapper);
+  await choose(saved.name);
+  await openMenu(wrapper);
+  await choose("Default view");
+  expect(search(wrapper).element).toHaveProperty("value", "");
+});
+
+it("exposes failed favorite writes and allows retry without changing the current view", async () => {
+  const setFavorite = vi
+    .fn()
+    .mockResolvedValueOnce({ success: false, error: "Preference unavailable" })
+    .mockResolvedValueOnce({ success: true, data: { viewId: saved.id } });
+  const wrapper = mountTable({
+    views: [saved],
+    active: saved.id,
+    actions: { setFavorite },
+  });
+  await flushPromises();
+  await wrapper.get('[aria-label="Use this view on arrival"]').trigger("click");
+  await flushPromises();
+  expect(wrapper.get('[role="alert"]').text()).toBe("Preference unavailable");
+  expect(
+    wrapper
+      .get('[aria-label="Use this view on arrival"]')
+      .attributes("aria-pressed")
+  ).toBe("false");
+  expect(search(wrapper).element).toHaveProperty("value", "Alpha");
+  await wrapper.get('[aria-label="Use this view on arrival"]').trigger("click");
+  await flushPromises();
+  expect(
+    wrapper
+      .get('[aria-label="Remove favorite view"]')
+      .attributes("aria-pressed")
+  ).toBe("true");
+});

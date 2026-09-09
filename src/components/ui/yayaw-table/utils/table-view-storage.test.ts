@@ -119,3 +119,41 @@ describe("createLocalTableViewActions", () => {
     assert.equal(deleted.error, "Cannot delete a system view");
   });
 });
+
+it("stores one favorite independently of view records, scoped by table type and ID", async () => {
+  const storage = createMemoryStorage();
+  const actions = createLocalTableViewActions({ storage });
+  const context = {
+    tableId: "organization-a:user-a:products",
+    tableType: "products",
+  };
+  // Favorites can refer to remote or system views that are absent from local CRUD storage.
+  await actions.setFavorite("shared-system-view", context);
+  const reloaded = createLocalTableViewActions({ storage });
+  assert.equal(
+    (await reloaded.getFavorite(context)).data?.viewId,
+    "shared-system-view"
+  );
+  assert.deepEqual((await reloaded.list(context)).data, []);
+  assert.equal(
+    (await reloaded.getFavorite({ ...context, tableType: "orders" })).data
+      ?.viewId,
+    null
+  );
+  assert.equal(
+    (
+      await reloaded.getFavorite({
+        ...context,
+        tableId: "organization-b:user-a:products",
+      })
+    ).data?.viewId,
+    null
+  );
+  await reloaded.setFavorite("another-view", context);
+  assert.equal(
+    (await reloaded.getFavorite(context)).data?.viewId,
+    "another-view"
+  );
+  await reloaded.setFavorite(null, context);
+  assert.equal((await reloaded.getFavorite(context)).data?.viewId, null);
+});
