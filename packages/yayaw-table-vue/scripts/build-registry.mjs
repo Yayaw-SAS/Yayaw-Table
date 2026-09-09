@@ -64,6 +64,7 @@ const item = {
     "lucide-vue-next@^1.0.0",
     "reka-ui@^2.10.4",
     "vue@^3.5.0",
+    "vue-sonner@^2.0.9",
     "zod@^4.3.0",
   ],
   registryDependencies: [],

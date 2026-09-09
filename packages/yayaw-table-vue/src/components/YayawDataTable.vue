@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { QueryClient } from "@tanstack/vue-query";
+import { toast } from "vue-sonner";
 import { type Component, computed, onBeforeUnmount, provide, ref, watch } from "vue";
 import { useTableData } from "../composables/use-table-data";
 import { useTableState } from "../composables/use-table-state";
@@ -177,6 +178,10 @@ const isSelectingAll = ref(false);
 const form = ref<OpenFormState>({ open: false, mode: "create" });
 const footerCalculationsVisible = ref(config.table.enableCalculations === true);
 const status = ref<{ type: "error" | "success"; message: string }>();
+// Use the host's single Sonner outlet, as React does; feedback must not move table content.
+watch(status, notification => {
+  if (notification) toast[notification.type](notification.message);
+}, { flush: "sync" });
 const translations = computed(() =>
   createTranslations(props.locale, { ...config.translations.keys, ...props.translations })
 );
@@ -444,11 +449,6 @@ provide(tableContextKey, {
 
 <template>
   <section class="yayaw-table" :class="className" :data-density="state.density.value" :style="densityStyle" tabindex="-1">
-    <div v-if="status" class="yayaw-status" :data-type="status.type" role="status">
-      <span>{{ status.message }}</span>
-      <button type="button" :aria-label="String(translations.dismiss)" @click="status = undefined">×</button>
-    </div>
-
     <header v-if="config.table.showToolbarHeader" class="yayaw-header">
       <div>
         <h2 class="yayaw-title">{{ title ?? config.translations.keys.title ?? `${tableType} Table` }}</h2>

@@ -350,3 +350,7 @@ The rows icon on the right of the toolbar offers six sizes. Tooltips appear on h
 XS preserves the previous compact S appearance. M remains the default. Padding, built-in controls, and thumbnails use coordinated Tailwind spacing units; text size stays unchanged and taller content can expand a row. Vue uses the same shared spacing factors without requiring Tailwind in the host application.
 
 The selection stays with the table across display-mode changes and does not modify the configured default, URL state, or saved views. The density icon is hidden in Kanban and Gallery.
+
+## Application notifications
+
+Mount one Shadcn Sonner `Toaster` at the application root, or import `Toaster` and `vue-sonner/style.css` from `vue-sonner`. Table operation feedback uses that shared outlet, including view creation, CRUD, export and bulk-action results. Do not add a toaster to every table. Field validation and retryable form errors stay next to their controls. When upgrading an older Vue integration that relied on inline status blocks, install `vue-sonner@^2.0.9` and add the root outlet. React continues to use the host's `sonner` outlet.

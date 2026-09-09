@@ -4,6 +4,7 @@ import { createStore, Provider } from "jotai";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
+import { toast } from "sonner";
 import { tableDensityAtom } from "../src/components/ui/yayaw-table/atoms/table-atoms";
 import { DataTableViewManager } from "../src/components/ui/yayaw-table/components/toolbar/table-view-manager";
 import {
@@ -41,6 +42,7 @@ const settle = () =>
 async function mountManager(
   options: {
     actions?: TableViewActions;
+    allowViewSave?: boolean;
     views?: TableView[];
     cachedFavoriteId?: string;
     initialActiveViewId?: string;
@@ -83,7 +85,7 @@ async function mountManager(
               translations={defaultTranslations}
             >
               <DataTableViewManager
-                allowViewSave={false}
+                allowViewSave={options.allowViewSave ?? false}
                 initialActiveViewId={options.initialActiveViewId}
                 tableId={favorite.tableId}
                 tableType={context.tableType}
@@ -383,4 +385,31 @@ it("keeps the old favorite when clearing it fails and allows retry on the defaul
   expect(wrapper.button("Favorite view").getAttribute("aria-pressed")).toBe(
     "true"
   );
+});
+
+it("reports saved-view deletion through the host Sonner outlet", async () => {
+  const personal = { ...favorite, isSystem: false, isGlobal: false };
+  const wrapper = await mountManager({
+    views: [personal],
+    initialActiveViewId: personal.id,
+    allowViewSave: true,
+    actions: { delete: () => Promise.resolve({ success: true }) },
+  });
+  const before = toast.getHistory().length;
+  await act(() => wrapper.button("Current View").click());
+  await settle();
+  const item = Array.from(
+    document.querySelectorAll<HTMLElement>('[role="menuitem"]')
+  ).find((element) => element.textContent?.includes("Delete view"));
+  if (!item) {
+    throw new Error("Missing delete view action");
+  }
+  await act(() => item.click());
+  await settle();
+  expect(toast.getHistory().length).toBe(before + 1);
+  expect(toast.getHistory().at(-1)).toMatchObject({
+    type: "success",
+    title: "View deleted successfully",
+  });
+  expect(wrapper.container.querySelector('[role="alert"]')).toBeNull();
 });

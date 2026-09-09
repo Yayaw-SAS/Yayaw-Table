@@ -16,7 +16,7 @@ export default defineConfig({
       fileName: "yayaw-table-vue",
     },
     rollupOptions: {
-      external: ["lucide-vue-next", "vue"],
+      external: ["lucide-vue-next", "vue", "vue-sonner"],
       output: {
         globals: { "lucide-vue-next": "LucideVueNext", vue: "Vue" },
       },

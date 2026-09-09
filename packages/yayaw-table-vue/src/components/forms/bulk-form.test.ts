@@ -1,6 +1,7 @@
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { reactive } from "vue";
+import { toast } from "vue-sonner";
 import { z } from "zod";
 import { defineTableConfig } from "../../config";
 import type {
@@ -252,7 +253,10 @@ describe("generated bulk catalogue", () => {
     });
     await open(wrapper);
     expect(wrapper.find("form").exists()).toBe(false);
-    expect(wrapper.text()).toContain("Select rows with the same edit form");
+    expect(toast.getHistory().at(-1)).toMatchObject({
+      type: "error",
+      title: "Select rows with the same edit form.",
+    });
   });
 
   it("keeps the opened target IDs and retains only failed IDs for retry", async () => {

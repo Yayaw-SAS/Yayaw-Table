@@ -1,5 +1,6 @@
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { toast } from "vue-sonner";
 import { defineTableConfig } from "../config";
 import type { TableRecord, YayawTableProps } from "../types";
 import YayawDataTable from "./YayawDataTable.vue";
@@ -148,7 +149,9 @@ describe("bulk action execution", () => {
     await clickAction(wrapper, label);
     expect(handler).toHaveBeenCalledExactlyOnceWith(rows.slice(0, 2));
     expect(selectedCount(wrapper)).toBe(0);
-    expect(wrapper.get('[role="status"]').text()).toContain("Done");
+    expect(toast.getHistory().at(-1)).toMatchObject({
+      title: expect.stringContaining("Done"),
+    });
   });
 
   it("clears selection when a custom action requests it", async () => {
@@ -196,10 +199,10 @@ describe("bulk action execution", () => {
     });
     await selectRows(wrapper);
     await clickAction(wrapper, "Archive");
-    expect(wrapper.get('[role="status"]').text()).toContain("Archive denied");
-    expect(wrapper.get('[role="status"]').attributes("data-type")).toBe(
-      "error"
-    );
+    expect(toast.getHistory().at(-1)).toMatchObject({
+      title: expect.stringContaining("Archive denied"),
+    });
+    expect(toast.getHistory().at(-1)).toMatchObject({ type: "error" });
     expect(wrapper.get(".yayaw-bulk-bar").text()).toContain("2 selected");
   });
 
@@ -254,9 +257,7 @@ describe("bulk action execution", () => {
     expect(wrapper.emitted("rowSelectionChange")?.at(-1)).toEqual([
       { "2": true },
     ]);
-    expect(wrapper.get('[role="status"]').attributes("data-type")).toBe(
-      "error"
-    );
+    expect(toast.getHistory().at(-1)).toMatchObject({ type: "error" });
   });
 
   it("refreshes even when a bulk endpoint reports failure", async () => {
@@ -277,9 +278,9 @@ describe("bulk action execution", () => {
     expect(bulkDelete).toHaveBeenCalledExactlyOnceWith(["1", "2"]);
     expect(list).toHaveBeenCalledTimes(1);
     expect(selectedCount(wrapper)).toBe(2);
-    expect(wrapper.get('[role="status"]').text()).toContain(
-      "Partial backend failure"
-    );
+    expect(toast.getHistory().at(-1)).toMatchObject({
+      title: expect.stringContaining("Partial backend failure"),
+    });
   });
 
   it("waits for slow deletions to settle before refreshing after a fast rejection", async () => {
@@ -394,7 +395,9 @@ describe("bulk action execution", () => {
     await flushPromises();
     expect(handler).toHaveBeenCalledTimes(1);
     expect(selectedCount(wrapper)).toBe(0);
-    expect(wrapper.get('[role="status"]').text()).toContain("Archived");
+    expect(toast.getHistory().at(-1)).toMatchObject({
+      title: expect.stringContaining("Archived"),
+    });
   });
 
   it("clears all successfully deleted rows", async () => {
