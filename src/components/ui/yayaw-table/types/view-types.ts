@@ -49,7 +49,8 @@ export interface TableView {
   isDefault?: boolean;
 
   /**
-   * Whether the view is global (available to all users)
+   * Whether the view is shared within the application's organization scope.
+   * The host must enforce membership and permissions in its persistence actions.
    */
   isGlobal?: boolean;
 
@@ -233,6 +234,17 @@ export interface TableViewActionResult<TData = TableView> {
  * View persistence contract exposed through table actions.
  */
 export interface TableViewActions {
+  /** Read the current user's favorite without changing the shared view record. */
+  getFavorite?: (
+    context: TableViewActionContext
+  ) => Promise<TableViewActionResult<{ viewId: string | null }>>;
+
+  /** Persist one favorite per user, organization, and table; null clears it. */
+  setFavorite?: (
+    viewId: string | null,
+    context: TableViewActionContext
+  ) => Promise<TableViewActionResult<{ viewId: string | null }>>;
+
   /**
    * Create a saved view from the current table state
    */

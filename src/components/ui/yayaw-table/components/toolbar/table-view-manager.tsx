@@ -9,7 +9,9 @@ import {
   LayoutList,
   Plus,
   Save,
+  Star,
   Trash2,
+  Users,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -34,6 +36,7 @@ import {
 } from "@/src/components/ui/dropdown-menu";
 import { Input } from "@/src/components/ui/input";
 import { useTableUrlState } from "../../hooks/use-table-url-state";
+import { useTableStateSync } from "../../providers/table-state-sync-provider";
 import {
   useTableActions as useProviderTableActions,
   useTranslations,
@@ -46,6 +49,7 @@ import type {
 } from "../../types/view-types";
 import { createLocalTableViewActions } from "../../utils/table-view-storage";
 import { areTableViewConfigsEqual } from "../../utils/table-view-state";
+import { resolveInitialTableView } from "../../utils/table-view-favorite";
 
 interface DataTableViewManagerProps {
   defaultDensity?: TableViewConfig["density"];
@@ -116,11 +120,55 @@ function mergeViewActions({
   providedActions?: TableViewActions;
 }): Required<TableViewActions> {
   return {
+    getFavorite: providedActions?.getFavorite ?? fallbackActions.getFavorite,
+    setFavorite: providedActions?.setFavorite ?? fallbackActions.setFavorite,
     create: providedActions?.create ?? fallbackActions.create,
     delete: providedActions?.delete ?? fallbackActions.delete,
     list: providedActions?.list ?? fallbackActions.list,
     update: providedActions?.update ?? fallbackActions.update,
   };
+}
+
+function FavoriteViewButton({
+  activeView,
+  favoriteViewId,
+  isTemporary,
+  disabled,
+  onClick,
+  t,
+}: {
+  activeView?: TableView;
+  favoriteViewId?: string | null;
+  isTemporary: boolean;
+  disabled: boolean;
+  onClick: () => Promise<void>;
+  t: ReturnType<typeof useTranslations>["t"];
+}) {
+  if (isTemporary) {
+    return null;
+  }
+  const isFavorite = (activeView?.id ?? null) === favoriteViewId;
+  const selectedLabel = activeView ? "views.removeFavorite" : "views.favorite";
+  const label = t(isFavorite ? selectedLabel : "views.setFavorite");
+  return (
+    <TableTooltip label={label}>
+      <Button
+        aria-label={label}
+        aria-pressed={isFavorite}
+        className="h-8 w-8 shrink-0"
+        disabled={disabled}
+        onClick={onClick}
+        size="icon-sm"
+        type="button"
+        variant="outline"
+      >
+        <Star
+          aria-hidden="true"
+          className={cn("h-4 w-4", isFavorite && "fill-current")}
+        />
+      </Button>
+    </TableTooltip>
+  );
 }
 
 interface ViewWriteMenuItemsProps {
@@ -129,6 +177,35 @@ interface ViewWriteMenuItemsProps {
   onDeleteActiveView: () => Promise<void>;
   onOpenSaveDialog: () => void;
   t: ReturnType<typeof useTranslations>["t"];
+}
+
+function ViewStatusIcons({
+  view,
+  favoriteViewId,
+  t,
+}: {
+  view?: TableView;
+  favoriteViewId?: string | null;
+  t: ReturnType<typeof useTranslations>["t"];
+}) {
+  return (
+    <>
+      {(view?.id ?? null) === favoriteViewId && (
+        <Star
+          aria-label={t("views.favorite")}
+          role="img"
+          className="h-4 w-4 shrink-0 fill-current"
+        />
+      )}
+      {view?.isGlobal && (
+        <Users
+          aria-label={t("views.dialog.save.global")}
+          role="img"
+          className="h-4 w-4 shrink-0"
+        />
+      )}
+    </>
+  );
 }
 
 function ViewWriteMenuItems({
@@ -304,6 +381,7 @@ export function DataTableViewManager({
   const [inlineError, setInlineError] = useState<string>();
   const [isMutating, setIsMutating] = useState(false);
   const hasAppliedInitialViewRef = useRef(false);
+  const shouldSyncUrl = useTableStateSync();
   const { applyViewConfig, getCurrentViewConfig, resetUrlState, viewParam } =
     useTableUrlState({
       defaultDensity,
@@ -315,7 +393,11 @@ export function DataTableViewManager({
     [tableId, tableType]
   );
 
-  const { data: savedViews = [], isLoading } = useQuery({
+  const {
+    data: savedViews = [],
+    isLoading,
+    isFetching,
+  } = useQuery({
     // Empty bootstrap data must still load persisted local or remote views.
     initialData: initialViews.length > 0 ? initialViews : undefined,
     queryFn: async () => {
@@ -325,6 +407,26 @@ export function DataTableViewManager({
     queryKey: viewQueryKey,
     staleTime: 5000,
   });
+
+  const favoriteQueryKey = useMemo(
+    () => ["tableViewFavorite", tableId, tableType],
+    [tableId, tableType]
+  );
+  const favoriteQuery = useQuery({
+    queryKey: favoriteQueryKey,
+    queryFn: async () => {
+      const result = await viewActions.getFavorite({ tableId, tableType });
+      if (!result.success || !result.data || result.error) {
+        throw new Error(result.error || t("views.favoriteError"));
+      }
+      return result.data;
+    },
+    retry: false,
+  });
+  // An inaccessible favorite has the same UI fallback as an absent preference.
+  const favoriteViewId = savedViews.find(
+    (view) => view.id === favoriteQuery.data?.viewId
+  )?.id ?? null;
 
   const currentConfig = useMemo(
     () => getCurrentViewConfig(),
@@ -355,17 +457,35 @@ export function DataTableViewManager({
     fallbackTemporaryLabel: t("views.temporary_view"),
     viewParam,
   });
-  const hasInitialUrlState = hasTableUrlState(tableId);
+  const initialConfigRef = useRef(currentConfig);
+  const hasInitialUrlState = shouldSyncUrl && hasTableUrlState(tableId);
   const canApplyInitialView =
     !hasAppliedInitialViewRef.current && !viewParam && !hasInitialUrlState;
-  const preferredInitialViewId =
-    initialActiveViewId ?? savedViews.find((view) => view.isDefault)?.id;
+  const preferredInitialViewId = resolveInitialTableView(
+    savedViews,
+    initialActiveViewId,
+    favoriteViewId
+  )?.id;
 
   useEffect(() => {
-    if (!(preferredInitialViewId && canApplyInitialView)) {
+    if (
+      isFetching ||
+      isLoading ||
+      favoriteQuery.isFetching ||
+      favoriteQuery.isPending ||
+      hasAppliedInitialViewRef.current
+    ) {
       return;
     }
 
+    // Defaults are an arrival preference, never a response to later user edits.
+    hasAppliedInitialViewRef.current = true;
+    if (
+      !canApplyInitialView ||
+      !areTableViewConfigsEqual(initialConfigRef.current, currentConfig)
+    ) {
+      return;
+    }
     const initialView = savedViews.find(
       (view) => view.id === preferredInitialViewId
     );
@@ -373,11 +493,15 @@ export function DataTableViewManager({
       return;
     }
 
-    hasAppliedInitialViewRef.current = true;
     applyViewConfig(initialView.config, { viewId: initialView.id });
   }, [
     applyViewConfig,
     canApplyInitialView,
+    currentConfig,
+    favoriteQuery.isPending,
+    favoriteQuery.isFetching,
+    isLoading,
+    isFetching,
     preferredInitialViewId,
     savedViews,
   ]);
@@ -389,17 +513,48 @@ export function DataTableViewManager({
   }, [queryClient, viewQueryKey]);
 
   const handleSelectDefaultView = useCallback(() => {
+    hasAppliedInitialViewRef.current = true;
     setInlineError(undefined);
     resetUrlState();
   }, [resetUrlState]);
 
   const handleSelectView = useCallback(
     (view: TableView) => {
+      hasAppliedInitialViewRef.current = true;
       setInlineError(undefined);
       applyViewConfig(view.config, { viewId: view.id });
     },
     [applyViewConfig]
   );
+
+  const handleToggleFavorite = async (): Promise<void> => {
+    if ((!activeView && viewParam) || isMutating || favoriteQuery.isPending) {
+      return;
+    }
+    const viewId = activeView && activeView.id !== favoriteViewId ? activeView.id : null;
+    // The built-in default represents no personal override; its filled star is stable.
+    if (!activeView && favoriteViewId === null && !favoriteQuery.error) {
+      return;
+    }
+    setIsMutating(true);
+    setInlineError(undefined);
+    try {
+      // A stale preference refetch must not replace the result of this write.
+      await queryClient.cancelQueries({ queryKey: favoriteQueryKey });
+      const result = await viewActions.setFavorite(viewId, {
+        tableId,
+        tableType,
+      });
+      if (!result.success || result.error) {
+        throw new Error(result.error || t("views.favoriteError"));
+      }
+      queryClient.setQueryData(favoriteQueryKey, result.data ?? { viewId });
+    } catch (error) {
+      setInlineError(getViewErrorMessage(error, t("views.favoriteError")));
+    } finally {
+      setIsMutating(false);
+    }
+  };
 
   const openSaveDialog = useCallback(() => {
     if (!canCreateView) {
@@ -569,7 +724,8 @@ export function DataTableViewManager({
                 ) : (
                   <Check className="h-4 w-4" />
                 )}
-                <span>{t("views.defaultView")}</span>
+                <span className="min-w-0 flex-1 truncate">{t("views.defaultView")}</span>
+                <ViewStatusIcons favoriteViewId={favoriteViewId} t={t} />
               </DropdownMenuItem>
             </DropdownMenuGroup>
             {savedViews.length > 0 && <DropdownMenuSeparator />}
@@ -587,6 +743,11 @@ export function DataTableViewManager({
                     <span className="h-4 w-4" />
                   )}
                   <span className="min-w-0 flex-1 truncate">{view.name}</span>
+                  <ViewStatusIcons
+                    view={view}
+                    favoriteViewId={favoriteViewId}
+                    t={t}
+                  />
                 </DropdownMenuItem>
               ))}
             </DropdownMenuGroup>
@@ -600,6 +761,15 @@ export function DataTableViewManager({
           </DropdownMenuContent>
         </DropdownMenu>
 
+        <FavoriteViewButton
+          activeView={activeView}
+          isTemporary={Boolean(viewParam && !activeView)}
+          favoriteViewId={favoriteViewId}
+          disabled={isMutating || favoriteQuery.isPending}
+          onClick={handleToggleFavorite}
+          t={t}
+        />
+
         <ViewWriteButtons
           allowViewSave={allowViewSave}
           canCreateView={canCreateView}
@@ -612,9 +782,10 @@ export function DataTableViewManager({
         />
       </div>
 
-      {inlineError && (
-        <p className="max-w-[20rem] truncate text-destructive text-xs">
-          {inlineError}
+      {(inlineError || favoriteQuery.error) && (
+        <p role="alert" className="max-w-[20rem] text-destructive text-xs">
+          {inlineError ||
+            getViewErrorMessage(favoriteQuery.error, t("views.favoriteError"))}
         </p>
       )}
 

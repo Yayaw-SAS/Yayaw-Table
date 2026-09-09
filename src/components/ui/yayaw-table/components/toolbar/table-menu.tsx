@@ -641,6 +641,7 @@ export function TableMenu({
       {sectionState.canShowFiltersSection && (
         <StackMenuView name="filters">
           <TableFiltersMenu
+            tableType={tableType}
             advancedActions={
               useAdvancedFilters ? advancedFiltersConfig?.actions : undefined
             }

@@ -282,6 +282,10 @@ export interface DataTableTranslations {
     delete: string;
     rename: string;
     setDefault: string;
+    favorite: string;
+    setFavorite: string;
+    removeFavorite: string;
+    favoriteError: string;
     defaultView: string;
     default_system_view: string;
     systemView: string;

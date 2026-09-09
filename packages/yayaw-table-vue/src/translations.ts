@@ -14,6 +14,8 @@ export const defaultTranslations: Required<
     | "views"
     | "saveView"
     | "noResults"
+    | "noResultsDescription"
+    | "noDataAvailable"
     | "loading"
     | "previous"
     | "next"
@@ -135,7 +137,9 @@ export const defaultTranslations: Required<
   removeItem: "Remove item",
   moveItemUp: "Move item up",
   moveItemDown: "Move item down",
-  searchOptions: "search",
+  searchOptions: "Search options…",
+  "common.true": "True",
+  "common.false": "False",
   chooseOption: "Choose…",
   add: "Add",
   cardImage: "Image",
@@ -172,6 +176,10 @@ export const defaultTranslations: Required<
   saveView: "Save view",
   currentView: "Current view",
   defaultView: "Default view",
+  favoriteView: "Favorite view",
+  setFavoriteView: "Use this view on arrival",
+  removeFavoriteView: "Remove favorite view",
+  favoriteViewError: "Could not load or save the favorite view",
   temporaryView: "Temporary view",
   addView: "Add view",
   updateView: "Save changes",
@@ -195,7 +203,9 @@ export const defaultTranslations: Required<
   viewCreated: "View created",
   viewUpdated: "View updated",
   viewDeleted: "View deleted",
-  noResults: "No results",
+  noResults: "No results found",
+  noResultsDescription: "No data matches your current filters",
+  noDataAvailable: "No data available",
   loading: "Loading…",
   previous: "Previous",
   next: "Next",
@@ -278,7 +288,9 @@ export const frenchTranslations: DataTableTranslations = {
   removeItem: "Supprimer l’élément",
   moveItemUp: "Monter l’élément",
   moveItemDown: "Descendre l’élément",
-  searchOptions: "recherche",
+  searchOptions: "Rechercher des options…",
+  "common.true": "Vrai",
+  "common.false": "Faux",
   chooseOption: "Choisir…",
   deleteRow: "Supprimer la ligne ?",
   deleteRowDescription: "Cette action est irréversible.",
@@ -366,6 +378,10 @@ export const frenchTranslations: DataTableTranslations = {
   saveView: "Enregistrer la vue",
   currentView: "Vue actuelle",
   defaultView: "Vue par défaut",
+  favoriteView: "Vue favorite",
+  setFavoriteView: "Utiliser cette vue à l’arrivée",
+  removeFavoriteView: "Retirer la vue des favoris",
+  favoriteViewError: "Impossible de charger ou enregistrer la vue favorite",
   temporaryView: "Vue temporaire",
   addView: "Ajouter une vue",
   updateView: "Enregistrer les modifications",
@@ -390,6 +406,8 @@ export const frenchTranslations: DataTableTranslations = {
   viewUpdated: "Vue mise à jour",
   viewDeleted: "Vue supprimée",
   noResults: "Aucun résultat",
+  noResultsDescription: "Aucune donnée ne correspond à vos filtres actuels",
+  noDataAvailable: "Aucune donnée disponible",
   loading: "Chargement…",
   previous: "Précédent",
   next: "Suivant",

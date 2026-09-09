@@ -43,12 +43,12 @@ import type {
 import type { CustomBulkActionsInput } from "./bulk-actions";
 import { DataTableSkeleton } from "./data-table-skeleton";
 import { TableRecordDetails } from "./details/table-record-details";
+// Direct import keeps the toolbar available without a client-only dynamic wrapper.
+import { TableFilterBar } from "./filters/table-filter-bar";
 // Lazy load heavy components using React.lazy inside './forms/lazy-forms'
 import { LazyCatalogueFormContainer as CatalogueFormContainer } from "./forms/lazy-forms";
 // Import DataTableClient directly for better SSR compatibility
 import { TableComponent as DataTableClient } from "./table-component";
-
-// Direct import keeps the toolbar available without a client-only dynamic wrapper.
 import { DataTableAdvancedToolbar } from "./toolbar/data-table-advanced-toolbar";
 import { TableDisplayModeSwitcher } from "./toolbar/table-display-mode-switcher";
 import { TableGalleryMenu } from "./toolbar/table-gallery-menu";
@@ -357,10 +357,18 @@ function detailViewHandler(
   return details ? open : undefined;
 }
 
+function isFilterBarVisible(
+  prop: boolean | undefined,
+  configured: boolean | undefined
+): boolean {
+  return prop ?? configured ?? false;
+}
+
 function DataTableContent({
   className,
   loadingOverlay,
   enableToolbar = true,
+  showFilterBar,
   onRowSelectionChange,
   onRowSelectionStateChange,
   rowSelection,
@@ -401,6 +409,7 @@ function DataTableContent({
   className?: string;
   loadingOverlay?: React.ReactNode;
   enableToolbar?: boolean;
+  showFilterBar?: boolean;
   onRowSelectionChange?: (rows: Row<Record<string, unknown>>[]) => void;
   onRowSelectionStateChange?: (selection: Record<string, boolean>) => void;
   rowSelection?: Record<string, boolean>;
@@ -633,17 +642,26 @@ function DataTableContent({
             (nestedTranslations ?? defaultTranslations) as DataTableTranslations
           )}
         >
-          <div className="space-y-4">
+          <div className="flex flex-col gap-4">
+            {shouldShowToolbar && shouldShowToolbarHeader && (
+              <div className="space-y-1">
+                <Title>{displayTitle}</Title>
+                <Description>{displayDescription}</Description>
+              </div>
+            )}
+
+            <TableFilterBar
+              tableId={tableId}
+              tableType={tableType}
+              visible={isFilterBarVisible(
+                showFilterBar,
+                config.table.showFilterBar
+              )}
+            />
+
             {/* Header with title/description and toolbar */}
             {shouldShowToolbar && (
               <div className="space-y-3 [&_button]:font-normal [&_button_.font-medium]:font-normal">
-                {shouldShowToolbarHeader && (
-                  <div className="space-y-1">
-                    <Title>{displayTitle}</Title>
-                    <Description>{displayDescription}</Description>
-                  </div>
-                )}
-
                 {!isLoading && (
                   <DataTableHeaderControls
                     allowViewSave={config.table.allowViewSave}

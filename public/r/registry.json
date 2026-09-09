@@ -18,6 +18,7 @@
         "dialog",
         "drawer",
         "dropdown-menu",
+        "empty",
         "field",
         "input",
         "label",
@@ -423,9 +424,19 @@
           "target": "components/ui/yayaw-table/components/filters/number-filter.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/filters/option-filter.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/filters/option-filter.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/filters/select-filter.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/filters/select-filter.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/filters/table-filter-bar.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/filters/table-filter-bar.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/filters/text-filter.tsx",
@@ -676,6 +687,11 @@
           "path": "registry/default/ui/yayaw-table/components/table-component.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/table-component.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/table-empty-state.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/table-empty-state.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/toolbar/data-table-advanced-toolbar.tsx",
@@ -1053,6 +1069,11 @@
           "target": "components/ui/yayaw-table/utils/date-display.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/utils/filter-bar.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/filter-bar.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/utils/filtered-rows.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/filtered-rows.ts"
@@ -1101,6 +1122,11 @@
           "path": "registry/default/ui/yayaw-table/utils/table-tooltip.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/table-tooltip.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/table-view-favorite.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/table-view-favorite.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/utils/table-view-state.ts",

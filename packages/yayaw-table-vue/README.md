@@ -9,6 +9,7 @@ does not widen framework compatibility.
 ## Included
 
 - Table, Kanban, and Gallery display modes
+- Kanban/Gallery settings, card selection, and page-size controls use Shadcn-style Reka UI primitives. Selects support keyboard navigation; the Properties menu stays open for multiple choices and restores focus on Escape. Popups inherit the table theme, including scoped CSS variables.
 - Local and server-side sorting, filtering, pagination, grouping, and search
 - URL-backed state compatible with existing YaYaw table query keys
 - Saved personal/team views with localStorage fallback
@@ -100,6 +101,12 @@ defaults. Both work with or without URL synchronization.
 The clear shortcut uses the `clearFilters` translation key and the Options reset
 uses `reset` (English and French defaults are included).
 
+### Empty states
+
+Table, Kanban, and Gallery compose the Shadcn Vue Empty parts with the registry's standalone CSS tokens. Filtered empty results offer **Clear filters** independently of toolbar visibility and `showClearFilters`. The action clears search, column filters, and advanced filters and returns to page one while preserving presentation and the selected view. It does not save or overwrite a view.
+
+The default copy uses `noResults`, `noResultsDescription`, `noDataAvailable`, and `clearFilters` (English/French defaults included). Inactive advanced filters do not activate the reset action. `table.emptyState.title` and `description` still override the copy, and `show: false` hides the complete state across all three modes. Loading and failed requests do not display an empty result.
+
 ### Catalogue-owned controls
 
 Declare UI choices in `defineTableConfig`, not in a page-specific toolbar:
@@ -151,11 +158,13 @@ explicit refresh remain immediate, and pending searches are cancelled on unmount
 
 ### Saved views
 
+Select a saved view and press the star to use it on arrival. The favorite is personal, can reference a shared or system view, and does not change anyone else's default. It persists in the browser unless both `actions.views.getFavorite` and `setFavorite` are supplied. See [favorite persistence and organization sharing](../../docs/SAVED-VIEWS.md) for server integration and access-control responsibilities.
+
 With `table.enableViews`, the toolbar shows the current view in a keyboard-accessible menu. The save icon updates a modified, editable view; the plus icon opens a dialog to save a new view. The menu also offers the catalogue's default view, saved views, and deletion of the active editable view. `allowViewSave: false` hides write actions; `allowViewSharing` enables sharing in the dialog. System views can be selected and copied but cannot be updated or deleted.
 
 `actions.views` can provide `list`, `create`, `update`, and `delete` individually, with local storage as the fallback for omitted handlers. Every action receives `tableId` and `tableType`; update/delete also receive the view ID. English and French labels are included. Existing flat Vue translation keys and corresponding React `views.*` keys are accepted, with explicit React keys taking precedence.
 
-An incoming URL with table options keeps those options, including unsaved changes to a referenced view. A URL containing only `view=<id>` restores that view. Without URL state, `initialActiveViewId` takes precedence over an `isDefault` view. With URL synchronization disabled, unrelated URL parameters are ignored. Default/partial views restore catalogue defaults rather than inheriting the previous view's display options. Empty grouping is saved explicitly, so configuring Kanban lanes does not group the table after saving or reloading a view. Pending loads and writes do not discard newer table edits; failed writes preserve the draft and expose a retryable error.
+An incoming URL with table options keeps those options, including unsaved changes to a referenced view. A URL containing only `view=<id>` restores that view. Without URL state, `initialActiveViewId` takes precedence over the favorite, followed by an `isDefault` view. With URL synchronization disabled, unrelated URL parameters are ignored. Default/partial views restore catalogue defaults rather than inheriting the previous view's display options. Empty grouping is saved explicitly, so configuring Kanban lanes does not group the table after saving or reloading a view. Pending loads and writes do not discard newer table edits; failed writes preserve the draft and expose a retryable error.
 
 ### List and mutation handlers
 
@@ -341,3 +350,7 @@ The rows icon on the right of the toolbar offers six sizes. Tooltips appear on h
 XS preserves the previous compact S appearance. M remains the default. Padding, built-in controls, and thumbnails use coordinated Tailwind spacing units; text size stays unchanged and taller content can expand a row. Vue uses the same shared spacing factors without requiring Tailwind in the host application.
 
 The selection stays with the table across display-mode changes and does not modify the configured default, URL state, or saved views. The density icon is hidden in Kanban and Gallery.
+
+## Application notifications
+
+Mount one Shadcn Sonner `Toaster` at the application root, or import `Toaster` and `vue-sonner/style.css` from `vue-sonner`. Table operation feedback uses that shared outlet, including view creation, CRUD, export and bulk-action results. Do not add a toaster to every table. Field validation and retryable form errors stay next to their controls. When upgrading an older Vue integration that relied on inline status blocks, install `vue-sonner@^2.0.9` and add the root outlet. React continues to use the host's `sonner` outlet.

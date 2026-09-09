@@ -12,6 +12,8 @@ Every parity-affecting PR must update this document and keep the Vue example at 
 
 ## Actions and views
 
+Both managers support one personal favorite per table, separate from shared view records. The star is available for saved system/shared views even with saving disabled. Arrival priority is explicit URL state, `initialActiveViewId`, an accessible favorite, then `isDefault`. Optional `getFavorite`/`setFavorite` actions synchronize preferences; otherwise persistence is browser-local. Organization scoping and permissions remain the host's responsibility; see [saved views](SAVED-VIEWS.md).
+
 List actions receive both naming conventions:
 
 | Value | Accepted/emitted names |
@@ -34,6 +36,8 @@ Saved snapshots now include the effective `density` (XS through 2XL). Applying o
 React ignores repeated writes of equivalent table state in both URL and memory modes, preventing column-order synchronization from retriggering subscribers during an action refresh.
 
 The Create button is the final toolbar action and keeps the primary style, in text and icon modes. Built-in secondary actions remain outlined. Existing custom placement values remain accepted: `before-create` and `between-create-export` put custom actions before Export; `after-export` puts them after Export. Create follows all of these groups.
+
+Vue Kanban and Gallery controls use Reka UI Select, DropdownMenu, and Checkbox primitives with the same Shadcn-style tokens as the existing menus. This includes card page-size selection and Lucide icons for lane movement. Keyboard navigation, multi-choice property menus, focus restoration, disabled card selection, translated labels, and saved card options have regression coverage. The public configuration and saved-view formats are unchanged.
 
 ## Catalogue forms
 
@@ -143,6 +147,8 @@ Use **`showClearFilters: true` in either framework** to clear search, column fil
 Both editions distinguish the column drag-and-drop feature gate from the user's preference. Set `enableColumnDnd: false` to remove the controls and disable reordering. `enableColumnDragDropByDefault` supplies the initial preference and now defaults to `false` in both editions; users can toggle it from a column menu or the Vue Properties panel, and the choice is stored per table. Vue column headers include a keyboard drag handle. Vue Kanban cards expose previous/next lane controls alongside pointer dragging, matching the keyboard outcome provided by React's drag system.
 
 Set `enableColumnResizing: true` to expose resize handles on data columns. Pointer and touch dragging update widths continuously; keyboard users can focus a handle and use Left/Right Arrow in 10-pixel steps, Home for the minimum, and End for the maximum. Double-clicking a handle restores its configured size. Set `enableResizing: false` on an individual column to keep it fixed. Selection and actions columns are always fixed. Valid widths are stored in `columnSizing`, restored by saved views, and included in shareable table URLs. The feature defaults to `false` in both editions so existing layouts remain unchanged.
+
+Both editions compose Shadcn Empty for table, Kanban, and Gallery. Search, column filters, or active advanced rules produce a filtered-empty message and a Clear filters action, regardless of toolbar reset flags or visibility. The action clears filtering inputs, returns to page one, and preserves sorting, grouping, column layout, display mode, page size, and the selected view without persisting its draft. Unfiltered empty data has no reset action; inactive advanced rules do not count as active filters. Custom empty-state copy and `show: false` apply to every mode, and loading/error states suppress the empty message. Shared `tests/fixtures/empty-states.json` scenarios and React/Vue integration tests cover these outcomes, URL isolation, and recovery after clearing filters. React installs the `empty` registry dependency; Vue ships the adapted Empty composition with its standalone CSS tokens.
 
 Column header menus expose the same outcomes: ascending/descending sort, filter this column, pin left/right, unpin, hide, and the persistent reordering preference when each capability is enabled. Table, gallery, and Kanban render the configured empty state, and pagination is hidden when all rows fit on one page.
 
@@ -265,3 +271,21 @@ that paginates before returning records produces page-local groups.
 
 Coverage: shared `tests/fixtures/grouped-rows.json`, React `tests/grouped-rows.test.tsx`,
 and Vue `src/grouped-rows.test.ts`, plus browser interaction in both editions.
+
+## Optional filter bar
+
+`table.filterBarColumns` declares an ordered subset of static-option or boolean columns. `table.showFilterBar` defaults to false, with a reactive `showFilterBar` component override in both frameworks. Column labels and choices come from the catalogue; disabled and unknown columns are excluded.
+
+In both editions the optional bar sits below the title and above the standard view, search and Options controls, with 16 px between each section. Both editions use filter icons, searchable checkbox pickers and native column-filter state. Multiple choices retain their original numeric, string or boolean IDs. Hidden columns may still be filtered; hiding the bar preserves the query. Options exposes the same controls even while the bar is hidden. Reset and saved-view changes update the pickers. Text, date, range and remotely loaded option filters remain in their existing filtering surfaces.
+
+Regression coverage: `tests/filter-bar.test.tsx` and Vue `components/filters/filter-bar.test.ts`, including false/zero IDs, multi-selection, hidden columns, Options synchronization, preference toggles and native reset.
+
+Historical filter triggers follow the same control height as saved-view controls in both editions. Vue uses the active density control token, including filter bars embedded in Options; React keeps the shared toolbar button size. Browser verification covers the standalone bar and the view selector together.
+
+### Built-in default favorite
+
+Both view managers expose the favorite star for the built-in default view as well as saved, shared, and system views. Choosing the default writes `setFavorite(null, context)` and fills its toolbar/menu star after success; an absent or inaccessible favorite has the same visual fallback. Clicking an already-favorite default is a no-op. Temporary unsaved view identifiers remain ineligible. The existing initial URL/host selection and shared-default precedence is unchanged. Regression tests cover clearing a saved favorite, failed writes, retry, and remount in both frameworks.
+
+### Global operation notifications
+
+React uses `sonner` and Vue uses `vue-sonner` for transient operation feedback: saved views, CRUD, exports, toolbar and bulk actions, and asynchronous action failures. Hosts mount one Sonner/Shadcn `Toaster`; the table never mounts a duplicate outlet or inserts a notification block that shifts content. Vue keeps internal status records for partial-operation retry handling. Loading, inline-save progress, field validation and actionable form/list errors remain contextual. The Vue distribution externalizes `vue-sonner` so its notifications reach the host's singleton; registry installation adds that dependency. Matching view/row/action regression coverage verifies the shared notification outcome.

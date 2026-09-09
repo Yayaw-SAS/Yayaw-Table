@@ -18,8 +18,15 @@ const toggleColumnDrag = (): void => {
     context.state.columnDragEnabled.value = !context.state.columnDragEnabled.value;
   }
 };
+let filterFocusRequested = false;
 const openColumnFilter = (): void => {
+  filterFocusRequested = true;
   context.optionsRequest.value = { columnId: props.column.id, view: "filters" };
+};
+const restoreMenuFocus = (event: Event): void => {
+  // The Options panel owns focus after navigating to a column filter.
+  if (filterFocusRequested) event.preventDefault();
+  filterFocusRequested = false;
 };
 </script>
 
@@ -39,7 +46,7 @@ const openColumnFilter = (): void => {
       </DropdownMenuTrigger>
     </TableTooltip>
     <DropdownMenuPortal>
-      <DropdownMenuContent class="yayaw-column-menu" :aria-label="`${translate('columnOptions')}: ${label}`" align="start" :side-offset="4" @click.stop>
+      <DropdownMenuContent class="yayaw-column-menu" :aria-label="`${translate('columnOptions')}: ${label}`" align="start" :side-offset="4" @click.stop @close-auto-focus="restoreMenuFocus">
         <template v-if="column.getCanSort()">
           <DropdownMenuItem class="yayaw-column-menu-item" @select="column.toggleSorting(false)"><ArrowUp :size="16" aria-hidden="true" />{{ translate('ascending') }}</DropdownMenuItem>
           <DropdownMenuItem class="yayaw-column-menu-item" @select="column.toggleSorting(true)"><ArrowDown :size="16" aria-hidden="true" />{{ translate('descending') }}</DropdownMenuItem>

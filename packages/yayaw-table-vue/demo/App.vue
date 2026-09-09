@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import { Toaster } from "vue-sonner";
+import "vue-sonner/style.css";
 import { productFormBlocks } from "../../../examples/form-layout";
 import { dataTypeColumns, dataTypeRow } from "../../../examples/data-types";
 import { z } from "zod";
@@ -109,6 +111,8 @@ const config = defineTableConfig<Product>({
     sort: [{ id: "name", desc: false }],
   },
   table: {
+    filterBarColumns: ["category", "status", "tags"],
+    showFilterBar: true,
     enableAutoPageSize: true,
     defaultAutoPageSize: true,
     displayModes: ["table", "kanban", "gallery"],
@@ -289,6 +293,7 @@ const typesActions: TableActions = {
 </script>
 
 <template>
+  <Toaster position="bottom-right" close-button />
   <main class="demo-shell">
     <header class="demo-header">
       <p class="demo-eyebrow">YaYaw Table · Vue 3</p>

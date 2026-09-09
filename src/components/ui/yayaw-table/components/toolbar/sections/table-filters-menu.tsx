@@ -14,6 +14,9 @@ import type {
   ColumnsFilterConfig,
   FilterActions,
 } from "../../../types/filter-types";
+import { useTableConfig } from "../../../hooks/use-table-config";
+import { filterBarColumns } from "../../../utils/filter-bar";
+import { TableFilterBar } from "../../filters/table-filter-bar";
 import { AdvancedFilterPanel } from "../../filters/advanced-filter-panel";
 
 // Debug flag - activated for debugging advanced filters
@@ -35,6 +38,7 @@ export interface TableFiltersMenuProps {
   invalidateTable: () => Promise<void>;
   setColumnFilters: (state: ColumnFiltersState) => void;
   tableId: string;
+  tableType?: string;
   // Props pour filtres avancés (optionnels)
   advancedFilters?: AdvancedFiltersState;
   advancedActions?: FilterActions;
@@ -48,12 +52,15 @@ export function TableFiltersMenu({
   invalidateTable: _invalidateTable,
   setColumnFilters,
   tableId,
+  tableType,
   advancedFilters = EMPTY_FILTERS,
   advancedActions,
   advancedColumnsConfig = EMPTY_COLUMNS_CONFIG,
   useAdvancedFilters = false,
 }: TableFiltersMenuProps) {
   const { t } = useTranslations();
+  const { config } = useTableConfig(tableType ?? tableId);
+  const quickColumns = filterBarColumns(config.columns.definitions, config.table.filterBarColumns);
   const openFilterForColumnId = useAtomValue(
     tableMenuOpenFilterColumnIdAtom(tableId)
   );
@@ -101,11 +108,12 @@ export function TableFiltersMenu({
     <StackMenuView name="filters">
       <StackMenuContent>
         <div className="space-y-4">
-          <div className="py-8 text-center text-muted-foreground">
+          <TableFilterBar tableId={tableId} tableType={tableType ?? tableId} />
+          {!quickColumns.length && <div className="py-8 text-center text-muted-foreground">
             <Filter className="mx-auto mb-2 h-8 w-8 opacity-50" />
             <p className="text-sm">{t("filters.noFilters")}</p>
             <p className="text-xs">{t("filters.noResults")}</p>
-          </div>
+          </div>}
 
           {/* Show legacy column filters if any exist */}
           {columnFilters.length > 0 && (

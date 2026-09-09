@@ -210,6 +210,10 @@ export interface TableBehaviorConfig<TData extends TableRecord = TableRecord> {
   showToolbar: boolean;
   showToolbarHeader: boolean;
   /** Clear search and filters while preserving display options. */
+  /** Ordered static-option/boolean columns shown in the optional filter bar. */
+  filterBarColumns?: string[];
+  /** Show the filter bar by default; a component prop can override this. */
+  showFilterBar?: boolean;
   showClearFilters?: boolean;
   /** Backwards-compatible alias for `showClearFilters`. */
   showResetFilters?: boolean;
@@ -630,6 +634,16 @@ export interface TableViewActionResult<T = TableView> {
 }
 
 export interface TableViewActions {
+  /** Read the current user's favorite independently of shared view records. */
+  getFavorite?: (context: {
+    tableId: string;
+    tableType?: string;
+  }) => MaybePromise<TableViewActionResult<{ viewId: string | null }>>;
+  /** Persist one favorite per user, organization, and table; null clears it. */
+  setFavorite?: (
+    viewId: string | null,
+    context: { tableId: string; tableType?: string }
+  ) => MaybePromise<TableViewActionResult<{ viewId: string | null }>>;
   list?: (context: {
     tableId: string;
     tableType?: string;
@@ -794,6 +808,8 @@ export interface DataTableTranslations {
   views?: string;
   saveView?: string;
   noResults?: string;
+  noResultsDescription?: string;
+  noDataAvailable?: string;
   loading?: string;
   previous?: string;
   next?: string;

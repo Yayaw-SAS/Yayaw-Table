@@ -316,10 +316,10 @@ function createColumnOptions(
 function useToolbarSetup(tableId: string, tableType: string) {
   const { t } = useTranslations();
 
-  const state = useDataTable({
+  const { state } = useDataTable({
     tableId,
     tableType,
-  }) as unknown as DataTableState;
+  });
 
   const { config: tableConfig } = useTableConfig(tableType);
 

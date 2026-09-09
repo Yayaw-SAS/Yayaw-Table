@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { QueryClient } from "@tanstack/vue-query";
+import { toast } from "vue-sonner";
 import { type Component, computed, onBeforeUnmount, provide, ref, watch } from "vue";
 import { useTableData } from "../composables/use-table-data";
 import { useTableState } from "../composables/use-table-state";
@@ -29,6 +30,7 @@ import type {
 import { fetchAllContractRows, TABLE_DENSITY_METRICS } from "../table-contracts";
 import type { TableListParams } from "../types";
 import CardPagination from "./table/CardPagination.vue";
+import TableFilterBar from "./filters/TableFilterBar.vue";
 import AdvancedFilters from "./filters/AdvancedFilters.vue";
 import CatalogueForm from "./forms/CatalogueForm.vue";
 import RecordDetails from "./details/RecordDetails.vue";
@@ -69,6 +71,7 @@ const props = withDefaults(
     translations?: DataTableTranslations;
     enableAdvancedFilters?: boolean;
     enableToolbar?: boolean;
+    showFilterBar?: boolean;
     enableViews?: boolean;
     syncUrl?: boolean;
     searchDebounceMs?: number;
@@ -106,6 +109,7 @@ const props = withDefaults(
     locale: "en",
     enableAdvancedFilters: undefined,
     enableToolbar: undefined,
+    showFilterBar: undefined,
     enableViews: undefined,
     syncUrl: undefined,
     customBulkActions: () => [],
@@ -199,6 +203,10 @@ const detailReverted = async (): Promise<void> => {
 };
 const footerCalculationsVisible = ref(config.table.enableCalculations === true);
 const status = ref<{ type: "error" | "success"; message: string }>();
+// Use the host's single Sonner outlet, as React does; feedback must not move table content.
+watch(status, notification => {
+  if (notification) toast[notification.type](notification.message);
+}, { flush: "sync" });
 const translations = computed(() =>
   createTranslations(props.locale, { ...config.translations.keys, ...props.translations })
 );
@@ -469,11 +477,6 @@ provide(tableContextKey, {
 
 <template>
   <section class="yayaw-table" :class="className" :data-density="state.density.value" :style="densityStyle" tabindex="-1">
-    <div v-if="status" class="yayaw-status" :data-type="status.type" role="status">
-      <span>{{ status.message }}</span>
-      <button type="button" :aria-label="String(translations.dismiss)" @click="status = undefined">×</button>
-    </div>
-
     <header v-if="config.table.showToolbarHeader" class="yayaw-header">
       <div>
         <h2 class="yayaw-title">{{ title ?? config.translations.keys.title ?? `${tableType} Table` }}</h2>
@@ -483,6 +486,7 @@ provide(tableContextKey, {
       </div>
     </header>
 
+    <TableFilterBar v-if="props.showFilterBar ?? config.table.showFilterBar" />
     <TableToolbar
       v-if="config.table.showToolbar"
       :enable-advanced-filters="advancedFiltersEnabled && config.table.enableColumnFilters"

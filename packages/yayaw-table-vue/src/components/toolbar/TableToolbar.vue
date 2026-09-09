@@ -34,6 +34,8 @@ import type {
   ToolbarActionsPlacement,
 } from "../../types";
 import SavedViews from "./SavedViews.vue";
+import OptionFilter from "../filters/OptionFilter.vue";
+import { filterBarColumns } from "../../filter-bar";
 import TableDensityMenu from "./TableDensityMenu.vue";
 
 const props = defineProps<{
@@ -79,6 +81,7 @@ const hideableColumns = computed(() =>
 const filterableColumns = computed(() =>
   dataColumns.value.filter((column) => column.enableFiltering !== false)
 );
+const quickFilterIds = computed(() => new Set(filterBarColumns(dataColumns.value, context.config.table.filterBarColumns).map(column => column.id)));
 const sortableColumns = computed(() =>
   dataColumns.value.filter((column) => column.enableSorting !== false)
 );
@@ -302,13 +305,14 @@ watch(
             "[data-filter-column]"
           ) ?? []
         ).find((element) => element.dataset.filterColumn === columnId);
-        field?.querySelector<HTMLElement>("input, select")?.focus();
+        field?.querySelector<HTMLElement>("input, select, button")?.focus();
       }, 10);
     }
     context.optionsRequest.value = undefined;
   }
 );
 const handleDocumentPointer = (event: PointerEvent): void => {
+  if ((event.target as Element).closest?.("[data-yayaw-filter-picker]")?.getAttribute("data-yayaw-filter-picker") === context.config.id) return;
   if (!optionsRoot.value?.contains(event.target as Node)) {
     closeOptions(false);
   }
@@ -687,16 +691,18 @@ const exportRows = async (): Promise<void> => {
             </div>
 
             <div v-else-if="optionsView === 'filters'" class="yayaw-options-content">
-              <label
+              <div
                 v-for="column in filterableColumns"
                 :key="column.id"
                 class="yayaw-field-inline"
                 :data-filter-column="column.id"
               >
                 <span>{{ column.header }}</span>
+                <OptionFilter v-if="quickFilterIds.has(column.id)" :column="column" />
                 <select
-                  v-if="column.options?.length"
+                  v-else-if="column.options?.length"
                   class="yayaw-select"
+                  :aria-label="column.header"
                   :value="columnFilterValue(column.id)"
                   @change="setOptionFilter(column.id, $event)"
                 >
@@ -712,11 +718,12 @@ const exportRows = async (): Promise<void> => {
                 <input
                   v-else
                   class="yayaw-input"
+                  :aria-label="column.header"
                   :type="column.type === 'number' ? 'number' : 'search'"
                   :value="columnFilterValue(column.id)"
                   @input="setColumnFilter(column.id, ($event.target as HTMLInputElement).value)"
                 />
-              </label>
+              </div>
               <button
                 v-if="props.enableAdvancedFilters"
                 type="button"
