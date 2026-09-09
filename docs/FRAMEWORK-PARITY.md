@@ -241,3 +241,20 @@ row measurements. Observers and animation frames are released on unmount.
 Regression coverage uses the same capacity fixtures in both test runners, with
 framework-specific default-mode/selector tests and real-browser resize/density verification
 in the runnable examples.
+
+## Grouped row rendering
+
+Both editions render groups as expandable headings using the configured column
+header, accessor value, and option labels (including zero and false). Headings
+count leaf records across nested groups and never aggregate unrelated category IDs.
+Expanded records retain all their ordinary cell values. Synthetic headings do not
+activate or edit a record, and their selection controls only select permitted leaf
+IDs. Selection-disabled tables use the full visible column span. Groups initially
+expand when grouping changes; subsequent toggles remain local presentation state.
+
+Enable `table.enableGrouping` and `table.showToolbar`, and keep eligible column
+`enableGrouping` flags enabled. Grouping is local to the supplied records: a server
+that paginates before returning records produces page-local groups.
+
+Coverage: shared `tests/fixtures/grouped-rows.json`, React `tests/grouped-rows.test.tsx`,
+and Vue `src/grouped-rows.test.ts`, plus browser interaction in both editions.

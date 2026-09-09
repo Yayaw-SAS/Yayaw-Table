@@ -741,6 +741,17 @@ export function useDataTable<TData extends Record<string, unknown>>(
         ...(typeof colDef.accessorFn === "function"
           ? { accessorFn: colDef.accessorFn as (row: TData) => unknown }
           : {}),
+        // A configured accessor also owns grouping; base renderers use the ID.
+        ...(colDef.accessorFn || colDef.accessorKey
+          ? {
+              getGroupingValue: (row: TData) =>
+                typeof colDef.accessorFn === "function"
+                  ? (colDef.accessorFn as (record: TData) => unknown)(row)
+                  : (row as Record<string, unknown>)[
+                      colDef.accessorKey as string
+                    ],
+            }
+          : {}),
         ...(["select", "multiSelect", "tag", "dynamicType", "custom"].includes(
           colDef.type
         ) || colDef.cellRenderer

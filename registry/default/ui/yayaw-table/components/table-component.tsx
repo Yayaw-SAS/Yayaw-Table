@@ -65,6 +65,7 @@ import type { TableDensity, TableDisplayMode } from "../types/display-types";
 import { Loader } from "../ui-custom/loader";
 import { ColumnIcon } from "../utils/column-icons";
 import { buildCsvExportColumns } from "../utils/csv-export";
+import { groupedLeafRows, groupedValueLabel } from "../utils/table-contracts";
 import { TABLE_DENSITY_CLASSES } from "../utils/table-density";
 import { getPrimaryGrouping } from "../utils/table-view-state";
 import {
@@ -1791,11 +1792,11 @@ function ModernDataTable<
     // Helper to get selection counts
     const getSelectionCounts = (row: Row<TData>) => {
       const selectedCount =
-        row.subRows?.filter((subRow) => {
+        groupedLeafRows(row).filter((subRow) => {
           const selection = table.store.state.rowSelection;
           return selection[subRow.id];
         }).length ?? 0;
-      const totalCount = row.subRows?.length ?? 0;
+      const totalCount = groupedLeafRows(row).length;
       return { selectedCount, totalCount };
     };
 
@@ -1833,12 +1834,16 @@ function ModernDataTable<
         };
       }
 
-      const groupValue = String(
-        (row.original as Record<string, unknown>)[groupingColumn] || ""
+      const definition = tableConfig.columns.definitions.find(
+        (column) => column.id === groupingColumn
+      );
+      const groupValue = groupedValueLabel(
+        row.getValue(groupingColumn),
+        definition?.options
       );
       return {
         groupValue,
-        columnLabel: groupingColumn,
+        columnLabel: definition?.header ?? groupingColumn,
         groupingColumn,
         icon: getColumnIcon(groupingColumn),
       };
@@ -1854,6 +1859,9 @@ function ModernDataTable<
 
       // Get group display info
       const { groupValue, columnLabel, icon } = getGroupDisplayInfo(row, level);
+      const selectionCell = enableMultiRowSelection
+        ? visibleCells.find((cell) => cell.column.id === "select")
+        : undefined;
 
       return (
         <TableRow
@@ -1865,34 +1873,23 @@ function ModernDataTable<
           data-state={row.getIsSelected() ? "selected" : ""}
           key={row.id}
         >
-          <TableCell
-            className={cn(
-              "flex justify-center align-middle [&:has([role=checkbox])]:pr-2!",
-              TABLE_DENSITY_CLASSES[densityMode].cell
-            )}
-            style={{
-              ...(typeof (
-                visibleCells[0].column.columnDef as { maxSize?: number }
-              ).maxSize === "number"
-                ? {
-                    maxWidth: (
-                      visibleCells[0].column.columnDef as {
-                        maxSize: number;
-                      }
-                    ).maxSize,
-                  }
-                : {}),
-              minWidth: visibleCells[0].column.getSize(),
-              width: visibleCells[0].column.getSize(),
-            }}
-          >
-            <GroupRowSelectionCell row={row} table={table} />
-          </TableCell>
+          {selectionCell && (
+            <TableCell
+              className={cn(
+                "align-middle",
+                TABLE_DENSITY_CLASSES[densityMode].cell
+              )}
+              style={{ width: selectionCell.column.getSize() }}
+            >
+              <GroupRowSelectionCell row={row} table={table} />
+            </TableCell>
+          )}
           <TableCell
             className="p-0 align-middle"
-            colSpan={visibleCells.length - 1}
+            colSpan={Math.max(1, visibleCells.length - (selectionCell ? 1 : 0))}
           >
             <Button
+              aria-expanded={localExpanded[row.id] ?? false}
               className={cn(
                 "flex h-auto w-full cursor-pointer items-center justify-start gap-2",
                 TABLE_DENSITY_CLASSES[densityMode].groupButton
@@ -1916,7 +1913,7 @@ function ModernDataTable<
               </span>
               <span className="font-medium">{groupValue}</span>
               <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground text-xs">
-                {row.subRows?.length || 0}
+                {groupedLeafRows(row).length}
               </span>
             </Button>
           </TableCell>
@@ -2123,7 +2120,7 @@ function ModernDataTable<
 
     const renderRowWithChildren = (row: Row<TData>, level = 0) => {
       const visibleCells = row.getVisibleCells();
-      const isGroupedRow = visibleCells.some((cell) => cell.getIsGrouped());
+      const isGroupedRow = row.getIsGrouped();
 
       if (!isGroupedRow) {
         rowElements.push(renderRegularRow(row, visibleCells));
@@ -2167,6 +2164,7 @@ function ModernDataTable<
     resolveInlineForm,
     canEditGalleryRow,
     localExpanded,
+    enableMultiRowSelection,
     state.grouping,
     columnSizingKey,
     tableConfig.columns.definitions,
