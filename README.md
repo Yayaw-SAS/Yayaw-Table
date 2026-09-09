@@ -62,6 +62,8 @@ export function ProductsTable() {
 }
 ```
 
+Saved views support a personal favorite that opens on arrival in both React and Vue. See [favorite persistence and organization sharing](docs/SAVED-VIEWS.md) for the server integration contract and current permission boundaries.
+
 The React edition supports shared TanStack Query state, typed filters, URL state with Nuqs, saved views, table/Kanban/gallery modes, forms, inline editing, and bulk actions. It can use Next.js Server Actions, regular HTTP APIs, or any backend adapter that implements the action contracts.
 
 ### Clear filters from either toolbar

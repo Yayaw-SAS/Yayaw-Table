@@ -4,6 +4,7 @@ import {
   matchesContractFilter,
   normalizeFilterEnvelope,
 } from "./table-contracts";
+import { getTableFavoriteStorageKey } from "./table-view-favorite";
 import type {
   AdvancedFilter,
   AdvancedFiltersState,
@@ -578,6 +579,22 @@ const storeLocalViews = (tableId: string, views: TableView[]): void => {
 };
 
 export const createLocalTableViewActions = (): Required<TableViewActions> => ({
+  getFavorite: (context) => ({
+    success: true,
+    data: {
+      viewId:
+        typeof localStorage === "undefined"
+          ? null
+          : localStorage.getItem(getTableFavoriteStorageKey(context)) || null,
+    },
+  }),
+  setFavorite: (viewId, context) => {
+    if (typeof localStorage === "undefined") {
+      return { success: false, error: "Favorite storage is unavailable" };
+    }
+    localStorage.setItem(getTableFavoriteStorageKey(context), viewId ?? "");
+    return { success: true, data: { viewId } };
+  },
   list: ({ tableId }) => loadLocalViews(tableId),
   create: (input: CreateTableViewInput) => {
     const now = new Date().toISOString();

@@ -1094,6 +1094,11 @@
           "target": "components/ui/yayaw-table/utils/table-tooltip.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/utils/table-view-favorite.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/table-view-favorite.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/utils/table-view-state.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/table-view-state.ts"

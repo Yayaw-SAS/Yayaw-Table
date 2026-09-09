@@ -634,6 +634,16 @@ export interface TableViewActionResult<T = TableView> {
 }
 
 export interface TableViewActions {
+  /** Read the current user's favorite independently of shared view records. */
+  getFavorite?: (context: {
+    tableId: string;
+    tableType?: string;
+  }) => MaybePromise<TableViewActionResult<{ viewId: string | null }>>;
+  /** Persist one favorite per user, organization, and table; null clears it. */
+  setFavorite?: (
+    viewId: string | null,
+    context: { tableId: string; tableType?: string }
+  ) => MaybePromise<TableViewActionResult<{ viewId: string | null }>>;
   list?: (context: {
     tableId: string;
     tableType?: string;

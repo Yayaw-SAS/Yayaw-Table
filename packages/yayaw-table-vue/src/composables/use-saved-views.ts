@@ -2,6 +2,7 @@ import { computed, nextTick, onMounted, onScopeDispose, ref } from "vue";
 import { useTableContext } from "../context";
 import { createLocalTableViewActions } from "../core";
 import { cloneFormValue, formValuesEqual } from "../form-runtime";
+import { resolveInitialTableView } from "../table-view-favorite";
 import type {
   TableView,
   TableViewActionResult,
@@ -13,6 +14,10 @@ export function useSavedViews(initialViews: () => TableView[]) {
   const context = useTableContext();
   const fallback = createLocalTableViewActions();
   const actions = computed(() => ({
+    getFavorite:
+      context.actions.value?.views?.getFavorite ?? fallback.getFavorite,
+    setFavorite:
+      context.actions.value?.views?.setFavorite ?? fallback.setFavorite,
     list: context.actions.value?.views?.list ?? fallback.list,
     create: context.actions.value?.views?.create ?? fallback.create,
     update: context.actions.value?.views?.update ?? fallback.update,
@@ -50,6 +55,10 @@ export function useSavedViews(initialViews: () => TableView[]) {
   const dialogOpen = ref(false);
   const name = ref("");
   const shared = ref(false);
+  const favoriteViewId = ref<string | null>(null);
+  const favorite = computed(() =>
+    Boolean(active.value && active.value.id === favoriteViewId.value)
+  );
   let disposed = false;
   let hasInitialized = false;
   let initialSnapshot: TableViewConfig | undefined;
@@ -76,6 +85,7 @@ export function useSavedViews(initialViews: () => TableView[]) {
       return;
     }
     error.value = "";
+    hasInitialized = true;
     if (view) {
       context.state.applyView(view.config, view.id);
     } else {
@@ -88,12 +98,31 @@ export function useSavedViews(initialViews: () => TableView[]) {
       context.state.initialViewId === context.state.activeViewId.value &&
       formValuesEqual(initialSnapshot, context.state.snapshot.value)
     ) {
-      const requested = context.state.initialViewId;
-      const initial = requested
-        ? views.value.find((view) => view.id === requested)
-        : views.value.find((view) => view.isDefault);
+      const initial = resolveInitialTableView(
+        views.value,
+        context.state.initialViewId,
+        favoriteViewId.value
+      );
       if (initial) {
         select(initial);
+      }
+    }
+  };
+  const loadFavorite = async (): Promise<void> => {
+    try {
+      const data = resultData(
+        await actions.value.getFavorite(actionContext),
+        label("views.favoriteError", "favoriteViewError")
+      );
+      if (!disposed) {
+        favoriteViewId.value = data?.viewId ?? null;
+      }
+    } catch (cause) {
+      if (!disposed) {
+        loadError.value =
+          cause instanceof Error
+            ? cause.message
+            : label("views.favoriteError", "favoriteViewError");
       }
     }
   };
@@ -104,7 +133,10 @@ export function useSavedViews(initialViews: () => TableView[]) {
     await nextTick();
     initialSnapshot ??= cloneFormValue(context.state.snapshot.value);
     try {
-      const response = await actions.value.list(actionContext);
+      const [response] = await Promise.all([
+        actions.value.list(actionContext),
+        loadFavorite(),
+      ]);
       const loaded = Array.isArray(response)
         ? response
         : (resultData(
@@ -184,6 +216,27 @@ export function useSavedViews(initialViews: () => TableView[]) {
       type: "success",
       message: label(reactKey, vueKey),
     };
+  };
+  const toggleFavorite = async (): Promise<void> => {
+    const view = active.value;
+    if (!view || loading.value) {
+      return;
+    }
+    const viewId = favorite.value ? null : view.id;
+    const failure = label("views.favoriteError", "favoriteViewError");
+    await run(
+      async () => {
+        const result = resultData(
+          await actions.value.setFavorite(viewId, actionContext),
+          failure
+        );
+        if (!disposed) {
+          favoriteViewId.value = result ? result.viewId : viewId;
+        }
+      },
+      error,
+      failure
+    );
   };
   const save = async (): Promise<void> => {
     if (!context.config.table.allowViewSave) {
@@ -309,6 +362,9 @@ export function useSavedViews(initialViews: () => TableView[]) {
     dialogOpen,
     name,
     shared,
+    favorite,
+    favoriteViewId,
+    toggleFavorite,
     label,
     select,
     load,
