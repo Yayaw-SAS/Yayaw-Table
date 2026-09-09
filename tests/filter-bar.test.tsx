@@ -1,5 +1,7 @@
+const CONTROL_HEIGHT_PATTERN = /className="h-8 (?:max-w-full|min-w-0)/;
 import "./setup-dom";
 import { expect, it } from "bun:test";
+import { readFileSync } from "node:fs";
 import { QueryClient } from "@tanstack/react-query";
 import { createStore, Provider } from "jotai";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
@@ -175,5 +177,16 @@ it("synchronizes multiple controls through native filter state and survives hidi
     await act(() => root.unmount());
     client.clear();
     container.remove();
+  }
+});
+
+it("keeps React filter triggers at the saved-view selector height", () => {
+  for (const file of [
+    "../src/components/ui/yayaw-table/components/filters/option-filter.tsx",
+    "../src/components/ui/yayaw-table/components/toolbar/table-view-manager.tsx",
+  ]) {
+    expect(readFileSync(new URL(file, import.meta.url), "utf8")).toMatch(
+      CONTROL_HEIGHT_PATTERN
+    );
   }
 });
