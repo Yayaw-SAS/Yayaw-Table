@@ -24,9 +24,12 @@ const returnFocus = ref<HTMLElement>();
 const menuTheme = ref<Record<string, string>>({});
 const nameId = useId();
 const nameErrorId = useId();
-const favoriteLabel = computed(() => favorite.value
-  ? label("views.removeFavorite", "removeFavoriteView")
-  : label("views.setFavorite", "setFavoriteView"));
+const favoriteLabel = computed(() => {
+  if (!favorite.value) return label("views.setFavorite", "setFavoriteView");
+  return active.value
+    ? label("views.removeFavorite", "removeFavoriteView")
+    : label("views.favorite", "favoriteView");
+});
 const currentLabel = computed(() => active.value?.name ?? (context.state.activeViewId.value
   ? label("views.temporary_view", "temporaryView")
   : label("views.defaultView", "defaultView")));
@@ -77,7 +80,8 @@ const focusName = (event: Event): void => {
               <DropdownMenuLabel class="yayaw-view-menu-label">{{ label('views.title', 'views') }}</DropdownMenuLabel>
               <DropdownMenuItem class="yayaw-view-menu-item" :aria-current="!context.state.activeViewId.value ? 'true' : undefined" @select="select()">
                 <Check :size="16" aria-hidden="true" :class="{ 'yayaw-view-check-hidden': context.state.activeViewId.value }" />
-                {{ label('views.defaultView', 'defaultView') }}
+                <span class="yayaw-view-name">{{ label('views.defaultView', 'defaultView') }}</span>
+                <Star v-if="favoriteViewId === null" :size="14" fill="currentColor" :aria-label="label('views.favorite', 'favoriteView')" role="img" />
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator v-if="views.length" class="yayaw-view-menu-divider" />
@@ -103,7 +107,7 @@ const focusName = (event: Event): void => {
           </DropdownMenuContent>
         </DropdownMenuPortal>
       </DropdownMenuRoot>
-      <TableTooltip v-if="active" :label="favoriteLabel">
+      <TableTooltip v-if="active || !context.state.activeViewId.value" :label="favoriteLabel">
         <button
           type="button"
           class="yayaw-button yayaw-button-outline yayaw-icon-only"

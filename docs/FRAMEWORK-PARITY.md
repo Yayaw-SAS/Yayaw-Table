@@ -274,3 +274,7 @@ In both editions the optional bar sits below the title and above the standard vi
 Regression coverage: `tests/filter-bar.test.tsx` and Vue `components/filters/filter-bar.test.ts`, including false/zero IDs, multi-selection, hidden columns, Options synchronization, preference toggles and native reset.
 
 Historical filter triggers follow the same control height as saved-view controls in both editions. Vue uses the active density control token, including filter bars embedded in Options; React keeps the shared toolbar button size. Browser verification covers the standalone bar and the view selector together.
+
+### Built-in default favorite
+
+Both view managers expose the favorite star for the built-in default view as well as saved, shared, and system views. Choosing the default writes `setFavorite(null, context)` and fills its toolbar/menu star after success; an absent or inaccessible favorite has the same visual fallback. Clicking an already-favorite default is a no-op. Temporary unsaved view identifiers remain ineligible. The existing initial URL/host selection and shared-default precedence is unchanged. Regression tests cover clearing a saved favorite, failed writes, retry, and remount in both frameworks.

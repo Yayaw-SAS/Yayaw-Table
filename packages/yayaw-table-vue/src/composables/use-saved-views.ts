@@ -56,8 +56,14 @@ export function useSavedViews(initialViews: () => TableView[]) {
   const name = ref("");
   const shared = ref(false);
   const favoriteViewId = ref<string | null>(null);
-  const favorite = computed(() =>
-    Boolean(active.value && active.value.id === favoriteViewId.value)
+  const effectiveFavoriteViewId = computed(
+    () =>
+      views.value.find((view) => view.id === favoriteViewId.value)?.id ?? null
+  );
+  const favorite = computed(
+    () =>
+      (context.state.activeViewId.value ?? null) ===
+      effectiveFavoriteViewId.value
   );
   let disposed = false;
   let hasInitialized = false;
@@ -219,10 +225,14 @@ export function useSavedViews(initialViews: () => TableView[]) {
   };
   const toggleFavorite = async (): Promise<void> => {
     const view = active.value;
-    if (!view || loading.value) {
+    if ((!view && context.state.activeViewId.value) || loading.value) {
       return;
     }
-    const viewId = favorite.value ? null : view.id;
+    const viewId = view && !favorite.value ? view.id : null;
+    // The built-in default represents no personal override; its filled star is stable.
+    if (!view && effectiveFavoriteViewId.value === null && !loadError.value) {
+      return;
+    }
     const failure = label("views.favoriteError", "favoriteViewError");
     await run(
       async () => {
@@ -363,7 +373,7 @@ export function useSavedViews(initialViews: () => TableView[]) {
     name,
     shared,
     favorite,
-    favoriteViewId,
+    favoriteViewId: effectiveFavoriteViewId,
     toggleFavorite,
     label,
     select,

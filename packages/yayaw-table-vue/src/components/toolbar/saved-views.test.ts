@@ -627,3 +627,81 @@ it("exposes failed favorite writes and allows retry without changing the current
       .attributes("aria-pressed")
   ).toBe("true");
 });
+
+it("favorites the built-in default by clearing the preference, preserves drafts, and restores its star", async () => {
+  let favoriteId: string | null = saved.id;
+  const setFavorite = vi.fn((viewId: string | null) => {
+    favoriteId = viewId;
+    return { success: true, data: { viewId } };
+  });
+  const options = {
+    views: [saved],
+    table: { allowViewSave: false },
+    actions: {
+      getFavorite: () => ({ data: { viewId: favoriteId } }),
+      setFavorite,
+    },
+  };
+  const wrapper = mountTable(options);
+  await flushPromises();
+  await openMenu(wrapper);
+  await choose("Default view");
+  await search(wrapper).setValue("Beta");
+  await wrapper.get('[aria-label="Use this view on arrival"]').trigger("click");
+  await flushPromises();
+  expect(setFavorite).toHaveBeenCalledWith(null, {
+    tableId: config.id,
+    tableType: "products",
+  });
+  expect(
+    wrapper.get('[aria-label="Favorite view"]').attributes("aria-pressed")
+  ).toBe("true");
+  expect(search(wrapper).element).toHaveProperty("value", "Beta");
+  await wrapper.get('[aria-label="Favorite view"]').trigger("click");
+  await flushPromises();
+  expect(setFavorite).toHaveBeenCalledTimes(1);
+  wrapper.unmount();
+  const reloaded = mountTable(options);
+  await flushPromises();
+  expect(current(reloaded).text()).toBe("Default view");
+  expect(
+    reloaded.get('[aria-label="Favorite view"]').attributes("aria-pressed")
+  ).toBe("true");
+  await openMenu(reloaded);
+  const row = body()
+    .findAll('[role="menuitem"]')
+    .find((item) => item.text() === "Default view");
+  expect(row?.find('[role="img"][aria-label="Favorite view"]').exists()).toBe(
+    true
+  );
+});
+
+it("keeps the old favorite if clearing it fails and retries from the default view", async () => {
+  const setFavorite = vi
+    .fn()
+    .mockResolvedValueOnce({ success: false, error: "Offline" })
+    .mockResolvedValueOnce({ success: true, data: { viewId: null } });
+  const wrapper = mountTable({
+    views: [saved],
+    actions: {
+      getFavorite: () => ({ data: { viewId: saved.id } }),
+      setFavorite,
+    },
+  });
+  await flushPromises();
+  await openMenu(wrapper);
+  await choose("Default view");
+  await wrapper.get('[aria-label="Use this view on arrival"]').trigger("click");
+  await flushPromises();
+  expect(wrapper.get('[role="alert"]').text()).toBe("Offline");
+  expect(
+    wrapper
+      .get('[aria-label="Use this view on arrival"]')
+      .attributes("aria-pressed")
+  ).toBe("false");
+  await wrapper.get('[aria-label="Use this view on arrival"]').trigger("click");
+  await flushPromises();
+  expect(
+    wrapper.get('[aria-label="Favorite view"]').attributes("aria-pressed")
+  ).toBe("true");
+});
