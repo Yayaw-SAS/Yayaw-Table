@@ -93,6 +93,7 @@ import { DataTableKanbanView } from "./kanban-view";
 import { useAutoPageSize } from '../hooks/use-auto-page-size';
 import { activeViewIdAtom } from '../atoms/view-atoms';
 import { SafePagination } from "./safe-pagination";
+import { TableEmptyStateContent } from "./table-empty-state";
 import { useOnScreen } from "./utils/use-on-screen";
 
 const _DEBUG = false;
@@ -815,21 +816,6 @@ const MemoizedSkeletonRow = memo<{
 
 MemoizedSkeletonRow.displayName = "MemoizedSkeletonRow";
 
-function TableEmptyStateContent({
-  description,
-  title,
-}: {
-  description?: string;
-  title: string;
-}) {
-  return (
-    <div className="flex min-h-40 flex-col items-center justify-center px-4 py-10 text-center text-muted-foreground">
-      <p className="font-semibold text-foreground text-sm">{title}</p>
-      {description ? <p className="mt-1 text-sm">{description}</p> : null}
-    </div>
-  );
-}
-
 /**
  * Modern implementation of DataTable using the new hooks and components
  */
@@ -1420,6 +1406,7 @@ function ModernDataTable<
     groupingParam,
     kanbanParam,
     setExpandedFromUI,
+    resetFilters,
   } = useTableUrlState({
     defaultDisplayMode: tableConfig.table.defaultDisplayMode,
     tableId: tableId || "",
@@ -1435,7 +1422,7 @@ function ModernDataTable<
     return (
       globalSearchParam.trim().length > 0 ||
       filtersParam.length > 0 ||
-      advancedFiltersParam.length > 0
+      advancedFiltersParam.some((filter) => filter.isActive !== false)
     );
   }, [advancedFiltersParam, filtersParam, globalSearchParam]);
   const emptyStateTitle =
@@ -1444,6 +1431,28 @@ function ModernDataTable<
   const emptyStateDescription =
     resolvedEmptyState.description ??
     (hasActiveSearchOrFilters ? t("table.no_results_description") : undefined);
+  const emptyStateContent = useMemo(() => {
+    if (resolvedEmptyState.show === false || isLoading || isError) {
+      return null;
+    }
+    return (
+      <TableEmptyStateContent
+        clearFiltersLabel={t("filters.clear")}
+        description={emptyStateDescription}
+        onClearFilters={hasActiveSearchOrFilters ? resetFilters : undefined}
+        title={emptyStateTitle}
+      />
+    );
+  }, [
+    resolvedEmptyState.show,
+    isLoading,
+    isError,
+    t,
+    emptyStateDescription,
+    hasActiveSearchOrFilters,
+    resetFilters,
+    emptyStateTitle,
+  ]);
   const configuredDisplayModes = tableConfig.table.displayModes ?? ["table"];
   const activeDisplayMode = resolveActiveDisplayMode({
     defaultDisplayMode: tableConfig.table.defaultDisplayMode,
@@ -1770,10 +1779,7 @@ function ModernDataTable<
             <TableCell
               colSpan={Math.max(table.getVisibleLeafColumns().length, 1)}
             >
-              <TableEmptyStateContent
-                description={emptyStateDescription}
-                title={emptyStateTitle}
-              />
+              {emptyStateContent}
             </TableCell>
           </TableRow>
         </TableBody>
@@ -2147,8 +2153,7 @@ function ModernDataTable<
     isError,
     rowCount,
     resolvedEmptyState.show,
-    emptyStateDescription,
-    emptyStateTitle,
+    emptyStateContent,
     resolveInlineForm,
     canEditGalleryRow,
     localExpanded,
@@ -2230,12 +2235,7 @@ function ModernDataTable<
             className={className}
             columnDefinitions={tableConfig.columns.definitions}
             config={kanbanConfig}
-            emptyState={
-              <TableEmptyStateContent
-                description={emptyStateDescription}
-                title={emptyStateTitle}
-              />
-            }
+            emptyState={emptyStateContent}
             groupBy={kanbanGroupBy}
             isRowActive={(row) =>
               isRowIdActive({
@@ -2270,12 +2270,7 @@ function ModernDataTable<
             columnDefinitions={tableConfig.columns.definitions}
             config={galleryConfig}
             editRowLabel={t("actions.edit")}
-            emptyState={
-              <TableEmptyStateContent
-                description={emptyStateDescription}
-                title={emptyStateTitle}
-              />
-            }
+            emptyState={emptyStateContent}
             getRowLinkUrl={getGalleryRowLinkUrl}
             groupBy={primaryGrouping}
             groupLabel={primaryGroupingLabel}

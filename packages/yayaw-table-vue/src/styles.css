@@ -983,18 +983,88 @@
   color: #166534;
 }
 .yayaw-empty {
-  height: 160px !important;
-  color: var(--yayaw-muted-foreground);
   text-align: center !important;
 }
-.yayaw-empty strong,
-.yayaw-empty span {
-  display: block;
+/* Shadcn Empty layout, shared by the table and card displays. */
+.yayaw-empty-root {
+  box-sizing: border-box;
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 160px;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  border-radius: var(--yayaw-radius);
+  padding: 40px 16px;
+  color: var(--yayaw-foreground);
+  text-align: center;
+  text-wrap: balance;
+  white-space: normal;
 }
 .yayaw-card-empty {
-  display: grid;
-  min-height: 160px;
-  place-content: center;
+  border: 1px solid var(--yayaw-border);
+}
+.yayaw-empty-header {
+  display: flex;
+  max-width: 384px;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.yayaw-empty-media {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+.yayaw-empty-media[data-variant="icon"] {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--yayaw-radius);
+  background: var(--yayaw-muted);
+  color: var(--yayaw-foreground);
+}
+.yayaw-empty-media svg {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+.yayaw-empty-title {
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+}
+.yayaw-empty-description {
+  margin: 0;
+  color: var(--yayaw-muted-foreground);
+  font-size: 14px;
+  line-height: 1.625;
+}
+.yayaw-empty-description > a {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.yayaw-empty-description > a:hover {
+  color: var(--yayaw-primary);
+}
+.yayaw-empty-content {
+  display: flex;
+  width: 100%;
+  max-width: 384px;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  font-size: 14px;
+}
+.yayaw-empty-reset:focus-visible {
+  outline: 2px solid var(--yayaw-primary);
+  outline-offset: 2px;
 }
 .yayaw-calculation small,
 .yayaw-calculation strong {
