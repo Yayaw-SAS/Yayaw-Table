@@ -16,13 +16,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      # Release verification reads committed snapshots and uses only Node APIs.
+      - name: Setup Node
+        uses: actions/setup-node@v6
         with:
-          bun-version: latest
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
+          node-version: 24
 
       - name: Read version
         id: version
@@ -32,9 +30,9 @@ jobs:
       - name: Verify registry snapshot
         run: |
           if [ "$GITHUB_REF_TYPE" = "tag" ]; then
-            bun run release:verify -- "$GITHUB_REF_NAME"
+            node scripts/verify-registry-release.mjs "$GITHUB_REF_NAME"
           else
-            bun run release:verify
+            node scripts/verify-registry-release.mjs
           fi
 
       - name: Create GitHub release
