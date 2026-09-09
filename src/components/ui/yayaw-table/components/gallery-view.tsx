@@ -662,7 +662,7 @@ export function DataTableGalleryView<TData extends Record<string, unknown>>({
   );
 
   if (rows.length === 0) {
-    return <div className="rounded-md border">{emptyState}</div>;
+    return emptyState ? <div className="rounded-md border">{emptyState}</div> : null;
   }
 
   const renderCard = (row: Row<TData>) => {

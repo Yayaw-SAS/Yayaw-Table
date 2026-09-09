@@ -1,0 +1,26 @@
+[
+  { "name": "no data", "params": {}, "canClear": false },
+  { "name": "blank search", "params": { "empty-q": "   " }, "canClear": false },
+  { "name": "search", "params": { "empty-q": "missing" }, "canClear": true },
+  {
+    "name": "column filter",
+    "params": {
+      "empty-filters": "[{\"id\":\"status\",\"value\":\"Missing\"}]"
+    },
+    "canClear": true
+  },
+  {
+    "name": "advanced filter",
+    "params": {
+      "empty-advancedFilters": "[{\"id\":\"rule\",\"columnId\":\"status\",\"operator\":\"equals\",\"type\":\"text\",\"values\":\"Missing\",\"isActive\":true}]"
+    },
+    "canClear": true
+  },
+  {
+    "name": "disabled advanced filter",
+    "params": {
+      "empty-advancedFilters": "[{\"id\":\"rule\",\"columnId\":\"status\",\"operator\":\"equals\",\"type\":\"text\",\"values\":\"Missing\",\"isActive\":false}]"
+    },
+    "canClear": false
+  }
+]

@@ -18,6 +18,7 @@
         "dialog",
         "drawer",
         "dropdown-menu",
+        "empty",
         "field",
         "input",
         "label",
@@ -651,6 +652,11 @@
           "path": "registry/default/ui/yayaw-table/components/table-component.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/table-component.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/table-empty-state.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/table-empty-state.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/toolbar/data-table-advanced-toolbar.tsx",

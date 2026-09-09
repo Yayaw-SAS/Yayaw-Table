@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import TableEmptyState from "../table/TableEmptyState.vue";
 import { computed } from "vue";
 import { useTableContext } from "../../context";
 import { displayCellValue, imageSource } from "../../core";
@@ -183,13 +184,10 @@ const toggleSelection = (row: TableRecord, checked: boolean): void => {
 </script>
 
 <template>
-  <div
-    v-if="!rows.length && !context.data.isLoading.value && context.config.table.emptyState?.show !== false"
-    class="yayaw-empty yayaw-card-empty"
-  >
-    <strong>{{ context.config.table.emptyState?.title ?? context.translations.value.noResults }}</strong>
-    <span v-if="context.config.table.emptyState?.description">{{ context.config.table.emptyState.description }}</span>
-  </div>
+  <TableEmptyState
+    v-if="!rows.length && !context.data.isLoading.value && !context.data.error.value && context.config.table.emptyState?.show !== false"
+    class="yayaw-card-empty"
+  />
   <div v-else class="yayaw-card-view-shell">
     <div class="yayaw-card-controls">
       <TableSelect v-model="imageColumn" :label="translate('cardImage', 'Image')" :options="imageOptions" />

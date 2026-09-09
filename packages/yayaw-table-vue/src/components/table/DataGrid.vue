@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import TableEmptyState from "./TableEmptyState.vue";
 import { useAutoPageSize } from "../../composables/use-auto-page-size";
 import TableTooltip from "../toolbar/TableTooltip.vue";
 import {
@@ -743,10 +744,9 @@ const pinnedStyle = (column: Column<TableRecord>): CSSProperties => {
           </tr>
         </thead>
         <tbody>
-          <tr v-if="!visibleRows.length && !context.data.isLoading.value && context.config.table.emptyState?.show !== false">
-            <td :colspan="table.getVisibleLeafColumns().length" class="yayaw-empty">
-              <strong>{{ context.config.table.emptyState?.title ?? context.translations.value.noResults }}</strong>
-              <span v-if="context.config.table.emptyState?.description">{{ context.config.table.emptyState.description }}</span>
+          <tr v-if="!visibleRows.length && !context.data.isLoading.value && !context.data.error.value && context.config.table.emptyState?.show !== false">
+            <td :colspan="Math.max(1, table.getVisibleLeafColumns().length)" class="yayaw-empty">
+              <TableEmptyState />
             </td>
           </tr>
           <template v-for="row in visibleRows" :key="row.id">
