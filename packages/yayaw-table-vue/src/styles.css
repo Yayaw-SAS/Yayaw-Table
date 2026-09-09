@@ -616,7 +616,24 @@
   cursor: default;
 }
 .yayaw-data-grid tbody tr.grouped {
-  font-weight: 600;
+  background: color-mix(in srgb, var(--yayaw-muted) 20%, transparent);
+}
+.yayaw-data-grid td.yayaw-group-heading {
+  padding: 0;
+}
+.yayaw-group-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: var(--yayaw-density-height, 40px);
+  padding: 4px 8px;
+  text-align: start;
+  cursor: pointer;
+}
+.yayaw-group-toggle:focus-visible {
+  outline: 2px solid var(--yayaw-primary);
+  outline-offset: -2px;
 }
 .yayaw-data-grid tfoot td {
   background: var(--yayaw-muted);

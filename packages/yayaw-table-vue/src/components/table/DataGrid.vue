@@ -17,7 +17,7 @@ import { ArrowDown, ArrowUp, GripVertical } from "lucide-vue-next";
 import { type CSSProperties, computed, h, ref, watch, onBeforeUnmount } from "vue";
 import { useTableContext } from "../../context";
 import { applyTableQuery, calculateColumn, formatNumber } from "../../core";
-import { resizedColumnSizeFromKey } from "../../table-contracts";
+import { groupedLeafRows, groupedValueLabel, resizedColumnSizeFromKey } from "../../table-contracts";
 import type {
   CalculationType,
   ColumnDefinition,
@@ -34,6 +34,7 @@ const { automatic, measurement, selectSize } = useAutoPageSize(paginationRoot);
 const draggedColumn = ref<string>();
 const keyboardDraggedColumn = ref<string>();
 const keyboardAnnouncement = ref("");
+const expanded = ref<true | Record<string, boolean>>(true);
 const columnDragEnabled = computed(
   () =>
     context.config.table.enableColumnDnd !== false &&
@@ -79,6 +80,7 @@ const columns = computed<ColumnDef<TableRecord>[]>(() => {
       enableSorting:
         context.config.table.enableSorting && column.enableSorting !== false,
       enablePinning: column.enablePinning !== false,
+      enableGrouping: column.enableGrouping !== false,
       enableResizing: column.enableResizing !== false,
       enableColumnFilter:
         context.config.table.enableColumnFilters &&
@@ -204,7 +206,11 @@ const table = useYayawTable({
       : undefined;
   },
   autoResetPageIndex: false,
+  autoResetExpanded: false,
   state: {
+    get expanded() {
+      return expanded.value;
+    },
     get globalFilter() {
       return context.state.search.value;
     },
@@ -278,6 +284,9 @@ const table = useYayawTable({
       context.state.grouping.value
     );
   },
+  onExpandedChange: (updater) => {
+    expanded.value = updaterValue(updater, expanded.value);
+  },
   onColumnPinningChange: (updater) => {
     const next = updaterValue(
       updater,
@@ -302,6 +311,34 @@ const table = useYayawTable({
 });
 
 const visibleRows = computed(() => table.getRowModel().rows);
+watch(context.state.grouping, () => { expanded.value = true; }, { deep: true });
+const groupColumn = (row: Row<TableRecord>) =>
+  sourceColumns.value.find((column) => column.id === row.groupingColumnId);
+const groupLabel = (row: Row<TableRecord>): string =>
+  groupedValueLabel(row.getValue(row.groupingColumnId ?? ""), groupColumn(row)?.options);
+const groupSelectionVisible = computed(() =>
+  context.config.table.enableRowSelection && context.config.table.enableMultiRowSelection
+);
+const selectableGroupRows = (row: Row<TableRecord>) =>
+  groupedLeafRows(row).filter((leaf) => leaf.getCanSelect());
+const groupSelection = (row: Row<TableRecord>) => {
+  const leaves = selectableGroupRows(row);
+  const selected = leaves.filter((leaf) => context.selection.value[leaf.id]).length;
+  return {
+    checked: leaves.length > 0 && selected === leaves.length,
+    indeterminate: selected > 0 && selected < leaves.length,
+    disabled: leaves.length === 0,
+  };
+};
+const toggleGroupSelection = (row: Row<TableRecord>, event: Event): void => {
+  const checked = (event.target as HTMLInputElement).checked;
+  const selection = { ...context.selection.value };
+  for (const leaf of selectableGroupRows(row)) {
+    if (checked) selection[leaf.id] = true;
+    else delete selection[leaf.id];
+  }
+  context.selection.value = selection;
+};
 const visibleColumns = computed(() => [
   ...table.getStartVisibleLeafColumns(),
   ...table.getCenterVisibleLeafColumns(),
@@ -712,17 +749,26 @@ const pinnedStyle = (column: Column<TableRecord>): CSSProperties => {
               <span v-if="context.config.table.emptyState?.description">{{ context.config.table.emptyState.description }}</span>
             </td>
           </tr>
-          <tr v-for="row in visibleRows" :key="row.id" :class="{ selected: row.getIsSelected(), grouped: row.getIsGrouped() }" @click="rowClick(row.original, $event)">
-            <td v-for="cell in row.getVisibleCells()" :key="cell.id" :style="pinnedStyle(cell.column)">
-              <template v-if="cell.getIsGrouped()">
-                <button type="button" class="yayaw-group-toggle" @click.stop="row.toggleExpanded()">{{ row.getIsExpanded() ? '−' : '+' }}</button>
+          <template v-for="row in visibleRows" :key="row.id">
+            <tr v-if="row.getIsGrouped()" class="grouped">
+              <td v-if="groupSelectionVisible" :style="pinnedStyle(table.getColumn('select')!)">
+                <input type="checkbox" class="yayaw-checkbox" v-bind="groupSelection(row)" :aria-label="`Select group: ${groupLabel(row)}`" @change="toggleGroupSelection(row, $event)" />
+              </td>
+              <td :colspan="Math.max(1, row.getVisibleCells().length - (groupSelectionVisible ? 1 : 0))" class="yayaw-group-heading">
+                <button type="button" class="yayaw-group-toggle" :style="{ paddingInlineStart: `${row.depth * 24 + 8}px` }" :aria-expanded="row.getIsExpanded()" @click="row.toggleExpanded()">
+                  <span aria-hidden="true">{{ row.getIsExpanded() ? '▾' : '▸' }}</span>
+                  <span class="yayaw-muted">{{ groupColumn(row)?.header ?? row.groupingColumnId }}:</span>
+                  <span>{{ groupLabel(row) }}</span>
+                  <span class="yayaw-count">{{ groupedLeafRows(row).length }}</span>
+                </button>
+              </td>
+            </tr>
+            <tr v-else :class="{ selected: row.getIsSelected() }" @click="rowClick(row.original, $event)">
+              <td v-for="cell in row.getVisibleCells()" :key="cell.id" :style="pinnedStyle(cell.column)">
                 <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
-                <span class="yayaw-count">{{ row.subRows.length }}</span>
-              </template>
-              <template v-else-if="cell.getIsAggregated()">{{ cell.getValue() }}</template>
-              <FlexRender v-else-if="!cell.getIsPlaceholder()" :render="cell.column.columnDef.cell" :props="cell.getContext()" />
-            </td>
-          </tr>
+              </td>
+            </tr>
+          </template>
         </tbody>
         <tfoot v-if="context.config.table.enableCalculations && context.footerCalculationsVisible.value && calculationColumns.length">
           <tr>

@@ -571,6 +571,20 @@ export function dataTypeOptionLabel(value: unknown, options?: unknown): string {
   return option?.label ?? String(value ?? "");
 }
 
+/** Group headings use accessor values and option labels, never aggregated IDs. */
+export function groupedValueLabel(value: unknown, options?: unknown): string {
+  return Array.isArray(value)
+    ? value.map((item) => dataTypeOptionLabel(item, options)).join(", ")
+    : dataTypeOptionLabel(value, options);
+}
+
+/** Count and select records, excluding synthetic rows at every grouping depth. */
+export function groupedLeafRows<
+  T extends { getIsGrouped: () => boolean; subRows: T[] },
+>(row: T): T[] {
+  return row.getIsGrouped() ? row.subRows.flatMap(groupedLeafRows) : [row];
+}
+
 export function dataTypeFilter(type?: string, hasOptions = false) {
   if (!type) {
     return hasOptions ? "select" : "text";
