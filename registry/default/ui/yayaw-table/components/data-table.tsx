@@ -626,16 +626,25 @@ function DataTableContent({
           )}
         >
           <div className="flex flex-col gap-4">
+            {shouldShowToolbar && shouldShowToolbarHeader && (
+              <div className="space-y-1">
+                <Title>{displayTitle}</Title>
+                <Description>{displayDescription}</Description>
+              </div>
+            )}
+
+            <TableFilterBar
+              tableId={tableId}
+              tableType={tableType}
+              visible={isFilterBarVisible(
+                showFilterBar,
+                config.table.showFilterBar
+              )}
+            />
+
             {/* Header with title/description and toolbar */}
             {shouldShowToolbar && (
               <div className="space-y-3 [&_button]:font-normal [&_button_.font-medium]:font-normal">
-                {shouldShowToolbarHeader && (
-                  <div className="space-y-1">
-                    <Title>{displayTitle}</Title>
-                    <Description>{displayDescription}</Description>
-                  </div>
-                )}
-
                 {!isLoading && (
                   <DataTableHeaderControls
                     allowViewSave={config.table.allowViewSave}
@@ -669,15 +678,6 @@ function DataTableContent({
                 )}
               </div>
             )}
-
-            <TableFilterBar
-              tableId={tableId}
-              tableType={tableType}
-              visible={isFilterBarVisible(
-                showFilterBar,
-                config.table.showFilterBar
-              )}
-            />
 
             {/* Table content */}
             {isLoading ? (
