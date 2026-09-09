@@ -210,6 +210,10 @@ export interface TableBehaviorConfig<TData extends TableRecord = TableRecord> {
   showToolbar: boolean;
   showToolbarHeader: boolean;
   /** Clear search and filters while preserving display options. */
+  /** Ordered static-option/boolean columns shown in the optional filter bar. */
+  filterBarColumns?: string[];
+  /** Show the filter bar by default; a component prop can override this. */
+  showFilterBar?: boolean;
   showClearFilters?: boolean;
   /** Backwards-compatible alias for `showClearFilters`. */
   showResetFilters?: boolean;

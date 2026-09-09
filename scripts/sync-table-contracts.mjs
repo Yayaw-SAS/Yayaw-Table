@@ -1,5 +1,13 @@
 import { copyFile } from "node:fs/promises";
 
+await copyFile(
+  new URL(
+    "../src/components/ui/yayaw-table/utils/filter-bar.ts",
+    import.meta.url
+  ),
+  new URL("../packages/yayaw-table-vue/src/filter-bar.ts", import.meta.url)
+);
+
 // Keep each copied registry standalone while maintaining one contract implementation.
 await copyFile(
   new URL(

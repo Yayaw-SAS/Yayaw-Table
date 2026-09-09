@@ -109,6 +109,8 @@ const config = defineTableConfig<Product>({
     sort: [{ id: "name", desc: false }],
   },
   table: {
+    filterBarColumns: ["category", "status", "tags"],
+    showFilterBar: true,
     enableAutoPageSize: true,
     defaultAutoPageSize: true,
     displayModes: ["table", "kanban", "gallery"],

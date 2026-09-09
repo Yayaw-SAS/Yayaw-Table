@@ -649,6 +649,7 @@ export function TableMenu({
             invalidateTable={invalidateTable}
             setColumnFilters={setColumnFilters}
             tableId={tableId}
+            tableType={tableType}
             useAdvancedFilters={useAdvancedFilters}
           />
         </StackMenuView>
