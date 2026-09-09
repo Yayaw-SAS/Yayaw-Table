@@ -5,6 +5,7 @@ import {
   mount,
 } from "@vue/test-utils";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { toast } from "vue-sonner";
 import { defineTableConfig } from "../../config";
 import type {
   TableBehaviorConfig,
@@ -168,6 +169,11 @@ it("creates a local shared view in a modal, retains its options after remount, a
   await submit();
   expect(body().find('[role="dialog"]').exists()).toBe(false);
   expect(current(wrapper).text()).toBe("Team Beta");
+  expect(toast.getHistory().at(-1)).toMatchObject({
+    type: "success",
+    title: "View created",
+  });
+  expect(wrapper.find(".yayaw-status").exists()).toBe(false);
   const persisted = JSON.parse(
     localStorage.getItem("yayaw-table:view-test:views") ?? "[]"
   );

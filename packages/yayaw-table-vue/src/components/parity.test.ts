@@ -6,6 +6,7 @@ import {
 } from "@vue/test-utils";
 import { afterEach, expect, it, vi } from "vitest";
 import { h } from "vue";
+import { toast } from "vue-sonner";
 import { defineTableConfig } from "../config";
 import type { TableActions, TableView } from "../types";
 import YayawDataTable from "./YayawDataTable.vue";
@@ -171,9 +172,10 @@ it("rolls a failed Kanban move back and shares the toolbar grouping", async () =
     .find((lane) => lane.text().includes("Closed"));
   await closed?.trigger("drop");
   await flushPromises();
-  expect(wrapper.get('.yayaw-status[data-type="error"]').text()).toContain(
-    "Move rejected"
-  );
+  expect(toast.getHistory().at(-1)).toMatchObject({
+    type: "error",
+    title: "Move rejected",
+  });
   expect(
     wrapper
       .findAll(".yayaw-kanban-lane")

@@ -1,6 +1,7 @@
 import { QueryClient } from "@tanstack/vue-query";
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { toast } from "vue-sonner";
 import { defineTableConfig } from "../config";
 import { exportColumns, rowsToCsv } from "../core";
 import type { TableListParams, YayawTableProps } from "../types";
@@ -117,9 +118,9 @@ describe("table actions parity", () => {
     await flushPromises();
     await wrapper.get('.yayaw-toolbar [aria-label="Export"]').trigger("click");
     await flushPromises();
-    expect(wrapper.get('[role="status"]').text()).toContain(
-      "Export unavailable"
-    );
+    expect(toast.getHistory().at(-1)).toMatchObject({
+      title: expect.stringContaining("Export unavailable"),
+    });
     expect(onExport).not.toHaveBeenCalled();
     fail = false;
     await wrapper.get('.yayaw-toolbar [aria-label="Export"]').trigger("click");

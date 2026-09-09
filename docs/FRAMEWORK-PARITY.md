@@ -278,3 +278,7 @@ Historical filter triggers follow the same control height as saved-view controls
 ### Built-in default favorite
 
 Both view managers expose the favorite star for the built-in default view as well as saved, shared, and system views. Choosing the default writes `setFavorite(null, context)` and fills its toolbar/menu star after success; an absent or inaccessible favorite has the same visual fallback. Clicking an already-favorite default is a no-op. Temporary unsaved view identifiers remain ineligible. The existing initial URL/host selection and shared-default precedence is unchanged. Regression tests cover clearing a saved favorite, failed writes, retry, and remount in both frameworks.
+
+### Global operation notifications
+
+React uses `sonner` and Vue uses `vue-sonner` for transient operation feedback: saved views, CRUD, exports, toolbar and bulk actions, and asynchronous action failures. Hosts mount one Sonner/Shadcn `Toaster`; the table never mounts a duplicate outlet or inserts a notification block that shifts content. Vue keeps internal status records for partial-operation retry handling. Loading, inline-save progress, field validation and actionable form/list errors remain contextual. The Vue distribution externalizes `vue-sonner` so its notifications reach the host's singleton; registry installation adds that dependency. Matching view/row/action regression coverage verifies the shared notification outcome.
