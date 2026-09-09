@@ -1,14 +1,21 @@
 <script setup lang="ts">
+import { ArrowLeft, ArrowRight } from "lucide-vue-next";
 import { computed, ref } from "vue";
 import { useTableContext } from "../../context";
 import { displayCellValue } from "../../core";
 import type { ColumnDefinition, TableRecord } from "../../types";
 import { useCardRows } from "../../composables/use-card-rows";
+import CardPropertiesMenu from "../controls/CardPropertiesMenu.vue";
+import TableCheckbox from "../controls/TableCheckbox.vue";
+import TableSelect from "../controls/TableSelect.vue";
 import CellRenderer from "../table/CellRenderer.vue";
 import RowActions from "../table/RowActions.vue";
 
 const context = useTableContext();
 const translate = (key: string, fallback: string) => String(context.translations.value[key] ?? fallback);
+const columns = computed(() => context.config.columns.definitions.filter((column) => !["select", "actions"].includes(column.id)));
+const columnOptions = computed(() => columns.value.map((column) => ({ value: column.id, label: column.header })));
+const groupingOptions = computed(() => columns.value.filter((column) => column.enableGrouping !== false).map((column) => ({ value: column.id, label: column.header })));
 const dragged = ref<TableRecord>();
 const pending = ref<string>();
 const groupBy = computed({
@@ -93,11 +100,6 @@ const value = (row: TableRecord, id: string): unknown => {
   return definition?.accessorFn
     ? definition.accessorFn(row)
     : row[definition?.accessorKey ?? id];
-};
-const toggleProperty = (id: string, checked: boolean): void => {
-  propertyIds.value = checked
-    ? [...propertyIds.value.filter((value) => value !== id), id]
-    : propertyIds.value.filter((value) => value !== id);
 };
 const canDrag = computed(
   () =>
@@ -190,25 +192,9 @@ const toggleSelection = (row: TableRecord, checked: boolean): void => {
   </div>
   <div v-else class="yayaw-card-view-shell">
     <div class="yayaw-card-controls">
-      <label>{{ translate('cardLane', 'Lane') }}
-        <select v-model="groupBy" class="yayaw-select">
-          <option v-for="item in context.config.columns.definitions.filter((entry) => entry.enableGrouping !== false && !['select', 'actions'].includes(entry.id))" :key="item.id" :value="item.id">{{ item.header }}</option>
-        </select>
-      </label>
-      <label>{{ translate('cardTitle', 'Title') }}
-        <select v-model="titleColumn" class="yayaw-select">
-          <option v-for="item in context.config.columns.definitions.filter((entry) => !['select', 'actions'].includes(entry.id))" :key="item.id" :value="item.id">{{ item.header }}</option>
-        </select>
-      </label>
-      <details>
-        <summary class="yayaw-button yayaw-button-outline">{{ translate('properties', 'Properties') }}</summary>
-        <div class="yayaw-card-properties-menu">
-          <label v-for="item in context.config.columns.definitions.filter((entry) => !['select', 'actions'].includes(entry.id))" :key="item.id" class="yayaw-checkbox-label">
-            <input type="checkbox" :checked="propertyIds.includes(item.id)" @change="toggleProperty(item.id, ($event.target as HTMLInputElement).checked)" /> {{ item.header }}
-          </label>
-          <label class="yayaw-checkbox-label"><input v-model="showLabels" type="checkbox" /> {{ translate('cardShowLabels', 'Show labels') }}</label>
-        </div>
-      </details>
+      <TableSelect v-model="groupBy" :label="translate('cardLane', 'Lane')" :options="groupingOptions" />
+      <TableSelect v-model="titleColumn" :label="translate('cardTitle', 'Title')" :options="columnOptions" />
+      <CardPropertiesMenu v-model="propertyIds" v-model:show-labels="showLabels" :label="translate('properties', 'Properties')" :show-labels-label="translate('cardShowLabels', 'Show labels')" :options="columnOptions" />
     </div>
     <div class="yayaw-kanban">
       <section v-for="group in rawGroups" :key="group.value" class="yayaw-kanban-lane" @dragover.prevent @drop="drop(group.value)">
@@ -226,9 +212,9 @@ const toggleSelection = (row: TableRecord, checked: boolean): void => {
             @keydown="activate(row, $event)"
           >
             <div class="yayaw-card-header">
-              <label v-if="context.config.table.enableRowSelection" class="yayaw-card-select" @click.stop>
-                <input type="checkbox" :aria-label="translate('selectRow', 'Select') + ' ' + String(value(row, titleColumn))" :checked="context.selection.value[context.getRowId(row)]" :disabled="context.config.table.canSelectRow?.(row) === false" @change="toggleSelection(row, ($event.target as HTMLInputElement).checked)" />
-              </label>
+              <span v-if="context.config.table.enableRowSelection" class="yayaw-card-select" @click.stop>
+                <TableCheckbox :label="translate('selectRow', 'Select') + ' ' + String(value(row, titleColumn))" :model-value="Boolean(context.selection.value[context.getRowId(row)])" :disabled="context.config.table.canSelectRow?.(row) === false" @update:model-value="toggleSelection(row, $event)" />
+              </span>
               <strong>{{ displayCellValue(value(row, titleColumn), column(titleColumn) ?? { id: titleColumn, header: titleColumn }, context.locale) }}</strong>
               <div v-if="canDrag && canEditRow(row)" class="yayaw-kanban-move-actions">
                 <button
@@ -239,7 +225,7 @@ const toggleSelection = (row: TableRecord, checked: boolean): void => {
                   :disabled="Boolean(pending)"
                   @click.stop="moveRow(row, adjacentGroup(row, -1)?.value ?? '')"
                 >
-                  ←
+                  <ArrowLeft :size="16" aria-hidden="true" />
                 </button>
                 <button
                   v-if="adjacentGroup(row, 1)"
@@ -249,7 +235,7 @@ const toggleSelection = (row: TableRecord, checked: boolean): void => {
                   :disabled="Boolean(pending)"
                   @click.stop="moveRow(row, adjacentGroup(row, 1)?.value ?? '')"
                 >
-                  →
+                  <ArrowRight :size="16" aria-hidden="true" />
                 </button>
               </div>
               <RowActions :row="row" />

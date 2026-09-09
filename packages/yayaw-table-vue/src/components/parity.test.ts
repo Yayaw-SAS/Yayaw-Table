@@ -68,6 +68,7 @@ function create(
   const resolvedConfig = input.config ?? config;
   const wrapper = mount(YayawDataTable, {
     attachTo: document.body,
+    global: { stubs: { PopperContent: { template: "<div><slot /></div>" } } },
     props: {
       config: defineTableConfig({
         ...resolvedConfig,
@@ -87,6 +88,25 @@ function create(
   wrappers.push(wrapper);
   return wrapper;
 }
+
+const selectOption = async (
+  wrapper: VueWrapper,
+  label: string,
+  option: string
+) => {
+  await wrapper
+    .get(`[role="combobox"][aria-label="${label}"]`)
+    .trigger("keydown", { key: "Enter" });
+  await flushPromises();
+  const item = new DOMWrapper(document.body)
+    .findAll('[role="option"]')
+    .find((element) => element.text() === option);
+  if (!item) {
+    throw new Error(`Missing option: ${option}`);
+  }
+  await item.trigger("keydown", { key: "Enter" });
+  await flushPromises();
+};
 
 it.each([
   "gallery",
@@ -108,7 +128,11 @@ it.each([
 ] as const)("hides %s pagination when all rows fit on one page", async (mode) => {
   const wrapper = create({ mode });
   await flushPromises();
-  await wrapper.get(".yayaw-pagination select").setValue("10");
+  if (mode === "table") {
+    await wrapper.get(".yayaw-pagination select").setValue("10");
+  } else {
+    await selectOption(wrapper, "Rows per page", "10");
+  }
   expect(wrapper.find(".yayaw-pagination").exists()).toBe(false);
 });
 
@@ -156,7 +180,7 @@ it("rolls a failed Kanban move back and shares the toolbar grouping", async () =
       .find((lane) => lane.text().includes("Open"))
       ?.text()
   ).toContain("Alpha");
-  await wrapper.get(".yayaw-card-controls select").setValue("name");
+  await selectOption(wrapper, "Lane", "Name");
   expect(
     wrapper
       .findAll(".yayaw-kanban-lane")

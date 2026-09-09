@@ -9,6 +9,7 @@ does not widen framework compatibility.
 ## Included
 
 - Table, Kanban, and Gallery display modes
+- Kanban/Gallery settings, card selection, and page-size controls use Shadcn-style Reka UI primitives. Selects support keyboard navigation; the Properties menu stays open for multiple choices and restores focus on Escape. Popups inherit the table theme, including scoped CSS variables.
 - Local and server-side sorting, filtering, pagination, grouping, and search
 - URL-backed state compatible with existing YaYaw table query keys
 - Saved personal/team views with localStorage fallback
