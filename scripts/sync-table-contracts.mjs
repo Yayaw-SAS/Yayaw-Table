@@ -2,10 +2,26 @@ import { copyFile } from "node:fs/promises";
 
 await copyFile(
   new URL(
+    "../src/components/ui/yayaw-table/components/details/record-details.css",
+    import.meta.url
+  ),
+  new URL("../packages/yayaw-table-vue/src/record-details.css", import.meta.url)
+);
+
+await copyFile(
+  new URL(
     "../src/components/ui/yayaw-table/utils/filter-bar.ts",
     import.meta.url
   ),
   new URL("../packages/yayaw-table-vue/src/filter-bar.ts", import.meta.url)
+);
+
+await copyFile(
+  new URL(
+    "../src/components/ui/yayaw-table/utils/record-details.ts",
+    import.meta.url
+  ),
+  new URL("../packages/yayaw-table-vue/src/record-details.ts", import.meta.url)
 );
 
 await copyFile(

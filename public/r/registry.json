@@ -324,6 +324,31 @@
           "target": "components/ui/yayaw-table/components/data-table.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/details/detail-value.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/details/detail-value.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/details/record-details.css",
+          "type": "registry:style",
+          "target": "components/ui/yayaw-table/components/details/record-details.css"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/details/record-details.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/details/record-details.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/details/table-record-details.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/details/table-record-details.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/details/use-activity-undo.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/details/use-activity-undo.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/filters/advanced-faceted-filter.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/filters/advanced-faceted-filter.tsx"
@@ -1067,6 +1092,11 @@
           "path": "registry/default/ui/yayaw-table/utils/number-format.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/number-format.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/record-details.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/record-details.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/utils/server-filters.ts",

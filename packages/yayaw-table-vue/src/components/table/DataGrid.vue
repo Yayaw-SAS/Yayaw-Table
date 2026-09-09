@@ -143,6 +143,7 @@ const columns = computed<ColumnDef<TableRecord>[]>(() => {
     });
   }
   const hasActions =
+    Boolean(context.openDetails) ||
     (context.config.table.allowEdit && Boolean(context.actions.value?.update)) ||
     (context.config.table.allowDelete && Boolean(context.actions.value?.delete)) ||
     (context.config.table.allowDuplicate &&

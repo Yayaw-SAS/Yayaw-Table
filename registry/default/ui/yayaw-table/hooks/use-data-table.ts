@@ -31,7 +31,6 @@ import { useTableConfig } from "./use-table-config";
 import { useTableUrlData } from "./use-table-url-data";
 import { useTableUrlState } from "./use-table-url-state";
 
-const DEBUG = false;
 const EMPTY_ARRAY: never[] = [];
 
 interface ColumnSizingConfig {
@@ -139,6 +138,7 @@ export interface UseDataTableOptions<TData = Record<string, unknown>> {
    * Defaults to tableType for backwards compatibility.
    */
   formType?: string;
+  onView?: (row: TData) => void;
 }
 
 /**
@@ -158,6 +158,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
     tableType,
     tableId = tableType,
     formType = tableType,
+    onView,
   } = options;
 
   // Get QueryClient instance
@@ -493,7 +494,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
 
   const buildActionsColumnDef = useCallback(
     ({
-      includeView = false,
+      includeView = true,
       withDuplicateHandler = false,
     }: {
       includeView?: boolean;
@@ -511,7 +512,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
         includeDelete: isDeleteAllowed,
         includeDuplicate: isDuplicateAllowed && !!actions.duplicate,
         includeEdit: isEditAllowed,
-        includeView,
+        includeView: includeView && Boolean(onView),
         canDeleteRow: config.table.canDeleteRow,
         canDuplicateRow: config.table.canDuplicateRow,
         canEditRow: config.table.canEditRow,
@@ -526,13 +527,8 @@ export function useDataTable<TData extends Record<string, unknown>>(
         onRefresh: async () => {
           await enhancedRefetch();
         },
-        onView: (_row: TData) => {
-          // Placeholder for view action - to be implemented later
-          if (DEBUG) {
-            // Debug log for view action placeholder
-          }
-
-          // Return success even though no behavior is attached yet.
+        onView: (row: TData) => {
+          onView?.(row);
           return Promise.resolve(true);
         },
         resolveEditFormType: config.form?.resolveEditFormType,
@@ -542,6 +538,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
     },
     [
       actions.duplicate,
+      onView,
       column,
       config.form?.editFormType,
       config.form?.resolveEditFormType,

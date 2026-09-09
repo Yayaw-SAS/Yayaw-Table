@@ -121,6 +121,15 @@ migration.
 
 ## Development
 
+### Record consultation
+
+React and Vue support a shared read-only record view in a drawer, modal, or page.
+It includes typed values, update metadata, append-only activity with undo, and
+Edit/Delete actions with confirmation. See [Record details](docs/RECORD-DETAILS.md)
+for integration and the audit contract. Run the Vue demo and open
+`/?example=record-details` to try all field types and presentations.
+
+
 ```bash
 bun install
 bun install --cwd packages/yayaw-table-vue

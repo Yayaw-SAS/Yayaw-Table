@@ -839,6 +839,8 @@ export interface DataTableTranslations {
 }
 
 export interface YayawTableProps<TData extends TableRecord = TableRecord> {
+  details?: import("./record-details").RecordDetailsConfig;
+  onRevertActivity?: import("./record-details").DetailRevertHandler;
   tableType: string;
   tableId?: string;
   formType?: string;

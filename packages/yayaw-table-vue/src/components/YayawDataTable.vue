@@ -33,6 +33,8 @@ import CardPagination from "./table/CardPagination.vue";
 import TableFilterBar from "./filters/TableFilterBar.vue";
 import AdvancedFilters from "./filters/AdvancedFilters.vue";
 import CatalogueForm from "./forms/CatalogueForm.vue";
+import RecordDetails from "./details/RecordDetails.vue";
+import type { DetailRevertHandler, RecordDetailsConfig } from "../record-details";
 import GalleryView from "./gallery/GalleryView.vue";
 import KanbanView from "./kanban/KanbanView.vue";
 import BulkActions from "./table/BulkActions.vue";
@@ -45,6 +47,8 @@ const optionsRequest = ref<TableContextValue["optionsRequest"]["value"]>();
 const props = withDefaults(
   defineProps<{
     tableType: string;
+    details?: RecordDetailsConfig;
+    onRevertActivity?: DetailRevertHandler;
     tableId?: string;
     formType?: string;
     className?: string;
@@ -176,6 +180,27 @@ const selection = ref<Record<string, boolean>>({ ...props.rowSelection });
 const selectedRowCache = ref<Record<string, TableRecord>>({});
 const isSelectingAll = ref(false);
 const form = ref<OpenFormState>({ open: false, mode: "create" });
+const detailRow = ref<TableRecord>();
+const currentDetailRow = computed(() => {
+  const selected = detailRow.value;
+  return selected && (tableData.rows.value.find(row => getRowId(row) === getRowId(selected)) ?? selected);
+});
+const openDetails = (row: TableRecord): void => { detailRow.value = row; };
+const deleteDetail = async (row: TableRecord) => {
+  if (!config.table.allowDelete || config.table.canDeleteRow?.(row) === false || !actions.value?.delete) return { success: false };
+  return await actions.value.delete(getRowId(row));
+};
+const detailDeleted = async (): Promise<void> => {
+  detailRow.value = undefined;
+  status.value = { type: "success", message: String(translations.value.rowDeleted ?? "Row deleted") };
+  clearSelection();
+  try { await refresh(); }
+  catch (cause) { status.value = { type: "error", message: cause instanceof Error ? cause.message : String(cause) }; }
+};
+const detailReverted = async (): Promise<void> => {
+  try { await refresh(); }
+  catch (cause) { status.value = { type: "error", message: cause instanceof Error ? cause.message : String(cause) }; }
+};
 const footerCalculationsVisible = ref(config.table.enableCalculations === true);
 const status = ref<{ type: "error" | "success"; message: string }>();
 // Use the host's single Sonner outlet, as React does; feedback must not move table content.
@@ -340,6 +365,7 @@ const openCreate = (): void => {
   };
 };
 const openEdit = (row: TableRecord): void => {
+  detailRow.value = undefined;
   form.value = {
     open: true,
     mode: "edit",
@@ -385,6 +411,7 @@ const activateRow = (row: TableRecord, event: MouseEvent): void => {
     }
     return;
   }
+  if (props.details) openDetails(row);
   emit("rowActivate", row, event);
 };
 const emitSelection = (): void =>
@@ -431,6 +458,7 @@ provide(tableContextKey, {
   refresh,
   openCreate,
   openEdit,
+  openDetails: props.details ? openDetails : undefined,
   activateRow,
   emitSelection,
   clearSelection,
@@ -486,5 +514,11 @@ provide(tableContextKey, {
     <CatalogueForm v-if="form.open">
       <template v-for="(_, name) in $slots" #[name]="scope"><slot :name="name" v-bind="scope" /></template>
     </CatalogueForm>
+    <RecordDetails v-if="details && currentDetailRow" :key="getRowId(currentDetailRow)" :row="currentDetailRow" :config="details" :columns="config.columns.definitions" :locale="locale"
+      :can-edit="config.table.allowEdit && Boolean(actions?.update) && config.table.canEditRow?.(currentDetailRow) !== false"
+      :can-delete="config.table.allowDelete && Boolean(actions?.delete) && config.table.canDeleteRow?.(currentDetailRow) !== false"
+      :on-delete="deleteDetail" :on-revert-activity="onRevertActivity" @reverted="detailReverted" @edit="openEdit" @close="detailRow = undefined" @deleted="detailDeleted">
+      <template v-for="(_, name) in $slots" #[name]="scope"><slot :name="name" v-bind="scope" /></template>
+    </RecordDetails>
   </section>
 </template>
