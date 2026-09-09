@@ -352,9 +352,10 @@ function DataTableHeaderControls({
 
 function detailViewHandler(
   details: RecordDetailsConfig | undefined,
-  open: (row: Record<string, unknown>) => void
+  open: (row: Record<string, unknown>) => void,
+  onOpenDetails?: (row: Record<string, unknown>) => void
 ) {
-  return details ? open : undefined;
+  return onOpenDetails ?? (details ? open : undefined);
 }
 
 function isFilterBarVisible(
@@ -402,9 +403,12 @@ function DataTableContent({
   initialActiveViewId,
   initialViews,
   details,
+  onOpenDetails,
   onRevertActivity,
 }: {
   details?: RecordDetailsConfig;
+  /** Open an application-owned record route or drawer instead of the built-in details. */
+  onOpenDetails?: (row: Record<string, unknown>) => void;
   onRevertActivity?: DetailRevertHandler;
   className?: string;
   loadingOverlay?: React.ReactNode;
@@ -506,7 +510,7 @@ function DataTableContent({
     rowCount,
     visibilityKey,
   } = useDataTable({
-    onView: detailViewHandler(details, setViewedRow),
+    onView: detailViewHandler(details, setViewedRow, onOpenDetails),
     formType: defaultFormType,
     initialData,
     initialPageCount,
@@ -736,9 +740,11 @@ function DataTableContent({
                 onBulkEdit={onBulkEdit}
                 onBulkExport={onBulkExport}
                 onRowActivate={(row, event) => {
-                  if (details) {
-                    setViewedRow(row);
-                  }
+                  detailViewHandler(
+                    details,
+                    setViewedRow,
+                    onOpenDetails
+                  )?.(row);
                   onRowActivate?.(row, event);
                 }}
                 onRowClick={onRowClick}

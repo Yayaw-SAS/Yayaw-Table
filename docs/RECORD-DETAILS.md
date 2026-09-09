@@ -5,6 +5,15 @@ to `DataTable` to enable the row's **View** action. A row activation also opens
 the record; explicit `edit`, `link`, and `none` row-click modes keep their existing
 behavior. Set `rowClickMode: "activate"` to make consultation the primary flow.
 
+For application-owned routes or drawers, pass `onOpenDetails(row)` instead of
+`details` (`:on-open-details="openRecord"` in Vue). The native View action and
+row activation call the same handler, including in read-only tables. If both
+are provided, the callback takes precedence and no built-in detail surface is
+opened. The host controls navigation, canonical loading, and permissions;
+omit the callback when consultation is not allowed. Menu selection does not
+also emit row activation. Existing `edit`, `link`, and `none` row-click modes
+remain unchanged.
+
 The content supports `presentation: "drawer" | "modal" | "inline"` and an optional
 CSS `width`. Inline content can live in any page, split pane, or application-owned
 container. Presentation is independent of the existing edit form configuration.
