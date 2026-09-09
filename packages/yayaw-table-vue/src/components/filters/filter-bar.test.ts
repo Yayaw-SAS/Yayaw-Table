@@ -1,6 +1,17 @@
+const CONTROL_HEIGHT_PATTERN =
+  /\.yayaw-views \.yayaw-button,\s*\.yayaw-filter-bar \.yayaw-button\s*\{[^}]*height: var\(--yayaw-density-control, 32px\)/;
+
+import { readFileSync } from "node:fs";
+import { URL as NodeURL } from "node:url";
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { defineTableConfig } from "../../config";
+
+const styles = readFileSync(
+  new NodeURL("../../styles.css", import.meta.url),
+  "utf8"
+);
+
 import YayawDataTable from "../YayawDataTable.vue";
 
 const config = defineTableConfig({
@@ -132,4 +143,8 @@ it("shares typed multi-selection with Options, retains hidden-column filters whe
     expect.objectContaining({ filters: {} })
   );
   expect(wrapper.findAll(".yayaw-filter-count")).toHaveLength(0);
+});
+
+it("applies the saved-view control sizing rule to every filter-bar button", () => {
+  expect(styles).toMatch(CONTROL_HEIGHT_PATTERN);
 });

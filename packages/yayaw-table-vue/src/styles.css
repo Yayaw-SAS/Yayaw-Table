@@ -265,7 +265,8 @@
 .yayaw-views {
   min-width: 0;
 }
-.yayaw-views .yayaw-button {
+.yayaw-views .yayaw-button,
+.yayaw-filter-bar .yayaw-button {
   height: var(--yayaw-density-control, 32px);
   min-height: var(--yayaw-density-control, 32px);
   flex-shrink: 0;
