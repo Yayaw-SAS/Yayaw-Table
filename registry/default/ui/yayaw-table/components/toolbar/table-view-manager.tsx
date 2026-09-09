@@ -339,9 +339,7 @@ function ViewShareOption({
           onSharedViewChange(Boolean(value));
         }}
       />
-      <span className="font-medium text-sm">
-        {t("views.dialog.save.global")}
-      </span>
+      <span className="font-medium">{t("views.dialog.save.global")}</span>
     </label>
   );
 }
@@ -814,7 +812,7 @@ export function DataTableViewManager({
             }}
           >
             <div className="space-y-2">
-              <label className="font-medium text-sm" htmlFor="table-view-name">
+              <label className="font-medium" htmlFor="table-view-name">
                 {t("views.dialog.save.name")}
               </label>
               <Input
