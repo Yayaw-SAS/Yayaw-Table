@@ -24,6 +24,7 @@ import type {
   TableRecord,
 } from "../../types";
 import CellRenderer from "./CellRenderer.vue";
+import CalculationMenu from "./CalculationMenu.vue";
 import ColumnMenu from "./ColumnMenu.vue";
 import RowActions from "./RowActions.vue";
 
@@ -727,10 +728,12 @@ const pinnedStyle = (column: Column<TableRecord>): CSSProperties => {
           <tr>
             <td v-for="column in visibleColumns" :key="column.id" class="yayaw-calculation" :style="pinnedStyle(column)">
               <template v-if="calculationColumns.find((item) => item.id === column.id)">
-                <select v-model="selectedCalculations[column.id]" class="yayaw-calculation-select" :aria-label="`Calculate ${column.id}`">
-                  <option v-for="calculation in availableCalculations(calculationColumns.find((item) => item.id === column.id)!)" :key="calculation" :value="calculation">{{ calculation }}</option>
-                </select>
-                <strong v-if="selectedCalculations[column.id] !== 'none'">{{ calculationFor(column.id, selectedCalculations[column.id]!) }}</strong>
+                <CalculationMenu
+                  v-model="selectedCalculations[column.id]"
+                  :column-label="String(column.columnDef.header ?? column.id)"
+                  :options="availableCalculations(calculationColumns.find((item) => item.id === column.id)!)"
+                  :result="selectedCalculations[column.id] !== 'none' ? calculationFor(column.id, selectedCalculations[column.id]!) : undefined"
+                />
               </template>
             </td>
           </tr>

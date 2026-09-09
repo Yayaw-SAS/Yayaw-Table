@@ -17,7 +17,7 @@ does not widen framework compatibility.
 - Create/edit forms, sections, Zod validation, async options, collections, and table pickers
 - Inline cell editing with optimistic updates
 - Text, code, JSON, image, URL, number, boolean, date, select, and multi-select cells
-- Footer calculations and CSV export
+- Footer calculations with accessible Shadcn-style dropdown menus and CSV export. Calculation labels use the `calculations.*` translation keys and include English and French defaults.
 - English/French defaults, custom translations, dark mode, responsive styling
 - Vue Query caching, TypeScript declarations, Vitest coverage, and a shadcn-vue registry artifact
 

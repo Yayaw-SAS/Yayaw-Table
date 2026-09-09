@@ -136,7 +136,7 @@ describe("utility column locks", () => {
     expect(
       wrapper
         .findAll("tfoot td")[1]
-        ?.find('[aria-label="Calculate amount"]')
+        ?.find('[aria-label="Calculate: Amount"]')
         .exists()
     ).toBe(true);
     await headers[3]?.trigger("dragstart");

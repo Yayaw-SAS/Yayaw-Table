@@ -70,7 +70,7 @@ describe("YayawDataTable", () => {
     await flushPromises();
     expect(wrapper.text()).toContain("Test rows");
     expect(wrapper.text()).toContain("Alpha");
-    expect(wrapper.text()).toContain("sum");
+    expect(wrapper.text()).toContain("Sum");
     expect(wrapper.text()).toContain("60");
   });
 
