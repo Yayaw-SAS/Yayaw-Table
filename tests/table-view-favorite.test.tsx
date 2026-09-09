@@ -41,6 +41,7 @@ const settle = () =>
 async function mountManager(
   options: {
     actions?: TableViewActions;
+    views?: TableView[];
     cachedFavoriteId?: string;
     initialActiveViewId?: string;
     url?: string;
@@ -67,7 +68,7 @@ async function mountManager(
   };
   cleanups.push(unmount);
   const actions: TableViewActions = {
-    list: async () => ({ data: [favorite, standard] }),
+    list: async () => ({ data: options.views ?? [favorite, standard] }),
     ...options.actions,
   };
   await act(() => {
@@ -286,5 +287,100 @@ it("reports a failed preference read while still loading the default view", asyn
   expect(wrapper.button("Current View").textContent).toContain(standard.name);
   expect(wrapper.container.querySelector('[role="alert"]')?.textContent).toBe(
     "Cannot load preference"
+  );
+});
+
+async function selectDefault(
+  wrapper: Awaited<ReturnType<typeof mountManager>>
+) {
+  await act(() => wrapper.button("Current View").click());
+  await settle();
+  const item = Array.from(
+    document.querySelectorAll<HTMLElement>('[role="menuitem"]')
+  ).find((element) => element.textContent?.includes("Default View"));
+  if (!item) {
+    throw new Error("Missing default view menu item");
+  }
+  await act(() => item.click());
+  await settle();
+}
+
+it("favorites the built-in default by clearing the personal preference, preserves drafts, and restores its star", async () => {
+  const local = createLocalTableViewActions();
+  const writes: (string | null)[] = [];
+  await local.setFavorite(favorite.id, context);
+  const options = {
+    views: [favorite],
+    actions: {
+      setFavorite: (id: string | null) => {
+        writes.push(id);
+        return local.setFavorite(id, context);
+      },
+    },
+  };
+  const wrapper = await mountManager(options);
+  await selectDefault(wrapper);
+  await act(() =>
+    wrapper.store.set(tableDensityAtom(favorite.tableId), "large")
+  );
+  expect(
+    wrapper.button("Use this view on arrival").getAttribute("aria-pressed")
+  ).toBe("false");
+  await act(() => wrapper.button("Use this view on arrival").click());
+  await settle();
+  expect(writes).toEqual([null]);
+  expect(wrapper.button("Favorite view").getAttribute("aria-pressed")).toBe(
+    "true"
+  );
+  expect(wrapper.store.get(tableDensityAtom(favorite.tableId))).toBe("large");
+  await act(() => wrapper.button("Favorite view").click());
+  await settle();
+  expect(writes).toEqual([null]);
+  await wrapper.unmount();
+  cleanups.pop();
+  const reloaded = await mountManager(options);
+  expect(reloaded.button("Current View").textContent).toContain("Default View");
+  expect(reloaded.button("Favorite view").getAttribute("aria-pressed")).toBe(
+    "true"
+  );
+  await act(() => reloaded.button("Current View").click());
+  await settle();
+  const marked = document.querySelector(
+    '[role="menuitem"] [aria-label="Favorite view"]'
+  );
+  expect(marked?.closest('[role="menuitem"]')?.textContent).toContain(
+    "Default View"
+  );
+});
+
+it("keeps the old favorite when clearing it fails and allows retry on the default view", async () => {
+  let fail = true;
+  const wrapper = await mountManager({
+    views: [favorite],
+    actions: {
+      getFavorite: async () => ({
+        success: true,
+        data: { viewId: favorite.id },
+      }),
+      setFavorite: async (id) =>
+        fail
+          ? { success: false, error: "Offline" }
+          : { success: true, data: { viewId: id } },
+    },
+  });
+  await selectDefault(wrapper);
+  await act(() => wrapper.button("Use this view on arrival").click());
+  await settle();
+  expect(wrapper.container.querySelector('[role="alert"]')?.textContent).toBe(
+    "Offline"
+  );
+  expect(
+    wrapper.button("Use this view on arrival").getAttribute("aria-pressed")
+  ).toBe("false");
+  fail = false;
+  await act(() => wrapper.button("Use this view on arrival").click());
+  await settle();
+  expect(wrapper.button("Favorite view").getAttribute("aria-pressed")).toBe(
+    "true"
   );
 });

@@ -132,21 +132,24 @@ function mergeViewActions({
 function FavoriteViewButton({
   activeView,
   favoriteViewId,
+  isTemporary,
   disabled,
   onClick,
   t,
 }: {
   activeView?: TableView;
   favoriteViewId?: string | null;
+  isTemporary: boolean;
   disabled: boolean;
   onClick: () => Promise<void>;
   t: ReturnType<typeof useTranslations>["t"];
 }) {
-  if (!activeView) {
+  if (isTemporary) {
     return null;
   }
-  const isFavorite = activeView.id === favoriteViewId;
-  const label = t(isFavorite ? "views.removeFavorite" : "views.setFavorite");
+  const isFavorite = (activeView?.id ?? null) === favoriteViewId;
+  const selectedLabel = activeView ? "views.removeFavorite" : "views.favorite";
+  const label = t(isFavorite ? selectedLabel : "views.setFavorite");
   return (
     <TableTooltip label={label}>
       <Button
@@ -181,20 +184,20 @@ function ViewStatusIcons({
   favoriteViewId,
   t,
 }: {
-  view: TableView;
+  view?: TableView;
   favoriteViewId?: string | null;
   t: ReturnType<typeof useTranslations>["t"];
 }) {
   return (
     <>
-      {view.id === favoriteViewId && (
+      {(view?.id ?? null) === favoriteViewId && (
         <Star
           aria-label={t("views.favorite")}
           role="img"
           className="h-4 w-4 shrink-0 fill-current"
         />
       )}
-      {view.isGlobal && (
+      {view?.isGlobal && (
         <Users
           aria-label={t("views.dialog.save.global")}
           role="img"
@@ -420,7 +423,10 @@ export function DataTableViewManager({
     },
     retry: false,
   });
-  const favoriteViewId = favoriteQuery.data?.viewId;
+  // An inaccessible favorite has the same UI fallback as an absent preference.
+  const favoriteViewId = savedViews.find(
+    (view) => view.id === favoriteQuery.data?.viewId
+  )?.id ?? null;
 
   const currentConfig = useMemo(
     () => getCurrentViewConfig(),
@@ -522,10 +528,14 @@ export function DataTableViewManager({
   );
 
   const handleToggleFavorite = async (): Promise<void> => {
-    if (!activeView || isMutating || favoriteQuery.isPending) {
+    if ((!activeView && viewParam) || isMutating || favoriteQuery.isPending) {
       return;
     }
-    const viewId = activeView.id === favoriteViewId ? null : activeView.id;
+    const viewId = activeView && activeView.id !== favoriteViewId ? activeView.id : null;
+    // The built-in default represents no personal override; its filled star is stable.
+    if (!activeView && favoriteViewId === null && !favoriteQuery.error) {
+      return;
+    }
     setIsMutating(true);
     setInlineError(undefined);
     try {
@@ -714,7 +724,8 @@ export function DataTableViewManager({
                 ) : (
                   <Check className="h-4 w-4" />
                 )}
-                <span>{t("views.defaultView")}</span>
+                <span className="min-w-0 flex-1 truncate">{t("views.defaultView")}</span>
+                <ViewStatusIcons favoriteViewId={favoriteViewId} t={t} />
               </DropdownMenuItem>
             </DropdownMenuGroup>
             {savedViews.length > 0 && <DropdownMenuSeparator />}
@@ -752,6 +763,7 @@ export function DataTableViewManager({
 
         <FavoriteViewButton
           activeView={activeView}
+          isTemporary={Boolean(viewParam && !activeView)}
           favoriteViewId={favoriteViewId}
           disabled={isMutating || favoriteQuery.isPending}
           onClick={handleToggleFavorite}
