@@ -126,6 +126,8 @@ fictional audit entries. Edit, Delete, Reset, and Undo operate only on in-memory
 demo rows. Undo appends a new entry and rejects repeat or conflicting operations.
 The sample URLs are illustrative; attachment links do not host real documents.
 
+Mount `examples/record-details-react.tsx` inside the host application’s NuqsAdapter
+and QueryClientProvider to exercise the same campaign and actions in React.
 Shared fixtures live in `examples/record-details.ts`. The shared display and audit
 contracts live under `src/components/ui/yayaw-table/utils/record-details.ts`; run
 `bun run registry:sync` to update the Vue copy and generated registry files.

@@ -40,7 +40,9 @@ The Create button is the final toolbar action and keeps the primary style, in te
 React and Vue also expose `RecordDetails` and the table's `details` prop for
 read-only consultation. Both support drawer/modal/inline presentation, the shared
 typed projection, update metadata, confirmation before deletion, and append-only
-audit undo through an application callback. See [Record details](RECORD-DETAILS.md).
+audit undo through an application callback. Both examples share the same 30-field
+campaign and mutation fixtures (`examples/record-details-react.tsx` and the Vue
+`?example=record-details` view). See [Record details](RECORD-DETAILS.md).
 
 Both editions can generate standard fields from column definitions when the catalogue has no matching form. Register a form to customize validation, conditional behavior, labels, or field rendering. Existing React TanStack Form instances, factories, custom field renderers, and custom collection editors remain supported.
 
