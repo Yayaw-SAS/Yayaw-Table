@@ -258,3 +258,11 @@ that paginates before returning records produces page-local groups.
 
 Coverage: shared `tests/fixtures/grouped-rows.json`, React `tests/grouped-rows.test.tsx`,
 and Vue `src/grouped-rows.test.ts`, plus browser interaction in both editions.
+
+## Optional filter bar
+
+`table.filterBarColumns` declares an ordered subset of static-option or boolean columns. `table.showFilterBar` defaults to false, with a reactive `showFilterBar` component override in both frameworks. Column labels and choices come from the catalogue; disabled and unknown columns are excluded.
+
+Both editions use filter icons, searchable checkbox pickers and native column-filter state. Multiple choices retain their original numeric, string or boolean IDs. Hidden columns may still be filtered; hiding the bar preserves the query. Options exposes the same controls even while the bar is hidden. Reset and saved-view changes update the pickers. Text, date, range and remotely loaded option filters remain in their existing filtering surfaces.
+
+Regression coverage: `tests/filter-bar.test.tsx` and Vue `components/filters/filter-bar.test.ts`, including false/zero IDs, multi-selection, hidden columns, Options synchronization, preference toggles and native reset.

@@ -29,6 +29,7 @@ import type {
 import { fetchAllContractRows, TABLE_DENSITY_METRICS } from "../table-contracts";
 import type { TableListParams } from "../types";
 import CardPagination from "./table/CardPagination.vue";
+import TableFilterBar from "./filters/TableFilterBar.vue";
 import AdvancedFilters from "./filters/AdvancedFilters.vue";
 import CatalogueForm from "./forms/CatalogueForm.vue";
 import GalleryView from "./gallery/GalleryView.vue";
@@ -65,6 +66,7 @@ const props = withDefaults(
     translations?: DataTableTranslations;
     enableAdvancedFilters?: boolean;
     enableToolbar?: boolean;
+    showFilterBar?: boolean;
     enableViews?: boolean;
     syncUrl?: boolean;
     searchDebounceMs?: number;
@@ -102,6 +104,7 @@ const props = withDefaults(
     locale: "en",
     enableAdvancedFilters: undefined,
     enableToolbar: undefined,
+    showFilterBar: undefined,
     enableViews: undefined,
     syncUrl: undefined,
     customBulkActions: () => [],
@@ -461,6 +464,7 @@ provide(tableContextKey, {
       :initial-views="initialViews"
       :toolbar-actions-placement="props.toolbarActionsPlacement ?? config.toolbarActionsPlacement"
     />
+    <TableFilterBar v-if="props.showFilterBar ?? config.table.showFilterBar" />
     <AdvancedFilters v-if="advancedFiltersEnabled && config.table.enableColumnFilters && state.advancedFilters.value.filters.length" />
 
     <div v-if="tableData.error.value" class="yayaw-error" role="alert">

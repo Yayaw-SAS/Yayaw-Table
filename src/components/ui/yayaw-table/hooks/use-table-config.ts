@@ -93,6 +93,10 @@ export interface TableCatalogueTableConfig {
   showToolbar?: boolean;
   showToolbarHeader?: boolean;
   /** Show an icon in the toolbar to clear filters and global search. */
+  /** Ordered static-option/boolean columns shown in the optional filter bar. */
+  filterBarColumns?: string[];
+  /** Show the filter bar by default; a component prop can override this. */
+  showFilterBar?: boolean;
   showClearFilters?: boolean;
   /** Backwards-compatible alias for `showClearFilters`. */
   showResetFilters?: boolean;
@@ -347,6 +351,8 @@ function resolveTableBehaviorConfig(
     enableRowClickEdit: mergedConfig.enableRowClickEdit ?? false,
     rowClickMode: mergedConfig.rowClickMode ?? "default",
     enableColumnFilters: mergedConfig.enableColumnFilters ?? true,
+    filterBarColumns: mergedConfig.filterBarColumns,
+    showFilterBar: mergedConfig.showFilterBar === true,
     enableAdvancedFilters: mergedConfig.enableAdvancedFilters ?? false,
     enableColumnPinning: mergedConfig.enableColumnPinning ?? true,
     enableSorting: mergedConfig.enableSorting ?? true,
