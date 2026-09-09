@@ -7,6 +7,7 @@ import type {
   UpdateTableViewInput,
 } from "../types/view-types";
 import { normalizeTableViewConfig } from "./table-view-state";
+import { getTableFavoriteStorageKey } from "./table-view-favorite";
 
 export const LOCAL_TABLE_VIEWS_STORAGE_PREFIX = "yayaw-table-views";
 
@@ -160,9 +161,20 @@ export function createLocalTableViewActions(
   const now = options.now ?? (() => new Date());
   const idFactory =
     options.idFactory ??
-    (() => `view-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`);
+    (() =>
+      `view-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`);
 
   return {
+    getFavorite: (context) =>
+      Promise.resolve(
+        createSuccess({
+          viewId: storage.getItem(getTableFavoriteStorageKey(context)) || null,
+        })
+      ),
+    setFavorite: (viewId, context) => {
+      storage.setItem(getTableFavoriteStorageKey(context), viewId ?? "");
+      return Promise.resolve(createSuccess({ viewId }));
+    },
     create: (
       input: CreateTableViewInput
     ): Promise<TableViewActionResult<TableView>> => {
@@ -213,9 +225,10 @@ export function createLocalTableViewActions(
       );
       return Promise.resolve(createSuccess({ id }));
     },
-    list: (context: TableViewActionContext) => Promise.resolve({
-      data: readViews(storage, context.tableId),
-    }),
+    list: (context: TableViewActionContext) =>
+      Promise.resolve({
+        data: readViews(storage, context.tableId),
+      }),
     update: (
       id: string,
       input: UpdateTableViewInput

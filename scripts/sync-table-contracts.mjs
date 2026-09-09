@@ -8,6 +8,17 @@ await copyFile(
   new URL("../packages/yayaw-table-vue/src/filter-bar.ts", import.meta.url)
 );
 
+await copyFile(
+  new URL(
+    "../src/components/ui/yayaw-table/utils/table-view-favorite.ts",
+    import.meta.url
+  ),
+  new URL(
+    "../packages/yayaw-table-vue/src/table-view-favorite.ts",
+    import.meta.url
+  )
+);
+
 // Keep each copied registry standalone while maintaining one contract implementation.
 await copyFile(
   new URL(
