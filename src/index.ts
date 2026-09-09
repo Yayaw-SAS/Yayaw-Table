@@ -16,6 +16,10 @@ export type {
 } from "./components/ui/yayaw-table/components/bulk-actions";
 // Export main components
 export { DataTable } from "./components/ui/yayaw-table/components/data-table";
+export {
+  RecordDetails,
+  type RecordDetailsProps,
+} from "./components/ui/yayaw-table/components/details/record-details";
 export type {
   AnyFieldDefinition,
   CollectionFieldActionLabels,
@@ -58,3 +62,11 @@ export type {
 } from "./components/ui/yayaw-table/types/toolbar-types";
 // Export types
 export type { DataTableTranslations } from "./components/ui/yayaw-table/types/translations";
+export type {
+  DetailActivity,
+  DetailField,
+  DetailPresentation,
+  DetailRevertHandler,
+  DetailSection,
+  RecordDetailsConfig,
+} from "./components/ui/yayaw-table/utils/record-details";

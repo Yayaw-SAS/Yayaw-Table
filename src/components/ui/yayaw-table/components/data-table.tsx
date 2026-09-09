@@ -7,7 +7,12 @@
 import type { Row } from "@/components/ui/yayaw-table/tanstack";
 import type React from "react";
 // Import advanced filters hook directly
-import { Suspense, useMemo } from "react";
+import { Suspense, useMemo, useState } from "react";
+import type {
+  DetailRevertHandler,
+  RecordDetailsConfig,
+} from "../utils/record-details";
+import { TableRecordDetails } from "./details/table-record-details";
 import type {
   BulkActionCustomHandlerResult,
   BulkDeleteCustomHandlerResult,
@@ -346,6 +351,13 @@ function DataTableHeaderControls({
   );
 }
 
+function detailViewHandler(
+  details: RecordDetailsConfig | undefined,
+  open: (row: Record<string, unknown>) => void
+) {
+  return details ? open : undefined;
+}
+
 function DataTableContent({
   className,
   loadingOverlay,
@@ -382,7 +394,11 @@ function DataTableContent({
   initialRowCount,
   initialActiveViewId,
   initialViews,
+  details,
+  onRevertActivity,
 }: {
+  details?: RecordDetailsConfig;
+  onRevertActivity?: DetailRevertHandler;
   className?: string;
   loadingOverlay?: React.ReactNode;
   enableToolbar?: boolean;
@@ -466,6 +482,7 @@ function DataTableContent({
   const tableId = tableIdProp ?? tableType;
   useAutoPageSizeLifetime(tableId);
   const defaultFormType = formType ?? tableType;
+  const [viewedRow, setViewedRow] = useState<Record<string, unknown>>();
 
   // Nested translations from TableProvider (used to resolve for DataTableUIProvider)
   const { translations: nestedTranslations } = useTranslations();
@@ -481,6 +498,7 @@ function DataTableContent({
     rowCount,
     visibilityKey,
   } = useDataTable({
+    onView: detailViewHandler(details, setViewedRow),
     formType: defaultFormType,
     initialData,
     initialPageCount,
@@ -699,7 +717,12 @@ function DataTableContent({
                 onBulkDelete={onBulkDelete}
                 onBulkEdit={onBulkEdit}
                 onBulkExport={onBulkExport}
-                onRowActivate={onRowActivate}
+                onRowActivate={(row, event) => {
+                  if (details) {
+                    setViewedRow(row);
+                  }
+                  onRowActivate?.(row, event);
+                }}
                 onRowClick={onRowClick}
                 onRowSelectionChange={onRowSelectionChange}
                 onRowSelectionStateChange={onRowSelectionStateChange}
@@ -729,6 +752,19 @@ function DataTableContent({
       <Suspense fallback={null}>
         <CatalogueFormContainer />
       </Suspense>
+      <TableRecordDetails
+        details={details}
+        formType={defaultFormType}
+        getRowId={getRowId}
+        onClose={() => setViewedRow(undefined)}
+        onRefresh={refetch}
+        onRevertActivity={onRevertActivity}
+        row={viewedRow}
+        rows={finalData}
+        tableConfig={config}
+        tableId={tableId}
+        tableType={tableType}
+      />
     </TableStateSyncProvider>
   );
 }

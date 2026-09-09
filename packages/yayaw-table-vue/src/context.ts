@@ -61,6 +61,7 @@ export interface TableContextValue<TData extends TableRecord = TableRecord> {
   refresh: () => Promise<void>;
   openCreate: () => void;
   openEdit: (row: TData) => void;
+  openDetails?: (row: TData) => void;
   activateRow: (row: TData, event: MouseEvent) => void;
   emitSelection: () => void;
   clearSelection: () => void;

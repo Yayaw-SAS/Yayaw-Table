@@ -37,6 +37,11 @@ The Create button is the final toolbar action and keeps the primary style, in te
 
 ## Catalogue forms
 
+React and Vue also expose `RecordDetails` and the table's `details` prop for
+read-only consultation. Both support drawer/modal/inline presentation, the shared
+typed projection, update metadata, confirmation before deletion, and append-only
+audit undo through an application callback. See [Record details](RECORD-DETAILS.md).
+
 Both editions can generate standard fields from column definitions when the catalogue has no matching form. Register a form to customize validation, conditional behavior, labels, or field rendering. Existing React TanStack Form instances, factories, custom field renderers, and custom collection editors remain supported.
 
 `FormConfig.blocks` or `TableConfig.form.blocks` can compose generated fields without redefining them. Explicit form blocks take precedence over table blocks and legacy `sections`. Blocks support nested `section` containers with 1–3 columns, `field` references, escaped informational `content`, `actions`, and framework-native `custom` rendering. Each declared field appears once; unknown references are ignored and omitted fields are appended. `span: "full"` fills the parent grid; narrow form containers collapse to one column. Bulk editing retains its checked-field sections and does not render these create/edit blocks.

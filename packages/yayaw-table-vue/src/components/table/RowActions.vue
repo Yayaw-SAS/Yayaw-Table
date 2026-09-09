@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import TableTooltip from "../toolbar/TableTooltip.vue";
-import { Copy, MoreHorizontal, Pencil, Trash2 } from "lucide-vue-next";
+import { Copy, Eye, MoreHorizontal, Pencil, Trash2 } from "lucide-vue-next";
 import {
   DropdownMenuContent,
   DropdownMenuItem,
@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "reka-ui";
-import { computed, ref } from "vue";
+import { computed, nextTick, ref } from "vue";
 import { useTableContext } from "../../context";
 import type { TableRecord } from "../../types";
 import FormDialog from "../forms/FormDialog.vue";
@@ -19,10 +19,18 @@ const context = useTableContext();
 const root = ref<HTMLElement>();
 const trigger = ref<HTMLElement>();
 const menuOpen = ref(false);
+const openingDetails = ref(false);
 const pending = ref<string>();
 const confirmingDelete = ref(false);
 const deleteError = ref("");
 const menuTheme = ref<Record<string, string>>({});
+const closeMenuFocus = (event: Event): void => {
+  if (confirmingDelete.value || context.form.value.open || openingDetails.value) event.preventDefault();
+  if (!openingDetails.value) return;
+  openingDetails.value = false;
+  // Open the record after the menu focus scope has finished unmounting.
+  nextTick(() => { trigger.value?.focus(); context.openDetails?.(props.row); });
+};
 
 const includeEdit = computed(
   () => context.config.table.allowEdit && Boolean(context.actions.value?.update)
@@ -51,12 +59,13 @@ const canDelete = computed(
     context.config.table.canDeleteRow?.(props.row) !== false
 );
 const hasActions = computed(
-  () => includeEdit.value || includeDuplicate.value || includeDelete.value
+  () => Boolean(context.openDetails) || includeEdit.value || includeDuplicate.value || includeDelete.value
 );
 const translate = (key: string, fallback: string): string =>
   String(context.translations.value[key] ?? fallback);
 const menuChanged = (open: boolean): void => {
   menuOpen.value = open;
+  if (open) openingDetails.value = false;
   if (!open || !root.value) return;
   const style = getComputedStyle(root.value);
   menuTheme.value = Object.fromEntries(
@@ -161,9 +170,12 @@ const confirmDelete = async (): Promise<void> => {
         </DropdownMenuTrigger>
       </TableTooltip>
       <DropdownMenuPortal>
-        <DropdownMenuContent class="yayaw-row-actions-menu" :style="menuTheme" align="end" :side-offset="4" :collision-padding="8"
+        <DropdownMenuContent :reference="trigger" class="yayaw-row-actions-menu" :style="menuTheme" align="end" :side-offset="4" :collision-padding="8"
           :aria-label="translate('actions', 'Actions')" @click.stop
-          @close-auto-focus="event => { if (confirmingDelete || context.form.value.open) event.preventDefault(); }">
+          @close-auto-focus="closeMenuFocus">
+          <DropdownMenuItem v-if="context.openDetails" as-child @select="() => { openingDetails = true; menuOpen = false; }">
+            <button type="button" class="yayaw-row-action-item"><Eye :size="16" aria-hidden="true" />{{ translate("view", context.locale.startsWith('fr') ? 'Consulter' : 'View') }}</button>
+          </DropdownMenuItem>
           <DropdownMenuItem v-if="includeEdit" as-child :disabled="!canEdit" @select="run('edit')">
             <button type="button" class="yayaw-row-action-item" :disabled="!canEdit"><Pencil :size="16" aria-hidden="true" />{{ translate("edit", "Edit") }}</button>
           </DropdownMenuItem>

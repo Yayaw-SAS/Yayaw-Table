@@ -6,7 +6,7 @@
 
 import type React from "react";
 // Import advanced filters hook directly
-import { Suspense, useMemo } from "react";
+import { Suspense, useMemo, useState } from "react";
 import type { TableEmptyStateConfig } from "../config/helpers";
 import { useAutoPageSizeLifetime } from "../hooks/use-auto-page-size";
 import type {
@@ -15,7 +15,6 @@ import type {
 } from "../hooks/use-bulk-actions";
 import { useDataTable } from "../hooks/use-data-table";
 import type { TableCatalogueConfig } from "../hooks/use-table-config";
-
 import { DataTableUIProvider } from "../providers/data-table-ui-provider";
 import {
   defaultTranslations,
@@ -37,8 +36,13 @@ import type {
 } from "../types/toolbar-types";
 import type { DataTableTranslations } from "../types/translations";
 import type { TableView } from "../types/view-types";
+import type {
+  DetailRevertHandler,
+  RecordDetailsConfig,
+} from "../utils/record-details";
 import type { CustomBulkActionsInput } from "./bulk-actions";
 import { DataTableSkeleton } from "./data-table-skeleton";
+import { TableRecordDetails } from "./details/table-record-details";
 // Lazy load heavy components using React.lazy inside './forms/lazy-forms'
 import { LazyCatalogueFormContainer as CatalogueFormContainer } from "./forms/lazy-forms";
 // Import DataTableClient directly for better SSR compatibility
@@ -346,6 +350,13 @@ function DataTableHeaderControls({
   );
 }
 
+function detailViewHandler(
+  details: RecordDetailsConfig | undefined,
+  open: (row: Record<string, unknown>) => void
+) {
+  return details ? open : undefined;
+}
+
 function DataTableContent({
   className,
   loadingOverlay,
@@ -382,7 +393,11 @@ function DataTableContent({
   initialRowCount,
   initialActiveViewId,
   initialViews,
+  details,
+  onRevertActivity,
 }: {
+  details?: RecordDetailsConfig;
+  onRevertActivity?: DetailRevertHandler;
   className?: string;
   loadingOverlay?: React.ReactNode;
   enableToolbar?: boolean;
@@ -466,6 +481,7 @@ function DataTableContent({
   const tableId = tableIdProp ?? tableType;
   useAutoPageSizeLifetime(tableId);
   const defaultFormType = formType ?? tableType;
+  const [viewedRow, setViewedRow] = useState<Record<string, unknown>>();
 
   // Nested translations from TableProvider (used to resolve for DataTableUIProvider)
   const { translations: nestedTranslations } = useTranslations();
@@ -481,6 +497,7 @@ function DataTableContent({
     rowCount,
     visibilityKey,
   } = useDataTable({
+    onView: detailViewHandler(details, setViewedRow),
     formType: defaultFormType,
     initialData,
     initialPageCount,
@@ -700,7 +717,12 @@ function DataTableContent({
                 onBulkDelete={onBulkDelete}
                 onBulkEdit={onBulkEdit}
                 onBulkExport={onBulkExport}
-                onRowActivate={onRowActivate}
+                onRowActivate={(row, event) => {
+                  if (details) {
+                    setViewedRow(row);
+                  }
+                  onRowActivate?.(row, event);
+                }}
                 onRowClick={onRowClick}
                 onRowSelectionChange={onRowSelectionChange}
                 onRowSelectionStateChange={onRowSelectionStateChange}
@@ -729,6 +751,19 @@ function DataTableContent({
       <Suspense fallback={null}>
         <CatalogueFormContainer />
       </Suspense>
+      <TableRecordDetails
+        details={details}
+        formType={defaultFormType}
+        getRowId={getRowId}
+        onClose={() => setViewedRow(undefined)}
+        onRefresh={refetch}
+        onRevertActivity={onRevertActivity}
+        row={viewedRow}
+        rows={finalData}
+        tableConfig={config}
+        tableId={tableId}
+        tableType={tableType}
+      />
     </TableStateSyncProvider>
   );
 }
