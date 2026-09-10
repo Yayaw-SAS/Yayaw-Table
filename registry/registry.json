@@ -1087,6 +1087,16 @@
           "target": "components/ui/yayaw-table/utils/number-format.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/utils/row-selection-range.test.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/row-selection-range.test.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/row-selection-range.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/row-selection-range.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/utils/server-filters.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/server-filters.ts"

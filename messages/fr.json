@@ -139,7 +139,7 @@
     "feature": {
       "enableRowSelection": {
         "label": "Activer la sélection de lignes",
-        "description": "Active les cases à cocher de sélection et les actions de masse."
+        "description": "Active les cases à cocher et les actions de masse. Avec la sélection multiple activée, cliquez sur une checkbox, puis faites Maj+clic sur une autre pour sélectionner ou désélectionner la plage inclusive ; les lignes non sélectionnables sont ignorées."
       },
       "showSelectionColumn": {
         "label": "Afficher la colonne sélection (code)",

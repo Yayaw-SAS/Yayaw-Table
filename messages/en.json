@@ -139,7 +139,7 @@
     "feature": {
       "enableRowSelection": {
         "label": "Enable row selection",
-        "description": "Enable row checkboxes and bulk selection behaviors."
+        "description": "Enable row checkboxes and bulk selection. With multi-row selection enabled, click a checkbox and then Shift-click another to select or deselect the inclusive range; rows that cannot be selected are skipped."
       },
       "showSelectionColumn": {
         "label": "Show selection column (code)",

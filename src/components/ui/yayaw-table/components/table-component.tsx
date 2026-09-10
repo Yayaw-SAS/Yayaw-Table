@@ -1237,6 +1237,7 @@ function ModernDataTable<
   );
 
   const table = useTableInstance(tableInstanceConfig);
+  const currentRowSelection = table.getState().rowSelection;
   const tableInstanceRef = useRef(table);
   tableInstanceRef.current = table;
 
@@ -1753,8 +1754,7 @@ function ModernDataTable<
     const getSelectionCounts = (row: Row<TData>) => {
       const selectedCount =
         row.subRows?.filter((subRow) => {
-          const selection = table.getState().rowSelection;
-          return selection[subRow.id];
+          return currentRowSelection[subRow.id];
         }).length ?? 0;
       const totalCount = row.subRows?.length ?? 0;
       return { selectedCount, totalCount };
@@ -2039,11 +2039,10 @@ function ModernDataTable<
 
     const pushSelectionGroupRows = (row: Row<TData>, level: number) => {
       const visibleCells = row.getVisibleCells();
-      const selection = table.getState().rowSelection;
       const selectedRows: Row<TData>[] = [];
       const unselectedRows: Row<TData>[] = [];
       for (const subRow of row.subRows || []) {
-        if (selection[subRow.id]) {
+        if (currentRowSelection[subRow.id]) {
           selectedRows.push(subRow);
         } else {
           unselectedRows.push(subRow);
@@ -2125,6 +2124,7 @@ function ModernDataTable<
     isLoading,
     data,
     table,
+    currentRowSelection,
     hasMounted,
     isError,
     rowCount,
@@ -2154,6 +2154,9 @@ function ModernDataTable<
           isSmallDensity && "[&_th]:!h-8 [&_th]:!px-1.5",
           isLargeDensity && "[&_th]:!h-12 [&_th]:!px-3"
         )}
+        data-selected-row-count={
+          Object.values(currentRowSelection).filter(Boolean).length
+        }
         key={orderKey}
       >
         {table.getHeaderGroups().map((headerGroup) => (
@@ -2185,6 +2188,7 @@ function ModernDataTable<
     tableId,
     horizontalListSortingStrategy,
     columnOrder,
+    currentRowSelection,
     isSmallDensity,
     isLargeDensity,
     densityMode,
@@ -2433,7 +2437,11 @@ function ModernDataTable<
 
   // Render the component
   return (
-    <div className="space-y-4" suppressHydrationWarning>
+    <div
+      className="space-y-4"
+      data-yayaw-table-selection-scope=""
+      suppressHydrationWarning
+    >
       {renderContent()}
     </div>
   );

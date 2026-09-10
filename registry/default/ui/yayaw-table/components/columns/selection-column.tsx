@@ -85,12 +85,8 @@ function SelectionHeaderBase<TData>({ table }: SelectionHeaderProps<TData>) {
         checked={isAllSelected}
         className="translate-y-[2px] cursor-pointer data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
         disabled={totalCount === 0}
+        indeterminate={isSomeSelected}
         onCheckedChange={handleToggle}
-        ref={(el: HTMLButtonElement & { indeterminate?: boolean }) => {
-          if (el) {
-            el.indeterminate = isSomeSelected;
-          }
-        }}
       />
     </div>
   );
@@ -138,12 +134,8 @@ export function GroupRowSelectionCell<TData>({
         checked={allSelected}
         className="translate-y-[2px] cursor-pointer data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
         disabled={leafIds.length === 0}
+        indeterminate={someSelected && !allSelected}
         onCheckedChange={handleGroupToggle}
-        ref={(el: HTMLButtonElement & { indeterminate?: boolean }) => {
-          if (el) {
-            el.indeterminate = someSelected && !allSelected;
-          }
-        }}
       />
     </div>
   );
@@ -174,7 +166,13 @@ export function createSelectionColumn<TData>(
         return <GroupRowSelectionCell row={info.row} table={info.table} />;
       }
 
-      return <SelectionCell className={className} row={info.row} />;
+      return (
+        <SelectionCell
+          className={className}
+          row={info.row}
+          table={info.table}
+        />
+      );
     },
     enableHiding,
     enablePinning: false,

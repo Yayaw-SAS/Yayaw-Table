@@ -193,6 +193,7 @@ Utilisez `type: 'dynamicType'` et indiquez `typeKey` sur la ligne pour choisir l
 - La colonne `select` est virtuelle et ne nécessite pas d'entrée dans `definitions`.
 - Ajoutez `'select'` à `columns.order` et à `columns.visible` pour l'afficher quand vous fournissez une liste `visible` explicite.
 - Contrôlée par `table.enableRowSelection` (par défaut `true`).
+- Quand `table.enableMultiRowSelection` est activé, cliquez sur la checkbox d'une ligne sélectionnable, puis faites Maj+clic sur une autre pour sélectionner ou désélectionner la plage inclusive dans l'ordre courant. Les lignes non sélectionnables sont ignorées.
 - Rendue comme une colonne étroite à largeur fixe avec une checkbox centrée ; même largeur que la colonne actions.
 - Pour la masquer, retirez `'select'` de `columns.visible`.
 - Elle n'est pas masquable via le menu d'options de l'interface.
