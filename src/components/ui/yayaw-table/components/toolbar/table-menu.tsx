@@ -235,7 +235,7 @@ const OptionsMenuTrigger = forwardRef<
     <Button
       aria-label={actionsAsIcons ? label : undefined}
       className={cn(
-        actionsAsIcons ? "relative h-8 w-8" : "h-8 gap-2 px-3",
+        actionsAsIcons ? "relative h-8 w-8" : "h-8 gap-2 px-3 font-normal text-xs leading-4",
         className
       )}
       disabled={disabled}
@@ -245,12 +245,12 @@ const OptionsMenuTrigger = forwardRef<
       variant="outline"
       {...props}
     >
-      <SlidersHorizontal className="h-4 w-4" />
+      <SlidersHorizontal className="size-4" />
       {!actionsAsIcons && <span>{label}</span>}
       {hasBadge && (
         <span
           className={cn(
-            "flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground",
+            "flex size-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground",
             actionsAsIcons ? "absolute -top-1 -right-1" : "ml-1"
           )}
         >
@@ -307,7 +307,7 @@ function renderMainMenuView({
                   </span>
                 ) : undefined
               }
-              icon={<List className="h-4 w-4" />}
+              icon={<List className="size-4" />}
               navigateTitle={getNavigationTitle("columns", t)}
               navigateTo="columns"
             >
@@ -331,7 +331,7 @@ function renderMainMenuView({
                   </span>
                 ) : undefined
               }
-              icon={<ListFilter className="h-4 w-4" />}
+              icon={<ListFilter className="size-4" />}
               navigateTitle={getNavigationTitle("filters", t)}
               navigateTo="filters"
             >
@@ -355,7 +355,7 @@ function renderMainMenuView({
                   </span>
                 ) : undefined
               }
-              icon={<ArrowUpDown className="h-4 w-4" />}
+              icon={<ArrowUpDown className="size-4" />}
               navigateTitle={getNavigationTitle("sort", t)}
               navigateTo="sort"
             >
@@ -377,7 +377,7 @@ function renderMainMenuView({
                   </span>
                 ) : undefined
               }
-              icon={<Layers className="h-4 w-4" />}
+              icon={<Layers className="size-4" />}
               navigateTitle={getNavigationTitle("group", t)}
               navigateTo="group"
             >
@@ -388,7 +388,7 @@ function renderMainMenuView({
           {sectionState.canShowCalculationsSection && (
             <StackMenuItem
               description={footerCalculationsLabel}
-              icon={<Calculator className="h-4 w-4" />}
+              icon={<Calculator className="size-4" />}
               onClick={onToggleFooterCalculations}
             >
               {t("menu.footer_calculations")}
@@ -580,7 +580,7 @@ export function TableMenu({
         type="button"
         variant="ghost"
       >
-        <RotateCcw className="h-4 w-4" />
+        <RotateCcw className="size-4" />
       </Button>
     </TableTooltip>
   );

@@ -60,7 +60,7 @@ export function TableDensityMenu({
               type="button"
               variant="outline"
             >
-              <Rows3 aria-hidden="true" className="h-4 w-4" />
+              <Rows3 aria-hidden="true" className="size-4" />
             </Button>
           </TableTooltip>
         }

@@ -68,7 +68,7 @@ const focusName = (event: Event): void => {
             >
               <LayoutList :size="16" aria-hidden="true" />
               <span class="yayaw-view-name">{{ currentLabel }}</span>
-              <ChevronDown :size="16" aria-hidden="true" />
+              <ChevronDown :size="12" aria-hidden="true" />
             </button>
           </DropdownMenuTrigger>
         </TableTooltip>

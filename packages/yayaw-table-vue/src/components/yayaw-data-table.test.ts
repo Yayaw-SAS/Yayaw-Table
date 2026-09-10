@@ -405,7 +405,12 @@ describe("YayawDataTable", () => {
         syncUrl: false,
       },
       attachTo: document.body,
-      global: { stubs: { PopperContent: { template: "<div><slot /></div>" } } },
+      global: {
+        stubs: {
+          PopperArrow: true,
+          PopperContent: { template: "<div><slot /></div>" },
+        },
+      },
     });
     const triggers = wrapper.findAll('[aria-label="Open actions menu"]');
     expect(triggers).toHaveLength(3);

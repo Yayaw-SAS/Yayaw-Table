@@ -79,7 +79,12 @@ const mountTable = (props: Partial<YayawTableProps> = {}) =>
     props: { tableType: config.id, config, data: rows, ...props },
     attachTo: document.body,
     // Preserve tooltip behavior while avoiding jsdom's missing layout measurements.
-    global: { stubs: { PopperContent: { template: "<div><slot /></div>" } } },
+    global: {
+      stubs: {
+        PopperArrow: true,
+        PopperContent: { template: "<div><slot /></div>" },
+      },
+    },
   });
 type Wrapper = ReturnType<typeof mountTable>;
 enableAutoUnmount((unmount) =>

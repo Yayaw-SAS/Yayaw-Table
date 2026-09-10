@@ -32,7 +32,7 @@ const toggle = (candidate: unknown): void => update(checked(candidate)
         <Filter :size="16" aria-hidden="true" />
         <span>{{ column.header }}</span>
         <span v-if="selected.length" class="yayaw-filter-count">{{ selected.length }}</span>
-        <ChevronDown :size="14" aria-hidden="true" />
+        <ChevronDown :size="12" aria-hidden="true" />
       </button>
     </PopoverTrigger>
     <PopoverPortal>

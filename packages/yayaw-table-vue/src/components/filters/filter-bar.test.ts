@@ -1,5 +1,5 @@
 const CONTROL_HEIGHT_PATTERN =
-  /\.yayaw-views \.yayaw-button,\s*\.yayaw-filter-bar \.yayaw-button\s*\{[^}]*height: var\(--yayaw-density-control, 32px\)/;
+  /\.yayaw-views \.yayaw-button,\s*\.yayaw-filter-bar \.yayaw-button\s*\{[^}]*height: 32px/;
 
 import { readFileSync } from "node:fs";
 import { URL as NodeURL } from "node:url";
@@ -81,7 +81,12 @@ it("shares typed multi-selection with Options, retains hidden-column filters whe
   const wrapper = mount(YayawDataTable, {
     props: { tableType: config.id, config, getTableActions: () => ({ list }) },
     attachTo: document.body,
-    global: { stubs: { PopperContent: { template: "<div><slot /></div>" } } },
+    global: {
+      stubs: {
+        PopperArrow: true,
+        PopperContent: { template: "<div><slot /></div>" },
+      },
+    },
   });
   await flushPromises();
   expect(wrapper.findAll(".yayaw-filter-bar button")).toHaveLength(2);

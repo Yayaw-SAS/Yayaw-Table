@@ -4,6 +4,9 @@ import {
   ArrowLeft,
   ArrowDownAZ,
   Calculator,
+  Columns3,
+  Images,
+  Table2,
   ChevronRight,
   Download,
   Layers,
@@ -57,6 +60,7 @@ const search = computed({
     context.state.search.value = value;
   },
 });
+const displayModeIcons = { table: Table2, kanban: Columns3, gallery: Images };
 const modes = computed<TableDisplayMode[]>(
   () => context.config.table.displayModes ?? ["table"]
 );
@@ -494,15 +498,17 @@ const exportRows = async (): Promise<void> => {
           role="group"
           :aria-label="translate('displayMode', 'Display mode')"
         >
-          <button
-            v-for="mode in modes"
-            :key="mode"
-            type="button"
-            :class="{ active: displayMode === mode }"
-            @click="displayMode = mode"
-          >
-            {{ translate(`display.${mode}`, mode) }}
-          </button>
+          <TableTooltip v-for="mode in modes" :key="mode" :label="translate(`display.${mode}`, mode)">
+            <button
+              type="button"
+              :class="{ active: displayMode === mode }"
+              :aria-pressed="displayMode === mode"
+              @click="displayMode = mode"
+            >
+              <component :is="displayModeIcons[mode]" :size="16" aria-hidden="true" />
+              <span>{{ translate(`display.${mode}`, mode) }}</span>
+            </button>
+          </TableTooltip>
         </div>
       </div>
 

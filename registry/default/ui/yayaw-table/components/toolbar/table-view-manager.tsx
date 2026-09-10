@@ -163,7 +163,7 @@ function FavoriteViewButton({
       >
         <Star
           aria-hidden="true"
-          className={cn("h-4 w-4", isFavorite && "fill-current")}
+          className={cn("size-4", isFavorite && "fill-current")}
         />
       </Button>
     </TableTooltip>
@@ -192,14 +192,14 @@ function ViewStatusIcons({
       {(view?.id ?? null) === favoriteViewId && (
         <Star
           aria-label={t("views.favorite")}
-          className="h-4 w-4 shrink-0 fill-current"
+          className="size-4 shrink-0 fill-current"
           role="img"
         />
       )}
       {view?.isGlobal && (
         <Users
           aria-label={t("views.dialog.save.global")}
-          className="h-4 w-4 shrink-0"
+          className="size-4 shrink-0"
           role="img"
         />
       )}
@@ -224,7 +224,7 @@ function ViewWriteMenuItems({
       <DropdownMenuGroup>
         {canCreateView && (
           <DropdownMenuItem onClick={onOpenSaveDialog}>
-            <Plus className="h-4 w-4" />
+            <Plus className="size-4" />
             <span>{t("views.saveAs")}</span>
           </DropdownMenuItem>
         )}
@@ -237,7 +237,7 @@ function ViewWriteMenuItems({
             }}
             variant="destructive"
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="size-4" />
             <span>{t("views.delete")}</span>
           </DropdownMenuItem>
         )}
@@ -288,7 +288,7 @@ function ViewWriteButtons({
           type="button"
           variant={isActiveViewDirty ? "default" : "outline"}
         >
-          <Save className="h-4 w-4" />
+          <Save className="size-4" />
         </Button>
       </TableTooltip>
 
@@ -303,7 +303,7 @@ function ViewWriteButtons({
           type="button"
           variant="outline"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="size-4" />
         </Button>
       </TableTooltip>
     </>
@@ -704,15 +704,15 @@ export function DataTableViewManager({
             render={
               <Button
                 aria-label={t("views.current")}
-                className="h-8 min-w-0 max-w-[16rem] justify-between gap-2 px-3"
+                className="h-8 min-w-0 max-w-[16rem] justify-between gap-2 px-3 font-normal text-xs leading-4"
                 disabled={isLoading}
                 size="sm"
                 type="button"
                 variant="outline"
               >
-                <LayoutList className="h-4 w-4 shrink-0" />
+                <LayoutList className="size-4 shrink-0" />
                 <span className="truncate">{currentViewLabel}</span>
-                <ChevronDown className="h-4 w-4 shrink-0 opacity-70" />
+                <ChevronDown className="size-3 shrink-0 opacity-70" />
               </Button>
             }
           />
@@ -723,9 +723,9 @@ export function DataTableViewManager({
               </div>
               <DropdownMenuItem onClick={handleSelectDefaultView}>
                 {viewParam ? (
-                  <span className="h-4 w-4" />
+                  <span className="size-4" />
                 ) : (
-                  <Check className="h-4 w-4" />
+                  <Check className="size-4" />
                 )}
                 <span className="min-w-0 flex-1 truncate">
                   {t("views.defaultView")}
@@ -743,9 +743,9 @@ export function DataTableViewManager({
                   }}
                 >
                   {view.id === viewParam ? (
-                    <Check className="h-4 w-4" />
+                    <Check className="size-4" />
                   ) : (
-                    <span className="h-4 w-4" />
+                    <span className="size-4" />
                   )}
                   <span className="min-w-0 flex-1 truncate">{view.name}</span>
                   <ViewStatusIcons

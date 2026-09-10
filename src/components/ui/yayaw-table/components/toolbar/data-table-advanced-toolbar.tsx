@@ -433,7 +433,7 @@ function ToolbarCreateButton({
               size="icon-sm"
               variant="default"
             >
-              <PlusIcon className="h-4 w-4" />
+              <PlusIcon className="size-4" />
             </Button>
           }
         />
@@ -443,8 +443,8 @@ function ToolbarCreateButton({
   }
 
   return (
-    <Button className="h-8" onClick={onClick} size="sm" variant="default">
-      <PlusIcon className="mr-2 h-4 w-4" />
+    <Button className="h-8 font-normal text-xs leading-4" onClick={onClick} size="sm" variant="default">
+      <PlusIcon className="mr-2 size-4" />
       <span>{label}</span>
     </Button>
   );
@@ -475,7 +475,7 @@ function ToolbarExportButton({
               type="button"
               variant="outline"
             >
-              <Download className="h-4 w-4" />
+              <Download className="size-4" />
             </Button>
           }
         />
@@ -486,14 +486,14 @@ function ToolbarExportButton({
 
   return (
     <Button
-      className="h-8 gap-2 px-3"
+      className="h-8 gap-2 px-3 font-normal text-xs leading-4"
       disabled={disabled}
       onClick={onClick}
       size="sm"
       type="button"
       variant="outline"
     >
-      <Download className="h-4 w-4" />
+      <Download className="size-4" />
       <span>{label}</span>
     </Button>
   );
@@ -956,7 +956,7 @@ export function DataTableAdvancedToolbar<TData>({
       }
 
       const iconContent = resolvedState.loading ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
+        <Loader2 className="size-4 animate-spin" />
       ) : (
         action.icon
       );
@@ -997,7 +997,7 @@ export function DataTableAdvancedToolbar<TData>({
       return (
         <TableTooltip label={action.tooltip ?? action.label} key={action.id}>
           <Button
-            className="h-8 gap-2 px-3"
+            className="h-8 gap-2 px-3 font-normal text-xs leading-4"
             disabled={resolvedState.disabled || resolvedState.loading}
             onClick={() => {
               handleToolbarActionClick(action).catch(() => {
@@ -1143,7 +1143,7 @@ export function DataTableAdvancedToolbar<TData>({
                   type="button"
                   variant="outline"
                 >
-                  <RotateCcw aria-hidden="true" className="h-4 w-4" />
+                  <RotateCcw aria-hidden="true" className="size-4" />
                 </Button>
               }
             />

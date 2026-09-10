@@ -280,7 +280,9 @@ In both editions the optional bar sits below the title and above the standard vi
 
 Regression coverage: `tests/filter-bar.test.tsx` and Vue `components/filters/filter-bar.test.ts`, including false/zero IDs, multi-selection, hidden columns, Options synchronization, preference toggles and native reset.
 
-Historical filter triggers follow the same control height as saved-view controls in both editions. Vue uses the active density control token, including filter bars embedded in Options; React keeps the shared toolbar button size. Browser verification covers the standalone bar and the view selector together.
+Toolbar and historical filter controls use 32px height, 12px regular text, 16px action icons, and 12px dropdown chevrons in both editions. Icon-only actions are 32px squares. This geometry is independent from row density; cell controls and thumbnails still follow the selected density. Table/Kanban/Gallery share a 32px segmented frame whose buttons fit its inner height, keeping active and hovered backgrounds centered. Mode buttons retain translated tooltips, keyboard focus, and pressed state. React and Vue regression coverage exercises focus, display-mode transitions, and density choices; browser checks cover geometry and hover.
+
+The local React Button and Tooltip follow the official [Shadcn Base Vega registry](https://ui.shadcn.com/r/styles/base-vega/button.json), refreshed on September 10, 2026, while retaining local aliases and the shared button-variants export. Vue adapts the official [Shadcn Vue Reka primitives](https://github.com/unovue/shadcn-vue/tree/dev/apps/v4/registry/bases/reka/ui) and [Vega styles](https://github.com/unovue/shadcn-vue/blob/dev/apps/v4/registry/styles/style-vega.css) to the existing standalone stylesheet: button hover/focus states and tooltip content/arrow styling use the same geometry without requiring Tailwind in Vue hosts. Its Tooltip forwards attributes and the trigger reference for composed menus. The table's explicit toolbar sizes override generic Shadcn size defaults; the segmented frame remains a Yayaw composition.
 
 ### Built-in default favorite
 

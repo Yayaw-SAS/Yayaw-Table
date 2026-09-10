@@ -124,16 +124,16 @@ const SearchBar = ({
         type="button"
         variant="outline"
       >
-        <Search className="h-4 w-4" />
+        <Search className="size-4" />
       </Button>
     );
   }
 
   return (
     <div className="relative">
-      <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
       <Input
-        className="h-8 w-40 pr-8 pl-9 sm:w-64"
+        className="h-8 w-40 pr-8 pl-9 text-xs leading-4 md:text-xs sm:w-64"
         onChange={(e) => {
           // Capture focus and caret before any potential remount
           wasFocusedRef.current = document.activeElement === inputRef.current;
@@ -169,7 +169,7 @@ const SearchBar = ({
       {(isMobile || value.length > 0) && (
         <Button
           aria-label={value ? t("common.reset") : "Close search"}
-          className="absolute top-1/2 right-0 -translate-y-1/2 rounded bg-transparent p-0 text-muted-foreground hover:bg-transparent hover:font-bold focus-visible:border-transparent focus-visible:ring-0 focus-visible:ring-transparent focus-visible:ring-offset-0 active:bg-transparent dark:hover:bg-transparent"
+          className="absolute top-1/2 right-0 size-8 -translate-y-1/2 rounded bg-transparent p-0 text-muted-foreground hover:bg-transparent hover:font-bold focus-visible:border-transparent focus-visible:ring-0 focus-visible:ring-transparent focus-visible:ring-offset-0 active:bg-transparent dark:hover:bg-transparent"
           onClick={() => {
             if (value.length > 0) {
               setValue("");

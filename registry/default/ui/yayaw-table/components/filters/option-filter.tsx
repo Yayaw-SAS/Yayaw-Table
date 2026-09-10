@@ -45,7 +45,7 @@ export function OptionFilter({
         render={
           <Button
             aria-label={column.header}
-            className="h-8 max-w-full gap-2 font-normal"
+            className="h-8 max-w-full gap-2 px-3 font-normal text-xs leading-4"
             type="button"
             variant="outline"
           />
@@ -58,7 +58,7 @@ export function OptionFilter({
             {selected.length}
           </span>
         )}
-        <ChevronDown aria-hidden="true" className="size-3.5 shrink-0" />
+        <ChevronDown aria-hidden="true" className="size-3 shrink-0" />
       </PopoverTrigger>
       <PopoverContent
         align="start"

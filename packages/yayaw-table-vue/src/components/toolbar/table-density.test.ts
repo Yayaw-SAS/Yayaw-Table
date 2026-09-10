@@ -35,7 +35,12 @@ const mountTable = () =>
       syncUrl: false,
     },
     attachTo: document.body,
-    global: { stubs: { PopperContent: { template: "<div><slot /></div>" } } },
+    global: {
+      stubs: {
+        PopperArrow: true,
+        PopperContent: { template: "<div><slot /></div>" },
+      },
+    },
   });
 const body = () => new DOMWrapper(document.body);
 const settle = async () => {
@@ -148,4 +153,24 @@ it("shows the localized density tooltip on keyboard focus without a native dupli
   (trigger.element as HTMLButtonElement).focus();
   await settle();
   expect(body().get('[role="tooltip"]').text()).toBe("Densité du tableau: 2XL");
+});
+
+it("keeps display-mode tooltips outside the group and preserves pressed state on selection", async () => {
+  const wrapper = mountTable();
+  const group = wrapper.get(".yayaw-segmented");
+  const buttons = group.findAll("button");
+  expect(buttons).toHaveLength(2);
+  expect(buttons[0]?.attributes("aria-pressed")).toBe("true");
+  for (const button of buttons) {
+    (button.element as HTMLButtonElement).focus();
+    await settle();
+    expect(document.activeElement).toBe(button.element);
+    expect(body().get('[role="tooltip"]').text()).toBe(button.text());
+    expect(group.find('[role="tooltip"]').exists()).toBe(false);
+    expect(group.findAll("button")).toHaveLength(2);
+    await button.trigger("click");
+    await settle();
+    expect(button.attributes("aria-pressed")).toBe("true");
+    expect(group.findAll('[aria-pressed="true"]')).toHaveLength(1);
+  }
 });

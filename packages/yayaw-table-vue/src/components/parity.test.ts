@@ -69,7 +69,12 @@ function create(
   const resolvedConfig = input.config ?? config;
   const wrapper = mount(YayawDataTable, {
     attachTo: document.body,
-    global: { stubs: { PopperContent: { template: "<div><slot /></div>" } } },
+    global: {
+      stubs: {
+        PopperArrow: true,
+        PopperContent: { template: "<div><slot /></div>" },
+      },
+    },
     props: {
       config: defineTableConfig({
         ...resolvedConfig,
