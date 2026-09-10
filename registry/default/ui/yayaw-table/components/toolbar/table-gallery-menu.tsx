@@ -182,13 +182,16 @@ export function TableGalleryMenu({
         <TableTooltip label={triggerLabel}>
           <Button
             aria-label={triggerLabel}
-            className={cn("h-8 gap-1.5 px-2 text-xs", className)}
+            className={cn(
+              "h-8 gap-1.5 px-2 font-normal text-xs leading-4",
+              className
+            )}
             size="sm"
             type="button"
             variant="outline"
           >
-            <Images className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate font-medium">{triggerLabel}</span>
+            <Images className="size-4 shrink-0" />
+            <span className="truncate">{triggerLabel}</span>
           </Button>
         </TableTooltip>
       }

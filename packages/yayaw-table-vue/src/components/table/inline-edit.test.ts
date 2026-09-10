@@ -65,7 +65,10 @@ const createCell = (
     attachTo: document.body,
     global: {
       provide: { [tableContextKey as symbol]: context },
-      stubs: { PopperContent: { template: "<div><slot /></div>" } },
+      stubs: {
+        PopperArrow: true,
+        PopperContent: { template: "<div><slot /></div>" },
+      },
     },
   });
   mounted.push(wrapper);

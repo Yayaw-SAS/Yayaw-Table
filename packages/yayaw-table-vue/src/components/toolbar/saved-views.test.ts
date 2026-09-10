@@ -74,7 +74,12 @@ const mountTable = (
       translations: input.translations,
     },
     // Keep Reka's keyboard/menu behavior while avoiding jsdom layout measurements.
-    global: { stubs: { PopperContent: { template: "<div><slot /></div>" } } },
+    global: {
+      stubs: {
+        PopperArrow: true,
+        PopperContent: { template: "<div><slot /></div>" },
+      },
+    },
   });
 type Wrapper = ReturnType<typeof mountTable>;
 const body = () => new DOMWrapper(document.body);

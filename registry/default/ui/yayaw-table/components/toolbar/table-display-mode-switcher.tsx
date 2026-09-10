@@ -43,7 +43,7 @@ export function TableDisplayModeSwitcher({
   return (
     <fieldset
       className={cn(
-        "inline-flex h-8 rounded-md border bg-background p-0.5",
+        "inline-flex h-8 items-center rounded-md border bg-background p-0.5",
         className
       )}
     >
@@ -58,7 +58,7 @@ export function TableDisplayModeSwitcher({
             <Button
               aria-pressed={isActive}
               className={cn(
-                "h-7 gap-1.5 rounded-sm border-0 px-2 text-xs",
+                "h-6.5 min-h-0 gap-1.5 rounded-sm border-0 px-2 font-normal text-xs leading-4 transition-colors active:translate-y-0",
                 !isActive && "text-muted-foreground"
               )}
               onClick={() => {
@@ -68,7 +68,7 @@ export function TableDisplayModeSwitcher({
               type="button"
               variant={isActive ? "secondary" : "ghost"}
             >
-              <Icon className="h-3.5 w-3.5" />
+              <Icon className="size-4" />
               <span>{label}</span>
             </Button>
           </TableTooltip>

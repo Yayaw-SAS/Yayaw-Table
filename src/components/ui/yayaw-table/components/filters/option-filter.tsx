@@ -19,11 +19,11 @@ export function OptionFilter({ column, value, onChange }: {
   const visible = options.filter(option => option.label.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()));
   return (
     <Popover onOpenChange={() => setSearch("")}>
-      <PopoverTrigger render={<Button aria-label={column.header} className="h-8 max-w-full gap-2 font-normal" type="button" variant="outline" />}>
+      <PopoverTrigger render={<Button aria-label={column.header} className="h-8 max-w-full gap-2 px-3 font-normal text-xs leading-4" type="button" variant="outline" />}>
         <Filter aria-hidden="true" className="size-4 shrink-0" />
         <span className="truncate">{column.header}</span>
         {selected.length > 0 && <span className="rounded-sm bg-muted px-1.5 text-xs">{selected.length}</span>}
-        <ChevronDown aria-hidden="true" className="size-3.5 shrink-0" />
+        <ChevronDown aria-hidden="true" className="size-3 shrink-0" />
       </PopoverTrigger>
       <PopoverContent align="start" className="w-72 max-w-[calc(100vw-1rem)] gap-2 p-3">
         <PopoverTitle className="font-medium text-sm">{column.header}</PopoverTitle>

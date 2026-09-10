@@ -40,7 +40,12 @@ const mountTable = (config = catalogue, overrides = {}) =>
     props: { tableType: config.id, config, data, ...overrides },
     attachTo: document.body,
     // jsdom has no layout; exercise real menu semantics without Floating UI measurement.
-    global: { stubs: { PopperContent: { template: "<div><slot /></div>" } } },
+    global: {
+      stubs: {
+        PopperArrow: true,
+        PopperContent: { template: "<div><slot /></div>" },
+      },
+    },
   });
 type Wrapper = ReturnType<typeof mountTable>;
 enableAutoUnmount((unmount) =>

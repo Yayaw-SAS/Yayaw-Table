@@ -32,7 +32,12 @@ const mountTable = (
       getTableActions: () => actions,
     },
     attachTo: document.body,
-    global: { stubs: { PopperContent: { template: "<div><slot /></div>" } } },
+    global: {
+      stubs: {
+        PopperArrow: true,
+        PopperContent: { template: "<div><slot /></div>" },
+      },
+    },
   });
 const body = () => new DOMWrapper(document.body);
 enableAutoUnmount((unmount) =>

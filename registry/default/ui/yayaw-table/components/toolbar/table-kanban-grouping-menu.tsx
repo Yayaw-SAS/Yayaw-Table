@@ -171,8 +171,8 @@ export function TableKanbanGroupingMenu({
             type="button"
             variant="outline"
           >
-            <Layers className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate font-medium">{triggerLabel}</span>
+            <Layers className="size-4 shrink-0" />
+            <span className="truncate">{triggerLabel}</span>
           </Button>
         </TableTooltip>
       }

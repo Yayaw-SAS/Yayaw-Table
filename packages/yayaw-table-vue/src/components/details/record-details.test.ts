@@ -83,7 +83,12 @@ describe("RecordDetails", () => {
         data: [row],
       },
       attachTo: document.body,
-      global: { stubs: { PopperContent: { template: "<div><slot /></div>" } } },
+      global: {
+        stubs: {
+          PopperArrow: true,
+          PopperContent: { template: "<div><slot /></div>" },
+        },
+      },
     });
     const body = new DOMWrapper(document.body);
     await wrapper
@@ -125,7 +130,12 @@ describe("RecordDetails", () => {
         data: [row],
       },
       attachTo: document.body,
-      global: { stubs: { PopperContent: { template: "<div><slot /></div>" } } },
+      global: {
+        stubs: {
+          PopperArrow: true,
+          PopperContent: { template: "<div><slot /></div>" },
+        },
+      },
     });
     const body = new DOMWrapper(document.body);
     await wrapper

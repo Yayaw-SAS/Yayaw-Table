@@ -88,6 +88,7 @@ const mountTable = (props: Partial<YayawTableProps> = {}) =>
       stubs: {
         DialogPortal: { template: "<div><slot /></div>" },
         // jsdom has no geometry for the tooltip restored with keyboard focus.
+        PopperArrow: true,
         PopperContent: { template: "<div><slot /></div>" },
       },
     },

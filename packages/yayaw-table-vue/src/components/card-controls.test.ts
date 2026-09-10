@@ -81,7 +81,12 @@ const mountTable = (
       syncUrl: false,
     },
     // Keep Reka selection/focus behavior; jsdom cannot measure popper layout.
-    global: { stubs: { PopperContent: { template: "<div><slot /></div>" } } },
+    global: {
+      stubs: {
+        PopperArrow: true,
+        PopperContent: { template: "<div><slot /></div>" },
+      },
+    },
   });
 type Wrapper = ReturnType<typeof mountTable>;
 const body = () => new DOMWrapper(document.body);
