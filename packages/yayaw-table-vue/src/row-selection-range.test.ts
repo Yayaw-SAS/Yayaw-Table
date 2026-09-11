@@ -15,6 +15,7 @@ async function mountRange(grouped = false, multi = true) {
   const config = defineTableConfig({
     id: "range",
     columns: {
+      mandatory: ["name"],
       definitions: [
         { id: "name", header: "Name", type: "text" },
         { id: "category", header: "Category", type: "text" },
@@ -32,6 +33,7 @@ async function mountRange(grouped = false, multi = true) {
     translations: { namespace: "range", keys: {} },
   });
   const wrapper = mount(YayawDataTable, {
+    attachTo: document.body,
     props: { config, data: rows, tableType: "range" },
   });
   await flushPromises();

@@ -77,6 +77,9 @@ export const getNextRowSelectionForRange = ({
 
   for (let index = rangeStart; index <= rangeEnd; index += 1) {
     const row = rows[index];
+    if (!row) {
+      continue;
+    }
 
     if (isSelected) {
       nextRowSelection[row.id] = true;

@@ -1099,6 +1099,11 @@
           "target": "components/ui/yayaw-table/utils/record-details.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/utils/row-selection-range.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/row-selection-range.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/utils/server-filters.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/server-filters.ts"
