@@ -1,0 +1,7 @@
+[
+  { "id": "1", "name": "Alpha", "category": "A" },
+  { "id": "2", "name": "Beta", "category": "A" },
+  { "id": "3", "name": "Gamma", "category": "A" },
+  { "id": "4", "name": "Delta", "category": "B" },
+  { "id": "5", "name": "Epsilon", "category": "B" }
+]

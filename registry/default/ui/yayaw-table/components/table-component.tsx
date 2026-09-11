@@ -1240,6 +1240,7 @@ function ModernDataTable<
   );
 
   const table = useTableInstance(tableInstanceConfig);
+  const currentRowSelection = table.store.state.rowSelection;
   const tableInstanceRef = useRef(table);
   tableInstanceRef.current = table;
 
@@ -1799,8 +1800,7 @@ function ModernDataTable<
     const getSelectionCounts = (row: Row<TData>) => {
       const selectedCount =
         groupedLeafRows(row).filter((subRow) => {
-          const selection = table.store.state.rowSelection;
-          return selection[subRow.id];
+          return currentRowSelection[subRow.id];
         }).length ?? 0;
       const totalCount = groupedLeafRows(row).length;
       return { selectedCount, totalCount };
@@ -2073,11 +2073,10 @@ function ModernDataTable<
 
     const pushSelectionGroupRows = (row: Row<TData>, level: number) => {
       const visibleCells = row.getVisibleCells();
-      const selection = table.store.state.rowSelection;
       const selectedRows: Row<TData>[] = [];
       const unselectedRows: Row<TData>[] = [];
       for (const subRow of row.subRows || []) {
-        if (selection[subRow.id]) {
+        if (currentRowSelection[subRow.id]) {
           selectedRows.push(subRow);
         } else {
           unselectedRows.push(subRow);
@@ -2161,6 +2160,7 @@ function ModernDataTable<
     isLoading,
     data,
     table,
+    currentRowSelection,
     hasMounted,
     isError,
     rowCount,
@@ -2188,6 +2188,9 @@ function ModernDataTable<
         className={cn(
           "[&_th]:relative [&_th]:bg-muted/20 [&_th]:font-medium [&_th]:text-sm"
         )}
+        data-selected-row-count={
+          Object.values(currentRowSelection).filter(Boolean).length
+        }
         key={`${orderKey}:${headerStateKey}`}
       >
         {table.getHeaderGroups().map((headerGroup) => (
@@ -2219,6 +2222,7 @@ function ModernDataTable<
     tableId,
     horizontalListSortingStrategy,
     columnOrder,
+    currentRowSelection,
     densityMode,
     headerStateKey,
     enableColumnResizing,
@@ -2504,7 +2508,11 @@ function ModernDataTable<
 
   // Render the component
   return (
-    <div className="space-y-4" suppressHydrationWarning>
+    <div
+      className="space-y-4"
+      data-yayaw-table-selection-scope=""
+      suppressHydrationWarning
+    >
       {renderContent()}
       <CatalogueBulkEditor
         onClose={bulkActions.closeBulkEdit}

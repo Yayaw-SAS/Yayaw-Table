@@ -59,3 +59,14 @@ await copyFile(
   ),
   new URL("../packages/yayaw-table-vue/src/form-layout.ts", import.meta.url)
 );
+
+await copyFile(
+  new URL(
+    "../src/components/ui/yayaw-table/utils/row-selection-range.ts",
+    import.meta.url
+  ),
+  new URL(
+    "../packages/yayaw-table-vue/src/row-selection-range.ts",
+    import.meta.url
+  )
+);

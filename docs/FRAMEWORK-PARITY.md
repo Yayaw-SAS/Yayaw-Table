@@ -39,6 +39,25 @@ The Create button is the final toolbar action and keeps the primary style, in te
 
 Vue Kanban and Gallery controls use Reka UI Select, DropdownMenu, and Checkbox primitives with the same Shadcn-style tokens as the existing menus. This includes card page-size selection and Lucide icons for lane movement. Keyboard navigation, multi-choice property menus, focus restoration, disabled card selection, translated labels, and saved card options have regression coverage. The public configuration and saved-view formats are unchanged.
 
+## Shift-click row selection
+
+React and Vue table row checkboxes select or clear an inclusive range when
+`enableRowSelection` and `enableMultiRowSelection` are enabled. The starting
+point is the last normal checkbox toggle within the same table instance. A
+Shift-click without an anchor, after the visible row order changes, or with
+single selection enabled behaves as a normal toggle.
+
+Both editions share the range helpers and use the current rendered page order,
+skipping disabled rows, single-select rows, group headers, and collapsed rows.
+Existing selections outside the range are retained. Header and group checkboxes
+refresh their checked and indeterminate state after a range update. Gallery and
+Kanban keep their existing individual selection controls; range selection does
+not fetch additional server pages.
+
+Equivalent React and Vue regression tests exercise inclusive select/deselect,
+disabled rows, group collapse, single selection, header state, and isolated
+instances. The runnable Vue example's row checkboxes support the same gesture.
+
 ## Catalogue forms
 
 Modal and drawer forms share a 10% black backdrop with the React

@@ -4,12 +4,33 @@
  */
 "use client";
 
-import type { Row } from "@/components/ui/yayaw-table/tanstack";
-import { useCallback } from "react";
+import type { Row, Table } from "@/components/ui/yayaw-table/tanstack";
+import { type ComponentProps, useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/src/components/ui/checkbox";
+import {
+  getNextRowSelectionForRange,
+  getRenderedRangeRows,
+} from "../../utils/row-selection-range";
 
 const _DEBUG = false;
+
+type CheckboxCheckedChangeHandler = NonNullable<
+  ComponentProps<typeof Checkbox>["onCheckedChange"]
+>;
+
+interface SelectionRangeAnchor {
+  rowId: string;
+  rowOrderKey: string;
+}
+
+const selectionRangeAnchors = new WeakMap<object, SelectionRangeAnchor>();
+
+const getRowOrderKey = (rows: readonly { id: string }[]): string =>
+  JSON.stringify(rows.map((rangeRow) => rangeRow.id));
+
+const isShiftModifiedEvent = (event: Event): boolean =>
+  "shiftKey" in event && event.shiftKey === true;
 
 export interface SelectionCellProps<TData> {
   /**
@@ -26,6 +47,11 @@ export interface SelectionCellProps<TData> {
    * The row object from TanStack Table
    */
   row: Row<TData>;
+
+  /**
+   * The table instance used to resolve Shift-click selection ranges
+   */
+  table?: Table<TData>;
 }
 
 /**
@@ -35,25 +61,69 @@ export function SelectionCell<TData>({
   className = "",
   disabled = false,
   row,
+  table,
 }: SelectionCellProps<TData>) {
-  // Rows keep their identity when selection changes; read the controlled state.
-  const isSelected = row.getIsSelected();
+  const checkboxRef = useRef<HTMLElement>(null);
+  const isSelectionDisabled = disabled || !row.getCanSelect();
+  const handleSelectionChange = useCallback<CheckboxCheckedChangeHandler>(
+    (isSelected, eventDetails) => {
+      if (table) {
+        const rangeRows = getRenderedRangeRows(checkboxRef.current, table);
+        const rowOrderKey = getRowOrderKey(rangeRows);
+        const anchor = selectionRangeAnchors.get(table);
+        const isShiftClick = isShiftModifiedEvent(eventDetails.event);
+        const canSelectRange =
+          isShiftClick &&
+          row.getCanMultiSelect() &&
+          anchor?.rowOrderKey === rowOrderKey;
 
-  // Create a stable callback for selection changes
-  const handleSelectionChange = useCallback(
-    (value: boolean) => {
-      row.toggleSelected(value);
+        if (canSelectRange) {
+          const hasAnchor = rangeRows.some(
+            (rangeRow) => rangeRow.id === anchor.rowId
+          );
+          const hasTarget = rangeRows.some(
+            (rangeRow) => rangeRow.id === row.id
+          );
+
+          if (hasAnchor && hasTarget) {
+            table.setRowSelection(
+              (rowSelection) =>
+                getNextRowSelectionForRange({
+                  anchorRowId: anchor.rowId,
+                  isSelected,
+                  rowSelection,
+                  rows: rangeRows,
+                  targetRowId: row.id,
+                }) ?? rowSelection
+            );
+            return;
+          }
+        }
+
+        selectionRangeAnchors.set(table, {
+          rowId: row.id,
+          rowOrderKey,
+        });
+      }
+
+      row.toggleSelected(isSelected);
     },
-    [row]
+    [row, table]
   );
+
   return (
     <div className={cn("flex items-center justify-center px-2", className)}>
       <Checkbox
         aria-label="Select row"
-        checked={isSelected}
+        checked={row.getIsSelected()}
         className="hover:cursor-pointer data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
-        disabled={disabled || !row.getCanSelect()}
+        data-yayaw-table-selection-disabled={
+          isSelectionDisabled ? "" : undefined
+        }
+        data-yayaw-table-selection-row-id={row.id}
+        disabled={isSelectionDisabled}
         onCheckedChange={handleSelectionChange}
+        ref={checkboxRef}
       />
     </div>
   );

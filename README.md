@@ -66,6 +66,16 @@ Saved views support a personal favorite that opens on arrival in both React and 
 
 The React edition supports shared TanStack Query state, typed filters, URL state with Nuqs, saved views, table/Kanban/gallery modes, forms, inline editing, and bulk actions. It can use Next.js Server Actions, regular HTTP APIs, or any backend adapter that implements the action contracts.
 
+### Select a row range
+
+In React and Vue table mode, `table.enableRowSelection: true` and
+`table.enableMultiRowSelection: true` enable Shift-click on row checkboxes.
+Click a checkbox to set the anchor, then Shift-click another to select or clear
+an inclusive range in the current visible order. Selections outside the range
+are preserved. Disabled rows, group headers, collapsed rows, and single-select
+rows are excluded. Changing the visible order resets the anchor on the next
+click. Bulk selection across server pages remains a separate action.
+
 ### Clear filters from either toolbar
 
 Set `table.showClearFilters: true` in your table configuration to display an
