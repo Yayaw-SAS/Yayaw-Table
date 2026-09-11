@@ -6,9 +6,16 @@ import {
 } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { nextTick } from "vue";
+import {
+  inlineTestPortals,
+  openViewMenu,
+  openViewSave,
+} from "../../tests/menu-helpers";
 import { defineTableConfig } from "../config";
 import type { TableActions, TableRecord } from "../types";
 import YayawDataTable from "./YayawDataTable.vue";
+
+inlineTestPortals();
 
 const data: TableRecord[] = [
   { id: "1", name: "Alpha", status: "Open", amount: 10, active: true },
@@ -101,7 +108,8 @@ describe("YayawDataTable", () => {
     const wrapper = mount(YayawDataTable, {
       props: { tableType: "test", config, data, syncUrl: false },
     });
-    const buttons = wrapper.findAll(".yayaw-segmented button");
+    await openViewMenu(wrapper);
+    const buttons = wrapper.findAll('.yayaw-segmented[role="group"] button');
     await buttons
       .find((button) => button.text() === "kanban")
       ?.trigger("click");
@@ -170,8 +178,8 @@ describe("YayawDataTable", () => {
       props: { tableType: "test", config, data, syncUrl: false },
       attachTo: document.body,
     });
-    await wrapper.get('[aria-label="Options"]').trigger("click");
-    const menu = wrapper.get(".yayaw-options-menu");
+    await openViewMenu(wrapper);
+    const menu = wrapper.get(".yayaw-toolbar-menu");
     expect(menu.text()).toContain("Properties");
     expect(menu.text()).toContain("Filters");
     expect(menu.text()).toContain("Sort");
@@ -197,7 +205,7 @@ describe("YayawDataTable", () => {
     await flushPromises();
 
     expect(wrapper.findAll("th")[1]?.attributes("draggable")).toBe("true");
-    await wrapper.get('[aria-label="Options"]').trigger("click");
+    await openViewMenu(wrapper);
     await wrapper
       .findAll(".yayaw-options-item")
       .find((button) => button.text().includes("Properties"))
@@ -259,7 +267,7 @@ describe("YayawDataTable", () => {
         .findAll("th")
         .every((header) => header.attributes("draggable") === "false")
     ).toBe(true);
-    await wrapper.get('[aria-label="Options"]').trigger("click");
+    await openViewMenu(wrapper);
     await wrapper
       .findAll(".yayaw-options-item")
       .find((button) => button.text().includes("Properties"))
@@ -302,9 +310,7 @@ describe("YayawDataTable", () => {
         ],
       },
     });
-    expect(wrapper.get('[aria-label="Options"]').classes()).toContain(
-      "yayaw-icon-only"
-    );
+    expect(wrapper.get(".yayaw-view-trigger").text()).toContain("Default view");
     expect(wrapper.get('[aria-label="Export"]').text()).toBe("");
     expect(wrapper.get('[aria-label="Create"]').text()).toBe("");
     expect(wrapper.get('[aria-label="Refresh"]').text()).toBe("R");
@@ -357,7 +363,7 @@ describe("YayawDataTable", () => {
         .some((button) => button.text() === "Calculation")
     ).toBe(false);
     const labels = wrapper
-      .findAll(".yayaw-toolbar-right > button")
+      .findAll(".yayaw-toolbar button")
       .map((button) => button.attributes("aria-label") ?? button.text());
     expect(labels.indexOf("Run")).toBeLessThan(labels.indexOf("Create"));
     expect(labels.at(-1)).toBe("Create");
@@ -575,7 +581,7 @@ describe("YayawDataTable", () => {
     });
     expect(wrapper.find('[aria-label="Views"]').exists()).toBe(false);
     expect(wrapper.find(".yayaw-empty").exists()).toBe(false);
-    await wrapper.get('[aria-label="Options"]').trigger("click");
+    await openViewMenu(wrapper);
     const menuItems = wrapper
       .findAll(".yayaw-options-item")
       .map((item) => item.text());
@@ -616,8 +622,9 @@ describe("YayawDataTable", () => {
     expect(wrapper.find(".yayaw-inline-editor").exists()).toBe(false);
     await wrapper.get("tbody tr").trigger("click");
     expect(wrapper.find(".yayaw-dialog-backdrop").exists()).toBe(false);
+    await openViewMenu(wrapper);
     await wrapper
-      .findAll(".yayaw-segmented button")
+      .findAll('.yayaw-segmented[role="group"] button')
       .find((button) => button.text() === "kanban")
       ?.trigger("click");
     expect(wrapper.get(".yayaw-kanban-card").attributes("draggable")).toBe(
@@ -670,7 +677,7 @@ describe("YayawDataTable", () => {
       },
     });
     await flushPromises();
-    await wrapper.get('[aria-label="Add view"]').trigger("click");
+    await openViewSave(wrapper);
     await flushPromises();
     const dialog = new DOMWrapper(document.body);
     expect(dialog.find(".yayaw-view-form").exists()).toBe(true);

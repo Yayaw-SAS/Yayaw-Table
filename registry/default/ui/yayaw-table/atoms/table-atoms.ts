@@ -29,6 +29,9 @@ export const tableDensityAtom = atomFamily((_tableId: string) =>
   atom<TableDensity | undefined>(undefined)
 );
 
+/** Whether this table currently uses the compact toolbar composition. */
+export const toolbarCompactAtom = atomFamily((_tableId: string) => atom(false));
+
 /**
  * Atom family to store column definitions for a specific table
  * Keyed by tableId

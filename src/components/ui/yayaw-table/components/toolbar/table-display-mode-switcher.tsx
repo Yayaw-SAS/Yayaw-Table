@@ -1,13 +1,12 @@
 "use client";
 
-import { TableTooltip } from "../../utils/table-tooltip";
-
 import { Columns3, Images, Table2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/src/components/ui/button";
 import { useTableUrlState } from "../../hooks/use-table-url-state";
 import { useTranslations } from "../../providers/table-provider";
 import type { TableDisplayMode } from "../../types/display-types";
+import { TableTooltip } from "../../utils/table-tooltip";
 
 interface TableDisplayModeSwitcherProps {
   className?: string;
@@ -44,7 +43,7 @@ export function TableDisplayModeSwitcher({
   return (
     <fieldset
       className={cn(
-        "inline-flex h-8 items-center rounded-md border bg-background p-0.5",
+        "inline-flex min-h-8 flex-wrap items-center rounded-md border bg-background p-0.5",
         className
       )}
     >
@@ -55,7 +54,7 @@ export function TableDisplayModeSwitcher({
         const label = t(`views.display.${mode}`);
 
         return (
-          <TableTooltip label={label} key={mode}>
+          <TableTooltip key={mode} label={label}>
             <Button
               aria-pressed={isActive}
               className={cn(

@@ -136,8 +136,8 @@ export function resolveGalleryImageColumnId({
   columnDefinitions: TableCatalogueColumnConfig[];
   config: TableGalleryConfig | undefined;
 }): string | undefined {
-  if (config?.imageColumn) {
-    return config.imageColumn;
+  if (config?.imageColumn !== undefined) {
+    return config.imageColumn || undefined;
   }
 
   return columnDefinitions.find((column) => column.type === "image")?.id;

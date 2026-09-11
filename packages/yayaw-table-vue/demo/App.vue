@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import { Archive } from "lucide-vue-next";
 import { Toaster } from "vue-sonner";
 import "vue-sonner/style.css";
 import { productFormBlocks } from "../../../examples/form-layout";
@@ -265,7 +266,9 @@ const actions: TableActions<Product> = {
     return { success: true, data: copies };
   },
 };
+// Archives is an application action; the library does not implement archiving.
 const toolbarActions: ToolbarActionsInput = (context) => [
+  { id: "archives", label: "Archives", icon: Archive, onClick: () => { activity.value = "Archives is supplied by the application."; } },
   {
     id: "selection-summary",
     label: `Use ${context.selectedCount} selected`,
@@ -301,7 +304,7 @@ const typesActions: TableActions = {
       <p>
         Explore the table, Kanban, gallery, forms, filters, saved views, and bulk
         actions. Column drag and drop can be changed from any column menu or from
-        Options → Properties, and every data column can be resized.
+        View → Properties, and every data column can be resized. On mobile, open the view for settings and the data actions menu for search, export and sharing.
       </p>
       <p class="demo-status" role="status">{{ activity }}</p>
     </header>

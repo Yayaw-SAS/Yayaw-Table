@@ -2097,3 +2097,236 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* The toolbar changes composition when its container cannot keep one readable row. */
+.yayaw-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: nowrap;
+}
+.yayaw-data-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+.yayaw-data-actions > :not(.yayaw-search),
+.yayaw-toolbar > :not(.yayaw-data-actions) {
+  flex-shrink: 0;
+}
+.yayaw-data-actions .yayaw-search {
+  flex: 1;
+  min-width: 160px;
+  width: auto;
+}
+.yayaw-menu-anchor {
+  display: inline-flex;
+  min-width: 0;
+}
+.yayaw-toolbar[data-compact="true"] .yayaw-view-manager {
+  flex: 1;
+  flex-shrink: 1;
+}
+.yayaw-toolbar[data-compact="true"] .yayaw-view-trigger {
+  width: 100%;
+}
+.yayaw-toolbar[data-compact="true"] :is(.yayaw-button, .yayaw-icon-button) {
+  min-height: 44px;
+  height: 44px;
+  font-size: 14px;
+}
+.yayaw-toolbar[data-compact="true"] .yayaw-icon-only {
+  width: 44px;
+  min-width: 44px;
+}
+.yayaw-toolbar-menu,
+.yayaw-toolbar-menu * {
+  box-sizing: border-box;
+}
+.yayaw-toolbar-menu {
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  width: min(416px, calc(100vw - 16px));
+  max-height: min(650px, var(--reka-popover-content-available-height, 85dvh));
+  overflow: hidden;
+  border: 1px solid var(--yayaw-border);
+  border-radius: var(--yayaw-radius);
+  background: var(--yayaw-background);
+  color: var(--yayaw-foreground);
+  box-shadow: var(--yayaw-shadow);
+  font-size: 14px;
+  line-height: 1.4;
+}
+.yayaw-toolbar-menu-header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--yayaw-border);
+}
+.yayaw-toolbar-menu-header strong {
+  flex: 1;
+  font-weight: 500;
+}
+.yayaw-toolbar-menu-body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.yayaw-toolbar-menu .yayaw-options-content {
+  max-height: none;
+  overflow: visible;
+}
+.yayaw-toolbar-menu :is(.yayaw-view-selection, .yayaw-view-write-actions) {
+  padding: 8px;
+}
+.yayaw-toolbar-menu .yayaw-view-selection {
+  max-height: 200px;
+  overflow-y: auto;
+  border-bottom: 1px solid var(--yayaw-border);
+}
+.yayaw-toolbar-menu .yayaw-view-write-actions {
+  border-top: 1px solid var(--yayaw-border);
+}
+.yayaw-toolbar-menu .yayaw-view-menu-item {
+  width: 100%;
+  white-space: normal;
+  text-align: left;
+}
+.yayaw-toolbar-menu .yayaw-view-menu-item small {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--yayaw-muted-foreground);
+}
+.yayaw-toolbar-menu [aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: default;
+}
+.yayaw-toolbar-menu .yayaw-view-menu-danger {
+  color: var(--yayaw-danger);
+}
+.yayaw-toolbar-menu .yayaw-segmented {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 12px;
+}
+.yayaw-toolbar-menu .yayaw-segmented > * {
+  flex: 1;
+}
+.yayaw-toolbar-menu .yayaw-segmented button {
+  justify-content: center;
+}
+.yayaw-density-inline {
+  min-width: 0;
+  padding: 0;
+  margin: 12px;
+  border: 0;
+}
+.yayaw-density-inline legend {
+  padding: 0;
+  margin-bottom: 6px;
+}
+.yayaw-toolbar-menu .yayaw-density-inline .yayaw-segmented {
+  margin: 0;
+}
+.yayaw-card-settings {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.yayaw-card-settings .yayaw-field-inline {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+.yayaw-toolbar-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 69;
+  background: rgba(0, 0, 0, 0.5);
+}
+.yayaw-toolbar-menu[data-compact="true"] {
+  position: fixed;
+  inset: auto 0 0;
+  width: 100%;
+  max-height: 90dvh;
+  padding-bottom: env(safe-area-inset-bottom);
+  border-radius: 16px 16px 0 0;
+}
+.yayaw-toolbar-handle {
+  width: 40px;
+  height: 4px;
+  margin: 8px auto 0;
+  border-radius: 4px;
+  background: var(--yayaw-border);
+  flex: none;
+}
+.yayaw-toolbar-menu[data-compact="true"]
+  :is(button, input:not([type="checkbox"]), select) {
+  min-height: 44px;
+}
+.yayaw-toolbar-menu[data-compact="true"] .yayaw-options-check {
+  min-height: 44px;
+}
+.yayaw-toolbar-menu[data-compact="true"] .yayaw-icon-button {
+  min-width: 44px;
+}
+.yayaw-toolbar-menu[data-compact="true"] .yayaw-view-selection {
+  max-height: none;
+}
+.yayaw-toolbar-menu[data-compact="true"] .yayaw-field-inline {
+  grid-template-columns: minmax(0, 1fr);
+}
+.yayaw-data-actions[data-compact="true"] {
+  flex-direction: column;
+  align-items: stretch;
+  padding: 12px;
+}
+.yayaw-data-actions[data-compact="true"] .yayaw-button {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.yayaw-toolbar-menu .yayaw-view-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  border: 0;
+  border-radius: 6px;
+  padding: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.yayaw-toolbar-menu .yayaw-view-menu-item > svg {
+  flex: none;
+}
+.yayaw-toolbar-menu .yayaw-view-menu-item:hover {
+  background: var(--yayaw-muted);
+}
+.yayaw-toolbar-menu .yayaw-view-menu-item:focus-visible {
+  outline: 2px solid var(--yayaw-primary);
+  outline-offset: -2px;
+}
+.yayaw-toolbar-menu .yayaw-view-menu-danger {
+  color: var(--yayaw-danger);
+}
+.yayaw-toolbar-menu .yayaw-segmented {
+  height: auto;
+}
+.yayaw-view-dirty {
+  display: inline-block;
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3b82f6;
+}

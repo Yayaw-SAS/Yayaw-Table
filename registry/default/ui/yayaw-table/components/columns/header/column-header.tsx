@@ -4,7 +4,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useAtomValue } from "jotai";
 import { ArrowDown, ArrowUp, GripVertical } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { type ComponentProps, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { columnDragEnabledAtom } from "../../../atoms/table-atoms";
@@ -22,11 +22,12 @@ import { SelectionHeader } from "./selection-header";
 // Set to true to enable debug logging
 const _DEBUG = false;
 
-function DragHandleButton() {
+function DragHandleButton(props: ComponentProps<typeof Button>) {
   const { t } = useTranslations();
   return (
     <TableTooltip label={t("columns.drag")}>
       <Button
+        {...props}
         aria-label={t("columns.drag")}
         className="size-7 cursor-grab border-0 bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground active:cursor-grabbing"
         size="icon"
@@ -252,11 +253,8 @@ function DataTableColumnHeaderBase<TData, TValue>({
           </ColumnMenu>
         </div>
         {isHydrated && dndFeatureEnabled && isDragEnabled && (
-          <div
-            className="ml-2 shrink-0 cursor-grab touch-none active:cursor-grabbing"
-            {...listeners}
-          >
-            <DragHandleButton />
+          <div className="ml-2 shrink-0 cursor-grab touch-none active:cursor-grabbing">
+            <DragHandleButton {...attributes} {...listeners} />
           </div>
         )}
       </div>
@@ -269,11 +267,8 @@ function DataTableColumnHeaderBase<TData, TValue>({
       >
         <span className="truncate">{title}</span>
         {isHydrated && dndFeatureEnabled && isDragEnabled && (
-          <div
-            className="ml-auto shrink-0 cursor-grab touch-none active:cursor-grabbing"
-            {...listeners}
-          >
-            <DragHandleButton />
+          <div className="ml-auto shrink-0 cursor-grab touch-none active:cursor-grabbing">
+            <DragHandleButton {...attributes} {...listeners} />
           </div>
         )}
       </div>
@@ -289,7 +284,6 @@ function DataTableColumnHeaderBase<TData, TValue>({
         ref={isHydrated ? setNodeRef : undefined}
         style={style}
         suppressHydrationWarning
-        {...(isHydrated ? attributes : {})}
       >
         <div
           className={cn(

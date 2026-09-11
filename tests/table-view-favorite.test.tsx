@@ -45,6 +45,7 @@ async function mountManager(
     allowViewSave?: boolean;
     views?: TableView[];
     cachedFavoriteId?: string;
+    initialViews?: TableView[];
     initialActiveViewId?: string;
     url?: string;
     syncUrl?: boolean;
@@ -87,6 +88,7 @@ async function mountManager(
               <DataTableViewManager
                 allowViewSave={options.allowViewSave ?? false}
                 initialActiveViewId={options.initialActiveViewId}
+                initialViews={options.initialViews}
                 tableId={favorite.tableId}
                 tableType={context.tableType}
               />
@@ -98,7 +100,7 @@ async function mountManager(
   });
   await settle();
   const button = (label: string) => {
-    const result = container.querySelector<HTMLButtonElement>(
+    const result = document.querySelector<HTMLButtonElement>(
       `button[aria-label="${label}"]`
     );
     if (!result) {
@@ -106,7 +108,14 @@ async function mountManager(
     }
     return result;
   };
-  return { container, store, button, unmount };
+  const openMenu = async () => {
+    if (button("Current View").getAttribute("aria-expanded") !== "true") {
+      await act(() => button("Current View").click());
+      await settle();
+    }
+  };
+  await openMenu();
+  return { container, store, button, unmount, openMenu, queryClient };
 }
 
 afterEach(async () => {
@@ -295,16 +304,16 @@ it("reports a failed preference read while still loading the default view", asyn
 async function selectDefault(
   wrapper: Awaited<ReturnType<typeof mountManager>>
 ) {
-  await act(() => wrapper.button("Current View").click());
-  await settle();
+  await wrapper.openMenu();
   const item = Array.from(
-    document.querySelectorAll<HTMLElement>('[role="menuitem"]')
+    document.querySelectorAll<HTMLElement>("button")
   ).find((element) => element.textContent?.includes("Default View"));
   if (!item) {
     throw new Error("Missing default view menu item");
   }
   await act(() => item.click());
   await settle();
+  await wrapper.openMenu();
 }
 
 it("favorites the built-in default by clearing the personal preference, preserves drafts, and restores its star", async () => {
@@ -345,14 +354,9 @@ it("favorites the built-in default by clearing the personal preference, preserve
   expect(reloaded.button("Favorite view").getAttribute("aria-pressed")).toBe(
     "true"
   );
-  await act(() => reloaded.button("Current View").click());
-  await settle();
-  const marked = document.querySelector(
-    '[role="menuitem"] [aria-label="Favorite view"]'
-  );
-  expect(marked?.closest('[role="menuitem"]')?.textContent).toContain(
-    "Default View"
-  );
+  await reloaded.openMenu();
+  const marked = document.querySelector('button [aria-label="Favorite view"]');
+  expect(marked?.closest("button")?.textContent).toContain("Default View");
 });
 
 it("keeps the old favorite when clearing it fails and allows retry on the default view", async () => {
@@ -396,10 +400,9 @@ it("reports saved-view deletion through the host Sonner outlet", async () => {
     actions: { delete: () => Promise.resolve({ success: true }) },
   });
   const before = toast.getHistory().length;
-  await act(() => wrapper.button("Current View").click());
-  await settle();
+  await wrapper.openMenu();
   const item = Array.from(
-    document.querySelectorAll<HTMLElement>('[role="menuitem"]')
+    document.querySelectorAll<HTMLElement>("button")
   ).find((element) => element.textContent?.includes("Delete view"));
   if (!item) {
     throw new Error("Missing delete view action");
@@ -412,4 +415,44 @@ it("reports saved-view deletion through the host Sonner outlet", async () => {
     title: "View deleted successfully",
   });
   expect(wrapper.container.querySelector('[role="alert"]')).toBeNull();
+});
+
+it("retains application-provided views when the persistence list has no copy", async () => {
+  const wrapper = await mountManager({
+    views: [],
+    initialViews: [favorite],
+    initialActiveViewId: favorite.id,
+  });
+  await act(() =>
+    wrapper.queryClient.invalidateQueries({
+      queryKey: ["tableViews", context.tableId, context.tableType],
+    })
+  );
+  await settle();
+  expect(wrapper.button("Current View").textContent).toContain(favorite.name);
+  expect(
+    wrapper.container.querySelector('[aria-label="Unsaved changes"]')
+  ).toBeNull();
+});
+
+it("preserves the draft and dirty state when saving a view fails", async () => {
+  const editable = { ...favorite, isSystem: false, isGlobal: false };
+  const wrapper = await mountManager({
+    views: [editable],
+    initialActiveViewId: editable.id,
+    allowViewSave: true,
+    actions: {
+      update: async () => ({ success: false, error: "Save rejected" }),
+    },
+  });
+  await act(() =>
+    wrapper.store.set(tableDensityAtom(context.tableId), "large")
+  );
+  await act(() => wrapper.button("Save changes").click());
+  await settle();
+  expect(wrapper.store.get(tableDensityAtom(context.tableId))).toBe("large");
+  expect(document.body.textContent).toContain("Save rejected");
+  expect(
+    wrapper.container.querySelector('[aria-label="Unsaved changes"]')
+  ).not.toBeNull();
 });

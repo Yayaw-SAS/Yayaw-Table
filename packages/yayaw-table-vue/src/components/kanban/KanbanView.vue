@@ -2,77 +2,17 @@
 import { ArrowLeft, ArrowRight } from "lucide-vue-next";
 import TableEmptyState from "../table/TableEmptyState.vue";
 import { computed, ref } from "vue";
-import { useTableContext } from "../../context";
+import { useKanbanSettings } from "../../composables/use-kanban-settings";
 import { displayCellValue } from "../../core";
 import type { ColumnDefinition, TableRecord } from "../../types";
 import { useCardRows } from "../../composables/use-card-rows";
-import CardPropertiesMenu from "../controls/CardPropertiesMenu.vue";
 import TableCheckbox from "../controls/TableCheckbox.vue";
-import TableSelect from "../controls/TableSelect.vue";
 import CellRenderer from "../table/CellRenderer.vue";
 import RowActions from "../table/RowActions.vue";
 
-const context = useTableContext();
-const translate = (key: string, fallback: string) => String(context.translations.value[key] ?? fallback);
-const columns = computed(() => context.config.columns.definitions.filter((column) => !["select", "actions"].includes(column.id)));
-const columnOptions = computed(() => columns.value.map((column) => ({ value: column.id, label: column.header })));
-const groupingOptions = computed(() => columns.value.filter((column) => column.enableGrouping !== false).map((column) => ({ value: column.id, label: column.header })));
+const { context, translate, titleColumn, propertyIds, showLabels, groupBy } = useKanbanSettings();
 const dragged = ref<TableRecord>();
 const pending = ref<string>();
-const groupBy = computed({
-  get: () =>
-    context.state.grouping.value[0] ??
-    context.config.table.kanban?.groupBy ??
-    "",
-  set: (value: string) => {
-    context.state.grouping.value = value ? [value] : [];
-  },
-});
-const titleColumn = computed({
-  get: () =>
-    context.state.kanban.value.titleColumn ??
-    context.config.table.kanban?.titleColumn ??
-    context.config.columns.definitions.find(
-      (column) => !["select", "actions"].includes(column.id)
-    )?.id ??
-    "id",
-  set: (value: string) => {
-    context.state.kanban.value = {
-      ...context.state.kanban.value,
-      titleColumn: value,
-    };
-  },
-});
-const propertyIds = computed({
-  get: () =>
-    context.state.kanban.value.cardColumnIds ??
-    context.config.table.kanban?.cardColumnIds ??
-    context.config.columns.definitions
-      .filter(
-        (column) =>
-          !["select", "actions", titleColumn.value].includes(column.id)
-      )
-      .slice(0, 4)
-      .map((column) => column.id),
-  set: (value: string[]) => {
-    context.state.kanban.value = {
-      ...context.state.kanban.value,
-      cardColumnIds: value,
-    };
-  },
-});
-const showLabels = computed({
-  get: () =>
-    context.state.kanban.value.showCardLabels ??
-    context.config.table.kanban?.showCardLabels ??
-    false,
-  set: (value: boolean) => {
-    context.state.kanban.value = {
-      ...context.state.kanban.value,
-      showCardLabels: value,
-    };
-  },
-});
 const rows = useCardRows();
 const rawGroups = computed(() => {
   const configured = groupBy.value === context.config.table.kanban?.groupBy ? context.config.table.kanban?.groups ?? [] : [];
@@ -189,11 +129,7 @@ const toggleSelection = (row: TableRecord, checked: boolean): void => {
     class="yayaw-card-empty"
   />
   <div v-else class="yayaw-card-view-shell">
-    <div class="yayaw-card-controls">
-      <TableSelect v-model="groupBy" :label="translate('cardLane', 'Lane')" :options="groupingOptions" />
-      <TableSelect v-model="titleColumn" :label="translate('cardTitle', 'Title')" :options="columnOptions" />
-      <CardPropertiesMenu v-model="propertyIds" v-model:show-labels="showLabels" :label="translate('properties', 'Properties')" :show-labels-label="translate('cardShowLabels', 'Show labels')" :options="columnOptions" />
-    </div>
+
     <div class="yayaw-kanban">
       <section v-for="group in rawGroups" :key="group.value" class="yayaw-kanban-lane" @dragover.prevent @drop="drop(group.value)">
         <header><strong>{{ group.label }}</strong><span class="yayaw-count">{{ rowsFor(group.value).length }}</span></header>

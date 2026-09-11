@@ -578,6 +578,8 @@ export interface AdvancedFiltersState {
 }
 
 export interface TableViewConfig {
+  /** Visibility of table footer calculations; legacy snapshots inherit the initial setting. */
+  footerCalculationsVisible?: boolean;
   /** Row and header spacing restored when applying the view. */
   density?: TableDensity;
   /** Canonical aliases shared with React; historical Vue names remain supported. */

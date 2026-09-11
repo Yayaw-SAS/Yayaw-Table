@@ -7,9 +7,16 @@ import {
 import { afterEach, expect, it, vi } from "vitest";
 import { h } from "vue";
 import { toast } from "vue-sonner";
+import {
+  inlineTestPortals,
+  openViewSave,
+  openViewScreen,
+} from "../../tests/menu-helpers";
 import { defineTableConfig } from "../config";
 import type { TableActions, TableView } from "../types";
 import YayawDataTable from "./YayawDataTable.vue";
+
+inlineTestPortals();
 
 const wrappers: VueWrapper[] = [];
 afterEach(() => {
@@ -187,7 +194,12 @@ it("rolls a failed Kanban move back and shares the toolbar grouping", async () =
       .find((lane) => lane.text().includes("Open"))
       ?.text()
   ).toContain("Alpha");
-  await selectOption(wrapper, "Lane", "Name");
+  await openViewScreen(wrapper, "Group");
+  if (!wrapper.find('select[aria-label="Group 1"]').exists()) {
+    await wrapper.get(".yayaw-options-content button").trigger("click");
+  }
+  await wrapper.get('select[aria-label="Group 1"]').setValue("name");
+  await flushPromises();
   expect(
     wrapper
       .findAll(".yayaw-kanban-lane")
@@ -273,7 +285,7 @@ it("honors default and system views, and reports failed saves without closing th
     "Beta"
   );
   expect(wrapper.find('button[title="Delete view"]').exists()).toBe(false);
-  await wrapper.get('[aria-label="Add view"]').trigger("click");
+  await openViewSave(wrapper);
   await flushPromises();
   const dialog = new DOMWrapper(document.body);
   await dialog.get('input[placeholder="Enter a view name"]').setValue("Mine");

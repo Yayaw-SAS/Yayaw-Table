@@ -1,8 +1,5 @@
 "use client";
 
-import { TableTooltip } from "../../utils/table-tooltip";
-
-import type { TableState } from "@/components/ui/yayaw-table/tanstack";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import {
   ArrowUpDown,
@@ -15,12 +12,20 @@ import {
 } from "lucide-react";
 import {
   forwardRef,
+  type ReactNode,
   useCallback,
-  useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
+import {
+  StackMenu,
+  StackMenuContent,
+  StackMenuItem,
+  StackMenuSection,
+  StackMenuView,
+} from "@/components/ui/custom/stack-menu";
+import type { TableState } from "@/components/ui/yayaw-table/tanstack";
 import { cn } from "@/lib/utils";
 import { Button } from "@/src/components/ui/button";
 import {
@@ -29,13 +34,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/src/components/ui/tooltip";
-import {
-  StackMenu,
-  StackMenuContent,
-  StackMenuItem,
-  StackMenuSection,
-  StackMenuView,
-} from "@/components/ui/custom/stack-menu";
 import {
   footerVisibleAtom,
   tableMenuOpenFilterColumnIdAtom,
@@ -50,15 +48,23 @@ import type {
   ColumnsFilterConfig,
   FilterActions,
 } from "../../types/filter-types";
+import { TableTooltip } from "../../utils/table-tooltip";
 import { getDisplayModeGrouping } from "../../utils/table-view-state";
+import { getViewModeCapabilities } from "../../utils/view-menu";
 import { TableColumnsMenu } from "./sections/table-columns-menu";
 import { TableFiltersMenu } from "./sections/table-filters-menu";
 import { TableGroupingMenu } from "./sections/table-grouping-menu";
 import { TableSortMenu } from "./sections/table-sort-menu";
+import type { ViewMenuParts } from "./table-view-manager";
 
 const EMPTY_COLUMNS: never[] = [];
 
 export interface TableMenuProps {
+  compact?: boolean;
+  viewMenu?: ViewMenuParts;
+  modeSettings?: ReactNode;
+  cardSettings?: ReactNode;
+  filterExtras?: ReactNode;
   actionsAsIcons?: boolean;
   columns: TableColumn[];
   defaultDisplayMode?: TableDisplayMode;
@@ -235,7 +241,9 @@ const OptionsMenuTrigger = forwardRef<
     <Button
       aria-label={actionsAsIcons ? label : undefined}
       className={cn(
-        actionsAsIcons ? "relative h-8 w-8" : "h-8 gap-2 px-3 font-normal text-xs leading-4",
+        actionsAsIcons
+          ? "relative h-8 w-8"
+          : "h-8 gap-2 px-3 font-normal text-xs leading-4",
         className
       )}
       disabled={disabled}
@@ -275,6 +283,10 @@ const OptionsMenuTrigger = forwardRef<
 });
 
 function renderMainMenuView({
+  selection,
+  actions,
+  modeSettings,
+  cardSettings,
   activeGroupingCount,
   displayVisibleCount,
   footerCalculationsLabel,
@@ -283,6 +295,10 @@ function renderMainMenuView({
   sectionState,
   t,
 }: {
+  selection?: ReactNode;
+  actions?: ReactNode;
+  modeSettings?: ReactNode;
+  cardSettings?: ReactNode;
   activeGroupingCount: number;
   displayVisibleCount: number;
   footerCalculationsLabel: string;
@@ -292,8 +308,19 @@ function renderMainMenuView({
   t: ReturnType<typeof useTranslations>["t"];
 }) {
   return (
-    <StackMenuView name="main">
+    <StackMenuView name="main" title={t("views.settings")}>
       <StackMenuContent>
+        {selection}
+        {modeSettings}
+        {cardSettings ? (
+          <StackMenuItem
+            icon={<List className="size-4" />}
+            navigateTitle={t("views.cardSettings")}
+            navigateTo="cards"
+          >
+            {t("views.cardSettings")}
+          </StackMenuItem>
+        ) : null}
         <StackMenuSection>
           {sectionState.canShowColumnsSection && (
             <StackMenuItem
@@ -400,12 +427,22 @@ function renderMainMenuView({
             </StackMenuItem>
           )}
         </StackMenuSection>
+        {actions}
       </StackMenuContent>
     </StackMenuView>
   );
 }
 
+function resolveMenuGrouping(state: string[], url: string[]): string[] {
+  return state.length ? state : url;
+}
+
 export function TableMenu({
+  compact = false,
+  viewMenu,
+  modeSettings,
+  cardSettings,
+  filterExtras,
   actionsAsIcons = false,
   columns = EMPTY_COLUMNS,
   defaultDisplayMode,
@@ -437,7 +474,7 @@ export function TableMenu({
   );
 
   // Derive open: menu opens when user toggles or when openToView is set (e.g. from column menu)
-  const effectiveOpen = open || Boolean(openToView);
+  const effectiveOpen = (viewMenu?.open ?? open) || Boolean(openToView);
 
   // URL-state fallback to avoid stale grouping passed from parents
   const {
@@ -449,10 +486,11 @@ export function TableMenu({
     tableId,
   });
 
-  const groupingMaxGroups =
-    displayModeParam === "kanban" || displayModeParam === "gallery" ? 1 : 2;
-  const rawFinalGrouping = (
-    state?.grouping?.length ? state.grouping : urlGrouping || []
+  const capabilities = getViewModeCapabilities(displayModeParam);
+  const groupingMaxGroups = capabilities.maxGroups;
+  const rawFinalGrouping = resolveMenuGrouping(
+    state.grouping,
+    urlGrouping
   ) as string[];
   const finalGrouping = getDisplayModeGrouping({
     displayMode: displayModeParam,
@@ -486,7 +524,7 @@ export function TableMenu({
 
   // Compute active filters count depending on filter mode (must be before early return for hooks order)
   const activeFiltersCount = useAdvancedFilters
-    ? (advancedFiltersConfig?.filters || []).filter((f) => f.isActive).length
+    ? (advancedFiltersConfig?.filters ?? []).filter((f) => f.isActive).length
     : state.columnFilters.length;
   const activeGroupingCount = finalGrouping.length;
   const activeSortCount = state.sorting.length;
@@ -511,17 +549,19 @@ export function TableMenu({
         activeGroupingCount,
         activeSortCount,
         enableColumnFilters,
-        enableCalculations,
+        enableCalculations: enableCalculations && capabilities.calculations,
         enableGrouping,
         enableSorting,
         filterableColumnsCount,
         groupableColumnsCount,
-        hasHiddenColumns,
-        hideableColumnsCount: hideableColumns.length,
+        hasHiddenColumns: capabilities.columns && hasHiddenColumns,
+        hideableColumnsCount: capabilities.columns ? hideableColumns.length : 0,
         sortableColumnsCount,
         useAdvancedFilters,
       }),
     [
+      capabilities.calculations,
+      capabilities.columns,
       activeFiltersCount,
       activeGroupingCount,
       activeSortCount,
@@ -586,17 +626,19 @@ export function TableMenu({
   );
 
   // Hide options button entirely if nothing is available
-  if (!sectionState.hasAnyMenuSection) {
+  if (!(sectionState.hasAnyMenuSection || viewMenu)) {
     return null;
   }
 
   return (
     <StackMenu
       asDropdown
+      compact={compact}
       defaultView="main"
-      headerEndContent={resetAllButton}
+      headerEndContent={viewMenu ? undefined : resetAllButton}
       onOpenChange={(isOpen) => {
         setOpen(isOpen);
+        viewMenu?.onOpenChange(isOpen);
         if (!isOpen) {
           setOpenToView(null);
           setOpenFilterColumnId(null);
@@ -605,15 +647,22 @@ export function TableMenu({
       open={effectiveOpen}
       openToView={openToView ?? undefined}
       ref={menuRef}
+      size="lg"
       trigger={
-        <OptionsMenuTrigger
-          actionsAsIcons={actionsAsIcons}
-          badgeCount={hasMenuBadgeCount ? sectionState.menuBadgeCount : 0}
-          label={optionsLabel}
-        />
+        viewMenu?.trigger ?? (
+          <OptionsMenuTrigger
+            actionsAsIcons={actionsAsIcons}
+            badgeCount={hasMenuBadgeCount ? sectionState.menuBadgeCount : 0}
+            label={optionsLabel}
+          />
+        )
       }
     >
       {renderMainMenuView({
+        selection: viewMenu?.selection,
+        actions: viewMenu?.actions,
+        modeSettings,
+        cardSettings,
         activeGroupingCount,
         displayVisibleCount,
         footerCalculationsLabel,
@@ -640,8 +689,8 @@ export function TableMenu({
 
       {sectionState.canShowFiltersSection && (
         <StackMenuView name="filters">
+          {filterExtras}
           <TableFiltersMenu
-            tableType={tableType}
             advancedActions={
               useAdvancedFilters ? advancedFiltersConfig?.actions : undefined
             }
@@ -658,6 +707,7 @@ export function TableMenu({
             invalidateTable={invalidateTable}
             setColumnFilters={setColumnFilters}
             tableId={tableId}
+            tableType={tableType}
             useAdvancedFilters={useAdvancedFilters}
           />
         </StackMenuView>
@@ -690,7 +740,11 @@ export function TableMenu({
         </StackMenuView>
       )}
 
-      {/* Subgroup view removed - grouping handled directly in group view */}
+      {cardSettings ? (
+        <StackMenuView name="cards" title={t("views.cardSettings")}>
+          {cardSettings}
+        </StackMenuView>
+      ) : null}
     </StackMenu>
   );
 }

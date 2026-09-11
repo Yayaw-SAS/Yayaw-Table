@@ -17,12 +17,8 @@ import {
   useState,
 } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { ResponsiveMenu } from "../yayaw-table/components/toolbar/responsive-menu";
 
 interface StackMenuViewProps {
   children: ReactNode;
@@ -99,6 +95,7 @@ const stackMenuVariants = cva("flex flex-col", {
 interface StackMenuProps
   extends HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof stackMenuVariants> {
+  compact?: boolean;
   defaultView?: string;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -128,6 +125,7 @@ const StackMenu = forwardRef<HTMLDivElement, StackMenuProps>(
       variant,
       size,
       defaultView = "main",
+      compact = false,
       children,
       open,
       onOpenChange,
@@ -232,6 +230,7 @@ const StackMenu = forwardRef<HTMLDivElement, StackMenuProps>(
         <div
           className={cn(
             stackMenuVariants({ variant, size, framed: !asDropdown }),
+            compact && "max-h-[calc(90dvh-1.5rem)] min-h-0 w-full",
             className
           )}
           ref={ref}
@@ -269,32 +268,26 @@ const StackMenu = forwardRef<HTMLDivElement, StackMenuProps>(
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-y-auto">{activeViewChild}</div>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+            {activeViewChild}
+          </div>
         </div>
       </StackMenuContext.Provider>
     );
 
-    if (asDropdown && trigger) {
-      const triggerElement = isValidElement(trigger) ? trigger : null;
+    if (asDropdown && isValidElement(trigger)) {
       return (
-        <Popover
-          modal={false}
-          onOpenChange={(open) => handleOpenChange(open)}
+        <ResponsiveMenu
+          align={align}
+          compact={compact}
+          onOpenChange={handleOpenChange}
           open={isOpen}
+          sideOffset={sideOffset}
+          title={currentViewTitle || "Menu"}
+          trigger={trigger}
         >
-          {triggerElement ? (
-            <PopoverTrigger render={triggerElement} />
-          ) : (
-            <PopoverTrigger>{trigger}</PopoverTrigger>
-          )}
-          <PopoverContent
-            align={align}
-            className="w-auto p-0"
-            sideOffset={sideOffset}
-          >
-            {menuContent}
-          </PopoverContent>
-        </Popover>
+          {menuContent}
+        </ResponsiveMenu>
       );
     }
 

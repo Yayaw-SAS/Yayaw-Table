@@ -43,7 +43,7 @@ export function TableDisplayModeSwitcher({
   return (
     <fieldset
       className={cn(
-        "inline-flex h-8 items-center rounded-md border bg-background p-0.5",
+        "inline-flex min-h-8 flex-wrap items-center rounded-md border bg-background p-0.5",
         className
       )}
     >

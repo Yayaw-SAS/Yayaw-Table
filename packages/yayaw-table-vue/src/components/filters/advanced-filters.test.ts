@@ -1,5 +1,10 @@
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import {
+  inlineTestPortals,
+  openViewMenu,
+  openViewScreen,
+} from "../../../tests/menu-helpers";
 import { defineTableConfig } from "../../config";
 import type {
   AdvancedFilter,
@@ -7,6 +12,8 @@ import type {
   YayawTableProps,
 } from "../../types";
 import YayawDataTable from "../YayawDataTable.vue";
+
+inlineTestPortals();
 
 const rows = [
   {
@@ -97,7 +104,7 @@ beforeEach(() => window.history.replaceState({}, "", "/"));
 const button = (wrapper: Wrapper, text: string) =>
   wrapper.findAll("button").find((item) => item.text() === text);
 const add = async (wrapper: Wrapper) => {
-  await wrapper.get('[aria-label="Options"]').trigger("click");
+  await openViewMenu(wrapper);
   await wrapper
     .findAll(".yayaw-options-item")
     .find((item) => item.text().startsWith("Filters"))
@@ -212,7 +219,7 @@ it("preserves multiple primitive options in server requests and combines rules w
   expect(document.activeElement).toBe(rule.findAll("select")[0]?.element);
   await rule.get('[aria-label="Remove filter"]').trigger("click");
   expect(document.activeElement).toBe(
-    wrapper.get('[aria-label="Options"]').element
+    wrapper.get(".yayaw-view-trigger").element
   );
 });
 
@@ -231,6 +238,7 @@ it("restores React multi-select operators and values from a saved URL", async ()
   window.history.replaceState({}, "", `/?${params}`);
   const wrapper = mountTable({ syncUrl: true });
   await flushPromises();
+  await openViewScreen(wrapper, "Filters");
   const rule = wrapper.get(".yayaw-filter-rule");
   expect(
     rule
@@ -249,7 +257,7 @@ it("uses French defaults and React translation keys in the filter controls", asy
       "filters.operators.between": "Intervalle",
     },
   });
-  await wrapper.get('[aria-label="Options"]').trigger("click");
+  await openViewMenu(wrapper);
   await button(wrapper, "Filtres")?.trigger("click");
   await wrapper.get('[aria-label="Ajouter un filtre"]').trigger("click");
   const rule = wrapper.get(".yayaw-filter-rule");

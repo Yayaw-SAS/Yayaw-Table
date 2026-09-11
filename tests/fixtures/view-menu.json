@@ -1,0 +1,132 @@
+[
+  {
+    "name": "unchanged filtered view ignores selection and current page",
+    "equal": true,
+    "saved": {
+      "columnFilters": [{ "id": "status", "value": ["Open"] }],
+      "density": "medium"
+    },
+    "current": {
+      "columnFilters": [{ "id": "status", "value": ["Open"] }],
+      "density": "medium",
+      "rowSelection": { "42": true },
+      "pagination": { "pageIndex": 3 }
+    }
+  },
+  {
+    "name": "legacy Vue aliases match canonical fields",
+    "equal": true,
+    "saved": {
+      "filters": [{ "id": "active", "value": false }],
+      "search": "Atlas",
+      "pinning": { "left": ["name"] }
+    },
+    "current": {
+      "columnFilters": [{ "id": "active", "value": false }],
+      "globalSearch": "Atlas",
+      "columnPinning": { "right": [], "left": ["name"] }
+    }
+  },
+  {
+    "name": "object order and explicit visible columns do not mark dirty",
+    "equal": true,
+    "saved": {
+      "columnVisibility": { "name": true, "price": false },
+      "columnSizing": { "name": 220, "price": 120 }
+    },
+    "current": {
+      "columnSizing": { "price": 120, "name": 220 },
+      "columnVisibility": { "price": false }
+    }
+  },
+  {
+    "name": "filter envelopes match React arrays",
+    "equal": true,
+    "saved": {
+      "advancedFilters": [
+        {
+          "id": "a",
+          "columnId": "price",
+          "operator": "greaterThan",
+          "values": 0
+        }
+      ]
+    },
+    "current": {
+      "advancedFilters": {
+        "joinOperator": "and",
+        "filters": [
+          {
+            "id": "a",
+            "columnId": "price",
+            "operator": "greaterThan",
+            "values": 0,
+            "isActive": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "density is saved",
+    "equal": false,
+    "saved": { "density": "medium" },
+    "current": { "density": "extra-small" }
+  },
+  {
+    "name": "footer visibility is saved",
+    "equal": false,
+    "saved": { "footerCalculationsVisible": true },
+    "current": { "footerCalculationsVisible": false }
+  },
+  {
+    "name": "presentation is saved",
+    "equal": false,
+    "saved": { "displayMode": "table" },
+    "current": { "displayMode": "gallery" }
+  },
+  {
+    "name": "card properties are saved",
+    "equal": false,
+    "saved": { "kanban": { "cardColumnIds": ["price"] } },
+    "current": { "kanban": { "cardColumnIds": ["active"] } }
+  },
+  {
+    "name": "empty card properties intentionally override defaults",
+    "equal": false,
+    "saved": { "gallery": {} },
+    "current": { "gallery": { "cardColumnIds": [] } }
+  },
+  {
+    "name": "empty image intentionally overrides the configured image",
+    "equal": false,
+    "saved": { "gallery": {} },
+    "current": { "gallery": { "imageColumn": "" } }
+  },
+  {
+    "name": "group order remains significant",
+    "equal": false,
+    "saved": { "grouping": ["status", "category"] },
+    "current": { "grouping": ["category", "status"] }
+  },
+  {
+    "name": "sort direction is saved",
+    "equal": false,
+    "saved": { "sorting": [{ "id": "name", "desc": false }] },
+    "current": { "sorting": [{ "id": "name", "desc": true }] }
+  },
+  {
+    "name": "restoring the saved configuration manually is clean",
+    "equal": true,
+    "saved": {
+      "density": "large",
+      "gallery": { "cardSize": "small" },
+      "footerCalculationsVisible": false
+    },
+    "current": {
+      "footerCalculationsVisible": false,
+      "gallery": { "cardSize": "small" },
+      "density": "large"
+    }
+  }
+]

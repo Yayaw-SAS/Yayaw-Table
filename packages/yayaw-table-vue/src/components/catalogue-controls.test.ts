@@ -1,7 +1,10 @@
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { inlineTestPortals, openViewMenu } from "../../tests/menu-helpers";
 import { defineTableConfig } from "../config";
 import YayawDataTable from "./YayawDataTable.vue";
+
+inlineTestPortals();
 
 const catalogue = defineTableConfig({
   id: "catalogue-controls",
@@ -100,7 +103,7 @@ describe("catalogue-owned controls", () => {
     await wrapper.get('[aria-label="Sync catalogue"]').trigger("click");
     expect(handler).toHaveBeenCalledOnce();
     expect(wrapper.find('[aria-label="Find products"]').exists()).toBe(true);
-    await wrapper.get('[aria-label="Options"]').trigger("click");
+    await openViewMenu(wrapper);
     expect(wrapper.find('[aria-label="Advanced filters"]').exists()).toBe(
       false
     );
@@ -175,7 +178,7 @@ describe("catalogue-owned controls", () => {
     await new Promise((resolve) => setTimeout(resolve, 20));
 
     const filter = wrapper.get('[data-filter-column="name"] input');
-    expect(wrapper.get(".yayaw-options-menu").text()).toContain("Filters");
+    expect(wrapper.get(".yayaw-toolbar-menu").text()).toContain("Filters");
     expect(document.activeElement).toBe(filter.element);
   });
 

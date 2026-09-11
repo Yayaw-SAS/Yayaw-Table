@@ -53,7 +53,6 @@ import { DataTableAdvancedToolbar } from "./toolbar/data-table-advanced-toolbar"
 import { TableDisplayModeSwitcher } from "./toolbar/table-display-mode-switcher";
 import { TableGalleryMenu } from "./toolbar/table-gallery-menu";
 import { TableKanbanGroupingMenu } from "./toolbar/table-kanban-grouping-menu";
-import { DataTableViewManager } from "./toolbar/table-view-manager";
 
 // Default UI components
 function DefaultTableTitle({
@@ -249,8 +248,9 @@ function DataTableHeaderControls({
   kanbanDefaultGroupBy,
   kanbanGroupingColumns,
   onExport,
-  shouldShowViewControls,
+  shouldShowViewControls: _shouldShowViewControls,
   shouldShowViews,
+  quickFiltersVisible,
   tableId,
   tableType,
   toolbarActions,
@@ -282,71 +282,64 @@ function DataTableHeaderControls({
   onExport?: (rows: Record<string, unknown>[]) => Promise<void> | void;
   shouldShowViewControls: boolean;
   shouldShowViews: boolean;
+  quickFiltersVisible: boolean;
   tableId: string;
   tableType: string;
   toolbarActions?: ToolbarActionsInput;
   toolbarActionsPlacement: ToolbarActionsPlacement;
 }) {
   return (
-    <div
-      className={
-        shouldShowViewControls
-          ? "flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between"
-          : "flex justify-end"
-      }
-    >
-      {shouldShowViewControls ? (
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          {shouldShowViews ? (
-            <DataTableViewManager
-              allowViewSave={allowViewSave !== false}
-              allowViewSharing={allowViewSharing === true}
-              defaultDensity={defaultDensity}
-              defaultDisplayMode={defaultDisplayMode}
-              initialActiveViewId={initialActiveViewId}
-              initialViews={initialViews}
-              tableId={tableId}
-              tableType={tableType}
-            />
-          ) : null}
-          <TableDisplayModeSwitcher
-            defaultDisplayMode={defaultDisplayMode}
-            displayModes={displayModes}
-            tableId={tableId}
-          />
+    <DataTableAdvancedToolbar
+      cardSettings={{
+        kanban: enableKanbanGrouping ? (
           <TableKanbanGroupingMenu
             columns={kanbanGroupingColumns}
             controlColumns={kanbanControlColumns}
             defaultConfig={kanbanConfig}
             defaultDisplayMode={defaultDisplayMode}
             defaultGroupBy={kanbanDefaultGroupBy}
-            enabled={enableKanbanGrouping}
+            embedded
             tableId={tableId}
           />
+        ) : undefined,
+        gallery: enableGalleryControl ? (
           <TableGalleryMenu
             columns={galleryColumns}
             defaultConfig={galleryConfig}
             defaultDisplayMode={defaultDisplayMode}
-            enabled={enableGalleryControl}
+            embedded
             tableId={tableId}
           />
-        </div>
-      ) : null}
-      <div className="flex-shrink-0">
-        <DataTableAdvancedToolbar
-          columnTypeMapping={columnTypeMapping}
-          data={baseData}
-          enableAdvancedFilters={enableAdvancedFilters}
-          formType={defaultFormType}
-          onExport={onExport}
-          searchDebounceMs={searchDebounceMs}
+        ) : undefined,
+      }}
+      columnTypeMapping={columnTypeMapping}
+      data={baseData}
+      enableAdvancedFilters={enableAdvancedFilters}
+      formType={defaultFormType}
+      modeSettings={
+        <TableDisplayModeSwitcher
+          defaultDisplayMode={defaultDisplayMode}
+          displayModes={displayModes}
           tableId={tableId}
-          tableType={tableType}
-          toolbarActions={toolbarActions}
-          toolbarActionsPlacement={toolbarActionsPlacement}
         />
-      </div>
-    </div>
+      }
+      onExport={onExport}
+      quickFiltersVisible={quickFiltersVisible}
+      searchDebounceMs={searchDebounceMs}
+      tableId={tableId}
+      tableType={tableType}
+      toolbarActions={toolbarActions}
+      toolbarActionsPlacement={toolbarActionsPlacement}
+      viewManagerProps={{
+        enabled: shouldShowViews,
+        allowViewSave,
+        allowViewSharing,
+        defaultDensity,
+        defaultDisplayMode,
+        initialActiveViewId,
+        initialViews,
+      }}
+    />
   );
 }
 
@@ -688,6 +681,10 @@ function DataTableContent({
                     kanbanDefaultGroupBy={config.table.kanban?.groupBy}
                     kanbanGroupingColumns={kanbanGroupingColumns}
                     onExport={onExport}
+                    quickFiltersVisible={isFilterBarVisible(
+                      showFilterBar,
+                      config.table.showFilterBar
+                    )}
                     searchDebounceMs={resolvedSearchDebounceMs}
                     shouldShowViewControls={shouldShowViewControls}
                     shouldShowViews={shouldShowViews}

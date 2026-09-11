@@ -1,5 +1,7 @@
 "use client";
 
+import { useAtomValue } from "jotai";
+import { toolbarCompactAtom } from "../../atoms/table-atoms";
 import { useTableConfig } from "../../hooks/use-table-config";
 import { useTableUrlState } from "../../hooks/use-table-url-state";
 import { useTranslations } from "../../providers/table-provider";
@@ -10,12 +12,15 @@ export function TableFilterBar({
   tableId,
   tableType,
   visible = true,
+  inMenu = false,
 }: {
   tableId: string;
   tableType: string;
   visible?: boolean;
+  inMenu?: boolean;
 }) {
   const { config } = useTableConfig(tableType);
+  const compact = useAtomValue(toolbarCompactAtom(tableId));
   const state = useTableUrlState({
     tableId,
     enabled: config.table.syncUrl !== false,
@@ -25,7 +30,12 @@ export function TableFilterBar({
     config.columns.definitions,
     config.table.filterBarColumns
   );
-  if (!(visible && config.table.enableColumnFilters && columns.length)) {
+  if (
+    (!inMenu && compact) ||
+    !visible ||
+    !config.table.enableColumnFilters ||
+    !columns.length
+  ) {
     return null;
   }
   return (

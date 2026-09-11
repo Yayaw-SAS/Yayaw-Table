@@ -371,6 +371,8 @@ export function useTableComponents() {
  */
 export const defaultTranslations: DataTableTranslations = {
   actions: {
+    dataActions: "Data actions",
+    shareError: "Unable to share the link",
     close: "Close",
     create: "Create",
     delete: "Delete",
@@ -415,6 +417,7 @@ export const defaultTranslations: DataTableTranslations = {
     unpin: "Unpin",
   },
   common: {
+    none: "None",
     true: "True",
     false: "False",
     loading: "Loading...",
@@ -648,6 +651,17 @@ export const defaultTranslations: DataTableTranslations = {
     current: "Current sort",
   },
   views: {
+    view: "View",
+    settings: "Views and settings",
+    cardSettings: "Card settings",
+    modified: "Unsaved changes",
+    upToDate: "This view is already up to date",
+    readOnly: "This view cannot be modified",
+    saveCurrent: "Save this view…",
+    reset: "Reset view",
+    resetSavedDescription: "Restore the saved settings",
+    resetDefaultDescription: "Restore the initial settings",
+
     title: "Views",
     current: "Current View",
     save: "Save View",
@@ -769,7 +783,7 @@ export const defaultTranslations: DataTableTranslations = {
     copy_link: "Copy link",
     link_copied: "Link copied to clipboard",
     reset: "Reset filters",
-    share: "Share this view",
+    share: "Share",
     auto_save: "Auto-saving...",
     save_success: "View saved successfully",
   },

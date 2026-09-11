@@ -77,6 +77,7 @@ export interface TableStateRefs {
   pagination: Ref<PaginationState>;
   displayMode: Ref<TableDisplayMode>;
   density: Ref<TableDensity>;
+  footerCalculationsVisible: Ref<boolean>;
   kanban: Ref<TableKanbanViewConfig>;
   gallery: Ref<TableGalleryViewConfig>;
   columnDragEnabled: Ref<boolean>;
@@ -163,6 +164,7 @@ export const useTableState = <TData extends TableRecord>({
   });
   // Keep toolbar choices local to this instance without mutating shared configuration.
   const densityOverride = ref<TableDensity>();
+  const footerCalculationsVisible = ref(true);
   const density = computed({
     get: () => densityOverride.value ?? config.table.density,
     set: (value: TableDensity) => {
@@ -236,6 +238,7 @@ export const useTableState = <TData extends TableRecord>({
   const snapshot = computed<TableViewConfig>(() => ({
     ...createTableViewSnapshot({
       density: density.value,
+      footerCalculationsVisible: footerCalculationsVisible.value,
       globalSearch: search.value,
       columnFilters: enabledFilters(filters.value),
       columnPinning: enabledPinning(pinning.value),
@@ -422,6 +425,7 @@ export const useTableState = <TData extends TableRecord>({
     );
     return cloneFormValue(
       createTableViewSnapshot({
+        footerCalculationsVisible: input.footerCalculationsVisible ?? true,
         density: isTableDensity(input.density)
           ? input.density
           : config.table.density,
@@ -474,6 +478,7 @@ export const useTableState = <TData extends TableRecord>({
   const applyView = (input: TableViewConfig, viewId?: string): void => {
     const view = resolveView(input);
     densityOverride.value = view.density;
+    footerCalculationsVisible.value = view.footerCalculationsVisible ?? true;
     search.value = view.search ?? "";
     filters.value = view.filters ?? [];
     advancedFilters.value = enabledAdvancedFilters(
@@ -578,6 +583,7 @@ export const useTableState = <TData extends TableRecord>({
     pagination,
     displayMode,
     density,
+    footerCalculationsVisible,
     kanban,
     gallery,
     columnDragEnabled,
