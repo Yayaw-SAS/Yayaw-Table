@@ -29,7 +29,7 @@ const setDensity = (value: unknown): void => {
 </script>
 
 <template>
-  <fieldset v-if="props.inline" class="yayaw-density-inline">
+  <fieldset v-if="props.inline" class="yayaw-density-inline yayaw-choice-inline">
     <legend>{{ label }}</legend><div class="yayaw-segmented">
       <button v-for="option in TABLE_DENSITY_OPTIONS" :key="option.value" type="button" :aria-pressed="context.state.density.value === option.value" :class="{ active: context.state.density.value === option.value }" @click="setDensity(option.value)">{{ option.label }}</button>
     </div>

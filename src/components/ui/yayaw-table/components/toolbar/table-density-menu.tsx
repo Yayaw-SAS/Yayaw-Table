@@ -52,7 +52,7 @@ export function TableDensityMenu({
 
   if (inline) {
     return (
-      <fieldset className="flex flex-wrap items-center gap-2">
+      <fieldset className="flex flex-wrap items-center gap-1">
         <legend className="mb-1 text-muted-foreground text-sm">{label}</legend>
         {TABLE_DENSITY_OPTIONS.map((option) => (
           <Button

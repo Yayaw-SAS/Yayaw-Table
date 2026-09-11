@@ -109,7 +109,9 @@ describe("YayawDataTable", () => {
       props: { tableType: "test", config, data, syncUrl: false },
     });
     await openViewMenu(wrapper);
-    const buttons = wrapper.findAll('.yayaw-segmented[role="group"] button');
+    const buttons = wrapper.findAll(
+      "fieldset.yayaw-display-mode-inline button"
+    );
     await buttons
       .find((button) => button.text() === "kanban")
       ?.trigger("click");
@@ -624,7 +626,7 @@ describe("YayawDataTable", () => {
     expect(wrapper.find(".yayaw-dialog-backdrop").exists()).toBe(false);
     await openViewMenu(wrapper);
     await wrapper
-      .findAll('.yayaw-segmented[role="group"] button')
+      .findAll("fieldset.yayaw-display-mode-inline button")
       .find((button) => button.text() === "kanban")
       ?.trigger("click");
     expect(wrapper.get(".yayaw-kanban-card").attributes("draggable")).toBe(

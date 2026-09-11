@@ -11,3 +11,5 @@ Keep view panels mounted during React query refreshes, use content-sized Shadcn 
 Keep advanced numeric filter drafts stable until Enter or confirmation, including zero, negative decimals and ranges. Remove stale delayed input callbacks, implicit numeric bounds and nested filter cards. Keep new Vue rules out of query state until applied and expose advanced filters in its runnable example.
 
 Keep the mobile panel header fixed while focusing numeric inputs and anchor Vue column menus correctly when composed with tooltips.
+
+Present display mode and density as matching labelled button rows, with equal-width choices and the same selected state in React and Vue.

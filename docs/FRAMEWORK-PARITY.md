@@ -406,3 +406,5 @@ extra nested card/scroll containers.
 Vue column-header filter shortcuts open a local draft for the requested column.
 Their tooltip-composed dropdown uses an explicit button anchor so it remains
 visible and works with both mouse and keyboard.
+
+Display mode and inline density use matching labelled button rows in both editions: equal-width choices, a muted selected background, no enclosing segmented border and no redundant mode tooltips. Both preserve keyboard focus and `aria-pressed` selection; density remains exclusive to Table mode.

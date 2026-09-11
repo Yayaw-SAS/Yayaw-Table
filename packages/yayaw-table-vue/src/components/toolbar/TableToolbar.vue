@@ -413,14 +413,12 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
       :panel="optionsView !== 'main'" :panel-title="translate(optionsView === 'columns' ? 'properties' : optionsView === 'cards' ? 'views.cardSettings' : optionsView, optionsView)"
       @back="optionsView = 'main'">
       <template #settings><div ref="optionsRoot">
-        <div
-          v-if="modes.length > 1"
-          class="yayaw-segmented"
-          role="group"
-          :aria-label="translate('displayMode', 'Display mode')"
-        >
-          <TableTooltip v-for="mode in modes" :key="mode" :label="translate(`display.${mode}`, mode)">
+        <fieldset v-if="modes.length > 1" class="yayaw-display-mode-inline yayaw-choice-inline">
+          <legend>{{ translate('displayMode', 'Display mode') }}</legend>
+          <div class="yayaw-segmented">
             <button
+              v-for="mode in modes"
+              :key="mode"
               type="button"
               :class="{ active: displayMode === mode }"
               :aria-pressed="displayMode === mode"
@@ -429,8 +427,8 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
               <component :is="displayModeIcons[mode]" :size="16" aria-hidden="true" />
               <span>{{ translate(`display.${mode}`, mode) }}</span>
             </button>
-          </TableTooltip>
-        </div>
+          </div>
+        </fieldset>
         <TableDensityMenu v-if="capabilities.density" inline />
             <div v-if="optionsView === 'main'" class="yayaw-options-list">
               <button

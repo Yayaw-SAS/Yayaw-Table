@@ -83,7 +83,9 @@ it("uses the configured density, updates only its instance and retains it across
   );
   expect(config.table.density).toBe("extra-extra-large");
 
-  const modes = wrapper.get('.yayaw-segmented[role="group"]').findAll("button");
+  const modes = wrapper
+    .get("fieldset.yayaw-display-mode-inline")
+    .findAll("button");
   await modes[1]?.trigger("click");
   expect(wrapper.find(".yayaw-density-inline").exists()).toBe(false);
   await modes[0]?.trigger("click");
@@ -148,10 +150,10 @@ it("names the density choices directly in the view menu without requiring a tool
   ).toBeUndefined();
 });
 
-it("keeps display-mode tooltips outside the group and preserves pressed state on selection", async () => {
+it("keeps labelled display choices keyboard accessible and preserves pressed state", async () => {
   const wrapper = mountTable();
   await openViewMenu(wrapper);
-  const group = wrapper.get('.yayaw-segmented[role="group"]');
+  const group = wrapper.get("fieldset.yayaw-display-mode-inline");
   const buttons = group.findAll("button");
   expect(buttons).toHaveLength(2);
   expect(buttons[0]?.attributes("aria-pressed")).toBe("true");
@@ -159,7 +161,7 @@ it("keeps display-mode tooltips outside the group and preserves pressed state on
     (button.element as HTMLButtonElement).focus();
     await settle();
     expect(document.activeElement).toBe(button.element);
-    expect(body().get('[role="tooltip"]').text()).toBe(button.text());
+    expect(body().find('[role="tooltip"]').exists()).toBe(false);
     expect(group.find('[role="tooltip"]').exists()).toBe(false);
     expect(group.findAll("button")).toHaveLength(2);
     await button.trigger("click");

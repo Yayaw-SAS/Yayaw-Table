@@ -257,44 +257,54 @@
   margin-left: 0;
   pointer-events: none;
 }
+.yayaw-choice-inline {
+  min-width: 0;
+  padding: 0;
+  margin: 8px;
+  border: 0;
+}
+.yayaw-choice-inline legend {
+  padding: 0;
+  margin-bottom: 4px;
+  color: var(--yayaw-muted-foreground);
+  font-size: 14px;
+}
 .yayaw-segmented {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  height: 32px;
-  padding: 2px;
-  border: 1px solid var(--yayaw-border);
-  border-radius: 7px;
-  background: var(--yayaw-muted);
+  gap: 4px;
 }
 .yayaw-segmented button {
   display: inline-flex;
+  flex: 1;
   align-items: center;
   justify-content: center;
-  height: 100%;
-  min-height: 0;
+  min-width: 36px;
+  min-height: 32px;
   gap: 6px;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 16px;
-  border: 0;
-  border-radius: 5px;
-  background: transparent;
-  color: var(--yayaw-muted-foreground);
   padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--yayaw-foreground);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
   text-transform: capitalize;
   cursor: pointer;
 }
-.yayaw-segmented button:hover {
+.yayaw-segmented button:hover,
+.yayaw-segmented button.active {
   background: var(--yayaw-muted);
+}
+.yayaw-segmented button:focus-visible {
+  outline: 2px solid var(--yayaw-primary);
+  outline-offset: 2px;
 }
 .yayaw-segmented button > svg {
   flex-shrink: 0;
-}
-.yayaw-segmented button.active {
-  background: var(--yayaw-background);
-  color: var(--yayaw-foreground);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 .yayaw-columns-panel {
   position: absolute;
@@ -2229,30 +2239,6 @@
 .yayaw-toolbar-menu .yayaw-view-menu-danger {
   color: var(--yayaw-danger);
 }
-.yayaw-toolbar-menu .yayaw-segmented {
-  display: flex;
-  flex-wrap: wrap;
-  margin: 12px;
-}
-.yayaw-toolbar-menu .yayaw-segmented > * {
-  flex: 1;
-}
-.yayaw-toolbar-menu .yayaw-segmented button {
-  justify-content: center;
-}
-.yayaw-density-inline {
-  min-width: 0;
-  padding: 0;
-  margin: 12px;
-  border: 0;
-}
-.yayaw-density-inline legend {
-  padding: 0;
-  margin-bottom: 6px;
-}
-.yayaw-toolbar-menu .yayaw-density-inline .yayaw-segmented {
-  margin: 0;
-}
 .yayaw-card-settings {
   display: grid;
   gap: 12px;
@@ -2337,9 +2323,6 @@
 .yayaw-toolbar-menu .yayaw-view-menu-danger {
   color: var(--yayaw-danger);
 }
-.yayaw-toolbar-menu .yayaw-segmented {
-  height: auto;
-}
 .yayaw-view-dirty {
   display: inline-block;
   flex: none;
@@ -2388,10 +2371,4 @@
   padding: 6px 8px;
   border-radius: 4px;
   gap: 8px;
-}
-.yayaw-toolbar-menu .yayaw-segmented {
-  margin: 8px;
-}
-.yayaw-toolbar-menu .yayaw-density-inline {
-  margin: 8px;
 }
