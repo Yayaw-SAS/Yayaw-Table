@@ -350,7 +350,7 @@ product demo for host actions and compact composition.
 capabilities and normalized comparisons use common `tests/fixtures/view-menu.json`
 fixtures. A filtered saved view starts clean; density, footer visibility, cards,
 columns, search, filters, sort, grouping and page size participate in comparison.
-Row selection and the current page do not. Manually restoring the saved settings
+Row selection and the current page do not. Advanced-filter identities, labels and edit timestamps are excluded; date values and AND/OR semantics remain significant. Manually restoring the saved settings
 removes the blue indicator. Temporary views never show a saved-view difference.
 
 Save changes remains visible and disabled when clean, with a desktop tooltip and

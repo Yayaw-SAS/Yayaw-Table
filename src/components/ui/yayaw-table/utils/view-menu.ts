@@ -34,6 +34,9 @@ const VIEW_SETTING_KEYS = [
 ] as const;
 
 function canonicalValue(value: unknown, field?: string): unknown {
+  if (value instanceof Date) {
+    return value.toJSON() ?? undefined;
+  }
   if (Array.isArray(value)) {
     return value.length || field === "cardColumnIds"
       ? value.map((item) => canonicalValue(item))
@@ -65,9 +68,21 @@ export function areViewSettingsEqual(left: object, right: object): boolean {
     for (const key of VIEW_SETTING_KEYS) {
       settings[key] = aliases[key];
     }
+    // Filter identities and edit timestamps do not change the saved query's meaning.
     settings.advancedFilters = normalizeFilterEnvelope(
       aliases.advancedFilters
-    ).filters;
+    ).filters.map(
+      ({
+        id: _id,
+        label: _label,
+        createdAt: _createdAt,
+        updatedAt: _updatedAt,
+        ...filter
+      }) => ({
+        ...filter,
+        joinOperator: filter.joinOperator === "or" ? "or" : undefined,
+      })
+    );
     // An explicit visible column has the same meaning as an absent override.
     if (
       settings.columnVisibility &&

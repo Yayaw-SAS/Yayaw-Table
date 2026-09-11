@@ -79,3 +79,25 @@ it("silences native cancellation and falls back to clipboard for unavailable sha
     "unavailable"
   );
 });
+
+it("compares date filter values and their serialized saved representation", () => {
+  const filter = {
+    columnId: "createdAt",
+    type: "date",
+    operator: "equals",
+    values: new Date("2026-09-11T00:00:00.000Z"),
+  };
+  const saved = { advancedFilters: [filter] };
+  expect(
+    areViewSettingsEqual(saved, {
+      advancedFilters: [{ ...filter, values: "2026-09-11T00:00:00.000Z" }],
+    })
+  ).toBe(true);
+  expect(
+    areViewSettingsEqual(saved, {
+      advancedFilters: [
+        { ...filter, values: new Date("2026-09-12T00:00:00.000Z") },
+      ],
+    })
+  ).toBe(false);
+});
