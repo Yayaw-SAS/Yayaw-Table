@@ -205,6 +205,7 @@ const table = useYayawTable({
   enableColumnResizing: context.config.table.enableColumnResizing === true,
   columnResizeMode: "onChange",
   enableGrouping: context.config.table.enableGrouping,
+  groupedColumnMode: false,
   enableRowRangeSelection: false,
   enableSorting: context.config.table.enableSorting,
   getRowId: (row, index) => context.getRowId(row, index),

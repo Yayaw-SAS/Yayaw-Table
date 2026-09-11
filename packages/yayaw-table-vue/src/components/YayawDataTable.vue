@@ -31,7 +31,6 @@ import { fetchAllContractRows, TABLE_DENSITY_METRICS } from "../table-contracts"
 import type { TableListParams } from "../types";
 import CardPagination from "./table/CardPagination.vue";
 import TableFilterBar from "./filters/TableFilterBar.vue";
-import AdvancedFilters from "./filters/AdvancedFilters.vue";
 import CatalogueForm from "./forms/CatalogueForm.vue";
 import RecordDetails from "./details/RecordDetails.vue";
 import type { DetailRevertHandler, RecordDetailsConfig } from "../record-details";
@@ -205,7 +204,8 @@ const detailReverted = async (): Promise<void> => {
   try { await refresh(); }
   catch (cause) { status.value = { type: "error", message: cause instanceof Error ? cause.message : String(cause) }; }
 };
-const footerCalculationsVisible = ref(config.table.enableCalculations === true);
+const footerCalculationsVisible = state.footerCalculationsVisible;
+const toolbarCompact = ref(false);
 const status = ref<{ type: "error" | "success"; message: string }>();
 // Use the host's single Sonner outlet, as React does; feedback must not move table content.
 watch(status, notification => {
@@ -456,6 +456,7 @@ provide(tableContextKey, {
   toolbarActions,
   form,
   footerCalculationsVisible,
+  toolbarCompact,
   optionsRequest,
   getRowId,
   getFormConfig: props.getFormConfig,
@@ -472,7 +473,7 @@ provide(tableContextKey, {
   queryClient,
   locale: props.locale,
   onBulkDelete: props.onBulkDelete,
-  onBulkEdit: props.onBulkEdit,
+  get onBulkEdit() { return props.onBulkEdit; },
   onBulkCopy: props.onBulkCopy,
   onBulkExport: props.onBulkExport,
   onExport: props.onExport,
@@ -490,14 +491,14 @@ provide(tableContextKey, {
       </div>
     </header>
 
-    <TableFilterBar v-if="props.showFilterBar ?? config.table.showFilterBar" />
+    <TableFilterBar v-if="!toolbarCompact && (props.showFilterBar ?? config.table.showFilterBar)" />
     <TableToolbar
       v-if="config.table.showToolbar"
       :enable-advanced-filters="advancedFiltersEnabled && config.table.enableColumnFilters"
       :initial-views="initialViews"
       :toolbar-actions-placement="props.toolbarActionsPlacement ?? config.toolbarActionsPlacement"
     />
-    <AdvancedFilters v-if="advancedFiltersEnabled && config.table.enableColumnFilters && state.advancedFilters.value.filters.length" />
+
 
     <div v-if="tableData.error.value" class="yayaw-error" role="alert">
       {{ tableData.error.value.message }}

@@ -86,6 +86,8 @@ export interface TableView {
  * Contains all state that can be saved in a view
  */
 export interface TableViewConfig {
+  /** Visibility of table footer calculations; legacy snapshots inherit the initial setting. */
+  footerCalculationsVisible?: boolean;
   /** Row and header spacing restored when applying the view. */
   density?: import("./display-types").TableDensity;
 

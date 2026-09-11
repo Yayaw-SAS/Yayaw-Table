@@ -6,6 +6,12 @@ import {
 } from "@vue/test-utils";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { toast } from "vue-sonner";
+import {
+  inlineTestPortals,
+  openViewMenu,
+  openViewSave,
+  openViewScreen,
+} from "../../../tests/menu-helpers";
 import { defineTableConfig } from "../../config";
 import type {
   TableBehaviorConfig,
@@ -14,6 +20,8 @@ import type {
   TableViewActions,
 } from "../../types";
 import YayawDataTable from "../YayawDataTable.vue";
+
+inlineTestPortals();
 
 const config = defineTableConfig({
   id: "view-test",
@@ -84,17 +92,19 @@ const mountTable = (
 type Wrapper = ReturnType<typeof mountTable>;
 const body = () => new DOMWrapper(document.body);
 const search = (wrapper: Wrapper) => wrapper.get('input[type="search"]');
-const saveButton = (wrapper: Wrapper) =>
-  wrapper.get('[aria-label="Save changes"]');
+const saveButton = async (wrapper: Wrapper) => {
+  await openViewMenu(wrapper);
+  return wrapper.get('[aria-label="Save changes"]');
+};
 const current = (wrapper: Wrapper) => wrapper.get(".yayaw-view-trigger");
-const openMenu = async (wrapper: Wrapper) => {
-  await new Promise((resolve) => setTimeout(resolve, 0));
-  await current(wrapper).trigger("keydown", { key: "Enter" });
-  await flushPromises();
+const openMenu = openViewMenu;
+const favoriteAction = async (wrapper: Wrapper, selector: string) => {
+  await openViewMenu(wrapper);
+  return wrapper.get(`button${selector}`);
 };
 const choose = async (text: string) => {
   const item = body()
-    .findAll('[role="menuitem"]')
+    .findAll(".yayaw-view-menu-item")
     .find((item) => item.text() === text);
   if (!item) {
     throw new Error(`Missing view menu item: ${text}`);
@@ -103,7 +113,7 @@ const choose = async (text: string) => {
   await flushPromises();
 };
 const openSave = async (wrapper: Wrapper) => {
-  await wrapper.get('[aria-label="Add view"]').trigger("click");
+  await openViewSave(wrapper);
   await flushPromises();
 };
 const setName = async (name: string) => {
@@ -145,16 +155,16 @@ it("uses compact controls, selects views with the keyboard menu, and restores ca
   await flushPromises();
   expect(current(wrapper).text()).toBe("Default view");
   expect(wrapper.find(".yayaw-views select").exists()).toBe(false);
-  expect(saveButton(wrapper).attributes("disabled")).toBeDefined();
+  expect(wrapper.find('[aria-label="Save changes"]').exists()).toBe(false);
   await openMenu(wrapper);
   await choose("My view");
   expect(current(wrapper).text()).toBe("My view");
   expect(search(wrapper).element).toHaveProperty("value", "Alpha");
-  expect(saveButton(wrapper).attributes("disabled")).toBeDefined();
+  expect((await saveButton(wrapper)).attributes("aria-disabled")).toBe("true");
   await search(wrapper).setValue("Beta");
-  expect(saveButton(wrapper).attributes("disabled")).toBeUndefined();
+  expect((await saveButton(wrapper)).attributes("aria-disabled")).toBe("false");
   await search(wrapper).setValue("Alpha");
-  expect(saveButton(wrapper).attributes("disabled")).toBeDefined();
+  expect((await saveButton(wrapper)).attributes("aria-disabled")).toBe("true");
   await openMenu(wrapper);
   await choose("Default view");
   expect(search(wrapper).element).toHaveProperty("value", "");
@@ -250,7 +260,7 @@ it("keeps later edits dirty while an update is pending and sends a detached snap
   });
   await flushPromises();
   await search(wrapper).setValue("First draft");
-  await saveButton(wrapper).trigger("click");
+  await (await saveButton(wrapper)).trigger("click");
   expect(update).toHaveBeenCalledWith(
     "mine",
     expect.objectContaining({
@@ -268,7 +278,7 @@ it("keeps later edits dirty while an update is pending and sends a detached snap
   pending.resolve({ success: true, data: { ...saved, config: sent.config } });
   await flushPromises();
   expect(search(wrapper).element).toHaveProperty("value", "Later draft");
-  expect(saveButton(wrapper).attributes("disabled")).toBeUndefined();
+  expect((await saveButton(wrapper)).attributes("aria-disabled")).toBe("false");
 });
 
 it("preserves explicit URL state and uses the saved configuration to detect unsaved changes", async () => {
@@ -281,7 +291,7 @@ it("preserves explicit URL state and uses the saved configuration to detect unsa
   await flushPromises();
   expect(current(wrapper).text()).toBe("My view");
   expect(search(wrapper).element).toHaveProperty("value", "Beta");
-  expect(saveButton(wrapper).attributes("disabled")).toBeUndefined();
+  expect((await saveButton(wrapper)).attributes("aria-disabled")).toBe("false");
   expect(wrapper.find(".yayaw-gallery").exists()).toBe(true);
   window.history.replaceState({}, "", "/");
   window.dispatchEvent(new PopStateEvent("popstate"));
@@ -302,11 +312,11 @@ it("restores a view-only URL, ignores URL state when disabled, and protects syst
   await flushPromises();
   expect(current(system).text()).toBe("My view");
   await search(system).setValue("Changed");
-  expect(saveButton(system).attributes("disabled")).toBeDefined();
+  expect(system.find('[aria-label="Save changes"]').exists()).toBe(false);
   await openMenu(system);
   expect(
     body()
-      .findAll('[role="menuitem"]')
+      .findAll(".yayaw-view-menu-item")
       .some((item) => item.text() === "Delete view")
   ).toBe(false);
 });
@@ -338,7 +348,7 @@ it("uses persisted records over initial seeds and supports French and React tran
     views: [saved],
     active: "mine",
     locale: "fr",
-    translations: { "views.add_view": "Créer une vue" },
+    translations: { "views.saveAs": "Créer une vue" },
     actions: {
       list: () => [
         { ...saved, name: "Vue mise à jour", config: { globalSearch: "Beta" } },
@@ -348,6 +358,7 @@ it("uses persisted records over initial seeds and supports French and React tran
   await flushPromises();
   expect(current(wrapper).text()).toBe("Vue mise à jour");
   expect(search(wrapper).element).toHaveProperty("value", "Beta");
+  await openViewMenu(wrapper);
   await wrapper.get('[aria-label="Créer une vue"]').trigger("click");
   await flushPromises();
   expect(body().get('[role="dialog"]').text()).toContain("Nom de la vue");
@@ -363,9 +374,9 @@ it("hides write actions when view saving is disabled", async () => {
   await openMenu(wrapper);
   expect(
     body()
-      .findAll('[role="menuitem"]')
+      .findAll(".yayaw-view-menu-item")
       .map((item) => item.text())
-  ).toEqual(["Default view", "My view"]);
+  ).toEqual(["Default view", "My view", "Favorite view", "Reset view"]);
 });
 
 it("recovers from update and delete failures and applies server-normalized configurations", async () => {
@@ -387,17 +398,17 @@ it("recovers from update and delete failures and applies server-normalized confi
   });
   await flushPromises();
   await search(wrapper).setValue("Draft");
-  await saveButton(wrapper).trigger("click");
+  await (await saveButton(wrapper)).trigger("click");
   await flushPromises();
   expect(wrapper.get('.yayaw-view-manager [role="alert"]').text()).toBe(
     "Update refused"
   );
   expect(search(wrapper).element).toHaveProperty("value", "Draft");
-  expect(saveButton(wrapper).attributes("disabled")).toBeUndefined();
-  await saveButton(wrapper).trigger("click");
+  expect((await saveButton(wrapper)).attributes("aria-disabled")).toBe("false");
+  await (await saveButton(wrapper)).trigger("click");
   await flushPromises();
   expect(search(wrapper).element).toHaveProperty("value", "Beta");
-  expect(saveButton(wrapper).attributes("disabled")).toBeDefined();
+  expect((await saveButton(wrapper)).attributes("aria-disabled")).toBe("true");
   await openMenu(wrapper);
   await choose("Delete view");
   expect(wrapper.get('.yayaw-view-manager [role="alert"]').text()).toBe(
@@ -432,15 +443,22 @@ it("does not derive table grouping from a legacy saved Kanban lane or URL", asyn
   expect(fromUrl.get("tbody").text()).toContain("Alpha");
 });
 
-it("shows a localized add-view tooltip on keyboard focus without a native duplicate", async () => {
-  const wrapper = mountTable({ locale: "fr" });
-  await flushPromises();
-  const trigger = wrapper.get('[aria-label="Ajouter une vue"]');
+it("explains a clean saved view on keyboard focus without a native duplicate", async () => {
+  const wrapper = mountTable({
+    locale: "fr",
+    views: [saved],
+    active: saved.id,
+  });
+  await openViewMenu(wrapper);
+  const trigger = wrapper.get('[aria-label="Enregistrer les modifications"]');
   expect(trigger.attributes("title")).toBeUndefined();
+  expect(trigger.attributes("aria-disabled")).toBe("true");
   (trigger.element as HTMLButtonElement).focus();
   await flushPromises();
   await new Promise((resolve) => setTimeout(resolve, 0));
-  expect(body().get('[role="tooltip"]').text()).toBe("Ajouter une vue");
+  expect(body().get('[role="tooltip"]').text()).toBe(
+    "Cette vue est déjà à jour"
+  );
 });
 
 it("tracks density-only changes and restores a saved density or legacy default", async () => {
@@ -458,25 +476,23 @@ it("tracks density-only changes and restores a saved density or legacy default",
     table: { density: "large" },
   });
   await flushPromises();
-  expect(saveButton(wrapper).attributes("disabled")).toBeDefined();
-  await wrapper
-    .get('[aria-label="Table density: L"]')
-    .trigger("keydown", { key: "Enter" });
+  expect((await saveButton(wrapper)).attributes("aria-disabled")).toBe("true");
+  await openViewMenu(wrapper);
   await flushPromises();
   await body()
-    .findAll('[role="menuitemradio"]')
+    .findAll(".yayaw-density-inline button")
     .find((item) => item.text() === "XS")
     ?.trigger("click");
   await flushPromises();
-  expect(saveButton(wrapper).attributes("disabled")).toBeUndefined();
+  expect((await saveButton(wrapper)).attributes("aria-disabled")).toBe("false");
   await openMenu(wrapper);
   await choose("Compact");
-  expect(wrapper.find('[aria-label="Table density: XS"]').exists()).toBe(true);
-  expect(saveButton(wrapper).attributes("disabled")).toBeDefined();
+  expect(wrapper.attributes("data-density") === "extra-small").toBe(true);
+  expect((await saveButton(wrapper)).attributes("aria-disabled")).toBe("true");
   await openMenu(wrapper);
   await choose("My view");
-  expect(wrapper.find('[aria-label="Table density: L"]').exists()).toBe(true);
-  expect(saveButton(wrapper).attributes("disabled")).toBeDefined();
+  expect(wrapper.attributes("data-density") === "large").toBe(true);
+  expect((await saveButton(wrapper)).attributes("aria-disabled")).toBe("true");
 });
 
 it("loads persisted default views without initialViews again after remount", async () => {
@@ -494,9 +510,7 @@ it("loads persisted default views without initialViews again after remount", asy
     });
     await flushPromises();
     expect(current(wrapper).text()).toBe(view.name);
-    expect(wrapper.find('[aria-label="Table density: XS"]').exists()).toBe(
-      true
-    );
+    expect(wrapper.attributes("data-density") === "extra-small").toBe(true);
     wrapper.unmount();
   }
   expect(list).toHaveBeenCalledTimes(2);
@@ -508,12 +522,14 @@ it("favorites a shared system view independently of write permissions, restores 
   const wrapper = mountTable({ ...options, active: shared.id });
   await flushPromises();
   await search(wrapper).setValue("Beta");
-  await wrapper.get('[aria-label="Use this view on arrival"]').trigger("click");
+  await (
+    await favoriteAction(wrapper, '[aria-label="Use this view on arrival"]')
+  ).trigger("click");
   await flushPromises();
   expect(
-    wrapper
-      .get('[aria-label="Remove favorite view"]')
-      .attributes("aria-pressed")
+    (
+      await favoriteAction(wrapper, '[aria-label="Remove favorite view"]')
+    ).attributes("aria-pressed")
   ).toBe("true");
   expect(search(wrapper).element).toHaveProperty("value", "Beta");
   expect(shared.isDefault).toBeUndefined();
@@ -522,7 +538,9 @@ it("favorites a shared system view independently of write permissions, restores 
   await flushPromises();
   expect(current(reloaded).text()).toBe(shared.name);
   expect(search(reloaded).element).toHaveProperty("value", "Alpha");
-  await reloaded.get('[aria-label="Remove favorite view"]').trigger("click");
+  await (
+    await favoriteAction(reloaded, '[aria-label="Remove favorite view"]')
+  ).trigger("click");
   await flushPromises();
   reloaded.unmount();
   const cleared = mountTable(options);
@@ -554,7 +572,9 @@ it("loads a remote favorite before the shared default and replaces it without up
   expect(current(wrapper).text()).toBe(saved.name);
   await openMenu(wrapper);
   await choose(standard.name);
-  await wrapper.get('[aria-label="Use this view on arrival"]').trigger("click");
+  await (
+    await favoriteAction(wrapper, '[aria-label="Use this view on arrival"]')
+  ).trigger("click");
   await flushPromises();
   expect(setFavorite).toHaveBeenCalledWith(standard.id, {
     tableId: config.id,
@@ -562,9 +582,9 @@ it("loads a remote favorite before the shared default and replaces it without up
   });
   expect(update).not.toHaveBeenCalled();
   expect(
-    wrapper
-      .get('[aria-label="Remove favorite view"]')
-      .attributes("aria-pressed")
+    (
+      await favoriteAction(wrapper, '[aria-label="Remove favorite view"]')
+    ).attributes("aria-pressed")
   ).toBe("true");
 });
 
@@ -621,21 +641,25 @@ it("exposes failed favorite writes and allows retry without changing the current
     actions: { setFavorite },
   });
   await flushPromises();
-  await wrapper.get('[aria-label="Use this view on arrival"]').trigger("click");
+  await (
+    await favoriteAction(wrapper, '[aria-label="Use this view on arrival"]')
+  ).trigger("click");
   await flushPromises();
   expect(wrapper.get('[role="alert"]').text()).toBe("Preference unavailable");
   expect(
-    wrapper
-      .get('[aria-label="Use this view on arrival"]')
-      .attributes("aria-pressed")
+    (
+      await favoriteAction(wrapper, '[aria-label="Use this view on arrival"]')
+    ).attributes("aria-pressed")
   ).toBe("false");
   expect(search(wrapper).element).toHaveProperty("value", "Alpha");
-  await wrapper.get('[aria-label="Use this view on arrival"]').trigger("click");
+  await (
+    await favoriteAction(wrapper, '[aria-label="Use this view on arrival"]')
+  ).trigger("click");
   await flushPromises();
   expect(
-    wrapper
-      .get('[aria-label="Remove favorite view"]')
-      .attributes("aria-pressed")
+    (
+      await favoriteAction(wrapper, '[aria-label="Remove favorite view"]')
+    ).attributes("aria-pressed")
   ).toBe("true");
 });
 
@@ -658,17 +682,23 @@ it("favorites the built-in default by clearing the preference, preserves drafts,
   await openMenu(wrapper);
   await choose("Default view");
   await search(wrapper).setValue("Beta");
-  await wrapper.get('[aria-label="Use this view on arrival"]').trigger("click");
+  await (
+    await favoriteAction(wrapper, '[aria-label="Use this view on arrival"]')
+  ).trigger("click");
   await flushPromises();
   expect(setFavorite).toHaveBeenCalledWith(null, {
     tableId: config.id,
     tableType: "products",
   });
   expect(
-    wrapper.get('[aria-label="Favorite view"]').attributes("aria-pressed")
+    (await favoriteAction(wrapper, '[aria-label="Favorite view"]')).attributes(
+      "aria-pressed"
+    )
   ).toBe("true");
   expect(search(wrapper).element).toHaveProperty("value", "Beta");
-  await wrapper.get('[aria-label="Favorite view"]').trigger("click");
+  await (await favoriteAction(wrapper, '[aria-label="Favorite view"]')).trigger(
+    "click"
+  );
   await flushPromises();
   expect(setFavorite).toHaveBeenCalledTimes(1);
   wrapper.unmount();
@@ -676,11 +706,13 @@ it("favorites the built-in default by clearing the preference, preserves drafts,
   await flushPromises();
   expect(current(reloaded).text()).toBe("Default view");
   expect(
-    reloaded.get('[aria-label="Favorite view"]').attributes("aria-pressed")
+    (await favoriteAction(reloaded, '[aria-label="Favorite view"]')).attributes(
+      "aria-pressed"
+    )
   ).toBe("true");
   await openMenu(reloaded);
   const row = body()
-    .findAll('[role="menuitem"]')
+    .findAll(".yayaw-view-menu-item")
     .find((item) => item.text() === "Default view");
   expect(row?.find('[role="img"][aria-label="Favorite view"]').exists()).toBe(
     true
@@ -702,17 +734,79 @@ it("keeps the old favorite if clearing it fails and retries from the default vie
   await flushPromises();
   await openMenu(wrapper);
   await choose("Default view");
-  await wrapper.get('[aria-label="Use this view on arrival"]').trigger("click");
+  await (
+    await favoriteAction(wrapper, '[aria-label="Use this view on arrival"]')
+  ).trigger("click");
   await flushPromises();
   expect(wrapper.get('[role="alert"]').text()).toBe("Offline");
   expect(
-    wrapper
-      .get('[aria-label="Use this view on arrival"]')
-      .attributes("aria-pressed")
+    (
+      await favoriteAction(wrapper, '[aria-label="Use this view on arrival"]')
+    ).attributes("aria-pressed")
   ).toBe("false");
-  await wrapper.get('[aria-label="Use this view on arrival"]').trigger("click");
+  await (
+    await favoriteAction(wrapper, '[aria-label="Use this view on arrival"]')
+  ).trigger("click");
   await flushPromises();
   expect(
-    wrapper.get('[aria-label="Favorite view"]').attributes("aria-pressed")
+    (await favoriteAction(wrapper, '[aria-label="Favorite view"]')).attributes(
+      "aria-pressed"
+    )
   ).toBe("true");
+});
+
+it("compares legacy footer visibility and restores it without persisting the draft", async () => {
+  const update = vi.fn();
+  const wrapper = mountTable({
+    views: [saved],
+    active: saved.id,
+    table: { enableCalculations: true },
+    actions: { update },
+  });
+  await flushPromises();
+  expect((await saveButton(wrapper)).attributes("aria-disabled")).toBe("true");
+  const calculations = wrapper.get('[role="switch"]');
+  expect(calculations.attributes("aria-checked")).toBe("true");
+  await calculations.trigger("click");
+  expect((await saveButton(wrapper)).attributes("aria-disabled")).toBe("false");
+  await wrapper.get('[aria-label="Reset view"]').trigger("click");
+  await flushPromises();
+  expect(calculations.attributes("aria-checked")).toBe("true");
+  expect((await saveButton(wrapper)).attributes("aria-disabled")).toBe("true");
+  expect(update).not.toHaveBeenCalled();
+});
+
+it.each([
+  false,
+  true,
+])("removes added groups and restores density and saved filters on reset (saved: %s)", async (useSaved) => {
+  const filtered = {
+    ...saved,
+    config: { columnFilters: [{ id: "status", value: ["open"] }] },
+  };
+  const wrapper = mountTable({
+    views: [filtered],
+    active: useSaved ? filtered.id : undefined,
+  });
+  await flushPromises();
+  await openViewMenu(wrapper);
+  await wrapper.get(".yayaw-density-inline button").trigger("click");
+  await openViewScreen(wrapper, "Group");
+  await wrapper.get(".yayaw-options-content > button").trigger("click");
+  await flushPromises();
+  expect(wrapper.findAll("tbody tr.grouped").length).toBeGreaterThan(0);
+  await wrapper.get('[aria-label="Back"]').trigger("click");
+  await wrapper.get('[aria-label="Reset view"]').trigger("click");
+  await flushPromises();
+  expect(wrapper.findAll("tbody tr.grouped")).toHaveLength(0);
+  expect(wrapper.attributes("data-density")).toBe("medium");
+  expect(wrapper.get("tbody").text()).toContain("Alpha");
+  if (useSaved) {
+    expect(wrapper.get("tbody").text()).not.toContain("Beta");
+    expect((await saveButton(wrapper)).attributes("aria-disabled")).toBe(
+      "true"
+    );
+  } else {
+    expect(wrapper.get("tbody").text()).toContain("Beta");
+  }
 });

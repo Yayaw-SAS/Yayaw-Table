@@ -420,6 +420,10 @@ export function useTableInstance<TData extends Record<string, unknown>>({
   // Helper function to determine if a column should be visible by default
   const getDefaultColumnVisibility = useCallback(
     (column: ColumnDef<TData>, id: string): boolean => {
+      // Utility columns are supplied by their feature flags, not the data-column allowlist.
+      if (id === "select" || id === "actions") {
+        return true;
+      }
       // When a defaultVisibleColumns list is provided, only show listed columns
       if (defaultVisibleColumns && defaultVisibleColumns.length > 0) {
         return defaultVisibleColumns.includes(id);
@@ -532,8 +536,8 @@ export function useTableInstance<TData extends Record<string, unknown>>({
     ...tableOptionsRef.current,
     enableRowRangeSelection: false,
     enableRowSelection: enableRowSelectionOption,
-    // Keep grouped columns and move them to the start so group headers render in their own column
-    groupedColumnMode: "reorder",
+    // Group headers and leaf rows must keep the same selection/data column order.
+    groupedColumnMode: false,
     getRowId,
     // Explicitly allow expanding on rows that can expand (group headers)
     getRowCanExpand: (row) => {

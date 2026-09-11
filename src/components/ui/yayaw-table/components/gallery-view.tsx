@@ -1,16 +1,12 @@
 "use client";
 
-import { TableTooltip } from "../utils/table-tooltip";
-
-import type { Row, Table as TanStackTable } from "@/components/ui/yayaw-table/tanstack";
-import { flexRender } from "@/components/ui/yayaw-table/tanstack";
 import { ExternalLink, ImageIcon, Pencil } from "lucide-react";
-import {
-  type MouseEvent,
-  type ReactNode,
-  useMemo,
-  useState,
-} from "react";
+import { type MouseEvent, type ReactNode, useMemo, useState } from "react";
+import type {
+  Row,
+  Table as TanStackTable,
+} from "@/components/ui/yayaw-table/tanstack";
+import { flexRender } from "@/components/ui/yayaw-table/tanstack";
 import { cn } from "@/lib/utils";
 import { Button } from "@/src/components/ui/button";
 import type { TableCatalogueColumnConfig } from "../hooks/use-table-config";
@@ -24,6 +20,7 @@ import {
   getImageFallbackInitial,
   resolveImageSource,
 } from "../utils/image-source";
+import { TableTooltip } from "../utils/table-tooltip";
 
 const SYSTEM_COLUMN_IDS = new Set(["actions", "select"]);
 const EMPTY_GROUP_VALUE = "";
@@ -142,8 +139,8 @@ export function resolveGalleryImageColumnId({
   columnDefinitions: TableCatalogueColumnConfig[];
   config: TableGalleryConfig | undefined;
 }): string | undefined {
-  if (config?.imageColumn) {
-    return config.imageColumn;
+  if (config?.imageColumn !== undefined) {
+    return config.imageColumn || undefined;
   }
 
   return columnDefinitions.find((column) => column.type === "image")?.id;
@@ -291,8 +288,8 @@ function getColumnLabel(
   columnId: string
 ): string {
   return (
-    columnDefinitions.find((definition) => definition.id === columnId)?.header ??
-    columnId
+    columnDefinitions.find((definition) => definition.id === columnId)
+      ?.header ?? columnId
   );
 }
 
@@ -544,8 +541,10 @@ function DataTableGalleryCard<TData extends Record<string, unknown>>({
     <article
       className={cn(
         "group overflow-hidden rounded-md border bg-background shadow-xs transition",
-        isClickable && "cursor-pointer hover:border-primary/40 hover:bg-muted/20",
-        isActive && "border-primary/50 shadow-[inset_2px_0_0_hsl(var(--primary))]"
+        isClickable &&
+          "cursor-pointer hover:border-primary/40 hover:bg-muted/20",
+        isActive &&
+          "border-primary/50 shadow-[inset_2px_0_0_hsl(var(--primary))]"
       )}
       data-active={isActive ? "true" : undefined}
       onClick={
@@ -600,7 +599,10 @@ function DataTableGalleryCard<TData extends Record<string, unknown>>({
           />
           {actionsCell ? (
             <div className="shrink-0" data-column-id="actions">
-              {flexRender(actionsCell.column.columnDef.cell, actionsCell.getContext())}
+              {flexRender(
+                actionsCell.column.columnDef.cell,
+                actionsCell.getContext()
+              )}
             </div>
           ) : null}
         </div>
@@ -662,7 +664,9 @@ export function DataTableGalleryView<TData extends Record<string, unknown>>({
   );
 
   if (rows.length === 0) {
-    return emptyState ? <div className="rounded-md border">{emptyState}</div> : null;
+    return emptyState ? (
+      <div className="rounded-md border">{emptyState}</div>
+    ) : null;
   }
 
   const renderCard = (row: Row<TData>) => {
@@ -677,9 +681,9 @@ export function DataTableGalleryView<TData extends Record<string, unknown>>({
         imageFit={resolvedConfig.imageFit}
         isActive={isRowActive?.(row) ?? false}
         isClickable={isRowClickable?.(row) ?? false}
+        key={row.id}
         linkRowLabel={linkRowLabel}
         linkUrl={getRowLinkUrl?.(row)}
-        key={row.id}
         onEditRow={onEditRow}
         onOpenRowLink={onOpenRowLink}
         onRowClick={onRowClick}

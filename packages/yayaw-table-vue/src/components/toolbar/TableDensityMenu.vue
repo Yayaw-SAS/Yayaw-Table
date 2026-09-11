@@ -15,6 +15,7 @@ import { computed } from "vue";
 import { useTableContext } from "../../context";
 import { isTableDensity, TABLE_DENSITY_OPTIONS } from "../../table-contracts";
 
+const props = defineProps<{ inline?: boolean }>();
 const context = useTableContext();
 const label = computed(() => String(context.translations.value.density ?? "Table density"));
 const size = computed(() => TABLE_DENSITY_OPTIONS.find(
@@ -28,7 +29,12 @@ const setDensity = (value: unknown): void => {
 </script>
 
 <template>
-  <DropdownMenuRoot :modal="false">
+  <fieldset v-if="props.inline" class="yayaw-density-inline yayaw-choice-inline">
+    <legend>{{ label }}</legend><div class="yayaw-segmented">
+      <button v-for="option in TABLE_DENSITY_OPTIONS" :key="option.value" type="button" :aria-pressed="context.state.density.value === option.value" :class="{ active: context.state.density.value === option.value }" @click="setDensity(option.value)">{{ option.label }}</button>
+    </div>
+  </fieldset>
+  <DropdownMenuRoot v-else :modal="false">
     <TableTooltip :label="`${label}: ${size}`">
       <DropdownMenuTrigger as-child>
         <button

@@ -1,32 +1,27 @@
 <script setup lang="ts">
 import TableTooltip from "./TableTooltip.vue";
 import {
-  ArrowLeft,
+  FunnelX,
+  MoreHorizontal,
   ArrowDownAZ,
   Calculator,
   Columns3,
   Images,
   Table2,
   ChevronRight,
-  Download,
   Layers,
   List,
   ListFilter,
   Plus,
-  RotateCcw,
-  SlidersHorizontal,
   X,
 } from "lucide-vue-next";
 import {
   computed,
   nextTick,
-  onBeforeUnmount,
-  onMounted,
   ref,
   watch,
 } from "vue";
 import { useTableContext } from "../../context";
-import { newFilter } from "../../filter-config";
 import { downloadCsv, exportColumns } from "../../core";
 import type {
   ColumnDefinition,
@@ -40,6 +35,13 @@ import SavedViews from "./SavedViews.vue";
 import OptionFilter from "../filters/OptionFilter.vue";
 import { filterBarColumns } from "../../filter-bar";
 import TableDensityMenu from "./TableDensityMenu.vue";
+import ToolbarMenu from "./ToolbarMenu.vue";
+import ToolbarDataActions from "./ToolbarDataActions.vue";
+import GallerySettings from "./GallerySettings.vue";
+import KanbanSettings from "./KanbanSettings.vue";
+import AdvancedFilters from "../filters/AdvancedFilters.vue";
+import { useToolbarLayout } from "../../composables/use-toolbar-layout";
+import { getViewModeCapabilities, sharePageUrl } from "../../view-menu";
 
 const props = defineProps<{
   enableAdvancedFilters: boolean;
@@ -47,9 +49,13 @@ const props = defineProps<{
   toolbarActionsPlacement?: ToolbarActionsPlacement;
 }>();
 const context = useTableContext();
-type OptionsView = "columns" | "filters" | "group" | "main" | "sort";
+type OptionsView = "columns" | "filters" | "group" | "main" | "sort" | "cards";
+const { compact, mobile } = useToolbarLayout();
+const actionsOpen = ref(false);
+const capabilities = computed(() => getViewModeCapabilities(context.state.displayMode.value));
 
 const optionsRoot = ref<HTMLElement>();
+const advancedFiltersPanel = ref<InstanceType<typeof AdvancedFilters>>();
 const optionsOpen = ref(false);
 const optionsView = ref<OptionsView>("main");
 const pendingAction = ref<string>();
@@ -75,13 +81,6 @@ const dataColumns = computed(() =>
     (column) => column.id !== "select" && column.type !== "actions"
   )
 );
-const hideableColumns = computed(() =>
-  dataColumns.value.filter(
-    (column) =>
-      column.enableHiding !== false &&
-      !context.config.columns.mandatory.includes(column.id)
-  )
-);
 const filterableColumns = computed(() =>
   dataColumns.value.filter((column) => column.enableFiltering !== false)
 );
@@ -101,11 +100,6 @@ const visibleColumnCount = computed(
 const columnDndFeatureEnabled = computed(
   () => context.config.table.enableColumnDnd !== false
 );
-const defaultColumnDragEnabled = computed(
-  () =>
-    columnDndFeatureEnabled.value &&
-    context.config.table.enableColumnDragDropByDefault
-);
 const activeFilterCount = computed(
   () =>
     context.state.filters.value.length +
@@ -113,45 +107,11 @@ const activeFilterCount = computed(
       (filter) => filter.isActive !== false
     ).length
 );
-const activeOptionCount = computed(
-  () =>
-    (context.config.table.enableColumnFilters ? activeFilterCount.value : 0) +
-    (context.config.table.enableSorting
-      ? context.state.sorting.value.length
-      : 0)
-);
-const hasHiddenColumns = computed(() =>
-  dataColumns.value.some(
-    (column) => context.state.visibility.value[column.id] === false
-  )
-);
-const hasAnythingToReset = computed(
-  () =>
-    (context.config.table.enableColumnFilters && activeFilterCount.value > 0) ||
-    (context.config.table.enableSorting &&
-      context.state.sorting.value.length > 0) ||
-    (context.config.table.enableGrouping &&
-      context.state.grouping.value.length > 0) ||
-    hasHiddenColumns.value ||
-    (columnDndFeatureEnabled.value &&
-      context.state.columnDragEnabled.value !== defaultColumnDragEnabled.value)
-);
-const hasAnyMenuSection = computed(
-  () =>
-    hideableColumns.value.length > 0 ||
-    columnDndFeatureEnabled.value ||
-    (context.config.table.enableColumnFilters &&
-      (filterableColumns.value.length > 0 || props.enableAdvancedFilters)) ||
-    (context.config.table.enableSorting && sortableColumns.value.length > 0) ||
-    (context.config.table.enableGrouping &&
-      groupableColumns.value.length > 0) ||
-    context.config.table.enableCalculations
-);
 const maxGroupingCount = computed(() =>
-  context.state.displayMode.value === "table" ? 2 : 1
+  capabilities.value.maxGroups
 );
 const actionsAsIcons = computed(
-  () => context.config.table.actionsAsIcons === true
+  () => context.config.table.actionsAsIcons === true && !compact.value
 );
 const selectedIds = computed(() =>
   Object.keys(context.selection.value).filter(
@@ -174,8 +134,7 @@ const actionContext = computed<ToolbarActionContext>(() => ({
   isFooterCalculationsEnabled:
     context.config.table.enableCalculations === true,
   isMobile:
-    typeof window !== "undefined" &&
-    window.matchMedia?.("(max-width: 767px)").matches === true,
+    compact.value,
   refresh: context.refresh,
   selectedCount: context.selectedRows.value.length,
   selectedIds: selectedIds.value,
@@ -274,20 +233,8 @@ const toolbarActionVariant = (action: ToolbarAction): string => {
 const focusOptions = async (): Promise<void> => {
   await nextTick();
   optionsRoot.value
-    ?.querySelector<HTMLElement>(".yayaw-options-menu button:not(:disabled)")
+    ?.querySelector<HTMLElement>("button:not(:disabled), input, select")
     ?.focus();
-};
-const openOptions = async (): Promise<void> => {
-  optionsView.value = "main";
-  optionsOpen.value = !optionsOpen.value;
-  if (optionsOpen.value) await focusOptions();
-};
-const closeOptions = (restoreFocus = true): void => {
-  const wasOpen = optionsOpen.value;
-  optionsOpen.value = false;
-  optionsView.value = "main";
-  if (restoreFocus && wasOpen)
-    document.getElementById(`table-options-${context.config.id}`)?.focus();
 };
 watch(optionsView, async () => {
   if (optionsOpen.value) await focusOptions();
@@ -301,7 +248,9 @@ watch(
     optionsView.value = request.view;
     optionsOpen.value = true;
     await focusOptions();
-    if (request.columnId) {
+    if (request.columnId && props.enableAdvancedFilters && request.view === "filters") {
+      await advancedFiltersPanel.value?.add(request.columnId);
+    } else if (request.columnId) {
       const columnId = request.columnId;
       setTimeout(() => {
         const field = Array.from(
@@ -315,38 +264,14 @@ watch(
     context.optionsRequest.value = undefined;
   }
 );
-const handleDocumentPointer = (event: PointerEvent): void => {
-  if ((event.target as Element).closest?.("[data-yayaw-filter-picker]")?.getAttribute("data-yayaw-filter-picker") === context.config.id) return;
-  if (!optionsRoot.value?.contains(event.target as Node)) {
-    closeOptions(false);
-  }
-};
-const handleDocumentKey = (event: KeyboardEvent): void => {
-  if (event.key === "Escape") {
-    closeOptions();
-  }
-};
-onMounted(() => {
-  document.addEventListener("pointerdown", handleDocumentPointer);
-  document.addEventListener("keydown", handleDocumentKey);
-});
-onBeforeUnmount(() => {
-  document.removeEventListener("pointerdown", handleDocumentPointer);
-  document.removeEventListener("keydown", handleDocumentKey);
-});
-
 const addAdvancedFilter = async (): Promise<void> => {
-  const column = filterableColumns.value[0];
-  if (!column) return;
-  const filter = newFilter(column);
-  context.state.advancedFilters.value = {
-    ...context.state.advancedFilters.value,
-    filters: [...context.state.advancedFilters.value.filters, filter],
-  };
-  closeOptions();
-  await nextTick();
-  document.getElementById(`filter-column-${filter.id}`)?.focus();
+  await advancedFiltersPanel.value?.add();
 };
+const panelFilterColumns = computed(() => props.enableAdvancedFilters
+  ? filterableColumns.value.filter((column) =>
+    (compact.value && quickFilterIds.value.has(column.id)) ||
+    context.state.filters.value.some((filter) => filter.id === column.id))
+  : filterableColumns.value);
 const setColumnFilter = (columnId: string, value: unknown): void => {
   const otherFilters = context.state.filters.value.filter(
     (filter) => filter.id !== columnId
@@ -428,19 +353,6 @@ const removeGrouping = (index: number): void => {
     (_, itemIndex) => itemIndex !== index
   );
 };
-const resetOptions = (): void => {
-  context.state.filters.value = [];
-  context.state.advancedFilters.value = { filters: [], joinOperator: "and" };
-  context.state.sorting.value = context.config.columns.sort ?? [];
-  context.state.grouping.value = [];
-  context.state.visibility.value = Object.fromEntries(
-    dataColumns.value.map((column) => [
-      column.id,
-      context.config.columns.visible.includes(column.id),
-    ])
-  );
-  context.state.columnDragEnabled.value = defaultColumnDragEnabled.value;
-};
 const runAction = async (action: ToolbarAction): Promise<void> => {
   const callback = action.onClick ?? action.handler;
   if (!callback || toolbarActionDisabled(action)) {
@@ -482,24 +394,31 @@ const exportRows = async (): Promise<void> => {
     isExporting.value = false;
   }
 };
+const dataItems = computed(() => toolbarItems.value.filter(item => item.kind !== "create"));
+const shareLink = async () => {
+  try {
+    const result = await sharePageUrl(window.location.href, mobile.value);
+    if (result === "copied") context.status.value = { type: "success", message: translate("url_state.link_copied", "Link copied to clipboard") };
+  } catch {
+    context.status.value = { type: "error", message: translate("actions.shareError", "Unable to share the link") };
+  }
+};
+watch(optionsOpen, open => { if (!open) optionsView.value = "main"; });
+watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: true });
 </script>
 
 <template>
-  <div class="yayaw-toolbar">
-    <div class="yayaw-toolbar-row">
-      <div class="yayaw-toolbar-left">
-        <SavedViews
-          v-if="context.config.table.enableViews"
-          :initial-views="initialViews"
-        />
-        <div
-          v-if="modes.length > 1"
-          class="yayaw-segmented"
-          role="group"
-          :aria-label="translate('displayMode', 'Display mode')"
-        >
-          <TableTooltip v-for="mode in modes" :key="mode" :label="translate(`display.${mode}`, mode)">
+  <div ref="toolbarRoot" class="yayaw-toolbar" :data-compact="compact" data-table-toolbar>
+    <SavedViews :initial-views="initialViews" :enabled="context.config.table.enableViews" :compact="compact" v-model:open="optionsOpen"
+      :panel="optionsView !== 'main'" :panel-title="translate(optionsView === 'columns' ? 'properties' : optionsView === 'cards' ? 'views.cardSettings' : optionsView, optionsView)"
+      @back="optionsView = 'main'">
+      <template #settings><div ref="optionsRoot">
+        <fieldset v-if="modes.length > 1" class="yayaw-display-mode-inline yayaw-choice-inline">
+          <legend>{{ translate('displayMode', 'Display mode') }}</legend>
+          <div class="yayaw-segmented">
             <button
+              v-for="mode in modes"
+              :key="mode"
               type="button"
               :class="{ active: displayMode === mode }"
               :aria-pressed="displayMode === mode"
@@ -508,89 +427,12 @@ const exportRows = async (): Promise<void> => {
               <component :is="displayModeIcons[mode]" :size="16" aria-hidden="true" />
               <span>{{ translate(`display.${mode}`, mode) }}</span>
             </button>
-          </TableTooltip>
-        </div>
-      </div>
-
-      <div class="yayaw-toolbar-right">
-        <input
-          v-model="search"
-          type="search"
-          class="yayaw-input yayaw-search"
-          :placeholder="String(context.translations.value.search)"
-          :aria-label="String(context.translations.value.search)"
-        />
-
-        <TableDensityMenu v-if="displayMode === 'table'" />
-
-        <div v-if="hasAnyMenuSection" ref="optionsRoot" class="yayaw-options-root">
-          <TableTooltip
-            :label="actionsAsIcons ? translate('options', 'Options') : undefined"
-          >
-            <button
-              type="button"
-              class="yayaw-button yayaw-button-outline"
-              :class="{ 'yayaw-icon-only': actionsAsIcons }"
-              :aria-label="translate('options', 'Options')"
-              :aria-expanded="optionsOpen"
-              aria-haspopup="dialog"
-              :id="`table-options-${context.config.id}`"
-              @click="openOptions"
-            >
-              <SlidersHorizontal :size="16" aria-hidden="true" />
-              <span v-if="!actionsAsIcons">{{ translate("options", "Options") }}</span>
-              <span
-                v-if="activeOptionCount"
-                class="yayaw-options-trigger-count"
-                :class="{ 'yayaw-options-trigger-count-icon': actionsAsIcons }"
-                >{{ activeOptionCount }}</span
-              >
-            </button>
-          </TableTooltip>
-
-          <section
-            v-if="optionsOpen"
-            class="yayaw-options-menu"
-            role="dialog"
-            :aria-label="translate('options', 'Options')"
-          >
-            <header class="yayaw-options-header">
-              <button
-                v-if="optionsView !== 'main'"
-                type="button"
-                class="yayaw-icon-button"
-                :aria-label="translate('back', 'Back')"
-                @click="optionsView = 'main'"
-              >
-                <ArrowLeft :size="16" aria-hidden="true" />
-              </button>
-              <strong>{{ optionsView === "main" ? "Menu" : translate(optionsView === "columns" ? "properties" : optionsView, optionsView) }}</strong>
-              <TableTooltip
-                :label="translate('reset', 'Reset')"
-                v-if="hideableColumns.length || columnDndFeatureEnabled"
-              >
-                <button
-                  type="button"
-                  class="yayaw-icon-button"
-                  :disabled="!hasAnythingToReset"
-                  :aria-label="translate('reset', 'Reset')"
-                  @click="resetOptions"
-                >
-                  <RotateCcw :size="16" aria-hidden="true" />
-                </button>
-              </TableTooltip>
-              <button
-                type="button"
-                class="yayaw-icon-button"
-                :aria-label="translate('close', 'Close')"
-                @click="closeOptions()"
-              >
-                <X :size="16" aria-hidden="true" />
-              </button>
-            </header>
-
+          </div>
+        </fieldset>
+        <TableDensityMenu v-if="capabilities.density" inline />
             <div v-if="optionsView === 'main'" class="yayaw-options-list">
               <button
+                v-if="capabilities.columns"
                 type="button"
                 class="yayaw-options-item"
                 @click="optionsView = 'columns'"
@@ -598,7 +440,6 @@ const exportRows = async (): Promise<void> => {
                 <span class="yayaw-options-item-icon"><List :size="16" aria-hidden="true" /></span>
                 <span class="yayaw-options-item-copy">
                   <span>{{ translate("properties", "Properties") }}</span>
-                  <small>{{ visibleColumnCount }} {{ translate("visible", "visible") }}</small>
                 </span>
                 <span class="yayaw-options-item-end">
                   <span class="yayaw-options-item-count">{{ visibleColumnCount }}</span>
@@ -613,7 +454,6 @@ const exportRows = async (): Promise<void> => {
                 <span class="yayaw-options-item-icon"><ListFilter :size="16" aria-hidden="true" /></span>
                 <span class="yayaw-options-item-copy">
                   <span>{{ translate("filters", "Filters") }}</span>
-                  <small v-if="activeFilterCount">{{ activeFilterCount }} {{ translate("active", "active") }}</small>
                 </span>
                 <span class="yayaw-options-item-end">
                   <span v-if="activeFilterCount" class="yayaw-options-item-count">{{ activeFilterCount }}</span>
@@ -629,7 +469,6 @@ const exportRows = async (): Promise<void> => {
                 <span class="yayaw-options-item-icon"><ArrowDownAZ :size="16" aria-hidden="true" /></span>
                 <span class="yayaw-options-item-copy">
                   <span>{{ translate("sort", "Sort") }}</span>
-                  <small v-if="context.state.sorting.value.length">{{ context.state.sorting.value.length }} {{ translate("active", "active") }}</small>
                 </span>
                 <span class="yayaw-options-item-end">
                   <span v-if="context.state.sorting.value.length" class="yayaw-options-item-count">{{ context.state.sorting.value.length }}</span>
@@ -645,7 +484,6 @@ const exportRows = async (): Promise<void> => {
                 <span class="yayaw-options-item-icon"><Layers :size="16" aria-hidden="true" /></span>
                 <span class="yayaw-options-item-copy">
                   <span>{{ translate("group", "Group") }}</span>
-                  <small v-if="context.state.grouping.value.length">{{ context.state.grouping.value.length }} {{ translate("active", "active") }}</small>
                 </span>
                 <span class="yayaw-options-item-end">
                   <span v-if="context.state.grouping.value.length" class="yayaw-options-item-count">{{ context.state.grouping.value.length }}</span>
@@ -653,7 +491,7 @@ const exportRows = async (): Promise<void> => {
                 </span>
               </button>
               <button
-                v-if="context.config.table.enableCalculations"
+                v-if="capabilities.calculations && context.config.table.enableCalculations"
                 type="button"
                 class="yayaw-options-item"
                 role="switch"
@@ -663,13 +501,16 @@ const exportRows = async (): Promise<void> => {
                 <span class="yayaw-options-item-icon"><Calculator :size="16" aria-hidden="true" /></span>
                 <span class="yayaw-options-item-copy">
                   <span>{{ translate("calculations", "Footer calculations") }}</span>
-                  <small>{{ context.footerCalculationsVisible.value ? translate("calculationsOn", "Shown") : translate("calculationsOff", "Hidden") }}</small>
                 </span>
-                <span class="yayaw-options-item-end" />
+                <span class="yayaw-options-item-end">{{ context.footerCalculationsVisible.value ? translate("calculationsOn", "Shown") : translate("calculationsOff", "Hidden") }}</span>
               </button>
+              <button v-if="!capabilities.columns" type="button" class="yayaw-options-item" @click="optionsView = 'cards'"><List :size="16" /><span>{{ translate('views.cardSettings', 'Card settings') }}</span><ChevronRight :size="16" /></button>
             </div>
 
-            <div v-else-if="optionsView === 'columns'" class="yayaw-options-content">
+
+      </div></template>
+      <template #panel><div ref="optionsRoot">
+            <div v-if="optionsView === 'columns'" class="yayaw-options-content">
               <label
                 v-for="column in dataColumns"
                 :key="column.id"
@@ -697,8 +538,10 @@ const exportRows = async (): Promise<void> => {
             </div>
 
             <div v-else-if="optionsView === 'filters'" class="yayaw-options-content">
+              <button v-if="[context.config.table.showClearFilters, context.config.table.showResetFilters].includes(true)" type="button" class="yayaw-button yayaw-button-outline" :aria-label="translate('clearFilters', 'Clear filters')" @click="context.state.resetFilters(); advancedFiltersPanel?.clearDrafts()"><FunnelX :size="16" />{{ translate('clearFilters', 'Clear filters') }}</button>
+              <AdvancedFilters v-if="props.enableAdvancedFilters" ref="advancedFiltersPanel" />
               <div
-                v-for="column in filterableColumns"
+                v-for="column in panelFilterColumns"
                 :key="column.id"
                 class="yayaw-field-inline"
                 :data-filter-column="column.id"
@@ -789,9 +632,10 @@ const exportRows = async (): Promise<void> => {
               </button>
             </div>
 
+            <div v-else-if="optionsView === 'cards'" class="yayaw-options-content"><KanbanSettings v-if="capabilities.kanban" /><GallerySettings v-else-if="capabilities.gallery" /></div>
             <div v-else class="yayaw-options-content">
               <div
-                v-for="(columnId, index) in context.state.grouping.value"
+                v-for="(columnId, index) in context.state.grouping.value.slice(0, maxGroupingCount)"
                 :key="`${columnId}-${index}`"
                 class="yayaw-options-rule"
               >
@@ -829,101 +673,24 @@ const exportRows = async (): Promise<void> => {
               </button>
             </div>
 
-          </section>
-        </div>
-
-        <TableTooltip
-          :label="translate('clearFilters', 'Clear filters')"
-          v-if="
-            [
-              context.config.table.showResetFilters,
-              context.config.table.showClearFilters,
-            ].includes(true)
-          "
-        >
-          <button
-            type="button"
-            class="yayaw-button yayaw-button-outline yayaw-icon-only"
-            :aria-label="translate('clearFilters', 'Clear filters')"
-            @click="context.state.resetFilters()"
-          >
-            <RotateCcw :size="16" aria-hidden="true" />
-          </button>
-        </TableTooltip>
-
-        <template v-for="item in toolbarItems" :key="item.key">
-          <TableTooltip
-            :label="
-              actionsAsIcons
-                ? (item.action.tooltip ?? item.action.label)
-                : item.action.tooltip
-            "
-            v-if="item.kind === 'action'"
-          >
-            <button
-              type="button"
-              class="yayaw-button"
-              :class="[
-                toolbarActionVariant(item.action),
-                { 'yayaw-icon-only': actionsAsIcons },
-              ]"
-              :disabled="toolbarActionDisabled(item.action)"
-              :aria-label="actionsAsIcons ? item.action.label : undefined"
-              @click="runAction(item.action)"
-            >
-              <span
-                v-if="pendingAction === item.action.id || item.action.loading"
-                class="yayaw-spinner"
-                aria-hidden="true"
-              />
-              <component
-                v-else-if="item.action.icon"
-                :is="item.action.icon"
-                :size="16"
-                aria-hidden="true"
-              />
-              <span v-else-if="actionsAsIcons" aria-hidden="true">{{
-                item.action.label.slice(0, 1)
-              }}</span>
-              <span v-if="!actionsAsIcons">{{ item.action.label }}</span>
-            </button>
-          </TableTooltip>
-
-          <TableTooltip
-            :label="actionsAsIcons ? translate('create', 'Create') : undefined"
-            v-else-if="item.kind === 'create'"
-          >
-            <button
-              type="button"
-              class="yayaw-button"
-              :class="{ 'yayaw-icon-only': actionsAsIcons }"
-              :aria-label="translate('create', 'Create')"
-              @click="context.openCreate"
-            >
-              <Plus :size="16" aria-hidden="true" />
-              <span v-if="!actionsAsIcons">{{ translate("create", "Create") }}</span>
-            </button>
-          </TableTooltip>
-
-          <TableTooltip
-            :label="actionsAsIcons ? translate('export', 'Export') : undefined"
-            v-else
-          >
-            <button
-              type="button"
-              class="yayaw-button yayaw-button-outline"
-              :class="{ 'yayaw-icon-only': actionsAsIcons }"
-              :aria-label="translate('export', 'Export')"
-              :disabled="isExporting"
-              :aria-busy="isExporting"
-              @click="exportRows"
-            >
-              <Download :size="16" aria-hidden="true" />
-              <span v-if="!actionsAsIcons">{{ translate("export", "Export") }}</span>
-            </button>
-          </TableTooltip>
-        </template>
-      </div>
-    </div>
+      </div></template>
+    </SavedViews>
+    <template v-if="compact">
+      <button v-if="isCreateEnabled" type="button" class="yayaw-button yayaw-icon-only" :aria-label="translate('create', 'Create')" @click="context.openCreate"><Plus :size="16" /></button>
+      <ToolbarMenu v-model:open="actionsOpen" compact :title="translate('actions.dataActions', 'Data actions')" :close-label="translate('close', 'Close')">
+        <template #trigger><button type="button" class="yayaw-button yayaw-button-outline yayaw-icon-only" :aria-label="translate('actions.dataActions', 'Data actions')"><MoreHorizontal :size="16" /></button></template>
+<ToolbarDataActions :show-search="context.config.table.enableColumnFilters !== false" :items="dataItems" :actions-as-icons="actionsAsIcons" :compact="compact" v-model:search="search"
+  :search-label="translate('search', 'Search…')" :export-label="translate('export', 'Export')" :share-label="translate('url_state.share', 'Share')"
+  :pending-action="pendingAction" :is-exporting="isExporting" :disabled="toolbarActionDisabled" :variant="toolbarActionVariant"
+  @action="runAction" @export="exportRows" @share="shareLink" />
+      </ToolbarMenu>
+    </template>
+    <template v-else>
+<ToolbarDataActions :show-search="context.config.table.enableColumnFilters !== false" :items="dataItems" :actions-as-icons="actionsAsIcons" :compact="compact" v-model:search="search"
+  :search-label="translate('search', 'Search…')" :export-label="translate('export', 'Export')" :share-label="translate('url_state.share', 'Share')"
+  :pending-action="pendingAction" :is-exporting="isExporting" :disabled="toolbarActionDisabled" :variant="toolbarActionVariant"
+  @action="runAction" @export="exportRows" @share="shareLink" />
+      <TableTooltip v-if="isCreateEnabled" :label="translate('create', 'Create')"><button type="button" class="yayaw-button" :class="{ 'yayaw-icon-only': actionsAsIcons }" :aria-label="translate('create', 'Create')" @click="context.openCreate"><Plus :size="16" /><span v-if="!actionsAsIcons">{{ translate('create', 'Create') }}</span></button></TableTooltip>
+    </template>
   </div>
 </template>

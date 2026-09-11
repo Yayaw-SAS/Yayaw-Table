@@ -1,3 +1,11 @@
+import {
+  inlineTestPortals,
+  openViewMenu,
+  openViewScreen,
+} from "../../../tests/menu-helpers";
+
+inlineTestPortals();
+
 const CONTROL_HEIGHT_PATTERN =
   /\.yayaw-views \.yayaw-button,\s*\.yayaw-filter-bar \.yayaw-button\s*\{[^}]*height: 32px/;
 
@@ -108,7 +116,7 @@ it("shares typed multi-selection with Options, retains hidden-column filters whe
   await flushPromises();
   await wrapper.setProps({ showFilterBar: false });
   expect(wrapper.find(".yayaw-filter-bar").exists()).toBe(false);
-  await wrapper.get('[aria-label="Options"]').trigger("click");
+  await openViewMenu(wrapper);
   await flushPromises();
   const filterMenu = wrapper
     .findAll("button")
@@ -142,6 +150,7 @@ it("shares typed multi-selection with Options, retains hidden-column filters whe
     new KeyboardEvent("keydown", { key: "Escape", bubbles: true })
   );
   await flushPromises();
+  await openViewScreen(wrapper, "Filters");
   await wrapper.get('[aria-label="Clear filters"]').trigger("click");
   await flushPromises();
   expect(list).toHaveBeenLastCalledWith(

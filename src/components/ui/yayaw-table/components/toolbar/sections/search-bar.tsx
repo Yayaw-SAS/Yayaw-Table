@@ -7,16 +7,19 @@ import { useTableUrlState } from "../../../hooks/use-table-url-state";
 import { useTranslations } from "../../../providers/table-provider";
 
 const SearchBar = ({
+  alwaysExpanded = false,
   placeholder,
   tableId = "default",
   debounceMs = 300,
 }: {
+  alwaysExpanded?: boolean;
   placeholder: string;
   tableId?: string;
   debounceMs?: number;
 }) => {
   const { t } = useTranslations();
-  const isMobile = useIsMobile();
+  const mobileViewport = useIsMobile();
+  const isMobile = mobileViewport && !alwaysExpanded;
   const { globalSearchParam, setGlobalSearchFromUI } = useTableUrlState({
     tableId,
   });
@@ -133,7 +136,7 @@ const SearchBar = ({
     <div className="relative">
       <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
       <Input
-        className="h-8 w-40 pr-8 pl-9 text-xs leading-4 md:text-xs sm:w-64"
+        className="h-8 w-40 pr-8 pl-9 text-xs leading-4 sm:w-64 md:text-xs"
         onChange={(e) => {
           // Capture focus and caret before any potential remount
           wasFocusedRef.current = document.activeElement === inputRef.current;

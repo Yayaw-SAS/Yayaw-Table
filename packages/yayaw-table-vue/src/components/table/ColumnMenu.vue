@@ -3,12 +3,14 @@ import TableTooltip from "../toolbar/TableTooltip.vue";
 import type { Column } from "../../tanstack";
 import { ArrowDown, ArrowLeftToLine, ArrowRightToLine, ArrowUp, ArrowUpDown, EyeOff, Funnel, GripVertical, MoreHorizontal, PinOff } from "lucide-vue-next";
 import { DropdownMenuContent, DropdownMenuItem, DropdownMenuPortal, DropdownMenuRoot, DropdownMenuSeparator, DropdownMenuTrigger } from "reka-ui";
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { useTableContext } from "../../context";
 import type { TableRecord } from "../../types";
 
 const props = defineProps<{ column: Column<TableRecord> }>();
 const context = useTableContext();
+// Keep the popper anchored to the button when composed with its tooltip.
+const trigger = ref<HTMLButtonElement>();
 const label = computed(() => context.config.columns.definitions.find(column => column.id === props.column.id)?.header ?? props.column.id);
 const columnDndFeatureEnabled = computed(() => context.config.table.enableColumnDnd !== false);
 const available = computed(() => !["select", "actions"].includes(props.column.id) && (props.column.getCanSort() || props.column.getCanFilter() || props.column.getCanHide() || props.column.getCanPin() || columnDndFeatureEnabled.value));
@@ -35,6 +37,7 @@ const restoreMenuFocus = (event: Event): void => {
     <TableTooltip :label="translate('columnOptions')">
       <DropdownMenuTrigger as-child>
         <button
+          ref="trigger"
           type="button"
           class="yayaw-column-menu-trigger"
           :aria-label="`${translate('columnOptions')}: ${label}`"
@@ -46,7 +49,7 @@ const restoreMenuFocus = (event: Event): void => {
       </DropdownMenuTrigger>
     </TableTooltip>
     <DropdownMenuPortal>
-      <DropdownMenuContent class="yayaw-column-menu" :aria-label="`${translate('columnOptions')}: ${label}`" align="start" :side-offset="4" @click.stop @close-auto-focus="restoreMenuFocus">
+      <DropdownMenuContent :reference="trigger" class="yayaw-column-menu" :aria-label="`${translate('columnOptions')}: ${label}`" align="start" :side-offset="4" @click.stop @close-auto-focus="restoreMenuFocus">
         <template v-if="column.getCanSort()">
           <DropdownMenuItem class="yayaw-column-menu-item" @select="column.toggleSorting(false)"><ArrowUp :size="16" aria-hidden="true" />{{ translate('ascending') }}</DropdownMenuItem>
           <DropdownMenuItem class="yayaw-column-menu-item" @select="column.toggleSorting(true)"><ArrowDown :size="16" aria-hidden="true" />{{ translate('descending') }}</DropdownMenuItem>

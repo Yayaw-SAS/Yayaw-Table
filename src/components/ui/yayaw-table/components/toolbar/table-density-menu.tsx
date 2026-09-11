@@ -1,7 +1,5 @@
 "use client";
 
-import { TableTooltip } from "../../utils/table-tooltip";
-
 import { useAtom } from "jotai";
 import { Rows3 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
@@ -15,19 +13,22 @@ import {
   DropdownMenuTrigger,
 } from "@/src/components/ui/dropdown-menu";
 import { tableDensityAtom } from "../../atoms/table-atoms";
-import { useTranslations } from "../../providers/table-provider";
 import { useTableUrlState } from "../../hooks/use-table-url-state";
+import { useTranslations } from "../../providers/table-provider";
 import type { TableDensity, TableDisplayMode } from "../../types/display-types";
 import {
   isTableDensity,
   TABLE_DENSITY_OPTIONS,
 } from "../../utils/table-contracts";
+import { TableTooltip } from "../../utils/table-tooltip";
 
 export function TableDensityMenu({
+  inline = false,
   defaultDensity = "medium",
   defaultDisplayMode,
   tableId,
 }: {
+  inline?: boolean;
   defaultDensity?: TableDensity;
   defaultDisplayMode?: TableDisplayMode;
   tableId: string;
@@ -47,6 +48,27 @@ export function TableDensityMenu({
 
   if (displayModeParam !== "table") {
     return null;
+  }
+
+  if (inline) {
+    return (
+      <fieldset className="flex flex-wrap items-center gap-1">
+        <legend className="mb-1 text-muted-foreground text-sm">{label}</legend>
+        {TABLE_DENSITY_OPTIONS.map((option) => (
+          <Button
+            aria-pressed={density === option.value}
+            className="min-w-9 flex-1"
+            key={option.value}
+            onClick={() => setDensity(option.value)}
+            size="sm"
+            type="button"
+            variant={density === option.value ? "secondary" : "ghost"}
+          >
+            {option.label}
+          </Button>
+        ))}
+      </fieldset>
+    );
   }
 
   return (

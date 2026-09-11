@@ -15,10 +15,11 @@ import type { AdvancedFiltersState } from "../types/filter-types";
 import type { TableViewConfig } from "../types/view-types";
 import {
   isTableDensity,
-  normalizeFilterEnvelope,
   normalizeColumnSizing,
+  normalizeFilterEnvelope,
   normalizeViewAliases,
 } from "./table-contracts";
+import { areViewSettingsEqual } from "./view-menu";
 
 const EMPTY_PINNING: ColumnPinningState = { left: [], right: [] };
 const SINGLE_GROUP_DISPLAY_MODES = new Set<TableDisplayMode>([
@@ -182,8 +183,8 @@ function normalizeGalleryViewConfig(
   const imageFit = normalizeGalleryImageFit(config.imageFit);
   const cardSize = normalizeGalleryCardSize(config.cardSize);
 
-  if (imageColumn) {
-    normalized.imageColumn = imageColumn;
+  if (typeof config.imageColumn === "string") {
+    normalized.imageColumn = imageColumn ?? "";
   }
   if (titleColumn) {
     normalized.titleColumn = titleColumn;
@@ -219,6 +220,10 @@ export function normalizeColumnPinning(
   return { left, right };
 }
 
+function normalizeFooterVisibility(value: unknown): TableViewConfig {
+  return typeof value === "boolean" ? { footerCalculationsVisible: value } : {};
+}
+
 function normalizeViewDensity(
   density: TableViewConfig["density"]
 ): TableViewConfig {
@@ -232,6 +237,10 @@ export function normalizeTableViewConfig(
   config.advancedFilters = normalizeFilterEnvelope(config.advancedFilters)
     .filters as unknown as AdvancedFiltersState;
   const normalized: TableViewConfig = normalizeViewDensity(config.density);
+  Object.assign(
+    normalized,
+    normalizeFooterVisibility(config.footerCalculationsVisible)
+  );
   const advancedFilters = hasArrayValues(config.advancedFilters)
     ? (config.advancedFilters as AdvancedFiltersState)
     : undefined;
@@ -251,10 +260,7 @@ export function normalizeTableViewConfig(
       ? config.globalSearch.trim()
       : undefined;
   const displayMode = normalizeDisplayMode(config.displayMode);
-  const grouping = normalizeGroupingState(
-    config.grouping,
-    config.kanban?.groupBy
-  );
+  const grouping = normalizeGroupingState(config.grouping);
   const kanban = normalizeKanbanViewConfig(config.kanban);
   const gallery = normalizeGalleryViewConfig(config.gallery);
   const pageSize = normalizePageSize(config.pageSize);
@@ -307,6 +313,7 @@ export function normalizeTableViewConfig(
 
 export function createTableViewConfigSnapshot({
   advancedFiltersParam,
+  footerCalculationsVisible,
   density,
   displayModeParam,
   filtersParam,
@@ -322,6 +329,7 @@ export function createTableViewConfigSnapshot({
   sortParam,
   visibilityParam,
 }: {
+  footerCalculationsVisible?: boolean;
   density?: TableViewConfig["density"];
   advancedFiltersParam: AdvancedFiltersState;
   displayModeParam: TableDisplayMode;
@@ -340,6 +348,7 @@ export function createTableViewConfigSnapshot({
 }): TableViewConfig {
   return normalizeTableViewConfig({
     density,
+    footerCalculationsVisible,
     advancedFilters: advancedFiltersParam,
     columnFilters: filtersParam,
     columnOrder: orderParam,
@@ -363,8 +372,8 @@ export function areTableViewConfigsEqual(
   left: TableViewConfig,
   right: TableViewConfig
 ): boolean {
-  return (
-    JSON.stringify(normalizeTableViewConfig(left)) ===
-    JSON.stringify(normalizeTableViewConfig(right))
+  return areViewSettingsEqual(
+    normalizeTableViewConfig(left),
+    normalizeTableViewConfig(right)
   );
 }

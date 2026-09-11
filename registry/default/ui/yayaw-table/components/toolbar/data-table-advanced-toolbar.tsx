@@ -6,8 +6,23 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useAtomValue, useSetAtom } from "jotai";
-import { Download, Loader2, PlusIcon, RotateCcw } from "lucide-react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import {
+  Download,
+  FunnelX,
+  Loader2,
+  MoreHorizontal,
+  PlusIcon,
+  Share2,
+  X,
+} from "lucide-react";
+import {
+  type ComponentProps,
+  type ReactNode,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,10 +41,10 @@ import {
   useDataTableAdvancedFilters,
   useTableAccessors,
 } from "../../hooks/use-data-table-advanced-filters";
-import { useIsMobile } from "../../hooks/use-mobile";
 import { useTableConfig } from "../../hooks/use-table-config";
 import { useTableInstance } from "../../hooks/use-table-instance";
 import { useTableUrlState } from "../../hooks/use-table-url-state";
+import { useToolbarLayout } from "../../hooks/use-toolbar-layout";
 import {
   useTableActions as useProviderTableActions,
   useTranslations,
@@ -63,13 +78,17 @@ import {
   toPageSize,
 } from "../../utils/filtered-rows";
 import { TableTooltip } from "../../utils/table-tooltip";
+import { sharePageUrl } from "../../utils/view-menu";
+import { TableFilterBar } from "../filters/table-filter-bar";
 import {
   catalogueFormAtom,
   openCreateForm,
 } from "../forms/atoms/catalogue-form-atoms";
+import { ResponsiveMenu } from "./responsive-menu";
 import { SearchBar } from "./sections/search-bar";
 import { TableDensityMenu } from "./table-density-menu";
 import { TableMenu } from "./table-menu";
+import { DataTableViewManager } from "./table-view-manager";
 import {
   partitionToolbarActions,
   resolveToolbarActionState,
@@ -78,7 +97,6 @@ import {
 } from "./toolbar-actions";
 
 // Debug flag to help track issues - activated for debugging
-const DEBUG = false;
 
 // Define DataTableColumnDef type to fix TypeScript errors
 export type DataTableColumnDef<TData> = ColumnDef<TData> & {
@@ -92,6 +110,21 @@ export type DataTableColumnDef<TData> = ColumnDef<TData> & {
  * Props for the DataTableAdvancedToolbar component - DEPRECATED: use only tableId
  */
 interface DataTableAdvancedToolbarProps<_TData = Record<string, unknown>> {
+  viewManagerProps?: Partial<
+    Pick<
+      ComponentProps<typeof DataTableViewManager>,
+      | "enabled"
+      | "allowViewSave"
+      | "allowViewSharing"
+      | "defaultDensity"
+      | "defaultDisplayMode"
+      | "initialViews"
+      | "initialActiveViewId"
+    >
+  >;
+  quickFiltersVisible?: boolean;
+  modeSettings?: ReactNode;
+  cardSettings?: { kanban?: ReactNode; gallery?: ReactNode };
   /**
    * CSS class name
    */
@@ -503,7 +536,116 @@ function ToolbarExportButton({
   );
 }
 
+function createPageShareHandler(
+  nativeMobile: boolean,
+  t: ReturnType<typeof useTranslations>["t"]
+) {
+  return async () => {
+    try {
+      const result = await sharePageUrl(window.location.href, nativeMobile);
+      if (result === "copied") {
+        toast.success(t("url_state.link_copied"));
+      }
+    } catch {
+      toast.error(t("actions.shareError"));
+    }
+  };
+}
+
+function renderDataActions({
+  t,
+  isMobile,
+  isColumnFiltersEnabled,
+  _hideGlobalFilter,
+  searchDebounceMs,
+  filterResetVersion,
+  tableId,
+  toolbarActionsByPlacement,
+  renderToolbarAction,
+  isExportEnabled,
+  actionsAsIcons,
+  hasListAction,
+  isExporting,
+  exportLabel,
+  handleExportAll,
+  shareLink,
+}: {
+  t: ReturnType<typeof useTranslations>["t"];
+  isMobile: boolean;
+  isColumnFiltersEnabled: boolean;
+  _hideGlobalFilter: boolean | undefined;
+  searchDebounceMs: number | undefined;
+  filterResetVersion: number;
+  tableId: string;
+  toolbarActionsByPlacement: {
+    beforeCreate: ToolbarAction[];
+    betweenCreateAndExport: ToolbarAction[];
+    afterExport: ToolbarAction[];
+  };
+  renderToolbarAction: (action: ToolbarAction) => ReactNode;
+  isExportEnabled: boolean;
+  actionsAsIcons: boolean;
+  hasListAction: boolean;
+  isExporting: boolean;
+  exportLabel: string;
+  handleExportAll: () => Promise<void>;
+  shareLink: () => Promise<void>;
+}) {
+  return (
+    <div
+      className={
+        isMobile
+          ? "flex min-w-0 flex-col gap-1 p-3 [&_button]:h-auto [&_button]:min-h-11 [&_button]:w-full [&_button]:justify-start [&_button]:text-sm"
+          : "flex min-w-0 flex-1 items-center justify-end gap-2"
+      }
+    >
+      {isColumnFiltersEnabled && !_hideGlobalFilter ? (
+        <SearchBar
+          alwaysExpanded
+          debounceMs={searchDebounceMs}
+          key={filterResetVersion}
+          placeholder={t("search.placeholder")}
+          tableId={tableId}
+        />
+      ) : null}
+      {toolbarActionsByPlacement.beforeCreate.map(renderToolbarAction)}
+      {toolbarActionsByPlacement.betweenCreateAndExport.map(
+        renderToolbarAction
+      )}
+      {isExportEnabled ? (
+        <ToolbarExportButton
+          actionsAsIcons={actionsAsIcons}
+          disabled={!hasListAction || isExporting}
+          label={exportLabel}
+          onClick={() => {
+            handleExportAll();
+          }}
+        />
+      ) : null}
+      {toolbarActionsByPlacement.afterExport.map(renderToolbarAction)}
+      <TableTooltip label={t("url_state.share")}>
+        <Button
+          aria-label={t("url_state.share")}
+          onClick={() => {
+            shareLink();
+          }}
+          size={actionsAsIcons ? "icon-sm" : "sm"}
+          type="button"
+          variant="outline"
+        >
+          <Share2 className="size-4 shrink-0" />
+          {actionsAsIcons ? null : <span>{t("url_state.share")}</span>}
+        </Button>
+      </TableTooltip>
+    </div>
+  );
+}
+
 export function DataTableAdvancedToolbar<TData>({
+  viewManagerProps,
+  quickFiltersVisible,
+  modeSettings,
+  cardSettings,
   className: _className,
   hideGlobalFilter: _hideGlobalFilter,
   hideMenu: _hideMenu,
@@ -543,6 +685,7 @@ export function DataTableAdvancedToolbar<TData>({
   >[];
   const {
     advancedFiltersParam,
+    displayModeParam,
     filtersParam,
     globalSearchParam,
     orderParam,
@@ -551,6 +694,7 @@ export function DataTableAdvancedToolbar<TData>({
     sortParam,
     visibilityParam,
   } = useTableUrlState({
+    defaultDisplayMode: tableConfig.table.defaultDisplayMode,
     tableId,
   });
 
@@ -751,8 +895,13 @@ export function DataTableAdvancedToolbar<TData>({
     const translated = t("add_an_item");
     return translated === "add_an_item" ? "Add item" : translated;
   }, [t]);
-  const isMobile = useIsMobile();
-  const actionsAsIcons = tableConfig.table.actionsAsIcons === true || isMobile;
+  const {
+    compact: isMobile,
+    root: toolbarRoot,
+    mobile: nativeMobile,
+  } = useToolbarLayout(tableId);
+  const [actionsOpen, setActionsOpen] = useState(false);
+  const actionsAsIcons = tableConfig.table.actionsAsIcons === true && !isMobile;
   const isCreateEnabled = tableConfig.table.allowCreate !== false;
   const isExportEnabled = tableConfig.table.export !== false;
   const isColumnFiltersEnabled =
@@ -1026,141 +1175,218 @@ export function DataTableAdvancedToolbar<TData>({
     ]
   );
 
-  if (DEBUG) {
-    // Debug log for table menu columns
-  }
-
+  const shareLink = createPageShareHandler(nativeMobile, t);
+  const dataActions = renderDataActions({
+    t,
+    isMobile,
+    isColumnFiltersEnabled,
+    _hideGlobalFilter,
+    searchDebounceMs,
+    filterResetVersion,
+    tableId,
+    toolbarActionsByPlacement,
+    renderToolbarAction,
+    isExportEnabled,
+    actionsAsIcons,
+    hasListAction,
+    isExporting,
+    exportLabel,
+    handleExportAll,
+    shareLink,
+  });
+  const createButton = isCreateEnabled ? (
+    <ToolbarCreateButton
+      actionsAsIcons={isMobile || actionsAsIcons}
+      label={addItemLabel}
+      onClick={handleOpenCreateForm}
+    />
+  ) : null;
+  const defaultViewConfig = {
+    // An inactive Kanban lane default must not group the initial table view.
+    grouping: [],
+    density: tableConfig.table.density,
+    displayMode: tableConfig.table.defaultDisplayMode ?? ("table" as const),
+    footerCalculationsVisible: true,
+    pageSize: tableConfig.table.defaultPageSize,
+    sorting: tableConfig.columns.sort,
+    columnOrder: tableConfig.columns.order,
+    columnVisibility: Object.fromEntries(
+      tableConfig.columns.definitions.map((column) => [
+        column.id,
+        tableConfig.columns.visible?.includes(column.id) ?? true,
+      ])
+    ),
+    kanban: tableConfig.table.kanban,
+    gallery: tableConfig.table.gallery,
+  };
   return (
     <TooltipProvider>
       <div
         className={
           isMobile
-            ? "ml-auto flex w-full items-center justify-end gap-2"
-            : "flex items-center gap-2"
+            ? "flex w-full min-w-0 items-center gap-2 [&>button]:size-11"
+            : "flex w-full min-w-0 items-center gap-2"
         }
+        data-compact={isMobile}
+        data-table-toolbar
+        ref={toolbarRoot}
       >
-        {isColumnFiltersEnabled && (
-          <SearchBar
-            debounceMs={searchDebounceMs}
-            key={filterResetVersion}
-            placeholder={t("search.placeholder")}
-            tableId={tableId}
-          />
-        )}
-
-        {toolbarActionsByPlacement.beforeCreate.map(renderToolbarAction)}
-
-        {toolbarActionsByPlacement.betweenCreateAndExport.map(
-          renderToolbarAction
-        )}
-
-        {isExportEnabled && (
-          <ToolbarExportButton
-            actionsAsIcons={actionsAsIcons}
-            disabled={!hasListAction || isExporting}
-            label={exportLabel}
-            onClick={() => {
-              handleExportAll().catch(() => {
-                /* ignore export errors */
-              });
-            }}
-          />
-        )}
-
-        {toolbarActionsByPlacement.afterExport.map(renderToolbarAction)}
-
-        <TableDensityMenu
+        <DataTableViewManager
+          allowViewSave={tableConfig.table.allowViewSave}
+          allowViewSharing={tableConfig.table.allowViewSharing}
           defaultDensity={tableConfig.table.density}
           defaultDisplayMode={tableConfig.table.defaultDisplayMode}
-          tableId={tableId}
-        />
-
-        {/* Options menu */}
-        <TableMenu
-          actionsAsIcons={actionsAsIcons}
-          advancedFiltersConfig={
-            enableAdvancedFilters
-              ? {
-                  filters: advancedFiltersResult.advancedFilters,
-                  actions: advancedFiltersResult.advancedActions,
-                  columnsConfig: advancedColumnsConfig,
-                  onConvertToAdvanced:
-                    advancedFiltersResult.convertLegacyToAdvanced as (
-                      columnId: string,
-                      type: ColumnDataType
-                    ) => void,
-                }
-              : undefined
-          }
-          columns={tableMenuColumns}
-          defaultDisplayMode={tableConfig.table.defaultDisplayMode}
-          enableCalculations={tableConfig.table.enableCalculations === true}
-          enableColumnFilters={isColumnFiltersEnabled}
-          enableGrouping={isGroupingEnabled}
-          enableSorting={isSortingEnabled}
-          invalidateTable={async () => {
-            await queryClient.invalidateQueries({
-              queryKey: ["tableData", tableId],
-            });
-          }}
-          setColumnFilters={finalSetColumnFilters}
-          setColumnVisibility={finalSetColumnVisibility}
-          setGrouping={finalSetGrouping}
-          setSorting={finalSetSorting}
-          state={{
-            columnFilters: finalColumnFilters as ColumnFiltersState,
-            columnOrder: [],
-            columnPinning: { end: [], start: [] },
-            columnSizing: {} as ColumnSizingState,
-            columnResizing: {
-              columnSizingStart: [],
-              deltaOffset: null,
-              deltaPercentage: null,
-              isResizingColumn: false,
-              startOffset: null,
-              startSize: null,
-            },
-            columnVisibility: finalColumnVisibility as VisibilityState,
-            expanded: {},
-            globalFilter: "",
-            grouping: finalGrouping as GroupingState,
-            pagination: { pageIndex: 0, pageSize: 10 },
-            rowSelection: {},
-            sorting: finalSorting as SortingState,
-          }}
+          enabled={tableConfig.table.enableViews !== false}
+          {...viewManagerProps}
+          compact={isMobile}
+          defaultViewConfig={defaultViewConfig}
+          renderMenu={(viewMenu) => (
+            <TableMenu
+              actionsAsIcons={actionsAsIcons}
+              advancedFiltersConfig={
+                enableAdvancedFilters
+                  ? {
+                      filters: advancedFiltersResult.advancedFilters,
+                      actions: advancedFiltersResult.advancedActions,
+                      columnsConfig: advancedColumnsConfig,
+                      onConvertToAdvanced:
+                        advancedFiltersResult.convertLegacyToAdvanced as (
+                          columnId: string,
+                          type: ColumnDataType
+                        ) => void,
+                    }
+                  : undefined
+              }
+              cardSettings={
+                cardSettings?.[displayModeParam as keyof typeof cardSettings]
+              }
+              columns={tableMenuColumns}
+              compact={isMobile}
+              defaultDisplayMode={tableConfig.table.defaultDisplayMode}
+              enableCalculations={tableConfig.table.enableCalculations === true}
+              enableColumnFilters={isColumnFiltersEnabled}
+              enableGrouping={isGroupingEnabled}
+              enableSorting={isSortingEnabled}
+              filterExtras={
+                <div className="space-y-2 p-2">
+                  {isMobile ? (
+                    <TableFilterBar
+                      inMenu
+                      tableId={tableId}
+                      tableType={tableType}
+                      visible={
+                        quickFiltersVisible ??
+                        tableConfig.table.showFilterBar === true
+                      }
+                    />
+                  ) : null}
+                  {[
+                    tableConfig.table.showResetFilters,
+                    tableConfig.table.showClearFilters,
+                  ].includes(true) ? (
+                    <Button
+                      onClick={resetFilters}
+                      type="button"
+                      variant="ghost"
+                    >
+                      <FunnelX className="size-4" />
+                      {t("filters.clear")}
+                    </Button>
+                  ) : null}
+                </div>
+              }
+              invalidateTable={async () => {
+                await queryClient.invalidateQueries({
+                  queryKey: ["tableData", tableId],
+                });
+              }}
+              modeSettings={
+                <div className="space-y-2 px-2 py-2">
+                  {modeSettings}
+                  <TableDensityMenu
+                    defaultDensity={tableConfig.table.density}
+                    defaultDisplayMode={tableConfig.table.defaultDisplayMode}
+                    inline
+                    tableId={tableId}
+                  />
+                </div>
+              }
+              setColumnFilters={finalSetColumnFilters}
+              setColumnVisibility={finalSetColumnVisibility}
+              setGrouping={finalSetGrouping}
+              setSorting={finalSetSorting}
+              state={{
+                columnFilters: finalColumnFilters as ColumnFiltersState,
+                columnOrder: [],
+                columnPinning: { end: [], start: [] },
+                columnSizing: {} as ColumnSizingState,
+                columnResizing: {
+                  columnSizingStart: [],
+                  deltaOffset: null,
+                  deltaPercentage: null,
+                  isResizingColumn: false,
+                  startOffset: null,
+                  startSize: null,
+                },
+                columnVisibility: finalColumnVisibility as VisibilityState,
+                expanded: {},
+                globalFilter: "",
+                grouping: finalGrouping as GroupingState,
+                pagination: { pageIndex: 0, pageSize: 10 },
+                rowSelection: {},
+                sorting: finalSorting as SortingState,
+              }}
+              tableId={tableId}
+              tableType={tableType}
+              useAdvancedFilters={enableAdvancedFilters}
+              viewMenu={viewMenu}
+            />
+          )}
           tableId={tableId}
           tableType={tableType}
-          useAdvancedFilters={enableAdvancedFilters}
         />
-        {[
-          tableConfig.table.showResetFilters,
-          tableConfig.table.showClearFilters,
-        ].includes(true) && (
-          <Tooltip>
-            <TooltipTrigger
-              render={
+        {isMobile ? (
+          <>
+            {createButton}
+            <ResponsiveMenu
+              compact
+              onOpenChange={setActionsOpen}
+              open={actionsOpen}
+              title={t("actions.dataActions")}
+              trigger={
                 <Button
-                  aria-label={t("filters.clear")}
-                  className="h-8 w-8 shrink-0"
-                  onClick={resetFilters}
-                  size="icon-sm"
+                  aria-label={t("actions.dataActions")}
+                  className="size-11 shrink-0"
+                  size="icon"
                   type="button"
                   variant="outline"
                 >
-                  <RotateCcw aria-hidden="true" className="size-4" />
+                  <MoreHorizontal className="size-4" />
                 </Button>
               }
-            />
-            <TooltipContent>{t("filters.clear")}</TooltipContent>
-          </Tooltip>
-        )}
-        {/* Create button */}
-        {isCreateEnabled && (
-          <ToolbarCreateButton
-            actionsAsIcons={actionsAsIcons}
-            label={addItemLabel}
-            onClick={handleOpenCreateForm}
-          />
+            >
+              <div className="flex items-center justify-between border-b px-4 py-2">
+                <span className="font-medium">{t("actions.dataActions")}</span>
+                <Button
+                  aria-label={t("actions.close")}
+                  onClick={() => setActionsOpen(false)}
+                  size="icon"
+                  type="button"
+                  variant="ghost"
+                >
+                  <X className="size-4" />
+                </Button>
+              </div>
+              <div className="min-h-0 overflow-y-auto overscroll-contain">
+                {dataActions}
+              </div>
+            </ResponsiveMenu>
+          </>
+        ) : (
+          <>
+            {dataActions}
+            {createButton}
+          </>
         )}
       </div>
     </TooltipProvider>

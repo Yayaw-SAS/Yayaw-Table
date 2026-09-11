@@ -1,4 +1,4 @@
-import { computed, nextTick, onMounted, onScopeDispose, ref } from "vue";
+import { computed, nextTick, onMounted, onScopeDispose, ref, watch } from "vue";
 import { useTableContext } from "../context";
 import { createLocalTableViewActions } from "../core";
 import { cloneFormValue, formValuesEqual } from "../form-runtime";
@@ -8,9 +8,13 @@ import type {
   TableViewActionResult,
   TableViewConfig,
 } from "../types";
+import { areViewSettingsEqual } from "../view-menu";
 
 /** Keep persistence and asynchronous state separate from menu/dialog presentation. */
-export function useSavedViews(initialViews: () => TableView[]) {
+export function useSavedViews(
+  initialViews: () => TableView[],
+  enabled: () => boolean = () => true
+) {
   const context = useTableContext();
   const fallback = createLocalTableViewActions();
   const actions = computed(() => ({
@@ -34,7 +38,7 @@ export function useSavedViews(initialViews: () => TableView[]) {
   const dirty = computed(() =>
     Boolean(
       active.value &&
-        !formValuesEqual(
+        !areViewSettingsEqual(
           context.state.resolveView(context.state.snapshot.value),
           context.state.resolveView(active.value.config)
         )
@@ -133,6 +137,10 @@ export function useSavedViews(initialViews: () => TableView[]) {
     }
   };
   const load = async (): Promise<void> => {
+    if (!enabled()) {
+      loading.value = false;
+      return;
+    }
     loading.value = true;
     loadError.value = "";
     // Parent URL hydration finishes before testing whether the user has edited the table.
@@ -358,6 +366,11 @@ export function useSavedViews(initialViews: () => TableView[]) {
     );
   };
   onMounted(load);
+  watch(enabled, (isEnabled) => {
+    if (isEnabled) {
+      load();
+    }
+  });
   return {
     context,
     views,

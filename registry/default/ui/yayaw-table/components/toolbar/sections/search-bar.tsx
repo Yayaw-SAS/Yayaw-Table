@@ -7,16 +7,19 @@ import { useTableUrlState } from "../../../hooks/use-table-url-state";
 import { useTranslations } from "../../../providers/table-provider";
 
 const SearchBar = ({
+  alwaysExpanded = false,
   placeholder,
   tableId = "default",
   debounceMs = 300,
 }: {
+  alwaysExpanded?: boolean;
   placeholder: string;
   tableId?: string;
   debounceMs?: number;
 }) => {
   const { t } = useTranslations();
-  const isMobile = useIsMobile();
+  const mobileViewport = useIsMobile();
+  const isMobile = mobileViewport && !alwaysExpanded;
   const { globalSearchParam, setGlobalSearchFromUI } = useTableUrlState({
     tableId,
   });

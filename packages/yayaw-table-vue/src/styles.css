@@ -257,44 +257,54 @@
   margin-left: 0;
   pointer-events: none;
 }
+.yayaw-choice-inline {
+  min-width: 0;
+  padding: 0;
+  margin: 8px;
+  border: 0;
+}
+.yayaw-choice-inline legend {
+  padding: 0;
+  margin-bottom: 4px;
+  color: var(--yayaw-muted-foreground);
+  font-size: 14px;
+}
 .yayaw-segmented {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  height: 32px;
-  padding: 2px;
-  border: 1px solid var(--yayaw-border);
-  border-radius: 7px;
-  background: var(--yayaw-muted);
+  gap: 4px;
 }
 .yayaw-segmented button {
   display: inline-flex;
+  flex: 1;
   align-items: center;
   justify-content: center;
-  height: 100%;
-  min-height: 0;
+  min-width: 36px;
+  min-height: 32px;
   gap: 6px;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 16px;
-  border: 0;
-  border-radius: 5px;
-  background: transparent;
-  color: var(--yayaw-muted-foreground);
   padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--yayaw-foreground);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
   text-transform: capitalize;
   cursor: pointer;
 }
-.yayaw-segmented button:hover {
+.yayaw-segmented button:hover,
+.yayaw-segmented button.active {
   background: var(--yayaw-muted);
+}
+.yayaw-segmented button:focus-visible {
+  outline: 2px solid var(--yayaw-primary);
+  outline-offset: 2px;
 }
 .yayaw-segmented button > svg {
   flex-shrink: 0;
-}
-.yayaw-segmented button.active {
-  background: var(--yayaw-background);
-  color: var(--yayaw-foreground);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 .yayaw-columns-panel {
   position: absolute;
@@ -544,8 +554,7 @@
   display: grid;
   gap: 6px;
 }
-.yayaw-column-filters,
-.yayaw-advanced-filters {
+.yayaw-column-filters {
   display: flex;
   align-items: end;
   flex-wrap: wrap;
@@ -563,26 +572,22 @@
   font-size: 12px;
 }
 .yayaw-advanced-filters {
-  align-items: center;
-  margin-bottom: 12px;
+  display: grid;
+  gap: 12px;
+  min-width: 0;
 }
-.yayaw-filter-row,
 .yayaw-filter-join {
   display: flex;
   align-items: center;
-  gap: 6px;
-}
-.yayaw-advanced-filters {
-  display: grid;
-  gap: 10px;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--yayaw-muted-foreground);
 }
 .yayaw-filter-rule {
-  border: 1px solid var(--yayaw-border);
-  border-radius: var(--yayaw-radius);
-  padding: 10px;
-}
-.yayaw-filter-rule[data-active="false"] {
-  border-style: dashed;
+  min-width: 0;
+  padding: 8px 0;
+  border: 0;
+  border-bottom: 1px solid var(--yayaw-border);
 }
 .yayaw-filter-row {
   align-items: flex-end;
@@ -609,13 +614,13 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px 12px;
-  max-height: 150px;
-  overflow-y: auto;
   padding: 4px 0;
 }
 .yayaw-filter-buttons {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  width: 100%;
   gap: 6px;
 }
 .yayaw-content {
@@ -2096,4 +2101,274 @@
 .yayaw-filter-choice:has(input:disabled) {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* The toolbar changes composition when its container cannot keep one readable row. */
+.yayaw-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: nowrap;
+}
+.yayaw-data-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+.yayaw-data-actions > :not(.yayaw-search),
+.yayaw-toolbar > :not(.yayaw-data-actions) {
+  flex-shrink: 0;
+}
+.yayaw-data-actions .yayaw-search {
+  flex: 1;
+  min-width: 160px;
+  width: auto;
+}
+.yayaw-menu-anchor {
+  display: inline-flex;
+  min-width: 0;
+}
+.yayaw-toolbar[data-compact="true"] .yayaw-view-manager {
+  flex: 1;
+  flex-shrink: 1;
+}
+.yayaw-toolbar[data-compact="true"] .yayaw-view-trigger {
+  width: 100%;
+}
+.yayaw-toolbar[data-compact="true"] :is(.yayaw-button, .yayaw-icon-button) {
+  min-height: 44px;
+  height: 44px;
+  font-size: 14px;
+}
+.yayaw-toolbar[data-compact="true"] .yayaw-icon-only {
+  width: 44px;
+  min-width: 44px;
+}
+.yayaw-toolbar-menu,
+.yayaw-toolbar-menu * {
+  box-sizing: border-box;
+}
+.yayaw-toolbar-menu {
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  width: min(320px, calc(100vw - 16px));
+  max-height: min(672px, var(--reka-popover-content-available-height, 85dvh));
+  overflow: hidden;
+  border: 1px solid var(--yayaw-border);
+  border-radius: var(--radius, var(--yayaw-radius));
+  background: var(--popover, var(--yayaw-background));
+  color: var(--popover-foreground, var(--yayaw-foreground));
+  box-shadow:
+    0 4px 6px -1px rgb(0 0 0 / 0.1),
+    0 2px 4px -2px rgb(0 0 0 / 0.1);
+  font-size: 14px;
+  line-height: 1.4;
+}
+.yayaw-toolbar-menu-header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--yayaw-border);
+}
+.yayaw-toolbar-menu-header strong {
+  flex: 1;
+  font-weight: 500;
+}
+.yayaw-toolbar-menu-body {
+  position: relative;
+  min-height: 0;
+  max-height: calc(
+    min(672px, var(--reka-popover-content-available-height, 85dvh)) -
+    42px
+  );
+  overflow: hidden;
+}
+.yayaw-toolbar-menu-viewport {
+  max-height: inherit;
+  overscroll-behavior: contain;
+}
+.yayaw-toolbar-menu-scrollbar {
+  display: flex;
+  width: 10px;
+  padding: 2px;
+  touch-action: none;
+  user-select: none;
+}
+.yayaw-toolbar-menu-thumb {
+  flex: 1;
+  border-radius: 999px;
+  background: var(--border, var(--yayaw-border));
+}
+.yayaw-toolbar-menu[data-compact="true"] .yayaw-toolbar-menu-body {
+  max-height: calc(90dvh - 70px);
+}
+.yayaw-toolbar-menu .yayaw-options-content {
+  max-height: none;
+  overflow: visible;
+}
+.yayaw-toolbar-menu :is(.yayaw-view-selection, .yayaw-view-write-actions) {
+  padding: 8px;
+}
+.yayaw-toolbar-menu .yayaw-view-selection {
+  border-bottom: 1px solid var(--yayaw-border);
+}
+.yayaw-toolbar-menu .yayaw-view-write-actions {
+  border-top: 1px solid var(--yayaw-border);
+}
+.yayaw-toolbar-menu .yayaw-view-menu-item {
+  width: 100%;
+  white-space: normal;
+  text-align: left;
+}
+.yayaw-toolbar-menu .yayaw-view-menu-item small {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--yayaw-muted-foreground);
+}
+.yayaw-toolbar-menu [aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: default;
+}
+.yayaw-toolbar-menu .yayaw-view-menu-danger {
+  color: var(--yayaw-danger);
+}
+.yayaw-card-settings {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.yayaw-card-settings .yayaw-field-inline {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+.yayaw-toolbar-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 69;
+  background: rgba(0, 0, 0, 0.5);
+}
+.yayaw-toolbar-menu[data-compact="true"] {
+  position: fixed;
+  inset: auto 0 0;
+  width: 100%;
+  max-height: 90dvh;
+  padding-bottom: env(safe-area-inset-bottom);
+  border-radius: 16px 16px 0 0;
+}
+.yayaw-toolbar-handle {
+  width: 40px;
+  height: 4px;
+  margin: 8px auto 0;
+  border-radius: 4px;
+  background: var(--yayaw-border);
+  flex: none;
+}
+.yayaw-toolbar-menu[data-compact="true"]
+  :is(button, input:not([type="checkbox"]), select) {
+  min-height: 44px;
+}
+.yayaw-toolbar-menu[data-compact="true"] .yayaw-options-check {
+  min-height: 44px;
+}
+.yayaw-toolbar-menu[data-compact="true"] .yayaw-icon-button {
+  min-width: 44px;
+}
+.yayaw-toolbar-menu[data-compact="true"] .yayaw-view-selection {
+  max-height: none;
+}
+.yayaw-toolbar-menu[data-compact="true"] .yayaw-field-inline {
+  grid-template-columns: minmax(0, 1fr);
+}
+.yayaw-data-actions[data-compact="true"] {
+  flex-direction: column;
+  align-items: stretch;
+  padding: 12px;
+}
+.yayaw-data-actions[data-compact="true"] .yayaw-button {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.yayaw-toolbar-menu .yayaw-view-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  border: 0;
+  border-radius: 6px;
+  padding: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.yayaw-toolbar-menu .yayaw-view-menu-item > svg {
+  flex: none;
+}
+.yayaw-toolbar-menu .yayaw-view-menu-item:hover {
+  background: var(--yayaw-muted);
+}
+.yayaw-toolbar-menu .yayaw-view-menu-item:focus-visible {
+  outline: 2px solid var(--yayaw-primary);
+  outline-offset: -2px;
+}
+.yayaw-toolbar-menu .yayaw-view-menu-danger {
+  color: var(--yayaw-danger);
+}
+.yayaw-view-dirty {
+  display: inline-block;
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3b82f6;
+}
+
+/* View panels use compact Shadcn menu rows; only constrained content scrolls. */
+.yayaw-toolbar-menu-header {
+  padding: 4px 8px;
+}
+.yayaw-toolbar-menu .yayaw-options-list {
+  gap: 0;
+  padding: 4px;
+}
+.yayaw-toolbar-menu .yayaw-options-item {
+  min-height: 32px;
+  padding: 6px 8px;
+  gap: 8px;
+  border-radius: 4px;
+}
+.yayaw-toolbar-menu .yayaw-options-item-icon {
+  width: 16px;
+  height: 16px;
+}
+.yayaw-toolbar-menu .yayaw-options-item-count {
+  min-width: 16px;
+  width: auto;
+  height: auto;
+  background: transparent;
+  color: var(--yayaw-muted-foreground);
+  font-variant-numeric: tabular-nums;
+}
+.yayaw-toolbar-menu .yayaw-options-item-end {
+  width: auto;
+  min-width: 16px;
+  font-size: 12px;
+}
+.yayaw-toolbar-menu :is(.yayaw-view-selection, .yayaw-view-write-actions) {
+  padding: 4px;
+}
+.yayaw-toolbar-menu .yayaw-view-menu-item {
+  min-height: 32px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  gap: 8px;
 }

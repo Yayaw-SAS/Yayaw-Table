@@ -10,7 +10,7 @@ import {
   TableProvider,
 } from "../src/components/ui/yayaw-table/providers/table-provider";
 
-it("keeps one accessible trigger per mode across focus, tooltips and selection", async () => {
+it("keeps labelled display choices keyboard accessible and preserves pressed state", async () => {
   const container = document.createElement("div");
   document.body.append(container);
   const root = createRoot(container);
@@ -49,8 +49,8 @@ it("keeps one accessible trigger per mode across focus, tooltips and selection",
       expect(document.activeElement).toBe(button);
       expect(group?.querySelectorAll("button")).toHaveLength(3);
       expect(
-        document.querySelector('[data-slot="tooltip-content"]')?.textContent
-      ).toBe(button.textContent);
+        document.querySelector('[data-slot="tooltip-content"]')
+      ).toBeNull();
       expect(group?.querySelector('[data-slot="tooltip-content"]')).toBeNull();
       await act(() => button.click());
       expect(button.getAttribute("aria-pressed")).toBe("true");

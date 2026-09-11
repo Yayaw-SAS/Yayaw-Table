@@ -91,13 +91,13 @@ export function TableFiltersMenu({
             columnsConfig={advancedColumnsConfig}
             enableAnimations={true}
             filters={advancedFilters}
-            maxVisibleFilters={5}
+            maxVisibleFilters={Number.POSITIVE_INFINITY}
             onOpenFilterConsumed={() => setOpenFilterColumnId(null)}
             openFilterForColumnId={openFilterForColumnId ?? undefined}
             popularColumns={["name", "status", "category"]}
             recentColumns={[]}
             showAddButton={true}
-            showClearButton={true}
+            showClearButton={false}
             showPerformance={false}
             variant="modern"
           />

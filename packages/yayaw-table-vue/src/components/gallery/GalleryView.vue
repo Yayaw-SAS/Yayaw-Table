@@ -1,137 +1,18 @@
 <script setup lang="ts">
 import TableEmptyState from "../table/TableEmptyState.vue";
 import { computed } from "vue";
-import { useTableContext } from "../../context";
+import { useGallerySettings } from "../../composables/use-gallery-settings";
 import { displayCellValue, imageSource } from "../../core";
 import type {
   ColumnDefinition,
-  TableGalleryAspectRatio,
-  TableGalleryCardSize,
-  TableGalleryImageFit,
   TableRecord,
 } from "../../types";
 import { useCardRows } from "../../composables/use-card-rows";
-import CardPropertiesMenu from "../controls/CardPropertiesMenu.vue";
 import TableCheckbox from "../controls/TableCheckbox.vue";
-import TableSelect from "../controls/TableSelect.vue";
 import CellRenderer from "../table/CellRenderer.vue";
 import RowActions from "../table/RowActions.vue";
 
-const context = useTableContext();
-const translate = (key: string, fallback: string) => String(context.translations.value[key] ?? fallback);
-const columns = computed(() =>
-  context.config.columns.definitions.filter(
-    (column) => !["select", "actions"].includes(column.id)
-  )
-);
-const columnOptions = computed(() => columns.value.map((column) => ({ value: column.id, label: column.header })));
-const imageOptions = computed(() => [{ value: "", label: translate("none", "None") }, ...columnOptions.value]);
-const ratioOptions = computed(() => [
-  { value: "square" as const, label: translate("cardSquare", "Square") },
-  { value: "portrait" as const, label: translate("cardPortrait", "Portrait") },
-  { value: "video" as const, label: translate("cardVideo", "Video") },
-  { value: "wide" as const, label: translate("cardWide", "Wide") },
-]);
-const fitOptions = computed(() => [
-  { value: "cover" as const, label: translate("cardCover", "Cover") },
-  { value: "contain" as const, label: translate("cardContain", "Contain") },
-]);
-const sizeOptions = computed(() => [
-  { value: "small" as const, label: translate("cardSmall", "Small") },
-  { value: "medium" as const, label: translate("cardMedium", "Medium") },
-  { value: "large" as const, label: translate("cardLarge", "Large") },
-]);
-const imageColumn = computed({
-  get: () =>
-    context.state.gallery.value.imageColumn ??
-    context.config.table.gallery?.imageColumn ??
-    columns.value.find((column) => column.type === "image")?.id ??
-    "",
-  set: (value: string) => {
-    context.state.gallery.value = {
-      ...context.state.gallery.value,
-      imageColumn: value,
-    };
-  },
-});
-const titleColumn = computed({
-  get: () =>
-    context.state.gallery.value.titleColumn ??
-    context.config.table.gallery?.titleColumn ??
-    columns.value.find((column) => column.id !== imageColumn.value)?.id ??
-    "id",
-  set: (value: string) => {
-    context.state.gallery.value = {
-      ...context.state.gallery.value,
-      titleColumn: value,
-    };
-  },
-});
-const propertyIds = computed({
-  get: () =>
-    context.state.gallery.value.cardColumnIds ??
-    context.config.table.gallery?.cardColumnIds ??
-    columns.value
-      .filter(
-        (column) => ![imageColumn.value, titleColumn.value].includes(column.id)
-      )
-      .slice(0, 4)
-      .map((column) => column.id),
-  set: (value: string[]) => {
-    context.state.gallery.value = {
-      ...context.state.gallery.value,
-      cardColumnIds: value,
-    };
-  },
-});
-const aspectRatio = computed({
-  get: () =>
-    context.state.gallery.value.aspectRatio ??
-    context.config.table.gallery?.aspectRatio ??
-    "square",
-  set: (value: TableGalleryAspectRatio) => {
-    context.state.gallery.value = {
-      ...context.state.gallery.value,
-      aspectRatio: value,
-    };
-  },
-});
-const imageFit = computed({
-  get: () =>
-    context.state.gallery.value.imageFit ??
-    context.config.table.gallery?.imageFit ??
-    "cover",
-  set: (value: TableGalleryImageFit) => {
-    context.state.gallery.value = {
-      ...context.state.gallery.value,
-      imageFit: value,
-    };
-  },
-});
-const cardSize = computed({
-  get: () =>
-    context.state.gallery.value.cardSize ??
-    context.config.table.gallery?.cardSize ??
-    "medium",
-  set: (value: TableGalleryCardSize) => {
-    context.state.gallery.value = {
-      ...context.state.gallery.value,
-      cardSize: value,
-    };
-  },
-});
-const showLabels = computed({
-  get: () =>
-    context.state.gallery.value.showCardLabels ??
-    context.config.table.gallery?.showCardLabels ??
-    false,
-  set: (value: boolean) => {
-    context.state.gallery.value = {
-      ...context.state.gallery.value,
-      showCardLabels: value,
-    };
-  },
-});
+const { context, translate, columns, titleColumn, propertyIds, showLabels, imageColumn, aspectRatio, imageFit, cardSize } = useGallerySettings();
 const rows = useCardRows();
 const column = (id: string): ColumnDefinition | undefined =>
   columns.value.find((item) => item.id === id);
@@ -189,14 +70,7 @@ const toggleSelection = (row: TableRecord, checked: boolean): void => {
     class="yayaw-card-empty"
   />
   <div v-else class="yayaw-card-view-shell">
-    <div class="yayaw-card-controls">
-      <TableSelect v-model="imageColumn" :label="translate('cardImage', 'Image')" :options="imageOptions" />
-      <TableSelect v-model="titleColumn" :label="translate('cardTitle', 'Title')" :options="columnOptions" />
-      <TableSelect v-model="aspectRatio" :label="translate('cardRatio', 'Ratio')" :options="ratioOptions" />
-      <TableSelect v-model="imageFit" :label="translate('cardFit', 'Fit')" :options="fitOptions" />
-      <TableSelect v-model="cardSize" :label="translate('cardSize', 'Size')" :options="sizeOptions" />
-      <CardPropertiesMenu v-model="propertyIds" v-model:show-labels="showLabels" :label="translate('properties', 'Properties')" :show-labels-label="translate('cardShowLabels', 'Show labels')" :options="columnOptions" />
-    </div>
+
     <section v-for="section in sections" :key="section.label" class="yayaw-gallery-section">
       <h3 v-if="section.label">{{ section.label }} <span class="yayaw-count">{{ section.rows.length }}</span></h3>
       <div class="yayaw-gallery" :data-size="cardSize">
