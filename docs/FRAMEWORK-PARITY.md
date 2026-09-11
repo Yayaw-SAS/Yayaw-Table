@@ -41,6 +41,12 @@ Vue Kanban and Gallery controls use Reka UI Select, DropdownMenu, and Checkbox p
 
 ## Catalogue forms
 
+Modal and drawer forms share a 10% black backdrop with the React
+`backdrop-blur-xs` blur in both editions. Vue uses the host's `--blur-xs` token
+when available, with a standalone 4px fallback. Browsers without backdrop-filter
+support retain the translucent backdrop. Visual verification covers the modal
+and drawer presentations, keeping the form itself sharp.
+
 React and Vue also expose `RecordDetails` and the table's `details` prop for
 read-only consultation. Both support drawer/modal/inline presentation, the shared
 typed projection, update metadata, confirmation before deletion, and append-only
