@@ -22,7 +22,6 @@ import {
   watch,
 } from "vue";
 import { useTableContext } from "../../context";
-import { newFilter } from "../../filter-config";
 import { downloadCsv, exportColumns } from "../../core";
 import type {
   ColumnDefinition,
@@ -56,6 +55,7 @@ const actionsOpen = ref(false);
 const capabilities = computed(() => getViewModeCapabilities(context.state.displayMode.value));
 
 const optionsRoot = ref<HTMLElement>();
+const advancedFiltersPanel = ref<InstanceType<typeof AdvancedFilters>>();
 const optionsOpen = ref(false);
 const optionsView = ref<OptionsView>("main");
 const pendingAction = ref<string>();
@@ -248,7 +248,9 @@ watch(
     optionsView.value = request.view;
     optionsOpen.value = true;
     await focusOptions();
-    if (request.columnId) {
+    if (request.columnId && props.enableAdvancedFilters && request.view === "filters") {
+      await advancedFiltersPanel.value?.add(request.columnId);
+    } else if (request.columnId) {
       const columnId = request.columnId;
       setTimeout(() => {
         const field = Array.from(
@@ -263,16 +265,13 @@ watch(
   }
 );
 const addAdvancedFilter = async (): Promise<void> => {
-  const column = filterableColumns.value[0];
-  if (!column) return;
-  const filter = newFilter(column);
-  context.state.advancedFilters.value = {
-    ...context.state.advancedFilters.value,
-    filters: [...context.state.advancedFilters.value.filters, filter],
-  };
-  await nextTick();
-  document.getElementById(`filter-column-${filter.id}`)?.focus();
+  await advancedFiltersPanel.value?.add();
 };
+const panelFilterColumns = computed(() => props.enableAdvancedFilters
+  ? filterableColumns.value.filter((column) =>
+    (compact.value && quickFilterIds.value.has(column.id)) ||
+    context.state.filters.value.some((filter) => filter.id === column.id))
+  : filterableColumns.value);
 const setColumnFilter = (columnId: string, value: unknown): void => {
   const otherFilters = context.state.filters.value.filter(
     (filter) => filter.id !== columnId
@@ -541,10 +540,10 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
             </div>
 
             <div v-else-if="optionsView === 'filters'" class="yayaw-options-content">
-              <button v-if="[context.config.table.showClearFilters, context.config.table.showResetFilters].includes(true)" type="button" class="yayaw-button yayaw-button-outline" :aria-label="translate('clearFilters', 'Clear filters')" @click="context.state.resetFilters()"><FunnelX :size="16" />{{ translate('clearFilters', 'Clear filters') }}</button>
-              <AdvancedFilters v-if="props.enableAdvancedFilters && context.state.advancedFilters.value.filters.length" />
+              <button v-if="[context.config.table.showClearFilters, context.config.table.showResetFilters].includes(true)" type="button" class="yayaw-button yayaw-button-outline" :aria-label="translate('clearFilters', 'Clear filters')" @click="context.state.resetFilters(); advancedFiltersPanel?.clearDrafts()"><FunnelX :size="16" />{{ translate('clearFilters', 'Clear filters') }}</button>
+              <AdvancedFilters v-if="props.enableAdvancedFilters" ref="advancedFiltersPanel" />
               <div
-                v-for="column in filterableColumns"
+                v-for="column in panelFilterColumns"
                 :key="column.id"
                 class="yayaw-field-inline"
                 :data-filter-column="column.id"

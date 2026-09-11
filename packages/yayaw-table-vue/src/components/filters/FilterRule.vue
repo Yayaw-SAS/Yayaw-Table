@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Power, X } from "lucide-vue-next";
 import { computed, nextTick, ref, watch } from "vue";
 import { useTableContext } from "../../context";
 import {
@@ -199,9 +200,10 @@ const revert = async (): Promise<void> => {
         </template>
       </template>
       <div class="yayaw-filter-buttons">
+        <button v-if="dirty" type="button" class="yayaw-button yayaw-button-ghost" @click="revert">{{ context.translations.value.cancel ?? 'Cancel' }}</button>
         <button type="submit" class="yayaw-button yayaw-button-outline" :disabled="!valid || (!dirty && filter.isActive !== false)">{{ t('apply', 'Apply') }}</button>
-        <button type="button" class="yayaw-icon-button" :aria-label="filter.isActive === false ? t('advanced.enable_filter', 'Enable filter') : t('advanced.disable_filter', 'Disable filter')" :aria-pressed="filter.isActive !== false" :disabled="filter.isActive === false && !filterHasValue(filter)" @click="toggleActive">{{ filter.isActive === false ? '○' : '●' }}</button>
-        <button type="button" class="yayaw-icon-button" :aria-label="t('remove', 'Remove filter')" @click="emit('remove')">×</button>
+        <button type="button" class="yayaw-icon-button" :aria-label="filter.isActive === false ? t('advanced.enable_filter', 'Enable filter') : t('advanced.disable_filter', 'Disable filter')" :aria-pressed="filter.isActive !== false" :disabled="filter.isActive === false && !filterHasValue(filter)" @click="toggleActive"><Power :size="16" aria-hidden="true" /></button>
+        <button type="button" class="yayaw-icon-button" :aria-label="t('remove', 'Remove filter')" @click="emit('remove')"><X :size="16" aria-hidden="true" /></button>
       </div>
     </div>
     <p v-if="dirty && !valid" class="yayaw-filter-hint">{{ t('complete_values', 'Complete the filter values before applying.') }}</p>

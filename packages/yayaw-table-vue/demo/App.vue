@@ -140,6 +140,8 @@ const config = defineTableConfig<Product>({
   },
   table: {
     filterBarColumns: ["category", "status", "tags"],
+    enableAdvancedFilters: true,
+    showClearFilters: true,
     showFilterBar: true,
     enableAutoPageSize: true,
     defaultAutoPageSize: true,

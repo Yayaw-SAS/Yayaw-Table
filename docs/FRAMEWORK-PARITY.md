@@ -390,3 +390,19 @@ their text on keyboard focus.
 Regression coverage includes actual React preview row order and filter results,
 reset after grouping/density changes, saved filtered views, and selected-record
 writes, plus equivalent Vue saved-view, bulk callback and grouped-layout tests.
+
+### Advanced filter drafts
+
+React and Vue keep numeric values and operators in a local editor draft until
+Enter or the confirmation button is used. Typing `24`, zero, negative decimals,
+or a range must not update the query between keystrokes. Blank or incomplete
+numeric values cannot be applied; Escape discards edits. New Vue rules remain
+outside query and saved-view state until their first application. The shared
+`numeric-filter-drafts.json` cases verify both editions, including server request
+counts in Vue and action calls in React. The runnable examples expose advanced
+filters, with flat menu rows, ordinary inputs, and no implicit 0–100 slider or
+extra nested card/scroll containers.
+
+Vue column-header filter shortcuts open a local draft for the requested column.
+Their tooltip-composed dropdown uses an explicit button anchor so it remains
+visible and works with both mouse and keyboard.

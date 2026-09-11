@@ -1,7 +1,9 @@
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import numericDrafts from "../../../../../tests/fixtures/numeric-filter-drafts.json";
 import {
   inlineTestPortals,
+  menuBody,
   openViewMenu,
   openViewScreen,
 } from "../../../tests/menu-helpers";
@@ -268,4 +270,71 @@ it("uses French defaults and React translation keys in the filter controls", asy
   expect(
     wrapper.get('[aria-label="Combinaison des filtres"]').text()
   ).toContain("toutes les conditions");
+});
+
+for (const fixture of numericDrafts) {
+  it(`keeps ${fixture.text} local until the numeric rule is submitted`, async () => {
+    const list = vi.fn(async (_params: TableListParams) => ({
+      data: rows,
+      meta: { totalCount: rows.length },
+    }));
+    const wrapper = mountTable({ getTableActions: () => ({ list }) });
+    await flushPromises();
+    const initialRequests = list.mock.calls.length;
+    const rule = await add(wrapper);
+    expect(list).toHaveBeenCalledTimes(initialRequests);
+    await rule.findAll("select")[0]?.setValue("amount");
+    await flushPromises();
+    const requests = list.mock.calls.length;
+    const field = rule.get<HTMLInputElement>('input[type="number"]');
+    for (let index = 1; index <= fixture.text.length; index += 1) {
+      await field.setValue(fixture.text.slice(0, index));
+    }
+    await flushPromises();
+    expect(field.element.value).toBe(fixture.text);
+    expect(list).toHaveBeenCalledTimes(requests);
+    await rule.trigger("submit");
+    await flushPromises();
+    expect(list).toHaveBeenCalledTimes(requests + 1);
+    expect(list.mock.lastCall?.[0].advancedFilters).toEqual([
+      expect.objectContaining({
+        columnId: "amount",
+        values: fixture.value,
+        isActive: true,
+      }),
+    ]);
+    await field.setValue("");
+    expect(
+      rule.get('button[type="submit"]').attributes("disabled")
+    ).toBeDefined();
+    expect(list).toHaveBeenCalledTimes(requests + 1);
+    await field.trigger("keydown", { key: "Escape" });
+    expect(field.element.value).toBe(fixture.text);
+  });
+}
+
+it("opens a local advanced draft for the requested column from its header", async () => {
+  const list = vi.fn(async (_params: TableListParams) => ({
+    data: rows,
+    meta: { totalCount: rows.length },
+  }));
+  const wrapper = mountTable({ getTableActions: () => ({ list }) });
+  await flushPromises();
+  const requests = list.mock.calls.length;
+  await wrapper.get('[aria-label="Column options: Amount"]').trigger("click");
+  const filterAction = menuBody()
+    .findAll('[role="menuitem"]')
+    .find((item) => item.text() === "Filter column");
+  if (!filterAction) {
+    throw new Error("Missing column filter action");
+  }
+  await filterAction.trigger("click");
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  await flushPromises();
+  const rule = wrapper.get(".yayaw-filter-rule");
+  expect(rule.findAll<HTMLSelectElement>("select")[0]?.element.value).toBe(
+    "amount"
+  );
+  expect(rule.find('input[type="number"]').exists()).toBe(true);
+  expect(list).toHaveBeenCalledTimes(requests);
 });

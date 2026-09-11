@@ -4,7 +4,7 @@
  */
 "use client";
 
-import { useCallback } from "react";
+import { type ComponentProps, useState } from "react";
 import { Input } from "@/src/components/ui/input";
 import { Label } from "@/src/components/ui/label";
 import {
@@ -55,242 +55,190 @@ export interface NumberFilterProps {
   showSlider?: boolean;
 }
 
-/**
- * Number filter component with operator selection and numeric input/slider
- */
+/** Keep incomplete numeric text local; the parent owns the filter commit. */
+function NumericDraftInput({
+  value,
+  onNumberChange,
+  ...props
+}: Omit<ComponentProps<typeof Input>, "value" | "onChange"> & {
+  value: number;
+  onNumberChange: (value: number) => void;
+}) {
+  const [previousValue, setPreviousValue] = useState(value);
+  const [text, setText] = useState(() =>
+    Number.isFinite(value) ? String(value) : ""
+  );
+  if (!Object.is(previousValue, value)) {
+    setPreviousValue(value);
+    setText(Number.isFinite(value) ? String(value) : "");
+  }
+  return (
+    <Input
+      step="any"
+      {...props}
+      type="number"
+      value={text}
+      onChange={(event) => {
+        const raw = event.target.value;
+        const next = raw === "" ? Number.NaN : Number(raw);
+        // A decimal separator or an empty field must not be replaced by an old value.
+        setText(raw);
+        setPreviousValue(next);
+        onNumberChange(next);
+      }}
+    />
+  );
+}
+
+function NumericSlider({
+  values,
+  min = 0,
+  max = 100,
+  step = 1,
+  disabled,
+  onChange,
+}: {
+  values: number[];
+  min?: number;
+  max?: number;
+  step?: number;
+  disabled: boolean;
+  onChange: (values: number[]) => void;
+}) {
+  const endpoints = [min, max];
+  const resolved = values.map((value, index) =>
+    Number.isFinite(value) ? value : endpoints[index]
+  );
+  return (
+    <div className="px-2">
+      <Slider
+        disabled={disabled}
+        min={min}
+        max={max}
+        step={step}
+        value={resolved}
+        onValueChange={(value) =>
+          onChange(Array.isArray(value) ? [...value] : [value])
+        }
+      />
+      <div className="mt-1 flex justify-between text-muted-foreground text-xs">
+        <span>{min}</span>
+        <span>{max}</span>
+      </div>
+    </div>
+  );
+}
+
+/** Numeric fields update the editor immediately; only its form applies a filter. */
 export function NumberFilter({
   value,
   operator,
   operators = DEFAULT_OPERATORS.number,
-  min = 0,
-  max = 100,
-  step = 1,
+  min,
+  max,
+  step,
   placeholder,
   disabled = false,
   onValueChange,
   onOperatorChange,
   label,
   showOperator = true,
-  showSlider = true,
+  showSlider = false,
 }: NumberFilterProps) {
   const { t } = useTranslations();
-  const effectivePlaceholder =
-    placeholder ?? translateWithFallback(t, "filters.value", "Enter number...");
-
-  const handleValueChange = useCallback(
-    (newValue: number | [number, number]) => {
-      const timeoutId = setTimeout(() => {
-        onValueChange(newValue);
-      }, 300);
-
-      return () => clearTimeout(timeoutId);
-    },
-    [onValueChange]
-  );
-
-  // Handle immediate value change
-  const handleImmediateChange = useCallback(
-    (newValue: number | [number, number]) => {
-      onValueChange(newValue);
-    },
-    [onValueChange]
-  );
-
-  // Check if this operator needs a value input
   const needsValue = !["isEmpty", "isNotEmpty"].includes(operator);
   const isBetween = operator === "between";
-  const currentSingleValue = Array.isArray(value) ? value[0] : value;
-  const currentRangeValue = Array.isArray(value) ? value : [min, max];
-
-  // Handle single number input change
-  const handleSingleInputChange = useCallback(
-    (inputValue: string) => {
-      const numValue = Number.parseFloat(inputValue);
-      if (!Number.isNaN(numValue)) {
-        handleValueChange(numValue);
-      }
-    },
-    [handleValueChange]
-  );
-
-  // Handle range input changes
-  const handleRangeMinChange = useCallback(
-    (inputValue: string) => {
-      const numValue = Number.parseFloat(inputValue);
-      if (!Number.isNaN(numValue)) {
-        const [, maxVal] = currentRangeValue;
-        handleValueChange([numValue, maxVal]);
-      }
-    },
-    [currentRangeValue, handleValueChange]
-  );
-
-  const handleRangeMaxChange = useCallback(
-    (inputValue: string) => {
-      const numValue = Number.parseFloat(inputValue);
-      if (!Number.isNaN(numValue)) {
-        const [minVal] = currentRangeValue;
-        handleValueChange([minVal, numValue]);
-      }
-    },
-    [currentRangeValue, handleValueChange]
-  );
-
-  // Handle slider change
-  const handleSliderChange = useCallback(
-    (values: number[]) => {
-      if (isBetween) {
-        handleImmediateChange([values[0], values[1]]);
-      } else {
-        handleImmediateChange(values[0]);
-      }
-    },
-    [isBetween, handleImmediateChange]
-  );
-
+  const singleValue = Array.isArray(value) ? value[0] : value;
+  const range: [number, number] = Array.isArray(value)
+    ? value
+    : [Number.NaN, Number.NaN];
+  const values = isBetween ? range : [singleValue];
+  const changeEndpoint = (index: number, next: number) => {
+    if (!isBetween) {
+      onValueChange(next);
+      return;
+    }
+    const nextRange: [number, number] = [...range];
+    nextRange[index] = next;
+    onValueChange(nextRange);
+  };
   return (
     <div className="space-y-3">
       {label && <Label className="font-medium text-sm">{label}</Label>}
-
-      <div className="flex flex-col gap-3">
-        {/* Operator selector */}
-        {showOperator && (
-          <Select
-            disabled={disabled}
-            onValueChange={(operatorValue) =>
-              onOperatorChange(operatorValue as FilterOperators["number"])
-            }
-            value={operator}
+      {showOperator && (
+        <Select
+          disabled={disabled}
+          value={operator}
+          onValueChange={(next) =>
+            onOperatorChange(next as FilterOperators["number"])
+          }
+        >
+          <SelectTrigger
+            aria-label={t("filters.select_operator")}
+            className="w-full"
           >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder={t("filters.select_operator")}>
+            <SelectValue>
+              {getTranslatedOperatorLabel(
+                t,
+                operator,
+                FILTER_OPERATORS_LABELS.number[operator]
+              )}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {operators.map((item) => (
+              <SelectItem key={item} value={item}>
                 {getTranslatedOperatorLabel(
                   t,
-                  operator,
-                  FILTER_OPERATORS_LABELS.number[operator]
+                  item,
+                  FILTER_OPERATORS_LABELS.number[item]
                 )}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {operators.map((op) => (
-                <SelectItem key={op} value={op}>
-                  {getTranslatedOperatorLabel(
-                    t,
-                    op,
-                    FILTER_OPERATORS_LABELS.number[op]
-                  )}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-
-        {/* Value inputs */}
-        {needsValue && (
-          <div className="space-y-2">
-            {isBetween ? (
-              <>
-                {/* Range inputs */}
-                <div className="flex items-center gap-2">
-                  <Input
-                    className="flex-1"
-                    disabled={disabled}
-                    max={max}
-                    min={min}
-                    onChange={(e) => handleRangeMinChange(e.target.value)}
-                    placeholder={t("filters.value")}
-                    step={step}
-                    type="number"
-                    value={currentRangeValue[0]}
-                  />
-                  <span className="text-muted-foreground text-sm">-</span>
-                  <Input
-                    className="flex-1"
-                    disabled={disabled}
-                    max={max}
-                    min={min}
-                    onChange={(e) => handleRangeMaxChange(e.target.value)}
-                    placeholder={t("filters.value_to")}
-                    step={step}
-                    type="number"
-                    value={currentRangeValue[1]}
-                  />
-                </div>
-
-                {/* Range slider */}
-                {showSlider && (
-                  <div className="px-2">
-                    <Slider
-                      className="w-full"
-                      disabled={disabled}
-                      max={max}
-                      min={min}
-                      onValueChange={(value) =>
-                        handleSliderChange(
-                          Array.isArray(value) ? [...value] : [value as number]
-                        )
-                      }
-                      step={step}
-                      value={currentRangeValue}
-                    />
-                    <div className="mt-1 flex justify-between text-muted-foreground text-xs">
-                      <span>{min}</span>
-                      <span>{max}</span>
-                    </div>
-                  </div>
-                )}
-              </>
-            ) : (
-              <>
-                {/* Single number input */}
-                <Input
-                  className="w-full"
-                  disabled={disabled}
-                  max={max}
-                  min={min}
-                  onChange={(e) => handleSingleInputChange(e.target.value)}
-                  placeholder={effectivePlaceholder}
-                  step={step}
-                  type="number"
-                  value={currentSingleValue || ""}
-                />
-
-                {/* Single value slider */}
-                {showSlider && (
-                  <div className="px-2">
-                    <Slider
-                      className="w-full"
-                      disabled={disabled}
-                      max={max}
-                      min={min}
-                      onValueChange={(value) =>
-                        handleSliderChange(
-                          Array.isArray(value) ? [...value] : [value as number]
-                        )
-                      }
-                      step={step}
-                      value={[currentSingleValue || min]}
-                    />
-                    <div className="mt-1 flex justify-between text-muted-foreground text-xs">
-                      <span>{min}</span>
-                      <span>{max}</span>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+      {needsValue ? (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            {values.map((entry, index) => (
+              <NumericDraftInput
+                // Endpoint identity stays stable while its text changes.
+                key={index === 0 ? "from" : "to"}
+                aria-label={
+                  index === 0 ? t("filters.value") : t("filters.value_to")
+                }
+                className="min-w-0 flex-1"
+                disabled={disabled}
+                min={min}
+                max={max}
+                step={step ?? "any"}
+                placeholder={placeholder ?? t("filters.value")}
+                value={entry}
+                onNumberChange={(next) => changeEndpoint(index, next)}
+              />
+            ))}
           </div>
-        )}
-
-        {/* Info text for operators that don't need values */}
-        {!needsValue && (
-          <div className="text-muted-foreground text-sm italic">
-            {operator === "isEmpty"
-              ? t("filters.operators.empty")
-              : t("filters.operators.not_empty")}
-          </div>
-        )}
-      </div>
+          {showSlider && (
+            <NumericSlider
+              values={values}
+              min={min}
+              max={max}
+              step={step}
+              disabled={disabled}
+              onChange={(next) =>
+                onValueChange(isBetween ? [next[0], next[1]] : next[0])
+              }
+            />
+          )}
+        </div>
+      ) : (
+        <p className="text-muted-foreground text-sm">
+          {operator === "isEmpty"
+            ? t("filters.operators.empty")
+            : t("filters.operators.not_empty")}
+        </p>
+      )}
     </div>
   );
 }
@@ -312,16 +260,6 @@ export function CompactNumberFilter({
   const effectivePlaceholder =
     placeholder ?? translateWithFallback(t, "filters.value", "0");
 
-  const handleChange = useCallback(
-    (newValue: number | [number, number]) => {
-      const timeoutId = setTimeout(() => {
-        onValueChange(newValue);
-      }, 300);
-      return () => clearTimeout(timeoutId);
-    },
-    [onValueChange]
-  );
-
   const needsValue = !["isEmpty", "isNotEmpty"].includes(operator);
   const isBetween = operator === "between";
 
@@ -338,28 +276,18 @@ export function CompactNumberFilter({
   if (isBetween && Array.isArray(value)) {
     return (
       <div className="flex items-center gap-1">
-        <Input
+        <NumericDraftInput
           className="h-6 w-16 text-xs"
           disabled={disabled}
-          onChange={(e) => {
-            const val = Number.parseFloat(e.target.value);
-            if (!Number.isNaN(val)) {
-              handleChange([val, value[1]]);
-            }
-          }}
+          onNumberChange={(next) => onValueChange([next, value[1]])}
           type="number"
           value={value[0]}
         />
         <span className="text-xs">-</span>
-        <Input
+        <NumericDraftInput
           className="h-6 w-16 text-xs"
           disabled={disabled}
-          onChange={(e) => {
-            const val = Number.parseFloat(e.target.value);
-            if (!Number.isNaN(val)) {
-              handleChange([value[0], val]);
-            }
-          }}
+          onNumberChange={(next) => onValueChange([value[0], next])}
           type="number"
           value={value[1]}
         />
@@ -370,18 +298,14 @@ export function CompactNumberFilter({
   const singleValue = Array.isArray(value) ? value[0] : value;
 
   return (
-    <Input
+    <NumericDraftInput
       className="h-6 w-20 text-xs"
       disabled={disabled}
-      onChange={(e) => {
-        const val = Number.parseFloat(e.target.value);
-        if (!Number.isNaN(val)) {
-          handleChange(val);
-        }
-      }}
+      onNumberChange={onValueChange}
+      aria-label={t("filters.value")}
       placeholder={effectivePlaceholder}
       type="number"
-      value={singleValue || ""}
+      value={singleValue}
     />
   );
 }
