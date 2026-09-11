@@ -21,6 +21,17 @@ it("ships the same contract source in both standalone registries", () => {
   );
 });
 
+it("ships the same range-selection contract in both standalone registries", () => {
+  expect(
+    readFileSync("packages/yayaw-table-vue/src/row-selection-range.ts", "utf8")
+  ).toBe(
+    readFileSync(
+      "src/components/ui/yayaw-table/utils/row-selection-range.ts",
+      "utf8"
+    )
+  );
+});
+
 it("normalizes persisted widths and keyboard resize commands", () => {
   expect(
     normalizeColumnSizing(

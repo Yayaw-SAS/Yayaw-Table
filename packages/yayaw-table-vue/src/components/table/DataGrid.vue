@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { getNextRowSelectionForRange, getRenderedRangeRows } from "../../row-selection-range";
 import TableEmptyState from "./TableEmptyState.vue";
 import { useAutoPageSize } from "../../composables/use-auto-page-size";
 import TableTooltip from "../toolbar/TableTooltip.vue";
@@ -32,6 +33,30 @@ import RowActions from "./RowActions.vue";
 const context = useTableContext();
 const paginationRoot = ref<HTMLElement>();
 const { automatic, measurement, selectSize } = useAutoPageSize(paginationRoot);
+let selectionRangeAnchor: { rowId: string; rowOrderKey: string } | undefined;
+let isShiftSelectionClick = false;
+const toggleRowSelection = (row: Row<TableRecord>, event: Event): void => {
+  const checkbox = event.currentTarget as HTMLInputElement;
+  const rows = getRenderedRangeRows(checkbox, table);
+  const rowOrderKey = JSON.stringify(rows.map((item) => item.id));
+  const isShiftClick = isShiftSelectionClick;
+  isShiftSelectionClick = false;
+  if (isShiftClick && row.getCanMultiSelect() && selectionRangeAnchor?.rowOrderKey === rowOrderKey) {
+    const next = getNextRowSelectionForRange({
+      anchorRowId: selectionRangeAnchor.rowId,
+      targetRowId: row.id,
+      rows,
+      rowSelection: context.selection.value,
+      isSelected: checkbox.checked,
+    });
+    if (next) {
+      table.setRowSelection(next);
+      return;
+    }
+  }
+  selectionRangeAnchor = { rowId: row.id, rowOrderKey };
+  row.toggleSelected(checkbox.checked);
+};
 const draggedColumn = ref<string>();
 const keyboardDraggedColumn = ref<string>();
 const keyboardAnnouncement = ref("");
@@ -137,8 +162,14 @@ const columns = computed<ColumnDef<TableRecord>[]>(() => {
           checked: row.getIsSelected(),
           disabled: !row.getCanSelect(),
           "aria-label": `Select ${row.id}`,
-          onClick: (event: Event) => event.stopPropagation(),
-          onChange: row.getToggleSelectedHandler(),
+          "data-yayaw-table-selection-row-id": row.id,
+          "data-yayaw-table-selection-disabled": !row.getCanSelect() ? "" : undefined,
+          // Click carries modifier keys; change events do not retain Shift.
+          onClick: (event: Event) => {
+            event.stopPropagation();
+            isShiftSelectionClick = "shiftKey" in event && event.shiftKey === true;
+          },
+          onChange: (event: Event) => toggleRowSelection(row, event),
         }),
     });
   }
@@ -674,6 +705,7 @@ const pinnedStyle = (column: Column<TableRecord>): CSSProperties => {
     <span class="yayaw-sr-only" aria-live="polite">{{ keyboardAnnouncement }}</span>
     <div class="yayaw-table-scroll" :style="automatic ? { maxHeight: `${measurement?.tableHeight}px`, overflowY: 'auto' } : undefined">
       <table
+        data-yayaw-table-selection-scope=""
         class="yayaw-data-grid"
         :class="{ resizable: context.config.table.enableColumnResizing }"
         :style="dataGridStyle"
