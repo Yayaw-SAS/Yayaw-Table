@@ -130,6 +130,14 @@ it("renders only matching rows for a restored advanced filter and sorts those ro
     expect(preview.container.querySelector("tbody")?.textContent).not.toContain(
       "Beacon"
     );
+    await clickButton("Current View");
+    await clickButton("Filter1", true);
+    expect(
+      document.querySelectorAll('[role="dialog"] button button')
+    ).toHaveLength(0);
+    expect(document.querySelector('[role="dialog"]')?.textContent).toContain(
+      "Open"
+    );
   } finally {
     await preview.cleanup();
   }
