@@ -1202,6 +1202,8 @@ export function DataTableAdvancedToolbar<TData>({
     />
   ) : null;
   const defaultViewConfig = {
+    // An inactive Kanban lane default must not group the initial table view.
+    grouping: [],
     density: tableConfig.table.density,
     displayMode: tableConfig.table.defaultDisplayMode ?? ("table" as const),
     footerCalculationsVisible: true,
@@ -1299,7 +1301,7 @@ export function DataTableAdvancedToolbar<TData>({
                 });
               }}
               modeSettings={
-                <div className="space-y-3 p-3">
+                <div className="space-y-2 px-2 py-2">
                   {modeSettings}
                   <TableDensityMenu
                     defaultDensity={tableConfig.table.density}

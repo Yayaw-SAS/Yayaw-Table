@@ -658,8 +658,8 @@ function DataTableContent({
 
             {/* Header with title/description and toolbar */}
             {shouldShowToolbar && (
-              <div className="space-y-3 [&_button]:font-normal [&_button_.font-medium]:font-normal">
-                {!isLoading && (
+              <div className="space-y-3">
+                {/* Keep settings mounted while a filter or sort request is loading. */}
                   <DataTableHeaderControls
                     allowViewSave={config.table.allowViewSave}
                     allowViewSharing={config.table.allowViewSharing}
@@ -693,7 +693,6 @@ function DataTableContent({
                     toolbarActions={resolvedToolbarActions}
                     toolbarActionsPlacement={resolvedToolbarActionsPlacement}
                   />
-                )}
               </div>
             )}
 

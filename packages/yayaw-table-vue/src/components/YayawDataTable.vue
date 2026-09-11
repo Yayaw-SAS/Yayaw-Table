@@ -473,7 +473,7 @@ provide(tableContextKey, {
   queryClient,
   locale: props.locale,
   onBulkDelete: props.onBulkDelete,
-  onBulkEdit: props.onBulkEdit,
+  get onBulkEdit() { return props.onBulkEdit; },
   onBulkCopy: props.onBulkCopy,
   onBulkExport: props.onBulkExport,
   onExport: props.onExport,

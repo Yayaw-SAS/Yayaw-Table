@@ -658,42 +658,41 @@ function DataTableContent({
 
             {/* Header with title/description and toolbar */}
             {shouldShowToolbar && (
-              <div className="space-y-3 [&_button]:font-normal [&_button_.font-medium]:font-normal">
-                {!isLoading && (
-                  <DataTableHeaderControls
-                    allowViewSave={config.table.allowViewSave}
-                    allowViewSharing={config.table.allowViewSharing}
-                    baseData={baseData}
-                    columnTypeMapping={columnTypeMapping}
-                    defaultDensity={config.table.density}
-                    defaultDisplayMode={config.table.defaultDisplayMode}
-                    defaultFormType={defaultFormType}
-                    displayModes={config.table.displayModes}
-                    enableAdvancedFilters={shouldEnableAdvancedFilters}
-                    enableGalleryControl={shouldShowGallery}
-                    enableKanbanGrouping={shouldShowKanbanGrouping}
-                    galleryColumns={galleryColumns}
-                    galleryConfig={config.table.gallery}
-                    initialActiveViewId={initialActiveViewId}
-                    initialViews={initialViews}
-                    kanbanConfig={config.table.kanban}
-                    kanbanControlColumns={galleryColumns}
-                    kanbanDefaultGroupBy={config.table.kanban?.groupBy}
-                    kanbanGroupingColumns={kanbanGroupingColumns}
-                    onExport={onExport}
-                    quickFiltersVisible={isFilterBarVisible(
-                      showFilterBar,
-                      config.table.showFilterBar
-                    )}
-                    searchDebounceMs={resolvedSearchDebounceMs}
-                    shouldShowViewControls={shouldShowViewControls}
-                    shouldShowViews={shouldShowViews}
-                    tableId={tableId}
-                    tableType={tableType}
-                    toolbarActions={resolvedToolbarActions}
-                    toolbarActionsPlacement={resolvedToolbarActionsPlacement}
-                  />
-                )}
+              <div className="space-y-3">
+                {/* Keep settings mounted while a filter or sort request is loading. */}
+                <DataTableHeaderControls
+                  allowViewSave={config.table.allowViewSave}
+                  allowViewSharing={config.table.allowViewSharing}
+                  baseData={baseData}
+                  columnTypeMapping={columnTypeMapping}
+                  defaultDensity={config.table.density}
+                  defaultDisplayMode={config.table.defaultDisplayMode}
+                  defaultFormType={defaultFormType}
+                  displayModes={config.table.displayModes}
+                  enableAdvancedFilters={shouldEnableAdvancedFilters}
+                  enableGalleryControl={shouldShowGallery}
+                  enableKanbanGrouping={shouldShowKanbanGrouping}
+                  galleryColumns={galleryColumns}
+                  galleryConfig={config.table.gallery}
+                  initialActiveViewId={initialActiveViewId}
+                  initialViews={initialViews}
+                  kanbanConfig={config.table.kanban}
+                  kanbanControlColumns={galleryColumns}
+                  kanbanDefaultGroupBy={config.table.kanban?.groupBy}
+                  kanbanGroupingColumns={kanbanGroupingColumns}
+                  onExport={onExport}
+                  quickFiltersVisible={isFilterBarVisible(
+                    showFilterBar,
+                    config.table.showFilterBar
+                  )}
+                  searchDebounceMs={resolvedSearchDebounceMs}
+                  shouldShowViewControls={shouldShowViewControls}
+                  shouldShowViews={shouldShowViews}
+                  tableId={tableId}
+                  tableType={tableType}
+                  toolbarActions={resolvedToolbarActions}
+                  toolbarActionsPlacement={resolvedToolbarActionsPlacement}
+                />
               </div>
             )}
 

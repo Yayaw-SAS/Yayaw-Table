@@ -364,3 +364,29 @@ values inherit the initial visible setting, subject to the feature flag.
 Desktop sharing copies the current URL. Mobile uses native sharing when available,
 falls back to copying, and silently accepts cancellation. It does not change a
 saved view's organization visibility.
+
+Reset restores the complete saved snapshot, including an empty grouping. A
+Kanban lane in an inactive presentation never groups a table. Temporary views
+restore the application defaults. Grouped headers, selection and leaf cells keep
+the configured column order; React action cells retain native table-cell layout.
+Utility columns remain visible when a data-only default visibility list is used.
+Their automatic positions do not dirty a saved view or suppress its initial application;
+shared fixtures still detect changes to the order of data columns.
+
+The view panel follows its content height and uses a single Shadcn scroll area
+only when needed. Compact height includes the drawer handle, header and safe-area
+inset so the last action stays reachable. React keeps the toolbar mounted while
+filtering or sorting requests load, preserving the open screen and keyboard focus.
+
+The responsive React example's list adapter applies global search across all data
+columns, typed quick filters, advanced AND/OR predicates, sorting and pagination
+in that order. Remote consumer handlers remain responsible for the same query
+contract. Both runnable examples include an application-owned `onBulkEdit` editor
+that updates selected records, alongside the generated bulk catalogue form. React
+custom writes refresh both record and calculation queries. Vue observes callback
+changes after mount. React bulk icon buttons expose labels before hover and reveal
+their text on keyboard focus.
+
+Regression coverage includes actual React preview row order and filter results,
+reset after grouping/density changes, saved filtered views, and selected-record
+writes, plus equivalent Vue saved-view, bulk callback and grouped-layout tests.

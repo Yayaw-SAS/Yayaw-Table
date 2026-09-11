@@ -2,6 +2,8 @@
 import { ref } from "vue";
 import { Archive } from "lucide-vue-next";
 import { Toaster } from "vue-sonner";
+import FormDialog from "../src/components/forms/FormDialog.vue";
+import TableSelect from "../src/components/controls/TableSelect.vue";
 import "vue-sonner/style.css";
 import { productFormBlocks } from "../../../examples/form-layout";
 import { dataTypeColumns, dataTypeRow } from "../../../examples/data-types";
@@ -42,6 +44,31 @@ const seed: Product[] = Array.from({ length: 34 }, (_, index) => ({
 }));
 const products = ref<Product[]>(seed);
 const activity = ref("Select rows to try the catalogue toolbar action.");
+const customBulkEditor = ref(false);
+const selection = ref<Record<string, boolean>>({});
+const bulkIds = ref<string[]>([]);
+const bulkStatus = ref("Low Stock");
+const savingBulk = ref(false);
+const bulkError = ref("");
+const bulkStatusOptions = ["In Stock", "Low Stock", "Out of Stock"].map(value => ({ value, label: value }));
+const openBulkEditor = (selected: TableRecord[]): void => {
+  bulkIds.value = selected.map(row => String(row.id));
+  bulkError.value = "";
+  activity.value = `onBulkEdit received ${selected.length} selected products.`;
+};
+const applyBulkStatus = async (): Promise<void> => {
+  savingBulk.value = true;
+  try {
+    await actions.bulkUpdate?.(bulkIds.value, { status: bulkStatus.value });
+    activity.value = `Updated ${bulkIds.value.length} selected products to ${bulkStatus.value}.`;
+    selection.value = {};
+    bulkIds.value = [];
+  } catch (cause) {
+    bulkError.value = cause instanceof Error ? cause.message : String(cause);
+  } finally {
+    savingBulk.value = false;
+  }
+};
 
 const config = defineTableConfig<Product>({
   id: "products",
@@ -307,6 +334,8 @@ const typesActions: TableActions = {
         View → Properties, and every data column can be resized. On mobile, open the view for settings and the data actions menu for search, export and sharing.
       </p>
       <p class="demo-status" role="status">{{ activity }}</p>
+      <label class="demo-bulk-toggle"><input v-model="customBulkEditor" type="checkbox" /> Custom onBulkEdit</label>
+      <p>Select multiple products to edit them together. Enable Custom onBulkEdit to try the application-owned editor.</p>
     </header>
     <DataTable
       table-type="products"
@@ -315,12 +344,25 @@ const typesActions: TableActions = {
       :get-table-actions="() => actions"
       :get-form-config="() => formConfig as unknown as FormConfig"
       :toolbar-actions="toolbarActions"
+      :row-selection="selection"
+      :on-bulk-edit="customBulkEditor ? openBulkEditor : undefined"
       toolbar-actions-placement="after-export"
       locale="en"
       @row-activate="activateProduct"
+      @row-selection-change="selection = $event"
     >
       <template #form-preview="{ values }"><output>Preview: {{ values.name || "Untitled" }} · {{ values.price ?? 0 }} €</output></template>
     </DataTable>
+    <FormDialog v-if="bulkIds.length" :open="true" :title="`Edit ${bulkIds.length} selected products`" description="This application-owned editor is opened by onBulkEdit. Only the selected records will change." presentation="modal" :busy="savingBulk" @close="bulkIds = []">
+      <form class="yayaw-form" @submit.prevent="applyBulkStatus">
+        <TableSelect v-model="bulkStatus" label="Bulk status" :options="bulkStatusOptions" :disabled="savingBulk" />
+        <p v-if="bulkError" role="alert">{{ bulkError }}</p>
+        <footer class="yayaw-form-footer">
+          <button type="button" class="yayaw-button yayaw-button-outline" :disabled="savingBulk" @click="bulkIds = []">Cancel</button>
+          <button type="submit" class="yayaw-button yayaw-button-primary" :disabled="savingBulk">Apply to selected products</button>
+        </footer>
+      </form>
+    </FormDialog>
     <section style="margin-top: 48px">
       <DataTable table-type="data-types" :config="typesConfig" :data="typeRows" :get-table-actions="() => typesActions" locale="en" />
       <pre aria-label="Saved typed values">{{ JSON.stringify(typeRows, null, 2) }}</pre>
@@ -336,4 +378,5 @@ body { margin: 0; background: #f7f7f8; color: #18181b; font-family: Inter, ui-sa
 .demo-header p { margin: 0; color: #52525b; line-height: 1.6; }
 .demo-eyebrow { color: #2563eb !important; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
 .demo-status { margin-top: 12px !important; font-weight: 600; }
+.demo-bulk-toggle { display: flex; align-items: center; gap: 8px; margin-block: 12px; font-size: 14px; }
 </style>

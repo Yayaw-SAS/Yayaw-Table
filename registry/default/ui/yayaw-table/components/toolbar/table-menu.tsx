@@ -324,12 +324,9 @@ function renderMainMenuView({
         <StackMenuSection>
           {sectionState.canShowColumnsSection && (
             <StackMenuItem
-              description={t("menu.columns_visible", {
-                count: displayVisibleCount,
-              })}
               endIcon={
                 displayVisibleCount > 0 ? (
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs">
+                  <span className="flex min-w-4 items-center justify-center text-muted-foreground text-xs tabular-nums">
                     {displayVisibleCount}
                   </span>
                 ) : undefined
@@ -344,16 +341,9 @@ function renderMainMenuView({
 
           {sectionState.canShowFiltersSection && (
             <StackMenuItem
-              description={
-                sectionState.effectiveActiveFiltersCount > 0
-                  ? t("filters.active_count", {
-                      count: sectionState.effectiveActiveFiltersCount,
-                    })
-                  : undefined
-              }
               endIcon={
                 sectionState.effectiveActiveFiltersCount > 0 ? (
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs">
+                  <span className="flex min-w-4 items-center justify-center text-muted-foreground text-xs tabular-nums">
                     {sectionState.effectiveActiveFiltersCount}
                   </span>
                 ) : undefined
@@ -368,16 +358,9 @@ function renderMainMenuView({
 
           {sectionState.canShowSortSection && (
             <StackMenuItem
-              description={
-                sectionState.effectiveActiveSortCount > 0
-                  ? t("filters.active_count", {
-                      count: sectionState.effectiveActiveSortCount,
-                    })
-                  : undefined
-              }
               endIcon={
                 sectionState.effectiveActiveSortCount > 0 ? (
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs">
+                  <span className="flex min-w-4 items-center justify-center text-muted-foreground text-xs tabular-nums">
                     {sectionState.effectiveActiveSortCount}
                   </span>
                 ) : undefined
@@ -392,14 +375,9 @@ function renderMainMenuView({
 
           {sectionState.canShowGroupSection && (
             <StackMenuItem
-              description={
-                activeGroupingCount > 0
-                  ? t("menu.active_groups", { count: activeGroupingCount })
-                  : undefined
-              }
               endIcon={
                 activeGroupingCount > 0 ? (
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs">
+                  <span className="flex min-w-4 items-center justify-center text-muted-foreground text-xs tabular-nums">
                     {activeGroupingCount}
                   </span>
                 ) : undefined
@@ -414,7 +392,11 @@ function renderMainMenuView({
 
           {sectionState.canShowCalculationsSection && (
             <StackMenuItem
-              description={footerCalculationsLabel}
+              endIcon={
+                <span aria-hidden="true" className="text-xs">
+                  {footerCalculationsLabel}
+                </span>
+              }
               icon={<Calculator className="size-4" />}
               onClick={onToggleFooterCalculations}
             >

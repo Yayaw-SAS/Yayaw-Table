@@ -202,7 +202,7 @@ function ViewAction({
         aria-label={label}
         aria-pressed={pressed}
         className={cn(
-          "h-auto min-h-9 w-full justify-start gap-2 px-2 py-2 text-left font-normal",
+          "h-auto min-h-8 w-full justify-start gap-2 rounded-sm px-2 py-1.5 text-left font-normal",
           disabled && "text-muted-foreground opacity-60",
           destructive && "text-destructive"
         )}
@@ -423,9 +423,9 @@ function renderViewSelection({
   handleSelectView: (view: TableView) => void;
 }) {
   return enabled ? (
-    <div className="space-y-1 border-b p-2">
+    <div className="border-border border-b pb-1">
       <Button
-        className="w-full justify-start gap-2 font-normal"
+        className="h-8 w-full justify-start gap-2 rounded-sm px-2 font-normal"
         disabled={isMutating}
         onClick={handleSelectDefaultView}
         type="button"
@@ -443,7 +443,7 @@ function renderViewSelection({
       {savedViews.map((view) => (
         <Button
           aria-current={view.id === viewParam ? "true" : undefined}
-          className="w-full justify-start gap-2 font-normal"
+          className="h-8 w-full justify-start gap-2 rounded-sm px-2 font-normal"
           disabled={isMutating}
           key={view.id}
           onClick={() => handleSelectView(view)}
@@ -567,7 +567,12 @@ export function DataTableViewManager({
         displayMode: defaultDisplayMode ?? "table",
         pageSize: 10,
         ...defaultViewConfig,
-        grouping: input.kanban?.groupBy ? [input.kanban.groupBy] : [],
+        // Legacy Kanban lanes are grouping defaults only for the Kanban presentation.
+        grouping:
+          (input.displayMode ?? defaultDisplayMode ?? "table") === "kanban" &&
+          input.kanban?.groupBy
+            ? [input.kanban.groupBy]
+            : [],
         ...input,
         density: input.density ?? defaultDensity,
         footerCalculationsVisible:

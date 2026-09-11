@@ -443,7 +443,6 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
                 <span class="yayaw-options-item-icon"><List :size="16" aria-hidden="true" /></span>
                 <span class="yayaw-options-item-copy">
                   <span>{{ translate("properties", "Properties") }}</span>
-                  <small>{{ visibleColumnCount }} {{ translate("visible", "visible") }}</small>
                 </span>
                 <span class="yayaw-options-item-end">
                   <span class="yayaw-options-item-count">{{ visibleColumnCount }}</span>
@@ -458,7 +457,6 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
                 <span class="yayaw-options-item-icon"><ListFilter :size="16" aria-hidden="true" /></span>
                 <span class="yayaw-options-item-copy">
                   <span>{{ translate("filters", "Filters") }}</span>
-                  <small v-if="activeFilterCount">{{ activeFilterCount }} {{ translate("active", "active") }}</small>
                 </span>
                 <span class="yayaw-options-item-end">
                   <span v-if="activeFilterCount" class="yayaw-options-item-count">{{ activeFilterCount }}</span>
@@ -474,7 +472,6 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
                 <span class="yayaw-options-item-icon"><ArrowDownAZ :size="16" aria-hidden="true" /></span>
                 <span class="yayaw-options-item-copy">
                   <span>{{ translate("sort", "Sort") }}</span>
-                  <small v-if="context.state.sorting.value.length">{{ context.state.sorting.value.length }} {{ translate("active", "active") }}</small>
                 </span>
                 <span class="yayaw-options-item-end">
                   <span v-if="context.state.sorting.value.length" class="yayaw-options-item-count">{{ context.state.sorting.value.length }}</span>
@@ -490,7 +487,6 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
                 <span class="yayaw-options-item-icon"><Layers :size="16" aria-hidden="true" /></span>
                 <span class="yayaw-options-item-copy">
                   <span>{{ translate("group", "Group") }}</span>
-                  <small v-if="context.state.grouping.value.length">{{ context.state.grouping.value.length }} {{ translate("active", "active") }}</small>
                 </span>
                 <span class="yayaw-options-item-end">
                   <span v-if="context.state.grouping.value.length" class="yayaw-options-item-count">{{ context.state.grouping.value.length }}</span>
@@ -508,9 +504,8 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
                 <span class="yayaw-options-item-icon"><Calculator :size="16" aria-hidden="true" /></span>
                 <span class="yayaw-options-item-copy">
                   <span>{{ translate("calculations", "Footer calculations") }}</span>
-                  <small>{{ context.footerCalculationsVisible.value ? translate("calculationsOn", "Shown") : translate("calculationsOff", "Hidden") }}</small>
                 </span>
-                <span class="yayaw-options-item-end" />
+                <span class="yayaw-options-item-end">{{ context.footerCalculationsVisible.value ? translate("calculationsOn", "Shown") : translate("calculationsOff", "Hidden") }}</span>
               </button>
               <button v-if="!capabilities.columns" type="button" class="yayaw-options-item" @click="optionsView = 'cards'"><List :size="16" /><span>{{ translate('views.cardSettings', 'Card settings') }}</span><ChevronRight :size="16" /></button>
             </div>

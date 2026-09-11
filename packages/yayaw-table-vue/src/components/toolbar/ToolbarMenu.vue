@@ -3,6 +3,7 @@ import { ArrowLeft, X } from "lucide-vue-next";
 import {
   DialogContent, DialogOverlay, DialogPortal, DialogRoot, DialogTitle, DialogTrigger,
   PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger,
+  ScrollAreaRoot, ScrollAreaViewport, ScrollAreaScrollbar, ScrollAreaThumb,
 } from "reka-ui";
 import { ref, watch, type CSSProperties } from "vue";
 
@@ -14,7 +15,7 @@ watch(() => props.open, (open) => {
   if (!open || !anchor.value) return;
   const style = getComputedStyle(anchor.value);
   const values: Record<string, string> = { fontFamily: style.fontFamily };
-  for (const token of ["background", "foreground", "muted", "muted-foreground", "border", "primary", "primary-foreground", "danger", "radius", "shadow"]) {
+  for (const token of ["background", "foreground", "popover", "popover-foreground", "muted", "muted-foreground", "border", "primary", "primary-foreground", "danger", "radius", "shadow"]) {
     for (const name of [`--yayaw-${token}`, `--${token}`]) {
       const value = style.getPropertyValue(name).trim();
       if (value) values[name] = value;
@@ -38,7 +39,10 @@ watch(() => props.open, (open) => {
             <DialogTitle v-if="compact" as="strong">{{ title }}</DialogTitle><strong v-else>{{ title }}</strong>
             <button class="yayaw-icon-button" type="button" :aria-label="closeLabel ?? 'Close'" @click="emit('update:open', false)"><X :size="16" /></button>
           </header>
-          <div class="yayaw-toolbar-menu-body"><slot /></div>
+          <ScrollAreaRoot class="yayaw-toolbar-menu-body" type="hover">
+            <ScrollAreaViewport class="yayaw-toolbar-menu-viewport"><slot /></ScrollAreaViewport>
+            <ScrollAreaScrollbar class="yayaw-toolbar-menu-scrollbar" orientation="vertical"><ScrollAreaThumb class="yayaw-toolbar-menu-thumb" /></ScrollAreaScrollbar>
+          </ScrollAreaRoot>
         </component>
       </component>
     </component>

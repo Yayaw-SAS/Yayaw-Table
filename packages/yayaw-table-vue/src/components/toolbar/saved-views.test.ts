@@ -10,6 +10,7 @@ import {
   inlineTestPortals,
   openViewMenu,
   openViewSave,
+  openViewScreen,
 } from "../../../tests/menu-helpers";
 import { defineTableConfig } from "../../config";
 import type {
@@ -773,4 +774,39 @@ it("compares legacy footer visibility and restores it without persisting the dra
   expect(calculations.attributes("aria-checked")).toBe("true");
   expect((await saveButton(wrapper)).attributes("aria-disabled")).toBe("true");
   expect(update).not.toHaveBeenCalled();
+});
+
+it.each([
+  false,
+  true,
+])("removes added groups and restores density and saved filters on reset (saved: %s)", async (useSaved) => {
+  const filtered = {
+    ...saved,
+    config: { columnFilters: [{ id: "status", value: ["open"] }] },
+  };
+  const wrapper = mountTable({
+    views: [filtered],
+    active: useSaved ? filtered.id : undefined,
+  });
+  await flushPromises();
+  await openViewMenu(wrapper);
+  await wrapper.get(".yayaw-density-inline button").trigger("click");
+  await openViewScreen(wrapper, "Group");
+  await wrapper.get(".yayaw-options-content > button").trigger("click");
+  await flushPromises();
+  expect(wrapper.findAll("tbody tr.grouped").length).toBeGreaterThan(0);
+  await wrapper.get('[aria-label="Back"]').trigger("click");
+  await wrapper.get('[aria-label="Reset view"]').trigger("click");
+  await flushPromises();
+  expect(wrapper.findAll("tbody tr.grouped")).toHaveLength(0);
+  expect(wrapper.attributes("data-density")).toBe("medium");
+  expect(wrapper.get("tbody").text()).toContain("Alpha");
+  if (useSaved) {
+    expect(wrapper.get("tbody").text()).not.toContain("Beta");
+    expect((await saveButton(wrapper)).attributes("aria-disabled")).toBe(
+      "true"
+    );
+  } else {
+    expect(wrapper.get("tbody").text()).toContain("Beta");
+  }
 });

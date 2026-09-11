@@ -45,6 +45,14 @@ Object.assign(globalThis, {
   IS_REACT_ACT_ENVIRONMENT: true,
 });
 
+// Happy DOM does not implement the Web Animations API used by Base UI ScrollArea.
+if (!("getAnimations" in browser.Element.prototype)) {
+  Object.defineProperty(browser.Element.prototype, "getAnimations", {
+    configurable: true,
+    value: () => [],
+  });
+}
+
 if (!("IntersectionObserver" in globalThis)) {
   Object.defineProperty(globalThis, "IntersectionObserver", {
     configurable: true,

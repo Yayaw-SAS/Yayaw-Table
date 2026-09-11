@@ -39,7 +39,7 @@ export function ResponsiveMenu({
         <DrawerTrigger asChild>{trigger}</DrawerTrigger>
         <DrawerContent
           aria-describedby={undefined}
-          className="max-h-[90dvh] overflow-hidden pb-[env(safe-area-inset-bottom)] [&_button]:min-h-11 [&_input]:min-h-11"
+          className="max-h-[90dvh] overflow-hidden pb-[env(safe-area-inset-bottom)] data-[vaul-drawer-direction=bottom]:max-h-[90dvh] [&_button]:min-h-11 [&_input]:min-h-11"
         >
           <DrawerTitle className="sr-only">{title}</DrawerTitle>
           {children}
@@ -53,7 +53,7 @@ export function ResponsiveMenu({
       <PopoverContent
         align={align}
         aria-label={title}
-        className="w-[min(26rem,calc(100vw-1rem))] gap-0 overflow-hidden p-0"
+        className="w-[min(20rem,calc(100vw-1rem))] gap-0 overflow-hidden p-0"
         sideOffset={sideOffset}
       >
         {children}

@@ -864,6 +864,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
       enableRowSelection: config.table.enableRowSelection,
     }),
     enableSorting: config.table.enableSorting,
+    groupedColumnMode: false,
     manualFiltering: true,
     manualPagination: true,
     manualSorting: true,

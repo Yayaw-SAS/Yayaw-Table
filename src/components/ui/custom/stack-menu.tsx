@@ -18,6 +18,7 @@ import {
 } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/src/components/ui/button";
+import { ScrollArea } from "@/src/components/ui/scroll-area";
 import { ResponsiveMenu } from "../yayaw-table/components/toolbar/responsive-menu";
 
 interface StackMenuViewProps {
@@ -111,7 +112,7 @@ interface StackMenuProps
 
 const StackMenuView = ({ children, name }: StackMenuViewProps) => {
   return (
-    <div className="flex h-full w-full flex-col" data-view-name={name}>
+    <div className="flex min-h-0 w-full flex-col" data-view-name={name}>
       {children}
     </div>
   );
@@ -230,6 +231,7 @@ const StackMenu = forwardRef<HTMLDivElement, StackMenuProps>(
         <div
           className={cn(
             stackMenuVariants({ variant, size, framed: !asDropdown }),
+            asDropdown && "max-h-[min(42rem,var(--available-height,calc(100dvh-1rem)))] w-full",
             compact && "max-h-[calc(90dvh-1.5rem)] min-h-0 w-full",
             className
           )}
@@ -237,7 +239,7 @@ const StackMenu = forwardRef<HTMLDivElement, StackMenuProps>(
           {...props}
         >
           {/* Header with navigation */}
-          <div className="flex items-center gap-1 border-border border-b bg-muted/30 px-3 py-2">
+          <div className="flex shrink-0 items-center gap-1 border-border border-b px-2 py-1">
             {canGoBack && (
               <Button
                 aria-label="Back"
@@ -268,9 +270,10 @@ const StackMenu = forwardRef<HTMLDivElement, StackMenuProps>(
           </div>
 
           {/* Content */}
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          <ScrollArea className="min-h-0 [&_[data-slot=scroll-area-viewport]]:h-auto [&_[data-slot=scroll-area-viewport]]:max-h-[inherit] [&_[data-slot=scroll-area-viewport]]:overscroll-contain"
+            style={{ maxHeight: compact ? "calc(90dvh - 7rem - env(safe-area-inset-bottom))" : "calc(min(42rem, var(--available-height, 100dvh)) - 3rem)" }}>
             {activeViewChild}
-          </div>
+          </ScrollArea>
         </div>
       </StackMenuContext.Provider>
     );
@@ -301,7 +304,7 @@ const StackMenuContent = forwardRef<
   HTMLDivElement,
   HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-  <div className={cn("p-3", className)} ref={ref} {...props} />
+  <div className={cn("p-1", className)} ref={ref} {...props} />
 ));
 StackMenuContent.displayName = "StackMenuContent";
 
@@ -362,7 +365,7 @@ const StackMenuItem = forwardRef<HTMLButtonElement, StackMenuItemProps>(
     return (
       <Button
         className={cn(
-          "h-auto w-full justify-start gap-3 p-2 text-left font-normal hover:bg-accent",
+          "h-auto min-h-8 w-full justify-start gap-2 rounded-sm px-2 py-1.5 text-left font-normal hover:bg-accent",
           className
         )}
         onClick={handleClick}
@@ -371,7 +374,7 @@ const StackMenuItem = forwardRef<HTMLButtonElement, StackMenuItemProps>(
         {...props}
       >
         {icon && (
-          <div className="flex h-5 w-5 items-center justify-center text-muted-foreground">
+          <div className="flex size-4 shrink-0 items-center justify-center text-muted-foreground">
             {icon}
           </div>
         )}
@@ -404,7 +407,7 @@ const StackMenuSeparator = forwardRef<
   HTMLDivElement,
   HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-  <div className={cn("my-2 h-px bg-border", className)} ref={ref} {...props} />
+  <div className={cn("my-1 h-px bg-border", className)} ref={ref} {...props} />
 ));
 StackMenuSeparator.displayName = "StackMenuSeparator";
 

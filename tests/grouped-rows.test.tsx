@@ -104,12 +104,24 @@ async function mountGroups(grouping = ["category"], selection = true) {
 }
 const groupButtons = (container: HTMLElement) =>
   Array.from(
-    container.querySelectorAll<HTMLButtonElement>("tbody button[aria-expanded]")
+    container.querySelectorAll<HTMLButtonElement>(
+      "tbody td[colspan] button[aria-expanded]"
+    )
   );
 
 it("renders accessor option labels without automatic category sums and preserves expanded cell values", async () => {
   const container = await mountGroups();
   const groups = groupButtons(container);
+  expect(
+    container
+      .querySelector("thead th")
+      ?.querySelector('[aria-label="Select all rows"]')
+  ).not.toBeNull();
+  expect(
+    Array.from(container.querySelectorAll("thead th"))
+      .slice(1, 4)
+      .map((cell) => cell.textContent?.trim())
+  ).toEqual(["Name", "Category", "Active"]);
   expect(groups).toHaveLength(2);
   expect(groups[0]?.textContent).toContain("Category:Web3");
   expect(groups[0]?.closest("tr")?.querySelectorAll("td")).toHaveLength(2);
@@ -119,7 +131,7 @@ it("renders accessor option labels without automatic category sums and preserves
   );
   await act(() => groups[0]?.click());
   const leaves = Array.from(container.querySelectorAll("tbody tr")).filter(
-    (row) => !row.querySelector("button[aria-expanded]")
+    (row) => !row.querySelector("td[colspan] button[aria-expanded]")
   );
   expect(leaves).toHaveLength(4);
   for (const leaf of leaves.slice(0, 3)) {
@@ -139,7 +151,7 @@ it("counts and selects permitted leaf records at two levels", async () => {
   await act(() => checkbox?.click());
   expect(checkbox?.getAttribute("aria-checked")).toBe("true");
   const leaves = Array.from(container.querySelectorAll("tbody tr")).filter(
-    (row) => !row.querySelector("button[aria-expanded]")
+    (row) => !row.querySelector("td[colspan] button[aria-expanded]")
   );
   expect(leaves).toHaveLength(4);
   expect(

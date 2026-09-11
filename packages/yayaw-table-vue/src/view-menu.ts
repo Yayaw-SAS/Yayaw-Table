@@ -68,6 +68,12 @@ export function areViewSettingsEqual(left: object, right: object): boolean {
     for (const key of VIEW_SETTING_KEYS) {
       settings[key] = aliases[key];
     }
+    // Selection and action columns are positioned by the table, including in legacy views.
+    if (Array.isArray(settings.columnOrder)) {
+      settings.columnOrder = settings.columnOrder.filter(
+        (id) => id !== "select" && id !== "actions"
+      );
+    }
     // Filter identities and edit timestamps do not change the saved query's meaning.
     settings.advancedFilters = normalizeFilterEnvelope(
       aliases.advancedFilters

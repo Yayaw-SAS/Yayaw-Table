@@ -289,5 +289,25 @@
         ]
       }
     }
+  },
+  {
+    "name": "automatic utility columns do not dirty or suppress an initial view",
+    "equal": true,
+    "saved": {
+      "columnOrder": ["name", "status"]
+    },
+    "current": {
+      "columnOrder": ["select", "name", "status", "actions"]
+    }
+  },
+  {
+    "name": "data column reordering remains a saved-view change",
+    "equal": false,
+    "saved": {
+      "columnOrder": ["select", "name", "status", "actions"]
+    },
+    "current": {
+      "columnOrder": ["select", "status", "name", "actions"]
+    }
   }
 ]

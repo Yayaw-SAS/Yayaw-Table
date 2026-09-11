@@ -2150,14 +2150,16 @@
   z-index: 70;
   display: flex;
   flex-direction: column;
-  width: min(416px, calc(100vw - 16px));
-  max-height: min(650px, var(--reka-popover-content-available-height, 85dvh));
+  width: min(320px, calc(100vw - 16px));
+  max-height: min(672px, var(--reka-popover-content-available-height, 85dvh));
   overflow: hidden;
   border: 1px solid var(--yayaw-border);
-  border-radius: var(--yayaw-radius);
-  background: var(--yayaw-background);
-  color: var(--yayaw-foreground);
-  box-shadow: var(--yayaw-shadow);
+  border-radius: var(--radius, var(--yayaw-radius));
+  background: var(--popover, var(--yayaw-background));
+  color: var(--popover-foreground, var(--yayaw-foreground));
+  box-shadow:
+    0 4px 6px -1px rgb(0 0 0 / 0.1),
+    0 2px 4px -2px rgb(0 0 0 / 0.1);
   font-size: 14px;
   line-height: 1.4;
 }
@@ -2174,9 +2176,32 @@
   font-weight: 500;
 }
 .yayaw-toolbar-menu-body {
+  position: relative;
   min-height: 0;
-  overflow-y: auto;
+  max-height: calc(
+    min(672px, var(--reka-popover-content-available-height, 85dvh)) -
+    42px
+  );
+  overflow: hidden;
+}
+.yayaw-toolbar-menu-viewport {
+  max-height: inherit;
   overscroll-behavior: contain;
+}
+.yayaw-toolbar-menu-scrollbar {
+  display: flex;
+  width: 10px;
+  padding: 2px;
+  touch-action: none;
+  user-select: none;
+}
+.yayaw-toolbar-menu-thumb {
+  flex: 1;
+  border-radius: 999px;
+  background: var(--border, var(--yayaw-border));
+}
+.yayaw-toolbar-menu[data-compact="true"] .yayaw-toolbar-menu-body {
+  max-height: calc(90dvh - 70px);
 }
 .yayaw-toolbar-menu .yayaw-options-content {
   max-height: none;
@@ -2186,8 +2211,6 @@
   padding: 8px;
 }
 .yayaw-toolbar-menu .yayaw-view-selection {
-  max-height: 200px;
-  overflow-y: auto;
   border-bottom: 1px solid var(--yayaw-border);
 }
 .yayaw-toolbar-menu .yayaw-view-write-actions {
@@ -2329,4 +2352,51 @@
   height: 8px;
   border-radius: 50%;
   background: #3b82f6;
+}
+
+/* View panels use compact Shadcn menu rows; only constrained content scrolls. */
+.yayaw-toolbar-menu-header {
+  padding: 4px 8px;
+}
+.yayaw-toolbar-menu .yayaw-options-list {
+  gap: 0;
+  padding: 4px;
+}
+.yayaw-toolbar-menu .yayaw-options-item {
+  min-height: 32px;
+  padding: 6px 8px;
+  gap: 8px;
+  border-radius: 4px;
+}
+.yayaw-toolbar-menu .yayaw-options-item-icon {
+  width: 16px;
+  height: 16px;
+}
+.yayaw-toolbar-menu .yayaw-options-item-count {
+  min-width: 16px;
+  width: auto;
+  height: auto;
+  background: transparent;
+  color: var(--yayaw-muted-foreground);
+  font-variant-numeric: tabular-nums;
+}
+.yayaw-toolbar-menu .yayaw-options-item-end {
+  width: auto;
+  min-width: 16px;
+  font-size: 12px;
+}
+.yayaw-toolbar-menu :is(.yayaw-view-selection, .yayaw-view-write-actions) {
+  padding: 4px;
+}
+.yayaw-toolbar-menu .yayaw-view-menu-item {
+  min-height: 32px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  gap: 8px;
+}
+.yayaw-toolbar-menu .yayaw-segmented {
+  margin: 8px;
+}
+.yayaw-toolbar-menu .yayaw-density-inline {
+  margin: 8px;
 }
