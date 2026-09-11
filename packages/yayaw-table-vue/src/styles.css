@@ -1708,7 +1708,10 @@
   display: flex;
   align-items: stretch;
   justify-content: flex-end;
-  background: rgba(0, 0, 0, 0.42);
+  /* Match React's bg-black/10 and backdrop-blur-xs, including host blur tokens. */
+  background: rgba(0, 0, 0, 0.1);
+  -webkit-backdrop-filter: blur(var(--blur-xs, 4px));
+  backdrop-filter: blur(var(--blur-xs, 4px));
 }
 .yayaw-form-surface {
   width: min(620px, 94vw);
