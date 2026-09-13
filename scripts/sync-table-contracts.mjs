@@ -78,3 +78,11 @@ await copyFile(
   ),
   new URL("../packages/yayaw-table-vue/src/view-menu.ts", import.meta.url)
 );
+
+await copyFile(
+  new URL(
+    "../src/components/ui/yayaw-table/utils/bulk-editor.ts",
+    import.meta.url
+  ),
+  new URL("../packages/yayaw-table-vue/src/bulk-editor.ts", import.meta.url)
+);

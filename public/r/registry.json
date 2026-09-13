@@ -469,6 +469,16 @@
           "target": "components/ui/yayaw-table/components/forms/atoms/index.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/forms/bulk-editor-fields.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/forms/bulk-editor-fields.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/forms/bulk-editor-surface.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/forms/bulk-editor-surface.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/forms/bulk-form.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/forms/bulk-form.ts"
@@ -1042,6 +1052,11 @@
           "path": "registry/default/ui/yayaw-table/utils/auto-page-size.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/auto-page-size.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/bulk-editor.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/bulk-editor.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/utils/card-interaction.ts",

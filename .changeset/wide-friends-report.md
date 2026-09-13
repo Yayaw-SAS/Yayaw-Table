@@ -13,3 +13,5 @@ Keep advanced numeric filter drafts stable until Enter or confirmation, includin
 Keep the mobile panel header fixed while focusing numeric inputs and anchor Vue column menus correctly when composed with tooltips.
 
 Present display mode and density as matching labelled button rows, with equal-width choices and the same selected state in React and Vue.
+
+Replace bulk field checklists with a searchable property picker and flat editor rows in React and Vue. Preserve partial patches, schema-aware explicit clears, permission checks and failed-row retries. Keep the target count visible on the apply button and actions accessible in the mobile bottom panel. Use record IDs for bulk persistence and map successful results back to their table selection IDs.

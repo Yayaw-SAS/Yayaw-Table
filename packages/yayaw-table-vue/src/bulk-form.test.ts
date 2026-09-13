@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import bulkEditorCases from "../../../tests/fixtures/bulk-editor.json";
+import { bulkClearCandidate } from "./bulk-editor";
 import { bulkCompletion, commonBulkValues } from "./bulk-form";
 
 describe("bulk draft helpers", () => {
@@ -39,3 +41,12 @@ describe("bulk draft helpers", () => {
     });
   });
 });
+
+for (const scenario of bulkEditorCases) {
+  it(`offers an explicit clear for ${scenario.type}, required=${Boolean(scenario.required)}`, () => {
+    const result = bulkClearCandidate(scenario);
+    expect(result).toEqual(
+      scenario.unsupported ? undefined : { value: scenario.value }
+    );
+  });
+}

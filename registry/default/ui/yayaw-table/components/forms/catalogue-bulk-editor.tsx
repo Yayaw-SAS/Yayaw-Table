@@ -1,34 +1,34 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useStore } from "@tanstack/react-form";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { useTableConfig } from "../../hooks/use-table-config";
 import {
   type TableActions,
   useFormConfig,
   useTableActions,
+  useTranslations,
 } from "../../providers/table-provider";
+import { bulkEditorMessages } from "../../utils/bulk-editor";
+import { BulkEditorFields } from "./bulk-editor-fields";
+import { BulkEditorSurface } from "./bulk-editor-surface";
 import {
   bulkCompletion,
   bulkFieldEditable,
   bulkFormConfig,
   bulkFormValues,
   commonBulkValues,
+  validateBulkDraft,
 } from "./bulk-form";
-import { FormBuilder } from "./form-builder";
-import { formValuesEqual } from "./form-runtime";
+import { formValuesEqual, initialFormValues } from "./form-runtime";
 import { generateFormConfig } from "./generated-form-config";
 import { useFormBuilder } from "./hooks/use-form-builder";
 import type { FieldValues, FormConfigContext } from "./types";
 
 export interface BulkEditTarget {
   id: string;
+  selectionId?: string;
   row: FieldValues;
 }
 
@@ -64,6 +64,11 @@ function BulkEditorForm({
   const { config: tableConfig } = useTableConfig(tableType);
   const getFormConfig = useFormConfig();
   const getActions = useTableActions();
+  const { locale, translations } = useTranslations();
+  const messages = {
+    ...bulkEditorMessages(locale),
+    ...translations.bulk?.editor,
+  };
   const [remaining, setRemaining] = useState(targets);
   const [applied, setApplied] = useState<string[]>([]);
   const initial = useMemo(
@@ -84,31 +89,69 @@ function BulkEditorForm({
     ),
   ];
   const formType = formTypes[0] ?? tableType;
-  const context: FormConfigContext = {
-    formType,
-    tableType,
-    tableId,
-    mode: "edit",
-    initialData: initial,
-    values,
-    bulkEdit: {
-      ids: remaining.map((target) => target.id),
-      rows: remaining.map((target) => target.row),
-      fields: applied,
-    },
-  };
-  const config =
-    getFormConfig?.(formType, context) ??
-    generateFormConfig(
+  const context = useMemo<FormConfigContext>(
+    () => ({
       formType,
+      tableType,
+      tableId,
+      mode: "edit",
+      initialData: initial,
+      values,
+      bulkEdit: {
+        ids: remaining.map((target) => target.id),
+        rows: remaining.map((target) => target.row),
+        fields: applied,
+      },
+    }),
+    [formType, tableType, tableId, initial, values, remaining, applied]
+  );
+  const config = useMemo(
+    () =>
+      getFormConfig?.(formType, context) ??
+      generateFormConfig(
+        formType,
+        tableConfig.columns.definitions,
+        values,
+        remaining.map((target) => target.row)
+      ),
+    [
+      getFormConfig,
+      formType,
+      context,
       tableConfig.columns.definitions,
       values,
-      remaining.map((target) => target.row)
-    );
+      remaining,
+    ]
+  );
   const editable = config.fields.filter((field) =>
     bulkFieldEditable(field, context)
   );
-  const validationConfig = bulkFormConfig(config, context);
+  const validationConfig = useMemo(
+    () => bulkFormConfig(config, context),
+    [config, context]
+  );
+  const [draftState, setDraftState] = useState<{
+    valid: boolean;
+    clearValues: FieldValues;
+  }>({ valid: false, clearValues: {} });
+  useEffect(() => {
+    let cancelled = false;
+    setDraftState((previous) => ({ ...previous, valid: false }));
+    validateBulkDraft(validationConfig, context)
+      .then((next) => {
+        if (!cancelled) {
+          setDraftState(next);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setDraftState({ valid: false, clearValues: {} });
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [validationConfig, context]);
   const canSave = () =>
     tableConfig.table.allowBulkEdit !== false &&
     formTypes.length === 1 &&
@@ -192,70 +235,91 @@ function BulkEditorForm({
     }
     onClose();
   }
+  const validatingOrSubmitting = useStore(
+    builder.form.store,
+    (state) => state.isSubmitting
+  );
+  const working = busy || validatingOrSubmitting;
+  const count = remaining.length;
   return (
-    <Dialog
-      onOpenChange={(open) => {
-        if (!(open || busy)) {
-          onClose();
-        }
-      }}
-      open
+    <BulkEditorSurface
+      busy={working}
+      closeLabel={messages.close}
+      description={messages.description}
+      onClose={onClose}
+      title={(count === 1 ? messages.titleOne : messages.titleMany).replace(
+        "{count}",
+        String(count)
+      )}
     >
-      <DialogContent className="max-h-[90vh] overflow-y-auto">
-        <DialogTitle>Bulk edit</DialogTitle>
-        <DialogDescription>
-          Only checked fields are applied to the {remaining.length} selected
-          rows.
-        </DialogDescription>
-        {formTypes.length > 1 && (
-          <p role="alert">Select rows using the same form type.</p>
-        )}
-        {error && <p role="alert">{error}</p>}
-        <fieldset className="space-y-3" disabled={busy || !canSave()}>
-          {editable.map((field) => (
-            <label className="flex items-center gap-2" key={field.name}>
-              <input
-                checked={applied.includes(field.name)}
-                onChange={(event) =>
-                  setApplied((previous) =>
-                    event.target.checked
-                      ? [...previous, field.name]
-                      : previous.filter((name) => name !== field.name)
-                  )
-                }
-                type="checkbox"
-              />
-              Apply {field.label}
-            </label>
-          ))}
-          <FormBuilder
-            asFieldset
+      <form
+        className="flex min-h-0 flex-col"
+        onSubmit={async (event) => {
+          event.preventDefault();
+          if (!working && draftState.valid) {
+            await builder.form.handleSubmit();
+          }
+        }}
+      >
+        <div className="min-h-0 overflow-y-auto overscroll-contain px-6 pb-5">
+          {formTypes.length > 1 && (
+            <p role="alert">Select rows using the same form type.</p>
+          )}
+          {error && (
+            <p className="mb-4 text-destructive text-sm" role="alert">
+              {error}
+            </p>
+          )}
+          <BulkEditorFields
+            available={editable.filter(
+              (field) => !applied.includes(field.name)
+            )}
+            clearValues={draftState.clearValues}
             context={context}
+            disabled={working || !canSave()}
             fields={builder.fields}
             form={builder.form}
-            sections={builder.sections}
+            messages={messages}
+            onAdd={(name) => {
+              if (builder.form.getFieldValue(name) === undefined) {
+                builder.form.setFieldValue(
+                  name,
+                  initialFormValues(config, initial)[name]
+                );
+              }
+              setApplied((previous) =>
+                previous.includes(name) ? previous : [...previous, name]
+              );
+            }}
+            onRemove={(name) =>
+              setApplied((previous) =>
+                previous.filter((field) => field !== name)
+              )
+            }
           />
-        </fieldset>
-        <div className="flex justify-end gap-2">
+        </div>
+        <footer className="flex shrink-0 flex-wrap justify-end gap-2 border-t px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <Button
-            disabled={busy}
+            disabled={working}
             onClick={onClose}
             type="button"
             variant="outline"
           >
-            Cancel
+            {messages.cancel}
           </Button>
           <Button
-            disabled={busy || !canSave() || !validationConfig.fields.length}
-            onClick={async () => {
-              await builder.form.handleSubmit();
-            }}
-            type="button"
+            disabled={working || !canSave() || !draftState.valid}
+            type="submit"
           >
-            {busy ? "Saving…" : "Save"}
+            {working
+              ? messages.saving
+              : (count === 1 ? messages.applyOne : messages.applyMany).replace(
+                  "{count}",
+                  String(count)
+                )}
           </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </footer>
+      </form>
+    </BulkEditorSurface>
   );
 }

@@ -242,8 +242,9 @@ export function ResponsiveToolbarExample() {
         </label>
       </div>
       <p className="text-muted-foreground text-sm">
-        Search any data column. Select multiple rows to edit them together;
-        enable Custom onBulkEdit to try the application-owned editor.
+        Search any data column. Select multiple rows, choose Edit, then add the
+        properties to change. Enable Custom onBulkEdit to try the
+        application-owned editor.
       </p>
       <output>{activity}</output>
       <div style={{ maxWidth: narrow ? 620 : undefined }}>

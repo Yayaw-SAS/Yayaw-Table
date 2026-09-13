@@ -337,7 +337,7 @@ const typesActions: TableActions = {
       </p>
       <p class="demo-status" role="status">{{ activity }}</p>
       <label class="demo-bulk-toggle"><input v-model="customBulkEditor" type="checkbox" /> Custom onBulkEdit</label>
-      <p>Select multiple products to edit them together. Enable Custom onBulkEdit to try the application-owned editor.</p>
+      <p>Select products, open Bulk edit, then add only the properties to change. Enable Custom onBulkEdit to try the application-owned editor.</p>
     </header>
     <DataTable
       table-type="products"

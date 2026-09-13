@@ -1,14 +1,16 @@
-import assert from "node:assert/strict";
 import { describe, it } from "bun:test";
+import assert from "node:assert/strict";
 import type { Row } from "@/components/ui/yayaw-table/tanstack";
 
 import {
-  buildRowSelectionState,
   buildBulkDeleteFeedback,
+  buildBulkEditTargets,
+  buildRowSelectionState,
   canSelectAllRows,
+  completedBulkSelectionIds,
   createSyntheticSelectedRows,
-  executeCustomBulkDeleteHandler,
   executeBulkDeleteOperation,
+  executeCustomBulkDeleteHandler,
   loadAllMatchingRowsForSelection,
   mergeSelectedRows,
   normalizeBulkActionResult,
@@ -244,7 +246,9 @@ describe("executeCustomBulkDeleteHandler", () => {
     assert.equal(clearSelectionCalls, 0);
     assert.equal(notifications.success.length, 0);
     assert.equal(notifications.error.length, 1);
-    assert.ok(notifications.error[0].includes("Deleted 1 of 2 rows. 1 failed."));
+    assert.ok(
+      notifications.error[0].includes("Deleted 1 of 2 rows. 1 failed.")
+    );
   });
 
   it("shows an error toast and keeps menu open when the custom handler throws", async () => {
@@ -308,7 +312,9 @@ describe("executeCustomBulkDeleteHandler", () => {
     assert.equal(clearSelectionCalls, 1);
     assert.equal(notifications.error.length, 0);
     assert.equal(notifications.success.length, 1);
-    assert.ok(notifications.success[0].includes("Deleted 2 rows successfully."));
+    assert.ok(
+      notifications.success[0].includes("Deleted 2 rows successfully.")
+    );
   });
 
   it("preserves legacy custom-handler behavior when default toasts are explicitly enabled", async () => {
@@ -336,6 +342,45 @@ describe("executeCustomBulkDeleteHandler", () => {
     assert.equal(clearSelectionCalls, 1);
     assert.equal(notifications.error.length, 0);
     assert.equal(notifications.success.length, 1);
-    assert.ok(notifications.success[0].includes("Deleted 2 rows successfully."));
+    assert.ok(
+      notifications.success[0].includes("Deleted 2 rows successfully.")
+    );
+  });
+});
+
+describe("bulk edit target identity", () => {
+  it("updates entity IDs when table IDs are positional and clears only completed selections", () => {
+    const targets = buildBulkEditTargets([
+      { id: "0", original: { id: "1", name: "Atlas" } },
+      { id: "1", original: { id: "2", name: "Beacon" } },
+    ]);
+    assert.deepEqual(
+      targets.map((target) => target.id),
+      ["1", "2"]
+    );
+    assert.deepEqual([...completedBulkSelectionIds(targets, ["1"])], ["0"]);
+    assert.deepEqual(
+      [...completedBulkSelectionIds(targets, ["1", "2"])],
+      ["0", "1"]
+    );
+  });
+
+  it("supports numeric, MongoDB and custom IDs while snapshotting selected records", () => {
+    const original = { id: 0, nested: { name: "Original" } };
+    const targets = buildBulkEditTargets<Record<string, unknown>>([
+      { id: "display-0", original },
+      { id: "display-1", original: { _id: "mongo-1" } },
+      { id: "custom-1", original: { name: "Custom" } },
+    ]);
+    original.nested.name = "Changed";
+    assert.deepEqual(
+      targets.map((target) => target.id),
+      ["0", "mongo-1", "custom-1"]
+    );
+    assert.deepEqual(targets[0]?.row.nested, { name: "Original" });
+    assert.deepEqual(
+      [...completedBulkSelectionIds(targets, ["mongo-1"])],
+      ["display-1"]
+    );
   });
 });

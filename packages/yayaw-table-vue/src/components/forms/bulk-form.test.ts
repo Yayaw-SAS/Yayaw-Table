@@ -106,10 +106,25 @@ const open = async (wrapper: Wrapper) => {
   await trigger.trigger("click");
   await flushPromises();
 };
+const available = async (wrapper: Wrapper) => {
+  const add = wrapper
+    .findAll("button")
+    .find((button) => button.text() === "Add a field");
+  if (!add) {
+    throw new Error("Missing Add a field button");
+  }
+  if (add.attributes("aria-expanded") !== "true") {
+    await add.trigger("click");
+  }
+  await flushPromises();
+  return wrapper
+    .findAll("[data-bulk-option]")
+    .map((option) => option.attributes("data-bulk-option"));
+};
 const apply = async (wrapper: Wrapper, name: string) => {
-  await wrapper
-    .get(`[data-bulk-field="${name}"] .yayaw-bulk-field-toggle input`)
-    .setValue(true);
+  await available(wrapper);
+  await wrapper.get(`[data-bulk-option="${name}"]`).trigger("click");
+  await flushPromises();
 };
 const submit = async (wrapper: Wrapper) => {
   await wrapper.get("form").trigger("submit");
@@ -126,10 +141,14 @@ enableAutoUnmount((unmount) =>
     document.body.replaceChildren();
   })
 );
-beforeEach(() => window.history.replaceState({}, "", "/"));
+beforeEach(() => {
+  window.history.replaceState({}, "", "/");
+  // jsdom has no layout; Reka's keyboard listbox still calls the browser scrolling API.
+  Element.prototype.scrollIntoView = vi.fn();
+});
 
 describe("generated bulk catalogue", () => {
-  it("uses each table's catalogue by default and only validates checked fields", async () => {
+  it("uses each table's catalogue by default and only validates added fields", async () => {
     const bulkUpdate = vi.fn(async () => ({ success: true }));
     const update = vi.fn();
     const wrapper = mountTable({
@@ -139,7 +158,8 @@ describe("generated bulk catalogue", () => {
     expect(wrapper.find('textarea[aria-label="JSON fields"]').exists()).toBe(
       false
     );
-    expect(wrapper.findAll("[data-bulk-field]")).toHaveLength(5);
+    expect(wrapper.findAll("[data-bulk-field]")).toHaveLength(0);
+    expect(await available(wrapper)).toHaveLength(5);
     await submit(wrapper);
     expect(wrapper.text()).toContain("Choose at least one field");
     expect(bulkUpdate).not.toHaveBeenCalled();
@@ -160,7 +180,7 @@ describe("generated bulk catalogue", () => {
     );
   });
 
-  it("allows false and explicit clears without overwriting unchecked fields", async () => {
+  it("allows false and explicit clears without overwriting unselected fields", async () => {
     const bulkUpdate = vi.fn(async () => ({ success: true }));
     const wrapper = mountTable({ getTableActions: () => ({ bulkUpdate }) });
     await open(wrapper);
@@ -228,15 +248,11 @@ describe("generated bulk catalogue", () => {
       getFormConfig: () => ({ ...form, fields }),
     });
     await open(wrapper);
-    expect(
-      wrapper
-        .findAll("[data-bulk-field]")
-        .map((field) => field.attributes("data-bulk-field"))
-    ).toEqual(["kind"]);
+    expect(await available(wrapper)).toEqual(["kind"]);
     await apply(wrapper, "kind");
     await wrapper.get('[data-field-name="kind"] input').setValue("a");
     await flushPromises();
-    expect(wrapper.find('[data-bulk-field="hidden"]').exists()).toBe(true);
+    expect(await available(wrapper)).toContain("hidden");
     await apply(wrapper, "hidden");
     await wrapper.get('[data-field-name="hidden"] input').setValue("draft");
     await wrapper.get('[data-field-name="kind"] input').setValue("b");
@@ -352,14 +368,10 @@ describe("generated bulk catalogue", () => {
       }),
     });
     await open(first);
-    expect(first.findAll("[data-bulk-field]")).toHaveLength(5);
+    expect(await available(first)).toHaveLength(5);
     await first.get('button[aria-label="Close"]').trigger("click");
     await open(second);
-    expect(
-      second
-        .findAll("[data-bulk-field]")
-        .map((field) => field.attributes("data-bulk-field"))
-    ).toEqual(["address"]);
+    expect(await available(second)).toEqual(["address"]);
   });
 
   it("blocks rows without edit permission and rechecks permission before saving", async () => {
@@ -398,7 +410,7 @@ describe("generated bulk catalogue", () => {
       getTableActions: () => ({ bulkUpdate }),
     });
     await open(wrapper);
-    expect(wrapper.findAll("[data-bulk-field]")).toHaveLength(1);
+    expect(await available(wrapper)).toEqual(["name"]);
     await apply(wrapper, "name");
     await wrapper.get('[data-field-name="name"] input').setValue("Updated");
     await submit(wrapper);
@@ -422,4 +434,68 @@ describe("generated bulk catalogue", () => {
     expect(selected(wrapper)).toBe(2);
     expect(bulkUpdate).not.toHaveBeenCalled();
   });
+});
+
+it("retains insertion order and removes a prepared property from the update", async () => {
+  const bulkUpdate = vi.fn(async () => ({ success: true }));
+  const wrapper = mountTable({ getTableActions: () => ({ bulkUpdate }) });
+  await open(wrapper);
+  await apply(wrapper, "note");
+  await wrapper.get('[data-field-name="note"] input').setValue("Keep this");
+  await apply(wrapper, "amount");
+  await wrapper.get('[data-field-name="amount"] input').setValue(24);
+  expect(
+    wrapper
+      .findAll("[data-bulk-field]")
+      .map((field) => field.attributes("data-bulk-field"))
+  ).toEqual(["note", "amount"]);
+  await wrapper.get('[aria-label="Remove Amount"]').trigger("click");
+  await submit(wrapper);
+  expect(bulkUpdate).toHaveBeenCalledWith(["1", "2"], { note: "Keep this" });
+});
+
+it("disables invalid drafts and only offers clears accepted by the field schema", async () => {
+  const bulkUpdate = vi.fn(async () => ({ success: true }));
+  const wrapper = mountTable({ getTableActions: () => ({ bulkUpdate }) });
+  await open(wrapper);
+  expect(
+    wrapper.get('button[type="submit"]').attributes("disabled")
+  ).toBeDefined();
+  await apply(wrapper, "amount");
+  await wrapper.get('[data-field-name="amount"] input').setValue(-1);
+  await flushPromises();
+  expect(
+    wrapper.get('button[type="submit"]').attributes("disabled")
+  ).toBeDefined();
+  expect(
+    wrapper.find('[data-bulk-field="amount"] .yayaw-bulk-clear').exists()
+  ).toBe(false);
+  await wrapper.get('[data-field-name="amount"] input').setValue(0);
+  await apply(wrapper, "note");
+  await wrapper.get('[data-field-name="note"] input').setValue("Draft");
+  await flushPromises();
+  await wrapper
+    .get('[data-bulk-field="note"] .yayaw-bulk-clear')
+    .trigger("click");
+  await submit(wrapper);
+  expect(bulkUpdate).toHaveBeenCalledWith(["1", "2"], { amount: 0, note: "" });
+});
+
+it("searches properties and keeps a required field out of the patch after removal", async () => {
+  const bulkUpdate = vi.fn(async () => ({ success: true }));
+  const wrapper = mountTable({ getTableActions: () => ({ bulkUpdate }) });
+  await open(wrapper);
+  await available(wrapper);
+  await wrapper.get('[placeholder="Search properties…"]').setValue("nam");
+  expect(wrapper.findAll("[data-bulk-option]")).toHaveLength(1);
+  await wrapper.get('[data-bulk-option="name"]').trigger("click");
+  await flushPromises();
+  expect(
+    wrapper.find('[data-bulk-field="name"] .yayaw-bulk-clear').exists()
+  ).toBe(false);
+  await apply(wrapper, "note");
+  await wrapper.get('[data-field-name="note"] input').setValue("Updated");
+  await wrapper.get('[aria-label="Remove Name"]').trigger("click");
+  await submit(wrapper);
+  expect(bulkUpdate).toHaveBeenCalledWith(["1", "2"], { note: "Updated" });
 });

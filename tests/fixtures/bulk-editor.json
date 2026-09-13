@@ -1,0 +1,43 @@
+[
+  {
+    "type": "text",
+    "value": ""
+  },
+  {
+    "type": "number",
+    "value": null
+  },
+  {
+    "type": "select",
+    "value": null
+  },
+  {
+    "type": "date",
+    "value": null
+  },
+  {
+    "type": "json",
+    "value": null
+  },
+  {
+    "type": "multiSelect",
+    "value": []
+  },
+  {
+    "type": "collection",
+    "value": []
+  },
+  {
+    "type": "switch",
+    "unsupported": true
+  },
+  {
+    "type": "render",
+    "unsupported": true
+  },
+  {
+    "type": "text",
+    "required": true,
+    "unsupported": true
+  }
+]

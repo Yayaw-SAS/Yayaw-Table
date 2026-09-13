@@ -270,7 +270,7 @@ it("reloads option dependencies, ignores stale responses, and does not reload fo
   expect(view.container.textContent).not.toContain("Stale French");
 });
 
-it("retries only failed bulk targets and sends checked fields including false", async () => {
+it("retries only failed bulk targets and sends added fields including false", async () => {
   const view = mount();
   const calls: unknown[] = [];
   const completed: string[][] = [];
@@ -313,14 +313,18 @@ it("retries only failed bulk targets and sends checked fields including false", 
       actions
     )
   );
-  const checkbox = [...document.querySelectorAll("label")]
-    .find((label) => label.textContent?.includes("Apply Active"))
-    ?.querySelector("input");
-  expect(checkbox).toBeTruthy();
-  await act(() => checkbox?.click());
+  await act(() =>
+    [...document.querySelectorAll("button")]
+      .find((button) => button.textContent === "Add a field")
+      ?.click()
+  );
+  await act(async () => {
+    document.querySelector<HTMLElement>('[data-bulk-option="active"]')?.click();
+    await settle();
+  });
   const save = () =>
-    [...document.querySelectorAll("button")].find(
-      (button) => button.textContent === "Save"
+    [...document.querySelectorAll("button")].find((button) =>
+      button.textContent?.startsWith("Apply to ")
     );
   await act(async () => {
     save()?.click();
@@ -567,4 +571,182 @@ it("aborts custom actions when the form unmounts and ignores late field writes",
     await settle();
   });
   expect(builder.form.getFieldValue("name")).toBe("Draft");
+});
+
+const bulkButton = (text: string) => {
+  const button = [
+    ...document.querySelectorAll<HTMLButtonElement>("button"),
+  ].find((candidate) => candidate.textContent === text);
+  if (!button) {
+    throw new Error(`Missing button: ${text}`);
+  }
+  return button;
+};
+const addBulkProperty = async (name: string) => {
+  await act(() => bulkButton("Add a field").click());
+  await act(async () => {
+    document
+      .querySelector<HTMLElement>(`[data-bulk-option="${name}"]`)
+      ?.click();
+    await settle();
+  });
+};
+const fillBulkInput = async (name: string, value: string) => {
+  const input = document.querySelector<HTMLInputElement>(
+    `[data-bulk-field="${name}"] input`
+  );
+  if (!input) {
+    throw new Error(`Missing field: ${name}`);
+  }
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      "value"
+    )?.set?.call(input, value);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    await settle();
+  });
+};
+async function mountBulkProperties(
+  config: FormConfig,
+  bulkUpdate: NonNullable<TableActions["bulkUpdate"]>
+) {
+  const view = mount();
+  await view.render(
+    provider(
+      <CatalogueBulkEditor
+        onClose={() => undefined}
+        onCompleted={() => Promise.resolve()}
+        tableId="items"
+        tableType="items"
+        targets={[
+          { id: "one", row: { name: "First", note: "Same", amount: 1 } },
+          { id: "two", row: { name: "Second", note: "Same", amount: 2 } },
+        ]}
+      />,
+      config,
+      { bulkUpdate }
+    )
+  );
+  return view;
+}
+
+it("starts empty, searches properties, retains insertion order and excludes removed drafts", async () => {
+  const calls: FieldValues[] = [];
+  await mountBulkProperties(
+    {
+      id: "items",
+      fields: [
+        { name: "name", type: "text", label: "Name", required: true },
+        { name: "amount", type: "number", label: "Amount" },
+      ],
+    },
+    (_ids, values) => {
+      calls.push(values);
+      return Promise.resolve({ success: true });
+    }
+  );
+  expect(document.querySelectorAll("[data-bulk-field]")).toHaveLength(0);
+  expect(bulkButton("Apply to 2 rows").disabled).toBe(true);
+  await addBulkProperty("amount");
+  await fillBulkInput("amount", "24");
+  await addBulkProperty("name");
+  expect(
+    [...document.querySelectorAll("[data-bulk-field]")].map((field) =>
+      field.getAttribute("data-bulk-field")
+    )
+  ).toEqual(["amount", "name"]);
+  await fillBulkInput("name", "Do not persist");
+  await act(async () => {
+    document
+      .querySelector<HTMLButtonElement>('[aria-label="Remove Name"]')
+      ?.click();
+    await settle();
+  });
+  await act(async () => {
+    bulkButton("Apply to 2 rows").click();
+    await settle();
+  });
+  expect(calls).toEqual([{ amount: 24 }]);
+});
+
+it("disables invalid drafts, preserves zero and only offers schema-approved clears", async () => {
+  const calls: FieldValues[] = [];
+  await mountBulkProperties(
+    {
+      id: "items",
+      fields: [
+        {
+          name: "amount",
+          type: "number",
+          label: "Amount",
+          schema: z.number().min(0),
+        },
+        { name: "note", type: "text", label: "Note", schema: z.string() },
+      ],
+    },
+    (_ids, values) => {
+      calls.push(values);
+      return Promise.resolve({ success: true });
+    }
+  );
+  await addBulkProperty("amount");
+  await fillBulkInput("amount", "-1");
+  expect(bulkButton("Apply to 2 rows").disabled).toBe(true);
+  expect(
+    document.querySelector('[data-bulk-field="amount"]')?.textContent
+  ).not.toContain("Clear value");
+  await fillBulkInput("amount", "0");
+  await addBulkProperty("note");
+  await act(async () => {
+    bulkButton("Clear value").click();
+    await settle();
+  });
+  expect(
+    document.querySelector<HTMLInputElement>('[data-bulk-field="note"] input')
+      ?.value
+  ).toBe("");
+  await act(async () => {
+    bulkButton("Apply to 2 rows").click();
+    await settle();
+  });
+  expect(calls).toEqual([{ amount: 0, note: "" }]);
+});
+
+it("keeps a rejected bulk draft and allows removal of an invalid required property", async () => {
+  const calls: FieldValues[] = [];
+  await mountBulkProperties(
+    {
+      id: "items",
+      fields: [
+        { name: "name", type: "text", label: "Name", required: true },
+        { name: "note", type: "text", label: "Note" },
+      ],
+    },
+    (_ids, values) => {
+      calls.push(values);
+      return Promise.reject(new Error("Offline"));
+    }
+  );
+  await addBulkProperty("name");
+  expect(bulkButton("Apply to 2 rows").disabled).toBe(true);
+  await addBulkProperty("note");
+  await fillBulkInput("note", "Retain this draft");
+  await act(async () => {
+    document
+      .querySelector<HTMLButtonElement>('[aria-label="Remove Name"]')
+      ?.click();
+    await settle();
+  });
+  await act(async () => {
+    bulkButton("Apply to 2 rows").click();
+    await settle();
+  });
+  expect(calls).toEqual([{ note: "Retain this draft" }]);
+  expect(document.querySelector('[role="alert"]')?.textContent).toBe("Offline");
+  expect(
+    document.querySelector<HTMLInputElement>('[data-bulk-field="note"] input')
+      ?.value
+  ).toBe("Retain this draft");
+  expect(bulkButton("Apply to 2 rows").disabled).toBe(false);
 });

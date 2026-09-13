@@ -10,7 +10,6 @@ import { useEffect } from "react";
 import { Button } from "@/src/components/ui/button";
 import { useTranslations } from "../../providers/table-provider";
 import { resolveFormBlocks } from "../../utils/form-layout";
-import { FormBlocks } from "./form-blocks";
 import { RuntimeField } from "./field-runtime";
 import {
   CheckboxField,
@@ -30,6 +29,7 @@ import {
   ValueTypeField,
 } from "./fields";
 import { createCollectionFieldValidators } from "./fields/collection-field-utils";
+import { FormBlocks } from "./form-blocks";
 import type { FormBuilderFormInstance } from "./hooks/use-form-builder";
 import type {
   AnyFieldDefinition,
@@ -60,6 +60,7 @@ interface FormBuilderProps<TFieldValues extends FieldValues> {
   isSubmitting?: boolean;
   sections?: FormSectionDefinition<TFieldValues>[];
   submitText?: null | string;
+  showFormErrors?: boolean;
 }
 
 export interface ResolvedFormBuilderSection<
@@ -494,6 +495,7 @@ export function FormBuilder<TFieldValues extends FieldValues>({
   isSubmitting = false,
   sections,
   submitText,
+  showFormErrors = true,
 }: FormBuilderProps<TFieldValues>) {
   const { locale, t, translations } = useTranslations();
   const values = useStore(form.store, (state) => state.values);
@@ -668,7 +670,7 @@ export function FormBuilder<TFieldValues extends FieldValues>({
                   </div>
                 )}
                 <div
-                  className="grid grid-cols-1 gap-4 @md/form:grid-cols-[repeat(var(--form-columns),minmax(0,1fr))]"
+                  className="grid @md/form:grid-cols-[repeat(var(--form-columns),minmax(0,1fr))] grid-cols-1 gap-4"
                   style={
                     {
                       "--form-columns": section.columns ?? 1,
@@ -698,17 +700,19 @@ export function FormBuilder<TFieldValues extends FieldValues>({
           })
         )}
       </div>
-      <form.Subscribe selector={(state) => state.errors}>
-        {(errors) =>
-          errors.length > 0 && (
-            <div className="mt-3 text-destructive text-sm" role="alert">
-              {errors
-                .filter((error): error is string => typeof error === "string")
-                .join("; ")}
-            </div>
-          )
-        }
-      </form.Subscribe>
+      {showFormErrors && (
+        <form.Subscribe selector={(state) => state.errors}>
+          {(errors) =>
+            errors.length > 0 && (
+              <div className="mt-3 text-destructive text-sm" role="alert">
+                {errors
+                  .filter((error): error is string => typeof error === "string")
+                  .join("; ")}
+              </div>
+            )
+          }
+        </form.Subscribe>
+      )}
       {submitText != null && (
         <div className="mt-6 flex items-center justify-between">
           <div className="flex items-center gap-4">{actions}</div>

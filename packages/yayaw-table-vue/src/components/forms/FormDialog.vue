@@ -16,6 +16,7 @@ const props = defineProps<{
   presentation?: "drawer" | "modal";
   width?: string;
   busy?: boolean;
+  bulk?: boolean;
   returnFocus?: HTMLElement;
   closeLabel?: string;
   role?: "alertdialog" | "dialog";
@@ -87,6 +88,7 @@ const restoreFocus = (event: Event): void => {
       >
         <DialogContent
           class="yayaw-form-surface"
+          :data-bulk-editor="bulk || undefined"
           :role="role ?? 'dialog'"
           :data-presentation="presentation ?? 'drawer'"
           :style="{ width }"
