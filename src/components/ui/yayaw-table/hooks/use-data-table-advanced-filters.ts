@@ -69,8 +69,10 @@ function computeFacetedData(
 export interface UseDataTableAdvancedFiltersOptions<
   TData = Record<string, unknown>,
 > {
-  /** Table identifier */
+  /** Configuration catalogue key. */
   tableType: string;
+  /** State belongs to this table instance; defaults to the catalogue key. */
+  tableId?: string;
   /** Filter strategy - client or server */
   strategy?: FilterStrategy;
   /** Data to filter (for client-side filtering) */
@@ -114,6 +116,7 @@ export function useDataTableAdvancedFilters<TData = Record<string, unknown>>(
 ): UseDataTableAdvancedFiltersReturn<TData> {
   const {
     tableType,
+    tableId = tableType,
     strategy = "client",
     data = [],
     advancedColumnsConfig = {},
@@ -122,7 +125,7 @@ export function useDataTableAdvancedFilters<TData = Record<string, unknown>>(
   } = options;
 
   // Use existing data table hook for backward compatibility
-  const dataTableResult = useDataTable({ tableType });
+  const dataTableResult = useDataTable({ tableType, tableId });
   const { setColumnFilters } = dataTableResult;
   const columnFilters = dataTableResult.state.columnFilters;
 
@@ -131,7 +134,10 @@ export function useDataTableAdvancedFilters<TData = Record<string, unknown>>(
     advancedFiltersParam,
     setAdvancedFiltersFromUI,
     resetAdvancedFilters,
-  } = useTableUrlState({ tableId: tableType });
+  } = useTableUrlState({
+    tableId,
+    enabled: dataTableResult.config.table.syncUrl !== false,
+  });
 
   // Advanced filters from URL state
   const advancedFilters = advancedFiltersParam || [];
