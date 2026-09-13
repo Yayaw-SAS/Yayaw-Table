@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus, X } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -48,6 +48,14 @@ export function BulkEditorFields({
 }) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
+  const restoreFocus = useRef(false);
+  useEffect(() => {
+    // The picker may still be disabled until the removed field becomes available again.
+    if (restoreFocus.current && available.length > 0 && !disabled) {
+      restoreFocus.current = false;
+      trigger.current?.focus();
+    }
+  }, [available.length, disabled]);
   return (
     <fieldset className="space-y-5" disabled={disabled}>
       {!fields.length && (
@@ -71,8 +79,8 @@ export function BulkEditorFields({
             aria-label={messages.removeField.replace("{field}", field.label)}
             className="mt-6"
             onClick={() => {
+              restoreFocus.current = true;
               onRemove(field.name);
-              trigger.current?.focus();
             }}
             size="icon-sm"
             type="button"

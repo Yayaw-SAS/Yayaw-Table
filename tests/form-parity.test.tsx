@@ -657,12 +657,14 @@ it("starts empty, searches properties, retains insertion order and excludes remo
     )
   ).toEqual(["amount", "name"]);
   await fillBulkInput("name", "Do not persist");
+  expect(bulkButton("Add a field").disabled).toBe(true);
   await act(async () => {
     document
       .querySelector<HTMLButtonElement>('[aria-label="Remove Name"]')
       ?.click();
     await settle();
   });
+  expect(document.activeElement).toBe(bulkButton("Add a field"));
   await act(async () => {
     bulkButton("Apply to 2 rows").click();
     await settle();

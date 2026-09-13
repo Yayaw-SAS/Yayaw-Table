@@ -438,7 +438,15 @@ describe("generated bulk catalogue", () => {
 
 it("retains insertion order and removes a prepared property from the update", async () => {
   const bulkUpdate = vi.fn(async () => ({ success: true }));
-  const wrapper = mountTable({ getTableActions: () => ({ bulkUpdate }) });
+  const wrapper = mountTable({
+    getTableActions: () => ({ bulkUpdate }),
+    getFormConfig: () => ({
+      ...form,
+      fields: form.fields.filter((field) =>
+        ["note", "amount"].includes(field.name)
+      ),
+    }),
+  });
   await open(wrapper);
   await apply(wrapper, "note");
   await wrapper.get('[data-field-name="note"] input').setValue("Keep this");
@@ -449,7 +457,13 @@ it("retains insertion order and removes a prepared property from the update", as
       .findAll("[data-bulk-field]")
       .map((field) => field.attributes("data-bulk-field"))
   ).toEqual(["note", "amount"]);
+  const picker = wrapper
+    .findAll("button")
+    .find((button) => button.text() === "Add a field");
+  expect(picker?.attributes("disabled")).toBeDefined();
   await wrapper.get('[aria-label="Remove Amount"]').trigger("click");
+  await flushPromises();
+  expect(document.activeElement).toBe(picker?.element);
   await submit(wrapper);
   expect(bulkUpdate).toHaveBeenCalledWith(["1", "2"], { note: "Keep this" });
 });
