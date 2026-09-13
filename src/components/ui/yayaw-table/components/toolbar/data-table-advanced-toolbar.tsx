@@ -361,6 +361,7 @@ function useToolbarSetup(tableId: string, tableType: string) {
 // Extracted: setup advanced filters related memoized values
 function useAdvancedFiltersSetup(
   tableType: string,
+  tableId: string,
   data: unknown[],
   columnOptions: {
     [key: string]: unknown;
@@ -389,6 +390,7 @@ function useAdvancedFiltersSetup(
 
   const advancedFiltersResult = useDataTableAdvancedFilters({
     tableType,
+    tableId,
     strategy: "client",
     data,
     advancedColumnsConfig,
@@ -710,7 +712,13 @@ export function DataTableAdvancedToolbar<TData>({
   );
 
   const { advancedColumnsConfig, advancedFiltersResult } =
-    useAdvancedFiltersSetup(tableType, data, columnOptions, columnTypeMapping);
+    useAdvancedFiltersSetup(
+      tableType,
+      tableId,
+      data,
+      columnOptions,
+      columnTypeMapping
+    );
 
   // Get final columns and visibility
   const finalColumns = useFinalColumns(state, columnOptions);
