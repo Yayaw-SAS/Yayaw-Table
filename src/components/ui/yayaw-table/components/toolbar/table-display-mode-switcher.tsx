@@ -1,7 +1,5 @@
 "use client";
 
-import { TableTooltip } from "../../utils/table-tooltip";
-
 import { Columns3, Images, Table2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/src/components/ui/button";
@@ -42,37 +40,28 @@ export function TableDisplayModeSwitcher({
   }
 
   return (
-    <fieldset
-      className={cn(
-        "inline-flex h-8 items-center rounded-md border bg-background p-0.5",
-        className
-      )}
-    >
-      <legend className="sr-only">{t("views.display.title")}</legend>
+    <fieldset className={cn("flex flex-wrap items-center gap-1", className)}>
+      <legend className="mb-1 text-muted-foreground text-sm">
+        {t("views.display.title")}
+      </legend>
       {uniqueModes.map((mode) => {
         const Icon = DISPLAY_MODE_ICONS[mode];
         const isActive = displayModeParam === mode;
         const label = t(`views.display.${mode}`);
 
         return (
-          <TableTooltip label={label} key={mode}>
-            <Button
-              aria-pressed={isActive}
-              className={cn(
-                "h-6.5 min-h-0 gap-1.5 rounded-sm border-0 px-2 font-normal text-xs leading-4 transition-colors active:translate-y-0",
-                !isActive && "text-muted-foreground"
-              )}
-              onClick={() => {
-                setDisplayModeFromUI(mode);
-              }}
-              size="sm"
-              type="button"
-              variant={isActive ? "secondary" : "ghost"}
-            >
-              <Icon className="size-4" />
-              <span>{label}</span>
-            </Button>
-          </TableTooltip>
+          <Button
+            aria-pressed={isActive}
+            className="min-w-9 flex-1 gap-1.5 px-2"
+            key={mode}
+            onClick={() => setDisplayModeFromUI(mode)}
+            size="sm"
+            type="button"
+            variant={isActive ? "secondary" : "ghost"}
+          >
+            <Icon aria-hidden="true" className="size-4" />
+            <span>{label}</span>
+          </Button>
         );
       })}
     </fieldset>

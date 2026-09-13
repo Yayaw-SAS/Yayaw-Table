@@ -73,6 +73,15 @@ async function mountGroups(grouping = ["category"], selection = true) {
 it("renders accessor option labels without automatic category sums and preserves expanded cell values", async () => {
   const { wrapper, onRowClick } = await mountGroups();
   const groups = wrapper.findAll("tbody tr.grouped");
+  expect(wrapper.get("thead th").find('input[type="checkbox"]').exists()).toBe(
+    true
+  );
+  expect(
+    wrapper
+      .findAll("thead th")
+      .slice(1, 4)
+      .map((cell) => cell.text())
+  ).toEqual(["Name", "Category", "Active"]);
   expect(groups).toHaveLength(2);
   expect(groups[0]?.text()).toContain("Category:Web3");
   expect(groups[0]?.findAll("td")).toHaveLength(2);

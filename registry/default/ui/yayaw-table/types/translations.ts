@@ -5,6 +5,8 @@
 
 export interface DataTableTranslations {
   actions: {
+    dataActions?: string;
+    shareError?: string;
     close?: string;
     create?: string;
     delete: string;
@@ -18,6 +20,7 @@ export interface DataTableTranslations {
     view: string;
   };
   bulk: {
+    editor?: Partial<import("../utils/bulk-editor").BulkEditorMessages>;
     close_menu: string;
     confirm_copy_description: string;
     confirm_delete_description: string;
@@ -47,6 +50,7 @@ export interface DataTableTranslations {
     sort_descending: string;
   };
   common: {
+    none?: string;
     true: string;
     false: string;
     loading: string;
@@ -274,6 +278,17 @@ export interface DataTableTranslations {
     current: string;
   };
   views: {
+    view?: string;
+    settings?: string;
+    cardSettings?: string;
+    modified?: string;
+    upToDate?: string;
+    readOnly?: string;
+    saveCurrent?: string;
+    reset?: string;
+    resetSavedDescription?: string;
+    resetDefaultDescription?: string;
+
     title: string;
     current: string;
     save: string;

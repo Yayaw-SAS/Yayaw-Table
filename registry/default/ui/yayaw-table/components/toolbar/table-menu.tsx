@@ -10,7 +10,14 @@ import {
   RotateCcw,
   SlidersHorizontal,
 } from "lucide-react";
-import { forwardRef, useCallback, useMemo, useRef, useState } from "react";
+import {
+  forwardRef,
+  type ReactNode,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -43,14 +50,21 @@ import {
 } from "../../ui-custom/stack-menu";
 import { TableTooltip } from "../../utils/table-tooltip";
 import { getDisplayModeGrouping } from "../../utils/table-view-state";
+import { getViewModeCapabilities } from "../../utils/view-menu";
 import { TableColumnsMenu } from "./sections/table-columns-menu";
 import { TableFiltersMenu } from "./sections/table-filters-menu";
 import { TableGroupingMenu } from "./sections/table-grouping-menu";
 import { TableSortMenu } from "./sections/table-sort-menu";
+import type { ViewMenuParts } from "./table-view-manager";
 
 const EMPTY_COLUMNS: never[] = [];
 
 export interface TableMenuProps {
+  compact?: boolean;
+  viewMenu?: ViewMenuParts;
+  modeSettings?: ReactNode;
+  cardSettings?: ReactNode;
+  filterExtras?: ReactNode;
   actionsAsIcons?: boolean;
   columns: TableColumn[];
   defaultDisplayMode?: TableDisplayMode;
@@ -269,6 +283,10 @@ const OptionsMenuTrigger = forwardRef<
 });
 
 function renderMainMenuView({
+  selection,
+  actions,
+  modeSettings,
+  cardSettings,
   activeGroupingCount,
   displayVisibleCount,
   footerCalculationsLabel,
@@ -277,6 +295,10 @@ function renderMainMenuView({
   sectionState,
   t,
 }: {
+  selection?: ReactNode;
+  actions?: ReactNode;
+  modeSettings?: ReactNode;
+  cardSettings?: ReactNode;
   activeGroupingCount: number;
   displayVisibleCount: number;
   footerCalculationsLabel: string;
@@ -286,17 +308,25 @@ function renderMainMenuView({
   t: ReturnType<typeof useTranslations>["t"];
 }) {
   return (
-    <StackMenuView name="main">
+    <StackMenuView name="main" title={t("views.settings")}>
       <StackMenuContent>
+        {selection}
+        {modeSettings}
+        {cardSettings ? (
+          <StackMenuItem
+            icon={<List className="size-4" />}
+            navigateTitle={t("views.cardSettings")}
+            navigateTo="cards"
+          >
+            {t("views.cardSettings")}
+          </StackMenuItem>
+        ) : null}
         <StackMenuSection>
           {sectionState.canShowColumnsSection && (
             <StackMenuItem
-              description={t("menu.columns_visible", {
-                count: displayVisibleCount,
-              })}
               endIcon={
                 displayVisibleCount > 0 ? (
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs">
+                  <span className="flex min-w-4 items-center justify-center text-muted-foreground text-xs tabular-nums">
                     {displayVisibleCount}
                   </span>
                 ) : undefined
@@ -311,16 +341,9 @@ function renderMainMenuView({
 
           {sectionState.canShowFiltersSection && (
             <StackMenuItem
-              description={
-                sectionState.effectiveActiveFiltersCount > 0
-                  ? t("filters.active_count", {
-                      count: sectionState.effectiveActiveFiltersCount,
-                    })
-                  : undefined
-              }
               endIcon={
                 sectionState.effectiveActiveFiltersCount > 0 ? (
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs">
+                  <span className="flex min-w-4 items-center justify-center text-muted-foreground text-xs tabular-nums">
                     {sectionState.effectiveActiveFiltersCount}
                   </span>
                 ) : undefined
@@ -335,16 +358,9 @@ function renderMainMenuView({
 
           {sectionState.canShowSortSection && (
             <StackMenuItem
-              description={
-                sectionState.effectiveActiveSortCount > 0
-                  ? t("filters.active_count", {
-                      count: sectionState.effectiveActiveSortCount,
-                    })
-                  : undefined
-              }
               endIcon={
                 sectionState.effectiveActiveSortCount > 0 ? (
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs">
+                  <span className="flex min-w-4 items-center justify-center text-muted-foreground text-xs tabular-nums">
                     {sectionState.effectiveActiveSortCount}
                   </span>
                 ) : undefined
@@ -359,14 +375,9 @@ function renderMainMenuView({
 
           {sectionState.canShowGroupSection && (
             <StackMenuItem
-              description={
-                activeGroupingCount > 0
-                  ? t("menu.active_groups", { count: activeGroupingCount })
-                  : undefined
-              }
               endIcon={
                 activeGroupingCount > 0 ? (
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs">
+                  <span className="flex min-w-4 items-center justify-center text-muted-foreground text-xs tabular-nums">
                     {activeGroupingCount}
                   </span>
                 ) : undefined
@@ -381,7 +392,11 @@ function renderMainMenuView({
 
           {sectionState.canShowCalculationsSection && (
             <StackMenuItem
-              description={footerCalculationsLabel}
+              endIcon={
+                <span aria-hidden="true" className="text-xs">
+                  {footerCalculationsLabel}
+                </span>
+              }
               icon={<Calculator className="size-4" />}
               onClick={onToggleFooterCalculations}
             >
@@ -394,12 +409,22 @@ function renderMainMenuView({
             </StackMenuItem>
           )}
         </StackMenuSection>
+        {actions}
       </StackMenuContent>
     </StackMenuView>
   );
 }
 
+function resolveMenuGrouping(state: string[], url: string[]): string[] {
+  return state.length ? state : url;
+}
+
 export function TableMenu({
+  compact = false,
+  viewMenu,
+  modeSettings,
+  cardSettings,
+  filterExtras,
   actionsAsIcons = false,
   columns = EMPTY_COLUMNS,
   defaultDisplayMode,
@@ -431,7 +456,7 @@ export function TableMenu({
   );
 
   // Derive open: menu opens when user toggles or when openToView is set (e.g. from column menu)
-  const effectiveOpen = open || Boolean(openToView);
+  const effectiveOpen = (viewMenu?.open ?? open) || Boolean(openToView);
 
   // URL-state fallback to avoid stale grouping passed from parents
   const {
@@ -443,10 +468,11 @@ export function TableMenu({
     tableId,
   });
 
-  const groupingMaxGroups =
-    displayModeParam === "kanban" || displayModeParam === "gallery" ? 1 : 2;
-  const rawFinalGrouping = (
-    state?.grouping?.length ? state.grouping : urlGrouping || []
+  const capabilities = getViewModeCapabilities(displayModeParam);
+  const groupingMaxGroups = capabilities.maxGroups;
+  const rawFinalGrouping = resolveMenuGrouping(
+    state.grouping,
+    urlGrouping
   ) as string[];
   const finalGrouping = getDisplayModeGrouping({
     displayMode: displayModeParam,
@@ -480,7 +506,7 @@ export function TableMenu({
 
   // Compute active filters count depending on filter mode (must be before early return for hooks order)
   const activeFiltersCount = useAdvancedFilters
-    ? (advancedFiltersConfig?.filters || []).filter((f) => f.isActive).length
+    ? (advancedFiltersConfig?.filters ?? []).filter((f) => f.isActive).length
     : state.columnFilters.length;
   const activeGroupingCount = finalGrouping.length;
   const activeSortCount = state.sorting.length;
@@ -505,17 +531,19 @@ export function TableMenu({
         activeGroupingCount,
         activeSortCount,
         enableColumnFilters,
-        enableCalculations,
+        enableCalculations: enableCalculations && capabilities.calculations,
         enableGrouping,
         enableSorting,
         filterableColumnsCount,
         groupableColumnsCount,
-        hasHiddenColumns,
-        hideableColumnsCount: hideableColumns.length,
+        hasHiddenColumns: capabilities.columns && hasHiddenColumns,
+        hideableColumnsCount: capabilities.columns ? hideableColumns.length : 0,
         sortableColumnsCount,
         useAdvancedFilters,
       }),
     [
+      capabilities.calculations,
+      capabilities.columns,
       activeFiltersCount,
       activeGroupingCount,
       activeSortCount,
@@ -580,17 +608,19 @@ export function TableMenu({
   );
 
   // Hide options button entirely if nothing is available
-  if (!sectionState.hasAnyMenuSection) {
+  if (!(sectionState.hasAnyMenuSection || viewMenu)) {
     return null;
   }
 
   return (
     <StackMenu
       asDropdown
+      compact={compact}
       defaultView="main"
-      headerEndContent={resetAllButton}
+      headerEndContent={viewMenu ? undefined : resetAllButton}
       onOpenChange={(isOpen) => {
         setOpen(isOpen);
+        viewMenu?.onOpenChange(isOpen);
         if (!isOpen) {
           setOpenToView(null);
           setOpenFilterColumnId(null);
@@ -599,15 +629,22 @@ export function TableMenu({
       open={effectiveOpen}
       openToView={openToView ?? undefined}
       ref={menuRef}
+      size="lg"
       trigger={
-        <OptionsMenuTrigger
-          actionsAsIcons={actionsAsIcons}
-          badgeCount={hasMenuBadgeCount ? sectionState.menuBadgeCount : 0}
-          label={optionsLabel}
-        />
+        viewMenu?.trigger ?? (
+          <OptionsMenuTrigger
+            actionsAsIcons={actionsAsIcons}
+            badgeCount={hasMenuBadgeCount ? sectionState.menuBadgeCount : 0}
+            label={optionsLabel}
+          />
+        )
       }
     >
       {renderMainMenuView({
+        selection: viewMenu?.selection,
+        actions: viewMenu?.actions,
+        modeSettings,
+        cardSettings,
         activeGroupingCount,
         displayVisibleCount,
         footerCalculationsLabel,
@@ -634,6 +671,7 @@ export function TableMenu({
 
       {sectionState.canShowFiltersSection && (
         <StackMenuView name="filters">
+          {filterExtras}
           <TableFiltersMenu
             advancedActions={
               useAdvancedFilters ? advancedFiltersConfig?.actions : undefined
@@ -684,7 +722,11 @@ export function TableMenu({
         </StackMenuView>
       )}
 
-      {/* Subgroup view removed - grouping handled directly in group view */}
+      {cardSettings ? (
+        <StackMenuView name="cards" title={t("views.cardSettings")}>
+          {cardSettings}
+        </StackMenuView>
+      ) : null}
     </StackMenu>
   );
 }

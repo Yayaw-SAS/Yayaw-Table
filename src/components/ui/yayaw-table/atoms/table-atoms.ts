@@ -1,13 +1,3 @@
-import type {
-  ColumnFiltersState,
-  ExpandedState,
-  GroupingState,
-  Row,
-  PaginationState,
-  RowSelectionState,
-  SortingState,
-  VisibilityState,
-} from "@/components/ui/yayaw-table/tanstack";
 /**
  * Base atoms for DataTable component
  * These atoms provide core functionality used across the DataTable
@@ -15,10 +5,18 @@ import type {
 import { atom } from "jotai";
 import { atomWithStorage } from "jotai/utils";
 import { atomFamily } from "jotai-family";
-
-import type { TableDensity } from "../types/display-types";
-
+import type {
+  ColumnFiltersState,
+  ExpandedState,
+  GroupingState,
+  PaginationState,
+  Row,
+  RowSelectionState,
+  SortingState,
+  VisibilityState,
+} from "@/components/ui/yayaw-table/tanstack";
 import type { DataTableColumnDef } from "../types/column-types";
+import type { TableDensity } from "../types/display-types";
 
 /**
  * Atom to store the current table ID
@@ -30,6 +28,9 @@ export const tableIdAtom = atom<string>("");
 export const tableDensityAtom = atomFamily((_tableId: string) =>
   atom<TableDensity | undefined>(undefined)
 );
+
+/** Whether this table currently uses the compact toolbar composition. */
+export const toolbarCompactAtom = atomFamily((_tableId: string) => atom(false));
 
 /**
  * Atom family to store column definitions for a specific table

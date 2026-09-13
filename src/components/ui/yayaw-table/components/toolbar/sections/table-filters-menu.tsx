@@ -6,7 +6,10 @@ import { Filter, X } from "lucide-react";
 import { useEffect } from "react";
 import { Button } from "@/src/components/ui/button";
 import { Separator } from "@/src/components/ui/separator";
-import { StackMenuContent, StackMenuView } from "@/components/ui/custom/stack-menu";
+import {
+  StackMenuContent,
+  StackMenuView,
+} from "@/components/ui/custom/stack-menu";
 import { tableMenuOpenFilterColumnIdAtom } from "../../../atoms/table-atoms";
 import { useTranslations } from "../../../providers/table-provider";
 import type {
@@ -60,7 +63,10 @@ export function TableFiltersMenu({
 }: TableFiltersMenuProps) {
   const { t } = useTranslations();
   const { config } = useTableConfig(tableType ?? tableId);
-  const quickColumns = filterBarColumns(config.columns.definitions, config.table.filterBarColumns);
+  const quickColumns = filterBarColumns(
+    config.columns.definitions,
+    config.table.filterBarColumns
+  );
   const openFilterForColumnId = useAtomValue(
     tableMenuOpenFilterColumnIdAtom(tableId)
   );
@@ -88,13 +94,13 @@ export function TableFiltersMenu({
             columnsConfig={advancedColumnsConfig}
             enableAnimations={true}
             filters={advancedFilters}
-            maxVisibleFilters={5}
+            maxVisibleFilters={Number.POSITIVE_INFINITY}
             onOpenFilterConsumed={() => setOpenFilterColumnId(null)}
             openFilterForColumnId={openFilterForColumnId ?? undefined}
             popularColumns={["name", "status", "category"]}
             recentColumns={[]}
             showAddButton={true}
-            showClearButton={true}
+            showClearButton={false}
             showPerformance={false}
             variant="modern"
           />
@@ -109,11 +115,13 @@ export function TableFiltersMenu({
       <StackMenuContent>
         <div className="space-y-4">
           <TableFilterBar tableId={tableId} tableType={tableType ?? tableId} />
-          {!quickColumns.length && <div className="py-8 text-center text-muted-foreground">
-            <Filter className="mx-auto mb-2 h-8 w-8 opacity-50" />
-            <p className="text-sm">{t("filters.noFilters")}</p>
-            <p className="text-xs">{t("filters.noResults")}</p>
-          </div>}
+          {!quickColumns.length && (
+            <div className="py-8 text-center text-muted-foreground">
+              <Filter className="mx-auto mb-2 h-8 w-8 opacity-50" />
+              <p className="text-sm">{t("filters.noFilters")}</p>
+              <p className="text-xs">{t("filters.noResults")}</p>
+            </div>
+          )}
 
           {/* Show legacy column filters if any exist */}
           {columnFilters.length > 0 && (

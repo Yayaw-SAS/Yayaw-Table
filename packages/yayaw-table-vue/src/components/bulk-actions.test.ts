@@ -66,6 +66,16 @@ enableAutoUnmount(afterEach);
 describe("bulk action execution", () => {
   beforeEach(() => window.history.replaceState({}, "", "/"));
 
+  it("uses the latest custom edit callback after the application enables it", async () => {
+    const onBulkEdit = vi.fn();
+    const wrapper = mountTable();
+    await selectRows(wrapper);
+    await wrapper.setProps({ onBulkEdit });
+    await clickAction(wrapper, "Bulk edit");
+    expect(onBulkEdit).toHaveBeenCalledExactlyOnceWith(rows.slice(0, 2));
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false);
+  });
+
   it("invokes a consumer-owned edit callback directly without the JSON editor", async () => {
     const onBulkEdit = vi.fn();
     const bulkUpdate = vi.fn();

@@ -60,6 +60,7 @@ interface FormBuilderProps<TFieldValues extends FieldValues> {
   isSubmitting?: boolean;
   sections?: FormSectionDefinition<TFieldValues>[];
   submitText?: null | string;
+  showFormErrors?: boolean;
 }
 
 export interface ResolvedFormBuilderSection<
@@ -494,6 +495,7 @@ export function FormBuilder<TFieldValues extends FieldValues>({
   isSubmitting = false,
   sections,
   submitText,
+  showFormErrors = true,
 }: FormBuilderProps<TFieldValues>) {
   const { locale, t, translations } = useTranslations();
   const values = useStore(form.store, (state) => state.values);
@@ -698,17 +700,19 @@ export function FormBuilder<TFieldValues extends FieldValues>({
           })
         )}
       </div>
-      <form.Subscribe selector={(state) => state.errors}>
-        {(errors) =>
-          errors.length > 0 && (
-            <div className="mt-3 text-destructive text-sm" role="alert">
-              {errors
-                .filter((error): error is string => typeof error === "string")
-                .join("; ")}
-            </div>
-          )
-        }
-      </form.Subscribe>
+      {showFormErrors && (
+        <form.Subscribe selector={(state) => state.errors}>
+          {(errors) =>
+            errors.length > 0 && (
+              <div className="mt-3 text-destructive text-sm" role="alert">
+                {errors
+                  .filter((error): error is string => typeof error === "string")
+                  .join("; ")}
+              </div>
+            )
+          }
+        </form.Subscribe>
+      )}
       {submitText != null && (
         <div className="mt-6 flex items-center justify-between">
           <div className="flex items-center gap-4">{actions}</div>

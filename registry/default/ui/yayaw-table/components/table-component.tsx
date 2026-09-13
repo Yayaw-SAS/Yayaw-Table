@@ -502,7 +502,7 @@ export function getRegularCellClassName<TData>({
       ),
     isActionsColumn &&
       cn(
-        "sticky right-0 z-10 flex justify-center bg-card shadow-[-1px_0_0_0_hsl(var(--border))] group-hover:bg-muted/50 group-data-[state=selected]:bg-muted/50",
+        "sticky right-0 z-10 bg-card text-center shadow-[-1px_0_0_0_hsl(var(--border))] group-hover:bg-muted/50 group-data-[state=selected]:bg-muted/50",
         TABLE_DENSITY_CLASSES[densityMode].cell
       ),
     TABLE_DENSITY_CLASSES[densityMode].cell,

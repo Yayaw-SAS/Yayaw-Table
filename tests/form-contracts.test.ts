@@ -14,6 +14,8 @@ import type {
   FormConfig,
   FormConfigContext,
 } from "../src/components/ui/yayaw-table/components/forms/types";
+import { bulkClearCandidate } from "../src/components/ui/yayaw-table/utils/bulk-editor";
+import bulkEditorCases from "./fixtures/bulk-editor.json";
 import scenarios from "./fixtures/form-scenarios.json";
 
 const config = scenarios.config as FormConfig;
@@ -65,6 +67,15 @@ for (const scenario of scenarios.completions) {
   it(`shared bulk completion: ${JSON.stringify(scenario.result)}`, () => {
     expect(bulkCompletion(["1", "2"], scenario.result)).toEqual(
       scenario.expected
+    );
+  });
+}
+
+for (const scenario of bulkEditorCases) {
+  it(`offers an explicit clear for ${scenario.type}, required=${Boolean(scenario.required)}`, () => {
+    const result = bulkClearCandidate(scenario);
+    expect(result).toEqual(
+      scenario.unsupported ? undefined : { value: scenario.value }
     );
   });
 }

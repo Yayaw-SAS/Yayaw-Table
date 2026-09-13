@@ -502,6 +502,36 @@ export function createSyntheticSelectedRows<TData>(
   return rows;
 }
 
+/** Entity IDs go to persistence; table IDs are retained only to clear completed selections. */
+export function buildBulkEditTargets<TData>(
+  rows: Pick<Row<TData>, "id" | "original">[]
+): BulkEditTarget[] {
+  return rows.flatMap((row) => {
+    const id = getSelectedRowId(row);
+    return id
+      ? [
+          {
+            id,
+            selectionId: row.id,
+            row: cloneFormValue(recordValue(row.original)),
+          },
+        ]
+      : [];
+  });
+}
+
+export function completedBulkSelectionIds(
+  targets: BulkEditTarget[],
+  ids: string[]
+): Set<string> {
+  const completed = new Set(ids);
+  return new Set(
+    targets
+      .filter((target) => completed.has(target.id))
+      .map((target) => target.selectionId ?? target.id)
+  );
+}
+
 export function mergeSelectedRows<TData>({
   crossPageRows,
   currentPageRows,
@@ -1406,12 +1436,7 @@ export function useBulkActions<TData>({
     }
 
     if (provider?.actions.bulkUpdate) {
-      setBulkEditTargets(
-        selectedRows.map((row) => ({
-          id: row.id,
-          row: cloneFormValue(recordValue(row.original)),
-        }))
-      );
+      setBulkEditTargets(buildBulkEditTargets(selectedRows));
       return successResult;
     }
 
@@ -1644,7 +1669,7 @@ export function useBulkActions<TData>({
     bulkEditTargets,
     closeBulkEdit: () => setBulkEditTargets(null),
     completeBulkEdit: async (ids) => {
-      const completed = new Set(ids);
+      const completed = completedBulkSelectionIds(bulkEditTargets ?? [], ids);
       table.setRowSelection((previous) =>
         Object.fromEntries(
           Object.entries(previous).filter(([id]) => !completed.has(id))

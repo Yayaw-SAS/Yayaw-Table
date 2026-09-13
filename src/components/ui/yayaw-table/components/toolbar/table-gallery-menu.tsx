@@ -1,17 +1,15 @@
 "use client";
 
-import { TableTooltip } from "../../utils/table-tooltip";
-
 import { Check, Images, SlidersHorizontal } from "lucide-react";
 import type { ReactNode } from "react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/src/components/ui/button";
-import { Separator } from "@/src/components/ui/separator";
 import {
   StackMenu,
   StackMenuContent,
   StackMenuView,
 } from "@/components/ui/custom/stack-menu";
+import { cn } from "@/lib/utils";
+import { Button } from "@/src/components/ui/button";
+import { Separator } from "@/src/components/ui/separator";
 import { useTableUrlState } from "../../hooks/use-table-url-state";
 import { useTranslations } from "../../providers/table-provider";
 import type {
@@ -20,6 +18,7 @@ import type {
   TableGalleryViewConfig,
 } from "../../types/display-types";
 import { ColumnIcon } from "../../utils/column-icons";
+import { TableTooltip } from "../../utils/table-tooltip";
 
 export interface GalleryMenuColumn {
   id: string;
@@ -28,6 +27,7 @@ export interface GalleryMenuColumn {
 }
 
 interface TableGalleryMenuProps {
+  embedded?: boolean;
   className?: string;
   columns: GalleryMenuColumn[];
   defaultConfig?: TableGalleryConfig;
@@ -116,6 +116,7 @@ function getDefaultPropertyColumnIds({
 }
 
 export function TableGalleryMenu({
+  embedded = false,
   className,
   columns,
   defaultConfig,
@@ -124,17 +125,19 @@ export function TableGalleryMenu({
   tableId,
 }: TableGalleryMenuProps) {
   const { t } = useTranslations();
-  const { displayModeParam, galleryParam, setGalleryFromUI } = useTableUrlState({
-    defaultDisplayMode,
-    tableId,
-  });
+  const { displayModeParam, galleryParam, setGalleryFromUI } = useTableUrlState(
+    {
+      defaultDisplayMode,
+      tableId,
+    }
+  );
   const imageColumns = columns.filter((column) => column.type === "image");
   const activeConfig = mergeGalleryConfig({
     defaults: defaultConfig,
     override: galleryParam,
   });
   const activeImageColumn =
-    activeConfig.imageColumn || imageColumns[0]?.id || columns[0]?.id;
+    activeConfig.imageColumn ?? imageColumns[0]?.id ?? "";
   const activeTitleColumn =
     activeConfig.titleColumn ||
     columns.find((column) => column.id !== activeImageColumn)?.id;
@@ -172,6 +175,174 @@ export function TableGalleryMenu({
     return null;
   }
 
+  const content = (
+    <StackMenuContent>
+      <div className="flex min-h-0 w-full flex-col gap-3 p-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="px-1 font-medium text-sm">
+            {t("views.gallery.title")}
+          </div>
+          <Button
+            disabled={Object.keys(galleryParam || {}).length === 0}
+            onClick={() => setGalleryFromUI(undefined)}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            {t("common.reset")}
+          </Button>
+        </div>
+
+        <div>
+          <div className="px-1 pb-1 text-muted-foreground text-xs">
+            {t("views.gallery.image")}
+          </div>
+          <ChoiceButton
+            active={activeImageColumn === ""}
+            label={t("common.none")}
+            onClick={() => updateGallery({ imageColumn: "" })}
+          />
+          {(imageColumns.length ? imageColumns : columns).map((column) => (
+            <ChoiceButton
+              active={activeImageColumn === column.id}
+              icon={
+                <ColumnIcon
+                  className="h-3.5 w-3.5"
+                  columnId={column.id}
+                  columnType={column.type || "text"}
+                />
+              }
+              key={column.id}
+              label={column.label}
+              onClick={() => updateGallery({ imageColumn: column.id })}
+            />
+          ))}
+        </div>
+
+        <Separator />
+
+        <div>
+          <div className="px-1 pb-1 text-muted-foreground text-xs">
+            {t("views.gallery.titleColumn")}
+          </div>
+          {columns
+            .filter((column) => column.id !== activeImageColumn)
+            .map((column) => (
+              <ChoiceButton
+                active={activeTitleColumn === column.id}
+                icon={
+                  <ColumnIcon
+                    className="h-3.5 w-3.5"
+                    columnId={column.id}
+                    columnType={column.type || "text"}
+                  />
+                }
+                key={column.id}
+                label={column.label}
+                onClick={() => updateGallery({ titleColumn: column.id })}
+              />
+            ))}
+        </div>
+
+        <Separator />
+
+        <div>
+          <div className="px-1 pb-1 text-muted-foreground text-xs">
+            {t("views.gallery.properties")}
+          </div>
+          {columns
+            .filter(
+              (column) =>
+                column.id !== activeImageColumn &&
+                column.id !== activeTitleColumn
+            )
+            .map((column) => {
+              const isActive = activePropertyColumnIds.includes(column.id);
+              return (
+                <ChoiceButton
+                  active={isActive}
+                  icon={
+                    <ColumnIcon
+                      className="h-3.5 w-3.5"
+                      columnId={column.id}
+                      columnType={column.type || "text"}
+                    />
+                  }
+                  key={column.id}
+                  label={column.label}
+                  onClick={() => {
+                    updateGallery({
+                      cardColumnIds: isActive
+                        ? activePropertyColumnIds.filter(
+                            (id) => id !== column.id
+                          )
+                        : [...activePropertyColumnIds, column.id],
+                    });
+                  }}
+                />
+              );
+            })}
+        </div>
+
+        <Separator />
+
+        <div>
+          <div className="px-1 pb-1 text-muted-foreground text-xs">
+            {t("views.gallery.aspectRatio")}
+          </div>
+          {ASPECT_RATIO_OPTIONS.map((option) => (
+            <ChoiceButton
+              active={activeAspectRatio === option.value}
+              key={option.value}
+              label={t(option.labelKey)}
+              onClick={() => updateGallery({ aspectRatio: option.value })}
+            />
+          ))}
+        </div>
+
+        <div>
+          <div className="px-1 pb-1 text-muted-foreground text-xs">
+            {t("views.gallery.imageFit")}
+          </div>
+          {IMAGE_FIT_OPTIONS.map((option) => (
+            <ChoiceButton
+              active={activeImageFit === option.value}
+              key={option.value}
+              label={t(option.labelKey)}
+              onClick={() => updateGallery({ imageFit: option.value })}
+            />
+          ))}
+        </div>
+
+        <div>
+          <div className="px-1 pb-1 text-muted-foreground text-xs">
+            {t("views.gallery.cardSize")}
+          </div>
+          {CARD_SIZE_OPTIONS.map((option) => (
+            <ChoiceButton
+              active={activeCardSize === option.value}
+              key={option.value}
+              label={t(option.labelKey)}
+              onClick={() => updateGallery({ cardSize: option.value })}
+            />
+          ))}
+        </div>
+
+        <Separator />
+
+        <ChoiceButton
+          active={showCardLabels}
+          icon={<SlidersHorizontal className="h-3.5 w-3.5" />}
+          label={t("views.gallery.showLabels")}
+          onClick={() => updateGallery({ showCardLabels: !showCardLabels })}
+        />
+      </div>
+    </StackMenuContent>
+  );
+  if (embedded) {
+    return content;
+  }
+
   return (
     <StackMenu
       align="start"
@@ -181,7 +352,10 @@ export function TableGalleryMenu({
         <TableTooltip label={triggerLabel}>
           <Button
             aria-label={triggerLabel}
-            className={cn("h-8 gap-1.5 px-2 font-normal text-xs leading-4", className)}
+            className={cn(
+              "h-8 gap-1.5 px-2 font-normal text-xs leading-4",
+              className
+            )}
             size="sm"
             type="button"
             variant="outline"
@@ -193,165 +367,7 @@ export function TableGalleryMenu({
       }
     >
       <StackMenuView name="gallery" title={triggerLabel}>
-        <StackMenuContent>
-          <div className="flex min-h-0 w-[320px] flex-col gap-3 p-3">
-            <div className="flex items-center justify-between gap-2">
-              <div className="px-1 font-medium text-sm">
-                {t("views.gallery.title")}
-              </div>
-              <Button
-                disabled={Object.keys(galleryParam || {}).length === 0}
-                onClick={() => setGalleryFromUI(undefined)}
-                size="sm"
-                type="button"
-                variant="outline"
-              >
-                {t("common.reset")}
-              </Button>
-            </div>
-
-            <div>
-              <div className="px-1 pb-1 text-muted-foreground text-xs">
-                {t("views.gallery.image")}
-              </div>
-              {(imageColumns.length ? imageColumns : columns).map((column) => (
-                <ChoiceButton
-                  active={activeImageColumn === column.id}
-                  icon={
-                    <ColumnIcon
-                      className="h-3.5 w-3.5"
-                      columnId={column.id}
-                      columnType={column.type || "text"}
-                    />
-                  }
-                  key={column.id}
-                  label={column.label}
-                  onClick={() => updateGallery({ imageColumn: column.id })}
-                />
-              ))}
-            </div>
-
-            <Separator />
-
-            <div>
-              <div className="px-1 pb-1 text-muted-foreground text-xs">
-                {t("views.gallery.titleColumn")}
-              </div>
-              {columns
-                .filter((column) => column.id !== activeImageColumn)
-                .map((column) => (
-                  <ChoiceButton
-                    active={activeTitleColumn === column.id}
-                    icon={
-                      <ColumnIcon
-                        className="h-3.5 w-3.5"
-                        columnId={column.id}
-                        columnType={column.type || "text"}
-                      />
-                    }
-                    key={column.id}
-                    label={column.label}
-                    onClick={() => updateGallery({ titleColumn: column.id })}
-                  />
-                ))}
-            </div>
-
-            <Separator />
-
-            <div>
-              <div className="px-1 pb-1 text-muted-foreground text-xs">
-                {t("views.gallery.properties")}
-              </div>
-              {columns
-                .filter(
-                  (column) =>
-                    column.id !== activeImageColumn &&
-                    column.id !== activeTitleColumn
-                )
-                .map((column) => {
-                  const isActive = activePropertyColumnIds.includes(column.id);
-                  return (
-                    <ChoiceButton
-                      active={isActive}
-                      icon={
-                        <ColumnIcon
-                          className="h-3.5 w-3.5"
-                          columnId={column.id}
-                          columnType={column.type || "text"}
-                        />
-                      }
-                      key={column.id}
-                      label={column.label}
-                      onClick={() => {
-                        updateGallery({
-                          cardColumnIds: isActive
-                            ? activePropertyColumnIds.filter(
-                                (id) => id !== column.id
-                              )
-                            : [...activePropertyColumnIds, column.id],
-                        });
-                      }}
-                    />
-                  );
-                })}
-            </div>
-
-            <Separator />
-
-            <div>
-              <div className="px-1 pb-1 text-muted-foreground text-xs">
-                {t("views.gallery.aspectRatio")}
-              </div>
-              {ASPECT_RATIO_OPTIONS.map((option) => (
-                <ChoiceButton
-                  active={activeAspectRatio === option.value}
-                  key={option.value}
-                  label={t(option.labelKey)}
-                  onClick={() => updateGallery({ aspectRatio: option.value })}
-                />
-              ))}
-            </div>
-
-            <div>
-              <div className="px-1 pb-1 text-muted-foreground text-xs">
-                {t("views.gallery.imageFit")}
-              </div>
-              {IMAGE_FIT_OPTIONS.map((option) => (
-                <ChoiceButton
-                  active={activeImageFit === option.value}
-                  key={option.value}
-                  label={t(option.labelKey)}
-                  onClick={() => updateGallery({ imageFit: option.value })}
-                />
-              ))}
-            </div>
-
-            <div>
-              <div className="px-1 pb-1 text-muted-foreground text-xs">
-                {t("views.gallery.cardSize")}
-              </div>
-              {CARD_SIZE_OPTIONS.map((option) => (
-                <ChoiceButton
-                  active={activeCardSize === option.value}
-                  key={option.value}
-                  label={t(option.labelKey)}
-                  onClick={() => updateGallery({ cardSize: option.value })}
-                />
-              ))}
-            </div>
-
-            <Separator />
-
-            <ChoiceButton
-              active={showCardLabels}
-              icon={<SlidersHorizontal className="h-3.5 w-3.5" />}
-              label={t("views.gallery.showLabels")}
-              onClick={() =>
-                updateGallery({ showCardLabels: !showCardLabels })
-              }
-            />
-          </div>
-        </StackMenuContent>
+        {content}
       </StackMenuView>
     </StackMenu>
   );

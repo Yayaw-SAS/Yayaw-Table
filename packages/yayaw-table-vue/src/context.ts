@@ -51,6 +51,7 @@ export interface TableContextValue<TData extends TableRecord = TableRecord> {
   customBulkActions: ComputedRef<BulkAction<TData>[]>;
   toolbarActions: ComputedRef<ToolbarActionsInput<TData>>;
   form: Ref<OpenFormState>;
+  toolbarCompact: Ref<boolean>;
   footerCalculationsVisible: Ref<boolean>;
   optionsRequest: Ref<TableOptionsRequest | undefined>;
   getRowId: (row: TData, index?: number) => string;

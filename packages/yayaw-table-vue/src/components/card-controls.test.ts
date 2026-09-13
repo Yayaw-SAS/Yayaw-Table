@@ -5,9 +5,12 @@ import {
   mount,
 } from "@vue/test-utils";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { inlineTestPortals, openViewScreen } from "../../tests/menu-helpers";
 import { defineTableConfig } from "../config";
 import type { TableBehaviorConfig, TableView } from "../types";
 import YayawDataTable from "./YayawDataTable.vue";
+
+inlineTestPortals();
 
 const data = [
   { id: "one", name: "Alpha", status: "Open", image: "/alpha.png", amount: 10 },
@@ -91,6 +94,12 @@ const mountTable = (
 type Wrapper = ReturnType<typeof mountTable>;
 const body = () => new DOMWrapper(document.body);
 const openSelect = async (wrapper: Wrapper, label: string) => {
+  if (
+    label !== "Rows per page" &&
+    !wrapper.find(".yayaw-card-settings").exists()
+  ) {
+    await openViewScreen(wrapper, "Card settings");
+  }
   await new Promise((resolve) => setTimeout(resolve, 0));
   await wrapper
     .get(`[role="combobox"][aria-label="${label}"]`)
@@ -112,9 +121,12 @@ const select = async (wrapper: Wrapper, label: string, value: string) => {
   await choose(value);
 };
 const openProperties = async (wrapper: Wrapper) => {
+  if (!wrapper.find(".yayaw-card-settings").exists()) {
+    await openViewScreen(wrapper, "Card settings");
+  }
   await new Promise((resolve) => setTimeout(resolve, 0));
   const trigger = wrapper.get<HTMLButtonElement>(
-    '.yayaw-card-controls [aria-label="Properties"]'
+    '.yayaw-card-settings [aria-label="Properties"]'
   );
   trigger.element.focus();
   await trigger.trigger("keydown", { key: "Enter" });
@@ -168,7 +180,7 @@ it("updates every Gallery setting through the select popups, including clearing 
   expect(wrapper.get(".yayaw-card-header strong").text()).toBe("Open");
   await select(wrapper, "Image", "None");
   expect(wrapper.find(".yayaw-gallery-media img").exists()).toBe(false);
-  expect(wrapper.get('.yayaw-card-controls [aria-label="Image"]').text()).toBe(
+  expect(wrapper.get('.yayaw-card-settings [aria-label="Image"]').text()).toBe(
     "None"
   );
   expect(wrapper.get(".yayaw-gallery-media > span").text()).toBe("O");
@@ -181,18 +193,25 @@ it("updates every Gallery setting through the select popups, including clearing 
 it("restricts Kanban lanes to groupable columns and updates card titles", async () => {
   const wrapper = mountTable({ mode: "kanban" });
   await flushPromises();
-  await openSelect(wrapper, "Lane");
-  expect(
-    body()
-      .findAll('[role="option"]')
-      .map((item) => item.text())
-  ).toEqual(["Status", "Photo", "Amount"]);
-  await choose("Amount");
+  await openViewScreen(wrapper, "Group");
+  const group = wrapper.find('select[aria-label="Group 1"]');
+  if (!group.exists()) {
+    await wrapper.get(".yayaw-options-content button").trigger("click");
+  }
+  const picker = wrapper.get('select[aria-label="Group 1"]');
+  expect(picker.findAll("option").map((item) => item.text())).toEqual([
+    "Status",
+    "Photo",
+    "Amount",
+  ]);
+  await picker.setValue("amount");
+  await flushPromises();
   expect(
     wrapper
       .findAll(".yayaw-kanban-lane header strong")
       .map((item) => item.text())
   ).toEqual(["10", "20"]);
+  await wrapper.get('[aria-label="Back"]').trigger("click");
   await select(wrapper, "Title", "Status");
   expect(wrapper.get(".yayaw-card-header strong").text()).toBe("Open");
 });
@@ -224,7 +243,7 @@ it.each([
   await flushPromises();
   expect(body().find('[role="menu"]').exists()).toBe(false);
   expect(document.activeElement).toBe(
-    wrapper.get('.yayaw-card-controls [aria-label="Properties"]').element
+    wrapper.get('.yayaw-card-settings [aria-label="Properties"]').element
   );
 });
 
@@ -298,12 +317,13 @@ it("applies saved Gallery options to the new controls and keeps translated label
   expect(wrapper.get(".yayaw-gallery-media").attributes("data-ratio")).toBe(
     "wide"
   );
-  expect(wrapper.get('.yayaw-card-controls [aria-label="Image"]').text()).toBe(
+  await openViewScreen(wrapper, "Réglages des cartes");
+  expect(wrapper.get('.yayaw-card-settings [aria-label="Image"]').text()).toBe(
     "Aucun"
   );
   expect(
     wrapper
-      .findAll('.yayaw-card-controls [role="combobox"]')
+      .findAll('.yayaw-card-settings [role="combobox"]')
       .map((item) => item.attributes("aria-label"))
   ).toEqual(["Image", "Titre", "Proportions", "Ajustement", "Taille"]);
 });

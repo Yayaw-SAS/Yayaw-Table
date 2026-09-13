@@ -1,20 +1,28 @@
 "use client";
 
-import { TableTooltip } from "../../utils/table-tooltip";
-
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Check,
   ChevronDown,
+  CopyPlus,
   LayoutList,
-  Plus,
+  ListRestart,
   Save,
   Star,
   Trash2,
   Users,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type ReactElement,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { toast } from "sonner";
+import { StackMenu, StackMenuView } from "@/components/ui/custom/stack-menu";
 import { cn } from "@/lib/utils";
 import { Button } from "@/src/components/ui/button";
 import { Checkbox } from "@/src/components/ui/checkbox";
@@ -26,32 +34,42 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/src/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/src/components/ui/dropdown-menu";
 import { Input } from "@/src/components/ui/input";
 import { useTableUrlState } from "../../hooks/use-table-url-state";
-import { useTableStateSync } from "../../providers/table-state-sync-provider";
 import {
   useTableActions as useProviderTableActions,
   useTranslations,
 } from "../../providers/table-provider";
+import { useTableStateSync } from "../../providers/table-state-sync-provider";
 import type { TableDisplayMode } from "../../types/display-types";
 import type {
   TableView,
   TableViewActions,
   TableViewConfig,
 } from "../../types/view-types";
-import { createLocalTableViewActions } from "../../utils/table-view-storage";
-import { areTableViewConfigsEqual } from "../../utils/table-view-state";
+import { TableTooltip } from "../../utils/table-tooltip";
 import { resolveInitialTableView } from "../../utils/table-view-favorite";
+import {
+  areTableViewConfigsEqual,
+  normalizeTableViewConfig,
+} from "../../utils/table-view-state";
+import { createLocalTableViewActions } from "../../utils/table-view-storage";
+
+export interface ViewMenuParts {
+  trigger: ReactElement;
+  selection: ReactNode;
+  actions: ReactNode;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+const EMPTY_VIEW_CONFIG: TableViewConfig = {};
 
 interface DataTableViewManagerProps {
+  enabled?: boolean;
+  compact?: boolean;
+  defaultViewConfig?: TableViewConfig;
+  renderMenu?: (parts: ViewMenuParts) => ReactNode;
   defaultDensity?: TableViewConfig["density"];
   allowViewSave?: boolean;
   allowViewSharing?: boolean;
@@ -129,56 +147,6 @@ function mergeViewActions({
   };
 }
 
-function FavoriteViewButton({
-  activeView,
-  favoriteViewId,
-  isTemporary,
-  disabled,
-  onClick,
-  t,
-}: {
-  activeView?: TableView;
-  favoriteViewId?: string | null;
-  isTemporary: boolean;
-  disabled: boolean;
-  onClick: () => Promise<void>;
-  t: ReturnType<typeof useTranslations>["t"];
-}) {
-  if (isTemporary) {
-    return null;
-  }
-  const isFavorite = (activeView?.id ?? null) === favoriteViewId;
-  const selectedLabel = activeView ? "views.removeFavorite" : "views.favorite";
-  const label = t(isFavorite ? selectedLabel : "views.setFavorite");
-  return (
-    <TableTooltip label={label}>
-      <Button
-        aria-label={label}
-        aria-pressed={isFavorite}
-        className="h-8 w-8 shrink-0"
-        disabled={disabled}
-        onClick={onClick}
-        size="icon-sm"
-        type="button"
-        variant="outline"
-      >
-        <Star
-          aria-hidden="true"
-          className={cn("size-4", isFavorite && "fill-current")}
-        />
-      </Button>
-    </TableTooltip>
-  );
-}
-
-interface ViewWriteMenuItemsProps {
-  canCreateView: boolean;
-  canDeleteActiveView: boolean;
-  onDeleteActiveView: () => Promise<void>;
-  onOpenSaveDialog: () => void;
-  t: ReturnType<typeof useTranslations>["t"];
-}
-
 function ViewStatusIcons({
   view,
   favoriteViewId,
@@ -193,121 +161,70 @@ function ViewStatusIcons({
       {(view?.id ?? null) === favoriteViewId && (
         <Star
           aria-label={t("views.favorite")}
-          role="img"
           className="size-4 shrink-0 fill-current"
+          role="img"
         />
       )}
       {view?.isGlobal && (
         <Users
           aria-label={t("views.dialog.save.global")}
-          role="img"
           className="size-4 shrink-0"
+          role="img"
         />
       )}
     </>
   );
 }
 
-function ViewWriteMenuItems({
-  canCreateView,
-  canDeleteActiveView,
-  onDeleteActiveView,
-  onOpenSaveDialog,
-  t,
-}: ViewWriteMenuItemsProps) {
-  if (!(canCreateView || canDeleteActiveView)) {
-    return null;
-  }
-
+function ViewAction({
+  label,
+  description,
+  disabled,
+  icon,
+  onClick,
+  pressed,
+  destructive = false,
+  compact = false,
+}: {
+  label: string;
+  description?: string;
+  disabled?: boolean;
+  pressed?: boolean;
+  icon: ReactNode;
+  onClick: () => void | Promise<void>;
+  destructive?: boolean;
+  compact?: boolean;
+}) {
   return (
-    <>
-      <DropdownMenuSeparator />
-      <DropdownMenuGroup>
-        {canCreateView && (
-          <DropdownMenuItem onClick={onOpenSaveDialog}>
-            <Plus className="size-4" />
-            <span>{t("views.saveAs")}</span>
-          </DropdownMenuItem>
+    <TableTooltip label={description || label}>
+      <Button
+        aria-disabled={disabled || undefined}
+        aria-label={label}
+        aria-pressed={pressed}
+        className={cn(
+          "h-auto min-h-8 w-full justify-start gap-2 rounded-sm px-2 py-1.5 text-left font-normal",
+          disabled && "text-muted-foreground opacity-60",
+          destructive && "text-destructive"
         )}
-        {canDeleteActiveView && (
-          <DropdownMenuItem
-            onClick={() => {
-              onDeleteActiveView().catch(() => {
-                /* Error state is handled by the mutation branch. */
-              });
-            }}
-            variant="destructive"
-          >
-            <Trash2 className="size-4" />
-            <span>{t("views.delete")}</span>
-          </DropdownMenuItem>
-        )}
-      </DropdownMenuGroup>
-    </>
-  );
-}
-
-interface ViewWriteButtonsProps {
-  allowViewSave: boolean;
-  canCreateView: boolean;
-  canUpdateActiveView: boolean;
-  isActiveViewDirty: boolean;
-  isMutating: boolean;
-  onOpenSaveDialog: () => void;
-  onUpdateActiveView: () => Promise<void>;
-  t: ReturnType<typeof useTranslations>["t"];
-}
-
-function ViewWriteButtons({
-  allowViewSave,
-  canCreateView,
-  canUpdateActiveView,
-  isActiveViewDirty,
-  isMutating,
-  onOpenSaveDialog,
-  onUpdateActiveView,
-  t,
-}: ViewWriteButtonsProps) {
-  if (!allowViewSave) {
-    return null;
-  }
-
-  return (
-    <>
-      <TableTooltip label={t("views.saveChangesTooltip")}>
-        <Button
-          aria-label={t("views.saveChanges")}
-          className="h-8 w-8 shrink-0"
-          disabled={!canUpdateActiveView || !isActiveViewDirty || isMutating}
-          focusableWhenDisabled
-          onClick={() => {
-            onUpdateActiveView().catch(() => {
-              /* Error state is handled by the mutation branch. */
-            });
-          }}
-          size="icon-sm"
-          type="button"
-          variant={isActiveViewDirty ? "default" : "outline"}
-        >
-          <Save className="size-4" />
-        </Button>
-      </TableTooltip>
-
-      <TableTooltip label={t("views.add_view")}>
-        <Button
-          aria-label={t("views.add_view")}
-          className="h-8 w-8 shrink-0"
-          disabled={isMutating || !canCreateView}
-          focusableWhenDisabled
-          onClick={onOpenSaveDialog}
-          size="icon-sm"
-          type="button"
-          variant="outline"
-        >
-          <Plus className="size-4" />
-        </Button>
-      </TableTooltip>
-    </>
+        onClick={() => {
+          if (!disabled) {
+            onClick();
+          }
+        }}
+        type="button"
+        variant="ghost"
+      >
+        {icon}
+        <span className="min-w-0 whitespace-normal">
+          {label}
+          {compact && description ? (
+            <span className="mt-0.5 block text-muted-foreground text-xs">
+              {description}
+            </span>
+          ) : null}
+        </span>
+      </Button>
+    </TableTooltip>
   );
 }
 
@@ -340,14 +257,216 @@ function ViewShareOption({
           onSharedViewChange(Boolean(value));
         }}
       />
-      <span className="font-medium">
-        {t("views.dialog.save.global")}
-      </span>
+      <span className="font-medium">{t("views.dialog.save.global")}</span>
     </label>
   );
 }
 
+function ViewMenuActions({
+  enabled,
+  allowViewSave,
+  activeView,
+  compact,
+  canUpdateActiveView,
+  statusLabel,
+  isActiveViewDirty,
+  isMutating,
+  canCreateView,
+  canDeleteActiveView,
+  viewParam,
+  favoriteViewId,
+  favoritePending,
+  handleUpdateActiveView,
+  openSaveDialog,
+  handleToggleFavorite,
+  resetDisabled,
+  resetView,
+  handleDeleteActiveView,
+}: {
+  enabled: boolean;
+  allowViewSave: boolean;
+  activeView: TableView | undefined;
+  compact: boolean;
+  canUpdateActiveView: boolean;
+  statusLabel: string;
+  isActiveViewDirty: boolean;
+  isMutating: boolean;
+  canCreateView: boolean;
+  canDeleteActiveView: boolean;
+  viewParam: string | null;
+  favoriteViewId: string | null;
+  favoritePending: boolean;
+  handleUpdateActiveView: () => void | Promise<void>;
+  openSaveDialog: () => void | Promise<void>;
+  handleToggleFavorite: () => void | Promise<void>;
+  resetDisabled: boolean;
+  resetView: () => void | Promise<void>;
+  handleDeleteActiveView: () => void | Promise<void>;
+}) {
+  const { t } = useTranslations();
+  let favoriteLabel = "views.setFavorite";
+  if ((activeView?.id ?? null) === favoriteViewId) {
+    favoriteLabel = activeView ? "views.removeFavorite" : "views.favorite";
+  }
+  return (
+    <div className="space-y-1 border-t p-2">
+      {enabled && allowViewSave && activeView ? (
+        <ViewAction
+          compact={compact}
+          description={canUpdateActiveView ? statusLabel : t("views.readOnly")}
+          disabled={!(canUpdateActiveView && isActiveViewDirty) || isMutating}
+          icon={<Save className="size-4 shrink-0" />}
+          label={t("views.saveChanges")}
+          onClick={handleUpdateActiveView}
+        />
+      ) : null}
+      {canCreateView ? (
+        <ViewAction
+          disabled={isMutating}
+          icon={<CopyPlus className="size-4 shrink-0" />}
+          label={activeView ? t("views.saveAs") : t("views.saveCurrent")}
+          onClick={openSaveDialog}
+        />
+      ) : null}
+      {enabled && (!viewParam || activeView) ? (
+        <ViewAction
+          disabled={isMutating || favoritePending}
+          icon={<Star className="size-4 shrink-0" />}
+          label={t(favoriteLabel)}
+          onClick={handleToggleFavorite}
+          pressed={(activeView?.id ?? null) === favoriteViewId}
+        />
+      ) : null}
+      <ViewAction
+        compact={compact}
+        description={t(
+          activeView
+            ? "views.resetSavedDescription"
+            : "views.resetDefaultDescription"
+        )}
+        disabled={resetDisabled}
+        icon={<ListRestart className="size-4 shrink-0" />}
+        label={t("views.reset")}
+        onClick={resetView}
+      />
+      {canDeleteActiveView ? (
+        <ViewAction
+          destructive
+          disabled={isMutating}
+          icon={<Trash2 className="size-4 shrink-0" />}
+          label={t("views.delete")}
+          onClick={handleDeleteActiveView}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function renderViewTrigger({
+  t,
+  enabled,
+  compact,
+  isLoading,
+  currentViewLabel,
+  isActiveViewDirty,
+}: {
+  t: ReturnType<typeof useTranslations>["t"];
+  enabled: boolean;
+  compact: boolean;
+  isLoading: boolean;
+  currentViewLabel: string;
+  isActiveViewDirty: boolean;
+}) {
+  return (
+    <Button
+      aria-label={enabled ? t("views.current") : t("views.settings")}
+      className={cn(
+        "min-w-0 max-w-64 justify-between gap-2",
+        compact ? "h-11 flex-1" : "h-8"
+      )}
+      disabled={enabled && isLoading}
+      type="button"
+      variant="outline"
+    >
+      <LayoutList aria-hidden="true" className="size-4 shrink-0" />
+      <span className="truncate">
+        {enabled ? currentViewLabel : t("views.view")}
+      </span>
+      {enabled && isActiveViewDirty ? (
+        <output
+          aria-label={t("views.modified")}
+          className="size-2 shrink-0 rounded-full bg-blue-500"
+        />
+      ) : null}
+      <ChevronDown aria-hidden="true" className="size-3 shrink-0" />
+    </Button>
+  );
+}
+
+function renderViewSelection({
+  t,
+  enabled,
+  isMutating,
+  viewParam,
+  favoriteViewId,
+  savedViews,
+  handleSelectDefaultView,
+  handleSelectView,
+}: {
+  t: ReturnType<typeof useTranslations>["t"];
+  enabled: boolean;
+  isMutating: boolean;
+  viewParam: string | null;
+  favoriteViewId: string | null;
+  savedViews: TableView[];
+  handleSelectDefaultView: () => void;
+  handleSelectView: (view: TableView) => void;
+}) {
+  return enabled ? (
+    <div className="border-b border-border pb-1">
+      <Button
+        className="h-8 w-full justify-start gap-2 rounded-sm px-2 font-normal"
+        disabled={isMutating}
+        onClick={handleSelectDefaultView}
+        type="button"
+        variant="ghost"
+      >
+        <Check
+          aria-hidden="true"
+          className={cn("size-4", viewParam && "invisible")}
+        />
+        <span className="min-w-0 flex-1 truncate text-left">
+          {t("views.defaultView")}
+        </span>
+        <ViewStatusIcons favoriteViewId={favoriteViewId} t={t} />
+      </Button>
+      {savedViews.map((view) => (
+        <Button
+          aria-current={view.id === viewParam ? "true" : undefined}
+          className="h-8 w-full justify-start gap-2 rounded-sm px-2 font-normal"
+          disabled={isMutating}
+          key={view.id}
+          onClick={() => handleSelectView(view)}
+          type="button"
+          variant="ghost"
+        >
+          <Check
+            aria-hidden="true"
+            className={cn("size-4", view.id !== viewParam && "invisible")}
+          />
+          <span className="min-w-0 flex-1 truncate text-left">{view.name}</span>
+          <ViewStatusIcons favoriteViewId={favoriteViewId} t={t} view={view} />
+        </Button>
+      ))}
+    </div>
+  ) : null;
+}
+
 export function DataTableViewManager({
+  enabled = true,
+  compact = false,
+  defaultViewConfig = EMPTY_VIEW_CONFIG,
+  renderMenu,
   defaultDensity = "medium",
   allowViewSave = true,
   allowViewSharing = false,
@@ -375,17 +494,20 @@ export function DataTableViewManager({
   );
   const queryClient = useQueryClient();
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [isSharedView, setIsSharedView] = useState(false);
   const [viewName, setViewName] = useState("");
   const [dialogError, setDialogError] = useState<string>();
   const [inlineError, setInlineError] = useState<string>();
   const [isMutating, setIsMutating] = useState(false);
   const hasAppliedInitialViewRef = useRef(false);
+  const deletedViewIds = useRef(new Set<string>());
   const shouldSyncUrl = useTableStateSync();
-  const { applyViewConfig, getCurrentViewConfig, resetUrlState, viewParam } =
+  const { applyViewConfig, getCurrentViewConfig, viewParam, setViewParam } =
     useTableUrlState({
       defaultDensity,
       defaultDisplayMode,
+      defaultPageSize: defaultViewConfig.pageSize,
       tableId,
     });
   const viewQueryKey = useMemo(
@@ -399,10 +521,20 @@ export function DataTableViewManager({
     isFetching,
   } = useQuery({
     // Empty bootstrap data must still load persisted local or remote views.
+    enabled,
     initialData: initialViews.length > 0 ? initialViews : undefined,
     queryFn: async () => {
       const result = await viewActions.list({ tableId, tableType });
-      return result.data;
+      if ("error" in result && typeof result.error === "string") {
+        throw new Error(result.error);
+      }
+      return [
+        ...new Map(
+          [...initialViews, ...(result.data ?? [])]
+            .filter((view) => !deletedViewIds.current.has(view.id))
+            .map((view) => [view.id, view])
+        ).values(),
+      ];
     },
     queryKey: viewQueryKey,
     staleTime: 5000,
@@ -413,10 +545,11 @@ export function DataTableViewManager({
     [tableId, tableType]
   );
   const favoriteQuery = useQuery({
+    enabled,
     queryKey: favoriteQueryKey,
     queryFn: async () => {
       const result = await viewActions.getFavorite({ tableId, tableType });
-      if (!result.success || !result.data || result.error) {
+      if (!(result.success && result.data) || result.error) {
         throw new Error(result.error || t("views.favoriteError"));
       }
       return result.data;
@@ -424,32 +557,61 @@ export function DataTableViewManager({
     retry: false,
   });
   // An inaccessible favorite has the same UI fallback as an absent preference.
-  const favoriteViewId = savedViews.find(
-    (view) => view.id === favoriteQuery.data?.viewId
-  )?.id ?? null;
+  const favoriteViewId =
+    savedViews.find((view) => view.id === favoriteQuery.data?.viewId)?.id ??
+    null;
 
-  const currentConfig = useMemo(
-    () => getCurrentViewConfig(),
-    [getCurrentViewConfig]
+  const resolveView = useCallback(
+    (input: TableViewConfig) =>
+      normalizeTableViewConfig({
+        displayMode: defaultDisplayMode ?? "table",
+        pageSize: 10,
+        ...defaultViewConfig,
+        // Legacy Kanban lanes are grouping defaults only for the Kanban presentation.
+        grouping:
+          (input.displayMode ?? defaultDisplayMode ?? "table") === "kanban" &&
+          input.kanban?.groupBy
+            ? [input.kanban.groupBy]
+            : [],
+        ...input,
+        density: input.density ?? defaultDensity,
+        footerCalculationsVisible:
+          input.footerCalculationsVisible ??
+          defaultViewConfig.footerCalculationsVisible ??
+          true,
+      }),
+    [defaultDensity, defaultDisplayMode, defaultViewConfig]
   );
+  const currentConfig = useMemo(
+    () => resolveView(getCurrentViewConfig()),
+    [getCurrentViewConfig, resolveView]
+  );
+  // Save requests capture a snapshot; edits made while awaiting the server remain local.
+  const latestConfig = useRef(currentConfig);
+  latestConfig.current = currentConfig;
   const activeView = useMemo(
     () => savedViews.find((view) => view.id === viewParam),
     [savedViews, viewParam]
   );
   const isActiveViewDirty = Boolean(
     activeView &&
-      !areTableViewConfigsEqual(currentConfig, {
-        ...activeView.config,
-        density: activeView.config.density ?? defaultDensity,
-      })
+      !areTableViewConfigsEqual(currentConfig, resolveView(activeView.config))
   );
   const canUpdateActiveView = Boolean(
-    allowViewSave && activeView && !activeView.isSystem && viewActions.update
+    enabled &&
+      allowViewSave &&
+      activeView &&
+      !activeView.isSystem &&
+      viewActions.update
   );
   const canDeleteActiveView = Boolean(
-    allowViewSave && activeView && !activeView.isSystem && viewActions.delete
+    enabled &&
+      allowViewSave &&
+      activeView &&
+      !activeView.isSystem &&
+      viewActions.delete
   );
-  const canCreateView = allowViewSave && Boolean(viewActions.create);
+  const canCreateView = enabled && allowViewSave && Boolean(viewActions.create);
   const canShareView = canCreateView && allowViewSharing;
   const currentViewLabel = getCurrentViewLabel({
     activeView,
@@ -460,7 +622,10 @@ export function DataTableViewManager({
   const initialConfigRef = useRef(currentConfig);
   const hasInitialUrlState = shouldSyncUrl && hasTableUrlState(tableId);
   const canApplyInitialView =
-    !hasAppliedInitialViewRef.current && !viewParam && !hasInitialUrlState;
+    enabled &&
+    !hasAppliedInitialViewRef.current &&
+    !viewParam &&
+    !hasInitialUrlState;
   const preferredInitialViewId = resolveInitialTableView(
     savedViews,
     initialActiveViewId,
@@ -481,8 +646,10 @@ export function DataTableViewManager({
     // Defaults are an arrival preference, never a response to later user edits.
     hasAppliedInitialViewRef.current = true;
     if (
-      !canApplyInitialView ||
-      !areTableViewConfigsEqual(initialConfigRef.current, currentConfig)
+      !(
+        canApplyInitialView &&
+        areTableViewConfigsEqual(initialConfigRef.current, currentConfig)
+      )
     ) {
       return;
     }
@@ -493,7 +660,9 @@ export function DataTableViewManager({
       return;
     }
 
-    applyViewConfig(initialView.config, { viewId: initialView.id });
+    applyViewConfig(resolveView(initialView.config), {
+      viewId: initialView.id,
+    });
   }, [
     applyViewConfig,
     canApplyInitialView,
@@ -503,6 +672,7 @@ export function DataTableViewManager({
     isLoading,
     isFetching,
     preferredInitialViewId,
+    resolveView,
     savedViews,
   ]);
 
@@ -515,23 +685,26 @@ export function DataTableViewManager({
   const handleSelectDefaultView = useCallback(() => {
     hasAppliedInitialViewRef.current = true;
     setInlineError(undefined);
-    resetUrlState();
-  }, [resetUrlState]);
+    applyViewConfig(resolveView(defaultViewConfig));
+    setMenuOpen(false);
+  }, [applyViewConfig, defaultViewConfig, resolveView]);
 
   const handleSelectView = useCallback(
     (view: TableView) => {
       hasAppliedInitialViewRef.current = true;
       setInlineError(undefined);
-      applyViewConfig(view.config, { viewId: view.id });
+      applyViewConfig(resolveView(view.config), { viewId: view.id });
+      setMenuOpen(false);
     },
-    [applyViewConfig]
+    [applyViewConfig, resolveView]
   );
 
   const handleToggleFavorite = async (): Promise<void> => {
     if ((!activeView && viewParam) || isMutating || favoriteQuery.isPending) {
       return;
     }
-    const viewId = activeView && activeView.id !== favoriteViewId ? activeView.id : null;
+    const viewId =
+      activeView && activeView.id !== favoriteViewId ? activeView.id : null;
     // The built-in default represents no personal override; its filled star is stable.
     if (!activeView && favoriteViewId === null && !favoriteQuery.error) {
       return;
@@ -564,6 +737,7 @@ export function DataTableViewManager({
     setDialogError(undefined);
     setIsSharedView(false);
     setViewName("");
+    setMenuOpen(false);
     setIsSaveDialogOpen(true);
   }, [canCreateView]);
 
@@ -584,12 +758,18 @@ export function DataTableViewManager({
         tableId,
         tableType,
       });
-      if (!result.success || !result.data) {
+      if (!(result.success && result.data)) {
         setDialogError(result.error || t("views.notifications.error.create"));
         return;
       }
 
-      applyViewConfig(result.data.config, { viewId: result.data.id });
+      if (areTableViewConfigsEqual(latestConfig.current, currentConfig)) {
+        applyViewConfig(resolveView(result.data.config), {
+          viewId: result.data.id,
+        });
+      } else {
+        setViewParam(result.data.id);
+      }
       await refreshViews();
       setIsSaveDialogOpen(false);
       setViewName("");
@@ -607,6 +787,8 @@ export function DataTableViewManager({
     currentConfig,
     isSharedView,
     refreshViews,
+    resolveView,
+    setViewParam,
     tableId,
     tableType,
     t,
@@ -628,12 +810,18 @@ export function DataTableViewManager({
         tableId,
         tableType,
       });
-      if (!result.success || !result.data) {
+      if (!(result.success && result.data)) {
         setInlineError(result.error || t("views.notifications.error.update"));
         return;
       }
 
-      applyViewConfig(result.data.config, { viewId: result.data.id });
+      if (areTableViewConfigsEqual(latestConfig.current, currentConfig)) {
+        applyViewConfig(resolveView(result.data.config), {
+          viewId: result.data.id,
+        });
+      } else {
+        setViewParam(result.data.id);
+      }
       await refreshViews();
       toast.success(t("views.notifications.updated"));
     } catch (error) {
@@ -649,6 +837,8 @@ export function DataTableViewManager({
     canUpdateActiveView,
     currentConfig,
     refreshViews,
+    resolveView,
+    setViewParam,
     tableId,
     tableType,
     t,
@@ -672,7 +862,8 @@ export function DataTableViewManager({
         return;
       }
 
-      resetUrlState();
+      deletedViewIds.current.add(activeView.id);
+      applyViewConfig(resolveView(defaultViewConfig));
       await refreshViews();
       toast.success(t("views.notifications.deleted"));
     } catch (error) {
@@ -685,111 +876,110 @@ export function DataTableViewManager({
   }, [
     activeView,
     canDeleteActiveView,
+    applyViewConfig,
+    resolveView,
+    defaultViewConfig,
     refreshViews,
-    resetUrlState,
     tableId,
     tableType,
     t,
     viewActions,
   ]);
 
+  const resetView = () => {
+    applyViewConfig(resolveView(activeView?.config ?? defaultViewConfig), {
+      viewId: activeView?.id,
+    });
+  };
+  const resetDisabled =
+    isMutating ||
+    (activeView
+      ? !isActiveViewDirty
+      : areTableViewConfigsEqual(
+          currentConfig,
+          resolveView(defaultViewConfig)
+        ));
+  const statusLabel = isActiveViewDirty
+    ? t("views.modified")
+    : t("views.upToDate");
+  const parts: ViewMenuParts = {
+    open: menuOpen,
+    onOpenChange: setMenuOpen,
+    trigger: renderViewTrigger({
+      t,
+      enabled,
+      compact,
+      isLoading,
+      currentViewLabel,
+      isActiveViewDirty,
+    }),
+    selection: renderViewSelection({
+      t,
+      enabled,
+      isMutating,
+      viewParam,
+      favoriteViewId,
+      savedViews,
+      handleSelectDefaultView,
+      handleSelectView,
+    }),
+    actions: (
+      <ViewMenuActions
+        activeView={activeView}
+        allowViewSave={allowViewSave}
+        canCreateView={canCreateView}
+        canDeleteActiveView={canDeleteActiveView}
+        canUpdateActiveView={canUpdateActiveView}
+        compact={compact}
+        enabled={enabled}
+        favoritePending={favoriteQuery.isPending}
+        favoriteViewId={favoriteViewId}
+        handleDeleteActiveView={handleDeleteActiveView}
+        handleToggleFavorite={handleToggleFavorite}
+        handleUpdateActiveView={handleUpdateActiveView}
+        isActiveViewDirty={isActiveViewDirty}
+        isMutating={isMutating}
+        openSaveDialog={openSaveDialog}
+        resetDisabled={resetDisabled}
+        resetView={resetView}
+        statusLabel={statusLabel}
+        viewParam={viewParam}
+      />
+    ),
+  };
   return (
-    <div className={cn("flex min-w-0 flex-col gap-1", className)}>
-      <div className="flex min-w-0 items-center gap-2">
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <Button
-                aria-label={t("views.current")}
-                className="h-8 min-w-0 max-w-[16rem] justify-between gap-2 px-3 font-normal text-xs leading-4"
-                disabled={isLoading}
-                size="sm"
-                type="button"
-                variant="outline"
-              >
-                <LayoutList className="size-4 shrink-0" />
-                <span className="truncate">{currentViewLabel}</span>
-                <ChevronDown className="size-3 shrink-0 opacity-70" />
-              </Button>
-            }
-          />
-          <DropdownMenuContent className="w-64">
-            <DropdownMenuGroup>
-              <div className="px-2 py-1.5 font-medium text-muted-foreground text-xs">
-                {t("views.title")}
-              </div>
-              <DropdownMenuItem onClick={handleSelectDefaultView}>
-                {viewParam ? (
-                  <span className="size-4" />
-                ) : (
-                  <Check className="size-4" />
-                )}
-                <span className="min-w-0 flex-1 truncate">{t("views.defaultView")}</span>
-                <ViewStatusIcons favoriteViewId={favoriteViewId} t={t} />
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            {savedViews.length > 0 && <DropdownMenuSeparator />}
-            <DropdownMenuGroup>
-              {savedViews.map((view) => (
-                <DropdownMenuItem
-                  key={view.id}
-                  onClick={() => {
-                    handleSelectView(view);
-                  }}
-                >
-                  {view.id === viewParam ? (
-                    <Check className="size-4" />
-                  ) : (
-                    <span className="size-4" />
-                  )}
-                  <span className="min-w-0 flex-1 truncate">{view.name}</span>
-                  <ViewStatusIcons
-                    view={view}
-                    favoriteViewId={favoriteViewId}
-                    t={t}
-                  />
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuGroup>
-            <ViewWriteMenuItems
-              canCreateView={canCreateView}
-              canDeleteActiveView={canDeleteActiveView}
-              onDeleteActiveView={handleDeleteActiveView}
-              onOpenSaveDialog={openSaveDialog}
-              t={t}
-            />
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        <FavoriteViewButton
-          activeView={activeView}
-          isTemporary={Boolean(viewParam && !activeView)}
-          favoriteViewId={favoriteViewId}
-          disabled={isMutating || favoriteQuery.isPending}
-          onClick={handleToggleFavorite}
-          t={t}
-        />
-
-        <ViewWriteButtons
-          allowViewSave={allowViewSave}
-          canCreateView={canCreateView}
-          canUpdateActiveView={canUpdateActiveView}
-          isActiveViewDirty={isActiveViewDirty}
-          isMutating={isMutating}
-          onOpenSaveDialog={openSaveDialog}
-          onUpdateActiveView={handleUpdateActiveView}
-          t={t}
-        />
-      </div>
+    <div
+      className={cn(
+        "flex min-w-0 flex-col gap-1",
+        compact && "flex-1",
+        className
+      )}
+    >
+      {renderMenu ? (
+        renderMenu(parts)
+      ) : (
+        <StackMenu
+          asDropdown
+          compact={compact}
+          onOpenChange={setMenuOpen}
+          open={menuOpen}
+          trigger={parts.trigger}
+        >
+          <StackMenuView name="main" title={t("views.settings")}>
+            {parts.selection}
+            {parts.actions}
+          </StackMenuView>
+        </StackMenu>
+      )}
 
       {(inlineError || favoriteQuery.error) && (
-        <p role="alert" className="max-w-[20rem] text-destructive text-xs">
+        <p className="max-w-[20rem] text-destructive text-xs" role="alert">
           {inlineError ||
             getViewErrorMessage(favoriteQuery.error, t("views.favoriteError"))}
         </p>
       )}
 
-      <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
+      <Dialog onOpenChange={setIsSaveDialogOpen} open={isSaveDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t("views.dialog.save.title")}</DialogTitle>

@@ -1,7 +1,14 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  inlineTestPortals,
+  openViewMenu,
+  openViewScreen,
+} from "../../../tests/menu-helpers";
 import { defineTableConfig } from "../../config";
 import YayawDataTable from "../YayawDataTable.vue";
+
+inlineTestPortals();
 
 const config = defineTableConfig({
   id: "reset",
@@ -38,7 +45,7 @@ describe("toolbar filter reset", () => {
     document.body.replaceChildren();
   });
 
-  it("is opt-in and remains an icon when other actions have labels", () => {
+  it("keeps the legacy filter reset opt-in with a readable label inside Filters", async () => {
     const hidden = mount(YayawDataTable, {
       props: {
         tableType: "reset",
@@ -69,15 +76,16 @@ describe("toolbar filter reset", () => {
         locale: "fr",
       },
     });
+    await openViewScreen(visible, "Filtres");
     const button = visible.get('button[aria-label="Effacer les filtres"]');
-    expect(button.classes()).toContain("yayaw-icon-only");
+    expect(button.classes()).not.toContain("yayaw-icon-only");
     expect(button.attributes("title")).toBeUndefined();
     expect(button.find("svg").exists()).toBe(true);
-    expect(button.text()).toBe("");
+    expect(button.text()).toBe("Effacer les filtres");
     visible.unmount();
   });
 
-  it("the Options reset restores option defaults and preserves search", async () => {
+  it("the view reset restores application defaults, including search and presentation", async () => {
     const presentation = {
       "reset-order": JSON.stringify(["select", "status", "name", "actions"]),
       "reset-pinning": encodeURIComponent(
@@ -119,12 +127,12 @@ describe("toolbar filter reset", () => {
     const search = wrapper.get('input[type="search"]');
     expect(search.attributes("aria-label")).toBe("Search…");
     expect((search.element as HTMLInputElement).value).toBe("Alpha");
-    await wrapper.get('button[aria-label="Options"]').trigger("click");
+    await openViewMenu(wrapper);
     await wrapper
-      .get('.yayaw-options-menu button[aria-label="Reset"]')
+      .get('.yayaw-toolbar-menu button[aria-label="Reset view"]')
       .trigger("click");
-    await vi.runAllTimersAsync();
-    expect((search.element as HTMLInputElement).value).toBe("Alpha");
+    await vi.advanceTimersByTimeAsync(100);
+    expect((search.element as HTMLInputElement).value).toBe("");
     expect(wrapper.text()).toContain("Alpha");
 
     const result = new URLSearchParams(window.location.search);
@@ -145,9 +153,11 @@ describe("toolbar filter reset", () => {
       select: true,
       actions: true,
     });
-    for (const [key, value] of Object.entries(presentation)) {
-      expect(result.get(key)).toBe(value);
-    }
+    expect(result.get("reset-q")).toBeNull();
+    expect(result.get("reset-display")).toBeNull();
+    expect(result.get("view")).toBeNull();
+    expect(result.get("other-q")).toBe("Untouched");
+    expect(result.get("other-sort")).toBe(presentation["other-sort"]);
     wrapper.unmount();
   });
 
@@ -178,10 +188,9 @@ describe("toolbar filter reset", () => {
       props: { tableType: "reset", config, data },
     });
     await flushPromises();
-    await wrapper
-      .get('.yayaw-toolbar-right > button[aria-label="Clear filters"]')
-      .trigger("click");
-    await vi.runAllTimersAsync();
+    await openViewScreen(wrapper, "Filters");
+    await wrapper.get('button[aria-label="Clear filters"]').trigger("click");
+    await vi.advanceTimersByTimeAsync(100);
 
     const result = new URLSearchParams(window.location.search);
     for (const key of [
@@ -215,14 +224,14 @@ describe("toolbar filter reset", () => {
         config,
         data,
         syncUrl: false,
-        translations: { reset: "Start again" },
+        translations: { "views.reset": "Start again" },
       },
     });
     await wrapper.get("th.sortable").trigger("click");
     expect(wrapper.findAll("tbody tr")[0]?.text()).toContain("Beta");
-    await wrapper.get('button[aria-label="Options"]').trigger("click");
+    await openViewMenu(wrapper);
     await wrapper
-      .get('.yayaw-options-menu button[aria-label="Start again"]')
+      .get('.yayaw-toolbar-menu button[aria-label="Start again"]')
       .trigger("click");
     expect(wrapper.findAll("tbody tr")[0]?.text()).toContain("Alpha");
     expect(window.location.search).toBe("");

@@ -8,6 +8,7 @@ import { atom, useAtom, useStore } from "jotai";
 import { atomFamily } from "jotai-family";
 import { createParser, useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import { footerVisibleAtom } from "../atoms/footer-atoms";
 import { filterResetVersionAtom, tableDensityAtom } from "../atoms/table-atoms";
 import { useTableStateSync } from "../providers/table-state-sync-provider";
 import type {
@@ -367,6 +368,9 @@ export function useTableUrlState({
 }: UseTableUrlStateOptions) {
   const store = useStore();
   const [densityOverride, setDensity] = useAtom(tableDensityAtom(tableId));
+  const [footerCalculationsVisible, setFooterCalculationsVisible] = useAtom(
+    footerVisibleAtom(tableId)
+  );
   const inheritedSync = useTableStateSync();
   const shouldSyncUrl = enabled ?? inheritedSync;
   const resetVersionAtom = filterResetVersionAtom(tableId);
@@ -1031,6 +1035,7 @@ export function useTableUrlState({
   const getCurrentViewConfig = useCallback((): TableViewConfig => {
     return createTableViewConfigSnapshot({
       density: densityOverride ?? defaultDensity,
+      footerCalculationsVisible,
       advancedFiltersParam: (advancedFiltersParam ||
         []) as AdvancedFiltersState,
       displayModeParam:
@@ -1052,6 +1057,7 @@ export function useTableUrlState({
     });
   }, [
     densityOverride,
+    footerCalculationsVisible,
     defaultDensity,
     advancedFiltersParam,
     defaultPageSizeParam,
@@ -1073,6 +1079,8 @@ export function useTableUrlState({
 
   const applyViewConfig = useCallback(
     (config: TableViewConfig, options?: { viewId?: null | string }) => {
+      // Invalidate pending search writes before restoring the saved configuration.
+      store.set(resetVersionAtom, (version) => version + 1);
       const nextPinning = normalizeColumnPinning(config.columnPinning) ?? {
         left: [],
         right: [],
@@ -1081,6 +1089,9 @@ export function useTableUrlState({
       const normalizedConfig = normalizeTableViewConfig(config);
       // Legacy views inherit the catalogue density instead of the previous view.
       setDensity(normalizedConfig.density);
+      setFooterCalculationsVisible(
+        normalizedConfig.footerCalculationsVisible ?? true
+      );
 
       queueUrlUpdate(setViewParam, options?.viewId ?? null);
       queueUrlUpdate(setHistoryIndexParam, "0");
@@ -1109,6 +1120,9 @@ export function useTableUrlState({
     },
     [
       setDensity,
+      setFooterCalculationsVisible,
+      store,
+      resetVersionAtom,
       queueUrlUpdate,
       getDisplayModeUrlValue,
       resolvedDefaultDisplayMode,
@@ -1237,6 +1251,8 @@ export function useTableUrlState({
     try {
       isSyncing.current = true;
       setDensity(undefined);
+      setFooterCalculationsVisible(true);
+      store.set(resetVersionAtom, (version) => version + 1);
       // Reset all URL parameters
       setViewParam(null);
       setHistoryIndexParam("0");
@@ -1270,6 +1286,9 @@ export function useTableUrlState({
     }
   }, [
     setDensity,
+    setFooterCalculationsVisible,
+    store,
+    resetVersionAtom,
     setViewParam,
     setHistoryIndexParam,
     setSortParam,

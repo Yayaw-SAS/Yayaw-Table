@@ -4,6 +4,7 @@ import { createStore, Provider } from "jotai";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
+import { footerVisibleAtom } from "../src/components/ui/yayaw-table/atoms/footer-atoms";
 import { tableDensityAtom } from "../src/components/ui/yayaw-table/atoms/table-atoms";
 import { TableDensityMenu } from "../src/components/ui/yayaw-table/components/toolbar/table-density-menu";
 import { resolveTableCatalogueConfig } from "../src/components/ui/yayaw-table/hooks/use-table-config";
@@ -144,7 +145,12 @@ it("marks density-only edits dirty and keeps legacy saved views clean at the con
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
     await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
-    const save = container.querySelector<HTMLButtonElement>(
+    await act(() =>
+      container
+        .querySelector<HTMLButtonElement>('[aria-label="Current View"]')
+        ?.click()
+    );
+    const save = document.querySelector<HTMLButtonElement>(
       '[aria-label="Save changes"]'
     );
     if (!save) {
@@ -154,6 +160,14 @@ it("marks density-only edits dirty and keeps legacy saved views clean at the con
     await act(() => store.set(tableDensityAtom(view.tableId), "extra-small"));
     expect(save.getAttribute("aria-disabled")).not.toBe("true");
     await act(() => store.set(tableDensityAtom(view.tableId), "large"));
+    expect(save.getAttribute("aria-disabled")).toBe("true");
+    await act(() => store.set(footerVisibleAtom(view.tableId), false));
+    expect(save.getAttribute("aria-disabled")).not.toBe("true");
+    const reset = document.querySelector<HTMLButtonElement>(
+      '[aria-label="Reset view"]'
+    );
+    await act(() => reset?.click());
+    expect(store.get(footerVisibleAtom(view.tableId))).toBe(true);
     expect(save.getAttribute("aria-disabled")).toBe("true");
   } finally {
     await act(() => root.unmount());

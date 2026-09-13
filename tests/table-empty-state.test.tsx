@@ -287,7 +287,16 @@ it("recovers a saved view in memory mode with translated copy without overwritin
         meta: { totalCount: params.search ? 0 : 1, pageCount: 1 },
       }),
   });
-  await act(settle);
+  // Arrival loads the view, applies its query and waits for the filtered list response.
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    if (
+      harness.container.querySelector('[data-slot="empty-title"]')
+        ?.textContent === "Aucun résultat"
+    ) {
+      break;
+    }
+    await act(settle);
+  }
   expect(
     harness.container.querySelector('[data-slot="empty-title"]')?.textContent
   ).toBe("Aucun résultat");

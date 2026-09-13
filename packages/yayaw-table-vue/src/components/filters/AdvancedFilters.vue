@@ -1,11 +1,24 @@
 <script setup lang="ts">
-import { computed, nextTick } from "vue";
+import { computed, nextTick, ref } from "vue";
+import { newFilter } from "../../filter-config";
 import { useTableContext } from "../../context";
 import type { AdvancedFilter } from "../../types";
 import FilterRule from "./FilterRule.vue";
 
 const context = useTableContext();
 const state = context.state.advancedFilters;
+// Incomplete rules belong to the editor, never to the query or saved snapshot.
+const drafts = ref<AdvancedFilter[]>([]);
+const rules = computed(() => [...state.value.filters, ...drafts.value]);
+const add = async (columnId?: string): Promise<void> => {
+  const column = columnId ? columns.value.find((item) => item.id === columnId) : columns.value[0];
+  if (!column) return;
+  const filter = newFilter(column);
+  drafts.value.push(filter);
+  await nextTick();
+  document.getElementById(`filter-column-${filter.id}`)?.focus();
+};
+defineExpose({ add, clearDrafts: () => { drafts.value = []; } });
 const columns = computed(() =>
   context.config.columns.definitions.filter(
     (column) =>
@@ -19,6 +32,11 @@ const t = (key: string, fallback: string): string => {
   return typeof value === "string" ? value : fallback;
 };
 const update = (filter: AdvancedFilter): void => {
+  if (drafts.value.some((item) => item.id === filter.id)) {
+    state.value = { ...state.value, filters: [...state.value.filters, filter] };
+    drafts.value = drafts.value.filter((item) => item.id !== filter.id);
+    return;
+  }
   state.value = {
     ...state.value,
     filters: state.value.filters.map((item) =>
@@ -27,9 +45,13 @@ const update = (filter: AdvancedFilter): void => {
   };
 };
 const remove = async (id: string): Promise<void> => {
-  const index = state.value.filters.findIndex((filter) => filter.id === id);
-  const filters = state.value.filters.filter((filter) => filter.id !== id);
-  state.value = { ...state.value, filters };
+  const index = rules.value.findIndex((filter) => filter.id === id);
+  if (drafts.value.some((filter) => filter.id === id)) {
+    drafts.value = drafts.value.filter((filter) => filter.id !== id);
+  } else {
+    state.value = { ...state.value, filters: state.value.filters.filter((filter) => filter.id !== id) };
+  }
+  const filters = rules.value;
   await nextTick();
   const nextFilter = filters[Math.min(index, filters.length - 1)];
   const target = nextFilter
@@ -41,13 +63,13 @@ const remove = async (id: string): Promise<void> => {
 
 <template>
   <section class="yayaw-advanced-filters" :aria-label="t('advanced.title', 'Advanced filters')">
-    <label class="yayaw-filter-join">
+    <label v-if="rules.length" class="yayaw-filter-join">
       <span>{{ t('match', 'Match') }}</span>
       <select class="yayaw-select" :value="state.joinOperator" :aria-label="t('combination', 'Filter combination')" @change="state = { ...state, joinOperator: ($event.target as HTMLSelectElement).value as 'and' | 'or' }">
         <option value="and">{{ t('match_all', 'all conditions') }}</option>
         <option value="or">{{ t('match_any', 'any condition') }}</option>
       </select>
     </label>
-    <FilterRule v-for="filter in state.filters" :key="filter.id" :filter="filter" :columns="columns" @update="update" @remove="remove(filter.id)" />
+    <FilterRule v-for="filter in rules" :key="filter.id" :filter="filter" :columns="columns" @update="update" @remove="remove(filter.id)" />
   </section>
 </template>

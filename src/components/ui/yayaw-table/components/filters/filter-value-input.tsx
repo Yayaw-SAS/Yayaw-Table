@@ -142,6 +142,7 @@ export function FilterValueInput<TType extends ColumnDataType>({
           operators={config.operators as readonly FilterOperators["number"][]}
           placeholder={config.placeholder}
           showOperator={showOperator}
+          showSlider={false}
           value={numberValue}
         />
       );
@@ -356,11 +357,11 @@ export function isValidFilterValue<TType extends ColumnDataType>(
         return (
           Array.isArray(value) &&
           value.length === 2 &&
-          typeof value[0] === "number" &&
-          typeof value[1] === "number"
+          Number.isFinite(value[0]) &&
+          Number.isFinite(value[1])
         );
       }
-      return typeof value === "number" && !Number.isNaN(value);
+      return typeof value === "number" && Number.isFinite(value);
     }
 
     case "date": {

@@ -1,21 +1,19 @@
 "use client";
 
-import { TableTooltip } from "../../../utils/table-tooltip";
-
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import type { Column, Table } from "@/components/ui/yayaw-table/tanstack";
 import { useAtomValue } from "jotai";
 import { ArrowDown, ArrowUp, GripVertical } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { type ComponentProps, useEffect, useMemo, useState } from "react";
+import type { Column, Table } from "@/components/ui/yayaw-table/tanstack";
 import { cn } from "@/lib/utils";
 import { Button } from "@/src/components/ui/button";
-
 import { columnDragEnabledAtom } from "../../../atoms/table-atoms";
-import { useTranslations } from "../../../providers/table-provider";
 import { useTableConfig } from "../../../hooks/use-table-config";
 import { useTableTranslations } from "../../../hooks/use-table-translations";
+import { useTranslations } from "../../../providers/table-provider";
 import { resizedColumnSizeFromKey } from "../../../utils/table-contracts";
+import { TableTooltip } from "../../../utils/table-tooltip";
 
 import { ActionsHeader } from "./actions-header";
 import { ColumnMenu } from "./column-menu";
@@ -24,11 +22,12 @@ import { SelectionHeader } from "./selection-header";
 // Set to true to enable debug logging
 const _DEBUG = false;
 
-function DragHandleButton() {
+function DragHandleButton(props: ComponentProps<typeof Button>) {
   const { t } = useTranslations();
   return (
     <TableTooltip label={t("columns.drag")}>
       <Button
+        {...props}
         aria-label={t("columns.drag")}
         className="size-7 cursor-grab border-0 bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground active:cursor-grabbing"
         size="icon"
@@ -185,7 +184,10 @@ function DataTableColumnHeaderBase<TData, TValue>({
 
   const isSelectionColumn = column.id === "select";
   const isActionsColumn = column.id === "actions";
-  const def = column.columnDef as { type?: string; meta?: { columnType?: string } };
+  const def = column.columnDef as {
+    type?: string;
+    meta?: { columnType?: string };
+  };
   const isNumberColumn =
     def.type === "number" || def.meta?.columnType === "number";
   const sortDirection = column.getIsSorted();
@@ -194,10 +196,7 @@ function DataTableColumnHeaderBase<TData, TValue>({
   const selectionHeaderContent = useMemo(() => {
     if (isSelectionColumn) {
       return tableInstance ? (
-        <SelectionHeader<TData, TValue>
-          column={column}
-          table={tableInstance}
-        />
+        <SelectionHeader<TData, TValue> column={column} table={tableInstance} />
       ) : (
         <div className="flex h-4 w-4 items-center justify-center" />
       );
@@ -242,11 +241,7 @@ function DataTableColumnHeaderBase<TData, TValue>({
             isNumberColumn && "justify-end"
           )}
         >
-          <ColumnMenu
-            column={column}
-            table={tableInstance}
-            tableId={tableId}
-          >
+          <ColumnMenu column={column} table={tableInstance} tableId={tableId}>
             <div className="flex w-full min-w-0 cursor-pointer items-center gap-2">
               <span className="truncate">{title}</span>
               {sortDirection && (
@@ -258,11 +253,8 @@ function DataTableColumnHeaderBase<TData, TValue>({
           </ColumnMenu>
         </div>
         {isHydrated && dndFeatureEnabled && isDragEnabled && (
-          <div
-            className="ml-2 shrink-0 cursor-grab touch-none active:cursor-grabbing"
-            {...listeners}
-          >
-            <DragHandleButton />
+          <div className="ml-2 shrink-0 cursor-grab touch-none active:cursor-grabbing">
+            <DragHandleButton {...attributes} {...listeners} />
           </div>
         )}
       </div>
@@ -275,11 +267,8 @@ function DataTableColumnHeaderBase<TData, TValue>({
       >
         <span className="truncate">{title}</span>
         {isHydrated && dndFeatureEnabled && isDragEnabled && (
-          <div
-            className="ml-auto shrink-0 cursor-grab touch-none active:cursor-grabbing"
-            {...listeners}
-          >
-            <DragHandleButton />
+          <div className="ml-auto shrink-0 cursor-grab touch-none active:cursor-grabbing">
+            <DragHandleButton {...attributes} {...listeners} />
           </div>
         )}
       </div>
@@ -295,7 +284,6 @@ function DataTableColumnHeaderBase<TData, TValue>({
         ref={isHydrated ? setNodeRef : undefined}
         style={style}
         suppressHydrationWarning
-        {...(isHydrated ? attributes : {})}
       >
         <div
           className={cn(

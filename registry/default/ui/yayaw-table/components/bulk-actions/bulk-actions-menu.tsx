@@ -1084,6 +1084,7 @@ export function BulkActionsMenu<TData>({
               return (
                 <m.button
                   animate="animate"
+                  aria-label={getActionLabel(tab)}
                   className={cn(
                     "relative flex items-center rounded-xl px-4 py-2 font-medium text-sm transition-colors duration-300",
                     tab.disabled &&
@@ -1098,7 +1099,9 @@ export function BulkActionsMenu<TData>({
                   disabled={tab.disabled}
                   initial={false}
                   key={tab.id}
+                  onBlur={() => setHoveredAction(null)}
                   onClick={() => handleTabClick(tab)}
+                  onFocus={() => setHoveredAction(tab.id)}
                   onMouseEnter={() => setHoveredAction(tab.id)}
                   onMouseLeave={() => setHoveredAction(null)}
                   transition={transition}

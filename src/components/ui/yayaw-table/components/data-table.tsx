@@ -4,23 +4,18 @@
  */
 "use client";
 
-import type { Row } from "@/components/ui/yayaw-table/tanstack";
 import type React from "react";
 // Import advanced filters hook directly
 import { Suspense, useMemo, useState } from "react";
-import type {
-  DetailRevertHandler,
-  RecordDetailsConfig,
-} from "../utils/record-details";
-import { TableRecordDetails } from "./details/table-record-details";
+import type { Row } from "@/components/ui/yayaw-table/tanstack";
+import type { TableEmptyStateConfig } from "../config/helpers";
+import { useAutoPageSizeLifetime } from "../hooks/use-auto-page-size";
 import type {
   BulkActionCustomHandlerResult,
   BulkDeleteCustomHandlerResult,
 } from "../hooks/use-bulk-actions";
-import { useAutoPageSizeLifetime } from "../hooks/use-auto-page-size";
 import { useDataTable } from "../hooks/use-data-table";
 import type { TableCatalogueConfig } from "../hooks/use-table-config";
-
 import { DataTableUIProvider } from "../providers/data-table-ui-provider";
 import {
   defaultTranslations,
@@ -28,9 +23,13 @@ import {
   useTableComponents,
   useTranslations,
 } from "../providers/table-provider";
-import { resolveTranslationsToUiStrings } from "../providers/translation-cache";
 import { TableStateSyncProvider } from "../providers/table-state-sync-provider";
-import type { TableEmptyStateConfig } from "../config/helpers";
+import { resolveTranslationsToUiStrings } from "../providers/translation-cache";
+import type {
+  TableDisplayMode,
+  TableGalleryConfig,
+  TableKanbanConfig,
+} from "../types/display-types";
 import type {
   ToolbarActionsInput,
   ToolbarActionsPlacement,
@@ -38,24 +37,22 @@ import type {
 import type { DataTableTranslations } from "../types/translations";
 import type { TableView } from "../types/view-types";
 import type {
-  TableDisplayMode,
-  TableGalleryConfig,
-  TableKanbanConfig,
-} from "../types/display-types";
+  DetailRevertHandler,
+  RecordDetailsConfig,
+} from "../utils/record-details";
 import type { CustomBulkActionsInput } from "./bulk-actions";
 import { DataTableSkeleton } from "./data-table-skeleton";
+import { TableRecordDetails } from "./details/table-record-details";
+// Direct import keeps the toolbar available without a client-only dynamic wrapper.
+import { TableFilterBar } from "./filters/table-filter-bar";
 // Lazy load heavy components using React.lazy inside './forms/lazy-forms'
 import { LazyCatalogueFormContainer as CatalogueFormContainer } from "./forms/lazy-forms";
 // Import DataTableClient directly for better SSR compatibility
 import { TableComponent as DataTableClient } from "./table-component";
-
-// Direct import keeps the toolbar available without a client-only dynamic wrapper.
-import { TableFilterBar } from "./filters/table-filter-bar";
 import { DataTableAdvancedToolbar } from "./toolbar/data-table-advanced-toolbar";
 import { TableDisplayModeSwitcher } from "./toolbar/table-display-mode-switcher";
 import { TableGalleryMenu } from "./toolbar/table-gallery-menu";
 import { TableKanbanGroupingMenu } from "./toolbar/table-kanban-grouping-menu";
-import { DataTableViewManager } from "./toolbar/table-view-manager";
 
 // Default UI components
 function DefaultTableTitle({
@@ -251,8 +248,9 @@ function DataTableHeaderControls({
   kanbanDefaultGroupBy,
   kanbanGroupingColumns,
   onExport,
-  shouldShowViewControls,
+  shouldShowViewControls: _shouldShowViewControls,
   shouldShowViews,
+  quickFiltersVisible,
   tableId,
   tableType,
   toolbarActions,
@@ -284,71 +282,64 @@ function DataTableHeaderControls({
   onExport?: (rows: Record<string, unknown>[]) => Promise<void> | void;
   shouldShowViewControls: boolean;
   shouldShowViews: boolean;
+  quickFiltersVisible: boolean;
   tableId: string;
   tableType: string;
   toolbarActions?: ToolbarActionsInput;
   toolbarActionsPlacement: ToolbarActionsPlacement;
 }) {
   return (
-    <div
-      className={
-        shouldShowViewControls
-          ? "flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between"
-          : "flex justify-end"
-      }
-    >
-      {shouldShowViewControls ? (
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          {shouldShowViews ? (
-            <DataTableViewManager
-              defaultDensity={defaultDensity}
-              allowViewSave={allowViewSave !== false}
-              allowViewSharing={allowViewSharing === true}
-              defaultDisplayMode={defaultDisplayMode}
-              initialActiveViewId={initialActiveViewId}
-              initialViews={initialViews}
-              tableId={tableId}
-              tableType={tableType}
-            />
-          ) : null}
-          <TableDisplayModeSwitcher
-            defaultDisplayMode={defaultDisplayMode}
-            displayModes={displayModes}
-            tableId={tableId}
-          />
+    <DataTableAdvancedToolbar
+      cardSettings={{
+        kanban: enableKanbanGrouping ? (
           <TableKanbanGroupingMenu
             columns={kanbanGroupingColumns}
             controlColumns={kanbanControlColumns}
             defaultConfig={kanbanConfig}
             defaultDisplayMode={defaultDisplayMode}
             defaultGroupBy={kanbanDefaultGroupBy}
-            enabled={enableKanbanGrouping}
+            embedded
             tableId={tableId}
           />
+        ) : undefined,
+        gallery: enableGalleryControl ? (
           <TableGalleryMenu
             columns={galleryColumns}
             defaultConfig={galleryConfig}
             defaultDisplayMode={defaultDisplayMode}
-            enabled={enableGalleryControl}
+            embedded
             tableId={tableId}
           />
-        </div>
-      ) : null}
-      <div className="flex-shrink-0">
-        <DataTableAdvancedToolbar
-          columnTypeMapping={columnTypeMapping}
-          data={baseData}
-          enableAdvancedFilters={enableAdvancedFilters}
-          formType={defaultFormType}
-          onExport={onExport}
-          searchDebounceMs={searchDebounceMs}
+        ) : undefined,
+      }}
+      columnTypeMapping={columnTypeMapping}
+      data={baseData}
+      enableAdvancedFilters={enableAdvancedFilters}
+      formType={defaultFormType}
+      modeSettings={
+        <TableDisplayModeSwitcher
+          defaultDisplayMode={defaultDisplayMode}
+          displayModes={displayModes}
           tableId={tableId}
-          tableType={tableType}
-          toolbarActions={toolbarActions}
-          toolbarActionsPlacement={toolbarActionsPlacement}
         />
-      </div>
-    </div>
+      }
+      onExport={onExport}
+      quickFiltersVisible={quickFiltersVisible}
+      searchDebounceMs={searchDebounceMs}
+      tableId={tableId}
+      tableType={tableType}
+      toolbarActions={toolbarActions}
+      toolbarActionsPlacement={toolbarActionsPlacement}
+      viewManagerProps={{
+        enabled: shouldShowViews,
+        allowViewSave,
+        allowViewSharing,
+        defaultDensity,
+        defaultDisplayMode,
+        initialActiveViewId,
+        initialViews,
+      }}
+    />
   );
 }
 
@@ -360,7 +351,10 @@ function detailViewHandler(
   return onOpenDetails ?? (details ? open : undefined);
 }
 
-function isFilterBarVisible(prop: boolean | undefined, configured: boolean | undefined): boolean {
+function isFilterBarVisible(
+  prop: boolean | undefined,
+  configured: boolean | undefined
+): boolean {
   return prop ?? configured ?? false;
 }
 
@@ -653,24 +647,31 @@ function DataTableContent({
               </div>
             )}
 
-            <TableFilterBar visible={isFilterBarVisible(showFilterBar, config.table.showFilterBar)} tableId={tableId} tableType={tableType} />
+            <TableFilterBar
+              tableId={tableId}
+              tableType={tableType}
+              visible={isFilterBarVisible(
+                showFilterBar,
+                config.table.showFilterBar
+              )}
+            />
 
             {/* Header with title/description and toolbar */}
             {shouldShowToolbar && (
-              <div className="space-y-3 [&_button]:font-normal [&_button_.font-medium]:font-normal">
-                {!isLoading && (
+              <div className="space-y-3">
+                {/* Keep settings mounted while a filter or sort request is loading. */}
                   <DataTableHeaderControls
-                    defaultDensity={config.table.density}
                     allowViewSave={config.table.allowViewSave}
                     allowViewSharing={config.table.allowViewSharing}
                     baseData={baseData}
                     columnTypeMapping={columnTypeMapping}
+                    defaultDensity={config.table.density}
                     defaultDisplayMode={config.table.defaultDisplayMode}
                     defaultFormType={defaultFormType}
                     displayModes={config.table.displayModes}
+                    enableAdvancedFilters={shouldEnableAdvancedFilters}
                     enableGalleryControl={shouldShowGallery}
                     enableKanbanGrouping={shouldShowKanbanGrouping}
-                    enableAdvancedFilters={shouldEnableAdvancedFilters}
                     galleryColumns={galleryColumns}
                     galleryConfig={config.table.gallery}
                     initialActiveViewId={initialActiveViewId}
@@ -680,6 +681,10 @@ function DataTableContent({
                     kanbanDefaultGroupBy={config.table.kanban?.groupBy}
                     kanbanGroupingColumns={kanbanGroupingColumns}
                     onExport={onExport}
+                    quickFiltersVisible={isFilterBarVisible(
+                      showFilterBar,
+                      config.table.showFilterBar
+                    )}
                     searchDebounceMs={resolvedSearchDebounceMs}
                     shouldShowViewControls={shouldShowViewControls}
                     shouldShowViews={shouldShowViews}
@@ -688,7 +693,6 @@ function DataTableContent({
                     toolbarActions={resolvedToolbarActions}
                     toolbarActionsPlacement={resolvedToolbarActionsPlacement}
                   />
-                )}
               </div>
             )}
 
@@ -697,23 +701,25 @@ function DataTableContent({
               <DataTableSkeleton />
             ) : (
               <DataTableClient
-                className={className}
                 activeRowId={activeRowId}
+                className={className}
+                closeOnError={closeOnError}
                 columns={
                   columns as import("@/components/ui/yayaw-table/tanstack").ColumnDef<
                     Record<string, unknown>
                   >[]
                 }
+                customBulkActions={customBulkActions}
                 data={finalData}
                 emptyState={emptyState}
                 enableColumnDragDropByDefault={Boolean(
                   config.table.enableColumnDragDropByDefault
                 )}
+                enableColumnFilters={config.table.enableColumnFilters}
+                enableColumnPinning={config.table.enableColumnPinning !== false}
                 enableColumnResizing={
                   config.table.enableColumnResizing === true
                 }
-                enableColumnFilters={config.table.enableColumnFilters}
-                enableColumnPinning={config.table.enableColumnPinning !== false}
                 enableGrouping={config.table.enableGrouping}
                 enableMultiRowSelection={
                   config.table.enableMultiRowSelection !== false
@@ -721,26 +727,25 @@ function DataTableContent({
                 enablePagination={config.table.enablePagination !== false}
                 enableRowSelection={config.table.enableRowSelection}
                 enableSorting={config.table.enableSorting}
+                formType={defaultFormType}
                 getRowId={getRowId}
                 key={`${tableId}-${visibilityKey}`}
                 loadingOverlay={loadingOverlay}
-                closeOnError={closeOnError}
-                customBulkActions={customBulkActions}
                 onBulkCopy={onBulkCopy}
                 onBulkDelete={onBulkDelete}
                 onBulkEdit={onBulkEdit}
                 onBulkExport={onBulkExport}
                 onRowActivate={(row, event) => {
-                  detailViewHandler(details, setViewedRow, onOpenDetails)?.(row);
+                  detailViewHandler(
+                    details,
+                    setViewedRow,
+                    onOpenDetails
+                  )?.(row);
                   onRowActivate?.(row, event);
                 }}
                 onRowClick={onRowClick}
                 onRowSelectionChange={onRowSelectionChange}
                 onRowSelectionStateChange={onRowSelectionStateChange}
-                rowSelection={rowSelection}
-                showDefaultToastsForCustomHandlers={
-                  showDefaultToastsForCustomHandlers
-                }
                 queryFn={async (_params) => {
                   // For fetched data, use the refetch function
                   await refetch();
@@ -750,9 +755,12 @@ function DataTableContent({
                     rowCount: rowCount || finalData.length,
                   };
                 }}
+                rowSelection={rowSelection}
+                showDefaultToastsForCustomHandlers={
+                  showDefaultToastsForCustomHandlers
+                }
                 tableId={tableId}
                 tableType={tableType}
-                formType={defaultFormType}
               />
             )}
           </div>

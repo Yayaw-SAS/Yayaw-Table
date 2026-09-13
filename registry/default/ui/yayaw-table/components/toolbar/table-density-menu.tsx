@@ -23,10 +23,12 @@ import {
 import { TableTooltip } from "../../utils/table-tooltip";
 
 export function TableDensityMenu({
+  inline = false,
   defaultDensity = "medium",
   defaultDisplayMode,
   tableId,
 }: {
+  inline?: boolean;
   defaultDensity?: TableDensity;
   defaultDisplayMode?: TableDisplayMode;
   tableId: string;
@@ -46,6 +48,27 @@ export function TableDensityMenu({
 
   if (displayModeParam !== "table") {
     return null;
+  }
+
+  if (inline) {
+    return (
+      <fieldset className="flex flex-wrap items-center gap-1">
+        <legend className="mb-1 text-muted-foreground text-sm">{label}</legend>
+        {TABLE_DENSITY_OPTIONS.map((option) => (
+          <Button
+            aria-pressed={density === option.value}
+            className="min-w-9 flex-1"
+            key={option.value}
+            onClick={() => setDensity(option.value)}
+            size="sm"
+            type="button"
+            variant={density === option.value ? "secondary" : "ghost"}
+          >
+            {option.label}
+          </Button>
+        ))}
+      </fieldset>
+    );
   }
 
   return (

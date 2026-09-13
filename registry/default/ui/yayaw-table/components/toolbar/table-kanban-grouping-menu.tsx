@@ -23,6 +23,7 @@ import type { GroupPickerColumn } from "./sections/group-picker";
 import { GroupPicker } from "./sections/group-picker";
 
 interface TableKanbanGroupingMenuProps {
+  embedded?: boolean;
   className?: string;
   columns: GroupPickerColumn[];
   controlColumns?: GroupPickerColumn[];
@@ -88,6 +89,7 @@ function getDefaultPropertyColumnIds({
 }
 
 export function TableKanbanGroupingMenu({
+  embedded = false,
   className,
   columns,
   controlColumns,
@@ -157,6 +159,110 @@ export function TableKanbanGroupingMenu({
     return null;
   }
 
+  const content = (
+    <StackMenuContent>
+      <div className="flex min-h-0 w-full flex-col gap-3 p-3">
+        {!embedded && (
+          <GroupPicker
+            columns={pickerColumns}
+            disableRemoveLastGroup={
+              !hasGroupOverride && Boolean(defaultGroupBy)
+            }
+            grouping={activeGroupBy ? [activeGroupBy] : []}
+            maxGroups={1}
+            onChange={(next) => {
+              setGroupingFromUI(next.slice(0, 1));
+            }}
+            onCollapseAll={noop}
+            onExpandAll={noop}
+            onReset={() => {
+              setKanbanFromUI(undefined);
+              setGroupingFromUI([]);
+            }}
+            resetDisabled={!hasOverride}
+            showExpandCollapse={false}
+          />
+        )}
+
+        <Separator />
+
+        <div>
+          <div className="px-1 pb-1 text-muted-foreground text-xs">
+            {t("views.kanban.titleColumn")}
+          </div>
+          {propertyColumns
+            .filter((column) => column.id !== activeGroupBy)
+            .map((column) => (
+              <ChoiceButton
+                active={activeTitleColumn === column.id}
+                icon={
+                  <ColumnIcon
+                    className="h-3.5 w-3.5"
+                    columnId={column.id}
+                    columnType={column.type || "text"}
+                  />
+                }
+                key={column.id}
+                label={column.label}
+                onClick={() => updateKanban({ titleColumn: column.id })}
+              />
+            ))}
+        </div>
+
+        <Separator />
+
+        <div>
+          <div className="px-1 pb-1 text-muted-foreground text-xs">
+            {t("views.kanban.properties")}
+          </div>
+          {propertyColumns
+            .filter(
+              (column) =>
+                column.id !== activeGroupBy && column.id !== activeTitleColumn
+            )
+            .map((column) => {
+              const isActive = activePropertyColumnIds.includes(column.id);
+              return (
+                <ChoiceButton
+                  active={isActive}
+                  icon={
+                    <ColumnIcon
+                      className="h-3.5 w-3.5"
+                      columnId={column.id}
+                      columnType={column.type || "text"}
+                    />
+                  }
+                  key={column.id}
+                  label={column.label}
+                  onClick={() => {
+                    updateKanban({
+                      cardColumnIds: isActive
+                        ? activePropertyColumnIds.filter(
+                            (id) => id !== column.id
+                          )
+                        : [...activePropertyColumnIds, column.id],
+                    });
+                  }}
+                />
+              );
+            })}
+        </div>
+
+        <Separator />
+
+        <ChoiceButton
+          active={showCardLabels}
+          icon={<SlidersHorizontal className="h-3.5 w-3.5" />}
+          label={t("views.kanban.showLabels")}
+          onClick={() => updateKanban({ showCardLabels: !showCardLabels })}
+        />
+      </div>
+    </StackMenuContent>
+  );
+  if (embedded) {
+    return content;
+  }
+
   return (
     <StackMenu
       align="start"
@@ -178,103 +284,7 @@ export function TableKanbanGroupingMenu({
       }
     >
       <StackMenuView name="group" title={groupLabel}>
-        <StackMenuContent>
-          <div className="flex min-h-0 w-[320px] flex-col gap-3 p-3">
-            <GroupPicker
-              columns={pickerColumns}
-              disableRemoveLastGroup={
-                !hasGroupOverride && Boolean(defaultGroupBy)
-              }
-              grouping={activeGroupBy ? [activeGroupBy] : []}
-              maxGroups={1}
-              onChange={(next) => {
-                setGroupingFromUI(next.slice(0, 1));
-              }}
-              onCollapseAll={noop}
-              onExpandAll={noop}
-              onReset={() => {
-                setKanbanFromUI(undefined);
-                setGroupingFromUI([]);
-              }}
-              resetDisabled={!hasOverride}
-              showExpandCollapse={false}
-            />
-
-            <Separator />
-
-            <div>
-              <div className="px-1 pb-1 text-muted-foreground text-xs">
-                {t("views.kanban.titleColumn")}
-              </div>
-              {propertyColumns
-                .filter((column) => column.id !== activeGroupBy)
-                .map((column) => (
-                  <ChoiceButton
-                    active={activeTitleColumn === column.id}
-                    icon={
-                      <ColumnIcon
-                        className="h-3.5 w-3.5"
-                        columnId={column.id}
-                        columnType={column.type || "text"}
-                      />
-                    }
-                    key={column.id}
-                    label={column.label}
-                    onClick={() => updateKanban({ titleColumn: column.id })}
-                  />
-                ))}
-            </div>
-
-            <Separator />
-
-            <div>
-              <div className="px-1 pb-1 text-muted-foreground text-xs">
-                {t("views.kanban.properties")}
-              </div>
-              {propertyColumns
-                .filter(
-                  (column) =>
-                    column.id !== activeGroupBy &&
-                    column.id !== activeTitleColumn
-                )
-                .map((column) => {
-                  const isActive = activePropertyColumnIds.includes(column.id);
-                  return (
-                    <ChoiceButton
-                      active={isActive}
-                      icon={
-                        <ColumnIcon
-                          className="h-3.5 w-3.5"
-                          columnId={column.id}
-                          columnType={column.type || "text"}
-                        />
-                      }
-                      key={column.id}
-                      label={column.label}
-                      onClick={() => {
-                        updateKanban({
-                          cardColumnIds: isActive
-                            ? activePropertyColumnIds.filter(
-                                (id) => id !== column.id
-                              )
-                            : [...activePropertyColumnIds, column.id],
-                        });
-                      }}
-                    />
-                  );
-                })}
-            </div>
-
-            <Separator />
-
-            <ChoiceButton
-              active={showCardLabels}
-              icon={<SlidersHorizontal className="h-3.5 w-3.5" />}
-              label={t("views.kanban.showLabels")}
-              onClick={() => updateKanban({ showCardLabels: !showCardLabels })}
-            />
-          </div>
-        </StackMenuContent>
+        {content}
       </StackMenuView>
     </StackMenu>
   );

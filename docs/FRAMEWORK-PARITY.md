@@ -75,7 +75,7 @@ campaign and mutation fixtures (`examples/record-details-react.tsx` and the Vue
 
 Both editions can generate standard fields from column definitions when the catalogue has no matching form. Register a form to customize validation, conditional behavior, labels, or field rendering. Existing React TanStack Form instances, factories, custom field renderers, and custom collection editors remain supported.
 
-`FormConfig.blocks` or `TableConfig.form.blocks` can compose generated fields without redefining them. Explicit form blocks take precedence over table blocks and legacy `sections`. Blocks support nested `section` containers with 1–3 columns, `field` references, escaped informational `content`, `actions`, and framework-native `custom` rendering. Each declared field appears once; unknown references are ignored and omitted fields are appended. `span: "full"` fills the parent grid; narrow form containers collapse to one column. Bulk editing retains its checked-field sections and does not render these create/edit blocks.
+`FormConfig.blocks` or `TableConfig.form.blocks` can compose generated fields without redefining them. Explicit form blocks take precedence over table blocks and legacy `sections`. Blocks support nested `section` containers with 1–3 columns, `field` references, escaped informational `content`, `actions`, and framework-native `custom` rendering. Each declared field appears once; unknown references are ignored and omitted fields are appended. `span: "full"` fills the parent grid; narrow form containers collapse to one column. Bulk editing uses its list of added properties and does not render these create/edit blocks.
 
 Actions receive current values, `setFieldValue`, `validate`, `submit`, `disabled`, `isSubmitting`, and `isValidating`. `validate: true` validates without submitting before the callback. Pending actions block duplicate clicks, show failures inline, allow retry, and receive an `AbortSignal` when closed, disabled, hidden, or switched to another record. Custom React/Vue render callbacks receive the same context; Vue also forwards `form-{id}` slots through the table and nested sections. Form-local translation keys resolve before provider keys. No layout block adds values to the submission payload.
 
@@ -130,11 +130,15 @@ Nested collections validate item fields recursively. Errors include the item pat
 
 ## Bulk editing
 
-When `onBulkEdit` is absent, `actions.bulkUpdate(ids, patch)` opens the React catalogue bulk editor. A supplied callback keeps precedence. The editor captures the selected IDs, starts with values common to all targets, and applies only checked fields. It uses each row's edit permission and conditional field rules. Reserved identity/timestamp fields and fields with `bulkEdit: false` are excluded. Rows resolving to different form types cannot share an editor.
+When `onBulkEdit` is absent, `actions.bulkUpdate(ids, patch)` opens the catalogue bulk editor in both frameworks. A supplied callback keeps precedence. The editor captures the selected IDs, starts with values common to all targets, and applies only added fields. It uses each row's edit permission and conditional field rules. Reserved identity/timestamp fields and fields with `bulkEdit: false` are excluded. Rows resolving to different form types cannot share an editor.
 
-`context.bulkEdit` exposes `ids`, `rows`, and checked `fields`. Field and collection validation still applies, while the full-row schema is omitted because untouched required fields need not exist in a patch. A form transform receives the checked-field patch.
+`context.bulkEdit` exposes `ids`, `rows`, and added `fields`. Field and collection validation still applies, while the full-row schema is omitted because untouched required fields need not exist in a patch. A form transform receives the patch containing those added fields.
 
 Return `{ success: false, failedIds: ["remaining-id"], error: "..." }` for a partial failure. `failedIds` must be the complete subset still requiring an update. Successful targets are removed from the selection, and retry sends only the remaining IDs with the retained draft. A failure without `failedIds` retains every target. Invalid completion reports never silently clear targets.
+
+The catalogue bulk editor starts with no prepared fields. Both editions use a searchable Add a field picker, flat rows with the existing field editors, and per-field removal. Only added and currently editable fields are sent. Optional clear actions use shared type conventions and pass the field schema before being offered; boolean values remain explicit switches. Draft validation disables Apply to N rows until valid. The target count shrinks after partial success while the added fields and draft survive. Desktop uses a compact modal; mobile uses a bottom panel with a footer outside the scrolling body. Existing onBulkEdit precedence, permissions, transforms and Vue's opt-in JSON mode remain intact. Shared bulk-editor fixtures cover clear values; integration tests and real-browser flows cover addition, search, removal, validation, explicit clearing, target isolation and retries.
+
+React resolves persistent entity IDs separately from table selection IDs. Positional row IDs are never sent in place of existing record IDs, and partial successes clear only the corresponding selected rows.
 
 ## Inline selection dismissal
 
@@ -167,7 +171,7 @@ React inline editing resolves the catalogue for each row and honors hidden/disab
 
 Vue inline editing honors the column/table `debounceMs`, validates against the catalogue, cancels unsaved timers on Escape/unmount, and keeps errors available for correction. `allowInlineEdit` now defaults to `true` in both editions; actual cell editing remains opt-in through table or column `inlineEdit.enabled`.
 
-Use **`showClearFilters: true` in either framework** to clear search, column filters, advanced filters, and pagination while preserving sorting, grouping, column visibility/order/pinning, page size, display mode, and the selected view. The historical `showResetFilters` option remains a supported alias and invokes this same behavior in both editions. The reset command inside Vue Options remains a separate presentation reset.
+Use **`showClearFilters: true` in either framework** to clear search, column filters, advanced filters, and pagination while preserving sorting, grouping, column visibility/order/pinning, page size, display mode, and the selected view. The historical `showResetFilters` option remains a supported alias and invokes this same behavior in both editions. The separate **Reset view** command lives in the view menu in both editions and restores the saved snapshot, or the initial application configuration for a temporary view.
 
 Both editions distinguish the column drag-and-drop feature gate from the user's preference. Set `enableColumnDnd: false` to remove the controls and disable reordering. `enableColumnDragDropByDefault` supplies the initial preference and now defaults to `false` in both editions; users can toggle it from a column menu or the Vue Properties panel, and the choice is stored per table. Vue column headers include a keyboard drag handle. Vue Kanban cards expose previous/next lane controls alongside pointer dragging, matching the keyboard outcome provided by React's drag system.
 
@@ -316,3 +320,95 @@ Both view managers expose the favorite star for the built-in default view as wel
 ### Global operation notifications
 
 React uses `sonner` and Vue uses `vue-sonner` for transient operation feedback: saved views, CRUD, exports, toolbar and bulk actions, and asynchronous action failures. Hosts mount one Sonner/Shadcn `Toaster`; the table never mounts a duplicate outlet or inserts a notification block that shifts content. Vue keeps internal status records for partial-operation retry handling. Loading, inline-save progress, field validation and actionable form/list errors remain contextual. The Vue distribution externalizes `vue-sonner` so its notifications reach the host's singleton; registry installation adds that dependency. Matching view/row/action regression coverage verifies the shared notification outcome.
+
+
+## Responsive view menus
+
+Both editions use a single desktop toolbar row: view, search, custom actions,
+export, link sharing, then create. `actionsAsIcons` controls desktop labels.
+Below 768px, or when the available container cannot fit the row, the toolbar
+becomes **view / create / data actions**. The labelled data panel contains search,
+custom actions, export and sharing. Compact targets are at least 44px.
+Desktop uses an anchored panel; compact presentation uses a scrolling modal with
+Back navigation and focus management. Quick filters move into its Filters screen.
+
+The view panel contains selection, favorites, direct presentation and density,
+settings, save, reset and delete. `enableViews: false` retains the View settings
+entry. Column header filter/sort shortcuts still work.
+
+| Setting | Table | Kanban | Gallery |
+| --- | --- | --- | --- |
+| Search / filters / sort | Yes | Yes | Yes |
+| Grouping fields | Up to 2 | 1 | 1 |
+| Density | XS, S, M, L, XL, 2XL | Hidden | Hidden |
+| Properties | Columns, sizing, pinning | Card properties | Card properties |
+| Footer calculations | When enabled | Hidden | Hidden |
+| Card presentation | Hidden | Title, properties, labels | Also image, ratio, fit, size |
+
+Catalogue flags and column capabilities further restrict these controls. Changing
+mode retains inactive settings. Archives is a custom application action, never a
+built-in record operation. See `examples/responsive-toolbar-react.tsx` and the Vue
+product demo for host actions and compact composition.
+
+`utils/view-menu.ts` is synchronized into Vue by `contracts:sync`; its mode
+capabilities and normalized comparisons use common `tests/fixtures/view-menu.json`
+fixtures. A filtered saved view starts clean; density, footer visibility, cards,
+columns, search, filters, sort, grouping and page size participate in comparison.
+Row selection and the current page do not. Advanced-filter identities, labels and edit timestamps are excluded; date values and AND/OR semantics remain significant. Manually restoring the saved settings
+removes the blue indicator. Temporary views never show a saved-view difference.
+
+Save changes remains visible and disabled when clean, with a desktop tooltip and
+compact explanatory text. Save as new view remains separate. Reset view uses
+Lucide ListRestart and never writes records. Legacy `showClearFilters` and
+`showResetFilters` remain filter-only controls in Filters. Favorites do not require
+save permission; failed or delayed saves preserve newer drafts.
+
+`footerCalculationsVisible?: boolean` is included in snapshots; omitted legacy
+values inherit the initial visible setting, subject to the feature flag.
+Desktop sharing copies the current URL. Mobile uses native sharing when available,
+falls back to copying, and silently accepts cancellation. It does not change a
+saved view's organization visibility.
+
+Reset restores the complete saved snapshot, including an empty grouping. A
+Kanban lane in an inactive presentation never groups a table. Temporary views
+restore the application defaults. Grouped headers, selection and leaf cells keep
+the configured column order; React action cells retain native table-cell layout.
+Utility columns remain visible when a data-only default visibility list is used.
+Their automatic positions do not dirty a saved view or suppress its initial application;
+shared fixtures still detect changes to the order of data columns.
+
+The view panel follows its content height and uses a single Shadcn scroll area
+only when needed. Compact height includes the drawer handle, header and safe-area
+inset so the last action stays reachable. React keeps the toolbar mounted while
+filtering or sorting requests load, preserving the open screen and keyboard focus.
+
+The responsive React example's list adapter applies global search across all data
+columns, typed quick filters, advanced AND/OR predicates, sorting and pagination
+in that order. Remote consumer handlers remain responsible for the same query
+contract. Both runnable examples include an application-owned `onBulkEdit` editor
+that updates selected records, alongside the generated bulk catalogue form. React
+custom writes refresh both record and calculation queries. Vue observes callback
+changes after mount. React bulk icon buttons expose labels before hover and reveal
+their text on keyboard focus.
+
+Regression coverage includes actual React preview row order and filter results,
+reset after grouping/density changes, saved filtered views, and selected-record
+writes, plus equivalent Vue saved-view, bulk callback and grouped-layout tests.
+
+### Advanced filter drafts
+
+React and Vue keep numeric values and operators in a local editor draft until
+Enter or the confirmation button is used. Typing `24`, zero, negative decimals,
+or a range must not update the query between keystrokes. Blank or incomplete
+numeric values cannot be applied; Escape discards edits. New Vue rules remain
+outside query and saved-view state until their first application. The shared
+`numeric-filter-drafts.json` cases verify both editions, including server request
+counts in Vue and action calls in React. The runnable examples expose advanced
+filters, with flat menu rows, ordinary inputs, and no implicit 0–100 slider or
+extra nested card/scroll containers.
+
+Vue column-header filter shortcuts open a local draft for the requested column.
+Their tooltip-composed dropdown uses an explicit button anchor so it remains
+visible and works with both mouse and keyboard.
+
+Display mode and inline density use matching labelled button rows in both editions: equal-width choices, a muted selected background, no enclosing segmented border and no redundant mode tooltips. Both preserve keyboard focus and `aria-pressed` selection; density remains exclusive to Table mode.

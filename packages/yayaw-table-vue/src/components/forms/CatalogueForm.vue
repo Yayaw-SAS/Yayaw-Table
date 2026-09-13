@@ -7,6 +7,7 @@ import {
   bulkFieldEditable,
   bulkFormConfig,
   bulkFormValues,
+  validateBulkDraft,
 } from "../../bulk-form";
 import {
   cloneFormValue,
@@ -27,6 +28,8 @@ import { generateDataTypeFields } from "../../table-contracts";
 import DynamicField from "./DynamicField.vue";
 import FormDialog from "./FormDialog.vue";
 import FormBlocks from "./FormBlocks.vue";
+import BulkEditorFields from "./BulkEditorFields.vue";
+import { bulkEditorMessages } from "../../bulk-editor";
 
 const context = useTableContext();
 const values = ref<TableRecord>({});
@@ -37,6 +40,15 @@ const applied = ref<string[]>([]);
 const isBulk = computed(() => Boolean(context.form.value.bulk));
 const label = (key: string, fallback: string): string =>
   String(context.translations.value[key] ?? fallback);
+const messages = computed(() => {
+  const defaults = bulkEditorMessages(context.locale);
+  for (const key of Object.keys(defaults) as (keyof typeof defaults)[]) {
+    const translated = context.translations.value[`bulk.editor.${key}`];
+    if (typeof translated === "string") defaults[key] = translated;
+  }
+  return defaults;
+});
+const bulkCount = computed(() => context.form.value.bulk?.ids.length ?? 0);
 const submitting = ref(false);
 const loading = ref(false);
 const validating = ref(false);
@@ -91,7 +103,7 @@ const config = computed<FormConfig>(() => {
 });
 const title = computed(() =>
   isBulk.value
-    ? label("bulkEdit", "Bulk edit")
+    ? (bulkCount.value === 1 ? messages.value.titleOne : messages.value.titleMany).replace("{count}", String(bulkCount.value))
     : typeof config.value.title === "function"
     ? config.value.title(context.form.value.mode, context.form.value.row)
     : config.value.title ??
@@ -102,18 +114,34 @@ const title = computed(() =>
       )
 );
 const sections = computed(() => resolveFormSections(config.value));
-// Bulk editing retains its explicit per-field opt-in controls.
+// Bulk editing owns a flat list of explicitly added properties.
 const blocks = computed(() => !isBulk.value && config.value.blocks
   ? resolveFormBlocks(config.value.blocks, config.value.fields.map(field => field.name))
   : undefined);
 const fieldFor = (name: string): FormFieldDefinition =>
   config.value.fields.find((field) => field.name === name)!;
-const renderedField = (name: string): FormFieldDefinition =>
-  isBulk.value
-    ? { ...fieldFor(name), hidden: false, disabled: false }
-    : fieldFor(name);
 const submissionConfig = (): FormConfig =>
   isBulk.value ? bulkFormConfig(config.value, formContext.value) : config.value;
+const bulkConfig = computed(() => bulkFormConfig(config.value, formContext.value));
+const availableBulkFields = computed(() => config.value.fields.filter(field => !applied.value.includes(field.name) && bulkFieldEditable(field, formContext.value)));
+const bulkDraft = ref<{ valid: boolean; clearValues: TableRecord }>({ valid: false, clearValues: {} });
+watch([bulkConfig, formContext], async (_next, _previous, onCleanup) => {
+  if (!isBulk.value) return;
+  let cancelled = false;
+  onCleanup(() => { cancelled = true; });
+  bulkDraft.value = { ...bulkDraft.value, valid: false };
+  try {
+    const next = await validateBulkDraft(bulkConfig.value, formContext.value);
+    if (!cancelled) bulkDraft.value = next;
+  } catch {
+    if (!cancelled) bulkDraft.value = { valid: false, clearValues: {} };
+  }
+}, { immediate: true });
+const removeBulkField = (name: string): void => {
+  applied.value = applied.value.filter(field => field !== name);
+  for (const key of Object.keys(errors.value)) if (key === name || key.startsWith(`${name}.`)) delete errors.value[key];
+  delete touched.value[name];
+};
 const submissionValues = (current: FormConfig): TableRecord =>
   isBulk.value
     ? bulkFormValues(current, values.value)
@@ -341,24 +369,19 @@ const blockContext = computed<FormBlockContext>(() => ({
     :title="title"
     :description="
       isBulk
-        ? label(
-            'bulkEditDescription',
-            'Only checked fields are applied to the selected rows. Unchecked fields stay unchanged.'
-          )
+        ? messages.description
         : config.description
     "
-    :presentation="config.presentation"
-    :width="config.width"
+    :presentation="isBulk ? 'modal' : config.presentation"
+    :bulk="isBulk"
+    :width="isBulk ? undefined : config.width"
     :busy="submitting"
-    :close-label="label('close', 'Close')"
+    :close-label="isBulk ? messages.close : label('close', 'Close')"
     :return-focus="context.form.value.returnFocus"
     @close="close"
   >
-    <form class="yayaw-form" @submit.prevent="submit">
-      <p v-if="isBulk" class="yayaw-bulk-selection-count">
-        {{ context.form.value.bulk?.ids.length }}
-        {{ label("selected", "selected") }}
-      </p>
+    <form class="yayaw-form" :class="{ 'yayaw-bulk-form': isBulk }" @submit.prevent="submit">
+      <div :class="{ 'yayaw-bulk-body': isBulk }">
       <p v-if="loading" role="status">{{ label("loading", "Loading…") }}</p>
       <p v-if="loadError || errors.form" class="yayaw-error" role="alert">
         {{ loadError ?? errors.form }}
@@ -375,7 +398,13 @@ const blockContext = computed<FormBlockContext>(() => ({
         class="yayaw-form-fields"
         :disabled="submitting || loading || Boolean(loadError)"
       >
-        <FormBlocks v-if="blocks" :blocks="blocks" :context="blockContext" :custom-slots="$slots">
+        <BulkEditorFields v-if="isBulk" :fields="bulkConfig.fields" :available="availableBulkFields" :clear-values="bulkDraft.clearValues" :values="values" :messages="messages" :disabled="submitting || loading || !bulkCanSave(bulkConfig.fields)"
+          @add="applied = [...applied, $event]" @remove="removeBulkField" @clear="setFieldValue">
+          <template #field="{ field }">
+            <DynamicField :field="field" :model-value="values[field.name]" :context="formContext" :error="errors[field.name]" :errors="errors" :touched="touched[field.name]" @update:model-value="setFieldValue(field.name, $event)" />
+          </template>
+        </BulkEditorFields>
+        <FormBlocks v-else-if="blocks" :blocks="blocks" :context="blockContext" :custom-slots="$slots">
           <template #field="{ fieldName }">
             <DynamicField
               :field="fieldFor(fieldName)"
@@ -403,34 +432,7 @@ const blockContext = computed<FormBlockContext>(() => ({
             :style="{ '--columns': section.columns ?? 1 }"
           >
             <template v-for="name in section.fields" :key="name">
-              <div
-                v-if="isBulk && bulkFieldEditable(fieldFor(name), formContext)"
-                class="yayaw-bulk-field"
-                :data-bulk-field="name"
-              >
-                <label class="yayaw-bulk-field-toggle">
-                  <input
-                    v-model="applied"
-                    type="checkbox"
-                    :value="name"
-                    class="yayaw-checkbox"
-                  />
-                  {{ label("bulkApplyField", "Apply") }}
-                  {{ fieldFor(name).label }}
-                </label>
-                <DynamicField
-                  v-if="applied.includes(name)"
-                  :field="renderedField(name)"
-                  :model-value="values[name]"
-                  :context="formContext"
-                  :error="errors[name]"
-                  :errors="errors"
-                  :touched="touched[name]"
-                  @update:model-value="setFieldValue(name, $event)"
-                />
-              </div>
               <DynamicField
-                v-else-if="!isBulk"
                 :field="fieldFor(name)"
                 :model-value="values[name]"
                 :context="formContext"
@@ -444,6 +446,7 @@ const blockContext = computed<FormBlockContext>(() => ({
         </section>
         </template>
       </fieldset>
+      </div>
       <footer class="yayaw-form-footer">
         <button
           type="button"
@@ -451,14 +454,14 @@ const blockContext = computed<FormBlockContext>(() => ({
           :disabled="submitting"
           @click="close"
         >
-          {{ config.cancelLabel ?? "Cancel" }}
+          {{ isBulk ? messages.cancel : config.cancelLabel ?? "Cancel" }}
         </button>
         <button
           type="submit"
           class="yayaw-button"
-          :disabled="submitting || loading || Boolean(loadError)"
+          :disabled="submitting || loading || Boolean(loadError) || (isBulk && (!bulkDraft.valid || !bulkCanSave(bulkConfig.fields)))"
         >
-          {{ submitting ? "Saving…" : config.submitLabel ?? "Save" }}
+          {{ isBulk ? (submitting ? messages.saving : (bulkCount === 1 ? messages.applyOne : messages.applyMany).replace("{count}", String(bulkCount))) : submitting ? "Saving…" : config.submitLabel ?? "Save" }}
         </button>
       </footer>
     </form>

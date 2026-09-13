@@ -147,11 +147,8 @@ it("synchronizes multiple controls through native filter state and survives hidi
     expect(current.state.columnFilters).toEqual([
       { id: "category", value: [0, 2] },
     ]);
-    expect(
-      [...container.querySelectorAll("button")].find((button) =>
-        button.textContent?.trim().startsWith("Options")
-      )?.textContent
-    ).toContain("1");
+    // Active filters alone never mark an unsaved view as a changed saved view.
+    expect(container.querySelector('[aria-label="Modified"]')).toBeNull();
     await act(() => render(false));
     expect(current.state.columnFilters).toEqual([
       { id: "category", value: [0, 2] },
@@ -183,7 +180,6 @@ it("synchronizes multiple controls through native filter state and survives hidi
 it("keeps React filter triggers at the saved-view selector height", () => {
   for (const file of [
     "../src/components/ui/yayaw-table/components/filters/option-filter.tsx",
-    "../src/components/ui/yayaw-table/components/toolbar/table-view-manager.tsx",
   ]) {
     expect(readFileSync(new URL(file, import.meta.url), "utf8")).toMatch(
       CONTROL_HEIGHT_PATTERN

@@ -1,8 +1,8 @@
 # Favorite and organization views
 
 React and Vue provide the same favorite controls. Enable `table.enableViews`,
-select a saved view, and press the star beside its name to use it on arrival.
-Press the filled star to remove the favorite. Selecting another view does not
+open the view menu, select a saved view, and use its favorite action to use it
+on arrival. Use that action again to remove the favorite. Selecting another view does not
 change the favorite. There is one favorite per table, and choosing another
 replaces it.
 
@@ -94,3 +94,20 @@ A typical result is that Alice and Bob can select the same organization view,
 but Alice can favorite it while Bob favorites a different one. Neither changes
 the other's arrival preference. Updating the shared configuration, when
 permitted, affects everyone who later loads that saved view.
+
+
+## Editing and restoring a view
+
+The view menu groups settings with Save changes, Save as new view, Reset view and
+delete. The blue dot compares normalized configuration with the active saved
+snapshot; it does not indicate active filters. Save changes stays visible but
+inactive when clean, with an explanation on focus/hover or directly on mobile.
+Temporary views offer Save this view and have no saved-view dot.
+
+Reset view restores the active snapshot, or the application's initial configuration
+for a temporary view. It includes density, display mode, card configuration,
+filters, sorting, grouping, columns and `footerCalculationsVisible`. Missing legacy
+footer visibility inherits the initial setting. Reset never changes records or
+removes the view. The filter-only reset flags retain their historical scope in the
+Filters screen. Failed saves keep the draft, and edits made during a save are not
+replaced by its response.

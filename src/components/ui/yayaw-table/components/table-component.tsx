@@ -498,7 +498,7 @@ export function getRegularCellClassName<TData>({
       cn("text-center [&:has([role=checkbox])]:pr-2!", TABLE_DENSITY_CLASSES[densityMode].cell),
     isActionsColumn &&
       cn(
-        "sticky right-0 z-10 flex justify-center bg-card shadow-[-1px_0_0_0_hsl(var(--border))] group-hover:bg-muted/50 group-data-[state=selected]:bg-muted/50",
+        "sticky right-0 z-10 text-center bg-card shadow-[-1px_0_0_0_hsl(var(--border))] group-hover:bg-muted/50 group-data-[state=selected]:bg-muted/50",
         TABLE_DENSITY_CLASSES[densityMode].cell
       ),
     TABLE_DENSITY_CLASSES[densityMode].cell,

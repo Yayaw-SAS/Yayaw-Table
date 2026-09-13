@@ -1,8 +1,10 @@
+import { bulkClearCandidate } from "./bulk-editor";
 import {
   cloneFormValue,
   fieldIsDisabled,
   fieldIsHidden,
   formValuesEqual,
+  validateForm,
 } from "./form-runtime";
 import type {
   FormConfig,
@@ -63,6 +65,11 @@ export const bulkFormConfig = (
         context.bulkEdit?.fields.includes(field.name) &&
         bulkFieldEditable(field, context)
     )
+    .sort(
+      (left, right) =>
+        (context.bulkEdit?.fields.indexOf(left.name) ?? 0) -
+        (context.bulkEdit?.fields.indexOf(right.name) ?? 0)
+    )
     .map((field) => ({ ...field, hidden: false, disabled: false })),
 });
 
@@ -94,3 +101,40 @@ export const bulkCompletion = (
     remaining: ids.filter((id) => failed.includes(id)),
   };
 };
+
+/** Validate drafts without publishing them; reject unsupported clears through the field schema. */
+export async function validateBulkDraft(
+  config: FormConfig,
+  context: FormFieldContext
+) {
+  const values = context.values ?? {};
+  const [draft, candidates] = await Promise.all([
+    validateForm(config, bulkFormValues(config, values), context),
+    Promise.all(
+      config.fields.map(async (field) => {
+        const candidate = bulkClearCandidate(field);
+        if (!candidate) {
+          return;
+        }
+        const result = await validateForm(
+          { ...config, schema: undefined, fields: [field] },
+          { [field.name]: candidate.value },
+          { ...context, values: { ...values, [field.name]: candidate.value } }
+        );
+        return Object.keys(result.errors).length
+          ? undefined
+          : ([field.name, candidate.value] as const);
+      })
+    ),
+  ]);
+  const clearValues: TableRecord = {};
+  for (const candidate of candidates) {
+    if (candidate) {
+      clearValues[candidate[0]] = candidate[1];
+    }
+  }
+  return {
+    valid: config.fields.length > 0 && !Object.keys(draft.errors).length,
+    clearValues,
+  };
+}

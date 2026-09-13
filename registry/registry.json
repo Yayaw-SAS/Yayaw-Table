@@ -469,6 +469,16 @@
           "target": "components/ui/yayaw-table/components/forms/atoms/index.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/forms/bulk-editor-fields.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/forms/bulk-editor-fields.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/forms/bulk-editor-surface.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/forms/bulk-editor-surface.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/forms/bulk-form.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/forms/bulk-form.ts"
@@ -699,6 +709,11 @@
           "target": "components/ui/yayaw-table/components/toolbar/data-table-advanced-toolbar.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/toolbar/responsive-menu.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/toolbar/responsive-menu.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/toolbar/sections/advanced-table-filters-menu.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/toolbar/sections/advanced-table-filters-menu.tsx"
@@ -909,6 +924,11 @@
           "target": "components/ui/yayaw-table/hooks/use-table-url-state.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/hooks/use-toolbar-layout.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/hooks/use-toolbar-layout.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/index.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/index.ts"
@@ -1034,6 +1054,11 @@
           "target": "components/ui/yayaw-table/utils/auto-page-size.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/utils/bulk-editor.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/bulk-editor.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/utils/card-interaction.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/card-interaction.ts"
@@ -1142,6 +1167,11 @@
           "path": "registry/default/ui/yayaw-table/utils/table-view-storage.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/table-view-storage.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/view-menu.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/view-menu.ts"
         }
       ],
       "meta": {
