@@ -19,7 +19,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/src/components/ui/button";
 import { ScrollArea } from "@/src/components/ui/scroll-area";
-import { ResponsiveMenu } from "../yayaw-table/components/toolbar/responsive-menu";
+import { ResponsiveMenu } from "@/src/components/ui/yayaw-table/components/toolbar/responsive-menu";
 
 interface StackMenuViewProps {
   children: ReactNode;
