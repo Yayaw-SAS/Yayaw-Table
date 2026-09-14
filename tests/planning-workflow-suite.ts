@@ -682,14 +682,13 @@ export function planningWorkflowSuite(api: WorkflowSuite): void {
       onViewChange: (view) => views.push(view),
     });
     try {
-      const week = selectElement<HTMLSelectElement>(
-        host,
-        'select[aria-label="First day of week"]'
-      );
-      week.value = "0";
-      week.dispatchEvent(new Event("change"));
+      surface.update({
+        session: client,
+        mode: "gantt",
+        gantt: { weekStartsOn: 0, showDependencies: false },
+      });
       assert(
-        views.length === 1 && store.getSnapshot().revision === "r1",
+        views.length === 0 && store.getSnapshot().revision === "r1",
         "Presentation never writes to the planning adapter"
       );
     } finally {

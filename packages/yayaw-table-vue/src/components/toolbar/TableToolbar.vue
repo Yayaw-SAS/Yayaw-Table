@@ -38,6 +38,8 @@ import { filterBarColumns } from "../../filter-bar";
 import TableDensityMenu from "./TableDensityMenu.vue";
 import ToolbarMenu from "./ToolbarMenu.vue";
 import ToolbarDataActions from "./ToolbarDataActions.vue";
+import GanttSettings from "./GanttSettings.vue";
+import { ganttSettingsLabels } from "../../planning/settings";
 import GallerySettings from "./GallerySettings.vue";
 import KanbanSettings from "./KanbanSettings.vue";
 import AdvancedFilters from "../filters/AdvancedFilters.vue";
@@ -59,6 +61,7 @@ const optionsRoot = ref<HTMLElement>();
 const advancedFiltersPanel = ref<InstanceType<typeof AdvancedFilters>>();
 const optionsOpen = ref(false);
 const optionsView = ref<OptionsView>("main");
+const cardSettingsTitle = computed(() => context.state.displayMode.value === "gantt" ? ganttSettingsLabels(context.locale).title : translate("views.cardSettings", "Card settings"));
 const pendingAction = ref<string>();
 const isExporting = ref(false);
 const search = computed({
@@ -411,7 +414,7 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
 <template>
   <div ref="toolbarRoot" class="yayaw-toolbar" :data-compact="compact" data-table-toolbar>
     <SavedViews :initial-views="initialViews" :enabled="context.config.table.enableViews" :compact="compact" v-model:open="optionsOpen"
-      :panel="optionsView !== 'main'" :panel-title="translate(optionsView === 'columns' ? 'properties' : optionsView === 'cards' ? 'views.cardSettings' : optionsView, optionsView)"
+      :panel="optionsView !== 'main'" :panel-title="optionsView === 'cards' ? cardSettingsTitle : translate(optionsView === 'columns' ? 'properties' : optionsView, optionsView)"
       @back="optionsView = 'main'">
       <template #settings><div ref="optionsRoot">
         <fieldset v-if="modes.length > 1" class="yayaw-display-mode-inline yayaw-choice-inline">
@@ -505,7 +508,7 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
                 </span>
                 <span class="yayaw-options-item-end">{{ context.footerCalculationsVisible.value ? translate("calculationsOn", "Shown") : translate("calculationsOff", "Hidden") }}</span>
               </button>
-              <button v-if="context.state.displayMode.value === 'kanban' || context.state.displayMode.value === 'gallery'" type="button" class="yayaw-options-item" @click="optionsView = 'cards'"><List :size="16" /><span>{{ translate('views.cardSettings', 'Card settings') }}</span><ChevronRight :size="16" /></button>
+              <button v-if="['kanban', 'gallery', 'gantt'].includes(context.state.displayMode.value)" type="button" class="yayaw-options-item" @click="optionsView = 'cards'"><List :size="16" /><span>{{ cardSettingsTitle }}</span><ChevronRight :size="16" /></button>
             </div>
 
 
@@ -633,7 +636,7 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
               </button>
             </div>
 
-            <div v-else-if="optionsView === 'cards'" class="yayaw-options-content"><KanbanSettings v-if="capabilities.kanban" /><GallerySettings v-else-if="capabilities.gallery" /></div>
+            <div v-else-if="optionsView === 'cards'" class="yayaw-options-content"><KanbanSettings v-if="capabilities.kanban" /><GallerySettings v-else-if="capabilities.gallery" /><GanttSettings v-else-if="context.state.displayMode.value === 'gantt'" /></div>
             <div v-else class="yayaw-options-content">
               <div
                 v-for="(columnId, index) in context.state.grouping.value.slice(0, maxGroupingCount)"

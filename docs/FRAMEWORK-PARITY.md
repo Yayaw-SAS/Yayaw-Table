@@ -443,3 +443,12 @@ including a release in a second source. Both support preview, cancellation,
 application, view switching, reset and theme inheritance. The Yayaw example
 verifier checks the actual pinned React and Vue registries, including the other
 embedded examples, before building the two production preview bundles.
+
+### Responsive view settings
+
+- React and Vue use compact labelled selectors for Gallery and Kanban cards. Properties use persistent checkbox screens within the view menu.
+- Gantt zoom, first weekday and dependency visibility live under View → Gantt settings. Timeline navigation and reload remain next to the timeline; saved-view and URL keys are unchanged.
+- Mobile and constrained toolbars keep settings choices inside their existing drawer, sharing one header, focus boundary and scroll region. Back restores the originating control. Long lists retain scrolling; short panels do not force a scrollbar.
+- Planning task and dependency dialogs use bottom sheets below 768px, with bounded height and touch targets. Timeline scrolling remains available independently.
+- Density and display choices use normal font weight, including selected options. Share uses the same 32px desktop height and 44px minimum mobile target as other toolbar actions.
+- Regression coverage: `tests/view-settings.test.tsx`, Vue `components/card-controls.test.ts`, and the shared planning workflow suite. Browser checks cover React and Vue desktop/mobile view settings and toolbar dimensions.

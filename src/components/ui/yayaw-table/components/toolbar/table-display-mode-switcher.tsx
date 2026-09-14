@@ -1,6 +1,6 @@
 "use client";
 
-import { Columns3, Images, Table2, ChartGantt } from "lucide-react";
+import { ChartGantt, Columns3, Images, Table2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/src/components/ui/button";
 import { useTableUrlState } from "../../hooks/use-table-url-state";
@@ -53,7 +53,7 @@ export function TableDisplayModeSwitcher({
         return (
           <Button
             aria-pressed={isActive}
-            className="min-w-9 flex-1 gap-1.5 px-2"
+            className="min-w-9 flex-1 gap-1.5 px-2 font-normal"
             key={mode}
             onClick={() => setDisplayModeFromUI(mode)}
             size="sm"

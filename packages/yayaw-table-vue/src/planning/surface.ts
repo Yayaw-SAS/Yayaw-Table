@@ -323,31 +323,6 @@ export function mountPlanningSurface(
     );
     const controls = node("div", undefined, "yp-toolbar-controls");
     const navigation = node("div", undefined, "yp-navigation");
-    const zoom = select(
-      ["day", "week", "month"].map((value) => ({
-        value,
-        label: t[value as "day"],
-      })),
-      view.zoom ?? "week",
-      "zoom"
-    );
-    zoom.setAttribute("aria-label", "Zoom");
-    zoom.onchange = () =>
-      changeView({ zoom: zoom.value as "day" | "week" | "month" });
-    const start = select(
-      Array.from({ length: 7 }, (_, day) => ({
-        value: String(day),
-        label: new Intl.DateTimeFormat(options.locale ?? "en", {
-          weekday: "long",
-          timeZone: "UTC",
-        }).format(new Date(Date.UTC(2026, 0, 4 + day))),
-      })),
-      String(view.weekStartsOn ?? 1),
-      "week-start"
-    );
-    start.setAttribute("aria-label", t.weekStart);
-    start.title = t.weekStart;
-    start.onchange = () => changeView({ weekStartsOn: Number(start.value) });
     const days = { day: 7, week: 30, month: 90 }[view.zoom ?? "week"];
     navigation.append(
       button(
@@ -388,11 +363,6 @@ export function mountPlanningSurface(
       control.className = "yp-icon-button";
       control.replaceChildren(icon(name));
     }
-    const links = input("checkbox", "", "show-links");
-    links.checked = view.showDependencies !== false;
-    links.onchange = () => changeView({ showDependencies: links.checked });
-    const toggle = field(t.showLinks, links);
-    toggle.classList.add("yp-toggle");
     const reload = button(
       t.retry,
       () => {
@@ -405,7 +375,7 @@ export function mountPlanningSurface(
     reload.title = t.retry;
     reload.className = "yp-icon-button";
     reload.replaceChildren(icon("reload"));
-    controls.append(zoom, navigation, start, toggle, reload);
+    controls.append(navigation, reload);
     toolbar.append(period, controls);
     return toolbar;
   }
