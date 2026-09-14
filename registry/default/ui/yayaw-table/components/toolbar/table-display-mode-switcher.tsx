@@ -53,7 +53,7 @@ export function TableDisplayModeSwitcher({
         return (
           <Button
             aria-pressed={isActive}
-            className="min-w-9 flex-1 gap-1.5 px-2"
+            className="min-w-9 flex-1 gap-1.5 px-2 font-normal"
             key={mode}
             onClick={() => setDisplayModeFromUI(mode)}
             size="sm"

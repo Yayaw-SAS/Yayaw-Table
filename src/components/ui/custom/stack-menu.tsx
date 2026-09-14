@@ -14,6 +14,8 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
+  useRef,
   useState,
 } from "react";
 import { cn } from "@/lib/utils";
@@ -27,7 +29,14 @@ interface StackMenuViewProps {
   title?: string;
 }
 
+interface ChildView {
+  title: string;
+  back: () => void;
+}
+
 const StackMenuContext = createContext<{
+  setChildView: (view: ChildView | undefined) => void;
+  compact: boolean;
   activeView: string;
   navigate: (view: string, title?: string) => void;
   goBack: () => void;
@@ -37,6 +46,8 @@ const StackMenuContext = createContext<{
   viewHistory: Array<{ name: string; title?: string }>;
   canGoBack: boolean;
 }>({
+  setChildView: () => undefined,
+  compact: false,
   activeView: "main",
   navigate: () => {
     // Default empty navigation handler
@@ -140,6 +151,13 @@ const StackMenu = forwardRef<HTMLDivElement, StackMenuProps>(
     },
     ref
   ) => {
+    const [childView, setChildView] = useState<ChildView>();
+    const backButton = useRef<HTMLButtonElement>(null);
+    useLayoutEffect(() => {
+      if (childView) {
+        backButton.current?.focus();
+      }
+    }, [childView]);
     const [activeView, setActiveView] = useState(defaultView);
     const [viewHistory, setViewHistory] = useState<
       Array<{ name: string; title?: string }>
@@ -218,6 +236,8 @@ const StackMenu = forwardRef<HTMLDivElement, StackMenuProps>(
     const menuContent = (
       <StackMenuContext.Provider
         value={{
+          compact,
+          setChildView,
           activeView,
           navigate,
           goBack,
@@ -231,7 +251,8 @@ const StackMenu = forwardRef<HTMLDivElement, StackMenuProps>(
         <div
           className={cn(
             stackMenuVariants({ variant, size, framed: !asDropdown }),
-            asDropdown && "max-h-[min(42rem,var(--available-height,calc(100dvh-1rem)))] w-full",
+            asDropdown &&
+              "max-h-[min(42rem,var(--available-height,calc(100dvh-1rem)))] w-full",
             compact && "max-h-[calc(90dvh-1.5rem)] min-h-0 w-full",
             className
           )}
@@ -240,11 +261,12 @@ const StackMenu = forwardRef<HTMLDivElement, StackMenuProps>(
         >
           {/* Header with navigation */}
           <div className="flex shrink-0 items-center gap-1 border-border border-b px-2 py-1">
-            {canGoBack && (
+            {(canGoBack || childView) && (
               <Button
                 aria-label="Back"
                 className="h-8 w-8 shrink-0 p-0 hover:bg-muted"
-                onClick={goBack}
+                onClick={childView?.back ?? goBack}
+                ref={backButton}
                 size="sm"
                 variant="ghost"
               >
@@ -252,15 +274,16 @@ const StackMenu = forwardRef<HTMLDivElement, StackMenuProps>(
               </Button>
             )}
             <div className="min-w-0 flex-1 truncate font-medium text-foreground text-sm">
-              {currentViewTitle ||
+              {childView?.title ||
+                currentViewTitle ||
                 (activeView === defaultView ? "Menu" : activeView)}
             </div>
             {headerEndContent}
-            {onOpenChange && (
+            {(onOpenChange || asDropdown) && (
               <Button
                 aria-label="Close"
                 className="h-8 w-8 shrink-0 p-0 hover:bg-muted"
-                onClick={() => onOpenChange(false)}
+                onClick={() => handleOpenChange(false)}
                 size="sm"
                 variant="ghost"
               >
@@ -270,8 +293,14 @@ const StackMenu = forwardRef<HTMLDivElement, StackMenuProps>(
           </div>
 
           {/* Content */}
-          <ScrollArea className="min-h-0 [&_[data-slot=scroll-area-viewport]]:h-auto [&_[data-slot=scroll-area-viewport]]:max-h-[inherit] [&_[data-slot=scroll-area-viewport]]:overscroll-contain"
-            style={{ maxHeight: compact ? "calc(90dvh - 7rem - env(safe-area-inset-bottom))" : "calc(min(42rem, var(--available-height, 100dvh)) - 3rem)" }}>
+          <ScrollArea
+            className="min-h-0 [&_[data-slot=scroll-area-viewport]]:h-auto [&_[data-slot=scroll-area-viewport]]:max-h-[inherit] [&_[data-slot=scroll-area-viewport]]:overscroll-contain"
+            style={{
+              maxHeight: compact
+                ? "calc(90dvh - 7rem - env(safe-area-inset-bottom))"
+                : "calc(min(42rem, var(--available-height, 100dvh)) - 2.5625rem)",
+            }}
+          >
             {activeViewChild}
           </ScrollArea>
         </div>
@@ -286,7 +315,7 @@ const StackMenu = forwardRef<HTMLDivElement, StackMenuProps>(
           onOpenChange={handleOpenChange}
           open={isOpen}
           sideOffset={sideOffset}
-          title={currentViewTitle || "Menu"}
+          title={childView?.title || currentViewTitle || "Menu"}
           trigger={trigger}
         >
           {menuContent}

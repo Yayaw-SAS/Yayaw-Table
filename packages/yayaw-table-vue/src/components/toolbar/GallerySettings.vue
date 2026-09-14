@@ -1,16 +1,94 @@
 <script setup lang="ts">
 import { useGallerySettings } from "../../composables/use-gallery-settings";
-import TableSelect from "../controls/TableSelect.vue";
-import CardPropertiesMenu from "../controls/CardPropertiesMenu.vue";
-const { translate, columnOptions, titleColumn, propertyIds, showLabels, imageOptions, ratioOptions, fitOptions, sizeOptions, imageColumn, aspectRatio, imageFit, cardSize } = useGallerySettings();
+import ViewSettingsPanel from "../controls/ViewSettingsPanel.vue";
+const {
+  context,
+  translate,
+  columnOptions,
+  titleColumn,
+  propertyIds,
+  showLabels,
+  imageOptions,
+  ratioOptions,
+  fitOptions,
+  sizeOptions,
+  imageColumn,
+  aspectRatio,
+  imageFit,
+  cardSize,
+} = useGallerySettings();
 </script>
 <template>
-    <div class="yayaw-card-settings">
-      <TableSelect v-model="imageColumn" :label="translate('cardImage', 'Image')" :options="imageOptions" />
-      <TableSelect v-model="titleColumn" :label="translate('cardTitle', 'Title')" :options="columnOptions" />
-      <TableSelect v-model="aspectRatio" :label="translate('cardRatio', 'Ratio')" :options="ratioOptions" />
-      <TableSelect v-model="imageFit" :label="translate('cardFit', 'Fit')" :options="fitOptions" />
-      <TableSelect v-model="cardSize" :label="translate('cardSize', 'Size')" :options="sizeOptions" />
-      <CardPropertiesMenu v-model="propertyIds" v-model:show-labels="showLabels" :label="translate('properties', 'Properties')" :show-labels-label="translate('cardShowLabels', 'Show labels')" :options="columnOptions" />
-    </div>
+  <div class="yayaw-card-settings">
+    <ViewSettingsPanel
+      :fields="[
+        {
+          id: 'image',
+          label: translate('cardImage', 'Image'),
+          value: imageColumn,
+          options: imageOptions,
+          onChange: (value) => (imageColumn = value),
+        },
+        {
+          id: 'title',
+          label: translate('cardTitle', 'Title'),
+          value: titleColumn,
+          options: columnOptions.filter(
+            (option) => option.value !== imageColumn,
+          ),
+          onChange: (value) => (titleColumn = value),
+        },
+        {
+          id: 'ratio',
+          label: translate('cardRatio', 'Ratio'),
+          value: aspectRatio,
+          options: ratioOptions,
+          onChange: (value) =>
+            (aspectRatio =
+              ratioOptions.find((option) => option.value === value)?.value ??
+              aspectRatio),
+        },
+        {
+          id: 'fit',
+          label: translate('cardFit', 'Fit'),
+          value: imageFit,
+          options: fitOptions,
+          onChange: (value) =>
+            (imageFit =
+              fitOptions.find((option) => option.value === value)?.value ??
+              imageFit),
+        },
+        {
+          id: 'size',
+          label: translate('cardSize', 'Size'),
+          value: cardSize,
+          options: sizeOptions,
+          onChange: (value) =>
+            (cardSize =
+              sizeOptions.find((option) => option.value === value)?.value ??
+              cardSize),
+        },
+      ]"
+      :properties="{
+        label: translate('properties', 'Properties'),
+        options: columnOptions.filter(
+          (option) => ![imageColumn, titleColumn].includes(option.value),
+        ),
+        value: propertyIds,
+        onChange: (value) => (propertyIds = value),
+        showLabels,
+        showLabelsLabel: translate('cardShowLabels', 'Show labels'),
+        onShowLabelsChange: (value) => (showLabels = value),
+      }"
+    >
+      <button
+        type="button"
+        class="yayaw-button yayaw-button-outline"
+        :disabled="Object.keys(context.state.gallery.value).length === 0"
+        @click="context.state.gallery.value = {}"
+      >
+        {{ translate("reset", "Reset") }}
+      </button>
+    </ViewSettingsPanel>
+  </div>
 </template>

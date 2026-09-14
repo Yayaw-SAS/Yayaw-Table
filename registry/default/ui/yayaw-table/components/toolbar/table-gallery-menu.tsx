@@ -1,10 +1,9 @@
 "use client";
 
-import { Check, Images, SlidersHorizontal } from "lucide-react";
-import type { ReactNode } from "react";
+import { Images } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "../../hooks/use-mobile";
 import { useTableUrlState } from "../../hooks/use-table-url-state";
 import { useTranslations } from "../../providers/table-provider";
 import type {
@@ -17,8 +16,8 @@ import {
   StackMenuContent,
   StackMenuView,
 } from "../../ui-custom/stack-menu";
-import { ColumnIcon } from "../../utils/column-icons";
 import { TableTooltip } from "../../utils/table-tooltip";
+import { ViewSettingsPanel } from "./view-settings-panel";
 
 export interface GalleryMenuColumn {
   id: string;
@@ -34,13 +33,6 @@ interface TableGalleryMenuProps {
   defaultDisplayMode?: TableDisplayMode;
   enabled?: boolean;
   tableId: string;
-}
-
-interface ChoiceButtonProps {
-  active: boolean;
-  icon?: ReactNode;
-  label: string;
-  onClick: () => void;
 }
 
 const ASPECT_RATIO_OPTIONS: Array<{
@@ -69,24 +61,6 @@ const CARD_SIZE_OPTIONS: Array<{
   { labelKey: "views.gallery.medium", value: "medium" },
   { labelKey: "views.gallery.large", value: "large" },
 ];
-
-function ChoiceButton({ active, icon, label, onClick }: ChoiceButtonProps) {
-  return (
-    <Button
-      className="flex h-8 w-full items-center justify-between px-3 text-left"
-      onClick={onClick}
-      size="sm"
-      type="button"
-      variant="ghost"
-    >
-      <span className="flex min-w-0 items-center gap-2">
-        {icon}
-        <span className="truncate text-sm">{label}</span>
-      </span>
-      {active ? <Check className="h-3.5 w-3.5 text-primary" /> : null}
-    </Button>
-  );
-}
 
 function mergeGalleryConfig({
   defaults,
@@ -125,6 +99,7 @@ export function TableGalleryMenu({
   tableId,
 }: TableGalleryMenuProps) {
   const { t } = useTranslations();
+  const compact = useIsMobile();
   const { displayModeParam, galleryParam, setGalleryFromUI } = useTableUrlState(
     {
       defaultDisplayMode,
@@ -175,167 +150,99 @@ export function TableGalleryMenu({
     return null;
   }
 
+  const options = (items: GalleryMenuColumn[]) =>
+    items.map((column) => ({ value: column.id, label: column.label }));
   const content = (
-    <StackMenuContent>
-      <div className="flex min-h-0 w-full flex-col gap-3 p-3">
-        <div className="flex items-center justify-between gap-2">
-          <div className="px-1 font-medium text-sm">
-            {t("views.gallery.title")}
-          </div>
+    <StackMenuContent className="p-3">
+      <div className="grid gap-3">
+        <ViewSettingsPanel
+          fields={[
+            {
+              id: "image",
+              label: t("views.gallery.image"),
+              value: activeImageColumn,
+              options: [
+                { value: "", label: t("common.none") },
+                ...options(imageColumns.length ? imageColumns : columns),
+              ],
+              onChange: (imageColumn) => updateGallery({ imageColumn }),
+            },
+            {
+              id: "title",
+              label: t("views.gallery.titleColumn"),
+              value: activeTitleColumn ?? "",
+              options: options(
+                columns.filter((column) => column.id !== activeImageColumn)
+              ),
+              onChange: (titleColumn) => updateGallery({ titleColumn }),
+            },
+            {
+              id: "ratio",
+              label: t("views.gallery.aspectRatio"),
+              value: activeAspectRatio,
+              options: ASPECT_RATIO_OPTIONS.map((option) => ({
+                value: option.value,
+                label: t(option.labelKey),
+              })),
+              onChange: (value) =>
+                updateGallery({
+                  aspectRatio: value as TableGalleryViewConfig["aspectRatio"],
+                }),
+            },
+            {
+              id: "fit",
+              label: t("views.gallery.imageFit"),
+              value: activeImageFit,
+              options: IMAGE_FIT_OPTIONS.map((option) => ({
+                value: option.value,
+                label: t(option.labelKey),
+              })),
+              onChange: (value) =>
+                updateGallery({
+                  imageFit: value as TableGalleryViewConfig["imageFit"],
+                }),
+            },
+            {
+              id: "size",
+              label: t("views.gallery.cardSize"),
+              value: activeCardSize,
+              options: CARD_SIZE_OPTIONS.map((option) => ({
+                value: option.value,
+                label: t(option.labelKey),
+              })),
+              onChange: (value) =>
+                updateGallery({
+                  cardSize: value as TableGalleryViewConfig["cardSize"],
+                }),
+            },
+          ]}
+          properties={{
+            label: t("views.gallery.properties"),
+            options: options(
+              columns.filter(
+                (column) =>
+                  column.id !== activeImageColumn &&
+                  column.id !== activeTitleColumn
+              )
+            ),
+            value: activePropertyColumnIds,
+            onChange: (cardColumnIds) => updateGallery({ cardColumnIds }),
+            showLabels: showCardLabels,
+            showLabelsLabel: t("views.gallery.showLabels"),
+            onShowLabelsChange: (showCardLabels) =>
+              updateGallery({ showCardLabels }),
+          }}
+        >
           <Button
+            className="font-normal"
             disabled={Object.keys(galleryParam || {}).length === 0}
             onClick={() => setGalleryFromUI(undefined)}
             size="sm"
-            type="button"
             variant="outline"
           >
             {t("common.reset")}
           </Button>
-        </div>
-
-        <div>
-          <div className="px-1 pb-1 text-muted-foreground text-xs">
-            {t("views.gallery.image")}
-          </div>
-          <ChoiceButton
-            active={activeImageColumn === ""}
-            label={t("common.none")}
-            onClick={() => updateGallery({ imageColumn: "" })}
-          />
-          {(imageColumns.length ? imageColumns : columns).map((column) => (
-            <ChoiceButton
-              active={activeImageColumn === column.id}
-              icon={
-                <ColumnIcon
-                  className="h-3.5 w-3.5"
-                  columnId={column.id}
-                  columnType={column.type || "text"}
-                />
-              }
-              key={column.id}
-              label={column.label}
-              onClick={() => updateGallery({ imageColumn: column.id })}
-            />
-          ))}
-        </div>
-
-        <Separator />
-
-        <div>
-          <div className="px-1 pb-1 text-muted-foreground text-xs">
-            {t("views.gallery.titleColumn")}
-          </div>
-          {columns
-            .filter((column) => column.id !== activeImageColumn)
-            .map((column) => (
-              <ChoiceButton
-                active={activeTitleColumn === column.id}
-                icon={
-                  <ColumnIcon
-                    className="h-3.5 w-3.5"
-                    columnId={column.id}
-                    columnType={column.type || "text"}
-                  />
-                }
-                key={column.id}
-                label={column.label}
-                onClick={() => updateGallery({ titleColumn: column.id })}
-              />
-            ))}
-        </div>
-
-        <Separator />
-
-        <div>
-          <div className="px-1 pb-1 text-muted-foreground text-xs">
-            {t("views.gallery.properties")}
-          </div>
-          {columns
-            .filter(
-              (column) =>
-                column.id !== activeImageColumn &&
-                column.id !== activeTitleColumn
-            )
-            .map((column) => {
-              const isActive = activePropertyColumnIds.includes(column.id);
-              return (
-                <ChoiceButton
-                  active={isActive}
-                  icon={
-                    <ColumnIcon
-                      className="h-3.5 w-3.5"
-                      columnId={column.id}
-                      columnType={column.type || "text"}
-                    />
-                  }
-                  key={column.id}
-                  label={column.label}
-                  onClick={() => {
-                    updateGallery({
-                      cardColumnIds: isActive
-                        ? activePropertyColumnIds.filter(
-                            (id) => id !== column.id
-                          )
-                        : [...activePropertyColumnIds, column.id],
-                    });
-                  }}
-                />
-              );
-            })}
-        </div>
-
-        <Separator />
-
-        <div>
-          <div className="px-1 pb-1 text-muted-foreground text-xs">
-            {t("views.gallery.aspectRatio")}
-          </div>
-          {ASPECT_RATIO_OPTIONS.map((option) => (
-            <ChoiceButton
-              active={activeAspectRatio === option.value}
-              key={option.value}
-              label={t(option.labelKey)}
-              onClick={() => updateGallery({ aspectRatio: option.value })}
-            />
-          ))}
-        </div>
-
-        <div>
-          <div className="px-1 pb-1 text-muted-foreground text-xs">
-            {t("views.gallery.imageFit")}
-          </div>
-          {IMAGE_FIT_OPTIONS.map((option) => (
-            <ChoiceButton
-              active={activeImageFit === option.value}
-              key={option.value}
-              label={t(option.labelKey)}
-              onClick={() => updateGallery({ imageFit: option.value })}
-            />
-          ))}
-        </div>
-
-        <div>
-          <div className="px-1 pb-1 text-muted-foreground text-xs">
-            {t("views.gallery.cardSize")}
-          </div>
-          {CARD_SIZE_OPTIONS.map((option) => (
-            <ChoiceButton
-              active={activeCardSize === option.value}
-              key={option.value}
-              label={t(option.labelKey)}
-              onClick={() => updateGallery({ cardSize: option.value })}
-            />
-          ))}
-        </div>
-
-        <Separator />
-
-        <ChoiceButton
-          active={showCardLabels}
-          icon={<SlidersHorizontal className="h-3.5 w-3.5" />}
-          label={t("views.gallery.showLabels")}
-          onClick={() => updateGallery({ showCardLabels: !showCardLabels })}
-        />
+        </ViewSettingsPanel>
       </div>
     </StackMenuContent>
   );
@@ -347,6 +254,7 @@ export function TableGalleryMenu({
     <StackMenu
       align="start"
       asDropdown
+      compact={compact}
       defaultView="gallery"
       trigger={
         <TableTooltip label={triggerLabel}>

@@ -129,13 +129,13 @@ const openProperties = async (wrapper: Wrapper) => {
     '.yayaw-card-settings [aria-label="Properties"]'
   );
   trigger.element.focus();
-  await trigger.trigger("keydown", { key: "Enter" });
+  await trigger.trigger("click");
   await flushPromises();
 };
 const toggleProperty = async (label: string) => {
   const item = body()
-    .findAll('[role="menuitemcheckbox"]')
-    .find((element) => element.text() === label);
+    .findAll('[data-view-settings-screen="properties"] [role="checkbox"]')
+    .find((element) => element.attributes("aria-label") === label);
   if (!item) {
     throw new Error(`Missing property: ${label}`);
   }
@@ -219,12 +219,14 @@ it("restricts Kanban lanes to groupable columns and updates card titles", async 
 it.each([
   "kanban",
   "gallery",
-] as const)("keeps the %s properties menu open for multiple changes and restores focus on Escape", async (mode) => {
+] as const)("keeps the %s properties screen open for multiple changes and restores focus on Back", async (mode) => {
   const wrapper = mountTable({ mode });
   await flushPromises();
   await openProperties(wrapper);
   await toggleProperty("Amount");
-  expect(body().find('[role="menu"]').exists()).toBe(true);
+  expect(body().find('[data-view-settings-screen="properties"]').exists()).toBe(
+    true
+  );
   expect(
     wrapper
       .findAll(".yayaw-card-properties dd")
@@ -238,10 +240,12 @@ it.each([
       .findAll(".yayaw-card-properties dt")
       .some((item) => item.text() === "Amount")
   ).toBe(true);
-  await body().get('[role="menu"]').trigger("keydown", { key: "Escape" });
+  await wrapper.get('[aria-label="Back"]').trigger("click");
   await new Promise((resolve) => setTimeout(resolve, 0));
   await flushPromises();
-  expect(body().find('[role="menu"]').exists()).toBe(false);
+  expect(body().find('[data-view-settings-screen="properties"]').exists()).toBe(
+    false
+  );
   expect(document.activeElement).toBe(
     wrapper.get('.yayaw-card-settings [aria-label="Properties"]').element
   );
@@ -326,4 +330,82 @@ it("applies saved Gallery options to the new controls and keeps translated label
       .findAll('.yayaw-card-settings [role="combobox"]')
       .map((item) => item.attributes("aria-label"))
   ).toEqual(["Image", "Titre", "Proportions", "Ajustement", "Taille"]);
+});
+
+it.each([
+  "kanban",
+  "gallery",
+  "gantt",
+] as const)("keeps %s mobile settings and choices inside one drawer", async (mode) => {
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn(() => ({
+      matches: true,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }))
+  );
+  const wrapper = mountTable({
+    table: {
+      displayModes: ["kanban", "gallery", "gantt"],
+      defaultDisplayMode: mode,
+    },
+  });
+  await flushPromises();
+  await wrapper.get(".yayaw-view-trigger").trigger("click");
+  await flushPromises();
+  const setting = body()
+    .findAll("button")
+    .find(
+      (item) =>
+        item.text() === (mode === "gantt" ? "Gantt settings" : "Card settings")
+    );
+  if (!setting) {
+    throw new Error("Missing settings entry");
+  }
+  await setting.trigger("click");
+  await flushPromises();
+  const label = mode === "gantt" ? "Zoom" : "Title";
+  await body()
+    .get(`[data-view-settings] [aria-label="${label}"]`)
+    .trigger("click");
+  await flushPromises();
+  expect(body().findAll('[role="dialog"]')).toHaveLength(1);
+  expect(body().get('[role="dialog"]').attributes("data-compact")).toBe("true");
+  expect(body().get('[role="dialog"]').attributes("aria-label")).toBe(label);
+  expect(body().find('[role="listbox"]').exists()).toBe(false);
+  const option = body()
+    .findAll('[role="radio"]')
+    .find(
+      (item) =>
+        item.element.closest("label")?.textContent?.trim() ===
+        (mode === "gantt" ? "Month" : "Amount")
+    );
+  if (!option) {
+    throw new Error("Missing choice");
+  }
+  await option.trigger("click");
+  await flushPromises();
+  expect(body().get('[role="dialog"]').attributes("aria-label")).toBe(
+    mode === "gantt" ? "Gantt settings" : "Card settings"
+  );
+  expect(
+    body().get(`[data-view-settings] [aria-label="${label}"]`).text()
+  ).toContain(mode === "gantt" ? "Month" : "Amount");
+  expect(document.activeElement).toBe(
+    body().get(`[data-view-settings] [aria-label="${label}"]`).element
+  );
+  await body().get('[aria-label="Back"]').trigger("click");
+  await flushPromises();
+  const reopen = body()
+    .findAll("button")
+    .find(
+      (item) =>
+        item.text() === (mode === "gantt" ? "Gantt settings" : "Card settings")
+    );
+  await reopen?.trigger("click");
+  await flushPromises();
+  expect(
+    body().get(`[data-view-settings] [aria-label="${label}"]`).text()
+  ).toContain(mode === "gantt" ? "Month" : "Amount");
 });

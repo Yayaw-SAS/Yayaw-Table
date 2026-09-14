@@ -769,6 +769,11 @@
           "target": "components/ui/yayaw-table/components/toolbar/table-gallery-menu.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/toolbar/table-gantt-settings.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/toolbar/table-gantt-settings.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/toolbar/table-kanban-grouping-menu.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/toolbar/table-kanban-grouping-menu.tsx"
@@ -787,6 +792,11 @@
           "path": "registry/default/ui/yayaw-table/components/toolbar/toolbar-actions.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/toolbar/toolbar-actions.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/toolbar/view-settings-panel.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/toolbar/view-settings-panel.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/utils/performance-monitor.tsx",
@@ -967,6 +977,11 @@
           "path": "registry/default/ui/yayaw-table/planning/session.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/planning/session.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/planning/settings.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/planning/settings.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/planning/styles.css",

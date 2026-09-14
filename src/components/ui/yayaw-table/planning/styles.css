@@ -535,7 +535,7 @@
   min-width: 160px;
   font-weight: 500;
 }
-@media (max-width: 640px) {
+@media (max-width: 767px) {
   .yp-toolbar {
     gap: 8px;
   }
@@ -548,8 +548,27 @@
     min-height: 36px;
   }
   .yp-dialog {
-    padding: 18px;
+    position: fixed;
+    inset: auto 0 0;
+    margin: 0;
+    width: 100%;
+    max-width: none;
+    max-height: 90dvh;
+    box-sizing: border-box;
+    border-radius: 16px 16px 0 0;
+    padding: 18px 18px calc(18px + env(safe-area-inset-bottom));
+    overscroll-behavior: contain;
   }
+  .yp-dialog h2 {
+    font-size: 18px;
+  }
+  .yp-dialog :is(button, input:not([type="checkbox"]), select) {
+    min-height: 44px;
+  }
+  .yp-dialog .yp-icon-button {
+    min-width: 44px;
+  }
+
   .yp-editor .yp-field {
     flex: 1;
     min-width: 130px;

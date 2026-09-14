@@ -57,7 +57,7 @@ export function TableDensityMenu({
         {TABLE_DENSITY_OPTIONS.map((option) => (
           <Button
             aria-pressed={density === option.value}
-            className="min-w-9 flex-1"
+            className="min-w-9 flex-1 font-normal"
             key={option.value}
             onClick={() => setDensity(option.value)}
             size="sm"

@@ -40,7 +40,8 @@ import {
   tableMenuOpenToViewAtom,
 } from "../../atoms";
 import { useTableUrlState } from "../../hooks/use-table-url-state";
-import { useTranslations } from "../../providers/table-provider";
+import { ganttSettingsLabels } from "../../planning/settings";
+import { useLocale, useTranslations } from "../../providers/table-provider";
 import type { ColumnDataType } from "../../types";
 import type { TableDisplayMode } from "../../types/display-types";
 import type {
@@ -287,6 +288,7 @@ function renderMainMenuView({
   actions,
   modeSettings,
   cardSettings,
+  cardSettingsTitle,
   activeGroupingCount,
   displayVisibleCount,
   footerCalculationsLabel,
@@ -299,6 +301,7 @@ function renderMainMenuView({
   actions?: ReactNode;
   modeSettings?: ReactNode;
   cardSettings?: ReactNode;
+  cardSettingsTitle: string;
   activeGroupingCount: number;
   displayVisibleCount: number;
   footerCalculationsLabel: string;
@@ -315,10 +318,10 @@ function renderMainMenuView({
         {cardSettings ? (
           <StackMenuItem
             icon={<List className="size-4" />}
-            navigateTitle={t("views.cardSettings")}
+            navigateTitle={cardSettingsTitle}
             navigateTo="cards"
           >
-            {t("views.cardSettings")}
+            {cardSettingsTitle}
           </StackMenuItem>
         ) : null}
         <StackMenuSection>
@@ -392,7 +395,11 @@ function renderMainMenuView({
 
           {sectionState.canShowCalculationsSection && (
             <StackMenuItem
-              endIcon={<span aria-hidden="true" className="text-xs">{footerCalculationsLabel}</span>}
+              endIcon={
+                <span aria-hidden="true" className="text-xs">
+                  {footerCalculationsLabel}
+                </span>
+              }
               icon={<Calculator className="size-4" />}
               onClick={onToggleFooterCalculations}
             >
@@ -413,6 +420,14 @@ function renderMainMenuView({
 
 function resolveMenuGrouping(state: string[], url: string[]): string[] {
   return state.length ? state : url;
+}
+
+function getSettingsTitle(
+  mode: TableDisplayMode,
+  locale: string,
+  fallback: string
+): string {
+  return mode === "gantt" ? ganttSettingsLabels(locale).title : fallback;
 }
 
 export function TableMenu({
@@ -464,6 +479,12 @@ export function TableMenu({
     tableId,
   });
 
+  const locale = useLocale();
+  const cardSettingsTitle = getSettingsTitle(
+    displayModeParam,
+    locale,
+    t("views.cardSettings")
+  );
   const capabilities = getViewModeCapabilities(displayModeParam);
   const groupingMaxGroups = capabilities.maxGroups;
   const rawFinalGrouping = resolveMenuGrouping(
@@ -641,6 +662,7 @@ export function TableMenu({
         actions: viewMenu?.actions,
         modeSettings,
         cardSettings,
+        cardSettingsTitle,
         activeGroupingCount,
         displayVisibleCount,
         footerCalculationsLabel,
@@ -719,7 +741,7 @@ export function TableMenu({
       )}
 
       {cardSettings ? (
-        <StackMenuView name="cards" title={t("views.cardSettings")}>
+        <StackMenuView name="cards" title={cardSettingsTitle}>
           {cardSettings}
         </StackMenuView>
       ) : null}

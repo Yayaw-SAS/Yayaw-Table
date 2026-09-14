@@ -1,12 +1,36 @@
 <script setup lang="ts">
 import { useKanbanSettings } from "../../composables/use-kanban-settings";
-import TableSelect from "../controls/TableSelect.vue";
-import CardPropertiesMenu from "../controls/CardPropertiesMenu.vue";
-const { translate, columnOptions, titleColumn, propertyIds, showLabels } = useKanbanSettings();
+import ViewSettingsPanel from "../controls/ViewSettingsPanel.vue";
+const {
+  translate,
+  columnOptions,
+  titleColumn,
+  propertyIds,
+  showLabels,
+  groupBy,
+} = useKanbanSettings();
 </script>
 <template>
-    <div class="yayaw-card-settings">
-      <TableSelect v-model="titleColumn" :label="translate('cardTitle', 'Title')" :options="columnOptions" />
-      <CardPropertiesMenu v-model="propertyIds" v-model:show-labels="showLabels" :label="translate('properties', 'Properties')" :show-labels-label="translate('cardShowLabels', 'Show labels')" :options="columnOptions" />
-    </div>
+  <ViewSettingsPanel
+    :fields="[
+      {
+        id: 'title',
+        label: translate('cardTitle', 'Title'),
+        value: titleColumn,
+        options: columnOptions.filter((option) => option.value !== groupBy),
+        onChange: (value) => (titleColumn = value),
+      },
+    ]"
+    :properties="{
+      label: translate('properties', 'Properties'),
+      options: columnOptions.filter(
+        (option) => ![groupBy, titleColumn].includes(option.value),
+      ),
+      value: propertyIds,
+      onChange: (value) => (propertyIds = value),
+      showLabels,
+      showLabelsLabel: translate('cardShowLabels', 'Show labels'),
+      onShowLabelsChange: (value) => (showLabels = value),
+    }"
+  />
 </template>

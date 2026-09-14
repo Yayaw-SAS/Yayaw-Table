@@ -5,7 +5,13 @@ import {
   PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger,
   ScrollAreaRoot, ScrollAreaViewport, ScrollAreaScrollbar, ScrollAreaThumb,
 } from "reka-ui";
-import { ref, watch, type CSSProperties } from "vue";
+import { nextTick, provide, shallowRef, ref, watch, type CSSProperties } from "vue";
+
+import { settingsNavigationKey, type SettingsNavigation } from "./settings-navigation";
+const childView = shallowRef<SettingsNavigation>();
+const backButton = ref<HTMLButtonElement>();
+watch(childView, async (view) => { if (view) { await nextTick(); backButton.value?.focus(); } });
+provide(settingsNavigationKey, childView);
 
 const props = defineProps<{ open: boolean; compact?: boolean; title: string; back?: boolean; backLabel?: string; closeLabel?: string }>();
 const emit = defineEmits<{ "update:open": [open: boolean]; back: [] }>();
@@ -32,11 +38,11 @@ watch(() => props.open, (open) => {
       <component :is="compact ? DialogPortal : PopoverPortal">
         <DialogOverlay v-if="compact" class="yayaw-toolbar-backdrop" :style="theme" />
         <component :is="compact ? DialogContent : PopoverContent" class="yayaw-toolbar-menu" :data-compact="Boolean(compact)" :style="theme"
-          :aria-label="title" :aria-describedby="undefined" :align="compact ? undefined : 'start'" :side-offset="compact ? undefined : 5" :collision-padding="8">
+          :aria-label="childView?.title ?? title" :aria-describedby="undefined" :align="compact ? undefined : 'start'" :side-offset="compact ? undefined : 5" :collision-padding="8">
           <div v-if="compact" class="yayaw-toolbar-handle" />
           <header class="yayaw-toolbar-menu-header">
-            <button v-if="back" class="yayaw-icon-button" type="button" :aria-label="backLabel ?? 'Back'" @click="emit('back')"><ArrowLeft :size="16" /></button>
-            <DialogTitle v-if="compact" as="strong">{{ title }}</DialogTitle><strong v-else>{{ title }}</strong>
+            <button ref="backButton" v-if="back || childView" class="yayaw-icon-button" type="button" :aria-label="backLabel ?? 'Back'" @click="childView ? childView.back() : emit('back')"><ArrowLeft :size="16" /></button>
+            <DialogTitle v-if="compact" as="strong">{{ childView?.title ?? title }}</DialogTitle><strong v-else>{{ childView?.title ?? title }}</strong>
             <button class="yayaw-icon-button" type="button" :aria-label="closeLabel ?? 'Close'" @click="emit('update:open', false)"><X :size="16" /></button>
           </header>
           <ScrollAreaRoot class="yayaw-toolbar-menu-body" type="hover">

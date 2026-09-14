@@ -1,4 +1,6 @@
 "use client";
+
+import { TableGanttSettings } from "./table-gantt-settings";
 /**
  * Advanced toolbar component for DataTable
  * Provides advanced filtering, view management, and other table controls
@@ -628,6 +630,11 @@ function renderDataActions({
       <TableTooltip label={t("url_state.share")}>
         <Button
           aria-label={t("url_state.share")}
+          className={
+            actionsAsIcons
+              ? "h-8 w-8"
+              : "h-8 gap-2 px-3 font-normal text-xs leading-4"
+          }
           onClick={() => {
             shareLink();
           }}
@@ -1268,7 +1275,15 @@ export function DataTableAdvancedToolbar<TData>({
                   : undefined
               }
               cardSettings={
-                cardSettings?.[displayModeParam as keyof typeof cardSettings]
+                displayModeParam === "gantt" ? (
+                  <TableGanttSettings
+                    defaultConfig={tableConfig.table.gantt}
+                    defaultDisplayMode={tableConfig.table.defaultDisplayMode}
+                    tableId={tableId}
+                  />
+                ) : (
+                  cardSettings?.[displayModeParam as keyof typeof cardSettings]
+                )
               }
               columns={tableMenuColumns}
               compact={isMobile}
