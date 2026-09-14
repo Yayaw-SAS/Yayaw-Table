@@ -1,8 +1,14 @@
+"use client";
+import {
+  buildPlanningRows,
+  comparePlanningTasks,
+  planningTaskMatches,
+} from "../planning/query";
+import { PlanningSurface, usePlanningState } from "../planning/react";
 /**
  * Modern implementation of the DataTable component
  * A cleaner approach using modular components and hooks
  */
-"use client";
 
 import { type QueryClient, useQueryClient } from "@tanstack/react-query";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
@@ -940,7 +946,7 @@ function ModernDataTable<
   }, [onRowSelectionChange]);
   const queryClient = useQueryClient();
   const setFormState = useSetAtom(catalogueFormAtom);
-  const { t } = useTranslations();
+  const { t, locale } = useTranslations();
   const getFormConfig = useFormConfig();
   const resolvedTableType = tableType || tableId;
   const defaultFormType = formType || resolvedTableType;
@@ -1189,8 +1195,51 @@ function ModernDataTable<
     state.columnVisibility,
   ]);
 
+  const {
+    advancedFiltersParam,
+    displayModeParam,
+    expandedParam,
+    filtersParam,
+    ganttParam,
+    sortParam,
+    setGanttFromUI,
+    galleryParam,
+    globalSearchParam,
+    groupingParam,
+    kanbanParam,
+    setExpandedFromUI,
+    resetFilters,
+  } = useTableUrlState({
+    defaultGantt: tableConfig.table.gantt,
+    defaultDisplayMode: tableConfig.table.defaultDisplayMode,
+    tableId: tableId || "",
+  });
+  const configuredDisplayModes = tableConfig.table.displayModes ?? ["table"];
+  const activeDisplayMode = resolveActiveDisplayMode({
+    defaultDisplayMode: tableConfig.table.defaultDisplayMode,
+    displayModeParam,
+    displayModes: configuredDisplayModes,
+  });
+
   // Use fetched data from API like in production
-  const data = fetchedData || [];
+  const { session: planningSession, state: planningState } = usePlanningState();
+  const data = useMemo(
+    () =>
+      buildPlanningRows(
+        (fetchedData || []) as TData[],
+        planningState.snapshot,
+        tableConfig.table.planning,
+        getRowId ?? ((row: TData) => String(row.id)),
+        activeDisplayMode === "table" ? "tree" : "flat"
+      ),
+    [
+      fetchedData,
+      planningState.snapshot,
+      tableConfig.table.planning,
+      getRowId,
+      activeDisplayMode,
+    ]
+  );
 
   // Create a table instance with the actual data to be used (filtered or not)
   // Memoize table instance configuration to prevent recreating table on every render
@@ -1406,21 +1455,6 @@ function ModernDataTable<
     </div>
   );
   const loadingOverlay = loadingOverlayProp ?? defaultLoadingOverlay;
-  const {
-    advancedFiltersParam,
-    displayModeParam,
-    expandedParam,
-    filtersParam,
-    galleryParam,
-    globalSearchParam,
-    groupingParam,
-    kanbanParam,
-    setExpandedFromUI,
-    resetFilters,
-  } = useTableUrlState({
-    defaultDisplayMode: tableConfig.table.defaultDisplayMode,
-    tableId: tableId || "",
-  });
   const resolvedEmptyState = useMemo<TableEmptyStateConfig>(
     () => ({
       ...tableConfig.table.emptyState,
@@ -1463,12 +1497,6 @@ function ModernDataTable<
     resetFilters,
     emptyStateTitle,
   ]);
-  const configuredDisplayModes = tableConfig.table.displayModes ?? ["table"];
-  const activeDisplayMode = resolveActiveDisplayMode({
-    defaultDisplayMode: tableConfig.table.defaultDisplayMode,
-    displayModeParam,
-    displayModes: configuredDisplayModes,
-  });
   const kanbanConfig = useMemo(
     () => ({
       ...tableConfig.table.kanban,
@@ -1487,6 +1515,7 @@ function ModernDataTable<
     displayModes: configuredDisplayModes,
     groupBy: kanbanGroupBy,
   });
+  const isGanttMode = activeDisplayMode === "gantt";
   const isGalleryMode = shouldUseGalleryDisplayMode({
     activeDisplayMode,
     displayModes: configuredDisplayModes,
@@ -1983,7 +2012,51 @@ function ModernDataTable<
           key={cell.id}
           style={sizeStyle}
         >
-          {renderRegularCellContent(row, cell)}
+          {planningSession &&
+          cell.column.id ===
+            row
+              .getVisibleCells()
+              .find((item) => !["select", "actions"].includes(item.column.id))
+              ?.column.id ? (
+            <span
+              className="inline-flex items-center gap-1"
+              style={{ paddingLeft: row.depth * 16 }}
+            >
+              {row.subRows.length > 0 && (
+                <button
+                  aria-expanded={localExpanded[row.id] !== false}
+                  aria-label={`${localExpanded[row.id] !== false ? "Collapse" : "Expand"} ${row.id}`}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setLocalExpanded((previous) => ({
+                      ...previous,
+                      [row.id]: previous[row.id] === false,
+                    }));
+                  }}
+                  type="button"
+                >
+                  {localExpanded[row.id] !== false ? "▾" : "▸"}
+                </button>
+              )}
+              {renderRegularCellContent(row, cell)}
+              <button
+                aria-label={`Planning ${row.id}`}
+                className="text-muted-foreground"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  planningSession.open({
+                    source: planningSession.config.sourceId,
+                    id: getRowId?.(row.original) ?? String(row.original.id),
+                  });
+                }}
+                type="button"
+              >
+                ↗
+              </button>
+            </span>
+          ) : (
+            renderRegularCellContent(row, cell)
+          )}
         </TableCell>
       );
     };
@@ -2123,12 +2196,22 @@ function ModernDataTable<
       }
     };
 
+    const renderPlanningChildren = (row: Row<TData>, level: number) => {
+      if (!planningSession || localExpanded[row.id] === false) {
+        return;
+      }
+      for (const child of row.subRows) {
+        renderRowWithChildren(child, level + 1);
+      }
+    };
+
     const renderRowWithChildren = (row: Row<TData>, level = 0) => {
       const visibleCells = row.getVisibleCells();
       const isGroupedRow = row.getIsGrouped();
 
       if (!isGroupedRow) {
         rowElements.push(renderRegularRow(row, visibleCells));
+        renderPlanningChildren(row, level);
         return;
       }
 
@@ -2156,6 +2239,8 @@ function ModernDataTable<
       <TableBody data-column-sizing={columnSizingKey}>{rowElements}</TableBody>
     );
   }, [
+    planningSession,
+    getRowId,
     commitInlineEdit,
     isLoading,
     data,
@@ -2228,12 +2313,14 @@ function ModernDataTable<
     enableColumnResizing,
   ]);
 
-  const enableAutoPageSize = supportsAutomaticPageSize(
-    enablePagination,
-    tableConfig.table.enableAutoPageSize,
-    isGalleryMode,
-    isKanbanMode
-  );
+  const enableAutoPageSize =
+    !isGanttMode &&
+    supportsAutomaticPageSize(
+      enablePagination,
+      tableConfig.table.enableAutoPageSize,
+      isGalleryMode,
+      isKanbanMode
+    );
   const autoPageSizing = useAutoPageSize({
     root: paginationRootRef,
     tableId,
@@ -2245,7 +2332,41 @@ function ModernDataTable<
     setPageSize: (size) => table.setPageSize(size),
   });
 
+  const renderGanttContent = () =>
+    planningSession ? (
+      <PlanningSurface
+        compare={(a, b) =>
+          comparePlanningTasks(a, b, {
+            sorting: sortParam,
+            columns: tableConfig.columns.definitions,
+          })
+        }
+        emptyTitle={emptyStateTitle}
+        gantt={{ ...tableConfig.table.gantt, ...ganttParam }}
+        locale={locale}
+        mode="gantt"
+        onClearFilters={hasActiveSearchOrFilters ? resetFilters : undefined}
+        onViewChange={setGanttFromUI}
+        session={planningSession}
+        visible={(task) =>
+          planningTaskMatches(task, {
+            search: globalSearchParam,
+            filters: filtersParam,
+            advancedFilters: advancedFiltersParam,
+            columns: tableConfig.columns.definitions,
+          })
+        }
+      />
+    ) : (
+      <div role="alert">
+        Configure table.planning and actions.planning to enable Gantt.
+      </div>
+    );
+
   const renderDisplayContent = () => {
+    if (isGanttMode) {
+      return renderGanttContent();
+    }
     if (isKanbanMode) {
       return (
         <div className="relative">
@@ -2411,7 +2532,9 @@ function ModernDataTable<
         rowCount,
       });
     const showPaginationArea =
-      enablePagination && (showPaginationControls || renderBulkActionsInFooter);
+      !isGanttMode &&
+      enablePagination &&
+      (showPaginationControls || renderBulkActionsInFooter);
     const fixedBulkActionsViewportOffset = getBulkActionsViewportBottomOffset({
       isPaginationVisible,
       paginationHeight,

@@ -68,6 +68,13 @@ export type {
 } from "./config/helpers";
 // Config helper and types
 export { defineTableConfig } from "./config/helpers";
+export { createMemoryPlanningAdapter } from "./planning/adapter";
+export { calculatePlanning, resolvedPlanningSnapshot } from "./planning/engine";
+export {
+  type PlanningRowAdapter,
+  planningTasksFromRows,
+} from "./planning/rows";
+export type * from "./planning/types";
 export * from "./types/column-types";
 export * from "./types/date-types";
 export * from "./types/display-types";

@@ -1,8 +1,9 @@
+"use client";
+
 /**
  * Text column component for data tables
  * Provides standardized display of text values
  */
-"use client";
 
 import { type LucideIcon, Text } from "lucide-react";
 import { useState } from "react";
@@ -91,9 +92,8 @@ export function createTextColumn<TData>({
 
       // Debug removed to stop spam
 
-      // FORCE group header display for ANY row that has subRows (bypass TanStack detection)
-      const hasSubRows = (info.row.subRows?.length ?? 0) > 0;
-      if (isGrouped || hasSubRows) {
+      // Hierarchical records remain ordinary cells; grouping headers are synthetic rows.
+      if (isGrouped || info.row.getIsGrouped()) {
         const GroupHeader = () => {
           const [localExpanded, setLocalExpanded] = useState(true); // Start expanded
           const count = info.row.subRows?.length ?? 0;

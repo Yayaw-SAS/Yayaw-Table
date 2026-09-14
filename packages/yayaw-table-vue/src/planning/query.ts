@@ -82,7 +82,8 @@ export function buildPlanningRows<T extends Record<string, unknown>>(
   rows: T[],
   snapshot: PlanningSnapshot | undefined,
   config: TablePlanningConfig | undefined,
-  getId: (row: T) => string
+  getId: (row: T) => string,
+  mode: "tree" | "flat" = "tree"
 ): T[] {
   if (!config?.enabled || config.hierarchy === false || !snapshot) {
     return rows;
@@ -120,12 +121,23 @@ export function buildPlanningRows<T extends Record<string, unknown>>(
       parent = task.parent;
     }
   }
+  // Card views retain every task, even when the source records arrive as subRows.
+  return mode === "flat"
+    ? [...records.values()]
+    : nestPlanningRows(records, tasks, config.sourceId);
+}
+
+function nestPlanningRows<T extends Record<string, unknown>>(
+  records: Map<string, T>,
+  tasks: Map<string, PlanningTask>,
+  sourceId: string
+): T[] {
   const roots: T[] = [];
   for (const [id, row] of records) {
     const task = tasks.get(id);
     const parent = task?.parent;
     const parentRow =
-      parent?.source === config.sourceId && parent.id !== id
+      parent?.source === sourceId && parent.id !== id
         ? records.get(parent.id)
         : undefined;
     if (parentRow) {

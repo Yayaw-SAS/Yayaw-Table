@@ -412,3 +412,18 @@ Their tooltip-composed dropdown uses an explicit button anchor so it remains
 visible and works with both mouse and keyboard.
 
 Display mode and inline density use matching labelled button rows in both editions: equal-width choices, a muted selected background, no enclosing segmented border and no redundant mode tooltips. Both preserve keyboard focus and `aria-pressed` selection; density remains exclusive to Table mode.
+
+## Gantt planning
+
+Both editions support optional `displayModes: ["gantt"]`, `table.gantt`, `table.planning`, and
+`actions.planning.load/preview/apply`. The civil-date engine, record normalization, memory adapter,
+session and native DOM renderer are copied by `contracts:sync`; framework wrappers mount the same
+surface. See [Gantt configuration](GANTT.md), [engine](PLANNING-ENGINE.md) and
+[persistence](PLANNING-ADAPTERS.md) for defaults and transactional requirements.
+
+Equivalent shared fixtures cover the four dependency types, signed/calendar offsets, summaries,
+source identity collisions, invalid/cyclic/incomplete graphs, flags, permissions, stale previews,
+atomic failure and idempotent retries. DOM tests cover keyboard movement/resizing, draft retention,
+exact relation previews, cancellation, and instance isolation. Real browser verification also covers
+saved modes, Table hierarchy, details/form access, and pointer interactions. Both editions use the
+same bounded virtual timeline; hidden links remain available in the editor and constrain planning.

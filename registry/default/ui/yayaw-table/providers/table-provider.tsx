@@ -6,7 +6,13 @@ import {
 import { useAtomValue } from "jotai";
 import { useHydrateAtoms } from "jotai/utils";
 import type React from "react";
-import { createContext, type ReactNode, useContext, useMemo } from "react";
+import {
+  createContext,
+  type ReactNode,
+  useContext,
+  useEffect,
+  useMemo,
+} from "react";
 // Import atoms with correct paths
 import {
   type DataTableColumnsConfig,
@@ -21,6 +27,11 @@ import type {
   FormConfigContext,
 } from "../components/forms/types";
 import type { TableConfig } from "../config/helpers";
+import { PlanningContext } from "../planning/react";
+import {
+  createPlanningSession,
+  withPlanningActions,
+} from "../planning/session";
 import type { CalculationType } from "../types/footer-types";
 import type {
   DataTableTranslations,
@@ -46,6 +57,7 @@ export interface TableAggregateParams {
 }
 
 export interface TableActions {
+  planning?: import("../planning/types").TablePlanningActions;
   list?: (params: Record<string, unknown>) => Promise<{
     data: unknown[];
     meta?: {
@@ -151,6 +163,7 @@ const TableProviderContext = createContext<
 >(undefined);
 
 interface TableProviderProps {
+  tableType?: string;
   children: ReactNode;
   translations: DataTableTranslations;
   locale?: string;
@@ -194,6 +207,7 @@ export function TableProvider({
   columnsConfig,
   tableConfig,
   tableId: _tableId,
+  tableType: planningTableType,
   queryClient,
   TitleComponent,
   DescriptionComponent,
@@ -244,6 +258,61 @@ export function TableProvider({
     [tableColumnsConfigAtom, mergedColumnsConfig],
   ]);
 
+  const planningType = planningTableType ?? _tableId;
+  const planningCatalogue = useMemo(
+    () => getTableConfig?.(planningType),
+    [getTableConfig, planningType]
+  );
+  const planningBehavior = useMemo(
+    () =>
+      planningCatalogue && "table" in planningCatalogue
+        ? { ...planningCatalogue.table, ...tableConfig }
+        : mergedTableConfig,
+    [planningCatalogue, tableConfig, mergedTableConfig]
+  );
+  const rawPlanningActions = useMemo(
+    () => getTableActions?.(planningType),
+    [getTableActions, planningType]
+  );
+  const planningSession = useMemo(() => {
+    if (!planningBehavior?.planning?.enabled) {
+      return undefined;
+    }
+    return createPlanningSession({
+      config: planningBehavior.planning,
+      actions: rawPlanningActions?.planning,
+      allowEdit: planningBehavior.allowEdit,
+      canEditRow:
+        "canEditRow" in planningBehavior
+          ? planningBehavior.canEditRow
+          : undefined,
+      onChanged: async () => {
+        await resolvedQueryClient.queryClient.invalidateQueries({
+          queryKey: ["tableData"],
+        });
+        await resolvedQueryClient.queryClient.invalidateQueries({
+          queryKey: ["tableColumnCalculations"],
+        });
+      },
+    });
+  }, [planningBehavior, rawPlanningActions, resolvedQueryClient.queryClient]);
+  useEffect(() => {
+    planningSession?.connect();
+    return () => planningSession?.dispose();
+  }, [planningSession]);
+  const resolvedActions = useMemo(
+    () =>
+      planningSession && rawPlanningActions
+        ? withPlanningActions(rawPlanningActions, planningSession)
+        : rawPlanningActions,
+    [planningSession, rawPlanningActions]
+  );
+  const getResolvedTableActions = useMemo(
+    () => (type: string) =>
+      type === planningType ? resolvedActions : getTableActions?.(type),
+    [planningType, resolvedActions, getTableActions]
+  );
+
   // Stabilize the context value to prevent unnecessary re-renders
   const value = useMemo(
     () => ({
@@ -251,7 +320,7 @@ export function TableProvider({
       locale,
       t,
       getFormConfig,
-      getTableActions,
+      getTableActions: getResolvedTableActions,
       getTableConfig,
       TitleComponent,
       DescriptionComponent,
@@ -261,7 +330,7 @@ export function TableProvider({
       locale,
       t,
       getFormConfig,
-      getTableActions,
+      getResolvedTableActions,
       getTableConfig,
       TitleComponent,
       DescriptionComponent,
@@ -270,7 +339,9 @@ export function TableProvider({
 
   const content = (
     <TableProviderContext.Provider value={value}>
-      {children}
+      <PlanningContext.Provider value={planningSession}>
+        {children}
+      </PlanningContext.Provider>
     </TableProviderContext.Provider>
   );
 
@@ -700,6 +771,7 @@ export const defaultTranslations: DataTableTranslations = {
     error_loading_views: "Error loading views",
     display: {
       title: "Display mode",
+      gantt: "Gantt",
       gallery: "Gallery",
       table: "Table",
       kanban: "Kanban",

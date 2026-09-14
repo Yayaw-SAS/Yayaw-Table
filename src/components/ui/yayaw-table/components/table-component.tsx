@@ -1182,9 +1182,35 @@ function ModernDataTable<
     state.columnVisibility,
   ]);
 
+  const {
+    advancedFiltersParam,
+    displayModeParam,
+    expandedParam,
+    filtersParam,
+    ganttParam,
+    sortParam,
+    setGanttFromUI,
+    galleryParam,
+    globalSearchParam,
+    groupingParam,
+    kanbanParam,
+    setExpandedFromUI,
+    resetFilters,
+  } = useTableUrlState({
+    defaultGantt: tableConfig.table.gantt,
+    defaultDisplayMode: tableConfig.table.defaultDisplayMode,
+    tableId: tableId || "",
+  });
+  const configuredDisplayModes = tableConfig.table.displayModes ?? ["table"];
+  const activeDisplayMode = resolveActiveDisplayMode({
+    defaultDisplayMode: tableConfig.table.defaultDisplayMode,
+    displayModeParam,
+    displayModes: configuredDisplayModes,
+  });
+
   // Use fetched data from API like in production
   const {session: planningSession, state: planningState} = usePlanningState();
-  const data = useMemo(() => buildPlanningRows((fetchedData || []) as TData[], planningState.snapshot, tableConfig.table.planning, getRowId ?? ((row: TData) => String(row.id))), [fetchedData, planningState.snapshot, tableConfig.table.planning, getRowId]);
+  const data = useMemo(() => buildPlanningRows((fetchedData || []) as TData[], planningState.snapshot, tableConfig.table.planning, getRowId ?? ((row: TData) => String(row.id)), activeDisplayMode === "table" ? "tree" : "flat"), [fetchedData, planningState.snapshot, tableConfig.table.planning, getRowId, activeDisplayMode]);
 
   // Create a table instance with the actual data to be used (filtered or not)
   // Memoize table instance configuration to prevent recreating table on every render
@@ -1400,25 +1426,6 @@ function ModernDataTable<
     </div>
   );
   const loadingOverlay = loadingOverlayProp ?? defaultLoadingOverlay;
-  const {
-    advancedFiltersParam,
-    displayModeParam,
-    expandedParam,
-    filtersParam,
-    ganttParam,
-    sortParam,
-    setGanttFromUI,
-    galleryParam,
-    globalSearchParam,
-    groupingParam,
-    kanbanParam,
-    setExpandedFromUI,
-    resetFilters,
-  } = useTableUrlState({
-    defaultGantt: tableConfig.table.gantt,
-    defaultDisplayMode: tableConfig.table.defaultDisplayMode,
-    tableId: tableId || "",
-  });
   const resolvedEmptyState = useMemo<TableEmptyStateConfig>(
     () => ({
       ...tableConfig.table.emptyState,
@@ -1461,12 +1468,6 @@ function ModernDataTable<
     resetFilters,
     emptyStateTitle,
   ]);
-  const configuredDisplayModes = tableConfig.table.displayModes ?? ["table"];
-  const activeDisplayMode = resolveActiveDisplayMode({
-    defaultDisplayMode: tableConfig.table.defaultDisplayMode,
-    displayModeParam,
-    displayModes: configuredDisplayModes,
-  });
   const kanbanConfig = useMemo(
     () => ({
       ...tableConfig.table.kanban,

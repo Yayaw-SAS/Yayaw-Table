@@ -216,6 +216,7 @@ export function createPlanningSession(options: PlanningSessionOptions) {
   ): void => {
     const local = calculatePlanning(snapshot, mutations, config);
     for (const change of local.preview.changes) {
+      checkEditable(change.before);
       checkEditable(change.after);
     }
     for (const mutation of mutations) {
@@ -239,6 +240,7 @@ export function createPlanningSession(options: PlanningSessionOptions) {
       );
     }
     for (const change of result.data.changes) {
+      checkEditable(change.before);
       checkEditable(change.after);
     }
     return result.data;

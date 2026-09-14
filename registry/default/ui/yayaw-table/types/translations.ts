@@ -327,6 +327,7 @@ export interface DataTableTranslations {
     error_loading_views: string;
     display: {
       title: string;
+      gantt?: string;
       gallery: string;
       table: string;
       kanban: string;

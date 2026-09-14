@@ -934,6 +934,56 @@
           "target": "components/ui/yayaw-table/index.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/planning/adapter.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/planning/adapter.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/planning/calendar.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/planning/calendar.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/planning/engine.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/planning/engine.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/planning/query.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/planning/query.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/planning/react.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/planning/react.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/planning/rows.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/planning/rows.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/planning/session.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/planning/session.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/planning/styles.css",
+          "type": "registry:style",
+          "target": "components/ui/yayaw-table/planning/styles.css"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/planning/surface.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/planning/surface.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/planning/types.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/planning/types.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/providers/data-table-ui-provider.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/providers/data-table-ui-provider.tsx"
