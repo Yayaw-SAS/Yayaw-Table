@@ -1,4 +1,10 @@
-import { copyFile } from "node:fs/promises";
+import {
+  copyFile,
+  mkdir,
+  readdir,
+  readFile,
+  writeFile,
+} from "node:fs/promises";
 
 await copyFile(
   new URL(
@@ -86,3 +92,23 @@ await copyFile(
   ),
   new URL("../packages/yayaw-table-vue/src/bulk-editor.ts", import.meta.url)
 );
+
+// The planning engine, controller and native renderer have identical behavior in both editions.
+const planningSource = new URL(
+  "../src/components/ui/yayaw-table/planning/",
+  import.meta.url
+);
+const planningTarget = new URL(
+  "../packages/yayaw-table-vue/src/planning/",
+  import.meta.url
+);
+await mkdir(planningTarget, { recursive: true });
+for (const name of await readdir(planningSource)) {
+  if (/\.(ts|css)$/.test(name) && !name.includes(".test.")) {
+    const content = await readFile(new URL(name, planningSource), "utf8");
+    await writeFile(
+      new URL(name, planningTarget),
+      content.replaceAll("../utils/table-contracts", "../table-contracts")
+    );
+  }
+}
