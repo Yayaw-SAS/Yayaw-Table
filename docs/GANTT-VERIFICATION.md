@@ -4,9 +4,9 @@ Verified on 2026-09-14 against the four-part implementation based on main `6d9fe
 
 ## Automated checks
 
-- `bun run release:check`: passed (513 React/shared tests, 400 Vue tests, TypeScript,
+- `bun run release:check`: passed (515 React/shared tests, 402 Vue tests, TypeScript,
   Vue library build, independently generated React/Vue registries and static demo).
-- Both distributions run the same 45 planning cases, including all four dependency
+- Both distributions run the same 47 planning cases, including all four dependency
   types, signed offsets, calendar exceptions, summary/group cycles, colliding IDs,
   incomplete graph pages, stale revisions, atomic failures, permissions, cancellation,
   idempotent retries, automatic/manual modes, UI flags and cross-instance refresh.
@@ -29,6 +29,7 @@ The native in-app browser exercised the standalone React example and Vue's
 | Open planning from common record details | Passed | Passed |
 | Save and restore month zoom and Sunday week origin | Passed | Passed |
 | Predecessor source selection after an initially empty source | Passed | Passed |
+| Card projections retain every child task | Passed | Passed |
 
 React's common catalogue form was also exercised with native date-keyboard editing:
 Save opened the planning preview, and applying updated the complete successor chain.

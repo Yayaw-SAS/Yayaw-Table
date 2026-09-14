@@ -3,6 +3,7 @@ import type {
   loadPlanningSnapshot,
 } from "../src/components/ui/yayaw-table/planning/adapter";
 import type { calculatePlanning } from "../src/components/ui/yayaw-table/planning/engine";
+import type { buildPlanningRows } from "../src/components/ui/yayaw-table/planning/query";
 import type { planningTasksFromRows } from "../src/components/ui/yayaw-table/planning/rows";
 import type {
   createPlanningSession,
@@ -24,6 +25,7 @@ interface WorkflowSuite {
   wrap: typeof withPlanningActions;
   mount: typeof mountPlanningSurface;
   rows: typeof planningTasksFromRows;
+  project: typeof buildPlanningRows;
 }
 const assert = (value: unknown, message: string): void => {
   if (!value) {
@@ -61,6 +63,24 @@ function selectElement<T extends Element>(root: Element, selector: string): T {
 }
 export function planningWorkflowSuite(api: WorkflowSuite): void {
   const { test, memory, calculate, load, session, wrap, mount, rows } = api;
+  test("card projections retain children while Table restores its tree", () => {
+    const snapshot = planningFixture();
+    task(snapshot, "b").parent = task(snapshot, "a").ref;
+    const nested = [
+      { ...task(snapshot, "a").record, subRows: [task(snapshot, "b").record] },
+    ];
+    const getId = (row: Record<string, unknown>) => String(row.id);
+    const tree = api.project(nested, snapshot, planningConfig, getId);
+    const cards = api.project(nested, snapshot, planningConfig, getId, "flat");
+    assert(
+      tree.length === 1 && tree[0]?.subRows.length === 1,
+      "Table keeps parent and child"
+    );
+    assert(
+      cards.length === 2 && cards.every((row) => row.subRows.length === 0),
+      "Kanban and Gallery receive each task exactly once"
+    );
+  });
   test("record patches preserve identifiers omitted by the common form", () => {
     const snapshot = planningFixture();
     const item = task(snapshot, "a");
@@ -366,6 +386,37 @@ export function planningWorkflowSuite(api: WorkflowSuite): void {
         !result.success,
         "External removal and permission changes cannot reuse a preview"
       );
+    }
+  });
+  test("successor movement cannot grant itself a row permission", async () => {
+    const snapshot = planningFixture();
+    snapshot.dependencies = [
+      {
+        id: "a-b",
+        from: move.ref,
+        to: { source: "tasks", id: "b" },
+        type: "FS",
+      },
+    ];
+    const store = memory({ snapshot, config: planningConfig });
+    const client = session({
+      config: planningConfig,
+      actions: store.actions,
+      canEditRow: (row) => row.id !== "b" || String(row.start) >= "2026-09-17",
+    });
+    try {
+      await client.load();
+      const result = await client.request([move]);
+      assert(
+        !result.success && result.code === "permission-denied",
+        "Check the successor permission before moving its dates"
+      );
+      assert(
+        store.getSnapshot().revision === "r1",
+        "A denied successor leaves the whole operation untouched"
+      );
+    } finally {
+      client.dispose();
     }
   });
   test("automatic mode still uses one validated atomic preview", async () => {

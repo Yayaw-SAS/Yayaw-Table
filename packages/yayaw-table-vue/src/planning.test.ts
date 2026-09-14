@@ -9,6 +9,7 @@ import {
   normalizeGanttView,
   planningTree,
 } from "./planning/engine";
+import { buildPlanningRows } from "./planning/query";
 import { createPlanningSession, withPlanningActions } from "./planning/session";
 
 planningContractSuite({
@@ -33,4 +34,5 @@ planningWorkflowSuite({
   wrap: withPlanningActions,
   mount: mountPlanningSurface,
   rows: planningTasksFromRows,
+  project: buildPlanningRows,
 });

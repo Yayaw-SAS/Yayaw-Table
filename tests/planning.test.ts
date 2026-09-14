@@ -8,6 +8,7 @@ import {
   normalizeGanttView,
   planningTree,
 } from "../src/components/ui/yayaw-table/planning/engine";
+import { buildPlanningRows } from "../src/components/ui/yayaw-table/planning/query";
 import {
   createPlanningSession,
   withPlanningActions,
@@ -36,4 +37,5 @@ planningWorkflowSuite({
   wrap: withPlanningActions,
   mount: mountPlanningSurface,
   rows: planningTasksFromRows,
+  project: buildPlanningRows,
 });
