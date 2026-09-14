@@ -506,6 +506,7 @@ export function DataTableViewManager({
   const { applyViewConfig, getCurrentViewConfig, viewParam, setViewParam } =
     useTableUrlState({
       defaultDensity,
+      defaultGantt: defaultViewConfig.gantt,
       defaultDisplayMode,
       defaultPageSize: defaultViewConfig.pageSize,
       tableId,

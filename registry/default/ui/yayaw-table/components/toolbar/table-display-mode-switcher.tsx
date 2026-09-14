@@ -1,6 +1,6 @@
 "use client";
 
-import { Columns3, Images, Table2 } from "lucide-react";
+import { ChartGantt, Columns3, Images, Table2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useTableUrlState } from "../../hooks/use-table-url-state";
@@ -15,6 +15,7 @@ interface TableDisplayModeSwitcherProps {
 }
 
 const DISPLAY_MODE_ICONS = {
+  gantt: ChartGantt,
   gallery: Images,
   kanban: Columns3,
   table: Table2,

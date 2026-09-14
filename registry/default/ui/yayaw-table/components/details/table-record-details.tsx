@@ -2,6 +2,7 @@
 
 import { useSetAtom } from "jotai";
 import type { TableCatalogueConfig } from "../../hooks/use-table-config";
+import { usePlanningState } from "../../planning/react";
 import { useLocale, useTableActions } from "../../providers/table-provider";
 import type {
   DetailRecord,
@@ -42,6 +43,7 @@ export function TableRecordDetails({
 }) {
   const setFormState = useSetAtom(catalogueFormAtom);
   const locale = useLocale();
+  const { session: planningSession } = usePlanningState();
   const getActions = useTableActions();
   const actions = getActions?.(tableType);
   if (!(details && row)) {
@@ -96,6 +98,15 @@ export function TableRecordDetails({
         await onRefresh();
       }}
       onEdit={canEdit ? edit : undefined}
+      onPlanning={
+        planningSession
+          ? (item) =>
+              planningSession.open({
+                source: planningSession.config.sourceId,
+                id: idOf(item),
+              })
+          : undefined
+      }
       onRevertActivity={onRevertActivity}
       onReverted={async () => {
         await onRefresh();

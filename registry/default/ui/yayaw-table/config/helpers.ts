@@ -188,7 +188,12 @@ export function getTableLayoutPresetDefaults(
   return {};
 }
 
-const TABLE_DISPLAY_MODES: TableDisplayMode[] = ["table", "kanban", "gallery"];
+const TABLE_DISPLAY_MODES: TableDisplayMode[] = [
+  "table",
+  "kanban",
+  "gallery",
+  "gantt",
+];
 
 export function resolveTableDisplayModes(
   displayModes: TableDisplayMode[] | undefined
@@ -367,6 +372,8 @@ export interface ColumnDefinition {
  * Configuration for the table behavior
  */
 export interface TableBehaviorConfig {
+  planning?: import("../planning/types").TablePlanningConfig;
+  gantt?: import("../planning/types").TableGanttConfig;
   /**
    * Allow opening the create flow from table UI actions
    */

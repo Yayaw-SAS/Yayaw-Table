@@ -30,6 +30,7 @@ export interface RecordDetailsProps {
   columns?: ColumnDefinition[];
   locale?: string;
   onClose: () => void;
+  onPlanning?: (row: DetailRecord) => void;
   onEdit?: (row: DetailRecord) => void;
   onDelete?: (
     row: DetailRecord
@@ -165,6 +166,7 @@ function DetailHeader({
   locale,
   labels,
   busy,
+  onPlanning,
   onEdit,
   onDelete,
   onClose,
@@ -176,6 +178,7 @@ function DetailHeader({
   locale: string;
   labels: DetailLabels;
   busy: boolean;
+  onPlanning?: (row: DetailRecord) => void;
   onEdit?: (row: DetailRecord) => void;
   onDelete?: () => void;
   onClose: () => void;
@@ -199,6 +202,11 @@ function DetailHeader({
           ) : null}
         </div>
         <div className="yayaw-detail-actions">
+          {onPlanning && (
+            <button onClick={() => onPlanning(row)} type="button">
+              {locale.startsWith("fr") ? "Planification" : "Planning"}
+            </button>
+          )}
           {onEdit ? (
             <Button
               disabled={busy}
@@ -266,6 +274,7 @@ export function RecordDetails({
   columns = [],
   locale = "en",
   onClose,
+  onPlanning,
   onEdit,
   onDelete,
   onDeleted,
@@ -342,6 +351,7 @@ export function RecordDetails({
               : undefined
           }
           onEdit={onEdit}
+          onPlanning={onPlanning}
           row={row}
           title={title}
         />

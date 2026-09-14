@@ -48,9 +48,8 @@ export function createUrlColumn<TData>({
     cell: (info: CellContext<TData, unknown>) => {
       const isGrouped = info.cell.getIsGrouped();
       const isAggregated = info.cell.getIsAggregated();
-      const hasSubRows = (info.row.subRows?.length ?? 0) > 0;
 
-      if (isGrouped || hasSubRows) {
+      if (isGrouped || info.row.getIsGrouped()) {
         const GroupHeader = () => {
           const [localExpanded, setLocalExpanded] = useState(true);
           const count = info.row.subRows?.length ?? 0;

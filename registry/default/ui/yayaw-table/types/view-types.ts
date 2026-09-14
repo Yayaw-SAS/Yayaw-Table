@@ -86,6 +86,7 @@ export interface TableView {
  * Contains all state that can be saved in a view
  */
 export interface TableViewConfig {
+  gantt?: import("../planning/types").TableGanttViewConfig;
   /** Visibility of table footer calculations; legacy snapshots inherit the initial setting. */
   footerCalculationsVisible?: boolean;
   /** Row and header spacing restored when applying the view. */

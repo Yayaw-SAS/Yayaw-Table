@@ -1,8 +1,9 @@
+"use client";
+import { PlanningSurface, usePlanningState } from "../planning/react";
 /**
  * New DataTable component using the declarative architecture
  * This component replaces the old DataTable with a more streamlined API
  */
-"use client";
 
 import type React from "react";
 // Import advanced filters hook directly
@@ -351,6 +352,36 @@ function detailViewHandler(
   return onOpenDetails ?? (details ? open : undefined);
 }
 
+function PlanningRecordOverlay({
+  session,
+  locale,
+  onOpen,
+}: {
+  session: ReturnType<typeof usePlanningState>["session"];
+  locale: string;
+  onOpen?: (row: Record<string, unknown>) => void;
+}) {
+  if (!session) {
+    return null;
+  }
+  return (
+    <PlanningSurface
+      locale={locale}
+      mode="overlay"
+      onOpenRecord={
+        onOpen
+          ? (task) => {
+              if (task.record) {
+                onOpen(task.record);
+              }
+            }
+          : undefined
+      }
+      session={session}
+    />
+  );
+}
+
 function isFilterBarVisible(
   prop: boolean | undefined,
   configured: boolean | undefined
@@ -487,6 +518,8 @@ function DataTableContent({
   const tableId = tableIdProp ?? tableType;
   useAutoPageSizeLifetime(tableId);
   const defaultFormType = formType ?? tableType;
+  const { session: planningSession } = usePlanningState();
+  const { locale: planningLocale } = useTranslations();
   const [viewedRow, setViewedRow] = useState<Record<string, unknown>>();
 
   // Nested translations from TableProvider (used to resolve for DataTableUIProvider)
@@ -625,6 +658,8 @@ function DataTableContent({
             syncUrl: config.table.syncUrl,
             inlineEdit: config.table.inlineEdit,
             gallery: config.table.gallery,
+            planning: config.table.planning,
+            gantt: config.table.gantt,
             kanban: config.table.kanban,
             layoutPreset: config.table.layoutPreset,
             enableAutoPageSize: config.table.enableAutoPageSize,
@@ -771,6 +806,11 @@ function DataTableContent({
       <Suspense fallback={null}>
         <CatalogueFormContainer />
       </Suspense>
+      <PlanningRecordOverlay
+        locale={planningLocale}
+        onOpen={detailViewHandler(details, setViewedRow, onOpenDetails)}
+        session={planningSession}
+      />
       <TableRecordDetails
         details={details}
         formType={defaultFormType}
@@ -838,6 +878,7 @@ export function DataTable(
       TitleComponent={TitleComponent}
       tableConfig={tableConfig}
       tableId={resolvedTableId}
+      tableType={tableType}
       translations={
         (translations as DataTableTranslations | undefined) ??
         defaultTranslations

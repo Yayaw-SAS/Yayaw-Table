@@ -1,0 +1,44 @@
+[
+  {
+    "name": "finish-to-start after the occupied end date",
+    "type": "FS",
+    "a": ["2026-09-14", "2026-09-15"],
+    "lag": 0,
+    "expected": ["2026-09-16", "2026-09-17"]
+  },
+  {
+    "name": "start-to-start",
+    "type": "SS",
+    "a": ["2026-09-16", "2026-09-17"],
+    "lag": 0,
+    "expected": ["2026-09-16", "2026-09-17"]
+  },
+  {
+    "name": "finish-to-finish",
+    "type": "FF",
+    "a": ["2026-09-17", "2026-09-18"],
+    "lag": 0,
+    "expected": ["2026-09-17", "2026-09-18"]
+  },
+  {
+    "name": "start-to-finish using exclusive finish boundaries",
+    "type": "SF",
+    "a": ["2026-09-17", "2026-09-18"],
+    "lag": 0,
+    "expected": ["2026-09-15", "2026-09-16"]
+  },
+  {
+    "name": "positive working offset crosses a weekend",
+    "type": "FS",
+    "a": ["2026-09-14", "2026-09-15"],
+    "lag": 2,
+    "expected": ["2026-09-18", "2026-09-21"]
+  },
+  {
+    "name": "negative offset permits overlap",
+    "type": "FS",
+    "a": ["2026-09-14", "2026-09-15"],
+    "lag": -1,
+    "expected": ["2026-09-15", "2026-09-16"]
+  }
+]
