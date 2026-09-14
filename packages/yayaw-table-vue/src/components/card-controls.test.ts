@@ -372,6 +372,7 @@ it.each([
   await flushPromises();
   expect(body().findAll('[role="dialog"]')).toHaveLength(1);
   expect(body().get('[role="dialog"]').attributes("data-compact")).toBe("true");
+  expect(body().get('[role="dialog"]').attributes("aria-label")).toBe(label);
   expect(body().find('[role="listbox"]').exists()).toBe(false);
   const option = body()
     .findAll('[role="radio"]')
@@ -385,6 +386,9 @@ it.each([
   }
   await option.trigger("click");
   await flushPromises();
+  expect(body().get('[role="dialog"]').attributes("aria-label")).toBe(
+    mode === "gantt" ? "Gantt settings" : "Card settings"
+  );
   expect(
     body().get(`[data-view-settings] [aria-label="${label}"]`).text()
   ).toContain(mode === "gantt" ? "Month" : "Amount");

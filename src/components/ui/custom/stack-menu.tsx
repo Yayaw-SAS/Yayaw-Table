@@ -315,7 +315,7 @@ const StackMenu = forwardRef<HTMLDivElement, StackMenuProps>(
           onOpenChange={handleOpenChange}
           open={isOpen}
           sideOffset={sideOffset}
-          title={currentViewTitle || "Menu"}
+          title={childView?.title || currentViewTitle || "Menu"}
           trigger={trigger}
         >
           {menuContent}

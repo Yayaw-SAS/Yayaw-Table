@@ -162,6 +162,9 @@ for (const mode of ["gallery", "kanban", "gantt"] as const) {
       ).toBeTruthy();
       await click(mode === "gantt" ? "Zoom" : "Title");
       expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1);
+      expect(
+        document.querySelector('[data-slot="drawer-title"]')?.textContent
+      ).toBe(mode === "gantt" ? "Zoom" : "Title");
       expect(document.querySelector('[role="listbox"]')).toBeNull();
       const radios = [
         ...document.querySelectorAll<HTMLButtonElement>('[role="radio"]'),
@@ -176,6 +179,9 @@ for (const mode of ["gallery", "kanban", "gantt"] as const) {
       }
       await act(() => target.click());
       await wait();
+      expect(
+        document.querySelector('[data-slot="drawer-title"]')?.textContent
+      ).toBe("Settings");
       if (mode === "gantt") {
         expect(test.state().ganttParam.zoom).toBe("month");
       }
