@@ -1,64 +1,159 @@
-.yayaw-planning {
-  --yp-border: var(--border, #e4e4e7);
-  --yp-bg: var(--background, #fff);
-  --yp-fg: var(--foreground, #18181b);
-  --yp-muted: var(--muted, #f4f4f5);
-  --yp-accent: var(--primary, #4f46e5);
+/* Neutral surfaces inherit the host theme; timeline colors carry no business meaning. */
+.yayaw-planning,
+.yp-dialog {
+  --yp-bg: var(--background, var(--yayaw-background, #fff));
+  --yp-fg: var(--foreground, var(--yayaw-foreground, #37352f));
+  --yp-border: var(--border, var(--yayaw-border, #e9e9e7));
+  --yp-grid: color-mix(in srgb, var(--yp-border) 48%, transparent);
+  --yp-muted: color-mix(in srgb, var(--yp-fg) 4%, var(--yp-bg));
+  --yp-muted-fg: color-mix(in srgb, var(--yp-fg) 65%, var(--yp-bg));
+  --yp-accent: #2273bd;
+  --yp-bar-bg: color-mix(in srgb, #529cca 19%, var(--yp-bg));
+  --yp-bar-border: color-mix(in srgb, #529cca 28%, var(--yp-bg));
+  --yp-today: #c44b45;
   color: var(--yp-fg);
   font: inherit;
-  font-size: 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
-.yayaw-planning button,
-.yayaw-planning input,
-.yayaw-planning select {
+:where(.yayaw-planning, .yp-dialog) button,
+:where(.yayaw-planning, .yp-dialog) input,
+:where(.yayaw-planning, .yp-dialog) select {
+  box-sizing: border-box;
   font: inherit;
   color: inherit;
   border: 1px solid var(--yp-border);
-  border-radius: 6px;
+  border-radius: 5px;
   background: var(--yp-bg);
-  min-height: 32px;
+  min-height: 30px;
   padding: 4px 8px;
 }
-.yayaw-planning button {
+:where(.yayaw-planning, .yp-dialog) button {
   cursor: pointer;
+  transition:
+    background-color 120ms,
+    box-shadow 120ms;
 }
-.yayaw-planning button:hover {
+:where(.yayaw-planning, .yp-dialog) button:hover {
   background: var(--yp-muted);
 }
-.yayaw-planning button:disabled,
-.yayaw-planning input:disabled,
-.yayaw-planning select:disabled {
+:where(.yayaw-planning, .yp-dialog) button:disabled,
+:where(.yayaw-planning, .yp-dialog) input:disabled,
+:where(.yayaw-planning, .yp-dialog) select:disabled {
   cursor: default;
   opacity: 0.5;
 }
-.yayaw-planning :focus-visible {
+:where(.yayaw-planning, .yp-dialog) :focus-visible {
   outline: 2px solid var(--yp-accent);
   outline-offset: 2px;
 }
-.yp-toolbar {
-  display: flex;
-  flex-wrap: wrap;
+.yp-icon {
+  display: block;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+.dark :where(.yayaw-planning, .yp-dialog) {
+  color-scheme: dark;
+}
+:where(.yayaw-planning, .yp-dialog) .yp-icon-button {
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 0;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 30px;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  color: var(--yp-muted-fg);
+}
+.yp-toolbar,
+.yp-toolbar-controls,
+.yp-navigation {
+  display: flex;
+  align-items: center;
+}
+.yp-toolbar {
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 24px;
+  padding: 12px 2px;
+}
+.yp-period {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.yp-toolbar-controls {
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  color: var(--yp-muted-fg);
+}
+.yp-toolbar button,
+.yp-toolbar select {
+  border-color: transparent;
+  background-color: transparent;
+}
+.yp-toolbar select:hover {
+  background-color: var(--yp-muted);
+}
+.yp-navigation {
+  gap: 0;
+  padding-right: 10px;
+  border-right: 1px solid var(--yp-border);
+}
+.yp-navigation button {
+  padding-inline: 6px;
 }
 .yp-toolbar .yp-field {
-  display: flex;
-  align-items: center;
   flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
 }
-.yp-toolbar .yp-field input {
+.yp-toggle input[type="checkbox"] {
+  appearance: none;
+  position: relative;
+  width: 26px;
+  height: 16px;
   min-height: 0;
+  flex-shrink: 0;
+  padding: 0;
+  margin: 0;
+  border-radius: 20px;
+  border: 0;
+  background: color-mix(in srgb, var(--yp-fg) 24%, var(--yp-bg));
+  cursor: pointer;
+}
+.yp-toggle input[type="checkbox"]::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+}
+.yp-toggle input:checked {
+  background: var(--yp-accent);
+}
+.yp-toggle input:checked::after {
+  left: 12px;
 }
 .yp-viewport {
   overflow: auto;
   position: relative;
-  border: 1px solid var(--yp-border);
-  border-radius: 8px;
+  border-block: 1px solid var(--yp-border);
   overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--yp-border) transparent;
 }
 .yp-canvas {
   position: relative;
+  min-height: 100%;
 }
 .yp-header {
   position: sticky;
@@ -69,19 +164,65 @@
 }
 .yp-date {
   position: absolute;
-  top: 0;
-  height: 100%;
+  top: 27px;
+  height: 36px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 1px;
   font-size: 11px;
+  color: var(--yp-muted-fg);
+  overflow: visible;
+  font-variant-numeric: tabular-nums;
+}
+.yp-weekday {
+  font-size: 9px;
+  line-height: 12px;
+}
+.yp-day-number {
+  min-width: 20px;
+  height: 20px;
+  text-align: center;
+  line-height: 20px;
+}
+.yp-date-today .yp-day-number {
+  color: #fff;
+  background: var(--yp-today);
+  border-radius: 50%;
+  font-weight: 600;
+}
+.yp-date-today:empty::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--yp-today);
+}
+.yp-month {
+  position: absolute;
+  top: 0;
+  height: 27px;
+  padding: 5px 8px 0;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
   overflow: hidden;
-  border-right: 1px solid var(--yp-border);
+  box-sizing: border-box;
+}
+.yp-today-line {
+  position: absolute;
+  bottom: 0;
+  z-index: 1;
+  width: 1px;
+  background: color-mix(in srgb, var(--yp-today) 45%, transparent);
+  pointer-events: none;
 }
 .yp-row {
   position: absolute;
   width: 100%;
-  border-bottom: 1px solid var(--yp-border);
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--yp-grid);
   display: flex;
 }
 .yp-label {
@@ -91,34 +232,68 @@
   background: var(--yp-bg);
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   flex-shrink: 0;
   box-sizing: border-box;
   border-right: 1px solid var(--yp-border);
   height: 100%;
+  padding-right: 8px;
+}
+.yp-row:hover .yp-label,
+.yp-row:focus-within .yp-label {
+  background: var(--yp-muted);
 }
 .yp-heading {
-  padding-left: 12px;
-  font-weight: 600;
+  padding-left: 18px;
+  gap: 8px;
+  color: var(--yp-muted-fg);
+  font-weight: 400;
 }
 .yp-label button {
   border: 0;
   background: transparent;
   text-align: left;
+  min-width: 0;
+}
+.yp-tree-spacer,
+.yp-label .yp-tree-toggle {
+  width: 20px;
+  flex-shrink: 0;
+  padding: 0;
+  color: var(--yp-muted-fg);
+}
+.yp-label .yp-tree-toggle {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 26px;
+}
+.yp-label .yp-task-button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 2px;
+}
+.yp-task-button .yp-icon {
+  color: var(--yp-muted-fg);
+  width: 15px;
+  height: 15px;
+}
+.yp-task-title {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  min-width: 24px;
 }
-.yp-label button:last-child {
-  flex: 1;
+.yp-row-summary .yp-task-title {
+  font-weight: 600;
 }
 .yp-track {
   position: absolute;
   height: 100%;
   background-image: linear-gradient(
     to right,
-    var(--yp-border) 1px,
+    var(--yp-grid) 1px,
     transparent 1px
   );
 }
@@ -131,11 +306,13 @@
 }
 .yp-bar {
   position: absolute;
-  height: 26px;
-  top: 7px;
-  border-radius: 5px;
+  height: 28px;
+  top: 6px;
+  box-sizing: border-box;
+  border: 1px solid var(--yp-bar-border);
+  border-radius: 4px;
   z-index: 2;
-  background: var(--yp-accent);
+  background: var(--yp-bar-bg);
 }
 .yp-bar .yp-bar-body {
   display: block;
@@ -143,9 +320,12 @@
   height: 100%;
   min-height: 0;
   background: transparent;
-  color: var(--primary-foreground, #fff);
+  color: var(--yp-fg);
   border: 0;
+  border-radius: inherit;
   padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -153,29 +333,41 @@
   text-align: left;
 }
 .yp-bar .yp-bar-body:hover {
-  background: #ffffff20;
+  background: color-mix(in srgb, var(--yp-fg) 5%, transparent);
 }
 .yp-summary {
-  height: 16px;
-  top: 13px;
-  border-radius: 1px;
-  opacity: 0.8;
+  --yp-bar-bg: color-mix(in srgb, var(--yp-fg) 7%, var(--yp-bg));
+  --yp-bar-border: color-mix(in srgb, var(--yp-fg) 12%, var(--yp-bg));
+  height: 24px;
+  top: 8px;
 }
 .yp-summary .yp-bar-body {
-  font-size: 11px;
-  padding: 0 4px;
+  font-weight: 600;
 }
 .yp-bar .yp-handle {
   position: absolute;
   top: 0;
-  height: 26px;
+  height: 100%;
   min-height: 0;
   width: 8px;
   padding: 0;
   border: 0;
-  background: #ffffff35;
+  border-radius: 3px;
+  background: transparent;
   cursor: ew-resize;
   touch-action: none;
+}
+.yp-handle::after {
+  content: "";
+  position: absolute;
+  inset: 7px 3px;
+  border-radius: 1px;
+  background: var(--yp-muted-fg);
+  opacity: 0;
+}
+.yp-bar:hover .yp-handle::after,
+.yp-bar:focus-within .yp-handle::after {
+  opacity: 0.65;
 }
 .yp-start {
   left: 0;
@@ -185,8 +377,9 @@
 }
 .yp-unscheduled {
   display: inline-block;
-  padding: 10px;
-  opacity: 0.6;
+  padding: 11px 12px;
+  color: var(--yp-muted-fg);
+  font-size: 12px;
 }
 .yp-links {
   position: absolute;
@@ -194,35 +387,40 @@
   left: 0;
   z-index: 1;
   pointer-events: none;
-  color: var(--yp-accent);
-  opacity: 0.7;
+  color: var(--yp-muted-fg);
+  opacity: 0.65;
+  stroke-linejoin: round;
+  stroke-linecap: round;
 }
 .yp-empty {
   padding: 48px 16px;
   text-align: center;
+  color: var(--yp-muted-fg);
 }
 .yp-error {
   color: var(--destructive, #b91c1c);
   padding: 8px 0;
 }
 .yp-warning {
-  padding: 8px;
+  padding: 8px 12px;
   background: var(--yp-muted);
-  border-radius: 6px;
+  border-radius: 5px;
 }
 .yp-dialog {
-  color: var(--yp-fg);
+  margin: auto;
   background: var(--yp-bg);
   border: 1px solid var(--yp-border);
-  border-radius: 12px;
-  width: min(900px, calc(100vw - 32px));
+  border-radius: 10px;
+  width: min(860px, calc(100vw - 32px));
   max-height: calc(100dvh - 48px);
   overflow: auto;
-  padding: 20px;
-  box-shadow: 0 20px 80px #0003;
+  padding: 24px;
+  box-shadow:
+    0 12px 48px #0002,
+    0 2px 8px #0001;
 }
 .yp-dialog::backdrop {
-  background: #0006;
+  background: #0005;
 }
 .yp-dialog-heading,
 .yp-dialog-actions,
@@ -233,33 +431,55 @@
 }
 .yp-dialog-heading {
   justify-content: space-between;
-  margin-bottom: 18px;
+  align-items: flex-start;
+  gap: 24px;
+  margin-bottom: 24px;
 }
 .yp-dialog h2 {
   margin: 0;
-  font-size: 20px;
+  padding-top: 2px;
+  font-size: 22px;
+  line-height: 1.25;
   font-weight: 600;
+  letter-spacing: -0.025em;
 }
 .yp-dialog h3 {
-  margin-top: 24px;
+  margin: 28px 0 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--yp-border);
+  font-size: 14px;
   font-weight: 600;
 }
 .yp-dialog h4 {
-  margin: 16px 0 8px;
+  margin: 20px 0 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--yp-muted-fg);
 }
 .yp-dialog-actions {
   justify-content: flex-end;
-  margin-top: 16px;
+  padding-top: 16px;
+  margin-top: 20px;
+  border-top: 1px solid var(--yp-border);
 }
-.yp-dialog-actions button:last-child {
+.yp-dialog-actions button:last-child,
+.yp-editor > button {
   background: var(--yp-accent);
-  color: var(--primary-foreground, #fff);
+  border-color: var(--yp-accent);
+  color: #fff;
+  font-weight: 500;
+  box-shadow: 0 1px 2px #0001;
+}
+.yp-dialog-actions button:last-child:hover,
+.yp-editor > button:hover {
+  background: color-mix(in srgb, var(--yp-accent) 90%, #000);
 }
 .yp-editor {
   display: flex;
   flex-wrap: wrap;
   align-items: end;
   gap: 12px;
+  margin-bottom: 16px;
 }
 .yp-field {
   display: flex;
@@ -267,18 +487,28 @@
   gap: 6px;
 }
 .yp-field select {
-  max-width: 260px;
+  max-width: 240px;
+}
+.yp-field input[type="number"] {
+  width: 80px;
 }
 .yp-field span {
   font-size: 12px;
-  opacity: 0.8;
+  color: var(--yp-muted-fg);
 }
 .yp-dependency {
   padding: 10px 0;
-  border-bottom: 1px solid var(--yp-border);
+  border-bottom: 1px solid var(--yp-grid);
 }
 .yp-dependency span {
   flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.yp-dependency button {
+  border-color: transparent;
+  color: var(--yp-muted-fg);
+  padding-inline: 6px;
 }
 .yp-preview-table {
   overflow: auto;
@@ -290,37 +520,57 @@
 .yp-preview-table th,
 .yp-preview-table td {
   text-align: left;
-  padding: 10px;
+  padding: 12px 10px;
   border-bottom: 1px solid var(--yp-border);
-  font-size: 13px;
+  font-size: 12px;
+  vertical-align: top;
+  line-height: 1.65;
+}
+.yp-preview-table th {
+  color: var(--yp-muted-fg);
+  font-weight: 400;
+  background: var(--yp-muted);
+}
+.yp-preview-table td:first-child {
+  min-width: 160px;
+  font-weight: 500;
 }
 @media (max-width: 640px) {
+  .yp-toolbar {
+    gap: 8px;
+  }
+  .yp-toolbar-controls {
+    width: 100%;
+    gap: 6px;
+  }
+  .yp-toolbar-controls select,
+  .yp-toolbar-controls button {
+    min-height: 36px;
+  }
   .yp-dialog {
-    padding: 14px;
+    padding: 18px;
   }
   .yp-editor .yp-field {
     flex: 1;
     min-width: 130px;
   }
+  .yp-editor input,
+  .yp-editor select {
+    width: 100%;
+    max-width: 100%;
+  }
   .yp-dialog-actions {
     flex-wrap: wrap;
   }
 }
-
-.yp-date {
-  top: 21px;
-  height: 21px;
+@media (hover: none) {
+  .yp-handle::after {
+    opacity: 0.65;
+  }
 }
-.yp-month {
-  position: absolute;
-  top: 0;
-  height: 21px;
-  padding-left: 6px;
-  font-size: 11px;
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  border-bottom: 1px solid var(--yp-border);
-  border-right: 1px solid var(--yp-border);
-  box-sizing: border-box;
+@media (prefers-reduced-motion: reduce) {
+  .yayaw-planning button,
+  .yp-dialog button {
+    transition: none;
+  }
 }

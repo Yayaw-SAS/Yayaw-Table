@@ -427,3 +427,10 @@ atomic failure and idempotent retries. DOM tests cover keyboard movement/resizin
 exact relation previews, cancellation, and instance isolation. Real browser verification also covers
 saved modes, Table hierarchy, details/form access, and pointer interactions. Both editions use the
 same bounded virtual timeline; hidden links remain available in the editor and constrain planning.
+
+The native Gantt presentation uses the same neutral surfaces, pastel task bars, page icons,
+compact navigation and date marker in both editions. The sticky task column adapts to its
+container width; a resize keeps header cells, bars, dependencies and the today marker aligned.
+Planning dialogs inherit either Shadcn or Vue theme tokens, with visible keyboard focus and
+resize handles on hover, focus and touch devices. The shared navigation fixture confirms that
+the today marker follows the displayed window without changing the planning snapshot.

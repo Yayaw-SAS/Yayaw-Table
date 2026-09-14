@@ -31,6 +31,7 @@ interface TimelineRow {
 }
 interface TimelineGeometry {
   from: number;
+  labelWidth: number;
   width: number;
   count: number;
   totalWidth: number;
@@ -56,10 +57,11 @@ function endpointX(
   task: PlanningTask & { start: string; end: string },
   finish: boolean,
   from: number,
-  width: number
+  width: number,
+  labelWidth: number
 ): number {
   return (
-    LABEL_WIDTH +
+    labelWidth +
     (dateDay(finish ? task.end : task.start) - from + (finish ? 1 : 0)) * width
   );
 }
@@ -178,7 +180,18 @@ const words = {
 };
 type Labels = typeof words.en;
 const ROW_HEIGHT = 42;
+const HEADER_HEIGHT = 64;
 const LABEL_WIDTH = 270;
+
+const ICON_PATHS = {
+  previous: "m14 6-6 6 6 6",
+  next: "m10 6 6 6-6 6",
+  down: "m6 9 6 6 6-6",
+  page: "M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zm0 0v6h6M8 13h8M8 17h5",
+  group: "m12 3 9 5-9 5-9-5zm-9 9 9 5 9-5M3 16l9 5 9-5",
+  reload: "M20 7v5h-5M4 17v-5h5M6 6a8 8 0 0 1 13 3M5 15a8 8 0 0 0 13 3",
+  close: "m6 6 12 12M6 18 18 6",
+} as const;
 
 /** The DOM renderer is shared by the two framework adapters, including keyboard and pointer behavior. */
 export function mountPlanningSurface(
@@ -213,6 +226,22 @@ export function mountPlanningSurface(
       element.className = className;
     }
     return element;
+  };
+  const icon = (name: keyof typeof ICON_PATHS): SVGSVGElement => {
+    const svg = doc.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.classList.add("yp-icon");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("fill", "none");
+    svg.setAttribute("stroke", "currentColor");
+    svg.setAttribute("stroke-width", "1.5");
+    svg.setAttribute("stroke-linecap", "round");
+    svg.setAttribute("stroke-linejoin", "round");
+    svg.setAttribute("aria-hidden", "true");
+    svg.setAttribute("focusable", "false");
+    const path = doc.createElementNS(svg.namespaceURI, "path");
+    path.setAttribute("d", ICON_PATHS[name]);
+    svg.append(path);
+    return svg;
   };
   const button = (
     label: string,
@@ -282,6 +311,18 @@ export function mountPlanningSurface(
   function renderControls(): HTMLElement {
     const t = labels();
     const toolbar = node("div", undefined, "yp-toolbar");
+    const anchor = (): number => dateDay(view.anchorDate ?? firstDate());
+    const period = node(
+      "span",
+      new Intl.DateTimeFormat(options.locale ?? "en", {
+        month: "long",
+        year: "numeric",
+        timeZone: "UTC",
+      }).format(new Date(`${dayDate(anchor())}T00:00:00Z`)),
+      "yp-period"
+    );
+    const controls = node("div", undefined, "yp-toolbar-controls");
+    const navigation = node("div", undefined, "yp-navigation");
     const zoom = select(
       ["day", "week", "month"].map((value) => ({
         value,
@@ -305,10 +346,10 @@ export function mountPlanningSurface(
       "week-start"
     );
     start.setAttribute("aria-label", t.weekStart);
+    start.title = t.weekStart;
     start.onchange = () => changeView({ weekStartsOn: Number(start.value) });
-    const anchor = (): number => dateDay(view.anchorDate ?? firstDate());
     const days = { day: 7, week: 30, month: 90 }[view.zoom ?? "week"];
-    toolbar.append(
+    navigation.append(
       button(
         "‹",
         () => {
@@ -335,26 +376,37 @@ export function mountPlanningSurface(
         },
         false,
         "next"
-      ),
-      zoom,
-      start
+      )
     );
-    toolbar.children[0]?.setAttribute("aria-label", t.previous);
-    toolbar.children[2]?.setAttribute("aria-label", t.next);
+    for (const [index, name, label] of [
+      [0, "previous", t.previous],
+      [2, "next", t.next],
+    ] as const) {
+      const control = navigation.children[index] as HTMLButtonElement;
+      control.setAttribute("aria-label", label);
+      control.title = label;
+      control.className = "yp-icon-button";
+      control.replaceChildren(icon(name));
+    }
     const links = input("checkbox", "", "show-links");
     links.checked = view.showDependencies !== false;
     links.onchange = () => changeView({ showDependencies: links.checked });
-    toolbar.append(field(t.showLinks, links));
-    toolbar.append(
-      button(
-        t.retry,
-        () => {
-          options.session.load();
-        },
-        options.session.getState().busy,
-        "reload"
-      )
+    const toggle = field(t.showLinks, links);
+    toggle.classList.add("yp-toggle");
+    const reload = button(
+      t.retry,
+      () => {
+        options.session.load();
+      },
+      options.session.getState().busy,
+      "reload"
     );
+    reload.setAttribute("aria-label", t.retry);
+    reload.title = t.retry;
+    reload.className = "yp-icon-button";
+    reload.replaceChildren(icon("reload"));
+    controls.append(zoom, navigation, start, toggle, reload);
+    toolbar.append(period, controls);
     return toolbar;
   }
   function firstDate(): string {
@@ -438,36 +490,49 @@ export function mountPlanningSurface(
       }
     };
   }
-  function timelineHeader({
-    from,
-    width,
-    columnFrom,
-    columnTo,
-  }: TimelineGeometry): HTMLElement {
+  function timelineDate(
+    { from, labelWidth, width }: TimelineGeometry,
+    day: number,
+    format: Intl.DateTimeFormat
+  ): HTMLElement {
+    const cell = node("div", undefined, "yp-date");
+    cell.style.left = `${labelWidth + day * width}px`;
+    cell.style.width = `${width}px`;
+    const date = dayDate(from + day);
+    cell.title = date;
+    if (date === new Date().toISOString().slice(0, 10)) {
+      cell.classList.add("yp-date-today");
+      cell.setAttribute("aria-current", "date");
+    }
+    if (view.zoom !== "month" || day % 7 === 0) {
+      if (view.zoom !== "month") {
+        cell.append(
+          node(
+            "span",
+            format.format(new Date(`${date}T00:00:00Z`)),
+            "yp-weekday"
+          )
+        );
+      }
+      cell.append(node("span", String(Number(date.slice(8))), "yp-day-number"));
+    }
+    return cell;
+  }
+  function timelineHeader(geometry: TimelineGeometry): HTMLElement {
+    const { from, labelWidth, width, columnFrom, columnTo } = geometry;
     const t = labels();
     const header = node("div", undefined, "yp-header");
-    header.style.height = `${ROW_HEIGHT}px`;
+    header.style.height = `${HEADER_HEIGHT}px`;
     const name = node("div", t.task, "yp-label yp-heading");
-    name.style.width = `${LABEL_WIDTH}px`;
+    name.prepend(icon("page"));
+    name.style.width = `${labelWidth}px`;
     header.append(name);
     const format = new Intl.DateTimeFormat(options.locale ?? "en", {
-      day: "numeric",
-      month: "short",
+      weekday: view.zoom === "day" ? "short" : "narrow",
       timeZone: "UTC",
     });
     for (let day = columnFrom; day < columnTo; day += 1) {
-      const cell = node("div", undefined, "yp-date");
-      cell.style.left = `${LABEL_WIDTH + day * width}px`;
-      cell.style.width = `${width}px`;
-      const date = dayDate(from + day);
-      cell.title = date;
-      if (view.zoom !== "month" || day % 7 === 0) {
-        cell.textContent =
-          view.zoom === "day"
-            ? format.format(new Date(`${date}T00:00:00Z`))
-            : date.slice(8);
-      }
-      header.append(cell);
+      header.append(timelineDate(geometry, day, format));
     }
     let monthStart = columnFrom;
     while (monthStart < columnTo) {
@@ -488,7 +553,7 @@ export function mountPlanningSurface(
         }).format(new Date(`${date}T00:00:00Z`)),
         "yp-month"
       );
-      month.style.left = `${LABEL_WIDTH + monthStart * width}px`;
+      month.style.left = `${labelWidth + monthStart * width}px`;
       month.style.width = `${(monthEnd - monthStart) * width}px`;
       header.append(month);
       monthStart = monthEnd;
@@ -563,10 +628,10 @@ export function mountPlanningSurface(
     snapshot: PlanningSnapshot,
     geometry: TimelineGeometry
   ): HTMLElement {
-    const { from, width, count, columnFrom, columnTo } = geometry;
+    const { from, labelWidth, width, count, columnFrom, columnTo } = geometry;
     const t = labels();
     const track = node("div", undefined, "yp-track");
-    track.style.left = `${LABEL_WIDTH}px`;
+    track.style.left = `${labelWidth}px`;
     track.style.width = `${count * width}px`;
     track.style.backgroundSize = `${width}px 100%`;
     try {
@@ -604,12 +669,16 @@ export function mountPlanningSurface(
     const t = labels();
     const { task, depth, hasChildren } = currentRow;
     const key = planningKey(task.ref);
-    const row = node("div", undefined, "yp-row");
-    row.style.top = `${(i + 1) * ROW_HEIGHT}px`;
+    const row = node(
+      "div",
+      undefined,
+      `yp-row${hasChildren ? " yp-row-summary" : ""}`
+    );
+    row.style.top = `${HEADER_HEIGHT + i * ROW_HEIGHT}px`;
     row.style.height = `${ROW_HEIGHT}px`;
     row.dataset.task = key;
     const label = node("div", undefined, "yp-label");
-    label.style.width = `${LABEL_WIDTH}px`;
+    label.style.width = `${geometry.labelWidth}px`;
     label.style.paddingLeft = `${8 + depth * 16}px`;
     if (hasChildren) {
       const toggle = button(
@@ -630,13 +699,24 @@ export function mountPlanningSurface(
         `${collapsed.has(key) ? t.expand : t.collapse} ${task.label}`
       );
       toggle.setAttribute("aria-expanded", String(!collapsed.has(key)));
+      toggle.className = "yp-tree-toggle";
+      toggle.replaceChildren(icon(collapsed.has(key) ? "next" : "down"));
       label.append(toggle);
+    } else {
+      const spacer = node("span", undefined, "yp-tree-spacer");
+      spacer.setAttribute("aria-hidden", "true");
+      label.append(spacer);
     }
     const title = button(
       task.label,
       () => showTask(task),
       false,
       `task-${key}`
+    );
+    title.className = "yp-task-button";
+    title.replaceChildren(
+      icon(hasChildren ? "group" : "page"),
+      node("span", task.label, "yp-task-title")
     );
     title.title = `${task.ref.source} · ${task.label}`;
     label.append(title);
@@ -648,13 +728,16 @@ export function mountPlanningSurface(
   function timelineLinks(
     rows: TimelineRow[],
     snapshot: PlanningSnapshot,
-    { from, width, totalWidth, firstRow, lastRow }: TimelineGeometry
+    { from, labelWidth, width, totalWidth, firstRow, lastRow }: TimelineGeometry
   ): SVGSVGElement {
     const t = labels();
     const svg = doc.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.classList.add("yp-links");
     svg.setAttribute("width", String(totalWidth));
-    svg.setAttribute("height", String((rows.length + 1) * ROW_HEIGHT));
+    svg.setAttribute(
+      "height",
+      String(HEADER_HEIGHT + rows.length * ROW_HEIGHT)
+    );
     svg.setAttribute("aria-label", t.dependencies);
     svg.setAttribute("role", "img");
     const positions = new Map(
@@ -671,18 +754,30 @@ export function mountPlanningSurface(
       ) {
         continue;
       }
-      const ax = endpointX(a.task, edge.type[0] === "F", from, width);
-      const bx = endpointX(b.task, edge.type[1] === "F", from, width);
+      const ax = endpointX(
+        a.task,
+        edge.type[0] === "F",
+        from,
+        width,
+        labelWidth
+      );
+      const bx = endpointX(
+        b.task,
+        edge.type[1] === "F",
+        from,
+        width,
+        labelWidth
+      );
       if (
-        ax < LABEL_WIDTH ||
-        bx < LABEL_WIDTH ||
+        ax < labelWidth ||
+        bx < labelWidth ||
         ax > totalWidth ||
         bx > totalWidth
       ) {
         continue;
       }
-      const ay = (a.i + 1.5) * ROW_HEIGHT;
-      const by = (b.i + 1.5) * ROW_HEIGHT;
+      const ay = HEADER_HEIGHT + (a.i + 0.5) * ROW_HEIGHT;
+      const by = HEADER_HEIGHT + (b.i + 0.5) * ROW_HEIGHT;
       const path = doc.createElementNS(svg.namespaceURI, "path");
       const mid = Math.max(ax, bx) + 12;
       path.setAttribute(
@@ -739,15 +834,20 @@ export function mountPlanningSurface(
     const from =
       anchor - ((((((anchor + 4) % 7) + 7) % 7) - weekStart + 7) % 7);
     const count = 180;
-    const totalWidth = LABEL_WIDTH + count * width;
+    const availableWidth = container.clientWidth || 1100;
+    const labelWidth = Math.min(
+      LABEL_WIDTH,
+      Math.max(144, Math.round(availableWidth * 0.42))
+    );
+    const totalWidth = labelWidth + count * width;
     const height = options.gantt?.height ?? 480;
     const columnFrom = Math.max(
       0,
-      Math.floor((scrollLeft - LABEL_WIDTH) / width) - 2
+      Math.floor((scrollLeft - labelWidth) / width) - 2
     );
     const columnTo = Math.min(
       count,
-      columnFrom + Math.ceil((container.clientWidth || 1100) / width) + 8
+      columnFrom + Math.ceil(availableWidth / width) + 8
     );
     const firstRow = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - 6);
     const lastRow = Math.min(
@@ -757,6 +857,7 @@ export function mountPlanningSurface(
     return {
       height,
       from,
+      labelWidth,
       width,
       count,
       totalWidth,
@@ -765,6 +866,20 @@ export function mountPlanningSurface(
       firstRow,
       lastRow,
     };
+  }
+  function appendTodayMarker(
+    canvas: HTMLElement,
+    geometry: TimelineGeometry
+  ): void {
+    const today =
+      dateDay(new Date().toISOString().slice(0, 10)) - geometry.from;
+    if (today >= 0 && today < geometry.count) {
+      const marker = node("div", undefined, "yp-today-line");
+      marker.style.left = `${geometry.labelWidth + (today + 0.5) * geometry.width}px`;
+      marker.style.top = `${HEADER_HEIGHT}px`;
+      marker.setAttribute("aria-hidden", "true");
+      canvas.append(marker);
+    }
   }
   function renderTimeline(): HTMLElement {
     const t = labels();
@@ -800,7 +915,7 @@ export function mountPlanningSurface(
     viewport.setAttribute("aria-label", t.planning);
     const canvas = node("div", undefined, "yp-canvas");
     canvas.style.width = `${totalWidth}px`;
-    canvas.style.height = `${ROW_HEIGHT * (rows.length + 1)}px`;
+    canvas.style.height = `${HEADER_HEIGHT + ROW_HEIGHT * rows.length}px`;
     canvas.append(timelineHeader(geometry));
     for (let i = firstRow; i < lastRow; i += 1) {
       const currentRow = rows[i];
@@ -812,6 +927,7 @@ export function mountPlanningSurface(
     if (view.showDependencies !== false) {
       canvas.append(timelineLinks(rows, snapshot, geometry));
     }
+    appendTodayMarker(canvas, geometry);
     viewport.append(canvas);
     region.append(viewport);
     viewport.scrollTop = scrollTop;
@@ -1276,20 +1392,23 @@ export function mountPlanningSurface(
     );
     const heading = node("div", undefined, "yp-dialog-heading");
     heading.append(node("h2", state.preview ? t.preview : task?.label));
-    heading.append(
-      button(
-        t.close,
-        () => {
-          if (state.preview) {
-            options.session.cancel();
-          } else {
-            options.session.open();
-          }
-        },
-        state.busy,
-        "close-dialog"
-      )
+    const close = button(
+      t.close,
+      () => {
+        if (state.preview) {
+          options.session.cancel();
+        } else {
+          options.session.open();
+        }
+      },
+      state.busy,
+      "close-dialog"
     );
+    close.setAttribute("aria-label", t.close);
+    close.title = t.close;
+    close.className = "yp-icon-button";
+    close.replaceChildren(icon("close"));
+    heading.append(close);
     dialog.append(heading);
     const error = errorNode();
     if (error) {
@@ -1330,6 +1449,20 @@ export function mountPlanningSurface(
     }
   }
   const unsubscribe = options.session.subscribe(render);
+  // Resizing the host must keep the sticky tree, virtual columns and links aligned.
+  let measuredWidth = container.clientWidth;
+  const resizeObserver =
+    typeof ResizeObserver === "undefined"
+      ? undefined
+      : new ResizeObserver(() => {
+          if (measuredWidth !== container.clientWidth) {
+            measuredWidth = container.clientWidth;
+            render();
+          }
+        });
+  if (options.mode === "gantt") {
+    resizeObserver?.observe(container);
+  }
   render();
   return {
     update(next: PlanningSurfaceOptions): void {
@@ -1339,6 +1472,7 @@ export function mountPlanningSurface(
     },
     destroy(): void {
       unsubscribe();
+      resizeObserver?.disconnect();
       if (frame != null) {
         cancelAnimationFrame(frame);
       }
