@@ -10,7 +10,7 @@ import type {
 export type TableRecord = Record<string, unknown>;
 export type PrimitiveValue = boolean | number | string;
 export type MaybePromise<T> = Promise<T> | T;
-export type TableDisplayMode = "gallery" | "kanban" | "table";
+export type TableDisplayMode = "gallery" | "kanban" | "table" | "gantt";
 
 import type { TableDensity } from "./table-contracts";
 
@@ -224,6 +224,8 @@ export interface TableBehaviorConfig<TData extends TableRecord = TableRecord> {
   layoutPreset?: TableLayoutPreset;
   displayModes?: TableDisplayMode[];
   defaultDisplayMode?: TableDisplayMode;
+  planning?: import("./planning/types").TablePlanningConfig;
+  gantt?: import("./planning/types").TableGanttConfig;
   kanban?: TableKanbanConfig;
   gallery?: TableGalleryConfig;
   emptyState?: TableEmptyStateConfig;
@@ -594,6 +596,7 @@ export interface TableViewConfig {
   columnOrder?: string[];
   columnSizing?: Record<string, number>;
   displayMode?: TableDisplayMode;
+  gantt?: import("./planning/types").TableGanttViewConfig;
   kanban?: TableKanbanViewConfig;
   gallery?: TableGalleryViewConfig;
   grouping?: string[];
@@ -712,6 +715,7 @@ export interface TableAggregateParams {
 }
 
 export interface TableActions<TData extends TableRecord = TableRecord> {
+  planning?: import("./planning/types").TablePlanningActions;
   list?: (params: TableListParams) => MaybePromise<TableListResult<TData>>;
   aggregate?: (params: TableAggregateParams) => MaybePromise<{
     results: Record<string, unknown>;

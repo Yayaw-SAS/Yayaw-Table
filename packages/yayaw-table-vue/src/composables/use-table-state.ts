@@ -13,6 +13,8 @@ import {
 } from "../column-locks";
 import { createTableViewSnapshot } from "../core";
 import { cloneFormValue } from "../form-runtime";
+import { normalizeGanttView } from "../planning/engine";
+import type { TableGanttViewConfig } from "../planning/types";
 import {
   isTableDensity,
   normalizeColumnSizing,
@@ -79,6 +81,7 @@ export interface TableStateRefs {
   density: Ref<TableDensity>;
   footerCalculationsVisible: Ref<boolean>;
   kanban: Ref<TableKanbanViewConfig>;
+  gantt: Ref<TableGanttViewConfig>;
   gallery: Ref<TableGalleryViewConfig>;
   columnDragEnabled: Ref<boolean>;
   activeViewId: Ref<string | undefined>;
@@ -180,6 +183,9 @@ export const useTableState = <TData extends TableRecord>({
     cardColumnIds: config.table.kanban?.cardColumnIds,
     showCardLabels: config.table.kanban?.showCardLabels,
   });
+  const gantt = ref<TableGanttViewConfig>(
+    normalizeGanttView(config.table.gantt)
+  );
   const gallery = ref<TableGalleryViewConfig>({ ...config.table.gallery });
   const columnDragEnabled = ref(initialColumnDragEnabled());
   watch(
@@ -251,6 +257,7 @@ export const useTableState = <TData extends TableRecord>({
       columnSizing: enabledSizing(sizing.value),
       displayMode: displayMode.value,
       kanban: kanban.value,
+      gantt: gantt.value,
       gallery: gallery.value,
       grouping: enabledGrouping(grouping.value),
       pinning: enabledPinning(pinning.value),
@@ -330,6 +337,9 @@ export const useTableState = <TData extends TableRecord>({
     ) {
       grouping.value = enabledGrouping([kanban.value.groupBy]);
     }
+    gantt.value = normalizeGanttView(
+      parseJson(params.get(`${tableId}-gantt`), defaults.gantt ?? {})
+    );
     gallery.value = parseJson(
       params.get(`${tableId}-gallery`),
       defaults.gallery ?? {}
@@ -344,6 +354,8 @@ export const useTableState = <TData extends TableRecord>({
       ? serialize(grouping.value)
       : undefined
   );
+  const serializePresent = (value: object): string | undefined =>
+    Object.keys(value).length ? serialize(value) : undefined;
   const commitUrl = (): void => {
     const url = new URL(window.location.href);
     const set = (key: string, value: string | undefined): void =>
@@ -389,14 +401,9 @@ export const useTableState = <TData extends TableRecord>({
         ? displayMode.value
         : undefined
     );
-    set(
-      `${tableId}-kanban`,
-      Object.keys(kanban.value).length ? serialize(kanban.value) : undefined
-    );
-    set(
-      `${tableId}-gallery`,
-      Object.keys(gallery.value).length ? serialize(gallery.value) : undefined
-    );
+    set(`${tableId}-kanban`, serializePresent(kanban.value));
+    set(`${tableId}-gantt`, serializePresent(gantt.value));
+    set(`${tableId}-gallery`, serializePresent(gallery.value));
     set("view", activeViewId.value);
     window.history.replaceState(window.history.state, "", url);
   };
@@ -463,6 +470,7 @@ export const useTableState = <TData extends TableRecord>({
           cardColumnIds: config.table.kanban?.cardColumnIds,
           showCardLabels: config.table.kanban?.showCardLabels,
         },
+        gantt: normalizeGanttView(input.gantt ?? config.table.gantt),
         gallery: input.gallery ?? { ...config.table.gallery },
         grouping: enabledGrouping(
           input.grouping ??
@@ -492,6 +500,7 @@ export const useTableState = <TData extends TableRecord>({
     sizing.value = enabledSizing(view.columnSizing);
     displayMode.value = view.displayMode ?? "table";
     kanban.value = view.kanban ?? {};
+    gantt.value = normalizeGanttView(view.gantt);
     gallery.value = view.gallery ?? {};
     grouping.value = view.grouping ?? [];
     pinning.value = view.pinning ?? emptyPinning();
@@ -542,6 +551,7 @@ export const useTableState = <TData extends TableRecord>({
       pagination,
       displayMode,
       kanban,
+      gantt,
       gallery,
       activeViewId,
     ],
@@ -585,6 +595,7 @@ export const useTableState = <TData extends TableRecord>({
     density,
     footerCalculationsVisible,
     kanban,
+    gantt,
     gallery,
     columnDragEnabled,
     activeViewId,

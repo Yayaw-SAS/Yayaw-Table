@@ -48,6 +48,8 @@ export interface DataTableColumnsConfig {
  * Interface for general DataTable configuration options
  */
 export interface DataTableConfig {
+  planning?: import("../planning/types").TablePlanningConfig;
+  gantt?: import("../planning/types").TableGanttConfig;
   /**
    * Allow opening the create flow from table UI actions
    */

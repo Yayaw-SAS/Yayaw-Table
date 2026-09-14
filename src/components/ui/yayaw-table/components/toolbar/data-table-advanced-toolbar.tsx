@@ -1,8 +1,8 @@
+"use client";
 /**
  * Advanced toolbar component for DataTable
  * Provides advanced filtering, view management, and other table controls
  */
-"use client";
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useAtomValue, useSetAtom } from "jotai";
@@ -696,6 +696,7 @@ export function DataTableAdvancedToolbar<TData>({
     sortParam,
     visibilityParam,
   } = useTableUrlState({
+    defaultGantt: tableConfig.table.gantt,
     defaultDisplayMode: tableConfig.table.defaultDisplayMode,
     tableId,
   });
@@ -1226,6 +1227,7 @@ export function DataTableAdvancedToolbar<TData>({
     ),
     kanban: tableConfig.table.kanban,
     gallery: tableConfig.table.gallery,
+    gantt: tableConfig.table.gantt,
   };
   return (
     <TooltipProvider>

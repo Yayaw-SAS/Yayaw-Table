@@ -1,7 +1,10 @@
 <script setup lang="ts">
+import { createPlanningSession, withPlanningActions } from "../planning/session";
+import { comparePlanningTasks, planningTaskMatches } from "../planning/query";
+import PlanningSurface from "./planning/PlanningSurface.vue";
 import { QueryClient } from "@tanstack/vue-query";
 import { toast } from "vue-sonner";
-import { type Component, computed, onBeforeUnmount, provide, ref, watch } from "vue";
+import { type Component, computed, onBeforeUnmount, onMounted, provide, ref, shallowRef, watch } from "vue";
 import { useTableData } from "../composables/use-table-data";
 import { useTableState } from "../composables/use-table-state";
 import { defineTableConfig } from "../config";
@@ -145,7 +148,19 @@ const config = defineTableConfig({
     enableViews: props.enableViews ?? sourceConfig.table.enableViews,
   },
 });
-const actions = computed(() => props.getTableActions?.(props.tableType));
+const rawActions = computed(() => props.getTableActions?.(props.tableType));
+const planning = config.table.planning?.enabled ? createPlanningSession({
+  config: config.table.planning, actions: rawActions.value?.planning,
+  allowEdit: config.table.allowEdit, canEditRow: config.table.canEditRow,
+  onChanged: async () => {await queryClient.invalidateQueries({queryKey: ["yayaw-table"]});},
+}) : undefined;
+const planningState = shallowRef(planning?.getState());
+const unsubscribePlanning = planning?.subscribe(() => {planningState.value = planning.getState();});
+onMounted(() => planning?.connect());
+onBeforeUnmount(() => {unsubscribePlanning?.(); planning?.dispose();});
+const actions = computed(() => rawActions.value && planning ? withPlanningActions(rawActions.value, planning) : rawActions.value);
+const planningCompare = computed(() => {const query = {sorting: state.sorting.value, columns: config.columns.definitions};return (a: import("../planning/types").PlanningTask, b: import("../planning/types").PlanningTask) => comparePlanningTasks(a, b, query);});
+const planningVisible = computed(() => {const query = {search: state.search.value, filters: state.filters.value, advancedFilters: state.advancedFilters.value, columns: config.columns.definitions}; return (task: import("../planning/types").PlanningTask) => planningTaskMatches(task, query);});
 const queryClient = props.queryClient ?? new QueryClient();
 const inputData = computed(() =>
   props.data.length ? props.data : props.initialData
@@ -442,6 +457,8 @@ watch(
 
 provide(tableContextKey, {
   config,
+  planning,
+  planningState,
   tableType: props.tableType,
   formType: props.formType,
   actions,
@@ -508,8 +525,10 @@ provide(tableContextKey, {
     <div class="yayaw-content" :aria-busy="tableData.isLoading.value">
       <DataGrid v-if="state.displayMode.value === 'table'" />
       <KanbanView v-else-if="state.displayMode.value === 'kanban'" />
+      <PlanningSurface v-else-if="state.displayMode.value === 'gantt' && planning" :session="planning" mode="gantt" :locale="locale" :gantt="{...config.table.gantt, ...state.gantt.value}" :visible="planningVisible" :compare="planningCompare" :on-view-change="(view) => {state.gantt.value = view}" :on-clear-filters="state.resetFilters" />
+      <div v-else-if="state.displayMode.value === 'gantt'" role="alert">Configure table.planning and actions.planning to enable Gantt.</div>
       <GalleryView v-else />
-      <CardPagination v-if="state.displayMode.value !== 'table'" />
+      <CardPagination v-if="state.displayMode.value !== 'table' && state.displayMode.value !== 'gantt'" />
       <component :is="loadingOverlay" v-if="tableData.isLoading.value && loadingOverlay" />
       <div v-else-if="tableData.isLoading.value" class="yayaw-loading-overlay">{{ translations.loading }}</div>
     </div>
@@ -519,9 +538,11 @@ provide(tableContextKey, {
     <CatalogueForm v-if="form.open">
       <template v-for="(_, name) in $slots" #[name]="scope"><slot :name="name" v-bind="scope" /></template>
     </CatalogueForm>
+    <PlanningSurface v-if="planning" :session="planning" mode="overlay" :locale="locale" :on-open-record="details || onOpenDetails ? (task) => {if (task.record) openDetails(task.record)} : undefined" />
     <RecordDetails v-if="details && currentDetailRow" :key="getRowId(currentDetailRow)" :row="currentDetailRow" :config="details" :columns="config.columns.definitions" :locale="locale"
       :can-edit="config.table.allowEdit && Boolean(actions?.update) && config.table.canEditRow?.(currentDetailRow) !== false"
       :can-delete="config.table.allowDelete && Boolean(actions?.delete) && config.table.canDeleteRow?.(currentDetailRow) !== false"
+      :on-planning="planning ? (row) => planning?.open({source: planning.config.sourceId, id: getRowId(row)}) : undefined"
       :on-delete="deleteDetail" :on-revert-activity="onRevertActivity" @reverted="detailReverted" @edit="openEdit" @close="detailRow = undefined" @deleted="detailDeleted">
       <template v-for="(_, name) in $slots" #[name]="scope"><slot :name="name" v-bind="scope" /></template>
     </RecordDetails>

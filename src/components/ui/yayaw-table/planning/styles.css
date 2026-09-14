@@ -1,0 +1,326 @@
+.yayaw-planning {
+  --yp-border: var(--border, #e4e4e7);
+  --yp-bg: var(--background, #fff);
+  --yp-fg: var(--foreground, #18181b);
+  --yp-muted: var(--muted, #f4f4f5);
+  --yp-accent: var(--primary, #4f46e5);
+  color: var(--yp-fg);
+  font: inherit;
+  font-size: 14px;
+}
+.yayaw-planning button,
+.yayaw-planning input,
+.yayaw-planning select {
+  font: inherit;
+  color: inherit;
+  border: 1px solid var(--yp-border);
+  border-radius: 6px;
+  background: var(--yp-bg);
+  min-height: 32px;
+  padding: 4px 8px;
+}
+.yayaw-planning button {
+  cursor: pointer;
+}
+.yayaw-planning button:hover {
+  background: var(--yp-muted);
+}
+.yayaw-planning button:disabled,
+.yayaw-planning input:disabled,
+.yayaw-planning select:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+.yayaw-planning :focus-visible {
+  outline: 2px solid var(--yp-accent);
+  outline-offset: 2px;
+}
+.yp-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0;
+}
+.yp-toolbar .yp-field {
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+}
+.yp-toolbar .yp-field input {
+  min-height: 0;
+}
+.yp-viewport {
+  overflow: auto;
+  position: relative;
+  border: 1px solid var(--yp-border);
+  border-radius: 8px;
+  overscroll-behavior: contain;
+}
+.yp-canvas {
+  position: relative;
+}
+.yp-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--yp-bg);
+  border-bottom: 1px solid var(--yp-border);
+}
+.yp-date {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  overflow: hidden;
+  border-right: 1px solid var(--yp-border);
+}
+.yp-row {
+  position: absolute;
+  width: 100%;
+  border-bottom: 1px solid var(--yp-border);
+  display: flex;
+}
+.yp-label {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background: var(--yp-bg);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  border-right: 1px solid var(--yp-border);
+  height: 100%;
+}
+.yp-heading {
+  padding-left: 12px;
+  font-weight: 600;
+}
+.yp-label button {
+  border: 0;
+  background: transparent;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 24px;
+}
+.yp-label button:last-child {
+  flex: 1;
+}
+.yp-track {
+  position: absolute;
+  height: 100%;
+  background-image: linear-gradient(
+    to right,
+    var(--yp-border) 1px,
+    transparent 1px
+  );
+}
+.yp-day-off {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--yp-muted);
+  opacity: 0.65;
+}
+.yp-bar {
+  position: absolute;
+  height: 26px;
+  top: 7px;
+  border-radius: 5px;
+  z-index: 2;
+  background: var(--yp-accent);
+}
+.yp-bar .yp-bar-body {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  background: transparent;
+  color: var(--primary-foreground, #fff);
+  border: 0;
+  padding: 2px 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  touch-action: none;
+  text-align: left;
+}
+.yp-bar .yp-bar-body:hover {
+  background: #ffffff20;
+}
+.yp-summary {
+  height: 16px;
+  top: 13px;
+  border-radius: 1px;
+  opacity: 0.8;
+}
+.yp-summary .yp-bar-body {
+  font-size: 11px;
+  padding: 0 4px;
+}
+.yp-bar .yp-handle {
+  position: absolute;
+  top: 0;
+  height: 26px;
+  min-height: 0;
+  width: 8px;
+  padding: 0;
+  border: 0;
+  background: #ffffff35;
+  cursor: ew-resize;
+  touch-action: none;
+}
+.yp-start {
+  left: 0;
+}
+.yp-end {
+  right: 0;
+}
+.yp-unscheduled {
+  display: inline-block;
+  padding: 10px;
+  opacity: 0.6;
+}
+.yp-links {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  pointer-events: none;
+  color: var(--yp-accent);
+  opacity: 0.7;
+}
+.yp-empty {
+  padding: 48px 16px;
+  text-align: center;
+}
+.yp-error {
+  color: var(--destructive, #b91c1c);
+  padding: 8px 0;
+}
+.yp-warning {
+  padding: 8px;
+  background: var(--yp-muted);
+  border-radius: 6px;
+}
+.yp-dialog {
+  color: var(--yp-fg);
+  background: var(--yp-bg);
+  border: 1px solid var(--yp-border);
+  border-radius: 12px;
+  width: min(900px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  overflow: auto;
+  padding: 20px;
+  box-shadow: 0 20px 80px #0003;
+}
+.yp-dialog::backdrop {
+  background: #0006;
+}
+.yp-dialog-heading,
+.yp-dialog-actions,
+.yp-dependency {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.yp-dialog-heading {
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+.yp-dialog h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+.yp-dialog h3 {
+  margin-top: 24px;
+  font-weight: 600;
+}
+.yp-dialog h4 {
+  margin: 16px 0 8px;
+}
+.yp-dialog-actions {
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+.yp-dialog-actions button:last-child {
+  background: var(--yp-accent);
+  color: var(--primary-foreground, #fff);
+}
+.yp-editor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+}
+.yp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.yp-field select {
+  max-width: 260px;
+}
+.yp-field span {
+  font-size: 12px;
+  opacity: 0.8;
+}
+.yp-dependency {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--yp-border);
+}
+.yp-dependency span {
+  flex: 1;
+}
+.yp-preview-table {
+  overflow: auto;
+}
+.yp-preview-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.yp-preview-table th,
+.yp-preview-table td {
+  text-align: left;
+  padding: 10px;
+  border-bottom: 1px solid var(--yp-border);
+  font-size: 13px;
+}
+@media (max-width: 640px) {
+  .yp-dialog {
+    padding: 14px;
+  }
+  .yp-editor .yp-field {
+    flex: 1;
+    min-width: 130px;
+  }
+  .yp-dialog-actions {
+    flex-wrap: wrap;
+  }
+}
+
+.yp-date {
+  top: 21px;
+  height: 21px;
+}
+.yp-month {
+  position: absolute;
+  top: 0;
+  height: 21px;
+  padding-left: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  border-bottom: 1px solid var(--yp-border);
+  border-right: 1px solid var(--yp-border);
+  box-sizing: border-box;
+}

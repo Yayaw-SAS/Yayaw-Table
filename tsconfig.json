@@ -28,7 +28,10 @@
     "scripts/**/*.mjs",
     "src/**/*.ts",
     "src/**/*.tsx",
-    "tests/**/*.tsx"
+    "tests/**/*.tsx",
+    "examples/gantt-react.tsx",
+    "examples/gantt-data.ts",
+    "examples/gantt-preview/main.tsx"
   ],
   "exclude": ["node_modules", "dist", "registry", "packages/yayaw-table-vue"]
 }

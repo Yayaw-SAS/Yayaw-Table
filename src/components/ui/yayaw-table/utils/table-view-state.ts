@@ -1,3 +1,4 @@
+import { normalizeGanttView } from "../planning/engine";
 import type {
   ColumnFiltersState,
   ColumnPinningState,
@@ -91,7 +92,7 @@ export function getDisplayModeGrouping({
 function normalizeDisplayMode(
   value: TableDisplayMode | undefined
 ): TableDisplayMode | undefined {
-  if (value === "gallery" || value === "kanban" || value === "table") {
+  if (value === "gallery" || value === "kanban" || value === "table" || value === "gantt") {
     return value;
   }
 
@@ -230,6 +231,11 @@ function normalizeViewDensity(
   return isTableDensity(density) ? { density } : {};
 }
 
+function normalizedGanttConfig(input: TableViewConfig["gantt"]): TableViewConfig {
+  const gantt = normalizeGanttView(input);
+  return Object.keys(gantt).length ? {gantt} : {};
+}
+
 export function normalizeTableViewConfig(
   input: TableViewConfig
 ): TableViewConfig {
@@ -262,6 +268,7 @@ export function normalizeTableViewConfig(
   const displayMode = normalizeDisplayMode(config.displayMode);
   const grouping = normalizeGroupingState(config.grouping);
   const kanban = normalizeKanbanViewConfig(config.kanban);
+
   const gallery = normalizeGalleryViewConfig(config.gallery);
   const pageSize = normalizePageSize(config.pageSize);
   const sorting = hasArrayValues(config.sorting)
@@ -298,6 +305,7 @@ export function normalizeTableViewConfig(
   if (kanban) {
     normalized.kanban = kanban;
   }
+  Object.assign(normalized, normalizedGanttConfig(config.gantt));
   if (gallery) {
     normalized.gallery = gallery;
   }
@@ -319,6 +327,7 @@ export function createTableViewConfigSnapshot({
   filtersParam,
   globalSearchParam,
   groupingParam,
+  ganttParam,
   galleryParam,
   kanbanParam,
   kanbanGroupByParam,
@@ -336,6 +345,7 @@ export function createTableViewConfigSnapshot({
   filtersParam: ColumnFiltersState;
   globalSearchParam: string;
   groupingParam: string[];
+  ganttParam?: TableViewConfig["gantt"];
   galleryParam: TableViewConfig["gallery"];
   kanbanParam: TableViewConfig["kanban"];
   kanbanGroupByParam: string;
@@ -361,6 +371,7 @@ export function createTableViewConfigSnapshot({
       groupingParam,
       kanbanParam?.groupBy ?? kanbanGroupByParam
     ),
+    gantt: ganttParam,
     gallery: galleryParam,
     kanban: kanbanParam,
     pageSize: normalizePageSize(pageSizeParam),

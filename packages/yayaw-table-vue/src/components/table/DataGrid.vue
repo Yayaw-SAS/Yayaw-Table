@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { buildPlanningRows } from "../../planning/query";
 import { getNextRowSelectionForRange, getRenderedRangeRows } from "../../row-selection-range";
 import TableEmptyState from "./TableEmptyState.vue";
 import { useAutoPageSize } from "../../composables/use-auto-page-size";
@@ -195,7 +196,7 @@ const columns = computed<ColumnDef<TableRecord>[]>(() => {
 
 const table = useYayawTable({
   get data() {
-    return clientRows.value;
+    return buildPlanningRows(clientRows.value, context.planningState?.value?.snapshot, context.config.table.planning, context.getRowId);
   },
   get columns() {
     return columns.value;
@@ -799,7 +800,12 @@ const pinnedStyle = (column: Column<TableRecord>): CSSProperties => {
             </tr>
             <tr v-else :class="{ selected: row.getIsSelected() }" @click="rowClick(row.original, $event)">
               <td v-for="cell in row.getVisibleCells()" :key="cell.id" :style="pinnedStyle(cell.column)">
-                <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
+                <span v-if="context.planning && cell.column.id === row.getVisibleCells().find(item => !['select', 'actions'].includes(item.column.id))?.column.id" :style="{paddingInlineStart: `${row.depth * 16}px`}">
+                  <button v-if="row.subRows.length" type="button" :aria-expanded="row.getIsExpanded()" :aria-label="`${row.getIsExpanded() ? 'Collapse' : 'Expand'} ${row.id}`" @click.stop="row.toggleExpanded()">{{ row.getIsExpanded() ? '▾' : '▸' }}</button>
+                  <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
+                  <button type="button" :aria-label="`Planning ${row.id}`" @click.stop="context.planning.open({source: context.planning.config.sourceId, id: context.getRowId(row.original)})">↗</button>
+                </span>
+                <FlexRender v-else :render="cell.column.columnDef.cell" :props="cell.getContext()" />
               </td>
             </tr>
           </template>

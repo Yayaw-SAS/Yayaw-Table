@@ -1,0 +1,8 @@
+@import "tailwindcss";
+@import "../responsive-toolbar-theme.css";
+@source "../../src";
+@source "../gantt-react.tsx";
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+}
