@@ -1,4 +1,5 @@
 "use client";
+import { usePlanningState } from "../../planning/react";
 
 import { useSetAtom } from "jotai";
 import type { TableCatalogueConfig } from "../../hooks/use-table-config";
@@ -42,6 +43,7 @@ export function TableRecordDetails({
 }) {
   const setFormState = useSetAtom(catalogueFormAtom);
   const locale = useLocale();
+  const {session: planningSession} = usePlanningState();
   const getActions = useTableActions();
   const actions = getActions?.(tableType);
   if (!(details && row)) {
@@ -95,6 +97,7 @@ export function TableRecordDetails({
       onDeleted={async () => {
         await onRefresh();
       }}
+      onPlanning={planningSession ? (item) => planningSession.open({source: planningSession.config.sourceId, id: idOf(item)}) : undefined}
       onEdit={canEdit ? edit : undefined}
       onRevertActivity={onRevertActivity}
       onReverted={async () => {

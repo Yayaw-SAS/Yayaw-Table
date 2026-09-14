@@ -4,14 +4,16 @@ import {
 } from "./table-contracts";
 
 /** These capabilities describe presentation, before catalogue permissions apply. */
-export function getViewModeCapabilities(mode: "table" | "kanban" | "gallery") {
+export function getViewModeCapabilities(
+  mode: "table" | "kanban" | "gallery" | "gantt"
+) {
   return {
     columns: mode === "table",
     density: mode === "table",
     calculations: mode === "table",
     kanban: mode === "kanban",
     gallery: mode === "gallery",
-    maxGroups: mode === "table" ? 2 : 1,
+    maxGroups: { table: 2, gantt: 0, kanban: 1, gallery: 1 }[mode],
   } as const;
 }
 
@@ -26,6 +28,7 @@ const VIEW_SETTING_KEYS = [
   "displayMode",
   "footerCalculationsVisible",
   "gallery",
+  "gantt",
   "globalSearch",
   "grouping",
   "kanban",

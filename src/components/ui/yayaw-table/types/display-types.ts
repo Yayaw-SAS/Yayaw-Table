@@ -4,7 +4,7 @@
 
 export type { TableDensity } from "../utils/table-contracts";
 
-export type TableDisplayMode = "gallery" | "kanban" | "table";
+export type TableDisplayMode = "gallery" | "kanban" | "table" | "gantt";
 
 export type TableGalleryAspectRatio = "portrait" | "square" | "video" | "wide";
 

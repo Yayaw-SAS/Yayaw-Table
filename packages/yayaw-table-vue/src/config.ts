@@ -88,7 +88,7 @@ const layoutDefaults: Record<
 export const resolveTableDisplayModes = (
   displayModes?: TableDisplayMode[]
 ): TableDisplayMode[] => {
-  const allowed: TableDisplayMode[] = ["table", "kanban", "gallery"];
+  const allowed: TableDisplayMode[] = ["table", "kanban", "gallery", "gantt"];
   const unique = (displayModes ?? ["table"]).filter(
     (mode, index, modes) =>
       allowed.includes(mode) && modes.indexOf(mode) === index

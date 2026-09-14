@@ -49,6 +49,7 @@ export const defaultTranslations: Required<
   DataTableTranslations = {
   "views.view": "View",
   "views.settings": "Views and settings",
+  "display.gantt": "Gantt",
   "views.cardSettings": "Card settings",
   "views.upToDate": "This view is already up to date",
   "views.readOnly": "This view cannot be modified",
@@ -293,6 +294,7 @@ export const frenchTranslations: DataTableTranslations = {
   "url_state.link_copied": "Lien copié dans le presse-papiers",
   "display.table": "Tableau",
   "display.kanban": "Kanban",
+  "display.gantt": "Gantt",
   "display.gallery": "Galerie",
   add: "Ajouter",
   dismiss: "Fermer le message",

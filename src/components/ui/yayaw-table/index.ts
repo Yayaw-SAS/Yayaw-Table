@@ -87,3 +87,9 @@ export type {
   UpdateTableViewInput,
 } from "./types/view-types";
 export { createLocalTableViewActions } from "./utils/table-view-storage";
+
+export type * from "./planning/types";
+export { createMemoryPlanningAdapter } from "./planning/adapter";
+export { calculatePlanning, resolvedPlanningSnapshot } from "./planning/engine";
+
+export { planningTasksFromRows, type PlanningRowAdapter } from "./planning/rows";

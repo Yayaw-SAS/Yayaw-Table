@@ -38,6 +38,10 @@ export interface TableOptionsRequest {
 
 export interface TableContextValue<TData extends TableRecord = TableRecord> {
   config: TableConfig<TData>;
+  planning?: import("./planning/session").PlanningSession;
+  planningState?: Ref<
+    import("./planning/session").PlanningSessionState | undefined
+  >;
   tableType?: string;
   formType?: string;
   actions: ComputedRef<TableActions<TData> | undefined>;

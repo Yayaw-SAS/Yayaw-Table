@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import GanttExample from "./GanttExample.vue";
 import { ref } from "vue";
 import { Archive } from "lucide-vue-next";
 import { Toaster } from "vue-sonner";
@@ -31,6 +32,7 @@ interface Product extends TableRecord {
   createdAt: string;
 }
 
+const ganttExample = new URLSearchParams(window.location.search).get("example") === "gantt";
 const seed: Product[] = Array.from({ length: 34 }, (_, index) => ({
   id: `product-${index + 1}`,
   name: `Product ${index + 1}`,
@@ -326,7 +328,8 @@ const typesActions: TableActions = {
 
 <template>
   <Toaster position="bottom-right" close-button />
-  <main class="demo-shell">
+  <main v-if="ganttExample" class="demo-shell"><GanttExample /></main>
+  <main v-else class="demo-shell">
     <header class="demo-header">
       <p class="demo-eyebrow">YaYaw Table · Vue 3</p>
       <h1>Interactive Vue example</h1>

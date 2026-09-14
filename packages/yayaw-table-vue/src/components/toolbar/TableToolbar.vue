@@ -5,6 +5,7 @@ import {
   MoreHorizontal,
   ArrowDownAZ,
   Calculator,
+  ChartGantt,
   Columns3,
   Images,
   Table2,
@@ -66,7 +67,7 @@ const search = computed({
     context.state.search.value = value;
   },
 });
-const displayModeIcons = { table: Table2, kanban: Columns3, gallery: Images };
+const displayModeIcons = { gantt: ChartGantt, table: Table2, kanban: Columns3, gallery: Images };
 const modes = computed<TableDisplayMode[]>(
   () => context.config.table.displayModes ?? ["table"]
 );
@@ -504,7 +505,7 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
                 </span>
                 <span class="yayaw-options-item-end">{{ context.footerCalculationsVisible.value ? translate("calculationsOn", "Shown") : translate("calculationsOff", "Hidden") }}</span>
               </button>
-              <button v-if="!capabilities.columns" type="button" class="yayaw-options-item" @click="optionsView = 'cards'"><List :size="16" /><span>{{ translate('views.cardSettings', 'Card settings') }}</span><ChevronRight :size="16" /></button>
+              <button v-if="context.state.displayMode.value === 'kanban' || context.state.displayMode.value === 'gallery'" type="button" class="yayaw-options-item" @click="optionsView = 'cards'"><List :size="16" /><span>{{ translate('views.cardSettings', 'Card settings') }}</span><ChevronRight :size="16" /></button>
             </div>
 
 

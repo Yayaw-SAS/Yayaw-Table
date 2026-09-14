@@ -1,8 +1,10 @@
+"use client";
+import { PlanningSurface, usePlanningState } from "../planning/react";
+import { buildPlanningRows, comparePlanningTasks, planningTaskMatches } from "../planning/query";
 /**
  * Modern implementation of the DataTable component
  * A cleaner approach using modular components and hooks
  */
-"use client";
 
 import { type QueryClient, useQueryClient } from "@tanstack/react-query";
 import type { Cell, ColumnDef, Header, Row } from "@/components/ui/yayaw-table/tanstack";
@@ -931,7 +933,7 @@ function ModernDataTable<
   }, [onRowSelectionChange]);
   const queryClient = useQueryClient();
   const setFormState = useSetAtom(catalogueFormAtom);
-  const { t } = useTranslations();
+  const { t, locale } = useTranslations();
   const getFormConfig = useFormConfig();
   const resolvedTableType = tableType || tableId;
   const defaultFormType = formType || resolvedTableType;
@@ -1181,7 +1183,8 @@ function ModernDataTable<
   ]);
 
   // Use fetched data from API like in production
-  const data = fetchedData || [];
+  const {session: planningSession, state: planningState} = usePlanningState();
+  const data = useMemo(() => buildPlanningRows((fetchedData || []) as TData[], planningState.snapshot, tableConfig.table.planning, getRowId ?? ((row: TData) => String(row.id))), [fetchedData, planningState.snapshot, tableConfig.table.planning, getRowId]);
 
   // Create a table instance with the actual data to be used (filtered or not)
   // Memoize table instance configuration to prevent recreating table on every render
@@ -1402,6 +1405,9 @@ function ModernDataTable<
     displayModeParam,
     expandedParam,
     filtersParam,
+    ganttParam,
+    sortParam,
+    setGanttFromUI,
     galleryParam,
     globalSearchParam,
     groupingParam,
@@ -1409,6 +1415,7 @@ function ModernDataTable<
     setExpandedFromUI,
     resetFilters,
   } = useTableUrlState({
+    defaultGantt: tableConfig.table.gantt,
     defaultDisplayMode: tableConfig.table.defaultDisplayMode,
     tableId: tableId || "",
   });
@@ -1478,6 +1485,7 @@ function ModernDataTable<
     displayModes: configuredDisplayModes,
     groupBy: kanbanGroupBy,
   });
+  const isGanttMode = activeDisplayMode === "gantt";
   const isGalleryMode = shouldUseGalleryDisplayMode({
     activeDisplayMode,
     displayModes: configuredDisplayModes,
@@ -1966,7 +1974,11 @@ function ModernDataTable<
           key={cell.id}
           style={sizeStyle}
         >
-          {renderRegularCellContent(row, cell)}
+          {planningSession && cell.column.id === row.getVisibleCells().find((item) => !["select", "actions"].includes(item.column.id))?.column.id ? <span className="inline-flex items-center gap-1" style={{paddingLeft: row.depth * 16}}>
+            {row.subRows.length > 0 && <button type="button" aria-label={`${localExpanded[row.id] !== false ? "Collapse" : "Expand"} ${row.id}`} aria-expanded={localExpanded[row.id] !== false} onClick={(event) => {event.stopPropagation(); setLocalExpanded((previous) => ({...previous, [row.id]: previous[row.id] === false}));}}>{localExpanded[row.id] !== false ? "▾" : "▸"}</button>}
+            {renderRegularCellContent(row, cell)}
+            <button type="button" aria-label={`Planning ${row.id}`} className="text-muted-foreground" onClick={(event) => {event.stopPropagation(); planningSession.open({source: planningSession.config.sourceId, id: getRowId?.(row.original) ?? String(row.original.id)});}}>↗</button>
+          </span> : renderRegularCellContent(row, cell)}
         </TableCell>
       );
     };
@@ -2109,12 +2121,18 @@ function ModernDataTable<
       }
     };
 
+    const renderPlanningChildren = (row: Row<TData>, level: number) => {
+      if (!planningSession || localExpanded[row.id] === false) { return; }
+      for (const child of row.subRows) { renderRowWithChildren(child, level + 1); }
+    };
+
     const renderRowWithChildren = (row: Row<TData>, level = 0) => {
       const visibleCells = row.getVisibleCells();
       const isGroupedRow = row.getIsGrouped();
 
       if (!isGroupedRow) {
         rowElements.push(renderRegularRow(row, visibleCells));
+        renderPlanningChildren(row, level);
         return;
       }
 
@@ -2144,6 +2162,8 @@ function ModernDataTable<
       </TableBody>
     );
   }, [
+    planningSession,
+    getRowId,
     commitInlineEdit,
     isLoading,
     data,
@@ -2216,7 +2236,7 @@ function ModernDataTable<
     enableColumnResizing,
   ]);
 
-  const enableAutoPageSize = supportsAutomaticPageSize(enablePagination, tableConfig.table.enableAutoPageSize, isGalleryMode, isKanbanMode);
+  const enableAutoPageSize = !isGanttMode && supportsAutomaticPageSize(enablePagination, tableConfig.table.enableAutoPageSize, isGalleryMode, isKanbanMode);
   const autoPageSizing = useAutoPageSize({
     root: paginationRootRef,
     tableId,
@@ -2228,7 +2248,10 @@ function ModernDataTable<
     setPageSize: size => table.setPageSize(size),
   });
 
+  const renderGanttContent = () => planningSession ? <PlanningSurface session={planningSession} mode="gantt" locale={locale} gantt={{...tableConfig.table.gantt, ...ganttParam}} onViewChange={setGanttFromUI} compare={(a, b) => comparePlanningTasks(a, b, {sorting: sortParam, columns: tableConfig.columns.definitions})} visible={(task) => planningTaskMatches(task, {search: globalSearchParam, filters: filtersParam, advancedFilters: advancedFiltersParam, columns: tableConfig.columns.definitions})} emptyTitle={emptyStateTitle} onClearFilters={hasActiveSearchOrFilters ? resetFilters : undefined} /> : <div role="alert">Configure table.planning and actions.planning to enable Gantt.</div>;
+
   const renderDisplayContent = () => {
+    if (isGanttMode) { return renderGanttContent(); }
     if (isKanbanMode) {
       return (
         <div className="relative">
@@ -2388,7 +2411,7 @@ function ModernDataTable<
       rowCount,
     });
     const showPaginationArea =
-      enablePagination && (showPaginationControls || renderBulkActionsInFooter);
+      !isGanttMode && enablePagination && (showPaginationControls || renderBulkActionsInFooter);
     const fixedBulkActionsViewportOffset = getBulkActionsViewportBottomOffset({
       isPaginationVisible,
       paginationHeight,

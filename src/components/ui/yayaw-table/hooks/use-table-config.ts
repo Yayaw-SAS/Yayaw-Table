@@ -108,6 +108,8 @@ export interface TableCatalogueTableConfig {
   displayModes?: TableDisplayMode[];
   defaultDisplayMode?: TableDisplayMode;
   kanban?: TableKanbanConfig;
+  planning?: import("../planning/types").TablePlanningConfig;
+  gantt?: import("../planning/types").TableGanttConfig;
   gallery?: TableGalleryConfig;
   emptyState?: TableEmptyStateConfig;
   enableRowSelection: boolean;
@@ -341,6 +343,8 @@ function resolveTableBehaviorConfig(
       allowedModes: displayModes,
       displayMode: mergedConfig.defaultDisplayMode,
     }),
+    planning: mergedConfig.planning,
+    gantt: mergedConfig.gantt,
     kanban: mergedConfig.kanban,
     gallery: mergedConfig.gallery,
     emptyState: {

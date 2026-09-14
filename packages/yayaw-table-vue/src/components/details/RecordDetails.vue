@@ -16,6 +16,7 @@ const props = withDefaults(defineProps<{
   locale?: string;
   canEdit?: boolean;
   canDelete?: boolean;
+  onPlanning?: (row: DetailRecord) => void;
   onDelete?: (row: DetailRecord) => Promise<{ success: boolean; error?: string }> | { success: boolean; error?: string };
   onRevertActivity?: DetailRevertHandler;
 }>(), { columns: () => [], locale: "en", canEdit: false, canDelete: false });
@@ -85,6 +86,7 @@ const confirmDelete = async (): Promise<void> => {
         <div class="yayaw-detail-heading"><p class="yayaw-detail-eyebrow">{{ labels.record }} <span v-if="row.id">/ {{ row.id }}</span></p><h2>{{ title }}</h2><p v-if="config.description" class="yayaw-detail-description">{{ config.description(row) }}</p></div>
         <div class="yayaw-detail-actions">
           <button v-if="canEdit" type="button" class="yayaw-button yayaw-button-outline" :disabled="confirming || deleting || Boolean(undoPending)" @click="emit('edit', row)"><Pencil :size="15" aria-hidden="true" />{{ labels.edit }}</button>
+          <button v-if="onPlanning" type="button" class="yayaw-button" @click="onPlanning(row)">{{ locale?.startsWith('fr') ? 'Planification' : 'Planning' }}</button>
           <button v-if="canDelete && onDelete" ref="deletionTrigger" type="button" class="yayaw-button yayaw-detail-delete" :disabled="confirming || deleting || Boolean(undoPending)" @click="requestDelete"><Trash2 :size="15" aria-hidden="true" />{{ labels.delete }}</button>
           <button v-if="config.presentation === 'inline'" type="button" class="yayaw-icon-button" :aria-label="labels.close" :disabled="confirming || deleting || Boolean(undoPending)" @click="emit('close')">×</button>
         </div>

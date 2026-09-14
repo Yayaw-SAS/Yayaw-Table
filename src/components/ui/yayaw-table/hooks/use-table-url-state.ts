@@ -1,3 +1,5 @@
+import { normalizeGanttView } from "../planning/engine";
+import type { TableGanttViewConfig } from "../planning/types";
 /**
  * Hook for managing URL state with nuqs
  * Allows sharing links to specific table states
@@ -138,7 +140,7 @@ const normalizePageSize = (value: number | undefined) =>
 const normalizeDisplayMode = (
   value: null | string | undefined
 ): TableDisplayMode | undefined => {
-  if (value === "gallery" || value === "kanban" || value === "table") {
+  if (value === "gallery" || value === "kanban" || value === "table" || value === "gantt") {
     return value;
   }
 
@@ -290,6 +292,8 @@ const kanbanParser = createParser({
   },
 });
 
+const ganttParser = createParser({parse: (value: string) => {try {return normalizeGanttView(JSON.parse(value));} catch {return {};}}, serialize: (value: TableGanttViewConfig) => JSON.stringify(normalizeGanttView(value))});
+
 // Parser for advanced filters
 const advancedFiltersParser = createParser({
   parse: (value: string) => {
@@ -327,6 +331,7 @@ interface PaginationParams {
  * Options for the useTableUrlState hook
  */
 interface UseTableUrlStateOptions {
+  defaultGantt?: TableGanttViewConfig;
   defaultDensity?: TableViewConfig["density"];
   /**
    * Display mode used when the URL does not already carry table display state.
@@ -360,6 +365,7 @@ interface UseTableUrlStateOptions {
  * @returns Object with URL state utilities and parameters
  */
 export function useTableUrlState({
+  defaultGantt,
   defaultDensity = "medium",
   defaultDisplayMode,
   defaultPageSize,
@@ -676,6 +682,9 @@ export function useTableUrlState({
     setUrlGalleryParam,
     EMPTY_OBJECT as TableGalleryViewConfig
   );
+
+  const [urlGanttParam, setUrlGanttParam] = useQueryState(`${tableId}-gantt`, ganttParser);
+  const [ganttParam, setGanttParam] = useStateChannel(tableId, shouldSyncUrl, "gantt", urlGanttParam, setUrlGanttParam, useMemo(() => normalizeGanttView(defaultGantt), [defaultGantt]));
 
   const resolvedKanbanParam = useMemo<TableKanbanViewConfig>(() => {
     if (kanbanParam?.groupBy || !kanbanGroupByParam) {
@@ -1042,6 +1051,7 @@ export function useTableUrlState({
         normalizeDisplayMode(displayModeParam) ?? resolvedDefaultDisplayMode,
       filtersParam: (filtersParam || []) as ColumnFiltersState,
       globalSearchParam: globalSearchParam || "",
+      ganttParam: normalizeGanttView({...defaultGantt, ...ganttParam}),
       galleryParam: (galleryParam || {}) as TableGalleryViewConfig,
       groupingParam: resolvedGroupingParam,
       kanbanParam: resolvedKanbanCardParam,
@@ -1059,10 +1069,12 @@ export function useTableUrlState({
     densityOverride,
     footerCalculationsVisible,
     defaultDensity,
+    defaultGantt,
     advancedFiltersParam,
     defaultPageSizeParam,
     displayModeParam,
     filtersParam,
+    ganttParam,
     galleryParam,
     globalSearchParam,
     resolvedGroupingParam,
@@ -1105,6 +1117,7 @@ export function useTableUrlState({
       );
       queueUrlUpdate(setKanbanParam, normalizedConfig.kanban || null);
       queueUrlUpdate(setKanbanGroupByParam, null);
+      queueUrlUpdate(setGanttParam, config.gantt || null);
       queueUrlUpdate(setGalleryParam, config.gallery || null);
       queueUrlUpdate(setPageParam, "0");
       queueUrlUpdate(
@@ -1131,6 +1144,7 @@ export function useTableUrlState({
       setDisplayModeParam,
       setExpandedParam,
       setFiltersParam,
+      setGanttParam,
       setGalleryParam,
       setGlobalSearchParam,
       setGroupingParam,
@@ -1194,6 +1208,7 @@ export function useTableUrlState({
       url.searchParams.delete(`${tableId}-kanbanGroupBy`);
       url.searchParams.delete(`${tableId}-kanban`);
       setUrlParam(url, `${tableId}-kanban`, resolvedKanbanCardParam);
+      setUrlParam(url, `${tableId}-gantt`, normalizeGanttView({...defaultGantt, ...ganttParam}));
       setUrlParam(url, `${tableId}-gallery`, galleryParam);
 
       // Special case for pinning
@@ -1218,6 +1233,8 @@ export function useTableUrlState({
       resolvedGroupingParam,
       displayModeParam,
       resolvedKanbanCardParam,
+      ganttParam,
+      defaultGantt,
       galleryParam,
       globalSearchParam,
       pinningParam,
@@ -1345,6 +1362,8 @@ export function useTableUrlState({
     expandedParam,
     filtersParam: filtersParam || EMPTY_ARRAY,
     groupingParam: resolvedGroupingParam,
+    ganttParam: normalizeGanttView({...defaultGantt, ...ganttParam}),
+    setGanttFromUI: setGanttParam,
     galleryParam: (galleryParam || EMPTY_OBJECT) as TableGalleryViewConfig,
     historyIndexParam,
     kanbanParam: resolvedKanbanCardParam,
