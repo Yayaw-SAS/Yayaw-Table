@@ -89,6 +89,12 @@ links, including hidden endpoints. The planner always works from the full loaded
 
 ## Examples and verification
 
+The timeline uses a compact period toolbar, a responsive sticky task list, subtle grid lines,
+pastel task bars and neutral summary bars. Colors carry no planning or status meaning. Today's
+date is marked in the header and timeline. Icons retain accessible names; resize handles appear
+on hover or keyboard focus and remain visible on touch devices. Dialogs and timeline surfaces
+inherit the host's Shadcn or Vue color tokens, including dark mode.
+
 Run `bun run gantt:dev` for the standalone React example at port 5174 and `bun run vue:dev` for the
 Vue example at `http://localhost:5173/?example=gantt`. Both use the same tasks, holiday calendar,
 unscheduled record, and cross-source release dependency. The `tasks/launch` and `releases/launch`

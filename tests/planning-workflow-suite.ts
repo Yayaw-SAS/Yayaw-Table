@@ -698,6 +698,52 @@ export function planningWorkflowSuite(api: WorkflowSuite): void {
       host.remove();
     }
   });
+  test("timeline date markers follow navigation without changing the planning", async () => {
+    const store = memory({
+      snapshot: planningFixture(),
+      config: planningConfig,
+    });
+    const client = session({ config: planningConfig, actions: store.actions });
+    await client.load();
+    const host = document.createElement("div");
+    document.body.append(host);
+    const surface = mount(host, { session: client, mode: "gantt" });
+    const before = JSON.stringify(store.getSnapshot());
+    try {
+      selectElement<HTMLButtonElement>(host, '[data-focus="today"]').click();
+      const current = selectElement<HTMLElement>(host, '[aria-current="date"]');
+      assert(
+        current.title === new Date().toISOString().slice(0, 10),
+        "Today identifies the current civil date"
+      );
+      const marker = selectElement<HTMLElement>(host, ".yp-today-line");
+      assert(
+        Number.parseFloat(marker.style.left) ===
+          Number.parseFloat(current.style.left) +
+            Number.parseFloat(current.style.width) / 2,
+        "The date marker stays centered beneath its header"
+      );
+      selectElement<HTMLButtonElement>(
+        host,
+        '[aria-label="Next period"]'
+      ).click();
+      assert(
+        !(
+          host.querySelector('[aria-current="date"]') ||
+          host.querySelector(".yp-today-line")
+        ),
+        "A future window does not show a misleading today marker"
+      );
+      assert(
+        JSON.stringify(store.getSnapshot()) === before,
+        "Navigating the visual markers never mutates planning dates"
+      );
+    } finally {
+      surface.destroy();
+      client.dispose();
+      host.remove();
+    }
+  });
   test("sessions isolate drafts and refresh only their application scope", async () => {
     const store = memory({
       snapshot: planningFixture(),
