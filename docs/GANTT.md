@@ -105,3 +105,18 @@ See [planning engine](PLANNING-ENGINE.md), [adapter contract](PLANNING-ADAPTERS.
 [framework parity](FRAMEWORK-PARITY.md). Shared engine/session/surface regression suites run in Bun
 and Vitest against the independently distributed framework files. `bun run release:check` is the
 full distribution gate; `bun run gantt:build` additionally verifies the standalone React demo bundle.
+
+## Integrated documentation examples
+
+The [public Gantt guide](https://yayaw.app/en/docs/table/gantt) embeds both React
+and Vue in the same Preview / Code interface as the other Table guides. The
+framework tabs select the running edition; Reset restores that isolated example,
+and Expand opens the same preview in a full tab. Direct examples:
+
+- [React](https://yayaw.app/table-previews/react/index.html?example=gantt)
+- [Vue](https://yayaw.app/table-previews/vue/index.html?example=gantt)
+
+The companion Yayaw repository builds these previews from an immutable,
+checksum-verified registry commit, with shared planning data and independent
+adapters. Updating the public examples requires updating that pin, checking all
+existing examples, and publishing the reviewed bilingual documentation seed.
