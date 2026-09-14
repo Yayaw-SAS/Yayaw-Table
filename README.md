@@ -159,3 +159,10 @@ Release notes and SemVer bumps use Changesets. See [the release workflow](./docs
 MIT
 
 See [React and Vue compatibility](docs/FRAMEWORK-PARITY.md) for shared action contracts, catalogue forms, bulk editing, and reset behavior.
+
+### Gantt examples
+
+Try the [Gantt guide with embedded React and Vue examples](https://yayaw.app/en/docs/table/gantt),
+or open the [React](https://yayaw.app/table-previews/react/index.html?example=gantt)
+and [Vue](https://yayaw.app/table-previews/vue/index.html?example=gantt) examples directly.
+Preview / Code, Reset and Expand use the same controls as the other documentation examples.

@@ -434,3 +434,12 @@ container width; a resize keeps header cells, bars, dependencies and the today m
 Planning dialogs inherit either Shadcn or Vue theme tokens, with visible keyboard focus and
 resize handles on hover, focus and touch devices. The shared navigation fixture confirms that
 the today marker follows the displayed window without changing the planning snapshot.
+
+### Embedded Gantt examples
+
+Both editions are available in the Gantt guide's existing framework tabs and
+Preview / Code controls. The examples share tasks, calendars and dependencies,
+including a release in a second source. Both support preview, cancellation,
+application, view switching, reset and theme inheritance. The Yayaw example
+verifier checks the actual pinned React and Vue registries, including the other
+embedded examples, before building the two production preview bundles.
