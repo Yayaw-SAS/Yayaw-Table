@@ -113,7 +113,9 @@ const run = async (kind: "delete" | "duplicate" | "edit"): Promise<boolean> => {
     if (!action) {
       return false;
     }
-    const result = await action(id);
+    const result = kind === "delete" && context.actions.value?.delete
+      ? await context.actions.value.delete(id, { row: { ...props.row } })
+      : await action(id);
     if (!result.success) {
       throw new Error(result.error ?? `${kind} failed`);
     }

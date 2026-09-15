@@ -206,7 +206,7 @@ const openDetails = (row: TableRecord): void => {
 };
 const deleteDetail = async (row: TableRecord) => {
   if (!config.table.allowDelete || config.table.canDeleteRow?.(row) === false || !actions.value?.delete) return { success: false };
-  return await actions.value.delete(getRowId(row));
+  return await actions.value.delete(getRowId(row), { row: { ...row } });
 };
 const detailDeleted = async (): Promise<void> => {
   detailRow.value = undefined;

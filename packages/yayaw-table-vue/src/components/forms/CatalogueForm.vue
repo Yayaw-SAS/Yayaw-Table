@@ -289,7 +289,8 @@ const submit = async (): Promise<void> => {
       ? await context.actions.value?.create?.(payload)
       : await context.actions.value?.update?.(
           context.getRowId(selected.row ?? {}),
-          payload
+          payload,
+          { row: { ...selected.row } }
         );
     if (context.form.value !== selected) return;
     let completed: string[] = [];

@@ -2,6 +2,19 @@
 
 The two registries remain independently installable. Their shared adapter lives in `src/components/ui/yayaw-table/utils/table-contracts.ts`; `bun run contracts:sync` copies it to the Vue source before registry generation. `tests/fixtures/parity.json` exercises both filtering implementations and both list contracts.
 
+## Mutation row context
+
+React and Vue pass an optional `TableMutationContext` to per-record persistence actions:
+`update(id, patch, context)` and `delete(id, context)`. `context.row` contains the original
+row, including host version fields, separately from the edited patch. Existing action
+implementations accepting fewer arguments remain valid. Hosts must still validate
+versions, permissions and fields on the server.
+
+The context is forwarded by catalogue forms, inline editing, Kanban moves, row/detail
+delete actions and per-row bulk-delete fallbacks. A host-provided bulk action keeps its
+existing contract and remains responsible for carrying each selected record's version.
+React action/form coverage and Vue inline/form/row action coverage verify the behavior.
+
 ## Release contract
 
 React modules that declare a client boundary keep `"use client"` before imports,

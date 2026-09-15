@@ -714,6 +714,11 @@ export interface TableAggregateParams {
   locale: string;
 }
 
+/** Original displayed row supplied separately from the mutation patch. */
+export interface TableMutationContext {
+  row: Readonly<TableRecord>;
+}
+
 export interface TableActions<TData extends TableRecord = TableRecord> {
   planning?: import("./planning/types").TablePlanningActions;
   list?: (params: TableListParams) => MaybePromise<TableListResult<TData>>;
@@ -724,9 +729,13 @@ export interface TableActions<TData extends TableRecord = TableRecord> {
   create?: (data: TableRecord) => MaybePromise<TableActionResult<TData>>;
   update?: (
     id: string,
-    data: TableRecord
+    data: TableRecord,
+    context?: TableMutationContext
   ) => MaybePromise<TableActionResult<TData>>;
-  delete?: (id: string) => MaybePromise<TableActionResult>;
+  delete?: (
+    id: string,
+    context?: TableMutationContext
+  ) => MaybePromise<TableActionResult>;
   duplicate?: (id: string) => MaybePromise<TableActionResult<TData>>;
   bulkDelete?: (ids: string[]) => MaybePromise<TableActionResult>;
   bulkCopy?: (ids: string[]) => MaybePromise<TableActionResult<TData[]>>;
