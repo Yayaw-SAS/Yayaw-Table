@@ -1,0 +1,127 @@
+/* Shared geometry and Shadcn tokens for both independently installable registries. */
+.yayaw-record-surface {
+  --record-bg: var(--yayaw-background, var(--background, #fff));
+  --record-fg: var(--yayaw-foreground, var(--foreground, #18181b));
+  --record-border: var(--yayaw-border, var(--border, #e4e4e7));
+  --record-secondary: var(
+    --yayaw-muted-foreground,
+    var(--muted-foreground, #71717a)
+  );
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+  background: var(--record-bg);
+  color: var(--record-fg);
+  font-family: inherit;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  outline: none;
+}
+.yayaw-record-surface[data-presentation="drawer"] {
+  position: fixed;
+  z-index: 50;
+  inset: 0 0 0 auto;
+  width: min(var(--record-width, 40rem), 100vw);
+  max-width: 100vw;
+  height: 100dvh;
+  max-height: 100dvh;
+  transform: none;
+  translate: none;
+  border: 0;
+  border-left: 1px solid var(--record-border);
+  border-radius: 0;
+}
+.yayaw-record-surface[data-presentation="modal"] {
+  position: fixed;
+  z-index: 50;
+  inset: 50% auto auto 50%;
+  width: min(var(--record-width, 48rem), calc(100vw - 2rem));
+  max-width: calc(100vw - 2rem);
+  height: auto;
+  max-height: calc(100dvh - 2rem);
+  transform: translate(-50%, -50%);
+  translate: none;
+  border: 1px solid var(--record-border);
+  border-radius: var(--yayaw-radius, var(--radius, 0.625rem));
+}
+.yayaw-record-surface[data-presentation="inline"] {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  max-height: none;
+  border: 1px solid var(--record-border);
+  border-radius: var(--yayaw-radius, var(--radius, 0.625rem));
+}
+.yayaw-record-header {
+  display: flex;
+  flex: none;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--record-border);
+}
+.yayaw-record-heading {
+  flex: 1;
+  min-width: 0;
+}
+.yayaw-record-heading > h2 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.yayaw-record-heading > p {
+  margin: 0.375rem 0 0;
+  color: var(--record-secondary);
+  font-size: 0.875rem;
+}
+.yayaw-record-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+.yayaw-record-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1.5rem;
+}
+.yayaw-record-footer {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 1rem 1.5rem max(1rem, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--record-border);
+}
+@media (max-width: 767px) {
+  .yayaw-record-surface[data-presentation="drawer"] {
+    width: 100vw;
+    border-left: 0;
+  }
+  .yayaw-record-header,
+  .yayaw-record-body {
+    padding: 1rem;
+  }
+  .yayaw-record-footer {
+    padding-inline: 1rem;
+  }
+  .yayaw-record-surface button,
+  .yayaw-record-surface input {
+    min-height: 2.75rem;
+  }
+  .yayaw-record-header > button {
+    min-width: 2.75rem;
+  }
+}

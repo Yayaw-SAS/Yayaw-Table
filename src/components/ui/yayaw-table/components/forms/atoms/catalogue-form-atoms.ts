@@ -8,6 +8,8 @@ import { atom } from "jotai";
  * Interface for the catalogue form state
  */
 export interface CatalogueFormState<TData = Record<string, unknown>> {
+  /** Internal owner for an editor embedded in the existing consultation surface. */
+  surfaceOwner?: "details";
   /**
    * Type of form to use (corresponds to a key in the form catalogue)
    */

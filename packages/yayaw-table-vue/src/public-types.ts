@@ -32,3 +32,8 @@ export {
   planningTasksFromRows,
 } from "./planning/rows";
 export type * from "./planning/types";
+
+export type {
+  RecordPresentation,
+  RecordPresentationConfig,
+} from "./record-presentation";

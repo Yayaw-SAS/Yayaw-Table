@@ -6,6 +6,7 @@ import type {
   FormLayoutBlock,
   FormLayoutRuntime,
 } from "./form-layout";
+import type { RecordPresentationConfig } from "./record-presentation";
 
 export type TableRecord = Record<string, unknown>;
 export type PrimitiveValue = boolean | number | string;
@@ -267,7 +268,7 @@ export interface TableTranslationsConfig {
 }
 
 export type FormMode = "create" | "edit";
-export type FormPresentation = "drawer" | "modal";
+export type FormPresentation = RecordPresentationConfig;
 export type FormFieldType =
   | "checkbox"
   | "collection"
@@ -497,6 +498,8 @@ export interface FormConfig<TData extends TableRecord = TableRecord> {
 }
 
 export interface TableFormConfig {
+  /** Legacy layout alias shared with React. Prefer TableConfig.presentation. */
+  layout?: { mode?: "drawer" | "modal"; width?: string };
   blocks?: FormBlock[];
   /** Defaults to catalogue when getFormConfig is supplied, otherwise JSON. */
   bulkEditMode?: "catalogue" | "json";
@@ -513,6 +516,8 @@ export interface TableConfig<TData extends TableRecord = TableRecord> {
   columns: TableColumnsConfig<TData>;
   table: TableBehaviorConfig<TData>;
   translations: TableTranslationsConfig;
+  /** Shared record presentation; defaults to drawer on desktop and mobile. */
+  presentation?: RecordPresentationConfig;
   form?: TableFormConfig;
   toolbarActions?: ToolbarActionsInput<TData>;
   toolbarActionsPlacement?: ToolbarActionsPlacement;

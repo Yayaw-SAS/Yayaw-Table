@@ -1,0 +1,47 @@
+[
+  { "name": "default desktop drawer", "mobile": false, "expected": "drawer" },
+  { "name": "default mobile drawer", "mobile": true, "expected": "drawer" },
+  {
+    "name": "shared modal",
+    "presentation": "modal",
+    "mobile": true,
+    "expected": "modal"
+  },
+  {
+    "name": "shared inline",
+    "presentation": "inline",
+    "mobile": false,
+    "expected": "inline"
+  },
+  {
+    "name": "desktop choice",
+    "presentation": { "desktop": "inline", "mobile": "drawer" },
+    "mobile": false,
+    "expected": "inline"
+  },
+  {
+    "name": "mobile override",
+    "presentation": { "desktop": "drawer", "mobile": "modal" },
+    "mobile": true,
+    "expected": "modal"
+  },
+  {
+    "name": "mobile inheritance",
+    "presentation": { "desktop": "inline" },
+    "mobile": true,
+    "expected": "inline"
+  },
+  {
+    "name": "legacy fallback",
+    "legacy": "modal",
+    "mobile": false,
+    "expected": "modal"
+  },
+  {
+    "name": "canonical precedence",
+    "presentation": "drawer",
+    "legacy": "modal",
+    "mobile": true,
+    "expected": "drawer"
+  }
+]

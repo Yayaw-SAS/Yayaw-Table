@@ -93,4 +93,8 @@ export type {
   TableViewConfig,
   UpdateTableViewInput,
 } from "./types/view-types";
+export type {
+  RecordPresentation,
+  RecordPresentationConfig,
+} from "./utils/record-presentation";
 export { createLocalTableViewActions } from "./utils/table-view-storage";

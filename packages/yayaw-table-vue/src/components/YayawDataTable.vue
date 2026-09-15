@@ -132,7 +132,7 @@ if (!sourceConfig) {
     `YaYaw Table: no configuration found for table type "${props.tableType}".`
   );
 }
-const config = defineTableConfig({
+const normalizedConfig = defineTableConfig({
   ...sourceConfig,
   id: props.tableId ?? sourceConfig.id,
   columns: {
@@ -148,6 +148,11 @@ const config = defineTableConfig({
     enableViews: props.enableViews ?? sourceConfig.table.enableViews,
   },
 });
+// Presentation can change without resetting the table state or an open draft.
+const config = {
+  ...normalizedConfig,
+  get presentation() { return (props.config ?? props.getTableConfig?.(props.tableType))?.presentation; },
+};
 const rawActions = computed(() => props.getTableActions?.(props.tableType));
 const planning = config.table.planning?.enabled ? createPlanningSession({
   config: config.table.planning, actions: rawActions.value?.planning,
@@ -196,13 +201,19 @@ const selectedRowCache = ref<Record<string, TableRecord>>({});
 const isSelectingAll = ref(false);
 const form = ref<OpenFormState>({ open: false, mode: "create" });
 const detailRow = ref<TableRecord>();
+const detailEditorBusy = ref(false);
+const closeDetails = () => {
+  if (detailEditorBusy.value) return;
+  if (detailRow.value && form.value.open) form.value = { ...form.value, open: false };
+  detailRow.value = undefined;
+};
 const currentDetailRow = computed(() => {
   const selected = detailRow.value;
   return selected && (tableData.rows.value.find(row => getRowId(row) === getRowId(selected)) ?? selected);
 });
 const openDetails = (row: TableRecord): void => {
   if (props.onOpenDetails) props.onOpenDetails(row);
-  else if (props.details) detailRow.value = row;
+  else if (props.details && !form.value.open) detailRow.value = row;
 };
 const deleteDetail = async (row: TableRecord) => {
   if (!config.table.allowDelete || config.table.canDeleteRow?.(row) === false || !actions.value?.delete) return { success: false };
@@ -377,6 +388,7 @@ const densityStyle = computed(() => {
 });
 
 const openCreate = (): void => {
+  detailRow.value = undefined;
   form.value = {
     open: true,
     mode: "create",
@@ -391,6 +403,10 @@ const openEdit = (row: TableRecord): void => {
     row,
     formType: config.form?.resolveEditFormType?.(row) ?? config.form?.editFormType ?? props.formType ?? props.tableType,
   };
+};
+const editDetails = (row: TableRecord): void => {
+  openEdit(row);
+  detailRow.value = row;
 };
 const resolveRowClickMode = (): NonNullable<typeof config.table.rowClickMode> => {
   const configured = config.table.rowClickMode;
@@ -535,16 +551,19 @@ provide(tableContextKey, {
 
     <div class="yayaw-bulk-anchor" aria-hidden="true" />
     <BulkActions v-if="selectedRows.length" />
-    <CatalogueForm v-if="form.open">
+    <CatalogueForm v-if="form.open && !currentDetailRow">
       <template v-for="(_, name) in $slots" #[name]="scope"><slot :name="name" v-bind="scope" /></template>
     </CatalogueForm>
     <PlanningSurface v-if="planning" :session="planning" mode="overlay" :locale="locale" :on-open-record="details || onOpenDetails ? (task) => {if (task.record) openDetails(task.record)} : undefined" />
-    <RecordDetails v-if="details && currentDetailRow" :key="getRowId(currentDetailRow)" :row="currentDetailRow" :config="details" :columns="config.columns.definitions" :locale="locale"
+    <RecordDetails v-if="details && currentDetailRow" :key="getRowId(currentDetailRow)" :row="currentDetailRow" :config="{ ...details, presentation: config.presentation ?? details.presentation }" :editing="form.open" :editor-busy="detailEditorBusy" :columns="config.columns.definitions" :locale="locale"
       :can-edit="config.table.allowEdit && Boolean(actions?.update) && config.table.canEditRow?.(currentDetailRow) !== false"
       :can-delete="config.table.allowDelete && Boolean(actions?.delete) && config.table.canDeleteRow?.(currentDetailRow) !== false"
       :on-planning="planning ? (row) => planning?.open({source: planning.config.sourceId, id: getRowId(row)}) : undefined"
-      :on-delete="deleteDetail" :on-revert-activity="onRevertActivity" @reverted="detailReverted" @edit="openEdit" @close="detailRow = undefined" @deleted="detailDeleted">
+      :on-delete="deleteDetail" :on-revert-activity="onRevertActivity" @reverted="detailReverted" @edit="editDetails" @close="closeDetails" @deleted="detailDeleted">
       <template v-for="(_, name) in $slots" #[name]="scope"><slot :name="name" v-bind="scope" /></template>
+      <template #editor><CatalogueForm embedded @busy="detailEditorBusy = $event">
+        <template v-for="(_, name) in $slots" #[name]="scope"><slot :name="name" v-bind="scope" /></template>
+      </CatalogueForm></template>
     </RecordDetails>
   </section>
 </template>

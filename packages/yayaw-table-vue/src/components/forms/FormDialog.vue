@@ -1,19 +1,23 @@
 <script setup lang="ts">
 import {
   DialogContent,
-  DialogDescription,
   DialogOverlay,
   DialogPortal,
   DialogRoot,
   DialogTitle,
 } from "reka-ui";
-import { nextTick, onMounted, ref, type CSSProperties } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, type CSSProperties } from "vue";
+import { RECORD_MOBILE_QUERY, recordSurfaceWidth, resolveRecordPresentation, type RecordPresentationConfig } from "../../record-presentation";
+import RecordSurfaceHeader from "./RecordSurfaceHeader.vue";
+import "../../record-surface.css";
 
 const props = defineProps<{
   open: boolean;
   title: string;
   description?: string;
-  presentation?: "drawer" | "modal";
+  presentation?: RecordPresentationConfig;
+  embedded?: boolean;
+  headerless?: boolean;
   width?: string;
   busy?: boolean;
   bulk?: boolean;
@@ -22,6 +26,19 @@ const props = defineProps<{
   role?: "alertdialog" | "dialog";
 }>();
 const emit = defineEmits<{ close: []; openAutoFocus: [event: Event] }>();
+// A stable teleport target preserves field state when moving between inline and overlay hosts.
+const contentContainer = typeof document === "undefined" ? undefined : document.createElement("div");
+if (contentContainer) contentContainer.className = "yayaw-record-content";
+const mountContent = (element: unknown) => {
+  if (element instanceof HTMLElement && contentContainer) element.append(contentContainer);
+};
+const media = typeof window === "undefined" ? undefined : window.matchMedia?.(RECORD_MOBILE_QUERY);
+const mobile = ref(media?.matches ?? false);
+const syncMobile = () => { mobile.value = media?.matches ?? false; };
+onMounted(() => media?.addEventListener("change", syncMobile));
+onBeforeUnmount(() => media?.removeEventListener("change", syncMobile));
+const presentation = computed(() => resolveRecordPresentation(props.presentation, mobile.value));
+const surfaceStyle = computed(() => ({ ...theme.value, "--record-width": recordSurfaceWidth(presentation.value, props.width) }));
 const anchor = ref<HTMLElement>();
 const theme = ref<CSSProperties>({});
 let opener: HTMLElement | undefined;
@@ -73,57 +90,32 @@ const restoreFocus = (event: Event): void => {
 
 <template>
   <span ref="anchor" hidden />
-  <DialogRoot
-    :open="open"
-    @update:open="
-      (value) => {
-        if (!value && !busy) emit('close');
-      }
-    "
-  >
-    <DialogPortal>
-      <DialogOverlay
-        class="yayaw-dialog-backdrop yayaw-dialog-layer"
-        :style="theme"
-      >
+  <template v-if="embedded && open">
+    <RecordSurfaceHeader v-if="!headerless" :title="title" :description="description" :busy="busy" :close-label="closeLabel ?? 'Close'" @close="emit('close')" />
+    <slot />
+  </template>
+  <DialogRoot v-else :open="open && presentation !== 'inline'" @update:open="value => { if (!value && !busy && presentation !== 'inline') emit('close'); }">
+    <Teleport v-if="open && contentContainer" :to="contentContainer">
+      <RecordSurfaceHeader v-if="!headerless" :title="title" :description="description" :busy="busy" :close-label="closeLabel ?? 'Close'" @close="emit('close')" />
+      <slot />
+    </Teleport>
+    <section v-if="presentation === 'inline' && open" class="yayaw-record-surface" data-presentation="inline" :data-bulk-editor="bulk || undefined" :aria-label="title" :style="theme"><div :ref="mountContent" class="yayaw-record-content" /></section>
+    <DialogPortal v-else>
+      <DialogOverlay class="yayaw-dialog-backdrop yayaw-dialog-layer" :style="theme">
         <DialogContent
-          class="yayaw-form-surface"
+          class="yayaw-record-surface"
           :data-bulk-editor="bulk || undefined"
           :role="role ?? 'dialog'"
-          :data-presentation="presentation ?? 'drawer'"
-          :style="{ width }"
-          v-bind="description ? {} : { 'aria-describedby': undefined }"
-          @escape-key-down="
-            (event) => {
-              if (busy) event.preventDefault();
-            }
-          "
-          @interact-outside="
-            (event) => {
-              if (busy) event.preventDefault();
-            }
-          "
+          :data-presentation="presentation"
+          :style="surfaceStyle"
+          :aria-describedby="undefined"
+          @escape-key-down="event => { if (busy) event.preventDefault(); }"
+          @interact-outside="event => { if (busy) event.preventDefault(); }"
           @close-auto-focus="restoreFocus"
           @open-auto-focus="emit('openAutoFocus', $event)"
         >
-          <header class="yayaw-form-header">
-            <div>
-              <DialogTitle as="h3">{{ title }}</DialogTitle
-              ><DialogDescription v-if="description">{{
-                description
-              }}</DialogDescription>
-            </div>
-            <button
-              type="button"
-              class="yayaw-icon-button"
-              :aria-label="closeLabel ?? 'Close'"
-              :disabled="busy"
-              @click="emit('close')"
-            >
-              ×
-            </button>
-          </header>
-          <slot />
+          <DialogTitle class="yayaw-sr-only">{{ title }}</DialogTitle>
+          <div :ref="mountContent" class="yayaw-record-content" />
         </DialogContent>
       </DialogOverlay>
     </DialogPortal>

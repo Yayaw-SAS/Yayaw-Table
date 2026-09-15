@@ -8,12 +8,12 @@ import type { TableConfig } from "../../config/helpers";
 import type { TableActions } from "../../providers/table-provider";
 import type { DataTableTranslations } from "../../types/translations";
 import type { TableView } from "../../types/view-types";
-
 import type {
   FormLayoutAction,
   FormLayoutBlock,
   FormLayoutRuntime,
 } from "../../utils/form-layout";
+import type { RecordPresentationConfig } from "../../utils/record-presentation";
 
 /** Live state exposed to layout renderers and custom form actions. */
 export type FormBlockContext<TFieldValues extends FieldValues = FieldValues> =
@@ -306,7 +306,8 @@ export interface FormConfig<TFieldValues extends FieldValues = FieldValues> {
   defaultValues?: Partial<TFieldValues>;
   title?: string | ((mode: FormConfigMode, row?: FieldValues) => string);
   description?: string;
-  presentation?: "drawer" | "modal";
+  /** Legacy per-form fallback. Prefer the table-wide presentation option. */
+  presentation?: RecordPresentationConfig;
   width?: string;
   submitLabel?: string;
   cancelLabel?: string;

@@ -1,6 +1,11 @@
+import type {
+  RecordPresentation,
+  RecordPresentationConfig,
+} from "./record-presentation";
+
 /** Framework-independent contracts for read-only records and application-owned audit data. */
 export type DetailRecord = Record<string, unknown>;
-export type DetailPresentation = "drawer" | "modal" | "inline";
+export type DetailPresentation = RecordPresentation;
 export type DetailType =
   | "text"
   | "string"
@@ -63,7 +68,8 @@ export interface DetailActivity {
 }
 
 export interface RecordDetailsConfig {
-  presentation?: DetailPresentation;
+  /** Standalone presentation; the table-wide presentation takes precedence. */
+  presentation?: RecordPresentationConfig;
   width?: string;
   title?: (row: DetailRecord) => string;
   description?: (row: DetailRecord) => string;

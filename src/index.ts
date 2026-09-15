@@ -70,3 +70,8 @@ export type {
   DetailSection,
   RecordDetailsConfig,
 } from "./components/ui/yayaw-table/utils/record-details";
+
+export type {
+  RecordPresentation,
+  RecordPresentationConfig,
+} from "./components/ui/yayaw-table/utils/record-presentation";

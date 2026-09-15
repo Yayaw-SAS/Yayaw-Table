@@ -9,10 +9,7 @@
   --detail-border: var(--yayaw-border, var(--border, #e4e4e7));
   color: var(--detail-fg);
   background: var(--detail-bg);
-  font:
-    14px / 1.5 ui-sans-serif,
-    system-ui,
-    sans-serif;
+  font: inherit;
   container-type: inline-size;
   min-width: 0;
 }
@@ -427,4 +424,35 @@
   padding: 1px 5px;
   color: var(--detail-secondary);
   font-size: 10px;
+}
+
+/* Consultation follows the same Shadcn hierarchy and spacing as form surfaces. */
+.yayaw-detail .yayaw-record-header .yayaw-detail-actions {
+  margin-top: 1rem;
+}
+.yayaw-detail .yayaw-detail-meta {
+  flex: none;
+  margin: 1rem 1.5rem;
+}
+.yayaw-detail .yayaw-detail-body {
+  padding: 1.5rem;
+}
+.yayaw-detail .yayaw-detail-tablist {
+  flex: none;
+  padding-inline: 1.5rem;
+}
+.yayaw-detail .yayaw-detail-section h3 {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+@media (max-width: 767px) {
+  .yayaw-detail .yayaw-detail-meta {
+    margin-inline: 1rem;
+  }
+  .yayaw-detail .yayaw-detail-body {
+    padding: 1rem;
+  }
+  .yayaw-detail .yayaw-detail-tablist {
+    padding-inline: 1rem;
+  }
 }

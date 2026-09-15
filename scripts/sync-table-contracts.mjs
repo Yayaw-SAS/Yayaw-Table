@@ -112,3 +112,14 @@ for (const name of await readdir(planningSource)) {
     );
   }
 }
+
+// Record presentation and surface tokens are identical in both registries.
+for (const [source, target] of [
+  ["utils/record-presentation.ts", "record-presentation.ts"],
+  ["components/records/record-surface.css", "record-surface.css"],
+]) {
+  await copyFile(
+    new URL(`../src/components/ui/yayaw-table/${source}`, import.meta.url),
+    new URL(`../packages/yayaw-table-vue/src/${target}`, import.meta.url)
+  );
+}
