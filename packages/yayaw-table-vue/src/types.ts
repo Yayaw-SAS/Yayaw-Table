@@ -605,6 +605,10 @@ export interface TableViewConfig {
 }
 
 export interface TableView {
+  /** Host-resolved edit permission. Omission preserves the existing non-system behavior. */
+  canEdit?: boolean;
+  /** Host-resolved delete permission, independent from edit and personal favorites. */
+  canDelete?: boolean;
   id: string;
   tableId: string;
   name: string;

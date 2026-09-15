@@ -22,6 +22,10 @@ import type { AdvancedFiltersState } from "./filter-types";
  * Represents a saved view of the table
  */
 export interface TableView {
+  /** Host-resolved edit permission. Omission preserves the existing non-system behavior. */
+  canEdit?: boolean;
+  /** Host-resolved delete permission, independent from edit and personal favorites. */
+  canDelete?: boolean;
   /**
    * View configuration
    */
