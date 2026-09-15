@@ -1,11 +1,8 @@
-import { normalizeGanttView } from "../planning/engine";
-import type { TableGanttViewConfig } from "../planning/types";
-
 /**
  * Hook for managing URL state with nuqs
  * Allows sharing links to specific table states
  */
-("use client");
+"use client";
 
 import { atom, useAtom, useStore } from "jotai";
 import { atomFamily } from "jotai-family";
@@ -13,6 +10,8 @@ import { createParser, useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { footerVisibleAtom } from "../atoms/footer-atoms";
 import { filterResetVersionAtom, tableDensityAtom } from "../atoms/table-atoms";
+import { normalizeGanttView } from "../planning/engine";
+import type { TableGanttViewConfig } from "../planning/types";
 import { useTableStateSync } from "../providers/table-state-sync-provider";
 import type {
   ColumnFiltersState,

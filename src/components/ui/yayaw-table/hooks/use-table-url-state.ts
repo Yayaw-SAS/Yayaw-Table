@@ -1,5 +1,3 @@
-import { normalizeGanttView } from "../planning/engine";
-import type { TableGanttViewConfig } from "../planning/types";
 /**
  * Hook for managing URL state with nuqs
  * Allows sharing links to specific table states
@@ -19,6 +17,8 @@ import type {
 } from "@/components/ui/yayaw-table/tanstack";
 import { footerVisibleAtom } from "../atoms/footer-atoms";
 import { filterResetVersionAtom, tableDensityAtom } from "../atoms/table-atoms";
+import { normalizeGanttView } from "../planning/engine";
+import type { TableGanttViewConfig } from "../planning/types";
 import { useTableStateSync } from "../providers/table-state-sync-provider";
 import type {
   TableDisplayMode,
