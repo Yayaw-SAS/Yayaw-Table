@@ -71,7 +71,7 @@ const moveRow = async (
   row[field] = target;
   pending.value = id;
   try {
-    const result = await context.actions.value.update(id, { [field]: target });
+    const result = await context.actions.value.update(id, { [field]: target }, { row: { ...row, [field]: previous } });
     if (!result.success) {
       row[field] = previous;
       throw new Error(result.error ?? "Move failed");

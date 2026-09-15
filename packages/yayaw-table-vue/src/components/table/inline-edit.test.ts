@@ -106,7 +106,11 @@ describe("catalogue-backed inline editing", () => {
     await wrapper.get("input").setValue("2");
     await wrapper.get("input").trigger("blur");
     await flushPromises();
-    expect(update).toHaveBeenCalledWith("1", { amount: 200 });
+    expect(update).toHaveBeenCalledWith(
+      "1",
+      { amount: 200 },
+      { row: { id: "1", amount: "10", kind: "invoice" } }
+    );
     expect(row.amount).toBe(200);
     expect(context.getFormConfig).toHaveBeenCalledWith(
       "invoice",
@@ -167,7 +171,11 @@ describe("catalogue-backed inline editing", () => {
     await wrapper.get("select").trigger("blur");
     await flushPromises();
     expect(update).toHaveBeenCalledTimes(1);
-    expect(update).toHaveBeenCalledWith("1", { amount: 2 });
+    expect(update).toHaveBeenCalledWith(
+      "1",
+      { amount: 2 },
+      { row: { id: "1", amount: 1 } }
+    );
     finish({ success: true });
     await flushPromises();
   });
@@ -270,7 +278,11 @@ it("renders searchable choices outside the cell and preserves primitive selectio
   document.body.append(outside);
   outside.focus();
   await settle();
-  expect(update).toHaveBeenCalledExactlyOnceWith("1", { tags: [false, 2] });
+  expect(update).toHaveBeenCalledExactlyOnceWith(
+    "1",
+    { tags: [false, 2] },
+    { row: { id: "1", tags: [1] } }
+  );
   expect(wrapper.find(".yayaw-inline-selection").exists()).toBe(false);
 });
 
@@ -286,7 +298,11 @@ it("flushes an empty multi-selection when focus leaves the popup", async () => {
   document.body.append(outside);
   outside.focus();
   await settle();
-  expect(update).toHaveBeenCalledExactlyOnceWith("1", { tags: [] });
+  expect(update).toHaveBeenCalledExactlyOnceWith(
+    "1",
+    { tags: [] },
+    { row: { id: "1", tags: [1] } }
+  );
   expect(wrapper.find(".yayaw-inline-selection").exists()).toBe(false);
 });
 
@@ -448,4 +464,22 @@ it("shows the image fallback after failure and recovers when the source changes"
   expect(wrapper.get("img").attributes("src")).toBe(
     "https://example.com/new.png"
   );
+});
+
+it("supplies the original row version for an inline conflict without adding it to the patch", async () => {
+  const { wrapper, row, update } = createCell({
+    row: { id: "1", amount: 10, dataVersion: 7 },
+    update: async () => ({ success: false, error: "Version conflict" }),
+  });
+  await wrapper.trigger("dblclick");
+  await wrapper.get("input").setValue("20");
+  await wrapper.get("input").trigger("blur");
+  await flushPromises();
+  expect(update).toHaveBeenCalledWith(
+    "1",
+    { amount: 20 },
+    { row: { id: "1", amount: 10, dataVersion: 7 } }
+  );
+  expect(row.amount).toBe(10);
+  expect(wrapper.text()).toContain("Version conflict");
 });

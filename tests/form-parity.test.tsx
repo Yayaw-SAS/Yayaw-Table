@@ -15,6 +15,7 @@ import type {
   FormConfig,
   FormConfigContext,
 } from "../src/components/ui/yayaw-table/components/forms/types";
+import { useTableActions } from "../src/components/ui/yayaw-table/hooks/use-table-actions";
 import {
   defaultTranslations,
   type TableActions,
@@ -203,13 +204,15 @@ it("ignores late initial values after switching rows and submits only changed ed
     return <FormBuilder fields={builder.fields} form={builder.form} />;
   }
   const actions: TableActions = {
-    update: (id, values) => {
-      calls.push({ id, values });
+    update: (id, values, snapshot) => {
+      calls.push({ id, values, snapshot });
       return Promise.resolve({ success: true });
     },
   };
   await view.render(provider(<Probe row={{ id: "one" }} />, config, actions));
-  await view.render(provider(<Probe row={{ id: "two" }} />, config, actions));
+  await view.render(
+    provider(<Probe row={{ id: "two", dataVersion: 7 }} />, config, actions)
+  );
   await act(async () => {
     second.resolve({ name: "Second", locked: "private" });
     await settle();
@@ -223,7 +226,11 @@ it("ignores late initial values after switching rows and submits only changed ed
   await act(() => builder.form.setFieldValue("name", "Changed"));
   await act(() => builder.form.handleSubmit());
   expect(calls).toEqual([
-    { id: "two", values: { name: "Changed", normalized: true } },
+    {
+      id: "two",
+      values: { name: "Changed", normalized: true },
+      snapshot: { row: { id: "two", dataVersion: 7 } },
+    },
   ]);
 });
 
@@ -751,4 +758,51 @@ it("keeps a rejected bulk draft and allows removal of an invalid required proper
       ?.value
   ).toBe("Retain this draft");
   expect(bulkButton("Apply to 2 rows").disabled).toBe(false);
+});
+
+it("passes original row versions separately from inline patches and row deletion IDs", async () => {
+  const view = mount();
+  let runtime!: ReturnType<typeof useTableActions>;
+  const calls: unknown[] = [];
+  const row = { id: "record-145", dataVersion: 7, title: "Original" };
+  function MutationHarness() {
+    runtime = useTableActions({ tableType: "items" });
+    return null;
+  }
+  await view.render(
+    provider(
+      <MutationHarness />,
+      { id: "items", fields: [] },
+      {
+        update: (id, patch, snapshot) => {
+          calls.push({ id, patch, snapshot });
+          return Promise.resolve({ success: false, error: "Version conflict" });
+        },
+        delete: (id, snapshot) => {
+          calls.push({ id, snapshot });
+          return Promise.resolve({ success: true });
+        },
+      }
+    )
+  );
+  await act(async () => {
+    expect(await runtime.handleEdit(row, { title: "Draft" })).toBe(false);
+    expect(await runtime.handleDelete(row)).toBe(true);
+  });
+  row.dataVersion = 8;
+  expect(calls).toEqual([
+    {
+      id: "record-145",
+      patch: { title: "Draft" },
+      snapshot: {
+        row: { id: "record-145", dataVersion: 7, title: "Original" },
+      },
+    },
+    {
+      id: "record-145",
+      snapshot: {
+        row: { id: "record-145", dataVersion: 7, title: "Original" },
+      },
+    },
+  ]);
 });

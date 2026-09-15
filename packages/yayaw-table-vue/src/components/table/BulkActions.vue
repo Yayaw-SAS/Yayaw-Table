@@ -202,7 +202,7 @@ const executeBulkDelete = async (
       const deleteRow = context.actions.value.delete;
       // Wait for every request before refreshing; a rejected request must not hide later successes.
       const results = await Promise.allSettled(
-        selectedIds.map(async (id) => ({ id, result: await deleteRow(id) }))
+        selectedIds.map(async (id) => ({ id, result: await deleteRow(id, { row: { ...selectedRows.find(row => context.getRowId(row) === id) } }) }))
       );
       const completedIds: string[] = [];
       for (const result of results) {

@@ -8,6 +8,7 @@ import { useCallback, useMemo } from "react";
 import {
   type TableAggregateParams,
   type TableAggregateResultValue,
+  type TableMutationContext,
   useTableActions as useProviderTableActions,
 } from "../providers/table-provider";
 
@@ -33,8 +34,15 @@ interface TableActions {
     meta?: { totalCount?: number };
   }>;
   create?: (data: unknown) => Promise<ActionResult>;
-  update?: (id: string, data: unknown) => Promise<ActionResult>;
-  delete?: (id: string) => Promise<ActionResult>;
+  update?: (
+    id: string,
+    data: unknown,
+    context?: TableMutationContext
+  ) => Promise<ActionResult>;
+  delete?: (
+    id: string,
+    context?: TableMutationContext
+  ) => Promise<ActionResult>;
   duplicate?: (id: string) => Promise<ActionResult>;
   bulkDelete?: (ids: string[]) => Promise<ActionResult>;
   bulkCopy?: (ids: string[]) => Promise<ActionResult>;
@@ -180,7 +188,9 @@ export function useTableActions<
 
       const updateFn = actions.update;
       return updateFn
-        ? await executeAction("update", () => updateFn(row.id, data))
+        ? await executeAction("update", () =>
+            updateFn(row.id, data, { row: { ...row } })
+          )
         : false;
     },
     [actions.update, executeAction, tableType, onError]
@@ -202,7 +212,9 @@ export function useTableActions<
 
       const deleteFn = actions.delete;
       return deleteFn
-        ? await executeAction("delete", () => deleteFn(row.id))
+        ? await executeAction("delete", () =>
+            deleteFn(row.id, { row: { ...row } })
+          )
         : false;
     },
     [actions.delete, executeAction, tableType, onError]

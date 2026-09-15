@@ -1489,9 +1489,17 @@ export function useBulkActions<TData>({
       };
     }
 
+    const deleteAction = provider?.actions.delete;
     const outcome = await executeBulkDeleteOperation({
       bulkDelete: provider?.actions.bulkDelete as BulkDeleteAction | undefined,
-      deleteOne: provider?.actions.delete as DeleteAction | undefined,
+      deleteOne: deleteAction
+        ? (id) => {
+            const selected = selectedRows.find(
+              (row) => String(row.original.id ?? row.id) === id
+            );
+            return deleteAction(id, { row: { ...selected?.original } });
+          }
+        : undefined,
       ids,
     });
 

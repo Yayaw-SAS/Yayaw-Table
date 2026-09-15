@@ -277,7 +277,7 @@ const save = async (close = true): Promise<void> => {
       row[field] = value;
       optimistic = true;
     }
-    const result = await action(context.getRowId(row), { [field]: value });
+    const result = await action(context.getRowId(row), { [field]: value }, { row: { ...row, [field]: previous } });
     if (!result.success)
       throw new Error(
         result.fieldErrors?.[field] ?? result.error ?? "Update failed"

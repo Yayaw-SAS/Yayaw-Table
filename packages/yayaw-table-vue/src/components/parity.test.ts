@@ -218,7 +218,11 @@ it("moves Kanban cards without a pointer", async () => {
     .get('button[aria-label="Move Alpha to Closed"]')
     .trigger("click");
   await flushPromises();
-  expect(update).toHaveBeenCalledWith("one", { status: "Closed" });
+  expect(update).toHaveBeenCalledWith(
+    "one",
+    { status: "Closed" },
+    { row: { id: "one", name: "Alpha", amount: 10, status: "Open" } }
+  );
 });
 
 it.each([
@@ -317,7 +321,11 @@ it("autosaves inline drafts after the configured delay and cancels on Escape", a
   expect(update).not.toHaveBeenCalled();
   await vi.advanceTimersByTimeAsync(1);
   await flushPromises();
-  expect(update).toHaveBeenCalledWith("one", { name: "Changed" });
+  expect(update).toHaveBeenCalledWith(
+    "one",
+    { name: "Changed" },
+    { row: { id: "one", name: "Alpha", amount: 10, status: "Open" } }
+  );
   await cell.get("input").setValue("Discarded");
   await cell.trigger("keydown", { key: "Escape" });
   await vi.advanceTimersByTimeAsync(100);

@@ -105,7 +105,11 @@ describe("catalogue form", () => {
     gate.resolve("normalized");
     await flushPromises();
     expect(update).toHaveBeenCalledTimes(1);
-    expect(update).toHaveBeenCalledWith("1", { name: "normalized" });
+    expect(update).toHaveBeenCalledWith(
+      "1",
+      { name: "normalized" },
+      { row: { name: "draft" } }
+    );
   });
 
   it("preserves failed drafts and exposes server field errors", async () => {
@@ -150,10 +154,14 @@ describe("catalogue form", () => {
     expect(wrapper.get("input").element.value).toBe("Loaded");
     await wrapper.get("form").trigger("submit");
     await flushPromises();
-    expect(update).toHaveBeenCalledWith("1", {
-      name: "Loaded",
-      relations: [1],
-    });
+    expect(update).toHaveBeenCalledWith(
+      "1",
+      {
+        name: "Loaded",
+        relations: [1],
+      },
+      { row: {} }
+    );
   });
 
   it("resets drafts when switching rows and ignores stale initial data", async () => {
@@ -673,7 +681,11 @@ it("keeps an incomplete JSON form draft visible and blocks submission until corr
   await wrapper.get("textarea").setValue('{"enabled":true}');
   await wrapper.get("form").trigger("submit");
   await flushPromises();
-  expect(update).toHaveBeenCalledWith("1", { payload: { enabled: true } });
+  expect(update).toHaveBeenCalledWith(
+    "1",
+    { payload: { enabled: true } },
+    { row: { payload: { enabled: false } } }
+  );
 });
 
 it("composes translated blocks and async actions while preserving field validation and submission", async () => {
@@ -765,7 +777,11 @@ it("composes translated blocks and async actions while preserving field validati
   expect(wrapper.get("output").text()).toBe("Enriched");
   await wrapper.get("form").trigger("submit");
   await flushPromises();
-  expect(update).toHaveBeenCalledWith("1", { name: "Enriched", amount: 7 });
+  expect(update).toHaveBeenCalledWith(
+    "1",
+    { name: "Enriched", amount: 7 },
+    { row: { name: "", amount: 7 } }
+  );
 });
 
 it("aborts a custom action on unmount and ignores late writes", async () => {

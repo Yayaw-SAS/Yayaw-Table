@@ -109,7 +109,9 @@ it("opens a translated modal confirmation, traps focus and allows retry after a 
   await confirm.trigger("click");
   await flushPromises();
   expect(dialog.get('[role="alert"]').text()).toBe("Accès refusé");
-  expect(remove).toHaveBeenCalledExactlyOnceWith("1");
+  expect(remove).toHaveBeenCalledExactlyOnceWith("1", {
+    row: { id: "1", name: "Alpha" },
+  });
   fail = false;
   await confirm.trigger("click");
   await settleFocus();

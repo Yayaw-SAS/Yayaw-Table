@@ -56,6 +56,11 @@ export interface TableAggregateParams {
   locale: string;
 }
 
+/** Original displayed row supplied separately from the mutation patch. */
+export interface TableMutationContext {
+  row: Readonly<Record<string, unknown>>;
+}
+
 export interface TableActions {
   planning?: import("../planning/types").TablePlanningActions;
   list?: (params: Record<string, unknown>) => Promise<{
@@ -80,7 +85,8 @@ export interface TableActions {
   }>;
   update?: (
     id: string,
-    data: Record<string, unknown>
+    data: Record<string, unknown>,
+    context?: TableMutationContext
   ) => Promise<{
     success: boolean;
     data?: unknown;
@@ -88,7 +94,10 @@ export interface TableActions {
     fieldErrors?: Record<string, string>;
     failedIds?: string[];
   }>;
-  delete?: (id: string) => Promise<{
+  delete?: (
+    id: string,
+    context?: TableMutationContext
+  ) => Promise<{
     success: boolean;
     data?: unknown;
     error?: string;

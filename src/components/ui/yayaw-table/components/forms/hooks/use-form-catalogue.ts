@@ -237,7 +237,7 @@ export function useFormCatalogue<TFieldValues extends FieldValues>({
     updatePayload.id = undefined;
     const result =
       mode === "update"
-        ? await actions.update?.(String(configuredId), updatePayload)
+        ? await actions.update?.(String(configuredId), updatePayload, { row: { ...row } })
         : await actions.create?.(payload);
     if (!result?.success) {
       if (result && "fieldErrors" in result) {
