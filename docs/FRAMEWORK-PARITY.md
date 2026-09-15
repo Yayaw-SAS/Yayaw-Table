@@ -4,6 +4,13 @@ The two registries remain independently installable. Their shared adapter lives 
 
 ## Release contract
 
+React modules that declare a client boundary keep `"use client"` before imports,
+including Gantt helpers in the URL-state hook. The registry must preserve the
+directive prologue for Next.js consumers. `tests/client-directives.test.ts`
+checks the source syntax before generation; the Yayaw consumer production build
+checks the copied hook. Vue has no React client directive and retains the same
+URL-state and saved-view behavior.
+
 React and Vue are editions of the same product. A consumer-facing change is ready to merge only when both editions expose equivalent public contracts and observable outcomes, with equivalent regression coverage and no known functional gap. Framework primitives and internal component structure may differ when their behavior remains equivalent.
 
 Both editions use TanStack Table 9.2.4 through framework-specific adapters with the same explicit feature, row-model, filter, sort, and aggregation registrations. The adapters preserve YaYaw's two-generic table types and `left`/`right` persisted pinning contract while translating to TanStack 9's internal `start`/`end` state. Existing saved views and table URLs therefore remain readable. TanStack 9 requires ESM and an ES2022 target. The Vue edition continues to require Vue `^3.5.0`; this migration does not expand the supported framework range.
