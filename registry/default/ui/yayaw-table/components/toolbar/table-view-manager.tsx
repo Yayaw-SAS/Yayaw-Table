@@ -603,6 +603,7 @@ export function DataTableViewManager({
       allowViewSave &&
       activeView &&
       !activeView.isSystem &&
+      activeView.canEdit !== false &&
       viewActions.update
   );
   const canDeleteActiveView = Boolean(
@@ -610,6 +611,7 @@ export function DataTableViewManager({
       allowViewSave &&
       activeView &&
       !activeView.isSystem &&
+      activeView.canDelete !== false &&
       viewActions.delete
   );
   const canCreateView = enabled && allowViewSave && Boolean(viewActions.create);

@@ -472,3 +472,9 @@ embedded examples, before building the two production preview bundles.
 - Planning task and dependency dialogs use bottom sheets below 768px, with bounded height and touch targets. Timeline scrolling remains available independently.
 - Density and display choices use normal font weight, including selected options. Share uses the same 32px desktop height and 44px minimum mobile target as other toolbar actions.
 - Regression coverage: `tests/view-settings.test.tsx`, Vue `components/card-controls.test.ts`, and the shared planning workflow suite. Browser checks cover React and Vue desktop/mobile view settings and toolbar dimensions.
+
+## Saved view permissions
+
+`TableView.canEdit` and `TableView.canDelete` are optional, independent host-resolved permissions in React and Vue. `false` prevents the corresponding manager and local-storage action. Omission preserves the existing behavior. System views and `allowViewSave: false` remain read-only regardless of these flags. Selecting, copying and favoriting a shared view do not require ownership. These flags describe UI capabilities; remote persistence must enforce current actor, scope and write authorization itself.
+
+Coverage: React saved-view manager tests and Vue saved-view interaction tests cover read-only shared views and independently allowed edit/delete actions.

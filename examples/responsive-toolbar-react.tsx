@@ -32,6 +32,9 @@ const openView: TableView = {
   createdById: "demo",
   tableId: "responsive-toolbar",
   name: "Open items",
+  isGlobal: true,
+  canEdit: false,
+  canDelete: false,
   config: { columnFilters: [{ id: "status", value: ["Open"] }] },
 };
 // Demo-only in-memory persistence. Production handlers must enforce user and organization scope.
@@ -58,11 +61,23 @@ const actions: TableActions = {
       if (!current) {
         return Promise.resolve({ success: false, error: "View not found" });
       }
+      if (current.canEdit === false) {
+        return Promise.resolve({
+          success: false,
+          error: "This view cannot be edited.",
+        });
+      }
       const view = { ...current, ...input };
       savedViews.set(id, view);
       return Promise.resolve({ success: true, data: view });
     },
     delete: (id) => {
+      if (savedViews.get(id)?.canDelete === false) {
+        return Promise.resolve({
+          success: false,
+          error: "This view cannot be deleted.",
+        });
+      }
       savedViews.delete(id);
       return Promise.resolve({ success: true, data: { id } });
     },

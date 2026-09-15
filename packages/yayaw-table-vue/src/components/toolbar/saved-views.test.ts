@@ -810,3 +810,33 @@ it.each([
     expect(wrapper.get("tbody").text()).toContain("Beta");
   }
 });
+
+it("keeps shared views read-only while allowing a personal favorite and a copy", async () => {
+  const update = vi.fn();
+  const wrapper = mountTable({
+    views: [{ ...saved, isGlobal: true, canEdit: false, canDelete: false }],
+    active: saved.id,
+    actions: { update },
+  });
+  await flushPromises();
+  await search(wrapper).setValue("Beta");
+  const save = await saveButton(wrapper);
+  expect(save.attributes("aria-disabled")).toBe("true");
+  await save.trigger("click");
+  expect(update).not.toHaveBeenCalled();
+  expect(body().text()).not.toContain("Delete view");
+  expect(body().text()).toContain("Save as new view");
+  expect(wrapper.find('[aria-label="Use this view on arrival"]').exists()).toBe(
+    true
+  );
+});
+
+it("treats saved-view edit and deletion rights independently", async () => {
+  const wrapper = mountTable({
+    views: [{ ...saved, canEdit: false, canDelete: true }],
+    active: saved.id,
+  });
+  await flushPromises();
+  expect((await saveButton(wrapper)).attributes("aria-disabled")).toBe("true");
+  expect(body().text()).toContain("Delete view");
+});

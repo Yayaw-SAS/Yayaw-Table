@@ -48,6 +48,15 @@ export function useSavedViews(
     Boolean(
       active.value &&
         !active.value.isSystem &&
+        active.value.canEdit !== false &&
+        context.config.table.allowViewSave
+    )
+  );
+  const deletable = computed(() =>
+    Boolean(
+      active.value &&
+        !active.value.isSystem &&
+        active.value.canDelete !== false &&
         context.config.table.allowViewSave
     )
   );
@@ -337,7 +346,7 @@ export function useSavedViews(
   };
   const remove = async (): Promise<void> => {
     const view = active.value;
-    if (!(view && editable.value)) {
+    if (!(view && deletable.value)) {
       return;
     }
     const before = cloneFormValue(context.state.snapshot.value);
@@ -377,6 +386,7 @@ export function useSavedViews(
     active,
     dirty,
     editable,
+    deletable,
     busy,
     loading,
     loadError,

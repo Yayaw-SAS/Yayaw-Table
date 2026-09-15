@@ -11,7 +11,7 @@ import FormDialog from "../forms/FormDialog.vue";
 const props = defineProps<{ initialViews: TableView[]; enabled?: boolean; compact?: boolean; open?: boolean; panel?: boolean; panelTitle?: string }>();
 const emit = defineEmits<{ "update:open": [open: boolean]; back: [] }>();
 const {
-  context, views, active, dirty, editable, busy, loading, loadError, error,
+  context, views, active, dirty, editable, deletable, busy, loading, loadError, error,
   dialogError, dialogOpen, name, shared, label, select, load, openSave, closeSave, save, update, remove,
   favorite, favoriteViewId, toggleFavorite,
 } = useSavedViews(() => props.initialViews, () => props.enabled !== false);
@@ -98,7 +98,7 @@ const focusName = (event: Event): void => {
               <ListRestart :size="16" aria-hidden="true" /><span>{{ label('views.reset', 'reset') }}<small v-if="compact">{{ label(active ? 'views.resetSavedDescription' : 'views.resetDefaultDescription', 'reset') }}</small></span>
             </button>
           </TableTooltip>
-          <button v-if="viewEnabled && editable" type="button" class="yayaw-view-menu-item yayaw-view-menu-danger" :disabled="busy" @click="remove"><Trash2 :size="16" aria-hidden="true" />{{ label('views.delete', 'deleteView') }}</button>
+          <button v-if="viewEnabled && deletable" type="button" class="yayaw-view-menu-item yayaw-view-menu-danger" :disabled="busy" @click="remove"><Trash2 :size="16" aria-hidden="true" />{{ label('views.delete', 'deleteView') }}</button>
         </div>
       </template>
     </ToolbarMenu>

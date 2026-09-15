@@ -456,3 +456,40 @@ it("preserves the draft and dirty state when saving a view fails", async () => {
     wrapper.container.querySelector('[aria-label="Unsaved changes"]')
   ).not.toBeNull();
 });
+
+it("keeps a colleague's shared view read-only while allowing a personal favorite and a copy", async () => {
+  let updates = 0;
+  const wrapper = await mountManager({
+    allowViewSave: true,
+    initialActiveViewId: favorite.id,
+    views: [{ ...favorite, isSystem: false, canEdit: false, canDelete: false }],
+    actions: {
+      update: () => {
+        updates++;
+        return Promise.resolve({ success: true, data: favorite });
+      },
+    },
+  });
+  await act(() =>
+    wrapper.store.set(tableDensityAtom(favorite.tableId), "large")
+  );
+  const save = wrapper.button("Save changes");
+  expect(save.getAttribute("aria-disabled")).toBe("true");
+  await act(() => save.click());
+  expect(updates).toBe(0);
+  expect(document.querySelector('button[aria-label="Delete view"]')).toBeNull();
+  expect(wrapper.button("Save as new view")).toBeTruthy();
+  expect(wrapper.button("Use this view on arrival")).toBeTruthy();
+});
+
+it("treats saved-view edit and deletion rights independently", async () => {
+  const wrapper = await mountManager({
+    allowViewSave: true,
+    initialActiveViewId: favorite.id,
+    views: [{ ...favorite, isSystem: false, canEdit: false, canDelete: true }],
+  });
+  expect(wrapper.button("Save changes").getAttribute("aria-disabled")).toBe(
+    "true"
+  );
+  expect(wrapper.button("Delete view")).toBeTruthy();
+});

@@ -83,6 +83,8 @@ function normalizeStoredView(rawView: unknown): TableView | undefined {
   }
 
   return {
+    canEdit: typeof record.canEdit === "boolean" ? record.canEdit : undefined,
+    canDelete: typeof record.canDelete === "boolean" ? record.canDelete : undefined,
     config: normalizeTableViewConfig(record.config),
     createdAt: parseDate(record.createdAt),
     createdById:
@@ -214,6 +216,9 @@ export function createLocalTableViewActions(
       if (!targetView) {
         return Promise.resolve(createError("View not found"));
       }
+      if (targetView.canDelete === false) {
+        return Promise.resolve({ success: false, error: "This view cannot be deleted." });
+      }
       if (targetView.isSystem) {
         return Promise.resolve(createError("Cannot delete a system view"));
       }
@@ -240,6 +245,9 @@ export function createLocalTableViewActions(
       }
 
       const currentView = currentViews[targetIndex];
+      if (currentView.canEdit === false) {
+        return Promise.resolve({ success: false, error: "This view cannot be edited." });
+      }
       if (currentView.isSystem) {
         return Promise.resolve(createError("Cannot update a system view"));
       }

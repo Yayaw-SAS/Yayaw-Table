@@ -346,6 +346,7 @@ const typesActions: TableActions = {
       table-type="products"
       :config="config as unknown as TableConfig"
       :data="products"
+      :initial-views="[{ id: 'team-open', tableId: config.id, name: 'In stock', isGlobal: true, canEdit: false, canDelete: false, config: { columnFilters: [{ id: 'status', value: ['In Stock'] }] } }]"
       :get-table-actions="() => actions"
       :get-form-config="() => formConfig as unknown as FormConfig"
       :toolbar-actions="toolbarActions"

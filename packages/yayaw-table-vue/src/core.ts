@@ -620,6 +620,11 @@ export const createLocalTableViewActions = (): Required<TableViewActions> => ({
                 candidate &&
                 loadLocalViews(candidate).some((view) => view.id === id)
             ) ?? ""));
+    if (
+      loadLocalViews(tableId).find((view) => view.id === id)?.canEdit === false
+    ) {
+      return { success: false, error: "This view cannot be edited." };
+    }
     if (loadLocalViews(tableId).find((view) => view.id === id)?.isSystem) {
       return { success: false, error: "System views cannot be updated" };
     }
@@ -645,6 +650,9 @@ export const createLocalTableViewActions = (): Required<TableViewActions> => ({
   delete: (id, { tableId }) => {
     const views = loadLocalViews(tableId);
     const target = views.find((view) => view.id === id);
+    if (target?.canDelete === false) {
+      return { success: false, error: "This view cannot be deleted." };
+    }
     if (target?.isSystem) {
       return { success: false, error: "System views cannot be deleted" };
     }
