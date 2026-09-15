@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useTableContext } from "../../context";
 import { resolveFormBlocks } from "../../form-layout";
 import {
@@ -31,7 +31,15 @@ import FormBlocks from "./FormBlocks.vue";
 import BulkEditorFields from "./BulkEditorFields.vue";
 import { bulkEditorMessages } from "../../bulk-editor";
 
+const props = defineProps<{ embedded?: boolean }>();
+const emit = defineEmits<{ busy: [busy: boolean] }>();
 const context = useTableContext();
+const formElement = ref<HTMLFormElement>();
+onMounted(async () => {
+  if (!props.embedded) return;
+  await nextTick();
+  formElement.value?.querySelector<HTMLElement>('input, textarea, [role="combobox"], button[type="submit"]')?.focus();
+});
 const values = ref<TableRecord>({});
 const initial = ref<TableRecord>({});
 const errors = ref<Record<string, string>>({});
@@ -50,6 +58,8 @@ const messages = computed(() => {
 });
 const bulkCount = computed(() => context.form.value.bulk?.ids.length ?? 0);
 const submitting = ref(false);
+watch(submitting, busy => emit("busy", busy));
+onBeforeUnmount(() => emit("busy", false));
 const loading = ref(false);
 const validating = ref(false);
 const loadError = ref<string>();
@@ -96,8 +106,8 @@ const config = computed<FormConfig>(() => {
   const selected = context.getFormConfig?.(formType.value, formContext.value) ?? {
       id: formType.value,
       fields: generatedFields(),
-      presentation: context.config.form?.presentation ?? "drawer",
-      width: context.config.form?.width,
+      presentation: context.config.form?.presentation ?? context.config.form?.layout?.mode,
+      width: context.config.form?.width ?? context.config.form?.layout?.width,
     };
   return translateFormConfig({ ...selected, blocks: selected.blocks ?? context.config.form?.blocks });
 });
@@ -373,16 +383,17 @@ const blockContext = computed<FormBlockContext>(() => ({
         ? messages.description
         : config.description
     "
-    :presentation="isBulk ? 'modal' : config.presentation"
+    :presentation="context.config.presentation ?? config.presentation ?? context.config.form?.presentation ?? context.config.form?.layout?.mode"
+    :embedded="props.embedded"
     :bulk="isBulk"
-    :width="isBulk ? undefined : config.width"
+    :width="config.width ?? context.config.form?.width ?? context.config.form?.layout?.width"
     :busy="submitting"
     :close-label="isBulk ? messages.close : label('close', 'Close')"
     :return-focus="context.form.value.returnFocus"
     @close="close"
   >
-    <form class="yayaw-form" :class="{ 'yayaw-bulk-form': isBulk }" @submit.prevent="submit">
-      <div :class="{ 'yayaw-bulk-body': isBulk }">
+    <form ref="formElement" class="yayaw-form yayaw-record-content" :class="{ 'yayaw-bulk-form': isBulk }" @submit.prevent="submit">
+      <div class="yayaw-record-body">
       <p v-if="loading" role="status">{{ label("loading", "Loading…") }}</p>
       <p v-if="loadError || errors.form" class="yayaw-error" role="alert">
         {{ loadError ?? errors.form }}
@@ -448,7 +459,7 @@ const blockContext = computed<FormBlockContext>(() => ({
         </template>
       </fieldset>
       </div>
-      <footer class="yayaw-form-footer">
+      <footer class="yayaw-record-footer">
         <button
           type="button"
           class="yayaw-button yayaw-button-outline"

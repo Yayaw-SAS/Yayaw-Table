@@ -1,6 +1,7 @@
 "use client";
 
-import { useSetAtom } from "jotai";
+import { useAtom } from "jotai";
+import { lazy, Suspense, useState } from "react";
 import type { TableCatalogueConfig } from "../../hooks/use-table-config";
 import { usePlanningState } from "../../planning/react";
 import { useLocale, useTableActions } from "../../providers/table-provider";
@@ -11,9 +12,16 @@ import type {
 } from "../../utils/record-details";
 import {
   catalogueFormAtom,
+  closeForm,
   openUpdateForm,
 } from "../forms/atoms/catalogue-form-atoms";
 import { RecordDetails } from "./record-details";
+
+const CatalogueForm = lazy(() =>
+  import("../forms/catalogue-form").then((module) => ({
+    default: module.CatalogueForm,
+  }))
+);
 
 /** Connect consultation to the existing form and mutation contracts without coupling the renderer to a table. */
 export function TableRecordDetails({
@@ -41,7 +49,12 @@ export function TableRecordDetails({
   onRefresh: () => Promise<unknown>;
   onRevertActivity?: DetailRevertHandler;
 }) {
-  const setFormState = useSetAtom(catalogueFormAtom);
+  const [formState, setFormState] = useAtom(catalogueFormAtom);
+  const [editorBusy, setEditorBusy] = useState(false);
+  const editing =
+    formState.isOpen &&
+    formState.surfaceOwner === "details" &&
+    formState.tableId === tableId;
   const locale = useLocale();
   const { session: planningSession } = usePlanningState();
   const getActions = useTableActions();
@@ -63,13 +76,12 @@ export function TableRecordDetails({
     if (!canEdit) {
       return;
     }
-    onClose();
     const type =
       tableConfig.form?.resolveEditFormType?.(item) ??
       tableConfig.form?.editFormType ??
       formType;
-    setFormState(
-      openUpdateForm(
+    setFormState({
+      ...openUpdateForm(
         type,
         tableId,
         item,
@@ -77,8 +89,9 @@ export function TableRecordDetails({
           await onRefresh();
         },
         tableType
-      )
-    );
+      ),
+      surfaceOwner: "details",
+    });
   };
   const remove = async (item: DetailRecord) => {
     if (!(canDelete && actions?.delete)) {
@@ -89,10 +102,35 @@ export function TableRecordDetails({
   return (
     <RecordDetails
       columns={tableConfig.columns.definitions}
-      config={details}
+      config={{
+        ...details,
+        presentation: tableConfig.presentation ?? details.presentation,
+      }}
+      editor={
+        editing ? (
+          <Suspense
+            fallback={
+              <output className="yayaw-record-body">
+                {locale.startsWith("fr") ? "Chargement…" : "Loading…"}
+              </output>
+            }
+          >
+            <CatalogueForm embedded onBusyChange={setEditorBusy} />
+          </Suspense>
+        ) : undefined
+      }
+      editorBusy={editorBusy}
       key={idOf(current)}
       locale={locale}
-      onClose={onClose}
+      onClose={() => {
+        if (editorBusy) {
+          return;
+        }
+        if (editing) {
+          setFormState(closeForm());
+        }
+        onClose();
+      }}
       onDelete={canDelete ? remove : undefined}
       onDeleted={async () => {
         await onRefresh();

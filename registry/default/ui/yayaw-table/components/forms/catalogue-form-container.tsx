@@ -20,7 +20,11 @@ const CatalogueForm = lazy(() =>
  * This component is responsible for rendering the CatalogueForm
  * and listening to the catalogueFormAtom
  */
-export function CatalogueFormContainer() {
+export function CatalogueFormContainer({
+  tableId: ownerTableId,
+}: {
+  tableId?: string;
+}) {
   // Get the form state from the atom (read-only to prevent conflicts)
   const formState = useAtomValue(catalogueFormAtom);
 
@@ -29,7 +33,11 @@ export function CatalogueFormContainer() {
     formState;
 
   // If no form type is provided, don't render anything
-  if (!formType) {
+  if (
+    !formType ||
+    formState.surfaceOwner === "details" ||
+    (ownerTableId && tableId !== ownerTableId)
+  ) {
     return null;
   }
 

@@ -42,6 +42,7 @@ import type {
   ToolbarActionsPlacement,
 } from "../types/toolbar-types";
 import type { NumberFormatConfig } from "../utils/number-format";
+import type { RecordPresentationConfig } from "../utils/record-presentation";
 import { isTableDensity } from "../utils/table-contracts";
 import { useTableTranslations } from "./use-table-translations";
 
@@ -144,6 +145,7 @@ export interface TableCatalogueTableConfig {
  * Used when normalizing provider config to TableCatalogueConfig.
  */
 type ProviderTableConfig = TableCatalogueTableConfig & {
+  presentation?: RecordPresentationConfig;
   form?: TableFormConfig;
   columns?: {
     definitions?: TableCatalogueColumnConfig[];
@@ -163,6 +165,7 @@ type ProviderTableConfigInput = Partial<ProviderTableConfig> | TableConfig;
  */
 export interface TableCatalogueConfig {
   table: TableCatalogueTableConfig;
+  presentation?: RecordPresentationConfig;
   form?: TableFormConfig;
   columns: {
     definitions: TableCatalogueColumnConfig[];
@@ -428,6 +431,7 @@ export function resolveTableCatalogueConfig(
 
   return {
     table: resolveTableBehaviorConfig(tableOptions),
+    presentation: providerConfig.presentation,
     form: providerConfig.form,
     columns: resolveColumnsConfig({
       columns,

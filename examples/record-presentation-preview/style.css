@@ -1,0 +1,8 @@
+@import "tailwindcss";
+@import "../responsive-toolbar-theme.css";
+@source "../../src";
+@source "../record-presentation-react.tsx";
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+}

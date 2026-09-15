@@ -7,43 +7,28 @@
 // Debug flag to control logging
 const _DEBUG = false;
 
+import { useStore } from "@tanstack/react-form";
 import { useAtom } from "jotai";
 import { PencilIcon, PlusIcon } from "lucide-react";
 import type React from "react";
 import {
-  type CSSProperties,
   type ReactNode,
   useCallback,
+  useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/drawer";
 import { useTableConfig } from "../../hooks/use-table-config";
+import { RecordSurface, RecordSurfaceHeader } from "../records/record-surface";
 import {
   type CatalogueFormState,
   catalogueFormAtom,
   formSubmittedAtom,
   handleFormOpenChange,
 } from "./atoms/catalogue-form-atoms";
-import { resolveCatalogueFormLayout } from "./catalogue-form-layout";
 import { DrawerFormPortalContainerContext } from "./drawer-form-portal-context";
 import { FormBuilder } from "./form-builder";
 import { useFormCatalogue } from "./hooks/use-form-catalogue";
@@ -64,6 +49,9 @@ interface CatalogueFormProps<TFieldValues extends FieldValues = FieldValues> {
    * If provided, will be used instead of the default button
    */
   children?: ReactNode;
+  /** Render inside the existing record surface during consultation-to-edit. */
+  embedded?: boolean;
+  onBusyChange?: (busy: boolean) => void;
 
   /**
    * Type of form to use (corresponds to a key in the form catalogue)
@@ -96,10 +84,6 @@ interface CatalogueFormProps<TFieldValues extends FieldValues = FieldValues> {
   tableType?: string;
 }
 
-type CatalogueFormContentStyle = CSSProperties & {
-  "--catalogue-form-width": string;
-};
-
 /**
  * Returns only values that differ from initial data (for update mode)
  */
@@ -119,14 +103,6 @@ function getChangedValues<T extends FieldValues>(
     }
   }
   return result;
-}
-
-const FOCUSABLE_SELECTOR =
-  'button:not([disabled]), [href], input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
-
-function findFirstFocusable(container: HTMLElement): HTMLElement | null {
-  const el = container.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
-  return el;
 }
 
 /**
@@ -324,7 +300,6 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
   const [, setFormSubmitted] = useAtom(formSubmittedAtom);
 
   const drawerContentRef = useRef<HTMLDivElement>(null);
-  const previousActiveElementRef = useRef<HTMLElement | null>(null);
 
   const formCatalogueParams = useMemo(
     () => ({
@@ -391,17 +366,35 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
 
   const builder = useFormCatalogue<TFieldValues>(formCatalogueParamsWithSubmit);
   const { form, translations, config: formConfig } = builder;
+  const submitting = useStore(form.store, (state) => state.isSubmitting);
+  const working = loading || submitting;
 
-  const formLayout = resolveCatalogueFormLayout({
-    ...tableConfig.form?.layout,
-    ...(formConfig.presentation ? { mode: formConfig.presentation } : {}),
-    ...(formConfig.width ? { width: formConfig.width } : {}),
-  });
-  const isModalLayout = formLayout.mode === "modal";
-  const formContentStyle = useMemo<CatalogueFormContentStyle>(
-    () => ({ "--catalogue-form-width": formLayout.width }),
-    [formLayout.width]
-  );
+  const presentation =
+    tableConfig.presentation ??
+    formConfig.presentation ??
+    tableConfig.form?.presentation ??
+    tableConfig.form?.layout?.mode;
+  const width =
+    formConfig.width ??
+    tableConfig.form?.width ??
+    tableConfig.form?.layout?.width;
+  const { onBusyChange } = props;
+  useEffect(() => {
+    onBusyChange?.(working);
+  }, [working, onBusyChange]);
+  useEffect(() => () => onBusyChange?.(false), [onBusyChange]);
+  useEffect(() => {
+    if (!(props.embedded && isOpen) || builder.loadingInitial) {
+      return;
+    }
+    const frame = requestAnimationFrame(() => {
+      const first = drawerContentRef.current?.querySelector<HTMLElement>(
+        'input, textarea, [role="combobox"], button[type="submit"]'
+      );
+      first?.focus();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [props.embedded, isOpen, builder.loadingInitial]);
 
   translationsRef.current = translations;
   formRef.current = form;
@@ -410,7 +403,7 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
   const handleOpenChange = useCallback(
     (open: boolean) => {
       // Keep the submitted row stable until the action finishes.
-      if (loading || isChangingStateRef.current) {
+      if (working || isChangingStateRef.current) {
         return;
       }
 
@@ -418,10 +411,6 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
 
       if (open) {
         setFormSubmitted(false);
-        previousActiveElementRef.current =
-          document.activeElement instanceof HTMLElement
-            ? document.activeElement
-            : null;
       }
 
       // Use the utility function to update the form state
@@ -432,49 +421,18 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
         isChangingStateRef.current = false;
       }, 100);
     },
-    [setFormSubmitted, setFormState, loading]
+    [setFormSubmitted, setFormState, working]
   );
 
   // Determine if this is a standalone form (with its own button)
   const isStandaloneForm = !(children || isOpen);
 
-  // Stabilize the button onClick handler; capture focus restore target before opening
-  const handleButtonClick = useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      if (!isChangingStateRef.current) {
-        previousActiveElementRef.current =
-          e.currentTarget ??
-          (document.activeElement instanceof HTMLElement
-            ? document.activeElement
-            : null);
-        setFormState((prev) => handleFormOpenChange(true, prev));
-      }
-    },
-    [setFormState]
-  );
-
-  // Use Radix Dialog's focus callbacks (Vaul uses Radix under the hood). No useEffect.
-  const handleOpenAutoFocus = useCallback((e: Event) => {
-    e.preventDefault();
-    // Double rAF so drawer layout (and Select/portals) is committed before focus
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        const first = drawerContentRef.current
-          ? findFirstFocusable(drawerContentRef.current)
-          : null;
-        first?.focus();
-      });
-    });
-  }, []);
-
-  const handleCloseAutoFocus = useCallback((e: Event) => {
-    e.preventDefault();
-    const prev = previousActiveElementRef.current;
-    previousActiveElementRef.current = null;
-    if (prev?.isConnected) {
-      prev.focus();
+  // Keep the standalone trigger stable while opening the shared form surface.
+  const handleButtonClick = useCallback(() => {
+    if (!isChangingStateRef.current) {
+      setFormState((prev) => handleFormOpenChange(true, prev));
     }
-  }, []);
+  }, [setFormState]);
 
   // If no form type is provided, don't render anything
   if (!formType) {
@@ -522,40 +480,27 @@ export function CatalogueForm<TFieldValues extends FieldValues>(
       drawerContentRef={drawerContentRef}
       formDescription={formDescription}
       formTitle={formTitle}
-      isModalLayout={isModalLayout}
-      loading={loading}
+      loading={working}
       mode={mode}
       onClose={() => handleOpenChange(false)}
     />
   );
 
-  if (isModalLayout) {
-    return (
-      <Dialog onOpenChange={handleOpenChange} open={isOpen}>
-        {trigger}
-        <DialogContent
-          className="max-h-[90vh] overflow-y-auto p-0 sm:max-w-[var(--catalogue-form-width)]"
-          style={formContentStyle}
-        >
-          {formBody}
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
   return (
-    <Drawer direction="right" onOpenChange={handleOpenChange} open={isOpen}>
+    <>
       {trigger}
-
-      <DrawerContent
-        className="w-full sm:max-w-[var(--catalogue-form-width)]"
-        onCloseAutoFocus={handleCloseAutoFocus}
-        onOpenAutoFocus={handleOpenAutoFocus}
-        style={formContentStyle}
+      <RecordSurface
+        busy={working}
+        embedded={props.embedded}
+        onClose={() => handleOpenChange(false)}
+        open={isOpen}
+        presentation={presentation}
+        title={formTitle}
+        width={width}
       >
         {formBody}
-      </DrawerContent>
-    </Drawer>
+      </RecordSurface>
+    </>
   );
 }
 
@@ -566,7 +511,6 @@ function CatalogueFormBody<TFieldValues extends FieldValues>({
   formDescription,
   loading,
   drawerContentRef,
-  isModalLayout,
   onClose,
 }: {
   builder: ReturnType<typeof useFormCatalogue<TFieldValues>>;
@@ -575,7 +519,6 @@ function CatalogueFormBody<TFieldValues extends FieldValues>({
   formDescription?: string;
   loading: boolean;
   drawerContentRef: React.RefObject<HTMLDivElement | null>;
-  isModalLayout: boolean;
   onClose: () => void;
 }) {
   const {
@@ -589,22 +532,18 @@ function CatalogueFormBody<TFieldValues extends FieldValues>({
     loadError,
     retryInitial,
   } = builder;
-  const Header = isModalLayout ? DialogHeader : DrawerHeader;
-  const Title = isModalLayout ? DialogTitle : DrawerTitle;
-  const Description = isModalLayout ? DialogDescription : DrawerDescription;
-  const Footer = isModalLayout ? DialogFooter : DrawerFooter;
   const disabled = loading || loadingInitial || Boolean(loadError);
   return (
     <DrawerFormPortalContainerContext.Provider value={drawerContentRef}>
-      <div
-        className="relative mx-auto w-full overflow-visible p-6"
-        ref={drawerContentRef}
-      >
-        <Header className="px-0 pr-10">
-          <Title>{formTitle}</Title>
-          {formDescription && <Description>{formDescription}</Description>}
-        </Header>
-        <div className="py-4">
+      <div className="yayaw-record-content" ref={drawerContentRef}>
+        <RecordSurfaceHeader
+          busy={loading}
+          closeLabel={translations.close ?? "Close"}
+          description={formDescription}
+          onClose={onClose}
+          title={formTitle}
+        />
+        <div className="yayaw-record-body">
           {loadingInitial && (
             <output>{translations.loading ?? "Loading…"}</output>
           )}
@@ -629,7 +568,7 @@ function CatalogueFormBody<TFieldValues extends FieldValues>({
             />
           </fieldset>
         </div>
-        <Footer className="flex-row justify-end gap-2 px-0">
+        <footer className="yayaw-record-footer">
           <Button
             disabled={loading}
             onClick={onClose}
@@ -648,7 +587,7 @@ function CatalogueFormBody<TFieldValues extends FieldValues>({
             {config.submitLabel ??
               (mode === "update" ? translations.update : translations.submit)}
           </Button>
-        </Footer>
+        </footer>
       </div>
     </DrawerFormPortalContainerContext.Provider>
   );

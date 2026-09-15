@@ -1,10 +1,15 @@
 "use client";
 
 import { AlertDialog } from "@base-ui/react/alert-dialog";
-import { Dialog } from "@base-ui/react/dialog";
 import { Tabs } from "@base-ui/react/tabs";
-import { Clock3, History, Pencil, Trash2, Undo2, X } from "lucide-react";
-import { type ReactNode, type RefObject, useRef, useState } from "react";
+import { Clock3, History, Pencil, Trash2, Undo2 } from "lucide-react";
+import {
+  type ReactNode,
+  type RefObject,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { Button } from "@/components/ui/button";
 import type { ColumnDefinition } from "../../config/helpers";
 import {
@@ -20,11 +25,15 @@ import {
   detailValue,
   type RecordDetailsConfig,
 } from "../../utils/record-details";
+import { RecordSurface, RecordSurfaceHeader } from "../records/record-surface";
 import { DetailValue } from "./detail-value";
 import { useActivityUndo } from "./use-activity-undo";
 import "./record-details.css";
 
 export interface RecordDetailsProps {
+  /** Keeps the surrounding surface mounted while editing the current record. */
+  editor?: ReactNode;
+  editorBusy?: boolean;
   row: DetailRecord;
   config: RecordDetailsConfig;
   columns?: ColumnDefinition[];
@@ -186,25 +195,29 @@ function DetailHeader({
 }) {
   const updated = config.updatedAt?.(row);
   const updatedBy = config.updatedBy?.(row);
-  const inline = config.presentation === "inline";
   return (
     <>
-      <header className="yayaw-detail-header">
-        <div className="yayaw-detail-heading">
-          <p className="yayaw-detail-eyebrow">
-            {labels.record} {row.id ? <span>/ {String(row.id)}</span> : null}
-          </p>
-          <h2>{title}</h2>
-          {config.description ? (
-            <p className="yayaw-detail-description">
-              {config.description(row)}
-            </p>
-          ) : null}
-        </div>
+      <RecordSurfaceHeader
+        busy={busy}
+        closeLabel={labels.close}
+        description={config.description?.(row)}
+        onClose={onClose}
+        title={title}
+      >
         <div className="yayaw-detail-actions">
-          {onPlanning && <button type="button" onClick={() => onPlanning(row)}>{locale.startsWith("fr") ? "Planification" : "Planning"}</button>}
+          {onPlanning && (
+            <Button
+              disabled={busy}
+              onClick={() => onPlanning(row)}
+              type="button"
+              variant="outline"
+            >
+              {locale.startsWith("fr") ? "Planification" : "Planning"}
+            </Button>
+          )}
           {onEdit ? (
             <Button
+              data-record-edit=""
               disabled={busy}
               onClick={() => onEdit(row)}
               variant="outline"
@@ -225,19 +238,8 @@ function DetailHeader({
               {labels.delete}
             </Button>
           ) : null}
-          {inline ? (
-            <Button
-              aria-label={labels.close}
-              disabled={busy}
-              onClick={onClose}
-              size="icon"
-              variant="ghost"
-            >
-              <X size={16} />
-            </Button>
-          ) : null}
         </div>
-      </header>
+      </RecordSurfaceHeader>
       {updated ? (
         <div className="yayaw-detail-meta">
           <Clock3 aria-hidden="true" size={14} />
@@ -265,6 +267,8 @@ function DetailHeader({
 
 /** Mount with a stable record key; the content works in a drawer, modal, or any page container. */
 export function RecordDetails({
+  editor,
+  editorBusy,
   row,
   config,
   columns = [],
@@ -278,6 +282,16 @@ export function RecordDetails({
   onReverted,
   renderField,
 }: RecordDetailsProps) {
+  const contentRef = useRef<HTMLElement>(null);
+  const wasEditing = useRef(false);
+  useEffect(() => {
+    if (wasEditing.current && !editor) {
+      contentRef.current
+        ?.querySelector<HTMLElement>("[data-record-edit]")
+        ?.focus();
+    }
+    wasEditing.current = Boolean(editor);
+  }, [editor]);
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const deletionPending = useRef(false);
@@ -299,7 +313,6 @@ export function RecordDetails({
     handler: onRevertActivity,
     onReverted,
   });
-  const inline = config.presentation === "inline";
   const confirmDelete = async () => {
     if (!onDelete || deletionPending.current || undo.pending) {
       return;
@@ -329,7 +342,8 @@ export function RecordDetails({
       <article
         aria-busy={deleting || Boolean(undo.pending)}
         aria-label={title}
-        className="yayaw-detail"
+        className="yayaw-detail yayaw-record-content"
+        ref={contentRef}
       >
         <DetailHeader
           busy={confirming || deleting || Boolean(undo.pending)}
@@ -346,12 +360,15 @@ export function RecordDetails({
                 }
               : undefined
           }
-          onPlanning={onPlanning}
           onEdit={onEdit}
+          onPlanning={onPlanning}
           row={row}
           title={title}
         />
-        <Tabs.Root defaultValue="details">
+        <Tabs.Root
+          className="yayaw-detail-tabs yayaw-record-content"
+          defaultValue="details"
+        >
           <Tabs.List
             aria-label={labels.record}
             className="yayaw-detail-tablist"
@@ -363,7 +380,10 @@ export function RecordDetails({
               <span className="yayaw-detail-count">{activity.length}</span>
             </Tabs.Tab>
           </Tabs.List>
-          <Tabs.Panel className="yayaw-detail-body" value="details">
+          <Tabs.Panel
+            className="yayaw-detail-body yayaw-record-body"
+            value="details"
+          >
             {sections.map((section) => (
               <section className="yayaw-detail-section" key={section.id}>
                 <h3>{section.title}</h3>
@@ -396,7 +416,10 @@ export function RecordDetails({
               <p className="yayaw-detail-empty">{labels.empty}</p>
             ) : null}
           </Tabs.Panel>
-          <Tabs.Panel className="yayaw-detail-body" value="activity">
+          <Tabs.Panel
+            className="yayaw-detail-body yayaw-record-body"
+            value="activity"
+          >
             {activity.length ? (
               <ol className="yayaw-detail-timeline">
                 {activity.map((entry) => (
@@ -468,46 +491,15 @@ export function RecordDetails({
       </AlertDialog.Root>
     </>
   );
-  if (inline) {
-    return content;
-  }
   return (
-    <Dialog.Root
-      onOpenChange={(open) => {
-        if (!(open || deleting || confirming || undo.pending)) {
-          onClose();
-        }
-      }}
-      open
+    <RecordSurface
+      busy={deleting || confirming || Boolean(undo.pending) || editorBusy}
+      onClose={onClose}
+      presentation={config.presentation}
+      title={title}
+      width={config.width}
     >
-      <Dialog.Portal>
-        <Dialog.Backdrop className="yayaw-detail-overlay" />
-        <Dialog.Popup
-          className="yayaw-detail-surface"
-          data-presentation={config.presentation ?? "drawer"}
-          style={{
-            width:
-              config.width ??
-              (config.presentation === "modal"
-                ? "min(880px, 94vw)"
-                : "min(720px, 100vw)"),
-          }}
-        >
-          <div className="yayaw-detail-dialog-header">
-            <Dialog.Title>{labels.record}</Dialog.Title>
-            <Button
-              aria-label={labels.close}
-              disabled={deleting || confirming || Boolean(undo.pending)}
-              onClick={onClose}
-              size="icon"
-              variant="ghost"
-            >
-              <X size={16} />
-            </Button>
-          </div>
-          {content}
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+      {editor ?? content}
+    </RecordSurface>
   );
 }

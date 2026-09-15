@@ -5,9 +5,10 @@ import { PlanningSurface, usePlanningState } from "../planning/react";
  * This component replaces the old DataTable with a more streamlined API
  */
 
+import { useAtomValue } from "jotai";
 import type React from "react";
 // Import advanced filters hook directly
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import type { Row } from "@/components/ui/yayaw-table/tanstack";
 import type { TableEmptyStateConfig } from "../config/helpers";
 import { useAutoPageSizeLifetime } from "../hooks/use-auto-page-size";
@@ -47,6 +48,7 @@ import { TableRecordDetails } from "./details/table-record-details";
 // Direct import keeps the toolbar available without a client-only dynamic wrapper.
 import { TableFilterBar } from "./filters/table-filter-bar";
 // Lazy load heavy components using React.lazy inside './forms/lazy-forms'
+import { catalogueFormAtom } from "./forms/atoms/catalogue-form-atoms";
 import { LazyCatalogueFormContainer as CatalogueFormContainer } from "./forms/lazy-forms";
 // Import DataTableClient directly for better SSR compatibility
 import { TableComponent as DataTableClient } from "./table-component";
@@ -352,14 +354,66 @@ function detailViewHandler(
   return onOpenDetails ?? (details ? open : undefined);
 }
 
-function PlanningRecordOverlay({session, locale, onOpen}: {
+function useRecordView(
+  tableId: string,
+  details?: RecordDetailsConfig,
+  onOpenDetails?: (row: Record<string, unknown>) => void
+) {
+  const [viewedRow, setViewedRow] = useState<Record<string, unknown>>();
+  const recordForm = useAtomValue(catalogueFormAtom);
+  const formOpen = recordForm.isOpen && recordForm.tableId === tableId;
+  const standaloneFormOpen = formOpen && recordForm.surfaceOwner !== "details";
+  useEffect(() => {
+    if (standaloneFormOpen) {
+      setViewedRow(undefined);
+    }
+  }, [standaloneFormOpen]);
+  const open = useCallback(
+    (row: Record<string, unknown>) => {
+      // Keep an inline editor attached to its original record until it closes.
+      if (!formOpen) {
+        setViewedRow(row);
+      }
+    },
+    [formOpen]
+  );
+  const openDetails = detailViewHandler(details, open, onOpenDetails);
+
+  return {
+    viewedRow: standaloneFormOpen ? undefined : viewedRow,
+    setViewedRow,
+    openDetails,
+  };
+}
+
+function PlanningRecordOverlay({
+  session,
+  locale,
+  onOpen,
+}: {
   session: ReturnType<typeof usePlanningState>["session"];
   locale: string;
   onOpen?: (row: Record<string, unknown>) => void;
 }) {
-  if (!session) { return null; }
-  return <PlanningSurface session={session} mode="overlay" locale={locale}
-    onOpenRecord={onOpen ? (task) => { if (task.record) { onOpen(task.record); } } : undefined} />;
+  if (!session) {
+    return null;
+  }
+  return (
+    <PlanningSurface
+      locale={locale}
+      mode="overlay"
+      onOpenRecord={
+        onOpen
+          ? (task) => {
+              if (task.record) {
+                onOpen(task.record);
+              }
+            }
+          : undefined
+      }
+      session={session}
+    />
+  );
 }
 
 function isFilterBarVisible(
@@ -498,9 +552,13 @@ function DataTableContent({
   const tableId = tableIdProp ?? tableType;
   useAutoPageSizeLifetime(tableId);
   const defaultFormType = formType ?? tableType;
-  const {session: planningSession} = usePlanningState();
-  const {locale: planningLocale} = useTranslations();
-  const [viewedRow, setViewedRow] = useState<Record<string, unknown>>();
+  const { session: planningSession } = usePlanningState();
+  const { locale: planningLocale } = useTranslations();
+  const { viewedRow, setViewedRow, openDetails } = useRecordView(
+    tableId,
+    details,
+    onOpenDetails
+  );
 
   // Nested translations from TableProvider (used to resolve for DataTableUIProvider)
   const { translations: nestedTranslations } = useTranslations();
@@ -516,7 +574,7 @@ function DataTableContent({
     rowCount,
     visibilityKey,
   } = useDataTable({
-    onView: detailViewHandler(details, setViewedRow, onOpenDetails),
+    onView: openDetails,
     formType: defaultFormType,
     initialData,
     initialPageCount,
@@ -675,39 +733,39 @@ function DataTableContent({
             {shouldShowToolbar && (
               <div className="space-y-3">
                 {/* Keep settings mounted while a filter or sort request is loading. */}
-                  <DataTableHeaderControls
-                    allowViewSave={config.table.allowViewSave}
-                    allowViewSharing={config.table.allowViewSharing}
-                    baseData={baseData}
-                    columnTypeMapping={columnTypeMapping}
-                    defaultDensity={config.table.density}
-                    defaultDisplayMode={config.table.defaultDisplayMode}
-                    defaultFormType={defaultFormType}
-                    displayModes={config.table.displayModes}
-                    enableAdvancedFilters={shouldEnableAdvancedFilters}
-                    enableGalleryControl={shouldShowGallery}
-                    enableKanbanGrouping={shouldShowKanbanGrouping}
-                    galleryColumns={galleryColumns}
-                    galleryConfig={config.table.gallery}
-                    initialActiveViewId={initialActiveViewId}
-                    initialViews={initialViews}
-                    kanbanConfig={config.table.kanban}
-                    kanbanControlColumns={galleryColumns}
-                    kanbanDefaultGroupBy={config.table.kanban?.groupBy}
-                    kanbanGroupingColumns={kanbanGroupingColumns}
-                    onExport={onExport}
-                    quickFiltersVisible={isFilterBarVisible(
-                      showFilterBar,
-                      config.table.showFilterBar
-                    )}
-                    searchDebounceMs={resolvedSearchDebounceMs}
-                    shouldShowViewControls={shouldShowViewControls}
-                    shouldShowViews={shouldShowViews}
-                    tableId={tableId}
-                    tableType={tableType}
-                    toolbarActions={resolvedToolbarActions}
-                    toolbarActionsPlacement={resolvedToolbarActionsPlacement}
-                  />
+                <DataTableHeaderControls
+                  allowViewSave={config.table.allowViewSave}
+                  allowViewSharing={config.table.allowViewSharing}
+                  baseData={baseData}
+                  columnTypeMapping={columnTypeMapping}
+                  defaultDensity={config.table.density}
+                  defaultDisplayMode={config.table.defaultDisplayMode}
+                  defaultFormType={defaultFormType}
+                  displayModes={config.table.displayModes}
+                  enableAdvancedFilters={shouldEnableAdvancedFilters}
+                  enableGalleryControl={shouldShowGallery}
+                  enableKanbanGrouping={shouldShowKanbanGrouping}
+                  galleryColumns={galleryColumns}
+                  galleryConfig={config.table.gallery}
+                  initialActiveViewId={initialActiveViewId}
+                  initialViews={initialViews}
+                  kanbanConfig={config.table.kanban}
+                  kanbanControlColumns={galleryColumns}
+                  kanbanDefaultGroupBy={config.table.kanban?.groupBy}
+                  kanbanGroupingColumns={kanbanGroupingColumns}
+                  onExport={onExport}
+                  quickFiltersVisible={isFilterBarVisible(
+                    showFilterBar,
+                    config.table.showFilterBar
+                  )}
+                  searchDebounceMs={resolvedSearchDebounceMs}
+                  shouldShowViewControls={shouldShowViewControls}
+                  shouldShowViews={shouldShowViews}
+                  tableId={tableId}
+                  tableType={tableType}
+                  toolbarActions={resolvedToolbarActions}
+                  toolbarActionsPlacement={resolvedToolbarActionsPlacement}
+                />
               </div>
             )}
 
@@ -751,11 +809,7 @@ function DataTableContent({
                 onBulkEdit={onBulkEdit}
                 onBulkExport={onBulkExport}
                 onRowActivate={(row, event) => {
-                  detailViewHandler(
-                    details,
-                    setViewedRow,
-                    onOpenDetails
-                  )?.(row);
+                  openDetails?.(row);
                   onRowActivate?.(row, event);
                 }}
                 onRowClick={onRowClick}
@@ -784,10 +838,13 @@ function DataTableContent({
 
       {/* Render the CatalogueForm container to handle form operations */}
       <Suspense fallback={null}>
-        <CatalogueFormContainer />
+        <CatalogueFormContainer tableId={tableId} />
       </Suspense>
-      <PlanningRecordOverlay session={planningSession} locale={planningLocale}
-        onOpen={detailViewHandler(details, setViewedRow, onOpenDetails)} />
+      <PlanningRecordOverlay
+        locale={planningLocale}
+        onOpen={openDetails}
+        session={planningSession}
+      />
       <TableRecordDetails
         details={details}
         formType={defaultFormType}

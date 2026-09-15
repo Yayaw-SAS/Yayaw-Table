@@ -1,3 +1,4 @@
+import type { RecordPresentationConfig } from "../utils/record-presentation";
 /**
  * Helper functions for defining and working with table configurations
  */
@@ -188,7 +189,12 @@ export function getTableLayoutPresetDefaults(
   return {};
 }
 
-const TABLE_DISPLAY_MODES: TableDisplayMode[] = ["table", "kanban", "gallery", "gantt"];
+const TABLE_DISPLAY_MODES: TableDisplayMode[] = [
+  "table",
+  "kanban",
+  "gallery",
+  "gantt",
+];
 
 export function resolveTableDisplayModes(
   displayModes: TableDisplayMode[] | undefined
@@ -661,6 +667,8 @@ export interface TableConfig {
   /**
    * Form configuration for the table
    */
+  /** Shared record presentation; defaults to a right drawer on every viewport. */
+  presentation?: RecordPresentationConfig;
   form?: TableFormConfig;
 
   /**
@@ -710,6 +718,8 @@ export interface TableTranslationsConfig {
  */
 export function defineTableConfig(config: {
   columns: TableColumnsConfig;
+  /** Shared record presentation; defaults to a right drawer on every viewport. */
+  presentation?: RecordPresentationConfig;
   form?: TableFormConfig;
   icon?: string;
   id: string;
@@ -763,6 +773,7 @@ export function defineTableConfig(config: {
       sort: config.columns.sort || [],
       visible: config.columns.visible,
     },
+    presentation: config.presentation,
     form: config.form,
     icon: config.icon,
     id: config.id,

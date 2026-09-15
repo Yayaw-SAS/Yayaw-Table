@@ -27,6 +27,8 @@
     "vue:build": "bun run --cwd packages/yayaw-table-vue build",
     "vue:test": "bun run --cwd packages/yayaw-table-vue test",
     "contracts:sync": "node scripts/sync-table-contracts.mjs",
+    "records:dev": "vite --config examples/record-presentation-preview/vite.config.mjs",
+    "records:build": "vite build --config examples/record-presentation-preview/vite.config.mjs",
     "gantt:dev": "vite --config examples/gantt-preview/vite.config.mjs",
     "gantt:build": "vite build --config examples/gantt-preview/vite.config.mjs"
   },

@@ -247,13 +247,24 @@ function BulkEditorForm({
       closeLabel={messages.close}
       description={messages.description}
       onClose={onClose}
+      presentation={
+        tableConfig.presentation ??
+        config.presentation ??
+        tableConfig.form?.presentation ??
+        tableConfig.form?.layout?.mode
+      }
       title={(count === 1 ? messages.titleOne : messages.titleMany).replace(
         "{count}",
         String(count)
       )}
+      width={
+        config.width ??
+        tableConfig.form?.width ??
+        tableConfig.form?.layout?.width
+      }
     >
       <form
-        className="flex min-h-0 flex-col"
+        className="yayaw-record-content"
         onSubmit={async (event) => {
           event.preventDefault();
           if (!working && draftState.valid) {
@@ -261,7 +272,7 @@ function BulkEditorForm({
           }
         }}
       >
-        <div className="min-h-0 overflow-y-auto overscroll-contain px-6 pb-5">
+        <div className="yayaw-record-body">
           {formTypes.length > 1 && (
             <p role="alert">Select rows using the same form type.</p>
           )}
@@ -298,7 +309,7 @@ function BulkEditorForm({
             }
           />
         </div>
-        <footer className="flex shrink-0 flex-wrap justify-end gap-2 border-t px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <footer className="yayaw-record-footer">
           <Button
             disabled={working}
             onClick={onClose}

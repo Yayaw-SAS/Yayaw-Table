@@ -3,8 +3,6 @@
  * This file exports all components, hooks, and atoms for the DataTable
  */
 
-// Main component
-export { DataTable } from "./components/data-table";
 export type {
   BulkAction,
   BulkActionConfirmConfig,
@@ -15,18 +13,8 @@ export type {
   BulkActionVariant,
   CustomBulkActionsInput,
 } from "./components/bulk-actions";
-export {
-  CatalogueForm,
-  CollectionEditor,
-  CollectionField,
-  FormBuilder,
-  TablePickerField,
-  createCollectionField,
-  createDateField,
-  createRadioField,
-  createTablePickerField,
-  defineFormConfig,
-} from "./components/forms";
+// Main component
+export { DataTable } from "./components/data-table";
 export type {
   AnyFieldDefinition,
   CollectionFieldActionLabels,
@@ -48,6 +36,18 @@ export type {
   TablePickerFieldConfig,
   TablePickerFieldDefinition,
 } from "./components/forms";
+export {
+  CatalogueForm,
+  CollectionEditor,
+  CollectionField,
+  createCollectionField,
+  createDateField,
+  createRadioField,
+  createTablePickerField,
+  defineFormConfig,
+  FormBuilder,
+  TablePickerField,
+} from "./components/forms";
 export type {
   CatalogueFormLayoutConfig,
   TableFormConfig,
@@ -68,6 +68,13 @@ export type {
 } from "./config/helpers";
 // Config helper and types
 export { defineTableConfig } from "./config/helpers";
+export { createMemoryPlanningAdapter } from "./planning/adapter";
+export { calculatePlanning, resolvedPlanningSnapshot } from "./planning/engine";
+export {
+  type PlanningRowAdapter,
+  planningTasksFromRows,
+} from "./planning/rows";
+export type * from "./planning/types";
 export * from "./types/column-types";
 export * from "./types/date-types";
 export * from "./types/display-types";
@@ -86,10 +93,8 @@ export type {
   TableViewConfig,
   UpdateTableViewInput,
 } from "./types/view-types";
+export type {
+  RecordPresentation,
+  RecordPresentationConfig,
+} from "./utils/record-presentation";
 export { createLocalTableViewActions } from "./utils/table-view-storage";
-
-export type * from "./planning/types";
-export { createMemoryPlanningAdapter } from "./planning/adapter";
-export { calculatePlanning, resolvedPlanningSnapshot } from "./planning/engine";
-
-export { planningTasksFromRows, type PlanningRowAdapter } from "./planning/rows";

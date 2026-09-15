@@ -1,4 +1,5 @@
 import type { FormBlock } from "../components/forms/types";
+import type { RecordPresentationConfig } from "../utils/record-presentation";
 
 /**
  * Form configuration for data tables
@@ -29,6 +30,9 @@ export interface CatalogueFormLayoutConfig {
  * Form configuration for a data table
  */
 export interface TableFormConfig {
+  /** Legacy per-form fallback. Prefer TableConfig.presentation. */
+  presentation?: RecordPresentationConfig;
+  width?: string;
   /** Optional composition for generated forms; a catalogue form can override it. */
   blocks?: FormBlock[];
   /**

@@ -4,10 +4,15 @@
  */
 "use client";
 
-import type { ColumnSort } from "@/components/ui/yayaw-table/tanstack";
 import { useMemo } from "react";
+
+import type { ColumnSort } from "@/components/ui/yayaw-table/tanstack";
 import type { TableFormConfig } from "../config/form-config";
+/**
+ * Configuration for table columns in the catalogue
+ */
 import type {
+  ColumnDefinition,
   InlineEditColumnConfig,
   TableConfig,
   TableEmptyStateConfig,
@@ -38,13 +43,9 @@ import type {
   ToolbarActionsPlacement,
 } from "../types/toolbar-types";
 import type { NumberFormatConfig } from "../utils/number-format";
+import type { RecordPresentationConfig } from "../utils/record-presentation";
 import { isTableDensity } from "../utils/table-contracts";
 import { useTableTranslations } from "./use-table-translations";
-
-/**
- * Configuration for table columns in the catalogue
- */
-import type { ColumnDefinition } from "../config/helpers";
 
 export interface TableCatalogueColumnConfig extends ColumnDefinition {
   id: string;
@@ -145,6 +146,7 @@ export interface TableCatalogueTableConfig {
  * Used when normalizing provider config to TableCatalogueConfig.
  */
 type ProviderTableConfig = TableCatalogueTableConfig & {
+  presentation?: RecordPresentationConfig;
   form?: TableFormConfig;
   columns?: {
     definitions?: TableCatalogueColumnConfig[];
@@ -164,6 +166,7 @@ type ProviderTableConfigInput = Partial<ProviderTableConfig> | TableConfig;
  */
 export interface TableCatalogueConfig {
   table: TableCatalogueTableConfig;
+  presentation?: RecordPresentationConfig;
   form?: TableFormConfig;
   columns: {
     definitions: TableCatalogueColumnConfig[];
@@ -429,6 +432,7 @@ export function resolveTableCatalogueConfig(
 
   return {
     table: resolveTableBehaviorConfig(tableOptions),
+    presentation: providerConfig.presentation,
     form: providerConfig.form,
     columns: resolveColumnsConfig({
       columns,

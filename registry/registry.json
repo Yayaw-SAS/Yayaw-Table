@@ -494,11 +494,6 @@
           "target": "components/ui/yayaw-table/components/forms/catalogue-form-container.tsx"
         },
         {
-          "path": "registry/default/ui/yayaw-table/components/forms/catalogue-form-layout.ts",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/components/forms/catalogue-form-layout.ts"
-        },
-        {
           "path": "registry/default/ui/yayaw-table/components/forms/catalogue-form.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/forms/catalogue-form.tsx"
@@ -682,6 +677,16 @@
           "path": "registry/default/ui/yayaw-table/components/kanban-view.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/kanban-view.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/records/record-surface.css",
+          "type": "registry:style",
+          "target": "components/ui/yayaw-table/components/records/record-surface.css"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/records/record-surface.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/records/record-surface.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/safe-pagination.tsx",
@@ -1187,6 +1192,11 @@
           "path": "registry/default/ui/yayaw-table/utils/record-details.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/record-details.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/record-presentation.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/record-presentation.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/utils/row-selection-range.ts",

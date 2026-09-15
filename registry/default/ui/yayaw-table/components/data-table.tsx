@@ -5,9 +5,10 @@ import { PlanningSurface, usePlanningState } from "../planning/react";
  * This component replaces the old DataTable with a more streamlined API
  */
 
+import { useAtomValue } from "jotai";
 import type React from "react";
 // Import advanced filters hook directly
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import type { TableEmptyStateConfig } from "../config/helpers";
 import { useAutoPageSizeLifetime } from "../hooks/use-auto-page-size";
 import type {
@@ -47,6 +48,7 @@ import { TableRecordDetails } from "./details/table-record-details";
 // Direct import keeps the toolbar available without a client-only dynamic wrapper.
 import { TableFilterBar } from "./filters/table-filter-bar";
 // Lazy load heavy components using React.lazy inside './forms/lazy-forms'
+import { catalogueFormAtom } from "./forms/atoms/catalogue-form-atoms";
 import { LazyCatalogueFormContainer as CatalogueFormContainer } from "./forms/lazy-forms";
 // Import DataTableClient directly for better SSR compatibility
 import { TableComponent as DataTableClient } from "./table-component";
@@ -352,6 +354,38 @@ function detailViewHandler(
   return onOpenDetails ?? (details ? open : undefined);
 }
 
+function useRecordView(
+  tableId: string,
+  details?: RecordDetailsConfig,
+  onOpenDetails?: (row: Record<string, unknown>) => void
+) {
+  const [viewedRow, setViewedRow] = useState<Record<string, unknown>>();
+  const recordForm = useAtomValue(catalogueFormAtom);
+  const formOpen = recordForm.isOpen && recordForm.tableId === tableId;
+  const standaloneFormOpen = formOpen && recordForm.surfaceOwner !== "details";
+  useEffect(() => {
+    if (standaloneFormOpen) {
+      setViewedRow(undefined);
+    }
+  }, [standaloneFormOpen]);
+  const open = useCallback(
+    (row: Record<string, unknown>) => {
+      // Keep an inline editor attached to its original record until it closes.
+      if (!formOpen) {
+        setViewedRow(row);
+      }
+    },
+    [formOpen]
+  );
+  const openDetails = detailViewHandler(details, open, onOpenDetails);
+
+  return {
+    viewedRow: standaloneFormOpen ? undefined : viewedRow,
+    setViewedRow,
+    openDetails,
+  };
+}
+
 function PlanningRecordOverlay({
   session,
   locale,
@@ -520,7 +554,11 @@ function DataTableContent({
   const defaultFormType = formType ?? tableType;
   const { session: planningSession } = usePlanningState();
   const { locale: planningLocale } = useTranslations();
-  const [viewedRow, setViewedRow] = useState<Record<string, unknown>>();
+  const { viewedRow, setViewedRow, openDetails } = useRecordView(
+    tableId,
+    details,
+    onOpenDetails
+  );
 
   // Nested translations from TableProvider (used to resolve for DataTableUIProvider)
   const { translations: nestedTranslations } = useTranslations();
@@ -536,7 +574,7 @@ function DataTableContent({
     rowCount,
     visibilityKey,
   } = useDataTable({
-    onView: detailViewHandler(details, setViewedRow, onOpenDetails),
+    onView: openDetails,
     formType: defaultFormType,
     initialData,
     initialPageCount,
@@ -771,11 +809,7 @@ function DataTableContent({
                 onBulkEdit={onBulkEdit}
                 onBulkExport={onBulkExport}
                 onRowActivate={(row, event) => {
-                  detailViewHandler(
-                    details,
-                    setViewedRow,
-                    onOpenDetails
-                  )?.(row);
+                  openDetails?.(row);
                   onRowActivate?.(row, event);
                 }}
                 onRowClick={onRowClick}
@@ -804,11 +838,11 @@ function DataTableContent({
 
       {/* Render the CatalogueForm container to handle form operations */}
       <Suspense fallback={null}>
-        <CatalogueFormContainer />
+        <CatalogueFormContainer tableId={tableId} />
       </Suspense>
       <PlanningRecordOverlay
         locale={planningLocale}
-        onOpen={detailViewHandler(details, setViewedRow, onOpenDetails)}
+        onOpen={openDetails}
         session={planningSession}
       />
       <TableRecordDetails
