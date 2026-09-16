@@ -1464,6 +1464,17 @@ function ModernDataTable<
     refetch,
     locale,
     selectAll: bulkActions.handleSelectAll,
+    duplicateEnabled: tableConfig.table.allowDuplicate !== false,
+    duplicate: {
+      rows: () =>
+        bulkActions.selectedRows.map(
+          (row) => row.original as Record<string, unknown>
+        ),
+      getId: (row) => String(row.id),
+      canDuplicate: (row) => tableConfig.table.canDuplicateRow?.(row) !== false,
+      action: () => providerTableActions?.duplicate,
+      select: (rows) => bulkActions.selectOriginalRows(rows as TData[]),
+    },
     enableRowSelection,
     enableMultiRowSelection,
   });

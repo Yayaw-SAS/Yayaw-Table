@@ -85,6 +85,22 @@ export function createRecordActivity(
     history: () => history,
     revert,
     update: (id: string, values: DetailRecord) => update(id, values),
+    duplicate: (id: string) => {
+      const source = history.find(
+        (item) => item.row.id === id && !item.row.deletedAt
+      );
+      if (!source) {
+        return Promise.resolve({ success: false, error: "Record not found" });
+      }
+      const row = {
+        ...source.row,
+        id: crypto.randomUUID(),
+        name: `${source.row.name} (copy)`,
+      };
+      history.push({ row, activity: [] });
+      refresh();
+      return Promise.resolve({ success: true, data: row });
+    },
     create: (values: DetailRecord) => {
       history.push({
         row: { ...values, id: crypto.randomUUID() },

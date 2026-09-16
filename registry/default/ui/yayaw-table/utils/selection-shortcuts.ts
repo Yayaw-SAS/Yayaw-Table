@@ -6,6 +6,7 @@ interface SelectionScope {
   enabled: () => boolean;
   selectAll?: () => void;
   undo?: () => void;
+  duplicate?: () => void;
 }
 
 interface SelectionManager {
@@ -80,7 +81,7 @@ function createManager(document: Document): SelectionManager {
       !(event.ctrlKey || event.metaKey) ||
       event.altKey ||
       event.shiftKey ||
-      !["a", "z"].includes(event.key.toLowerCase())
+      !["a", "z", "d"].includes(event.key.toLowerCase())
     ) {
       return;
     }
@@ -106,8 +107,12 @@ function createManager(document: Document): SelectionManager {
     if (!(scope?.enabled() && isVisible(scope))) {
       return;
     }
-    const command =
-      event.key.toLowerCase() === "a" ? scope.selectAll : scope.undo;
+    const commands: Record<string, (() => void) | undefined> = {
+      a: scope.selectAll,
+      z: scope.undo,
+      d: scope.duplicate,
+    };
+    const command = commands[event.key.toLowerCase()];
     if (!command) {
       return;
     }

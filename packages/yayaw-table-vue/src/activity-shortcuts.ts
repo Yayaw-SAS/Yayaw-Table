@@ -18,6 +18,7 @@ export function createActivityUndo(options: {
   config: () => RecordDetailsConfig | undefined;
   handler: () => DetailRevertHandler | undefined;
   onReverted: () => Promise<void>;
+  onSuccess?: (entry: DetailActivity) => void;
   onError: (error?: string) => void;
   onUnavailable: () => void;
 }): { undo: () => Promise<void> } {
@@ -63,6 +64,9 @@ export function createActivityUndo(options: {
         if (changed) {
           await options.onReverted();
         }
+        if (changed === group.length) {
+          options.onSuccess?.(candidate.entry);
+        }
       } catch (error) {
         options.onError(errorMessage(error));
       } finally {
@@ -106,8 +110,8 @@ async function revertGroup(
   handler: DetailRevertHandler,
   completed: Set<string>,
   onError: (error?: string) => void
-): Promise<boolean> {
-  let changed = false;
+): Promise<number> {
+  let changed = 0;
   try {
     for (const item of group) {
       const result = await handler(item.row, item.entry);
@@ -116,7 +120,7 @@ async function revertGroup(
         break;
       }
       completed.add(item.entry.id);
-      changed = true;
+      changed += 1;
     }
   } catch (error) {
     onError(errorMessage(error));

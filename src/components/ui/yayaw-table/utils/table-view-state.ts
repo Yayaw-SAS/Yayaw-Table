@@ -6,14 +6,10 @@ import type {
   VisibilityState,
 } from "@/components/ui/yayaw-table/tanstack";
 import { normalizeGanttView } from "../planning/engine";
-import type {
-  TableDisplayMode,
-  TableGalleryAspectRatio,
-  TableGalleryCardSize,
-  TableGalleryImageFit,
-} from "../types/display-types";
+import type { TableDisplayMode } from "../types/display-types";
 import type { AdvancedFiltersState } from "../types/filter-types";
 import type { TableViewConfig } from "../types/view-types";
+import { normalizeGalleryViewConfig } from "./gallery-view-state";
 import {
   isTableDensity,
   normalizeColumnSizing,
@@ -137,85 +133,6 @@ function normalizeColumnIds(value: unknown): string[] | undefined {
     .filter((item): item is string => typeof item === "string")
     .map((item) => item.trim())
     .filter(Boolean);
-}
-
-function normalizeGalleryAspectRatio(
-  value: unknown
-): TableGalleryAspectRatio | undefined {
-  if (
-    value === "portrait" ||
-    value === "square" ||
-    value === "video" ||
-    value === "wide"
-  ) {
-    return value;
-  }
-
-  return;
-}
-
-function normalizeGalleryImageFit(
-  value: unknown
-): TableGalleryImageFit | undefined {
-  if (value === "contain" || value === "cover") {
-    return value;
-  }
-
-  return;
-}
-
-function normalizeGalleryCardSize(
-  value: unknown
-): TableGalleryCardSize | undefined {
-  if (value === "large" || value === "medium" || value === "small") {
-    return value;
-  }
-
-  return;
-}
-
-function normalizeGalleryViewConfig(
-  config: TableViewConfig["gallery"]
-): TableViewConfig["gallery"] {
-  if (!config) {
-    return;
-  }
-
-  const normalized: NonNullable<TableViewConfig["gallery"]> = {};
-  const imageColumn = config.imageColumn?.trim();
-  const titleColumn = config.titleColumn?.trim();
-  const cardColumnIds = normalizeColumnIds(config.cardColumnIds);
-  const aspectRatio = normalizeGalleryAspectRatio(config.aspectRatio);
-  const imageFit = normalizeGalleryImageFit(config.imageFit);
-  const cardSize = normalizeGalleryCardSize(config.cardSize);
-  const previewSize = normalizeGalleryCardSize(config.previewSize);
-
-  if (typeof config.imageColumn === "string") {
-    normalized.imageColumn = imageColumn ?? "";
-  }
-  if (titleColumn) {
-    normalized.titleColumn = titleColumn;
-  }
-  if (cardColumnIds !== undefined) {
-    normalized.cardColumnIds = cardColumnIds;
-  }
-  if (aspectRatio) {
-    normalized.aspectRatio = aspectRatio;
-  }
-  if (imageFit) {
-    normalized.imageFit = imageFit;
-  }
-  if (previewSize) {
-    normalized.previewSize = previewSize;
-  }
-  if (cardSize) {
-    normalized.cardSize = cardSize;
-  }
-  if (typeof config.showCardLabels === "boolean") {
-    normalized.showCardLabels = config.showCardLabels;
-  }
-
-  return hasObjectValues(normalized) ? normalized : undefined;
 }
 
 export function normalizeColumnPinning(

@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import { toast } from "vue-sonner";
 import { computed, nextTick, ref, watch } from "vue";
 import { Clock3, History, Pencil, Trash2, Undo2 } from "lucide-vue-next";
 import { TabsContent, TabsList, TabsRoot, TabsTrigger } from "reka-ui";
-import { detailActivity, detailDate, detailLabels, detailSections, detailValue, type DetailField, type DetailRecord, type RecordDetailsConfig } from "../../record-details";
+import { detailUndoMessage, detailActivity, detailDate, detailLabels, detailSections, detailValue, type DetailField, type DetailRecord, type RecordDetailsConfig } from "../../record-details";
 import type { ColumnDefinition } from "../../types";
 import FormDialog from "../forms/FormDialog.vue";
 import RecordSurfaceHeader from "../forms/RecordSurfaceHeader.vue";
@@ -50,6 +51,7 @@ const undo = async (entry: DetailActivity): Promise<void> => {
     if (!result.success) throw new Error(result.error ?? labels.value.undoError);
     completedUndos.value.push(entry.id);
     emit("reverted", entry);
+    toast.success(detailUndoMessage(entry, labels.value));
   } catch (cause) {
     undoError.value = { id: entry.id, message: cause instanceof Error ? cause.message : labels.value.undoError };
   } finally { undoPending.value = undefined; }

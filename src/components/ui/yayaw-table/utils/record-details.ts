@@ -112,6 +112,8 @@ export interface DetailLabels {
   undo: string;
   undoing: string;
   undone: string;
+  /** Complete localized sentence; {action} is replaced with the activity label. */
+  undoSuccess: string;
   undoError: string;
   undoUnavailable: string;
 }
@@ -152,6 +154,7 @@ export function detailLabels(
         undo: "Annuler cette modification",
         undoing: "Annulation…",
         undone: "Annulée",
+        undoSuccess: "Action « {action} » annulée.",
         undoError: "L’annulation a échoué. Veuillez réessayer.",
         undoUnavailable:
           "Cette modification ne peut plus être annulée : les champs ont changé depuis.",
@@ -180,11 +183,20 @@ export function detailLabels(
         undo: "Undo this change",
         undoing: "Undoing…",
         undone: "Undone",
+        undoSuccess: "Action “{action}” undone.",
         undoError: "Undo failed. Please try again.",
         undoUnavailable:
           "This change can no longer be undone because its fields have changed since.",
       };
   return { ...labels, ...overrides };
+}
+
+/** Translate the whole sentence instead of guessing the action label's grammatical gender. */
+export function detailUndoMessage(
+  entry: DetailActivity,
+  labels: DetailLabels
+): string {
+  return labels.undoSuccess.replaceAll("{action}", () => entry.action);
 }
 
 interface DetailColumn {

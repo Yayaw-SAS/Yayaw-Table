@@ -180,6 +180,7 @@ interface BulkActionsConfig<TData> {
  * Return type for the bulk actions hook
  */
 interface BulkActionsReturn<TData> {
+  selectOriginalRows: (rows: TData[]) => void;
   bulkEditTargets: BulkEditTarget[] | null;
   closeBulkEdit: () => void;
   completeBulkEdit: (ids: string[]) => Promise<void>;
@@ -1711,6 +1712,21 @@ export function useBulkActions<TData>({
           : null
       );
       await invalidateTableData();
+    },
+    selectOriginalRows: (originals: TData[]) => {
+      const rows = createSyntheticSelectedRows<TData>(
+        originals as Record<string, unknown>[],
+        selectionRowId(table)
+      );
+      table.setRowSelection(buildRowSelectionState(rows.map((row) => row.id)));
+      setCrossPageSelection({
+        contextKey: selectionContextKey,
+        rowIdsKey: rows
+          .map((row) => row.id)
+          .sort()
+          .join("|"),
+        rows,
+      });
     },
     selectedRows,
     selectedCount: selectedRows.length,

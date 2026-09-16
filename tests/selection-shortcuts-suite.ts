@@ -19,12 +19,16 @@ export function selectionShortcutsSuite(
       });
       let selected = 0;
       let undone = 0;
+      let duplicated = 0;
       cleanup.push(
         register({
           root,
           enabled: () => enabled,
           selectAll: () => {
             selected += 1;
+          },
+          duplicate: () => {
+            duplicated += 1;
           },
           undo: () => {
             undone += 1;
@@ -36,6 +40,9 @@ export function selectionShortcutsSuite(
         root,
         get selected() {
           return selected;
+        },
+        get duplicated() {
+          return duplicated;
         },
         get undone() {
           return undone;
@@ -109,6 +116,7 @@ export function selectionShortcutsSuite(
         table.root.append(target);
         assert.equal(f.press(target), false);
         assert.equal(f.press(target, "z"), false);
+        assert.equal(f.press(target, "d"), false);
         target.remove();
       }
       const editor = document.createElement("div");
@@ -161,5 +169,22 @@ export function selectionShortcutsSuite(
     } finally {
       f.destroy();
     }
+  });
+  test("dispatches Ctrl/Cmd+D once and leaves unsupported browser shortcuts alone", () => {
+    const f = setup();
+    try {
+      const table = f.scope();
+      assert.equal(f.press(document.body, "d"), true);
+      assert.equal(
+        f.press(document.body, "D", { ctrlKey: false, metaKey: true }),
+        true
+      );
+      assert.equal(f.press(document.body, "d", { repeat: true }), true);
+      assert.equal(f.press(document.body, "d", { shiftKey: true }), false);
+      assert.equal(table.duplicated, 2);
+    } finally {
+      f.destroy();
+    }
+    assert.equal(f.press(document.body, "d"), false);
   });
 }

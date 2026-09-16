@@ -19,7 +19,7 @@ const details = { ...presentationDetails, history: activity.history, labels: { d
 </script>
 <template>
   <main class="record-example">
-    <header><p>YaYaw Table · Vue</p><h1>Record presentation</h1><p>Open a product to view and edit it. Select multiple products to edit shared properties. Ctrl/Cmd+A selects records; Ctrl/Cmd+Z undoes your latest change, including deletion.</p></header>
+    <header><p>YaYaw Table · Vue</p><h1>Record presentation</h1><p>Open a product to view and edit it. Select multiple products to edit shared properties. Ctrl/Cmd+D duplicates the selection. Ctrl/Cmd+A selects records; Ctrl/Cmd+Z undoes your latest change, including deletion.</p></header>
     <div class="record-example-controls">
       <label>Desktop <select v-model="desktop" aria-label="Desktop presentation"><option value="drawer">Drawer</option><option value="modal">Modal</option><option value="inline">Inline</option></select></label>
       <label>Mobile <select v-model="mobile" aria-label="Mobile presentation"><option value="drawer">Drawer</option><option value="modal">Modal</option><option value="inline">Inline</option></select></label>

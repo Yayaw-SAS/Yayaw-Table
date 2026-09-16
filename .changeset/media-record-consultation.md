@@ -7,3 +7,7 @@ Add equivalent React and Vue gallery media viewers with image/video/audio/PDF pr
 Support modified gallery selection and scoped Ctrl/Cmd+A across matching pages. Connect Ctrl/Cmd+Z to existing record activity and onRevertActivity, including deleted records supplied through details.history and grouped compensating events through transactionId. Applications retain responsibility for persistence, permissions and reversible deletion. Add video record fields and custom rowActions in both editions.
 
 Vue now defaults to the same wide gallery ratio and colored tags as React. Set aspectRatio: "square" and coloredTags: false explicitly to preserve its previous appearance. Runtime media callbacks stay out of saved views; previewSize is persisted.
+
+Show a localized success notification after complete activity undo, with full-sentence `details.labels.undoSuccess` overrides shared by shortcuts and record activity. Exclude runtime gallery callbacks from both frameworks’ saved views.
+
+Connect Ctrl/Cmd+D to the existing permitted row duplication action, including selection of returned copies, partial failure handling, and localized singular/plural feedback.

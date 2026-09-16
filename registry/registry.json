@@ -1179,6 +1179,11 @@
           "target": "components/ui/yayaw-table/utils/date-display.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/utils/duplicate-shortcut.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/duplicate-shortcut.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/utils/filter-bar.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/filter-bar.ts"
@@ -1192,6 +1197,11 @@
           "path": "registry/default/ui/yayaw-table/utils/form-layout.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/form-layout.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/gallery-view-state.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/gallery-view-state.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/utils/image-source.ts",

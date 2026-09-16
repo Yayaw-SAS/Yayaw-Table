@@ -29,6 +29,7 @@ export function activityShortcutsSuite(
     canRevert = true
   ) => {
     const errors: (string | undefined)[] = [];
+    const successes: string[] = [];
     let unavailable = 0;
     let refreshed = 0;
     const controller = create({
@@ -38,6 +39,9 @@ export function activityShortcutsSuite(
       onReverted: () => {
         refreshed += 1;
         return Promise.resolve();
+      },
+      onSuccess: (entry) => {
+        successes.push(entry.id);
       },
       onError: (error) => {
         errors.push(error);
@@ -49,6 +53,7 @@ export function activityShortcutsSuite(
     return {
       controller,
       errors,
+      successes,
       get unavailable() {
         return unavailable;
       },
@@ -68,6 +73,7 @@ export function activityShortcutsSuite(
     assert.deepEqual(calls, ["one:delete-one"]);
     assert.equal(f.refreshed, 1);
     assert.equal(f.unavailable, 1);
+    assert.equal(f.successes.length, calls.length ? 1 : 0);
   });
   test("undoes an entire bulk operation with one shortcut", async () => {
     const calls: unknown[] = [];
@@ -77,6 +83,7 @@ export function activityShortcutsSuite(
     });
     await f.controller.undo();
     assert.deepEqual(calls, ["one", "two"]);
+    assert.equal(f.successes.length, 1);
     assert.equal(f.refreshed, 1);
   });
   test("keeps failed inverses available for retry without replaying successful ones", async () => {
@@ -91,10 +98,12 @@ export function activityShortcutsSuite(
     });
     await f.controller.undo();
     assert.equal(f.refreshed, 1);
+    assert.deepEqual(f.successes, []);
     fail = false;
     await f.controller.undo();
     assert.deepEqual(calls, ["one", "two", "two"]);
     assert.deepEqual(f.errors, ["Retry restoration"]);
+    assert.equal(f.successes.length, 1);
   });
   test("blocks conflicting changes and unavailable permissions", async () => {
     let calls = 0;
@@ -127,6 +136,8 @@ export function activityShortcutsSuite(
     assert.equal(calls, 0);
     assert.equal(f.unavailable, 1);
     assert.equal(denied.unavailable, 1);
+    assert.deepEqual(f.successes, []);
+    assert.deepEqual(denied.successes, []);
   });
   test("does not run concurrent undo requests", async () => {
     let finish: (result: { success: boolean }) => void = () => undefined;

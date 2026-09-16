@@ -87,8 +87,9 @@ export function RecordPresentationExample() {
         <h1 className="font-semibold text-2xl">Record presentation</h1>
         <p className="text-muted-foreground text-sm">
           Open a product to view and edit it. Select multiple products to edit
-          shared properties. Ctrl/Cmd+A selects records; Ctrl/Cmd+Z undoes your
-          latest change, including deletion.
+          shared properties. Ctrl/Cmd+D duplicates the selection. Ctrl/Cmd+A
+          selects records; Ctrl/Cmd+Z undoes your latest change, including
+          deletion.
         </p>
       </header>
       <div className="flex flex-wrap gap-4">
@@ -126,6 +127,7 @@ export function RecordPresentationExample() {
       <DataTable
         details={details}
         getFormConfig={() => presentationForm}
+        getRowId={(row) => String(row.id)}
         getTableActions={() => actions}
         getTableConfig={() => config}
         initialData={rows}
