@@ -8,7 +8,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import type * as React from "react";
 import { createElement, useCallback, useMemo } from "react";
 import { DataTypeCell } from "../components/cells/data-type-cell";
-import type { ActionsColumnProps } from "../components/columns/actions-column";
+import type {
+  ActionItem,
+  ActionsColumnProps,
+} from "../components/columns/actions-column";
 import { useColumns } from "../components/columns/hooks/use-columns";
 import { useTranslations } from "../providers/table-provider";
 import {
@@ -24,6 +27,7 @@ import {
 } from "../tanstack";
 import { compatibleListParams } from "../utils/table-contracts";
 import { invalidateTableDataQuery } from "./query-cache-utils";
+import { useGalleryMediaActions } from "./use-gallery-media-actions";
 import type { InlineEditColumnRuntimeConfig } from "./use-inline-edit-runtime";
 import { resolveInlineEditColumnConfig } from "./use-inline-edit-runtime";
 import { useTableActions } from "./use-table-actions";
@@ -139,6 +143,7 @@ export interface UseDataTableOptions<TData = Record<string, unknown>> {
    */
   formType?: string;
   onView?: (row: TData) => void;
+  rowActions?: ActionItem<TData>[];
 }
 
 /**
@@ -159,6 +164,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
     tableId = tableType,
     formType = tableType,
     onView,
+    rowActions,
   } = options;
 
   // Get QueryClient instance
@@ -177,7 +183,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
   }, [config.table.inlineEdit, isInlineEditAllowed]);
 
   // Debug removed
-  const { t } = useTranslations();
+  const { t, locale } = useTranslations();
 
   // Set up URL state for the table
   const defaultPageSize = config.table.defaultPageSize ?? initialPageSize;
@@ -397,6 +403,12 @@ export function useDataTable<TData extends Record<string, unknown>>(
 
   // Extract data and state from API
   const data = urlDataResult?.data || [];
+  const mediaActions = useGalleryMediaActions(
+    data,
+    config.table.gallery,
+    locale,
+    onView
+  );
   const error = urlDataResult?.error;
   const isError = urlDataResult?.isError;
   const isLoading = urlDataResult?.isLoading;
@@ -508,6 +520,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
           : undefined;
 
       return column.actions({
+        actions: [...mediaActions, ...(rowActions ?? [])],
         header: "",
         includeDelete: isDeleteAllowed,
         includeDuplicate: isDuplicateAllowed && !!actions.duplicate,
@@ -538,6 +551,8 @@ export function useDataTable<TData extends Record<string, unknown>>(
     },
     [
       actions.duplicate,
+      mediaActions,
+      rowActions,
       onView,
       column,
       config.form?.editFormType,
@@ -646,6 +661,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
               enableSorting: colDef.enableSorting,
               header: getTranslationSafe(colDef.header),
               tagColorMap: colDef.tagColorMap,
+              coloredTags: colDef.coloredTags ?? config.table.coloredTags,
             });
           }
 
@@ -697,6 +713,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
       column,
       config.table.dateDisplayPreset,
       getTranslationSafe,
+      config.table.coloredTags,
     ]
   );
 
@@ -761,6 +778,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
               ) =>
                 createElement(DataTypeCell, {
                   column: colDef,
+                  coloredTags: config.table.coloredTags,
                   row: info.row.original,
                   value: info.getValue(),
                   fallbackDateDisplayPreset: config.table.dateDisplayPreset,
@@ -815,6 +833,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
     createColumns,
     isInlineEditAllowed,
     tableInlineEditConfig,
+    config.table.coloredTags,
   ]);
 
   // Helper function to determine column label

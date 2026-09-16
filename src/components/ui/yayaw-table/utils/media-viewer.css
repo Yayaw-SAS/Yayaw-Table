@@ -1,0 +1,127 @@
+.yayaw-media-thumbnail {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.yayaw-media-thumbnail:focus-visible {
+  outline: 2px solid var(--primary, #2563eb);
+  outline-offset: -3px;
+}
+.yayaw-media-thumbnail img,
+.yayaw-media-thumbnail video {
+  width: 100%;
+  height: 100%;
+}
+.yayaw-media-file {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  font-size: 1.2rem;
+  opacity: 0.7;
+}
+.yayaw-media-viewer {
+  width: min(72rem, calc(100vw - 2rem));
+  max-width: calc(100vw - 2rem);
+  max-height: calc(100dvh - 2rem);
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--border, #d4d4d8);
+  border-radius: 0.8rem;
+  background: var(--background, white);
+  color: var(--foreground, #18181b);
+  box-shadow: 0 20px 80px #0005;
+  font:
+    14px / 1.5 system-ui,
+    sans-serif;
+}
+.yayaw-media-viewer::backdrop {
+  background: #000a;
+  backdrop-filter: blur(3px);
+}
+.yayaw-media-viewer header,
+.yayaw-media-viewer footer {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  flex-wrap: wrap;
+}
+.yayaw-media-viewer header {
+  border-bottom: 1px solid var(--border, #ddd);
+}
+.yayaw-media-viewer h2 {
+  flex: 1;
+  min-width: 6rem;
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 1rem;
+}
+.yayaw-media-viewer button,
+.yayaw-media-viewer a {
+  border: 1px solid var(--border, #ddd);
+  border-radius: 0.4rem;
+  padding: 0.35rem 0.65rem;
+  background: var(--background, white);
+  color: inherit;
+  cursor: pointer;
+  text-decoration: none;
+}
+.yayaw-media-viewer button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.yayaw-media-viewer-content {
+  height: min(68dvh, 48rem);
+  min-height: 8rem;
+  display: grid;
+  place-items: center;
+  overflow: auto;
+  background: var(--muted, #f4f4f5);
+}
+.yayaw-media-viewer-content img,
+.yayaw-media-viewer-content video {
+  max-width: 100%;
+  max-height: 100%;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.yayaw-media-viewer-content iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+.yayaw-media-viewer footer {
+  justify-content: space-between;
+}
+.yayaw-media-viewer:fullscreen {
+  width: 100vw;
+  max-width: none;
+  max-height: none;
+  height: 100dvh;
+  border: 0;
+  border-radius: 0;
+}
+.yayaw-media-viewer:fullscreen .yayaw-media-viewer-content {
+  height: calc(100dvh - 8rem);
+}
+
+.yayaw-media-play-cue {
+  position: absolute;
+  right: 0.75rem;
+  bottom: 0.75rem;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  color: white;
+  background: #0009;
+  pointer-events: none;
+}

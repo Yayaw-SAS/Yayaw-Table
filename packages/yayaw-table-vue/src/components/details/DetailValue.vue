@@ -13,6 +13,7 @@ const display = computed(() => detailDisplay(props.field, props.value, props.row
   <span v-else-if="display.kind === 'badges'" class="yayaw-detail-badges"><span v-for="item in display.items" :key="item.id" class="yayaw-detail-badge">{{ item.text }}</span></span>
   <a v-else-if="display.kind === 'link'" :href="display.href" target="_blank" rel="noopener noreferrer" class="yayaw-detail-link">{{ display.text }}<ArrowUpRight :size="14" aria-hidden="true" /></a>
   <a v-else-if="display.kind === 'image'" :href="display.href" target="_blank" rel="noopener noreferrer"><img :src="display.href" :alt="field.label" class="yayaw-detail-image" loading="lazy" /></a>
+  <video v-else-if="display.kind === 'video'" :aria-label="field.label" class="yayaw-detail-video" controls playsinline preload="metadata" :poster="display.poster" :src="display.href"><track v-for="track in display.tracks" :key="`${track.srcLang}:${track.src}`" kind="captions" v-bind="track" /></video>
   <ul v-else-if="display.kind === 'items'" class="yayaw-detail-items"><li v-for="item in display.items" :key="item.id"><FileText :size="16" aria-hidden="true" /><a v-if="item.href" :href="item.href" target="_blank" rel="noopener noreferrer">{{ item.text }}</a><span v-else>{{ item.text }}</span></li></ul>
   <span v-else class="yayaw-detail-text">{{ display.text }}</span>
 </template>

@@ -13,6 +13,10 @@ export type {
   BulkActionVariant,
   CustomBulkActionsInput,
 } from "./components/bulk-actions";
+export type {
+  ActionItem,
+  ActionItem as RowActionItem,
+} from "./components/columns/actions-column";
 // Main component
 export { DataTable } from "./components/data-table";
 export type {
@@ -93,6 +97,12 @@ export type {
   TableViewConfig,
   UpdateTableViewInput,
 } from "./types/view-types";
+export type { TableActivityRecord } from "./utils/activity-shortcuts";
+export type {
+  TableGalleryMediaConfig,
+  TableGalleryPreviewSize,
+  TableMediaSource,
+} from "./utils/media-contract";
 export type {
   RecordPresentation,
   RecordPresentationConfig,

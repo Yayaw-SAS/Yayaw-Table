@@ -1,5 +1,3 @@
-import { createPlanningSession, withPlanningActions } from "../planning/session";
-import { PlanningContext } from "../planning/react";
 import {
   type QueryClient,
   QueryClientContext,
@@ -8,7 +6,13 @@ import {
 import { useAtomValue } from "jotai";
 import { useHydrateAtoms } from "jotai/utils";
 import type React from "react";
-import { createContext, type ReactNode, useContext, useMemo, useEffect } from "react";
+import {
+  createContext,
+  type ReactNode,
+  useContext,
+  useEffect,
+  useMemo,
+} from "react";
 // Import atoms with correct paths
 import {
   type DataTableColumnsConfig,
@@ -23,6 +27,11 @@ import type {
   FormConfigContext,
 } from "../components/forms/types";
 import type { TableConfig } from "../config/helpers";
+import { PlanningContext } from "../planning/react";
+import {
+  createPlanningSession,
+  withPlanningActions,
+} from "../planning/session";
 import type { CalculationType } from "../types/footer-types";
 import type {
   DataTableTranslations,
@@ -85,7 +94,10 @@ export interface TableActions {
     fieldErrors?: Record<string, string>;
     failedIds?: string[];
   }>;
-  delete?: (id: string, context?: TableMutationContext) => Promise<{
+  delete?: (
+    id: string,
+    context?: TableMutationContext
+  ) => Promise<{
     success: boolean;
     data?: unknown;
     error?: string;
@@ -256,22 +268,59 @@ export function TableProvider({
   ]);
 
   const planningType = planningTableType ?? _tableId;
-  const planningCatalogue = useMemo(() => getTableConfig?.(planningType), [getTableConfig, planningType]);
-  const planningBehavior = useMemo(() => planningCatalogue && "table" in planningCatalogue ? {...planningCatalogue.table, ...tableConfig} : mergedTableConfig, [planningCatalogue, tableConfig, mergedTableConfig]);
-  const rawPlanningActions = useMemo(() => getTableActions?.(planningType), [getTableActions, planningType]);
+  const planningCatalogue = useMemo(
+    () => getTableConfig?.(planningType),
+    [getTableConfig, planningType]
+  );
+  const planningBehavior = useMemo(
+    () =>
+      planningCatalogue && "table" in planningCatalogue
+        ? { ...planningCatalogue.table, ...tableConfig }
+        : mergedTableConfig,
+    [planningCatalogue, tableConfig, mergedTableConfig]
+  );
+  const rawPlanningActions = useMemo(
+    () => getTableActions?.(planningType),
+    [getTableActions, planningType]
+  );
   const planningSession = useMemo(() => {
-    if (!planningBehavior?.planning?.enabled) { return undefined; }
-    return createPlanningSession({config: planningBehavior.planning, actions: rawPlanningActions?.planning,
+    if (!planningBehavior?.planning?.enabled) {
+      return undefined;
+    }
+    return createPlanningSession({
+      config: planningBehavior.planning,
+      actions: rawPlanningActions?.planning,
       allowEdit: planningBehavior.allowEdit,
-      canEditRow: "canEditRow" in planningBehavior ? planningBehavior.canEditRow : undefined,
+      canEditRow:
+        "canEditRow" in planningBehavior
+          ? planningBehavior.canEditRow
+          : undefined,
       onChanged: async () => {
-        await resolvedQueryClient.queryClient.invalidateQueries({queryKey: ["tableData"]});
-        await resolvedQueryClient.queryClient.invalidateQueries({queryKey: ["tableColumnCalculations"]});
-      }});
+        await resolvedQueryClient.queryClient.invalidateQueries({
+          queryKey: ["tableData"],
+        });
+        await resolvedQueryClient.queryClient.invalidateQueries({
+          queryKey: ["tableColumnCalculations"],
+        });
+      },
+    });
   }, [planningBehavior, rawPlanningActions, resolvedQueryClient.queryClient]);
-  useEffect(() => {planningSession?.connect(); return () => planningSession?.dispose();}, [planningSession]);
-  const resolvedActions = useMemo(() => planningSession && rawPlanningActions ? withPlanningActions(rawPlanningActions, planningSession) : rawPlanningActions, [planningSession, rawPlanningActions]);
-  const getResolvedTableActions = useMemo(() => (type: string) => type === planningType ? resolvedActions : getTableActions?.(type), [planningType, resolvedActions, getTableActions]);
+  useEffect(() => {
+    planningSession?.connect();
+    return () => planningSession?.dispose();
+  }, [planningSession]);
+  const resolvedActions = useMemo(
+    () =>
+      planningSession && rawPlanningActions
+        ? withPlanningActions(rawPlanningActions, planningSession)
+        : rawPlanningActions,
+    [planningSession, rawPlanningActions]
+  );
+  const getResolvedTableActions = useMemo(
+    () => (type: string) =>
+      type === planningType ? resolvedActions : getTableActions?.(type),
+    [planningType, resolvedActions, getTableActions]
+  );
 
   // Stabilize the context value to prevent unnecessary re-renders
   const value = useMemo(
@@ -414,7 +463,7 @@ export const defaultTranslations: DataTableTranslations = {
     cancel: "Cancel",
     confirm: "Confirm",
     title: "Actions",
-    view: "View",
+    view: "Info",
   },
   bulk: {
     close_menu: "Close bulk actions menu",
@@ -744,6 +793,7 @@ export const defaultTranslations: DataTableTranslations = {
       aspectRatio: "Ratio",
       imageFit: "Image fit",
       cardSize: "Card size",
+      previewSize: "Preview size",
       showLabels: "Show property labels",
       wide: "Wide",
       square: "Square",

@@ -1,12 +1,14 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { toast } from "sonner";
 import {
   canRevertDetailActivity,
   type DetailActivity,
   type DetailLabels,
   type DetailRecord,
   type DetailRevertHandler,
+  detailUndoMessage,
   type RecordDetailsConfig,
 } from "../../utils/record-details";
 
@@ -61,6 +63,7 @@ export function useActivityUndo({
     }
     setCompleted((items) => [...items, entry.id]);
     onReverted?.(entry);
+    toast.success(detailUndoMessage(entry, labels));
   };
   return { pending, error, isUndone, canUndo, undo };
 }

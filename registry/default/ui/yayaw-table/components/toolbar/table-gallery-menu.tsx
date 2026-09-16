@@ -126,6 +126,7 @@ export function TableGalleryMenu({
   const activeAspectRatio = activeConfig.aspectRatio ?? "wide";
   const activeImageFit = activeConfig.imageFit ?? "cover";
   const activeCardSize = activeConfig.cardSize ?? "medium";
+  const activePreviewSize = activeConfig.previewSize ?? "medium";
   const showCardLabels = activeConfig.showCardLabels === true;
   const triggerLabel = t("views.display.gallery");
 
@@ -200,6 +201,20 @@ export function TableGalleryMenu({
               onChange: (value) =>
                 updateGallery({
                   imageFit: value as TableGalleryViewConfig["imageFit"],
+                }),
+            },
+            {
+              id: "previewSize",
+              label: t("views.gallery.previewSize"),
+              value: activePreviewSize,
+              options: [
+                { value: "small", label: "S" },
+                { value: "medium", label: "M" },
+                { value: "large", label: "L" },
+              ],
+              onChange: (value) =>
+                updateGallery({
+                  previewSize: value as TableGalleryViewConfig["previewSize"],
                 }),
             },
             {

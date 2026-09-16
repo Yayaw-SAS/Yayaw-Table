@@ -1,4 +1,7 @@
-"use client";
+import { createRecordActivity } from "./record-activity";
+
+("use client");
+
 import { useMemo, useRef, useState } from "react";
 import { DataTable } from "../src/components/ui/yayaw-table/components/data-table";
 import { defineTableConfig } from "../src/components/ui/yayaw-table/config/helpers";
@@ -6,7 +9,9 @@ import type { TableActions } from "../src/components/ui/yayaw-table/providers/ta
 import type { RecordPresentation } from "../src/components/ui/yayaw-table/utils/record-presentation";
 import {
   presentationColumns,
+  presentationDetails,
   presentationForm,
+  presentationGallery,
   presentationRows,
 } from "./record-presentation";
 
@@ -36,6 +41,9 @@ export function RecordPresentationExample() {
         },
         table: {
           syncUrl: false,
+          gallery: presentationGallery,
+          coloredTags: false,
+          defaultDisplayMode: "gallery",
           rowClickMode: "activate",
           displayModes: ["table", "gallery", "kanban"],
           kanban: { groupBy: "status" },
@@ -44,34 +52,34 @@ export function RecordPresentationExample() {
       }),
     [desktop, mobile]
   );
-  const actions = useMemo<TableActions>(() => {
-    const change = (next: Record<string, unknown>[]) => {
+  const [activity] = useState(() =>
+    createRecordActivity(presentationRows, (next) => {
       current.current = next;
       setRows(next);
-      return Promise.resolve({ success: true });
-    };
-    return {
-      list: async () => ({
-        data: current.current,
-        meta: { pageCount: 1, totalCount: current.current.length },
-      }),
-      create: (values) =>
-        change([...current.current, { ...values, id: crypto.randomUUID() }]),
-      update: (id, values) =>
-        change(
-          current.current.map((row) =>
-            row.id === id ? { ...row, ...values } : row
-          )
-        ),
-      bulkUpdate: (ids, values) =>
-        change(
-          current.current.map((row) =>
-            ids.includes(String(row.id)) ? { ...row, ...values } : row
-          )
-        ),
-      delete: (id) => change(current.current.filter((row) => row.id !== id)),
-    };
-  }, []);
+    })
+  );
+  const actions = useMemo<TableActions>(
+    () => ({
+      ...activity,
+      list: () =>
+        Promise.resolve({
+          data: current.current,
+          meta: { pageCount: 1, totalCount: current.current.length },
+        }),
+    }),
+    [activity]
+  );
+  const details = useMemo(
+    () => ({
+      ...presentationDetails,
+      history: activity.history,
+      labels: {
+        deleteDescription:
+          "Move this demo record to the trash. Ctrl/Cmd+Z restores it.",
+      },
+    }),
+    [activity]
+  );
   return (
     <main className="mx-auto max-w-6xl space-y-6 p-6">
       <header className="space-y-2">
@@ -79,7 +87,9 @@ export function RecordPresentationExample() {
         <h1 className="font-semibold text-2xl">Record presentation</h1>
         <p className="text-muted-foreground text-sm">
           Open a product to view and edit it. Select multiple products to edit
-          shared properties.
+          shared properties. Ctrl/Cmd+D duplicates the selection. Ctrl/Cmd+A
+          selects records; Ctrl/Cmd+Z undoes your latest change, including
+          deletion.
         </p>
       </header>
       <div className="flex flex-wrap gap-4">
@@ -115,17 +125,15 @@ export function RecordPresentationExample() {
         </label>
       </div>
       <DataTable
-        details={{
-          title: (row) => String(row.name),
-          description: () => "Product details",
-          updatedAt: (row) => String(row.createdAt),
-        }}
+        details={details}
         getFormConfig={() => presentationForm}
+        getRowId={(row) => String(row.id)}
         getTableActions={() => actions}
         getTableConfig={() => config}
         initialData={rows}
         initialPageCount={1}
         initialRowCount={rows.length}
+        onRevertActivity={activity.revert}
         tableType={config.id}
       />
     </main>

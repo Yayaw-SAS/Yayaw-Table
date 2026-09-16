@@ -43,6 +43,7 @@ import type {
   RecordDetailsConfig,
 } from "../utils/record-details";
 import type { CustomBulkActionsInput } from "./bulk-actions";
+import type { ActionItem } from "./columns/actions-column";
 import { DataTableSkeleton } from "./data-table-skeleton";
 import { TableRecordDetails } from "./details/table-record-details";
 // Direct import keeps the toolbar available without a client-only dynamic wrapper.
@@ -463,7 +464,9 @@ function DataTableContent({
   details,
   onOpenDetails,
   onRevertActivity,
+  rowActions,
 }: {
+  rowActions?: ActionItem<Record<string, unknown>>[];
   details?: RecordDetailsConfig;
   /** Open an application-owned record route or drawer instead of the built-in details. */
   onOpenDetails?: (row: Record<string, unknown>) => void;
@@ -575,6 +578,7 @@ function DataTableContent({
     visibilityKey,
   } = useDataTable({
     onView: openDetails,
+    rowActions,
     formType: defaultFormType,
     initialData,
     initialPageCount,
@@ -784,6 +788,7 @@ function DataTableContent({
                 }
                 customBulkActions={customBulkActions}
                 data={finalData}
+                details={details}
                 emptyState={emptyState}
                 enableColumnDragDropByDefault={Boolean(
                   config.table.enableColumnDragDropByDefault
@@ -808,6 +813,8 @@ function DataTableContent({
                 onBulkDelete={onBulkDelete}
                 onBulkEdit={onBulkEdit}
                 onBulkExport={onBulkExport}
+                onOpenDetails={openDetails}
+                onRevertActivity={onRevertActivity}
                 onRowActivate={(row, event) => {
                   openDetails?.(row);
                   onRowActivate?.(row, event);

@@ -340,6 +340,7 @@ export interface DataTableTranslations {
       aspectRatio: string;
       imageFit: string;
       cardSize: string;
+      previewSize?: string;
       showLabels: string;
       wide: string;
       square: string;

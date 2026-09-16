@@ -66,6 +66,27 @@ export function DetailValue({
           />
         </a>
       );
+    case "video":
+      return (
+        // biome-ignore lint/a11y/useMediaCaption: caption tracks are rendered from the supplied media metadata below.
+        <video
+          aria-label={field.label}
+          className="yayaw-detail-video"
+          controls
+          playsInline
+          poster={display.poster}
+          preload="metadata"
+          src={display.href}
+        >
+          {display.tracks?.map((track) => (
+            <track
+              key={`${track.srcLang}:${track.src}`}
+              kind="captions"
+              {...track}
+            />
+          ))}
+        </video>
+      );
     case "items":
       return (
         <ul className="yayaw-detail-items">

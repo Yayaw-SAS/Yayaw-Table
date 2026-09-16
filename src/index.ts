@@ -14,6 +14,10 @@ export type {
   BulkActionVariant,
   CustomBulkActionsInput,
 } from "./components/ui/yayaw-table/components/bulk-actions";
+export type {
+  ActionItem,
+  ActionItem as RowActionItem,
+} from "./components/ui/yayaw-table/components/columns/actions-column";
 // Export main components
 export { DataTable } from "./components/ui/yayaw-table/components/data-table";
 export {
@@ -62,6 +66,12 @@ export type {
 } from "./components/ui/yayaw-table/types/toolbar-types";
 // Export types
 export type { DataTableTranslations } from "./components/ui/yayaw-table/types/translations";
+export type { TableActivityRecord } from "./components/ui/yayaw-table/utils/activity-shortcuts";
+export type {
+  TableGalleryMediaConfig,
+  TableGalleryPreviewSize,
+  TableMediaSource,
+} from "./components/ui/yayaw-table/utils/media-contract";
 export type {
   DetailActivity,
   DetailField,
@@ -70,7 +80,6 @@ export type {
   DetailSection,
   RecordDetailsConfig,
 } from "./components/ui/yayaw-table/utils/record-details";
-
 export type {
   RecordPresentation,
   RecordPresentationConfig,

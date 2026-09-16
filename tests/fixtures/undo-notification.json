@@ -1,0 +1,24 @@
+[
+  {
+    "locale": "fr",
+    "action": "Déplacement",
+    "expected": "Action « Déplacement » annulée."
+  },
+  {
+    "locale": "en",
+    "action": "Move",
+    "expected": "Action “Move” undone."
+  },
+  {
+    "locale": "fr",
+    "action": "trash",
+    "override": "Suppression annulée",
+    "expected": "Suppression annulée"
+  },
+  {
+    "locale": "en",
+    "action": "trash",
+    "override": "Deletion undone",
+    "expected": "Deletion undone"
+  }
+]

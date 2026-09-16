@@ -13,6 +13,7 @@ import { TagCell } from "../cells/tag-cell";
  * Options for creating a tag column
  */
 export interface TagColumnOptions {
+  coloredTags?: boolean;
   /**
    * Optional CSS class name
    */
@@ -71,6 +72,7 @@ type ExtendedColumnDef<TData> = ColumnDef<TData> & CustomColumnProps;
  * Creates a column definition for displaying tag values with colored backgrounds
  */
 export function createTagColumn<TData>({
+  coloredTags,
   className = "",
   enableColumnFilter = true,
   enableHiding = true,
@@ -122,6 +124,7 @@ export function createTagColumn<TData>({
       return (
         <TagCell
           className={className}
+          coloredTags={coloredTags}
           tagColorMap={tagColorMap}
           value={info.getValue()}
         />

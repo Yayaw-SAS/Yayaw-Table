@@ -172,3 +172,16 @@ it("does not overwrite a newer manual selection with a delayed select-all respon
   });
   expect(view.container.textContent).toBe("");
 });
+
+it("selects returned duplicate records across pages using stable identities", async () => {
+  const probe = await mountSelection();
+  const copy = { id: "copy", name: "Alpha copy" };
+  await act(() => probe.current.bulk.selectOriginalRows([copy]));
+  expect(probe.current.bulk.selectedRows.map((row) => row.original.id)).toEqual(
+    ["copy"]
+  );
+  await act(() => probe.current.page([copy]));
+  expect(probe.current.bulk.selectedRows.map((row) => row.id)).toEqual([
+    "copy",
+  ]);
+});

@@ -25,6 +25,12 @@ export declare const KanbanView: DefineComponent;
 export declare const YayawTablePlugin: Plugin;
 export default YayawTablePlugin;
 
+export type { TableActivityRecord } from "./activity-shortcuts";
+export type {
+  TableGalleryMediaConfig,
+  TableGalleryPreviewSize,
+  TableMediaSource,
+} from "./media-contract";
 export { createMemoryPlanningAdapter } from "./planning/adapter";
 export { calculatePlanning, resolvedPlanningSnapshot } from "./planning/engine";
 export {
@@ -32,7 +38,6 @@ export {
   planningTasksFromRows,
 } from "./planning/rows";
 export type * from "./planning/types";
-
 export type {
   RecordPresentation,
   RecordPresentationConfig,

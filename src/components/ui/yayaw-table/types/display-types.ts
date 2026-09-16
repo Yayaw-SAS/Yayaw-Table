@@ -1,3 +1,9 @@
+import type { ReactNode } from "react";
+import type {
+  TableGalleryMediaConfig,
+  TableGalleryPreviewSize,
+} from "../utils/media-contract";
+
 /**
  * Display mode types shared by table configuration and saved views.
  */
@@ -82,7 +88,21 @@ export interface TableKanbanViewConfig {
   showCardLabels?: boolean;
 }
 
+/** Runtime renderers are deliberately excluded from saved view configuration. */
+export interface TableGalleryRenderContext {
+  row: Record<string, unknown>;
+  title: string;
+  source?: string;
+  imageFit: TableGalleryImageFit;
+  aspectRatio: TableGalleryAspectRatio;
+}
+
 export interface TableGalleryConfig {
+  media?: TableGalleryMediaConfig;
+  previewSize?: TableGalleryPreviewSize;
+  renderMedia?: (context: TableGalleryRenderContext) => ReactNode;
+  renderProperties?: (context: TableGalleryRenderContext) => ReactNode;
+
   /**
    * Column used as the gallery media source.
    */
@@ -120,6 +140,7 @@ export interface TableGalleryConfig {
 }
 
 export interface TableGalleryViewConfig {
+  previewSize?: TableGalleryPreviewSize;
   /**
    * Column used as the gallery media source.
    */

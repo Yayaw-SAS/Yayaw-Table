@@ -59,6 +59,8 @@ export interface TableCatalogueColumnConfig extends ColumnDefinition {
   dateDisplayPreset?: DateDisplayPreset;
   dateFormat?: string;
   tagColorMap?: Record<string, string>;
+  /** Inherits table.coloredTags; omitted keeps colored tags. */
+  coloredTags?: boolean;
   typeKey?: string;
   customRenderers?: Record<string, (value: unknown) => React.ReactNode>;
   /** Number column: "space" | "dot" | "comma" | "locale" or { thousandsSeparator, decimalSeparator, decimals } */
@@ -77,6 +79,7 @@ export interface TableCatalogueColumnConfig extends ColumnDefinition {
  * Configuration for table behavior in the catalogue
  */
 export interface TableCatalogueTableConfig {
+  coloredTags?: boolean;
   allowCreate?: boolean;
   allowEdit?: boolean;
   allowDuplicate?: boolean;
@@ -338,6 +341,7 @@ function resolveTableBehaviorConfig(
     export: mergedConfig.export ?? true,
     bulkExport: mergedConfig.bulkExport ?? true,
     actionsAsIcons: mergedConfig.actionsAsIcons ?? false,
+    coloredTags: mergedConfig.coloredTags !== false,
     density: normalizeDensityMode(mergedConfig.density),
     layoutPreset,
     displayModes,

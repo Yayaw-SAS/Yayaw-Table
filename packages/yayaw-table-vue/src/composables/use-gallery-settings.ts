@@ -88,7 +88,7 @@ export function useGallerySettings() {
     get: () =>
       context.state.gallery.value.aspectRatio ??
       context.config.table.gallery?.aspectRatio ??
-      "square",
+      "wide",
     set: (value: TableGalleryAspectRatio) => {
       context.state.gallery.value = {
         ...context.state.gallery.value,
@@ -117,6 +117,18 @@ export function useGallerySettings() {
       context.state.gallery.value = {
         ...context.state.gallery.value,
         cardSize: value,
+      };
+    },
+  });
+  const previewSize = computed({
+    get: () =>
+      context.state.gallery.value.previewSize ??
+      context.config.table.gallery?.previewSize ??
+      "medium",
+    set: (value: TableGalleryCardSize) => {
+      context.state.gallery.value = {
+        ...context.state.gallery.value,
+        previewSize: value,
       };
     },
   });
@@ -149,5 +161,6 @@ export function useGallerySettings() {
     aspectRatio,
     imageFit,
     cardSize,
+    previewSize,
   };
 }

@@ -123,9 +123,9 @@ for (const mode of ["builtin", "external", "override"] as const) {
         });
         const view = Array.from(
           document.querySelectorAll<HTMLElement>('[role="menuitem"]')
-        ).find((item) => item.textContent?.trim() === "View");
+        ).find((item) => item.textContent?.trim() === "Info");
         if (!view) {
-          throw new Error("Missing View action");
+          throw new Error("Missing Info action");
         }
         const listCalls = actions.list.mock.calls.length;
         await act(async () => {

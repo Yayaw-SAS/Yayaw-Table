@@ -22,11 +22,13 @@ export function DataTypeCell({
   row,
   value,
   fallbackDateDisplayPreset,
+  coloredTags,
 }: {
   column: ColumnDefinition;
   row: Record<string, unknown>;
   value: unknown;
   fallbackDateDisplayPreset?: DateDisplayPreset;
+  coloredTags?: boolean;
 }) {
   const type = resolveDataType(column.type, row, column.typeKey);
   const renderers = column.customRenderers as
@@ -51,41 +53,41 @@ export function DataTypeCell({
     case "date":
       return (
         <DateCell
-          value={value as string | number | Date}
           dateDisplayPreset={column.dateDisplayPreset}
           dateFormat={column.dateFormat}
           fallbackDateDisplayPreset={fallbackDateDisplayPreset}
+          value={value as string | number | Date}
         />
       );
     case "image":
-      return <ImageCell value={value} alt={column.header} />;
+      return <ImageCell alt={column.header} value={value} />;
     case "json":
       return (
         <JsonCell
-          value={value}
           maxItems={column.maxItems as number | undefined}
+          value={value}
         />
       );
     case "number":
       return (
         <NumberCell
-          value={value as string | number}
           numberFormat={
             column.numberFormat as
               | import("../../utils/number-format").NumberFormatConfig
               | undefined
           }
+          value={value as string | number}
         />
       );
     case "url":
       return (
         <UrlCell
-          value={value}
           displayMode={
             column.urlDisplayMode === "row-link"
               ? "full"
               : column.urlDisplayMode
           }
+          value={value}
         />
       );
     case "select":
@@ -96,12 +98,13 @@ export function DataTypeCell({
         <span className="inline-flex flex-wrap items-center gap-1">
           {values.map((item) => {
             const label = dataTypeOptionLabel(item, column.options);
-            const color = column.tagColorMap?.[String(item)];
             return (
               <TagCell
+                coloredTags={column.coloredTags ?? coloredTags}
+                colorValue={String(item)}
                 key={`${typeof item}:${String(item)}`}
+                tagColorMap={column.tagColorMap}
                 value={label}
-                tagColorMap={color ? { [label]: color } : undefined}
               />
             );
           })}
@@ -110,7 +113,7 @@ export function DataTypeCell({
     }
     default:
       return (
-        <StringCell value={value} showQuotes={column.showQuotes === true} />
+        <StringCell showQuotes={column.showQuotes === true} value={value} />
       );
   }
 }

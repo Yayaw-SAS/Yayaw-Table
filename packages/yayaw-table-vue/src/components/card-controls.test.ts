@@ -329,7 +329,14 @@ it("applies saved Gallery options to the new controls and keeps translated label
     wrapper
       .findAll('.yayaw-card-settings [role="combobox"]')
       .map((item) => item.attributes("aria-label"))
-  ).toEqual(["Image", "Titre", "Proportions", "Ajustement", "Taille"]);
+  ).toEqual([
+    "Image",
+    "Titre",
+    "Proportions",
+    "Ajustement",
+    "Taille de l’aperçu",
+    "Taille",
+  ]);
 });
 
 it.each([

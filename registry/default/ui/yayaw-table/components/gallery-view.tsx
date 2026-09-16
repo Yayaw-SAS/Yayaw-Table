@@ -1,7 +1,14 @@
 "use client";
 
 import { ExternalLink, ImageIcon, Pencil } from "lucide-react";
-import { type MouseEvent, type ReactNode, useMemo, useState } from "react";
+import {
+  type MouseEvent,
+  type ReactNode,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { TableCatalogueColumnConfig } from "../hooks/use-table-config";
@@ -17,23 +24,32 @@ import {
   getImageFallbackInitial,
   resolveImageSource,
 } from "../utils/image-source";
+import {
+  galleryAspectRatio,
+  resolveGalleryMedia,
+  type TableGalleryPreviewSize,
+  type TableMediaSource,
+} from "../utils/media-contract";
+import {
+  attachMediaThumbnail,
+  mediaViewerLabels,
+  openMediaViewer,
+} from "../utils/media-viewer";
+import {
+  isSelectionModifiedClick,
+  selectRowWithRange,
+} from "../utils/row-selection-interaction";
+import "../utils/media-viewer.css";
 import { TableTooltip } from "../utils/table-tooltip";
 
 const SYSTEM_COLUMN_IDS = new Set(["actions", "select"]);
 const EMPTY_GROUP_VALUE = "";
 const EMPTY_GROUP_LABEL = "No value";
 
-const GALLERY_ASPECT_RATIO_CLASS = {
-  portrait: "aspect-[3/4]",
-  square: "aspect-square",
-  video: "aspect-video",
-  wide: "aspect-[16/10]",
-} as const;
-
 const GALLERY_CARD_SIZE_CLASS = {
-  large: "grid-cols-[repeat(auto-fill,minmax(22rem,1fr))]",
-  medium: "grid-cols-[repeat(auto-fill,minmax(16rem,1fr))]",
-  small: "grid-cols-[repeat(auto-fill,minmax(12rem,1fr))]",
+  large: "grid-cols-[repeat(auto-fill,minmax(min(100%,22rem),1fr))]",
+  medium: "grid-cols-[repeat(auto-fill,minmax(min(100%,16rem),1fr))]",
+  small: "grid-cols-[repeat(auto-fill,minmax(min(100%,12rem),1fr))]",
 } as const;
 
 const GALLERY_IMAGE_FIT_CLASS = {
@@ -42,6 +58,8 @@ const GALLERY_IMAGE_FIT_CLASS = {
 } as const;
 
 interface DataTableGalleryViewProps<TData extends Record<string, unknown>> {
+  locale?: string;
+  onOpenRowDetails?: (row: TData) => void;
   canEditRow?: (row: Row<TData>) => boolean;
   className?: string;
   columnDefinitions: TableCatalogueColumnConfig[];
@@ -64,6 +82,15 @@ interface DataTableGalleryViewProps<TData extends Record<string, unknown>> {
 }
 
 interface GalleryCardProps<TData extends Record<string, unknown>> {
+  mediaSource?: TableMediaSource;
+  nativeMedia?: boolean;
+  previewLabel: string;
+  hoverPreview?: boolean;
+  previewSize?: TableGalleryPreviewSize;
+  onPreviewMedia: (row: Row<TData>, target: HTMLElement) => void;
+  table: TanStackTable<TData>;
+  renderMedia?: TableGalleryConfig["renderMedia"];
+  renderProperties?: TableGalleryConfig["renderProperties"];
   actionsCell?: ReturnType<Row<TData>["getVisibleCells"]>[number];
   aspectRatio: NonNullable<TableGalleryConfig["aspectRatio"]>;
   canEditRow: boolean;
@@ -392,7 +419,9 @@ function GalleryCardMedia({
   imageFit,
   source,
   title,
+  previewSize,
 }: {
+  previewSize?: TableGalleryPreviewSize;
   aspectRatio: NonNullable<TableGalleryConfig["aspectRatio"]>;
   imageFit: NonNullable<TableGalleryConfig["imageFit"]>;
   source?: string;
@@ -404,13 +433,10 @@ function GalleryCardMedia({
 
   return (
     <div
-      className={cn(
-        "relative overflow-hidden rounded-t-md bg-muted",
-        GALLERY_ASPECT_RATIO_CLASS[aspectRatio]
-      )}
+      className="relative overflow-hidden rounded-t-md bg-muted"
+      style={{ aspectRatio: galleryAspectRatio(aspectRatio, previewSize) }}
     >
       {resolvedSource ? (
-        // biome-ignore lint/performance/noImgElement: registry consumers should not need Next.js image domain configuration.
         // biome-ignore lint/a11y/noNoninteractiveElementInteractions: onError swaps broken media to the non-interactive fallback.
         <img
           alt={title}
@@ -500,7 +526,120 @@ function GalleryCardActions<TData extends Record<string, unknown>>({
   );
 }
 
+function NativeGalleryMedia({
+  source,
+  title,
+  imageFit,
+  hoverPreview,
+  previewLabel,
+  onOpen,
+}: {
+  source?: TableMediaSource;
+  title: string;
+  imageFit: "cover" | "contain";
+  hoverPreview?: boolean;
+  previewLabel: string;
+  onOpen: (target: HTMLElement) => void;
+}) {
+  const host = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!host.current) {
+      return;
+    }
+    const element = host.current;
+    return attachMediaThumbnail(element, source, title, {
+      fit: imageFit,
+      hoverPreview,
+      previewLabel,
+      onOpen: () => onOpen(element.querySelector("button") ?? element),
+    });
+  }, [source, title, imageFit, hoverPreview, previewLabel, onOpen]);
+  return <div className="h-full w-full" ref={host} />;
+}
+
+function GalleryCardVisual<TData extends Record<string, unknown>>({
+  title,
+  imageSource,
+  ...props
+}: Pick<
+  GalleryCardProps<TData>,
+  | "nativeMedia"
+  | "renderMedia"
+  | "mediaSource"
+  | "aspectRatio"
+  | "previewSize"
+  | "imageFit"
+  | "hoverPreview"
+  | "previewLabel"
+  | "onPreviewMedia"
+  | "row"
+> & { title: string; imageSource?: string }) {
+  const {
+    nativeMedia,
+    renderMedia,
+    mediaSource,
+    aspectRatio,
+    previewSize,
+    imageFit,
+    hoverPreview,
+    previewLabel,
+    onPreviewMedia,
+    row,
+  } = props;
+  if (renderMedia) {
+    return (
+      <div
+        className="relative overflow-hidden rounded-t-md bg-muted"
+        style={{ aspectRatio: galleryAspectRatio(aspectRatio, previewSize) }}
+      >
+        {renderMedia({
+          row: row.original,
+          title,
+          source: imageSource,
+          imageFit,
+          aspectRatio,
+        })}
+      </div>
+    );
+  }
+  if (nativeMedia) {
+    return (
+      <div
+        className="relative overflow-hidden rounded-t-md bg-muted"
+        style={{ aspectRatio: galleryAspectRatio(aspectRatio, previewSize) }}
+      >
+        <NativeGalleryMedia
+          hoverPreview={hoverPreview}
+          imageFit={imageFit}
+          onOpen={(target) => onPreviewMedia(row, target)}
+          previewLabel={previewLabel}
+          source={mediaSource}
+          title={title}
+        />
+      </div>
+    );
+  }
+  return (
+    <GalleryCardMedia
+      aspectRatio={aspectRatio}
+      imageFit={imageFit}
+      previewSize={previewSize}
+      source={imageSource}
+      title={title}
+    />
+  );
+}
+
 function DataTableGalleryCard<TData extends Record<string, unknown>>({
+  mediaSource,
+  nativeMedia,
+  previewLabel,
+  hoverPreview,
+  previewSize,
+  onPreviewMedia,
+  table,
+  renderMedia,
+  renderProperties,
   actionsCell,
   aspectRatio,
   canEditRow,
@@ -524,14 +663,38 @@ function DataTableGalleryCard<TData extends Record<string, unknown>>({
 }: GalleryCardProps<TData>) {
   const titleContent = titleCell
     ? flexRender(titleCell.column.columnDef.cell, titleCell.getContext())
-    : getStringValue(titleColumnId ? row.original[titleColumnId] : row.id) ||
-      row.id;
+    : getStringValue(row.original[titleColumnId ?? ""] ?? row.id);
   const title =
     getStringValue(titleColumnId ? row.original[titleColumnId] : row.id) ||
     row.id;
   const imageSource = resolveImageSource(
     imageColumnId ? row.original[imageColumnId] : undefined
   );
+  const shouldSelectFromCard = (event: MouseEvent<HTMLElement>) =>
+    Boolean(selectionCell) &&
+    row.getCanSelect() &&
+    isSelectionModifiedClick(event) &&
+    // Checkboxes already handle range selection and must not toggle twice.
+    !(
+      event.target instanceof Element &&
+      event.target.closest('[data-column-id="select"]')
+    );
+  const handleSelectionClick = (event: MouseEvent<HTMLElement>) => {
+    if (!shouldSelectFromCard(event)) {
+      return;
+    }
+    // Capture before custom media buttons can open a preview or a link.
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.focus({ preventScroll: true });
+    selectRowWithRange({
+      element: event.currentTarget,
+      isSelected: event.shiftKey || !row.getIsSelected(),
+      row,
+      shiftKey: event.shiftKey,
+      table,
+    });
+  };
 
   return (
     // biome-ignore lint/a11y/noNoninteractiveElementInteractions: clickable cards keep nested selection/actions valid and provide keyboard activation.
@@ -540,8 +703,8 @@ function DataTableGalleryCard<TData extends Record<string, unknown>>({
         "group overflow-hidden rounded-md border bg-background shadow-xs transition",
         isClickable &&
           "cursor-pointer hover:border-primary/40 hover:bg-muted/20",
-        isActive &&
-          "border-primary/50 shadow-[inset_2px_0_0_hsl(var(--primary))]"
+        (isActive || row.getIsSelected()) &&
+          "border-primary/60 ring-1 ring-primary/30"
       )}
       data-active={isActive ? "true" : undefined}
       onClick={
@@ -551,6 +714,13 @@ function DataTableGalleryCard<TData extends Record<string, unknown>>({
             }
           : undefined
       }
+      onClickCapture={handleSelectionClick}
+      onContextMenuCapture={(event) => {
+        // macOS dispatches Control-click as a context-menu event.
+        if (event.ctrlKey && event.button === 0) {
+          handleSelectionClick(event);
+        }
+      }}
       onKeyDown={
         isClickable
           ? (event) => {
@@ -561,39 +731,65 @@ function DataTableGalleryCard<TData extends Record<string, unknown>>({
             }
           : undefined
       }
+      onMouseDownCapture={(event) => {
+        if (shouldSelectFromCard(event)) {
+          // Avoid native text selection when extending a range with Shift.
+          event.preventDefault();
+        }
+      }}
       role={isClickable ? "button" : undefined}
       tabIndex={isClickable ? 0 : undefined}
     >
-      <GalleryCardMedia
-        aspectRatio={aspectRatio}
-        imageFit={imageFit}
-        source={imageSource}
-        title={title}
-      />
+      <div className="relative">
+        <GalleryCardVisual
+          aspectRatio={aspectRatio}
+          hoverPreview={hoverPreview}
+          imageFit={imageFit}
+          imageSource={imageSource}
+          mediaSource={mediaSource}
+          nativeMedia={nativeMedia}
+          onPreviewMedia={onPreviewMedia}
+          previewLabel={previewLabel}
+          previewSize={previewSize}
+          renderMedia={renderMedia}
+          row={row}
+          title={title}
+        />
+        {selectionCell ? (
+          <div
+            className={cn(
+              "absolute top-3 left-3 z-10 transition-opacity [&_[data-slot=checkbox][data-checked]]:border-primary [&_[data-slot=checkbox][data-checked]]:bg-primary [&_[data-slot=checkbox]]:size-5 [&_[data-slot=checkbox]]:border-background/70 [&_[data-slot=checkbox]]:bg-background [&_[data-slot=checkbox]]:shadow-sm",
+              row.getIsSelected()
+                ? "opacity-100"
+                : "opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100"
+            )}
+            data-column-id="select"
+          >
+            {flexRender(
+              selectionCell.column.columnDef.cell,
+              selectionCell.getContext()
+            )}
+          </div>
+        ) : null}
+      </div>
       <div className="p-3">
         <div className="flex items-start gap-2">
-          {selectionCell ? (
-            <div className="mt-0.5 shrink-0" data-column-id="select">
-              {flexRender(
-                selectionCell.column.columnDef.cell,
-                selectionCell.getContext()
-              )}
-            </div>
-          ) : null}
           <div className="min-w-0 flex-1">
             <div className="line-clamp-2 font-medium text-sm">
               {titleContent}
             </div>
           </div>
-          <GalleryCardActions
-            canEditRow={canEditRow}
-            editRowLabel={editRowLabel}
-            linkRowLabel={linkRowLabel}
-            linkUrl={linkUrl}
-            onEditRow={onEditRow}
-            onOpenRowLink={onOpenRowLink}
-            row={row}
-          />
+          {actionsCell ? null : (
+            <GalleryCardActions
+              canEditRow={canEditRow}
+              editRowLabel={editRowLabel}
+              linkRowLabel={linkRowLabel}
+              linkUrl={linkUrl}
+              onEditRow={onEditRow}
+              onOpenRowLink={onOpenRowLink}
+              row={row}
+            />
+          )}
           {actionsCell ? (
             <div className="shrink-0" data-column-id="actions">
               {flexRender(
@@ -604,17 +800,29 @@ function DataTableGalleryCard<TData extends Record<string, unknown>>({
           ) : null}
         </div>
 
-        <GalleryCardProperties
-          propertyCells={propertyCells}
-          propertyLabels={propertyLabels}
-          showCardLabels={showCardLabels}
-        />
+        {renderProperties ? (
+          renderProperties({
+            row: row.original,
+            title,
+            source: imageSource,
+            imageFit,
+            aspectRatio,
+          })
+        ) : (
+          <GalleryCardProperties
+            propertyCells={propertyCells}
+            propertyLabels={propertyLabels}
+            showCardLabels={showCardLabels}
+          />
+        )}
       </div>
     </article>
   );
 }
 
 export function DataTableGalleryView<TData extends Record<string, unknown>>({
+  locale = "en",
+  onOpenRowDetails,
   canEditRow,
   className,
   columnDefinitions,
@@ -660,6 +868,38 @@ export function DataTableGalleryView<TData extends Record<string, unknown>>({
     [groupBy, rows]
   );
 
+  const viewer = useRef<ReturnType<typeof openMediaViewer> | undefined>(
+    undefined
+  );
+  useEffect(() => () => viewer.current?.destroy(), []);
+  const previewLabels = mediaViewerLabels(locale);
+  const onPreviewMedia = (row: Row<TData>, target: HTMLElement) => {
+    viewer.current?.destroy();
+    const orderedRows = galleryGroups.flatMap((group) => group.rows);
+    viewer.current = openMediaViewer({
+      items: orderedRows.map((item) => ({
+        id: item.id,
+        title: String(item.original[titleColumnId ?? "id"] ?? item.id),
+        source: resolveGalleryMedia(
+          item.original,
+          resolvedConfig.media,
+          imageColumnId
+        ),
+      })),
+      index: orderedRows.findIndex((item) => item.id === row.id),
+      labels: previewLabels,
+      returnFocus: target,
+      onInfo: onOpenRowDetails
+        ? (id) => {
+            const item = orderedRows.find((item) => item.id === id);
+            if (item) {
+              onOpenRowDetails(item.original);
+            }
+          }
+        : undefined,
+    });
+  };
+
   if (rows.length === 0) {
     return emptyState ? (
       <div className="rounded-md border">{emptyState}</div>
@@ -674,6 +914,7 @@ export function DataTableGalleryView<TData extends Record<string, unknown>>({
         aspectRatio={resolvedConfig.aspectRatio}
         canEditRow={canEditRow?.(row) ?? false}
         editRowLabel={editRowLabel}
+        hoverPreview={resolvedConfig.media?.hoverPreview}
         imageColumnId={imageColumnId}
         imageFit={resolvedConfig.imageFit}
         isActive={isRowActive?.(row) ?? false}
@@ -681,9 +922,18 @@ export function DataTableGalleryView<TData extends Record<string, unknown>>({
         key={row.id}
         linkRowLabel={linkRowLabel}
         linkUrl={getRowLinkUrl?.(row)}
+        mediaSource={resolveGalleryMedia(
+          row.original,
+          resolvedConfig.media,
+          imageColumnId
+        )}
+        nativeMedia={resolvedConfig.media?.enabled}
         onEditRow={onEditRow}
         onOpenRowLink={onOpenRowLink}
+        onPreviewMedia={onPreviewMedia}
         onRowClick={onRowClick}
+        previewLabel={previewLabels.preview}
+        previewSize={resolvedConfig.previewSize}
         propertyCells={getGalleryPropertyCells({
           cardColumnIds: resolvedConfig.cardColumnIds,
           groupBy,
@@ -692,9 +942,12 @@ export function DataTableGalleryView<TData extends Record<string, unknown>>({
           titleColumnId,
         })}
         propertyLabels={propertyLabels}
+        renderMedia={resolvedConfig.renderMedia}
+        renderProperties={resolvedConfig.renderProperties}
         row={row}
         selectionCell={visibleCells.find((cell) => cell.column.id === "select")}
         showCardLabels={shouldShowGalleryCardLabels(resolvedConfig)}
+        table={table}
         titleCell={getCellByColumnId(row, titleColumnId)}
         titleColumnId={titleColumnId}
       />

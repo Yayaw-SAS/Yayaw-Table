@@ -1,0 +1,44 @@
+[
+  {
+    "input": {
+      "previewSize": "small",
+      "cardSize": "large",
+      "imageFit": "cover"
+    },
+    "expected": {
+      "previewSize": "small",
+      "cardSize": "large",
+      "imageFit": "cover"
+    }
+  },
+  {
+    "input": {
+      "previewSize": "medium",
+      "cardSize": "large",
+      "imageFit": "cover"
+    },
+    "expected": {
+      "previewSize": "medium",
+      "cardSize": "large",
+      "imageFit": "cover"
+    }
+  },
+  {
+    "input": {
+      "previewSize": "large",
+      "cardSize": "large",
+      "imageFit": "cover"
+    },
+    "expected": {
+      "previewSize": "large",
+      "cardSize": "large",
+      "imageFit": "cover"
+    }
+  },
+  {
+    "input": {
+      "previewSize": "invalid"
+    },
+    "expected": null
+  }
+]

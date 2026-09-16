@@ -56,6 +56,7 @@ import type {
   InlineEditColumnRuntimeConfig,
   InlineEditCommitResult,
 } from "../hooks/use-inline-edit-runtime";
+import { useTableActivityShortcuts } from "../hooks/use-selection-shortcuts";
 import { useTableConfig } from "../hooks/use-table-config";
 import { useTableInstance } from "../hooks/use-table-instance";
 import { useTableUrlState } from "../hooks/use-table-url-state";
@@ -69,8 +70,13 @@ import { flexRender } from "../tanstack";
 import type { DataTableProps } from "../types";
 import type { TableDensity, TableDisplayMode } from "../types/display-types";
 import { Loader } from "../ui-custom/loader";
+
 import { ColumnIcon } from "../utils/column-icons";
 import { buildCsvExportColumns } from "../utils/csv-export";
+import type {
+  DetailRevertHandler,
+  RecordDetailsConfig,
+} from "../utils/record-details";
 import { groupedLeafRows, groupedValueLabel } from "../utils/table-contracts";
 import { TABLE_DENSITY_CLASSES } from "../utils/table-density";
 import { getPrimaryGrouping } from "../utils/table-view-state";
@@ -709,6 +715,9 @@ type ModernDataTableProps<
   getRowId?: (row: TData) => string;
   /** Optional custom overlay to render when loading */
   loadingOverlay?: ReactNode;
+  onOpenDetails?: (row: TData) => void;
+  details?: RecordDetailsConfig;
+  onRevertActivity?: DetailRevertHandler;
   onRowSelectionChange?: (rows: Row<TData>[]) => void;
   onRowSelectionStateChange?: (selection: Record<string, boolean>) => void;
   onBulkEdit?: (
@@ -869,6 +878,9 @@ function ModernDataTable<
   emptyState,
   onRowClick,
   onRowActivate,
+  onOpenDetails,
+  details,
+  onRevertActivity,
   showDefaultToastsForCustomHandlers,
   queryFn: _queryFn,
   rowSelection,
@@ -1443,6 +1455,29 @@ function ModernDataTable<
   useEffect(() => {
     onRowSelectionChange?.(bulkActions.selectedRows);
   }, [bulkActions.selectedRows, onRowSelectionChange]);
+
+  const selectionRootRef = useRef<HTMLDivElement>(null);
+  useTableActivityShortcuts(selectionRootRef, {
+    details,
+    onRevertActivity,
+    rows: dataTableResult.data,
+    refetch,
+    locale,
+    selectAll: bulkActions.handleSelectAll,
+    duplicateEnabled: tableConfig.table.allowDuplicate !== false,
+    duplicate: {
+      rows: () =>
+        bulkActions.selectedRows.map(
+          (row) => row.original as Record<string, unknown>
+        ),
+      getId: (row) => String(row.id),
+      canDuplicate: (row) => tableConfig.table.canDuplicateRow?.(row) !== false,
+      action: () => providerTableActions?.duplicate,
+      select: (rows) => bulkActions.selectOriginalRows(rows as TData[]),
+    },
+    enableRowSelection,
+    enableMultiRowSelection,
+  });
 
   // Debug bulk actions state
   // Default loading overlay component
@@ -2425,9 +2460,11 @@ function ModernDataTable<
             }
             isRowClickable={(row) => getRowClickMode(row).canClickRow}
             linkRowLabel={t("actions.view")}
+            locale={locale}
             onEditRow={(row) => {
               handleRowEditClick(row);
             }}
+            onOpenRowDetails={onOpenDetails}
             onOpenRowLink={handleGalleryRowLinkClick}
             onRowClick={(row, event) => {
               handleInteractiveRowClick(row, event);
@@ -2634,6 +2671,7 @@ function ModernDataTable<
     <div
       className="space-y-4"
       data-yayaw-table-selection-scope=""
+      ref={selectionRootRef}
       suppressHydrationWarning
     >
       {renderContent()}

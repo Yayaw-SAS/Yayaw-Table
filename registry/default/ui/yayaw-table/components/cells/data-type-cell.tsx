@@ -22,11 +22,13 @@ export function DataTypeCell({
   row,
   value,
   fallbackDateDisplayPreset,
+  coloredTags,
 }: {
   column: ColumnDefinition;
   row: Record<string, unknown>;
   value: unknown;
   fallbackDateDisplayPreset?: DateDisplayPreset;
+  coloredTags?: boolean;
 }) {
   const type = resolveDataType(column.type, row, column.typeKey);
   const renderers = column.customRenderers as
@@ -96,11 +98,12 @@ export function DataTypeCell({
         <span className="inline-flex flex-wrap items-center gap-1">
           {values.map((item) => {
             const label = dataTypeOptionLabel(item, column.options);
-            const color = column.tagColorMap?.[String(item)];
             return (
               <TagCell
+                coloredTags={column.coloredTags ?? coloredTags}
+                colorValue={String(item)}
                 key={`${typeof item}:${String(item)}`}
-                tagColorMap={color ? { [label]: color } : undefined}
+                tagColorMap={column.tagColorMap}
                 value={label}
               />
             );

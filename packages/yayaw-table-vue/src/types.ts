@@ -6,6 +6,10 @@ import type {
   FormLayoutBlock,
   FormLayoutRuntime,
 } from "./form-layout";
+import type {
+  TableGalleryMediaConfig,
+  TableGalleryPreviewSize,
+} from "./media-contract";
 import type { RecordPresentationConfig } from "./record-presentation";
 
 export type TableRecord = Record<string, unknown>;
@@ -136,6 +140,7 @@ export interface ColumnDefinition<TData extends TableRecord = TableRecord> {
   defaultCalculation?: CalculationType;
   inlineEdit?: boolean | InlineEditColumnConfig;
   tagColorMap?: Record<string, string>;
+  coloredTags?: boolean;
   options?: SelectOption[];
   numberFormat?: ColumnNumberFormat;
   size?: number;
@@ -183,6 +188,10 @@ export interface TableKanbanViewConfig {
 }
 
 export interface TableGalleryConfig {
+  media?: TableGalleryMediaConfig;
+  previewSize?: TableGalleryPreviewSize;
+  renderMedia?: (context: TableGalleryRenderContext) => VNodeChild;
+  renderProperties?: (context: TableGalleryRenderContext) => VNodeChild;
   imageColumn?: string;
   titleColumn?: string;
   cardColumnIds?: string[];
@@ -192,9 +201,20 @@ export interface TableGalleryConfig {
   showCardLabels?: boolean;
 }
 
-export type TableGalleryViewConfig = TableGalleryConfig;
+export type TableGalleryViewConfig = Omit<
+  TableGalleryConfig,
+  "media" | "renderMedia" | "renderProperties"
+>;
+export interface TableGalleryRenderContext {
+  row: Record<string, unknown>;
+  title: string;
+  source?: string;
+  imageFit: TableGalleryImageFit;
+  aspectRatio: TableGalleryAspectRatio;
+}
 
 export interface TableBehaviorConfig<TData extends TableRecord = TableRecord> {
+  coloredTags?: boolean;
   allowCreate: boolean;
   allowEdit: boolean;
   allowDuplicate: boolean;
@@ -916,3 +936,16 @@ export interface YayawTableProps<TData extends TableRecord = TableRecord> {
   >;
   queryClient?: QueryClient;
 }
+
+/** Application actions appended to the native row menu. Icons are Vue components. */
+export interface RowActionItem<TData extends TableRecord = TableRecord> {
+  type?: "custom" | "delete" | "duplicate" | "edit" | "view";
+  label: string;
+  icon?: Component;
+  className?: string;
+  disabled?: boolean | ((row: TData) => boolean);
+  onClick?: (row: TData) => MaybePromise<boolean | undefined>;
+}
+
+/** Framework-neutral alias for custom record actions. */
+export type ActionItem = RowActionItem;

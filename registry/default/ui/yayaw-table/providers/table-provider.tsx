@@ -463,7 +463,7 @@ export const defaultTranslations: DataTableTranslations = {
     cancel: "Cancel",
     confirm: "Confirm",
     title: "Actions",
-    view: "View",
+    view: "Info",
   },
   bulk: {
     close_menu: "Close bulk actions menu",
@@ -793,6 +793,7 @@ export const defaultTranslations: DataTableTranslations = {
       aspectRatio: "Ratio",
       imageFit: "Image fit",
       cardSize: "Card size",
+      previewSize: "Preview size",
       showLabels: "Show property labels",
       wide: "Wide",
       square: "Square",

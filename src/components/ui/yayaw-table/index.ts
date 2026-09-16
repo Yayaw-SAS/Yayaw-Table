@@ -93,8 +93,16 @@ export type {
   TableViewConfig,
   UpdateTableViewInput,
 } from "./types/view-types";
+export type { TableActivityRecord } from "./utils/activity-shortcuts";
+export type {
+  TableGalleryMediaConfig,
+  TableGalleryPreviewSize,
+  TableMediaSource,
+} from "./utils/media-contract";
 export type {
   RecordPresentation,
   RecordPresentationConfig,
 } from "./utils/record-presentation";
 export { createLocalTableViewActions } from "./utils/table-view-storage";
+
+export type { ActionItem, ActionItem as RowActionItem } from "./components/columns/actions-column";

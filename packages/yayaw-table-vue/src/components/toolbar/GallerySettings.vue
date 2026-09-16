@@ -16,6 +16,7 @@ const {
   aspectRatio,
   imageFit,
   cardSize,
+  previewSize,
 } = useGallerySettings();
 </script>
 <template>
@@ -57,6 +58,13 @@ const {
             (imageFit =
               fitOptions.find((option) => option.value === value)?.value ??
               imageFit),
+        },
+        {
+          id: 'previewSize',
+          label: translate('cardPreviewSize', 'Preview size'),
+          value: previewSize,
+          options: [{value: 'small', label: 'S'}, {value: 'medium', label: 'M'}, {value: 'large', label: 'L'}],
+          onChange: value => previewSize = sizeOptions.find(option => option.value === value)?.value ?? previewSize,
         },
         {
           id: 'size',
