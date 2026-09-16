@@ -188,6 +188,7 @@ function normalizeGalleryViewConfig(
   const aspectRatio = normalizeGalleryAspectRatio(config.aspectRatio);
   const imageFit = normalizeGalleryImageFit(config.imageFit);
   const cardSize = normalizeGalleryCardSize(config.cardSize);
+  const previewSize = normalizeGalleryCardSize(config.previewSize);
 
   if (typeof config.imageColumn === "string") {
     normalized.imageColumn = imageColumn ?? "";
@@ -203,6 +204,9 @@ function normalizeGalleryViewConfig(
   }
   if (imageFit) {
     normalized.imageFit = imageFit;
+  }
+  if (previewSize) {
+    normalized.previewSize = previewSize;
   }
   if (cardSize) {
     normalized.cardSize = cardSize;

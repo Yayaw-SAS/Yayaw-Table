@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { tagAppearance } from "../../tag-colors";
+import "../../tag-colors.css";
 import {
   computed,
   nextTick,
@@ -496,7 +498,10 @@ const tags = computed(() =>
         )"
         :key="String(tag)"
         class="yayaw-tag"
-        :class="effectiveColumn.tagColorMap?.[String(tag)]"
+        :class="tagAppearance(String(tag), effectiveColumn.coloredTags ?? context.config.table.coloredTags, effectiveColumn.tagColorMap).className"
+        :style="tagAppearance(String(tag), effectiveColumn.coloredTags ?? context.config.table.coloredTags, effectiveColumn.tagColorMap).style"
+        :data-colored="(effectiveColumn.coloredTags ?? context.config.table.coloredTags) !== false"
+        :data-custom-color="tagAppearance(String(tag), effectiveColumn.coloredTags ?? context.config.table.coloredTags, effectiveColumn.tagColorMap).className ? '' : undefined"
         >{{
           column.options?.find((option) => Object.is(option.value, tag))
             ?.label ?? tag

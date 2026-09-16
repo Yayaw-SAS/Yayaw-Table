@@ -879,6 +879,11 @@
           "target": "components/ui/yayaw-table/hooks/use-filter-presets.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/hooks/use-gallery-media-actions.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/hooks/use-gallery-media-actions.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/hooks/use-global-column-calculations.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/hooks/use-global-column-calculations.ts"
@@ -902,6 +907,11 @@
           "path": "registry/default/ui/yayaw-table/hooks/use-row-dnd.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/hooks/use-row-dnd.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/hooks/use-selection-shortcuts.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/hooks/use-selection-shortcuts.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/hooks/use-table-actions.ts",
@@ -1114,6 +1124,11 @@
           "target": "components/ui/yayaw-table/ui-custom/stack-menu.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/utils/activity-shortcuts.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/activity-shortcuts.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/utils/advanced-filters.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/advanced-filters.ts"
@@ -1184,6 +1199,21 @@
           "target": "components/ui/yayaw-table/utils/image-source.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/utils/media-contract.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/media-contract.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/media-viewer.css",
+          "type": "registry:style",
+          "target": "components/ui/yayaw-table/utils/media-viewer.css"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/media-viewer.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/media-viewer.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/utils/number-format.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/number-format.ts"
@@ -1199,9 +1229,24 @@
           "target": "components/ui/yayaw-table/utils/record-presentation.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/utils/row-selection-interaction.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/row-selection-interaction.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/utils/row-selection-range.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/row-selection-range.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/selection-interaction.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/selection-interaction.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/selection-shortcuts.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/selection-shortcuts.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/utils/server-filters.ts",
@@ -1242,6 +1287,16 @@
           "path": "registry/default/ui/yayaw-table/utils/table-view-storage.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/table-view-storage.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/tag-colors.css",
+          "type": "registry:style",
+          "target": "components/ui/yayaw-table/utils/tag-colors.css"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/tag-colors.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/tag-colors.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/utils/view-menu.ts",

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { buildPlanningRows } from "../../planning/query";
-import { getNextRowSelectionForRange, getRenderedRangeRows } from "../../row-selection-range";
+import { selectionAfterClick } from "../../selection-interaction";
+import { getRenderedRangeRows } from "../../row-selection-range";
 import TableEmptyState from "./TableEmptyState.vue";
 import { useAutoPageSize } from "../../composables/use-auto-page-size";
 import TableTooltip from "../toolbar/TableTooltip.vue";
@@ -34,29 +35,16 @@ import RowActions from "./RowActions.vue";
 const context = useTableContext();
 const paginationRoot = ref<HTMLElement>();
 const { automatic, measurement, selectSize } = useAutoPageSize(paginationRoot);
-let selectionRangeAnchor: { rowId: string; rowOrderKey: string } | undefined;
 let isShiftSelectionClick = false;
 const toggleRowSelection = (row: Row<TableRecord>, event: Event): void => {
   const checkbox = event.currentTarget as HTMLInputElement;
-  const rows = getRenderedRangeRows(checkbox, table);
-  const rowOrderKey = JSON.stringify(rows.map((item) => item.id));
-  const isShiftClick = isShiftSelectionClick;
+  if (!row.getCanSelect()) return;
+  const rows = getRenderedRangeRows(checkbox, table).filter(item => item.getCanSelect());
+  context.selection.value = selectionAfterClick({ scope: context.selection, rows,
+    selection: context.selection.value, id: row.id, selected: checkbox.checked,
+    shift: isShiftSelectionClick, multiple: row.getCanMultiSelect(),
+  });
   isShiftSelectionClick = false;
-  if (isShiftClick && row.getCanMultiSelect() && selectionRangeAnchor?.rowOrderKey === rowOrderKey) {
-    const next = getNextRowSelectionForRange({
-      anchorRowId: selectionRangeAnchor.rowId,
-      targetRowId: row.id,
-      rows,
-      rowSelection: context.selection.value,
-      isSelected: checkbox.checked,
-    });
-    if (next) {
-      table.setRowSelection(next);
-      return;
-    }
-  }
-  selectionRangeAnchor = { rowId: row.id, rowOrderKey };
-  row.toggleSelected(checkbox.checked);
 };
 const draggedColumn = ref<string>();
 const keyboardDraggedColumn = ref<string>();

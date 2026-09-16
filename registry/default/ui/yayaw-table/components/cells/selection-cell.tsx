@@ -8,26 +8,13 @@ import { type ComponentProps, useCallback, useRef } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import type { Row, Table } from "../../tanstack";
-import {
-  getNextRowSelectionForRange,
-  getRenderedRangeRows,
-} from "../../utils/row-selection-range";
+import { selectRowWithRange } from "../../utils/row-selection-interaction";
 
 const _DEBUG = false;
 
 type CheckboxCheckedChangeHandler = NonNullable<
   ComponentProps<typeof Checkbox>["onCheckedChange"]
 >;
-
-interface SelectionRangeAnchor {
-  rowId: string;
-  rowOrderKey: string;
-}
-
-const selectionRangeAnchors = new WeakMap<object, SelectionRangeAnchor>();
-
-const getRowOrderKey = (rows: readonly { id: string }[]): string =>
-  JSON.stringify(rows.map((rangeRow) => rangeRow.id));
 
 const isShiftModifiedEvent = (event: Event): boolean =>
   "shiftKey" in event && event.shiftKey === true;
@@ -67,48 +54,17 @@ export function SelectionCell<TData>({
   const isSelectionDisabled = disabled || !row.getCanSelect();
   const handleSelectionChange = useCallback<CheckboxCheckedChangeHandler>(
     (isSelected, eventDetails) => {
-      if (table) {
-        const rangeRows = getRenderedRangeRows(checkboxRef.current, table);
-        const rowOrderKey = getRowOrderKey(rangeRows);
-        const anchor = selectionRangeAnchors.get(table);
-        const isShiftClick = isShiftModifiedEvent(eventDetails.event);
-        const canSelectRange =
-          isShiftClick &&
-          row.getCanMultiSelect() &&
-          anchor?.rowOrderKey === rowOrderKey;
-
-        if (canSelectRange) {
-          const hasAnchor = rangeRows.some(
-            (rangeRow) => rangeRow.id === anchor.rowId
-          );
-          const hasTarget = rangeRows.some(
-            (rangeRow) => rangeRow.id === row.id
-          );
-
-          if (hasAnchor && hasTarget) {
-            table.setRowSelection(
-              (rowSelection) =>
-                getNextRowSelectionForRange({
-                  anchorRowId: anchor.rowId,
-                  isSelected,
-                  rowSelection,
-                  rows: rangeRows,
-                  targetRowId: row.id,
-                }) ?? rowSelection
-            );
-            return;
-          }
-        }
-
-        selectionRangeAnchors.set(table, {
-          rowId: row.id,
-          rowOrderKey,
+      if (!isSelectionDisabled) {
+        selectRowWithRange({
+          element: checkboxRef.current,
+          isSelected,
+          row,
+          shiftKey: isShiftModifiedEvent(eventDetails.event),
+          table,
         });
       }
-
-      row.toggleSelected(isSelected);
     },
-    [row, table]
+    [isSelectionDisabled, row, table]
   );
 
   return (

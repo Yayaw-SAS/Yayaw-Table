@@ -23,6 +23,18 @@ import { invalidateTableDataQuery } from "./query-cache-utils";
 import { useTableActions } from "./use-table-actions";
 import { useTableUrlState } from "./use-table-url-state";
 
+function canStartSelectAll<TData>(
+  table: Table<TData> | undefined,
+  busy: boolean
+): table is Table<TData> {
+  return Boolean(
+    table &&
+      !busy &&
+      table.options.enableRowSelection !== false &&
+      table.options.enableMultiRowSelection !== false
+  );
+}
+
 interface ActionResult {
   success: boolean;
   data?: unknown;
@@ -1321,7 +1333,16 @@ export function useBulkActions<TData>({
   const handleSelectAll = useCallback(async (): Promise<void> => {
     const listAction = provider?.actions.list as TableListAction | undefined;
 
-    if (!(table && listAction && canSelectAll)) {
+    if (!canStartSelectAll(table, isSelectingAll)) {
+      return;
+    }
+
+    if (!listAction) {
+      table.toggleAllPageRowsSelected(true);
+      return;
+    }
+
+    if (selectedRows.length >= (rowCount ?? Number.POSITIVE_INFINITY)) {
       return;
     }
 
@@ -1336,17 +1357,8 @@ export function useBulkActions<TData>({
         listAction,
         pageSizeParam,
         sortParam,
-        getRowId: table.options.getRowId
-          ? (row, index) =>
-              table.options.getRowId?.(
-                row as TData & Record<string, unknown>,
-                index
-              ) ?? ""
-          : undefined,
-        canSelectRow:
-          typeof table.options.enableRowSelection === "function"
-            ? table.options.enableRowSelection
-            : undefined,
+        getRowId: selectionRowId(table),
+        canSelectRow: selectionRowPermission(table),
       });
 
       if (
@@ -1379,7 +1391,9 @@ export function useBulkActions<TData>({
     }
   }, [
     advancedFiltersParam,
-    canSelectAll,
+    isSelectingAll,
+    rowCount,
+    selectedRows.length,
     currentSelectionIdsKey,
     filtersParam,
     globalSearchParam,
@@ -1764,3 +1778,17 @@ export const defaultBulkActions = {
     toast.info("Bulk export requires configuration.");
   },
 };
+
+function selectionRowId<TData>(table: Table<TData>) {
+  const getRowId = table.options.getRowId;
+  return getRowId
+    ? (row: TData, index: number) =>
+        getRowId(row as TData & Record<string, unknown>, index)
+    : undefined;
+}
+
+function selectionRowPermission<TData>(table: Table<TData>) {
+  return typeof table.options.enableRowSelection === "function"
+    ? table.options.enableRowSelection
+    : undefined;
+}

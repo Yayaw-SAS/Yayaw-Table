@@ -4,8 +4,8 @@
  */
 "use client";
 
-import type { ColumnDef } from "@/components/ui/yayaw-table/tanstack";
 import { type LucideIcon, Tag } from "lucide-react";
+import type { ColumnDef } from "@/components/ui/yayaw-table/tanstack";
 import { Button } from "@/src/components/ui/button";
 import { TagCell } from "../cells/tag-cell";
 
@@ -13,6 +13,7 @@ import { TagCell } from "../cells/tag-cell";
  * Options for creating a tag column
  */
 export interface TagColumnOptions {
+  coloredTags?: boolean;
   /**
    * Optional CSS class name
    */
@@ -71,6 +72,7 @@ type ExtendedColumnDef<TData> = ColumnDef<TData> & CustomColumnProps;
  * Creates a column definition for displaying tag values with colored backgrounds
  */
 export function createTagColumn<TData>({
+  coloredTags,
   className = "",
   enableColumnFilter = true,
   enableHiding = true,
@@ -122,6 +124,7 @@ export function createTagColumn<TData>({
       return (
         <TagCell
           className={className}
+          coloredTags={coloredTags}
           tagColorMap={tagColorMap}
           value={info.getValue()}
         />

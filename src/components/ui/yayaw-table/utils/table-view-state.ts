@@ -1,4 +1,3 @@
-import { normalizeGanttView } from "../planning/engine";
 import type {
   ColumnFiltersState,
   ColumnPinningState,
@@ -6,6 +5,7 @@ import type {
   SortingState,
   VisibilityState,
 } from "@/components/ui/yayaw-table/tanstack";
+import { normalizeGanttView } from "../planning/engine";
 import type {
   TableDisplayMode,
   TableGalleryAspectRatio,
@@ -92,7 +92,12 @@ export function getDisplayModeGrouping({
 function normalizeDisplayMode(
   value: TableDisplayMode | undefined
 ): TableDisplayMode | undefined {
-  if (value === "gallery" || value === "kanban" || value === "table" || value === "gantt") {
+  if (
+    value === "gallery" ||
+    value === "kanban" ||
+    value === "table" ||
+    value === "gantt"
+  ) {
     return value;
   }
 
@@ -183,6 +188,7 @@ function normalizeGalleryViewConfig(
   const aspectRatio = normalizeGalleryAspectRatio(config.aspectRatio);
   const imageFit = normalizeGalleryImageFit(config.imageFit);
   const cardSize = normalizeGalleryCardSize(config.cardSize);
+  const previewSize = normalizeGalleryCardSize(config.previewSize);
 
   if (typeof config.imageColumn === "string") {
     normalized.imageColumn = imageColumn ?? "";
@@ -198,6 +204,9 @@ function normalizeGalleryViewConfig(
   }
   if (imageFit) {
     normalized.imageFit = imageFit;
+  }
+  if (previewSize) {
+    normalized.previewSize = previewSize;
   }
   if (cardSize) {
     normalized.cardSize = cardSize;
@@ -231,9 +240,11 @@ function normalizeViewDensity(
   return isTableDensity(density) ? { density } : {};
 }
 
-function normalizedGanttConfig(input: TableViewConfig["gantt"]): TableViewConfig {
+function normalizedGanttConfig(
+  input: TableViewConfig["gantt"]
+): TableViewConfig {
   const gantt = normalizeGanttView(input);
-  return Object.keys(gantt).length ? {gantt} : {};
+  return Object.keys(gantt).length ? { gantt } : {};
 }
 
 export function normalizeTableViewConfig(

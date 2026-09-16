@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import TableTooltip from "../toolbar/TableTooltip.vue";
-import { Copy, Eye, MoreHorizontal, Pencil, Trash2 } from "lucide-vue-next";
+import { Copy, Eye, Link, Info, MoreHorizontal, Pencil, Trash2 } from "lucide-vue-next";
 import {
   DropdownMenuContent,
   DropdownMenuItem,
@@ -9,9 +9,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "reka-ui";
-import { computed, nextTick, ref } from "vue";
+import { mediaViewerLabels, openMediaViewer } from "../../media-viewer";
+import { resolveGalleryMedia } from "../../media-contract";
+import { computed, nextTick, ref, onBeforeUnmount } from "vue";
 import { useTableContext } from "../../context";
-import type { TableRecord } from "../../types";
+import type { RowActionItem, TableRecord } from "../../types";
 import FormDialog from "../forms/FormDialog.vue";
 
 const props = defineProps<{ row: TableRecord }>();
@@ -20,12 +22,41 @@ const root = ref<HTMLElement>();
 const trigger = ref<HTMLElement>();
 const menuOpen = ref(false);
 const openingDetails = ref(false);
+const openingPreview = ref(false);
+const mediaLabels = computed(() => mediaViewerLabels(context.locale));
+const hasMedia = computed(() => context.config.table.gallery?.media?.enabled === true);
+const mediaSource = computed(() => resolveGalleryMedia(props.row, context.config.table.gallery?.media, context.config.table.gallery?.imageColumn));
+const customActions = computed(() => context.rowActions?.value ?? []);
+let viewer: ReturnType<typeof openMediaViewer> | undefined;
+onBeforeUnmount(() => viewer?.destroy());
+const openPreview = () => {
+  viewer?.destroy();
+  const rows = context.data.rows.value;
+  viewer = openMediaViewer({ items: rows.map(row => ({ id: context.getRowId(row), title: String(row[context.config.table.gallery?.titleColumn ?? "name"] ?? row.id ?? ""), source: resolveGalleryMedia(row, context.config.table.gallery?.media, context.config.table.gallery?.imageColumn) })),
+    index: rows.findIndex(row => context.getRowId(row) === context.getRowId(props.row)), labels: mediaLabels.value, returnFocus: trigger.value,
+    onInfo: context.openDetails ? id => { const row = rows.find(row => context.getRowId(row) === id); if (row) context.openDetails?.(row); } : undefined,
+  });
+};
+const copyLink = async () => {
+  if (!mediaSource.value) return;
+  try { await navigator.clipboard.writeText(mediaSource.value.url); context.status.value = { type: "success", message: mediaLabels.value.linkCopied }; }
+  catch (error) { context.status.value = { type: "error", message: error instanceof Error ? error.message : String(error) }; }
+};
+const actionDisabled = (action: RowActionItem) => Boolean(pending.value || (typeof action.disabled === "function" ? action.disabled(props.row) : action.disabled));
+const runCustom = async (action: RowActionItem) => {
+  if (actionDisabled(action)) return;
+  pending.value = action.label;
+  try { await action.onClick?.(props.row); if (action.type !== "view") await context.refresh(); }
+  catch (error) { context.status.value = { type: "error", message: error instanceof Error ? error.message : String(error) }; }
+  finally { pending.value = undefined; }
+};
 const pending = ref<string>();
 const confirmingDelete = ref(false);
 const deleteError = ref("");
 const menuTheme = ref<Record<string, string>>({});
 const closeMenuFocus = (event: Event): void => {
   if (confirmingDelete.value || context.form.value.open || openingDetails.value) event.preventDefault();
+  if (openingPreview.value) { event.preventDefault(); openingPreview.value = false; nextTick(openPreview); return; }
   if (!openingDetails.value) return;
   openingDetails.value = false;
   // Open the record after the menu focus scope has finished unmounting.
@@ -59,7 +90,7 @@ const canDelete = computed(
     context.config.table.canDeleteRow?.(props.row) !== false
 );
 const hasActions = computed(
-  () => Boolean(context.openDetails) || includeEdit.value || includeDuplicate.value || includeDelete.value
+  () => Boolean(context.openDetails) || hasMedia.value || customActions.value.length > 0 || includeEdit.value || includeDuplicate.value || includeDelete.value
 );
 const translate = (key: string, fallback: string): string =>
   String(context.translations.value[key] ?? fallback);
@@ -176,7 +207,16 @@ const confirmDelete = async (): Promise<void> => {
           :aria-label="translate('actions', 'Actions')" @click.stop
           @close-auto-focus="closeMenuFocus">
           <DropdownMenuItem v-if="context.openDetails" as-child @select="() => { openingDetails = true; menuOpen = false; }">
-            <button type="button" class="yayaw-row-action-item"><Eye :size="16" aria-hidden="true" />{{ translate("view", context.locale.startsWith('fr') ? 'Consulter' : 'View') }}</button>
+            <button type="button" class="yayaw-row-action-item"><Info :size="16" aria-hidden="true" />{{ translate("view", context.locale.startsWith('fr') ? 'Infos' : 'Info') }}</button>
+          </DropdownMenuItem>
+          <DropdownMenuItem v-if="hasMedia" as-child @select="() => { openingPreview = true; menuOpen = false; }">
+            <button type="button" class="yayaw-row-action-item"><Eye :size="16" aria-hidden="true" />{{ mediaLabels.preview }}</button>
+          </DropdownMenuItem>
+          <DropdownMenuItem v-if="hasMedia" as-child :disabled="!mediaSource" @select="copyLink">
+            <button type="button" class="yayaw-row-action-item" :disabled="!mediaSource"><Link :size="16" aria-hidden="true" />{{ mediaLabels.copyLink }}</button>
+          </DropdownMenuItem>
+          <DropdownMenuItem v-for="action in customActions" :key="action.label" as-child :disabled="actionDisabled(action)" @select="runCustom(action)">
+            <button type="button" class="yayaw-row-action-item" :class="[action.className, { 'yayaw-row-action-danger': action.type === 'delete' }]" :disabled="actionDisabled(action)"><component :is="action.icon" v-if="action.icon" :size="16" aria-hidden="true" />{{ action.label }}</button>
           </DropdownMenuItem>
           <DropdownMenuItem v-if="includeEdit" as-child :disabled="!canEdit" @select="run('edit')">
             <button type="button" class="yayaw-row-action-item" :disabled="!canEdit"><Pencil :size="16" aria-hidden="true" />{{ translate("edit", "Edit") }}</button>

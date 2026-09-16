@@ -1,15 +1,12 @@
 "use client";
 
-import { TableTooltip } from "../../utils/table-tooltip";
-
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { Row } from "@/components/ui/yayaw-table/tanstack";
 import { useSetAtom } from "jotai";
 import { MoreHorizontal } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/ui/custom/icon";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,8 +15,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Icon } from "@/components/ui/custom/icon";
+import type { Row } from "@/components/ui/yayaw-table/tanstack";
+import { cn } from "@/lib/utils";
 import { useTranslations } from "../../providers/table-provider";
+import { TableTooltip } from "../../utils/table-tooltip";
 
 import type { ActionItem } from "../columns/actions-column";
 import {
@@ -233,11 +232,15 @@ function ActionsCellBase<TData>({
             <DropdownMenuItem
               className={action.className}
               disabled={isDisabled}
-              key={`standard-${action.type}`}
+              key={`standard-${action.type}-${action.label}`}
               onClick={() => handleActionClick(action)}
             >
-              {action.icon && <span className="mr-2">{action.icon}</span>}
-              {action.label}
+              {action.icon && (
+                <span className="mr-2 shrink-0">{action.icon}</span>
+              )}
+              <span className="min-w-0 [overflow-wrap:anywhere]">
+                {action.label}
+              </span>
             </DropdownMenuItem>
           );
         })}
@@ -265,8 +268,12 @@ function ActionsCellBase<TData>({
               key={`custom-${action.label}`}
               onClick={() => handleActionClick(action)}
             >
-              {action.icon && <span className="mr-2">{action.icon}</span>}
-              {action.label}
+              {action.icon && (
+                <span className="mr-2 shrink-0">{action.icon}</span>
+              )}
+              <span className="min-w-0 [overflow-wrap:anywhere]">
+                {action.label}
+              </span>
             </DropdownMenuItem>
           );
         })}
@@ -294,8 +301,12 @@ function ActionsCellBase<TData>({
               key={`destructive-${action.label}`}
               onClick={() => handleActionClick(action)}
             >
-              {action.icon && <span className="mr-2">{action.icon}</span>}
-              {action.label || "Delete"}
+              {action.icon && (
+                <span className="mr-2 shrink-0">{action.icon}</span>
+              )}
+              <span className="min-w-0 [overflow-wrap:anywhere]">
+                {action.label || "Delete"}
+              </span>
             </DropdownMenuItem>
           );
         })}
@@ -311,8 +322,8 @@ function ActionsCellBase<TData>({
             <TableTooltip label={t("actions.title")}>
               <Button
                 aria-label={t("actions.title")}
-                data-density-action=""
                 className="h-8 w-8 p-0"
+                data-density-action=""
                 type="button"
                 variant="ghost"
               >
@@ -321,7 +332,10 @@ function ActionsCellBase<TData>({
             </TableTooltip>
           }
         />
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent
+          align="end"
+          className="w-max min-w-[min(11rem,var(--available-width))] max-w-[min(var(--available-width),calc(100vw-1rem))]"
+        >
           {/* Standard actions group */}
           {standardActionsGroup}
 
@@ -395,7 +409,7 @@ export function ActionsCellWithTranslations<
   // Add standard view action if requested
   if (standardActions.includeView && standardActions.onView) {
     allActions.unshift({
-      icon: <Icon name="Eye" size="sm" />,
+      icon: <Icon name="Info" size="sm" />,
       label: t("actions.view"),
       onClick: standardActions.onView,
       type: "view",
@@ -408,8 +422,10 @@ export function ActionsCellWithTranslations<
       try {
         // Only proceed if edit action is included
         if (
-          !standardActions.includeEdit ||
-          !isStandardActionAllowed(rowData, standardActions.canEditRow)
+          !(
+            standardActions.includeEdit &&
+            isStandardActionAllowed(rowData, standardActions.canEditRow)
+          )
         ) {
           return;
         }
@@ -507,7 +523,9 @@ export function ActionsCellWithTranslations<
       icon: <Icon name="Copy" size="sm" />,
       label: t("actions.duplicate"),
       onClick: (rowData) => {
-        if (!isStandardActionAllowed(rowData, standardActions.canDuplicateRow)) {
+        if (
+          !isStandardActionAllowed(rowData, standardActions.canDuplicateRow)
+        ) {
           return;
         }
         return standardActions.onDuplicate?.(rowData);

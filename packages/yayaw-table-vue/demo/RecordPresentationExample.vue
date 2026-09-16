@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { DataTable, defineTableConfig, type RecordPresentation, type TableActions, type TableRecord } from "../src";
-import { presentationColumns, presentationForm, presentationRows } from "../../../examples/record-presentation";
+import { presentationColumns, presentationDetails, presentationForm, presentationGallery, presentationRows } from "../../../examples/record-presentation";
+import { createRecordActivity } from "../../../examples/record-activity";
 const params = new URLSearchParams(window.location.search);
 const desktop = ref<RecordPresentation>((params.get("desktop") as RecordPresentation) || "drawer");
 const mobile = ref<RecordPresentation>((params.get("mobile") as RecordPresentation) || "drawer");
@@ -9,25 +10,21 @@ const rows = ref<TableRecord[]>(structuredClone(presentationRows));
 const config = computed(() => defineTableConfig({
   id: "record-presentation", presentation: { desktop: desktop.value, mobile: mobile.value },
   columns: { definitions: presentationColumns, order: presentationColumns.map(column => column.id), visible: ["name", "category", "status", "price", "active"], mandatory: [] },
-  table: { syncUrl: false, rowClickMode: "activate", displayModes: ["table", "gallery", "kanban"], kanban: { groupBy: "status" } },
+  table: { syncUrl: false, gallery: presentationGallery, coloredTags: false, defaultDisplayMode: "gallery", rowClickMode: "activate", displayModes: ["table", "gallery", "kanban"], kanban: { groupBy: "status" } },
   translations: { namespace: "records", keys: { title: "Products" } },
 }));
-const change = (next: TableRecord[]) => { rows.value = next; return Promise.resolve({ success: true }); };
-const actions: TableActions = {
-  create: values => change([...rows.value, { ...values, id: crypto.randomUUID() }]),
-  update: (id, values) => change(rows.value.map(row => row.id === id ? { ...row, ...values } : row)),
-  bulkUpdate: (ids, values) => change(rows.value.map(row => ids.includes(String(row.id)) ? { ...row, ...values } : row)),
-  delete: id => change(rows.value.filter(row => row.id !== id)),
-};
+const activity = createRecordActivity(presentationRows, next => { rows.value = next; });
+const actions: TableActions = activity;
+const details = { ...presentationDetails, history: activity.history, labels: { deleteDescription: "Move this demo record to the trash. Ctrl/Cmd+Z restores it." } };
 </script>
 <template>
   <main class="record-example">
-    <header><p>YaYaw Table · Vue</p><h1>Record presentation</h1><p>Open a product to view and edit it. Select multiple products to edit shared properties.</p></header>
+    <header><p>YaYaw Table · Vue</p><h1>Record presentation</h1><p>Open a product to view and edit it. Select multiple products to edit shared properties. Ctrl/Cmd+A selects records; Ctrl/Cmd+Z undoes your latest change, including deletion.</p></header>
     <div class="record-example-controls">
       <label>Desktop <select v-model="desktop" aria-label="Desktop presentation"><option value="drawer">Drawer</option><option value="modal">Modal</option><option value="inline">Inline</option></select></label>
       <label>Mobile <select v-model="mobile" aria-label="Mobile presentation"><option value="drawer">Drawer</option><option value="modal">Modal</option><option value="inline">Inline</option></select></label>
     </div>
-    <DataTable :table-type="config.id" :config="config" :data="rows" :get-form-config="() => presentationForm" :get-table-actions="() => actions" :details="{ title: row => String(row.name), description: () => 'Product details', updatedAt: row => String(row.createdAt) }" />
+    <DataTable :table-type="config.id" :config="config" :data="rows" :get-form-config="() => presentationForm" :get-table-actions="() => actions" :details="details" :on-revert-activity="activity.revert" :translations="{ deleteRowDescription: details.labels.deleteDescription }" />
   </main>
 </template>
 <style scoped>

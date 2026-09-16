@@ -1,0 +1,46 @@
+[
+  {
+    "name": "video URL",
+    "value": "https://media.example.test/clip.mp4",
+    "kind": "video",
+    "href": "https://media.example.test/clip.mp4",
+    "tracks": 0
+  },
+  {
+    "name": "poster and captions",
+    "value": {
+      "url": "https://media.example.test/clip.mp4",
+      "poster": "https://media.example.test/poster.jpg",
+      "tracks": [
+        {
+          "src": "https://media.example.test/en.vtt",
+          "srcLang": "en",
+          "label": "English",
+          "default": true
+        },
+        { "src": "javascript:alert(1)", "srcLang": "fr", "label": "French" }
+      ]
+    },
+    "kind": "video",
+    "href": "https://media.example.test/clip.mp4",
+    "tracks": 1
+  },
+  {
+    "name": "unsafe source",
+    "value": "javascript:alert(1)",
+    "kind": "text",
+    "tracks": 0
+  },
+  { "name": "empty source", "value": null, "kind": "empty", "tracks": 0 },
+  {
+    "name": "invalid poster",
+    "value": {
+      "url": "https://media.example.test/clip.mp4",
+      "poster": "data:text/html,bad",
+      "tracks": [null, {}, { "src": "/relative.vtt" }]
+    },
+    "kind": "video",
+    "href": "https://media.example.test/clip.mp4",
+    "tracks": 0
+  }
+]

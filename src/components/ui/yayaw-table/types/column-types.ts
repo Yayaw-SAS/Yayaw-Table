@@ -53,6 +53,8 @@ export interface DataTableColumnDef<
    * Optional map of tag value -> Tailwind class used by tag columns.
    */
   tagColorMap?: Record<string, string>;
+  /** Inherits table.coloredTags; omitted keeps colored tags. */
+  coloredTags?: boolean;
 
   /**
    * Visual rendering variant for option-like columns.

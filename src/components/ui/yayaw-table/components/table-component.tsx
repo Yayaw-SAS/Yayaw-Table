@@ -1,14 +1,16 @@
 "use client";
+import {
+  buildPlanningRows,
+  comparePlanningTasks,
+  planningTaskMatches,
+} from "../planning/query";
 import { PlanningSurface, usePlanningState } from "../planning/react";
-import { buildPlanningRows, comparePlanningTasks, planningTaskMatches } from "../planning/query";
 /**
  * Modern implementation of the DataTable component
  * A cleaner approach using modular components and hooks
  */
 
 import { type QueryClient, useQueryClient } from "@tanstack/react-query";
-import type { Cell, ColumnDef, Header, Row } from "@/components/ui/yayaw-table/tanstack";
-import { flexRender } from "@/components/ui/yayaw-table/tanstack";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import {
   type CSSProperties,
@@ -22,11 +24,15 @@ import {
 } from "react";
 import { toast } from "sonner";
 import { Loader } from "@/components/ui/custom/loader";
+import type {
+  Cell,
+  ColumnDef,
+  Header,
+  Row,
+} from "@/components/ui/yayaw-table/tanstack";
+import { flexRender } from "@/components/ui/yayaw-table/tanstack";
 import { cn } from "@/lib/utils";
 import { Button } from "@/src/components/ui/button";
-import { TABLE_DENSITY_CLASSES } from "../utils/table-density";
-import { tableDensityAtom } from "../atoms/table-atoms";
-import type { TableDensity } from "../types/display-types";
 import { Skeleton } from "@/src/components/ui/skeleton";
 import {
   Table,
@@ -37,11 +43,17 @@ import {
   TableRow,
 } from "@/src/components/ui/table";
 import { footerVisibleAtom } from "../atoms/footer-atoms";
-import { activeRowDragAtom, tableIdAtom } from "../atoms/table-atoms";
+import {
+  activeRowDragAtom,
+  tableDensityAtom,
+  tableIdAtom,
+} from "../atoms/table-atoms";
+import { activeViewIdAtom } from "../atoms/view-atoms";
 import type {
   TableEmptyStateConfig,
   TableRowClickMode,
 } from "../config/helpers";
+import { useAutoPageSize } from "../hooks/use-auto-page-size";
 import {
   type BulkActionCustomHandlerResult,
   type BulkDeleteCustomHandlerResult,
@@ -52,6 +64,7 @@ import type {
   InlineEditColumnRuntimeConfig,
   InlineEditCommitResult,
 } from "../hooks/use-inline-edit-runtime";
+import { useTableActivityShortcuts } from "../hooks/use-selection-shortcuts";
 import { useTableConfig } from "../hooks/use-table-config";
 import { useTableInstance } from "../hooks/use-table-instance";
 import { useTableUrlState } from "../hooks/use-table-url-state";
@@ -61,9 +74,16 @@ import {
   useTranslations,
 } from "../providers/table-provider";
 import type { DataTableProps } from "../types";
-import type { TableDisplayMode } from "../types/display-types";
+import type { TableDensity, TableDisplayMode } from "../types/display-types";
+
 import { ColumnIcon } from "../utils/column-icons";
 import { buildCsvExportColumns } from "../utils/csv-export";
+import type {
+  DetailRevertHandler,
+  RecordDetailsConfig,
+} from "../utils/record-details";
+import { groupedLeafRows, groupedValueLabel } from "../utils/table-contracts";
+import { TABLE_DENSITY_CLASSES } from "../utils/table-density";
 import { getPrimaryGrouping } from "../utils/table-view-state";
 import {
   BulkActionsMenu,
@@ -76,7 +96,6 @@ import { DataTableColumnHeader } from "./columns/header/column-header";
 import { SortableHeader } from "./columns/header/sortable-header";
 import { useColumnDnd } from "./columns/hooks/use-column-dnd";
 import { useColumnDragOverlay } from "./columns/hooks/use-column-drag-overlay";
-import { groupedLeafRows, groupedValueLabel } from "../utils/table-contracts";
 import { GroupRowSelectionCell } from "./columns/selection-column";
 import { FooterRow } from "./footer/footer-row";
 import {
@@ -92,8 +111,6 @@ import {
   resolveGalleryLinkUrl,
 } from "./gallery-view";
 import { DataTableKanbanView } from "./kanban-view";
-import { useAutoPageSize } from '../hooks/use-auto-page-size';
-import { activeViewIdAtom } from '../atoms/view-atoms';
 import { SafePagination } from "./safe-pagination";
 import { TableEmptyStateContent } from "./table-empty-state";
 import { useOnScreen } from "./utils/use-on-screen";
@@ -467,7 +484,6 @@ function getHeaderCellClassName<TData>(
   header: Header<TData, unknown>,
   densityMode: TableDensity
 ): string {
-
   return cn(
     "relative whitespace-nowrap",
     TABLE_DENSITY_CLASSES[densityMode].header,
@@ -497,10 +513,13 @@ export function getRegularCellClassName<TData>({
 
   return cn(
     isSelectColumn &&
-      cn("text-center [&:has([role=checkbox])]:pr-2!", TABLE_DENSITY_CLASSES[densityMode].cell),
+      cn(
+        "text-center [&:has([role=checkbox])]:pr-2!",
+        TABLE_DENSITY_CLASSES[densityMode].cell
+      ),
     isActionsColumn &&
       cn(
-        "sticky right-0 z-10 text-center bg-card shadow-[-1px_0_0_0_hsl(var(--border))] group-hover:bg-muted/50 group-data-[state=selected]:bg-muted/50",
+        "sticky right-0 z-10 bg-card text-center shadow-[-1px_0_0_0_hsl(var(--border))] group-hover:bg-muted/50 group-data-[state=selected]:bg-muted/50",
         TABLE_DENSITY_CLASSES[densityMode].cell
       ),
     TABLE_DENSITY_CLASSES[densityMode].cell,
@@ -701,6 +720,9 @@ type ModernDataTableProps<
   getRowId?: (row: TData) => string;
   /** Optional custom overlay to render when loading */
   loadingOverlay?: ReactNode;
+  onOpenDetails?: (row: TData) => void;
+  details?: RecordDetailsConfig;
+  onRevertActivity?: DetailRevertHandler;
   onRowSelectionChange?: (rows: Row<TData>[]) => void;
   onRowSelectionStateChange?: (selection: Record<string, boolean>) => void;
   onBulkEdit?: (
@@ -821,7 +843,12 @@ MemoizedSkeletonRow.displayName = "MemoizedSkeletonRow";
 /**
  * Modern implementation of DataTable using the new hooks and components
  */
-function supportsAutomaticPageSize(pagination: boolean, automatic: boolean | undefined, gallery: boolean, kanban: boolean) {
+function supportsAutomaticPageSize(
+  pagination: boolean,
+  automatic: boolean | undefined,
+  gallery: boolean,
+  kanban: boolean
+) {
   return pagination && automatic === true && !gallery && !kanban;
 }
 
@@ -856,6 +883,9 @@ function ModernDataTable<
   emptyState,
   onRowClick,
   onRowActivate,
+  onOpenDetails,
+  details,
+  onRevertActivity,
   showDefaultToastsForCustomHandlers,
   queryFn: _queryFn,
   rowSelection,
@@ -1209,8 +1239,24 @@ function ModernDataTable<
   });
 
   // Use fetched data from API like in production
-  const {session: planningSession, state: planningState} = usePlanningState();
-  const data = useMemo(() => buildPlanningRows((fetchedData || []) as TData[], planningState.snapshot, tableConfig.table.planning, getRowId ?? ((row: TData) => String(row.id)), activeDisplayMode === "table" ? "tree" : "flat"), [fetchedData, planningState.snapshot, tableConfig.table.planning, getRowId, activeDisplayMode]);
+  const { session: planningSession, state: planningState } = usePlanningState();
+  const data = useMemo(
+    () =>
+      buildPlanningRows(
+        (fetchedData || []) as TData[],
+        planningState.snapshot,
+        tableConfig.table.planning,
+        getRowId ?? ((row: TData) => String(row.id)),
+        activeDisplayMode === "table" ? "tree" : "flat"
+      ),
+    [
+      fetchedData,
+      planningState.snapshot,
+      tableConfig.table.planning,
+      getRowId,
+      activeDisplayMode,
+    ]
+  );
 
   // Create a table instance with the actual data to be used (filtered or not)
   // Memoize table instance configuration to prevent recreating table on every render
@@ -1414,6 +1460,18 @@ function ModernDataTable<
   useEffect(() => {
     onRowSelectionChange?.(bulkActions.selectedRows);
   }, [bulkActions.selectedRows, onRowSelectionChange]);
+
+  const selectionRootRef = useRef<HTMLDivElement>(null);
+  useTableActivityShortcuts(selectionRootRef, {
+    details,
+    onRevertActivity,
+    rows: dataTableResult.data,
+    refetch,
+    locale,
+    selectAll: bulkActions.handleSelectAll,
+    enableRowSelection,
+    enableMultiRowSelection,
+  });
 
   // Debug bulk actions state
   // Default loading overlay component
@@ -1840,8 +1898,13 @@ function ModernDataTable<
         };
       }
 
-      const definition = tableConfig.columns.definitions.find((column) => column.id === groupingColumn);
-      const groupValue = groupedValueLabel(row.getValue(groupingColumn), definition?.options);
+      const definition = tableConfig.columns.definitions.find(
+        (column) => column.id === groupingColumn
+      );
+      const groupValue = groupedValueLabel(
+        row.getValue(groupingColumn),
+        definition?.options
+      );
       return {
         groupValue,
         columnLabel: definition?.header ?? groupingColumn,
@@ -1876,7 +1939,10 @@ function ModernDataTable<
         >
           {selectionCell && (
             <TableCell
-              className={cn("align-middle", TABLE_DENSITY_CLASSES[densityMode].cell)}
+              className={cn(
+                "align-middle",
+                TABLE_DENSITY_CLASSES[densityMode].cell
+              )}
               style={{ width: selectionCell.column.getSize() }}
             >
               <GroupRowSelectionCell row={row} table={table} />
@@ -1975,11 +2041,51 @@ function ModernDataTable<
           key={cell.id}
           style={sizeStyle}
         >
-          {planningSession && cell.column.id === row.getVisibleCells().find((item) => !["select", "actions"].includes(item.column.id))?.column.id ? <span className="inline-flex items-center gap-1" style={{paddingLeft: row.depth * 16}}>
-            {row.subRows.length > 0 && <button type="button" aria-label={`${localExpanded[row.id] !== false ? "Collapse" : "Expand"} ${row.id}`} aria-expanded={localExpanded[row.id] !== false} onClick={(event) => {event.stopPropagation(); setLocalExpanded((previous) => ({...previous, [row.id]: previous[row.id] === false}));}}>{localExpanded[row.id] !== false ? "▾" : "▸"}</button>}
-            {renderRegularCellContent(row, cell)}
-            <button type="button" aria-label={`Planning ${row.id}`} className="text-muted-foreground" onClick={(event) => {event.stopPropagation(); planningSession.open({source: planningSession.config.sourceId, id: getRowId?.(row.original) ?? String(row.original.id)});}}>↗</button>
-          </span> : renderRegularCellContent(row, cell)}
+          {planningSession &&
+          cell.column.id ===
+            row
+              .getVisibleCells()
+              .find((item) => !["select", "actions"].includes(item.column.id))
+              ?.column.id ? (
+            <span
+              className="inline-flex items-center gap-1"
+              style={{ paddingLeft: row.depth * 16 }}
+            >
+              {row.subRows.length > 0 && (
+                <button
+                  aria-expanded={localExpanded[row.id] !== false}
+                  aria-label={`${localExpanded[row.id] !== false ? "Collapse" : "Expand"} ${row.id}`}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setLocalExpanded((previous) => ({
+                      ...previous,
+                      [row.id]: previous[row.id] === false,
+                    }));
+                  }}
+                  type="button"
+                >
+                  {localExpanded[row.id] !== false ? "▾" : "▸"}
+                </button>
+              )}
+              {renderRegularCellContent(row, cell)}
+              <button
+                aria-label={`Planning ${row.id}`}
+                className="text-muted-foreground"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  planningSession.open({
+                    source: planningSession.config.sourceId,
+                    id: getRowId?.(row.original) ?? String(row.original.id),
+                  });
+                }}
+                type="button"
+              >
+                ↗
+              </button>
+            </span>
+          ) : (
+            renderRegularCellContent(row, cell)
+          )}
         </TableCell>
       );
     };
@@ -2033,10 +2139,7 @@ function ModernDataTable<
       badgeClassName: string
     ) => (
       <TableRow className="border-t bg-muted/20" key={groupId}>
-        <TableCell
-          className="!p-0"
-          colSpan={colSpan}
-        >
+        <TableCell className="!p-0" colSpan={colSpan}>
           <Button
             className={cn(
               "flex h-auto w-full cursor-pointer items-center justify-start gap-2",
@@ -2123,8 +2226,12 @@ function ModernDataTable<
     };
 
     const renderPlanningChildren = (row: Row<TData>, level: number) => {
-      if (!planningSession || localExpanded[row.id] === false) { return; }
-      for (const child of row.subRows) { renderRowWithChildren(child, level + 1); }
+      if (!planningSession || localExpanded[row.id] === false) {
+        return;
+      }
+      for (const child of row.subRows) {
+        renderRowWithChildren(child, level + 1);
+      }
     };
 
     const renderRowWithChildren = (row: Row<TData>, level = 0) => {
@@ -2158,9 +2265,7 @@ function ModernDataTable<
     }
 
     return (
-      <TableBody data-column-sizing={columnSizingKey}>
-        {rowElements}
-      </TableBody>
+      <TableBody data-column-sizing={columnSizingKey}>{rowElements}</TableBody>
     );
   }, [
     planningSession,
@@ -2237,7 +2342,14 @@ function ModernDataTable<
     enableColumnResizing,
   ]);
 
-  const enableAutoPageSize = !isGanttMode && supportsAutomaticPageSize(enablePagination, tableConfig.table.enableAutoPageSize, isGalleryMode, isKanbanMode);
+  const enableAutoPageSize =
+    !isGanttMode &&
+    supportsAutomaticPageSize(
+      enablePagination,
+      tableConfig.table.enableAutoPageSize,
+      isGalleryMode,
+      isKanbanMode
+    );
   const autoPageSizing = useAutoPageSize({
     root: paginationRootRef,
     tableId,
@@ -2246,13 +2358,44 @@ function ModernDataTable<
     resetKey: `${tableId}:${activeViewId}:${isGalleryMode}:${isKanbanMode}`,
     measurementKey: densityMode,
     pageSize: table.store.state.pagination.pageSize,
-    setPageSize: size => table.setPageSize(size),
+    setPageSize: (size) => table.setPageSize(size),
   });
 
-  const renderGanttContent = () => planningSession ? <PlanningSurface session={planningSession} mode="gantt" locale={locale} gantt={{...tableConfig.table.gantt, ...ganttParam}} onViewChange={setGanttFromUI} compare={(a, b) => comparePlanningTasks(a, b, {sorting: sortParam, columns: tableConfig.columns.definitions})} visible={(task) => planningTaskMatches(task, {search: globalSearchParam, filters: filtersParam, advancedFilters: advancedFiltersParam, columns: tableConfig.columns.definitions})} emptyTitle={emptyStateTitle} onClearFilters={hasActiveSearchOrFilters ? resetFilters : undefined} /> : <div role="alert">Configure table.planning and actions.planning to enable Gantt.</div>;
+  const renderGanttContent = () =>
+    planningSession ? (
+      <PlanningSurface
+        compare={(a, b) =>
+          comparePlanningTasks(a, b, {
+            sorting: sortParam,
+            columns: tableConfig.columns.definitions,
+          })
+        }
+        emptyTitle={emptyStateTitle}
+        gantt={{ ...tableConfig.table.gantt, ...ganttParam }}
+        locale={locale}
+        mode="gantt"
+        onClearFilters={hasActiveSearchOrFilters ? resetFilters : undefined}
+        onViewChange={setGanttFromUI}
+        session={planningSession}
+        visible={(task) =>
+          planningTaskMatches(task, {
+            search: globalSearchParam,
+            filters: filtersParam,
+            advancedFilters: advancedFiltersParam,
+            columns: tableConfig.columns.definitions,
+          })
+        }
+      />
+    ) : (
+      <div role="alert">
+        Configure table.planning and actions.planning to enable Gantt.
+      </div>
+    );
 
   const renderDisplayContent = () => {
-    if (isGanttMode) { return renderGanttContent(); }
+    if (isGanttMode) {
+      return renderGanttContent();
+    }
     if (isKanbanMode) {
       return (
         <div className="relative">
@@ -2311,9 +2454,11 @@ function ModernDataTable<
             }
             isRowClickable={(row) => getRowClickMode(row).canClickRow}
             linkRowLabel={t("actions.view")}
+            locale={locale}
             onEditRow={(row) => {
               handleRowEditClick(row);
             }}
+            onOpenRowDetails={onOpenDetails}
             onOpenRowLink={handleGalleryRowLinkClick}
             onRowClick={(row, event) => {
               handleInteractiveRowClick(row, event);
@@ -2338,16 +2483,20 @@ function ModernDataTable<
         <div
           className={cn("relative w-full overflow-auto", "contain-paint")}
           ref={tableRef}
-          style={{ maxHeight: autoPageSizing.tableHeight, overflowY: autoPageSizing.automatic ? "auto" : undefined }}
+          style={{
+            maxHeight: autoPageSizing.tableHeight,
+            overflowY: autoPageSizing.automatic ? "auto" : undefined,
+          }}
         >
           <Table
-            data-density={densityMode}
             className={cn(
               "w-full",
               enableColumnResizing && "table-fixed",
-              TABLE_DENSITY_CLASSES[densityMode].rows, TABLE_DENSITY_CLASSES[densityMode].controls,
+              TABLE_DENSITY_CLASSES[densityMode].rows,
+              TABLE_DENSITY_CLASSES[densityMode].controls,
               className
             )}
+            data-density={densityMode}
             style={
               enableColumnResizing
                 ? { minWidth: "100%", width: table.getTotalSize() }
@@ -2405,14 +2554,18 @@ function ModernDataTable<
         enablePagination,
         isTableBottomVisible: isBulkActionsAnchorVisible,
       });
-    const showPaginationControls = (enableAutoPageSize && rowCount > 0) || shouldRenderPaginationControls({
-      enablePagination,
-      pageCount: table.getPageCount(),
-      pageSize: table.store.state.pagination.pageSize,
-      rowCount,
-    });
+    const showPaginationControls =
+      (enableAutoPageSize && rowCount > 0) ||
+      shouldRenderPaginationControls({
+        enablePagination,
+        pageCount: table.getPageCount(),
+        pageSize: table.store.state.pagination.pageSize,
+        rowCount,
+      });
     const showPaginationArea =
-      !isGanttMode && enablePagination && (showPaginationControls || renderBulkActionsInFooter);
+      !isGanttMode &&
+      enablePagination &&
+      (showPaginationControls || renderBulkActionsInFooter);
     const fixedBulkActionsViewportOffset = getBulkActionsViewportBottomOffset({
       isPaginationVisible,
       paginationHeight,
@@ -2434,10 +2587,9 @@ function ModernDataTable<
             {showPaginationArea && (
               <SafePagination
                 automatic={autoPageSizing.automatic}
-                enableAutoPageSize={enableAutoPageSize}
-                onPageSizeSelect={autoPageSizing.selectSize}
                 containerRef={handlePaginationContainerRef}
                 controlsRef={handlePaginationControlsRef}
+                enableAutoPageSize={enableAutoPageSize}
                 footerSlot={
                   renderBulkActionsInFooter ? (
                     <BulkActionsMenu
@@ -2460,6 +2612,7 @@ function ModernDataTable<
                     />
                   ) : undefined
                 }
+                onPageSizeSelect={autoPageSizing.selectSize}
                 pageSizeOptions={
                   tableConfig.table.pageSizeOptions || [
                     10, 20, 50, 100, 200, 500,
@@ -2512,6 +2665,7 @@ function ModernDataTable<
     <div
       className="space-y-4"
       data-yayaw-table-selection-scope=""
+      ref={selectionRootRef}
       suppressHydrationWarning
     >
       {renderContent()}

@@ -41,6 +41,22 @@ await copyFile(
   )
 );
 
+for (const file of [
+  "selection-interaction.ts",
+  "selection-shortcuts.ts",
+  "activity-shortcuts.ts",
+  "media-contract.ts",
+  "media-viewer.ts",
+  "media-viewer.css",
+  "tag-colors.ts",
+  "tag-colors.css",
+]) {
+  await copyFile(
+    new URL(`../src/components/ui/yayaw-table/utils/${file}`, import.meta.url),
+    new URL(`../packages/yayaw-table-vue/src/${file}`, import.meta.url)
+  );
+}
+
 // Keep each copied registry standalone while maintaining one contract implementation.
 await copyFile(
   new URL(

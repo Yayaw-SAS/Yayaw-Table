@@ -232,11 +232,15 @@ function ActionsCellBase<TData>({
             <DropdownMenuItem
               className={action.className}
               disabled={isDisabled}
-              key={`standard-${action.type}`}
+              key={`standard-${action.type}-${action.label}`}
               onClick={() => handleActionClick(action)}
             >
-              {action.icon && <span className="mr-2">{action.icon}</span>}
-              {action.label}
+              {action.icon && (
+                <span className="mr-2 shrink-0">{action.icon}</span>
+              )}
+              <span className="min-w-0 [overflow-wrap:anywhere]">
+                {action.label}
+              </span>
             </DropdownMenuItem>
           );
         })}
@@ -264,8 +268,12 @@ function ActionsCellBase<TData>({
               key={`custom-${action.label}`}
               onClick={() => handleActionClick(action)}
             >
-              {action.icon && <span className="mr-2">{action.icon}</span>}
-              {action.label}
+              {action.icon && (
+                <span className="mr-2 shrink-0">{action.icon}</span>
+              )}
+              <span className="min-w-0 [overflow-wrap:anywhere]">
+                {action.label}
+              </span>
             </DropdownMenuItem>
           );
         })}
@@ -293,8 +301,12 @@ function ActionsCellBase<TData>({
               key={`destructive-${action.label}`}
               onClick={() => handleActionClick(action)}
             >
-              {action.icon && <span className="mr-2">{action.icon}</span>}
-              {action.label || "Delete"}
+              {action.icon && (
+                <span className="mr-2 shrink-0">{action.icon}</span>
+              )}
+              <span className="min-w-0 [overflow-wrap:anywhere]">
+                {action.label || "Delete"}
+              </span>
             </DropdownMenuItem>
           );
         })}
@@ -320,7 +332,10 @@ function ActionsCellBase<TData>({
             </TableTooltip>
           }
         />
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent
+          align="end"
+          className="w-max min-w-[min(11rem,var(--available-width))] max-w-[min(var(--available-width),calc(100vw-1rem))]"
+        >
           {/* Standard actions group */}
           {standardActionsGroup}
 
@@ -394,7 +409,7 @@ export function ActionsCellWithTranslations<
   // Add standard view action if requested
   if (standardActions.includeView && standardActions.onView) {
     allActions.unshift({
-      icon: <Icon name="Eye" size="sm" />,
+      icon: <Icon name="Info" size="sm" />,
       label: t("actions.view"),
       onClick: standardActions.onView,
       type: "view",

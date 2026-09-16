@@ -1,5 +1,5 @@
 import type { LucideIcon, LucideProps } from "lucide-react";
-import { Copy, Eye, Moon, Pencil, Sun, Trash } from "lucide-react";
+import { Copy, Eye, Info, Moon, Pencil, Sun, Trash } from "lucide-react";
 import { motion } from "motion/react";
 import type { FC, HTMLAttributes, ReactElement } from "react";
 import { cn } from "@/lib/utils";
@@ -20,6 +20,7 @@ const sizeMap: Record<IconSize, number> = {
 const LUCIDE_ICON_MAP: Record<string, LucideIcon> = {
   Copy,
   Eye,
+  Info,
   Moon,
   Pencil,
   Sun,

@@ -10,6 +10,7 @@ import type {
   FormFieldContext,
   FormMode,
   MaybePromise,
+  RowActionItem,
   TableActions,
   TableConfig,
   TableRecord,
@@ -52,6 +53,7 @@ export interface TableContextValue<TData extends TableRecord = TableRecord> {
   matchingRowCount: ComputedRef<number>;
   isSelectingAll: Ref<boolean>;
   translations: ComputedRef<DataTableTranslations>;
+  rowActions?: ComputedRef<RowActionItem<TData>[]>;
   customBulkActions: ComputedRef<BulkAction<TData>[]>;
   toolbarActions: ComputedRef<ToolbarActionsInput<TData>>;
   form: Ref<OpenFormState>;

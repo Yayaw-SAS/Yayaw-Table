@@ -2,6 +2,10 @@
 export const presentationRows = [
   {
     id: "one",
+    mediaKind: "video",
+    mediaUrl:
+      "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
+    mimeType: "video/mp4",
     name: "Workspace Pro",
     category: "Software",
     status: "Active",
@@ -9,9 +13,14 @@ export const presentationRows = [
     active: true,
     createdAt: "2026-09-01",
     description: "A shared workspace for product teams.",
+    video:
+      "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
   },
   {
     id: "two",
+    mediaKind: "image",
+    mediaUrl: "https://picsum.photos/seed/yayaw-gallery-two/900/600",
+    mimeType: "image/jpeg",
     name: "Studio Display",
     category: "Hardware",
     status: "Draft",
@@ -22,6 +31,9 @@ export const presentationRows = [
   },
   {
     id: "three",
+    mediaKind: "image",
+    mediaUrl: "https://picsum.photos/seed/yayaw-gallery-three/600/900",
+    mimeType: "image/jpeg",
     name: "Team Support",
     category: "Service",
     status: "Active",
@@ -37,6 +49,7 @@ export const presentationColumns = [
     id: "category",
     header: "Category",
     type: "select" as const,
+    displayVariant: "tag" as const,
     options: ["Software", "Hardware", "Service"].map((value) => ({
       value,
       label: value,
@@ -46,6 +59,7 @@ export const presentationColumns = [
     id: "status",
     header: "Status",
     type: "select" as const,
+    displayVariant: "tag" as const,
     options: ["Active", "Draft", "Archived"].map((value) => ({
       value,
       label: value,
@@ -67,4 +81,47 @@ export const presentationForm = {
     type: column.type === "boolean" ? ("switch" as const) : column.type,
     options: column.options,
   })),
+};
+
+/** The same read-only media field is rendered by both framework examples. */
+export const presentationDetails = {
+  title: (row: Record<string, unknown>) => String(row.name),
+  description: () => "Product details",
+  updatedAt: (row: Record<string, unknown>) => String(row.createdAt),
+  sections: [
+    {
+      id: "product",
+      title: "Product",
+      fields: [
+        ...presentationColumns.map((column) => ({
+          id: column.id,
+          label: column.header,
+          type: column.type,
+          options: column.options,
+        })),
+        {
+          id: "video",
+          label: "Product video",
+          type: "video" as const,
+          hidden: (row: Record<string, unknown>) => !row.video,
+        },
+      ],
+    },
+  ],
+};
+
+/** Gallery and record consultation share the same media source. */
+export const presentationGallery = {
+  titleColumn: "name",
+  cardColumnIds: ["category", "status", "price"],
+  imageColumn: "mediaUrl",
+  imageFit: "cover" as const,
+  previewSize: "medium" as const,
+  media: {
+    enabled: true,
+    urlColumn: "mediaUrl",
+    typeColumn: "mediaKind",
+    mimeTypeColumn: "mimeType",
+    hoverPreview: true,
+  },
 };

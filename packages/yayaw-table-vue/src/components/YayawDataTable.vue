@@ -2,6 +2,9 @@
 import { createPlanningSession, withPlanningActions } from "../planning/session";
 import { comparePlanningTasks, planningTaskMatches } from "../planning/query";
 import PlanningSurface from "./planning/PlanningSurface.vue";
+import { createActivityUndo } from "../activity-shortcuts";
+import { detailLabels } from "../record-details";
+import { registerSelectionShortcuts } from "../selection-shortcuts";
 import { QueryClient } from "@tanstack/vue-query";
 import { toast } from "vue-sonner";
 import { type Component, computed, onBeforeUnmount, onMounted, provide, ref, shallowRef, watch } from "vue";
@@ -18,6 +21,7 @@ import { cloneFormValue } from "../form-runtime";
 import { createTranslations } from "../translations";
 import type {
   BulkAction,
+  RowActionItem,
   BulkActionHandlerResult,
   DataTableTranslations,
   FormConfig,
@@ -78,6 +82,7 @@ const props = withDefaults(
     enableViews?: boolean;
     syncUrl?: boolean;
     searchDebounceMs?: number;
+    rowActions?: RowActionItem[];
     customBulkActions?: BulkAction[];
     toolbarActions?: ToolbarActionsInput;
     toolbarActionsPlacement?: ToolbarActionsPlacement;
@@ -376,6 +381,27 @@ const selectAllMatching = async (): Promise<number> => {
   }
 };
 
+const selectionRoot = ref<HTMLElement>();
+const activityUndo = createActivityUndo({
+  rows: () => tableData.rows.value,
+  config: () => props.details,
+  handler: () => props.onRevertActivity,
+  onReverted: async () => { await refresh(); },
+  onError: error => { status.value = { type: "error", message: error ?? detailLabels(props.locale).undoError }; },
+  onUnavailable: () => { status.value = { type: "error", message: detailLabels(props.locale).undoUnavailable }; },
+});
+let removeSelectionShortcuts: (() => void) | undefined;
+onMounted(() => {
+  if (!selectionRoot.value) return;
+  removeSelectionShortcuts = registerSelectionShortcuts({
+    root: selectionRoot.value,
+    enabled: () => true,
+    get selectAll() { return config.table.enableRowSelection !== false && config.table.enableMultiRowSelection !== false ? () => { void selectAllMatching(); } : undefined; },
+    get undo() { return props.onRevertActivity ? () => { void activityUndo.undo(); } : undefined; },
+  });
+});
+onBeforeUnmount(() => removeSelectionShortcuts?.());
+
 const densityStyle = computed(() => {
   const metrics = TABLE_DENSITY_METRICS[state.density.value];
   const spacing = (units: number) => `calc(var(--spacing, 0.25rem) * ${units})`;
@@ -486,6 +512,7 @@ provide(tableContextKey, {
   isSelectingAll,
   translations,
   customBulkActions,
+  rowActions: computed(() => props.rowActions ?? []),
   toolbarActions,
   form,
   footerCalculationsVisible,
@@ -514,7 +541,7 @@ provide(tableContextKey, {
 </script>
 
 <template>
-  <section class="yayaw-table" :class="className" :data-density="state.density.value" :style="densityStyle" tabindex="-1">
+  <section ref="selectionRoot" data-yayaw-table-selection-scope="" class="yayaw-table" :class="className" :data-density="state.density.value" :style="densityStyle" tabindex="-1">
     <header v-if="config.table.showToolbarHeader" class="yayaw-header">
       <div>
         <h2 class="yayaw-title">{{ title ?? config.translations.keys.title ?? `${tableType} Table` }}</h2>

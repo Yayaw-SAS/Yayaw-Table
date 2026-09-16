@@ -305,6 +305,8 @@ export interface ColumnDefinition {
    * Optional map of tag value -> Tailwind class used by tag columns.
    */
   tagColorMap?: Record<string, string>;
+  /** Inherits table.coloredTags; omitted keeps colored tags. */
+  coloredTags?: boolean;
 
   /**
    * Preferred column width in pixels.
@@ -373,6 +375,8 @@ export interface ColumnDefinition {
  * Configuration for the table behavior
  */
 export interface TableBehaviorConfig {
+  /** Use neutral badges when false; columns can override this setting. */
+  coloredTags?: boolean;
   planning?: import("../planning/types").TablePlanningConfig;
   gantt?: import("../planning/types").TableGanttConfig;
   /**

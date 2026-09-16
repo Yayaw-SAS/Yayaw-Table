@@ -1,3 +1,4 @@
+import type { TableActivityRecord } from "./activity-shortcuts";
 import type {
   RecordPresentation,
   RecordPresentationConfig,
@@ -21,6 +22,7 @@ export type DetailType =
   | "tel"
   | "password"
   | "image"
+  | "video"
   | "select"
   | "multiSelect"
   | "tag"
@@ -63,6 +65,8 @@ export interface DetailActivity {
   action: string;
   /** The original event remains in the log; an undo event references its ID. */
   reverts?: string;
+  /** Entries from one user action are undone together by the table shortcut. */
+  transactionId?: string;
   reversible?: boolean;
   changes?: readonly { field: string; before: unknown; after: unknown }[];
 }
@@ -79,6 +83,8 @@ export interface RecordDetailsConfig {
   updatedBy?: (row: DetailRecord) => string | undefined;
   /** The host application owns fetching and storing the audit log. */
   activity?: (row: DetailRecord) => readonly DetailActivity[];
+  /** Table-wide activity, including removed records, used by Ctrl/Cmd+Z and record details. */
+  history?: () => readonly TableActivityRecord[];
   canRevert?: (entry: DetailActivity, row: DetailRecord) => boolean;
   labels?: Partial<DetailLabels>;
 }
@@ -308,9 +314,19 @@ export function detailText(value: unknown, empty = "—"): string {
 }
 
 export interface DetailDisplay {
-  kind: "empty" | "text" | "code" | "badges" | "link" | "image" | "items";
+  kind:
+    | "empty"
+    | "text"
+    | "code"
+    | "badges"
+    | "link"
+    | "image"
+    | "video"
+    | "items";
   text: string;
   href?: string;
+  poster?: string;
+  tracks?: { src: string; srcLang: string; label: string; default?: boolean }[];
   items?: { id: string; text: string; href?: string }[];
 }
 
@@ -357,6 +373,46 @@ function detailLink(value: unknown, type: string): DetailDisplay {
     kind = type === "image" ? "image" : "link";
   }
   return { kind, text: detailText(value), href };
+}
+
+/** Media URLs use the same safe HTTP(S) contract as other consultation links. */
+function detailVideo(value: unknown): DetailDisplay {
+  const media =
+    value && typeof value === "object"
+      ? (value as DetailRecord)
+      : { url: value };
+  const href = detailHref(media.url);
+  if (!href) {
+    return { kind: "text", text: detailText(value) };
+  }
+  const tracks: NonNullable<DetailDisplay["tracks"]> = [];
+  if (Array.isArray(media.tracks)) {
+    for (const track of media.tracks) {
+      if (!track || typeof track !== "object") {
+        continue;
+      }
+      const src = detailHref(track.src);
+      if (
+        src &&
+        typeof track.srcLang === "string" &&
+        typeof track.label === "string"
+      ) {
+        tracks.push({
+          src,
+          srcLang: track.srcLang,
+          label: track.label,
+          default: track.default === true,
+        });
+      }
+    }
+  }
+  return {
+    kind: "video",
+    text: "",
+    href,
+    poster: detailHref(media.poster),
+    tracks,
+  };
 }
 
 function detailItems(value: unknown, type: string): DetailDisplay {
@@ -432,6 +488,8 @@ export function detailDisplay(
     case "tel":
     case "image":
       return detailLink(value, type);
+    case "video":
+      return detailVideo(value);
     case "files":
     case "collection":
       return detailItems(value, type);
@@ -451,9 +509,11 @@ export function detailActivity(
   config: RecordDetailsConfig,
   row: DetailRecord
 ): DetailActivity[] {
-  return [...(config.activity?.(row) ?? [])].sort(
-    (a, b) => (Date.parse(b.at) || 0) - (Date.parse(a.at) || 0)
-  );
+  return [
+    ...(config.activity?.(row) ??
+      config.history?.().find((record) => record.row.id === row.id)?.activity ??
+      []),
+  ].sort((a, b) => (Date.parse(b.at) || 0) - (Date.parse(a.at) || 0));
 }
 
 /** An undo is a new event. Never offer a second undo or overwrite newer field changes. */
