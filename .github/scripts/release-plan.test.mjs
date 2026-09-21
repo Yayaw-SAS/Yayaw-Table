@@ -180,3 +180,34 @@ test("the derived changeset lists only what shipped to a consumer", () => {
     assert.doesNotMatch(file, excluded);
   }
 });
+
+test("a merged release is tagged, never bumped a second time by its own commits", () => {
+  // Exactly what main carries after a release pull request merges: the new
+  // version, no tag for it yet, and every commit it just shipped still sitting
+  // behind the previous tag.
+  const plan = planRelease({
+    pending: [],
+    version: "3.1.0",
+    tags: ["v3.0.0"],
+    commits: ["feat(gantt): rows planning", "fix(core): a bug", "ci: workflow"],
+  });
+  assert.equal(plan.action, "tag");
+  assert.equal(plan.tag, "v3.1.0");
+});
+
+test("the next release is derived only once the current one is tagged", () => {
+  const commits = ["feat(gantt): rows planning"];
+  assert.equal(
+    planRelease({ pending: [], version: "3.1.0", tags: ["v3.0.0"], commits })
+      .action,
+    "tag"
+  );
+  const next = planRelease({
+    pending: [],
+    version: "3.1.0",
+    tags: ["v3.0.0", "v3.1.0"],
+    commits,
+  });
+  assert.equal(next.action, "version");
+  assert.equal(next.bump, "minor");
+});

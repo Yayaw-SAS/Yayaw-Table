@@ -62,19 +62,22 @@ After a push to `main`, the Pages workflow:
    transfers the unchanged tarball into the publication run and deploys it.
    GitHub Pages requires the artifact in the deploying workflow run.
 
-### The one branch no PR CI can cover
+### The release branch, whose CI waits for approval
 
-GitHub starts no workflow run for a push made with `GITHUB_TOKEN`, so
-`changeset-release/main` never gets a `pull_request` CI run and no trigger
-configuration can give it one. A release would therefore tag and publish its
-GitHub release while Pages refused the merge.
+`changeset-release/main` is pushed by `github-actions[bot]`. Such a push does
+create a `pull_request` **CI tests** run, but it lands in `action_required`
+awaiting approval, and a run that never starts a job completes as `failure`.
+The publication guard holds the merge to that run, so a release whose CI was
+never approved tags and publishes its GitHub release while Pages refuses the
+merge. **Approve that run before merging the release pull request.**
 
-`Version and publish` closes that gap itself. It runs `release:check`, the Pages
+`Version and publish` reduces the blast radius itself. It runs `release:check`, the Pages
 artifact validator and the snapshot verification on the exact tree it is about
 to push, then preserves the same tarball as `registry-pages-<version branch head
 SHA>` — no attempt suffix, because the lookup is by name. The provenance guard
 falls back to it **only** when the merged PR head has no `ci-tests.yml`
-`pull_request` run at all, so a red or pending PR CI is never stepped over. It
+`pull_request` run at all, so a red, pending or unapproved PR CI is never
+stepped over — meaning the fallback does not rescue an unapproved release. It
 then requires that the artifact was produced by a completed, successful
 `version.yml` run on `main` whose `version` job succeeded, and applies the same
 expiry, size and digest checks. The version run's own head is `main`, so the
