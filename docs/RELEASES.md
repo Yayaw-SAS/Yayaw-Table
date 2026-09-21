@@ -63,47 +63,52 @@ version while Changesets are still pending.
 
 ## Release steps
 
+Describe the change, then merge twice. Nothing is run locally.
+
 1. Add a changeset for consumer-facing changes:
 
    ```bash
    bun run changeset
    ```
 
-2. Create the release commit:
+2. Merge that work into `main`. The **Version and publish** workflow applies
+   every pending changeset on a `changeset-release/main` branch and opens (or
+   refreshes) a `chore: release vX.Y.Z` pull request. That pull request carries
+   the version bump, the synchronized Vue version, `CHANGELOG.md` and the
+   versioned snapshot under `public/r/vX.Y.Z/`, and runs the usual CI.
 
-   ```bash
-   bun run version
-   ```
+   Changesets merged afterwards refresh the same pull request, so releases stay
+   batched: it waits until you decide to publish.
 
-   This runs `changeset version`, synchronizes the Vue package version, updates
-   `CHANGELOG.md`, rebuilds the latest registry JSON, and writes every generated
-   item into `public/r/vX.Y.Z/`.
+3. Merge the release pull request. `main` then carries a described version with
+   no tag, so the same workflow verifies the committed snapshot and pushes the
+   `vX.Y.Z` tag. The tag workflow attaches the pinned registry items to a
+   GitHub release, with notes generated from the merged pull requests.
 
-3. Verify before tagging:
+The workflow decides between those two steps with
+`.github/scripts/release-plan.mjs`, which is covered by
+`.github/scripts/release-plan.test.mjs` and runs in CI. An existing tag is
+never republished, and a malformed version stops the release rather than
+tagging it.
 
-   ```bash
-   bun run release:check
-   bun run release:verify
-   ```
+Pages refuses to publish a commit that is not the merge of exactly one pull
+request, so the version bump is never pushed to `main` directly; only the tag
+is. Never push a release commit to `main`.
 
-4. Commit the release files on a branch, open a PR, wait for its CI, and merge
-   the validated content into `main`. Pages publishes the artifact from that PR
-   without rebuilding it. Do not push a release commit directly to `main`.
+### Releasing by hand
 
-5. Update local `main` and tag the merged release version:
+`workflow_dispatch` re-runs the same decision without waiting for a push, which
+is the first thing to try if a release stalls. The local equivalent remains
+available for a repair:
 
-   ```bash
-   git checkout main
-   git pull --ff-only origin main
-   git tag vX.Y.Z
-   git push origin vX.Y.Z
-   ```
+```bash
+bun run version          # apply changesets, sync Vue, snapshot the registry
+bun run release:check    # full distribution gate
+bun run release:verify   # verify the versioned snapshot
+```
 
-The tag workflow verifies that the committed versioned snapshot exists for
-every registry item and then creates a GitHub release with the registry JSON
-files attached. Release notes are generated automatically by GitHub from
-merged PRs and commits since the previous release, with the pinned install
-command prepended.
+Commit the result on a branch, open a pull request and merge it; the workflow
+tags the merged version.
 
 ## Registry snapshots
 
