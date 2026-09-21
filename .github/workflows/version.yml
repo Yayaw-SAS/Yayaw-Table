@@ -46,10 +46,20 @@ jobs:
       - name: Verify release guards
         run: node --test .github/scripts/*.test.mjs
 
+      # A release is described by a changeset or, failing that, by the
+      # conventional commits merged since the last tag.
       - name: Plan the release
         id: plan
         run: |
-          RELEASE_TAGS="$(git tag --list 'v*')" node .github/scripts/release-plan.mjs
+          set -euo pipefail
+          last="$(git tag --list 'v*' --sort=-v:refname | head -n 1)"
+          if [ -n "$last" ]; then
+            commits="$(git log --no-merges --format=%s "${last}..HEAD")"
+          else
+            commits=""
+          fi
+          RELEASE_TAGS="$(git tag --list 'v*')" RELEASE_COMMITS="$commits" \
+            node .github/scripts/release-plan.mjs
 
       - name: Install dependencies
         if: steps.plan.outputs.action == 'version'
@@ -58,6 +68,26 @@ jobs:
       - name: Install Vue dependencies
         if: steps.plan.outputs.action == 'version'
         run: bun install --cwd packages/yayaw-table-vue --frozen-lockfile
+
+      # `changeset version` only reads changesets, so a release derived from the
+      # commits is written as one first. It lands on the version branch only.
+      - name: Write the derived changeset
+        if: steps.plan.outputs.source == 'commits'
+        env:
+          RELEASE_BUMP: ${{ steps.plan.outputs.bump }}
+        run: |
+          set -euo pipefail
+          last="$(git tag --list 'v*' --sort=-v:refname | head -n 1)"
+          RELEASE_COMMITS="$(git log --no-merges --format=%s "${last}..HEAD")" \
+            node --input-type=module --eval '
+              import { writeFileSync } from "node:fs";
+              const { derivedChangeset } = await import("./.github/scripts/release-plan.mjs");
+              const commits = process.env.RELEASE_COMMITS.split("\n").filter(Boolean);
+              writeFileSync(
+                `.changeset/derived-${process.env.GITHUB_SHA.slice(0, 12)}.md`,
+                derivedChangeset(process.env.RELEASE_BUMP, commits)
+              );
+            '
 
       # `version` consumes the changesets, syncs the Vue package and snapshots
       # the versioned registry, so the pull request carries the exact artifact
