@@ -63,13 +63,23 @@ version while Changesets are still pending.
 
 ## Release steps
 
-Describe the change, then merge twice. Nothing is run locally.
+Merge twice. Nothing is run locally, and the version number is worked out for
+you.
 
-1. Add a changeset for consumer-facing changes:
+1. Optionally add a changeset when you want to write the changelog entry
+   yourself:
 
    ```bash
    bun run changeset
    ```
+
+   Without one, the version comes from the conventional commits merged since the
+   last tag: `feat` asks for a minor, `fix`, `perf`, `refactor` and `revert` for
+   a patch, and a `!` marker for a major. `build`, `chore`, `ci`, `docs`, `style`
+   and `test` ship nothing to a consumer, so they release nothing. A subject that
+   does not follow the convention is never guessed at; it is named in the job
+   log and ignored. A changeset always wins over the derived bump, because its
+   prose is better than a list of subjects.
 
 2. Merge that work into `main`. The **Version and publish** workflow applies
    every pending changeset on a `changeset-release/main` branch and opens (or
@@ -89,11 +99,19 @@ The workflow decides between those two steps with
 `.github/scripts/release-plan.mjs`, which is covered by
 `.github/scripts/release-plan.test.mjs` and runs in CI. An existing tag is
 never republished, and a malformed version stops the release rather than
-tagging it.
+tagging it. A release derived from commits is materialized as a changeset on
+the version branch, so `changeset version`, `CHANGELOG.md` and
+`changeset:check` all see the same thing whichever way the number was reached.
 
 Pages refuses to publish a commit that is not the merge of exactly one pull
 request, so the version bump is never pushed to `main` directly; only the tag
 is. Never push a release commit to `main`.
+
+Opening the release pull request needs **Allow GitHub Actions to create and
+approve pull requests** under Settings > Actions > General. Without it the
+workflow still applies the changesets and pushes `changeset-release/main`, then
+prints a compare link in its job summary for a maintainer to open once; the
+release itself is unaffected.
 
 ### Releasing by hand
 
