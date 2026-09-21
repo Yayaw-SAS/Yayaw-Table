@@ -88,11 +88,18 @@ you.
    versioned snapshot under `public/r/vX.Y.Z/`.
 
    GitHub starts no workflow run for a push made with `GITHUB_TOKEN`, so that
-   branch cannot trigger **CI tests** however the triggers are written. The
-   workflow therefore runs the gate itself, on the exact tree it is about to
-   push: `bun run release:check`, the Pages artifact validator, then the
-   versioned snapshot verification. A tree that fails is never proposed, so the
-   pull request you are shown has already passed more than a pull request runs.
+   branch cannot trigger **CI tests** however the triggers are written, and it
+   shows no checks. The workflow therefore runs the gate itself, on the exact
+   tree it is about to push: `bun run release:check`, the Pages artifact
+   validator, then the versioned snapshot verification. A tree that fails is
+   never proposed, so the pull request you are shown has already passed more
+   than a pull request runs.
+
+   It also preserves the validated Pages tarball as
+   `registry-pages-<head>`, which the publication guard accepts in place of the
+   CI run that cannot exist. Without it the merge would tag and release but
+   Pages would refuse, leaving `table.yayaw.app` on the previous version. See
+   [CI maintenance](CI-MAINTENANCE.md) for what the guard checks.
 
    Changesets merged afterwards refresh the same pull request, so releases stay
    batched: it waits until you decide to publish.

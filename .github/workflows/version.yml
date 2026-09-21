@@ -108,10 +108,9 @@ jobs:
           node .github/scripts/validate-pages-artifact.mjs dist/registry-pages
           node scripts/verify-registry-release.mjs "v$(node -p 'require("./package.json").version')"
 
-      - name: Open or refresh the version pull request
+      - name: Commit the release
+        id: commit
         if: steps.plan.outputs.action == 'version'
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           version="$(node -p 'require("./package.json").version')"
@@ -121,12 +120,41 @@ jobs:
           git add --all
           if git diff --cached --quiet; then
             echo "The changesets produced no change; nothing to propose."
+            echo "proposed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           git commit --message "chore: release v${version}"
+          {
+            echo "proposed=true"
+            echo "version=${version}"
+            echo "head=$(git rev-parse HEAD)"
+          } >> "$GITHUB_OUTPUT"
+
+      # Pages republishes bytes some run validated, never bytes built on main,
+      # and no pull request CI can run on this branch. Preserve the tarball this
+      # job just validated under a name pinned to the commit it belongs to;
+      # pages-provenance.mjs accepts it in place of the CI run that cannot exist.
+      - name: Preserve the validated Pages artifact
+        if: steps.commit.outputs.proposed == 'true'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          name: registry-pages-${{ steps.commit.outputs.head }}
+          path: dist/registry-pages
+          retention-days: 30
+
+      - name: Open or refresh the version pull request
+        if: steps.commit.outputs.proposed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ steps.commit.outputs.version }}
+        run: |
+          set -euo pipefail
+          version="$RELEASE_VERSION"
           git push --force-with-lease origin "$VERSION_BRANCH"
           body=$(cat <<EOF
           Applies the pending changesets, syncs the Vue package version and snapshots the versioned registry under \`public/r/v${version}\`.
+
+          This branch is pushed with \`GITHUB_TOKEN\`, which starts no workflow run, so it shows no checks. The **Version and publish** run that produced it validated this exact tree with \`release:check\`, the Pages artifact validator and the snapshot verification, and preserved the artifact Pages will republish.
 
           Merging this pull request publishes: main then carries a described version with no tag, so this workflow tags \`v${version}\` and the release workflow attaches the pinned registry items.
 

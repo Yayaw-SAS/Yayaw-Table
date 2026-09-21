@@ -6,6 +6,133 @@ const SHA = /^[0-9a-f]{40}$/;
 const REPOSITORY = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
 const RECOVERY =
   "Update a PR from current main, wait for its CI, then merge it without additional changes. Quality checks never run on main.";
+const QUALITY_WORKFLOW = ".github/workflows/ci-tests.yml";
+const QUALITY_JOB = "test-and-typecheck";
+const VERSION_WORKFLOW = ".github/workflows/version.yml";
+const VERSION_JOB = "version";
+
+/** Shared shape of a reusable artifact, whichever run preserved it. */
+function usable(artifact, runId, now) {
+  return Boolean(
+    artifact &&
+      Number.isSafeInteger(artifact.id) &&
+      artifact.id > 0 &&
+      artifact.expired === false &&
+      Date.parse(artifact.expires_at) > now &&
+      artifact.size_in_bytes > 0 &&
+      artifact.workflow_run?.id === runId &&
+      DIGEST.test(artifact.digest)
+  );
+}
+
+/** The pull request's own CI run: the path every ordinary change takes. */
+async function fromPullRequestCi(api, base, head, latest, now) {
+  if (
+    latest.status !== "completed" ||
+    latest.conclusion !== "success" ||
+    !Number.isSafeInteger(latest.id) ||
+    !Number.isSafeInteger(latest.run_attempt) ||
+    latest.run_attempt < 1
+  ) {
+    throw new Error(
+      `The latest PR CI must have completed successfully. ${RECOVERY}`
+    );
+  }
+  const { jobs } = await api.get(
+    `${base}/actions/runs/${latest.id}/jobs?filter=latest&per_page=100`
+  );
+  const quality = jobs.filter((job) => job.name === QUALITY_JOB);
+  if (
+    quality.length !== 1 ||
+    quality[0].status !== "completed" ||
+    quality[0].conclusion !== "success"
+  ) {
+    throw new Error(
+      `The latest ${QUALITY_JOB} job did not succeed. ${RECOVERY}`
+    );
+  }
+  const { artifacts } = await api.get(
+    `${base}/actions/runs/${latest.id}/artifacts?per_page=100`
+  );
+  const name = `registry-pages-${head}-${latest.run_attempt}`;
+  const candidates = artifacts.filter((artifact) => artifact.name === name);
+  const artifact = candidates[0];
+  if (
+    candidates.length !== 1 ||
+    !usable(artifact, latest.id, now) ||
+    artifact.workflow_run?.head_sha !== head
+  ) {
+    throw new Error(
+      `The validated Pages artifact for CI run ${latest.id}, attempt ${latest.run_attempt}, is missing, expired or inconsistent. Rerun that PR CI to recreate it, or open a fresh PR if the run predates artifact reuse. Do not build or test on main.`
+    );
+  }
+  return {
+    source: "pull-request-ci",
+    quality_run_id: String(latest.id),
+    artifact_id: String(artifact.id),
+  };
+}
+
+/**
+ * The version workflow's own run, for the one branch no PR CI can cover.
+ *
+ * GitHub starts no workflow run for a push made with GITHUB_TOKEN, so the
+ * branch carrying a release never gets a pull request CI run and no trigger
+ * can give it one. That workflow runs the same gate on the exact tree it
+ * pushes and preserves the same tarball under a name pinned to the commit it
+ * just created, so publication still reuses bytes a run validated. Its own
+ * head is main, so only the artifact name binds it to this pull request; only
+ * a workflow run can create that name, and version.yml runs only on main.
+ */
+async function fromVersionRun(api, base, head, now) {
+  const name = `registry-pages-${head}`;
+  const { artifacts } = await api.get(
+    `${base}/actions/artifacts?name=${name}&per_page=100`
+  );
+  const candidates = (artifacts ?? []).filter(
+    (artifact) => artifact.name === name
+  );
+  const artifact = candidates[0];
+  const runId = artifact?.workflow_run?.id;
+  if (
+    candidates.length !== 1 ||
+    !Number.isSafeInteger(runId) ||
+    !usable(artifact, runId, now)
+  ) {
+    throw new Error(
+      `The latest PR CI must have completed successfully, and no validated version artifact stands in for it. ${RECOVERY}`
+    );
+  }
+  const source = await api.get(`${base}/actions/runs/${runId}`);
+  if (
+    source.path !== VERSION_WORKFLOW ||
+    source.head_branch !== "main" ||
+    source.status !== "completed" ||
+    source.conclusion !== "success"
+  ) {
+    throw new Error(
+      `Run ${runId} preserved this artifact but is not a successful version run on main. ${RECOVERY}`
+    );
+  }
+  const { jobs } = await api.get(
+    `${base}/actions/runs/${runId}/jobs?filter=latest&per_page=100`
+  );
+  const version = jobs.filter((job) => job.name === VERSION_JOB);
+  if (
+    version.length !== 1 ||
+    version[0].status !== "completed" ||
+    version[0].conclusion !== "success"
+  ) {
+    throw new Error(
+      `The ${VERSION_JOB} job that validated this release did not succeed. ${RECOVERY}`
+    );
+  }
+  return {
+    source: "version-workflow",
+    quality_run_id: String(runId),
+    artifact_id: String(artifact.id),
+  };
+}
 
 /** Authorize only the current main tree and its latest successful PR artifact. */
 export async function authorizePages(
@@ -66,62 +193,21 @@ export async function authorizePages(
       (run) =>
         run.event === "pull_request" &&
         run.head_sha === head &&
-        run.path === ".github/workflows/ci-tests.yml"
+        run.path === QUALITY_WORKFLOW
     )
     .sort((left, right) => right.id - left.id)[0];
-  if (
-    latest?.status !== "completed" ||
-    latest.conclusion !== "success" ||
-    !Number.isSafeInteger(latest.id) ||
-    !Number.isSafeInteger(latest.run_attempt) ||
-    latest.run_attempt < 1
-  ) {
-    throw new Error(
-      `The latest PR CI must have completed successfully. ${RECOVERY}`
-    );
-  }
-  const { jobs } = await api.get(
-    `${base}/actions/runs/${latest.id}/jobs?filter=latest&per_page=100`
-  );
-  const quality = jobs.filter((job) => job.name === "test-and-typecheck");
-  if (
-    quality.length !== 1 ||
-    quality[0].status !== "completed" ||
-    quality[0].conclusion !== "success"
-  ) {
-    throw new Error(
-      `The latest test-and-typecheck job did not succeed. ${RECOVERY}`
-    );
-  }
-  const { artifacts } = await api.get(
-    `${base}/actions/runs/${latest.id}/artifacts?per_page=100`
-  );
-  const name = `registry-pages-${head}-${latest.run_attempt}`;
-  const candidates = artifacts.filter((artifact) => artifact.name === name);
-  const artifact = candidates[0];
-  if (
-    candidates.length !== 1 ||
-    !Number.isSafeInteger(artifact.id) ||
-    artifact.id <= 0 ||
-    artifact.expired !== false ||
-    !(Date.parse(artifact.expires_at) > now) ||
-    !(artifact.size_in_bytes > 0) ||
-    artifact.workflow_run?.id !== latest.id ||
-    artifact.workflow_run?.head_sha !== head ||
-    !DIGEST.test(artifact.digest)
-  ) {
-    throw new Error(
-      `The validated Pages artifact for CI run ${latest.id}, attempt ${latest.run_attempt}, is missing, expired or inconsistent. Rerun that PR CI to recreate it, or open a fresh PR if the run predates artifact reuse. Do not build or test on main.`
-    );
-  }
+  // A pull request that ran CI is held to it. Only a branch that never ran any
+  // falls back to the version workflow, so a red run can never be stepped over.
+  const reused = latest
+    ? await fromPullRequestCi(api, base, head, latest, now)
+    : await fromVersionRun(api, base, head, now);
   return {
     eligibility: "eligible",
     target_sha: target,
     head_sha: head,
     tree_sha: headCommit.commit.tree.sha,
     pr_number: String(pr.number),
-    quality_run_id: String(latest.id),
-    artifact_id: String(artifact.id),
+    ...reused,
   };
 }
 
@@ -150,7 +236,7 @@ export async function run(
   }
   const summary =
     result.eligibility === "eligible"
-      ? `Reusing PR #${result.pr_number}, CI run ${result.quality_run_id}, artifact ${result.artifact_id} for ${result.target_sha}. No tests or builds were repeated.`
+      ? `Reusing PR #${result.pr_number}, ${result.source} run ${result.quality_run_id}, artifact ${result.artifact_id} for ${result.target_sha}. No tests or builds were repeated.`
       : `Skipping obsolete target ${result.target_sha}; Pages remains unchanged.`;
   console.log(summary);
   if (env.GITHUB_STEP_SUMMARY) {

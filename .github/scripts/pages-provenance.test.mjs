@@ -27,7 +27,41 @@ const paths = {
   runs: `${base}/actions/workflows/ci-tests.yml/runs?event=pull_request&head_sha=${head}&per_page=100`,
   jobs: `${base}/actions/runs/100/jobs?filter=latest&per_page=100`,
   artifacts: `${base}/actions/runs/100/artifacts?per_page=100`,
+  named: `${base}/actions/artifacts?name=registry-pages-${head}&per_page=100`,
+  versionRun: `${base}/actions/runs/200`,
+  versionJobs: `${base}/actions/runs/200/jobs?filter=latest&per_page=100`,
 };
+
+/** A release branch: no pull request CI ever ran, the version workflow vouched. */
+function versionFixture() {
+  const f = fixture();
+  f.data[paths.runs].workflow_runs = [];
+  f.data[paths.named] = {
+    artifacts: [
+      {
+        id: 901,
+        name: `registry-pages-${head}`,
+        expired: false,
+        expires_at: "2026-10-09T00:00:00Z",
+        size_in_bytes: 1000,
+        digest: `sha256:${"d".repeat(64)}`,
+        // A version run's own head is main, never the branch it just created.
+        workflow_run: { id: 200, head_sha: target },
+      },
+    ],
+  };
+  f.data[paths.versionRun] = {
+    id: 200,
+    path: ".github/workflows/version.yml",
+    head_branch: "main",
+    status: "completed",
+    conclusion: "success",
+  };
+  f.data[paths.versionJobs] = {
+    jobs: [{ name: "version", status: "completed", conclusion: "success" }],
+  };
+  return f;
+}
 
 function fixture() {
   const data = {
@@ -104,6 +138,7 @@ test("a merged tree reuses the latest successful PR attempt and immutable artifa
     head_sha: head,
     tree_sha: tree,
     pr_number: "131",
+    source: "pull-request-ci",
     quality_run_id: "100",
     artifact_id: "900",
   });
@@ -389,3 +424,105 @@ test("the real Node CLI entrypoint fails closed without its token", () => {
   assert.equal(result.status, 1);
   assert.ok(result.stderr.includes("GITHUB_TOKEN is required"));
 });
+
+test("the release branch publishes on the version workflow's validated artifact", async () => {
+  const result = await authorize(versionFixture());
+  assert.equal(result.eligibility, "eligible");
+  assert.equal(result.source, "version-workflow");
+  assert.equal(result.quality_run_id, "200");
+  assert.equal(result.artifact_id, "901");
+});
+
+test("a branch with no CI and no version artifact cannot publish", async () => {
+  const f = versionFixture();
+  f.data[paths.named].artifacts = [];
+  await assert.rejects(authorize(f), LATEST_CI);
+});
+
+test("a failed PR CI never falls back to a version artifact", async () => {
+  const f = versionFixture();
+  f.data[paths.runs].workflow_runs = [
+    {
+      id: 100,
+      run_attempt: 2,
+      event: "pull_request",
+      head_sha: head,
+      path: ".github/workflows/ci-tests.yml",
+      status: "completed",
+      conclusion: "failure",
+    },
+  ];
+  await assert.rejects(authorize(f), LATEST_CI);
+  assert.equal(f.calls.includes(paths.named), false);
+});
+
+for (const [name, change] of [
+  [
+    "an artifact from another workflow",
+    (f) => {
+      f.data[paths.versionRun].path = ".github/workflows/ci-tests.yml";
+    },
+  ],
+  [
+    "a version run off main",
+    (f) => {
+      f.data[paths.versionRun].head_branch = "changeset-release/main";
+    },
+  ],
+  [
+    "a version run that failed",
+    (f) => {
+      f.data[paths.versionRun].conclusion = "failure";
+    },
+  ],
+  [
+    "a version run still going",
+    (f) => {
+      f.data[paths.versionRun].status = "in_progress";
+    },
+  ],
+  [
+    "a version job that failed",
+    (f) => {
+      f.data[paths.versionJobs].jobs[0].conclusion = "failure";
+    },
+  ],
+  [
+    "an expired version artifact",
+    (f) => {
+      f.data[paths.named].artifacts[0].expired = true;
+    },
+  ],
+  [
+    "a version artifact past its retention",
+    (f) => {
+      f.data[paths.named].artifacts[0].expires_at = "2026-09-08T00:00:00Z";
+    },
+  ],
+  [
+    "an empty version artifact",
+    (f) => {
+      f.data[paths.named].artifacts[0].size_in_bytes = 0;
+    },
+  ],
+  [
+    "a version artifact without a digest",
+    (f) => {
+      f.data[paths.named].artifacts[0].digest = undefined;
+    },
+  ],
+  [
+    "two artifacts claiming the same commit",
+    (f) => {
+      f.data[paths.named].artifacts.push(
+        structuredClone(f.data[paths.named].artifacts[0])
+      );
+    },
+  ],
+]) {
+  test(`${name} cannot authorize a release`, async () => {
+    const f = versionFixture();
+    change(f);
+    await assert.rejects(authorize(f));
+  });
+}
