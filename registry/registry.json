@@ -669,6 +669,11 @@
           "target": "components/ui/yayaw-table/components/gallery-view.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/gantt-view.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/gantt-view.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/index.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/index.ts"
@@ -1017,6 +1022,11 @@
           "path": "registry/default/ui/yayaw-table/planning/surface.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/planning/surface.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/planning/timeline.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/planning/timeline.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/planning/transactions.ts",

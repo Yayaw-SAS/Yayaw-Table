@@ -1,11 +1,12 @@
 "use client";
+import { normalizeGanttView } from "../planning/engine";
 import { planningLabelOverrides, planningLabels } from "../planning/labels";
 import {
   buildPlanningRows,
   comparePlanningTasks,
   planningTaskMatches,
 } from "../planning/query";
-import { PlanningSurface, usePlanningState } from "../planning/react";
+import { usePlanningState } from "../planning/react";
 /**
  * Modern implementation of the DataTable component
  * A cleaner approach using modular components and hooks
@@ -108,6 +109,7 @@ import {
   resolveGalleryLinkColumnId,
   resolveGalleryLinkUrl,
 } from "./gallery-view";
+import { DataTableGanttView } from "./gantt-view";
 import { DataTableKanbanView } from "./kanban-view";
 import { SafePagination } from "./safe-pagination";
 import { TableEmptyStateContent } from "./table-empty-state";
@@ -2410,35 +2412,65 @@ function ModernDataTable<
     setPageSize: (size) => table.setPageSize(size),
   });
 
-  const renderGanttContent = () =>
-    planningSession ? (
-      <PlanningSurface
-        compare={(a, b) =>
-          comparePlanningTasks(a, b, {
-            sorting: sortParam,
-            columns: tableConfig.columns.definitions,
-          })
-        }
-        emptyTitle={emptyStateTitle}
-        gantt={{ ...tableConfig.table.gantt, ...ganttParam }}
-        labels={ganttLabels}
-        locale={locale}
-        mode="gantt"
-        onClearFilters={hasActiveSearchOrFilters ? resetFilters : undefined}
-        onViewChange={setGanttFromUI}
-        session={planningSession}
-        visible={(task) =>
-          planningTaskMatches(task, {
-            search: globalSearchParam,
-            filters: filtersParam,
-            advancedFilters: advancedFiltersParam,
-            columns: tableConfig.columns.definitions,
-          })
-        }
-      />
-    ) : (
-      <div role="alert">{ganttLabels.noAdapter}</div>
+  const renderGanttContent = () => {
+    if (!planningSession) {
+      return <div role="alert">{ganttLabels.noAdapter}</div>;
+    }
+    return (
+      <div className="relative">
+        {isLoading && data && data.length > 0 && loadingOverlay}
+        <DataTableGanttView
+          busy={planningState.busy}
+          className={className}
+          compare={(a, b) =>
+            comparePlanningTasks(a, b, {
+              sorting: sortParam,
+              columns: tableConfig.columns.definitions,
+            })
+          }
+          config={tableConfig.table.gantt ?? {}}
+          emptyState={emptyStateContent}
+          error={planningState.error}
+          getRowId={getRowId}
+          isRowActive={(row) =>
+            isRowIdActive({
+              activeRowId,
+              rowId: row.id,
+              rowOriginal: row.original as Record<string, unknown>,
+            })
+          }
+          isRowClickable={(row) => getRowClickMode(row).canClickRow}
+          labels={ganttLabels}
+          locale={locale}
+          onClearFilters={hasActiveSearchOrFilters ? resetFilters : undefined}
+          onRowClick={(row, event) => {
+            handleInteractiveRowClick(row, event);
+          }}
+          onViewChange={setGanttFromUI}
+          session={planningSession}
+          snapshot={planningState.snapshot}
+          table={table}
+          view={normalizeGanttView({
+            ...tableConfig.table.gantt,
+            ...ganttParam,
+          })}
+          visible={(task) =>
+            planningTaskMatches(task, {
+              search: globalSearchParam,
+              filters: filtersParam,
+              advancedFilters: advancedFiltersParam,
+              columns: tableConfig.columns.definitions,
+            })
+          }
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-px"
+          ref={bulkActionsAnchorRef}
+        />
+      </div>
     );
+  };
 
   const renderDisplayContent = () => {
     if (isGanttMode) {
