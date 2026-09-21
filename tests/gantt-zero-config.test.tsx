@@ -4,6 +4,7 @@ import { Provider } from "jotai";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
+import { DataTable } from "../src/components/ui/yayaw-table/components/data-table";
 import { defineTableConfig } from "../src/components/ui/yayaw-table/config/helpers";
 import { usePlanningState } from "../src/components/ui/yayaw-table/planning/react";
 import {
@@ -30,6 +31,7 @@ const ganttConfig = (gantt?: Record<string, string>) =>
       visible: ["name", "start", "end"],
     },
     table: {
+      defaultDisplayMode: "gantt",
       displayModes: ["table", "gantt"],
       planning: {
         enabled: true,
@@ -158,5 +160,53 @@ it("saves a derived planning edit through the table's update action", async () =
     ]);
   } finally {
     await harness.dispose();
+  }
+});
+
+it("renders the timeline with the table's own cells and selection", async () => {
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  const queryClient = new QueryClient();
+  const saved: Record<string, unknown>[] = [];
+  try {
+    await act(() =>
+      root.render(
+        <NuqsTestingAdapter hasMemory>
+          <Provider>
+            <DataTable
+              getTableActions={() => tableActions(saved)}
+              getTableConfig={() =>
+                ganttConfig({
+                  titleColumn: "name",
+                  startColumn: "start",
+                  endColumn: "end",
+                })
+              }
+              queryClient={queryClient}
+              tableType="zero-config"
+            />
+          </Provider>
+        </NuqsTestingAdapter>
+      )
+    );
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 60));
+    });
+
+    const timeline = container.querySelector("section[aria-label]");
+    expect(timeline).not.toBeNull();
+    // One bar per task, each labelled with its own interval.
+    const bars = container.querySelectorAll('button[aria-label^="Move "]');
+    expect(bars).toHaveLength(2);
+    // The left column carries the table's selection cells, not a rebuilt label.
+    expect(
+      container.querySelectorAll('[data-slot="checkbox"]').length
+    ).toBeGreaterThan(0);
+    expect(timeline?.textContent).toContain("Design");
+  } finally {
+    await act(() => root.unmount());
+    container.remove();
+    queryClient.clear();
   }
 });

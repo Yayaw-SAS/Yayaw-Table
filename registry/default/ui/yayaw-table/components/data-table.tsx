@@ -418,7 +418,6 @@ function PlanningRecordOverlay({
     <PlanningSurface
       labels={labels}
       locale={locale}
-      mode="overlay"
       onOpenRecord={
         onOpen
           ? (task) => {

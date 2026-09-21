@@ -1,8 +1,11 @@
 # Configurable Gantt views
 
 Gantt planning is optional in both React and Vue. Existing tables keep their behavior unless planning
-is explicitly enabled. The native renderer provides a collapsible tree, calendar shading, task and
-summary bars, dependency paths, date editing, and a keyboard-accessible relationship editor.
+is explicitly enabled. Each edition renders the timeline with its own component — a collapsible tree,
+calendar shading, task and summary bars, dependency paths and date editing — reading the table it
+belongs to, so the left column carries that table's own selection and title cells, a row click opens
+the record details, and selection feeds the bulk actions. Both components compute their geometry from
+the shared `planning/timeline` model, and the relationship editor stays one shared dialog.
 
 ```ts
 const gantt = {
@@ -118,18 +121,22 @@ calendars, task dates and relationships never enter the saved-view snapshot.
   editor. All controls are native labelled form controls. Validation errors retain the entered draft.
 - Review the complete impact, then apply all changes or cancel. Application failures remain visible.
 
-The renderer virtualizes rows and horizontal day columns. A navigable 180-day window bounds the
+Each timeline virtualizes rows and horizontal day columns. A navigable 180-day window bounds the
 rendered timeline; previous/next/today and zoom controls navigate longer schedules. Dependency paths
 are drawn when both endpoints are in the rendered window. The relationship editor retains all loaded
 links, including hidden endpoints. The planner always works from the full loaded graph.
 
+The timeline shows the whole planning graph, while the table holds the rows its `list` action
+returned. A task the current page does not carry still renders, with its planning label instead of
+table cells and without a selection box; the same is true of a task from another source.
+
 ## Examples and verification
 
-The timeline uses a compact period toolbar, a responsive sticky task list, subtle grid lines,
-pastel task bars and neutral summary bars. Colors carry no planning or status meaning. Today's
-date is marked in the header and timeline. Icons retain accessible names; resize handles appear
-on hover or keyboard focus and remain visible on touch devices. Dialogs and timeline surfaces
-inherit the host's Shadcn or Vue color tokens, including dark mode.
+The timeline uses a compact period toolbar, a responsive sticky task list, subtle grid lines and
+neutral task and summary bars drawn from the host's own theme tokens, so colors carry no planning or
+status meaning and follow light and dark mode. Today's date is marked in the header and timeline.
+Icons retain accessible names; resize handles appear on hover or keyboard focus and remain visible on
+touch devices.
 
 Run `bun run gantt:dev` for the standalone React example at port 5174 and `bun run vue:dev` for the
 Vue example at `http://localhost:5173/?example=gantt`. Both use the same tasks, holiday calendar,

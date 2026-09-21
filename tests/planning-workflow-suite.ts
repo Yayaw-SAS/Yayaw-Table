@@ -26,6 +26,10 @@ interface WorkflowSuite {
   mount: typeof mountPlanningSurface;
   rows: typeof planningTasksFromRows;
   project: typeof buildPlanningRows;
+  timeline: Pick<
+    import("./planning-contract-suite").PlanningTimelineApi,
+    "timelineDateMutation"
+  >;
 }
 const assert = (value: unknown, message: string): void => {
   if (!value) {
@@ -62,7 +66,17 @@ function selectElement<T extends Element>(root: Element, selector: string): T {
   return element;
 }
 export function planningWorkflowSuite(api: WorkflowSuite): void {
-  const { test, memory, calculate, load, session, wrap, mount, rows } = api;
+  const {
+    test,
+    memory,
+    calculate,
+    load,
+    session,
+    wrap,
+    mount,
+    rows,
+    timeline,
+  } = api;
   test("card projections retain children while Table restores its tree", () => {
     const snapshot = planningFixture();
     task(snapshot, "b").parent = task(snapshot, "a").ref;
@@ -523,7 +537,7 @@ export function planningWorkflowSuite(api: WorkflowSuite): void {
     );
     client.dispose();
   });
-  test("native surface supports keyboard move, resize, cancel and apply", async () => {
+  test("timeline edits preview in the dialog, cancel cleanly and apply", async () => {
     const store = memory({
       snapshot: planningFixture(),
       config: planningConfig,
@@ -533,15 +547,10 @@ export function planningWorkflowSuite(api: WorkflowSuite): void {
     const host = document.createElement("div");
     const overlay = document.createElement("div");
     document.body.append(host, overlay);
-    const chart = mount(host, { session: client, mode: "gantt" });
-    const dialogs = mount(overlay, { session: client, mode: "overlay" });
+    const dialogs = mount(overlay, { session: client });
+    const subject = task(store.getSnapshot(), "a");
     try {
-      selectElement<HTMLButtonElement>(
-        host,
-        'button[aria-label^="Move A:"]'
-      ).dispatchEvent(
-        new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })
-      );
+      client.request(timeline.timelineDateMutation(subject, "move", 1));
       await until(() => client.getState().preview);
       assert(
         overlay.textContent?.includes("2026-09-16"),
@@ -552,12 +561,7 @@ export function planningWorkflowSuite(api: WorkflowSuite): void {
         task(store.getSnapshot(), "a").start === "2026-09-14",
         "Cancel leaves storage untouched"
       );
-      selectElement<HTMLButtonElement>(
-        host,
-        'button[aria-label="Resize end A"]'
-      ).dispatchEvent(
-        new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })
-      );
+      client.request(timeline.timelineDateMutation(subject, "end", 1));
       await until(() => client.getState().preview);
       await client.apply();
       assert(
@@ -566,7 +570,6 @@ export function planningWorkflowSuite(api: WorkflowSuite): void {
       );
     } finally {
       dialogs.destroy();
-      chart.destroy();
       client.dispose();
       host.remove();
       overlay.remove();
@@ -581,7 +584,7 @@ export function planningWorkflowSuite(api: WorkflowSuite): void {
     await client.load();
     const host = document.createElement("div");
     document.body.append(host);
-    const surface = mount(host, { session: client, mode: "overlay" });
+    const surface = mount(host, { session: client });
     client.open({ source: "tasks", id: "b" });
     try {
       const source = selectElement<HTMLSelectElement>(
@@ -634,109 +637,6 @@ export function planningWorkflowSuite(api: WorkflowSuite): void {
       );
       client.cancel();
       await pending;
-    } finally {
-      surface.destroy();
-      client.dispose();
-      host.remove();
-    }
-  });
-  test("disabled date editing removes drag and resize behavior", async () => {
-    const config = { ...planningConfig, allowDateEdit: false };
-    const store = memory({ snapshot: planningFixture(), config });
-    const client = session({ config, actions: store.actions });
-    await client.load();
-    const host = document.createElement("div");
-    document.body.append(host);
-    const surface = mount(host, { session: client, mode: "gantt" });
-    try {
-      assert(
-        !host.querySelector('[aria-label="Resize end A"]'),
-        "Resize is unavailable"
-      );
-      selectElement<HTMLButtonElement>(
-        host,
-        'button[aria-label^="Move A:"]'
-      ).dispatchEvent(
-        new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })
-      );
-      assert(!client.getState().preview, "Keyboard cannot bypass the flag");
-    } finally {
-      surface.destroy();
-      client.dispose();
-      host.remove();
-    }
-  });
-  test("week origin and link visibility change presentation only", async () => {
-    const store = memory({
-      snapshot: planningFixture(),
-      config: planningConfig,
-    });
-    const client = session({ config: planningConfig, actions: store.actions });
-    await client.load();
-    const host = document.createElement("div");
-    document.body.append(host);
-    const views: unknown[] = [];
-    const surface = mount(host, {
-      session: client,
-      mode: "gantt",
-      onViewChange: (view) => views.push(view),
-    });
-    try {
-      surface.update({
-        session: client,
-        mode: "gantt",
-        gantt: { weekStartsOn: 0, showDependencies: false },
-      });
-      assert(
-        views.length === 0 && store.getSnapshot().revision === "r1",
-        "Presentation never writes to the planning adapter"
-      );
-    } finally {
-      surface.destroy();
-      client.dispose();
-      host.remove();
-    }
-  });
-  test("timeline date markers follow navigation without changing the planning", async () => {
-    const store = memory({
-      snapshot: planningFixture(),
-      config: planningConfig,
-    });
-    const client = session({ config: planningConfig, actions: store.actions });
-    await client.load();
-    const host = document.createElement("div");
-    document.body.append(host);
-    const surface = mount(host, { session: client, mode: "gantt" });
-    const before = JSON.stringify(store.getSnapshot());
-    try {
-      selectElement<HTMLButtonElement>(host, '[data-focus="today"]').click();
-      const current = selectElement<HTMLElement>(host, '[aria-current="date"]');
-      assert(
-        current.title === new Date().toISOString().slice(0, 10),
-        "Today identifies the current civil date"
-      );
-      const marker = selectElement<HTMLElement>(host, ".yp-today-line");
-      assert(
-        Number.parseFloat(marker.style.left) ===
-          Number.parseFloat(current.style.left) +
-            Number.parseFloat(current.style.width) / 2,
-        "The date marker stays centered beneath its header"
-      );
-      selectElement<HTMLButtonElement>(
-        host,
-        '[aria-label="Next period"]'
-      ).click();
-      assert(
-        !(
-          host.querySelector('[aria-current="date"]') ||
-          host.querySelector(".yp-today-line")
-        ),
-        "A future window does not show a misleading today marker"
-      );
-      assert(
-        JSON.stringify(store.getSnapshot()) === before,
-        "Navigating the visual markers never mutates planning dates"
-      );
     } finally {
       surface.destroy();
       client.dispose();

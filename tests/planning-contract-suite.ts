@@ -103,6 +103,23 @@ interface Suite {
   session: typeof createPlanningSession;
   rowsAdapter: typeof createRowsPlanningAdapter;
   canDeriveRows: typeof canDeriveRowsPlanning;
+  timeline: PlanningTimelineApi;
+}
+
+/** The timeline helpers both editions hand to the shared suites. */
+export interface PlanningTimelineApi {
+  TIMELINE_HEADER_HEIGHT: number;
+  TIMELINE_ROW_HEIGHT: number;
+  timelineBar: typeof import("../src/components/ui/yayaw-table/planning/timeline").timelineBar;
+  timelineCanEdit: typeof import("../src/components/ui/yayaw-table/planning/timeline").timelineCanEdit;
+  timelineCanResize: typeof import("../src/components/ui/yayaw-table/planning/timeline").timelineCanResize;
+  timelineDateMutation: typeof import("../src/components/ui/yayaw-table/planning/timeline").timelineDateMutation;
+  timelineDayCells: typeof import("../src/components/ui/yayaw-table/planning/timeline").timelineDayCells;
+  timelineFirstDate: typeof import("../src/components/ui/yayaw-table/planning/timeline").timelineFirstDate;
+  timelineGeometry: typeof import("../src/components/ui/yayaw-table/planning/timeline").timelineGeometry;
+  timelinePeriodStep: typeof import("../src/components/ui/yayaw-table/planning/timeline").timelinePeriodStep;
+  timelineRows: typeof import("../src/components/ui/yayaw-table/planning/timeline").timelineRows;
+  timelineTodayOffset: typeof import("../src/components/ui/yayaw-table/planning/timeline").timelineTodayOffset;
 }
 export function planningContractSuite({
   test,
@@ -113,8 +130,10 @@ export function planningContractSuite({
   session,
   rowsAdapter,
   canDeriveRows,
+  timeline,
 }: Suite): void {
   rowsPlanningCases({ test, rowsAdapter, canDeriveRows, session });
+  timelineModelCases({ test, timeline, session, memory });
   for (const scenario of scenarios) {
     test(scenario.name, () => {
       const snapshot = planningFixture();
@@ -741,5 +760,175 @@ function rowsPlanningCases({
     equal(result.success, true);
     equal(at(rows, 2).start, "2026-09-18");
     runtime.dispose();
+  });
+}
+
+function timelineModelCases({
+  test,
+  timeline,
+  session,
+  memory,
+}: Pick<Suite, "test" | "timeline" | "session" | "memory">): void {
+  const {
+    timelineRows,
+    timelineGeometry,
+    timelineBar,
+    timelineDayCells,
+    timelineTodayOffset,
+    timelineCanEdit,
+    timelineCanResize,
+    timelineDateMutation,
+    timelinePeriodStep,
+    timelineFirstDate,
+    TIMELINE_HEADER_HEIGHT,
+    TIMELINE_ROW_HEIGHT,
+  } = timeline;
+  const geometryFor = (view: Record<string, unknown> = {}, rowCount = 2) =>
+    timelineGeometry({
+      rowCount,
+      view,
+      availableWidth: 1100,
+      scrollTop: 0,
+      scrollLeft: 0,
+      firstDate: "2026-09-14",
+    });
+
+  test("the timeline opens on the earliest scheduled date", () => {
+    equal(timelineFirstDate(planningFixture()), "2026-09-14");
+  });
+
+  test("the window starts on the configured first weekday", () => {
+    // 2026-09-14 is a Monday, so a Monday origin needs no shift and Sunday steps back one.
+    equal(geometryFor({ weekStartsOn: 1 }).from, geometryFor().from);
+    equal(
+      geometryFor({ weekStartsOn: 0 }).from,
+      geometryFor({ weekStartsOn: 1 }).from - 1
+    );
+  });
+
+  test("zoom changes column width and how far navigation moves", () => {
+    equal(geometryFor({ zoom: "day" }).width, 40);
+    equal(geometryFor({ zoom: "week" }).width, 24);
+    equal(geometryFor({ zoom: "month" }).width, 10);
+    equal(
+      [
+        timelinePeriodStep("day"),
+        timelinePeriodStep("week"),
+        timelinePeriodStep("month"),
+      ],
+      [7, 30, 90]
+    );
+  });
+
+  test("the date marker stays centred beneath its header cell", () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const geometry = timelineGeometry({
+      rowCount: 2,
+      view: {},
+      availableWidth: 1100,
+      scrollTop: 0,
+      scrollLeft: 0,
+      firstDate: today,
+    });
+    const cell = timelineDayCells(geometry, {}).find(
+      (item: { date: string }) => item.date === today
+    );
+    equal(
+      timelineTodayOffset(geometry),
+      (cell?.left ?? 0) + (cell?.width ?? 0) / 2
+    );
+  });
+
+  test("a bar spans its inclusive interval and unscheduled tasks have none", () => {
+    const geometry = geometryFor();
+    const snapshot = planningFixture();
+    const scheduled = at(snapshot.tasks, 0);
+    equal(timelineBar(scheduled, geometry), {
+      left: 0,
+      width: 2 * geometry.width,
+    });
+    equal(
+      timelineBar({ ...scheduled, start: null, end: null }, geometry),
+      undefined
+    );
+  });
+
+  test("rows keep ancestor context while a collapsed parent hides its children", () => {
+    const snapshot = planningFixture();
+    at(snapshot.tasks, 1).parent = { source: "tasks", id: "a" };
+    equal(timelineRows(snapshot, {}).length, 2);
+    equal(
+      timelineRows(snapshot, {
+        collapsed: new Set([JSON.stringify(["tasks", "a"])]),
+      }).length,
+      1
+    );
+  });
+
+  test("a disabled date flag removes both moving and resizing", async () => {
+    const config = { ...planningConfig, allowDateEdit: false };
+    const store = memory({ snapshot: planningFixture(), config });
+    const runtime = session({ config, actions: store.actions });
+    await runtime.load();
+    const snapshot = planningFixture();
+    equal(
+      timelineCanEdit({
+        task: at(snapshot.tasks, 0),
+        hasChildren: false,
+        session: runtime,
+        snapshot,
+      }),
+      false
+    );
+    runtime.dispose();
+  });
+
+  test("a summary row cannot be resized unless its dates are independent", async () => {
+    const store = memory({
+      snapshot: planningFixture(),
+      config: planningConfig,
+    });
+    const rollup = session({ config: planningConfig, actions: store.actions });
+    const independent = session({
+      config: { ...planningConfig, parentDates: "independent" },
+      actions: store.actions,
+    });
+    await rollup.load();
+    equal(timelineCanResize({ hasChildren: true, session: rollup }), false);
+    equal(timelineCanResize({ hasChildren: false, session: rollup }), true);
+    equal(timelineCanResize({ hasChildren: true, session: independent }), true);
+    rollup.dispose();
+    independent.dispose();
+  });
+
+  test("keyboard and pointer edits produce the same mutations", () => {
+    const task = at(planningFixture().tasks, 0);
+    equal(timelineDateMutation(task, "move", 1), [
+      { type: "move", ref: task.ref, days: 1 },
+    ]);
+    equal(timelineDateMutation(task, "end", 1), [
+      {
+        type: "dates",
+        ref: task.ref,
+        start: "2026-09-14",
+        end: "2026-09-16",
+      },
+    ]);
+    equal(timelineDateMutation(task, "start", -1), [
+      {
+        type: "dates",
+        ref: task.ref,
+        start: "2026-09-13",
+        end: "2026-09-15",
+      },
+    ]);
+    equal(timelineDateMutation(task, "move", 0), []);
+  });
+
+  test("the canvas reserves the header plus one band per row", () => {
+    equal(
+      geometryFor({}, 5).canvasHeight,
+      TIMELINE_HEADER_HEIGHT + 5 * TIMELINE_ROW_HEIGHT
+    );
   });
 }

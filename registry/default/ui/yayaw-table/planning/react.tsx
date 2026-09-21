@@ -24,6 +24,7 @@ export function usePlanningState() {
   );
   return { session, state };
 }
+/** The planning dialog; the timeline is a React component of its own. */
 export function PlanningSurface(props: PlanningSurfaceOptions) {
   const root = useRef<HTMLDivElement>(null);
   const surface = useRef<ReturnType<typeof mountPlanningSurface> | undefined>(
@@ -38,15 +39,14 @@ export function PlanningSurface(props: PlanningSurfaceOptions) {
     surface.current = mountPlanningSurface(root.current, {
       ...latest.current,
       session: props.session,
-      mode: props.mode,
     });
     return () => {
       surface.current?.destroy();
       surface.current = undefined;
     };
-  }, [props.session, props.mode]);
+  }, [props.session]);
   useEffect(() => {
     surface.current?.update(props);
   });
-  return <div data-planning-surface={props.mode} ref={root} />;
+  return <div data-planning-surface="overlay" ref={root} />;
 }
