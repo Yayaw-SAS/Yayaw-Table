@@ -45,6 +45,9 @@ jobs:
       - name: Validate changesets
         run: bun run changeset:check
 
+      - name: Lint
+        run: bun run check
+
       - name: Type check
         run: bun run type-check
 

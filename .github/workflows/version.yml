@@ -24,7 +24,7 @@ jobs:
   version:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -95,6 +95,18 @@ jobs:
       - name: Apply the changesets
         if: steps.plan.outputs.action == 'version'
         run: bun run version
+
+      # GitHub starts no workflow run for a push made with GITHUB_TOKEN, so the
+      # version branch cannot trigger CI however the triggers are written. The
+      # gate runs here instead, on the exact tree about to be pushed, and a tree
+      # that fails it is never proposed.
+      - name: Validate the release artifact
+        if: steps.plan.outputs.action == 'version'
+        run: |
+          set -euo pipefail
+          bun run release:check
+          node .github/scripts/validate-pages-artifact.mjs dist/registry-pages
+          node scripts/verify-registry-release.mjs "v$(node -p 'require("./package.json").version')"
 
       - name: Open or refresh the version pull request
         if: steps.plan.outputs.action == 'version'

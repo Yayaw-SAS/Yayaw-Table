@@ -99,7 +99,11 @@ test("conventional commits name the bump they deserve", () => {
 });
 
 test("commits that ship nothing to a consumer never move the version", () => {
-  const derived = conventionalBump(["docs: guide", "ci: workflow", "chore: deps"]);
+  const derived = conventionalBump([
+    "docs: guide",
+    "ci: workflow",
+    "chore: deps",
+  ]);
   assert.equal(derived.bump, undefined);
   assert.deepEqual(derived.unconventional, []);
 });
