@@ -1,5 +1,113 @@
 # Changelog
 
+## 3.1.0
+
+### Minor Changes
+
+- 3c65c90: Add opt-in automatic page sizing with `table.enableAutoPageSize` in React and Vue. The table's page-size selector can fit rows to the available viewport, react to density and window-size changes, and return to numeric sizes. Pagination remains reachable for a single page when enabled. Gallery and Kanban keep numeric pagination; URLs and saved views continue to store the effective numeric size.
+- 3ea9289: Add optional native Gantt planning to React and Vue, with shared civil-date scheduling, configurable hierarchy and calendar rules, cross-source dependencies, and atomic revision-checked preview/apply actions. Include accessible dependency editing, planning-aware table and record edits, saved Gantt views, and executable memory adapters.
+- 7450b32: Unify React and Vue record surfaces with a shared responsive presentation option, drawer defaults on desktop and mobile, and uninterrupted view-to-edit transitions.
+- fc26386: Add `table.defaultAutoPageSize` to start table views in automatic viewport pagination in React and Vue while preserving manual numeric choices within the active view.
+- 457b8ec: Use Shadcn Empty states and offer filter recovery in React and Vue.
+
+  Filtered empty results include a Clear filters action that preserves presentation and the selected view. Custom copy and visibility apply consistently in table, Kanban, and Gallery; loading and failed requests no longer show empty card states. React consumers updating copied files manually must add the Shadcn `empty` component; Vue includes the Empty parts and standalone styles in its registry.
+
+- bacb67f: Add a personal favorite view in React and Vue, restored on arrival with local persistence or optional server preference actions, and document organization sharing responsibilities.
+- b24c4bf: Render the Gantt timeline with a native component in each edition, so it reaches its table the way
+  Kanban and Gallery do: the table's own selection and title cells in the left column, row click through
+  to the record details, the loading overlay and the bulk-actions anchor. React gains
+  `components/gantt-view.tsx` and Vue `components/planning/GanttView.vue`, both computing rows,
+  virtualization geometry, bar placement, dependency paths, header cells and every date edit from a new
+  shared `planning/timeline` model. The shared DOM renderer keeps only the planning dialog, which needs
+  no table state. A task from another source, or one outside the table's current page, still renders
+  without cells rather than disappearing.
+- 7bdfd54: Let a Gantt work from the table's own data like Kanban and Gallery. `createRowsPlanningAdapter`
+  derives the planning graph from the existing `list` action and saves date and hierarchy edits through
+  the existing `update` action, and React and Vue wire it automatically when `gantt.startColumn` and
+  `gantt.endColumn` are mapped and no `actions.planning` adapter is supplied. Add `gantt.parentColumn`
+  and `gantt.calendarColumn`, share one preview/apply transaction core between adapters, route every
+  timeline, dialog and settings label through `views.gantt.*` with the built-in vocabulary as fallback,
+  replace the planning row controls with design-system buttons and translated names, and withhold the
+  Gantt display mode when no planning graph can be built.
+- ebd8d9e: Add an icon-only density selector beside toolbar filters with S, M, L and XL, and make S more compact in React and Vue.
+- adf1d7e: Add equivalent React and Vue gallery media viewers with image/video/audio/PDF previews, separate record information actions, muted hover video, native playback, navigation, and accessible focus restoration. Add S/M/L preview height independently of card width, neutral or colored tags, and content-sized action menus.
+
+  Support modified gallery selection and scoped Ctrl/Cmd+A across matching pages. Connect Ctrl/Cmd+Z to existing record activity and onRevertActivity, including deleted records supplied through details.history and grouped compensating events through transactionId. Applications retain responsibility for persistence, permissions and reversible deletion. Add video record fields and custom rowActions in both editions.
+
+  Vue now defaults to the same wide gallery ratio and colored tags as React. Set aspectRatio: "square" and coloredTags: false explicitly to preserve its previous appearance. Runtime media callbacks stay out of saved views; previewSize is persisted.
+
+  Show a localized success notification after complete activity undo, with full-sentence `details.labels.undoSuccess` overrides shared by shortcuts and record activity. Exclude runtime gallery callbacks from both frameworks’ saved views.
+
+  Connect Ctrl/Cmd+D to the existing permitted row duplication action, including selection of returned copies, partial failure handling, and localized singular/plural feedback.
+
+- ebd15ce: Pass original row context to React and Vue update and delete actions so hosts can enforce optimistic concurrency independently of the submitted field patch.
+- 8ef1329: Add an optional filter bar for catalogue option and boolean columns in React and Vue. The bar uses native column-filter state, searchable multi-selection with filter icons, and the same controls in Options. Showing or hiding the bar preserves filters and saved views.
+- 4a530b9: Add configurable read-only record details in React and Vue with typed fields, update metadata, append-only activity, reversible changes, and confirmed deletion.
+- 299abc8: Add Shift-click range selection in React and Vue to row checkboxes when multi-row selection is enabled.
+- e3ef46d: Drive generated forms, inline editors and filter defaults from one shared column-type contract in React and Vue. Preserve typed option identities and labels, render all dynamic cell types, and add lossless JSON form editing with validation and retryable drafts. Calendar inline edits now emit date-only strings in both editions, matching generated date forms; applications using React inline date schemas should accept `YYYY-MM-DD` values.
+- 9d6ddfd: Add independent host-resolved `canEdit` and `canDelete` permissions on saved views in React and Vue. Shared read-only views remain selectable, copyable and eligible as personal favorites. Hosts must continue enforcing authorization in their persistence actions.
+- 55447fb: Add XS and 2XL and align all six row densities with Tailwind's spacing scale: 28, 32, 40, 48, 56 and 64px before borders. XS preserves the previous compact S appearance; existing density configuration values remain supported with smoother spacing.
+
+  Use consistent accessible tooltips for table controls, including density, saved views, row actions and column dragging, in React and Vue.
+
+- c6f803f: Keep Create last and primary, persist saved-view density, and compose generated forms with responsive blocks, custom content and asynchronous actions in React and Vue.
+- 4babf11: Add `onOpenDetails` in React and Vue so the native View action and row activation can open an application-owned record route or drawer. The callback takes precedence over built-in details and also enables View for read-only tables.
+- d455088: Route Vue table operation feedback through the application Sonner toaster, matching React without inserting a status block into the table. Vue consumers must mount one vue-sonner or Shadcn Sonner Toaster at the application root; existing outlets are reused.
+- 8b6cf42: Unify React and Vue responsive view menus. Desktop keeps one toolbar row with explicit data actions; mobile and constrained containers use view, create and a labelled data-action panel. View settings adapt to Table, Kanban and Gallery, with direct density and mode controls, accessible scrolling panels, and preserved inactive presentation settings.
+
+  Use normalized saved-view comparisons for the modified indicator and save availability. Add optional `footerCalculationsVisible` snapshots, restore saved or initial settings with Reset view, preserve drafts after persistence failures, and keep favorites independent of write permission. Share the current URL with native mobile sharing and clipboard fallback. Existing filter-only reset flags retain their behavior inside Filters.
+
+  Keep view panels mounted during React query refreshes, use content-sized Shadcn scroll areas, and restore empty grouping without importing an inactive Kanban lane. Preserve utility-column order and native table-cell layout in grouped results. Make the runnable previews apply the complete query and demonstrate actual onBulkEdit writes in both frameworks.
+
+  Keep advanced numeric filter drafts stable until Enter or confirmation, including zero, negative decimals and ranges. Remove stale delayed input callbacks, implicit numeric bounds and nested filter cards. Keep new Vue rules out of query state until applied and expose advanced filters in its runnable example.
+
+  Keep the mobile panel header fixed while focusing numeric inputs and anchor Vue column menus correctly when composed with tooltips.
+
+  Present display mode and density as matching labelled button rows, with equal-width choices and the same selected state in React and Vue.
+
+  Replace bulk field checklists with a searchable property picker and flat editor rows in React and Vue. Preserve partial patches, schema-aware explicit clears, permission checks and failed-row retries. Keep the target count visible on the apply button and actions accessible in the mobile bottom panel. Use record IDs for bulk persistence and map successful results back to their table selection IDs.
+
+### Patch Changes
+
+- 3ca7067: Release from CI instead of by hand. A new **Version and publish** workflow keeps a
+  `chore: release vX.Y.Z` pull request current whenever changesets are pending, and tags the
+  merged version once `main` carries a described version with no tag. The decision lives in
+  `.github/scripts/release-plan.mjs` with its own tests, an existing tag is never republished,
+  and the bump still reaches `main` through a reviewed pull request because Pages refuses to
+  publish a direct push.
+- b977f6f: Use Shadcn dropdown menus for React and Vue footer calculations, with keyboard navigation, selected indicators, and translated Vue labels.
+- 21ac4bb: Align grouped row headings, accessor labels, nested record counts, and selection in React and Vue. Preserve leaf cell values and avoid aggregating category IDs in group headings.
+- cfa6de2: Align Vue Kanban and Gallery controls with Shadcn-style Reka UI selects, property menus, and checkboxes while preserving saved settings and selection behavior.
+- b03b434: Let saved-view labels inherit the dialog font size so compact themes keep the sharing option aligned with the form.
+- 2c62022: Align React and Vue toolbar controls at 32px high with 12px regular text, 16px action icons, 12px dropdown chevrons, and square icon buttons. Keep row density independent from toolbar sizing. Fit Table, Kanban, and Gallery buttons inside their segmented frame so hover and selected backgrounds stay centered, preserving keyboard navigation and translated tooltips.
+
+  Refresh the local Shadcn Base Vega Button styles and Tooltip from the official registry, retaining the shared button-variants export and local import aliases. Bring the Vue standalone Button styles and Reka Tooltip composition in line with the official Shadcn Vue Vega sources, including focus states, tooltip arrows, and composed-trigger forwarding.
+
+- d1c888e: Unify Gallery, Kanban and Gantt settings with standard selection controls, one responsive drawer on mobile and scrolling only when needed. Keep density and display choices at normal font weight and align the Share button with other toolbar actions. Move Gantt presentation settings into View settings and present planning dialogs as bottom sheets on mobile.
+- 3fe7385: Allow choosing the built-in default view with the favorite star in React and Vue. Clearing the personal favorite marks the default row and toolbar star, while shared/system views remain favoriteable without write permission.
+- acd49e5: Align the Vue search toolbar spacing to 16px above and below the controls.
+- 570e0f4: Place the optional filter bar above the standard view, search and Options controls in React and Vue, preserving the title and consistent section spacing.
+- cfaad15: Ignore equivalent React table-state writes to keep row menus and generated forms stable during refreshes.
+- 1008884: Fix React row action and bulk menus flickering by stabilizing controlled table state and column callbacks.
+- fd9d305: Document the integrated React and Vue Gantt previews alongside the existing live documentation examples.
+- c73b2b9: Refine the shared React and Vue Gantt with a compact toolbar, neutral grid and summary bars, pastel tasks, page icons, a current-date marker, responsive task column and theme-aware planning dialogs. Preserve accessible editing, dependency previews and saved view behavior.
+- b060549: Count measured row heights for automatic pagination and keep a stable capacity across variable-height server pages in React and Vue.
+- 95ca55d: Load saved views when no initial views are provided.
+- 6d9fe3a: Apply React advanced filters to the table instance ID instead of the configuration catalogue key. Tables with distinct `tableId` and `tableType` now filter their own data and saved views, with URL synchronization enabled or disabled.
+- 8adf5fd: Fix the copied stack menu import so registry consumers can resolve the responsive view panel after installation.
+- db0cabe: Match Vue modal and drawer form backdrops to React with a 10% black overlay and theme-aware 4px background blur.
+- d7d6914: Keep automatic pagination stable when shorter content changes the intrinsic table width on a later page. Use the container width for layout identity in React and Vue.
+- 02c5ee6: Keep automatic pagination on the selected page when variable column widths change header wrapping. Header/footer measurements affect fit without raising the viewport capacity ceiling in React and Vue.
+- 027adef: Align historical filter button heights with saved-view controls across table densities.
+- 7814432: Keep inline multi-select choices in a searchable overlay without expanding rows.
+  Flush and acknowledge edits before dismissing in React and Vue, retain failed
+  drafts for retry, and preserve dismissal requests made during autosave.
+
+  Align removable chips, search, keyboard navigation, density-aware editor heights,
+  save-delay/pending feedback, and regular toolbar button typography across editions.
+
+- 58cbfc1: Keep the React URL-state hook's client directive before its Gantt imports so copied registry files compile in Next.js. Vue's equivalent URL-state behavior is unchanged.
+
 ## 3.0.0
 
 ### Major Changes
