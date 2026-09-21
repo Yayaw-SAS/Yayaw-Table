@@ -91,10 +91,25 @@ jobs:
           Add more changesets before merging to release them together.
           EOF
           )
-          if ! gh pr edit "$VERSION_BRANCH" --title "chore: release v${version}" --body "$body"; then
-            gh pr create --base main --head "$VERSION_BRANCH" \
-              --title "chore: release v${version}" --body "$body"
+          if gh pr edit "$VERSION_BRANCH" --title "chore: release v${version}" --body "$body"; then
+            exit 0
           fi
+          if gh pr create --base main --head "$VERSION_BRANCH" \
+            --title "chore: release v${version}" --body "$body"; then
+            exit 0
+          fi
+          # The branch is the artifact and it is pushed. Opening the pull request
+          # needs "Allow GitHub Actions to create and approve pull requests" under
+          # Settings > Actions > General; without it a maintainer opens it once.
+          {
+            echo "### Release v${version} is ready"
+            echo
+            echo "The version branch is pushed but this workflow may not open its pull request."
+            echo "Enable **Allow GitHub Actions to create and approve pull requests** in"
+            echo "Settings > Actions > General, or open it now:"
+            echo
+            echo "<${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/compare/main...${VERSION_BRANCH}?expand=1>"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       # The versioned snapshot is verified before the tag exists, so a bad tree
       # never becomes a published tag.

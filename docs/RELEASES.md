@@ -95,6 +95,12 @@ Pages refuses to publish a commit that is not the merge of exactly one pull
 request, so the version bump is never pushed to `main` directly; only the tag
 is. Never push a release commit to `main`.
 
+Opening the release pull request needs **Allow GitHub Actions to create and
+approve pull requests** under Settings > Actions > General. Without it the
+workflow still applies the changesets and pushes `changeset-release/main`, then
+prints a compare link in its job summary for a maintainer to open once; the
+release itself is unaffected.
+
 ### Releasing by hand
 
 `workflow_dispatch` re-runs the same decision without waiting for a push, which
