@@ -195,3 +195,27 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag --annotate "${{ steps.plan.outputs.tag }}" --message "${{ steps.plan.outputs.tag }}"
           git push origin "${{ steps.plan.outputs.tag }}"
+
+      # A tag pushed with GITHUB_TOKEN starts no `push` run, so Release would
+      # never fire and the tag would carry no GitHub release. workflow_dispatch
+      # is the documented exception to that rule, so ask for the run explicitly.
+      # It is requested on the tag, exactly as the push trigger would have.
+      - name: Publish the GitHub release
+        if: steps.plan.outputs.action == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.plan.outputs.tag }}
+        run: |
+          set -euo pipefail
+          gh workflow run release.yml --ref "$RELEASE_TAG"
+          # Prove the dispatch produced a run rather than assuming it did.
+          for _ in $(seq 1 12); do
+            if [ -n "$(gh run list --workflow release.yml --event workflow_dispatch \
+              --branch "$RELEASE_TAG" --limit 1 --json databaseId --jq '.[].databaseId')" ]; then
+              echo "Release run requested for ${RELEASE_TAG}."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::${RELEASE_TAG} is tagged but no Release run started. Run the Release workflow on ${RELEASE_TAG} to attach the registry items."
+          exit 1

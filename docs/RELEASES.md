@@ -107,8 +107,15 @@ you.
 
 3. Merge the release pull request. `main` then carries a described version with
    no tag, so the same workflow verifies the committed snapshot and pushes the
-   `vX.Y.Z` tag. The tag workflow attaches the pinned registry items to a
-   GitHub release, with notes generated from the merged pull requests.
+   `vX.Y.Z` tag, then asks for the **Release** run on that tag. The tag is
+   pushed with `GITHUB_TOKEN`, and such a push starts no `push` run, so the
+   release would otherwise never be built; `workflow_dispatch` is the exception
+   to that rule and the step fails loudly if no run appears. **Release**
+   attaches the pinned registry items, with notes generated from the merged
+   pull requests.
+
+   A version already tagged is never bumped again by the commits it carries:
+   publishing comes before describing the next release.
 
 The workflow decides between those two steps with
 `.github/scripts/release-plan.mjs`, which is covered by
