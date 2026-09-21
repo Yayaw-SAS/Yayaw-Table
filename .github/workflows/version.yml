@@ -130,10 +130,10 @@ jobs:
             echo "head=$(git rev-parse HEAD)"
           } >> "$GITHUB_OUTPUT"
 
-      # Pages republishes bytes some run validated, never bytes built on main,
-      # and no pull request CI can run on this branch. Preserve the tarball this
+      # Pages republishes bytes some run validated, never bytes built on main.
+      # This branch's own CI waits for approval, so preserve the tarball this
       # job just validated under a name pinned to the commit it belongs to;
-      # pages-provenance.mjs accepts it in place of the CI run that cannot exist.
+      # pages-provenance.mjs accepts it when no CI run exists for that commit.
       - name: Preserve the validated Pages artifact
         if: steps.commit.outputs.proposed == 'true'
         uses: actions/upload-pages-artifact@v5

@@ -80,6 +80,19 @@ export function planRelease({ pending, version, tags, commits = [] }) {
       reason: `${pending.length} changeset(s) describe an unreleased change.`,
     };
   }
+  const tag = `v${version}`;
+  // Publishing comes before describing the next release. The commits behind an
+  // untagged version are the work that version already carries, and the tag
+  // they would be measured from is precisely the one that does not exist yet,
+  // so deriving a bump here would release the same work twice and never tag.
+  if (!tags.includes(tag)) {
+    return {
+      action: "tag",
+      tag,
+      unconventional: derived.unconventional,
+      reason: `${tag} is described and untagged, so it is ready to publish.`,
+    };
+  }
   if (derived.bump) {
     return {
       action: "version",
@@ -90,19 +103,10 @@ export function planRelease({ pending, version, tags, commits = [] }) {
       reason: `${commits.length - derived.unconventional.length} conventional commit(s) ask for a ${derived.bump} release.`,
     };
   }
-  const tag = `v${version}`;
-  if (tags.includes(tag)) {
-    return {
-      action: "none",
-      unconventional: derived.unconventional,
-      reason: `${tag} is already released.`,
-    };
-  }
   return {
-    action: "tag",
-    tag,
+    action: "none",
     unconventional: derived.unconventional,
-    reason: `${tag} is described and untagged, so it is ready to publish.`,
+    reason: `${tag} is already released.`,
   };
 }
 

@@ -74,15 +74,16 @@ async function fromPullRequestCi(api, base, head, latest, now) {
 }
 
 /**
- * The version workflow's own run, for the one branch no PR CI can cover.
+ * The version workflow's own run, a safety net for the release branch.
  *
- * GitHub starts no workflow run for a push made with GITHUB_TOKEN, so the
- * branch carrying a release never gets a pull request CI run and no trigger
- * can give it one. That workflow runs the same gate on the exact tree it
- * pushes and preserves the same tarball under a name pinned to the commit it
- * just created, so publication still reuses bytes a run validated. Its own
- * head is main, so only the artifact name binds it to this pull request; only
- * a workflow run can create that name, and version.yml runs only on main.
+ * That branch is pushed by github-actions[bot], whose pushes produce a CI run
+ * that waits for approval. This stands in only when the commit produced no CI
+ * run at all; an unapproved or failed one is still refused by the caller, so
+ * the net never rescues a release whose CI was not approved. The version
+ * workflow runs the same gate on the exact tree it pushes and preserves the
+ * tarball under a name pinned to the commit it just created. Its own head is
+ * main, so only the artifact name binds it to this pull request; only a
+ * workflow run can create that name, and version.yml runs only on main.
  */
 async function fromVersionRun(api, base, head, now) {
   const name = `registry-pages-${head}`;
