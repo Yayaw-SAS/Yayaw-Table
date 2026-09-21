@@ -62,6 +62,28 @@ After a push to `main`, the Pages workflow:
    transfers the unchanged tarball into the publication run and deploys it.
    GitHub Pages requires the artifact in the deploying workflow run.
 
+### The one branch no PR CI can cover
+
+GitHub starts no workflow run for a push made with `GITHUB_TOKEN`, so
+`changeset-release/main` never gets a `pull_request` CI run and no trigger
+configuration can give it one. A release would therefore tag and publish its
+GitHub release while Pages refused the merge.
+
+`Version and publish` closes that gap itself. It runs `release:check`, the Pages
+artifact validator and the snapshot verification on the exact tree it is about
+to push, then preserves the same tarball as `registry-pages-<version branch head
+SHA>` — no attempt suffix, because the lookup is by name. The provenance guard
+falls back to it **only** when the merged PR head has no `ci-tests.yml`
+`pull_request` run at all, so a red or pending PR CI is never stepped over. It
+then requires that the artifact was produced by a completed, successful
+`version.yml` run on `main` whose `version` job succeeded, and applies the same
+expiry, size and digest checks. The version run's own head is `main`, so the
+artifact name is what binds it to the release commit; only a workflow run can
+create that name, and `version.yml` runs only on `main`.
+
+`registry-pages-<head>-<attempt>` (PR CI) and `registry-pages-<head>` (version
+workflow) are therefore distinct namespaces. Keep them distinct.
+
 Publication performs no application installation, type checks, tests, or
 registry build. The old `Build registry` workflow and its automatic generated
 commits to `main` are removed. Generated registry sources remain local reviewed
