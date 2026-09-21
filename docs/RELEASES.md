@@ -85,7 +85,14 @@ you.
    every pending changeset on a `changeset-release/main` branch and opens (or
    refreshes) a `chore: release vX.Y.Z` pull request. That pull request carries
    the version bump, the synchronized Vue version, `CHANGELOG.md` and the
-   versioned snapshot under `public/r/vX.Y.Z/`, and runs the usual CI.
+   versioned snapshot under `public/r/vX.Y.Z/`.
+
+   GitHub starts no workflow run for a push made with `GITHUB_TOKEN`, so that
+   branch cannot trigger **CI tests** however the triggers are written. The
+   workflow therefore runs the gate itself, on the exact tree it is about to
+   push: `bun run release:check`, the Pages artifact validator, then the
+   versioned snapshot verification. A tree that fails is never proposed, so the
+   pull request you are shown has already passed more than a pull request runs.
 
    Changesets merged afterwards refresh the same pull request, so releases stay
    batched: it waits until you decide to publish.
