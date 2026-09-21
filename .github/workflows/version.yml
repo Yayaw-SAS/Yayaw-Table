@@ -1,0 +1,112 @@
+name: Version and publish
+
+# Releasing used to mean running `bun run version` locally, committing the bump
+# and pushing a tag by hand, so described changes sat unreleased. Main now keeps
+# a version pull request current; merging it publishes.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+# Never let two pushes race the same bump or tag.
+concurrency:
+  group: table-version
+  cancel-in-progress: false
+
+env:
+  VERSION_BRANCH: changeset-release/main
+
+jobs:
+  version:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          # Tags decide whether the described version is already published.
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Verify release guards
+        run: node --test .github/scripts/*.test.mjs
+
+      - name: Plan the release
+        id: plan
+        run: |
+          RELEASE_TAGS="$(git tag --list 'v*')" node .github/scripts/release-plan.mjs
+
+      - name: Install dependencies
+        if: steps.plan.outputs.action == 'version'
+        run: bun install --frozen-lockfile
+
+      - name: Install Vue dependencies
+        if: steps.plan.outputs.action == 'version'
+        run: bun install --cwd packages/yayaw-table-vue --frozen-lockfile
+
+      # `version` consumes the changesets, syncs the Vue package and snapshots
+      # the versioned registry, so the pull request carries the exact artifact
+      # the tag will later verify.
+      - name: Apply the changesets
+        if: steps.plan.outputs.action == 'version'
+        run: bun run version
+
+      - name: Open or refresh the version pull request
+        if: steps.plan.outputs.action == 'version'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version="$(node -p 'require("./package.json").version')"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$VERSION_BRANCH"
+          git add --all
+          if git diff --cached --quiet; then
+            echo "The changesets produced no change; nothing to propose."
+            exit 0
+          fi
+          git commit --message "chore: release v${version}"
+          git push --force-with-lease origin "$VERSION_BRANCH"
+          body=$(cat <<EOF
+          Applies the pending changesets, syncs the Vue package version and snapshots the versioned registry under \`public/r/v${version}\`.
+
+          Merging this pull request publishes: main then carries a described version with no tag, so this workflow tags \`v${version}\` and the release workflow attaches the pinned registry items.
+
+          Add more changesets before merging to release them together.
+          EOF
+          )
+          if ! gh pr edit "$VERSION_BRANCH" --title "chore: release v${version}" --body "$body"; then
+            gh pr create --base main --head "$VERSION_BRANCH" \
+              --title "chore: release v${version}" --body "$body"
+          fi
+
+      # The versioned snapshot is verified before the tag exists, so a bad tree
+      # never becomes a published tag.
+      - name: Verify the versioned registry snapshot
+        if: steps.plan.outputs.action == 'tag'
+        run: node scripts/verify-registry-release.mjs "${{ steps.plan.outputs.tag }}"
+
+      - name: Publish the tag
+        if: steps.plan.outputs.action == 'tag'
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag --annotate "${{ steps.plan.outputs.tag }}" --message "${{ steps.plan.outputs.tag }}"
+          git push origin "${{ steps.plan.outputs.tag }}"
