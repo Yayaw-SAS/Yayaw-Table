@@ -3,9 +3,10 @@
 import { useId } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useTableUrlState } from "../../hooks/use-table-url-state";
+import { planningLabelOverrides } from "../../planning/labels";
 import { ganttSettingsLabels } from "../../planning/settings";
 import type { TableGanttViewConfig } from "../../planning/types";
-import { useLocale } from "../../providers/table-provider";
+import { useTranslations } from "../../providers/table-provider";
 import type { TableDisplayMode } from "../../types/display-types";
 import { ViewSettingsPanel } from "./view-settings-panel";
 
@@ -18,9 +19,9 @@ export function TableGanttSettings({
   defaultConfig?: TableGanttViewConfig;
   defaultDisplayMode?: TableDisplayMode;
 }) {
-  const locale = useLocale();
+  const { locale, t } = useTranslations();
   const id = useId();
-  const labels = ganttSettingsLabels(locale);
+  const labels = ganttSettingsLabels(locale, planningLabelOverrides(t));
   const { ganttParam, setGanttFromUI } = useTableUrlState({
     tableId,
     defaultGantt: defaultConfig,

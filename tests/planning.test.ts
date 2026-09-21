@@ -10,6 +10,10 @@ import {
 } from "../src/components/ui/yayaw-table/planning/engine";
 import { buildPlanningRows } from "../src/components/ui/yayaw-table/planning/query";
 import {
+  canDeriveRowsPlanning,
+  createRowsPlanningAdapter,
+} from "../src/components/ui/yayaw-table/planning/rows-adapter";
+import {
   createPlanningSession,
   withPlanningActions,
 } from "../src/components/ui/yayaw-table/planning/session";
@@ -22,6 +26,8 @@ planningContractSuite({
   tree: planningTree,
   normalizeView: normalizeGanttView,
   session: createPlanningSession,
+  rowsAdapter: createRowsPlanningAdapter,
+  canDeriveRows: canDeriveRowsPlanning,
 });
 
 import { planningTasksFromRows } from "../src/components/ui/yayaw-table/planning/rows";

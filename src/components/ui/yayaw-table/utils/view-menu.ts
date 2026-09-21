@@ -3,18 +3,35 @@ import {
   normalizeViewAliases,
 } from "./table-contracts";
 
+type ViewDisplayMode = "table" | "kanban" | "gallery" | "gantt";
+
 /** These capabilities describe presentation, before catalogue permissions apply. */
-export function getViewModeCapabilities(
-  mode: "table" | "kanban" | "gallery" | "gantt"
-) {
+export function getViewModeCapabilities(mode: ViewDisplayMode) {
   return {
     columns: mode === "table",
     density: mode === "table",
     calculations: mode === "table",
     kanban: mode === "kanban",
     gallery: mode === "gallery",
+    gantt: mode === "gantt",
     maxGroups: { table: 2, gantt: 0, kanban: 1, gallery: 1 }[mode],
   } as const;
+}
+
+/**
+ * Gantt needs a planning graph the way Kanban needs a grouping column: offering the
+ * mode without one only leads to an empty view, so it is withheld until it can render.
+ */
+export function availableDisplayModes<T extends ViewDisplayMode>(
+  displayModes: T[] | undefined,
+  { planning }: { planning: boolean }
+): T[] {
+  const modes = displayModes?.length ? displayModes : (["table"] as T[]);
+  if (planning) {
+    return modes;
+  }
+  const usable = modes.filter((mode) => mode !== "gantt");
+  return usable.length ? usable : (["table"] as T[]);
 }
 
 const VIEW_SETTING_KEYS = [

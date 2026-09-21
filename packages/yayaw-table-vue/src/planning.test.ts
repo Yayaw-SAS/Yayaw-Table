@@ -10,6 +10,10 @@ import {
   planningTree,
 } from "./planning/engine";
 import { buildPlanningRows } from "./planning/query";
+import {
+  canDeriveRowsPlanning,
+  createRowsPlanningAdapter,
+} from "./planning/rows-adapter";
 import { createPlanningSession, withPlanningActions } from "./planning/session";
 
 planningContractSuite({
@@ -19,6 +23,8 @@ planningContractSuite({
   tree: planningTree,
   normalizeView: normalizeGanttView,
   session: createPlanningSession,
+  rowsAdapter: createRowsPlanningAdapter,
+  canDeriveRows: canDeriveRowsPlanning,
 });
 
 import { planningWorkflowSuite } from "../../../tests/planning-workflow-suite";

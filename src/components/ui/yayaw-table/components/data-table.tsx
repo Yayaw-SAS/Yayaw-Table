@@ -1,4 +1,5 @@
 "use client";
+import { planningLabelOverrides } from "../planning/labels";
 import { PlanningSurface, usePlanningState } from "../planning/react";
 /**
  * New DataTable component using the declarative architecture
@@ -27,6 +28,7 @@ import {
 } from "../providers/table-provider";
 import { TableStateSyncProvider } from "../providers/table-state-sync-provider";
 import { resolveTranslationsToUiStrings } from "../providers/translation-cache";
+import type { TableGanttViewConfig } from "../planning/types";
 import type {
   TableDisplayMode,
   TableGalleryConfig,
@@ -42,6 +44,7 @@ import type {
   DetailRevertHandler,
   RecordDetailsConfig,
 } from "../utils/record-details";
+import { availableDisplayModes } from "../utils/view-menu";
 import type { CustomBulkActionsInput } from "./bulk-actions";
 import type { ActionItem } from "./columns/actions-column";
 import { DataTableSkeleton } from "./data-table-skeleton";
@@ -56,6 +59,7 @@ import { TableComponent as DataTableClient } from "./table-component";
 import { DataTableAdvancedToolbar } from "./toolbar/data-table-advanced-toolbar";
 import { TableDisplayModeSwitcher } from "./toolbar/table-display-mode-switcher";
 import { TableGalleryMenu } from "./toolbar/table-gallery-menu";
+import { TableGanttSettings } from "./toolbar/table-gantt-settings";
 import { TableKanbanGroupingMenu } from "./toolbar/table-kanban-grouping-menu";
 
 // Default UI components
@@ -245,6 +249,7 @@ function DataTableHeaderControls({
   searchDebounceMs,
   galleryColumns,
   galleryConfig,
+  ganttConfig,
   initialActiveViewId,
   initialViews,
   kanbanConfig,
@@ -277,6 +282,7 @@ function DataTableHeaderControls({
   searchDebounceMs: number;
   galleryColumns: GalleryControlColumn[];
   galleryConfig?: TableGalleryConfig;
+  ganttConfig?: TableGanttViewConfig;
   initialActiveViewId?: string;
   initialViews?: TableView[];
   kanbanConfig?: TableKanbanConfig;
@@ -312,6 +318,13 @@ function DataTableHeaderControls({
             defaultConfig={galleryConfig}
             defaultDisplayMode={defaultDisplayMode}
             embedded
+            tableId={tableId}
+          />
+        ) : undefined,
+        gantt: (displayModes ?? []).includes("gantt") ? (
+          <TableGanttSettings
+            defaultConfig={ganttConfig}
+            defaultDisplayMode={defaultDisplayMode}
             tableId={tableId}
           />
         ) : undefined,
@@ -390,10 +403,12 @@ function useRecordView(
 function PlanningRecordOverlay({
   session,
   locale,
+  labels,
   onOpen,
 }: {
   session: ReturnType<typeof usePlanningState>["session"];
   locale: string;
+  labels?: ReturnType<typeof planningLabelOverrides>;
   onOpen?: (row: Record<string, unknown>) => void;
 }) {
   if (!session) {
@@ -401,6 +416,7 @@ function PlanningRecordOverlay({
   }
   return (
     <PlanningSurface
+      labels={labels}
       locale={locale}
       mode="overlay"
       onOpenRecord={
@@ -556,7 +572,11 @@ function DataTableContent({
   useAutoPageSizeLifetime(tableId);
   const defaultFormType = formType ?? tableType;
   const { session: planningSession } = usePlanningState();
-  const { locale: planningLocale } = useTranslations();
+  const { locale: planningLocale, t: planningTranslate } = useTranslations();
+  const planningLabels = useMemo(
+    () => planningLabelOverrides(planningTranslate),
+    [planningTranslate]
+  );
   const { viewedRow, setViewedRow, openDetails } = useRecordView(
     tableId,
     details,
@@ -625,7 +645,14 @@ function DataTableContent({
     toolbarActions,
     toolbarActionsPlacement,
   });
-  const shouldShowDisplayModes = (config.table.displayModes?.length ?? 1) > 1;
+  const offeredDisplayModes = useMemo(
+    () =>
+      availableDisplayModes(config.table.displayModes, {
+        planning: Boolean(planningSession),
+      }),
+    [config.table.displayModes, planningSession]
+  );
+  const shouldShowDisplayModes = offeredDisplayModes.length > 1;
   const kanbanGroupingColumns = useMemo(
     () => getKanbanGroupingColumns(config.columns.definitions),
     [config.columns.definitions]
@@ -745,12 +772,13 @@ function DataTableContent({
                   defaultDensity={config.table.density}
                   defaultDisplayMode={config.table.defaultDisplayMode}
                   defaultFormType={defaultFormType}
-                  displayModes={config.table.displayModes}
+                  displayModes={offeredDisplayModes}
                   enableAdvancedFilters={shouldEnableAdvancedFilters}
                   enableGalleryControl={shouldShowGallery}
                   enableKanbanGrouping={shouldShowKanbanGrouping}
                   galleryColumns={galleryColumns}
                   galleryConfig={config.table.gallery}
+                  ganttConfig={config.table.gantt}
                   initialActiveViewId={initialActiveViewId}
                   initialViews={initialViews}
                   kanbanConfig={config.table.kanban}
@@ -848,6 +876,7 @@ function DataTableContent({
         <CatalogueFormContainer tableId={tableId} />
       </Suspense>
       <PlanningRecordOverlay
+        labels={planningLabels}
         locale={planningLocale}
         onOpen={openDetails}
         session={planningSession}

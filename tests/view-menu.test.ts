@@ -1,6 +1,7 @@
 import { expect, it } from "bun:test";
 import {
   areViewSettingsEqual,
+  availableDisplayModes,
   getViewModeCapabilities,
   sharePageUrl,
 } from "../src/components/ui/yayaw-table/utils/view-menu";
@@ -100,4 +101,23 @@ it("compares date filter values and their serialized saved representation", () =
       ],
     })
   ).toBe(false);
+});
+
+it("offers Gantt only when a planning graph backs it", () => {
+  const modes = ["table", "gantt", "kanban"] as const;
+  expect(availableDisplayModes([...modes], { planning: true })).toEqual([
+    "table",
+    "gantt",
+    "kanban",
+  ]);
+  expect(availableDisplayModes([...modes], { planning: false })).toEqual([
+    "table",
+    "kanban",
+  ]);
+  expect(availableDisplayModes(["gantt"], { planning: false })).toEqual([
+    "table",
+  ]);
+  expect(availableDisplayModes(undefined, { planning: true })).toEqual([
+    "table",
+  ]);
 });

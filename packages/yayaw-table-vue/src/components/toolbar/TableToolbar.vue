@@ -39,7 +39,9 @@ import TableDensityMenu from "./TableDensityMenu.vue";
 import ToolbarMenu from "./ToolbarMenu.vue";
 import ToolbarDataActions from "./ToolbarDataActions.vue";
 import GanttSettings from "./GanttSettings.vue";
+import { planningLabelOverrides } from "../../planning/labels";
 import { ganttSettingsLabels } from "../../planning/settings";
+import { availableDisplayModes } from "../../view-menu";
 import GallerySettings from "./GallerySettings.vue";
 import KanbanSettings from "./KanbanSettings.vue";
 import AdvancedFilters from "../filters/AdvancedFilters.vue";
@@ -61,7 +63,7 @@ const optionsRoot = ref<HTMLElement>();
 const advancedFiltersPanel = ref<InstanceType<typeof AdvancedFilters>>();
 const optionsOpen = ref(false);
 const optionsView = ref<OptionsView>("main");
-const cardSettingsTitle = computed(() => context.state.displayMode.value === "gantt" ? ganttSettingsLabels(context.locale).title : translate("views.cardSettings", "Card settings"));
+const cardSettingsTitle = computed(() => context.state.displayMode.value === "gantt" ? ganttSettingsLabels(context.locale, planningLabelOverrides((key) => translate(key, key))).title : translate("views.cardSettings", "Card settings"));
 const pendingAction = ref<string>();
 const isExporting = ref(false);
 const search = computed({
@@ -71,8 +73,10 @@ const search = computed({
   },
 });
 const displayModeIcons = { gantt: ChartGantt, table: Table2, kanban: Columns3, gallery: Images };
-const modes = computed<TableDisplayMode[]>(
-  () => context.config.table.displayModes ?? ["table"]
+const modes = computed<TableDisplayMode[]>(() =>
+  availableDisplayModes(context.config.table.displayModes, {
+    planning: Boolean(context.planning),
+  })
 );
 const displayMode = computed({
   get: () => context.state.displayMode.value,

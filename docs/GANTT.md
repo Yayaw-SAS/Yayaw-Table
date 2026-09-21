@@ -36,15 +36,51 @@ const config = defineTableConfig({
 });
 ```
 
-Use the same `gantt` mappings in `planningTasksFromRows` when building the adapter snapshot.
+That configuration is all a Gantt needs. When no `actions.planning` adapter is supplied, the table
+derives the planning graph from its own `list` action through `createRowsPlanningAdapter`, and saves
+date and hierarchy edits through its own `update` action — the way Kanban and Gallery need only their
+own column mappings. `gantt.parentColumn` adds a hierarchy, `gantt.calendarColumn` selects a calendar
+per row.
+
+Keep `getTableActions` referentially stable, as with any table: the derived graph is rebuilt whenever
+the action factory changes identity.
+
+A derived planning is not transactional: each affected row is patched separately, dependency editing
+is off (rows store no relationships), and the whole source is loaded so the timeline can schedule it.
+Supply `actions.planning` when you need atomic commits, relationships, or server-side paging — an
+explicit adapter always wins over the derived one.
+
+Gantt is withheld from the display-mode switcher whenever no planning graph can be built: without
+`startColumn` and `endColumn`, or without either a `list` action or an explicit adapter. A saved view
+or URL asking for Gantt then falls back to the first available mode instead of rendering an empty
+timeline. Mapping both columns is what turns the mode on.
+
+Use the same `gantt` mappings in `planningTasksFromRows` when building a custom adapter snapshot.
 The returned `source.fields` makes form/inline record patches use those same columns. Applications can
 instead normalize tasks directly, retaining their own database schema and custom relationship storage.
+
+## Translating the timeline
+
+Every timeline, dialog and settings label reads `views.gantt.<key>` from the table translations, with
+the built-in English and French vocabulary as the fallback for any key a host leaves out. The keys are
+listed by `PLANNING_LABEL_KEYS`; `defaultTranslations.views.gantt` carries the English set.
+
+```ts
+translations = {
+  ...defaultTranslations,
+  views: {
+    ...defaultTranslations.views,
+    gantt: { ...defaultTranslations.views.gantt, task: "Lote", today: "Hoy" },
+  },
+};
+```
 
 ## Per-table defaults
 
 | Setting | Default |
 | --- | --- |
 | `planning.enabled` | Explicitly required |
+| `actions.planning` | Derived from `actions.list`/`actions.update` when absent |
 | `planning.scheduling` | `preview` |
 | `planning.parentDates` | `rollup` |
 | `planning.hierarchy` | `true` |

@@ -4,6 +4,7 @@ import {
   comparePlanningTasks,
   planningTaskMatches,
 } from "../planning/query";
+import { planningLabels, planningLabelOverrides } from "../planning/labels";
 import { PlanningSurface, usePlanningState } from "../planning/react";
 /**
  * Modern implementation of the DataTable component
@@ -32,6 +33,7 @@ import type {
 } from "@/components/ui/yayaw-table/tanstack";
 import { flexRender } from "@/components/ui/yayaw-table/tanstack";
 import { cn } from "@/lib/utils";
+import { ChartGantt, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Skeleton } from "@/src/components/ui/skeleton";
 import {
@@ -85,6 +87,7 @@ import type {
 import { groupedLeafRows, groupedValueLabel } from "../utils/table-contracts";
 import { TABLE_DENSITY_CLASSES } from "../utils/table-density";
 import { getPrimaryGrouping } from "../utils/table-view-state";
+import { availableDisplayModes } from "../utils/view-menu";
 import {
   BulkActionsMenu,
   type CustomBulkActionsInput,
@@ -341,6 +344,12 @@ const handleDataTableRowClick = <TData,>({
   }
 };
 
+/**
+ * Planning rows and grouped rows share one expansion map with opposite defaults
+ * (a planning row starts open, a group starts closed), so their keys stay distinct.
+ */
+const planningExpansionKey = (rowId: string): string => `planning:${rowId}`;
+
 function resolveActiveDisplayMode({
   defaultDisplayMode,
   displayModeParam,
@@ -353,8 +362,11 @@ function resolveActiveDisplayMode({
   if (displayModes.includes(displayModeParam)) {
     return displayModeParam;
   }
+  if (defaultDisplayMode && displayModes.includes(defaultDisplayMode)) {
+    return defaultDisplayMode;
+  }
 
-  return defaultDisplayMode ?? "table";
+  return displayModes[0] ?? "table";
 }
 
 function shouldUseKanbanDisplayMode({
@@ -964,6 +976,11 @@ function ModernDataTable<
   const queryClient = useQueryClient();
   const setFormState = useSetAtom(catalogueFormAtom);
   const { t, locale } = useTranslations();
+  // Resolved once so the timeline, its dialogs and the planning row controls speak alike.
+  const ganttLabels = useMemo(
+    () => planningLabels(locale, planningLabelOverrides(t)),
+    [locale, t]
+  );
   const getFormConfig = useFormConfig();
   const resolvedTableType = tableType || tableId;
   const defaultFormType = formType || resolvedTableType;
@@ -1231,7 +1248,14 @@ function ModernDataTable<
     defaultDisplayMode: tableConfig.table.defaultDisplayMode,
     tableId: tableId || "",
   });
-  const configuredDisplayModes = tableConfig.table.displayModes ?? ["table"];
+  const { session: planningSession, state: planningState } = usePlanningState();
+  const configuredDisplayModes = useMemo(
+    () =>
+      availableDisplayModes(tableConfig.table.displayModes, {
+        planning: Boolean(planningSession),
+      }),
+    [tableConfig.table.displayModes, planningSession]
+  );
   const activeDisplayMode = resolveActiveDisplayMode({
     defaultDisplayMode: tableConfig.table.defaultDisplayMode,
     displayModeParam,
@@ -1239,7 +1263,6 @@ function ModernDataTable<
   });
 
   // Use fetched data from API like in production
-  const { session: planningSession, state: planningState } = usePlanningState();
   const data = useMemo(
     () =>
       buildPlanningRows(
@@ -2063,25 +2086,39 @@ function ModernDataTable<
               style={{ paddingLeft: row.depth * 16 }}
             >
               {row.subRows.length > 0 && (
-                <button
-                  aria-expanded={localExpanded[row.id] !== false}
-                  aria-label={`${localExpanded[row.id] !== false ? "Collapse" : "Expand"} ${row.id}`}
+                <Button
+                  aria-expanded={
+                    localExpanded[planningExpansionKey(row.id)] !== false
+                  }
+                  aria-label={
+                    localExpanded[planningExpansionKey(row.id)] !== false
+                      ? ganttLabels.collapse
+                      : ganttLabels.expand
+                  }
+                  className="size-5 shrink-0 text-muted-foreground"
                   onClick={(event) => {
                     event.stopPropagation();
                     setLocalExpanded((previous) => ({
                       ...previous,
-                      [row.id]: previous[row.id] === false,
+                      [planningExpansionKey(row.id)]:
+                        previous[planningExpansionKey(row.id)] === false,
                     }));
                   }}
+                  size="icon"
                   type="button"
+                  variant="ghost"
                 >
-                  {localExpanded[row.id] !== false ? "▾" : "▸"}
-                </button>
+                  {localExpanded[planningExpansionKey(row.id)] !== false ? (
+                    <ChevronDown aria-hidden="true" className="size-4" />
+                  ) : (
+                    <ChevronRight aria-hidden="true" className="size-4" />
+                  )}
+                </Button>
               )}
               {renderRegularCellContent(row, cell)}
-              <button
-                aria-label={`Planning ${row.id}`}
-                className="text-muted-foreground"
+              <Button
+                aria-label={ganttLabels.planning}
+                className="size-5 shrink-0 text-muted-foreground"
                 onClick={(event) => {
                   event.stopPropagation();
                   planningSession.open({
@@ -2089,10 +2126,12 @@ function ModernDataTable<
                     id: getRowId?.(row.original) ?? String(row.original.id),
                   });
                 }}
+                size="icon"
                 type="button"
+                variant="ghost"
               >
-                ↗
-              </button>
+                <ChartGantt aria-hidden="true" className="size-4" />
+              </Button>
             </span>
           ) : (
             renderRegularCellContent(row, cell)
@@ -2237,7 +2276,10 @@ function ModernDataTable<
     };
 
     const renderPlanningChildren = (row: Row<TData>, level: number) => {
-      if (!planningSession || localExpanded[row.id] === false) {
+      if (
+        !planningSession ||
+        localExpanded[planningExpansionKey(row.id)] === false
+      ) {
         return;
       }
       for (const child of row.subRows) {
@@ -2280,6 +2322,7 @@ function ModernDataTable<
     );
   }, [
     planningSession,
+    ganttLabels,
     getRowId,
     commitInlineEdit,
     isLoading,
@@ -2383,6 +2426,7 @@ function ModernDataTable<
         }
         emptyTitle={emptyStateTitle}
         gantt={{ ...tableConfig.table.gantt, ...ganttParam }}
+        labels={ganttLabels}
         locale={locale}
         mode="gantt"
         onClearFilters={hasActiveSearchOrFilters ? resetFilters : undefined}
@@ -2398,9 +2442,7 @@ function ModernDataTable<
         }
       />
     ) : (
-      <div role="alert">
-        Configure table.planning and actions.planning to enable Gantt.
-      </div>
+      <div role="alert">{ganttLabels.noAdapter}</div>
     );
 
   const renderDisplayContent = () => {

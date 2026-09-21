@@ -4,6 +4,10 @@ import type {
   normalizeGanttView,
   planningTree,
 } from "../src/components/ui/yayaw-table/planning/engine";
+import type {
+  canDeriveRowsPlanning,
+  createRowsPlanningAdapter,
+} from "../src/components/ui/yayaw-table/planning/rows-adapter";
 import type { createPlanningSession } from "../src/components/ui/yayaw-table/planning/session";
 import type {
   PlanningDependency,
@@ -97,6 +101,8 @@ interface Suite {
   tree: typeof planningTree;
   normalizeView: typeof normalizeGanttView;
   session: typeof createPlanningSession;
+  rowsAdapter: typeof createRowsPlanningAdapter;
+  canDeriveRows: typeof canDeriveRowsPlanning;
 }
 export function planningContractSuite({
   test,
@@ -105,7 +111,10 @@ export function planningContractSuite({
   tree,
   normalizeView,
   session,
+  rowsAdapter,
+  canDeriveRows,
 }: Suite): void {
+  rowsPlanningCases({ test, rowsAdapter, canDeriveRows, session });
   for (const scenario of scenarios) {
     test(scenario.name, () => {
       const snapshot = planningFixture();
@@ -530,6 +539,207 @@ export function planningContractSuite({
     runtime.cancel();
     equal((await pending).code, "cancelled");
     equal(store.getSnapshot().revision, "r1");
+    runtime.dispose();
+  });
+}
+
+/** Rows the table's own list action would return. */
+const planningRows = () => [
+  {
+    id: "parent",
+    name: "Parent",
+    start: "2026-09-14",
+    end: "2026-09-18",
+    parentId: null,
+  },
+  {
+    id: "a",
+    name: "A",
+    start: "2026-09-14",
+    end: "2026-09-15",
+    parentId: "parent",
+  },
+  {
+    id: "b",
+    name: "B",
+    start: "2026-09-16",
+    end: "2026-09-17",
+    parentId: "parent",
+  },
+];
+const rowsGantt = {
+  titleColumn: "name",
+  startColumn: "start",
+  endColumn: "end",
+  parentColumn: "parentId",
+};
+const rowsContext = { scopeId: "project", sourceId: "tasks" };
+
+function rowsPlanningCases({
+  test,
+  rowsAdapter,
+  canDeriveRows,
+  session,
+}: Pick<Suite, "test" | "rowsAdapter" | "canDeriveRows" | "session">): void {
+  const listing =
+    (rows: Record<string, unknown>[], pages = 1) =>
+    (params: Record<string, unknown>) => {
+      const page = Number(params.page);
+      const size = Math.ceil(rows.length / pages);
+      return Promise.resolve({
+        data: rows.slice((page - 1) * size, page * size),
+        meta: { pageCount: pages, totalCount: rows.length },
+      });
+    };
+
+  test("a planning is derivable only once both date columns are mapped", () => {
+    equal(canDeriveRows(undefined), false);
+    equal(canDeriveRows({ startColumn: "start" }), false);
+    equal(canDeriveRows(rowsGantt), true);
+  });
+
+  test("rows become a complete graph with their hierarchy", async () => {
+    const store = rowsAdapter({
+      config: planningConfig,
+      gantt: rowsGantt,
+      list: listing(planningRows()),
+    });
+    const snapshot = await store.actions.load(rowsContext);
+    equal(snapshot.complete, true);
+    equal(snapshot.tasks.length, 3);
+    equal(at(snapshot.tasks, 1).label, "A");
+    equal(at(snapshot.tasks, 1).parent, { source: "tasks", id: "parent" });
+  });
+
+  test("every list page is gathered before the graph is used", async () => {
+    const store = rowsAdapter({
+      config: planningConfig,
+      gantt: rowsGantt,
+      list: listing(planningRows(), 3),
+    });
+    equal((await store.actions.load(rowsContext)).tasks.length, 3);
+  });
+
+  test("the revision tracks the rows rather than the reload", async () => {
+    const rows = planningRows();
+    const store = rowsAdapter({
+      config: planningConfig,
+      gantt: rowsGantt,
+      list: listing(rows),
+    });
+    const first = await store.actions.load(rowsContext);
+    equal((await store.actions.load(rowsContext)).revision, first.revision);
+    at(rows, 1).end = "2026-09-16";
+    equal(
+      (await store.actions.load(rowsContext)).revision === first.revision,
+      false
+    );
+  });
+
+  test("applying a move patches only the columns that changed", async () => {
+    const patches: [string, Record<string, unknown>][] = [];
+    const store = rowsAdapter({
+      config: planningConfig,
+      gantt: rowsGantt,
+      list: listing(planningRows()),
+      update: (id, data) => {
+        patches.push([id, data]);
+        return Promise.resolve({ success: true });
+      },
+    });
+    const loaded = await store.actions.load(rowsContext);
+    const prepared = await store.actions.preview({
+      ...rowsContext,
+      revision: loaded.revision,
+      mutations: [{ type: "move", ref: { source: "tasks", id: "b" }, days: 1 }],
+    });
+    const applied = await store.actions.apply({
+      ...rowsContext,
+      revision: loaded.revision,
+      previewId: prepared.data?.id ?? "",
+      idempotencyKey: "move-b",
+    });
+    equal(applied.success, true);
+    // The moved leaf and the parent whose rolled-up dates followed it.
+    equal(
+      patches.map(([id]) => id),
+      ["parent", "b"]
+    );
+    equal(at(patches, 1), ["b", { start: "2026-09-17", end: "2026-09-18" }]);
+  });
+
+  test("a read-only planning refuses to store dates", async () => {
+    const store = rowsAdapter({
+      config: planningConfig,
+      gantt: rowsGantt,
+      list: listing(planningRows()),
+    });
+    const loaded = await store.actions.load(rowsContext);
+    const prepared = await store.actions.preview({
+      ...rowsContext,
+      revision: loaded.revision,
+      mutations: [{ type: "move", ref: { source: "tasks", id: "b" }, days: 1 }],
+    });
+    const applied = await store.actions.apply({
+      ...rowsContext,
+      revision: loaded.revision,
+      previewId: prepared.data?.id ?? "",
+      idempotencyKey: "read-only",
+    });
+    equal(applied.success, false);
+    equal(applied.code, "read-only");
+  });
+
+  test("a rejected update surfaces its reason and resynchronizes", async () => {
+    const rows = planningRows();
+    const store = rowsAdapter({
+      config: planningConfig,
+      gantt: rowsGantt,
+      list: listing(rows),
+      update: () => Promise.resolve({ success: false, error: "Row is locked" }),
+    });
+    const loaded = await store.actions.load(rowsContext);
+    const prepared = await store.actions.preview({
+      ...rowsContext,
+      revision: loaded.revision,
+      mutations: [{ type: "move", ref: { source: "tasks", id: "b" }, days: 1 }],
+    });
+    const applied = await store.actions.apply({
+      ...rowsContext,
+      revision: loaded.revision,
+      previewId: prepared.data?.id ?? "",
+      idempotencyKey: "locked",
+    });
+    equal(applied.success, false);
+    equal(applied.error, "Row is locked");
+    equal(at(store.getSnapshot().tasks, 2).start, "2026-09-16");
+  });
+
+  test("the shared session drives a rows planning end to end", async () => {
+    const rows = planningRows();
+    const store = rowsAdapter({
+      config: planningConfig,
+      gantt: rowsGantt,
+      list: listing(rows),
+      update: (id, data) => {
+        const row = rows.find((item) => item.id === id);
+        if (row) {
+          Object.assign(row, data);
+        }
+        return Promise.resolve({ success: true });
+      },
+    });
+    const runtime = session({
+      config: { ...planningConfig, scheduling: "automatic" },
+      actions: store.actions,
+    });
+    await runtime.load();
+    equal(runtime.getState().snapshot?.tasks.length, 3);
+    const result = await runtime.request([
+      { type: "move", ref: { source: "tasks", id: "b" }, days: 2 },
+    ]);
+    equal(result.success, true);
+    equal(at(rows, 2).start, "2026-09-18");
     runtime.dispose();
   });
 }

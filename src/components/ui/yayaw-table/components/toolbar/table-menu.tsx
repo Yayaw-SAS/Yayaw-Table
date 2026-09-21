@@ -40,6 +40,7 @@ import {
   tableMenuOpenToViewAtom,
 } from "../../atoms";
 import { useTableUrlState } from "../../hooks/use-table-url-state";
+import { planningLabelOverrides } from "../../planning/labels";
 import { ganttSettingsLabels } from "../../planning/settings";
 import { useLocale, useTranslations } from "../../providers/table-provider";
 import type { ColumnDataType } from "../../types";
@@ -425,9 +426,12 @@ function resolveMenuGrouping(state: string[], url: string[]): string[] {
 function getSettingsTitle(
   mode: TableDisplayMode,
   locale: string,
+  translate: (key: string) => string,
   fallback: string
 ): string {
-  return mode === "gantt" ? ganttSettingsLabels(locale).title : fallback;
+  return mode === "gantt"
+    ? ganttSettingsLabels(locale, planningLabelOverrides(translate)).title
+    : fallback;
 }
 
 export function TableMenu({
@@ -483,6 +487,7 @@ export function TableMenu({
   const cardSettingsTitle = getSettingsTitle(
     displayModeParam,
     locale,
+    t,
     t("views.cardSettings")
   );
   const capabilities = getViewModeCapabilities(displayModeParam);
