@@ -669,6 +669,11 @@
           "target": "components/ui/yayaw-table/components/gallery-view.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/gantt-view.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/gantt-view.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/index.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/index.ts"
@@ -974,6 +979,11 @@
           "target": "components/ui/yayaw-table/planning/engine.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/planning/labels.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/planning/labels.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/planning/query.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/planning/query.ts"
@@ -982,6 +992,11 @@
           "path": "registry/default/ui/yayaw-table/planning/react.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/planning/react.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/planning/rows-adapter.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/planning/rows-adapter.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/planning/rows.ts",
@@ -1007,6 +1022,16 @@
           "path": "registry/default/ui/yayaw-table/planning/surface.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/planning/surface.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/planning/timeline.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/planning/timeline.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/planning/transactions.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/planning/transactions.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/planning/types.ts",

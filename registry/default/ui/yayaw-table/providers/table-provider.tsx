@@ -29,6 +29,10 @@ import type {
 import type { TableConfig } from "../config/helpers";
 import { PlanningContext } from "../planning/react";
 import {
+  canDeriveRowsPlanning,
+  createRowsPlanningAdapter,
+} from "../planning/rows-adapter";
+import {
   createPlanningSession,
   withPlanningActions,
 } from "../planning/session";
@@ -283,13 +287,40 @@ export function TableProvider({
     () => getTableActions?.(planningType),
     [getTableActions, planningType]
   );
+  /**
+   * A table that maps its own start/end columns gets a Gantt from its existing
+   * list/update actions, the way Kanban and Gallery need only column mappings.
+   * An explicit planning adapter always wins.
+   */
+  const derivedPlanning = useMemo(() => {
+    const planning = planningBehavior?.planning;
+    if (
+      !planning?.enabled ||
+      rawPlanningActions?.planning ||
+      !rawPlanningActions?.list ||
+      !canDeriveRowsPlanning(planningBehavior?.gantt)
+    ) {
+      return undefined;
+    }
+    return createRowsPlanningAdapter({
+      config: planning,
+      gantt: planningBehavior?.gantt,
+      list: rawPlanningActions.list,
+      update: rawPlanningActions.update,
+    });
+  }, [planningBehavior, rawPlanningActions]);
   const planningSession = useMemo(() => {
-    if (!planningBehavior?.planning?.enabled) {
+    const planningActions =
+      rawPlanningActions?.planning ?? derivedPlanning?.actions;
+    if (!(planningBehavior?.planning?.enabled && planningActions)) {
       return undefined;
     }
     return createPlanningSession({
-      config: planningBehavior.planning,
-      actions: rawPlanningActions?.planning,
+      // Rows carry dates and hierarchy, never relationships.
+      config: derivedPlanning
+        ? { ...planningBehavior.planning, allowDependencyEdit: false }
+        : planningBehavior.planning,
+      actions: planningActions,
       allowEdit: planningBehavior.allowEdit,
       canEditRow:
         "canEditRow" in planningBehavior
@@ -304,7 +335,12 @@ export function TableProvider({
         });
       },
     });
-  }, [planningBehavior, rawPlanningActions, resolvedQueryClient.queryClient]);
+  }, [
+    derivedPlanning,
+    planningBehavior,
+    rawPlanningActions,
+    resolvedQueryClient.queryClient,
+  ]);
   useEffect(() => {
     planningSession?.connect();
     return () => planningSession?.dispose();
@@ -809,6 +845,63 @@ export const defaultTranslations: DataTableTranslations = {
       titleColumn: "Title",
       properties: "Properties",
       showLabels: "Show property labels",
+    },
+    gantt: {
+      planning: "Planning",
+      task: "Task",
+      start: "Start",
+      end: "End",
+      parent: "Parent",
+      root: "No parent",
+      source: "Table",
+      predecessor: "Predecessor",
+      type: "Dependency type",
+      lag: "Offset",
+      unit: "Count offset in",
+      working: "Working days",
+      calendar: "Calendar days",
+      dependencies: "Dependencies",
+      add: "Add dependency",
+      edit: "Edit",
+      remove: "Remove",
+      preview: "Review changes",
+      apply: "Apply all changes",
+      cancel: "Cancel",
+      save: "Preview changes",
+      close: "Close",
+      loading: "Loading planning…",
+      retry: "Reload planning",
+      empty: "No tasks match this view",
+      clear: "Clear filters",
+      unscheduled: "Not scheduled",
+      before: "Before",
+      after: "After",
+      reason: "Reason",
+      day: "Day",
+      week: "Week",
+      month: "Month",
+      today: "Today",
+      previous: "Previous period",
+      next: "Next period",
+      weekStart: "First day of week",
+      showLinks: "Show dependencies",
+      move: "Move",
+      resizeStart: "Resize start",
+      resizeEnd: "Resize end",
+      expand: "Expand",
+      collapse: "Collapse",
+      noAdapter:
+        "Configure table.planning and actions.planning to load this planning.",
+      record: "Open record",
+      newLink: "New dependency",
+      requested: "Requested change",
+      summary: "Summary dates",
+      group: "Group or calendar adjustment",
+      dependency: "Dependency",
+      noDates: "—",
+      relationsChanged: "Dependency changes are included in this transaction.",
+      settings: "Gantt settings",
+      zoom: "Zoom",
     },
     history: {
       undo: "Undo change",

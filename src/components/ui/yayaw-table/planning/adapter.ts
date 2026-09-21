@@ -1,22 +1,18 @@
-import { calculatePlanning, planningDefaults } from "./engine";
+import { planningDefaults } from "./engine";
 import {
-  type PlanningApplyInput,
+  assertPlanningContext,
+  createPlanningTransactions,
+} from "./transactions";
+import {
   type PlanningContext,
   PlanningError,
   type PlanningMutation,
   type PlanningPreview,
-  type PlanningResult,
   type PlanningSnapshot,
   planningKey,
   type TablePlanningActions,
   type TablePlanningConfig,
 } from "./types";
-
-const failure = <T>(cause: unknown): PlanningResult<T> => ({
-  success: false,
-  error: cause instanceof Error ? cause.message : String(cause),
-  code: cause instanceof PlanningError ? cause.code : "planning-error",
-});
 
 /** A complete executable adapter example. Production adapters enforce the same checks in a database transaction. */
 export function createMemoryPlanningAdapter(input: {
@@ -31,169 +27,20 @@ export function createMemoryPlanningAdapter(input: {
 }) {
   let current = structuredClone(input.snapshot);
   const config = planningDefaults(input.config);
-  const plans = new Map<
-    string,
-    {
-      preview: PlanningPreview;
-      next: PlanningSnapshot;
-      mutations: PlanningMutation[];
-      context: PlanningContext;
-    }
-  >();
-  const applied = new Map<
-    string,
-    { signature: string; snapshot: PlanningSnapshot }
-  >();
-  const checkContext = (context: PlanningContext): void => {
-    if (
-      context.scopeId !== current.scopeId ||
-      context.scopeId !== config.scopeId ||
-      !current.sources.some((source) => source.id === context.sourceId)
-    ) {
-      throw new PlanningError(
-        "scope-mismatch",
-        "The planning scope or source is unavailable."
-      );
-    }
-  };
-  const signature = (request: PlanningApplyInput): string =>
-    JSON.stringify([
-      request.scopeId,
-      request.sourceId,
-      request.previewId,
-      request.revision,
-    ]);
-  const priorCommit = (
-    request: PlanningApplyInput
-  ): PlanningSnapshot | undefined => {
-    const prior = applied.get(request.idempotencyKey);
-    if (!prior) {
-      return undefined;
-    }
-    if (prior.signature !== signature(request)) {
-      throw new PlanningError(
-        "idempotency-conflict",
-        "This request key was already used for another plan."
-      );
-    }
-    return structuredClone(prior.snapshot);
-  };
-  const actions: TablePlanningActions = {
-    load(context) {
-      checkContext(context);
+  const actions = createPlanningTransactions({
+    config: input.config,
+    read: () => current,
+    load: (context) => {
+      assertPlanningContext(current, config.scopeId, context);
       context.signal?.throwIfAborted();
       return Promise.resolve(structuredClone(current));
     },
-    async preview(request) {
-      try {
-        checkContext(request);
-        if (request.revision !== current.revision) {
-          throw new PlanningError(
-            "stale-preview",
-            "The planning changed. Reload it and create a new preview."
-          );
-        }
-        const revision = current.revision;
-        const mutations = structuredClone(request.mutations);
-        const result = calculatePlanning(current, mutations, {
-          ...config,
-          sourceId: request.sourceId,
-        });
-        const preview = { ...result.preview, id: crypto.randomUUID() };
-        await input.validate?.(
-          structuredClone(current),
-          mutations,
-          structuredClone(preview)
-        );
-        if (revision !== current.revision) {
-          throw new PlanningError(
-            "stale-preview",
-            "The planning changed while validating this preview."
-          );
-        }
-        plans.set(preview.id, {
-          preview: structuredClone(preview),
-          next: result.snapshot,
-          mutations,
-          context: { scopeId: request.scopeId, sourceId: request.sourceId },
-        });
-        // Preview tokens are deliberately bounded; an evicted token requires a new preview.
-        if (plans.size > 100) {
-          const oldest = plans.keys().next().value;
-          if (oldest) {
-            plans.delete(oldest);
-          }
-        }
-        return { success: true, data: preview };
-      } catch (cause) {
-        return failure(cause);
-      }
+    commit: ({ snapshot }) => {
+      current = { ...snapshot, revision: crypto.randomUUID() };
+      return structuredClone(current);
     },
-    async apply(request) {
-      try {
-        checkContext(request);
-        if (!request.idempotencyKey) {
-          throw new PlanningError(
-            "missing-idempotency-key",
-            "Applying a plan requires an idempotency key."
-          );
-        }
-        const prior = priorCommit(request);
-        if (prior) {
-          return { success: true, data: prior };
-        }
-        const plan = plans.get(request.previewId);
-        if (
-          !plan ||
-          plan.preview.revision !== request.revision ||
-          request.revision !== current.revision
-        ) {
-          throw new PlanningError(
-            "stale-preview",
-            "The preview is stale. Reload and preview again."
-          );
-        }
-        if (
-          plan.context.scopeId !== request.scopeId ||
-          plan.context.sourceId !== request.sourceId
-        ) {
-          throw new PlanningError(
-            "scope-mismatch",
-            "The preview belongs to another source."
-          );
-        }
-        const recalculated = calculatePlanning(current, plan.mutations, {
-          ...config,
-          sourceId: request.sourceId,
-        });
-        await input.validate?.(
-          structuredClone(current),
-          plan.mutations,
-          structuredClone(plan.preview)
-        );
-        // Another asynchronous validation may have committed or changed permissions meanwhile.
-        const committed = priorCommit(request);
-        if (committed) {
-          return { success: true, data: committed };
-        }
-        if (request.revision !== current.revision) {
-          throw new PlanningError(
-            "stale-preview",
-            "The planning changed during validation. No changes were saved."
-          );
-        }
-        current = { ...recalculated.snapshot, revision: crypto.randomUUID() };
-        applied.set(request.idempotencyKey, {
-          signature: signature(request),
-          snapshot: structuredClone(current),
-        });
-        plans.delete(request.previewId);
-        return { success: true, data: structuredClone(current) };
-      } catch (cause) {
-        return failure(cause);
-      }
-    },
-  };
+    validate: input.validate,
+  });
   return {
     actions,
     getSnapshot: (): PlanningSnapshot => structuredClone(current),

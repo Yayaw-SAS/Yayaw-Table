@@ -2639,3 +2639,251 @@
 .yayaw-row-action-item svg {
   flex-shrink: 0;
 }
+
+/* Gantt timeline. Geometry comes from the shared planning/timeline model. */
+.yayaw-gantt-message {
+  color: var(--yayaw-muted-foreground);
+  font-size: 0.875rem;
+}
+.yayaw-gantt-error {
+  color: var(--yayaw-danger);
+  font-size: 0.875rem;
+}
+.yayaw-gantt-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+}
+.yayaw-gantt-toolbar h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 500;
+}
+.yayaw-gantt-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.yayaw-gantt-viewport {
+  position: relative;
+  overflow: auto;
+  border: 1px solid var(--yayaw-border);
+  border-radius: var(--yayaw-radius);
+}
+.yayaw-gantt-canvas {
+  position: relative;
+}
+.yayaw-gantt-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--yayaw-background);
+}
+.yayaw-gantt-heading {
+  align-items: flex-end !important;
+  padding-bottom: 0.5rem;
+  color: var(--yayaw-muted-foreground);
+  font-weight: 500;
+}
+.yayaw-gantt-month,
+.yayaw-gantt-date {
+  position: absolute;
+  border-bottom: 1px solid var(--yayaw-border);
+  color: var(--yayaw-muted-foreground);
+}
+.yayaw-gantt-month {
+  top: 0;
+  overflow: hidden;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-gantt-date {
+  top: 24px;
+  display: flex;
+  height: 40px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding-bottom: 0.25rem;
+  font-size: 11px;
+  gap: 2px;
+}
+.yayaw-gantt-date.today {
+  color: var(--yayaw-danger);
+  font-weight: 600;
+}
+.yayaw-gantt-date.today .yayaw-gantt-day {
+  display: flex;
+  width: 1.25rem;
+  height: 1.25rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--yayaw-danger);
+  color: var(--yayaw-background);
+}
+.yayaw-gantt-weekday {
+  opacity: 0.7;
+}
+.yayaw-gantt-row {
+  position: absolute;
+  right: 0;
+  left: 0;
+  border-bottom: 1px solid var(--yayaw-border);
+}
+.yayaw-gantt-row.summary {
+  background: color-mix(in srgb, var(--yayaw-muted) 25%, transparent);
+}
+.yayaw-gantt-label {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  display: flex;
+  height: 100%;
+  min-width: 0;
+  align-items: center;
+  border-right: 1px solid var(--yayaw-border);
+  background: var(--yayaw-background);
+  gap: 0.25rem;
+  padding-right: 0.5rem;
+}
+.yayaw-gantt-label > * {
+  min-width: 0;
+}
+.yayaw-gantt-spacer,
+.yayaw-gantt-toggle {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+.yayaw-gantt-select,
+.yayaw-gantt-kind {
+  flex: none;
+}
+.yayaw-gantt-kind {
+  color: var(--yayaw-muted-foreground);
+}
+.yayaw-gantt-title {
+  overflow: hidden;
+  flex: 1;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-gantt-title:hover {
+  text-decoration: underline;
+}
+.yayaw-gantt-track {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background-image: linear-gradient(
+    to right,
+    var(--yayaw-border) 0 1px,
+    transparent 1px
+  );
+}
+.yayaw-gantt-off {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--yayaw-muted) 45%, transparent);
+}
+.yayaw-gantt-bar {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  border: 1px solid color-mix(in srgb, var(--yayaw-primary) 25%, transparent);
+  border-radius: calc(var(--yayaw-radius) - 2px);
+  background: color-mix(in srgb, var(--yayaw-primary) 15%, transparent);
+}
+.yayaw-gantt-bar.summary {
+  border-color: var(--yayaw-border);
+  background: var(--yayaw-muted);
+}
+.yayaw-gantt-bar-body {
+  display: flex;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: grab;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding-inline: 0.5rem;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-gantt-bar-body:active {
+  cursor: grabbing;
+}
+.yayaw-gantt-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0.5rem;
+  border: 0;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--yayaw-primary) 40%, transparent);
+  cursor: ew-resize;
+  opacity: 0;
+  transition: opacity 120ms;
+}
+.yayaw-gantt-handle.start {
+  left: 0;
+}
+.yayaw-gantt-handle.end {
+  right: 0;
+}
+.yayaw-gantt-bar:hover .yayaw-gantt-handle,
+.yayaw-gantt-handle:focus-visible {
+  opacity: 1;
+}
+@media (hover: none) {
+  .yayaw-gantt-handle {
+    opacity: 1;
+  }
+}
+.yayaw-gantt-unscheduled {
+  position: absolute;
+  top: 50%;
+  left: 0.5rem;
+  color: var(--yayaw-muted-foreground);
+  font-size: 0.75rem;
+  font-style: italic;
+  transform: translateY(-50%);
+}
+.yayaw-gantt-links {
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: color-mix(in srgb, var(--yayaw-muted-foreground) 70%, transparent);
+  pointer-events: none;
+}
+.yayaw-gantt-today {
+  position: absolute;
+  width: 1px;
+  background: color-mix(in srgb, var(--yayaw-danger) 60%, transparent);
+  pointer-events: none;
+}
+.yayaw-gantt-drag-layer {
+  position: fixed;
+  z-index: 50;
+  cursor: grabbing;
+  inset: 0;
+}

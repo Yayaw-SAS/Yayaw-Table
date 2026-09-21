@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { createPlanningSession, withPlanningActions } from "../planning/session";
-import { comparePlanningTasks, planningTaskMatches } from "../planning/query";
+import { canDeriveRowsPlanning, createRowsPlanningAdapter } from "../planning/rows-adapter";
+import { planningLabels, planningLabelOverrides } from "../planning/labels";
 import PlanningSurface from "./planning/PlanningSurface.vue";
+import GanttView from "./planning/GanttView.vue";
 import { createSelectionDuplicate, duplicateLabels } from "../duplicate-shortcut";
 import { createActivityUndo } from "../activity-shortcuts";
 import { detailUndoMessage, detailLabels } from "../record-details";
@@ -160,8 +162,15 @@ const config = {
   get presentation() { return (props.config ?? props.getTableConfig?.(props.tableType))?.presentation; },
 };
 const rawActions = computed(() => props.getTableActions?.(props.tableType));
-const planning = config.table.planning?.enabled ? createPlanningSession({
-  config: config.table.planning, actions: rawActions.value?.planning,
+// A table mapping its own start/end columns gets a Gantt from its existing list/update actions.
+const derivedPlanning = config.table.planning?.enabled && !rawActions.value?.planning && rawActions.value?.list && canDeriveRowsPlanning(config.table.gantt)
+  ? createRowsPlanningAdapter({config: config.table.planning, gantt: config.table.gantt, list: rawActions.value.list, update: rawActions.value.update})
+  : undefined;
+const planningActions = rawActions.value?.planning ?? derivedPlanning?.actions;
+const planning = config.table.planning?.enabled && planningActions ? createPlanningSession({
+  // Rows carry dates and hierarchy, never relationships.
+  config: derivedPlanning ? {...config.table.planning, allowDependencyEdit: false} : config.table.planning,
+  actions: planningActions,
   allowEdit: config.table.allowEdit, canEditRow: config.table.canEditRow,
   onChanged: async () => {await queryClient.invalidateQueries({queryKey: ["yayaw-table"]});},
 }) : undefined;
@@ -170,8 +179,6 @@ const unsubscribePlanning = planning?.subscribe(() => {planningState.value = pla
 onMounted(() => planning?.connect());
 onBeforeUnmount(() => {unsubscribePlanning?.(); planning?.dispose();});
 const actions = computed(() => rawActions.value && planning ? withPlanningActions(rawActions.value, planning) : rawActions.value);
-const planningCompare = computed(() => {const query = {sorting: state.sorting.value, columns: config.columns.definitions};return (a: import("../planning/types").PlanningTask, b: import("../planning/types").PlanningTask) => comparePlanningTasks(a, b, query);});
-const planningVisible = computed(() => {const query = {search: state.search.value, filters: state.filters.value, advancedFilters: state.advancedFilters.value, columns: config.columns.definitions}; return (task: import("../planning/types").PlanningTask) => planningTaskMatches(task, query);});
 const queryClient = props.queryClient ?? new QueryClient();
 const inputData = computed(() =>
   props.data.length ? props.data : props.initialData
@@ -246,6 +253,7 @@ watch(status, notification => {
 const translations = computed(() =>
   createTranslations(props.locale, { ...config.translations.keys, ...props.translations })
 );
+const ganttLabels = computed(() => planningLabels(props.locale, planningLabelOverrides((key) => {const value = translations.value[key]; return typeof value === "string" ? value : key;})));
 const customBulkActions = computed(() => props.customBulkActions);
 const toolbarActions = computed(() => props.toolbarActions ?? config.toolbarActions ?? []);
 const getRowId = (row: TableRecord, index = 0): string =>
@@ -587,8 +595,8 @@ provide(tableContextKey, {
     <div class="yayaw-content" :aria-busy="tableData.isLoading.value">
       <DataGrid v-if="state.displayMode.value === 'table'" />
       <KanbanView v-else-if="state.displayMode.value === 'kanban'" />
-      <PlanningSurface v-else-if="state.displayMode.value === 'gantt' && planning" :session="planning" mode="gantt" :locale="locale" :gantt="{...config.table.gantt, ...state.gantt.value}" :visible="planningVisible" :compare="planningCompare" :on-view-change="(view) => {state.gantt.value = view}" :on-clear-filters="state.resetFilters" />
-      <div v-else-if="state.displayMode.value === 'gantt'" role="alert">Configure table.planning and actions.planning to enable Gantt.</div>
+      <GanttView v-else-if="state.displayMode.value === 'gantt' && planning" />
+      <div v-else-if="state.displayMode.value === 'gantt'" role="alert">{{ ganttLabels.noAdapter }}</div>
       <GalleryView v-else />
       <CardPagination v-if="state.displayMode.value !== 'table' && state.displayMode.value !== 'gantt'" />
       <component :is="loadingOverlay" v-if="tableData.isLoading.value && loadingOverlay" />
@@ -600,7 +608,7 @@ provide(tableContextKey, {
     <CatalogueForm v-if="form.open && !currentDetailRow">
       <template v-for="(_, name) in $slots" #[name]="scope"><slot :name="name" v-bind="scope" /></template>
     </CatalogueForm>
-    <PlanningSurface v-if="planning" :session="planning" mode="overlay" :locale="locale" :on-open-record="details || onOpenDetails ? (task) => {if (task.record) openDetails(task.record)} : undefined" />
+    <PlanningSurface v-if="planning" :session="planning" :labels="ganttLabels" :locale="locale" :on-open-record="details || onOpenDetails ? (task) => {if (task.record) openDetails(task.record)} : undefined" />
     <RecordDetails v-if="details && currentDetailRow" :key="getRowId(currentDetailRow)" :row="currentDetailRow" :config="{ ...details, presentation: config.presentation ?? details.presentation }" :editing="form.open" :editor-busy="detailEditorBusy" :columns="config.columns.definitions" :locale="locale"
       :can-edit="config.table.allowEdit && Boolean(actions?.update) && config.table.canEditRow?.(currentDetailRow) !== false"
       :can-delete="config.table.allowDelete && Boolean(actions?.delete) && config.table.canDeleteRow?.(currentDetailRow) !== false"

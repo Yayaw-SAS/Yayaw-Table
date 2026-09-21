@@ -357,6 +357,13 @@ export interface DataTableTranslations {
       properties: string;
       showLabels: string;
     };
+    /**
+     * Timeline vocabulary. Every key is optional: an omitted key keeps the
+     * built-in English/French label shipped with the planning renderer.
+     */
+    gantt?: Partial<
+      Record<keyof import("../planning/labels").PlanningSurfaceLabels, string>
+    >;
     history: {
       undo: string;
       redo: string;

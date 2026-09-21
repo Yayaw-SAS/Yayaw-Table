@@ -1,12 +1,21 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useTableContext } from "../../context";
+import { planningLabelOverrides } from "../../planning/labels";
 import { ganttSettingsLabels } from "../../planning/settings";
 import type { TableGanttViewConfig } from "../../planning/types";
 import ViewSettingsPanel from "../controls/ViewSettingsPanel.vue";
 import TableCheckbox from "../controls/TableCheckbox.vue";
 const context = useTableContext();
-const labels = computed(() => ganttSettingsLabels(context.locale));
+const labels = computed(() =>
+  ganttSettingsLabels(
+    context.locale,
+    planningLabelOverrides((key) => {
+      const value = context.translations.value[key];
+      return typeof value === "string" ? value : key;
+    })
+  )
+);
 const view = computed(() => ({
   ...context.config.table.gantt,
   ...context.state.gantt.value,

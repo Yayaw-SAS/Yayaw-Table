@@ -82,6 +82,10 @@ export interface TableGanttConfig extends TableGanttViewConfig {
   titleColumn?: string;
   startColumn?: string;
   endColumn?: string;
+  /** Scalar column holding the parent record id, for a hierarchy derived from the rows. */
+  parentColumn?: string;
+  /** Scalar column selecting the row's calendar. */
+  calendarColumn?: string;
   height?: number;
 }
 export type PlanningMutation =

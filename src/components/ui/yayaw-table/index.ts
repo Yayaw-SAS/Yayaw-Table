@@ -74,6 +74,21 @@ export {
   type PlanningRowAdapter,
   planningTasksFromRows,
 } from "./planning/rows";
+export {
+  PLANNING_LABEL_KEYS,
+  planningLabelOverrides,
+  planningLabels,
+  type PlanningSurfaceLabels,
+} from "./planning/labels";
+export {
+  canDeriveRowsPlanning,
+  createRowsPlanningAdapter,
+  type RowsPlanningAdapterOptions,
+} from "./planning/rows-adapter";
+export {
+  createPlanningTransactions,
+  type PlanningTransactionOptions,
+} from "./planning/transactions";
 export type * from "./planning/types";
 export * from "./types/column-types";
 export * from "./types/date-types";

@@ -9,4 +9,4 @@ onMounted(() => { if (root.value) surface = mountPlanningSurface(root.value, {..
 watch(() => ({...props}), (options) => surface?.update(options), {deep: false});
 onBeforeUnmount(() => surface?.destroy());
 </script>
-<template><div ref="root" :data-planning-surface="mode" /></template>
+<template><div ref="root" data-planning-surface="overlay" /></template>

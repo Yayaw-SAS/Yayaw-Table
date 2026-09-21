@@ -43,9 +43,24 @@ export type {
 export { createMemoryPlanningAdapter } from "./planning/adapter";
 export { calculatePlanning, resolvedPlanningSnapshot } from "./planning/engine";
 export {
+  PLANNING_LABEL_KEYS,
+  type PlanningSurfaceLabels,
+  planningLabelOverrides,
+  planningLabels,
+} from "./planning/labels";
+export {
   type PlanningRowAdapter,
   planningTasksFromRows,
 } from "./planning/rows";
+export {
+  canDeriveRowsPlanning,
+  createRowsPlanningAdapter,
+  type RowsPlanningAdapterOptions,
+} from "./planning/rows-adapter";
+export {
+  createPlanningTransactions,
+  type PlanningTransactionOptions,
+} from "./planning/transactions";
 export type * from "./planning/types";
 export type {
   RecordPresentation,

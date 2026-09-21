@@ -436,24 +436,29 @@ Display mode and inline density use matching labelled button rows in both editio
 ## Gantt planning
 
 Both editions support optional `displayModes: ["gantt"]`, `table.gantt`, `table.planning`, and
-`actions.planning.load/preview/apply`. The civil-date engine, record normalization, memory adapter,
-session and native DOM renderer are copied by `contracts:sync`; framework wrappers mount the same
-surface. See [Gantt configuration](GANTT.md), [engine](PLANNING-ENGINE.md) and
-[persistence](PLANNING-ADAPTERS.md) for defaults and transactional requirements.
+`actions.planning.load/preview/apply`, or no planning adapter at all when the gantt date columns are
+mapped. The civil-date engine, record normalization, adapters, transactions, session, labels and the
+`planning/timeline` model are copied by `contracts:sync`. See [Gantt configuration](GANTT.md),
+[engine](PLANNING-ENGINE.md) and [persistence](PLANNING-ADAPTERS.md) for defaults and transactional
+requirements.
+
+Each edition renders the timeline with its own component — React `components/gantt-view.tsx`, Vue
+`components/planning/GanttView.vue` — so a Gantt reaches its table's rows the way Kanban and Gallery
+do: the table's own selection and title cells in the left column, row click through to the record
+details, the loading overlay and the bulk-actions anchor. Both components compute rows, virtualization
+geometry, bar placement, dependency paths, header cells and every date edit from the same shared
+`planning/timeline` model, so behaviour stays equivalent while each presentation uses its own idioms
+and theme tokens. The planning dialog stays a single shared surface, since it is a modal form with no
+table state. A task from another source renders without cells rather than disappearing.
 
 Equivalent shared fixtures cover the four dependency types, signed/calendar offsets, summaries,
 source identity collisions, invalid/cyclic/incomplete graphs, flags, permissions, stale previews,
-atomic failure and idempotent retries. DOM tests cover keyboard movement/resizing, draft retention,
-exact relation previews, cancellation, and instance isolation. Real browser verification also covers
-saved modes, Table hierarchy, details/form access, and pointer interactions. Both editions use the
-same bounded virtual timeline; hidden links remain available in the editor and constrain planning.
-
-The native Gantt presentation uses the same neutral surfaces, pastel task bars, page icons,
-compact navigation and date marker in both editions. The sticky task column adapts to its
-container width; a resize keeps header cells, bars, dependencies and the today marker aligned.
-Planning dialogs inherit either Shadcn or Vue theme tokens, with visible keyboard focus and
-resize handles on hover, focus and touch devices. The shared navigation fixture confirms that
-the today marker follows the displayed window without changing the planning snapshot.
+atomic failure and idempotent retries. The shared timeline suite covers the week origin, zoom widths
+and navigation steps, inclusive bar spans, collapsed ancestors, the centred date marker, the edit and
+resize flags, and the mutations a pointer or arrow key produces. DOM tests cover draft retention,
+exact relation previews, cancellation and instance isolation in the dialog; per-edition component
+tests cover each timeline's own wiring. Both editions use the same bounded virtual timeline; hidden
+links remain available in the editor and constrain planning.
 
 ### Embedded Gantt examples
 

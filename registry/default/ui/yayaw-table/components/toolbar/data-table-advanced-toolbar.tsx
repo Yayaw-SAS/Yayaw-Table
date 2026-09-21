@@ -1,6 +1,5 @@
 "use client";
 
-import { TableGanttSettings } from "./table-gantt-settings";
 /**
  * Advanced toolbar component for DataTable
  * Provides advanced filtering, view management, and other table controls
@@ -126,7 +125,7 @@ interface DataTableAdvancedToolbarProps<_TData = Record<string, unknown>> {
   >;
   quickFiltersVisible?: boolean;
   modeSettings?: ReactNode;
-  cardSettings?: { kanban?: ReactNode; gallery?: ReactNode };
+  cardSettings?: { kanban?: ReactNode; gallery?: ReactNode; gantt?: ReactNode };
   /**
    * CSS class name
    */
@@ -1275,15 +1274,7 @@ export function DataTableAdvancedToolbar<TData>({
                   : undefined
               }
               cardSettings={
-                displayModeParam === "gantt" ? (
-                  <TableGanttSettings
-                    defaultConfig={tableConfig.table.gantt}
-                    defaultDisplayMode={tableConfig.table.defaultDisplayMode}
-                    tableId={tableId}
-                  />
-                ) : (
-                  cardSettings?.[displayModeParam as keyof typeof cardSettings]
-                )
+                cardSettings?.[displayModeParam as keyof typeof cardSettings]
               }
               columns={tableMenuColumns}
               compact={isMobile}
