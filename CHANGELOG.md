@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.2.0
+
+### Minor Changes
+
+- 692de11: Add read-oriented server Kanban lanes with global counts, independent cursor pagination, cancellation and retries in React and Vue. Add controlled custom native filter renderers for application-specific date and relation controls.
+
 ## 3.1.1
 
 ### Patch Changes
