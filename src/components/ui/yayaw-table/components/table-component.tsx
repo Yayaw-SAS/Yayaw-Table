@@ -2648,6 +2648,7 @@ function ModernDataTable<
         rowCount,
       });
     const showPaginationArea =
+      !(isKanbanMode && kanbanConfig.server) &&
       !isGanttMode &&
       enablePagination &&
       (showPaginationControls || renderBulkActionsInFooter);

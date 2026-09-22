@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import ServerKanbanExample from "./ServerKanbanExample.vue";
+const serverExample = new URLSearchParams(window.location.search).get("example") === "server-kanban";
 import RecordPresentationExample from "./RecordPresentationExample.vue";
 import GanttExample from "./GanttExample.vue";
 import { ref } from "vue";
@@ -330,7 +332,8 @@ const typesActions: TableActions = {
 
 <template>
   <Toaster position="bottom-right" close-button />
-  <RecordPresentationExample v-if="recordExample" />
+  <ServerKanbanExample v-if="serverExample" />
+  <RecordPresentationExample v-else-if="recordExample" />
   <main v-else-if="ganttExample" class="demo-shell"><GanttExample /></main>
   <main v-else class="demo-shell">
     <header class="demo-header">

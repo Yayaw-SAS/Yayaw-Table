@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ServerKanbanView from "./ServerKanbanView.vue";
 import { ArrowLeft, ArrowRight } from "lucide-vue-next";
 import TableEmptyState from "../table/TableEmptyState.vue";
 import { computed, ref } from "vue";
@@ -124,8 +125,9 @@ const toggleSelection = (row: TableRecord, checked: boolean): void => {
 </script>
 
 <template>
+  <ServerKanbanView v-if="context.config.table.kanban?.server" :source="context.config.table.kanban.server" :title-column="titleColumn" :property-ids="propertyIds" />
   <TableEmptyState
-    v-if="!rows.length && !context.data.isLoading.value && !context.data.error.value && context.config.table.emptyState?.show !== false"
+    v-else-if="!rows.length && !context.data.isLoading.value && !context.data.error.value && context.config.table.emptyState?.show !== false"
     class="yayaw-card-empty"
   />
   <div v-else class="yayaw-card-view-shell">

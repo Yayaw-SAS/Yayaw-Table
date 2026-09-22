@@ -74,6 +74,8 @@ export function TableFiltersMenu({
     tableMenuOpenFilterColumnIdAtom(tableId)
   );
 
+  const customFilters = (config.columns.definitions.filter(column => column.enableFiltering !== false && column.filterRenderer).map(column => <div key={column.id}>{column.filterRenderer?.({ value: columnFilters.find(filter => filter.id === column.id)?.value, onChange: value => { const rest = columnFilters.filter(filter => filter.id !== column.id); setColumnFilters(value === undefined || value === "" || (Array.isArray(value) && !value.length) ? rest : [...rest, { id: column.id, value }]); } })}</div>) );
+
   // Debug logs
   useEffect(() => {
     if (DEBUG) {
@@ -88,6 +90,7 @@ export function TableFiltersMenu({
     return (
       <StackMenuView name="filters">
         <StackMenuContent>
+          {customFilters}
           <AdvancedFilterPanel
             actions={advancedActions}
             className="border-0"
@@ -114,8 +117,9 @@ export function TableFiltersMenu({
     <StackMenuView name="filters">
       <StackMenuContent>
         <div className="space-y-4">
+          {customFilters}
           <TableFilterBar tableId={tableId} tableType={tableType ?? tableId} />
-          {!quickColumns.length && (
+          {!quickColumns.length && !customFilters.length && (
             <div className="py-8 text-center text-muted-foreground">
               <Filter className="mx-auto mb-2 h-8 w-8 opacity-50" />
               <p className="text-sm">{t("filters.noFilters")}</p>

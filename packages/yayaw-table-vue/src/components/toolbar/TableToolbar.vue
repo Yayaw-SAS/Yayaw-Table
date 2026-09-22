@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { defineComponent, type PropType, type VNodeChild } from "vue";
 import TableTooltip from "./TableTooltip.vue";
 import {
   FunnelX,
@@ -277,9 +278,10 @@ const addAdvancedFilter = async (): Promise<void> => {
 };
 const panelFilterColumns = computed(() => props.enableAdvancedFilters
   ? filterableColumns.value.filter((column) =>
-    (compact.value && quickFilterIds.value.has(column.id)) ||
+    Boolean(column.filterRenderer) || (compact.value && quickFilterIds.value.has(column.id)) ||
     context.state.filters.value.some((filter) => filter.id === column.id))
   : filterableColumns.value);
+const FilterContent = defineComponent({ props: { node: { type: null as unknown as PropType<VNodeChild> } }, setup: props => () => props.node });
 const setColumnFilter = (columnId: string, value: unknown): void => {
   const otherFilters = context.state.filters.value.filter(
     (filter) => filter.id !== columnId
@@ -555,7 +557,8 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
                 :data-filter-column="column.id"
               >
                 <span>{{ column.header }}</span>
-                <OptionFilter v-if="quickFilterIds.has(column.id)" :column="column" />
+                <FilterContent v-if="column.filterRenderer" :node="column.filterRenderer({ value: columnFilterValue(column.id), onChange: value => setColumnFilter(column.id, value) })" />
+                <OptionFilter v-else-if="quickFilterIds.has(column.id)" :column="column" />
                 <select
                   v-else-if="column.options?.length"
                   class="yayaw-select"

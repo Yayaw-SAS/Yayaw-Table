@@ -228,6 +228,11 @@ export function resolveTableDisplayMode({
  * Column definition for a data table
  */
 export interface ColumnDefinition {
+  /** Application filter control; writes the same state as saved views and reset. */
+  filterRenderer?: (context: {
+    value: unknown;
+    onChange: (value: unknown) => void;
+  }) => React.ReactNode;
   /**
    * Additional props for the column
    */
