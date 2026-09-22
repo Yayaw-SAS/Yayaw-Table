@@ -9,6 +9,11 @@ on:
   workflow_dispatch:
 
 permissions:
+  # A tag pushed with GITHUB_TOKEN starts no workflow run, so this job asks for
+  # the Release run itself. Dispatching one needs `actions: write`; without it
+  # the request is refused with "Resource not accessible by integration" and the
+  # version is tagged but never published.
+  actions: write
   contents: write
   pull-requests: write
 
