@@ -155,7 +155,7 @@ function FooterRowBase<TData>({
                   ),
                 isActions &&
                   cn(
-                    "sticky right-0 z-10 rounded-br-md bg-card shadow-[-1px_0_0_0_hsl(var(--border))]",
+                    "sticky right-0 z-10 rounded-br-md bg-card shadow-[-1px_0_0_0_var(--border)]",
                     TABLE_DENSITY_CLASSES[densityMode].cell
                   )
               )}

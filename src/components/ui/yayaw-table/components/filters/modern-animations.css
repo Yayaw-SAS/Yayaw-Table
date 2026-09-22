@@ -71,9 +71,9 @@
 .skeleton-shimmer {
   background: linear-gradient(
     90deg,
-    hsl(var(--muted)) 0%,
-    hsl(var(--muted-foreground) / 0.1) 50%,
-    hsl(var(--muted)) 100%
+    var(--muted) 0%,
+    color-mix(in oklab, var(--muted-foreground) 10%, transparent) 50%,
+    var(--muted) 100%
   );
   background-size: 200px 100%;
   animation: shimmer 1.5s infinite linear;
@@ -189,10 +189,10 @@
 /* Focus ring animation */
 @keyframes focusRing {
   0% {
-    box-shadow: 0 0 0 0 hsl(var(--primary) / 0.5);
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 50%, transparent);
   }
   100% {
-    box-shadow: 0 0 0 4px hsl(var(--primary) / 0);
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary) 0%, transparent);
   }
 }
 
@@ -203,7 +203,7 @@
 /* Filter value highlight */
 @keyframes valueHighlight {
   0% {
-    background-color: hsl(var(--primary) / 0.1);
+    background-color: color-mix(in oklab, var(--primary) 10%, transparent);
   }
   100% {
     background-color: transparent;

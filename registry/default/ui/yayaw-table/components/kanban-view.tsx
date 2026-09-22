@@ -365,7 +365,7 @@ function DataTableKanbanCard<TData extends Record<string, unknown>>({
   const cardClassName = cn(
     "group relative rounded-md border bg-background p-2 pr-10 shadow-xs transition",
     isClickable && "hover:border-primary/40 hover:bg-muted/20",
-    isActive && "border-primary/50 shadow-[inset_2px_0_0_hsl(var(--primary))]"
+    isActive && "border-primary/50 shadow-[inset_2px_0_0_var(--primary)]"
   );
   const titleContent = titleCell
     ? flexRender(titleCell.column.columnDef.cell, titleCell.getContext())
