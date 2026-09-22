@@ -12,6 +12,7 @@ const MERGED_PR = /requires one merged PR/;
 const TREE_MISMATCH = /Merged content differs/;
 const LATEST_CI = /latest PR CI/;
 const PERMISSIONS = /HTTP 403.*permissions/;
+const UNCHECKED_ARTIFACT = /missing, expired or inconsistent/;
 const RETRY_LIMIT = /three attempts/;
 const target = "a".repeat(40);
 const head = "b".repeat(40);
@@ -103,7 +104,7 @@ function fixture() {
       artifacts: [
         {
           id: 900,
-          name: `registry-pages-${head}-2`,
+          name: `registry-pages-${head}-2-versioned`,
           expired: false,
           expires_at: "2026-10-09T00:00:00Z",
           size_in_bytes: 1000,
@@ -257,7 +258,8 @@ for (const [name, change] of [
   [
     "artifact from the previous attempt",
     (f) => {
-      f.data[paths.artifacts].artifacts[0].name = `registry-pages-${head}-1`;
+      f.data[paths.artifacts].artifacts[0].name =
+        `registry-pages-${head}-1-versioned`;
     },
   ],
   [
@@ -526,3 +528,18 @@ for (const [name, change] of [
     await assert.rejects(authorize(f));
   });
 }
+
+test("unversioned registry changes keep the published release unchanged", async () => {
+  const f = fixture();
+  f.data[paths.artifacts].artifacts[0].name =
+    `registry-pages-${head}-2-unversioned`;
+  const result = await authorize(f);
+  assert.equal(result.eligibility, "unversioned");
+  assert.equal(result.artifact_id, "900");
+});
+
+test("an artifact without the snapshot check cannot publish", async () => {
+  const f = fixture();
+  f.data[paths.artifacts].artifacts[0].name = `registry-pages-${head}-2`;
+  await assert.rejects(authorize(f), UNCHECKED_ARTIFACT);
+});

@@ -513,3 +513,15 @@ Shared `tests/fixtures/record-media.json` exercises URL validation, posters, cap
 Undo emits one localized success notification only after the entire inverse operation and refresh succeed, including grouped shortcuts. Partial failures keep their error and do not claim success; retries notify once complete. Record activity buttons use the same sentence. `details.labels.undoSuccess` accepts a complete translated sentence with an optional `{action}` placeholder, avoiding grammatical gender inference. Shared fixtures cover English/French messages and S/M/L view serialization with runtime media/renderers excluded in both editions.
 
 Ctrl/Cmd+D uses the existing duplicate action on all selected permitted records, including off-page selections. Both editions block reentrancy/repeat keys, refresh once, select returned copies, retain unprocessed originals on partial failure, and show translated singular/plural feedback. React consumers should pass `getRowId` with stable record IDs when using cross-page or duplicate selection, as shown by the runnable example. `duplicate-shortcut-suite` and browser checks cover both editions.
+
+## Versioned publication gate
+
+React and Vue continue to share the root SemVer version. CI marks a registry
+artifact publishable only when both package versions and the release manifest
+agree and the generated React, Vue, base, font and index payloads exactly match
+the same committed version snapshot. An unreleased change to either edition
+keeps the previous public registry in place. Release input detection covers
+both editions and shared contracts, including style changes without a
+conventional commit bump. No runtime API, defaults or example interactions
+change. Regression coverage lives in `.github/scripts/registry-publication.test.mjs`,
+`release-inputs.test.mjs`, `release-plan.test.mjs` and `pages-provenance.test.mjs`.

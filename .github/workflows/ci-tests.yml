@@ -69,10 +69,14 @@ jobs:
       - name: Validate registry artifact
         run: node .github/scripts/validate-pages-artifact.mjs dist/registry-pages
 
+      - name: Check publication version
+        id: publication
+        run: node .github/scripts/registry-publication.mjs
+
       # Keep each attempt immutable so a rerun cannot reuse an older artifact.
       - name: Preserve the validated Pages artifact
         uses: actions/upload-pages-artifact@v5
         with:
-          name: registry-pages-${{ github.event.pull_request.head.sha }}-${{ github.run_attempt }}
+          name: registry-pages-${{ github.event.pull_request.head.sha }}-${{ github.run_attempt }}-${{ steps.publication.outputs.status }}
           path: dist/registry-pages
           retention-days: 30

@@ -6,7 +6,9 @@ published npm package. Versioning therefore has two responsibilities:
 - keep a SemVer source of truth in `package.json`;
 - publish immutable registry snapshots under `public/r/vX.Y.Z/`.
 
-The moving install URL remains:
+The moving install URL serves the most recent versioned registry. Merging a
+feature PR validates its registry without publishing it; publication waits for
+the version PR and an exact matching snapshot. The URL remains:
 
 ```bash
 pnpm dlx shadcn@latest add https://table.yayaw.app/r/yayaw-table.json
@@ -76,9 +78,14 @@ you.
    Without one, the version comes from the conventional commits merged since the
    last tag: `feat` asks for a minor, `fix`, `perf`, `refactor` and `revert` for
    a patch, and a `!` marker for a major. `build`, `chore`, `ci`, `docs`, `style`
-   and `test` ship nothing to a consumer, so they release nothing. A subject that
-   does not follow the convention is never guessed at; it is named in the job
-   log and ignored. A changeset always wins over the derived bump, because its
+   and `test` do not select a bump by themselves. Distribution inputs are also
+   compared with the tag matching `package.json.version`: React/Vue sources,
+   shared contracts, copied UI, registry generators and consumer dependencies.
+   If those changed without a conventional bump, the workflow generates a patch
+   changeset. An unconventional subject or a CSS fix labeled `style` therefore
+   cannot leave changed registry code unversioned. Tests and documentation alone
+   do not activate this fallback. Use a changeset or `feat`/`!` when a minor or
+   major release is needed. A changeset always wins over the derived bump, because its
    prose is better than a list of subjects.
 
 2. Merge that work into `main`. The **Version and publish** workflow applies
@@ -120,8 +127,9 @@ you.
 The workflow decides between those two steps with
 `.github/scripts/release-plan.mjs`, which is covered by
 `.github/scripts/release-plan.test.mjs` and runs in CI. An existing tag is
-never republished, and a malformed version stops the release rather than
-tagging it. A release derived from commits is materialized as a changeset on
+never overwritten, and a malformed version stops the release rather than
+tagging it. If a tag exists but GitHub release creation previously failed,
+rerunning the version workflow dispatches the missing release again. A release derived from commits is materialized as a changeset on
 the version branch, so `changeset version`, `CHANGELOG.md` and
 `changeset:check` all see the same thing whichever way the number was reached.
 
@@ -166,3 +174,18 @@ Versioned snapshots are immutable. If any file under `public/r/vX.Y.Z/` already
 exists with different content, bump the version before releasing. Use
 `ALLOW_VERSION_SNAPSHOT_OVERWRITE=1 bun run registry:snapshot` only for a
 deliberate repair of an unpublished or broken snapshot.
+
+## Documentation release pins
+
+The Yayaw repository owns a scheduled `Update Table release documentation`
+workflow. Every six hours, or on manual dispatch, it checks the latest stable
+GitHub release and confirms its manifest and React/Vue registry payloads are
+available on Pages. It proposes a dedicated documentation PR containing the
+English/French installation pin and one exact bilingual seed-hash transition.
+It neither updates the vendored runtime nor publishes CMS content directly.
+The normal Yayaw quality gate and protected deployment seed remain required.
+
+This polling workflow uses Yayaw's own `GITHUB_TOKEN`; it needs no cross-repository
+write token. Its bot-created PR needs the usual CI approval. CMS-owned or unknown
+source hashes remain protected, and a failed publication is reported instead of
+overwriting editorial content.

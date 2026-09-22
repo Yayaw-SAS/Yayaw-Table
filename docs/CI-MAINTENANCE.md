@@ -41,7 +41,10 @@ generation. The menu reruns detect lifecycle instability and are not redundant
 quality jobs.
 
 The job builds `dist/registry-pages` once, validates it, and uploads the Pages
-tarball as `registry-pages-<PR head SHA>-<run attempt>` for 30 days. Failed checks
+tarball as `registry-pages-<PR head SHA>-<run attempt>-<status>` for 30 days.
+The status is `versioned` only when all five generated registry files match
+the committed snapshot byte for byte and the root package, Vue package and
+release manifest agree on the version. Otherwise it is `unversioned`. Failed checks
 prevent upload. Both dependency installations remain necessary because React
 and Vue have separate lockfiles. Together they took about five seconds in the
 baseline run, so adding a separate dependency-cache action is not justified by
@@ -56,7 +59,9 @@ After a push to `main`, the Pages workflow:
 3. Resolves the unexpired artifact for that run's latest attempt, checking its
    run ID, source head and SHA-256 digest metadata. Fork PRs remain supported;
    their CI must run in this repository and their merged tree must match.
-4. Downloads only that artifact by ID with digest mismatches treated as errors.
+4. Keeps Pages unchanged for an `unversioned` artifact. Only a `versioned`
+   artifact can publish; legacy artifacts without this check are rejected.
+   Downloads only that artifact by ID with digest mismatches treated as errors.
    The tarball is never extracted or executed by the privileged publication job.
 5. Rechecks current `main` and the selected artifact before publication, then
    transfers the unchanged tarball into the publication run and deploys it.
@@ -84,14 +89,16 @@ expiry, size and digest checks. The version run's own head is `main`, so the
 artifact name is what binds it to the release commit; only a workflow run can
 create that name, and `version.yml` runs only on `main`.
 
-`registry-pages-<head>-<attempt>` (PR CI) and `registry-pages-<head>` (version
+`registry-pages-<head>-<attempt>-<status>` (PR CI) and `registry-pages-<head>` (version
 workflow) are therefore distinct namespaces. Keep them distinct.
 
 Publication performs no application installation, type checks, tests, or
 registry build. The old `Build registry` workflow and its automatic generated
 commits to `main` are removed. Generated registry sources remain local reviewed
 build outputs; the served latest JSON and Vue example come from the validated
-PR artifact. Versioned release snapshots remain committed and immutable.
+versioned PR artifact. Merging consumer changes under the previous package
+version never replaces the public registry. Versioned release snapshots remain
+committed and immutable.
 
 The `github-pages` concurrency group serializes publication without cancelling
 an in-flight deployment. Obsolete targets exit successfully without publishing.

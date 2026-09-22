@@ -57,8 +57,8 @@ jobs:
         id: plan
         run: |
           set -euo pipefail
-          last="$(git tag --list 'v*' --sort=-v:refname | head -n 1)"
-          if [ -n "$last" ]; then
+          last="v$(node -p 'require("./package.json").version')"
+          if git rev-parse --verify --quiet "refs/tags/$last" >/dev/null; then
             commits="$(git log --no-merges --format=%s "${last}..HEAD")"
           else
             commits=""
@@ -82,7 +82,7 @@ jobs:
           RELEASE_BUMP: ${{ steps.plan.outputs.bump }}
         run: |
           set -euo pipefail
-          last="$(git tag --list 'v*' --sort=-v:refname | head -n 1)"
+          last="v$(node -p 'require("./package.json").version')"
           RELEASE_COMMITS="$(git log --no-merges --format=%s "${last}..HEAD")" \
             node --input-type=module --eval '
               import { writeFileSync } from "node:fs";
@@ -101,10 +101,8 @@ jobs:
         if: steps.plan.outputs.action == 'version'
         run: bun run version
 
-      # GitHub starts no workflow run for a push made with GITHUB_TOKEN, so the
-      # version branch cannot trigger CI however the triggers are written. The
-      # gate runs here instead, on the exact tree about to be pushed, and a tree
-      # that fails it is never proposed.
+      # GitHub holds CI triggered by bot-created PRs for approval. Validate the
+      # exact proposed tree here as well; a failing release is never proposed.
       - name: Validate the release artifact
         if: steps.plan.outputs.action == 'version'
         run: |
@@ -159,7 +157,7 @@ jobs:
           body=$(cat <<EOF
           Applies the pending changesets, syncs the Vue package version and snapshots the versioned registry under \`public/r/v${version}\`.
 
-          This branch is pushed with \`GITHUB_TOKEN\`, which starts no workflow run, so it shows no checks. The **Version and publish** run that produced it validated this exact tree with \`release:check\`, the Pages artifact validator and the snapshot verification, and preserved the artifact Pages will republish.
+          This branch is pushed with \`GITHUB_TOKEN\`, so its pull request CI may require approval. Approve and wait for that CI before merging. The **Version and publish** run that produced it validated this exact tree with \`release:check\`, the Pages artifact validator and the snapshot verification, and preserved the artifact Pages will republish.
 
           Merging this pull request publishes: main then carries a described version with no tag, so this workflow tags \`v${version}\` and the release workflow attaches the pinned registry items.
 
@@ -192,6 +190,8 @@ jobs:
             echo
             echo "<${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/compare/main...${VERSION_BRANCH}?expand=1>"
           } >> "$GITHUB_STEP_SUMMARY"
+          echo "::error::The version branch is ready, but its pull request could not be opened."
+          exit 1
 
       # The versioned snapshot is verified before the tag exists, so a bad tree
       # never becomes a published tag.
@@ -213,12 +213,15 @@ jobs:
       # is the documented exception to that rule, so ask for the run explicitly.
       # It is requested on the tag, exactly as the push trigger would have.
       - name: Publish the GitHub release
-        if: steps.plan.outputs.action == 'tag'
+        if: steps.plan.outputs.action != 'version'
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ steps.plan.outputs.tag }}
         run: |
           set -euo pipefail
+          RELEASE_TAG="v$(node -p 'require("./package.json").version')"
+          if gh release view "$RELEASE_TAG" --json tagName >/dev/null 2>&1; then
+            exit 0
+          fi
           gh workflow run release.yml --ref "$RELEASE_TAG"
           # Prove the dispatch produced a run rather than assuming it did.
           for _ in $(seq 1 12); do
