@@ -1,6 +1,6 @@
 {
   "name": "@yayaw/table-vue",
-  "version": "3.1.1",
+  "version": "3.2.0",
   "private": true,
   "type": "module",
   "description": "Full-featured, type-safe YaYaw data table for Vue 3",
