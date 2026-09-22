@@ -2642,7 +2642,7 @@ function ModernDataTable<
         rowCount,
       });
     const showPaginationArea =
-      !isGanttMode &&
+      !((isKanbanMode && kanbanConfig.server) || isGanttMode) &&
       enablePagination &&
       (showPaginationControls || renderBulkActionsInFooter);
     const fixedBulkActionsViewportOffset = getBulkActionsViewportBottomOffset({

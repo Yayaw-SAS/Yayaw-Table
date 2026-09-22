@@ -35,6 +35,8 @@ import {
   getCompactCardPropertyClassName,
 } from "../utils/card-properties";
 
+import { ServerKanbanView } from "./server-kanban-view";
+
 const SYSTEM_COLUMN_IDS = new Set(["actions", "select"]);
 const EMPTY_GROUP_VALUE = "";
 const EMPTY_GROUP_LABEL = "No value";
@@ -453,7 +455,7 @@ function DataTableKanbanCard<TData extends Record<string, unknown>>({
   );
 }
 
-export function DataTableKanbanView<TData extends Record<string, unknown>>({
+function LocalDataTableKanbanView<TData extends Record<string, unknown>>({
   canDragUpdate,
   cardColumnIds,
   className,
@@ -627,4 +629,9 @@ export function DataTableKanbanView<TData extends Record<string, unknown>>({
       </KanbanProvider>
     </div>
   );
+}
+
+export function DataTableKanbanView<TData extends Record<string, unknown>>(props: DataTableKanbanViewProps<TData>) {
+ if (props.config?.server) { return <ServerKanbanView key={props.config.server.queryKey} source={props.config.server} columns={props.columnDefinitions} titleColumn={props.titleColumnId ?? props.config.titleColumn} propertyIds={props.cardColumnIds ?? props.config.cardColumnIds ?? []} />; }
+ return <LocalDataTableKanbanView {...props} />;
 }

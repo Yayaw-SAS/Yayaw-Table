@@ -525,3 +525,25 @@ both editions and shared contracts, including style changes without a
 conventional commit bump. No runtime API, defaults or example interactions
 change. Regression coverage lives in `.github/scripts/registry-publication.test.mjs`,
 `release-inputs.test.mjs`, `release-plan.test.mjs` and `pages-provenance.test.mjs`.
+
+## Remote boards and custom filters
+
+Both editions accept `table.kanban.server`: `queryKey`, `groups(signal)`,
+`rows(group, cursor, signal)`, optional `getRowId`, `onActivate`, and localized
+`labels` (`loading`, `retry`, `loadMore`, `empty`). Groups return stable `value`,
+`label`, and global `totalCount`. Pages return `rows` and nullable `nextCursor`.
+The host changes `queryKey` when query, authorization scope or refresh identity
+changes, and captures that immutable query in the callbacks. Aborted requests
+cannot restore a previous scope. Counts are never inferred from loaded rows.
+
+Remote boards are explicitly read-oriented: no drag mutation, grid pagination,
+selection or bulk operations on partially loaded lanes. Cards expose the supplied
+activation command. Existing local boards retain their full interaction contract.
+Hosts that need bulk work use the grid and its complete selection API. Neither
+framework synthesizes rows into the grid cache or trusts client permission checks.
+
+`ColumnDefinition.filterRenderer({ value, onChange })` renders an application
+control inside the native filter menu. It uses the same typed column-filter state
+as views and reset. The optional historical quick-filter bar remains independent.
+The host owns control labels, validation, remote option loading and API translation.
+Shared remote lifecycle regressions run in both frameworks.

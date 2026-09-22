@@ -699,6 +699,11 @@
           "target": "components/ui/yayaw-table/components/safe-pagination.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/server-kanban-view.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/server-kanban-view.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/sortable-row.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/sortable-row.tsx"
@@ -1287,6 +1292,11 @@
           "path": "registry/default/ui/yayaw-table/utils/server-filters.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/server-filters.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/server-kanban.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/server-kanban.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/utils/table-config-utils.ts",

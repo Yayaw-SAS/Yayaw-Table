@@ -31,6 +31,8 @@ export interface TableKanbanGroupConfig {
 }
 
 export interface TableKanbanConfig {
+  /** Optional read-oriented remote board. Grid pagination and drag mutations do not apply. */
+  server?: import("../utils/server-kanban").ServerKanbanSource;
   /**
    * Column used to split records into Kanban lanes.
    */

@@ -598,7 +598,7 @@ provide(tableContextKey, {
       <GanttView v-else-if="state.displayMode.value === 'gantt' && planning" />
       <div v-else-if="state.displayMode.value === 'gantt'" role="alert">{{ ganttLabels.noAdapter }}</div>
       <GalleryView v-else />
-      <CardPagination v-if="state.displayMode.value !== 'table' && state.displayMode.value !== 'gantt'" />
+      <CardPagination v-if="state.displayMode.value !== 'table' && state.displayMode.value !== 'gantt' && !(state.displayMode.value === 'kanban' && config.table.kanban?.server)" />
       <component :is="loadingOverlay" v-if="tableData.isLoading.value && loadingOverlay" />
       <div v-else-if="tableData.isLoading.value" class="yayaw-loading-overlay">{{ translations.loading }}</div>
     </div>
