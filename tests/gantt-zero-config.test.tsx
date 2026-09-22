@@ -210,3 +210,73 @@ it("renders the timeline with the table's own cells and selection", async () => 
     queryClient.clear();
   }
 });
+
+/**
+ * A catalogue entry may carry its behaviour flat at the top level instead of
+ * nested under `table` — resolveTableCatalogueConfig accepts both shapes, so
+ * planning has to read both or a flat table silently loses its Gantt.
+ */
+const flatGanttConfig = () => ({
+  id: "flat-config",
+  columns: {
+    definitions: [
+      { id: "name", header: "Name", type: "text" as const },
+      { id: "start", header: "Start", type: "date" as const },
+      { id: "end", header: "End", type: "date" as const },
+    ],
+    mandatory: ["name"],
+    order: ["name", "start", "end"],
+    visible: ["name", "start", "end"],
+  },
+  defaultDisplayMode: "gantt" as const,
+  displayModes: ["table", "gantt"] as const,
+  gantt: { titleColumn: "name", startColumn: "start", endColumn: "end" },
+  planning: { enabled: true, scopeId: "flat-config", sourceId: "tasks" },
+});
+
+it("derives the same planning graph from a flat catalogue entry", async () => {
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  const queryClient = new QueryClient();
+  const seen: ReturnType<typeof usePlanningState>[] = [];
+
+  function Probe() {
+    seen.push(usePlanningState());
+    return null;
+  }
+
+  try {
+    await act(() =>
+      root.render(
+        <NuqsTestingAdapter hasMemory>
+          <Provider>
+            <TableProvider
+              getTableActions={() => tableActions([])}
+              getTableConfig={() => flatGanttConfig() as never}
+              queryClient={queryClient}
+              tableId="flat-config"
+              translations={defaultTranslations}
+            >
+              <Probe />
+            </TableProvider>
+          </Provider>
+        </NuqsTestingAdapter>
+      )
+    );
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 30));
+    });
+
+    const state = seen.at(-1);
+    expect(state?.session).toBeDefined();
+    expect(state?.state.snapshot?.tasks.map((task) => task.label)).toEqual([
+      "Design",
+      "Build",
+    ]);
+  } finally {
+    await act(() => root.unmount());
+    container.remove();
+    queryClient.clear();
+  }
+});
