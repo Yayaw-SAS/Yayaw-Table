@@ -508,7 +508,7 @@ function getHeaderCellClassName<TData>(
       ),
     header.id === "actions" &&
       cn(
-        "actions-column sticky right-0 z-20 text-center shadow-[-1px_0_0_0_hsl(var(--border))]",
+        "actions-column sticky right-0 z-20 text-center shadow-[-1px_0_0_0_var(--border)]",
         TABLE_DENSITY_CLASSES[densityMode].cell
       ),
     isNumberColumn(header.column.columnDef) && "text-right"
@@ -533,7 +533,7 @@ export function getRegularCellClassName<TData>({
       ),
     isActionsColumn &&
       cn(
-        "sticky right-0 z-10 bg-card text-center shadow-[-1px_0_0_0_hsl(var(--border))] group-hover:bg-muted/50 group-data-[state=selected]:bg-muted/50",
+        "sticky right-0 z-10 bg-card text-center shadow-[-1px_0_0_0_var(--border)] group-hover:bg-muted/50 group-data-[state=selected]:bg-muted/50",
         TABLE_DENSITY_CLASSES[densityMode].cell
       ),
     TABLE_DENSITY_CLASSES[densityMode].cell,
@@ -2160,7 +2160,7 @@ function ModernDataTable<
             "data-[state=selected]:bg-muted/50",
             row.getIsSelected() && "bg-muted/50",
             isActiveRow &&
-              "bg-primary/5 shadow-[inset_2px_0_0_hsl(var(--primary))]",
+              "bg-primary/5 shadow-[inset_2px_0_0_var(--primary)]",
             canClickRow && "cursor-pointer hover:bg-muted/40"
           )}
           data-active={isActiveRow ? "true" : undefined}

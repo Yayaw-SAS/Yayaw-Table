@@ -276,13 +276,22 @@ export function TableProvider({
     () => getTableConfig?.(planningType),
     [getTableConfig, planningType]
   );
-  const planningBehavior = useMemo(
-    () =>
-      planningCatalogue && "table" in planningCatalogue
-        ? { ...planningCatalogue.table, ...tableConfig }
-        : mergedTableConfig,
-    [planningCatalogue, tableConfig, mergedTableConfig]
-  );
+  /**
+   * A catalogue entry states its behaviour either nested under `table` or flat
+   * at the top level, and resolveTableCatalogueConfig reads both. Planning has
+   * to read both as well, or a flat entry loses its planning and gantt mapping
+   * here and the Gantt is withheld from a table that had configured it.
+   */
+  const planningBehavior = useMemo(() => {
+    if (!planningCatalogue) {
+      return mergedTableConfig;
+    }
+    const behavior =
+      "table" in planningCatalogue
+        ? planningCatalogue.table
+        : planningCatalogue;
+    return { ...behavior, ...tableConfig };
+  }, [planningCatalogue, tableConfig, mergedTableConfig]);
   const rawPlanningActions = useMemo(
     () => getTableActions?.(planningType),
     [getTableActions, planningType]
