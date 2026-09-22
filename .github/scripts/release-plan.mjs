@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { changedReleaseInputs } from "./release-inputs.mjs";
 
 const SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
 /** `type(scope)!: subject`, the convention every commit on main already follows. */
@@ -64,7 +65,13 @@ export function conventionalBump(subjects) {
  * Pages refuses a commit that is not the merge of a single pull request, so the
  * version bump is never pushed to main directly; only the tag is.
  */
-export function planRelease({ pending, version, tags, commits = [] }) {
+export function planRelease({
+  pending,
+  version,
+  tags,
+  commits = [],
+  changedFiles = [],
+}) {
   if (!SEMVER.test(version ?? "")) {
     throw new Error(
       `Expected a semantic version in package.json, got ${JSON.stringify(version)}.`
@@ -93,14 +100,17 @@ export function planRelease({ pending, version, tags, commits = [] }) {
       reason: `${tag} is described and untagged, so it is ready to publish.`,
     };
   }
-  if (derived.bump) {
+  if (derived.bump || changedFiles.length > 0) {
+    const bump = derived.bump ?? "patch";
     return {
       action: "version",
       source: "commits",
-      bump: derived.bump,
+      bump,
       pending: 0,
       unconventional: derived.unconventional,
-      reason: `${commits.length - derived.unconventional.length} conventional commit(s) ask for a ${derived.bump} release.`,
+      reason: derived.bump
+        ? `Conventional commits ask for a ${bump} release.`
+        : `${changedFiles.length} distribution file(s) changed; a patch release is required.`,
     };
   }
   return {
@@ -129,26 +139,34 @@ function isReleasable(subject) {
  */
 export function derivedChangeset(bump, commits) {
   const entries = commits
-    .filter(isReleasable)
+    .filter((subject) => isReleasable(subject) || !CONVENTIONAL.test(subject))
     .map((subject) => `- ${subject}`)
     .join("\n");
-  return `---\n"yayaw-table-workspace": ${bump}\n---\n\nReleases the changes merged since the last tag.\n\n${entries}\n`;
+  return `---\n"yayaw-table-workspace": ${bump}\n---\n\nReleases the distribution changes merged since the last tag.\n\n${entries || "Updates the registry implementation and installation inputs."}\n`;
 }
 
 const lines = (value) => (value ?? "").split("\n").filter(Boolean);
 
 function main() {
   const root = resolve(process.argv[2] ?? ".");
+  const version = JSON.parse(
+    readFileSync(resolve(root, "package.json"), "utf8")
+  ).version;
+  const tags = lines(process.env.RELEASE_TAGS);
   const plan = planRelease({
     pending: pendingChangesets(resolve(root, ".changeset")),
-    version: JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"))
-      .version,
-    tags: lines(process.env.RELEASE_TAGS),
+    version,
+    tags,
+    changedFiles: tags.includes(`v${version}`)
+      ? changedReleaseInputs(`v${version}`, root)
+      : [],
     commits: lines(process.env.RELEASE_COMMITS),
   });
   console.log(`${plan.action}: ${plan.reason}`);
   for (const subject of plan.unconventional) {
-    console.log(`  not a conventional commit, ignored: ${subject}`);
+    console.log(
+      `  no conventional bump; distribution changes still require a version: ${subject}`
+    );
   }
   return plan;
 }

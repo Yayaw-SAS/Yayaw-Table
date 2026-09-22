@@ -55,7 +55,11 @@ async function fromPullRequestCi(api, base, head, latest, now) {
     `${base}/actions/runs/${latest.id}/artifacts?per_page=100`
   );
   const name = `registry-pages-${head}-${latest.run_attempt}`;
-  const candidates = artifacts.filter((artifact) => artifact.name === name);
+  const candidates = artifacts.filter(
+    (artifact) =>
+      artifact.name === `${name}-versioned` ||
+      artifact.name === `${name}-unversioned`
+  );
   const artifact = candidates[0];
   if (
     candidates.length !== 1 ||
@@ -67,6 +71,9 @@ async function fromPullRequestCi(api, base, head, latest, now) {
     );
   }
   return {
+    eligibility: artifact.name.endsWith("-versioned")
+      ? "eligible"
+      : "unversioned",
     source: "pull-request-ci",
     quality_run_id: String(latest.id),
     artifact_id: String(artifact.id),
@@ -129,6 +136,7 @@ async function fromVersionRun(api, base, head, now) {
     );
   }
   return {
+    eligibility: "eligible",
     source: "version-workflow",
     quality_run_id: String(runId),
     artifact_id: String(artifact.id),
@@ -203,7 +211,6 @@ export async function authorizePages(
     ? await fromPullRequestCi(api, base, head, latest, now)
     : await fromVersionRun(api, base, head, now);
   return {
-    eligibility: "eligible",
     target_sha: target,
     head_sha: head,
     tree_sha: headCommit.commit.tree.sha,
@@ -235,10 +242,12 @@ export async function run(
       appendFileSync(env.GITHUB_OUTPUT, `${key}=${value}\n`);
     }
   }
-  const summary =
-    result.eligibility === "eligible"
-      ? `Reusing PR #${result.pr_number}, ${result.source} run ${result.quality_run_id}, artifact ${result.artifact_id} for ${result.target_sha}. No tests or builds were repeated.`
-      : `Skipping obsolete target ${result.target_sha}; Pages remains unchanged.`;
+  let summary = `Skipping obsolete target ${result.target_sha}; Pages remains unchanged.`;
+  if (result.eligibility === "eligible") {
+    summary = `Reusing PR #${result.pr_number}, ${result.source} run ${result.quality_run_id}, artifact ${result.artifact_id} for ${result.target_sha}. No tests or builds were repeated.`;
+  } else if (result.eligibility === "unversioned") {
+    summary = `PR #${result.pr_number} contains unreleased registry changes. Pages keeps the previous release until the version PR is merged.`;
+  }
   console.log(summary);
   if (env.GITHUB_STEP_SUMMARY) {
     appendFileSync(env.GITHUB_STEP_SUMMARY, `${summary}\n`);

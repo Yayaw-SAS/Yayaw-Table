@@ -15,7 +15,7 @@ const MALFORMED_VERSION = /semantic version/;
 const WORKSPACE_FRONTMATTER = /^---\n"yayaw-table-workspace": minor\n---\n/;
 const FEAT_ENTRY = /- feat\(gantt\): timeline/;
 const BREAKING_ENTRY = /- fix\(core\)!: rename/;
-const SILENT_ENTRIES = [/ci: workflow/, /docs: guide/, /Not conventional/];
+const SILENT_ENTRIES = [/ci: workflow/, /docs: guide/];
 
 test("an undescribed change opens the version pull request", () => {
   assert.deepEqual(
@@ -211,3 +211,52 @@ test("the next release is derived only once the current one is tagged", () => {
   assert.equal(next.action, "version");
   assert.equal(next.bump, "minor");
 });
+
+test("unconventional and style commits cannot hide a distribution change", () => {
+  for (const commits of [
+    ["Improve the filter colors"],
+    ["style: restore sticky borders"],
+    [],
+  ]) {
+    const plan = planRelease({
+      pending: [],
+      version: VERSION,
+      tags: [`v${VERSION}`],
+      commits,
+      changedFiles: ["src/components/ui/yayaw-table/table.css"],
+    });
+    assert.equal(plan.action, "version");
+    assert.equal(plan.bump, "patch");
+    assert.equal(plan.source, "commits");
+  }
+});
+
+test("a distribution fallback preserves explicit feature and breaking bumps", () => {
+  for (const [subject, bump] of [
+    ["feat: new view", "minor"],
+    ["fix!: change imports", "major"],
+  ]) {
+    const plan = planRelease({
+      pending: [],
+      version: VERSION,
+      tags: [`v${VERSION}`],
+      commits: [subject],
+      changedFiles: ["shared/types.ts"],
+    });
+    assert.equal(plan.bump, bump);
+  }
+});
+
+test("a fallback changeset always explains the release", () => {
+  assert.match(
+    derivedChangeset("patch", ["style: restore colors"]),
+    FALLBACK_SUMMARY
+  );
+  assert.match(
+    derivedChangeset("patch", ["Repair selection"]),
+    UNCONVENTIONAL_SUMMARY
+  );
+});
+
+const FALLBACK_SUMMARY = /Updates the registry implementation/;
+const UNCONVENTIONAL_SUMMARY = /Repair selection/;
