@@ -1,5 +1,22 @@
 # Changelog
 
+## 3.1.1
+
+### Patch Changes
+
+- 60e6b9f: Stop wrapping colour tokens in `hsl()`. The design tokens are oklch, so
+  `hsl(var(--primary))` resolves to `hsl(oklch(…))`, which is invalid and dropped
+  by the browser: the Kanban active-card bar, the sticky actions and footer cell
+  borders, the table's selected-row bar and the filter shimmer, focus-ring and
+  value-highlight animations all rendered with no colour at all. Reference the
+  tokens directly and express alpha with `color-mix(in oklab, …)`.
+- 60e6b9f: Read planning config from a flat catalogue entry. `getTableConfig` may return the behaviour nested
+  under `table` or flat at the top level, and `resolveTableCatalogueConfig` has always accepted both,
+  but the provider's planning derivation only read the nested shape and fell back to the default table
+  config for the flat one. A flat entry therefore lost its `planning` and `gantt` mapping, built no
+  planning session, and had the Gantt withheld from its view menu even though it was configured and
+  listed in `displayModes`.
+
 ## 3.1.0
 
 ### Minor Changes
