@@ -9,6 +9,11 @@ on:
   workflow_dispatch:
 
 permissions:
+  # A tag pushed with GITHUB_TOKEN starts no workflow run, so this job asks for
+  # the Release run itself. Dispatching one needs `actions: write`; without it
+  # the request is refused with "Resource not accessible by integration" and the
+  # version is tagged but never published.
+  actions: write
   contents: write
   pull-requests: write
 
@@ -161,7 +166,14 @@ jobs:
           Add more changesets before merging to release them together.
           EOF
           )
-          if gh pr edit "$VERSION_BRANCH" --title "chore: release v${version}" --body "$body"; then
+          # `gh pr edit <branch>` resolves a branch to any pull request whose head
+          # it is, including a merged one, so editing by branch name hands this
+          # release's title and body to the previous release and never opens a
+          # pull request. Only an open one can carry this release: find it first.
+          open_pr=$(gh pr list --head "$VERSION_BRANCH" --base main --state open \
+            --json number --jq '.[0].number // empty' || true)
+          if [ -n "$open_pr" ] && gh pr edit "$open_pr" \
+            --title "chore: release v${version}" --body "$body"; then
             exit 0
           fi
           if gh pr create --base main --head "$VERSION_BRANCH" \
