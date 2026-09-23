@@ -45,6 +45,8 @@ import CatalogueForm from "./forms/CatalogueForm.vue";
 import RecordDetails from "./details/RecordDetails.vue";
 import type { DetailRevertHandler, RecordDetailsConfig } from "../record-details";
 import GalleryView from "./gallery/GalleryView.vue";
+import DisplayModeRendererHost from "./DisplayModeRendererHost.vue";
+import type { DisplayModeRenderers } from "../display-mode-renderer";
 import ListView from "./list/ListView.vue";
 import KanbanView from "./kanban/KanbanView.vue";
 import BulkActions from "./table/BulkActions.vue";
@@ -57,6 +59,11 @@ const optionsRequest = ref<TableContextValue["optionsRequest"]["value"]>();
 const props = withDefaults(
   defineProps<{
     tableType: string;
+    /**
+     * Views rendered by optional registry items, e.g.
+     * `{ calendar: calendarRenderer }` from `yayaw-table-vue-calendar`.
+     */
+    displayModeRenderers?: DisplayModeRenderers;
     details?: RecordDetailsConfig;
     onOpenDetails?: (row: TableRecord) => void;
     onRevertActivity?: DetailRevertHandler;
@@ -195,6 +202,7 @@ const state = useTableState({
   syncUrl: props.syncUrl ?? config.table.syncUrl ?? true,
   initialActiveViewId: props.initialActiveViewId,
   planning: Boolean(planning),
+  renderers: Object.keys(props.displayModeRenderers ?? {}),
 });
 const tableData = useTableData({
   actions,
@@ -443,11 +451,12 @@ const densityStyle = computed(() => {
   };
 });
 
-const openCreate = (): void => {
+const openCreate = (initial?: TableRecord): void => {
   detailRow.value = undefined;
   form.value = {
     open: true,
     mode: "create",
+    initial,
     formType: config.form?.createFormType ?? props.formType ?? props.tableType,
   };
 };
@@ -552,6 +561,7 @@ provide(tableContextKey, {
   getFormConfig: props.getFormConfig,
   refresh,
   openCreate,
+  displayModeRenderers: props.displayModeRenderers,
   openEdit,
   get openDetails() { return props.onOpenDetails || props.details ? openDetails : undefined; },
   activateRow,
@@ -596,13 +606,14 @@ provide(tableContextKey, {
     </div>
 
     <div class="yayaw-content" :aria-busy="tableData.isLoading.value">
-      <DataGrid v-if="state.displayMode.value === 'table'" />
+      <DisplayModeRendererHost v-if="props.displayModeRenderers?.[state.displayMode.value]" :renderer="props.displayModeRenderers[state.displayMode.value]!" />
+      <DataGrid v-else-if="state.displayMode.value === 'table'" />
       <KanbanView v-else-if="state.displayMode.value === 'kanban'" />
       <ListView v-else-if="state.displayMode.value === 'list'" />
       <GanttView v-else-if="state.displayMode.value === 'gantt' && planning" />
       <div v-else-if="state.displayMode.value === 'gantt'" role="alert">{{ ganttLabels.noAdapter }}</div>
       <GalleryView v-else />
-      <CardPagination v-if="state.displayMode.value !== 'table' && state.displayMode.value !== 'gantt' && !(state.displayMode.value === 'kanban' && config.table.kanban?.server)" />
+      <CardPagination v-if="!props.displayModeRenderers?.[state.displayMode.value] && state.displayMode.value !== 'table' && state.displayMode.value !== 'gantt' && !(state.displayMode.value === 'kanban' && config.table.kanban?.server)" />
       <component :is="loadingOverlay" v-if="tableData.isLoading.value && loadingOverlay" />
       <div v-else-if="tableData.isLoading.value" class="yayaw-loading-overlay">{{ translations.loading }}</div>
     </div>

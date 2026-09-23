@@ -34,6 +34,13 @@ Vue 3:
 npx shadcn-vue@latest add https://table.yayaw.app/r/yayaw-table-vue.json
 ```
 
+Optional views are separate items, so the table does not depend on their
+libraries. The calendar (FullCalendar) is
+`https://table.yayaw.app/r/yayaw-table-calendar.json` for React and
+`https://table.yayaw.app/r/yayaw-table-vue-calendar.json` for Vue: pass
+`calendarRenderer` to `displayModeRenderers` and add `"calendar"` to
+`displayModes`.
+
 Both editions use TanStack Table 9.2.4 and require an ESM build targeting
 ES2022 or newer. The Vue edition continues to require Vue `^3.5.0`; this
 migration does not widen framework compatibility.

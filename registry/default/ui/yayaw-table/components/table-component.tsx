@@ -71,9 +71,9 @@ import {
 import type { Cell, ColumnDef, Header, Row } from "../tanstack";
 import { flexRender } from "../tanstack";
 import type { DataTableProps } from "../types";
+import type { DisplayModeRenderers } from "../types/display-mode-renderer";
 import type { TableDensity, TableDisplayMode } from "../types/display-types";
 import { Loader } from "../ui-custom/loader";
-
 import { ColumnIcon } from "../utils/column-icons";
 import { buildCsvExportColumns } from "../utils/csv-export";
 import { resolveDisplayMode } from "../utils/display-modes";
@@ -98,11 +98,16 @@ import { SortableHeader } from "./columns/header/sortable-header";
 import { useColumnDnd } from "./columns/hooks/use-column-dnd";
 import { useColumnDragOverlay } from "./columns/hooks/use-column-drag-overlay";
 import { GroupRowSelectionCell } from "./columns/selection-column";
+import {
+  DisplayModeRendererView,
+  useDisplayModeRenderContext,
+} from "./display-mode-renderer-view";
 import { translateWithFallback } from "./filters/i18n-utils";
 import { FooterRow } from "./footer/footer-row";
 import {
   type CatalogueFormState,
   catalogueFormAtom,
+  openCreateForm,
   openUpdateForm,
 } from "./forms/atoms/catalogue-form-atoms";
 import { CatalogueBulkEditor } from "./forms/catalogue-bulk-editor";
@@ -605,6 +610,13 @@ function isCellInlineEditable<TData>(
   );
 }
 
+function canCreateTableRows(
+  allowCreate: boolean | undefined,
+  actions: { create?: unknown } | undefined
+): boolean {
+  return allowCreate !== false && typeof actions?.create === "function";
+}
+
 function resolveRowEntityId<TData extends Record<string, unknown>>(
   row: Row<TData>
 ): string {
@@ -733,6 +745,7 @@ type ModernDataTableProps<
   onOpenDetails?: (row: TData) => void;
   details?: RecordDetailsConfig;
   onRevertActivity?: DetailRevertHandler;
+  displayModeRenderers?: DisplayModeRenderers;
   onRowSelectionChange?: (rows: Row<TData>[]) => void;
   onRowSelectionStateChange?: (selection: Record<string, boolean>) => void;
   onBulkEdit?: (
@@ -919,6 +932,7 @@ function ModernDataTable<
   onOpenDetails,
   details,
   onRevertActivity,
+  displayModeRenderers,
   showDefaultToastsForCustomHandlers,
   queryFn: _queryFn,
   rowSelection,
@@ -1266,6 +1280,8 @@ function ModernDataTable<
     setExpandedFromUI,
     resetFilters,
     viewParam,
+    modeConfigs,
+    setModeConfigFromUI,
   } = useTableUrlState({
     defaultGantt: tableConfig.table.gantt,
     defaultDisplayMode: tableConfig.table.defaultDisplayMode,
@@ -1276,8 +1292,9 @@ function ModernDataTable<
     () =>
       availableDisplayModes(tableConfig.table.displayModes, {
         planning: Boolean(planningSession),
+        renderers: Object.keys(displayModeRenderers ?? {}),
       }),
-    [tableConfig.table.displayModes, planningSession]
+    [tableConfig.table.displayModes, displayModeRenderers, planningSession]
   );
   const activeDisplayMode = resolveActiveDisplayMode({
     defaultDisplayMode: tableConfig.table.defaultDisplayMode,
@@ -1818,6 +1835,105 @@ function ModernDataTable<
     },
     [canDragKanbanRows, dataTableResult.actions.edit, kanbanGroupBy, refetch, t]
   );
+
+  const activeRenderer = displayModeRenderers?.[activeDisplayMode];
+  const canCreateRows = canCreateTableRows(
+    tableConfig.table.allowCreate,
+    providerTableActions
+  );
+  const canEditRendererRow = useCallback(
+    (row: Record<string, unknown>) =>
+      typeof providerTableActions?.update === "function" &&
+      canEditRowWithTablePermissions({
+        allowEdit: tableConfig.table.allowEdit,
+        canEditRow: tableConfig.table.canEditRow,
+        row,
+      }),
+    [
+      providerTableActions?.update,
+      tableConfig.table.allowEdit,
+      tableConfig.table.canEditRow,
+    ]
+  );
+  const editRendererRow = useCallback(
+    async (row: Record<string, unknown>, patch: Record<string, unknown>) => {
+      const success = await dataTableResult.actions.edit(
+        { ...row, id: String(row.id ?? row._id ?? "") } as TData & {
+          id: string;
+        },
+        patch as Partial<TData>
+      );
+      if (!success) {
+        toast.error(t("common.error"));
+        return false;
+      }
+      await refetch();
+      return true;
+    },
+    [dataTableResult.actions.edit, refetch, t]
+  );
+  const activateRendererRow = useCallback(
+    (row: Row<Record<string, unknown>>, event: React.MouseEvent) =>
+      handleInteractiveRowClick(row as unknown as Row<TData>, event, {
+        ignoreInteractiveTarget: false,
+      }),
+    [handleInteractiveRowClick]
+  );
+  const createRendererRow = useCallback(
+    (initial: Record<string, unknown>) => {
+      if (!canCreateRows) {
+        return;
+      }
+      setFormState(
+        openCreateForm(
+          tableConfig.form?.createFormType ?? defaultFormType,
+          tableId,
+          () => {
+            queryClient.invalidateQueries({ queryKey: ["tableData", tableId] });
+          },
+          resolvedTableType,
+          initial
+        )
+      );
+    },
+    [
+      canCreateRows,
+      defaultFormType,
+      queryClient,
+      resolvedTableType,
+      setFormState,
+      tableConfig.form?.createFormType,
+      tableId,
+    ]
+  );
+  const rendererContext = useDisplayModeRenderContext({
+    activateRow: activateRendererRow,
+    canCreate: canCreateRows,
+    canEditRow: canEditRendererRow,
+    columns: tableConfig.columns.definitions,
+    createRow: createRendererRow,
+    editRow: editRendererRow,
+    emptyState: emptyStateContent,
+    getRowId: getRowId as
+      | ((row: Record<string, unknown>) => string)
+      | undefined,
+    list: providerTableActions?.list,
+    locale,
+    mode: activeDisplayMode,
+    modeConfigs,
+    query: {
+      advancedFilters: advancedFiltersParam,
+      filters: filtersParam,
+      search: globalSearchParam,
+      sort: sortParam,
+    },
+    rows: data as Record<string, unknown>[],
+    setModeConfig: setModeConfigFromUI,
+    t,
+    tableDefaults: tableConfig.table,
+    tableId,
+    tableType: resolvedTableType,
+  });
 
   // Local state to track expanded groups (bypass TanStack issues)
   const [localExpanded, setLocalExpanded] = useState<Record<string, boolean>>(
@@ -2583,6 +2699,21 @@ function ModernDataTable<
   };
 
   const renderDisplayContent = () => {
+    if (activeRenderer) {
+      return (
+        <div className="relative">
+          <DisplayModeRendererView
+            context={rendererContext}
+            renderer={activeRenderer}
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-px"
+            ref={bulkActionsAnchorRef}
+          />
+        </div>
+      );
+    }
     if (isGanttMode) {
       return renderGanttContent();
     }

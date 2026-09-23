@@ -6,6 +6,7 @@ import {
   MoreHorizontal,
   ArrowDownAZ,
   Calculator,
+  CalendarDays,
   ChartGantt,
   Columns3,
   Images,
@@ -47,6 +48,7 @@ import { availableDisplayModes } from "../../view-menu";
 import { isManualOrder, MANUAL_ORDER_SORT_ID, manualOrderSorting } from "../../manual-order";
 import GallerySettings from "./GallerySettings.vue";
 import ListSettings from "./ListSettings.vue";
+import DisplayModeRendererSettings from "./DisplayModeRendererSettings.vue";
 import KanbanSettings from "./KanbanSettings.vue";
 import AdvancedFilters from "../filters/AdvancedFilters.vue";
 import { useToolbarLayout } from "../../composables/use-toolbar-layout";
@@ -76,10 +78,12 @@ const search = computed({
     context.state.search.value = value;
   },
 });
-const displayModeIcons: Record<TableDisplayMode, Component> = { gantt: ChartGantt, table: Table2, kanban: Columns3, gallery: Images, list: List };
+const displayModeIcons: Record<TableDisplayMode, Component> = { calendar: CalendarDays, gantt: ChartGantt, table: Table2, kanban: Columns3, gallery: Images, list: List };
+const activeRenderer = computed(() => context.displayModeRenderers?.[context.state.displayMode.value]);
 const modes = computed<TableDisplayMode[]>(() =>
   availableDisplayModes(context.config.table.displayModes, {
     planning: Boolean(context.planning),
+    renderers: Object.keys(context.displayModeRenderers ?? {}),
   })
 );
 const displayMode = computed({
@@ -527,7 +531,7 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
                 </span>
                 <span class="yayaw-options-item-end">{{ context.footerCalculationsVisible.value ? translate("calculationsOn", "Shown") : translate("calculationsOff", "Hidden") }}</span>
               </button>
-              <button v-if="['kanban', 'gallery', 'gantt', 'list'].includes(context.state.displayMode.value)" type="button" class="yayaw-options-item" @click="optionsView = 'cards'"><List :size="16" /><span>{{ cardSettingsTitle }}</span><ChevronRight :size="16" /></button>
+              <button v-if="['kanban', 'gallery', 'gantt', 'list'].includes(context.state.displayMode.value) || activeRenderer?.settings" type="button" class="yayaw-options-item" @click="optionsView = 'cards'"><List :size="16" /><span>{{ cardSettingsTitle }}</span><ChevronRight :size="16" /></button>
             </div>
 
 
@@ -666,7 +670,7 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
               </button>
             </div>
 
-            <div v-else-if="optionsView === 'cards'" class="yayaw-options-content"><KanbanSettings v-if="capabilities.kanban" /><GallerySettings v-else-if="capabilities.gallery" /><GanttSettings v-else-if="context.state.displayMode.value === 'gantt'" /><ListSettings v-else-if="context.state.displayMode.value === 'list'" /></div>
+            <div v-else-if="optionsView === 'cards'" class="yayaw-options-content"><KanbanSettings v-if="capabilities.kanban" /><GallerySettings v-else-if="capabilities.gallery" /><GanttSettings v-else-if="context.state.displayMode.value === 'gantt'" /><ListSettings v-else-if="context.state.displayMode.value === 'list'" /><DisplayModeRendererSettings v-else-if="activeRenderer" :renderer="activeRenderer" /></div>
             <div v-else class="yayaw-options-content">
               <div
                 v-for="(columnId, index) in context.state.grouping.value.slice(0, maxGroupingCount)"
@@ -710,7 +714,7 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
       </div></template>
     </SavedViews>
     <template v-if="compact">
-      <button v-if="isCreateEnabled" type="button" class="yayaw-button yayaw-icon-only" :aria-label="translate('create', 'Create')" @click="context.openCreate"><Plus :size="16" /></button>
+      <button v-if="isCreateEnabled" type="button" class="yayaw-button yayaw-icon-only" :aria-label="translate('create', 'Create')" @click="context.openCreate()"><Plus :size="16" /></button>
       <ToolbarMenu v-model:open="actionsOpen" compact :title="translate('actions.dataActions', 'Data actions')" :close-label="translate('close', 'Close')">
         <template #trigger><button type="button" class="yayaw-button yayaw-button-outline yayaw-icon-only" :aria-label="translate('actions.dataActions', 'Data actions')"><MoreHorizontal :size="16" /></button></template>
 <ToolbarDataActions :show-search="context.config.table.enableColumnFilters !== false" :items="dataItems" :actions-as-icons="actionsAsIcons" :compact="compact" v-model:search="search"
@@ -724,7 +728,7 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
   :search-label="translate('search', 'Search…')" :export-label="translate('export', 'Export')" :share-label="translate('url_state.share', 'Share')"
   :pending-action="pendingAction" :is-exporting="isExporting" :disabled="toolbarActionDisabled" :variant="toolbarActionVariant"
   @action="runAction" @export="exportRows" @share="shareLink" />
-      <TableTooltip v-if="isCreateEnabled" :label="translate('create', 'Create')"><button type="button" class="yayaw-button" :class="{ 'yayaw-icon-only': actionsAsIcons }" :aria-label="translate('create', 'Create')" @click="context.openCreate"><Plus :size="16" /><span v-if="!actionsAsIcons">{{ translate('create', 'Create') }}</span></button></TableTooltip>
+      <TableTooltip v-if="isCreateEnabled" :label="translate('create', 'Create')"><button type="button" class="yayaw-button" :class="{ 'yayaw-icon-only': actionsAsIcons }" :aria-label="translate('create', 'Create')" @click="context.openCreate()"><Plus :size="16" /><span v-if="!actionsAsIcons">{{ translate('create', 'Create') }}</span></button></TableTooltip>
     </template>
   </div>
 </template>

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  CalendarDays,
   ChartGantt,
   Columns3,
   Images,
@@ -26,6 +27,7 @@ interface TableDisplayModeSwitcherProps {
 }
 
 const DISPLAY_MODE_ICONS: Record<TableDisplayMode, LucideIcon> = {
+  calendar: CalendarDays,
   gantt: ChartGantt,
   gallery: Images,
   kanban: Columns3,

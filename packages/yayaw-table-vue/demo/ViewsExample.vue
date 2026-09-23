@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { DataTable, defineTableConfig, type TableActions, type TableRecord } from "../src";
+import { calendarRenderer } from "../src/calendar/calendar-renderer";
 import { createViewsActions, viewsColumns, viewsRows, viewsTableOptions } from "../../../examples/views";
 
 const rows: TableRecord[] = viewsRows;
@@ -19,7 +20,7 @@ const config = defineTableConfig({
 <template>
   <main class="views-example">
     <h1>Views</h1>
-    <DataTable :table-type="config.id" :config="config" :data="rows" :get-table-actions="() => actions" />
+    <DataTable :table-type="config.id" :config="config" :data="rows" :get-table-actions="() => actions" :display-mode-renderers="{ calendar: calendarRenderer }" />
   </main>
 </template>
 <style>

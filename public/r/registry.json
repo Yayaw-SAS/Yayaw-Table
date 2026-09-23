@@ -349,6 +349,11 @@
           "target": "components/ui/yayaw-table/components/details/use-activity-undo.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/display-mode-renderer-view.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/display-mode-renderer-view.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/filters/advanced-faceted-filter.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/filters/advanced-faceted-filter.tsx"
@@ -809,6 +814,11 @@
           "target": "components/ui/yayaw-table/components/toolbar/table-menu.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/toolbar/table-renderer-settings.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/toolbar/table-renderer-settings.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/toolbar/table-view-manager.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/toolbar/table-view-manager.tsx"
@@ -1104,6 +1114,11 @@
           "target": "components/ui/yayaw-table/types/date-types.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/types/display-mode-renderer.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/types/display-mode-renderer.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/types/display-types.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/types/display-types.ts"
@@ -1182,6 +1197,11 @@
           "path": "registry/default/ui/yayaw-table/utils/bulk-editor.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/bulk-editor.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/calendar-model.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/calendar-model.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/utils/card-interaction.ts",
@@ -1388,6 +1408,39 @@
         "registryUrl": "https://table.yayaw.app/r/yayaw-table.json",
         "version": "3.2.0",
         "versionedRegistryUrl": "https://table.yayaw.app/r/v3.2.0/yayaw-table.json"
+      }
+    },
+    {
+      "name": "yayaw-table-calendar",
+      "type": "registry:block",
+      "title": "Yayaw Table Calendar",
+      "description": "Optional calendar display mode for YaYaw Table (month, week and list), rendered with FullCalendar. Pass `calendarRenderer` to `displayModeRenderers` and add \"calendar\" to `table.displayModes`.",
+      "registryDependencies": [
+        "button",
+        "https://table.yayaw.app/r/yayaw-table.json"
+      ],
+      "dependencies": ["@fullcalendar/react", "temporal-polyfill"],
+      "files": [
+        {
+          "path": "registry/default/ui/yayaw-table-calendar/calendar-renderer.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table-calendar/calendar-renderer.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table-calendar/calendar-settings.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table-calendar/calendar-settings.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table-calendar/calendar-view.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table-calendar/calendar-view.tsx"
+        }
+      ],
+      "meta": {
+        "registryUrl": "https://table.yayaw.app/r/yayaw-table-calendar.json",
+        "version": "3.2.0",
+        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.2.0/yayaw-table-calendar.json"
       }
     },
     {

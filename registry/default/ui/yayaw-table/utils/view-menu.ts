@@ -27,9 +27,9 @@ export function getViewModeCapabilities(mode: TableDisplayMode) {
  */
 export function availableDisplayModes(
   displayModes: readonly unknown[] | undefined,
-  { planning }: { planning: boolean }
+  context: { planning: boolean; renderers?: readonly string[] }
 ): TableDisplayMode[] {
-  return resolveDisplayModes(displayModes, { planning });
+  return resolveDisplayModes(displayModes, context);
 }
 
 const VIEW_SETTING_KEYS = [

@@ -2,6 +2,7 @@ import type { QueryClient } from "@tanstack/vue-query";
 import { type ComputedRef, type InjectionKey, inject, type Ref } from "vue";
 import type { TableDataResult } from "./composables/use-table-data";
 import type { TableStateRefs } from "./composables/use-table-state";
+import type { DisplayModeRenderers } from "./display-mode-renderer";
 import type {
   BulkAction,
   BulkActionHandlerResult,
@@ -21,6 +22,8 @@ export interface OpenFormState {
   open: boolean;
   mode: FormMode;
   row?: TableRecord;
+  /** Prefilled values of a create form, e.g. the day clicked in a calendar. */
+  initial?: TableRecord;
   formType?: string;
   returnFocus?: HTMLElement;
   bulk?: {
@@ -66,7 +69,9 @@ export interface TableContextValue<TData extends TableRecord = TableRecord> {
     context?: FormFieldContext<TData>
   ) => FormConfig<TData> | undefined;
   refresh: () => Promise<void>;
-  openCreate: () => void;
+  openCreate: (initial?: TableRecord) => void;
+  /** Views rendered by optional registry items, such as the calendar. */
+  displayModeRenderers?: DisplayModeRenderers;
   openEdit: (row: TData) => void;
   openDetails?: (row: TData) => void;
   activateRow: (row: TData, event: MouseEvent) => void;

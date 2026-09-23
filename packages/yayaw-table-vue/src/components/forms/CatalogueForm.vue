@@ -202,7 +202,7 @@ const initialize = async (): Promise<void> => {
   applied.value = [];
   loadError.value = undefined;
   const selected = context.form.value;
-  values.value = initialFormValues(config.value, selected.row);
+  values.value = initialFormValues(config.value, selected.row ?? selected.initial);
   initial.value = cloneFormValue(values.value);
   loading.value = !selected.bulk && Boolean(config.value.loadInitialValues);
   try {
