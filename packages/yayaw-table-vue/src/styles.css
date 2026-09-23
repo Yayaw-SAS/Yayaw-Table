@@ -2359,18 +2359,24 @@
   display: inline-flex;
   min-width: 0;
 }
-.yayaw-toolbar[data-compact="true"] .yayaw-view-manager {
-  flex: 1;
-  flex-shrink: 1;
-}
+/* Phones: the views trigger is an icon, so search gets the row. */
 .yayaw-toolbar[data-compact="true"] .yayaw-view-trigger {
-  width: 100%;
+  position: relative;
 }
-.yayaw-toolbar[data-compact="true"] .yayaw-view-manager-row,
-.yayaw-toolbar[data-compact="true"]
-  .yayaw-view-manager-row
-  > .yayaw-menu-anchor {
+.yayaw-toolbar[data-compact="true"] .yayaw-view-trigger .yayaw-view-dirty {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}
+.yayaw-toolbar[data-compact="true"] .yayaw-toolbar-end {
   flex: 1;
+  justify-content: flex-end;
+}
+.yayaw-toolbar[data-compact="true"] .yayaw-search-field {
+  flex: 1;
+}
+.yayaw-toolbar[data-compact="true"] .yayaw-search-field .yayaw-search {
+  width: 100%;
 }
 .yayaw-toolbar[data-compact="true"] :is(.yayaw-button, .yayaw-icon-button) {
   min-height: 44px;

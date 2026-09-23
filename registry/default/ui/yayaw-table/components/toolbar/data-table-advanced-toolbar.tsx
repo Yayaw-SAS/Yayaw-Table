@@ -534,7 +534,7 @@ function ToolbarEnd({
     <div
       className={cn(
         "ml-auto flex shrink-0 items-center gap-2",
-        isMobile && "[&>button]:size-11"
+        isMobile && "flex-1 justify-end [&>button]:size-11"
       )}
     >
       {search.enabled && !search.hidden ? (

@@ -466,13 +466,31 @@ function renderViewTrigger({
       </Button>
     );
   }
+  if (compact) {
+    // Phones keep the row for search: the icon opens the views, named for assistive tech.
+    return (
+      <Button
+        aria-label={`${t("views.current")}: ${currentViewLabel}`}
+        className="relative size-11 shrink-0"
+        disabled={enabled && isLoading}
+        size="icon"
+        type="button"
+        variant="outline"
+      >
+        <LayoutList aria-hidden="true" className="size-4" />
+        {enabled && isActiveViewDirty ? (
+          <output
+            aria-label={t("views.modified")}
+            className="absolute top-1.5 right-1.5 size-2 rounded-full bg-blue-500"
+          />
+        ) : null}
+      </Button>
+    );
+  }
   return (
     <Button
       aria-label={t("views.current")}
-      className={cn(
-        "min-w-0 max-w-64 justify-between gap-2",
-        compact ? "h-11 flex-1" : "h-8"
-      )}
+      className="h-8 min-w-0 max-w-64 justify-between gap-2"
       disabled={enabled && isLoading}
       type="button"
       variant="outline"
@@ -485,9 +503,7 @@ function renderViewTrigger({
           className="size-2 shrink-0 rounded-full bg-blue-500"
         />
       ) : null}
-      {compact ? null : (
-        <ChevronDown aria-hidden="true" className="size-3 shrink-0" />
-      )}
+      <ChevronDown aria-hidden="true" className="size-3 shrink-0" />
     </Button>
   );
 }
@@ -1227,13 +1243,7 @@ export function DataTableViewManager({
     return null;
   }
   return (
-    <div
-      className={cn(
-        "flex min-w-0 flex-col gap-1",
-        compact && "flex-1",
-        className
-      )}
-    >
+    <div className={cn("flex min-w-0 flex-col gap-1", className)}>
       <div className="flex min-w-0 items-center gap-1">
         <ManagerViewTabs
           activeId={viewParam}

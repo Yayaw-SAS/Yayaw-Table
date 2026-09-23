@@ -85,9 +85,9 @@ const focusName = (event: Event): void => {
           :aria-label="label('views.viewActions', 'viewActions')" :disabled="loading || busy">
           <ChevronDown :size="16" aria-hidden="true" />
         </button>
-        <button v-else ref="trigger" type="button" class="yayaw-button yayaw-button-outline yayaw-view-trigger" :id="`table-views-${context.config.id}`"
+        <button v-else ref="trigger" type="button" class="yayaw-button yayaw-button-outline yayaw-view-trigger" :class="{ 'yayaw-icon-only': compact }" :id="`table-views-${context.config.id}`"
           :aria-label="`${label('views.current', 'currentView')}: ${currentLabel}`" :disabled="loading || busy">
-          <LayoutList :size="16" aria-hidden="true" /><span class="yayaw-view-name">{{ currentLabel }}</span>
+          <LayoutList :size="16" aria-hidden="true" /><span v-if="!compact" class="yayaw-view-name">{{ currentLabel }}</span>
           <span v-if="dirty" class="yayaw-view-dirty" role="status" :aria-label="label('views.modified', 'viewModified')" />
           <ChevronDown v-if="!compact" :size="12" aria-hidden="true" />
         </button>
