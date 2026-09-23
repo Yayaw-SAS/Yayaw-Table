@@ -4,6 +4,8 @@
  */
 "use client";
 
+import type { GenericModeViewConfigs } from "../utils/display-modes";
+import { pickGenericModeConfigs } from "../utils/display-modes";
 import { useMemo } from "react";
 
 import type { ColumnSort } from "@/components/ui/yayaw-table/tanstack";
@@ -79,7 +81,8 @@ export interface TableCatalogueColumnConfig extends ColumnDefinition {
 /**
  * Configuration for table behavior in the catalogue
  */
-export interface TableCatalogueTableConfig {
+export interface TableCatalogueTableConfig
+  extends GenericModeViewConfigs {
   coloredTags?: boolean;
   allowCreate?: boolean;
   allowEdit?: boolean;
@@ -115,7 +118,6 @@ export interface TableCatalogueTableConfig {
   planning?: import("../planning/types").TablePlanningConfig;
   gantt?: import("../planning/types").TableGanttConfig;
   gallery?: TableGalleryConfig;
-  list?: import("../types/display-types").TableListConfig;
   manualOrder?: boolean;
   emptyState?: TableEmptyStateConfig;
   enableRowSelection: boolean;
@@ -356,7 +358,7 @@ function resolveTableBehaviorConfig(
     gantt: mergedConfig.gantt,
     kanban: mergedConfig.kanban,
     gallery: mergedConfig.gallery,
-    list: mergedConfig.list,
+    ...pickGenericModeConfigs(mergedConfig),
     manualOrder: mergedConfig.manualOrder,
     emptyState: {
       show: true,

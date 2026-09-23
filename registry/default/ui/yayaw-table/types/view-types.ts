@@ -10,6 +10,7 @@ import type {
   SortingState,
   VisibilityState,
 } from "../tanstack";
+import type { GenericModeViewConfigs } from "../utils/display-modes";
 import type {
   TableDisplayMode,
   TableGalleryViewConfig,
@@ -89,7 +90,8 @@ export interface TableView {
  * Table view configuration
  * Contains all state that can be saved in a view
  */
-export interface TableViewConfig {
+/** Generic per-mode settings (`list`, …) come from the display mode registry. */
+export interface TableViewConfig extends GenericModeViewConfigs {
   gantt?: import("../planning/types").TableGanttViewConfig;
   /** Visibility of table footer calculations; legacy snapshots inherit the initial setting. */
   footerCalculationsVisible?: boolean;
@@ -150,11 +152,6 @@ export interface TableViewConfig {
    * Gallery-specific view state.
    */
   gallery?: TableGalleryViewConfig;
-
-  /**
-   * List-specific view state.
-   */
-  list?: import("./display-types").TableListViewConfig;
 
   /**
    * Page size to restore when applying the view

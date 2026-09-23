@@ -1,6 +1,7 @@
 "use client";
 import { planningLabelOverrides } from "../planning/labels";
 import { PlanningSurface, usePlanningState } from "../planning/react";
+import { pickGenericModeConfigs } from "../utils/display-modes";
 /**
  * New DataTable component using the declarative architecture
  * This component replaces the old DataTable with a more streamlined API
@@ -738,7 +739,7 @@ function DataTableContent({
             syncUrl: config.table.syncUrl,
             inlineEdit: config.table.inlineEdit,
             gallery: config.table.gallery,
-            list: config.table.list,
+            ...pickGenericModeConfigs(config.table),
             manualOrder: config.table.manualOrder,
             planning: config.table.planning,
             gantt: config.table.gantt,

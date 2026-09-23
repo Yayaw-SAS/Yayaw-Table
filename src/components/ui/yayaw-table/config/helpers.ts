@@ -1,3 +1,4 @@
+import type { GenericModeViewConfigs } from "../utils/display-modes";
 import {
   resolveDisplayMode,
   resolveDisplayModes,
@@ -373,7 +374,9 @@ export interface ColumnDefinition {
 /**
  * Configuration for the table behavior
  */
-export interface TableBehaviorConfig {
+/** Per-mode defaults (`list`, …) come from the display mode registry. */
+export interface TableBehaviorConfig
+  extends GenericModeViewConfigs {
   /** Use neutral badges when false; columns can override this setting. */
   coloredTags?: boolean;
   planning?: import("../planning/types").TablePlanningConfig;
@@ -511,10 +514,6 @@ export interface TableBehaviorConfig {
    */
   gallery?: TableGalleryConfig;
 
-  /**
-   * List display mode configuration.
-   */
-  list?: import("../types/display-types").TableListConfig;
 
   /**
    * Offer "Manual order" in the sort menu. Each view keeps its own order,

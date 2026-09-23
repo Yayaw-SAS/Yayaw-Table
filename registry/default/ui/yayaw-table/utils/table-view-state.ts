@@ -9,9 +9,13 @@ import type {
 import type { TableDisplayMode } from "../types/display-types";
 import type { AdvancedFiltersState } from "../types/filter-types";
 import type { TableViewConfig } from "../types/view-types";
-import { displayModeMaxGroups, isTableDisplayMode } from "./display-modes";
+import {
+  displayModeMaxGroups,
+  type GenericModeViewConfigs,
+  isTableDisplayMode,
+  normalizeGenericModeConfigs,
+} from "./display-modes";
 import { normalizeGalleryViewConfig } from "./gallery-view-state";
-import { normalizeListViewConfig } from "./list-view";
 import {
   isTableDensity,
   normalizeColumnSizing,
@@ -125,13 +129,6 @@ function normalizeColumnIds(value: unknown): string[] | undefined {
     .filter(Boolean);
 }
 
-function normalizedListConfig(
-  config: TableViewConfig["list"]
-): Pick<TableViewConfig, "list"> {
-  const list = normalizeListViewConfig(config);
-  return list ? { list } : {};
-}
-
 export function normalizeColumnPinning(
   pinning: ColumnPinningState | undefined
 ): ColumnPinningState | undefined {
@@ -230,7 +227,10 @@ export function normalizeTableViewConfig(
   if (kanban) {
     normalized.kanban = kanban;
   }
-  Object.assign(normalized, normalizedListConfig(config.list));
+  Object.assign(
+    normalized,
+    normalizeGenericModeConfigs(config as Record<string, unknown>)
+  );
   Object.assign(normalized, normalizedGanttConfig(config.gantt));
   if (gallery) {
     normalized.gallery = gallery;
@@ -257,7 +257,7 @@ export function createTableViewConfigSnapshot({
   galleryParam,
   kanbanParam,
   kanbanGroupByParam,
-  listParam,
+  modeConfigsParam,
   orderParam,
   pageSizeParam,
   pinningParam,
@@ -276,7 +276,8 @@ export function createTableViewConfigSnapshot({
   galleryParam: TableViewConfig["gallery"];
   kanbanParam: TableViewConfig["kanban"];
   kanbanGroupByParam: string;
-  listParam?: TableViewConfig["list"];
+  /** Settings of the modes handled generically by the registry. */
+  modeConfigsParam?: GenericModeViewConfigs;
   orderParam: string[];
   pageSizeParam: string;
   pinningParam?: ColumnPinningState;
@@ -302,7 +303,7 @@ export function createTableViewConfigSnapshot({
     gantt: ganttParam,
     gallery: galleryParam,
     kanban: kanbanParam,
-    list: listParam,
+    ...modeConfigsParam,
     pageSize: normalizePageSize(pageSizeParam),
     sorting: sortParam,
   });
