@@ -76,6 +76,7 @@ import { StackMenuContent, StackMenuItem } from "../../ui-custom/stack-menu";
 import { buildCsvExportColumns } from "../../utils/csv-export";
 import {
   type DataDestination,
+  type DataDestinationContext,
   dataDestinationQuery,
   groupDataDestinations,
   runDataDestination,
@@ -97,6 +98,7 @@ import {
   toOrderByParam,
   toPageSize,
 } from "../../utils/filtered-rows";
+import { isSchedulable, scheduleLabel } from "../../utils/schedule-model";
 import { TableTooltip } from "../../utils/table-tooltip";
 import { sharePageUrl } from "../../utils/view-menu";
 import { TableFilterBar } from "../filters/table-filter-bar";
@@ -106,6 +108,7 @@ import {
 } from "../forms/atoms/catalogue-form-atoms";
 import { ExportPanel } from "./export-panel";
 import { useMobileSettingsScreens } from "./mobile-settings-screens";
+import { DestinationScheduleButton, SchedulePanel } from "./schedule-panel";
 import { SearchBar } from "./sections/search-bar";
 import { TableDataMenu } from "./table-data-menu";
 import { TableDensityMenu } from "./table-density-menu";
@@ -613,13 +616,44 @@ function renderShareLinkItem(
   );
 }
 
-/** Sync and Share screens: the host destinations, after the share link. */
+/** Scheduling for Connect destinations that declare it. */
+interface DestinationScheduling {
+  enabled: boolean;
+  label: (destination: TableDataDestination) => string;
+  panel: (destination: TableDataDestination) => ReactNode;
+}
+
+const scheduleScreen = (destination: TableDataDestination) =>
+  `schedule:${destination.id}`;
+
+/** A Connect row: clicking runs it now; the clock opens its schedule. */
+function renderConnectItem(
+  destination: TableDataDestination,
+  item: (destination: TableDataDestination) => ReactNode,
+  scheduling: DestinationScheduling
+) {
+  if (!isSchedulable(destination, scheduling.enabled)) {
+    return item(destination);
+  }
+  return (
+    <div className="flex min-w-0 items-center gap-1" key={destination.id}>
+      <div className="min-w-0 flex-1">{item(destination)}</div>
+      <DestinationScheduleButton
+        label={scheduling.label(destination)}
+        screen={scheduleScreen(destination)}
+      />
+    </div>
+  );
+}
+
+/** Connect and Share screens: the host destinations, after the share link. */
 function destinationScreens({
   destinations,
   isShareEnabled,
   onDestination,
   onShare,
   pendingDestination,
+  scheduling,
   t,
 }: {
   destinations: Record<"connect" | "share", TableDataDestination[]>;
@@ -627,6 +661,7 @@ function destinationScreens({
   onDestination: (destination: TableDataDestination) => Promise<void>;
   onShare: () => Promise<void>;
   pendingDestination?: string;
+  scheduling: DestinationScheduling;
   t: ReturnType<typeof useTranslations>["t"];
 }) {
   const item = (destination: TableDataDestination) =>
@@ -637,9 +672,22 @@ function destinationScreens({
       name: "connect",
       title: t("destinations.connect"),
       content: (
-        <StackMenuContent>{destinations.connect.map(item)}</StackMenuContent>
+        <StackMenuContent>
+          {destinations.connect.map((destination) =>
+            renderConnectItem(destination, item, scheduling)
+          )}
+        </StackMenuContent>
       ),
     });
+    for (const destination of destinations.connect) {
+      if (isSchedulable(destination, scheduling.enabled)) {
+        screens.push({
+          name: scheduleScreen(destination),
+          title: scheduling.label(destination),
+          content: scheduling.panel(destination),
+        });
+      }
+    }
   }
   if (destinations.share.length > 0) {
     screens.push({
@@ -1312,30 +1360,49 @@ export function DataTableAdvancedToolbar<TData>({
     ]
   );
 
+  // What a destination receives: the view, its query, columns and selection.
+  const destinationContext = useCallback(
+    (): DataDestinationContext => ({
+      tableId,
+      tableType,
+      viewId: viewParam ?? null,
+      query: dataDestinationQuery({
+        search: globalSearchParam,
+        filters: toFiltersParam(filtersParam),
+        advancedFilters: advancedFiltersParam,
+        sorting: sortParam as { id: string; desc?: boolean }[],
+      }),
+      columns: csvExportColumns.map((column) => ({
+        id: column.id,
+        header: column.label,
+      })),
+      selectedRowIds: toolbarActionContext.selectedRowIds,
+      url: window.location.href,
+      loadRows: loadMatchingRows,
+    }),
+    [
+      advancedFiltersParam,
+      csvExportColumns,
+      filtersParam,
+      globalSearchParam,
+      loadMatchingRows,
+      sortParam,
+      tableId,
+      tableType,
+      toolbarActionContext.selectedRowIds,
+      viewParam,
+    ]
+  );
   const runDestination = useCallback(
     async (destination: TableDataDestination) => {
       if (pendingDestination) {
         return;
       }
       setPendingDestination(destination.id);
-      const result = await runDataDestination(destination, {
-        tableId,
-        tableType,
-        viewId: viewParam ?? null,
-        query: dataDestinationQuery({
-          search: globalSearchParam,
-          filters: toFiltersParam(filtersParam),
-          advancedFilters: advancedFiltersParam,
-          sorting: sortParam as { id: string; desc?: boolean }[],
-        }),
-        columns: csvExportColumns.map((column) => ({
-          id: column.id,
-          header: column.label,
-        })),
-        selectedRowIds: toolbarActionContext.selectedRowIds,
-        url: window.location.href,
-        loadRows: loadMatchingRows,
-      });
+      const result = await runDataDestination(
+        destination,
+        destinationContext()
+      );
       setPendingDestination(undefined);
       if (result.ok) {
         toast.success(result.message ?? t("destinations.done"));
@@ -1343,20 +1410,7 @@ export function DataTableAdvancedToolbar<TData>({
         toast.error(result.error);
       }
     },
-    [
-      advancedFiltersParam,
-      csvExportColumns,
-      filtersParam,
-      globalSearchParam,
-      loadMatchingRows,
-      pendingDestination,
-      sortParam,
-      t,
-      tableId,
-      tableType,
-      toolbarActionContext.selectedRowIds,
-      viewParam,
-    ]
+    [destinationContext, pendingDestination, t]
   );
   const { locale } = useTranslations();
   const tableTitle = tableConfig.translations?.keys?.title ?? tableType;
@@ -1445,6 +1499,11 @@ export function DataTableAdvancedToolbar<TData>({
     ]
   );
   const shareLink = createPageShareHandler(nativeMobile, t);
+  // Host translations override the built-in English and French schedule labels.
+  const scheduleTranslate = (key: string, fallback: string) => {
+    const translated = t(`schedule.${key}`);
+    return translated === `schedule.${key}` ? fallback : translated;
+  };
   const destinationGroups = groupDataDestinations(
     tableActions?.destinations,
     toolbarActionContext.selectedRowIds.length
@@ -1490,6 +1549,26 @@ export function DataTableAdvancedToolbar<TData>({
       onDestination: runDestination,
       onShare: shareLink,
       pendingDestination,
+      scheduling: {
+        enabled: tableConfig.table.schedule !== false,
+        label: (destination) =>
+          scheduleLabel("scheduleFor", locale, scheduleTranslate, {
+            name: destination.label,
+          }),
+        panel: (destination) =>
+          destination.schedule ? (
+            <SchedulePanel
+              context={destinationContext}
+              locale={locale}
+              onError={(message) => toast.error(message)}
+              onRunNow={() => runDestination(destination)}
+              onSaved={(message) => toast.success(message)}
+              running={pendingDestination === destination.id}
+              schedule={destination.schedule}
+              translate={scheduleTranslate}
+            />
+          ) : null,
+      },
       t,
     }),
     ...(isExportEnabled

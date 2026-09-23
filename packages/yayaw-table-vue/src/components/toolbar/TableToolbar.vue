@@ -10,6 +10,7 @@ import {
   Plug,
   Rows3,
   Send,
+  CalendarClock,
   Share2,
   SlidersHorizontal,
   ArrowDownAZ,
@@ -47,6 +48,8 @@ import ToolbarDataActions from "./ToolbarDataActions.vue";
 import ToolbarSearch from "./ToolbarSearch.vue";
 import MenuChoiceList from "./MenuChoiceList.vue";
 import ExportPanel from "./ExportPanel.vue";
+import SchedulePanel from "./SchedulePanel.vue";
+import { isSchedulable, scheduleLabel } from "../../schedule-model";
 import {
   availableExportFormats,
   defaultExportFileName,
@@ -58,6 +61,7 @@ import {
 } from "../../export-model";
 import {
   type DataDestination,
+  type DataDestinationContext,
   dataDestinationQuery,
   groupDataDestinations,
   runDataDestination,
@@ -465,11 +469,25 @@ const hasExport = computed(() => Boolean(context.config.table.export));
 const hasShare = computed(() => context.config.table.share !== false);
 // The Data menu (Export, Connect, Share) stands apart from the view settings.
 const dataOpen = ref(false);
-const dataView = ref<"main" | "export" | "connect" | "share">("main");
+// "schedule:<id>" opens the schedule of a Connect destination.
+const dataView = ref<"main" | "export" | "connect" | "share" | `schedule:${string}`>("main");
 watch(dataOpen, (open) => {
   if (!open) dataView.value = "main";
 });
+const scheduleTranslate = (key: string, fallback: string): string => translate(`schedule.${key}`, fallback);
+const scheduleTitle = (destination: DataDestination<Component>): string =>
+  scheduleLabel("scheduleFor", context.locale, scheduleTranslate, { name: destination.label });
+const schedulingEnabled = computed(() => context.config.table.schedule !== false);
+const scheduledDestination = computed(() =>
+  destinations.value.connect.find(
+    (destination) => dataView.value === `schedule:${destination.id}` && isSchedulable(destination, schedulingEnabled.value)
+  )
+);
+const dataBack = (): void => {
+  dataView.value = dataView.value.startsWith("schedule:") ? "connect" : "main";
+};
 const dataTitle = computed(() => {
+  if (scheduledDestination.value) return scheduleTitle(scheduledDestination.value);
   switch (dataView.value) {
     case "export":
       return translate("export", "Export");
@@ -486,25 +504,27 @@ const destinations = computed(() =>
 );
 const pendingDestination = ref<string>();
 // One destination runs at a time; the host receives the view's query first.
+// What a destination receives: the view, its query, columns and selection.
+const destinationContext = (): DataDestinationContext => ({
+  tableId: context.config.id,
+  tableType: context.tableType,
+  viewId: context.state.activeViewId.value ?? null,
+  query: dataDestinationQuery({
+    search: context.state.search.value,
+    filters: Object.fromEntries(context.state.filters.value.map((filter) => [filter.id, filter.value])),
+    advancedFilters: context.state.advancedFilters.value,
+    sorting: context.state.sorting.value,
+  }),
+  columns: exportColumns(context.config.columns.definitions, context.state.visibility.value, context.state.order.value)
+    .map((column) => ({ id: column.id, header: column.header })),
+  selectedRowIds: context.selectedRows.value.map((row) => context.getRowId(row)),
+  url: window.location.href,
+  loadRows: () => context.loadAllMatchingRows(),
+});
 const runDestination = async (destination: DataDestination<Component>): Promise<void> => {
   if (pendingDestination.value) return;
   pendingDestination.value = destination.id;
-  const result = await runDataDestination(destination, {
-    tableId: context.config.id,
-    tableType: context.tableType,
-    viewId: context.state.activeViewId.value ?? null,
-    query: dataDestinationQuery({
-      search: context.state.search.value,
-      filters: Object.fromEntries(context.state.filters.value.map((filter) => [filter.id, filter.value])),
-      advancedFilters: context.state.advancedFilters.value,
-      sorting: context.state.sorting.value,
-    }),
-    columns: exportColumns(context.config.columns.definitions, context.state.visibility.value, context.state.order.value)
-      .map((column) => ({ id: column.id, header: column.header })),
-    selectedRowIds: context.selectedRows.value.map((row) => context.getRowId(row)),
-    url: window.location.href,
-    loadRows: () => context.loadAllMatchingRows(),
-  });
+  const result = await runDataDestination(destination, destinationContext());
   pendingDestination.value = undefined;
   context.status.value = result.ok
     ? { type: "success", message: result.message ?? translate("destinations.done", "Sent") }
@@ -826,7 +846,7 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
       </div>
     </ToolbarMenu>
     <ToolbarMenu v-model:open="dataOpen" :compact="compact" align="end" :title="dataTitle"
-      :back="dataView !== 'main'" :back-label="translate('back', 'Back')" :close-label="translate('close', 'Close')" @back="dataView = 'main'">
+      :back="dataView !== 'main'" :back-label="translate('back', 'Back')" :close-label="translate('close', 'Close')" @back="dataBack">
       <template #trigger>
         <button type="button" class="yayaw-button yayaw-button-outline yayaw-icon-only yayaw-data-trigger" :aria-label="translate('menu.data', 'Data')">
           <Database :size="16" aria-hidden="true" />
@@ -864,15 +884,28 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
                 <span class="yayaw-options-item-icon"><Link2 :size="16" aria-hidden="true" /></span>
                 <span class="yayaw-options-item-copy"><span>{{ translate('destinations.copyLink', 'Copy link') }}</span></span>
               </button>
-              <button v-for="destination in destinations[dataView]" :key="destination.id" type="button" class="yayaw-options-item"
-                :disabled="Boolean(pendingDestination)" :aria-busy="pendingDestination === destination.id" @click="runDestination(destination)">
-                <span class="yayaw-options-item-icon">
-                  <span v-if="pendingDestination === destination.id" class="yayaw-spinner" aria-hidden="true" />
-                  <component :is="destination.icon ?? Send" v-else :size="16" aria-hidden="true" />
-                </span>
-                <span class="yayaw-options-item-copy"><span>{{ destination.label }}</span></span>
-              </button>
+              <div v-for="destination in destinations[dataView]" :key="destination.id" class="yayaw-destination-row">
+                <button type="button" class="yayaw-options-item"
+                  :disabled="Boolean(pendingDestination)" :aria-busy="pendingDestination === destination.id" @click="runDestination(destination)">
+                  <span class="yayaw-options-item-icon">
+                    <span v-if="pendingDestination === destination.id" class="yayaw-spinner" aria-hidden="true" />
+                    <component :is="destination.icon ?? Send" v-else :size="16" aria-hidden="true" />
+                  </span>
+                  <span class="yayaw-options-item-copy"><span>{{ destination.label }}</span></span>
+                </button>
+                <TableTooltip v-if="dataView === 'connect' && isSchedulable(destination, schedulingEnabled)" :label="scheduleTitle(destination)">
+                  <button type="button" class="yayaw-icon-button yayaw-schedule-trigger" data-schedule-trigger :aria-label="scheduleTitle(destination)"
+                    @click="dataView = `schedule:${destination.id}`">
+                    <CalendarClock :size="16" aria-hidden="true" />
+                  </button>
+                </TableTooltip>
+              </div>
             </div>
+      <SchedulePanel v-else-if="scheduledDestination?.schedule" :key="scheduledDestination.id" :schedule="scheduledDestination.schedule"
+        :context="destinationContext" :locale="context.locale" :translate="scheduleTranslate"
+        :running="pendingDestination === scheduledDestination.id" @run-now="runDestination(scheduledDestination)"
+        @saved="(message) => (context.status.value = { type: 'success', message })"
+        @error="(message) => (context.status.value = { type: 'error', message })" @done="dataView = 'connect'" />
       <ExportPanel v-else-if="dataView === 'export'" :busy="isExporting" :formats="exportFormats" :label="exportLabel"
               :default-file-name="defaultExportFileName(String(context.translations.value.title ?? context.config.id))"
               :selected-count="context.selectedRows.value.length" @export="exportRows" />

@@ -1,3 +1,5 @@
+import type { ScheduleSettings } from "../src/components/ui/yayaw-table/utils/schedule-model";
+
 /** Shared records and columns for the React and Vue view-switching examples and end-to-end tests. */
 export const viewsRows = [
   ["alpha", "Alpha launch", "Software", "Active", 49, "2026-09-02"],
@@ -119,6 +121,9 @@ export function createViewsActions() {
   const records = viewsRows.map((row) => ({ ...row }));
   const orders = new Map<string, string[]>();
   const keyOf = (viewId: unknown) => String(viewId ?? "default");
+  // The n8n schedule of each view; a real host stores it and runs it on a server.
+  const schedules = new Map<string, ScheduleSettings>();
+  const lastRuns = new Map<string, string>();
   const ordered = (viewId: unknown) => {
     const order = orders.get(keyOf(viewId));
     if (!order) {
@@ -173,11 +178,30 @@ export function createViewsActions() {
         id: "n8n",
         label: "n8n",
         kind: "connect" as const,
+        schedule: {
+          load: (context: { viewId: string | null }) =>
+            Promise.resolve(schedules.get(keyOf(context.viewId)) ?? null),
+          save: (
+            settings: ScheduleSettings,
+            context: { viewId: string | null }
+          ) => {
+            schedules.set(keyOf(context.viewId), settings);
+            return Promise.resolve();
+          },
+          status: (context: { viewId: string | null }) => {
+            const lastRunAt = lastRuns.get(keyOf(context.viewId));
+            return Promise.resolve(
+              lastRunAt ? { lastRunAt, lastResult: "ok" as const } : null
+            );
+          },
+        },
         run: async (context: {
+          viewId: string | null;
           query: { search: string };
           loadRows: () => Promise<unknown[]>;
         }) => {
           const rows = await context.loadRows();
+          lastRuns.set(keyOf(context.viewId), new Date().toISOString());
           return {
             message: `Sent ${rows.length} records to the n8n workflow`,
           };

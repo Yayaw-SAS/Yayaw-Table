@@ -1,0 +1,5 @@
+---
+"yayaw-table-workspace": minor
+---
+
+Connect destinations can be scheduled, in React and Vue. A destination that declares `schedule: { frequencies?, load, save, status? }` gets a clock button on its Connect row (the row itself still runs it now) that opens its schedule for the current view: frequency (Manual, Automatic on change, Hourly, Daily, Weekly, Monthly), minute of the hour, time, day of the week (in the locale's week order), day of the month or last day, optional start date and time zone (the browser's by default). The screen previews the next run in that time zone, daylight saving included, shows the host's last run status, and offers Save, Cancel and Run now. The table only edits the settings; the host stores them per view and runs them. The shared `schedule-model.ts` (`nextScheduleRun`, `normalizeScheduleSettings`, `describeSchedule`) ships in both registries with built-in English and French labels, overridable with `schedule.<key>` translations. `table.schedule: false` hides scheduling.

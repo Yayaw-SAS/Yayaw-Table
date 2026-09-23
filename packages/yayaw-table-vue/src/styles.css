@@ -3401,3 +3401,57 @@
 .yayaw-data-grid th {
   line-height: 20px;
 }
+/* Connect rows: run now, or open the schedule with the clock. */
+.yayaw-destination-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.yayaw-destination-row > .yayaw-options-item {
+  min-width: 0;
+  flex: 1;
+}
+.yayaw-destination-row .yayaw-schedule-trigger {
+  width: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  flex: none;
+}
+.yayaw-schedule-panel {
+  padding: 12px;
+}
+.yayaw-schedule-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--yayaw-muted-foreground);
+  font-size: 14px;
+}
+.yayaw-schedule-panel .yayaw-schedule-field .yayaw-input,
+.yayaw-schedule-panel .yayaw-schedule-run {
+  width: 100%;
+}
+.yayaw-schedule-summary {
+  display: grid;
+  gap: 4px;
+  border-radius: var(--yayaw-radius);
+  background: var(--yayaw-muted);
+  padding: 8px 12px;
+  font-size: 14px;
+}
+.yayaw-schedule-summary p {
+  margin: 0;
+}
+.yayaw-schedule-muted {
+  color: var(--yayaw-muted-foreground);
+}
+.yayaw-schedule-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.yayaw-schedule-actions > .yayaw-button {
+  flex: 1;
+}

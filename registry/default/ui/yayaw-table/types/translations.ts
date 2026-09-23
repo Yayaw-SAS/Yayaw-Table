@@ -514,6 +514,10 @@ export interface DataTableTranslations {
     connect?: string;
     copyLink?: string;
   };
+  /** Overrides for the built-in English and French schedule labels. */
+  schedule?: Partial<
+    Record<import("../utils/schedule-model").ScheduleLabelKey, string>
+  >;
   menu: {
     data?: string;
     back: string;

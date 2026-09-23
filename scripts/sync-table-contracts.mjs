@@ -45,6 +45,7 @@ for (const file of [
   "calendar-model.ts",
   "data-destinations.ts",
   "export-model.ts",
+  "schedule-model.ts",
   "view-tabs.ts",
   "display-modes.ts",
   "scoped-rows.ts",

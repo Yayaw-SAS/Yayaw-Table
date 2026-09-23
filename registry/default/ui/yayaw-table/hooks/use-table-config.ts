@@ -115,6 +115,8 @@ export interface TableCatalogueTableConfig extends GenericModeViewConfigs {
   exportFormats?: import("../utils/export-model").ExportFormat[];
   /** Offer "Share" (copy the link to the view); default true. */
   share?: boolean;
+  /** Offer scheduling settings for Connect destinations that declare `schedule`; default true. */
+  schedule?: boolean;
   bulkExport?: boolean;
   actionsAsIcons?: boolean;
   density?: TableDensity;
@@ -352,6 +354,7 @@ function resolveTableBehaviorConfig(
     showResetFilters: mergedConfig.showResetFilters ?? false,
     export: mergedConfig.export ?? true,
     share: mergedConfig.share,
+    schedule: mergedConfig.schedule,
     exportFormats: mergedConfig.exportFormats,
     bulkExport: mergedConfig.bulkExport ?? true,
     actionsAsIcons: mergedConfig.actionsAsIcons ?? false,

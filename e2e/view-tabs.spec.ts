@@ -10,6 +10,10 @@ const PROJECTS_CSV = /^projects-\d{4}-\d{2}-\d{2}\.csv$/;
 const SEARCH_BUTTON = /^search/i;
 const CURRENT_VIEW_TRIGGER = /^current view/i;
 const SEARCH_TAB = /Search/;
+const MANUAL = /Manual/;
+const WEEKLY = /Weekly/;
+const THURSDAY = /Thursday/;
+const NEXT_THURSDAY_RUN = /^Next: Thu.*, 09:30 \(Europe\/Paris\)$/;
 
 const displayParam = (page: Page) =>
   new URL(page.url()).searchParams.get(DISPLAY_PARAM);
@@ -196,4 +200,74 @@ test("bulk export opens the Export screen for the selected records", async ({
   }
   const lines = Buffer.concat(chunks).toString("utf8").trim().split("\n");
   expect(lines).toHaveLength(3);
+});
+
+test.describe("Connect schedules", () => {
+  // The browser's time zone is the schedule's default one.
+  test.use({ timezoneId: "Europe/Paris", locale: "en-GB" });
+
+  const openSchedule = async (page: Page) => {
+    await page.getByRole("button", { name: "Data", exact: true }).click();
+    const data = page.getByRole("dialog", { name: "Data" });
+    await data.getByRole("button", { name: "Connect", exact: true }).click();
+    await page.getByRole("button", { name: "Schedule n8n" }).click();
+    const panel = page.locator("[data-schedule-panel]");
+    await expect(
+      panel.getByRole("combobox", { name: "Frequency" })
+    ).toBeVisible();
+    return panel;
+  };
+  const choose = async (panel: Locator, field: string, option: string) => {
+    await panel.getByRole("combobox", { name: field }).click();
+    await panel
+      .page()
+      .getByRole("option", { name: option, exact: true })
+      .click();
+  };
+
+  test("a weekly schedule previews its next run and is kept per view", async ({
+    page,
+  }) => {
+    await page.goto(EXAMPLE);
+    let panel = await openSchedule(page);
+    // Manual by default: no time fields and no next run.
+    await expect(panel.getByRole("combobox", { name: "Frequency" })).toHaveText(
+      MANUAL
+    );
+    await expect(panel.getByLabel("Time", { exact: true })).toHaveCount(0);
+    await expect(panel.locator("[data-schedule-next]")).toHaveCount(0);
+
+    await choose(panel, "Frequency", "Weekly");
+    await choose(panel, "Day of the week", "Thursday");
+    await panel.getByLabel("Time", { exact: true }).fill("09:30");
+    await expect(panel.locator("[data-schedule-summary]")).toContainText(
+      "Every Thursday at 09:30 (Europe/Paris)"
+    );
+    await expect(panel.locator("[data-schedule-next]")).toHaveText(
+      NEXT_THURSDAY_RUN
+    );
+    await panel.getByRole("button", { name: "Save", exact: true }).click();
+    await expect(page.getByText("Schedule saved")).toBeVisible();
+    await expect(panel).toHaveCount(0);
+
+    await page.keyboard.press("Escape");
+    panel = await openSchedule(page);
+    await expect(panel.getByRole("combobox", { name: "Frequency" })).toHaveText(
+      WEEKLY
+    );
+    await expect(
+      panel.getByRole("combobox", { name: "Day of the week" })
+    ).toHaveText(THURSDAY);
+    await expect(panel.getByLabel("Time", { exact: true })).toHaveValue(
+      "09:30"
+    );
+
+    // Back to Manual hides the time fields again.
+    await choose(panel, "Frequency", "Manual");
+    await expect(panel.getByLabel("Time", { exact: true })).toHaveCount(0);
+    await expect(
+      panel.getByRole("combobox", { name: "Day of the week" })
+    ).toHaveCount(0);
+    await expect(panel.locator("[data-schedule-next]")).toHaveCount(0);
+  });
 });
