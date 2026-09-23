@@ -24,6 +24,7 @@ import {
   formValuesEqual,
   fieldIsDisabled,
   fieldIsHidden,
+  withFormRules,
   translateFormConfig,
   validateFormFields,
 } from "../../form-runtime";
@@ -120,7 +121,10 @@ const canEdit = computed(() => {
   if (formConfig.value && !formField.value) return false;
   if (
     formField.value &&
-    (fieldIsHidden(formField.value, formContext.value) ||
+    (fieldIsHidden(
+      formField.value,
+      formConfig.value ? withFormRules(formConfig.value, formContext.value) : formContext.value
+    ) ||
       fieldIsDisabled(formField.value, formContext.value))
   )
     return false;

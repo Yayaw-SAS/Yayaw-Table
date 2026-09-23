@@ -15,7 +15,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import type { BulkEditorMessages } from "../../utils/bulk-editor";
+import { useTranslations } from "../../providers/table-provider";
+import {
+  type BulkEditorMessages,
+  bulkConditionMessages,
+} from "../../utils/bulk-editor";
 import { FormBuilder } from "./form-builder";
 import { formValuesEqual } from "./form-runtime";
 import type { FormBuilderFormInstance } from "./hooks/use-form-builder";
@@ -25,19 +29,27 @@ import type {
   FormConfigContext,
 } from "./types";
 
+const listFields = (names: string[]) => names.join(", ");
+
 export function BulkEditorFields({
   fields,
   available,
+  blocked = [],
   clearValues,
   context,
   form,
   messages,
+  mixedOf,
   disabled,
   onAdd,
   onRemove,
 }: {
   fields: AnyFieldDefinition[];
   available: AnyFieldDefinition[];
+  /** Fields held back by a rule that reads values differing across the selection. */
+  blocked?: { field: AnyFieldDefinition; mixed: string[] }[];
+  /** Labels of the mixed values a field's rules read. */
+  mixedOf?: (field: AnyFieldDefinition) => string[];
   clearValues: FieldValues;
   context: FormConfigContext;
   form: FormBuilderFormInstance<FieldValues>;
@@ -46,6 +58,8 @@ export function BulkEditorFields({
   onAdd: (name: string) => void;
   onRemove: (name: string) => void;
 }) {
+  const { locale } = useTranslations();
+  const conditionWords = bulkConditionMessages(locale);
   const [pickerOpen, setPickerOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
   const restoreFocus = useRef(false);
@@ -88,6 +102,17 @@ export function BulkEditorFields({
           >
             <X aria-hidden="true" />
           </Button>
+          {mixedOf?.(field).length ? (
+            <p
+              className="col-start-1 text-muted-foreground text-xs"
+              data-bulk-mixed={field.name}
+            >
+              {conditionWords.mixedNote.replaceAll(
+                "{fields}",
+                listFields(mixedOf(field))
+              )}
+            </p>
+          ) : null}
           {Object.hasOwn(clearValues, field.name) && (
             <Button
               className="col-start-1 w-fit px-0 text-muted-foreground"
@@ -111,7 +136,7 @@ export function BulkEditorFields({
         <PopoverTrigger
           render={
             <Button
-              disabled={disabled || !available.length}
+              disabled={disabled || !(available.length || blocked.length)}
               ref={trigger}
               type="button"
               variant="outline"
@@ -145,6 +170,24 @@ export function BulkEditorFields({
                   value={field.name}
                 >
                   {field.label}
+                </CommandItem>
+              ))}
+              {blocked.map(({ field, mixed }) => (
+                <CommandItem
+                  className="min-h-11 flex-col items-start gap-0.5 md:min-h-8"
+                  data-bulk-blocked={field.name}
+                  disabled
+                  key={field.name}
+                  keywords={[field.label]}
+                  value={field.name}
+                >
+                  <span>{field.label}</span>
+                  <span className="text-muted-foreground text-xs">
+                    {conditionWords.mixedBlocked.replaceAll(
+                      "{fields}",
+                      listFields(mixed)
+                    )}
+                  </span>
                 </CommandItem>
               ))}
             </CommandList>

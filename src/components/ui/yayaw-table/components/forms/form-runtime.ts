@@ -1,3 +1,13 @@
+import { bulkConditionState } from "../../utils/bulk-editor";
+import {
+  type ConditionField,
+  conditionFieldType,
+  evaluateForm,
+  type FormEvaluation,
+  type FormRule,
+  normalizeRules,
+  predicateRule,
+} from "../../utils/form-conditions";
 import { translateFormBlocks } from "../../utils/form-layout";
 import {
   dataTypeValueError,
@@ -10,6 +20,7 @@ import type {
   FieldValues,
   FormConfig,
   FormConfigContext,
+  FormRuleSet,
   FormSectionDefinition,
 } from "./types";
 
@@ -72,13 +83,136 @@ export const formValuesEqual = (left: unknown, right: unknown): boolean => {
   );
 };
 
-export const fieldIsHidden = (
+/** The field's own `hidden` flag or predicate, without rules. */
+export const fieldHiddenByPredicate = (
   field: AnyFieldDefinition,
   context: FormConfigContext
 ): boolean =>
   Boolean(
     typeof field.hidden === "function" ? field.hidden(context) : field.hidden
   );
+
+/** Fields as the conditions engine sees them: name, type, label, options. */
+export const formRuleFields = (
+  fields: readonly AnyFieldDefinition[]
+): ConditionField[] =>
+  fields.map((field) => ({
+    id: field.name,
+    type: conditionFieldType(field.type),
+    label: field.label,
+    options: Array.isArray(field.options) ? field.options : undefined,
+    required: field.required,
+  }));
+
+/**
+ * The legacy `hidden` flag or predicate of each field as a rule, so one
+ * engine decides visibility. Predicates still receive the full context.
+ */
+export const legacyHiddenRules = (
+  fields: readonly AnyFieldDefinition[]
+): FormRule[] =>
+  fields.flatMap((field) =>
+    field.hidden === undefined || field.hidden === false
+      ? []
+      : [
+          predicateRule(
+            `legacy-hidden:${field.name}`,
+            field.name,
+            (values, context) =>
+              fieldHiddenByPredicate(field, {
+                ...(context as FormConfigContext),
+                values,
+              })
+          ),
+        ]
+  );
+
+const ruleSets = new WeakMap<FormConfig, FormRuleSet>();
+
+/**
+ * The rules of a form config: `config.rules` that can act (broken or cyclic
+ * ones are dropped) and, unless `legacy: false`, the fields' `hidden`
+ * predicates converted at load.
+ */
+export function formRuleSet(
+  config: FormConfig,
+  options: { legacy?: boolean } = {}
+): FormRuleSet {
+  const legacy = options.legacy !== false;
+  const cached = legacy ? ruleSets.get(config) : undefined;
+  if (cached) {
+    return cached;
+  }
+  const fields = formRuleFields(config.fields);
+  const declared = normalizeRules(config.rules ?? [], fields).rules;
+  const set = {
+    fields,
+    rules: legacy ? [...legacyHiddenRules(config.fields), ...declared] : declared,
+  };
+  if (legacy) {
+    ruleSets.set(config, set);
+  }
+  return set;
+}
+
+const evaluations = new WeakMap<object, [FormRuleSet, FormEvaluation]>();
+
+/** The rules of a context evaluated against its values (bulk editors use the shared values). */
+export function formConditions(
+  context: FormConfigContext
+): FormEvaluation | undefined {
+  const set = context.formRules;
+  if (!set) {
+    return;
+  }
+  const values = (context.values ?? {}) as Record<string, unknown>;
+  const cached = evaluations.get(values);
+  if (cached?.[0] === set && !context.bulkEdit) {
+    return cached[1];
+  }
+  const evaluation = context.bulkEdit
+    ? bulkConditionState({
+        rules: set.rules,
+        fields: set.fields,
+        rows: context.bulkEdit.rows,
+        applied: context.bulkEdit.fields,
+        values,
+      }).evaluation
+    : evaluateForm(set.rules, values, set.fields, { context });
+  if (!context.bulkEdit) {
+    evaluations.set(values, [set, evaluation]);
+  }
+  return evaluation;
+}
+
+/** A context that evaluates the config's rules (kept when one is already set). */
+export const withFormRules = (
+  config: FormConfig,
+  context: FormConfigContext
+): FormConfigContext =>
+  context.formRules ? context : { ...context, formRules: formRuleSet(config) };
+
+/** Hidden by its `hidden` predicate or by the form's rules. */
+export const fieldIsHidden = (
+  field: AnyFieldDefinition,
+  context: FormConfigContext
+): boolean => {
+  const conditions = formConditions(context);
+  return conditions
+    ? conditions.hidden.has(field.name)
+    : fieldHiddenByPredicate(field, context);
+};
+
+/** Required by the field itself or by a matching `require` rule. */
+export const fieldIsRequired = (
+  field: AnyFieldDefinition,
+  context: FormConfigContext
+): boolean => {
+  const conditions = formConditions(context);
+  return conditions
+    ? conditions.required.has(field.name)
+    : Boolean(field.required);
+};
 
 export const fieldIsDisabled = (
   field: AnyFieldDefinition,
@@ -233,7 +367,7 @@ const validateScalar = (
   value: unknown,
   context: FormConfigContext
 ): string | undefined => {
-  if (field.required && missing(value)) {
+  if (fieldIsRequired(field, context) && missing(value)) {
     return `${field.label} is required`;
   }
   const typeError = dataTypeValueError(
@@ -281,7 +415,7 @@ const validateCollection = async (
     const child = await validateFormFields(
       field.itemFields ?? [],
       item as FieldValues,
-      { ...context, values: item as FieldValues }
+      { ...context, formRules: undefined, values: item as FieldValues }
     );
     items.push(child.values);
     for (const [name, message] of Object.entries(child.errors)) {
@@ -361,9 +495,13 @@ export const validateFormFields = async (
 
 export const validateForm = async (
   config: FormConfig,
-  values: FieldValues,
-  context: FormConfigContext
+  input: FieldValues,
+  baseContext: FormConfigContext
 ): Promise<FormValidationResult> => {
+  const ruled = withFormRules(config, { ...baseContext, values: input });
+  // `set` rules write their values before validation.
+  const values = { ...input, ...formConditions(ruled)?.setValues };
+  const context = { ...ruled, values };
   const result = await validateFormFields(config.fields, values, context);
   if (!Object.keys(result.errors).length && config.schema) {
     const parsed = await config.schema.safeParseAsync(result.values);
@@ -390,8 +528,9 @@ export const formSubmissionValues = (
   config: FormConfig,
   values: FieldValues,
   initial: FieldValues,
-  context: FormConfigContext
+  baseContext: FormConfigContext
 ): FieldValues => {
+  const context = withFormRules(config, { ...baseContext, values });
   const output =
     config.submitMode === "patch" && context.mode === "edit"
       ? Object.fromEntries(

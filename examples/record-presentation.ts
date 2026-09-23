@@ -1,3 +1,5 @@
+import type { FormRule } from "../src/components/ui/yayaw-table/utils/form-conditions";
+
 /** Shared records and column contracts keep the two interactive examples comparable. */
 export const presentationRows = [
   {
@@ -71,10 +73,33 @@ export const presentationColumns = [
   { id: "description", header: "Description", type: "text" as const },
 ];
 
+const rule = (id: string, when: FormRule["when"], then: FormRule["then"]) => ({
+  id,
+  when,
+  then,
+});
+
+/**
+ * One declarative condition, shared with the Form view's engine: hardware
+ * products need a description. In a bulk edit of mixed categories the
+ * condition is treated as not met, with a note.
+ */
+export const presentationRules: FormRule[] = [
+  rule(
+    "hardware-description",
+    {
+      join: "and",
+      items: [{ fieldId: "category", operator: "is", value: "Hardware" }],
+    },
+    { action: "require", fieldIds: ["description"] }
+  ),
+];
+
 /** Explicit catalogue contract also enables Vue's field-based bulk editor. */
 export const presentationForm = {
   id: "record-presentation",
   submitMode: "patch" as const,
+  rules: presentationRules,
   fields: presentationColumns.map((column) => ({
     name: column.id,
     label: column.header,

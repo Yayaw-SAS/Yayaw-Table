@@ -56,6 +56,7 @@ export function FormView({ context }: { context: DisplayModeRenderContext }) {
         <YayawTableForm
           columns={formColumns}
           form={form}
+          key={context.viewId ?? "form"}
           locale={locale}
           onSubmit={(values) => createRecord(values)}
           translate={translate}

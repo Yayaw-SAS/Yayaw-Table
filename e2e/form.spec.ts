@@ -37,7 +37,7 @@ const choose = async (page: Page, question: string, option: string) => {
 };
 
 const openShare = async (page: Page) => {
-  await page.getByRole("tab", { name: "Request" }).click();
+  await page.getByRole("tab", { name: "Request", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Project request" })
   ).toBeVisible();
@@ -60,7 +60,14 @@ test("a form view asks the chosen questions and creates the record", async ({
 }) => {
   const menu = await chooseMode(page, FORM_MODE);
   await menu.getByRole("button", { name: FORM_SETTINGS }).click();
-  for (const column of ["Category", "Status", "Progress", "Due"]) {
+  for (const column of [
+    "Category",
+    "Status",
+    "Progress",
+    "Due",
+    "Serial number",
+    "Details",
+  ]) {
     await page.getByRole("switch", { name: `Ask ${column}` }).uncheck();
   }
   await page.getByRole("button", { name: "Move Price up" }).click();
@@ -171,7 +178,7 @@ test("the standalone form works without a table", async ({ page }) => {
   await form
     .getByRole("textbox", { name: "Project name" })
     .fill("Standalone request");
-  await choose(page, "Category", "Hardware");
+  await choose(page, "Category", "Service");
   // The date picker shows this month; the date reads in the form's language.
   const today = new Date();
   const wanted = form.getByRole("button", { name: WANTED_BY });

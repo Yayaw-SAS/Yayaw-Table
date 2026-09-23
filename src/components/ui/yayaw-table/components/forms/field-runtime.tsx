@@ -1,7 +1,11 @@
 "use client";
 
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
-import { fieldIsDisabled, fieldIsHidden } from "./form-runtime";
+import {
+  fieldIsDisabled,
+  fieldIsHidden,
+  fieldIsRequired,
+} from "./form-runtime";
 import type {
   AnyFieldDefinition,
   FormConfigContext,
@@ -217,6 +221,7 @@ export function RuntimeField({
   const resolved = {
     ...field,
     hidden: false,
+    required: fieldIsRequired(field, context),
     disabled:
       disabled ||
       creating ||

@@ -1,5 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 
+const DUE_FIELD = /^Due/;
+
 const CALENDAR = "/?example=views&views-display=calendar";
 const SETTINGS_PARAM = "views-calendar";
 const CARD_SETTINGS = /^card settings/i;
@@ -93,7 +95,10 @@ test("clicking a day opens the create form with that date", async ({
   await day(page, "2026-09-22").click({ position: { x: 40, y: 70 } });
   const form = page.getByRole("dialog");
   await expect(form).toBeVisible();
-  await expect(form.locator('input[type="date"]')).toHaveValue("2026-09-22");
+  // The create form's date is the table's calendar picker in both editions.
+  await expect(form.getByRole("button", { name: DUE_FIELD })).toContainText(
+    "Sep 22, 2026"
+  );
 });
 
 test("calendar settings are offered in the view menu", async ({ page }) => {

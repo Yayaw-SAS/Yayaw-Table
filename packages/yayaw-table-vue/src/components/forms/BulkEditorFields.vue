@@ -2,14 +2,22 @@
 import { computed, nextTick, ref } from "vue";
 import { Plus, X } from "lucide-vue-next";
 import { ListboxContent, ListboxFilter, ListboxItem, ListboxRoot, PopoverContent, PopoverRoot, PopoverTrigger } from "reka-ui";
-import type { BulkEditorMessages } from "../../bulk-editor";
+import { type BulkEditorMessages, bulkConditionMessages } from "../../bulk-editor";
+import { useTableContext } from "../../context";
 import { formValuesEqual } from "../../form-runtime";
 import type { FormFieldDefinition, TableRecord } from "../../types";
 
 const props = defineProps<{
   fields: FormFieldDefinition[]; available: FormFieldDefinition[];
   clearValues: TableRecord; values: TableRecord; messages: BulkEditorMessages; disabled: boolean;
+  /** Fields held back by a rule that reads values differing across the selection. */
+  blocked?: { field: FormFieldDefinition; mixed: string[] }[];
+  /** Labels of the mixed values a field's rules read. */
+  mixedOf?: (field: FormFieldDefinition) => string[];
 }>();
+const table = useTableContext();
+const conditionWords = computed(() => bulkConditionMessages(table.locale));
+const blockedOptions = computed(() => (props.blocked ?? []).filter(({ field }) => field.label.toLocaleLowerCase().includes(search.value.trim().toLocaleLowerCase())));
 const emit = defineEmits<{ add: [name: string]; remove: [name: string]; clear: [name: string, value: unknown] }>();
 const open = ref(false);
 const search = ref("");
@@ -32,19 +40,24 @@ const remove = async (name: string): Promise<void> => {
     <p v-if="!fields.length" class="yayaw-help yayaw-bulk-empty">{{ messages.empty }}</p>
     <div v-for="field in fields" :key="field.name" class="yayaw-bulk-field" :data-bulk-field="field.name">
       <slot name="field" :field="field" />
+      <p v-if="mixedOf?.(field).length" class="yayaw-help yayaw-bulk-mixed" :data-bulk-mixed="field.name">{{ conditionWords.mixedNote.replaceAll("{fields}", mixedOf(field).join(", ")) }}</p>
       <button type="button" class="yayaw-icon-button yayaw-bulk-remove" :aria-label="messages.removeField.replace('{field}', field.label)" :disabled="disabled" @click="remove(field.name)"><X :size="16" aria-hidden="true" /></button>
       <button v-if="Object.hasOwn(clearValues, field.name)" type="button" class="yayaw-bulk-clear" :disabled="disabled || formValuesEqual(values[field.name], clearValues[field.name])" @click="emit('clear', field.name, clearValues[field.name])">{{ messages.clearValue }}</button>
     </div>
     <PopoverRoot :open="open && !disabled" @update:open="open = $event; search = ''">
       <PopoverTrigger as-child>
-        <button ref="trigger" type="button" class="yayaw-button yayaw-button-outline" :disabled="disabled || !available.length"><Plus :size="16" aria-hidden="true" />{{ messages.addField }}</button>
+        <button ref="trigger" type="button" class="yayaw-button yayaw-button-outline" :disabled="disabled || !(available.length || blocked?.length)"><Plus :size="16" aria-hidden="true" />{{ messages.addField }}</button>
       </PopoverTrigger>
       <PopoverContent class="yayaw-bulk-picker" align="start" :side-offset="4" :collision-padding="16" :aria-label="messages.addField">
         <ListboxRoot @update:model-value="add">
           <ListboxFilter v-model="search" class="yayaw-input" :aria-label="messages.searchFields" :placeholder="messages.searchFields" auto-focus />
           <ListboxContent class="yayaw-bulk-picker-list" :aria-label="messages.addField">
             <ListboxItem v-for="field in options" :key="field.name" :value="field.name" :data-bulk-option="field.name" class="yayaw-bulk-picker-option">{{ field.label }}</ListboxItem>
-            <p v-if="!options.length" class="yayaw-help" role="status">{{ messages.noFields }}</p>
+            <ListboxItem v-for="item in blockedOptions" :key="item.field.name" :value="`blocked:${item.field.name}`" disabled :data-bulk-blocked="item.field.name" class="yayaw-bulk-picker-option yayaw-bulk-picker-blocked">
+              <span>{{ item.field.label }}</span>
+              <span class="yayaw-help">{{ conditionWords.mixedBlocked.replaceAll("{fields}", item.mixed.join(", ")) }}</span>
+            </ListboxItem>
+            <p v-if="!options.length && !blockedOptions.length" class="yayaw-help" role="status">{{ messages.noFields }}</p>
           </ListboxContent>
         </ListboxRoot>
       </PopoverContent>

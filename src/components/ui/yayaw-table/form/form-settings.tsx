@@ -1,6 +1,13 @@
 "use client";
 
-import { ArrowDown, ArrowUp, ChevronDown, GripVertical } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronDown,
+  GripVertical,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import {
   type ChangeEvent,
   type KeyboardEvent,
@@ -19,11 +26,21 @@ import {
   ViewSettingsPanel,
 } from "../components/toolbar/view-settings-panel";
 import type { DisplayModeSettingsContext } from "../types/display-mode-renderer";
+import type {
+  ConditionField,
+  FormRule,
+  RuleIssue,
+} from "../utils/form-conditions";
 import {
+  addFormSection,
+  createFormRule,
   type FormColumn,
   type FormHiddenValue,
+  type FormItem,
   type FormLabelKey,
   type FormQuestion,
+  type FormSectionBreak,
+  type FormTranslate,
   type FormViewSettings,
   formColumnEditor,
   formColumns,
@@ -32,13 +49,23 @@ import {
   formHiddenValueText,
   formLabel,
   formQuestionList,
+  formRuleFields,
+  formRuleIssues,
+  formRuleSummary,
+  formRulesFor,
   formSettingsRows,
+  isFormSection,
   mergeFormSettings,
   moveFormQuestion,
   normalizeFormViewConfig,
+  removeFormRule,
+  removeFormSection,
+  resolveFormSettings,
   toggleFormQuestion,
   updateFormQuestion,
+  upsertFormRule,
 } from "../utils/form-view";
+import { FormRuleEditor } from "./form-rules";
 
 type Label = (key: FormLabelKey, params?: Record<string, string>) => string;
 
@@ -138,17 +165,66 @@ function SettingsHeading({ children }: { children: ReactNode }) {
   );
 }
 
+/** The rules of one question, as its row edits them. */
+interface QuestionRules {
+  list: FormRule[];
+  fields: ConditionField[];
+  issues: RuleIssue[];
+  summaries: string[];
+  locale: string;
+  translate?: FormTranslate;
+  onAdd: () => void;
+  onChange: (rule: FormRule) => void;
+  onRemove: (id: string) => void;
+}
+
+function RulesEditor({ label, rules }: { label: Label; rules: QuestionRules }) {
+  return (
+    <section className="grid gap-2" data-form-rules>
+      <h4 className="font-medium text-muted-foreground text-xs">
+        {label("conditions")}
+      </h4>
+      {rules.list.map((rule) => (
+        <FormRuleEditor
+          fields={rules.fields}
+          issues={rules.issues.filter((issue) => issue.ruleId === rule.id)}
+          key={rule.id}
+          label={label}
+          locale={rules.locale}
+          onChange={rules.onChange}
+          onRemove={() => rules.onRemove(rule.id)}
+          rule={rule}
+          translate={rules.translate}
+        />
+      ))}
+      <Button
+        className="w-fit font-normal"
+        disabled={rules.fields.length === 0}
+        onClick={rules.onAdd}
+        size="sm"
+        type="button"
+        variant="outline"
+      >
+        <Plus aria-hidden="true" />
+        {label("addRule")}
+      </Button>
+    </section>
+  );
+}
+
 function QuestionDetails({
   id,
   label,
   onChange,
   question,
+  rules,
   textInput,
 }: {
   id: string;
   label: Label;
   onChange: (patch: Partial<FormQuestion>) => void;
   question: FormQuestion;
+  rules: QuestionRules;
   textInput: boolean;
 }) {
   return (
@@ -183,6 +259,7 @@ function QuestionDetails({
         label={label("requiredToggle")}
         onChange={(required) => onChange({ required })}
       />
+      <RulesEditor label={label} rules={rules} />
     </div>
   );
 }
@@ -193,14 +270,16 @@ interface QuestionRowProps {
   count: number;
   label: Label;
   question?: FormQuestion;
+  rules?: QuestionRules;
   onAsk: (asked: boolean) => void;
   onMove: (offset: -1 | 1) => void;
   onChange: (patch: Partial<FormQuestion>) => void;
 }
 
-function QuestionActions({
+function RowActions({
   count,
   editing,
+  editLabel,
   id,
   index,
   label,
@@ -210,6 +289,7 @@ function QuestionActions({
 }: {
   count: number;
   editing: boolean;
+  editLabel: string;
   id: string;
   index: number;
   label: Label;
@@ -242,7 +322,7 @@ function QuestionActions({
       <Button
         aria-controls={`${id}-details`}
         aria-expanded={editing}
-        aria-label={label("editQuestion", { label: name })}
+        aria-label={editLabel}
         onClick={onEdit}
         size="icon-xs"
         type="button"
@@ -257,7 +337,19 @@ function QuestionActions({
   );
 }
 
-/** One column: asked or not, its place in the form and its texts. */
+function RuleSummaries({ summaries }: { summaries: string[] }) {
+  return summaries.length ? (
+    <ul className="grid gap-0.5 pb-1 pl-7" data-form-rule-summary>
+      {summaries.map((summary) => (
+        <li className="text-muted-foreground text-xs" key={summary}>
+          {summary}
+        </li>
+      ))}
+    </ul>
+  ) : null;
+}
+
+/** One column: asked or not, its place in the form, its texts and rules. */
 function QuestionRow({
   column,
   count,
@@ -267,6 +359,7 @@ function QuestionRow({
   onChange,
   onMove,
   question,
+  rules,
 }: QuestionRowProps) {
   const id = useId();
   const [editing, setEditing] = useState(false);
@@ -305,9 +398,10 @@ function QuestionRow({
           ) : null}
         </label>
         {question ? (
-          <QuestionActions
+          <RowActions
             count={count}
             editing={editing}
+            editLabel={label("editQuestion", { label: name })}
             id={id}
             index={index}
             label={label}
@@ -325,14 +419,99 @@ function QuestionRow({
           size="sm"
         />
       </div>
-      {question && editing ? (
+      {question && rules ? <RuleSummaries summaries={rules.summaries} /> : null}
+      {question && rules && editing ? (
         <QuestionDetails
           id={id}
           label={label}
           onChange={onChange}
           question={question}
+          rules={rules}
           textInput={textInput}
         />
+      ) : null}
+    </li>
+  );
+}
+
+/** A section break: a title and description starting a group (one step in steps). */
+function SectionRow({
+  count,
+  index,
+  label,
+  onChange,
+  onMove,
+  onRemove,
+  section,
+}: {
+  count: number;
+  index: number;
+  label: Label;
+  onChange: (patch: Partial<FormSectionBreak>) => void;
+  onMove: (offset: -1 | 1) => void;
+  onRemove: () => void;
+  section: FormSectionBreak;
+}) {
+  const id = useId();
+  const [editing, setEditing] = useState(!section.title);
+  const name = section.title ?? label("untitledSection");
+  return (
+    <li
+      className={cn(
+        "mt-1 grid rounded-md border-t pt-1",
+        editing && "bg-accent/40 dark:bg-accent/20"
+      )}
+      data-form-setting-section={section.id}
+    >
+      <div className="flex min-h-9 min-w-0 items-center gap-1 px-1">
+        <GripVertical
+          aria-hidden="true"
+          className="size-4 shrink-0 text-muted-foreground/60"
+        />
+        <span className="min-w-0 flex-1 truncate py-1 font-medium text-sm">
+          <span className="sr-only">{label("section")}: </span>
+          {name}
+        </span>
+        <RowActions
+          count={count}
+          editing={editing}
+          editLabel={label("editSection", { label: name })}
+          id={id}
+          index={index}
+          label={label}
+          name={name}
+          onEdit={() => setEditing((value) => !value)}
+          onMove={onMove}
+        />
+        <Button
+          aria-label={label("removeSection", { label: name })}
+          onClick={onRemove}
+          size="icon-xs"
+          type="button"
+          variant="ghost"
+        >
+          <Trash2 aria-hidden="true" />
+        </Button>
+      </div>
+      {editing ? (
+        <div
+          className="mx-1 mb-1 grid gap-3 rounded-md bg-muted/50 p-3 dark:bg-muted/30"
+          id={`${id}-details`}
+        >
+          <CommitText
+            id={`${id}-title`}
+            label={label("sectionTitle")}
+            onCommit={(title) => onChange({ title })}
+            value={section.title ?? ""}
+          />
+          <CommitText
+            id={`${id}-description`}
+            label={label("sectionDescription")}
+            multiline
+            onCommit={(description) => onChange({ description })}
+            value={section.description ?? ""}
+          />
+        </div>
       ) : null}
     </li>
   );
@@ -373,34 +552,69 @@ const choiceField = (
   };
 };
 
-/** View → Form settings: texts, questions and their order, fixed values and the end of the form. */
+/** Everything the question rows need to edit rules, from the saved settings. */
+function useQuestionRules(
+  context: DisplayModeSettingsContext,
+  merged: FormViewSettings,
+  update: (patch: FormViewSettings) => void,
+  translate: FormTranslate
+): (questionId: string) => QuestionRules {
+  const fields = formRuleFields(context.columns, merged);
+  const issues = formRuleIssues(context.columns, merged);
+  const resolved = resolveFormSettings(context.columns, undefined, {
+    ...merged,
+    rules: [],
+  });
+  const rules = merged.rules ?? [];
+  return (questionId) => {
+    const list = formRulesFor(rules, questionId);
+    return {
+      list,
+      fields: fields.filter((field) => field.id !== questionId),
+      issues: issues.filter((issue) =>
+        list.some((rule) => rule.id === issue.ruleId)
+      ),
+      summaries: list.map((rule) =>
+        formRuleSummary(rule, resolved.questions, context.locale, translate)
+      ),
+      locale: context.locale,
+      translate,
+      onAdd: () =>
+        update({ rules: upsertFormRule(rules, createFormRule(rules, questionId)) }),
+      onChange: (rule) => update({ rules: upsertFormRule(rules, rule) }),
+      onRemove: (ruleId) => update({ rules: removeFormRule(rules, ruleId) }),
+    };
+  };
+}
+
+/** View → Form settings: texts, layout, questions, sections and rules, fixed values and the end of the form. */
 export function FormSettings({
   context,
 }: {
   context: DisplayModeSettingsContext;
 }) {
   const id = useId();
+  const translate: FormTranslate = (name, fallback) =>
+    context.translate(`form.${name}`, fallback);
   const label: Label = (key, params) =>
-    formLabel(
-      key,
-      context.locale,
-      (name, fallback) => context.translate(`form.${name}`, fallback),
-      params
-    );
+    formLabel(key, context.locale, translate, params);
   const view = (normalizeFormViewConfig(context.settings) ??
     {}) as FormViewSettings;
   const merged = mergeFormSettings(context.defaults, context.settings);
   const { eligible, excluded } = formColumns(context.columns);
   const questions = formQuestionList(context.columns, merged);
   const rows = formSettingsRows(context.columns, merged);
-  const asked = new Set(questions.map((question) => question.columnId));
+  const asked = new Set(
+    questions.flatMap((item) => (isFormSection(item) ? [] : [item.columnId]))
+  );
   const update = (patch: FormViewSettings) =>
     context.updateSettings(
       normalizeFormViewConfig({ ...view, ...patch }) as
         | Record<string, unknown>
         | undefined
     );
-  const setQuestions = (next: FormQuestion[]) => update({ questions: next });
+  const setQuestions = (next: FormItem[]) => update({ questions: next });
+  const rulesOf = useQuestionRules(context, merged, update, translate);
   const hiddenValues = merged.hiddenValues ?? {};
   const setHidden = (columnId: string, value: FormHiddenValue | undefined) => {
     const next = { ...hiddenValues };
@@ -419,6 +633,7 @@ export function FormSettings({
     return field ? [field] : [];
   });
   const typedFixed = notAsked.filter((column) => !formHiddenChoices(column));
+  const steps = merged.layout === "steps";
 
   const intro = (
     <>
@@ -437,30 +652,86 @@ export function FormSettings({
           value={merged.description ?? ""}
         />
       </SettingsSection>
+      <SettingsSection title={label("layout")}>
+        <SwitchSetting
+          checked={steps}
+          id={`${id}-steps`}
+          label={label("layoutSteps")}
+          onChange={(next) => update({ layout: next ? "steps" : "page" })}
+        />
+        {steps ? (
+          <SwitchSetting
+            checked={merged.review === true}
+            id={`${id}-review`}
+            label={label("review")}
+            onChange={(review) => update({ review })}
+          />
+        ) : null}
+      </SettingsSection>
       <SettingsSection title={label("questions")}>
         <ul className="-mx-1 grid gap-0.5">
-          {rows.map(({ column, index, question }) => (
-            <QuestionRow
-              column={column}
-              count={questions.length}
-              index={index}
-              key={column.id}
-              label={label}
-              onAsk={(next) =>
-                setQuestions(toggleFormQuestion(questions, column.id, next))
-              }
-              onChange={(patch) =>
-                question &&
-                setQuestions(updateFormQuestion(questions, question.id, patch))
-              }
-              onMove={(offset) =>
-                question &&
-                setQuestions(moveFormQuestion(questions, question.id, offset))
-              }
-              question={question}
-            />
-          ))}
+          {rows.map((row) =>
+            row.kind === "section" ? (
+              <SectionRow
+                count={questions.length}
+                index={row.index}
+                key={row.section.id}
+                label={label}
+                onChange={(patch) =>
+                  setQuestions(
+                    updateFormQuestion(questions, row.section.id, patch)
+                  )
+                }
+                onMove={(offset) =>
+                  setQuestions(
+                    moveFormQuestion(questions, row.section.id, offset)
+                  )
+                }
+                onRemove={() =>
+                  update(removeFormSection(merged, row.section.id))
+                }
+                section={row.section}
+              />
+            ) : (
+              <QuestionRow
+                column={row.column}
+                count={questions.length}
+                index={row.index}
+                key={row.column.id}
+                label={label}
+                onAsk={(next) =>
+                  setQuestions(
+                    toggleFormQuestion(questions, row.column.id, next)
+                  )
+                }
+                onChange={(patch) =>
+                  row.question &&
+                  setQuestions(
+                    updateFormQuestion(questions, row.question.id, patch)
+                  )
+                }
+                onMove={(offset) =>
+                  row.question &&
+                  setQuestions(
+                    moveFormQuestion(questions, row.question.id, offset)
+                  )
+                }
+                question={row.question}
+                rules={row.question ? rulesOf(row.question.id) : undefined}
+              />
+            )
+          )}
         </ul>
+        <Button
+          className="w-fit font-normal"
+          onClick={() => setQuestions(addFormSection(questions).questions)}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          <Plus aria-hidden="true" />
+          {label("addSection")}
+        </Button>
         {excluded.length ? (
           <p className="text-muted-foreground text-xs">
             {label("excluded", {

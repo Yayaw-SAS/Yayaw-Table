@@ -43,6 +43,7 @@ const snapshot = () => publicFormSnapshot(form.value, formColumns.value);
     </div>
     <div class="yayaw-form-canvas">
       <YayawTableForm
+        :key="context.viewId ?? 'form'"
         :columns="formColumns"
         :form="form"
         :locale="context.locale"

@@ -38,6 +38,10 @@ const syncMobile = () => { mobile.value = media?.matches ?? false; };
 onMounted(() => media?.addEventListener("change", syncMobile));
 onBeforeUnmount(() => media?.removeEventListener("change", syncMobile));
 const presentation = computed(() => resolveRecordPresentation(props.presentation, mobile.value));
+/** Pickers portal their popups (calendar, dropdowns): using them keeps the form open. */
+const insideOverlay = (target: EventTarget | null): boolean =>
+  target instanceof Element &&
+  Boolean(target.closest("[data-reka-popper-content-wrapper], .yayaw-form-popover"));
 const surfaceStyle = computed(() => ({ ...theme.value, "--record-width": recordSurfaceWidth(presentation.value, props.width) }));
 const anchor = ref<HTMLElement>();
 const theme = ref<CSSProperties>({});
@@ -110,7 +114,7 @@ const restoreFocus = (event: Event): void => {
           :style="surfaceStyle"
           :aria-describedby="undefined"
           @escape-key-down="event => { if (busy) event.preventDefault(); }"
-          @interact-outside="event => { if (busy) event.preventDefault(); }"
+          @interact-outside="event => { if (busy || insideOverlay(event.target)) event.preventDefault(); }"
           @close-auto-focus="restoreFocus"
           @open-auto-focus="emit('openAutoFocus', $event)"
         >

@@ -4,6 +4,7 @@ import { useForm, useStore } from "@tanstack/react-form";
 import { useEffect, useMemo, useRef } from "react";
 import { useTranslations } from "../../../providers/table-provider";
 import {
+  formRuleSet,
   formValuesEqual,
   initialFormValues,
   translateFormConfig,
@@ -50,6 +51,7 @@ export function useFormBuilder<TFieldValues extends FieldValues>({
     tableId: config.id,
     tableType: config.id,
     mode: "create",
+    formRules: formRuleSet(latest.current.config as FormConfig),
     ...latest.current.context,
     values,
   });
@@ -108,6 +110,17 @@ export function useFormBuilder<TFieldValues extends FieldValues>({
   useEffect(() => {
     onValuesChange?.(values);
   }, [onValuesChange, values]);
+  // Rules make fields depend on each other (a value can make another field
+  // required or hidden): refresh shown errors so none stays stale.
+  useEffect(() => {
+    const { fieldMeta, isSubmitting, submissionAttempts } = form.state;
+    const shown = Object.values(
+      fieldMeta as Record<string, { errors?: unknown[] } | undefined>
+    ).some((meta) => (meta?.errors?.length ?? 0) > 0);
+    if (shown && !isSubmitting && values) {
+      form.validate(submissionAttempts > 0 ? "submit" : "blur");
+    }
+  }, [form, values]);
   useEffect(() => {
     if (!formValuesEqual(previousInitial.current, initialData)) {
       previousInitial.current = initialData;

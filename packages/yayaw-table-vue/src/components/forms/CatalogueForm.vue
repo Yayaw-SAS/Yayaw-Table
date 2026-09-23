@@ -3,8 +3,11 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import { useTableContext } from "../../context";
 import { resolveFormBlocks } from "../../form-layout";
 import {
+  bulkBlockedFields,
   bulkCompletion,
   bulkFieldEditable,
+  bulkMixedFieldsOf,
+  bulkRuleContext,
   bulkFormConfig,
   bulkFormValues,
   validateBulkDraft,
@@ -16,6 +19,7 @@ import {
   resolveFormSections,
   translateFormConfig,
   validateForm,
+  withFormRules,
 } from "../../form-runtime";
 import type {
   FormConfig,
@@ -123,6 +127,12 @@ const title = computed(() =>
         ]
       )
 );
+// The rules of the form (declared ones only in bulk, where mixed values never match).
+const ruledContext = computed<FormFieldContext>(() =>
+  isBulk.value
+    ? bulkRuleContext(config.value, formContext.value)
+    : withFormRules(config.value, formContext.value)
+);
 const sections = computed(() => resolveFormSections(config.value));
 // Bulk editing owns a flat list of explicitly added properties.
 const blocks = computed(() => !isBulk.value && config.value.blocks
@@ -131,17 +141,19 @@ const blocks = computed(() => !isBulk.value && config.value.blocks
 const fieldFor = (name: string): FormFieldDefinition =>
   config.value.fields.find((field) => field.name === name)!;
 const submissionConfig = (): FormConfig =>
-  isBulk.value ? bulkFormConfig(config.value, formContext.value) : config.value;
-const bulkConfig = computed(() => bulkFormConfig(config.value, formContext.value));
-const availableBulkFields = computed(() => config.value.fields.filter(field => !applied.value.includes(field.name) && bulkFieldEditable(field, formContext.value)));
+  isBulk.value ? bulkFormConfig(config.value, ruledContext.value) : config.value;
+const bulkConfig = computed(() => bulkFormConfig(config.value, ruledContext.value));
+const availableBulkFields = computed(() => config.value.fields.filter(field => !applied.value.includes(field.name) && bulkFieldEditable(field, ruledContext.value)));
+const blockedBulkFields = computed(() => bulkBlockedFields(config.value.fields.filter(field => !applied.value.includes(field.name)), ruledContext.value));
+const bulkMixedOf = (field: FormFieldDefinition): string[] => bulkMixedFieldsOf(field, ruledContext.value);
 const bulkDraft = ref<{ valid: boolean; clearValues: TableRecord }>({ valid: false, clearValues: {} });
-watch([bulkConfig, formContext], async (_next, _previous, onCleanup) => {
+watch([bulkConfig, ruledContext], async (_next, _previous, onCleanup) => {
   if (!isBulk.value) return;
   let cancelled = false;
   onCleanup(() => { cancelled = true; });
   bulkDraft.value = { ...bulkDraft.value, valid: false };
   try {
-    const next = await validateBulkDraft(bulkConfig.value, formContext.value);
+    const next = await validateBulkDraft(bulkConfig.value, ruledContext.value);
     if (!cancelled) bulkDraft.value = next;
   } catch {
     if (!cancelled) bulkDraft.value = { valid: false, clearValues: {} };
@@ -163,7 +175,7 @@ const bulkCanSave = (fields: FormFieldDefinition[]): boolean => {
     bulk.rows.every(row => context.config.table.canEditRow?.(row) !== false) &&
     fields.every(field => {
       const latest = config.value.fields.find(candidate => candidate.name === field.name);
-      return Boolean(latest && bulkFieldEditable(latest, formContext.value));
+      return Boolean(latest && bulkFieldEditable(latest, ruledContext.value));
     });
 };
 const close = (): void => {
@@ -178,7 +190,7 @@ const touchField = async (name: string): Promise<void> => {
     const result = await validateForm(
       current,
       submissionValues(current),
-      formContext.value
+      ruledContext.value
     );
     if (version !== validationVersion) return;
     errors.value = Object.fromEntries(
@@ -247,7 +259,7 @@ const submit = async (): Promise<void> => {
   const selected = context.form.value;
   const currentConfig = submissionConfig();
   const currentContext = {
-    ...formContext.value,
+    ...ruledContext.value,
     values: cloneFormValue(values.value),
   };
   try {
@@ -351,7 +363,7 @@ const validate = async (): Promise<boolean> => {
   const version = ++validationVersion;
   validating.value = true;
   try {
-    const result = await validateForm(config.value, cloneFormValue(values.value), formContext.value);
+    const result = await validateForm(config.value, cloneFormValue(values.value), ruledContext.value);
     if (version !== validationVersion) return false;
     errors.value = result.errors;
     touched.value = Object.fromEntries(config.value.fields.map(field => [field.name, true]));
@@ -364,7 +376,7 @@ const validate = async (): Promise<boolean> => {
   }
 };
 const blockContext = computed<FormBlockContext>(() => ({
-  ...formContext.value,
+  ...ruledContext.value,
   disabled: submitting.value || loading.value || Boolean(loadError.value),
   isSubmitting: submitting.value,
   isValidating: validating.value,
@@ -392,7 +404,7 @@ const blockContext = computed<FormBlockContext>(() => ({
     :return-focus="context.form.value.returnFocus"
     @close="close"
   >
-    <form ref="formElement" class="yayaw-form yayaw-record-content" :class="{ 'yayaw-bulk-form': isBulk }" @submit.prevent="submit">
+    <form ref="formElement" class="yayaw-form yayaw-record-content" novalidate :class="{ 'yayaw-bulk-form': isBulk }" @submit.prevent="submit">
       <div class="yayaw-record-body">
       <p v-if="loading" role="status">{{ label("loading", "Loading…") }}</p>
       <p v-if="loadError || errors.form" class="yayaw-error" role="alert">
@@ -410,10 +422,10 @@ const blockContext = computed<FormBlockContext>(() => ({
         class="yayaw-form-fields"
         :disabled="submitting || loading || Boolean(loadError)"
       >
-        <BulkEditorFields v-if="isBulk" :fields="bulkConfig.fields" :available="availableBulkFields" :clear-values="bulkDraft.clearValues" :values="values" :messages="messages" :disabled="submitting || loading || !bulkCanSave(bulkConfig.fields)"
+        <BulkEditorFields v-if="isBulk" :fields="bulkConfig.fields" :available="availableBulkFields" :blocked="blockedBulkFields" :mixed-of="bulkMixedOf" :clear-values="bulkDraft.clearValues" :values="values" :messages="messages" :disabled="submitting || loading || !bulkCanSave(bulkConfig.fields)"
           @add="applied = [...applied, $event]" @remove="removeBulkField" @clear="setFieldValue">
           <template #field="{ field }">
-            <DynamicField :field="field" :model-value="values[field.name]" :context="formContext" :error="errors[field.name]" :errors="errors" :touched="touched[field.name]" @update:model-value="setFieldValue(field.name, $event)" />
+            <DynamicField :field="field" :model-value="values[field.name]" :context="ruledContext" :error="errors[field.name]" :errors="errors" :touched="touched[field.name]" @update:model-value="setFieldValue(field.name, $event)" />
           </template>
         </BulkEditorFields>
         <FormBlocks v-else-if="blocks" :blocks="blocks" :context="blockContext" :custom-slots="$slots">
@@ -421,7 +433,7 @@ const blockContext = computed<FormBlockContext>(() => ({
             <DynamicField
               :field="fieldFor(fieldName)"
               :model-value="values[fieldName]"
-              :context="formContext"
+              :context="ruledContext"
               :error="errors[fieldName]"
               :errors="errors"
               :touched="touched[fieldName]"
@@ -447,7 +459,7 @@ const blockContext = computed<FormBlockContext>(() => ({
               <DynamicField
                 :field="fieldFor(name)"
                 :model-value="values[name]"
-                :context="formContext"
+                :context="ruledContext"
                 :error="errors[name]"
                 :errors="errors"
                 :touched="touched[name]"

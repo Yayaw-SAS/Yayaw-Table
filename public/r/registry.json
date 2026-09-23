@@ -23,6 +23,7 @@
         "input",
         "label",
         "popover",
+        "questionnaire",
         "radio-group",
         "scroll-area",
         "select",
@@ -42,8 +43,9 @@
         "@dnd-kit/sortable",
         "@dnd-kit/utilities",
         "@floating-ui/react-dom",
-        "@tanstack/react-query",
+        "@shadcn/react",
         "@tanstack/react-form",
+        "@tanstack/react-query",
         "@tanstack/react-table",
         "@tanstack/zod-form-adapter",
         "class-variance-authority",
@@ -929,6 +931,11 @@
           "target": "components/ui/yayaw-table/form/form-renderer.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/form/form-rules.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/form/form-rules.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/form/form-settings.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/form/form-settings.tsx"
@@ -937,6 +944,11 @@
           "path": "registry/default/ui/yayaw-table/form/form-share.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/form/form-share.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/form/form-steps.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/form/form-steps.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/form/form-view.tsx",
@@ -1362,6 +1374,11 @@
           "path": "registry/default/ui/yayaw-table/utils/filtered-rows.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/filtered-rows.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/form-conditions.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/form-conditions.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/utils/form-layout.ts",

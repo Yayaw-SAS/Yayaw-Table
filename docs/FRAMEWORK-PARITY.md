@@ -1117,8 +1117,9 @@ and the calendar opens on the picked day or today. The form is a centered
 card (640px max) with a bordered header; "sent" and "closed" use the table's
 empty-state layout (icon, title, message, "Submit another response").
 
-Public links: optional `actions.formLinks` (`status`, `publish(viewId,
-snapshot)`, `unpublish`, `setAcceptingResponses`) adds a "Share form" button
+Public links: optional `actions.formLinks` (`status`, `publish(viewId)` —
+the snapshot is built by the host, see "Form conditions and steps" —,
+`unpublish`, `setAcceptingResponses`) adds a "Share form" button
 to a slim bar above the form of a saved view (unsaved state asks to save
 first). It opens a popover (React `StackMenu`/`ResponsiveMenu`, Vue
 `ToolbarMenu`), a bottom drawer below 768px like the Data menu: "Publish to
@@ -1143,3 +1144,151 @@ error focus, the number format shown after typing, success and the new row in
 the table, picking a date in the standalone form, publishing, copying and
 opening the link, a public response reaching the table, closing responses,
 unpublishing, the save-first prompt and the standalone page, on both demos.
+
+## Form conditions and steps
+
+Both editions share one conditions engine, `utils/form-conditions.ts` (synced
+to Vue as `form-conditions.ts`; pure, no UI dependency, usable on a server).
+A rule is `{ id, when, then }`: `when` is `{ join: "and" | "or", items }`
+where items are conditions `{ fieldId, operator, value? }` or nested groups
+(the engine supports any depth, the editors offer one nested group); `then` is
+`{ action: "show" | "hide" | "require" | "set", questionIds? | fieldIds?,
+value? }`. Operators by type — text: `is`, `isNot`, `contains`,
+`notContains`, `startsWith`; number: `eq`, `neq`, `lt`, `lte`, `gt`, `gte`,
+`between`; date: `on`, `before`, `after`, `between`, `inLast`/`inNext` (N
+days); select: `is`, `isNot`, `isAnyOf`, `isNoneOf`; multi-select:
+`containsAny`, `containsAll`, `containsNone`; checkbox: `isChecked`,
+`isUnchecked`; `isEmpty`/`isNotEmpty` for all but checkboxes. Text compares
+trimmed and case-insensitively, select values as text, dates by day
+(`YYYY-MM-DD…` or `Date`), numbers typed as text are coerced.
+
+`evaluateForm(rules, values, fields, { now, mixed, groups, context })`
+returns `visible`, `hidden`, `required` (static `required` or a matching
+`require`, only while visible), `setValues` and `matched`. A target of any
+`show` rule is hidden until one matches; `hide` wins; hidden answers are
+cleared before other conditions read them, so chains settle (bounded loop).
+`groups` hides children with their parent (a section's questions); `mixed`
+fields never match. `validateRules` reports `missingField`, `unknownField`,
+`operator` (operator/type mismatch), `missingValue`, `unknownOption`,
+`emptyGroup`, `noTargets`/`unknownTarget`, `selfReference`, `cycle` and, with
+`layout: "steps"`, `laterQuestion` for `require`/`set` rules reading a later
+question (`show`/`hide` may). `sanitizeRules` keeps the JSON structure of
+unfinished rules (settings save them while they are edited);
+`normalizeRules` returns the rules that can act and the dropped ones with
+their reason; `detectRuleCycles` drops the rule that closes a loop.
+`describeRule` builds summaries from translatable words.
+
+Form view (`config.form.rules`, conditions on question ids, effects on
+question or section ids): the page layout hides questions and sections by
+rule and marks `require`d questions (label asterisk, `required` and
+`aria-required`); `validateFormValues(questions, values, evaluation)` skips
+hidden questions and uses the rules' required set; `formSubmission` removes
+hidden answers and applies `set` values; `acceptPublicFormResponse` evaluates
+the snapshot's rules on the server (required if visible, hidden answers
+ignored, `set` applied). `publicFormSnapshot` keeps the rules that can act,
+sections, `layout` and `review`.
+
+Section breaks are items of `questions`: `{ id, kind: "section", title?,
+description? }` (Form settings: "Add section", move, edit title and
+description, remove; removing drops rules left without target). The page
+layout renders them as headings.
+
+Steps layout (`form.layout: "steps"`, `form.review` for a final review):
+`formSteps(settings, evaluation)` gives one step per visible question, or one
+per section (questions before the first section form a "start" step), and
+skips what the rules hide; `formStepOptional` offers Skip when no visible
+question of the step is required. React renders it with the shadcn
+Questionnaire (Base UI flavour, `src/components/ui/questionnaire.tsx`, the
+registry item lists `questionnaire` in `registryDependencies` and
+`@shadcn/react` in `dependencies`); Vue with a copy of the shadcn-vue
+Questionnaire under `components/questionnaire/` (Reka `Primitive`, styled
+with the registry's CSS, excluded from lint as vendored code; the Choice,
+Input and Error parts are not shipped). In both, the Questionnaire provides
+the fieldset per step, hidden/inert inactive steps, the progress (named
+progressbar with our "Step X of Y" `aria-valuetext`), Back/Next/Skip/Submit
+visibility and ArrowLeft; navigation and validation are the form's own
+(controlled `item`, Next validates the step's questions with the engine and
+focuses the first invalid control) because questions keep the table's
+controls (dropdowns with tags, the calendar, number formats), which the
+Questionnaire does not validate natively. Enter in a single-line input goes to
+Next; a failed submission jumps to the first step with an error; the review
+lists answers as displayed (`formAnswerText`) with "Change" buttons.
+`YayawTableForm` gains controlled answers and step (React `value` /
+`onValueChange`, `step` / `onStepChange`; Vue `v-model:value`,
+`v-model:step`) and `draftStorageKey` (answers and step in localStorage until
+sent, via `readFormProgress` / `writeFormProgress`). The Form view keys the
+form by view id so answers never leak between views.
+
+Rule editor (Form settings, both editions): each question's Edit disclosure
+has "Conditions" with "Add a condition"; a rule has its action ("Show / Hide /
+Require this question when…"), All/Any when it has several items, rows of
+question / comparison (labels derived from the `op*` phrases, e.g. "is …",
+"> …", "is in the last … days") / value (option select, checkboxes for lists,
+From/To for ranges, days), "Add condition", "Add group" (one level) and
+removal buttons, and the first problem of each row inline (`issue*` labels).
+Summaries ("Shown when Category is Hardware and Budget > 1000") appear under
+the question's row. `set` rules are engine- and JSON-only.
+
+Record create/edit forms (`FormConfig.rules`, conditions on field names,
+effects in `fieldIds`): the runtime puts a `formRules` set on the form context
+(`formRuleSet(config)` with the fields as `ConditionField`s); `fieldIsHidden`
+and the new `fieldIsRequired` read the evaluation, `validateForm` applies `set`
+values before validating, `formSubmissionValues` drops hidden fields, inline
+edits refuse rule-hidden fields. Backward compatibility: a field's `hidden`
+flag or predicate is converted at load into a rule with a code-only `custom`
+condition (`predicateRule`) that receives the full context and the answers as
+given, so existing predicates behave as before; `custom` conditions are never
+serialised. Contexts without `formRules` (cell renderers, host code) keep
+using the predicate directly. Collection items drop the parent's rules. The
+create-form conditions are configured in code (there is no create-form
+settings UI); the Form settings are the only rule editor. React's form also
+re-validates shown errors when values change so a rule change never leaves a
+stale error blocking Save; Vue's catalogue form is `novalidate` so the rules,
+not the browser's constraint bubbles, decide.
+
+Bulk edit: the declared rules (not the legacy predicates, which keep running
+per row) read the draft or the value every selected row shares
+(`bulkConditionState`); a field whose value differs and is not in the draft is
+"mixed" and conditions on it never match. Fields hidden only because of mixed
+values are listed disabled in "Add a field" with "Depends on Category, whose
+values differ across the selection. Set Category first."; added fields whose
+rules read mixed values show "Values of Category differ across the selection:
+the condition is treated as not met." (`bulkConditionMessages`, EN/FR).
+
+Public links (security): `formLinks.publish(viewId)` — hosts build the
+snapshot on their server from the saved view and their own columns with
+`buildPublicFormSnapshot({ view, columns, allowedColumnIds?, defaults? })`:
+only existing, creatable (form editor, not computed) and allowed columns are
+kept, fixed values must fit their column (`validHiddenValue`: known option,
+number, date, URL, boolean), rules and layout are included. The Share popover
+still passes the browser-built snapshot as a deprecated second argument for
+older hosts; hosts must ignore it. The demo host resolves the saved view
+(built-in or saved by either example table) and ignores the argument.
+
+Vue record forms (`DynamicField.vue`) now use the Form view's controls like
+React: the table's dropdown (`FieldSelect.vue`, typed values, "Choose…"
+placeholder, also in "select with add new"), a popover calendar in the table's
+language (`FormDateField`, which gains `min`/`max`; React record forms also
+move from the native date input to it), Reka switches and checkboxes,
+checkbox lists for multi-selects and a Reka radio group. The Vue form dialog
+keeps itself open while a portalled picker is used.
+
+Demos: the "Request" form has rules (Hardware shows "Serial number" and
+requires "Budget"; Other shows "Tell us more"); a second "Guided request"
+view uses the steps layout with a review; the record presentation form
+requires "Description" for Hardware (and shows the mixed note in bulk edit).
+The views columns gain `serialNumber` and `notes` (hidden in the table by
+default) and the category option "Other".
+
+Verification: `tests/form-conditions-suite.ts` (operators per type, AND/OR,
+nesting, chains, `set`, mixed, groups, cycles, validation, sanitation,
+summaries, legacy predicates), `tests/form-view-rules-suite.ts` (settings,
+sections, steps, submission stripping, public snapshot and server acceptance,
+server-built snapshots against tampering, editor helpers) and
+`tests/form-rules-runtime-suite.ts` (record and bulk forms) run in both
+editions; `tests/form-links-demo.test.ts` checks the demo host ignores a
+tampered snapshot. `e2e/form-conditions.spec.ts` covers, on both demos, the
+page layout showing/hiding/requiring by rule, the steps layout (progress,
+Enter, Back/Next/Skip, a conditional step appearing and disappearing, review,
+submit), the rule editor adding a rule and its summary, the create form's
+condition and date picked in the calendar, and the bulk edit mixed note.

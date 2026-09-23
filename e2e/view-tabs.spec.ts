@@ -38,7 +38,11 @@ test("saved views appear as tabs with their layout, and + creates one in another
   page,
 }) => {
   // The default view is a tab from the start, next to the example's Request form.
-  await expect(page.getByRole("tab")).toHaveText(["Default view", "Request"]);
+  await expect(page.getByRole("tab")).toHaveText([
+    "Default view",
+    "Request",
+    "Guided request",
+  ]);
   await page.getByRole("button", { name: "View actions" }).click();
   await page.getByRole("button", { name: "Save this view…" }).click();
   await saveView(page, "Active projects");
@@ -47,6 +51,7 @@ test("saved views appear as tabs with their layout, and + creates one in another
   await expect(tabs.getByRole("tab")).toHaveText([
     "Default view",
     "Request",
+    "Guided request",
     "Active projects",
   ]);
   await expect(

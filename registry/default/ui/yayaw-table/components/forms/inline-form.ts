@@ -1,5 +1,10 @@
 import type { InlineEditCommitResult } from "../../hooks/use-inline-edit-runtime";
-import { fieldIsDisabled, fieldIsHidden, validateForm } from "./form-runtime";
+import {
+  fieldIsDisabled,
+  fieldIsHidden,
+  validateForm,
+  withFormRules,
+} from "./form-runtime";
 import type {
   AnyFieldDefinition,
   FormConfig,
@@ -15,9 +20,10 @@ export function canEditInlineFormField(
   if (!config) {
     return true;
   }
+  const ruled = withFormRules(config, context);
   return Boolean(
     field &&
-      !fieldIsHidden(field, context) &&
+      !fieldIsHidden(field, ruled) &&
       !fieldIsDisabled(field, context) &&
       !["collection", "custom", "tablePicker"].includes(field.type) &&
       !field.searchOptions &&
@@ -46,7 +52,7 @@ export async function validateInlineFormValue(
   const result = await validateForm(
     { ...config, fields: field ? [field] : [] },
     values,
-    { ...context, values }
+    withFormRules(config, { ...context, values })
   );
   const errors = Object.values(result.errors);
   return errors.length

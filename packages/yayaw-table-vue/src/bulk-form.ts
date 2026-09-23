@@ -1,8 +1,13 @@
-import { bulkClearCandidate } from "./bulk-editor";
+import {
+  bulkClearCandidate,
+  bulkConditionState,
+  bulkMixedDependencies,
+} from "./bulk-editor";
 import {
   cloneFormValue,
   fieldIsDisabled,
   fieldIsHidden,
+  formRuleSet,
   formValuesEqual,
   validateForm,
 } from "./form-runtime";
@@ -32,7 +37,64 @@ export const commonBulkValues = (rows: readonly TableRecord[]): TableRecord =>
     )
   );
 
-/** Check conditional fields against every target, including explicitly changed dependencies. */
+/** A bulk context evaluating the config's declared rules on the shared values (mixed ones never match). */
+export const bulkRuleContext = (
+  config: FormConfig,
+  context: FormFieldContext
+): FormFieldContext => ({
+  ...context,
+  formRules: formRuleSet(config, { legacy: false }),
+});
+
+/** The declared rules of a bulk context, with the fields whose values differ across rows. */
+export const bulkRuleState = (context: FormFieldContext) =>
+  context.formRules && context.bulkEdit
+    ? bulkConditionState({
+        rules: context.formRules.rules,
+        fields: context.formRules.fields,
+        rows: context.bulkEdit.rows,
+        applied: context.bulkEdit.fields,
+        values: context.values ?? {},
+      })
+    : undefined;
+
+/** Labels of the mixed fields a field's rules read, for the "mixed" note. */
+export const bulkMixedFieldsOf = (
+  field: FormFieldDefinition,
+  context: FormFieldContext
+): string[] => {
+  const state = bulkRuleState(context);
+  return state && context.formRules
+    ? bulkMixedDependencies(context.formRules, field.name, state.mixed)
+    : [];
+};
+
+/** Legacy predicates run per row, with the draft's changed dependencies. */
+const editableInEveryRow = (
+  field: FormFieldDefinition,
+  context: FormFieldContext
+): boolean => {
+  const patch = Object.fromEntries(
+    (context.bulkEdit?.fields ?? []).map((name) => [name, context.values[name]])
+  );
+  return (context.bulkEdit?.rows ?? []).every((row) => {
+    const rowContext = {
+      ...context,
+      formRules: undefined,
+      row,
+      values: { ...row, ...patch },
+    };
+    return !(
+      fieldIsHidden(field, rowContext) || fieldIsDisabled(field, rowContext)
+    );
+  });
+};
+
+/**
+ * Check conditional fields against every target, including explicitly
+ * changed dependencies. Declared rules read the edited values or the value
+ * shared by every row; a value that differs is treated as not matching.
+ */
 export const bulkFieldEditable = (
   field: FormFieldDefinition,
   context: FormFieldContext
@@ -40,16 +102,29 @@ export const bulkFieldEditable = (
   if (reservedFields.has(field.name) || field.bulkEdit === false) {
     return false;
   }
-  const patch = Object.fromEntries(
-    (context.bulkEdit?.fields ?? []).map((name) => [name, context.values[name]])
-  );
-  return (context.bulkEdit?.rows ?? []).every((row) => {
-    const rowContext = { ...context, row, values: { ...row, ...patch } };
-    return !(
-      fieldIsHidden(field, rowContext) || fieldIsDisabled(field, rowContext)
-    );
-  });
+  if (!editableInEveryRow(field, context)) {
+    return false;
+  }
+  return !bulkRuleState(context)?.evaluation.hidden.has(field.name);
 };
+
+/** Fields held back only by a rule reading mixed values, with those values' labels. */
+export const bulkBlockedFields = (
+  fields: readonly FormFieldDefinition[],
+  context: FormFieldContext
+): { field: FormFieldDefinition; mixed: string[] }[] =>
+  fields.flatMap((field) => {
+    if (
+      reservedFields.has(field.name) ||
+      field.bulkEdit === false ||
+      bulkFieldEditable(field, context) ||
+      !editableInEveryRow(field, context)
+    ) {
+      return [];
+    }
+    const mixed = bulkMixedFieldsOf(field, context);
+    return mixed.length ? [{ field, mixed }] : [];
+  });
 
 /** Keep field validation, but not a full-row schema that requires untouched fields. */
 export const bulkFormConfig = (

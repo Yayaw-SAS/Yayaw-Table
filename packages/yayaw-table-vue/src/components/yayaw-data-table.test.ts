@@ -14,6 +14,7 @@ import {
 } from "../../tests/menu-helpers";
 import { defineTableConfig } from "../config";
 import type { TableActions, TableRecord } from "../types";
+import FieldSelect from "./forms/FieldSelect.vue";
 import YayawDataTable from "./YayawDataTable.vue";
 
 inlineTestPortals();
@@ -821,7 +822,16 @@ describe("YayawDataTable", () => {
           .element as HTMLInputElement
       ).value
     ).toBe("hello");
-    await wrapper.get('[data-field-name="kind"] select').setValue("number");
+    const kind = wrapper
+      .findAllComponents(FieldSelect)
+      .find(
+        (select) =>
+          select.props("id") ===
+          wrapper
+            .get('[data-field-name="kind"] [data-slot="select-trigger"]')
+            .attributes("id")
+      );
+    kind?.vm.$emit("update:modelValue", "number");
     await nextTick();
     expect(
       wrapper.get('[data-field-name="value"] input').attributes("type")

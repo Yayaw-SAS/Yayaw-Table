@@ -39,10 +39,16 @@ libraries. The calendar (FullCalendar) is
 `https://table.yayaw.app/r/yayaw-table-calendar.json` for React and
 `https://table.yayaw.app/r/yayaw-table-vue-calendar.json` for Vue: pass
 `calendarRenderer` to `displayModeRenderers` and add `"calendar"` to
-`displayModes`. The Form view has no extra dependency and ships in the table
-items: add `"form"` to `displayModes` (tables with a `create` action). Its
-standalone `YayawTableForm` renders a saved Form view on a public route
-without table state.
+`displayModes`. The Form view ships in the table items: add `"form"` to
+`displayModes` (tables with a `create` action). Its standalone
+`YayawTableForm` renders a saved Form view on a public route without table
+state. Forms can show, hide and require questions by rule (`form.rules`,
+also `FormConfig.rules` for create/edit and bulk forms) and ask one question
+at a time (`form.layout: "steps"`), built on the shadcn Questionnaire: the
+React item now lists the `questionnaire` shadcn component (and its
+`@shadcn/react` package) as a dependency; the Vue item ships its own copy.
+Hosts publish public forms from the saved view on their server with
+`buildPublicFormSnapshot` (the snapshot passed by the browser is deprecated).
 
 Server connectors that push rows to Notion or Google Sheets, or sync them both
 ways, are optional framework-agnostic items as well
