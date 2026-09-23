@@ -9,11 +9,21 @@ import {
   type LucideIcon,
   Table2,
 } from "lucide-react";
+import { useId } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "../../hooks/use-mobile";
 import { useTableUrlState } from "../../hooks/use-table-url-state";
 import { useTranslations } from "../../providers/table-provider";
 import type { TableDisplayMode } from "../../types/display-types";
+import { useStackMenu } from "../../ui-custom/stack-menu";
 import {
   resolveDisplayMode,
   resolveDisplayModes,
@@ -42,6 +52,9 @@ export function TableDisplayModeSwitcher({
   tableId,
 }: TableDisplayModeSwitcherProps) {
   const { t } = useTranslations();
+  const id = useId();
+  const isMobile = useIsMobile();
+  const { compact } = useStackMenu();
   const { displayModeParam, setDisplayModeFromUI } = useTableUrlState({
     defaultDisplayMode,
     tableId,
@@ -56,6 +69,45 @@ export function TableDisplayModeSwitcher({
 
   if (uniqueModes.length <= 1) {
     return null;
+  }
+
+  // A menu scales with the number of modes; touch drawers keep the buttons.
+  if (!(isMobile || compact)) {
+    const options = uniqueModes.map((mode) => ({
+      value: mode,
+      label: t(`views.display.${mode}`),
+    }));
+    return (
+      <div className={cn("grid min-w-0 gap-1.5", className)}>
+        <label className="text-muted-foreground text-sm" htmlFor={id}>
+          {t("views.display.title")}
+        </label>
+        <Select
+          items={options}
+          onValueChange={(value) => {
+            if (value !== null) {
+              setDisplayModeFromUI(value);
+            }
+          }}
+          value={activeMode}
+        >
+          <SelectTrigger
+            aria-label={t("views.display.title")}
+            className="w-full min-w-0 font-normal"
+            id={id}
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent align="start" alignItemWithTrigger={false}>
+            {options.map(({ value, label }) => (
+              <SelectItem key={value} value={value}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    );
   }
 
   return (

@@ -4,7 +4,7 @@ const CALENDAR = "/?example=views&views-display=calendar";
 const SETTINGS_PARAM = "views-calendar";
 const CURRENT_VIEW = /^current view/i;
 const CARD_SETTINGS = /^card settings/i;
-const CALENDAR_MODE = /^calendar$/i;
+const CALENDAR_MODE = /^calendar/i;
 
 const event = (page: Page, title: string) =>
   page.locator(".yayaw-calendar-event", { hasText: title });
@@ -101,11 +101,9 @@ test("calendar settings are offered in the view menu", async ({ page }) => {
   await page.goto(CALENDAR);
   await page.getByRole("button", { name: CURRENT_VIEW }).click();
   const menu = page.getByRole("dialog", { name: "Views and settings" });
-  await expect(
-    menu.getByRole("group", { name: "Display mode" }).getByRole("button", {
-      name: CALENDAR_MODE,
-    })
-  ).toHaveAttribute("aria-pressed", "true");
+  await expect(menu.getByRole("combobox", { name: "Display mode" })).toHaveText(
+    CALENDAR_MODE
+  );
   await menu.getByRole("button", { name: CARD_SETTINGS }).click();
   await expect(
     page.getByRole("combobox", { name: "Date", exact: true })
@@ -116,4 +114,10 @@ test("calendar settings are offered in the view menu", async ({ page }) => {
   await expect(page.getByRole("combobox", { name: "Weekends" })).toContainText(
     "On"
   );
+});
+
+test("clicking an event opens its record view", async ({ page }) => {
+  await page.goto(CALENDAR);
+  await event(page, "Bravo audit").click();
+  await expect(page.getByText("Activity").first()).toBeVisible();
 });

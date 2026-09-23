@@ -11,6 +11,12 @@ import {
 } from "../src/components/ui/yayaw-table/providers/table-provider";
 
 it("keeps labelled display choices keyboard accessible and preserves pressed state", async () => {
+  // Touch layouts keep the buttons; wider screens get a menu (next test).
+  const width = window.innerWidth;
+  Object.defineProperty(window, "innerWidth", {
+    configurable: true,
+    value: 400,
+  });
   const container = document.createElement("div");
   document.body.append(container);
   const root = createRoot(container);
@@ -56,6 +62,45 @@ it("keeps labelled display choices keyboard accessible and preserves pressed sta
       expect(button.getAttribute("aria-pressed")).toBe("true");
       expect(group?.querySelectorAll('[aria-pressed="true"]')).toHaveLength(1);
     }
+  } finally {
+    await act(() => root.unmount());
+    container.remove();
+    queryClient.clear();
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: width,
+    });
+  }
+});
+
+it("offers display modes in a labelled menu on wider screens", async () => {
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  const queryClient = new QueryClient();
+  try {
+    await act(() =>
+      root.render(
+        <NuqsTestingAdapter hasMemory>
+          <Provider>
+            <TableProvider
+              queryClient={queryClient}
+              tableId="toolbar-menu"
+              translations={defaultTranslations}
+            >
+              <TableDisplayModeSwitcher
+                displayModes={["table", "kanban", "gallery", "calendar"]}
+                tableId="toolbar-menu"
+              />
+            </TableProvider>
+          </Provider>
+        </NuqsTestingAdapter>
+      )
+    );
+    const trigger = container.querySelector<HTMLElement>('[role="combobox"]');
+    expect(trigger?.getAttribute("aria-label")).toBe("Display mode");
+    expect(trigger?.textContent).toContain("Table");
+    expect(container.querySelector("fieldset")).toBeNull();
   } finally {
     await act(() => root.unmount());
     container.remove();

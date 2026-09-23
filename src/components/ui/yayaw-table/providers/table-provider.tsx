@@ -1060,5 +1060,5 @@ export const defaultTranslations: DataTableTranslations = {
     reset_all_description:
       "Clear filters, sort, grouping, and show all columns",
   },
-  add_an_item: "Add Item",
+  add_an_item: "Add item",
 };

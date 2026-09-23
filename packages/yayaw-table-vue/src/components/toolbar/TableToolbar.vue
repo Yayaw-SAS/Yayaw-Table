@@ -48,6 +48,7 @@ import { availableDisplayModes } from "../../view-menu";
 import { isManualOrder, MANUAL_ORDER_SORT_ID, manualOrderSorting } from "../../manual-order";
 import GallerySettings from "./GallerySettings.vue";
 import ListSettings from "./ListSettings.vue";
+import TableSelect from "../controls/TableSelect.vue";
 import DisplayModeRendererSettings from "./DisplayModeRendererSettings.vue";
 import KanbanSettings from "./KanbanSettings.vue";
 import AdvancedFilters from "../filters/AdvancedFilters.vue";
@@ -440,7 +441,14 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
       :panel="optionsView !== 'main'" :panel-title="optionsView === 'cards' ? cardSettingsTitle : translate(optionsView === 'columns' ? 'properties' : optionsView, optionsView)"
       @back="optionsView = 'main'">
       <template #settings><div ref="optionsRoot">
-        <fieldset v-if="modes.length > 1" class="yayaw-display-mode-inline yayaw-choice-inline">
+        <div v-if="modes.length > 1 && !compact" class="yayaw-display-mode-select">
+          <TableSelect
+            v-model="displayMode"
+            :label="translate('displayMode', 'Display mode')"
+            :options="modes.map((mode) => ({ value: mode, label: translate(`display.${mode}`, mode) }))"
+          />
+        </div>
+        <fieldset v-else-if="modes.length > 1" class="yayaw-display-mode-inline yayaw-choice-inline">
           <legend>{{ translate('displayMode', 'Display mode') }}</legend>
           <div class="yayaw-segmented">
             <button
@@ -714,7 +722,7 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
       </div></template>
     </SavedViews>
     <template v-if="compact">
-      <button v-if="isCreateEnabled" type="button" class="yayaw-button yayaw-icon-only" :aria-label="translate('create', 'Create')" @click="context.openCreate()"><Plus :size="16" /></button>
+      <button v-if="isCreateEnabled" type="button" class="yayaw-button yayaw-icon-only" :aria-label="translate('add_an_item', 'Add item')" @click="context.openCreate()"><Plus :size="16" /></button>
       <ToolbarMenu v-model:open="actionsOpen" compact :title="translate('actions.dataActions', 'Data actions')" :close-label="translate('close', 'Close')">
         <template #trigger><button type="button" class="yayaw-button yayaw-button-outline yayaw-icon-only" :aria-label="translate('actions.dataActions', 'Data actions')"><MoreHorizontal :size="16" /></button></template>
 <ToolbarDataActions :show-search="context.config.table.enableColumnFilters !== false" :items="dataItems" :actions-as-icons="actionsAsIcons" :compact="compact" v-model:search="search"
@@ -728,7 +736,7 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
   :search-label="translate('search', 'Search…')" :export-label="translate('export', 'Export')" :share-label="translate('url_state.share', 'Share')"
   :pending-action="pendingAction" :is-exporting="isExporting" :disabled="toolbarActionDisabled" :variant="toolbarActionVariant"
   @action="runAction" @export="exportRows" @share="shareLink" />
-      <TableTooltip v-if="isCreateEnabled" :label="translate('create', 'Create')"><button type="button" class="yayaw-button" :class="{ 'yayaw-icon-only': actionsAsIcons }" :aria-label="translate('create', 'Create')" @click="context.openCreate()"><Plus :size="16" /><span v-if="!actionsAsIcons">{{ translate('create', 'Create') }}</span></button></TableTooltip>
+      <TableTooltip v-if="isCreateEnabled" :label="translate('add_an_item', 'Add item')"><button type="button" class="yayaw-button" :class="{ 'yayaw-icon-only': actionsAsIcons }" :aria-label="translate('add_an_item', 'Add item')" @click="context.openCreate()"><Plus :size="16" /><span v-if="!actionsAsIcons">{{ translate('add_an_item', 'Add item') }}</span></button></TableTooltip>
     </template>
   </div>
 </template>

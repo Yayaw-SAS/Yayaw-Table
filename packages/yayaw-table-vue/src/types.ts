@@ -894,7 +894,8 @@ export interface DataTableTranslations {
 export interface YayawTableProps<TData extends TableRecord = TableRecord> {
   /** Views rendered by optional registry items, e.g. `{ calendar: calendarRenderer }`. */
   displayModeRenderers?: import("./display-mode-renderer").DisplayModeRenderers;
-  details?: import("./record-details").RecordDetailsConfig;
+  /** Built-in record view on row click; fields come from the columns by default, `false` turns it off. */
+  details?: import("./record-details").RecordDetailsConfig | false;
   /** Open an application-owned record route or drawer instead of the built-in details. */
   onOpenDetails?: (row: TData) => void;
   onRevertActivity?: import("./record-details").DetailRevertHandler;

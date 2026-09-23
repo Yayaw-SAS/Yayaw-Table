@@ -18,6 +18,9 @@ const mountTable = (
       tableType: "keyboard",
       locale: "fr",
       data: [{ id: "1", name: "Alpha" }],
+      // These tests exercise the row actions menu; the built-in record view
+      // is unrelated and would otherwise add a leading "Infos" menu item.
+      details: false,
       config: defineTableConfig({
         id: "keyboard",
         translations: { namespace: "keyboard", keys: {} },

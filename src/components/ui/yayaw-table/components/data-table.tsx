@@ -432,6 +432,9 @@ function DataTableHeaderControls({
   );
 }
 
+/** Record view derived from the columns, used when no `details` are given. */
+const DEFAULT_DETAILS: RecordDetailsConfig = {};
+
 function detailViewHandler(
   details: RecordDetailsConfig | undefined,
   open: (row: Record<string, unknown>) => void,
@@ -560,7 +563,11 @@ function DataTableContent({
    * `{ calendar: calendarRenderer }` from `yayaw-table-calendar`.
    */
   displayModeRenderers?: DisplayModeRenderers;
-  details?: RecordDetailsConfig;
+  /**
+   * Built-in record view, shown on row click. Fields come from the columns by
+   * default; pass `false` to turn it off.
+   */
+  details?: RecordDetailsConfig | false;
   /** Open an application-owned record route or drawer instead of the built-in details. */
   onOpenDetails?: (row: Record<string, unknown>) => void;
   onRevertActivity?: DetailRevertHandler;
@@ -654,9 +661,10 @@ function DataTableContent({
     () => planningLabelOverrides(planningTranslate),
     [planningTranslate]
   );
+  const recordDetails = details === false ? undefined : (details ?? DEFAULT_DETAILS);
   const { viewedRow, setViewedRow, openDetails } = useRecordView(
     tableId,
-    details,
+    recordDetails,
     onOpenDetails
   );
 
@@ -901,7 +909,7 @@ function DataTableContent({
                 customBulkActions={customBulkActions}
                 data={finalData}
                 displayModeRenderers={displayModeRenderers}
-                details={details}
+                details={recordDetails}
                 emptyState={emptyState}
                 enableColumnDragDropByDefault={Boolean(
                   config.table.enableColumnDragDropByDefault
@@ -928,10 +936,14 @@ function DataTableContent({
                 onBulkExport={onBulkExport}
                 onOpenDetails={openDetails}
                 onRevertActivity={onRevertActivity}
-                onRowActivate={(row, event) => {
-                  openDetails?.(row);
-                  onRowActivate?.(row, event);
-                }}
+                onRowActivate={
+                  openDetails || onRowActivate
+                    ? (row, event) => {
+                        openDetails?.(row);
+                        onRowActivate?.(row, event);
+                      }
+                    : undefined
+                }
                 onRowClick={onRowClick}
                 onRowSelectionChange={onRowSelectionChange}
                 onRowSelectionStateChange={onRowSelectionStateChange}
@@ -967,7 +979,7 @@ function DataTableContent({
         session={planningSession}
       />
       <TableRecordDetails
-        details={details}
+        details={recordDetails}
         formType={defaultFormType}
         getRowId={getRowId}
         onClose={() => setViewedRow(undefined)}

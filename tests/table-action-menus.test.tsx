@@ -104,7 +104,7 @@ for (const syncUrl of [false, true]) {
         ).find(
           (button) =>
             (button.getAttribute("aria-label") ?? button.textContent) ===
-            "Add Item"
+            "Add item"
         )
       );
       expect(create.className).toContain("bg-primary");

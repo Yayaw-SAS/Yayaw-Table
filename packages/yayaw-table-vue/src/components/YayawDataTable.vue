@@ -64,7 +64,8 @@ const props = withDefaults(
      * `{ calendar: calendarRenderer }` from `yayaw-table-vue-calendar`.
      */
     displayModeRenderers?: DisplayModeRenderers;
-    details?: RecordDetailsConfig;
+    /** Built-in record view on row click; fields come from the columns by default, `false` turns it off. */
+    details?: RecordDetailsConfig | false;
     onOpenDetails?: (row: TableRecord) => void;
     onRevertActivity?: DetailRevertHandler;
     tableId?: string;
@@ -126,6 +127,8 @@ const props = withDefaults(
     data: () => [],
     initialData: () => [],
     locale: "en",
+    // `false` is a valid value; keep an absent prop undefined, not Vue's boolean false.
+    details: undefined,
     enableAdvancedFilters: undefined,
     enableToolbar: undefined,
     showFilterBar: undefined,
@@ -235,9 +238,13 @@ const currentDetailRow = computed(() => {
   const selected = detailRow.value;
   return selected && (tableData.rows.value.find(row => getRowId(row) === getRowId(selected)) ?? selected);
 });
+// Record view derived from the columns unless `details` is false.
+const recordDetails = computed<RecordDetailsConfig | undefined>(() =>
+  props.details === false ? undefined : (props.details ?? {})
+);
 const openDetails = (row: TableRecord): void => {
   if (props.onOpenDetails) props.onOpenDetails(row);
-  else if (props.details && !form.value.open) detailRow.value = row;
+  else if (recordDetails.value && !form.value.open) detailRow.value = row;
 };
 const deleteDetail = async (row: TableRecord) => {
   if (!config.table.allowDelete || config.table.canDeleteRow?.(row) === false || !actions.value?.delete) return { success: false };
@@ -404,10 +411,10 @@ const selectAllMatching = async (): Promise<number> => {
 const selectionRoot = ref<HTMLElement>();
 const activityUndo = createActivityUndo({
   rows: () => tableData.rows.value,
-  config: () => props.details,
+  config: () => recordDetails.value,
   handler: () => props.onRevertActivity,
   onReverted: async () => { await refresh(); },
-  onSuccess: entry => { status.value = { type: "success", message: detailUndoMessage(entry, detailLabels(props.locale, props.details?.labels)) }; },
+  onSuccess: entry => { status.value = { type: "success", message: detailUndoMessage(entry, detailLabels(props.locale, recordDetails.value?.labels)) }; },
   onError: error => { status.value = { type: "error", message: error ?? detailLabels(props.locale).undoError }; },
   onUnavailable: () => { status.value = { type: "error", message: detailLabels(props.locale).undoUnavailable }; },
 });
@@ -563,7 +570,7 @@ provide(tableContextKey, {
   openCreate,
   displayModeRenderers: props.displayModeRenderers,
   openEdit,
-  get openDetails() { return props.onOpenDetails || props.details ? openDetails : undefined; },
+  get openDetails() { return props.onOpenDetails || recordDetails.value ? openDetails : undefined; },
   activateRow,
   emitSelection,
   clearSelection,
@@ -623,8 +630,8 @@ provide(tableContextKey, {
     <CatalogueForm v-if="form.open && !currentDetailRow">
       <template v-for="(_, name) in $slots" #[name]="scope"><slot :name="name" v-bind="scope" /></template>
     </CatalogueForm>
-    <PlanningSurface v-if="planning" :session="planning" :labels="ganttLabels" :locale="locale" :on-open-record="details || onOpenDetails ? (task) => {if (task.record) openDetails(task.record)} : undefined" />
-    <RecordDetails v-if="details && currentDetailRow" :key="getRowId(currentDetailRow)" :row="currentDetailRow" :config="{ ...details, presentation: config.presentation ?? details.presentation }" :editing="form.open" :editor-busy="detailEditorBusy" :columns="config.columns.definitions" :locale="locale"
+    <PlanningSurface v-if="planning" :session="planning" :labels="ganttLabels" :locale="locale" :on-open-record="recordDetails || onOpenDetails ? (task) => {if (task.record) openDetails(task.record)} : undefined" />
+    <RecordDetails v-if="recordDetails && currentDetailRow" :key="getRowId(currentDetailRow)" :row="currentDetailRow" :config="{ ...recordDetails, presentation: config.presentation ?? recordDetails.presentation }" :editing="form.open" :editor-busy="detailEditorBusy" :columns="config.columns.definitions" :locale="locale"
       :can-edit="config.table.allowEdit && Boolean(actions?.update) && config.table.canEditRow?.(currentDetailRow) !== false"
       :can-delete="config.table.allowDelete && Boolean(actions?.delete) && config.table.canDeleteRow?.(currentDetailRow) !== false"
       :on-planning="planning ? (row) => planning?.open({source: planning.config.sourceId, id: getRowId(row)}) : undefined"

@@ -309,7 +309,7 @@ describe("resolveEffectiveRowClickMode", () => {
     );
   });
 
-  it("keeps legacy edit and row-link behavior by default", () => {
+  it("edits or follows links when configured and otherwise opens the record view", () => {
     assert.equal(
       resolveEffectiveRowClickMode({
         hasRowLink: true,
@@ -326,6 +326,14 @@ describe("resolveEffectiveRowClickMode", () => {
     );
     assert.equal(
       resolveEffectiveRowClickMode({
+        hasRowLink: false,
+        isRowClickEditEnabled: false,
+      }),
+      "activate"
+    );
+    assert.equal(
+      resolveEffectiveRowClickMode({
+        configuredMode: "none",
         hasRowLink: false,
         isRowClickEditEnabled: false,
       }),

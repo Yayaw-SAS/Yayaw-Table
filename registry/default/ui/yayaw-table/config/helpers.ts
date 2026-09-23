@@ -583,7 +583,7 @@ export interface TableBehaviorConfig extends GenericModeViewConfigs {
   enableRowClickEdit?: boolean;
 
   /**
-   * Generic row click behavior. The default preserves legacy row-link/edit behavior.
+   * Row click behavior. `default` edits when `enableRowClickEdit` is set, follows a row-link column, and otherwise opens the record view.
    */
   rowClickMode?: TableRowClickMode;
 
