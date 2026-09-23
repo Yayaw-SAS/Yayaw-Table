@@ -55,7 +55,13 @@ import ImportPanel from "./ImportPanel.vue";
 import { importColumnsFrom, importLabels, isImportEnabled } from "../../import-flow";
 import { existingLookupFromRows, type ImportAdapters } from "../../import-model";
 import { fetchAllContractRows } from "../../table-contracts";
-import { type ConnectorViewColumn, hasConnector } from "../../connector-flow";
+import {
+  type ConnectorViewColumn,
+  connectorLabels,
+  connectorScheduleSuffix,
+  hasConnector,
+  isConnectorImportSource,
+} from "../../connector-flow";
 import { isSchedulable, scheduleLabel } from "../../schedule-model";
 import {
   availableExportFormats,
@@ -476,8 +482,18 @@ const hasExport = computed(() => Boolean(context.config.table.export));
 const hasShare = computed(() => context.config.table.share !== false);
 // The Data menu (Export, Connect, Share) stands apart from the view settings.
 const dataOpen = ref(false);
-// "schedule:<id>" opens the schedule of a Connect destination, "connector:<id>" its connector screen.
-const dataView = ref<"main" | "export" | "import" | "connect" | "share" | `schedule:${string}` | `connector:${string}`>("main");
+// "schedule:<id>" opens the schedule of a Connect destination, "connector:<id>" its connector screen
+// and "connector-pull:<id>" the same screen from Data › Import, with the direction preset to pull.
+const dataView = ref<
+  | "main"
+  | "export"
+  | "import"
+  | "connect"
+  | "share"
+  | `schedule:${string}`
+  | `connector:${string}`
+  | `connector-pull:${string}`
+>("main");
 watch(dataOpen, (open) => {
   if (!open) dataView.value = "main";
 });
@@ -491,12 +507,43 @@ const scheduledDestination = computed(() =>
   )
 );
 const connectorsEnabled = computed(() => context.config.table.connectors !== false);
+const syncEnabled = computed(() => context.config.table.sync !== false);
+const connectorPull = computed(() => dataView.value.startsWith("connector-pull:"));
 const connectorDestination = computed(() =>
   destinations.value.connect.find(
-    (destination) => dataView.value === `connector:${destination.id}` && hasConnector(destination, connectorsEnabled.value)
+    (destination) =>
+      (dataView.value === `connector:${destination.id}` || dataView.value === `connector-pull:${destination.id}`) &&
+      hasConnector(destination, connectorsEnabled.value)
   )
 );
 const connectorTranslate = (key: string, fallback: string): string => translate(`connector.${key}`, fallback);
+const connectorT = computed(() => connectorLabels(context.locale, connectorTranslate));
+// Connectors that can pull are listed by Data › Import ("From Notion").
+const connectorSources = computed(() =>
+  destinations.value.connect
+    .filter(
+      (destination) =>
+        destination.connector &&
+        hasConnector(destination, connectorsEnabled.value) &&
+        isConnectorImportSource(destination.connector, syncEnabled.value)
+    )
+    .map((destination) => ({
+      id: destination.id,
+      label: connectorT.value("importFrom", { name: destination.label }),
+      description: connectorT.value("importFromHint"),
+    }))
+);
+// "Every day at 09:00 · Keep in sync": the direction the saved settings run.
+const scheduleSuffix = (destination: DataDestination<Component>) => {
+  const connector = destination.connector;
+  if (!(connector && hasConnector(destination, connectorsEnabled.value))) return undefined;
+  return async () =>
+    connectorScheduleSuffix((await connector.load?.(destinationContext())) ?? null, {
+      connector,
+      t: connectorT.value,
+      syncEnabled: syncEnabled.value,
+    });
+};
 // The view's columns for connector mappings: visible ones in display order, then the others.
 const connectorColumns = (): ConnectorViewColumn[] => {
   const visible = exportColumns(context.config.columns.definitions, context.state.visibility.value, context.state.order.value);
@@ -568,6 +615,10 @@ const openDestination = (destination: DataDestination<Component>): void => {
   }
 };
 const dataBack = (): void => {
+  if (dataView.value.startsWith("connector-pull:")) {
+    dataView.value = "import";
+    return;
+  }
   dataView.value = dataView.value.startsWith("schedule:") || dataView.value.startsWith("connector:") ? "connect" : "main";
 };
 const dataTitle = computed(() => {
@@ -997,16 +1048,19 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
             </div>
       <SchedulePanel v-else-if="scheduledDestination?.schedule" :key="scheduledDestination.id" :schedule="scheduledDestination.schedule"
         :context="destinationContext" :locale="context.locale" :translate="scheduleTranslate"
-        :running="pendingDestination === scheduledDestination.id" @run-now="runDestination(scheduledDestination)"
+        :running="pendingDestination === scheduledDestination.id" :summary-suffix="scheduleSuffix(scheduledDestination)" @run-now="runDestination(scheduledDestination)"
         @saved="(message) => (context.status.value = { type: 'success', message })"
         @error="(message) => (context.status.value = { type: 'error', message })" @done="dataView = 'connect'" />
-      <ConnectorPanel v-else-if="connectorDestination?.connector" :key="connectorDestination.id" :connector="connectorDestination.connector"
+      <ConnectorPanel v-else-if="connectorDestination?.connector" :key="dataView" :connector="connectorDestination.connector"
         :context="destinationContext" :columns="connectorColumns()" :selected-rows="context.selectedRows.value" :locale="context.locale"
-        :translate="connectorTranslate" @done="dataView = 'connect'" />
+        :translate="connectorTranslate" :name="connectorDestination.label" :sync-enabled="syncEnabled"
+        :direction="connectorPull ? 'pull' : undefined" @synced="context.refresh()"
+        @done="dataView = connectorPull ? 'import' : 'connect'" />
       <ImportPanel v-else-if="dataView === 'import' && importEnabled" :columns="importColumnsFrom(context.config.columns.definitions)"
         :locale="context.locale" :translate="importTranslate" :adapters="importAdapters()" :csv="importConfig?.csv"
-        :sources="importSources" :load-source="loadImportSource" :find-existing="findExisting" :batch-size="importConfig?.batchSize"
-        :allow-new-options="importConfig?.allowNewOptions" @done="dataView = 'main'" @imported="context.refresh()" />
+        :sources="importSources" :connector-sources="connectorSources" :load-source="loadImportSource" :find-existing="findExisting" :batch-size="importConfig?.batchSize"
+        :allow-new-options="importConfig?.allowNewOptions" @done="dataView = 'main'" @imported="context.refresh()"
+        @connector="(id) => (dataView = `connector-pull:${id}`)" />
       <ExportPanel v-else-if="dataView === 'export'" :busy="isExporting" :formats="exportFormats" :label="exportLabel"
               :default-file-name="defaultExportFileName(String(context.translations.value.title ?? context.config.id))"
               :selected-count="context.selectedRows.value.length" @export="exportRows" />

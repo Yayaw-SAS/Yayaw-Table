@@ -940,3 +940,59 @@ with errors skipped, the new and updated rows in the table, a re-import that
 only updates, blocking without skipping errors, and the phone drawer, on both
 demos (`e2e/fixtures/import-projects.csv`). The views demo's `list` now
 returns copies of its records, as a server would.
+
+## Sync in the connector screen
+
+A connector may declare `directions` (default `["push"]`), `conflictRules`
+(default all three), `preview(settings, context)` and `sync(settings,
+context)`; pull and two-way are offered only with `sync`, and
+`table.sync: false` (React config and Vue `types.ts`; default on) keeps push
+only. The string unions (`SyncDirection`, `ConflictRule`, `DeletePolicy`) are
+mirrored in the shared `connector-flow.ts` so the browser bundle never imports
+the server `sync-engine.ts`; `toSyncPreview(plan, { limit, rowLabel })` and
+`toSyncRunResult(result, plan)` turn the engine's plan and result into what
+`preview` and `sync` return (structural types, no import). `ConnectorSettings`
+gains `direction`, `conflictRule` and `deletePolicy` (optional in the type,
+always set by the screen: preset, else remembered when still offered, else
+push, table-wins and flag).
+
+Both editions render the same `connectorScreenFields`: target and child, then
+"Direction" (Send to <target> / Import from <target> / Keep both in sync, only
+with more than one direction), columns, the mapping, key field, then for push
+mode and records exactly as before (push still calls `push`), and for pull and
+two-way the conflict rule (two-way only, with its one-line explanation) and
+"Deleted records" (Only flag, Ignore, Delete on the other side, each
+explained). Pull and two-way map each target field to a table column
+(`field:<name>` rows, "Don't import"/"Don't sync"; picking a column already
+used frees it), with the field's first `sample` value and a badge counting
+samples the column cannot take (`coerceImportValue` from the import model);
+two-way also lists new fields the sync will add. "Delete on the other side"
+shows a confirmation checkbox; "Sync now" (or "Import now") stays disabled
+until it is checked and, when the connector can preview, until a preview of
+the current settings (`connectorSyncBlocker`; any change clears the preview).
+"Preview changes" shows a two-column grid (In <target> / In this table:
+create, update, delete), flagged and unchanged notes, a duplicates warning
+and the first conflicts with both values and which one wins. A sync always
+covers the view (never the selection), saves the settings, reports "In
+<target>: … · In this table: …" with failures, flagged records, truncation
+and a stop reason, offers Done and "Preview again", and reloads the table
+(React invalidates `["tableData", tableId]`, Vue `context.refresh()`).
+
+Data › Import lists each connector that can pull as a source ("From
+<destination>") that opens the connector screen with the direction preset to
+pull (React `StackMenuView` `connector-pull:<id>`, Vue `dataView
+"connector-pull:<id>"`, back and Done return to Import). The schedule summary
+of a connector destination ends with its saved direction when there is a
+choice ("Every day at 09:00 (Europe/Paris) · Keep in sync";
+`connectorScheduleSuffix`, a new optional `summarySuffix` of the schedule
+panels). Labels are English and French, overridable with `connector.<key>`.
+
+`tests/connector-sync-suite.ts` runs in both editions (directions and rules,
+settings defaults, fields per direction, validation, mapping orientation,
+preview and confirmation, preview and result formatting, schedule suffix) and
+`e2e/sync.spec.ts` covers, on both demos, a two-way preview with its counts
+and conflict, the sync and an empty second preview, a pull importing the
+sheet-only rows, the confirmation and preview required to delete, and the
+Import source. The demo "Spreadsheet" connector has a "Live projects" sheet
+synced once and then edited on both sides, planned and applied by the real
+`planSync` and `applySyncPlan` with in-memory adapters.

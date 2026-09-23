@@ -125,6 +125,41 @@ export function createViewsActions() {
   // The n8n schedule of each view; a real host stores it and runs it on a server.
   const schedules = new Map<string, ScheduleSettings>();
   const lastRuns = new Map<string, string>();
+  // The table side of the Spreadsheet connector's syncs: the host's own records.
+  let created = 0;
+  const sheetTable = {
+    columns: viewsColumns,
+    rows: () => records,
+    create: (values: Record<string, unknown>) => {
+      created += 1;
+      const id = `sheet-${created}`;
+      records.push({
+        id,
+        name: "",
+        category: "",
+        status: "",
+        price: 0,
+        progress: 0,
+        dueDate: "",
+        ...values,
+      } as ViewRow);
+      return id;
+    },
+    update: (id: string, values: Record<string, unknown>) => {
+      const record = records.find((row) => row.id === id);
+      if (record) {
+        Object.assign(record, values);
+      }
+      return Boolean(record);
+    },
+    remove: (id: string) => {
+      const index = records.findIndex((row) => row.id === id);
+      if (index >= 0) {
+        records.splice(index, 1);
+      }
+      return index >= 0;
+    },
+  };
   const ordered = (viewId: unknown) => {
     const order = orders.get(keyOf(viewId));
     if (!order) {
@@ -210,7 +245,7 @@ export function createViewsActions() {
         },
       },
       // A connector: the row opens the table's send screens instead of `run`.
-      createSpreadsheetConnector(),
+      createSpreadsheetConnector(sheetTable),
       {
         id: "slack",
         label: "Slack",

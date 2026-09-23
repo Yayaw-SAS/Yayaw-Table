@@ -17,7 +17,7 @@ import {
   existingLookupFromRows,
   type ImportAdapters,
 } from "../../utils/import-model";
-import { ImportPanel } from "./import-panel";
+import { type ConnectorImportSource, ImportPanel } from "./import-panel";
 
 type Row = Record<string, unknown>;
 
@@ -41,6 +41,8 @@ export interface ImportScreenOptions {
   /** The table instance options, for `getRowId`. */
   tableOptions?: unknown;
   onImported: () => void;
+  /** Connectors that can pull, listed as sources that open their screen. */
+  connectorSources?: ConnectorImportSource[];
 }
 
 /** Every record of the table, whatever the view shows. */
@@ -128,6 +130,7 @@ export function importScreen(options: ImportScreenOptions): {
   if (!enabled) {
     return { menuLabel: undefined, screens: [] };
   }
+  const connectorSources = options.connectorSources ?? [];
   const sources = config?.sources ?? [];
   const title = importLabels(options.locale, translate)("title");
   const content = (
@@ -136,6 +139,7 @@ export function importScreen(options: ImportScreenOptions): {
         allowNewOptions={config?.allowNewOptions}
         batchSize={config?.batchSize}
         columns={importColumnsFrom(options.columns)}
+        connectorSources={connectorSources}
         csv={config?.csv}
         findExisting={findExisting(options)}
         loadSource={async (id) => {
