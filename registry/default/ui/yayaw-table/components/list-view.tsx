@@ -1,12 +1,20 @@
 "use client";
 
-import { type MouseEvent, type ReactNode, useMemo } from "react";
+import {
+  type DragEvent,
+  type KeyboardEvent,
+  type MouseEvent,
+  type ReactNode,
+  useMemo,
+  useState,
+} from "react";
 import { cn } from "@/lib/utils";
 import type { TableCatalogueColumnConfig } from "../hooks/use-table-config";
 import type { Cell, Row, Table as TanStackTable } from "../tanstack";
 import { flexRender } from "../tanstack";
 import type { TableListConfig } from "../types/display-types";
 import { shouldActivateCardFromKeyboard } from "../utils/card-interaction";
+import { moveInOrder } from "../utils/manual-order";
 import {
   isSelectionModifiedClick,
   selectRowWithRange,
@@ -29,7 +37,24 @@ interface DataTableListViewProps<TData extends Record<string, unknown>> {
   isRowActive?: (row: Row<TData>) => boolean;
   isRowClickable?: (row: Row<TData>) => boolean;
   onRowClick?: (row: Row<TData>, event: MouseEvent<HTMLElement>) => void;
+  /** Present when the view is sorted by its manual order and may be edited. */
+  onReorder?: (row: Row<TData>, neighbours: ListNeighbours<TData>) => void;
+  canReorderRow?: (row: Row<TData>) => boolean;
+  reorderLabel?: string;
   table: TanStackTable<TData>;
+}
+
+export interface ListNeighbours<TData extends Record<string, unknown>> {
+  previous?: Row<TData>;
+  next?: Row<TData>;
+}
+
+interface ListReorder {
+  draggable: boolean;
+  label?: string;
+  onDragStart: () => void;
+  onDrop: () => void;
+  onMove: (offset: number) => void;
 }
 
 interface ListItemProps<TData extends Record<string, unknown>> {
@@ -38,6 +63,7 @@ interface ListItemProps<TData extends Record<string, unknown>> {
   onRowClick?: (row: Row<TData>, event: MouseEvent<HTMLElement>) => void;
   propertyCells: ListCell<TData>[];
   propertyLabels: Map<string, string>;
+  reorder?: ListReorder;
   row: Row<TData>;
   showLabels: boolean;
   table: TanStackTable<TData>;
@@ -73,11 +99,23 @@ function DataTableListItem<TData extends Record<string, unknown>>({
   onRowClick,
   propertyCells,
   propertyLabels,
+  reorder,
   row,
   showLabels,
   table,
   titleColumnId,
 }: ListItemProps<TData>) {
+  const handleReorderKey = (event: KeyboardEvent<HTMLElement>) => {
+    if (!(reorder?.draggable && event.altKey)) {
+      return false;
+    }
+    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") {
+      return false;
+    }
+    event.preventDefault();
+    reorder.onMove(event.key === "ArrowUp" ? -1 : 1);
+    return true;
+  };
   const cells = row.getVisibleCells() as ListCell<TData>[];
   const selectionCell = cells.find((cell) => cell.column.id === "select");
   const actionsCell = cells.find((cell) => cell.column.id === "actions");
@@ -106,12 +144,28 @@ function DataTableListItem<TData extends Record<string, unknown>>({
   };
 
   return (
+    // biome-ignore lint/a11y: a reorderable line accepts native drops; keyboard users move it with Alt+Arrow keys.
     <li
       className={cn(
         "border-b last:border-b-0",
         (isActive || row.getIsSelected()) && "bg-primary/5"
       )}
       data-active={isActive ? "true" : undefined}
+      draggable={reorder?.draggable}
+      onDragOver={
+        reorder
+          ? (event: DragEvent<HTMLLIElement>) => event.preventDefault()
+          : undefined
+      }
+      onDragStart={reorder?.draggable ? reorder.onDragStart : undefined}
+      onDrop={
+        reorder
+          ? (event: DragEvent<HTMLLIElement>) => {
+              event.preventDefault();
+              reorder.onDrop();
+            }
+          : undefined
+      }
     >
       {/* biome-ignore lint/a11y: a clickable line keeps nested selection/actions valid, takes the button role and provides keyboard activation. */}
       <div
@@ -122,9 +176,12 @@ function DataTableListItem<TData extends Record<string, unknown>>({
         onClick={isClickable ? (event) => onRowClick?.(row, event) : undefined}
         onClickCapture={handleSelectionClick}
         onKeyDown={
-          isClickable
+          isClickable || reorder?.draggable
             ? (event) => {
-                if (shouldActivateCardFromKeyboard(event)) {
+                if (handleReorderKey(event)) {
+                  return;
+                }
+                if (isClickable && shouldActivateCardFromKeyboard(event)) {
                   event.preventDefault();
                   event.currentTarget.click();
                 }
@@ -137,7 +194,8 @@ function DataTableListItem<TData extends Record<string, unknown>>({
           }
         }}
         role={isClickable ? "button" : undefined}
-        tabIndex={isClickable ? 0 : undefined}
+        tabIndex={isClickable || reorder?.draggable ? 0 : undefined}
+        title={reorder?.draggable ? reorder.label : undefined}
       >
         {selectionCell ? (
           <div className="shrink-0" data-column-id="select">
@@ -180,14 +238,37 @@ export function DataTableListView<TData extends Record<string, unknown>>({
   isRowActive,
   isRowClickable,
   onRowClick,
+  onReorder,
+  canReorderRow,
+  reorderLabel,
   table,
 }: DataTableListViewProps<TData>) {
   const hasTableGrouping = table.store.state.grouping.length > 0;
-  const rows = (
+  const loadedRows = (
     hasTableGrouping
       ? table.getPreGroupedRowModel().rows
       : table.getRowModel().rows
   ) as Row<TData>[];
+  // A move shows at once; the next server result replaces it.
+  const [pending, setPending] = useState<{
+    ids: string[];
+    rows: Row<TData>[];
+  } | null>(null);
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  // A pending order only applies to the rows it was made from.
+  const pendingOrder = pending?.rows === loadedRows ? pending.ids : null;
+  const setPendingOrder = (ids: string[]) =>
+    setPending({ ids, rows: loadedRows });
+  const rows = useMemo(() => {
+    if (!pendingOrder) {
+      return loadedRows;
+    }
+    const position = new Map(pendingOrder.map((id, index) => [id, index]));
+    return [...loadedRows].sort(
+      (left, right) =>
+        (position.get(left.id) ?? 0) - (position.get(right.id) ?? 0)
+    );
+  }, [loadedRows, pendingOrder]);
   const titleColumnId = resolveGalleryTitleColumnId({
     columnDefinitions,
     config,
@@ -219,6 +300,56 @@ export function DataTableListView<TData extends Record<string, unknown>>({
     ) : null;
   }
 
+  const groupOf = (row: Row<TData>) =>
+    groups.find((group) => group.rows.some((item) => item.id === row.id));
+  const moveRow = (row: Row<TData>, toIndexInGroup: number) => {
+    const group = groupOf(row);
+    if (!(group && onReorder)) {
+      return;
+    }
+    const moved = moveInOrder(
+      group.rows.map((item) => item.id),
+      row.id,
+      toIndexInGroup
+    );
+    if (!moved) {
+      return;
+    }
+    const byId = new Map(rows.map((item) => [item.id, item]));
+    const groupIds = new Set(moved.ids);
+    const others = rows
+      .map((item) => item.id)
+      .filter((id) => !groupIds.has(id));
+    const firstIndex = rows.findIndex((item) => groupIds.has(item.id));
+    others.splice(Math.max(0, firstIndex), 0, ...moved.ids);
+    setPendingOrder(others);
+    onReorder(row, {
+      previous: moved.previousId ? byId.get(moved.previousId) : undefined,
+      next: moved.nextId ? byId.get(moved.nextId) : undefined,
+    });
+  };
+  const reorderFor = (row: Row<TData>): ListReorder | undefined => {
+    if (!onReorder) {
+      return;
+    }
+    const group = groupOf(row);
+    const index = group?.rows.findIndex((item) => item.id === row.id) ?? -1;
+    return {
+      draggable: canReorderRow?.(row) ?? true,
+      label: reorderLabel,
+      onDragStart: () => setDraggedId(row.id),
+      onDrop: () => {
+        const dragged = rows.find((item) => item.id === draggedId);
+        setDraggedId(null);
+        // Moves stay within a group: the manual order never edits the grouped value.
+        if (dragged && dragged.id !== row.id && groupOf(dragged) === group) {
+          moveRow(dragged, index);
+        }
+      },
+      onMove: (offset) => moveRow(row, index + offset),
+    };
+  };
+
   const renderRow = (row: Row<TData>) => {
     const cellById = new Map(
       (row.getVisibleCells() as ListCell<TData>[]).map((cell) => [
@@ -237,6 +368,7 @@ export function DataTableListView<TData extends Record<string, unknown>>({
           return cell ? [cell] : [];
         })}
         propertyLabels={propertyLabels}
+        reorder={reorderFor(row)}
         row={row}
         showLabels={config?.showCardLabels === true}
         table={table}

@@ -77,6 +77,7 @@ import { Loader } from "../ui-custom/loader";
 import { ColumnIcon } from "../utils/column-icons";
 import { buildCsvExportColumns } from "../utils/csv-export";
 import { resolveDisplayMode } from "../utils/display-modes";
+import { isManualOrder } from "../utils/manual-order";
 import type {
   DetailRevertHandler,
   RecordDetailsConfig,
@@ -97,6 +98,7 @@ import { SortableHeader } from "./columns/header/sortable-header";
 import { useColumnDnd } from "./columns/hooks/use-column-dnd";
 import { useColumnDragOverlay } from "./columns/hooks/use-column-drag-overlay";
 import { GroupRowSelectionCell } from "./columns/selection-column";
+import { translateWithFallback } from "./filters/i18n-utils";
 import { FooterRow } from "./footer/footer-row";
 import {
   type CatalogueFormState,
@@ -112,7 +114,7 @@ import {
 } from "./gallery-view";
 import { DataTableGanttView } from "./gantt-view";
 import { DataTableKanbanView } from "./kanban-view";
-import { DataTableListView } from "./list-view";
+import { DataTableListView, type ListNeighbours } from "./list-view";
 import { SafePagination } from "./safe-pagination";
 import { TableEmptyStateContent } from "./table-empty-state";
 import { useOnScreen } from "./utils/use-on-screen";
@@ -851,6 +853,29 @@ MemoizedSkeletonRow.displayName = "MemoizedSkeletonRow";
 /**
  * Modern implementation of DataTable using the new hooks and components
  */
+/** Lines move only in a list sorted by the view's manual order, with a reorder action. */
+function canReorderListRows({
+  allowEdit,
+  hasReorderAction,
+  isListMode,
+  manualOrder,
+  sorting,
+}: {
+  allowEdit?: boolean;
+  hasReorderAction: boolean;
+  isListMode: boolean;
+  manualOrder?: boolean;
+  sorting: unknown;
+}): boolean {
+  return (
+    isListMode &&
+    manualOrder === true &&
+    hasReorderAction &&
+    allowEdit !== false &&
+    isManualOrder(sorting)
+  );
+}
+
 function supportsAutomaticPageSize(
   pagination: boolean,
   automatic: boolean | undefined,
@@ -1240,6 +1265,7 @@ function ModernDataTable<
     kanbanParam,
     setExpandedFromUI,
     resetFilters,
+    viewParam,
   } = useTableUrlState({
     defaultGantt: tableConfig.table.gantt,
     defaultDisplayMode: tableConfig.table.defaultDisplayMode,
@@ -1588,6 +1614,42 @@ function ModernDataTable<
     [galleryParam, tableConfig.table.gallery]
   );
   const isListMode = activeDisplayMode === "list";
+  const reorderAction = providerTableActions?.reorder;
+  const canReorderList = canReorderListRows({
+    allowEdit: tableConfig.table.allowEdit,
+    hasReorderAction: typeof reorderAction === "function",
+    isListMode,
+    manualOrder: tableConfig.table.manualOrder,
+    sorting: sortParam,
+  });
+  const handleListReorder = useCallback(
+    async (row: Row<TData>, neighbours: ListNeighbours<TData>) => {
+      if (!reorderAction) {
+        return;
+      }
+      const result = await reorderAction(
+        {
+          viewId: viewParam ?? null,
+          id: resolveRowEntityId(row),
+          previousId: neighbours.previous
+            ? resolveRowEntityId(neighbours.previous)
+            : undefined,
+          nextId: neighbours.next
+            ? resolveRowEntityId(neighbours.next)
+            : undefined,
+        },
+        { row: row.original as Record<string, unknown> }
+      ).catch((error: unknown) => ({
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      }));
+      if (!result.success) {
+        toast.error(result.error || t("common.error"));
+      }
+      await refetch();
+    },
+    [reorderAction, refetch, t, viewParam]
+  );
   const listConfig = useMemo(
     () => ({
       ...tableConfig.table.list,
@@ -2419,6 +2481,46 @@ function ModernDataTable<
     setPageSize: (size) => table.setPageSize(size),
   });
 
+  const renderListContent = () => {
+    return (
+      <div className="relative">
+        {isLoading && data && data.length > 0 && loadingOverlay}
+        <DataTableListView
+          canReorderRow={canEditGalleryRow}
+          className={className}
+          columnDefinitions={tableConfig.columns.definitions}
+          config={listConfig}
+          emptyState={emptyStateContent}
+          groupBy={primaryGrouping}
+          groupLabel={primaryGroupingLabel}
+          isRowActive={(row) =>
+            isRowIdActive({
+              activeRowId,
+              rowId: row.id,
+              rowOriginal: row.original as Record<string, unknown>,
+            })
+          }
+          isRowClickable={(row) => getRowClickMode(row).canClickRow}
+          onReorder={canReorderList ? handleListReorder : undefined}
+          onRowClick={(row, event) => {
+            handleInteractiveRowClick(row, event);
+          }}
+          reorderLabel={translateWithFallback(
+            t,
+            "sorting.reorderHint",
+            "Drag, or press Alt+Arrow keys, to reorder"
+          )}
+          table={table}
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-px"
+          ref={bulkActionsAnchorRef}
+        />
+      </div>
+    );
+  };
+
   const renderGanttContent = () => {
     if (!planningSession) {
       return <div role="alert">{ganttLabels.noAdapter}</div>;
@@ -2519,36 +2621,7 @@ function ModernDataTable<
     }
 
     if (isListMode) {
-      return (
-        <div className="relative">
-          {isLoading && data && data.length > 0 && loadingOverlay}
-          <DataTableListView
-            className={className}
-            columnDefinitions={tableConfig.columns.definitions}
-            config={listConfig}
-            emptyState={emptyStateContent}
-            groupBy={primaryGrouping}
-            groupLabel={primaryGroupingLabel}
-            isRowActive={(row) =>
-              isRowIdActive({
-                activeRowId,
-                rowId: row.id,
-                rowOriginal: row.original as Record<string, unknown>,
-              })
-            }
-            isRowClickable={(row) => getRowClickMode(row).canClickRow}
-            onRowClick={(row, event) => {
-              handleInteractiveRowClick(row, event);
-            }}
-            table={table}
-          />
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-px"
-            ref={bulkActionsAnchorRef}
-          />
-        </div>
-      );
+      return renderListContent();
     }
 
     if (isGalleryMode) {

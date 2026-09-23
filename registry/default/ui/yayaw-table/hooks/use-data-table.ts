@@ -25,6 +25,7 @@ import {
   useYayawTable,
   type VisibilityState,
 } from "../tanstack";
+import { withManualOrderView } from "../utils/manual-order";
 import { compatibleListParams } from "../utils/table-contracts";
 import { invalidateTableDataQuery } from "./query-cache-utils";
 import { useGalleryMediaActions } from "./use-gallery-media-actions";
@@ -366,7 +367,13 @@ export function useDataTable<TData extends Record<string, unknown>>(
         // Execute the request - safely handle the list action
         if (actions.list) {
           const response = await actions.list(
-            compatibleListParams(requestParams)
+            compatibleListParams(
+              withManualOrderView(
+                requestParams as Record<string, unknown>,
+                paramsSorting,
+                tableUrlState.viewParam
+              )
+            )
           );
           return {
             data: (response.data || []) as TData[],
@@ -386,6 +393,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
       buildOrderByParam,
       cleanColumnFilters,
       buildRequestParams,
+      tableUrlState.viewParam,
     ]
   );
 

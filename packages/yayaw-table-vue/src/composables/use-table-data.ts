@@ -7,6 +7,7 @@ import {
   ref,
   watch,
 } from "vue";
+import { withManualOrderView } from "../manual-order";
 import { compatibleListParams } from "../table-contracts";
 import type {
   AdvancedFiltersState,
@@ -42,6 +43,7 @@ export const useTableData = <TData extends TableRecord>({
   queryClient,
   tableId,
   searchDebounceMs,
+  viewId,
 }: {
   actions: ComputedRef<TableActions<TData> | undefined>;
   inputData: ComputedRef<TData[]>;
@@ -56,6 +58,8 @@ export const useTableData = <TData extends TableRecord>({
   queryClient: QueryClient;
   tableId: string;
   searchDebounceMs?: Readonly<Ref<number>>;
+  /** Active saved view; sent with the manual-order sort so the host applies that view's order. */
+  viewId?: Readonly<Ref<string | undefined>>;
 }): TableDataResult<TData> => {
   const rows = ref<TData[]>([...inputData.value]) as Ref<TData[]>;
   const rowCount = ref(initialRowCount ?? inputData.value.length);
@@ -89,18 +93,22 @@ export const useTableData = <TData extends TableRecord>({
     isLoading.value = true;
     error.value = undefined;
     try {
-      const params = {
-        page: pagination.value.pageIndex + 1,
-        pageSize: pagination.value.pageSize,
-        search: search.value,
-        filters: Object.fromEntries(
-          filters.value.map((filter) => [filter.id, filter.value])
-        ),
-        advancedFilters: advancedFilters.value.filters,
-        advancedFilterJoin: advancedFilters.value.joinOperator,
-        sorting: sorting.value,
-        grouping: grouping.value,
-      };
+      const params = withManualOrderView(
+        {
+          page: pagination.value.pageIndex + 1,
+          pageSize: pagination.value.pageSize,
+          search: search.value,
+          filters: Object.fromEntries(
+            filters.value.map((filter) => [filter.id, filter.value])
+          ),
+          advancedFilters: advancedFilters.value.filters,
+          advancedFilterJoin: advancedFilters.value.joinOperator,
+          sorting: sorting.value,
+          grouping: grouping.value,
+        },
+        sorting.value,
+        viewId?.value
+      );
       const list = actions.value.list;
       activeQueryKey = JSON.stringify(["yayaw-table", tableId, params]);
       const result = await queryClient.fetchQuery({
@@ -168,7 +176,16 @@ export const useTableData = <TData extends TableRecord>({
     { deep: true }
   );
   watch(
-    [actions, search, filters, advancedFilters, sorting, grouping, pagination],
+    [
+      actions,
+      search,
+      filters,
+      advancedFilters,
+      sorting,
+      grouping,
+      pagination,
+      () => viewId?.value,
+    ],
     async (current, previous) => {
       cancelSearch();
       // Invalidate in-flight results before the debounce window starts.

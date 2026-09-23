@@ -159,6 +159,7 @@ export interface DataTableConfig {
    * List display mode configuration.
    */
   list?: import("../types/display-types").TableListConfig;
+  manualOrder?: boolean;
 
   /**
    * Empty/no-results state behavior.

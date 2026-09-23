@@ -277,6 +277,10 @@ export interface DataTableTranslations {
     rows: string;
   };
   sorting: {
+    /** Sort option for the view's own order (`table.manualOrder`). */
+    manual?: string;
+    /** Hint on reorderable list lines. */
+    reorderHint?: string;
     ascending: string;
     descending: string;
     choose_column: string;

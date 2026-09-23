@@ -605,3 +605,21 @@ omitted from properties and lines are sectioned by the first grouping level
 resetting a view restores `table.list`. The list uses the current page, like
 Gallery and Kanban. Covered by `tests/list-view.test.ts`, Vue
 `use-table-state.test.ts` and Playwright `e2e/views.spec.ts` in both editions.
+
+## Manual order per view
+
+`table.manualOrder: true` plus `actions.reorder` offer "Manual order" in both
+sort menus (`sorting.manual`; Vue `manualOrder`). It is the sort
+`[{ id: "__manual", desc: false }]`, replaces column sorts, and is saved with
+views and URLs like any sort. List requests with it also carry `viewId`, the
+active saved view or `null` for the default view; the host sorts by that view's
+own order. Records are never modified.
+
+While the List view uses this sort and editing is allowed, lines can be dragged
+(native drag and drop in both editions) or moved with Alt+ArrowUp/ArrowDown,
+only within their group. The move shows immediately, calls
+`reorder({ viewId, id, previousId, nextId }, { row })` and refetches; a failure
+shows the error and the next result restores the server order. `canEditRow`
+applies. Shared helpers live in `utils/manual-order.ts`; covered by
+`tests/manual-order-suite.ts` in both editions and Playwright
+`e2e/views.spec.ts`.

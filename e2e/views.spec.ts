@@ -4,6 +4,7 @@ const EXAMPLE = "/?example=views";
 const DISPLAY_PARAM = "views-display";
 const CURRENT_VIEW = /^current view/i;
 const FILTERS = /^filters?/i;
+const SORT = /^sort/i;
 const TWO_RULES = [
   {
     id: "a",
@@ -156,4 +157,50 @@ test("the list view shows one line per record, grouped by the table grouping", a
   await expect(page.getByRole("listitem").first()).toContainText(
     "Alpha launch"
   );
+});
+
+const MANUAL_LIST = `${EXAMPLE}&${DISPLAY_PARAM}=list&views-sort=${encodeURIComponent('[{"id":"__manual","desc":false}]')}`;
+const line = (page: Page, name: string) =>
+  page
+    .locator("li")
+    .filter({ hasText: name })
+    .locator('[tabindex="0"]')
+    .first();
+
+test("the manual order of a list view is moved by keyboard or drag and kept per view", async ({
+  page,
+}) => {
+  await page.goto(MANUAL_LIST);
+  const items = page.getByRole("listitem");
+  await expect(items.first()).toContainText("Alpha launch");
+
+  await line(page, "Bravo audit").focus();
+  await page.keyboard.press("Alt+ArrowUp");
+  await expect(items.first()).toContainText("Bravo audit");
+
+  await page
+    .locator("li")
+    .filter({ hasText: "Echo sensors" })
+    .dragTo(page.locator("li").filter({ hasText: "Bravo audit" }));
+  await expect(items.first()).toContainText("Echo sensors");
+  await expect(items.nth(1)).toContainText("Bravo audit");
+
+  // A new view starts from its own, empty manual order.
+  await openViewMenu(page);
+  await page.getByRole("button", { name: "Save this view…" }).click();
+  await page.getByRole("textbox", { name: "Name" }).fill("Mine");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(items.first()).toContainText("Alpha launch");
+});
+
+test("manual order is offered as a sort of the view", async ({ page }) => {
+  await openViewMenu(page);
+  await page
+    .getByRole("dialog", { name: "Views and settings" })
+    .getByRole("button", { name: SORT })
+    .click();
+  await page.getByText("Manual order").click();
+  await expect
+    .poll(() => new URL(page.url()).searchParams.get("views-sort"))
+    .toContain("__manual");
 });

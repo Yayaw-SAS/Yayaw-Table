@@ -34,6 +34,7 @@ import { resolveInlineEditColumnConfig } from "./use-inline-edit-runtime";
 import { useTableActions } from "./use-table-actions";
 import { useTableConfig } from "./use-table-config";
 import { useTableUrlData } from "./use-table-url-data";
+import { withManualOrderView } from "../utils/manual-order";
 import { useTableUrlState } from "./use-table-url-state";
 
 const EMPTY_ARRAY: never[] = [];
@@ -367,7 +368,13 @@ export function useDataTable<TData extends Record<string, unknown>>(
         // Execute the request - safely handle the list action
         if (actions.list) {
           const response = await actions.list(
-            compatibleListParams(requestParams)
+            compatibleListParams(
+              withManualOrderView(
+                requestParams as Record<string, unknown>,
+                paramsSorting,
+                tableUrlState.viewParam
+              )
+            )
           );
           return {
             data: (response.data || []) as TData[],
@@ -387,6 +394,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
       buildOrderByParam,
       cleanColumnFilters,
       buildRequestParams,
+      tableUrlState.viewParam,
     ]
   );
 
