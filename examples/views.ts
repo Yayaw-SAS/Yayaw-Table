@@ -12,6 +12,7 @@ export const viewsRows = [
   category: String(category),
   status: String(status),
   price: Number(price),
+  progress: (Number(price) % 100) / 100,
   dueDate: String(dueDate),
 }));
 
@@ -34,7 +35,18 @@ export const viewsColumns = [
     displayVariant: "tag" as const,
     options: options(["Active", "Draft", "Archived"]),
   },
-  { id: "price", header: "Price", type: "number" as const },
+  {
+    id: "price",
+    header: "Price",
+    type: "number" as const,
+    numberFormat: { currency: "EUR", locale: "en-US" },
+  },
+  {
+    id: "progress",
+    header: "Progress",
+    type: "number" as const,
+    numberFormat: { style: "percent" as const, display: "bar" as const },
+  },
   { id: "dueDate", header: "Due", type: "date" as const },
 ];
 

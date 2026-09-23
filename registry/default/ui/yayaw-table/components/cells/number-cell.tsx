@@ -4,10 +4,12 @@
  */
 "use client";
 
+import { useLocale } from "../../providers/table-provider";
 import {
   formatNumber,
   type NumberFormatConfig,
 } from "../../utils/number-format";
+import { numberBarRatio } from "../../utils/value-format";
 
 export interface NumberCellProps {
   /**
@@ -42,6 +44,7 @@ export function NumberCell({
   numberFormat,
   value,
 }: NumberCellProps) {
+  const locale = useLocale();
   // Handle null or undefined
   if (value === null || value === undefined) {
     return <span className="text-muted-foreground">-</span>;
@@ -62,8 +65,24 @@ export function NumberCell({
 
   // Configurable format (e.g. space/dot thousands)
   if (numberFormat !== undefined) {
+    const text = formatNumber(numValue, numberFormat, undefined, locale);
+    const ratio = numberBarRatio(numValue, numberFormat);
+    if (ratio === undefined) {
+      return <span className={className}>{text}</span>;
+    }
     return (
-      <span className={className}>{formatNumber(numValue, numberFormat)}</span>
+      <span className={`inline-flex w-full items-center gap-2 ${className}`}>
+        <span
+          aria-hidden="true"
+          className="h-1.5 min-w-8 flex-1 overflow-hidden rounded-full bg-muted"
+        >
+          <span
+            className="block h-full rounded-full bg-primary"
+            style={{ width: `${Math.round(ratio * 100)}%` }}
+          />
+        </span>
+        <span className="shrink-0 tabular-nums">{text}</span>
+      </span>
     );
   }
 

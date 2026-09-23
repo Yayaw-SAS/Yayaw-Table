@@ -1,4 +1,4 @@
-import { format, formatDistanceToNow, isValid, parseISO } from "date-fns";
+import { isValid } from "date-fns";
 import { normalizeGalleryViewConfig } from "./gallery-view-state";
 import { normalizeListViewConfig } from "./list-view";
 import {
@@ -15,12 +15,17 @@ import type {
   ColumnFiltersState,
   ColumnNumberFormat,
   CreateTableViewInput,
+  DateDisplayPreset,
   SortingState,
   TableRecord,
   TableView,
   TableViewActions,
   TableViewConfig,
 } from "./types";
+import {
+  formatNumberValue,
+  formatDateValue as formatSharedDate,
+} from "./value-format";
 
 const CSV_ESCAPE_PATTERN = /[",\n\r]/;
 const VIEW_STORAGE_KEY_PATTERN = /^yayaw-table:(.+):views$/;
@@ -184,102 +189,23 @@ export const applyTableQuery = <TData extends TableRecord>(
 export const formatNumber = (
   value: unknown,
   options: ColumnNumberFormat = {}
-): string => {
-  const numeric = typeof value === "number" ? value : Number(value);
-  if (!Number.isFinite(numeric)) {
-    return value === null || value === undefined ? "—" : String(value);
-  }
-  if (options.currency) {
-    return new Intl.NumberFormat(options.locale, {
-      style: "currency",
-      currency: options.currency,
-      minimumFractionDigits: options.decimalPlaces,
-      maximumFractionDigits: options.decimalPlaces,
-    }).format(numeric);
-  }
-  const formatted = new Intl.NumberFormat(options.locale, {
-    minimumFractionDigits: options.decimalPlaces,
-    maximumFractionDigits: options.decimalPlaces,
-    useGrouping: options.thousandsSeparator !== "none",
-  }).format(numeric);
-  return `${options.prefix ?? ""}${formatted}${options.suffix ?? ""}`;
-};
+): string => formatNumberValue(value, options);
 
-const pad2 = (value: number): string => String(value).padStart(2, "0");
-
+/** Earlier signature kept; zone options come from the column. */
 export const formatDateValue = (
   value: unknown,
-  preset = "localized-short",
+  preset: DateDisplayPreset = "localized-short",
   customFormat?: string,
-  locale?: string
-): string => {
-  if (value === null || value === undefined || value === "") {
-    return "—";
-  }
-  let date: Date;
-  if (value instanceof Date) {
-    date = value;
-  } else if (typeof value === "string") {
-    date = parseISO(value);
-  } else {
-    date = new Date(String(value));
-  }
-  if (!isValid(date)) {
-    return String(value);
-  }
-  if (customFormat) {
-    return format(date, customFormat);
-  }
-  switch (preset) {
-    case "localized-short":
-      return new Intl.DateTimeFormat(locale, { dateStyle: "short" }).format(
-        date
-      );
-    case "localized-medium":
-      return new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(
-        date
-      );
-    case "localized-long":
-      return new Intl.DateTimeFormat(locale, { dateStyle: "long" }).format(
-        date
-      );
-    case "month-name-long":
-      return new Intl.DateTimeFormat(locale, {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-      }).format(date);
-    case "month-year":
-      return new Intl.DateTimeFormat(locale, {
-        month: "long",
-        year: "numeric",
-      }).format(date);
-    case "dmy-numeric":
-      return `${pad2(date.getDate())}/${pad2(date.getMonth() + 1)}/${date.getFullYear()}`;
-    case "dmy-short":
-      return `${pad2(date.getDate())}/${pad2(date.getMonth() + 1)}/${String(date.getFullYear()).slice(-2)}`;
-    case "mdy-numeric":
-      return `${pad2(date.getMonth() + 1)}/${pad2(date.getDate())}/${date.getFullYear()}`;
-    case "mdy-short":
-      return `${pad2(date.getMonth() + 1)}/${pad2(date.getDate())}/${String(date.getFullYear()).slice(-2)}`;
-    case "iso-date":
-      return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
-    case "dateTime":
-      return format(date, "PPp");
-    case "iso":
-      return date.toISOString();
-    case "long":
-      return format(date, "PPPP");
-    case "relative":
-      return formatDistanceToNow(date, { addSuffix: true });
-    case "short":
-      return format(date, "P");
-    case "time":
-      return format(date, "p");
-    default:
-      return format(date, "PP");
-  }
-};
+  locale?: string,
+  zone: { timeZone?: string; hour12?: boolean } = {}
+): string =>
+  formatSharedDate(value, {
+    preset,
+    pattern: customFormat,
+    locale,
+    timeZone: zone.timeZone,
+    hour12: zone.hour12,
+  });
 
 export const displayCellValue = (
   value: unknown,
@@ -294,11 +220,12 @@ export const displayCellValue = (
       value,
       column.dateDisplayPreset,
       column.dateFormat,
-      locale
+      locale,
+      { timeZone: column.timeZone, hour12: column.hour12 }
     );
   }
   if (column.type === "number") {
-    return formatNumber(value, { locale, ...column.numberFormat });
+    return formatNumberValue(value, column.numberFormat, locale);
   }
   if (column.type === "boolean") {
     return value ? "Yes" : "No";

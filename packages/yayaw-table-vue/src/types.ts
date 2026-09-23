@@ -33,24 +33,7 @@ export type TableRowClickMode =
 export type TableGalleryAspectRatio = "portrait" | "square" | "video" | "wide";
 export type TableGalleryCardSize = "large" | "medium" | "small";
 export type TableGalleryImageFit = "contain" | "cover";
-export type DateDisplayPreset =
-  | "date"
-  | "dateTime"
-  | "dmy-numeric"
-  | "dmy-short"
-  | "iso"
-  | "iso-date"
-  | "localized-long"
-  | "localized-medium"
-  | "localized-short"
-  | "long"
-  | "mdy-numeric"
-  | "mdy-short"
-  | "month-name-long"
-  | "month-year"
-  | "relative"
-  | "short"
-  | "time";
+export type DateDisplayPreset = import("./value-format").DateDisplayPreset;
 
 export type ColumnType = import("./table-contracts").TableDataType;
 
@@ -110,15 +93,7 @@ export type CalculationType =
   | "range"
   | "sum";
 
-export interface ColumnNumberFormat {
-  currency?: string;
-  decimalPlaces?: number;
-  decimalSeparator?: "," | ".";
-  locale?: string;
-  prefix?: string;
-  suffix?: string;
-  thousandsSeparator?: "," | "." | " " | "none";
-}
+export type ColumnNumberFormat = import("./value-format").ColumnNumberFormat;
 
 export interface ColumnDefinition<TData extends TableRecord = TableRecord> {
   /** Application filter control; writes the same state as saved views and reset. */
@@ -145,6 +120,10 @@ export interface ColumnDefinition<TData extends TableRecord = TableRecord> {
   displayVariant?: "default" | "tag";
   dateDisplayPreset?: DateDisplayPreset;
   dateFormat?: string;
+  /** IANA zone used by date presets, e.g. "Europe/Paris". */
+  timeZone?: string;
+  /** Force a 12- or 24-hour clock where a date preset shows a time. */
+  hour12?: boolean;
   defaultCalculation?: CalculationType;
   inlineEdit?: boolean | InlineEditColumnConfig;
   tagColorMap?: Record<string, string>;

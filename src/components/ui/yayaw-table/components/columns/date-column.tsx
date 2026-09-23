@@ -84,6 +84,12 @@ interface DateColumnProps {
    * @default false
    */
   showTime?: boolean;
+
+  /** IANA zone used by date presets. */
+  timeZone?: string;
+
+  /** Force a 12- or 24-hour clock. */
+  hour12?: boolean;
 }
 
 /**
@@ -112,6 +118,8 @@ export function createDateColumn<TData>({
   enableSorting = true,
   header,
   showTime = false,
+  timeZone,
+  hour12,
 }: DateColumnProps): ExtendedColumnDef<TData> {
   return {
     accessorKey,
@@ -179,7 +187,9 @@ export function createDateColumn<TData>({
           dateDisplayPreset={dateDisplayPreset}
           dateFormat={dateFormat}
           fallbackDateDisplayPreset={fallbackDateDisplayPreset}
+          hour12={hour12}
           showTime={showTime}
+          timeZone={timeZone}
           value={value}
         />
       );

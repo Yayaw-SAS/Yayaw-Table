@@ -46,6 +46,7 @@ for (const file of [
   "scoped-rows.ts",
   "manual-order.ts",
   "list-view.ts",
+  "value-format.ts",
   "server-kanban.ts",
   "selection-interaction.ts",
   "selection-shortcuts.ts",

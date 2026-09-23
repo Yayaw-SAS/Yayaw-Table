@@ -18,6 +18,7 @@ import { resolveDataType, resolveDataTypeEditor, TABLE_DATA_TYPES, dataTypeDateI
 import { Image as ImageIcon } from "lucide-vue-next";
 import InlineMultiSelect from "./InlineMultiSelect.vue";
 import { displayCellValue, safeHttpUrl, imageSource } from "../../core";
+import { numberBarRatio } from "../../value-format";
 import {
   cloneFormValue,
   formValuesEqual,
@@ -61,6 +62,11 @@ const effectiveColumn = computed<ColumnDefinition>(() => ({
   ...props.column,
   type: dynamicType.value,
 }));
+const barRatio = computed(() =>
+  effectiveColumn.value.type === "number"
+    ? numberBarRatio(props.value, effectiveColumn.value.numberFormat)
+    : undefined
+);
 const customNode = computed(
   () =>
     props.column.cellRenderer?.(props.value, props.row) ??
@@ -511,6 +517,14 @@ const tags = computed(() =>
     <pre v-else-if="effectiveColumn.type === 'json'" class="yayaw-json">{{
       displayCellValue(value, effectiveColumn, context.locale)
     }}</pre>
+    <span v-else-if="barRatio !== undefined" class="yayaw-number-bar">
+      <span class="yayaw-number-bar-track" aria-hidden="true"
+        ><span :style="{ width: `${Math.round(barRatio * 100)}%` }"
+      /></span>
+      <span class="yayaw-number">{{
+        displayCellValue(value, effectiveColumn, context.locale)
+      }}</span>
+    </span>
     <span
       v-else
       :class="{ 'yayaw-number': effectiveColumn.type === 'number' }"

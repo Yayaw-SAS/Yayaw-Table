@@ -281,6 +281,18 @@ export interface ColumnDefinition {
    */
   dateFormat?: string;
 
+  /** IANA zone used by date presets, e.g. "Europe/Paris". */
+  timeZone?: string;
+
+  /** Force a 12- or 24-hour clock where a date preset shows a time. */
+  hour12?: boolean;
+
+  /**
+   * Number, currency, percent, compact or unit display for number columns.
+   * Presets "space" | "dot" | "comma" | "locale" remain accepted.
+   */
+  numberFormat?: import("../utils/value-format").NumberFormatConfig;
+
   /**
    * Inline edit configuration for this column.
    */
