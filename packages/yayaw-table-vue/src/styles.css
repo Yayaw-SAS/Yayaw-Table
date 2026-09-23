@@ -3994,11 +3994,14 @@
 .yayaw-form-question :is(.yayaw-input, .yayaw-textarea) {
   font-size: 14px;
 }
-.yayaw-form-root [aria-invalid="true"]:not(.yayaw-switch-root) {
+.yayaw-form-root
+  [aria-invalid="true"]:not(.yayaw-switch-root, .yayaw-questionnaire-item) {
   border-color: var(--yayaw-danger);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--yayaw-danger) 20%, transparent);
 }
-.dark .yayaw-form-root [aria-invalid="true"]:not(.yayaw-switch-root) {
+.dark
+  .yayaw-form-root
+  [aria-invalid="true"]:not(.yayaw-switch-root, .yayaw-questionnaire-item) {
   border-color: color-mix(in srgb, var(--yayaw-danger) 50%, transparent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--yayaw-danger) 40%, transparent);
 }
@@ -4500,4 +4503,358 @@
 }
 .yayaw-form-settings-row .yayaw-form-settings-action:hover:not(:disabled) {
   background: var(--yayaw-muted);
+}
+
+/* Form sections (page layout): a titled group of the next questions. */
+.yayaw-form-section-break {
+  display: grid;
+  gap: 4px;
+  border-top: 1px solid var(--yayaw-border);
+  padding-top: 20px;
+}
+.yayaw-form-questions > .yayaw-form-section-break:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.yayaw-form-section-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+}
+.yayaw-form-section-rule {
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--yayaw-border);
+}
+
+/* Steps layout: the shadcn-vue Questionnaire with the React edition's look. */
+.yayaw-questionnaire {
+  min-width: 0;
+}
+.yayaw-questionnaire-item {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 20px;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  outline: none;
+}
+.yayaw-questionnaire-item[hidden],
+.yayaw-questionnaire-actions > [hidden] {
+  display: none;
+}
+.yayaw-questionnaire-title {
+  margin: 0;
+  padding: 0;
+  font-size: 16px;
+  font-weight: 600;
+  text-wrap: pretty;
+}
+.yayaw-questionnaire-description {
+  margin: 0;
+  color: var(--yayaw-muted-foreground);
+  font-size: 14px;
+  text-wrap: pretty;
+}
+.yayaw-form-step-description {
+  margin-top: -12px;
+  white-space: pre-line;
+}
+.yayaw-form-progress {
+  display: grid;
+  gap: 8px;
+}
+.yayaw-questionnaire-progress {
+  width: fit-content;
+  min-width: 14ch;
+  min-height: 1lh;
+  color: var(--yayaw-muted-foreground);
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.yayaw-form-progress-track {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--yayaw-muted);
+}
+.yayaw-form-progress-bar {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--yayaw-primary);
+  transition: width 300ms;
+}
+.yayaw-questionnaire-actions {
+  display: grid;
+  width: 100%;
+  min-height: 36px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+}
+.yayaw-form-step-actions {
+  border-top: 1px solid var(--yayaw-border);
+  padding-top: 20px;
+}
+.yayaw-questionnaire-previous {
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: start;
+}
+.yayaw-questionnaire-skip {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+}
+.yayaw-questionnaire-next,
+.yayaw-questionnaire-submit {
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
+}
+.yayaw-form-review {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+.yayaw-form-review-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 2px 12px;
+  border-bottom: 1px solid var(--yayaw-border);
+  padding-bottom: 12px;
+}
+.yayaw-form-review-row:last-child {
+  border-bottom: 0;
+}
+.yayaw-form-review-row dt {
+  color: var(--yayaw-muted-foreground);
+}
+.yayaw-form-review-row dd {
+  grid-column: 1;
+  margin: 0;
+  white-space: pre-line;
+}
+.yayaw-button.yayaw-form-review-change {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  min-height: 32px;
+  padding: 4px 10px;
+}
+@media (max-width: 639px) {
+  .yayaw-questionnaire-actions .yayaw-button {
+    min-height: 44px;
+  }
+}
+
+/* Rule editor of the Form settings. */
+.yayaw-form-rule-summary {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0 4px 4px 28px;
+  list-style: none;
+  color: var(--yayaw-muted-foreground);
+  font-size: 12px;
+}
+.yayaw-form-rules {
+  display: grid;
+  gap: 8px;
+}
+.yayaw-form-rules-heading {
+  margin: 0;
+  color: var(--yayaw-muted-foreground);
+  font-size: 12px;
+  font-weight: 500;
+}
+.yayaw-rule {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--yayaw-border);
+  border-radius: var(--yayaw-radius);
+  background: color-mix(in oklab, var(--yayaw-background) 60%, transparent);
+  padding: 8px;
+}
+.yayaw-rule-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+}
+.yayaw-rule-condition {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+}
+.yayaw-rule-value,
+.yayaw-rule-choices,
+.yayaw-rule-issue {
+  grid-column: 1 / -1;
+}
+.yayaw-rule-range {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.yayaw-rule-choices {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  border: 1px solid var(--yayaw-border);
+  border-radius: var(--yayaw-radius);
+  background: var(--yayaw-background);
+  padding: 8px;
+}
+.yayaw-rule-choice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.yayaw-rule-issue {
+  margin: 0;
+  color: var(--yayaw-danger);
+  font-size: 12px;
+}
+.yayaw-rule-group {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  border: 1px dashed var(--yayaw-border);
+  border-radius: var(--yayaw-radius);
+  padding: 8px;
+}
+.yayaw-rule-group-legend {
+  padding: 0 4px;
+  color: var(--yayaw-muted-foreground);
+  font-size: 12px;
+}
+.yayaw-rule-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.yayaw-button.yayaw-rule-add {
+  width: fit-content;
+  min-height: 24px;
+  gap: 4px;
+  padding: 2px 8px;
+  font-size: 12px;
+}
+.yayaw-rule-select {
+  min-width: 0;
+}
+.yayaw-rule-select .yayaw-rule-select-trigger,
+.yayaw-input.yayaw-rule-input {
+  width: 100%;
+  min-width: 0;
+  height: 32px;
+  min-height: 32px;
+  background: var(--yayaw-background);
+  font-size: 12px;
+}
+.yayaw-button.yayaw-form-settings-add {
+  width: fit-content;
+  min-height: 32px;
+  gap: 6px;
+  padding: 4px 10px;
+}
+.yayaw-form-settings-section-row {
+  margin-top: 4px;
+  border-top: 1px solid var(--yayaw-border);
+  padding-top: 4px;
+}
+.yayaw-form-settings-section-name {
+  font-weight: 500;
+}
+
+/* Bulk edit: fields whose rules read values that differ across the selection. */
+.yayaw-bulk-mixed {
+  grid-column: 1;
+  margin: 0;
+  font-size: 12px;
+}
+.yayaw-bulk-picker-option.yayaw-bulk-picker-blocked {
+  display: grid;
+  gap: 2px;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Record forms use the Form view's controls: dropdown, calendar, switches. */
+.yayaw-field-select,
+.yayaw-field-select *,
+.yayaw-field-choices,
+.yayaw-field-choices *,
+.yayaw-form-field .yayaw-form-date-anchor,
+.yayaw-form-field .yayaw-form-date-anchor * {
+  box-sizing: border-box;
+}
+.yayaw-field-select,
+.yayaw-field-select .yayaw-form-select,
+.yayaw-form-field .yayaw-form-date-anchor,
+.yayaw-form-field .yayaw-form-date {
+  width: 100%;
+}
+.yayaw-add-select .yayaw-inline-group > .yayaw-field-select {
+  min-width: 0;
+  flex: 1;
+}
+.yayaw-field-toggle {
+  min-height: 32px;
+}
+.yayaw-radio {
+  box-sizing: border-box;
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--yayaw-input);
+  border-radius: 999px;
+  background: transparent;
+  box-shadow: var(--yayaw-shadow-xs);
+  cursor: pointer;
+}
+.yayaw-radio[data-state="checked"] {
+  border-color: var(--yayaw-primary);
+}
+.yayaw-radio-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--yayaw-primary);
+}
+.yayaw-radio:disabled,
+.yayaw-checkbox:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Rule editor icon buttons: the compact ghost buttons of the settings rows. */
+.yayaw-rule .yayaw-form-settings-action {
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  min-height: 24px;
+  padding: 0;
+  background: transparent;
+}
+.yayaw-rule .yayaw-button-ghost,
+.yayaw-button.yayaw-rule-add {
+  background: transparent;
+}
+.yayaw-rule .yayaw-button-ghost:hover:not(:disabled) {
+  background: var(--yayaw-muted);
+}
+/* As shadcn: a title not followed by a description keeps 20px below it. */
+.yayaw-questionnaire-title:not(:has(~ .yayaw-questionnaire-description)) {
+  margin-bottom: 20px;
 }

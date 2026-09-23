@@ -5,12 +5,13 @@ import { DataTable } from "../src/components/ui/yayaw-table/components/data-tabl
 import { defineTableConfig } from "../src/components/ui/yayaw-table/config/helpers";
 import type { TableActions } from "../src/components/ui/yayaw-table/providers/table-provider";
 import { calendarRenderer } from "../src/components/ui/yayaw-table-calendar/calendar-renderer";
-import { requestFormView } from "./form-links";
+import { guidedRequestFormView, requestFormView } from "./form-links";
 import {
   createViewsActions,
   initialViewsRows,
   viewsColumns,
   viewsTableOptions,
+  viewsVisibleColumns,
 } from "./views";
 
 /** Switch display modes and save views; the state lives in the URL. */
@@ -22,7 +23,7 @@ export function ViewsExample() {
         columns: {
           definitions: viewsColumns,
           order: viewsColumns.map((column) => column.id),
-          visible: viewsColumns.map((column) => column.id),
+          visible: viewsVisibleColumns,
           mandatory: ["name"],
         },
         table: viewsTableOptions,
@@ -43,7 +44,7 @@ export function ViewsExample() {
         initialData={rows}
         initialPageCount={1}
         initialRowCount={rows.length}
-        initialViews={[requestFormView]}
+        initialViews={[requestFormView, guidedRequestFormView]}
         tableType={config.id}
       />
     </main>

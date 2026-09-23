@@ -11,8 +11,21 @@ import {
   type VNodeChild,
   watch,
 } from "vue";
-import { jsonFormDraft, jsonFormText, dataTypeDateInput } from "../../table-contracts";
-import { dynamicFieldType } from "../../form-runtime";
+import { Check } from "lucide-vue-next";
+import {
+  CheckboxIndicator,
+  CheckboxRoot,
+  RadioGroupIndicator,
+  RadioGroupItem,
+  RadioGroupRoot,
+  SwitchRoot,
+  SwitchThumb,
+} from "reka-ui";
+import { jsonFormDraft, jsonFormText, dataTypeDateInput, optionControlKey, optionControlValue } from "../../table-contracts";
+import FormDateField from "../../form/FormDateField.vue";
+import { formLabel } from "../../form-view";
+import FieldSelect from "./FieldSelect.vue";
+import { dynamicFieldType, fieldIsHidden, fieldIsRequired } from "../../form-runtime";
 import { useFieldOptions } from "../../composables/use-field-options";
 import CollectionField from "./CollectionField.vue";
 import TablePickerField from "./TablePickerField.vue";
@@ -62,11 +75,9 @@ const disabled = computed(() =>
     ? props.field.disabled(props.context)
     : props.field.disabled
 );
-const hidden = computed(() =>
-  typeof props.field.hidden === "function"
-    ? props.field.hidden(props.context)
-    : props.field.hidden
-);
+// The field's `hidden` predicate and the form's rules (see form-conditions).
+const hidden = computed(() => fieldIsHidden(props.field, props.context));
+const required = computed(() => fieldIsRequired(props.field, props.context));
 const update = (value: unknown): void => {
   if (!disabled.value) emit("update:modelValue", value);
 };
@@ -210,6 +221,20 @@ const customNode = computed(() =>
 );
 const dateLimit = (value?: Date | string): string | undefined =>
   value instanceof Date ? value.toISOString().slice(0, 10) : value;
+// The Form view's controls: dropdowns, a popover calendar, switches and checkboxes.
+const locale = computed(() => props.context.locale ?? "en");
+const choosePlaceholder = computed(
+  () => props.field.placeholder ?? label("chooseOption", formLabel("choose", locale.value))
+);
+const describedBy = computed(() =>
+  errorMessage.value
+    ? `${fieldId}-error`
+    : props.field.description
+      ? `${fieldId}-help`
+      : undefined
+);
+const optionChecked = (option: SelectOption): boolean =>
+  multiValues.value.some((value) => Object.is(value, option.value));
 const VNodeRenderer = defineComponent({
   props: {
     node: { type: null as unknown as PropType<VNodeChild>, required: true },
@@ -250,7 +275,7 @@ watch(valueType, (next, previous) => {
     @focusout="touch"
   >
     <label :id="`${fieldId}-label`" :for="fieldId" class="yayaw-label">
-      {{ field.label }} <span v-if="field.required" aria-hidden="true">*</span>
+      {{ field.label }} <span v-if="required" aria-hidden="true">*</span>
     </label>
     <p v-if="field.description" :id="`${fieldId}-help`" class="yayaw-help">
       {{ field.description }}
@@ -298,7 +323,7 @@ watch(valueType, (next, previous) => {
       :placeholder="field.placeholder"
       :rows="field.rows ?? 4"
       :disabled="disabled"
-      :required="field.required"
+      :required="required"
       :aria-invalid="Boolean(errorMessage)"
       :aria-describedby="
         errorMessage
@@ -344,23 +369,17 @@ watch(valueType, (next, previous) => {
         </button>
       </div>
       <div v-else class="yayaw-inline-group">
-        <select
+        <FieldSelect
           :id="fieldId"
-          class="yayaw-select"
           v-model="selectionModel"
+          :options="allOptions"
+          :placeholder="choosePlaceholder"
           :disabled="disabled"
-          :required="field.required"
-        >
-          <option value="">{{ field.placeholder ?? label("chooseOption", "Choose…") }}</option>
-          <option
-            v-for="option in allOptions"
-            :key="`${typeof option.value}:${option.value}`"
-            :value="option.value"
-            :disabled="option.disabled"
-          >
-            {{ option.label }}
-          </option>
-        </select>
+          :required="required"
+          :invalid="Boolean(errorMessage)"
+          :labelled-by="`${fieldId}-label`"
+          :described-by="describedBy"
+        />
         <button
           type="button"
           class="yayaw-button yayaw-button-outline"
@@ -371,79 +390,122 @@ watch(valueType, (next, previous) => {
         </button>
       </div>
     </div>
-    <select
+    <FieldSelect
       v-else-if="field.type === 'select'"
       :id="fieldId"
-      class="yayaw-select"
       v-model="selectionModel"
+      :options="allOptions"
+      :placeholder="choosePlaceholder"
       :disabled="disabled"
-      :required="field.required"
-      :aria-invalid="Boolean(errorMessage)"
-      :aria-describedby="
-        errorMessage
-          ? `${fieldId}-error`
-          : field.description
-          ? `${fieldId}-help`
-          : undefined
-      "
+      :required="required"
+      :invalid="Boolean(errorMessage)"
+      :labelled-by="`${fieldId}-label`"
+      :described-by="describedBy"
+    />
+    <div
+      v-else-if="field.type === 'multiSelect'"
+      class="yayaw-form-choices yayaw-field-choices"
+      role="group"
+      :aria-labelledby="`${fieldId}-label`"
+      :aria-describedby="describedBy"
     >
-      <option value="">{{ field.placeholder ?? label("chooseOption", "Choose…") }}</option>
-      <option
-        v-for="option in allOptions"
-        :key="`${typeof option.value}:${option.value}`"
-        :value="option.value"
-        :disabled="option.disabled"
+      <div
+        v-for="(option, index) in allOptions"
+        :key="optionControlKey(option.value)"
+        class="yayaw-form-choice"
       >
-        {{ option.label }}
-      </option>
-    </select>
-    <div v-else-if="field.type === 'multiSelect'" class="yayaw-options-grid">
-      <label
-        v-for="option in allOptions"
-        :key="`${typeof option.value}:${option.value}`"
-        class="yayaw-checkbox-label"
-      >
-        <input
-          type="checkbox"
-          :checked="multiValues.some((value) => Object.is(value, option.value))"
+        <CheckboxRoot
+          :id="index === 0 ? fieldId : `${fieldId}-${index}`"
+          class="yayaw-checkbox"
+          :model-value="optionChecked(option)"
           :disabled="disabled || option.disabled"
-          @change="
-            toggleMulti(option, ($event.target as HTMLInputElement).checked)
-          "
-        />
-        {{ option.label }}
-      </label>
+          :aria-invalid="Boolean(errorMessage) || undefined"
+          @update:model-value="toggleMulti(option, $event === true)"
+        >
+          <CheckboxIndicator class="yayaw-checkbox-indicator">
+            <Check :size="14" aria-hidden="true" />
+          </CheckboxIndicator>
+        </CheckboxRoot>
+        <label class="yayaw-form-choice-label" :for="index === 0 ? fieldId : `${fieldId}-${index}`">{{ option.label }}</label>
+      </div>
     </div>
-    <div v-else-if="field.type === 'radio'" class="yayaw-options-grid">
-      <label
-        v-for="option in allOptions"
-        :key="`${typeof option.value}:${option.value}`"
-        class="yayaw-checkbox-label"
-      >
-        <input
-          type="radio"
-          :name="fieldId"
-          :value="option.value"
-          :checked="Object.is(modelValue, option.value)"
-          :disabled="disabled || option.disabled"
-          @change="update(option.value)"
-        />
-        {{ option.label }}
-      </label>
-    </div>
-    <label
-      v-else-if="effectiveType === 'checkbox' || effectiveType === 'switch'"
-      class="yayaw-switch"
+    <RadioGroupRoot
+      v-else-if="field.type === 'radio'"
+      class="yayaw-form-choices yayaw-field-choices"
+      :model-value="modelValue === undefined || modelValue === null || modelValue === '' ? undefined : optionControlKey(modelValue)"
+      :disabled="disabled"
+      :aria-labelledby="`${fieldId}-label`"
+      :aria-describedby="describedBy"
+      @update:model-value="update(optionControlValue(String($event)))"
     >
-      <input
+      <div
+        v-for="(option, index) in allOptions"
+        :key="optionControlKey(option.value)"
+        class="yayaw-form-choice"
+      >
+        <RadioGroupItem
+          :id="index === 0 ? fieldId : `${fieldId}-${index}`"
+          class="yayaw-radio"
+          :value="optionControlKey(option.value)"
+          :disabled="option.disabled"
+        >
+          <RadioGroupIndicator class="yayaw-radio-indicator" />
+        </RadioGroupItem>
+        <label class="yayaw-form-choice-label" :for="index === 0 ? fieldId : `${fieldId}-${index}`">{{ option.label }}</label>
+      </div>
+    </RadioGroupRoot>
+    <div
+      v-else-if="field.type === 'checkbox' && field.variant !== 'switch'"
+      class="yayaw-form-choice yayaw-field-toggle"
+    >
+      <CheckboxRoot
         :id="fieldId"
-        type="checkbox"
-        :checked="Boolean(modelValue)"
+        class="yayaw-checkbox"
+        :model-value="Boolean(modelValue)"
         :disabled="disabled"
-        @change="update(($event.target as HTMLInputElement).checked)"
-      />
-      <span>{{ field.placeholder }}</span>
-    </label>
+        :aria-labelledby="`${fieldId}-label`"
+        :aria-describedby="describedBy"
+        @update:model-value="update($event === true)"
+      >
+        <CheckboxIndicator class="yayaw-checkbox-indicator">
+          <Check :size="14" aria-hidden="true" />
+        </CheckboxIndicator>
+      </CheckboxRoot>
+      <span v-if="field.placeholder" class="yayaw-form-choice-label">{{ field.placeholder }}</span>
+    </div>
+    <div
+      v-else-if="effectiveType === 'checkbox' || effectiveType === 'switch'"
+      class="yayaw-form-choice yayaw-field-toggle"
+    >
+      <SwitchRoot
+        :id="fieldId"
+        class="yayaw-switch-root"
+        :model-value="Boolean(modelValue)"
+        :disabled="disabled"
+        :aria-labelledby="`${fieldId}-label`"
+        :aria-describedby="describedBy"
+        @update:model-value="update($event === true)"
+      >
+        <SwitchThumb class="yayaw-switch-thumb" />
+      </SwitchRoot>
+      <span v-if="field.placeholder" class="yayaw-form-choice-label">{{ field.placeholder }}</span>
+    </div>
+    <FormDateField
+      v-else-if="effectiveType === 'date'"
+      :id="fieldId"
+      :label-id="`${fieldId}-label`"
+      :value="dataTypeDateInput(modelValue)"
+      :locale="locale"
+      :placeholder="field.placeholder ?? formLabel('pickDate', locale)"
+      :clear-label="formLabel('clearDate', locale)"
+      :disabled="disabled"
+      :invalid="Boolean(errorMessage)"
+      :required="required"
+      :described-by="describedBy"
+      :min="dateLimit(field.minDate)"
+      :max="dateLimit(field.maxDate)"
+      @change="update($event)"
+    />
     <CollectionField
       v-else-if="field.type === 'collection'"
       :field="field"
@@ -470,19 +532,17 @@ watch(valueType, (next, previous) => {
       :type="
         effectiveType === 'number'
           ? 'number'
-          : effectiveType === 'date'
-          ? 'date'
           : effectiveType === 'url'
           ? 'url'
           : field.inputType ?? 'text'
       "
       :value="inputValue as string | number"
       :placeholder="field.placeholder"
-      :min="effectiveType === 'date' ? dateLimit(field.minDate) : field.min"
-      :max="effectiveType === 'date' ? dateLimit(field.maxDate) : field.max"
+      :min="field.min"
+      :max="field.max"
       :step="field.step"
       :disabled="disabled"
-      :required="field.required"
+      :required="required"
       :aria-invalid="Boolean(errorMessage)"
       :aria-describedby="
         errorMessage

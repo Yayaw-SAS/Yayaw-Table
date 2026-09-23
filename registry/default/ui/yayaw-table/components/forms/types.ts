@@ -8,6 +8,7 @@ import type { TableConfig } from "../../config/helpers";
 import type { TableActions } from "../../providers/table-provider";
 import type { DataTableTranslations } from "../../types/translations";
 import type { TableView } from "../../types/view-types";
+import type { ConditionField, FormRule } from "../../utils/form-conditions";
 import type {
   FormLayoutAction,
   FormLayoutBlock,
@@ -33,6 +34,15 @@ export type Path<T extends FieldValues> = keyof T extends string
 
 export type FormConfigMode = "create" | "edit";
 
+/**
+ * The rules a form evaluates (`FormConfig.rules`, plus the legacy `hidden`
+ * predicates converted at load) and its fields as the engine sees them.
+ */
+export interface FormRuleSet {
+  rules: FormRule[];
+  fields: ConditionField[];
+}
+
 export interface FormConfigContext<
   TFieldValues extends FieldValues = FieldValues,
   TRowData extends Record<string, unknown> = Record<string, unknown>,
@@ -53,6 +63,8 @@ export interface FormConfigContext<
   values?: Partial<TFieldValues>;
   locale?: string;
   translations?: DataTableTranslations;
+  /** Set by the form runtime: the rules evaluated against `values`. */
+  formRules?: FormRuleSet;
 }
 
 /**
@@ -322,6 +334,13 @@ export interface FormConfig<TFieldValues extends FieldValues = FieldValues> {
     context: FormConfigContext
   ) => FieldValues | Promise<FieldValues>;
   fields: AnyFieldDefinition<TFieldValues>[];
+  /**
+   * Declarative conditions (shared with the Form view): show, hide, require
+   * or set fields from other values. Conditions point at field names
+   * (`fieldId`), effects at `then.fieldIds`. Fields keep their `hidden`
+   * predicate too; it is converted to a rule when the form loads.
+   */
+  rules?: FormRule[];
   id: string;
   schema?: z.ZodType<TFieldValues>;
   sections?: FormSectionDefinition<TFieldValues>[];

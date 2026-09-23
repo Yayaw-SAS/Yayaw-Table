@@ -4,9 +4,11 @@
  * state, URL state or provider, so it can be mounted on a public route.
  * Spam protection and hidden context stay with the host: render them in the
  * `extra-fields` slot and pass `context`, which `onSubmit` receives unchanged.
+ * Rules (`form.rules`) show, hide and require questions as people answer;
+ * `form.layout: "steps"` asks one question (or section) at a time.
  */
 import { CircleCheck, Lock } from "lucide-vue-next";
-import { computed, nextTick, ref, useId } from "vue";
+import { computed, nextTick, ref, useId, useSlots } from "vue";
 import Empty from "../components/empty/Empty.vue";
 import EmptyContent from "../components/empty/EmptyContent.vue";
 import EmptyDescription from "../components/empty/EmptyDescription.vue";
@@ -14,6 +16,7 @@ import EmptyHeader from "../components/empty/EmptyHeader.vue";
 import EmptyMedia from "../components/empty/EmptyMedia.vue";
 import EmptyTitle from "../components/empty/EmptyTitle.vue";
 import {
+  evaluateFormView,
   type FormColumn,
   type FormDraft,
   type FormLabelKey,
@@ -26,10 +29,13 @@ import {
   formTranslateFrom,
   initialFormDraft,
   type ResolvedFormQuestion,
+  readFormProgress,
   resolveFormSettings,
   validateFormValues,
+  writeFormProgress,
 } from "../form-view";
 import FormQuestion from "./FormQuestion.vue";
+import FormSteps from "./FormSteps.vue";
 
 const props = withDefaults(
   defineProps<{
@@ -64,13 +70,24 @@ const props = withDefaults(
     context?: Record<string, unknown>;
     /** Show the closed message instead of the questions. */
     closed?: boolean;
+    /** Controlled answers (raw, by column id), e.g. to resume a saved draft (`v-model:value`). */
+    value?: FormDraft;
+    /** Controlled current step of the steps layout (`v-model:step`). */
+    step?: string;
+    /** Keep answers and the current step in the browser's storage under this key until sent. */
+    draftStorageKey?: string;
   }>(),
   { locale: "en" }
 );
+const emit = defineEmits<{
+  "update:value": [draft: FormDraft];
+  "update:step": [step: string];
+}>();
 defineSlots<{
   /** Host fields rendered before the submit button (honeypot, captcha). */
   "extra-fields"?: () => unknown;
 }>();
+const slots = useSlots();
 
 const id = `yayaw-form-${useId()}`;
 const override = computed(
@@ -84,16 +101,53 @@ const settings = computed(() =>
   resolveFormSettings(props.columns, undefined, props.form)
 );
 const questions = computed(() => settings.value.questions);
-const draft = ref<FormDraft>(initialFormDraft(questions.value));
+
+// Answers and step: controlled, stored under a key, or local.
+const saved = props.draftStorageKey
+  ? readFormProgress(props.draftStorageKey)
+  : undefined;
+const localDraft = ref<FormDraft>({
+  ...initialFormDraft(questions.value),
+  ...saved?.draft,
+});
+const localStep = ref<string | undefined>(saved?.step);
+const draft = computed(() => props.value ?? localDraft.value);
+const step = computed(() => props.step ?? localStep.value);
+const store = (): void => {
+  if (props.draftStorageKey) {
+    writeFormProgress(props.draftStorageKey, {
+      draft: draft.value,
+      step: step.value,
+    });
+  }
+};
+const setDraft = (next: FormDraft): void => {
+  localDraft.value = next;
+  emit("update:value", next);
+  if (props.draftStorageKey) {
+    writeFormProgress(props.draftStorageKey, { draft: next, step: step.value });
+  }
+};
+const setStep = (next: string): void => {
+  localStep.value = next;
+  emit("update:step", next);
+  store();
+};
+
+const values = computed(() => formDraftValues(questions.value, draft.value));
+const evaluation = computed(() => evaluateFormView(settings.value, values.value));
 const errors = ref<Record<string, string>>({});
 const message = ref<string>();
 const status = ref<"idle" | "submitting" | "success">("idle");
 const formElement = ref<HTMLFormElement>();
+const stepsElement = ref<{ form: HTMLFormElement | undefined }>();
+const root = (): HTMLFormElement | undefined =>
+  formElement.value ?? stepsElement.value?.form;
 const inputId = (question: ResolvedFormQuestion): string =>
   `${id}-${question.id}`;
 /** The control a question focuses (the first choice of a multi-select). */
 const questionControl = (question: ResolvedFormQuestion) =>
-  formElement.value?.querySelector<HTMLElement>(
+  root()?.querySelector<HTMLElement>(
     `[data-form-question="${CSS.escape(question.id)}"] [data-form-focus]`
   );
 const questionLabels = computed(() => ({
@@ -101,21 +155,34 @@ const questionLabels = computed(() => ({
   clearDate: label("clearDate"),
   pickDate: label("pickDate"),
 }));
+/** A question as the rules make it: required by a `require` rule too. */
+const ruled = (question: ResolvedFormQuestion): ResolvedFormQuestion => ({
+  ...question,
+  required: evaluation.value.required.has(question.id),
+});
+const visible = (itemId: string): boolean => !evaluation.value.hidden.has(itemId);
+const steps = computed(
+  () => settings.value.layout === "steps" && questions.value.length > 0
+);
+const submitText = computed(() =>
+  status.value === "submitting"
+    ? label("submitting")
+    : (settings.value.submitLabel ?? label("submit"))
+);
 
-const setAnswer = (columnId: string, value: FormDraft[string]): void => {
-  draft.value = { ...draft.value, [columnId]: value };
-};
+const setAnswer = (columnId: string, value: FormDraft[string]): void =>
+  setDraft({ ...draft.value, [columnId]: value });
 
 const collectErrors = async (
-  values: Record<string, unknown>
+  current: Record<string, unknown>
 ): Promise<Record<string, string>> => {
   const builtIn = Object.fromEntries(
-    Object.entries(validateFormValues(questions.value, values)).map(
-      ([columnId, code]) => [columnId, label(code)]
-    )
+    Object.entries(
+      validateFormValues(questions.value, current, evaluation.value)
+    ).map(([columnId, code]) => [columnId, label(code)])
   );
   if (Object.keys(builtIn).length || !props.validate) return builtIn;
-  return (await props.validate(values)) ?? {};
+  return (await props.validate(current)) ?? {};
 };
 
 /** Show the errors, then move focus to the first invalid question. */
@@ -124,29 +191,33 @@ const fail = async (next: Record<string, string>, text?: string) => {
   message.value = text;
   status.value = "idle";
   await nextTick();
+  if (steps.value) return;
   const question = questions.value.find((item) => next[item.columnId]);
   const target = question
     ? questionControl(question)
-    : formElement.value?.querySelector<HTMLElement>("[data-form-message]");
+    : root()?.querySelector<HTMLElement>("[data-form-message]");
   target?.focus();
 };
 
 const submit = async (): Promise<void> => {
   if (status.value === "submitting") return;
   status.value = "submitting";
-  const values = formDraftValues(questions.value, draft.value);
-  const found = await collectErrors(values);
+  const current = values.value;
+  const found = await collectErrors(current);
   if (Object.keys(found).length) {
     await fail(found, label("errorSummary", { count: Object.keys(found).length }));
     return;
   }
   try {
-    const record = formSubmission(settings.value, values);
+    const record = formSubmission(settings.value, current);
     const result = await props.onSubmit(record, { context: props.context });
     if (result.ok) {
       errors.value = {};
       message.value = undefined;
       status.value = "success";
+      if (props.draftStorageKey) {
+        writeFormProgress(props.draftStorageKey, undefined);
+      }
       props.onSuccess?.({ values: record, redirectUrl: settings.value.redirectUrl });
       return;
     }
@@ -157,7 +228,7 @@ const submit = async (): Promise<void> => {
 };
 
 const restart = async (): Promise<void> => {
-  draft.value = initialFormDraft(questions.value);
+  setDraft(initialFormDraft(questions.value));
   errors.value = {};
   message.value = undefined;
   status.value = "idle";
@@ -202,11 +273,37 @@ const restart = async (): Promise<void> => {
       </EmptyContent>
     </Empty>
   </section>
+  <FormSteps
+    v-else-if="steps"
+    ref="stepsElement"
+    :settings="settings"
+    :evaluation="evaluation"
+    :draft="draft"
+    :values="values"
+    :errors="errors"
+    :step="step"
+    :disabled="status === 'submitting'"
+    :locale="locale"
+    :label="label"
+    :labels="questionLabels"
+    :message="message"
+    :submit-text="submitText"
+    :input-id="inputId"
+    @answer="setAnswer"
+    @errors="errors = $event"
+    @step="setStep"
+    @submit="submit"
+  >
+    <template v-if="slots['extra-fields']" #extra-fields>
+      <slot name="extra-fields" />
+    </template>
+  </FormSteps>
   <form
     v-else
     ref="formElement"
     class="yayaw-form-root"
     data-yayaw-form="open"
+    data-form-layout="page"
     novalidate
     :aria-busy="status === 'submitting'"
     @submit.prevent="submit"
@@ -220,18 +317,33 @@ const restart = async (): Promise<void> => {
     </p>
     <p v-if="questions.length === 0" class="yayaw-form-help">{{ label("noQuestions") }}</p>
     <div class="yayaw-form-questions">
-      <FormQuestion
-        v-for="question in questions"
-        :key="question.id"
-        :question="question"
-        :input-id="inputId(question)"
-        :value="draft[question.columnId]"
-        :error="errors[question.columnId]"
-        :disabled="status === 'submitting'"
-        :locale="locale"
-        :labels="questionLabels"
-        @change="setAnswer(question.columnId, $event)"
-      />
+      <template
+        v-for="item in settings.items"
+        :key="item.kind === 'section' ? `section-${item.section.id}` : item.question.id"
+      >
+        <template v-if="item.kind === 'section'">
+          <div
+            v-if="visible(item.section.id) && (item.section.title || item.section.description)"
+            class="yayaw-form-section-break"
+            data-form-section
+          >
+            <h3 v-if="item.section.title" class="yayaw-form-section-title">{{ item.section.title }}</h3>
+            <p v-if="item.section.description" class="yayaw-form-description">{{ item.section.description }}</p>
+          </div>
+          <hr v-else-if="visible(item.section.id)" class="yayaw-form-section-rule" data-form-section />
+        </template>
+        <FormQuestion
+          v-else-if="visible(item.question.id)"
+          :question="ruled(item.question)"
+          :input-id="inputId(item.question)"
+          :value="draft[item.question.columnId]"
+          :error="errors[item.question.columnId]"
+          :disabled="status === 'submitting'"
+          :locale="locale"
+          :labels="questionLabels"
+          @change="setAnswer(item.question.columnId, $event)"
+        />
+      </template>
     </div>
     <slot name="extra-fields" />
     <div class="yayaw-form-submit-bar">
@@ -240,7 +352,7 @@ const restart = async (): Promise<void> => {
         class="yayaw-button yayaw-form-action"
         :disabled="status === 'submitting' || questions.length === 0"
       >
-        {{ status === "submitting" ? label("submitting") : (settings.submitLabel ?? label("submit")) }}
+        {{ submitText }}
       </button>
     </div>
   </form>

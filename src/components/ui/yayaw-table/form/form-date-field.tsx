@@ -32,8 +32,21 @@ export interface FormDateFieldProps {
   invalid?: boolean;
   required?: boolean;
   describedBy?: string;
+  /** Earliest and latest days that can be picked (`YYYY-MM-DD`). */
+  min?: string;
+  max?: string;
   onChange: (value: string) => void;
 }
+
+/** Days outside `min`…`max` cannot be picked. */
+const outside = (min?: string, max?: string) => {
+  const before = min ? parseDateValue(min) : undefined;
+  const after = max ? parseDateValue(max) : undefined;
+  return [
+    ...(before ? [{ before }] : []),
+    ...(after ? [{ after }] : []),
+  ];
+};
 
 /** Captions, weekdays and day names in the form's language. */
 function useCalendarText(locale: string) {
@@ -65,6 +78,8 @@ export function FormDateField({
   invalid,
   labelId,
   locale,
+  max,
+  min,
   onChange,
   placeholder,
   required,
@@ -124,6 +139,7 @@ export function FormDateField({
         <Calendar
           className="[--cell-size:--spacing(8)]"
           defaultMonth={selected}
+          disabled={outside(min, max)}
           formatters={text.formatters}
           labels={text.labels}
           lang={locale}

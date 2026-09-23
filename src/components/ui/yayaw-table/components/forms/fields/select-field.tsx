@@ -22,6 +22,7 @@ import {
   optionControlValue,
 } from "../../../utils/table-contracts";
 import { useTranslations } from "../../../providers/table-provider";
+import { formLabel } from "../../../utils/form-view";
 import type { FormFieldApi, SelectFieldDefinition } from "../types";
 import { FormSelectContent } from "./form-select-content";
 
@@ -34,7 +35,7 @@ export function SelectField<TFieldValues extends Record<string, unknown>>({
   field,
   fieldApi,
 }: SelectFieldProps<TFieldValues>) {
-  const { t } = useTranslations();
+  const { locale, t } = useTranslations();
   const controlId = useId();
   const errors = fieldApi.state.meta.errors;
   const errorMessages = Array.isArray(errors)
@@ -82,7 +83,9 @@ export function SelectField<TFieldValues extends Record<string, unknown>>({
         >
           <SelectValue
             placeholder={
-              field.placeholderKey ? t(field.placeholderKey) : field.placeholder
+              (field.placeholderKey
+                ? t(field.placeholderKey)
+                : field.placeholder) ?? formLabel("choose", locale ?? "en")
             }
           />
         </SelectTrigger>

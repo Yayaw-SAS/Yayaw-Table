@@ -574,12 +574,15 @@ export function CollectionField<TFieldValues extends FieldValues>({
     }
   }, [fieldApi.handleChange, fieldApi.state.value]);
 
-  const itemContext: FormConfigContext = context ?? {
-    formType: "collection",
-    tableId: "collection",
-    tableType: "collection",
-    mode: "create",
-  };
+  // Items are their own small forms: the parent's rules do not apply to them.
+  const itemContext: FormConfigContext = context
+    ? { ...context, formRules: undefined }
+    : {
+        formType: "collection",
+        tableId: "collection",
+        tableType: "collection",
+        mode: "create",
+      };
   const createItem =
     field.createItem ??
     (() =>

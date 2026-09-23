@@ -14,10 +14,13 @@ import { bulkEditorMessages } from "../../utils/bulk-editor";
 import { BulkEditorFields } from "./bulk-editor-fields";
 import { BulkEditorSurface } from "./bulk-editor-surface";
 import {
+  bulkBlockedFields,
   bulkCompletion,
   bulkFieldEditable,
   bulkFormConfig,
   bulkFormValues,
+  bulkMixedFieldsOf,
+  bulkRuleContext,
   commonBulkValues,
   validateBulkDraft,
 } from "./bulk-form";
@@ -123,12 +126,21 @@ function BulkEditorForm({
       remaining,
     ]
   );
+  // Declared rules read the draft, or the value every row shares.
+  const ruleContext = useMemo(
+    () => bulkRuleContext(config, context),
+    [config, context]
+  );
   const editable = config.fields.filter((field) =>
-    bulkFieldEditable(field, context)
+    bulkFieldEditable(field, ruleContext)
+  );
+  const blocked = bulkBlockedFields(
+    config.fields.filter((field) => !applied.includes(field.name)),
+    ruleContext
   );
   const validationConfig = useMemo(
-    () => bulkFormConfig(config, context),
-    [config, context]
+    () => bulkFormConfig(config, ruleContext),
+    [config, ruleContext]
   );
   const [draftState, setDraftState] = useState<{
     valid: boolean;
@@ -137,7 +149,7 @@ function BulkEditorForm({
   useEffect(() => {
     let cancelled = false;
     setDraftState((previous) => ({ ...previous, valid: false }));
-    validateBulkDraft(validationConfig, context)
+    validateBulkDraft(validationConfig, ruleContext)
       .then((next) => {
         if (!cancelled) {
           setDraftState(next);
@@ -151,7 +163,7 @@ function BulkEditorForm({
     return () => {
       cancelled = true;
     };
-  }, [validationConfig, context]);
+  }, [validationConfig, ruleContext]);
   const canSave = () =>
     tableConfig.table.allowBulkEdit !== false &&
     formTypes.length === 1 &&
@@ -162,7 +174,7 @@ function BulkEditorForm({
   eligibility.current = canSave;
   const builder = useFormBuilder({
     config: validationConfig,
-    context,
+    context: ruleContext,
     initialData: initial,
     onValuesChange: (next) =>
       setValues((previous) =>
@@ -285,12 +297,14 @@ function BulkEditorForm({
             available={editable.filter(
               (field) => !applied.includes(field.name)
             )}
+            blocked={blocked}
             clearValues={draftState.clearValues}
-            context={context}
+            context={ruleContext}
             disabled={working || !canSave()}
             fields={builder.fields}
             form={builder.form}
             messages={messages}
+            mixedOf={(field) => bulkMixedFieldsOf(field, ruleContext)}
             onAdd={(name) => {
               if (builder.form.getFieldValue(name) === undefined) {
                 builder.form.setFieldValue(

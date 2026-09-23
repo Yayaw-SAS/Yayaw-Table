@@ -42,6 +42,9 @@ const props = defineProps<{
   invalid?: boolean;
   required?: boolean;
   describedBy?: string;
+  /** Earliest and latest days that can be picked (`YYYY-MM-DD`). */
+  min?: string;
+  max?: string;
 }>();
 const emit = defineEmits<{ change: [value: string] }>();
 
@@ -55,6 +58,10 @@ const selected = computed<DateValue | undefined>(() =>
   shown.value ? parseDate(props.value) : undefined
 );
 const weekStart = computed(() => formWeekStart(props.locale) as WeekStart);
+const dayOf = (value?: string): DateValue | undefined =>
+  value && formDateDisplay(value, props.locale) ? parseDate(value) : undefined;
+const minValue = computed(() => dayOf(props.min));
+const maxValue = computed(() => dayOf(props.max));
 const valueId = computed(() => `${props.id}-value`);
 const setOpen = (next: boolean): void => {
   updateOpen(next);
@@ -102,6 +109,8 @@ const choose = (date: DateValue | undefined): void =>
             :default-placeholder="selected"
             :locale="locale"
             :week-starts-on="weekStart"
+            :min-value="minValue"
+            :max-value="maxValue"
             weekday-format="short"
             initial-focus
             class="yayaw-form-calendar"

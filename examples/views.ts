@@ -18,6 +18,8 @@ export const viewsRows = [
   price: Number(price),
   progress: (Number(price) % 100) / 100,
   dueDate: String(dueDate),
+  serialNumber: "",
+  details: "",
 }));
 
 const options = (values: string[]) =>
@@ -30,7 +32,7 @@ export const viewsColumns = [
     header: "Category",
     type: "select" as const,
     displayVariant: "tag" as const,
-    options: options(["Software", "Hardware", "Service"]),
+    options: options(["Software", "Hardware", "Service", "Other"]),
   },
   {
     id: "status",
@@ -52,7 +54,15 @@ export const viewsColumns = [
     numberFormat: { style: "percent" as const, display: "bar" as const },
   },
   { id: "dueDate", header: "Due", type: "date" as const },
+  // Asked by the Request form's rules; hidden in the table by default.
+  { id: "serialNumber", header: "Serial number", type: "text" as const },
+  { id: "details", header: "Details", type: "text" as const },
 ];
+
+/** Columns the examples show at first; the form-only ones stay hidden. */
+export const viewsVisibleColumns = viewsColumns
+  .map((column) => column.id)
+  .filter((id) => id !== "serialNumber" && id !== "details");
 
 export const viewsTableOptions = {
   syncUrl: true,
@@ -155,6 +165,8 @@ export function createViewsActions() {
         price: 0,
         progress: 0,
         dueDate: "",
+        serialNumber: "",
+        details: "",
         ...values,
       } as ViewRow);
       return id;
@@ -279,7 +291,7 @@ export function createViewsActions() {
       },
     ],
     // Public links for Form views; see examples/form-links.ts.
-    formLinks: createDemoFormLinks(),
+    formLinks: createDemoFormLinks(viewsColumns),
     create: (values: Record<string, unknown>) => {
       const record = {
         ...records[0],

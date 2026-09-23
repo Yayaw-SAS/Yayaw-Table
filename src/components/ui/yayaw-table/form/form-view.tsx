@@ -55,6 +55,7 @@ export function FormView({ context }: { context: DisplayModeRenderContext }) {
       <div className="rounded-lg bg-muted/40 px-3 py-6 sm:px-6 sm:py-10 dark:bg-muted/20">
         <YayawTableForm
           columns={formColumns}
+          key={context.viewId ?? "form"}
           form={form}
           locale={locale}
           onSubmit={(values) => createRecord(values)}

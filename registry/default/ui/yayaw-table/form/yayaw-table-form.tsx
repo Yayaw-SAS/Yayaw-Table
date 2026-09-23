@@ -15,6 +15,8 @@ import { CircleCheck, Lock } from "lucide-react";
  *
  * Spam protection and hidden context stay with the host: render them through
  * `extraFields` and pass `context`, which `onSubmit` receives unchanged.
+ * Rules (`form.rules`) show, hide and require questions as people answer;
+ * `form.layout: "steps"` asks one question (or section) at a time.
  */
 import {
   type FormEvent,
@@ -36,7 +38,9 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { cn } from "@/lib/utils";
+import type { FormEvaluation } from "../utils/form-conditions";
 import {
+  evaluateFormView,
   type FormColumn,
   type FormDraft,
   type FormLabelKey,
@@ -49,10 +53,14 @@ import {
   formTranslateFrom,
   initialFormDraft,
   type ResolvedFormQuestion,
+  type ResolvedFormSettings,
+  readFormProgress,
   resolveFormSettings,
   validateFormValues,
+  writeFormProgress,
 } from "../utils/form-view";
-import { FormQuestionField } from "./form-question";
+import { FormQuestionField, type FormQuestionLabels } from "./form-question";
+import { FormSteps } from "./form-steps";
 
 export interface YayawTableFormProps {
   /** Table columns; only the asked ones are needed (see `publicFormSnapshot`). */
@@ -89,6 +97,14 @@ export interface YayawTableFormProps {
   /** Show the closed message instead of the questions. */
   closed?: boolean;
   className?: string;
+  /** Controlled answers (raw, by column id), e.g. to resume a saved draft. */
+  value?: FormDraft;
+  onValueChange?: (draft: FormDraft) => void;
+  /** Controlled current step of the steps layout (a question or section id, or `"review"`). */
+  step?: string;
+  onStepChange?: (step: string) => void;
+  /** Keep answers and the current step in the browser's storage under this key until sent. */
+  draftStorageKey?: string;
 }
 
 type Status = "idle" | "submitting" | "success";
@@ -132,13 +148,67 @@ function useFormLabels(
   );
 }
 
+/** Answers and step: controlled, stored under a key, or local. */
+function useFormProgress(
+  questions: readonly ResolvedFormQuestion[],
+  props: Pick<
+    YayawTableFormProps,
+    "draftStorageKey" | "onStepChange" | "onValueChange" | "step" | "value"
+  >
+) {
+  const { draftStorageKey, onStepChange, onValueChange } = props;
+  const [saved] = useState(() =>
+    draftStorageKey ? readFormProgress(draftStorageKey) : undefined
+  );
+  const [localDraft, setLocalDraft] = useState<FormDraft>(() => ({
+    ...initialFormDraft(questions),
+    ...saved?.draft,
+  }));
+  const [localStep, setLocalStep] = useState<string | undefined>(saved?.step);
+  const draft = props.value ?? localDraft;
+  const step = props.step ?? localStep;
+  const latest = useRef({ draft, step });
+  latest.current = { draft, step };
+  const setDraft = useCallback(
+    (next: FormDraft) => {
+      setLocalDraft(next);
+      onValueChange?.(next);
+      if (draftStorageKey) {
+        writeFormProgress(draftStorageKey, {
+          draft: next,
+          step: latest.current.step,
+        });
+      }
+    },
+    [draftStorageKey, onValueChange]
+  );
+  const setStep = useCallback(
+    (next: string) => {
+      setLocalStep(next);
+      onStepChange?.(next);
+      if (draftStorageKey) {
+        writeFormProgress(draftStorageKey, {
+          draft: latest.current.draft,
+          step: next,
+        });
+      }
+    },
+    [draftStorageKey, onStepChange]
+  );
+  return { draft, setDraft, step, setStep };
+}
+
 async function collectErrors(
   questions: readonly ResolvedFormQuestion[],
   values: Record<string, unknown>,
+  evaluation: FormEvaluation,
   label: (key: FormLabelKey) => string,
   validate: YayawTableFormProps["validate"]
 ): Promise<Record<string, string>> {
-  const builtIn = errorMessages(validateFormValues(questions, values), label);
+  const builtIn = errorMessages(
+    validateFormValues(questions, values, evaluation),
+    label
+  );
   if (Object.keys(builtIn).length || !validate) {
     return builtIn;
   }
@@ -197,21 +267,115 @@ function FormState({
   );
 }
 
+/** A section break of the page layout: a titled group of the next questions. */
+export function FormSectionHeading({
+  description,
+  title,
+}: {
+  description?: string;
+  title?: string;
+}) {
+  if (!(title || description)) {
+    return <hr className="border-border" data-form-section />;
+  }
+  return (
+    <div
+      className="grid gap-1 border-t pt-5 first:border-t-0 first:pt-0"
+      data-form-section
+    >
+      {title ? <h3 className="font-medium text-base">{title}</h3> : null}
+      {description ? (
+        <p className="whitespace-pre-line text-muted-foreground text-sm">
+          {description}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+/** A question as the rules make it: required by a `require` rule too. */
+export const ruledQuestion = (
+  question: ResolvedFormQuestion,
+  evaluation: FormEvaluation
+): ResolvedFormQuestion => ({
+  ...question,
+  required: evaluation.required.has(question.id),
+});
+
+interface PageBodyProps {
+  settings: ResolvedFormSettings;
+  evaluation: FormEvaluation;
+  draft: FormDraft;
+  errors: Record<string, string>;
+  disabled: boolean;
+  locale: string;
+  labels: FormQuestionLabels;
+  inputId: (question: ResolvedFormQuestion) => string;
+  onAnswer: (columnId: string, value: FormDraft[string]) => void;
+}
+
+/** Every visible question at once, with section headings. */
+function FormPageBody({
+  disabled,
+  draft,
+  errors,
+  evaluation,
+  inputId,
+  labels,
+  locale,
+  onAnswer,
+  settings,
+}: PageBodyProps) {
+  return (
+    <div className="grid gap-6">
+      {settings.items.map((item) => {
+        if (item.kind === "section") {
+          return evaluation.hidden.has(item.section.id) ? null : (
+            <FormSectionHeading
+              description={item.section.description}
+              key={item.section.id}
+              title={item.section.title}
+            />
+          );
+        }
+        const { question } = item;
+        if (evaluation.hidden.has(question.id)) {
+          return null;
+        }
+        return (
+          <FormQuestionField
+            disabled={disabled}
+            error={errors[question.columnId]}
+            inputId={inputId(question)}
+            key={question.id}
+            labels={labels}
+            locale={locale}
+            onChange={(value) => onAnswer(question.columnId, value)}
+            question={ruledQuestion(question, evaluation)}
+            value={draft[question.columnId]}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 /** A form that creates one record per response, from table columns. */
-export function YayawTableForm({
-  className,
-  closed,
-  columns,
-  context,
-  extraFields,
-  form,
-  locale = "en",
-  onSubmit,
-  onSuccess,
-  translate,
-  translations,
-  validate,
-}: YayawTableFormProps) {
+export function YayawTableForm(props: YayawTableFormProps) {
+  const {
+    className,
+    closed,
+    columns,
+    context,
+    extraFields,
+    form,
+    locale = "en",
+    onSubmit,
+    onSuccess,
+    translate,
+    translations,
+    validate,
+  } = props;
   const id = useId();
   const label = useFormLabels(locale, translate, translations);
   const settings = useMemo(
@@ -219,8 +383,14 @@ export function YayawTableForm({
     [columns, form]
   );
   const { questions } = settings;
-  const [draft, setDraft] = useState<FormDraft>(() =>
-    initialFormDraft(questions)
+  const { draft, setDraft, step, setStep } = useFormProgress(questions, props);
+  const values = useMemo(
+    () => formDraftValues(questions, draft),
+    [questions, draft]
+  );
+  const evaluation = useMemo(
+    () => evaluateFormView(settings, values),
+    [settings, values]
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<string>();
@@ -228,6 +398,7 @@ export function YayawTableForm({
   const [focusRequest, setFocusRequest] = useState(0);
   const formRef = useRef<HTMLFormElement>(null);
   const inputId = (question: ResolvedFormQuestion) => `${id}-${question.id}`;
+  const steps = settings.layout === "steps";
 
   // Move focus after the errors render, so the invalid field is announced.
   useEffect(() => {
@@ -248,14 +419,21 @@ export function YayawTableForm({
     setFocusRequest((value) => value + 1);
   };
 
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const answer = (columnId: string, value: FormDraft[string]) =>
+    setDraft({ ...draft, [columnId]: value });
+
+  const send = async () => {
     if (status === "submitting") {
       return;
     }
     setStatus("submitting");
-    const values = formDraftValues(questions, draft);
-    const found = await collectErrors(questions, values, label, validate);
+    const found = await collectErrors(
+      questions,
+      values,
+      evaluation,
+      label,
+      validate
+    );
     if (Object.keys(found).length) {
       fail(found, label("errorSummary", { count: Object.keys(found).length }));
       return;
@@ -267,6 +445,9 @@ export function YayawTableForm({
         setErrors({});
         setMessage(undefined);
         setStatus("success");
+        if (props.draftStorageKey) {
+          writeFormProgress(props.draftStorageKey, undefined);
+        }
         onSuccess?.({ values: record, redirectUrl: settings.redirectUrl });
         return;
       }
@@ -274,6 +455,11 @@ export function YayawTableForm({
     } catch {
       fail({}, label("submitError"));
     }
+  };
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    await send();
   };
 
   const restart = () => {
@@ -333,49 +519,73 @@ export function YayawTableForm({
     clearDate: label("clearDate"),
     pickDate: label("pickDate"),
   };
+  const alert = message ? (
+    <p
+      className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-destructive text-sm dark:bg-destructive/10"
+      data-form-message
+      role="alert"
+      tabIndex={-1}
+    >
+      {message}
+    </p>
+  ) : null;
+  const submitText = submitting
+    ? label("submitting")
+    : (settings.submitLabel ?? label("submit"));
+
+  if (steps && questions.length) {
+    return (
+      <FormSteps
+        alert={alert}
+        className={shell}
+        disabled={submitting}
+        draft={draft}
+        errors={errors}
+        evaluation={evaluation}
+        extraFields={extraFields}
+        formRef={formRef}
+        header={header}
+        inputId={inputId}
+        label={label}
+        labels={questionLabels}
+        locale={locale}
+        onAnswer={answer}
+        onErrors={setErrors}
+        onStepChange={setStep}
+        onSubmit={send}
+        settings={settings}
+        step={step}
+        submitText={submitText}
+        values={values}
+      />
+    );
+  }
   return (
     <form
       aria-busy={submitting}
       className={shell}
+      data-form-layout="page"
       data-yayaw-form="open"
       noValidate
       onSubmit={submit}
       ref={formRef}
     >
       {header}
-      {message ? (
-        <p
-          className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-destructive text-sm dark:bg-destructive/10"
-          data-form-message
-          role="alert"
-          tabIndex={-1}
-        >
-          {message}
-        </p>
-      ) : null}
+      {alert}
       {questions.length === 0 ? (
         <p className="text-muted-foreground text-sm">{label("noQuestions")}</p>
       ) : null}
-      <div className="grid gap-6">
-        {questions.map((question) => (
-          <FormQuestionField
-            disabled={submitting}
-            error={errors[question.columnId]}
-            inputId={inputId(question)}
-            key={question.id}
-            labels={questionLabels}
-            locale={locale}
-            onChange={(value) =>
-              setDraft((current) => ({
-                ...current,
-                [question.columnId]: value,
-              }))
-            }
-            question={question}
-            value={draft[question.columnId]}
-          />
-        ))}
-      </div>
+      <FormPageBody
+        disabled={submitting}
+        draft={draft}
+        errors={errors}
+        evaluation={evaluation}
+        inputId={inputId}
+        labels={questionLabels}
+        locale={locale}
+        onAnswer={answer}
+        settings={settings}
+      />
       {extraFields}
       <div className="flex justify-end border-t pt-5">
         <Button
@@ -383,9 +593,7 @@ export function YayawTableForm({
           disabled={submitting || questions.length === 0}
           type="submit"
         >
-          {submitting
-            ? label("submitting")
-            : (settings.submitLabel ?? label("submit"))}
+          {submitText}
         </Button>
       </div>
     </form>

@@ -5,6 +5,7 @@ import type {
   GenericModeTableConfigs,
   GenericModeViewConfigs,
 } from "./display-modes";
+import type { ConditionField, FormRule } from "./form-conditions";
 import type {
   FormLayoutAction,
   FormLayoutBlock,
@@ -328,6 +329,15 @@ export type FormFieldType =
   | "url"
   | "value-type";
 
+/**
+ * The rules a form evaluates (`FormConfig.rules`, plus the legacy `hidden`
+ * predicates converted at load) and its fields as the engine sees them.
+ */
+export interface FormRuleSet {
+  rules: FormRule[];
+  fields: ConditionField[];
+}
+
 export interface FormFieldContext<TData extends TableRecord = TableRecord> {
   /** Present only in the generated bulk editor; the normal edit form stays independent. */
   bulkEdit?: {
@@ -348,6 +358,8 @@ export interface FormFieldContext<TData extends TableRecord = TableRecord> {
   touchField?: (name: string) => void;
   /** Resolved table translations inherited by nested declarative fields. */
   translations?: DataTableTranslations;
+  /** Set by the form runtime: the rules evaluated against `values`. */
+  formRules?: FormRuleSet;
 }
 
 export interface VueFormFieldApi {
@@ -514,6 +526,13 @@ export interface FormConfig<TData extends TableRecord = TableRecord> {
   title?: string | ((mode: FormMode, row?: TData) => string);
   description?: string;
   fields: FormFieldDefinition<TData>[];
+  /**
+   * Declarative conditions (shared with the Form view): show, hide, require
+   * or set fields from other values. Conditions point at field names
+   * (`fieldId`), effects at `then.fieldIds`. Fields keep their `hidden`
+   * predicate too; it is converted to a rule when the form loads.
+   */
+  rules?: FormRule[];
   defaultValues?: Partial<TableRecord>;
   sections?: FormSectionDefinition[];
   blocks?: FormBlock<TData>[];

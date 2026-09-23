@@ -15,6 +15,7 @@ import type {
 import CatalogueForm from "./CatalogueForm.vue";
 import CollectionField from "./CollectionField.vue";
 import DynamicField from "./DynamicField.vue";
+import FieldSelect from "./FieldSelect.vue";
 
 const mounted: VueWrapper[] = [];
 afterEach(() => {
@@ -277,8 +278,12 @@ describe("field controls", () => {
     });
     await flushPromises();
     expect(loader).toHaveBeenCalledTimes(1);
-    await wrapper.get("select").setValue("2");
+    // The table's dropdown keeps typed option values (not strings).
+    wrapper.getComponent(FieldSelect).vm.$emit("update:modelValue", 2);
     expect(wrapper.emitted("update:modelValue")?.at(-1)).toEqual([2]);
+    expect(
+      wrapper.get('[data-slot="select-trigger"]').attributes("aria-labelledby")
+    ).toBe(wrapper.get("label").attributes("id"));
     await wrapper.setProps({ context: fieldContext({ parent: 2 }) });
     await flushPromises();
     expect(loader).toHaveBeenCalledTimes(2);
@@ -317,8 +322,13 @@ describe("field controls", () => {
     await vi.advanceTimersByTimeAsync(10);
     first.resolve([{ value: 1, label: "Stale" }]);
     await flushPromises();
-    expect(wrapper.text()).toContain("Second");
-    expect(wrapper.text()).not.toContain("Stale");
+    // Options live in the dropdown; the closed trigger shows the selection.
+    const labels = wrapper
+      .getComponent(FieldSelect)
+      .props("options")
+      .map((option) => option.label);
+    expect(labels).toContain("Second");
+    expect(labels).not.toContain("Stale");
     expect(wrapper.text()).toContain("Selected");
   });
 
@@ -344,7 +354,9 @@ describe("field controls", () => {
     await vi.advanceTimersByTimeAsync(10);
     await wrapper.setProps({ modelValue: 7 });
     await wrapper.get('input[type="search"]').setValue("");
-    expect(wrapper.get("select").element.value).toBe("7");
+    expect(wrapper.get('[data-slot="select-trigger"]').text()).toContain(
+      "Selected result"
+    );
     expect(wrapper.text()).toContain("Selected result");
   });
 
