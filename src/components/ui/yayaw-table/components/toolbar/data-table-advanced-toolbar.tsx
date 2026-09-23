@@ -118,7 +118,11 @@ import {
 import { isSchedulable, scheduleLabel } from "../../utils/schedule-model";
 import {
   type ConnectorViewColumn,
+  connectorLabels,
+  connectorScheduleSuffix,
   hasConnector,
+  isConnectorImportSource,
+  type SyncDirection,
 } from "../../utils/connector-flow";
 import { ConnectorPanel } from "./connector-panel";
 import { importScreen } from "./import-screen";
@@ -639,11 +643,32 @@ interface DestinationScheduling {
 /** Connector screens for Connect destinations that declare `connector`. */
 interface DestinationConnectors {
   enabled: boolean;
-  panel: (destination: TableDataDestination) => ReactNode;
+  /** `table.sync`: offer pull and two-way. */
+  syncEnabled: boolean;
+  panel: (
+    destination: TableDataDestination,
+    direction?: SyncDirection
+  ) => ReactNode;
 }
 
 const connectorScreen = (destination: TableDataDestination) =>
   `connector:${destination.id}`;
+
+/** The connector screen opened from Data › Import, with the direction preset to pull. */
+const connectorPullScreen = (destination: { id: string }) =>
+  `connector-pull:${destination.id}`;
+
+/** Connect destinations Data › Import lists as sources ("From Notion"). */
+const connectorImportSources = (
+  destinations: readonly TableDataDestination[],
+  connectors: Pick<DestinationConnectors, "enabled" | "syncEnabled">
+) =>
+  destinations.filter(
+    (destination) =>
+      hasConnector(destination, connectors.enabled) &&
+      destination.connector !== undefined &&
+      isConnectorImportSource(destination.connector, connectors.syncEnabled)
+  );
 
 const scheduleScreen = (destination: TableDataDestination) =>
   `schedule:${destination.id}`;
@@ -716,6 +741,13 @@ function destinationScreens({
           name: connectorScreen(destination),
           title: destination.label,
           content: connectors.panel(destination),
+        });
+      }
+      if (connectorImportSources([destination], connectors).length > 0) {
+        screens.push({
+          name: connectorPullScreen(destination),
+          title: destination.label,
+          content: connectors.panel(destination, "pull"),
         });
       }
       if (isSchedulable(destination, scheduling.enabled)) {
@@ -1592,6 +1624,28 @@ export function DataTableAdvancedToolbar<TData>({
     tableActions?.destinations,
     toolbarActionContext.selectedRowIds.length
   );
+  const connectorSettings = {
+    enabled: tableConfig.table.connectors !== false,
+    syncEnabled: tableConfig.table.sync !== false,
+  };
+  const connectorT = connectorLabels(locale, connectorTranslate);
+  const reloadTable = () => {
+    queryClient
+      .invalidateQueries({ queryKey: ["tableData", tableId] })
+      .catch(() => undefined);
+  };
+  // "Every day at 09:00 · Keep in sync": the direction the saved settings run.
+  const scheduleSuffix = (destination: TableDataDestination) => {
+    const connector = destination.connector;
+    if (!(connector && hasConnector(destination, connectorSettings.enabled))) {
+      return;
+    }
+    return async () =>
+      connectorScheduleSuffix(
+        (await connector.load?.(destinationContext())) ?? null,
+        { connector, t: connectorT, syncEnabled: connectorSettings.syncEnabled }
+      );
+  };
   const importEntry = importScreen({
     table: tableConfig.table,
     actions: tableActions,
@@ -1602,11 +1656,17 @@ export function DataTableAdvancedToolbar<TData>({
     context: destinationContext,
     rows: data,
     tableOptions: table?.options,
-    onImported: () => {
-      queryClient
-        .invalidateQueries({ queryKey: ["tableData", tableId] })
-        .catch(() => undefined);
-    },
+    onImported: reloadTable,
+    connectorSources: connectorImportSources(
+      destinationGroups.connect,
+      connectorSettings
+    ).map((destination) => ({
+      id: destination.id,
+      label: connectorT("importFrom", { name: destination.label }),
+      description: connectorT("importFromHint"),
+      screen: connectorPullScreen(destination),
+      title: destination.label,
+    })),
   });
   const menuDataActions = renderMenuDataActions({
     t,
@@ -1651,20 +1711,24 @@ export function DataTableAdvancedToolbar<TData>({
           onShare: shareLink,
           pendingDestination,
           connectors: {
-            enabled: tableConfig.table.connectors !== false,
-            panel: (destination) =>
+            ...connectorSettings,
+            panel: (destination, direction) =>
               destination.connector ? (
                 <ConnectorPanel
                   columns={connectorColumns}
                   connector={destination.connector}
                   context={destinationContext}
+                  direction={direction}
                   locale={locale}
+                  name={destination.label}
+                  onSynced={reloadTable}
                   selectedRows={
                     toolbarActionContext.selectedOriginalRows as Record<
                       string,
                       unknown
                     >[]
                   }
+                  syncEnabled={connectorSettings.syncEnabled}
                   translate={connectorTranslate}
                 />
               ) : null,
@@ -1685,6 +1749,7 @@ export function DataTableAdvancedToolbar<TData>({
                   onSaved={(message) => toast.success(message)}
                   running={pendingDestination === destination.id}
                   schedule={destination.schedule}
+                  summarySuffix={scheduleSuffix(destination)}
                   translate={scheduleTranslate}
                 />
               ) : null,

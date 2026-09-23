@@ -41,6 +41,8 @@ interface SchedulePanelProps {
   onRunNow: () => Promise<void>;
   onSaved: (message: string) => void;
   onError: (message: string) => void;
+  /** Appended to the summary, e.g. "Keep in sync" for a connector's direction. */
+  summarySuffix?: () => Promise<string | null>;
 }
 
 /** Frequency, day, week day and time zone choices for the current frequency. */
@@ -187,6 +189,7 @@ export function SchedulePanel({
   onRunNow,
   onSaved,
   onError,
+  summarySuffix,
 }: SchedulePanelProps) {
   const { goBack } = useStackMenu();
   const [settings, setSettings] = useState<ScheduleSettings>();
@@ -198,11 +201,24 @@ export function SchedulePanel({
     [schedule.frequencies]
   );
   // The view the screen was opened on owns the schedule; load it once.
-  const [opened] = useState(() => ({ schedule, context: context() }));
+  const [opened] = useState(() => ({
+    schedule,
+    context: context(),
+    summarySuffix,
+  }));
+  const [suffix, setSuffix] = useState<string | null>(null);
   const reportError = useRef(onError);
   reportError.current = onError;
   useEffect(() => {
     let active = true;
+    opened
+      .summarySuffix?.()
+      .then((value) => {
+        if (active) {
+          setSuffix(value);
+        }
+      })
+      .catch(() => undefined);
     loadDestinationSchedule(opened.schedule, opened.context)
       .then((loaded) => {
         if (!active) {
@@ -275,7 +291,11 @@ export function SchedulePanel({
           className="grid gap-1 rounded-md bg-muted px-3 py-2 text-sm"
           data-schedule-summary
         >
-          <p>{describeSchedule(settings, locale, translate)}</p>
+          <p>
+            {[describeSchedule(settings, locale, translate), suffix]
+              .filter(Boolean)
+              .join(" · ")}
+          </p>
           {next ? (
             <p className="text-muted-foreground" data-schedule-next>
               {next}

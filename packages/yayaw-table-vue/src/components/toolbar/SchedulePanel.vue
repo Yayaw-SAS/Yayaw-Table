@@ -32,6 +32,8 @@ const props = defineProps<{
   locale: string;
   translate: ScheduleTranslate;
   running: boolean;
+  /** Appended to the summary, e.g. "Keep in sync" for a connector's direction. */
+  summarySuffix?: () => Promise<string | null>;
 }>();
 const emit = defineEmits<{
   runNow: [];
@@ -46,6 +48,7 @@ const opened = { schedule: props.schedule, context: props.context() };
 const settings = ref<ScheduleSettings>();
 const status = ref<ScheduleStatus | null>(null);
 const saving = ref(false);
+const suffix = ref<string | null>(null);
 const label = (key: ScheduleLabelKey): string => scheduleLabel(key, props.locale, props.translate);
 const frequencies = computed(() => scheduleFrequencies(props.schedule.frequencies));
 const visible = computed(() => scheduleFields(settings.value?.frequency ?? "manual"));
@@ -54,6 +57,12 @@ const update = (patch: Partial<ScheduleSettings>): void => {
 };
 
 onMounted(async () => {
+  props
+    .summarySuffix?.()
+    .then((value) => {
+      suffix.value = value;
+    })
+    .catch(() => undefined);
   const loaded = await loadDestinationSchedule(opened.schedule, opened.context);
   settings.value = loaded.settings;
   status.value = loaded.status;
@@ -112,7 +121,11 @@ const fields = computed((): ScheduleChoiceField[] => {
   }
   return list;
 });
-const summary = computed(() => (settings.value ? describeSchedule(settings.value, props.locale, props.translate) : ""));
+const summary = computed(() =>
+  settings.value
+    ? [describeSchedule(settings.value, props.locale, props.translate), suffix.value].filter(Boolean).join(" · ")
+    : ""
+);
 const next = computed(() =>
   settings.value
     ? describeNextRun(settings.value, props.locale, props.translate, new Date(), status.value?.nextRunAt)

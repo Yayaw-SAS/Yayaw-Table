@@ -1,6 +1,6 @@
 "use client";
 
-import { FileUp, Loader2, Upload } from "lucide-react";
+import { FileUp, Loader2, RefreshCw, Upload } from "lucide-react";
 import { type DragEvent, useEffect, useId, useRef, useState } from "react";
 import {
   StackMenuContent,
@@ -37,6 +37,16 @@ import type {
 } from "../../utils/import-model";
 import { ColumnMapping } from "./column-mapping";
 
+/** A connector that can pull: it opens its own screen, direction preset to pull. */
+export interface ConnectorImportSource {
+  id: string;
+  label: string;
+  description?: string;
+  /** The stack menu screen to open. */
+  screen: string;
+  title: string;
+}
+
 export interface ImportPanelProps {
   columns: ImportColumn[];
   locale: string;
@@ -45,6 +55,8 @@ export interface ImportPanelProps {
   /** Offer CSV files and pasted text (default true). */
   csv?: boolean;
   sources?: Pick<ImportSource, "id" | "label" | "description">[];
+  /** Connectors listed with the sources ("From Notion"). */
+  connectorSources?: ConnectorImportSource[];
   loadSource?: Parameters<typeof createImportFlow>[0]["loadSource"];
   findExisting: Parameters<typeof createImportFlow>[0]["findExisting"];
   batchSize?: number;
@@ -146,19 +158,33 @@ function CsvSource({ flow, state, t }: StepProps) {
 function SourceStep({
   csv,
   sources,
+  connectorSources = [],
   ...props
 }: StepProps & {
   csv: boolean;
   sources: ImportPanelProps["sources"];
+  connectorSources?: ConnectorImportSource[];
 }) {
   const { flow, state, t } = props;
   return (
     <div className="grid gap-3" data-import-step="source">
       {csv ? <CsvSource {...props} /> : null}
-      {sources?.length ? (
+      {sources?.length || connectorSources.length > 0 ? (
         <div className="grid gap-1">
           <h3 className="font-medium text-sm">{t("source")}</h3>
-          {sources.map((source) => (
+          {connectorSources.map((source) => (
+            <StackMenuItem
+              data-import-connector={source.id}
+              description={source.description}
+              icon={<RefreshCw className="size-4" />}
+              key={`connector:${source.id}`}
+              navigateTitle={source.title}
+              navigateTo={source.screen}
+            >
+              {source.label}
+            </StackMenuItem>
+          ))}
+          {(sources ?? []).map((source) => (
             <StackMenuItem
               data-import-source={source.id}
               description={source.description}
@@ -477,6 +503,7 @@ export function ImportPanel(props: ImportPanelProps) {
       {state.step === "source" ? (
         <SourceStep
           {...step}
+          connectorSources={opened.connectorSources}
           csv={opened.csv !== false}
           sources={opened.sources}
         />

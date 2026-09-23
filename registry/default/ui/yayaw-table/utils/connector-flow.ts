@@ -1,8 +1,9 @@
 /**
  * Connector screens for Connect destinations, shared by the React and Vue
- * editions. The table owns the flow (target, column mapping, scope, send and
- * result); the host only lists targets, describes their fields and pushes
- * through its own server function, which calls a connector server module.
+ * editions. The table owns the flow (target, direction, column mapping,
+ * scope, sync rules, preview, send and result); the host only lists targets,
+ * describes their fields, pushes, previews and syncs through its own server
+ * functions, which call the connector server modules and the sync engine.
  *
  * The types are structural copies of the connector server modules' shapes
  * (`ConnectorColumn`, `ConnectorPushResult`, error codes), so a host can pass
@@ -15,6 +16,7 @@ import {
   matchFieldsByName,
   normalizeFieldName,
 } from "./field-matching";
+import { coerceImportValue } from "./import-model";
 
 type MaybePromise<T> = T | Promise<T>;
 
@@ -52,6 +54,11 @@ export interface ConnectorField {
   name: string;
   type?: string;
   options?: string[];
+  /**
+   * A few values of the field, for pull and two-way mappings: the screen
+   * shows the first and counts those the mapped column cannot take.
+   */
+  sample?: unknown[];
 }
 
 export interface ConnectorSchema {
@@ -80,7 +87,42 @@ export interface ConnectorMappingEntry {
   field: string | null;
 }
 
-/** What is remembered for a view and sent to `push`. */
+/**
+ * "push" sends the table to the target, "pull" imports the target into the
+ * table, "two-way" keeps both in sync. Same values as the sync engine's
+ * `SyncDirection`, mirrored so the browser bundle never imports server code.
+ */
+export type SyncDirection = "push" | "pull" | "two-way";
+
+/** Which side wins a column changed on both sides (two-way only). */
+export type ConflictRule = "table-wins" | "target-wins" | "latest-wins";
+
+/** What happens to a linked record deleted on one side. */
+export type DeletePolicy = "ignore" | "flag" | "propagate";
+
+export const SYNC_DIRECTIONS: readonly SyncDirection[] = [
+  "push",
+  "pull",
+  "two-way",
+];
+
+export const CONFLICT_RULES: readonly ConflictRule[] = [
+  "table-wins",
+  "target-wins",
+  "latest-wins",
+];
+
+/** In screen order: the safe default first, the destructive one last. */
+export const DELETE_POLICIES: readonly DeletePolicy[] = [
+  "flag",
+  "ignore",
+  "propagate",
+];
+
+export const DEFAULT_CONFLICT_RULE: ConflictRule = "table-wins";
+export const DEFAULT_DELETE_POLICY: DeletePolicy = "flag";
+
+/** What is remembered for a view and sent to `push`, `preview` and `sync`. */
 export interface ConnectorSettings {
   targetId: string;
   childId?: string;
@@ -90,6 +132,68 @@ export interface ConnectorSettings {
   mapping: ConnectorMappingEntry[];
   /** Columns offered for mapping: the visible ones (default) or all. */
   columns?: "visible" | "all";
+  /** Default "push". The screen always sets it. */
+  direction?: SyncDirection;
+  /** Two-way only; default "table-wins". The screen always sets it. */
+  conflictRule?: ConflictRule;
+  /** Pull and two-way; default "flag". The screen always sets it. */
+  deletePolicy?: DeletePolicy;
+}
+
+/** A column changed on both sides, with the value each side holds and which one wins. */
+export interface SyncPreviewConflict {
+  /** A name for the record, e.g. its title; the row id otherwise. */
+  rowLabel?: string;
+  rowId?: string;
+  columnId: string;
+  tableValue: unknown;
+  targetValue: unknown;
+  resolution: "table" | "target";
+}
+
+/**
+ * What a sync would do, returned by the connector's `preview`: the host runs
+ * the sync engine's `planSync` on the server and returns its counts (see
+ * `toSyncPreview`).
+ */
+export interface SyncPreview {
+  createInTarget: number;
+  updateInTarget: number;
+  createInTable: number;
+  updateInTable: number;
+  deleteInTarget: number;
+  deleteInTable: number;
+  /** Linked records deleted on one side that the delete policy only flags. */
+  flagged: number;
+  /** The first conflicts (the host chooses how many). */
+  conflicts: SyncPreviewConflict[];
+  /** Every conflict; default `conflicts.length`. */
+  conflictCount?: number;
+  /** Keys shared by several records, left alone. */
+  duplicates: number;
+  unchanged: number;
+}
+
+/** Writes a sync applied, by side. */
+export interface SyncRunCounts {
+  createInTarget?: number;
+  updateInTarget?: number;
+  deleteInTarget?: number;
+  createInTable?: number;
+  updateInTable?: number;
+  deleteInTable?: number;
+}
+
+/** What the connector's `sync` returns (see `toSyncRunResult`). */
+export interface SyncRunResult {
+  applied: SyncRunCounts;
+  failed: number;
+  /** The first failures; `rows` defaults to 1. */
+  failures: (Omit<ConnectorPushFailure, "rows"> & { rows?: number })[];
+  flagged: number;
+  truncated: boolean;
+  /** An authorization error or a cancellation stopped the run. */
+  stopped?: string;
 }
 
 export type ConnectorErrorCode =
@@ -144,9 +248,12 @@ export interface ConnectorFailure {
   message?: string;
 }
 
-export type ConnectorPushOutcome =
-  | ConnectorPushResult
-  | { error: Partial<ConnectorFailure> & { code: string } };
+/** A failure a host function returns instead of throwing. */
+export interface ConnectorOutcomeError {
+  error: Partial<ConnectorFailure> & { code: string };
+}
+
+export type ConnectorPushOutcome = ConnectorPushResult | ConnectorOutcomeError;
 
 export interface ConnectorHelp {
   /** Replaces the "share it with …" message, e.g. to name a spreadsheet. */
@@ -191,6 +298,23 @@ export interface DataDestinationConnector<
     settings: ConnectorSettings,
     context: TPushContext
   ) => MaybePromise<ConnectorPushOutcome>;
+  /**
+   * Directions to offer; default `["push"]`. "pull" and "two-way" need
+   * `sync`. Push always calls `push` (modes and the selection scope).
+   */
+  directions?: SyncDirection[];
+  /** Conflict rules to offer; default all. Hide "latest-wins" for targets without edit times. */
+  conflictRules?: ConflictRule[];
+  /** What a pull or two-way sync would do, without writing anything. */
+  preview?: (
+    settings: ConnectorSettings,
+    context: TPushContext
+  ) => MaybePromise<SyncPreview | ConnectorOutcomeError>;
+  /** Runs a pull or two-way sync with the settings. */
+  sync?: (
+    settings: ConnectorSettings,
+    context: TPushContext
+  ) => MaybePromise<SyncRunResult | ConnectorOutcomeError>;
   /** Names for the target and its children, e.g. "Spreadsheet" and "Tab". */
   labels?: { target?: string; child?: string };
   help?: ConnectorHelp;
@@ -260,7 +384,73 @@ export type ConnectorLabelKey =
   | "error_provider_unavailable"
   | "error_rate_limited"
   | "error_unauthorized"
-  | "error_unknown";
+  | "error_unknown"
+  | SyncLabelKey;
+
+/** Labels of the sync settings, preview and result. */
+export type SyncLabelKey =
+  | "direction"
+  | "directionPush"
+  | "directionPull"
+  | "directionTwoWay"
+  | "directionPushShort"
+  | "directionPullShort"
+  | "directionTwoWayShort"
+  | "mappingPull"
+  | "mappingTwoWay"
+  | "dontImport"
+  | "dontSync"
+  | "sample"
+  | "invalidCount"
+  | "invalidOne"
+  | "conflictRule"
+  | "conflictTableWins"
+  | "conflictTargetWins"
+  | "conflictLatestWins"
+  | "conflictTableWinsHint"
+  | "conflictTargetWinsHint"
+  | "conflictLatestWinsHint"
+  | "deletePolicy"
+  | "deleteFlag"
+  | "deleteIgnore"
+  | "deletePropagate"
+  | "deleteFlagHint"
+  | "deleteIgnoreHint"
+  | "deletePropagateHint"
+  | "deleteConfirm"
+  | "confirmDeletesFirst"
+  | "previewFirst"
+  | "previewChanges"
+  | "previewAgain"
+  | "previewing"
+  | "syncNow"
+  | "importNow"
+  | "syncing"
+  | "inTarget"
+  | "inTable"
+  | "thisTable"
+  | "toCreate"
+  | "toUpdate"
+  | "toDelete"
+  | "nothingToChange"
+  | "unchanged"
+  | "flagged"
+  | "flaggedOne"
+  | "duplicates"
+  | "duplicatesOne"
+  | "conflicts"
+  | "moreConflicts"
+  | "wins"
+  | "emptyValue"
+  | "deleted"
+  | "deletedOne"
+  | "nothingChanged"
+  | "syncStopped"
+  | "issueNoFields"
+  | "issueInvalidDirection"
+  | "issueInvalidConflictRule"
+  | "importFrom"
+  | "importFromHint";
 
 const ENGLISH_LABELS: Record<ConnectorLabelKey, string> = {
   target: "Destination",
@@ -331,6 +521,74 @@ const ENGLISH_LABELS: Record<ConnectorLabelKey, string> = {
   error_unauthorized:
     "The connection has expired. Reconnect it, then try again.",
   error_unknown: "Sending failed.",
+  direction: "Direction",
+  directionPush: "Send to {target}",
+  directionPull: "Import from {target}",
+  directionTwoWay: "Keep both in sync",
+  directionPushShort: "Send",
+  directionPullShort: "Import",
+  directionTwoWayShort: "Keep in sync",
+  mappingPull: "Import each field into",
+  mappingTwoWay: "Sync each field with",
+  dontImport: "Don’t import",
+  dontSync: "Don’t sync",
+  sample: "e.g. {value}",
+  invalidCount: "{count} won’t convert",
+  invalidOne: "{count} won’t convert",
+  conflictRule: "When both sides changed",
+  conflictTableWins: "This table wins",
+  conflictTargetWins: "{target} wins",
+  conflictLatestWins: "Latest edit wins",
+  conflictTableWinsHint: "Keeps the table’s value and writes it to {target}.",
+  conflictTargetWinsHint:
+    "Keeps the value from {target} and writes it to this table.",
+  conflictLatestWinsHint:
+    "Keeps the value edited last. Without edit times (spreadsheets), the table wins.",
+  deletePolicy: "Deleted records",
+  deleteFlag: "Only flag",
+  deleteIgnore: "Ignore",
+  deletePropagate: "Delete on the other side",
+  deleteFlagHint: "Lists records deleted on one side. Nothing is deleted.",
+  deleteIgnoreHint: "Leaves records deleted on one side alone.",
+  deletePropagateHint:
+    "A record deleted on one side is deleted on the other side too.",
+  deleteConfirm: "Delete records on the other side when they are deleted",
+  confirmDeletesFirst: "Confirm the deletions first.",
+  previewFirst: "Preview the changes before deleting records.",
+  previewChanges: "Preview changes",
+  previewAgain: "Preview again",
+  previewing: "Comparing…",
+  syncNow: "Sync now",
+  importNow: "Import now",
+  syncing: "Syncing…",
+  inTarget: "In {target}",
+  inTable: "In this table",
+  thisTable: "This table",
+  toCreate: "Create",
+  toUpdate: "Update",
+  toDelete: "Delete",
+  nothingToChange: "Nothing to change: both sides match.",
+  unchanged: "{count} unchanged",
+  flagged: "{count} records deleted on one side are flagged.",
+  flaggedOne: "{count} record deleted on one side is flagged.",
+  duplicates:
+    "{count} keys are shared by several records; they are left alone.",
+  duplicatesOne:
+    "{count} key is shared by several records; they are left alone.",
+  conflicts: "Changed on both sides ({count})",
+  moreConflicts: "And {count} more",
+  wins: "{side} wins",
+  emptyValue: "(empty)",
+  deleted: "{count} deleted",
+  deletedOne: "{count} deleted",
+  nothingChanged: "Nothing changed",
+  syncStopped: "The sync stopped: {message}",
+  issueNoFields: "Choose at least one field to sync.",
+  issueInvalidDirection: "This destination doesn’t support this direction.",
+  issueInvalidConflictRule:
+    "This destination doesn’t support this conflict rule.",
+  importFrom: "From {name}",
+  importFromHint: "Imports its records and keeps them linked.",
 };
 
 const FRENCH_LABELS: Record<ConnectorLabelKey, string> = {
@@ -405,6 +663,78 @@ const FRENCH_LABELS: Record<ConnectorLabelKey, string> = {
   error_rate_limited: "Trop de requêtes. Patientez un instant, puis réessayez.",
   error_unauthorized: "La connexion a expiré. Reconnectez-la, puis réessayez.",
   error_unknown: "L’envoi a échoué.",
+  direction: "Sens",
+  directionPush: "Envoyer vers {target}",
+  directionPull: "Importer depuis {target}",
+  directionTwoWay: "Garder les deux synchronisés",
+  directionPushShort: "Envoi",
+  directionPullShort: "Import",
+  directionTwoWayShort: "Synchronisé",
+  mappingPull: "Importer chaque champ dans",
+  mappingTwoWay: "Synchroniser chaque champ avec",
+  dontImport: "Ne pas importer",
+  dontSync: "Ne pas synchroniser",
+  sample: "ex. {value}",
+  invalidCount: "{count} non convertibles",
+  invalidOne: "{count} non convertible",
+  conflictRule: "Si les deux côtés ont changé",
+  conflictTableWins: "Cette table l’emporte",
+  conflictTargetWins: "{target} l’emporte",
+  conflictLatestWins: "La dernière modification l’emporte",
+  conflictTableWinsHint:
+    "Garde la valeur de la table et l’écrit dans {target}.",
+  conflictTargetWinsHint:
+    "Garde la valeur de {target} et l’écrit dans cette table.",
+  conflictLatestWinsHint:
+    "Garde la valeur modifiée en dernier. Sans date de modification (tableurs), la table l’emporte.",
+  deletePolicy: "Enregistrements supprimés",
+  deleteFlag: "Seulement signaler",
+  deleteIgnore: "Ignorer",
+  deletePropagate: "Supprimer de l’autre côté",
+  deleteFlagHint:
+    "Liste les enregistrements supprimés d’un côté. Rien n’est supprimé.",
+  deleteIgnoreHint: "Ne fait rien des enregistrements supprimés d’un côté.",
+  deletePropagateHint:
+    "Un enregistrement supprimé d’un côté est aussi supprimé de l’autre.",
+  deleteConfirm:
+    "Supprimer les enregistrements de l’autre côté quand ils sont supprimés",
+  confirmDeletesFirst: "Confirmez d’abord les suppressions.",
+  previewFirst:
+    "Prévisualisez les changements avant de supprimer des enregistrements.",
+  previewChanges: "Prévisualiser les changements",
+  previewAgain: "Prévisualiser à nouveau",
+  previewing: "Comparaison…",
+  syncNow: "Synchroniser",
+  importNow: "Importer",
+  syncing: "Synchronisation…",
+  inTarget: "Dans {target}",
+  inTable: "Dans cette table",
+  thisTable: "Cette table",
+  toCreate: "Créer",
+  toUpdate: "Mettre à jour",
+  toDelete: "Supprimer",
+  nothingToChange: "Rien à changer : les deux côtés correspondent.",
+  unchanged: "{count} inchangés",
+  flagged: "{count} enregistrements supprimés d’un côté sont signalés.",
+  flaggedOne: "{count} enregistrement supprimé d’un côté est signalé.",
+  duplicates:
+    "{count} clés sont partagées par plusieurs enregistrements ; ils sont laissés de côté.",
+  duplicatesOne:
+    "{count} clé est partagée par plusieurs enregistrements ; ils sont laissés de côté.",
+  conflicts: "Modifiés des deux côtés ({count})",
+  moreConflicts: "Et {count} de plus",
+  wins: "{side} l’emporte",
+  emptyValue: "(vide)",
+  deleted: "{count} supprimés",
+  deletedOne: "{count} supprimé",
+  nothingChanged: "Rien n’a changé",
+  syncStopped: "La synchronisation s’est arrêtée : {message}",
+  issueNoFields: "Choisissez au moins un champ à synchroniser.",
+  issueInvalidDirection: "Cette destination ne prend pas en charge ce sens.",
+  issueInvalidConflictRule:
+    "Cette destination ne prend pas en charge cette règle de conflit.",
+  importFrom: "Depuis {name}",
+  importFromHint: "Importe ses enregistrements et les garde liés.",
 };
 
 /** Host override for a label (`connector.<key>`), or the built-in one. */
@@ -518,6 +848,105 @@ export function connectorModes(
   return valid.length > 0 ? valid : ["upsert"];
 }
 
+/** Whether a direction runs through the connector's `preview` and `sync`. */
+export function isSyncDirection(
+  direction: SyncDirection | undefined
+): direction is "pull" | "two-way" {
+  return direction === "pull" || direction === "two-way";
+}
+
+/**
+ * Directions to offer, in the declared order; default push only. Pull and
+ * two-way need `sync`; `table.sync: false` (`syncEnabled`) keeps push only.
+ */
+export function connectorDirections(
+  connector: Pick<DataDestinationConnector, "directions"> & {
+    sync?: unknown;
+  },
+  syncEnabled = true
+): SyncDirection[] {
+  const canSync = syncEnabled && typeof connector.sync === "function";
+  const valid = (connector.directions ?? []).filter(
+    (direction, index, list) =>
+      SYNC_DIRECTIONS.includes(direction) &&
+      list.indexOf(direction) === index &&
+      (direction === "push" || canSync)
+  );
+  return valid.length > 0 ? valid : ["push"];
+}
+
+/** Conflict rules to offer, in the declared order; default all three. */
+export function connectorConflictRules(
+  rules: readonly ConflictRule[] | undefined
+): ConflictRule[] {
+  const valid = (rules ?? []).filter(
+    (rule, index, list) =>
+      CONFLICT_RULES.includes(rule) && list.indexOf(rule) === index
+  );
+  return valid.length > 0 ? valid : [...CONFLICT_RULES];
+}
+
+/** Which settings the screen shows for a direction. */
+export function connectorSyncFields(
+  direction: SyncDirection | undefined,
+  options: { hasPreview?: boolean } = {}
+): {
+  mode: boolean;
+  scope: boolean;
+  conflictRule: boolean;
+  deletePolicy: boolean;
+  preview: boolean;
+} {
+  const sync = isSyncDirection(direction);
+  return {
+    mode: !sync,
+    scope: !sync,
+    conflictRule: direction === "two-way",
+    deletePolicy: sync,
+    preview: sync && options.hasPreview === true,
+  };
+}
+
+const pickOffered = <T>(
+  offered: readonly T[],
+  preferred: readonly (T | undefined)[],
+  fallback: T
+): T =>
+  preferred.find(
+    (value): value is T => value !== undefined && offered.includes(value)
+  ) ?? (offered.includes(fallback) ? fallback : (offered[0] ?? fallback));
+
+/** Direction, conflict rule and delete policy: preset or remembered when offered, else the defaults. */
+export function resolveSyncSettings({
+  directions,
+  conflictRules,
+  preset,
+  saved,
+}: {
+  directions?: readonly SyncDirection[];
+  conflictRules?: readonly ConflictRule[];
+  /** A direction to open with, e.g. "pull" from Data › Import. */
+  preset?: SyncDirection;
+  saved?: Partial<ConnectorSettings> | null;
+}): Required<
+  Pick<ConnectorSettings, "direction" | "conflictRule" | "deletePolicy">
+> {
+  const offered = directions?.length ? directions : (["push"] as const);
+  return {
+    direction: pickOffered(offered, [preset, saved?.direction], "push"),
+    conflictRule: pickOffered(
+      connectorConflictRules(conflictRules),
+      [saved?.conflictRule],
+      DEFAULT_CONFLICT_RULE
+    ),
+    deletePolicy: pickOffered(
+      DELETE_POLICIES,
+      [saved?.deletePolicy],
+      DEFAULT_DELETE_POLICY
+    ),
+  };
+}
+
 /** Columns the screen maps: the visible ones, or all of them. */
 export function connectorMappedColumns(
   columns: readonly ConnectorViewColumn[],
@@ -538,12 +967,19 @@ export function resolveConnectorSettings({
   saved,
   schema,
   target,
+  directions,
+  conflictRules,
+  preset,
 }: {
   columns: readonly ConnectorViewColumn[];
   modes?: readonly ConnectorMode[];
   saved?: Partial<ConnectorSettings> | null;
   schema: ConnectorSchema;
   target: ConnectorTargetRef;
+  /** Directions offered (`connectorDirections`); default push only. */
+  directions?: readonly SyncDirection[];
+  conflictRules?: readonly ConflictRule[];
+  preset?: SyncDirection;
 }): ConnectorSettings {
   const offered = connectorModes(modes);
   const keys = connectorKeyFields(schema);
@@ -588,22 +1024,34 @@ export function resolveConnectorSettings({
     keyField,
     mapping,
     columns: scope,
+    ...resolveSyncSettings({ directions, conflictRules, preset, saved }),
   };
 }
 
-/** The settings `push` and `save` receive: columns left out of the mapping are `null`. */
+/**
+ * The settings `push`, `sync` and `save` receive: columns left out of the
+ * mapping are `null`, and a pull leaves out fields the target does not have.
+ */
 export function connectorSettingsToSend(
   settings: ConnectorSettings,
-  columns: readonly ConnectorViewColumn[]
+  columns: readonly ConnectorViewColumn[],
+  schema?: ConnectorSchema | null
 ): ConnectorSettings {
   const mapped = new Set(
     connectorMappedColumns(columns, settings.columns).map((column) => column.id)
   );
+  const names =
+    settings.direction === "pull" && schema
+      ? new Set(schema.fields.map((field) => field.name))
+      : null;
+  const usable = (field: string | null) =>
+    field !== null && (names === null || names.has(field));
   return {
     ...settings,
     mapping: settings.mapping.map((entry) => ({
       columnId: entry.columnId,
-      field: mapped.has(entry.columnId) ? entry.field : null,
+      field:
+        mapped.has(entry.columnId) && usable(entry.field) ? entry.field : null,
     })),
   };
 }
@@ -662,7 +1110,9 @@ export type ConnectorIssueCode =
   | "unknown_field"
   | "missing_key"
   | "unknown_key"
-  | "invalid_mode";
+  | "invalid_mode"
+  | "invalid_direction"
+  | "invalid_conflict_rule";
 
 export interface ConnectorIssue {
   code: ConnectorIssueCode;
@@ -703,17 +1153,42 @@ const mappingIssues = (
   return issues;
 };
 
-/** Everything that would stop a push, in screen order. */
+const syncIssues = (
+  settings: ConnectorSettings,
+  directions: readonly SyncDirection[] | undefined,
+  conflictRules: readonly ConflictRule[] | undefined
+): ConnectorIssue[] => {
+  const direction = settings.direction ?? "push";
+  const offered = directions?.length ? directions : ["push"];
+  if (!offered.includes(direction)) {
+    return [{ code: "invalid_direction" }];
+  }
+  const rule = settings.conflictRule ?? DEFAULT_CONFLICT_RULE;
+  if (
+    direction === "two-way" &&
+    !connectorConflictRules(conflictRules).includes(rule)
+  ) {
+    return [{ code: "invalid_conflict_rule" }];
+  }
+  return [];
+};
+
+/** Everything that would stop a push or a sync, in screen order. */
 export function validateConnectorSettings(
   settings: ConnectorSettings,
   {
     schema,
     modes,
     target,
+    directions,
+    conflictRules,
   }: {
     schema: ConnectorSchema;
     modes?: readonly ConnectorMode[];
     target?: ConnectorTarget;
+    /** Directions offered; default push only. */
+    directions?: readonly SyncDirection[];
+    conflictRules?: readonly ConflictRule[];
   }
 ): ConnectorIssue[] {
   const issues: ConnectorIssue[] = [];
@@ -735,6 +1210,7 @@ export function validateConnectorSettings(
   if (!connectorModes(modes).includes(settings.mode)) {
     issues.push({ code: "invalid_mode" });
   }
+  issues.push(...syncIssues(settings, directions, conflictRules));
   return issues;
 }
 
@@ -747,14 +1223,21 @@ const ISSUE_KEYS: Record<ConnectorIssueCode, ConnectorLabelKey> = {
   missing_key: "issueMissingKey",
   unknown_key: "issueUnknownKey",
   invalid_mode: "issueInvalidMode",
+  invalid_direction: "issueInvalidDirection",
+  invalid_conflict_rule: "issueInvalidConflictRule",
 };
 
 export function connectorIssueMessage(
   issue: ConnectorIssue,
   t: ConnectorT,
-  childLabel = t("child")
+  childLabel = t("child"),
+  direction?: SyncDirection
 ): string {
-  return t(ISSUE_KEYS[issue.code], {
+  const key =
+    issue.code === "no_columns" && isSyncDirection(direction)
+      ? "issueNoFields"
+      : ISSUE_KEYS[issue.code];
+  return t(key, {
     field: issue.field ?? "",
     child: childLabel,
   });
@@ -899,6 +1382,325 @@ export function isPushFailure(
   return isRecord(outcome) && "error" in outcome && isRecord(outcome.error);
 }
 
+/** Whether a host function returned a failure instead of a result. */
+export function isConnectorOutcomeError(
+  outcome: unknown
+): outcome is ConnectorOutcomeError {
+  return isRecord(outcome) && "error" in outcome && isRecord(outcome.error);
+}
+
+// Sync preview and result --------------------------------------------------------
+
+/** The part of the sync engine's `SyncPlan` a preview needs (structural, no import). */
+export interface SyncPlanLike {
+  createInTarget: readonly unknown[];
+  updateInTarget: readonly unknown[];
+  createInTable: readonly unknown[];
+  updateInTable: readonly unknown[];
+  deleteInTarget: readonly unknown[];
+  deleteInTable: readonly unknown[];
+  flagged: readonly unknown[];
+  duplicates: readonly unknown[];
+  unchanged: number;
+  conflicts: readonly {
+    rowId?: string;
+    columnId: string;
+    tableValue: unknown;
+    targetValue: unknown;
+    winner: "table" | "target";
+  }[];
+}
+
+const SYNC_COUNT_KEYS = [
+  "createInTarget",
+  "updateInTarget",
+  "deleteInTarget",
+  "createInTable",
+  "updateInTable",
+  "deleteInTable",
+] as const;
+
+const DEFAULT_PREVIEW_CONFLICTS = 5;
+
+/**
+ * A sync engine plan as the preview `preview` returns; run it on the server
+ * (`planSync`), then send this to the browser. `rowLabel` names a record.
+ */
+export function toSyncPreview(
+  plan: SyncPlanLike,
+  options: {
+    limit?: number;
+    rowLabel?: (rowId: string) => string | undefined;
+  } = {}
+): SyncPreview {
+  const limit = options.limit ?? DEFAULT_PREVIEW_CONFLICTS;
+  return {
+    createInTarget: plan.createInTarget.length,
+    updateInTarget: plan.updateInTarget.length,
+    createInTable: plan.createInTable.length,
+    updateInTable: plan.updateInTable.length,
+    deleteInTarget: plan.deleteInTarget.length,
+    deleteInTable: plan.deleteInTable.length,
+    flagged: plan.flagged.length,
+    duplicates: plan.duplicates.length,
+    unchanged: plan.unchanged,
+    conflictCount: plan.conflicts.length,
+    conflicts: plan.conflicts.slice(0, limit).map((conflict) => {
+      const rowLabel = conflict.rowId
+        ? options.rowLabel?.(conflict.rowId)
+        : undefined;
+      return {
+        ...(conflict.rowId ? { rowId: conflict.rowId } : {}),
+        ...(rowLabel ? { rowLabel } : {}),
+        columnId: conflict.columnId,
+        tableValue: conflict.tableValue,
+        targetValue: conflict.targetValue,
+        resolution: conflict.winner,
+      };
+    }),
+  };
+}
+
+/** The part of the sync engine's `SyncResult` a run result needs. */
+export interface SyncResultLike {
+  applied: Partial<Record<string, number>>;
+  failed: number;
+  failures: readonly { code: string; rowId?: string }[];
+  stopped?: string;
+}
+
+/** A sync engine result as `sync` returns it; key write-backs are not counted. */
+export function toSyncRunResult(
+  result: SyncResultLike,
+  plan?: Pick<SyncPlanLike, "flagged">,
+  options: { truncated?: boolean } = {}
+): SyncRunResult {
+  const applied: SyncRunCounts = {};
+  for (const key of SYNC_COUNT_KEYS) {
+    const count = result.applied[key] ?? 0;
+    if (count > 0) {
+      applied[key] = count;
+    }
+  }
+  return {
+    applied,
+    failed: result.failed,
+    failures: result.failures.map((failure) => ({
+      code: failure.code,
+      ...(failure.rowId ? { rowId: failure.rowId } : {}),
+      rows: 1,
+    })),
+    flagged: plan?.flagged.length ?? 0,
+    truncated: options.truncated === true,
+    ...(result.stopped ? { stopped: result.stopped } : {}),
+  };
+}
+
+/** One count of a preview side, e.g. "Update · 2". */
+export interface SyncPreviewCount {
+  key: "create" | "update" | "delete";
+  label: string;
+  count: number;
+}
+
+/** A conflict as the preview lists it: both values and which one is kept. */
+export interface SyncPreviewConflictLine {
+  id: string;
+  title: string;
+  table: { label: string; value: string };
+  target: { label: string; value: string };
+  resolution: "table" | "target";
+  wins: string;
+}
+
+/** The preview as both editions render it. */
+export interface SyncPreviewView {
+  /** Nothing to create, update or delete. */
+  empty: boolean;
+  /** "In <target>" then "In this table", each with create, update and delete. */
+  sides: {
+    side: "target" | "table";
+    title: string;
+    counts: SyncPreviewCount[];
+  }[];
+  /** "Nothing to change…", flagged records and unchanged count. */
+  notes: string[];
+  /** Warning about keys shared by several records. */
+  duplicates: string | null;
+  conflictsTitle: string | null;
+  conflicts: SyncPreviewConflictLine[];
+  moreConflicts: string | null;
+}
+
+/** A value as the preview shows it: "(empty)", lists joined with commas. */
+export function formatSyncValue(value: unknown, t: ConnectorT): string {
+  if (value === null || value === undefined || value === "") {
+    return t("emptyValue");
+  }
+  if (Array.isArray(value)) {
+    return value.length > 0 ? value.map(String).join(", ") : t("emptyValue");
+  }
+  return String(value);
+}
+
+const sideCounts = (
+  preview: SyncPreview,
+  side: "Target" | "Table",
+  t: ConnectorT
+): SyncPreviewCount[] => [
+  { key: "create", label: t("toCreate"), count: preview[`createIn${side}`] },
+  { key: "update", label: t("toUpdate"), count: preview[`updateIn${side}`] },
+  { key: "delete", label: t("toDelete"), count: preview[`deleteIn${side}`] },
+];
+
+const previewNotes = (
+  preview: SyncPreview,
+  empty: boolean,
+  t: ConnectorT
+): string[] =>
+  [
+    empty ? t("nothingToChange") : null,
+    preview.flagged > 0
+      ? countLabel(t, preview.flagged, "flagged", "flaggedOne")
+      : null,
+    preview.unchanged > 0 ? t("unchanged", { count: preview.unchanged }) : null,
+  ].filter((note): note is string => note !== null);
+
+/**
+ * The preview grid, notes and first conflicts. `name` names the target
+ * ("Spreadsheet"); `columns` give conflicts their column header.
+ */
+export function describeSyncPreview(
+  preview: SyncPreview,
+  {
+    t,
+    name,
+    columns = [],
+  }: { t: ConnectorT; name: string; columns?: readonly ConnectorColumn[] }
+): SyncPreviewView {
+  const changes = SYNC_COUNT_KEYS.reduce(
+    (total, key) => total + preview[key],
+    0
+  );
+  const empty = changes === 0;
+  const conflictCount = Math.max(
+    preview.conflictCount ?? 0,
+    preview.conflicts.length
+  );
+  const header = (columnId: string) =>
+    columns.find((column) => column.id === columnId)?.header ?? columnId;
+  const sides = { table: t("thisTable"), target: name };
+  return {
+    empty,
+    sides: [
+      {
+        side: "target",
+        title: t("inTarget", { target: name }),
+        counts: sideCounts(preview, "Target", t),
+      },
+      {
+        side: "table",
+        title: t("inTable"),
+        counts: sideCounts(preview, "Table", t),
+      },
+    ],
+    notes: previewNotes(preview, empty, t),
+    duplicates:
+      preview.duplicates > 0
+        ? countLabel(t, preview.duplicates, "duplicates", "duplicatesOne")
+        : null,
+    conflictsTitle:
+      conflictCount > 0 ? t("conflicts", { count: conflictCount }) : null,
+    conflicts: preview.conflicts.map((conflict, index) => ({
+      id: `${conflict.rowId ?? index}:${conflict.columnId}`,
+      title: `${conflict.rowLabel ?? conflict.rowId ?? ""} · ${header(conflict.columnId)}`,
+      table: {
+        label: sides.table,
+        value: formatSyncValue(conflict.tableValue, t),
+      },
+      target: {
+        label: name,
+        value: formatSyncValue(conflict.targetValue, t),
+      },
+      resolution: conflict.resolution,
+      wins: t("wins", { side: sides[conflict.resolution] }),
+    })),
+    moreConflicts:
+      conflictCount > preview.conflicts.length
+        ? t("moreConflicts", {
+            count: conflictCount - preview.conflicts.length,
+          })
+        : null,
+  };
+}
+
+const sideSummary = (
+  applied: SyncRunCounts,
+  side: "Target" | "Table",
+  t: ConnectorT
+): string[] =>
+  [
+    [applied[`createIn${side}`] ?? 0, "created", "createdOne"] as const,
+    [applied[`updateIn${side}`] ?? 0, "updated", "updatedOne"] as const,
+    [applied[`deleteIn${side}`] ?? 0, "deleted", "deletedOne"] as const,
+  ]
+    .filter(([count]) => count > 0)
+    .map(([count, many, one]) => countLabel(t, count, many, one));
+
+/**
+ * "In Spreadsheet: 1 updated · In this table: 2 created, 2 updated", then the
+ * first failures, flagged records, truncation and a stop reason.
+ */
+export function describeSyncResult(
+  result: SyncRunResult,
+  { t, name, help }: { t: ConnectorT; name: string; help?: ConnectorHelp }
+): { summary: string; lines: string[] } {
+  const target = sideSummary(result.applied, "Target", t);
+  const table = sideSummary(result.applied, "Table", t);
+  const parts = [
+    target.length > 0
+      ? `${t("inTarget", { target: name })}: ${target.join(", ")}`
+      : null,
+    table.length > 0 ? `${t("inTable")}: ${table.join(", ")}` : null,
+    result.failed > 0
+      ? countLabel(t, result.failed, "failed", "failedOne")
+      : null,
+  ].filter((part): part is string => part !== null);
+  const details = describePushDetails(
+    {
+      created: 0,
+      updated: 0,
+      skipped: 0,
+      failed: result.failed,
+      failures: result.failures.map((failure) => ({
+        ...failure,
+        rows: failure.rows ?? 1,
+      })),
+      warnings: [],
+      warningCount: 0,
+      truncated: result.truncated,
+    },
+    t,
+    help
+  );
+  const stopped = result.stopped
+    ? t("syncStopped", {
+        message: connectorErrorMessage(result.stopped, undefined, t, help),
+      })
+    : null;
+  return {
+    summary: parts.length > 0 ? parts.join(" · ") : t("nothingChanged"),
+    lines: [
+      ...details.failures,
+      ...(result.flagged > 0
+        ? [countLabel(t, result.flagged, "flagged", "flaggedOne")]
+        : []),
+      ...(details.truncated ? [details.truncated] : []),
+      ...(stopped ? [stopped] : []),
+    ],
+  };
+}
+
 /** A destination the Connect screen opens as connector screens. */
 export function hasConnector(
   destination: {
@@ -919,7 +1721,7 @@ export function hasConnector(
 // Screen flow --------------------------------------------------------------------
 
 export interface ConnectorFlowState {
-  /** "form" edits the settings; "result" shows the last push. */
+  /** "form" edits the settings; "result" shows the last push or sync. */
   phase: "loading" | "form" | "sending" | "result";
   targets: ConnectorTarget[];
   /** Chosen target, or "" before one is chosen. */
@@ -930,9 +1732,15 @@ export interface ConnectorFlowState {
   settings: ConnectorSettings | null;
   scope: "view" | "selection";
   resolving: boolean;
-  /** Inline message: a failed load, describe, validation or push. */
+  /** Inline message: a failed load, describe, validation, preview, push or sync. */
   error: string | null;
   result: ConnectorPushResult | null;
+  /** The last preview of the current settings; any change clears it. */
+  preview: SyncPreview | null;
+  previewing: boolean;
+  /** The person confirmed that records will be deleted ("propagate"). */
+  confirmDeletes: boolean;
+  syncResult: SyncRunResult | null;
 }
 
 export interface ConnectorFlowOptions<TContext, TPushContext> {
@@ -948,7 +1756,25 @@ export interface ConnectorFlowOptions<TContext, TPushContext> {
     columns: ConnectorColumn[]
   ) => TPushContext;
   onChange: (state: ConnectorFlowState) => void;
+  /** `table.sync` (default true): false offers push only. */
+  syncEnabled?: boolean;
+  /** Direction to open with, e.g. "pull" from Data › Import. */
+  direction?: SyncDirection;
+  /** Called after a sync ran, e.g. to reload the table. */
+  onSynced?: (result: SyncRunResult) => void;
 }
+
+type SettingsPatch = Partial<
+  Pick<
+    ConnectorSettings,
+    | "mode"
+    | "keyField"
+    | "columns"
+    | "direction"
+    | "conflictRule"
+    | "deletePolicy"
+  >
+>;
 
 export interface ConnectorFlow {
   readonly state: ConnectorFlowState;
@@ -956,11 +1782,16 @@ export interface ConnectorFlow {
   selectTarget: (targetId: string) => Promise<void>;
   selectChild: (childId: string) => Promise<void>;
   resolveInput: (input: string) => Promise<void>;
+  /** Push orientation: a column to a field (or `CONNECTOR_SKIP`). */
   setField: (columnId: string, value: string) => void;
-  update: (
-    patch: Partial<Pick<ConnectorSettings, "mode" | "keyField" | "columns">>
-  ) => void;
+  /** Pull and two-way orientation: a target field to a column (or `CONNECTOR_SKIP`). */
+  setTargetField: (field: string, columnId: string) => void;
+  update: (patch: SettingsPatch) => void;
   setScope: (scope: "view" | "selection") => void;
+  setConfirmDeletes: (confirmed: boolean) => void;
+  /** Asks the connector what a sync would do. */
+  preview: () => Promise<void>;
+  /** Push, or sync for pull and two-way. */
   send: () => Promise<void>;
   /** Back to the settings after a result. */
   edit: () => void;
@@ -992,6 +1823,60 @@ const sentColumns = (
       type ? { id, header, type } : { id, header }
     );
 
+/** A target field to a column: the column takes the field, whoever had it lets it go. */
+const assignTargetField = (
+  mapping: readonly ConnectorMappingEntry[],
+  field: string,
+  columnId: string | null
+): ConnectorMappingEntry[] =>
+  mapping.map((entry) => {
+    if (entry.columnId === columnId) {
+      return { columnId: entry.columnId, field };
+    }
+    return entry.field === field
+      ? { columnId: entry.columnId, field: null }
+      : entry;
+  });
+
+/**
+ * Why "Sync now" is not available yet, or `null`: deleting records needs a
+ * confirmation and, when the connector can preview, a preview.
+ */
+export function connectorSyncBlocker(
+  state: Pick<ConnectorFlowState, "settings" | "preview" | "confirmDeletes">,
+  connector: { preview?: unknown }
+): "confirmDeletesFirst" | "previewFirst" | null {
+  const settings = state.settings;
+  if (
+    !(settings && isSyncDirection(settings.direction)) ||
+    settings.deletePolicy !== "propagate"
+  ) {
+    return null;
+  }
+  if (!state.confirmDeletes) {
+    return "confirmDeletesFirst";
+  }
+  return typeof connector.preview === "function" && !state.preview
+    ? "previewFirst"
+    : null;
+}
+
+const INITIAL_STATE: Omit<ConnectorFlowState, "scope"> = {
+  phase: "loading",
+  targets: [],
+  targetId: "",
+  schema: null,
+  schemaLoading: false,
+  settings: null,
+  resolving: false,
+  error: null,
+  result: null,
+  preview: null,
+  previewing: false,
+  confirmDeletes: false,
+  syncResult: null,
+};
+
 /**
  * The connector screen as a framework-neutral state machine: both editions
  * render `state` and call these actions, so they behave the same.
@@ -1000,20 +1885,14 @@ export function createConnectorFlow<TContext, TPushContext>(
   options: ConnectorFlowOptions<TContext, TPushContext>
 ): ConnectorFlow {
   const { connector, context, columns, t } = options;
+  const directions = connectorDirections(connector, options.syncEnabled);
   let state: ConnectorFlowState = {
-    phase: "loading",
-    targets: [],
-    targetId: "",
-    schema: null,
-    schemaLoading: false,
-    settings: null,
+    ...INITIAL_STATE,
     scope: options.selectedCount > 0 ? "selection" : "view",
-    resolving: false,
-    error: null,
-    result: null,
   };
   let notify = options.onChange;
   let draft: Partial<ConnectorSettings> | null = null;
+  let preset = options.direction;
   let request = 0;
   let started = false;
   const set = (patch: Partial<ConnectorFlowState>) => {
@@ -1037,6 +1916,8 @@ export function createConnectorFlow<TContext, TPushContext>(
       settings: null,
       error: null,
       result: null,
+      preview: null,
+      syncResult: null,
     });
     try {
       const schema = await connector.describe(
@@ -1052,7 +1933,11 @@ export function createConnectorFlow<TContext, TPushContext>(
         saved: draft,
         schema,
         target: { targetId, childId },
+        directions,
+        conflictRules: connector.conflictRules,
+        preset,
       });
+      preset = undefined;
       set({ schema, schemaLoading: false, settings });
     } catch (error) {
       if (ticket === request) {
@@ -1123,8 +2008,11 @@ export function createConnectorFlow<TContext, TPushContext>(
     }
   };
 
-  const setSettings = (settings: ConnectorSettings) =>
-    set({ settings, error: null });
+  // Any change makes the last preview stale.
+  const setSettings = (
+    settings: ConnectorSettings,
+    extra: Partial<ConnectorFlowState> = {}
+  ) => set({ settings, error: null, preview: null, ...extra });
 
   const setField = (columnId: string, value: string) => {
     if (!state.settings) {
@@ -1139,12 +2027,28 @@ export function createConnectorFlow<TContext, TPushContext>(
     });
   };
 
-  const update = (
-    patch: Partial<Pick<ConnectorSettings, "mode" | "keyField" | "columns">>
-  ) => {
-    if (state.settings) {
-      setSettings({ ...state.settings, ...patch });
+  const setTargetField = (field: string, value: string) => {
+    if (!state.settings) {
+      return;
     }
+    const columnId = value === CONNECTOR_SKIP ? null : value;
+    setSettings({
+      ...state.settings,
+      mapping: assignTargetField(state.settings.mapping, field, columnId),
+    });
+  };
+
+  const update = (patch: SettingsPatch) => {
+    if (!state.settings) {
+      return;
+    }
+    const policyChanged =
+      patch.deletePolicy !== undefined &&
+      patch.deletePolicy !== state.settings.deletePolicy;
+    setSettings(
+      { ...state.settings, ...patch },
+      policyChanged ? { confirmDeletes: false } : {}
+    );
   };
 
   const setScope = (scope: "view" | "selection") => {
@@ -1165,49 +2069,126 @@ export function createConnectorFlow<TContext, TPushContext>(
       schema,
       modes: connector.modes,
       target,
+      directions,
+      conflictRules: connector.conflictRules,
     });
     return issue
-      ? connectorIssueMessage(issue, t, connector.labels?.child ?? t("child"))
+      ? connectorIssueMessage(
+          issue,
+          t,
+          connector.labels?.child ?? t("child"),
+          settings.direction
+        )
       : null;
   };
 
-  // Settings are remembered on every send, whatever the push returns.
-  const push = async (settings: ConnectorSettings) => {
-    const saving = Promise.resolve()
+  /** The settings to send, or `null` after showing why they cannot be sent. */
+  const checkedSettings = (): ConnectorSettings | null => {
+    const { schema } = state;
+    if (!(state.settings && schema)) {
+      return null;
+    }
+    const settings = connectorSettingsToSend(state.settings, columns, schema);
+    const invalid = validationError(settings, schema);
+    if (invalid) {
+      set({ error: invalid });
+      return null;
+    }
+    return settings;
+  };
+
+  const saveSettings = (settings: ConnectorSettings) =>
+    Promise.resolve()
       .then(() => connector.save?.(settings, context))
       .then(
         () => null,
         (error: unknown) => failureText(error)
       );
-    const outcome = await connector.push(
-      settings,
-      options.pushContext(state.scope, sentColumns(columns, settings))
+
+  const contextFor = (settings: ConnectorSettings) =>
+    options.pushContext(
+      isSyncDirection(settings.direction) ? "view" : state.scope,
+      sentColumns(columns, settings)
     );
+
+  // Settings are remembered on every send, whatever the push returns.
+  const push = async (settings: ConnectorSettings) => {
+    const saving = saveSettings(settings);
+    const outcome = await connector.push(settings, contextFor(settings));
     const saveError = await saving;
     if (isPushFailure(outcome)) {
       throw outcome;
     }
-    return { result: outcome, saveError };
+    set({ phase: "result", result: outcome, error: saveError });
+  };
+
+  const sync = async (settings: ConnectorSettings) => {
+    if (!connector.sync) {
+      set({ phase: "form" });
+      return;
+    }
+    const saving = saveSettings(settings);
+    const outcome = await connector.sync(settings, contextFor(settings));
+    const saveError = await saving;
+    if (isConnectorOutcomeError(outcome)) {
+      throw outcome;
+    }
+    set({
+      phase: "result",
+      syncResult: outcome,
+      preview: null,
+      confirmDeletes: false,
+      error: saveError,
+    });
+    options.onSynced?.(outcome);
   };
 
   const send = async () => {
-    const { schema } = state;
-    if (!(state.settings && schema) || state.phase === "sending") {
+    if (state.phase === "sending" || state.previewing) {
       return;
     }
-    const settings = connectorSettingsToSend(state.settings, columns);
-    const invalid = validationError(settings, schema);
-    if (invalid) {
-      set({ error: invalid });
+    const settings = checkedSettings();
+    if (!settings) {
+      return;
+    }
+    const blocker = connectorSyncBlocker(state, connector);
+    if (blocker) {
+      set({ error: t(blocker) });
       return;
     }
     set({ phase: "sending", error: null });
     try {
-      const { result, saveError } = await push(settings);
+      await (isSyncDirection(settings.direction)
+        ? sync(settings)
+        : push(settings));
       draft = state.settings;
-      set({ phase: "result", result, error: saveError });
     } catch (error) {
       set({ phase: "form", error: failureText(error) });
+    }
+  };
+
+  const preview = async () => {
+    if (!connector.preview || state.previewing || state.phase === "sending") {
+      return;
+    }
+    const settings = checkedSettings();
+    if (!(settings && isSyncDirection(settings.direction))) {
+      return;
+    }
+    const current = state.settings;
+    set({ previewing: true, preview: null, error: null });
+    try {
+      const outcome = await connector.preview(settings, contextFor(settings));
+      if (isConnectorOutcomeError(outcome)) {
+        throw outcome;
+      }
+      // A choice made while comparing makes this preview stale.
+      set({
+        previewing: false,
+        preview: state.settings === current ? outcome : null,
+      });
+    } catch (error) {
+      set({ previewing: false, error: failureText(error) });
     }
   };
 
@@ -1220,10 +2201,15 @@ export function createConnectorFlow<TContext, TPushContext>(
     selectChild,
     resolveInput,
     setField,
+    setTargetField,
     update,
     setScope,
+    setConfirmDeletes: (confirmed) =>
+      set({ confirmDeletes: confirmed, error: null }),
+    preview,
     send,
-    edit: () => set({ phase: "form", result: null, error: null }),
+    edit: () =>
+      set({ phase: "form", result: null, syncResult: null, error: null }),
     dispose: () => {
       notify = () => undefined;
       request += 1;
@@ -1238,27 +2224,53 @@ export const CONNECTOR_NO_TARGET = "__yayaw_no_target__";
 
 /** One select of the connector screen; both editions render the same list. */
 export interface ConnectorScreenField {
-  /** "target", "child", "columns", "map:<columnId>", "keyField", "mode" or "scope". */
+  /**
+   * "target", "child", "direction", "columns", "map:<columnId>" (push),
+   * "field:<name>" (pull and two-way), "keyField", "mode", "scope",
+   * "conflictRule" or "deletePolicy".
+   */
   id: string;
   label: string;
   value: string;
   options: { value: string; label: string }[];
   heading?: string;
   inline?: boolean;
+  /** Pull and two-way rows: the field's first value and a conversion badge. */
+  sample?: string;
+  badge?: { label: string; invalid: boolean };
 }
 
 const MAP_PREFIX = "map:";
+const FIELD_PREFIX = "field:";
 
-interface ScreenFieldOptions {
-  connector: Pick<DataDestinationConnector, "labels" | "modes">;
+export interface ConnectorScreenOptions {
+  connector: Pick<
+    DataDestinationConnector,
+    "labels" | "modes" | "directions" | "conflictRules"
+  > & { sync?: unknown };
   columns: readonly ConnectorViewColumn[];
   selectedCount: number;
   t: ConnectorT;
+  /** `table.sync` (default true). */
+  syncEnabled?: boolean;
+  /** The destination's name, e.g. "Spreadsheet", used in "Send to …". */
+  name?: string;
+  /** Locale used to check sample values; default English. */
+  locale?: string;
+}
+
+/** The destination's name for "Send to …" and "In …". */
+export function connectorTargetName(
+  options: Pick<ConnectorScreenOptions, "connector" | "name" | "t">
+): string {
+  return (
+    options.name ?? options.connector.labels?.target ?? options.t("target")
+  );
 }
 
 const targetFields = (
   state: ConnectorFlowState,
-  { connector, t }: ScreenFieldOptions
+  { connector, t }: ConnectorScreenOptions
 ): ConnectorScreenField[] => {
   const target = state.targets.find((item) => item.id === state.targetId);
   const fields: ConnectorScreenField[] = [
@@ -1288,40 +2300,238 @@ const targetFields = (
   return fields;
 };
 
-const mappingFields = (
-  schema: ConnectorSchema,
+const DIRECTION_KEYS: Record<SyncDirection, ConnectorLabelKey> = {
+  push: "directionPush",
+  pull: "directionPull",
+  "two-way": "directionTwoWay",
+};
+
+const SHORT_DIRECTION_KEYS: Record<SyncDirection, ConnectorLabelKey> = {
+  push: "directionPushShort",
+  pull: "directionPullShort",
+  "two-way": "directionTwoWayShort",
+};
+
+/** "Send to Spreadsheet", "Import from Spreadsheet", "Keep both in sync". */
+export function connectorDirectionLabel(
+  direction: SyncDirection,
+  t: ConnectorT,
+  name: string
+): string {
+  return t(DIRECTION_KEYS[direction], { target: name });
+}
+
+const directionFields = (
   settings: ConnectorSettings,
-  { columns, t }: ScreenFieldOptions
+  options: ConnectorScreenOptions
 ): ConnectorScreenField[] => {
-  const visibleCount = columns.filter((column) => column.visible).length;
-  const fields: ConnectorScreenField[] = [
+  const directions = connectorDirections(
+    options.connector,
+    options.syncEnabled
+  );
+  if (directions.length < 2) {
+    return [];
+  }
+  const name = connectorTargetName(options);
+  return [
     {
-      id: "columns",
-      label: t("columns"),
-      value: settings.columns === "all" ? "all" : "visible",
-      options: [
-        {
-          value: "visible",
-          label: t("columnsVisible", { count: visibleCount }),
-        },
-        { value: "all", label: t("columnsAll", { count: columns.length }) },
-      ],
+      id: "direction",
+      label: options.t("direction"),
+      value: settings.direction ?? "push",
+      options: directions.map((direction) => ({
+        value: direction,
+        label: connectorDirectionLabel(direction, options.t, name),
+      })),
     },
   ];
-  for (const [index, column] of connectorMappedColumns(
-    columns,
-    settings.columns
-  ).entries()) {
+};
+
+const columnsField = (
+  settings: ConnectorSettings,
+  { columns, t }: ConnectorScreenOptions
+): ConnectorScreenField => ({
+  id: "columns",
+  label: t("columns"),
+  value: settings.columns === "all" ? "all" : "visible",
+  options: [
+    {
+      value: "visible",
+      label: t("columnsVisible", {
+        count: columns.filter((column) => column.visible).length,
+      }),
+    },
+    { value: "all", label: t("columnsAll", { count: columns.length }) },
+  ],
+});
+
+const pushMappingRows = (
+  schema: ConnectorSchema,
+  settings: ConnectorSettings,
+  { columns, t }: ConnectorScreenOptions
+): ConnectorScreenField[] =>
+  connectorMappedColumns(columns, settings.columns).map((column, index) => {
     const field =
       settings.mapping.find((entry) => entry.columnId === column.id)?.field ??
       null;
-    fields.push({
+    return {
       id: `${MAP_PREFIX}${column.id}`,
       heading: index === 0 ? t("mapping") : undefined,
       label: column.header,
       inline: true,
       value: field ?? CONNECTOR_SKIP,
       options: connectorFieldOptions(column, schema, field, t),
+    };
+  });
+
+/** Fields a pull or two-way sync maps: the target's, plus new ones a two-way sync adds. */
+const syncFieldNames = (
+  schema: ConnectorSchema,
+  settings: ConnectorSettings,
+  mapped: ReadonlySet<string>
+): string[] => {
+  const names = schema.fields.map((field) => field.name);
+  if (settings.direction === "two-way" && schema.allowNewFields) {
+    for (const entry of settings.mapping) {
+      if (
+        entry.field &&
+        mapped.has(entry.columnId) &&
+        !names.includes(entry.field)
+      ) {
+        names.push(entry.field);
+      }
+    }
+  }
+  return names.filter(
+    (name) =>
+      normalizeConnectorName(name) !== normalizeConnectorName(settings.keyField)
+  );
+};
+
+/** The first sample value and how many samples the column cannot take. */
+const sampleDetails = (
+  field: ConnectorField | undefined,
+  column: ConnectorColumn | undefined,
+  { t, locale }: ConnectorScreenOptions
+): Pick<ConnectorScreenField, "sample" | "badge"> => {
+  const values = (field?.sample ?? [])
+    .filter((value) => value !== null && value !== undefined && value !== "")
+    .map((value) => (Array.isArray(value) ? value.join(", ") : String(value)));
+  if (values.length === 0) {
+    return {};
+  }
+  const invalid = column
+    ? values.filter(
+        (value) =>
+          "error" in
+          coerceImportValue(
+            value,
+            {
+              id: column.id,
+              header: column.header,
+              type: column.type,
+              allowNewOptions: true,
+            },
+            { locale: locale ?? "en" }
+          )
+      ).length
+    : 0;
+  return {
+    sample: t("sample", { value: values[0] ?? "" }),
+    ...(invalid > 0
+      ? {
+          badge: {
+            label: countLabel(t, invalid, "invalidCount", "invalidOne"),
+            invalid: true,
+          },
+        }
+      : {}),
+  };
+};
+
+const syncMappingRows = (
+  schema: ConnectorSchema,
+  settings: ConnectorSettings,
+  options: ConnectorScreenOptions
+): ConnectorScreenField[] => {
+  const { t } = options;
+  const mappedColumns = connectorMappedColumns(
+    options.columns,
+    settings.columns
+  );
+  const mapped = new Set(mappedColumns.map((column) => column.id));
+  const choices = [
+    ...mappedColumns.map((column) => ({
+      value: column.id,
+      label: column.header,
+    })),
+    {
+      value: CONNECTOR_SKIP,
+      label: t(settings.direction === "pull" ? "dontImport" : "dontSync"),
+    },
+  ];
+  const known = new Set(schema.fields.map((field) => field.name));
+  return syncFieldNames(schema, settings, mapped).map((name, index) => {
+    const columnId = settings.mapping.find(
+      (entry) => entry.field === name && mapped.has(entry.columnId)
+    )?.columnId;
+    return {
+      id: `${FIELD_PREFIX}${name}`,
+      heading:
+        index === 0
+          ? t(settings.direction === "pull" ? "mappingPull" : "mappingTwoWay")
+          : undefined,
+      label: known.has(name) ? name : t("newField", { name }),
+      inline: true,
+      value: columnId ?? CONNECTOR_SKIP,
+      options: choices,
+      ...sampleDetails(
+        schema.fields.find((field) => field.name === name),
+        mappedColumns.find((column) => column.id === columnId),
+        options
+      ),
+    };
+  });
+};
+
+const CONFLICT_KEYS: Record<ConflictRule, ConnectorLabelKey> = {
+  "table-wins": "conflictTableWins",
+  "target-wins": "conflictTargetWins",
+  "latest-wins": "conflictLatestWins",
+};
+
+const DELETE_KEYS: Record<DeletePolicy, ConnectorLabelKey> = {
+  flag: "deleteFlag",
+  ignore: "deleteIgnore",
+  propagate: "deletePropagate",
+};
+
+const ruleFields = (
+  settings: ConnectorSettings,
+  options: ConnectorScreenOptions
+): ConnectorScreenField[] => {
+  const { t } = options;
+  const shown = connectorSyncFields(settings.direction);
+  const target = connectorTargetName(options);
+  const fields: ConnectorScreenField[] = [];
+  if (shown.conflictRule) {
+    fields.push({
+      id: "conflictRule",
+      label: t("conflictRule"),
+      value: settings.conflictRule ?? DEFAULT_CONFLICT_RULE,
+      options: connectorConflictRules(options.connector.conflictRules).map(
+        (rule) => ({ value: rule, label: t(CONFLICT_KEYS[rule], { target }) })
+      ),
+    });
+  }
+  if (shown.deletePolicy) {
+    fields.push({
+      id: "deletePolicy",
+      label: t("deletePolicy"),
+      value: settings.deletePolicy ?? DEFAULT_DELETE_POLICY,
+      options: DELETE_POLICIES.map((policy) => ({
+        value: policy,
+        label: t(DELETE_KEYS[policy]),
+      })),
     });
   }
   return fields;
@@ -1331,9 +2541,11 @@ const sendingFields = (
   state: ConnectorFlowState,
   schema: ConnectorSchema,
   settings: ConnectorSettings,
-  { connector, selectedCount, t }: ScreenFieldOptions
+  options: ConnectorScreenOptions
 ): ConnectorScreenField[] => {
+  const { connector, selectedCount, t } = options;
   const keys = connectorKeyFields(schema);
+  const shown = connectorSyncFields(settings.direction);
   const fields: ConnectorScreenField[] = [
     {
       id: "keyField",
@@ -1346,7 +2558,7 @@ const sendingFields = (
     },
   ];
   const modes = connectorModes(connector.modes);
-  if (modes.length > 1) {
+  if (shown.mode && modes.length > 1) {
     fields.push({
       id: "mode",
       label: t("mode"),
@@ -1354,43 +2566,162 @@ const sendingFields = (
       options: modes.map((mode) => ({ value: mode, label: t(mode) })),
     });
   }
-  fields.push({
-    id: "scope",
-    label: t("scope"),
-    value: state.scope,
-    options: [
-      { value: "view", label: t("scopeView") },
-      ...(selectedCount > 0
-        ? [
-            {
-              value: "selection",
-              label: t("scopeSelection", { count: selectedCount }),
-            },
-          ]
-        : []),
-    ],
-  });
-  return fields;
+  if (shown.scope) {
+    fields.push({
+      id: "scope",
+      label: t("scope"),
+      value: state.scope,
+      options: [
+        { value: "view", label: t("scopeView") },
+        ...(selectedCount > 0
+          ? [
+              {
+                value: "selection",
+                label: t("scopeSelection", { count: selectedCount }),
+              },
+            ]
+          : []),
+      ],
+    });
+  }
+  return [...fields, ...ruleFields(settings, options)];
 };
 
 /**
  * The screen's selects in order: target and child, then, once the target is
- * described, columns, one mapping per column, key field, mode and records.
+ * described, direction, columns, one mapping row per column (push) or per
+ * target field (pull and two-way), key field, mode and records (push), the
+ * conflict rule (two-way) and the delete policy (pull and two-way).
  */
 export function connectorScreenFields(
   state: ConnectorFlowState,
-  options: ScreenFieldOptions
+  options: ConnectorScreenOptions
 ): ConnectorScreenField[] {
   const { schema, settings } = state;
   const fields = targetFields(state, options);
   if (schema && settings) {
     fields.push(
-      ...mappingFields(schema, settings, options),
+      ...directionFields(settings, options),
+      columnsField(settings, options),
+      ...(isSyncDirection(settings.direction)
+        ? syncMappingRows(schema, settings, options)
+        : pushMappingRows(schema, settings, options)),
       ...sendingFields(state, schema, settings, options)
     );
   }
   return fields;
 }
+
+const HINT_KEYS: Record<ConflictRule | DeletePolicy, ConnectorLabelKey> = {
+  "table-wins": "conflictTableWinsHint",
+  "target-wins": "conflictTargetWinsHint",
+  "latest-wins": "conflictLatestWinsHint",
+  flag: "deleteFlagHint",
+  ignore: "deleteIgnoreHint",
+  propagate: "deletePropagateHint",
+};
+
+/** One-line explanations shown under the conflict rule and the delete policy. */
+export function connectorRuleHints(
+  settings: ConnectorSettings | null,
+  options: Pick<ConnectorScreenOptions, "connector" | "name" | "t">
+): { conflictRule?: string; deletePolicy?: string } {
+  if (!settings) {
+    return {};
+  }
+  const shown = connectorSyncFields(settings.direction);
+  const target = connectorTargetName(options);
+  return {
+    ...(shown.conflictRule
+      ? {
+          conflictRule: options.t(
+            HINT_KEYS[settings.conflictRule ?? DEFAULT_CONFLICT_RULE],
+            { target }
+          ),
+        }
+      : {}),
+    ...(shown.deletePolicy
+      ? {
+          deletePolicy: options.t(
+            HINT_KEYS[settings.deletePolicy ?? DEFAULT_DELETE_POLICY]
+          ),
+        }
+      : {}),
+  };
+}
+
+/** "Every day at 09:00 · Keep in sync": the direction a schedule runs, when there is a choice. */
+export function connectorScheduleSuffix(
+  settings: Pick<ConnectorSettings, "direction"> | null | undefined,
+  options: {
+    connector: Pick<DataDestinationConnector, "directions"> & {
+      sync?: unknown;
+    };
+    t: ConnectorT;
+    syncEnabled?: boolean;
+  }
+): string | null {
+  const directions = connectorDirections(
+    options.connector,
+    options.syncEnabled
+  );
+  if (directions.length < 2) {
+    return null;
+  }
+  const direction = directions.includes(settings?.direction ?? "push")
+    ? (settings?.direction ?? "push")
+    : (directions[0] ?? "push");
+  return options.t(SHORT_DIRECTION_KEYS[direction]);
+}
+
+/** Whether Data › Import lists the connector as a source ("From Notion"). */
+export function isConnectorImportSource(
+  connector: Pick<DataDestinationConnector, "directions"> & {
+    sync?: unknown;
+  },
+  syncEnabled = true
+): boolean {
+  return connectorDirections(connector, syncEnabled).includes("pull");
+}
+
+const pickValue = <T extends string>(
+  list: readonly T[],
+  value: string,
+  fallback: T
+): T => list.find((item) => item === value) ?? fallback;
+
+const applySettingsField = (
+  flow: ConnectorFlow,
+  id: string,
+  value: string
+): boolean => {
+  switch (id) {
+    case "columns":
+      flow.update({ columns: value === "all" ? "all" : "visible" });
+      return true;
+    case "keyField":
+      flow.update({ keyField: value });
+      return true;
+    case "mode":
+      flow.update({ mode: value === "replace" ? "replace" : "upsert" });
+      return true;
+    case "direction":
+      flow.update({ direction: pickValue(SYNC_DIRECTIONS, value, "push") });
+      return true;
+    case "conflictRule":
+      flow.update({
+        conflictRule: pickValue(CONFLICT_RULES, value, DEFAULT_CONFLICT_RULE),
+      });
+      return true;
+    case "deletePolicy":
+      flow.update({
+        deletePolicy: pickValue(DELETE_POLICIES, value, DEFAULT_DELETE_POLICY),
+      });
+      return true;
+    default:
+      return false;
+  }
+};
 
 /** Applies a choice made in one of `connectorScreenFields`. */
 export function applyConnectorField(
@@ -1402,34 +2733,33 @@ export function applyConnectorField(
     flow.setField(id.slice(MAP_PREFIX.length), value);
     return Promise.resolve();
   }
-  switch (id) {
-    case "target":
-      return value === CONNECTOR_NO_TARGET
-        ? Promise.resolve()
-        : flow.selectTarget(value);
-    case "child":
-      return flow.selectChild(value);
-    case "columns":
-      flow.update({ columns: value === "all" ? "all" : "visible" });
-      break;
-    case "keyField":
-      flow.update({ keyField: value });
-      break;
-    case "mode":
-      flow.update({ mode: value === "replace" ? "replace" : "upsert" });
-      break;
-    default:
-      flow.setScope(value === "selection" ? "selection" : "view");
+  if (id.startsWith(FIELD_PREFIX)) {
+    flow.setTargetField(id.slice(FIELD_PREFIX.length), value);
+    return Promise.resolve();
+  }
+  if (id === "target") {
+    return value === CONNECTOR_NO_TARGET
+      ? Promise.resolve()
+      : flow.selectTarget(value);
+  }
+  if (id === "child") {
+    return flow.selectChild(value);
+  }
+  if (!applySettingsField(flow, id, value)) {
+    flow.setScope(value === "selection" ? "selection" : "view");
   }
   return Promise.resolve();
 }
 
-const TARGET_FIELD_IDS = new Set(["target", "child", "columns"]);
+const TARGET_FIELD_IDS = new Set(["target", "child", "direction", "columns"]);
+
+const isMappingRow = (field: ConnectorScreenField) =>
+  field.id.startsWith(MAP_PREFIX) || field.id.startsWith(FIELD_PREFIX);
 
 /**
  * The screen fields as the column-mapping component takes them: target
- * settings before the rows, the mapping rows, the key field, then mode and
- * records.
+ * settings before the rows, the mapping rows, the key field, then mode,
+ * records and the sync rules.
  */
 export function connectorMappingSections(
   fields: readonly ConnectorScreenField[]
@@ -1439,25 +2769,25 @@ export function connectorMappingSections(
   keyField: ConnectorScreenField | undefined;
   after: ConnectorScreenField[];
 } {
-  const isRow = (field: ConnectorScreenField) =>
-    field.id.startsWith(MAP_PREFIX);
   return {
     before: fields.filter((field) => TARGET_FIELD_IDS.has(field.id)),
     rows: fields
-      .filter(isRow)
-      .map(({ id, label, value, options, heading }) => ({
+      .filter(isMappingRow)
+      .map(({ id, label, value, options, heading, sample, badge }) => ({
         id,
         label,
         value,
         options,
-        heading,
+        ...(heading ? { heading } : {}),
+        ...(sample ? { sample } : {}),
+        ...(badge ? { badge } : {}),
       })),
     keyField: fields.find((field) => field.id === "keyField"),
     after: fields.filter(
       (field) =>
         !(
           TARGET_FIELD_IDS.has(field.id) ||
-          isRow(field) ||
+          isMappingRow(field) ||
           field.id === "keyField"
         )
     ),

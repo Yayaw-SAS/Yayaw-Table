@@ -488,6 +488,8 @@ export interface TableBehaviorConfig
   schedule?: boolean;
   /** Open the connector screens of Connect destinations that declare `connector`; default true. */
   connectors?: boolean;
+  /** Offer the pull and two-way directions of connectors that declare them; default true. */
+  sync?: boolean;
   /** Offer Data › Import when rows can be created or updated; default true. */
   import?: boolean;
 

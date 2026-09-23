@@ -378,3 +378,63 @@ The table adapter is the host's: `create` inserts rows (returning their ids),
 `update` patches the given columns and `delete` removes rows, all with the
 owner's permissions. Lock the destination and view while a sync runs, so two
 runs never apply plans made from the same state.
+
+### Preview and sync from the connector screen
+
+The table's connector screen (a Connect destination's `connector`) offers
+pull and two-way when the connector declares `directions` and `sync`. The
+screen sends the settings (`direction`, `conflictRule`, `deletePolicy`,
+`keyField`, `mapping`) to two host functions, which run the engine on the
+server and return plain data:
+
+```ts
+"use server";
+import {
+  toSyncPreview,
+  toSyncRunResult,
+  type ConnectorSettings,
+} from "@/components/ui/yayaw-table/utils/connector-flow";
+import {
+  applySyncPlan,
+  planSync,
+  toSyncMapping,
+} from "@/components/ui/yayaw-table/connectors/sync-engine";
+
+async function plan(settings: ConnectorSettings, viewId: string) {
+  const user = await requireUser();
+  const { columns, records, target, state } = await loadSyncInputs(user, settings, viewId);
+  const mapping = toSyncMapping(settings, columns);
+  return {
+    target,
+    records,
+    plan: planSync({
+      direction: settings.direction ?? "push",
+      conflictRule: settings.conflictRule,
+      deletePolicy: settings.deletePolicy,
+      mapping,
+      tableRecords: records.map((record) => ({ id: record.id, values: record })),
+      targetRecords: await target.read(),
+      state,
+    }),
+  };
+}
+
+export async function previewSync(settings: ConnectorSettings, viewId: string) {
+  const { plan: planned, records } = await plan(settings, viewId);
+  return toSyncPreview(planned, {
+    rowLabel: (id) => records.find((record) => record.id === id)?.name,
+  });
+}
+
+export async function runSync(settings: ConnectorSettings, viewId: string) {
+  const { plan: planned, target } = await plan(settings, viewId);
+  const result = await applySyncPlan(planned, { target, table: tableRows(viewId) });
+  await syncStates.set(settings.targetId, viewId, result.state);
+  return toSyncRunResult(result, planned);
+}
+```
+
+Declare `conflictRules: ["table-wins", "target-wins"]` for a target without
+edit times (Google Sheets), where "Latest edit wins" would behave as "Table
+wins". Push keeps calling `push`. A scheduled run uses the saved settings, so
+a schedule of a two-way connector runs a two-way sync.

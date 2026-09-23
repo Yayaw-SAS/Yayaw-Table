@@ -3528,6 +3528,122 @@
 .yayaw-connector-failure {
   color: var(--yayaw-danger);
 }
+/* Sync preview: counts per side, notes and the first conflicts. */
+.yayaw-sync-confirm {
+  align-items: flex-start;
+  border: 1px solid color-mix(in oklab, var(--yayaw-danger) 40%, transparent);
+  border-radius: var(--yayaw-radius);
+  padding: 8px 12px;
+  line-height: 1.35;
+}
+.yayaw-sync-preview {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  border: 1px solid var(--yayaw-border);
+  border-radius: var(--yayaw-radius);
+  padding: 8px 12px;
+  font-size: 14px;
+}
+.yayaw-sync-preview p,
+.yayaw-sync-preview h3,
+.yayaw-sync-preview dl,
+.yayaw-sync-preview dd,
+.yayaw-sync-preview ul {
+  margin: 0;
+}
+.yayaw-sync-sides {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.yayaw-sync-side {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.yayaw-sync-side h3 {
+  overflow: hidden;
+  color: var(--yayaw-muted-foreground);
+  font-size: 12px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-sync-side dl {
+  display: grid;
+  gap: 2px;
+}
+.yayaw-sync-side dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.yayaw-sync-side dd {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+.yayaw-sync-side dd.yayaw-sync-zero {
+  color: var(--yayaw-muted-foreground);
+  font-weight: 400;
+}
+.yayaw-sync-note {
+  color: var(--yayaw-muted-foreground);
+  font-size: 12px;
+}
+.yayaw-sync-warning {
+  color: color-mix(
+    in oklab,
+    oklch(0.666 0.179 58.318) 75%,
+    var(--yayaw-foreground)
+  );
+  font-size: 12px;
+}
+.yayaw-sync-conflicts {
+  display: grid;
+  gap: 6px;
+}
+.yayaw-sync-conflicts h3 {
+  font-size: 12px;
+  font-weight: 500;
+}
+.yayaw-sync-conflicts ul {
+  display: grid;
+  gap: 6px;
+  padding: 0;
+  list-style: none;
+}
+.yayaw-sync-conflicts li {
+  display: grid;
+  gap: 2px;
+  border-radius: calc(var(--yayaw-radius) - 2px);
+  background: color-mix(in oklab, var(--yayaw-muted) 60%, transparent);
+  padding: 6px 8px;
+  font-size: 12px;
+}
+.yayaw-sync-conflict-title {
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-sync-value {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  font-weight: 500;
+}
+.yayaw-sync-value > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-sync-value.yayaw-sync-loser {
+  color: var(--yayaw-muted-foreground);
+  font-weight: 400;
+  text-decoration: line-through;
+}
 /* Column mapping: sample and conversion badge under each row, preview table. */
 .yayaw-column-mapping {
   display: grid;

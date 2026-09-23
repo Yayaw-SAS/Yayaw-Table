@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FileUp, Upload } from "lucide-vue-next";
+import { FileUp, RefreshCw, Upload } from "lucide-vue-next";
 import { computed, onBeforeUnmount, ref, shallowRef, useId, useTemplateRef } from "vue";
 import {
   applyImportField,
@@ -36,12 +36,14 @@ const props = defineProps<{
   /** Offer CSV files and pasted text (default true). */
   csv?: boolean;
   sources?: Pick<ImportSource, "id" | "label" | "description">[];
+  /** Connectors that can pull, listed with the sources ("From Notion"); they open their own screen. */
+  connectorSources?: { id: string; label: string; description?: string }[];
   loadSource?: ImportFlowOptions["loadSource"];
   findExisting: ImportFlowOptions["findExisting"];
   batchSize?: number;
   allowNewOptions?: boolean;
 }>();
-const emit = defineEmits<{ done: []; imported: [result: ImportRunResult] }>();
+const emit = defineEmits<{ done: []; imported: [result: ImportRunResult]; connector: [id: string] }>();
 const id = useId();
 // The table the screen was opened on owns the import; capture it once.
 const opened = { columns: props.columns, locale: props.locale, allowNewOptions: props.allowNewOptions };
@@ -133,9 +135,14 @@ const loadSource = (sourceId: string): void => {
           </button>
         </div>
       </div>
-      <div v-if="sources?.length" class="yayaw-options-list">
+      <div v-if="sources?.length || connectorSources?.length" class="yayaw-options-list">
         <h3 class="yayaw-setting-heading">{{ t("source") }}</h3>
-        <button v-for="source in sources" :key="source.id" type="button" class="yayaw-options-item" :disabled="state.loading"
+        <button v-for="source in connectorSources ?? []" :key="`connector:${source.id}`" type="button" class="yayaw-options-item"
+          :data-import-connector="source.id" @click="emit('connector', source.id)">
+          <span class="yayaw-options-item-icon"><RefreshCw :size="16" aria-hidden="true" /></span>
+          <span class="yayaw-options-item-copy"><span>{{ source.label }}</span><small v-if="source.description">{{ source.description }}</small></span>
+        </button>
+        <button v-for="source in sources ?? []" :key="source.id" type="button" class="yayaw-options-item" :disabled="state.loading"
           :data-import-source="source.id" @click="loadSource(source.id)">
           <span class="yayaw-options-item-icon"><Upload :size="16" aria-hidden="true" /></span>
           <span class="yayaw-options-item-copy"><span>{{ source.label }}</span><small v-if="source.description">{{ source.description }}</small></span>
