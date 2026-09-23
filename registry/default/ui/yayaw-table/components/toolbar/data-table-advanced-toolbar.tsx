@@ -901,6 +901,7 @@ export function DataTableAdvancedToolbar<TData>({
   const _tableInstance = useTableInstance({
     columns: [], // Empty columns since we only need the table structure for the menu
     data: [],
+    publishSelection: false,
     tableId,
   });
 

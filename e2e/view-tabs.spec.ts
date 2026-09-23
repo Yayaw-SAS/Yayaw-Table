@@ -4,6 +4,8 @@ const EXAMPLE = "/?example=views";
 const DISPLAY_PARAM = "views-display";
 const SEARCH = /^search/i;
 const EXPORT_ENTRY = /^Export/;
+const EXPORT_BUTTON = /^export$/i;
+const SELECTED_TWO = /^Selected \(2\)/;
 const PROJECTS_CSV = /^projects-\d{4}-\d{2}-\d{2}\.csv$/;
 const SEARCH_BUTTON = /^search/i;
 const CURRENT_VIEW_TRIGGER = /^current view/i;
@@ -164,4 +166,27 @@ test("the Export screen writes the view's records as displayed or raw", async ({
   await page.getByRole("option", { name: "Raw" }).click();
   const raw = await read(panel);
   expect(raw.text).toContain("Bravo audit,Service,Draft,120,0.2,2026-09-05");
+});
+
+test("bulk export opens the Export screen for the selected records", async ({
+  page,
+}) => {
+  const rows = page.getByRole("checkbox");
+  await rows.nth(1).click();
+  await rows.nth(2).click();
+  await page.getByRole("button", { name: EXPORT_BUTTON }).last().click();
+  const panel = page.locator("[data-export-panel]");
+  await expect(panel.getByRole("combobox", { name: "Records" })).toHaveText(
+    SELECTED_TWO
+  );
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    panel.getByRole("button", { name: "Export", exact: true }).click(),
+  ]);
+  const chunks: Buffer[] = [];
+  for await (const chunk of await download.createReadStream()) {
+    chunks.push(chunk as Buffer);
+  }
+  const lines = Buffer.concat(chunks).toString("utf8").trim().split("\n");
+  expect(lines).toHaveLength(3);
 });

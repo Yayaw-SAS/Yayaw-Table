@@ -774,3 +774,7 @@ records, columns, values, file name) and hand the choice to the shared
 and downloads a CSV or prints a page from a hidden frame. `availableExportFormats`
 offers Excel only with a writer and honours `table.exportFormats`.
 `tests/export-model-suite.ts` runs in both editions.
+
+The bulk bar's Export opens this screen with the selection chosen, in both
+editions (React through the menu open-to-view atom, Vue through
+`optionsRequest`), keeping the selection so it is what gets exported.
