@@ -4671,12 +4671,26 @@
   font-size: 12px;
   font-weight: 500;
 }
+.yayaw-form-rules-status {
+  margin: 0;
+  color: var(--yayaw-muted-foreground);
+  font-size: 12px;
+}
+.yayaw-form-rules-status.yayaw-rule-issue {
+  color: var(--yayaw-danger);
+}
+.yayaw-form-rules-empty {
+  margin: 0;
+  color: var(--yayaw-muted-foreground);
+  font-size: 14px;
+}
 .yayaw-rule {
   display: grid;
+  min-width: 0;
   gap: 8px;
   border: 1px solid var(--yayaw-border);
-  border-radius: var(--yayaw-radius);
-  background: color-mix(in oklab, var(--yayaw-background) 60%, transparent);
+  border-radius: calc(var(--yayaw-radius) + 2px);
+  background: var(--yayaw-background);
   padding: 8px;
 }
 .yayaw-rule-row {
@@ -4685,24 +4699,75 @@
   align-items: center;
   gap: 6px;
 }
+/* Each condition is a card sized by its own width (container queries):
+   stacked when narrow, comparison and value side by side from 18rem, all
+   three in a row from 34rem. */
 .yayaw-rule-condition {
+  min-width: 0;
+  container-type: inline-size;
+}
+.yayaw-rule-card {
+  position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
-  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--yayaw-border);
+  border-radius: var(--yayaw-radius);
+  background: var(--yayaw-background);
+  padding: 8px 36px 8px 8px;
+}
+.yayaw-rule-card > .yayaw-rule-remove {
+  position: absolute;
+  top: 12px;
+  right: 6px;
+}
+.yayaw-rule-compare {
+  display: grid;
+  min-width: 0;
   gap: 6px;
 }
+.yayaw-rule-operator,
 .yayaw-rule-value,
-.yayaw-rule-choices,
-.yayaw-rule-issue {
+.yayaw-rule-date {
+  display: block;
+  min-width: 0;
+}
+.yayaw-rule-card > .yayaw-rule-issue {
   grid-column: 1 / -1;
+}
+@container (min-width: 18rem) {
+  .yayaw-rule-compare {
+    grid-template-columns: minmax(0, 9rem) minmax(0, 1fr);
+  }
+  .yayaw-rule-operator[data-alone] {
+    grid-column: 1 / -1;
+  }
+}
+@container (width < 34rem) {
+  .yayaw-rule-operator[data-wide],
+  .yayaw-rule-value[data-wide] {
+    grid-column: 1 / -1;
+  }
+}
+@container (min-width: 34rem) {
+  .yayaw-rule-card {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 9rem) minmax(0, 1.25fr);
+    align-items: start;
+  }
+  .yayaw-rule-compare {
+    display: contents;
+  }
+  .yayaw-rule-operator[data-alone] {
+    grid-column: span 2;
+  }
 }
 .yayaw-rule-range {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: 6px;
 }
 .yayaw-rule-choices {
   display: grid;
+  min-width: 0;
   gap: 6px;
   margin: 0;
   border: 1px solid var(--yayaw-border);
@@ -4712,27 +4777,119 @@
 }
 .yayaw-rule-choice {
   display: flex;
+  min-width: 0;
   align-items: center;
   gap: 8px;
   font-size: 12px;
+}
+.yayaw-rule-choice .yayaw-tag,
+.yayaw-rule-select .yayaw-tag {
+  line-height: 16px;
 }
 .yayaw-rule-issue {
   margin: 0;
   color: var(--yayaw-danger);
   font-size: 12px;
 }
-.yayaw-rule-group {
-  display: grid;
+.yayaw-rule-unit {
+  display: flex;
+  min-width: 0;
+  align-items: center;
   gap: 6px;
-  margin: 0;
-  border: 1px dashed var(--yayaw-border);
-  border-radius: var(--yayaw-radius);
-  padding: 8px;
-}
-.yayaw-rule-group-legend {
-  padding: 0 4px;
   color: var(--yayaw-muted-foreground);
   font-size: 12px;
+}
+.yayaw-input.yayaw-rule-input[data-number] {
+  font-variant-numeric: tabular-nums;
+}
+.yayaw-rule-date .yayaw-form-date {
+  height: 32px;
+  min-height: 32px;
+  background: var(--yayaw-background);
+  font-size: 12px;
+}
+/* A nested group: an indented card with its own All/Any toggle. */
+.yayaw-rule-group {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+  margin: 0 0 0 8px;
+  border: 1px solid var(--yayaw-border);
+  border-left: 2px solid
+    color-mix(in oklab, var(--yayaw-primary) 40%, transparent);
+  border-radius: var(--yayaw-radius);
+  background: color-mix(in oklab, var(--yayaw-muted) 40%, transparent);
+  padding: 8px;
+}
+.dark .yayaw-rule-group {
+  background: color-mix(in oklab, var(--yayaw-muted) 20%, transparent);
+}
+.yayaw-rule-group-header {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  padding-right: 28px;
+}
+.yayaw-rule-group-title {
+  font-size: 12px;
+  font-weight: 500;
+}
+.yayaw-rule-group-header > .yayaw-rule-remove {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+/* All/Any: a segmented control of two radios. */
+.yayaw-rule-join {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+.yayaw-rule-join-legend {
+  float: left;
+  margin-right: 8px;
+  padding: 0;
+  color: var(--yayaw-muted-foreground);
+  font-size: 12px;
+}
+.yayaw-rule-join-options {
+  display: inline-flex;
+  border: 1px solid var(--yayaw-border);
+  border-radius: var(--yayaw-radius);
+  background: color-mix(in oklab, var(--yayaw-muted) 60%, transparent);
+  padding: 2px;
+}
+.yayaw-rule-join-option {
+  position: relative;
+  display: inline-flex;
+  height: 24px;
+  align-items: center;
+  border-radius: calc(var(--yayaw-radius) - 2px);
+  padding: 0 10px;
+  color: var(--yayaw-muted-foreground);
+  font-size: 12px;
+  cursor: pointer;
+  transition:
+    background-color 150ms,
+    color 150ms;
+}
+.yayaw-rule-join-option:has(input:checked) {
+  background: var(--yayaw-background);
+  color: var(--yayaw-foreground);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+}
+.dark .yayaw-rule-join-option:has(input:checked) {
+  background: color-mix(in oklab, var(--yayaw-input) 60%, transparent);
+}
+.yayaw-rule-join-option:has(input:focus-visible) {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--yayaw-ring) 50%, transparent);
 }
 .yayaw-rule-buttons {
   display: flex;
@@ -4753,10 +4910,118 @@
 .yayaw-input.yayaw-rule-input {
   width: 100%;
   min-width: 0;
+  max-width: none;
   height: 32px;
   min-height: 32px;
   background: var(--yayaw-background);
   font-size: 12px;
+}
+.yayaw-rule [aria-invalid="true"] {
+  border-color: var(--yayaw-danger);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--yayaw-danger) 20%, transparent);
+}
+/* "Edit conditions": a centered dialog, a bottom sheet on phones. */
+.yayaw-rules-dialog-anchor {
+  display: contents;
+}
+.yayaw-rules-dialog-backdrop {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.1);
+  -webkit-backdrop-filter: blur(var(--blur-xs, 4px));
+  backdrop-filter: blur(var(--blur-xs, 4px));
+}
+.yayaw-rules-dialog,
+.yayaw-rules-dialog * {
+  box-sizing: border-box;
+}
+.yayaw-rules-dialog {
+  position: fixed;
+  z-index: 101;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  width: min(640px, calc(100vw - 32px));
+  max-height: min(85dvh, 768px);
+  flex-direction: column;
+  border-radius: 12px;
+  background: var(--yayaw-background);
+  color: var(--yayaw-foreground);
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--yayaw-foreground) 10%, transparent),
+    0 10px 15px -3px rgb(0 0 0 / 0.1);
+  font-size: 14px;
+  line-height: 1.4;
+  outline: none;
+  transform: translate(-50%, -50%);
+}
+.yayaw-rules-dialog[data-compact] {
+  top: auto;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  max-height: 92dvh;
+  border-radius: 16px 16px 0 0;
+  padding-bottom: env(safe-area-inset-bottom);
+  transform: none;
+}
+.yayaw-rules-dialog-header {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  border-bottom: 1px solid var(--yayaw-border);
+  padding: 16px 48px 16px 16px;
+}
+.yayaw-rules-dialog-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.25;
+}
+.yayaw-rules-dialog-description {
+  margin: 0;
+  color: var(--yayaw-muted-foreground);
+  font-size: 14px;
+}
+.yayaw-button.yayaw-rules-dialog-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0;
+  background: transparent;
+  color: var(--yayaw-foreground);
+}
+.yayaw-rules-dialog-body {
+  display: grid;
+  min-height: 0;
+  align-content: start;
+  gap: 12px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 12px 16px;
+}
+.yayaw-rules-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid var(--yayaw-border);
+  padding: 12px;
+}
+.yayaw-rules-dialog[data-compact] .yayaw-rules-dialog-header {
+  padding-right: 16px;
+  text-align: center;
+}
+.yayaw-rules-dialog[data-compact] .yayaw-rules-dialog-footer .yayaw-button {
+  width: 100%;
+}
+.yayaw-rules-dialog[data-compact]
+  :where(button, .yayaw-rule-select-trigger, .yayaw-rule-input) {
+  min-height: 44px;
 }
 .yayaw-button.yayaw-form-settings-add {
   width: fit-content;
@@ -4846,6 +5111,12 @@
   min-height: 24px;
   padding: 0;
   background: transparent;
+}
+.yayaw-rules-dialog[data-compact] .yayaw-rule .yayaw-form-settings-action {
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
 }
 .yayaw-rule .yayaw-button-ghost,
 .yayaw-button.yayaw-rule-add {

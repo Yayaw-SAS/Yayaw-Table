@@ -1157,6 +1157,41 @@ const ENGLISH_LABELS = {
   opIsUnchecked: "{field} is unchecked",
   opIsEmpty: "{field} is empty",
   opIsNotEmpty: "{field} is not empty",
+  editConditions: "Edit conditions",
+  conditionsTitle: "Conditions for {label}",
+  conditionsDescription: "Changes are saved as you make them.",
+  noConditions: "Always shown.",
+  conditionsProblem: "Some conditions are incomplete.",
+  done: "Done",
+  joinAll: "All",
+  joinAny: "Any",
+  ruleDaysUnit: "days",
+  cmpIs: "is",
+  cmpIsNot: "is not",
+  cmpContains: "contains",
+  cmpNotContains: "does not contain",
+  cmpStartsWith: "starts with",
+  cmpEq: "=",
+  cmpNeq: "≠",
+  cmpLt: "<",
+  cmpLte: "≤",
+  cmpGt: ">",
+  cmpGte: "≥",
+  cmpBetween: "between",
+  cmpOn: "on",
+  cmpBefore: "before",
+  cmpAfter: "after",
+  cmpInLast: "in the last",
+  cmpInNext: "in the next",
+  cmpIsAnyOf: "is any of",
+  cmpIsNoneOf: "is none of",
+  cmpContainsAny: "has any of",
+  cmpContainsAll: "has all of",
+  cmpContainsNone: "has none of",
+  cmpIsChecked: "is checked",
+  cmpIsUnchecked: "is unchecked",
+  cmpIsEmpty: "is empty",
+  cmpIsNotEmpty: "is not empty",
 } as const;
 
 const FRENCH_LABELS: Record<FormLabelKey, string> = {
@@ -1307,6 +1342,42 @@ const FRENCH_LABELS: Record<FormLabelKey, string> = {
   opIsUnchecked: "{field} n’est pas coché",
   opIsEmpty: "{field} est vide",
   opIsNotEmpty: "{field} n’est pas vide",
+  editConditions: "Modifier les conditions",
+  conditionsTitle: "Conditions de {label}",
+  conditionsDescription:
+    "Les modifications sont enregistrées au fur et à mesure.",
+  noConditions: "Toujours affichée.",
+  conditionsProblem: "Certaines conditions sont incomplètes.",
+  done: "Terminé",
+  joinAll: "Toutes",
+  joinAny: "Au moins une",
+  ruleDaysUnit: "jours",
+  cmpIs: "est",
+  cmpIsNot: "n’est pas",
+  cmpContains: "contient",
+  cmpNotContains: "ne contient pas",
+  cmpStartsWith: "commence par",
+  cmpEq: "=",
+  cmpNeq: "≠",
+  cmpLt: "<",
+  cmpLte: "≤",
+  cmpGt: ">",
+  cmpGte: "≥",
+  cmpBetween: "entre",
+  cmpOn: "le",
+  cmpBefore: "avant le",
+  cmpAfter: "après le",
+  cmpInLast: "dans les derniers",
+  cmpInNext: "dans les prochains",
+  cmpIsAnyOf: "est l’un de",
+  cmpIsNoneOf: "n’est aucun de",
+  cmpContainsAny: "contient l’un de",
+  cmpContainsAll: "contient tous",
+  cmpContainsNone: "ne contient aucun de",
+  cmpIsChecked: "est coché",
+  cmpIsUnchecked: "n’est pas coché",
+  cmpIsEmpty: "est vide",
+  cmpIsNotEmpty: "n’est pas vide",
 };
 
 /** Host override for a label (`form.<key>`), or the built-in one. */
@@ -1380,20 +1451,17 @@ export function formRuleSummary(
   );
 }
 
-const PLACEHOLDERS = /\s*\{(value|from|to)\}\s*/g;
-
-/** An operator as a menu shows it: "is …", "> …", "is in the last … days". */
+/** An operator as a menu shows it, short and complete: "is", "before", "in the last". */
 export function formOperatorLabel(
   operator: ConditionOperator,
   locale: string,
   translate?: FormTranslate
 ): string {
-  const phrase = formLabel(
-    `op${capitalize(operator)}` as FormLabelKey,
+  return formLabel(
+    `cmp${capitalize(operator)}` as FormLabelKey,
     locale,
     translate
   );
-  return phrase.replace("{field}", "").replace(PLACEHOLDERS, " … ").trim();
 }
 
 const ISSUE_LABELS: Record<RuleIssueCode, FormLabelKey> = {

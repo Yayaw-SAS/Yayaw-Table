@@ -5,6 +5,7 @@ import {
   ArrowUp,
   ChevronDown,
   GripVertical,
+  ListFilter,
   Plus,
   Trash2,
 } from "lucide-react";
@@ -42,6 +43,7 @@ import {
   type FormSectionBreak,
   type FormTranslate,
   type FormViewSettings,
+  type ResolvedFormQuestion,
   formColumnEditor,
   formColumns,
   formHiddenChoices,
@@ -66,6 +68,7 @@ import {
   upsertFormRule,
 } from "../utils/form-view";
 import { FormRuleEditor } from "./form-rules";
+import { FormRulesDialog } from "./form-rules-dialog";
 
 type Label = (key: FormLabelKey, params?: Record<string, string>) => string;
 
@@ -171,6 +174,7 @@ interface QuestionRules {
   fields: ConditionField[];
   issues: RuleIssue[];
   summaries: string[];
+  questions: ResolvedFormQuestion[];
   locale: string;
   translate?: FormTranslate;
   onAdd: () => void;
@@ -178,36 +182,81 @@ interface QuestionRules {
   onRemove: (id: string) => void;
 }
 
-function RulesEditor({ label, rules }: { label: Label; rules: QuestionRules }) {
+/**
+ * The side panel keeps a status line and "Edit conditions"; the rules are
+ * edited in a dialog (a drawer on phones) where the conditions have room.
+ */
+function RulesEditor({
+  label,
+  name,
+  rules,
+}: {
+  label: Label;
+  name: string;
+  rules: QuestionRules;
+}) {
+  const [open, setOpen] = useState(false);
+  const status = rules.list.length ? null : label("noConditions");
   return (
     <section className="grid gap-2" data-form-rules>
       <h4 className="font-medium text-muted-foreground text-xs">
         {label("conditions")}
       </h4>
-      {rules.list.map((rule) => (
-        <FormRuleEditor
-          fields={rules.fields}
-          issues={rules.issues.filter((issue) => issue.ruleId === rule.id)}
-          key={rule.id}
-          label={label}
-          locale={rules.locale}
-          onChange={rules.onChange}
-          onRemove={() => rules.onRemove(rule.id)}
-          rule={rule}
-          translate={rules.translate}
-        />
-      ))}
+      {status ? <p className="text-muted-foreground text-xs">{status}</p> : null}
+      {rules.issues.length ? (
+        <p className="text-destructive text-xs" data-form-rules-problem>
+          {label("conditionsProblem")}
+        </p>
+      ) : null}
       <Button
         className="w-fit font-normal"
-        disabled={rules.fields.length === 0}
-        onClick={rules.onAdd}
+        disabled={rules.fields.length === 0 && rules.list.length === 0}
+        onClick={() => setOpen(true)}
         size="sm"
         type="button"
         variant="outline"
       >
-        <Plus aria-hidden="true" />
-        {label("addRule")}
+        <ListFilter aria-hidden="true" />
+        {label("editConditions")}
       </Button>
+      <FormRulesDialog
+        description={label("conditionsDescription")}
+        doneLabel={label("done")}
+        onOpenChange={setOpen}
+        open={open}
+        title={label("conditionsTitle", { label: name })}
+      >
+        {rules.list.map((rule) => (
+          <FormRuleEditor
+            fields={rules.fields}
+            issues={rules.issues.filter((issue) => issue.ruleId === rule.id)}
+            key={rule.id}
+            label={label}
+            locale={rules.locale}
+            onChange={rules.onChange}
+            onRemove={() => rules.onRemove(rule.id)}
+            questions={rules.questions}
+            rule={rule}
+            translate={rules.translate}
+          />
+        ))}
+        {rules.list.length ? null : (
+          <p className="text-muted-foreground text-sm">
+            {label("noConditions")}
+          </p>
+        )}
+        <Button
+          className="w-fit font-normal"
+          disabled={rules.fields.length === 0}
+          onClick={rules.onAdd}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          <Plus aria-hidden="true" />
+          {label("addRule")}
+        </Button>
+      </FormRulesDialog>
     </section>
   );
 }
@@ -215,6 +264,7 @@ function RulesEditor({ label, rules }: { label: Label; rules: QuestionRules }) {
 function QuestionDetails({
   id,
   label,
+  name,
   onChange,
   question,
   rules,
@@ -222,6 +272,7 @@ function QuestionDetails({
 }: {
   id: string;
   label: Label;
+  name: string;
   onChange: (patch: Partial<FormQuestion>) => void;
   question: FormQuestion;
   rules: QuestionRules;
@@ -259,7 +310,11 @@ function QuestionDetails({
         label={label("requiredToggle")}
         onChange={(required) => onChange({ required })}
       />
-      <RulesEditor label={label} rules={rules} />
+      <RulesEditor
+        label={label}
+        name={question.label || name}
+        rules={rules}
+      />
     </div>
   );
 }
@@ -424,6 +479,7 @@ function QuestionRow({
         <QuestionDetails
           id={id}
           label={label}
+          name={name}
           onChange={onChange}
           question={question}
           rules={rules}
@@ -574,6 +630,7 @@ function useQuestionRules(
       issues: issues.filter((issue) =>
         list.some((rule) => rule.id === issue.ruleId)
       ),
+      questions: resolved.questions,
       summaries: list.map((rule) =>
         formRuleSummary(rule, resolved.questions, context.locale, translate)
       ),

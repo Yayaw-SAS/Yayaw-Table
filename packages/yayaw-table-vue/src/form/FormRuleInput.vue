@@ -5,7 +5,11 @@ import { ref, watch } from "vue";
 const props = defineProps<{
   label: string;
   value: string;
-  type: "date" | "number" | "text";
+  type: "number" | "text";
+  /** Shown after the input, e.g. "days". */
+  unit?: string;
+  describedBy?: string;
+  invalid?: boolean;
 }>();
 const emit = defineEmits<{ commit: [value: string] }>();
 const draft = ref(props.value);
@@ -21,12 +25,33 @@ const commit = (): void => {
 </script>
 
 <template>
+  <span v-if="unit" class="yayaw-rule-unit">
+    <input
+      v-model="draft"
+      class="yayaw-input yayaw-rule-input"
+      type="text"
+      autocomplete="off"
+      :aria-label="label"
+      :aria-describedby="describedBy"
+      :aria-invalid="invalid || undefined"
+      :inputmode="type === 'number' ? 'decimal' : undefined"
+      :data-number="type === 'number' || undefined"
+      @blur="commit"
+      @keydown.enter.prevent="commit"
+    />
+    <span aria-hidden="true">{{ unit }}</span>
+  </span>
   <input
+    v-else
     v-model="draft"
     class="yayaw-input yayaw-rule-input"
+    type="text"
+    autocomplete="off"
     :aria-label="label"
-    :type="type === 'date' ? 'date' : 'text'"
+    :aria-describedby="describedBy"
+    :aria-invalid="invalid || undefined"
     :inputmode="type === 'number' ? 'decimal' : undefined"
+    :data-number="type === 'number' || undefined"
     @blur="commit"
     @keydown.enter.prevent="commit"
   />

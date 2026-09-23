@@ -1,6 +1,7 @@
 import { it } from "vitest";
 import { formViewRulesSuite } from "../../../tests/form-view-rules-suite";
 import {
+  CONDITION_OPERATORS,
   conditionAt,
   retargetCondition,
   updateConditionAt,
@@ -61,5 +62,11 @@ formViewRulesSuite(
     upsertFormRule,
     validateFormValues,
   },
-  { conditionAt, retargetCondition, updateConditionAt, withOperator }
+  {
+    CONDITION_OPERATORS,
+    conditionAt,
+    retargetCondition,
+    updateConditionAt,
+    withOperator,
+  }
 );

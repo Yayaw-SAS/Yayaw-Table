@@ -1,7 +1,14 @@
 "use client";
 
+import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
 import { CalendarIcon, ChevronDown } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import {
+  type ComponentProps,
+  type RefObject,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/src/components/ui/button";
 import { Calendar } from "@/src/components/ui/calendar";
@@ -35,7 +42,46 @@ export interface FormDateFieldProps {
   /** Earliest and latest days that can be picked (`YYYY-MM-DD`). */
   min?: string;
   max?: string;
+  /**
+   * Renders the calendar inside this element (absolutely positioned), for
+   * pickers in a drawer whose focus trap would otherwise dismiss it.
+   */
+  portalContainer?: RefObject<HTMLElement | null> | null;
   onChange: (value: string) => void;
+}
+
+const POPUP_CLASSES =
+  "bg-popover text-popover-foreground data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 ring-foreground/10 flex w-auto flex-col gap-0 rounded-md p-0 text-sm shadow-md ring-1 duration-100 z-50 origin-(--transform-origin) outline-hidden";
+
+/** The calendar's popup: the shared popover, or one kept inside a drawer. */
+function CalendarPopup({
+  container,
+  ...props
+}: ComponentProps<typeof PopoverContent> & {
+  container?: RefObject<HTMLElement | null> | null;
+}) {
+  if (!container) {
+    return (
+      <PopoverContent align="start" className="w-auto gap-0 p-0" {...props} />
+    );
+  }
+  return (
+    <PopoverPrimitive.Portal container={container}>
+      <PopoverPrimitive.Positioner
+        align="start"
+        className="isolate z-50"
+        collisionPadding={8}
+        positionMethod="absolute"
+        sideOffset={4}
+      >
+        <PopoverPrimitive.Popup
+          className={POPUP_CLASSES}
+          data-slot="popover-content"
+          {...props}
+        />
+      </PopoverPrimitive.Positioner>
+    </PopoverPrimitive.Portal>
+  );
 }
 
 /** Days outside `min`…`max` cannot be picked. */
@@ -82,6 +128,7 @@ export function FormDateField({
   min,
   onChange,
   placeholder,
+  portalContainer,
   required,
   value,
 }: FormDateFieldProps) {
@@ -130,9 +177,8 @@ export function FormDateField({
         </span>
         <ChevronDown aria-hidden="true" className="text-muted-foreground" />
       </PopoverTrigger>
-      <PopoverContent
-        align="start"
-        className="w-auto gap-0 p-0"
+      <CalendarPopup
+        container={portalContainer}
         initialFocus={dayToFocus}
         ref={calendar}
       >
@@ -160,7 +206,7 @@ export function FormDateField({
             </Button>
           </div>
         ) : null}
-      </PopoverContent>
+      </CalendarPopup>
     </Popover>
   );
 }

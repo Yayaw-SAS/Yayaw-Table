@@ -1,4 +1,4 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Locator, type Page, test } from "@playwright/test";
 
 const VIEWS = "/?example=views";
 const STANDALONE = "/?example=form";
@@ -15,6 +15,17 @@ const BULK_EDIT = /^(Edit|Bulk edit)$/;
 /** Selects are the table's own listboxes in both editions. */
 const choose = async (page: Page, name: string, option: string) => {
   await page.getByRole("combobox", { name, exact: true }).click();
+  await page.getByRole("option", { name: option, exact: true }).click();
+};
+
+/** The same, for a select inside a part of the page (a dialog, a group). */
+const chooseIn = async (
+  page: Page,
+  scope: Locator,
+  name: string,
+  option: string
+) => {
+  await scope.getByRole("combobox", { name, exact: true }).first().click();
   await page.getByRole("option", { name: option, exact: true }).click();
 };
 
@@ -130,7 +141,9 @@ test("steps layout: progress, Back/Next/Skip, conditional steps, review and subm
   await expect(page.getByText(REQUEST_SUCCESS)).toBeVisible();
 });
 
-test("the rule editor adds a rule and shows its summary", async ({ page }) => {
+test("the rule editor edits conditions in a dialog and shows their summary", async ({
+  page,
+}) => {
   await page.goto(VIEWS);
   await page.getByRole("tab", { name: "Request", exact: true }).click();
   const wanted = page.getByRole("button", { name: WANTED_BY });
@@ -143,24 +156,71 @@ test("the rule editor adds a rule and shows its summary", async ({ page }) => {
     page.locator('[data-form-setting-question="serialNumber"]')
   ).toContainText("Shown when Category is Hardware");
 
+  // The side panel keeps a status and "Edit conditions"; the editor opens wide.
   await page.getByRole("button", { name: "Edit Due" }).click();
   const due = page.locator('[data-form-setting-question="dueDate"]');
-  await due.getByRole("button", { name: "Add a condition" }).click();
-  await expect(due.locator("[data-rule-issue]")).toHaveText(
-    "Choose a question."
+  await expect(due.locator("[data-form-rules]")).toContainText("Always shown.");
+  await due.getByRole("button", { name: "Edit conditions" }).click();
+  const dialog = page.getByRole("dialog", { name: "Conditions for Wanted by" });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("button", { name: "Add a condition" }).click();
+  const issue = dialog.locator("[data-rule-issue]");
+  await expect(issue).toHaveText("Choose a question.");
+  const question = dialog.getByRole("combobox", {
+    name: "Question",
+    exact: true,
+  });
+  await expect(question).toHaveAttribute("aria-invalid", "true");
+  await expect(question).toHaveAccessibleDescription("Choose a question.");
+  await chooseIn(page, dialog, "Question", "Category");
+  await expect(issue).toHaveText("Enter a value.");
+  await chooseIn(page, dialog, "Value", "Software");
+  await expect(issue).toHaveCount(0);
+
+  // A nested group: an indented card with its own All/Any toggle.
+  await dialog.getByRole("button", { name: "Add group" }).click();
+  const group = dialog.locator("[data-rule-group]");
+  await expect(group.getByRole("radio", { name: "Any" })).toBeChecked();
+  await chooseIn(page, group, "Question", "Budget");
+  await chooseIn(page, group, "Comparison", ">");
+  const amount = group.getByRole("textbox", { name: "Value", exact: true });
+  await amount.fill("1000");
+  await amount.press("Enter");
+  await group.getByRole("button", { name: "Add condition" }).click();
+  await chooseIn(
+    page,
+    group.locator("[data-rule-condition]").nth(1),
+    "Question",
+    "Budget"
   );
-  await choose(page, "Question", "Category");
-  await expect(due.locator("[data-rule-issue]")).toHaveText("Enter a value.");
-  await choose(page, "Value", "Software");
-  await expect(due.locator("[data-rule-issue]")).toHaveCount(0);
+  await chooseIn(
+    page,
+    group.locator("[data-rule-condition]").nth(1),
+    "Comparison",
+    "is empty"
+  );
+  await expect(issue).toHaveCount(0);
+  // Every condition keeps a short, complete comparison.
+  await expect(
+    group.getByRole("combobox", { name: "Comparison", exact: true }).nth(1)
+  ).toContainText("is empty");
+  // Escape closes the dialog only; the settings stay open with the summary.
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(due).toBeVisible();
   await expect(due.locator("[data-form-rule-summary]")).toHaveText(
-    "Shown when Category is Software"
+    "Shown when Category is Software and (Budget > 1000 or Budget is empty)"
   );
   await page.keyboard.press("Escape");
-  await expect(menu).toBeHidden();
+  await expect(due).toBeHidden();
 
   await expect(wanted).toHaveCount(0);
   await choose(page, "Category", "Software");
+  await expect(wanted).toBeVisible();
+  const budget = page.getByRole("textbox", { name: "Budget" });
+  await budget.fill("500");
+  await expect(wanted).toHaveCount(0);
+  await budget.fill("2000");
   await expect(wanted).toBeVisible();
 });
 
