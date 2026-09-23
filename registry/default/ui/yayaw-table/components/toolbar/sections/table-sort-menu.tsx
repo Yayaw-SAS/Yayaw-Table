@@ -1,9 +1,18 @@
 "use client";
 
-import { ArrowDownAZ, ArrowUpAZ, ArrowUpDown, Plus } from "lucide-react";
+import {
+  ArrowDownAZ,
+  ArrowUpAZ,
+  ArrowUpDown,
+  GripVertical,
+  Plus,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDataTable } from "../../../hooks/use-data-table";
-import { useTranslations } from "../../../providers/table-provider";
+import {
+  useTableActions,
+  useTranslations,
+} from "../../../providers/table-provider";
 import type { SortingState } from "../../../tanstack";
 import {
   StackMenuContent,
@@ -11,6 +20,12 @@ import {
   StackMenuView,
   useStackMenu,
 } from "../../../ui-custom/stack-menu";
+import {
+  isManualOrder,
+  MANUAL_ORDER_SORT_ID,
+  manualOrderSorting,
+} from "../../../utils/manual-order";
+import { translateWithFallback } from "../../filters/i18n-utils";
 
 export interface TableSortMenuProps {
   columns: Array<{
@@ -36,7 +51,11 @@ export function cycleColumnSort(
 ): SortingState {
   const current = sorting.find((sort) => sort.id === columnId);
   if (!current) {
-    return [...sorting, { desc: false, id: columnId }];
+    // A view's manual order cannot be combined with column sorts.
+    const columnSorts = sorting.filter(
+      (sort) => sort.id !== MANUAL_ORDER_SORT_ID
+    );
+    return [...columnSorts, { desc: false, id: columnId }];
   }
   if (current.desc) {
     return sorting.filter((sort) => sort.id !== columnId);
@@ -73,6 +92,11 @@ export function TableSortMenu({
     tableId,
     tableType: tableType || tableId,
   });
+  const getTableActions = useTableActions();
+  const canSortManually =
+    config?.table?.manualOrder === true &&
+    typeof getTableActions?.(tableType || tableId)?.reorder === "function";
+  const manualActive = isManualOrder(sorting);
 
   // Get sortable columns
   const sortableColumns = columns.filter((col) => {
@@ -127,6 +151,26 @@ export function TableSortMenu({
           </Button>
         </div>
 
+        {canSortManually && (
+          <StackMenuItem
+            className={`h-7 gap-2 px-2 text-sm ${manualActive ? "bg-accent font-medium" : ""}`}
+            icon={
+              <GripVertical
+                className={`h-3.5 w-3.5 ${manualActive ? "text-foreground" : "text-muted-foreground"}`}
+              />
+            }
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setSorting(manualActive ? [] : manualOrderSorting());
+              stackMenu.onOpenChange?.(true);
+            }}
+          >
+            <span>
+              {translateWithFallback(t, "sorting.manual", "Manual order")}
+            </span>
+          </StackMenuItem>
+        )}
         {orderedColumns.map((column) => {
           const priority = sorting.findIndex((sort) => sort.id === column.id);
           const sortOrder = sorting[priority]?.desc;

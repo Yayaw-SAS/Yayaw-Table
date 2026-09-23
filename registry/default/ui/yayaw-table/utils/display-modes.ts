@@ -32,7 +32,7 @@ export const DISPLAY_MODES = {
     maxGroups: 2,
   },
   list: {
-    capabilities: NO_TABLE_CONTROLS,
+    capabilities: { calculations: false, columns: false, density: true },
     configKey: "list",
     maxGroups: 1,
   },

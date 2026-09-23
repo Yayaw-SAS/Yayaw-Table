@@ -739,6 +739,7 @@ function DataTableContent({
             inlineEdit: config.table.inlineEdit,
             gallery: config.table.gallery,
             list: config.table.list,
+            manualOrder: config.table.manualOrder,
             planning: config.table.planning,
             gantt: config.table.gantt,
             kanban: config.table.kanban,

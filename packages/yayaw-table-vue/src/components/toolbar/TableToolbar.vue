@@ -12,6 +12,7 @@ import {
   Table2,
   ChevronRight,
   Layers,
+  GripVertical,
   List,
   ListFilter,
   Plus,
@@ -43,6 +44,7 @@ import GanttSettings from "./GanttSettings.vue";
 import { planningLabelOverrides } from "../../planning/labels";
 import { ganttSettingsLabels } from "../../planning/settings";
 import { availableDisplayModes } from "../../view-menu";
+import { isManualOrder, MANUAL_ORDER_SORT_ID, manualOrderSorting } from "../../manual-order";
 import GallerySettings from "./GallerySettings.vue";
 import ListSettings from "./ListSettings.vue";
 import KanbanSettings from "./KanbanSettings.vue";
@@ -314,14 +316,24 @@ const setVisible = (column: ColumnDefinition, visible: boolean): void => {
     [column.id]: visible,
   };
 };
+const canSortManually = computed(
+  () =>
+    context.config.table.manualOrder === true &&
+    typeof context.actions.value?.reorder === "function"
+);
+const manualSortActive = computed(() => isManualOrder(context.state.sorting.value));
+const toggleManualSort = (): void => {
+  context.state.sorting.value = manualSortActive.value ? [] : manualOrderSorting();
+};
 const addSort = (): void => {
-  const used = new Set(context.state.sorting.value.map((sort) => sort.id));
+  // A view's manual order cannot be combined with column sorts.
+  const current = context.state.sorting.value.filter(
+    (sort) => sort.id !== MANUAL_ORDER_SORT_ID
+  );
+  const used = new Set(current.map((sort) => sort.id));
   const column = sortableColumns.value.find((item) => !used.has(item.id));
   if (column) {
-    context.state.sorting.value = [
-      ...context.state.sorting.value,
-      { id: column.id, desc: false },
-    ];
+    context.state.sorting.value = [...current, { id: column.id, desc: false }];
   }
 };
 const updateSortColumn = (index: number, columnId: string): void => {
@@ -598,8 +610,18 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
             </div>
 
             <div v-else-if="optionsView === 'sort'" class="yayaw-options-content">
+              <button
+                v-if="canSortManually"
+                type="button"
+                class="yayaw-button yayaw-button-outline"
+                :aria-pressed="manualSortActive"
+                @click="toggleManualSort"
+              >
+                <GripVertical :size="15" aria-hidden="true" />
+                {{ translate("manualOrder", "Manual order") }}
+              </button>
               <div
-                v-for="(sort, index) in context.state.sorting.value"
+                v-for="(sort, index) in manualSortActive ? [] : context.state.sorting.value"
                 :key="`${sort.id}-${index}`"
                 class="yayaw-options-rule"
               >

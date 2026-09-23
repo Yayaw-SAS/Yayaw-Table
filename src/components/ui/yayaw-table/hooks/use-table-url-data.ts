@@ -12,6 +12,7 @@ import { rowSelectionAtom } from "../atoms/table-atoms";
 import { processServerFilters } from "../utils/server-filters";
 
 import { invalidateAndRefetchTableData } from "./query-cache-utils";
+import { isManualOrder } from "../utils/manual-order";
 import { useTableUrlState } from "./use-table-url-state";
 
 const _DEBUG = false;
@@ -153,6 +154,7 @@ export function useTableUrlData<TData>({
     pagination,
     sortParam,
     globalSearchParam,
+    viewParam,
   } = useTableUrlState({
     defaultPageSize: resolvedDefaultPageSize,
     enabled: syncUrl,
@@ -314,6 +316,8 @@ export function useTableUrlData<TData>({
       "tableData",
       tableId,
       JSON.stringify(sortParam),
+      // A manual order is the view's own, so another view is another result.
+      isManualOrder(sortParam) ? (viewParam ?? "") : "",
       JSON.stringify(filtersParam),
       JSON.stringify(advancedFiltersParam),
       globalSearchParam || "",

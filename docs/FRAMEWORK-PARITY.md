@@ -603,5 +603,28 @@ omitted from properties and lines are sectioned by the first grouping level
 (`maxGroups: 1`), headed "Column: value" with a count; empty values read
 "No value". Settings are saved in views and in the `<tableId>-list` URL key, and
 resetting a view restores `table.list`. The list uses the current page, like
-Gallery and Kanban. Covered by `tests/list-view.test.ts`, Vue
+Gallery and Kanban. Density applies to lines as to table rows: both editions
+size them from the shared `TABLE_DENSITY_METRICS`, and the density control is
+offered in List mode through the registry's `capabilities.density`. Covered by `tests/list-view.test.ts`, Vue
 `use-table-state.test.ts` and Playwright `e2e/views.spec.ts` in both editions.
+
+## Manual order per view
+
+`table.manualOrder: true` plus `actions.reorder` offer "Manual order" in both
+sort menus (`sorting.manual`; Vue `manualOrder`). It is the sort
+`[{ id: "__manual", desc: false }]`, replaces column sorts, and is saved with
+views and URLs like any sort. List requests with it also carry `viewId`, the
+active saved view or `null` for the default view; the host sorts by that view's
+own order. Records are never modified.
+
+While the List view uses this sort and editing is allowed, each line shows a
+drag handle driven by pointer events in both editions, so mouse, touch and pen
+behave alike (native drag and drop ignores touch), and a focused line moves
+with Alt+ArrowUp/ArrowDown. Lines move only within their group; the target
+line shows a top marker. The move shows immediately, calls
+`reorder({ viewId, id, previousId, nextId }, { row })` and refetches; a failure
+shows the error and the next result restores the server order. `canEditRow`
+applies. Shared helpers live in `utils/manual-order.ts`; covered by
+`tests/manual-order-suite.ts` in both editions and Playwright
+`e2e/views.spec.ts`, including a touch drag sent through Chromium's input
+protocol.

@@ -505,6 +505,12 @@ export interface TableBehaviorConfig {
   list?: import("../types/display-types").TableListConfig;
 
   /**
+   * Offer "Manual order" in the sort menu. Each view keeps its own order,
+   * stored by `actions.reorder`; records are never modified.
+   */
+  manualOrder?: boolean;
+
+  /**
    * Empty/no-results state behavior.
    */
   emptyState?: TableEmptyStateConfig;

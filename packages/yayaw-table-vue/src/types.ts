@@ -269,6 +269,8 @@ export interface TableBehaviorConfig<TData extends TableRecord = TableRecord> {
   kanban?: TableKanbanConfig;
   gallery?: TableGalleryConfig;
   list?: TableListConfig;
+  /** Offer "Manual order" in the sort menu; each view keeps its own order via `actions.reorder`. */
+  manualOrder?: boolean;
   emptyState?: TableEmptyStateConfig;
   defaultPageSize: number;
   /** Enable the column drag-and-drop feature and its controls. */
@@ -793,6 +795,15 @@ export interface TableActions<TData extends TableRecord = TableRecord> {
     ids: string[],
     data: TableRecord
   ) => MaybePromise<TableActionResult<TData[]>>;
+  /**
+   * Store a view's manual order. Required for the "Manual order" sort; the
+   * host keeps one order per view and applies it when `list` receives the
+   * `__manual` sort with `viewId`.
+   */
+  reorder?: (
+    move: import("./manual-order").ManualOrderMove,
+    context?: { row: Readonly<TableRecord> }
+  ) => Promise<{ success: boolean; error?: string }>;
   views?: TableViewActions;
   [key: string]: unknown;
 }

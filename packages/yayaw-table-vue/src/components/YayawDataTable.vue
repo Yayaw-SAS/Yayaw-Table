@@ -210,6 +210,7 @@ const tableData = useTableData({
   queryClient,
   searchDebounceMs,
   tableId: config.id,
+  viewId: state.activeViewId,
 });
 const selection = ref<Record<string, boolean>>({ ...props.rowSelection });
 const selectedRowCache = ref<Record<string, TableRecord>>({});

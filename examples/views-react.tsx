@@ -4,7 +4,12 @@ import { useMemo } from "react";
 import { DataTable } from "../src/components/ui/yayaw-table/components/data-table";
 import { defineTableConfig } from "../src/components/ui/yayaw-table/config/helpers";
 import type { TableActions } from "../src/components/ui/yayaw-table/providers/table-provider";
-import { viewsColumns, viewsRows, viewsTableOptions } from "./views";
+import {
+  createViewsActions,
+  viewsColumns,
+  viewsRows,
+  viewsTableOptions,
+} from "./views";
 
 /** Switch display modes and save views; the state lives in the URL. */
 export function ViewsExample() {
@@ -23,16 +28,7 @@ export function ViewsExample() {
       }),
     []
   );
-  const actions = useMemo<TableActions>(
-    () => ({
-      list: () =>
-        Promise.resolve({
-          data: viewsRows,
-          meta: { pageCount: 1, totalCount: viewsRows.length },
-        }),
-    }),
-    []
-  );
+  const actions = useMemo<TableActions>(() => createViewsActions(), []);
   return (
     <main className="mx-auto max-w-6xl space-y-6 p-6">
       <h1 className="font-semibold text-2xl">Views</h1>

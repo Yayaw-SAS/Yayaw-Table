@@ -139,6 +139,15 @@ export interface TableActions {
     fieldErrors?: Record<string, string>;
     failedIds?: string[];
   }>;
+  /**
+   * Store a view's manual order. Required for the "Manual order" sort; the
+   * host keeps one order per view and applies it when `list` receives the
+   * `__manual` sort with `viewId`.
+   */
+  reorder?: (
+    move: import("../utils/manual-order").ManualOrderMove,
+    context?: TableMutationContext
+  ) => Promise<{ success: boolean; error?: string }>;
   views?: TableViewActions;
   [key: string]: unknown;
 }
