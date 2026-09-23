@@ -89,7 +89,7 @@ const focusName = (event: Event): void => {
           :aria-label="`${label('views.current', 'currentView')}: ${currentLabel}`" :disabled="loading || busy">
           <LayoutList :size="16" aria-hidden="true" /><span class="yayaw-view-name">{{ currentLabel }}</span>
           <span v-if="dirty" class="yayaw-view-dirty" role="status" :aria-label="label('views.modified', 'viewModified')" />
-          <ChevronDown :size="12" aria-hidden="true" />
+          <ChevronDown v-if="!compact" :size="12" aria-hidden="true" />
         </button>
       </template>
         <div v-if="!showTabs" class="yayaw-view-selection">

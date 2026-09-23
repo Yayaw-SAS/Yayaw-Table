@@ -2,6 +2,7 @@ import { Search, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import { useIsMobile } from "../../../hooks/use-mobile";
 import { useTableUrlState } from "../../../hooks/use-table-url-state";
 import { useTranslations } from "../../../providers/table-provider";
@@ -136,7 +137,11 @@ const SearchBar = ({
     <div className="relative">
       <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
       <Input
-        className="h-8 w-40 pr-8 pl-9 text-xs leading-4 sm:w-64 md:text-xs"
+        className={cn(
+          "h-8 w-40 pr-8 pl-9 text-xs leading-4 sm:w-64 md:text-xs",
+          // Same height as the touch-size toolbar buttons.
+          isMobile && "h-11 text-sm md:text-sm"
+        )}
         onChange={(e) => {
           // Capture focus and caret before any potential remount
           wasFocusedRef.current = document.activeElement === inputRef.current;

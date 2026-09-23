@@ -2,7 +2,7 @@
 import { Search, X } from "lucide-vue-next";
 import { nextTick, ref } from "vue";
 
-const props = defineProps<{ label: string; compact?: boolean }>();
+const props = defineProps<{ label: string; clearLabel: string; compact?: boolean }>();
 const search = defineModel<string>({ required: true });
 const input = ref<HTMLInputElement>();
 // Touch layouts show a search button; the field opens on demand and stays open while it filters.
@@ -30,6 +30,6 @@ const close = (): void => {
     <Search :size="16" aria-hidden="true" class="yayaw-search-icon" />
     <input ref="input" v-model="search" type="search" class="yayaw-input yayaw-search" :placeholder="props.label" :aria-label="props.label"
       @keydown.escape="props.compact && close()" />
-    <button v-if="props.compact" type="button" class="yayaw-search-clear" :aria-label="props.label" @click="close"><X :size="16" aria-hidden="true" /></button>
+    <button v-if="props.compact" type="button" class="yayaw-search-clear" :aria-label="props.clearLabel" @click="close"><X :size="16" aria-hidden="true" /></button>
   </div>
 </template>

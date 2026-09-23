@@ -2274,6 +2274,12 @@
   height: 44px;
   padding-right: 36px;
 }
+/* The toolbar draws its own clear button; hide the browser's one. */
+.yayaw-search::-webkit-search-cancel-button,
+.yayaw-search::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
 .yayaw-search-clear {
   position: absolute;
   right: 4px;

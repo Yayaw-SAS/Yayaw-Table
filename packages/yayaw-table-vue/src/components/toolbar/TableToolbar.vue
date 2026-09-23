@@ -427,7 +427,7 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
   <div ref="toolbarRoot" class="yayaw-toolbar" :data-compact="compact" data-table-toolbar>
     <SavedViews :initial-views="initialViews" :enabled="context.config.table.enableViews" :compact="compact" />
     <div class="yayaw-toolbar-end">
-    <ToolbarSearch v-if="context.config.table.enableColumnFilters !== false" v-model="search" :label="translate('search', 'Search…')" :compact="compact" />
+    <ToolbarSearch v-if="context.config.table.enableColumnFilters !== false" v-model="search" :label="translate('search', 'Search…')" :clear-label="translate('reset', 'Reset')" :compact="compact" />
     <ToolbarDataActions v-if="!compact && actionItems.length" :show-search="false" :show-share="false" :items="actionItems" :actions-as-icons="actionsAsIcons" :compact="compact" v-model:search="search"
       :search-label="translate('search', 'Search…')" :export-label="translate('export', 'Export')" :share-label="translate('url_state.share', 'Share')"
       :pending-action="pendingAction" :is-exporting="isExporting" :disabled="toolbarActionDisabled" :variant="toolbarActionVariant"

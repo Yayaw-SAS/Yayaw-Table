@@ -486,7 +486,9 @@ function renderViewTrigger({
           className="size-2 shrink-0 rounded-full bg-blue-500"
         />
       ) : null}
-      <ChevronDown aria-hidden="true" className="size-3 shrink-0" />
+      {compact ? null : (
+        <ChevronDown aria-hidden="true" className="size-3 shrink-0" />
+      )}
     </Button>
   );
 }
