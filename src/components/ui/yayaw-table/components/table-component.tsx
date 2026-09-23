@@ -279,7 +279,8 @@ export const resolveEffectiveRowClickMode = ({
     return "link";
   }
 
-  return "none";
+  // Opens the record view (built-in details, onOpenDetails or onRowActivate).
+  return "activate";
 };
 
 export const shouldIgnoreRowClickTarget = (target: EventTarget | null) => {

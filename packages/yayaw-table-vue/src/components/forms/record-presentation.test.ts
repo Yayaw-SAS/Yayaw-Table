@@ -134,7 +134,7 @@ for (const presentation of ["drawer", "modal", "inline"] as const) {
     expect(document.querySelector(".yayaw-record-surface")).toBe(surface);
     expect(document.querySelector(".yayaw-detail")).not.toBeNull();
     if (presentation === "inline") {
-      await button("Create").trigger("click");
+      await button("Add item").trigger("click");
       await settle();
       expect(document.querySelectorAll(".yayaw-record-surface")).toHaveLength(
         1
@@ -147,7 +147,7 @@ for (const presentation of ["drawer", "modal", "inline"] as const) {
   });
   it(`applies the shared ${presentation} setting to create ahead of the legacy form setting`, async () => {
     mountTable(presentation);
-    await button("Create").trigger("click");
+    await button("Add item").trigger("click");
     await settle();
     expect(
       document

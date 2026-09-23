@@ -105,7 +105,9 @@ describe("RecordDetails", () => {
     expect(onOpenDetails).toHaveBeenCalledTimes(2);
     expect(wrapper.emitted("rowActivate")).toHaveLength(1);
     expect(body.find(".yayaw-detail").exists()).toBe(false);
-    await wrapper.setProps({ onOpenDetails: undefined, details: undefined });
+    // `details: false` explicitly turns off the built-in record view (unlike
+    // `undefined`, which now falls back to it) so the actions menu can empty out.
+    await wrapper.setProps({ onOpenDetails: undefined, details: false });
     expect(wrapper.find('[aria-label="Open actions menu"]').exists()).toBe(
       false
     );

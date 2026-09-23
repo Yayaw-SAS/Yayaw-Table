@@ -7,6 +7,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { nextTick } from "vue";
 import {
+  chooseDisplayMode,
   inlineTestPortals,
   openViewMenu,
   openViewSave,
@@ -107,18 +108,18 @@ describe("YayawDataTable", () => {
   it("switches between table, kanban and gallery", async () => {
     const wrapper = mount(YayawDataTable, {
       props: { tableType: "test", config, data, syncUrl: false },
+      global: {
+        stubs: {
+          PopperArrow: true,
+          PopperContent: { template: "<div><slot /></div>" },
+        },
+      },
     });
-    await openViewMenu(wrapper);
-    const buttons = wrapper.findAll(
-      "fieldset.yayaw-display-mode-inline button"
-    );
-    await buttons
-      .find((button) => button.text() === "Kanban")
-      ?.trigger("click");
+    // Non-compact toolbars offer display modes through a `TableSelect`
+    // instead of the segmented `fieldset` buttons.
+    await chooseDisplayMode(wrapper, "Kanban");
     expect(wrapper.find(".yayaw-kanban").exists()).toBe(true);
-    await buttons
-      .find((button) => button.text() === "Gallery")
-      ?.trigger("click");
+    await chooseDisplayMode(wrapper, "Gallery");
     expect(wrapper.find(".yayaw-gallery").exists()).toBe(true);
   });
 
@@ -314,7 +315,7 @@ describe("YayawDataTable", () => {
     });
     expect(wrapper.get(".yayaw-view-trigger").text()).toContain("Default view");
     expect(wrapper.get('[aria-label="Export"]').text()).toBe("");
-    expect(wrapper.get('[aria-label="Create"]').text()).toBe("");
+    expect(wrapper.get('[aria-label="Add item"]').text()).toBe("");
     expect(wrapper.get('[aria-label="Refresh"]').text()).toBe("R");
     expect(wrapper.get('[aria-label="Refresh"]').classes()).toContain(
       "yayaw-button-ghost"
@@ -367,8 +368,8 @@ describe("YayawDataTable", () => {
     const labels = wrapper
       .findAll(".yayaw-toolbar button")
       .map((button) => button.attributes("aria-label") ?? button.text());
-    expect(labels.indexOf("Run")).toBeLessThan(labels.indexOf("Create"));
-    expect(labels.at(-1)).toBe("Create");
+    expect(labels.indexOf("Run")).toBeLessThan(labels.indexOf("Add item"));
+    expect(labels.at(-1)).toBe("Add item");
     expect(labels.indexOf("Export")).toBeLessThan(labels.indexOf("Run"));
     const runButton = wrapper
       .findAll("button")
@@ -458,6 +459,9 @@ describe("YayawDataTable", () => {
         tableType: "test",
         config: restrictedConfig,
         data,
+        // The built-in record view is unrelated to these permission gates and
+        // would otherwise keep an "Infos" entry (and the trigger) in the menu.
+        details: false,
         getTableActions: () => ({
           create: async () => ({ success: true }),
           update: async () => ({ success: true }),
@@ -469,7 +473,7 @@ describe("YayawDataTable", () => {
         syncUrl: false,
       },
     });
-    expect(wrapper.find('[aria-label="Create"]').exists()).toBe(false);
+    expect(wrapper.find('[aria-label="Add item"]').exists()).toBe(false);
     expect(wrapper.find('[aria-label="Export"]').exists()).toBe(false);
     expect(wrapper.find('[aria-label="Open actions menu"]').exists()).toBe(
       false
@@ -624,11 +628,9 @@ describe("YayawDataTable", () => {
     expect(wrapper.find(".yayaw-inline-editor").exists()).toBe(false);
     await wrapper.get("tbody tr").trigger("click");
     expect(wrapper.find(".yayaw-dialog-backdrop").exists()).toBe(false);
-    await openViewMenu(wrapper);
-    await wrapper
-      .findAll("fieldset.yayaw-display-mode-inline button")
-      .find((button) => button.text() === "Kanban")
-      ?.trigger("click");
+    // Non-compact toolbars offer display modes through a `TableSelect`
+    // instead of the segmented `fieldset` buttons.
+    await chooseDisplayMode(wrapper, "Kanban");
     expect(wrapper.get(".yayaw-kanban-card").attributes("draggable")).toBe(
       "false"
     );
@@ -798,7 +800,7 @@ describe("YayawDataTable", () => {
     });
     await wrapper
       .findAll("button")
-      .find((button) => button.text() === "Create")
+      .find((button) => button.text() === "Add item")
       ?.trigger("click");
     await flushPromises();
     expect(

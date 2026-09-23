@@ -716,3 +716,13 @@ current list parameters and action, local rows, row id, permissions,
 mutation. React translation keys are `views.calendar.*`; Vue keys are
 `calendar.*` with English and French defaults. `tests/calendar-model-suite.ts`
 runs in both editions and `e2e/calendar.spec.ts` covers both demos.
+
+## Row click and display mode picker
+
+Both editions resolve `rowClickMode: "default"` the same way: the edit form
+with `enableRowClickEdit`, the link of a row-link column, otherwise the record
+view (`onOpenDetails`, else the built-in details derived from the columns).
+`details: false` removes the built-in view. The view menu offers display modes
+in a select (React Base UI Select, Vue `TableSelect`); compact toolbars and
+touch drawers keep the wrapping buttons. The create button reads the
+`add_an_item` key in both editions.

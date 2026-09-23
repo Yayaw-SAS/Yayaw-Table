@@ -278,6 +278,10 @@
   margin: 8px;
   border: 0;
 }
+.yayaw-display-mode-select {
+  min-width: 0;
+  margin: 8px;
+}
 .yayaw-choice-inline legend {
   padding: 0;
   margin-bottom: 4px;

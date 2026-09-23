@@ -4,9 +4,13 @@ import {
   flushPromises,
   mount,
 } from "@vue/test-utils";
-import { afterEach, beforeEach, expect, it } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import densityScale from "../../../../../tests/fixtures/density-scale.json";
-import { inlineTestPortals, openViewMenu } from "../../../tests/menu-helpers";
+import {
+  chooseDisplayMode,
+  inlineTestPortals,
+  openViewMenu,
+} from "../../../tests/menu-helpers";
 import { defineTableConfig } from "../../config";
 import { isTableDensity } from "../../table-contracts";
 import YayawDataTable from "../YayawDataTable.vue";
@@ -54,6 +58,7 @@ enableAutoUnmount((unmount) =>
   afterEach(() => {
     unmount();
     document.body.replaceChildren();
+    vi.unstubAllGlobals();
   })
 );
 beforeEach(() => window.history.replaceState({}, "", "/"));
@@ -83,12 +88,13 @@ it("uses the configured density, updates only its instance and retains it across
   );
   expect(config.table.density).toBe("extra-extra-large");
 
-  const modes = wrapper
-    .get("fieldset.yayaw-display-mode-inline")
-    .findAll("button");
-  await modes[1]?.trigger("click");
+  // Non-compact toolbars drive the display mode through a `TableSelect`
+  // rather than the segmented `fieldset` buttons (compact toolbars only).
+  await chooseDisplayMode(wrapper, "Galerie", "Mode d’affichage");
+  await settle();
   expect(wrapper.find(".yayaw-density-inline").exists()).toBe(false);
-  await modes[0]?.trigger("click");
+  await chooseDisplayMode(wrapper, "Tableau", "Mode d’affichage");
+  await settle();
   expect(wrapper.get(".yayaw-table").attributes("data-density")).toBe(
     "extra-small"
   );
@@ -151,9 +157,21 @@ it("names the density choices directly in the view menu without requiring a tool
 });
 
 it("keeps labelled display choices keyboard accessible and preserves pressed state", async () => {
+  // This test targets the segmented `fieldset` buttons specifically, which
+  // only render in a compact toolbar; a non-compact toolbar uses a select.
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn(() => ({
+      matches: true,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }))
+  );
   const wrapper = mountTable();
   await openViewMenu(wrapper);
-  const group = wrapper.get("fieldset.yayaw-display-mode-inline");
+  // A compact toolbar renders its settings dialog through a `DialogPortal`
+  // (teleported to `document.body`), unlike the inline popover content.
+  const group = body().get("fieldset.yayaw-display-mode-inline");
   const buttons = group.findAll("button");
   expect(buttons).toHaveLength(2);
   expect(buttons[0]?.attributes("aria-pressed")).toBe("true");

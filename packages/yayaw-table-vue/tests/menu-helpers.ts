@@ -54,3 +54,27 @@ export async function openViewSave(wrapper: VueWrapper): Promise<void> {
 }
 
 export const menuBody = () => new DOMWrapper(document.body);
+
+// In a non-compact toolbar the view menu offers display modes through a
+// `TableSelect` (Reka UI Select) instead of the segmented `fieldset` buttons;
+// compact toolbars still render the buttons. `selectLabel` and `optionLabel`
+// are the translated strings shown for the active locale.
+export async function chooseDisplayMode(
+  wrapper: VueWrapper,
+  optionLabel: string,
+  selectLabel = "Display mode"
+): Promise<void> {
+  await openViewMenu(wrapper);
+  await flushPromises();
+  const trigger = wrapper.get(`[role="combobox"][aria-label="${selectLabel}"]`);
+  await trigger.trigger("keydown", { key: "Enter" });
+  await flushPromises();
+  const option = menuBody()
+    .findAll('[role="option"]')
+    .find((item) => item.text() === optionLabel);
+  if (!option) {
+    throw new Error(`Missing display mode option: ${optionLabel}`);
+  }
+  await option.trigger("keydown", { key: "Enter" });
+  await flushPromises();
+}

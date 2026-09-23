@@ -44,11 +44,12 @@ const openViewMenu = async (page: Page) => {
 const displayModes = (page: Page) =>
   page
     .getByRole("dialog", { name: "Views and settings" })
-    .getByRole("group", { name: "Display mode" });
+    .getByRole("combobox", { name: "Display mode" });
 
 const chooseMode = async (page: Page, mode: RegExp) => {
   await openViewMenu(page);
-  await displayModes(page).getByRole("button", { name: mode }).click();
+  await displayModes(page).click();
+  await page.getByRole("option", { name: mode }).click();
 };
 
 const expectMode = async (page: Page, mode: RegExp) => {
@@ -58,9 +59,10 @@ const expectMode = async (page: Page, mode: RegExp) => {
     await expect(menu).toBeHidden();
   }
   await openViewMenu(page);
-  await expect(
-    displayModes(page).getByRole("button", { name: mode })
-  ).toHaveAttribute("aria-pressed", "true");
+  // The trigger may add a chevron glyph after the label.
+  await expect(displayModes(page)).toHaveText(
+    new RegExp(mode.source.replace("$", ""), "i")
+  );
   await page.keyboard.press("Escape");
 };
 
@@ -340,4 +342,13 @@ test("both editions share the table and card look", async ({ page }) => {
     return { size: style.fontSize, weight: style.fontWeight };
   });
   expect(titleStyle).toEqual({ size: "14px", weight: "500" });
+});
+
+test("a row click opens the record view and both editions name the create button alike", async ({
+  page,
+}) => {
+  await expect(page.getByRole("button", { name: "Add item" })).toBeVisible();
+  await page.getByRole("cell", { name: "Charlie display" }).click();
+  await expect(page.getByText("Activity").first()).toBeVisible();
+  await expect(page.getByText("Charlie display").nth(1)).toBeVisible();
 });
