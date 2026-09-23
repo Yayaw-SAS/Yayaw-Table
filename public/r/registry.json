@@ -1209,6 +1209,11 @@
           "target": "components/ui/yayaw-table/utils/date-display.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/utils/display-modes.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/display-modes.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/utils/duplicate-shortcut.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/duplicate-shortcut.ts"

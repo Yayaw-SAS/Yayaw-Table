@@ -42,6 +42,7 @@ await copyFile(
 );
 
 for (const file of [
+  "display-modes.ts",
   "server-kanban.ts",
   "selection-interaction.ts",
   "selection-shortcuts.ts",

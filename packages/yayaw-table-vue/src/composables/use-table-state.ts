@@ -12,6 +12,7 @@ import {
   lockedColumnVisibility,
 } from "../column-locks";
 import { createTableViewSnapshot } from "../core";
+import { resolveDisplayMode, resolveDisplayModes } from "../display-modes";
 import { cloneFormValue } from "../form-runtime";
 import { normalizeGanttView } from "../planning/engine";
 import type { TableGanttViewConfig } from "../planning/types";
@@ -99,10 +100,13 @@ export const useTableState = <TData extends TableRecord>({
   config,
   syncUrl,
   initialActiveViewId,
+  planning = false,
 }: {
   config: TableConfig<TData>;
   syncUrl: boolean;
   initialActiveViewId?: string;
+  /** Whether a planning session exists; without one, links asking for Gantt fall back. */
+  planning?: boolean;
 }): TableStateRefs => {
   const tableId = config.id;
   const columnDragStorageKey = `${tableId}-column-drag-enabled`;
@@ -234,12 +238,15 @@ export const useTableState = <TData extends TableRecord>({
     config.table.enableColumnResizing
       ? normalizeColumnSizing(value, columnIds)
       : {};
-  const enabledDisplayMode = (
-    requested?: TableDisplayMode
-  ): TableDisplayMode =>
-    requested && config.table.displayModes?.includes(requested)
-      ? requested
-      : (config.table.defaultDisplayMode ?? "table");
+  const offeredDisplayModes = resolveDisplayModes(config.table.displayModes, {
+    planning,
+  });
+  const enabledDisplayMode = (requested?: TableDisplayMode): TableDisplayMode =>
+    resolveDisplayMode({
+      allowed: offeredDisplayModes,
+      fallback: config.table.defaultDisplayMode,
+      requested,
+    });
 
   const snapshot = computed<TableViewConfig>(() => ({
     ...createTableViewSnapshot({

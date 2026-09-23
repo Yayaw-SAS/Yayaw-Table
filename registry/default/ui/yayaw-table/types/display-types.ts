@@ -8,9 +8,8 @@ import type {
  * Display mode types shared by table configuration and saved views.
  */
 
+export type { TableDisplayMode } from "../utils/display-modes";
 export type { TableDensity } from "../utils/table-contracts";
-
-export type TableDisplayMode = "gallery" | "kanban" | "table" | "gantt";
 
 export type TableGalleryAspectRatio = "portrait" | "square" | "video" | "wide";
 

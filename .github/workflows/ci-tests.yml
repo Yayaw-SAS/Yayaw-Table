@@ -60,6 +60,12 @@ jobs:
       - name: Run Vue tests
         run: bun run vue:test
 
+      - name: Install Playwright browser
+        run: bunx playwright install --with-deps chromium
+
+      - name: Run end-to-end tests in both editions
+        run: bun run e2e
+
       - name: Build Vue package
         run: bun run vue:build
 

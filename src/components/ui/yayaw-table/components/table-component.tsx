@@ -81,6 +81,7 @@ import type { TableDensity, TableDisplayMode } from "../types/display-types";
 
 import { ColumnIcon } from "../utils/column-icons";
 import { buildCsvExportColumns } from "../utils/csv-export";
+import { resolveDisplayMode } from "../utils/display-modes";
 import type {
   DetailRevertHandler,
   RecordDetailsConfig,
@@ -361,14 +362,11 @@ function resolveActiveDisplayMode({
   displayModeParam: TableDisplayMode;
   displayModes: TableDisplayMode[];
 }): TableDisplayMode {
-  if (displayModes.includes(displayModeParam)) {
-    return displayModeParam;
-  }
-  if (defaultDisplayMode && displayModes.includes(defaultDisplayMode)) {
-    return defaultDisplayMode;
-  }
-
-  return displayModes[0] ?? "table";
+  return resolveDisplayMode({
+    allowed: displayModes,
+    fallback: defaultDisplayMode,
+    requested: displayModeParam,
+  });
 }
 
 function shouldUseKanbanDisplayMode({

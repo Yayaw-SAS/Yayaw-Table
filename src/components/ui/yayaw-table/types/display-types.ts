@@ -10,7 +10,7 @@ import type {
 
 export type { TableDensity } from "../utils/table-contracts";
 
-export type TableDisplayMode = "gallery" | "kanban" | "table" | "gantt";
+export type { TableDisplayMode } from "../utils/display-modes";
 
 export type TableGalleryAspectRatio = "portrait" | "square" | "video" | "wide";
 

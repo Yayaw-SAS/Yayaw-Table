@@ -49,7 +49,10 @@ export const defaultTranslations: Required<
   DataTableTranslations = {
   "views.view": "View",
   "views.settings": "Views and settings",
+  "display.table": "Table",
+  "display.kanban": "Kanban",
   "display.gantt": "Gantt",
+  "display.gallery": "Gallery",
   "views.cardSettings": "Card settings",
   "views.upToDate": "This view is already up to date",
   "views.readOnly": "This view cannot be modified",

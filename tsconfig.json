@@ -33,7 +33,11 @@
     "examples/record-presentation-preview/main.tsx",
     "examples/gantt-react.tsx",
     "examples/gantt-data.ts",
-    "examples/gantt-preview/main.tsx"
+    "examples/gantt-preview/main.tsx",
+    "examples/views.ts",
+    "examples/views-react.tsx",
+    "e2e/**/*.ts",
+    "playwright.config.ts"
   ],
   "exclude": ["node_modules", "dist", "registry", "packages/yayaw-table-vue"]
 }

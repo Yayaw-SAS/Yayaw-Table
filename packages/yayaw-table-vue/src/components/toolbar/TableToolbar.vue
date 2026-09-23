@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineComponent, type PropType, type VNodeChild } from "vue";
+import { type Component, defineComponent, type PropType, type VNodeChild } from "vue";
 import TableTooltip from "./TableTooltip.vue";
 import {
   FunnelX,
@@ -73,7 +73,7 @@ const search = computed({
     context.state.search.value = value;
   },
 });
-const displayModeIcons = { gantt: ChartGantt, table: Table2, kanban: Columns3, gallery: Images };
+const displayModeIcons: Record<TableDisplayMode, Component> = { gantt: ChartGantt, table: Table2, kanban: Columns3, gallery: Images };
 const modes = computed<TableDisplayMode[]>(() =>
   availableDisplayModes(context.config.table.displayModes, {
     planning: Boolean(context.planning),

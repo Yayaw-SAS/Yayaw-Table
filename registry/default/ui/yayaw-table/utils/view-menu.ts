@@ -1,20 +1,23 @@
 import {
+  DISPLAY_MODE_CONFIG_KEYS,
+  DISPLAY_MODES,
+  resolveDisplayModes,
+  type TableDisplayMode,
+} from "./display-modes";
+import {
   normalizeFilterEnvelope,
   normalizeViewAliases,
 } from "./table-contracts";
 
-type ViewDisplayMode = "table" | "kanban" | "gallery" | "gantt";
-
 /** These capabilities describe presentation, before catalogue permissions apply. */
-export function getViewModeCapabilities(mode: ViewDisplayMode) {
+export function getViewModeCapabilities(mode: TableDisplayMode) {
+  const definition = DISPLAY_MODES[mode] ?? DISPLAY_MODES.table;
   return {
-    columns: mode === "table",
-    density: mode === "table",
-    calculations: mode === "table",
+    ...definition.capabilities,
     kanban: mode === "kanban",
     gallery: mode === "gallery",
     gantt: mode === "gantt",
-    maxGroups: { table: 2, gantt: 0, kanban: 1, gallery: 1 }[mode],
+    maxGroups: definition.maxGroups,
   } as const;
 }
 
@@ -22,19 +25,15 @@ export function getViewModeCapabilities(mode: ViewDisplayMode) {
  * Gantt needs a planning graph the way Kanban needs a grouping column: offering the
  * mode without one only leads to an empty view, so it is withheld until it can render.
  */
-export function availableDisplayModes<T extends ViewDisplayMode>(
-  displayModes: T[] | undefined,
+export function availableDisplayModes(
+  displayModes: readonly unknown[] | undefined,
   { planning }: { planning: boolean }
-): T[] {
-  const modes = displayModes?.length ? displayModes : (["table"] as T[]);
-  if (planning) {
-    return modes;
-  }
-  const usable = modes.filter((mode) => mode !== "gantt");
-  return usable.length ? usable : (["table"] as T[]);
+): TableDisplayMode[] {
+  return resolveDisplayModes(displayModes, { planning });
 }
 
 const VIEW_SETTING_KEYS = [
+  ...DISPLAY_MODE_CONFIG_KEYS,
   "advancedFilters",
   "columnFilters",
   "columnOrder",
@@ -44,14 +43,11 @@ const VIEW_SETTING_KEYS = [
   "density",
   "displayMode",
   "footerCalculationsVisible",
-  "gallery",
-  "gantt",
   "globalSearch",
   "grouping",
-  "kanban",
   "pageSize",
   "sorting",
-] as const;
+];
 
 function canonicalValue(value: unknown, field?: string): unknown {
   if (value instanceof Date) {
