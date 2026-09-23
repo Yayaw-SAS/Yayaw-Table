@@ -153,8 +153,6 @@ const PAGINATION_VIEWPORT_OPTIONS = {
   threshold: 0,
 } as const;
 const BULK_ACTIONS_FIXED_VIEWPORT_MARGIN = 24;
-/** Longer than the URL state debounce of filter edits (150 ms). */
-const FILTER_WRITE_DELAY_MS = 200;
 
 export const shouldShowCalculationsFooter = ({
   enableCalculations,
@@ -217,6 +215,23 @@ export const getBulkActionsViewportBottomOffset = ({
 }): number => {
   return viewportMargin + (isPaginationVisible ? paginationHeight : 0);
 };
+
+/**
+ * Skeleton rows while the first rows of a query load, only after mount to
+ * avoid a hydration mismatch. It reads the render's own loading state: a ref
+ * updated in an effect lags one render behind, and a body memoized with the
+ * stale value kept skeletons over loaded rows (e.g. after a chart group
+ * filtered the table and switched to it).
+ */
+export const shouldShowTableSkeleton = ({
+  hasMounted,
+  isLoading,
+  dataLength,
+}: {
+  hasMounted: boolean;
+  isLoading: boolean;
+  dataLength: number;
+}): boolean => hasMounted && isLoading && dataLength === 0;
 
 export const shouldRenderTableEmptyState = ({
   isError,
@@ -1987,14 +2002,8 @@ function ModernDataTable<
           ...filter,
         })) as unknown as AdvancedFiltersState
       );
-      // Filters are written after a short debounce; the table opens once they
-      // are, so it loads the group's records like a shared link would.
-      window.setTimeout(
-        () =>
-          setDisplayModeFromUI(
-            recordsDisplayMode(configuredDisplayModes, activeDisplayMode)
-          ),
-        FILTER_WRITE_DELAY_MS
+      setDisplayModeFromUI(
+        recordsDisplayMode(configuredDisplayModes, activeDisplayMode)
       );
       return true;
     },
@@ -2112,11 +2121,11 @@ function ModernDataTable<
 
   // Optimize table body content with better memoization
   const tableBodyContent = useMemo(() => {
-    // Avoid hydration mismatch: only show skeletons after mount
-    const showSkeleton =
-      hasMounted &&
-      (isTableUpdatingRef.current ||
-        (isLoading && (!data || data.length === 0)));
+    const showSkeleton = shouldShowTableSkeleton({
+      hasMounted,
+      isLoading,
+      dataLength: data?.length ?? 0,
+    });
     if (showSkeleton) {
       const skeletonRows = [
         <MemoizedSkeletonRow

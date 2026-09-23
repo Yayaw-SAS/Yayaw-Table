@@ -11,7 +11,19 @@ import {
   shouldRenderTableEmptyState,
   shouldRenderPaginationControls,
   shouldShowCalculationsFooter,
+  shouldShowTableSkeleton,
 } from "./table-component";
+
+describe("shouldShowTableSkeleton", () => {
+  it("shows skeletons only while the first rows of a query load, after mount", () => {
+    const base = { hasMounted: true, isLoading: true, dataLength: 0 };
+    assert.equal(shouldShowTableSkeleton(base), true);
+    assert.equal(shouldShowTableSkeleton({ ...base, hasMounted: false }), false);
+    assert.equal(shouldShowTableSkeleton({ ...base, dataLength: 2 }), false);
+    // Loaded rows show as soon as loading ends, with no render left behind.
+    assert.equal(shouldShowTableSkeleton({ ...base, isLoading: false }), false);
+  });
+});
 
 const FLEX_CLASS_PATTERN = /\bflex\b/;
 const TEXT_CENTER_CLASS_PATTERN = /text-center/;

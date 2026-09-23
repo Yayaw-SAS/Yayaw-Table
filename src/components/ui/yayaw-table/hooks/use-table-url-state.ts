@@ -18,6 +18,7 @@ import type {
 import { footerVisibleAtom } from "../atoms/footer-atoms";
 import { filterResetVersionAtom, tableDensityAtom } from "../atoms/table-atoms";
 import { normalizeGanttView } from "../planning/engine";
+import { parseDateValue } from "../utils/value-format";
 import type { TableGanttViewConfig } from "../planning/types";
 import { useTableStateSync } from "../providers/table-state-sync-provider";
 import type {
@@ -179,9 +180,11 @@ const toValidDate = (value: unknown): Date | undefined => {
     return Number.isNaN(value.getTime()) ? undefined : value;
   }
 
+  // Date-only strings ("2026-09-07") are local calendar days, as in the date
+  // filters; `new Date("2026-09-07")` would be UTC midnight, the previous day
+  // west of Greenwich.
   if (typeof value === "string" || typeof value === "number") {
-    const parsedDate = new Date(value);
-    return Number.isNaN(parsedDate.getTime()) ? undefined : parsedDate;
+    return parseDateValue(value);
   }
 
   return;
@@ -320,17 +323,20 @@ const kanbanParser = createParser({
 const ganttParser = createParser({parse: (value: string) => {try {return normalizeGanttView(JSON.parse(value));} catch {return {};}}, serialize: (value: TableGanttViewConfig) => JSON.stringify(normalizeGanttView(value))});
 
 // Parser for advanced filters
+/** Advanced filters from their URL value; date values become `Date`s. */
+export function parseAdvancedFiltersParam(value: string): AdvancedFiltersState {
+  try {
+    const parsedValue = value ? JSON.parse(value) : [];
+    return normalizeFilterEnvelope(parsedValue).filters.map(
+      normalizeAdvancedFilter
+    ) as unknown as AdvancedFiltersState;
+  } catch {
+    return [];
+  }
+}
+
 const advancedFiltersParser = createParser({
-  parse: (value: string) => {
-    try {
-      const parsedValue = value ? JSON.parse(value) : [];
-      return normalizeFilterEnvelope(parsedValue).filters.map(
-        normalizeAdvancedFilter
-      ) as unknown as AdvancedFiltersState;
-    } catch {
-      return [];
-    }
-  },
+  parse: parseAdvancedFiltersParam,
   serialize: (value: AdvancedFiltersState) =>
     value?.length ? JSON.stringify(value) : "",
 });
