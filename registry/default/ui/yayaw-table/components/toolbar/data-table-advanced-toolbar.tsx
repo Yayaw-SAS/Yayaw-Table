@@ -76,6 +76,7 @@ import type { TableDisplayMode } from "../../types/display-types";
 import { StackMenuContent, StackMenuItem } from "../../ui-custom/stack-menu";
 import {
   type ConnectorViewColumn,
+  connectorColumnOptions,
   connectorLabels,
   connectorScheduleSuffix,
   hasConnector,
@@ -1544,12 +1545,23 @@ export function DataTableAdvancedToolbar<TData>({
         .map((column) => column.id)
         .filter((id) => !visible.has(id)),
     ];
-    return exportColumnsFor(ordered).map((column) => ({
-      id: column.id,
-      header: String(column.header),
-      ...(column.type ? { type: String(column.type) } : {}),
-      visible: visible.has(column.id),
-    }));
+    const definitions = new Map(
+      tableConfig.columns.definitions.map((column) => [column.id, column])
+    );
+    return exportColumnsFor(ordered).map((column) => {
+      // Static options let the target check spot options the target lacks.
+      const options = connectorColumnOptions(
+        (definitions.get(column.id) as { options?: unknown } | undefined)
+          ?.options
+      );
+      return {
+        id: column.id,
+        header: String(column.header),
+        ...(column.type ? { type: String(column.type) } : {}),
+        ...(options ? { options } : {}),
+        visible: visible.has(column.id),
+      };
+    });
   }, [csvExportColumns, exportColumnsFor, tableConfig.columns.definitions]);
   // Server first through `actions.exportFile`; otherwise CSV or print here.
   const handleExport = useCallback(

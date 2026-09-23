@@ -26,7 +26,8 @@ export interface ViewSettingField {
   id: string;
   label: string;
   value: string;
-  options: { value: string; label: string }[];
+  /** Disabled choices stay listed; their label says why. */
+  options: { value: string; label: string; disabled?: boolean }[];
   onChange: (value: string) => void;
   /** Section title shown above the field. */
   heading?: string;
@@ -94,7 +95,11 @@ function SettingFieldRow({
       </SelectTrigger>
       <SelectContent align="start" alignItemWithTrigger={false}>
         {field.options.map((option) => (
-          <SelectItem key={option.value} value={option.value}>
+          <SelectItem
+            disabled={option.disabled}
+            key={option.value}
+            value={option.value}
+          >
             {option.label}
           </SelectItem>
         ))}
@@ -192,6 +197,7 @@ export function ViewSettingsPanel({
                   id={`${id}-choice-${option.value}`}
                   aria-label={option.label}
                   className="min-h-0! min-w-0!"
+                  disabled={option.disabled}
                   value={option.value}
                 />
                 <span className="min-w-0 break-words">{option.label}</span>

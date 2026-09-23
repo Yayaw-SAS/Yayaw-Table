@@ -84,7 +84,8 @@ export interface ColumnMappingRow {
   id: string;
   label: string;
   value: string;
-  options: { value: string; label: string }[];
+  /** Disabled choices stay listed and say why in their label. */
+  options: { value: string; label: string; disabled?: boolean }[];
   heading?: string;
   sample?: string;
   badge?: { label: string; invalid: boolean };

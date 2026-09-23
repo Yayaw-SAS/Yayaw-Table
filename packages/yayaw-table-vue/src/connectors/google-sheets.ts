@@ -721,14 +721,94 @@ export interface SheetHeaderPlan {
 }
 
 /**
+ * Saved positions of mapped headers (the mapping's `fieldIndex`), used when a
+ * header was renamed in the sheet. `keyIndex` is the key column's saved
+ * position: saved positions shift by as much as the key column moved.
+ */
+export interface SheetColumnHints {
+  indexes?: Readonly<Record<string, number>>;
+  keyIndex?: number;
+}
+
+export interface SheetColumnResolution {
+  /** Zero-based column of each column id found by header or position. */
+  indexes: Map<string, number>;
+  /** Columns without a header and without a saved position: new headers. */
+  missing: string[];
+  /** Columns whose header is gone and whose saved position is unusable. */
+  ambiguous: string[];
+}
+
+function positionShift(
+  header: readonly string[],
+  keyColumn: string,
+  keyIndex: number | undefined
+): number {
+  const found = header.indexOf(keyColumn);
+  return keyIndex === undefined || found < 0 ? 0 : found - keyIndex;
+}
+
+/**
+ * Where each column is in an existing header row (pure): by header first;
+ * a header that is gone is taken at its saved position (shifted like the key
+ * column) when the header there is not mapped by anything else, since it was
+ * renamed. A column with a saved position that cannot be used is ambiguous;
+ * one without a saved position is missing (a new header).
+ */
+export function resolveSheetColumns(
+  existing: readonly string[],
+  keyColumn: string,
+  columns: readonly Pick<ConnectorColumn, "id" | "header">[],
+  hints: SheetColumnHints = {}
+): SheetColumnResolution {
+  const header = existing.map((name) => name.trim());
+  const shift = positionShift(header, keyColumn, hints.keyIndex);
+  const taken = new Set([
+    keyColumn,
+    ...columns.map((column) => column.header.trim()),
+  ]);
+  const resolution: SheetColumnResolution = {
+    indexes: new Map(),
+    missing: [],
+    ambiguous: [],
+  };
+  const used = new Set<number>();
+  for (const column of columns) {
+    const found = header.indexOf(column.header.trim());
+    const saved = hints.indexes?.[column.id];
+    if (found >= 0) {
+      resolution.indexes.set(column.id, found);
+      used.add(found);
+    } else if (saved === undefined) {
+      resolution.missing.push(column.id);
+    } else {
+      const index = saved + shift;
+      const renamed = header[index] ?? "";
+      const usable = renamed !== "" && !taken.has(renamed) && !used.has(index);
+      if (usable) {
+        resolution.indexes.set(column.id, index);
+        used.add(index);
+      } else {
+        resolution.ambiguous.push(column.id);
+      }
+    }
+  }
+  return resolution;
+}
+
+/**
  * Finds each column's header in the existing header row and appends the
  * missing ones at the end, so the user's own column order is never changed.
- * An empty sheet gets the key column first, then the columns in order.
+ * A header renamed in the sheet is found at its saved position (`hints`) and
+ * written in place, never added again; when that position cannot be used,
+ * nothing is written (`field_missing`). An empty sheet gets the key column
+ * first, then the columns in order.
  */
 export function planSheetHeader(
   existing: readonly string[],
   keyColumn: string,
-  columns: readonly ConnectorColumn[]
+  columns: readonly ConnectorColumn[],
+  hints: SheetColumnHints = {}
 ): SheetHeaderPlan {
   const names = [keyColumn, ...columns.map((column) => column.header.trim())];
   const ids = new Set(columns.map((column) => column.id));
@@ -738,6 +818,10 @@ export function planSheetHeader(
     ids.size !== columns.length;
   if (invalid) {
     throw new ConnectorError("invalid_mapping");
+  }
+  const resolution = resolveSheetColumns(existing, keyColumn, columns, hints);
+  if (resolution.ambiguous.length > 0) {
+    throw new ConnectorError("field_missing");
   }
   const header = existing.map((name) => name.trim());
   const added: string[] = [];
@@ -753,7 +837,10 @@ export function planSheetHeader(
   const keyIndex = position(keyColumn);
   const indexes = new Map<string, number>();
   for (const column of columns) {
-    indexes.set(column.id, position(column.header.trim()));
+    indexes.set(
+      column.id,
+      resolution.indexes.get(column.id) ?? position(column.header.trim())
+    );
   }
   return { header, added, keyIndex, indexes };
 }
@@ -854,6 +941,13 @@ export type GoogleSheetPushMode = "replace" | "upsert";
 export interface GoogleSheetPushInput {
   /** Columns in the order new headers are added. */
   columns: readonly ConnectorColumn[];
+  /**
+   * Saved header positions by column id (the mapping's `fieldIndex`): a
+   * header renamed in the sheet keeps receiving its column.
+   */
+  fieldIndexes?: Readonly<Record<string, number>>;
+  /** Saved position of the key column (`keyFieldIndex`). */
+  keyColumnIndex?: number;
   credentials: GoogleServiceAccountCredentials;
   /** Header of the column holding row ids, "Yayaw ID" by default. */
   keyColumn?: string;
@@ -1211,7 +1305,8 @@ export async function pushRowsToSheet(
   const plan = planSheetHeader(
     await readHeader(client, context.spreadsheetId, tab.title),
     (input.keyColumn ?? DEFAULT_GOOGLE_SHEET_KEY_COLUMN).trim(),
-    input.columns
+    input.columns,
+    { indexes: input.fieldIndexes, keyIndex: input.keyColumnIndex }
   );
   const result: GoogleSheetPushResult = {
     ...createPushResult(),
@@ -1256,6 +1351,19 @@ const isBlankCell = (value: unknown) => cellText(value) === "";
 const keyColumnOf = (mapping: SyncMapping) =>
   (mapping.keyField ?? DEFAULT_GOOGLE_SHEET_KEY_COLUMN).trim();
 
+const sheetColumnsOf = (mapping: SyncMapping) =>
+  mapping.fields.map((field) => ({ id: field.columnId, header: field.field }));
+
+/** The mapping's saved header positions (`fieldIndex`, `keyFieldIndex`). */
+const sheetHintsOf = (mapping: SyncMapping): SheetColumnHints => ({
+  indexes: Object.fromEntries(
+    mapping.fields.flatMap((field) =>
+      field.fieldIndex === undefined ? [] : [[field.columnId, field.fieldIndex]]
+    )
+  ),
+  keyIndex: mapping.keyFieldIndex,
+});
+
 /**
  * Sync records from the values of a tab, header row first. Each mapped column
  * is found by its header; a column whose header is missing is left out of
@@ -1270,9 +1378,16 @@ export function sheetValuesToRecords(
 ): SyncRecord[] {
   const header = (grid[0] ?? []).map(cellText);
   const keyIndex = header.indexOf(keyColumnOf(mapping));
+  // Renamed headers are read at their saved position; ambiguous ones stay unknown.
+  const { indexes } = resolveSheetColumns(
+    header,
+    keyColumnOf(mapping),
+    sheetColumnsOf(mapping),
+    sheetHintsOf(mapping)
+  );
   const columns = mapping.fields.flatMap((field) => {
-    const index = header.indexOf(field.field.trim());
-    return index >= 0 ? [{ field, index }] : [];
+    const index = indexes.get(field.columnId);
+    return index === undefined ? [] : [{ field, index }];
   });
   const records: SyncRecord[] = [];
   for (const [offset, row] of grid.slice(1).entries()) {
@@ -1348,13 +1463,12 @@ async function prepareSheetWrite(
   input: GoogleSheetSyncInput
 ): Promise<SheetWriteContext> {
   const context = await openTab(client, input);
+  // A renamed header is written in place; an ambiguous one stops before any write.
   const plan = planSheetHeader(
     await readHeader(client, context.spreadsheetId, context.tab.title),
     keyColumnOf(input.mapping),
-    input.mapping.fields.map((field) => ({
-      id: field.columnId,
-      header: field.field,
-    }))
+    sheetColumnsOf(input.mapping),
+    sheetHintsOf(input.mapping)
   );
   await appendDimension(
     context,
@@ -1614,5 +1728,211 @@ export function createSheetSyncTarget(
     update: async (items) =>
       await updateSheetRows(await prepareSheetWrite(client, input), items),
     delete: async (ids) => await deleteSheetRows(client, input, ids),
+  };
+}
+
+// Schema health --------------------------------------------------------------------
+
+/** Rows read to sample each column's type. */
+const SCHEMA_SAMPLE_ROWS = 20;
+const DATE_LIKE = /^\d{1,4}[-/.]\d{1,2}[-/.]\d{1,4}(?:[ T].*)?$/;
+
+type SampledType = "number" | "boolean" | "date" | "text";
+
+function cellType(value: unknown): SampledType | null {
+  if (typeof value === "number") {
+    return "number";
+  }
+  if (typeof value === "boolean") {
+    return "boolean";
+  }
+  const text = cellText(value);
+  if (text === "") {
+    return null;
+  }
+  return DATE_LIKE.test(text) && !Number.isNaN(Date.parse(text))
+    ? "date"
+    : "text";
+}
+
+/** The type every sampled cell shares, "text" when they differ. */
+function sampledType(values: readonly unknown[]): SampledType | undefined {
+  const types = new Set(values.flatMap((value) => cellType(value) ?? []));
+  if (types.size === 0) {
+    return;
+  }
+  return types.size === 1 ? [...types][0] : "text";
+}
+
+/** One field of a sheet as the shared `checkTargetSchema` takes it. */
+export interface SheetSchemaField {
+  index: number;
+  name: string;
+  sample: unknown[];
+  type?: SampledType;
+}
+
+/**
+ * A tab's header row and first rows as the shared `checkTargetSchema` takes
+ * it (`targetSchema`, provider "sheets"): each header with its position, a
+ * sample of its values and the type they share (`number`, `boolean`, `date`
+ * or `text`). Blank headers are left out.
+ */
+export function sheetTargetSchema(
+  grid: readonly (readonly unknown[] | undefined)[]
+): { provider: "sheets"; fields: SheetSchemaField[] } {
+  const header = (grid[0] ?? []).map(cellText);
+  const rows = grid.slice(1, SCHEMA_SAMPLE_ROWS + 1);
+  const fields = header.flatMap((name, index) => {
+    if (name === "") {
+      return [];
+    }
+    const sample = rows.map((row) => row?.[index] ?? null);
+    const type = sampledType(sample);
+    return [{ name, index, sample, ...(type ? { type } : {}) }];
+  });
+  return { provider: "sheets", fields };
+}
+
+/** Reads a tab's header and first rows as a `sheetTargetSchema`. */
+export async function getSheetTargetSchema(
+  input: Omit<GoogleSheetSyncInput, "mapping">,
+  options?: GoogleSheetsOptions
+): Promise<{ provider: "sheets"; fields: SheetSchemaField[] }> {
+  const client = createSheetsClient(input.credentials, options);
+  const context = await openTab(client, { ...input, mapping: { fields: [] } });
+  const response = await client.request<{ values?: unknown[][] }>({
+    method: "GET",
+    path: valuesPath(
+      context.spreadsheetId,
+      `${context.quoted}!1:${SCHEMA_SAMPLE_ROWS + 1}`
+    ),
+    query: {
+      majorDimension: "ROWS",
+      valueRenderOption: "UNFORMATTED_VALUE",
+      dateTimeRenderOption: "FORMATTED_STRING",
+    },
+  });
+  return sheetTargetSchema(response.values ?? []);
+}
+
+/** A fix `prepareSheet` applies: a header to add (options are Notion's only). */
+export interface SheetSchemaFix {
+  kind: "create_field" | "add_options";
+  field: string;
+  key?: boolean;
+  columnId?: string;
+  /** Saved position of the header: a renamed header is never added again. */
+  fieldIndex?: number;
+}
+
+export interface GoogleSheetPrepareInput {
+  credentials: GoogleServiceAccountCredentials;
+  fixes: readonly SheetSchemaFix[];
+  /** Key header ("Yayaw ID" by default) and its saved position, to shift saved positions. */
+  keyColumn?: string;
+  keyColumnIndex?: number;
+  /** Tab title; the first tab by default. */
+  sheetTitle?: string;
+  spreadsheetId: string;
+}
+
+/**
+ * Headers to add at the end of a header row (pure): the missing ones of the
+ * `create_field` fixes, the key first, each once. Existing headers are never
+ * moved, renamed or removed. A fix with a saved position whose header was
+ * renamed is already there (nothing is added); when that position cannot be
+ * used, it throws `field_missing` so nothing is written.
+ */
+export function planSheetPrepare(
+  header: readonly string[],
+  fixes: readonly SheetSchemaFix[],
+  hints: { keyColumn?: string; keyColumnIndex?: number } = {}
+): string[] {
+  const creates = fixes.filter(
+    (fix) => fix.kind === "create_field" && fix.field.trim() && !fix.key
+  );
+  const columns = creates.map((fix, index) => ({
+    id: fix.columnId ?? `fix:${index}`,
+    header: fix.field,
+  }));
+  const resolution = resolveSheetColumns(
+    header,
+    (hints.keyColumn ?? DEFAULT_GOOGLE_SHEET_KEY_COLUMN).trim(),
+    columns,
+    {
+      indexes: Object.fromEntries(
+        creates.flatMap((fix, index) =>
+          fix.fieldIndex === undefined
+            ? []
+            : [[columns[index]?.id ?? "", fix.fieldIndex]]
+        )
+      ),
+      keyIndex: hints.keyColumnIndex,
+    }
+  );
+  if (resolution.ambiguous.length > 0) {
+    throw new ConnectorError("field_missing");
+  }
+  const existing = new Set(header.map((name) => name.trim()));
+  const missing = new Set(resolution.missing);
+  const ordered = [
+    ...fixes.filter((fix) => fix.kind === "create_field" && fix.key),
+    ...creates.filter((_, index) => missing.has(columns[index]?.id ?? "")),
+  ];
+  const added: string[] = [];
+  for (const fix of ordered) {
+    const name = fix.field.trim();
+    if (name && !existing.has(name)) {
+      existing.add(name);
+      added.push(name);
+    }
+  }
+  return added;
+}
+
+/**
+ * Makes a tab ready for the table: adds the missing headers (the "Yayaw ID"
+ * key first) at the end of the header row, growing the grid when needed. It
+ * never reorders, renames or deletes a column, and only writes the header
+ * row. Idempotent: `applied` is empty when nothing was missing. Select
+ * options have no equivalent in a sheet and are left alone.
+ */
+export async function prepareSheet(
+  input: GoogleSheetPrepareInput,
+  options?: GoogleSheetsOptions
+): Promise<{ applied: SheetSchemaFix[]; addedHeaders: string[] }> {
+  const client = createSheetsClient(input.credentials, options);
+  const context = await openTab(client, { ...input, mapping: { fields: [] } });
+  const header = await readHeader(
+    client,
+    context.spreadsheetId,
+    context.tab.title
+  );
+  const added = planSheetPrepare(header, input.fixes, input);
+  if (added.length === 0) {
+    return { applied: [], addedHeaders: [] };
+  }
+  const plan: SheetHeaderPlan = {
+    header: [...header, ...added],
+    added,
+    keyIndex: -1,
+    indexes: new Map(),
+  };
+  await appendDimension(
+    context,
+    "COLUMNS",
+    plan.header.length - context.tab.columnCount
+  );
+  const range = headerRange(context, plan);
+  if (range) {
+    await batchUpdateValues(context, [range]);
+  }
+  const names = new Set(added);
+  return {
+    applied: input.fixes.filter(
+      (fix) => fix.kind === "create_field" && names.has(fix.field.trim())
+    ),
+    addedHeaders: added,
   };
 }

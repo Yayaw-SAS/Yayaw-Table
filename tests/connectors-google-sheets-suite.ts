@@ -41,14 +41,14 @@ const BASE64_UNSAFE = /[+/=]/;
 const BASE64_URL_DASH = /-/g;
 const BASE64_URL_UNDERSCORE = /_/g;
 
-interface TestKey {
+export interface TestKey {
   pem: string;
   publicKey: CryptoKey;
 }
 
 let testKey: Promise<TestKey> | undefined;
 
-async function generateTestKey(): Promise<TestKey> {
+export async function generateTestKey(): Promise<TestKey> {
   const pair = await crypto.subtle.generateKey(
     {
       name: "RSASSA-PKCS1-v1_5",
@@ -73,7 +73,7 @@ async function generateTestKey(): Promise<TestKey> {
   };
 }
 
-const keyFile = (pem: string, extra: Record<string, unknown> = {}) => ({
+export const keyFile = (pem: string, extra: Record<string, unknown> = {}) => ({
   type: "service_account",
   project_id: "acme-project",
   private_key_id: "key-1",
@@ -97,7 +97,7 @@ const fromBase64Url = (value: string): Uint8Array<ArrayBuffer> => {
 const decodeJson = (value: string): Record<string, unknown> =>
   JSON.parse(new TextDecoder().decode(fromBase64Url(value)));
 
-interface SheetState {
+export interface SheetState {
   columnCount: number;
   /** Every value of the tab, header first, for full reads. */
   grid?: unknown[][];
@@ -147,13 +147,17 @@ function valuesResponse(state: SheetState, request: RecordedRequest) {
   if (target.endsWith("!1:1")) {
     return json({ values: state.header.length > 0 ? [state.header] : [] });
   }
+  // The header and the first rows, sampled for the target check.
+  if (target.endsWith("!1:21")) {
+    return json({ values: state.grid ?? [state.header] });
+  }
   if (target.endsWith("/values/'Data'")) {
     return json({ values: state.grid ?? [] });
   }
   return json({ values: state.keys.length > 0 ? [state.keys] : [] });
 }
 
-function sheetsRoute(state: SheetState) {
+export function sheetsRoute(state: SheetState) {
   let tokens = 0;
   return (request: RecordedRequest): Response => {
     const target = path(request);
@@ -177,7 +181,7 @@ function sheetsRoute(state: SheetState) {
   };
 }
 
-const kind = (request: RecordedRequest): string => {
+export const kind = (request: RecordedRequest): string => {
   const target = path(request);
   if (request.url.href === TOKEN_URL) {
     return "token";

@@ -1054,6 +1054,72 @@ win names. The demo has no multi-select column (adding one would change the
 Form view and other end-to-end tests), so "Merged" is covered by the unit
 suites only.
 
+## Connector target health
+
+The shared `utils/connector-schema.ts` (synced to the Vue source root by
+`contracts:sync`, imported by `connector-flow.ts`, pure and safe on the
+server) holds the type compatibility matrix per direction
+(`typeCompatibility`), field resolution by id, name, then shifted sheet
+position (`resolveMappedField`, `keyIndexShift`, `upgradeMapping`),
+`checkTargetSchema` with its issue codes and additive fixes,
+`schemaBlocksRun`, `schemaRenames`, `missingOptions` and `notionColorFor`.
+Both editions' connector items gain the same server functions:
+`notionTargetSchema`, `prepareNotionDatabase`, `planNotionPrepare`,
+`listNotionPages`, `createNotionDatabase`, `planNotionDatabase`,
+`sheetTargetSchema`, `getSheetTargetSchema`, `prepareSheet` and
+`planSheetPrepare`; Notion pushes, reads and sync targets resolve properties
+by `propertyIds` / `SyncField.fieldId` first, and reads also return formulas,
+created and edited times and unique ids.
+
+`connector-flow.ts` adds `fieldId` / `fieldIndex` to mapping entries,
+`keyFieldId` / `keyFieldIndex` to settings, `id` / `index` to fields,
+`provider` to schemas and `options` to columns, the optional connector
+functions `checkSchema`, `prepareTarget` and `createTarget` (`label`,
+`parents`, `create`) and `help.missingTarget`. The flow state gains
+`schemaReport`, `checking`, `renames`, `prepareOpen`, `preparing`,
+`prepared`, `createOpen`, `createParents`, `creating` and `refreshing`, with
+the actions `checkSchema`, `showPrepare`, `prepare`, `updateMapping`,
+`refreshTargets`, `showCreate` and `createTarget`. Both editions render the
+same helpers: `describeSchemaReport` ("Target check" grouped by severity,
+"Update mapping", "Prepare Notion database" / "Prepare sheet", "Fix this
+first: …"), `describeSchemaFixes` (the confirmation lines),
+`connectorSchemaBlocker` (Send, Sync now and Preview disabled),
+`connectorFieldOptions` / `connectorScreenFields` (disabled choices with the
+reason, "used by", the Notion page title row first, "Create one from this
+table’s columns…" in the target list) and `connectorNewTargetColumns`. Both
+toolbars pass static column options (`connectorColumnOptions`). React
+renders `TargetCheck`, `PrepareConfirmation`, `TargetTools` and
+`CreateTargetForm` in `connector-panel.tsx`; Vue `ConnectorTargetCheck.vue`,
+`ConnectorCreateTarget.vue` and the confirmation and tools in
+`ConnectorPanel.vue`. Disabled options are a new optional `disabled` on
+choices of the React `ViewSettingField` (select and phone radio list), the
+Vue settings panel (radio list) and Vue `TableSelect`. Labels are English
+and French, overridable with `connector.<key>`.
+
+`tests/connector-schema-suite.ts` runs in both editions (the compatibility
+matrix, every issue code per direction, status options, pull samples, key
+types, providerless targets, id / name / position resolution, sheet renames,
+colors, and the screen flow: rename and Update mapping, a blocking issue
+stopping Send, Prepare and re-describe, disabled choices and the title row,
+creating a target, a host `checkSchema`, refreshing targets).
+`tests/connectors-schema-health-suite.ts` runs against both copies of the
+server modules with a fake `fetch` (one idempotent Notion PATCH that never
+deletes, renames or retypes, a push following a renamed property, formula
+reads, database creation not retried, page listing, sheet sampling, an
+idempotent `prepareSheet`, and sheet writes following a renamed header:
+`pushRowsToSheet`, the sync target and `prepareSheet` write the renamed
+column in place without adding a header, and an unusable saved position
+throws `field_missing` before anything is written). Sheet writes resolve
+headers with the shared `resolveSheetColumns` rule (by header, then by the
+saved position shifted like the key column when the header there is not
+mapped elsewhere), the same rule as the check's `field_missing` issue. `e2e/schema-health.spec.ts` runs on both demos:
+the demo "Notion" destination's "Live projects" database drifted (Price
+renamed Cost, Progress became a Select, two Category options and "Yayaw ID"
+missing, a formula and a people property), so the check lists each issue,
+Send is disabled with the reason until Progress is not sent, disabled
+choices say why, Update mapping and Prepare clear their issues, and "New
+database from this table’s columns…" creates a clean one.
+
 ## Form view
 
 The Form display mode ships in the core items of both registries: it needs no

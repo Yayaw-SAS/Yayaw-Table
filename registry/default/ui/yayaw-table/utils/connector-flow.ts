@@ -11,6 +11,17 @@
  */
 
 import {
+  checkTargetSchema,
+  notionColorFor,
+  resolveMappedField,
+  type SchemaColumnOption,
+  type SchemaFix,
+  type SchemaIssue,
+  type SchemaReport,
+  type TargetSchema,
+  typeCompatibility,
+} from "./connector-schema";
+import {
   areFieldTypesCompatible,
   type ColumnMappingRow,
   matchFieldsByName,
@@ -53,8 +64,16 @@ export interface ConnectorTargetRef {
 /** A field of the target: a Notion property, a sheet header. */
 export interface ConnectorField {
   name: string;
+  /**
+   * Stable id (a Notion property id): saved with the mapping, so a field
+   * renamed in the target keeps its column.
+   */
+  id?: string;
+  /** Provider type (Notion's `rich_text`, `select`, `formula`…, or a table-like type). */
   type?: string;
   options?: string[];
+  /** Zero-based position (sheet column), saved to follow renamed headers. */
+  index?: number;
   /**
    * A few values of the field, for pull and two-way mappings: the screen
    * shows the first and counts those the mapped column cannot take.
@@ -63,6 +82,12 @@ export interface ConnectorField {
 }
 
 export interface ConnectorSchema {
+  /**
+   * The target's provider: "notion" or "sheets" make the target check
+   * strict about types, options and missing fields; without it, missing
+   * fields are left to the push, which adds them.
+   */
+  provider?: "notion" | "sheets";
   fields: ConnectorField[];
   /** Fields that may identify records; default every field. */
   keyFields?: string[];
@@ -75,6 +100,8 @@ export interface ConnectorColumn {
   id: string;
   header: string;
   type?: string;
+  /** Select and multi-select options, checked against the target's. */
+  options?: SchemaColumnOption[];
 }
 
 /** A column of the view, with whether it is shown. */
@@ -82,10 +109,47 @@ export interface ConnectorViewColumn extends ConnectorColumn {
   visible: boolean;
 }
 
+/**
+ * A column definition's static options (`string` or `{ value, label, color }`)
+ * for the target check; option functions and other shapes are left out.
+ */
+export function connectorColumnOptions(
+  options: unknown
+): SchemaColumnOption[] | undefined {
+  if (!Array.isArray(options)) {
+    return;
+  }
+  const valid = options.flatMap((option: unknown): SchemaColumnOption[] => {
+    if (typeof option === "string") {
+      return [option];
+    }
+    if (option && typeof option === "object" && "value" in option) {
+      const { value, label, color } = option as {
+        value: unknown;
+        label?: unknown;
+        color?: unknown;
+      };
+      return [
+        {
+          value,
+          ...(typeof label === "string" ? { label } : {}),
+          ...(typeof color === "string" ? { color } : {}),
+        },
+      ];
+    }
+    return [];
+  });
+  return valid.length > 0 ? valid : undefined;
+}
+
 export interface ConnectorMappingEntry {
   columnId: string;
   /** Target field name, or `null` to leave the column out. */
   field: string | null;
+  /** The field's stable id when it was chosen (Notion): found before the name. */
+  fieldId?: string;
+  /** The field's position when it was chosen (sheets): follows renamed headers. */
+  fieldIndex?: number;
 }
 
 /**
@@ -130,6 +194,10 @@ export interface ConnectorSettings {
   mode: ConnectorMode;
   /** Target field matched against each record's id. */
   keyField: string;
+  /** The key field's stable id (Notion). */
+  keyFieldId?: string;
+  /** The key field's position (sheets), used to follow moved headers. */
+  keyFieldIndex?: number;
   mapping: ConnectorMappingEntry[];
   /** Columns offered for mapping: the visible ones (default) or all. */
   columns?: "visible" | "all";
@@ -268,6 +336,7 @@ export interface SyncRunResult {
 export type ConnectorErrorCode =
   | "aborted"
   | "api_disabled"
+  | "field_missing"
   | "forbidden"
   | "invalid_credentials"
   | "invalid_mapping"
@@ -327,6 +396,42 @@ export type ConnectorPushOutcome = ConnectorPushResult | ConnectorOutcomeError;
 export interface ConnectorHelp {
   /** Replaces the "share it with …" message, e.g. to name a spreadsheet. */
   notShared?: (details: ConnectorErrorDetails) => string;
+  /**
+   * A line under the target list for a target that is not listed, e.g.
+   * "Share the page with your integration in Notion: ••• › Connections".
+   */
+  missingTarget?: string;
+}
+
+/** A parent a new target can be created in (a Notion page). */
+export interface ConnectorTargetParent {
+  id: string;
+  label: string;
+}
+
+/** A table column sent to `createTarget.create`; options carry Notion colors. */
+export interface ConnectorNewTargetColumn {
+  id: string;
+  header: string;
+  type?: string;
+  options?: { name: string; color: string }[];
+}
+
+/** Creates a target from the table's columns ("New database…"). */
+export interface ConnectorCreateTarget<TContext> {
+  /** Replaces "Create one from this table’s columns…". */
+  label?: string;
+  /** Where the new target can go, e.g. the pages shared with the integration. */
+  parents?: (context: TContext) => MaybePromise<ConnectorTargetParent[]>;
+  /** Creates the target (e.g. `createNotionDatabase`) and returns it. */
+  create: (
+    input: {
+      parentId?: string;
+      title: string;
+      columns: ConnectorNewTargetColumn[];
+    },
+    context: TContext
+  ) => MaybePromise<ConnectorTarget | ConnectorOutcomeError>;
 }
 
 /** Push context: the destination context plus what the screen chose to send. */
@@ -397,6 +502,25 @@ export interface DataDestinationConnector<
     settings: ConnectorSettings,
     context: TPushContext
   ) => MaybePromise<SyncRunResult | ConnectorOutcomeError>;
+  /**
+   * Checks the target on the server, e.g. with a fresh schema; by default
+   * the screen checks the fields `describe` returned (`checkTargetSchema`).
+   */
+  checkSchema?: (
+    settings: ConnectorSettings,
+    context: TPushContext
+  ) => MaybePromise<SchemaReport | ConnectorOutcomeError>;
+  /**
+   * Applies the fixable issues ("Prepare Notion database"): the host calls
+   * `prepareNotionDatabase` or `prepareSheet` and returns what changed.
+   */
+  prepareTarget?: (
+    fixes: SchemaFix[],
+    settings: ConnectorSettings,
+    context: TPushContext
+  ) => MaybePromise<{ applied: SchemaFix[] } | ConnectorOutcomeError>;
+  /** Offers "Create one from this table’s columns…" in the target list. */
+  createTarget?: ConnectorCreateTarget<TContext>;
   /** Names for the target and its children, e.g. "Spreadsheet" and "Tab". */
   labels?: { target?: string; child?: string };
   help?: ConnectorHelp;
@@ -455,6 +579,7 @@ export type ConnectorLabelKey =
   | "issueInvalidMode"
   | "error_aborted"
   | "error_api_disabled"
+  | "error_field_missing"
   | "error_forbidden"
   | "error_invalid_credentials"
   | "error_invalid_mapping"
@@ -566,7 +691,63 @@ export type ConflictLabelKey =
   | "resolvingConflicts"
   | "backToSettings"
   | "valueYes"
-  | "valueNo";
+  | "valueNo"
+  | SchemaLabelKey;
+
+/** Labels of the target check, "Prepare", renamed fields and new targets. */
+export type SchemaLabelKey =
+  | "targetCheck"
+  | "checkingTarget"
+  | "schemaBlocking"
+  | "schemaFixable"
+  | "schemaWarning"
+  | "schemaBlocked"
+  | "schemaIssue_missing_field"
+  | "schemaIssue_deleted_field"
+  | "schemaIssue_renamed_field"
+  | "schemaIssue_incompatible_type"
+  | "schemaIssue_invalid_values"
+  | "schemaIssue_coercible_type"
+  | "schemaIssue_unsupported_type"
+  | "schemaIssue_read_only_field"
+  | "schemaIssue_missing_options"
+  | "schemaIssue_missing_status_options"
+  | "schemaIssue_missing_key"
+  | "schemaIssue_key_wrong_type"
+  | "schemaIssue_duplicate_mapping"
+  | "schemaIssue_title_unmapped"
+  | "schemaIssue_field_missing"
+  | "updateMapping"
+  | "prepareNotion"
+  | "prepareSheet"
+  | "prepareTarget"
+  | "prepareIntro"
+  | "prepareConfirm"
+  | "preparing"
+  | "prepared"
+  | "preparedOne"
+  | "preparedNothing"
+  | "cancel"
+  | "fixCreateField"
+  | "fixCreateKey"
+  | "fixAddOptions"
+  | "providerNotion"
+  | "providerSheets"
+  | "optionReadOnly"
+  | "optionUnsupported"
+  | "optionIncompatible"
+  | "optionUsed"
+  | "pageTitle"
+  | "pageTitleField"
+  | "refreshTargets"
+  | "createTarget"
+  | "createTargetTitle"
+  | "createParent"
+  | "createName"
+  | "createSubmit"
+  | "creatingTarget"
+  | "createNameRequired"
+  | `type_${string}`;
 
 const ENGLISH_LABELS: Record<ConnectorLabelKey, string> = {
   target: "Destination",
@@ -619,6 +800,8 @@ const ENGLISH_LABELS: Record<ConnectorLabelKey, string> = {
   issueInvalidMode: "This destination doesn’t support this mode.",
   error_aborted: "Sending was cancelled.",
   error_api_disabled: "The service’s API isn’t enabled for this connection.",
+  error_field_missing:
+    "A mapped column is no longer in the destination. Choose its field again; nothing was written.",
   error_forbidden: "This connection can’t write to this destination.",
   error_invalid_credentials:
     "The connection’s credentials were refused. Update them, then try again.",
@@ -736,6 +919,97 @@ const ENGLISH_LABELS: Record<ConnectorLabelKey, string> = {
   backToSettings: "Back",
   valueYes: "Yes",
   valueNo: "No",
+  targetCheck: "Target check",
+  checkingTarget: "Checking {target}…",
+  schemaBlocking: "To fix before sending",
+  schemaFixable: "Can be fixed for you",
+  schemaWarning: "Good to know",
+  schemaBlocked: "Fix this first: {reason}",
+  schemaIssue_missing_field: "{column}: “{field}” is missing in {target}.",
+  schemaIssue_deleted_field: "{column}: “{field}” was deleted in {target}.",
+  schemaIssue_renamed_field: "Renamed in {target}: {from} → {to}",
+  schemaIssue_incompatible_type:
+    "{column}: {target} property is {actual}, {expected} expected.",
+  schemaIssue_invalid_values:
+    "{column}: {count} values in {target} won’t convert to {expected}.",
+  schemaIssue_coercible_type:
+    "{column}: {target} property is {actual}; values must read as {expected}.",
+  schemaIssue_unsupported_type:
+    "{column}: {actual} properties aren’t supported yet.",
+  schemaIssue_read_only_field:
+    "{column}: “{field}” is a {actual} property computed by {target}; it can’t receive values.",
+  schemaIssue_missing_options:
+    "{column}: {count} options missing in {target}: {options}",
+  schemaIssue_missing_status_options:
+    "{column}: {count} status options missing in {target}: {options}. Add them in {target}, then check again.",
+  schemaIssue_missing_key:
+    "“{field}” property missing: it holds each record’s id.",
+  schemaIssue_key_wrong_type:
+    "“{field}” can’t hold record ids: it is {actual}. Use Text or Number.",
+  schemaIssue_duplicate_mapping:
+    "{column}: “{field}” already receives another column.",
+  schemaIssue_title_unmapped:
+    "Choose the column that fills the page title “{field}”.",
+  schemaIssue_field_missing:
+    "{column}: “{field}” is no longer in {target} and its column can’t be found. Choose its field again.",
+  updateMapping: "Update mapping",
+  prepareNotion: "Prepare Notion database",
+  prepareSheet: "Prepare sheet",
+  prepareTarget: "Prepare {target}",
+  prepareIntro:
+    "These changes will be made in {target}. Nothing is deleted or renamed.",
+  prepareConfirm: "Make these changes",
+  preparing: "Preparing…",
+  prepared: "{count} changes made in {target}.",
+  preparedOne: "{count} change made in {target}.",
+  preparedNothing: "Nothing to change: {target} was already ready.",
+  cancel: "Cancel",
+  fixCreateField: "Create “{field}” ({type})",
+  fixCreateKey: "Create “{field}” ({type}) for record ids",
+  fixAddOptions: "Add {count} options to “{field}”: {options}",
+  providerNotion: "Notion",
+  providerSheets: "the sheet",
+  optionReadOnly: "{field} ({type}, read-only)",
+  optionUnsupported: "{field} ({type}, not supported yet)",
+  optionIncompatible: "{field} ({type}, doesn’t fit)",
+  optionUsed: "{field} (used by {column})",
+  pageTitle: "Page title",
+  pageTitleField: "{field} (page title)",
+  refreshTargets: "Refresh list",
+  createTarget: "Create one from this table’s columns…",
+  createTargetTitle: "New {target}",
+  createParent: "Create in",
+  createName: "Name",
+  createSubmit: "Create",
+  creatingTarget: "Creating…",
+  createNameRequired: "Enter a name.",
+  type_title: "Title",
+  type_rich_text: "Text",
+  type_text: "Text",
+  type_number: "Number",
+  type_select: "Select",
+  type_status: "Status",
+  type_multi_select: "Multi-select",
+  type_multiSelect: "Multi-select",
+  type_date: "Date",
+  type_checkbox: "Checkbox",
+  type_boolean: "Checkbox",
+  type_url: "URL",
+  type_email: "Email",
+  type_phone_number: "Phone",
+  type_phone: "Phone",
+  type_files: "Files & media",
+  type_people: "Person",
+  type_person: "Person",
+  type_relation: "Relation",
+  type_formula: "Formula",
+  type_rollup: "Rollup",
+  type_created_time: "Created time",
+  type_created_by: "Created by",
+  type_last_edited_time: "Last edited time",
+  type_last_edited_by: "Last edited by",
+  type_unique_id: "ID",
+  type_button: "Button",
 };
 
 const FRENCH_LABELS: Record<ConnectorLabelKey, string> = {
@@ -790,6 +1064,8 @@ const FRENCH_LABELS: Record<ConnectorLabelKey, string> = {
     "« {field} » ne peut pas identifier les lignes de cette destination.",
   issueInvalidMode: "Cette destination ne prend pas en charge ce mode.",
   error_aborted: "L’envoi a été annulé.",
+  error_field_missing:
+    "Une colonne associée n’existe plus dans la destination. Choisissez à nouveau son champ ; rien n’a été écrit.",
   error_api_disabled:
     "L’API du service n’est pas activée pour cette connexion.",
   error_forbidden: "Cette connexion ne peut pas écrire dans cette destination.",
@@ -914,6 +1190,98 @@ const FRENCH_LABELS: Record<ConnectorLabelKey, string> = {
   backToSettings: "Retour",
   valueYes: "Oui",
   valueNo: "Non",
+  targetCheck: "Vérification de la destination",
+  checkingTarget: "Vérification de {target}…",
+  schemaBlocking: "À corriger avant l’envoi",
+  schemaFixable: "Corrigeable pour vous",
+  schemaWarning: "Bon à savoir",
+  schemaBlocked: "À corriger d’abord : {reason}",
+  schemaIssue_missing_field: "{column} : « {field} » manque dans {target}.",
+  schemaIssue_deleted_field:
+    "{column} : « {field} » a été supprimé dans {target}.",
+  schemaIssue_renamed_field: "Renommé dans {target} : {from} → {to}",
+  schemaIssue_incompatible_type:
+    "{column} : la propriété {target} est de type {actual}, type {expected} attendu.",
+  schemaIssue_invalid_values:
+    "{column} : {count} valeurs de {target} ne se convertissent pas en {expected}.",
+  schemaIssue_coercible_type:
+    "{column} : la propriété {target} est de type {actual} ; ses valeurs doivent se lire comme {expected}.",
+  schemaIssue_unsupported_type:
+    "{column} : les propriétés {actual} ne sont pas encore prises en charge.",
+  schemaIssue_read_only_field:
+    "{column} : « {field} » est une propriété {actual} calculée par {target} ; elle ne peut pas recevoir de valeurs.",
+  schemaIssue_missing_options:
+    "{column} : {count} options manquantes dans {target} : {options}",
+  schemaIssue_missing_status_options:
+    "{column} : {count} options de statut manquantes dans {target} : {options}. Ajoutez-les dans {target}, puis vérifiez à nouveau.",
+  schemaIssue_missing_key:
+    "Propriété « {field} » manquante : elle contient l’identifiant de chaque enregistrement.",
+  schemaIssue_key_wrong_type:
+    "« {field} » ne peut pas contenir les identifiants : elle est de type {actual}. Utilisez Texte ou Nombre.",
+  schemaIssue_duplicate_mapping:
+    "{column} : « {field} » reçoit déjà une autre colonne.",
+  schemaIssue_title_unmapped:
+    "Choisissez la colonne qui remplit le titre de page « {field} ».",
+  schemaIssue_field_missing:
+    "{column} : « {field} » n’est plus dans {target} et sa colonne est introuvable. Choisissez à nouveau son champ.",
+  updateMapping: "Mettre à jour la correspondance",
+  prepareNotion: "Préparer la base Notion",
+  prepareSheet: "Préparer la feuille",
+  prepareTarget: "Préparer {target}",
+  prepareIntro:
+    "Ces changements seront faits dans {target}. Rien n’est supprimé ni renommé.",
+  prepareConfirm: "Faire ces changements",
+  preparing: "Préparation…",
+  prepared: "{count} changements faits dans {target}.",
+  preparedOne: "{count} changement fait dans {target}.",
+  preparedNothing: "Rien à changer : {target} était déjà prêt.",
+  cancel: "Annuler",
+  fixCreateField: "Créer « {field} » ({type})",
+  fixCreateKey: "Créer « {field} » ({type}) pour les identifiants",
+  fixAddOptions: "Ajouter {count} options à « {field} » : {options}",
+  providerNotion: "Notion",
+  providerSheets: "la feuille",
+  optionReadOnly: "{field} ({type}, lecture seule)",
+  optionUnsupported: "{field} ({type}, pas encore pris en charge)",
+  optionIncompatible: "{field} ({type}, incompatible)",
+  optionUsed: "{field} (utilisé par {column})",
+  pageTitle: "Titre de page",
+  pageTitleField: "{field} (titre de page)",
+  refreshTargets: "Actualiser la liste",
+  createTarget: "En créer une à partir des colonnes de la table…",
+  createTargetTitle: "Nouvelle destination {target}",
+  createParent: "Créer dans",
+  createName: "Nom",
+  createSubmit: "Créer",
+  creatingTarget: "Création…",
+  createNameRequired: "Saisissez un nom.",
+  type_title: "Titre",
+  type_rich_text: "Texte",
+  type_text: "Texte",
+  type_number: "Nombre",
+  type_select: "Sélection",
+  type_status: "Statut",
+  type_multi_select: "Sélection multiple",
+  type_multiSelect: "Sélection multiple",
+  type_date: "Date",
+  type_checkbox: "Case à cocher",
+  type_boolean: "Case à cocher",
+  type_url: "URL",
+  type_email: "E-mail",
+  type_phone_number: "Téléphone",
+  type_phone: "Téléphone",
+  type_files: "Fichiers et médias",
+  type_people: "Personne",
+  type_person: "Personne",
+  type_relation: "Relation",
+  type_formula: "Formule",
+  type_rollup: "Agrégation",
+  type_created_time: "Date de création",
+  type_created_by: "Créé par",
+  type_last_edited_time: "Dernière modification",
+  type_last_edited_by: "Modifié par",
+  type_unique_id: "ID",
+  type_button: "Bouton",
 };
 
 /** Host override for a label (`connector.<key>`), or the built-in one. */
@@ -937,7 +1305,8 @@ export function connectorLabels(
     ? FRENCH_LABELS
     : ENGLISH_LABELS;
   return (key, params = {}) => {
-    const template = translate ? translate(key, labels[key]) : labels[key];
+    const fallback = labels[key] ?? key;
+    const template = translate ? translate(key, fallback) : fallback;
     return Object.entries(params).reduce(
       (text, [name, value]) => text.replaceAll(`{${name}}`, String(value)),
       template
@@ -960,15 +1329,43 @@ export function isConnectorTypeCompatible(
   return areFieldTypesCompatible(columnType, fieldType);
 }
 
+/** A mapping entry for a field, with its id and position when the target has them. */
+const entryFor = (
+  columnId: string,
+  field: ConnectorField | undefined,
+  name: string | null
+): ConnectorMappingEntry => ({
+  columnId,
+  field: field?.name ?? name,
+  ...(field?.id ? { fieldId: field.id } : {}),
+  ...(field?.index === undefined ? {} : { fieldIndex: field.index }),
+});
+
+/** Whether a column may go to a field at all (read-only, unsupported and mismatched types may not). */
+export function isConnectorFieldUsable(
+  column: Pick<ConnectorColumn, "type">,
+  field: Pick<ConnectorField, "type">,
+  direction: SyncDirection = "push"
+): boolean {
+  const fit = typeCompatibility(column.type, field.type, direction);
+  return fit === "ok" || fit === "coerce";
+}
+
 /**
  * Each column to the field with the same name (accents, case and separators
  * ignored), type-compatible fields first, each field used once. Unmatched
  * columns get a new field of their own name when the target allows it.
+ * A field the column cannot fill (a formula, a person, a select for a
+ * number) is never chosen; entries carry the field's id and position.
  */
 export function defaultConnectorMapping(
   columns: readonly ConnectorColumn[],
   fields: readonly ConnectorField[],
-  options: { allowNewFields?: boolean; keyField?: string } = {}
+  options: {
+    allowNewFields?: boolean;
+    keyField?: string;
+    direction?: SyncDirection;
+  } = {}
 ): ConnectorMappingEntry[] {
   const matches = matchFieldsByName(
     columns.map((column) => ({
@@ -991,11 +1388,104 @@ export function defaultConnectorMapping(
       },
     }
   );
-  return columns.map((column, index) => ({
-    columnId: column.id,
-    field: matches[index] ?? null,
-  }));
+  return columns.map((column, index) => {
+    const name = matches[index] ?? null;
+    const field = fields.find((item) => item.name === name);
+    if (field && !isConnectorFieldUsable(column, field, options.direction)) {
+      return { columnId: column.id, field: null };
+    }
+    return entryFor(column.id, field, name);
+  });
 }
+
+/** The fields as the shared target check takes them. */
+export function connectorTargetSchema(
+  schema: Pick<ConnectorSchema, "fields" | "provider">
+): TargetSchema {
+  return {
+    ...(schema.provider ? { provider: schema.provider } : {}),
+    fields: schema.fields,
+  };
+}
+
+interface RememberedField {
+  entry: ConnectorMappingEntry;
+  renamedFrom?: string;
+}
+
+/**
+ * A remembered entry in the described target: by field id, then name, then
+ * position (shifted like the key column). `null` when the field is gone.
+ */
+const rememberedField = (
+  entry: ConnectorMappingEntry,
+  schema: ConnectorSchema,
+  options: { taken: ReadonlySet<string>; shift: number }
+): RememberedField | null => {
+  const resolved = resolveMappedField(entry, schema.fields, options);
+  const field = schema.fields.find((item) => item === resolved.field);
+  if (!field) {
+    return null;
+  }
+  return {
+    entry: entryFor(entry.columnId, field, field.name),
+    ...(resolved.status === "renamed" && resolved.from
+      ? { renamedFrom: resolved.from }
+      : {}),
+  };
+};
+
+const keyShift = (
+  schema: ConnectorSchema,
+  saved: Partial<ConnectorSettings> | null | undefined
+): number => {
+  if (saved?.keyFieldIndex === undefined || !saved.keyField) {
+    return 0;
+  }
+  const key = schema.fields.find((field) => field.name === saved.keyField);
+  return key?.index === undefined ? 0 : key.index - saved.keyFieldIndex;
+};
+
+const savedNames = (saved: Partial<ConnectorSettings> | null | undefined) =>
+  new Set([
+    ...(saved?.keyField ? [saved.keyField] : []),
+    ...(saved?.mapping ?? []).flatMap((entry) =>
+      entry.field ? [entry.field] : []
+    ),
+  ]);
+
+/**
+ * Fields renamed in the target since the settings were saved, found by
+ * their id (Notion) or position (sheets): "Price → Cost".
+ */
+export function connectorRenames(
+  saved: Partial<ConnectorSettings> | null | undefined,
+  schema: ConnectorSchema
+): { columnId: string; from: string; to: string }[] {
+  const options = { taken: savedNames(saved), shift: keyShift(schema, saved) };
+  return (saved?.mapping ?? []).flatMap((entry) => {
+    const found = entry.field ? rememberedField(entry, schema, options) : null;
+    return found?.renamedFrom && found.entry.field
+      ? [
+          {
+            columnId: entry.columnId,
+            from: found.renamedFrom,
+            to: found.entry.field,
+          },
+        ]
+      : [];
+  });
+}
+
+/** The saved key field in the described target: by id first, then by name. */
+const rememberedKey = (
+  saved: Partial<ConnectorSettings> | null | undefined,
+  schema: ConnectorSchema
+): ConnectorField | undefined =>
+  (saved?.keyFieldId
+    ? schema.fields.find((field) => field.id === saved.keyFieldId)
+    : undefined) ??
+  schema.fields.find((field) => field.name === saved?.keyField);
 
 /** Fields that may identify records, with the default key offered for a new field. */
 export function connectorKeyFields(schema: ConnectorSchema): string[] {
@@ -1162,36 +1652,47 @@ export function resolveConnectorSettings({
 }): ConnectorSettings {
   const offered = connectorModes(modes);
   const keys = connectorKeyFields(schema);
-  const keyField =
-    saved?.keyField && keys.includes(saved.keyField)
-      ? saved.keyField
-      : defaultConnectorKeyField(schema);
+  const savedKey = rememberedKey(saved, schema);
+  let keyField = defaultConnectorKeyField(schema);
+  if (savedKey && keys.includes(savedKey.name)) {
+    keyField = savedKey.name;
+  } else if (saved?.keyField && keys.includes(saved.keyField)) {
+    keyField = saved.keyField;
+  }
+  const key = schema.fields.find((field) => field.name === keyField);
   const scope = saved?.columns === "all" ? "all" : "visible";
-  const names = new Set(schema.fields.map((field) => field.name));
+  const direction = resolveSyncSettings({
+    directions,
+    conflictRules,
+    preset,
+    saved,
+  });
   const defaults = defaultConnectorMapping(columns, schema.fields, {
     allowNewFields: schema.allowNewFields,
     keyField,
+    direction: direction.direction,
   });
   const remembered = new Map(
-    (saved?.mapping ?? []).map((entry) => [entry.columnId, entry.field])
+    (saved?.mapping ?? []).map((entry) => [entry.columnId, entry])
   );
   const mapped = new Set(
     connectorMappedColumns(columns, scope).map((column) => column.id)
   );
-  const mapping = defaults.map((entry) => {
-    if (!mapped.has(entry.columnId)) {
-      return {
-        columnId: entry.columnId,
-        field: remembered.get(entry.columnId) ?? entry.field,
-      };
-    }
-    if (!remembered.has(entry.columnId)) {
+  const lookup = { taken: savedNames(saved), shift: keyShift(schema, saved) };
+  const mapping = defaults.map((entry): ConnectorMappingEntry => {
+    const kept = remembered.get(entry.columnId);
+    if (!kept) {
       return entry;
     }
-    const field = remembered.get(entry.columnId) ?? null;
-    const usable =
-      field === null || names.has(field) || schema.allowNewFields === true;
-    return { columnId: entry.columnId, field: usable ? field : entry.field };
+    if (!(mapped.has(entry.columnId) && kept.field)) {
+      return mapped.has(entry.columnId) || kept.field ? kept : entry;
+    }
+    const found = rememberedField(kept, schema, lookup);
+    if (found) {
+      return found.entry;
+    }
+    // A field the target does not have (yet): kept when it accepts new ones.
+    return schema.allowNewFields === true ? kept : entry;
   });
   return {
     targetId: target.targetId,
@@ -1201,9 +1702,11 @@ export function resolveConnectorSettings({
         ? saved.mode
         : (offered[0] ?? "upsert"),
     keyField,
+    ...(key?.id ? { keyFieldId: key.id } : {}),
+    ...(key?.index === undefined ? {} : { keyFieldIndex: key.index }),
     mapping,
     columns: scope,
-    ...resolveSyncSettings({ directions, conflictRules, preset, saved }),
+    ...direction,
   };
 }
 
@@ -1227,42 +1730,150 @@ export function connectorSettingsToSend(
     field !== null && (names === null || names.has(field));
   return {
     ...settings,
-    mapping: settings.mapping.map((entry) => ({
-      columnId: entry.columnId,
-      field:
-        mapped.has(entry.columnId) && usable(entry.field) ? entry.field : null,
-    })),
+    mapping: settings.mapping.map((entry) =>
+      mapped.has(entry.columnId) && usable(entry.field)
+        ? entry
+        : { columnId: entry.columnId, field: null }
+    ),
   };
 }
 
-/** The mapping in the shape the connector server modules take. */
+/**
+ * The mapping in the shape the connector server modules take: names, plus
+ * the Notion property ids that are found first (`propertyIds`).
+ */
 export function toConnectorMapping(
-  settings: Pick<ConnectorSettings, "keyField" | "mapping">
+  settings: Pick<
+    ConnectorSettings,
+    "keyField" | "keyFieldId" | "keyFieldIndex" | "mapping"
+  >
 ): {
   keyProperty: string;
+  keyPropertyId?: string;
   properties: Record<string, string>;
+  propertyIds?: Record<string, string>;
+  /** Sheet header positions (`pushRowsToSheet`'s `fieldIndexes`). */
+  fieldIndexes?: Record<string, number>;
+  keyFieldIndex?: number;
 } {
   const properties: Record<string, string> = {};
+  const propertyIds: Record<string, string> = {};
+  const fieldIndexes: Record<string, number> = {};
   for (const entry of settings.mapping) {
     if (entry.field) {
       properties[entry.columnId] = entry.field;
+      if (entry.fieldId) {
+        propertyIds[entry.columnId] = entry.fieldId;
+      }
+      if (entry.fieldIndex !== undefined) {
+        fieldIndexes[entry.columnId] = entry.fieldIndex;
+      }
     }
   }
-  return { keyProperty: settings.keyField, properties };
+  return {
+    keyProperty: settings.keyField,
+    ...(settings.keyFieldId ? { keyPropertyId: settings.keyFieldId } : {}),
+    properties,
+    ...(Object.keys(propertyIds).length > 0 ? { propertyIds } : {}),
+    ...(Object.keys(fieldIndexes).length > 0 ? { fieldIndexes } : {}),
+    ...(settings.keyFieldIndex === undefined
+      ? {}
+      : { keyFieldIndex: settings.keyFieldIndex }),
+  };
 }
 
-/** Choices for one column: the target's fields, a new field, or leave it out. */
+/** A choice of a mapping select; disabled choices say why in their label. */
+export interface ConnectorChoice {
+  value: string;
+  label: string;
+  disabled?: boolean;
+}
+
+const OPTION_REASON_KEYS: Partial<
+  Record<ReturnType<typeof typeCompatibility>, ConnectorLabelKey>
+> = {
+  read_only: "optionReadOnly",
+  unsupported: "optionUnsupported",
+  no: "optionIncompatible",
+};
+
+/** The label of a provider or table type ("Text", "Formula"), else the type itself. */
+export function connectorTypeLabel(
+  type: string | undefined,
+  t: ConnectorT
+): string {
+  if (!type) {
+    return "";
+  }
+  const key = `type_${type}` as const;
+  const label = t(key);
+  return label === key ? type : label;
+}
+
+/** Why a column cannot go to a field: a disabled choice, or `null` when it can. */
+const fieldChoice = (
+  column: ConnectorColumn,
+  field: ConnectorField,
+  t: ConnectorT,
+  context: { direction?: SyncDirection; usedBy?: string }
+): ConnectorChoice => {
+  const reason =
+    OPTION_REASON_KEYS[
+      typeCompatibility(column.type, field.type, context.direction ?? "push")
+    ];
+  if (reason) {
+    return {
+      value: field.name,
+      label: t(reason, {
+        field: field.name,
+        type: connectorTypeLabel(field.type, t),
+      }),
+      disabled: true,
+    };
+  }
+  if (context.usedBy) {
+    return {
+      value: field.name,
+      label: t("optionUsed", { field: field.name, column: context.usedBy }),
+      disabled: true,
+    };
+  }
+  return { value: field.name, label: field.name };
+};
+
+/**
+ * Choices for one column: the target's fields, a new field, or leave it out.
+ * With `mapping`, a field another column already has is disabled ("used by
+ * Price"); fields the column cannot fill (read-only, not supported yet, a
+ * type that doesn't fit) are disabled with the reason, never hidden.
+ */
 export function connectorFieldOptions(
   column: ConnectorColumn,
   schema: ConnectorSchema,
   current: string | null,
-  t: ConnectorT
-): { value: string; label: string }[] {
+  t: ConnectorT,
+  context: {
+    mapping?: readonly ConnectorMappingEntry[];
+    columns?: readonly ConnectorColumn[];
+    direction?: SyncDirection;
+  } = {}
+): ConnectorChoice[] {
   const names = new Set(schema.fields.map((field) => field.name));
-  const options = schema.fields.map((field) => ({
-    value: field.name,
-    label: field.name,
-  }));
+  const usedBy = new Map<string, string>();
+  for (const entry of context.mapping ?? []) {
+    const other = context.columns?.find((item) => item.id === entry.columnId);
+    if (entry.field && other && entry.columnId !== column.id) {
+      usedBy.set(entry.field, other.header);
+    }
+  }
+  const options: ConnectorChoice[] = schema.fields.map((field) =>
+    field.name === current
+      ? { value: field.name, label: field.name }
+      : fieldChoice(column, field, t, {
+          direction: context.direction,
+          usedBy: usedBy.get(field.name),
+        })
+  );
   const newNames = [
     current,
     schema.allowNewFields ? column.header : null,
@@ -1427,6 +2038,7 @@ export function connectorIssueMessage(
 const ERROR_CODES = new Set<string>([
   "aborted",
   "api_disabled",
+  "field_missing",
   "forbidden",
   "invalid_credentials",
   "invalid_mapping",
@@ -2266,6 +2878,304 @@ export function describeSyncResult(
   };
 }
 
+// Target check ---------------------------------------------------------------------
+
+/**
+ * The target check of the screen's settings, from the described fields:
+ * `checkTargetSchema` with the saved names of renamed fields, so renames are
+ * reported ("Renamed in Notion: Price → Cost") until the mapping is saved.
+ */
+export function connectorSchemaReport(
+  settings: ConnectorSettings,
+  schema: ConnectorSchema,
+  columns: readonly ConnectorViewColumn[],
+  renames: readonly { columnId: string; from: string }[] = []
+): SchemaReport {
+  return checkTargetSchema({
+    columns,
+    mapping: connectorCheckedMapping(settings, columns, schema, renames),
+    keyField: settings.keyField,
+    keyFieldId: settings.keyFieldId,
+    keyFieldIndex: settings.keyFieldIndex,
+    targetSchema: connectorTargetSchema(schema),
+    direction: settings.direction ?? "push",
+  });
+}
+
+/** The sent mapping with the saved names of renamed fields (what the host has stored). */
+export function connectorCheckedMapping(
+  settings: ConnectorSettings,
+  columns: readonly ConnectorViewColumn[],
+  schema: ConnectorSchema,
+  renames: readonly { columnId: string; from: string }[] = []
+): ConnectorMappingEntry[] {
+  const saved = new Map(
+    renames.map((rename) => [rename.columnId, rename.from])
+  );
+  return connectorSettingsToSend(settings, columns, schema).mapping.map(
+    (entry) => {
+      const from = saved.get(entry.columnId);
+      return from && entry.field ? { ...entry, field: from } : entry;
+    }
+  );
+}
+
+/** The first blocking issue of the check, or `null`: Send and Sync wait for it. */
+export function connectorSchemaBlocker(
+  state: Pick<ConnectorFlowState, "schemaReport">
+): SchemaIssue | null {
+  return (
+    state.schemaReport?.issues.find((issue) => issue.severity === "blocking") ??
+    null
+  );
+}
+
+/** "Notion", "the sheet", or the destination's name. */
+export function connectorProviderName(
+  schema: Pick<ConnectorSchema, "provider"> | null | undefined,
+  options: Pick<ConnectorScreenOptions, "connector" | "name" | "t">
+): string {
+  if (schema?.provider === "notion") {
+    return options.t("providerNotion");
+  }
+  if (schema?.provider === "sheets") {
+    return options.t("providerSheets");
+  }
+  return connectorTargetName(options);
+}
+
+interface IssueContext {
+  t: ConnectorT;
+  target: string;
+  columns: readonly ConnectorColumn[];
+}
+
+const ISSUE_MESSAGE_KEYS: Record<SchemaIssue["code"], ConnectorLabelKey> = {
+  missing_field: "schemaIssue_missing_field",
+  deleted_field: "schemaIssue_deleted_field",
+  renamed_field: "schemaIssue_renamed_field",
+  incompatible_type: "schemaIssue_incompatible_type",
+  coercible_type: "schemaIssue_coercible_type",
+  unsupported_type: "schemaIssue_unsupported_type",
+  read_only_field: "schemaIssue_read_only_field",
+  missing_options: "schemaIssue_missing_options",
+  missing_key: "schemaIssue_missing_key",
+  key_wrong_type: "schemaIssue_key_wrong_type",
+  duplicate_mapping: "schemaIssue_duplicate_mapping",
+  title_unmapped: "schemaIssue_title_unmapped",
+  field_missing: "schemaIssue_field_missing",
+};
+
+const issueKey = (issue: SchemaIssue): ConnectorLabelKey => {
+  if (issue.code === "missing_options" && issue.detail.actual === "status") {
+    return "schemaIssue_missing_status_options";
+  }
+  if (issue.code === "incompatible_type" && issue.detail.invalid) {
+    return "schemaIssue_invalid_values";
+  }
+  return ISSUE_MESSAGE_KEYS[issue.code];
+};
+
+/**
+ * One issue in plain language: "Price: Notion property is Text, Number
+ * expected.", "Status: 2 options missing in Notion: Blocked, Review",
+ * "“Yayaw ID” property missing: it holds each record’s id."
+ */
+export function schemaIssueMessage(
+  issue: SchemaIssue,
+  { t, target, columns }: IssueContext
+): string {
+  const column = columns.find((item) => item.id === issue.columnId);
+  const options = issue.detail.options ?? [];
+  return t(issueKey(issue), {
+    column: column?.header ?? issue.columnId ?? "",
+    field: issue.field ?? "",
+    target,
+    actual: connectorTypeLabel(issue.detail.actual, t),
+    expected: connectorTypeLabel(issue.detail.expected ?? column?.type, t),
+    from: issue.detail.from ?? "",
+    to: issue.detail.to ?? "",
+    options: options.join(", "),
+    count: issue.detail.invalid ?? options.length,
+  });
+}
+
+export interface SchemaReportLine {
+  id: string;
+  severity: SchemaIssue["severity"];
+  code: SchemaIssue["code"];
+  text: string;
+  /** A renamed field: "Update mapping" saves its new name. */
+  renamed?: boolean;
+}
+
+export interface SchemaReportView {
+  title: string;
+  /** Blocking, fixable, then warnings; empty groups are left out. */
+  groups: {
+    severity: SchemaIssue["severity"];
+    title: string;
+    lines: SchemaReportLine[];
+  }[];
+  /** "Prepare Notion database", when fixable issues exist and the connector can prepare. */
+  prepare: string | null;
+  /** "Update mapping", when fields were renamed. */
+  updateMapping: string | null;
+  /** "Fix this first: …", when a blocking issue stops Send and Sync. */
+  blocked: string | null;
+  /** "3 changes made in Notion." after "Prepare". */
+  prepared: string | null;
+  /** "Checking Notion…" while the host checks. */
+  checking: string | null;
+}
+
+const SEVERITY_TITLES: Record<SchemaIssue["severity"], ConnectorLabelKey> = {
+  blocking: "schemaBlocking",
+  fixable: "schemaFixable",
+  warning: "schemaWarning",
+};
+
+const PREPARE_KEYS: Record<string, ConnectorLabelKey> = {
+  notion: "prepareNotion",
+  sheets: "prepareSheet",
+};
+
+const issueId = (issue: SchemaIssue, index: number) =>
+  `${issue.code}:${issue.columnId ?? issue.field ?? ""}:${index}`;
+
+const preparedText = (
+  prepared: readonly SchemaFix[] | null,
+  t: ConnectorT,
+  target: string
+): string | null => {
+  if (prepared === null) {
+    return null;
+  }
+  if (prepared.length === 0) {
+    return t("preparedNothing", { target });
+  }
+  return t(prepared.length === 1 ? "preparedOne" : "prepared", {
+    count: prepared.length,
+    target,
+  });
+};
+
+/**
+ * The "Target check" block: issues grouped by severity with plain-language
+ * lines, "Prepare …" when fixable issues exist, "Update mapping" for renamed
+ * fields and why Send waits. `null` when there is nothing to show.
+ */
+export function describeSchemaReport(
+  state: Pick<
+    ConnectorFlowState,
+    "schema" | "schemaReport" | "checking" | "prepared"
+  >,
+  options: Pick<
+    ConnectorScreenOptions,
+    "connector" | "name" | "t" | "columns"
+  > & {
+    connector: { prepareTarget?: unknown };
+  }
+): SchemaReportView | null {
+  const { t } = options;
+  const target = connectorProviderName(state.schema, options);
+  const issues = state.schemaReport?.issues ?? [];
+  const prepared = preparedText(state.prepared, t, target);
+  if (issues.length === 0 && !state.checking && !prepared) {
+    return null;
+  }
+  const context = { t, target, columns: options.columns };
+  const lines = issues.map((issue, index) => ({
+    id: issueId(issue, index),
+    severity: issue.severity,
+    code: issue.code,
+    text: schemaIssueMessage(issue, context),
+    ...(issue.code === "renamed_field" ? { renamed: true } : {}),
+  }));
+  const groups = (["blocking", "fixable", "warning"] as const)
+    .map((severity) => ({
+      severity,
+      title: t(SEVERITY_TITLES[severity]),
+      lines: lines.filter((line) => line.severity === severity),
+    }))
+    .filter((group) => group.lines.length > 0);
+  const canPrepare =
+    typeof options.connector.prepareTarget === "function" &&
+    (state.schemaReport?.fixes.length ?? 0) > 0;
+  const blocker = connectorSchemaBlocker(state);
+  return {
+    title: t("targetCheck"),
+    groups,
+    prepare: canPrepare
+      ? t(PREPARE_KEYS[state.schema?.provider ?? ""] ?? "prepareTarget", {
+          target,
+        })
+      : null,
+    updateMapping: lines.some((line) => line.renamed)
+      ? t("updateMapping")
+      : null,
+    blocked: blocker
+      ? t("schemaBlocked", { reason: schemaIssueMessage(blocker, context) })
+      : null,
+    prepared,
+    checking: state.checking ? t("checkingTarget", { target }) : null,
+  };
+}
+
+/** One line per change "Prepare" makes: "Create “Yayaw ID” (Text) for record ids". */
+export function describeSchemaFixes(
+  fixes: readonly SchemaFix[],
+  options: Pick<ConnectorScreenOptions, "connector" | "name" | "t"> & {
+    schema?: Pick<ConnectorSchema, "provider"> | null;
+  }
+): { intro: string; lines: string[]; confirm: string; cancel: string } {
+  const { t } = options;
+  const target = connectorProviderName(options.schema, options);
+  const lines = fixes.map((fix) => {
+    if (fix.kind === "add_options") {
+      return t("fixAddOptions", {
+        count: fix.options.length,
+        field: fix.field,
+        options: fix.options.map((option) => option.name).join(", "),
+      });
+    }
+    return t(fix.key ? "fixCreateKey" : "fixCreateField", {
+      field: fix.field,
+      type: connectorTypeLabel(fix.type, t),
+    });
+  });
+  return {
+    intro: t("prepareIntro", { target }),
+    lines,
+    confirm: t("prepareConfirm"),
+    cancel: t("cancel"),
+  };
+}
+
+/** Columns sent to `createTarget.create`: the visible ones, options with Notion colors. */
+export function connectorNewTargetColumns(
+  columns: readonly ConnectorViewColumn[]
+): ConnectorNewTargetColumn[] {
+  return columns
+    .filter((column) => column.visible)
+    .map((column) => {
+      const options = (column.options ?? []).flatMap((option) => {
+        const value =
+          typeof option === "string" ? option : String(option.value ?? "");
+        const color = typeof option === "string" ? undefined : option.color;
+        return value
+          ? [{ name: value, color: notionColorFor({ value, color }) }]
+          : [];
+      });
+      return {
+        id: column.id,
+        header: column.header,
+        ...(column.type ? { type: column.type } : {}),
+        ...(options.length > 0 ? { options } : {}),
+      };
+    });
+}
+
 /** A destination the Connect screen opens as connector screens. */
 export function hasConnector(
   destination: {
@@ -2312,6 +3222,26 @@ export interface ConnectorFlowState {
   conflictsOpen: boolean;
   /** A `resolveConflicts` call is running. */
   resolvingConflicts: boolean;
+  /** The target check of the current settings; `null` before a target is described. */
+  schemaReport: SchemaReport | null;
+  /** The connector's `checkSchema` is running. */
+  checking: boolean;
+  /** Fields renamed in the target since the settings were saved. */
+  renames: { columnId: string; from: string; to: string }[];
+  /** The "Prepare …" confirmation is shown. */
+  prepareOpen: boolean;
+  /** `prepareTarget` is running. */
+  preparing: boolean;
+  /** What the last "Prepare" changed, until the target changes. */
+  prepared: SchemaFix[] | null;
+  /** The form creating a target from the table's columns is shown. */
+  createOpen: boolean;
+  /** Where a new target can go (`createTarget.parents`), `null` before they are listed. */
+  createParents: ConnectorTargetParent[] | null;
+  /** `createTarget.create` is running. */
+  creating: boolean;
+  /** The target list is being read again. */
+  refreshing: boolean;
 }
 
 export interface ConnectorFlowOptions<TContext, TPushContext> {
@@ -2372,6 +3302,20 @@ export interface ConnectorFlow {
   showConflicts: (open: boolean) => void;
   /** Applies decisions through `resolveConflicts`, then lists the conflicts again. */
   resolveConflicts: (resolutions: PendingConflictResolution[]) => Promise<void>;
+  /** Checks the target again (host `checkSchema`, else the described fields). */
+  checkSchema: () => Promise<void>;
+  /** Shows or hides the "Prepare …" confirmation. */
+  showPrepare: (open: boolean) => void;
+  /** Applies the fixable issues through `prepareTarget`, then reads the target again. */
+  prepare: () => Promise<void>;
+  /** Saves the mapping with the new names of renamed fields. */
+  updateMapping: () => Promise<void>;
+  /** Reads the target list again. */
+  refreshTargets: () => Promise<void>;
+  /** Shows or hides the form creating a target; lists its parents first. */
+  showCreate: (open: boolean) => Promise<void>;
+  /** Creates a target from the table's columns and selects it. */
+  createTarget: (input: { parentId?: string; title: string }) => Promise<void>;
   dispose: () => void;
 }
 
@@ -2455,6 +3399,16 @@ const INITIAL_STATE: Omit<ConnectorFlowState, "scope"> = {
   conflicts: null,
   conflictsOpen: false,
   resolvingConflicts: false,
+  schemaReport: null,
+  checking: false,
+  renames: [],
+  prepareOpen: false,
+  preparing: false,
+  prepared: null,
+  createOpen: false,
+  createParents: null,
+  creating: false,
+  refreshing: false,
 };
 
 /**
@@ -2475,12 +3429,38 @@ export function createConnectorFlow<TContext, TPushContext>(
   let preset = options.direction;
   let request = 0;
   let started = false;
+  // The settings as the host last stored them: renames are measured against them.
+  let stored: Partial<ConnectorSettings> | null = null;
+  let checkTicket = 0;
+  let pendingCheck: Promise<void> | null = null;
   const set = (patch: Partial<ConnectorFlowState>) => {
     state = { ...state, ...patch };
     notify(state);
   };
   const failureText = (error: unknown) =>
     connectorFailureMessage(toConnectorFailure(error), t, connector.help);
+  const issueText = (issue: SchemaIssue) =>
+    schemaIssueMessage(issue, {
+      t,
+      target: connectorProviderName(state.schema, { connector, t }),
+      columns,
+    });
+  /** The local check of settings, unless the host checks on its server. */
+  const checked = (
+    settings: ConnectorSettings | null,
+    schema: ConnectorSchema | null,
+    renames: ConnectorFlowState["renames"]
+  ): Partial<ConnectorFlowState> => {
+    if (!(settings && schema)) {
+      return { schemaReport: null };
+    }
+    if (connector.checkSchema) {
+      return {};
+    }
+    return {
+      schemaReport: connectorSchemaReport(settings, schema, columns, renames),
+    };
+  };
   const targetById = (id: string) =>
     state.targets.find((target) => target.id === id);
 
@@ -2500,6 +3480,12 @@ export function createConnectorFlow<TContext, TPushContext>(
       syncResult: null,
       conflicts: null,
       conflictsOpen: false,
+      schemaReport: null,
+      checking: false,
+      renames: [],
+      prepareOpen: false,
+      prepared: null,
+      createOpen: false,
     });
     try {
       const schema = await connector.describe(
@@ -2520,7 +3506,19 @@ export function createConnectorFlow<TContext, TPushContext>(
         preset,
       });
       preset = undefined;
-      set({ schema, schemaLoading: false, settings });
+      const renames =
+        stored?.targetId === targetId &&
+        (stored.childId ?? "") === (childId ?? "")
+          ? connectorRenames(stored, schema)
+          : [];
+      set({
+        schema,
+        schemaLoading: false,
+        settings,
+        renames,
+        ...checked(settings, schema, renames),
+      });
+      runHostCheck();
       await loadConflicts();
     } catch (error) {
       if (ticket === request) {
@@ -2540,6 +3538,7 @@ export function createConnectorFlow<TContext, TPushContext>(
         connector.load ? connector.load(context) : null,
       ]);
       draft = saved ?? null;
+      stored = saved ?? null;
       const known =
         !saved?.targetId ||
         targets.some((target) => target.id === saved.targetId);
@@ -2591,11 +3590,78 @@ export function createConnectorFlow<TContext, TPushContext>(
     }
   };
 
-  // Any change makes the last preview stale.
+  /** Runs the host's `checkSchema`; a later check or change wins. */
+  const runHostCheck = () => {
+    const settings = currentSettings();
+    const schema = state.schema;
+    if (!(connector.checkSchema && settings && schema)) {
+      return;
+    }
+    checkTicket += 1;
+    const ticket = checkTicket;
+    set({ checking: true });
+    const hostSettings = {
+      ...settings,
+      mapping: connectorCheckedMapping(
+        settings,
+        columns,
+        schema,
+        state.renames
+      ),
+    };
+    pendingCheck = Promise.resolve()
+      .then(() => connector.checkSchema?.(hostSettings, viewContext(settings)))
+      .then(
+        (outcome) => {
+          if (isConnectorOutcomeError(outcome)) {
+            throw outcome;
+          }
+          if (ticket === checkTicket && outcome) {
+            set({ checking: false, schemaReport: outcome });
+          }
+        },
+        (error: unknown) => {
+          if (ticket === checkTicket) {
+            set({ checking: false, error: failureText(error) });
+          }
+        }
+      )
+      .catch((error: unknown) => {
+        if (ticket === checkTicket) {
+          set({ checking: false, error: failureText(error) });
+        }
+      });
+  };
+
+  // Any change makes the last preview and the last check stale.
   const setSettings = (
     settings: ConnectorSettings,
     extra: Partial<ConnectorFlowState> = {}
-  ) => set({ settings, error: null, preview: null, ...extra });
+  ) => {
+    set({
+      settings,
+      error: null,
+      preview: null,
+      prepared: null,
+      ...extra,
+      ...checked(settings, state.schema, state.renames),
+    });
+    runHostCheck();
+  };
+
+  /** Entries with the id and position of their field, as the schema describes them. */
+  const withFieldIds = (
+    mapping: readonly ConnectorMappingEntry[]
+  ): ConnectorMappingEntry[] =>
+    mapping.map((entry) =>
+      entryFor(
+        entry.columnId,
+        entry.field
+          ? state.schema?.fields.find((field) => field.name === entry.field)
+          : undefined,
+        entry.field
+      )
+    );
 
   const setField = (columnId: string, value: string) => {
     if (!state.settings) {
@@ -2604,8 +3670,10 @@ export function createConnectorFlow<TContext, TPushContext>(
     const field = value === CONNECTOR_SKIP ? null : value;
     setSettings({
       ...state.settings,
-      mapping: state.settings.mapping.map((entry) =>
-        entry.columnId === columnId ? { columnId, field } : entry
+      mapping: withFieldIds(
+        state.settings.mapping.map((entry) =>
+          entry.columnId === columnId ? { columnId, field } : entry
+        )
       ),
     });
   };
@@ -2617,7 +3685,9 @@ export function createConnectorFlow<TContext, TPushContext>(
     const columnId = value === CONNECTOR_SKIP ? null : value;
     setSettings({
       ...state.settings,
-      mapping: assignTargetField(state.settings.mapping, field, columnId),
+      mapping: withFieldIds(
+        assignTargetField(state.settings.mapping, field, columnId)
+      ),
     });
   };
 
@@ -2767,11 +3837,30 @@ export function createConnectorFlow<TContext, TPushContext>(
     }
   };
 
+  /** The host stored these settings: renamed fields now carry their new names. */
+  const markStored = (
+    settings: ConnectorSettings,
+    saveError: string | null
+  ) => {
+    if (saveError) {
+      return;
+    }
+    stored = settings;
+    if (state.renames.length > 0) {
+      set({
+        renames: [],
+        ...checked(state.settings, state.schema, []),
+      });
+      runHostCheck();
+    }
+  };
+
   // Settings are remembered on every send, whatever the push returns.
   const push = async (settings: ConnectorSettings) => {
     const saving = saveSettings(settings);
     const outcome = await connector.push(settings, contextFor(settings));
     const saveError = await saving;
+    markStored(settings, saveError);
     if (isPushFailure(outcome)) {
       throw outcome;
     }
@@ -2786,6 +3875,7 @@ export function createConnectorFlow<TContext, TPushContext>(
     const saving = saveSettings(settings);
     const outcome = await connector.sync(settings, contextFor(settings));
     const saveError = await saving;
+    markStored(settings, saveError);
     if (isConnectorOutcomeError(outcome)) {
       throw outcome;
     }
@@ -2800,12 +3890,22 @@ export function createConnectorFlow<TContext, TPushContext>(
     await loadConflicts();
   };
 
+  /** Waits for a running host check; a blocking issue stops Send and Preview. */
+  const schemaStops = async (): Promise<boolean> => {
+    await pendingCheck;
+    const blocking = connectorSchemaBlocker(state);
+    if (blocking) {
+      set({ error: t("schemaBlocked", { reason: issueText(blocking) }) });
+    }
+    return blocking !== null;
+  };
+
   const send = async () => {
     if (state.phase === "sending" || state.previewing) {
       return;
     }
     const settings = checkedSettings();
-    if (!settings) {
+    if (!settings || (await schemaStops())) {
       return;
     }
     const blocker = connectorSyncBlocker(state, connector);
@@ -2832,6 +3932,9 @@ export function createConnectorFlow<TContext, TPushContext>(
     if (!(settings && isSyncDirection(settings.direction))) {
       return;
     }
+    if (await schemaStops()) {
+      return;
+    }
     const current = state.settings;
     set({ previewing: true, preview: null, error: null });
     try {
@@ -2846,6 +3949,131 @@ export function createConnectorFlow<TContext, TPushContext>(
       });
     } catch (error) {
       set({ previewing: false, error: failureText(error) });
+    }
+  };
+
+  const checkSchema = async () => {
+    if (connector.checkSchema) {
+      runHostCheck();
+      await pendingCheck;
+      return;
+    }
+    set(checked(state.settings, state.schema, state.renames));
+  };
+
+  const prepare = async () => {
+    const settings = currentSettings();
+    const fixes = state.schemaReport?.fixes ?? [];
+    if (
+      !(settings && connector.prepareTarget) ||
+      fixes.length === 0 ||
+      state.preparing
+    ) {
+      return;
+    }
+    set({ preparing: true, error: null });
+    try {
+      const outcome = await connector.prepareTarget(
+        fixes,
+        settings,
+        viewContext(settings)
+      );
+      if (isConnectorOutcomeError(outcome)) {
+        throw outcome;
+      }
+      // New fields and options change the choices: read the target again.
+      const renames = state.renames;
+      await describe(state.targetId, state.childId);
+      set({ preparing: false, prepared: outcome.applied });
+      if (renames.length > 0 && state.renames.length === 0) {
+        set({ renames, ...checked(state.settings, state.schema, renames) });
+      }
+    } catch (error) {
+      set({ preparing: false, error: failureText(error) });
+    }
+  };
+
+  const updateMapping = async () => {
+    const settings = currentSettings();
+    if (!settings) {
+      return;
+    }
+    const saveError = await saveSettings(settings);
+    if (saveError) {
+      set({ error: saveError });
+      return;
+    }
+    stored = settings;
+    set({ renames: [], ...checked(state.settings, state.schema, []) });
+    runHostCheck();
+  };
+
+  const refreshTargets = async () => {
+    if (state.refreshing) {
+      return;
+    }
+    set({ refreshing: true, error: null });
+    try {
+      const targets = await connector.targets(context);
+      const current = targetById(state.targetId);
+      const keep =
+        current && !targets.some((target) => target.id === current.id);
+      set({
+        refreshing: false,
+        targets: keep ? [...targets, current] : targets,
+      });
+    } catch (error) {
+      set({ refreshing: false, error: failureText(error) });
+    }
+  };
+
+  const showCreate = async (open: boolean) => {
+    set({ createOpen: open, error: null });
+    const parents = connector.createTarget?.parents;
+    if (!(open && parents) || state.createParents !== null) {
+      return;
+    }
+    try {
+      set({ createParents: await parents(context) });
+    } catch (error) {
+      set({ createParents: [], error: failureText(error) });
+    }
+  };
+
+  const createTarget = async (input: { parentId?: string; title: string }) => {
+    const create = connector.createTarget?.create;
+    if (!create || state.creating) {
+      return;
+    }
+    const title = input.title.trim();
+    if (!title) {
+      set({ error: t("createNameRequired") });
+      return;
+    }
+    set({ creating: true, error: null });
+    try {
+      const target = await create(
+        {
+          ...(input.parentId ? { parentId: input.parentId } : {}),
+          title,
+          columns: connectorNewTargetColumns(columns),
+        },
+        context
+      );
+      if (isConnectorOutcomeError(target)) {
+        throw target;
+      }
+      set({
+        creating: false,
+        createOpen: false,
+        targets: [
+          ...state.targets.filter((item) => item.id !== target.id),
+          target,
+        ],
+      });
+      await describe(target.id, childFor(target));
+    } catch (error) {
+      set({ creating: false, error: failureText(error) });
     }
   };
 
@@ -2870,9 +4098,17 @@ export function createConnectorFlow<TContext, TPushContext>(
     loadConflicts,
     showConflicts: (open) => set({ conflictsOpen: open, error: null }),
     resolveConflicts,
+    checkSchema,
+    showPrepare: (open) => set({ prepareOpen: open, error: null }),
+    prepare,
+    updateMapping,
+    refreshTargets,
+    showCreate,
+    createTarget,
     dispose: () => {
       notify = () => undefined;
       request += 1;
+      checkTicket += 1;
     },
   };
 }
@@ -2881,6 +4117,9 @@ export function createConnectorFlow<TContext, TPushContext>(
 
 /** Option value of the target select before a target is chosen. */
 export const CONNECTOR_NO_TARGET = "__yayaw_no_target__";
+
+/** Option value of the target select that opens "Create one from this table’s columns…". */
+export const CONNECTOR_NEW_TARGET = "__yayaw_new_target__";
 
 /** One select of the connector screen; both editions render the same list. */
 export interface ConnectorScreenField {
@@ -2892,7 +4131,8 @@ export interface ConnectorScreenField {
   id: string;
   label: string;
   value: string;
-  options: { value: string; label: string }[];
+  /** Disabled choices say why in their label ("Margin (Formula, read-only)"). */
+  options: ConnectorChoice[];
   heading?: string;
   inline?: boolean;
   /** Pull and two-way rows: the field's first value and a conversion badge. */
@@ -2909,7 +4149,7 @@ export interface ConnectorScreenOptions {
   connector: Pick<
     DataDestinationConnector,
     "labels" | "modes" | "directions" | "conflictRules" | "conflicts"
-  > & { sync?: unknown };
+  > & { sync?: unknown; createTarget?: { label?: string } };
   columns: readonly ConnectorViewColumn[];
   selectedCount: number;
   t: ConnectorT;
@@ -2945,6 +4185,14 @@ const targetFields = (
           ? []
           : [{ value: CONNECTOR_NO_TARGET, label: t("chooseTarget") }]),
         ...state.targets.map((item) => ({ value: item.id, label: item.label })),
+        ...(connector.createTarget
+          ? [
+              {
+                value: CONNECTOR_NEW_TARGET,
+                label: connector.createTarget.label ?? t("createTarget"),
+              },
+            ]
+          : []),
       ],
     },
   ];
@@ -3026,12 +4274,51 @@ const columnsField = (
   ],
 });
 
+/** The Notion title property, when a push must fill it and the key is not it. */
+const titleField = (
+  schema: ConnectorSchema,
+  settings: ConnectorSettings
+): ConnectorField | undefined => {
+  const title = schema.fields.find((field) => field.type === "title");
+  return title && title.name !== settings.keyField ? title : undefined;
+};
+
+/** "Name (page title)": which column fills the page title, shown first. */
+const titleRow = (
+  title: ConnectorField,
+  settings: ConnectorSettings,
+  mappedColumns: readonly ConnectorViewColumn[],
+  t: ConnectorT
+): ConnectorScreenField => {
+  const columnId = settings.mapping.find(
+    (entry) =>
+      entry.field === title.name &&
+      mappedColumns.some((column) => column.id === entry.columnId)
+  )?.columnId;
+  return {
+    id: `${FIELD_PREFIX}${title.name}`,
+    heading: t("pageTitle"),
+    label: t("pageTitleField", { field: title.name }),
+    inline: true,
+    value: columnId ?? CONNECTOR_SKIP,
+    options: [
+      ...mappedColumns.map((column) => ({
+        value: column.id,
+        label: column.header,
+      })),
+      { value: CONNECTOR_SKIP, label: t("dontSend") },
+    ],
+  };
+};
+
 const pushMappingRows = (
   schema: ConnectorSchema,
   settings: ConnectorSettings,
   { columns, t }: ConnectorScreenOptions
-): ConnectorScreenField[] =>
-  connectorMappedColumns(columns, settings.columns).map((column, index) => {
+): ConnectorScreenField[] => {
+  const mappedColumns = connectorMappedColumns(columns, settings.columns);
+  const title = titleField(schema, settings);
+  const rows = mappedColumns.map((column, index) => {
     const field =
       settings.mapping.find((entry) => entry.columnId === column.id)?.field ??
       null;
@@ -3041,9 +4328,15 @@ const pushMappingRows = (
       label: column.header,
       inline: true,
       value: field ?? CONNECTOR_SKIP,
-      options: connectorFieldOptions(column, schema, field, t),
+      options: connectorFieldOptions(column, schema, field, t, {
+        mapping: settings.mapping,
+        columns: mappedColumns,
+        direction: "push",
+      }),
     };
   });
+  return title ? [titleRow(title, settings, mappedColumns, t), ...rows] : rows;
+};
 
 /** Fields a pull or two-way sync maps: the target's, plus new ones a two-way sync adds. */
 const syncFieldNames = (
@@ -3063,11 +4356,40 @@ const syncFieldNames = (
       }
     }
   }
-  return names.filter(
-    (name) =>
-      normalizeConnectorName(name) !== normalizeConnectorName(settings.keyField)
-  );
+  const title = schema.fields.find((field) => field.type === "title")?.name;
+  return names
+    .filter(
+      (name) =>
+        normalizeConnectorName(name) !==
+        normalizeConnectorName(settings.keyField)
+    )
+    .sort((left, right) => Number(right === title) - Number(left === title));
 };
+
+/** Columns a target field can go to; the ones whose type doesn't fit say why. */
+const syncChoices = (
+  field: ConnectorField | undefined,
+  mappedColumns: readonly ConnectorViewColumn[],
+  settings: ConnectorSettings,
+  t: ConnectorT
+): ConnectorChoice[] => [
+  ...mappedColumns.map((column) =>
+    field && !isConnectorFieldUsable(column, field, settings.direction)
+      ? {
+          value: column.id,
+          label: t("optionIncompatible", {
+            field: column.header,
+            type: connectorTypeLabel(column.type ?? "text", t),
+          }),
+          disabled: true,
+        }
+      : { value: column.id, label: column.header }
+  ),
+  {
+    value: CONNECTOR_SKIP,
+    label: t(settings.direction === "pull" ? "dontImport" : "dontSync"),
+  },
+];
 
 /** The first sample value and how many samples the column cannot take. */
 const sampleDetails = (
@@ -3121,18 +4443,9 @@ const syncMappingRows = (
     settings.columns
   );
   const mapped = new Set(mappedColumns.map((column) => column.id));
-  const choices = [
-    ...mappedColumns.map((column) => ({
-      value: column.id,
-      label: column.header,
-    })),
-    {
-      value: CONNECTOR_SKIP,
-      label: t(settings.direction === "pull" ? "dontImport" : "dontSync"),
-    },
-  ];
   const known = new Set(schema.fields.map((field) => field.name));
   return syncFieldNames(schema, settings, mapped).map((name, index) => {
+    const field = schema.fields.find((item) => item.name === name);
     const columnId = settings.mapping.find(
       (entry) => entry.field === name && mapped.has(entry.columnId)
     )?.columnId;
@@ -3145,9 +4458,9 @@ const syncMappingRows = (
       label: known.has(name) ? name : t("newField", { name }),
       inline: true,
       value: columnId ?? CONNECTOR_SKIP,
-      options: choices,
+      options: syncChoices(field, mappedColumns, settings, t),
       ...sampleDetails(
-        schema.fields.find((field) => field.name === name),
+        field,
         mappedColumns.find((column) => column.id === columnId),
         options
       ),
@@ -3402,6 +4715,9 @@ export function applyConnectorField(
     return Promise.resolve();
   }
   if (id === "target") {
+    if (value === CONNECTOR_NEW_TARGET) {
+      return flow.showCreate(true);
+    }
     return value === CONNECTOR_NO_TARGET
       ? Promise.resolve()
       : flow.selectTarget(value);

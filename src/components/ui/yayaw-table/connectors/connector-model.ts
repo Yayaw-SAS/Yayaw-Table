@@ -48,10 +48,14 @@ export interface ConnectorRow {
  * Where each column goes: `properties` maps a column id to the name of the
  * target field (a Notion property, a sheet header). `keyProperty` names the
  * field holding the row id, `DEFAULT_CONNECTOR_KEY` by default.
+ * `propertyIds` (column id to Notion property id) and `keyPropertyId` are
+ * found first, so a property renamed in Notion keeps receiving its column.
  */
 export interface ConnectorMapping {
   keyProperty?: string;
+  keyPropertyId?: string;
   properties: Record<string, string>;
+  propertyIds?: Record<string, string>;
 }
 
 const rowIdText = (value: unknown): string => {
@@ -206,6 +210,11 @@ export type ConnectorErrorCode =
   | "aborted"
   /** The provider API is not enabled for the credentials' project. */
   | "api_disabled"
+  /**
+   * A mapped field is gone from the target and its saved position cannot
+   * be used: nothing was written, the mapping must be chosen again.
+   */
+  | "field_missing"
   /** The target is shared, but the credentials lack a capability. */
   | "forbidden"
   /** The provider refused the credentials when exchanging them. */
@@ -254,6 +263,7 @@ export function isConnectorError(error: unknown): error is ConnectorError {
 const FATAL_CODES = new Set<ConnectorErrorCode>([
   "aborted",
   "api_disabled",
+  "field_missing",
   "forbidden",
   "invalid_credentials",
   "not_found",

@@ -75,6 +75,7 @@ const TRIMMED_TYPES = new Set([
 const STOP_ITEM_CODES = new Set<string>([
   "aborted",
   "api_disabled",
+  "field_missing",
   "forbidden",
   "invalid_credentials",
   "not_shared",
@@ -91,6 +92,10 @@ export interface SyncField {
   columnId: string;
   /** Notion property name or sheet header. */
   field: string;
+  /** Notion property id: found before the name, so renames are followed. */
+  fieldId?: string;
+  /** Sheet column position when mapped: a renamed header is found there. */
+  fieldIndex?: number;
   /** Table column type (`number`, `date`, `boolean`, `multiSelect`, …). */
   type?: string;
 }
@@ -99,6 +104,10 @@ export interface SyncMapping {
   fields: readonly SyncField[];
   /** Target field holding the table row id, "Yayaw ID" by default. */
   keyField?: string;
+  /** Notion property id of the key field, found before its name. */
+  keyFieldId?: string;
+  /** Sheet column position of the key field, to shift saved positions. */
+  keyFieldIndex?: number;
 }
 
 /**
@@ -385,7 +394,14 @@ export function hashSyncValues(
 export function toSyncMapping(
   settings: {
     keyField?: string;
-    mapping: readonly { columnId: string; field: string | null }[];
+    keyFieldId?: string;
+    keyFieldIndex?: number;
+    mapping: readonly {
+      columnId: string;
+      field: string | null;
+      fieldId?: string;
+      fieldIndex?: number;
+    }[];
   },
   columns: readonly { id: string; type?: string }[] = []
 ): SyncMapping {
@@ -397,11 +413,22 @@ export function toSyncMapping(
       fields.push({
         columnId: entry.columnId,
         field: entry.field,
+        ...(entry.fieldId ? { fieldId: entry.fieldId } : {}),
+        ...(entry.fieldIndex === undefined
+          ? {}
+          : { fieldIndex: entry.fieldIndex }),
         ...(type ? { type } : {}),
       });
     }
   }
-  return { keyField: settings.keyField ?? DEFAULT_CONNECTOR_KEY, fields };
+  return {
+    keyField: settings.keyField ?? DEFAULT_CONNECTOR_KEY,
+    ...(settings.keyFieldId ? { keyFieldId: settings.keyFieldId } : {}),
+    ...(settings.keyFieldIndex === undefined
+      ? {}
+      : { keyFieldIndex: settings.keyFieldIndex }),
+    fields,
+  };
 }
 
 // Plan -------------------------------------------------------------------------

@@ -44,8 +44,11 @@ there is no index file.
   `url`, `email`).
 - `ConnectorRow { id, values }`: a stable row id and the values keyed by column
   id. `toConnectorRows(records, "id")` builds them from table records.
-- `ConnectorMapping { keyProperty?, properties }`: column id to target field
-  name (Notion). `keyProperty` defaults to `"Yayaw ID"`.
+- `ConnectorMapping { keyProperty?, keyPropertyId?, properties,
+  propertyIds? }`: column id to target field name (Notion). `keyProperty`
+  defaults to `"Yayaw ID"`. `propertyIds` (column id to Notion property id)
+  and `keyPropertyId` are found before the names, so a property renamed in
+  Notion keeps receiving its column.
 - `ConnectorPushResult { created, updated, skipped, failed, failures,
   warnings, warningCount, truncated }`. Rows without an id or with a repeated
   id are skipped with a warning; rows beyond `maxRows` set `truncated`. At most
@@ -83,6 +86,10 @@ with the integration. Notion reports a database that is not shared as
   number). Requests are spaced about three per second. A failing row is
   recorded in `failures`; a revoked token or missing capability stops the push
   with a `ConnectorError`. At most 5,000 rows per push.
+- `notionTargetSchema(schema)`, `prepareNotionDatabase({ token, databaseId,
+  fixes })`, `listNotionPages(token)` and `createNotionDatabase({ token,
+  parentPageId, title, columns })`: see [Keeping the target
+  healthy](#keeping-the-target-healthy).
 
 Long text is split in 2,000-character rich text items without breaking emoji.
 Ids are validated before they enter an API path.
@@ -106,6 +113,10 @@ with the service account email as an editor.
   rewrites it. An empty header row is written; missing headers are added at
   its end and the user's own columns are never reordered. Values are sent
   `RAW`, so text starting with `=` is never evaluated.
+- `getSheetTargetSchema({ credentials, spreadsheetId, sheetTitle })`,
+  `sheetTargetSchema(grid)` and `prepareSheet({ credentials, spreadsheetId,
+  sheetTitle, fixes })`: see [Keeping the target
+  healthy](#keeping-the-target-healthy).
 
 A spreadsheet that is not shared raises `not_shared` with
 `details.serviceAccountEmail`, so the interface can say "Share the sheet with
@@ -637,3 +648,170 @@ Labels are English and French and overridable with `connector.<key>`
 `conflictsHint`, `keepTable`, `keepTarget`, `keepAllTable`, `keepAllTarget`,
 `noConflicts`, `resolvingConflicts`, `backToSettings`, `valueYes`,
 `valueNo`).
+
+## Keeping the target healthy
+
+Syncs break when the target drifts: a property renamed, deleted or given
+another type, select options missing, no "Yayaw ID" property. The library
+finds this before a run, fixes what it safely can and says plainly what a
+person must do. Hosts need no extra code for the check; "Prepare" needs one
+server function.
+
+### Stable field identity
+
+`describe` returns fields as `{ name, id?, type?, options?, index? }`. The
+screen saves each mapping entry as `{ columnId, field, fieldId?,
+fieldIndex? }` and the key as `keyField`, `keyFieldId?`, `keyFieldIndex?`
+(Notion property ids; sheet column positions). At run time a field is found
+by id first, then by name (`resolveMappedField`): `toConnectorMapping` and
+`toSyncMapping` pass the ids, and `pushRowsToNotionDatabase`,
+`readNotionDatabase` and `createNotionSyncTarget` use them, so a push keeps
+writing "Price" after it was renamed "Cost" in Notion. The screen shows
+"Renamed in Notion: Price → Cost" and "Update mapping", which saves the new
+name. Name-only mappings keep working and gain ids on their next save
+(`upgradeMapping` does the same on the server). Sheets have no ids: a header
+that is gone is looked up at its saved position, shifted by as much as the
+key column moved, when the header there is not mapped by anything else, and
+reported as renamed. Sheet writes follow the same rule, like Notion follows
+ids: `pushRowsToSheet` (`fieldIndexes`, `keyColumnIndex`, from
+`toConnectorMapping`), `createSheetSyncTarget` and `readSheetRows`
+(`fieldIndex` and `keyFieldIndex` in `toSyncMapping`) and `prepareSheet`
+(`fieldIndex` on a fix, `keyColumnIndex`) write the renamed column in place
+and never add the old header again. When the saved position cannot be used
+(nothing there, or a header another column uses), nothing is written: they
+throw `field_missing`, which stops a sync, and the check reports it as
+blocking until the field is chosen again. Moved headers are harmless because
+cells are written by header.
+
+### The check
+
+`checkTargetSchema({ columns, mapping, keyField, keyFieldId, keyFieldIndex,
+targetSchema, direction })` lives in `utils/connector-schema.ts` (installed
+with the table, pure, safe on the server). `columns` are the table columns
+with `type` and `options`; `targetSchema` is `{ provider, fields }` from
+`notionTargetSchema(await getNotionDatabaseSchema(...))` or
+`await getSheetTargetSchema(...)` (headers, positions, a type sampled from
+the first 20 rows). It returns `{ issues, fixes }`, sorted blocking, fixable,
+warning:
+
+| Code | Push / two-way | Pull |
+| --- | --- | --- |
+| `missing_field` (never there), `deleted_field` (id gone) | fixable: create it | warning |
+| `renamed_field` | warning, run continues by id | warning |
+| `incompatible_type` | blocking (warning in a sheet) | blocking |
+| `coercible_type` (text that must parse) | warning | warning; blocking when sampled values fail |
+| `unsupported_type` (people, relations, files) | blocking | blocking |
+| `read_only_field` (formula, rollup, created time…) | blocking | fine to read |
+| `missing_options` | fixable (Notion select / multi-select), blocking (Notion status: its API cannot add them), warning (sheet) | — |
+| `missing_key` | fixable | fixable |
+| `key_wrong_type` | blocking (warning in a sheet) | blocking |
+| `duplicate_mapping` (one field, two columns or the key) | blocking | blocking |
+| `title_unmapped` (Notion page title) | blocking | — |
+| `field_missing` (sheet header gone, saved position unusable) | blocking | blocking |
+
+Types follow `typeCompatibility(columnType, targetType, direction)`: a text
+field takes any column on push; a number goes to Number (or text), a date to
+Date, a checkbox to Checkbox, a select to Select, Status or Multi-select, a
+multi-select to Multi-select, URL, email and phone to their own type; text
+into a Number, Select, Date, URL, email or phone field must parse
+(`coerce`). A pull reads Select or Status into a select, Multi-select, Select
+or Status into a multi-select, and text or computed values into typed
+columns only when they parse. Two-way takes the worse of both. A target
+without `provider` (a custom connector) is only checked for types and
+duplicates: its push adds missing fields itself.
+
+### Prepare
+
+`prepareNotionDatabase({ token, databaseId, fixes })` reads the database,
+creates missing properties with the right type ("Yayaw ID" as text) and adds
+missing select and multi-select options with the table's colors (the
+option's `color` when it names one, otherwise the tag hue the table shows),
+in one `PATCH /databases` request. It never deletes, renames or retypes a
+property, sends every existing option back, skips option names Notion refuses
+(commas, over 100 characters) and returns `{ applied, skipped }`; a second
+run applies nothing. `prepareSheet({ credentials, spreadsheetId, sheetTitle,
+fixes })` adds missing headers at the end of the header row (the key first),
+growing the grid when needed, and never reorders or deletes a column.
+
+### In the connector screen
+
+The screen checks the target when a saved destination opens and after every
+mapping change, from the fields `describe` returned. A connector may instead
+declare `checkSchema(settings, context)` to check a fresh schema on the
+server (the settings carry the saved names of renamed fields). "Target check"
+lists the issues in three groups ("To fix before sending", "Can be fixed for
+you", "Good to know"). With `prepareTarget(fixes, settings, context)`,
+"Prepare Notion database" / "Prepare sheet" shows what will change and
+applies it after confirmation, then reads the target again. A blocking issue
+disables Send, Sync now and Preview with "Fix this first: …".
+
+```ts
+"use server";
+import { checkTargetSchema } from "@/components/ui/yayaw-table/utils/connector-schema";
+import {
+  getNotionDatabaseSchema,
+  notionTargetSchema,
+  prepareNotionDatabase,
+} from "@/components/ui/yayaw-table/connectors/notion";
+
+export async function prepareTarget(fixes: SchemaFix[], settings: ConnectorSettings) {
+  const { token, databaseId } = await loadConnection(await requireUser(), settings);
+  return await prepareNotionDatabase({ token, databaseId, fixes });
+}
+```
+
+Mapping choices follow the same rules: a field the column cannot fill is
+listed but disabled with the reason ("Margin (Formula, read-only)", "Owner
+(Person, not supported yet)", "Status (Select, doesn’t fit)"), and so is a
+field another column already has ("Cost (used by Price)"). Defaults never
+pick such a field. The Notion page title comes first ("Name (page title)").
+The target list has "Refresh list" and `help.missingTarget` ("Share the page
+with your integration in Notion: ••• › Connections"). With `createTarget: {
+parents?, create }` it offers "Create one from this table’s columns…": a
+parent (e.g. `listNotionPages`) and a name, then `create` (e.g.
+`createNotionDatabase`, which makes one property per visible column with the
+right type and options, the title from the first text column or the record
+id, and "Yayaw ID", and returns the mapping with property ids).
+
+### Scheduled runs
+
+A worker checks before it runs and pauses the schedule instead of failing
+row by row:
+
+```ts
+const schema = notionTargetSchema(await getNotionDatabaseSchema(token, databaseId));
+const report = checkTargetSchema({
+  columns,
+  mapping: settings.mapping,
+  keyField: settings.keyField,
+  keyFieldId: settings.keyFieldId,
+  targetSchema: schema,
+  direction: settings.direction,
+});
+// checkTargetSchema and schemaBlocksRun come from utils/connector-schema.
+if (schemaBlocksRun(report)) {
+  await schedules.pause(scheduleId, {
+    reason: "target_schema",
+    issues: report.issues.filter((issue) => issue.severity === "blocking"),
+  });
+  return;
+}
+```
+
+Show the paused schedule's issues to its owner (`schemaIssueMessage` in
+`connector-flow.ts` words them like the screen). Fixable issues do not block:
+a Notion push without "Yayaw ID" still fails with `invalid_mapping`, so run
+`prepareNotionDatabase` with `report.fixes` first when the owner allowed it.
+
+Labels are English and French and overridable with `connector.<key>`
+(`targetCheck`, `schemaBlocking`, `schemaFixable`, `schemaWarning`,
+`schemaBlocked`, `schemaIssue_<code>`, `updateMapping`, `prepareNotion`,
+`prepareSheet`, `prepareTarget`, `prepareIntro`, `prepareConfirm`,
+`prepared`, `fixCreateField`, `fixCreateKey`, `fixAddOptions`,
+`optionReadOnly`, `optionUnsupported`, `optionIncompatible`, `optionUsed`,
+`pageTitle`, `pageTitleField`, `refreshTargets`, `createTarget`,
+`createParent`, `createName`, `createSubmit`, `type_<type>`…).
+
+Not covered yet: sending one Notion checkbox per multi-select option, a page
+content template, and backfilling existing records when a push destination is
+first connected (a push already sends every record of the view).

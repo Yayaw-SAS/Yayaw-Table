@@ -19,7 +19,8 @@ interface SettingField {
   id: string;
   label: string;
   value: string;
-  options: { value: string; label: string }[];
+  /** Disabled choices stay listed; their label says why. */
+  options: { value: string; label: string; disabled?: boolean }[];
   onChange: (value: string) => void;
   /** Section title shown above the field. */
   heading?: string;
@@ -104,7 +105,7 @@ onBeforeUnmount(() => {
         :key="option.value"
         class="yayaw-settings-choice"
       >
-        <RadioGroupItem :value="option.value" class="yayaw-settings-radio"
+        <RadioGroupItem :value="option.value" :disabled="option.disabled" class="yayaw-settings-radio"
           ><RadioGroupIndicator class="yayaw-settings-radio-indicator"
         /></RadioGroupItem>
         <span>{{ option.label }}</span>

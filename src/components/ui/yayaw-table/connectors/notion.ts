@@ -719,26 +719,51 @@ interface PushTarget {
   property: NotionPropertySchema;
 }
 
+/** A property by its stable id first (renames keep it), then by name. */
+function findProperty(
+  schema: NotionDatabaseSchema,
+  name: string,
+  id: string | undefined
+): NotionPropertySchema | undefined {
+  return (
+    (id ? schema.properties.find((item) => item.id === id) : undefined) ??
+    schema.properties.find((item) => item.name === name)
+  );
+}
+
 function resolveKeyProperty(
   schema: NotionDatabaseSchema,
-  name: string
+  name: string,
+  id?: string
 ): NotionPropertySchema {
-  const property = schema.properties.find((item) => item.name === name);
+  const property = findProperty(schema, name, id);
   if (!(property && KEY_PROPERTY_TYPES.has(property.type))) {
     throw new ConnectorError("invalid_mapping");
   }
   return property;
 }
 
+/** Computed properties a sync can read but never write. */
+const READ_ONLY_READABLE_TYPES = new Set([
+  "formula",
+  "created_time",
+  "last_edited_time",
+  "unique_id",
+]);
+
 function targetIssue(
   property: NotionPropertySchema | undefined,
-  used: ReadonlySet<string>
+  used: ReadonlySet<string>,
+  mode: "read" | "write"
 ): ConnectorWarningReason | null {
   if (!property) {
     return "property_missing";
   }
   if (used.has(property.name)) {
     return "property_in_use";
+  }
+  if (mode === "read" && READ_ONLY_READABLE_TYPES.has(property.type)) {
+    return null;
   }
   return toNotionPropertyValue(property, null).ok
     ? null
@@ -749,15 +774,18 @@ function resolveTargets(
   schema: NotionDatabaseSchema,
   mapping: ConnectorMapping,
   keyProperty: NotionPropertySchema,
-  result: ConnectorPushResult
+  result: ConnectorPushResult,
+  mode: "read" | "write" = "write"
 ): PushTarget[] {
   const targets: PushTarget[] = [];
   const used = new Set<string>([keyProperty.name]);
   for (const [columnId, propertyName] of Object.entries(mapping.properties)) {
-    const property = schema.properties.find(
-      (item) => item.name === propertyName
+    const property = findProperty(
+      schema,
+      propertyName,
+      mapping.propertyIds?.[columnId]
     );
-    const issue = targetIssue(property, used);
+    const issue = targetIssue(property, used, mode);
     if (issue || !property) {
       addWarning(result, { columnId, reason: issue ?? "property_missing" });
     } else {
@@ -918,7 +946,8 @@ export async function pushRowsToNotionDatabase(
   const schema = await readDatabaseSchema(client, databaseId);
   const keyProperty = resolveKeyProperty(
     schema,
-    input.mapping.keyProperty ?? DEFAULT_NOTION_KEY_PROPERTY
+    input.mapping.keyProperty ?? DEFAULT_NOTION_KEY_PROPERTY,
+    input.mapping.keyPropertyId
   );
   const result = createPushResult();
   const targets = resolveTargets(schema, input.mapping, keyProperty, result);
@@ -982,12 +1011,46 @@ function dateValue(date: unknown): string | null {
   return stringOrNull((date as { start?: unknown } | null)?.start);
 }
 
+function formulaValue(formula: unknown): unknown {
+  const result = formula as {
+    type?: string;
+    string?: unknown;
+    number?: unknown;
+    boolean?: unknown;
+    date?: unknown;
+  } | null;
+  switch (result?.type) {
+    case "string":
+      return stringOrNull(result.string);
+    case "number":
+      return typeof result.number === "number" ? result.number : null;
+    case "boolean":
+      return result.boolean === true;
+    case "date":
+      return dateValue(result.date);
+    default:
+      return null;
+  }
+}
+
+function uniqueIdValue(uniqueId: unknown): string | null {
+  const id = uniqueId as { prefix?: unknown; number?: unknown } | null;
+  if (typeof id?.number !== "number") {
+    return null;
+  }
+  return typeof id.prefix === "string" && id.prefix
+    ? `${id.prefix}-${id.number}`
+    : String(id.number);
+}
+
 /**
  * The plain value of a Notion property, symmetric with
  * `toNotionPropertyValue`: text for title and rich text, a number, the option
  * name of a select or status, option names of a multi-select, the start of a
- * date, a boolean, or text for url, email and phone. Returns `undefined` for
- * types the connector does not write (formulas, relations, people…).
+ * date, a boolean, or text for url, email and phone; formulas give their
+ * result, created and edited times their ISO text and unique ids
+ * `PREFIX-12`. Returns `undefined` for types the connector cannot read
+ * (relations, people, rollups…).
  */
 export function fromNotionPropertyValue(
   value: Record<string, unknown> | undefined,
@@ -1014,7 +1077,13 @@ export function fromNotionPropertyValue(
     case "url":
     case "email":
     case "phone_number":
+    case "created_time":
+    case "last_edited_time":
       return stringOrNull(value[type]);
+    case "formula":
+      return formulaValue(value.formula);
+    case "unique_id":
+      return uniqueIdValue(value.unique_id);
     default:
       return;
   }
@@ -1048,11 +1117,16 @@ interface NotionSyncContext {
 }
 
 function toConnectorMapping(mapping: SyncMapping): ConnectorMapping {
+  const ids = mapping.fields.flatMap((field) =>
+    field.fieldId ? [[field.columnId, field.fieldId] as const] : []
+  );
   return {
     keyProperty: mapping.keyField ?? DEFAULT_NOTION_KEY_PROPERTY,
+    ...(mapping.keyFieldId ? { keyPropertyId: mapping.keyFieldId } : {}),
     properties: Object.fromEntries(
       mapping.fields.map((field) => [field.columnId, field.field])
     ),
+    ...(ids.length > 0 ? { propertyIds: Object.fromEntries(ids) } : {}),
   };
 }
 
@@ -1065,14 +1139,16 @@ async function loadSyncContext(
   const mapping = toConnectorMapping(input.mapping);
   const keyProperty = resolveKeyProperty(
     schema,
-    mapping.keyProperty ?? DEFAULT_NOTION_KEY_PROPERTY
+    mapping.keyProperty ?? DEFAULT_NOTION_KEY_PROPERTY,
+    mapping.keyPropertyId
   );
-  // Unusable properties are left out, as a push leaves them out.
+  // Unusable properties are left out; computed ones are read, never written.
   const resolved = resolveTargets(
     schema,
     mapping,
     keyProperty,
-    createPushResult()
+    createPushResult(),
+    "read"
   );
   const types = new Map(
     input.mapping.fields.map((field) => [field.columnId, field.type])
@@ -1315,6 +1391,479 @@ export function createNotionSyncTarget(
         },
         true
       );
+    },
+  };
+}
+
+// Schema health --------------------------------------------------------------------
+
+/** A database as the shared `checkTargetSchema` takes it (`targetSchema`). */
+export function notionTargetSchema(
+  schema: Pick<NotionDatabaseSchema, "properties">
+): {
+  provider: "notion";
+  fields: {
+    name: string;
+    id: string;
+    type: string;
+    options?: { name: string; color?: string }[];
+  }[];
+} {
+  return {
+    provider: "notion",
+    fields: schema.properties.map((property) => ({
+      name: property.name,
+      id: property.id,
+      type: property.type,
+      ...(property.options ? { options: property.options } : {}),
+    })),
+  };
+}
+
+/**
+ * An additive change `prepareNotionDatabase` makes: a property to create, or
+ * options to add to a select or multi-select. Structural copy of the shared
+ * `SchemaFix`, so a report's `fixes` pass straight through.
+ */
+export type NotionSchemaFix =
+  | {
+      kind: "create_field";
+      field: string;
+      type: string;
+      options?: { name: string; color?: string }[];
+      columnId?: string;
+      key?: boolean;
+    }
+  | {
+      kind: "add_options";
+      field: string;
+      fieldId?: string;
+      type: string;
+      options: { name: string; color?: string }[];
+    };
+
+export interface NotionPrepareInput {
+  databaseId: string;
+  fixes: readonly NotionSchemaFix[];
+  token: string;
+}
+
+export interface NotionPrepareResult {
+  /** What was changed; empty when the database already matched. */
+  applied: NotionSchemaFix[];
+  /** Fixes left out: an unsupported type, an invalid option, a missing select. */
+  skipped: { field: string; option?: string; reason: string }[];
+}
+
+const CREATABLE_TYPES = new Set([
+  "rich_text",
+  "number",
+  "select",
+  "multi_select",
+  "date",
+  "checkbox",
+  "url",
+  "email",
+  "phone_number",
+]);
+const OPTION_TYPES = new Set(["select", "multi_select"]);
+const NOTION_COLORS = new Set([
+  "default",
+  "gray",
+  "brown",
+  "orange",
+  "yellow",
+  "green",
+  "blue",
+  "purple",
+  "pink",
+  "red",
+]);
+
+const looseName = (name: string) => name.trim().toLowerCase();
+
+const optionPayload = (option: { name: string; color?: string }) => ({
+  name: option.name,
+  ...(option.color && NOTION_COLORS.has(option.color)
+    ? { color: option.color }
+    : {}),
+});
+
+/** Notion refuses commas in option names and names over 100 characters. */
+const validOption = (name: string) =>
+  name.trim() !== "" && !name.includes(",") && name.length <= OPTION_MAX_LENGTH;
+
+interface PreparePlan {
+  properties: Map<string, unknown>;
+  applied: NotionSchemaFix[];
+  skipped: NotionPrepareResult["skipped"];
+}
+
+function newOptions(
+  options: readonly { name: string; color?: string }[],
+  known: Set<string>,
+  plan: PreparePlan,
+  field: string
+): { name: string; color?: string }[] {
+  const added: { name: string; color?: string }[] = [];
+  for (const option of options) {
+    const name = option.name.trim();
+    if (!validOption(name)) {
+      plan.skipped.push({
+        field,
+        option: option.name,
+        reason: "invalid_option",
+      });
+    } else if (!known.has(looseName(name))) {
+      known.add(looseName(name));
+      added.push({ ...option, name });
+    }
+  }
+  return added;
+}
+
+function planCreate(
+  fix: Extract<NotionSchemaFix, { kind: "create_field" }>,
+  names: Set<string>,
+  plan: PreparePlan
+): void {
+  const name = fix.field.trim();
+  // An existing property is never changed, whatever its type.
+  if (!name || names.has(looseName(name))) {
+    return;
+  }
+  if (!CREATABLE_TYPES.has(fix.type)) {
+    plan.skipped.push({ field: name, reason: "unsupported_property_type" });
+    return;
+  }
+  names.add(looseName(name));
+  const options = OPTION_TYPES.has(fix.type)
+    ? newOptions(fix.options ?? [], new Set(), plan, name)
+    : [];
+  plan.properties.set(name, {
+    [fix.type]: OPTION_TYPES.has(fix.type)
+      ? { options: options.map(optionPayload) }
+      : {},
+  });
+  const { options: _requested, ...rest } = fix;
+  plan.applied.push({
+    ...rest,
+    field: name,
+    ...(options.length > 0 ? { options } : {}),
+  });
+}
+
+function planOptions(
+  fix: Extract<NotionSchemaFix, { kind: "add_options" }>,
+  schema: NotionDatabaseSchema,
+  plan: PreparePlan
+): void {
+  const property = findProperty(schema, fix.field, fix.fieldId);
+  // Never change a type: options only go to an existing select.
+  if (!(property && OPTION_TYPES.has(property.type))) {
+    plan.skipped.push({ field: fix.field, reason: "property_missing" });
+    return;
+  }
+  const existing = property.options ?? [];
+  const known = new Set(existing.map((option) => looseName(option.name)));
+  const added = newOptions(fix.options, known, plan, property.name);
+  if (added.length === 0) {
+    return;
+  }
+  // Notion replaces the option list: every existing option is sent back.
+  plan.properties.set(property.id, {
+    [property.type]: {
+      options: [...existing, ...added].map(optionPayload),
+    },
+  });
+  plan.applied.push({
+    kind: "add_options",
+    field: property.name,
+    fieldId: property.id,
+    type: property.type,
+    options: added,
+  });
+}
+
+/**
+ * What `prepareNotionDatabase` would send for a schema (pure): properties to
+ * create (missing ones only) and options to add (missing ones only). Nothing
+ * existing is deleted, renamed or retyped, so running it twice changes
+ * nothing the second time.
+ */
+export function planNotionPrepare(
+  schema: NotionDatabaseSchema,
+  fixes: readonly NotionSchemaFix[]
+): {
+  properties: Record<string, unknown>;
+  applied: NotionSchemaFix[];
+  skipped: NotionPrepareResult["skipped"];
+} {
+  const plan: PreparePlan = {
+    properties: new Map(),
+    applied: [],
+    skipped: [],
+  };
+  const names = new Set(schema.properties.map((item) => looseName(item.name)));
+  for (const fix of fixes) {
+    if (fix.kind === "create_field") {
+      planCreate(fix, names, plan);
+    } else {
+      planOptions(fix, schema, plan);
+    }
+  }
+  return {
+    properties: Object.fromEntries(plan.properties),
+    applied: plan.applied,
+    skipped: plan.skipped,
+  };
+}
+
+/**
+ * Makes a database ready for the table: creates missing properties with the
+ * right type (including "Yayaw ID" as text) and adds missing select and
+ * multi-select options with the table's colors, in one `PATCH /databases`
+ * request. It reads the database first and never deletes, renames or changes
+ * the type of an existing property; status options cannot be added through
+ * the API. Idempotent: `applied` is empty when nothing was missing.
+ */
+export async function prepareNotionDatabase(
+  input: NotionPrepareInput,
+  options?: ConnectorOptions
+): Promise<NotionPrepareResult> {
+  const client = createNotionClient(input.token, options);
+  const databaseId = normalizeNotionId(input.databaseId);
+  const schema = await readDatabaseSchema(client, databaseId);
+  const plan = planNotionPrepare(schema, input.fixes);
+  if (plan.applied.length > 0) {
+    await client.request({
+      method: "PATCH",
+      path: `/databases/${databaseId}`,
+      body: { properties: plan.properties },
+    });
+  }
+  return { applied: plan.applied, skipped: plan.skipped };
+}
+
+export interface NotionPageSummary {
+  id: string;
+  title: string;
+  url: string | null;
+}
+
+interface NotionPageSearchResponse {
+  has_more?: boolean;
+  next_cursor?: string | null;
+  results?: {
+    id?: string;
+    object?: string;
+    properties?: Record<string, { title?: unknown; type?: string }>;
+    url?: string;
+  }[];
+}
+
+function pageTitle(
+  properties: Record<string, { title?: unknown; type?: string }> | undefined
+): string {
+  const title = Object.values(properties ?? {}).find(
+    (property) => property.type === "title"
+  );
+  return plainText(title?.title);
+}
+
+function pageSummaries(
+  response: NotionPageSearchResponse
+): NotionPageSummary[] {
+  return (response.results ?? []).flatMap((result) =>
+    result.object === "page" && typeof result.id === "string"
+      ? [
+          {
+            id: result.id,
+            title: pageTitle(result.properties),
+            url: typeof result.url === "string" ? result.url : null,
+          },
+        ]
+      : []
+  );
+}
+
+/**
+ * Pages shared with the integration, following search pagination: the
+ * parents a new database can be created in.
+ */
+export async function listNotionPages(
+  token: string,
+  options?: ConnectorOptions
+): Promise<NotionPageSummary[]> {
+  const client = createNotionClient(token, options);
+  const pages: NotionPageSummary[] = [];
+  let cursor: string | undefined;
+  for (let page = 0; page < MAX_SEARCH_PAGES; page += 1) {
+    // Pages are sequential: each needs the previous cursor.
+    const response = await client.request<NotionPageSearchResponse>({
+      method: "POST",
+      path: "/search",
+      body: {
+        filter: { property: "object", value: "page" },
+        page_size: SEARCH_PAGE_SIZE,
+        ...(cursor ? { start_cursor: cursor } : {}),
+      },
+    });
+    pages.push(...pageSummaries(response));
+    cursor = nextCursor(response);
+    if (!cursor) {
+      break;
+    }
+  }
+  return pages;
+}
+
+/** A table column for a new database; options carry Notion colors. */
+export interface NotionNewDatabaseColumn extends ConnectorColumn {
+  options?: { name: string; color?: string }[];
+}
+
+export interface NotionCreateDatabaseInput {
+  columns: readonly NotionNewDatabaseColumn[];
+  /** Default "Yayaw ID". */
+  keyProperty?: string;
+  parentPageId: string;
+  title: string;
+  /** Column filling the page title; default the first text column. */
+  titleColumnId?: string;
+  token: string;
+}
+
+export interface NotionCreatedDatabase {
+  id: string;
+  /** The mapping to save: every column, with property ids. */
+  mapping: Required<Pick<ConnectorMapping, "keyProperty" | "properties">> &
+    Pick<ConnectorMapping, "keyPropertyId" | "propertyIds">;
+  title: string;
+  url: string | null;
+}
+
+const NEW_PROPERTY_TYPES: Record<string, string> = {
+  number: "number",
+  currency: "number",
+  percent: "number",
+  rating: "number",
+  date: "date",
+  datetime: "date",
+  boolean: "checkbox",
+  checkbox: "checkbox",
+  select: "select",
+  status: "select",
+  tag: "select",
+  multiSelect: "multi_select",
+  tags: "multi_select",
+  url: "url",
+  email: "email",
+  phone: "phone_number",
+};
+
+const TITLE_COLUMN_TYPES = new Set([undefined, "text", "longText", "textarea"]);
+
+function newPropertyConfig(
+  column: NotionNewDatabaseColumn
+): Record<string, unknown> {
+  const type = NEW_PROPERTY_TYPES[column.type ?? "text"] ?? "rich_text";
+  if (!OPTION_TYPES.has(type)) {
+    return { [type]: {} };
+  }
+  const options = (column.options ?? []).filter((option) =>
+    validOption(option.name)
+  );
+  return { [type]: { options: options.map(optionPayload) } };
+}
+
+/** Properties of a new database: one title, the key, one per column (pure). */
+export function planNotionDatabase(
+  columns: readonly NotionNewDatabaseColumn[],
+  keyProperty: string,
+  titleColumnId?: string
+): { properties: Record<string, unknown>; columnFor: Map<string, string> } {
+  const titleColumn =
+    columns.find((column) => column.id === titleColumnId) ??
+    columns.find((column) => TITLE_COLUMN_TYPES.has(column.type));
+  const properties = new Map<string, unknown>();
+  const columnFor = new Map<string, string>();
+  const used = new Set<string>([looseName(keyProperty)]);
+  // Without a text column, the record id becomes the page title.
+  properties.set(keyProperty, titleColumn ? { rich_text: {} } : { title: {} });
+  const ordered = titleColumn
+    ? [titleColumn, ...columns.filter((column) => column !== titleColumn)]
+    : columns;
+  for (const column of ordered) {
+    const name = column.header.trim();
+    if (name && !used.has(looseName(name))) {
+      used.add(looseName(name));
+      properties.set(
+        name,
+        column === titleColumn ? { title: {} } : newPropertyConfig(column)
+      );
+      columnFor.set(name, column.id);
+    }
+  }
+  return { properties: Object.fromEntries(properties), columnFor };
+}
+
+/**
+ * Creates a database under a page shared with the integration, with one
+ * property per column (the right Notion type, select options with their
+ * colors), a title property filled by the first text column (or by the
+ * record id when there is none) and the "Yayaw ID" key. Returns the new
+ * database and the mapping to save, with property ids.
+ */
+export async function createNotionDatabase(
+  input: NotionCreateDatabaseInput,
+  options?: ConnectorOptions
+): Promise<NotionCreatedDatabase> {
+  const keyProperty = input.keyProperty?.trim() || DEFAULT_NOTION_KEY_PROPERTY;
+  const layout = planNotionDatabase(
+    input.columns,
+    keyProperty,
+    input.titleColumnId
+  );
+  const client = createNotionClient(input.token, options);
+  // Creating a database is retried only on 429: it must never run twice.
+  const database = await client.request<NotionDatabaseResponse>({
+    method: "POST",
+    path: "/databases",
+    body: {
+      parent: {
+        type: "page_id",
+        page_id: normalizeNotionId(input.parentPageId),
+      },
+      title: toRichText(input.title.trim() || "Yayaw").items,
+      properties: layout.properties,
+    },
+    retry: "rate_limit_only",
+  });
+  if (typeof database.id !== "string") {
+    throw new ConnectorError("provider_unavailable");
+  }
+  const properties = Object.entries(database.properties ?? {}).flatMap(
+    ([key, property]) => propertySchema(key, property)
+  );
+  const key = properties.find((item) => item.name === keyProperty);
+  const mapped = properties.flatMap((property) => {
+    const columnId = layout.columnFor.get(property.name);
+    return columnId ? [{ columnId, property }] : [];
+  });
+  return {
+    id: database.id,
+    title: plainText(database.title),
+    url: typeof database.url === "string" ? database.url : null,
+    mapping: {
+      keyProperty,
+      ...(key ? { keyPropertyId: key.id } : {}),
+      properties: Object.fromEntries(
+        mapped.map(({ columnId, property }) => [columnId, property.name])
+      ),
+      propertyIds: Object.fromEntries(
+        mapped.map(({ columnId, property }) => [columnId, property.id])
+      ),
     },
   };
 }

@@ -19,7 +19,7 @@ import { useOverlayTheme } from "../../composables/use-overlay-theme";
 
 const props = defineProps<{
   label: string;
-  options: readonly { value: T; label: string }[];
+  options: readonly { value: T; label: string; disabled?: boolean }[];
   disabled?: boolean;
 }>();
 const model = defineModel<T>({ required: true });
@@ -74,6 +74,7 @@ const select = (value: unknown): void => {
               v-for="option in options"
               :key="optionKey(option.value)"
               :value="optionKey(option.value)"
+              :disabled="option.disabled"
               class="yayaw-column-menu-item yayaw-select-item"
               data-slot="select-item"
             >

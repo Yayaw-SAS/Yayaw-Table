@@ -57,6 +57,7 @@ import { existingLookupFromRows, type ImportAdapters } from "../../import-model"
 import { fetchAllContractRows } from "../../table-contracts";
 import {
   type ConnectorViewColumn,
+  connectorColumnOptions,
   connectorLabels,
   connectorScheduleSuffix,
   hasConnector,
@@ -552,12 +553,17 @@ const connectorColumns = (): ConnectorViewColumn[] => {
   const hidden = context.config.columns.definitions.filter(
     (column) => column.id !== "select" && column.type !== "actions" && !visibleIds.has(column.id)
   );
-  return [...visible, ...hidden].map((column) => ({
-    id: column.id,
-    header: String(column.header),
-    ...(column.type ? { type: String(column.type) } : {}),
-    visible: visibleIds.has(column.id),
-  }));
+  return [...visible, ...hidden].map((column) => {
+    // Static options let the target check spot options the target lacks.
+    const options = connectorColumnOptions((column as { options?: unknown }).options);
+    return {
+      id: column.id,
+      header: String(column.header),
+      ...(column.type ? { type: String(column.type) } : {}),
+      ...(options ? { options } : {}),
+      visible: visibleIds.has(column.id),
+    };
+  });
 };
 // Data › Import: shown when rows can be created or updated and `table.import` is not false.
 const importTranslate = (key: string, fallback: string): string => translate(`import.${key}`, fallback);
