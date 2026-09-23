@@ -3,6 +3,7 @@
  * the React and Vue editions. The host declares them in its table actions;
  * the table lists them in the settings "Data" section.
  */
+import type { DataDestinationSchedule } from "./schedule-model";
 import { normalizeFilterEnvelope } from "./table-contracts";
 
 /**
@@ -58,6 +59,11 @@ export interface DataDestination<TIcon = unknown> {
   hidden?: boolean;
   /** Only offered while rows are selected. */
   requiresSelection?: boolean;
+  /**
+   * Connect destinations only: scheduling settings saved per view (`viewId`);
+   * the host runs the schedule. Rows without it show no schedule control.
+   */
+  schedule?: DataDestinationSchedule<DataDestinationContext>;
   run: (
     context: DataDestinationContext
   ) =>

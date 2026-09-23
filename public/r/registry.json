@@ -754,6 +754,11 @@
           "target": "components/ui/yayaw-table/components/toolbar/responsive-menu.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/toolbar/schedule-panel.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/toolbar/schedule-panel.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/toolbar/sections/advanced-table-filters-menu.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/toolbar/sections/advanced-table-filters-menu.tsx"
@@ -1357,6 +1362,11 @@
           "path": "registry/default/ui/yayaw-table/utils/row-selection-range.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/row-selection-range.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/schedule-model.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/schedule-model.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/utils/scoped-rows.ts",

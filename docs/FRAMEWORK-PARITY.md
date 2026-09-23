@@ -787,3 +787,22 @@ open-to-view atom, Vue a second `ToolbarMenu` whose `optionsRequest` handling
 routes `export` to it). The bulk bar's Export opens its Export screen.
 Destinations of kind `"connect"` (aliases `"sync"`, `"export"`) list under
 Connect.
+
+## Connect schedules
+
+A Connect destination that declares `schedule` (`load`, `save`, optional
+`status` and `frequencies`, all receiving the destination context, so the
+schedule belongs to `viewId`) gets a clock button on its row in both
+editions; the row itself still runs it. The button opens a screen in the Data
+menu (React a `StackMenuView` named `schedule:<id>`, Vue `dataView
+"schedule:<id>"`, back returns to Connect) with the same fields: frequency,
+minute (hourly), time (daily, weekly, monthly), day of the week in the
+locale's order, day of the month or last day (shorter months use their last
+day), start date and time zone (browser default, `Intl.supportedValuesOf`
+when available). Only the fields of the chosen frequency are shown. The shared
+`schedule-model.ts` validates the settings, computes the next run with
+`Intl.DateTimeFormat` offsets (skipped times move forward, repeated times run
+once), describes the schedule and holds the English and French labels; both
+editions read `schedule.<key>` host translations first. `table.schedule: false`
+hides scheduling. `tests/schedule-model-suite.ts` runs in both editions and
+`e2e/view-tabs.spec.ts` saves and reopens a weekly schedule on both demos.
