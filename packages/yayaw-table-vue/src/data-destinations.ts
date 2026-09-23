@@ -5,7 +5,8 @@
  */
 import { normalizeFilterEnvelope } from "./table-contracts";
 
-export type DataDestinationKind = "export" | "share";
+/** "sync" sends to a tool (n8n, a sheet); "export" is kept as its alias. */
+export type DataDestinationKind = "sync" | "share" | "export";
 
 /** The current view's query, in the shape `list` receives. */
 export interface DataDestinationQuery {
@@ -48,7 +49,7 @@ export interface DataDestinationResult {
 export interface DataDestination<TIcon = unknown> {
   id: string;
   label: string;
-  /** "export" lists it after the CSV export, "share" after the link. */
+  /** "sync" lists it under Sync, "share" under Share after the link. */
   kind: DataDestinationKind;
   icon?: TIcon;
   hidden?: boolean;
@@ -66,10 +67,10 @@ export interface DataDestination<TIcon = unknown> {
 export function groupDataDestinations<TIcon>(
   destinations: readonly DataDestination<TIcon>[] | undefined,
   selectedCount: number
-): Record<DataDestinationKind, DataDestination<TIcon>[]> {
+): Record<"sync" | "share", DataDestination<TIcon>[]> {
   const seen = new Set<string>();
-  const groups: Record<DataDestinationKind, DataDestination<TIcon>[]> = {
-    export: [],
+  const groups: Record<"sync" | "share", DataDestination<TIcon>[]> = {
+    sync: [],
     share: [],
   };
   for (const destination of destinations ?? []) {
@@ -81,7 +82,7 @@ export function groupDataDestinations<TIcon>(
       continue;
     }
     seen.add(destination.id);
-    groups[destination.kind === "share" ? "share" : "export"].push(destination);
+    groups[destination.kind === "share" ? "share" : "sync"].push(destination);
   }
   return groups;
 }

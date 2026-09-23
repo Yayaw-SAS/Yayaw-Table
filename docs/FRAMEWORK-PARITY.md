@@ -755,8 +755,9 @@ that opens it on compact ones. There is no separate data actions drawer.
 ## Data destinations
 
 Both editions read `actions.destinations` and list them in the View settings
-"Data" section: export destinations after the CSV export, share destinations
-after the share link (`table.share: false` hides the link). The shared
+"Data" section: sync destinations (kind `"sync"`, alias `"export"`) under
+Sync, share destinations under Share after "Copy link" (`table.share: false`
+hides the link; without share destinations Share copies the link directly). The shared
 `data-destinations.ts` groups them (declared order, first id wins, `hidden` and
 `requiresSelection` honoured), normalizes the view's query into the `list`
 shape and runs one destination at a time, turning failures into a message.

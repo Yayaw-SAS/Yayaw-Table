@@ -10,8 +10,10 @@ import { useAtomValue, useSetAtom } from "jotai";
 import {
   Download,
   FunnelX,
+  Link2,
   Loader2,
   PlusIcon,
+  RefreshCw,
   Send,
   Share2,
 } from "lucide-react";
@@ -70,11 +72,10 @@ import type {
 import type { DateDisplayPreset } from "../../types/date-types";
 import { DATE_DISPLAY_PRESETS } from "../../types/date-types";
 import type { TableDisplayMode } from "../../types/display-types";
-import { StackMenuItem } from "../../ui-custom/stack-menu";
+import { StackMenuContent, StackMenuItem } from "../../ui-custom/stack-menu";
 import { buildCsvExportColumns } from "../../utils/csv-export";
 import {
   type DataDestination,
-  type DataDestinationKind,
   dataDestinationQuery,
   groupDataDestinations,
   runDataDestination,
@@ -585,6 +586,76 @@ function ToolbarEnd({
 
 type TableDataDestination = DataDestination<ReactNode>;
 
+/** The built-in "copy the link to this view" entry. */
+function renderShareLinkItem(
+  enabled: boolean,
+  onShare: () => Promise<void>,
+  label: string
+) {
+  if (!enabled) {
+    return null;
+  }
+  return (
+    <StackMenuItem
+      icon={<Link2 className="size-4" />}
+      onClick={() => {
+        onShare().catch(() => {
+          /* share errors are reported by the handler */
+        });
+      }}
+    >
+      {label}
+    </StackMenuItem>
+  );
+}
+
+/** Sync and Share screens: the host destinations, after the share link. */
+function destinationScreens({
+  destinations,
+  isShareEnabled,
+  onDestination,
+  onShare,
+  pendingDestination,
+  t,
+}: {
+  destinations: Record<"sync" | "share", TableDataDestination[]>;
+  isShareEnabled: boolean;
+  onDestination: (destination: TableDataDestination) => Promise<void>;
+  onShare: () => Promise<void>;
+  pendingDestination?: string;
+  t: ReturnType<typeof useTranslations>["t"];
+}) {
+  const item = (destination: TableDataDestination) =>
+    renderDestinationItem(destination, pendingDestination, onDestination);
+  const screens: { name: string; title: string; content: ReactNode }[] = [];
+  if (destinations.sync.length > 0) {
+    screens.push({
+      name: "sync",
+      title: t("destinations.sync"),
+      content: (
+        <StackMenuContent>{destinations.sync.map(item)}</StackMenuContent>
+      ),
+    });
+  }
+  if (destinations.share.length > 0) {
+    screens.push({
+      name: "share",
+      title: t("url_state.share"),
+      content: (
+        <StackMenuContent>
+          {renderShareLinkItem(
+            isShareEnabled,
+            onShare,
+            t("destinations.copyLink")
+          )}
+          {destinations.share.map(item)}
+        </StackMenuContent>
+      ),
+    });
+  }
+  return screens;
+}
+
 /** A host destination; one runs at a time and shows its progress. */
 function renderDestinationItem(
   destination: TableDataDestination,
@@ -631,12 +702,10 @@ function renderMenuDataActions({
   isShareEnabled,
   destinations,
   pendingDestination,
-  onDestination,
 }: {
   isShareEnabled: boolean;
-  destinations: Record<DataDestinationKind, TableDataDestination[]>;
+  destinations: Record<"sync" | "share", TableDataDestination[]>;
   pendingDestination?: string;
-  onDestination: (destination: TableDataDestination) => Promise<void>;
   t: ReturnType<typeof useTranslations>["t"];
   isMobile: boolean;
   toolbarActions: ToolbarAction[];
@@ -705,23 +774,26 @@ function renderMenuDataActions({
           {exportLabel}
         </StackMenuItem>
       ) : null}
-      {destinations.export.map((destination) =>
-        renderDestinationItem(destination, pendingDestination, onDestination)
-      )}
-      {isShareEnabled ? (
+      {destinations.sync.length > 0 ? (
+        <StackMenuItem
+          aria-busy={Boolean(pendingDestination)}
+          icon={<RefreshCw className="size-4" />}
+          navigateTitle={t("destinations.sync")}
+          navigateTo="sync"
+        >
+          {t("destinations.sync")}
+        </StackMenuItem>
+      ) : null}
+      {destinations.share.length > 0 ? (
         <StackMenuItem
           icon={<Share2 className="size-4" />}
-          onClick={() => {
-            onShare().catch(() => {
-              /* share errors are reported by the handler */
-            });
-          }}
+          navigateTitle={t("url_state.share")}
+          navigateTo="share"
         >
           {t("url_state.share")}
         </StackMenuItem>
-      ) : null}
-      {destinations.share.map((destination) =>
-        renderDestinationItem(destination, pendingDestination, onDestination)
+      ) : (
+        renderShareLinkItem(isShareEnabled, onShare, t("url_state.share"))
       )}
     </>
   );
@@ -1368,6 +1440,10 @@ export function DataTableAdvancedToolbar<TData>({
     ]
   );
   const shareLink = createPageShareHandler(nativeMobile, t);
+  const destinationGroups = groupDataDestinations(
+    tableActions?.destinations,
+    toolbarActionContext.selectedRowIds.length
+  );
   const menuDataActions = renderMenuDataActions({
     t,
     isMobile,
@@ -1385,12 +1461,8 @@ export function DataTableAdvancedToolbar<TData>({
     exportScreen: "export",
     onShare: shareLink,
     isShareEnabled: tableConfig.table.share !== false,
-    destinations: groupDataDestinations(
-      tableActions?.destinations,
-      toolbarActionContext.selectedRowIds.length
-    ),
+    destinations: destinationGroups,
     pendingDestination,
-    onDestination: runDestination,
   });
   const createButton = isCreateEnabled ? (
     <ToolbarCreateButton
@@ -1429,8 +1501,16 @@ export function DataTableAdvancedToolbar<TData>({
       columns={tableMenuColumns}
       compact={isMobile}
       dataActions={menuDataActions}
-      dataScreens={
-        isExportEnabled
+      dataScreens={[
+        ...destinationScreens({
+          destinations: destinationGroups,
+          isShareEnabled: tableConfig.table.share !== false,
+          onDestination: runDestination,
+          onShare: shareLink,
+          pendingDestination,
+          t,
+        }),
+        ...(isExportEnabled
           ? [
               {
                 name: "export",
@@ -1455,8 +1535,8 @@ export function DataTableAdvancedToolbar<TData>({
                 ),
               },
             ]
-          : undefined
-      }
+          : []),
+      ]}
       defaultDisplayMode={tableConfig.table.defaultDisplayMode}
       enableCalculations={tableConfig.table.enableCalculations === true}
       enableColumnFilters={isColumnFiltersEnabled}

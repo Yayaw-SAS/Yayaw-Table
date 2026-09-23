@@ -118,7 +118,9 @@ test("custom destinations receive the view's query from the Data section", async
   await expect(
     settings.getByRole("button", { name: "Share", exact: true })
   ).toBeVisible();
-  await settings.getByRole("button", { name: "Send to n8n" }).click();
+  // Sends to tools live under Sync; custom shares under Share.
+  await settings.getByRole("button", { name: "Sync", exact: true }).click();
+  await page.getByRole("button", { name: "n8n", exact: true }).click();
   await expect(
     page.getByText("Sent 1 records to the n8n workflow")
   ).toBeVisible();

@@ -1057,6 +1057,8 @@ export const defaultTranslations: DataTableTranslations = {
   },
   destinations: {
     done: "Sent",
+    sync: "Sync",
+    copyLink: "Copy link",
   },
   menu: {
     data: "Data",

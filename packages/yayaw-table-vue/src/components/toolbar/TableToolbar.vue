@@ -5,6 +5,8 @@ import {
   FunnelX,
   Download,
   LayoutGrid,
+  Link2,
+  RefreshCw,
   Rows3,
   Send,
   Share2,
@@ -81,7 +83,7 @@ const props = defineProps<{
   toolbarActionsPlacement?: ToolbarActionsPlacement;
 }>();
 const context = useTableContext();
-type OptionsView = "columns" | "filters" | "group" | "main" | "sort" | "cards" | "layout" | "density" | "export";
+type OptionsView = "columns" | "filters" | "group" | "main" | "sort" | "cards" | "layout" | "density" | "export" | "sync" | "share";
 const { compact, mobile } = useToolbarLayout();
 const capabilities = computed(() => getViewModeCapabilities(context.state.displayMode.value));
 
@@ -103,6 +105,10 @@ const optionsTitle = computed(() => {
       return densityLabel.value;
     case "export":
       return translate("export", "Export");
+    case "sync":
+      return translate("destinations.sync", "Sync");
+    case "share":
+      return translate("url_state.share", "Share");
     case "columns":
       return translate("properties", "properties");
     default:
@@ -628,30 +634,38 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
             <span class="yayaw-options-item-copy"><span>{{ translate('export', 'Export') }}</span></span>
             <ChevronRight :size="16" aria-hidden="true" />
           </button>
-          <button v-for="destination in destinations.export" :key="destination.id" type="button" class="yayaw-options-item"
-            :disabled="Boolean(pendingDestination)" :aria-busy="pendingDestination === destination.id" @click="runDestination(destination)">
-            <span class="yayaw-options-item-icon">
-              <span v-if="pendingDestination === destination.id" class="yayaw-spinner" aria-hidden="true" />
-              <component :is="destination.icon ?? Send" v-else :size="16" aria-hidden="true" />
-            </span>
-            <span class="yayaw-options-item-copy"><span>{{ destination.label }}</span></span>
+          <button v-if="destinations.sync.length" type="button" class="yayaw-options-item" :aria-busy="Boolean(pendingDestination)" @click="optionsView = 'sync'">
+            <span class="yayaw-options-item-icon"><RefreshCw :size="16" aria-hidden="true" /></span>
+            <span class="yayaw-options-item-copy"><span>{{ translate('destinations.sync', 'Sync') }}</span></span>
+            <ChevronRight :size="16" aria-hidden="true" />
           </button>
-          <button v-if="hasShare" type="button" class="yayaw-options-item" @click="shareLink">
+          <button v-if="destinations.share.length" type="button" class="yayaw-options-item" @click="optionsView = 'share'">
             <span class="yayaw-options-item-icon"><Share2 :size="16" aria-hidden="true" /></span>
             <span class="yayaw-options-item-copy"><span>{{ translate('url_state.share', 'Share') }}</span></span>
+            <ChevronRight :size="16" aria-hidden="true" />
           </button>
-          <button v-for="destination in destinations.share" :key="destination.id" type="button" class="yayaw-options-item"
-            :disabled="Boolean(pendingDestination)" :aria-busy="pendingDestination === destination.id" @click="runDestination(destination)">
-            <span class="yayaw-options-item-icon">
-              <span v-if="pendingDestination === destination.id" class="yayaw-spinner" aria-hidden="true" />
-              <component :is="destination.icon ?? Send" v-else :size="16" aria-hidden="true" />
-            </span>
-            <span class="yayaw-options-item-copy"><span>{{ destination.label }}</span></span>
+          <button v-else-if="hasShare" type="button" class="yayaw-options-item" @click="shareLink">
+            <span class="yayaw-options-item-icon"><Link2 :size="16" aria-hidden="true" /></span>
+            <span class="yayaw-options-item-copy"><span>{{ translate('url_state.share', 'Share') }}</span></span>
           </button>
         </div>
       </div>
       <div v-else ref="optionsRoot">
-            <ExportPanel v-if="optionsView === 'export'" :busy="isExporting" :formats="exportFormats" :label="exportLabel"
+            <div v-if="optionsView === 'sync' || optionsView === 'share'" class="yayaw-options-list" :data-menu-section="optionsView">
+              <button v-if="optionsView === 'share' && hasShare" type="button" class="yayaw-options-item" @click="shareLink">
+                <span class="yayaw-options-item-icon"><Link2 :size="16" aria-hidden="true" /></span>
+                <span class="yayaw-options-item-copy"><span>{{ translate('destinations.copyLink', 'Copy link') }}</span></span>
+              </button>
+              <button v-for="destination in destinations[optionsView]" :key="destination.id" type="button" class="yayaw-options-item"
+                :disabled="Boolean(pendingDestination)" :aria-busy="pendingDestination === destination.id" @click="runDestination(destination)">
+                <span class="yayaw-options-item-icon">
+                  <span v-if="pendingDestination === destination.id" class="yayaw-spinner" aria-hidden="true" />
+                  <component :is="destination.icon ?? Send" v-else :size="16" aria-hidden="true" />
+                </span>
+                <span class="yayaw-options-item-copy"><span>{{ destination.label }}</span></span>
+              </button>
+            </div>
+            <ExportPanel v-else-if="optionsView === 'export'" :busy="isExporting" :formats="exportFormats" :label="exportLabel"
               :default-file-name="defaultExportFileName(String(context.translations.value.title ?? context.config.id))"
               :selected-count="context.selectedRows.value.length" @export="exportRows" />
             <MenuChoiceList v-else-if="optionsView === 'layout'" :label="translate('displayMode', 'Display mode')" :model-value="displayMode"

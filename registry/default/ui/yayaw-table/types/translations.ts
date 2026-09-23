@@ -511,6 +511,8 @@ export interface DataTableTranslations {
   };
   destinations?: {
     done?: string;
+    sync?: string;
+    copyLink?: string;
   };
   menu: {
     data?: string;
