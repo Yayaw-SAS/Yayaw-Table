@@ -13,8 +13,10 @@ import {
   type FormLabelKey,
   type FormTranslate,
   formRuleIssueLabel,
+  type ResolvedFormQuestion,
 } from "../form-view";
 import FormRuleGroup from "./FormRuleGroup.vue";
+import FormRuleJoin from "./FormRuleJoin.vue";
 import FormRuleSelect from "./FormRuleSelect.vue";
 
 /**
@@ -28,6 +30,7 @@ const props = defineProps<{
   issues: readonly RuleIssue[];
   label: (key: FormLabelKey, params?: Record<string, string>) => string;
   locale: string;
+  questions?: readonly ResolvedFormQuestion[];
   translate?: FormTranslate;
 }>();
 const emit = defineEmits<{ change: [rule: FormRule]; remove: [] }>();
@@ -36,10 +39,6 @@ const actions = computed(() => [
   { value: "show", label: props.label("actionShow") },
   { value: "hide", label: props.label("actionHide") },
   { value: "require", label: props.label("actionRequire") },
-]);
-const joins = computed(() => [
-  { value: "and", label: props.label("joinAnd") },
-  { value: "or", label: props.label("joinOr") },
 ]);
 const ruleIssue = computed(() =>
   props.issues.find(
@@ -86,12 +85,11 @@ const addGroup = (): void =>
         <Trash2 :size="14" aria-hidden="true" />
       </button>
     </div>
-    <FormRuleSelect
+    <FormRuleJoin
       v-if="rule.when.items.length > 1"
-      :label="label('ruleJoin')"
-      :value="rule.when.join"
-      :options="joins"
-      @change="setWhen({ ...rule.when, join: $event === 'or' ? 'or' : 'and' })"
+      :join="rule.when.join"
+      :label="label"
+      @change="setWhen({ ...rule.when, join: $event })"
     />
     <FormRuleGroup
       :group="rule.when"
@@ -100,6 +98,7 @@ const addGroup = (): void =>
       :issues="issues"
       :label="label"
       :locale="locale"
+      :questions="questions"
       :translate="translate"
       @change="setWhen"
     />

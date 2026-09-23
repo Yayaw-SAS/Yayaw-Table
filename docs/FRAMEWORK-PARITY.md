@@ -1220,14 +1220,32 @@ sent, via `readFormProgress` / `writeFormProgress`). The Form view keys the
 form by view id so answers never leak between views.
 
 Rule editor (Form settings, both editions): each question's Edit disclosure
-has "Conditions" with "Add a condition"; a rule has its action ("Show / Hide /
-Require this question when…"), All/Any when it has several items, rows of
-question / comparison (labels derived from the `op*` phrases, e.g. "is …",
-"> …", "is in the last … days") / value (option select, checkboxes for lists,
-From/To for ranges, days), "Add condition", "Add group" (one level) and
-removal buttons, and the first problem of each row inline (`issue*` labels).
-Summaries ("Shown when Category is Hardware and Budget > 1000") appear under
-the question's row. `set` rules are engine- and JSON-only.
+has "Conditions" with a status ("Always shown." without rules, "Some
+conditions are incomplete." while a rule has a problem) and "Edit
+conditions", which opens the question's rules at a comfortable width: a
+centered dialog (~640px) on larger screens, the table's bottom drawer on
+phones (below 768px; React: vaul drawer whose dropdowns and calendars render
+inside it through `DrawerFormPortalContainerContext` and `FormDateField`'s
+`portalContainer`; Vue: the Reka dialog styled as a bottom sheet). The side
+panel keeps the rules' summaries ("Shown when Category is Hardware and Budget
+> 1000") under the question's row. Changes are saved as they are made; "Done"
+and Escape close the dialog only. A rule has its action ("Show / Hide /
+Require this question when…"), an All/Any segmented control (two radios under
+a "Match" legend) when it has several items, condition cards, "Add
+condition", "Add group" (one level) and removal buttons. A condition card
+stacks question, then comparison and value, by container queries on the card:
+comparison and value side by side from 18rem, all three in a row from 34rem
+(lists and ranges take the card's width below that), remove button at the
+top right. Comparisons use short complete labels (`cmp*` keys, e.g. "is",
+"is not", "contains", "is empty", "before", "after", "between", "in the
+last"; FR "est", "avant le"…; `formOperatorLabel` returns them). Values use
+the table's controls: the option dropdown with tags for tag columns,
+checkboxes for lists, the calendar popover for dates (and From/To ranges), a
+decimal input for numbers, a days input with its "days" unit. A nested group
+is an indented card with its own All/Any control and removal. Each card shows
+its first problem (`issue*` labels) with its id in `aria-describedby` of the
+card's controls and `aria-invalid` on the control concerned. `set` rules are
+engine- and JSON-only.
 
 Record create/edit forms (`FormConfig.rules`, conditions on field names,
 effects in `fieldIds`): the runtime puts a `formRules` set on the form context
@@ -1290,5 +1308,7 @@ editions; `tests/form-links-demo.test.ts` checks the demo host ignores a
 tampered snapshot. `e2e/form-conditions.spec.ts` covers, on both demos, the
 page layout showing/hiding/requiring by rule, the steps layout (progress,
 Enter, Back/Next/Skip, a conditional step appearing and disappearing, review,
-submit), the rule editor adding a rule and its summary, the create form's
+submit), the rule editor ("Edit conditions" dialog, the problem linked to its
+control, a condition, a nested Any group, short comparisons, Escape keeping
+the settings open, the summary and the form following it), the create form's
 condition and date picked in the calendar, and the bulk edit mixed note.

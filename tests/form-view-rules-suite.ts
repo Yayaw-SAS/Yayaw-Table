@@ -31,8 +31,15 @@ type FormModule = Pick<
 >;
 type ConditionsModule = Pick<
   typeof Conditions,
-  "conditionAt" | "retargetCondition" | "updateConditionAt" | "withOperator"
+  | "CONDITION_OPERATORS"
+  | "conditionAt"
+  | "retargetCondition"
+  | "updateConditionAt"
+  | "withOperator"
 >;
+/** An ellipsis or a placeholder: a label that needs its sentence. */
+const UNFINISHED_LABEL = /[…{}]/u;
+
 type TestFn = (name: string, fn: () => void | Promise<void>) => void;
 
 const options = (values: string[]) =>
@@ -513,18 +520,38 @@ function editorTests(test: TestFn, form: FormModule, cond: ConditionsModule) {
       form.formRuleSummary(both, resolved.questions, "fr"),
       "Affichée si Category est Hardware et Budget > 1000"
     );
-    assert.equal(
-      form.formOperatorLabel("inLast", "en"),
-      "is in the last … days"
-    );
-    assert.equal(form.formOperatorLabel("gt", "en"), "> …");
+    assert.equal(form.formOperatorLabel("inLast", "en"), "in the last");
+    assert.equal(form.formOperatorLabel("gt", "en"), ">");
+    assert.equal(form.formOperatorLabel("isNot", "en"), "is not");
+    assert.equal(form.formOperatorLabel("before", "en"), "before");
     assert.equal(form.formOperatorLabel("isEmpty", "fr"), "est vide");
+    assert.equal(
+      form.formOperatorLabel("between", "en", (key, fallback) =>
+        key === "cmpBetween" ? "from … to" : fallback
+      ),
+      "from … to"
+    );
     assert.equal(
       form.formRuleSummary(both, resolved.questions, "en", (key, fallback) =>
         key === "thenShow" ? "Visible if {condition}" : fallback
       ),
       "Visible if Category is Hardware and Budget > 1000"
     );
+  });
+
+  test("every comparison has a short, complete label in both languages", () => {
+    for (const operators of Object.values(cond.CONDITION_OPERATORS)) {
+      for (const operator of operators) {
+        for (const locale of ["en", "fr"]) {
+          const text = form.formOperatorLabel(operator, locale);
+          assert.ok(
+            text.length > 0 && text.length <= 20,
+            `${operator} ${text}`
+          );
+          assert.doesNotMatch(text, UNFINISHED_LABEL, `${operator} ${locale}`);
+        }
+      }
+    }
   });
 
   test("the editor reports rule problems with their labels", () => {

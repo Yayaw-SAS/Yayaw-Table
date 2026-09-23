@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Plus, X } from "lucide-vue-next";
-import { computed } from "vue";
+import { computed, useId } from "vue";
 import {
   type Condition,
   type ConditionField,
@@ -15,15 +15,17 @@ import {
   type FormLabelKey,
   type FormTranslate,
   formRuleIssueLabel,
+  type ResolvedFormQuestion,
 } from "../form-view";
 import FormRuleCondition from "./FormRuleCondition.vue";
-import FormRuleSelect from "./FormRuleSelect.vue";
+import FormRuleJoin from "./FormRuleJoin.vue";
 
 defineOptions({ name: "FormRuleGroup" });
 
 /**
  * The conditions of a group. The rule's own group lists its items; a nested
- * group adds its All/Any choice, removal and "Add condition".
+ * group is an indented card with its All/Any toggle, removal and
+ * "Add condition".
  */
 const props = defineProps<{
   group: ConditionGroup;
@@ -33,14 +35,12 @@ const props = defineProps<{
   issues: readonly RuleIssue[];
   label: (key: FormLabelKey, params?: Record<string, string>) => string;
   locale: string;
+  questions?: readonly ResolvedFormQuestion[];
   translate?: FormTranslate;
 }>();
 const emit = defineEmits<{ change: [group: ConditionGroup]; remove: [] }>();
+const titleId = useId();
 
-const joins = computed(() => [
-  { value: "and", label: props.label("joinAnd") },
-  { value: "or", label: props.label("joinOr") },
-]);
 const emptyIssue = computed(() =>
   props.issues.find(
     (issue) =>
@@ -61,22 +61,17 @@ const addCondition = (): void =>
 </script>
 
 <template>
-  <fieldset v-if="nested" class="yayaw-rule-group" :data-rule-group="path.join('.')">
-    <legend class="yayaw-rule-group-legend">{{ label("ruleGroup") }}</legend>
-    <div class="yayaw-rule-row">
-      <FormRuleSelect
-        :label="label('ruleJoin')"
-        :value="group.join"
-        :options="joins"
-        @change="emit('change', { ...group, join: $event === 'or' ? 'or' : 'and' })"
-      />
+  <section v-if="nested" class="yayaw-rule-group" :aria-labelledby="titleId" :data-rule-group="path.join('.')">
+    <div class="yayaw-rule-group-header">
+      <span :id="titleId" class="yayaw-rule-group-title">{{ label("ruleGroup") }}</span>
+      <FormRuleJoin :join="group.join" :label="label" quiet-legend @change="emit('change', { ...group, join: $event })" />
       <button
         type="button"
-        class="yayaw-button yayaw-button-ghost yayaw-icon-only yayaw-form-settings-action"
+        class="yayaw-button yayaw-button-ghost yayaw-icon-only yayaw-form-settings-action yayaw-rule-remove"
         :aria-label="label('removeGroup')"
         @click="emit('remove')"
       >
-        <X :size="14" aria-hidden="true" />
+        <X :size="12" aria-hidden="true" />
       </button>
     </div>
     <template v-for="(item, index) in group.items" :key="itemKey(item, index)">
@@ -88,6 +83,7 @@ const addCondition = (): void =>
         :issues="issues"
         :label="label"
         :locale="locale"
+        :questions="questions"
         :translate="translate"
         @change="update(index, $event)"
         @remove="update(index, undefined)"
@@ -99,7 +95,7 @@ const addCondition = (): void =>
     <button type="button" class="yayaw-button yayaw-button-ghost yayaw-rule-add" @click="addCondition">
       <Plus :size="12" aria-hidden="true" />{{ label("addCondition") }}
     </button>
-  </fieldset>
+  </section>
   <template v-else>
     <template v-for="(item, index) in group.items" :key="itemKey(item, index)">
       <FormRuleGroup
@@ -111,6 +107,7 @@ const addCondition = (): void =>
         :issues="issues"
         :label="label"
         :locale="locale"
+        :questions="questions"
         :translate="translate"
         @change="update(index, $event)"
         @remove="update(index, undefined)"
@@ -123,6 +120,7 @@ const addCondition = (): void =>
         :issues="issues"
         :label="label"
         :locale="locale"
+        :questions="questions"
         :translate="translate"
         @change="update(index, $event)"
         @remove="update(index, undefined)"

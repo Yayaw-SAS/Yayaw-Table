@@ -4,6 +4,7 @@ import {
   ArrowUp,
   ChevronDown,
   GripVertical,
+  ListFilter,
   Plus,
   Trash2,
 } from "lucide-vue-next";
@@ -47,6 +48,7 @@ import {
   upsertFormRule,
 } from "../form-view";
 import FormRuleEditor from "./FormRuleEditor.vue";
+import FormRulesDialog from "./FormRulesDialog.vue";
 import FormSettingText from "./FormSettingText.vue";
 
 /** View → Form settings: texts, layout, questions, sections and rules, fixed values and the end of the form. */
@@ -95,6 +97,10 @@ const fieldsFor = (questionId: string) =>
   ruleFields.value.filter((field) => field.id !== questionId);
 const issuesOf = (rule: FormRule) =>
   ruleIssues.value.filter((issue) => issue.ruleId === rule.id);
+const hasIssues = (questionId: string): boolean =>
+  rulesOf(questionId).some((rule) => issuesOf(rule).length > 0);
+/** The question whose conditions are edited in the dialog. */
+const rulesOpen = ref<string | null>(null);
 const summary = (rule: FormRule): string =>
   formRuleSummary(rule, resolvedQuestions.value, props.context.locale, translate);
 
@@ -354,26 +360,49 @@ const typedFixed = computed(() =>
                   </div>
                   <section class="yayaw-form-rules" data-form-rules>
                     <h4 class="yayaw-form-rules-heading">{{ label("conditions") }}</h4>
-                    <FormRuleEditor
-                      v-for="rule in rulesOf(row.question.id)"
-                      :key="rule.id"
-                      :rule="rule"
-                      :fields="fieldsFor(row.question.id)"
-                      :issues="issuesOf(rule)"
-                      :label="label"
-                      :locale="context.locale"
-                      :translate="translate"
-                      @change="update({ rules: upsertFormRule(rules, $event) })"
-                      @remove="update({ rules: removeFormRule(rules, rule.id) })"
-                    />
+                    <p v-if="rulesOf(row.question.id).length === 0" class="yayaw-form-rules-status">{{ label("noConditions") }}</p>
+                    <p v-if="hasIssues(row.question.id)" class="yayaw-form-rules-status yayaw-rule-issue" data-form-rules-problem>
+                      {{ label("conditionsProblem") }}
+                    </p>
                     <button
                       type="button"
                       class="yayaw-button yayaw-button-outline yayaw-form-settings-add"
-                      :disabled="fieldsFor(row.question.id).length === 0"
-                      @click="addRule(row.question.id)"
+                      :disabled="fieldsFor(row.question.id).length === 0 && rulesOf(row.question.id).length === 0"
+                      @click="rulesOpen = row.question.id"
                     >
-                      <Plus :size="14" aria-hidden="true" />{{ label("addRule") }}
+                      <ListFilter :size="14" aria-hidden="true" />{{ label("editConditions") }}
                     </button>
+                    <FormRulesDialog
+                      :open="rulesOpen === row.question.id"
+                      :title="label('conditionsTitle', { label: row.question.label || row.column.header })"
+                      :description="label('conditionsDescription')"
+                      :done-label="label('done')"
+                      :close-label="label('close')"
+                      @update:open="rulesOpen = $event ? row.question.id : null"
+                    >
+                      <FormRuleEditor
+                        v-for="rule in rulesOf(row.question.id)"
+                        :key="rule.id"
+                        :rule="rule"
+                        :fields="fieldsFor(row.question.id)"
+                        :issues="issuesOf(rule)"
+                        :label="label"
+                        :locale="context.locale"
+                        :questions="resolvedQuestions"
+                        :translate="translate"
+                        @change="update({ rules: upsertFormRule(rules, $event) })"
+                        @remove="update({ rules: removeFormRule(rules, rule.id) })"
+                      />
+                      <p v-if="rulesOf(row.question.id).length === 0" class="yayaw-form-rules-empty">{{ label("noConditions") }}</p>
+                      <button
+                        type="button"
+                        class="yayaw-button yayaw-button-outline yayaw-form-settings-add"
+                        :disabled="fieldsFor(row.question.id).length === 0"
+                        @click="addRule(row.question.id)"
+                      >
+                        <Plus :size="14" aria-hidden="true" />{{ label("addRule") }}
+                      </button>
+                    </FormRulesDialog>
                   </section>
                 </div>
               </li>

@@ -1,3 +1,14 @@
+<script lang="ts">
+import type { tagAppearance } from "../tag-colors";
+
+/** An option of a rule select; a tag for tag columns, as the table shows it. */
+export interface RuleOption {
+  value: string;
+  label: string;
+  tag?: ReturnType<typeof tagAppearance>;
+}
+</script>
+
 <script setup lang="ts">
 import { Check, ChevronDown, ChevronUp } from "lucide-vue-next";
 import {
@@ -15,13 +26,16 @@ import {
 } from "reka-ui";
 import { computed, useTemplateRef } from "vue";
 import { useOverlayTheme } from "../composables/use-overlay-theme";
+import "../tag-colors.css";
 
 /** A compact settings select of the rule editor, labelled for assistive technologies. */
 const props = defineProps<{
   label: string;
   value: string;
-  options: readonly { value: string; label: string }[];
+  options: readonly RuleOption[];
   placeholder?: string;
+  describedBy?: string;
+  invalid?: boolean;
 }>();
 const emit = defineEmits<{ change: [value: string] }>();
 const anchor = useTemplateRef<HTMLElement>("anchor");
@@ -42,9 +56,18 @@ const selected = computed(() =>
         class="yayaw-select-trigger yayaw-rule-select-trigger"
         data-slot="select-trigger"
         :aria-label="label"
+        :aria-describedby="describedBy"
+        :aria-invalid="invalid || undefined"
       >
         <span class="yayaw-form-select-value" :data-placeholder="selected ? undefined : ''">
-          {{ selected?.label ?? placeholder ?? "" }}
+          <span
+            v-if="selected?.tag"
+            class="yayaw-tag"
+            :class="selected.tag.className"
+            :data-colored="selected.tag.colored"
+            :style="selected.tag.style"
+          >{{ selected.label }}</span>
+          <template v-else>{{ selected?.label ?? placeholder ?? "" }}</template>
         </span>
         <SelectIcon as-child>
           <ChevronDown :size="14" aria-hidden="true" />
@@ -70,7 +93,16 @@ const selected = computed(() =>
               class="yayaw-column-menu-item yayaw-select-item"
               data-slot="select-item"
             >
-              <SelectItemText>{{ option.label }}</SelectItemText>
+              <SelectItemText>
+                <span
+                  v-if="option.tag"
+                  class="yayaw-tag"
+                  :class="option.tag.className"
+                  :data-colored="option.tag.colored"
+                  :style="option.tag.style"
+                >{{ option.label }}</span>
+                <template v-else>{{ option.label }}</template>
+              </SelectItemText>
               <SelectItemIndicator class="yayaw-control-indicator">
                 <Check :size="16" aria-hidden="true" />
               </SelectItemIndicator>

@@ -1,5 +1,6 @@
 import { test } from "bun:test";
 import {
+  CONDITION_OPERATORS,
   conditionAt,
   retargetCondition,
   updateConditionAt,
@@ -61,5 +62,11 @@ formViewRulesSuite(
     upsertFormRule,
     validateFormValues,
   },
-  { conditionAt, retargetCondition, updateConditionAt, withOperator }
+  {
+    CONDITION_OPERATORS,
+    conditionAt,
+    retargetCondition,
+    updateConditionAt,
+    withOperator,
+  }
 );
