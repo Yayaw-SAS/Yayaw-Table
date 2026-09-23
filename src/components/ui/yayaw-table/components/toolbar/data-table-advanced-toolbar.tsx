@@ -14,8 +14,8 @@ import {
   Loader2,
   MoreHorizontal,
   Link2,
+  Plug,
   PlusIcon,
-  RefreshCw,
   Send,
   Share2,
   X,
@@ -96,6 +96,7 @@ import {
 } from "@/components/ui/custom/stack-menu";
 import { useMobileSettingsScreens } from "./mobile-settings-screens";
 import { ExportPanel } from "./export-panel";
+import { TableDataMenu } from "./table-data-menu";
 import {
   defaultExportFileName,
   downloadExportFile,
@@ -538,6 +539,7 @@ function createPageShareHandler(
 function ToolbarEnd({
   applicationActions,
   createButton,
+  dataMenu,
   isMobile,
   renderToolbarAction,
   search,
@@ -551,6 +553,7 @@ function ToolbarEnd({
   createButton: ReactNode;
   isMobile: boolean;
   renderToolbarAction: (action: ToolbarAction) => ReactNode;
+  dataMenu: ReactNode;
   search: {
     enabled: boolean;
     hidden?: boolean;
@@ -585,6 +588,7 @@ function ToolbarEnd({
             ...applicationActions.afterExport,
           ].map(renderToolbarAction)}
       {settingsMenu}
+      {dataMenu}
       {createButton}
     </div>
   );
@@ -624,7 +628,7 @@ function destinationScreens({
   pendingDestination,
   t,
 }: {
-  destinations: Record<"sync" | "share", TableDataDestination[]>;
+  destinations: Record<"connect" | "share", TableDataDestination[]>;
   isShareEnabled: boolean;
   onDestination: (destination: TableDataDestination) => Promise<void>;
   onShare: () => Promise<void>;
@@ -634,12 +638,12 @@ function destinationScreens({
   const item = (destination: TableDataDestination) =>
     renderDestinationItem(destination, pendingDestination, onDestination);
   const screens: { name: string; title: string; content: ReactNode }[] = [];
-  if (destinations.sync.length > 0) {
+  if (destinations.connect.length > 0) {
     screens.push({
-      name: "sync",
-      title: t("destinations.sync"),
+      name: "connect",
+      title: t("destinations.connect"),
       content: (
-        <StackMenuContent>{destinations.sync.map(item)}</StackMenuContent>
+        <StackMenuContent>{destinations.connect.map(item)}</StackMenuContent>
       ),
     });
   }
@@ -706,7 +710,7 @@ function renderMenuDataActions({
   pendingDestination,
 }: {
   isShareEnabled: boolean;
-  destinations: Record<"sync" | "share", TableDataDestination[]>;
+  destinations: Record<"connect" | "share", TableDataDestination[]>;
   pendingDestination?: string;
   t: ReturnType<typeof useTranslations>["t"];
   isMobile: boolean;
@@ -774,14 +778,14 @@ function renderMenuDataActions({
           {exportLabel}
         </StackMenuItem>
       ) : null}
-      {destinations.sync.length > 0 ? (
+      {destinations.connect.length > 0 ? (
         <StackMenuItem
           aria-busy={Boolean(pendingDestination)}
-          icon={<RefreshCw className="size-4" />}
-          navigateTitle={t("destinations.sync")}
-          navigateTo="sync"
+          icon={<Plug className="size-4" />}
+          navigateTitle={t("destinations.connect")}
+          navigateTo="connect"
         >
-          {t("destinations.sync")}
+          {t("destinations.connect")}
         </StackMenuItem>
       ) : null}
       {destinations.share.length > 0 ? (
@@ -1480,6 +1484,42 @@ export function DataTableAdvancedToolbar<TData>({
     displayModes: viewManagerProps?.displayModes,
     tableId,
   });
+  const dataScreens = [
+        ...destinationScreens({
+          destinations: destinationGroups,
+          isShareEnabled: tableConfig.table.share !== false,
+          onDestination: runDestination,
+          onShare: shareLink,
+          pendingDestination,
+          t,
+        }),
+        ...(isExportEnabled
+          ? [
+              {
+                name: "export",
+                title: exportLabel,
+                content: (
+                  <ExportPanel
+                    busy={isExporting}
+                    defaultFileName={defaultExportFileName(tableTitle)}
+                    formats={availableExportFormats(
+                      tableConfig.table.exportFormats,
+                      Boolean(tableActions?.exportFile)
+                    )}
+                    label={(key, fallback) => {
+                      const translated = t(`exportScreen.${key}`);
+                      return translated === `exportScreen.${key}`
+                        ? fallback
+                        : translated;
+                    }}
+                    onExport={handleExport}
+                    selectedCount={toolbarActionContext.selectedRowIds.length}
+                  />
+                ),
+              },
+            ]
+          : []),
+      ];
   // A render function keeps the menu's option conditions out of the toolbar body.
   const renderSettingsMenu = () => (
     <TableMenu
@@ -1502,7 +1542,6 @@ export function DataTableAdvancedToolbar<TData>({
       }
       columns={tableMenuColumns}
       compact={isMobile}
-      dataActions={menuDataActions}
       defaultDisplayMode={tableConfig.table.defaultDisplayMode}
       enableCalculations={tableConfig.table.enableCalculations === true}
       enableColumnFilters={isColumnFiltersEnabled}
@@ -1555,42 +1594,6 @@ export function DataTableAdvancedToolbar<TData>({
         )
       }
       screens={mobileScreens}
-      dataScreens={[
-        ...destinationScreens({
-          destinations: destinationGroups,
-          isShareEnabled: tableConfig.table.share !== false,
-          onDestination: runDestination,
-          onShare: shareLink,
-          pendingDestination,
-          t,
-        }),
-        ...(isExportEnabled
-          ? [
-              {
-                name: "export",
-                title: exportLabel,
-                content: (
-                  <ExportPanel
-                    busy={isExporting}
-                    defaultFileName={defaultExportFileName(tableTitle)}
-                    formats={availableExportFormats(
-                      tableConfig.table.exportFormats,
-                      Boolean(tableActions?.exportFile)
-                    )}
-                    label={(key, fallback) => {
-                      const translated = t(`exportScreen.${key}`);
-                      return translated === `exportScreen.${key}`
-                        ? fallback
-                        : translated;
-                    }}
-                    onExport={handleExport}
-                    selectedCount={toolbarActionContext.selectedRowIds.length}
-                  />
-                ),
-              },
-            ]
-          : []),
-      ]}
       setColumnFilters={finalSetColumnFilters}
       setColumnVisibility={finalSetColumnVisibility}
       setGrouping={finalSetGrouping}
@@ -1680,6 +1683,15 @@ export function DataTableAdvancedToolbar<TData>({
             tableId,
           }}
           settingsMenu={renderSettingsMenu()}
+          dataMenu={
+            <TableDataMenu
+              compact={isMobile}
+              label={t("menu.data")}
+              rows={menuDataActions}
+              screens={dataScreens}
+              tableId={tableId}
+            />
+          }
         />
       </div>
     </TooltipProvider>

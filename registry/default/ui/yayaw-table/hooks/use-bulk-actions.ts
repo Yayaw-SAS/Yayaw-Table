@@ -7,7 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useSetAtom } from "jotai";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { tableMenuOpenToViewAtom } from "../atoms/table-atoms";
+import { tableDataMenuOpenToViewAtom } from "../atoms/table-atoms";
 import type { BulkEditTarget } from "../components/forms/catalogue-bulk-editor";
 import { cloneFormValue } from "../components/forms/form-runtime";
 import type { Row, RowSelectionState, Table } from "../tanstack";
@@ -1199,7 +1199,7 @@ export function useBulkActions<TData>({
     tableId: resolvedTableId,
   });
   const setMenuOpenToView = useSetAtom(
-    tableMenuOpenToViewAtom(resolvedTableId)
+    tableDataMenuOpenToViewAtom(resolvedTableId)
   );
   const [crossPageSelection, setCrossPageSelection] =
     useState<CrossPageSelectionState<TData> | null>(null);

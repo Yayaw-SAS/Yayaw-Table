@@ -172,7 +172,7 @@ export function createViewsActions() {
       {
         id: "n8n",
         label: "n8n",
-        kind: "sync" as const,
+        kind: "connect" as const,
         run: async (context: {
           query: { search: string };
           loadRows: () => Promise<unknown[]>;

@@ -4,7 +4,7 @@
 "use client";
 
 import { useSetAtom } from "jotai";
-import { tableMenuOpenToViewAtom } from "../atoms/table-atoms";
+import { tableDataMenuOpenToViewAtom } from "../atoms/table-atoms";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -1203,7 +1203,7 @@ export function useBulkActions<TData>({
     tableId: resolvedTableId,
   });
   const setMenuOpenToView = useSetAtom(
-    tableMenuOpenToViewAtom(resolvedTableId)
+    tableDataMenuOpenToViewAtom(resolvedTableId)
   );
   const [crossPageSelection, setCrossPageSelection] =
     useState<CrossPageSelectionState<TData> | null>(null);

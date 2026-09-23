@@ -589,18 +589,17 @@ describe("YayawDataTable", () => {
     expect(wrapper.find('[aria-label="Views"]').exists()).toBe(false);
     expect(wrapper.find(".yayaw-empty").exists()).toBe(false);
     await openViewMenu(wrapper);
-    // Export/Share live in the settings menu's Data section regardless of
-    // these feature flags, so only the main options list is expected to
-    // shrink down to the Properties item.
+    // Only the Properties item stays in the settings once these features are
+    // off; Export and Share live in the separate Data menu.
     const menuItems = wrapper
-      .findAll(
-        ".yayaw-options-list:not(.yayaw-options-data) .yayaw-options-item"
-      )
+      .findAll(".yayaw-options-list .yayaw-options-item")
       .map((item) => item.text());
     expect(menuItems).toHaveLength(1);
     expect(menuItems[0]).toContain("Properties");
+    await wrapper.get(".yayaw-data-trigger").trigger("click");
+    await flushPromises();
     const dataItems = wrapper
-      .findAll(".yayaw-options-data .yayaw-options-item")
+      .findAll('[data-menu-section="data"] .yayaw-options-item')
       .map((item) => item.text());
     expect(dataItems).toEqual(["Export", "Share"]);
   });

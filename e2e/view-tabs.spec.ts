@@ -89,13 +89,20 @@ test("on phones, views and settings are two separate menus and search opens on d
     0
   );
 
+  // Settings hold presentation only; data actions have their own menu.
   await page.getByRole("button", { name: "View settings" }).click();
   const settings = page.getByRole("dialog", { name: "View settings" });
-  await expect(settings.getByRole("button", { name: "Export" })).toBeVisible();
   await expect(
-    settings.getByRole("button", { name: "Share", exact: true })
-  ).toBeVisible();
+    settings.getByRole("button", { name: EXPORT_ENTRY })
+  ).toHaveCount(0);
   await expect(settings.getByText("Default view")).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Data", exact: true }).click();
+  const data = page.getByRole("dialog", { name: "Data" });
+  await expect(data.getByRole("button", { name: EXPORT_ENTRY })).toBeVisible();
+  await expect(
+    data.getByRole("button", { name: "Share", exact: true })
+  ).toBeVisible();
   await page.keyboard.press("Escape");
 
   await page.getByRole("button", { name: CURRENT_VIEW_TRIGGER }).click();
@@ -115,13 +122,13 @@ test("custom destinations receive the view's query from the Data section", async
   page,
 }) => {
   await page.goto(`${EXAMPLE}&views-q=bravo`);
-  await page.getByRole("button", { name: "View settings" }).click();
-  const settings = page.getByRole("dialog", { name: "View settings" });
+  await page.getByRole("button", { name: "Data", exact: true }).click();
+  const data = page.getByRole("dialog", { name: "Data" });
   await expect(
-    settings.getByRole("button", { name: "Share", exact: true })
+    data.getByRole("button", { name: "Share", exact: true })
   ).toBeVisible();
-  // Sends to tools live under Sync; custom shares under Share.
-  await settings.getByRole("button", { name: "Sync", exact: true }).click();
+  // Sends to tools live under Connect; custom shares under Share.
+  await data.getByRole("button", { name: "Connect", exact: true }).click();
   await page.getByRole("button", { name: "n8n", exact: true }).click();
   await expect(
     page.getByText("Sent 1 records to the n8n workflow")
@@ -133,7 +140,7 @@ test("the Export screen writes the view's records as displayed or raw", async ({
 }) => {
   await page.goto(`${EXAMPLE}&views-q=bravo`);
   const exportFile = async () => {
-    await page.getByRole("button", { name: "View settings" }).click();
+    await page.getByRole("button", { name: "Data", exact: true }).click();
     await page.getByRole("button", { name: EXPORT_ENTRY }).first().click();
     const panel = page.locator("[data-export-panel]");
     await expect(panel).toBeVisible();
