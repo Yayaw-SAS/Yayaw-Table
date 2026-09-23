@@ -1,9 +1,18 @@
 "use client";
 
-import { ExternalLink, Link2 } from "lucide-react";
-import { useEffect, useId, useState } from "react";
+import { Check, Copy, ExternalLink, Globe, Link2 } from "lucide-react";
+import { type ReactNode, useEffect, useId, useRef, useState } from "react";
+import {
+  StackMenu,
+  StackMenuContent,
+  StackMenuView,
+} from "@/components/ui/custom/stack-menu";
+import { cn } from "@/lib/utils";
 import { Button } from "@/src/components/ui/button";
+import { buttonVariants } from "@/src/components/ui/button-styles";
 import { Input } from "@/src/components/ui/input";
+import { Switch } from "@/src/components/ui/switch";
+import { useIsMobile } from "../hooks/use-mobile";
 import {
   type FormLabelKey,
   type FormLinkActions,
@@ -12,6 +21,7 @@ import {
   formLabel,
   type PublicFormSnapshot,
 } from "../utils/form-view";
+import { TableTooltip } from "../utils/table-tooltip";
 
 interface FormShareProps {
   formLinks: FormLinkActions;
@@ -24,7 +34,7 @@ interface FormShareProps {
 
 type Label = (key: FormLabelKey) => string;
 
-const SWITCH_CLASS = "size-4 shrink-0 accent-primary";
+const COPIED_MS = 2000;
 
 function useLinkStatus(formLinks: FormLinkActions, viewId: string | null) {
   const [status, setStatus] = useState<FormLinkStatus | null>(null);
@@ -62,33 +72,67 @@ function useLinkStatus(formLinks: FormLinkActions, viewId: string | null) {
   return { failed, loading, setFailed, setStatus, status };
 }
 
+/** "Copy link" with a short "Link copied" confirmation. */
+function useCopy(url: string | undefined) {
+  const [copied, setCopied] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(url ?? "");
+      setCopied(true);
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => setCopied(false), COPIED_MS);
+    } catch {
+      setCopied(false);
+    }
+  };
+  return { copied, copy };
+}
+
 function SwitchRow({
   checked,
   disabled,
+  hint,
+  icon,
   id,
   label,
   onChange,
 }: {
   checked: boolean;
   disabled?: boolean;
+  hint?: string;
+  icon?: ReactNode;
   id: string;
   label: string;
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label className="flex min-h-9 items-center gap-2 text-sm" htmlFor={id}>
-      <input
-        aria-checked={checked}
+    <div className="flex min-h-9 items-center gap-3">
+      {icon ? (
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground [&_svg]:size-4">
+          {icon}
+        </span>
+      ) : null}
+      <div className="grid min-w-0 flex-1 gap-0.5">
+        <label className="font-medium text-sm" htmlFor={id} id={`${id}-label`}>
+          {label}
+        </label>
+        {hint ? (
+          <p className="text-muted-foreground text-xs" id={`${id}-hint`}>
+            {hint}
+          </p>
+        ) : null}
+      </div>
+      <Switch
+        aria-describedby={hint ? `${id}-hint` : undefined}
+        aria-labelledby={`${id}-label`}
         checked={checked}
-        className={SWITCH_CLASS}
         disabled={disabled}
         id={id}
-        onChange={(event) => onChange(event.target.checked)}
-        role="switch"
-        type="checkbox"
+        onCheckedChange={(next) => onChange(next)}
       />
-      {label}
-    </label>
+    </div>
   );
 }
 
@@ -105,25 +149,50 @@ function PublicLink({
   onCopy: () => void;
   url: string;
 }) {
+  const copyLabel = copied ? label("copied") : label("copy");
   return (
     <div className="grid gap-1.5">
-      <label className="text-sm" htmlFor={id}>
+      <label className="text-muted-foreground text-xs" htmlFor={id}>
         {label("publicLink")}
       </label>
-      <div className="flex flex-wrap gap-2">
-        <Input className="min-w-0 flex-1" id={id} readOnly value={url} />
-        <Button onClick={onCopy} size="sm" type="button" variant="outline">
-          {copied ? label("copied") : label("copy")}
-        </Button>
-        <a
-          className="inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-sm hover:bg-accent"
-          href={url}
-          rel="noopener"
-          target="_blank"
-        >
-          <ExternalLink aria-hidden="true" className="size-4" />
-          {label("open")}
-        </a>
+      <div className="flex min-w-0 items-center gap-1">
+        <Input
+          className="h-8 min-w-0 flex-1 text-xs md:text-xs"
+          id={id}
+          onFocus={(event) => event.currentTarget.select()}
+          readOnly
+          value={url}
+        />
+        <TableTooltip label={copyLabel}>
+          <Button
+            aria-label={copyLabel}
+            className="shrink-0"
+            onClick={onCopy}
+            size="icon-sm"
+            type="button"
+            variant="outline"
+          >
+            {copied ? (
+              <Check aria-hidden="true" className="size-4" />
+            ) : (
+              <Copy aria-hidden="true" className="size-4" />
+            )}
+          </Button>
+        </TableTooltip>
+        <TableTooltip label={label("open")}>
+          <a
+            aria-label={label("open")}
+            className={cn(
+              buttonVariants({ size: "icon-sm", variant: "outline" }),
+              "shrink-0 in-data-[vaul-drawer-direction]:size-11"
+            )}
+            href={url}
+            rel="noopener"
+            target="_blank"
+          >
+            <ExternalLink aria-hidden="true" className="size-4" />
+          </a>
+        </TableTooltip>
       </div>
     </div>
   );
@@ -153,7 +222,7 @@ function PublishedControls({
   url: string;
 }) {
   return (
-    <div className="grid gap-3">
+    <>
       <PublicLink
         copied={copied}
         id={`${id}-url`}
@@ -170,8 +239,10 @@ function PublishedControls({
           onChange={onAccepting}
         />
       ) : null}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="grid gap-1.5 border-t pt-3">
         <Button
+          aria-describedby={`${id}-republish-hint`}
+          className="w-full"
           disabled={busy}
           onClick={onRepublish}
           size="sm"
@@ -180,18 +251,22 @@ function PublishedControls({
         >
           {label("republish")}
         </Button>
-        <p className="text-muted-foreground text-sm">
+        <p
+          className="text-muted-foreground text-xs"
+          id={`${id}-republish-hint`}
+        >
           {label("republishHint")}
         </p>
       </div>
-    </div>
+    </>
   );
 }
 
 /**
- * "Share form": publish the view's form on a public link served by the host.
- * Republishing is explicit: edits reach the link with "Update public form",
- * so unsaved experiments never go live by accident.
+ * "Share form": a button of the form's header bar opening the publishing
+ * controls (a drawer on phones, like the Data menu). Republishing is explicit:
+ * edits reach the link with "Update public form", so unsaved experiments
+ * never go live by accident.
  */
 export function FormShare({
   formLinks,
@@ -201,16 +276,17 @@ export function FormShare({
   viewId,
 }: FormShareProps) {
   const id = useId();
+  const compact = useIsMobile();
   const label: Label = (key) => formLabel(key, locale, translate);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [copied, setCopied] = useState(false);
   const { failed, loading, setFailed, setStatus, status } = useLinkStatus(
     formLinks,
     viewId
   );
   const url = status?.published ? status.url : undefined;
   const accepting = status?.acceptsResponses !== false;
+  const { copied, copy } = useCopy(url);
 
   const run = async (task: () => Promise<FormLinkStatus | null>) => {
     setBusy(true);
@@ -246,20 +322,14 @@ export function FormShare({
       await formLinks.setAcceptingResponses?.(target, next);
       return { published: true, ...status, acceptsResponses: next };
     });
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(url ?? "");
-      setCopied(true);
-    } catch {
-      setCopied(false);
-    }
-  };
 
   const panel = viewId ? (
     <>
       <SwitchRow
         checked={Boolean(url)}
         disabled={busy || loading}
+        hint={label("publishHint")}
+        icon={<Globe aria-hidden="true" />}
         id={`${id}-publish`}
         label={label("publish")}
         onChange={(next) => (next ? publish(viewId) : unpublish(viewId))}
@@ -284,17 +354,16 @@ export function FormShare({
   );
 
   return (
-    <section
-      aria-label={label("share")}
-      className="grid gap-3 rounded-lg border px-4 py-3"
-      data-form-share
-    >
-      <div className="flex flex-wrap items-center justify-between gap-2">
+    <StackMenu
+      align="end"
+      asDropdown
+      compact={compact}
+      onOpenChange={setOpen}
+      open={open}
+      trigger={
         <Button
-          aria-controls={`${id}-panel`}
-          aria-expanded={open}
-          className="gap-2"
-          onClick={() => setOpen((value) => !value)}
+          className={cn("gap-2", compact && "min-h-11")}
+          data-form-share
           size="sm"
           type="button"
           variant="outline"
@@ -302,9 +371,10 @@ export function FormShare({
           <Link2 aria-hidden="true" className="size-4" />
           {label("share")}
         </Button>
-      </div>
-      {open ? (
-        <div className="grid gap-3" id={`${id}-panel`}>
+      }
+    >
+      <StackMenuView name="main" title={label("share")}>
+        <StackMenuContent className="grid gap-4 p-3" data-form-share-panel>
           {panel}
           {failed ? (
             <p className="text-destructive text-sm" role="alert">
@@ -314,8 +384,8 @@ export function FormShare({
           {copied ? (
             <output className="sr-only">{label("copied")}</output>
           ) : null}
-        </div>
-      ) : null}
-    </section>
+        </StackMenuContent>
+      </StackMenuView>
+    </StackMenu>
   );
 }

@@ -5,7 +5,14 @@
  * Spam protection and hidden context stay with the host: render them in the
  * `extra-fields` slot and pass `context`, which `onSubmit` receives unchanged.
  */
+import { CircleCheck, Lock } from "lucide-vue-next";
 import { computed, nextTick, ref, useId } from "vue";
+import Empty from "../components/empty/Empty.vue";
+import EmptyContent from "../components/empty/EmptyContent.vue";
+import EmptyDescription from "../components/empty/EmptyDescription.vue";
+import EmptyHeader from "../components/empty/EmptyHeader.vue";
+import EmptyMedia from "../components/empty/EmptyMedia.vue";
+import EmptyTitle from "../components/empty/EmptyTitle.vue";
 import {
   type FormColumn,
   type FormDraft,
@@ -84,6 +91,16 @@ const status = ref<"idle" | "submitting" | "success">("idle");
 const formElement = ref<HTMLFormElement>();
 const inputId = (question: ResolvedFormQuestion): string =>
   `${id}-${question.id}`;
+/** The control a question focuses (the first choice of a multi-select). */
+const questionControl = (question: ResolvedFormQuestion) =>
+  formElement.value?.querySelector<HTMLElement>(
+    `[data-form-question="${CSS.escape(question.id)}"] [data-form-focus]`
+  );
+const questionLabels = computed(() => ({
+  choose: label("choose"),
+  clearDate: label("clearDate"),
+  pickDate: label("pickDate"),
+}));
 
 const setAnswer = (columnId: string, value: FormDraft[string]): void => {
   draft.value = { ...draft.value, [columnId]: value };
@@ -109,7 +126,7 @@ const fail = async (next: Record<string, string>, text?: string) => {
   await nextTick();
   const question = questions.value.find((item) => next[item.columnId]);
   const target = question
-    ? document.getElementById(inputId(question))
+    ? questionControl(question)
     : formElement.value?.querySelector<HTMLElement>("[data-form-message]");
   target?.focus();
 };
@@ -146,7 +163,7 @@ const restart = async (): Promise<void> => {
   status.value = "idle";
   await nextTick();
   const first = questions.value[0];
-  if (first) document.getElementById(inputId(first))?.focus();
+  if (first) questionControl(first)?.focus();
 };
 </script>
 
@@ -156,24 +173,34 @@ const restart = async (): Promise<void> => {
       <h2 v-if="settings.title" class="yayaw-form-title">{{ settings.title }}</h2>
       <p v-if="settings.description" class="yayaw-form-description">{{ settings.description }}</p>
     </header>
-    <p class="yayaw-form-panel" role="status">{{ label("closed") }}</p>
+    <Empty class="yayaw-form-state">
+      <EmptyHeader>
+        <EmptyMedia variant="icon"><Lock aria-hidden="true" /></EmptyMedia>
+        <output class="yayaw-form-state-text">
+          <EmptyDescription>{{ label("closed") }}</EmptyDescription>
+        </output>
+      </EmptyHeader>
+    </Empty>
   </section>
   <section v-else-if="status === 'success'" class="yayaw-form-root" data-yayaw-form="success">
     <header v-if="settings.title || settings.description" class="yayaw-form-intro">
       <h2 v-if="settings.title" class="yayaw-form-title">{{ settings.title }}</h2>
       <p v-if="settings.description" class="yayaw-form-description">{{ settings.description }}</p>
     </header>
-    <div class="yayaw-form-panel" data-form-success>
-      <p role="status">{{ settings.successMessage ?? label("success") }}</p>
-      <button
-        v-if="settings.allowAnotherResponse"
-        type="button"
-        class="yayaw-button yayaw-button-outline yayaw-form-action"
-        @click="restart"
-      >
-        {{ label("another") }}
-      </button>
-    </div>
+    <Empty class="yayaw-form-state">
+      <EmptyHeader>
+        <EmptyMedia variant="icon"><CircleCheck aria-hidden="true" /></EmptyMedia>
+        <output class="yayaw-form-state-text">
+          <EmptyTitle>{{ label("successTitle") }}</EmptyTitle>
+          <EmptyDescription>{{ settings.successMessage ?? label("success") }}</EmptyDescription>
+        </output>
+      </EmptyHeader>
+      <EmptyContent v-if="settings.allowAnotherResponse">
+        <button type="button" class="yayaw-button yayaw-button-outline" @click="restart">
+          {{ label("another") }}
+        </button>
+      </EmptyContent>
+    </Empty>
   </section>
   <form
     v-else
@@ -201,12 +228,13 @@ const restart = async (): Promise<void> => {
         :value="draft[question.columnId]"
         :error="errors[question.columnId]"
         :disabled="status === 'submitting'"
-        :choose-label="label('choose')"
+        :locale="locale"
+        :labels="questionLabels"
         @change="setAnswer(question.columnId, $event)"
       />
     </div>
     <slot name="extra-fields" />
-    <div>
+    <div class="yayaw-form-submit-bar">
       <button
         type="submit"
         class="yayaw-button yayaw-form-action"

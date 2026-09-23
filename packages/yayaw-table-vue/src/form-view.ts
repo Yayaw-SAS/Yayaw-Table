@@ -4,6 +4,11 @@
  * or state-library dependency, so a host can also run it on its server.
  */
 import { resolveDataType, TABLE_DATA_TYPES } from "./table-contracts";
+import {
+  formatDateValue,
+  formatNumberValue,
+  type NumberFormatConfig,
+} from "./value-format";
 
 /** The input a question renders, derived from its column type. */
 export type FormEditor =
@@ -24,6 +29,12 @@ export interface FormColumn {
   options?: unknown;
   accessorKey?: unknown;
   accessorFn?: unknown;
+  /** `"tag"` shows the options as tags, like the table cells. */
+  displayVariant?: string;
+  /** Colored tags (default true); the Form view passes the table's setting. */
+  coloredTags?: boolean;
+  /** How the table shows numbers, e.g. `{ currency: "EUR" }`. */
+  numberFormat?: unknown;
 }
 
 /**
@@ -74,6 +85,12 @@ export interface ResolvedFormQuestion {
   placeholder?: string;
   required: boolean;
   options: FormOption[];
+  /** Options shown as tags, as the column displays them. */
+  tags: boolean;
+  /** Tags get their automatic color. */
+  coloredTags: boolean;
+  /** Number display of the column, used once the answer is typed. */
+  numberFormat?: NumberFormatConfig;
 }
 
 export interface ResolvedFormSettings {
@@ -287,6 +304,9 @@ export function mergeFormSettings(
   };
 }
 
+const isNumberFormat = (value: unknown): value is NumberFormatConfig =>
+  typeof value === "string" || isRecord(value);
+
 function resolveQuestion(
   question: FormQuestion,
   column: FormColumn,
@@ -301,6 +321,11 @@ function resolveQuestion(
     placeholder: question.placeholder,
     required: question.required === true,
     options: formOptions(column.options),
+    tags: column.displayVariant === "tag",
+    coloredTags: column.coloredTags !== false,
+    numberFormat: isNumberFormat(column.numberFormat)
+      ? column.numberFormat
+      : undefined,
   };
 }
 
@@ -497,6 +522,55 @@ const validUrl = (value: unknown): boolean => {
   }
 };
 
+/** A typed number as its column shows it, or undefined while it is not a number. */
+export function formNumberDisplay(
+  raw: string,
+  format: NumberFormatConfig | undefined,
+  locale: string
+): string | undefined {
+  const value = raw.trim();
+  const number = Number(value.replace(",", "."));
+  if (!(value && Number.isFinite(number))) {
+    return;
+  }
+  return formatNumberValue(number, format, locale);
+}
+
+/** A date answer (`YYYY-MM-DD`) in the reader's language, e.g. "Sep 30, 2026". */
+export function formDateDisplay(
+  raw: string,
+  locale: string
+): string | undefined {
+  return validDate(raw)
+    ? formatDateValue(raw, { preset: "localized-medium", locale })
+    : undefined;
+}
+
+/** The answer of a picked calendar day, as `YYYY-MM-DD`. */
+export function formDateAnswer(date: Date): string {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+interface WeekInfoLocale {
+  getWeekInfo?: () => { firstDay: number };
+  weekInfo?: { firstDay: number };
+}
+
+/** First day of the week in a locale's calendar: 0 Sunday, 1 Monday, 6 Saturday. */
+export function formWeekStart(locale: string): number {
+  try {
+    const info = new Intl.Locale(locale) as Intl.Locale & WeekInfoLocale;
+    const firstDay = (info.getWeekInfo?.() ?? info.weekInfo)?.firstDay;
+    if (firstDay) {
+      return firstDay % 7;
+    }
+  } catch {
+    // An unknown locale falls back below.
+  }
+  return locale.toLowerCase().startsWith("en-us") || locale === "en" ? 0 : 1;
+}
+
 const knownOption = (question: ResolvedFormQuestion, value: unknown) =>
   question.options.length === 0 ||
   question.options.some((option) => Object.is(option.value, value));
@@ -569,6 +643,7 @@ const ENGLISH_LABELS = {
   submit: "Submit",
   submitting: "Submitting…",
   success: "Thank you, your response has been recorded.",
+  successTitle: "Response sent",
   another: "Submit another response",
   required: "required",
   choose: "Choose…",
@@ -620,12 +695,17 @@ const ENGLISH_LABELS = {
   saveFirst: "Save this view to share its form.",
   shareError: "Sharing could not be updated. Try again.",
   loading: "Loading…",
+  pickDate: "Pick a date",
+  clearDate: "Clear",
+  close: "Close",
+  publishHint: "Anyone with the link can answer this form.",
 } as const;
 
 const FRENCH_LABELS: Record<FormLabelKey, string> = {
   submit: "Envoyer",
   submitting: "Envoi…",
   success: "Merci, votre réponse a bien été enregistrée.",
+  successTitle: "Réponse envoyée",
   another: "Envoyer une autre réponse",
   required: "obligatoire",
   choose: "Choisir…",
@@ -678,6 +758,11 @@ const FRENCH_LABELS: Record<FormLabelKey, string> = {
   saveFirst: "Enregistrez cette vue pour partager son formulaire.",
   shareError: "Le partage n’a pas pu être mis à jour. Réessayez.",
   loading: "Chargement…",
+  pickDate: "Choisir une date",
+  clearDate: "Effacer",
+  close: "Fermer",
+  publishHint:
+    "Toute personne disposant du lien peut répondre à ce formulaire.",
 };
 
 /** Host override for a label (`form.<key>`), or the built-in one. */
@@ -742,6 +827,25 @@ export interface PublicFormSnapshot {
   hiddenValues: Record<string, FormHiddenValue>;
 }
 
+/** What a public form shows of a column: its name, type, options and display. */
+function snapshotColumn(column: FormColumn): FormColumn {
+  const { id, header, type, options } = column;
+  const display = {
+    displayVariant: column.displayVariant,
+    coloredTags: column.coloredTags,
+    numberFormat: column.numberFormat,
+  };
+  return {
+    id,
+    header,
+    ...(type ? { type } : {}),
+    ...(options === undefined ? {} : { options }),
+    ...Object.fromEntries(
+      Object.entries(display).filter(([, value]) => value !== undefined)
+    ),
+  };
+}
+
 /**
  * A publishable copy of a form: explicit questions, the columns they need and
  * the fixed values. No rows, filters, other columns or table settings.
@@ -779,12 +883,7 @@ export function publicFormSnapshot(
     form,
     columns: columns
       .filter((column) => asked.has(column.id))
-      .map(({ id, header, type, options }) => ({
-        id,
-        header,
-        ...(type ? { type } : {}),
-        ...(options === undefined ? {} : { options }),
-      })),
+      .map((column) => snapshotColumn(column)),
     hiddenValues: resolved.hiddenValues,
   };
 }

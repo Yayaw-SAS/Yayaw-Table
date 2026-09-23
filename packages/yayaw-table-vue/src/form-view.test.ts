@@ -8,12 +8,16 @@ import {
 import {
   acceptPublicFormResponse,
   formColumns,
+  formDateAnswer,
+  formDateDisplay,
   formDraftValues,
   formLabel,
+  formNumberDisplay,
   formSettingsFromView,
   formSubmission,
   formSubmitResultFrom,
   formTranslateFrom,
+  formWeekStart,
   initialFormDraft,
   isFormModeEnabled,
   moveFormQuestion,
@@ -30,8 +34,11 @@ formViewSuite(
   {
     acceptPublicFormResponse,
     formColumns,
+    formDateAnswer,
+    formDateDisplay,
     formDraftValues,
     formLabel,
+    formNumberDisplay,
     formSettingsFromView,
     formSubmission,
     formSubmitResultFrom,
@@ -45,6 +52,7 @@ formViewSuite(
     toggleFormQuestion,
     updateFormQuestion,
     validateFormValues,
+    formWeekStart,
   },
   { normalizeModeConfig, pickGenericModeSettings, resolveDisplayModes }
 );

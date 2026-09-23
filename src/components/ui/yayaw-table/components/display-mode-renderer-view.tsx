@@ -141,6 +141,7 @@ export function useDisplayModeRenderContext(
       createRecord,
       viewId,
       formLinks,
+      coloredTags: (tableDefaults as RowRecord).coloredTags !== false,
       revision,
       emptyState,
     }),

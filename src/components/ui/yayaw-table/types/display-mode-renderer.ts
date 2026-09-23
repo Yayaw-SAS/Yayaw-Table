@@ -47,6 +47,8 @@ export interface DisplayModeRenderContext extends DisplayModeSettingsContext {
   viewId: string | null;
   /** Public form links, when the host provides `actions.formLinks`. */
   formLinks?: FormLinkActions;
+  /** The table's `coloredTags` setting, for tags a renderer draws. */
+  coloredTags: boolean;
   /** Changes after each mutation so renderers reload their rows. */
   revision: number;
   emptyState: ReactNode;

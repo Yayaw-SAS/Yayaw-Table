@@ -24,8 +24,11 @@ type FormModule = Pick<
   typeof Form,
   | "acceptPublicFormResponse"
   | "formColumns"
+  | "formDateAnswer"
+  | "formDateDisplay"
   | "formDraftValues"
   | "formLabel"
+  | "formNumberDisplay"
   | "formSettingsFromView"
   | "formSubmission"
   | "formSubmitResultFrom"
@@ -39,6 +42,7 @@ type FormModule = Pick<
   | "toggleFormQuestion"
   | "updateFormQuestion"
   | "validateFormValues"
+  | "formWeekStart"
 >;
 
 export function formViewSuite(
@@ -329,6 +333,76 @@ export function formViewSuite(
       ],
       hiddenValues: { urgent: true },
     });
+  });
+
+  test("public snapshots keep how the table shows tags and numbers", () => {
+    const full = form.publicFormSnapshot(
+      {
+        questions: [
+          { id: "status", columnId: "status" },
+          { id: "price", columnId: "price" },
+        ],
+      },
+      [
+        {
+          id: "status",
+          header: "Status",
+          type: "select",
+          options: STATUS_OPTIONS,
+          displayVariant: "tag",
+          coloredTags: false,
+        },
+        {
+          id: "price",
+          header: "Price",
+          type: "number",
+          numberFormat: { currency: "EUR" },
+          accessorKey: "price",
+        },
+      ]
+    );
+    assert.deepEqual(full.columns, [
+      {
+        id: "status",
+        header: "Status",
+        type: "select",
+        options: STATUS_OPTIONS,
+        displayVariant: "tag",
+        coloredTags: false,
+      },
+      {
+        id: "price",
+        header: "Price",
+        type: "number",
+        numberFormat: { currency: "EUR" },
+      },
+    ]);
+    const [status, price] = form.resolveFormSettings(
+      full.columns,
+      undefined,
+      full.form
+    ).questions;
+    assert.equal(status?.tags, true);
+    assert.equal(status?.coloredTags, false);
+    assert.equal(price?.tags, false);
+    assert.equal(price?.coloredTags, true);
+    assert.deepEqual(price?.numberFormat, { currency: "EUR" });
+  });
+
+  test("answers read in the form's language", () => {
+    assert.equal(
+      form.formNumberDisplay("1250,5", { currency: "EUR" }, "en-US"),
+      "€1,250.50"
+    );
+    assert.equal(form.formNumberDisplay("12", undefined, "fr"), "12");
+    assert.equal(form.formNumberDisplay("abc", undefined, "en"), undefined);
+    assert.equal(form.formNumberDisplay(" ", undefined, "en"), undefined);
+    assert.equal(form.formDateDisplay("2026-09-30", "en-US"), "Sep 30, 2026");
+    assert.equal(form.formDateDisplay("2026-09-30", "fr"), "30 sept. 2026");
+    assert.equal(form.formDateDisplay("2026-02-30", "en"), undefined);
+    assert.equal(form.formDateAnswer(new Date(2026, 0, 5)), "2026-01-05");
+    assert.equal(form.formWeekStart("en-US"), 0);
+    assert.equal(form.formWeekStart("fr-FR"), 1);
   });
 
   test("public responses are checked again on the server", () => {

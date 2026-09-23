@@ -54,10 +54,7 @@ export function FormExample() {
               .
             </p>
           </header>
-          <section
-            aria-label="Standalone form"
-            className="rounded-lg border px-4 py-6 sm:px-8"
-          >
+          <section aria-label="Standalone form">
             <YayawTableForm
               columns={viewsColumns}
               form={requestFormSettings}

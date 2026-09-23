@@ -1,16 +1,23 @@
 "use client";
 
-import { ChevronDown, ChevronUp, Pencil } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, GripVertical } from "lucide-react";
 import {
   type ChangeEvent,
   type KeyboardEvent,
+  type ReactNode,
   useEffect,
   useId,
   useState,
 } from "react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/src/components/ui/button";
 import { Input } from "@/src/components/ui/input";
+import { Switch } from "@/src/components/ui/switch";
 import { Textarea } from "@/src/components/ui/textarea";
+import {
+  type ViewSettingField,
+  ViewSettingsPanel,
+} from "../components/toolbar/view-settings-panel";
 import type { DisplayModeSettingsContext } from "../types/display-mode-renderer";
 import {
   type FormColumn,
@@ -35,9 +42,7 @@ import {
 
 type Label = (key: FormLabelKey, params?: Record<string, string>) => string;
 
-const CHECK_CLASS = "size-4 shrink-0 accent-primary";
-const SELECT_CLASS =
-  "h-8 w-full min-w-0 rounded-md border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
+const NONE = "";
 
 /** A text setting saved when it loses focus or on Enter, not on every key. */
 function CommitText({
@@ -98,6 +103,41 @@ function CommitText({
   );
 }
 
+/** A labelled switch, as in the table's settings menus. */
+function SwitchSetting({
+  checked,
+  id,
+  label,
+  onChange,
+}: {
+  checked: boolean;
+  id: string;
+  label: string;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <div className="flex min-h-8 items-center justify-between gap-3">
+      <label className="min-w-0 text-sm" htmlFor={id} id={`${id}-label`}>
+        {label}
+      </label>
+      <Switch
+        aria-labelledby={`${id}-label`}
+        checked={checked}
+        id={id}
+        onCheckedChange={(next) => onChange(next)}
+      />
+    </div>
+  );
+}
+
+function SettingsHeading({ children }: { children: ReactNode }) {
+  return (
+    <h3 className="mt-1 font-medium text-sm" data-setting-heading>
+      {children}
+    </h3>
+  );
+}
+
 function QuestionDetails({
   id,
   label,
@@ -112,7 +152,10 @@ function QuestionDetails({
   textInput: boolean;
 }) {
   return (
-    <div className="grid gap-2 border-l-2 pl-3" id={`${id}-details`}>
+    <div
+      className="mx-1 mb-1 grid gap-3 rounded-md bg-muted/50 p-3 dark:bg-muted/30"
+      id={`${id}-details`}
+    >
       <CommitText
         id={`${id}-label`}
         label={label("label")}
@@ -134,19 +177,12 @@ function QuestionDetails({
           value={question.placeholder ?? ""}
         />
       ) : null}
-      <label
-        className="flex min-h-8 items-center gap-2 text-sm"
-        htmlFor={`${id}-required`}
-      >
-        <input
-          checked={question.required === true}
-          className={CHECK_CLASS}
-          id={`${id}-required`}
-          onChange={(event) => onChange({ required: event.target.checked })}
-          type="checkbox"
-        />
-        {label("requiredToggle")}
-      </label>
+      <SwitchSetting
+        checked={question.required === true}
+        id={`${id}-required`}
+        label={label("requiredToggle")}
+        onChange={(required) => onChange({ required })}
+      />
     </div>
   );
 }
@@ -162,6 +198,66 @@ interface QuestionRowProps {
   onChange: (patch: Partial<FormQuestion>) => void;
 }
 
+function QuestionActions({
+  count,
+  editing,
+  id,
+  index,
+  label,
+  name,
+  onEdit,
+  onMove,
+}: {
+  count: number;
+  editing: boolean;
+  id: string;
+  index: number;
+  label: Label;
+  name: string;
+  onEdit: () => void;
+  onMove: (offset: -1 | 1) => void;
+}) {
+  return (
+    <>
+      <Button
+        aria-label={label("moveUp", { label: name })}
+        disabled={index === 0}
+        onClick={() => onMove(-1)}
+        size="icon-xs"
+        type="button"
+        variant="ghost"
+      >
+        <ArrowUp aria-hidden="true" />
+      </Button>
+      <Button
+        aria-label={label("moveDown", { label: name })}
+        disabled={index === count - 1}
+        onClick={() => onMove(1)}
+        size="icon-xs"
+        type="button"
+        variant="ghost"
+      >
+        <ArrowDown aria-hidden="true" />
+      </Button>
+      <Button
+        aria-controls={`${id}-details`}
+        aria-expanded={editing}
+        aria-label={label("editQuestion", { label: name })}
+        onClick={onEdit}
+        size="icon-xs"
+        type="button"
+        variant="ghost"
+      >
+        <ChevronDown
+          aria-hidden="true"
+          className={cn("transition-transform", editing && "rotate-180")}
+        />
+      </Button>
+    </>
+  );
+}
+
+/** One column: asked or not, its place in the form and its texts. */
 function QuestionRow({
   column,
   count,
@@ -178,18 +274,26 @@ function QuestionRow({
   const editor = formColumnEditor(column);
   const textInput = editor !== "boolean" && editor !== "multiSelect";
   return (
-    <li className="grid gap-2" data-form-setting-question={column.id}>
-      <div className="flex min-w-0 items-center gap-1">
-        <input
-          aria-label={label("ask", { label: name })}
-          checked={Boolean(question)}
-          className={CHECK_CLASS}
-          id={`${id}-ask`}
-          onChange={(event) => onAsk(event.target.checked)}
-          type="checkbox"
+    <li
+      className={cn(
+        "grid rounded-md",
+        editing && question && "bg-accent/40 dark:bg-accent/20"
+      )}
+      data-form-setting-question={column.id}
+    >
+      <div className="flex min-h-9 min-w-0 items-center gap-1 px-1">
+        <GripVertical
+          aria-hidden="true"
+          className={cn(
+            "size-4 shrink-0 text-muted-foreground/60",
+            !question && "invisible"
+          )}
         />
         <label
-          className="min-w-0 flex-1 truncate pl-1 text-sm"
+          className={cn(
+            "min-w-0 flex-1 truncate py-1 text-sm",
+            !question && "text-muted-foreground"
+          )}
           htmlFor={`${id}-ask`}
         >
           {name}
@@ -201,40 +305,25 @@ function QuestionRow({
           ) : null}
         </label>
         {question ? (
-          <>
-            <Button
-              aria-label={label("moveUp", { label: name })}
-              disabled={index === 0}
-              onClick={() => onMove(-1)}
-              size="icon-sm"
-              type="button"
-              variant="ghost"
-            >
-              <ChevronUp aria-hidden="true" className="size-4" />
-            </Button>
-            <Button
-              aria-label={label("moveDown", { label: name })}
-              disabled={index === count - 1}
-              onClick={() => onMove(1)}
-              size="icon-sm"
-              type="button"
-              variant="ghost"
-            >
-              <ChevronDown aria-hidden="true" className="size-4" />
-            </Button>
-            <Button
-              aria-controls={`${id}-details`}
-              aria-expanded={editing}
-              aria-label={label("editQuestion", { label: name })}
-              onClick={() => setEditing((value) => !value)}
-              size="icon-sm"
-              type="button"
-              variant="ghost"
-            >
-              <Pencil aria-hidden="true" className="size-4" />
-            </Button>
-          </>
+          <QuestionActions
+            count={count}
+            editing={editing}
+            id={id}
+            index={index}
+            label={label}
+            name={name}
+            onEdit={() => setEditing((value) => !value)}
+            onMove={onMove}
+          />
         ) : null}
+        <Switch
+          aria-label={label("ask", { label: name })}
+          checked={Boolean(question)}
+          className="ml-1"
+          id={`${id}-ask`}
+          onCheckedChange={(next) => onAsk(next)}
+          size="sm"
+        />
       </div>
       {question && editing ? (
         <QuestionDetails
@@ -249,68 +338,40 @@ function QuestionRow({
   );
 }
 
-function HiddenValueField({
-  column,
-  label,
-  onChange,
-  value,
-}: {
-  column: FormColumn;
-  label: Label;
-  onChange: (value: FormHiddenValue | undefined) => void;
-  value: FormHiddenValue | undefined;
-}) {
-  const id = useId();
-  const options = formHiddenChoices(column);
-  const title = label("hiddenValue", { label: column.header });
-  if (options) {
-    return (
-      <div className="grid min-w-0 gap-1.5">
-        <label className="text-muted-foreground text-sm" htmlFor={id}>
-          {title}
-        </label>
-        <select
-          className={SELECT_CLASS}
-          id={id}
-          onChange={(event) =>
-            onChange(formHiddenValueFrom(column, event.target.value))
-          }
-          value={value === undefined ? "" : String(value)}
-        >
-          <option value="">{label("none")}</option>
-          {options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </div>
-    );
-  }
-  return (
-    <CommitText
-      id={id}
-      label={title}
-      onCommit={(next) => onChange(formHiddenValueFrom(column, next))}
-      value={formHiddenValueText(value)}
-    />
-  );
-}
-
 function SettingsSection({
   children,
   title,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   title: string;
 }) {
   return (
-    <section className="grid gap-2">
-      <h3 className="font-medium text-sm">{title}</h3>
+    <section className="grid min-w-0 gap-2">
+      <SettingsHeading>{title}</SettingsHeading>
       {children}
     </section>
   );
 }
+
+/** A fixed value chosen from the column's options, as a settings select. */
+const choiceField = (
+  column: FormColumn,
+  label: Label,
+  value: FormHiddenValue | undefined,
+  onChange: (value: FormHiddenValue | undefined) => void
+): ViewSettingField | undefined => {
+  const options = formHiddenChoices(column);
+  if (!options) {
+    return;
+  }
+  return {
+    id: `hidden-${column.id}`,
+    label: label("hiddenValue", { label: column.header }),
+    value: value === undefined ? NONE : String(value),
+    options: [{ value: NONE, label: label("none") }, ...options],
+    onChange: (next) => onChange(formHiddenValueFrom(column, next)),
+  };
+};
 
 /** View → Form settings: texts, questions and their order, fixed values and the end of the form. */
 export function FormSettings({
@@ -351,9 +412,16 @@ export function FormSettings({
     update({ hiddenValues: next });
   };
   const notAsked = eligible.filter((column) => !asked.has(column.id));
+  const choiceFields = notAsked.flatMap((column) => {
+    const field = choiceField(column, label, hiddenValues[column.id], (value) =>
+      setHidden(column.id, value)
+    );
+    return field ? [field] : [];
+  });
+  const typedFixed = notAsked.filter((column) => !formHiddenChoices(column));
 
-  return (
-    <div className="grid min-w-0 gap-4" data-form-settings>
+  const intro = (
+    <>
       <SettingsSection title={label("settings")}>
         <CommitText
           id={`${id}-title`}
@@ -370,7 +438,7 @@ export function FormSettings({
         />
       </SettingsSection>
       <SettingsSection title={label("questions")}>
-        <ul className="grid gap-2">
+        <ul className="-mx-1 grid gap-0.5">
           {rows.map(({ column, index, question }) => (
             <QuestionRow
               column={column}
@@ -402,69 +470,72 @@ export function FormSettings({
         ) : null}
       </SettingsSection>
       {notAsked.length ? (
-        <SettingsSection title={label("hidden")}>
+        <div className="grid gap-1">
+          <SettingsHeading>{label("hidden")}</SettingsHeading>
           <p className="text-muted-foreground text-xs">{label("hiddenHint")}</p>
-          {notAsked.map((column) => (
-            <HiddenValueField
-              column={column}
-              key={column.id}
-              label={label}
-              onChange={(value) => setHidden(column.id, value)}
-              value={hiddenValues[column.id]}
-            />
-          ))}
-        </SettingsSection>
+        </div>
       ) : null}
-      <SettingsSection title={label("afterSubmit")}>
-        <CommitText
-          id={`${id}-submit`}
-          label={label("submitLabel")}
-          onCommit={(submitLabel) => update({ submitLabel })}
-          value={merged.submitLabel ?? ""}
-        />
-        <CommitText
-          id={`${id}-success`}
-          label={label("successMessage")}
-          multiline
-          onCommit={(successMessage) => update({ successMessage })}
-          value={merged.successMessage ?? ""}
-        />
-        <label
-          className="flex min-h-8 items-center gap-2 text-sm"
-          htmlFor={`${id}-another`}
-        >
-          <input
-            checked={merged.allowAnotherResponse !== false}
-            className={CHECK_CLASS}
-            id={`${id}-another`}
-            onChange={(event) =>
-              update({ allowAnotherResponse: event.target.checked })
+    </>
+  );
+
+  return (
+    <div className="grid min-w-0" data-form-settings>
+      <ViewSettingsPanel fields={choiceFields} intro={intro}>
+        {typedFixed.map((column) => (
+          <CommitText
+            id={`${id}-hidden-${column.id}`}
+            key={column.id}
+            label={label("hiddenValue", { label: column.header })}
+            onCommit={(next) =>
+              setHidden(column.id, formHiddenValueFrom(column, next))
             }
-            type="checkbox"
+            value={formHiddenValueText(hiddenValues[column.id])}
           />
-          {label("allowAnother")}
-        </label>
-        <CommitText
-          id={`${id}-redirect`}
-          label={label("redirectUrl")}
-          onCommit={(redirectUrl) => update({ redirectUrl })}
-          type="url"
-          value={merged.redirectUrl ?? ""}
-        />
-        <p className="text-muted-foreground text-xs">
-          {label("redirectHint")}
-        </p>
-      </SettingsSection>
-      <Button
-        className="font-normal"
-        disabled={Object.keys(view).length === 0}
-        onClick={() => context.updateSettings(undefined)}
-        size="sm"
-        type="button"
-        variant="outline"
-      >
-        {label("reset")}
-      </Button>
+        ))}
+        <SettingsSection title={label("afterSubmit")}>
+          <CommitText
+            id={`${id}-submit`}
+            label={label("submitLabel")}
+            onCommit={(submitLabel) => update({ submitLabel })}
+            value={merged.submitLabel ?? ""}
+          />
+          <CommitText
+            id={`${id}-success`}
+            label={label("successMessage")}
+            multiline
+            onCommit={(successMessage) => update({ successMessage })}
+            value={merged.successMessage ?? ""}
+          />
+          <SwitchSetting
+            checked={merged.allowAnotherResponse !== false}
+            id={`${id}-another`}
+            label={label("allowAnother")}
+            onChange={(allowAnotherResponse) =>
+              update({ allowAnotherResponse })
+            }
+          />
+          <CommitText
+            id={`${id}-redirect`}
+            label={label("redirectUrl")}
+            onCommit={(redirectUrl) => update({ redirectUrl })}
+            type="url"
+            value={merged.redirectUrl ?? ""}
+          />
+          <p className="text-muted-foreground text-xs">
+            {label("redirectHint")}
+          </p>
+        </SettingsSection>
+        <Button
+          className="font-normal"
+          disabled={Object.keys(view).length === 0}
+          onClick={() => context.updateSettings(undefined)}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          {label("reset")}
+        </Button>
+      </ViewSettingsPanel>
     </div>
   );
 }

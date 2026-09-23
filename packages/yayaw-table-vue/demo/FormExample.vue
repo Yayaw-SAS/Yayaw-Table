@@ -43,7 +43,7 @@ const submitStandalone = (values: Record<string, unknown>) => {
           <a href="?example=views">views example</a>.
         </p>
       </header>
-      <section aria-label="Standalone form" class="form-example-card">
+      <section aria-label="Standalone form">
         <YayawTableForm :columns="viewsColumns" :form="requestFormSettings" :on-submit="submitStandalone" />
       </section>
     </template>
@@ -64,9 +64,7 @@ body:has(.form-example) {
 .form-example h1 { font-size: 1.5rem; line-height: 2rem; font-weight: 600; margin: 0 0 0.25rem; }
 .form-example-note { margin: 0; color: oklch(0.556 0 0); font-size: 14px; }
 .form-example-note a { color: inherit; }
-.form-example-card { border: 1px solid oklch(0.922 0 0); border-radius: 0.625rem; padding: 1.5rem 1rem; }
 @media (min-width: 640px) {
   .form-example { padding: 2rem 1.5rem; }
-  .form-example-card { padding: 1.5rem 2rem; }
 }
 </style>

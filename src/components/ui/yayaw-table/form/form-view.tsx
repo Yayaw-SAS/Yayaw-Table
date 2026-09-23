@@ -23,24 +23,38 @@ export function FormView({ context }: { context: DisplayModeRenderContext }) {
     () => mergeFormSettings(defaults, settings),
     [defaults, settings]
   );
+  // Tags look like the table's: its colored-tags setting applies to the form.
+  const formColumns = useMemo(
+    () =>
+      columns.map((column) => ({
+        ...column,
+        coloredTags: column.coloredTags ?? context.coloredTags,
+      })),
+    [columns, context.coloredTags]
+  );
   const snapshot = useCallback(
-    () => publicFormSnapshot(form, columns),
-    [columns, form]
+    () => publicFormSnapshot(form, formColumns),
+    [formColumns, form]
   );
   return (
-    <div className="grid gap-4 py-2" data-form-view>
+    <div className="grid min-w-0 gap-3 py-2" data-form-view>
       {formLinks ? (
-        <FormShare
-          formLinks={formLinks}
-          locale={locale}
-          snapshot={snapshot}
-          translate={translate}
-          viewId={context.viewId}
-        />
+        <div
+          className="flex min-h-8 items-center justify-end gap-2"
+          data-form-toolbar
+        >
+          <FormShare
+            formLinks={formLinks}
+            locale={locale}
+            snapshot={snapshot}
+            translate={translate}
+            viewId={context.viewId}
+          />
+        </div>
       ) : null}
-      <div className="rounded-lg border bg-background px-4 py-6 sm:px-8">
+      <div className="rounded-lg bg-muted/40 px-3 py-6 sm:px-6 sm:py-10 dark:bg-muted/20">
         <YayawTableForm
-          columns={columns}
+          columns={formColumns}
           form={form}
           locale={locale}
           onSubmit={(values) => createRecord(values)}

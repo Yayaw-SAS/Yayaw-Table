@@ -15,27 +15,35 @@ const props = defineProps<{ context: DisplayModeRenderContext }>();
 const columns = computed(
   () => props.context.columns as unknown as readonly FormColumn[]
 );
+// Tags look like the table's: its colored-tags setting applies to the form.
+const formColumns = computed(() =>
+  columns.value.map((column) => ({
+    ...column,
+    coloredTags: column.coloredTags ?? props.context.coloredTags,
+  }))
+);
 const form = computed(() =>
   mergeFormSettings(props.context.defaults, props.context.settings)
 );
 const translate = (key: FormLabelKey, fallback: string): string =>
   props.context.translate(`form.${key}`, fallback);
-const snapshot = () => publicFormSnapshot(form.value, columns.value);
+const snapshot = () => publicFormSnapshot(form.value, formColumns.value);
 </script>
 
 <template>
   <div class="yayaw-form-view" data-form-view>
-    <FormShare
-      v-if="context.formLinks"
-      :form-links="context.formLinks"
-      :view-id="context.viewId"
-      :snapshot="snapshot"
-      :locale="context.locale"
-      :translate="translate"
-    />
-    <div class="yayaw-form-card">
+    <div v-if="context.formLinks" class="yayaw-form-toolbar" data-form-toolbar>
+      <FormShare
+        :form-links="context.formLinks"
+        :view-id="context.viewId"
+        :snapshot="snapshot"
+        :locale="context.locale"
+        :translate="translate"
+      />
+    </div>
+    <div class="yayaw-form-canvas">
       <YayawTableForm
-        :columns="columns"
+        :columns="formColumns"
         :form="form"
         :locale="context.locale"
         :translate="translate"

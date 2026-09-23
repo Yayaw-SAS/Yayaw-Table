@@ -1,39 +1,69 @@
 "use client";
 
-import type { ChangeEvent, ReactNode } from "react";
-import { cn } from "@/lib/utils";
+import { type ReactNode, useState } from "react";
+import { Badge } from "@/src/components/ui/badge";
+import { Checkbox } from "@/src/components/ui/checkbox";
+import {
+  Field,
+  FieldDescription,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from "@/src/components/ui/field";
 import { Input } from "@/src/components/ui/input";
+import {
+  Select,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/src/components/ui/select";
+import { Switch } from "@/src/components/ui/switch";
 import { Textarea } from "@/src/components/ui/textarea";
-import type {
-  FormDraft,
-  FormEditor,
-  ResolvedFormQuestion,
+import { FormSelectContent } from "../components/forms/fields/form-select-content";
+import {
+  type FormDraft,
+  type FormOption,
+  formNumberDisplay,
+  type ResolvedFormQuestion,
 } from "../utils/form-view";
+import { tagAppearance } from "../utils/tag-colors";
+import "../utils/tag-colors.css";
+import { FormDateField } from "./form-date-field";
 
 type Answer = FormDraft[string];
 
+/** Texts a question shows besides its own. */
+export interface FormQuestionLabels {
+  /** Placeholder of an empty select. */
+  choose: string;
+  /** Placeholder of an empty date. */
+  pickDate: string;
+  /** Removes the picked date. */
+  clearDate: string;
+}
+
 export interface FormQuestionFieldProps {
   question: ResolvedFormQuestion;
-  /** Id of the question's first control; the form focuses it on errors. */
+  /** Id of the question's control; its label points at it. */
   inputId: string;
   value: Answer | undefined;
   error?: string;
   disabled?: boolean;
-  /** Placeholder of the empty select option. */
-  chooseLabel: string;
+  /** Language of dates and numbers. */
+  locale: string;
+  labels: FormQuestionLabels;
   onChange: (value: Answer) => void;
 }
 
-const INPUT_TYPES: Partial<Record<FormEditor, string>> = {
-  date: "date",
-  number: "text",
-  text: "text",
-  url: "url",
-};
+/** What every control of a question carries for assistive technologies. */
+interface ControlProps extends FormQuestionFieldProps {
+  describedBy?: string;
+  labelId: string;
+}
 
-const SELECT_CLASS =
-  "h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-2.5 py-1 text-base shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm dark:bg-input/30";
-const CHECK_CLASS = "size-4 shrink-0 accent-primary";
+/** An invalid question turns its label red, not the answer typed in it. */
+const KEEP_CONTROL_TEXT =
+  "min-w-0 [&_:is(input,textarea,button)]:text-foreground";
 
 const describedBy = (ids: (string | false | undefined)[]) =>
   ids.filter(Boolean).join(" ") || undefined;
@@ -41,247 +71,378 @@ const describedBy = (ids: (string | false | undefined)[]) =>
 const text = (value: Answer | undefined) =>
   typeof value === "string" ? value : "";
 
-function Choices({
-  error,
-  inputId,
-  onChange,
+/** An option as the table shows it: a tag for tag columns, plain text otherwise. */
+function OptionLabel({
+  option,
   question,
-  value,
-  disabled,
-  describedById,
-}: FormQuestionFieldProps & { describedById?: string }) {
-  const selected = Array.isArray(value) ? value : [];
+}: {
+  option: FormOption;
+  question: ResolvedFormQuestion;
+}) {
+  if (!question.tags) {
+    return <span className="truncate">{option.label}</span>;
+  }
+  const appearance = tagAppearance(
+    String(option.value),
+    question.coloredTags
+  );
   return (
-    <div className="grid gap-2">
-      {question.options.map((option, index) => {
-        const key = String(option.value);
-        const id = index === 0 ? inputId : `${inputId}-${index}`;
-        return (
-          <label className="flex min-h-9 items-center gap-2 text-sm" htmlFor={id} key={key}>
-            <input
-              aria-describedby={describedById}
-              aria-invalid={error ? true : undefined}
-              checked={selected.includes(key)}
-              className={CHECK_CLASS}
-              disabled={disabled}
-              id={id}
-              onChange={(event) =>
-                onChange(
-                  event.target.checked
-                    ? [...selected, key]
-                    : selected.filter((item) => item !== key)
-                )
-              }
-              type="checkbox"
-            />
-            <span>{option.label}</span>
-          </label>
-        );
-      })}
-    </div>
+    <Badge
+      className="yayaw-tag inline-flex items-center rounded-md px-2 py-0.5 text-xs"
+      data-colored={appearance.colored}
+      style={appearance.style}
+    >
+      {option.label}
+    </Badge>
   );
 }
 
-function Control({
-  describedById,
-  ...props
-}: FormQuestionFieldProps & { describedById?: string }) {
-  const { chooseLabel, disabled, error, inputId, onChange, question, value } =
-    props;
+function RequiredMark({ required }: { required: boolean }) {
+  return required ? (
+    <span aria-hidden="true" className="-ml-1 text-destructive">
+      *
+    </span>
+  ) : null;
+}
+
+function SelectControl({
+  describedBy: description,
+  disabled,
+  error,
+  inputId,
+  labelId,
+  labels,
+  onChange,
+  question,
+  value,
+}: ControlProps) {
+  const current = text(value);
+  const byValue = new Map(
+    question.options.map((option) => [String(option.value), option])
+  );
+  return (
+    <Select
+      disabled={disabled}
+      items={question.options.map((option) => ({
+        label: option.label,
+        value: String(option.value),
+      }))}
+      onValueChange={(next) => onChange(typeof next === "string" ? next : "")}
+      value={current || null}
+    >
+      <SelectTrigger
+        aria-describedby={description}
+        aria-invalid={error ? true : undefined}
+        aria-labelledby={labelId}
+        aria-required={question.required || undefined}
+        className="w-full min-w-0"
+        data-form-focus
+        id={inputId}
+      >
+        <SelectValue>
+          {(selected: string | null) => {
+            const option = selected ? byValue.get(selected) : undefined;
+            return option ? (
+              <OptionLabel option={option} question={question} />
+            ) : (
+              <span className="text-muted-foreground">
+                {question.placeholder ?? labels.choose}
+              </span>
+            );
+          }}
+        </SelectValue>
+      </SelectTrigger>
+      <FormSelectContent alignItemWithTrigger={false}>
+        {question.options.map((option) => (
+          <SelectItem key={String(option.value)} value={String(option.value)}>
+            <OptionLabel option={option} question={question} />
+          </SelectItem>
+        ))}
+      </FormSelectContent>
+    </Select>
+  );
+}
+
+/** Numbers are typed plainly and shown with the column's number format. */
+function NumberControl({
+  describedBy: description,
+  disabled,
+  error,
+  inputId,
+  locale,
+  onChange,
+  question,
+  value,
+}: ControlProps) {
+  const [editing, setEditing] = useState(false);
+  const raw = text(value);
+  const shown = editing
+    ? raw
+    : (formNumberDisplay(raw, question.numberFormat, locale) ?? raw);
+  return (
+    <Input
+      aria-describedby={description}
+      aria-invalid={error ? true : undefined}
+      autoComplete="off"
+      className="tabular-nums"
+      data-form-focus
+      disabled={disabled}
+      id={inputId}
+      inputMode="decimal"
+      onBlur={() => setEditing(false)}
+      onChange={(event) => onChange(event.target.value)}
+      onFocus={() => setEditing(true)}
+      placeholder={question.placeholder}
+      required={question.required}
+      value={shown}
+    />
+  );
+}
+
+function Control(props: ControlProps) {
+  const {
+    describedBy: description,
+    disabled,
+    error,
+    inputId,
+    labelId,
+    labels,
+    locale,
+    onChange,
+    question,
+    value,
+  } = props;
   const common = {
-    "aria-describedby": describedById,
+    "aria-describedby": description,
     "aria-invalid": error ? true : undefined,
+    "data-form-focus": true,
     disabled,
     id: inputId,
     required: question.required,
   };
-  const onText = (
-    event: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
-  ) => onChange(event.target.value);
   switch (question.editor) {
     case "textarea":
       return (
         <Textarea
           {...common}
-          onChange={onText}
+          onChange={(event) => onChange(event.target.value)}
           placeholder={question.placeholder}
           rows={4}
           value={text(value)}
         />
       );
     case "select":
+      return <SelectControl {...props} />;
+    case "number":
+      return <NumberControl {...props} />;
+    case "date":
       return (
-        <select
-          {...common}
-          className={SELECT_CLASS}
-          onChange={onText}
+        <FormDateField
+          clearLabel={labels.clearDate}
+          describedBy={description}
+          disabled={disabled}
+          id={inputId}
+          invalid={Boolean(error)}
+          labelId={labelId}
+          locale={locale}
+          onChange={onChange}
+          placeholder={question.placeholder ?? labels.pickDate}
+          required={question.required}
           value={text(value)}
-        >
-          <option value="">{question.placeholder ?? chooseLabel}</option>
-          {question.options.map((option) => (
-            <option key={String(option.value)} value={String(option.value)}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+        />
       );
-    case "multiSelect":
-      return <Choices {...props} describedById={describedById} />;
-    case "boolean":
-      return null;
     default:
       return (
         <Input
           {...common}
           autoComplete="off"
-          inputMode={question.editor === "number" ? "decimal" : undefined}
-          onChange={onText}
+          inputMode={question.editor === "url" ? "url" : undefined}
+          onChange={(event) => onChange(event.target.value)}
           placeholder={question.placeholder}
-          type={INPUT_TYPES[question.editor] ?? "text"}
+          type={question.editor === "url" ? "url" : "text"}
           value={text(value)}
         />
       );
   }
 }
 
-function RequiredMark({ required }: { required: boolean }) {
-  return required ? (
-    <span aria-hidden="true" className="ml-0.5 text-destructive">
-      *
-    </span>
+function QuestionError({ error, id }: { error?: string; id: string }) {
+  // FieldError's look; the error summary is the only live alert, each error
+  // is read with its question.
+  return error ? (
+    <p
+      className="font-normal text-destructive text-sm"
+      data-slot="field-error"
+      id={id}
+    >
+      {error}
+    </p>
   ) : null;
 }
 
-function QuestionFrame({
-  children,
-  error,
-  errorId,
-  help,
-  helpId,
-  label,
-  question,
-}: {
-  children: ReactNode;
-  error?: string;
-  errorId: string;
-  help?: string;
-  helpId: string;
-  /** Shown first, with the help text right under it. */
-  label?: ReactNode;
-  question: ResolvedFormQuestion;
-}) {
-  const helpText = help ? (
-    <p className="text-muted-foreground text-sm" id={helpId}>
-      {help}
-    </p>
-  ) : null;
+function Choices(props: ControlProps) {
+  const {
+    describedBy: description,
+    disabled,
+    error,
+    inputId,
+    onChange,
+    question,
+    value,
+  } = props;
+  const selected = Array.isArray(value) ? value : [];
   return (
-    <div
-      className="grid gap-1.5"
+    <div className="grid gap-2 rounded-md border p-3">
+      {question.options.map((option, index) => {
+        const key = String(option.value);
+        const id = index === 0 ? inputId : `${inputId}-${index}`;
+        return (
+          <div className="flex min-h-6 items-center gap-2" key={key}>
+            <Checkbox
+              aria-describedby={description}
+              aria-invalid={error ? true : undefined}
+              aria-labelledby={`${id}-label`}
+              checked={selected.includes(key)}
+              data-form-focus={index === 0 ? true : undefined}
+              disabled={disabled}
+              id={id}
+              onCheckedChange={(checked) =>
+                onChange(
+                  checked
+                    ? [...selected, key]
+                    : selected.filter((item) => item !== key)
+                )
+              }
+            />
+            <FieldLabel className="font-normal" htmlFor={id} id={`${id}-label`}>
+              <OptionLabel option={option} question={question} />
+            </FieldLabel>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function BooleanQuestion(props: ControlProps & { errorId: string; helpId: string }) {
+  const {
+    describedBy: description,
+    disabled,
+    error,
+    errorId,
+    helpId,
+    inputId,
+    labelId,
+    onChange,
+    question,
+    value,
+  } = props;
+  return (
+    <Field
       data-form-question={question.id}
       data-invalid={error ? true : undefined}
     >
-      {label}
-      {label ? helpText : null}
+      <div className="flex items-center justify-between gap-3 rounded-lg border p-3 shadow-xs">
+        <div className="grid min-w-0 gap-1">
+          <FieldLabel htmlFor={inputId} id={labelId}>
+            {question.label}
+            <RequiredMark required={question.required} />
+          </FieldLabel>
+          {question.help ? (
+            <FieldDescription id={helpId}>{question.help}</FieldDescription>
+          ) : null}
+        </div>
+        <Switch
+          aria-describedby={description}
+          aria-invalid={error ? true : undefined}
+          aria-labelledby={labelId}
+          checked={value === true}
+          data-form-focus
+          disabled={disabled}
+          id={inputId}
+          onCheckedChange={(checked) => onChange(checked)}
+        />
+      </div>
+      <QuestionError error={error} id={errorId} />
+    </Field>
+  );
+}
+
+function QuestionHeader({
+  children,
+  help,
+  helpId,
+}: {
+  children: ReactNode;
+  help?: string;
+  helpId: string;
+}) {
+  return (
+    <div className="grid gap-1">
       {children}
-      {label ? null : helpText}
-      {error ? (
-        <p className="font-medium text-destructive text-sm" id={errorId}>
-          {error}
-        </p>
-      ) : null}
+      {help ? <FieldDescription id={helpId}>{help}</FieldDescription> : null}
     </div>
   );
 }
 
 /**
- * One question: its label, input, help text and error. Rendered on its own
- * so a step-by-step layout can show questions one at a time.
+ * One question: its label, control, help text and error, with the table's
+ * form controls. Rendered on its own so a step-by-step layout can show
+ * questions one at a time.
  */
 export function FormQuestionField(props: FormQuestionFieldProps) {
-  const { disabled, error, inputId, onChange, question, value } = props;
+  const { error, inputId, question } = props;
   const helpId = `${inputId}-help`;
   const errorId = `${inputId}-error`;
-  const describedById = describedBy([
-    question.help && helpId,
-    error && errorId,
-  ]);
+  const labelId = `${inputId}-label`;
+  const control: ControlProps = {
+    ...props,
+    describedBy: describedBy([question.help && helpId, error && errorId]),
+    labelId,
+  };
   if (question.editor === "boolean") {
-    return (
-      <QuestionFrame
-        error={error}
-        errorId={errorId}
-        help={question.help}
-        helpId={helpId}
-        question={question}
-      >
-        <label className="flex min-h-9 items-center gap-2 font-medium text-sm" htmlFor={inputId}>
-          <input
-            aria-describedby={describedById}
-            aria-invalid={error ? true : undefined}
-            checked={value === true}
-            className={CHECK_CLASS}
-            disabled={disabled}
-            id={inputId}
-            onChange={(event) => onChange(event.target.checked)}
-            required={question.required}
-            type="checkbox"
-          />
-          <span>
-            {question.label}
-            <RequiredMark required={question.required} />
-          </span>
-        </label>
-      </QuestionFrame>
-    );
+    return <BooleanQuestion {...control} errorId={errorId} helpId={helpId} />;
   }
   if (question.editor === "multiSelect") {
     return (
-      <fieldset
-        aria-describedby={describedById}
-        className={cn("grid min-w-0 gap-1.5 border-0 p-0")}
+      <FieldSet
+        aria-describedby={control.describedBy}
+        className="min-w-0 gap-3"
         data-form-question={question.id}
         data-invalid={error ? true : undefined}
       >
-        <legend className="mb-1.5 font-medium text-sm">
+        <FieldLegend
+          className="mb-0 flex items-center gap-2"
+          id={labelId}
+          variant="label"
+        >
           {question.label}
           <RequiredMark required={question.required} />
-        </legend>
+        </FieldLegend>
         {question.help ? (
-          <p className="text-muted-foreground text-sm" id={helpId}>
+          <FieldDescription className="-mt-2" id={helpId}>
             {question.help}
-          </p>
+          </FieldDescription>
         ) : null}
-        <Control {...props} describedById={describedById} />
-        {error ? (
-          <p className="font-medium text-destructive text-sm" id={errorId}>
-            {error}
-          </p>
-        ) : null}
-      </fieldset>
+        <Choices {...control} />
+        <QuestionError error={error} id={errorId} />
+      </FieldSet>
     );
   }
   return (
-    <QuestionFrame
-      error={error}
-      errorId={errorId}
-      help={question.help}
-      helpId={helpId}
-      label={
-        <label className="font-medium text-sm" htmlFor={inputId}>
+    <Field
+      className={KEEP_CONTROL_TEXT}
+      data-form-question={question.id}
+      data-invalid={error ? true : undefined}
+    >
+      <QuestionHeader help={question.help} helpId={helpId}>
+        <FieldLabel htmlFor={inputId} id={labelId}>
           {question.label}
           <RequiredMark required={question.required} />
-        </label>
-      }
-      question={question}
-    >
-      <Control
-        {...props}
-        describedById={describedById}
-        disabled={disabled}
-        onChange={onChange}
-        value={value}
-      />
-    </QuestionFrame>
+        </FieldLabel>
+      </QuestionHeader>
+      <Control {...control} />
+      <QuestionError error={error} id={errorId} />
+    </Field>
   );
 }

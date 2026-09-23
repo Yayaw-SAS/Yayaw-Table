@@ -1,6 +1,16 @@
 <script setup lang="ts">
-import { ExternalLink, Link2 } from "lucide-vue-next";
-import { computed, ref, useId, watch } from "vue";
+import { Check, Copy, ExternalLink, Globe, Link2 } from "lucide-vue-next";
+import { SwitchRoot, SwitchThumb } from "reka-ui";
+import {
+  computed,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  useId,
+  watch,
+} from "vue";
+import TableTooltip from "../components/toolbar/TableTooltip.vue";
+import ToolbarMenu from "../components/toolbar/ToolbarMenu.vue";
 import {
   type FormLabelKey,
   type FormLinkActions,
@@ -11,9 +21,10 @@ import {
 } from "../form-view";
 
 /**
- * "Share form": publish the view's form on a public link served by the host.
- * Republishing is explicit: edits reach the link with "Update public form",
- * so unsaved experiments never go live by accident.
+ * "Share form": a button of the form's header bar opening the publishing
+ * controls (a drawer on phones, like the Data menu). Republishing is explicit:
+ * edits reach the link with "Update public form", so unsaved experiments
+ * never go live by accident.
  */
 const props = defineProps<{
   formLinks: FormLinkActions;
@@ -32,6 +43,24 @@ const busy = ref(false);
 const loading = ref(false);
 const failed = ref(false);
 const copied = ref(false);
+const COPIED_MS = 2000;
+let copiedTimer: ReturnType<typeof setTimeout> | undefined;
+
+// Phones get the drawer, as the table's menus do.
+const compact = ref(false);
+let media: MediaQueryList | undefined;
+const updateCompact = (): void => {
+  compact.value = media?.matches ?? false;
+};
+onMounted(() => {
+  media = window.matchMedia?.("(max-width: 767px)");
+  updateCompact();
+  media?.addEventListener?.("change", updateCompact);
+});
+onBeforeUnmount(() => {
+  media?.removeEventListener?.("change", updateCompact);
+  clearTimeout(copiedTimer);
+});
 const status = ref<FormLinkStatus | null>(null);
 const published = computed(() =>
   Boolean(status.value?.published && status.value.url)
@@ -95,13 +124,18 @@ const setAccepting = (viewId: string, next: boolean) =>
     await props.formLinks.setAcceptingResponses?.(viewId, next);
     return { published: true, ...status.value, acceptsResponses: next };
   });
-const togglePublished = (viewId: string, event: Event) =>
-  (event.target as HTMLInputElement).checked ? publish(viewId) : unpublish(viewId);
+const togglePublished = (viewId: string, checked: boolean) =>
+  checked ? publish(viewId) : unpublish(viewId);
+const copyLabel = computed(() => (copied.value ? label("copied") : label("copy")));
 const copy = async () => {
   if (!status.value?.url) return;
   try {
     await navigator.clipboard.writeText(status.value.url);
     copied.value = true;
+    clearTimeout(copiedTimer);
+    copiedTimer = setTimeout(() => {
+      copied.value = false;
+    }, COPIED_MS);
   } catch {
     copied.value = false;
   }
@@ -109,68 +143,91 @@ const copy = async () => {
 </script>
 
 <template>
-  <section class="yayaw-form-share" :aria-label="label('share')" data-form-share>
-    <div class="yayaw-form-share-bar">
+  <ToolbarMenu
+    :open="open"
+    :compact="compact"
+    :title="label('share')"
+    :close-label="label('close')"
+    align="end"
+    @update:open="open = $event"
+  >
+    <template #trigger>
       <button
         type="button"
-        class="yayaw-button yayaw-button-outline"
-        :aria-expanded="open"
-        :aria-controls="`${id}-panel`"
-        @click="open = !open"
+        class="yayaw-button yayaw-button-outline yayaw-form-share-trigger"
+        data-form-share
       >
         <Link2 :size="16" aria-hidden="true" />{{ label("share") }}
       </button>
-    </div>
-    <div v-if="open" :id="`${id}-panel`" class="yayaw-form-share-panel">
+    </template>
+    <div class="yayaw-form-share-panel" data-form-share-panel>
       <template v-if="viewId">
-        <label class="yayaw-form-check" :for="`${id}-publish`">
-          <input
+        <div class="yayaw-form-switch-setting">
+          <span class="yayaw-form-share-icon"><Globe :size="16" aria-hidden="true" /></span>
+          <div class="yayaw-form-switch-text">
+            <label :id="`${id}-publish-label`" class="yayaw-form-switch-label" :for="`${id}-publish`">{{ label("publish") }}</label>
+            <p :id="`${id}-publish-hint`" class="yayaw-form-settings-note">{{ label("publishHint") }}</p>
+          </div>
+          <SwitchRoot
             :id="`${id}-publish`"
-            type="checkbox"
-            role="switch"
-            :aria-checked="published"
-            :checked="published"
+            class="yayaw-switch-root"
+            :model-value="published"
             :disabled="busy || loading"
-            @change="togglePublished(viewId, $event)"
-          />
-          <span>{{ label("publish") }}</span>
-        </label>
-        <div v-if="published && status?.url" class="yayaw-form-share-panel">
-          <div class="yayaw-form-question">
-            <label class="yayaw-form-label" :for="`${id}-url`">{{ label("publicLink") }}</label>
+            :aria-labelledby="`${id}-publish-label`"
+            :aria-describedby="`${id}-publish-hint`"
+            @update:model-value="togglePublished(viewId, $event === true)"
+          >
+            <SwitchThumb class="yayaw-switch-thumb" />
+          </SwitchRoot>
+        </div>
+        <template v-if="published && status?.url">
+          <div class="yayaw-form-share-field">
+            <label class="yayaw-form-settings-note" :for="`${id}-url`">{{ label("publicLink") }}</label>
             <div class="yayaw-form-share-link">
-              <input :id="`${id}-url`" class="yayaw-input" readonly :value="status.url" />
-              <button type="button" class="yayaw-button yayaw-button-outline" @click="copy">
-                {{ copied ? label("copied") : label("copy") }}
-              </button>
-              <a class="yayaw-button yayaw-button-outline" :href="status.url" target="_blank" rel="noopener">
-                <ExternalLink :size="16" aria-hidden="true" />{{ label("open") }}
-              </a>
+              <input :id="`${id}-url`" class="yayaw-input" readonly :value="status.url" @focus="($event.target as HTMLInputElement).select()" />
+              <TableTooltip :label="copyLabel">
+                <button type="button" class="yayaw-button yayaw-button-outline yayaw-icon-only" :aria-label="copyLabel" @click="copy">
+                  <Check v-if="copied" :size="16" aria-hidden="true" />
+                  <Copy v-else :size="16" aria-hidden="true" />
+                </button>
+              </TableTooltip>
+              <TableTooltip :label="label('open')">
+                <a class="yayaw-button yayaw-button-outline yayaw-icon-only" :aria-label="label('open')" :href="status.url" target="_blank" rel="noopener">
+                  <ExternalLink :size="16" aria-hidden="true" />
+                </a>
+              </TableTooltip>
             </div>
           </div>
-          <label v-if="formLinks.setAcceptingResponses" class="yayaw-form-check" :for="`${id}-accept`">
-            <input
+          <div v-if="formLinks.setAcceptingResponses" class="yayaw-form-switch-setting">
+            <label :id="`${id}-accept-label`" class="yayaw-form-switch-label" :for="`${id}-accept`">{{ label("acceptResponses") }}</label>
+            <SwitchRoot
               :id="`${id}-accept`"
-              type="checkbox"
-              role="switch"
-              :aria-checked="accepting"
-              :checked="accepting"
+              class="yayaw-switch-root"
+              :model-value="accepting"
               :disabled="busy"
-              @change="setAccepting(viewId, ($event.target as HTMLInputElement).checked)"
-            />
-            <span>{{ label("acceptResponses") }}</span>
-          </label>
-          <div class="yayaw-form-share-bar">
-            <button type="button" class="yayaw-button yayaw-button-outline" :disabled="busy" @click="publish(viewId)">
+              :aria-labelledby="`${id}-accept-label`"
+              @update:model-value="setAccepting(viewId, $event === true)"
+            >
+              <SwitchThumb class="yayaw-switch-thumb" />
+            </SwitchRoot>
+          </div>
+          <div class="yayaw-form-share-update">
+            <button
+              type="button"
+              class="yayaw-button yayaw-button-outline"
+              :disabled="busy"
+              :aria-describedby="`${id}-republish-hint`"
+              @click="publish(viewId)"
+            >
               {{ label("republish") }}
             </button>
-            <p class="yayaw-form-help">{{ label("republishHint") }}</p>
+            <p :id="`${id}-republish-hint`" class="yayaw-form-settings-note">{{ label("republishHint") }}</p>
           </div>
-        </div>
+        </template>
       </template>
       <p v-else class="yayaw-form-help">{{ label("saveFirst") }}</p>
       <p v-if="failed" class="yayaw-form-error" role="alert">{{ label("shareError") }}</p>
       <output v-if="copied" class="yayaw-sr-only">{{ label("copied") }}</output>
     </div>
-  </section>
+  </ToolbarMenu>
 </template>

@@ -10,6 +10,7 @@ const PUBLIC_LINK = /\?example=form&form=request$/;
 const SUCCESS = "Thank you, your response has been recorded.";
 const REQUEST_SUCCESS = "Thank you! Your request is in the Draft column.";
 const CLOSED = "This form is no longer accepting responses.";
+const WANTED_BY = /^Wanted by/;
 
 const chooseMode = async (page: Page, mode: RegExp) => {
   await page.getByRole("button", { name: SETTINGS }).click();
@@ -25,6 +26,15 @@ const questionIds = (page: Page) =>
     .evaluateAll((items) =>
       items.map((item) => item.getAttribute("data-form-question"))
     );
+
+/** Selects are the table's own listboxes, not native selects. */
+const choose = async (page: Page, question: string, option: string) => {
+  await page.getByRole("combobox", { name: question }).click();
+  await page.getByRole("option", { name: option }).click();
+  await expect(page.getByRole("combobox", { name: question })).toContainText(
+    option
+  );
+};
 
 const openShare = async (page: Page) => {
   await page.getByRole("tab", { name: "Request" }).click();
@@ -51,11 +61,11 @@ test("a form view asks the chosen questions and creates the record", async ({
   const menu = await chooseMode(page, FORM_MODE);
   await menu.getByRole("button", { name: FORM_SETTINGS }).click();
   for (const column of ["Category", "Status", "Progress", "Due"]) {
-    await page.getByRole("checkbox", { name: `Ask ${column}` }).uncheck();
+    await page.getByRole("switch", { name: `Ask ${column}` }).uncheck();
   }
   await page.getByRole("button", { name: "Move Price up" }).click();
   await page.getByRole("button", { name: "Edit Price" }).click();
-  await page.getByRole("checkbox", { name: "Required" }).check();
+  await page.getByRole("switch", { name: "Required" }).check();
   const help = page.getByRole("textbox", { name: "Help text" });
   await help.fill("Budget in euros");
   await help.press("Tab");
@@ -77,6 +87,9 @@ test("a form view asks the chosen questions and creates the record", async ({
   await expect(form.getByRole("alert")).toHaveText("1 answer needs attention.");
 
   await price.fill("250");
+  // Typed plainly, shown with the column's number format once left.
+  await form.getByRole("textbox", { name: "Name" }).focus();
+  await expect(price).toHaveValue("€250.00");
   await form.getByRole("button", { name: "Submit" }).click();
   await expect(page.getByText(SUCCESS)).toBeVisible();
   await expect(
@@ -108,9 +121,7 @@ test("a published form takes public responses into the table", async ({
   await publicPage
     .getByRole("textbox", { name: "Project name" })
     .fill("Public request");
-  await publicPage
-    .getByRole("combobox", { name: "Category" })
-    .selectOption("Service");
+  await choose(publicPage, "Category", "Service");
   await publicPage.getByRole("button", { name: "Send request" }).click();
   await expect(publicPage.getByText(REQUEST_SUCCESS)).toBeVisible();
 
@@ -160,9 +171,19 @@ test("the standalone form works without a table", async ({ page }) => {
   await form
     .getByRole("textbox", { name: "Project name" })
     .fill("Standalone request");
-  await form
-    .getByRole("combobox", { name: "Category" })
-    .selectOption("Hardware");
+  await choose(page, "Category", "Hardware");
+  // The date picker shows this month; the date reads in the form's language.
+  const today = new Date();
+  const wanted = form.getByRole("button", { name: WANTED_BY });
+  await wanted.click();
+  await page
+    .getByRole("button", {
+      name: new Intl.DateTimeFormat("en", { dateStyle: "full" }).format(today),
+    })
+    .click();
+  await expect(wanted).toContainText(
+    new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(today)
+  );
   await form.getByRole("button", { name: "Send request" }).click();
   await expect(form.getByText(REQUEST_SUCCESS)).toBeVisible();
 

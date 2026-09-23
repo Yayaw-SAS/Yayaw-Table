@@ -914,6 +914,11 @@
           "target": "components/ui/yayaw-table/config/index.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/form/form-date-field.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/form/form-date-field.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/form/form-question.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/form/form-question.tsx"

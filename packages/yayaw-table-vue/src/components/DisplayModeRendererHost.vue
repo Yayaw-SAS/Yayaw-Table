@@ -91,6 +91,7 @@ const renderContext = computed<DisplayModeRenderContext>(() => ({
   createRecord,
   viewId: context.state.activeViewId.value ?? null,
   formLinks: context.actions.value?.formLinks,
+  coloredTags: context.config.table.coloredTags !== false,
   revision: revision.value,
 }));
 </script>

@@ -69,6 +69,7 @@ const item = {
   description:
     "Full-featured Vue 3 data table with filters, URL state, saved views, CRUD forms, bulk actions, inline editing, Kanban, Gallery, and CSV export.",
   dependencies: [
+    "@internationalized/date@^3.5.0",
     "@tanstack/vue-query@^5.90.0",
     "@tanstack/vue-table@9.2.4",
     "date-fns@^4.1.0",

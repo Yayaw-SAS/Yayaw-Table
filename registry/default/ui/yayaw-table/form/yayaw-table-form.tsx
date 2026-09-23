@@ -1,5 +1,6 @@
 "use client";
 
+import { CircleCheck, Lock } from "lucide-react";
 /**
  * Standalone form that creates a record from table columns. It needs no
  * table state, URL state or provider, so it can be mounted on a public route:
@@ -26,6 +27,14 @@ import {
   useState,
 } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { cn } from "@/lib/utils";
 import {
   type FormColumn,
@@ -92,6 +101,15 @@ const errorMessages = (
     Object.entries(codes).map(([columnId, code]) => [columnId, label(code)])
   );
 
+/** The control a question focuses (the first choice of a multi-select). */
+const questionControl = (
+  form: HTMLElement | null,
+  question: ResolvedFormQuestion
+) =>
+  form?.querySelector<HTMLElement>(
+    `[data-form-question="${CSS.escape(question.id)}"] [data-form-focus]`
+  );
+
 /** Question ids in order, for focusing the first invalid one. */
 const firstInvalid = (
   questions: readonly ResolvedFormQuestion[],
@@ -138,9 +156,11 @@ function FormHeader({
     return null;
   }
   return (
-    <header className="grid gap-1.5">
+    <header className="grid gap-1.5 border-b pb-5">
       {title ? (
-        <h2 className="font-semibold text-xl tracking-tight">{title}</h2>
+        <h2 className="font-semibold text-lg leading-tight tracking-tight">
+          {title}
+        </h2>
       ) : null}
       {description ? (
         <p className="whitespace-pre-line text-muted-foreground text-sm">
@@ -151,32 +171,29 @@ function FormHeader({
   );
 }
 
-function SuccessPanel({
-  another,
+/** The end states (sent, closed), styled like the table's empty states. */
+function FormState({
+  action,
+  icon,
   message,
-  onAnother,
+  title,
 }: {
-  another?: string;
+  action?: ReactNode;
+  icon: ReactNode;
   message: string;
-  onAnother: () => void;
+  title?: string;
 }) {
   return (
-    <div
-      className="grid gap-4 rounded-lg border bg-muted/40 p-4"
-      data-form-success
-    >
-      <output className="block text-sm">{message}</output>
-      {another ? (
-        <Button
-          className="w-full sm:w-fit"
-          onClick={onAnother}
-          type="button"
-          variant="outline"
-        >
-          {another}
-        </Button>
-      ) : null}
-    </div>
+    <Empty className="gap-5 p-0 py-6">
+      <EmptyHeader>
+        <EmptyMedia variant="icon">{icon}</EmptyMedia>
+        <output className="grid gap-2">
+          {title ? <EmptyTitle>{title}</EmptyTitle> : null}
+          <EmptyDescription>{message}</EmptyDescription>
+        </output>
+      </EmptyHeader>
+      {action ? <EmptyContent>{action}</EmptyContent> : null}
+    </Empty>
   );
 }
 
@@ -219,10 +236,10 @@ export function YayawTableForm({
     }
     const question = firstInvalid(questions, errors);
     const target = question
-      ? document.getElementById(`${id}-${question.id}`)
+      ? questionControl(formRef.current, question)
       : formRef.current?.querySelector<HTMLElement>("[data-form-message]");
     target?.focus();
-  }, [focusRequest, errors, id, questions]);
+  }, [focusRequest, errors, questions]);
 
   const fail = (next: Record<string, string>, text?: string) => {
     setErrors(next);
@@ -267,7 +284,7 @@ export function YayawTableForm({
     requestAnimationFrame(() => {
       const first = questions[0];
       if (first) {
-        document.getElementById(`${id}-${first.id}`)?.focus();
+        questionControl(formRef.current, first)?.focus();
       }
     });
   };
@@ -276,7 +293,7 @@ export function YayawTableForm({
     <FormHeader description={settings.description} title={settings.title} />
   );
   const shell = cn(
-    "mx-auto grid w-full min-w-0 max-w-2xl gap-6 text-foreground",
+    "mx-auto grid w-full min-w-0 max-w-[640px] gap-6 rounded-xl border bg-card px-5 py-6 text-card-foreground shadow-xs sm:px-8 sm:py-8",
     className
   );
 
@@ -284,9 +301,10 @@ export function YayawTableForm({
     return (
       <section className={shell} data-yayaw-form="closed">
         {header}
-        <output className="block rounded-lg border bg-muted/40 p-4 text-sm">
-          {label("closed")}
-        </output>
+        <FormState
+          icon={<Lock aria-hidden="true" />}
+          message={label("closed")}
+        />
       </section>
     );
   }
@@ -294,15 +312,27 @@ export function YayawTableForm({
     return (
       <section className={shell} data-yayaw-form="success">
         {header}
-        <SuccessPanel
-          another={settings.allowAnotherResponse ? label("another") : undefined}
+        <FormState
+          action={
+            settings.allowAnotherResponse ? (
+              <Button onClick={restart} type="button" variant="outline">
+                {label("another")}
+              </Button>
+            ) : undefined
+          }
+          icon={<CircleCheck aria-hidden="true" />}
           message={settings.successMessage ?? label("success")}
-          onAnother={restart}
+          title={label("successTitle")}
         />
       </section>
     );
   }
   const submitting = status === "submitting";
+  const questionLabels = {
+    choose: label("choose"),
+    clearDate: label("clearDate"),
+    pickDate: label("pickDate"),
+  };
   return (
     <form
       aria-busy={submitting}
@@ -315,7 +345,7 @@ export function YayawTableForm({
       {header}
       {message ? (
         <p
-          className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-destructive text-sm"
+          className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-destructive text-sm dark:bg-destructive/10"
           data-form-message
           role="alert"
           tabIndex={-1}
@@ -326,14 +356,15 @@ export function YayawTableForm({
       {questions.length === 0 ? (
         <p className="text-muted-foreground text-sm">{label("noQuestions")}</p>
       ) : null}
-      <div className="grid gap-5">
+      <div className="grid gap-6">
         {questions.map((question) => (
           <FormQuestionField
-            chooseLabel={label("choose")}
             disabled={submitting}
             error={errors[question.columnId]}
             inputId={inputId(question)}
             key={question.id}
+            labels={questionLabels}
+            locale={locale}
             onChange={(value) =>
               setDraft((current) => ({
                 ...current,
@@ -346,7 +377,7 @@ export function YayawTableForm({
         ))}
       </div>
       {extraFields}
-      <div>
+      <div className="flex justify-end border-t pt-5">
         <Button
           className="w-full sm:w-fit"
           disabled={submitting || questions.length === 0}

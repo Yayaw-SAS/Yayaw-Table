@@ -1000,8 +1000,9 @@ synced once and then edited on both sides, planned and applied by the real
 ## Form view
 
 The Form display mode ships in the core items of both registries: it needs no
-dependency beyond the shadcn primitives (React) and the Vue edition's own
-styles, unlike the calendar. Both editions plug a built-in `formRenderer` into
+dependency beyond the shadcn primitives and `react-day-picker` already in the
+React item, and Reka UI with `@internationalized/date` (its date model) in the
+Vue item, unlike the calendar. Both editions plug a built-in `formRenderer` into
 the display mode renderers (`withFormRenderer`) when the table can create
 records (`actions.create` and `allowCreate !== false`) and `table.form` is not
 `false`; otherwise the registry withholds the mode like any renderer mode
@@ -1021,11 +1022,14 @@ columns not asked, then answers), English and French labels overridable with
 `form.<key>` translations (React accepts flat `"form.submit"` keys), and the
 public-link contract.
 
-Settings panel (View → Form settings, same content in both editions): title,
-description, one row per eligible column with an "Ask" checkbox, Move up/Move
-down and Edit buttons (label, help text, placeholder, Required), fixed values
-for columns not asked, submit label, success message, "Offer another
-response", redirect URL, Reset. Texts are saved on blur or Enter.
+Settings panel (View → Form settings, same content in both editions, built on
+`ViewSettingsPanel`): title, description, one row per eligible column with a
+grip, Move up/Move down icon buttons, an Edit disclosure (label, help text,
+placeholder, a "Required" switch) and an "Ask <column>" switch; fixed values
+for columns not asked (a settings select for option and yes/no columns, which
+opens a choice screen in phone drawers, text otherwise), submit label, success
+message, an "Offer another response" switch, redirect URL, Reset. Texts are
+saved on blur or Enter.
 
 The standalone component (React `form/yayaw-table-form.tsx`, Vue
 `form/YayawTableForm.vue`) takes `columns`, `form`, `onSubmit(values, {
@@ -1034,18 +1038,39 @@ context }) → { ok: true } | { errors, message }`, optional `validate`,
 `translations`, `translate`, `locale`, `context`, `closed` and host fields
 (React `extraFields`, Vue `extra-fields` slot). It imports no nuqs, jotai,
 TanStack Query or table provider, and renders one question per
-`FormQuestionField` / `FormQuestion.vue` so a stepper can reuse it. Native
-inputs keep both editions identical and mobile friendly: labels, `required`,
-help and error ids in `aria-describedby`, `aria-invalid`, an error summary
-alert, focus on the first invalid question, a success status with "Submit
-another response".
+`FormQuestionField` / `FormQuestion.vue` so a stepper can reuse it. Questions
+use the controls the table's forms are built from, not native widgets: React
+shadcn `Field`, `Input`, `Textarea`, the base-ui `Select` with the create
+form's `FormSelectContent`, `Checkbox`, `Switch`, and a `Popover` + `Calendar`
+date picker (the registry points it at the table's internal calendar copy);
+Vue the same shapes with Reka `Select`, `Checkbox`, `Switch`, `Popover` and
+`Calendar` (`@internationalized/date` is now a Vue registry dependency). The
+create-form field components themselves (`TextField`, `SelectField`, …) are
+not reused: they need the table provider and a TanStack form field and carry
+no `aria-describedby`/required hooks. Select and multi-select options render
+as the column's tags when `displayVariant: "tag"` (colored per
+`coloredTags`); dates show in the form's language (`formDateDisplay`,
+`formWeekStart` for the calendar) and are stored as `YYYY-MM-DD`; numbers are
+typed plainly and shown with the column's `numberFormat` once the field is
+left (`formNumberDisplay`); yes/no columns are a switch row. Accessibility is
+the same in both: labels, `required`/`aria-required`, help and error ids in
+`aria-describedby`, `aria-invalid`, an error summary alert (the only live
+region), focus on the first invalid question's control (`data-form-focus`),
+and the calendar opens on the picked day or today. The form is a centered
+card (640px max) with a bordered header; "sent" and "closed" use the table's
+empty-state layout (icon, title, message, "Submit another response").
 
 Public links: optional `actions.formLinks` (`status`, `publish(viewId,
-snapshot)`, `unpublish`, `setAcceptingResponses`) shows "Share form" above the
-form of a saved view (unsaved state asks to save first): publish switch, public
-link with Copy and Open, "Accept responses" switch and "Update public form".
+snapshot)`, `unpublish`, `setAcceptingResponses`) adds a "Share form" button
+to a slim bar above the form of a saved view (unsaved state asks to save
+first). It opens a popover (React `StackMenu`/`ResponsiveMenu`, Vue
+`ToolbarMenu`), a bottom drawer below 768px like the Data menu: "Publish to
+the web" switch, the read-only public link with Copy (icon button, "Link
+copied" for two seconds) and Open icon buttons, "Accept responses" switch and
+"Update public form" with its hint.
 Republishing is explicit so unsaved edits never go live. `publicFormSnapshot`
-keeps only the asked columns (id, header, type, options), the form settings and
+keeps only the asked columns (id, header, type, options and, when set,
+`displayVariant`, `coloredTags`, `numberFormat`), the form settings and
 the fixed values (kept server-side); `acceptPublicFormResponse` re-validates a
 response against the snapshot, drops other fields and adds the fixed values;
 `formSettingsFromView` reads a saved view. The demo host
@@ -1053,9 +1078,11 @@ response against the snapshot, drops other fields and adds the fixed values;
 serves `?example=form&form=<viewId>`; the views demo ships a "Request" form
 view and `?example=form` shows the standalone component.
 
-Renderer context additions (both editions): `createRecord(values)`, `viewId`
-and `formLinks`. `tests/form-view-suite.ts` runs in both editions and
+Renderer context additions (both editions): `createRecord(values)`, `viewId`,
+`formLinks` and `coloredTags` (the table setting, applied to the form's tags
+unless a column sets its own). `tests/form-view-suite.ts` runs in both editions and
 `e2e/form.spec.ts` covers configuring questions (order, required, help text),
-error focus, success and the new row in the table, publishing, copying and
+error focus, the number format shown after typing, success and the new row in
+the table, picking a date in the standalone form, publishing, copying and
 opening the link, a public response reaching the table, closing responses,
 unpublishing, the save-first prompt and the standalone page, on both demos.
