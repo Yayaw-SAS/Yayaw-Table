@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { DataTable, defineTableConfig, type TableActions, type TableRecord } from "../src";
+import { Toaster } from "vue-sonner";
 import { calendarRenderer } from "../src/calendar/calendar-renderer";
 import { createViewsActions, viewsColumns, viewsRows, viewsTableOptions } from "../../../examples/views";
 
@@ -21,6 +22,7 @@ const config = defineTableConfig({
   <main class="views-example">
     <h1>Views</h1>
     <DataTable :table-type="config.id" :config="config" :data="rows" :get-table-actions="() => actions" :display-mode-renderers="{ calendar: calendarRenderer }" />
+    <Toaster position="bottom-right" />
   </main>
 </template>
 <style>

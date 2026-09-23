@@ -509,6 +509,9 @@ export interface DataTableTranslations {
     range: string;
     calculate: string;
   };
+  destinations?: {
+    done?: string;
+  };
   menu: {
     data?: string;
     back: string;

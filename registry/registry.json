@@ -1249,6 +1249,11 @@
           "target": "components/ui/yayaw-table/utils/csv-export.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/utils/data-destinations.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/data-destinations.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/utils/date-display.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/date-display.ts"

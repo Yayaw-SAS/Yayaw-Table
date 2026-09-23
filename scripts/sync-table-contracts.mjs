@@ -43,6 +43,7 @@ await copyFile(
 
 for (const file of [
   "calendar-model.ts",
+  "data-destinations.ts",
   "view-tabs.ts",
   "display-modes.ts",
   "scoped-rows.ts",
