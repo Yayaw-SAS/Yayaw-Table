@@ -8,8 +8,7 @@ import {
   StackMenuView,
 } from "@/components/ui/custom/stack-menu";
 import { cn } from "@/lib/utils";
-import { Button } from "@/src/components/ui/button";
-import { buttonVariants } from "@/src/components/ui/button-styles";
+import { Button, buttonVariants } from "@/src/components/ui/button";
 import { Input } from "@/src/components/ui/input";
 import { Switch } from "@/src/components/ui/switch";
 import { useIsMobile } from "../hooks/use-mobile";

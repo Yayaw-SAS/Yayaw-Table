@@ -2,8 +2,7 @@
 
 import { Check, Copy, ExternalLink, Globe, Link2 } from "lucide-react";
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { buttonVariants } from "@/components/ui/button-styles";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
