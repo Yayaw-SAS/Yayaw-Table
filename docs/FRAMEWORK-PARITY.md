@@ -628,3 +628,12 @@ applies. Shared helpers live in `utils/manual-order.ts`; covered by
 `tests/manual-order-suite.ts` in both editions and Playwright
 `e2e/views.spec.ts`, including a touch drag sent through Chromium's input
 protocol.
+
+### List options
+
+`table.list` and saved views also accept `wrap` (default `false`),
+`showActions` (default `true`), `propertyAlign` (`"end"` by default, or
+`"start"` right after the title), `maxProperties` and `mobileMaxProperties`
+(below 768px; the lower limit wins). Both editions normalize and resolve them
+through the shared `utils/list-view.ts` and offer them in the List settings
+panel. Covered by `tests/list-view-suite.ts` in both editions and Playwright.

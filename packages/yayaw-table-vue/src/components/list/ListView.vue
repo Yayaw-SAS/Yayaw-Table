@@ -13,8 +13,18 @@ import RowActions from "../table/RowActions.vue";
 import TableEmptyState from "../table/TableEmptyState.vue";
 
 const EMPTY_GROUP_LABEL = "No value";
-const { context, translate, columns, titleColumn, propertyIds, showLabels } =
-  useListSettings();
+const {
+  context,
+  translate,
+  columns,
+  titleColumn,
+  propertyIds,
+  showLabels,
+  wrap,
+  showActions,
+  propertyAlign,
+  visibleProperties,
+} = useListSettings();
 const loadedRows = useCardRows();
 // A move shows at once; the next server result replaces it.
 const pendingOrder = ref<string[] | null>(null);
@@ -41,8 +51,10 @@ const value = (row: TableRecord, id: string): unknown =>
     : row[column(id)?.accessorKey ?? id];
 const groupBy = computed(() => context.state.grouping.value[0] ?? "");
 const properties = computed(() =>
-  propertyIds.value.filter(
-    (id) => id !== titleColumn.value && id !== groupBy.value && column(id)
+  visibleProperties(
+    propertyIds.value.filter(
+      (id) => id !== titleColumn.value && id !== groupBy.value && column(id)
+    )
   )
 );
 const sections = computed(() => {
@@ -287,14 +299,14 @@ const activate = (row: TableRecord, event: MouseEvent | KeyboardEvent): void => 
                 @update:model-value="toggleSelection(row, $event, checkboxShift); checkboxShift = false"
               />
             </span>
-            <strong class="yayaw-list-title">{{ displayCellValue(value(row, titleColumn), column(titleColumn) ?? { id: titleColumn, header: titleColumn }, context.locale) }}</strong>
-            <dl class="yayaw-list-properties">
+            <strong class="yayaw-list-title" :class="{ 'yayaw-list-wrap': wrap, 'yayaw-list-title-start': propertyAlign === 'start' }">{{ displayCellValue(value(row, titleColumn), column(titleColumn) ?? { id: titleColumn, header: titleColumn }, context.locale) }}</strong>
+            <dl class="yayaw-list-properties" :data-align="propertyAlign">
               <div v-for="id in properties" :key="id">
                 <dt :class="{ 'yayaw-sr-only': !showLabels }">{{ column(id)?.header ?? id }}</dt>
                 <dd><CellRenderer :value="value(row, id)" :row="row" :column="column(id) ?? { id, header: id }" /></dd>
               </div>
             </dl>
-            <RowActions :row="row" />
+            <RowActions v-if="showActions" :row="row" />
           </div>
         </li>
       </ul>

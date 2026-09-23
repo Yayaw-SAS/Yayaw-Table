@@ -10,6 +10,7 @@ import type { TableDisplayMode } from "../types/display-types";
 import type { AdvancedFiltersState } from "../types/filter-types";
 import type { TableViewConfig } from "../types/view-types";
 import { displayModeMaxGroups, isTableDisplayMode } from "./display-modes";
+import { normalizeListViewConfig } from "./list-view";
 import { normalizeGalleryViewConfig } from "./gallery-view-state";
 import {
   isTableDensity,
@@ -89,15 +90,14 @@ function normalizeDisplayMode(
   return isTableDisplayMode(value) ? value : undefined;
 }
 
-/** Kanban and list views share the card settings: title, properties and labels. */
 function normalizeKanbanViewConfig(
-  config: TableViewConfig["kanban"] | TableViewConfig["list"]
-): TableViewConfig["list"] {
+  config: TableViewConfig["kanban"]
+): TableViewConfig["kanban"] {
   if (!config) {
     return;
   }
 
-  const normalized: NonNullable<TableViewConfig["list"]> = {};
+  const normalized: NonNullable<TableViewConfig["kanban"]> = {};
   const titleColumn = config.titleColumn?.trim();
   const cardColumnIds = normalizeColumnIds(config.cardColumnIds);
 
@@ -128,7 +128,7 @@ function normalizeColumnIds(value: unknown): string[] | undefined {
 function normalizedListConfig(
   config: TableViewConfig["list"]
 ): Pick<TableViewConfig, "list"> {
-  const list = normalizeKanbanViewConfig(config);
+  const list = normalizeListViewConfig(config);
   return list ? { list } : {};
 }
 

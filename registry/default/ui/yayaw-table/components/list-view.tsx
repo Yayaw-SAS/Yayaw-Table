@@ -11,11 +11,17 @@ import {
   useState,
 } from "react";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "../hooks/use-mobile";
 import type { TableCatalogueColumnConfig } from "../hooks/use-table-config";
 import type { Cell, Row, Table as TanStackTable } from "../tanstack";
 import { flexRender } from "../tanstack";
 import type { TableListConfig } from "../types/display-types";
 import { shouldActivateCardFromKeyboard } from "../utils/card-interaction";
+import {
+  type ListViewSettings,
+  resolveListSettings,
+  visibleListProperties,
+} from "../utils/list-view";
 import {
   moveInOrder,
   REORDER_ROW_ATTRIBUTE,
@@ -84,6 +90,7 @@ interface ListItemProps<TData extends Record<string, unknown>> {
   reorder?: ListReorder;
   row: Row<TData>;
   showLabels: boolean;
+  settings: Pick<ListViewSettings, "propertyAlign" | "showActions" | "wrap">;
   table: TanStackTable<TData>;
   titleColumnId?: string;
 }
@@ -123,6 +130,63 @@ export function listLineStyle(density: TableDensity): CSSProperties {
   };
 }
 
+function ListLineTitle<TData extends Record<string, unknown>>({
+  align,
+  row,
+  titleCell,
+  wrap,
+}: {
+  align: ListViewSettings["propertyAlign"];
+  row: Row<TData>;
+  titleCell?: ListCell<TData>;
+  wrap?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "min-w-0 font-medium text-sm",
+        wrap ? "whitespace-normal break-words" : "truncate",
+        align === "start" ? "shrink" : "flex-1"
+      )}
+    >
+      {titleCell ? renderCell(titleCell) : row.id}
+    </div>
+  );
+}
+
+function ListLineProperties<TData extends Record<string, unknown>>({
+  align,
+  cells,
+  labels,
+  showLabels,
+}: {
+  align: ListViewSettings["propertyAlign"];
+  cells: ListCell<TData>[];
+  labels: Map<string, string>;
+  showLabels: boolean;
+}) {
+  if (cells.length === 0) {
+    return null;
+  }
+  return (
+    <dl
+      className={cn(
+        "flex min-w-0 items-center gap-3 overflow-hidden text-muted-foreground text-xs",
+        align === "start" ? "flex-1 justify-start" : "shrink justify-end"
+      )}
+    >
+      {cells.map((cell) => (
+        <div className="flex min-w-0 items-center gap-1" key={cell.id}>
+          <dt className={showLabels ? "shrink-0" : "sr-only"}>
+            {labels.get(cell.column.id) ?? cell.column.id}
+          </dt>
+          <dd className="min-w-0 truncate">{renderCell(cell)}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
 function DataTableListItem<TData extends Record<string, unknown>>({
   lineStyle,
   isActive,
@@ -133,6 +197,7 @@ function DataTableListItem<TData extends Record<string, unknown>>({
   reorder,
   row,
   showLabels,
+  settings,
   table,
   titleColumnId,
 }: ListItemProps<TData>) {
@@ -235,22 +300,19 @@ function DataTableListItem<TData extends Record<string, unknown>>({
             {renderCell(selectionCell)}
           </div>
         ) : null}
-        <div className="min-w-0 flex-1 truncate font-medium text-sm">
-          {titleCell ? renderCell(titleCell) : row.id}
-        </div>
-        {propertyCells.length > 0 ? (
-          <dl className="flex min-w-0 shrink items-center justify-end gap-3 overflow-hidden text-muted-foreground text-xs">
-            {propertyCells.map((cell) => (
-              <div className="flex min-w-0 items-center gap-1" key={cell.id}>
-                <dt className={showLabels ? "shrink-0" : "sr-only"}>
-                  {propertyLabels.get(cell.column.id) ?? cell.column.id}
-                </dt>
-                <dd className="min-w-0 truncate">{renderCell(cell)}</dd>
-              </div>
-            ))}
-          </dl>
-        ) : null}
-        {actionsCell ? (
+        <ListLineTitle
+          align={settings.propertyAlign}
+          row={row}
+          titleCell={titleCell}
+          wrap={settings.wrap}
+        />
+        <ListLineProperties
+          align={settings.propertyAlign}
+          cells={propertyCells}
+          labels={propertyLabels}
+          showLabels={showLabels}
+        />
+        {actionsCell && settings.showActions ? (
           <div className="shrink-0" data-column-id="actions">
             {renderCell(actionsCell)}
           </div>
@@ -309,12 +371,19 @@ export function DataTableListView<TData extends Record<string, unknown>>({
     columnDefinitions,
     config,
   });
+  const settings = resolveListSettings(undefined, config);
+  const isMobile = useIsMobile();
   const propertyColumnIds = resolveListPropertyColumnIds({
     columnDefinitions,
     config,
     groupBy,
     titleColumnId,
   });
+  const shownPropertyIds = visibleListProperties(
+    propertyColumnIds,
+    settings,
+    isMobile
+  );
   const propertyLabels = useMemo(
     () =>
       new Map(
@@ -420,14 +489,15 @@ export function DataTableListView<TData extends Record<string, unknown>>({
         key={row.id}
         lineStyle={lineStyle}
         onRowClick={onRowClick}
-        propertyCells={propertyColumnIds.flatMap((id) => {
+        propertyCells={shownPropertyIds.flatMap((id) => {
           const cell = cellById.get(id);
           return cell ? [cell] : [];
         })}
         propertyLabels={propertyLabels}
         reorder={reorderFor(row)}
         row={row}
-        showLabels={config?.showCardLabels === true}
+        settings={settings}
+        showLabels={settings.showCardLabels}
         table={table}
         titleColumnId={titleColumnId}
       />

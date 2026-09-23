@@ -1,5 +1,6 @@
 import { format, formatDistanceToNow, isValid, parseISO } from "date-fns";
 import { normalizeGalleryViewConfig } from "./gallery-view-state";
+import { normalizeListViewConfig } from "./list-view";
 import {
   dataTypeOptionLabel,
   matchesContractFilter,
@@ -523,6 +524,7 @@ export const createTableViewSnapshot = (
   const snapshot: TableViewConfig = {
     ...config,
     gallery: normalizeGalleryViewConfig(config.gallery),
+    list: normalizeListViewConfig(config.list),
     advancedFilters: normalizeFilterEnvelope(
       config.advancedFilters
     ) as unknown as AdvancedFiltersState,
