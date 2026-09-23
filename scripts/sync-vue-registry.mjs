@@ -4,7 +4,12 @@ import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
-for (const name of ["yayaw-table-vue", "yayaw-table-vue-calendar"]) {
+for (const name of [
+  "yayaw-table-vue",
+  "yayaw-table-vue-calendar",
+  "yayaw-table-vue-connector-notion",
+  "yayaw-table-vue-connector-google-sheets",
+]) {
   const source = resolve(
     root,
     `packages/yayaw-table-vue/public/r/${name}.json`

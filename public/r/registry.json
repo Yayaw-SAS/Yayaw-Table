@@ -1494,6 +1494,52 @@
       }
     },
     {
+      "name": "yayaw-table-connector-notion",
+      "type": "registry:lib",
+      "title": "YaYaw Table Notion Connector",
+      "description": "Optional, framework-agnostic server module that pushes table rows into a Notion database (upsert keyed by a \"Yayaw ID\" property). Runs in Node 20+, Bun, Deno and edge runtimes; the host stores the token, authorizes the push and calls it from its server.",
+      "files": [
+        {
+          "path": "registry/default/ui/yayaw-table-connectors/connector-model.ts",
+          "type": "registry:lib",
+          "target": "components/ui/yayaw-table/connectors/connector-model.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table-connectors/notion.ts",
+          "type": "registry:lib",
+          "target": "components/ui/yayaw-table/connectors/notion.ts"
+        }
+      ],
+      "meta": {
+        "registryUrl": "https://table.yayaw.app/r/yayaw-table-connector-notion.json",
+        "version": "3.2.0",
+        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.2.0/yayaw-table-connector-notion.json"
+      }
+    },
+    {
+      "name": "yayaw-table-connector-google-sheets",
+      "type": "registry:lib",
+      "title": "YaYaw Table Google Sheets Connector",
+      "description": "Optional, framework-agnostic server module that pushes table rows into a Google Sheets tab (upsert or replace, keyed by a \"Yayaw ID\" column) with a service account signed through Web Crypto. The host stores the key, authorizes the push and calls it from its server.",
+      "files": [
+        {
+          "path": "registry/default/ui/yayaw-table-connectors/connector-model.ts",
+          "type": "registry:lib",
+          "target": "components/ui/yayaw-table/connectors/connector-model.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table-connectors/google-sheets.ts",
+          "type": "registry:lib",
+          "target": "components/ui/yayaw-table/connectors/google-sheets.ts"
+        }
+      ],
+      "meta": {
+        "registryUrl": "https://table.yayaw.app/r/yayaw-table-connector-google-sheets.json",
+        "version": "3.2.0",
+        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.2.0/yayaw-table-connector-google-sheets.json"
+      }
+    },
+    {
       "name": "font-yayaw-sans",
       "type": "registry:font",
       "title": "YaYaw Sans Font",

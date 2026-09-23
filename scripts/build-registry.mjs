@@ -54,6 +54,22 @@ const TABLE_REGISTRY_ITEM_NAME = "yayaw-table";
 const OPTIONAL_ITEMS = [
   { name: "yayaw-table-calendar", dir: "yayaw-table-calendar" },
 ];
+/**
+ * Optional server modules living in the table source (`connectors/`). They
+ * are framework-agnostic and excluded from the table item; each connector item
+ * ships the shared model with its provider module.
+ */
+const CONNECTORS_DIR = "connectors";
+const CONNECTOR_ITEMS = [
+  {
+    name: "yayaw-table-connector-notion",
+    files: ["connector-model.ts", "notion.ts"],
+  },
+  {
+    name: "yayaw-table-connector-google-sheets",
+    files: ["connector-model.ts", "google-sheets.ts"],
+  },
+];
 
 const REGEX_TSX_CSS = /\.(tsx?|css)$/;
 const REGEX_TEST_FILE = /\.(test|spec)\.[^.]+$/;
@@ -268,6 +284,10 @@ assertDirectoryExists(SRC_YAYAW_TABLE, "yayaw-table");
 assertDirectoryExists(SRC_UI, "ui");
 assertDirectoryExists(SRC_UI_CUSTOM, "ui/custom");
 copyRecursive(SRC_YAYAW_TABLE, REGISTRY_BLOCK);
+fs.rmSync(path.join(REGISTRY_BLOCK, CONNECTORS_DIR), {
+  force: true,
+  recursive: true,
+});
 
 // 2) Copy ui-custom (loader, icon, stack-menu)
 const uiCustomDest = path.join(REGISTRY_BLOCK, "ui-custom");
@@ -368,6 +388,35 @@ for (const optional of OPTIONAL_ITEMS) {
       path: ["registry", "default", "ui", optional.dir, relNorm].join("/"),
       type: getFileType(`/${relNorm}`),
       target: `components/ui/${optional.dir}/${relNorm}`,
+    };
+  });
+  assertUnversionedRegistryDependencies(item);
+}
+
+const connectorsSource = path.join(SRC_YAYAW_TABLE, CONNECTORS_DIR);
+const connectorsDest = path.join(REGISTRY_UI_ROOT, "yayaw-table-connectors");
+assertDirectoryExists(connectorsSource, "connectors");
+if (fs.existsSync(connectorsDest)) {
+  fs.rmSync(connectorsDest, { recursive: true });
+}
+copyRecursive(connectorsSource, connectorsDest);
+for (const connector of CONNECTOR_ITEMS) {
+  const item = registry.items.find((entry) => entry.name === connector.name);
+  if (!item) {
+    throw new Error(
+      `Registry item "${connector.name}" not found in ${registryPath}.`
+    );
+  }
+  item.files = connector.files.map((name) => {
+    if (!fs.existsSync(path.join(connectorsDest, name))) {
+      throw new Error(`Connector file not found: ${name}`);
+    }
+    return {
+      path: ["registry", "default", "ui", "yayaw-table-connectors", name].join(
+        "/"
+      ),
+      type: "registry:lib",
+      target: `${targetDir}/${CONNECTORS_DIR}/${name}`,
     };
   });
   assertUnversionedRegistryDependencies(item);

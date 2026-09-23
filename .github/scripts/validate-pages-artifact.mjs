@@ -7,6 +7,10 @@ for (const name of [
   "yayaw-table-base.json",
   "font-yayaw-sans.json",
   "yayaw-table-vue.json",
+  "yayaw-table-connector-notion.json",
+  "yayaw-table-connector-google-sheets.json",
+  "yayaw-table-vue-connector-notion.json",
+  "yayaw-table-vue-connector-google-sheets.json",
   "registry.json",
 ]) {
   JSON.parse(readFileSync(resolve(root, "r", name), "utf8"));

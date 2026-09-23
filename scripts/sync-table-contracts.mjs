@@ -142,6 +142,26 @@ for (const name of await readdir(planningSource)) {
   }
 }
 
+// Connector server modules are framework-agnostic: the Vue registry ships the
+// same files as its own optional items.
+const connectorsSource = new URL(
+  "../src/components/ui/yayaw-table/connectors/",
+  import.meta.url
+);
+const connectorsTarget = new URL(
+  "../packages/yayaw-table-vue/src/connectors/",
+  import.meta.url
+);
+await mkdir(connectorsTarget, { recursive: true });
+for (const name of await readdir(connectorsSource)) {
+  if (name.endsWith(".ts") && !name.includes(".test.")) {
+    await copyFile(
+      new URL(name, connectorsSource),
+      new URL(name, connectorsTarget)
+    );
+  }
+}
+
 // Record presentation and surface tokens are identical in both registries.
 for (const [source, target] of [
   ["utils/record-presentation.ts", "record-presentation.ts"],

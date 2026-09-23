@@ -41,6 +41,12 @@ libraries. The calendar (FullCalendar) is
 `calendarRenderer` to `displayModeRenderers` and add `"calendar"` to
 `displayModes`.
 
+Server connectors that push rows to Notion or Google Sheets are optional
+framework-agnostic items as well (`yayaw-table-connector-notion`,
+`yayaw-table-connector-google-sheets`, and their `yayaw-table-vue-connector-*`
+copies). The host provides credential storage, authorization and workers; see
+[docs/connectors.md](docs/connectors.md).
+
 Both editions use TanStack Table 9.2.4 and require an ESM build targeting
 ES2022 or newer. The Vue edition continues to require Vue `^3.5.0`; this
 migration does not widen framework compatibility.

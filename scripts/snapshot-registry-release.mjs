@@ -8,7 +8,13 @@ const PUBLIC_REGISTRY_DIR = path.join(ROOT, "public", "r");
 const PACKAGE_JSON_PATH = path.join(ROOT, "package.json");
 const SEMVER_PATTERN =
   /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
-const STANDALONE_REGISTRY_ITEMS = ["yayaw-table-vue"];
+// Vue items are built by the Vue package and synced next to the React ones.
+const STANDALONE_REGISTRY_ITEMS = [
+  "yayaw-table-vue",
+  "yayaw-table-vue-calendar",
+  "yayaw-table-vue-connector-notion",
+  "yayaw-table-vue-connector-google-sheets",
+];
 
 const packageJson = JSON.parse(fs.readFileSync(PACKAGE_JSON_PATH, "utf8"));
 const version = packageJson.version;
