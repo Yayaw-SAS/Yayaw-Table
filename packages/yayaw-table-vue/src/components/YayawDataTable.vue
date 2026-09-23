@@ -575,8 +575,8 @@ provide(tableContextKey, {
     <header v-if="config.table.showToolbarHeader" class="yayaw-header">
       <div>
         <h2 class="yayaw-title">{{ title ?? config.translations.keys.title ?? `${tableType} Table` }}</h2>
-        <p v-if="description ?? config.translations.keys.description" class="yayaw-description">
-          {{ description ?? config.translations.keys.description }}
+        <p class="yayaw-description">
+          {{ description ?? config.translations.keys.description ?? `Manage your ${tableType}` }}
         </p>
       </div>
     </header>

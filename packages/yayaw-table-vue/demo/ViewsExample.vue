@@ -22,7 +22,14 @@ const config = defineTableConfig({
     <DataTable :table-type="config.id" :config="config" :data="rows" :get-table-actions="() => actions" />
   </main>
 </template>
+<style>
+/* Same page as the React preview, so the two editions compare on equal terms. */
+body:has(.views-example) {
+  background: #fff;
+  font-family: system-ui, sans-serif;
+}
+</style>
 <style scoped>
 .views-example { max-width: 72rem; margin: auto; padding: 1.5rem; display: grid; gap: 1.5rem; }
-.views-example h1 { font-size: 1.5rem; font-weight: 600; margin: 0; }
+.views-example h1 { font-size: 1.5rem; line-height: 2rem; font-weight: 600; margin: 0; }
 </style>
