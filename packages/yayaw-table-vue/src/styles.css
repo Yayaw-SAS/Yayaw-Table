@@ -3534,6 +3534,94 @@
 .yayaw-connector-failure {
   color: var(--yayaw-danger);
 }
+/* Target check, "Prepare …" confirmation, refresh and new targets. */
+.yayaw-connector-target-tools {
+  display: grid;
+  gap: 4px;
+}
+.yayaw-connector-refresh {
+  justify-self: start;
+  height: 28px;
+  padding: 0 8px;
+  font-size: 13px;
+}
+.yayaw-connector-check,
+.yayaw-connector-prepare,
+.yayaw-connector-create {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--yayaw-border);
+  border-radius: var(--yayaw-radius);
+  padding: 8px 12px;
+  font-size: 14px;
+}
+.yayaw-connector-prepare {
+  border-color: color-mix(in oklab, oklch(0.769 0.188 70.08) 50%, transparent);
+}
+.yayaw-connector-check h3,
+.yayaw-connector-check h4,
+.yayaw-connector-check p,
+.yayaw-connector-check ul,
+.yayaw-connector-prepare p,
+.yayaw-connector-prepare ul,
+.yayaw-connector-create h3 {
+  margin: 0;
+}
+.yayaw-connector-check h3 {
+  color: var(--yayaw-muted-foreground);
+  font-size: 12px;
+  font-weight: 500;
+}
+.yayaw-connector-create h3 {
+  font-size: 14px;
+  font-weight: 500;
+}
+.yayaw-connector-check-group {
+  display: grid;
+  gap: 4px;
+}
+.yayaw-connector-check h4 {
+  font-size: 12px;
+  font-weight: 500;
+}
+.yayaw-connector-check h4[data-severity="blocking"] {
+  color: var(--yayaw-danger);
+}
+.yayaw-connector-check h4[data-severity="fixable"] {
+  color: oklch(0.555 0.163 48.998);
+}
+.yayaw-connector-check ul {
+  display: grid;
+  gap: 2px;
+  padding: 0;
+  font-size: 12px;
+  list-style: none;
+}
+.yayaw-connector-prepare ul {
+  display: grid;
+  gap: 2px;
+  padding-inline-start: 20px;
+  font-size: 12px;
+}
+.yayaw-connector-check-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.yayaw-connector-check-actions .yayaw-button {
+  height: 32px;
+  font-size: 13px;
+}
+.yayaw-connector-prepared {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: oklch(0.527 0.154 150.069);
+  font-size: 12px;
+}
+.yayaw-connector-hint.yayaw-connector-blocked {
+  color: var(--yayaw-danger);
+}
 /* Sync preview: counts per side, notes and the first conflicts. */
 .yayaw-sync-confirm {
   align-items: flex-start;

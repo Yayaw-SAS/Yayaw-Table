@@ -1,0 +1,53 @@
+import { it } from "vitest";
+import { connectorSchemaSuite } from "../../../tests/connector-schema-suite";
+import {
+  applyConnectorField,
+  CONNECTOR_NEW_TARGET,
+  CONNECTOR_SKIP,
+  connectorFieldOptions,
+  connectorLabels,
+  connectorRenames,
+  connectorScreenFields,
+  createConnectorFlow,
+  describeSchemaFixes,
+  describeSchemaReport,
+  resolveConnectorSettings,
+  schemaIssueMessage,
+  toConnectorMapping,
+} from "./connector-flow";
+import {
+  checkTargetSchema,
+  invalidSamples,
+  keyIndexShift,
+  notionColorFor,
+  resolveMappedField,
+  schemaBlocksRun,
+  schemaRenames,
+  typeCompatibility,
+  upgradeMapping,
+} from "./connector-schema";
+
+connectorSchemaSuite(it, {
+  applyConnectorField,
+  CONNECTOR_NEW_TARGET,
+  CONNECTOR_SKIP,
+  checkTargetSchema,
+  connectorFieldOptions,
+  connectorLabels,
+  connectorRenames,
+  connectorScreenFields,
+  createConnectorFlow,
+  describeSchemaFixes,
+  describeSchemaReport,
+  invalidSamples,
+  keyIndexShift,
+  notionColorFor,
+  resolveConnectorSettings,
+  resolveMappedField,
+  schemaBlocksRun,
+  schemaIssueMessage,
+  schemaRenames,
+  toConnectorMapping,
+  typeCompatibility,
+  upgradeMapping,
+});

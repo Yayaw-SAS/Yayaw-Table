@@ -48,10 +48,14 @@ export interface ConnectorRow {
  * Where each column goes: `properties` maps a column id to the name of the
  * target field (a Notion property, a sheet header). `keyProperty` names the
  * field holding the row id, `DEFAULT_CONNECTOR_KEY` by default.
+ * `propertyIds` (column id to Notion property id) and `keyPropertyId` are
+ * found first, so a property renamed in Notion keeps receiving its column.
  */
 export interface ConnectorMapping {
   keyProperty?: string;
+  keyPropertyId?: string;
   properties: Record<string, string>;
+  propertyIds?: Record<string, string>;
 }
 
 const rowIdText = (value: unknown): string => {

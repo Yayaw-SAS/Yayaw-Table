@@ -1,5 +1,6 @@
 import type { ScheduleSettings } from "../src/components/ui/yayaw-table/utils/schedule-model";
 import { createDemoFormLinks, demoFormResponses } from "./form-links";
+import { createNotionConnector } from "./views-notion";
 import { createSpreadsheetConnector } from "./views-spreadsheet";
 
 /** Shared records and columns for the React and Vue view-switching examples and end-to-end tests. */
@@ -281,6 +282,8 @@ export function createViewsActions() {
       },
       // A connector: the row opens the table's send screens instead of `run`.
       createSpreadsheetConnector(sheetTable),
+      // A Notion connector whose database drifted: see the target check.
+      createNotionConnector(),
       {
         id: "slack",
         label: "Slack",

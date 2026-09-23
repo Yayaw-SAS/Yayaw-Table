@@ -8,7 +8,7 @@ interface MappingField {
   id: string;
   label: string;
   value: string;
-  options: { value: string; label: string }[];
+  options: { value: string; label: string; disabled?: boolean }[];
   heading?: string;
   inline?: boolean;
   disabled?: boolean;

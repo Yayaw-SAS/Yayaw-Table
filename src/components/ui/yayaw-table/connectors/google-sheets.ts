@@ -1616,3 +1616,174 @@ export function createSheetSyncTarget(
     delete: async (ids) => await deleteSheetRows(client, input, ids),
   };
 }
+
+// Schema health --------------------------------------------------------------------
+
+/** Rows read to sample each column's type. */
+const SCHEMA_SAMPLE_ROWS = 20;
+const DATE_LIKE = /^\d{1,4}[-/.]\d{1,2}[-/.]\d{1,4}(?:[ T].*)?$/;
+
+type SampledType = "number" | "boolean" | "date" | "text";
+
+function cellType(value: unknown): SampledType | null {
+  if (typeof value === "number") {
+    return "number";
+  }
+  if (typeof value === "boolean") {
+    return "boolean";
+  }
+  const text = cellText(value);
+  if (text === "") {
+    return null;
+  }
+  return DATE_LIKE.test(text) && !Number.isNaN(Date.parse(text))
+    ? "date"
+    : "text";
+}
+
+/** The type every sampled cell shares, "text" when they differ. */
+function sampledType(values: readonly unknown[]): SampledType | undefined {
+  const types = new Set(values.flatMap((value) => cellType(value) ?? []));
+  if (types.size === 0) {
+    return;
+  }
+  return types.size === 1 ? [...types][0] : "text";
+}
+
+/** One field of a sheet as the shared `checkTargetSchema` takes it. */
+export interface SheetSchemaField {
+  index: number;
+  name: string;
+  sample: unknown[];
+  type?: SampledType;
+}
+
+/**
+ * A tab's header row and first rows as the shared `checkTargetSchema` takes
+ * it (`targetSchema`, provider "sheets"): each header with its position, a
+ * sample of its values and the type they share (`number`, `boolean`, `date`
+ * or `text`). Blank headers are left out.
+ */
+export function sheetTargetSchema(
+  grid: readonly (readonly unknown[] | undefined)[]
+): { provider: "sheets"; fields: SheetSchemaField[] } {
+  const header = (grid[0] ?? []).map(cellText);
+  const rows = grid.slice(1, SCHEMA_SAMPLE_ROWS + 1);
+  const fields = header.flatMap((name, index) => {
+    if (name === "") {
+      return [];
+    }
+    const sample = rows.map((row) => row?.[index] ?? null);
+    const type = sampledType(sample);
+    return [{ name, index, sample, ...(type ? { type } : {}) }];
+  });
+  return { provider: "sheets", fields };
+}
+
+/** Reads a tab's header and first rows as a `sheetTargetSchema`. */
+export async function getSheetTargetSchema(
+  input: Omit<GoogleSheetSyncInput, "mapping">,
+  options?: GoogleSheetsOptions
+): Promise<{ provider: "sheets"; fields: SheetSchemaField[] }> {
+  const client = createSheetsClient(input.credentials, options);
+  const context = await openTab(client, { ...input, mapping: { fields: [] } });
+  const response = await client.request<{ values?: unknown[][] }>({
+    method: "GET",
+    path: valuesPath(
+      context.spreadsheetId,
+      `${context.quoted}!1:${SCHEMA_SAMPLE_ROWS + 1}`
+    ),
+    query: {
+      majorDimension: "ROWS",
+      valueRenderOption: "UNFORMATTED_VALUE",
+      dateTimeRenderOption: "FORMATTED_STRING",
+    },
+  });
+  return sheetTargetSchema(response.values ?? []);
+}
+
+/** A fix `prepareSheet` applies: a header to add (options are Notion's only). */
+export interface SheetSchemaFix {
+  kind: "create_field" | "add_options";
+  field: string;
+  key?: boolean;
+}
+
+export interface GoogleSheetPrepareInput {
+  credentials: GoogleServiceAccountCredentials;
+  fixes: readonly SheetSchemaFix[];
+  /** Tab title; the first tab by default. */
+  sheetTitle?: string;
+  spreadsheetId: string;
+}
+
+/**
+ * Headers to add at the end of a header row (pure): the missing ones of the
+ * `create_field` fixes, the key first, each once. Existing headers are never
+ * moved, renamed or removed.
+ */
+export function planSheetPrepare(
+  header: readonly string[],
+  fixes: readonly SheetSchemaFix[]
+): string[] {
+  const existing = new Set(header.map((name) => name.trim()));
+  const ordered = [
+    ...fixes.filter((fix) => fix.key),
+    ...fixes.filter((fix) => !fix.key),
+  ];
+  const added: string[] = [];
+  for (const fix of ordered) {
+    const name = fix.field.trim();
+    if (fix.kind === "create_field" && name && !existing.has(name)) {
+      existing.add(name);
+      added.push(name);
+    }
+  }
+  return added;
+}
+
+/**
+ * Makes a tab ready for the table: adds the missing headers (the "Yayaw ID"
+ * key first) at the end of the header row, growing the grid when needed. It
+ * never reorders, renames or deletes a column, and only writes the header
+ * row. Idempotent: `applied` is empty when nothing was missing. Select
+ * options have no equivalent in a sheet and are left alone.
+ */
+export async function prepareSheet(
+  input: GoogleSheetPrepareInput,
+  options?: GoogleSheetsOptions
+): Promise<{ applied: SheetSchemaFix[]; addedHeaders: string[] }> {
+  const client = createSheetsClient(input.credentials, options);
+  const context = await openTab(client, { ...input, mapping: { fields: [] } });
+  const header = await readHeader(
+    client,
+    context.spreadsheetId,
+    context.tab.title
+  );
+  const added = planSheetPrepare(header, input.fixes);
+  if (added.length === 0) {
+    return { applied: [], addedHeaders: [] };
+  }
+  const plan: SheetHeaderPlan = {
+    header: [...header, ...added],
+    added,
+    keyIndex: -1,
+    indexes: new Map(),
+  };
+  await appendDimension(
+    context,
+    "COLUMNS",
+    plan.header.length - context.tab.columnCount
+  );
+  const range = headerRange(context, plan);
+  if (range) {
+    await batchUpdateValues(context, [range]);
+  }
+  const names = new Set(added);
+  return {
+    applied: input.fixes.filter(
+      (fix) => fix.kind === "create_field" && names.has(fix.field.trim())
+    ),
+    addedHeaders: added,
+  };
+}

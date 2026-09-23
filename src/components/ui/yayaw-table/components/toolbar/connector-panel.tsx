@@ -2,12 +2,14 @@
 
 import {
   ArrowLeft,
+  CircleCheck,
   Eye,
   Loader2,
   Lock,
   RefreshCw,
   Send,
   TriangleAlert,
+  Wrench,
 } from "lucide-react";
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import {
@@ -18,6 +20,13 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/src/components/ui/button";
 import { Checkbox } from "@/src/components/ui/checkbox";
 import { Input } from "@/src/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/src/components/ui/select";
 import {
   applyConnectorField,
   type ConnectorConflictRulesView,
@@ -32,6 +41,7 @@ import {
   connectorLabels,
   connectorMappingSections,
   connectorRuleHints,
+  connectorSchemaBlocker,
   connectorScreenFields,
   connectorSyncBlocker,
   createConnectorFlow,
@@ -39,10 +49,13 @@ import {
   describePendingConflicts,
   describePushDetails,
   describePushResult,
+  describeSchemaFixes,
+  describeSchemaReport,
   describeSyncPreview,
   describeSyncResult,
   isSyncDirection,
   type PendingConflictsView,
+  type SchemaReportView,
   type SyncDirection,
   type SyncPreviewConflictLine,
   type SyncPreviewView,
@@ -123,6 +136,295 @@ function TargetInput({
         </Button>
       </div>
     </form>
+  );
+}
+
+/** Refresh the target list, and say what to do when a target is missing. */
+function TargetTools({
+  flow,
+  help,
+  state,
+  t,
+}: {
+  flow: ConnectorFlow;
+  help: string | undefined;
+  state: ConnectorFlowState;
+  t: ConnectorT;
+}) {
+  return (
+    <div className="grid gap-1" data-connector-target-tools>
+      <Button
+        aria-busy={state.refreshing}
+        className="justify-self-start"
+        disabled={state.refreshing}
+        onClick={() => {
+          flow.refreshTargets().catch(() => undefined);
+        }}
+        size="sm"
+        type="button"
+        variant="ghost"
+      >
+        <RefreshCw
+          aria-hidden="true"
+          className={cn("size-3.5", state.refreshing && "animate-spin")}
+        />
+        {t("refreshTargets")}
+      </Button>
+      {help ? (
+        <p className="text-muted-foreground text-xs" data-connector-missing-help>
+          {help}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+/** "Create one from this table’s columns…": where, a name, then Create. */
+function CreateTargetForm({
+  flow,
+  name,
+  state,
+  t,
+}: {
+  flow: ConnectorFlow;
+  name: string;
+  state: ConnectorFlowState;
+  t: ConnectorT;
+}) {
+  const id = useId();
+  const [title, setTitle] = useState("");
+  const parents = state.createParents ?? [];
+  const [parentId, setParentId] = useState<string>();
+  const parent = parentId ?? parents[0]?.id;
+  return (
+    <form
+      aria-label={t("createTargetTitle", { target: name })}
+      className="grid gap-2 rounded-md border px-3 py-2"
+      data-connector-create
+      onSubmit={(event) => {
+        event.preventDefault();
+        flow
+          .createTarget({ title, ...(parent ? { parentId: parent } : {}) })
+          .catch(() => undefined);
+      }}
+    >
+      <h3 className="font-medium text-sm">
+        {t("createTargetTitle", { target: name })}
+      </h3>
+      {parents.length > 0 ? (
+        <div className="grid gap-1.5">
+          <label className="text-muted-foreground text-sm" htmlFor={`${id}-parent`}>
+            {t("createParent")}
+          </label>
+          <Select
+            items={parents.map((item) => ({ value: item.id, label: item.label }))}
+            onValueChange={(value) => {
+              if (value !== null) {
+                setParentId(value);
+              }
+            }}
+            value={parent}
+          >
+            <SelectTrigger
+              aria-label={t("createParent")}
+              className="w-full min-w-0 font-normal"
+              id={`${id}-parent`}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent align="start" alignItemWithTrigger={false}>
+              {parents.map((item) => (
+                <SelectItem key={item.id} value={item.id}>
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      ) : null}
+      <div className="grid gap-1.5">
+        <label className="text-muted-foreground text-sm" htmlFor={`${id}-name`}>
+          {t("createName")}
+        </label>
+        <Input
+          id={`${id}-name`}
+          onChange={(event) => setTitle(event.target.value)}
+          value={title}
+        />
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button
+          aria-busy={state.creating}
+          className="flex-1"
+          disabled={state.creating}
+          type="submit"
+        >
+          {state.creating ? (
+            <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+          ) : null}
+          {state.creating ? t("creatingTarget") : t("createSubmit")}
+        </Button>
+        <Button
+          className="flex-1"
+          disabled={state.creating}
+          onClick={() => {
+            flow.showCreate(false).catch(() => undefined);
+          }}
+          type="button"
+          variant="outline"
+        >
+          {t("cancel")}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+/**
+ * "Target check": the issues found in the target, grouped by severity, with
+ * "Update mapping" for renamed fields and "Prepare …" for fixable ones.
+ */
+function TargetCheck({
+  flow,
+  state,
+  view,
+}: {
+  flow: ConnectorFlow;
+  state: ConnectorFlowState;
+  view: SchemaReportView;
+}) {
+  return (
+    <section
+      aria-label={view.title}
+      className="grid gap-2 rounded-md border px-3 py-2 text-sm"
+      data-connector-target-check
+    >
+      <h3 className="font-medium text-muted-foreground text-xs">{view.title}</h3>
+      {view.checking ? (
+        <p className="flex items-center gap-2 text-muted-foreground text-xs">
+          <Loader2 aria-hidden="true" className="size-3.5 animate-spin" />
+          {view.checking}
+        </p>
+      ) : null}
+      {view.prepared ? (
+        <p
+          className="flex items-center gap-1.5 text-emerald-700 text-xs dark:text-emerald-400"
+          data-connector-prepared
+        >
+          <CircleCheck aria-hidden="true" className="size-3.5" />
+          {view.prepared}
+        </p>
+      ) : null}
+      {view.groups.map((group) => (
+        <div className="grid gap-1" data-schema-group={group.severity} key={group.severity}>
+          <h4
+            className={cn(
+              "font-medium text-xs",
+              group.severity === "blocking" && "text-destructive",
+              group.severity === "fixable" && "text-amber-700 dark:text-amber-400"
+            )}
+          >
+            {group.title}
+          </h4>
+          <ul className="grid gap-0.5 text-xs">
+            {group.lines.map((line) => (
+              <li data-schema-issue={line.code} key={line.id}>
+                {line.text}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+      {view.updateMapping || view.prepare ? (
+        <div className="flex flex-wrap gap-2">
+          {view.updateMapping ? (
+            <Button
+              data-connector-update-mapping
+              onClick={() => {
+                flow.updateMapping().catch(() => undefined);
+              }}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              {view.updateMapping}
+            </Button>
+          ) : null}
+          {view.prepare ? (
+            <Button
+              data-connector-prepare
+              disabled={state.preparing || state.prepareOpen}
+              onClick={() => flow.showPrepare(true)}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              <Wrench aria-hidden="true" className="size-3.5" />
+              {view.prepare}
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+/** What "Prepare …" will change, confirmed before anything is written. */
+function PrepareConfirmation({
+  flow,
+  name,
+  state,
+  t,
+}: {
+  flow: ConnectorFlow;
+  name: string;
+  state: ConnectorFlowState;
+  t: ConnectorT;
+}) {
+  const view = describeSchemaFixes(state.schemaReport?.fixes ?? [], {
+    connector: {},
+    name,
+    t,
+    schema: state.schema,
+  });
+  return (
+    <section
+      aria-label={view.confirm}
+      className="grid gap-2 rounded-md border border-amber-500/40 px-3 py-2 text-sm"
+      data-connector-prepare-confirm
+    >
+      <p>{view.intro}</p>
+      <ul className="grid list-disc gap-0.5 ps-5 text-xs">
+        {view.lines.map((line) => (
+          <li key={line}>{line}</li>
+        ))}
+      </ul>
+      <div className="flex flex-wrap gap-2">
+        <Button
+          aria-busy={state.preparing}
+          className="flex-1"
+          disabled={state.preparing}
+          onClick={() => {
+            flow.prepare().catch(() => undefined);
+          }}
+          type="button"
+        >
+          {state.preparing ? (
+            <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+          ) : null}
+          {state.preparing ? t("preparing") : view.confirm}
+        </Button>
+        <Button
+          className="flex-1"
+          disabled={state.preparing}
+          onClick={() => flow.showPrepare(false)}
+          type="button"
+          variant="outline"
+        >
+          {view.cancel}
+        </Button>
+      </div>
+    </section>
   );
 }
 
@@ -211,7 +513,13 @@ function connectorMapping({
   screen: ConnectorScreenOptions;
   state: ConnectorFlowState;
   targetInput: ReactNode;
-}) {
+}): {
+  before: ColumnMappingField[];
+  rows: ReturnType<typeof connectorMappingSections>["rows"];
+  keyField: ColumnMappingField | undefined;
+  after: ColumnMappingField[];
+  onChange: (id: string, value: string) => void;
+} {
   const { t } = screen;
   const hints = connectorRuleHints(state.settings, screen);
   const rules = connectorConflictRulesView(state.settings, screen);
@@ -642,6 +950,67 @@ const sendLabel = (state: ConnectorFlowState, t: ConnectorT): string => {
   return direction === "pull" ? t("importNow") : t("syncNow");
 };
 
+/** Why Send or Sync waits: a blocking target issue, a confirmation or a preview. */
+const sendBlocker = (
+  state: ConnectorFlowState,
+  connector: TableConnector,
+  check: SchemaReportView | null,
+  t: ConnectorT
+): string | null => {
+  if (check?.blocked) {
+    return check.blocked;
+  }
+  const blocker = connectorSyncBlocker(state, connector);
+  return blocker ? t(blocker) : null;
+};
+
+/** The target check and, once asked for, what "Prepare …" will change. */
+function SchemaChecks({
+  check,
+  flow,
+  name,
+  state,
+  t,
+}: {
+  check: SchemaReportView | null;
+  flow: ConnectorFlow;
+  name: string;
+  state: ConnectorFlowState;
+  t: ConnectorT;
+}) {
+  return (
+    <>
+      {check ? <TargetCheck flow={flow} state={state} view={check} /> : null}
+      {state.prepareOpen ? (
+        <PrepareConfirmation flow={flow} name={name} state={state} t={t} />
+      ) : null}
+    </>
+  );
+}
+
+function BlockerNote({
+  schemaBlocked,
+  text,
+}: {
+  schemaBlocked: boolean;
+  text: string | null;
+}) {
+  if (!text) {
+    return null;
+  }
+  return (
+    <p
+      className={cn(
+        "text-xs",
+        schemaBlocked ? "text-destructive" : "text-muted-foreground"
+      )}
+      data-connector-blocker
+    >
+      {text}
+    </p>
+  );
+}
+
 /** Error, field loading, the preview and Send or Sync now, after the settings. */
 function ConnectorActions({
   connector,
@@ -664,11 +1033,20 @@ function ConnectorActions({
 }) {
   const sending = state.phase === "sending";
   const syncing = isSyncDirection(state.settings?.direction);
-  const blocker = connectorSyncBlocker(state, connector);
+  const schemaBlocked = connectorSchemaBlocker(state) !== null;
   const canPreview = syncing && Boolean(connector.preview);
   const SendIcon = syncing ? RefreshCw : Send;
+  const check = describeSchemaReport(state, { connector, name, t, columns });
+  const blockerText = sendBlocker(state, connector, check, t);
   return (
     <>
+      <SchemaChecks
+        check={check}
+        flow={flow}
+        name={name}
+        state={state}
+        t={t}
+      />
       {state.schemaLoading ? (
         <p className="flex items-center gap-2 text-muted-foreground text-sm">
           <Loader2 aria-hidden="true" className="size-4 animate-spin" />
@@ -698,17 +1076,18 @@ function ConnectorActions({
           {state.error}
         </p>
       ) : null}
-      {blocker && !state.error ? (
-        <p className="text-muted-foreground text-xs" data-connector-blocker>
-          {t(blocker)}
-        </p>
-      ) : null}
+      <BlockerNote
+        schemaBlocked={schemaBlocked}
+        text={state.error ? null : blockerText}
+      />
       <div className="flex flex-wrap gap-2">
         {canPreview ? (
           <Button
             aria-busy={state.previewing}
             className="flex-1"
-            disabled={state.previewing || sending || !state.settings}
+            disabled={
+              state.previewing || sending || !state.settings || schemaBlocked
+            }
             onClick={() => {
               flow.preview().catch(() => undefined);
             }}
@@ -727,7 +1106,10 @@ function ConnectorActions({
           aria-busy={sending}
           className="flex-1"
           disabled={
-            sending || state.previewing || !state.settings || Boolean(blocker)
+            sending ||
+            state.previewing ||
+            !state.settings ||
+            Boolean(blockerText)
           }
           onClick={() => {
             flow.send().catch(() => undefined);
@@ -838,16 +1220,29 @@ export function ConnectorPanel({
       </StackMenuContent>
     );
   }
-  const targetInput = connector.allowTargetInput ? (
-    <TargetInput
-      busy={state.resolving}
-      input={connector.allowTargetInput}
-      label={t("use")}
-      onResolve={(value) => {
-        flow.resolveInput(value).catch(() => undefined);
-      }}
-    />
-  ) : null;
+  const targetInput = (
+    <>
+      {connector.allowTargetInput ? (
+        <TargetInput
+          busy={state.resolving}
+          input={connector.allowTargetInput}
+          label={t("use")}
+          onResolve={(value) => {
+            flow.resolveInput(value).catch(() => undefined);
+          }}
+        />
+      ) : null}
+      <TargetTools
+        flow={flow}
+        help={connector.help?.missingTarget}
+        state={state}
+        t={t}
+      />
+      {state.createOpen ? (
+        <CreateTargetForm flow={flow} name={name} state={state} t={t} />
+      ) : null}
+    </>
+  );
   return (
     <StackMenuContent className="p-3" data-connector-panel>
       <ColumnMapping

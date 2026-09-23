@@ -1336,6 +1336,11 @@
           "target": "components/ui/yayaw-table/utils/connector-flow.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/utils/connector-schema.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/connector-schema.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/utils/csv-export.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/csv-export.ts"

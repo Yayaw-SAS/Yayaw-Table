@@ -1,0 +1,53 @@
+import { test } from "bun:test";
+import {
+  applyConnectorField,
+  CONNECTOR_NEW_TARGET,
+  CONNECTOR_SKIP,
+  connectorFieldOptions,
+  connectorLabels,
+  connectorRenames,
+  connectorScreenFields,
+  createConnectorFlow,
+  describeSchemaFixes,
+  describeSchemaReport,
+  resolveConnectorSettings,
+  schemaIssueMessage,
+  toConnectorMapping,
+} from "../src/components/ui/yayaw-table/utils/connector-flow";
+import {
+  checkTargetSchema,
+  invalidSamples,
+  keyIndexShift,
+  notionColorFor,
+  resolveMappedField,
+  schemaBlocksRun,
+  schemaRenames,
+  typeCompatibility,
+  upgradeMapping,
+} from "../src/components/ui/yayaw-table/utils/connector-schema";
+import { connectorSchemaSuite } from "./connector-schema-suite";
+
+connectorSchemaSuite(test, {
+  applyConnectorField,
+  CONNECTOR_NEW_TARGET,
+  CONNECTOR_SKIP,
+  checkTargetSchema,
+  connectorFieldOptions,
+  connectorLabels,
+  connectorRenames,
+  connectorScreenFields,
+  createConnectorFlow,
+  describeSchemaFixes,
+  describeSchemaReport,
+  invalidSamples,
+  keyIndexShift,
+  notionColorFor,
+  resolveConnectorSettings,
+  resolveMappedField,
+  schemaBlocksRun,
+  schemaIssueMessage,
+  schemaRenames,
+  toConnectorMapping,
+  typeCompatibility,
+  upgradeMapping,
+});

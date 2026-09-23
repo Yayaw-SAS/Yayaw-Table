@@ -91,6 +91,8 @@ export interface SyncField {
   columnId: string;
   /** Notion property name or sheet header. */
   field: string;
+  /** Notion property id: found before the name, so renames are followed. */
+  fieldId?: string;
   /** Table column type (`number`, `date`, `boolean`, `multiSelect`, …). */
   type?: string;
 }
@@ -99,6 +101,8 @@ export interface SyncMapping {
   fields: readonly SyncField[];
   /** Target field holding the table row id, "Yayaw ID" by default. */
   keyField?: string;
+  /** Notion property id of the key field, found before its name. */
+  keyFieldId?: string;
 }
 
 /**
@@ -385,7 +389,12 @@ export function hashSyncValues(
 export function toSyncMapping(
   settings: {
     keyField?: string;
-    mapping: readonly { columnId: string; field: string | null }[];
+    keyFieldId?: string;
+    mapping: readonly {
+      columnId: string;
+      field: string | null;
+      fieldId?: string;
+    }[];
   },
   columns: readonly { id: string; type?: string }[] = []
 ): SyncMapping {
@@ -397,11 +406,16 @@ export function toSyncMapping(
       fields.push({
         columnId: entry.columnId,
         field: entry.field,
+        ...(entry.fieldId ? { fieldId: entry.fieldId } : {}),
         ...(type ? { type } : {}),
       });
     }
   }
-  return { keyField: settings.keyField ?? DEFAULT_CONNECTOR_KEY, fields };
+  return {
+    keyField: settings.keyField ?? DEFAULT_CONNECTOR_KEY,
+    ...(settings.keyFieldId ? { keyFieldId: settings.keyFieldId } : {}),
+    fields,
+  };
 }
 
 // Plan -------------------------------------------------------------------------

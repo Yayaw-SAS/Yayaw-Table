@@ -10,6 +10,7 @@ import {
   connectorLabels,
   connectorMappingSections,
   connectorRuleHints,
+  connectorSchemaBlocker,
   connectorScreenFields,
   connectorSyncBlocker,
   createConnectorFlow,
@@ -17,6 +18,8 @@ import {
   describePendingConflicts,
   describePushDetails,
   describePushResult,
+  describeSchemaFixes,
+  describeSchemaReport,
   describeSyncPreview,
   describeSyncResult,
   isSyncDirection,
@@ -32,6 +35,8 @@ import TableCheckbox from "../controls/TableCheckbox.vue";
 import ColumnMapping from "./ColumnMapping.vue";
 import ConnectorAppRules from "./ConnectorAppRules.vue";
 import ConnectorConflicts from "./ConnectorConflicts.vue";
+import ConnectorCreateTarget from "./ConnectorCreateTarget.vue";
+import ConnectorTargetCheck from "./ConnectorTargetCheck.vue";
 
 /**
  * The connector screen of a Connect destination: target, direction, column
@@ -112,7 +117,21 @@ const conflicts = computed(() =>
 );
 const syncing = computed(() => isSyncDirection(state.value.settings?.direction));
 const canPreview = computed(() => syncing.value && Boolean(props.connector.preview));
-const blocker = computed(() => connectorSyncBlocker(state.value, props.connector));
+const syncBlocker = computed(() => connectorSyncBlocker(state.value, props.connector));
+const schemaBlocked = computed(() => connectorSchemaBlocker(state.value) !== null);
+// "Target check": issues, "Prepare …" and "Update mapping"; a blocking issue stops Send and Sync.
+const check = computed(() =>
+  describeSchemaReport(state.value, { connector: props.connector, name: props.name, t, columns: opened.columns })
+);
+const fixes = computed(() =>
+  describeSchemaFixes(state.value.schemaReport?.fixes ?? [], {
+    connector: {},
+    name: props.name,
+    t,
+    schema: state.value.schema,
+  })
+);
+const blocker = computed(() => check.value?.blocked ?? (syncBlocker.value ? t(syncBlocker.value) : null));
 const previewView = computed(() =>
   canPreview.value && state.value.preview
     ? describeSyncPreview(state.value.preview, { t, name: props.name, columns: opened.columns, locale: props.locale })
@@ -168,6 +187,9 @@ const resolveInput = (): void => {
 const resolveConflicts = (resolutions: PendingConflictResolution[]): void => {
   flow.resolveConflicts(resolutions).catch(() => undefined);
 };
+const run = (action: () => Promise<void>): void => {
+  action().catch(() => undefined);
+};
 </script>
 
 <template>
@@ -196,8 +218,9 @@ const resolveConflicts = (resolutions: PendingConflictResolution[]): void => {
     </div>
     <ColumnMapping v-else :before="sections.before" :rows="sections.rows" :key-field="sections.keyField"
       :after="sections.after" @change="change">
-      <template v-if="connector.allowTargetInput" #after-target>
-        <form class="yayaw-connector-input" data-connector-target-input @submit.prevent="resolveInput">
+      <template #after-target>
+        <form v-if="connector.allowTargetInput" class="yayaw-connector-input" data-connector-target-input
+          @submit.prevent="resolveInput">
           <label :for="`${id}-input`">{{ connector.allowTargetInput.label }}</label>
           <div class="yayaw-connector-input-row">
             <input :id="`${id}-input`" v-model="input" class="yayaw-input" :placeholder="connector.allowTargetInput.placeholder" />
@@ -207,6 +230,18 @@ const resolveConflicts = (resolutions: PendingConflictResolution[]): void => {
             </button>
           </div>
         </form>
+        <div class="yayaw-connector-target-tools" data-connector-target-tools>
+          <button type="button" class="yayaw-button yayaw-button-ghost yayaw-connector-refresh" :disabled="state.refreshing"
+            :aria-busy="state.refreshing" @click="run(flow.refreshTargets)">
+            <RefreshCw :size="14" aria-hidden="true" :class="{ 'yayaw-spin': state.refreshing }" />{{ t("refreshTargets") }}
+          </button>
+          <p v-if="connector.help?.missingTarget" class="yayaw-connector-hint" data-connector-missing-help>
+            {{ connector.help.missingTarget }}
+          </p>
+        </div>
+        <ConnectorCreateTarget v-if="state.createOpen" :parents="state.createParents" :creating="state.creating"
+          :name="name" :t="t" @create="(value) => run(() => flow.createTarget(value))"
+          @cancel="run(() => flow.showCreate(false))" />
       </template>
       <template #after-mode>
         <p v-if="state.settings" class="yayaw-connector-hint" data-connector-mode-hint>
@@ -226,6 +261,25 @@ const resolveConflicts = (resolutions: PendingConflictResolution[]): void => {
         </label>
         <ConnectorAppRules v-if="rules && !rulesAfterConflict" :view="rules" />
       </template>
+      <ConnectorTargetCheck v-if="check" :view="check" :preparing="state.preparing" :prepare-open="state.prepareOpen"
+        @prepare="flow.showPrepare(true)" @update-mapping="run(flow.updateMapping)" />
+      <section v-if="state.prepareOpen" class="yayaw-connector-prepare" :aria-label="fixes.confirm"
+        data-connector-prepare-confirm>
+        <p>{{ fixes.intro }}</p>
+        <ul>
+          <li v-for="line in fixes.lines" :key="line">{{ line }}</li>
+        </ul>
+        <div class="yayaw-schedule-actions">
+          <button type="button" class="yayaw-button" :disabled="state.preparing" :aria-busy="state.preparing"
+            @click="run(flow.prepare)">
+            <span v-if="state.preparing" class="yayaw-spinner" aria-hidden="true" />{{ state.preparing ? t("preparing") : fixes.confirm }}
+          </button>
+          <button type="button" class="yayaw-button yayaw-button-outline" :disabled="state.preparing"
+            @click="flow.showPrepare(false)">
+            {{ fixes.cancel }}
+          </button>
+        </div>
+      </section>
       <p v-if="state.schemaLoading" class="yayaw-schedule-loading">
         <span class="yayaw-spinner" aria-hidden="true" />{{ t("loadingFields") }}
       </p>
@@ -271,10 +325,11 @@ const resolveConflicts = (resolutions: PendingConflictResolution[]): void => {
         </div>
       </output>
       <p v-if="state.error" class="yayaw-connector-error" data-connector-error role="alert">{{ state.error }}</p>
-      <p v-if="blocker && !state.error" class="yayaw-connector-hint" data-connector-blocker>{{ t(blocker) }}</p>
+      <p v-if="blocker && !state.error" class="yayaw-connector-hint"
+        :class="{ 'yayaw-connector-blocked': schemaBlocked }" data-connector-blocker>{{ blocker }}</p>
       <div class="yayaw-schedule-actions">
         <button v-if="canPreview" type="button" class="yayaw-button yayaw-button-outline"
-          :disabled="busy || !state.settings" :aria-busy="state.previewing" @click="preview">
+          :disabled="busy || !state.settings || schemaBlocked" :aria-busy="state.previewing" @click="preview">
           <span v-if="state.previewing" class="yayaw-spinner" aria-hidden="true" />
           <Eye v-else :size="16" aria-hidden="true" />
           {{ state.previewing ? t("previewing") : t("previewChanges") }}
