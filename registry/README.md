@@ -43,6 +43,7 @@ Le domaine sert uniquement les fichiers statiques de `public/r` via GitHub Pages
 Les vues optionnelles ont leur propre item, pour que la table ne dépende pas de leurs librairies :
 
 - `https://table.yayaw.app/r/yayaw-table-calendar.json` (React) et `https://table.yayaw.app/r/yayaw-table-vue-calendar.json` (Vue) : vue Calendrier avec FullCalendar. Passez `calendarRenderer` à `displayModeRenderers` et ajoutez `"calendar"` à `displayModes`.
+- `https://table.yayaw.app/r/yayaw-table-chart.json` (React, shadcn/ui `chart` avec Recharts) et `https://table.yayaw.app/r/yayaw-table-vue-chart.json` (Vue, Unovis) : vue Graphique (barres, courbe, anneau, nombre). Passez `chartRenderer` à `displayModeRenderers` et ajoutez `"chart"` à `displayModes`.
 
 Le registry publie aussi deux items optionnels CLI v4 :
 

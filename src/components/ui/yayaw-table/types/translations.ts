@@ -347,6 +347,7 @@ export interface DataTableTranslations {
     display: {
       title: string;
       calendar?: string;
+      chart?: string;
       form?: string;
       gantt?: string;
       gallery: string;

@@ -1,7 +1,7 @@
 import { type ComputedRef, computed } from "vue";
 import { useTableContext } from "../context";
 import type { DisplayModeSettingsContext } from "../display-mode-renderer";
-import { GENERIC_MODE_CONFIG_KEYS } from "../display-modes";
+import { GENERIC_MODE_CONFIG_KEYS, modeDefaultsOf } from "../display-modes";
 
 /** Settings of the active mode, saved in the view and URL like built-in modes. */
 export const useModeSettingsContext =
@@ -19,7 +19,7 @@ export const useModeSettingsContext =
         tableId: context.config.id,
         locale: context.locale,
         columns: context.config.columns.definitions,
-        defaults: (table[mode] as Record<string, unknown> | undefined) ?? {},
+        defaults: modeDefaultsOf(table, mode),
         settings: (key && context.state.modeConfigs.value[key]) || {},
         updateSettings: (settings) => {
           if (!key) {

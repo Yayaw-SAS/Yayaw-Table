@@ -2,11 +2,14 @@
 import { DataTable, defineTableConfig, type TableActions, type TableRecord } from "../src";
 import { Toaster } from "vue-sonner";
 import { calendarRenderer } from "../src/calendar/calendar-renderer";
-import { createViewsActions, initialViewsRows, viewsColumns, viewsTableOptions, viewsVisibleColumns } from "../../../examples/views";
+import { chartRenderer } from "../src/chart/chart-renderer";
+import { chartViews, createViewsActions, initialViewsRows, viewsColumns, viewsTableOptions, viewsVisibleColumns } from "../../../examples/views";
 import { guidedRequestFormView, requestFormView } from "../../../examples/form-links";
 
+// Without `aggregate`, charts are computed over the rows the list action returns.
+const props = withDefaults(defineProps<{ aggregate?: boolean }>(), { aggregate: true });
 const rows: TableRecord[] = initialViewsRows();
-const actions = createViewsActions() as unknown as TableActions;
+const actions = createViewsActions({ aggregate: props.aggregate }) as unknown as TableActions;
 const config = defineTableConfig({
   id: "views",
   columns: {
@@ -22,7 +25,7 @@ const config = defineTableConfig({
 <template>
   <main class="views-example">
     <h1>Views</h1>
-    <DataTable :table-type="config.id" :config="config" :data="rows" :get-table-actions="() => actions" :display-mode-renderers="{ calendar: calendarRenderer }" :initial-views="[requestFormView, guidedRequestFormView]" />
+    <DataTable :table-type="config.id" :config="config" :data="rows" :get-table-actions="() => actions" :display-mode-renderers="{ calendar: calendarRenderer, chart: chartRenderer }" :initial-views="[requestFormView, guidedRequestFormView, ...chartViews]" />
     <Toaster position="bottom-right" />
   </main>
 </template>
@@ -35,6 +38,6 @@ body:has(.views-example) {
 }
 </style>
 <style scoped>
-.views-example { box-sizing: border-box; max-width: 72rem; margin: auto; padding: 1.5rem; display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
+.views-example { box-sizing: border-box; max-width: 80rem; margin: auto; padding: 1.5rem; display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
 .views-example h1 { font-size: 1.5rem; line-height: 2rem; font-weight: 600; margin: 0; }
 </style>

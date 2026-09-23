@@ -39,7 +39,13 @@ libraries. The calendar (FullCalendar) is
 `https://table.yayaw.app/r/yayaw-table-calendar.json` for React and
 `https://table.yayaw.app/r/yayaw-table-vue-calendar.json` for Vue: pass
 `calendarRenderer` to `displayModeRenderers` and add `"calendar"` to
-`displayModes`. The Form view ships in the table items: add `"form"` to
+`displayModes`. Charts (bars, line, donut, number; shadcn/ui charts with
+Recharts in React, Unovis in Vue) are
+`https://table.yayaw.app/r/yayaw-table-chart.json` and
+`https://table.yayaw.app/r/yayaw-table-vue-chart.json`: pass `chartRenderer`
+and add `"chart"`. Charts ask `actions.aggregate` for grouped values
+(`groupBy`, `metrics`) and fall back to the rows `list` returns; clicking a
+group filters the table to it. The Form view ships in the table items: add `"form"` to
 `displayModes` (tables with a `create` action). Its standalone
 `YayawTableForm` renders a saved Form view on a public route without table
 state. Forms can show, hide and require questions by rule (`form.rules`,

@@ -7,6 +7,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 for (const name of [
   "yayaw-table-vue",
   "yayaw-table-vue-calendar",
+  "yayaw-table-vue-chart",
   "yayaw-table-vue-connector-notion",
   "yayaw-table-vue-connector-google-sheets",
 ]) {

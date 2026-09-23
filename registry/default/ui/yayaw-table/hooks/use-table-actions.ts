@@ -7,7 +7,7 @@
 import { useCallback, useMemo } from "react";
 import {
   type TableAggregateParams,
-  type TableAggregateResultValue,
+  type TableAggregateResponse,
   type TableMutationContext,
   useTableActions as useProviderTableActions,
 } from "../providers/table-provider";
@@ -29,10 +29,7 @@ interface TableActions {
     data: unknown[];
     meta: { pageCount: number; totalCount: number };
   }>;
-  aggregate?: (params: TableAggregateParams) => Promise<{
-    results: Record<string, TableAggregateResultValue>;
-    meta?: { totalCount?: number };
-  }>;
+  aggregate?: (params: TableAggregateParams) => Promise<TableAggregateResponse>;
   create?: (data: unknown) => Promise<ActionResult>;
   update?: (
     id: string,

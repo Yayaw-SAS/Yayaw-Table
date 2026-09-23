@@ -12,6 +12,7 @@ import type { TableDisplayMode } from "../types/display-types";
 import {
   GENERIC_MODE_CONFIG_KEYS,
   type GenericModeConfigKey,
+  modeDefaultsOf,
 } from "../utils/display-modes";
 import {
   toAdvancedFiltersParam,
@@ -42,6 +43,8 @@ export interface DisplayModeRenderInput {
     sort: unknown;
   };
   list?: TableActions["list"];
+  aggregate?: TableActions["aggregate"];
+  showRecords: (rules: RowRecord[]) => boolean;
   rows: RowRecord[];
   getRowId?: (row: RowRecord) => string;
   canEditRow: (row: RowRecord) => boolean;
@@ -73,6 +76,8 @@ export function useDisplayModeRenderContext(
     formLinks,
     getRowId,
     list,
+    aggregate,
+    showRecords,
     locale,
     mode,
     modeConfigs,
@@ -113,9 +118,7 @@ export function useDisplayModeRenderContext(
       tableType,
       locale,
       columns,
-      defaults:
-        ((tableDefaults as RowRecord)[mode] as RowRecord | undefined) ??
-        EMPTY_SETTINGS,
+      defaults: modeDefaultsOf(tableDefaults, mode),
       settings,
       updateSettings: (next) => {
         if (configKey) {
@@ -125,7 +128,10 @@ export function useDisplayModeRenderContext(
       translate: (key, fallback) => translateWithFallback(t, key, fallback),
       listParams,
       list,
+      aggregate,
       rows,
+      advancedFilters,
+      showRecords,
       getRowId: getRowId ?? defaultRowId,
       canEditRow,
       canCreate,
@@ -147,6 +153,8 @@ export function useDisplayModeRenderContext(
     }),
     [
       activateRow,
+      advancedFilters,
+      aggregate,
       canCreate,
       canEditRow,
       columns,
@@ -165,6 +173,7 @@ export function useDisplayModeRenderContext(
       rows,
       setModeConfig,
       settings,
+      showRecords,
       t,
       tableDefaults,
       tableId,

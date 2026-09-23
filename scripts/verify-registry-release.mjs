@@ -17,6 +17,7 @@ const manifestPath = path.join(publicRegistryDir, expectedTag, "release.json");
 const standaloneRegistryItems = [
   "yayaw-table-vue",
   "yayaw-table-vue-calendar",
+  "yayaw-table-vue-chart",
   "yayaw-table-vue-connector-notion",
   "yayaw-table-vue-connector-google-sheets",
 ];

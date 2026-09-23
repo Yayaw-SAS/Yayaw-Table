@@ -26,8 +26,17 @@ export interface DisplayModeRenderContext extends DisplayModeSettingsContext {
   /** The current query (search, filters, sorting) as list parameters. */
   listParams: Record<string, unknown>;
   list?: ScopedRowsRequest["list"];
+  /** `actions.aggregate`, for views that ask the host for grouped values (charts). */
+  aggregate?: (params: Record<string, unknown>) => unknown;
   /** Rows matching the current query, for tables without a list action. */
   rows: TableRecord[];
+  /** The view's advanced filters (`{ filters, joinOperator }`). */
+  advancedFilters: unknown;
+  /**
+   * Show the records matching these advanced filter rules: they join the
+   * view's filters and the table mode opens. False when they cannot be added.
+   */
+  showRecords: (rules: Record<string, unknown>[]) => boolean;
   getRowId: (row: TableRecord) => string;
   canEditRow: (row: TableRecord) => boolean;
   canCreate: boolean;

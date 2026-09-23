@@ -82,7 +82,16 @@ import type { TableDensity, TableDisplayMode } from "../types/display-types";
 
 import { ColumnIcon } from "../utils/column-icons";
 import { buildCsvExportColumns } from "../utils/csv-export";
-import { resolveDisplayMode } from "../utils/display-modes";
+import {
+  canAddChartFilters,
+  type ChartFilterRule,
+  withChartFilters,
+} from "../utils/chart-model";
+import {
+  recordsDisplayMode,
+  resolveDisplayMode,
+} from "../utils/display-modes";
+import type { AdvancedFiltersState } from "../types/filter-types";
 import { isManualOrder } from "../utils/manual-order";
 import type {
   DetailRevertHandler,
@@ -153,6 +162,8 @@ const PAGINATION_VIEWPORT_OPTIONS = {
   threshold: 0,
 } as const;
 const BULK_ACTIONS_FIXED_VIEWPORT_MARGIN = 24;
+/** Longer than the URL state debounce of filter edits (150 ms). */
+const FILTER_WRITE_DELAY_MS = 200;
 
 export const shouldShowCalculationsFooter = ({
   enableCalculations,
@@ -1333,6 +1344,8 @@ function ModernDataTable<
     viewParam,
     modeConfigs,
     setModeConfigFromUI,
+    setAdvancedFiltersFromUI,
+    setDisplayModeFromUI,
   } = useTableUrlState({
     defaultGantt: tableConfig.table.gantt,
     defaultDisplayMode: tableConfig.table.defaultDisplayMode,
@@ -1965,7 +1978,46 @@ function ModernDataTable<
     tableId,
     viewParam,
   });
+  // A clicked chart group: its rules join the view's filters, then the records show as a table.
+  const showRendererRecords = useCallback(
+    (rules: Record<string, unknown>[]) => {
+      if (!canAddChartFilters(advancedFiltersParam)) {
+        return false;
+      }
+      const now = new Date();
+      const merged = withChartFilters(
+        advancedFiltersParam,
+        rules as unknown as ChartFilterRule[]
+      );
+      setAdvancedFiltersFromUI(
+        merged.filters.map((filter) => ({
+          createdAt: now,
+          updatedAt: now,
+          ...filter,
+        })) as unknown as AdvancedFiltersState
+      );
+      // Filters are written after a short debounce; the table opens once they
+      // are, so it loads the group's records like a shared link would.
+      window.setTimeout(
+        () =>
+          setDisplayModeFromUI(
+            recordsDisplayMode(configuredDisplayModes, activeDisplayMode)
+          ),
+        FILTER_WRITE_DELAY_MS
+      );
+      return true;
+    },
+    [
+      activeDisplayMode,
+      advancedFiltersParam,
+      configuredDisplayModes,
+      setAdvancedFiltersFromUI,
+      setDisplayModeFromUI,
+    ]
+  );
   const rendererContext = useDisplayModeRenderContext({
+    aggregate: providerTableActions?.aggregate,
+    showRecords: showRendererRecords,
     activateRow: activateRendererRow,
     canCreate: canCreateRows,
     canEditRow: canEditRendererRow,

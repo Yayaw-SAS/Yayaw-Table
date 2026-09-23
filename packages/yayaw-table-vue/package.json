@@ -29,6 +29,8 @@
     "@internationalized/date": "^3.12.4",
     "@tanstack/vue-query": "^5.90.0",
     "@tanstack/vue-table": "9.2.4",
+    "@unovis/ts": "^1.7.0",
+    "@unovis/vue": "^1.7.0",
     "date-fns": "^4.1.0",
     "lucide-vue-next": "^1.0.0",
     "reka-ui": "^2.10.4",

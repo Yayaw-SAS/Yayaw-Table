@@ -21,6 +21,8 @@ const includedExtensions = new Set([".css", ".ts", ".vue"]);
 // Optional views ship as their own items so the table stays free of their dependencies.
 const calendarRoot = join(sourceRoot, "calendar");
 const isCalendarFile = (path) => path.startsWith(`${calendarRoot}/`);
+const chartRoot = join(sourceRoot, "chart");
+const isChartFile = (path) => path.startsWith(`${chartRoot}/`);
 const allSourceFiles = (await walk(sourceRoot)).filter((path) => {
   if (!includedExtensions.has(extname(path))) {
     return false;
@@ -38,7 +40,8 @@ const allSourceFiles = (await walk(sourceRoot)).filter((path) => {
 const connectorsRoot = join(sourceRoot, "connectors");
 const isConnectorFile = (path) => path.startsWith(`${connectorsRoot}/`);
 const sourceFiles = allSourceFiles.filter(
-  (path) => !(isCalendarFile(path) || isConnectorFile(path))
+  (path) =>
+    !(isCalendarFile(path) || isChartFile(path) || isConnectorFile(path))
 );
 
 const toRegistryFiles = async (paths, type = "registry:component") =>
@@ -95,6 +98,18 @@ const calendarItem = {
   files: await toRegistryFiles(allSourceFiles.filter(isCalendarFile)),
 };
 
+const chartItem = {
+  $schema: "https://shadcn-vue.com/schema/registry-item.json",
+  name: "yayaw-table-vue-chart",
+  type: "registry:block",
+  title: "YaYaw Table Vue Chart",
+  description:
+    'Optional chart display mode for YaYaw Table Vue (vertical and horizontal bars, line, donut and number), rendered with Unovis as in shadcn-vue charts. Pass `chartRenderer` to `display-mode-renderers` and add "chart" to `table.displayModes`.',
+  dependencies: ["@unovis/ts@^1.7.0", "@unovis/vue@^1.7.0"],
+  registryDependencies: ["https://table.yayaw.app/r/yayaw-table-vue.json"],
+  files: await toRegistryFiles(allSourceFiles.filter(isChartFile)),
+};
+
 const connectorFiles = (name) =>
   toRegistryFiles(
     ["connector-model.ts", "sync-engine.ts", name].map((file) =>
@@ -129,12 +144,12 @@ const connectorItems = [
 ];
 
 await mkdir(outputRoot, { recursive: true });
-for (const registryItem of [item, calendarItem, ...connectorItems]) {
+for (const registryItem of [item, calendarItem, chartItem, ...connectorItems]) {
   await writeFile(
     join(outputRoot, `${registryItem.name}.json`),
     `${JSON.stringify(registryItem, null, 2)}\n`
   );
 }
 console.log(
-  `Built ${files.length} Vue registry files, ${calendarItem.files.length} calendar files and ${connectorItems.length} connector items.`
+  `Built ${files.length} Vue registry files, ${calendarItem.files.length} calendar files, ${chartItem.files.length} chart files and ${connectorItems.length} connector items.`
 );

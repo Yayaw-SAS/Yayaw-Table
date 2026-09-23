@@ -37,17 +37,23 @@ test.beforeEach(async ({ page }) => {
 test("saved views appear as tabs with their layout, and + creates one in another layout", async ({
   page,
 }) => {
-  // The default view is a tab from the start, next to the example's Request form.
+  // The default view is a tab from the start, next to the example's saved views;
+  // past three (`viewTabs.maxVisible`) they move under "More".
   await expect(page.getByRole("tab")).toHaveText([
     "Default view",
     "Request",
     "Guided request",
+    "Revenue by category",
   ]);
+  await page.getByRole("button", { name: "More", exact: true }).click();
+  await expect(page.getByRole("menuitem")).toHaveText(["Projects over time"]);
+  await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "View actions" }).click();
   await page.getByRole("button", { name: "Save this view…" }).click();
   await saveView(page, "Active projects");
 
   const tabs = page.getByRole("tablist", { name: "Views" });
+  // The active view stays visible in place of the last tab.
   await expect(tabs.getByRole("tab")).toHaveText([
     "Default view",
     "Request",
@@ -69,7 +75,8 @@ test("saved views appear as tabs with their layout, and + creates one in another
 
   await tabs.getByRole("tab", { name: "Default view" }).click();
   await expect.poll(() => displayParam(page)).toBeNull();
-  await tabs.getByRole("tab", { name: "Deadlines" }).click();
+  await page.getByRole("button", { name: "More", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Deadlines" }).click();
   await expect.poll(() => displayParam(page)).toBe("calendar");
 
   // Settings are separate from the views, on the right.

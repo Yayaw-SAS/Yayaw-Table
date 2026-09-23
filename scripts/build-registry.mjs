@@ -53,6 +53,7 @@ const TABLE_REGISTRY_ITEM_NAME = "yayaw-table";
  */
 const OPTIONAL_ITEMS = [
   { name: "yayaw-table-calendar", dir: "yayaw-table-calendar" },
+  { name: "yayaw-table-chart", dir: "yayaw-table-chart" },
 ];
 /**
  * Optional server modules living in the table source (`connectors/`). They

@@ -85,6 +85,8 @@ export interface TableStateRefs {
   pinning: Ref<ColumnPinningState>;
   pagination: Ref<PaginationState>;
   displayMode: Ref<TableDisplayMode>;
+  /** Modes this table offers (configured, with their renderer or planning session). */
+  offeredDisplayModes: readonly TableDisplayMode[];
   density: Ref<TableDensity>;
   footerCalculationsVisible: Ref<boolean>;
   kanban: Ref<TableKanbanViewConfig>;
@@ -666,6 +668,7 @@ export const useTableState = <TData extends TableRecord>({
     pinning,
     pagination,
     displayMode,
+    offeredDisplayModes,
     density,
     footerCalculationsVisible,
     kanban,
