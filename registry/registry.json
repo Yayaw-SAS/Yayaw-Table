@@ -1284,6 +1284,11 @@
           "target": "components/ui/yayaw-table/utils/row-selection-range.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/utils/scoped-rows.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/scoped-rows.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/utils/selection-interaction.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/selection-interaction.ts"

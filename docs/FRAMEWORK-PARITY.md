@@ -44,6 +44,7 @@ List actions receive both naming conventions:
 | Search | `search`, `q`, and `globalSearch` |
 | Column filters | `filters` object |
 | Advanced filters | Active `advancedFilters` array and `advancedFilterJoin` (`and`/`or`) |
+| Scope (optional) | `scope`, for example `{ kind: "dateRange", field, endField?, from, to }` |
 
 URL page indexes remain zero-based. Invalid page sizes fall back to defaults. Existing action handlers can keep reading their original names. Aggregation receives the filter join operator too. Vue accepts primitive aggregate results and React's `{ raw, label }` values.
 
@@ -564,3 +565,18 @@ shows the same fallback, and the same active switcher choice, in both editions.
 Icon maps are typed by `TableDisplayMode`, so a new registry entry fails the type
 check until each edition gives it an icon. Resetting a view clears every mode's
 settings, including Gantt.
+
+## Scoped row loading
+
+Views that need every matching row of a window, not one page, use
+`loadScopedRows` from `utils/scoped-rows.ts` (synced to Vue). It sends the usual
+list parameters plus an optional `scope`. A `dateRange` scope names local
+calendar days, both inclusive; a row matches when its start (and optional end)
+overlaps them, with the same local-day semantics as date filters.
+
+Filtering by scope on the server is preferred. A list action that applied it
+answers `meta.scope: "applied"`; otherwise the loader filters each page itself,
+so existing hosts keep working with more data transferred. Results are capped
+(`maxRows`, 2000 by default): views either show a `truncated` result or, with
+`overflow: "throw"`, refuse an incomplete one. Vue's local-data mode filters its
+rows the same way. `tests/scoped-rows-suite.ts` runs in both editions.
