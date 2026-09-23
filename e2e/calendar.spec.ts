@@ -2,7 +2,6 @@ import { expect, type Page, test } from "@playwright/test";
 
 const CALENDAR = "/?example=views&views-display=calendar";
 const SETTINGS_PARAM = "views-calendar";
-const CURRENT_VIEW = /^current view/i;
 const CARD_SETTINGS = /^card settings/i;
 const CALENDAR_MODE = /^calendar/i;
 
@@ -99,8 +98,8 @@ test("clicking a day opens the create form with that date", async ({
 
 test("calendar settings are offered in the view menu", async ({ page }) => {
   await page.goto(CALENDAR);
-  await page.getByRole("button", { name: CURRENT_VIEW }).click();
-  const menu = page.getByRole("dialog", { name: "Views and settings" });
+  await page.getByRole("button", { name: "View settings" }).click();
+  const menu = page.getByRole("dialog", { name: "View settings" });
   await expect(menu.getByRole("combobox", { name: "Display mode" })).toHaveText(
     CALENDAR_MODE
   );

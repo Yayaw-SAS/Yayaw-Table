@@ -111,8 +111,9 @@ export function TableDisplayModeSwitcher({
   }
 
   return (
-    <fieldset className={cn("flex flex-wrap items-center gap-1", className)}>
-      <legend className="mb-1 text-muted-foreground text-sm">
+    // Three columns keep every layout readable in a phone-width drawer.
+    <fieldset className={cn("grid grid-cols-3 gap-1", className)}>
+      <legend className="col-span-3 mb-1 text-muted-foreground text-sm">
         {t("views.display.title")}
       </legend>
       {uniqueModes.map((mode) => {
@@ -123,7 +124,7 @@ export function TableDisplayModeSwitcher({
         return (
           <Button
             aria-pressed={isActive}
-            className="min-w-9 flex-1 gap-1.5 px-2 font-normal"
+            className="min-w-0 gap-1.5 px-2 font-normal"
             key={mode}
             onClick={() => setDisplayModeFromUI(mode)}
             size="sm"

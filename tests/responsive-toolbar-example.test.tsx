@@ -29,8 +29,14 @@ async function waitForRows(container: HTMLElement, expected: string[]) {
   return displayedNames(container);
 }
 
-// Saved views show as tabs, so the view menu trigger is the settings button.
-const VIEW_MENU = "Views and settings";
+// Settings and views have separate menus; saved views are tabs.
+const VIEW_MENU = "View settings";
+
+/** Close the settings, then open the actions of the active view. */
+async function openViewActions() {
+  await clickButton("Close", true);
+  await clickButton("View actions");
+}
 
 async function clickButton(name: string, inDialog = false) {
   let button: HTMLButtonElement | undefined;
@@ -159,6 +165,7 @@ it("restores an ungrouped temporary view even when the application configures Ka
     ).toHaveLength(2);
     await clickButton(VIEW_MENU);
     await clickButton("XS", true);
+    await openViewActions();
     await clickButton("Reset view", true);
     expect(
       await waitForRows(preview.container, ["Atlas", "Beacon", "Current"])
@@ -182,8 +189,7 @@ it("restores saved filters, grouping and density and clears the dirty indicator"
   const preview = await mountExample();
   try {
     await waitForRows(preview.container, ["Atlas", "Beacon", "Current"]);
-    await clickButton(VIEW_MENU);
-    await clickButton("Open items", true);
+    await clickButton("Open items");
     expect(await waitForRows(preview.container, ["Atlas", "Current"])).toEqual([
       "Atlas",
       "Current",
@@ -204,7 +210,7 @@ it("restores saved filters, grouping and density and clears the dirty indicator"
     expect(
       preview.container.querySelector('[aria-label="Unsaved changes"]')
     ).not.toBeNull();
-    await clickButton("Back", true);
+    await openViewActions();
     await clickButton("Reset view", true);
     expect(await waitForRows(preview.container, ["Atlas", "Current"])).toEqual([
       "Atlas",

@@ -2,8 +2,9 @@ import { expect, type Page, test } from "@playwright/test";
 
 const EXAMPLE = "/?example=views";
 const DISPLAY_PARAM = "views-display";
-const CURRENT_VIEW = /^current view/i;
 const SEARCH = /^search/i;
+const SEARCH_BUTTON = /^search/i;
+const CURRENT_VIEW_TRIGGER = /^current view/i;
 const SEARCH_TAB = /Search/;
 
 const displayParam = (page: Page) =>
@@ -28,9 +29,9 @@ test.beforeEach(async ({ page }) => {
 test("saved views appear as tabs with their layout, and + creates one in another layout", async ({
   page,
 }) => {
-  // Without saved views the view menu keeps its named trigger.
-  await expect(page.getByRole("tablist")).toHaveCount(0);
-  await page.getByRole("button", { name: CURRENT_VIEW }).click();
+  // The default view is a tab from the start.
+  await expect(page.getByRole("tab")).toHaveText(["Default view"]);
+  await page.getByRole("button", { name: "View actions" }).click();
   await page.getByRole("button", { name: "Save this view…" }).click();
   await saveView(page, "Active projects");
 
@@ -57,19 +58,49 @@ test("saved views appear as tabs with their layout, and + creates one in another
   await tabs.getByRole("tab", { name: "Deadlines" }).click();
   await expect.poll(() => displayParam(page)).toBe("calendar");
 
-  // The settings stay one click away.
-  await page.getByRole("button", { name: "Views and settings" }).click();
+  // Settings are separate from the views, on the right.
+  await page.getByRole("button", { name: "View settings" }).click();
   await expect(
-    page.getByRole("dialog", { name: "Views and settings" })
+    page.getByRole("dialog", { name: "View settings" })
   ).toBeVisible();
 });
 
 test("an edited view shows as modified on its tab", async ({ page }) => {
-  await page.getByRole("button", { name: CURRENT_VIEW }).click();
+  await page.getByRole("button", { name: "View actions" }).click();
   await page.getByRole("button", { name: "Save this view…" }).click();
   await saveView(page, "Search");
   const tab = page.getByRole("tab", { name: SEARCH_TAB });
   await expect(tab.locator("output")).toHaveCount(0);
   await page.getByPlaceholder(SEARCH).fill("Alpha");
   await expect(tab.locator("output")).toBeVisible();
+});
+
+test("on phones, views and settings are two separate menus and search opens on demand", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 800 });
+  await page.goto(EXAMPLE);
+  await expect(page.getByRole("tablist")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Data actions" })).toHaveCount(
+    0
+  );
+
+  await page.getByRole("button", { name: "View settings" }).click();
+  const settings = page.getByRole("dialog", { name: "View settings" });
+  await expect(settings.getByRole("button", { name: "Export" })).toBeVisible();
+  await expect(settings.getByRole("button", { name: "Share" })).toBeVisible();
+  await expect(settings.getByText("Default view")).toHaveCount(0);
+  await page.keyboard.press("Escape");
+
+  await page.getByRole("button", { name: CURRENT_VIEW_TRIGGER }).click();
+  await expect(
+    page.getByRole("button", { name: "Save this view…" })
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
+
+  await page.getByRole("button", { name: SEARCH_BUTTON }).click();
+  await page.getByPlaceholder(SEARCH).fill("Bravo");
+  await expect
+    .poll(() => new URL(page.url()).searchParams.get("views-q"))
+    .toBe("Bravo");
 });

@@ -36,6 +36,8 @@
 .yayaw-table {
   position: relative;
   width: 100%;
+  /* Grid and flex hosts must not size the table to its widest column set. */
+  min-width: 0;
   color: var(--yayaw-foreground);
   /* Tailwind's antialiased, as on React tables: lighter text on macOS. */
   -webkit-font-smoothing: antialiased;
@@ -2239,6 +2241,114 @@
   background-position: 12px center;
   background-repeat: no-repeat;
 }
+/* Views on the left; search, settings and create on the right. */
+.yayaw-toolbar-end {
+  display: flex;
+  min-width: 0;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.yayaw-toolbar-end .yayaw-data-actions {
+  flex: none;
+}
+.yayaw-search-field {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  align-items: center;
+}
+.yayaw-search-field .yayaw-search-icon {
+  position: absolute;
+  left: 12px;
+  color: var(--yayaw-muted-foreground);
+  pointer-events: none;
+}
+.yayaw-search-field .yayaw-search {
+  width: 16rem;
+  padding-left: 36px;
+}
+.yayaw-search-field[data-compact="true"] .yayaw-search {
+  width: min(160px, 40vw);
+  height: 44px;
+  padding-right: 36px;
+}
+.yayaw-search-clear {
+  position: absolute;
+  right: 4px;
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: var(--yayaw-muted-foreground);
+  cursor: pointer;
+}
+.yayaw-settings-trigger {
+  position: relative;
+}
+.yayaw-settings-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  display: flex;
+  min-width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--yayaw-primary);
+  color: var(--yayaw-primary-foreground);
+  font-size: 10px;
+  line-height: 1;
+}
+.yayaw-options-data {
+  border-top: 1px solid var(--yayaw-border);
+}
+.yayaw-options-heading {
+  margin: 0;
+  padding: 4px 8px 0;
+  color: var(--yayaw-muted-foreground);
+  font-size: 14px;
+}
+.yayaw-toolbar-menu[data-compact="true"] .yayaw-options-item {
+  min-height: 44px;
+}
+.yayaw-choice-list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  border: 0;
+  padding: 12px;
+}
+.yayaw-choice-list .yayaw-options-item {
+  cursor: pointer;
+}
+.yayaw-choice-list .yayaw-options-item:has(input:focus-visible) {
+  background: var(--yayaw-muted);
+}
+.yayaw-choice-list .yayaw-options-item > svg {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.yayaw-view-selection {
+  max-height: 20rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.yayaw-view-filter {
+  width: 100%;
+  height: 32px;
+  margin-bottom: 4px;
+}
+/* Three columns keep every layout readable in a phone-width drawer. */
+.yayaw-display-mode-inline .yayaw-segmented {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
 .yayaw-menu-anchor {
   display: inline-flex;
   min-width: 0;
@@ -2249,6 +2359,12 @@
 }
 .yayaw-toolbar[data-compact="true"] .yayaw-view-trigger {
   width: 100%;
+}
+.yayaw-toolbar[data-compact="true"] .yayaw-view-manager-row,
+.yayaw-toolbar[data-compact="true"]
+  .yayaw-view-manager-row
+  > .yayaw-menu-anchor {
+  flex: 1;
 }
 .yayaw-toolbar[data-compact="true"] :is(.yayaw-button, .yayaw-icon-button) {
   min-height: 44px;
@@ -2669,16 +2785,19 @@
   min-height: 16px;
   min-width: 16px;
 }
-.yayaw-card-settings .yayaw-control-field {
+.yayaw-card-settings .yayaw-control-field,
+.yayaw-display-mode-select .yayaw-control-field {
   display: grid;
   gap: 6px;
   min-width: 0;
 }
-.yayaw-card-settings .yayaw-control-field > label {
+.yayaw-card-settings .yayaw-control-field > label,
+.yayaw-display-mode-select .yayaw-control-field > label {
   font-size: 14px;
   white-space: normal;
 }
-.yayaw-card-settings .yayaw-select-trigger {
+.yayaw-card-settings .yayaw-select-trigger,
+.yayaw-display-mode-select .yayaw-select-trigger {
   width: 100%;
   min-width: 0;
   max-width: none;

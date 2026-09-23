@@ -786,7 +786,7 @@ export const defaultTranslations: DataTableTranslations = {
   },
   views: {
     view: "View",
-    settings: "Views and settings",
+    settings: "View settings",
     cardSettings: "Card settings",
     modified: "Unsaved changes",
     upToDate: "This view is already up to date",
@@ -810,6 +810,8 @@ export const defaultTranslations: DataTableTranslations = {
     favoriteError: "Could not load or save the favorite view",
     defaultView: "Default view",
     tabs: "Views",
+    viewActions: "View actions",
+    filterViews: "Find a view",
     more: "More",
     newView: "New view",
     default_system_view: "Default System View",
@@ -1041,6 +1043,7 @@ export const defaultTranslations: DataTableTranslations = {
     calculate: "Calculate",
   },
   menu: {
+    data: "Data",
     back: "Back",
     columns: "Columns",
     columns_visible: "{count} {count, plural, one {visible} other {visibles}}",

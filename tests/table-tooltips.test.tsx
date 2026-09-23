@@ -35,7 +35,11 @@ it("shows translated density and view-action tooltips on keyboard focus without 
               translations={translations}
             >
               <TableDensityMenu tableId="tooltip" />
-              <DataTableViewManager tableId="tooltip" tableType="tooltip" />
+              <DataTableViewManager
+                tableId="tooltip"
+                tableType="tooltip"
+                tabs={false}
+              />
             </TableProvider>
           </Provider>
         </NuqsTestingAdapter>

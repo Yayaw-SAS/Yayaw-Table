@@ -2,8 +2,8 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   inlineTestPortals,
-  openViewMenu,
   openViewScreen,
+  openViewsMenu,
 } from "../../../tests/menu-helpers";
 import { defineTableConfig } from "../../config";
 import YayawDataTable from "../YayawDataTable.vue";
@@ -127,7 +127,7 @@ describe("toolbar filter reset", () => {
     const search = wrapper.get('input[type="search"]');
     expect(search.attributes("aria-label")).toBe("Search…");
     expect((search.element as HTMLInputElement).value).toBe("Alpha");
-    await openViewMenu(wrapper);
+    await openViewsMenu(wrapper);
     await wrapper
       .get('.yayaw-toolbar-menu button[aria-label="Reset view"]')
       .trigger("click");
@@ -229,7 +229,7 @@ describe("toolbar filter reset", () => {
     });
     await wrapper.get("th.sortable").trigger("click");
     expect(wrapper.findAll("tbody tr")[0]?.text()).toContain("Beta");
-    await openViewMenu(wrapper);
+    await openViewsMenu(wrapper);
     await wrapper
       .get('.yayaw-toolbar-menu button[aria-label="Start again"]')
       .trigger("click");

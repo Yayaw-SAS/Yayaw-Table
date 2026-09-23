@@ -15,9 +15,10 @@ export function inlineTestPortals(): void {
   };
 }
 
+/** Opens the view settings (layout, properties, filter, sort, group, data). */
 export async function openViewMenu(wrapper: VueWrapper): Promise<void> {
   await flushPromises();
-  const trigger = wrapper.get(".yayaw-view-trigger");
+  const trigger = wrapper.get(".yayaw-settings-trigger");
   if (trigger.attributes("aria-expanded") !== "true") {
     await trigger.trigger("click");
     await flushPromises();
@@ -41,8 +42,20 @@ export async function openViewScreen(
 
 const SAVE_ACTION_PATTERN = /Save (this view|as new view)/;
 
+/** Opens the views menu: the actions chevron next to the tabs, or the named trigger. */
+export async function openViewsMenu(wrapper: VueWrapper): Promise<void> {
+  await flushPromises();
+  const trigger = wrapper.find(".yayaw-view-actions").exists()
+    ? wrapper.get(".yayaw-view-actions")
+    : wrapper.get(".yayaw-view-trigger");
+  if (trigger.attributes("aria-expanded") !== "true") {
+    await trigger.trigger("click");
+    await flushPromises();
+  }
+}
+
 export async function openViewSave(wrapper: VueWrapper): Promise<void> {
-  await openViewMenu(wrapper);
+  await openViewsMenu(wrapper);
   const button = wrapper
     .findAll(".yayaw-view-write-actions button")
     .find((item) => SAVE_ACTION_PATTERN.test(item.text()));

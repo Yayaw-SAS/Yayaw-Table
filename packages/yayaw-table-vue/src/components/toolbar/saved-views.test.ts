@@ -11,6 +11,7 @@ import {
   openViewMenu,
   openViewSave,
   openViewScreen,
+  openViewsMenu,
 } from "../../../tests/menu-helpers";
 import { defineTableConfig } from "../../config";
 import type {
@@ -95,13 +96,13 @@ type Wrapper = ReturnType<typeof mountTable>;
 const body = () => new DOMWrapper(document.body);
 const search = (wrapper: Wrapper) => wrapper.get('input[type="search"]');
 const saveButton = async (wrapper: Wrapper) => {
-  await openViewMenu(wrapper);
+  await openViewsMenu(wrapper);
   return wrapper.get('[aria-label="Save changes"]');
 };
 const current = (wrapper: Wrapper) => wrapper.get(".yayaw-view-trigger");
-const openMenu = openViewMenu;
+const openMenu = openViewsMenu;
 const favoriteAction = async (wrapper: Wrapper, selector: string) => {
-  await openViewMenu(wrapper);
+  await openViewsMenu(wrapper);
   return wrapper.get(`button${selector}`);
 };
 const choose = async (text: string) => {
@@ -360,7 +361,7 @@ it("uses persisted records over initial seeds and supports French and React tran
   await flushPromises();
   expect(current(wrapper).text()).toBe("Vue mise à jour");
   expect(search(wrapper).element).toHaveProperty("value", "Beta");
-  await openViewMenu(wrapper);
+  await openViewsMenu(wrapper);
   await wrapper.get('[aria-label="Créer une vue"]').trigger("click");
   await flushPromises();
   expect(body().get('[role="dialog"]').text()).toContain("Nom de la vue");
@@ -451,7 +452,7 @@ it("explains a clean saved view on keyboard focus without a native duplicate", a
     views: [saved],
     active: saved.id,
   });
-  await openViewMenu(wrapper);
+  await openViewsMenu(wrapper);
   const trigger = wrapper.get('[aria-label="Enregistrer les modifications"]');
   expect(trigger.attributes("title")).toBeUndefined();
   expect(trigger.attributes("aria-disabled")).toBe("true");
@@ -767,6 +768,7 @@ it("compares legacy footer visibility and restores it without persisting the dra
   });
   await flushPromises();
   expect((await saveButton(wrapper)).attributes("aria-disabled")).toBe("true");
+  await openViewMenu(wrapper);
   const calculations = wrapper.get('[role="switch"]');
   expect(calculations.attributes("aria-checked")).toBe("true");
   await calculations.trigger("click");
@@ -798,6 +800,7 @@ it.each([
   await flushPromises();
   expect(wrapper.findAll("tbody tr.grouped").length).toBeGreaterThan(0);
   await wrapper.get('[aria-label="Back"]').trigger("click");
+  await openViewsMenu(wrapper);
   await wrapper.get('[aria-label="Reset view"]').trigger("click");
   await flushPromises();
   expect(wrapper.findAll("tbody tr.grouped")).toHaveLength(0);

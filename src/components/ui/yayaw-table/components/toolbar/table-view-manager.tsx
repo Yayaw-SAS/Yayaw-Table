@@ -74,6 +74,65 @@ export interface ViewMenuParts {
 }
 
 const EMPTY_VIEW_CONFIG: TableViewConfig = {};
+/** Views listed before the menu offers a name filter. */
+const VIEW_FILTER_THRESHOLD = 7;
+
+/** The name filter of the views menu, once there are many views. */
+function viewFilterControl(
+  count: number,
+  value: string,
+  onChange: (value: string) => void
+) {
+  return count > VIEW_FILTER_THRESHOLD ? { value, onChange } : undefined;
+}
+
+/**
+ * The views menu: with tabs it only holds the view actions, otherwise the
+ * list of views too. Hosts may still render it themselves.
+ */
+function renderViewsMenu({
+  compact,
+  currentViewLabel,
+  parts,
+  renderMenu,
+  showTabs,
+  t,
+}: {
+  compact: boolean;
+  currentViewLabel: string;
+  parts: ViewMenuParts;
+  renderMenu?: (parts: ViewMenuParts) => ReactNode;
+  showTabs: boolean;
+  t: ReturnType<typeof useTranslations>["t"];
+}) {
+  if (renderMenu) {
+    return renderMenu(parts);
+  }
+  return (
+    <StackMenu
+      asDropdown
+      compact={compact}
+      onOpenChange={parts.onOpenChange}
+      open={parts.open}
+      trigger={parts.trigger}
+    >
+      <StackMenuView
+        name="main"
+        title={showTabs ? currentViewLabel : t("views.tabs")}
+      >
+        {showTabs ? null : parts.selection}
+        {parts.actions}
+      </StackMenuView>
+    </StackMenu>
+  );
+}
+
+function filterViews(views: TableView[], query: string): TableView[] {
+  const needle = query.trim().toLocaleLowerCase();
+  return needle
+    ? views.filter((view) => view.name.toLocaleLowerCase().includes(needle))
+    : views;
+}
 
 interface DataTableViewManagerProps {
   enabled?: boolean;
@@ -397,20 +456,20 @@ function renderViewTrigger({
   if (iconOnly) {
     return (
       <Button
-        aria-label={t("views.settings")}
-        className="size-8 shrink-0"
+        aria-label={t("views.viewActions")}
+        className="size-8 shrink-0 text-muted-foreground"
         disabled={isLoading}
         size="icon"
         type="button"
-        variant="outline"
+        variant="ghost"
       >
-        <SlidersHorizontal aria-hidden="true" className="size-4" />
+        <ChevronDown aria-hidden="true" className="size-4" />
       </Button>
     );
   }
   return (
     <Button
-      aria-label={enabled ? t("views.current") : t("views.settings")}
+      aria-label={t("views.current")}
       className={cn(
         "min-w-0 max-w-64 justify-between gap-2",
         compact ? "h-11 flex-1" : "h-8"
@@ -420,9 +479,7 @@ function renderViewTrigger({
       variant="outline"
     >
       <LayoutList aria-hidden="true" className="size-4 shrink-0" />
-      <span className="truncate">
-        {enabled ? currentViewLabel : t("views.view")}
-      </span>
+      <span className="truncate">{currentViewLabel}</span>
       {enabled && isActiveViewDirty ? (
         <output
           aria-label={t("views.modified")}
@@ -443,7 +500,10 @@ function renderViewSelection({
   savedViews,
   handleSelectDefaultView,
   handleSelectView,
+  filter,
 }: {
+  /** Shown once there are many views. */
+  filter?: { value: string; onChange: (value: string) => void };
   t: ReturnType<typeof useTranslations>["t"];
   enabled: boolean;
   isMutating: boolean;
@@ -454,7 +514,16 @@ function renderViewSelection({
   handleSelectView: (view: TableView) => void;
 }) {
   return enabled ? (
-    <div className="border-b border-border pb-1">
+    <div className="max-h-80 overflow-y-auto overscroll-contain border-b border-border pb-1">
+      {filter ? (
+        <Input
+          aria-label={t("views.filterViews")}
+          className="mb-1 h-8 text-sm"
+          onChange={(event) => filter.onChange(event.target.value)}
+          placeholder={t("views.filterViews")}
+          value={filter.value}
+        />
+      ) : null}
       <Button
         className="h-8 w-full justify-start gap-2 rounded-sm px-2 font-normal"
         disabled={isMutating}
@@ -586,14 +655,12 @@ function visibleViewTabs({
   compact,
   enabled,
   tabs,
-  viewCount,
 }: {
   compact: boolean;
   enabled: boolean;
   tabs?: ViewTabsConfig;
-  viewCount: number;
 }) {
-  if (!enabled || compact || viewCount === 0) {
+  if (!enabled || compact) {
     return;
   }
   return resolveViewTabs(tabs);
@@ -691,6 +758,7 @@ export function DataTableViewManager({
   const [inlineError, setInlineError] = useState<string>();
   const [isMutating, setIsMutating] = useState(false);
   const [newViewMode, setNewViewMode] = useState<TableDisplayMode>();
+  const [viewFilter, setViewFilter] = useState("");
   const hasAppliedInitialViewRef = useRef(false);
   const deletedViewIds = useRef(new Set<string>());
   const shouldSyncUrl = useTableStateSync();
@@ -1104,7 +1172,6 @@ export function DataTableViewManager({
     compact,
     enabled,
     tabs,
-    viewCount: savedViews.length,
   });
   const showTabs = Boolean(tabSettings);
   const parts: ViewMenuParts = {
@@ -1125,9 +1192,10 @@ export function DataTableViewManager({
       isMutating,
       viewParam,
       favoriteViewId,
-      savedViews,
+      savedViews: filterViews(savedViews, viewFilter),
       handleSelectDefaultView,
       handleSelectView,
+      filter: viewFilterControl(savedViews.length, viewFilter, setViewFilter),
     }),
     actions: (
       <ViewMenuActions
@@ -1153,6 +1221,10 @@ export function DataTableViewManager({
       />
     ),
   };
+  // Without saved views the table only has its settings, on the right.
+  if (!enabled) {
+    return null;
+  }
   return (
     <div
       className={cn(
@@ -1177,22 +1249,14 @@ export function DataTableViewManager({
             settings={tabSettings}
             t={t}
           />
-        {renderMenu ? (
-          renderMenu(parts)
-        ) : (
-          <StackMenu
-            asDropdown
-            compact={compact}
-            onOpenChange={setMenuOpen}
-            open={menuOpen}
-            trigger={parts.trigger}
-          >
-            <StackMenuView name="main" title={t("views.settings")}>
-              {parts.selection}
-              {parts.actions}
-            </StackMenuView>
-          </StackMenu>
-        )}
+        {renderViewsMenu({
+          compact,
+          currentViewLabel,
+          parts,
+          renderMenu,
+          showTabs,
+          t,
+        })}
       </div>
 
       {(inlineError || favoriteQuery.error) && (

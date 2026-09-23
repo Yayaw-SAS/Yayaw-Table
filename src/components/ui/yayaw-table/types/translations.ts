@@ -289,6 +289,8 @@ export interface DataTableTranslations {
   views: {
     view?: string;
     tabs?: string;
+    viewActions?: string;
+    filterViews?: string;
     more?: string;
     newView?: string;
     settings?: string;
@@ -508,6 +510,7 @@ export interface DataTableTranslations {
     calculate: string;
   };
   menu: {
+    data?: string;
     back: string;
     columns: string;
     columns_visible: string;

@@ -103,7 +103,7 @@ it("uses the configured density, updates only its instance and retains it across
 
 it("closes on Escape and restores focus without changing density", async () => {
   const wrapper = mountTable();
-  const trigger = wrapper.get(".yayaw-view-trigger");
+  const trigger = wrapper.get(".yayaw-settings-trigger");
   (trigger.element as HTMLElement).focus();
   await trigger.trigger("click");
   await settle();
@@ -152,13 +152,12 @@ it("names the density choices directly in the view menu without requiring a tool
     "Densité du tableau"
   );
   expect(
-    wrapper.get(".yayaw-view-trigger").attributes("title")
+    wrapper.get(".yayaw-settings-trigger").attributes("title")
   ).toBeUndefined();
 });
 
-it("keeps labelled display choices keyboard accessible and preserves pressed state", async () => {
-  // This test targets the segmented `fieldset` buttons specifically, which
-  // only render in a compact toolbar; a non-compact toolbar uses a select.
+it("offers display choices as a labelled radio list in touch drawers", async () => {
+  // Compact toolbars list the layout as a row that opens its choices.
   vi.stubGlobal(
     "matchMedia",
     vi.fn(() => ({
@@ -169,22 +168,32 @@ it("keeps labelled display choices keyboard accessible and preserves pressed sta
   );
   const wrapper = mountTable();
   await openViewMenu(wrapper);
-  // A compact toolbar renders its settings dialog through a `DialogPortal`
-  // (teleported to `document.body`), unlike the inline popover content.
-  const group = body().get("fieldset.yayaw-display-mode-inline");
-  const buttons = group.findAll("button");
-  expect(buttons).toHaveLength(2);
-  expect(buttons[0]?.attributes("aria-pressed")).toBe("true");
-  for (const button of buttons) {
-    (button.element as HTMLButtonElement).focus();
+  // A compact toolbar renders its settings dialog through a `DialogPortal`.
+  const row = body()
+    .findAll(".yayaw-options-item")
+    .find((item) => item.text().startsWith("Mode d’affichage"));
+  if (!row) {
+    throw new Error("Missing display mode row");
+  }
+  await row.trigger("click");
+  await settle();
+  const group = body().get("fieldset.yayaw-choice-list");
+  expect(group.get("legend").text()).toBe("Mode d’affichage");
+  const radios = group.findAll<HTMLInputElement>('input[type="radio"]');
+  expect(radios).toHaveLength(2);
+  expect(radios[0]?.element.checked).toBe(true);
+  for (const radio of radios) {
+    radio.element.focus();
     await settle();
-    expect(document.activeElement).toBe(button.element);
-    expect(body().find('[role="tooltip"]').exists()).toBe(false);
-    expect(group.find('[role="tooltip"]').exists()).toBe(false);
-    expect(group.findAll("button")).toHaveLength(2);
-    await button.trigger("click");
+    expect(document.activeElement).toBe(radio.element);
+    await radio.setValue(true);
     await settle();
-    expect(button.attributes("aria-pressed")).toBe("true");
-    expect(group.findAll('[aria-pressed="true"]')).toHaveLength(1);
+    expect(
+      body()
+        .findAll<HTMLInputElement>(
+          'fieldset.yayaw-choice-list input[type="radio"]'
+        )
+        .filter((input) => input.element.checked)
+    ).toHaveLength(1);
   }
 });
