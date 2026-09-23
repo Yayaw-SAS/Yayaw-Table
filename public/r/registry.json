@@ -729,6 +729,11 @@
           "target": "components/ui/yayaw-table/components/table-empty-state.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/toolbar/column-mapping.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/toolbar/column-mapping.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/toolbar/connector-panel.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/toolbar/connector-panel.tsx"
@@ -742,6 +747,16 @@
           "path": "registry/default/ui/yayaw-table/components/toolbar/export-panel.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/toolbar/export-panel.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/toolbar/import-panel.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/toolbar/import-panel.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/toolbar/import-screen.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/toolbar/import-screen.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/toolbar/menu-choice-list.tsx",
@@ -1299,6 +1314,11 @@
           "target": "components/ui/yayaw-table/utils/export-model.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/utils/field-matching.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/field-matching.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/utils/filter-bar.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/filter-bar.ts"
@@ -1322,6 +1342,16 @@
           "path": "registry/default/ui/yayaw-table/utils/image-source.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/image-source.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/import-flow.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/import-flow.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/import-model.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/import-model.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/utils/list-view.ts",

@@ -7,6 +7,7 @@ import {
   type ConnectorTranslate,
   type ConnectorViewColumn,
   connectorLabels,
+  connectorMappingSections,
   connectorScreenFields,
   createConnectorFlow,
   type DataDestinationConnector,
@@ -18,7 +19,7 @@ import {
   connectorPushContext,
   type DataDestinationContext,
 } from "../../data-destinations";
-import ViewSettingsPanel from "../controls/ViewSettingsPanel.vue";
+import ColumnMapping from "./ColumnMapping.vue";
 
 /**
  * The connector screen of a Connect destination: target, column mapping,
@@ -65,19 +66,20 @@ const sending = computed(() => state.value.phase === "sending");
 const showResult = computed(
   () => state.value.phase === "result" || (sending.value && state.value.result !== null)
 );
-const fields = computed(() =>
-  connectorScreenFields(state.value, {
-    connector: props.connector,
-    columns: opened.columns,
-    selectedCount: opened.selectedRows.length,
-    t,
-  }).map((field) => ({
-    ...field,
-    onChange: (value: string) => {
-      applyConnectorField(flow, field.id, value).catch(() => undefined);
-    },
-  }))
+// Target settings, the column mapping, the key field, then mode and records.
+const sections = computed(() =>
+  connectorMappingSections(
+    connectorScreenFields(state.value, {
+      connector: props.connector,
+      columns: opened.columns,
+      selectedCount: opened.selectedRows.length,
+      t,
+    })
+  )
 );
+const change = (id: string, value: string): void => {
+  applyConnectorField(flow, id, value).catch(() => undefined);
+};
 const summary = computed(() => (state.value.result ? describePushResult(state.value.result, t) : ""));
 const details = computed(() =>
   state.value.result ? describePushDetails(state.value.result, t, props.connector.help) : null
@@ -110,7 +112,8 @@ const resolveInput = (): void => {
         </button>
       </div>
     </div>
-    <ViewSettingsPanel v-else :fields="fields">
+    <ColumnMapping v-else :before="sections.before" :rows="sections.rows" :key-field="sections.keyField"
+      :after="sections.after" @change="change">
       <template v-if="connector.allowTargetInput" #after-target>
         <form class="yayaw-connector-input" data-connector-target-input @submit.prevent="resolveInput">
           <label :for="`${id}-input`">{{ connector.allowTargetInput.label }}</label>
@@ -141,6 +144,6 @@ const resolveInput = (): void => {
         <Send v-else :size="16" aria-hidden="true" />
         {{ sending ? t("sending") : t("send") }}
       </button>
-    </ViewSettingsPanel>
+    </ColumnMapping>
   </div>
 </template>

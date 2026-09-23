@@ -18,6 +18,7 @@ import {
   PlusIcon,
   Send,
   Share2,
+  Upload,
   X,
 } from "lucide-react";
 import {
@@ -120,6 +121,7 @@ import {
   hasConnector,
 } from "../../utils/connector-flow";
 import { ConnectorPanel } from "./connector-panel";
+import { importScreen } from "./import-screen";
 import { SearchBar } from "./sections/search-bar";
 import { TableDensityMenu } from "./table-density-menu";
 import { TableMenu } from "./table-menu";
@@ -799,11 +801,14 @@ function renderMenuDataActions({
   isExporting,
   exportLabel,
   exportScreen,
+  importLabel,
   onShare,
   isShareEnabled,
   destinations,
   pendingDestination,
 }: {
+  /** Label of the Import entry, when the table can import. */
+  importLabel?: string;
   isShareEnabled: boolean;
   destinations: Record<"connect" | "share", TableDataDestination[]>;
   pendingDestination?: string;
@@ -871,6 +876,16 @@ function renderMenuDataActions({
           navigateTo={exportScreen}
         >
           {exportLabel}
+        </StackMenuItem>
+      ) : null}
+      {importLabel ? (
+        <StackMenuItem
+          data-import-trigger
+          icon={<Upload className="size-4" />}
+          navigateTitle={importLabel}
+          navigateTo="import"
+        >
+          {importLabel}
         </StackMenuItem>
       ) : null}
       {destinations.connect.length > 0 ? (
@@ -1577,6 +1592,22 @@ export function DataTableAdvancedToolbar<TData>({
     tableActions?.destinations,
     toolbarActionContext.selectedRowIds.length
   );
+  const importEntry = importScreen({
+    table: tableConfig.table,
+    actions: tableActions,
+    canCreate: isCreateEnabled,
+    columns: tableConfig.columns.definitions,
+    locale,
+    t,
+    context: destinationContext,
+    rows: data,
+    tableOptions: table?.options,
+    onImported: () => {
+      queryClient
+        .invalidateQueries({ queryKey: ["tableData", tableId] })
+        .catch(() => undefined);
+    },
+  });
   const menuDataActions = renderMenuDataActions({
     t,
     isMobile,
@@ -1592,6 +1623,7 @@ export function DataTableAdvancedToolbar<TData>({
     isExporting,
     exportLabel,
     exportScreen: "export",
+    importLabel: importEntry.menuLabel,
     onShare: shareLink,
     isShareEnabled: tableConfig.table.share !== false,
     destinations: destinationGroups,
@@ -1659,6 +1691,7 @@ export function DataTableAdvancedToolbar<TData>({
           },
           t,
         }),
+        ...importEntry.screens,
         ...(isExportEnabled
           ? [
               {

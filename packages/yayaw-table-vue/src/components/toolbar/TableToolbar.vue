@@ -13,6 +13,7 @@ import {
   CalendarClock,
   Share2,
   SlidersHorizontal,
+  Upload,
   ArrowDownAZ,
   Calculator,
   ChevronRight,
@@ -50,6 +51,10 @@ import MenuChoiceList from "./MenuChoiceList.vue";
 import ExportPanel from "./ExportPanel.vue";
 import SchedulePanel from "./SchedulePanel.vue";
 import ConnectorPanel from "./ConnectorPanel.vue";
+import ImportPanel from "./ImportPanel.vue";
+import { importColumnsFrom, importLabels, isImportEnabled } from "../../import-flow";
+import { existingLookupFromRows, type ImportAdapters } from "../../import-model";
+import { fetchAllContractRows } from "../../table-contracts";
 import { type ConnectorViewColumn, hasConnector } from "../../connector-flow";
 import { isSchedulable, scheduleLabel } from "../../schedule-model";
 import {
@@ -472,7 +477,7 @@ const hasShare = computed(() => context.config.table.share !== false);
 // The Data menu (Export, Connect, Share) stands apart from the view settings.
 const dataOpen = ref(false);
 // "schedule:<id>" opens the schedule of a Connect destination, "connector:<id>" its connector screen.
-const dataView = ref<"main" | "export" | "connect" | "share" | `schedule:${string}` | `connector:${string}`>("main");
+const dataView = ref<"main" | "export" | "import" | "connect" | "share" | `schedule:${string}` | `connector:${string}`>("main");
 watch(dataOpen, (open) => {
   if (!open) dataView.value = "main";
 });
@@ -506,6 +511,55 @@ const connectorColumns = (): ConnectorViewColumn[] => {
     visible: visibleIds.has(column.id),
   }));
 };
+// Data › Import: shown when rows can be created or updated and `table.import` is not false.
+const importTranslate = (key: string, fallback: string): string => translate(`import.${key}`, fallback);
+const importConfig = computed(() => context.actions.value?.import);
+const canUpdate = computed(() => context.config.table.allowEdit !== false && Boolean(context.actions.value?.update));
+const importEnabled = computed(() =>
+  isImportEnabled({
+    flag: context.config.table.import,
+    canCreate: Boolean(isCreateEnabled.value),
+    canUpdate: canUpdate.value,
+    hasImportRows: Boolean(importConfig.value?.importRows),
+  })
+);
+const importTitle = computed(() => importLabels(context.locale, importTranslate)("title"));
+const importAdapters = (): ImportAdapters => {
+  const actions = context.actions.value;
+  const importRows = importConfig.value?.importRows;
+  const create = isCreateEnabled.value ? actions?.create : undefined;
+  const update = canUpdate.value ? actions?.update : undefined;
+  return {
+    ...(importRows ? { importRows: (batch) => importRows(batch, destinationContext()) } : {}),
+    ...(create ? { create: async (values) => await create(values) } : {}),
+    ...(update ? { update: async (id, values) => await update(id, values) } : {}),
+  };
+};
+// Every record of the table, whatever the view shows, to match keys.
+const loadAllRows = async () => {
+  const list = context.actions.value?.list;
+  if (!list) return context.data.rows.value;
+  return await fetchAllContractRows({
+    list: async (request) => await list(request as never),
+    params: { pageSize: 100, search: "", filters: {}, advancedFilters: [], sorting: [] },
+  });
+};
+const findExisting = async (columnId: string, keys: string[]) => {
+  const lookup = importConfig.value?.lookup;
+  if (lookup) {
+    const ids = await lookup({ columnId, keys });
+    return (key: string) => ids[key];
+  }
+  return existingLookupFromRows(await loadAllRows(), columnId, (row, index) => context.getRowId(row, index));
+};
+const loadImportSource = async (sourceId: string) => {
+  const source = importConfig.value?.sources?.find((item) => item.id === sourceId);
+  if (!source) throw new Error(`Unknown import source: ${sourceId}`);
+  return await source.load(destinationContext());
+};
+const importSources = computed(() =>
+  (importConfig.value?.sources ?? []).map(({ id, label, description }) => ({ id, label, description }))
+);
 const openDestination = (destination: DataDestination<Component>): void => {
   if (hasConnector(destination, connectorsEnabled.value)) {
     dataView.value = `connector:${destination.id}`;
@@ -522,6 +576,8 @@ const dataTitle = computed(() => {
   switch (dataView.value) {
     case "export":
       return translate("export", "Export");
+    case "import":
+      return importTitle.value;
     case "connect":
       return translate("destinations.connect", "Connect");
     case "share":
@@ -895,6 +951,11 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
             <span class="yayaw-options-item-copy"><span>{{ translate('export', 'Export') }}</span></span>
             <ChevronRight :size="16" aria-hidden="true" />
           </button>
+          <button v-if="importEnabled" type="button" class="yayaw-options-item" data-import-trigger @click="dataView = 'import'">
+            <span class="yayaw-options-item-icon"><Upload :size="16" aria-hidden="true" /></span>
+            <span class="yayaw-options-item-copy"><span>{{ importTitle }}</span></span>
+            <ChevronRight :size="16" aria-hidden="true" />
+          </button>
           <button v-if="destinations.connect.length" type="button" class="yayaw-options-item" :aria-busy="Boolean(pendingDestination)" @click="dataView = 'connect'">
             <span class="yayaw-options-item-icon"><Plug :size="16" aria-hidden="true" /></span>
             <span class="yayaw-options-item-copy"><span>{{ translate('destinations.connect', 'Connect') }}</span></span>
@@ -942,6 +1003,10 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
       <ConnectorPanel v-else-if="connectorDestination?.connector" :key="connectorDestination.id" :connector="connectorDestination.connector"
         :context="destinationContext" :columns="connectorColumns()" :selected-rows="context.selectedRows.value" :locale="context.locale"
         :translate="connectorTranslate" @done="dataView = 'connect'" />
+      <ImportPanel v-else-if="dataView === 'import' && importEnabled" :columns="importColumnsFrom(context.config.columns.definitions)"
+        :locale="context.locale" :translate="importTranslate" :adapters="importAdapters()" :csv="importConfig?.csv"
+        :sources="importSources" :load-source="loadImportSource" :find-existing="findExisting" :batch-size="importConfig?.batchSize"
+        :allow-new-options="importConfig?.allowNewOptions" @done="dataView = 'main'" @imported="context.refresh()" />
       <ExportPanel v-else-if="dataView === 'export'" :busy="isExporting" :formats="exportFormats" :label="exportLabel"
               :default-file-name="defaultExportFileName(String(context.translations.value.title ?? context.config.id))"
               :selected-count="context.selectedRows.value.length" @export="exportRows" />

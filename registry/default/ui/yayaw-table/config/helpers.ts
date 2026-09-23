@@ -490,6 +490,8 @@ export interface TableBehaviorConfig extends GenericModeViewConfigs {
   schedule?: boolean;
   /** Open the connector screens of Connect destinations that declare `connector`; default true. */
   connectors?: boolean;
+  /** Offer Data › Import when rows can be created or updated; default true. */
+  import?: boolean;
 
   /**
    * Enable CSV export in bulk actions menu

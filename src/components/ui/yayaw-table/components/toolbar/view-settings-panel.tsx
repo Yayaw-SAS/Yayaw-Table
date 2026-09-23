@@ -134,9 +134,12 @@ export function ViewSettingsPanel({
   fields,
   properties,
   children,
+  intro,
 }: {
   children?: ReactNode;
   fields: ViewSettingField[];
+  /** Content before the fields, hidden while a choice list is open. */
+  intro?: ReactNode;
   properties?: ViewSettingProperties;
 }) {
   const isMobile = useIsMobile();
@@ -250,6 +253,7 @@ export function ViewSettingsPanel({
   }
   return (
     <div className="grid min-w-0 gap-3" data-view-settings>
+      {intro}
       {fields.map((field) => (
         <SettingFieldRow
           controlId={`${id}-${field.id}`}

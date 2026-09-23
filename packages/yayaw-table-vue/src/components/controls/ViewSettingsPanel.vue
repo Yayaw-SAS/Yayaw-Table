@@ -131,6 +131,7 @@ onBeforeUnmount(() => {
     </fieldset>
   </div>
   <div v-else class="yayaw-card-settings" data-view-settings>
+    <slot name="intro" />
     <template v-for="item in fields" :key="item.id">
       <h3 v-if="item.heading" class="yayaw-setting-heading" data-setting-heading>{{ item.heading }}</h3>
       <div :class="{ 'yayaw-setting-inline': item.inline }" :data-setting-field="item.id">

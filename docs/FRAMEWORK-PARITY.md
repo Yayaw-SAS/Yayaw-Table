@@ -864,3 +864,79 @@ and French in the shared model, overridable with `connector.<key>`.
 `e2e/connectors.spec.ts` covers mapping, send and send again, selected
 records, a target that is not shared and the phone drawer on both demos (the
 in-memory "Spreadsheet" connector in `examples/views-spreadsheet.ts`).
+
+## Data › Import and column mapping
+
+Both editions list "Import" in the Data menu between Export and Connect when
+the table can create rows (`allowCreate` and `actions.create`), update them
+(`allowEdit` and `actions.update`) or import in bulk
+(`actions.import.importRows`), unless `table.import` is `false` (declared in
+the React config and the Vue `types.ts`; default on). React opens a
+`StackMenuView` named `import`, Vue `dataView "import"`; Cancel and Done
+return to the Data menu. The screen is driven by the shared, framework-neutral
+`createImportFlow` state machine in `import-flow.ts` over the pure
+`import-model.ts` (both synced to Vue):
+
+- Source: a CSV drop zone and file picker (`decodeCsvFile`: UTF-8, else
+  Windows-1252), pasted text, and the host's `actions.import.sources`
+  (`{ id, label, description?, load(context) }` returning headers and rows or
+  CSV text; used later by Notion and Google Sheets imports).
+  `actions.import.csv: false` hides CSV.
+- Mapping: `parseCsv` (RFC 4180, BOM, CRLF/LF, delimiter detected among
+  `,` `;` tab `|`, blank lines ignored) with a separator select and a "First
+  row is headers" checkbox; one row per source field from
+  `importMappingRows` with a sample value, a badge (the column's type, or how
+  many of the first 20 values won't convert), and a select of the table's
+  columns plus Ignore; `defaultImportMapping` matches by header or column id
+  (accents, case and separators ignored, same type family first, then the one
+  remaining column that converts the field's values); "Match existing records
+  by" (none by default unless a mapped column is an id); a preview of the
+  first 5 rows as written, invalid cells highlighted with their error as a
+  title. Choosing a column already taken moves it.
+- Values (`coerceImportValue`): numbers with decimal commas, grouping,
+  currency symbols and percents (the column's `numberFormat` decimal
+  separator and percent base win; a single ambiguous separator follows the
+  locale), dates as ISO, day-first or month-first (`detectDateOrder` over the
+  whole column, else the locale) and Excel serials (`YYYY-MM-DD`, or ISO with
+  a time), checkboxes (true/false, yes/no, oui/non, 1/0, x), select and
+  multiSelect by option value or label (accents and case ignored; unknown
+  options are errors unless `allowNewOptions`), links, emails and JSON.
+  Empty cells are `null`; required columns reject them on creates, while
+  updates leave empty cells unchanged.
+- Review (`planImport`, `summarizeImport`): rows whose key matches a record
+  update it, the others are created; a key repeated in the file is an error
+  on its later rows. Counts of rows to add, to update and with errors, the
+  first errors ("Row 5, Status: not one of the options"), and "Skip rows with
+  errors" (on by default; off blocks Import). Keys are looked up with
+  `actions.import.lookup({ columnId, keys })` or, by default, all the table's
+  records loaded through `list` with an empty query (the loaded rows without
+  `list`).
+- Run (`runImport`): batches of `batchSize` (50) through
+  `actions.import.importRows(batch, context)` when provided, else the
+  table's `create` and `update` actions; a progress bar and Stop (between
+  batches); failures are collected per row and only 401/403 or
+  `unauthorized`/`forbidden`/`invalid_credentials` errors stop the import.
+  The result shows added, updated and failed rows with the first failures,
+  then Done or "Import another file"; the table refreshes (React invalidates
+  `["tableData", tableId]`, Vue `context.refresh()`).
+
+Labels are English and French in the shared model, overridable with
+`import.<key>` translations. On touch layouts every select opens as a
+full-screen choice list in the drawer; the file line and header checkbox
+(`ViewSettingsPanel` `intro`, Vue `#intro` slot) hide while a list is open.
+
+The mapping UI is the reusable `ColumnMapping` component (React
+`components/toolbar/column-mapping.tsx`, Vue
+`components/toolbar/ColumnMapping.vue`): direction-agnostic `rows`
+(`ColumnMappingRow` in the shared `field-matching.ts`: label, value, options,
+sample, badge), `before` and `after` settings, an optional `keyField` and
+`preview`. The connector push screen now renders through it
+(`connectorMappingSections` splits its screen fields), and both screens share
+`matchFieldsByName` (`defaultConnectorMapping` keeps its behaviour, with
+same-type fields now preferred over merely compatible ones).
+`tests/import-model-suite.ts` runs in both editions and `e2e/import.spec.ts`
+covers upload, auto-mapping, Ignore, the key column, the error count, import
+with errors skipped, the new and updated rows in the table, a re-import that
+only updates, blocking without skipping errors, and the phone drawer, on both
+demos (`e2e/fixtures/import-projects.csv`). The views demo's `list` now
+returns copies of its records, as a server would.

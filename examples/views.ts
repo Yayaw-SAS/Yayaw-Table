@@ -148,7 +148,8 @@ export function createViewsActions() {
         sorting
       );
       return Promise.resolve({
-        data: rows,
+        // Like a server response: copies, so edits made since show up.
+        data: rows.map((row) => ({ ...row })),
         meta: { pageCount: 1, totalCount: rows.length },
       });
     },

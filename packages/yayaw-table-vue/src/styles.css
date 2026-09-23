@@ -3528,3 +3528,157 @@
 .yayaw-connector-failure {
   color: var(--yayaw-danger);
 }
+/* Column mapping: sample and conversion badge under each row, preview table. */
+.yayaw-column-mapping {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.yayaw-mapping-details {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  margin-top: -8px;
+  color: var(--yayaw-muted-foreground);
+  font-size: 12px;
+}
+.yayaw-mapping-sample {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-mapping-badge {
+  flex: none;
+  border: 1px solid var(--yayaw-border);
+  border-radius: calc(var(--yayaw-radius) - 2px);
+  padding: 2px 6px;
+  line-height: 1;
+}
+.yayaw-mapping-badge[data-invalid] {
+  border-color: color-mix(in oklab, var(--yayaw-danger) 40%, transparent);
+  color: var(--yayaw-danger);
+}
+.yayaw-mapping-preview {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.yayaw-mapping-preview-scroll {
+  max-height: 192px;
+  overflow: auto;
+  border: 1px solid var(--yayaw-border);
+  border-radius: var(--yayaw-radius);
+}
+.yayaw-mapping-preview table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.yayaw-mapping-preview th {
+  background: color-mix(in srgb, var(--yayaw-muted) 60%, transparent);
+  font-weight: 500;
+  text-align: left;
+}
+.yayaw-mapping-preview th,
+.yayaw-mapping-preview td {
+  max-width: 160px;
+  overflow: hidden;
+  padding: 4px 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-mapping-preview tbody tr {
+  border-top: 1px solid var(--yayaw-border);
+}
+.yayaw-mapping-preview td.yayaw-mapping-invalid {
+  background: color-mix(in oklab, var(--yayaw-danger) 10%, transparent);
+  color: var(--yayaw-danger);
+}
+/* Data › Import: source, mapping, review, progress and result. */
+.yayaw-import-panel {
+  padding: 12px;
+}
+.yayaw-import-step {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.yayaw-import-drop {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  border: 1px dashed var(--yayaw-border);
+  border-radius: var(--yayaw-radius);
+  padding: 20px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  text-align: center;
+}
+.yayaw-import-drop.yayaw-import-dragging {
+  border-color: var(--yayaw-primary);
+  background: var(--yayaw-muted);
+}
+.yayaw-import-choose {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  margin-top: 4px;
+  border: 1px solid var(--yayaw-border);
+  border-radius: var(--yayaw-radius);
+  padding: 0 12px;
+  font-weight: 500;
+}
+.yayaw-import-strong {
+  font-weight: 500;
+}
+.yayaw-import-muted {
+  color: var(--yayaw-muted-foreground);
+}
+.yayaw-import-small {
+  font-size: 12px;
+}
+.yayaw-import-text {
+  margin: 0;
+  font-size: 14px;
+}
+.yayaw-import-paste {
+  display: grid;
+  gap: 6px;
+}
+.yayaw-import-paste > label {
+  color: var(--yayaw-muted-foreground);
+  font-size: 14px;
+}
+.yayaw-import-paste > .yayaw-button {
+  justify-self: end;
+}
+.yayaw-import-textarea {
+  min-height: 80px;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+}
+.yayaw-import-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.yayaw-schedule-actions > .yayaw-button.yayaw-import-run {
+  flex-basis: 100%;
+}
+.yayaw-import-progress {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--yayaw-muted);
+}
+.yayaw-import-progress > div {
+  height: 100%;
+  background: var(--yayaw-primary);
+  transition: width 150ms;
+}
