@@ -2836,6 +2836,10 @@
 
 /* Shared record geometry applies equally to create, edit, and bulk forms. */
 .yayaw-form.yayaw-record-content {
+  /* The record surface lays the body and footer out as a column; the
+     generic form grid would split the height evenly between them. */
+  display: flex;
+  flex-direction: column;
   padding: 0;
   gap: 0;
   overflow: hidden;

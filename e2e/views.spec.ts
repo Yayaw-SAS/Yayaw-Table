@@ -359,3 +359,13 @@ test("a row click opens the record view and both editions name the create button
   await expect(page.getByText("Activity").first()).toBeVisible();
   await expect(page.getByText("Charlie display").nth(1)).toBeVisible();
 });
+
+test("the create form keeps a compact footer under its fields", async ({
+  page,
+}) => {
+  await page.getByRole("button", { name: "Add item" }).click();
+  const save = page.getByRole("button", { name: "Save", exact: true });
+  await expect(save).toBeVisible();
+  const box = await save.boundingBox();
+  expect(box?.height ?? 0).toBeLessThan(60);
+});
