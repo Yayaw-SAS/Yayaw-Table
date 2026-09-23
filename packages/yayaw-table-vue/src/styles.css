@@ -40,10 +40,10 @@
   /* Tailwind's antialiased, as on React tables: lighter text on macOS. */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  font:
-    14px / 1.4 ui-sans-serif,
-    system-ui,
-    sans-serif;
+  /* The page font, as React tables inherit it; size and leading stay fixed. */
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.4;
 }
 .yayaw-header {
   display: flex;
@@ -116,7 +116,7 @@
   min-height: 36px;
   border: 1px solid var(--yayaw-input);
   border-radius: var(--yayaw-radius);
-  background: color-mix(in oklab, var(--yayaw-input) 30%, transparent);
+  background: transparent;
   box-shadow: var(--yayaw-shadow-xs);
   color: var(--yayaw-foreground);
   padding: 7px 10px;
@@ -143,9 +143,9 @@
   min-height: 36px;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: var(--yayaw-radius);
   background: var(--yayaw-primary);
   color: var(--yayaw-primary-foreground);
   padding: 7px 12px;
@@ -181,7 +181,6 @@
   color: var(--yayaw-foreground);
 }
 .yayaw-button-outline {
-  background: color-mix(in oklab, var(--yayaw-input) 30%, transparent);
   box-shadow: var(--yayaw-shadow-xs);
 }
 .yayaw-button-ghost,
@@ -1037,7 +1036,6 @@
 .yayaw-number {
   display: block;
   text-align: right;
-  font-variant-numeric: tabular-nums;
 }
 .yayaw-cell-image {
   width: 38px;
@@ -1581,7 +1579,7 @@
   padding: 0;
   border: 1px solid var(--yayaw-input);
   border-radius: 4px;
-  background: color-mix(in oklab, var(--yayaw-input) 30%, transparent);
+  background: transparent;
   color: var(--yayaw-primary-foreground);
   box-shadow: var(--yayaw-shadow-xs);
   cursor: pointer;
@@ -2186,9 +2184,9 @@
   min-width: 160px;
   width: auto;
   margin-left: auto;
-  padding-left: 32px;
+  padding-left: 36px;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E");
-  background-position: 10px center;
+  background-position: 12px center;
   background-repeat: no-repeat;
 }
 .yayaw-menu-anchor {
@@ -3115,30 +3113,28 @@
   place-content: center;
   border: 1px solid var(--yayaw-input);
   border-radius: 4px;
-  background: color-mix(in oklab, var(--yayaw-input) 30%, transparent);
+  background: transparent;
   box-shadow: var(--yayaw-shadow-xs);
   vertical-align: middle;
   cursor: pointer;
 }
-.yayaw-data-grid input[type="checkbox"]:checked,
-.yayaw-data-grid input[type="checkbox"]:indeterminate {
+.yayaw-data-grid input[type="checkbox"]:checked:not(:indeterminate) {
   border-color: var(--yayaw-primary);
   background: var(--yayaw-primary);
 }
-.yayaw-data-grid input[type="checkbox"]:checked::after {
-  width: 9px;
-  height: 5px;
-  border: 2px solid var(--yayaw-primary-foreground);
+.yayaw-data-grid input[type="checkbox"]:checked::after,
+.yayaw-data-grid input[type="checkbox"]:indeterminate::after {
+  width: 8px;
+  height: 4px;
+  border: 1.5px solid var(--yayaw-primary-foreground);
   border-top: 0;
   border-right: 0;
   content: "";
   transform: translateY(-1px) rotate(-45deg);
 }
+/* Partial selection looks like the stock shadcn (Base UI) checkbox React uses. */
 .yayaw-data-grid input[type="checkbox"]:indeterminate::after {
-  width: 8px;
-  height: 2px;
-  background: var(--yayaw-primary-foreground);
-  content: "";
+  border-color: var(--yayaw-foreground);
 }
 .yayaw-gallery-placeholder {
   display: grid;
@@ -3167,6 +3163,8 @@
   text-align: center;
 }
 .yayaw-toolbar .yayaw-view-trigger {
+  gap: 8px;
+  padding-inline: 10px;
   font-size: 14px;
   font-weight: 500;
 }
@@ -3181,4 +3179,29 @@
 .yayaw-data-grid thead th:first-child input[type="checkbox"] {
   display: grid;
   margin: 0 auto;
+}
+/* React's header checkbox sits 2px lower than row checkboxes. */
+.yayaw-data-grid thead th:first-child input[type="checkbox"] {
+  transform: translateY(2px);
+}
+/* Header labels are regular weight inside a medium cell, as in React. */
+.yayaw-data-grid th .yayaw-column-sort {
+  font-weight: 400;
+}
+/* shadcn's dark: variants: inputs, outline buttons and checkboxes take --input at 30%. */
+.dark :is(.yayaw-input, .yayaw-select, .yayaw-textarea, .yayaw-checkbox),
+.dark .yayaw-data-grid input[type="checkbox"]:not(:checked),
+.dark .yayaw-button-outline {
+  border-color: var(--yayaw-input);
+  background: color-mix(in oklab, var(--yayaw-input) 30%, transparent);
+}
+.yayaw-input::placeholder,
+.yayaw-textarea::placeholder {
+  color: var(--yayaw-muted-foreground);
+  opacity: 1;
+}
+/* Cell text uses a 20px line, as Tailwind's text-sm in React cells. */
+.yayaw-data-grid td,
+.yayaw-data-grid th {
+  line-height: 20px;
 }

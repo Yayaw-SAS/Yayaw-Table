@@ -81,7 +81,7 @@ export function NumberCell({
             style={{ width: `${Math.round(ratio * 100)}%` }}
           />
         </span>
-        <span className="shrink-0 tabular-nums">{text}</span>
+        <span className="shrink-0">{text}</span>
       </span>
     );
   }
