@@ -2,7 +2,7 @@ import { QueryClient } from "@tanstack/vue-query";
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { toast } from "vue-sonner";
-import { inlineTestPortals, openViewMenu } from "../../tests/menu-helpers";
+import { inlineTestPortals } from "../../tests/menu-helpers";
 import { defineTableConfig } from "../config";
 import { exportColumns, rowsToCsv } from "../core";
 import type { TableListParams, YayawTableProps } from "../types";
@@ -51,7 +51,11 @@ const select = async (wrapper: Wrapper, checked = true) => {
 // Export moved from a toolbar button into the settings menu's Data section.
 /** The Export entry opens its screen; its Export button runs the export. */
 const exportButton = async (wrapper: Wrapper) => {
-  await openViewMenu(wrapper);
+  const trigger = wrapper.get(".yayaw-data-trigger");
+  if (trigger.attributes("aria-expanded") !== "true") {
+    await trigger.trigger("click");
+    await flushPromises();
+  }
   if (!wrapper.find("[data-export-panel]").exists()) {
     const entry = wrapper
       .findAll(".yayaw-options-item")

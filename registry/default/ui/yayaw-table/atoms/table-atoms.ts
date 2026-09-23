@@ -203,6 +203,11 @@ export const tableMenuOpenToViewAtom = atomFamily((_tableId: string) =>
   atom<null | string>(null)
 );
 
+/** Opens the Data menu on a screen, e.g. "export" from the bulk bar. */
+export const tableDataMenuOpenToViewAtom = atomFamily((_tableId: string) =>
+  atom<null | string>(null)
+);
+
 /**
  * When opening the filters view from a column header Filter click, open the filter for this column id.
  * Cleared when the filter panel has consumed it or when the menu closes.

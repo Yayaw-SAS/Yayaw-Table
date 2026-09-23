@@ -778,3 +778,12 @@ offers Excel only with a writer and honours `table.exportFormats`.
 The bulk bar's Export opens this screen with the selection chosen, in both
 editions (React through the menu open-to-view atom, Vue through
 `optionsRequest`), keeping the selection so it is what gets exported.
+
+## Data button
+
+Both editions put Export, Connect and Share in a Data menu opened from a
+database icon next to View settings (React `TableDataMenu` with its own
+open-to-view atom, Vue a second `ToolbarMenu` whose `optionsRequest` handling
+routes `export` to it). The bulk bar's Export opens its Export screen.
+Destinations of kind `"connect"` (aliases `"sync"`, `"export"`) list under
+Connect.

@@ -5,8 +5,11 @@
  */
 import { normalizeFilterEnvelope } from "./table-contracts";
 
-/** "sync" sends to a tool (n8n, a sheet); "export" is kept as its alias. */
-export type DataDestinationKind = "sync" | "share" | "export";
+/**
+ * "connect" sends to a tool (n8n, a sheet, a connector); "sync" and "export"
+ * are kept as its aliases. "share" lists it under Share.
+ */
+export type DataDestinationKind = "connect" | "share" | "sync" | "export";
 
 /** The current view's query, in the shape `list` receives. */
 export interface DataDestinationQuery {
@@ -49,7 +52,7 @@ export interface DataDestinationResult {
 export interface DataDestination<TIcon = unknown> {
   id: string;
   label: string;
-  /** "sync" lists it under Sync, "share" under Share after the link. */
+  /** "connect" lists it under Connect, "share" under Share after the link. */
   kind: DataDestinationKind;
   icon?: TIcon;
   hidden?: boolean;
@@ -67,10 +70,10 @@ export interface DataDestination<TIcon = unknown> {
 export function groupDataDestinations<TIcon>(
   destinations: readonly DataDestination<TIcon>[] | undefined,
   selectedCount: number
-): Record<"sync" | "share", DataDestination<TIcon>[]> {
+): Record<"connect" | "share", DataDestination<TIcon>[]> {
   const seen = new Set<string>();
-  const groups: Record<"sync" | "share", DataDestination<TIcon>[]> = {
-    sync: [],
+  const groups: Record<"connect" | "share", DataDestination<TIcon>[]> = {
+    connect: [],
     share: [],
   };
   for (const destination of destinations ?? []) {
@@ -82,7 +85,9 @@ export function groupDataDestinations<TIcon>(
       continue;
     }
     seen.add(destination.id);
-    groups[destination.kind === "share" ? "share" : "sync"].push(destination);
+    groups[destination.kind === "share" ? "share" : "connect"].push(
+      destination
+    );
   }
   return groups;
 }
