@@ -6,6 +6,9 @@ const CURRENT_VIEW = /^current view/i;
 const FILTERS = /^filters?/i;
 const SORT = /^sort/i;
 const DENSITY = /density/i;
+const NAME_HEADER = /^\s*Name\s*$/;
+const ALPHA_TITLE = /^Alpha launch$/;
+const SEARCH_PLACEHOLDER = /^search/i;
 const ROW_ACTIONS = /^(actions|row actions)$/i;
 const REORDER = /reorder|réordonner/i;
 const TWO_RULES = [
@@ -296,4 +299,37 @@ test("number columns render currency and progress formats alike", async ({
   const alpha = page.getByRole("row").filter({ hasText: "Alpha launch" });
   await expect(alpha).toContainText("€49.00");
   await expect(alpha).toContainText("49%");
+});
+
+// Cross-edition visual contract: measurable styles, stable across platforms.
+test("both editions share the table and card look", async ({ page }) => {
+  const header = page.locator("thead th").filter({ hasText: NAME_HEADER });
+  const headerStyle = await header.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return { size: style.fontSize, weight: style.fontWeight };
+  });
+  expect(headerStyle).toEqual({ size: "14px", weight: "500" });
+
+  const row = page.getByRole("row").filter({ hasText: "Alpha launch" });
+  const rowBox = await row.boundingBox();
+  expect(Math.round(rowBox?.height ?? 0)).toBeGreaterThanOrEqual(39);
+  expect(Math.round(rowBox?.height ?? 0)).toBeLessThanOrEqual(41);
+
+  const checkbox = await row.getByRole("checkbox").boundingBox();
+  expect(Math.round(checkbox?.width ?? 0)).toBe(16);
+
+  const search = await page.getByPlaceholder(SEARCH_PLACEHOLDER).boundingBox();
+  expect(search?.width ?? 0).toBeLessThanOrEqual(260);
+
+  await page.goto(`${EXAMPLE}&${DISPLAY_PARAM}=kanban`);
+  // The element holding the title text, whatever wraps it in each edition.
+  const cardTitle = page
+    .locator("strong, div, span")
+    .filter({ hasText: ALPHA_TITLE })
+    .last();
+  const titleStyle = await cardTitle.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return { size: style.fontSize, weight: style.fontWeight };
+  });
+  expect(titleStyle).toEqual({ size: "14px", weight: "500" });
 });

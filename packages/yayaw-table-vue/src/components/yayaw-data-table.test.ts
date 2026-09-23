@@ -183,7 +183,7 @@ describe("YayawDataTable", () => {
     await openViewMenu(wrapper);
     const menu = wrapper.get(".yayaw-toolbar-menu");
     expect(menu.text()).toContain("Properties");
-    expect(menu.text()).toContain("Filters");
+    expect(menu.text()).toContain("Filter");
     expect(menu.text()).toContain("Sort");
     expect(menu.text()).toContain("Group");
     expect(menu.text()).toContain("Footer calculations");

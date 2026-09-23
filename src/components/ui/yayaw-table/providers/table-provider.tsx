@@ -806,7 +806,7 @@ export const defaultTranslations: DataTableTranslations = {
     setFavorite: "Use this view on arrival",
     removeFavorite: "Remove favorite view",
     favoriteError: "Could not load or save the favorite view",
-    defaultView: "Default View",
+    defaultView: "Default view",
     default_system_view: "Default System View",
     systemView: "System View",
     custom_view: "Custom View",

@@ -225,7 +225,7 @@ it("does not overwrite edits made while a remote favorite is loading", async () 
   expect(wrapper.store.get(tableDensityAtom(favorite.tableId))).toBe(
     "extra-extra-large"
   );
-  expect(wrapper.button("Current View").textContent).toContain("Default View");
+  expect(wrapper.button("Current View").textContent).toContain("Default view");
 });
 
 it("shows a failed preference write without changing the favorite or the current table state", async () => {
@@ -264,7 +264,7 @@ it("waits for a refreshed preference before applying a cached favorite on arriva
     cachedFavoriteId: standard.id,
     actions: { getFavorite: () => pending },
   });
-  expect(wrapper.button("Current View").textContent).toContain("Default View");
+  expect(wrapper.button("Current View").textContent).toContain("Default view");
   await act(() => resolve({ success: true, data: { viewId: favorite.id } }));
   await settle();
   expect(wrapper.button("Current View").textContent).toContain(favorite.name);
@@ -280,7 +280,7 @@ it("keeps explicit URL filters and does not activate the favorite", async () => 
     syncUrl: true,
     url: "favorites-q=Beta",
   });
-  expect(wrapper.button("Current View").textContent).toContain("Default View");
+  expect(wrapper.button("Current View").textContent).toContain("Default view");
   expect(wrapper.store.get(tableDensityAtom(favorite.tableId))).not.toBe(
     "extra-small"
   );
@@ -307,7 +307,7 @@ async function selectDefault(
   await wrapper.openMenu();
   const item = Array.from(
     document.querySelectorAll<HTMLElement>("button")
-  ).find((element) => element.textContent?.includes("Default View"));
+  ).find((element) => element.textContent?.includes("Default view"));
   if (!item) {
     throw new Error("Missing default view menu item");
   }
@@ -350,13 +350,13 @@ it("favorites the built-in default by clearing the personal preference, preserve
   await wrapper.unmount();
   cleanups.pop();
   const reloaded = await mountManager(options);
-  expect(reloaded.button("Current View").textContent).toContain("Default View");
+  expect(reloaded.button("Current View").textContent).toContain("Default view");
   expect(reloaded.button("Favorite view").getAttribute("aria-pressed")).toBe(
     "true"
   );
   await reloaded.openMenu();
   const marked = document.querySelector('button [aria-label="Favorite view"]');
-  expect(marked?.closest("button")?.textContent).toContain("Default View");
+  expect(marked?.closest("button")?.textContent).toContain("Default view");
 });
 
 it("keeps the old favorite when clearing it fails and allows retry on the default view", async () => {

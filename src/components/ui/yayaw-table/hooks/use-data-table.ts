@@ -513,6 +513,14 @@ export function useDataTable<TData extends Record<string, unknown>>(
     [t]
   );
 
+  const hasRowAction =
+    (isEditAllowed && Boolean(actions.update)) ||
+    (isDeleteAllowed && Boolean(actions.delete)) ||
+    (isDuplicateAllowed && Boolean(actions.duplicate)) ||
+    Boolean(onView) ||
+    mediaActions.length > 0 ||
+    (rowActions?.length ?? 0) > 0;
+
   const buildActionsColumnDef = useCallback(
     ({
       includeView = true,
@@ -531,9 +539,10 @@ export function useDataTable<TData extends Record<string, unknown>>(
       return column.actions({
         actions: [...mediaActions, ...(rowActions ?? [])],
         header: "",
-        includeDelete: isDeleteAllowed,
-        includeDuplicate: isDuplicateAllowed && !!actions.duplicate,
-        includeEdit: isEditAllowed,
+        // Offer only what can be saved, as in Vue.
+        includeDelete: isDeleteAllowed && Boolean(actions.delete),
+        includeDuplicate: isDuplicateAllowed && Boolean(actions.duplicate),
+        includeEdit: isEditAllowed && Boolean(actions.update),
         includeView: includeView && Boolean(onView),
         canDeleteRow: config.table.canDeleteRow,
         canDuplicateRow: config.table.canDuplicateRow,
@@ -559,7 +568,9 @@ export function useDataTable<TData extends Record<string, unknown>>(
       } as ActionsColumnProps<TData>);
     },
     [
+      actions.delete,
       actions.duplicate,
+      actions.update,
       mediaActions,
       rowActions,
       onView,
@@ -579,6 +590,35 @@ export function useDataTable<TData extends Record<string, unknown>>(
       isEditAllowed,
       tableId,
       tableType,
+    ]
+  );
+
+  // Only a row that can offer an action gets the column, as in Vue.
+  const autoActionsColumn = useMemo(
+    () =>
+      hasRowAction
+        ? [
+            {
+              ...withInlineEditMeta(
+                buildActionsColumnDef({
+                  includeView: true,
+                  withDuplicateHandler: true,
+                }),
+                resolveInlineEditColumnConfig(
+                  { id: "actions", type: "actions" },
+                  tableInlineEditConfig,
+                  { featureEnabled: isInlineEditAllowed }
+                )
+              ),
+              enableResizing: false,
+            },
+          ]
+        : [],
+    [
+      buildActionsColumnDef,
+      hasRowAction,
+      isInlineEditAllowed,
+      tableInlineEditConfig,
     ]
   );
 
@@ -808,33 +848,14 @@ export function useDataTable<TData extends Record<string, unknown>>(
       );
     }
 
-    // Add actions column if not already added
+    // Add the actions column if not already added (empty without row actions).
     if (!columnDefs.some((col) => "id" in col && col.id === "actions")) {
-      columnDefs.push({
-        ...withInlineEditMeta(
-          buildActionsColumnDef({
-            includeView: true,
-            withDuplicateHandler: true,
-          }),
-          resolveInlineEditColumnConfig(
-            {
-              id: "actions",
-              type: "actions",
-            },
-            tableInlineEditConfig,
-            {
-              featureEnabled: isInlineEditAllowed,
-            }
-          )
-        ),
-        enableResizing: false,
-      });
+      columnDefs.push(...autoActionsColumn);
     }
 
     return createColumns(columnDefs);
   }, [
     column,
-    buildActionsColumnDef,
     buildBaseColumnDef,
     config.columns.definitions,
     config.table.enableRowSelection,
@@ -843,6 +864,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
     isInlineEditAllowed,
     tableInlineEditConfig,
     config.table.coloredTags,
+    autoActionsColumn,
   ]);
 
   // Helper function to determine column label

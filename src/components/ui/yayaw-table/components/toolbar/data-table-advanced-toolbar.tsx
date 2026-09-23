@@ -918,7 +918,10 @@ export function DataTableAdvancedToolbar<TData>({
   } = useToolbarLayout(tableId);
   const [actionsOpen, setActionsOpen] = useState(false);
   const actionsAsIcons = tableConfig.table.actionsAsIcons === true && !isMobile;
-  const isCreateEnabled = tableConfig.table.allowCreate !== false;
+  // A create button needs somewhere to save, as in Vue.
+  const isCreateEnabled =
+    tableConfig.table.allowCreate !== false &&
+    typeof tableActions?.create === "function";
   const isExportEnabled = tableConfig.table.export !== false;
   const isColumnFiltersEnabled =
     tableConfig.table.enableColumnFilters !== false;

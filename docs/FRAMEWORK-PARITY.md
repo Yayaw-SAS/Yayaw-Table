@@ -655,3 +655,15 @@ Known difference kept for compatibility: a number column without
 `numberFormat` shows the raw value in React (`1234.5`) and a locale-grouped
 value in Vue (`1,234.5`). Set `numberFormat` for identical output.
 `tests/value-format-suite.ts` runs in both editions.
+
+## Visual parity
+
+React is the visual reference. Vue matches its toolbar (compact search with an
+icon), table header (14px medium text, column separators, column menus revealed
+on hover or focus), checkboxes, Kanban (bordered board and lanes, 18rem lanes,
+compact cards with number and date chips) and gallery (bordered panel, image
+placeholder). Both editions offer Create, Edit, Delete and Duplicate only when
+the matching action exists, omit the row-actions column when no action can be
+offered, and show every card property by default. Pixel baselines differ by
+platform fonts, so Playwright checks measurable styles in both editions
+instead: header font, row height, checkbox size, search width and card titles.

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Image as ImageIcon } from "lucide-vue-next";
 import TableEmptyState from "../table/TableEmptyState.vue";
 import { computed, defineComponent, onBeforeUnmount, ref } from "vue";
 import type { PropType, VNodeChild } from "vue";
@@ -95,7 +96,7 @@ const CustomContent = defineComponent({ props: { node: { type: null as unknown a
     v-if="!rows.length && !context.data.isLoading.value && !context.data.error.value && context.config.table.emptyState?.show !== false"
     class="yayaw-card-empty"
   />
-  <div v-else class="yayaw-card-view-shell">
+  <div v-else class="yayaw-card-view-shell yayaw-gallery-panel">
 
     <section v-for="section in sections" :key="section.label" class="yayaw-gallery-section">
       <h3 v-if="section.label">{{ section.label }} <span class="yayaw-count">{{ section.rows.length }}</span></h3>
@@ -105,14 +106,14 @@ const CustomContent = defineComponent({ props: { node: { type: null as unknown a
             <CustomContent v-if="context.config.table.gallery?.renderMedia" :node="context.config.table.gallery.renderMedia(mediaContext(row))" />
             <GalleryMedia v-else-if="context.config.table.gallery?.media?.enabled" :source="resolveGalleryMedia(row, context.config.table.gallery.media, imageColumn)" :title="mediaContext(row).title" :fit="imageFit" :hover-preview="context.config.table.gallery.media.hoverPreview" :preview-label="labels.preview" @open="openPreview(row, $event)" />
             <img v-else-if="imageFor(row)" :src="imageFor(row)" :alt="String(value(row, titleColumn) ?? '')" loading="lazy" :style="{ objectFit: imageFit }" />
-            <span v-else>{{ initialFor(row) }}</span>
+            <span v-else class="yayaw-gallery-placeholder"><ImageIcon :size="24" aria-hidden="true" /><span>{{ initialFor(row) }}</span></span>
             <span v-if="context.config.table.enableRowSelection" class="yayaw-card-select" @click.capture="checkboxShift = $event.shiftKey" @click.stop><TableCheckbox :label="translate('selectRow', 'Select') + ' ' + String(value(row, titleColumn))" :model-value="Boolean(context.selection.value[context.getRowId(row)])" :disabled="context.config.table.canSelectRow?.(row) === false" @update:model-value="toggleSelection(row, $event, checkboxShift); checkboxShift = false" /></span>
           </div>
           <div class="yayaw-gallery-body">
             <div class="yayaw-card-header"><strong>{{ displayCellValue(value(row, titleColumn), column(titleColumn) ?? { id: titleColumn, header: titleColumn }, context.locale) }}</strong><RowActions :row="row" /></div>
             <CustomContent v-if="context.config.table.gallery?.renderProperties" :node="context.config.table.gallery.renderProperties(mediaContext(row))" />
             <dl v-else class="yayaw-card-properties" :class="{ labeled: showLabels }">
-              <template v-for="id in propertyIds.filter((item) => ![titleColumn, imageColumn].includes(item))" :key="id"><dt v-if="showLabels">{{ column(id)?.header ?? id }}</dt><dd><CellRenderer :value="value(row, id)" :row="row" :column="column(id) ?? { id, header: id }" /></dd></template>
+              <template v-for="id in propertyIds.filter((item) => ![titleColumn, imageColumn].includes(item))" :key="id"><dt v-if="showLabels">{{ column(id)?.header ?? id }}</dt><dd :data-type="column(id)?.type"><CellRenderer :value="value(row, id)" :row="row" :column="column(id) ?? { id, header: id }" /></dd></template>
             </dl>
           </div>
         </article>

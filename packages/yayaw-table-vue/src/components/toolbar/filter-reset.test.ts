@@ -76,7 +76,7 @@ describe("toolbar filter reset", () => {
         locale: "fr",
       },
     });
-    await openViewScreen(visible, "Filtres");
+    await openViewScreen(visible, "Filtrer");
     const button = visible.get('button[aria-label="Effacer les filtres"]');
     expect(button.classes()).not.toContain("yayaw-icon-only");
     expect(button.attributes("title")).toBeUndefined();
@@ -188,7 +188,7 @@ describe("toolbar filter reset", () => {
       props: { tableType: "reset", config, data },
     });
     await flushPromises();
-    await openViewScreen(wrapper, "Filters");
+    await openViewScreen(wrapper, "Filter");
     await wrapper.get('button[aria-label="Clear filters"]').trigger("click");
     await vi.advanceTimersByTimeAsync(100);
 

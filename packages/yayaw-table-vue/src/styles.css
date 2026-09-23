@@ -659,9 +659,21 @@
   z-index: 3;
   top: 0;
   background: var(--yayaw-background);
-  color: var(--yayaw-muted-foreground);
-  font-size: 12px;
-  font-weight: 600;
+  color: var(--yayaw-foreground);
+  font-size: 14px;
+  font-weight: 500;
+}
+.yayaw-data-grid thead th + th {
+  border-left: 1px solid var(--yayaw-border);
+}
+/* Column menus appear on hover or keyboard focus, as in React. */
+.yayaw-data-grid th .yayaw-column-menu-trigger {
+  opacity: 0;
+}
+.yayaw-data-grid th:hover .yayaw-column-menu-trigger,
+.yayaw-data-grid th:focus-within .yayaw-column-menu-trigger,
+.yayaw-data-grid th .yayaw-column-menu-trigger[aria-expanded="true"] {
+  opacity: 1;
 }
 .yayaw-data-grid th.sortable {
   cursor: pointer;
@@ -1564,27 +1576,45 @@
 }
 .yayaw-kanban {
   display: grid;
-  grid-auto-columns: minmax(270px, 320px);
+  grid-auto-columns: 18rem;
   grid-auto-flow: column;
   gap: 12px;
   overflow-x: auto;
-  padding-bottom: 12px;
+  border: 1px solid var(--yayaw-border);
+  border-radius: var(--yayaw-radius);
+  background: var(--yayaw-background);
+  padding: 12px;
 }
 .yayaw-kanban-lane {
-  min-height: 200px;
+  min-height: 28rem;
+  overflow: hidden;
+  border: 1px solid var(--yayaw-border);
   border-radius: var(--yayaw-radius);
-  background: var(--yayaw-muted);
-  padding: 10px;
+  background: color-mix(
+    in oklab,
+    var(--yayaw-muted) 20%,
+    var(--yayaw-background)
+  );
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
 }
 .yayaw-kanban-lane > header {
   display: flex;
+  height: 44px;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 9px;
+  border-bottom: 1px solid var(--yayaw-border);
+  padding: 0 12px;
+  font-weight: 500;
+}
+.yayaw-kanban-lane > header .yayaw-count {
+  border-radius: 999px;
+  background: var(--yayaw-background);
+  padding: 2px 8px;
 }
 .yayaw-kanban-cards {
   display: grid;
   gap: 8px;
+  padding: 8px;
 }
 .yayaw-card {
   overflow: hidden;
@@ -1598,12 +1628,20 @@
 }
 .yayaw-card:hover,
 .yayaw-card:focus {
-  box-shadow: 0 5px 16px rgba(0, 0, 0, 0.09);
+  border-color: color-mix(
+    in oklab,
+    var(--yayaw-primary) 40%,
+    var(--yayaw-border)
+  );
+  background: color-mix(
+    in oklab,
+    var(--yayaw-muted) 20%,
+    var(--yayaw-background)
+  );
   outline: none;
-  transform: translateY(-1px);
 }
 .yayaw-kanban-card {
-  padding: 12px;
+  padding: 8px;
 }
 .yayaw-card.pending {
   opacity: 0.55;
@@ -1616,6 +1654,8 @@
 .yayaw-card-header strong {
   min-width: 0;
   flex: 1;
+  font-size: 14px;
+  font-weight: 500;
 }
 .yayaw-kanban-move-actions {
   display: inline-flex;
@@ -1628,15 +1668,28 @@
   cursor: pointer;
 }
 .yayaw-card-properties {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 5px 10px;
-  margin: 10px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 0;
   color: var(--yayaw-muted-foreground);
   font-size: 12px;
 }
+.yayaw-card-properties:not(.labeled) dd[data-type="number"],
+.yayaw-card-properties:not(.labeled) dd[data-type="date"] {
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--yayaw-muted) 70%, transparent);
+  padding: 2px 8px;
+  font-size: 11px;
+}
+.yayaw-card-properties:not(.labeled) dd[data-type="date"] {
+  color: var(--yayaw-muted-foreground);
+}
 .yayaw-card-properties.labeled {
-  grid-template-columns: minmax(60px, auto) 1fr;
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+  gap: 8px;
 }
 .yayaw-card-properties dt {
   color: var(--yayaw-muted-foreground);
@@ -1676,7 +1729,7 @@
   overflow: hidden;
   background: var(--yayaw-muted);
   color: var(--yayaw-muted-foreground);
-  font-size: 34px;
+  font-size: 18px;
   font-weight: 700;
 }
 .yayaw-gallery-media[data-ratio="portrait"] {
@@ -2108,9 +2161,14 @@
   flex-shrink: 0;
 }
 .yayaw-data-actions .yayaw-search {
-  flex: 1;
+  flex: 0 1 16rem;
   min-width: 160px;
   width: auto;
+  margin-left: auto;
+  padding-left: 32px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E");
+  background-position: 10px center;
+  background-repeat: no-repeat;
 }
 .yayaw-menu-anchor {
   display: inline-flex;
@@ -3024,4 +3082,59 @@
   height: 100%;
   border-radius: 999px;
   background: var(--yayaw-primary);
+}
+
+/* Native grid checkboxes match the shared checkbox. */
+.yayaw-data-grid input[type="checkbox"] {
+  appearance: none;
+  display: inline-grid;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  place-content: center;
+  border: 1px solid var(--yayaw-border);
+  border-radius: 4px;
+  background: var(--yayaw-background);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+  cursor: pointer;
+}
+.yayaw-data-grid input[type="checkbox"]:checked,
+.yayaw-data-grid input[type="checkbox"]:indeterminate {
+  border-color: var(--yayaw-primary);
+  background: var(--yayaw-primary);
+}
+.yayaw-data-grid input[type="checkbox"]:checked::after {
+  width: 9px;
+  height: 5px;
+  border: 2px solid var(--yayaw-primary-foreground);
+  border-top: 0;
+  border-right: 0;
+  content: "";
+  transform: translateY(-1px) rotate(-45deg);
+}
+.yayaw-data-grid input[type="checkbox"]:indeterminate::after {
+  width: 8px;
+  height: 2px;
+  background: var(--yayaw-primary-foreground);
+  content: "";
+}
+.yayaw-gallery-placeholder {
+  display: grid;
+  gap: 6px;
+  place-items: center;
+  font-weight: 500;
+}
+.yayaw-gallery-body .yayaw-card-header strong {
+  font-weight: 500;
+}
+.yayaw-kanban-lane > header strong {
+  font-size: 14px;
+  font-weight: 500;
+}
+/* The gallery grid sits in a bordered panel, as in React. */
+.yayaw-gallery-panel {
+  border: 1px solid var(--yayaw-border);
+  border-radius: var(--yayaw-radius);
+  background: var(--yayaw-background);
+  padding: 12px;
 }
