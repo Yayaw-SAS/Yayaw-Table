@@ -28,6 +28,12 @@ export interface ViewSettingField {
   value: string;
   options: { value: string; label: string }[];
   onChange: (value: string) => void;
+  /** Section title shown above the field. */
+  heading?: string;
+  /** Label and control on one row (column mappings). */
+  inline?: boolean;
+  /** Content right after the field, such as a hint or an input. */
+  after?: ReactNode;
 }
 export interface ViewSettingProperties {
   label: string;
@@ -37,6 +43,90 @@ export interface ViewSettingProperties {
   showLabels: boolean;
   showLabelsLabel: string;
   onShowLabelsChange: (value: boolean) => void;
+}
+
+/** One setting: a select, or on touch layouts a button that opens its choices. */
+function SettingFieldRow({
+  controlId,
+  field,
+  mobile,
+  onOpen,
+}: {
+  controlId: string;
+  field: ViewSettingField;
+  mobile: boolean;
+  onOpen: (button: HTMLButtonElement) => void;
+}) {
+  const control = mobile ? (
+    <Button
+      aria-label={field.label}
+      className="w-full min-w-0 justify-between font-normal"
+      id={controlId}
+      onClick={(event) => onOpen(event.currentTarget)}
+      variant="outline"
+    >
+      <span className="truncate">
+        {field.options.find((option) => option.value === field.value)?.label ??
+          field.label}
+      </span>
+      <ChevronDown aria-hidden="true" className="size-4" />
+    </Button>
+  ) : (
+    <Select
+      items={field.options}
+      onValueChange={(value) => {
+        if (value !== null) {
+          field.onChange(value);
+        }
+      }}
+      value={field.value}
+    >
+      <SelectTrigger
+        aria-label={field.label}
+        className="w-full min-w-0 font-normal"
+        id={controlId}
+      >
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent align="start" alignItemWithTrigger={false}>
+        {field.options.map((option) => (
+          <SelectItem key={option.value} value={option.value}>
+            {option.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+  return (
+    <>
+      {field.heading ? (
+        <h3 className="mt-1 font-medium text-sm" data-setting-heading>
+          {field.heading}
+        </h3>
+      ) : null}
+      <div
+        className={
+          field.inline
+            ? "grid min-w-0 grid-cols-[minmax(0,2fr)_minmax(0,3fr)] items-center gap-2"
+            : "grid min-w-0 gap-1.5"
+        }
+        data-setting-field={field.id}
+      >
+        <label
+          className={
+            field.inline
+              ? "truncate text-sm"
+              : "text-muted-foreground text-sm"
+          }
+          htmlFor={controlId}
+        >
+          {field.label}
+        </label>
+        {control}
+      </div>
+      {field.after}
+    </>
+  );
 }
 
 /** Mobile choices stay inside the owning drawer, with one scroll region and focus boundary. */
@@ -161,57 +251,16 @@ export function ViewSettingsPanel({
   return (
     <div className="grid min-w-0 gap-3" data-view-settings>
       {fields.map((field) => (
-        <div className="grid min-w-0 gap-1.5" key={field.id}>
-          <label
-            className="text-muted-foreground text-sm"
-            htmlFor={`${id}-${field.id}`}
-          >
-            {field.label}
-          </label>
-          {mobile ? (
-            <Button
-              id={`${id}-${field.id}`}
-              aria-label={field.label}
-              className="w-full justify-between font-normal"
-              variant="outline"
-              onClick={(event) => {
-                trigger.current = event.currentTarget;
-                setScreen(field.id);
-              }}
-            >
-              <span className="truncate">
-                {field.options.find((option) => option.value === field.value)
-                  ?.label ?? field.label}
-              </span>
-              <ChevronDown aria-hidden="true" className="size-4" />
-            </Button>
-          ) : (
-            <Select
-              value={field.value}
-              items={field.options}
-              onValueChange={(value) => {
-                if (value !== null) {
-                  field.onChange(value);
-                }
-              }}
-            >
-              <SelectTrigger
-                aria-label={field.label}
-                className="w-full min-w-0 font-normal"
-                id={`${id}-${field.id}`}
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent align="start" alignItemWithTrigger={false}>
-                {field.options.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
+        <SettingFieldRow
+          controlId={`${id}-${field.id}`}
+          field={field}
+          key={field.id}
+          mobile={mobile}
+          onOpen={(button) => {
+            trigger.current = button;
+            setScreen(field.id);
+          }}
+        />
       ))}
       {properties ? (
         <Button

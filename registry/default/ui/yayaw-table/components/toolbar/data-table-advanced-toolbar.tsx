@@ -73,6 +73,10 @@ import type { DateDisplayPreset } from "../../types/date-types";
 import { DATE_DISPLAY_PRESETS } from "../../types/date-types";
 import type { TableDisplayMode } from "../../types/display-types";
 import { StackMenuContent, StackMenuItem } from "../../ui-custom/stack-menu";
+import {
+  type ConnectorViewColumn,
+  hasConnector,
+} from "../../utils/connector-flow";
 import { buildCsvExportColumns } from "../../utils/csv-export";
 import {
   type DataDestination,
@@ -106,6 +110,7 @@ import {
   catalogueFormAtom,
   openCreateForm,
 } from "../forms/atoms/catalogue-form-atoms";
+import { ConnectorPanel } from "./connector-panel";
 import { ExportPanel } from "./export-panel";
 import { useMobileSettingsScreens } from "./mobile-settings-screens";
 import { DestinationScheduleButton, SchedulePanel } from "./schedule-panel";
@@ -623,6 +628,15 @@ interface DestinationScheduling {
   panel: (destination: TableDataDestination) => ReactNode;
 }
 
+/** Connector screens for Connect destinations that declare `connector`. */
+interface DestinationConnectors {
+  enabled: boolean;
+  panel: (destination: TableDataDestination) => ReactNode;
+}
+
+const connectorScreen = (destination: TableDataDestination) =>
+  `connector:${destination.id}`;
+
 const scheduleScreen = (destination: TableDataDestination) =>
   `schedule:${destination.id}`;
 
@@ -654,6 +668,7 @@ function destinationScreens({
   onShare,
   pendingDestination,
   scheduling,
+  connectors,
   t,
 }: {
   destinations: Record<"connect" | "share", TableDataDestination[]>;
@@ -662,10 +677,18 @@ function destinationScreens({
   onShare: () => Promise<void>;
   pendingDestination?: string;
   scheduling: DestinationScheduling;
+  connectors: DestinationConnectors;
   t: ReturnType<typeof useTranslations>["t"];
 }) {
   const item = (destination: TableDataDestination) =>
-    renderDestinationItem(destination, pendingDestination, onDestination);
+    renderDestinationItem(
+      destination,
+      pendingDestination,
+      onDestination,
+      hasConnector(destination, connectors.enabled)
+        ? connectorScreen(destination)
+        : undefined
+    );
   const screens: { name: string; title: string; content: ReactNode }[] = [];
   if (destinations.connect.length > 0) {
     screens.push({
@@ -680,6 +703,13 @@ function destinationScreens({
       ),
     });
     for (const destination of destinations.connect) {
+      if (hasConnector(destination, connectors.enabled)) {
+        screens.push({
+          name: connectorScreen(destination),
+          title: destination.label,
+          content: connectors.panel(destination),
+        });
+      }
       if (isSchedulable(destination, scheduling.enabled)) {
         screens.push({
           name: scheduleScreen(destination),
@@ -708,12 +738,29 @@ function destinationScreens({
   return screens;
 }
 
-/** A host destination; one runs at a time and shows its progress. */
+/**
+ * A host destination; one runs at a time and shows its progress. A connector
+ * opens its screen instead of running.
+ */
 function renderDestinationItem(
   destination: TableDataDestination,
   pendingDestination: string | undefined,
-  onDestination: (destination: TableDataDestination) => Promise<void>
+  onDestination: (destination: TableDataDestination) => Promise<void>,
+  screen?: string
 ) {
+  if (screen) {
+    return (
+      <StackMenuItem
+        data-connector-trigger
+        icon={destination.icon ?? <Send className="size-4" />}
+        key={destination.id}
+        navigateTitle={destination.label}
+        navigateTo={screen}
+      >
+        {destination.label}
+      </StackMenuItem>
+    );
+  }
   const running = pendingDestination === destination.id;
   return (
     <StackMenuItem
@@ -1441,6 +1488,22 @@ export function DataTableAdvancedToolbar<TData>({
     },
     [tableConfig.columns.definitions]
   );
+  // The view's columns for connector mappings: visible ones in display order, then the others.
+  const connectorColumns = useMemo((): ConnectorViewColumn[] => {
+    const visible = new Set(csvExportColumns.map((column) => column.id));
+    const ordered = [
+      ...visible,
+      ...tableConfig.columns.definitions
+        .map((column) => column.id)
+        .filter((id) => !visible.has(id)),
+    ];
+    return exportColumnsFor(ordered).map((column) => ({
+      id: column.id,
+      header: String(column.header),
+      ...(column.type ? { type: String(column.type) } : {}),
+      visible: visible.has(column.id),
+    }));
+  }, [csvExportColumns, exportColumnsFor, tableConfig.columns.definitions]);
   // Server first through `actions.exportFile`; otherwise CSV or print here.
   const handleExport = useCallback(
     async (settings: ExportSettings) => {
@@ -1504,6 +1567,11 @@ export function DataTableAdvancedToolbar<TData>({
     const translated = t(`schedule.${key}`);
     return translated === `schedule.${key}` ? fallback : translated;
   };
+  // Host translations override the built-in English and French connector labels.
+  const connectorTranslate = (key: string, fallback: string) => {
+    const translated = t(`connector.${key}`);
+    return translated === `connector.${key}` ? fallback : translated;
+  };
   const destinationGroups = groupDataDestinations(
     tableActions?.destinations,
     toolbarActionContext.selectedRowIds.length
@@ -1549,6 +1617,25 @@ export function DataTableAdvancedToolbar<TData>({
       onDestination: runDestination,
       onShare: shareLink,
       pendingDestination,
+      connectors: {
+        enabled: tableConfig.table.connectors !== false,
+        panel: (destination) =>
+          destination.connector ? (
+            <ConnectorPanel
+              columns={connectorColumns}
+              connector={destination.connector}
+              context={destinationContext}
+              locale={locale}
+              selectedRows={
+                toolbarActionContext.selectedOriginalRows as Record<
+                  string,
+                  unknown
+                >[]
+              }
+              translate={connectorTranslate}
+            />
+          ) : null,
+      },
       scheduling: {
         enabled: tableConfig.table.schedule !== false,
         label: (destination) =>

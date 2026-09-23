@@ -486,6 +486,8 @@ export interface TableBehaviorConfig
   share?: boolean;
   /** Offer scheduling settings for Connect destinations that declare `schedule`; default true. */
   schedule?: boolean;
+  /** Open the connector screens of Connect destinations that declare `connector`; default true. */
+  connectors?: boolean;
 
   /**
    * Enable CSV export in bulk actions menu

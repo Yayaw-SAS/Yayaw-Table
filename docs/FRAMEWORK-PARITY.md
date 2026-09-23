@@ -819,3 +819,33 @@ UI and no framework code; the host provides credential storage,
 authorization, server entry points and workers ([connectors](connectors.md)).
 `tests/connectors-notion-suite.ts` and `tests/connectors-google-sheets-suite.ts`
 run against both copies with a fake `fetch` and clock.
+
+## Connector screens
+
+A Connect destination that declares `connector` (`targets`, optional
+`allowTargetInput`, `describe`, `modes`, `load`, `save`, `push`, `labels` and
+`help.notShared`) opens one screen in the Data menu instead of running `run`,
+in both editions (React a `StackMenuView` named `connector:<id>`, Vue
+`dataView "connector:<id>"`; back and Done return to Connect; the schedule
+clock stays). The screen is driven by the shared, framework-neutral
+`createConnectorFlow` state machine in `connector-flow.ts`, and both editions
+render the same `connectorScreenFields` list through `ViewSettingsPanel`
+(new optional `heading` and `inline` fields; React `after`, Vue
+`#after-<id>` slot), so long selects open as choice lists in the drawer on
+touch layouts. Order: target (with the optional paste input), child, visible
+or all columns, one mapping per column (same header first, type-compatible
+fields first, a new field when `allowNewFields`, or Don't send), key field
+("Yayaw ID" by default), mode with its one-line explanation when several are
+offered, and records (all in the view or the selection). Send validates,
+saves the settings with `save`, pushes with scope-aware context
+(`scope`, the sent `columns`, and for a selection `selectedRowIds` and
+`loadRows` limited to the selected records), then shows the counts, first
+failures, warnings and truncation with Done and Send again. Errors (thrown,
+or returned as `{ error: { code, details } }`) show inline with a localized
+message; `not_shared` names `details.serviceAccountEmail`. Labels are English
+and French in the shared model, overridable with `connector.<key>`.
+`table.connectors: false` keeps the row running `run`.
+`tests/connector-flow-suite.ts` runs in both editions and
+`e2e/connectors.spec.ts` covers mapping, send and send again, selected
+records, a target that is not shared and the phone drawer on both demos (the
+in-memory "Spreadsheet" connector in `examples/views-spreadsheet.ts`).

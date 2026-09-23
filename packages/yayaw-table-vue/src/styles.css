@@ -3455,3 +3455,76 @@
 .yayaw-schedule-actions > .yayaw-button {
   flex: 1;
 }
+/* Connector screens: target, column mapping, records, send and result. */
+.yayaw-connector-panel {
+  padding: 12px;
+}
+.yayaw-setting-heading {
+  margin: 4px 0 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+.yayaw-card-settings .yayaw-setting-inline .yayaw-control-field {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  align-items: center;
+  gap: 8px;
+}
+.yayaw-card-settings .yayaw-setting-inline .yayaw-control-field > label {
+  overflow: hidden;
+  color: var(--yayaw-foreground);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-connector-input {
+  display: grid;
+  gap: 6px;
+}
+.yayaw-connector-input > label {
+  color: var(--yayaw-muted-foreground);
+  font-size: 14px;
+}
+.yayaw-connector-input-row {
+  display: flex;
+  gap: 8px;
+}
+.yayaw-connector-input-row .yayaw-input {
+  min-width: 0;
+  flex: 1;
+}
+.yayaw-connector-hint {
+  margin: 0;
+  color: var(--yayaw-muted-foreground);
+  font-size: 12px;
+}
+.yayaw-connector-error {
+  margin: 0;
+  border: 1px solid color-mix(in oklab, var(--yayaw-danger) 40%, transparent);
+  border-radius: var(--yayaw-radius);
+  padding: 8px 12px;
+  color: var(--yayaw-danger);
+  font-size: 14px;
+}
+.yayaw-connector-send {
+  width: 100%;
+}
+.yayaw-connector-result {
+  display: grid;
+  gap: 12px;
+}
+.yayaw-connector-summary {
+  display: grid;
+  gap: 4px;
+  border-radius: var(--yayaw-radius);
+  background: var(--yayaw-muted);
+  padding: 8px 12px;
+  font-size: 14px;
+}
+.yayaw-connector-summary p {
+  margin: 0;
+}
+.yayaw-connector-counts {
+  font-weight: 500;
+}
+.yayaw-connector-failure {
+  color: var(--yayaw-danger);
+}

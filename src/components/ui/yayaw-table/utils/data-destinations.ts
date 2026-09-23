@@ -3,6 +3,10 @@
  * the React and Vue editions. The host declares them in its table actions;
  * the table lists them in the settings "Data" section.
  */
+import type {
+  ConnectorPushScope,
+  DataDestinationConnector,
+} from "./connector-flow";
 import type { DataDestinationSchedule } from "./schedule-model";
 import { normalizeFilterEnvelope } from "./table-contracts";
 
@@ -24,6 +28,8 @@ export interface DataDestinationQuery {
 export interface DataDestinationColumn {
   id: string;
   header: string;
+  /** The table column type (text, number, date, select…). */
+  type?: string;
 }
 
 export interface DataDestinationContext {
@@ -45,6 +51,15 @@ export interface DataDestinationContext {
   loadRows: () => Promise<Record<string, unknown>[]>;
 }
 
+/**
+ * What a connector's `push` receives: `columns` are the columns sent, and
+ * with the "selection" scope `selectedRowIds` and `loadRows` cover the
+ * selected records only.
+ */
+export interface ConnectorPushContext
+  extends DataDestinationContext,
+    ConnectorPushScope {}
+
 export interface DataDestinationResult {
   /** Shown once the destination succeeded. */
   message?: string;
@@ -64,7 +79,16 @@ export interface DataDestination<TIcon = unknown> {
    * the host runs the schedule. Rows without it show no schedule control.
    */
   schedule?: DataDestinationSchedule<DataDestinationContext>;
-  run: (
+  /**
+   * Connect destinations only: the row opens the table's connector screen
+   * (target, column mapping, records, send and result) instead of `run`.
+   */
+  connector?: DataDestinationConnector<
+    DataDestinationContext,
+    ConnectorPushContext
+  >;
+  /** Runs the destination; optional when `connector` is declared. */
+  run?: (
     context: DataDestinationContext
   ) =>
     | DataDestinationResult
@@ -124,13 +148,34 @@ export function dataDestinationQuery({
   };
 }
 
+/**
+ * The push context for a scope: with "selection", only the selected records
+ * (already loaded in the browser) are sent.
+ */
+export function connectorPushContext(
+  context: DataDestinationContext,
+  scope: "view" | "selection",
+  columns: DataDestinationColumn[],
+  selectedRows: readonly Record<string, unknown>[]
+): ConnectorPushContext {
+  if (scope === "selection") {
+    return {
+      ...context,
+      scope,
+      columns,
+      loadRows: () => Promise.resolve([...selectedRows]),
+    };
+  }
+  return { ...context, scope, columns, selectedRowIds: [] };
+}
+
 /** Run a destination; failures become a message instead of an exception. */
 export async function runDataDestination(
   destination: Pick<DataDestination, "run">,
   context: DataDestinationContext
 ): Promise<{ ok: true; message?: string } | { ok: false; error: string }> {
   try {
-    const result = await destination.run(context);
+    const result = await destination.run?.(context);
     return { ok: true, message: result?.message };
   } catch (error) {
     return {
