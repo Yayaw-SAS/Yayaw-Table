@@ -40,6 +40,7 @@ export const viewsColumns = [
 
 export const viewsTableOptions = {
   syncUrl: true,
+  enableAdvancedFilters: true,
   coloredTags: false,
   defaultDisplayMode: "table" as const,
   displayModes: ["table", "gallery", "kanban"] as (

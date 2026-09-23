@@ -32,7 +32,6 @@ const ROW_OVERSCAN_BEFORE = 6;
 const ROW_OVERSCAN_AFTER = 14;
 const MIN_BAR_WIDTH = 8;
 const LINK_ELBOW = 12;
-const ISO_DATE_LENGTH = 10;
 /** Sunday is day 4 of the UTC epoch week; this realigns a day number to a weekday. */
 const EPOCH_WEEKDAY_OFFSET = 4;
 
@@ -81,8 +80,13 @@ export interface TimelineLink {
   d: string;
 }
 
-export const timelineToday = (): PlanningDate =>
-  new Date().toISOString().slice(0, ISO_DATE_LENGTH);
+/** Today in the user's time zone: the UTC date is a different day near midnight. */
+export const timelineToday = (now = new Date()): PlanningDate =>
+  [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, "0"),
+    String(now.getDate()).padStart(2, "0"),
+  ].join("-");
 
 /** How far the previous/next controls move the window at the current zoom. */
 export const timelinePeriodStep = (

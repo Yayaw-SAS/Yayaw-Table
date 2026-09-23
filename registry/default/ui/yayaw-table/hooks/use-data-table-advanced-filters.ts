@@ -216,6 +216,14 @@ export function useDataTableAdvancedFilters<TData = Record<string, unknown>>(
         setAdvancedFiltersFromUI(newFilters);
       },
 
+      setJoinOperator: (joinOperator: "and" | "or") => {
+        setAdvancedFiltersFromUI(
+          advancedFilters.map(({ joinOperator: _previous, ...filter }) =>
+            joinOperator === "or" ? { ...filter, joinOperator } : filter
+          )
+        );
+      },
+
       clearFilters: () => {
         resetAdvancedFilters();
       },

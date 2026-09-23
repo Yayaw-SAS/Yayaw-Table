@@ -580,3 +580,15 @@ so existing hosts keep working with more data transferred. Results are capped
 (`maxRows`, 2000 by default): views either show a `truncated` result or, with
 `overflow: "throw"`, refuse an incomplete one. Vue's local-data mode filters its
 rows the same way. `tests/scoped-rows-suite.ts` runs in both editions.
+
+## Multiple sorts and filter combination
+
+Both editions keep an ordered list of sorts and send every sort to list actions.
+React's sort menu adds a clicked column as the lowest-priority sort, reverses it
+on the next click and removes it on the third, numbering priorities when more
+than one sort applies; Vue edits the same list with one rule per sort. With two
+or more advanced filter rules, both editions offer "Match all / any condition"
+(`filters.match`, `filters.combination`, `filters.match_all`,
+`filters.match_any`), stored as the rules' `joinOperator` in views and URLs.
+Playwright `e2e/views.spec.ts` checks the combination round trip in both
+editions.

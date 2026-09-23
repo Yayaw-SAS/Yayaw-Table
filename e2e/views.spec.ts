@@ -3,6 +3,25 @@ import { expect, type Page, test } from "@playwright/test";
 const EXAMPLE = "/?example=views";
 const DISPLAY_PARAM = "views-display";
 const CURRENT_VIEW = /^current view/i;
+const FILTERS = /^filters?/i;
+const TWO_RULES = [
+  {
+    id: "a",
+    columnId: "status",
+    type: "select",
+    operator: "is",
+    values: ["Active"],
+    isActive: true,
+  },
+  {
+    id: "b",
+    columnId: "category",
+    type: "select",
+    operator: "is",
+    values: ["Service"],
+    isActive: true,
+  },
+];
 const MODE = {
   gallery: /^gallery$/i,
   kanban: /^kanban$/i,
@@ -90,4 +109,31 @@ test("a saved view restores its display mode", async ({ page }) => {
     .getByRole("button", { name: "Board" })
     .click();
   await expectMode(page, MODE.kanban);
+});
+
+test("advanced filters can match any rule instead of all rules", async ({
+  page,
+}) => {
+  const rules = encodeURIComponent(JSON.stringify(TWO_RULES));
+  await page.goto(`${EXAMPLE}&views-advancedFilters=${rules}`);
+  const combination = async () => {
+    await openViewMenu(page);
+    await page
+      .getByRole("dialog", { name: "Views and settings" })
+      .getByRole("button", { name: FILTERS })
+      .click();
+    return page.getByRole("combobox", { name: "Filter combination" });
+  };
+
+  const select = await combination();
+  await expect(select).toHaveValue("and");
+  await select.selectOption("or");
+  await expect(select).toHaveValue("or");
+  // The URL is written after the change settles; reloading earlier loses it.
+  await expect
+    .poll(() => decodeURIComponent(decodeURIComponent(page.url())))
+    .toContain('"joinOperator":"or"');
+
+  await page.reload();
+  await expect(await combination()).toHaveValue("or");
 });

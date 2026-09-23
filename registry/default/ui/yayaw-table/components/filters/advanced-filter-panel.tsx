@@ -72,6 +72,45 @@ import {
 
 const EMPTY_COLUMNS: never[] = [];
 
+/** One join applies to the whole rule list; the first rule carries it, as in the list contract. */
+function FilterJoinSelect({
+  disabled,
+  filters,
+  onChange,
+}: {
+  disabled: boolean;
+  filters: AdvancedFilterModel[];
+  onChange: (joinOperator: "and" | "or") => void;
+}) {
+  const { t } = useTranslations();
+  const join = filters[0]?.joinOperator === "or" ? "or" : "and";
+  return (
+    <label className="flex items-center gap-2 text-sm">
+      <span>{translateWithFallback(t, "filters.match", "Match")}</span>
+      <select
+        aria-label={translateWithFallback(
+          t,
+          "filters.combination",
+          "Filter combination"
+        )}
+        className="h-8 rounded-md border bg-transparent px-2 text-sm"
+        disabled={disabled}
+        onChange={(event) =>
+          onChange(event.target.value === "or" ? "or" : "and")
+        }
+        value={join}
+      >
+        <option value="and">
+          {translateWithFallback(t, "filters.match_all", "all conditions")}
+        </option>
+        <option value="or">
+          {translateWithFallback(t, "filters.match_any", "any condition")}
+        </option>
+      </select>
+    </label>
+  );
+}
+
 export interface AdvancedFilterPanelProps {
   /** Current filters state */
   filters: AdvancedFiltersState;
@@ -654,6 +693,13 @@ export function AdvancedFilterPanel({
                 <FunnelX className="h-4 w-4" />
                 {t("filters.clear")}
               </Button>
+            )}
+            {filters.length > 1 && actions.setJoinOperator && (
+              <FilterJoinSelect
+                disabled={disabled}
+                filters={filters}
+                onChange={actions.setJoinOperator}
+              />
             )}
             {/* Filter chips */}
             <div

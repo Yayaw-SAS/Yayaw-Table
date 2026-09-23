@@ -26,6 +26,37 @@ export interface TableSortMenuProps {
   tableType?: string;
 }
 
+/**
+ * Clicking a column adds it as the lowest-priority sort, then switches it to
+ * descending, then removes it; the other sorts keep their order.
+ */
+export function cycleColumnSort(
+  sorting: SortingState,
+  columnId: string
+): SortingState {
+  const current = sorting.find((sort) => sort.id === columnId);
+  if (!current) {
+    return [...sorting, { desc: false, id: columnId }];
+  }
+  if (current.desc) {
+    return sorting.filter((sort) => sort.id !== columnId);
+  }
+  return sorting.map((sort) =>
+    sort.id === columnId ? { ...sort, desc: true } : sort
+  );
+}
+
+function sortIcon(desc: boolean | undefined) {
+  if (desc === undefined) {
+    return <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />;
+  }
+  return desc ? (
+    <ArrowDownAZ className="h-3.5 w-3.5 text-foreground" />
+  ) : (
+    <ArrowUpAZ className="h-3.5 w-3.5 text-foreground" />
+  );
+}
+
 export function TableSortMenu({
   columns,
   invalidateTable: _invalidateTable,
@@ -57,12 +88,25 @@ export function TableSortMenu({
     return null;
   }
 
-  // Split into active and inactive to show active first
-  const activeSortIds = new Set((sorting || []).map((s) => s.id));
-  const activeColumns = sortableColumns.filter((c) => activeSortIds.has(c.id));
-  const inactiveColumns = sortableColumns.filter(
-    (c) => !activeSortIds.has(c.id)
-  );
+  const columnLabel = (column: { id: string; label: string }): string => {
+    if (column.id === "actions") {
+      return t("actions.title");
+    }
+    const header = config?.columns?.definitions?.find(
+      (definition: { id: string; header?: string }) =>
+        definition.id === column.id
+    )?.header;
+    return header ? t(header) : column.label || column.id;
+  };
+  // Active sorts first, in priority order, then the remaining sortable columns.
+  const orderedColumns = [
+    ...sorting.flatMap((sort) =>
+      sortableColumns.filter((column) => column.id === sort.id)
+    ),
+    ...sortableColumns.filter(
+      (column) => !sorting.some((sort) => sort.id === column.id)
+    ),
+  ];
 
   return (
     <StackMenuView name="sort">
@@ -83,108 +127,37 @@ export function TableSortMenu({
           </Button>
         </div>
 
-        {/* Active sorts */}
-        {activeColumns.map((column) => {
-          const columnId = column.id;
-          const sortOrder = sorting.find((sort) => sort.id === columnId)?.desc;
+        {orderedColumns.map((column) => {
+          const priority = sorting.findIndex((sort) => sort.id === column.id);
+          const sortOrder = sorting[priority]?.desc;
           const isActiveSorted = sortOrder !== undefined;
-
-          // Get column configuration from table config to get proper translated header
-          const columnConfig = config?.columns?.definitions?.find(
-            (def: { id: string; header?: string }) => def.id === columnId
-          );
-
-          // Use translated header from config, with fallbacks
-          let columnLabel: string;
-          if (columnId === "actions") {
-            columnLabel = t("actions.title");
-          } else if (columnConfig?.header) {
-            // Try to translate the header from config
-            columnLabel = t(columnConfig.header);
-          } else {
-            // Fallback to the label from the column or columnId
-            columnLabel = column.label || columnId;
-          }
-
           return (
             <StackMenuItem
               className={`h-7 gap-2 px-2 text-sm ${isActiveSorted ? "bg-accent font-medium" : ""}`}
               endIcon={
-                isActiveSorted ? undefined : <Plus className="h-3.5 w-3.5" />
+                isActiveSorted ? (
+                  sorting.length > 1 && (
+                    <span className="text-muted-foreground text-xs tabular-nums">
+                      {priority + 1}
+                    </span>
+                  )
+                ) : (
+                  <Plus className="h-3.5 w-3.5" />
+                )
               }
-              icon={(() => {
-                if (sortOrder === undefined) {
-                  return (
-                    <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
-                  );
-                }
-                if (sortOrder) {
-                  return (
-                    <ArrowDownAZ className="h-3.5 w-3.5 text-foreground" />
-                  );
-                }
-                return <ArrowUpAZ className="h-3.5 w-3.5 text-foreground" />;
-              })()}
-              key={columnId}
+              icon={sortIcon(sortOrder)}
+              key={column.id}
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                if (sortOrder === undefined) {
-                  // First click: ascending
-                  setSorting([{ desc: false, id: columnId }]);
-                } else if (sortOrder) {
-                  // Third click: remove sort
-                  setSorting([]);
-                } else {
-                  // Second click: descending
-                  setSorting([{ desc: true, id: columnId }]);
-                }
+                setSorting(cycleColumnSort(sorting, column.id));
                 // Keep menu open after updating sorting
                 stackMenu.onOpenChange?.(true);
               }}
             >
               <span className={isActiveSorted ? "font-medium" : ""}>
-                {columnLabel}
+                {columnLabel(column)}
               </span>
-            </StackMenuItem>
-          );
-        })}
-
-        {/* Inactive sorts */}
-        {inactiveColumns.map((column) => {
-          const columnId = column.id;
-          const sortOrder = sorting.find((sort) => sort.id === columnId)?.desc;
-          const isActiveSorted = sortOrder !== undefined;
-
-          const columnConfig = config?.columns?.definitions?.find(
-            (def: { id: string; header?: string }) => def.id === columnId
-          );
-
-          let columnLabel: string;
-          if (columnId === "actions") {
-            columnLabel = t("actions.title");
-          } else if (columnConfig?.header) {
-            columnLabel = t(columnConfig.header);
-          } else {
-            columnLabel = column.label || columnId;
-          }
-
-          return (
-            <StackMenuItem
-              className={`h-7 gap-2 px-2 text-sm ${isActiveSorted ? "bg-accent font-medium" : ""}`}
-              endIcon={<Plus className="h-3.5 w-3.5" />}
-              icon={
-                <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
-              }
-              key={columnId}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setSorting([{ desc: false, id: columnId }]);
-                stackMenu.onOpenChange?.(true);
-              }}
-            >
-              <span>{columnLabel}</span>
             </StackMenuItem>
           );
         })}
