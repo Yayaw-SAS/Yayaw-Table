@@ -671,7 +671,16 @@ writing "Price" after it was renamed "Cost" in Notion. The screen shows
 name. Name-only mappings keep working and gain ids on their next save
 (`upgradeMapping` does the same on the server). Sheets have no ids: a header
 that is gone is looked up at its saved position, shifted by as much as the
-key column moved, and reported as renamed; moved headers are harmless because
+key column moved, when the header there is not mapped by anything else, and
+reported as renamed. Sheet writes follow the same rule, like Notion follows
+ids: `pushRowsToSheet` (`fieldIndexes`, `keyColumnIndex`, from
+`toConnectorMapping`), `createSheetSyncTarget` and `readSheetRows`
+(`fieldIndex` and `keyFieldIndex` in `toSyncMapping`) and `prepareSheet`
+(`fieldIndex` on a fix, `keyColumnIndex`) write the renamed column in place
+and never add the old header again. When the saved position cannot be used
+(nothing there, or a header another column uses), nothing is written: they
+throw `field_missing`, which stops a sync, and the check reports it as
+blocking until the field is chosen again. Moved headers are harmless because
 cells are written by header.
 
 ### The check
@@ -698,6 +707,7 @@ warning:
 | `key_wrong_type` | blocking (warning in a sheet) | blocking |
 | `duplicate_mapping` (one field, two columns or the key) | blocking | blocking |
 | `title_unmapped` (Notion page title) | blocking | — |
+| `field_missing` (sheet header gone, saved position unusable) | blocking | blocking |
 
 Types follow `typeCompatibility(columnType, targetType, direction)`: a text
 field takes any column on push; a number goes to Number (or text), a date to

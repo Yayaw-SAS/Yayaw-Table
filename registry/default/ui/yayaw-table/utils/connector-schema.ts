@@ -90,7 +90,12 @@ export type SchemaIssueCode =
   /** One field receives several columns (or the key). */
   | "duplicate_mapping"
   /** No column fills the Notion page title. */
-  | "title_unmapped";
+  | "title_unmapped"
+  /**
+   * A sheet header is gone and its saved position is unusable (empty, or
+   * another mapped header): writes stop instead of adding it again.
+   */
+  | "field_missing";
 
 /** Details for the message; only names, types and option names. */
 export interface SchemaIssueDetail {
@@ -133,6 +138,8 @@ export type SchemaFix =
       columnId?: string;
       /** The field holds record ids. */
       key?: boolean;
+      /** Saved sheet position: `prepareSheet` never adds a renamed header again. */
+      fieldIndex?: number;
     }
   | {
       kind: "add_options";
@@ -575,7 +582,8 @@ export function missingOptions(
 
 /** Where a mapped field is now. */
 export interface ResolvedField {
-  status: "found" | "renamed" | "missing" | "deleted";
+  /** `ambiguous`: gone by name, and its saved position cannot be used. */
+  status: "found" | "renamed" | "missing" | "deleted" | "ambiguous";
   field?: TargetSchemaField;
   /** The saved name, for renames. */
   from?: string;
@@ -650,7 +658,10 @@ export function resolveMappedField(
   if (moved) {
     return { status: "renamed", field: moved, from: name };
   }
-  return { status: entry.fieldId ? "deleted" : "missing" };
+  if (entry.fieldId) {
+    return { status: "deleted" };
+  }
+  return { status: entry.fieldIndex === undefined ? "missing" : "ambiguous" };
 }
 
 /**
@@ -922,6 +933,17 @@ function checkEntry(
   resolved: ResolvedField
 ): void {
   const column = context.columns.get(entry.columnId);
+  if (resolved.status === "ambiguous") {
+    // Writing would add the old header again: the mapping is chosen again.
+    push(context, {
+      severity: "blocking",
+      code: "field_missing",
+      columnId: entry.columnId,
+      field: entry.field ?? "",
+      detail: {},
+    });
+    return;
+  }
   if (resolved.status === "missing" || resolved.status === "deleted") {
     const issue = missingFieldIssue(context, entry, resolved.status);
     if (issue) {

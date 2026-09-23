@@ -38,6 +38,10 @@ type SchemaHealthApi = Pick<typeof Schema, "checkTargetSchema"> &
     | "planSheetPrepare"
     | "prepareSheet"
     | "sheetTargetSchema"
+    | "planSheetHeader"
+    | "pushRowsToSheet"
+    | "createSheetSyncTarget"
+    | "sheetValuesToRecords"
   >;
 
 const DATABASE_ID = "0123456789abcdef0123456789abcdef";
@@ -649,5 +653,201 @@ export function connectorsSchemaHealthSuite(
     assert.ok(
       decodeURIComponent(read?.url.pathname ?? "").endsWith("'Data'!1:21")
     );
+  });
+
+  // "Due" was saved at column C (key in A) and renamed "Due date" in the sheet.
+  const renamedHeader = ["Yayaw ID", "Name", "Due date"];
+  const ambiguousHeader = ["Yayaw ID", "Name"];
+  const writes = (requests: RecordedRequest[]) =>
+    requests.filter((request) =>
+      ["append", "batchUpdate", "valuesbatchUpdate"].includes(kind(request))
+    );
+  const isFieldMissing = (error: unknown) =>
+    (error as { code?: string }).code === "field_missing";
+
+  test("Sheets: a renamed header is resolved by its saved position, never added again", () => {
+    const plan = api.planSheetHeader(
+      [" Notes ", ...renamedHeader],
+      "Yayaw ID",
+      [
+        { id: "name", header: "Name" },
+        { id: "due", header: "Due" },
+      ],
+      // The key moved from A to B: saved positions move with it.
+      { indexes: { due: 2 }, keyIndex: 0 }
+    );
+    assert.deepEqual(plan.added, []);
+    assert.equal(plan.indexes.get("due"), 3);
+    // Without a saved position, a missing header is still a new one.
+    assert.deepEqual(
+      api.planSheetHeader(renamedHeader, "Yayaw ID", [
+        { id: "due", header: "Due" },
+      ]).added,
+      ["Due"]
+    );
+    assert.throws(
+      () =>
+        api.planSheetHeader(
+          ambiguousHeader,
+          "Yayaw ID",
+          [{ id: "due", header: "Due" }],
+          { indexes: { due: 2 }, keyIndex: 0 }
+        ),
+      isFieldMissing
+    );
+    // The header there is mapped by another column: ambiguous too.
+    assert.throws(
+      () =>
+        api.planSheetHeader(
+          renamedHeader,
+          "Yayaw ID",
+          [
+            { id: "name", header: "Name" },
+            { id: "due", header: "Due" },
+          ],
+          { indexes: { due: 1 }, keyIndex: 0 }
+        ),
+      isFieldMissing
+    );
+    const records = api.sheetValuesToRecords(
+      [renamedHeader, ["a", "Launch", "2026-09-01"]],
+      {
+        keyField: "Yayaw ID",
+        keyFieldIndex: 0,
+        fields: [
+          { columnId: "due", field: "Due", fieldIndex: 2, type: "date" },
+        ],
+      }
+    );
+    assert.deepEqual(records[0]?.values, { due: "2026-09-01" });
+  });
+
+  test("Sheets: a push writes a renamed header's column in place; an ambiguous one writes nothing", async () => {
+    const renamed = await sheetSetup({
+      header: renamedHeader,
+      columnCount: 3,
+    });
+    const result = await api.pushRowsToSheet(
+      {
+        credentials: renamed.credentials,
+        spreadsheetId: SPREADSHEET_ID,
+        sheetTitle: "Data",
+        columns: [{ id: "due", header: "Due" }],
+        fieldIndexes: { due: 2 },
+        keyColumnIndex: 0,
+        rows: [{ id: "1", values: { due: "2026-09-01" } }],
+      },
+      renamed.runtime
+    );
+    assert.equal(result.created, 1);
+    assert.deepEqual(result.addedHeaders, []);
+    assert.deepEqual(
+      writes(renamed.server.requests).map((request) => [
+        kind(request),
+        request.body,
+      ]),
+      [
+        [
+          "append",
+          { majorDimension: "ROWS", values: [["1", null, "2026-09-01"]] },
+        ],
+      ]
+    );
+
+    const ambiguous = await sheetSetup({
+      header: ambiguousHeader,
+      columnCount: 2,
+    });
+    const error = await caught(() =>
+      api.pushRowsToSheet(
+        {
+          credentials: ambiguous.credentials,
+          spreadsheetId: SPREADSHEET_ID,
+          sheetTitle: "Data",
+          columns: [{ id: "due", header: "Due" }],
+          fieldIndexes: { due: 2 },
+          keyColumnIndex: 0,
+          rows: [{ id: "1", values: { due: "2026-09-01" } }],
+        },
+        ambiguous.runtime
+      )
+    );
+    assert.ok(isFieldMissing(error));
+    assert.deepEqual(writes(ambiguous.server.requests), []);
+  });
+
+  test("Sheets: sync writes and prepare follow a renamed header; an ambiguous one is blocked", async () => {
+    const mapping = {
+      keyField: "Yayaw ID",
+      keyFieldIndex: 0,
+      fields: [{ columnId: "due", field: "Due", fieldIndex: 2, type: "date" }],
+    };
+    const renamed = await sheetSetup({ header: renamedHeader, columnCount: 3 });
+    const target = api.createSheetSyncTarget(
+      {
+        credentials: renamed.credentials,
+        spreadsheetId: SPREADSHEET_ID,
+        sheetTitle: "Data",
+        mapping,
+      },
+      renamed.runtime
+    );
+    assert.deepEqual(
+      await target.create([{ key: "1", values: { due: "2026-09-01" } }]),
+      [{ ok: true, id: "1" }]
+    );
+    assert.deepEqual(
+      writes(renamed.server.requests).map((request) => request.body),
+      [{ majorDimension: "ROWS", values: [["1", null, "2026-09-01"]] }]
+    );
+    const prepared = await api.prepareSheet(
+      {
+        credentials: renamed.credentials,
+        spreadsheetId: SPREADSHEET_ID,
+        sheetTitle: "Data",
+        keyColumnIndex: 0,
+        fixes: [{ kind: "create_field", field: "Due", fieldIndex: 2 }],
+      },
+      renamed.runtime
+    );
+    assert.deepEqual(prepared, { applied: [], addedHeaders: [] });
+
+    const ambiguous = await sheetSetup({
+      header: ambiguousHeader,
+      columnCount: 2,
+    });
+    const blocked = api.createSheetSyncTarget(
+      {
+        credentials: ambiguous.credentials,
+        spreadsheetId: SPREADSHEET_ID,
+        sheetTitle: "Data",
+        mapping,
+      },
+      ambiguous.runtime
+    );
+    assert.ok(
+      isFieldMissing(
+        await caught(() =>
+          blocked.create([{ key: "1", values: { due: "2026-09-01" } }])
+        )
+      )
+    );
+    assert.ok(
+      isFieldMissing(
+        await caught(() =>
+          api.prepareSheet(
+            {
+              credentials: ambiguous.credentials,
+              spreadsheetId: SPREADSHEET_ID,
+              sheetTitle: "Data",
+              keyColumnIndex: 0,
+              fixes: [{ kind: "create_field", field: "Due", fieldIndex: 2 }],
+            },
+            ambiguous.runtime
+          )
+        )
+      )
+    );
+    assert.deepEqual(writes(ambiguous.server.requests), []);
   });
 }

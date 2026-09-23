@@ -336,6 +336,7 @@ export interface SyncRunResult {
 export type ConnectorErrorCode =
   | "aborted"
   | "api_disabled"
+  | "field_missing"
   | "forbidden"
   | "invalid_credentials"
   | "invalid_mapping"
@@ -578,6 +579,7 @@ export type ConnectorLabelKey =
   | "issueInvalidMode"
   | "error_aborted"
   | "error_api_disabled"
+  | "error_field_missing"
   | "error_forbidden"
   | "error_invalid_credentials"
   | "error_invalid_mapping"
@@ -714,6 +716,7 @@ export type SchemaLabelKey =
   | "schemaIssue_key_wrong_type"
   | "schemaIssue_duplicate_mapping"
   | "schemaIssue_title_unmapped"
+  | "schemaIssue_field_missing"
   | "updateMapping"
   | "prepareNotion"
   | "prepareSheet"
@@ -797,6 +800,8 @@ const ENGLISH_LABELS: Record<ConnectorLabelKey, string> = {
   issueInvalidMode: "This destination doesn’t support this mode.",
   error_aborted: "Sending was cancelled.",
   error_api_disabled: "The service’s API isn’t enabled for this connection.",
+  error_field_missing:
+    "A mapped column is no longer in the destination. Choose its field again; nothing was written.",
   error_forbidden: "This connection can’t write to this destination.",
   error_invalid_credentials:
     "The connection’s credentials were refused. Update them, then try again.",
@@ -945,6 +950,8 @@ const ENGLISH_LABELS: Record<ConnectorLabelKey, string> = {
     "{column}: “{field}” already receives another column.",
   schemaIssue_title_unmapped:
     "Choose the column that fills the page title “{field}”.",
+  schemaIssue_field_missing:
+    "{column}: “{field}” is no longer in {target} and its column can’t be found. Choose its field again.",
   updateMapping: "Update mapping",
   prepareNotion: "Prepare Notion database",
   prepareSheet: "Prepare sheet",
@@ -1057,6 +1064,8 @@ const FRENCH_LABELS: Record<ConnectorLabelKey, string> = {
     "« {field} » ne peut pas identifier les lignes de cette destination.",
   issueInvalidMode: "Cette destination ne prend pas en charge ce mode.",
   error_aborted: "L’envoi a été annulé.",
+  error_field_missing:
+    "Une colonne associée n’existe plus dans la destination. Choisissez à nouveau son champ ; rien n’a été écrit.",
   error_api_disabled:
     "L’API du service n’est pas activée pour cette connexion.",
   error_forbidden: "Cette connexion ne peut pas écrire dans cette destination.",
@@ -1213,6 +1222,8 @@ const FRENCH_LABELS: Record<ConnectorLabelKey, string> = {
     "{column} : « {field} » reçoit déjà une autre colonne.",
   schemaIssue_title_unmapped:
     "Choisissez la colonne qui remplit le titre de page « {field} ».",
+  schemaIssue_field_missing:
+    "{column} : « {field} » n’est plus dans {target} et sa colonne est introuvable. Choisissez à nouveau son champ.",
   updateMapping: "Mettre à jour la correspondance",
   prepareNotion: "Préparer la base Notion",
   prepareSheet: "Préparer la feuille",
@@ -1732,20 +1743,30 @@ export function connectorSettingsToSend(
  * the Notion property ids that are found first (`propertyIds`).
  */
 export function toConnectorMapping(
-  settings: Pick<ConnectorSettings, "keyField" | "keyFieldId" | "mapping">
+  settings: Pick<
+    ConnectorSettings,
+    "keyField" | "keyFieldId" | "keyFieldIndex" | "mapping"
+  >
 ): {
   keyProperty: string;
   keyPropertyId?: string;
   properties: Record<string, string>;
   propertyIds?: Record<string, string>;
+  /** Sheet header positions (`pushRowsToSheet`'s `fieldIndexes`). */
+  fieldIndexes?: Record<string, number>;
+  keyFieldIndex?: number;
 } {
   const properties: Record<string, string> = {};
   const propertyIds: Record<string, string> = {};
+  const fieldIndexes: Record<string, number> = {};
   for (const entry of settings.mapping) {
     if (entry.field) {
       properties[entry.columnId] = entry.field;
       if (entry.fieldId) {
         propertyIds[entry.columnId] = entry.fieldId;
+      }
+      if (entry.fieldIndex !== undefined) {
+        fieldIndexes[entry.columnId] = entry.fieldIndex;
       }
     }
   }
@@ -1754,6 +1775,10 @@ export function toConnectorMapping(
     ...(settings.keyFieldId ? { keyPropertyId: settings.keyFieldId } : {}),
     properties,
     ...(Object.keys(propertyIds).length > 0 ? { propertyIds } : {}),
+    ...(Object.keys(fieldIndexes).length > 0 ? { fieldIndexes } : {}),
+    ...(settings.keyFieldIndex === undefined
+      ? {}
+      : { keyFieldIndex: settings.keyFieldIndex }),
   };
 }
 
@@ -2013,6 +2038,7 @@ export function connectorIssueMessage(
 const ERROR_CODES = new Set<string>([
   "aborted",
   "api_disabled",
+  "field_missing",
   "forbidden",
   "invalid_credentials",
   "invalid_mapping",
@@ -2937,6 +2963,7 @@ const ISSUE_MESSAGE_KEYS: Record<SchemaIssue["code"], ConnectorLabelKey> = {
   key_wrong_type: "schemaIssue_key_wrong_type",
   duplicate_mapping: "schemaIssue_duplicate_mapping",
   title_unmapped: "schemaIssue_title_unmapped",
+  field_missing: "schemaIssue_field_missing",
 };
 
 const issueKey = (issue: SchemaIssue): ConnectorLabelKey => {

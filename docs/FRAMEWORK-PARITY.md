@@ -1105,8 +1105,14 @@ creating a target, a host `checkSchema`, refreshing targets).
 `tests/connectors-schema-health-suite.ts` runs against both copies of the
 server modules with a fake `fetch` (one idempotent Notion PATCH that never
 deletes, renames or retypes, a push following a renamed property, formula
-reads, database creation not retried, page listing, sheet sampling and an
-idempotent `prepareSheet`). `e2e/schema-health.spec.ts` runs on both demos:
+reads, database creation not retried, page listing, sheet sampling, an
+idempotent `prepareSheet`, and sheet writes following a renamed header:
+`pushRowsToSheet`, the sync target and `prepareSheet` write the renamed
+column in place without adding a header, and an unusable saved position
+throws `field_missing` before anything is written). Sheet writes resolve
+headers with the shared `resolveSheetColumns` rule (by header, then by the
+saved position shifted like the key column when the header there is not
+mapped elsewhere), the same rule as the check's `field_missing` issue. `e2e/schema-health.spec.ts` runs on both demos:
 the demo "Notion" destination's "Live projects" database drifted (Price
 renamed Cost, Progress became a Select, two Category options and "Yayaw ID"
 missing, a formula and a people property), so the check lists each issue,

@@ -4,11 +4,15 @@ import { connectorsSchemaHealthSuite } from "../../../../tests/connectors-schema
 import { checkTargetSchema } from "../connector-schema";
 import {
   createGoogleTokenCache,
+  createSheetSyncTarget,
   getSheetTargetSchema,
   parseServiceAccountKey,
+  planSheetHeader,
   planSheetPrepare,
   prepareSheet,
+  pushRowsToSheet,
   sheetTargetSchema,
+  sheetValuesToRecords,
 } from "./google-sheets";
 import {
   createNotionDatabase,
@@ -24,6 +28,7 @@ import {
 connectorsSchemaHealthSuite(it, {
   checkTargetSchema,
   createGoogleTokenCache,
+  createSheetSyncTarget,
   createNotionDatabase,
   getNotionDatabaseSchema,
   getSheetTargetSchema,
@@ -31,10 +36,13 @@ connectorsSchemaHealthSuite(it, {
   notionTargetSchema,
   parseServiceAccountKey,
   planNotionPrepare,
+  planSheetHeader,
   planSheetPrepare,
   prepareNotionDatabase,
   prepareSheet,
+  pushRowsToSheet,
   pushRowsToNotionDatabase,
   readNotionDatabase,
   sheetTargetSchema,
+  sheetValuesToRecords,
 });

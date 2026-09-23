@@ -394,7 +394,7 @@ export function connectorSchemaSuite(
       ),
       { status: "renamed", field: fields[2], from: "Due" }
     );
-    // A position never resolves to a header another entry uses.
+    // A position never resolves to a header another entry uses: ambiguous, never re-added.
     assert.equal(
       api.resolveMappedField(
         { columnId: "due", field: "Due", fieldIndex: 1 },
@@ -404,7 +404,7 @@ export function connectorSchemaSuite(
           taken: new Set(["Name"]),
         }
       ).status,
-      "missing"
+      "ambiguous"
     );
     assert.deepEqual(
       api.upgradeMapping(
@@ -420,6 +420,52 @@ export function connectorSchemaSuite(
         { columnId: "due", field: "Due", fieldId: "due" },
         { columnId: "skip", field: null },
       ]
+    );
+  });
+
+  test("sheets: a header gone with an unusable saved position blocks (field_missing)", () => {
+    const check = (fields: { name: string; index: number }[]) =>
+      codes(
+        api.checkTargetSchema({
+          columns,
+          mapping: [
+            { columnId: "name", field: "Name", fieldIndex: 1 },
+            { columnId: "due", field: "Due", fieldIndex: 2 },
+          ],
+          keyField: "Yayaw ID",
+          keyFieldIndex: 0,
+          targetSchema: { provider: "sheets", fields },
+        })
+      );
+    // Nothing at the saved position.
+    assert.deepEqual(
+      check([
+        { name: "Yayaw ID", index: 0 },
+        { name: "Name", index: 1 },
+      ]),
+      ["blocking:field_missing:due"]
+    );
+    // The header there is mapped by another column.
+    assert.deepEqual(
+      check([
+        { name: "Yayaw ID", index: 0 },
+        { name: "Other", index: 1 },
+        { name: "Name", index: 2 },
+      ]),
+      ["blocking:field_missing:due"]
+    );
+    assert.equal(
+      api.schemaIssueMessage(
+        {
+          severity: "blocking",
+          code: "field_missing",
+          columnId: "due",
+          field: "Due",
+          detail: {},
+        },
+        { t: en, target: "the sheet", columns }
+      ),
+      "Due: “Due” is no longer in the sheet and its column can’t be found. Choose its field again."
     );
   });
 
