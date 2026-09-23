@@ -1,4 +1,7 @@
 /* Standard Shadcn neutral tokens for the standalone React preview. */
+/* As in shadcn projects: dark: utilities follow the .dark class, like the tokens. */
+@custom-variant dark (&:is(.dark *));
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
