@@ -334,6 +334,7 @@ export interface DataTableTranslations {
       title: string;
       gantt?: string;
       gallery: string;
+      list?: string;
       table: string;
       kanban: string;
     };

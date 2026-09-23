@@ -89,14 +89,15 @@ function normalizeDisplayMode(
   return isTableDisplayMode(value) ? value : undefined;
 }
 
+/** Kanban and list views share the card settings: title, properties and labels. */
 function normalizeKanbanViewConfig(
-  config: TableViewConfig["kanban"]
-): TableViewConfig["kanban"] {
+  config: TableViewConfig["kanban"] | TableViewConfig["list"]
+): TableViewConfig["list"] {
   if (!config) {
     return;
   }
 
-  const normalized: NonNullable<TableViewConfig["kanban"]> = {};
+  const normalized: NonNullable<TableViewConfig["list"]> = {};
   const titleColumn = config.titleColumn?.trim();
   const cardColumnIds = normalizeColumnIds(config.cardColumnIds);
 
@@ -122,6 +123,13 @@ function normalizeColumnIds(value: unknown): string[] | undefined {
     .filter((item): item is string => typeof item === "string")
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function normalizedListConfig(
+  config: TableViewConfig["list"]
+): Pick<TableViewConfig, "list"> {
+  const list = normalizeKanbanViewConfig(config);
+  return list ? { list } : {};
 }
 
 export function normalizeColumnPinning(
@@ -222,6 +230,7 @@ export function normalizeTableViewConfig(
   if (kanban) {
     normalized.kanban = kanban;
   }
+  Object.assign(normalized, normalizedListConfig(config.list));
   Object.assign(normalized, normalizedGanttConfig(config.gantt));
   if (gallery) {
     normalized.gallery = gallery;
@@ -248,6 +257,7 @@ export function createTableViewConfigSnapshot({
   galleryParam,
   kanbanParam,
   kanbanGroupByParam,
+  listParam,
   orderParam,
   pageSizeParam,
   pinningParam,
@@ -266,6 +276,7 @@ export function createTableViewConfigSnapshot({
   galleryParam: TableViewConfig["gallery"];
   kanbanParam: TableViewConfig["kanban"];
   kanbanGroupByParam: string;
+  listParam?: TableViewConfig["list"];
   orderParam: string[];
   pageSizeParam: string;
   pinningParam?: ColumnPinningState;
@@ -291,6 +302,7 @@ export function createTableViewConfigSnapshot({
     gantt: ganttParam,
     gallery: galleryParam,
     kanban: kanbanParam,
+    list: listParam,
     pageSize: normalizePageSize(pageSizeParam),
     sorting: sortParam,
   });

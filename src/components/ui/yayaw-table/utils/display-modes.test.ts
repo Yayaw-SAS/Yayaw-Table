@@ -8,7 +8,12 @@ import {
 
 describe("display mode registry", () => {
   it("lists the per-mode setting keys used by saved views and URLs", () => {
-    expect(DISPLAY_MODE_CONFIG_KEYS).toEqual(["kanban", "gallery", "gantt"]);
+    expect(DISPLAY_MODE_CONFIG_KEYS).toEqual([
+      "list",
+      "kanban",
+      "gallery",
+      "gantt",
+    ]);
   });
 
   it("recognises only registered modes", () => {

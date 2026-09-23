@@ -152,6 +152,11 @@ export interface TableViewConfig {
   gallery?: TableGalleryViewConfig;
 
   /**
+   * List-specific view state.
+   */
+  list?: import("./display-types").TableListViewConfig;
+
+  /**
    * Page size to restore when applying the view
    */
   pageSize?: number;

@@ -23,6 +23,7 @@ import { useTableStateSync } from "../providers/table-state-sync-provider";
 import type {
   TableDisplayMode,
   TableGalleryViewConfig,
+  TableListViewConfig,
   TableKanbanViewConfig,
 } from "../types/display-types";
 import type { AdvancedFiltersState } from "../types/filter-types";
@@ -257,6 +258,19 @@ const arrayParser = createParser({
 const objectParser = createParser({
   parse: (value: string) => (value ? JSON.parse(value) : {}),
   serialize: (value: object) =>
+    Object.keys(value || {}).length ? JSON.stringify(value) : "",
+});
+
+const listParser = createParser({
+  parse: (value: string): TableListViewConfig => {
+    try {
+      const parsed = value ? JSON.parse(value) : {};
+      return isRecord(parsed) ? (parsed as TableListViewConfig) : {};
+    } catch {
+      return {};
+    }
+  },
+  serialize: (value: TableListViewConfig) =>
     Object.keys(value || {}).length ? JSON.stringify(value) : "",
 });
 
@@ -666,6 +680,19 @@ export function useTableUrlState({
     EMPTY_OBJECT as TableKanbanViewConfig
   );
 
+  const [urlListParam, setUrlListParam] = useQueryState(
+    `${tableId}-list`,
+    listParser
+  );
+  const [listParam, setListParam] = useStateChannel(
+    tableId,
+    shouldSyncUrl,
+    "list",
+    urlListParam,
+    setUrlListParam,
+    EMPTY_OBJECT as TableListViewConfig
+  );
+
   const [urlGalleryParam, setUrlGalleryParam] = useQueryState(
     `${tableId}-gallery`,
     galleryParser
@@ -1014,6 +1041,13 @@ export function useTableUrlState({
     [setGroupingParam, setKanbanGroupByParam, setKanbanParam]
   );
 
+  const setListFromUI = useCallback(
+    (list: TableListViewConfig | undefined) => {
+      setListParam(list && Object.keys(list).length > 0 ? list : null);
+    },
+    [setListParam]
+  );
+
   const setGalleryFromUI = useCallback(
     (gallery: TableGalleryViewConfig | undefined) => {
       const hasGalleryValues = Boolean(
@@ -1052,6 +1086,7 @@ export function useTableUrlState({
       groupingParam: resolvedGroupingParam,
       kanbanParam: resolvedKanbanCardParam,
       kanbanGroupByParam: kanbanGroupByParam || "",
+      listParam: (listParam || {}) as TableListViewConfig,
       orderParam: (orderParam || []) as string[],
       pageSizeParam: pageSizeParam || defaultPageSizeParam,
       pinningParam: normalizeColumnPinning(
@@ -1072,6 +1107,7 @@ export function useTableUrlState({
     filtersParam,
     ganttParam,
     galleryParam,
+    listParam,
     globalSearchParam,
     resolvedGroupingParam,
     kanbanGroupByParam,
@@ -1115,6 +1151,7 @@ export function useTableUrlState({
       queueUrlUpdate(setKanbanGroupByParam, null);
       queueUrlUpdate(setGanttParam, config.gantt || null);
       queueUrlUpdate(setGalleryParam, config.gallery || null);
+      queueUrlUpdate(setListParam, config.list || null);
       queueUrlUpdate(setPageParam, "0");
       queueUrlUpdate(
         setPageSizeParam,
@@ -1142,6 +1179,7 @@ export function useTableUrlState({
       setFiltersParam,
       setGanttParam,
       setGalleryParam,
+      setListParam,
       setGlobalSearchParam,
       setGroupingParam,
       setHistoryIndexParam,
@@ -1206,6 +1244,7 @@ export function useTableUrlState({
       setUrlParam(url, `${tableId}-kanban`, resolvedKanbanCardParam);
       setUrlParam(url, `${tableId}-gantt`, normalizeGanttView({...defaultGantt, ...ganttParam}));
       setUrlParam(url, `${tableId}-gallery`, galleryParam);
+      setUrlParam(url, `${tableId}-list`, listParam);
 
       // Special case for pinning
       if (
@@ -1232,6 +1271,7 @@ export function useTableUrlState({
       ganttParam,
       defaultGantt,
       galleryParam,
+      listParam,
       globalSearchParam,
       pinningParam,
       setUrlParam,
@@ -1284,6 +1324,7 @@ export function useTableUrlState({
       setKanbanParam(null);
       setGalleryParam(null);
       setGanttParam(null);
+      setListParam(null);
       setGlobalSearchParam(null);
       setPinningParam({ left: [], right: [] });
     } finally {
@@ -1319,6 +1360,7 @@ export function useTableUrlState({
     setKanbanGroupByParam,
     setKanbanParam,
     setGalleryParam,
+    setListParam,
     setGanttParam,
     setGlobalSearchParam,
     setPinningParam,
@@ -1363,6 +1405,7 @@ export function useTableUrlState({
     ganttParam: normalizeGanttView({...defaultGantt, ...ganttParam}),
     setGanttFromUI: setGanttParam,
     galleryParam: (galleryParam || EMPTY_OBJECT) as TableGalleryViewConfig,
+    listParam: (listParam || EMPTY_OBJECT) as TableListViewConfig,
     historyIndexParam,
     kanbanParam: resolvedKanbanCardParam,
     kanbanGroupByParam: kanbanGroupByParam || "",
@@ -1387,6 +1430,7 @@ export function useTableUrlState({
     setGlobalSearchFromUI,
     setGalleryFromUI,
     setKanbanFromUI,
+    setListFromUI,
     // Raw setters (should generally not be used directly)
     setExpandedParam,
     setFiltersParam,
@@ -1397,6 +1441,7 @@ export function useTableUrlState({
     setKanbanGroupByParam,
     setKanbanParam,
     setGalleryParam,
+    setListParam,
     setOrderFromUI,
     setSizingFromUI,
 

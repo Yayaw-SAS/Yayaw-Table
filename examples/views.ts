@@ -43,11 +43,13 @@ export const viewsTableOptions = {
   enableAdvancedFilters: true,
   coloredTags: false,
   defaultDisplayMode: "table" as const,
-  displayModes: ["table", "gallery", "kanban"] as (
+  displayModes: ["table", "list", "gallery", "kanban"] as (
     | "table"
+    | "list"
     | "gallery"
     | "kanban"
   )[],
   kanban: { groupBy: "status" },
   gallery: { titleColumn: "name", cardColumnIds: ["category", "status"] },
+  list: { titleColumn: "name", cardColumnIds: ["status", "price", "dueDate"] },
 };

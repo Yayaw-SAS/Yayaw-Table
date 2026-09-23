@@ -114,6 +114,7 @@ export interface TableCatalogueTableConfig {
   planning?: import("../planning/types").TablePlanningConfig;
   gantt?: import("../planning/types").TableGanttConfig;
   gallery?: TableGalleryConfig;
+  list?: import("../types/display-types").TableListConfig;
   emptyState?: TableEmptyStateConfig;
   enableRowSelection: boolean;
   enableRowClickEdit?: boolean;
@@ -353,6 +354,7 @@ function resolveTableBehaviorConfig(
     gantt: mergedConfig.gantt,
     kanban: mergedConfig.kanban,
     gallery: mergedConfig.gallery,
+    list: mergedConfig.list,
     emptyState: {
       show: true,
       ...mergedConfig.emptyState,

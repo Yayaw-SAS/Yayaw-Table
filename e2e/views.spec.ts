@@ -25,6 +25,7 @@ const TWO_RULES = [
 const MODE = {
   gallery: /^gallery$/i,
   kanban: /^kanban$/i,
+  list: /^list$/i,
   table: /^table$/i,
 } as const;
 
@@ -136,4 +137,23 @@ test("advanced filters can match any rule instead of all rules", async ({
 
   await page.reload();
   await expect(await combination()).toHaveValue("or");
+});
+
+test("the list view shows one line per record, grouped by the table grouping", async ({
+  page,
+}) => {
+  await page.goto(
+    `${EXAMPLE}&${DISPLAY_PARAM}=list&views-grouping=${encodeURIComponent('["status"]')}`
+  );
+  await expectMode(page, MODE.list);
+  await expect(
+    page.getByRole("heading", { name: "Status: Active" })
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Status: Draft" })
+  ).toBeVisible();
+  await expect(page.getByRole("listitem")).toHaveCount(6);
+  await expect(page.getByRole("listitem").first()).toContainText(
+    "Alpha launch"
+  );
 });

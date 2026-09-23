@@ -89,6 +89,18 @@ export interface TableKanbanViewConfig {
   showCardLabels?: boolean;
 }
 
+/** Rows as single lines: a title followed by compact properties. */
+export interface TableListViewConfig {
+  /** Column used as the line title. */
+  titleColumn?: string;
+  /** Columns shown after the title, in order. */
+  cardColumnIds?: string[];
+  /** Show property labels beside values. */
+  showCardLabels?: boolean;
+}
+
+export type TableListConfig = TableListViewConfig;
+
 /** Runtime renderers are deliberately excluded from saved view configuration. */
 export interface TableGalleryRenderContext {
   row: Record<string, unknown>;

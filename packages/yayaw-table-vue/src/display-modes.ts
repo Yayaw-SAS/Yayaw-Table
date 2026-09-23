@@ -31,6 +31,11 @@ export const DISPLAY_MODES = {
     capabilities: { calculations: true, columns: true, density: true },
     maxGroups: 2,
   },
+  list: {
+    capabilities: NO_TABLE_CONTROLS,
+    configKey: "list",
+    maxGroups: 1,
+  },
   kanban: {
     capabilities: NO_TABLE_CONTROLS,
     configKey: "kanban",

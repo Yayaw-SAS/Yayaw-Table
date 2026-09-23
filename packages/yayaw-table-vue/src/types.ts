@@ -190,6 +190,15 @@ export interface TableKanbanConfig {
   allowDragUpdate?: boolean;
 }
 
+/** Rows as single lines: a title followed by compact properties. */
+export interface TableListViewConfig {
+  titleColumn?: string;
+  cardColumnIds?: string[];
+  showCardLabels?: boolean;
+}
+
+export type TableListConfig = TableListViewConfig;
+
 export interface TableKanbanViewConfig {
   groupBy?: string;
   titleColumn?: string;
@@ -259,6 +268,7 @@ export interface TableBehaviorConfig<TData extends TableRecord = TableRecord> {
   gantt?: import("./planning/types").TableGanttConfig;
   kanban?: TableKanbanConfig;
   gallery?: TableGalleryConfig;
+  list?: TableListConfig;
   emptyState?: TableEmptyStateConfig;
   defaultPageSize: number;
   /** Enable the column drag-and-drop feature and its controls. */
@@ -634,6 +644,7 @@ export interface TableViewConfig {
   gantt?: import("./planning/types").TableGanttViewConfig;
   kanban?: TableKanbanViewConfig;
   gallery?: TableGalleryViewConfig;
+  list?: TableListViewConfig;
   grouping?: string[];
   pinning?: ColumnPinningState;
   pageSize?: number;

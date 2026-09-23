@@ -116,6 +116,7 @@ import {
   resolveGalleryLinkColumnId,
   resolveGalleryLinkUrl,
 } from "./gallery-view";
+import { DataTableListView } from "./list-view";
 import { DataTableKanbanView } from "./kanban-view";
 import { SafePagination } from "./safe-pagination";
 import { TableEmptyStateContent } from "./table-empty-state";
@@ -1238,6 +1239,7 @@ function ModernDataTable<
     sortParam,
     setGanttFromUI,
     galleryParam,
+    listParam,
     globalSearchParam,
     groupingParam,
     kanbanParam,
@@ -1589,6 +1591,14 @@ function ModernDataTable<
       ...galleryParam,
     }),
     [galleryParam, tableConfig.table.gallery]
+  );
+  const isListMode = activeDisplayMode === "list";
+  const listConfig = useMemo(
+    () => ({
+      ...tableConfig.table.list,
+      ...listParam,
+    }),
+    [listParam, tableConfig.table.list]
   );
   const canDragKanbanRows = canUpdateKanbanRows({
     allowDragUpdate: tableConfig.table.kanban?.allowDragUpdate,
@@ -2401,7 +2411,7 @@ function ModernDataTable<
     supportsAutomaticPageSize(
       enablePagination,
       tableConfig.table.enableAutoPageSize,
-      isGalleryMode,
+      isGalleryMode || isListMode,
       isKanbanMode
     );
   const autoPageSizing = useAutoPageSize({
@@ -2500,6 +2510,39 @@ function ModernDataTable<
             }
             isRowClickable={(row) => getRowClickMode(row).canClickRow}
             onMoveRow={handleKanbanMoveRow}
+            onRowClick={(row, event) => {
+              handleInteractiveRowClick(row, event);
+            }}
+            table={table}
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-px"
+            ref={bulkActionsAnchorRef}
+          />
+        </div>
+      );
+    }
+
+    if (isListMode) {
+      return (
+        <div className="relative">
+          {isLoading && data && data.length > 0 && loadingOverlay}
+          <DataTableListView
+            className={className}
+            columnDefinitions={tableConfig.columns.definitions}
+            config={listConfig}
+            emptyState={emptyStateContent}
+            groupBy={primaryGrouping}
+            groupLabel={primaryGroupingLabel}
+            isRowActive={(row) =>
+              isRowIdActive({
+                activeRowId,
+                rowId: row.id,
+                rowOriginal: row.original as Record<string, unknown>,
+              })
+            }
+            isRowClickable={(row) => getRowClickMode(row).canClickRow}
             onRowClick={(row, event) => {
               handleInteractiveRowClick(row, event);
             }}
