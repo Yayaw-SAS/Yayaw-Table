@@ -603,7 +603,9 @@ omitted from properties and lines are sectioned by the first grouping level
 (`maxGroups: 1`), headed "Column: value" with a count; empty values read
 "No value". Settings are saved in views and in the `<tableId>-list` URL key, and
 resetting a view restores `table.list`. The list uses the current page, like
-Gallery and Kanban. Covered by `tests/list-view.test.ts`, Vue
+Gallery and Kanban. Density applies to lines as to table rows: both editions
+size them from the shared `TABLE_DENSITY_METRICS`, and the density control is
+offered in List mode through the registry's `capabilities.density`. Covered by `tests/list-view.test.ts`, Vue
 `use-table-state.test.ts` and Playwright `e2e/views.spec.ts` in both editions.
 
 ## Manual order per view

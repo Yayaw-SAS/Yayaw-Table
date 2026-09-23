@@ -2927,8 +2927,10 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 40px;
-  padding: 6px 12px;
+  /* Lines follow the table density scale, like table rows. */
+  min-height: var(--yayaw-density-height, 40px);
+  padding: var(--yayaw-density-py, 6px)
+    calc(var(--yayaw-density-px, 8px) + var(--spacing, 0.25rem));
   cursor: pointer;
 }
 .yayaw-list-item:hover {

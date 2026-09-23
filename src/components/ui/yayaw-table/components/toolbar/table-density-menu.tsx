@@ -1,5 +1,6 @@
 "use client";
 
+import { getViewModeCapabilities } from "../../utils/view-menu";
 import { useAtom } from "jotai";
 import { Rows3 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
@@ -46,7 +47,7 @@ export function TableDensityMenu({
     (option) => option.value === density
   )?.label;
 
-  if (displayModeParam !== "table") {
+  if (!getViewModeCapabilities(displayModeParam).density) {
     return null;
   }
 

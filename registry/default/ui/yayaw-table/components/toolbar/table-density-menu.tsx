@@ -21,6 +21,7 @@ import {
   TABLE_DENSITY_OPTIONS,
 } from "../../utils/table-contracts";
 import { TableTooltip } from "../../utils/table-tooltip";
+import { getViewModeCapabilities } from "../../utils/view-menu";
 
 export function TableDensityMenu({
   inline = false,
@@ -46,7 +47,7 @@ export function TableDensityMenu({
     (option) => option.value === density
   )?.label;
 
-  if (displayModeParam !== "table") {
+  if (!getViewModeCapabilities(displayModeParam).density) {
     return null;
   }
 

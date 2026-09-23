@@ -5,6 +5,7 @@ const DISPLAY_PARAM = "views-display";
 const CURRENT_VIEW = /^current view/i;
 const FILTERS = /^filters?/i;
 const SORT = /^sort/i;
+const DENSITY = /density/i;
 const REORDER = /reorder|réordonner/i;
 const TWO_RULES = [
   {
@@ -247,4 +248,19 @@ test("list lines can be reordered by touch", async ({ page }) => {
   }
   await touch("touchEnd");
   await expect(items.first()).toContainText("Delta support");
+});
+
+test("the list view follows the table density", async ({ page }) => {
+  await page.goto(`${EXAMPLE}&${DISPLAY_PARAM}=list`);
+  const first = page.locator("li").first().locator("div").first();
+  const height = async () => (await first.boundingBox())?.height ?? 0;
+  await expect.poll(height).toBeGreaterThan(0);
+  const medium = await height();
+  await openViewMenu(page);
+  await page
+    .getByRole("dialog", { name: "Views and settings" })
+    .getByRole("group", { name: DENSITY })
+    .getByRole("button", { name: "2XL" })
+    .click();
+  await expect.poll(height).toBeGreaterThan(medium);
 });

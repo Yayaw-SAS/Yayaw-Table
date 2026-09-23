@@ -2490,6 +2490,7 @@ function ModernDataTable<
           className={className}
           columnDefinitions={tableConfig.columns.definitions}
           config={listConfig}
+          density={densityMode}
           emptyState={emptyStateContent}
           groupBy={primaryGrouping}
           groupLabel={primaryGroupingLabel}
