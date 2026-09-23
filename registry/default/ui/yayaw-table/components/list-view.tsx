@@ -1,9 +1,10 @@
 "use client";
 
+import { GripVertical } from "lucide-react";
 import {
-  type DragEvent,
   type KeyboardEvent,
   type MouseEvent,
+  type PointerEvent,
   type ReactNode,
   useMemo,
   useState,
@@ -14,7 +15,11 @@ import type { Cell, Row, Table as TanStackTable } from "../tanstack";
 import { flexRender } from "../tanstack";
 import type { TableListConfig } from "../types/display-types";
 import { shouldActivateCardFromKeyboard } from "../utils/card-interaction";
-import { moveInOrder } from "../utils/manual-order";
+import {
+  moveInOrder,
+  REORDER_ROW_ATTRIBUTE,
+  reorderRowAt,
+} from "../utils/manual-order";
 import {
   isSelectionModifiedClick,
   selectRowWithRange,
@@ -51,9 +56,13 @@ export interface ListNeighbours<TData extends Record<string, unknown>> {
 
 interface ListReorder {
   draggable: boolean;
+  isDragging: boolean;
+  isTarget: boolean;
   label?: string;
-  onDragStart: () => void;
-  onDrop: () => void;
+  onPointerCancel: () => void;
+  onPointerDown: (event: PointerEvent<HTMLButtonElement>) => void;
+  onPointerMove: (event: PointerEvent<HTMLButtonElement>) => void;
+  onPointerUp: () => void;
   onMove: (offset: number) => void;
 }
 
@@ -144,28 +153,15 @@ function DataTableListItem<TData extends Record<string, unknown>>({
   };
 
   return (
-    // biome-ignore lint/a11y: a reorderable line accepts native drops; keyboard users move it with Alt+Arrow keys.
     <li
       className={cn(
         "border-b last:border-b-0",
-        (isActive || row.getIsSelected()) && "bg-primary/5"
+        (isActive || row.getIsSelected()) && "bg-primary/5",
+        reorder?.isDragging && "opacity-50",
+        reorder?.isTarget && "shadow-[inset_0_2px_0_0_var(--primary)]"
       )}
       data-active={isActive ? "true" : undefined}
-      draggable={reorder?.draggable}
-      onDragOver={
-        reorder
-          ? (event: DragEvent<HTMLLIElement>) => event.preventDefault()
-          : undefined
-      }
-      onDragStart={reorder?.draggable ? reorder.onDragStart : undefined}
-      onDrop={
-        reorder
-          ? (event: DragEvent<HTMLLIElement>) => {
-              event.preventDefault();
-              reorder.onDrop();
-            }
-          : undefined
-      }
+      {...(reorder ? { [REORDER_ROW_ATTRIBUTE]: row.id } : {})}
     >
       {/* biome-ignore lint/a11y: a clickable line keeps nested selection/actions valid, takes the button role and provides keyboard activation. */}
       <div
@@ -195,8 +191,22 @@ function DataTableListItem<TData extends Record<string, unknown>>({
         }}
         role={isClickable ? "button" : undefined}
         tabIndex={isClickable || reorder?.draggable ? 0 : undefined}
-        title={reorder?.draggable ? reorder.label : undefined}
       >
+        {reorder?.draggable ? (
+          <button
+            aria-label={reorder.label}
+            className="-ml-1 shrink-0 cursor-grab touch-none rounded p-1 text-muted-foreground hover:bg-muted active:cursor-grabbing"
+            onClick={(event) => event.stopPropagation()}
+            onPointerCancel={reorder.onPointerCancel}
+            onPointerDown={reorder.onPointerDown}
+            onPointerMove={reorder.onPointerMove}
+            onPointerUp={reorder.onPointerUp}
+            title={reorder.label}
+            type="button"
+          >
+            <GripVertical aria-hidden="true" className="size-4" />
+          </button>
+        ) : null}
         {selectionCell ? (
           <div className="shrink-0" data-column-id="select">
             {renderCell(selectionCell)}
@@ -255,6 +265,7 @@ export function DataTableListView<TData extends Record<string, unknown>>({
     rows: Row<TData>[];
   } | null>(null);
   const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [targetId, setTargetId] = useState<string | null>(null);
   // A pending order only applies to the rows it was made from.
   const pendingOrder = pending?.rows === loadedRows ? pending.ids : null;
   const setPendingOrder = (ids: string[]) =>
@@ -336,15 +347,35 @@ export function DataTableListView<TData extends Record<string, unknown>>({
     const index = group?.rows.findIndex((item) => item.id === row.id) ?? -1;
     return {
       draggable: canReorderRow?.(row) ?? true,
+      isDragging: draggedId === row.id,
+      isTarget:
+        Boolean(draggedId) && targetId === row.id && draggedId !== row.id,
       label: reorderLabel,
-      onDragStart: () => setDraggedId(row.id),
-      onDrop: () => {
-        const dragged = rows.find((item) => item.id === draggedId);
-        setDraggedId(null);
-        // Moves stay within a group: the manual order never edits the grouped value.
-        if (dragged && dragged.id !== row.id && groupOf(dragged) === group) {
-          moveRow(dragged, index);
+      onPointerDown: (event) => {
+        event.preventDefault();
+        event.currentTarget.setPointerCapture?.(event.pointerId);
+        setDraggedId(row.id);
+      },
+      onPointerMove: (event) => {
+        if (draggedId !== row.id) {
+          return;
         }
+        const id = reorderRowAt(event.clientX, event.clientY);
+        const target = rows.find((item) => item.id === id);
+        // Moves stay within a group: the manual order never edits the grouped value.
+        setTargetId(target && groupOf(target) === group ? target.id : null);
+      },
+      onPointerUp: () => {
+        const target = group?.rows.findIndex((item) => item.id === targetId);
+        setDraggedId(null);
+        setTargetId(null);
+        if (draggedId === row.id && target !== undefined && target >= 0) {
+          moveRow(row, target);
+        }
+      },
+      onPointerCancel: () => {
+        setDraggedId(null);
+        setTargetId(null);
       },
       onMove: (offset) => moveRow(row, index + offset),
     };

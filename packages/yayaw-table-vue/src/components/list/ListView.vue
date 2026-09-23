@@ -3,7 +3,8 @@ import { computed, ref, watch } from "vue";
 import { useCardRows } from "../../composables/use-card-rows";
 import { useListSettings } from "../../composables/use-list-settings";
 import { displayCellValue } from "../../core";
-import { isManualOrder, moveInOrder } from "../../manual-order";
+import { GripVertical } from "lucide-vue-next";
+import { isManualOrder, moveInOrder, REORDER_ROW_ATTRIBUTE, reorderRowAt } from "../../manual-order";
 import { selectionAfterClick } from "../../selection-interaction";
 import type { ColumnDefinition, TableRecord } from "../../types";
 import TableCheckbox from "../controls/TableCheckbox.vue";
@@ -83,8 +84,38 @@ const reorderHint = computed(() =>
   translate("reorderHint", "Drag, or press Alt+Arrow keys, to reorder")
 );
 const dragged = ref<TableRecord>();
+const target = ref<TableRecord>();
 const sectionOf = (row: TableRecord) =>
   sections.value.find((section) => section.rows.includes(row));
+const startDrag = (row: TableRecord, event: PointerEvent): void => {
+  event.preventDefault();
+  (event.currentTarget as Element).setPointerCapture?.(event.pointerId);
+  dragged.value = row;
+};
+const trackDrag = (event: PointerEvent): void => {
+  const row = dragged.value;
+  if (!row) {
+    return;
+  }
+  const id = reorderRowAt(event.clientX, event.clientY);
+  const over = rows.value.find((item) => context.getRowId(item) === id);
+  // Moves stay within a group: the manual order never edits the grouped value.
+  target.value = over && sectionOf(over) === sectionOf(row) ? over : undefined;
+};
+const endDrag = async (): Promise<void> => {
+  const row = dragged.value;
+  const over = target.value;
+  dragged.value = undefined;
+  target.value = undefined;
+  const section = over && sectionOf(over);
+  if (row && over && row !== over && section) {
+    await moveRow(row, section.rows.indexOf(over));
+  }
+};
+const cancelDrag = (): void => {
+  dragged.value = undefined;
+  target.value = undefined;
+};
 const moveRow = async (row: TableRecord, toIndex: number): Promise<void> => {
   const section = sectionOf(row);
   const reorder = context.actions.value?.reorder;
@@ -126,15 +157,6 @@ const moveRow = async (row: TableRecord, toIndex: number): Promise<void> => {
     };
   }
   await context.refresh();
-};
-const drop = async (target: TableRecord): Promise<void> => {
-  const row = dragged.value;
-  dragged.value = undefined;
-  const section = sectionOf(target);
-  // Moves stay within a group: the manual order never edits the grouped value.
-  if (row && row !== target && section && sectionOf(row) === section) {
-    await moveRow(row, section.rows.indexOf(target));
-  }
 };
 const reorderKey = async (row: TableRecord, event: KeyboardEvent): Promise<boolean> => {
   if (!(event.altKey && canReorderRow(row) && ["ArrowUp", "ArrowDown"].includes(event.key))) {
@@ -225,11 +247,8 @@ const activate = (row: TableRecord, event: MouseEvent | KeyboardEvent): void => 
         <li
           v-for="row in section.rows"
           :key="context.getRowId(row)"
-          :draggable="canReorderRow(row)"
-          @dragstart="dragged = row"
-          @dragover="(event) => { if (canReorder) event.preventDefault(); }"
-          @drop.prevent="drop(row)"
-          :class="{ selected: context.selection.value[context.getRowId(row)] }"
+          v-bind="canReorder ? { [REORDER_ROW_ATTRIBUTE]: context.getRowId(row) } : {}"
+          :class="{ selected: context.selection.value[context.getRowId(row)], 'yayaw-list-dragging': dragged === row, 'yayaw-list-target': target === row && dragged !== row }"
           :data-yayaw-row-id="context.getRowId(row)"
         >
           <div
@@ -239,9 +258,22 @@ const activate = (row: TableRecord, event: MouseEvent | KeyboardEvent): void => 
             @click.capture="captureSelection(row, $event)"
             @mousedown.capture="(event) => { if (event.shiftKey || event.ctrlKey || event.metaKey) event.preventDefault(); }"
             @click="activate(row, $event)"
-            :title="canReorderRow(row) ? reorderHint : undefined"
             @keydown="onKeydown(row, $event)"
           >
+            <button
+              v-if="canReorderRow(row)"
+              type="button"
+              class="yayaw-list-handle"
+              :aria-label="reorderHint"
+              :title="reorderHint"
+              @click.stop
+              @pointerdown="startDrag(row, $event)"
+              @pointermove="trackDrag"
+              @pointerup="endDrag"
+              @pointercancel="cancelDrag"
+            >
+              <GripVertical :size="16" aria-hidden="true" />
+            </button>
             <span
               v-if="context.config.table.enableRowSelection"
               class="yayaw-list-select"

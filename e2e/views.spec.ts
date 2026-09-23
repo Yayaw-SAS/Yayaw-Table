@@ -5,6 +5,7 @@ const DISPLAY_PARAM = "views-display";
 const CURRENT_VIEW = /^current view/i;
 const FILTERS = /^filters?/i;
 const SORT = /^sort/i;
+const REORDER = /reorder|réordonner/i;
 const TWO_RULES = [
   {
     id: "a",
@@ -160,6 +161,26 @@ test("the list view shows one line per record, grouped by the table grouping", a
 });
 
 const MANUAL_LIST = `${EXAMPLE}&${DISPLAY_PARAM}=list&views-sort=${encodeURIComponent('[{"id":"__manual","desc":false}]')}`;
+const handle = (page: Page, name: string) =>
+  page.locator("li").filter({ hasText: name }).getByTitle(REORDER);
+const centerOf = async (page: Page, name: string, onHandle: boolean) => {
+  const target = onHandle
+    ? handle(page, name)
+    : page.locator("li").filter({ hasText: name });
+  const box = await target.boundingBox();
+  if (!box) {
+    throw new Error(`${name} is not visible`);
+  }
+  return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+};
+const dragHandle = async (page: Page, from: string, to: string) => {
+  const start = await centerOf(page, from, true);
+  const end = await centerOf(page, to, false);
+  await page.mouse.move(start.x, start.y);
+  await page.mouse.down();
+  await page.mouse.move(end.x, end.y, { steps: 5 });
+  await page.mouse.up();
+};
 const line = (page: Page, name: string) =>
   page
     .locator("li")
@@ -178,10 +199,7 @@ test("the manual order of a list view is moved by keyboard or drag and kept per 
   await page.keyboard.press("Alt+ArrowUp");
   await expect(items.first()).toContainText("Bravo audit");
 
-  await page
-    .locator("li")
-    .filter({ hasText: "Echo sensors" })
-    .dragTo(page.locator("li").filter({ hasText: "Bravo audit" }));
+  await dragHandle(page, "Echo sensors", "Bravo audit");
   await expect(items.first()).toContainText("Echo sensors");
   await expect(items.nth(1)).toContainText("Bravo audit");
 
@@ -203,4 +221,30 @@ test("manual order is offered as a sort of the view", async ({ page }) => {
   await expect
     .poll(() => new URL(page.url()).searchParams.get("views-sort"))
     .toContain("__manual");
+});
+
+test("list lines can be reordered by touch", async ({ page }) => {
+  await page.goto(MANUAL_LIST);
+  const items = page.getByRole("listitem");
+  await expect(items.first()).toContainText("Alpha launch");
+  const start = await centerOf(page, "Delta support", true);
+  const end = await centerOf(page, "Alpha launch", false);
+  const cdp = await page.context().newCDPSession(page);
+  const touch = (
+    type: "touchStart" | "touchMove" | "touchEnd",
+    point?: { x: number; y: number }
+  ) =>
+    cdp.send("Input.dispatchTouchEvent", {
+      type,
+      touchPoints: point ? [{ x: point.x, y: point.y }] : [],
+    });
+  await touch("touchStart", start);
+  for (let step = 1; step <= 5; step += 1) {
+    await touch("touchMove", {
+      x: start.x + ((end.x - start.x) * step) / 5,
+      y: start.y + ((end.y - start.y) * step) / 5,
+    });
+  }
+  await touch("touchEnd");
+  await expect(items.first()).toContainText("Delta support");
 });

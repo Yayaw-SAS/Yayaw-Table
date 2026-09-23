@@ -60,3 +60,22 @@ export function moveInOrder(
   next.splice(index, 0, id);
   return { ids: next, previousId: next[index - 1], nextId: next[index + 1] };
 }
+
+/** Marks a reorderable line so a pointer drag can find the line under it. */
+export const REORDER_ROW_ATTRIBUTE = "data-reorder-row-id";
+
+/**
+ * The reorderable line under a pointer. Pointer events serve mouse, touch and
+ * pen alike, unlike native drag and drop, which ignores touch.
+ */
+export function reorderRowAt(x: number, y: number): string | undefined {
+  if (typeof document === "undefined") {
+    return;
+  }
+  return (
+    document
+      .elementFromPoint(x, y)
+      ?.closest(`[${REORDER_ROW_ATTRIBUTE}]`)
+      ?.getAttribute(REORDER_ROW_ATTRIBUTE) ?? undefined
+  );
+}
