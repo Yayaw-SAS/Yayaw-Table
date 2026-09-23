@@ -667,3 +667,14 @@ the matching action exists, omit the row-actions column when no action can be
 offered, and show every card property by default. Pixel baselines differ by
 platform fonts, so Playwright checks measurable styles in both editions
 instead: header font, row height, checkbox size, search width and card titles.
+
+### Shared theme tokens
+
+React styles come from shadcn/ui (Tailwind and the shadcn CSS variables); Vue
+keeps its own stylesheet, whose `--yayaw-*` tokens now read the same shadcn
+variables with the neutral theme as fallback, so a host theme applies to both
+editions. Controls use `rounded-md` (`--radius` − 2px), inputs and outline
+buttons `--input` at 30% with a light shadow, badges a 0.35rem radius, the
+header row `--muted` at 20%, the selection column 48px with a centered
+checkbox, and text is antialiased. Both editions show the default description
+`Manage your <tableType>` when none is configured.

@@ -1,23 +1,31 @@
 :root {
-  --yayaw-background: #fff;
-  --yayaw-foreground: #18181b;
-  --yayaw-muted: #f4f4f5;
-  --yayaw-muted-foreground: #5f5f68;
-  --yayaw-border: #e4e4e7;
-  --yayaw-primary: #18181b;
-  --yayaw-primary-foreground: #fafafa;
-  --yayaw-danger: #dc2626;
-  --yayaw-radius: 8px;
+  /* The host's shadcn theme wins; fallbacks are shadcn's neutral theme, as in React. */
+  --yayaw-background: var(--background, oklch(1 0 0));
+  --yayaw-foreground: var(--foreground, oklch(0.145 0 0));
+  --yayaw-muted: var(--muted, oklch(0.97 0 0));
+  --yayaw-muted-foreground: var(--muted-foreground, oklch(0.556 0 0));
+  --yayaw-border: var(--border, oklch(0.922 0 0));
+  --yayaw-input: var(--input, oklch(0.922 0 0));
+  --yayaw-primary: var(--primary, oklch(0.205 0 0));
+  --yayaw-primary-foreground: var(--primary-foreground, oklch(0.985 0 0));
+  --yayaw-danger: var(--destructive, oklch(0.577 0.245 27.325));
+  --yayaw-ring: var(--ring, oklch(0.708 0 0));
+  /* Controls use shadcn's rounded-md: the theme radius minus 2px. */
+  --yayaw-radius: calc(var(--radius, 0.625rem) - 2px);
   --yayaw-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+  --yayaw-shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 }
 .dark {
-  --yayaw-background: #18181b;
-  --yayaw-foreground: #fafafa;
-  --yayaw-muted: #27272a;
-  --yayaw-muted-foreground: #b4b4bd;
-  --yayaw-border: #3f3f46;
-  --yayaw-primary: #fafafa;
-  --yayaw-primary-foreground: #18181b;
+  --yayaw-background: var(--background, oklch(0.145 0 0));
+  --yayaw-foreground: var(--foreground, oklch(0.985 0 0));
+  --yayaw-muted: var(--muted, oklch(0.269 0 0));
+  --yayaw-muted-foreground: var(--muted-foreground, oklch(0.708 0 0));
+  --yayaw-border: var(--border, oklch(1 0 0 / 10%));
+  --yayaw-input: var(--input, oklch(1 0 0 / 15%));
+  --yayaw-primary: var(--primary, oklch(0.922 0 0));
+  --yayaw-primary-foreground: var(--primary-foreground, oklch(0.205 0 0));
+  --yayaw-danger: var(--destructive, oklch(0.704 0.191 22.216));
+  --yayaw-ring: var(--ring, oklch(0.556 0 0));
 }
 .yayaw-table,
 .yayaw-table *,
@@ -29,6 +37,9 @@
   position: relative;
   width: 100%;
   color: var(--yayaw-foreground);
+  /* Tailwind's antialiased, as on React tables: lighter text on macOS. */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   font:
     14px / 1.4 ui-sans-serif,
     system-ui,
@@ -42,15 +53,15 @@
 }
 .yayaw-title {
   margin: 0;
-  font-size: 22px;
-  line-height: 1.25;
-  font-weight: 650;
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 600;
 }
 .yayaw-description,
 .yayaw-help {
   margin: 4px 0 0;
   color: var(--yayaw-muted-foreground);
-  font-size: 13px;
+  font-size: 14px;
 }
 .yayaw-toolbar {
   margin-bottom: 16px;
@@ -103,9 +114,10 @@
 .yayaw-select,
 .yayaw-textarea {
   min-height: 36px;
-  border: 1px solid var(--yayaw-border);
-  border-radius: 6px;
-  background: var(--yayaw-background);
+  border: 1px solid var(--yayaw-input);
+  border-radius: var(--yayaw-radius);
+  background: color-mix(in oklab, var(--yayaw-input) 30%, transparent);
+  box-shadow: var(--yayaw-shadow-xs);
   color: var(--yayaw-foreground);
   padding: 7px 10px;
   outline: none;
@@ -167,6 +179,10 @@
   border-color: var(--yayaw-border);
   background: var(--yayaw-background);
   color: var(--yayaw-foreground);
+}
+.yayaw-button-outline {
+  background: color-mix(in oklab, var(--yayaw-input) 30%, transparent);
+  box-shadow: var(--yayaw-shadow-xs);
 }
 .yayaw-button-ghost,
 .yayaw-icon-button {
@@ -658,7 +674,11 @@
   position: sticky;
   z-index: 3;
   top: 0;
-  background: var(--yayaw-background);
+  background: color-mix(
+    in oklab,
+    var(--yayaw-muted) 20%,
+    var(--yayaw-background)
+  );
   color: var(--yayaw-foreground);
   font-size: 14px;
   font-weight: 500;
@@ -1036,7 +1056,8 @@
 }
 .yayaw-tag {
   display: inline-flex;
-  border-radius: 999px;
+  border: 1px solid transparent;
+  border-radius: 0.35rem;
   background: var(--yayaw-muted);
   padding: 2px 8px;
   font-size: 12px;
@@ -1558,11 +1579,11 @@
   align-items: center;
   justify-content: center;
   padding: 0;
-  border: 1px solid var(--yayaw-border);
+  border: 1px solid var(--yayaw-input);
   border-radius: 4px;
-  background: var(--yayaw-background);
+  background: color-mix(in oklab, var(--yayaw-input) 30%, transparent);
   color: var(--yayaw-primary-foreground);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+  box-shadow: var(--yayaw-shadow-xs);
   cursor: pointer;
 }
 .yayaw-checkbox[data-state="checked"] {
@@ -3092,10 +3113,11 @@
   height: 16px;
   margin: 0;
   place-content: center;
-  border: 1px solid var(--yayaw-border);
+  border: 1px solid var(--yayaw-input);
   border-radius: 4px;
-  background: var(--yayaw-background);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+  background: color-mix(in oklab, var(--yayaw-input) 30%, transparent);
+  box-shadow: var(--yayaw-shadow-xs);
+  vertical-align: middle;
   cursor: pointer;
 }
 .yayaw-data-grid input[type="checkbox"]:checked,
@@ -3137,4 +3159,26 @@
   border-radius: var(--yayaw-radius);
   background: var(--yayaw-background);
   padding: 12px;
+}
+/* Selection column: 48px with a centered checkbox, as in React. */
+.yayaw-data-grid :is(th, td):has(> input[type="checkbox"]) {
+  width: 48px;
+  min-width: 48px;
+  text-align: center;
+}
+.yayaw-toolbar .yayaw-view-trigger {
+  font-size: 14px;
+  font-weight: 500;
+}
+.yayaw-data-grid :is(th, td) > input[type="checkbox"] {
+  display: grid;
+  margin: 0 auto;
+}
+.yayaw-data-grid thead th:first-child:has(input[type="checkbox"]) {
+  width: 48px;
+  text-align: center;
+}
+.yayaw-data-grid thead th:first-child input[type="checkbox"] {
+  display: grid;
+  margin: 0 auto;
 }

@@ -317,6 +317,14 @@ test("both editions share the table and card look", async ({ page }) => {
 
   const checkbox = await row.getByRole("checkbox").boundingBox();
   expect(Math.round(checkbox?.width ?? 0)).toBe(16);
+  // The selection column centers its checkbox about 28px from the table edge.
+  const table = await page.locator("table").first().boundingBox();
+  expect(
+    Math.round((checkbox?.x ?? 0) + 8 - (table?.x ?? 0))
+  ).toBeGreaterThanOrEqual(26);
+  expect(
+    Math.round((checkbox?.x ?? 0) + 8 - (table?.x ?? 0))
+  ).toBeLessThanOrEqual(30);
 
   const search = await page.getByPlaceholder(SEARCH_PLACEHOLDER).boundingBox();
   expect(search?.width ?? 0).toBeLessThanOrEqual(260);
