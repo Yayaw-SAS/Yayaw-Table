@@ -10,6 +10,8 @@ import type {
   TableListViewConfig,
 } from "../../types/display-types";
 import type { GalleryMenuColumn } from "./table-gallery-menu";
+import { resolveListSettings } from "../../utils/list-view";
+import { translateWithFallback } from "../filters/i18n-utils";
 import { ViewSettingsPanel } from "./view-settings-panel";
 
 interface TableListMenuProps {
@@ -35,7 +37,17 @@ export function TableListMenu({
     return null;
   }
 
-  const active = { ...defaultConfig, ...listParam };
+  const active = resolveListSettings(defaultConfig, listParam);
+  const label = (key: string, fallback: string) =>
+    translateWithFallback(t, `views.list.${key}`, fallback);
+  const countOptions = (max: number) => [
+    { value: "", label: label("all", "All") },
+    ...Array.from({ length: max + 1 }, (_, count) => ({
+      value: String(count),
+      label: String(count),
+    })),
+  ];
+  const toCount = (value: string) => (value === "" ? undefined : Number(value));
   const titleColumn = active.titleColumn || columns[0]?.id;
   const propertyColumns = columns.filter((column) => column.id !== titleColumn);
   const update = (patch: TableListViewConfig) => {
@@ -65,6 +77,52 @@ export function TableListMenu({
             value: titleColumn ?? "",
             options: options(columns),
             onChange: (value) => update({ titleColumn: value }),
+          },
+          {
+            id: "wrap",
+            label: label("title", "Title"),
+            value: active.wrap ? "wrap" : "truncate",
+            options: [
+              { value: "truncate", label: label("truncate", "One line") },
+              { value: "wrap", label: label("wrap", "Wrap") },
+            ],
+            onChange: (value) => update({ wrap: value === "wrap" }),
+          },
+          {
+            id: "align",
+            label: label("propertyAlign", "Properties"),
+            value: active.propertyAlign,
+            options: [
+              { value: "end", label: label("alignEnd", "End of line") },
+              { value: "start", label: label("alignStart", "After title") },
+            ],
+            onChange: (value) =>
+              update({ propertyAlign: value === "start" ? "start" : "end" }),
+          },
+          {
+            id: "maxProperties",
+            label: label("maxProperties", "Properties shown"),
+            value: String(active.maxProperties ?? ""),
+            options: countOptions(6),
+            onChange: (value) => update({ maxProperties: toCount(value) }),
+          },
+          {
+            id: "mobileMaxProperties",
+            label: label("mobileMaxProperties", "Properties on mobile"),
+            value: String(active.mobileMaxProperties ?? ""),
+            options: countOptions(4),
+            onChange: (value) =>
+              update({ mobileMaxProperties: toCount(value) }),
+          },
+          {
+            id: "actions",
+            label: label("actions", "Row actions"),
+            value: active.showActions ? "show" : "hide",
+            options: [
+              { value: "show", label: label("show", "Shown") },
+              { value: "hide", label: label("hide", "Hidden") },
+            ],
+            onChange: (value) => update({ showActions: value === "show" }),
           },
         ]}
         properties={{

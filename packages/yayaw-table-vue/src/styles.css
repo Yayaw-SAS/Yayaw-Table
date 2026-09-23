@@ -2993,3 +2993,15 @@
 .yayaw-list li.yayaw-list-target {
   box-shadow: inset 0 2px 0 0 var(--yayaw-primary);
 }
+.yayaw-list-title.yayaw-list-wrap {
+  overflow: visible;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.yayaw-list-title.yayaw-list-title-start {
+  flex: 0 1 auto;
+}
+.yayaw-list-properties[data-align="start"] {
+  flex: 1;
+  justify-content: flex-start;
+}

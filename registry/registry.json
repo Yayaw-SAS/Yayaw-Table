@@ -1254,6 +1254,11 @@
           "target": "components/ui/yayaw-table/utils/image-source.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/utils/list-view.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/list-view.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/utils/manual-order.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/manual-order.ts"

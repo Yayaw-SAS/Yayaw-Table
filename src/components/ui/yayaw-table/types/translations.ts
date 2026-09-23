@@ -342,6 +342,21 @@ export interface DataTableTranslations {
       table: string;
       kanban: string;
     };
+    /** List view settings (all optional; English fallbacks apply). */
+    list?: {
+      title?: string;
+      truncate?: string;
+      wrap?: string;
+      propertyAlign?: string;
+      alignEnd?: string;
+      alignStart?: string;
+      maxProperties?: string;
+      mobileMaxProperties?: string;
+      all?: string;
+      actions?: string;
+      show?: string;
+      hide?: string;
+    };
     gallery: {
       title: string;
       image: string;

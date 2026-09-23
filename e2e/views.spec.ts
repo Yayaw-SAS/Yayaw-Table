@@ -6,6 +6,7 @@ const CURRENT_VIEW = /^current view/i;
 const FILTERS = /^filters?/i;
 const SORT = /^sort/i;
 const DENSITY = /density/i;
+const ROW_ACTIONS = /^(actions|row actions)$/i;
 const REORDER = /reorder|réordonner/i;
 const TWO_RULES = [
   {
@@ -263,4 +264,28 @@ test("the list view follows the table density", async ({ page }) => {
     .getByRole("button", { name: "2XL" })
     .click();
   await expect.poll(height).toBeGreaterThan(medium);
+});
+
+test("list options from a shared link: labels, limits, alignment, wrapping and actions", async ({
+  page,
+}) => {
+  const settings = {
+    maxProperties: 1,
+    showActions: false,
+    wrap: true,
+    propertyAlign: "start",
+  };
+  await page.goto(
+    `${EXAMPLE}&${DISPLAY_PARAM}=list&views-list=${encodeURIComponent(JSON.stringify(settings))}`
+  );
+  const first = page.getByRole("listitem").first();
+  await expect(first).toContainText("Alpha launch");
+  await expect(first.locator("dd")).toHaveCount(1);
+  await expect(first.getByRole("button", { name: ROW_ACTIONS })).toHaveCount(0);
+
+  await page.setViewportSize({ width: 400, height: 800 });
+  await page.goto(
+    `${EXAMPLE}&${DISPLAY_PARAM}=list&views-list=${encodeURIComponent('{"mobileMaxProperties":0}')}`
+  );
+  await expect(page.getByRole("listitem").first().locator("dd")).toHaveCount(0);
 });

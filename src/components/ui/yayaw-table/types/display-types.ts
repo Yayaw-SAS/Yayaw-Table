@@ -91,14 +91,7 @@ export interface TableKanbanViewConfig {
 }
 
 /** Rows as single lines: a title followed by compact properties. */
-export interface TableListViewConfig {
-  /** Column used as the line title. */
-  titleColumn?: string;
-  /** Columns shown after the title, in order. */
-  cardColumnIds?: string[];
-  /** Show property labels beside values. */
-  showCardLabels?: boolean;
-}
+export type TableListViewConfig = import("../utils/list-view").ListViewSettings;
 
 export type TableListConfig = TableListViewConfig;
 
