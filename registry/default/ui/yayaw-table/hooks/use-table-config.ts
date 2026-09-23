@@ -41,7 +41,7 @@ import type {
   ToolbarActionsInput,
   ToolbarActionsPlacement,
 } from "../types/toolbar-types";
-import type { GenericModeViewConfigs } from "../utils/display-modes";
+import type { GenericModeTableConfigs } from "../utils/display-modes";
 import { pickGenericModeConfigs } from "../utils/display-modes";
 import type { NumberFormatConfig } from "../utils/number-format";
 import type { RecordPresentationConfig } from "../utils/record-presentation";
@@ -80,7 +80,7 @@ export interface TableCatalogueColumnConfig extends ColumnDefinition {
 /**
  * Configuration for table behavior in the catalogue
  */
-export interface TableCatalogueTableConfig extends GenericModeViewConfigs {
+export interface TableCatalogueTableConfig extends GenericModeTableConfigs {
   coloredTags?: boolean;
   allowCreate?: boolean;
   allowEdit?: boolean;

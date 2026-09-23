@@ -2,9 +2,10 @@
 import { DataTable, defineTableConfig, type TableActions, type TableRecord } from "../src";
 import { Toaster } from "vue-sonner";
 import { calendarRenderer } from "../src/calendar/calendar-renderer";
-import { createViewsActions, viewsColumns, viewsRows, viewsTableOptions } from "../../../examples/views";
+import { createViewsActions, initialViewsRows, viewsColumns, viewsTableOptions } from "../../../examples/views";
+import { requestFormView } from "../../../examples/form-links";
 
-const rows: TableRecord[] = viewsRows;
+const rows: TableRecord[] = initialViewsRows();
 const actions = createViewsActions() as unknown as TableActions;
 const config = defineTableConfig({
   id: "views",
@@ -21,7 +22,7 @@ const config = defineTableConfig({
 <template>
   <main class="views-example">
     <h1>Views</h1>
-    <DataTable :table-type="config.id" :config="config" :data="rows" :get-table-actions="() => actions" :display-mode-renderers="{ calendar: calendarRenderer }" />
+    <DataTable :table-type="config.id" :config="config" :data="rows" :get-table-actions="() => actions" :display-mode-renderers="{ calendar: calendarRenderer }" :initial-views="[requestFormView]" />
     <Toaster position="bottom-right" />
   </main>
 </template>

@@ -1,0 +1,9 @@
+---
+"yayaw-table-workspace": minor
+---
+
+Add a Form display mode to React and Vue, like Notion forms: the view shows a form that creates a record in the table. Per view (saved with views and in the `<tableId>-form` URL key): title, description, which columns are asked and their order (up/down buttons), per question a label, help text, placeholder and required flag, fixed values for columns not asked (e.g. `status: "Draft"`), the submit label, success message, "Submit another response" and a redirect URL the host may follow. Columns without a form editor (JSON, custom, computed) are listed as unavailable. Validation comes from the column types (numbers, dates, URLs, options) and required questions; errors are linked with `aria-describedby` and focus moves to the first invalid question. The mode is offered when the table can create records; `table.form: false` turns it off and `table.form: { … }` sets defaults. Labels are English and French, overridable with `form.<key>` translations.
+
+The same form ships as a standalone component for public routes, without table state or providers: React `YayawTableForm` (`form/yayaw-table-form.tsx`) and Vue `YayawTableForm.vue`, with `columns`, `form`, `onSubmit`, optional `validate`, `onSuccess`, `translations`, `locale`, `context` and `extraFields` (Vue `extra-fields` slot) for the host's spam protection. `formSettingsFromView(view)` reads a saved Form view; `publicFormSnapshot(view, columns)` keeps only what a public page needs and `acceptPublicFormResponse(snapshot, input)` re-validates responses on the host's server. The optional `actions.formLinks` (`status`, `publish`, `unpublish`, `setAcceptingResponses`) adds "Share form" to saved Form views: publish to the web, copy or open the link, stop accepting responses, and update the public form after edits.
+
+`TableDisplayMode` gains `"form"`: hosts with exhaustive `Record<TableDisplayMode, …>` maps add an entry.

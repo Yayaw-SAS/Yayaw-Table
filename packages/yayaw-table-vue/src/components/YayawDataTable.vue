@@ -47,6 +47,8 @@ import type { DetailRevertHandler, RecordDetailsConfig } from "../record-details
 import GalleryView from "./gallery/GalleryView.vue";
 import DisplayModeRendererHost from "./DisplayModeRendererHost.vue";
 import type { DisplayModeRenderers } from "../display-mode-renderer";
+import { withFormRenderer } from "../form/form-renderer";
+import { isFormModeEnabled } from "../form-view";
 import ListView from "./list/ListView.vue";
 import KanbanView from "./kanban/KanbanView.vue";
 import BulkActions from "./table/BulkActions.vue";
@@ -200,12 +202,20 @@ const advancedFiltersEnabled = computed(
 const searchDebounceMs = computed(
   () => props.searchDebounceMs ?? config.table.searchDebounceMs ?? 300
 );
+// The Form mode ships in the table; it is offered when records can be created.
+const modeRenderers = withFormRenderer(
+  props.displayModeRenderers,
+  isFormModeEnabled(
+    config.table.form,
+    config.table.allowCreate !== false && Boolean(actions.value?.create)
+  )
+);
 const state = useTableState({
   config,
   syncUrl: props.syncUrl ?? config.table.syncUrl ?? true,
   initialActiveViewId: props.initialActiveViewId,
   planning: Boolean(planning),
-  renderers: Object.keys(props.displayModeRenderers ?? {}),
+  renderers: Object.keys(modeRenderers ?? {}),
 });
 const tableData = useTableData({
   actions,
@@ -568,7 +578,7 @@ provide(tableContextKey, {
   getFormConfig: props.getFormConfig,
   refresh,
   openCreate,
-  displayModeRenderers: props.displayModeRenderers,
+  displayModeRenderers: modeRenderers,
   openEdit,
   get openDetails() { return props.onOpenDetails || recordDetails.value ? openDetails : undefined; },
   activateRow,
@@ -613,14 +623,14 @@ provide(tableContextKey, {
     </div>
 
     <div class="yayaw-content" :aria-busy="tableData.isLoading.value">
-      <DisplayModeRendererHost v-if="props.displayModeRenderers?.[state.displayMode.value]" :renderer="props.displayModeRenderers[state.displayMode.value]!" />
+      <DisplayModeRendererHost v-if="modeRenderers?.[state.displayMode.value]" :renderer="modeRenderers[state.displayMode.value]!" />
       <DataGrid v-else-if="state.displayMode.value === 'table'" />
       <KanbanView v-else-if="state.displayMode.value === 'kanban'" />
       <ListView v-else-if="state.displayMode.value === 'list'" />
       <GanttView v-else-if="state.displayMode.value === 'gantt' && planning" />
       <div v-else-if="state.displayMode.value === 'gantt'" role="alert">{{ ganttLabels.noAdapter }}</div>
       <GalleryView v-else />
-      <CardPagination v-if="!props.displayModeRenderers?.[state.displayMode.value] && state.displayMode.value !== 'table' && state.displayMode.value !== 'gantt' && !(state.displayMode.value === 'kanban' && config.table.kanban?.server)" />
+      <CardPagination v-if="!modeRenderers?.[state.displayMode.value] && state.displayMode.value !== 'table' && state.displayMode.value !== 'gantt' && !(state.displayMode.value === 'kanban' && config.table.kanban?.server)" />
       <component :is="loadingOverlay" v-if="tableData.isLoading.value && loadingOverlay" />
       <div v-else-if="tableData.isLoading.value" class="yayaw-loading-overlay">{{ translations.loading }}</div>
     </div>

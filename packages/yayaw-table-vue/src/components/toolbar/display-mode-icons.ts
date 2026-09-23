@@ -1,6 +1,7 @@
 import {
   CalendarDays,
   ChartGantt,
+  ClipboardList,
   Columns3,
   Images,
   List,
@@ -11,6 +12,7 @@ import type { TableDisplayMode } from "../../types";
 
 export const displayModeIcons: Record<TableDisplayMode, Component> = {
   calendar: CalendarDays,
+  form: ClipboardList,
   gantt: ChartGantt,
   table: Table2,
   kanban: Columns3,

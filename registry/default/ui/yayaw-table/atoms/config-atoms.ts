@@ -19,7 +19,7 @@ import type {
   TableGalleryConfig,
   TableKanbanConfig,
 } from "../types/display-types";
-import type { GenericModeViewConfigs } from "../utils/display-modes";
+import type { GenericModeTableConfigs } from "../utils/display-modes";
 
 /**
  * Interface for column-specific configuration options
@@ -49,7 +49,8 @@ export interface DataTableColumnsConfig {
 /**
  * Interface for general DataTable configuration options
  */
-export interface DataTableConfig extends GenericModeViewConfigs {
+/** The Form mode reads `table.form` from the catalogue config; `form` here is the create form. */
+export interface DataTableConfig extends Omit<GenericModeTableConfigs, "form"> {
   planning?: import("../planning/types").TablePlanningConfig;
   gantt?: import("../planning/types").TableGanttConfig;
   /**

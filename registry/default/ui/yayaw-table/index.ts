@@ -72,6 +72,12 @@ export type {
 } from "./config/helpers";
 // Config helper and types
 export { defineTableConfig } from "./config/helpers";
+// Form view; public routes can import `form/yayaw-table-form` on its own.
+export { formRenderer } from "./form/form-renderer";
+export {
+  YayawTableForm,
+  type YayawTableFormProps,
+} from "./form/yayaw-table-form";
 export { createMemoryPlanningAdapter } from "./planning/adapter";
 export { calculatePlanning, resolvedPlanningSnapshot } from "./planning/engine";
 export {
@@ -113,6 +119,18 @@ export type {
   UpdateTableViewInput,
 } from "./types/view-types";
 export type { TableActivityRecord } from "./utils/activity-shortcuts";
+export {
+  acceptPublicFormResponse,
+  type FormColumn,
+  type FormLinkActions,
+  type FormLinkStatus,
+  type FormQuestion,
+  type FormSubmitResult,
+  type FormViewSettings,
+  formSettingsFromView,
+  type PublicFormSnapshot,
+  publicFormSnapshot,
+} from "./utils/form-view";
 export type {
   TableGalleryMediaConfig,
   TableGalleryPreviewSize,

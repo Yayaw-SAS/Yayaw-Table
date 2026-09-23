@@ -2,7 +2,7 @@
  * Configuration atoms for DataTable
  * Centralizes all configuration options in one place
  */
-import type { GenericModeViewConfigs } from "../utils/display-modes";
+import type { GenericModeTableConfigs } from "../utils/display-modes";
 import { atom } from "jotai";
 import { atomFamily } from "jotai-family";
 import type { TableFormConfig } from "../config/form-config";
@@ -48,8 +48,9 @@ export interface DataTableColumnsConfig {
 /**
  * Interface for general DataTable configuration options
  */
+/** The Form mode reads `table.form` from the catalogue config; `form` here is the create form. */
 export interface DataTableConfig
-  extends GenericModeViewConfigs {
+  extends Omit<GenericModeTableConfigs, "form"> {
   planning?: import("../planning/types").TablePlanningConfig;
   gantt?: import("../planning/types").TableGanttConfig;
   /**

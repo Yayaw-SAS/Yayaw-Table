@@ -47,6 +47,7 @@ for (const file of [
   "data-destinations.ts",
   "export-model.ts",
   "field-matching.ts",
+  "form-view.ts",
   "import-flow.ts",
   "import-model.ts",
   "schedule-model.ts",

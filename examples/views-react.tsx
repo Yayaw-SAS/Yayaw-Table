@@ -5,10 +5,11 @@ import { DataTable } from "../src/components/ui/yayaw-table/components/data-tabl
 import { defineTableConfig } from "../src/components/ui/yayaw-table/config/helpers";
 import type { TableActions } from "../src/components/ui/yayaw-table/providers/table-provider";
 import { calendarRenderer } from "../src/components/ui/yayaw-table-calendar/calendar-renderer";
+import { requestFormView } from "./form-links";
 import {
   createViewsActions,
+  initialViewsRows,
   viewsColumns,
-  viewsRows,
   viewsTableOptions,
 } from "./views";
 
@@ -30,6 +31,7 @@ export function ViewsExample() {
     []
   );
   const actions = useMemo<TableActions>(() => createViewsActions(), []);
+  const rows = useMemo(() => initialViewsRows(), []);
   return (
     <main className="mx-auto max-w-6xl space-y-6 p-6">
       <h1 className="font-semibold text-2xl">Views</h1>
@@ -38,9 +40,10 @@ export function ViewsExample() {
         getRowId={(row) => String(row.id)}
         getTableActions={() => actions}
         getTableConfig={() => config}
-        initialData={viewsRows}
+        initialData={rows}
         initialPageCount={1}
-        initialRowCount={viewsRows.length}
+        initialRowCount={rows.length}
+        initialViews={[requestFormView]}
         tableType={config.id}
       />
     </main>

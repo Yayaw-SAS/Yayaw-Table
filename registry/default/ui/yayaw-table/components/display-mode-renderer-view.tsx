@@ -18,6 +18,7 @@ import {
   toFiltersParam,
   toOrderByParam,
 } from "../utils/filtered-rows";
+import type { FormLinkActions, FormSubmitResult } from "../utils/form-view";
 import { translateWithFallback } from "./filters/i18n-utils";
 
 type RowRecord = Record<string, unknown>;
@@ -48,6 +49,9 @@ export interface DisplayModeRenderInput {
   editRow: (row: RowRecord, patch: RowRecord) => Promise<boolean>;
   activateRow: (row: Row<RowRecord>, event: MouseEvent) => void;
   createRow: (initial: RowRecord) => void;
+  createRecord: (values: RowRecord) => Promise<FormSubmitResult>;
+  viewId: string | null;
+  formLinks?: FormLinkActions;
   emptyState: ReactNode;
 }
 
@@ -62,9 +66,11 @@ export function useDisplayModeRenderContext(
     canCreate,
     canEditRow,
     columns,
+    createRecord,
     createRow,
     editRow,
     emptyState,
+    formLinks,
     getRowId,
     list,
     locale,
@@ -77,6 +83,7 @@ export function useDisplayModeRenderContext(
     tableDefaults,
     tableId,
     tableType,
+    viewId,
   } = input;
   // Page data changes after any mutation or form submit; renderers reload with it.
   const revisionCounter = useRef(0);
@@ -131,6 +138,9 @@ export function useDisplayModeRenderContext(
         );
       },
       createRow,
+      createRecord,
+      viewId,
+      formLinks,
       revision,
       emptyState,
     }),
@@ -140,9 +150,11 @@ export function useDisplayModeRenderContext(
       canEditRow,
       columns,
       configKey,
+      createRecord,
       createRow,
       editRow,
       emptyState,
+      formLinks,
       getRowId,
       list,
       listParams,
@@ -156,6 +168,7 @@ export function useDisplayModeRenderContext(
       tableDefaults,
       tableId,
       tableType,
+      viewId,
     ]
   );
 }

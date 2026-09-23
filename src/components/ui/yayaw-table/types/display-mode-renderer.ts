@@ -1,6 +1,7 @@
 import type { ComponentType, MouseEvent, ReactNode } from "react";
 import type { TableCatalogueColumnConfig } from "../hooks/use-table-config";
 import type { TableActions } from "../providers/table-provider";
+import type { FormLinkActions, FormSubmitResult } from "../utils/form-view";
 import type { TableDisplayMode } from "./display-types";
 
 /** What a mode's settings panel needs. */
@@ -40,6 +41,12 @@ export interface DisplayModeRenderContext extends DisplayModeSettingsContext {
   openRow: (row: Record<string, unknown>, event?: MouseEvent<HTMLElement>) => void;
   /** Open the create form with prefilled values. */
   createRow: (initial: Record<string, unknown>) => void;
+  /** Create a record through `actions.create` and refresh the rows, without opening a form. */
+  createRecord: (values: Record<string, unknown>) => Promise<FormSubmitResult>;
+  /** The saved view shown, or null while no saved view is active. */
+  viewId: string | null;
+  /** Public form links, when the host provides `actions.formLinks`. */
+  formLinks?: FormLinkActions;
   /** Changes after each mutation so renderers reload their rows. */
   revision: number;
   emptyState: ReactNode;

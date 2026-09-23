@@ -996,3 +996,66 @@ sheet-only rows, the confirmation and preview required to delete, and the
 Import source. The demo "Spreadsheet" connector has a "Live projects" sheet
 synced once and then edited on both sides, planned and applied by the real
 `planSync` and `applySyncPlan` with in-memory adapters.
+
+## Form view
+
+The Form display mode ships in the core items of both registries: it needs no
+dependency beyond the shadcn primitives (React) and the Vue edition's own
+styles, unlike the calendar. Both editions plug a built-in `formRenderer` into
+the display mode renderers (`withFormRenderer`) when the table can create
+records (`actions.create` and `allowCreate !== false`) and `table.form` is not
+`false`; otherwise the registry withholds the mode like any renderer mode
+(`requiresRenderer`). A host renderer passed for `form` wins. `table.form` may
+also be an object of default settings.
+
+The shared `form-view.ts` (synced to Vue) holds the model: settings
+normalization (`normalizeFormViewConfig`, saved in views as `config.form` and
+in the `<tableId>-form` URL key), eligible columns (`formColumns`: text,
+textarea/code, number, date, select/tag, multi-select, boolean, URL/image;
+JSON, custom, dynamic and computed columns are excluded and listed in the
+settings), questions as an ordered array of `{ id, columnId, label, help,
+placeholder, required }` with a stable `id` (room for future conditions and a
+step-by-step layout), move/toggle/update helpers, draft coercion, validation
+codes (`validateFormValues`), the record sent to `create` (fixed values of
+columns not asked, then answers), English and French labels overridable with
+`form.<key>` translations (React accepts flat `"form.submit"` keys), and the
+public-link contract.
+
+Settings panel (View → Form settings, same content in both editions): title,
+description, one row per eligible column with an "Ask" checkbox, Move up/Move
+down and Edit buttons (label, help text, placeholder, Required), fixed values
+for columns not asked, submit label, success message, "Offer another
+response", redirect URL, Reset. Texts are saved on blur or Enter.
+
+The standalone component (React `form/yayaw-table-form.tsx`, Vue
+`form/YayawTableForm.vue`) takes `columns`, `form`, `onSubmit(values, {
+context }) → { ok: true } | { errors, message }`, optional `validate`,
+`onSuccess({ values, redirectUrl })` (the host decides whether to redirect),
+`translations`, `translate`, `locale`, `context`, `closed` and host fields
+(React `extraFields`, Vue `extra-fields` slot). It imports no nuqs, jotai,
+TanStack Query or table provider, and renders one question per
+`FormQuestionField` / `FormQuestion.vue` so a stepper can reuse it. Native
+inputs keep both editions identical and mobile friendly: labels, `required`,
+help and error ids in `aria-describedby`, `aria-invalid`, an error summary
+alert, focus on the first invalid question, a success status with "Submit
+another response".
+
+Public links: optional `actions.formLinks` (`status`, `publish(viewId,
+snapshot)`, `unpublish`, `setAcceptingResponses`) shows "Share form" above the
+form of a saved view (unsaved state asks to save first): publish switch, public
+link with Copy and Open, "Accept responses" switch and "Update public form".
+Republishing is explicit so unsaved edits never go live. `publicFormSnapshot`
+keeps only the asked columns (id, header, type, options), the form settings and
+the fixed values (kept server-side); `acceptPublicFormResponse` re-validates a
+response against the snapshot, drops other fields and adds the fixed values;
+`formSettingsFromView` reads a saved view. The demo host
+(`examples/form-links.ts`) stores snapshots and responses in localStorage and
+serves `?example=form&form=<viewId>`; the views demo ships a "Request" form
+view and `?example=form` shows the standalone component.
+
+Renderer context additions (both editions): `createRecord(values)`, `viewId`
+and `formLinks`. `tests/form-view-suite.ts` runs in both editions and
+`e2e/form.spec.ts` covers configuring questions (order, required, help text),
+error focus, success and the new row in the table, publishing, copying and
+opening the link, a public response reaching the table, closing responses,
+unpublishing, the save-first prompt and the standalone page, on both demos.

@@ -17,6 +17,21 @@ export * from "./types";
 export declare const YayawDataTable: DefineComponent<YayawTableProps>;
 export declare const DataTable: typeof YayawDataTable;
 export declare const CatalogueForm: DefineComponent;
+/** Standalone form (no table state), e.g. on a public route. */
+export declare const YayawTableForm: DefineComponent;
+export {
+  acceptPublicFormResponse,
+  type FormColumn,
+  type FormLinkActions,
+  type FormLinkStatus,
+  type FormQuestion,
+  type FormSubmitResult,
+  type FormViewSettings,
+  formSettingsFromView,
+  type PublicFormSnapshot,
+  publicFormSnapshot,
+} from "./form-view";
+export declare const formRenderer: import("./display-mode-renderer").DisplayModeRenderer;
 export { default as RecordDetails } from "./components/details/RecordDetails.vue";
 export type {
   DetailActivity,

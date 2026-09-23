@@ -7,6 +7,7 @@ import type {
 } from "../display-mode-renderer";
 import { useModeSettingsContext } from "../composables/use-mode-settings-context";
 import type { TableListParams, TableRecord } from "../types";
+import { type FormSubmitResult, formSubmitResultFrom } from "../form-view";
 
 const props = defineProps<{ renderer: DisplayModeRenderer }>();
 const context = useTableContext();
@@ -61,6 +62,16 @@ const updateRow = async (
     return false;
   }
 };
+const createRecord = async (values: TableRecord): Promise<FormSubmitResult> => {
+  const create = context.actions.value?.create;
+  if (!create || context.config.table.allowCreate === false) {
+    return { ok: false };
+  }
+  // A thrown error surfaces as the form's generic "could not be sent" message.
+  const result = formSubmitResultFrom(await create(values));
+  if (result.ok) await context.refresh();
+  return result;
+};
 const settingsContext = useModeSettingsContext();
 const renderContext = computed<DisplayModeRenderContext>(() => ({
   ...settingsContext.value,
@@ -77,6 +88,9 @@ const renderContext = computed<DisplayModeRenderContext>(() => ({
   openRow: (row, event) =>
     context.activateRow(row, event ?? new MouseEvent("click")),
   createRow: (initial) => context.openCreate(initial),
+  createRecord,
+  viewId: context.state.activeViewId.value ?? null,
+  formLinks: context.actions.value?.formLinks,
   revision: revision.value,
 }));
 </script>

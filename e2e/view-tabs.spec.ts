@@ -37,8 +37,8 @@ test.beforeEach(async ({ page }) => {
 test("saved views appear as tabs with their layout, and + creates one in another layout", async ({
   page,
 }) => {
-  // The default view is a tab from the start.
-  await expect(page.getByRole("tab")).toHaveText(["Default view"]);
+  // The default view is a tab from the start, next to the example's Request form.
+  await expect(page.getByRole("tab")).toHaveText(["Default view", "Request"]);
   await page.getByRole("button", { name: "View actions" }).click();
   await page.getByRole("button", { name: "Save this view…" }).click();
   await saveView(page, "Active projects");
@@ -46,6 +46,7 @@ test("saved views appear as tabs with their layout, and + creates one in another
   const tabs = page.getByRole("tablist", { name: "Views" });
   await expect(tabs.getByRole("tab")).toHaveText([
     "Default view",
+    "Request",
     "Active projects",
   ]);
   await expect(

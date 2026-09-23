@@ -14,7 +14,7 @@ import {
 import { createTableViewSnapshot } from "../core";
 import {
   GENERIC_MODE_CONFIG_KEYS,
-  pickGenericModeConfigs,
+  pickGenericModeSettings,
   resolveDisplayMode,
   resolveDisplayModes,
 } from "../display-modes";
@@ -205,7 +205,7 @@ export const useTableState = <TData extends TableRecord>({
   const gallery = ref<TableGalleryViewConfig>({ ...config.table.gallery });
   // Settings of the modes the registry handles generically (`list`, …).
   const modeConfigs = ref<Record<string, Record<string, unknown>>>({
-    ...pickGenericModeConfigs(config.table),
+    ...pickGenericModeSettings(config.table),
   } as Record<string, Record<string, unknown>>);
   const list = computed<TableListViewConfig>({
     get: () => (modeConfigs.value.list ?? {}) as TableListViewConfig,
@@ -529,7 +529,14 @@ export const useTableState = <TData extends TableRecord>({
         ...Object.fromEntries(
           GENERIC_MODE_CONFIG_KEYS.map((key) => [
             key,
-            input[key] ?? { ...config.table[key] },
+            input[key] ?? {
+              ...(
+                pickGenericModeSettings(config.table) as Record<
+                  string,
+                  object | undefined
+                >
+              )[key],
+            },
           ])
         ),
         grouping: enabledGrouping(

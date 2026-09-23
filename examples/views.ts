@@ -1,4 +1,5 @@
 import type { ScheduleSettings } from "../src/components/ui/yayaw-table/utils/schedule-model";
+import { createDemoFormLinks, demoFormResponses } from "./form-links";
 import { createSpreadsheetConnector } from "./views-spreadsheet";
 
 /** Shared records and columns for the React and Vue view-switching examples and end-to-end tests. */
@@ -59,12 +60,13 @@ export const viewsTableOptions = {
   manualOrder: true,
   coloredTags: false,
   defaultDisplayMode: "table" as const,
-  displayModes: ["table", "list", "gallery", "kanban", "calendar"] as (
+  displayModes: ["table", "list", "gallery", "kanban", "calendar", "form"] as (
     | "table"
     | "list"
     | "gallery"
     | "kanban"
     | "calendar"
+    | "form"
   )[],
   kanban: { groupBy: "status" },
   gallery: { titleColumn: "name", cardColumnIds: ["category", "status"] },
@@ -77,6 +79,18 @@ export const viewsTableOptions = {
 };
 
 type ViewRow = (typeof viewsRows)[number];
+
+/** Records sent from public or standalone forms, as the demo host stores them. */
+const formResponseRows = (): ViewRow[] =>
+  demoFormResponses().map(
+    (response) => ({ ...viewsRows[0], ...response }) as ViewRow
+  );
+
+/** First-page rows for server rendering: the records plus form responses. */
+export const initialViewsRows = (): ViewRow[] => [
+  ...viewsRows,
+  ...formResponseRows(),
+];
 
 /** Like a server: match the search in any value. */
 function searchRows(rows: ViewRow[], params: Record<string, unknown>) {
@@ -172,8 +186,17 @@ export function createViewsActions() {
         (position.get(right.id) ?? Number.MAX_SAFE_INTEGER)
     );
   };
+  // Responses sent from public or standalone forms join the records.
+  const absorbFormResponses = () => {
+    for (const response of formResponseRows()) {
+      if (!records.some((row) => row.id === response.id)) {
+        records.push(response);
+      }
+    }
+  };
   return {
     list: (params: Record<string, unknown>) => {
+      absorbFormResponses();
       const sorting = Array.isArray(params.sorting) ? params.sorting : [];
       const manual = sorting.some(
         (sort: { id?: string }) => sort?.id === "__manual"
@@ -255,6 +278,8 @@ export function createViewsActions() {
         }),
       },
     ],
+    // Public links for Form views; see examples/form-links.ts.
+    formLinks: createDemoFormLinks(),
     create: (values: Record<string, unknown>) => {
       const record = {
         ...records[0],

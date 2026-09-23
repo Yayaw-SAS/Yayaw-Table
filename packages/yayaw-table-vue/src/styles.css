@@ -3798,3 +3798,218 @@
   background: var(--yayaw-primary);
   transition: width 150ms;
 }
+
+/* Form view and standalone form: one column, mobile first, like React. */
+.yayaw-form-root,
+.yayaw-form-root *,
+.yayaw-form-view,
+.yayaw-form-view * {
+  box-sizing: border-box;
+}
+.yayaw-form-root {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  max-width: 42rem;
+  margin: 0 auto;
+  gap: 24px;
+  color: var(--yayaw-foreground);
+  font-size: 14px;
+  line-height: 1.4;
+}
+.yayaw-form-intro {
+  display: grid;
+  gap: 6px;
+}
+.yayaw-form-title {
+  margin: 0;
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.yayaw-form-description {
+  margin: 0;
+  color: var(--yayaw-muted-foreground);
+  white-space: pre-line;
+}
+.yayaw-form-questions {
+  display: grid;
+  gap: 20px;
+}
+.yayaw-form-question {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.yayaw-form-question > .yayaw-input,
+.yayaw-form-question > .yayaw-select,
+.yayaw-form-question > .yayaw-textarea {
+  width: 100%;
+  min-width: 0;
+}
+.yayaw-form-question [aria-invalid="true"] {
+  border-color: var(--yayaw-danger);
+}
+.yayaw-form-label {
+  padding: 0;
+  font-weight: 500;
+}
+.yayaw-form-required {
+  margin-left: 2px;
+  color: var(--yayaw-danger);
+}
+.yayaw-form-help {
+  margin: 0;
+  color: var(--yayaw-muted-foreground);
+}
+.yayaw-form-error {
+  margin: 0;
+  color: var(--yayaw-danger);
+  font-weight: 500;
+}
+.yayaw-form-check {
+  display: flex;
+  min-height: 36px;
+  align-items: center;
+  gap: 8px;
+}
+.yayaw-form-check input,
+.yayaw-form-settings-row input {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin: 0;
+  accent-color: var(--yayaw-primary);
+}
+.yayaw-form-message {
+  margin: 0;
+  border: 1px solid color-mix(in srgb, var(--yayaw-danger) 40%, transparent);
+  border-radius: var(--yayaw-radius);
+  background: color-mix(in srgb, var(--yayaw-danger) 5%, transparent);
+  color: var(--yayaw-danger);
+  padding: 8px 12px;
+}
+.yayaw-form-panel {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+  border: 1px solid var(--yayaw-border);
+  border-radius: calc(var(--yayaw-radius) + 2px);
+  background: color-mix(in srgb, var(--yayaw-muted) 40%, transparent);
+  padding: 16px;
+}
+.yayaw-form-panel p {
+  margin: 0;
+}
+.yayaw-form-action {
+  width: 100%;
+}
+.yayaw-form-view {
+  display: grid;
+  gap: 16px;
+  padding: 8px 0;
+}
+.yayaw-form-card {
+  border: 1px solid var(--yayaw-border);
+  border-radius: calc(var(--yayaw-radius) + 2px);
+  background: var(--yayaw-background);
+  padding: 24px 16px;
+}
+.yayaw-form-share {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--yayaw-border);
+  border-radius: calc(var(--yayaw-radius) + 2px);
+  padding: 12px 16px;
+}
+.yayaw-form-share-bar,
+.yayaw-form-share-link {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.yayaw-form-share-link .yayaw-input {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+.yayaw-form-share-link a {
+  text-decoration: none;
+}
+.yayaw-form-share-panel {
+  display: grid;
+  gap: 12px;
+}
+.yayaw-form-settings {
+  display: grid;
+  min-width: 0;
+  gap: 16px;
+}
+.yayaw-form-settings-section {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+}
+.yayaw-form-setting {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+}
+.yayaw-form-setting .yayaw-input,
+.yayaw-form-setting .yayaw-select {
+  width: 100%;
+}
+.yayaw-form-setting-label,
+.yayaw-form-settings-note {
+  margin: 0;
+  color: var(--yayaw-muted-foreground);
+}
+.yayaw-form-settings-note {
+  font-size: 12px;
+}
+.yayaw-form-settings-questions {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.yayaw-form-settings-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+}
+.yayaw-form-settings-name {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  padding-left: 4px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-form-settings-row .yayaw-icon-only {
+  width: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
+}
+.yayaw-form-settings-details {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 0;
+  border-left: 2px solid var(--yayaw-border);
+  padding-left: 12px;
+}
+@media (min-width: 640px) {
+  .yayaw-form-action {
+    width: fit-content;
+  }
+  .yayaw-form-card {
+    padding: 24px 32px;
+  }
+}

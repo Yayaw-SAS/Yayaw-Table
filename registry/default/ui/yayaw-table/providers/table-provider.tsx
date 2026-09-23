@@ -168,6 +168,11 @@ export interface TableActions {
   import?: import("../utils/import-flow").TableImportActions<
     import("../utils/data-destinations").DataDestinationContext
   >;
+  /**
+   * Share Form views on public links the host serves (publish a snapshot,
+   * unpublish, stop accepting responses). Without it, "Share form" is hidden.
+   */
+  formLinks?: import("../utils/form-view").FormLinkActions;
   views?: TableViewActions;
   [key: string]: unknown;
 }
@@ -860,6 +865,7 @@ export const defaultTranslations: DataTableTranslations = {
     display: {
       title: "Display mode",
       calendar: "Calendar",
+      form: "Form",
       gantt: "Gantt",
       gallery: "Gallery",
       list: "List",
