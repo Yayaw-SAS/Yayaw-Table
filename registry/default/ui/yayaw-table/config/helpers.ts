@@ -503,6 +503,11 @@ export interface TableBehaviorConfig {
   gallery?: TableGalleryConfig;
 
   /**
+   * List display mode configuration.
+   */
+  list?: import("../types/display-types").TableListConfig;
+
+  /**
    * Empty/no-results state behavior.
    */
   emptyState?: TableEmptyStateConfig;

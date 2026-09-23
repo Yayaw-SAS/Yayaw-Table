@@ -137,3 +137,41 @@ it("falls back from a Gantt view when no planning session can render it", () => 
   withPlanning.applyView({ displayMode: "gantt" }, "saved");
   expect(withPlanning.displayMode.value).toBe("gantt");
 });
+
+it("restores list settings from saved views and resets them to the table defaults", () => {
+  const config = defineTableConfig({
+    id: "list-settings",
+    translations: { namespace: "list-settings", keys: {} },
+    columns: {
+      definitions: [
+        { id: "name", header: "Name" },
+        { id: "status", header: "Status" },
+      ],
+      visible: ["name", "status"],
+      order: ["name", "status"],
+      mandatory: ["name"],
+    },
+    table: {
+      displayModes: ["table", "list"],
+      list: { titleColumn: "name" },
+    },
+  });
+  let state!: TableStateRefs;
+  mount(
+    defineComponent({
+      setup() {
+        state = useTableState({ config, syncUrl: false });
+        return () => null;
+      },
+    })
+  );
+  state.applyView(
+    { displayMode: "list", list: { cardColumnIds: ["status"] } },
+    "saved"
+  );
+  expect(state.displayMode.value).toBe("list");
+  expect(state.list.value).toEqual({ cardColumnIds: ["status"] });
+  expect(state.snapshot.value.list).toEqual({ cardColumnIds: ["status"] });
+  state.applyView({}, "empty");
+  expect(state.list.value).toEqual({ titleColumn: "name" });
+});

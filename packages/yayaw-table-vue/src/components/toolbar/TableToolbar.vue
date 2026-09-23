@@ -44,6 +44,7 @@ import { planningLabelOverrides } from "../../planning/labels";
 import { ganttSettingsLabels } from "../../planning/settings";
 import { availableDisplayModes } from "../../view-menu";
 import GallerySettings from "./GallerySettings.vue";
+import ListSettings from "./ListSettings.vue";
 import KanbanSettings from "./KanbanSettings.vue";
 import AdvancedFilters from "../filters/AdvancedFilters.vue";
 import { useToolbarLayout } from "../../composables/use-toolbar-layout";
@@ -73,7 +74,7 @@ const search = computed({
     context.state.search.value = value;
   },
 });
-const displayModeIcons: Record<TableDisplayMode, Component> = { gantt: ChartGantt, table: Table2, kanban: Columns3, gallery: Images };
+const displayModeIcons: Record<TableDisplayMode, Component> = { gantt: ChartGantt, table: Table2, kanban: Columns3, gallery: Images, list: List };
 const modes = computed<TableDisplayMode[]>(() =>
   availableDisplayModes(context.config.table.displayModes, {
     planning: Boolean(context.planning),
@@ -514,7 +515,7 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
                 </span>
                 <span class="yayaw-options-item-end">{{ context.footerCalculationsVisible.value ? translate("calculationsOn", "Shown") : translate("calculationsOff", "Hidden") }}</span>
               </button>
-              <button v-if="['kanban', 'gallery', 'gantt'].includes(context.state.displayMode.value)" type="button" class="yayaw-options-item" @click="optionsView = 'cards'"><List :size="16" /><span>{{ cardSettingsTitle }}</span><ChevronRight :size="16" /></button>
+              <button v-if="['kanban', 'gallery', 'gantt', 'list'].includes(context.state.displayMode.value)" type="button" class="yayaw-options-item" @click="optionsView = 'cards'"><List :size="16" /><span>{{ cardSettingsTitle }}</span><ChevronRight :size="16" /></button>
             </div>
 
 
@@ -643,7 +644,7 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
               </button>
             </div>
 
-            <div v-else-if="optionsView === 'cards'" class="yayaw-options-content"><KanbanSettings v-if="capabilities.kanban" /><GallerySettings v-else-if="capabilities.gallery" /><GanttSettings v-else-if="context.state.displayMode.value === 'gantt'" /></div>
+            <div v-else-if="optionsView === 'cards'" class="yayaw-options-content"><KanbanSettings v-if="capabilities.kanban" /><GallerySettings v-else-if="capabilities.gallery" /><GanttSettings v-else-if="context.state.displayMode.value === 'gantt'" /><ListSettings v-else-if="context.state.displayMode.value === 'list'" /></div>
             <div v-else class="yayaw-options-content">
               <div
                 v-for="(columnId, index) in context.state.grouping.value.slice(0, maxGroupingCount)"

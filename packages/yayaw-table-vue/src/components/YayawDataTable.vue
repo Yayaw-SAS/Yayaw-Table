@@ -45,6 +45,7 @@ import CatalogueForm from "./forms/CatalogueForm.vue";
 import RecordDetails from "./details/RecordDetails.vue";
 import type { DetailRevertHandler, RecordDetailsConfig } from "../record-details";
 import GalleryView from "./gallery/GalleryView.vue";
+import ListView from "./list/ListView.vue";
 import KanbanView from "./kanban/KanbanView.vue";
 import BulkActions from "./table/BulkActions.vue";
 import DataGrid from "./table/DataGrid.vue";
@@ -596,6 +597,7 @@ provide(tableContextKey, {
     <div class="yayaw-content" :aria-busy="tableData.isLoading.value">
       <DataGrid v-if="state.displayMode.value === 'table'" />
       <KanbanView v-else-if="state.displayMode.value === 'kanban'" />
+      <ListView v-else-if="state.displayMode.value === 'list'" />
       <GanttView v-else-if="state.displayMode.value === 'gantt' && planning" />
       <div v-else-if="state.displayMode.value === 'gantt'" role="alert">{{ ganttLabels.noAdapter }}</div>
       <GalleryView v-else />

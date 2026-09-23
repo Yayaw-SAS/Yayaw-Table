@@ -592,3 +592,16 @@ or more advanced filter rules, both editions offer "Match all / any condition"
 `filters.match_any`), stored as the rules' `joinOperator` in views and URLs.
 Playwright `e2e/views.spec.ts` checks the combination round trip in both
 editions.
+
+## List view
+
+`displayModes: ["list"]` renders one line per record in both editions: the
+selection checkbox, the title column, the chosen properties and the row actions.
+`table.list` sets `titleColumn`, `cardColumnIds` and `showCardLabels`; without
+`cardColumnIds` every non-title data column is shown. The grouped column is
+omitted from properties and lines are sectioned by the first grouping level
+(`maxGroups: 1`), headed "Column: value" with a count; empty values read
+"No value". Settings are saved in views and in the `<tableId>-list` URL key, and
+resetting a view restores `table.list`. The list uses the current page, like
+Gallery and Kanban. Covered by `tests/list-view.test.ts`, Vue
+`use-table-state.test.ts` and Playwright `e2e/views.spec.ts` in both editions.

@@ -684,6 +684,11 @@
           "target": "components/ui/yayaw-table/components/kanban-view.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/list-view.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/list-view.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/records/record-surface.css",
           "type": "registry:style",
           "target": "components/ui/yayaw-table/components/records/record-surface.css"
@@ -792,6 +797,11 @@
           "path": "registry/default/ui/yayaw-table/components/toolbar/table-kanban-grouping-menu.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/toolbar/table-kanban-grouping-menu.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/toolbar/table-list-menu.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/toolbar/table-list-menu.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/toolbar/table-menu.tsx",

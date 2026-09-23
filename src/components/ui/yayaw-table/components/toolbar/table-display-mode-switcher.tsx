@@ -4,6 +4,7 @@ import {
   ChartGantt,
   Columns3,
   Images,
+  List,
   type LucideIcon,
   Table2,
 } from "lucide-react";
@@ -28,6 +29,7 @@ const DISPLAY_MODE_ICONS: Record<TableDisplayMode, LucideIcon> = {
   gantt: ChartGantt,
   gallery: Images,
   kanban: Columns3,
+  list: List,
   table: Table2,
 };
 

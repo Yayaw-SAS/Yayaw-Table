@@ -35,6 +35,7 @@ import type {
   TableDisplayMode,
   TableGalleryViewConfig,
   TableKanbanViewConfig,
+  TableListViewConfig,
   TableRecord,
   TableViewConfig,
 } from "../types";
@@ -84,6 +85,7 @@ export interface TableStateRefs {
   kanban: Ref<TableKanbanViewConfig>;
   gantt: Ref<TableGanttViewConfig>;
   gallery: Ref<TableGalleryViewConfig>;
+  list: Ref<TableListViewConfig>;
   columnDragEnabled: Ref<boolean>;
   activeViewId: Ref<string | undefined>;
   initialViewId?: string;
@@ -191,6 +193,7 @@ export const useTableState = <TData extends TableRecord>({
     normalizeGanttView(config.table.gantt)
   );
   const gallery = ref<TableGalleryViewConfig>({ ...config.table.gallery });
+  const list = ref<TableListViewConfig>({ ...config.table.list });
   const columnDragEnabled = ref(initialColumnDragEnabled());
   watch(
     columnDragEnabled,
@@ -266,6 +269,7 @@ export const useTableState = <TData extends TableRecord>({
       kanban: kanban.value,
       gantt: gantt.value,
       gallery: gallery.value,
+      list: list.value,
       grouping: enabledGrouping(grouping.value),
       pinning: enabledPinning(pinning.value),
       pageSize: pagination.value.pageSize,
@@ -273,6 +277,21 @@ export const useTableState = <TData extends TableRecord>({
     // Empty grouping is intentional, even when a Kanban lane is configured.
     grouping: enabledGrouping(grouping.value),
   }));
+
+  /** Per-mode settings without their own URL migrations. */
+  const readModeSettings = (
+    params: URLSearchParams,
+    defaults: TableViewConfig
+  ): void => {
+    gantt.value = normalizeGanttView(
+      parseJson(params.get(`${tableId}-gantt`), defaults.gantt ?? {})
+    );
+    list.value = parseJson(params.get(`${tableId}-list`), defaults.list ?? {});
+    gallery.value = parseJson(
+      params.get(`${tableId}-gallery`),
+      defaults.gallery ?? {}
+    );
+  };
 
   const fromUrl = (): void => {
     if (!syncUrl || typeof window === "undefined") {
@@ -344,13 +363,7 @@ export const useTableState = <TData extends TableRecord>({
     ) {
       grouping.value = enabledGrouping([kanban.value.groupBy]);
     }
-    gantt.value = normalizeGanttView(
-      parseJson(params.get(`${tableId}-gantt`), defaults.gantt ?? {})
-    );
-    gallery.value = parseJson(
-      params.get(`${tableId}-gallery`),
-      defaults.gallery ?? {}
-    );
+    readModeSettings(params, defaults);
     activeViewId.value =
       params.get("view") ?? (hydrating ? initialViewId : undefined);
     hydrating = false;
@@ -411,6 +424,7 @@ export const useTableState = <TData extends TableRecord>({
     set(`${tableId}-kanban`, serializePresent(kanban.value));
     set(`${tableId}-gantt`, serializePresent(gantt.value));
     set(`${tableId}-gallery`, serializePresent(gallery.value));
+    set(`${tableId}-list`, serializePresent(list.value));
     set("view", activeViewId.value);
     window.history.replaceState(window.history.state, "", url);
   };
@@ -479,6 +493,7 @@ export const useTableState = <TData extends TableRecord>({
         },
         gantt: normalizeGanttView(input.gantt ?? config.table.gantt),
         gallery: input.gallery ?? { ...config.table.gallery },
+        list: input.list ?? { ...config.table.list },
         grouping: enabledGrouping(
           input.grouping ??
             (enabledDisplayMode(input.displayMode) === "kanban"
@@ -509,6 +524,7 @@ export const useTableState = <TData extends TableRecord>({
     kanban.value = view.kanban ?? {};
     gantt.value = normalizeGanttView(view.gantt);
     gallery.value = view.gallery ?? {};
+    list.value = view.list ?? {};
     grouping.value = view.grouping ?? [];
     pinning.value = view.pinning ?? emptyPinning();
     pagination.value = {
@@ -560,6 +576,7 @@ export const useTableState = <TData extends TableRecord>({
       kanban,
       gantt,
       gallery,
+      list,
       activeViewId,
     ],
     writeUrl,
@@ -604,6 +621,7 @@ export const useTableState = <TData extends TableRecord>({
     kanban,
     gantt,
     gallery,
+    list,
     columnDragEnabled,
     activeViewId,
     initialViewId,

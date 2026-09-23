@@ -33,6 +33,7 @@ import type {
   TableDisplayMode,
   TableGalleryConfig,
   TableKanbanConfig,
+  TableListConfig,
 } from "../types/display-types";
 import type {
   ToolbarActionsInput,
@@ -61,6 +62,7 @@ import { TableDisplayModeSwitcher } from "./toolbar/table-display-mode-switcher"
 import { TableGalleryMenu } from "./toolbar/table-gallery-menu";
 import { TableGanttSettings } from "./toolbar/table-gantt-settings";
 import { TableKanbanGroupingMenu } from "./toolbar/table-kanban-grouping-menu";
+import { TableListMenu } from "./toolbar/table-list-menu";
 
 // Default UI components
 function DefaultTableTitle({
@@ -251,6 +253,7 @@ function DataTableHeaderControls({
   galleryConfig,
   ganttConfig,
   initialActiveViewId,
+  listConfig,
   initialViews,
   kanbanConfig,
   kanbanControlColumns,
@@ -283,6 +286,7 @@ function DataTableHeaderControls({
   galleryColumns: GalleryControlColumn[];
   galleryConfig?: TableGalleryConfig;
   ganttConfig?: TableGanttViewConfig;
+  listConfig?: TableListConfig;
   initialActiveViewId?: string;
   initialViews?: TableView[];
   kanbanConfig?: TableKanbanConfig;
@@ -318,6 +322,14 @@ function DataTableHeaderControls({
             defaultConfig={galleryConfig}
             defaultDisplayMode={defaultDisplayMode}
             embedded
+            tableId={tableId}
+          />
+        ) : undefined,
+        list: (displayModes ?? []).includes("list") ? (
+          <TableListMenu
+            columns={galleryColumns}
+            defaultConfig={listConfig}
+            defaultDisplayMode={defaultDisplayMode}
             tableId={tableId}
           />
         ) : undefined,
@@ -726,6 +738,7 @@ function DataTableContent({
             syncUrl: config.table.syncUrl,
             inlineEdit: config.table.inlineEdit,
             gallery: config.table.gallery,
+            list: config.table.list,
             planning: config.table.planning,
             gantt: config.table.gantt,
             kanban: config.table.kanban,
@@ -784,6 +797,7 @@ function DataTableContent({
                   kanbanControlColumns={galleryColumns}
                   kanbanDefaultGroupBy={config.table.kanban?.groupBy}
                   kanbanGroupingColumns={kanbanGroupingColumns}
+                  listConfig={config.table.list}
                   onExport={onExport}
                   quickFiltersVisible={isFilterBarVisible(
                     showFilterBar,

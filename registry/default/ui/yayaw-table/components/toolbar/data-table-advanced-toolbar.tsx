@@ -69,6 +69,7 @@ import type {
 } from "../../types";
 import type { DateDisplayPreset } from "../../types/date-types";
 import { DATE_DISPLAY_PRESETS } from "../../types/date-types";
+import type { TableDisplayMode } from "../../types/display-types";
 import { buildCsvExportColumns, exportRowsAsCsv } from "../../utils/csv-export";
 import {
   fetchAllFilteredRows,
@@ -125,7 +126,7 @@ interface DataTableAdvancedToolbarProps<_TData = Record<string, unknown>> {
   >;
   quickFiltersVisible?: boolean;
   modeSettings?: ReactNode;
-  cardSettings?: { kanban?: ReactNode; gallery?: ReactNode; gantt?: ReactNode };
+  cardSettings?: Partial<Record<TableDisplayMode, ReactNode>>;
   /**
    * CSS class name
    */
@@ -1233,6 +1234,7 @@ export function DataTableAdvancedToolbar<TData>({
     ),
     kanban: tableConfig.table.kanban,
     gallery: tableConfig.table.gallery,
+    list: tableConfig.table.list,
     gantt: tableConfig.table.gantt,
   };
   return (

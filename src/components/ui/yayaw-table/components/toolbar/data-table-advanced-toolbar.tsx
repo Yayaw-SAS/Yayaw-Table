@@ -5,6 +5,7 @@
  * Provides advanced filtering, view management, and other table controls
  */
 
+import type { TableDisplayMode } from "../../types/display-types";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAtomValue, useSetAtom } from "jotai";
 import {
@@ -125,7 +126,7 @@ interface DataTableAdvancedToolbarProps<_TData = Record<string, unknown>> {
   >;
   quickFiltersVisible?: boolean;
   modeSettings?: ReactNode;
-  cardSettings?: { kanban?: ReactNode; gallery?: ReactNode; gantt?: ReactNode };
+  cardSettings?: Partial<Record<TableDisplayMode, ReactNode>>;
   /**
    * CSS class name
    */
@@ -1233,6 +1234,7 @@ export function DataTableAdvancedToolbar<TData>({
     ),
     kanban: tableConfig.table.kanban,
     gallery: tableConfig.table.gallery,
+    list: tableConfig.table.list,
     gantt: tableConfig.table.gantt,
   };
   return (

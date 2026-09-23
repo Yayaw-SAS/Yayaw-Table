@@ -825,6 +825,7 @@ export const defaultTranslations: DataTableTranslations = {
       title: "Display mode",
       gantt: "Gantt",
       gallery: "Gallery",
+      list: "List",
       table: "Table",
       kanban: "Kanban",
     },
