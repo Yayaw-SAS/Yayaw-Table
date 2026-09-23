@@ -518,6 +518,10 @@ export interface DataTableTranslations {
   schedule?: Partial<
     Record<import("../utils/schedule-model").ScheduleLabelKey, string>
   >;
+  /** Overrides for the built-in English and French connector screen labels. */
+  connector?: Partial<
+    Record<import("../utils/connector-flow").ConnectorLabelKey, string>
+  >;
   menu: {
     data?: string;
     back: string;

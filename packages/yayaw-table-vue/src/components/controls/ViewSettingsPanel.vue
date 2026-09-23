@@ -21,6 +21,10 @@ interface SettingField {
   value: string;
   options: { value: string; label: string }[];
   onChange: (value: string) => void;
+  /** Section title shown above the field. */
+  heading?: string;
+  /** Label and control on one row (column mappings). */
+  inline?: boolean;
 }
 interface SettingProperties {
   label: string;
@@ -128,6 +132,8 @@ onBeforeUnmount(() => {
   </div>
   <div v-else class="yayaw-card-settings" data-view-settings>
     <template v-for="item in fields" :key="item.id">
+      <h3 v-if="item.heading" class="yayaw-setting-heading" data-setting-heading>{{ item.heading }}</h3>
+      <div :class="{ 'yayaw-setting-inline': item.inline }" :data-setting-field="item.id">
       <div v-if="context.toolbarCompact.value" class="yayaw-control-field">
         <label :for="`${id}-${item.id}`">{{ item.label }}</label>
         <button
@@ -151,6 +157,8 @@ onBeforeUnmount(() => {
         :options="item.options"
         @update:model-value="item.onChange"
       />
+      </div>
+      <slot :name="`after-${item.id}`" />
     </template>
     <button
       v-if="properties"

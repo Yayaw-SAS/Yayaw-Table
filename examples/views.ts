@@ -1,4 +1,5 @@
 import type { ScheduleSettings } from "../src/components/ui/yayaw-table/utils/schedule-model";
+import { createSpreadsheetConnector } from "./views-spreadsheet";
 
 /** Shared records and columns for the React and Vue view-switching examples and end-to-end tests. */
 export const viewsRows = [
@@ -207,6 +208,8 @@ export function createViewsActions() {
           };
         },
       },
+      // A connector: the row opens the table's send screens instead of `run`.
+      createSpreadsheetConnector(),
       {
         id: "slack",
         label: "Slack",

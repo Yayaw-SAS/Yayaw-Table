@@ -35,6 +35,7 @@
     "examples/gantt-data.ts",
     "examples/gantt-preview/main.tsx",
     "examples/views.ts",
+    "examples/views-spreadsheet.ts",
     "examples/views-react.tsx",
     "e2e/**/*.ts",
     "playwright.config.ts"

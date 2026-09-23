@@ -729,6 +729,11 @@
           "target": "components/ui/yayaw-table/components/table-empty-state.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/toolbar/connector-panel.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/toolbar/connector-panel.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/toolbar/data-table-advanced-toolbar.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/toolbar/data-table-advanced-toolbar.tsx"
@@ -1257,6 +1262,11 @@
           "path": "registry/default/ui/yayaw-table/utils/column-pinning-styles.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/column-pinning-styles.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/connector-flow.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/connector-flow.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/utils/csv-export.ts",

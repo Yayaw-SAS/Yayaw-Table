@@ -49,6 +49,8 @@ import ToolbarSearch from "./ToolbarSearch.vue";
 import MenuChoiceList from "./MenuChoiceList.vue";
 import ExportPanel from "./ExportPanel.vue";
 import SchedulePanel from "./SchedulePanel.vue";
+import ConnectorPanel from "./ConnectorPanel.vue";
+import { type ConnectorViewColumn, hasConnector } from "../../connector-flow";
 import { isSchedulable, scheduleLabel } from "../../schedule-model";
 import {
   availableExportFormats,
@@ -469,8 +471,8 @@ const hasExport = computed(() => Boolean(context.config.table.export));
 const hasShare = computed(() => context.config.table.share !== false);
 // The Data menu (Export, Connect, Share) stands apart from the view settings.
 const dataOpen = ref(false);
-// "schedule:<id>" opens the schedule of a Connect destination.
-const dataView = ref<"main" | "export" | "connect" | "share" | `schedule:${string}`>("main");
+// "schedule:<id>" opens the schedule of a Connect destination, "connector:<id>" its connector screen.
+const dataView = ref<"main" | "export" | "connect" | "share" | `schedule:${string}` | `connector:${string}`>("main");
 watch(dataOpen, (open) => {
   if (!open) dataView.value = "main";
 });
@@ -483,11 +485,40 @@ const scheduledDestination = computed(() =>
     (destination) => dataView.value === `schedule:${destination.id}` && isSchedulable(destination, schedulingEnabled.value)
   )
 );
+const connectorsEnabled = computed(() => context.config.table.connectors !== false);
+const connectorDestination = computed(() =>
+  destinations.value.connect.find(
+    (destination) => dataView.value === `connector:${destination.id}` && hasConnector(destination, connectorsEnabled.value)
+  )
+);
+const connectorTranslate = (key: string, fallback: string): string => translate(`connector.${key}`, fallback);
+// The view's columns for connector mappings: visible ones in display order, then the others.
+const connectorColumns = (): ConnectorViewColumn[] => {
+  const visible = exportColumns(context.config.columns.definitions, context.state.visibility.value, context.state.order.value);
+  const visibleIds = new Set(visible.map((column) => column.id));
+  const hidden = context.config.columns.definitions.filter(
+    (column) => column.id !== "select" && column.type !== "actions" && !visibleIds.has(column.id)
+  );
+  return [...visible, ...hidden].map((column) => ({
+    id: column.id,
+    header: String(column.header),
+    ...(column.type ? { type: String(column.type) } : {}),
+    visible: visibleIds.has(column.id),
+  }));
+};
+const openDestination = (destination: DataDestination<Component>): void => {
+  if (hasConnector(destination, connectorsEnabled.value)) {
+    dataView.value = `connector:${destination.id}`;
+  } else {
+    runDestination(destination);
+  }
+};
 const dataBack = (): void => {
-  dataView.value = dataView.value.startsWith("schedule:") ? "connect" : "main";
+  dataView.value = dataView.value.startsWith("schedule:") || dataView.value.startsWith("connector:") ? "connect" : "main";
 };
 const dataTitle = computed(() => {
   if (scheduledDestination.value) return scheduleTitle(scheduledDestination.value);
+  if (connectorDestination.value) return connectorDestination.value.label;
   switch (dataView.value) {
     case "export":
       return translate("export", "Export");
@@ -886,12 +917,14 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
               </button>
               <div v-for="destination in destinations[dataView]" :key="destination.id" class="yayaw-destination-row">
                 <button type="button" class="yayaw-options-item"
-                  :disabled="Boolean(pendingDestination)" :aria-busy="pendingDestination === destination.id" @click="runDestination(destination)">
+                  :disabled="Boolean(pendingDestination)" :aria-busy="pendingDestination === destination.id"
+                  :data-connector-trigger="hasConnector(destination, connectorsEnabled) || undefined" @click="openDestination(destination)">
                   <span class="yayaw-options-item-icon">
                     <span v-if="pendingDestination === destination.id" class="yayaw-spinner" aria-hidden="true" />
                     <component :is="destination.icon ?? Send" v-else :size="16" aria-hidden="true" />
                   </span>
                   <span class="yayaw-options-item-copy"><span>{{ destination.label }}</span></span>
+                  <ChevronRight v-if="hasConnector(destination, connectorsEnabled)" :size="16" aria-hidden="true" />
                 </button>
                 <TableTooltip v-if="dataView === 'connect' && isSchedulable(destination, schedulingEnabled)" :label="scheduleTitle(destination)">
                   <button type="button" class="yayaw-icon-button yayaw-schedule-trigger" data-schedule-trigger :aria-label="scheduleTitle(destination)"
@@ -906,6 +939,9 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
         :running="pendingDestination === scheduledDestination.id" @run-now="runDestination(scheduledDestination)"
         @saved="(message) => (context.status.value = { type: 'success', message })"
         @error="(message) => (context.status.value = { type: 'error', message })" @done="dataView = 'connect'" />
+      <ConnectorPanel v-else-if="connectorDestination?.connector" :key="connectorDestination.id" :connector="connectorDestination.connector"
+        :context="destinationContext" :columns="connectorColumns()" :selected-rows="context.selectedRows.value" :locale="context.locale"
+        :translate="connectorTranslate" @done="dataView = 'connect'" />
       <ExportPanel v-else-if="dataView === 'export'" :busy="isExporting" :formats="exportFormats" :label="exportLabel"
               :default-file-name="defaultExportFileName(String(context.translations.value.title ?? context.config.id))"
               :selected-count="context.selectedRows.value.length" @export="exportRows" />

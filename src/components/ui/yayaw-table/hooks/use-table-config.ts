@@ -119,6 +119,8 @@ export interface TableCatalogueTableConfig
   share?: boolean;
   /** Offer scheduling settings for Connect destinations that declare `schedule`; default true. */
   schedule?: boolean;
+  /** Open the connector screens of Connect destinations that declare `connector`; default true. */
+  connectors?: boolean;
   bulkExport?: boolean;
   actionsAsIcons?: boolean;
   density?: TableDensity;
@@ -357,6 +359,7 @@ function resolveTableBehaviorConfig(
     export: mergedConfig.export ?? true,
     share: mergedConfig.share,
     schedule: mergedConfig.schedule,
+    connectors: mergedConfig.connectors,
     exportFormats: mergedConfig.exportFormats,
     bulkExport: mergedConfig.bulkExport ?? true,
     actionsAsIcons: mergedConfig.actionsAsIcons ?? false,
