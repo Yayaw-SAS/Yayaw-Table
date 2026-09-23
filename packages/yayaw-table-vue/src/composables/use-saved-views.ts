@@ -4,6 +4,7 @@ import { createLocalTableViewActions } from "../core";
 import { cloneFormValue, formValuesEqual } from "../form-runtime";
 import { resolveInitialTableView } from "../table-view-favorite";
 import type {
+  TableDisplayMode,
   TableView,
   TableViewActionResult,
   TableViewConfig,
@@ -68,6 +69,8 @@ export function useSavedViews(
   const dialogOpen = ref(false);
   const name = ref("");
   const shared = ref(false);
+  /** Layout of the view being created; a tab's "+" may pick another one. */
+  const newViewMode = ref<TableDisplayMode>();
   const favoriteViewId = ref<string | null>(null);
   const effectiveFavoriteViewId = computed(
     () =>
@@ -196,6 +199,7 @@ export function useSavedViews(
     }
     name.value = "";
     shared.value = false;
+    newViewMode.value = context.state.displayMode.value;
     dialogError.value = "";
     dialogOpen.value = true;
   };
@@ -276,7 +280,11 @@ export function useSavedViews(
       );
       return;
     }
-    const config = cloneFormValue(context.state.snapshot.value);
+    const current = cloneFormValue(context.state.snapshot.value);
+    const config = {
+      ...current,
+      displayMode: newViewMode.value ?? current.displayMode,
+    };
     const failure = label(
       "views.notifications.error.create",
       "viewCreateError"
@@ -298,7 +306,10 @@ export function useSavedViews(
         }
         upsert(view);
         // Preserve table edits made while persistence was pending.
-        if (formValuesEqual(config, context.state.snapshot.value)) {
+        if (
+          config.displayMode !== current.displayMode ||
+          formValuesEqual(current, context.state.snapshot.value)
+        ) {
           context.state.applyView(view.config, view.id);
         } else {
           context.state.activeViewId.value = view.id;
@@ -395,6 +406,7 @@ export function useSavedViews(
     dialogOpen,
     name,
     shared,
+    newViewMode,
     favorite,
     favoriteViewId: effectiveFavoriteViewId,
     toggleFavorite,

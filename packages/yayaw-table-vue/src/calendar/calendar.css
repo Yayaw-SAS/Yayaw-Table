@@ -55,10 +55,14 @@
   gap: 4px;
 }
 .yayaw-calendar-nav .yayaw-button {
+  height: 32px;
+  min-height: 32px;
   padding: 0 10px;
+  font-size: 12px;
 }
 .yayaw-calendar-nav .yayaw-icon-only {
-  width: 36px;
+  width: 32px;
+  min-width: 32px;
   padding: 0;
 }
 .yayaw-calendar-layouts {
@@ -69,6 +73,7 @@
 .yayaw-calendar-layouts .yayaw-button {
   min-height: 32px;
   padding: 0 10px;
+  font-size: 12px;
 }
 .yayaw-calendar-layouts .yayaw-button-ghost {
   background: transparent;
@@ -78,9 +83,9 @@
 }
 .yayaw-calendar-title {
   margin: 0 0 0 8px;
-  font-size: 1rem;
+  font-size: 0.875rem;
   font-weight: 500;
-  line-height: 1.5rem;
+  line-height: 1.25rem;
   text-transform: capitalize;
 }
 .yayaw-calendar-message {

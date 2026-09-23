@@ -824,6 +824,11 @@
           "target": "components/ui/yayaw-table/components/toolbar/table-view-manager.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/toolbar/table-view-tabs.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/toolbar/table-view-tabs.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/toolbar/toolbar-actions.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/toolbar/toolbar-actions.ts"
@@ -1402,6 +1407,11 @@
           "path": "registry/default/ui/yayaw-table/utils/view-menu.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/view-menu.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/view-tabs.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/view-tabs.ts"
         }
       ],
       "meta": {

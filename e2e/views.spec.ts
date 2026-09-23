@@ -2,7 +2,8 @@ import { expect, type Page, test } from "@playwright/test";
 
 const EXAMPLE = "/?example=views";
 const DISPLAY_PARAM = "views-display";
-const CURRENT_VIEW = /^current view/i;
+// With saved views, tabs name the view and the trigger only opens the settings.
+const VIEW_MENU = /^(current view|views and settings)/i;
 const FILTERS = /^filters?/i;
 const SORT = /^sort/i;
 const DENSITY = /density/i;
@@ -37,7 +38,7 @@ const MODE = {
 } as const;
 
 const openViewMenu = async (page: Page) => {
-  await page.getByRole("button", { name: CURRENT_VIEW }).click();
+  await page.getByRole("button", { name: VIEW_MENU }).first().click();
   return page.getByRole("dialog", { name: "Views and settings" });
 };
 
@@ -105,8 +106,9 @@ test("a saved view restores its display mode", async ({ page }) => {
   await page.getByRole("button", { name: "Save this view…" }).click();
   await page.getByRole("textbox", { name: "Name" }).fill("Board");
   await page.getByRole("button", { name: "Save", exact: true }).click();
-  await expect(page.getByRole("button", { name: CURRENT_VIEW })).toContainText(
-    "Board"
+  await expect(page.getByRole("tab", { name: "Board" })).toHaveAttribute(
+    "aria-selected",
+    "true"
   );
 
   await chooseMode(page, MODE.table);

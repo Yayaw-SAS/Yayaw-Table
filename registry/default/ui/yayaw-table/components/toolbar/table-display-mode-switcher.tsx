@@ -36,7 +36,7 @@ interface TableDisplayModeSwitcherProps {
   tableId: string;
 }
 
-const DISPLAY_MODE_ICONS: Record<TableDisplayMode, LucideIcon> = {
+export const DISPLAY_MODE_ICONS: Record<TableDisplayMode, LucideIcon> = {
   calendar: CalendarDays,
   gantt: ChartGantt,
   gallery: Images,

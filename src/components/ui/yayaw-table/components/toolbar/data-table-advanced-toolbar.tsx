@@ -122,6 +122,8 @@ interface DataTableAdvancedToolbarProps<_TData = Record<string, unknown>> {
       | "defaultDisplayMode"
       | "initialViews"
       | "initialActiveViewId"
+      | "displayModes"
+      | "tabs"
     >
   >;
   quickFiltersVisible?: boolean;
@@ -1258,6 +1260,7 @@ export function DataTableAdvancedToolbar<TData>({
           defaultDensity={tableConfig.table.density}
           defaultDisplayMode={tableConfig.table.defaultDisplayMode}
           enabled={tableConfig.table.enableViews !== false}
+          tabs={tableConfig.table.viewTabs}
           {...viewManagerProps}
           compact={isMobile}
           defaultViewConfig={defaultViewConfig}

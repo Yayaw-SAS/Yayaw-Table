@@ -427,6 +427,12 @@ export interface TableBehaviorConfig
   allowViewSharing?: boolean;
 
   /**
+   * Saved views as tabs above the table (desktop). `false` keeps the view
+   * menu only; `{ maxVisible }` sets how many tabs show before "More".
+   */
+  viewTabs?: import("../utils/view-tabs").ViewTabsConfig;
+
+  /**
    * Row-aware guard for standard edit actions.
    * Return false to disable the built-in edit action for that row.
    */
