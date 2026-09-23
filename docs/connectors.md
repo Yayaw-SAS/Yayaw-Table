@@ -438,3 +438,202 @@ Declare `conflictRules: ["table-wins", "target-wins"]` for a target without
 edit times (Google Sheets), where "Latest edit wins" would behave as "Table
 wins". Push keeps calling `push`. A scheduled run uses the saved settings, so
 a schedule of a two-way connector runs a two-way sync.
+
+### Conflict rules in code
+
+The global `conflictRule` is one choice for every column. A host developer can
+decide conflicts per column, in code, with three optional `planSync` inputs.
+They are applied to each column changed on both sides in this order, and the
+first one that decides wins: **`ownership` → `columnRules` →
+`resolveConflict` → `conflictRule`**. Everything stays backward compatible: a
+plan without them behaves exactly as before.
+
+```ts
+import {
+  planSync,
+  validateConflictConfig,
+  type ConflictResolver,
+} from "@/components/ui/yayaw-table/connectors/sync-engine";
+
+const STATUS_ORDER = ["Draft", "Active", "Won", "Archived"];
+
+/** Keeps the highest amount and never lets a status go backwards. */
+const resolveConflict: ConflictResolver = (conflict) => {
+  if (conflict.columnId === "amount") {
+    const amounts = [conflict.tableValue, conflict.targetValue].map(Number);
+    return { value: Math.max(...amounts) };
+  }
+  if (conflict.columnId === "status") {
+    const rank = (value: unknown) => STATUS_ORDER.indexOf(String(value));
+    return rank(conflict.tableValue) >= rank(conflict.targetValue)
+      ? "table"
+      : "target";
+  }
+  // No opinion: the global conflictRule decides.
+  return undefined;
+};
+
+const rules = {
+  // The CRM owns prices, the table owns the internal owner.
+  ownership: { price: "target", owner: "table" },
+  columnRules: { tags: "merge", notes: "manual" },
+  resolveConflict,
+} as const;
+
+// Once, when the configuration is loaded.
+const issues = validateConflictConfig(
+  { ...rules, direction: "two-way" },
+  mapping
+);
+if (issues.some((issue) => issue.severity === "error")) {
+  throw new Error(issues.map((issue) => issue.message).join("\n"));
+}
+
+const plan = planSync({
+  direction: "two-way",
+  conflictRule: "table-wins",
+  mapping,
+  tableRecords,
+  targetRecords,
+  state,
+  ...rules,
+});
+```
+
+- **`ownership: Record<columnId, "table" | "target">`**: the owning side
+  always wins that column. In two-way, a change made on the other side is
+  drift: the owner's value is written back on the next sync and reported in
+  `plan.overridden` (`{ columnId, owner, tableValue, targetValue,
+  bothChanged }`), not in `conflicts`. A one-way sync never writes an owned
+  column to its owner (a push leaves target-owned columns alone). Creations
+  still write every mapped column.
+- **`columnRules: Record<columnId, ConflictRule | "merge" | "manual">`**:
+  `table-wins`, `target-wins` and `latest-wins` as for the global rule;
+  `merge` unites list values (multi-selects, tags): items both sides kept or
+  either side added, minus items of the base removed on either side, table
+  items first, without repeats (`mergeSyncLists` is exported). On a column
+  that is not a list, `merge` falls back to the next step (`resolveConflict`,
+  then `conflictRule`). `manual` leaves the conflict to a person (below).
+- **`resolveConflict(context)`** receives `{ columnId, field, tableValue,
+  targetValue, baseValue, tableRecord, targetRecord, rowId, remoteId }`
+  (canonical values, see `normalizeSyncValue`) and returns `"table"`,
+  `"target"`, `{ value }` (written to both sides where it differs), `"skip"`
+  (leave both sides as they are this run; asked again next run), `"manual"`,
+  or `undefined` to defer to `conflictRule`. It must be **pure and
+  synchronous**: it runs where `planSync` runs (your server or worker), never
+  in the browser. A resolver that throws, or returns a promise or anything
+  else, makes the conflict manual with `error: "resolver_failed"` or
+  `"invalid_decision"` on the conflict.
+
+Every conflict in `plan.conflicts` now carries `resolution` (`table`,
+`target`, `merged`, `custom`, `manual`, `skipped`), `source` (`column`,
+`resolver`, `rule`) and, for merged and custom values, `value`. `winner` is
+kept for older readers and is only meaningful when `resolution` is a side.
+`summarizeSyncPlan` adds `overridden` and `pendingConflicts` counts.
+
+`validateConflictConfig(config, mapping)` returns `{ code, columnId?,
+severity, message }[]`: `unknown_column`, `invalid_owner`, `invalid_rule`,
+`invalid_resolver` and `owner_not_written` (an owner a one-way `direction`
+never writes, e.g. `ownership: { price: "target" }` with a push) are errors;
+`merge_not_list`, `rule_on_owned_column` (ownership always wins) and
+`rules_unused` (column rules or a resolver with a one-way direction) are
+warnings. `planSync` ignores what it flags instead of throwing.
+
+#### Manual review
+
+A `manual` conflict is not applied: both sides keep their value, the other
+columns of the row still sync, and the conflict is stored in
+`SyncState.pendingConflicts` (`{ rowId, remoteId, columnId, field,
+tableValue, targetValue, baseValue, detectedAt }`). There is at most one per
+row and column; it keeps its `detectedAt` while the values stay the same, is
+replaced when either value changes, and disappears when both sides agree
+again. It stays pending even if one side goes back to the base value, until a
+person decides or the sides agree. A partial read (`targetPartial`) or a
+blocked row keeps it as is.
+
+`resolvePendingConflicts(state, resolutions, { mapping })` turns a person's
+decisions (`{ rowId, columnId, choice: "table" | "target" | { value } }[]`)
+into writes (`operations.updateInTable` / `updateInTarget`, one per row and
+side) and the next state (conflicts removed, the chosen value stored as the
+column's base, so the next sync sees both sides agree). Resolutions that match
+no pending conflict are returned in `unmatched`. Apply the writes with
+`applyConflictResolutions(plan, { table, target })`, which uses the same
+adapters as `applySyncPlan`; a row whose write fails keeps its conflicts and
+link.
+
+```ts
+// Worker: list and resolve the conflicts left to a person.
+export async function listSyncConflicts(connectionId: string, viewId: string) {
+  const state = await syncStates.get(connectionId, viewId);
+  return toPendingConflicts(state.pendingConflicts, {
+    rowLabel: (id) => titles.get(id),
+  });
+}
+
+export async function resolveSyncConflicts(
+  connectionId: string,
+  viewId: string,
+  resolutions: PendingConflictResolution[]
+) {
+  const { settings, columns, target } = await loadConnection(connectionId, viewId);
+  const mapping = toSyncMapping(settings, columns);
+  const state = await syncStates.get(connectionId, viewId);
+  const plan = resolvePendingConflicts(state, resolutions, { mapping });
+  const result = await applyConflictResolutions(plan, {
+    table: tableRows(viewId),
+    target,
+  });
+  await syncStates.set(connectionId, viewId, result.state);
+  return toSyncRunResult(result);
+}
+```
+
+#### Showing the rules in the connector screen
+
+Functions never reach the browser. The connector declares what the screen
+shows, and two optional host functions for manual review:
+
+```ts
+const connector = {
+  // …targets, describe, push, preview, sync
+  conflicts: {
+    ownership: { price: "target" },
+    columnRules: { tags: "merge", notes: "manual" },
+    lock: true, // the conflict rule select is read-only
+    allowManual: true, // default: offer the conflicts to resolve
+  },
+  listConflicts: (settings, context) => listSyncConflicts(settings.targetId, context.viewId),
+  resolveConflicts: (resolutions, settings, context) =>
+    resolveSyncConflicts(settings.targetId, context.viewId, resolutions),
+};
+```
+
+- Under the conflict rule (two-way; under "Deleted records" for a pull, with
+  ownership only), "Rules set by your app" lists `describeConflictRules`
+  sentences: "Price: Spreadsheet is the source of truth", "Tags: merged",
+  "Notes: decided by you", "Name: this table wins". With `lock: true` a lock
+  icon and "Your app decides conflicts; these rules can’t be changed here."
+  are shown and the conflict rule select is disabled (changes to it are
+  ignored).
+- The preview (`toSyncPreview` now maps `resolution`, `source`, `value`,
+  `plan.overridden` and `plan.pendingConflicts`) labels each conflict "<side>
+  wins", "Merged" (with the result), "Needs your decision", "Decided by your
+  app" or "Left as is for now", lists "Kept from the side that owns them (N)"
+  with "Owned by <side>", and notes "N conflicts will wait for your decision."
+- With `listConflicts` and `resolveConflicts` (and `allowManual` not false),
+  the screen lists the conflicts after the target is described, after a sync
+  and after each resolution. "Conflicts to resolve (N)" opens a list: each
+  conflict shows its row, column and both values formatted by column type
+  (numbers and dates in the table's locale, yes/no, lists), with "Keep table
+  value" and "Keep <target> value", plus "Keep all table values" and "Keep all
+  <target> values". A resolution reloads the table.
+
+Labels are English and French and overridable with `connector.<key>`
+(`appRules`, `appRulesLocked`, `ruleOwnedTable`, `ruleOwnedTarget`,
+`ruleMerge`, `ruleManual`, `ruleTableWins`, `ruleTargetWins`,
+`ruleLatestWins`, `ownedBy`, `resolutionMerged`, `resolutionManual`,
+`resolutionCustom`, `resolutionSkipped`, `resultValue`, `overridden`,
+`moreOverridden`, `pendingNote`, `pendingNoteOne`, `conflictsToResolve`,
+`conflictsHint`, `keepTable`, `keepTarget`, `keepAllTable`, `keepAllTarget`,
+`noConflicts`, `resolvingConflicts`, `backToSettings`, `valueYes`,
+`valueNo`).

@@ -11,6 +11,7 @@ interface MappingField {
   options: { value: string; label: string }[];
   heading?: string;
   inline?: boolean;
+  disabled?: boolean;
   onChange?: (value: string) => void;
 }
 

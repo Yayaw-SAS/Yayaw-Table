@@ -25,6 +25,8 @@ interface SettingField {
   heading?: string;
   /** Label and control on one row (column mappings). */
   inline?: boolean;
+  /** Shown but not changeable. */
+  disabled?: boolean;
 }
 interface SettingProperties {
   label: string;
@@ -142,6 +144,7 @@ onBeforeUnmount(() => {
           :aria-label="item.label"
           type="button"
           class="yayaw-select-trigger"
+          :disabled="item.disabled"
           @click="open(item.id)"
         >
           <span>{{
@@ -156,6 +159,7 @@ onBeforeUnmount(() => {
         :model-value="item.value"
         :label="item.label"
         :options="item.options"
+        :disabled="item.disabled"
         @update:model-value="item.onChange"
       />
       </div>

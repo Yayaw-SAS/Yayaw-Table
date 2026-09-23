@@ -5,7 +5,9 @@ type ConnectorSyncModel = Pick<
   typeof Model,
   | "CONNECTOR_SKIP"
   | "applyConnectorField"
+  | "canResolveConflicts"
   | "connectorConflictRules"
+  | "connectorConflictRulesView"
   | "connectorDirections"
   | "connectorLabels"
   | "connectorMappingSections"
@@ -16,12 +18,15 @@ type ConnectorSyncModel = Pick<
   | "connectorSyncBlocker"
   | "connectorSyncFields"
   | "createConnectorFlow"
+  | "describeConflictRules"
+  | "describePendingConflicts"
   | "describeSyncPreview"
   | "describeSyncResult"
   | "formatSyncValue"
   | "isConnectorImportSource"
   | "resolveConnectorSettings"
   | "resolveSyncSettings"
+  | "toPendingConflicts"
   | "toSyncPreview"
   | "toSyncRunResult"
   | "validateConnectorSettings"
@@ -496,6 +501,7 @@ export function connectorSyncSuite(
       table: { label: "This table", value: "399" },
       target: { label: "Spreadsheet", value: "420" },
       resolution: "table",
+      winner: "table",
       wins: "This table wins",
     });
     assert.equal(view.moreConflicts, "And 1 more");
@@ -585,6 +591,351 @@ export function connectorSyncSuite(
         }
       ),
       null
+    );
+  });
+
+  // Conflict rules in code ---------------------------------------------------
+
+  const emptyPlan = {
+    createInTarget: [],
+    updateInTarget: [],
+    createInTable: [],
+    updateInTable: [],
+    deleteInTarget: [],
+    deleteInTable: [],
+    flagged: [],
+    duplicates: [],
+    unchanged: 0,
+    conflicts: [],
+  };
+
+  const appRules: Model.ConnectorConflictRules = {
+    ownership: { price: "target", name: "table" },
+    columnRules: {
+      notes: "merge",
+      status: "manual",
+      price: "table-wins",
+      unknown: "sometimes" as Model.ColumnConflictRule,
+    },
+    lock: true,
+  };
+
+  test("declared conflict rules read as sentences, owned columns first", () => {
+    const options = { t: en, name: "Spreadsheet", columns };
+    assert.deepEqual(
+      model
+        .describeConflictRules(appRules, options)
+        .map((rule) => [rule.columnId, rule.kind, rule.text]),
+      [
+        ["name", "owned", "Name: this table is the source of truth"],
+        ["price", "owned", "Price: Spreadsheet is the source of truth"],
+        ["status", "manual", "Status: decided by you"],
+        ["notes", "merge", "Notes: merged"],
+      ]
+    );
+    // Outside two-way only ownership applies.
+    assert.deepEqual(
+      model
+        .describeConflictRules(appRules, { ...options, direction: "pull" })
+        .map((rule) => rule.columnId),
+      ["name", "price"]
+    );
+    assert.deepEqual(
+      model
+        .describeConflictRules(
+          { columnRules: { price: "target-wins", name: "latest-wins" } },
+          { t: fr, name: "Notion", columns }
+        )
+        .map((rule) => rule.text),
+      ["Name : la dernière modification l’emporte", "Price : Notion l’emporte"]
+    );
+    assert.deepEqual(model.describeConflictRules(undefined, options), []);
+  });
+
+  test("locked rules: a read-only conflict rule and the app's rules shown", async () => {
+    const connector = { ...syncConnector([]), conflicts: appRules };
+    const flow = model.createConnectorFlow({
+      connector,
+      context: {},
+      columns,
+      selectedCount: 0,
+      t: en,
+      pushContext: (scope) => ({ scope }),
+      onChange: () => undefined,
+    });
+    await flow.start();
+    await flow.selectTarget("sheet");
+    flow.update({ direction: "two-way" });
+    const screen = {
+      connector,
+      columns,
+      selectedCount: 0,
+      t: en,
+      name: "Spreadsheet",
+    };
+    const rule = model
+      .connectorScreenFields(flow.state, screen)
+      .find((field) => field.id === "conflictRule");
+    assert.equal(rule?.disabled, true);
+    // The app's rule cannot be changed from the screen.
+    flow.update({ conflictRule: "target-wins", deletePolicy: "ignore" });
+    assert.equal(flow.state.settings?.conflictRule, "table-wins");
+    assert.equal(flow.state.settings?.deletePolicy, "ignore");
+    const view = model.connectorConflictRulesView(flow.state.settings, screen);
+    assert.equal(view?.title, "Rules set by your app");
+    assert.equal(view?.locked, true);
+    assert.equal(
+      view?.hint,
+      "Your app decides conflicts; these rules can’t be changed here."
+    );
+    assert.equal(view?.rules.length, 4);
+    // A push has no rules to show; an unlocked connector keeps its select.
+    assert.equal(
+      model.connectorConflictRulesView({ direction: "push" }, screen),
+      null
+    );
+    const open = { ...screen, connector: syncConnector([]) };
+    assert.equal(
+      model
+        .connectorScreenFields(flow.state, open)
+        .find((field) => field.id === "conflictRule")?.disabled,
+      undefined
+    );
+    assert.equal(
+      model.connectorConflictRulesView({ direction: "two-way" }, open),
+      null
+    );
+  });
+
+  test("preview lines say how each conflict is settled", () => {
+    const plan = {
+      ...emptyPlan,
+      updateInTable: [1],
+      conflicts: [
+        {
+          rowId: "alpha",
+          columnId: "status",
+          tableValue: "Active",
+          targetValue: "Archived",
+          winner: "table" as const,
+          resolution: "manual" as const,
+          source: "column" as const,
+        },
+        {
+          rowId: "bravo",
+          columnId: "notes",
+          tableValue: ["a"],
+          targetValue: ["b"],
+          winner: "table" as const,
+          resolution: "merged" as const,
+          source: "column" as const,
+          value: ["a", "b"],
+        },
+      ],
+      overridden: [
+        {
+          rowId: "charlie",
+          columnId: "price",
+          tableValue: 399,
+          targetValue: 1420,
+          owner: "target" as const,
+        },
+      ],
+      pendingConflicts: [{}, {}],
+    };
+    const preview = model.toSyncPreview(plan, {
+      rowLabel: (id) => id.toUpperCase(),
+    });
+    assert.equal(preview.pendingConflicts, 2);
+    assert.equal(preview.overriddenCount, 1);
+    assert.deepEqual(preview.overridden?.[0], {
+      rowId: "charlie",
+      rowLabel: "CHARLIE",
+      columnId: "price",
+      tableValue: 399,
+      targetValue: 1420,
+      resolution: "target",
+      source: "ownership",
+    });
+    assert.deepEqual(preview.conflicts[1]?.value, ["a", "b"]);
+    const view = model.describeSyncPreview(preview, {
+      t: en,
+      name: "Spreadsheet",
+      columns,
+      locale: "en-US",
+    });
+    assert.deepEqual(
+      view.conflicts.map((line) => [line.id, line.wins, line.winner]),
+      [
+        ["alpha:status", "Needs your decision", undefined],
+        ["bravo:notes", "Merged", undefined],
+      ]
+    );
+    assert.deepEqual(view.conflicts[1]?.result, {
+      label: "Result",
+      value: "a, b",
+    });
+    assert.equal(view.overriddenTitle, "Kept from the side that owns them (1)");
+    assert.deepEqual(view.overridden[0], {
+      id: "charlie:price",
+      title: "CHARLIE · Price",
+      table: { label: "This table", value: "399" },
+      target: { label: "Spreadsheet", value: "1,420" },
+      resolution: "target",
+      winner: "target",
+      wins: "Owned by Spreadsheet",
+    });
+    assert.ok(view.notes.includes("2 conflicts will wait for your decision."));
+    const french = model.describeSyncPreview(preview, {
+      t: fr,
+      name: "Notion",
+      columns,
+    });
+    assert.deepEqual(
+      [...french.conflicts, ...french.overridden].map((line) => line.wins),
+      ["À décider par vous", "Fusionné", "Appartient à Notion"]
+    );
+    assert.equal(model.formatSyncValue(true, en), "Yes");
+    assert.equal(model.formatSyncValue(false, fr), "Non");
+    assert.equal(
+      model.formatSyncValue(1200.5, en, { type: "number", locale: "de-DE" }),
+      "1.200,5"
+    );
+    assert.equal(
+      model.formatSyncValue("n/a", en, { type: "number", locale: "en-US" }),
+      "n/a"
+    );
+  });
+
+  test("conflicts to resolve: listed, resolved one by one or all at once", async () => {
+    const calls: string[] = [];
+    let pending: Model.PendingConflict[] = [
+      {
+        rowId: "alpha",
+        rowLabel: "Alpha launch",
+        columnId: "status",
+        tableValue: "Active",
+        targetValue: "Archived",
+      },
+      {
+        rowId: "bravo",
+        columnId: "price",
+        tableValue: 120,
+        targetValue: 1300,
+      },
+    ];
+    const synced: Model.SyncRunResult[] = [];
+    const connector = {
+      ...syncConnector(calls),
+      conflicts: { columnRules: { status: "manual" as const } },
+      listConflicts: () => {
+        calls.push("list");
+        return pending;
+      },
+      resolveConflicts: (resolutions: Model.PendingConflictResolution[]) => {
+        calls.push(
+          `resolve:${resolutions.map((item) => `${item.rowId}=${JSON.stringify(item.choice)}`).join(",")}`
+        );
+        pending = pending.filter(
+          (item) => !resolutions.some((done) => done.rowId === item.rowId)
+        );
+        return {
+          applied: { updateInTable: 1 },
+          failed: 0,
+          failures: [],
+          flagged: 0,
+          truncated: false,
+        };
+      },
+    };
+    assert.equal(model.canResolveConflicts(connector), true);
+    assert.equal(
+      model.canResolveConflicts({
+        ...connector,
+        conflicts: { allowManual: false },
+      }),
+      false
+    );
+    const flow = model.createConnectorFlow({
+      connector,
+      context: {},
+      columns,
+      selectedCount: 0,
+      t: en,
+      pushContext: (scope) => ({ scope }),
+      onChange: () => undefined,
+      onSynced: (result) => synced.push(result),
+    });
+    await flow.start();
+    await flow.selectTarget("sheet");
+    assert.equal(flow.state.conflicts?.length, 2);
+    const view = model.describePendingConflicts(flow.state.conflicts, {
+      t: en,
+      name: "Spreadsheet",
+      columns,
+      locale: "en-US",
+    });
+    assert.equal(view.entry, "Conflicts to resolve (2)");
+    assert.deepEqual(view.lines[1], {
+      id: "bravo:price",
+      rowId: "bravo",
+      columnId: "price",
+      title: "bravo · Price",
+      table: { label: "This table", value: "120" },
+      target: { label: "Spreadsheet", value: "1,300" },
+      keepTable: "Keep table value",
+      keepTarget: "Keep Spreadsheet value",
+    });
+    assert.deepEqual(
+      [view.keepAllTable, view.keepAllTarget, view.back],
+      ["Keep all table values", "Keep all Spreadsheet values", "Back"]
+    );
+    flow.showConflicts(true);
+    assert.equal(flow.state.conflictsOpen, true);
+    await flow.resolveConflicts([
+      { rowId: "alpha", columnId: "status", choice: "target" },
+    ]);
+    assert.equal(synced.length, 1);
+    assert.deepEqual(
+      flow.state.conflicts?.map((item) => item.rowId),
+      ["bravo"]
+    );
+    await flow.resolveConflicts([
+      { rowId: "bravo", columnId: "price", choice: "table" },
+    ]);
+    assert.deepEqual(flow.state.conflicts, []);
+    assert.equal(
+      model.describePendingConflicts(flow.state.conflicts, {
+        t: fr,
+        name: "Notion",
+      }).entry,
+      null
+    );
+    assert.deepEqual(calls, [
+      "list",
+      'resolve:alpha="target"',
+      "list",
+      'resolve:bravo="table"',
+      "list",
+    ]);
+    // A sync lists them again.
+    flow.update({ direction: "two-way" });
+    await flow.send();
+    assert.equal(calls.at(-1), "list");
+    assert.deepEqual(
+      model.toPendingConflicts(
+        [{ rowId: "r1", columnId: "status", tableValue: 1, targetValue: 2 }],
+        { rowLabel: () => "Row one" }
+      ),
+      [
+        {
+          rowId: "r1",
+          rowLabel: "Row one",
+          columnId: "status",
+          tableValue: 1,
+          targetValue: 2,
+        },
+      ]
     );
   });
 }

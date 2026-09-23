@@ -3650,6 +3650,96 @@
   font-weight: 400;
   text-decoration: line-through;
 }
+/* Conflict rules set in code and the conflicts left to a person. */
+.yayaw-connector-rules {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--yayaw-border);
+  border-radius: var(--yayaw-radius);
+  padding: 8px 12px;
+  font-size: 12px;
+}
+.yayaw-connector-rules h3 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--yayaw-muted-foreground);
+  font-size: 12px;
+  font-weight: 500;
+}
+.yayaw-connector-rules ul {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.yayaw-connector-rules p {
+  margin: 0;
+}
+.yayaw-connector-conflicts-entry {
+  justify-content: flex-start;
+  width: 100%;
+}
+.yayaw-connector-conflicts-entry svg {
+  color: oklch(0.666 0.179 58.318);
+}
+.yayaw-connector-conflicts {
+  display: grid;
+  gap: 12px;
+}
+.yayaw-connector-conflicts-head {
+  display: grid;
+  gap: 4px;
+}
+.yayaw-connector-conflicts-head h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+.yayaw-connector-conflicts ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.yayaw-connector-conflicts li {
+  display: grid;
+  gap: 6px;
+  border: 1px solid var(--yayaw-border);
+  border-radius: var(--yayaw-radius);
+  padding: 8px 12px;
+  font-size: 12px;
+}
+.yayaw-connector-conflicts li .yayaw-sync-conflict-title {
+  font-size: 14px;
+}
+.yayaw-connector-conflicts li .yayaw-button {
+  height: 32px;
+  font-size: 13px;
+}
+.yayaw-connector-conflict-actions {
+  display: grid;
+  gap: 8px;
+}
+.yayaw-connector-conflict-value {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+.yayaw-connector-conflict-value > span:first-child {
+  flex-shrink: 0;
+  color: var(--yayaw-muted-foreground);
+}
+.yayaw-connector-conflict-value > span:last-child {
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 /* Column mapping: sample and conversion badge under each row, preview table. */
 .yayaw-column-mapping {
   display: grid;
