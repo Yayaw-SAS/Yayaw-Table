@@ -28,10 +28,13 @@ import { DataTableUIProvider } from "../providers/data-table-ui-provider";
 import {
   defaultTranslations,
   TableProvider,
+  useTableActions,
   useTableComponents,
   useTranslations,
 } from "../providers/table-provider";
 import { TableStateSyncProvider } from "../providers/table-state-sync-provider";
+import { withFormRenderer } from "../form/form-renderer";
+import { isFormModeEnabled } from "../utils/form-view";
 import { resolveTranslationsToUiStrings } from "../providers/translation-cache";
 import type { TableGanttViewConfig } from "../planning/types";
 import type {
@@ -241,6 +244,15 @@ function resolveDataTableHeaderContent({
     displayTitle:
       title || translationText?.title || configTitle || `${tableType} Table`,
   };
+}
+
+/** The UI provider's `form` is the create form; the Form mode reads `table.form` itself. */
+function uiModeDefaults(table: object) {
+  return Object.fromEntries(
+    Object.entries(pickGenericModeConfigs(table)).filter(
+      ([key]) => key !== "form"
+    )
+  ) as Omit<ReturnType<typeof pickGenericModeConfigs>, "form">;
 }
 
 /** View → Card settings of modes rendered by optional registry items. */
@@ -753,13 +765,26 @@ function DataTableContent({
     toolbarActions,
     toolbarActionsPlacement,
   });
+  const getTableActions = useTableActions();
+  const canCreateRecords =
+    config.table.allowCreate !== false &&
+    typeof getTableActions?.(tableType)?.create === "function";
+  // The Form mode ships in the table; it is offered when records can be created.
+  const modeRenderers = useMemo(
+    () =>
+      withFormRenderer(
+        displayModeRenderers,
+        isFormModeEnabled(config.table.form, canCreateRecords)
+      ),
+    [canCreateRecords, config.table.form, displayModeRenderers]
+  );
   const offeredDisplayModes = useMemo(
     () =>
       availableDisplayModes(config.table.displayModes, {
         planning: Boolean(planningSession),
-        renderers: Object.keys(displayModeRenderers ?? {}),
+        renderers: Object.keys(modeRenderers ?? {}),
       }),
-    [config.table.displayModes, displayModeRenderers, planningSession]
+    [config.table.displayModes, modeRenderers, planningSession]
   );
   const shouldShowDisplayModes = offeredDisplayModes.length > 1;
   const kanbanGroupingColumns = useMemo(
@@ -836,7 +861,7 @@ function DataTableContent({
             syncUrl: config.table.syncUrl,
             inlineEdit: config.table.inlineEdit,
             gallery: config.table.gallery,
-            ...pickGenericModeConfigs(config.table),
+            ...uiModeDefaults(config.table),
             manualOrder: config.table.manualOrder,
             planning: config.table.planning,
             gantt: config.table.gantt,
@@ -883,7 +908,7 @@ function DataTableContent({
                   defaultDensity={config.table.density}
                   defaultDisplayMode={config.table.defaultDisplayMode}
                   defaultFormType={defaultFormType}
-                  displayModeRenderers={displayModeRenderers}
+                  displayModeRenderers={modeRenderers}
                   displayModes={offeredDisplayModes}
                   enableAdvancedFilters={shouldEnableAdvancedFilters}
                   enableGalleryControl={shouldShowGallery}
@@ -931,7 +956,7 @@ function DataTableContent({
                 }
                 customBulkActions={customBulkActions}
                 data={finalData}
-                displayModeRenderers={displayModeRenderers}
+                displayModeRenderers={modeRenderers}
                 details={recordDetails}
                 emptyState={emptyState}
                 enableColumnDragDropByDefault={Boolean(

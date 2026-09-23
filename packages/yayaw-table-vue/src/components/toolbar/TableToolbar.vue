@@ -82,6 +82,7 @@ import {
 import { TABLE_DENSITY_OPTIONS, type TableDensity } from "../../table-contracts";
 import GanttSettings from "./GanttSettings.vue";
 import { planningLabelOverrides } from "../../planning/labels";
+import { formLabel } from "../../form-view";
 import { ganttSettingsLabels } from "../../planning/settings";
 import { availableDisplayModes } from "../../view-menu";
 import { isManualOrder, MANUAL_ORDER_SORT_ID, manualOrderSorting } from "../../manual-order";
@@ -127,7 +128,7 @@ const optionsTitle = computed(() => {
       return translate(optionsView.value, optionsView.value);
   }
 });
-const cardSettingsTitle = computed(() => context.state.displayMode.value === "gantt" ? ganttSettingsLabels(context.locale, planningLabelOverrides((key) => translate(key, key))).title : translate("views.cardSettings", "Card settings"));
+const cardSettingsTitle = computed(() => context.state.displayMode.value === "form" ? formLabel("settingsTitle", context.locale, (key, text) => translate(`form.${key}`, text)) : context.state.displayMode.value === "gantt" ? ganttSettingsLabels(context.locale, planningLabelOverrides((key) => translate(key, key))).title : translate("views.cardSettings", "Card settings"));
 const pendingAction = ref<string>();
 const isExporting = ref(false);
 const search = computed({

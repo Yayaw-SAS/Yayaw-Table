@@ -39,7 +39,10 @@ libraries. The calendar (FullCalendar) is
 `https://table.yayaw.app/r/yayaw-table-calendar.json` for React and
 `https://table.yayaw.app/r/yayaw-table-vue-calendar.json` for Vue: pass
 `calendarRenderer` to `displayModeRenderers` and add `"calendar"` to
-`displayModes`.
+`displayModes`. The Form view has no extra dependency and ships in the table
+items: add `"form"` to `displayModes` (tables with a `create` action). Its
+standalone `YayawTableForm` renders a saved Form view on a public route
+without table state.
 
 Server connectors that push rows to Notion or Google Sheets, or sync them both
 ways, are optional framework-agnostic items as well

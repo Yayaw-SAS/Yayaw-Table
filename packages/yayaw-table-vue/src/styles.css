@@ -14,8 +14,10 @@
   --yayaw-radius: calc(var(--radius, 0.625rem) - 2px);
   --yayaw-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
   --yayaw-shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --yayaw-card: var(--card, oklch(1 0 0));
 }
 .dark {
+  --yayaw-card: var(--card, oklch(0.205 0 0));
   --yayaw-background: var(--background, oklch(0.145 0 0));
   --yayaw-foreground: var(--foreground, oklch(0.985 0 0));
   --yayaw-muted: var(--muted, oklch(0.269 0 0));
@@ -3797,4 +3799,611 @@
   height: 100%;
   background: var(--yayaw-primary);
   transition: width 150ms;
+}
+
+/* Form view and standalone form: the React form's card, fields and states. */
+.yayaw-form-root,
+.yayaw-form-root *,
+.yayaw-form-view,
+.yayaw-form-view *,
+.yayaw-form-popover,
+.yayaw-form-popover * {
+  box-sizing: border-box;
+}
+.yayaw-form-root {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  max-width: 640px;
+  margin: 0 auto;
+  gap: 24px;
+  border: 1px solid var(--yayaw-border);
+  border-radius: calc(var(--yayaw-radius) + 6px);
+  background: var(--yayaw-card);
+  box-shadow: var(--yayaw-shadow-xs);
+  color: var(--yayaw-foreground);
+  padding: 24px 20px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.yayaw-form-intro {
+  display: grid;
+  gap: 6px;
+  border-bottom: 1px solid var(--yayaw-border);
+  padding-bottom: 20px;
+}
+.yayaw-form-title {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.25;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+.yayaw-form-description {
+  margin: 0;
+  color: var(--yayaw-muted-foreground);
+  white-space: pre-line;
+}
+.yayaw-form-questions {
+  display: grid;
+  gap: 24px;
+}
+.yayaw-form-question {
+  display: grid;
+  min-width: 0;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+/* Like shadcn's Field: an invalid question turns its label and text red. */
+.yayaw-form-question[data-invalid] {
+  color: var(--yayaw-danger);
+}
+.yayaw-form-question-header {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+.yayaw-form-label {
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  font-weight: 500;
+  line-height: 1.375;
+}
+.yayaw-form-legend {
+  margin-bottom: -8px;
+}
+.yayaw-form-required {
+  color: var(--yayaw-danger);
+}
+.yayaw-form-help {
+  margin: 0;
+  color: var(--yayaw-muted-foreground);
+  line-height: 1.5;
+}
+.yayaw-form-error {
+  margin: 0;
+  color: var(--yayaw-danger);
+}
+.yayaw-form-question > .yayaw-input,
+.yayaw-form-question > .yayaw-textarea,
+.yayaw-form-question > .yayaw-select-trigger,
+.yayaw-form-date-anchor,
+.yayaw-form-date {
+  width: 100%;
+  min-width: 0;
+}
+.yayaw-form-question :is(.yayaw-input, .yayaw-textarea) {
+  font-size: 14px;
+}
+.yayaw-form-root [aria-invalid="true"]:not(.yayaw-switch-root) {
+  border-color: var(--yayaw-danger);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--yayaw-danger) 20%, transparent);
+}
+.dark .yayaw-form-root [aria-invalid="true"]:not(.yayaw-switch-root) {
+  border-color: color-mix(in srgb, var(--yayaw-danger) 50%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--yayaw-danger) 40%, transparent);
+}
+.yayaw-form-label .yayaw-form-required {
+  margin-left: -4px;
+}
+.yayaw-form-number {
+  font-variant-numeric: tabular-nums;
+}
+.yayaw-form-select {
+  width: 100%;
+  max-width: none;
+  height: 36px;
+  min-height: 36px;
+  border-color: var(--yayaw-input);
+  border-radius: var(--yayaw-radius);
+  background: transparent;
+  padding: 8px 8px 8px 10px;
+  font-size: 14px;
+}
+.yayaw-form-select-value {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-form-select-value[data-placeholder] {
+  color: var(--yayaw-muted-foreground);
+}
+.yayaw-form-root .yayaw-tag,
+.yayaw-select-content .yayaw-tag {
+  line-height: 16px;
+}
+.yayaw-form-date-anchor {
+  display: block;
+}
+.yayaw-form-date {
+  justify-content: flex-start;
+  padding: 0 10px;
+  font-size: 14px;
+}
+.yayaw-form-date-value {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-form-date-value[data-empty],
+.yayaw-form-date-icon {
+  color: var(--yayaw-muted-foreground);
+}
+.yayaw-form-date-icon {
+  flex-shrink: 0;
+}
+.yayaw-form-switch-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--yayaw-border);
+  border-radius: calc(var(--yayaw-radius) + 2px);
+  box-shadow: var(--yayaw-shadow-xs);
+  padding: 12px;
+}
+.yayaw-form-choices {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--yayaw-border);
+  border-radius: var(--yayaw-radius);
+  padding: 12px;
+}
+.yayaw-form-choice {
+  display: flex;
+  min-height: 24px;
+  align-items: center;
+  gap: 8px;
+}
+.yayaw-form-choice-label {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  color: var(--yayaw-foreground);
+  line-height: 1.375;
+}
+/* shadcn's Switch: 32 by 18px, 24 by 14px when small. */
+.yayaw-switch-root {
+  position: relative;
+  display: inline-flex;
+  width: 32px;
+  height: 18.4px;
+  flex-shrink: 0;
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--yayaw-input);
+  box-shadow: var(--yayaw-shadow-xs);
+  padding: 0;
+  cursor: pointer;
+  transition: background-color 150ms;
+}
+.yayaw-switch-root[data-size="sm"] {
+  width: 24px;
+  height: 14px;
+}
+.yayaw-switch-root[data-state="checked"] {
+  background: var(--yayaw-primary);
+}
+.yayaw-switch-root:focus-visible {
+  outline: none;
+  border-color: var(--yayaw-ring);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--yayaw-ring) 50%, transparent);
+}
+.yayaw-switch-root[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.yayaw-switch-thumb {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--yayaw-background);
+  pointer-events: none;
+  transition: transform 150ms;
+}
+.yayaw-switch-root[data-size="sm"] .yayaw-switch-thumb {
+  width: 12px;
+  height: 12px;
+}
+.yayaw-switch-thumb[data-state="checked"] {
+  transform: translateX(calc(100% - 2px));
+}
+.dark .yayaw-switch-root[data-state="unchecked"] {
+  background: color-mix(in oklab, var(--yayaw-input) 80%, transparent);
+}
+.dark .yayaw-switch-thumb[data-state="unchecked"] {
+  background: var(--yayaw-foreground);
+}
+.dark .yayaw-switch-thumb[data-state="checked"] {
+  background: var(--yayaw-primary-foreground);
+}
+.yayaw-form-message {
+  margin: 0;
+  border: 1px solid color-mix(in srgb, var(--yayaw-danger) 40%, transparent);
+  border-radius: var(--yayaw-radius);
+  background: color-mix(in srgb, var(--yayaw-danger) 5%, transparent);
+  color: var(--yayaw-danger);
+  padding: 8px 12px;
+}
+.dark .yayaw-form-message {
+  background: color-mix(in srgb, var(--yayaw-danger) 10%, transparent);
+}
+.yayaw-form-submit-bar {
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid var(--yayaw-border);
+  padding-top: 20px;
+}
+.yayaw-form-action {
+  width: 100%;
+}
+.yayaw-empty-root.yayaw-form-state {
+  min-height: 0;
+  gap: 20px;
+  padding: 24px 0;
+}
+.yayaw-form-state-text {
+  display: grid;
+  gap: 8px;
+}
+.yayaw-form-view {
+  display: grid;
+  min-width: 0;
+  gap: 12px;
+  padding: 8px 0;
+}
+.yayaw-form-toolbar {
+  display: flex;
+  min-height: 32px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.yayaw-form-share-trigger {
+  min-height: 32px;
+  height: 32px;
+  gap: 8px;
+  padding: 0 10px;
+  font-size: 14px;
+}
+.yayaw-form-canvas {
+  border-radius: calc(var(--yayaw-radius) + 2px);
+  background: color-mix(in oklab, var(--yayaw-muted) 40%, transparent);
+  padding: 24px 12px;
+}
+.dark .yayaw-form-canvas {
+  background: color-mix(in oklab, var(--yayaw-muted) 20%, transparent);
+}
+.yayaw-form-share-panel {
+  display: grid;
+  gap: 16px;
+  padding: 12px;
+}
+.yayaw-form-switch-setting {
+  display: flex;
+  min-width: 0;
+  min-height: 32px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.yayaw-form-switch-text {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 2px;
+}
+.yayaw-form-switch-label {
+  min-width: 0;
+  font-size: 14px;
+}
+.yayaw-form-share-panel .yayaw-form-switch-label {
+  font-weight: 500;
+}
+.yayaw-form-share-icon {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--yayaw-radius);
+  background: var(--yayaw-muted);
+  color: var(--yayaw-muted-foreground);
+}
+.yayaw-form-share-field {
+  display: grid;
+  gap: 6px;
+}
+.yayaw-form-share-link {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+}
+.yayaw-form-share-link .yayaw-input {
+  height: 32px;
+  min-height: 32px;
+  min-width: 0;
+  flex: 1;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+.yayaw-form-share-link .yayaw-icon-only {
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  flex-shrink: 0;
+  padding: 0;
+  text-decoration: none;
+}
+.yayaw-form-share-update {
+  display: grid;
+  gap: 6px;
+  border-top: 1px solid var(--yayaw-border);
+  padding-top: 12px;
+}
+.yayaw-form-share-update .yayaw-button {
+  width: 100%;
+  min-height: 32px;
+  height: 32px;
+  padding: 0 10px;
+}
+.yayaw-form-settings {
+  display: grid;
+  min-width: 0;
+}
+.yayaw-form-settings-section,
+.yayaw-form-settings-hidden {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+}
+.yayaw-form-settings-hidden {
+  gap: 4px;
+}
+.yayaw-form-setting {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+}
+.yayaw-form-setting .yayaw-input,
+.yayaw-form-setting .yayaw-textarea {
+  width: 100%;
+  font-size: 14px;
+}
+.yayaw-form-setting-label,
+.yayaw-form-settings-note {
+  margin: 0;
+  color: var(--yayaw-muted-foreground);
+}
+.yayaw-form-settings-note {
+  font-size: 12px;
+}
+.yayaw-form-settings-questions {
+  display: grid;
+  gap: 2px;
+  margin: 0 -4px;
+  padding: 0;
+  list-style: none;
+}
+.yayaw-form-settings-item {
+  display: grid;
+  border-radius: var(--yayaw-radius);
+}
+.yayaw-form-settings-item[data-editing] {
+  background: color-mix(in oklab, var(--yayaw-muted) 60%, transparent);
+}
+.yayaw-form-settings-row {
+  display: flex;
+  min-width: 0;
+  min-height: 36px;
+  align-items: center;
+  gap: 4px;
+  padding: 0 4px;
+}
+.yayaw-form-settings-grip {
+  flex-shrink: 0;
+  color: var(--yayaw-muted-foreground);
+  opacity: 0.6;
+}
+.yayaw-form-settings-grip[data-hidden] {
+  visibility: hidden;
+}
+.yayaw-form-settings-name {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  padding: 4px 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-form-settings-name:not([data-asked]) {
+  color: var(--yayaw-muted-foreground);
+}
+.yayaw-form-settings-row .yayaw-form-settings-action {
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  min-height: 24px;
+  padding: 0;
+}
+.yayaw-form-settings-expand svg {
+  transition: transform 150ms;
+}
+.yayaw-form-settings-expand[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+.yayaw-form-settings-ask {
+  margin-left: 4px;
+}
+.yayaw-form-settings-details {
+  display: grid;
+  gap: 12px;
+  margin: 0 4px 4px;
+  border-radius: var(--yayaw-radius);
+  background: color-mix(in oklab, var(--yayaw-muted) 50%, transparent);
+  padding: 12px;
+}
+.yayaw-form-settings-reset {
+  min-height: 32px;
+}
+/* Date picker: shadcn's Calendar in a popover. */
+.yayaw-form-popover {
+  z-index: 120;
+  border: 1px solid var(--yayaw-border);
+  border-radius: var(--yayaw-radius);
+  background: var(--popover, var(--yayaw-background));
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.12);
+  color: var(--yayaw-foreground);
+  font-size: 14px;
+}
+.yayaw-form-calendar {
+  padding: 12px;
+}
+.yayaw-form-calendar-header {
+  display: flex;
+  height: 32px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+.yayaw-form-calendar-heading {
+  font-weight: 500;
+}
+.yayaw-form-calendar .yayaw-form-calendar-nav {
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0;
+}
+.yayaw-form-calendar-grid {
+  margin-top: 16px;
+  border-collapse: collapse;
+}
+.yayaw-form-calendar-row {
+  display: flex;
+}
+.yayaw-form-calendar-row + .yayaw-form-calendar-row {
+  margin-top: 8px;
+}
+.yayaw-form-calendar-weekday {
+  width: 32px;
+  color: var(--yayaw-muted-foreground);
+  font-size: 12.8px;
+  font-weight: 400;
+}
+.yayaw-form-calendar-cell {
+  padding: 0;
+}
+.yayaw-form-calendar-day {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--yayaw-radius);
+  cursor: pointer;
+  outline: none;
+}
+.yayaw-form-calendar-day:hover,
+.yayaw-form-calendar-day[data-today] {
+  background: var(--yayaw-muted);
+}
+.yayaw-form-calendar-day[data-outside-view] {
+  color: var(--yayaw-muted-foreground);
+}
+.yayaw-form-calendar-day[data-selected] {
+  background: var(--yayaw-primary);
+  color: var(--yayaw-primary-foreground);
+}
+.yayaw-form-calendar-day:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--yayaw-ring) 50%, transparent);
+}
+.yayaw-form-calendar-day[data-disabled] {
+  opacity: 0.5;
+  pointer-events: none;
+}
+.yayaw-form-calendar-footer {
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid var(--yayaw-border);
+  padding: 8px;
+}
+.yayaw-form-calendar-footer .yayaw-button {
+  min-height: 32px;
+  height: 32px;
+  padding: 0 10px;
+}
+@media (min-width: 640px) {
+  .yayaw-form-root {
+    padding: 32px;
+  }
+  .yayaw-form-action {
+    width: fit-content;
+  }
+  .yayaw-form-canvas {
+    padding: 40px 24px;
+  }
+}
+/* Phone drawers: 44px targets, as React's drawer; switches keep their size. */
+.yayaw-toolbar-menu[data-compact="true"] .yayaw-switch-root {
+  min-height: 0;
+}
+.yayaw-toolbar-menu[data-compact="true"]
+  .yayaw-form-share-link
+  :is(.yayaw-input, .yayaw-icon-only),
+.yayaw-toolbar-menu[data-compact="true"]
+  .yayaw-form-share-update
+  .yayaw-button {
+  height: 44px;
+  min-height: 44px;
+}
+.yayaw-toolbar-menu[data-compact="true"]
+  .yayaw-form-share-link
+  .yayaw-icon-only {
+  width: 44px;
+  min-width: 44px;
+}
+.yayaw-form-settings-row .yayaw-form-settings-action {
+  background: transparent;
+}
+.yayaw-form-settings-row .yayaw-form-settings-action:hover:not(:disabled) {
+  background: var(--yayaw-muted);
 }

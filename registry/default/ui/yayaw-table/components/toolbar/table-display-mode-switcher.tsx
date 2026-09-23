@@ -3,6 +3,7 @@
 import {
   CalendarDays,
   ChartGantt,
+  ClipboardList,
   Columns3,
   Images,
   List,
@@ -38,6 +39,7 @@ interface TableDisplayModeSwitcherProps {
 
 export const DISPLAY_MODE_ICONS: Record<TableDisplayMode, LucideIcon> = {
   calendar: CalendarDays,
+  form: ClipboardList,
   gantt: ChartGantt,
   gallery: Images,
   kanban: Columns3,

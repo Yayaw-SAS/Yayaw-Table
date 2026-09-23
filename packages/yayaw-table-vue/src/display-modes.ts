@@ -8,6 +8,7 @@ import {
   type CalendarViewSettings,
   normalizeCalendarViewConfig,
 } from "./calendar-model";
+import { type FormViewSettings, normalizeFormViewConfig } from "./form-view";
 import { type ListViewSettings, normalizeListViewConfig } from "./list-view";
 
 export interface DisplayModeDefinition {
@@ -68,6 +69,14 @@ export const DISPLAY_MODES = {
     configKey: "calendar",
     maxGroups: 0,
     normalizeConfig: normalizeCalendarViewConfig,
+    requiresRenderer: true,
+  },
+  form: {
+    capabilities: NO_TABLE_CONTROLS,
+    configKey: "form",
+    maxGroups: 0,
+    normalizeConfig: normalizeFormViewConfig,
+    // The table plugs its built-in form renderer in when it can create records.
     requiresRenderer: true,
   },
   gantt: {
@@ -157,6 +166,13 @@ export function displayModeMaxGroups(mode: TableDisplayMode): number {
 export interface GenericModeViewConfigs {
   list?: ListViewSettings;
   calendar?: CalendarViewSettings;
+  form?: FormViewSettings;
+}
+
+/** Table-level defaults of the generic modes; `form: false` also turns the Form mode off. */
+export interface GenericModeTableConfigs
+  extends Omit<GenericModeViewConfigs, "form"> {
+  form?: boolean | FormViewSettings;
 }
 
 export type GenericModeConfigKey = keyof GenericModeViewConfigs;
@@ -201,11 +217,24 @@ export function normalizeGenericModeConfigs(
 }
 
 /** The generic per-mode settings of a table config, for passing it along. */
-export function pickGenericModeConfigs(source: object): GenericModeViewConfigs {
+export function pickGenericModeConfigs(
+  source: object
+): GenericModeTableConfigs {
   const record = source as Record<string, unknown>;
   return Object.fromEntries(
     GENERIC_MODE_CONFIG_KEYS.flatMap((key) =>
       record[key] === undefined ? [] : [[key, record[key]]]
+    )
+  ) as GenericModeTableConfigs;
+}
+
+/** Table defaults usable as initial mode settings; flags such as `form: true` are left out. */
+export function pickGenericModeSettings(
+  source: object
+): GenericModeViewConfigs {
+  return Object.fromEntries(
+    Object.entries(pickGenericModeConfigs(source)).filter(
+      ([, value]) => Boolean(value) && typeof value === "object"
     )
   ) as GenericModeViewConfigs;
 }

@@ -168,6 +168,12 @@ function transformContent(content, fileRel) {
       'from "./calendar"'
     );
   }
+  if (fileRel === "form/form-date-field.tsx") {
+    out = out.replace(
+      /from ["']@\/(?:src\/components\/ui|components\/ui)\/calendar["']/g,
+      'from "../components/filters/calendar"'
+    );
+  }
 
   // @/src/components/ui/* or @/components/ui/* -> @/components/ui/*
   out = out.replace(

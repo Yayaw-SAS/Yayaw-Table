@@ -52,6 +52,24 @@ export type {
   CatalogueFormLayoutConfig,
   TableFormConfig,
 } from "./config/form-config";
+// Form view; public routes can import `form/yayaw-table-form` on its own.
+export { formRenderer } from "./form/form-renderer";
+export {
+  YayawTableForm,
+  type YayawTableFormProps,
+} from "./form/yayaw-table-form";
+export {
+  acceptPublicFormResponse,
+  type FormColumn,
+  type FormLinkActions,
+  type FormLinkStatus,
+  type FormQuestion,
+  type FormSubmitResult,
+  type FormViewSettings,
+  formSettingsFromView,
+  type PublicFormSnapshot,
+  publicFormSnapshot,
+} from "./utils/form-view";
 export type {
   ColumnDefinition,
   InlineEditColumnConfig,

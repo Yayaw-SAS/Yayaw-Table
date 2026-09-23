@@ -50,9 +50,11 @@ import {
   StackMenuSection,
   StackMenuView,
 } from "../../ui-custom/stack-menu";
+import { formLabel } from "../../utils/form-view";
 import { TableTooltip } from "../../utils/table-tooltip";
 import { getDisplayModeGrouping } from "../../utils/table-view-state";
 import { getViewModeCapabilities } from "../../utils/view-menu";
+import { translateWithFallback } from "../filters/i18n-utils";
 import { TableColumnsMenu } from "./sections/table-columns-menu";
 import { TableFiltersMenu } from "./sections/table-filters-menu";
 import { TableGroupingMenu } from "./sections/table-grouping-menu";
@@ -487,6 +489,11 @@ function getSettingsTitle(
   translate: (key: string) => string,
   fallback: string
 ): string {
+  if (mode === "form") {
+    return formLabel("settingsTitle", locale, (key, text) =>
+      translateWithFallback(translate, `form.${key}`, text)
+    );
+  }
   return mode === "gantt"
     ? ganttSettingsLabels(locale, planningLabelOverrides(translate)).title
     : fallback;

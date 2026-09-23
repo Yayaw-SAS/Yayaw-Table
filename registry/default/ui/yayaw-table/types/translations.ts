@@ -257,6 +257,11 @@ export interface DataTableTranslations {
     multiOption?: string;
   };
   form?: string;
+  /**
+   * Form view labels as flat keys, e.g. `"form.submit": "Send"`. Keys and
+   * built-in English and French texts: `FormLabelKey` in `utils/form-view`.
+   */
+  [formLabel: `form.${string}`]: string | undefined;
   value?: string;
   pagination: {
     first: string;
@@ -342,6 +347,7 @@ export interface DataTableTranslations {
     display: {
       title: string;
       calendar?: string;
+      form?: string;
       gantt?: string;
       gallery: string;
       list?: string;

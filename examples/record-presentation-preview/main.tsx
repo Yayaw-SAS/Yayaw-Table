@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { NuqsAdapter } from "nuqs/adapters/react";
 import { createRoot } from "react-dom/client";
 import { Toaster } from "sonner";
+import { FormExample } from "../form-react";
 import { RecordPresentationExample } from "../record-presentation-react";
 import { ServerKanbanExample } from "../server-kanban-react";
 import { ViewsExample } from "../views-react";
@@ -19,7 +20,10 @@ const renderExample = () => {
   return <RecordPresentationExample />;
 };
 const root = document.getElementById("root");
-if (root) {
+if (root && example === "form") {
+  // The standalone form needs none of the table's providers.
+  createRoot(root).render(<FormExample />);
+} else if (root) {
   createRoot(root).render(
     <QueryClientProvider client={client}>
       <NuqsAdapter>

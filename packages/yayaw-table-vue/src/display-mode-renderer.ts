@@ -1,4 +1,5 @@
 import type { Component } from "vue";
+import type { FormLinkActions, FormSubmitResult } from "./form-view";
 import type { ScopedRowsRequest } from "./scoped-rows";
 import type { ColumnDefinition, TableDisplayMode, TableRecord } from "./types";
 
@@ -36,6 +37,14 @@ export interface DisplayModeRenderContext extends DisplayModeSettingsContext {
   openRow: (row: TableRecord, event?: MouseEvent) => void;
   /** Open the create form with prefilled values. */
   createRow: (initial: TableRecord) => void;
+  /** Create a record through `actions.create` and refresh the rows, without opening a form. */
+  createRecord: (values: TableRecord) => Promise<FormSubmitResult>;
+  /** The saved view shown, or null while no saved view is active. */
+  viewId: string | null;
+  /** Public form links, when the host provides `actions.formLinks`. */
+  formLinks?: FormLinkActions;
+  /** The table's `coloredTags` setting, for tags a renderer draws. */
+  coloredTags: boolean;
   /** Changes after each mutation so renderers reload their rows. */
   revision: number;
 }

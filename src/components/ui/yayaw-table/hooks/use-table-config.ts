@@ -4,7 +4,7 @@
  */
 "use client";
 
-import type { GenericModeViewConfigs } from "../utils/display-modes";
+import type { GenericModeTableConfigs } from "../utils/display-modes";
 import { pickGenericModeConfigs } from "../utils/display-modes";
 import { useMemo } from "react";
 
@@ -82,7 +82,7 @@ export interface TableCatalogueColumnConfig extends ColumnDefinition {
  * Configuration for table behavior in the catalogue
  */
 export interface TableCatalogueTableConfig
-  extends GenericModeViewConfigs {
+  extends GenericModeTableConfigs {
   coloredTags?: boolean;
   allowCreate?: boolean;
   allowEdit?: boolean;

@@ -914,6 +914,41 @@
           "target": "components/ui/yayaw-table/config/index.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/form/form-date-field.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/form/form-date-field.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/form/form-question.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/form/form-question.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/form/form-renderer.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/form/form-renderer.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/form/form-settings.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/form/form-settings.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/form/form-share.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/form/form-share.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/form/form-view.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/form/form-view.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/form/yayaw-table-form.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/form/yayaw-table-form.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/hooks/index.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/hooks/index.ts"
@@ -1332,6 +1367,11 @@
           "path": "registry/default/ui/yayaw-table/utils/form-layout.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/form-layout.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/form-view.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/form-view.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/utils/gallery-view-state.ts",

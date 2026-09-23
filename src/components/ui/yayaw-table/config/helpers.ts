@@ -1,4 +1,4 @@
-import type { GenericModeViewConfigs } from "../utils/display-modes";
+import type { GenericModeTableConfigs } from "../utils/display-modes";
 import {
   resolveDisplayMode,
   resolveDisplayModes,
@@ -376,7 +376,7 @@ export interface ColumnDefinition {
  */
 /** Per-mode defaults (`list`, …) come from the display mode registry. */
 export interface TableBehaviorConfig
-  extends GenericModeViewConfigs {
+  extends GenericModeTableConfigs {
   /** Use neutral badges when false; columns can override this setting. */
   coloredTags?: boolean;
   planning?: import("../planning/types").TablePlanningConfig;

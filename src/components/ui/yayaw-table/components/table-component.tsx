@@ -72,6 +72,7 @@ import { useTableConfig } from "../hooks/use-table-config";
 import { useTableInstance } from "../hooks/use-table-instance";
 import { useTableUrlState } from "../hooks/use-table-url-state";
 import {
+  type TableActions,
   useFormConfig,
   useTableActions as useProviderTableActions,
   useTranslations,
@@ -92,6 +93,11 @@ import { TABLE_DENSITY_CLASSES } from "../utils/table-density";
 import { getPrimaryGrouping } from "../utils/table-view-state";
 import { availableDisplayModes } from "../utils/view-menu";
 import type { DisplayModeRenderers } from "../types/display-mode-renderer";
+import {
+  type FormLinkActions,
+  type FormSubmitResult,
+  formSubmitResultFrom,
+} from "../utils/form-view";
 import { DataTableGanttView } from "./gantt-view";
 import {
   BulkActionsMenu,
@@ -622,6 +628,44 @@ function canCreateTableRows(
   actions: { create?: unknown } | undefined
 ): boolean {
   return allowCreate !== false && typeof actions?.create === "function";
+}
+
+/** What the Form mode needs from the table: direct record creation, the view and its links. */
+function useFormRendererActions({
+  actions,
+  canCreate,
+  errorMessage,
+  tableId,
+  viewParam,
+}: {
+  actions?: TableActions;
+  canCreate: boolean;
+  errorMessage: string;
+  tableId: string;
+  viewParam?: string | null;
+}) {
+  const queryClient = useQueryClient();
+  const create = actions?.create;
+  const createRecord = useCallback(
+    async (values: Record<string, unknown>): Promise<FormSubmitResult> => {
+      if (!(canCreate && create)) {
+        return { ok: false, message: errorMessage };
+      }
+      const result = formSubmitResultFrom(await create(values));
+      if (result.ok) {
+        await queryClient.invalidateQueries({
+          queryKey: ["tableData", tableId],
+        });
+      }
+      return result;
+    },
+    [canCreate, create, errorMessage, queryClient, tableId]
+  );
+  return {
+    createRecord,
+    formLinks: actions?.formLinks as FormLinkActions | undefined,
+    viewId: viewParam ?? null,
+  };
 }
 
 function resolveRowEntityId<TData extends Record<string, unknown>>(
@@ -1914,11 +1958,19 @@ function ModernDataTable<
       tableId,
     ]
   );
+  const formRendererActions = useFormRendererActions({
+    actions: providerTableActions,
+    canCreate: canCreateRows,
+    errorMessage: t("common.error"),
+    tableId,
+    viewParam,
+  });
   const rendererContext = useDisplayModeRenderContext({
     activateRow: activateRendererRow,
     canCreate: canCreateRows,
     canEditRow: canEditRendererRow,
     columns: tableConfig.columns.definitions,
+    ...formRendererActions,
     createRow: createRendererRow,
     editRow: editRendererRow,
     emptyState: emptyStateContent,

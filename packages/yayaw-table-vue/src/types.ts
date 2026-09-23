@@ -1,7 +1,10 @@
 import type { QueryClient } from "@tanstack/vue-query";
 import type { Component, VNodeChild } from "vue";
 import type { ZodType } from "zod";
-import type { GenericModeViewConfigs } from "./display-modes";
+import type {
+  GenericModeTableConfigs,
+  GenericModeViewConfigs,
+} from "./display-modes";
 import type {
   FormLayoutAction,
   FormLayoutBlock,
@@ -210,7 +213,7 @@ export interface TableGalleryRenderContext {
 
 /** Per-mode defaults (`list`, …) come from the display mode registry. */
 export interface TableBehaviorConfig<TData extends TableRecord = TableRecord>
-  extends GenericModeViewConfigs {
+  extends GenericModeTableConfigs {
   coloredTags?: boolean;
   allowCreate: boolean;
   allowEdit: boolean;
@@ -818,6 +821,11 @@ export interface TableActions<TData extends TableRecord = TableRecord> {
   import?: import("./import-flow").TableImportActions<
     import("./data-destinations").DataDestinationContext
   >;
+  /**
+   * Share Form views on public links the host serves (publish a snapshot,
+   * unpublish, stop accepting responses). Without it, "Share form" is hidden.
+   */
+  formLinks?: import("./form-view").FormLinkActions;
   views?: TableViewActions;
   [key: string]: unknown;
 }
