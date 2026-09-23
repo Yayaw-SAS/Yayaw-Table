@@ -113,6 +113,8 @@ export interface TableCatalogueTableConfig
   /** Backwards-compatible alias for `showClearFilters`. */
   showResetFilters?: boolean;
   export?: boolean;
+  /** Offer "Share" (copy the link to the view); default true. */
+  share?: boolean;
   bulkExport?: boolean;
   actionsAsIcons?: boolean;
   density?: TableDensity;
@@ -349,6 +351,7 @@ function resolveTableBehaviorConfig(
     showClearFilters: mergedConfig.showClearFilters ?? false,
     showResetFilters: mergedConfig.showResetFilters ?? false,
     export: mergedConfig.export ?? true,
+    share: mergedConfig.share,
     bulkExport: mergedConfig.bulkExport ?? true,
     actionsAsIcons: mergedConfig.actionsAsIcons ?? false,
     coloredTags: mergedConfig.coloredTags !== false,

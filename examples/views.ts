@@ -167,6 +167,31 @@ export function createViewsActions() {
       }
       return Promise.resolve({ success: Boolean(record), data: record });
     },
+    // Custom destinations: a real host would call a webhook or a connector.
+    destinations: [
+      {
+        id: "n8n",
+        label: "Send to n8n",
+        kind: "export" as const,
+        run: async (context: {
+          query: { search: string };
+          loadRows: () => Promise<unknown[]>;
+        }) => {
+          const rows = await context.loadRows();
+          return {
+            message: `Sent ${rows.length} records to the n8n workflow`,
+          };
+        },
+      },
+      {
+        id: "slack",
+        label: "Share in Slack",
+        kind: "share" as const,
+        run: (context: { url: string }) => ({
+          message: `Posted ${new URL(context.url).search ? "this view" : "the table"} to #projects`,
+        }),
+      },
+    ],
     create: (values: Record<string, unknown>) => {
       const record = {
         ...records[0],

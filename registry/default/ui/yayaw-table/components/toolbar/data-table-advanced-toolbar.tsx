@@ -7,7 +7,14 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useAtomValue, useSetAtom } from "jotai";
-import { Download, FunnelX, Loader2, PlusIcon, Share2 } from "lucide-react";
+import {
+  Download,
+  FunnelX,
+  Loader2,
+  PlusIcon,
+  Send,
+  Share2,
+} from "lucide-react";
 import {
   type ComponentProps,
   type ReactNode,
@@ -65,6 +72,13 @@ import { DATE_DISPLAY_PRESETS } from "../../types/date-types";
 import type { TableDisplayMode } from "../../types/display-types";
 import { StackMenuItem } from "../../ui-custom/stack-menu";
 import { buildCsvExportColumns, exportRowsAsCsv } from "../../utils/csv-export";
+import {
+  type DataDestination,
+  type DataDestinationKind,
+  dataDestinationQuery,
+  groupDataDestinations,
+  runDataDestination,
+} from "../../utils/data-destinations";
 import {
   fetchAllFilteredRows,
   type TableListAction,
@@ -559,6 +573,38 @@ function ToolbarEnd({
   );
 }
 
+type TableDataDestination = DataDestination<ReactNode>;
+
+/** A host destination; one runs at a time and shows its progress. */
+function renderDestinationItem(
+  destination: TableDataDestination,
+  pendingDestination: string | undefined,
+  onDestination: (destination: TableDataDestination) => Promise<void>
+) {
+  const running = pendingDestination === destination.id;
+  return (
+    <StackMenuItem
+      aria-busy={running}
+      disabled={Boolean(pendingDestination)}
+      icon={
+        running ? (
+          <Loader2 className="size-4 animate-spin" />
+        ) : (
+          (destination.icon ?? <Send className="size-4" />)
+        )
+      }
+      key={destination.id}
+      onClick={() => {
+        onDestination(destination).catch(() => {
+          /* failures are reported by the runner */
+        });
+      }}
+    >
+      {destination.label}
+    </StackMenuItem>
+  );
+}
+
 /** Export, share and, on touch layouts, application actions as settings entries. */
 function renderMenuDataActions({
   t,
@@ -573,7 +619,15 @@ function renderMenuDataActions({
   exportLabel,
   onExport,
   onShare,
+  isShareEnabled,
+  destinations,
+  pendingDestination,
+  onDestination,
 }: {
+  isShareEnabled: boolean;
+  destinations: Record<DataDestinationKind, TableDataDestination[]>;
+  pendingDestination?: string;
+  onDestination: (destination: TableDataDestination) => Promise<void>;
   t: ReturnType<typeof useTranslations>["t"];
   isMobile: boolean;
   toolbarActions: ToolbarAction[];
@@ -639,16 +693,24 @@ function renderMenuDataActions({
           {exportLabel}
         </StackMenuItem>
       ) : null}
-      <StackMenuItem
-        icon={<Share2 className="size-4" />}
-        onClick={() => {
-          onShare().catch(() => {
-            /* share errors are reported by the handler */
-          });
-        }}
-      >
-        {t("url_state.share")}
-      </StackMenuItem>
+      {destinations.export.map((destination) =>
+        renderDestinationItem(destination, pendingDestination, onDestination)
+      )}
+      {isShareEnabled ? (
+        <StackMenuItem
+          icon={<Share2 className="size-4" />}
+          onClick={() => {
+            onShare().catch(() => {
+              /* share errors are reported by the handler */
+            });
+          }}
+        >
+          {t("url_state.share")}
+        </StackMenuItem>
+      ) : null}
+      {destinations.share.map((destination) =>
+        renderDestinationItem(destination, pendingDestination, onDestination)
+      )}
     </>
   );
 }
@@ -704,6 +766,7 @@ export function DataTableAdvancedToolbar<TData>({
     pageSizeParam,
     resetFilters,
     sortParam,
+    viewParam,
     visibilityParam,
   } = useTableUrlState({
     defaultGantt: tableConfig.table.gantt,
@@ -1018,6 +1081,30 @@ export function DataTableAdvancedToolbar<TData>({
     tableId,
   ]);
 
+  const [pendingDestination, setPendingDestination] = useState<string>();
+  // Every record matching the view's query, for destinations that need rows.
+  const loadMatchingRows = useCallback(async () => {
+    if (!hasListAction) {
+      return data ?? [];
+    }
+    return await fetchAllFilteredRows({
+      advancedFilters: toAdvancedFiltersParam(advancedFiltersParam),
+      filters: toFiltersParam(filtersParam),
+      listAction: tableActions?.list as TableListAction,
+      orderBy: toOrderByParam(sortParam),
+      pageSize: toPageSize(pageSizeParam || "100"),
+      search: globalSearchParam?.trim() || "",
+    });
+  }, [
+    advancedFiltersParam,
+    data,
+    filtersParam,
+    globalSearchParam,
+    hasListAction,
+    pageSizeParam,
+    sortParam,
+    tableActions?.list,
+  ]);
   const toolbarActionContext = useMemo<ToolbarActionContext>(
     () => ({
       actionsAsIcons,
@@ -1196,6 +1283,52 @@ export function DataTableAdvancedToolbar<TData>({
     ]
   );
 
+  const runDestination = useCallback(
+    async (destination: TableDataDestination) => {
+      if (pendingDestination) {
+        return;
+      }
+      setPendingDestination(destination.id);
+      const result = await runDataDestination(destination, {
+        tableId,
+        tableType,
+        viewId: viewParam ?? null,
+        query: dataDestinationQuery({
+          search: globalSearchParam,
+          filters: toFiltersParam(filtersParam),
+          advancedFilters: advancedFiltersParam,
+          sorting: sortParam as { id: string; desc?: boolean }[],
+        }),
+        columns: csvExportColumns.map((column) => ({
+          id: column.id,
+          header: column.label,
+        })),
+        selectedRowIds: toolbarActionContext.selectedRowIds,
+        url: window.location.href,
+        loadRows: loadMatchingRows,
+      });
+      setPendingDestination(undefined);
+      if (result.ok) {
+        toast.success(result.message ?? t("destinations.done"));
+      } else {
+        toast.error(result.error);
+      }
+    },
+    [
+      advancedFiltersParam,
+      csvExportColumns,
+      filtersParam,
+      globalSearchParam,
+      loadMatchingRows,
+      pendingDestination,
+      sortParam,
+      t,
+      tableId,
+      tableType,
+      toolbarActionContext.selectedRowIds,
+      viewParam,
+    ]
+  );
   const shareLink = createPageShareHandler(nativeMobile, t);
   const menuDataActions = renderMenuDataActions({
     t,
@@ -1214,6 +1347,13 @@ export function DataTableAdvancedToolbar<TData>({
     exportLabel,
     onExport: handleExportAll,
     onShare: shareLink,
+    isShareEnabled: tableConfig.table.share !== false,
+    destinations: groupDataDestinations(
+      tableActions?.destinations,
+      toolbarActionContext.selectedRowIds.length
+    ),
+    pendingDestination,
+    onDestination: runDestination,
   });
   const createButton = isCreateEnabled ? (
     <ToolbarCreateButton

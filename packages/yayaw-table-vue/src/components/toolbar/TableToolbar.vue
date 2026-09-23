@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { defineComponent, type PropType, type VNodeChild } from "vue";
+import { type Component, defineComponent, type PropType, type VNodeChild } from "vue";
 import TableTooltip from "./TableTooltip.vue";
 import {
   FunnelX,
   Download,
   LayoutGrid,
   Rows3,
+  Send,
   Share2,
   SlidersHorizontal,
   ArrowDownAZ,
@@ -42,6 +43,12 @@ import ToolbarMenu from "./ToolbarMenu.vue";
 import ToolbarDataActions from "./ToolbarDataActions.vue";
 import ToolbarSearch from "./ToolbarSearch.vue";
 import MenuChoiceList from "./MenuChoiceList.vue";
+import {
+  type DataDestination,
+  dataDestinationQuery,
+  groupDataDestinations,
+  runDataDestination,
+} from "../../data-destinations";
 import { TABLE_DENSITY_OPTIONS, type TableDensity } from "../../table-contracts";
 import GanttSettings from "./GanttSettings.vue";
 import { planningLabelOverrides } from "../../planning/labels";
@@ -410,6 +417,36 @@ const exportRows = async (): Promise<void> => {
 // Application actions stay in the toolbar on wide screens and join the settings "Data" section on touch layouts.
 const actionItems = computed(() => visibleToolbarActions.value.map((action) => ({ action, key: `action-${action.id}`, kind: "action" as const })));
 const hasExport = computed(() => Boolean(context.config.table.export));
+const hasShare = computed(() => context.config.table.share !== false);
+const destinations = computed(() =>
+  groupDataDestinations(context.actions.value?.destinations, context.selectedRows.value.length)
+);
+const pendingDestination = ref<string>();
+// One destination runs at a time; the host receives the view's query first.
+const runDestination = async (destination: DataDestination<Component>): Promise<void> => {
+  if (pendingDestination.value) return;
+  pendingDestination.value = destination.id;
+  const result = await runDataDestination(destination, {
+    tableId: context.config.id,
+    tableType: context.tableType,
+    viewId: context.state.activeViewId.value ?? null,
+    query: dataDestinationQuery({
+      search: context.state.search.value,
+      filters: Object.fromEntries(context.state.filters.value.map((filter) => [filter.id, filter.value])),
+      advancedFilters: context.state.advancedFilters.value,
+      sorting: context.state.sorting.value,
+    }),
+    columns: exportColumns(context.config.columns.definitions, context.state.visibility.value, context.state.order.value)
+      .map((column) => ({ id: column.id, header: column.header })),
+    selectedRowIds: context.selectedRows.value.map((row) => context.getRowId(row)),
+    url: window.location.href,
+    loadRows: () => context.loadAllMatchingRows(),
+  });
+  pendingDestination.value = undefined;
+  context.status.value = result.ok
+    ? { type: "success", message: result.message ?? translate("destinations.done", "Sent") }
+    : { type: "error", message: result.error };
+};
 const settingsBadge = computed(() => activeFilterCount.value + context.state.sorting.value.length);
 const shareLink = async () => {
   try {
@@ -553,9 +590,25 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
             <span class="yayaw-options-item-icon"><Download :size="16" aria-hidden="true" /></span>
             <span class="yayaw-options-item-copy"><span>{{ translate('export', 'Export') }}</span></span>
           </button>
-          <button type="button" class="yayaw-options-item" @click="shareLink">
+          <button v-for="destination in destinations.export" :key="destination.id" type="button" class="yayaw-options-item"
+            :disabled="Boolean(pendingDestination)" :aria-busy="pendingDestination === destination.id" @click="runDestination(destination)">
+            <span class="yayaw-options-item-icon">
+              <span v-if="pendingDestination === destination.id" class="yayaw-spinner" aria-hidden="true" />
+              <component :is="destination.icon ?? Send" v-else :size="16" aria-hidden="true" />
+            </span>
+            <span class="yayaw-options-item-copy"><span>{{ destination.label }}</span></span>
+          </button>
+          <button v-if="hasShare" type="button" class="yayaw-options-item" @click="shareLink">
             <span class="yayaw-options-item-icon"><Share2 :size="16" aria-hidden="true" /></span>
             <span class="yayaw-options-item-copy"><span>{{ translate('url_state.share', 'Share') }}</span></span>
+          </button>
+          <button v-for="destination in destinations.share" :key="destination.id" type="button" class="yayaw-options-item"
+            :disabled="Boolean(pendingDestination)" :aria-busy="pendingDestination === destination.id" @click="runDestination(destination)">
+            <span class="yayaw-options-item-icon">
+              <span v-if="pendingDestination === destination.id" class="yayaw-spinner" aria-hidden="true" />
+              <component :is="destination.icon ?? Send" v-else :size="16" aria-hidden="true" />
+            </span>
+            <span class="yayaw-options-item-copy"><span>{{ destination.label }}</span></span>
           </button>
         </div>
       </div>

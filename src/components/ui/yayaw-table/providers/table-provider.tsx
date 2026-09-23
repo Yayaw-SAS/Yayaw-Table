@@ -148,6 +148,11 @@ export interface TableActions {
     move: import("../utils/manual-order").ManualOrderMove,
     context?: TableMutationContext
   ) => Promise<{ success: boolean; error?: string }>;
+  /**
+   * Custom export and share destinations (webhook, n8n, connector) listed in
+   * the view settings "Data" section. `run` receives the current query.
+   */
+  destinations?: import("../utils/data-destinations").DataDestination<ReactNode>[];
   views?: TableViewActions;
   [key: string]: unknown;
 }
@@ -1039,6 +1044,9 @@ export const defaultTranslations: DataTableTranslations = {
     max: "Max",
     range: "Range",
     calculate: "Calculate",
+  },
+  destinations: {
+    done: "Sent",
   },
   menu: {
     data: "Data",

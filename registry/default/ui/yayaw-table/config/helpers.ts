@@ -482,6 +482,9 @@ export interface TableBehaviorConfig extends GenericModeViewConfigs {
    */
   export: boolean;
 
+  /** Offer "Share" (copy the link to the view); default true. */
+  share?: boolean;
+
   /**
    * Enable CSV export in bulk actions menu
    */

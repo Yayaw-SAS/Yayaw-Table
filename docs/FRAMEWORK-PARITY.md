@@ -751,3 +751,14 @@ presentation only (layout, density, properties, filter, sort, group, cards)
 and a "Data" section with Export, Share and, on compact toolbars, the
 application toolbar actions. Search is a field on wide toolbars and a button
 that opens it on compact ones. There is no separate data actions drawer.
+
+## Data destinations
+
+Both editions read `actions.destinations` and list them in the View settings
+"Data" section: export destinations after the CSV export, share destinations
+after the share link (`table.share: false` hides the link). The shared
+`data-destinations.ts` groups them (declared order, first id wins, `hidden` and
+`requiresSelection` honoured), normalizes the view's query into the `list`
+shape and runs one destination at a time, turning failures into a message.
+React icons are nodes, Vue icons are components; both default to a send icon.
+`tests/data-destinations-suite.ts` runs in both editions.

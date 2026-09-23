@@ -241,6 +241,8 @@ export interface TableBehaviorConfig<TData extends TableRecord = TableRecord>
   /** Backwards-compatible alias for `showClearFilters`. */
   showResetFilters?: boolean;
   export: boolean;
+  /** Offer "Share" (copy the link to the view); default true. */
+  share?: boolean;
   bulkExport: boolean;
   actionsAsIcons: boolean;
   density: TableDensity;
@@ -786,6 +788,11 @@ export interface TableActions<TData extends TableRecord = TableRecord> {
     move: import("./manual-order").ManualOrderMove,
     context?: { row: Readonly<TableRecord> }
   ) => Promise<{ success: boolean; error?: string }>;
+  /**
+   * Custom export and share destinations (webhook, n8n, connector) listed in
+   * the view settings "Data" section. `run` receives the current query.
+   */
+  destinations?: import("./data-destinations").DataDestination<Component>[];
   views?: TableViewActions;
   [key: string]: unknown;
 }

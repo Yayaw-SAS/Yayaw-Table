@@ -88,7 +88,9 @@ test("on phones, views and settings are two separate menus and search opens on d
   await page.getByRole("button", { name: "View settings" }).click();
   const settings = page.getByRole("dialog", { name: "View settings" });
   await expect(settings.getByRole("button", { name: "Export" })).toBeVisible();
-  await expect(settings.getByRole("button", { name: "Share" })).toBeVisible();
+  await expect(
+    settings.getByRole("button", { name: "Share", exact: true })
+  ).toBeVisible();
   await expect(settings.getByText("Default view")).toHaveCount(0);
   await page.keyboard.press("Escape");
 
@@ -103,4 +105,19 @@ test("on phones, views and settings are two separate menus and search opens on d
   await expect
     .poll(() => new URL(page.url()).searchParams.get("views-q"))
     .toBe("Bravo");
+});
+
+test("custom destinations receive the view's query from the Data section", async ({
+  page,
+}) => {
+  await page.goto(`${EXAMPLE}&views-q=bravo`);
+  await page.getByRole("button", { name: "View settings" }).click();
+  const settings = page.getByRole("dialog", { name: "View settings" });
+  await expect(
+    settings.getByRole("button", { name: "Share", exact: true })
+  ).toBeVisible();
+  await settings.getByRole("button", { name: "Send to n8n" }).click();
+  await expect(
+    page.getByText("Sent 1 records to the n8n workflow")
+  ).toBeVisible();
 });
