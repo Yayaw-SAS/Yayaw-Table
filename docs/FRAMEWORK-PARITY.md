@@ -820,6 +820,21 @@ authorization, server entry points and workers ([connectors](connectors.md)).
 `tests/connectors-notion-suite.ts` and `tests/connectors-google-sheets-suite.ts`
 run against both copies with a fake `fetch` and clock.
 
+The two-way sync engine `connectors/sync-engine.ts` (`planSync`,
+`applySyncPlan`, `nextSyncState`, `summarizeSyncPlan`, `normalizeSyncValue`,
+`hashSyncValues`, `toSyncMapping`) is synced the same way and ships in both
+connector items of each edition, next to `connector-model.ts`. It is pure:
+directions (`push`, `pull`, `two-way`), per-column three-way merge with
+`baseValues` (record hashes otherwise), conflict rules (`table-wins` default,
+`target-wins`, `latest-wins`), delete policies (`ignore`, `flag` default,
+`propagate`), adoption by key and duplicate reporting behave identically in
+both editions. The provider reads (`readNotionDatabase`, `readSheetRows`,
+`sheetValuesToRecords`, `fromNotionPropertyValue`) and sync targets
+(`createNotionSyncTarget`, `createSheetSyncTarget`) live in the provider
+modules. `tests/connectors-sync-engine-suite.ts` runs in both editions, and
+the Notion and Google Sheets suites cover reads, sync targets and unchanged
+round trips of every column type.
+
 ## Connector screens
 
 A Connect destination that declares `connector` (`targets`, optional

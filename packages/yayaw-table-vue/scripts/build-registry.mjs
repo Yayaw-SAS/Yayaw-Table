@@ -96,7 +96,9 @@ const calendarItem = {
 
 const connectorFiles = (name) =>
   toRegistryFiles(
-    ["connector-model.ts", name].map((file) => join(connectorsRoot, file)),
+    ["connector-model.ts", "sync-engine.ts", name].map((file) =>
+      join(connectorsRoot, file)
+    ),
     "registry:lib"
   );
 
@@ -107,7 +109,7 @@ const connectorItems = [
     type: "registry:lib",
     title: "YaYaw Table Vue Notion Connector",
     description:
-      'Optional, framework-agnostic server module that pushes table rows into a Notion database (upsert keyed by a "Yayaw ID" property). Runs in Node 20+, Bun, Deno and edge runtimes; the host stores the token, authorizes the push and calls it from its server.',
+      'Optional, framework-agnostic server module that pushes table rows into a Notion database (upsert keyed by a "Yayaw ID" property) and syncs both ways with the shared sync engine (read, three-way merge, conflict rules, delete policies). Runs in Node 20+, Bun, Deno and edge runtimes; the host stores the token and the sync state, authorizes the push and calls it from its server.',
     dependencies: [],
     registryDependencies: [],
     files: await connectorFiles("notion.ts"),
@@ -118,7 +120,7 @@ const connectorItems = [
     type: "registry:lib",
     title: "YaYaw Table Vue Google Sheets Connector",
     description:
-      'Optional, framework-agnostic server module that pushes table rows into a Google Sheets tab (upsert or replace, keyed by a "Yayaw ID" column) with a service account signed through Web Crypto. The host stores the key, authorizes the push and calls it from its server.',
+      'Optional, framework-agnostic server module that pushes table rows into a Google Sheets tab (upsert or replace, keyed by a "Yayaw ID" column) with a service account signed through Web Crypto, and syncs both ways with the shared sync engine. The host stores the key and the sync state, authorizes the push and calls it from its server.',
     dependencies: [],
     registryDependencies: [],
     files: await connectorFiles("google-sheets.ts"),

@@ -24,6 +24,14 @@ import {
   DEFAULT_CONNECTOR_KEY,
   safeSliceEnd,
 } from "./connector-model";
+import {
+  normalizeSyncValue,
+  type SyncItemResult,
+  type SyncMapping,
+  type SyncRecord,
+  type SyncSideAdapter,
+  type SyncWrite,
+} from "./sync-engine";
 
 export const NOTION_API_BASE_URL = "https://api.notion.com/v1";
 export const NOTION_API_VERSION = "2022-06-28";
@@ -949,4 +957,364 @@ export async function pushRowsToNotionDatabase(
     }
   }
   return result;
+}
+
+// Read and sync ----------------------------------------------------------------
+
+const MILLISECONDS_PER_MINUTE = 60_000;
+
+function optionValue(option: unknown): string | null {
+  const name = (option as { name?: unknown } | null)?.name;
+  return typeof name === "string" ? name : null;
+}
+
+function optionValues(options: unknown): string[] {
+  return Array.isArray(options)
+    ? options.flatMap((option) => optionValue(option) ?? [])
+    : [];
+}
+
+function stringOrNull(value: unknown): string | null {
+  return typeof value === "string" ? value : null;
+}
+
+function dateValue(date: unknown): string | null {
+  return stringOrNull((date as { start?: unknown } | null)?.start);
+}
+
+/**
+ * The plain value of a Notion property, symmetric with
+ * `toNotionPropertyValue`: text for title and rich text, a number, the option
+ * name of a select or status, option names of a multi-select, the start of a
+ * date, a boolean, or text for url, email and phone. Returns `undefined` for
+ * types the connector does not write (formulas, relations, people…).
+ */
+export function fromNotionPropertyValue(
+  value: Record<string, unknown> | undefined,
+  type: string
+): unknown {
+  if (!value) {
+    return;
+  }
+  switch (type) {
+    case "title":
+    case "rich_text":
+      return plainText(value[type]);
+    case "number":
+      return typeof value.number === "number" ? value.number : null;
+    case "select":
+    case "status":
+      return optionValue(value[type]);
+    case "multi_select":
+      return optionValues(value.multi_select);
+    case "date":
+      return dateValue(value.date);
+    case "checkbox":
+      return value.checkbox === true;
+    case "url":
+    case "email":
+    case "phone_number":
+      return stringOrNull(value[type]);
+    default:
+      return;
+  }
+}
+
+export interface NotionSyncInput {
+  databaseId: string;
+  /** Mapped columns (property names and column types) and the key property. */
+  mapping: SyncMapping;
+  token: string;
+}
+
+export interface NotionReadInput extends NotionSyncInput {
+  /**
+   * Only pages edited at or after this time. Notion records edit times to the
+   * minute, so the filter starts at the beginning of that minute. Pass the
+   * result to `planSync` with `targetPartial: true`.
+   */
+  since?: Date | number | string;
+}
+
+interface SyncTarget extends PushTarget {
+  type?: string;
+}
+
+interface NotionSyncContext {
+  client: NotionClient;
+  databaseId: string;
+  keyProperty: NotionPropertySchema;
+  targets: SyncTarget[];
+}
+
+function toConnectorMapping(mapping: SyncMapping): ConnectorMapping {
+  return {
+    keyProperty: mapping.keyField ?? DEFAULT_NOTION_KEY_PROPERTY,
+    properties: Object.fromEntries(
+      mapping.fields.map((field) => [field.columnId, field.field])
+    ),
+  };
+}
+
+async function loadSyncContext(
+  client: NotionClient,
+  input: NotionSyncInput
+): Promise<NotionSyncContext> {
+  const databaseId = normalizeNotionId(input.databaseId);
+  const schema = await readDatabaseSchema(client, databaseId);
+  const mapping = toConnectorMapping(input.mapping);
+  const keyProperty = resolveKeyProperty(
+    schema,
+    mapping.keyProperty ?? DEFAULT_NOTION_KEY_PROPERTY
+  );
+  // Unusable properties are left out, as a push leaves them out.
+  const resolved = resolveTargets(
+    schema,
+    mapping,
+    keyProperty,
+    createPushResult()
+  );
+  const types = new Map(
+    input.mapping.fields.map((field) => [field.columnId, field.type])
+  );
+  const targets = resolved.map((target) => ({
+    ...target,
+    type: types.get(target.columnId),
+  }));
+  return { client, databaseId, keyProperty, targets };
+}
+
+function sinceFilter(since: NotionReadInput["since"]) {
+  if (since === undefined) {
+    return;
+  }
+  const time = new Date(since).getTime();
+  if (Number.isNaN(time)) {
+    throw new ConnectorError("invalid_request");
+  }
+  const minute = Math.floor(time / MILLISECONDS_PER_MINUTE);
+  return {
+    timestamp: "last_edited_time",
+    last_edited_time: {
+      on_or_after: new Date(minute * MILLISECONDS_PER_MINUTE).toISOString(),
+    },
+  };
+}
+
+interface NotionPage {
+  archived?: boolean;
+  id?: string;
+  in_trash?: boolean;
+  last_edited_time?: string;
+  properties?: NotionPageProperties;
+}
+
+function pageRecord(
+  context: NotionSyncContext,
+  page: NotionPage
+): SyncRecord[] {
+  if (typeof page.id !== "string" || page.archived || page.in_trash) {
+    return [];
+  }
+  const values = new Map<string, unknown>();
+  for (const target of context.targets) {
+    const raw = fromNotionPropertyValue(
+      page.properties?.[target.property.name],
+      target.property.type
+    );
+    if (raw !== undefined) {
+      values.set(target.columnId, normalizeSyncValue(raw, target.type));
+    }
+  }
+  const key = readKey(page, context.keyProperty);
+  return [
+    {
+      id: page.id,
+      ...(key ? { key } : {}),
+      ...(page.last_edited_time ? { updatedAt: page.last_edited_time } : {}),
+      values: Object.fromEntries(values),
+    },
+  ];
+}
+
+function queryPath(context: NotionSyncContext): string {
+  const properties = [
+    context.keyProperty,
+    ...context.targets.map((target) => target.property),
+  ];
+  const query = properties
+    .map((property) => `filter_properties=${encodeURIComponent(property.id)}`)
+    .join("&");
+  return `/databases/${context.databaseId}/query?${query}`;
+}
+
+interface NotionPageList {
+  has_more?: boolean;
+  next_cursor?: string | null;
+  results?: NotionPage[];
+}
+
+async function readPages(
+  context: NotionSyncContext,
+  since: NotionReadInput["since"]
+): Promise<SyncRecord[]> {
+  const filter = sinceFilter(since);
+  const path = queryPath(context);
+  const records: SyncRecord[] = [];
+  const seen = new Set<string>();
+  let cursor: string | undefined;
+  do {
+    // Result pages are sequential: each needs the previous cursor.
+    const response = await context.client.request<NotionPageList>({
+      method: "POST",
+      path,
+      body: {
+        page_size: QUERY_PAGE_SIZE,
+        ...(filter ? { filter } : {}),
+        ...(cursor ? { start_cursor: cursor } : {}),
+      },
+    });
+    records.push(
+      ...(response.results ?? []).flatMap((page) => pageRecord(context, page))
+    );
+    cursor = nextCursor(response);
+    // A cursor seen twice would loop forever.
+    if (cursor && seen.has(cursor)) {
+      throw new ConnectorError("provider_unavailable");
+    }
+    seen.add(cursor ?? "");
+  } while (cursor);
+  return records;
+}
+
+/**
+ * Reads every page of a database (or those edited since `since`) as sync
+ * records: the page id, the "Yayaw ID" key, `last_edited_time` as
+ * `updatedAt`, and the mapped properties converted back to plain values and
+ * normalized by column type. Archived pages are left out. Throws
+ * `invalid_mapping` when the key property is missing.
+ */
+export async function readNotionDatabase(
+  input: NotionReadInput,
+  options?: ConnectorOptions
+): Promise<SyncRecord[]> {
+  const client = createNotionClient(input.token, options);
+  return await readPages(await loadSyncContext(client, input), input.since);
+}
+
+function syncProperties(
+  context: NotionSyncContext,
+  item: SyncWrite
+): Record<string, unknown> {
+  const properties = new Map<string, unknown>();
+  const key =
+    item.key === undefined
+      ? undefined
+      : toNotionPropertyValue(context.keyProperty, item.key);
+  if (key?.ok) {
+    properties.set(context.keyProperty.name, key.payload);
+  }
+  for (const target of context.targets) {
+    const conversion = Object.hasOwn(item.values, target.columnId)
+      ? toNotionPropertyValue(target.property, item.values[target.columnId])
+      : undefined;
+    if (conversion?.ok) {
+      properties.set(target.property.name, conversion.payload);
+    }
+  }
+  return Object.fromEntries(properties);
+}
+
+/**
+ * Writes pages one at a time behind the rate limiter. A revoked token or a
+ * missing capability stops with its error; other errors fail their item.
+ */
+async function eachPage<T>(
+  items: readonly T[],
+  write: (item: T) => Promise<string | undefined>,
+  missingIsDone = false
+): Promise<SyncItemResult[]> {
+  const results: SyncItemResult[] = [];
+  for (const item of items) {
+    try {
+      // Pages are written one at a time behind the rate limiter.
+      const id = await write(item);
+      results.push(id ? { ok: true, id } : { ok: true });
+    } catch (error) {
+      if (!(error instanceof ConnectorError) || STOP_CODES.has(error.code)) {
+        throw error;
+      }
+      const done = missingIsDone && error.code === "not_found";
+      results.push(done ? { ok: true } : { ok: false, code: error.code });
+    }
+  }
+  return results;
+}
+
+export interface NotionSyncTarget extends Required<SyncSideAdapter> {
+  read(since?: NotionReadInput["since"]): Promise<SyncRecord[]>;
+}
+
+/**
+ * The target adapter of `applySyncPlan` for one database, sharing one client
+ * and rate limiter: `read` lists pages, `create` adds pages keyed by "Yayaw
+ * ID" (retried only on 429), `update` patches the given properties and the
+ * key, and `delete` archives pages (Notion's trash; a missing page counts as
+ * deleted).
+ */
+export function createNotionSyncTarget(
+  input: NotionSyncInput,
+  options?: ConnectorOptions
+): NotionSyncTarget {
+  const client = createNotionClient(input.token, options);
+  let pending: Promise<NotionSyncContext> | undefined;
+  const context = () => {
+    pending ??= loadSyncContext(client, input);
+    return pending;
+  };
+  return {
+    read: async (since) => await readPages(await context(), since),
+    async create(items) {
+      const sync = await context();
+      return await eachPage(items, async (item) => {
+        // Creating a page is retried only on 429: it must never run twice.
+        const page = await client.request<{ id?: unknown }>({
+          method: "POST",
+          path: "/pages",
+          body: {
+            parent: { database_id: sync.databaseId },
+            properties: syncProperties(sync, item),
+          },
+          retry: "rate_limit_only",
+        });
+        return typeof page.id === "string" ? page.id : undefined;
+      });
+    },
+    async update(items) {
+      const sync = await context();
+      return await eachPage(items, async (item) => {
+        await client.request({
+          method: "PATCH",
+          path: `/pages/${normalizeNotionId(item.id ?? "")}`,
+          body: { properties: syncProperties(sync, item) },
+        });
+        return item.id;
+      });
+    },
+    async delete(ids) {
+      await context();
+      return await eachPage(
+        ids,
+        async (id) => {
+          await client.request({
+            method: "PATCH",
+            path: `/pages/${normalizeNotionId(id)}`,
+            body: { archived: true },
+          });
+          return id;
+        },
+        true
+      );
+    },
+  };
 }

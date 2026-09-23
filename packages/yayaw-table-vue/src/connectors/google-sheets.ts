@@ -26,6 +26,15 @@ import {
   type RetryPolicy,
   safeSliceEnd,
 } from "./connector-model";
+import {
+  normalizeSyncValue,
+  SHEET_ROW_ID_PREFIX,
+  type SyncItemResult,
+  type SyncMapping,
+  type SyncRecord,
+  type SyncSideAdapter,
+  type SyncWrite,
+} from "./sync-engine";
 
 export const GOOGLE_SHEETS_API_BASE_URL =
   "https://sheets.googleapis.com/v4/spreadsheets";
@@ -1226,4 +1235,384 @@ export async function pushRowsToSheet(
     await upsertRows(context, plan, rows, result);
   }
   return result;
+}
+
+// Read and sync ------------------------------------------------------------------
+
+/** Rows one `deleteDimension` batch removes at most. */
+const MAX_ROWS_PER_DELETE = 500;
+
+export interface GoogleSheetSyncInput {
+  credentials: GoogleServiceAccountCredentials;
+  /** Mapped columns (headers and column types) and the key column. */
+  mapping: SyncMapping;
+  /** Tab title; the first tab by default. */
+  sheetTitle?: string;
+  spreadsheetId: string;
+}
+
+const isBlankCell = (value: unknown) => cellText(value) === "";
+
+const keyColumnOf = (mapping: SyncMapping) =>
+  (mapping.keyField ?? DEFAULT_GOOGLE_SHEET_KEY_COLUMN).trim();
+
+/**
+ * Sync records from the values of a tab, header row first. Each mapped column
+ * is found by its header; a column whose header is missing is left out of
+ * `values` (unknown), an empty cell is empty. Values are normalized by column
+ * type, since cells come back as text, numbers or booleans. The remote id is
+ * the row's key, or `row:<number>` for a row without one. Empty rows are
+ * skipped.
+ */
+export function sheetValuesToRecords(
+  grid: readonly (readonly unknown[] | undefined)[],
+  mapping: SyncMapping
+): SyncRecord[] {
+  const header = (grid[0] ?? []).map(cellText);
+  const keyIndex = header.indexOf(keyColumnOf(mapping));
+  const columns = mapping.fields.flatMap((field) => {
+    const index = header.indexOf(field.field.trim());
+    return index >= 0 ? [{ field, index }] : [];
+  });
+  const records: SyncRecord[] = [];
+  for (const [offset, row] of grid.slice(1).entries()) {
+    const cells = row ?? [];
+    if (!cells.every(isBlankCell)) {
+      const key = keyIndex >= 0 ? cellText(cells[keyIndex]) : "";
+      const id = key || `${SHEET_ROW_ID_PREFIX}${offset + FIRST_DATA_ROW}`;
+      const values = columns.map(({ field, index }) => [
+        field.columnId,
+        normalizeSyncValue(cells[index], field.type),
+      ]);
+      records.push({
+        id,
+        ...(key ? { key } : {}),
+        values: Object.fromEntries(values),
+      });
+    }
+  }
+  return records;
+}
+
+async function openTab(
+  client: SheetsClient,
+  input: GoogleSheetSyncInput
+): Promise<PushContext> {
+  const spreadsheet = await readSpreadsheet(client, input.spreadsheetId);
+  const tab = requireTab(spreadsheet, input.sheetTitle);
+  return {
+    client,
+    spreadsheetId: parseSpreadsheetId(spreadsheet.id),
+    tab,
+    quoted: quoteSheetTitle(tab.title),
+  };
+}
+
+async function readGrid(context: PushContext): Promise<unknown[][]> {
+  const response = await context.client.request<{ values?: unknown[][] }>({
+    method: "GET",
+    path: valuesPath(context.spreadsheetId, context.quoted),
+    // Numbers and booleans come back typed; dates as the text they show.
+    query: {
+      majorDimension: "ROWS",
+      valueRenderOption: "UNFORMATTED_VALUE",
+      dateTimeRenderOption: "FORMATTED_STRING",
+    },
+  });
+  return response.values ?? [];
+}
+
+/**
+ * Reads a tab as sync records (see `sheetValuesToRecords`). Sheets has no
+ * per-row edit time, so records have no `updatedAt`.
+ */
+export async function readSheetRows(
+  input: GoogleSheetSyncInput,
+  options?: GoogleSheetsOptions
+): Promise<SyncRecord[]> {
+  const context = await openTab(
+    createSheetsClient(input.credentials, options),
+    input
+  );
+  return sheetValuesToRecords(await readGrid(context), input.mapping);
+}
+
+interface SheetWriteContext {
+  context: PushContext;
+  plan: SheetHeaderPlan;
+}
+
+/** Opens the tab and adds missing headers (and grid columns) first. */
+async function prepareSheetWrite(
+  client: SheetsClient,
+  input: GoogleSheetSyncInput
+): Promise<SheetWriteContext> {
+  const context = await openTab(client, input);
+  const plan = planSheetHeader(
+    await readHeader(client, context.spreadsheetId, context.tab.title),
+    keyColumnOf(input.mapping),
+    input.mapping.fields.map((field) => ({
+      id: field.columnId,
+      header: field.field,
+    }))
+  );
+  await appendDimension(
+    context,
+    "COLUMNS",
+    plan.header.length - context.tab.columnCount
+  );
+  const header = headerRange(context, plan);
+  if (header) {
+    await batchUpdateValues(context, [header]);
+  }
+  return { context, plan };
+}
+
+/**
+ * Cells of one sync write across the whole header: the key and the columns in
+ * `values`; the others stay `null`, which Sheets leaves untouched.
+ */
+function syncCells(plan: SheetHeaderPlan, item: SyncWrite): SheetCell[] {
+  const cells = Array.from(
+    { length: plan.header.length },
+    (): SheetCell => null
+  );
+  if (item.key !== undefined) {
+    cells[plan.keyIndex] = item.key;
+  }
+  for (const [columnId, index] of plan.indexes) {
+    if (Object.hasOwn(item.values, columnId)) {
+      cells[index] = toSheetCell(item.values[columnId]).cell;
+    }
+  }
+  return cells;
+}
+
+type RowLocator = (id: string) => number | undefined;
+
+/**
+ * Finds a row by its key, or by `row:<number>` while that row still has no
+ * key and is inside the grid.
+ */
+function rowLocator(keys: readonly unknown[], rowCount: number): RowLocator {
+  const byKey = new Map<string, number>();
+  for (const [index, value] of keys.entries()) {
+    const key = cellText(value);
+    if (key && !byKey.has(key)) {
+      byKey.set(key, index + FIRST_DATA_ROW);
+    }
+  }
+  return (id) => {
+    const found = byKey.get(id);
+    if (found !== undefined || !id.startsWith(SHEET_ROW_ID_PREFIX)) {
+      return found;
+    }
+    const row = Number(id.slice(SHEET_ROW_ID_PREFIX.length));
+    const valid =
+      Number.isInteger(row) &&
+      row >= FIRST_DATA_ROW &&
+      row <= rowCount &&
+      isBlankCell(keys[row - FIRST_DATA_ROW]);
+    return valid ? row : undefined;
+  };
+}
+
+async function readRowLocator(write: SheetWriteContext): Promise<RowLocator> {
+  const { context, plan } = write;
+  const keyAdded = plan.added.includes(plan.header[plan.keyIndex] ?? "");
+  const keys = keyAdded ? [] : await readKeyColumn(context, plan.keyIndex);
+  return rowLocator(keys, context.tab.rowCount);
+}
+
+interface PendingWrite<T> {
+  id?: string;
+  index: number;
+  value: T;
+}
+
+const failedResults = (count: number): SyncItemResult[] =>
+  Array.from({ length: count }, () => ({ ok: false, code: "failed" }) as const);
+
+/**
+ * Runs writes chunk by chunk. A chunk that fails fails its items; a failure
+ * that would repeat for every chunk stops with its error.
+ */
+async function writeChunks<T>(
+  pending: readonly PendingWrite<T>[],
+  size: number,
+  results: SyncItemResult[],
+  write: (values: T[]) => Promise<unknown>
+) {
+  for (const chunk of chunks(pending, size)) {
+    try {
+      // Chunks are ordered: Sheets allows about 60 writes a minute.
+      await write(chunk.map((item) => item.value));
+      for (const item of chunk) {
+        results[item.index] = item.id
+          ? { ok: true, id: item.id }
+          : { ok: true };
+      }
+    } catch (error) {
+      if (
+        !(error instanceof ConnectorError) ||
+        isFatalConnectorError(error.code)
+      ) {
+        throw error;
+      }
+      for (const item of chunk) {
+        results[item.index] = { ok: false, code: error.code };
+      }
+    }
+  }
+}
+
+async function createSheetRows(
+  write: SheetWriteContext,
+  items: readonly SyncWrite[]
+): Promise<SyncItemResult[]> {
+  const { context, plan } = write;
+  const results = failedResults(items.length);
+  const pending: PendingWrite<SheetCell[]>[] = [];
+  for (const [index, item] of items.entries()) {
+    if (item.key) {
+      pending.push({ index, id: item.key, value: syncCells(plan, item) });
+    } else {
+      results[index] = { ok: false, code: "invalid_request" };
+    }
+  }
+  const range = `${context.quoted}!A1:${columnLetter(plan.header.length - 1)}1`;
+  await writeChunks(pending, chunkSize(plan.header.length), results, (chunk) =>
+    context.client.request({
+      method: "POST",
+      path: `${valuesPath(context.spreadsheetId, range)}:append`,
+      query: {
+        valueInputOption: "RAW",
+        insertDataOption: "INSERT_ROWS",
+        includeValuesInResponse: "false",
+      },
+      body: { majorDimension: "ROWS", values: chunk },
+      // Appending is retried only on 429: it must never write twice.
+      retry: "rate_limit_only",
+    })
+  );
+  return results;
+}
+
+async function updateSheetRows(
+  write: SheetWriteContext,
+  items: readonly SyncWrite[]
+): Promise<SyncItemResult[]> {
+  const { context, plan } = write;
+  const locate = await readRowLocator(write);
+  const width = plan.header.length;
+  const results = failedResults(items.length);
+  const pending: PendingWrite<ValueRange>[] = [];
+  for (const [index, item] of items.entries()) {
+    const row = locate(item.id ?? "");
+    if (row === undefined) {
+      results[index] = { ok: false, code: "not_found" };
+    } else {
+      pending.push({
+        index,
+        // A row that gets its key is found by that key from now on.
+        id: item.key || item.id,
+        value: {
+          range: rowRange(context, row, 1, width),
+          majorDimension: "ROWS",
+          values: [syncCells(plan, item)],
+        },
+      });
+    }
+  }
+  await writeChunks(pending, chunkSize(width), results, (chunk) =>
+    batchUpdateValues(context, chunk)
+  );
+  return results;
+}
+
+async function deleteSheetRows(
+  client: SheetsClient,
+  input: GoogleSheetSyncInput,
+  ids: readonly string[]
+): Promise<SyncItemResult[]> {
+  const context = await openTab(client, input);
+  const header = await readHeader(
+    client,
+    context.spreadsheetId,
+    context.tab.title
+  );
+  const keyIndex = header.indexOf(keyColumnOf(input.mapping));
+  const keys = keyIndex >= 0 ? await readKeyColumn(context, keyIndex) : [];
+  const locate = rowLocator(keys, 0);
+  const results = failedResults(ids.length);
+  const rows = new Map<number, number[]>();
+  for (const [index, id] of ids.entries()) {
+    const row = locate(id);
+    // Rows are only deleted by key: a row number can shift. A key that is no
+    // longer in the sheet is already deleted.
+    if (id.startsWith(SHEET_ROW_ID_PREFIX) && row === undefined) {
+      results[index] = { ok: false, code: "invalid_request" };
+    } else if (row === undefined) {
+      results[index] = { ok: true };
+    } else {
+      rows.set(row, [...(rows.get(row) ?? []), index]);
+    }
+  }
+  // From the bottom up, so each deletion leaves the rows above in place.
+  const pending = [...rows.keys()]
+    .sort((left, right) => right - left)
+    .flatMap((row) =>
+      (rows.get(row) ?? []).map((index) => ({ index, value: row }))
+    );
+  await writeChunks(pending, MAX_ROWS_PER_DELETE, results, (chunk) =>
+    context.client.request({
+      method: "POST",
+      path: `${spreadsheetPath(context.spreadsheetId)}:batchUpdate`,
+      body: {
+        requests: [...new Set(chunk)].map((row) => ({
+          deleteDimension: {
+            range: {
+              sheetId: context.tab.sheetId,
+              dimension: "ROWS",
+              startIndex: row - 1,
+              endIndex: row,
+            },
+          },
+        })),
+      },
+      retry: "rate_limit_only",
+    })
+  );
+  return results;
+}
+
+export interface GoogleSheetSyncTarget extends Required<SyncSideAdapter> {
+  read(): Promise<SyncRecord[]>;
+}
+
+/**
+ * The target adapter of `applySyncPlan` for one tab, sharing one client and
+ * token: `read` returns the rows, `create` appends rows keyed by "Yayaw ID",
+ * `update` writes the given columns and the key of rows found by key (or by
+ * `row:<number>` for a row without a key yet), and `delete` removes rows found
+ * by key, from the bottom up, in one request per 500 rows. Missing headers
+ * are added at the end of the header row before writing.
+ */
+export function createSheetSyncTarget(
+  input: GoogleSheetSyncInput,
+  options?: GoogleSheetsOptions
+): GoogleSheetSyncTarget {
+  const client = createSheetsClient(input.credentials, options);
+  return {
+    read: async () =>
+      sheetValuesToRecords(
+        await readGrid(await openTab(client, input)),
+        input.mapping
+      ),
+    create: async (items) =>
+      await createSheetRows(await prepareSheetWrite(client, input), items),
+    update: async (items) =>
+      await updateSheetRows(await prepareSheetWrite(client, input), items),
+    delete: async (ids) => await deleteSheetRows(client, input, ids),
+  };
 }

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import type * as Model from "../src/components/ui/yayaw-table/connectors/connector-model";
 import type * as Sheets from "../src/components/ui/yayaw-table/connectors/google-sheets";
+import type * as Engine from "../src/components/ui/yayaw-table/connectors/sync-engine";
 import {
   caught,
   fakeClock,
@@ -11,10 +12,12 @@ import {
 } from "./connectors-fake-http";
 
 type SheetsApi = Pick<typeof Model, "ConnectorError" | "toConnectorRows"> &
+  Pick<typeof Engine, "normalizeSyncValue"> &
   Pick<
     typeof Sheets,
     | "columnLetter"
     | "createGoogleTokenCache"
+    | "createSheetSyncTarget"
     | "getSpreadsheet"
     | "parseServiceAccountKey"
     | "parseSpreadsheetId"
@@ -22,7 +25,10 @@ type SheetsApi = Pick<typeof Model, "ConnectorError" | "toConnectorRows"> &
     | "planSheetUpsert"
     | "pushRowsToSheet"
     | "readHeaderRow"
+    | "readSheetRows"
+    | "sheetValuesToRecords"
     | "signServiceAccountAssertion"
+    | "toSheetCell"
     | "verifyGoogleSheetsCredentials"
   >;
 
@@ -93,6 +99,8 @@ const decodeJson = (value: string): Record<string, unknown> =>
 
 interface SheetState {
   columnCount: number;
+  /** Every value of the tab, header first, for full reads. */
+  grid?: unknown[][];
   header: string[];
   keys: string[];
   onAppend?: () => Response;
@@ -135,9 +143,14 @@ function spreadsheetResponse(state: SheetState) {
 }
 
 function valuesResponse(state: SheetState, request: RecordedRequest) {
-  return path(request).endsWith("!1:1")
-    ? json({ values: state.header.length > 0 ? [state.header] : [] })
-    : json({ values: state.keys.length > 0 ? [state.keys] : [] });
+  const target = path(request);
+  if (target.endsWith("!1:1")) {
+    return json({ values: state.header.length > 0 ? [state.header] : [] });
+  }
+  if (target.endsWith("/values/'Data'")) {
+    return json({ values: state.grid ?? [] });
+  }
+  return json({ values: state.keys.length > 0 ? [state.keys] : [] });
 }
 
 function sheetsRoute(state: SheetState) {
@@ -178,6 +191,17 @@ const kind = (request: RecordedRequest): string => {
     return "clear";
   }
   return target.includes("/values/") ? "read" : "spreadsheet";
+};
+
+const syncMapping = {
+  keyField: "Yayaw ID",
+  fields: [
+    { columnId: "name", field: "Name" },
+    { columnId: "amount", field: "Amount", type: "number" },
+    { columnId: "done", field: "Done", type: "boolean" },
+    { columnId: "tags", field: "Tags", type: "multiSelect" },
+    { columnId: "due", field: "Due", type: "date" },
+  ],
 };
 
 const columns = [
@@ -670,5 +694,217 @@ export function connectorsGoogleSheetsSuite(
     );
     assert.equal(retried.updated, 1);
     assert.equal(batchAttempts, 2);
+  });
+
+  test("a value survives a round trip through a sheet unchanged", () => {
+    const cases: [string | undefined, unknown][] = [
+      [undefined, "Launch"],
+      [undefined, "=SUM(A1)"],
+      [undefined, ""],
+      ["number", 1200.5],
+      ["number", "1 200.50"],
+      ["number", null],
+      ["select", " Active "],
+      ["multiSelect", ["web", "api"]],
+      ["multiSelect", []],
+      ["date", "2026-10-01"],
+      ["date", new Date("2026-10-01T10:00:00Z")],
+      ["date", null],
+      ["boolean", true],
+      ["boolean", false],
+      ["boolean", null],
+      ["url", "https://table.yayaw.app"],
+    ];
+    for (const [type, value] of cases) {
+      const { cell } = api.toSheetCell(value);
+      const expected = api.normalizeSyncValue(value, type);
+      // Unformatted reads return typed cells; other reads return text.
+      for (const read of [cell, String(cell)]) {
+        assert.deepEqual(
+          api.normalizeSyncValue(read, type),
+          expected,
+          `${type} ${String(value)} ${typeof read}`
+        );
+      }
+    }
+  });
+
+  test("turns tab values into records by header", () => {
+    const records = api.sheetValuesToRecords(
+      [
+        ["Notes", "Yayaw ID", " Name ", "Amount", "Done", "Tags"],
+        ["x", "r1", "Alpha", 1200.5, true, "b, a"],
+        [],
+        ["", "", "Keyless", "7", "FALSE"],
+        ["", " ", "", ""],
+      ],
+      syncMapping
+    );
+    assert.deepEqual(records, [
+      {
+        id: "r1",
+        key: "r1",
+        values: { name: "Alpha", amount: 1200.5, done: true, tags: ["a", "b"] },
+      },
+      {
+        id: "row:4",
+        values: { name: "Keyless", amount: 7, done: false, tags: null },
+      },
+    ]);
+    // Without a key column every row is identified by its number.
+    assert.deepEqual(
+      api
+        .sheetValuesToRecords([["Name"], ["A"]], syncMapping)
+        .map((record) => record.id),
+      ["row:2"]
+    );
+  });
+
+  test("reads a tab as sync records with typed cells", async () => {
+    const { credentials, runtime, server } = await setup({
+      grid: [
+        ["Yayaw ID", "Name", "Amount"],
+        ["r1", "Alpha", 3],
+      ],
+    });
+    const records = await api.readSheetRows(
+      {
+        credentials,
+        spreadsheetId: SPREADSHEET_ID,
+        sheetTitle: "Data",
+        mapping: syncMapping,
+      },
+      runtime
+    );
+    assert.deepEqual(records, [
+      { id: "r1", key: "r1", values: { name: "Alpha", amount: 3 } },
+    ]);
+    const read = server.requests.find((request) => kind(request) === "read");
+    assert.equal(
+      read?.url.searchParams.get("valueRenderOption"),
+      "UNFORMATTED_VALUE"
+    );
+    assert.equal(
+      read?.url.searchParams.get("dateTimeRenderOption"),
+      "FORMATTED_STRING"
+    );
+  });
+
+  test("the sync target updates rows by key or row number and appends", async () => {
+    const { credentials, runtime, server } = await setup({
+      header: ["Yayaw ID", "Name", "Amount", "Done", "Tags", "Due"],
+      keys: ["r1", "", "r2"],
+      columnCount: 6,
+    });
+    const target = api.createSheetSyncTarget(
+      {
+        credentials,
+        spreadsheetId: SPREADSHEET_ID,
+        sheetTitle: "Data",
+        mapping: syncMapping,
+      },
+      runtime
+    );
+    assert.deepEqual(
+      await target.update([
+        { id: "r2", key: "r2", values: { amount: 3 } },
+        { id: "row:3", key: "r9", values: {} },
+        { id: "row:2", key: "r8", values: {} },
+        { id: "gone", key: "gone", values: {} },
+      ]),
+      [
+        { ok: true, id: "r2" },
+        { ok: true, id: "r9" },
+        { ok: false, code: "not_found" },
+        { ok: false, code: "not_found" },
+      ]
+    );
+    const update = server.requests.find(
+      (request) => kind(request) === "valuesbatchUpdate"
+    )?.body as { data: unknown[] };
+    assert.deepEqual(update.data, [
+      {
+        range: "'Data'!A4:F4",
+        majorDimension: "ROWS",
+        values: [["r2", null, 3, null, null, null]],
+      },
+      {
+        range: "'Data'!A3:F3",
+        majorDimension: "ROWS",
+        values: [["r9", null, null, null, null, null]],
+      },
+    ]);
+    assert.deepEqual(
+      await target.create([
+        { key: "r5", values: { name: "New", tags: ["a", "b"] } },
+        { values: { name: "No key" } },
+      ]),
+      [
+        { ok: true, id: "r5" },
+        { ok: false, code: "invalid_request" },
+      ]
+    );
+    const append = server.requests.find(
+      (request) => kind(request) === "append"
+    );
+    assert.deepEqual((append?.body as { values: unknown[] }).values, [
+      ["r5", "New", null, null, "a, b", null],
+    ]);
+  });
+
+  test("the sync target deletes rows by key from the bottom up", async () => {
+    const { credentials, runtime, server } = await setup({
+      header: ["Yayaw ID", "Name"],
+      keys: ["r1", "", "r2"],
+      columnCount: 2,
+    });
+    const target = api.createSheetSyncTarget(
+      { credentials, spreadsheetId: SPREADSHEET_ID, mapping: syncMapping },
+      runtime
+    );
+    assert.deepEqual(await target.delete(["r1", "r2", "gone", "row:3"]), [
+      { ok: true },
+      { ok: true },
+      { ok: true },
+      { ok: false, code: "invalid_request" },
+    ]);
+    const deletes = server.requests.filter(
+      (request) => kind(request) === "batchUpdate"
+    );
+    assert.equal(deletes.length, 1);
+    assert.deepEqual((deletes[0]?.body as { requests: unknown[] }).requests, [
+      {
+        deleteDimension: {
+          range: { sheetId: 7, dimension: "ROWS", startIndex: 3, endIndex: 4 },
+        },
+      },
+      {
+        deleteDimension: {
+          range: { sheetId: 7, dimension: "ROWS", startIndex: 1, endIndex: 2 },
+        },
+      },
+    ]);
+  });
+
+  test("the sync target adds missing headers before writing", async () => {
+    const { credentials, runtime, server } = await setup({
+      header: ["Name"],
+      columnCount: 1,
+    });
+    const target = api.createSheetSyncTarget(
+      { credentials, spreadsheetId: SPREADSHEET_ID, mapping: syncMapping },
+      runtime
+    );
+    await target.create([{ key: "r1", values: { name: "A" } }]);
+    const headerWrite = server.requests.find(
+      (request) => kind(request) === "valuesbatchUpdate"
+    )?.body as { data: { range: string; values: unknown[][] }[] };
+    assert.deepEqual(headerWrite.data, [
+      {
+        range: "'Data'!B1:F1",
+        majorDimension: "ROWS",
+        values: [["Yayaw ID", "Amount", "Done", "Tags", "Due"]],
+      },
+    ]);
   });
 }

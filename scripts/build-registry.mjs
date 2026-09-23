@@ -57,17 +57,17 @@ const OPTIONAL_ITEMS = [
 /**
  * Optional server modules living in the table source (`connectors/`). They
  * are framework-agnostic and excluded from the table item; each connector item
- * ships the shared model with its provider module.
+ * ships the shared model and sync engine with its provider module.
  */
 const CONNECTORS_DIR = "connectors";
 const CONNECTOR_ITEMS = [
   {
     name: "yayaw-table-connector-notion",
-    files: ["connector-model.ts", "notion.ts"],
+    files: ["connector-model.ts", "sync-engine.ts", "notion.ts"],
   },
   {
     name: "yayaw-table-connector-google-sheets",
-    files: ["connector-model.ts", "google-sheets.ts"],
+    files: ["connector-model.ts", "sync-engine.ts", "google-sheets.ts"],
   },
 ];
 

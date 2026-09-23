@@ -1,0 +1,5 @@
+---
+"yayaw-table-workspace": minor
+---
+
+Two-way sync between a table and Notion or Google Sheets, in the optional connector items of React and Vue. The new framework-agnostic `sync-engine.ts` (shipped in every connector item) plans a run from the records of both sides and the per-row `SyncState` the host stores: `push`, `pull` or `two-way`, a per-column three-way merge with conflict rules (`table-wins`, `target-wins`, `latest-wins`), delete policies (`ignore`, `flag`, `propagate`), adoption of existing target records by the "Yayaw ID" key and reported duplicates. `normalizeSyncValue` and `hashSyncValues` keep round trips through Notion and Sheets from looking like changes. `applySyncPlan` writes in batches through adapters, records per-item failures, stops on authorization errors, and returns a state that only holds successful changes so failures are retried next run. The Notion module adds `readNotionDatabase` (pagination, `since` filter, `last_edited_time`) and `createNotionSyncTarget`; the Google Sheets module adds `readSheetRows` and `createSheetSyncTarget` (rows found by key, deletions by key from the bottom up). No UI yet; see `docs/connectors.md`.

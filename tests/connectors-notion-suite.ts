@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import type * as Model from "../src/components/ui/yayaw-table/connectors/connector-model";
 import type * as Notion from "../src/components/ui/yayaw-table/connectors/notion";
+import type * as Engine from "../src/components/ui/yayaw-table/connectors/sync-engine";
 import {
   caught,
   fakeClock,
@@ -15,13 +16,17 @@ type NotionApi = Pick<
   typeof Model,
   "ConnectorError" | "createConnectorHttp" | "retryDelay" | "toConnectorRows"
 > &
+  Pick<typeof Engine, "normalizeSyncValue"> &
   Pick<
     typeof Notion,
+    | "createNotionSyncTarget"
     | "defaultNotionMapping"
+    | "fromNotionPropertyValue"
     | "getNotionDatabaseSchema"
     | "listNotionDatabases"
     | "normalizeNotionId"
     | "pushRowsToNotionDatabase"
+    | "readNotionDatabase"
     | "toNotionPropertyValue"
     | "toRichText"
     | "verifyNotionToken"
@@ -85,6 +90,82 @@ function notionRoute(
     }
     return json({ message: "unexpected" }, 404);
   };
+}
+
+const syncDatabase = {
+  id: DATABASE_DASHED,
+  title: [{ plain_text: "Projects" }],
+  properties: {
+    Name: { id: "title", name: "Name", type: "title" },
+    "Yayaw ID": { id: "key:1", name: "Yayaw ID", type: "rich_text" },
+    Amount: { id: "am", name: "Amount", type: "number" },
+    Due: { id: "du", name: "Due", type: "date" },
+    Done: { id: "dn", name: "Done", type: "checkbox" },
+    Tags: { id: "tg", name: "Tags", type: "multi_select" },
+    Status: { id: "st", name: "Status", type: "select" },
+    Owner: { id: "ow", name: "Owner", type: "people" },
+  },
+};
+
+const syncMapping = {
+  keyField: "Yayaw ID",
+  fields: [
+    { columnId: "name", field: "Name" },
+    { columnId: "amount", field: "Amount", type: "number" },
+    { columnId: "due", field: "Due", type: "date" },
+    { columnId: "done", field: "Done", type: "boolean" },
+    { columnId: "tags", field: "Tags", type: "multiSelect" },
+    { columnId: "status", field: "Status", type: "select" },
+    { columnId: "owner", field: "Owner" },
+  ],
+};
+
+const notionPage = (
+  id: string,
+  key: string | null,
+  extra: Record<string, unknown> = {}
+) => ({
+  object: "page",
+  id,
+  last_edited_time: "2026-09-23T09:12:00.000Z",
+  properties: {
+    Name: {
+      type: "title",
+      title: [{ plain_text: "Laun" }, { plain_text: "ch" }],
+    },
+    "Yayaw ID": {
+      type: "rich_text",
+      rich_text: key ? [{ plain_text: key }] : [],
+    },
+    Amount: { type: "number", number: 1200.5 },
+    Due: { type: "date", date: { start: "2026-10-01", end: null } },
+    Done: { type: "checkbox", checkbox: true },
+    Tags: {
+      type: "multi_select",
+      multi_select: [{ name: "web" }, { name: "api" }],
+    },
+    Status: { type: "select", select: null },
+    Owner: { type: "people", people: [{ id: "u1" }] },
+  },
+  ...extra,
+});
+
+/** A property payload as Notion returns it after it was written. */
+function notionResponse(payload: Record<string, unknown>) {
+  const [entry] = Object.entries(payload);
+  const [type, value] = entry ?? ["", null];
+  if (type === "title" || type === "rich_text") {
+    const items = value as { text: { content: string } }[];
+    return {
+      type,
+      [type]: items.map((item) => ({ plain_text: item.text.content })),
+    };
+  }
+  if (type === "date" && value) {
+    const { start } = value as { start: string };
+    return { type, date: { start: start.replace("Z", "+00:00"), end: null } };
+  }
+  return { type, [type]: value };
 }
 
 const writes = (requests: readonly RecordedRequest[]) =>
@@ -528,5 +609,223 @@ export function connectorsNotionSuite(
     assert.ok(
       result.warnings.some((warning) => warning.reason === "row_limit")
     );
+  });
+
+  test("a value survives a round trip through Notion unchanged", () => {
+    const cases: [string, string | undefined, unknown][] = [
+      ["title", undefined, "Launch"],
+      ["title", undefined, ""],
+      ["rich_text", undefined, null],
+      ["number", "number", 1200.5],
+      ["number", "number", " 1 200.50 "],
+      ["number", "number", null],
+      ["select", "select", "Active"],
+      ["select", "select", null],
+      ["multi_select", "multiSelect", ["web", "api"]],
+      ["multi_select", "multiSelect", "web, api"],
+      ["multi_select", "multiSelect", []],
+      ["date", "date", "2026-10-01"],
+      ["date", "date", new Date("2026-10-01T10:00:00Z")],
+      ["date", "date", "2026-10-01T12:00:00+02:00"],
+      ["date", "date", null],
+      ["checkbox", "boolean", false],
+      ["checkbox", "boolean", true],
+      ["checkbox", "boolean", null],
+      ["url", "url", "https://table.yayaw.app"],
+      ["email", "email", " team@yayaw.app "],
+      ["phone_number", undefined, null],
+    ];
+    for (const [type, columnType, value] of cases) {
+      const property = { id: type, name: type, type };
+      const conversion = api.toNotionPropertyValue(property, value);
+      assert.ok(conversion.ok, `${type} ${String(value)}`);
+      const back = api.fromNotionPropertyValue(
+        notionResponse(conversion.payload),
+        type
+      );
+      assert.deepEqual(
+        api.normalizeSyncValue(back, columnType),
+        api.normalizeSyncValue(value, columnType),
+        `${type} ${String(value)}`
+      );
+    }
+    assert.equal(
+      api.fromNotionPropertyValue({ people: [] }, "people"),
+      undefined
+    );
+  });
+
+  test("reads a database as sync records across result pages", async () => {
+    const { runtime, server } = options((request) => {
+      if (request.method === "GET") {
+        return json(syncDatabase);
+      }
+      const cursor = (request.body as { start_cursor?: string }).start_cursor;
+      return cursor
+        ? json({
+            results: [
+              notionPage("page-3", null),
+              notionPage("page-4", "r4", { archived: true }),
+            ],
+            has_more: false,
+          })
+        : json({
+            results: [notionPage("page-1", "r1"), { object: "page" }],
+            has_more: true,
+            next_cursor: "cursor-2",
+          });
+    });
+    const records = await api.readNotionDatabase(
+      { token: "secret_x", databaseId: DATABASE_ID, mapping: syncMapping },
+      runtime
+    );
+    const values = {
+      name: "Launch",
+      amount: 1200.5,
+      due: "2026-10-01",
+      done: true,
+      tags: ["api", "web"],
+      status: null,
+    };
+    assert.deepEqual(records, [
+      {
+        id: "page-1",
+        key: "r1",
+        updatedAt: "2026-09-23T09:12:00.000Z",
+        values,
+      },
+      { id: "page-3", updatedAt: "2026-09-23T09:12:00.000Z", values },
+    ]);
+    const queries = server.requests.filter(
+      (request) => request.method === "POST"
+    );
+    assert.equal(queries.length, 2);
+    assert.deepEqual(queries[0]?.url.searchParams.getAll("filter_properties"), [
+      "key:1",
+      "title",
+      "am",
+      "du",
+      "dn",
+      "tg",
+      "st",
+    ]);
+    assert.deepEqual(queries[0]?.body, { page_size: 100 });
+    assert.deepEqual(queries[1]?.body, {
+      page_size: 100,
+      start_cursor: "cursor-2",
+    });
+  });
+
+  test("reads only pages edited since a time, from the start of its minute", async () => {
+    const { runtime, server } = options((request) =>
+      request.method === "GET"
+        ? json(syncDatabase)
+        : json({ results: [], has_more: false })
+    );
+    await api.readNotionDatabase(
+      {
+        token: "secret_x",
+        databaseId: DATABASE_ID,
+        mapping: syncMapping,
+        since: "2026-09-23T10:15:42.500Z",
+      },
+      runtime
+    );
+    assert.deepEqual((server.requests[1]?.body as { filter: unknown }).filter, {
+      timestamp: "last_edited_time",
+      last_edited_time: { on_or_after: "2026-09-23T10:15:00.000Z" },
+    });
+    const error = await caught(() =>
+      api.readNotionDatabase(
+        {
+          token: "secret_x",
+          databaseId: DATABASE_ID,
+          mapping: { ...syncMapping, keyField: "Missing" },
+        },
+        runtime
+      )
+    );
+    assert.ok(error instanceof api.ConnectorError);
+    assert.equal(error.code, "invalid_mapping");
+  });
+
+  test("the sync target creates, updates and archives pages", async () => {
+    const { runtime, server } = options((request) => {
+      const path = request.url.pathname;
+      if (request.method === "GET") {
+        return json(syncDatabase);
+      }
+      if (path === `/v1/pages/${PAGE_ID}` && request.method === "PATCH") {
+        const archived = (request.body as { archived?: boolean }).archived;
+        return archived ? json({}, 404) : json({ id: PAGE_ID });
+      }
+      return path === "/v1/pages"
+        ? json({ id: "new-page" })
+        : json({ message: SECRET }, 400);
+    });
+    const target = api.createNotionSyncTarget(
+      { token: "secret_x", databaseId: DATABASE_ID, mapping: syncMapping },
+      runtime
+    );
+    assert.deepEqual(
+      await target.create([{ key: "r1", values: { name: "A", amount: "2" } }]),
+      [{ ok: true, id: "new-page" }]
+    );
+    assert.deepEqual(
+      await target.update([
+        { id: PAGE_ID, key: "r1", values: { done: true } },
+        { id: "not-an-id", key: "r2", values: {} },
+      ]),
+      [
+        { ok: true, id: PAGE_ID },
+        { ok: false, code: "invalid_target" },
+      ]
+    );
+    // A page that is already gone counts as deleted.
+    assert.deepEqual(await target.delete([PAGE_ID]), [{ ok: true }]);
+    const bodies = server.requests
+      .filter((request) => request.method !== "GET")
+      .map((request) => request.body);
+    assert.deepEqual(bodies, [
+      {
+        parent: { database_id: DATABASE_DASHED },
+        properties: {
+          "Yayaw ID": {
+            rich_text: [{ type: "text", text: { content: "r1" } }],
+          },
+          Name: { title: [{ type: "text", text: { content: "A" } }] },
+          Amount: { number: 2 },
+        },
+      },
+      {
+        properties: {
+          "Yayaw ID": {
+            rich_text: [{ type: "text", text: { content: "r1" } }],
+          },
+          Done: { checkbox: true },
+        },
+      },
+      { archived: true },
+    ]);
+    // The schema is read once per target.
+    assert.equal(
+      server.requests.filter((request) => request.method === "GET").length,
+      1
+    );
+  });
+
+  test("the sync target stops on a revoked token", async () => {
+    const { runtime } = options((request) =>
+      request.method === "GET" ? json(syncDatabase) : json({}, 401)
+    );
+    const target = api.createNotionSyncTarget(
+      { token: "secret_x", databaseId: DATABASE_ID, mapping: syncMapping },
+      runtime
+    );
+    const error = await caught(() =>
+      target.update([{ id: PAGE_ID, key: "r1", values: {} }])
+    );
+    assert.ok(error instanceof api.ConnectorError);
+    assert.equal(error.code, "unauthorized");
   });
 }
