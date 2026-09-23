@@ -288,6 +288,9 @@ export interface DataTableTranslations {
   };
   views: {
     view?: string;
+    tabs?: string;
+    more?: string;
+    newView?: string;
     settings?: string;
     cardSettings?: string;
     modified?: string;
@@ -418,6 +421,7 @@ export interface DataTableTranslations {
         global: string;
         save: string;
         saving: string;
+        layout?: string;
       };
       manage: {
         title: string;

@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import TableTooltip from "./TableTooltip.vue";
-import { Check, ChevronDown, LayoutList, CopyPlus, ListRestart, Save, Star, Trash2, Users } from "lucide-vue-next";
+import { Check, ChevronDown, LayoutList, CopyPlus, ListRestart, Save, SlidersHorizontal, Star, Trash2, Users } from "lucide-vue-next";
 import ToolbarMenu from "./ToolbarMenu.vue";
-import { areViewSettingsEqual } from "../../view-menu";
+import { areViewSettingsEqual, availableDisplayModes } from "../../view-menu";
+import { resolveViewTabs } from "../../view-tabs";
+import TableSelect from "../controls/TableSelect.vue";
+import ViewTabs from "./ViewTabs.vue";
 import { computed, ref, useId, watch } from "vue";
 import { useSavedViews } from "../../composables/use-saved-views";
 import type { TableView } from "../../types";
@@ -12,7 +15,7 @@ const props = defineProps<{ initialViews: TableView[]; enabled?: boolean; compac
 const emit = defineEmits<{ "update:open": [open: boolean]; back: [] }>();
 const {
   context, views, active, dirty, editable, deletable, busy, loading, loadError, error,
-  dialogError, dialogOpen, name, shared, label, select, load, openSave, closeSave, save, update, remove,
+  dialogError, dialogOpen, name, shared, newViewMode, label, select, load, openSave, closeSave, save, update, remove,
   favorite, favoriteViewId, toggleFavorite,
 } = useSavedViews(() => props.initialViews, () => props.enabled !== false);
 const menuOpen = ref(false);
@@ -27,6 +30,16 @@ const resetView = () => {
   if (active.value) context.state.applyView(active.value.config, active.value.id);
   else context.state.reset();
 };
+const tabSettings = computed(() => resolveViewTabs(context.config.table.viewTabs));
+// Tabs name the views on wide screens; the trigger then only opens the settings.
+const showTabs = computed(() => viewEnabled.value && !props.compact && Boolean(tabSettings.value) && views.value.length > 0);
+const defaultMode = computed(() => context.config.table.defaultDisplayMode ?? "table");
+const offeredModes = computed(() => availableDisplayModes(context.config.table.displayModes, {
+  planning: Boolean(context.planning),
+  renderers: Object.keys(context.displayModeRenderers ?? {}),
+}));
+const layoutOptions = computed(() => offeredModes.value.map((mode) => ({ value: mode, label: label(`views.display.${mode}`, `display.${mode}`) })));
+const selectTab = (id: string | null): void => selectView(views.value.find((view) => view.id === id));
 const nameId = useId();
 const nameErrorId = useId();
 const favoriteLabel = computed(() => {
@@ -53,10 +66,21 @@ const focusName = (event: Event): void => {
 
 <template>
   <div class="yayaw-view-manager">
+    <div class="yayaw-view-manager-row">
+    <ViewTabs v-if="showTabs && tabSettings" :active-id="context.state.activeViewId.value ?? null"
+      :can-create="Boolean(context.config.table.allowViewSave)" :dirty="dirty" :disabled="busy" :max-visible="tabSettings.maxVisible"
+      :default-tab="{ id: null, name: label('views.defaultView', 'defaultView'), displayMode: defaultMode }"
+      :views="views.map((view) => ({ id: view.id, name: view.name, displayMode: view.config.displayMode ?? defaultMode }))"
+      :labels="{ tabs: label('views.tabs', 'viewTabs'), more: label('views.more', 'moreViews'), newView: label('views.newView', 'newView'), modified: label('views.modified', 'viewModified') }"
+      @select="selectTab" @create="openDialog" />
     <ToolbarMenu :open="menuOpen" :compact="compact" :title="panel ? (panelTitle ?? '') : label('views.settings', 'views')" :back="panel"
       :back-label="label('back', 'back')" :close-label="label('views.close', 'close')" @back="emit('back')" @update:open="menuChanged">
       <template #trigger>
-        <button ref="trigger" type="button" class="yayaw-button yayaw-button-outline yayaw-view-trigger" :id="`table-options-${context.config.id}`"
+        <button v-if="showTabs" ref="trigger" type="button" class="yayaw-button yayaw-button-outline yayaw-icon-only yayaw-view-trigger" :id="`table-options-${context.config.id}`"
+          :aria-label="label('views.settings', 'views')" :disabled="loading || busy">
+          <SlidersHorizontal :size="16" aria-hidden="true" />
+        </button>
+        <button v-else ref="trigger" type="button" class="yayaw-button yayaw-button-outline yayaw-view-trigger" :id="`table-options-${context.config.id}`"
           :aria-label="viewEnabled ? `${label('views.current', 'currentView')}: ${currentLabel}` : label('views.settings', 'views')" :disabled="viewEnabled && (loading || busy)">
           <LayoutList :size="16" aria-hidden="true" /><span class="yayaw-view-name">{{ viewEnabled ? currentLabel : label('views.view', 'views') }}</span>
           <span v-if="viewEnabled && dirty" class="yayaw-view-dirty" role="status" :aria-label="label('views.modified', 'viewModified')" />
@@ -102,6 +126,7 @@ const focusName = (event: Event): void => {
         </div>
       </template>
     </ToolbarMenu>
+    </div>
     <div v-if="loadError" class="yayaw-view-error" role="alert">
       {{ loadError }}
       <button type="button" class="yayaw-button yayaw-button-ghost" :disabled="loading" @click="load">{{ label('views.retry', 'retry') }}</button>
@@ -119,6 +144,8 @@ const focusName = (event: Event): void => {
             :aria-invalid="Boolean(dialogError)" :aria-describedby="dialogError ? nameErrorId : undefined" />
           <p v-if="dialogError" :id="nameErrorId" class="yayaw-view-error" role="alert">{{ dialogError }}</p>
         </div>
+        <TableSelect v-if="layoutOptions.length > 1 && newViewMode" v-model="newViewMode"
+          :label="label('views.dialog.save.layout', 'viewLayout')" :options="layoutOptions" :disabled="busy" />
         <label v-if="context.config.table.allowViewSharing" class="yayaw-view-share">
           <input v-model="shared" type="checkbox" :disabled="busy" />{{ label('views.dialog.save.global', 'shareView') }}
         </label>

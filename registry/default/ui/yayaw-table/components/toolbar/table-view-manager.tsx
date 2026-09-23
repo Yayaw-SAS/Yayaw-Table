@@ -8,6 +8,7 @@ import {
   LayoutList,
   ListRestart,
   Save,
+  SlidersHorizontal,
   Star,
   Trash2,
   Users,
@@ -33,6 +34,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useTableUrlState } from "../../hooks/use-table-url-state";
 import {
@@ -54,6 +62,8 @@ import {
   normalizeTableViewConfig,
 } from "../../utils/table-view-state";
 import { createLocalTableViewActions } from "../../utils/table-view-storage";
+import { resolveViewTabs, type ViewTabsConfig } from "../../utils/view-tabs";
+import { TableViewTabs } from "./table-view-tabs";
 
 export interface ViewMenuParts {
   trigger: ReactElement;
@@ -79,6 +89,10 @@ interface DataTableViewManagerProps {
   initialViews?: TableView[];
   tableId: string;
   tableType: string;
+  /** Saved views as tabs on wide screens; see `table.viewTabs`. */
+  tabs?: ViewTabsConfig;
+  /** Layouts offered when creating a view from a tab. */
+  displayModes?: TableDisplayMode[];
 }
 
 function getViewErrorMessage(error: unknown, fallback: string): string {
@@ -369,6 +383,7 @@ function renderViewTrigger({
   isLoading,
   currentViewLabel,
   isActiveViewDirty,
+  iconOnly,
 }: {
   t: ReturnType<typeof useTranslations>["t"];
   enabled: boolean;
@@ -376,7 +391,23 @@ function renderViewTrigger({
   isLoading: boolean;
   currentViewLabel: string;
   isActiveViewDirty: boolean;
+  /** Tabs name the view; the trigger only opens the settings. */
+  iconOnly: boolean;
 }) {
+  if (iconOnly) {
+    return (
+      <Button
+        aria-label={t("views.settings")}
+        className="size-8 shrink-0"
+        disabled={isLoading}
+        size="icon"
+        type="button"
+        variant="outline"
+      >
+        <SlidersHorizontal aria-hidden="true" className="size-4" />
+      </Button>
+    );
+  }
   return (
     <Button
       aria-label={enabled ? t("views.current") : t("views.settings")}
@@ -462,6 +493,163 @@ function renderViewSelection({
   ) : null;
 }
 
+function ManagerViewTabs({
+  activeId,
+  canCreate,
+  defaultMode,
+  dirty,
+  disabled,
+  onCreate,
+  onSelectDefault,
+  onSelectView,
+  savedViews,
+  settings,
+  t,
+}: {
+  activeId: string | null;
+  canCreate: boolean;
+  defaultMode: TableDisplayMode;
+  dirty: boolean;
+  disabled: boolean;
+  onCreate: () => void;
+  onSelectDefault: () => void;
+  onSelectView: (view: TableView) => void;
+  savedViews: TableView[];
+  /** No tabs when undefined. */
+  settings?: { maxVisible: number };
+  t: ReturnType<typeof useTranslations>["t"];
+}) {
+  if (!settings) {
+    return null;
+  }
+  return (
+    <TableViewTabs
+      activeId={activeId}
+      canCreate={canCreate}
+      defaultTab={{
+        id: null,
+        name: t("views.defaultView"),
+        displayMode: defaultMode,
+      }}
+      dirty={dirty}
+      disabled={disabled}
+      labels={{
+        tabs: t("views.tabs"),
+        more: t("views.more"),
+        newView: t("views.newView"),
+        modified: t("views.modified"),
+      }}
+      maxVisible={settings.maxVisible}
+      onCreate={onCreate}
+      onSelect={(id) => {
+        const view = savedViews.find((item) => item.id === id);
+        if (view) {
+          onSelectView(view);
+        } else {
+          onSelectDefault();
+        }
+      }}
+      views={savedViews.map((view) => ({
+        id: view.id,
+        name: view.name,
+        displayMode: view.config.displayMode ?? defaultMode,
+      }))}
+    />
+  );
+}
+
+/** A view's configuration in the layout chosen when saving it. */
+function withLayout(
+  config: TableViewConfig,
+  mode: TableDisplayMode | undefined
+): TableViewConfig {
+  return mode ? { ...config, displayMode: mode } : config;
+}
+
+/**
+ * Apply a created view unless the table changed while saving; a view created
+ * in another layout is always shown.
+ */
+function showsCreatedView(
+  saved: TableViewConfig,
+  current: TableViewConfig,
+  latest: TableViewConfig
+): boolean {
+  return (
+    saved.displayMode !== current.displayMode ||
+    areTableViewConfigsEqual(latest, current)
+  );
+}
+
+/** Tab settings when tabs replace the named view trigger, otherwise none. */
+function visibleViewTabs({
+  compact,
+  enabled,
+  tabs,
+  viewCount,
+}: {
+  compact: boolean;
+  enabled: boolean;
+  tabs?: ViewTabsConfig;
+  viewCount: number;
+}) {
+  if (!enabled || compact || viewCount === 0) {
+    return;
+  }
+  return resolveViewTabs(tabs);
+}
+
+/** Layout of a view being saved, when the table offers several. */
+function ViewLayoutField({
+  displayModes,
+  onChange,
+  t,
+  value,
+}: {
+  displayModes?: TableDisplayMode[];
+  onChange: (mode: TableDisplayMode) => void;
+  t: ReturnType<typeof useTranslations>["t"];
+  value?: TableDisplayMode;
+}) {
+  if (!displayModes || displayModes.length <= 1) {
+    return null;
+  }
+  return (
+    <div className="space-y-2">
+      <label className="font-medium" htmlFor="table-view-layout">
+        {t("views.dialog.save.layout")}
+      </label>
+      <Select
+        items={displayModes.map((mode) => ({
+          value: mode,
+          label: t(`views.display.${mode}`),
+        }))}
+        onValueChange={(mode) => {
+          if (mode !== null) {
+            onChange(mode);
+          }
+        }}
+        value={value}
+      >
+        <SelectTrigger
+          aria-label={t("views.dialog.save.layout")}
+          className="w-full font-normal"
+          id="table-view-layout"
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent align="start" alignItemWithTrigger={false}>
+          {displayModes.map((mode) => (
+            <SelectItem key={mode} value={mode}>
+              {t(`views.display.${mode}`)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
 export function DataTableViewManager({
   enabled = true,
   compact = false,
@@ -476,6 +664,8 @@ export function DataTableViewManager({
   initialViews = [],
   tableId,
   tableType,
+  tabs,
+  displayModes,
 }: DataTableViewManagerProps) {
   const { t } = useTranslations();
   const getTableActions = useProviderTableActions();
@@ -500,6 +690,7 @@ export function DataTableViewManager({
   const [dialogError, setDialogError] = useState<string>();
   const [inlineError, setInlineError] = useState<string>();
   const [isMutating, setIsMutating] = useState(false);
+  const [newViewMode, setNewViewMode] = useState<TableDisplayMode>();
   const hasAppliedInitialViewRef = useRef(false);
   const deletedViewIds = useRef(new Set<string>());
   const shouldSyncUrl = useTableStateSync();
@@ -740,9 +931,10 @@ export function DataTableViewManager({
     setDialogError(undefined);
     setIsSharedView(false);
     setViewName("");
+    setNewViewMode(currentConfig.displayMode);
     setMenuOpen(false);
     setIsSaveDialogOpen(true);
-  }, [canCreateView]);
+  }, [canCreateView, currentConfig.displayMode]);
 
   const handleCreateView = useCallback(async () => {
     const trimmedName = viewName.trim();
@@ -753,9 +945,11 @@ export function DataTableViewManager({
 
     setIsMutating(true);
     setDialogError(undefined);
+    // A view created from a tab may use another layout than the current one.
+    const config = withLayout(currentConfig, newViewMode);
     try {
       const result = await viewActions.create({
-        config: currentConfig,
+        config,
         isGlobal: canShareView ? isSharedView : false,
         name: trimmedName,
         tableId,
@@ -766,7 +960,7 @@ export function DataTableViewManager({
         return;
       }
 
-      if (areTableViewConfigsEqual(latestConfig.current, currentConfig)) {
+      if (showsCreatedView(config, currentConfig, latestConfig.current)) {
         applyViewConfig(resolveView(result.data.config), {
           viewId: result.data.id,
         });
@@ -789,6 +983,7 @@ export function DataTableViewManager({
     canShareView,
     currentConfig,
     isSharedView,
+    newViewMode,
     refreshViews,
     resolveView,
     setViewParam,
@@ -905,6 +1100,13 @@ export function DataTableViewManager({
   const statusLabel = isActiveViewDirty
     ? t("views.modified")
     : t("views.upToDate");
+  const tabSettings = visibleViewTabs({
+    compact,
+    enabled,
+    tabs,
+    viewCount: savedViews.length,
+  });
+  const showTabs = Boolean(tabSettings);
   const parts: ViewMenuParts = {
     open: menuOpen,
     onOpenChange: setMenuOpen,
@@ -915,6 +1117,7 @@ export function DataTableViewManager({
       isLoading,
       currentViewLabel,
       isActiveViewDirty,
+      iconOnly: showTabs,
     }),
     selection: renderViewSelection({
       t,
@@ -958,22 +1161,39 @@ export function DataTableViewManager({
         className
       )}
     >
-      {renderMenu ? (
-        renderMenu(parts)
-      ) : (
-        <StackMenu
-          asDropdown
-          compact={compact}
-          onOpenChange={setMenuOpen}
-          open={menuOpen}
-          trigger={parts.trigger}
-        >
-          <StackMenuView name="main" title={t("views.settings")}>
-            {parts.selection}
-            {parts.actions}
-          </StackMenuView>
-        </StackMenu>
-      )}
+      <div className="flex min-w-0 items-center gap-1">
+        <ManagerViewTabs
+          activeId={viewParam}
+          canCreate={canCreateView}
+          defaultMode={
+            defaultViewConfig.displayMode ?? defaultDisplayMode ?? "table"
+          }
+          dirty={isActiveViewDirty}
+          disabled={isMutating}
+          onCreate={openSaveDialog}
+          onSelectDefault={handleSelectDefaultView}
+          onSelectView={handleSelectView}
+          savedViews={savedViews}
+          settings={tabSettings}
+          t={t}
+        />
+        {renderMenu ? (
+          renderMenu(parts)
+        ) : (
+          <StackMenu
+            asDropdown
+            compact={compact}
+            onOpenChange={setMenuOpen}
+            open={menuOpen}
+            trigger={parts.trigger}
+          >
+            <StackMenuView name="main" title={t("views.settings")}>
+              {parts.selection}
+              {parts.actions}
+            </StackMenuView>
+          </StackMenu>
+        )}
+      </div>
 
       {(inlineError || favoriteQuery.error) && (
         <p className="max-w-[20rem] text-destructive text-xs" role="alert">
@@ -1016,6 +1236,12 @@ export function DataTableViewManager({
                 <p className="text-destructive text-sm">{dialogError}</p>
               )}
             </div>
+            <ViewLayoutField
+              displayModes={displayModes}
+              onChange={setNewViewMode}
+              t={t}
+              value={newViewMode}
+            />
             <ViewShareOption
               canShareView={canShareView}
               isSharedView={isSharedView}

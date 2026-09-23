@@ -37,6 +37,8 @@ const config = defineTableConfig({
   },
   table: {
     enableViews: true,
+    // These cases cover the view menu; tabs have their own specs.
+    viewTabs: false,
     allowViewSave: true,
     allowViewSharing: true,
     syncUrl: false,

@@ -91,6 +91,7 @@ async function mountManager(
                 initialViews={options.initialViews}
                 tableId={favorite.tableId}
                 tableType={context.tableType}
+                tabs={false}
               />
             </TableProvider>
           </TableStateSyncProvider>

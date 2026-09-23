@@ -136,6 +136,7 @@ it("marks density-only edits dirty and keeps legacy saved views clean at the con
                   initialViews={[view]}
                   tableId={view.tableId}
                   tableType={view.tableId}
+                  tabs={false}
                 />
               </TableProvider>
             </TableStateSyncProvider>
@@ -226,6 +227,7 @@ it("loads persisted views without initialViews on every mount and restores their
                     defaultDensity="large"
                     tableId={view.tableId}
                     tableType={view.tableId}
+                    tabs={false}
                   />
                 </TableProvider>
               </TableStateSyncProvider>

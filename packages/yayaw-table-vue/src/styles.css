@@ -345,6 +345,50 @@
   flex-direction: column;
   gap: 4px;
 }
+.yayaw-view-manager-row,
+.yayaw-view-tabs,
+.yayaw-view-tablist {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+}
+.yayaw-view-tablist {
+  overflow: hidden;
+}
+.yayaw-toolbar .yayaw-view-tab,
+.yayaw-toolbar .yayaw-view-more {
+  height: 32px;
+  min-height: 32px;
+  max-width: 12rem;
+  flex-shrink: 0;
+  gap: 6px;
+  padding: 0 10px;
+}
+.yayaw-toolbar .yayaw-view-more {
+  gap: 4px;
+  padding: 0 8px;
+}
+.yayaw-toolbar .yayaw-view-tab,
+.yayaw-toolbar .yayaw-view-more {
+  font-size: 14px;
+  line-height: 20px;
+}
+.yayaw-view-tab.yayaw-button-ghost,
+.yayaw-view-more,
+.yayaw-view-new {
+  background: transparent;
+  color: var(--yayaw-muted-foreground);
+}
+.yayaw-view-tab.yayaw-button-secondary {
+  border-color: transparent;
+  background: var(--secondary, var(--yayaw-muted));
+  color: var(--secondary-foreground, var(--yayaw-foreground));
+}
+.yayaw-view-tab svg,
+.yayaw-view-more svg {
+  flex-shrink: 0;
+}
 .yayaw-views {
   min-width: 0;
 }
@@ -1533,6 +1577,8 @@
   cursor: not-allowed;
 }
 .yayaw-select-content {
+  /* Above modal dialogs, e.g. the layout choice when saving a view. */
+  z-index: 120;
   min-width: var(--reka-select-trigger-width);
   max-width: min(320px, calc(100vw - 16px));
   max-height: min(320px, var(--reka-select-content-available-height));

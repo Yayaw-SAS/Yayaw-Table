@@ -1,16 +1,11 @@
 <script setup lang="ts">
-import { type Component, defineComponent, type PropType, type VNodeChild } from "vue";
+import { defineComponent, type PropType, type VNodeChild } from "vue";
 import TableTooltip from "./TableTooltip.vue";
 import {
   FunnelX,
   MoreHorizontal,
   ArrowDownAZ,
   Calculator,
-  CalendarDays,
-  ChartGantt,
-  Columns3,
-  Images,
-  Table2,
   ChevronRight,
   Layers,
   GripVertical,
@@ -48,6 +43,7 @@ import { availableDisplayModes } from "../../view-menu";
 import { isManualOrder, MANUAL_ORDER_SORT_ID, manualOrderSorting } from "../../manual-order";
 import GallerySettings from "./GallerySettings.vue";
 import ListSettings from "./ListSettings.vue";
+import { displayModeIcons } from "./display-mode-icons";
 import TableSelect from "../controls/TableSelect.vue";
 import DisplayModeRendererSettings from "./DisplayModeRendererSettings.vue";
 import KanbanSettings from "./KanbanSettings.vue";
@@ -79,7 +75,6 @@ const search = computed({
     context.state.search.value = value;
   },
 });
-const displayModeIcons: Record<TableDisplayMode, Component> = { calendar: CalendarDays, gantt: ChartGantt, table: Table2, kanban: Columns3, gallery: Images, list: List };
 const activeRenderer = computed(() => context.displayModeRenderers?.[context.state.displayMode.value]);
 const modes = computed<TableDisplayMode[]>(() =>
   availableDisplayModes(context.config.table.displayModes, {

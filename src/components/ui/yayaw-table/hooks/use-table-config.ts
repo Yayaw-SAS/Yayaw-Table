@@ -93,6 +93,11 @@ export interface TableCatalogueTableConfig
   allowInlineEdit?: boolean;
   allowViewSave?: boolean;
   allowViewSharing?: boolean;
+  /**
+   * Saved views as tabs above the table (desktop). `false` keeps the view
+   * menu only; `{ maxVisible }` sets how many tabs show before "More".
+   */
+  viewTabs?: import("../utils/view-tabs").ViewTabsConfig;
   canEditRow?: (row: Record<string, unknown>) => boolean;
   canDeleteRow?: (row: Record<string, unknown>) => boolean;
   canDuplicateRow?: (row: Record<string, unknown>) => boolean;
@@ -360,6 +365,7 @@ function resolveTableBehaviorConfig(
     gallery: mergedConfig.gallery,
     ...pickGenericModeConfigs(mergedConfig),
     manualOrder: mergedConfig.manualOrder,
+    viewTabs: mergedConfig.viewTabs,
     emptyState: {
       show: true,
       ...mergedConfig.emptyState,

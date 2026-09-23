@@ -182,6 +182,7 @@ function CalendarToolbar({
       <div className="flex items-center gap-1">
         <Button
           aria-label={label("previous", "Previous")}
+          className="size-8"
           onClick={() => controller.prev()}
           size="icon"
           type="button"
@@ -190,8 +191,9 @@ function CalendarToolbar({
           <ChevronLeft aria-hidden="true" className="size-4" />
         </Button>
         <Button
-          className="font-normal"
+          className="h-8 font-normal text-xs"
           onClick={() => controller.today()}
+          size="sm"
           type="button"
           variant="outline"
         >
@@ -199,6 +201,7 @@ function CalendarToolbar({
         </Button>
         <Button
           aria-label={label("next", "Next")}
+          className="size-8"
           onClick={() => controller.next()}
           size="icon"
           type="button"
@@ -206,7 +209,7 @@ function CalendarToolbar({
         >
           <ChevronRight aria-hidden="true" className="size-4" />
         </Button>
-        <h3 className="ml-2 font-medium text-base capitalize" data-calendar-title>
+        <h3 className="ml-2 font-medium text-sm capitalize" data-calendar-title>
           {title}
         </h3>
       </div>
@@ -215,7 +218,7 @@ function CalendarToolbar({
         {LAYOUTS.map((item) => (
           <Button
             aria-pressed={layout === item}
-            className="font-normal"
+            className="h-8 font-normal text-xs"
             key={item}
             onClick={() => onLayout(item)}
             size="sm"

@@ -427,6 +427,7 @@ function DataTableHeaderControls({
         defaultDisplayMode,
         initialActiveViewId,
         initialViews,
+        displayModes,
       }}
     />
   );

@@ -807,6 +807,9 @@ export const defaultTranslations: DataTableTranslations = {
     removeFavorite: "Remove favorite view",
     favoriteError: "Could not load or save the favorite view",
     defaultView: "Default view",
+    tabs: "Views",
+    more: "More",
+    newView: "New view",
     default_system_view: "Default System View",
     systemView: "System View",
     custom_view: "Custom View",
@@ -949,6 +952,7 @@ export const defaultTranslations: DataTableTranslations = {
         global: "Share with team",
         save: "Save",
         saving: "Saving...",
+        layout: "Layout",
       },
       manage: {
         title: "Manage Views",

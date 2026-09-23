@@ -726,3 +726,16 @@ view (`onOpenDetails`, else the built-in details derived from the columns).
 in a select (React Base UI Select, Vue `TableSelect`); compact toolbars and
 touch drawers keep the wrapping buttons. The create button reads the
 `add_an_item` key in both editions.
+
+## View tabs
+
+Both editions show saved views as tabs on wide toolbars once a table has at
+least one (`table.viewTabs`, default on, `{ maxVisible }` default 4). The
+shared `view-tabs.ts` decides which views are tabs and which go under "More",
+keeping the active view visible. The default view is always the first tab;
+each tab shows its layout icon and the modified dot. "+" opens the save
+dialog, which offers the layout of the new view (the current one by default);
+creating a view in another layout switches to it. With tabs, the view menu
+trigger is an icon button labelled "Views and settings". Compact toolbars and
+touch layouts keep the named trigger. `tests/view-tabs-suite.ts` runs in both
+editions and `e2e/view-tabs.spec.ts` covers both demos.

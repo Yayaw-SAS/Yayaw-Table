@@ -29,6 +29,9 @@ async function waitForRows(container: HTMLElement, expected: string[]) {
   return displayedNames(container);
 }
 
+// Saved views show as tabs, so the view menu trigger is the settings button.
+const VIEW_MENU = "Views and settings";
+
 async function clickButton(name: string, inDialog = false) {
   let button: HTMLButtonElement | undefined;
   for (let attempt = 0; attempt < 50; attempt += 1) {
@@ -89,7 +92,7 @@ it("changes the real preview row order when the user cycles the Price sort", asy
     expect(
       await waitForRows(preview.container, ["Atlas", "Beacon", "Current"])
     ).toEqual(["Atlas", "Beacon", "Current"]);
-    await clickButton("Current View");
+    await clickButton(VIEW_MENU);
     await clickButton("Sort", true);
     await clickButton("Price", true);
     expect(
@@ -130,7 +133,7 @@ it("renders only matching rows for a restored advanced filter and sorts those ro
     expect(preview.container.querySelector("tbody")?.textContent).not.toContain(
       "Beacon"
     );
-    await clickButton("Current View");
+    await clickButton(VIEW_MENU);
     await clickButton("Filter1", true);
     expect(
       document.querySelectorAll('[role="dialog"] button button')
@@ -154,7 +157,7 @@ it("restores an ungrouped temporary view even when the application configures Ka
         "tbody td[colspan] button[aria-expanded]"
       )
     ).toHaveLength(2);
-    await clickButton("Current View");
+    await clickButton(VIEW_MENU);
     await clickButton("XS", true);
     await clickButton("Reset view", true);
     expect(
@@ -179,7 +182,7 @@ it("restores saved filters, grouping and density and clears the dirty indicator"
   const preview = await mountExample();
   try {
     await waitForRows(preview.container, ["Atlas", "Beacon", "Current"]);
-    await clickButton("Current View");
+    await clickButton(VIEW_MENU);
     await clickButton("Open items", true);
     expect(await waitForRows(preview.container, ["Atlas", "Current"])).toEqual([
       "Atlas",
@@ -188,7 +191,7 @@ it("restores saved filters, grouping and density and clears the dirty indicator"
     expect(
       preview.container.querySelector('[aria-label="Unsaved changes"]')
     ).toBeNull();
-    await clickButton("Current View");
+    await clickButton(VIEW_MENU);
     await clickButton("XS", true);
     await clickButton("Group", true);
     await clickButton("Status", true);

@@ -221,6 +221,11 @@ export interface TableBehaviorConfig<TData extends TableRecord = TableRecord>
   allowInlineEdit: boolean;
   allowViewSave?: boolean;
   allowViewSharing?: boolean;
+  /**
+   * Saved views as tabs above the table (desktop). `false` keeps the view
+   * menu only; `{ maxVisible }` sets how many tabs show before "More".
+   */
+  viewTabs?: import("./view-tabs").ViewTabsConfig;
   canEditRow?: (row: TData) => boolean;
   canDeleteRow?: (row: TData) => boolean;
   canDuplicateRow?: (row: TData) => boolean;
