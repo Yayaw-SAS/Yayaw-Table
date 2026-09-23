@@ -6,7 +6,7 @@ import TableTooltip from "./TableTooltip.vue";
 defineProps<{
   items: Array<{ kind: "action"; key: string; action: ToolbarAction } | { kind: "export"; key: string }>;
   actionsAsIcons: boolean; compact: boolean; search: string; searchLabel: string; exportLabel: string; shareLabel: string;
-  showSearch?: boolean; pendingAction?: string; isExporting: boolean;
+  showSearch?: boolean; showShare?: boolean; pendingAction?: string; isExporting: boolean;
   disabled: (action: ToolbarAction) => boolean;
   variant: (action: ToolbarAction) => string;
 }>();
@@ -32,7 +32,7 @@ const emit = defineEmits<{ "update:search": [search: string]; action: [action: T
         </button>
       </TableTooltip>
     </template>
-    <TableTooltip :label="shareLabel"><button type="button" class="yayaw-button yayaw-button-outline" :class="{ 'yayaw-icon-only': actionsAsIcons }" :aria-label="shareLabel" @click="emit('share')">
+    <TableTooltip v-if="showShare !== false" :label="shareLabel"><button type="button" class="yayaw-button yayaw-button-outline" :class="{ 'yayaw-icon-only': actionsAsIcons }" :aria-label="shareLabel" @click="emit('share')">
       <Share2 :size="16" aria-hidden="true" /><span v-if="!actionsAsIcons">{{ shareLabel }}</span>
     </button></TableTooltip>
   </div>

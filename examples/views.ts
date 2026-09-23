@@ -73,6 +73,44 @@ export const viewsTableOptions = {
   },
 };
 
+type ViewRow = (typeof viewsRows)[number];
+
+/** Like a server: match the search in any value. */
+function searchRows(rows: ViewRow[], params: Record<string, unknown>) {
+  const query = String(params.search ?? params.q ?? "")
+    .trim()
+    .toLocaleLowerCase();
+  return query
+    ? rows.filter((row) =>
+        Object.values(row).some((value) =>
+          String(value).toLocaleLowerCase().includes(query)
+        )
+      )
+    : rows;
+}
+
+/** Like a server: apply the first column sort (the manual order is kept). */
+function sortRows(rows: ViewRow[], sorting: unknown[]) {
+  const sort = sorting.find(
+    (item): item is { id: keyof ViewRow; desc?: boolean } =>
+      Boolean(item) &&
+      typeof (item as { id?: unknown }).id === "string" &&
+      (item as { id: string }).id !== "__manual"
+  );
+  if (!sort) {
+    return rows;
+  }
+  const direction = sort.desc ? -1 : 1;
+  return [...rows].sort((left, right) => {
+    const a = left[sort.id];
+    const b = right[sort.id];
+    if (typeof a === "number" && typeof b === "number") {
+      return (a - b) * direction;
+    }
+    return String(a).localeCompare(String(b)) * direction;
+  });
+}
+
 /**
  * In-memory host for the examples: `list` pages through the rows and applies
  * each view's own manual order; `reorder` stores it without touching records.
@@ -99,7 +137,10 @@ export function createViewsActions() {
       const manual = sorting.some(
         (sort: { id?: string }) => sort?.id === "__manual"
       );
-      const rows = manual ? ordered(params.viewId) : records;
+      const rows = sortRows(
+        searchRows(manual ? ordered(params.viewId) : records, params),
+        sorting
+      );
       return Promise.resolve({
         data: rows,
         meta: { pageCount: 1, totalCount: rows.length },

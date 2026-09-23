@@ -3,7 +3,11 @@ import { defineComponent, type PropType, type VNodeChild } from "vue";
 import TableTooltip from "./TableTooltip.vue";
 import {
   FunnelX,
-  MoreHorizontal,
+  Download,
+  LayoutGrid,
+  Rows3,
+  Share2,
+  SlidersHorizontal,
   ArrowDownAZ,
   Calculator,
   ChevronRight,
@@ -36,6 +40,9 @@ import { filterBarColumns } from "../../filter-bar";
 import TableDensityMenu from "./TableDensityMenu.vue";
 import ToolbarMenu from "./ToolbarMenu.vue";
 import ToolbarDataActions from "./ToolbarDataActions.vue";
+import ToolbarSearch from "./ToolbarSearch.vue";
+import MenuChoiceList from "./MenuChoiceList.vue";
+import { TABLE_DENSITY_OPTIONS, type TableDensity } from "../../table-contracts";
 import GanttSettings from "./GanttSettings.vue";
 import { planningLabelOverrides } from "../../planning/labels";
 import { ganttSettingsLabels } from "../../planning/settings";
@@ -57,15 +64,32 @@ const props = defineProps<{
   toolbarActionsPlacement?: ToolbarActionsPlacement;
 }>();
 const context = useTableContext();
-type OptionsView = "columns" | "filters" | "group" | "main" | "sort" | "cards";
+type OptionsView = "columns" | "filters" | "group" | "main" | "sort" | "cards" | "layout" | "density";
 const { compact, mobile } = useToolbarLayout();
-const actionsOpen = ref(false);
 const capabilities = computed(() => getViewModeCapabilities(context.state.displayMode.value));
 
 const optionsRoot = ref<HTMLElement>();
 const advancedFiltersPanel = ref<InstanceType<typeof AdvancedFilters>>();
 const optionsOpen = ref(false);
 const optionsView = ref<OptionsView>("main");
+const densityLabel = computed(() => String(context.translations.value.density ?? "Table density"));
+const densityValue = computed(() => TABLE_DENSITY_OPTIONS.find((option) => option.value === context.state.density.value)?.label ?? "");
+const optionsTitle = computed(() => {
+  switch (optionsView.value) {
+    case "main":
+      return translate("views.settings", "View settings");
+    case "cards":
+      return cardSettingsTitle.value;
+    case "layout":
+      return translate("displayMode", "Display mode");
+    case "density":
+      return densityLabel.value;
+    case "columns":
+      return translate("properties", "properties");
+    default:
+      return translate(optionsView.value, optionsView.value);
+  }
+});
 const cardSettingsTitle = computed(() => context.state.displayMode.value === "gantt" ? ganttSettingsLabels(context.locale, planningLabelOverrides((key) => translate(key, key))).title : translate("views.cardSettings", "Card settings"));
 const pendingAction = ref<string>();
 const isExporting = ref(false);
@@ -175,41 +199,7 @@ const visibleToolbarActions = computed(() =>
     (action) => !actionsAsIcons.value || action.showInIconMode !== false
   )
 );
-const toolbarActionsPlacement = computed<ToolbarActionsPlacement>(() =>
-  ["after-export", "before-create", "between-create-export"].includes(
-    props.toolbarActionsPlacement ?? ""
-  )
-    ? (props.toolbarActionsPlacement as ToolbarActionsPlacement)
-    : "between-create-export"
-);
-type ToolbarItem =
-  | { action: ToolbarAction; key: string; kind: "action" }
-  | { key: "create"; kind: "create" }
-  | { key: "export"; kind: "export" };
-const toolbarItems = computed<ToolbarItem[]>(() => {
-  const actionItems = visibleToolbarActions.value.map((action) => ({
-    action,
-    key: `action-${action.id}`,
-    kind: "action" as const,
-  }));
-  const items: ToolbarItem[] = [];
-  if (toolbarActionsPlacement.value === "before-create") {
-    items.push(...actionItems);
-  }
-  if (toolbarActionsPlacement.value === "between-create-export") {
-    items.push(...actionItems);
-  }
-  if (context.config.table.export) {
-    items.push({ key: "export", kind: "export" });
-  }
-  if (toolbarActionsPlacement.value === "after-export") {
-    items.push(...actionItems);
-  }
-  if (isCreateEnabled.value) {
-    items.push({ key: "create", kind: "create" });
-  }
-  return items;
-});
+
 
 const translate = (key: string, fallback: string): string =>
   String(context.translations.value[key] ?? fallback);
@@ -417,7 +407,10 @@ const exportRows = async (): Promise<void> => {
     isExporting.value = false;
   }
 };
-const dataItems = computed(() => toolbarItems.value.filter(item => item.kind !== "create"));
+// Application actions stay in the toolbar on wide screens and join the settings "Data" section on touch layouts.
+const actionItems = computed(() => visibleToolbarActions.value.map((action) => ({ action, key: `action-${action.id}`, kind: "action" as const })));
+const hasExport = computed(() => Boolean(context.config.table.export));
+const settingsBadge = computed(() => activeFilterCount.value + context.state.sorting.value.length);
 const shareLink = async () => {
   try {
     const result = await sharePageUrl(window.location.href, mobile.value);
@@ -432,10 +425,23 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
 
 <template>
   <div ref="toolbarRoot" class="yayaw-toolbar" :data-compact="compact" data-table-toolbar>
-    <SavedViews :initial-views="initialViews" :enabled="context.config.table.enableViews" :compact="compact" v-model:open="optionsOpen"
-      :panel="optionsView !== 'main'" :panel-title="optionsView === 'cards' ? cardSettingsTitle : translate(optionsView === 'columns' ? 'properties' : optionsView, optionsView)"
-      @back="optionsView = 'main'">
-      <template #settings><div ref="optionsRoot">
+    <SavedViews :initial-views="initialViews" :enabled="context.config.table.enableViews" :compact="compact" />
+    <div class="yayaw-toolbar-end">
+    <ToolbarSearch v-if="context.config.table.enableColumnFilters !== false" v-model="search" :label="translate('search', 'Search…')" :clear-label="translate('reset', 'Reset')" :compact="compact" />
+    <ToolbarDataActions v-if="!compact && actionItems.length" :show-search="false" :show-share="false" :items="actionItems" :actions-as-icons="actionsAsIcons" :compact="compact" v-model:search="search"
+      :search-label="translate('search', 'Search…')" :export-label="translate('export', 'Export')" :share-label="translate('url_state.share', 'Share')"
+      :pending-action="pendingAction" :is-exporting="isExporting" :disabled="toolbarActionDisabled" :variant="toolbarActionVariant"
+      @action="runAction" @export="exportRows" @share="shareLink" />
+    <ToolbarMenu v-model:open="optionsOpen" :compact="compact" align="end"
+      :title="optionsTitle"
+      :back="optionsView !== 'main'" :back-label="translate('back', 'Back')" :close-label="translate('close', 'Close')" @back="optionsView = 'main'">
+      <template #trigger>
+        <button type="button" class="yayaw-button yayaw-button-outline yayaw-icon-only yayaw-settings-trigger" :id="`table-options-${context.config.id}`" :aria-label="translate('views.settings', 'View settings')">
+          <SlidersHorizontal :size="16" aria-hidden="true" />
+          <span v-if="settingsBadge" class="yayaw-settings-badge" aria-hidden="true">{{ settingsBadge }}</span>
+        </button>
+      </template>
+      <div v-if="optionsView === 'main'" ref="optionsRoot">
         <div v-if="modes.length > 1 && !compact" class="yayaw-display-mode-select">
           <TableSelect
             v-model="displayMode"
@@ -443,24 +449,21 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
             :options="modes.map((mode) => ({ value: mode, label: translate(`display.${mode}`, mode) }))"
           />
         </div>
-        <fieldset v-else-if="modes.length > 1" class="yayaw-display-mode-inline yayaw-choice-inline">
-          <legend>{{ translate('displayMode', 'Display mode') }}</legend>
-          <div class="yayaw-segmented">
-            <button
-              v-for="mode in modes"
-              :key="mode"
-              type="button"
-              :class="{ active: displayMode === mode }"
-              :aria-pressed="displayMode === mode"
-              @click="displayMode = mode"
-            >
-              <component :is="displayModeIcons[mode]" :size="16" aria-hidden="true" />
-              <span>{{ translate(`display.${mode}`, mode) }}</span>
-            </button>
-          </div>
-        </fieldset>
-        <TableDensityMenu v-if="capabilities.density" inline />
+        <TableDensityMenu v-if="capabilities.density && !compact" inline />
             <div v-if="optionsView === 'main'" class="yayaw-options-list">
+              <!-- Touch drawers read as one list: layout and density open their own choices. -->
+              <template v-if="compact">
+                <button v-if="modes.length > 1" type="button" class="yayaw-options-item" @click="optionsView = 'layout'">
+                  <span class="yayaw-options-item-icon"><LayoutGrid :size="16" aria-hidden="true" /></span>
+                  <span class="yayaw-options-item-copy"><span>{{ translate('displayMode', 'Display mode') }}</span></span>
+                  <span class="yayaw-options-item-end">{{ translate(`display.${displayMode}`, displayMode) }}</span>
+                </button>
+                <button v-if="capabilities.density" type="button" class="yayaw-options-item" @click="optionsView = 'density'">
+                  <span class="yayaw-options-item-icon"><Rows3 :size="16" aria-hidden="true" /></span>
+                  <span class="yayaw-options-item-copy"><span>{{ densityLabel }}</span></span>
+                  <span class="yayaw-options-item-end">{{ densityValue }}</span>
+                </button>
+              </template>
               <button
                 v-if="capabilities.columns"
                 type="button"
@@ -538,9 +541,32 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
             </div>
 
 
-      </div></template>
-      <template #panel><div ref="optionsRoot">
-            <div v-if="optionsView === 'columns'" class="yayaw-options-content">
+        <div class="yayaw-options-list yayaw-options-data" data-menu-section="data">
+          <p class="yayaw-options-heading">{{ translate('menu.data', 'Data') }}</p>
+          <template v-if="compact">
+            <button v-for="item in actionItems" :key="item.key" type="button" class="yayaw-options-item" :disabled="toolbarActionDisabled(item.action)" @click="runAction(item.action)">
+              <span class="yayaw-options-item-icon"><component :is="item.action.icon" v-if="item.action.icon" :size="16" aria-hidden="true" /></span>
+              <span class="yayaw-options-item-copy"><span>{{ item.action.label }}</span></span>
+            </button>
+          </template>
+          <button v-if="hasExport" type="button" class="yayaw-options-item" :disabled="isExporting" :aria-busy="isExporting" @click="exportRows">
+            <span class="yayaw-options-item-icon"><Download :size="16" aria-hidden="true" /></span>
+            <span class="yayaw-options-item-copy"><span>{{ translate('export', 'Export') }}</span></span>
+          </button>
+          <button type="button" class="yayaw-options-item" @click="shareLink">
+            <span class="yayaw-options-item-icon"><Share2 :size="16" aria-hidden="true" /></span>
+            <span class="yayaw-options-item-copy"><span>{{ translate('url_state.share', 'Share') }}</span></span>
+          </button>
+        </div>
+      </div>
+      <div v-else ref="optionsRoot">
+            <MenuChoiceList v-if="optionsView === 'layout'" :label="translate('displayMode', 'Display mode')" :model-value="displayMode"
+              :options="modes.map((mode) => ({ value: mode, label: translate(`display.${mode}`, mode), icon: displayModeIcons[mode] }))"
+              @update:model-value="(mode) => (displayMode = mode as TableDisplayMode)" />
+            <MenuChoiceList v-else-if="optionsView === 'density'" :label="densityLabel" :model-value="context.state.density.value"
+              :options="TABLE_DENSITY_OPTIONS.map((option) => ({ value: option.value, label: option.label }))"
+              @update:model-value="(density) => (context.state.density.value = density as TableDensity)" />
+            <div v-else-if="optionsView === 'columns'" class="yayaw-options-content">
               <label
                 v-for="column in dataColumns"
                 :key="column.id"
@@ -714,24 +740,14 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
               </button>
             </div>
 
-      </div></template>
-    </SavedViews>
+      </div>
+    </ToolbarMenu>
     <template v-if="compact">
       <button v-if="isCreateEnabled" type="button" class="yayaw-button yayaw-icon-only" :aria-label="translate('add_an_item', 'Add item')" @click="context.openCreate()"><Plus :size="16" /></button>
-      <ToolbarMenu v-model:open="actionsOpen" compact :title="translate('actions.dataActions', 'Data actions')" :close-label="translate('close', 'Close')">
-        <template #trigger><button type="button" class="yayaw-button yayaw-button-outline yayaw-icon-only" :aria-label="translate('actions.dataActions', 'Data actions')"><MoreHorizontal :size="16" /></button></template>
-<ToolbarDataActions :show-search="context.config.table.enableColumnFilters !== false" :items="dataItems" :actions-as-icons="actionsAsIcons" :compact="compact" v-model:search="search"
-  :search-label="translate('search', 'Search…')" :export-label="translate('export', 'Export')" :share-label="translate('url_state.share', 'Share')"
-  :pending-action="pendingAction" :is-exporting="isExporting" :disabled="toolbarActionDisabled" :variant="toolbarActionVariant"
-  @action="runAction" @export="exportRows" @share="shareLink" />
-      </ToolbarMenu>
     </template>
     <template v-else>
-<ToolbarDataActions :show-search="context.config.table.enableColumnFilters !== false" :items="dataItems" :actions-as-icons="actionsAsIcons" :compact="compact" v-model:search="search"
-  :search-label="translate('search', 'Search…')" :export-label="translate('export', 'Export')" :share-label="translate('url_state.share', 'Share')"
-  :pending-action="pendingAction" :is-exporting="isExporting" :disabled="toolbarActionDisabled" :variant="toolbarActionVariant"
-  @action="runAction" @export="exportRows" @share="shareLink" />
       <TableTooltip v-if="isCreateEnabled" :label="translate('add_an_item', 'Add item')"><button type="button" class="yayaw-button" :class="{ 'yayaw-icon-only': actionsAsIcons }" :aria-label="translate('add_an_item', 'Add item')" @click="context.openCreate()"><Plus :size="16" /><span v-if="!actionsAsIcons">{{ translate('add_an_item', 'Add item') }}</span></button></TableTooltip>
     </template>
+    </div>
   </div>
 </template>

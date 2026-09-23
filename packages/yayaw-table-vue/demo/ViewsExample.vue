@@ -32,6 +32,6 @@ body:has(.views-example) {
 }
 </style>
 <style scoped>
-.views-example { box-sizing: border-box; max-width: 72rem; margin: auto; padding: 1.5rem; display: grid; gap: 1.5rem; }
+.views-example { box-sizing: border-box; max-width: 72rem; margin: auto; padding: 1.5rem; display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
 .views-example h1 { font-size: 1.5rem; line-height: 2rem; font-weight: 600; margin: 0; }
 </style>

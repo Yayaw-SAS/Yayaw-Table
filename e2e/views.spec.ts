@@ -2,8 +2,7 @@ import { expect, type Page, test } from "@playwright/test";
 
 const EXAMPLE = "/?example=views";
 const DISPLAY_PARAM = "views-display";
-// With saved views, tabs name the view and the trigger only opens the settings.
-const VIEW_MENU = /^(current view|views and settings)/i;
+const SETTINGS = "View settings";
 const FILTERS = /^filters?/i;
 const SORT = /^sort/i;
 const DENSITY = /density/i;
@@ -38,13 +37,13 @@ const MODE = {
 } as const;
 
 const openViewMenu = async (page: Page) => {
-  await page.getByRole("button", { name: VIEW_MENU }).first().click();
-  return page.getByRole("dialog", { name: "Views and settings" });
+  await page.getByRole("button", { name: SETTINGS }).click();
+  return page.getByRole("dialog", { name: SETTINGS });
 };
 
 const displayModes = (page: Page) =>
   page
-    .getByRole("dialog", { name: "Views and settings" })
+    .getByRole("dialog", { name: SETTINGS })
     .getByRole("combobox", { name: "Display mode" });
 
 const chooseMode = async (page: Page, mode: RegExp) => {
@@ -54,7 +53,7 @@ const chooseMode = async (page: Page, mode: RegExp) => {
 };
 
 const expectMode = async (page: Page, mode: RegExp) => {
-  const menu = page.getByRole("dialog", { name: "Views and settings" });
+  const menu = page.getByRole("dialog", { name: SETTINGS });
   if (await menu.isVisible()) {
     await page.keyboard.press("Escape");
     await expect(menu).toBeHidden();
@@ -65,6 +64,15 @@ const expectMode = async (page: Page, mode: RegExp) => {
     new RegExp(mode.source.replace("$", ""), "i")
   );
   await page.keyboard.press("Escape");
+};
+
+/** Views and their actions have their own menu, next to the tabs. */
+const openViewActions = async (page: Page) => {
+  const menu = page.getByRole("dialog", { name: SETTINGS });
+  if (await menu.isVisible()) {
+    await page.keyboard.press("Escape");
+  }
+  await page.getByRole("button", { name: "View actions" }).click();
 };
 
 const displayParam = (page: Page) =>
@@ -103,6 +111,7 @@ test("a display mode the table does not offer falls back to the default", async 
 
 test("a saved view restores its display mode", async ({ page }) => {
   await chooseMode(page, MODE.kanban);
+  await openViewActions(page);
   await page.getByRole("button", { name: "Save this view…" }).click();
   await page.getByRole("textbox", { name: "Name" }).fill("Board");
   await page.getByRole("button", { name: "Save", exact: true }).click();
@@ -115,11 +124,7 @@ test("a saved view restores its display mode", async ({ page }) => {
   await expect.poll(() => displayParam(page)).toBeNull();
   await page.keyboard.press("Escape");
 
-  await openViewMenu(page);
-  await page
-    .getByRole("dialog", { name: "Views and settings" })
-    .getByRole("button", { name: "Board" })
-    .click();
+  await page.getByRole("tab", { name: "Board" }).click();
   await expectMode(page, MODE.kanban);
 });
 
@@ -131,7 +136,7 @@ test("advanced filters can match any rule instead of all rules", async ({
   const combination = async () => {
     await openViewMenu(page);
     await page
-      .getByRole("dialog", { name: "Views and settings" })
+      .getByRole("dialog", { name: SETTINGS })
       .getByRole("button", { name: FILTERS })
       .click();
     return page.getByRole("combobox", { name: "Filter combination" });
@@ -213,7 +218,7 @@ test("the manual order of a list view is moved by keyboard or drag and kept per 
   await expect(items.nth(1)).toContainText("Bravo audit");
 
   // A new view starts from its own, empty manual order.
-  await openViewMenu(page);
+  await openViewActions(page);
   await page.getByRole("button", { name: "Save this view…" }).click();
   await page.getByRole("textbox", { name: "Name" }).fill("Mine");
   await page.getByRole("button", { name: "Save", exact: true }).click();
@@ -223,7 +228,7 @@ test("the manual order of a list view is moved by keyboard or drag and kept per 
 test("manual order is offered as a sort of the view", async ({ page }) => {
   await openViewMenu(page);
   await page
-    .getByRole("dialog", { name: "Views and settings" })
+    .getByRole("dialog", { name: SETTINGS })
     .getByRole("button", { name: SORT })
     .click();
   await page.getByText("Manual order").click();
@@ -266,7 +271,7 @@ test("the list view follows the table density", async ({ page }) => {
   const medium = await height();
   await openViewMenu(page);
   await page
-    .getByRole("dialog", { name: "Views and settings" })
+    .getByRole("dialog", { name: SETTINGS })
     .getByRole("group", { name: DENSITY })
     .getByRole("button", { name: "2XL" })
     .click();

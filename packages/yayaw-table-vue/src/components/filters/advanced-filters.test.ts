@@ -221,7 +221,7 @@ it("preserves multiple primitive options in server requests and combines rules w
   expect(document.activeElement).toBe(rule.findAll("select")[0]?.element);
   await rule.get('[aria-label="Remove filter"]').trigger("click");
   expect(document.activeElement).toBe(
-    wrapper.get(".yayaw-view-trigger").element
+    wrapper.get(".yayaw-settings-trigger").element
   );
 });
 

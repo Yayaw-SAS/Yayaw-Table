@@ -1,18 +1,17 @@
 <script setup lang="ts">
 import TableTooltip from "./TableTooltip.vue";
-import { Check, ChevronDown, LayoutList, CopyPlus, ListRestart, Save, SlidersHorizontal, Star, Trash2, Users } from "lucide-vue-next";
+import { Check, ChevronDown, LayoutList, CopyPlus, ListRestart, Save, Star, Trash2, Users } from "lucide-vue-next";
 import ToolbarMenu from "./ToolbarMenu.vue";
 import { areViewSettingsEqual, availableDisplayModes } from "../../view-menu";
 import { resolveViewTabs } from "../../view-tabs";
 import TableSelect from "../controls/TableSelect.vue";
 import ViewTabs from "./ViewTabs.vue";
-import { computed, ref, useId, watch } from "vue";
+import { computed, ref, useId } from "vue";
 import { useSavedViews } from "../../composables/use-saved-views";
 import type { TableView } from "../../types";
 import FormDialog from "../forms/FormDialog.vue";
 
-const props = defineProps<{ initialViews: TableView[]; enabled?: boolean; compact?: boolean; open?: boolean; panel?: boolean; panelTitle?: string }>();
-const emit = defineEmits<{ "update:open": [open: boolean]; back: [] }>();
+const props = defineProps<{ initialViews: TableView[]; enabled?: boolean; compact?: boolean }>();
 const {
   context, views, active, dirty, editable, deletable, busy, loading, loadError, error,
   dialogError, dialogOpen, name, shared, newViewMode, label, select, load, openSave, closeSave, save, update, remove,
@@ -22,7 +21,6 @@ const menuOpen = ref(false);
 const trigger = ref<HTMLButtonElement>();
 const nameInput = ref<HTMLInputElement>();
 const returnFocus = ref<HTMLElement>();
-watch(() => props.open, (open) => { if (open !== undefined) menuOpen.value = open; });
 const viewEnabled = computed(() => props.enabled !== false);
 const resetDisabled = computed(() => busy.value || (active.value ? !dirty.value : areViewSettingsEqual(context.state.resolveView(context.state.snapshot.value), context.state.resolveView({}))));
 const resetView = () => {
@@ -32,7 +30,14 @@ const resetView = () => {
 };
 const tabSettings = computed(() => resolveViewTabs(context.config.table.viewTabs));
 // Tabs name the views on wide screens; the trigger then only opens the settings.
-const showTabs = computed(() => viewEnabled.value && !props.compact && Boolean(tabSettings.value) && views.value.length > 0);
+const showTabs = computed(() => viewEnabled.value && !props.compact && Boolean(tabSettings.value));
+// Views listed before the menu offers a name filter.
+const VIEW_FILTER_THRESHOLD = 7;
+const viewFilter = ref("");
+const listedViews = computed(() => {
+  const needle = viewFilter.value.trim().toLocaleLowerCase();
+  return needle ? views.value.filter((view) => view.name.toLocaleLowerCase().includes(needle)) : views.value;
+});
 const defaultMode = computed(() => context.config.table.defaultDisplayMode ?? "table");
 const offeredModes = computed(() => availableDisplayModes(context.config.table.displayModes, {
   planning: Boolean(context.planning),
@@ -56,7 +61,7 @@ const openDialog = (): void => {
   menuChanged(false);
   openSave();
 };
-const menuChanged = (open: boolean): void => { menuOpen.value = open; emit("update:open", open); };
+const menuChanged = (open: boolean): void => { menuOpen.value = open; };
 const selectView = (view?: TableView) => { select(view); menuChanged(false); };
 const focusName = (event: Event): void => {
   event.preventDefault();
@@ -65,7 +70,7 @@ const focusName = (event: Event): void => {
 </script>
 
 <template>
-  <div class="yayaw-view-manager">
+  <div v-if="viewEnabled" class="yayaw-view-manager">
     <div class="yayaw-view-manager-row">
     <ViewTabs v-if="showTabs && tabSettings" :active-id="context.state.activeViewId.value ?? null"
       :can-create="Boolean(context.config.table.allowViewSave)" :dirty="dirty" :disabled="busy" :max-visible="tabSettings.maxVisible"
@@ -73,36 +78,35 @@ const focusName = (event: Event): void => {
       :views="views.map((view) => ({ id: view.id, name: view.name, displayMode: view.config.displayMode ?? defaultMode }))"
       :labels="{ tabs: label('views.tabs', 'viewTabs'), more: label('views.more', 'moreViews'), newView: label('views.newView', 'newView'), modified: label('views.modified', 'viewModified') }"
       @select="selectTab" @create="openDialog" />
-    <ToolbarMenu :open="menuOpen" :compact="compact" :title="panel ? (panelTitle ?? '') : label('views.settings', 'views')" :back="panel"
-      :back-label="label('back', 'back')" :close-label="label('views.close', 'close')" @back="emit('back')" @update:open="menuChanged">
+    <ToolbarMenu :open="menuOpen" :compact="compact" :title="showTabs ? currentLabel : label('views.tabs', 'viewTabs')"
+      :close-label="label('views.close', 'close')" @update:open="menuChanged">
       <template #trigger>
-        <button v-if="showTabs" ref="trigger" type="button" class="yayaw-button yayaw-button-outline yayaw-icon-only yayaw-view-trigger" :id="`table-options-${context.config.id}`"
-          :aria-label="label('views.settings', 'views')" :disabled="loading || busy">
-          <SlidersHorizontal :size="16" aria-hidden="true" />
+        <button v-if="showTabs" ref="trigger" type="button" class="yayaw-button yayaw-button-ghost yayaw-icon-only yayaw-view-actions" :id="`table-views-${context.config.id}`"
+          :aria-label="label('views.viewActions', 'viewActions')" :disabled="loading || busy">
+          <ChevronDown :size="16" aria-hidden="true" />
         </button>
-        <button v-else ref="trigger" type="button" class="yayaw-button yayaw-button-outline yayaw-view-trigger" :id="`table-options-${context.config.id}`"
-          :aria-label="viewEnabled ? `${label('views.current', 'currentView')}: ${currentLabel}` : label('views.settings', 'views')" :disabled="viewEnabled && (loading || busy)">
-          <LayoutList :size="16" aria-hidden="true" /><span class="yayaw-view-name">{{ viewEnabled ? currentLabel : label('views.view', 'views') }}</span>
-          <span v-if="viewEnabled && dirty" class="yayaw-view-dirty" role="status" :aria-label="label('views.modified', 'viewModified')" />
-          <ChevronDown :size="12" aria-hidden="true" />
+        <button v-else ref="trigger" type="button" class="yayaw-button yayaw-button-outline yayaw-view-trigger" :class="{ 'yayaw-icon-only': compact }" :id="`table-views-${context.config.id}`"
+          :aria-label="`${label('views.current', 'currentView')}: ${currentLabel}`" :disabled="loading || busy">
+          <LayoutList :size="16" aria-hidden="true" /><span v-if="!compact" class="yayaw-view-name">{{ currentLabel }}</span>
+          <span v-if="dirty" class="yayaw-view-dirty" role="status" :aria-label="label('views.modified', 'viewModified')" />
+          <ChevronDown v-if="!compact" :size="12" aria-hidden="true" />
         </button>
       </template>
-      <slot v-if="panel" name="panel" />
-      <template v-else>
-        <div v-if="viewEnabled" class="yayaw-view-selection">
+        <div v-if="!showTabs" class="yayaw-view-selection">
+          <input v-if="views.length > VIEW_FILTER_THRESHOLD" v-model="viewFilter" type="search" class="yayaw-input yayaw-view-filter"
+            :placeholder="label('views.filterViews', 'filterViews')" :aria-label="label('views.filterViews', 'filterViews')" />
           <button type="button" class="yayaw-view-menu-item" :aria-current="!context.state.activeViewId.value ? 'true' : undefined" :disabled="busy" @click="selectView()">
             <Check :size="16" aria-hidden="true" :class="{ 'yayaw-view-check-hidden': context.state.activeViewId.value }" />
             <span class="yayaw-view-name">{{ label('views.defaultView', 'defaultView') }}</span>
             <Star v-if="favoriteViewId === null" :size="14" fill="currentColor" role="img" :aria-label="label('views.favorite', 'favoriteView')" />
           </button>
-          <button v-for="view in views" :key="view.id" type="button" class="yayaw-view-menu-item" :aria-current="context.state.activeViewId.value === view.id ? 'true' : undefined" :disabled="busy" @click="selectView(view)">
+          <button v-for="view in listedViews" :key="view.id" type="button" class="yayaw-view-menu-item" :aria-current="context.state.activeViewId.value === view.id ? 'true' : undefined" :disabled="busy" @click="selectView(view)">
             <Check :size="16" aria-hidden="true" :class="{ 'yayaw-view-check-hidden': context.state.activeViewId.value !== view.id }" />
             <span class="yayaw-view-name" :title="view.name">{{ view.name }}</span>
             <Star v-if="view.id === favoriteViewId" :size="14" fill="currentColor" role="img" :aria-label="label('views.favorite', 'favoriteView')" />
             <Users v-if="view.isGlobal" :size="14" :aria-label="label('views.dialog.save.global', 'shareView')" />
           </button>
         </div>
-        <slot name="settings" />
         <div class="yayaw-view-write-actions">
           <TableTooltip v-if="viewEnabled && active && context.config.table.allowViewSave" :label="!editable ? label('views.readOnly', 'views.readOnly') : !dirty ? label('views.upToDate', 'views.upToDate') : label('views.saveChangesTooltip', 'updateViewTooltip')">
             <button type="button" class="yayaw-view-menu-item" :aria-label="label('views.saveChanges', 'updateView')" :aria-disabled="busy || !editable || !dirty" @click="!busy && editable && dirty && update()">
@@ -124,7 +128,6 @@ const focusName = (event: Event): void => {
           </TableTooltip>
           <button v-if="viewEnabled && deletable" type="button" class="yayaw-view-menu-item yayaw-view-menu-danger" :disabled="busy" @click="remove"><Trash2 :size="16" aria-hidden="true" />{{ label('views.delete', 'deleteView') }}</button>
         </div>
-      </template>
     </ToolbarMenu>
     </div>
     <div v-if="loadError" class="yayaw-view-error" role="alert">

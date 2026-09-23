@@ -734,6 +734,16 @@
           "target": "components/ui/yayaw-table/components/toolbar/data-table-advanced-toolbar.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/toolbar/menu-choice-list.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/toolbar/menu-choice-list.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/toolbar/mobile-settings-screens.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/toolbar/mobile-settings-screens.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/toolbar/responsive-menu.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/toolbar/responsive-menu.tsx"

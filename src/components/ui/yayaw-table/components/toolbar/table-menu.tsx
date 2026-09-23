@@ -61,9 +61,24 @@ import type { ViewMenuParts } from "./table-view-manager";
 
 const EMPTY_COLUMNS: never[] = [];
 
+export interface SettingsScreen {
+  id: string;
+  label: string;
+  icon: ReactNode;
+  value: string;
+  content: ReactNode;
+}
+
 export interface TableMenuProps {
   compact?: boolean;
   viewMenu?: ViewMenuParts;
+  /** Export, share and application actions, listed under "Data". */
+  dataActions?: ReactNode;
+  /**
+   * Settings shown as a row with their value that opens a screen of choices,
+   * e.g. layout and density in touch drawers.
+   */
+  screens?: SettingsScreen[];
   modeSettings?: ReactNode;
   cardSettings?: ReactNode;
   filterExtras?: ReactNode;
@@ -227,6 +242,8 @@ interface OptionsMenuTriggerProps {
   actionsAsIcons: boolean;
   badgeCount: number;
   className?: string;
+  /** Touch-size target in compact toolbars. */
+  compact?: boolean;
   disabled?: boolean;
   label: string;
 }
@@ -235,7 +252,15 @@ const OptionsMenuTrigger = forwardRef<
   HTMLButtonElement,
   OptionsMenuTriggerProps
 >(function OptionsMenuTrigger(
-  { actionsAsIcons, badgeCount, className, disabled = false, label, ...props },
+  {
+    actionsAsIcons,
+    badgeCount,
+    className,
+    compact = false,
+    disabled = false,
+    label,
+    ...props
+  },
   ref
 ) {
   const hasBadge = badgeCount > 0;
@@ -246,6 +271,7 @@ const OptionsMenuTrigger = forwardRef<
         actionsAsIcons
           ? "relative h-8 w-8"
           : "h-8 gap-2 px-3 font-normal text-xs leading-4",
+        compact && "size-11",
         className
       )}
       disabled={disabled}
@@ -287,6 +313,8 @@ const OptionsMenuTrigger = forwardRef<
 function renderMainMenuView({
   selection,
   actions,
+  dataActions,
+  screens,
   modeSettings,
   cardSettings,
   cardSettingsTitle,
@@ -300,6 +328,8 @@ function renderMainMenuView({
 }: {
   selection?: ReactNode;
   actions?: ReactNode;
+  dataActions?: ReactNode;
+  screens?: SettingsScreen[];
   modeSettings?: ReactNode;
   cardSettings?: ReactNode;
   cardSettingsTitle: string;
@@ -316,6 +346,21 @@ function renderMainMenuView({
       <StackMenuContent>
         {selection}
         {modeSettings}
+        {screens?.map((screen) => (
+          <StackMenuItem
+            endIcon={
+              <span className="text-muted-foreground text-xs">
+                {screen.value}
+              </span>
+            }
+            icon={screen.icon}
+            key={screen.id}
+            navigateTitle={screen.label}
+            navigateTo={screen.id}
+          >
+            {screen.label}
+          </StackMenuItem>
+        ))}
         {cardSettings ? (
           <StackMenuItem
             icon={<List className="size-4" />}
@@ -414,6 +459,17 @@ function renderMainMenuView({
           )}
         </StackMenuSection>
         {actions}
+        {dataActions ? (
+          <StackMenuSection
+            className="mt-1 space-y-1 border-border border-t pt-1"
+            data-menu-section="data"
+          >
+            <div className="px-2 pt-1 text-muted-foreground text-sm">
+              {t("menu.data")}
+            </div>
+            {dataActions}
+          </StackMenuSection>
+        ) : null}
       </StackMenuContent>
     </StackMenuView>
   );
@@ -437,10 +493,11 @@ function getSettingsTitle(
 export function TableMenu({
   compact = false,
   viewMenu,
+  dataActions,
+  screens,
   modeSettings,
   cardSettings,
   filterExtras,
-  actionsAsIcons = false,
   columns = EMPTY_COLUMNS,
   defaultDisplayMode,
   enableColumnFilters = true,
@@ -585,10 +642,6 @@ export function TableMenu({
   const hasMenuBadgeCount =
     sectionState.effectiveActiveFiltersCount > 0 ||
     sectionState.effectiveActiveSortCount > 0;
-  const optionsLabel = useMemo(() => {
-    const translated = t("menu.options");
-    return translated === "menu.options" ? "Options" : translated;
-  }, [t]);
   const footerCalculationsLabel = isFooterCalculationsVisible
     ? t("menu.footer_calculations_on")
     : t("menu.footer_calculations_off");
@@ -630,7 +683,9 @@ export function TableMenu({
   );
 
   // Hide options button entirely if nothing is available
-  if (!(sectionState.hasAnyMenuSection || viewMenu)) {
+  if (
+    !(sectionState.hasAnyMenuSection || viewMenu || dataActions || screens)
+  ) {
     return null;
   }
 
@@ -655,9 +710,10 @@ export function TableMenu({
       trigger={
         viewMenu?.trigger ?? (
           <OptionsMenuTrigger
-            actionsAsIcons={actionsAsIcons}
+            actionsAsIcons
             badgeCount={hasMenuBadgeCount ? sectionState.menuBadgeCount : 0}
-            label={optionsLabel}
+            compact={compact}
+            label={t("views.settings")}
           />
         )
       }
@@ -665,6 +721,8 @@ export function TableMenu({
       {renderMainMenuView({
         selection: viewMenu?.selection,
         actions: viewMenu?.actions,
+        dataActions,
+        screens,
         modeSettings,
         cardSettings,
         cardSettingsTitle,
@@ -744,6 +802,12 @@ export function TableMenu({
           />
         </StackMenuView>
       )}
+
+      {screens?.map((screen) => (
+        <StackMenuView key={screen.id} name={screen.id} title={screen.label}>
+          {screen.content}
+        </StackMenuView>
+      ))}
 
       {cardSettings ? (
         <StackMenuView name="cards" title={cardSettingsTitle}>

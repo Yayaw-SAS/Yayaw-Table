@@ -359,7 +359,7 @@ it.each([
     },
   });
   await flushPromises();
-  await wrapper.get(".yayaw-view-trigger").trigger("click");
+  await wrapper.get(".yayaw-settings-trigger").trigger("click");
   await flushPromises();
   const setting = body()
     .findAll("button")

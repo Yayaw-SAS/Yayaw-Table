@@ -739,3 +739,15 @@ creating a view in another layout switches to it. With tabs, the view menu
 trigger is an icon button labelled "Views and settings". Compact toolbars and
 touch layouts keep the named trigger. `tests/view-tabs-suite.ts` runs in both
 editions and `e2e/view-tabs.spec.ts` covers both demos.
+
+## Toolbar hierarchy
+
+Both editions split the toolbar into a view switcher on the left and the view
+settings on the right. The switcher shows tabs on wide toolbars (default view
+included from the start) with a "View actions" chevron for the write actions,
+and on compact toolbars a named trigger whose menu lists the views (scrolling,
+name filter beyond seven) followed by the same actions. "View settings" holds
+presentation only (layout, density, properties, filter, sort, group, cards)
+and a "Data" section with Export, Share and, on compact toolbars, the
+application toolbar actions. Search is a field on wide toolbars and a button
+that opens it on compact ones. There is no separate data actions drawer.

@@ -313,8 +313,9 @@ describe("YayawDataTable", () => {
         ],
       },
     });
-    expect(wrapper.get(".yayaw-view-trigger").text()).toContain("Default view");
-    expect(wrapper.get('[aria-label="Export"]').text()).toBe("");
+    expect(wrapper.get('[role="tab"][aria-selected="true"]').text()).toContain(
+      "Default view"
+    );
     expect(wrapper.get('[aria-label="Add item"]').text()).toBe("");
     expect(wrapper.get('[aria-label="Refresh"]').text()).toBe("R");
     expect(wrapper.get('[aria-label="Refresh"]').classes()).toContain(
@@ -588,11 +589,20 @@ describe("YayawDataTable", () => {
     expect(wrapper.find('[aria-label="Views"]').exists()).toBe(false);
     expect(wrapper.find(".yayaw-empty").exists()).toBe(false);
     await openViewMenu(wrapper);
+    // Export/Share live in the settings menu's Data section regardless of
+    // these feature flags, so only the main options list is expected to
+    // shrink down to the Properties item.
     const menuItems = wrapper
-      .findAll(".yayaw-options-item")
+      .findAll(
+        ".yayaw-options-list:not(.yayaw-options-data) .yayaw-options-item"
+      )
       .map((item) => item.text());
     expect(menuItems).toHaveLength(1);
     expect(menuItems[0]).toContain("Properties");
+    const dataItems = wrapper
+      .findAll(".yayaw-options-data .yayaw-options-item")
+      .map((item) => item.text());
+    expect(dataItems).toEqual(["Export", "Share"]);
   });
 
   it("enforces canEditRow for row clicks, inline edit, and Kanban drag", async () => {

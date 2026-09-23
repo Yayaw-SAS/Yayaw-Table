@@ -2,10 +2,13 @@ import { QueryClient } from "@tanstack/vue-query";
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { toast } from "vue-sonner";
+import { inlineTestPortals, openViewMenu } from "../../tests/menu-helpers";
 import { defineTableConfig } from "../config";
 import { exportColumns, rowsToCsv } from "../core";
 import type { TableListParams, YayawTableProps } from "../types";
 import YayawDataTable from "./YayawDataTable.vue";
+
+inlineTestPortals();
 
 const rows = [
   { id: "1", name: "Alpha", secret: "hidden" },
@@ -45,6 +48,17 @@ const select = async (wrapper: Wrapper, checked = true) => {
   await wrapper.get('tbody input[type="checkbox"]').setValue(checked);
   await flushPromises();
 };
+// Export moved from a toolbar button into the settings menu's Data section.
+const exportButton = async (wrapper: Wrapper) => {
+  await openViewMenu(wrapper);
+  const button = wrapper
+    .findAll(".yayaw-options-item")
+    .find((item) => item.text().startsWith("Export"));
+  if (!button) {
+    throw new Error("Missing export action");
+  }
+  return button;
+};
 const listPage = (params: TableListParams, data = rows) => ({
   data: data.slice(params.page - 1, params.page),
   meta: { totalCount: data.length, pageCount: data.length },
@@ -68,7 +82,7 @@ describe("table actions parity", () => {
     await wrapper.get("th.sortable").trigger("click");
     await wrapper.get("th.sortable").trigger("click");
     await next(wrapper);
-    await wrapper.get('.yayaw-toolbar [aria-label="Export"]').trigger("click");
+    await (await exportButton(wrapper)).trigger("click");
     await flushPromises();
     expect(onExport).toHaveBeenCalledExactlyOnceWith([...rows].reverse());
   });
@@ -92,7 +106,7 @@ describe("table actions parity", () => {
     await wrapper.get('input[type="search"]').setValue("a");
     await flushPromises();
     exporting = true;
-    const button = wrapper.get('.yayaw-toolbar [aria-label="Export"]');
+    const button = await exportButton(wrapper);
     await button.trigger("click");
     expect(button.attributes("disabled")).toBeDefined();
     await button.trigger("click");
@@ -116,14 +130,14 @@ describe("table actions parity", () => {
     const onExport = vi.fn();
     const wrapper = mountTable({ getTableActions: () => ({ list }), onExport });
     await flushPromises();
-    await wrapper.get('.yayaw-toolbar [aria-label="Export"]').trigger("click");
+    await (await exportButton(wrapper)).trigger("click");
     await flushPromises();
     expect(toast.getHistory().at(-1)).toMatchObject({
       title: expect.stringContaining("Export unavailable"),
     });
     expect(onExport).not.toHaveBeenCalled();
     fail = false;
-    await wrapper.get('.yayaw-toolbar [aria-label="Export"]').trigger("click");
+    await (await exportButton(wrapper)).trigger("click");
     await flushPromises();
     expect(onExport).toHaveBeenCalledExactlyOnceWith(rows);
   });
