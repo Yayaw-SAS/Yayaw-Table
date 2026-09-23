@@ -821,7 +821,14 @@ function timelineModelCases({
   });
 
   test("the date marker stays centred beneath its header cell", () => {
-    const today = new Date().toISOString().slice(0, 10);
+    // The marker follows the local day, so the expected cell must too:
+    // an ISO (UTC) date differs from it around midnight outside UTC.
+    const now = new Date();
+    const today = [
+      now.getFullYear(),
+      String(now.getMonth() + 1).padStart(2, "0"),
+      String(now.getDate()).padStart(2, "0"),
+    ].join("-");
     const geometry = timelineGeometry({
       rowCount: 2,
       view: {},
