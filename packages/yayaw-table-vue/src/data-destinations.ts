@@ -81,9 +81,7 @@ export function groupDataDestinations<TIcon>(
       continue;
     }
     seen.add(destination.id);
-    groups[destination.kind === "share" ? "share" : "export"].push(
-      destination
-    );
+    groups[destination.kind === "share" ? "share" : "export"].push(destination);
   }
   return groups;
 }
