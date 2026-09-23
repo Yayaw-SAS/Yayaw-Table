@@ -12,7 +12,12 @@ import {
   lockedColumnVisibility,
 } from "../column-locks";
 import { createTableViewSnapshot } from "../core";
-import { resolveDisplayMode, resolveDisplayModes } from "../display-modes";
+import {
+  GENERIC_MODE_CONFIG_KEYS,
+  pickGenericModeConfigs,
+  resolveDisplayMode,
+  resolveDisplayModes,
+} from "../display-modes";
 import { cloneFormValue } from "../form-runtime";
 import { normalizeGanttView } from "../planning/engine";
 import type { TableGanttViewConfig } from "../planning/types";
@@ -193,7 +198,19 @@ export const useTableState = <TData extends TableRecord>({
     normalizeGanttView(config.table.gantt)
   );
   const gallery = ref<TableGalleryViewConfig>({ ...config.table.gallery });
-  const list = ref<TableListViewConfig>({ ...config.table.list });
+  // Settings of the modes the registry handles generically (`list`, …).
+  const modeConfigs = ref<Record<string, Record<string, unknown>>>({
+    ...pickGenericModeConfigs(config.table),
+  } as Record<string, Record<string, unknown>>);
+  const list = computed<TableListViewConfig>({
+    get: () => (modeConfigs.value.list ?? {}) as TableListViewConfig,
+    set: (value) => {
+      modeConfigs.value = {
+        ...modeConfigs.value,
+        list: value as Record<string, unknown>,
+      };
+    },
+  });
   const columnDragEnabled = ref(initialColumnDragEnabled());
   watch(
     columnDragEnabled,
@@ -269,7 +286,7 @@ export const useTableState = <TData extends TableRecord>({
       kanban: kanban.value,
       gantt: gantt.value,
       gallery: gallery.value,
-      list: list.value,
+      ...modeConfigs.value,
       grouping: enabledGrouping(grouping.value),
       pinning: enabledPinning(pinning.value),
       pageSize: pagination.value.pageSize,
@@ -286,7 +303,15 @@ export const useTableState = <TData extends TableRecord>({
     gantt.value = normalizeGanttView(
       parseJson(params.get(`${tableId}-gantt`), defaults.gantt ?? {})
     );
-    list.value = parseJson(params.get(`${tableId}-list`), defaults.list ?? {});
+    modeConfigs.value = Object.fromEntries(
+      GENERIC_MODE_CONFIG_KEYS.map((key) => [
+        key,
+        parseJson(
+          params.get(`${tableId}-${key}`),
+          (defaults[key] ?? {}) as Record<string, unknown>
+        ),
+      ])
+    );
     gallery.value = parseJson(
       params.get(`${tableId}-gallery`),
       defaults.gallery ?? {}
@@ -424,7 +449,9 @@ export const useTableState = <TData extends TableRecord>({
     set(`${tableId}-kanban`, serializePresent(kanban.value));
     set(`${tableId}-gantt`, serializePresent(gantt.value));
     set(`${tableId}-gallery`, serializePresent(gallery.value));
-    set(`${tableId}-list`, serializePresent(list.value));
+    for (const key of GENERIC_MODE_CONFIG_KEYS) {
+      set(`${tableId}-${key}`, serializePresent(modeConfigs.value[key] ?? {}));
+    }
     set("view", activeViewId.value);
     window.history.replaceState(window.history.state, "", url);
   };
@@ -493,7 +520,12 @@ export const useTableState = <TData extends TableRecord>({
         },
         gantt: normalizeGanttView(input.gantt ?? config.table.gantt),
         gallery: input.gallery ?? { ...config.table.gallery },
-        list: input.list ?? { ...config.table.list },
+        ...Object.fromEntries(
+          GENERIC_MODE_CONFIG_KEYS.map((key) => [
+            key,
+            input[key] ?? { ...config.table[key] },
+          ])
+        ),
         grouping: enabledGrouping(
           input.grouping ??
             (enabledDisplayMode(input.displayMode) === "kanban"
@@ -524,7 +556,12 @@ export const useTableState = <TData extends TableRecord>({
     kanban.value = view.kanban ?? {};
     gantt.value = normalizeGanttView(view.gantt);
     gallery.value = view.gallery ?? {};
-    list.value = view.list ?? {};
+    modeConfigs.value = Object.fromEntries(
+      GENERIC_MODE_CONFIG_KEYS.map((key) => [
+        key,
+        (view[key] ?? {}) as Record<string, unknown>,
+      ])
+    );
     grouping.value = view.grouping ?? [];
     pinning.value = view.pinning ?? emptyPinning();
     pagination.value = {
@@ -576,7 +613,7 @@ export const useTableState = <TData extends TableRecord>({
       kanban,
       gantt,
       gallery,
-      list,
+      modeConfigs,
       activeViewId,
     ],
     writeUrl,

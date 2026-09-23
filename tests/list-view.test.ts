@@ -54,7 +54,7 @@ test("saved views keep normalized list settings", () => {
     groupingParam: [],
     kanbanGroupByParam: "",
     kanbanParam: {},
-    listParam: { cardColumnIds: ["status"] },
+    modeConfigsParam: { list: { cardColumnIds: ["status"] } },
     orderParam: [],
     pageSizeParam: "10",
     sortParam: [],

@@ -1,6 +1,7 @@
 import type { QueryClient } from "@tanstack/vue-query";
 import type { Component, VNodeChild } from "vue";
 import type { ZodType } from "zod";
+import type { GenericModeViewConfigs } from "./display-modes";
 import type {
   FormLayoutAction,
   FormLayoutBlock,
@@ -207,7 +208,9 @@ export interface TableGalleryRenderContext {
   aspectRatio: TableGalleryAspectRatio;
 }
 
-export interface TableBehaviorConfig<TData extends TableRecord = TableRecord> {
+/** Per-mode defaults (`list`, …) come from the display mode registry. */
+export interface TableBehaviorConfig<TData extends TableRecord = TableRecord>
+  extends GenericModeViewConfigs {
   coloredTags?: boolean;
   allowCreate: boolean;
   allowEdit: boolean;
@@ -243,7 +246,6 @@ export interface TableBehaviorConfig<TData extends TableRecord = TableRecord> {
   gantt?: import("./planning/types").TableGanttConfig;
   kanban?: TableKanbanConfig;
   gallery?: TableGalleryConfig;
-  list?: TableListConfig;
   /** Offer "Manual order" in the sort menu; each view keeps its own order via `actions.reorder`. */
   manualOrder?: boolean;
   emptyState?: TableEmptyStateConfig;
@@ -601,7 +603,8 @@ export interface AdvancedFiltersState {
   joinOperator: "and" | "or";
 }
 
-export interface TableViewConfig {
+/** Generic per-mode settings (`list`, …) come from the display mode registry. */
+export interface TableViewConfig extends GenericModeViewConfigs {
   /** Visibility of table footer calculations; legacy snapshots inherit the initial setting. */
   footerCalculationsVisible?: boolean;
   /** Row and header spacing restored when applying the view. */
@@ -621,7 +624,6 @@ export interface TableViewConfig {
   gantt?: import("./planning/types").TableGanttViewConfig;
   kanban?: TableKanbanViewConfig;
   gallery?: TableGalleryViewConfig;
-  list?: TableListViewConfig;
   grouping?: string[];
   pinning?: ColumnPinningState;
   pageSize?: number;

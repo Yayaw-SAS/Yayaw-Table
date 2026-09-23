@@ -2,6 +2,7 @@
  * Configuration atoms for DataTable
  * Centralizes all configuration options in one place
  */
+
 import { atom } from "jotai";
 import { atomFamily } from "jotai-family";
 import type { TableFormConfig } from "../config/form-config";
@@ -18,6 +19,7 @@ import type {
   TableGalleryConfig,
   TableKanbanConfig,
 } from "../types/display-types";
+import type { GenericModeViewConfigs } from "../utils/display-modes";
 
 /**
  * Interface for column-specific configuration options
@@ -47,7 +49,7 @@ export interface DataTableColumnsConfig {
 /**
  * Interface for general DataTable configuration options
  */
-export interface DataTableConfig {
+export interface DataTableConfig extends GenericModeViewConfigs {
   planning?: import("../planning/types").TablePlanningConfig;
   gantt?: import("../planning/types").TableGanttConfig;
   /**
@@ -155,10 +157,6 @@ export interface DataTableConfig {
    */
   gallery?: TableGalleryConfig;
 
-  /**
-   * List display mode configuration.
-   */
-  list?: import("../types/display-types").TableListConfig;
   manualOrder?: boolean;
 
   /**

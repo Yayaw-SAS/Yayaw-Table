@@ -678,3 +678,14 @@ buttons `--input` at 30% with a light shadow, badges a 0.35rem radius, the
 header row `--muted` at 20%, the selection column 48px with a centered
 checkbox, and text is antialiased. Both editions show the default description
 `Manage your <tableType>` when none is configured.
+
+### Generic per-mode settings
+
+A registry entry with `configKey` and `normalizeConfig` has its settings handled
+generically in both editions: `GenericModeViewConfigs` types `table.<key>` and
+saved views, `<tableId>-<key>` stores them in the URL, and state, snapshots,
+view application, sharing and reset loop over `GENERIC_MODE_CONFIG_KEYS`.
+Kanban, gallery and Gantt keep dedicated code for their historical migrations.
+Adding such a mode needs its registry entry and type, its renderer and settings
+panel per edition, labels and tests. `tests/generic-mode-config-suite.ts` runs
+in both editions.

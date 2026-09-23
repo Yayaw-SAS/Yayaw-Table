@@ -6,7 +6,7 @@
 
 import { atom, useAtom, useStore } from "jotai";
 import { atomFamily } from "jotai-family";
-import { createParser, useQueryState } from "nuqs";
+import { createParser, useQueryState, useQueryStates } from "nuqs";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type {
   ColumnFiltersState,
@@ -27,7 +27,13 @@ import type {
   TableKanbanViewConfig,
 } from "../types/display-types";
 import type { AdvancedFiltersState } from "../types/filter-types";
-import { isTableDisplayMode } from "../utils/display-modes";
+import {
+  GENERIC_MODE_CONFIG_KEYS,
+  type GenericModeConfigKey,
+  isTableDisplayMode,
+  normalizeGenericModeConfigs,
+  normalizeModeConfig,
+} from "../utils/display-modes";
 import type { TableViewConfig } from "../types/view-types";
 import {
   normalizeColumnSizing,
@@ -261,18 +267,27 @@ const objectParser = createParser({
     Object.keys(value || {}).length ? JSON.stringify(value) : "",
 });
 
-const listParser = createParser({
-  parse: (value: string): TableListViewConfig => {
+const modeConfigParser = createParser({
+  parse: (value: string): Record<string, unknown> => {
     try {
       const parsed = value ? JSON.parse(value) : {};
-      return isRecord(parsed) ? (parsed as TableListViewConfig) : {};
+      return isRecord(parsed) ? parsed : {};
     } catch {
       return {};
     }
   },
-  serialize: (value: TableListViewConfig) =>
+  serialize: (value: Record<string, unknown>) =>
     Object.keys(value || {}).length ? JSON.stringify(value) : "",
 });
+
+/** One URL parser per generic mode settings key, e.g. `${tableId}-list`. */
+const MODE_CONFIG_PARSERS = Object.fromEntries(
+  GENERIC_MODE_CONFIG_KEYS.map((key) => [key, modeConfigParser])
+) as Record<GenericModeConfigKey, typeof modeConfigParser>;
+
+type ModeConfigsState = Partial<
+  Record<GenericModeConfigKey, Record<string, unknown> | null>
+>;
 
 const galleryParser = createParser({
   parse: (value: string): TableGalleryViewConfig => {
@@ -680,18 +695,34 @@ export function useTableUrlState({
     EMPTY_OBJECT as TableKanbanViewConfig
   );
 
-  const [urlListParam, setUrlListParam] = useQueryState(
-    `${tableId}-list`,
-    listParser
+  // Settings of the modes the registry handles generically, one URL key each.
+  const modeConfigUrlKeys = useMemo(
+    () =>
+      Object.fromEntries(
+        GENERIC_MODE_CONFIG_KEYS.map((key) => [key, `${tableId}-${key}`])
+      ) as Record<GenericModeConfigKey, string>,
+    [tableId]
   );
-  const [listParam, setListParam] = useStateChannel(
+  const [urlModeConfigs, setUrlModeConfigs] = useQueryStates(
+    MODE_CONFIG_PARSERS,
+    { urlKeys: modeConfigUrlKeys }
+  );
+  const [modeConfigsParam, setModeConfigsParam] = useStateChannel(
     tableId,
     shouldSyncUrl,
-    "list",
-    urlListParam,
-    setUrlListParam,
-    EMPTY_OBJECT as TableListViewConfig
+    "modeConfigs",
+    urlModeConfigs as ModeConfigsState,
+    setUrlModeConfigs,
+    EMPTY_OBJECT as ModeConfigsState
   );
+  const modeConfigs = useMemo(
+    () =>
+      normalizeGenericModeConfigs(
+        (modeConfigsParam ?? {}) as Record<string, unknown>
+      ),
+    [modeConfigsParam]
+  );
+  const listParam = (modeConfigs.list ?? EMPTY_OBJECT) as TableListViewConfig;
 
   const [urlGalleryParam, setUrlGalleryParam] = useQueryState(
     `${tableId}-gallery`,
@@ -1041,11 +1072,34 @@ export function useTableUrlState({
     [setGroupingParam, setKanbanGroupByParam, setKanbanParam]
   );
 
-  const setListFromUI = useCallback(
-    (list: TableListViewConfig | undefined) => {
-      setListParam(list && Object.keys(list).length > 0 ? list : null);
+  const setModeConfigFromUI = useCallback(
+    (key: GenericModeConfigKey, config: object | undefined) => {
+      setModeConfigsParam({
+        ...(modeConfigsParam ?? {}),
+        [key]:
+          config && Object.keys(config).length > 0
+            ? (config as Record<string, unknown>)
+            : null,
+      });
     },
-    [setListParam]
+    [modeConfigsParam, setModeConfigsParam]
+  );
+  const setListFromUI = useCallback(
+    (list: TableListViewConfig | undefined) =>
+      setModeConfigFromUI("list", list),
+    [setModeConfigFromUI]
+  );
+  /** Every generic key present, null when a view has none, so applying a view clears the rest. */
+  const modeConfigsFromView = useCallback(
+    (config: Record<string, unknown>): ModeConfigsState =>
+      Object.fromEntries(
+        GENERIC_MODE_CONFIG_KEYS.map((key) => [
+          key,
+          (normalizeModeConfig(key, config[key]) as Record<string, unknown>) ??
+            null,
+        ])
+      ),
+    []
   );
 
   const setGalleryFromUI = useCallback(
@@ -1086,7 +1140,7 @@ export function useTableUrlState({
       groupingParam: resolvedGroupingParam,
       kanbanParam: resolvedKanbanCardParam,
       kanbanGroupByParam: kanbanGroupByParam || "",
-      listParam: (listParam || {}) as TableListViewConfig,
+      modeConfigsParam: modeConfigs,
       orderParam: (orderParam || []) as string[],
       pageSizeParam: pageSizeParam || defaultPageSizeParam,
       pinningParam: normalizeColumnPinning(
@@ -1107,7 +1161,7 @@ export function useTableUrlState({
     filtersParam,
     ganttParam,
     galleryParam,
-    listParam,
+    modeConfigs,
     globalSearchParam,
     resolvedGroupingParam,
     kanbanGroupByParam,
@@ -1151,7 +1205,10 @@ export function useTableUrlState({
       queueUrlUpdate(setKanbanGroupByParam, null);
       queueUrlUpdate(setGanttParam, config.gantt || null);
       queueUrlUpdate(setGalleryParam, config.gallery || null);
-      queueUrlUpdate(setListParam, config.list || null);
+      queueUrlUpdate(
+        setModeConfigsParam,
+        modeConfigsFromView(config as Record<string, unknown>)
+      );
       queueUrlUpdate(setPageParam, "0");
       queueUrlUpdate(
         setPageSizeParam,
@@ -1179,7 +1236,8 @@ export function useTableUrlState({
       setFiltersParam,
       setGanttParam,
       setGalleryParam,
-      setListParam,
+      setModeConfigsParam,
+      modeConfigsFromView,
       setGlobalSearchParam,
       setGroupingParam,
       setHistoryIndexParam,
@@ -1244,7 +1302,9 @@ export function useTableUrlState({
       setUrlParam(url, `${tableId}-kanban`, resolvedKanbanCardParam);
       setUrlParam(url, `${tableId}-gantt`, normalizeGanttView({...defaultGantt, ...ganttParam}));
       setUrlParam(url, `${tableId}-gallery`, galleryParam);
-      setUrlParam(url, `${tableId}-list`, listParam);
+      for (const key of GENERIC_MODE_CONFIG_KEYS) {
+        setUrlParam(url, `${tableId}-${key}`, modeConfigs[key]);
+      }
 
       // Special case for pinning
       if (
@@ -1271,7 +1331,7 @@ export function useTableUrlState({
       ganttParam,
       defaultGantt,
       galleryParam,
-      listParam,
+      modeConfigs,
       globalSearchParam,
       pinningParam,
       setUrlParam,
@@ -1324,7 +1384,7 @@ export function useTableUrlState({
       setKanbanParam(null);
       setGalleryParam(null);
       setGanttParam(null);
-      setListParam(null);
+      setModeConfigsParam(modeConfigsFromView({}));
       setGlobalSearchParam(null);
       setPinningParam({ left: [], right: [] });
     } finally {
@@ -1360,7 +1420,8 @@ export function useTableUrlState({
     setKanbanGroupByParam,
     setKanbanParam,
     setGalleryParam,
-    setListParam,
+    setModeConfigsParam,
+    modeConfigsFromView,
     setGanttParam,
     setGlobalSearchParam,
     setPinningParam,
@@ -1405,7 +1466,9 @@ export function useTableUrlState({
     ganttParam: normalizeGanttView({...defaultGantt, ...ganttParam}),
     setGanttFromUI: setGanttParam,
     galleryParam: (galleryParam || EMPTY_OBJECT) as TableGalleryViewConfig,
-    listParam: (listParam || EMPTY_OBJECT) as TableListViewConfig,
+    listParam,
+    modeConfigs,
+    setModeConfigFromUI,
     historyIndexParam,
     kanbanParam: resolvedKanbanCardParam,
     kanbanGroupByParam: kanbanGroupByParam || "",
@@ -1441,7 +1504,7 @@ export function useTableUrlState({
     setKanbanGroupByParam,
     setKanbanParam,
     setGalleryParam,
-    setListParam,
+    setModeConfigsParam,
     setOrderFromUI,
     setSizingFromUI,
 
