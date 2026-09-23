@@ -734,6 +734,11 @@
           "target": "components/ui/yayaw-table/components/toolbar/data-table-advanced-toolbar.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/toolbar/export-panel.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/toolbar/export-panel.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/toolbar/menu-choice-list.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/toolbar/menu-choice-list.tsx"
@@ -1267,6 +1272,11 @@
           "path": "registry/default/ui/yayaw-table/utils/duplicate-shortcut.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/duplicate-shortcut.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/export-model.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/export-model.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/utils/filter-bar.ts",

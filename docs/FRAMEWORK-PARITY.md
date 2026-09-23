@@ -762,3 +762,14 @@ after the share link (`table.share: false` hides the link). The shared
 shape and runs one destination at a time, turning failures into a message.
 React icons are nodes, Vue icons are components; both default to a send icon.
 `tests/data-destinations-suite.ts` runs in both editions.
+
+## Export screen
+
+Both editions open the same Export screen from the Data section (format,
+records, columns, values, file name) and hand the choice to the shared
+`export-model.ts`: `runExport` sends an `ExportFileRequest` to
+`actions.exportFile` when the host builds files, otherwise it loads the rows
+(or uses the selection), builds the matrix with the shared value formatting
+and downloads a CSV or prints a page from a hidden frame. `availableExportFormats`
+offers Excel only with a writer and honours `table.exportFormats`.
+`tests/export-model-suite.ts` runs in both editions.

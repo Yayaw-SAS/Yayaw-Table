@@ -2323,6 +2323,21 @@
 .yayaw-toolbar-menu[data-compact="true"] .yayaw-options-item {
   min-height: 44px;
 }
+.yayaw-export-panel {
+  padding: 12px;
+}
+.yayaw-export-panel .yayaw-export-name {
+  display: grid;
+  gap: 6px;
+}
+.yayaw-export-panel .yayaw-export-name > label {
+  color: var(--yayaw-muted-foreground);
+  font-size: 14px;
+}
+.yayaw-export-panel .yayaw-export-name .yayaw-input,
+.yayaw-export-panel .yayaw-export-run {
+  width: 100%;
+}
 .yayaw-choice-list {
   display: grid;
   gap: 4px;

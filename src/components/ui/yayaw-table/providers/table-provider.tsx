@@ -153,6 +153,14 @@ export interface TableActions {
    * the view settings "Data" section. `run` receives the current query.
    */
   destinations?: import("../utils/data-destinations").DataDestination<ReactNode>[];
+  /**
+   * Build export files on the server (CSV, Excel, PDF) from the view's
+   * query; return a download link or a Blob. Without it, the browser writes
+   * CSV and prints PDF.
+   */
+  exportFile?: (
+    request: import("../utils/export-model").ExportFileRequest
+  ) => Promise<import("../utils/export-model").ExportFileResult | undefined>;
   views?: TableViewActions;
   [key: string]: unknown;
 }
