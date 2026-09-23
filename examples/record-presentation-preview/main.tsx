@@ -17,6 +17,9 @@ const renderExample = () => {
   if (example === "views") {
     return <ViewsExample />;
   }
+  if (example === "views-fallback") {
+    return <ViewsExample aggregate={false} />;
+  }
   return <RecordPresentationExample />;
 };
 const root = document.getElementById("root");

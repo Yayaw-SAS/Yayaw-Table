@@ -1,5 +1,6 @@
 import {
   CalendarDays,
+  ChartColumnBig,
   ChartGantt,
   ClipboardList,
   Columns3,
@@ -12,6 +13,7 @@ import type { TableDisplayMode } from "../../types";
 
 export const displayModeIcons: Record<TableDisplayMode, Component> = {
   calendar: CalendarDays,
+  chart: ChartColumnBig,
   form: ClipboardList,
   gantt: ChartGantt,
   table: Table2,

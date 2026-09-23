@@ -717,6 +717,87 @@ mutation. React translation keys are `views.calendar.*`; Vue keys are
 `calendar.*` with English and French defaults. `tests/calendar-model-suite.ts`
 runs in both editions and `e2e/calendar.spec.ts` covers both demos.
 
+## Chart view
+
+Charts ship as optional registry items, like the calendar:
+`yayaw-table-chart` (React, shadcn/ui `chart` with Recharts; the item lists
+the `chart` shadcn component and `recharts`) and `yayaw-table-vue-chart` (Vue,
+`@unovis/vue` and `@unovis/ts`, the engine behind shadcn-vue charts; the item
+ships its own markup and tokens, like the rest of the Vue edition). Both load
+their view lazily (React `lazy` + `Suspense`, Vue `defineAsyncComponent`), so
+the chart library is fetched with the first chart shown. Hosts pass
+`displayModeRenderers: { chart: chartRenderer }` and list `"chart"` in
+`displayModes`; `table.chart` holds table defaults and `table.chart: false`
+removes the mode (`withoutDisabledModeRenderers`).
+
+The shared `chart-model.ts` owns everything but the drawing:
+
+- Settings: `type` (`bar`, `horizontalBar`, `line`, `donut`, `number`),
+  `xColumn`, `bucket`, `weekStartsOn`, `metric`, `metricColumn`,
+  `seriesColumn`, `stacked`, `sort`, `cumulative`, `hideEmpty`, `topN`,
+  `showDataLabels`, `showLegend`, `colors`. Saved with views and in
+  `<tableId>-chart`. Defaults: bars, first option column (else date, else any
+  groupable column), count. A metric reading a column falls back to a count
+  without a fitting column; choosing it in the settings picks the first one.
+  The settings panel is `chartSettingFields`, rendered by each edition's
+  `ViewSettingsPanel`, so both show the same fields in the same order.
+- Contract: `actions.aggregate` receives the table's query plus
+  `groupBy: [{ columnId, bucket? }]` (at most two levels), `metrics`,
+  `timeZone` (the x column's `timeZone`) and `weekStartsOn`, with empty
+  `calculations`; it answers `{ groups: [{ keys, values }], truncated? }`.
+  Keys: `null` for empty values, `YYYY-MM-DD` days, the first day of `YYYY-MM-DD`
+  weeks, `YYYY-MM` months, `YYYY-Qn` quarters, `YYYY` years; multi-select values
+  count in each of their groups. `loadChartData` falls back to
+  `loadScopedRows` + `aggregateChartRows` when there is no aggregate action,
+  when it fails, or when it answers without `groups` (column calculations
+  only). The demo host uses `aggregateChartRows` as its in-memory
+  implementation, and rejects column calculations so they keep the list
+  fallback.
+- Model: date buckets in the column's zone (date-only values stay calendar
+  days, so DST never moves them), missing buckets and options filled unless
+  `hideEmpty`, sort (automatic: option order for selects, label for dates,
+  numbers and booleans, value otherwise), top N with an "Other" group for
+  additive metrics (count, sum), cumulative totals for bars and lines, at most
+  ten series (the rest folded into "Other"), option colors (explicit option
+  `color`, else the tag hue when tags are colored) or the `--chart-1…5`
+  palette, value formats from the metric column's `numberFormat`, round value
+  ticks (`chartValueTicks`, whole numbers for counts) and EN/FR labels
+  (`chart.<key>` overrides the built-in text in both editions).
+- Click to filter: a group becomes advanced filter rules (select `isAnyOf`,
+  multi-select `contains`, date bucket `between` first and last day, boolean
+  `isTrue`/`isFalse`, empty `isEmpty`, others `equals`), appended to the
+  view's rules with `and`, then the table (else the list) opens. Renderers
+  call the new `showRecords(rules)` of the context, which also exposes
+  `aggregate` and `advancedFilters`. "Other" groups are not clickable; when
+  the view's filters match any rule (`or` with two rules or more) groups cannot
+  be added and the hint says so. We chose opening the table over an inline
+  list so the records keep every table feature and the filter stays visible
+  and editable in the filter menus.
+
+Accessibility: a "Show as table" toggle lists the chart's numbers in a table
+whose group names are buttons ("Show the records of …"), the keyboard path to
+filtering. Recharts adds its keyboard layer (arrow keys move the tooltip);
+Unovis marks are hidden from assistive technology and rely on the table.
+
+Rendering differences the engines impose: React labels segments with
+Recharts `LabelList`, Vue with Unovis `XYLabels` (grouped, unstacked bars have
+no per-bar labels in Vue; the table lists the values) and scatter labels for
+lines; donut values are shown in the legend in both editions; tooltips follow
+each engine's positioning. Both use the same legend markup, title, hint,
+table fallback, ticks and colors.
+
+Verification: `tests/chart-model-suite.ts` runs in both editions (settings,
+request and parameters, buckets incl. DST and week starts, labels, every
+metric, multi-select, series, sorts, filled and hidden groups, cumulation,
+top N and Other, formats, colors, filter rules, server and fallback parity,
+ticks, settings fields). `e2e/chart.spec.ts` covers both demos: the "Revenue
+by category" view with and without `aggregate` (`?example=views-fallback`),
+type/axis/metric changes kept in the URL, legend and data labels, donut
+totals, clicking a bar, the table fallback opening a group and the "Projects
+over time" view. The views demo shows three saved views as tabs
+(`viewTabs.maxVisible: 3`) so the toolbar stays on one line; the others are
+under "More".
+
 ## Row click and display mode picker
 
 Both editions resolve `rowClickMode: "default"` the same way: the edit form

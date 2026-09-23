@@ -11,4 +11,9 @@ const examples = {
   "record-details": RecordDetailsExample,
   views: ViewsExample,
 };
-createApp(examples[example as keyof typeof examples] ?? App).mount("#app");
+// The views example without `aggregate`: charts fall back to the rows the list returns.
+if (example === "views-fallback") {
+  createApp(ViewsExample, { aggregate: false }).mount("#app");
+} else {
+  createApp(examples[example as keyof typeof examples] ?? App).mount("#app");
+}

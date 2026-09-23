@@ -1,4 +1,12 @@
+import {
+  aggregateChartRows,
+  type ChartAggregateRequest,
+} from "../src/components/ui/yayaw-table/utils/chart-model";
 import type { ScheduleSettings } from "../src/components/ui/yayaw-table/utils/schedule-model";
+import {
+  compatibleListParams,
+  matchesContractFilter,
+} from "../src/components/ui/yayaw-table/utils/table-contracts";
 import { createDemoFormLinks, demoFormResponses } from "./form-links";
 import { createNotionConnector } from "./views-notion";
 import { createSpreadsheetConnector } from "./views-spreadsheet";
@@ -71,14 +79,25 @@ export const viewsTableOptions = {
   manualOrder: true,
   coloredTags: false,
   defaultDisplayMode: "table" as const,
-  displayModes: ["table", "list", "gallery", "kanban", "calendar", "form"] as (
+  displayModes: [
+    "table",
+    "list",
+    "gallery",
+    "kanban",
+    "calendar",
+    "chart",
+    "form",
+  ] as (
     | "table"
     | "list"
     | "gallery"
     | "kanban"
     | "calendar"
+    | "chart"
     | "form"
   )[],
+  // Three saved views as tabs keep the toolbar on one line; the rest are under "More".
+  viewTabs: { maxVisible: 3 },
   kanban: { groupBy: "status" },
   gallery: { titleColumn: "name", cardColumnIds: ["category", "status"] },
   list: { titleColumn: "name", cardColumnIds: ["status", "price", "dueDate"] },
@@ -117,6 +136,22 @@ function searchRows(rows: ViewRow[], params: Record<string, unknown>) {
     : rows;
 }
 
+/** Like a server: keep the rows matching the view's advanced filters. */
+function filterRows(rows: ViewRow[], input: Record<string, unknown>) {
+  const params = compatibleListParams(input);
+  const rules = params.advancedFilters as Record<string, unknown>[];
+  if (!rules.length) {
+    return rows;
+  }
+  const matches = (row: ViewRow) => (rule: Record<string, unknown>) =>
+    matchesContractFilter(row[String(rule.columnId) as keyof ViewRow], rule);
+  return rows.filter((row) =>
+    params.advancedFilterJoin === "or"
+      ? rules.some(matches(row))
+      : rules.every(matches(row))
+  );
+}
+
 /** Like a server: apply the first column sort (the manual order is kept). */
 function sortRows(rows: ViewRow[], sorting: unknown[]) {
   const sort = sorting.find(
@@ -143,7 +178,7 @@ function sortRows(rows: ViewRow[], sorting: unknown[]) {
  * In-memory host for the examples: `list` pages through the rows and applies
  * each view's own manual order; `reorder` stores it without touching records.
  */
-export function createViewsActions() {
+export function createViewsActions(host: { aggregate?: boolean } = {}) {
   const records = viewsRows.map((row) => ({ ...row }));
   const orders = new Map<string, string[]>();
   const keyOf = (viewId: unknown) => String(viewId ?? "default");
@@ -215,7 +250,10 @@ export function createViewsActions() {
         (sort: { id?: string }) => sort?.id === "__manual"
       );
       const rows = sortRows(
-        searchRows(manual ? ordered(params.viewId) : records, params),
+        filterRows(
+          searchRows(manual ? ordered(params.viewId) : records, params),
+          params
+        ),
         sorting
       );
       return Promise.resolve({
@@ -224,6 +262,27 @@ export function createViewsActions() {
         meta: { pageCount: 1, totalCount: rows.length },
       });
     },
+    // Chart groups computed "on the server" with the shared contract helper.
+    // Column calculations are left to the table's list fallback.
+    ...(host.aggregate === false
+      ? {}
+      : {
+          aggregate: (query: object) => {
+            const params = query as Record<string, unknown>;
+            absorbFormResponses();
+            if (!Array.isArray(params.groupBy)) {
+              return Promise.reject(
+                new Error("This demo host only answers chart groups.")
+              );
+            }
+            return Promise.resolve(
+              aggregateChartRows(
+                filterRows(searchRows(records, params), params),
+                params as unknown as ChartAggregateRequest
+              )
+            );
+          },
+        }),
     reorder: (move: {
       viewId: string | null;
       id: string;
@@ -306,3 +365,35 @@ export function createViewsActions() {
     },
   };
 }
+
+const chartView = (
+  id: string,
+  name: string,
+  chart: Record<string, unknown>
+) => ({
+  id,
+  tableId: "views",
+  name,
+  createdById: "demo",
+  isGlobal: true,
+  canEdit: false,
+  canDelete: false,
+  config: { displayMode: "chart" as const, chart },
+});
+
+/** Saved chart views of the examples: revenue by category and projects by due month. */
+export const chartViews = [
+  chartView("revenue-by-category", "Revenue by category", {
+    type: "bar",
+    xColumn: "category",
+    metric: "sum",
+    metricColumn: "price",
+    showDataLabels: true,
+  }),
+  chartView("projects-over-time", "Projects over time", {
+    type: "line",
+    xColumn: "dueDate",
+    bucket: "month",
+    showDataLabels: true,
+  }),
+];

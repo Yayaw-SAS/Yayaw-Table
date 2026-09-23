@@ -48,6 +48,7 @@ import GalleryView from "./gallery/GalleryView.vue";
 import DisplayModeRendererHost from "./DisplayModeRendererHost.vue";
 import type { DisplayModeRenderers } from "../display-mode-renderer";
 import { withFormRenderer } from "../form/form-renderer";
+import { withoutDisabledModeRenderers } from "../display-modes";
 import { isFormModeEnabled } from "../form-view";
 import ListView from "./list/ListView.vue";
 import KanbanView from "./kanban/KanbanView.vue";
@@ -204,7 +205,7 @@ const searchDebounceMs = computed(
 );
 // The Form mode ships in the table; it is offered when records can be created.
 const modeRenderers = withFormRenderer(
-  props.displayModeRenderers,
+  withoutDisabledModeRenderers(props.displayModeRenderers, config.table),
   isFormModeEnabled(
     config.table.form,
     config.table.allowCreate !== false && Boolean(actions.value?.create)

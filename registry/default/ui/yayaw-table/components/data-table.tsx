@@ -1,7 +1,12 @@
 "use client";
 import { planningLabelOverrides } from "../planning/labels";
 import { PlanningSurface, usePlanningState } from "../planning/react";
-import { pickGenericModeConfigs } from "../utils/display-modes";
+import {
+  type GenericModeViewConfigs,
+  modeDefaultsOf,
+  pickGenericModeConfigs,
+  withoutDisabledModeRenderers,
+} from "../utils/display-modes";
 /**
  * New DataTable component using the declarative architecture
  * This component replaces the old DataTable with a more streamlined API
@@ -246,13 +251,14 @@ function resolveDataTableHeaderContent({
   };
 }
 
-/** The UI provider's `form` is the create form; the Form mode reads `table.form` itself. */
+/** The UI provider's `form` is the create form; the Form mode reads `table.form` itself. On/off flags such as `chart: true` are not settings. */
 function uiModeDefaults(table: object) {
   return Object.fromEntries(
     Object.entries(pickGenericModeConfigs(table)).filter(
-      ([key]) => key !== "form"
+      ([key, value]) =>
+        key !== "form" && Boolean(value) && typeof value === "object"
     )
-  ) as Omit<ReturnType<typeof pickGenericModeConfigs>, "form">;
+  ) as Omit<GenericModeViewConfigs, "form">;
 }
 
 /** View → Card settings of modes rendered by optional registry items. */
@@ -279,11 +285,7 @@ function rendererSettings({
         <TableRendererSettings
           columns={columns}
           defaultDisplayMode={defaultDisplayMode}
-          defaults={
-            (defaults as Record<string, unknown>)[mode] as
-              | Record<string, unknown>
-              | undefined
-          }
+          defaults={modeDefaultsOf(defaults, mode)}
           mode={mode}
           renderer={renderer}
           tableId={tableId}
@@ -773,10 +775,10 @@ function DataTableContent({
   const modeRenderers = useMemo(
     () =>
       withFormRenderer(
-        displayModeRenderers,
+        withoutDisabledModeRenderers(displayModeRenderers, config.table),
         isFormModeEnabled(config.table.form, canCreateRecords)
       ),
-    [canCreateRecords, config.table.form, displayModeRenderers]
+    [canCreateRecords, config.table, displayModeRenderers]
   );
   const offeredDisplayModes = useMemo(
     () =>

@@ -1316,6 +1316,11 @@
           "target": "components/ui/yayaw-table/utils/card-properties.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/utils/chart-model.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/chart-model.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/utils/column-calculations.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/column-calculations.ts"
@@ -1598,6 +1603,40 @@
         "registryUrl": "https://table.yayaw.app/r/yayaw-table-calendar.json",
         "version": "3.4.0",
         "versionedRegistryUrl": "https://table.yayaw.app/r/v3.4.0/yayaw-table-calendar.json"
+      }
+    },
+    {
+      "name": "yayaw-table-chart",
+      "type": "registry:block",
+      "title": "Yayaw Table Chart",
+      "description": "Optional chart display mode for YaYaw Table (vertical and horizontal bars, line, donut and number), rendered with shadcn/ui charts (Recharts). Pass `chartRenderer` to `displayModeRenderers` and add \"chart\" to `table.displayModes`.",
+      "registryDependencies": [
+        "button",
+        "chart",
+        "https://table.yayaw.app/r/yayaw-table.json"
+      ],
+      "dependencies": ["recharts"],
+      "files": [
+        {
+          "path": "registry/default/ui/yayaw-table-chart/chart-renderer.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table-chart/chart-renderer.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table-chart/chart-settings.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table-chart/chart-settings.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table-chart/chart-view.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table-chart/chart-view.tsx"
+        }
+      ],
+      "meta": {
+        "registryUrl": "https://table.yayaw.app/r/yayaw-table-chart.json",
+        "version": "3.4.0",
+        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.4.0/yayaw-table-chart.json"
       }
     },
     {

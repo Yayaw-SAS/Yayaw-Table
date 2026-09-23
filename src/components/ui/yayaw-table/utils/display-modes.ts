@@ -8,6 +8,10 @@ import {
   type CalendarViewSettings,
   normalizeCalendarViewConfig,
 } from "./calendar-model";
+import {
+  type ChartViewSettings,
+  normalizeChartViewConfig,
+} from "./chart-model";
 import { type FormViewSettings, normalizeFormViewConfig } from "./form-view";
 import { type ListViewSettings, normalizeListViewConfig } from "./list-view";
 
@@ -69,6 +73,13 @@ export const DISPLAY_MODES = {
     configKey: "calendar",
     maxGroups: 0,
     normalizeConfig: normalizeCalendarViewConfig,
+    requiresRenderer: true,
+  },
+  chart: {
+    capabilities: NO_TABLE_CONTROLS,
+    configKey: "chart",
+    maxGroups: 0,
+    normalizeConfig: normalizeChartViewConfig,
     requiresRenderer: true,
   },
   form: {
@@ -166,12 +177,17 @@ export function displayModeMaxGroups(mode: TableDisplayMode): number {
 export interface GenericModeViewConfigs {
   list?: ListViewSettings;
   calendar?: CalendarViewSettings;
+  chart?: ChartViewSettings;
   form?: FormViewSettings;
 }
 
-/** Table-level defaults of the generic modes; `form: false` also turns the Form mode off. */
+/**
+ * Table-level defaults of the generic modes; `form: false` also turns the Form
+ * mode off and `chart: false` the Chart mode.
+ */
 export interface GenericModeTableConfigs
-  extends Omit<GenericModeViewConfigs, "form"> {
+  extends Omit<GenericModeViewConfigs, "chart" | "form"> {
+  chart?: boolean | ChartViewSettings;
   form?: boolean | FormViewSettings;
 }
 
@@ -237,4 +253,54 @@ export function pickGenericModeSettings(
       ([, value]) => Boolean(value) && typeof value === "object"
     )
   ) as GenericModeViewConfigs;
+}
+
+/**
+ * Renderers of the modes a table turns off with `false` (`table.chart: false`),
+ * left out so the mode is not offered. The Form mode keeps its own gate.
+ */
+export function withoutDisabledModeRenderers<T extends object>(
+  renderers: T | undefined,
+  table: object
+): T | undefined {
+  if (!renderers) {
+    return renderers;
+  }
+  const flags = table as Record<string, unknown>;
+  const disabled = Object.keys(renderers).filter(
+    (mode) => mode !== "form" && flags[mode] === false
+  );
+  if (!disabled.length) {
+    return renderers;
+  }
+  const rest = { ...renderers } as Record<string, unknown>;
+  for (const mode of disabled) {
+    Reflect.deleteProperty(rest, mode);
+  }
+  return rest as T;
+}
+
+/** A mode's table defaults when they are settings, not an on/off flag. */
+export function modeDefaultsOf(
+  table: object,
+  mode: string
+): Record<string, unknown> {
+  const value = (table as Record<string, unknown>)[mode];
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+const RECORD_MODES: readonly TableDisplayMode[] = ["table", "list"];
+
+/** Where a view shows the records of a clicked group: the table, else the list, else another offered mode. */
+export function recordsDisplayMode(
+  offered: readonly TableDisplayMode[],
+  current: TableDisplayMode
+): TableDisplayMode {
+  return (
+    RECORD_MODES.find((mode) => offered.includes(mode)) ??
+    offered.find((mode) => mode !== current) ??
+    current
+  );
 }

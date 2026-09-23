@@ -82,7 +82,16 @@ import type { TableDensity, TableDisplayMode } from "../types/display-types";
 
 import { ColumnIcon } from "../utils/column-icons";
 import { buildCsvExportColumns } from "../utils/csv-export";
-import { resolveDisplayMode } from "../utils/display-modes";
+import {
+  canAddChartFilters,
+  type ChartFilterRule,
+  withChartFilters,
+} from "../utils/chart-model";
+import {
+  recordsDisplayMode,
+  resolveDisplayMode,
+} from "../utils/display-modes";
+import type { AdvancedFiltersState } from "../types/filter-types";
 import { isManualOrder } from "../utils/manual-order";
 import type {
   DetailRevertHandler,
@@ -215,6 +224,23 @@ export const getBulkActionsViewportBottomOffset = ({
 }): number => {
   return viewportMargin + (isPaginationVisible ? paginationHeight : 0);
 };
+
+/**
+ * Skeleton rows while the first rows of a query load, only after mount to
+ * avoid a hydration mismatch. It reads the render's own loading state: a ref
+ * updated in an effect lags one render behind, and a body memoized with the
+ * stale value kept skeletons over loaded rows (e.g. after a chart group
+ * filtered the table and switched to it).
+ */
+export const shouldShowTableSkeleton = ({
+  hasMounted,
+  isLoading,
+  dataLength,
+}: {
+  hasMounted: boolean;
+  isLoading: boolean;
+  dataLength: number;
+}): boolean => hasMounted && isLoading && dataLength === 0;
 
 export const shouldRenderTableEmptyState = ({
   isError,
@@ -1333,6 +1359,8 @@ function ModernDataTable<
     viewParam,
     modeConfigs,
     setModeConfigFromUI,
+    setAdvancedFiltersFromUI,
+    setDisplayModeFromUI,
   } = useTableUrlState({
     defaultGantt: tableConfig.table.gantt,
     defaultDisplayMode: tableConfig.table.defaultDisplayMode,
@@ -1965,7 +1993,40 @@ function ModernDataTable<
     tableId,
     viewParam,
   });
+  // A clicked chart group: its rules join the view's filters, then the records show as a table.
+  const showRendererRecords = useCallback(
+    (rules: Record<string, unknown>[]) => {
+      if (!canAddChartFilters(advancedFiltersParam)) {
+        return false;
+      }
+      const now = new Date();
+      const merged = withChartFilters(
+        advancedFiltersParam,
+        rules as unknown as ChartFilterRule[]
+      );
+      setAdvancedFiltersFromUI(
+        merged.filters.map((filter) => ({
+          createdAt: now,
+          updatedAt: now,
+          ...filter,
+        })) as unknown as AdvancedFiltersState
+      );
+      setDisplayModeFromUI(
+        recordsDisplayMode(configuredDisplayModes, activeDisplayMode)
+      );
+      return true;
+    },
+    [
+      activeDisplayMode,
+      advancedFiltersParam,
+      configuredDisplayModes,
+      setAdvancedFiltersFromUI,
+      setDisplayModeFromUI,
+    ]
+  );
   const rendererContext = useDisplayModeRenderContext({
+    aggregate: providerTableActions?.aggregate,
+    showRecords: showRendererRecords,
     activateRow: activateRendererRow,
     canCreate: canCreateRows,
     canEditRow: canEditRendererRow,
@@ -2067,11 +2128,11 @@ function ModernDataTable<
 
   // Optimize table body content with better memoization
   const tableBodyContent = useMemo(() => {
-    // Avoid hydration mismatch: only show skeletons after mount
-    const showSkeleton =
-      hasMounted &&
-      (isTableUpdatingRef.current ||
-        (isLoading && (!data || data.length === 0)));
+    const showSkeleton = shouldShowTableSkeleton({
+      hasMounted,
+      isLoading,
+      dataLength: data?.length ?? 0,
+    });
     if (showSkeleton) {
       const skeletonRows = [
         <MemoizedSkeletonRow

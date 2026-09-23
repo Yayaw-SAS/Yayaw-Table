@@ -5,8 +5,10 @@ import { DataTable } from "../src/components/ui/yayaw-table/components/data-tabl
 import { defineTableConfig } from "../src/components/ui/yayaw-table/config/helpers";
 import type { TableActions } from "../src/components/ui/yayaw-table/providers/table-provider";
 import { calendarRenderer } from "../src/components/ui/yayaw-table-calendar/calendar-renderer";
+import { chartRenderer } from "../src/components/ui/yayaw-table-chart/chart-renderer";
 import { guidedRequestFormView, requestFormView } from "./form-links";
 import {
+  chartViews,
   createViewsActions,
   initialViewsRows,
   viewsColumns,
@@ -14,8 +16,11 @@ import {
   viewsVisibleColumns,
 } from "./views";
 
-/** Switch display modes and save views; the state lives in the URL. */
-export function ViewsExample() {
+/**
+ * Switch display modes and save views; the state lives in the URL. Without
+ * `aggregate`, charts are computed over the rows the list action returns.
+ */
+export function ViewsExample({ aggregate = true }: { aggregate?: boolean }) {
   const config = useMemo(
     () =>
       defineTableConfig({
@@ -31,20 +36,26 @@ export function ViewsExample() {
       }),
     []
   );
-  const actions = useMemo<TableActions>(() => createViewsActions(), []);
+  const actions = useMemo<TableActions>(
+    () => createViewsActions({ aggregate }),
+    [aggregate]
+  );
   const rows = useMemo(() => initialViewsRows(), []);
   return (
-    <main className="mx-auto max-w-6xl space-y-6 p-6">
+    <main className="mx-auto max-w-7xl space-y-6 p-6">
       <h1 className="font-semibold text-2xl">Views</h1>
       <DataTable
-        displayModeRenderers={{ calendar: calendarRenderer }}
+        displayModeRenderers={{
+          calendar: calendarRenderer,
+          chart: chartRenderer,
+        }}
         getRowId={(row) => String(row.id)}
         getTableActions={() => actions}
         getTableConfig={() => config}
         initialData={rows}
         initialPageCount={1}
         initialRowCount={rows.length}
-        initialViews={[requestFormView, guidedRequestFormView]}
+        initialViews={[requestFormView, guidedRequestFormView, ...chartViews]}
         tableType={config.id}
       />
     </main>

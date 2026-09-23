@@ -13,6 +13,7 @@ describe("display mode registry", () => {
       "kanban",
       "gallery",
       "calendar",
+      "chart",
       "form",
       "gantt",
     ]);

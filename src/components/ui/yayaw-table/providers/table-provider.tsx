@@ -58,6 +58,29 @@ export interface TableAggregateParams {
   search: string;
   calculations: Record<string, CalculationType>;
   locale: string;
+  /**
+   * Chart groups: at most two levels (x axis, then series). When present,
+   * answer `groups`; `calculations` is then empty. See `utils/chart-model.ts`.
+   */
+  groupBy?: import("../utils/chart-model").ChartGroupBy[];
+  /** Values computed per group, in this order. */
+  metrics?: import("../utils/chart-model").ChartMetric[];
+  /** IANA zone of date buckets; the browser's zone when omitted. */
+  timeZone?: string;
+  /** First day of week buckets, 0 = Sunday … 6 = Saturday. */
+  weekStartsOn?: number;
+}
+
+/** What `actions.aggregate` answers: column calculations, or groups for `groupBy`. */
+export interface TableAggregateResponse {
+  results?: Record<string, TableAggregateResultValue>;
+  /** One entry per group when the request has `groupBy`. */
+  groups?: import("../utils/chart-model").ChartAggregateGroup[];
+  /** The groups were computed over part of the records only. */
+  truncated?: boolean;
+  meta?: {
+    totalCount?: number;
+  };
 }
 
 /** Original displayed row supplied separately from the mutation patch. */
@@ -74,12 +97,7 @@ export interface TableActions {
       totalCount?: number;
     };
   }>;
-  aggregate?: (params: TableAggregateParams) => Promise<{
-    results: Record<string, TableAggregateResultValue>;
-    meta?: {
-      totalCount?: number;
-    };
-  }>;
+  aggregate?: (params: TableAggregateParams) => Promise<TableAggregateResponse>;
   create?: (data: Record<string, unknown>) => Promise<{
     success: boolean;
     data?: unknown;
@@ -863,6 +881,7 @@ export const defaultTranslations: DataTableTranslations = {
     display: {
       title: "Display mode",
       calendar: "Calendar",
+      chart: "Chart",
       form: "Form",
       gantt: "Gantt",
       gallery: "Gallery",

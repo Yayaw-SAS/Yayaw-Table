@@ -8,6 +8,13 @@ import type {
 import { useModeSettingsContext } from "../composables/use-mode-settings-context";
 import type { TableListParams, TableRecord } from "../types";
 import { type FormSubmitResult, formSubmitResultFrom } from "../form-view";
+import {
+  canAddChartFilters,
+  type ChartFilterRule,
+  withChartFilters,
+} from "../chart-model";
+import { recordsDisplayMode } from "../display-modes";
+import type { AdvancedFilter } from "../types";
 
 const props = defineProps<{ renderer: DisplayModeRenderer }>();
 const context = useTableContext();
@@ -72,13 +79,38 @@ const createRecord = async (values: TableRecord): Promise<FormSubmitResult> => {
   if (result.ok) await context.refresh();
   return result;
 };
+const aggregateAction = computed(() => {
+  const aggregate = context.actions.value?.aggregate;
+  return aggregate
+    ? async (params: Record<string, unknown>) =>
+        await aggregate(params as unknown as Parameters<typeof aggregate>[0])
+    : undefined;
+});
+// A clicked chart group: its rules join the view's filters, then the records show as a table.
+const showRecords = (rules: Record<string, unknown>[]): boolean => {
+  const current = context.state.advancedFilters.value;
+  if (!canAddChartFilters(current)) return false;
+  const merged = withChartFilters(current, rules as unknown as ChartFilterRule[]);
+  context.state.advancedFilters.value = {
+    filters: merged.filters as unknown as AdvancedFilter[],
+    joinOperator: merged.joinOperator,
+  };
+  context.state.displayMode.value = recordsDisplayMode(
+    context.state.offeredDisplayModes,
+    context.state.displayMode.value
+  );
+  return true;
+};
 const settingsContext = useModeSettingsContext();
 const renderContext = computed<DisplayModeRenderContext>(() => ({
   ...settingsContext.value,
   tableType: context.tableType ?? context.config.id,
   listParams: listParams.value,
   list: listAction.value,
+  aggregate: aggregateAction.value,
   rows: localRows.value,
+  advancedFilters: context.state.advancedFilters.value,
+  showRecords,
   getRowId: (row) => context.getRowId(row),
   canEditRow,
   canCreate:
