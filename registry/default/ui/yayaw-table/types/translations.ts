@@ -336,6 +336,7 @@ export interface DataTableTranslations {
     error_loading_views: string;
     display: {
       title: string;
+      calendar?: string;
       gantt?: string;
       gallery: string;
       list?: string;

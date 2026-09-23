@@ -834,6 +834,7 @@ export const defaultTranslations: DataTableTranslations = {
     error_loading_views: "Error loading views",
     display: {
       title: "Display mode",
+      calendar: "Calendar",
       gantt: "Gantt",
       gallery: "Gallery",
       list: "List",

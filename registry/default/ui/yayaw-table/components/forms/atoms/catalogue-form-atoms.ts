@@ -94,10 +94,12 @@ export const openCreateForm = <TData = Record<string, unknown>>(
   formType: string,
   tableId: string,
   onSuccess?: (data: TData) => void,
-  tableType?: string
+  tableType?: string,
+  /** Prefilled values, e.g. the day clicked in a calendar. */
+  initialData?: Partial<TData>
 ): CatalogueFormState<TData> => ({
   formType,
-  initialData: undefined,
+  initialData: initialData as TData | undefined,
   isOpen: true,
   mode: "create",
   onSuccess,

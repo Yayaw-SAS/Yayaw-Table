@@ -18,7 +18,10 @@ const walk = async (directory) => {
 };
 
 const includedExtensions = new Set([".css", ".ts", ".vue"]);
-const sourceFiles = (await walk(sourceRoot)).filter((path) => {
+// Optional views ship as their own items so the table stays free of their dependencies.
+const calendarRoot = join(sourceRoot, "calendar");
+const isCalendarFile = (path) => path.startsWith(`${calendarRoot}/`);
+const allSourceFiles = (await walk(sourceRoot)).filter((path) => {
   if (!includedExtensions.has(extname(path))) {
     return false;
   }
@@ -31,24 +34,28 @@ const sourceFiles = (await walk(sourceRoot)).filter((path) => {
   }
   return true;
 });
+const sourceFiles = allSourceFiles.filter((path) => !isCalendarFile(path));
 
-const files = await Promise.all(
-  sourceFiles.sort().map(async (path) => {
-    const sourcePath = relative(packageRoot, path);
-    const target = join(
-      "components",
-      "ui",
-      "yayaw-table-vue",
-      relative(sourceRoot, path)
-    );
-    return {
-      path: sourcePath,
-      content: await readFile(path, "utf8"),
-      type: extname(path) === ".css" ? "registry:style" : "registry:component",
-      target,
-    };
-  })
-);
+const toRegistryFiles = async (paths) =>
+  await Promise.all(
+    paths.sort().map(async (path) => {
+      const sourcePath = relative(packageRoot, path);
+      const target = join(
+        "components",
+        "ui",
+        "yayaw-table-vue",
+        relative(sourceRoot, path)
+      );
+      return {
+        path: sourcePath,
+        content: await readFile(path, "utf8"),
+        type:
+          extname(path) === ".css" ? "registry:style" : "registry:component",
+        target,
+      };
+    })
+  );
+const files = await toRegistryFiles(sourceFiles);
 
 const item = {
   $schema: "https://shadcn-vue.com/schema/registry-item.json",
@@ -71,9 +78,25 @@ const item = {
   files,
 };
 
+const calendarItem = {
+  $schema: "https://shadcn-vue.com/schema/registry-item.json",
+  name: "yayaw-table-vue-calendar",
+  type: "registry:block",
+  title: "YaYaw Table Vue Calendar",
+  description:
+    'Optional calendar display mode for YaYaw Table Vue (month, week and list), rendered with FullCalendar. Pass `calendarRenderer` to `display-mode-renderers` and add "calendar" to `table.displayModes`.',
+  dependencies: ["@fullcalendar/vue3@^7.1.0", "temporal-polyfill@^1.0.5"],
+  registryDependencies: ["https://table.yayaw.app/r/yayaw-table-vue.json"],
+  files: await toRegistryFiles(allSourceFiles.filter(isCalendarFile)),
+};
+
 await mkdir(outputRoot, { recursive: true });
-await writeFile(
-  join(outputRoot, "yayaw-table-vue.json"),
-  `${JSON.stringify(item, null, 2)}\n`
+for (const registryItem of [item, calendarItem]) {
+  await writeFile(
+    join(outputRoot, `${registryItem.name}.json`),
+    `${JSON.stringify(registryItem, null, 2)}\n`
+  );
+}
+console.log(
+  `Built ${files.length} Vue registry files and ${calendarItem.files.length} calendar files.`
 );
-console.log(`Built ${files.length} Vue registry files.`);

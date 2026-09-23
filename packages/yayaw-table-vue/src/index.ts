@@ -15,6 +15,12 @@ export { useTableState } from "./composables/use-table-state";
 export * from "./config";
 export * from "./core";
 export type {
+  DisplayModeRenderContext,
+  DisplayModeRenderer,
+  DisplayModeRenderers,
+  DisplayModeSettingsContext,
+} from "./display-mode-renderer";
+export type {
   DetailActivity,
   DetailField,
   DetailPresentation,

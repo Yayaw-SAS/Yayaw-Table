@@ -47,6 +47,13 @@ const INTERNAL_UI_FILES = [
 ];
 const PACKAGE_JSON_PATH = path.join(ROOT, "package.json");
 const TABLE_REGISTRY_ITEM_NAME = "yayaw-table";
+/**
+ * Optional view items: installed next to the table, importing it by alias so
+ * the core block stays free of their dependencies (e.g. FullCalendar).
+ */
+const OPTIONAL_ITEMS = [
+  { name: "yayaw-table-calendar", dir: "yayaw-table-calendar" },
+];
 
 const REGEX_TSX_CSS = /\.(tsx?|css)$/;
 const REGEX_TEST_FILE = /\.(test|spec)\.[^.]+$/;
@@ -325,6 +332,46 @@ if (!tableRegistryItem) {
 
 tableRegistryItem.files = files;
 assertUnversionedRegistryDependencies(tableRegistryItem);
+
+for (const optional of OPTIONAL_ITEMS) {
+  const item = registry.items.find((entry) => entry.name === optional.name);
+  if (!item) {
+    throw new Error(
+      `Registry item "${optional.name}" not found in ${registryPath}.`
+    );
+  }
+  const source = path.join(SRC_UI, optional.dir);
+  assertDirectoryExists(source, optional.name);
+  const dest = path.join(REGISTRY_UI_ROOT, optional.dir);
+  if (fs.existsSync(dest)) {
+    fs.rmSync(dest, { recursive: true });
+  }
+  copyRecursive(source, dest);
+  const rels = getAllFiles(dest);
+  for (const rel of rels) {
+    const full = path.join(dest, rel);
+    const content = fs
+      .readFileSync(full, "utf8")
+      .replace(
+        /from ["']@\/src\/components\/ui\/([^"']+)["']/g,
+        (_, name) => `from "@/components/ui/${name}"`
+      )
+      .replace(
+        /import ["']@\/src\/components\/ui\/([^"']+)["']/g,
+        (_, name) => `import "@/components/ui/${name}"`
+      );
+    fs.writeFileSync(full, content, "utf8");
+  }
+  item.files = rels.map((rel) => {
+    const relNorm = rel.replace(/\\/g, "/");
+    return {
+      path: ["registry", "default", "ui", optional.dir, relNorm].join("/"),
+      type: getFileType(`/${relNorm}`),
+      target: `components/ui/${optional.dir}/${relNorm}`,
+    };
+  });
+  assertUnversionedRegistryDependencies(item);
+}
 
 for (const registryItem of registry.items) {
   // Keep dependency specifiers authored in registry.json. Auto-pinning them

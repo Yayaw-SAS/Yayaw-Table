@@ -1,0 +1,86 @@
+<script setup lang="ts">
+import { computed, ref, watch } from "vue";
+import { useTableContext } from "../context";
+import type {
+  DisplayModeRenderContext,
+  DisplayModeRenderer,
+} from "../display-mode-renderer";
+import { useModeSettingsContext } from "../composables/use-mode-settings-context";
+import type { TableListParams, TableRecord } from "../types";
+
+const props = defineProps<{ renderer: DisplayModeRenderer }>();
+const context = useTableContext();
+const listAction = computed(() => {
+  const list = context.actions.value?.list;
+  return list
+    ? async (params: Record<string, unknown>) =>
+        await list(params as unknown as TableListParams)
+    : undefined;
+});
+const listParams = computed(() => ({
+  search: context.state.search.value || undefined,
+  filters: Object.fromEntries(
+    context.state.filters.value.map((filter) => [filter.id, filter.value])
+  ),
+  advancedFilters: context.state.advancedFilters.value,
+  sorting: context.state.sorting.value,
+}));
+// Without a list action, renderers read every row matching the query.
+const localRows = ref<TableRecord[]>([]);
+const revision = ref(0);
+watch(
+  [() => context.data.rows.value, listParams, listAction],
+  async () => {
+    revision.value += 1;
+    if (!listAction.value) {
+      localRows.value = await context.loadAllMatchingRows();
+    }
+  },
+  { immediate: true }
+);
+const canEditRow = (row: TableRecord): boolean =>
+  Boolean(context.actions.value?.update) &&
+  context.config.table.allowEdit !== false &&
+  context.config.table.canEditRow?.(row) !== false;
+const updateRow = async (
+  row: TableRecord,
+  patch: TableRecord
+): Promise<boolean> => {
+  const update = context.actions.value?.update;
+  if (!update) return false;
+  try {
+    const result = await update(context.getRowId(row), patch, { row });
+    if (!result.success) throw new Error(result.error ?? "Update failed");
+    await context.refresh();
+    return true;
+  } catch (cause) {
+    context.status.value = {
+      type: "error",
+      message: cause instanceof Error ? cause.message : String(cause),
+    };
+    return false;
+  }
+};
+const settingsContext = useModeSettingsContext();
+const renderContext = computed<DisplayModeRenderContext>(() => ({
+  ...settingsContext.value,
+  tableType: context.tableType ?? context.config.id,
+  listParams: listParams.value,
+  list: listAction.value,
+  rows: localRows.value,
+  getRowId: (row) => context.getRowId(row),
+  canEditRow,
+  canCreate:
+    context.config.table.allowCreate !== false &&
+    Boolean(context.actions.value?.create),
+  updateRow,
+  openRow: (row, event) =>
+    context.activateRow(row, event ?? new MouseEvent("click")),
+  createRow: (initial) => context.openCreate(initial),
+  revision: revision.value,
+}));
+</script>
+
+<template>
+  <component :is="props.renderer.view" :context="renderContext" />
+</template>

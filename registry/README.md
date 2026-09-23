@@ -40,6 +40,10 @@ Le registry a deux URLs publiques :
 
 Le domaine sert uniquement les fichiers statiques de `public/r` via GitHub Pages. Il n'a besoin ni de Next.js ni d'un frontend déployé. La racine du domaine n'est pas une URL de registry : utilisez toujours un chemin `/r/*.json`.
 
+Les vues optionnelles ont leur propre item, pour que la table ne dépende pas de leurs librairies :
+
+- `https://table.yayaw.app/r/yayaw-table-calendar.json` (React) et `https://table.yayaw.app/r/yayaw-table-vue-calendar.json` (Vue) : vue Calendrier avec FullCalendar. Passez `calendarRenderer` à `displayModeRenderers` et ajoutez `"calendar"` à `displayModes`.
+
 Le registry publie aussi deux items optionnels CLI v4 :
 
 - `font-yayaw-sans` (`registry:font`) : installe Plus Jakarta Sans comme `--font-sans`.

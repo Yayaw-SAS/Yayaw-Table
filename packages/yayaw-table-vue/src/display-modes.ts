@@ -4,6 +4,10 @@
  * Every framework-neutral fact about a mode lives here, so adding a mode means
  * one entry in this file plus its renderer and settings panel in each edition.
  */
+import {
+  type CalendarViewSettings,
+  normalizeCalendarViewConfig,
+} from "./calendar-model";
 import { type ListViewSettings, normalizeListViewConfig } from "./list-view";
 
 export interface DisplayModeDefinition {
@@ -19,6 +23,11 @@ export interface DisplayModeDefinition {
   maxGroups: number;
   /** The mode renders nothing useful without a planning session. */
   requiresPlanning?: boolean;
+  /**
+   * The mode is rendered by an optional registry item (its library stays out
+   * of the base block); it is offered only when that renderer is plugged in.
+   */
+  requiresRenderer?: boolean;
   /**
    * Saved views, URLs and table state handle the settings generically with
    * this normalizer. Kanban, gallery and Gantt keep dedicated code for their
@@ -54,6 +63,13 @@ export const DISPLAY_MODES = {
     configKey: "gallery",
     maxGroups: 1,
   },
+  calendar: {
+    capabilities: NO_TABLE_CONTROLS,
+    configKey: "calendar",
+    maxGroups: 0,
+    normalizeConfig: normalizeCalendarViewConfig,
+    requiresRenderer: true,
+  },
   gantt: {
     capabilities: NO_TABLE_CONTROLS,
     configKey: "gantt",
@@ -81,6 +97,19 @@ export function isTableDisplayMode(value: unknown): value is TableDisplayMode {
 export interface DisplayModeContext {
   /** Whether a planning session can feed planning modes such as Gantt. */
   planning?: boolean;
+  /** Modes whose optional renderer is plugged into the table. */
+  renderers?: readonly string[];
+}
+
+function isModeUsable(
+  mode: TableDisplayMode,
+  context: DisplayModeContext
+): boolean {
+  const definition: DisplayModeDefinition = DISPLAY_MODES[mode];
+  if (definition.requiresPlanning && !context.planning) {
+    return false;
+  }
+  return !(definition.requiresRenderer && !context.renderers?.includes(mode));
 }
 
 /**
@@ -96,13 +125,7 @@ export function resolveDisplayModes(
       isTableDisplayMode(mode) && modes.indexOf(mode) === index
   );
   const usable = context
-    ? known.filter(
-        (mode) =>
-          !(
-            (DISPLAY_MODES[mode] as DisplayModeDefinition).requiresPlanning &&
-            !context.planning
-          )
-      )
+    ? known.filter((mode) => isModeUsable(mode, context))
     : known;
   return usable.length ? usable : ["table"];
 }
@@ -133,6 +156,7 @@ export function displayModeMaxGroups(mode: TableDisplayMode): number {
 /** View settings of the modes handled generically, by config key. */
 export interface GenericModeViewConfigs {
   list?: ListViewSettings;
+  calendar?: CalendarViewSettings;
 }
 
 export type GenericModeConfigKey = keyof GenericModeViewConfigs;

@@ -56,15 +56,21 @@ export const viewsTableOptions = {
   manualOrder: true,
   coloredTags: false,
   defaultDisplayMode: "table" as const,
-  displayModes: ["table", "list", "gallery", "kanban"] as (
+  displayModes: ["table", "list", "gallery", "kanban", "calendar"] as (
     | "table"
     | "list"
     | "gallery"
     | "kanban"
+    | "calendar"
   )[],
   kanban: { groupBy: "status" },
   gallery: { titleColumn: "name", cardColumnIds: ["category", "status"] },
   list: { titleColumn: "name", cardColumnIds: ["status", "price", "dueDate"] },
+  calendar: {
+    dateColumn: "dueDate",
+    titleColumn: "name",
+    colorColumn: "status",
+  },
 };
 
 /**
@@ -72,15 +78,16 @@ export const viewsTableOptions = {
  * each view's own manual order; `reorder` stores it without touching records.
  */
 export function createViewsActions() {
+  const records = viewsRows.map((row) => ({ ...row }));
   const orders = new Map<string, string[]>();
   const keyOf = (viewId: unknown) => String(viewId ?? "default");
   const ordered = (viewId: unknown) => {
     const order = orders.get(keyOf(viewId));
     if (!order) {
-      return viewsRows;
+      return records;
     }
     const position = new Map(order.map((id, index) => [id, index]));
-    return [...viewsRows].sort(
+    return [...records].sort(
       (left, right) =>
         (position.get(left.id) ?? Number.MAX_SAFE_INTEGER) -
         (position.get(right.id) ?? Number.MAX_SAFE_INTEGER)
@@ -92,7 +99,7 @@ export function createViewsActions() {
       const manual = sorting.some(
         (sort: { id?: string }) => sort?.id === "__manual"
       );
-      const rows = manual ? ordered(params.viewId) : viewsRows;
+      const rows = manual ? ordered(params.viewId) : records;
       return Promise.resolve({
         data: rows,
         meta: { pageCount: 1, totalCount: rows.length },
@@ -111,6 +118,22 @@ export function createViewsActions() {
       ids.splice(index, 0, move.id);
       orders.set(keyOf(move.viewId), ids);
       return Promise.resolve({ success: true });
+    },
+    update: (id: string, patch: Record<string, unknown>) => {
+      const record = records.find((row) => row.id === String(id));
+      if (record) {
+        Object.assign(record, patch);
+      }
+      return Promise.resolve({ success: Boolean(record), data: record });
+    },
+    create: (values: Record<string, unknown>) => {
+      const record = {
+        ...records[0],
+        ...values,
+        id: `new-${records.length + 1}`,
+      } as (typeof records)[number];
+      records.push(record);
+      return Promise.resolve({ success: true, data: record });
     },
   };
 }

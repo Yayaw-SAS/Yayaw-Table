@@ -1,0 +1,114 @@
+/* The classic theme follows the host's shadcn tokens, light and dark, as in React. */
+.yayaw-calendar {
+  --fc-classic-button: var(--secondary, var(--yayaw-muted));
+  --fc-classic-button-border: var(--yayaw-border);
+  --fc-classic-button-strong: var(--accent, var(--yayaw-muted));
+  --fc-classic-button-strong-border: var(--yayaw-border);
+  --fc-classic-button-outline: var(--yayaw-ring);
+  --fc-classic-button-foreground: var(--yayaw-foreground);
+  --fc-classic-primary: var(--yayaw-primary);
+  --fc-classic-primary-foreground: var(--yayaw-primary-foreground);
+  --fc-classic-event: transparent;
+  --fc-classic-event-contrast: var(--yayaw-foreground);
+  --fc-classic-background-event: var(--yayaw-muted);
+  --fc-classic-background-event-opacity: 100%;
+  --fc-classic-background-event-foreground-opacity: 60%;
+  --fc-classic-highlight: color-mix(
+    in oklab,
+    var(--yayaw-primary) 12%,
+    transparent
+  );
+  --fc-classic-today: color-mix(in oklab, var(--yayaw-primary) 6%, transparent);
+  --fc-classic-now: var(--yayaw-danger);
+  --fc-classic-small-dot-width: 8px;
+  --fc-classic-large-dot-width: 10px;
+  --fc-classic-background: var(--yayaw-background);
+  --fc-classic-faint: color-mix(in oklab, var(--yayaw-muted) 40%, transparent);
+  --fc-classic-muted: var(--yayaw-muted);
+  --fc-classic-strong: var(--accent, var(--yayaw-muted));
+  --fc-classic-foreground: var(--yayaw-foreground);
+  --fc-classic-faint-foreground: var(--yayaw-muted-foreground);
+  --fc-classic-muted-foreground: var(--yayaw-muted-foreground);
+  --fc-classic-border: var(--yayaw-border);
+  --fc-classic-strong-border: var(--yayaw-input);
+  overflow: hidden;
+  border: 1px solid var(--yayaw-border);
+  border-radius: var(--yayaw-radius);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+.yayaw-calendar-view {
+  display: grid;
+  gap: 12px;
+}
+.yayaw-calendar-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.yayaw-calendar-nav,
+.yayaw-calendar-layouts {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.yayaw-calendar-nav .yayaw-button {
+  padding: 0 10px;
+}
+.yayaw-calendar-nav .yayaw-icon-only {
+  width: 36px;
+  padding: 0;
+}
+.yayaw-calendar-layouts {
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+.yayaw-calendar-layouts .yayaw-button {
+  min-height: 32px;
+  padding: 0 10px;
+}
+.yayaw-calendar-layouts .yayaw-button-ghost {
+  background: transparent;
+}
+.yayaw-calendar-layouts .yayaw-button-secondary {
+  border-color: transparent;
+}
+.yayaw-calendar-title {
+  margin: 0 0 0 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.5rem;
+  text-transform: capitalize;
+}
+.yayaw-calendar-message {
+  display: block;
+  color: var(--yayaw-muted-foreground);
+  font-size: 0.875rem;
+}
+.yayaw-calendar-empty {
+  border: 1px solid var(--yayaw-border);
+  border-radius: var(--yayaw-radius);
+  padding: 24px;
+}
+.yayaw-calendar-error {
+  color: var(--yayaw-danger);
+}
+.yayaw-calendar .yayaw-calendar-pill {
+  display: block;
+  border: 0;
+  width: 100%;
+  overflow: hidden;
+  padding: 2px 6px;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-calendar .yayaw-calendar-pill:not([data-colored]) {
+  border-radius: 0.35rem;
+  background: var(--secondary, var(--yayaw-muted));
+  color: var(--secondary-foreground, var(--yayaw-foreground));
+}

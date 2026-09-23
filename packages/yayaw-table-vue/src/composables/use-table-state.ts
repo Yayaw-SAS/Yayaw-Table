@@ -91,6 +91,8 @@ export interface TableStateRefs {
   gantt: Ref<TableGanttViewConfig>;
   gallery: Ref<TableGalleryViewConfig>;
   list: Ref<TableListViewConfig>;
+  /** Settings of the modes the registry handles generically, keyed by config key. */
+  modeConfigs: Ref<Record<string, Record<string, unknown>>>;
   columnDragEnabled: Ref<boolean>;
   activeViewId: Ref<string | undefined>;
   initialViewId?: string;
@@ -108,12 +110,15 @@ export const useTableState = <TData extends TableRecord>({
   syncUrl,
   initialActiveViewId,
   planning = false,
+  renderers,
 }: {
   config: TableConfig<TData>;
   syncUrl: boolean;
   initialActiveViewId?: string;
   /** Whether a planning session exists; without one, links asking for Gantt fall back. */
   planning?: boolean;
+  /** Modes with an optional renderer installed, such as `calendar`. */
+  renderers?: readonly string[];
 }): TableStateRefs => {
   const tableId = config.id;
   const columnDragStorageKey = `${tableId}-column-drag-enabled`;
@@ -260,6 +265,7 @@ export const useTableState = <TData extends TableRecord>({
       : {};
   const offeredDisplayModes = resolveDisplayModes(config.table.displayModes, {
     planning,
+    renderers,
   });
   const enabledDisplayMode = (requested?: TableDisplayMode): TableDisplayMode =>
     resolveDisplayMode({
@@ -659,6 +665,7 @@ export const useTableState = <TData extends TableRecord>({
     gantt,
     gallery,
     list,
+    modeConfigs,
     columnDragEnabled,
     activeViewId,
     initialViewId,

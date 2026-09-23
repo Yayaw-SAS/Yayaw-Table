@@ -9,6 +9,7 @@ import { pickGenericModeConfigs } from "../utils/display-modes";
 
 import { useAtomValue } from "jotai";
 import type React from "react";
+import type { ReactNode } from "react";
 // Import advanced filters hook directly
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import type { TableEmptyStateConfig } from "../config/helpers";
@@ -18,7 +19,10 @@ import type {
   BulkDeleteCustomHandlerResult,
 } from "../hooks/use-bulk-actions";
 import { useDataTable } from "../hooks/use-data-table";
-import type { TableCatalogueConfig } from "../hooks/use-table-config";
+import type {
+  TableCatalogueColumnConfig,
+  TableCatalogueConfig,
+} from "../hooks/use-table-config";
 import type { TableGanttViewConfig } from "../planning/types";
 import { DataTableUIProvider } from "../providers/data-table-ui-provider";
 import {
@@ -30,6 +34,7 @@ import {
 import { TableStateSyncProvider } from "../providers/table-state-sync-provider";
 import { resolveTranslationsToUiStrings } from "../providers/translation-cache";
 import type { Row } from "../tanstack";
+import type { DisplayModeRenderers } from "../types/display-mode-renderer";
 import type {
   TableDisplayMode,
   TableGalleryConfig,
@@ -64,6 +69,7 @@ import { TableGalleryMenu } from "./toolbar/table-gallery-menu";
 import { TableGanttSettings } from "./toolbar/table-gantt-settings";
 import { TableKanbanGroupingMenu } from "./toolbar/table-kanban-grouping-menu";
 import { TableListMenu } from "./toolbar/table-list-menu";
+import { TableRendererSettings } from "./toolbar/table-renderer-settings";
 
 // Default UI components
 function DefaultTableTitle({
@@ -237,6 +243,45 @@ function resolveDataTableHeaderContent({
   };
 }
 
+/** View → Card settings of modes rendered by optional registry items. */
+function rendererSettings({
+  columns,
+  defaultDisplayMode,
+  defaults,
+  displayModes,
+  renderers,
+  tableId,
+}: {
+  columns: TableCatalogueColumnConfig[];
+  defaultDisplayMode?: TableDisplayMode;
+  defaults: object;
+  displayModes?: TableDisplayMode[];
+  renderers?: DisplayModeRenderers;
+  tableId: string;
+}): Partial<Record<TableDisplayMode, ReactNode>> {
+  const settings: Partial<Record<TableDisplayMode, ReactNode>> = {};
+  for (const mode of displayModes ?? []) {
+    const renderer = renderers?.[mode];
+    if (renderer?.Settings) {
+      settings[mode] = (
+        <TableRendererSettings
+          columns={columns}
+          defaultDisplayMode={defaultDisplayMode}
+          defaults={
+            (defaults as Record<string, unknown>)[mode] as
+              | Record<string, unknown>
+              | undefined
+          }
+          mode={mode}
+          renderer={renderer}
+          tableId={tableId}
+        />
+      );
+    }
+  }
+  return settings;
+}
+
 function DataTableHeaderControls({
   defaultDensity,
   allowViewSave,
@@ -246,6 +291,9 @@ function DataTableHeaderControls({
   defaultDisplayMode,
   defaultFormType,
   displayModes,
+  displayModeRenderers,
+  rendererColumns,
+  rendererDefaults,
   enableKanbanGrouping,
   enableGalleryControl,
   enableAdvancedFilters,
@@ -280,6 +328,9 @@ function DataTableHeaderControls({
   defaultDensity?: TableView["config"]["density"];
   defaultFormType: string;
   displayModes?: TableDisplayMode[];
+  displayModeRenderers?: DisplayModeRenderers;
+  rendererColumns: TableCatalogueColumnConfig[];
+  rendererDefaults: object;
   enableKanbanGrouping: boolean;
   enableGalleryControl: boolean;
   enableAdvancedFilters: boolean;
@@ -341,6 +392,14 @@ function DataTableHeaderControls({
             tableId={tableId}
           />
         ) : undefined,
+        ...rendererSettings({
+          columns: rendererColumns,
+          defaultDisplayMode,
+          defaults: rendererDefaults,
+          displayModes,
+          renderers: displayModeRenderers,
+          tableId,
+        }),
       }}
       columnTypeMapping={columnTypeMapping}
       data={baseData}
@@ -493,8 +552,14 @@ function DataTableContent({
   onOpenDetails,
   onRevertActivity,
   rowActions,
+  displayModeRenderers,
 }: {
   rowActions?: ActionItem<Record<string, unknown>>[];
+  /**
+   * Views rendered by optional registry items, e.g.
+   * `{ calendar: calendarRenderer }` from `yayaw-table-calendar`.
+   */
+  displayModeRenderers?: DisplayModeRenderers;
   details?: RecordDetailsConfig;
   /** Open an application-owned record route or drawer instead of the built-in details. */
   onOpenDetails?: (row: Record<string, unknown>) => void;
@@ -661,8 +726,9 @@ function DataTableContent({
     () =>
       availableDisplayModes(config.table.displayModes, {
         planning: Boolean(planningSession),
+        renderers: Object.keys(displayModeRenderers ?? {}),
       }),
-    [config.table.displayModes, planningSession]
+    [config.table.displayModes, displayModeRenderers, planningSession]
   );
   const shouldShowDisplayModes = offeredDisplayModes.length > 1;
   const kanbanGroupingColumns = useMemo(
@@ -786,6 +852,7 @@ function DataTableContent({
                   defaultDensity={config.table.density}
                   defaultDisplayMode={config.table.defaultDisplayMode}
                   defaultFormType={defaultFormType}
+                  displayModeRenderers={displayModeRenderers}
                   displayModes={offeredDisplayModes}
                   enableAdvancedFilters={shouldEnableAdvancedFilters}
                   enableGalleryControl={shouldShowGallery}
@@ -805,6 +872,8 @@ function DataTableContent({
                     showFilterBar,
                     config.table.showFilterBar
                   )}
+                  rendererColumns={config.columns.definitions}
+                  rendererDefaults={config.table}
                   searchDebounceMs={resolvedSearchDebounceMs}
                   shouldShowViewControls={shouldShowViewControls}
                   shouldShowViews={shouldShowViews}
@@ -832,6 +901,7 @@ function DataTableContent({
                 customBulkActions={customBulkActions}
                 data={finalData}
                 details={details}
+                displayModeRenderers={displayModeRenderers}
                 emptyState={emptyState}
                 enableColumnDragDropByDefault={Boolean(
                   config.table.enableColumnDragDropByDefault

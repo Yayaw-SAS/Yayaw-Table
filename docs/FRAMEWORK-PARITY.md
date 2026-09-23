@@ -689,3 +689,30 @@ Kanban, gallery and Gantt keep dedicated code for their historical migrations.
 Adding such a mode needs its registry entry and type, its renderer and settings
 panel per edition, labels and tests. `tests/generic-mode-config-suite.ts` runs
 in both editions.
+
+## Calendar view
+
+The calendar ships as optional registry items so the table block keeps no
+calendar dependency: `yayaw-table-calendar` (React, `@fullcalendar/react`) and
+`yayaw-table-vue-calendar` (Vue, `@fullcalendar/vue3`), both FullCalendar 7
+with the classic theme mapped to the shadcn tokens. A host installs the item,
+passes `displayModeRenderers: { calendar: calendarRenderer }` and lists
+`"calendar"` in `displayModes`; without the renderer the mode is withheld like
+Gantt without a planning session (`requiresRenderer` in the registry).
+
+The shared `calendar-model.ts` resolves settings (first date column and first
+other column by default), turns rows into all-day events with an exclusive
+end, builds the `dateRange` scope of the visible range for `loadScopedRows`
+and writes moves back in the stored format (date-only stays date-only, ISO
+keeps its time). Both editions render their own toolbar (previous, today,
+next, title, Month/Week/List) and the same event pills with tag colors from
+`colorColumn`. Dragging calls `actions.update` and reverts on failure;
+stretching needs `endColumn`; clicking a day opens the create form with the
+date (and end date) prefilled. Layout changes are view settings.
+
+Renderers receive a framework-neutral context: settings and their setter,
+current list parameters and action, local rows, row id, permissions,
+`updateRow`, `openRow`, `createRow` and a `revision` that changes after each
+mutation. React translation keys are `views.calendar.*`; Vue keys are
+`calendar.*` with English and French defaults. `tests/calendar-model-suite.ts`
+runs in both editions and `e2e/calendar.spec.ts` covers both demos.
