@@ -178,7 +178,7 @@ describe("catalogue-owned controls", () => {
     await new Promise((resolve) => setTimeout(resolve, 20));
 
     const filter = wrapper.get('[data-filter-column="name"] input');
-    expect(wrapper.get(".yayaw-toolbar-menu").text()).toContain("Filters");
+    expect(wrapper.get(".yayaw-toolbar-menu").text()).toContain("Filter");
     expect(document.activeElement).toBe(filter.element);
   });
 

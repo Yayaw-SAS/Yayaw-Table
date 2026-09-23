@@ -109,7 +109,7 @@ const add = async (wrapper: Wrapper) => {
   await openViewMenu(wrapper);
   await wrapper
     .findAll(".yayaw-options-item")
-    .find((item) => item.text().startsWith("Filters"))
+    .find((item) => item.text().startsWith("Filter"))
     ?.trigger("click");
   await wrapper.get('[aria-label="Add filter"]').trigger("click");
   await flushPromises();
@@ -240,7 +240,7 @@ it("restores React multi-select operators and values from a saved URL", async ()
   window.history.replaceState({}, "", `/?${params}`);
   const wrapper = mountTable({ syncUrl: true });
   await flushPromises();
-  await openViewScreen(wrapper, "Filters");
+  await openViewScreen(wrapper, "Filter");
   const rule = wrapper.get(".yayaw-filter-rule");
   expect(
     rule
@@ -260,7 +260,7 @@ it("uses French defaults and React translation keys in the filter controls", asy
     },
   });
   await openViewMenu(wrapper);
-  await button(wrapper, "Filtres")?.trigger("click");
+  await button(wrapper, "Filtrer")?.trigger("click");
   await wrapper.get('[aria-label="Ajouter un filtre"]').trigger("click");
   const rule = wrapper.get(".yayaw-filter-rule");
   await rule.findAll("select")[0]?.setValue("amount");

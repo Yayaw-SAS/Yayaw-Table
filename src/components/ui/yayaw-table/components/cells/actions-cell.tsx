@@ -314,6 +314,11 @@ function ActionsCellBase<TData>({
     );
   }, [destructiveActions, rowData, handleActionClick]);
 
+  // No action can be taken on this row: no empty menu, as in Vue.
+  if (actions.length === 0) {
+    return null;
+  }
+
   return (
     <div className="flex justify-center">
       <DropdownMenu>

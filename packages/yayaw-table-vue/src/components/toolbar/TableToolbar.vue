@@ -476,7 +476,7 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
               >
                 <span class="yayaw-options-item-icon"><ListFilter :size="16" aria-hidden="true" /></span>
                 <span class="yayaw-options-item-copy">
-                  <span>{{ translate("filters", "Filters") }}</span>
+                  <span>{{ translate("filter", "Filter") }}</span>
                 </span>
                 <span class="yayaw-options-item-end">
                   <span v-if="activeFilterCount" class="yayaw-options-item-count">{{ activeFilterCount }}</span>

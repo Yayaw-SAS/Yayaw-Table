@@ -120,7 +120,7 @@ it("shares typed multi-selection with Options, retains hidden-column filters whe
   await flushPromises();
   const filterMenu = wrapper
     .findAll("button")
-    .find((button) => button.text().startsWith("Filters"));
+    .find((button) => button.text().startsWith("Filter"));
   if (!filterMenu) {
     throw new Error("Missing Filters menu");
   }
@@ -150,7 +150,7 @@ it("shares typed multi-selection with Options, retains hidden-column filters whe
     new KeyboardEvent("keydown", { key: "Escape", bubbles: true })
   );
   await flushPromises();
-  await openViewScreen(wrapper, "Filters");
+  await openViewScreen(wrapper, "Filter");
   await wrapper.get('[aria-label="Clear filters"]').trigger("click");
   await flushPromises();
   expect(list).toHaveBeenLastCalledWith(

@@ -179,7 +179,7 @@ const toggleSelection = (row: TableRecord, checked: boolean): void => {
             <dl class="yayaw-card-properties" :class="{ labeled: showLabels }">
               <template v-for="id in propertyIds.filter((item) => item !== titleColumn && item !== groupBy)" :key="id">
                 <dt v-if="showLabels">{{ column(id)?.header ?? id }}</dt>
-                <dd><CellRenderer :value="value(row, id)" :row="row" :column="column(id) ?? { id, header: id }" /></dd>
+                <dd :data-type="column(id)?.type"><CellRenderer :value="value(row, id)" :row="row" :column="column(id) ?? { id, header: id }" /></dd>
               </template>
             </dl>
           </article>
