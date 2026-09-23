@@ -74,6 +74,11 @@ jobs:
         if: steps.plan.outputs.action == 'version'
         run: bun install --cwd packages/yayaw-table-vue --frozen-lockfile
 
+      # `release:check` runs the end-to-end suite in both editions.
+      - name: Install Playwright browser
+        if: steps.plan.outputs.action == 'version'
+        run: bunx playwright install --with-deps chromium
+
       # `changeset version` only reads changesets, so a release derived from the
       # commits is written as one first. It lands on the version branch only.
       - name: Write the derived changeset
