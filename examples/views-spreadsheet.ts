@@ -1,6 +1,8 @@
 import {
+  applyConflictResolutions,
   applySyncPlan,
   planSync,
+  resolvePendingConflicts,
   type SyncMapping,
   type SyncRecord,
   type SyncSideAdapter,
@@ -14,7 +16,9 @@ import {
   type ConnectorSettings,
   type ConnectorTarget,
   type ConnectorTargetRef,
+  type PendingConflictResolution,
   type SyncDirection,
+  toPendingConflicts,
   toSyncPreview,
   toSyncRunResult,
 } from "../src/components/ui/yayaw-table/utils/connector-flow";
@@ -190,20 +194,37 @@ const rowOf = (sheet: Sheet, key: string) =>
   sheet.rows.find((row) => row[KEY_FIELD] === key);
 
 /**
- * "Live projects" was synced once with the table (Charlie was 350 then), then
- * edited on both sides: Bravo's status and Foxtrot's price changed in the
- * sheet, Charlie's price changed on both sides (a conflict), Delta was deleted
- * from the sheet, Echo's key was copied to a second row (a duplicate) and two
- * rows were added in the sheet without a key.
+ * The rules the "Live projects" host applies in code: the sheet owns prices,
+ * a person decides status conflicts and the table wins names. A real host
+ * passes the same objects to `planSync` on its server and declares them on
+ * the connector so the screen shows them.
+ */
+const LIVE_RULES = {
+  ownership: { price: "target" },
+  columnRules: { status: "manual", name: "table-wins" },
+} as const;
+
+/**
+ * "Live projects" was synced once with the table (Charlie was 350, Alpha
+ * "Draft" and Bravo "Archived" then), then edited on both sides: Alpha's and
+ * Bravo's statuses changed on both sides (left to a person), Foxtrot's price
+ * changed in the sheet, Charlie's price changed on both sides (the sheet owns
+ * prices), Delta was deleted from the sheet, Echo's key was copied to a
+ * second row (a duplicate) and two rows were added in the sheet without a key.
  */
 async function seedLiveSheet(table: DemoTable): Promise<{
   sheet: Sheet;
   state: SyncState;
 }> {
   const sheet: Sheet = { headers: [...LIVE_HEADERS], rows: [] };
+  const before: Record<string, Record<string, unknown>> = {
+    alpha: { status: "Draft" },
+    bravo: { status: "Archived" },
+    charlie: { price: 350 },
+  };
   const baseline = table.rows().map((row) => ({
     id: String(row.id),
-    values: row.id === "charlie" ? { ...row, price: 350 } : row,
+    values: { ...row, ...before[String(row.id)] },
   }));
   const plan = planSync({
     direction: "push",
@@ -215,6 +236,7 @@ async function seedLiveSheet(table: DemoTable): Promise<{
   const { state } = await applySyncPlan(plan, {
     target: sheetAdapter(sheet, LIVE_MAPPING),
   });
+  Object.assign(rowOf(sheet, "alpha") ?? {}, { Status: "Archived" });
   Object.assign(rowOf(sheet, "bravo") ?? {}, { Status: "Active" });
   Object.assign(rowOf(sheet, "foxtrot") ?? {}, { Price: 25 });
   Object.assign(rowOf(sheet, "charlie") ?? {}, { Price: 420 });
@@ -364,12 +386,42 @@ export function createSpreadsheetConnector(table: DemoTable) {
         tableRecords,
         targetRecords: readSheet(sheet, mapping),
         state: states.get(tabOf(settings)),
+        // Only "Live projects" has rules; other tabs use the chosen rule.
+        ...(tabOf(settings) === LIVE_SHEET ? LIVE_RULES : {}),
       }),
     };
   };
   const rowLabel = (id: string) => {
     const row = table.rows().find((item) => String(item.id) === id);
     return row ? String(row.name) : undefined;
+  };
+
+  /** Conflicts a sync left to a person, from the tab's sync state. */
+  const listConflicts = async (settings: ConnectorSettings) => {
+    await sheetOf(settings);
+    return toPendingConflicts(states.get(tabOf(settings))?.pendingConflicts, {
+      rowLabel,
+    });
+  };
+
+  /** Writes the person's choices to both sides and saves the new state. */
+  const resolveConflicts = async (
+    resolutions: PendingConflictResolution[],
+    settings: ConnectorSettings
+  ) => {
+    const sheet = await sheetOf(settings);
+    const mapping = toSyncMapping(settings, table.columns);
+    const resolution = resolvePendingConflicts(
+      states.get(tabOf(settings)) ?? { links: [] },
+      resolutions,
+      { mapping }
+    );
+    const result = await applyConflictResolutions(resolution, {
+      table: tableAdapter(table),
+      target: sheetAdapter(sheet, mapping),
+    });
+    states.set(tabOf(settings), result.state);
+    return toSyncRunResult(result);
   };
 
   return {
@@ -393,6 +445,10 @@ export function createSpreadsheetConnector(table: DemoTable) {
       directions: ["push", "pull", "two-way"] as SyncDirection[],
       // Sheet rows have no edit time: "Latest edit wins" would act as "Table wins".
       conflictRules: ["table-wins", "target-wins"] as ConflictRule[],
+      // Shown on the screen; the rules themselves run in `plan` below.
+      conflicts: { ...LIVE_RULES, lock: true },
+      listConflicts,
+      resolveConflicts,
       targets: () => Promise.resolve(targets),
       allowTargetInput: {
         label: "Or paste a spreadsheet link",

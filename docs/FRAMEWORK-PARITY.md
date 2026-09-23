@@ -997,6 +997,63 @@ Import source. The demo "Spreadsheet" connector has a "Live projects" sheet
 synced once and then edited on both sides, planned and applied by the real
 `planSync` and `applySyncPlan` with in-memory adapters.
 
+## Conflict rules in code
+
+The sync engine (`connectors/sync-engine.ts`, copied to the Vue connector
+items) takes optional `ownership`, `columnRules` (`ConflictRule`, `merge`,
+`manual`) and `resolveConflict` inputs, applied per conflicting column in that
+order before the global `conflictRule`; it reports `overridden` columns,
+`resolution`/`source`/`value` on each conflict and keeps manual conflicts in
+`SyncState.pendingConflicts`, settled by `resolvePendingConflicts` and
+`applyConflictResolutions`. `validateConflictConfig` checks a configuration
+against a mapping and direction. Hosts that pass none of these inputs get the
+same plans as before.
+
+The shared `connector-flow.ts` adds the declared, display-only
+`connector.conflicts` (`ownership`, `columnRules`, `lock`, `allowManual`) and
+the optional `listConflicts(settings, context)` and
+`resolveConflicts(resolutions, settings, context)`; `SyncPreview` gains
+`overridden`, `overriddenCount` and `pendingConflicts`, and each preview
+conflict an optional `source` and `value` with `resolution` widened to
+`table | target | merged | custom | manual | skipped`. The flow state gains
+`conflicts`, `conflictsOpen` and `resolvingConflicts`, with
+`loadConflicts`, `showConflicts` and `resolveConflicts` actions; conflicts are
+listed after the target is described, after a sync and after each
+resolution. Both editions render the same helpers:
+`connectorConflictRulesView` ("Rules set by your app", lock icon and hint
+when `lock` is set; under the conflict rule in two-way, under "Deleted
+records" for a pull with ownership only), `describeSyncPreview` (the
+"Changed on both sides" and "Kept from the side that owns them" groups, each
+line labelled "<side> wins", "Owned by <side>", "Merged" with its result,
+"Needs your decision", "Decided by your app" or "Left as is for now") and
+`describePendingConflicts` ("Conflicts to resolve (N)" entry on the settings
+and on the result, a list with "Keep table value" / "Keep <target> value" per
+conflict and both bulk actions, "All conflicts are resolved." and Back).
+Values are formatted by column type in the table's locale
+(`formatSyncValue(value, t, { type, locale })`). A locked conflict rule is a
+disabled select in both editions (`ViewSettingField.disabled` in React, the
+Vue settings panel's `disabled` field, passed to `TableSelect` and the
+compact button), and `flow.update` ignores it. React renders the list in
+`connector-panel.tsx`; Vue in `ConnectorConflicts.vue` and the rules in
+`ConnectorAppRules.vue`. A resolution reloads the table like a sync (React
+`onSynced`, Vue `synced`). Labels are English and French, overridable with
+`connector.<key>`.
+
+`tests/connectors-sync-engine-suite.ts` runs in both editions (precedence,
+ownership in each direction with drift write-back, merge, every resolver
+outcome and a throwing or asynchronous resolver, the pending-conflict
+lifecycle including partial reads and blocked rows, resolution, failure and
+idempotence, validation) and `tests/connector-sync-suite.ts` covers the
+rule sentences, the locked select, preview labels, value formatting and the
+list, resolve and reload flow. `e2e/sync.spec.ts` runs on both demos: the
+locked rules list, the preview labels ("Owned by Spreadsheet", "Needs your
+decision"), resolving one conflict by keeping the sheet value (the table
+updates) and resolving all at once. The demo "Live projects" connector owns
+prices in the sheet, leaves status conflicts to a person and lets the table
+win names. The demo has no multi-select column (adding one would change the
+Form view and other end-to-end tests), so "Merged" is covered by the unit
+suites only.
+
 ## Form view
 
 The Form display mode ships in the core items of both registries: it needs no

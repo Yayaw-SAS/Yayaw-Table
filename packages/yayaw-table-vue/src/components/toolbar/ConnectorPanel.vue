@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { Eye, RefreshCw, Send } from "lucide-vue-next";
+import { Eye, RefreshCw, Send, TriangleAlert } from "lucide-vue-next";
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, useId } from "vue";
 import {
   applyConnectorField,
   type ConnectorFlowState,
+  connectorConflictRulesView,
   type ConnectorTranslate,
   type ConnectorViewColumn,
   connectorLabels,
@@ -13,11 +14,13 @@ import {
   connectorSyncBlocker,
   createConnectorFlow,
   type DataDestinationConnector,
+  describePendingConflicts,
   describePushDetails,
   describePushResult,
   describeSyncPreview,
   describeSyncResult,
   isSyncDirection,
+  type PendingConflictResolution,
   type SyncDirection,
 } from "../../connector-flow";
 import {
@@ -27,6 +30,8 @@ import {
 } from "../../data-destinations";
 import TableCheckbox from "../controls/TableCheckbox.vue";
 import ColumnMapping from "./ColumnMapping.vue";
+import ConnectorAppRules from "./ConnectorAppRules.vue";
+import ConnectorConflicts from "./ConnectorConflicts.vue";
 
 /**
  * The connector screen of a Connect destination: target, direction, column
@@ -99,14 +104,28 @@ const screen = computed(() => ({
 // Target settings, the column mapping, the key field, then mode, records and the sync rules.
 const sections = computed(() => connectorMappingSections(connectorScreenFields(state.value, screen.value)));
 const hints = computed(() => connectorRuleHints(state.value.settings, screen.value));
+// "Rules set by your app": under the conflict rule in two-way, else under the delete policy.
+const rules = computed(() => connectorConflictRulesView(state.value.settings, screen.value));
+const rulesAfterConflict = computed(() => Boolean(hints.value.conflictRule));
+const conflicts = computed(() =>
+  describePendingConflicts(state.value.conflicts, { t, name: props.name, columns: opened.columns, locale: props.locale })
+);
 const syncing = computed(() => isSyncDirection(state.value.settings?.direction));
 const canPreview = computed(() => syncing.value && Boolean(props.connector.preview));
 const blocker = computed(() => connectorSyncBlocker(state.value, props.connector));
 const previewView = computed(() =>
   canPreview.value && state.value.preview
-    ? describeSyncPreview(state.value.preview, { t, name: props.name, columns: opened.columns })
+    ? describeSyncPreview(state.value.preview, { t, name: props.name, columns: opened.columns, locale: props.locale })
     : null
 );
+const previewGroups = computed(() => {
+  const view = previewView.value;
+  if (!view) return [];
+  return [
+    { id: "conflicts", title: view.conflictsTitle, lines: view.conflicts, more: view.moreConflicts },
+    { id: "overridden", title: view.overriddenTitle, lines: view.overridden, more: view.moreOverridden },
+  ].filter((group) => group.title !== null);
+});
 const sendLabel = computed(() => {
   if (!syncing.value) return sending.value ? t("sending") : t("send");
   if (sending.value) return t("syncing");
@@ -146,6 +165,9 @@ const again = (): void => {
 const resolveInput = (): void => {
   flow.resolveInput(input.value).catch(() => undefined);
 };
+const resolveConflicts = (resolutions: PendingConflictResolution[]): void => {
+  flow.resolveConflicts(resolutions).catch(() => undefined);
+};
 </script>
 
 <template>
@@ -153,11 +175,17 @@ const resolveInput = (): void => {
     <p v-if="state.phase === 'loading'" class="yayaw-schedule-loading">
       <span class="yayaw-spinner" aria-hidden="true" />{{ t("loading") }}
     </p>
+    <ConnectorConflicts v-else-if="state.conflictsOpen" :view="conflicts" :busy="state.resolvingConflicts"
+      :error="state.error" @resolve="resolveConflicts" @back="flow.showConflicts(false)" />
     <div v-else-if="showResult" class="yayaw-connector-result" data-connector-result>
       <output class="yayaw-connector-summary" aria-live="polite">
         <p class="yayaw-connector-counts" data-connector-summary>{{ result.summary }}</p>
         <p v-for="line in result.lines" :key="line" class="yayaw-schedule-muted">{{ line }}</p>
       </output>
+      <button v-if="conflicts.entry" type="button" class="yayaw-button yayaw-button-outline yayaw-connector-conflicts-entry"
+        data-connector-conflicts-entry @click="flow.showConflicts(true)">
+        <TriangleAlert :size="16" aria-hidden="true" />{{ conflicts.entry }}
+      </button>
       <p v-if="state.error" class="yayaw-connector-error" role="alert">{{ state.error }}</p>
       <div class="yayaw-schedule-actions">
         <button type="button" class="yayaw-button" @click="emit('done')">{{ t("done") }}</button>
@@ -187,6 +215,7 @@ const resolveInput = (): void => {
       </template>
       <template #after-conflictRule>
         <p v-if="hints.conflictRule" class="yayaw-connector-hint" data-connector-hint="conflictRule">{{ hints.conflictRule }}</p>
+        <ConnectorAppRules v-if="rules && rulesAfterConflict" :view="rules" />
       </template>
       <template #after-deletePolicy>
         <p v-if="hints.deletePolicy" class="yayaw-connector-hint" data-connector-hint="deletePolicy">{{ hints.deletePolicy }}</p>
@@ -195,6 +224,7 @@ const resolveInput = (): void => {
           <TableCheckbox :model-value="state.confirmDeletes" :label="t('deleteConfirm')" @update:model-value="flow.setConfirmDeletes" />
           <span>{{ t("deleteConfirm") }}</span>
         </label>
+        <ConnectorAppRules v-if="rules && !rulesAfterConflict" :view="rules" />
       </template>
       <p v-if="state.schemaLoading" class="yayaw-schedule-loading">
         <span class="yayaw-spinner" aria-hidden="true" />{{ t("loadingFields") }}
@@ -202,6 +232,10 @@ const resolveInput = (): void => {
       <p v-if="state.phase === 'form' && state.targets.length === 0 && !state.error" class="yayaw-schedule-muted">
         {{ t("noTargets") }}
       </p>
+      <button v-if="conflicts.entry" type="button" class="yayaw-button yayaw-button-outline yayaw-connector-conflicts-entry"
+        data-connector-conflicts-entry @click="flow.showConflicts(true)">
+        <TriangleAlert :size="16" aria-hidden="true" />{{ conflicts.entry }}
+      </button>
       <output v-if="previewView" class="yayaw-sync-preview" aria-live="polite" data-sync-preview>
         <div class="yayaw-sync-sides">
           <div v-for="side in previewView.sides" :key="side.side" class="yayaw-sync-side" :data-sync-side="side.side">
@@ -216,19 +250,24 @@ const resolveInput = (): void => {
         </div>
         <p v-for="note in previewView.notes" :key="note" class="yayaw-sync-note" data-sync-note>{{ note }}</p>
         <p v-if="previewView.duplicates" class="yayaw-sync-warning" data-sync-duplicates>{{ previewView.duplicates }}</p>
-        <div v-if="previewView.conflictsTitle" class="yayaw-sync-conflicts" data-sync-conflicts>
-          <h3>{{ previewView.conflictsTitle }}</h3>
+        <div v-for="group in previewGroups" :key="group.id" class="yayaw-sync-conflicts" :data-sync-group="group.id">
+          <h3>{{ group.title }}</h3>
           <ul>
-            <li v-for="conflict in previewView.conflicts" :key="conflict.id" :data-sync-conflict="conflict.id">
+            <li v-for="conflict in group.lines" :key="conflict.id" :data-sync-conflict="conflict.id"
+              :data-resolution="conflict.resolution">
               <span class="yayaw-sync-conflict-title">{{ conflict.title }}</span>
               <span v-for="side in (['table', 'target'] as const)" :key="side" class="yayaw-sync-value"
-                :class="{ 'yayaw-sync-loser': conflict.resolution !== side }" :data-winner="conflict.resolution === side || undefined">
+                :class="{ 'yayaw-sync-loser': conflict.winner && conflict.winner !== side }"
+                :data-winner="conflict.winner === side || undefined">
                 <span>{{ conflict[side].label }}</span><span>{{ conflict[side].value }}</span>
               </span>
-              <span class="yayaw-schedule-muted">{{ conflict.wins }}</span>
+              <span v-if="conflict.result" class="yayaw-sync-value" data-sync-result>
+                <span>{{ conflict.result.label }}</span><span>{{ conflict.result.value }}</span>
+              </span>
+              <span class="yayaw-schedule-muted" data-sync-outcome>{{ conflict.wins }}</span>
             </li>
           </ul>
-          <p v-if="previewView.moreConflicts" class="yayaw-sync-note">{{ previewView.moreConflicts }}</p>
+          <p v-if="group.more" class="yayaw-sync-note">{{ group.more }}</p>
         </div>
       </output>
       <p v-if="state.error" class="yayaw-connector-error" data-connector-error role="alert">{{ state.error }}</p>

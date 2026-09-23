@@ -1,6 +1,14 @@
 "use client";
 
-import { Eye, Loader2, RefreshCw, Send } from "lucide-react";
+import {
+  ArrowLeft,
+  Eye,
+  Loader2,
+  Lock,
+  RefreshCw,
+  Send,
+  TriangleAlert,
+} from "lucide-react";
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -9,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { StackMenuContent, useStackMenu } from "../../ui-custom/stack-menu";
 import {
   applyConnectorField,
+  type ConnectorConflictRulesView,
   type ConnectorFlow,
   type ConnectorFlowState,
   type ConnectorScreenField,
@@ -16,6 +25,7 @@ import {
   type ConnectorT,
   type ConnectorTranslate,
   type ConnectorViewColumn,
+  connectorConflictRulesView,
   connectorLabels,
   connectorMappingSections,
   connectorRuleHints,
@@ -23,12 +33,15 @@ import {
   connectorSyncBlocker,
   createConnectorFlow,
   type DataDestinationConnector,
+  describePendingConflicts,
   describePushDetails,
   describePushResult,
   describeSyncPreview,
   describeSyncResult,
   isSyncDirection,
+  type PendingConflictsView,
   type SyncDirection,
+  type SyncPreviewConflictLine,
   type SyncPreviewView,
 } from "../../utils/connector-flow";
 import {
@@ -147,6 +160,39 @@ function DeleteConfirmation({
   );
 }
 
+/** "Rules set by your app": the conflict rules the host applies in code. */
+function AppRules({ view }: { view: ConnectorConflictRulesView }) {
+  return (
+    <section
+      aria-label={view.title}
+      className="grid gap-1 rounded-md border px-3 py-2 text-xs"
+      data-connector-app-rules
+      data-locked={view.locked || undefined}
+    >
+      <h3 className="flex items-center gap-1.5 font-medium text-muted-foreground">
+        {view.locked ? (
+          <Lock aria-hidden="true" className="size-3.5" data-connector-lock />
+        ) : null}
+        {view.title}
+      </h3>
+      {view.rules.length > 0 ? (
+        <ul className="grid gap-0.5">
+          {view.rules.map((rule) => (
+            <li data-connector-rule={rule.columnId} key={rule.columnId}>
+              {rule.text}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {view.hint ? (
+        <p className="text-muted-foreground" data-connector-rules-hint>
+          {view.hint}
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
 /**
  * The shared screen fields as a column mapping: target settings before the
  * rows, the key field, then mode, records and the sync rules; the paste
@@ -165,6 +211,10 @@ function connectorMapping({
 }) {
   const { t } = screen;
   const hints = connectorRuleHints(state.settings, screen);
+  const rules = connectorConflictRulesView(state.settings, screen);
+  const rulesBlock = rules ? <AppRules view={rules} /> : null;
+  // Under the conflict rule in two-way, else under the delete policy.
+  const rulesAfterConflict = Boolean(hints.conflictRule);
   const extra: Record<string, ReactNode> = {
     target: targetInput,
     mode: state.settings ? (
@@ -173,7 +223,10 @@ function connectorMapping({
       </p>
     ) : null,
     conflictRule: hints.conflictRule ? (
-      <Hint id="conflictRule">{hints.conflictRule}</Hint>
+      <>
+        <Hint id="conflictRule">{hints.conflictRule}</Hint>
+        {rulesBlock}
+      </>
     ) : null,
     deletePolicy: hints.deletePolicy ? (
       <>
@@ -181,6 +234,7 @@ function connectorMapping({
         {state.settings?.deletePolicy === "propagate" ? (
           <DeleteConfirmation flow={flow} state={state} t={t} />
         ) : null}
+        {rulesAfterConflict ? null : rulesBlock}
       </>
     ) : null,
   };
@@ -202,7 +256,72 @@ function connectorMapping({
   };
 }
 
-/** Counts per side, notes, the duplicates warning and the first conflicts. */
+/** One conflict: both values, the kept one highlighted, and how it is settled. */
+function ConflictLine({ line }: { line: SyncPreviewConflictLine }) {
+  return (
+    <li
+      className="grid gap-0.5 rounded-sm bg-muted/60 px-2 py-1.5 text-xs"
+      data-resolution={line.resolution}
+      data-sync-conflict={line.id}
+    >
+      <span className="truncate font-medium">{line.title}</span>
+      {(["table", "target"] as const).map((side) => (
+        <span
+          className={cn(
+            "flex min-w-0 justify-between gap-2",
+            line.winner && line.winner !== side
+              ? "text-muted-foreground line-through"
+              : "font-medium"
+          )}
+          data-winner={line.winner === side || undefined}
+          key={side}
+        >
+          <span className="shrink-0">{line[side].label}</span>
+          <span className="truncate">{line[side].value}</span>
+        </span>
+      ))}
+      {line.result ? (
+        <span
+          className="flex min-w-0 justify-between gap-2 font-medium"
+          data-sync-result
+        >
+          <span className="shrink-0">{line.result.label}</span>
+          <span className="truncate">{line.result.value}</span>
+        </span>
+      ) : null}
+      <span className="text-muted-foreground" data-sync-outcome>
+        {line.wins}
+      </span>
+    </li>
+  );
+}
+
+/** A titled list of conflict lines with "And N more". */
+function ConflictGroup({
+  id,
+  lines,
+  more,
+  title,
+}: {
+  id: string;
+  lines: SyncPreviewConflictLine[];
+  more: string | null;
+  title: string;
+}) {
+  return (
+    <div className="grid gap-1.5" data-sync-group={id}>
+      <h3 className="font-medium text-xs">{title}</h3>
+      <ul className="grid gap-1.5">
+        {lines.map((line) => (
+          <ConflictLine key={line.id} line={line} />
+        ))}
+      </ul>
+      {more ? <p className="text-muted-foreground text-xs">{more}</p> : null}
+    </div>
+  );
+}
+
+/** Counts per side, notes, the duplicates warning, conflicts and owned columns. */
 function SyncPreviewGrid({ view }: { view: SyncPreviewView }) {
   return (
     <output
@@ -253,55 +372,196 @@ function SyncPreviewGrid({ view }: { view: SyncPreviewView }) {
         </p>
       ) : null}
       {view.conflictsTitle ? (
-        <div className="grid gap-1.5" data-sync-conflicts>
-          <h3 className="font-medium text-xs">{view.conflictsTitle}</h3>
-          <ul className="grid gap-1.5">
-            {view.conflicts.map((conflict) => (
-              <li
-                className="grid gap-0.5 rounded-sm bg-muted/60 px-2 py-1.5 text-xs"
-                data-sync-conflict={conflict.id}
-                key={conflict.id}
-              >
-                <span className="truncate font-medium">{conflict.title}</span>
-                {(["table", "target"] as const).map((side) => (
-                  <span
-                    className={cn(
-                      "flex min-w-0 justify-between gap-2",
-                      conflict.resolution === side
-                        ? "font-medium"
-                        : "text-muted-foreground line-through"
-                    )}
-                    data-winner={conflict.resolution === side || undefined}
-                    key={side}
-                  >
-                    <span className="shrink-0">{conflict[side].label}</span>
-                    <span className="truncate">{conflict[side].value}</span>
-                  </span>
-                ))}
-                <span className="text-muted-foreground">{conflict.wins}</span>
-              </li>
-            ))}
-          </ul>
-          {view.moreConflicts ? (
-            <p className="text-muted-foreground text-xs">
-              {view.moreConflicts}
-            </p>
-          ) : null}
-        </div>
+        <ConflictGroup
+          id="conflicts"
+          lines={view.conflicts}
+          more={view.moreConflicts}
+          title={view.conflictsTitle}
+        />
+      ) : null}
+      {view.overriddenTitle ? (
+        <ConflictGroup
+          id="overridden"
+          lines={view.overridden}
+          more={view.moreOverridden}
+          title={view.overriddenTitle}
+        />
       ) : null}
     </output>
+  );
+}
+
+/** "Conflicts to resolve (N)": opens the list of conflicts left to a person. */
+function ConflictsEntry({
+  flow,
+  view,
+}: {
+  flow: ConnectorFlow;
+  view: PendingConflictsView;
+}) {
+  if (!view.entry) {
+    return null;
+  }
+  return (
+    <Button
+      className="w-full justify-start"
+      data-connector-conflicts-entry
+      onClick={() => flow.showConflicts(true)}
+      type="button"
+      variant="outline"
+    >
+      <TriangleAlert aria-hidden="true" className="size-4 text-amber-600" />
+      {view.entry}
+    </Button>
+  );
+}
+
+/**
+ * The conflicts waiting for a person: each with its row, column and both
+ * values, kept one by one or all at once through `resolveConflicts`.
+ */
+function PendingConflictsList({
+  flow,
+  state,
+  view,
+}: {
+  flow: ConnectorFlow;
+  state: ConnectorFlowState;
+  view: PendingConflictsView;
+}) {
+  const busy = state.resolvingConflicts;
+  const keepAll = (choice: "table" | "target") => {
+    flow
+      .resolveConflicts(
+        view.lines.map((line) => ({
+          rowId: line.rowId,
+          columnId: line.columnId,
+          choice,
+        }))
+      )
+      .catch(() => undefined);
+  };
+  return (
+    <div aria-busy={busy} className="grid gap-3" data-connector-conflicts>
+      <div className="grid gap-1">
+        <h3 className="font-medium text-sm">{view.title}</h3>
+        <p className="text-muted-foreground text-xs">{view.hint}</p>
+      </div>
+      {view.lines.length === 0 ? (
+        <p
+          className="text-muted-foreground text-sm"
+          data-connector-conflicts-empty
+        >
+          {view.empty}
+        </p>
+      ) : (
+        <ul className="grid gap-2">
+          {view.lines.map((line) => (
+            <li
+              className="grid gap-1.5 rounded-md border px-3 py-2 text-xs"
+              data-pending-conflict={line.id}
+              key={line.id}
+            >
+              <span className="truncate font-medium text-sm">{line.title}</span>
+              {(["table", "target"] as const).map((side) => (
+                <span className="flex min-w-0 justify-between gap-2" key={side}>
+                  <span className="shrink-0 text-muted-foreground">
+                    {line[side].label}
+                  </span>
+                  <span className="truncate font-medium">
+                    {line[side].value}
+                  </span>
+                </span>
+              ))}
+              <div className="grid gap-2">
+                {(["table", "target"] as const).map((side) => (
+                  <Button
+                    disabled={busy}
+                    key={side}
+                    onClick={() => {
+                      flow
+                        .resolveConflicts([
+                          {
+                            rowId: line.rowId,
+                            columnId: line.columnId,
+                            choice: side,
+                          },
+                        ])
+                        .catch(() => undefined);
+                    }}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    {side === "table" ? line.keepTable : line.keepTarget}
+                  </Button>
+                ))}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+      {busy ? (
+        <output className="text-muted-foreground text-xs">
+          {view.resolving}
+        </output>
+      ) : null}
+      {state.error ? (
+        <p
+          className="text-destructive text-sm"
+          data-connector-error
+          role="alert"
+        >
+          {state.error}
+        </p>
+      ) : null}
+      {view.lines.length > 1 ? (
+        <div className="grid gap-2">
+          <Button
+            disabled={busy}
+            onClick={() => keepAll("table")}
+            type="button"
+            variant="outline"
+          >
+            {view.keepAllTable}
+          </Button>
+          <Button
+            disabled={busy}
+            onClick={() => keepAll("target")}
+            type="button"
+            variant="outline"
+          >
+            {view.keepAllTarget}
+          </Button>
+        </div>
+      ) : null}
+      <Button
+        className="w-full"
+        onClick={() => flow.showConflicts(false)}
+        type="button"
+      >
+        {busy ? (
+          <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+        ) : (
+          <ArrowLeft aria-hidden="true" className="size-4" />
+        )}
+        {view.back}
+      </Button>
+    </div>
   );
 }
 
 /** The last push or sync: counts, first failures, warnings and truncation. */
 function ConnectorResult({
   connector,
+  conflicts,
   flow,
   name,
   state,
   t,
 }: {
   connector: TableConnector;
+  conflicts: PendingConflictsView;
   flow: ConnectorFlow;
   name: string;
   state: ConnectorFlowState;
@@ -355,6 +615,7 @@ function ConnectorResult({
           </p>
         ))}
       </output>
+      <ConflictsEntry flow={flow} view={conflicts} />
       {state.error ? (
         <p className="text-destructive text-sm" role="alert">
           {state.error}
@@ -397,16 +658,20 @@ const sendLabel = (state: ConnectorFlowState, t: ConnectorT): string => {
 /** Error, field loading, the preview and Send or Sync now, after the settings. */
 function ConnectorActions({
   connector,
+  conflicts,
   flow,
   name,
   columns,
+  locale,
   state,
   t,
 }: {
   connector: TableConnector;
+  conflicts: PendingConflictsView;
   flow: ConnectorFlow;
   name: string;
   columns: ConnectorViewColumn[];
+  locale: string;
   state: ConnectorFlowState;
   t: ConnectorT;
 }) {
@@ -426,9 +691,15 @@ function ConnectorActions({
       {state.phase === "form" && state.targets.length === 0 && !state.error ? (
         <p className="text-muted-foreground text-sm">{t("noTargets")}</p>
       ) : null}
+      <ConflictsEntry flow={flow} view={conflicts} />
       {canPreview && state.preview ? (
         <SyncPreviewGrid
-          view={describeSyncPreview(state.preview, { t, name, columns })}
+          view={describeSyncPreview(state.preview, {
+            t,
+            name,
+            columns,
+            locale,
+          })}
         />
       ) : null}
       {state.error ? (
@@ -552,11 +823,25 @@ export function ConnectorPanel({
       </StackMenuContent>
     );
   }
+  const conflicts = describePendingConflicts(state.conflicts, {
+    t,
+    name,
+    columns: opened.columns,
+    locale,
+  });
+  if (state.conflictsOpen) {
+    return (
+      <StackMenuContent className="p-3" data-connector-panel>
+        <PendingConflictsList flow={flow} state={state} view={conflicts} />
+      </StackMenuContent>
+    );
+  }
   const hasResult = Boolean(state.result || state.syncResult);
   if (state.phase === "result" || (state.phase === "sending" && hasResult)) {
     return (
       <StackMenuContent className="p-3" data-connector-panel>
         <ConnectorResult
+          conflicts={conflicts}
           connector={connector}
           flow={flow}
           name={name}
@@ -596,8 +881,10 @@ export function ConnectorPanel({
       >
         <ConnectorActions
           columns={opened.columns}
+          conflicts={conflicts}
           connector={connector}
           flow={flow}
+          locale={locale}
           name={name}
           state={state}
           t={t}

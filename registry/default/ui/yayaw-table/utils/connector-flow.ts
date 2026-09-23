@@ -17,6 +17,7 @@ import {
   normalizeFieldName,
 } from "./field-matching";
 import { coerceImportValue } from "./import-model";
+import { formatDateValue, formatNumberValue } from "./value-format";
 
 type MaybePromise<T> = T | Promise<T>;
 
@@ -140,7 +141,65 @@ export interface ConnectorSettings {
   deletePolicy?: DeletePolicy;
 }
 
-/** A column changed on both sides, with the value each side holds and which one wins. */
+/** Who owns a column: its value always comes from that side. */
+export type ConflictOwner = "table" | "target";
+
+/** A per-column conflict rule: a global rule, `merge` (lists) or `manual`. */
+export type ColumnConflictRule = ConflictRule | "merge" | "manual";
+
+/**
+ * Conflict rules the host applies in code (the sync engine's `ownership`
+ * and `columnRules`, plus any `resolveConflict` it keeps on its server),
+ * declared so the screen can show them. Functions never reach the browser.
+ */
+export interface ConnectorConflictRules {
+  /** Columns one side owns ("Price: Spreadsheet is the source of truth"). */
+  ownership?: Record<string, ConflictOwner>;
+  /** Per-column rules ("Tags: merged", "Notes: decided by you"). */
+  columnRules?: Record<string, ColumnConflictRule>;
+  /** The conflict rule select is read-only: the app decides. */
+  lock?: boolean;
+  /**
+   * Offer "Conflicts to resolve" when the connector has `listConflicts` and
+   * `resolveConflicts`; default true.
+   */
+  allowManual?: boolean;
+}
+
+/** A conflict waiting for a person, as `listConflicts` returns it. */
+export interface PendingConflict {
+  rowId: string;
+  remoteId?: string;
+  /** A name for the record, e.g. its title; the row id otherwise. */
+  rowLabel?: string;
+  columnId: string;
+  tableValue: unknown;
+  targetValue: unknown;
+  baseValue?: unknown;
+  /** ISO time the conflict was found. */
+  detectedAt?: string;
+}
+
+/** A person's decision on a pending conflict, sent to `resolveConflicts`. */
+export interface PendingConflictResolution {
+  rowId: string;
+  columnId: string;
+  choice: "table" | "target" | { value: unknown };
+}
+
+/** How a conflict is settled: a side, a merged or custom value, a person, or not this time. */
+export type SyncConflictResolution =
+  | "table"
+  | "target"
+  | "merged"
+  | "custom"
+  | "manual"
+  | "skipped";
+
+/** What settled it: the column's owner, its rule, the app's resolver or the global rule. */
+export type SyncConflictSource = "ownership" | "column" | "resolver" | "rule";
+
+/** A column changed on both sides, with the value each side holds and how it is settled. */
 export interface SyncPreviewConflict {
   /** A name for the record, e.g. its title; the row id otherwise. */
   rowLabel?: string;
@@ -148,7 +207,11 @@ export interface SyncPreviewConflict {
   columnId: string;
   tableValue: unknown;
   targetValue: unknown;
-  resolution: "table" | "target";
+  resolution: SyncConflictResolution;
+  /** Default "rule". */
+  source?: SyncConflictSource;
+  /** The value both sides get, for "merged" and "custom". */
+  value?: unknown;
 }
 
 /**
@@ -169,6 +232,12 @@ export interface SyncPreview {
   conflicts: SyncPreviewConflict[];
   /** Every conflict; default `conflicts.length`. */
   conflictCount?: number;
+  /** The first columns written back by their owning side (`ownership`). */
+  overridden?: SyncPreviewConflict[];
+  /** Every override; default `overridden.length`. */
+  overriddenCount?: number;
+  /** Conflicts that will wait for a person after this sync. */
+  pendingConflicts?: number;
   /** Keys shared by several records, left alone. */
   duplicates: number;
   unchanged: number;
@@ -315,6 +384,19 @@ export interface DataDestinationConnector<
     settings: ConnectorSettings,
     context: TPushContext
   ) => MaybePromise<SyncRunResult | ConnectorOutcomeError>;
+  /** Conflict rules the host applies in code, shown on the screen. */
+  conflicts?: ConnectorConflictRules;
+  /** Conflicts waiting for a person (the sync state's `pendingConflicts`). */
+  listConflicts?: (
+    settings: ConnectorSettings,
+    context: TPushContext
+  ) => MaybePromise<PendingConflict[] | ConnectorOutcomeError>;
+  /** Applies a person's decisions (`resolvePendingConflicts`) and returns what was written. */
+  resolveConflicts?: (
+    resolutions: PendingConflictResolution[],
+    settings: ConnectorSettings,
+    context: TPushContext
+  ) => MaybePromise<SyncRunResult | ConnectorOutcomeError>;
   /** Names for the target and its children, e.g. "Spreadsheet" and "Tab". */
   labels?: { target?: string; child?: string };
   help?: ConnectorHelp;
@@ -450,7 +532,41 @@ export type SyncLabelKey =
   | "issueInvalidDirection"
   | "issueInvalidConflictRule"
   | "importFrom"
-  | "importFromHint";
+  | "importFromHint"
+  | ConflictLabelKey;
+
+/** Labels of the conflict rules, preview outcomes and conflicts to resolve. */
+export type ConflictLabelKey =
+  | "appRules"
+  | "appRulesLocked"
+  | "ruleOwnedTable"
+  | "ruleOwnedTarget"
+  | "ruleMerge"
+  | "ruleManual"
+  | "ruleTableWins"
+  | "ruleTargetWins"
+  | "ruleLatestWins"
+  | "ownedBy"
+  | "resolutionMerged"
+  | "resolutionManual"
+  | "resolutionCustom"
+  | "resolutionSkipped"
+  | "resultValue"
+  | "overridden"
+  | "moreOverridden"
+  | "pendingNote"
+  | "pendingNoteOne"
+  | "conflictsToResolve"
+  | "conflictsHint"
+  | "keepTable"
+  | "keepTarget"
+  | "keepAllTable"
+  | "keepAllTarget"
+  | "noConflicts"
+  | "resolvingConflicts"
+  | "backToSettings"
+  | "valueYes"
+  | "valueNo";
 
 const ENGLISH_LABELS: Record<ConnectorLabelKey, string> = {
   target: "Destination",
@@ -589,6 +705,37 @@ const ENGLISH_LABELS: Record<ConnectorLabelKey, string> = {
     "This destination doesn’t support this conflict rule.",
   importFrom: "From {name}",
   importFromHint: "Imports its records and keeps them linked.",
+  appRules: "Rules set by your app",
+  appRulesLocked:
+    "Your app decides conflicts; these rules can’t be changed here.",
+  ruleOwnedTable: "{column}: this table is the source of truth",
+  ruleOwnedTarget: "{column}: {target} is the source of truth",
+  ruleMerge: "{column}: merged",
+  ruleManual: "{column}: decided by you",
+  ruleTableWins: "{column}: this table wins",
+  ruleTargetWins: "{column}: {target} wins",
+  ruleLatestWins: "{column}: latest edit wins",
+  ownedBy: "Owned by {side}",
+  resolutionMerged: "Merged",
+  resolutionManual: "Needs your decision",
+  resolutionCustom: "Decided by your app",
+  resolutionSkipped: "Left as is for now",
+  resultValue: "Result",
+  overridden: "Kept from the side that owns them ({count})",
+  moreOverridden: "And {count} more",
+  pendingNote: "{count} conflicts will wait for your decision.",
+  pendingNoteOne: "{count} conflict will wait for your decision.",
+  conflictsToResolve: "Conflicts to resolve ({count})",
+  conflictsHint: "Both sides changed these values. Choose the one to keep.",
+  keepTable: "Keep table value",
+  keepTarget: "Keep {target} value",
+  keepAllTable: "Keep all table values",
+  keepAllTarget: "Keep all {target} values",
+  noConflicts: "All conflicts are resolved.",
+  resolvingConflicts: "Resolving…",
+  backToSettings: "Back",
+  valueYes: "Yes",
+  valueNo: "No",
 };
 
 const FRENCH_LABELS: Record<ConnectorLabelKey, string> = {
@@ -735,6 +882,38 @@ const FRENCH_LABELS: Record<ConnectorLabelKey, string> = {
     "Cette destination ne prend pas en charge cette règle de conflit.",
   importFrom: "Depuis {name}",
   importFromHint: "Importe ses enregistrements et les garde liés.",
+  appRules: "Règles définies par votre application",
+  appRulesLocked:
+    "Votre application décide des conflits ; ces règles ne se modifient pas ici.",
+  ruleOwnedTable: "{column} : cette table fait foi",
+  ruleOwnedTarget: "{column} : {target} fait foi",
+  ruleMerge: "{column} : fusionné",
+  ruleManual: "{column} : décidé par vous",
+  ruleTableWins: "{column} : cette table l’emporte",
+  ruleTargetWins: "{column} : {target} l’emporte",
+  ruleLatestWins: "{column} : la dernière modification l’emporte",
+  ownedBy: "Appartient à {side}",
+  resolutionMerged: "Fusionné",
+  resolutionManual: "À décider par vous",
+  resolutionCustom: "Décidé par votre application",
+  resolutionSkipped: "Laissé tel quel pour l’instant",
+  resultValue: "Résultat",
+  overridden: "Repris du côté propriétaire ({count})",
+  moreOverridden: "Et {count} de plus",
+  pendingNote: "{count} conflits attendront votre décision.",
+  pendingNoteOne: "{count} conflit attendra votre décision.",
+  conflictsToResolve: "Conflits à résoudre ({count})",
+  conflictsHint:
+    "Les deux côtés ont modifié ces valeurs. Choisissez celle à garder.",
+  keepTable: "Garder la valeur de la table",
+  keepTarget: "Garder la valeur de {target}",
+  keepAllTable: "Garder toutes les valeurs de la table",
+  keepAllTarget: "Garder toutes les valeurs de {target}",
+  noConflicts: "Tous les conflits sont résolus.",
+  resolvingConflicts: "Résolution…",
+  backToSettings: "Retour",
+  valueYes: "Oui",
+  valueNo: "Non",
 };
 
 /** Host override for a label (`connector.<key>`), or the built-in one. */
@@ -1408,7 +1587,18 @@ export interface SyncPlanLike {
     tableValue: unknown;
     targetValue: unknown;
     winner: "table" | "target";
+    resolution?: SyncConflictResolution;
+    source?: Exclude<SyncConflictSource, "ownership">;
+    value?: unknown;
   }[];
+  overridden?: readonly {
+    rowId?: string;
+    columnId: string;
+    tableValue: unknown;
+    targetValue: unknown;
+    owner: ConflictOwner;
+  }[];
+  pendingConflicts?: readonly unknown[];
 }
 
 const SYNC_COUNT_KEYS = [
@@ -1422,18 +1612,28 @@ const SYNC_COUNT_KEYS = [
 
 const DEFAULT_PREVIEW_CONFLICTS = 5;
 
+type RowLabel = (rowId: string) => string | undefined;
+
+const labelled = (rowId: string | undefined, rowLabel?: RowLabel) => {
+  const label = rowId ? rowLabel?.(rowId) : undefined;
+  return {
+    ...(rowId ? { rowId } : {}),
+    ...(label ? { rowLabel: label } : {}),
+  };
+};
+
 /**
  * A sync engine plan as the preview `preview` returns; run it on the server
- * (`planSync`), then send this to the browser. `rowLabel` names a record.
+ * (`planSync`), then send this to the browser. `rowLabel` names a record;
+ * `limit` caps the conflicts and the overrides listed.
  */
 export function toSyncPreview(
   plan: SyncPlanLike,
-  options: {
-    limit?: number;
-    rowLabel?: (rowId: string) => string | undefined;
-  } = {}
+  options: { limit?: number; rowLabel?: RowLabel } = {}
 ): SyncPreview {
   const limit = options.limit ?? DEFAULT_PREVIEW_CONFLICTS;
+  const overridden = plan.overridden ?? [];
+  const pending = plan.pendingConflicts?.length ?? 0;
   return {
     createInTarget: plan.createInTarget.length,
     updateInTarget: plan.updateInTarget.length,
@@ -1445,20 +1645,44 @@ export function toSyncPreview(
     duplicates: plan.duplicates.length,
     unchanged: plan.unchanged,
     conflictCount: plan.conflicts.length,
-    conflicts: plan.conflicts.slice(0, limit).map((conflict) => {
-      const rowLabel = conflict.rowId
-        ? options.rowLabel?.(conflict.rowId)
-        : undefined;
-      return {
-        ...(conflict.rowId ? { rowId: conflict.rowId } : {}),
-        ...(rowLabel ? { rowLabel } : {}),
-        columnId: conflict.columnId,
-        tableValue: conflict.tableValue,
-        targetValue: conflict.targetValue,
-        resolution: conflict.winner,
-      };
-    }),
+    conflicts: plan.conflicts.slice(0, limit).map((conflict) => ({
+      ...labelled(conflict.rowId, options.rowLabel),
+      columnId: conflict.columnId,
+      tableValue: conflict.tableValue,
+      targetValue: conflict.targetValue,
+      resolution: conflict.resolution ?? conflict.winner,
+      ...(conflict.source ? { source: conflict.source } : {}),
+      ...(conflict.value === undefined ? {} : { value: conflict.value }),
+    })),
+    ...(overridden.length > 0
+      ? {
+          overriddenCount: overridden.length,
+          overridden: overridden.slice(0, limit).map((item) => ({
+            ...labelled(item.rowId, options.rowLabel),
+            columnId: item.columnId,
+            tableValue: item.tableValue,
+            targetValue: item.targetValue,
+            resolution: item.owner,
+            source: "ownership" as const,
+          })),
+        }
+      : {}),
+    ...(pending > 0 ? { pendingConflicts: pending } : {}),
   };
+}
+
+/**
+ * The sync state's pending conflicts as `listConflicts` returns them, with
+ * a name for each record (structural, no import).
+ */
+export function toPendingConflicts(
+  pending: readonly Omit<PendingConflict, "rowLabel">[] | undefined,
+  options: { rowLabel?: RowLabel } = {}
+): PendingConflict[] {
+  return (pending ?? []).map((item) => {
+    const rowLabel = options.rowLabel?.(item.rowId);
+    return { ...item, ...(rowLabel ? { rowLabel } : {}) };
+  });
 }
 
 /** The part of the sync engine's `SyncResult` a run result needs. */
@@ -1503,14 +1727,19 @@ export interface SyncPreviewCount {
   count: number;
 }
 
-/** A conflict as the preview lists it: both values and which one is kept. */
+/** A conflict as the preview lists it: both values and how it is settled. */
 export interface SyncPreviewConflictLine {
   id: string;
   title: string;
   table: { label: string; value: string };
   target: { label: string; value: string };
-  resolution: "table" | "target";
+  resolution: SyncConflictResolution;
+  /** The side whose value is kept, when one is. */
+  winner?: "table" | "target";
+  /** "<side> wins", "Owned by <side>", "Merged", "Needs your decision"… */
   wins: string;
+  /** The value both sides get, for merged and custom values. */
+  result?: { label: string; value: string };
 }
 
 /** The preview as both editions render it. */
@@ -1523,22 +1752,58 @@ export interface SyncPreviewView {
     title: string;
     counts: SyncPreviewCount[];
   }[];
-  /** "Nothing to change…", flagged records and unchanged count. */
+  /** "Nothing to change…", flagged records, conflicts left to a person, unchanged count. */
   notes: string[];
   /** Warning about keys shared by several records. */
   duplicates: string | null;
   conflictsTitle: string | null;
   conflicts: SyncPreviewConflictLine[];
   moreConflicts: string | null;
+  /** Columns written back by their owning side. */
+  overriddenTitle: string | null;
+  overridden: SyncPreviewConflictLine[];
+  moreOverridden: string | null;
 }
 
-/** A value as the preview shows it: "(empty)", lists joined with commas. */
-export function formatSyncValue(value: unknown, t: ConnectorT): string {
-  if (value === null || value === undefined || value === "") {
+const NUMBER_COLUMN_TYPES = new Set([
+  "number",
+  "currency",
+  "percent",
+  "rating",
+]);
+const DATE_COLUMN_TYPES = new Set(["date", "datetime"]);
+
+const isEmptyValue = (value: unknown) =>
+  value === null ||
+  value === undefined ||
+  value === "" ||
+  (Array.isArray(value) && value.length === 0);
+
+/**
+ * A value as the preview and the conflicts list show it: "(empty)", lists
+ * joined with commas, and with a column `type`, numbers and dates in the
+ * locale and yes/no for booleans.
+ */
+export function formatSyncValue(
+  value: unknown,
+  t: ConnectorT,
+  column: { type?: string; locale?: string } = {}
+): string {
+  if (isEmptyValue(value)) {
     return t("emptyValue");
   }
   if (Array.isArray(value)) {
-    return value.length > 0 ? value.map(String).join(", ") : t("emptyValue");
+    return value.map(String).join(", ");
+  }
+  if (typeof value === "boolean") {
+    return t(value ? "valueYes" : "valueNo");
+  }
+  const type = column.type ?? "";
+  if (NUMBER_COLUMN_TYPES.has(type) && Number.isFinite(Number(value))) {
+    return formatNumberValue(value, undefined, column.locale);
+  }
+  if (DATE_COLUMN_TYPES.has(type)) {
+    return formatDateValue(value, { locale: column.locale });
   }
   return String(value);
 }
@@ -1563,12 +1828,112 @@ const previewNotes = (
     preview.flagged > 0
       ? countLabel(t, preview.flagged, "flagged", "flaggedOne")
       : null,
+    (preview.pendingConflicts ?? 0) > 0
+      ? countLabel(
+          t,
+          preview.pendingConflicts ?? 0,
+          "pendingNote",
+          "pendingNoteOne"
+        )
+      : null,
     preview.unchanged > 0 ? t("unchanged", { count: preview.unchanged }) : null,
   ].filter((note): note is string => note !== null);
 
+const RESOLUTION_KEYS: Partial<
+  Record<SyncConflictResolution, ConnectorLabelKey>
+> = {
+  merged: "resolutionMerged",
+  custom: "resolutionCustom",
+  manual: "resolutionManual",
+  skipped: "resolutionSkipped",
+};
+
+interface LineContext {
+  t: ConnectorT;
+  name: string;
+  locale?: string;
+  columns: readonly ConnectorColumn[];
+}
+
+const sideName = (side: "table" | "target", context: LineContext) =>
+  side === "table" ? context.t("thisTable") : context.name;
+
+/** "Owned by Spreadsheet", "This table wins", "Merged", "Needs your decision"… */
+function outcomeLabel(
+  conflict: SyncPreviewConflict,
+  context: LineContext
+): string {
+  const { resolution } = conflict;
+  if (resolution === "table" || resolution === "target") {
+    const side = sideName(resolution, context);
+    return conflict.source === "ownership"
+      ? context.t("ownedBy", { side })
+      : context.t("wins", { side });
+  }
+  return context.t(RESOLUTION_KEYS[resolution] ?? "resolutionManual");
+}
+
+function conflictLine(
+  conflict: SyncPreviewConflict,
+  index: number,
+  context: LineContext
+): SyncPreviewConflictLine {
+  const column = context.columns.find((item) => item.id === conflict.columnId);
+  const format = (value: unknown) =>
+    formatSyncValue(value, context.t, {
+      type: column?.type,
+      locale: context.locale,
+    });
+  const { resolution } = conflict;
+  const winner =
+    resolution === "table" || resolution === "target" ? resolution : undefined;
+  const hasResult =
+    (resolution === "merged" || resolution === "custom") &&
+    conflict.value !== undefined;
+  return {
+    id: `${conflict.rowId ?? index}:${conflict.columnId}`,
+    title: `${conflict.rowLabel ?? conflict.rowId ?? ""} · ${column?.header ?? conflict.columnId}`,
+    table: {
+      label: context.t("thisTable"),
+      value: format(conflict.tableValue),
+    },
+    target: { label: context.name, value: format(conflict.targetValue) },
+    resolution,
+    ...(winner ? { winner } : {}),
+    wins: outcomeLabel(conflict, context),
+    ...(hasResult
+      ? {
+          result: {
+            label: context.t("resultValue"),
+            value: format(conflict.value),
+          },
+        }
+      : {}),
+  };
+}
+
+/** A titled list of lines with "And N more", for conflicts and overrides. */
+function lineGroup(
+  lines: readonly SyncPreviewConflict[],
+  total: number | undefined,
+  keys: { title: ConnectorLabelKey; more: ConnectorLabelKey },
+  context: LineContext
+) {
+  const count = Math.max(total ?? 0, lines.length);
+  return {
+    title: count > 0 ? context.t(keys.title, { count }) : null,
+    lines: lines.map((line, index) => conflictLine(line, index, context)),
+    more:
+      count > lines.length
+        ? context.t(keys.more, { count: count - lines.length })
+        : null,
+  };
+}
+
 /**
- * The preview grid, notes and first conflicts. `name` names the target
- * ("Spreadsheet"); `columns` give conflicts their column header.
+ * The preview grid, notes, the first conflicts and the columns their owner
+ * writes back. `name` names the target ("Spreadsheet"); `columns` give lines
+ * their column header and value format; `locale` formats numbers and dates.
  */
 export function describeSyncPreview(
   preview: SyncPreview,
@@ -1576,20 +1941,32 @@ export function describeSyncPreview(
     t,
     name,
     columns = [],
-  }: { t: ConnectorT; name: string; columns?: readonly ConnectorColumn[] }
+    locale,
+  }: {
+    t: ConnectorT;
+    name: string;
+    columns?: readonly ConnectorColumn[];
+    locale?: string;
+  }
 ): SyncPreviewView {
   const changes = SYNC_COUNT_KEYS.reduce(
     (total, key) => total + preview[key],
     0
   );
   const empty = changes === 0;
-  const conflictCount = Math.max(
-    preview.conflictCount ?? 0,
-    preview.conflicts.length
+  const context: LineContext = { t, name, columns, locale };
+  const conflicts = lineGroup(
+    preview.conflicts,
+    preview.conflictCount,
+    { title: "conflicts", more: "moreConflicts" },
+    context
   );
-  const header = (columnId: string) =>
-    columns.find((column) => column.id === columnId)?.header ?? columnId;
-  const sides = { table: t("thisTable"), target: name };
+  const overridden = lineGroup(
+    preview.overridden ?? [],
+    preview.overriddenCount,
+    { title: "overridden", more: "moreOverridden" },
+    context
+  );
   return {
     empty,
     sides: [
@@ -1609,28 +1986,216 @@ export function describeSyncPreview(
       preview.duplicates > 0
         ? countLabel(t, preview.duplicates, "duplicates", "duplicatesOne")
         : null,
-    conflictsTitle:
-      conflictCount > 0 ? t("conflicts", { count: conflictCount }) : null,
-    conflicts: preview.conflicts.map((conflict, index) => ({
-      id: `${conflict.rowId ?? index}:${conflict.columnId}`,
-      title: `${conflict.rowLabel ?? conflict.rowId ?? ""} · ${header(conflict.columnId)}`,
-      table: {
-        label: sides.table,
-        value: formatSyncValue(conflict.tableValue, t),
-      },
-      target: {
-        label: name,
-        value: formatSyncValue(conflict.targetValue, t),
-      },
-      resolution: conflict.resolution,
-      wins: t("wins", { side: sides[conflict.resolution] }),
-    })),
-    moreConflicts:
-      conflictCount > preview.conflicts.length
-        ? t("moreConflicts", {
-            count: conflictCount - preview.conflicts.length,
-          })
-        : null,
+    conflictsTitle: conflicts.title,
+    conflicts: conflicts.lines,
+    moreConflicts: conflicts.more,
+    overriddenTitle: overridden.title,
+    overridden: overridden.lines,
+    moreOverridden: overridden.more,
+  };
+}
+
+// Conflict rules and conflicts to resolve -----------------------------------------
+
+/** One declared rule, e.g. "Price: Spreadsheet is the source of truth". */
+export interface ConnectorRuleLine {
+  columnId: string;
+  kind: "owned" | ColumnConflictRule;
+  text: string;
+}
+
+const COLUMN_RULE_KEYS: Record<ColumnConflictRule, ConnectorLabelKey> = {
+  "table-wins": "ruleTableWins",
+  "target-wins": "ruleTargetWins",
+  "latest-wins": "ruleLatestWins",
+  merge: "ruleMerge",
+  manual: "ruleManual",
+};
+
+const isColumnRule = (rule: unknown): rule is ColumnConflictRule =>
+  typeof rule === "string" && Object.hasOwn(COLUMN_RULE_KEYS, rule);
+
+/**
+ * The declared conflict rules as sentences, owned columns first, in column
+ * order: "Price: Spreadsheet is the source of truth", "Tags: merged",
+ * "Notes: decided by you". Outside two-way only ownership applies, so only
+ * owned columns are listed; column rules on an owned column are left out.
+ */
+export function describeConflictRules(
+  conflicts: ConnectorConflictRules | undefined,
+  {
+    t,
+    name,
+    columns = [],
+    direction = "two-way",
+  }: {
+    t: ConnectorT;
+    name: string;
+    columns?: readonly ConnectorColumn[];
+    direction?: SyncDirection;
+  }
+): ConnectorRuleLine[] {
+  const ownership = conflicts?.ownership ?? {};
+  const rules = direction === "two-way" ? (conflicts?.columnRules ?? {}) : {};
+  const order = (id: string) => {
+    const index = columns.findIndex((column) => column.id === id);
+    return index < 0 ? columns.length : index;
+  };
+  const header = (id: string) =>
+    columns.find((column) => column.id === id)?.header ?? id;
+  const byColumn = (left: string, right: string) => order(left) - order(right);
+  const owned = Object.keys(ownership)
+    .filter((id) => ownership[id] === "table" || ownership[id] === "target")
+    .sort(byColumn)
+    .map((columnId) => ({
+      columnId,
+      kind: "owned" as const,
+      text: t(
+        ownership[columnId] === "table" ? "ruleOwnedTable" : "ruleOwnedTarget",
+        { column: header(columnId), target: name }
+      ),
+    }));
+  const perColumn = Object.keys(rules)
+    .filter((id) => !Object.hasOwn(ownership, id) && isColumnRule(rules[id]))
+    .sort(byColumn)
+    .map((columnId) => {
+      const kind = rules[columnId] as ColumnConflictRule;
+      return {
+        columnId,
+        kind,
+        text: t(COLUMN_RULE_KEYS[kind], {
+          column: header(columnId),
+          target: name,
+        }),
+      };
+    });
+  return [...owned, ...perColumn];
+}
+
+/** "Rules set by your app", with a lock when the app decides every conflict. */
+export interface ConnectorConflictRulesView {
+  title: string;
+  locked: boolean;
+  /** Why the conflict rule cannot be changed, when locked. */
+  hint: string | null;
+  rules: ConnectorRuleLine[];
+}
+
+/** The "Rules set by your app" block of a sync, or `null` without rules. */
+export function connectorConflictRulesView(
+  settings: Pick<ConnectorSettings, "direction"> | null,
+  options: Pick<ConnectorScreenOptions, "connector" | "columns" | "name" | "t">
+): ConnectorConflictRulesView | null {
+  const conflicts = options.connector.conflicts;
+  if (!(settings && isSyncDirection(settings.direction) && conflicts)) {
+    return null;
+  }
+  const rules = describeConflictRules(conflicts, {
+    t: options.t,
+    name: connectorTargetName(options),
+    columns: options.columns,
+    direction: settings.direction,
+  });
+  const locked = conflicts.lock === true && settings.direction === "two-way";
+  if (rules.length === 0 && !locked) {
+    return null;
+  }
+  return {
+    title: options.t("appRules"),
+    locked,
+    hint: locked ? options.t("appRulesLocked") : null,
+    rules,
+  };
+}
+
+/** A pending conflict as the list shows it, with its two choices. */
+export interface PendingConflictLine {
+  id: string;
+  rowId: string;
+  columnId: string;
+  title: string;
+  table: { label: string; value: string };
+  target: { label: string; value: string };
+  keepTable: string;
+  keepTarget: string;
+}
+
+/** "Conflicts to resolve": the entry, the list and its bulk actions. */
+export interface PendingConflictsView {
+  /** "Conflicts to resolve (2)", or `null` when there are none. */
+  entry: string | null;
+  title: string;
+  hint: string;
+  empty: string;
+  lines: PendingConflictLine[];
+  keepAllTable: string;
+  keepAllTarget: string;
+  back: string;
+  /** Shown while decisions are applied. */
+  resolving: string;
+}
+
+/** Whether the screen offers the conflicts to resolve. */
+export function canResolveConflicts(connector: {
+  conflicts?: ConnectorConflictRules;
+  listConflicts?: unknown;
+  resolveConflicts?: unknown;
+}): boolean {
+  return (
+    connector.conflicts?.allowManual !== false &&
+    typeof connector.listConflicts === "function" &&
+    typeof connector.resolveConflicts === "function"
+  );
+}
+
+/**
+ * The conflicts waiting for a person: each with its row, column, both
+ * values formatted by column type and "Keep table value" / "Keep <target>
+ * value"; bulk actions keep every value of one side.
+ */
+export function describePendingConflicts(
+  conflicts: readonly PendingConflict[] | null,
+  {
+    t,
+    name,
+    columns = [],
+    locale,
+  }: {
+    t: ConnectorT;
+    name: string;
+    columns?: readonly ConnectorColumn[];
+    locale?: string;
+  }
+): PendingConflictsView {
+  const list = conflicts ?? [];
+  const context: LineContext = { t, name, columns, locale };
+  const title = t("conflictsToResolve", { count: list.length });
+  return {
+    entry: list.length > 0 ? title : null,
+    title,
+    hint: t("conflictsHint"),
+    empty: t("noConflicts"),
+    lines: list.map((conflict, index) => {
+      const line = conflictLine(
+        { ...conflict, resolution: "manual" },
+        index,
+        context
+      );
+      return {
+        id: line.id,
+        rowId: conflict.rowId,
+        columnId: conflict.columnId,
+        title: line.title,
+        table: line.table,
+        target: line.target,
+        keepTable: t("keepTable"),
+        keepTarget: t("keepTarget", { target: name }),
+      };
+    }),
+    keepAllTable: t("keepAllTable"),
+    keepAllTarget: t("keepAllTarget", { target: name }),
+    back: t("backToSettings"),
+    resolving: t("resolvingConflicts"),
   };
 }
 
@@ -1741,6 +2306,12 @@ export interface ConnectorFlowState {
   /** The person confirmed that records will be deleted ("propagate"). */
   confirmDeletes: boolean;
   syncResult: SyncRunResult | null;
+  /** Conflicts waiting for a person (`listConflicts`), or `null` before they are listed. */
+  conflicts: PendingConflict[] | null;
+  /** The conflicts to resolve are shown instead of the settings. */
+  conflictsOpen: boolean;
+  /** A `resolveConflicts` call is running. */
+  resolvingConflicts: boolean;
 }
 
 export interface ConnectorFlowOptions<TContext, TPushContext> {
@@ -1795,6 +2366,12 @@ export interface ConnectorFlow {
   send: () => Promise<void>;
   /** Back to the settings after a result. */
   edit: () => void;
+  /** Lists the conflicts waiting for a person again. */
+  loadConflicts: () => Promise<void>;
+  /** Shows or hides the conflicts to resolve. */
+  showConflicts: (open: boolean) => void;
+  /** Applies decisions through `resolveConflicts`, then lists the conflicts again. */
+  resolveConflicts: (resolutions: PendingConflictResolution[]) => Promise<void>;
   dispose: () => void;
 }
 
@@ -1875,6 +2452,9 @@ const INITIAL_STATE: Omit<ConnectorFlowState, "scope"> = {
   previewing: false,
   confirmDeletes: false,
   syncResult: null,
+  conflicts: null,
+  conflictsOpen: false,
+  resolvingConflicts: false,
 };
 
 /**
@@ -1918,6 +2498,8 @@ export function createConnectorFlow<TContext, TPushContext>(
       result: null,
       preview: null,
       syncResult: null,
+      conflicts: null,
+      conflictsOpen: false,
     });
     try {
       const schema = await connector.describe(
@@ -1939,6 +2521,7 @@ export function createConnectorFlow<TContext, TPushContext>(
       });
       preset = undefined;
       set({ schema, schemaLoading: false, settings });
+      await loadConflicts();
     } catch (error) {
       if (ticket === request) {
         set({ schemaLoading: false, error: failureText(error) });
@@ -2038,10 +2621,16 @@ export function createConnectorFlow<TContext, TPushContext>(
     });
   };
 
-  const update = (patch: SettingsPatch) => {
+  const update = (requested: SettingsPatch) => {
     if (!state.settings) {
       return;
     }
+    // A locked conflict rule is the app's: it is shown, never changed.
+    const { conflictRule, ...rest } = requested;
+    const patch: SettingsPatch =
+      connector.conflicts?.lock || conflictRule === undefined
+        ? rest
+        : { ...rest, conflictRule };
     const policyChanged =
       patch.deletePolicy !== undefined &&
       patch.deletePolicy !== state.settings.deletePolicy;
@@ -2111,6 +2700,73 @@ export function createConnectorFlow<TContext, TPushContext>(
       sentColumns(columns, settings)
     );
 
+  /** The current settings as sent, without validating them. */
+  const currentSettings = (): ConnectorSettings | null => {
+    const { schema, settings } = state;
+    return schema && settings
+      ? connectorSettingsToSend(settings, columns, schema)
+      : null;
+  };
+
+  const viewContext = (settings: ConnectorSettings) =>
+    options.pushContext("view", sentColumns(columns, settings));
+
+  const targetKey = () => `${state.targetId}/${state.childId ?? ""}`;
+
+  const loadConflicts = async () => {
+    const settings = currentSettings();
+    if (
+      !(settings && connector.listConflicts && canResolveConflicts(connector))
+    ) {
+      return;
+    }
+    const target = targetKey();
+    try {
+      const outcome = await connector.listConflicts(
+        settings,
+        viewContext(settings)
+      );
+      if (isConnectorOutcomeError(outcome)) {
+        throw outcome;
+      }
+      if (target === targetKey()) {
+        set({ conflicts: outcome });
+      }
+    } catch (error) {
+      if (target === targetKey()) {
+        set({ conflicts: [], error: failureText(error) });
+      }
+    }
+  };
+
+  const resolveConflicts = async (resolutions: PendingConflictResolution[]) => {
+    const settings = currentSettings();
+    if (
+      !(settings && connector.resolveConflicts) ||
+      resolutions.length === 0 ||
+      state.resolvingConflicts
+    ) {
+      return;
+    }
+    set({ resolvingConflicts: true, error: null });
+    try {
+      const outcome = await connector.resolveConflicts(
+        resolutions,
+        settings,
+        viewContext(settings)
+      );
+      if (isConnectorOutcomeError(outcome)) {
+        throw outcome;
+      }
+      // Both sides changed: the last preview is stale.
+      set({ resolvingConflicts: false, preview: null });
+      options.onSynced?.(outcome);
+      await loadConflicts();
+    } catch (error) {
+      set({ resolvingConflicts: false, error: failureText(error) });
+    }
+  };
+
   // Settings are remembered on every send, whatever the push returns.
   const push = async (settings: ConnectorSettings) => {
     const saving = saveSettings(settings);
@@ -2141,6 +2797,7 @@ export function createConnectorFlow<TContext, TPushContext>(
       error: saveError,
     });
     options.onSynced?.(outcome);
+    await loadConflicts();
   };
 
   const send = async () => {
@@ -2210,6 +2867,9 @@ export function createConnectorFlow<TContext, TPushContext>(
     send,
     edit: () =>
       set({ phase: "form", result: null, syncResult: null, error: null }),
+    loadConflicts,
+    showConflicts: (open) => set({ conflictsOpen: open, error: null }),
+    resolveConflicts,
     dispose: () => {
       notify = () => undefined;
       request += 1;
@@ -2238,6 +2898,8 @@ export interface ConnectorScreenField {
   /** Pull and two-way rows: the field's first value and a conversion badge. */
   sample?: string;
   badge?: { label: string; invalid: boolean };
+  /** Shown but not changeable (a conflict rule the app locked). */
+  disabled?: boolean;
 }
 
 const MAP_PREFIX = "map:";
@@ -2246,7 +2908,7 @@ const FIELD_PREFIX = "field:";
 export interface ConnectorScreenOptions {
   connector: Pick<
     DataDestinationConnector,
-    "labels" | "modes" | "directions" | "conflictRules"
+    "labels" | "modes" | "directions" | "conflictRules" | "conflicts"
   > & { sync?: unknown };
   columns: readonly ConnectorViewColumn[];
   selectedCount: number;
@@ -2521,6 +3183,8 @@ const ruleFields = (
       options: connectorConflictRules(options.connector.conflictRules).map(
         (rule) => ({ value: rule, label: t(CONFLICT_KEYS[rule], { target }) })
       ),
+      // The app decides conflicts: the rule is shown, not chosen.
+      ...(options.connector.conflicts?.lock ? { disabled: true } : {}),
     });
   }
   if (shown.deletePolicy) {

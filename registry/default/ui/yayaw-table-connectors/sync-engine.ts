@@ -10,6 +10,12 @@
  * the key field ("Yayaw ID"), which holds the table row id in the target.
  *
  * A run is `read → planSync → applySyncPlan → save result.state`.
+ *
+ * Conflict rules set in code (`ownership`, `columnRules`, `resolveConflict`)
+ * are applied per conflicting column in that order, before the global
+ * `conflictRule`. Conflicts left to a person ("manual") are kept in
+ * `SyncState.pendingConflicts` until both sides agree or
+ * `resolvePendingConflicts` settles them.
  */
 import {
   ConnectorError,
@@ -121,10 +127,31 @@ export interface SyncLink {
   targetHash: string;
 }
 
+/**
+ * A conflict left to a person: not applied, kept in the state until both
+ * sides agree again or `resolvePendingConflicts` settles it. There is at
+ * most one per row and column; it is replaced when either value changes.
+ */
+export interface PendingConflict {
+  /** The value both sides held at the last sync, when known. */
+  baseValue?: SyncValue;
+  columnId: string;
+  /** ISO time of the run that found these values. */
+  detectedAt: string;
+  /** Notion property name or sheet header. */
+  field: string;
+  remoteId: string;
+  rowId: string;
+  tableValue: SyncValue;
+  targetValue: SyncValue;
+}
+
 /** What the host stores per destination and view. */
 export interface SyncState {
   lastSyncAt?: string;
   links: SyncLink[];
+  /** Conflicts waiting for a person's decision (see `resolvePendingConflicts`). */
+  pendingConflicts?: PendingConflict[];
 }
 
 export const EMPTY_SYNC_STATE: SyncState = { links: [] };
@@ -429,16 +456,59 @@ export interface SyncFlag extends SyncDelete {
   deletedIn: SyncSide;
 }
 
+/**
+ * How a conflict was settled: a side's value, a merged or custom value, left
+ * to a person (`manual`, see `pendingConflicts`) or left alone this run
+ * (`skipped`).
+ */
+export type ConflictResolution =
+  | SyncSide
+  | "merged"
+  | "custom"
+  | "manual"
+  | "skipped";
+
+/** What settled a conflict, in precedence order after ownership. */
+export type ConflictSource = "column" | "resolver" | "rule";
+
 export interface SyncConflict {
   baseValue?: SyncValue;
   columnId: string;
+  /** Set when `resolveConflict` threw or returned something unusable (then `manual`). */
+  error?: "resolver_failed" | "invalid_decision";
   field: string;
+  ref: Ref;
+  remoteId: string;
+  resolution: ConflictResolution;
+  rowId: string;
+  source: ConflictSource;
+  tableValue: SyncValue;
+  targetValue: SyncValue;
+  /** The value both sides get, for `merged` and `custom`. */
+  value?: SyncValue;
+  /**
+   * The side whose value is kept. Only meaningful when `resolution` is a side;
+   * `table` otherwise (kept for plans read before `resolution` existed).
+   */
+  winner: SyncSide;
+}
+
+/**
+ * A column whose owning side (`ownership`) overrode the other: the other side
+ * changed it (drift, reverted) or both did. Not a conflict.
+ */
+export interface SyncOverride {
+  baseValue?: SyncValue;
+  /** Both sides changed the column since the last sync. */
+  bothChanged: boolean;
+  columnId: string;
+  field: string;
+  owner: SyncSide;
   ref: Ref;
   remoteId: string;
   rowId: string;
   tableValue: SyncValue;
   targetValue: SyncValue;
-  winner: SyncSide;
 }
 
 /** Records sharing a key: none of them is synced until it is fixed. */
@@ -474,6 +544,10 @@ export interface SyncPlan {
   fields: SyncField[];
   flagged: SyncFlag[];
   keyField: string;
+  /** Columns written back by their owning side (see `ownership`). */
+  overridden: SyncOverride[];
+  /** The conflicts waiting for a person once this plan is applied. */
+  pendingConflicts: PendingConflict[];
   setKeyInTarget: SyncSetKey[];
   /** Records left alone because the direction cannot write their other side. */
   skipped: number;
@@ -484,12 +558,66 @@ export interface SyncPlan {
   updateInTarget: SyncUpdate[];
 }
 
+/** Who owns a column: its value always comes from that side. */
+export type ConflictOwner = SyncSide;
+
+/** A per-column conflict rule: a global rule, `merge` (lists) or `manual`. */
+export type ColumnConflictRule = ConflictRule | "merge" | "manual";
+
+/** What `resolveConflict` receives: canonical values and both records. */
+export interface ConflictContext {
+  /** The value at the last sync, when known. */
+  baseValue?: SyncValue;
+  columnId: string;
+  field: string;
+  remoteId: string;
+  rowId: string;
+  tableRecord: SyncRecord;
+  tableValue: SyncValue;
+  targetRecord: SyncRecord;
+  targetValue: SyncValue;
+}
+
+/**
+ * A resolver's answer: a side, a value both sides get, `skip` (leave both
+ * as they are this run) or `manual` (a person decides). `undefined` defers
+ * to the global `conflictRule`.
+ */
+export type ConflictDecision =
+  | SyncSide
+  | { value: unknown }
+  | "skip"
+  | "manual"
+  | undefined;
+
+/**
+ * Decides a conflict in code. Pure and synchronous: it runs where `planSync`
+ * runs (the host's server or worker), for every conflicting column that
+ * `ownership` and `columnRules` leave open. A throw makes the conflict manual.
+ */
+export type ConflictResolver = (context: ConflictContext) => ConflictDecision;
+
 export interface PlanSyncInput {
+  /**
+   * Per-column rules for columns changed on both sides (two-way):
+   * `table-wins`, `target-wins`, `latest-wins`, `merge` (union of list values
+   * such as multi-selects; other types fall back to the next rule) or
+   * `manual` (kept in `pendingConflicts` for a person).
+   */
+  columnRules?: Readonly<Record<string, ColumnConflictRule>>;
   conflictRule?: ConflictRule;
   deletePolicy?: DeletePolicy;
   direction: SyncDirection;
   mapping: SyncMapping;
   now?: Date | number | string;
+  /**
+   * Columns one side owns: its value always wins, and in two-way the other
+   * side's changes are written back (`overridden`). One-way syncs never
+   * write an owned column to its owner. Creations still write every column.
+   */
+  ownership?: Readonly<Record<string, ConflictOwner>>;
+  /** Decides conflicts `ownership` and `columnRules` leave open. */
+  resolveConflict?: ConflictResolver;
   state?: SyncState | null;
   /** Keep `baseValues` in links for per-field merges (default true). */
   storeBaseValues?: boolean;
@@ -511,11 +639,20 @@ interface Pair {
 }
 
 interface PlanContext {
+  /** Manual conflicts found this run, by `pendingKey`. */
+  detected: Map<string, PendingConflict>;
+  /** Rows whose columns were compared this run. */
+  evaluated: Set<string>;
   fields: readonly SyncField[];
   input: PlanSyncInput;
   plan: SyncPlan;
+  /** Pending conflicts of the previous state, by `pendingKey`. */
+  previousPending: Map<string, PendingConflict>;
   rule: ConflictRule;
 }
+
+const pendingKey = (rowId: string, columnId: string) =>
+  JSON.stringify([rowId, columnId]);
 
 const canWrite = (direction: SyncDirection, side: SyncSide): boolean =>
   direction === "two-way" || (side === "target") === (direction === "push");
@@ -608,6 +745,8 @@ function emptyPlan(input: PlanSyncInput): SyncPlan {
     deletePolicy: input.deletePolicy ?? DEFAULT_DELETE_POLICY,
     fields: [...input.mapping.fields],
     keyField: input.mapping.keyField ?? DEFAULT_CONNECTOR_KEY,
+    overridden: [],
+    pendingConflicts: [],
     storeBaseValues: input.storeBaseValues ?? true,
     syncedAt: isoTime(input.now),
     createInTarget: [],
@@ -732,15 +871,15 @@ function unlinkedPairs(
   return pairs;
 }
 
-function resolveConflict(
-  context: PlanContext,
+function ruleWinner(
+  rule: ConflictRule,
   table: SyncRecord,
   target: SyncRecord
 ): SyncSide {
-  if (context.rule === "table-wins") {
+  if (rule === "table-wins") {
     return "table";
   }
-  if (context.rule === "target-wins") {
+  if (rule === "target-wins") {
     return "target";
   }
   const tableTime = Date.parse(table.updatedAt ?? "");
@@ -767,12 +906,22 @@ function changedSide(tableChanged: boolean, targetChanged: boolean) {
   return tableChanged ? "table" : "target";
 }
 
+interface FieldValues {
+  table: SyncValue;
+  target: SyncValue;
+}
+
 function fieldChange(
+  context: PlanContext,
   link: SyncLink | undefined,
   columnId: string,
-  values: { table: SyncValue; target: SyncValue },
+  values: FieldValues,
   changes: PairChanges | undefined
 ): FieldChange {
+  // A conflict waiting for a person stays one until both sides agree.
+  if (link && context.previousPending.has(pendingKey(link.rowId, columnId))) {
+    return "both";
+  }
   if (link?.baseValues && Object.hasOwn(link.baseValues, columnId)) {
     const base = link.baseValues[columnId] ?? null;
     return changedSide(
@@ -806,40 +955,348 @@ function pairChanges(
   };
 }
 
-function fieldWinner(
+interface PairRecords {
+  changes?: PairChanges;
+  table: SyncRecord;
+  target: SyncRecord;
+}
+
+/** What a column becomes: a side's value, a new value both get, or no write. */
+type FieldOutcome =
+  | { kind: "side"; side: SyncSide }
+  | { kind: "value"; raw: unknown; value: SyncValue }
+  | { kind: "keep"; value: SyncValue };
+
+interface Decision {
+  error?: SyncConflict["error"];
+  resolution: ConflictResolution;
+  source: ConflictSource;
+  value?: { raw: unknown; value: SyncValue };
+}
+
+const sideDecision = (side: SyncSide, source: ConflictSource): Decision => ({
+  resolution: side,
+  source,
+});
+
+const isListField = (field: SyncField) => OPTIONS_TYPES.has(field.type ?? "");
+
+const listOf = (value: SyncValue | undefined): string[] =>
+  Array.isArray(value) ? value : [];
+
+/**
+ * Three-way union of two lists (multi-select names): items both sides kept
+ * or either side added; an item of the base removed on either side stays
+ * removed. Without a base, the plain union. Table items first, then the
+ * target's other ones, without repeats.
+ */
+export function mergeSyncLists(
+  tableValue: SyncValue,
+  targetValue: SyncValue,
+  baseValue?: SyncValue
+): string[] | null {
+  const table = listOf(tableValue);
+  const target = listOf(targetValue);
+  const removed = new Set(
+    baseValue === undefined
+      ? []
+      : listOf(baseValue).filter(
+          (item) => !(table.includes(item) && target.includes(item))
+        )
+  );
+  const merged = [...new Set([...table, ...target])].filter(
+    (item) => !removed.has(item)
+  );
+  return merged.length > 0 ? merged : null;
+}
+
+const isConflictRule = (rule: unknown): rule is ConflictRule =>
+  CONFLICT_RULES.includes(rule as ConflictRule);
+
+function valueDecision(
+  raw: unknown,
+  field: SyncField,
+  source: ConflictSource,
+  resolution: "merged" | "custom"
+): Decision {
+  return {
+    resolution,
+    source,
+    value: { raw, value: normalizeSyncValue(raw, field.type) },
+  };
+}
+
+const isValueDecision = (decision: unknown): decision is { value: unknown } =>
+  typeof decision === "object" &&
+  decision !== null &&
+  Object.hasOwn(decision, "value") &&
+  typeof (decision as { then?: unknown }).then !== "function";
+
+function fromResolver(
+  decision: unknown,
+  field: SyncField
+): Decision | undefined {
+  if (decision === undefined) {
+    return;
+  }
+  if (decision === "table" || decision === "target") {
+    return sideDecision(decision, "resolver");
+  }
+  if (decision === "skip" || decision === "manual") {
+    return {
+      resolution: decision === "skip" ? "skipped" : "manual",
+      source: "resolver",
+    };
+  }
+  if (isValueDecision(decision)) {
+    return valueDecision(decision.value, field, "resolver", "custom");
+  }
+  // A promise or anything else: the resolver must answer synchronously.
+  return {
+    resolution: "manual",
+    source: "resolver",
+    error: "invalid_decision",
+  };
+}
+
+function runResolver(
+  resolver: ConflictResolver,
+  conflict: ConflictContext,
+  field: SyncField
+): Decision | undefined {
+  try {
+    return fromResolver(resolver(conflict), field);
+  } catch {
+    return {
+      resolution: "manual",
+      source: "resolver",
+      error: "resolver_failed",
+    };
+  }
+}
+
+/** The column's rule, then the resolver, then the global rule. */
+function decideConflict(
+  context: PlanContext,
+  field: SyncField,
+  conflict: ConflictContext
+): Decision {
+  const rule = context.input.columnRules?.[field.columnId];
+  if (rule === "manual") {
+    return { resolution: "manual", source: "column" };
+  }
+  if (rule === "merge" && isListField(field)) {
+    const merged = mergeSyncLists(
+      conflict.tableValue,
+      conflict.targetValue,
+      conflict.baseValue
+    );
+    return valueDecision(merged, field, "column", "merged");
+  }
+  if (isConflictRule(rule)) {
+    return sideDecision(
+      ruleWinner(rule, conflict.tableRecord, conflict.targetRecord),
+      "column"
+    );
+  }
+  const resolver = context.input.resolveConflict;
+  const decided = resolver ? runResolver(resolver, conflict, field) : undefined;
+  return (
+    decided ??
+    sideDecision(
+      ruleWinner(context.rule, conflict.tableRecord, conflict.targetRecord),
+      "rule"
+    )
+  );
+}
+
+function recordPending(context: PlanContext, conflict: ConflictContext) {
+  const key = pendingKey(conflict.rowId, conflict.columnId);
+  const previous = context.previousPending.get(key);
+  const same =
+    previous &&
+    syncValuesEqual(previous.tableValue, conflict.tableValue) &&
+    syncValuesEqual(previous.targetValue, conflict.targetValue);
+  // The same values keep their first detection time.
+  context.detected.set(
+    key,
+    previous && same
+      ? { ...previous, remoteId: conflict.remoteId }
+      : {
+          rowId: conflict.rowId,
+          remoteId: conflict.remoteId,
+          columnId: conflict.columnId,
+          field: conflict.field,
+          tableValue: conflict.tableValue,
+          targetValue: conflict.targetValue,
+          ...(conflict.baseValue === undefined
+            ? {}
+            : { baseValue: conflict.baseValue }),
+          detectedAt: context.plan.syncedAt,
+        }
+  );
+}
+
+function conflictContext(
+  pair: Pair,
+  field: SyncField,
+  values: FieldValues,
+  records: PairRecords
+): ConflictContext {
+  const baseValue = pair.link?.baseValues?.[field.columnId];
+  return {
+    columnId: field.columnId,
+    field: field.field,
+    rowId: records.table.id,
+    remoteId: records.target.id,
+    tableValue: values.table,
+    targetValue: values.target,
+    ...(baseValue === undefined ? {} : { baseValue }),
+    tableRecord: records.table,
+    targetRecord: records.target,
+  };
+}
+
+function toOutcome(
+  decision: Decision,
+  conflict: ConflictContext
+): FieldOutcome {
+  if (decision.value) {
+    return { kind: "value", ...decision.value };
+  }
+  if (decision.resolution === "table" || decision.resolution === "target") {
+    return { kind: "side", side: decision.resolution };
+  }
+  // Nothing is written and the base stays, so the next run sees it again.
+  return { kind: "keep", value: conflict.baseValue ?? null };
+}
+
+function resolveFieldConflict(
   context: PlanContext,
   pair: Pair,
   field: SyncField,
-  values: { table: SyncValue; target: SyncValue },
-  records: { changes?: PairChanges; table: SyncRecord; target: SyncRecord }
-): SyncSide {
+  conflict: ConflictContext
+): FieldOutcome {
+  const decision = decideConflict(context, field, conflict);
+  const winner: SyncSide =
+    decision.resolution === "target" ? "target" : "table";
+  context.plan.conflicts.push({
+    ref: pair.ref,
+    rowId: conflict.rowId,
+    remoteId: conflict.remoteId,
+    columnId: field.columnId,
+    field: field.field,
+    tableValue: conflict.tableValue,
+    targetValue: conflict.targetValue,
+    ...(conflict.baseValue === undefined
+      ? {}
+      : { baseValue: conflict.baseValue }),
+    winner,
+    resolution: decision.resolution,
+    source: decision.source,
+    ...(decision.value ? { value: decision.value.value } : {}),
+    ...(decision.error ? { error: decision.error } : {}),
+  });
+  if (decision.resolution === "manual") {
+    recordPending(context, conflict);
+  }
+  return toOutcome(decision, conflict);
+}
+
+function reportOverride(
+  context: PlanContext,
+  pair: Pair,
+  conflict: ConflictContext,
+  owner: SyncSide,
+  bothChanged: boolean
+) {
+  context.plan.overridden.push({
+    ref: pair.ref,
+    rowId: conflict.rowId,
+    remoteId: conflict.remoteId,
+    columnId: conflict.columnId,
+    field: conflict.field,
+    tableValue: conflict.tableValue,
+    targetValue: conflict.targetValue,
+    ...(conflict.baseValue === undefined
+      ? {}
+      : { baseValue: conflict.baseValue }),
+    owner,
+    bothChanged,
+  });
+}
+
+const ownerOf = (
+  context: PlanContext,
+  columnId: string
+): SyncSide | undefined => {
+  const owner = context.input.ownership?.[columnId];
+  return owner === "table" || owner === "target" ? owner : undefined;
+};
+
+function fieldOutcome(
+  context: PlanContext,
+  pair: Pair,
+  field: SyncField,
+  values: FieldValues,
+  records: PairRecords
+): FieldOutcome {
   const { direction } = context.input;
+  const owner = ownerOf(context, field.columnId);
   if (direction !== "two-way") {
-    return direction === "push" ? "table" : "target";
+    const source: SyncSide = direction === "push" ? "table" : "target";
+    // A one-way sync never writes a column to the side that owns it.
+    return owner && owner !== source
+      ? { kind: "keep", value: values[owner] }
+      : { kind: "side", side: source };
   }
   const change = fieldChange(
+    context,
     pair.link,
     field.columnId,
     values,
     records.changes
   );
-  if (change !== "both") {
-    return change;
+  const conflict = conflictContext(pair, field, values, records);
+  if (owner) {
+    if (change !== owner) {
+      reportOverride(context, pair, conflict, owner, change === "both");
+    }
+    return { kind: "side", side: owner };
   }
-  const winner = resolveConflict(context, records.table, records.target);
-  const baseValue = pair.link?.baseValues?.[field.columnId];
-  context.plan.conflicts.push({
-    ref: pair.ref,
-    rowId: records.table.id,
-    remoteId: records.target.id,
-    columnId: field.columnId,
-    field: field.field,
-    tableValue: values.table,
-    targetValue: values.target,
-    ...(baseValue === undefined ? {} : { baseValue }),
-    winner,
-  });
-  return winner;
+  if (change !== "both") {
+    return { kind: "side", side: change };
+  }
+  return resolveFieldConflict(context, pair, field, conflict);
+}
+
+function applyOutcome(
+  result: MergeResult,
+  id: string,
+  outcome: FieldOutcome,
+  records: PairRecords & { values: FieldValues }
+) {
+  if (outcome.kind === "keep") {
+    result.merged[id] = outcome.value;
+    return;
+  }
+  if (outcome.kind === "value") {
+    result.merged[id] = outcome.value;
+    if (!syncValuesEqual(outcome.value, records.values.table)) {
+      result.toTable[id] = outcome.raw;
+    }
+    if (!syncValuesEqual(outcome.value, records.values.target)) {
+      result.toTarget[id] = outcome.raw;
+    }
+    return;
+  }
+  if (outcome.side === "table") {
+    result.merged[id] = records.values.table;
+    result.toTarget[id] = records.table.values[id];
+    return;
+  }
+  result.merged[id] = records.values.target;
+  result.toTable[id] = records.target.values[id];
 }
 
 function mergeRecords(
@@ -854,6 +1311,7 @@ function mergeRecords(
     target,
     changes: pairChanges(context, pair, table, target),
   };
+  context.evaluated.add(table.id);
   for (const field of context.fields) {
     const id = field.columnId;
     const inTable = Object.hasOwn(table.values, id);
@@ -868,22 +1326,28 @@ function mergeRecords(
       }
     } else if (syncValuesEqual(values.table, values.target)) {
       result.merged[id] = values.table;
-    } else if (fieldWinner(context, pair, field, values, records) === "table") {
-      result.merged[id] = values.table;
-      result.toTarget[id] = table.values[id];
     } else {
-      result.merged[id] = values.target;
-      result.toTable[id] = target.values[id];
+      const outcome = fieldOutcome(context, pair, field, values, records);
+      applyOutcome(result, id, outcome, { ...records, values });
     }
   }
   return result;
 }
 
-/** The target side of a pair missing from a partial read: its last state. */
-function assumedTarget(pair: Pair): SyncRecord {
+/**
+ * The target side of a pair missing from a partial read: its last state,
+ * with the target values of its pending conflicts.
+ */
+function assumedTarget(context: PlanContext, pair: Pair): SyncRecord {
   const link = pair.link;
   if (link?.baseValues) {
-    return { id: link.remoteId, key: link.rowId, values: link.baseValues };
+    const values: Record<string, unknown> = { ...link.baseValues };
+    for (const pending of context.previousPending.values()) {
+      if (pending.rowId === link.rowId) {
+        values[pending.columnId] = pending.targetValue;
+      }
+    }
+    return { id: link.remoteId, key: link.rowId, values };
   }
   // Without base values, an unchanged table row means an unchanged pair, and
   // a changed one overwrites every column of the (unchanged) target.
@@ -964,7 +1428,7 @@ function planMatchedPair(
   table: SyncRecord,
   targetRecord: SyncRecord | undefined
 ) {
-  const target = targetRecord ?? assumedTarget(pair);
+  const target = targetRecord ?? assumedTarget(context, pair);
   const useAssumed = pair.assumed && !pair.link?.baseValues;
   const result = useAssumed
     ? assumedMerge(context, pair, table)
@@ -1077,11 +1541,12 @@ function planPair(context: PlanContext, pair: Pair) {
  * values both sides held at the last run (`baseValues`), or per record with
  * the stored hashes when there are none: a column changed on one side goes
  * to the other; a column changed on both is a conflict resolved by
- * `conflictRule`. `push` makes the target mirror the table and `pull` the
- * reverse, for linked records and new ones; neither reports conflicts.
- * Unlinked records are matched by key before anything is created, records
- * sharing a key are reported and left alone, and a record deleted on one side
- * is handled by `deletePolicy`.
+ * `ownership`, `columnRules`, `resolveConflict` and then `conflictRule`.
+ * `push` makes the target mirror the table and `pull` the reverse, for
+ * linked records and new ones; neither reports conflicts. Unlinked records
+ * are matched by key before anything is created, records sharing a key are
+ * reported and left alone, and a record deleted on one side is handled by
+ * `deletePolicy`.
  */
 export function planSync(input: PlanSyncInput): SyncPlan {
   const plan = emptyPlan(input);
@@ -1090,6 +1555,14 @@ export function planSync(input: PlanSyncInput): SyncPlan {
     plan,
     fields: plan.fields,
     rule: plan.conflictRule,
+    detected: new Map(),
+    evaluated: new Set(),
+    previousPending: new Map(
+      (input.state?.pendingConflicts ?? []).map((pending) => [
+        pendingKey(pending.rowId, pending.columnId),
+        pending,
+      ])
+    ),
   };
   const table = indexSide(input.tableRecords, "table", plan.duplicates);
   const target = indexSide(input.targetRecords, "target", plan.duplicates);
@@ -1121,12 +1594,45 @@ export function planSync(input: PlanSyncInput): SyncPlan {
   for (const pair of pairs) {
     planPair(context, pair);
   }
+  plan.pendingConflicts = nextPendingConflicts(context);
   return plan;
+}
+
+/** Rows that keep a link once the plan is applied. */
+function linkedRows(plan: SyncPlan): Set<string> {
+  const rows = new Set<string>();
+  for (const entry of plan.entries) {
+    const rowId = entry.action === "link" ? entry.rowId : entry.previous?.rowId;
+    if (entry.action !== "drop" && rowId) {
+      rows.add(rowId);
+    }
+  }
+  return rows;
+}
+
+/**
+ * Manual conflicts found this run, plus earlier ones of rows this run did
+ * not compare (blocked, or missing from a partial read). Earlier conflicts of
+ * compared rows are gone: both sides agree, or a rule now settles them.
+ */
+function nextPendingConflicts(context: PlanContext): PendingConflict[] {
+  const rows = linkedRows(context.plan);
+  const mapped = new Set(context.fields.map((field) => field.columnId));
+  const carried = [...context.previousPending.entries()]
+    .filter(
+      ([key, pending]) =>
+        !(context.detected.has(key) || context.evaluated.has(pending.rowId)) &&
+        rows.has(pending.rowId) &&
+        mapped.has(pending.columnId)
+    )
+    .map(([, pending]) => pending);
+  return [...carried, ...context.detected.values()];
 }
 
 export interface SyncPlanSummary {
   /** Writes the plan makes, all operations together. */
   changes: number;
+  /** Conflicts found this run, `manual` and `skipped` ones included. */
   conflicts: number;
   createInTable: number;
   createInTarget: number;
@@ -1134,6 +1640,10 @@ export interface SyncPlanSummary {
   deleteInTarget: number;
   duplicates: number;
   flagged: number;
+  /** Columns written back by their owning side. */
+  overridden: number;
+  /** Conflicts waiting for a person once the plan is applied. */
+  pendingConflicts: number;
   setKeyInTarget: number;
   skipped: number;
   unchanged: number;
@@ -1158,6 +1668,8 @@ export function summarizeSyncPlan(plan: SyncPlan): SyncPlanSummary {
     conflicts: plan.conflicts.length,
     duplicates: plan.duplicates.length,
     flagged: plan.flagged.length,
+    overridden: plan.overridden.length,
+    pendingConflicts: plan.pendingConflicts.length,
     skipped: plan.skipped,
     unchanged: plan.unchanged,
   };
@@ -1217,6 +1729,7 @@ function entryLink(
  * The state after a run: links of pairs whose operations all succeeded are
  * updated, failed pairs keep their previous link (or none) so the next run
  * plans them again. Without `applied`, every operation is assumed applied.
+ * Pending conflicts are the plan's (`pendingConflicts`), omitted when none.
  */
 export function nextSyncState(
   plan: SyncPlan,
@@ -1229,7 +1742,12 @@ export function nextSyncState(
       links.push(link);
     }
   }
-  return { links, lastSyncAt: plan.syncedAt };
+  const pending = plan.pendingConflicts ?? [];
+  return {
+    links,
+    lastSyncAt: plan.syncedAt,
+    ...(pending.length > 0 ? { pendingConflicts: pending } : {}),
+  };
 }
 
 // Apply ------------------------------------------------------------------------
@@ -1589,4 +2107,413 @@ export async function applySyncPlan(
   );
   context.result.state = nextSyncState(plan, outcome);
   return context.result;
+}
+
+// Pending conflicts --------------------------------------------------------------
+
+/** A person's decision on a pending conflict: a side's value or another one. */
+export interface PendingConflictResolution {
+  choice: SyncSide | { value: unknown };
+  columnId: string;
+  rowId: string;
+}
+
+export interface ConflictResolutionPlan {
+  /** Writes that settle the resolved conflicts, one per row and side. */
+  operations: {
+    updateInTable: SyncUpdate[];
+    updateInTarget: SyncUpdate[];
+  };
+  /** The state the resolutions started from. */
+  previous: SyncState;
+  /** The pending conflicts the resolutions settle. */
+  resolved: PendingConflict[];
+  /** The state once every write succeeded. */
+  state: SyncState;
+  /** Resolutions that match no pending conflict (already settled, or stale). */
+  unmatched: PendingConflictResolution[];
+}
+
+const RESOLVE_REF_PREFIX = "resolve:";
+
+interface ResolvedValue {
+  pending: PendingConflict;
+  /** The value to write, as given. */
+  raw: unknown;
+  /** Its canonical form, stored as the new base. */
+  value: SyncValue;
+  write: { table: boolean; target: boolean };
+}
+
+function resolvedValue(
+  pending: PendingConflict,
+  choice: PendingConflictResolution["choice"],
+  types: ReadonlyMap<string, string | undefined>
+): ResolvedValue {
+  if (choice === "table" || choice === "target") {
+    const value = choice === "table" ? pending.tableValue : pending.targetValue;
+    return {
+      pending,
+      raw: value,
+      value,
+      write: { table: choice === "target", target: choice === "table" },
+    };
+  }
+  const value = normalizeSyncValue(choice.value, types.get(pending.columnId));
+  return {
+    pending,
+    raw: choice.value,
+    value,
+    write: {
+      table: !syncValuesEqual(value, pending.tableValue),
+      target: !syncValuesEqual(value, pending.targetValue),
+    },
+  };
+}
+
+function groupWrites(
+  resolved: readonly ResolvedValue[],
+  side: SyncSide
+): SyncUpdate[] {
+  const rows = new Map<string, SyncUpdate>();
+  for (const item of resolved) {
+    if (item.write[side]) {
+      const { rowId, remoteId, columnId } = item.pending;
+      const update = rows.get(rowId) ?? {
+        ref: `${RESOLVE_REF_PREFIX}${rowId}`,
+        rowId,
+        remoteId,
+        key: rowId,
+        columns: [],
+        values: {},
+      };
+      update.columns.push(columnId);
+      update.values[columnId] = item.raw;
+      rows.set(rowId, update);
+    }
+  }
+  return [...rows.values()];
+}
+
+function resolvedLinks(
+  links: readonly SyncLink[],
+  resolved: readonly ResolvedValue[],
+  fields: readonly SyncField[] | undefined
+): SyncLink[] {
+  return links.map((link) => {
+    const settled = resolved.filter(
+      (item) => item.pending.rowId === link.rowId
+    );
+    if (settled.length === 0 || !link.baseValues) {
+      return link;
+    }
+    const baseValues = { ...link.baseValues };
+    for (const item of settled) {
+      baseValues[item.pending.columnId] = item.value;
+    }
+    const hash = fields ? hashSyncValues(baseValues, fields) : undefined;
+    return {
+      ...link,
+      baseValues,
+      ...(hash ? { tableHash: hash, targetHash: hash } : {}),
+    };
+  });
+}
+
+const withPending = (
+  state: Omit<SyncState, "pendingConflicts">,
+  pending: readonly PendingConflict[]
+): SyncState => ({
+  ...state,
+  ...(pending.length > 0 ? { pendingConflicts: [...pending] } : {}),
+});
+
+/**
+ * Settles pending conflicts with a person's decisions: "table" writes the
+ * table's value to the target, "target" the reverse, `{ value }` writes that
+ * value to both sides where it differs. Returns the writes (apply them with
+ * `applyConflictResolutions`, or your own adapters) and the state once they
+ * succeed: the conflicts are removed and the value becomes the column's base,
+ * so the next sync sees both sides agree. Pass `mapping` to normalize custom
+ * values by column type and refresh the link hashes.
+ */
+export function resolvePendingConflicts(
+  state: SyncState,
+  resolutions: readonly PendingConflictResolution[],
+  options: { mapping?: SyncMapping } = {}
+): ConflictResolutionPlan {
+  const fields = options.mapping?.fields;
+  const types = new Map(
+    (fields ?? []).map((field) => [field.columnId, field.type])
+  );
+  const pending = new Map(
+    (state.pendingConflicts ?? []).map((item) => [
+      pendingKey(item.rowId, item.columnId),
+      item,
+    ])
+  );
+  const resolved: ResolvedValue[] = [];
+  const unmatched: PendingConflictResolution[] = [];
+  for (const resolution of resolutions) {
+    const key = pendingKey(resolution.rowId, resolution.columnId);
+    const item = pending.get(key);
+    if (item) {
+      pending.delete(key);
+      resolved.push(resolvedValue(item, resolution.choice, types));
+    } else {
+      unmatched.push(resolution);
+    }
+  }
+  const { pendingConflicts: _previous, ...rest } = state;
+  return {
+    previous: state,
+    resolved: resolved.map((item) => item.pending),
+    unmatched,
+    operations: {
+      updateInTable: groupWrites(resolved, "table"),
+      updateInTarget: groupWrites(resolved, "target"),
+    },
+    state: withPending(
+      { ...rest, links: resolvedLinks(state.links, resolved, fields) },
+      [...pending.values()]
+    ),
+  };
+}
+
+/** The state when some rows' writes failed: those rows stay as they were. */
+function stateAfterFailures(
+  plan: ConflictResolutionPlan,
+  failedRows: ReadonlySet<string>
+): SyncState {
+  if (failedRows.size === 0) {
+    return plan.state;
+  }
+  const previousLinks = new Map(
+    plan.previous.links.map((link) => [link.rowId, link])
+  );
+  const { pendingConflicts: remaining = [], ...rest } = plan.state;
+  return withPending(
+    {
+      ...rest,
+      links: plan.state.links.map((link) =>
+        failedRows.has(link.rowId)
+          ? (previousLinks.get(link.rowId) ?? link)
+          : link
+      ),
+    },
+    [
+      ...remaining,
+      ...plan.resolved.filter((item) => failedRows.has(item.rowId)),
+    ]
+  );
+}
+
+/**
+ * Applies `resolvePendingConflicts` writes through the sync adapters (target
+ * updates, then table updates). A row whose write fails keeps its conflicts
+ * and link, so it can be resolved again; `result.state` is the state to save.
+ */
+export async function applyConflictResolutions(
+  plan: ConflictResolutionPlan,
+  adapters: SyncAdapters,
+  options: ApplySyncOptions = {}
+): Promise<SyncResult> {
+  const context: ApplyContext = {
+    batchSize: Math.max(1, options.batchSize ?? DEFAULT_SYNC_BATCH_SIZE),
+    signal: options.signal,
+    result: emptyResult(),
+    outcome: { failed: new Set(), remoteIds: new Map(), rowIds: new Map() },
+  };
+  await runOperation(
+    context,
+    "updateInTarget",
+    plan.operations.updateInTarget.map((item) =>
+      updateOperation(item, "target")
+    ),
+    bound(adapters.target, "update")
+  );
+  await runOperation(
+    context,
+    "updateInTable",
+    plan.operations.updateInTable.map((item) => updateOperation(item, "table")),
+    bound(adapters.table, "update")
+  );
+  const failedRows = new Set(
+    [...context.outcome.failed].map((ref) =>
+      ref.slice(RESOLVE_REF_PREFIX.length)
+    )
+  );
+  context.result.state = stateAfterFailures(plan, failedRows);
+  return context.result;
+}
+
+// Validation ---------------------------------------------------------------------
+
+export type ConflictConfigIssueCode =
+  | "unknown_column"
+  | "invalid_owner"
+  | "invalid_rule"
+  | "merge_not_list"
+  | "owner_not_written"
+  | "rule_on_owned_column"
+  | "rules_unused"
+  | "invalid_resolver";
+
+export interface ConflictConfigIssue {
+  code: ConflictConfigIssueCode;
+  columnId?: string;
+  /** For developers, in English. */
+  message: string;
+  /** Errors contradict the mapping or direction; warnings are ignored rules. */
+  severity: "error" | "warning";
+}
+
+/** The conflict settings `validateConflictConfig` checks. */
+export interface ConflictConfig {
+  columnRules?: Readonly<Record<string, unknown>>;
+  /** The direction the rules run with, when known. */
+  direction?: SyncDirection;
+  ownership?: Readonly<Record<string, unknown>>;
+  resolveConflict?: unknown;
+}
+
+const COLUMN_RULES = new Set<unknown>([...CONFLICT_RULES, "merge", "manual"]);
+
+const configIssue = (
+  code: ConflictConfigIssueCode,
+  severity: ConflictConfigIssue["severity"],
+  message: string,
+  columnId?: string
+): ConflictConfigIssue => ({
+  code,
+  severity,
+  message,
+  ...(columnId ? { columnId } : {}),
+});
+
+const unknownColumn = (columnId: string) =>
+  configIssue(
+    "unknown_column",
+    "error",
+    `"${columnId}" is not mapped.`,
+    columnId
+  );
+
+function ownerIssue(
+  columnId: string,
+  owner: unknown,
+  direction: SyncDirection | undefined
+): ConflictConfigIssue | undefined {
+  if (owner !== "table" && owner !== "target") {
+    return configIssue(
+      "invalid_owner",
+      "error",
+      `The owner of "${columnId}" must be "table" or "target".`,
+      columnId
+    );
+  }
+  const neverWritten =
+    (direction === "push" && owner === "target") ||
+    (direction === "pull" && owner === "table");
+  if (neverWritten) {
+    return configIssue(
+      "owner_not_written",
+      "error",
+      `"${columnId}" is owned by the ${owner}, the side a ${direction} writes: the column is never synced.`,
+      columnId
+    );
+  }
+}
+
+function columnRuleIssue(
+  columnId: string,
+  rule: unknown,
+  config: ConflictConfig,
+  field: SyncField
+): ConflictConfigIssue | undefined {
+  if (!COLUMN_RULES.has(rule)) {
+    return configIssue(
+      "invalid_rule",
+      "error",
+      `The rule of "${columnId}" must be a conflict rule, "merge" or "manual".`,
+      columnId
+    );
+  }
+  if (config.ownership && Object.hasOwn(config.ownership, columnId)) {
+    return configIssue(
+      "rule_on_owned_column",
+      "warning",
+      `"${columnId}" has an owner, which always wins: its rule is ignored.`,
+      columnId
+    );
+  }
+  if (rule === "merge" && !isListField(field)) {
+    return configIssue(
+      "merge_not_list",
+      "warning",
+      `"merge" only merges lists (multi-selects): "${columnId}" falls back to the next rule.`,
+      columnId
+    );
+  }
+}
+
+function resolverIssues(config: ConflictConfig): ConflictConfigIssue[] {
+  const resolver = config.resolveConflict;
+  const issues: ConflictConfigIssue[] = [];
+  if (resolver !== undefined && typeof resolver !== "function") {
+    issues.push(
+      configIssue(
+        "invalid_resolver",
+        "error",
+        "resolveConflict must be a function."
+      )
+    );
+  }
+  const hasRules =
+    Object.keys(config.columnRules ?? {}).length > 0 || resolver !== undefined;
+  if (config.direction && config.direction !== "two-way" && hasRules) {
+    issues.push(
+      configIssue(
+        "rules_unused",
+        "warning",
+        `A ${config.direction} has no conflicts: column rules and resolveConflict never run.`
+      )
+    );
+  }
+  return issues;
+}
+
+/**
+ * Checks conflict settings against a mapping (and a direction, when given):
+ * unknown columns, invalid owners and rules, `merge` on a column that is not
+ * a list, an owner a one-way direction never writes, rules an owner
+ * overrides, and rules that never run outside two-way. Run it when the
+ * host's configuration is loaded; `planSync` ignores what it flags.
+ */
+export function validateConflictConfig(
+  config: ConflictConfig,
+  mapping: SyncMapping
+): ConflictConfigIssue[] {
+  const fields = new Map(
+    mapping.fields.map((field) => [field.columnId, field])
+  );
+  const issues: ConflictConfigIssue[] = [];
+  for (const [columnId, owner] of Object.entries(config.ownership ?? {})) {
+    const found = fields.has(columnId)
+      ? ownerIssue(columnId, owner, config.direction)
+      : unknownColumn(columnId);
+    if (found) {
+      issues.push(found);
+    }
+  }
+  for (const [columnId, rule] of Object.entries(config.columnRules ?? {})) {
+    const field = fields.get(columnId);
+    const found = field
+      ? columnRuleIssue(columnId, rule, config, field)
+      : unknownColumn(columnId);
+    if (found) {
+      issues.push(found);
+    }
+  }
+  return [...issues, ...resolverIssues(config)];
 }

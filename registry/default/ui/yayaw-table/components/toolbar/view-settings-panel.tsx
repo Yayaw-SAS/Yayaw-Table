@@ -34,6 +34,8 @@ export interface ViewSettingField {
   inline?: boolean;
   /** Content right after the field, such as a hint or an input. */
   after?: ReactNode;
+  /** Shown but not changeable. */
+  disabled?: boolean;
 }
 export interface ViewSettingProperties {
   label: string;
@@ -61,6 +63,7 @@ function SettingFieldRow({
     <Button
       aria-label={field.label}
       className="w-full min-w-0 justify-between font-normal"
+      disabled={field.disabled}
       id={controlId}
       onClick={(event) => onOpen(event.currentTarget)}
       variant="outline"
@@ -73,6 +76,7 @@ function SettingFieldRow({
     </Button>
   ) : (
     <Select
+      disabled={field.disabled}
       items={field.options}
       onValueChange={(value) => {
         if (value !== null) {
