@@ -637,3 +637,21 @@ protocol.
 (below 768px; the lower limit wins). Both editions normalize and resolve them
 through the shared `utils/list-view.ts` and offer them in the List settings
 panel. Covered by `tests/list-view-suite.ts` in both editions and Playwright.
+
+## Number and date formats
+
+`utils/value-format.ts` (synced to Vue) formats number and date cells in both
+editions. `numberFormat` accepts the historical presets (`"space"`, `"dot"`,
+`"comma"`, `"locale"`), React's `decimals` and Vue's `decimalPlaces`, and adds
+`style` (`decimal`, `currency`, `percent`, `compact`, `unit`), currency and unit
+display, min/max fraction digits, separators applied to any style,
+`prefix`/`suffix`, `signDisplay`, `negative: "parentheses"`, `percentBase`
+(`fraction` or `whole`) and `display: "bar"` with `max` for a progress bar.
+Dates share the 17 presets, `dateFormat` patterns, `timeZone` and `hour12`;
+`"relative"` uses `Intl.RelativeTimeFormat` in the table locale. Date-only
+strings are local calendar days in both editions.
+
+Known difference kept for compatibility: a number column without
+`numberFormat` shows the raw value in React (`1234.5`) and a locale-grouped
+value in Vue (`1,234.5`). Set `numberFormat` for identical output.
+`tests/value-format-suite.ts` runs in both editions.

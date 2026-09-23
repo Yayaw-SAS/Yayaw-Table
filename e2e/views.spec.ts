@@ -289,3 +289,11 @@ test("list options from a shared link: labels, limits, alignment, wrapping and a
   );
   await expect(page.getByRole("listitem").first().locator("dd")).toHaveCount(0);
 });
+
+test("number columns render currency and progress formats alike", async ({
+  page,
+}) => {
+  const alpha = page.getByRole("row").filter({ hasText: "Alpha launch" });
+  await expect(alpha).toContainText("€49.00");
+  await expect(alpha).toContainText("49%");
+});

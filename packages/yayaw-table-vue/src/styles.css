@@ -3005,3 +3005,23 @@
   flex: 1;
   justify-content: flex-start;
 }
+.yayaw-number-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.yayaw-number-bar-track {
+  flex: 1;
+  min-width: 32px;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--yayaw-muted);
+}
+.yayaw-number-bar-track > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--yayaw-primary);
+}

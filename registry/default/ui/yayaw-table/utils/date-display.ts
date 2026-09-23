@@ -3,6 +3,7 @@ import {
   type DateDisplayPreset,
   DEFAULT_DATE_DISPLAY_PRESET,
 } from "../types/date-types";
+import { formatDateValue, parseDateValue } from "./value-format";
 
 interface DateDisplayConfig {
   dateDisplayPreset?: DateDisplayPreset;
@@ -10,6 +11,9 @@ interface DateDisplayConfig {
   dateFormat?: string;
   locale?: string;
   showTime?: boolean;
+  /** IANA zone for presets, e.g. "Europe/Paris". */
+  timeZone?: string;
+  hour12?: boolean;
 }
 
 const pad2 = (value: number): string => value.toString().padStart(2, "0");
@@ -46,50 +50,15 @@ const resolvePreset = ({
 const formatWithPreset = (
   date: Date,
   preset: DateDisplayPreset,
-  locale?: string
-): string => {
-  const safeLocale = resolveLocale(locale);
-
-  switch (preset) {
-    case "localized-short":
-      return new Intl.DateTimeFormat(safeLocale, {
-        dateStyle: "short",
-      }).format(date);
-    case "localized-medium":
-      return new Intl.DateTimeFormat(safeLocale, {
-        dateStyle: "medium",
-      }).format(date);
-    case "localized-long":
-      return new Intl.DateTimeFormat(safeLocale, {
-        dateStyle: "long",
-      }).format(date);
-    case "month-name-long":
-      return new Intl.DateTimeFormat(safeLocale, {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-      }).format(date);
-    case "month-year":
-      return new Intl.DateTimeFormat(safeLocale, {
-        month: "long",
-        year: "numeric",
-      }).format(date);
-    case "dmy-numeric":
-      return `${pad2(date.getDate())}/${pad2(date.getMonth() + 1)}/${date.getFullYear()}`;
-    case "dmy-short":
-      return `${pad2(date.getDate())}/${pad2(date.getMonth() + 1)}/${String(date.getFullYear()).slice(-2)}`;
-    case "mdy-numeric":
-      return `${pad2(date.getMonth() + 1)}/${pad2(date.getDate())}/${date.getFullYear()}`;
-    case "mdy-short":
-      return `${pad2(date.getMonth() + 1)}/${pad2(date.getDate())}/${String(date.getFullYear()).slice(-2)}`;
-    case "iso-date":
-      return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
-    default:
-      return new Intl.DateTimeFormat(safeLocale, {
-        dateStyle: "short",
-      }).format(date);
-  }
-};
+  locale?: string,
+  zone: Pick<DateDisplayConfig, "hour12" | "timeZone"> = {}
+): string =>
+  formatDateValue(date, {
+    preset,
+    locale: resolveLocale(locale),
+    timeZone: zone.timeZone,
+    hour12: zone.hour12,
+  });
 
 const appendTimeIfNeeded = (
   label: string,
@@ -132,8 +101,8 @@ export const toValidDate = (value: unknown): Date | undefined => {
   }
 
   if (typeof value === "string" || typeof value === "number") {
-    const parsedDate = new Date(value);
-    return Number.isNaN(parsedDate.getTime()) ? undefined : parsedDate;
+    // A date-only string is a local calendar day, as in date filters.
+    return parseDateValue(value);
   }
 
   return;
@@ -174,7 +143,7 @@ export const formatDateForDisplay = (
   const preset = resolvePreset(config);
   if (preset) {
     return appendTimeIfNeeded(
-      formatWithPreset(parsedDate, preset, config.locale),
+      formatWithPreset(parsedDate, preset, config.locale, config),
       parsedDate,
       Boolean(config.showTime),
       config.locale
@@ -203,7 +172,12 @@ export const formatDateForDisplay = (
   }
 
   return appendTimeIfNeeded(
-    formatWithPreset(parsedDate, DEFAULT_DATE_DISPLAY_PRESET, config.locale),
+    formatWithPreset(
+      parsedDate,
+      DEFAULT_DATE_DISPLAY_PRESET,
+      config.locale,
+      config
+    ),
     parsedDate,
     Boolean(config.showTime),
     config.locale

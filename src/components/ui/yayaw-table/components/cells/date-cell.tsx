@@ -36,6 +36,12 @@ export interface DateCellProps {
    */
   showTime?: boolean;
 
+  /** IANA zone for presets, e.g. "Europe/Paris". */
+  timeZone?: string;
+
+  /** Force a 12- or 24-hour clock where a time is shown. */
+  hour12?: boolean;
+
   /**
    * The date value to display
    */
@@ -51,6 +57,8 @@ export function DateCell({
   dateDisplayPreset,
   fallbackDateDisplayPreset,
   showTime = false,
+  timeZone,
+  hour12,
   value,
 }: DateCellProps) {
   const locale = useLocale();
@@ -71,6 +79,8 @@ export function DateCell({
     dateFormat,
     locale,
     showTime,
+    timeZone,
+    hour12,
   });
 
   if (!displayValue) {

@@ -56,6 +56,8 @@ export function DataTypeCell({
           dateDisplayPreset={column.dateDisplayPreset}
           dateFormat={column.dateFormat}
           fallbackDateDisplayPreset={fallbackDateDisplayPreset}
+          hour12={column.hour12}
+          timeZone={column.timeZone}
           value={value as string | number | Date}
         />
       );
