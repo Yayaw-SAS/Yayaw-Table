@@ -806,3 +806,16 @@ once), describes the schedule and holds the English and French labels; both
 editions read `schedule.<key>` host translations first. `table.schedule: false`
 hides scheduling. `tests/schedule-model-suite.ts` runs in both editions and
 `e2e/view-tabs.spec.ts` saves and reopens a weekly schedule on both demos.
+
+## Server connectors
+
+The Notion and Google Sheets connectors are framework-agnostic server modules
+in `src/components/ui/yayaw-table/connectors/` (`connector-model.ts`,
+`notion.ts`, `google-sheets.ts`). `bun run contracts:sync` copies them to
+`packages/yayaw-table-vue/src/connectors/`, so both editions ship identical
+files as optional `registry:lib` items (`yayaw-table-connector-*` and
+`yayaw-table-vue-connector-*`), excluded from the table items. They have no
+UI and no framework code; the host provides credential storage,
+authorization, server entry points and workers ([connectors](connectors.md)).
+`tests/connectors-notion-suite.ts` and `tests/connectors-google-sheets-suite.ts`
+run against both copies with a fake `fetch` and clock.

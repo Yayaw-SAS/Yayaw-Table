@@ -34,9 +34,14 @@ const allSourceFiles = (await walk(sourceRoot)).filter((path) => {
   }
   return true;
 });
-const sourceFiles = allSourceFiles.filter((path) => !isCalendarFile(path));
+// Connector server modules are framework-agnostic optional items too.
+const connectorsRoot = join(sourceRoot, "connectors");
+const isConnectorFile = (path) => path.startsWith(`${connectorsRoot}/`);
+const sourceFiles = allSourceFiles.filter(
+  (path) => !(isCalendarFile(path) || isConnectorFile(path))
+);
 
-const toRegistryFiles = async (paths) =>
+const toRegistryFiles = async (paths, type = "registry:component") =>
   await Promise.all(
     paths.sort().map(async (path) => {
       const sourcePath = relative(packageRoot, path);
@@ -49,8 +54,7 @@ const toRegistryFiles = async (paths) =>
       return {
         path: sourcePath,
         content: await readFile(path, "utf8"),
-        type:
-          extname(path) === ".css" ? "registry:style" : "registry:component",
+        type: extname(path) === ".css" ? "registry:style" : type,
         target,
       };
     })
@@ -90,13 +94,44 @@ const calendarItem = {
   files: await toRegistryFiles(allSourceFiles.filter(isCalendarFile)),
 };
 
+const connectorFiles = (name) =>
+  toRegistryFiles(
+    ["connector-model.ts", name].map((file) => join(connectorsRoot, file)),
+    "registry:lib"
+  );
+
+const connectorItems = [
+  {
+    $schema: "https://shadcn-vue.com/schema/registry-item.json",
+    name: "yayaw-table-vue-connector-notion",
+    type: "registry:lib",
+    title: "YaYaw Table Vue Notion Connector",
+    description:
+      'Optional, framework-agnostic server module that pushes table rows into a Notion database (upsert keyed by a "Yayaw ID" property). Runs in Node 20+, Bun, Deno and edge runtimes; the host stores the token, authorizes the push and calls it from its server.',
+    dependencies: [],
+    registryDependencies: [],
+    files: await connectorFiles("notion.ts"),
+  },
+  {
+    $schema: "https://shadcn-vue.com/schema/registry-item.json",
+    name: "yayaw-table-vue-connector-google-sheets",
+    type: "registry:lib",
+    title: "YaYaw Table Vue Google Sheets Connector",
+    description:
+      'Optional, framework-agnostic server module that pushes table rows into a Google Sheets tab (upsert or replace, keyed by a "Yayaw ID" column) with a service account signed through Web Crypto. The host stores the key, authorizes the push and calls it from its server.',
+    dependencies: [],
+    registryDependencies: [],
+    files: await connectorFiles("google-sheets.ts"),
+  },
+];
+
 await mkdir(outputRoot, { recursive: true });
-for (const registryItem of [item, calendarItem]) {
+for (const registryItem of [item, calendarItem, ...connectorItems]) {
   await writeFile(
     join(outputRoot, `${registryItem.name}.json`),
     `${JSON.stringify(registryItem, null, 2)}\n`
   );
 }
 console.log(
-  `Built ${files.length} Vue registry files and ${calendarItem.files.length} calendar files.`
+  `Built ${files.length} Vue registry files, ${calendarItem.files.length} calendar files and ${connectorItems.length} connector items.`
 );
