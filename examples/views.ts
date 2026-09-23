@@ -171,8 +171,8 @@ export function createViewsActions() {
     destinations: [
       {
         id: "n8n",
-        label: "Send to n8n",
-        kind: "export" as const,
+        label: "n8n",
+        kind: "sync" as const,
         run: async (context: {
           query: { search: string };
           loadRows: () => Promise<unknown[]>;
@@ -185,7 +185,7 @@ export function createViewsActions() {
       },
       {
         id: "slack",
-        label: "Share in Slack",
+        label: "Slack",
         kind: "share" as const,
         run: (context: { url: string }) => ({
           message: `Posted ${new URL(context.url).search ? "this view" : "the table"} to #projects`,

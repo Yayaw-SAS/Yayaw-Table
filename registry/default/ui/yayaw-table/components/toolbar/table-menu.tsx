@@ -79,6 +79,8 @@ export interface TableMenuProps {
    * e.g. layout and density in touch drawers.
    */
   screens?: SettingsScreen[];
+  /** Screens opened from the "Data" section, such as the export options. */
+  dataScreens?: { name: string; title: string; content: ReactNode }[];
   modeSettings?: ReactNode;
   cardSettings?: ReactNode;
   filterExtras?: ReactNode;
@@ -495,6 +497,7 @@ export function TableMenu({
   viewMenu,
   dataActions,
   screens,
+  dataScreens,
   modeSettings,
   cardSettings,
   filterExtras,
@@ -803,6 +806,15 @@ export function TableMenu({
 
       {screens?.map((screen) => (
         <StackMenuView key={screen.id} name={screen.id} title={screen.label}>
+          {screen.content}
+        </StackMenuView>
+      ))}
+      {dataScreens?.map((screen) => (
+        <StackMenuView
+          key={screen.name}
+          name={screen.name}
+          title={screen.title}
+        >
           {screen.content}
         </StackMenuView>
       ))}

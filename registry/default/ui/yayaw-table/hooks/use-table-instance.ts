@@ -38,6 +38,11 @@ export interface UseTableInstanceOptions<
   columns: ColumnDef<TData>[];
   data: TData[];
   /**
+   * Publish the selected rows for the toolbar and bulk actions (default).
+   * Secondary instances without the table's rows must not overwrite them.
+   */
+  publishSelection?: boolean;
+  /**
    * Column IDs that should be visible by default when no URL visibility state exists.
    * Columns present in column definitions but absent from this list will be hidden.
    * When empty or undefined, all columns default to visible (original behaviour).
@@ -88,6 +93,7 @@ export function resolveTablePageCount({
 export function useTableInstance<TData extends Record<string, unknown>>({
   columns,
   data,
+  publishSelection = true,
   defaultPageSize,
   defaultVisibleColumns,
   enableColumnFilters = true,
@@ -575,6 +581,9 @@ export function useTableInstance<TData extends Record<string, unknown>>({
   });
 
   useEffect(() => {
+    if (!publishSelection) {
+      return;
+    }
     const selectionKey = JSON.stringify(effectiveRowSelection);
     const selectedRows = tableInstance.getSelectedRowModel().rows as Row<
       Record<string, unknown>
@@ -594,7 +603,7 @@ export function useTableInstance<TData extends Record<string, unknown>>({
 
       return hasSameSelection && hasSameRows ? previousRows : selectedRows;
     });
-  }, [effectiveRowSelection, setSelectedRows, tableInstance]);
+  }, [effectiveRowSelection, publishSelection, setSelectedRows, tableInstance]);
 
   // Helper function to check if column order should be updated
   const shouldUpdateColumnOrder = useCallback(

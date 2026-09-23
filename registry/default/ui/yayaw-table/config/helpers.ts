@@ -482,6 +482,8 @@ export interface TableBehaviorConfig extends GenericModeViewConfigs {
    */
   export: boolean;
 
+  /** Formats the Export screen offers (default CSV and PDF, Excel with `actions.exportFile`). */
+  exportFormats?: import("../utils/export-model").ExportFormat[];
   /** Offer "Share" (copy the link to the view); default true. */
   share?: boolean;
 

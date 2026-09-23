@@ -3,6 +3,8 @@
  */
 "use client";
 
+import { useSetAtom } from "jotai";
+import { tableMenuOpenToViewAtom } from "../atoms/table-atoms";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -143,6 +145,10 @@ interface BulkActionsConfig<TData> {
     rows: Row<TData>[]
   ) => Promise<BulkActionCustomHandlerResult> | BulkActionCustomHandlerResult;
 
+  /**
+   * Open the Export screen with the selection instead of a direct CSV file.
+   */
+  exportScreenEnabled?: boolean;
   /**
    * Callback when bulk export is triggered
    */
@@ -1162,6 +1168,7 @@ export function useBulkActions<TData>({
   bulkEditEnabled = true,
   bulkDeleteEnabled = true,
   bulkExportEnabled = true,
+  exportScreenEnabled = false,
   closeOnError = false,
   csvExportColumns = [],
   rowCount,
@@ -1195,6 +1202,9 @@ export function useBulkActions<TData>({
   } = useTableUrlState({
     tableId: resolvedTableId,
   });
+  const setMenuOpenToView = useSetAtom(
+    tableMenuOpenToViewAtom(resolvedTableId)
+  );
   const [crossPageSelection, setCrossPageSelection] =
     useState<CrossPageSelectionState<TData> | null>(null);
   const [isSelectingAll, setIsSelectingAll] = useState(false);
@@ -1650,6 +1660,13 @@ export function useBulkActions<TData>({
       }
     }
 
+    // The Export screen offers format, columns and values for the selection.
+    if (exportScreenEnabled) {
+      setMenuOpenToView("export");
+      // Keep the selection: it is what the screen exports.
+      return { ...successResult, closeMenu: false };
+    }
+
     try {
       const rowsToExport = selectedRows.map(
         (row) => row.original as Record<string, unknown>
@@ -1685,6 +1702,8 @@ export function useBulkActions<TData>({
     csvExportColumns,
     tableId,
     tableType,
+      exportScreenEnabled,
+    setMenuOpenToView,
   ]);
 
   // Close bulk actions (alias for clearSelection)

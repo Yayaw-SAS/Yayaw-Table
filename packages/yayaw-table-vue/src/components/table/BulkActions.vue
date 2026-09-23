@@ -397,6 +397,16 @@ const bulkExport = async (): Promise<void> => {
       );
       return;
     }
+    // The Export screen offers format, columns and values for the selection.
+    if (context.config.table.export) {
+      context.optionsRequest.value = { view: "export" };
+      applyResult(
+        { success: true, clearSelection: false, closeMenu: true },
+        "Bulk export failed",
+        selectedIds
+      );
+      return;
+    }
     downloadCsv(
       context.selectedRows.value,
       exportColumns(context.config.columns.definitions, context.state.visibility.value, context.state.order.value),

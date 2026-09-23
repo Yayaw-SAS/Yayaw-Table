@@ -113,6 +113,8 @@ export interface TableCatalogueTableConfig
   /** Backwards-compatible alias for `showClearFilters`. */
   showResetFilters?: boolean;
   export?: boolean;
+  /** Formats the Export screen offers (default CSV and PDF, Excel with `actions.exportFile`). */
+  exportFormats?: import("../utils/export-model").ExportFormat[];
   /** Offer "Share" (copy the link to the view); default true. */
   share?: boolean;
   bulkExport?: boolean;
@@ -352,6 +354,7 @@ function resolveTableBehaviorConfig(
     showResetFilters: mergedConfig.showResetFilters ?? false,
     export: mergedConfig.export ?? true,
     share: mergedConfig.share,
+    exportFormats: mergedConfig.exportFormats,
     bulkExport: mergedConfig.bulkExport ?? true,
     actionsAsIcons: mergedConfig.actionsAsIcons ?? false,
     coloredTags: mergedConfig.coloredTags !== false,

@@ -1512,6 +1512,7 @@ function ModernDataTable<
     bulkDeleteEnabled: tableConfig.table.allowBulkDelete !== false,
     bulkEditEnabled: tableConfig.table.allowBulkEdit !== false,
     bulkExportEnabled: tableConfig.table.bulkExport !== false,
+    exportScreenEnabled: tableConfig.table.export !== false,
     closeOnError,
     csvExportColumns,
     onBulkExport,

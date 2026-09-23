@@ -13,7 +13,7 @@ export function dataDestinationsSuite(
   test("groups destinations by kind, keeps order and skips hidden or duplicate ones", () => {
     const groups = destinations.groupDataDestinations(
       [
-        { id: "n8n", label: "n8n", kind: "export", run },
+        { id: "n8n", label: "n8n", kind: "sync", run },
         { id: "slack", label: "Slack", kind: "share", run },
         { id: "n8n", label: "Duplicate", kind: "share", run },
         { id: "off", label: "Off", kind: "export", hidden: true, run },
@@ -29,7 +29,7 @@ export function dataDestinationsSuite(
       0
     );
     assert.deepEqual(
-      groups.export.map((item) => item.id),
+      groups.sync.map((item) => item.id),
       ["n8n", "sheet"]
     );
     assert.deepEqual(
@@ -50,7 +50,7 @@ export function dataDestinationsSuite(
           ],
           2
         )
-        .export.map((item) => item.id),
+        .sync.map((item) => item.id),
       ["selected"]
     );
   });

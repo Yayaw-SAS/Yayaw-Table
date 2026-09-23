@@ -241,6 +241,8 @@ export interface TableBehaviorConfig<TData extends TableRecord = TableRecord>
   /** Backwards-compatible alias for `showClearFilters`. */
   showResetFilters?: boolean;
   export: boolean;
+  /** Formats the Export screen offers (default CSV and PDF, Excel with `actions.exportFile`). */
+  exportFormats?: import("./export-model").ExportFormat[];
   /** Offer "Share" (copy the link to the view); default true. */
   share?: boolean;
   bulkExport: boolean;
@@ -793,6 +795,14 @@ export interface TableActions<TData extends TableRecord = TableRecord> {
    * the view settings "Data" section. `run` receives the current query.
    */
   destinations?: import("./data-destinations").DataDestination<Component>[];
+  /**
+   * Build export files on the server (CSV, Excel, PDF) from the view's
+   * query; return a download link or a Blob. Without it, the browser writes
+   * CSV and prints PDF.
+   */
+  exportFile?: (
+    request: import("./export-model").ExportFileRequest
+  ) => Promise<import("./export-model").ExportFileResult | undefined>;
   views?: TableViewActions;
   [key: string]: unknown;
 }

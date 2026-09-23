@@ -5,6 +5,8 @@ import {
   FunnelX,
   Download,
   LayoutGrid,
+  Link2,
+  RefreshCw,
   Rows3,
   Send,
   Share2,
@@ -26,7 +28,7 @@ import {
   watch,
 } from "vue";
 import { useTableContext } from "../../context";
-import { downloadCsv, exportColumns } from "../../core";
+import { exportColumns } from "../../core";
 import type {
   ColumnDefinition,
   TableDisplayMode,
@@ -43,6 +45,16 @@ import ToolbarMenu from "./ToolbarMenu.vue";
 import ToolbarDataActions from "./ToolbarDataActions.vue";
 import ToolbarSearch from "./ToolbarSearch.vue";
 import MenuChoiceList from "./MenuChoiceList.vue";
+import ExportPanel from "./ExportPanel.vue";
+import {
+  availableExportFormats,
+  defaultExportFileName,
+  downloadExportFile,
+  type ExportColumn,
+  type ExportSettings,
+  printExportPage,
+  runExport,
+} from "../../export-model";
 import {
   type DataDestination,
   dataDestinationQuery,
@@ -71,7 +83,7 @@ const props = defineProps<{
   toolbarActionsPlacement?: ToolbarActionsPlacement;
 }>();
 const context = useTableContext();
-type OptionsView = "columns" | "filters" | "group" | "main" | "sort" | "cards" | "layout" | "density";
+type OptionsView = "columns" | "filters" | "group" | "main" | "sort" | "cards" | "layout" | "density" | "export" | "sync" | "share";
 const { compact, mobile } = useToolbarLayout();
 const capabilities = computed(() => getViewModeCapabilities(context.state.displayMode.value));
 
@@ -91,6 +103,12 @@ const optionsTitle = computed(() => {
       return translate("displayMode", "Display mode");
     case "density":
       return densityLabel.value;
+    case "export":
+      return translate("export", "Export");
+    case "sync":
+      return translate("destinations.sync", "Sync");
+    case "share":
+      return translate("url_state.share", "Share");
     case "columns":
       return translate("properties", "properties");
     default:
@@ -390,21 +408,46 @@ const runAction = async (action: ToolbarAction): Promise<void> => {
     pendingAction.value = undefined;
   }
 };
-const exportRows = async (): Promise<void> => {
+const exportColumn = (column: ColumnDefinition): ExportColumn => ({
+  id: column.id,
+  header: column.header,
+  type: column.type,
+  options: column.options,
+  numberFormat: column.numberFormat as ExportColumn["numberFormat"],
+  dateDisplayPreset: column.dateDisplayPreset,
+  dateFormat: column.dateFormat,
+  timeZone: column.timeZone,
+});
+const exportLabel = (key: string, fallback: string): string => translate(`exportScreen.${key}`, fallback);
+const exportFormats = computed(() =>
+  availableExportFormats(context.config.table.exportFormats, Boolean(context.actions.value?.exportFile))
+);
+// Server first through `actions.exportFile`; otherwise CSV or print here.
+const exportRows = async (settings: ExportSettings): Promise<void> => {
   if (isExporting.value) return;
-  const columns = exportColumns(
-    context.config.columns.definitions,
-    context.state.visibility.value,
-    context.state.order.value
-  );
   isExporting.value = true;
   try {
-    const rows = await context.loadAllMatchingRows();
-    if (context.onExport) {
-      await context.onExport(rows);
-    } else {
-      downloadCsv(rows, columns, context.config.id);
-    }
+    await runExport({
+      settings,
+      viewId: context.state.activeViewId.value ?? null,
+      query: dataDestinationQuery({
+        search: context.state.search.value,
+        filters: Object.fromEntries(context.state.filters.value.map((filter) => [filter.id, filter.value])),
+        advancedFilters: context.state.advancedFilters.value,
+        sorting: context.state.sorting.value,
+      }),
+      allColumns: context.config.columns.definitions.filter((column) => column.id !== "select" && column.type !== "actions").map(exportColumn),
+      visibleColumns: exportColumns(context.config.columns.definitions, context.state.visibility.value, context.state.order.value).map(exportColumn),
+      selectedRowIds: context.selectedRows.value.map((row) => context.getRowId(row)),
+      selectedRows: context.selectedRows.value,
+      loadRows: () => context.loadAllMatchingRows(),
+      locale: context.locale,
+      title: String(context.translations.value.title ?? context.config.id),
+      exportFile: context.actions.value?.exportFile,
+      onRows: context.onExport,
+      download: downloadExportFile,
+      print: printExportPage,
+    });
   } catch (cause) {
     context.status.value = {
       type: "error",
@@ -468,7 +511,7 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
     <ToolbarDataActions v-if="!compact && actionItems.length" :show-search="false" :show-share="false" :items="actionItems" :actions-as-icons="actionsAsIcons" :compact="compact" v-model:search="search"
       :search-label="translate('search', 'Search…')" :export-label="translate('export', 'Export')" :share-label="translate('url_state.share', 'Share')"
       :pending-action="pendingAction" :is-exporting="isExporting" :disabled="toolbarActionDisabled" :variant="toolbarActionVariant"
-      @action="runAction" @export="exportRows" @share="shareLink" />
+      @action="runAction" @share="shareLink" />
     <ToolbarMenu v-model:open="optionsOpen" :compact="compact" align="end"
       :title="optionsTitle"
       :back="optionsView !== 'main'" :back-label="translate('back', 'Back')" :close-label="translate('close', 'Close')" @back="optionsView = 'main'">
@@ -586,34 +629,46 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
               <span class="yayaw-options-item-copy"><span>{{ item.action.label }}</span></span>
             </button>
           </template>
-          <button v-if="hasExport" type="button" class="yayaw-options-item" :disabled="isExporting" :aria-busy="isExporting" @click="exportRows">
-            <span class="yayaw-options-item-icon"><Download :size="16" aria-hidden="true" /></span>
+          <button v-if="hasExport" type="button" class="yayaw-options-item" :aria-busy="isExporting" @click="optionsView = 'export'">
+            <span class="yayaw-options-item-icon"><span v-if="isExporting" class="yayaw-spinner" aria-hidden="true" /><Download v-else :size="16" aria-hidden="true" /></span>
             <span class="yayaw-options-item-copy"><span>{{ translate('export', 'Export') }}</span></span>
+            <ChevronRight :size="16" aria-hidden="true" />
           </button>
-          <button v-for="destination in destinations.export" :key="destination.id" type="button" class="yayaw-options-item"
-            :disabled="Boolean(pendingDestination)" :aria-busy="pendingDestination === destination.id" @click="runDestination(destination)">
-            <span class="yayaw-options-item-icon">
-              <span v-if="pendingDestination === destination.id" class="yayaw-spinner" aria-hidden="true" />
-              <component :is="destination.icon ?? Send" v-else :size="16" aria-hidden="true" />
-            </span>
-            <span class="yayaw-options-item-copy"><span>{{ destination.label }}</span></span>
+          <button v-if="destinations.sync.length" type="button" class="yayaw-options-item" :aria-busy="Boolean(pendingDestination)" @click="optionsView = 'sync'">
+            <span class="yayaw-options-item-icon"><RefreshCw :size="16" aria-hidden="true" /></span>
+            <span class="yayaw-options-item-copy"><span>{{ translate('destinations.sync', 'Sync') }}</span></span>
+            <ChevronRight :size="16" aria-hidden="true" />
           </button>
-          <button v-if="hasShare" type="button" class="yayaw-options-item" @click="shareLink">
+          <button v-if="destinations.share.length" type="button" class="yayaw-options-item" @click="optionsView = 'share'">
             <span class="yayaw-options-item-icon"><Share2 :size="16" aria-hidden="true" /></span>
             <span class="yayaw-options-item-copy"><span>{{ translate('url_state.share', 'Share') }}</span></span>
+            <ChevronRight :size="16" aria-hidden="true" />
           </button>
-          <button v-for="destination in destinations.share" :key="destination.id" type="button" class="yayaw-options-item"
-            :disabled="Boolean(pendingDestination)" :aria-busy="pendingDestination === destination.id" @click="runDestination(destination)">
-            <span class="yayaw-options-item-icon">
-              <span v-if="pendingDestination === destination.id" class="yayaw-spinner" aria-hidden="true" />
-              <component :is="destination.icon ?? Send" v-else :size="16" aria-hidden="true" />
-            </span>
-            <span class="yayaw-options-item-copy"><span>{{ destination.label }}</span></span>
+          <button v-else-if="hasShare" type="button" class="yayaw-options-item" @click="shareLink">
+            <span class="yayaw-options-item-icon"><Link2 :size="16" aria-hidden="true" /></span>
+            <span class="yayaw-options-item-copy"><span>{{ translate('url_state.share', 'Share') }}</span></span>
           </button>
         </div>
       </div>
       <div v-else ref="optionsRoot">
-            <MenuChoiceList v-if="optionsView === 'layout'" :label="translate('displayMode', 'Display mode')" :model-value="displayMode"
+            <div v-if="optionsView === 'sync' || optionsView === 'share'" class="yayaw-options-list" :data-menu-section="optionsView">
+              <button v-if="optionsView === 'share' && hasShare" type="button" class="yayaw-options-item" @click="shareLink">
+                <span class="yayaw-options-item-icon"><Link2 :size="16" aria-hidden="true" /></span>
+                <span class="yayaw-options-item-copy"><span>{{ translate('destinations.copyLink', 'Copy link') }}</span></span>
+              </button>
+              <button v-for="destination in destinations[optionsView]" :key="destination.id" type="button" class="yayaw-options-item"
+                :disabled="Boolean(pendingDestination)" :aria-busy="pendingDestination === destination.id" @click="runDestination(destination)">
+                <span class="yayaw-options-item-icon">
+                  <span v-if="pendingDestination === destination.id" class="yayaw-spinner" aria-hidden="true" />
+                  <component :is="destination.icon ?? Send" v-else :size="16" aria-hidden="true" />
+                </span>
+                <span class="yayaw-options-item-copy"><span>{{ destination.label }}</span></span>
+              </button>
+            </div>
+            <ExportPanel v-else-if="optionsView === 'export'" :busy="isExporting" :formats="exportFormats" :label="exportLabel"
+              :default-file-name="defaultExportFileName(String(context.translations.value.title ?? context.config.id))"
+              :selected-count="context.selectedRows.value.length" @export="exportRows" />
+            <MenuChoiceList v-else-if="optionsView === 'layout'" :label="translate('displayMode', 'Display mode')" :model-value="displayMode"
               :options="modes.map((mode) => ({ value: mode, label: translate(`display.${mode}`, mode), icon: displayModeIcons[mode] }))"
               @update:model-value="(mode) => (displayMode = mode as TableDisplayMode)" />
             <MenuChoiceList v-else-if="optionsView === 'density'" :label="densityLabel" :model-value="context.state.density.value"

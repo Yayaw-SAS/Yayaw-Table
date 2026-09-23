@@ -33,7 +33,12 @@ export interface OpenFormState {
   };
 }
 
-export type TableOptionsView = "columns" | "filters" | "group" | "sort";
+export type TableOptionsView =
+  | "columns"
+  | "filters"
+  | "group"
+  | "sort"
+  | "export";
 
 export interface TableOptionsRequest {
   columnId?: string;

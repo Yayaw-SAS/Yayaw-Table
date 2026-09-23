@@ -10,8 +10,10 @@ import { useAtomValue, useSetAtom } from "jotai";
 import {
   Download,
   FunnelX,
+  Link2,
   Loader2,
   PlusIcon,
+  RefreshCw,
   Send,
   Share2,
 } from "lucide-react";
@@ -70,15 +72,23 @@ import type {
 import type { DateDisplayPreset } from "../../types/date-types";
 import { DATE_DISPLAY_PRESETS } from "../../types/date-types";
 import type { TableDisplayMode } from "../../types/display-types";
-import { StackMenuItem } from "../../ui-custom/stack-menu";
-import { buildCsvExportColumns, exportRowsAsCsv } from "../../utils/csv-export";
+import { StackMenuContent, StackMenuItem } from "../../ui-custom/stack-menu";
+import { buildCsvExportColumns } from "../../utils/csv-export";
 import {
   type DataDestination,
-  type DataDestinationKind,
   dataDestinationQuery,
   groupDataDestinations,
   runDataDestination,
 } from "../../utils/data-destinations";
+import {
+  availableExportFormats,
+  defaultExportFileName,
+  downloadExportFile,
+  type ExportColumn,
+  type ExportSettings,
+  printExportPage,
+  runExport,
+} from "../../utils/export-model";
 import {
   fetchAllFilteredRows,
   type TableListAction,
@@ -94,6 +104,7 @@ import {
   catalogueFormAtom,
   openCreateForm,
 } from "../forms/atoms/catalogue-form-atoms";
+import { ExportPanel } from "./export-panel";
 import { useMobileSettingsScreens } from "./mobile-settings-screens";
 import { SearchBar } from "./sections/search-bar";
 import { TableDensityMenu } from "./table-density-menu";
@@ -575,6 +586,76 @@ function ToolbarEnd({
 
 type TableDataDestination = DataDestination<ReactNode>;
 
+/** The built-in "copy the link to this view" entry. */
+function renderShareLinkItem(
+  enabled: boolean,
+  onShare: () => Promise<void>,
+  label: string
+) {
+  if (!enabled) {
+    return null;
+  }
+  return (
+    <StackMenuItem
+      icon={<Link2 className="size-4" />}
+      onClick={() => {
+        onShare().catch(() => {
+          /* share errors are reported by the handler */
+        });
+      }}
+    >
+      {label}
+    </StackMenuItem>
+  );
+}
+
+/** Sync and Share screens: the host destinations, after the share link. */
+function destinationScreens({
+  destinations,
+  isShareEnabled,
+  onDestination,
+  onShare,
+  pendingDestination,
+  t,
+}: {
+  destinations: Record<"sync" | "share", TableDataDestination[]>;
+  isShareEnabled: boolean;
+  onDestination: (destination: TableDataDestination) => Promise<void>;
+  onShare: () => Promise<void>;
+  pendingDestination?: string;
+  t: ReturnType<typeof useTranslations>["t"];
+}) {
+  const item = (destination: TableDataDestination) =>
+    renderDestinationItem(destination, pendingDestination, onDestination);
+  const screens: { name: string; title: string; content: ReactNode }[] = [];
+  if (destinations.sync.length > 0) {
+    screens.push({
+      name: "sync",
+      title: t("destinations.sync"),
+      content: (
+        <StackMenuContent>{destinations.sync.map(item)}</StackMenuContent>
+      ),
+    });
+  }
+  if (destinations.share.length > 0) {
+    screens.push({
+      name: "share",
+      title: t("url_state.share"),
+      content: (
+        <StackMenuContent>
+          {renderShareLinkItem(
+            isShareEnabled,
+            onShare,
+            t("destinations.copyLink")
+          )}
+          {destinations.share.map(item)}
+        </StackMenuContent>
+      ),
+    });
+  }
+  return screens;
+}
+
 /** A host destination; one runs at a time and shows its progress. */
 function renderDestinationItem(
   destination: TableDataDestination,
@@ -614,20 +695,17 @@ function renderMenuDataActions({
   pendingToolbarActionIds,
   onToolbarAction,
   isExportEnabled,
-  hasListAction,
   isExporting,
   exportLabel,
-  onExport,
+  exportScreen,
   onShare,
   isShareEnabled,
   destinations,
   pendingDestination,
-  onDestination,
 }: {
   isShareEnabled: boolean;
-  destinations: Record<DataDestinationKind, TableDataDestination[]>;
+  destinations: Record<"sync" | "share", TableDataDestination[]>;
   pendingDestination?: string;
-  onDestination: (destination: TableDataDestination) => Promise<void>;
   t: ReturnType<typeof useTranslations>["t"];
   isMobile: boolean;
   toolbarActions: ToolbarAction[];
@@ -639,10 +717,10 @@ function renderMenuDataActions({
   >[0]["pendingActionIds"];
   onToolbarAction: (action: ToolbarAction) => Promise<void>;
   isExportEnabled: boolean;
-  hasListAction: boolean;
   isExporting: boolean;
   exportLabel: string;
-  onExport: () => Promise<void>;
+  /** The export options screen the Export entry opens. */
+  exportScreen: string;
   onShare: () => Promise<void>;
 }) {
   const applicationActions = isMobile
@@ -682,34 +760,40 @@ function renderMenuDataActions({
       {applicationActions}
       {isExportEnabled ? (
         <StackMenuItem
-          disabled={!hasListAction || isExporting}
-          icon={<Download className="size-4" />}
-          onClick={() => {
-            onExport().catch(() => {
-              /* export errors are reported by the handler */
-            });
-          }}
+          aria-busy={isExporting}
+          icon={
+            isExporting ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Download className="size-4" />
+            )
+          }
+          navigateTitle={exportLabel}
+          navigateTo={exportScreen}
         >
           {exportLabel}
         </StackMenuItem>
       ) : null}
-      {destinations.export.map((destination) =>
-        renderDestinationItem(destination, pendingDestination, onDestination)
-      )}
-      {isShareEnabled ? (
+      {destinations.sync.length > 0 ? (
+        <StackMenuItem
+          aria-busy={Boolean(pendingDestination)}
+          icon={<RefreshCw className="size-4" />}
+          navigateTitle={t("destinations.sync")}
+          navigateTo="sync"
+        >
+          {t("destinations.sync")}
+        </StackMenuItem>
+      ) : null}
+      {destinations.share.length > 0 ? (
         <StackMenuItem
           icon={<Share2 className="size-4" />}
-          onClick={() => {
-            onShare().catch(() => {
-              /* share errors are reported by the handler */
-            });
-          }}
+          navigateTitle={t("url_state.share")}
+          navigateTo="share"
         >
           {t("url_state.share")}
         </StackMenuItem>
-      ) : null}
-      {destinations.share.map((destination) =>
-        renderDestinationItem(destination, pendingDestination, onDestination)
+      ) : (
+        renderShareLinkItem(isShareEnabled, onShare, t("url_state.share"))
       )}
     </>
   );
@@ -817,6 +901,7 @@ export function DataTableAdvancedToolbar<TData>({
   const _tableInstance = useTableInstance({
     columns: [], // Empty columns since we only need the table structure for the menu
     data: [],
+    publishSelection: false,
     tableId,
   });
 
@@ -1020,66 +1105,6 @@ export function DataTableAdvancedToolbar<TData>({
   ]);
 
   const hasListAction = typeof tableActions?.list === "function";
-
-  const handleExportAll = useCallback(async () => {
-    if (!hasListAction || isExporting) {
-      return;
-    }
-
-    const listAction = tableActions.list as TableListAction;
-    const orderBy = toOrderByParam(sortParam);
-    const filters = toFiltersParam(filtersParam);
-    const advancedFilters = toAdvancedFiltersParam(advancedFiltersParam);
-    const pageSize = toPageSize(pageSizeParam || "100");
-    const normalizedSearch = globalSearchParam?.trim() || "";
-
-    setIsExporting(true);
-    try {
-      const collectedRows = await fetchAllFilteredRows({
-        advancedFilters,
-        filters,
-        listAction,
-        orderBy,
-        pageSize,
-        search: normalizedSearch,
-      });
-
-      if (onExport) {
-        await onExport(collectedRows);
-        return;
-      }
-
-      const fallbackColumns =
-        collectedRows.length > 0
-          ? Object.keys(collectedRows[0]).map((id) => ({ id, label: id }))
-          : [];
-
-      exportRowsAsCsv({
-        columns:
-          csvExportColumns.length > 0 ? csvExportColumns : fallbackColumns,
-        rows: collectedRows,
-        tableId,
-      });
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to export rows."
-      );
-    } finally {
-      setIsExporting(false);
-    }
-  }, [
-    hasListAction,
-    isExporting,
-    tableActions,
-    sortParam,
-    filtersParam,
-    advancedFiltersParam,
-    pageSizeParam,
-    globalSearchParam,
-    onExport,
-    csvExportColumns,
-    tableId,
-  ]);
 
   const [pendingDestination, setPendingDestination] = useState<string>();
   // Every record matching the view's query, for destinations that need rows.
@@ -1329,7 +1354,97 @@ export function DataTableAdvancedToolbar<TData>({
       viewParam,
     ]
   );
+  const { locale } = useTranslations();
+  const tableTitle = tableConfig.translations?.keys?.title ?? tableType;
+  const exportColumnsFor = useCallback(
+    (ids?: string[]): ExportColumn[] => {
+      const byId = new Map(
+        tableConfig.columns.definitions.map((column) => [column.id, column])
+      );
+      const pick = ids ?? tableConfig.columns.definitions.map((c) => c.id);
+      return pick.flatMap((columnId) => {
+        const column = byId.get(columnId);
+        if (!column || columnId === "select" || columnId === "actions") {
+          return [];
+        }
+        return [
+          {
+            id: column.id,
+            header: column.header,
+            type: column.type,
+            options: (column as { options?: unknown }).options,
+            numberFormat: column.numberFormat,
+            dateDisplayPreset: column.dateDisplayPreset,
+            dateFormat: column.dateFormat,
+            timeZone: (column as { timeZone?: string }).timeZone,
+          },
+        ];
+      });
+    },
+    [tableConfig.columns.definitions]
+  );
+  // Server first through `actions.exportFile`; otherwise CSV or print here.
+  const handleExport = useCallback(
+    async (settings: ExportSettings) => {
+      if (isExporting) {
+        return;
+      }
+      setIsExporting(true);
+      try {
+        await runExport({
+          settings,
+          viewId: viewParam ?? null,
+          query: dataDestinationQuery({
+            search: globalSearchParam,
+            filters: toFiltersParam(filtersParam),
+            advancedFilters: advancedFiltersParam,
+            sorting: sortParam as { id: string; desc?: boolean }[],
+          }),
+          allColumns: exportColumnsFor(),
+          visibleColumns: exportColumnsFor(
+            csvExportColumns.map((column) => column.id)
+          ),
+          selectedRowIds: toolbarActionContext.selectedRowIds,
+          selectedRows: toolbarActionContext.selectedOriginalRows,
+          loadRows: loadMatchingRows,
+          locale,
+          title: tableTitle,
+          exportFile: tableActions?.exportFile,
+          onRows: onExport,
+          download: downloadExportFile,
+          print: printExportPage,
+        });
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Failed to export rows."
+        );
+      } finally {
+        setIsExporting(false);
+      }
+    },
+    [
+      advancedFiltersParam,
+      csvExportColumns,
+      exportColumnsFor,
+      filtersParam,
+      globalSearchParam,
+      isExporting,
+      loadMatchingRows,
+      locale,
+      onExport,
+      sortParam,
+      tableActions?.exportFile,
+      tableTitle,
+      toolbarActionContext.selectedOriginalRows,
+      toolbarActionContext.selectedRowIds,
+      viewParam,
+    ]
+  );
   const shareLink = createPageShareHandler(nativeMobile, t);
+  const destinationGroups = groupDataDestinations(
+    tableActions?.destinations,
+    toolbarActionContext.selectedRowIds.length
+  );
   const menuDataActions = renderMenuDataActions({
     t,
     isMobile,
@@ -1342,18 +1457,13 @@ export function DataTableAdvancedToolbar<TData>({
     pendingToolbarActionIds,
     onToolbarAction: handleToolbarActionClick,
     isExportEnabled,
-    hasListAction,
     isExporting,
     exportLabel,
-    onExport: handleExportAll,
+    exportScreen: "export",
     onShare: shareLink,
     isShareEnabled: tableConfig.table.share !== false,
-    destinations: groupDataDestinations(
-      tableActions?.destinations,
-      toolbarActionContext.selectedRowIds.length
-    ),
+    destinations: destinationGroups,
     pendingDestination,
-    onDestination: runDestination,
   });
   const createButton = isCreateEnabled ? (
     <ToolbarCreateButton
@@ -1392,6 +1502,42 @@ export function DataTableAdvancedToolbar<TData>({
       columns={tableMenuColumns}
       compact={isMobile}
       dataActions={menuDataActions}
+      dataScreens={[
+        ...destinationScreens({
+          destinations: destinationGroups,
+          isShareEnabled: tableConfig.table.share !== false,
+          onDestination: runDestination,
+          onShare: shareLink,
+          pendingDestination,
+          t,
+        }),
+        ...(isExportEnabled
+          ? [
+              {
+                name: "export",
+                title: exportLabel,
+                content: (
+                  <ExportPanel
+                    busy={isExporting}
+                    defaultFileName={defaultExportFileName(tableTitle)}
+                    formats={availableExportFormats(
+                      tableConfig.table.exportFormats,
+                      Boolean(tableActions?.exportFile)
+                    )}
+                    label={(key, fallback) => {
+                      const translated = t(`exportScreen.${key}`);
+                      return translated === `exportScreen.${key}`
+                        ? fallback
+                        : translated;
+                    }}
+                    onExport={handleExport}
+                    selectedCount={toolbarActionContext.selectedRowIds.length}
+                  />
+                ),
+              },
+            ]
+          : []),
+      ]}
       defaultDisplayMode={tableConfig.table.defaultDisplayMode}
       enableCalculations={tableConfig.table.enableCalculations === true}
       enableColumnFilters={isColumnFiltersEnabled}

@@ -1,8 +1,12 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Locator, type Page, test } from "@playwright/test";
 
 const EXAMPLE = "/?example=views";
 const DISPLAY_PARAM = "views-display";
 const SEARCH = /^search/i;
+const EXPORT_ENTRY = /^Export/;
+const EXPORT_BUTTON = /^export$/i;
+const SELECTED_TWO = /^Selected \(2\)/;
+const PROJECTS_CSV = /^projects-\d{4}-\d{2}-\d{2}\.csv$/;
 const SEARCH_BUTTON = /^search/i;
 const CURRENT_VIEW_TRIGGER = /^current view/i;
 const SEARCH_TAB = /Search/;
@@ -116,8 +120,73 @@ test("custom destinations receive the view's query from the Data section", async
   await expect(
     settings.getByRole("button", { name: "Share", exact: true })
   ).toBeVisible();
-  await settings.getByRole("button", { name: "Send to n8n" }).click();
+  // Sends to tools live under Sync; custom shares under Share.
+  await settings.getByRole("button", { name: "Sync", exact: true }).click();
+  await page.getByRole("button", { name: "n8n", exact: true }).click();
   await expect(
     page.getByText("Sent 1 records to the n8n workflow")
   ).toBeVisible();
+});
+
+test("the Export screen writes the view's records as displayed or raw", async ({
+  page,
+}) => {
+  await page.goto(`${EXAMPLE}&views-q=bravo`);
+  const exportFile = async () => {
+    await page.getByRole("button", { name: "View settings" }).click();
+    await page.getByRole("button", { name: EXPORT_ENTRY }).first().click();
+    const panel = page.locator("[data-export-panel]");
+    await expect(panel).toBeVisible();
+    return panel;
+  };
+  const read = async (panel: Locator) => {
+    const [download] = await Promise.all([
+      page.waitForEvent("download"),
+      panel.getByRole("button", { name: "Export", exact: true }).click(),
+    ]);
+    const stream = await download.createReadStream();
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream) {
+      chunks.push(chunk as Buffer);
+    }
+    return {
+      name: download.suggestedFilename(),
+      text: Buffer.concat(chunks).toString("utf8"),
+    };
+  };
+
+  const formatted = await read(await exportFile());
+  expect(formatted.name).toMatch(PROJECTS_CSV);
+  expect(formatted.text).toContain("Bravo audit,Service,Draft,€120.00");
+  expect(formatted.text).not.toContain("Alpha launch");
+
+  await page.keyboard.press("Escape");
+  const panel = await exportFile();
+  await panel.getByRole("combobox", { name: "Values" }).click();
+  await page.getByRole("option", { name: "Raw" }).click();
+  const raw = await read(panel);
+  expect(raw.text).toContain("Bravo audit,Service,Draft,120,0.2,2026-09-05");
+});
+
+test("bulk export opens the Export screen for the selected records", async ({
+  page,
+}) => {
+  const rows = page.getByRole("checkbox");
+  await rows.nth(1).click();
+  await rows.nth(2).click();
+  await page.getByRole("button", { name: EXPORT_BUTTON }).last().click();
+  const panel = page.locator("[data-export-panel]");
+  await expect(panel.getByRole("combobox", { name: "Records" })).toHaveText(
+    SELECTED_TWO
+  );
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    panel.getByRole("button", { name: "Export", exact: true }).click(),
+  ]);
+  const chunks: Buffer[] = [];
+  for await (const chunk of await download.createReadStream()) {
+    chunks.push(chunk as Buffer);
+  }
+  const lines = Buffer.concat(chunks).toString("utf8").trim().split("\n");
+  expect(lines).toHaveLength(3);
 });

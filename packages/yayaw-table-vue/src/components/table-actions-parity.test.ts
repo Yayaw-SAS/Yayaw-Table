@@ -49,13 +49,22 @@ const select = async (wrapper: Wrapper, checked = true) => {
   await flushPromises();
 };
 // Export moved from a toolbar button into the settings menu's Data section.
+/** The Export entry opens its screen; its Export button runs the export. */
 const exportButton = async (wrapper: Wrapper) => {
   await openViewMenu(wrapper);
-  const button = wrapper
-    .findAll(".yayaw-options-item")
-    .find((item) => item.text().startsWith("Export"));
-  if (!button) {
-    throw new Error("Missing export action");
+  if (!wrapper.find("[data-export-panel]").exists()) {
+    const entry = wrapper
+      .findAll(".yayaw-options-item")
+      .find((item) => item.text().startsWith("Export"));
+    if (!entry) {
+      throw new Error("Missing export entry");
+    }
+    await entry.trigger("click");
+    await flushPromises();
+  }
+  const button = wrapper.find("[data-export-panel] .yayaw-export-run");
+  if (!button.exists()) {
+    throw new Error("Missing export button");
   }
   return button;
 };

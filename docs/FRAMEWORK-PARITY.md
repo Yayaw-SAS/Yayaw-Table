@@ -755,10 +755,26 @@ that opens it on compact ones. There is no separate data actions drawer.
 ## Data destinations
 
 Both editions read `actions.destinations` and list them in the View settings
-"Data" section: export destinations after the CSV export, share destinations
-after the share link (`table.share: false` hides the link). The shared
+"Data" section: sync destinations (kind `"sync"`, alias `"export"`) under
+Sync, share destinations under Share after "Copy link" (`table.share: false`
+hides the link; without share destinations Share copies the link directly). The shared
 `data-destinations.ts` groups them (declared order, first id wins, `hidden` and
 `requiresSelection` honoured), normalizes the view's query into the `list`
 shape and runs one destination at a time, turning failures into a message.
 React icons are nodes, Vue icons are components; both default to a send icon.
 `tests/data-destinations-suite.ts` runs in both editions.
+
+## Export screen
+
+Both editions open the same Export screen from the Data section (format,
+records, columns, values, file name) and hand the choice to the shared
+`export-model.ts`: `runExport` sends an `ExportFileRequest` to
+`actions.exportFile` when the host builds files, otherwise it loads the rows
+(or uses the selection), builds the matrix with the shared value formatting
+and downloads a CSV or prints a page from a hidden frame. `availableExportFormats`
+offers Excel only with a writer and honours `table.exportFormats`.
+`tests/export-model-suite.ts` runs in both editions.
+
+The bulk bar's Export opens this screen with the selection chosen, in both
+editions (React through the menu open-to-view atom, Vue through
+`optionsRequest`), keeping the selection so it is what gets exported.
