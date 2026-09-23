@@ -1,0 +1,34 @@
+{
+  "name": "yayaw-table",
+  "version": "3.3.0",
+  "files": {
+    "registry": "registry.json",
+    "items": {
+      "yayaw-table": "yayaw-table.json",
+      "yayaw-table-calendar": "yayaw-table-calendar.json",
+      "yayaw-table-connector-notion": "yayaw-table-connector-notion.json",
+      "yayaw-table-connector-google-sheets": "yayaw-table-connector-google-sheets.json",
+      "font-yayaw-sans": "font-yayaw-sans.json",
+      "yayaw-table-base": "yayaw-table-base.json",
+      "yayaw-table-vue": "yayaw-table-vue.json",
+      "yayaw-table-vue-calendar": "yayaw-table-vue-calendar.json",
+      "yayaw-table-vue-connector-notion": "yayaw-table-vue-connector-notion.json",
+      "yayaw-table-vue-connector-google-sheets": "yayaw-table-vue-connector-google-sheets.json"
+    }
+  },
+  "latest": {
+    "registry": "../registry.json",
+    "items": {
+      "yayaw-table": "../yayaw-table.json",
+      "yayaw-table-calendar": "../yayaw-table-calendar.json",
+      "yayaw-table-connector-notion": "../yayaw-table-connector-notion.json",
+      "yayaw-table-connector-google-sheets": "../yayaw-table-connector-google-sheets.json",
+      "font-yayaw-sans": "../font-yayaw-sans.json",
+      "yayaw-table-base": "../yayaw-table-base.json",
+      "yayaw-table-vue": "../yayaw-table-vue.json",
+      "yayaw-table-vue-calendar": "../yayaw-table-vue-calendar.json",
+      "yayaw-table-vue-connector-notion": "../yayaw-table-vue-connector-notion.json",
+      "yayaw-table-vue-connector-google-sheets": "../yayaw-table-vue-connector-google-sheets.json"
+    }
+  }
+}
