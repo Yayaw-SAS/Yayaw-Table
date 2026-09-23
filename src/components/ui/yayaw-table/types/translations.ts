@@ -522,6 +522,10 @@ export interface DataTableTranslations {
   connector?: Partial<
     Record<import("../utils/connector-flow").ConnectorLabelKey, string>
   >;
+  /** Overrides for the built-in English and French import screen labels. */
+  import?: Partial<
+    Record<import("../utils/import-flow").ImportLabelKey, string>
+  >;
   menu: {
     data?: string;
     back: string;

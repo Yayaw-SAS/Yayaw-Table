@@ -11,6 +11,7 @@ type ConnectorFlowModel = Pick<
   | "connectorFieldOptions"
   | "connectorKeyFields"
   | "connectorLabels"
+  | "connectorMappingSections"
   | "connectorModes"
   | "connectorSettingsToSend"
   | "createConnectorFlow"
@@ -531,6 +532,27 @@ export function connectorFlowSuite(
       "Send each column to"
     );
     assert.equal(fields.find((field) => field.id === "mode")?.value, "replace");
+    // The column-mapping component receives settings, rows, key, then the rest.
+    const sections = model.connectorMappingSections(fields);
+    assert.deepEqual(
+      sections.before.map((field) => field.id),
+      ["target", "child", "columns"]
+    );
+    assert.deepEqual(
+      sections.rows.map((row) => [row.id, row.label]),
+      [
+        ["map:name", "Name"],
+        ["map:due", "Échéance"],
+        ["map:status", "Status"],
+        ["map:price", "Price"],
+      ]
+    );
+    assert.equal(sections.rows[0]?.heading, "Send each column to");
+    assert.equal(sections.keyField?.id, "keyField");
+    assert.deepEqual(
+      sections.after.map((field) => field.id),
+      ["mode", "scope"]
+    );
     assert.equal(
       fields.find((field) => field.id === "scope")?.options.at(-1)?.label,
       "Selected (2)"

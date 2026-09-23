@@ -161,6 +161,13 @@ export interface TableActions {
   exportFile?: (
     request: import("../utils/export-model").ExportFileRequest
   ) => Promise<import("../utils/export-model").ExportFileResult | undefined>;
+  /**
+   * Data › Import: extra sources, a server-side bulk write and a key lookup.
+   * Without it, CSV imports go through `create` and `update`.
+   */
+  import?: import("../utils/import-flow").TableImportActions<
+    import("../utils/data-destinations").DataDestinationContext
+  >;
   views?: TableViewActions;
   [key: string]: unknown;
 }

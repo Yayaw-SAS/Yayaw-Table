@@ -12,10 +12,12 @@ import {
   applyConnectorField,
   type ConnectorFlow,
   type ConnectorFlowState,
+  type ConnectorScreenField,
   type ConnectorT,
   type ConnectorTranslate,
   type ConnectorViewColumn,
   connectorLabels,
+  connectorMappingSections,
   connectorScreenFields,
   createConnectorFlow,
   describePushDetails,
@@ -27,7 +29,7 @@ import {
   connectorPushContext,
   type DataDestinationContext,
 } from "../../utils/data-destinations";
-import { type ViewSettingField, ViewSettingsPanel } from "./view-settings-panel";
+import { ColumnMapping, type ColumnMappingField } from "./column-mapping";
 
 type TableConnector = DataDestinationConnector<
   DataDestinationContext,
@@ -93,8 +95,12 @@ function TargetInput({
   );
 }
 
-/** The shared screen fields, with the paste input and the mode hint after their selects. */
-function connectorFields({
+/**
+ * The shared screen fields as a column mapping: target settings before the
+ * rows, the key field, then mode and records; the paste input and the mode
+ * hint follow their selects.
+ */
+function connectorMapping({
   connector,
   columns,
   flow,
@@ -110,28 +116,32 @@ function connectorFields({
   state: ConnectorFlowState;
   t: ConnectorT;
   targetInput: ReactNode;
-}): ViewSettingField[] {
+}) {
   const modeHint = state.settings ? (
     <p className="text-muted-foreground text-xs" data-connector-mode-hint>
       {t(state.settings.mode === "replace" ? "replaceHint" : "upsertHint")}
     </p>
   ) : null;
-  const after: Record<string, ReactNode> = {
+  const extra: Record<string, ReactNode> = {
     target: targetInput,
     mode: modeHint,
   };
-  return connectorScreenFields(state, {
-    connector,
-    columns,
-    selectedCount,
-    t,
-  }).map((field) => ({
+  const withExtra = (field: ConnectorScreenField): ColumnMappingField => ({
     ...field,
-    after: after[field.id],
-    onChange: (value) => {
-      applyConnectorField(flow, field.id, value).catch(() => undefined);
+    after: extra[field.id],
+  });
+  const sections = connectorMappingSections(
+    connectorScreenFields(state, { connector, columns, selectedCount, t })
+  );
+  return {
+    before: sections.before.map(withExtra),
+    rows: sections.rows,
+    keyField: sections.keyField ? withExtra(sections.keyField) : undefined,
+    after: sections.after.map(withExtra),
+    onChange: (id: string, value: string) => {
+      applyConnectorField(flow, id, value).catch(() => undefined);
     },
-  }));
+  };
 }
 
 /** The last push: counts, first failures, warnings and truncation. */
@@ -324,8 +334,8 @@ export function ConnectorPanel({
   ) : null;
   return (
     <StackMenuContent className="p-3" data-connector-panel>
-      <ViewSettingsPanel
-        fields={connectorFields({
+      <ColumnMapping
+        {...connectorMapping({
           connector,
           columns: opened.columns,
           flow,
@@ -336,7 +346,7 @@ export function ConnectorPanel({
         })}
       >
         <ConnectorActions flow={flow} state={state} t={t} />
-      </ViewSettingsPanel>
+      </ColumnMapping>
     </StackMenuContent>
   );
 }

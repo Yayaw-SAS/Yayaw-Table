@@ -249,6 +249,8 @@ export interface TableBehaviorConfig<TData extends TableRecord = TableRecord>
   schedule?: boolean;
   /** Open the connector screens of Connect destinations that declare `connector`; default true. */
   connectors?: boolean;
+  /** Offer Data › Import when rows can be created or updated; default true. */
+  import?: boolean;
   bulkExport: boolean;
   actionsAsIcons: boolean;
   density: TableDensity;
@@ -807,6 +809,13 @@ export interface TableActions<TData extends TableRecord = TableRecord> {
   exportFile?: (
     request: import("./export-model").ExportFileRequest
   ) => Promise<import("./export-model").ExportFileResult | undefined>;
+  /**
+   * Data › Import: extra sources, a server-side bulk write and a key lookup.
+   * Without it, CSV imports go through `create` and `update`.
+   */
+  import?: import("./import-flow").TableImportActions<
+    import("./data-destinations").DataDestinationContext
+  >;
   views?: TableViewActions;
   [key: string]: unknown;
 }

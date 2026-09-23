@@ -9,6 +9,13 @@
  * their results through without converting them.
  */
 
+import {
+  areFieldTypesCompatible,
+  type ColumnMappingRow,
+  matchFieldsByName,
+  normalizeFieldName,
+} from "./field-matching";
+
 type MaybePromise<T> = T | Promise<T>;
 
 /** "upsert" updates rows with the same key and adds the others; "replace" rewrites the target. */
@@ -431,60 +438,17 @@ export function connectorLabels(
 
 // Mapping ------------------------------------------------------------------------
 
-const DIACRITICS = /[̀-ͯ]/g;
-const SEPARATORS = /[\s_-]+/g;
-
 /** "Échéance_date" → "echeance date": accents, case and separators ignored. */
 export function normalizeConnectorName(name: string): string {
-  return name
-    .normalize("NFD")
-    .replace(DIACRITICS, "")
-    .toLowerCase()
-    .replace(SEPARATORS, " ")
-    .trim();
+  return normalizeFieldName(name);
 }
-
-type TypeFamily = "text" | "number" | "date" | "boolean" | "select" | "multi";
-
-const TYPE_FAMILIES: Record<string, TypeFamily> = {
-  number: "number",
-  currency: "number",
-  percent: "number",
-  rating: "number",
-  integer: "number",
-  float: "number",
-  decimal: "number",
-  date: "date",
-  datetime: "date",
-  time: "date",
-  boolean: "boolean",
-  checkbox: "boolean",
-  switch: "boolean",
-  select: "select",
-  status: "select",
-  singleselect: "select",
-  multiselect: "multi",
-  tags: "multi",
-};
-
-const typeFamily = (type: string | undefined): TypeFamily | undefined => {
-  if (!type) {
-    return;
-  }
-  return TYPE_FAMILIES[type.toLowerCase().replace(SEPARATORS, "")] ?? "text";
-};
 
 /** Whether a column's values fit a field; text fields take anything. */
 export function isConnectorTypeCompatible(
   columnType: string | undefined,
   fieldType: string | undefined
 ): boolean {
-  const column = typeFamily(columnType);
-  const field = typeFamily(fieldType);
-  if (!(column && field) || field === "text" || column === field) {
-    return true;
-  }
-  return column === "select" && field === "multi";
+  return areFieldTypesCompatible(columnType, fieldType);
 }
 
 /**
@@ -497,32 +461,31 @@ export function defaultConnectorMapping(
   fields: readonly ConnectorField[],
   options: { allowNewFields?: boolean; keyField?: string } = {}
 ): ConnectorMappingEntry[] {
-  const used = new Set<string>(
-    options.keyField ? [normalizeConnectorName(options.keyField)] : []
+  const matches = matchFieldsByName(
+    columns.map((column) => ({
+      key: column.id,
+      names: [column.header],
+      type: column.type,
+    })),
+    fields.map((field) => ({
+      key: field.name,
+      names: [field.name],
+      type: field.type,
+    })),
+    {
+      reserved: options.keyField ? [options.keyField] : [],
+      fallback: (source, used) => {
+        const header = source.names[0] ?? "";
+        return options.allowNewFields && !used.has(normalizeFieldName(header))
+          ? header
+          : null;
+      },
+    }
   );
-  const pick = (column: ConnectorColumn): string | null => {
-    const name = normalizeConnectorName(column.header);
-    const candidates = fields.filter(
-      (field) =>
-        normalizeConnectorName(field.name) === name &&
-        !used.has(normalizeConnectorName(field.name))
-    );
-    const match =
-      candidates.find((field) =>
-        isConnectorTypeCompatible(column.type, field.type)
-      ) ?? candidates[0];
-    if (match) {
-      return match.name;
-    }
-    return options.allowNewFields && !used.has(name) ? column.header : null;
-  };
-  return columns.map((column) => {
-    const field = pick(column);
-    if (field) {
-      used.add(normalizeConnectorName(field));
-    }
-    return { columnId: column.id, field };
-  });
+  return columns.map((column, index) => ({
+    columnId: column.id,
+    field: matches[index] ?? null,
+  }));
 }
 
 /** Fields that may identify records, with the default key offered for a new field. */
@@ -1459,4 +1422,44 @@ export function applyConnectorField(
       flow.setScope(value === "selection" ? "selection" : "view");
   }
   return Promise.resolve();
+}
+
+const TARGET_FIELD_IDS = new Set(["target", "child", "columns"]);
+
+/**
+ * The screen fields as the column-mapping component takes them: target
+ * settings before the rows, the mapping rows, the key field, then mode and
+ * records.
+ */
+export function connectorMappingSections(
+  fields: readonly ConnectorScreenField[]
+): {
+  before: ConnectorScreenField[];
+  rows: ColumnMappingRow[];
+  keyField: ConnectorScreenField | undefined;
+  after: ConnectorScreenField[];
+} {
+  const isRow = (field: ConnectorScreenField) =>
+    field.id.startsWith(MAP_PREFIX);
+  return {
+    before: fields.filter((field) => TARGET_FIELD_IDS.has(field.id)),
+    rows: fields
+      .filter(isRow)
+      .map(({ id, label, value, options, heading }) => ({
+        id,
+        label,
+        value,
+        options,
+        heading,
+      })),
+    keyField: fields.find((field) => field.id === "keyField"),
+    after: fields.filter(
+      (field) =>
+        !(
+          TARGET_FIELD_IDS.has(field.id) ||
+          isRow(field) ||
+          field.id === "keyField"
+        )
+    ),
+  };
 }

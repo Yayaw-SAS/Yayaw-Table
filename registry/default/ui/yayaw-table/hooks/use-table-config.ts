@@ -119,6 +119,8 @@ export interface TableCatalogueTableConfig extends GenericModeViewConfigs {
   schedule?: boolean;
   /** Open the connector screens of Connect destinations that declare `connector`; default true. */
   connectors?: boolean;
+  /** Offer Data › Import when rows can be created or updated; default true. */
+  import?: boolean;
   bulkExport?: boolean;
   actionsAsIcons?: boolean;
   density?: TableDensity;
@@ -358,6 +360,7 @@ function resolveTableBehaviorConfig(
     share: mergedConfig.share,
     schedule: mergedConfig.schedule,
     connectors: mergedConfig.connectors,
+    import: mergedConfig.import,
     exportFormats: mergedConfig.exportFormats,
     bulkExport: mergedConfig.bulkExport ?? true,
     actionsAsIcons: mergedConfig.actionsAsIcons ?? false,
