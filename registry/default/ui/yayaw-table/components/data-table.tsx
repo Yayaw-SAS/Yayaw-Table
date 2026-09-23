@@ -435,6 +435,28 @@ function DataTableHeaderControls({
 /** Record view derived from the columns, used when no `details` are given. */
 const DEFAULT_DETAILS: RecordDetailsConfig = {};
 
+function resolveRecordDetails(
+  details: RecordDetailsConfig | false | undefined
+): RecordDetailsConfig | undefined {
+  return details === false ? undefined : (details ?? DEFAULT_DETAILS);
+}
+
+/** Opens the record view, then the host's handler; none when neither exists. */
+function rowActivationHandler(
+  openDetails: ((row: Record<string, unknown>) => void) | undefined,
+  onRowActivate:
+    | ((row: Record<string, unknown>, event: React.MouseEvent) => void)
+    | undefined
+) {
+  if (!(openDetails || onRowActivate)) {
+    return;
+  }
+  return (row: Record<string, unknown>, event: React.MouseEvent) => {
+    openDetails?.(row);
+    onRowActivate?.(row, event);
+  };
+}
+
 function detailViewHandler(
   details: RecordDetailsConfig | undefined,
   open: (row: Record<string, unknown>) => void,
@@ -661,8 +683,7 @@ function DataTableContent({
     () => planningLabelOverrides(planningTranslate),
     [planningTranslate]
   );
-  const recordDetails =
-    details === false ? undefined : (details ?? DEFAULT_DETAILS);
+  const recordDetails = resolveRecordDetails(details);
   const { viewedRow, setViewedRow, openDetails } = useRecordView(
     tableId,
     recordDetails,
@@ -937,14 +958,7 @@ function DataTableContent({
                 onBulkExport={onBulkExport}
                 onOpenDetails={openDetails}
                 onRevertActivity={onRevertActivity}
-                onRowActivate={
-                  openDetails || onRowActivate
-                    ? (row, event) => {
-                        openDetails?.(row);
-                        onRowActivate?.(row, event);
-                      }
-                    : undefined
-                }
+                onRowActivate={rowActivationHandler(openDetails, onRowActivate)}
                 onRowClick={onRowClick}
                 onRowSelectionChange={onRowSelectionChange}
                 onRowSelectionStateChange={onRowSelectionStateChange}
