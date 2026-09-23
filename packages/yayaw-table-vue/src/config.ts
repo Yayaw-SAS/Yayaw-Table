@@ -1,3 +1,4 @@
+import { resolveDisplayMode, resolveDisplayModes } from "./display-modes";
 import type {
   FormConfig,
   FormFieldDefinition,
@@ -87,14 +88,7 @@ const layoutDefaults: Record<
 
 export const resolveTableDisplayModes = (
   displayModes?: TableDisplayMode[]
-): TableDisplayMode[] => {
-  const allowed: TableDisplayMode[] = ["table", "kanban", "gallery", "gantt"];
-  const unique = (displayModes ?? ["table"]).filter(
-    (mode, index, modes) =>
-      allowed.includes(mode) && modes.indexOf(mode) === index
-  );
-  return unique.length > 0 ? unique : ["table"];
-};
+): TableDisplayMode[] => resolveDisplayModes(displayModes);
 
 export const defineTableConfig = <TData extends TableRecord>(
   input: Omit<TableConfig<TData>, "table"> & {
@@ -104,10 +98,10 @@ export const defineTableConfig = <TData extends TableRecord>(
   const preset = input.table?.layoutPreset ?? "default";
   const displayModes = resolveTableDisplayModes(input.table?.displayModes);
   const requestedMode = input.table?.defaultDisplayMode;
-  const defaultDisplayMode =
-    requestedMode && displayModes.includes(requestedMode)
-      ? requestedMode
-      : (displayModes[0] ?? "table");
+  const defaultDisplayMode = resolveDisplayMode({
+    allowed: displayModes,
+    requested: requestedMode,
+  });
   return {
     ...input,
     columns: {

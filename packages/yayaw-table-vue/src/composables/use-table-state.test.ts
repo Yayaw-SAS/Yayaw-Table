@@ -103,3 +103,37 @@ it("captures every saved density and restores the catalogue default for legacy v
     wrapper.unmount();
   }
 });
+
+it("falls back from a Gantt view when no planning session can render it", () => {
+  const config = defineTableConfig({
+    id: "planning-guard",
+    translations: { namespace: "planning-guard", keys: {} },
+    columns: {
+      definitions: [{ id: "name", header: "Name" }],
+      visible: ["name"],
+      order: ["name"],
+      mandatory: ["name"],
+    },
+    table: { displayModes: ["table", "gantt"], defaultDisplayMode: "gantt" },
+  });
+  const mountState = (planning: boolean): TableStateRefs => {
+    let state!: TableStateRefs;
+    mount(
+      defineComponent({
+        setup() {
+          state = useTableState({ config, syncUrl: false, planning });
+          return () => null;
+        },
+      })
+    );
+    return state;
+  };
+
+  const withoutPlanning = mountState(false);
+  withoutPlanning.applyView({ displayMode: "gantt" }, "saved");
+  expect(withoutPlanning.displayMode.value).toBe("table");
+
+  const withPlanning = mountState(true);
+  withPlanning.applyView({ displayMode: "gantt" }, "saved");
+  expect(withPlanning.displayMode.value).toBe("gantt");
+});

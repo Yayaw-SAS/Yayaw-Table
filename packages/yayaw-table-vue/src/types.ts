@@ -15,7 +15,10 @@ import type { RecordPresentationConfig } from "./record-presentation";
 export type TableRecord = Record<string, unknown>;
 export type PrimitiveValue = boolean | number | string;
 export type MaybePromise<T> = Promise<T> | T;
-export type TableDisplayMode = "gallery" | "kanban" | "table" | "gantt";
+
+import type { TableDisplayMode as RegisteredDisplayMode } from "./display-modes";
+
+export type TableDisplayMode = RegisteredDisplayMode;
 
 import type { TableDensity } from "./table-contracts";
 

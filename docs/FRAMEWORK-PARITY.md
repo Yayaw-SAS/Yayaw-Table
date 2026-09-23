@@ -44,6 +44,7 @@ List actions receive both naming conventions:
 | Search | `search`, `q`, and `globalSearch` |
 | Column filters | `filters` object |
 | Advanced filters | Active `advancedFilters` array and `advancedFilterJoin` (`and`/`or`) |
+| Scope (optional) | `scope`, for example `{ kind: "dateRange", field, endField?, from, to }` |
 
 URL page indexes remain zero-based. Invalid page sizes fall back to defaults. Existing action handlers can keep reading their original names. Aggregation receives the filter join operator too. Vue accepts primitive aggregate results and React's `{ raw, label }` values.
 
@@ -228,7 +229,7 @@ The parity contract covers user-visible behavior and serializable catalogue/acti
 | Toolbar | Create/export order, icon mode, callback/static custom actions, action context, three placements, clear-filter shortcut | Vue `yayaw-data-table.test.ts`, `filter-reset.test.ts`; React toolbar and filter-reset suites |
 | View manager | Default/system views, dirty state, create/update/delete/share permissions, recoverable persistence | Vue saved-view suites; React view-manager suites |
 | Columns | Sort/filter/pin/hide menus, mandatory/utility locks, persistent DnD preference, pointer and keyboard reorder, optional resizing stored in views/URLs | Shared contract/view-state suites; Vue `catalogue-controls.test.ts`, `yayaw-data-table.test.ts`; React column and URL-state suites |
-| Display modes | Shared grouping and pagination, card renderers, configurable empty state, one-page pagination hiding | Vue `parity.test.ts`; React gallery/Kanban suites |
+| Display modes | Shared mode registry, fallback for unavailable modes, grouping and pagination, card renderers, configurable empty state, one-page pagination hiding | Shared `display-modes.test.ts`; Playwright `e2e/views.spec.ts` in both editions; Vue `parity.test.ts`; React gallery/Kanban suites |
 | Kanban updates | Permission-aware moves, optimistic update, rollback and accessible non-pointer movement | Vue `parity.test.ts`; React Kanban suites |
 | Selection | Controlled state, cross-page cache, select-all race protection, optional query persistence | React `selection-parity.test.tsx`; Vue component/action suites |
 | Catalogue forms | Generated fields, conditions, async values/options, nested collections, validation, transforms, patch mode | Shared `form-scenarios.json`; both form-contract suites and mounted form suites |
@@ -241,6 +242,11 @@ The parity contract covers user-visible behavior and serializable catalogue/acti
 | Distribution | TanStack Table 9.2.4 with matched explicit features, generated React and Vue registries, and the repository Vue example | Adapter compatibility tests, type checks, full tests, Vue builds, registry sync/pages build |
 
 ## Verification and distribution
+
+`bun run e2e` runs `e2e/*.spec.ts` with Playwright against the React preview
+(`examples/record-presentation-preview`) and the Vue demo, both on
+`?example=views`, which render the same `examples/views.ts` records. Each spec
+runs once per edition, so an observable difference fails one project.
 
 `bun run test` registers all React tests through `bun:test` and preloads a browser environment for mounted form tests. `bun run vue:test` covers Vue and the shared fixtures. Run type checks, the Vue build, `registry:sync`, and `registry:pages` before publishing copied code. React test files are excluded from consumer registry output. Immutable released snapshots are unchanged by a feature PR.
 
@@ -547,3 +553,42 @@ control inside the native filter menu. It uses the same typed column-filter stat
 as views and reset. The optional historical quick-filter bar remains independent.
 The host owns control labels, validation, remote option loading and API translation.
 Shared remote lifecycle regressions run in both frameworks.
+
+## Display mode registry
+
+`utils/display-modes.ts` is the single list of display modes, synced to Vue by
+`contracts:sync`. It declares each mode's table-only controls, grouping depth,
+saved-view/URL settings key and whether it needs a planning session.
+`resolveDisplayModes` and `resolveDisplayMode` decide which modes a table offers
+and which one renders, so a link or saved view asking for an unavailable mode
+shows the same fallback, and the same active switcher choice, in both editions.
+Icon maps are typed by `TableDisplayMode`, so a new registry entry fails the type
+check until each edition gives it an icon. Resetting a view clears every mode's
+settings, including Gantt.
+
+## Scoped row loading
+
+Views that need every matching row of a window, not one page, use
+`loadScopedRows` from `utils/scoped-rows.ts` (synced to Vue). It sends the usual
+list parameters plus an optional `scope`. A `dateRange` scope names local
+calendar days, both inclusive; a row matches when its start (and optional end)
+overlaps them, with the same local-day semantics as date filters.
+
+Filtering by scope on the server is preferred. A list action that applied it
+answers `meta.scope: "applied"`; otherwise the loader filters each page itself,
+so existing hosts keep working with more data transferred. Results are capped
+(`maxRows`, 2000 by default): views either show a `truncated` result or, with
+`overflow: "throw"`, refuse an incomplete one. Vue's local-data mode filters its
+rows the same way. `tests/scoped-rows-suite.ts` runs in both editions.
+
+## Multiple sorts and filter combination
+
+Both editions keep an ordered list of sorts and send every sort to list actions.
+React's sort menu adds a clicked column as the lowest-priority sort, reverses it
+on the next click and removes it on the third, numbering priorities when more
+than one sort applies; Vue edits the same list with one rule per sort. With two
+or more advanced filter rules, both editions offer "Match all / any condition"
+(`filters.match`, `filters.combination`, `filters.match_all`,
+`filters.match_any`), stored as the rules' `joinOperator` in views and URLs.
+Playwright `e2e/views.spec.ts` checks the combination round trip in both
+editions.

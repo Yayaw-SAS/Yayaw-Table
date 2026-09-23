@@ -1,11 +1,21 @@
 "use client";
 
-import { ChartGantt, Columns3, Images, Table2 } from "lucide-react";
+import {
+  ChartGantt,
+  Columns3,
+  Images,
+  type LucideIcon,
+  Table2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useTableUrlState } from "../../hooks/use-table-url-state";
 import { useTranslations } from "../../providers/table-provider";
 import type { TableDisplayMode } from "../../types/display-types";
+import {
+  resolveDisplayMode,
+  resolveDisplayModes,
+} from "../../utils/display-modes";
 
 interface TableDisplayModeSwitcherProps {
   className?: string;
@@ -14,12 +24,12 @@ interface TableDisplayModeSwitcherProps {
   tableId: string;
 }
 
-const DISPLAY_MODE_ICONS = {
+const DISPLAY_MODE_ICONS: Record<TableDisplayMode, LucideIcon> = {
   gantt: ChartGantt,
   gallery: Images,
   kanban: Columns3,
   table: Table2,
-} as const;
+};
 
 export function TableDisplayModeSwitcher({
   className,
@@ -32,9 +42,13 @@ export function TableDisplayModeSwitcher({
     defaultDisplayMode,
     tableId,
   });
-  const uniqueModes = displayModes.filter(
-    (mode, index, modes) => modes.indexOf(mode) === index
-  );
+  const uniqueModes = resolveDisplayModes(displayModes);
+  // A link may request a mode this table does not offer; show the mode actually rendered.
+  const activeMode = resolveDisplayMode({
+    allowed: uniqueModes,
+    fallback: defaultDisplayMode,
+    requested: displayModeParam,
+  });
 
   if (uniqueModes.length <= 1) {
     return null;
@@ -47,7 +61,7 @@ export function TableDisplayModeSwitcher({
       </legend>
       {uniqueModes.map((mode) => {
         const Icon = DISPLAY_MODE_ICONS[mode];
-        const isActive = displayModeParam === mode;
+        const isActive = activeMode === mode;
         const label = t(`views.display.${mode}`);
 
         return (

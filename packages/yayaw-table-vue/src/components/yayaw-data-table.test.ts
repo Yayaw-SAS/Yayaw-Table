@@ -113,11 +113,11 @@ describe("YayawDataTable", () => {
       "fieldset.yayaw-display-mode-inline button"
     );
     await buttons
-      .find((button) => button.text() === "kanban")
+      .find((button) => button.text() === "Kanban")
       ?.trigger("click");
     expect(wrapper.find(".yayaw-kanban").exists()).toBe(true);
     await buttons
-      .find((button) => button.text() === "gallery")
+      .find((button) => button.text() === "Gallery")
       ?.trigger("click");
     expect(wrapper.find(".yayaw-gallery").exists()).toBe(true);
   });
@@ -627,7 +627,7 @@ describe("YayawDataTable", () => {
     await openViewMenu(wrapper);
     await wrapper
       .findAll("fieldset.yayaw-display-mode-inline button")
-      .find((button) => button.text() === "kanban")
+      .find((button) => button.text() === "Kanban")
       ?.trigger("click");
     expect(wrapper.get(".yayaw-kanban-card").attributes("draggable")).toBe(
       "false"

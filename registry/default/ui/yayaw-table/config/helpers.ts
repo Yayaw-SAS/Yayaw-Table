@@ -1,3 +1,7 @@
+import {
+  resolveDisplayMode,
+  resolveDisplayModes,
+} from "../utils/display-modes";
 import type { RecordPresentationConfig } from "../utils/record-presentation";
 /**
  * Helper functions for defining and working with table configurations
@@ -189,25 +193,10 @@ export function getTableLayoutPresetDefaults(
   return {};
 }
 
-const TABLE_DISPLAY_MODES: TableDisplayMode[] = [
-  "table",
-  "kanban",
-  "gallery",
-  "gantt",
-];
-
 export function resolveTableDisplayModes(
   displayModes: TableDisplayMode[] | undefined
 ): TableDisplayMode[] {
-  const resolvedModes = (displayModes ?? ["table"]).filter(
-    (mode, index, modes): mode is TableDisplayMode => {
-      return (
-        TABLE_DISPLAY_MODES.includes(mode) && modes.indexOf(mode) === index
-      );
-    }
-  );
-
-  return resolvedModes.length > 0 ? resolvedModes : ["table"];
+  return resolveDisplayModes(displayModes);
 }
 
 export function resolveTableDisplayMode({
@@ -217,11 +206,7 @@ export function resolveTableDisplayMode({
   allowedModes: TableDisplayMode[];
   displayMode?: TableDisplayMode;
 }): TableDisplayMode {
-  if (displayMode && allowedModes.includes(displayMode)) {
-    return displayMode;
-  }
-
-  return allowedModes[0] ?? "table";
+  return resolveDisplayMode({ allowed: allowedModes, requested: displayMode });
 }
 
 /**

@@ -1209,6 +1209,11 @@
           "target": "components/ui/yayaw-table/utils/date-display.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/utils/display-modes.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/display-modes.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/utils/duplicate-shortcut.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/duplicate-shortcut.ts"
@@ -1277,6 +1282,11 @@
           "path": "registry/default/ui/yayaw-table/utils/row-selection-range.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/row-selection-range.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/scoped-rows.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/scoped-rows.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/utils/selection-interaction.ts",

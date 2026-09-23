@@ -9,6 +9,7 @@ import type {
 import type { TableDisplayMode } from "../types/display-types";
 import type { AdvancedFiltersState } from "../types/filter-types";
 import type { TableViewConfig } from "../types/view-types";
+import { displayModeMaxGroups, isTableDisplayMode } from "./display-modes";
 import { normalizeGalleryViewConfig } from "./gallery-view-state";
 import {
   isTableDensity,
@@ -19,10 +20,6 @@ import {
 import { areViewSettingsEqual } from "./view-menu";
 
 const EMPTY_PINNING: ColumnPinningState = { left: [], right: [] };
-const SINGLE_GROUP_DISPLAY_MODES = new Set<TableDisplayMode>([
-  "gallery",
-  "kanban",
-]);
 
 function hasArrayValues(value: unknown): value is unknown[] {
   return Array.isArray(value) && value.length > 0;
@@ -80,7 +77,8 @@ export function getDisplayModeGrouping({
   grouping: unknown;
 }): string[] {
   const normalizedGrouping = normalizeGroupingState(grouping);
-  return SINGLE_GROUP_DISPLAY_MODES.has(displayMode)
+  // Only the single-level card modes truncate; a mode without grouping keeps the shared state.
+  return displayModeMaxGroups(displayMode) === 1
     ? normalizedGrouping.slice(0, 1)
     : normalizedGrouping;
 }
@@ -88,16 +86,7 @@ export function getDisplayModeGrouping({
 function normalizeDisplayMode(
   value: TableDisplayMode | undefined
 ): TableDisplayMode | undefined {
-  if (
-    value === "gallery" ||
-    value === "kanban" ||
-    value === "table" ||
-    value === "gantt"
-  ) {
-    return value;
-  }
-
-  return;
+  return isTableDisplayMode(value) ? value : undefined;
 }
 
 function normalizeKanbanViewConfig(

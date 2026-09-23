@@ -240,6 +240,8 @@ export interface FilterActions {
   clearFilters: () => void;
   /** Toggle filter active state */
   toggleFilter: (filterId: string) => void;
+  /** Match all rules (`and`) or any rule (`or`). */
+  setJoinOperator?: (joinOperator: "and" | "or") => void;
   /** Apply a filter preset */
   applyPreset: (preset: AdvancedFilterPreset) => void;
   /** Save current filters as preset */

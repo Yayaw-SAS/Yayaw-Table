@@ -27,6 +27,7 @@ import type {
 } from "../types/display-types";
 import type { AdvancedFiltersState } from "../types/filter-types";
 import type { TableViewConfig } from "../types/view-types";
+import { isTableDisplayMode } from "../utils/display-modes";
 import {
   normalizeColumnSizing,
   normalizeFilterEnvelope,
@@ -139,18 +140,8 @@ const normalizePageSize = (value: number | undefined) =>
 
 const normalizeDisplayMode = (
   value: null | string | undefined
-): TableDisplayMode | undefined => {
-  if (
-    value === "gallery" ||
-    value === "kanban" ||
-    value === "table" ||
-    value === "gantt"
-  ) {
-    return value;
-  }
-
-  return;
-};
+): TableDisplayMode | undefined =>
+  isTableDisplayMode(value) ? value : undefined;
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === "object" && value !== null;
@@ -1316,6 +1307,7 @@ export function useTableUrlState({
       setKanbanGroupByParam(null);
       setKanbanParam(null);
       setGalleryParam(null);
+      setGanttParam(null);
       setGlobalSearchParam(null);
       setPinningParam({ left: [], right: [] });
     } finally {
@@ -1351,6 +1343,7 @@ export function useTableUrlState({
     setKanbanGroupByParam,
     setKanbanParam,
     setGalleryParam,
+    setGanttParam,
     setGlobalSearchParam,
     setPinningParam,
     defaultPageSizeParam,

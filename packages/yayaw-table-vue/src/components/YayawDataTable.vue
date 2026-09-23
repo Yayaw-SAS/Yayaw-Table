@@ -193,6 +193,7 @@ const state = useTableState({
   config,
   syncUrl: props.syncUrl ?? config.table.syncUrl ?? true,
   initialActiveViewId: props.initialActiveViewId,
+  planning: Boolean(planning),
 });
 const tableData = useTableData({
   actions,

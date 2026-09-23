@@ -80,6 +80,11 @@ export interface DataTableTranslations {
   };
   filters: {
     title: string;
+    /** Label before the all/any selector shown with two or more rules. */
+    match?: string;
+    combination?: string;
+    match_all?: string;
+    match_any?: string;
     add: string;
     remove: string;
     apply: string;
