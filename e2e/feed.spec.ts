@@ -196,7 +196,9 @@ test("infinite scroll loads the next page at the end of the feed", async ({
 });
 
 test("both editions draw cards with the same measures", async ({ page }) => {
-  await page.setViewportSize({ width: 1200, height: 900 });
+  // Same width as the other feed tests: narrower, the view tabs fold into
+  // the views menu on CI fonts and "More" disappears.
+  await page.setViewportSize({ width: 1280, height: 900 });
   await openUpdates(page);
   const styles = await cards(page)
     .first()
