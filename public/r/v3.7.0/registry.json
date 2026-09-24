@@ -1761,7 +1761,7 @@
       "description": "Optional calendar display mode for YaYaw Table (month, week and list), rendered with FullCalendar. Pass `calendarRenderer` to `displayModeRenderers` and add \"calendar\" to `table.displayModes`.",
       "registryDependencies": [
         "button",
-        "https://table.yayaw.app/r/yayaw-table.json"
+        "https://table.yayaw.app/r/v3.7.0/yayaw-table.json"
       ],
       "dependencies": ["@fullcalendar/react", "temporal-polyfill"],
       "files": [
@@ -1795,7 +1795,7 @@
       "registryDependencies": [
         "button",
         "chart",
-        "https://table.yayaw.app/r/yayaw-table.json"
+        "https://table.yayaw.app/r/v3.7.0/yayaw-table.json"
       ],
       "dependencies": ["recharts"],
       "files": [
@@ -1840,7 +1840,7 @@
         "native-select",
         "popover",
         "textarea",
-        "https://table.yayaw.app/r/yayaw-table.json"
+        "https://table.yayaw.app/r/v3.7.0/yayaw-table.json"
       ],
       "dependencies": ["gridstack"],
       "files": [
@@ -1909,7 +1909,7 @@
       "registryDependencies": [
         "button",
         "https://mapcn.dev/r/map.json",
-        "https://table.yayaw.app/r/yayaw-table.json"
+        "https://table.yayaw.app/r/v3.7.0/yayaw-table.json"
       ],
       "dependencies": ["maplibre-gl"],
       "meta": {
