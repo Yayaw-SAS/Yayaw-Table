@@ -349,6 +349,7 @@ export interface DataTableTranslations {
       calendar?: string;
       chart?: string;
       feed?: string;
+      filetree?: string;
       form?: string;
       gantt?: string;
       gallery: string;

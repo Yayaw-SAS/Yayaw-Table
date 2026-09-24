@@ -101,6 +101,35 @@ const showRecords = (rules: Record<string, unknown>[]): boolean => {
   );
   return true;
 };
+type Mutation = { success: boolean; error?: string };
+const mutationError = (cause: unknown) =>
+  cause instanceof Error ? cause.message : String(cause);
+/** Save or delete through the host's actions, answering the result instead of a notification. */
+const runMutation = async (run: () => Promise<Mutation> | Mutation): Promise<Mutation> => {
+  try {
+    const result = await run();
+    if (result.success) await context.refresh();
+    return { success: result.success, error: result.error };
+  } catch (cause) {
+    return { success: false, error: mutationError(cause) };
+  }
+};
+const patchRow = (row: TableRecord, patch: TableRecord): Promise<Mutation> =>
+  runMutation(async () => {
+    const update = context.actions.value?.update;
+    return update ? await update(context.getRowId(row), patch, { row }) : { success: false };
+  });
+const canDeleteRow = (row: TableRecord): boolean =>
+  context.config.table.allowDelete !== false &&
+  Boolean(context.actions.value?.delete) &&
+  context.config.table.canDeleteRow?.(row) !== false;
+const deleteRow = (row: TableRecord): Promise<Mutation> =>
+  runMutation(async () => {
+    const remove = context.actions.value?.delete;
+    return remove && canDeleteRow(row)
+      ? await remove(context.getRowId(row), { row })
+      : { success: false };
+  });
 const settingsContext = useModeSettingsContext();
 const renderContext = computed<DisplayModeRenderContext>(() => ({
   ...settingsContext.value,
@@ -126,6 +155,22 @@ const renderContext = computed<DisplayModeRenderContext>(() => ({
   formLinks: context.actions.value?.formLinks,
   coloredTags: context.config.table.coloredTags !== false,
   revision: revision.value,
+  title: context.config.translations?.keys?.title,
+  tree: context.actions.value?.tree,
+  patchRow: context.actions.value?.update ? patchRow : undefined,
+  deleteRow:
+    context.actions.value?.delete && context.config.table.allowDelete !== false
+      ? deleteRow
+      : undefined,
+  canDeleteRow,
+  media: context.config.table.gallery?.media,
+  imageColumn: context.config.table.gallery?.imageColumn,
+  selection: {
+    enabled: context.config.table.enableRowSelection !== false,
+    multiple: context.config.table.enableMultiRowSelection !== false,
+  },
+  syncUrl: context.config.table.syncUrl !== false,
+  refresh: () => context.refresh(),
 }));
 </script>
 

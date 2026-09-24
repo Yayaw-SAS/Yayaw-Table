@@ -90,6 +90,7 @@ import {
   formSubmitResultFrom,
 } from "../utils/form-view";
 import { isManualOrder } from "../utils/manual-order";
+import type { TableGalleryMediaConfig } from "../utils/media-contract";
 import type {
   DetailRevertHandler,
   RecordDetailsConfig,
@@ -683,6 +684,132 @@ function useFormRendererActions({
     formLinks: actions?.formLinks as FormLinkActions | undefined,
     viewId: viewParam ?? null,
   };
+}
+
+type RendererRecord = Record<string, unknown>;
+interface RendererMutation {
+  success: boolean;
+  error?: string;
+}
+
+const rendererError = (cause: unknown) =>
+  cause instanceof Error ? cause.message : String(cause);
+
+/** Save or delete through the host's actions, answering the result instead of a toast. */
+async function runRendererMutation(
+  run: () => Promise<RendererMutation>,
+  onSuccess: () => Promise<unknown>
+): Promise<RendererMutation> {
+  try {
+    const result = await run();
+    if (result.success) {
+      await onSuccess();
+    }
+    return { success: result.success, error: result.error };
+  } catch (cause) {
+    return { success: false, error: rendererError(cause) };
+  }
+}
+
+/** What the built-in file tree needs from the table besides the common renderer context. */
+function useRendererExtras({
+  actions,
+  allowDelete,
+  canDeleteRow,
+  enableMultiRowSelection,
+  enableRowSelection,
+  gallery,
+  getRowId,
+  refetch,
+  syncUrl,
+  tableId,
+  title,
+}: {
+  actions?: TableActions;
+  allowDelete?: boolean;
+  canDeleteRow?: (row: RendererRecord) => boolean;
+  enableMultiRowSelection?: boolean;
+  enableRowSelection?: boolean;
+  gallery?: { media?: TableGalleryMediaConfig; imageColumn?: string };
+  getRowId?: (row: RendererRecord) => string;
+  refetch: () => Promise<unknown>;
+  syncUrl: boolean;
+  tableId: string;
+  title?: string;
+}) {
+  const queryClient = useQueryClient();
+  const update = actions?.update;
+  const remove = actions?.delete;
+  const idOf = useCallback(
+    (row: RendererRecord) => getRowId?.(row) ?? String(row.id ?? row._id ?? ""),
+    [getRowId]
+  );
+  const refresh = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ["tableData", tableId] });
+    await refetch();
+  }, [queryClient, refetch, tableId]);
+  const patchRow = useCallback(
+    (row: RendererRecord, patch: RendererRecord) =>
+      runRendererMutation(
+        () =>
+          update
+            ? update(idOf(row), patch, { row })
+            : Promise.resolve({ success: false }),
+        refresh
+      ),
+    [idOf, refresh, update]
+  );
+  const canDelete = useCallback(
+    (row: RendererRecord) =>
+      allowDelete !== false &&
+      typeof remove === "function" &&
+      canDeleteRow?.(row) !== false,
+    [allowDelete, canDeleteRow, remove]
+  );
+  const deleteRow = useCallback(
+    (row: RendererRecord) =>
+      runRendererMutation(
+        () =>
+          remove && canDelete(row)
+            ? remove(idOf(row), { row })
+            : Promise.resolve({ success: false }),
+        refresh
+      ),
+    [canDelete, idOf, refresh, remove]
+  );
+  return useMemo(
+    () => ({
+      canDeleteRow: canDelete,
+      deleteRow: remove && allowDelete !== false ? deleteRow : undefined,
+      imageColumn: gallery?.imageColumn,
+      media: gallery?.media,
+      patchRow: update ? patchRow : undefined,
+      refresh,
+      selection: {
+        enabled: enableRowSelection !== false,
+        multiple: enableMultiRowSelection !== false,
+      },
+      syncUrl,
+      title,
+      tree: actions?.tree,
+    }),
+    [
+      actions?.tree,
+      allowDelete,
+      canDelete,
+      deleteRow,
+      enableMultiRowSelection,
+      enableRowSelection,
+      gallery?.imageColumn,
+      gallery?.media,
+      patchRow,
+      refresh,
+      remove,
+      syncUrl,
+      title,
+      update,
+    ]
+  );
 }
 
 function resolveRowEntityId<TData extends Record<string, unknown>>(
@@ -2015,7 +2142,24 @@ function ModernDataTable<
       setDisplayModeFromUI,
     ]
   );
+  const rendererExtras = useRendererExtras({
+    actions: providerTableActions,
+    allowDelete: tableConfig.table.allowDelete,
+    canDeleteRow: tableConfig.table.canDeleteRow,
+    enableMultiRowSelection,
+    enableRowSelection,
+    gallery: tableConfig.table.gallery,
+    getRowId: getRowId as
+      | ((row: Record<string, unknown>) => string)
+      | undefined,
+    refetch,
+    syncUrl: tableConfig.table.syncUrl !== false,
+    tableId,
+    title: (tableConfig as { translations?: { keys?: Record<string, string> } })
+      .translations?.keys?.title,
+  });
   const rendererContext = useDisplayModeRenderContext({
+    extras: rendererExtras,
     aggregate: providerTableActions?.aggregate,
     showRecords: showRendererRecords,
     activateRow: activateRendererRow,
@@ -3000,8 +3144,10 @@ function ModernDataTable<
         pageSize: table.store.state.pagination.pageSize,
         rowCount,
       });
+    // The file tree pages each folder itself ("Show more").
     const showPaginationArea =
       !((isKanbanMode && kanbanConfig.server) || isGanttMode) &&
+      activeDisplayMode !== "filetree" &&
       enablePagination &&
       (showPaginationControls || renderBulkActionsInFooter);
     const fixedBulkActionsViewportOffset = getBulkActionsViewportBottomOffset({

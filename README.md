@@ -52,7 +52,13 @@ arranges saved views of any table, numbers and notes on a 4-column grid
 (gridstack.js, loaded on demand; stacked on phones) with dashboard filters
 sent to each table's `list`/`aggregate`, and stores dashboards through
 `actions.dashboards` (`list`, `load`, `save`, `remove`). Several tables on one
-page stay apart with `instanceId`. The Form view ships in the table items: add `"form"` to
+page stay apart with `instanceId`. The File tree view ships in the table items:
+records linked by a parent column (`table.filetree.parentColumn`, or a column
+named `parentId`) show as folders and files in a tree table; add `"filetree"`
+to `displayModes`. It loads folders with `list({ scope: { kind: "children" } })`
+and moves with `actions.tree.move` when the host provides them, and falls back
+to the rows `list` returns and `update` otherwise; see
+[docs/FILETREE.md](docs/FILETREE.md). The Form view ships in the table items: add `"form"` to
 `displayModes` (tables with a `create` action). Its standalone
 `YayawTableForm` renders a saved Form view on a public route without table
 state. Forms can show, hide and require questions by rule (`form.rules`,

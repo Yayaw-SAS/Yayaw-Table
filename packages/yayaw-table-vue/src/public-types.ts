@@ -57,6 +57,8 @@ export {
 export declare const formRenderer: import("./display-mode-renderer").DisplayModeRenderer;
 export declare const feedRenderer: import("./display-mode-renderer").DisplayModeRenderer;
 
+export declare const fileTreeRenderer: import("./display-mode-renderer").DisplayModeRenderer;
+
 export { default as RecordDetails } from "./components/details/RecordDetails.vue";
 export {
   type FeedBodyRenderer,
@@ -67,6 +69,14 @@ export {
   formatFeedRelativeDate,
   normalizeFeedViewConfig,
 } from "./feed-view";
+export type {
+  FileTreeActions,
+  FileTreeHooks,
+  FileTreeMoveInput,
+  FileTreeMoveResult,
+  FileTreeTableConfig,
+  FileTreeViewSettings,
+} from "./filetree-model";
 export type {
   DetailActivity,
   DetailField,

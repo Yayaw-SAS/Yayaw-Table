@@ -1,7 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const REACT_PORT = 5186;
-const VUE_PORT = 5187;
+// Overridable so parallel checkouts can run the suite side by side.
+const REACT_PORT = Number(process.env.E2E_REACT_PORT ?? 5186);
+const VUE_PORT = Number(process.env.E2E_VUE_PORT ?? 5187);
 const ci = Boolean(process.env.CI);
 
 /** One suite runs against both editions so their observable behavior stays aligned. */

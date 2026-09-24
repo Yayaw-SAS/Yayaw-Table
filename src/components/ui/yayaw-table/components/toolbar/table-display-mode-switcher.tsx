@@ -3,6 +3,7 @@
 import {
   CalendarDays,
   ChartColumnBig,
+  FolderTree,
   ChartGantt,
   ClipboardList,
   Newspaper,
@@ -43,6 +44,7 @@ export const DISPLAY_MODE_ICONS: Record<TableDisplayMode, LucideIcon> = {
   calendar: CalendarDays,
   chart: ChartColumnBig,
   feed: Newspaper,
+  filetree: FolderTree,
   form: ClipboardList,
   gantt: ChartGantt,
   gallery: Images,

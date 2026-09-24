@@ -20,6 +20,7 @@ export type {
   DisplayModeRenderers,
   DisplayModeSettingsContext,
 } from "./display-mode-renderer";
+
 export { feedRenderer } from "./feed/feed-renderer";
 export {
   type FeedBodyRenderer,
@@ -30,6 +31,17 @@ export {
   formatFeedRelativeDate,
   normalizeFeedViewConfig,
 } from "./feed-view";
+
+export { fileTreeRenderer } from "./filetree/filetree-renderer";
+export type {
+  FileTreeActions,
+  FileTreeHooks,
+  FileTreeMoveInput,
+  FileTreeMoveResult,
+  FileTreeTableConfig,
+  FileTreeViewSettings,
+} from "./filetree-model";
+
 export { formRenderer } from "./form/form-renderer";
 export { default as YayawTableForm } from "./form/YayawTableForm.vue";
 export {

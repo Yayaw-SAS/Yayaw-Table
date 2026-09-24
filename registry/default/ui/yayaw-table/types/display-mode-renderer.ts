@@ -1,7 +1,9 @@
 import type { ComponentType, MouseEvent, ReactNode } from "react";
 import type { TableCatalogueColumnConfig } from "../hooks/use-table-config";
 import type { TableActions } from "../providers/table-provider";
+import type { FileTreeActions } from "../utils/filetree-model";
 import type { FormLinkActions, FormSubmitResult } from "../utils/form-view";
+import type { TableGalleryMediaConfig } from "../utils/media-contract";
 import type { TableDisplayMode } from "./display-types";
 
 /** What a mode's settings panel needs. */
@@ -66,6 +68,32 @@ export interface DisplayModeRenderContext extends DisplayModeSettingsContext {
   /** Changes after each mutation so renderers reload their rows. */
   revision: number;
   emptyState: ReactNode;
+  /** The table's name (`translations.keys.title`), e.g. for a root label. */
+  title?: string;
+  /** `actions.tree`: path, move and createFolder for the file tree. */
+  tree?: FileTreeActions;
+  /**
+   * Save a patch through `actions.update` and answer its result without a
+   * notification, so the renderer can show the error where it happened.
+   */
+  patchRow?: (
+    row: Record<string, unknown>,
+    patch: Record<string, unknown>
+  ) => Promise<{ success: boolean; error?: string }>;
+  /** Delete a record through `actions.delete`; absent when records cannot be deleted. */
+  deleteRow?: (
+    row: Record<string, unknown>
+  ) => Promise<{ success: boolean; error?: string }>;
+  canDeleteRow: (row: Record<string, unknown>) => boolean;
+  /** `table.gallery.media` and image column, for file icons and previews. */
+  media?: TableGalleryMediaConfig;
+  imageColumn?: string;
+  /** Row selection settings of the table. */
+  selection: { enabled: boolean; multiple: boolean };
+  /** The table keeps its state in the URL (`table.syncUrl`). */
+  syncUrl: boolean;
+  /** Reload the table's rows (after a change made through `actions.tree`). */
+  refresh: () => Promise<void>;
 }
 
 export interface DisplayModeRenderer {

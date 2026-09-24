@@ -3,7 +3,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { NuqsAdapter } from "nuqs/adapters/react";
 import { createRoot } from "react-dom/client";
 import { Toaster } from "sonner";
+import { AssetsExample } from "../assets-react";
 import { DashboardExample } from "../dashboard-react";
+
 import { FormExample } from "../form-react";
 import { RecordPresentationExample } from "../record-presentation-react";
 import { ServerKanbanExample } from "../server-kanban-react";
@@ -17,6 +19,12 @@ const renderExample = () => {
   }
   if (example === "views") {
     return <ViewsExample />;
+  }
+  if (example === "assets") {
+    return <AssetsExample />;
+  }
+  if (example === "assets-fallback") {
+    return <AssetsExample scopes={false} />;
   }
   if (example === "views-fallback") {
     return <ViewsExample aggregate={false} />;

@@ -17,6 +17,11 @@ import {
   type FeedViewSettings,
   normalizeFeedViewConfig,
 } from "./feed-view";
+import {
+  type FileTreeTableConfig,
+  type FileTreeViewSettings,
+  normalizeFileTreeViewConfig,
+} from "./filetree-model";
 import { type FormViewSettings, normalizeFormViewConfig } from "./form-view";
 import { type ListViewSettings, normalizeListViewConfig } from "./list-view";
 
@@ -72,6 +77,14 @@ export const DISPLAY_MODES = {
     capabilities: NO_TABLE_CONTROLS,
     configKey: "gallery",
     maxGroups: 1,
+  },
+  filetree: {
+    capabilities: NO_TABLE_CONTROLS,
+    configKey: "filetree",
+    maxGroups: 0,
+    normalizeConfig: normalizeFileTreeViewConfig,
+    // The table plugs its built-in file tree in when a parent column exists.
+    requiresRenderer: true,
   },
   calendar: {
     capabilities: NO_TABLE_CONTROLS,
@@ -189,6 +202,7 @@ export function displayModeMaxGroups(mode: TableDisplayMode): number {
 /** View settings of the modes handled generically, by config key. */
 export interface GenericModeViewConfigs {
   list?: ListViewSettings;
+  filetree?: FileTreeViewSettings;
   calendar?: CalendarViewSettings;
   chart?: ChartViewSettings;
   feed?: FeedViewSettings;
@@ -197,13 +211,15 @@ export interface GenericModeViewConfigs {
 
 /**
  * Table-level defaults of the generic modes; `form: false` also turns the Form
- * mode off, `chart: false` the Chart mode and `feed: false` the Feed mode.
+ * mode off, `chart: false` the Chart mode, `feed: false` the Feed mode and
+ * `filetree: false` the File tree.
  */
 export interface GenericModeTableConfigs
-  extends Omit<GenericModeViewConfigs, "chart" | "feed" | "form"> {
+  extends Omit<GenericModeViewConfigs, "chart" | "feed" | "filetree" | "form"> {
   chart?: boolean | ChartViewSettings;
   /** Feed defaults, plus the runtime `renderBody` hook; `false` turns the mode off. */
   feed?: boolean | FeedTableSettings;
+  filetree?: boolean | FileTreeTableConfig;
   form?: boolean | FormViewSettings;
 }
 

@@ -850,6 +850,77 @@ The views demo gains the hidden columns Update, Author and Posted at, and its
 `list` now answers one page of `pageSize` rows. Import mapping no longer
 guesses "Échéance" by its values alone there, since two date columns fit.
 
+## File tree view
+
+The File tree ships in the core items of both editions (no new dependency),
+like the Form view: `withFileTreeRenderer` plugs the built-in renderer in when
+`isFileTreeAvailable(table.filetree, columns)` finds a parent column
+(configured, or a column named `parentId`, `parent_id`, `parent`, `folderId`,
+`folder_id` or `folder`) and hosts list `"filetree"` in `displayModes`;
+`table.filetree: false` removes it and a host renderer for `filetree` wins.
+The full specification, with its deviations from the draft, is
+[docs/FILETREE.md](FILETREE.md).
+
+Everything but the markup is shared and synced to Vue:
+
+- `filetree-model.ts`: settings (`normalizeFileTreeViewConfig`, saved in views
+  and `<tableId>-filetree`), parent/name column detection, EN/FR labels
+  (`filetree.<key>` overrides), the tree index with Unfiled for orphans and
+  cycles, folders-first natural sorting, flattening with ARIA positions and
+  status rows (loading, empty, error, Show more, new folder), move validation,
+  the keyboard state machine (arrows, Home/End, Enter, Space, `*`, F2,
+  Ctrl/Cmd+X/V/A/Z, Delete, Alt+Shift+↓/↑, Shift+F10, type-ahead),
+  selection clicks, search helpers, formats (sizes, relative dates, values),
+  windowing, the settings fields and the `<tableId>-folder` URL key.
+- `filetree-controller.ts`: a framework-neutral store both views subscribe to
+  (React `useSyncExternalStore`, Vue `shallowRef`). It loads with the
+  `children`, `subtree` and `tree-matches` scopes (`params.scope.kind`,
+  `meta.scope: "applied"`), falls back to the capped all-rows loader, pages
+  folders by 200, keeps focus, selection, cut, drag, rename and new-folder
+  state, and runs moves (optimistic, `actions.tree.move` or `update` of the
+  parent column, rollback, undo), `tree.createFolder` or `create`, renames
+  through `update` and deletes through `delete`.
+- `filetree-dom.ts`: pointer drags (threshold, floating label with the reason,
+  not-allowed cursor, auto-scroll, 600 ms hover expansion through the
+  controller), desktop file drops for `onDropFiles`, and the details pane
+  resize. Both editions attach the same helper to the view's root.
+- `filetree.css`: one stylesheet for the treegrid, header, breadcrumbs,
+  selection bar, details pane, dialogs and drag label. Tokens resolve
+  `--yayaw-*` first (Vue), then the shadcn tokens (React), with dark values.
+
+Each edition renders the same DOM with the same classes: React
+(`filetree/filetree-view.tsx`, `filetree-parts.tsx`, shadcn `Checkbox` and
+`DropdownMenu`) and Vue (`filetree/FileTreeView.vue` and its parts,
+`TableCheckbox`, reka-ui `DropdownMenu`). Move and delete dialogs are native
+`<dialog>` elements in both. The render context gained additive fields for
+it: `title`, `tree`, `patchRow` (update answering its error), `deleteRow`,
+`canDeleteRow`, `media`, `imageColumn`, `selection`, `syncUrl` and `refresh`.
+`TableActions.tree` (`path`, `move`, `createFolder`) and the list `meta`
+fields (`scope`, `childCounts`, `sizes`, `ancestors`, `truncated`) are typed in
+both editions.
+
+Differences imposed by the frameworks: none observable. React hides the
+table's page pagination in this mode, as Vue already does for renderer modes.
+A Vue dark-theme fix came with it: checked `TableCheckbox`es kept the unchecked
+input background in dark mode.
+
+Verification: `tests/filetree-model-suite.ts` (39 tests) runs in both editions
+against the demo host of `examples/assets.ts`: settings, detection, sorting,
+Unfiled, flattening, Show more, expand-all order and cap, serialization, move
+validation, keyboard, selection, formats, labels, icons, search, windowing,
+server loading, the client fallback, paging, expand/collapse all with and
+without the subtree scope, search with and without `tree-matches`, moves with
+undo, rollback and the `update` fallback, cut/paste, drags, rename clashes,
+folder creation, deletes, deep links and phone drill-down.
+`e2e/filetree.spec.ts` covers both demos (`?example=assets`,
+`?example=assets-fallback`): lazy loading with the `children` requests, expand
+all with the `subtree` request and collapse all, the details pane, drag and
+undo, an invalid drop into a descendant, cut/paste and Move to…, new folder,
+F2 rename with a clash, keyboard navigation and type-ahead, search with
+ancestors, a deep link, Unfiled in the fallback, phone drill-down and the view
+settings. `E2E_REACT_PORT` / `E2E_VUE_PORT` override the demo ports so
+checkouts can run the suite side by side.
+
 ## Row click and display mode picker
 
 Both editions resolve `rowClickMode: "default"` the same way: the edit form

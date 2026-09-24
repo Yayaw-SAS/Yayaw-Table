@@ -39,6 +39,8 @@
     "examples/views-react.tsx",
     "examples/dashboard.ts",
     "examples/dashboard-react.tsx",
+    "examples/assets.ts",
+    "examples/assets-react.tsx",
     "e2e/**/*.ts",
     "playwright.config.ts"
   ],

@@ -74,6 +74,8 @@ export type {
 export { defineTableConfig } from "./config/helpers";
 // Feed view, built into the table (`table.feed: false` turns it off).
 export { feedRenderer } from "./feed/feed-renderer";
+// File tree view: folders and files linked by a parent column.
+export { fileTreeRenderer } from "./filetree/filetree-renderer";
 // Form view; public routes can import `form/yayaw-table-form` on its own.
 export { formRenderer } from "./form/form-renderer";
 export {
@@ -130,6 +132,14 @@ export {
   formatFeedRelativeDate,
   normalizeFeedViewConfig,
 } from "./utils/feed-view";
+export type {
+  FileTreeActions,
+  FileTreeHooks,
+  FileTreeMoveInput,
+  FileTreeMoveResult,
+  FileTreeTableConfig,
+  FileTreeViewSettings,
+} from "./utils/filetree-model";
 export {
   type Condition,
   type ConditionField,

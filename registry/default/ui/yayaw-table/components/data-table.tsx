@@ -19,6 +19,7 @@ import type { ReactNode } from "react";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import type { TableEmptyStateConfig } from "../config/helpers";
 import { withFeedRenderer } from "../feed/feed-renderer";
+import { withFileTreeRenderer } from "../filetree/filetree-renderer";
 import { withFormRenderer } from "../form/form-renderer";
 import { useAutoPageSizeLifetime } from "../hooks/use-auto-page-size";
 import type {
@@ -59,6 +60,7 @@ import type {
 } from "../types/toolbar-types";
 import type { DataTableTranslations } from "../types/translations";
 import type { TableView, TableViewConfig } from "../types/view-types";
+import { isFileTreeAvailable } from "../utils/filetree-model";
 import { isFormModeEnabled } from "../utils/form-view";
 import type {
   DetailRevertHandler,
@@ -780,14 +782,23 @@ function DataTableContent({
   // The Feed mode ships in the table too; `table.feed: false` withholds it.
   const modeRenderers = useMemo(
     () =>
-      withFormRenderer(
-        withoutDisabledModeRenderers(
-          withFeedRenderer(displayModeRenderers),
-          config.table
+      withFileTreeRenderer(
+        withFormRenderer(
+          withoutDisabledModeRenderers(
+            withFeedRenderer(displayModeRenderers),
+            config.table
+          ),
+          isFormModeEnabled(config.table.form, canCreateRecords)
         ),
-        isFormModeEnabled(config.table.form, canCreateRecords)
+        // The File tree ships in the table; it is offered when rows have a parent column.
+        isFileTreeAvailable(config.table.filetree, config.columns.definitions)
       ),
-    [canCreateRecords, config.table, displayModeRenderers]
+    [
+      canCreateRecords,
+      config.columns.definitions,
+      config.table,
+      displayModeRenderers,
+    ]
   );
   const offeredDisplayModes = useMemo(
     () =>

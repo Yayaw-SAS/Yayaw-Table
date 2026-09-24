@@ -3,6 +3,7 @@
 @source "../../src";
 @source "../record-presentation-react.tsx";
 @source "../dashboard-react.tsx";
+@source "../assets-react.tsx";
 body {
   margin: 0;
   font-family: system-ui, sans-serif;

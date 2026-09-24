@@ -749,7 +749,20 @@ export interface TableListParams {
 
 export interface TableListResult<TData extends TableRecord = TableRecord> {
   data: TData[];
-  meta?: { pageCount?: number; totalCount?: number };
+  meta?: {
+    pageCount?: number;
+    totalCount?: number;
+    /** `"applied"` when the list honoured `params.scope` (date range, file tree children…). */
+    scope?: string;
+    /** File tree: children per folder id, for expanders and counts. */
+    childCounts?: Record<string, number>;
+    /** File tree: total bytes per folder id. */
+    sizes?: Record<string, number>;
+    /** File tree `tree-matches` scope: ancestor folders of the matches. */
+    ancestors?: TableRecord[];
+    /** The rows were capped (`subtree`, `tree-matches`). */
+    truncated?: boolean;
+  };
 }
 
 export interface TableActionResult<T = unknown> {
@@ -814,6 +827,8 @@ export interface TableActions<TData extends TableRecord = TableRecord> {
   aggregate?: (
     params: TableAggregateParams
   ) => MaybePromise<TableAggregateResponse>;
+  /** Server operations of the File tree view (path, move, createFolder). */
+  tree?: import("./filetree-model").FileTreeActions;
   create?: (data: TableRecord) => MaybePromise<TableActionResult<TData>>;
   update?: (
     id: string,
