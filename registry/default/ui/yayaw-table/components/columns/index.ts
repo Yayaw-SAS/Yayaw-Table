@@ -12,6 +12,7 @@ export * from "./header";
 export * from "./hooks";
 export * from "./image-column";
 export * from "./json-column";
+export * from "./location-column";
 export * from "./selection-column";
 export * from "./text-column";
 export * from "./url-column";

@@ -920,6 +920,111 @@ F2 rename with a clash, keyboard navigation and type-ahead, search with
 ancestors, a deep link, Unfiled in the fallback, phone drill-down and the view
 settings. `E2E_REACT_PORT` / `E2E_VUE_PORT` override the demo ports so
 checkouts can run the suite side by side.
+## Location columns
+
+`location` is a column type in both editions (`TABLE_DATA_TYPES.location`:
+form, inline and filter editors `location`). Values are
+`{ lat, lng, label?, address? }`; the shared `location-model.ts` also reads
+`latitude`/`longitude`, `lon`, GeoJSON points and "lat, lng" text, formats a
+place as its label, else its address, else its coordinates (five decimals at
+most), and validates stored values (`dataTypeValueError`).
+
+- Cells: a pin and the formatted place (title with the coordinates). Record
+  details: "label · address".
+- Editor (`LocationEditor` in React, `LocationEditor.vue` in Vue): address
+  search, name, latitude, longitude, Clear; inline editing adds Cancel and
+  Done, floats above the table (fixed, under its cell, with the table's
+  theme) and saves when focus leaves it, like the other inline editors.
+  Typing "lat, lng" in the address fills the coordinates. Suggestions come from
+  the new `actions.geocode(query, { locale, signal })`
+  (`createGeocodeSearch`: 300 ms debounce, three characters, the previous
+  request aborted, at most eight results, arrow keys move through them).
+  Without `geocode` the editor is an address and coordinates form. React
+  reaches the action through a `LocationProvider` around the table (cells,
+  record forms, the Form view); Vue through the table context.
+  The Form view keeps a place as JSON text in its draft; its conditions see
+  that text (use "is empty"/"is not empty"); fixed values do not accept places.
+- Filters: `isEmpty`, `isNotEmpty`, `withinDistance` (`values: [lat, lng, km]`,
+  haversine) and `withinBounds` (`values: [west, south, east, north]`,
+  `west > east` crossing the antimeridian), in `matchesContractFilter` (both
+  local engines and the demo hosts) and both filter UIs (labelled number
+  inputs). Incomplete rules match every row, as for other types.
+- Import: "lat,lng" (also `;` or a space) and JSON places; addresses are
+  geocoded before planning when the host has `geocode` (one request at a time,
+  first suggestion), otherwise they are `invalid_location` errors. Export:
+  formatted values are the label, raw values "lat,lng" (read back by import).
+- Connectors: `normalizeSyncValue(value, "location")` compares places as
+  "lat, lng" text; Notion rich text and Google Sheets cells receive that text.
+  Values pulled back are stored as that text (the table reads it as a place;
+  the label is not kept). A sheet with separate latitude and longitude columns
+  is not combined into one place: map one text column.
+
+## Map view
+
+Maps ship as optional registry items, like charts: `yayaw-table-map` (React,
+[mapcn](https://www.mapcn.dev/) — its `Map`, `MapMarker`, `MarkerContent`,
+`MapPopup` and `useMap` — on MapLibre GL; the item depends on
+`https://mapcn.dev/r/map.json` and `maplibre-gl`, and the demo vendors that
+file as `src/components/ui/map.tsx`) and `yayaw-table-vue-map` (Vue, MapLibre GL
+directly: mapcn-vue installs Tailwind and shadcn-vue components the Vue
+edition does not use, so the item draws the same markers, clusters, popup and
+controls with its own CSS). Both views load lazily. Hosts pass
+`displayModeRenderers: { map: mapRenderer }` and list `"map"` in
+`displayModes`; `table.map: false` removes the mode.
+
+The shared `map-model.ts` owns everything but the drawing:
+
+- Settings (saved views, `<tableId>-map`): `locationColumn` (first location
+  column by default), `titleColumn`, `colorColumn` (select, multi-select or
+  tag columns), `popupColumns` (three by default), `showPopupLabels`,
+  `cluster` (default on), `style`, `initialView` (`fit`, or `saved` with
+  `center`/`zoom`: choosing it stores the map's current position),
+  `searchOnMove`. The settings panel is `mapSettingFields` (fields plus the
+  popup properties list) in each edition's `ViewSettingsPanel`.
+- Host options in `table.map`: `style`, `styles`, `attribution`, `maxRows`,
+  `workerUrl`. No tiles and no keys ship; without a basemap the map is blank
+  and a notice names `table.map.style`. The worker comes from unpkg for the
+  installed MapLibre version (mapcn's default) unless `workerUrl` is set.
+- Markers (`mapMarkers`): records with a place; the others are counted
+  ("1 record without a location"). Colors: the option's `color`, else its tag
+  hue (also when the table shows plain tags). Clustering: a MapLibre GeoJSON
+  source (`mapFeatureCollection`, radius 50, up to zoom 14) with an invisible
+  layer; `attachMapItems` reads the rendered clusters and records and both
+  editions draw them as DOM buttons (MapLibre markers), so every marker is
+  focusable and has a name. A cluster zooms to its expansion zoom.
+- Popup: title, place, the popup properties formatted like the table
+  (`mapPopupProperties`), a close button and "Open", which opens the record
+  like a row click (the details drawer in the demo). Clicking the map
+  background closes it (`isMapBackgroundClick`: MapLibre reports marker
+  clicks as map clicks). Opened from the keyboard, focus moves to "Open";
+  Escape closes it and returns to the marker.
+- Area: `boundsFromMap` normalizes the view (wrapped longitudes, whole world);
+  "Search this area" appears after a user move (or `searchOnMove` searches at
+  each move) and `loadMapRows` sends `scope: { kind: "bbox", field, west,
+  south, east, north }` with the usual list parameters. We kept the existing
+  `kind` discriminant of list scopes (`dateRange`) rather than a `type` key.
+  A host that filters by it answers `meta.scope: "applied"`; otherwise
+  `loadScopedRows` filters the loaded rows (`rowInScope`), capped at
+  `maxRows`, with a notice. The demo host applies it and records the scopes
+  it receives for the end-to-end tests.
+- List panel: the records in view (`markersInBounds`), at most 300, beside the
+  map on desktop and as a bottom sheet under 768 px (closed by default there);
+  hovering or focusing a row highlights its marker and the reverse; clicking a
+  row flies to the marker and opens its popup.
+- Themes: light and dark basemaps follow `.dark`/`.light` or `data-theme` on
+  the document, else the system preference (mapcn's rule, reproduced in Vue).
+
+Verification: `tests/map-model-suite.ts` runs in both editions (parsing,
+formats, distances and bounds, filters, editor drafts, geocoding search,
+import/export, connector text, settings, basemaps, markers and colors,
+clustering input and items, bbox scope with server and browser filtering,
+notices, labels, the cluster layer on a fake map, the settings panel).
+`tests/fixtures/data-types.json` covers the new type. `e2e/map.spec.ts` runs on
+both demos with WebGL through SwiftShader (tiles and the unpkg worker served
+locally): markers and the cluster, popup and Open, keyboard, color by status,
+settings in the URL, the list panel and highlights, "Search this area" sending
+a bbox scope, the inline editor with geocoder suggestions, and the phone
+layout.
 
 ## Row click and display mode picker
 

@@ -9,6 +9,7 @@ for (const name of [
   "yayaw-table-vue-calendar",
   "yayaw-table-vue-chart",
   "yayaw-table-vue-dashboard",
+  "yayaw-table-vue-map",
   "yayaw-table-vue-connector-notion",
   "yayaw-table-vue-connector-google-sheets",
 ]) {

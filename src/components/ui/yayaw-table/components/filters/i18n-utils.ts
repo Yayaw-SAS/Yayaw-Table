@@ -27,6 +27,8 @@ const OPERATOR_TRANSLATION_KEYS: Record<string, string> = {
   after: "filters.operators.after",
   onOrBefore: "filters.operators.on_or_before",
   onOrAfter: "filters.operators.on_or_after",
+  withinDistance: "filters.operators.within_distance",
+  withinBounds: "filters.operators.within_bounds",
 };
 
 export const translateWithFallback = (

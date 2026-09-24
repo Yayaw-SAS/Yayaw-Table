@@ -79,6 +79,23 @@ export {
   type PublicFormSnapshot,
   publicFormSnapshot,
 } from "./form-view";
+// Location columns and the Map mode: shared helpers a host can use on its server.
+export {
+  boundsContain,
+  distanceKm,
+  formatLocation,
+  type GeocodeAction,
+  type GeocodeResult,
+  type LocationBounds,
+  type LocationValue,
+  matchesLocationFilter,
+  parseLocation,
+} from "./location-model";
+export type {
+  MapStyleChoice,
+  MapTableConfig,
+  MapViewSettings,
+} from "./map-model";
 export type {
   DetailActivity,
   DetailField,
@@ -87,6 +104,7 @@ export type {
   DetailSection,
   RecordDetailsConfig,
 } from "./record-details";
+export type { BoundsScope, ListScope } from "./scoped-rows";
 export * from "./translations";
 export * from "./types";
 

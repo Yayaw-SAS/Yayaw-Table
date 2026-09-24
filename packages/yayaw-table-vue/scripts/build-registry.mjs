@@ -25,6 +25,8 @@ const chartRoot = join(sourceRoot, "chart");
 const isChartFile = (path) => path.startsWith(`${chartRoot}/`);
 const dashboardRoot = join(sourceRoot, "dashboard");
 const isDashboardFile = (path) => path.startsWith(`${dashboardRoot}/`);
+const mapRoot = join(sourceRoot, "map");
+const isMapFile = (path) => path.startsWith(`${mapRoot}/`);
 const allSourceFiles = (await walk(sourceRoot)).filter((path) => {
   if (!includedExtensions.has(extname(path))) {
     return false;
@@ -47,6 +49,7 @@ const sourceFiles = allSourceFiles.filter(
       isCalendarFile(path) ||
       isChartFile(path) ||
       isDashboardFile(path) ||
+      isMapFile(path) ||
       isConnectorFile(path)
     )
 );
@@ -129,6 +132,18 @@ const dashboardItem = {
   files: await toRegistryFiles(allSourceFiles.filter(isDashboardFile)),
 };
 
+const mapItem = {
+  $schema: "https://shadcn-vue.com/schema/registry-item.json",
+  name: "yayaw-table-vue-map",
+  type: "registry:block",
+  title: "YaYaw Table Vue Map",
+  description:
+    'Optional map display mode for YaYaw Table Vue (markers from a location column, clusters, popups, list of records in view, "Search this area"), rendered with MapLibre GL like the React item\'s mapcn. The basemap comes from `table.map.style` or `table.map.styles`. Pass `mapRenderer` to `display-mode-renderers` and add "map" to `table.displayModes`.',
+  dependencies: ["maplibre-gl@^6.11.1"],
+  registryDependencies: ["https://table.yayaw.app/r/yayaw-table-vue.json"],
+  files: await toRegistryFiles(allSourceFiles.filter(isMapFile)),
+};
+
 const connectorFiles = (name) =>
   toRegistryFiles(
     ["connector-model.ts", "sync-engine.ts", name].map((file) =>
@@ -168,6 +183,7 @@ for (const registryItem of [
   calendarItem,
   chartItem,
   dashboardItem,
+  mapItem,
   ...connectorItems,
 ]) {
   await writeFile(
@@ -176,5 +192,5 @@ for (const registryItem of [
   );
 }
 console.log(
-  `Built ${files.length} Vue registry files, ${calendarItem.files.length} calendar files, ${chartItem.files.length} chart files, ${dashboardItem.files.length} dashboard files and ${connectorItems.length} connector items.`
+  `Built ${files.length} Vue registry files, ${calendarItem.files.length} calendar files, ${chartItem.files.length} chart files, ${dashboardItem.files.length} dashboard files, ${mapItem.files.length} map files and ${connectorItems.length} connector items.`
 );

@@ -61,6 +61,8 @@ export interface ImportPanelProps {
   findExisting: Parameters<typeof createImportFlow>[0]["findExisting"];
   batchSize?: number;
   allowNewOptions?: boolean;
+  /** `actions.geocode`: addresses imported into location columns become places. */
+  geocode?: Parameters<typeof createImportFlow>[0]["geocode"];
   onImported: (result: ImportRunResult) => void;
 }
 
@@ -485,6 +487,7 @@ export function ImportPanel(props: ImportPanelProps) {
       loadSource: opened.loadSource,
       batchSize: opened.batchSize,
       allowNewOptions: opened.allowNewOptions,
+      geocode: opened.geocode,
       onChange: setState,
       onImported: opened.onImported,
     });

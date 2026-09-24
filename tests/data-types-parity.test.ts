@@ -125,6 +125,7 @@ for (const [index, validate] of validators.entries()) {
       ["date", "2026-02-30"],
       ["multiSelect", "one"],
       ["switch", "false"],
+      ["location", "somewhere"],
     ] as const) {
       const config = {
         id: "types",

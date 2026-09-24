@@ -234,6 +234,10 @@ export const createCustomField = (options: FieldOptions): FormFieldDefinition =>
 export const createDynamicValueField = (
   options: FieldOptions
 ): FormFieldDefinition => fromOptions("dynamic-value", options);
+/** A place `{ lat, lng, label?, address? }`, with address suggestions from `actions.geocode`. */
+export const createLocationField = (
+  options: FieldOptions
+): FormFieldDefinition => fromOptions("location", options);
 export const createMultiSelectField = (
   options: FieldOptions
 ): FormFieldDefinition => fromOptions("multiSelect", options);

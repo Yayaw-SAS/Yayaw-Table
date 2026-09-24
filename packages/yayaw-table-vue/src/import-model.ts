@@ -12,6 +12,7 @@ import {
   matchFieldsByName,
   normalizeFieldName,
 } from "./field-matching";
+import { type LocationValue, parseLocationImport } from "./location-model";
 
 type MaybePromise<T> = T | Promise<T>;
 
@@ -239,6 +240,7 @@ export type ImportErrorCode =
   | "invalid_url"
   | "invalid_email"
   | "invalid_json"
+  | "invalid_location"
   | "duplicate_key";
 
 export type ImportValueResult = { value: unknown } | { error: ImportErrorCode };
@@ -251,6 +253,8 @@ export interface CoerceOptions {
   dateOrder?: DateOrder;
   /** Keep unknown choices instead of failing (also per column). */
   allowNewOptions?: boolean;
+  /** Addresses of location cells, resolved beforehand by the host's geocoder. */
+  geocoded?: ReadonlyMap<string, LocationValue | null>;
 }
 
 const TRUE_WORDS = new Set([
@@ -595,7 +599,14 @@ function parseBoolean(raw: string): ImportValueResult {
     : { error: "invalid_boolean" };
 }
 
-const TEXT_TYPES = new Set(["url", "image", "email", "json", "code"]);
+const TEXT_TYPES = new Set([
+  "url",
+  "image",
+  "email",
+  "json",
+  "code",
+  "location",
+]);
 
 /** The column's parser key: a type family, or url, image, email, json. */
 const parserFor = (column: ImportColumn): string => {
@@ -639,6 +650,8 @@ export function coerceImportValue(
       return EMAIL.test(text) ? { value: text } : { error: "invalid_email" };
     case "json":
       return parseJson(text);
+    case "location":
+      return parseLocationImport(text, options.geocoded);
     default:
       return { value: text };
   }
@@ -784,6 +797,8 @@ export interface PlanImportInput {
   existing?: (key: string) => string | undefined;
   locale?: string;
   allowNewOptions?: boolean;
+  /** Addresses of location cells, resolved by the host's geocoder. */
+  geocoded?: ReadonlyMap<string, LocationValue | null>;
 }
 
 interface MappedColumn {
@@ -832,6 +847,7 @@ function planRow(
       locale: input.locale,
       dateOrder,
       allowNewOptions: input.allowNewOptions,
+      geocoded: input.geocoded,
     });
     if ("error" in result) {
       errors.push({ rowIndex, columnId: column.id, code: result.error, raw });

@@ -124,6 +124,8 @@ export interface DataTableTranslations {
       after?: string;
       on_or_before?: string;
       on_or_after?: string;
+      within_distance?: string;
+      within_bounds?: string;
     };
     types?: {
       text?: string;
@@ -350,6 +352,7 @@ export interface DataTableTranslations {
       chart?: string;
       feed?: string;
       filetree?: string;
+      map?: string;
       form?: string;
       gantt?: string;
       gallery: string;

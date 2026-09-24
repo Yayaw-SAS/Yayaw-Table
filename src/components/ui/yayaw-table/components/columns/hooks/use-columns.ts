@@ -20,6 +20,7 @@ import {
   createTextColumn,
 } from "..";
 import { createDynamicTypeColumn } from "../dynamic-type-column";
+import { createLocationColumn } from "../location-column";
 import { createNumberColumn } from "../number-column";
 import { createStringColumn } from "../string-column";
 import { createTagColumn } from "../tag-column";
@@ -246,6 +247,21 @@ export function useColumns<
     };
   }, []);
 
+  const createLocation = useMemo(() => {
+    return <K extends keyof TData>(
+      accessorKey: K,
+      options?: Omit<
+        Parameters<typeof createLocationColumn<TData>>[0],
+        "accessorKey"
+      >
+    ) => {
+      return createLocationColumn<TData>({
+        accessorKey: accessorKey as string,
+        ...options,
+      });
+    };
+  }, []);
+
   const createUrl = useMemo(() => {
     return <K extends keyof TData>(
       accessorKey: K,
@@ -276,6 +292,7 @@ export function useColumns<
       dynamicType: createDynamicType,
       image: createImage,
       json: createJson,
+      location: createLocation,
       number: createNumber,
       selection: createSelection,
       string: createString,
@@ -291,6 +308,7 @@ export function useColumns<
     createDynamicType,
     createImage,
     createJson,
+    createLocation,
     createNumber,
     createSelection,
     createString,

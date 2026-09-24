@@ -11,6 +11,7 @@ import {
   operatorTranslationKeys,
 } from "../../filter-config";
 import { cloneFormValue, formValuesEqual } from "../../form-runtime";
+import { type LocationLabelKey, locationLabel } from "../../location-model";
 import type {
   AdvancedFilter,
   AdvancedFilterOperator,
@@ -107,8 +108,31 @@ const changeOperator = (event: Event): void => {
   if (operator === "between") value = [previous[0], previous[1]];
   else if (filterIsMultiple(type.value, operator))
     value = previous.filter((item) => item !== undefined);
-  if (!filterNeedsValue(operator)) value = undefined;
+  if (!filterNeedsValue(operator) || type.value === "location") value = undefined;
   draft.value = { ...draft.value, operator, values: value };
+};
+// Location rules: `[lat, lng, km]` within a distance, `[west, south, east, north]` within an area.
+const LOCATION_FIELDS: Partial<Record<AdvancedFilterOperator, LocationLabelKey[]>> = {
+  withinDistance: ["latitude", "longitude", "distance"],
+  withinBounds: ["west", "south", "east", "north"],
+};
+const locationFields = computed(() => LOCATION_FIELDS[draft.value.operator] ?? []);
+const locationText = (key: LocationLabelKey): string =>
+  locationLabel(key, context.locale, (name, fallback) => {
+    const value = context.translations.value[`location.${name}`];
+    return typeof value === "string" ? value : fallback;
+  });
+const locationValue = (index: number): string => {
+  const value = values.value[index];
+  return typeof value === "number" && Number.isFinite(value) ? String(value) : "";
+};
+const changeLocation = (event: Event, index: number): void => {
+  const raw = (event.target as HTMLInputElement).value.trim();
+  draft.value.values = locationFields.value.map((_, position) =>
+    position === index
+      ? raw === "" ? Number.NaN : Number(raw)
+      : Number(values.value[position] ?? Number.NaN)
+  );
 };
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 const inputValue = (index: number): string | number => {
@@ -185,6 +209,12 @@ const revert = async (): Promise<void> => {
             <span v-if="!visibleOptions.length">{{ t('noResults', 'No values available') }}</span>
           </div>
         </fieldset>
+        <div v-else-if="type === 'location'" class="yayaw-filter-location" :data-location-filter="draft.operator">
+          <label v-for="(key, index) in locationFields" :key="key" class="yayaw-field-inline">
+            <span>{{ locationText(key) }}</span>
+            <input type="number" step="any" inputmode="decimal" class="yayaw-input" :value="locationValue(index)" @input="changeLocation($event, index)" />
+          </label>
+        </div>
         <label v-else-if="type === 'select'" class="yayaw-field-inline">
           <span>{{ t('value', 'Filter value') }}</span>
           <select class="yayaw-select" :value="selectedIndex" @change="draft.values = options[Number(($event.target as HTMLSelectElement).value)]?.value">

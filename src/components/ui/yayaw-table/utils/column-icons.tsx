@@ -11,6 +11,7 @@ import {
   ImageIcon,
   List,
   type LucideIcon,
+  MapPin,
   SquareCode,
   Tag,
   Text,
@@ -27,6 +28,7 @@ export const COLUMN_TYPE_ICONS: Record<string, LucideIcon> = {
   code: SquareCode,
   select: CheckSquare,
   multiselect: List,
+  location: MapPin,
 };
 
 const STATUS_COLUMN_PATTERN = /(status|state)/;

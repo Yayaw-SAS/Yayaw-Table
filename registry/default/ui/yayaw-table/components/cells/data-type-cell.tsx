@@ -11,6 +11,7 @@ import { CodeCell } from "./code-cell";
 import { DateCell } from "./date-cell";
 import { ImageCell } from "./image-cell";
 import { JsonCell } from "./json-cell";
+import { LocationCell } from "./location-cell";
 import { NumberCell } from "./number-cell";
 import { StringCell } from "./string-cell";
 import { TagCell } from "./tag-cell";
@@ -70,6 +71,8 @@ export function DataTypeCell({
           value={value}
         />
       );
+    case "location":
+      return <LocationCell value={value} />;
     case "number":
       return (
         <NumberCell

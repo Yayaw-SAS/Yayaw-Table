@@ -6,11 +6,13 @@ import { defineTableConfig } from "../src/components/ui/yayaw-table/config/helpe
 import type { TableActions } from "../src/components/ui/yayaw-table/providers/table-provider";
 import { calendarRenderer } from "../src/components/ui/yayaw-table-calendar/calendar-renderer";
 import { chartRenderer } from "../src/components/ui/yayaw-table-chart/chart-renderer";
+import { mapRenderer } from "../src/components/ui/yayaw-table-map/map-renderer";
 import { guidedRequestFormView, requestFormView } from "./form-links";
 import {
   chartViews,
   createViewsActions,
   initialViewsRows,
+  mapViews,
   updatesFeedView,
   viewsColumns,
   viewsTableOptions,
@@ -49,6 +51,7 @@ export function ViewsExample({ aggregate = true }: { aggregate?: boolean }) {
         displayModeRenderers={{
           calendar: calendarRenderer,
           chart: chartRenderer,
+          map: mapRenderer,
         }}
         getRowId={(row) => String(row.id)}
         getTableActions={() => actions}
@@ -61,6 +64,7 @@ export function ViewsExample({ aggregate = true }: { aggregate?: boolean }) {
           guidedRequestFormView,
           ...chartViews,
           updatesFeedView,
+          ...mapViews,
         ]}
         tableType={config.id}
       />

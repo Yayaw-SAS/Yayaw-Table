@@ -1,3 +1,9 @@
+import {
+  boundsContain,
+  type LocationBounds,
+  normalizeBounds,
+  parseLocation,
+} from "./location-model";
 import { type ContractRecord, compatibleListParams } from "./table-contracts";
 
 /**
@@ -14,7 +20,17 @@ export interface DateRangeScope {
   to: string;
 }
 
-export type ListScope = DateRangeScope;
+/**
+ * The area a map shows: rows whose location column lies inside it. Degrees
+ * (WGS 84); `west > east` crosses the antimeridian.
+ */
+export interface BoundsScope extends LocationBounds {
+  kind: "bbox";
+  /** Column holding the location. */
+  field: string;
+}
+
+export type ListScope = BoundsScope | DateRangeScope;
 
 type ListAction = (params: ContractRecord) => Promise<{
   data: unknown[];
@@ -74,10 +90,22 @@ export function localDayKey(value: unknown): string | undefined {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
+function rowInBounds(
+  row: Record<string, unknown>,
+  scope: BoundsScope
+): boolean {
+  const location = parseLocation(row[scope.field]);
+  const bounds = normalizeBounds(scope);
+  return Boolean(location && bounds && boundsContain(bounds, location));
+}
+
 export function rowInScope(
   row: Record<string, unknown>,
   scope: ListScope
 ): boolean {
+  if (scope.kind === "bbox") {
+    return rowInBounds(row, scope);
+  }
   const start = localDayKey(row[scope.field]);
   if (!start) {
     return false;

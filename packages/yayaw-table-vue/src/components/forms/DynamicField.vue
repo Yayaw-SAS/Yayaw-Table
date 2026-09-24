@@ -29,6 +29,7 @@ import { dynamicFieldType, fieldIsHidden, fieldIsRequired } from "../../form-run
 import { useFieldOptions } from "../../composables/use-field-options";
 import CollectionField from "./CollectionField.vue";
 import TablePickerField from "./TablePickerField.vue";
+import LocationEditor from "../location/LocationEditor.vue";
 import type {
   FormFieldContext,
   FormFieldDefinition,
@@ -504,6 +505,16 @@ watch(valueType, (next, previous) => {
       :described-by="describedBy"
       :min="dateLimit(field.minDate)"
       :max="dateLimit(field.maxDate)"
+      @change="update($event)"
+    />
+    <LocationEditor
+      v-else-if="effectiveType === 'location'"
+      :input-id="fieldId"
+      :value="modelValue"
+      :label="field.label"
+      :disabled="disabled"
+      :invalid="Boolean(errorMessage)"
+      :described-by="errorMessage ? `${fieldId}-error` : field.description ? `${fieldId}-help` : undefined"
       @change="update($event)"
     />
     <CollectionField

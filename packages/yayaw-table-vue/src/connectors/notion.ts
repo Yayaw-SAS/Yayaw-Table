@@ -26,6 +26,7 @@ import {
 } from "./connector-model";
 import {
   normalizeSyncValue,
+  placeText,
   type SyncItemResult,
   type SyncMapping,
   type SyncRecord,
@@ -147,7 +148,7 @@ function textOf(value: unknown): string | undefined {
   if (value instanceof Date) {
     return Number.isNaN(value.getTime()) ? undefined : value.toISOString();
   }
-  return Array.isArray(value) ? arrayText(value) : undefined;
+  return Array.isArray(value) ? arrayText(value) : placeText(value);
 }
 
 export interface NotionRichTextItem {

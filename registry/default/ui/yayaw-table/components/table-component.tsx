@@ -144,7 +144,7 @@ const EMPTY_DATA: never[] = [];
 
 const EMPTY_EXPANDED: Record<string, boolean> = {};
 const ROW_CLICK_INTERACTIVE_SELECTOR =
-  "button, a, [role=checkbox], [role=menuitem], input, select, textarea";
+  "button, a, [role=checkbox], [role=menuitem], input, select, textarea, [data-location-editor]";
 const ROW_CLICK_SYSTEM_COLUMN_SELECTOR =
   '[data-column-id="select"], [data-column-id="actions"]';
 const BULK_ACTIONS_ANCHOR_VIEWPORT_OPTIONS = {

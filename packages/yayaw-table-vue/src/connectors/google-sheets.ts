@@ -28,6 +28,7 @@ import {
 } from "./connector-model";
 import {
   normalizeSyncValue,
+  placeText,
   SHEET_ROW_ID_PREFIX,
   type SyncItemResult,
   type SyncMapping,
@@ -901,7 +902,7 @@ function textOf(value: unknown): string {
       .join(", ");
   }
   if (typeof value === "object" && value !== null) {
-    return JSON.stringify(value);
+    return placeText(value) ?? JSON.stringify(value);
   }
   return String(value);
 }

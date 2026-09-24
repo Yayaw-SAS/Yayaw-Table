@@ -95,7 +95,7 @@ export interface TableActions {
     meta?: {
       pageCount?: number;
       totalCount?: number;
-      /** `"applied"` when the list honoured `params.scope` (date range, file tree children…). */
+      /** `"applied"` when the list honoured `params.scope` (date range, map area, file tree children…). */
       scope?: string;
       /** File tree: children per folder id, for expanders and counts. */
       childCounts?: Record<string, number>;
@@ -203,6 +203,12 @@ export interface TableActions {
    * unpublish, stop accepting responses). Without it, "Share form" is hidden.
    */
   formLinks?: import("../utils/form-view").FormLinkActions;
+  /**
+   * Places matching a text, best first, for location editors (address
+   * suggestions) and imports of addresses. The library ships no geocoder:
+   * call your provider (with its key) on your server.
+   */
+  geocode?: import("../utils/location-model").GeocodeAction;
   views?: TableViewActions;
   [key: string]: unknown;
 }
@@ -675,6 +681,8 @@ export const defaultTranslations: DataTableTranslations = {
       after: "After",
       on_or_before: "On or before",
       on_or_after: "On or after",
+      within_distance: "Within distance of",
+      within_bounds: "Within area",
     },
     types: {
       text: "Text",
@@ -896,6 +904,7 @@ export const defaultTranslations: DataTableTranslations = {
       chart: "Chart",
       feed: "Feed",
       filetree: "File tree",
+      map: "Map",
       form: "Form",
       gantt: "Gantt",
       gallery: "Gallery",

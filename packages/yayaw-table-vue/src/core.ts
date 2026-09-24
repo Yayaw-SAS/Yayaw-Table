@@ -1,6 +1,7 @@
 import { isValid } from "date-fns";
 import { normalizeGenericModeConfigs } from "./display-modes";
 import { normalizeGalleryViewConfig } from "./gallery-view-state";
+import { formatLocation } from "./location-model";
 import {
   dataTypeOptionLabel,
   matchesContractFilter,
@@ -207,6 +208,14 @@ export const formatDateValue = (
     hour12: zone.hour12,
   });
 
+const jsonText = (value: unknown): string => {
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+};
+
 export const displayCellValue = (
   value: unknown,
   column: ColumnDefinition,
@@ -230,12 +239,11 @@ export const displayCellValue = (
   if (column.type === "boolean") {
     return value ? "Yes" : "No";
   }
+  if (column.type === "location") {
+    return formatLocation(value) || "—";
+  }
   if (column.type === "json") {
-    try {
-      return JSON.stringify(value);
-    } catch {
-      return String(value);
-    }
+    return jsonText(value);
   }
   if (["select", "multiSelect", "tag"].includes(column.type ?? "")) {
     return (Array.isArray(value) ? value : [value])
@@ -246,11 +254,7 @@ export const displayCellValue = (
     return value.map(String).join(", ");
   }
   if (typeof value === "object") {
-    try {
-      return JSON.stringify(value);
-    } catch {
-      return String(value);
-    }
+    return jsonText(value);
   }
   const displayed = String(value);
   return column.type === "string" && column.showQuotes

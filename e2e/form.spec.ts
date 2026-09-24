@@ -65,6 +65,7 @@ test("a form view asks the chosen questions and creates the record", async ({
     "Status",
     "Progress",
     "Due",
+    "Site",
     "Serial number",
     "Details",
     "Update",

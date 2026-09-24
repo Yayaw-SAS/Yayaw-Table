@@ -36,6 +36,7 @@ export type {
   FormConfigMode,
   FormFieldApi,
   FormSectionDefinition,
+  LocationFieldDefinition,
   RadioFieldDefinition,
   TablePickerFieldConfig,
   TablePickerFieldDefinition,
@@ -46,6 +47,7 @@ export {
   CollectionField,
   createCollectionField,
   createDateField,
+  createLocationField,
   createRadioField,
   createTablePickerField,
   defineFormConfig,
@@ -175,6 +177,23 @@ export {
   type PublicFormSnapshot,
   publicFormSnapshot,
 } from "./utils/form-view";
+// Location columns and the Map mode: shared helpers a host can use on its server.
+export {
+  boundsContain,
+  distanceKm,
+  formatLocation,
+  type GeocodeAction,
+  type GeocodeResult,
+  type LocationBounds,
+  type LocationValue,
+  matchesLocationFilter,
+  parseLocation,
+} from "./utils/location-model";
+export type {
+  MapStyleChoice,
+  MapTableConfig,
+  MapViewSettings,
+} from "./utils/map-model";
 export type {
   TableGalleryMediaConfig,
   TableGalleryPreviewSize,
@@ -184,4 +203,5 @@ export type {
   RecordPresentation,
   RecordPresentationConfig,
 } from "./utils/record-presentation";
+export type { BoundsScope, ListScope } from "./utils/scoped-rows";
 export { createLocalTableViewActions } from "./utils/table-view-storage";

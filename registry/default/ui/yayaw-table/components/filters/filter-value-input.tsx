@@ -11,8 +11,9 @@ import type {
   FilterOperators,
   FilterValues,
 } from "../../types/filter-types";
-
+import { locationFilterHasValue } from "../../utils/location-model";
 import { CompactDateFilter, DateFilter } from "./date-filter";
+import { LocationFilter } from "./location-filter";
 import {
   CompactMultiSelectFilter,
   MultiSelectFilter,
@@ -262,6 +263,20 @@ export function FilterValueInput<TType extends ColumnDataType>({
       );
     }
 
+    case "location":
+      return (
+        <LocationFilter
+          compact={compact}
+          disabled={disabled}
+          onOperatorChange={handleOperatorChange}
+          onValueChange={handleValueChange}
+          operator={operator as FilterOperators["location"]}
+          operators={config.operators as readonly FilterOperators["location"][]}
+          showOperator={showOperator && !compact}
+          value={value as number[] | undefined}
+        />
+      );
+
     default:
       return null;
   }
@@ -306,6 +321,7 @@ export function getDefaultFilterValue<TType extends ColumnDataType>(
     }
 
     case "multiSelect":
+    case "location":
       return [] as FilterValues<TType>;
 
     default:
@@ -330,6 +346,8 @@ export function getDefaultFilterOperator<TType extends ColumnDataType>(
       return "is" as FilterOperators[TType];
     case "multiSelect":
       return "contains" as FilterOperators[TType];
+    case "location":
+      return "withinDistance" as FilterOperators[TType];
     default:
       return "equals" as FilterOperators[TType];
   }
@@ -389,6 +407,9 @@ export function isValidFilterValue<TType extends ColumnDataType>(
 
     case "multiSelect":
       return Array.isArray(value);
+
+    case "location":
+      return locationFilterHasValue(operator, value);
 
     default:
       return false;

@@ -20,12 +20,14 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { FormSelectContent } from "../components/forms/fields/form-select-content";
+import { LocationEditor } from "../components/location/location-editor";
 import {
   type FormDraft,
   type FormOption,
   formNumberDisplay,
   type ResolvedFormQuestion,
 } from "../utils/form-view";
+import { parseLocation } from "../utils/location-model";
 import { tagAppearance } from "../utils/tag-colors";
 import "../utils/tag-colors.css";
 import { FormDateField } from "./form-date-field";
@@ -232,6 +234,20 @@ function Control(props: ControlProps) {
       return <SelectControl {...props} />;
     case "number":
       return <NumberControl {...props} />;
+    case "location":
+      // The draft keeps the place as JSON text; the answer is the parsed place.
+      return (
+        <LocationEditor
+          describedBy={description}
+          disabled={disabled}
+          inputId={inputId}
+          invalid={Boolean(error)}
+          label={question.label}
+          locale={locale}
+          onChange={(place) => onChange(place ? JSON.stringify(place) : "")}
+          value={parseLocation(text(value))}
+        />
+      );
     case "date":
       return (
         <FormDateField

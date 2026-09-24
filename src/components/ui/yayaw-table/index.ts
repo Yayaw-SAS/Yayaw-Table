@@ -24,6 +24,7 @@ export type {
   CollectionFieldItem,
   DateFieldDefinition,
   FieldValues,
+  LocationFieldDefinition,
   FormAction,
   FormBlock,
   FormBlockContext,
@@ -42,6 +43,7 @@ export {
   CollectionField,
   createCollectionField,
   createDateField,
+  createLocationField,
   createRadioField,
   createTablePickerField,
   defineFormConfig,
@@ -181,5 +183,24 @@ export type {
   RecordPresentationConfig,
 } from "./utils/record-presentation";
 export { createLocalTableViewActions } from "./utils/table-view-storage";
+// Location columns and the Map mode: shared helpers a host can use on its server.
+export {
+  boundsContain,
+  distanceKm,
+  formatLocation,
+  type GeocodeAction,
+  type GeocodeResult,
+  type LocationBounds,
+  type LocationValue,
+  matchesLocationFilter,
+  parseLocation,
+} from "./utils/location-model";
+export type {
+  MapStyleChoice,
+  MapTableConfig,
+  MapViewSettings,
+} from "./utils/map-model";
+export type { BoundsScope, ListScope } from "./utils/scoped-rows";
+
 
 export type { ActionItem, ActionItem as RowActionItem } from "./components/columns/actions-column";

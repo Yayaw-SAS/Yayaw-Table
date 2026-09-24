@@ -1,4 +1,5 @@
 import type { TableActivityRecord } from "./activity-shortcuts";
+import { formatLocation, locationDetail } from "./location-model";
 import type {
   RecordPresentation,
   RecordPresentationConfig,
@@ -17,6 +18,7 @@ export type DetailType =
   | "datetime"
   | "code"
   | "json"
+  | "location"
   | "url"
   | "email"
   | "tel"
@@ -502,6 +504,13 @@ export function detailDisplay(
       return detailLink(value, type);
     case "video":
       return detailVideo(value);
+    case "location":
+      return {
+        kind: "text",
+        text: [formatLocation(value), locationDetail(value)]
+          .filter(Boolean)
+          .join(" · "),
+      };
     case "files":
     case "collection":
       return detailItems(value, type);

@@ -16,6 +16,10 @@ import {
   formatDateForDisplay,
   formatDateRangeForDisplay,
 } from "./date-display";
+import {
+  formatLocationFilterValue,
+  matchesLocationFilter,
+} from "./location-model";
 
 /**
  * Generate a unique ID for filters
@@ -281,6 +285,8 @@ export function applyFilter<TData = Record<string, unknown>>(
         values as string[],
         operator as FilterOperators["multiSelect"]
       );
+    case "location":
+      return matchesLocationFilter(value, operator, values);
     default:
       return true;
   }
@@ -465,6 +471,12 @@ export function formatFilterValueForDisplay(
     case "select":
     case "multiSelect":
       return formatSelectValue(values, options);
+    case "location":
+      return formatLocationFilterValue(
+        operator,
+        values,
+        dateOptions?.locale ?? "en"
+      );
     default:
       return String(values || "");
   }

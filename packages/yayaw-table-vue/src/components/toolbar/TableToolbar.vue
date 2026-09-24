@@ -1066,7 +1066,7 @@ watch(compact, value => { context.toolbarCompact.value = value; }, { immediate: 
       <ImportPanel v-else-if="dataView === 'import' && importEnabled" :columns="importColumnsFrom(context.config.columns.definitions)"
         :locale="context.locale" :translate="importTranslate" :adapters="importAdapters()" :csv="importConfig?.csv"
         :sources="importSources" :connector-sources="connectorSources" :load-source="loadImportSource" :find-existing="findExisting" :batch-size="importConfig?.batchSize"
-        :allow-new-options="importConfig?.allowNewOptions" @done="dataView = 'main'" @imported="context.refresh()"
+        :allow-new-options="importConfig?.allowNewOptions" :geocode="context.actions.value?.geocode" @done="dataView = 'main'" @imported="context.refresh()"
         @connector="(id) => (dataView = `connector-pull:${id}`)" />
       <ExportPanel v-else-if="dataView === 'export'" :busy="isExporting" :formats="exportFormats" :label="exportLabel"
               :default-file-name="defaultExportFileName(String(context.translations.value.title ?? context.config.id))"

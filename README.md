@@ -58,7 +58,20 @@ named `parentId`) show as folders and files in a tree table; add `"filetree"`
 to `displayModes`. It loads folders with `list({ scope: { kind: "children" } })`
 and moves with `actions.tree.move` when the host provides them, and falls back
 to the rows `list` returns and `update` otherwise; see
-[docs/FILETREE.md](docs/FILETREE.md). The Form view ships in the table items: add `"form"` to
+[docs/FILETREE.md](docs/FILETREE.md).
+Maps (markers from a `location` column,
+clusters, popups, the list of records in view; mapcn on MapLibre GL in React,
+MapLibre GL in Vue) are `https://table.yayaw.app/r/yayaw-table-map.json` and
+`https://table.yayaw.app/r/yayaw-table-vue-map.json`: pass `mapRenderer` and add
+`"map"`. The basemap comes from the host (`table.map.style` or
+`table.map.styles`; no tiles or API keys ship with the library, the demos use
+keyless OpenFreeMap styles). "Search this area" sends
+`scope: { kind: "bbox", field, west, south, east, north }` to `list`; hosts that
+filter by it answer `meta.scope: "applied"`, otherwise the loaded rows are
+filtered in the browser. `location` columns (`{ lat, lng, label?, address? }`)
+work in cells, inline and form editors (address suggestions from
+`actions.geocode`), filters (within N km, within an area), CSV import/export
+("lat,lng") and connectors ("lat, lng" text). The Form view ships in the table items: add `"form"` to
 `displayModes` (tables with a `create` action). Its standalone
 `YayawTableForm` renders a saved Form view on a public route without table
 state. Forms can show, hide and require questions by rule (`form.rules`,

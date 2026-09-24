@@ -47,6 +47,7 @@ export type InlineEditEditor =
   | "boolean"
   | "date"
   | "json"
+  | "location"
   | "multiSelect"
   | "number"
   | "select"
@@ -316,6 +317,7 @@ export type FormFieldType =
   | "date"
   | "dynamic-value"
   | "dynamicValue"
+  | "location"
   | "multiSelect"
   | "number"
   | "radio"
@@ -626,7 +628,11 @@ export type AdvancedFilterOperator =
   | "notContains"
   | "notEquals"
   | "notIn"
-  | "startsWith";
+  | "startsWith"
+  /** Location columns: `[lat, lng, km]`. */
+  | "withinDistance"
+  /** Location columns: `[west, south, east, north]`. */
+  | "withinBounds";
 
 export interface AdvancedFilter {
   id: string;
@@ -752,7 +758,7 @@ export interface TableListResult<TData extends TableRecord = TableRecord> {
   meta?: {
     pageCount?: number;
     totalCount?: number;
-    /** `"applied"` when the list honoured `params.scope` (date range, file tree children…). */
+    /** `"applied"` when the list honoured `params.scope` (date range, map area, file tree children…). */
     scope?: string;
     /** File tree: children per folder id, for expanders and counts. */
     childCounts?: Record<string, number>;
@@ -880,6 +886,12 @@ export interface TableActions<TData extends TableRecord = TableRecord> {
    * unpublish, stop accepting responses). Without it, "Share form" is hidden.
    */
   formLinks?: import("./form-view").FormLinkActions;
+  /**
+   * Places matching a text, best first, for location editors (address
+   * suggestions) and imports of addresses. The library ships no geocoder:
+   * call your provider (with its key) on your server.
+   */
+  geocode?: import("./location-model").GeocodeAction;
   views?: TableViewActions;
   [key: string]: unknown;
 }

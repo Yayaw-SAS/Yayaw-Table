@@ -1,0 +1,9 @@
+/* The popup card draws its own frame: MapLibre's is removed, as in the Vue edition. */
+[data-map-view] .maplibregl-popup-content {
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+[data-map-view] .maplibregl-popup-tip {
+  display: none;
+}
