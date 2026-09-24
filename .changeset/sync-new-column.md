@@ -1,7 +1,0 @@
----
-"yayaw-table-workspace": patch
----
-
-Fix two-way and pull syncs clearing table values when a column is mapped after a destination has synced, or when a target record is adopted by key. A column a record has never synced (a record adopted by key, or a linked record's column without a base value: mapped since the last run, or unknown on one side then) is no longer compared against a stale record hash: when only one side has a value, it fills the empty side whatever the conflict rule or ownership; when both sides hold different values, it is a conflict settled by `ownership`, `columnRules`, `resolveConflict` and `conflictRule`; when both are empty nothing happens. The column joins the link's `baseValues` once synced. A push or pull never clears such a column with an empty source. A column removed from the mapping is left alone on both sides, and a column unknown on one side (a sheet header not added yet, a partial Notion read) is no longer recorded as synced.
-
-Additive: `SyncPlan.initialized` lists the filled values and `summarizeSyncPlan` counts them (`initialized`); `toSyncPreview` returns `initialized` and the connector screen notes "N empty values will be filled in from the other side." (labels `filledNote`, `filledNoteOne`, English and French). Links without base values (`storeBaseValues: false`) store the columns their hashes cover in `SyncLink.columns`, so a later mapping change is detected; older links without it behave as before.
