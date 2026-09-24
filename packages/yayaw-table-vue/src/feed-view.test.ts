@@ -6,6 +6,8 @@ import {
   resolveDisplayModes,
   withoutDisabledModeRenderers,
 } from "./display-modes";
+import { createFeedPages, feedLoadAnnouncement } from "./feed-controller";
+import { createFeedHeights, feedScrollRoot, feedWindowRange } from "./feed-dom";
 import {
   appendFeedRows,
   feedAuthor,
@@ -17,7 +19,9 @@ import {
   feedListParams,
   feedMedia,
   feedPropertyValue,
+  feedRowMedia,
   feedSettingFields,
+  feedWindowThreshold,
   formatFeedRelativeDate,
   groupFeedRows,
   loadFeedPages,
@@ -38,7 +42,9 @@ feedViewSuite(
     feedListParams,
     feedMedia,
     feedPropertyValue,
+    feedRowMedia,
     feedSettingFields,
+    feedWindowThreshold,
     formatFeedRelativeDate,
     groupFeedRows,
     loadFeedPages,
@@ -50,5 +56,12 @@ feedViewSuite(
     normalizeModeConfig,
     resolveDisplayModes,
     withoutDisabledModeRenderers,
+  },
+  {
+    createFeedHeights,
+    createFeedPages,
+    feedLoadAnnouncement,
+    feedScrollRoot,
+    feedWindowRange,
   }
 );

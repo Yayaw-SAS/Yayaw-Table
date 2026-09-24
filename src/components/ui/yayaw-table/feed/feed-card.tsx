@@ -15,16 +15,18 @@ import {
   type FeedBodyRenderer,
   type FeedColumn,
   type FeedLabelKey,
+  type FeedMedia,
   type FeedPropertyValue,
   feedAuthor,
   feedBodyNeedsToggle,
   feedBodyText,
   feedDate,
-  feedMedia,
   feedPropertyValue,
+  feedRowMedia,
   feedValue,
   type ResolvedFeedSettings,
 } from "../utils/feed-view";
+import type { TableGalleryMediaConfig } from "../utils/media-contract";
 import "../utils/tag-colors.css";
 
 type RowRecord = Record<string, unknown>;
@@ -47,6 +49,12 @@ export interface FeedCardProps {
   position: number;
   rowId: string;
   setSize: number;
+  /** "Show more" state, kept by the view per row id so it survives windowing. */
+  expanded: boolean;
+  onToggleExpanded: (rowId: string) => void;
+  /** `table.gallery.media` and image column: the media contract of the table. */
+  gallery?: TableGalleryMediaConfig;
+  imageColumn?: string;
 }
 
 /** Line height of the body, in em, so clamped heights match both editions. */
@@ -66,18 +74,21 @@ function clampStyle(lines: number, custom: boolean): CSSProperties {
 
 function FeedBody({
   content,
+  expanded,
   label,
   lines,
+  onToggle,
   text,
 }: {
   content?: ReactNode;
+  expanded: boolean;
   label: FeedLabel;
   lines: number;
+  onToggle: () => void;
   text: string;
 }) {
   const id = useId();
   const ref = useRef<HTMLDivElement>(null);
-  const [expanded, setExpanded] = useState(false);
   const [overflows, setOverflows] = useState(false);
   const custom = content !== undefined;
   useLayoutEffect(() => {
@@ -124,7 +135,7 @@ function FeedBody({
           aria-controls={id}
           aria-expanded={expanded}
           className="rounded-sm font-medium text-muted-foreground text-sm hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          onClick={() => setExpanded((value) => !value)}
+          onClick={onToggle}
           type="button"
         >
           {expanded ? label("showLess") : label("showMore")}
@@ -159,7 +170,9 @@ function FeedByline({
             <img
               alt=""
               className="size-6 shrink-0 rounded-full object-cover"
+              decoding="async"
               height={24}
+              loading="lazy"
               src={author.avatarUrl}
               width={24}
             />
@@ -193,19 +206,61 @@ function FeedByline({
   );
 }
 
-function FeedMediaBlock({
+function FeedVideos({
   label,
+  media,
   title,
-  value,
-  column,
 }: {
   label: FeedLabel;
+  media: FeedMedia;
   title: string;
-  value: unknown;
-  column?: FeedColumn;
 }) {
-  const media = feedMedia(value, column);
-  if (!(media.images.length || media.files.length)) {
+  if (!media.videos.length) {
+    return null;
+  }
+  return (
+    <div className="grid gap-2">
+      {media.videos.map((video) => (
+        // biome-ignore lint/a11y/useMediaCaption: caption tracks are rendered from the media's `tracks` below.
+        <video
+          aria-label={video.alt || label("video", { title })}
+          className="aspect-video w-full rounded-md border bg-black object-contain"
+          controls
+          data-feed-video
+          height={405}
+          key={video.url}
+          playsInline
+          poster={video.poster}
+          // The poster stands for the video: nothing loads beyond metadata before it plays.
+          preload={video.poster ? "none" : "metadata"}
+          width={720}
+        >
+          <source src={video.url} type={video.mimeType} />
+          {video.tracks.map((track) => (
+            <track
+              key={`${track.srcLang ?? ""}:${track.src}`}
+              kind={track.kind}
+              label={track.label}
+              src={track.src}
+              srcLang={track.srcLang}
+            />
+          ))}
+        </video>
+      ))}
+    </div>
+  );
+}
+
+function FeedMediaBlock({
+  label,
+  media,
+  title,
+}: {
+  label: FeedLabel;
+  media: FeedMedia;
+  title: string;
+}) {
+  if (!(media.images.length || media.videos.length || media.files.length)) {
     return null;
   }
   return (
@@ -220,12 +275,14 @@ function FeedMediaBlock({
         >
           {media.images.map((image, index) => (
             <li className="relative" key={image.url}>
+              {/* Lazy, decoded off the main thread, in a box of fixed ratio: no layout shift. */}
               <img
                 alt={image.alt}
                 className={cn(
                   "w-full object-cover",
                   media.images.length > 1 ? "aspect-square" : "aspect-[16/10]"
                 )}
+                decoding="async"
                 height={media.images.length > 1 ? 360 : 450}
                 loading="lazy"
                 src={image.url}
@@ -240,6 +297,7 @@ function FeedMediaBlock({
           ))}
         </ul>
       ) : null}
+      <FeedVideos label={label} media={media} title={title} />
       {media.files.length ? (
         <ul className="flex flex-wrap gap-2">
           {media.files.map((file) => (
@@ -393,6 +451,7 @@ export function FeedCard(props: FeedCardProps) {
         compact ? "gap-2 p-3" : "gap-3 p-4 sm:p-5"
       )}
       data-feed-card
+      data-feed-item
       data-row-id={props.rowId}
     >
       <header className="grid min-w-0 gap-1.5">
@@ -422,16 +481,22 @@ export function FeedCard(props: FeedCardProps) {
       {bodyText ? (
         <FeedBody
           content={rendered}
+          expanded={props.expanded}
           label={label}
           lines={settings.bodyLines}
+          onToggle={() => props.onToggleExpanded(props.rowId)}
           text={bodyText}
         />
       ) : null}
       <FeedMediaBlock
-        column={column(settings.mediaColumn)}
         label={label}
+        media={feedRowMedia(
+          row,
+          column(settings.mediaColumn),
+          props.gallery,
+          props.imageColumn
+        )}
         title={title}
-        value={feedValue(row, column(settings.mediaColumn))}
       />
       <FeedProperties {...props} />
     </article>

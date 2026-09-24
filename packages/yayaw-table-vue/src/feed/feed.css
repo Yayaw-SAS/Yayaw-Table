@@ -195,11 +195,23 @@
 .yayaw-feed-images img {
   display: block;
   width: 100%;
+  height: auto;
   aspect-ratio: 16 / 10;
   object-fit: cover;
 }
 .yayaw-feed-images[data-count="many"] img {
   aspect-ratio: 1;
+}
+.yayaw-feed-video {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  border: 1px solid var(--yayaw-border);
+  border-radius: var(--yayaw-radius);
+  background: #000;
+  object-fit: contain;
 }
 .yayaw-feed-more-images {
   position: absolute;
@@ -280,14 +292,39 @@
   line-height: 1rem;
 }
 .yayaw-feed-footer {
-  display: flex;
-  justify-content: center;
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
   padding-top: 0.25rem;
 }
 .yayaw-feed-footer .yayaw-button {
   min-height: 2rem;
   padding: 0.25rem 0.75rem;
   font-size: 0.875rem;
+}
+.yayaw-feed-load-more[aria-disabled="true"] {
+  cursor: progress;
+}
+/* Scrolling loads the next page: the button stays for the keyboard, shown on focus. */
+.yayaw-feed-load-more[data-quiet]:not(:focus) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  min-height: 0;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.yayaw-feed-end {
+  margin: 0;
+  padding-block: 0.5rem;
+  color: var(--yayaw-muted-foreground);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  text-align: center;
 }
 .yayaw-feed-spin {
   animation: yayaw-spin 1s linear infinite;
@@ -314,4 +351,11 @@
   border-radius: var(--yayaw-radius);
   background: var(--yayaw-muted);
   animation: yayaw-pulse 2s ease-in-out infinite;
+}
+/* Last, so it wins over the animations above. */
+@media (prefers-reduced-motion: reduce) {
+  .yayaw-feed-spin,
+  .yayaw-feed-skeleton-line {
+    animation: none;
+  }
 }

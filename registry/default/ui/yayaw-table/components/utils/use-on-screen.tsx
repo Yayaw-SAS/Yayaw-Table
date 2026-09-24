@@ -21,6 +21,12 @@ export function useOnScreen(options: UseOnScreenOptions = {}) {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
+    // Without IntersectionObserver (old browsers, some embeds) the element
+    // counts as visible instead of breaking the table.
+    if (typeof IntersectionObserver === "undefined") {
+      setIsVisible(true);
+      return;
+    }
     const observer = new IntersectionObserver(([entry]) => {
       setIsVisible(entry.isIntersecting);
     }, options);

@@ -6,6 +6,15 @@ import {
   withoutDisabledModeRenderers,
 } from "../src/components/ui/yayaw-table/utils/display-modes";
 import {
+  createFeedPages,
+  feedLoadAnnouncement,
+} from "../src/components/ui/yayaw-table/utils/feed-controller";
+import {
+  createFeedHeights,
+  feedScrollRoot,
+  feedWindowRange,
+} from "../src/components/ui/yayaw-table/utils/feed-dom";
+import {
   appendFeedRows,
   feedAuthor,
   feedBodyMayOverflow,
@@ -16,7 +25,9 @@ import {
   feedListParams,
   feedMedia,
   feedPropertyValue,
+  feedRowMedia,
   feedSettingFields,
+  feedWindowThreshold,
   formatFeedRelativeDate,
   groupFeedRows,
   loadFeedPages,
@@ -38,7 +49,9 @@ feedViewSuite(
     feedListParams,
     feedMedia,
     feedPropertyValue,
+    feedRowMedia,
     feedSettingFields,
+    feedWindowThreshold,
     formatFeedRelativeDate,
     groupFeedRows,
     loadFeedPages,
@@ -50,5 +63,12 @@ feedViewSuite(
     normalizeModeConfig,
     resolveDisplayModes,
     withoutDisabledModeRenderers,
+  },
+  {
+    createFeedHeights,
+    createFeedPages,
+    feedLoadAnnouncement,
+    feedScrollRoot,
+    feedWindowRange,
   }
 );

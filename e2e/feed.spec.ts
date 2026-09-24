@@ -117,6 +117,13 @@ test("Load more fetches the next page", async ({ page }) => {
     "Foxtrot portal",
   ]);
   await expect(page.getByRole("button", { name: "Load more" })).toHaveCount(0);
+  // The button left with the last page: focus moved to the first new post.
+  await expect(
+    page.locator("[data-feed-title]", { hasText: "Delta support" })
+  ).toBeFocused();
+  await expect(page.locator("[data-feed-end]")).toHaveText(
+    "You're all caught up"
+  );
 });
 
 test("clicking a title opens the record view", async ({ page }) => {
@@ -178,21 +185,24 @@ test("on a wide screen the column stays narrow and centered", async ({
   expect(box?.width ?? 0).toBeLessThanOrEqual(720);
 });
 
-test("infinite scroll loads the next page at the end of the feed", async ({
+test("infinite scroll loads pages while the end is within a screen, then stops", async ({
   page,
 }) => {
-  const settings = encodeURIComponent(
-    JSON.stringify({ pageSize: 2, infiniteScroll: true })
-  );
+  // On by default: two posts per page leave the end in reach, so the next
+  // pages load on their own until the last one.
+  const settings = encodeURIComponent(JSON.stringify({ pageSize: 2 }));
   await page.setViewportSize({ width: 1200, height: 700 });
   await page.goto(
     `${EXAMPLE}&views-display=feed&${SETTINGS_PARAM}=${settings}`
   );
-  await expect(cards(page).first()).toBeVisible();
-  await page
-    .getByRole("button", { name: "Load more" })
-    .scrollIntoViewIfNeeded();
-  await expect.poll(async () => await cards(page).count()).toBeGreaterThan(2);
+  await expect(cards(page)).toHaveCount(6);
+  await expect(page.locator("[data-feed-end]")).toHaveText(
+    "You're all caught up"
+  );
+  await expect(page.getByRole("button", { name: "Load more" })).toHaveCount(0);
+  await expect(page.locator("[data-feed-status]")).toContainText(
+    "You're all caught up."
+  );
 });
 
 test("both editions draw cards with the same measures", async ({ page }) => {

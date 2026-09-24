@@ -96,9 +96,14 @@ into a column or `metadata.context`. `onSubmit` receives `meta.consents`,
 `withFormServerContext` adds what the server knows (page, revision, token).
 The Feed view also ships in the table items: add `"feed"` to `displayModes`
 for posts in a centered column (title, author and date, a clamped body with
-"Show more", media and properties), loaded page by page from `list` with
-"Load more" or on scroll. Bodies are plain text unless `table.feed.renderBody`
-renders them (markdown or sanitized HTML); `table.feed: false` turns it off.
+"Show more", media and properties), loaded page by page from `list` as the end
+comes within a screen (`infiniteScroll`, on by default; off, a "Load more"
+button loads the next page, and it stays as the keyboard fallback). Its code
+loads with the first feed shown, images load lazily in fixed boxes, videos show
+their poster, and past 60 loaded posts only those near the viewport render
+(`table.feed.windowing`: another count, or `false` to render every post). Bodies
+are plain text unless `table.feed.renderBody` renders them (markdown or
+sanitized HTML); `table.feed: false` turns it off.
 
 Server connectors that push rows to Notion or Google Sheets, or sync them both
 ways, are optional framework-agnostic items as well

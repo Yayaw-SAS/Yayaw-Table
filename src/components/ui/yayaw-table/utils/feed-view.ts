@@ -3,7 +3,11 @@
  * `contracts:sync`): settings, column defaults, list pages, dates, bodies,
  * authors, media, properties, groups, labels and the settings panel.
  */
-import { mediaUrl } from "./media-contract";
+import {
+  mediaUrl,
+  resolveGalleryMedia,
+  type TableGalleryMediaConfig,
+} from "./media-contract";
 import { type ContractRecord, compatibleListParams } from "./table-contracts";
 import { tagAppearance } from "./tag-colors";
 import {
@@ -40,7 +44,10 @@ export interface FeedViewSettings {
   density?: FeedDensity;
   /** Records per page requested from `actions.list`. */
   pageSize?: number;
-  /** Load the next page when the end of the feed scrolls into view. */
+  /**
+   * Load the next page when the end of the feed comes within a screen of the
+   * viewport (on by default); off, "Load more" loads it.
+   */
   infiniteScroll?: boolean;
 }
 
@@ -53,9 +60,19 @@ export type FeedBodyRenderer = (
   row: Record<string, unknown>
 ) => unknown;
 
-/** `table.feed` defaults; `renderBody` is a runtime hook never saved in views. */
+/**
+ * `table.feed` defaults. `renderBody` and `windowing` are host options, never
+ * saved in views.
+ */
 export interface FeedTableSettings extends FeedViewSettings {
   renderBody?: FeedBodyRenderer;
+  /**
+   * Past this many loaded posts (`FEED_WINDOW_THRESHOLD`, 60, with `true` or
+   * unset), only the posts near the viewport are rendered; the others keep
+   * their measured height. `false` renders every post, e.g. so the browser's
+   * find in page sees them all.
+   */
+  windowing?: boolean | number;
 }
 
 export interface ResolvedFeedSettings {
@@ -79,13 +96,17 @@ export const FEED_DEFAULTS = {
   bodyLines: 4,
   density: "comfortable",
   pageSize: 10,
-  infiniteScroll: false,
+  infiniteScroll: true,
 } as const satisfies Partial<ResolvedFeedSettings>;
 
 export const FEED_MAX_BODY_LINES = 20;
 export const FEED_MAX_PAGE_SIZE = 100;
 /** Images shown at most on a card; the rest are counted. */
 export const FEED_MAX_IMAGES = 4;
+/** Videos shown at most on a card; the others are listed as files. */
+export const FEED_MAX_VIDEOS = 2;
+/** Loaded posts rendered in full before the feed renders only those near the viewport. */
+export const FEED_WINDOW_THRESHOLD = 60;
 /** Average characters per body line, to guess overflow before layout. */
 const CHARS_PER_LINE = 80;
 const FEED_DATE_DISPLAYS: readonly FeedDateDisplay[] = ["relative", "absolute"];
@@ -100,6 +121,7 @@ const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 const TEMPLATE_PARAM = /\{(\w+)\}/g;
 const LINE_BREAK = /\r\n|\r|\n/;
 const IMAGE_EXTENSION = /\.(avif|gif|jpe?g|png|svg|webp)(\?|#|$)/i;
+const VIDEO_EXTENSION = /\.(m4v|mov|mp4|ogv|webm)(\?|#|$)/i;
 const WHITESPACE = /\s+/;
 const URL_SUFFIX = /[?#]/;
 const AUTHOR_HINT =
@@ -765,47 +787,123 @@ export interface FeedMediaFile {
   url?: string;
 }
 
+/** A caption track of a video, from the gallery media contract's `tracks`. */
+export interface FeedMediaTrack {
+  src: string;
+  label?: string;
+  srcLang?: string;
+  kind: "captions" | "subtitles";
+}
+
+/** A video: shown by its poster, nothing loaded beyond metadata before it plays. */
+export interface FeedMediaVideo {
+  url: string;
+  /** Accessible name; empty when the item has none (the post's title is used). */
+  alt: string;
+  poster?: string;
+  mimeType?: string;
+  tracks: FeedMediaTrack[];
+}
+
 export interface FeedMedia {
   /** Images shown, at most `FEED_MAX_IMAGES`. */
   images: FeedMediaImage[];
   /** Images not shown. */
   moreImages: number;
+  /** Videos shown, at most `FEED_MAX_VIDEOS`; the others are listed as files. */
+  videos: FeedMediaVideo[];
   files: FeedMediaFile[];
 }
 
 const fileNameOf = (url: string) =>
   decodeURIComponent(url.split(URL_SUFFIX)[0]?.split("/").at(-1) ?? url);
 
+function mediaTracks(value: unknown): FeedMediaTrack[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter(isRecord).flatMap((track) => {
+    const src = mediaUrl(track.src);
+    if (!src) {
+      return [];
+    }
+    const label = cleanText(track.label);
+    const srcLang = cleanText(track.srcLang);
+    const kind: FeedMediaTrack["kind"] =
+      track.kind === "subtitles" ? "subtitles" : "captions";
+    return [
+      {
+        src,
+        kind,
+        ...(label ? { label } : {}),
+        ...(srcLang ? { srcLang } : {}),
+      },
+    ];
+  });
+}
+
+function isVideoItem(record: Record<string, unknown>, url: string): boolean {
+  const type = String(record.type ?? "");
+  const mimeType = String(record.mimeType ?? "");
+  if (type === "video" || mimeType.startsWith("video/")) {
+    return true;
+  }
+  // Only an untyped item is guessed from its extension.
+  return !(type || mimeType) && VIDEO_EXTENSION.test(url);
+}
+
 function mediaItem(
   item: unknown,
   imageColumn: boolean
-): { image?: FeedMediaImage; file?: FeedMediaFile } {
+): { image?: FeedMediaImage; video?: FeedMediaVideo; file?: FeedMediaFile } {
   const record = isRecord(item) ? item : { url: item };
   const url = mediaUrl(record.url ?? record.src ?? record.href);
   const name = cleanText(record.name ?? record.alt ?? record.label);
+  const alt = cleanText(record.alt) ?? name ?? "";
+  if (url && isVideoItem(record, url)) {
+    const poster = mediaUrl(record.poster);
+    const mimeType = cleanText(record.mimeType);
+    return {
+      video: {
+        url,
+        alt,
+        ...(poster ? { poster } : {}),
+        ...(mimeType ? { mimeType } : {}),
+        tracks: mediaTracks(record.tracks),
+      },
+    };
+  }
   const kind = String(record.type ?? record.mimeType ?? "");
   const isImage =
     kind === "image" ||
     kind.startsWith("image/") ||
     (url !== undefined && (imageColumn || IMAGE_EXTENSION.test(url)));
   if (url && isImage) {
-    return { image: { url, alt: name ?? "" } };
+    return { image: { url, alt } };
   }
   const fileName = name ?? (url ? fileNameOf(url) : undefined);
   return fileName ? { file: { name: fileName, url } } : {};
 }
 
-/** Images and files of a media value: URLs, lists or `{ url, name, type }` objects. */
+/**
+ * Images, videos and files of a media value: URLs, lists or items of the
+ * gallery media contract (`{ url, type, mimeType, poster, alt, tracks }`).
+ */
 export function feedMedia(value: unknown, column?: FeedColumn): FeedMedia {
   const items = (Array.isArray(value) ? value : [value]).filter(
     (item) => item !== null && item !== undefined && item !== ""
   );
   const images: FeedMediaImage[] = [];
+  const videos: FeedMediaVideo[] = [];
   const files: FeedMediaFile[] = [];
   for (const item of items) {
-    const { image, file } = mediaItem(item, column?.type === "image");
+    const { image, video, file } = mediaItem(item, column?.type === "image");
     if (image) {
       images.push(image);
+    } else if (video && videos.length < FEED_MAX_VIDEOS) {
+      videos.push(video);
+    } else if (video) {
+      files.push({ name: video.alt || fileNameOf(video.url), url: video.url });
     } else if (file) {
       files.push(file);
     }
@@ -813,8 +911,36 @@ export function feedMedia(value: unknown, column?: FeedColumn): FeedMedia {
   return {
     images: images.slice(0, FEED_MAX_IMAGES),
     moreImages: Math.max(0, images.length - FEED_MAX_IMAGES),
+    videos,
     files,
   };
+}
+
+/**
+ * The media of a post: its media column's items; when the table's gallery
+ * media contract is on (`table.gallery.media.enabled`) for that column (its
+ * `urlColumn`, else the gallery image column), the source it resolves, with
+ * `getMedia`, the type, MIME type and poster columns.
+ */
+export function feedRowMedia(
+  row: Record<string, unknown>,
+  column: FeedColumn | undefined,
+  gallery?: TableGalleryMediaConfig,
+  imageColumn?: string
+): FeedMedia {
+  if (!column) {
+    return feedMedia(undefined);
+  }
+  if (
+    gallery?.enabled === true &&
+    (gallery.urlColumn ?? imageColumn) === column.id
+  ) {
+    const source = resolveGalleryMedia(row, gallery, imageColumn);
+    if (source) {
+      return feedMedia([source], column);
+    }
+  }
+  return feedMedia(feedValue(row, column), column);
 }
 
 // Properties -------------------------------------------------------------------
@@ -993,8 +1119,11 @@ const ENGLISH_LABELS = {
   loading: "Loading…",
   loadingMore: "Loading more…",
   error: "The feed could not be loaded.",
+  loadMoreError: "More posts could not be loaded.",
   retry: "Retry",
   end: "You're all caught up",
+  loadedOne: "1 more post loaded, {total} shown.",
+  loadedMany: "{count} more posts loaded, {total} shown.",
   untitled: "Untitled",
   noValue: "No value",
   yes: "Yes",
@@ -1002,6 +1131,7 @@ const ENGLISH_LABELS = {
   moreImages: "+{count}",
   by: "By",
   media: "Media of {title}",
+  video: "Video of {title}",
   titleColumn: "Title",
   authorColumn: "Author",
   dateColumn: "Date",
@@ -1034,8 +1164,11 @@ const FRENCH_LABELS: Record<FeedLabelKey, string> = {
   loading: "Chargement…",
   loadingMore: "Chargement de la suite…",
   error: "Le fil n'a pas pu être chargé.",
+  loadMoreError: "La suite du fil n'a pas pu être chargée.",
   retry: "Réessayer",
   end: "Vous êtes à jour",
+  loadedOne: "1 publication de plus chargée, {total} affichées.",
+  loadedMany: "{count} publications de plus chargées, {total} affichées.",
   untitled: "Sans titre",
   noValue: "Aucune valeur",
   yes: "Oui",
@@ -1043,6 +1176,7 @@ const FRENCH_LABELS: Record<FeedLabelKey, string> = {
   moreImages: "+{count}",
   by: "Par",
   media: "Médias de {title}",
+  video: "Vidéo de {title}",
   titleColumn: "Titre",
   authorColumn: "Auteur",
   dateColumn: "Date",
@@ -1304,4 +1438,23 @@ export function feedBodyRenderer(
   return typeof defaults.renderBody === "function"
     ? (defaults.renderBody as FeedBodyRenderer)
     : undefined;
+}
+
+/**
+ * Loaded posts past which only those near the viewport render, from
+ * `table.feed.windowing`: the default with `true` or nothing valid, none with
+ * `false`.
+ */
+export function feedWindowThreshold(
+  defaults: Record<string, unknown>
+): number | undefined {
+  const { windowing } = defaults;
+  if (windowing === false) {
+    return;
+  }
+  return typeof windowing === "number" &&
+    Number.isInteger(windowing) &&
+    windowing > 0
+    ? windowing
+    : FEED_WINDOW_THRESHOLD;
 }
