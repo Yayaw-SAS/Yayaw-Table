@@ -3,15 +3,11 @@ import {
   dashboardProjectRows,
   dashboardTaskRows,
   demoDay,
-  projectColumns,
   projectsOverviewDashboard,
 } from "../examples/dashboard";
 import {
-  type DashboardColumn,
-  dashboardColumn,
   dashboardComparison,
   dashboardComparisonText,
-  dashboardDateRangeText,
 } from "../src/components/ui/yayaw-table-dashboard/dashboard-model";
 
 const DASHBOARD = "/?example=dashboard";
@@ -28,7 +24,14 @@ const WIDGETS = [
   "open-tasks",
 ];
 const PROJECTS = dashboardProjectRows();
-const DUE_COLUMN = projectColumns.find((column) => column.id === "dueDate");
+const SHORT_DAY = new Intl.DateTimeFormat("en-US", {
+  day: "numeric",
+  month: "numeric",
+  timeZone: "UTC",
+  year: "2-digit",
+});
+const shortDay = (day: string): string =>
+  SHORT_DAY.format(new Date(`${day}T00:00:00Z`));
 const OPEN_TASKS = dashboardTaskRows().filter((task) => !task.done);
 const TREND = /^Trend: /;
 const HAS_DIGITS = /\d/;
@@ -261,14 +264,10 @@ test("dashboard filters reach every targeted table and set the KPI period", asyn
   const start = demoDay(1 - new Date().getDate());
   const end = demoDay(28 - new Date().getDate());
   await pickDays(page, "due", [fullDate(start), fullDate(end)]);
-  // Days read as the first target column (Projects › Due) shows dates.
+  // Days read as the first target column (Projects › Due) shows dates: its
+  // table's short numeric preset.
   await expect(filterValue(page, "due")).toHaveText(
-    dashboardDateRangeText(
-      { start, end },
-      "en",
-      undefined,
-      dashboardColumn(DUE_COLUMN as DashboardColumn)
-    )
+    `${shortDay(start)} – ${shortDay(end)}`
   );
   const inRange = PROJECTS.filter((row) => between(row.dueDate, start, end));
   await expect(figure(page, "projects-count")).toHaveText(

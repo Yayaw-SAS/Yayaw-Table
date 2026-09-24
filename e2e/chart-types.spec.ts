@@ -278,9 +278,9 @@ test("the Livraisons cumulées view stacks deliveries per category, week after w
     "Total",
   ]);
   expect(await tableRows(page)).toEqual([
-    "Week of Aug 31, 2026 1 0 1 2",
-    "Week of Sep 7, 2026 1 1 2 4",
-    "Week of Sep 14, 2026 2 2 2 6",
+    "Week of 8/31/26 1 0 1 2",
+    "Week of 9/7/26 1 1 2 4",
+    "Week of 9/14/26 2 2 2 6",
   ]);
   // Stacked to 100%: each category's share of the week, beside its count.
   await openChartSettings(page);
@@ -291,9 +291,9 @@ test("the Livraisons cumulées view stacks deliveries per category, week after w
   await expect
     .poll(() => tableRows(page))
     .toEqual([
-      "Week of Aug 31, 2026 1 (50%) 0 (0%) 1 (50%) 2",
-      "Week of Sep 7, 2026 1 (25%) 1 (25%) 2 (50%) 4",
-      "Week of Sep 14, 2026 2 (33.3%) 2 (33.3%) 2 (33.3%) 6",
+      "Week of 8/31/26 1 (50%) 0 (0%) 1 (50%) 2",
+      "Week of 9/7/26 1 (25%) 1 (25%) 2 (50%) 4",
+      "Week of 9/14/26 2 (33.3%) 2 (33.3%) 2 (33.3%) 6",
     ]);
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Show as chart" }).click();
