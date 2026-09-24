@@ -1,6 +1,7 @@
 import { appendFileSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { pinSnapshotDependencies } from "../../scripts/registry-snapshot-pins.mjs";
 
 const ITEMS = [
   "registry.json",
@@ -40,6 +41,9 @@ export function registryPublication(root) {
       "The registry release manifest has an inconsistent version or index."
     );
   }
+  // Snapshots pin this registry's dependencies to their own version.
+  const { homepage } = readJson("package.json");
+  const itemNames = Object.keys(manifest.files?.items ?? {});
   for (const name of ITEMS) {
     if (
       name !== "registry.json" &&
@@ -48,9 +52,12 @@ export function registryPublication(root) {
       throw new Error(`The release manifest is missing ${name}.`);
     }
     // Missing committed snapshot files are corruption, not pending development.
-    const released = readFileSync(resolve(root, snapshot, name));
-    const latest = readFileSync(resolve(root, "public/r", name));
-    if (!latest.equals(released)) {
+    const released = readFileSync(resolve(root, snapshot, name), "utf8");
+    const latest = pinSnapshotDependencies(
+      readFileSync(resolve(root, "public/r", name), "utf8"),
+      { homepage, itemNames, version }
+    );
+    if (latest !== released) {
       return { status: "unversioned", version };
     }
   }
