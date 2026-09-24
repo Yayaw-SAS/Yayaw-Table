@@ -208,6 +208,69 @@ it("preserves an explicit URL selection over a favorite", async () => {
   expect(wrapper.button("Current View").textContent).toContain(standard.name);
 });
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+}
+
+it("applies the host's initial view without waiting for a slow favorite", async () => {
+  const pending = deferred<{ success: true; data: { viewId: string } }>();
+  const wrapper = await mountManager({
+    initialActiveViewId: favorite.id,
+    actions: { getFavorite: () => pending.promise },
+  });
+  expect(wrapper.button("Current View").textContent).toContain(favorite.name);
+  expect(wrapper.store.get(tableDensityAtom(favorite.tableId))).toBe(
+    "extra-small"
+  );
+  await act(() =>
+    pending.resolve({ success: true, data: { viewId: standard.id } })
+  );
+  await settle();
+  expect(wrapper.button("Current View").textContent).toContain(favorite.name);
+});
+
+it("applies a bare view link's settings while the favorite loads", async () => {
+  const pending = deferred<{ success: true; data: { viewId: string } }>();
+  window.history.replaceState({}, "", `/?view=${favorite.id}`);
+  const wrapper = await mountManager({
+    syncUrl: true,
+    url: `view=${favorite.id}`,
+    actions: { getFavorite: () => pending.promise },
+  });
+  expect(wrapper.button("Current View").textContent).toContain(favorite.name);
+  expect(wrapper.store.get(tableDensityAtom(favorite.tableId))).toBe(
+    "extra-small"
+  );
+  await act(() =>
+    pending.resolve({ success: true, data: { viewId: standard.id } })
+  );
+  await settle();
+  expect(wrapper.store.get(tableDensityAtom(favorite.tableId))).toBe(
+    "extra-small"
+  );
+});
+
+it("keeps the initial view when the table writes its own URL state first", async () => {
+  const list = deferred<{ data: TableView[] }>();
+  const wrapper = await mountManager({
+    syncUrl: true,
+    initialActiveViewId: favorite.id,
+    actions: { list: () => list.promise },
+  });
+  // What the table does right after mounting: it writes its column order.
+  window.history.replaceState({}, "", "/?favorites-order=%5B%22name%22%5D");
+  await act(() => list.resolve({ data: [favorite, standard] }));
+  await settle();
+  expect(wrapper.button("Current View").textContent).toContain(favorite.name);
+  expect(wrapper.store.get(tableDensityAtom(favorite.tableId))).toBe(
+    "extra-small"
+  );
+});
+
 it("does not overwrite edits made while a remote favorite is loading", async () => {
   let resolve!: (value: { success: true; data: { viewId: string } }) => void;
   const pending = new Promise<{ success: true; data: { viewId: string } }>(

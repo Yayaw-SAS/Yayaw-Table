@@ -29,6 +29,7 @@ const TWO_RULES = [
     isActive: true,
   },
 ];
+const FEED_MODE = /^feed$/i;
 const MODE = {
   gallery: /^gallery$/i,
   kanban: /^kanban$/i,
@@ -107,6 +108,19 @@ test("a display mode the table does not offer falls back to the default", async 
   await page.goto(`${EXAMPLE}&${DISPLAY_PARAM}=gantt`);
   await expect(page.getByText("Alpha launch").first()).toBeVisible();
   await expectMode(page, MODE.table);
+});
+
+test("a link naming only a saved view opens it with its settings", async ({
+  page,
+}) => {
+  await page.goto(`${EXAMPLE}&view=updates`);
+  await expect(page.getByRole("tab", { name: "Updates" })).toHaveAttribute(
+    "aria-selected",
+    "true"
+  );
+  // The view's settings apply, not only its tab: the Feed layout.
+  await expect.poll(() => displayParam(page)).toBe("feed");
+  await expectMode(page, FEED_MODE);
 });
 
 test("a saved view restores its display mode", async ({ page }) => {

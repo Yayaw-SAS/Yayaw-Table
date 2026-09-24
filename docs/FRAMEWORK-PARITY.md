@@ -32,7 +32,7 @@ Every parity-affecting PR must update this document and keep the Vue example at 
 
 ## Actions and views
 
-Both managers support one personal favorite per table, separate from shared view records. The star is available for saved system/shared views even with saving disabled. Arrival priority is explicit URL state, `initialActiveViewId`, an accessible favorite, then `isDefault`. Optional `getFavorite`/`setFavorite` actions synchronize preferences; otherwise persistence is browser-local. Organization scoping and permissions remain the host's responsibility; see [saved views](SAVED-VIEWS.md).
+Both managers support one personal favorite per table, separate from shared view records. The star is available for saved system/shared views even with saving disabled. Arrival priority is explicit URL state, `initialActiveViewId`, an accessible favorite, then `isDefault`. A link with only `?view=<id>` applies that view's settings, and a view named by the link or by `initialActiveViewId` is applied once the saved views load, without waiting for `getFavorite`. Both editions read the incoming URL once on mount, so the table's own first URL writes (React's `<tableId>-order`) never cancel it (`tests/table-view-favorite.test.tsx`, `saved-views.test.ts`, `e2e/views.spec.ts`). Optional `getFavorite`/`setFavorite` actions synchronize preferences; otherwise persistence is browser-local. Organization scoping and permissions remain the host's responsibility; see [saved views](SAVED-VIEWS.md).
 
 List actions receive both naming conventions:
 

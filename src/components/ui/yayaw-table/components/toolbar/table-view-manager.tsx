@@ -188,24 +188,69 @@ function getCurrentViewLabel({
   return fallbackDefaultLabel;
 }
 
-function hasTableUrlState(tableId: string, instanceId?: string): boolean {
+/**
+ * What the URL asks of the table on arrival: a link that only names a saved
+ * view (`?view=<id>`) opens that view; any other table key is state to keep.
+ * Read once on mount, so the state the table writes itself right after
+ * mounting (its column order) is not mistaken for a request.
+ */
+function readArrivalUrlState(
+  tableId: string,
+  instanceId?: string
+): { hasState: boolean; viewId: null | string } {
   if (typeof window === "undefined") {
-    return false;
+    return { hasState: false, viewId: null };
   }
 
   const keys = tableUrlKeys(tableId, instanceId);
   const searchParams = new URLSearchParams(window.location.search);
-  if (searchParams.has(keys.view)) {
-    return true;
-  }
+  const hasState = [...searchParams.keys()].some(
+    (key) => key === keys.historyIndex || key.startsWith(`${keys.prefix}-`)
+  );
+  return { hasState, viewId: searchParams.get(keys.view) };
+}
 
-  for (const key of searchParams.keys()) {
-    if (key.startsWith(`${keys.prefix}-`)) {
-      return true;
-    }
+/**
+ * The view the arrival asks for: one a link names with no other table state
+ * (`?view=<id>`), else the host's `initialActiveViewId`. It does not depend on
+ * the favorite. `arrivalAllowsView` is false once the URL carried table state
+ * on arrival or another view was selected since.
+ */
+function useArrivalView({
+  initialActiveViewId,
+  instanceId,
+  savedViews,
+  shouldSyncUrl,
+  tableId,
+  viewParam,
+}: {
+  initialActiveViewId?: string;
+  instanceId?: string;
+  savedViews: TableView[];
+  shouldSyncUrl: boolean;
+  tableId: string;
+  viewParam: null | string;
+}): { arrivalAllowsView: boolean; explicitInitialView?: TableView } {
+  const [arrivalUrl] = useState(() =>
+    shouldSyncUrl
+      ? readArrivalUrlState(tableId, instanceId)
+      : { hasState: false, viewId: null }
+  );
+  if (arrivalUrl.hasState) {
+    return { arrivalAllowsView: false };
   }
-
-  return false;
+  const explicitInitialViewId = arrivalUrl.viewId ?? initialActiveViewId;
+  const explicitInitialView =
+    explicitInitialViewId === undefined
+      ? undefined
+      : savedViews.find((view) => view.id === explicitInitialViewId);
+  return {
+    // A link's view must exist; nothing else selected since arrival.
+    arrivalAllowsView:
+      viewParam === arrivalUrl.viewId &&
+      (arrivalUrl.viewId === null || explicitInitialView !== undefined),
+    explicitInitialView,
+  };
 }
 
 function mergeViewActions({
@@ -906,12 +951,16 @@ export function DataTableViewManager({
     viewParam,
   });
   const initialConfigRef = useRef(currentConfig);
-  const hasInitialUrlState = shouldSyncUrl && hasTableUrlState(tableId, instanceId);
+  const { arrivalAllowsView, explicitInitialView } = useArrivalView({
+    initialActiveViewId,
+    instanceId,
+    savedViews,
+    shouldSyncUrl,
+    tableId,
+    viewParam,
+  });
   const canApplyInitialView =
-    enabled &&
-    !hasAppliedInitialViewRef.current &&
-    !viewParam &&
-    !hasInitialUrlState;
+    enabled && !hasAppliedInitialViewRef.current && arrivalAllowsView;
   const preferredInitialViewId = resolveInitialTableView(
     savedViews,
     initialActiveViewId,
@@ -919,13 +968,15 @@ export function DataTableViewManager({
   )?.id;
 
   useEffect(() => {
-    if (
+    // Both wait for the saved views (persisted records win over seeds); only
+    // the favorite waits for the preference. A view the link or the host
+    // names does not depend on it.
+    const waiting =
       isFetching ||
       isLoading ||
-      favoriteQuery.isFetching ||
-      favoriteQuery.isPending ||
-      hasAppliedInitialViewRef.current
-    ) {
+      (explicitInitialView === undefined &&
+        (favoriteQuery.isFetching || favoriteQuery.isPending));
+    if (waiting || hasAppliedInitialViewRef.current) {
       return;
     }
 
@@ -939,9 +990,9 @@ export function DataTableViewManager({
     ) {
       return;
     }
-    const initialView = savedViews.find(
-      (view) => view.id === preferredInitialViewId
-    );
+    const initialView =
+      explicitInitialView ??
+      savedViews.find((view) => view.id === preferredInitialViewId);
     if (!initialView) {
       return;
     }
@@ -953,6 +1004,7 @@ export function DataTableViewManager({
     applyViewConfig,
     canApplyInitialView,
     currentConfig,
+    explicitInitialView,
     favoriteQuery.isPending,
     favoriteQuery.isFetching,
     isLoading,

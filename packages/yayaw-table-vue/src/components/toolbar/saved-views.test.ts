@@ -614,6 +614,47 @@ it("ignores an inaccessible favorite and respects an explicit initial view", asy
   expect(current(explicit).text()).toBe(standard.name);
 });
 
+it("applies an explicit or linked view without waiting for a slow favorite", async () => {
+  const favorite = deferred<TableViewActionResult<{ viewId: string | null }>>();
+  const other = { ...saved, id: "other", name: "Other", config: {} };
+  window.history.replaceState({}, "", "/");
+  const hosted = mountTable({
+    views: [saved, other],
+    active: saved.id,
+    syncUrl: true,
+    actions: { getFavorite: () => favorite.promise },
+  });
+  await flushPromises();
+  // Applied while the favorite is still pending, and kept once it answers.
+  expect(current(hosted).text()).toBe(saved.name);
+  expect(search(hosted).element).toHaveProperty("value", "Alpha");
+  favorite.resolve({ data: { viewId: other.id } });
+  await flushPromises();
+  expect(current(hosted).text()).toBe(saved.name);
+  await vi.waitFor(() =>
+    expect(new URLSearchParams(window.location.search).get("view")).toBe(
+      saved.id
+    )
+  );
+  hosted.unmount();
+
+  const linked = deferred<TableViewActionResult<{ viewId: string | null }>>();
+  window.history.replaceState({}, "", `/?view=${saved.id}`);
+  const link = mountTable({
+    views: [saved, other],
+    syncUrl: true,
+    actions: { getFavorite: () => linked.promise },
+  });
+  await flushPromises();
+  // A bare `?view=` link applies the view's settings, not only its name.
+  expect(current(link).text()).toBe(saved.name);
+  expect(search(link).element).toHaveProperty("value", "Alpha");
+  linked.resolve({ data: { viewId: other.id } });
+  await flushPromises();
+  expect(current(link).text()).toBe(saved.name);
+  window.history.replaceState({}, "", "/");
+});
+
 it("does not replace edits while the favorite loads, or after choosing the default view", async () => {
   const pending = deferred<TableViewActionResult<{ viewId: string | null }>>();
   const wrapper = mountTable({

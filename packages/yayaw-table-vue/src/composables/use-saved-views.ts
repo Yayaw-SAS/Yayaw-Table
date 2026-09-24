@@ -148,6 +148,26 @@ export function useSavedViews(
       }
     }
   };
+  /** The saved views; false when the manager was disposed meanwhile. */
+  const loadViews = async (): Promise<boolean> => {
+    const response = await actions.value.list(actionContext);
+    const loaded = Array.isArray(response)
+      ? response
+      : (resultData(
+          response,
+          label("views.notifications.error.load", "viewLoadError")
+        ) ?? []);
+    if (disposed) {
+      return false;
+    }
+    // Persisted records supersede initial seeds, including their renamed/configured values.
+    views.value = cloneFormValue([
+      ...new Map(
+        [...initialViews(), ...loaded].map((view) => [view.id, view])
+      ).values(),
+    ]);
+    return true;
+  };
   const load = async (): Promise<void> => {
     if (!enabled()) {
       loading.value = false;
@@ -158,26 +178,21 @@ export function useSavedViews(
     // Parent URL hydration finishes before testing whether the user has edited the table.
     await nextTick();
     initialSnapshot ??= cloneFormValue(context.state.snapshot.value);
+    // A view the link or the host names does not depend on the favorite: it
+    // applies once the views are loaded (persisted records win over seeds).
+    const explicit = context.state.initialViewId !== undefined;
+    const favoriteLoaded = loadFavorite();
     try {
-      const [response] = await Promise.all([
-        actions.value.list(actionContext),
-        loadFavorite(),
-      ]);
-      const loaded = Array.isArray(response)
-        ? response
-        : (resultData(
-            response,
-            label("views.notifications.error.load", "viewLoadError")
-          ) ?? []);
+      if (!(await loadViews())) {
+        return;
+      }
+      if (explicit) {
+        initialize();
+      }
+      await favoriteLoaded;
       if (disposed) {
         return;
       }
-      // Persisted records supersede initial seeds, including their renamed/configured values.
-      views.value = cloneFormValue([
-        ...new Map(
-          [...initialViews(), ...loaded].map((view) => [view.id, view])
-        ).values(),
-      ]);
       initialize();
       hasInitialized = true;
     } catch (cause) {
