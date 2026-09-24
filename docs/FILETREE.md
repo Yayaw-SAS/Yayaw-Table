@@ -1,6 +1,6 @@
 # File tree view — specification
 
-Status: Implemented in the next minor release · Editions: React and Vue (parity required)
+Status: Shipped in 3.6.0 · Editions: React and Vue (parity required)
 
 ## 1. Purpose
 

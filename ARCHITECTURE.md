@@ -1,214 +1,120 @@
 # YaYaw Table - Architecture
 
-## 🏗️ Overview
+YaYaw Table is a configuration-driven data table distributed as shadcn
+registry items: the CLI copies the source into the host project, and no npm
+package is involved. It has two editions with the same behavior, the same
+configuration and the same server contracts:
 
-YaYaw Table is a flexible data table component library that allows users to define their own table configurations rather than imposing predefined structures.
+- **React**: shadcn/ui with Base UI primitives, TanStack Table and Query,
+  jotai and nuqs. Registry item `yayaw-table`, installed under
+  `components/ui/yayaw-table/`.
+- **Vue 3**: Reka UI, TanStack Vue Table and Vue Query. Registry item
+  `yayaw-table-vue`, installed under `components/ui/yayaw-table-vue/`.
 
-## 🎯 Core Philosophy
+The split of work is fixed: the table owns the interface and the client logic
+(display modes, filters, sorting, grouping, saved views, forms, bulk actions,
+URL state), and the host provides the data through server actions.
 
-**User-Defined Configurations**: The library doesn't assume your data structure or table requirements. You provide both the configuration and data.
+## Configuration and host actions
 
-## 📦 Main Components
+A host describes each table with a `TableConfig` (`defineTableConfig`): column
+definitions and their types and value formats, table options, the display
+modes to offer and their settings. React reads it through `getTableConfig`
+and the host's actions through `getTableActions`, both keyed by `tableType`:
 
-### 1. DataTable (Primary Component)
 ```tsx
-<DataTable 
-  tableType="products"
-  config={myTableConfig}
-  data={myData}
-/>
+import { DataTable } from "@/components/ui/yayaw-table";
+import { getTableActions, getTableConfig } from "./table-config";
+
+export function ProductsTable() {
+  return (
+    <DataTable
+      getTableActions={getTableActions}
+      getTableConfig={getTableConfig}
+      tableType="products"
+      title="Products"
+    />
+  );
+}
 ```
 
-**Props**:
-- `config: TableConfig` - **Required** - Your table configuration
-- `data: any[]` - **Required** - Your data array
-- `tableType: string` - Identifier for the table type
-- `onRowSelectionChange?` - Callback for row selection
-- `loading?` - Loading state
+Rows come from the host's `actions.list(params)`, server first: the host
+pages, sorts, filters and searches. `params.scope` asks for the window a view
+needs (a date range for Calendar, a map area for Map, children for File
+tree), and the host answers `meta.scope: "applied"` when it honored it.
+Every other action is optional; without one, the table hides the matching
+interface or falls back to client-side work where it can: `aggregate`
+(charts, column calculations, dashboards), `create`, `update`, `delete`,
+`duplicate`, `bulkUpdate`, `bulkDelete`, `bulkCopy`, `reorder`, `views`,
+`tree`, `exportFile`, `import`, `formLinks` and `geocode`. The Vue edition can
+also filter, sort and page a local `data` array. The complete contracts are in
+the [README](README.md) and the
+[agent skill](skills/yayaw-table/references/server-contracts.md).
 
-### 2. Configuration Helper
-```tsx
-import { defineTableConfig } from "@/components/ui/yayaw-table";
+## Display modes
 
-const myTableConfig = defineTableConfig({
-  id: "products",
-  columns: {
-    definitions: [
-      { id: "name", type: "text", header: "Product Name" },
-      { id: "price", type: "number", header: "Price" },
-      { id: "status", type: "tag", header: "Status" }
-    ],
-    order: ["select", "name", "price", "status", "actions"],
-    visible: ["select", "name", "price", "status", "actions"],
-    mandatory: ["name"]
-  },
-  table: {
-    defaultPageSize: 10,
-    enableSorting: true,
-    enablePagination: true
-  },
-  translations: {
-    keys: { title: "My Products" },
-    namespace: "products"
-  }
-})
-```
+`utils/display-modes.ts` is the single registry of display modes
+(`DISPLAY_MODES`, and `TableDisplayMode` derived from it): `table`, `list`,
+`kanban`, `gallery`, `filetree`, `calendar`, `chart`, `feed`, `map`, `form`
+and `gantt`. It declares each mode's capabilities, settings key and
+availability; renderers, settings panels and icons are keyed by mode, so the
+type checker lists every place a new mode must fill.
 
-## 🔧 Column Type System
+Views with heavy dependencies ship as optional registry items so the core stays
+free of them:
 
-The library supports these column types:
+| Item (React / Vue) | Adds | Library |
+| --- | --- | --- |
+| `yayaw-table-calendar` / `yayaw-table-vue-calendar` | Calendar | FullCalendar |
+| `yayaw-table-chart` / `yayaw-table-vue-chart` | Chart | Recharts / Unovis |
+| `yayaw-table-map` / `yayaw-table-vue-map` | Map | MapLibre (mapcn) |
+| `yayaw-table-dashboard` / `yayaw-table-vue-dashboard` | Dashboard of saved views | gridstack |
+| `yayaw-table-connector-notion`, `yayaw-table-connector-google-sheets` (and Vue) | Server modules for two-way sync | none |
 
-| Type | Purpose | Example |
-|------|---------|---------|
-| `text` | Plain text display | Names, descriptions |
-| `number` | Numeric values | Prices, quantities |
-| `tag` | Badge-style tags | Status, categories |
-| `date` | Date formatting | Created, updated dates |
-| `boolean` | True/false values | Active/inactive states |
-| `code` | Code snippets | IDs, keys |
-| `dynamicType` | Variable content | Mixed data types |
+## Shared logic
 
-## 📂 Repository Structure
+Framework-agnostic modules are written once, in
+`src/components/ui/yayaw-table/utils/` (view models, form conditions,
+connectors, exports, import, contracts), and copied into the Vue package by
+`scripts/sync-table-contracts.mjs` (`bun run contracts:sync`). Shared test
+suites (`tests/*-suite.ts`) run against both copies, so the two editions
+cannot drift on behavior. The few framework-native differences are listed in
+[Framework parity](docs/FRAMEWORK-PARITY.md).
 
-```text
-yayaw-table/
-├── src/
-│   ├── components/ui/yayaw-table/       # Source of truth for the table block
-│   ├── components/ui/custom/            # Shared custom UI files used by the block
-│   └── lib/                             # Shared utilities
-├── registry/
-│   ├── default/ui/yayaw-table/          # Generated from src (do not edit by hand)
-│   └── registry.json                    # Shadcn registry manifest
-├── packages/yayaw-table-vue/            # Vue 3 package, tests, demo, and registry source
-├── public/r/                            # Built registry artifacts served by GitHub Pages
-└── scripts/build-registry.mjs           # Sync/generate registry files
-```
+## State
 
-## 🚀 Usage Patterns
+- **Server data**: TanStack Query in both editions, keyed by table. The Vue
+  table creates its own client unless the host passes `queryClient`.
+- **Client state**: jotai atoms per table in React, composables in Vue.
+  `instanceId` isolates several instances of the same table on one page.
+- **URL**: both editions write `<tableId>-…` query keys (nuqs in React, the
+  History API in Vue), so a link restores the view, filters, sort and page.
+  The few keys only React writes are listed in Framework parity.
+- **Saved views** serialize the same state in both editions; see
+  [Saved views](docs/SAVED-VIEWS.md).
 
-### Basic Usage
-```tsx
-import { DataTable, defineTableConfig } from "@/components/ui/yayaw-table";
+## Repository layout
 
-// 1. Define your configuration
-const tableConfig = defineTableConfig({
-  id: "users",
-  columns: {
-    definitions: [
-      { id: "name", type: "text", header: "Name" },
-      { id: "email", type: "text", header: "Email" },
-      { id: "role", type: "tag", header: "Role" }
-    ],
-    order: ["select", "name", "email", "role", "actions"],
-    visible: ["select", "name", "email", "role", "actions"]
-  },
-  table: { defaultPageSize: 10 }
-})
+| Path | Contents |
+| --- | --- |
+| `src/components/ui/yayaw-table/` | React source: components, hooks, atoms, config, providers, types, utils, and the form, feed, file tree, planning and connector modules |
+| `src/components/ui/yayaw-table-{calendar,chart,dashboard,map}/` | Optional React items |
+| `src/components/ui/*.tsx` | shadcn components used by the table; hosts install them from shadcn |
+| `packages/yayaw-table-vue/` | Vue edition: source, demo and registry build |
+| `registry/` | React registry source (`registry.json`) and generated files (`registry/default/`) |
+| `public/r/` | Built registry JSON for both editions, with immutable release snapshots under `public/r/vX.Y.Z/` |
+| `examples/` | React examples; `examples/record-presentation-preview` is the demo app used by the end-to-end tests |
+| `tests/`, `e2e/` | Bun tests (including the shared suites) and Playwright suites that run against the React and Vue demos |
+| `skills/yayaw-table/` | Agent skill, checked against the code by `bun run skill:check` |
+| `scripts/` | Registry build, contract sync, release snapshot and verification, changeset and skill validation |
+| `docs/` | Feature specifications and maintenance guides |
 
-// 2. Use with your data
-<DataTable 
-  tableType="users"
-  config={tableConfig}
-  data={userData}
-/>
-```
+## Further reading
 
-### Multiple Table Types
-```tsx
-// Define different configurations for different data
-const productsConfig = defineTableConfig({ /* products setup */ })
-const usersConfig = defineTableConfig({ /* users setup */ })
-
-// Use different tables in your app
-<DataTable tableType="products" config={productsConfig} data={products} />
-<DataTable tableType="users" config={usersConfig} data={users} />
-```
-
-## 🎨 Styling & Customization
-
-- **Tailwind CSS** based styling
-- **Radix UI** components for accessibility
-- **Customizable themes** through CSS variables
-- **Dark mode** support ready
-
-## 📱 Responsive Design
-
-- Mobile-first responsive tables
-- Horizontal scrolling on small screens
-- Adaptive column sizing
-- Touch-friendly interactions
-
-## 🔄 State Management
-
-**Built-in State** (default):
-- React hooks for basic table state
-- No external dependencies
-
-**Advanced State** (optional):
-- Jotai for complex state management
-- React Query for server state
-- Available as optional peer dependencies
-
-## 🔌 Extensibility
-
-### Column Generators (Upcoming)
-```tsx
-// Custom column types will be supported
-createCustomColumn({
-  type: "avatar",
-  render: (value) => <Avatar src={value} />
-})
-```
-
-### Form Integration (Upcoming)
-```tsx
-// Connect forms for CRUD operations
-defineTableConfig({
-  form: {
-    createFormType: "product-form",
-    editFormType: "product-form"
-  }
-})
-```
-
-## 🚦 Dependency Strategy
-
-**Required Dependencies**:
-- React
-- @tanstack/react-table
-- Radix UI components
-
-**Optional Dependencies**:
-- jotai (advanced state)
-- @tanstack/react-query (server state)
-- @dnd-kit/* (drag and drop)
-- motion/react (animations)
-
-## ✅ Benefits
-
-**🎯 No Assumptions**: Library doesn't impose data structures
-**🔧 Full Control**: You define table behavior completely
-**📦 Smaller Bundle**: No unused configurations included
-**🚀 Flexible**: Create any table type you need
-**🏗️ Scalable**: Add new tables without library updates
-
-## 🔄 Migration Path
-
-If migrating from other table libraries:
-
-1. **Identify your data structure**
-2. **Create table configuration** with `defineTableConfig()`
-3. **Pass configuration and data** to `<DataTable>`
-4. **Customize column types** as needed
-
-## 🧪 Testing
-
-See [TESTING.md](./TESTING.md) for development setup and testing instructions.
-
-## 🎉 Next Steps
-
-1. **Implement Column Generators** - Real column renderers
-2. **Advanced Toolbar** - Search, filters, actions
-3. **Form Integration** - CRUD operations
-4. **Server Integration** - API patterns
-5. **Advanced Features** - Export, bulk actions, etc. 
+- [README](README.md): installation, features and configuration.
+- [Testing](TESTING.md), [Releases](docs/RELEASES.md) and
+  [CI maintenance](docs/CI-MAINTENANCE.md).
+- Feature specifications: [File tree](docs/FILETREE.md),
+  [Gantt](docs/GANTT.md), [Record details](docs/RECORD-DETAILS.md),
+  [connectors](docs/connectors.md) and the
+  [planning engine](docs/PLANNING-ENGINE.md).

@@ -33,11 +33,12 @@ GitHub-hosted Ubuntu runners; no Coolify host upgrade is needed for this change.
 
 `CI tests` runs only for opened, updated, or reopened PRs targeting `main`.
 It checks out the explicit PR head, cancels superseded runs for that PR, and
-keeps one `test-and-typecheck` job with a ten-minute timeout. Node 24 and Bun
-1.4.2 (the version observed in successful runs) are explicit. The job retains
-Changeset validation, TypeScript, React tests, the intentional repeated-menu
-stability regression, Vue tests, the Vue package build, and registry/example
-generation. The menu reruns detect lifecycle instability and are not redundant
+keeps one `test-and-typecheck` job with a twenty-minute timeout. Node 24 and
+Bun 1.4.2 (the version observed in successful runs) are explicit. The job
+retains Changeset validation, TypeScript, React tests, the intentional
+repeated-menu stability regression, Vue tests, the Playwright end-to-end
+suites in both editions (after installing Chromium), the Vue package build,
+and registry/example generation. The menu reruns detect lifecycle instability and are not redundant
 quality jobs.
 
 The job builds `dist/registry-pages` once, validates it, and uploads the Pages
