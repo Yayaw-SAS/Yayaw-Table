@@ -58,6 +58,8 @@ for (const file of [
   "form-view.ts",
   "import-flow.ts",
   "import-model.ts",
+  "location-model.ts",
+  "map-model.ts",
   "schedule-model.ts",
   "view-tabs.ts",
   "display-modes.ts",

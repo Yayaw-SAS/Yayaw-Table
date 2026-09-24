@@ -72,10 +72,12 @@ import type { ActionItem } from "./columns/actions-column";
 import { DataTableSkeleton } from "./data-table-skeleton";
 import { TableRecordDetails } from "./details/table-record-details";
 // Direct import keeps the toolbar available without a client-only dynamic wrapper.
+import { translateWithFallback } from "./filters/i18n-utils";
 import { TableFilterBar } from "./filters/table-filter-bar";
 // Lazy load heavy components using React.lazy inside './forms/lazy-forms'
 import { catalogueFormAtom } from "./forms/atoms/catalogue-form-atoms";
 import { LazyCatalogueFormContainer as CatalogueFormContainer } from "./forms/lazy-forms";
+import { LocationProvider } from "./location/location-context";
 // Import DataTableClient directly for better SSR compatibility
 import { TableComponent as DataTableClient } from "./table-component";
 import { DataTableAdvancedToolbar } from "./toolbar/data-table-advanced-toolbar";
@@ -778,6 +780,12 @@ function DataTableContent({
   const canCreateRecords =
     config.table.allowCreate !== false &&
     typeof getTableActions?.(tableType)?.create === "function";
+  const geocode = getTableActions?.(tableType)?.geocode;
+  const locationTranslate = useCallback(
+    (key: string, fallback: string) =>
+      translateWithFallback(planningTranslate, `location.${key}`, fallback),
+    [planningTranslate]
+  );
   // The Form mode ships in the table; it is offered when records can be created.
   // The Feed mode ships in the table too; `table.feed: false` withholds it.
   const modeRenderers = useMemo(
@@ -834,226 +842,239 @@ function DataTableContent({
 
   return (
     <TableStateSyncProvider enabled={config.table.syncUrl !== false}>
-      <Suspense fallback={<DataTableSkeleton />}>
-        <DataTableUIProvider
-          columnsConfig={{
-            defaultColumnOrder: config.columns.order || [],
-            defaultSort: config.columns.sort || [],
-            defaultVisibleColumns: config.columns.visible || [],
-            mandatoryColumns: config.columns.mandatory || [],
-          }}
-          tableConfig={{
-            allowBulkDelete: config.table.allowBulkDelete,
-            allowBulkEdit: config.table.allowBulkEdit,
-            allowCreate: config.table.allowCreate,
-            allowDelete: config.table.allowDelete,
-            allowDuplicate: config.table.allowDuplicate,
-            allowEdit: config.table.allowEdit,
-            allowInlineEdit: config.table.allowInlineEdit,
-            allowViewSave: config.table.allowViewSave,
-            allowViewSharing: config.table.allowViewSharing,
-            actionsAsIcons: config.table.actionsAsIcons,
-            bulkExport: config.table.bulkExport,
-            defaultDisplayMode: config.table.defaultDisplayMode,
-            defaultPageSize: config.table.defaultPageSize || 10,
-            density: config.table.density,
-            displayModes: config.table.displayModes,
-            emptyState: config.table.emptyState,
-            export: config.table.export,
-            showToolbar: config.table.showToolbar,
-            showToolbarHeader: config.table.showToolbarHeader,
-            enableColumnDragDropByDefault:
-              config.table.enableColumnDragDropByDefault,
-            enableColumnResizing: config.table.enableColumnResizing,
-            enableColumnDnd: config.table.enableColumnDnd,
-            enableColumnFilters: config.table.enableColumnFilters,
-            enableAdvancedFilters: shouldEnableAdvancedFilters,
-            enableColumnPinning: config.table.enableColumnPinning,
-            enableCalculations: config.table.enableCalculations,
-            enableGrouping: config.table.enableGrouping,
-            enableMultiRowSelection:
-              config.table.enableMultiRowSelection !== false,
-            enablePagination: config.table.enablePagination !== false,
-            enableRowSelection: config.table.enableRowSelection,
-            enableRowClickEdit: config.table.enableRowClickEdit,
-            enableSorting: config.table.enableSorting,
-            enableViews: config.table.enableViews,
-            preserveSelectionOnQuery: config.table.preserveSelectionOnQuery,
-            searchDebounceMs: resolvedSearchDebounceMs,
-            syncUrl: config.table.syncUrl,
-            inlineEdit: config.table.inlineEdit,
-            gallery: config.table.gallery,
-            ...uiModeDefaults(config.table),
-            manualOrder: config.table.manualOrder,
-            planning: config.table.planning,
-            gantt: config.table.gantt,
-            kanban: config.table.kanban,
-            layoutPreset: config.table.layoutPreset,
-            enableAutoPageSize: config.table.enableAutoPageSize,
-            defaultAutoPageSize: config.table.defaultAutoPageSize,
-            pageSizeOptions: config.table.pageSizeOptions || [
-              10, 20, 50, 100, 200, 500,
-            ],
-            rowClickMode: config.table.rowClickMode,
-          }}
-          tableId={tableId}
-          translations={resolveTranslationsToUiStrings(
-            (nestedTranslations ?? defaultTranslations) as DataTableTranslations
-          )}
-        >
-          <div className="flex flex-col gap-4">
-            {shouldShowToolbar && shouldShowToolbarHeader && (
-              <div className="space-y-1">
-                <Title>{displayTitle}</Title>
-                <Description>{displayDescription}</Description>
-              </div>
+      {/* Location editors (cells, record forms, the Form view) suggest places with `actions.geocode`. */}
+      <LocationProvider
+        geocode={geocode}
+        locale={planningLocale}
+        translate={locationTranslate}
+      >
+        <Suspense fallback={<DataTableSkeleton />}>
+          <DataTableUIProvider
+            columnsConfig={{
+              defaultColumnOrder: config.columns.order || [],
+              defaultSort: config.columns.sort || [],
+              defaultVisibleColumns: config.columns.visible || [],
+              mandatoryColumns: config.columns.mandatory || [],
+            }}
+            tableConfig={{
+              allowBulkDelete: config.table.allowBulkDelete,
+              allowBulkEdit: config.table.allowBulkEdit,
+              allowCreate: config.table.allowCreate,
+              allowDelete: config.table.allowDelete,
+              allowDuplicate: config.table.allowDuplicate,
+              allowEdit: config.table.allowEdit,
+              allowInlineEdit: config.table.allowInlineEdit,
+              allowViewSave: config.table.allowViewSave,
+              allowViewSharing: config.table.allowViewSharing,
+              actionsAsIcons: config.table.actionsAsIcons,
+              bulkExport: config.table.bulkExport,
+              defaultDisplayMode: config.table.defaultDisplayMode,
+              defaultPageSize: config.table.defaultPageSize || 10,
+              density: config.table.density,
+              displayModes: config.table.displayModes,
+              emptyState: config.table.emptyState,
+              export: config.table.export,
+              showToolbar: config.table.showToolbar,
+              showToolbarHeader: config.table.showToolbarHeader,
+              enableColumnDragDropByDefault:
+                config.table.enableColumnDragDropByDefault,
+              enableColumnResizing: config.table.enableColumnResizing,
+              enableColumnDnd: config.table.enableColumnDnd,
+              enableColumnFilters: config.table.enableColumnFilters,
+              enableAdvancedFilters: shouldEnableAdvancedFilters,
+              enableColumnPinning: config.table.enableColumnPinning,
+              enableCalculations: config.table.enableCalculations,
+              enableGrouping: config.table.enableGrouping,
+              enableMultiRowSelection:
+                config.table.enableMultiRowSelection !== false,
+              enablePagination: config.table.enablePagination !== false,
+              enableRowSelection: config.table.enableRowSelection,
+              enableRowClickEdit: config.table.enableRowClickEdit,
+              enableSorting: config.table.enableSorting,
+              enableViews: config.table.enableViews,
+              preserveSelectionOnQuery: config.table.preserveSelectionOnQuery,
+              searchDebounceMs: resolvedSearchDebounceMs,
+              syncUrl: config.table.syncUrl,
+              inlineEdit: config.table.inlineEdit,
+              gallery: config.table.gallery,
+              ...uiModeDefaults(config.table),
+              manualOrder: config.table.manualOrder,
+              planning: config.table.planning,
+              gantt: config.table.gantt,
+              kanban: config.table.kanban,
+              layoutPreset: config.table.layoutPreset,
+              enableAutoPageSize: config.table.enableAutoPageSize,
+              defaultAutoPageSize: config.table.defaultAutoPageSize,
+              pageSizeOptions: config.table.pageSizeOptions || [
+                10, 20, 50, 100, 200, 500,
+              ],
+              rowClickMode: config.table.rowClickMode,
+            }}
+            tableId={tableId}
+            translations={resolveTranslationsToUiStrings(
+              (nestedTranslations ??
+                defaultTranslations) as DataTableTranslations
             )}
-
-            <TableFilterBar
-              tableId={tableId}
-              tableType={tableType}
-              visible={isFilterBarVisible(
-                showFilterBar,
-                config.table.showFilterBar
+          >
+            <div className="flex flex-col gap-4">
+              {shouldShowToolbar && shouldShowToolbarHeader && (
+                <div className="space-y-1">
+                  <Title>{displayTitle}</Title>
+                  <Description>{displayDescription}</Description>
+                </div>
               )}
-            />
 
-            {/* Header with title/description and toolbar */}
-            {shouldShowToolbar && (
-              <div className="space-y-3">
-                {/* Keep settings mounted while a filter or sort request is loading. */}
-                <DataTableHeaderControls
-                  allowViewSave={config.table.allowViewSave}
-                  allowViewSharing={config.table.allowViewSharing}
-                  baseData={baseData}
-                  columnTypeMapping={columnTypeMapping}
-                  defaultDensity={config.table.density}
-                  defaultDisplayMode={config.table.defaultDisplayMode}
-                  defaultFormType={defaultFormType}
-                  displayModeRenderers={modeRenderers}
-                  displayModes={offeredDisplayModes}
-                  enableAdvancedFilters={shouldEnableAdvancedFilters}
-                  enableGalleryControl={shouldShowGallery}
-                  enableKanbanGrouping={shouldShowKanbanGrouping}
-                  galleryColumns={galleryColumns}
-                  galleryConfig={config.table.gallery}
-                  ganttConfig={config.table.gantt}
-                  initialActiveViewId={initialActiveViewId}
-                  initialViews={initialViews}
-                  kanbanConfig={config.table.kanban}
-                  kanbanControlColumns={galleryColumns}
-                  kanbanDefaultGroupBy={config.table.kanban?.groupBy}
-                  kanbanGroupingColumns={kanbanGroupingColumns}
-                  listConfig={config.table.list}
-                  onExport={onExport}
-                  quickFiltersVisible={isFilterBarVisible(
-                    showFilterBar,
-                    config.table.showFilterBar
-                  )}
-                  rendererColumns={config.columns.definitions}
-                  rendererDefaults={config.table}
-                  searchDebounceMs={resolvedSearchDebounceMs}
-                  shouldShowViewControls={shouldShowViewControls}
-                  shouldShowViews={shouldShowViews}
-                  tableId={tableId}
-                  tableType={tableType}
-                  toolbarActions={resolvedToolbarActions}
-                  toolbarActionsPlacement={resolvedToolbarActionsPlacement}
-                />
-              </div>
-            )}
-
-            {/* Table content */}
-            {isLoading ? (
-              <DataTableSkeleton />
-            ) : (
-              <DataTableClient
-                activeRowId={activeRowId}
-                className={className}
-                closeOnError={closeOnError}
-                columns={
-                  columns as import("@/components/ui/yayaw-table/tanstack").ColumnDef<
-                    Record<string, unknown>
-                  >[]
-                }
-                customBulkActions={customBulkActions}
-                data={finalData}
-                details={recordDetails}
-                displayModeRenderers={modeRenderers}
-                emptyState={emptyState}
-                enableColumnDragDropByDefault={Boolean(
-                  config.table.enableColumnDragDropByDefault
-                )}
-                enableColumnFilters={config.table.enableColumnFilters}
-                enableColumnPinning={config.table.enableColumnPinning !== false}
-                enableColumnResizing={
-                  config.table.enableColumnResizing === true
-                }
-                enableGrouping={config.table.enableGrouping}
-                enableMultiRowSelection={
-                  config.table.enableMultiRowSelection !== false
-                }
-                enablePagination={config.table.enablePagination !== false}
-                enableRowSelection={config.table.enableRowSelection}
-                enableSorting={config.table.enableSorting}
-                formType={defaultFormType}
-                getRowId={getRowId}
-                key={`${tableId}-${visibilityKey}`}
-                loadingOverlay={loadingOverlay}
-                onBulkCopy={onBulkCopy}
-                onBulkDelete={onBulkDelete}
-                onBulkEdit={onBulkEdit}
-                onBulkExport={onBulkExport}
-                onOpenDetails={openDetails}
-                onRevertActivity={onRevertActivity}
-                onRowActivate={rowActivationHandler(openDetails, onRowActivate)}
-                onRowClick={onRowClick}
-                onRowSelectionChange={onRowSelectionChange}
-                onRowSelectionStateChange={onRowSelectionStateChange}
-                queryFn={async (_params) => {
-                  // For fetched data, use the refetch function
-                  await refetch();
-                  return {
-                    data: finalData,
-                    pageCount: pageCount || 1,
-                    rowCount: rowCount || finalData.length,
-                  };
-                }}
-                rowSelection={rowSelection}
-                showDefaultToastsForCustomHandlers={
-                  showDefaultToastsForCustomHandlers
-                }
+              <TableFilterBar
                 tableId={tableId}
                 tableType={tableType}
+                visible={isFilterBarVisible(
+                  showFilterBar,
+                  config.table.showFilterBar
+                )}
               />
-            )}
-          </div>
-        </DataTableUIProvider>
-      </Suspense>
 
-      {/* Render the CatalogueForm container to handle form operations */}
-      <Suspense fallback={null}>
-        <CatalogueFormContainer tableId={tableId} />
-      </Suspense>
-      <PlanningRecordOverlay
-        labels={planningLabels}
-        locale={planningLocale}
-        onOpen={openDetails}
-        session={planningSession}
-      />
-      <TableRecordDetails
-        details={recordDetails}
-        formType={defaultFormType}
-        getRowId={getRowId}
-        onClose={() => setViewedRow(undefined)}
-        onRefresh={refetch}
-        onRevertActivity={onRevertActivity}
-        row={viewedRow}
-        rows={finalData}
-        tableConfig={config}
-        tableId={tableId}
-        tableType={tableType}
-      />
+              {/* Header with title/description and toolbar */}
+              {shouldShowToolbar && (
+                <div className="space-y-3">
+                  {/* Keep settings mounted while a filter or sort request is loading. */}
+                  <DataTableHeaderControls
+                    allowViewSave={config.table.allowViewSave}
+                    allowViewSharing={config.table.allowViewSharing}
+                    baseData={baseData}
+                    columnTypeMapping={columnTypeMapping}
+                    defaultDensity={config.table.density}
+                    defaultDisplayMode={config.table.defaultDisplayMode}
+                    defaultFormType={defaultFormType}
+                    displayModeRenderers={modeRenderers}
+                    displayModes={offeredDisplayModes}
+                    enableAdvancedFilters={shouldEnableAdvancedFilters}
+                    enableGalleryControl={shouldShowGallery}
+                    enableKanbanGrouping={shouldShowKanbanGrouping}
+                    galleryColumns={galleryColumns}
+                    galleryConfig={config.table.gallery}
+                    ganttConfig={config.table.gantt}
+                    initialActiveViewId={initialActiveViewId}
+                    initialViews={initialViews}
+                    kanbanConfig={config.table.kanban}
+                    kanbanControlColumns={galleryColumns}
+                    kanbanDefaultGroupBy={config.table.kanban?.groupBy}
+                    kanbanGroupingColumns={kanbanGroupingColumns}
+                    listConfig={config.table.list}
+                    onExport={onExport}
+                    quickFiltersVisible={isFilterBarVisible(
+                      showFilterBar,
+                      config.table.showFilterBar
+                    )}
+                    rendererColumns={config.columns.definitions}
+                    rendererDefaults={config.table}
+                    searchDebounceMs={resolvedSearchDebounceMs}
+                    shouldShowViewControls={shouldShowViewControls}
+                    shouldShowViews={shouldShowViews}
+                    tableId={tableId}
+                    tableType={tableType}
+                    toolbarActions={resolvedToolbarActions}
+                    toolbarActionsPlacement={resolvedToolbarActionsPlacement}
+                  />
+                </div>
+              )}
+
+              {/* Table content */}
+              {isLoading ? (
+                <DataTableSkeleton />
+              ) : (
+                <DataTableClient
+                  activeRowId={activeRowId}
+                  className={className}
+                  closeOnError={closeOnError}
+                  columns={
+                    columns as import("@/components/ui/yayaw-table/tanstack").ColumnDef<
+                      Record<string, unknown>
+                    >[]
+                  }
+                  customBulkActions={customBulkActions}
+                  data={finalData}
+                  details={recordDetails}
+                  displayModeRenderers={modeRenderers}
+                  emptyState={emptyState}
+                  enableColumnDragDropByDefault={Boolean(
+                    config.table.enableColumnDragDropByDefault
+                  )}
+                  enableColumnFilters={config.table.enableColumnFilters}
+                  enableColumnPinning={
+                    config.table.enableColumnPinning !== false
+                  }
+                  enableColumnResizing={
+                    config.table.enableColumnResizing === true
+                  }
+                  enableGrouping={config.table.enableGrouping}
+                  enableMultiRowSelection={
+                    config.table.enableMultiRowSelection !== false
+                  }
+                  enablePagination={config.table.enablePagination !== false}
+                  enableRowSelection={config.table.enableRowSelection}
+                  enableSorting={config.table.enableSorting}
+                  formType={defaultFormType}
+                  getRowId={getRowId}
+                  key={`${tableId}-${visibilityKey}`}
+                  loadingOverlay={loadingOverlay}
+                  onBulkCopy={onBulkCopy}
+                  onBulkDelete={onBulkDelete}
+                  onBulkEdit={onBulkEdit}
+                  onBulkExport={onBulkExport}
+                  onOpenDetails={openDetails}
+                  onRevertActivity={onRevertActivity}
+                  onRowActivate={rowActivationHandler(
+                    openDetails,
+                    onRowActivate
+                  )}
+                  onRowClick={onRowClick}
+                  onRowSelectionChange={onRowSelectionChange}
+                  onRowSelectionStateChange={onRowSelectionStateChange}
+                  queryFn={async (_params) => {
+                    // For fetched data, use the refetch function
+                    await refetch();
+                    return {
+                      data: finalData,
+                      pageCount: pageCount || 1,
+                      rowCount: rowCount || finalData.length,
+                    };
+                  }}
+                  rowSelection={rowSelection}
+                  showDefaultToastsForCustomHandlers={
+                    showDefaultToastsForCustomHandlers
+                  }
+                  tableId={tableId}
+                  tableType={tableType}
+                />
+              )}
+            </div>
+          </DataTableUIProvider>
+        </Suspense>
+
+        {/* Render the CatalogueForm container to handle form operations */}
+        <Suspense fallback={null}>
+          <CatalogueFormContainer tableId={tableId} />
+        </Suspense>
+        <PlanningRecordOverlay
+          labels={planningLabels}
+          locale={planningLocale}
+          onOpen={openDetails}
+          session={planningSession}
+        />
+        <TableRecordDetails
+          details={recordDetails}
+          formType={defaultFormType}
+          getRowId={getRowId}
+          onClose={() => setViewedRow(undefined)}
+          onRefresh={refetch}
+          onRevertActivity={onRevertActivity}
+          row={viewedRow}
+          rows={finalData}
+          tableConfig={config}
+          tableId={tableId}
+          tableType={tableType}
+        />
+      </LocationProvider>
     </TableStateSyncProvider>
   );
 }

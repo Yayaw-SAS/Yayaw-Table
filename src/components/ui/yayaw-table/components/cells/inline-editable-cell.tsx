@@ -1,7 +1,7 @@
 "use client";
 
 import type { KeyboardEvent, ReactNode } from "react";
-import { memo, useCallback, useMemo } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import type { Cell } from "@/components/ui/yayaw-table/tanstack";
 import { cn } from "@/lib/utils";
 import {
@@ -43,6 +43,7 @@ import {
 } from "../../utils/table-contracts";
 import { TableTooltip } from "../../utils/table-tooltip";
 import type { AnyFieldDefinition } from "../forms/types";
+import { LocationEditor } from "../location/location-editor";
 
 interface InlineEditableCellProps<TData extends Record<string, unknown>> {
   cell: Cell<TData, unknown>;
@@ -538,7 +539,44 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
     updateDraftValue,
   ]);
 
+  const renderLocationEditor = () => (
+    <div className="relative">
+      <div className="min-h-8 px-0.5 py-1" ref={setLocationAnchor}>
+        {displayValue}
+      </div>
+      {/* Mounted once its cell is known: it floats under that cell. */}
+      {locationAnchor ? (
+        <LocationEditor
+          anchor={locationAnchor}
+          autoFocus
+          floating
+          label={
+            typeof cell.column.columnDef.header === "string"
+              ? cell.column.columnDef.header
+              : cell.column.id
+          }
+          onCancel={cancelEditing}
+          onChange={(value) => updateDraftValue(value, { disableAutoSave: true })}
+          onDone={() => {
+            commitAndClose().catch(() => undefined);
+          }}
+          onFocusLeave={() => {
+            commitAndClose().catch(() => undefined);
+          }}
+          value={editorValue}
+        />
+      ) : null}
+    </div>
+  );
+
+  const [locationAnchor, setLocationAnchor] = useState<HTMLDivElement | null>(
+    null
+  );
+
   const renderEditor = () => {
+    if (resolvedEditor === "location") {
+      return renderLocationEditor();
+    }
     if (resolvedEditor === "textarea" || resolvedEditor === "json") {
       return renderTextareaEditor();
     }

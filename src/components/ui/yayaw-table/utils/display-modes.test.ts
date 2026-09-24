@@ -16,6 +16,7 @@ describe("display mode registry", () => {
       "calendar",
       "chart",
       "feed",
+      "map",
       "form",
       "gantt",
     ]);
@@ -25,7 +26,8 @@ describe("display mode registry", () => {
     expect(isTableDisplayMode("kanban")).toBe(true);
     expect(isTableDisplayMode("toString")).toBe(false);
     expect(isTableDisplayMode("calendar")).toBe(true);
-    expect(isTableDisplayMode("map")).toBe(false);
+    expect(isTableDisplayMode("map")).toBe(true);
+    expect(isTableDisplayMode("globe")).toBe(false);
   });
 
   it("deduplicates configured modes and withholds planning modes without a session", () => {

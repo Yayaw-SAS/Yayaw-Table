@@ -105,6 +105,7 @@ export type AnyFieldDefinition<TFieldValues extends FieldValues = FieldValues> =
   | CustomFieldDefinition<TFieldValues>
   | DateFieldDefinition<TFieldValues>
   | DynamicValueFieldDefinition<TFieldValues>
+  | LocationFieldDefinition<TFieldValues>
   | MultiSelectFieldDefinition<TFieldValues>
   | NumberFieldDefinition<TFieldValues>
   | RadioFieldDefinition<TFieldValues>
@@ -480,6 +481,16 @@ export interface TextFieldDefinition<
 > extends BaseFieldDefinition<TFieldValues> {
   inputType?: "email" | "password" | "tel" | "text" | "url";
   type: "text";
+}
+
+/**
+ * A place `{ lat, lng, label?, address? }`: address search with the host's
+ * `actions.geocode`, name and coordinates.
+ */
+export interface LocationFieldDefinition<
+  TFieldValues extends FieldValues = FieldValues,
+> extends BaseFieldDefinition<TFieldValues> {
+  type: "location";
 }
 
 /**

@@ -1,3 +1,4 @@
+import { locationFilterHasValue } from "./location-model";
 import { dataTypeFilter } from "./table-contracts";
 import type {
   AdvancedFilter,
@@ -37,6 +38,7 @@ const operators = {
   select: ["is", "isNot", "isAnyOf", "isNoneOf", ...emptyOperators],
   multiSelect: ["contains", "containsAll", "containsNone", ...emptyOperators],
   boolean: ["isTrue", "isFalse", ...emptyOperators],
+  location: ["withinDistance", "withinBounds", ...emptyOperators],
 } satisfies Record<string, AdvancedFilterOperator[]>;
 export const filterType = (
   column?: ColumnDefinition
@@ -90,6 +92,9 @@ export const filterHasValue = (filter: AdvancedFilter): boolean => {
   if (!filterNeedsValue(filter.operator)) {
     return true;
   }
+  if (filter.type === "location") {
+    return locationFilterHasValue(filter.operator, filter.values);
+  }
   const values = Array.isArray(filter.values) ? filter.values : [filter.values];
   if (filter.operator === "between" && values.length !== 2) {
     return false;
@@ -138,4 +143,6 @@ export const operatorTranslationKeys: Record<AdvancedFilterOperator, string> = {
   isNotEmpty: "not_empty",
   isTrue: "is_true",
   isFalse: "is_false",
+  withinDistance: "within_distance",
+  withinBounds: "within_bounds",
 };

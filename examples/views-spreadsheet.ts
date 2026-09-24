@@ -176,6 +176,7 @@ const LIVE_HEADERS = [
   "Price",
   "Progress",
   "Due",
+  "Site",
 ];
 
 const LIVE_MAPPING: SyncMapping = {
@@ -187,6 +188,8 @@ const LIVE_MAPPING: SyncMapping = {
     { columnId: "price", field: "Price", type: "number" },
     { columnId: "progress", field: "Progress", type: "number" },
     { columnId: "dueDate", field: "Due", type: "date" },
+    // Places travel as "lat, lng" text, as with Google Sheets.
+    { columnId: "site", field: "Site", type: "location" },
   ],
 };
 

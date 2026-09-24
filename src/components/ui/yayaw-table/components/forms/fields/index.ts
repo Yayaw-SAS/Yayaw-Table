@@ -8,6 +8,7 @@ export * from "./collection-field";
 export * from "./collection-field-utils";
 export * from "./date-field";
 export * from "./dynamic-value-field";
+export * from "./location-field";
 export * from "./form-select-content";
 export * from "./multi-select-field";
 export * from "./number-field";

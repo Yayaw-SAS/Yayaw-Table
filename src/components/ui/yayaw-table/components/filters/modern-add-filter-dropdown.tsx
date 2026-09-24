@@ -9,6 +9,7 @@ import {
   Clock,
   Filter,
   Hash,
+  MapPin,
   Plus,
   Search,
   Star,
@@ -52,6 +53,8 @@ const typeColors = {
   select:
     "border-orange-200 bg-orange-50 text-orange-600 dark:border-orange-400/30 dark:bg-orange-500/15 dark:text-orange-300",
   text: "border-blue-200 bg-blue-50 text-blue-600 dark:border-blue-400/30 dark:bg-blue-500/15 dark:text-blue-300",
+  location:
+    "border-teal-200 bg-teal-50 text-teal-600 dark:border-teal-400/30 dark:bg-teal-500/15 dark:text-teal-300",
 } as const;
 
 // Categories for organizing columns
@@ -91,6 +94,12 @@ const categories = {
     labelKey: "filters.add_menu.categories.select",
     icon: Tag,
     color: "text-orange-600 dark:text-orange-400",
+  },
+  location: {
+    label: "Location fields",
+    labelKey: "filters.add_menu.categories.location",
+    icon: MapPin,
+    color: "text-teal-600 dark:text-teal-400",
   },
 } as const;
 

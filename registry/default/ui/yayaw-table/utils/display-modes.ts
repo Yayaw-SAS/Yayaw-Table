@@ -24,6 +24,11 @@ import {
 } from "./filetree-model";
 import { type FormViewSettings, normalizeFormViewConfig } from "./form-view";
 import { type ListViewSettings, normalizeListViewConfig } from "./list-view";
+import {
+  type MapTableConfig,
+  type MapViewSettings,
+  normalizeMapViewConfig,
+} from "./map-model";
 
 export interface DisplayModeDefinition {
   /** Table-only presentation controls offered by the view menu. */
@@ -106,6 +111,13 @@ export const DISPLAY_MODES = {
     maxGroups: 1,
     normalizeConfig: normalizeFeedViewConfig,
     // The table plugs its built-in feed renderer in unless `table.feed: false`.
+    requiresRenderer: true,
+  },
+  map: {
+    capabilities: NO_TABLE_CONTROLS,
+    configKey: "map",
+    maxGroups: 0,
+    normalizeConfig: normalizeMapViewConfig,
     requiresRenderer: true,
   },
   form: {
@@ -206,20 +218,26 @@ export interface GenericModeViewConfigs {
   calendar?: CalendarViewSettings;
   chart?: ChartViewSettings;
   feed?: FeedViewSettings;
+  map?: MapViewSettings;
   form?: FormViewSettings;
 }
 
 /**
  * Table-level defaults of the generic modes; `form: false` also turns the Form
- * mode off, `chart: false` the Chart mode, `feed: false` the Feed mode and
- * `filetree: false` the File tree.
+ * mode off, `chart: false` the Chart mode, `feed: false` the Feed mode,
+ * `filetree: false` the File tree and `map: false` the Map mode. `map` also
+ * carries the host's basemaps (`style`, `styles`, `attribution`).
  */
 export interface GenericModeTableConfigs
-  extends Omit<GenericModeViewConfigs, "chart" | "feed" | "filetree" | "form"> {
+  extends Omit<
+    GenericModeViewConfigs,
+    "chart" | "feed" | "filetree" | "form" | "map"
+  > {
   chart?: boolean | ChartViewSettings;
   /** Feed defaults, plus the runtime `renderBody` hook; `false` turns the mode off. */
   feed?: boolean | FeedTableSettings;
   filetree?: boolean | FileTreeTableConfig;
+  map?: boolean | MapTableConfig;
   form?: boolean | FormViewSettings;
 }
 

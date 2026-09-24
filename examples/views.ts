@@ -2,7 +2,16 @@ import {
   aggregateChartRows,
   type ChartAggregateRequest,
 } from "../src/components/ui/yayaw-table/utils/chart-model";
+import type {
+  GeocodeResult,
+  LocationValue,
+} from "../src/components/ui/yayaw-table/utils/location-model";
+import type { MapTableConfig } from "../src/components/ui/yayaw-table/utils/map-model";
 import type { ScheduleSettings } from "../src/components/ui/yayaw-table/utils/schedule-model";
+import {
+  type ListScope,
+  rowInScope,
+} from "../src/components/ui/yayaw-table/utils/scoped-rows";
 import {
   compatibleListParams,
   matchesContractFilter,
@@ -46,6 +55,91 @@ const viewsUpdates: Record<string, [string, string, number]> = {
   ],
 };
 
+/**
+ * A small gazetteer: the demo's `geocode` action and the projects' sites. A
+ * real host calls its geocoding provider (with its own key) on its server.
+ */
+export const demoPlaces: GeocodeResult[] = [
+  {
+    lat: 48.8566,
+    lng: 2.3522,
+    label: "Paris office",
+    address: "Place de l’Hôtel de Ville, 75004 Paris",
+  },
+  {
+    lat: 48.8918,
+    lng: 2.2361,
+    label: "La Défense hub",
+    address: "Parvis de la Défense, 92800 Puteaux",
+  },
+  {
+    lat: 45.764,
+    lng: 4.8357,
+    label: "Lyon workshop",
+    address: "Place Bellecour, 69002 Lyon",
+  },
+  {
+    lat: 44.8378,
+    lng: -0.5792,
+    label: "Bordeaux site",
+    address: "Place de la Bourse, 33000 Bordeaux",
+  },
+  {
+    lat: 50.6292,
+    lng: 3.0573,
+    label: "Lille branch",
+    address: "Grand’Place, 59000 Lille",
+  },
+  {
+    lat: 43.2965,
+    lng: 5.3698,
+    label: "Marseille port",
+    address: "Quai du Port, 13002 Marseille",
+  },
+  {
+    lat: 43.6047,
+    lng: 1.4442,
+    label: "Toulouse lab",
+    address: "Place du Capitole, 31000 Toulouse",
+  },
+  {
+    lat: 47.2184,
+    lng: -1.5536,
+    label: "Nantes studio",
+    address: "Place Royale, 44000 Nantes",
+  },
+];
+
+const place = (label: string): LocationValue | "" => {
+  const found = demoPlaces.find((item) => item.label === label);
+  return found ? { ...found } : "";
+};
+
+const DIACRITICS = /\p{M}/gu;
+const fold = (text: string) =>
+  text.normalize("NFD").replace(DIACRITICS, "").toLocaleLowerCase();
+
+/** The demo's `actions.geocode`: places whose name or address contains the query. */
+export function geocodeDemoPlaces(query: string): Promise<GeocodeResult[]> {
+  const needle = fold(query.trim());
+  return Promise.resolve(
+    needle
+      ? demoPlaces.filter((item) =>
+          fold(`${item.label} ${item.address ?? ""}`).includes(needle)
+        )
+      : []
+  );
+}
+
+/** Where each project happens; Echo has no site yet. */
+const SITES: Record<string, string> = {
+  alpha: "Paris office",
+  bravo: "Lyon workshop",
+  charlie: "Bordeaux site",
+  delta: "Lille branch",
+  foxtrot: "La Défense hub",
+};
+
 /** Shared records and columns for the React and Vue view-switching examples and end-to-end tests. */
 export const viewsRows = [
   ["alpha", "Alpha launch", "Software", "Active", 49, "2026-09-02"],
@@ -62,6 +156,7 @@ export const viewsRows = [
   price: Number(price),
   progress: (Number(price) % 100) / 100,
   dueDate: String(dueDate),
+  site: place(SITES[String(id)] ?? ""),
   serialNumber: "",
   details: "",
   update: viewsUpdates[String(id)]?.[1] ?? "",
@@ -101,6 +196,8 @@ export const viewsColumns = [
     numberFormat: { style: "percent" as const, display: "bar" as const },
   },
   { id: "dueDate", header: "Due", type: "date" as const },
+  // Double-click a site to edit it: address suggestions come from `geocode`.
+  { id: "site", header: "Site", type: "location" as const, inlineEdit: true },
   // Asked by the Request form's rules; hidden in the table by default.
   { id: "serialNumber", header: "Serial number", type: "text" as const },
   { id: "details", header: "Details", type: "text" as const },
@@ -129,6 +226,30 @@ export const viewsVisibleColumns = viewsColumns
   .map((column) => column.id)
   .filter((id) => !HIDDEN_COLUMNS.has(id));
 
+/**
+ * Basemaps for the demo only: OpenFreeMap needs no key. The library ships no
+ * tiles; hosts configure theirs (with their keys) in `table.map`.
+ */
+export const DEMO_MAP: MapTableConfig = {
+  locationColumn: "site",
+  titleColumn: "name",
+  popupColumns: ["status", "price", "dueDate"],
+  style: "positron",
+  styles: [
+    {
+      id: "positron",
+      label: "Positron (OpenFreeMap)",
+      light: "https://tiles.openfreemap.org/styles/positron",
+      dark: "https://tiles.openfreemap.org/styles/dark",
+    },
+    {
+      id: "liberty",
+      label: "Liberty (OpenFreeMap)",
+      light: "https://tiles.openfreemap.org/styles/liberty",
+    },
+  ],
+};
+
 export const viewsTableOptions = {
   syncUrl: true,
   enableAdvancedFilters: true,
@@ -143,6 +264,7 @@ export const viewsTableOptions = {
     "calendar",
     "chart",
     "feed",
+    "map",
     "form",
   ] as (
     | "table"
@@ -152,6 +274,7 @@ export const viewsTableOptions = {
     | "calendar"
     | "chart"
     | "feed"
+    | "map"
     | "form"
   )[],
   // Three saved views as tabs keep the toolbar on one line; the rest are under "More".
@@ -164,6 +287,7 @@ export const viewsTableOptions = {
     titleColumn: "name",
     colorColumn: "status",
   },
+  map: DEMO_MAP,
 };
 
 type ViewRow = (typeof viewsRows)[number];
@@ -185,10 +309,12 @@ function searchRows(rows: ViewRow[], params: Record<string, unknown>) {
   const query = String(params.search ?? params.q ?? "")
     .trim()
     .toLocaleLowerCase();
+  const text = (value: unknown) =>
+    value && typeof value === "object" ? JSON.stringify(value) : String(value);
   return query
     ? rows.filter((row) =>
         Object.values(row).some((value) =>
-          String(value).toLocaleLowerCase().includes(query)
+          text(value).toLocaleLowerCase().includes(query)
         )
       )
     : rows;
@@ -238,6 +364,13 @@ function sortRows(rows: ViewRow[], sorting: unknown[]) {
   });
 }
 
+/** The scopes the demo host received, for the end-to-end tests. */
+function recordDemoScope(scope: ListScope | undefined) {
+  const holder = globalThis as { yayawDemoScopes?: unknown[] };
+  holder.yayawDemoScopes ??= [];
+  holder.yayawDemoScopes.push(scope ?? null);
+}
+
 /**
  * In-memory host for the examples: `list` pages through the rows and applies
  * each view's own manual order; `reorder` stores it without touching records.
@@ -265,6 +398,7 @@ export function createViewsActions(host: { aggregate?: boolean } = {}) {
         price: 0,
         progress: 0,
         dueDate: "",
+        site: "",
         serialNumber: "",
         details: "",
         update: "",
@@ -316,13 +450,15 @@ export function createViewsActions(host: { aggregate?: boolean } = {}) {
       const manual = sorting.some(
         (sort: { id?: string }) => sort?.id === "__manual"
       );
+      const scope = params.scope as ListScope | undefined;
+      recordDemoScope(scope);
       const rows = sortRows(
         filterRows(
           searchRows(manual ? ordered(params.viewId) : records, params),
           params
         ),
         sorting
-      );
+      ).filter((row) => scope?.kind !== "bbox" || rowInScope(row, scope));
       // Like a server: one page of `pageSize` rows (the feed loads more).
       const pageSize = Number(params.pageSize);
       const size =
@@ -335,6 +471,8 @@ export function createViewsActions(host: { aggregate?: boolean } = {}) {
         meta: {
           pageCount: Math.max(1, Math.ceil(rows.length / Math.max(1, size))),
           totalCount: rows.length,
+          // The map's area (`scope.kind: "bbox"`) is applied here.
+          ...(scope?.kind === "bbox" ? { scope: "applied" } : {}),
         },
       });
     },
@@ -430,6 +568,8 @@ export function createViewsActions(host: { aggregate?: boolean } = {}) {
     ],
     // Public links for Form views; see examples/form-links.ts.
     formLinks: createDemoFormLinks(viewsColumns),
+    // Address suggestions of location editors, from a small gazetteer.
+    geocode: geocodeDemoPlaces,
     create: (values: Record<string, unknown>) => {
       const record = {
         ...records[0],
@@ -495,3 +635,19 @@ export const updatesFeedView = {
     },
   },
 };
+/** The "Sites" map view: projects on a map, colored by status. */
+export const mapViews = [
+  {
+    id: "sites",
+    tableId: "views",
+    name: "Sites",
+    createdById: "demo",
+    isGlobal: true,
+    canEdit: false,
+    canDelete: false,
+    config: {
+      displayMode: "map" as const,
+      map: { colorColumn: "status", popupColumns: ["status", "price"] },
+    },
+  },
+];

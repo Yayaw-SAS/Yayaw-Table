@@ -14,7 +14,8 @@ export type ColumnDataType =
   | "number"
   | "date"
   | "select"
-  | "multiSelect";
+  | "multiSelect"
+  | "location";
 
 /**
  * Filter operators mapped by data type
@@ -53,6 +54,8 @@ export interface FilterOperators {
     | "containsNone"
     | "isEmpty"
     | "isNotEmpty";
+  /** `withinDistance`: `[lat, lng, km]`; `withinBounds`: `[west, south, east, north]`. */
+  location: "withinDistance" | "withinBounds" | "isEmpty" | "isNotEmpty";
 }
 
 /**
@@ -69,7 +72,9 @@ export type FilterValues<TType extends ColumnDataType = ColumnDataType> =
           ? string | string[]
           : TType extends "multiSelect"
             ? string[]
-            : unknown;
+            : TType extends "location"
+              ? number[]
+              : unknown;
 
 /**
  * Advanced filter model for a single column
@@ -299,6 +304,12 @@ export const FILTER_OPERATORS_LABELS: Record<
     isEmpty: "Is empty",
     isNotEmpty: "Is not empty",
   },
+  location: {
+    withinDistance: "Within distance of",
+    withinBounds: "Within area",
+    isEmpty: "Is empty",
+    isNotEmpty: "Is not empty",
+  },
 };
 
 /**
@@ -349,4 +360,5 @@ export const DEFAULT_OPERATORS = {
     "isEmpty",
     "isNotEmpty",
   ] as const,
+  location: ["withinDistance", "withinBounds", "isEmpty", "isNotEmpty"] as const,
 } as const;

@@ -30,6 +30,12 @@ import {
   runImport,
   summarizeImport,
 } from "./import-model";
+import {
+  addressesToGeocode,
+  type GeocodeAction,
+  geocodeAddresses,
+  type LocationValue,
+} from "./location-model";
 
 type MaybePromise<T> = T | Promise<T>;
 
@@ -144,6 +150,7 @@ export type ImportLabelKey =
   | "type_url"
   | "type_email"
   | "type_json"
+  | "type_location"
   | "error_required"
   | "error_invalid_number"
   | "error_invalid_date"
@@ -152,6 +159,7 @@ export type ImportLabelKey =
   | "error_invalid_url"
   | "error_invalid_email"
   | "error_invalid_json"
+  | "error_invalid_location"
   | "error_duplicate_key"
   | "error_unknown";
 
@@ -228,6 +236,7 @@ const ENGLISH_LABELS: Record<ImportLabelKey, string> = {
   type_url: "Link",
   type_email: "Email",
   type_json: "JSON",
+  type_location: "Place (lat, lng or address)",
   error_required: "a value is required",
   error_invalid_number: "not a number",
   error_invalid_date: "not a date",
@@ -236,6 +245,7 @@ const ENGLISH_LABELS: Record<ImportLabelKey, string> = {
   error_invalid_url: "not a link",
   error_invalid_email: "not an email address",
   error_invalid_json: "not valid JSON",
+  error_invalid_location: "not a place (lat, lng) or an address found",
   error_duplicate_key: "already in an earlier row",
   error_unknown: "could not be saved",
 };
@@ -314,6 +324,7 @@ const FRENCH_LABELS: Record<ImportLabelKey, string> = {
   type_url: "Lien",
   type_email: "E-mail",
   type_json: "JSON",
+  type_location: "Lieu (lat, lng ou adresse)",
   error_required: "une valeur est requise",
   error_invalid_number: "n’est pas un nombre",
   error_invalid_date: "n’est pas une date",
@@ -322,6 +333,7 @@ const FRENCH_LABELS: Record<ImportLabelKey, string> = {
   error_invalid_url: "n’est pas un lien",
   error_invalid_email: "n’est pas une adresse e-mail",
   error_invalid_json: "n’est pas du JSON valide",
+  error_invalid_location: "n’est ni un lieu (lat, lng) ni une adresse trouvée",
   error_duplicate_key: "figure déjà dans une ligne précédente",
   error_unknown: "n’a pas pu être enregistrée",
 };
@@ -411,6 +423,8 @@ export interface ImportFlowOptions {
   loadSource?: (source: string) => Promise<ImportSourceData>;
   batchSize?: number;
   allowNewOptions?: boolean;
+  /** The host's `actions.geocode`: addresses in location columns become places. */
+  geocode?: GeocodeAction;
   onChange: (state: ImportFlowState) => void;
   /** After rows were written, to refresh the table. */
   onImported?: (result: ImportRunResult) => void;
@@ -505,6 +519,34 @@ function keyValues(
     }
   }
   return [...values];
+}
+
+/** Addresses in the location columns, resolved with the host's geocoder. */
+async function geocodeImportAddresses(
+  state: ImportFlowState,
+  columns: readonly ImportColumn[],
+  options: Pick<ImportFlowOptions, "geocode" | "locale">
+): Promise<Map<string, LocationValue | null> | undefined> {
+  if (!options.geocode) {
+    return;
+  }
+  const locationIds = new Set(
+    columns
+      .filter((column) => column.type === "location")
+      .map((column) => column.id)
+  );
+  const indexes = state.mapping
+    .filter((entry) => entry.columnId && locationIds.has(entry.columnId))
+    .map((entry) => state.headers.indexOf(entry.field))
+    .filter((index) => index >= 0);
+  const addresses = addressesToGeocode(
+    state.rows.flatMap((row) => indexes.map((index) => row[index]))
+  );
+  return addresses.length
+    ? await geocodeAddresses(addresses, options.geocode, {
+        locale: options.locale,
+      })
+    : undefined;
 }
 
 /**
@@ -637,6 +679,7 @@ export function createImportFlow(options: ImportFlowOptions): ImportFlow {
             keyValues(state, keyColumn, options.locale)
           )
         : undefined;
+      const geocoded = await geocodeImportAddresses(state, columns, options);
       const plan = planImport({
         rows: state.rows,
         fields: state.headers,
@@ -646,6 +689,7 @@ export function createImportFlow(options: ImportFlowOptions): ImportFlow {
         existing,
         locale: options.locale,
         allowNewOptions: options.allowNewOptions,
+        geocoded,
       });
       set({ plan, step: "review", loading: false });
     } catch (error) {
@@ -745,7 +789,7 @@ const typeLabel = (column: ImportColumn, t: ImportT): string => {
   if (["url", "image"].includes(type)) {
     return t("type_url");
   }
-  if (type === "email" || type === "json") {
+  if (type === "email" || type === "json" || type === "location") {
     return t(`type_${type}`);
   }
   return t(`type_${fieldTypeFamily(type) ?? "text"}` as ImportLabelKey);

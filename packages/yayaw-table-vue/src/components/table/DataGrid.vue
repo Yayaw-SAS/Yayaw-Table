@@ -486,7 +486,7 @@ const handleColumnResizeKeyboard = (
 };
 const isInteractive = (target: EventTarget | null): boolean =>
   target instanceof Element &&
-  Boolean(target.closest("button,a,input,select,textarea,[role='button']"));
+  Boolean(target.closest("button,a,input,select,textarea,[role='button'],[data-location-editor]"));
 const rowClick = (row: TableRecord, event: MouseEvent): void => {
   if (!isInteractive(event.target)) {
     context.activateRow(row, event);

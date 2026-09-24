@@ -1,4 +1,6 @@
 /** Framework-independent adapters. Also copied into the standalone Vue registry. */
+import { locationValueError, matchesLocationFilter } from "./location-model";
+
 const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 export type ContractRecord = Record<string, unknown>;
 export type ContractColumnSizing = Record<string, number>;
@@ -13,6 +15,7 @@ export const TABLE_DATA_TYPES = {
   dynamicType: { form: null, inline: null, filter: "text" },
   image: { form: "url", inline: "url", filter: "text" },
   json: { form: "json", inline: "json", filter: "text" },
+  location: { form: "location", inline: "location", filter: "location" },
   multiSelect: {
     form: "multiSelect",
     inline: "multiSelect",
@@ -69,6 +72,7 @@ export function resolveDataTypeEditor({
     switch: "boolean",
     date: "date",
     json: "json",
+    location: "location",
     number: "number",
     select: "select",
     radio: "select",
@@ -417,8 +421,9 @@ export function matchesContractFilter(
     actual == null ||
     actual === "" ||
     (Array.isArray(actual) && !actual.length);
-  if (filter.type === "date") {
-    return matchesDateFilter(actual, filter.operator, values);
+  const typed = matchesTypedFilter(actual, filter, values);
+  if (typed !== undefined) {
+    return typed;
   }
   if (filter.operator === "isEmpty") {
     return empty;
@@ -484,6 +489,21 @@ export function matchesContractFilter(
     default:
       return true;
   }
+}
+
+/** Dates and places have their own operators; undefined for the other types. */
+function matchesTypedFilter(
+  actual: unknown,
+  filter: ContractRecord,
+  values: unknown[]
+): boolean | undefined {
+  if (filter.type === "date") {
+    return matchesDateFilter(actual, filter.operator, values);
+  }
+  if (filter.type === "location") {
+    return matchesLocationFilter(actual, filter.operator, filter.values);
+  }
+  return;
 }
 
 function matchesDateFilter(
@@ -625,6 +645,9 @@ export function dataTypeValueError(
 ): string | undefined {
   if (value == null || value === "") {
     return;
+  }
+  if (type === "location") {
+    return locationValueError(value);
   }
   if (
     type === "number" &&

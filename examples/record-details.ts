@@ -88,6 +88,12 @@ export const detailExampleRow: DetailRecord = {
     { media: "Studio Magazine", quantity: 1, sent: false },
   ],
   metadata: { source: "PR Vision", languages: ["fr", "en"], exclusive: false },
+  venue: {
+    lat: 48.8641,
+    lng: 2.2966,
+    label: "Palais de Tokyo",
+    address: "13 avenue du Président Wilson, 75116 Paris",
+  },
   code: 'if (campaign.status === "ready") {\n  scheduleLaunch(campaign.launchDate);\n}',
   dynamicKind: "number",
   dynamic: 42,
@@ -203,6 +209,7 @@ export const recordSections: DetailSection[] = [
       "Les données structurées restent consultables dans leur intégralité.",
     fields: [
       { id: "metadata", label: "Métadonnées", type: "json" },
+      { id: "venue", label: "Lieu du lancement", type: "location" },
       { id: "code", label: "Automatisation", type: "code" },
       {
         id: "dynamic",

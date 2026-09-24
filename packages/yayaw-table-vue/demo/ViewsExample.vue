@@ -3,7 +3,8 @@ import { DataTable, defineTableConfig, type TableActions, type TableRecord } fro
 import { Toaster } from "vue-sonner";
 import { calendarRenderer } from "../src/calendar/calendar-renderer";
 import { chartRenderer } from "../src/chart/chart-renderer";
-import { chartViews, createViewsActions, initialViewsRows, updatesFeedView, viewsColumns, viewsTableOptions, viewsVisibleColumns } from "../../../examples/views";
+import { mapRenderer } from "../src/map/map-renderer";
+import { chartViews, createViewsActions, initialViewsRows, updatesFeedView, mapViews, viewsColumns, viewsTableOptions, viewsVisibleColumns } from "../../../examples/views";
 import { guidedRequestFormView, requestFormView } from "../../../examples/form-links";
 
 // Without `aggregate`, charts are computed over the rows the list action returns.
@@ -25,7 +26,7 @@ const config = defineTableConfig({
 <template>
   <main class="views-example">
     <h1>Views</h1>
-    <DataTable :table-type="config.id" :config="config" :data="rows" :get-table-actions="() => actions" :display-mode-renderers="{ calendar: calendarRenderer, chart: chartRenderer }" :initial-views="[requestFormView, guidedRequestFormView, ...chartViews, updatesFeedView]" />
+    <DataTable :table-type="config.id" :config="config" :data="rows" :get-table-actions="() => actions" :display-mode-renderers="{ calendar: calendarRenderer, chart: chartRenderer, map: mapRenderer }" :initial-views="[requestFormView, guidedRequestFormView, ...chartViews, updatesFeedView, ...mapViews]" />
     <Toaster position="bottom-right" />
   </main>
 </template>

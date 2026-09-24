@@ -677,6 +677,13 @@
   color: var(--yayaw-muted-foreground);
   font-size: 12px;
 }
+.yayaw-filter-location {
+  display: grid;
+  flex: 2 1 220px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
 .yayaw-filter-option-list {
   display: flex;
   flex-wrap: wrap;
@@ -5229,4 +5236,160 @@
 /* As shadcn: a title not followed by a description keeps 20px below it. */
 .yayaw-questionnaire-title:not(:has(~ .yayaw-questionnaire-description)) {
   margin-bottom: 20px;
+}
+
+/* Location cells and editor (same layout as the React edition). */
+.yayaw-location-cell {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  align-items: center;
+  gap: 4px;
+}
+.yayaw-location-cell > svg {
+  flex-shrink: 0;
+  color: var(--yayaw-muted-foreground);
+}
+.yayaw-location-cell > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-location-editor,
+.yayaw-location-editor * {
+  box-sizing: border-box;
+}
+.yayaw-location-editor {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.yayaw-location-editor.is-floating {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 50;
+  width: 18rem;
+  margin-top: 4px;
+  padding: 12px;
+  border: 1px solid var(--yayaw-border);
+  border-radius: var(--yayaw-radius);
+  background: var(--yayaw-background);
+  color: var(--yayaw-foreground);
+  box-shadow: var(--yayaw-shadow);
+}
+.yayaw-location-field {
+  display: grid;
+  gap: 4px;
+  font-size: 14px;
+}
+.yayaw-location-field > span:first-child {
+  color: var(--yayaw-muted-foreground);
+  font-size: 12px;
+}
+.yayaw-location-field .yayaw-input {
+  width: 100%;
+  height: 32px;
+  min-height: 32px;
+  padding: 4px 10px;
+  font-size: 14px;
+}
+.yayaw-location-search {
+  position: relative;
+}
+.yayaw-location-search > svg {
+  position: absolute;
+  top: 50%;
+  left: 8px;
+  color: var(--yayaw-muted-foreground);
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+.yayaw-location-search > .yayaw-input {
+  padding-left: 28px;
+}
+.yayaw-location-suggestions {
+  display: grid;
+  max-height: 12rem;
+  gap: 2px;
+  overflow: auto;
+  margin: 0;
+  padding: 4px;
+  border: 1px solid var(--yayaw-border);
+  border-radius: var(--yayaw-radius);
+  list-style: none;
+}
+.yayaw-location-suggestion {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: calc(var(--yayaw-radius) - 2px);
+  background: transparent;
+  color: inherit;
+  padding: 6px 8px;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.yayaw-location-suggestion:hover,
+.yayaw-location-suggestion:focus-visible {
+  outline: none;
+  background: var(--yayaw-muted);
+}
+.yayaw-location-suggestion > svg {
+  flex-shrink: 0;
+  color: var(--yayaw-muted-foreground);
+}
+.yayaw-location-suggestion > span {
+  display: grid;
+  min-width: 0;
+}
+.yayaw-location-suggestion-label,
+.yayaw-location-suggestion-address {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-location-suggestion-label {
+  font-size: 14px;
+}
+.yayaw-location-suggestion-address {
+  color: var(--yayaw-muted-foreground);
+  font-size: 12px;
+}
+.yayaw-location-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--yayaw-muted-foreground);
+  font-size: 12px;
+}
+.yayaw-location-coordinates {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.yayaw-location-error {
+  margin: 0;
+  color: var(--yayaw-danger);
+  font-size: 12px;
+}
+.yayaw-location-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.yayaw-location-actions .yayaw-button {
+  min-height: 32px;
+  padding: 4px 10px;
+  font-size: 14px;
+}
+.yayaw-location-inline {
+  position: relative;
+  min-height: 32px;
 }

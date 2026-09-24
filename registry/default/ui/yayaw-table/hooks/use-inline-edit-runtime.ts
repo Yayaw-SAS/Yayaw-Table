@@ -9,6 +9,7 @@ import type {
   TableInlineEditConfig,
 } from "../config/helpers";
 import { toValidDate } from "../utils/date-display";
+import { parseLocation } from "../utils/location-model";
 import {
   resolveDataType,
   resolveDataTypeEditor,
@@ -349,6 +350,13 @@ function toDraftMultiSelectValue(
     : [];
 }
 
+function parseLocationValue(rawValue: unknown): ParseInlineEditValueResult {
+  const location = parseLocation(rawValue);
+  return location
+    ? { success: true, value: location }
+    : { success: false, errorMessage: "Inline edit expects a location." };
+}
+
 export function parseInlineEditValue({
   editor,
   rawValue,
@@ -370,6 +378,10 @@ export function parseInlineEditValue({
         value: resolvedValue,
       };
     }
+    case "location":
+      return rawValue === null || rawValue === undefined || rawValue === ""
+        ? { success: true, value: null }
+        : parseLocationValue(rawValue);
     case "multiSelect": {
       const rawValues = toDraftMultiSelectValue(rawValue);
       const resolvedValues = rawValues.map((value) =>
@@ -505,6 +517,8 @@ export function toInlineEditDraftValue(
       return value == null ? "" : String(value);
     case "multiSelect":
       return toDraftMultiSelectValue(value);
+    case "location":
+      return parseLocation(value);
     case "select":
       return value ?? "";
     default:

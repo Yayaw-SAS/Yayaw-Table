@@ -3,6 +3,7 @@
  * Export screen, the values written for each column, and the CSV or printable
  * page built from them. Excel files come from an optional registry item.
  */
+import { formatLocation, locationToText } from "./location-model";
 import { dataTypeOptionLabel } from "./table-contracts";
 import {
   type ColumnDateFormat,
@@ -113,14 +114,20 @@ function formattedCell(value: unknown, column: ExportColumn, locale?: string) {
     case "select":
     case "multiSelect":
       return dataTypeOptionLabel(value, column.options);
+    case "location":
+      return formatLocation(value);
     default:
       return typeof value === "object" ? JSON.stringify(value) : String(value);
   }
 }
 
-function rawCell(value: unknown): ExportCell {
+/** Places are written "lat,lng", which imports read back. */
+function rawCell(value: unknown, column: ExportColumn): ExportCell {
   if (value === null || value === undefined) {
     return null;
+  }
+  if (column.type === "location") {
+    return locationToText(value) || null;
   }
   if (
     typeof value === "string" ||
@@ -147,7 +154,7 @@ export function exportMatrix(
       columns.map((column) =>
         formatted
           ? formattedCell(row[column.id], column, locale)
-          : rawCell(row[column.id])
+          : rawCell(row[column.id], column)
       )
     ),
   };

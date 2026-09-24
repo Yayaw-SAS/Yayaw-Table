@@ -55,6 +55,7 @@ const OPTIONAL_ITEMS = [
   { name: "yayaw-table-calendar", dir: "yayaw-table-calendar" },
   { name: "yayaw-table-chart", dir: "yayaw-table-chart" },
   { name: "yayaw-table-dashboard", dir: "yayaw-table-dashboard" },
+  { name: "yayaw-table-map", dir: "yayaw-table-map" },
 ];
 /**
  * Optional server modules living in the table source (`connectors/`). They

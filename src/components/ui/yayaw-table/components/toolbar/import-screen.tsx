@@ -142,6 +142,7 @@ export function importScreen(options: ImportScreenOptions): {
         connectorSources={connectorSources}
         csv={config?.csv}
         findExisting={findExisting(options)}
+        geocode={options.actions?.geocode}
         loadSource={async (id) => {
           const source = sources.find((item) => item.id === id);
           if (!source) {

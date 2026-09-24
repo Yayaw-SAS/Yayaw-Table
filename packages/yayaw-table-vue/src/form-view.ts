@@ -21,6 +21,7 @@ import {
   sanitizeRules,
   validateRules,
 } from "./form-conditions";
+import { formatLocation, parseLocation } from "./location-model";
 import { resolveDataType, TABLE_DATA_TYPES } from "./table-contracts";
 import {
   formatDateValue,
@@ -32,6 +33,7 @@ import {
 export type FormEditor =
   | "boolean"
   | "date"
+  | "location"
   | "multiSelect"
   | "number"
   | "select"
@@ -194,6 +196,7 @@ const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 const EXCLUDED_IDS = new Set(["select", "actions"]);
 const EDITORS: Partial<Record<string, FormEditor>> = {
   date: "date",
+  location: "location",
   multiSelect: "multiSelect",
   number: "number",
   select: "select",
@@ -459,6 +462,8 @@ function resolveItems(
 const EDITOR_CONDITION: Record<FormEditor, ConditionFieldType> = {
   boolean: "checkbox",
   date: "date",
+  // A place is kept as its JSON text in the draft: "is empty" and "is not empty" apply.
+  location: "text",
   multiSelect: "multiSelect",
   number: "number",
   select: "select",
@@ -685,6 +690,9 @@ function coerceAnswer(
   if (question.editor === "select") {
     return optionFor(question, value)?.value ?? value;
   }
+  if (question.editor === "location") {
+    return parseLocation(value) ?? value;
+  }
   return value;
 }
 
@@ -709,7 +717,8 @@ export type FormErrorCode =
   | "errorNumber"
   | "errorOption"
   | "errorRequired"
-  | "errorUrl";
+  | "errorUrl"
+  | "errorLocation";
 
 const isBlank = (value: unknown, editor: FormEditor): boolean => {
   if (editor === "boolean") {
@@ -799,6 +808,8 @@ export function formAnswerText(
       return formNumberDisplay(value, question.numberFormat, locale) ?? value;
     case "date":
       return formDateDisplay(value, locale) ?? value;
+    case "location":
+      return formatLocation(value) || value;
     default:
       return value;
   }
@@ -840,6 +851,8 @@ function typeError(
       return validDate(value) ? undefined : "errorDate";
     case "url":
       return validUrl(value) ? undefined : "errorUrl";
+    case "location":
+      return parseLocation(value) ? undefined : "errorLocation";
     case "select":
       return knownOption(question, value) ? undefined : "errorOption";
     case "multiSelect":
@@ -1023,6 +1036,7 @@ const ENGLISH_LABELS = {
   errorNumber: "Enter a number.",
   errorDate: "Enter a valid date.",
   errorUrl: "Enter a full web address, starting with https://",
+  errorLocation: "Choose a place or enter its coordinates.",
   errorOption: "Choose one of the options.",
   errorSummary:
     "{count, plural, one {1 answer needs attention.} other {{count} answers need attention.}}",
@@ -1206,6 +1220,7 @@ const FRENCH_LABELS: Record<FormLabelKey, string> = {
   errorNumber: "Saisissez un nombre.",
   errorDate: "Saisissez une date valide.",
   errorUrl: "Saisissez une adresse web complète, commençant par https://",
+  errorLocation: "Choisissez un lieu ou saisissez ses coordonnées.",
   errorOption: "Choisissez l’une des options.",
   errorSummary:
     "{count, plural, one {1 réponse est à corriger.} other {{count} réponses sont à corriger.}}",

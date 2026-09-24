@@ -66,6 +66,17 @@
     }
   },
   {
+    "type": "location",
+    "form": "location",
+    "inline": "location",
+    "filter": "location",
+    "value": {
+      "lat": 48.8566,
+      "lng": 2.3522,
+      "label": "Paris"
+    }
+  },
+  {
     "type": "select",
     "form": "select",
     "inline": "select",

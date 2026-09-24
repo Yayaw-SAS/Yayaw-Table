@@ -377,6 +377,7 @@ const normalizeColumnDataType = (type: unknown): ColumnDataType | undefined => {
     case "date":
     case "select":
     case "multiSelect":
+    case "location":
       return type;
     case "boolean":
       return "select";
@@ -459,6 +460,12 @@ const getOperatorsByType = (
         "isEmpty",
         "isNotEmpty",
       ] as FilterOperators["multiSelect"][],
+      location: [
+        "withinDistance",
+        "withinBounds",
+        "isEmpty",
+        "isNotEmpty",
+      ] as FilterOperators["location"][],
     };
   return operatorMap[type] || [];
 };
@@ -525,6 +532,9 @@ const createColumnConfig = (
     multiSelect: {
       options,
       operators: getOperatorsByType("multiSelect"),
+    },
+    location: {
+      operators: getOperatorsByType("location"),
     },
   };
 

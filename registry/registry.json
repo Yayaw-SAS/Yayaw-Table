@@ -161,6 +161,11 @@
           "target": "components/ui/yayaw-table/components/cells/json-cell.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/cells/location-cell.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/cells/location-cell.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/cells/number-cell.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/cells/number-cell.tsx"
@@ -286,6 +291,11 @@
           "target": "components/ui/yayaw-table/components/columns/json-column.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/columns/location-column.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/columns/location-column.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/columns/number-column.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/columns/number-column.tsx"
@@ -404,6 +414,11 @@
           "path": "registry/default/ui/yayaw-table/components/filters/lazy-advanced-filter.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/filters/lazy-advanced-filter.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/filters/location-filter.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/filters/location-filter.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/filters/modern-add-filter-dropdown.tsx",
@@ -556,6 +571,11 @@
           "target": "components/ui/yayaw-table/components/forms/fields/index.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/forms/fields/location-field.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/forms/fields/location-field.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/forms/fields/multi-select-field.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/forms/fields/multi-select-field.tsx"
@@ -694,6 +714,16 @@
           "path": "registry/default/ui/yayaw-table/components/list-view.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/components/list-view.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/location/location-context.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/location/location-context.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/components/location/location-editor.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/components/location/location-editor.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/components/records/record-surface.css",
@@ -1501,9 +1531,19 @@
           "target": "components/ui/yayaw-table/utils/list-view.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/utils/location-model.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/location-model.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/utils/manual-order.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/manual-order.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/map-model.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/map-model.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/utils/media-contract.ts",
@@ -1773,6 +1813,45 @@
         "version": "3.5.0",
         "versionedRegistryUrl": "https://table.yayaw.app/r/v3.5.0/yayaw-table-dashboard.json"
       }
+    },
+    {
+      "name": "yayaw-table-map",
+      "type": "registry:block",
+      "title": "Yayaw Table Map",
+      "description": "Optional map display mode for YaYaw Table (markers from a location column, clusters, popups, list of records in view, \"Search this area\"), rendered with mapcn (MapLibre GL). The basemap comes from `table.map.style` or `table.map.styles`. Pass `mapRenderer` to `displayModeRenderers` and add \"map\" to `table.displayModes`.",
+      "registryDependencies": [
+        "button",
+        "https://mapcn.dev/r/map.json",
+        "https://table.yayaw.app/r/yayaw-table.json"
+      ],
+      "dependencies": ["maplibre-gl"],
+      "meta": {
+        "registryUrl": "https://table.yayaw.app/r/yayaw-table-map.json",
+        "version": "3.5.0",
+        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.5.0/yayaw-table-map.json"
+      },
+      "files": [
+        {
+          "path": "registry/default/ui/yayaw-table-map/map-renderer.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table-map/map-renderer.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table-map/map-settings.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table-map/map-settings.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table-map/map-view.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table-map/map-view.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table-map/map.css",
+          "type": "registry:style",
+          "target": "components/ui/yayaw-table-map/map.css"
+        }
+      ]
     },
     {
       "name": "yayaw-table-connector-notion",

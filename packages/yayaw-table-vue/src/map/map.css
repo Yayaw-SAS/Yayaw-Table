@@ -1,0 +1,415 @@
+/* Map display mode: the same layout as the React edition (mapcn on MapLibre). */
+.yayaw-map {
+  display: grid;
+  gap: 8px;
+}
+.yayaw-map-empty {
+  display: block;
+  padding: 24px;
+  border: 1px solid var(--yayaw-border);
+  border-radius: var(--yayaw-radius);
+  color: var(--yayaw-muted-foreground);
+  font-size: 14px;
+}
+.yayaw-map-error {
+  color: var(--yayaw-danger);
+  font-size: 14px;
+}
+.yayaw-map-notice {
+  display: block;
+  color: var(--yayaw-muted-foreground);
+  font-size: 14px;
+}
+.yayaw-map-box {
+  position: relative;
+  display: flex;
+  height: 32rem;
+  overflow: hidden;
+  border: 1px solid var(--yayaw-border);
+  border-radius: var(--yayaw-radius);
+}
+.yayaw-map-canvas {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.yayaw-map-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.yayaw-map-unavailable {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  color: var(--yayaw-muted-foreground);
+  font-size: 14px;
+  text-align: center;
+}
+
+/* Controls, as mapcn's control groups. */
+.yayaw-map-controls {
+  position: absolute;
+  right: 8px;
+  bottom: 40px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.yayaw-map-control-group {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--yayaw-border);
+  border-radius: calc(var(--yayaw-radius) + 2px);
+  background: var(--yayaw-background);
+  box-shadow: var(--yayaw-shadow-xs);
+}
+.yayaw-map-control-group > button {
+  display: flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: var(--yayaw-foreground);
+  cursor: pointer;
+}
+.yayaw-map-control-group > button:not(:last-child) {
+  border-bottom: 1px solid var(--yayaw-border);
+}
+.yayaw-map-control-group > button:hover {
+  background: var(--yayaw-muted);
+}
+.yayaw-map-control-group > button:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--yayaw-ring);
+}
+
+/* "Search this area", loading and "Show list" pills. */
+.yayaw-map-top {
+  position: absolute;
+  top: 8px;
+  right: 0;
+  left: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  pointer-events: none;
+}
+.yayaw-map-pill {
+  display: inline-flex;
+  height: 32px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--yayaw-background);
+  color: var(--yayaw-muted-foreground);
+  box-shadow:
+    0 4px 6px -1px rgb(0 0 0 / 0.1),
+    0 2px 4px -2px rgb(0 0 0 / 0.1);
+  font: inherit;
+  font-size: 12px;
+  pointer-events: auto;
+}
+.yayaw-map-pill-button {
+  background: var(--secondary, var(--yayaw-muted));
+  color: var(--secondary-foreground, var(--yayaw-foreground));
+  font-size: 14px;
+  cursor: pointer;
+}
+.yayaw-map-pill-button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--yayaw-ring) 50%, transparent);
+}
+.yayaw-map-show-list {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+  border-radius: var(--yayaw-radius);
+}
+
+/* Markers: a colored dot per record, a counted circle per cluster. */
+.yayaw-map-marker {
+  display: block;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: var(--yayaw-map-marker);
+  box-shadow:
+    0 4px 6px -1px rgb(0 0 0 / 0.1),
+    0 2px 4px -2px rgb(0 0 0 / 0.1);
+  cursor: pointer;
+  transition: transform 150ms;
+}
+.yayaw-map-marker[data-highlighted],
+.yayaw-map-marker[data-selected] {
+  box-shadow: 0 0 0 2px
+    color-mix(in srgb, var(--yayaw-map-marker) 40%, transparent);
+  transform: scale(1.5);
+}
+.yayaw-map-marker:focus-visible,
+.yayaw-map-cluster:focus-visible {
+  outline: 2px solid var(--yayaw-ring);
+  outline-offset: 2px;
+}
+.yayaw-map-cluster {
+  display: flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 2px solid rgb(255 255 255 / 0.8);
+  border-radius: 999px;
+  background: rgb(37 99 235 / 0.85);
+  color: #fff;
+  box-shadow:
+    0 4px 6px -1px rgb(0 0 0 / 0.1),
+    0 2px 4px -2px rgb(0 0 0 / 0.1);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.yayaw-map-cluster[data-size="md"] {
+  width: 40px;
+  height: 40px;
+}
+.yayaw-map-cluster[data-size="lg"] {
+  width: 48px;
+  height: 48px;
+}
+
+/* Popup card; MapLibre's own frame is removed, as in the React edition. */
+.yayaw-map .maplibregl-popup-content {
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.yayaw-map .maplibregl-popup-tip {
+  display: none;
+}
+.yayaw-map-popup {
+  display: grid;
+  width: 16rem;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--yayaw-border);
+  border-radius: calc(var(--yayaw-radius) + 2px);
+  background: var(--popover, var(--yayaw-background));
+  color: var(--popover-foreground, var(--yayaw-foreground));
+  box-shadow:
+    0 4px 6px -1px rgb(0 0 0 / 0.1),
+    0 2px 4px -2px rgb(0 0 0 / 0.1);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.yayaw-map-popup-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.yayaw-map-popup-head > div {
+  display: grid;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 2px;
+}
+.yayaw-map-popup h3 {
+  overflow: hidden;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-map-popup p {
+  overflow: hidden;
+  margin: 0;
+  color: var(--yayaw-muted-foreground);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-map-popup-head .yayaw-icon-button {
+  width: 24px;
+  min-height: 24px;
+  height: 24px;
+  margin: -4px -4px 0 0;
+  padding: 0;
+}
+.yayaw-map-popup dl {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  font-size: 12px;
+}
+.yayaw-map-popup dl > div {
+  display: flex;
+  min-width: 0;
+  gap: 8px;
+}
+.yayaw-map-popup dt {
+  flex-shrink: 0;
+  color: var(--yayaw-muted-foreground);
+}
+.yayaw-map-popup dd {
+  overflow: hidden;
+  min-width: 0;
+  margin: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-map-popup > .yayaw-button {
+  justify-self: start;
+  min-height: 28px;
+  height: 28px;
+  padding: 0 10px;
+  font-size: 14px;
+}
+
+/* The list of records in view: beside the map, a bottom sheet on phones. */
+.yayaw-map-list {
+  display: flex;
+  width: 18rem;
+  min-height: 0;
+  flex-direction: column;
+  flex-shrink: 0;
+  border-left: 1px solid var(--yayaw-border);
+  background: var(--yayaw-background);
+}
+.yayaw-map-list[data-open="false"] {
+  display: none;
+}
+.yayaw-map-list-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--yayaw-border);
+}
+.yayaw-map-list-header h3 {
+  overflow: hidden;
+  min-width: 0;
+  flex: 1 1 auto;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-map-list-header h3 > span {
+  margin-left: 8px;
+  color: var(--yayaw-muted-foreground);
+  font-weight: 400;
+}
+.yayaw-map-list-header .yayaw-icon-button {
+  width: 28px;
+  min-height: 28px;
+  height: 28px;
+  padding: 0;
+}
+.yayaw-map-list-header .yayaw-icon-button[aria-expanded="true"] {
+  background: var(--yayaw-muted);
+}
+.yayaw-map-list-chevron {
+  transform: rotate(-90deg);
+}
+.yayaw-map-list-items {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: auto;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+}
+.yayaw-map-list-items button {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: calc(var(--yayaw-radius) - 2px);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.yayaw-map-list-items button:hover,
+.yayaw-map-list-items button[data-highlighted] {
+  background: var(--accent, var(--yayaw-muted));
+}
+.yayaw-map-list-items button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--yayaw-ring);
+}
+.yayaw-map-dot {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--yayaw-map-marker);
+}
+.yayaw-map-list-text {
+  display: grid;
+  min-width: 0;
+}
+.yayaw-map-list-text > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-map-list-text > span + span {
+  color: var(--yayaw-muted-foreground);
+  font-size: 12px;
+}
+.yayaw-map-list-empty {
+  padding: 12px 8px;
+  color: var(--yayaw-muted-foreground);
+  font-size: 14px;
+}
+
+@media (max-width: 767px) {
+  .yayaw-map-box {
+    height: 70vh;
+  }
+  .yayaw-map-list,
+  .yayaw-map-list[data-open="false"] {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 20;
+    display: flex;
+    width: auto;
+    max-height: 55%;
+    border-top: 1px solid var(--yayaw-border);
+    border-left: 0;
+    border-radius: 8px 8px 0 0;
+    box-shadow:
+      0 10px 15px -3px rgb(0 0 0 / 0.1),
+      0 4px 6px -4px rgb(0 0 0 / 0.1);
+  }
+  .yayaw-map-list-chevron {
+    transform: none;
+  }
+  .yayaw-map-show-list {
+    display: none;
+  }
+}

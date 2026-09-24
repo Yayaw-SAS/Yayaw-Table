@@ -7,6 +7,7 @@ import {
   FolderTree,
   Images,
   List,
+  MapIcon,
   Newspaper,
   Table2,
 } from "lucide-vue-next";
@@ -24,4 +25,5 @@ export const displayModeIcons: Record<TableDisplayMode, Component> = {
   kanban: Columns3,
   gallery: Images,
   list: List,
+  map: MapIcon,
 };

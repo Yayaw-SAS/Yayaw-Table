@@ -72,7 +72,9 @@ import type { ActionItem } from "./columns/actions-column";
 import { DataTableSkeleton } from "./data-table-skeleton";
 import { TableRecordDetails } from "./details/table-record-details";
 // Direct import keeps the toolbar available without a client-only dynamic wrapper.
+import { translateWithFallback } from "./filters/i18n-utils";
 import { TableFilterBar } from "./filters/table-filter-bar";
+import { LocationProvider } from "./location/location-context";
 // Lazy load heavy components using React.lazy inside './forms/lazy-forms'
 import { catalogueFormAtom } from "./forms/atoms/catalogue-form-atoms";
 import { LazyCatalogueFormContainer as CatalogueFormContainer } from "./forms/lazy-forms";
@@ -778,6 +780,12 @@ function DataTableContent({
   const canCreateRecords =
     config.table.allowCreate !== false &&
     typeof getTableActions?.(tableType)?.create === "function";
+  const geocode = getTableActions?.(tableType)?.geocode;
+  const locationTranslate = useCallback(
+    (key: string, fallback: string) =>
+      translateWithFallback(planningTranslate, `location.${key}`, fallback),
+    [planningTranslate]
+  );
   // The Form mode ships in the table; it is offered when records can be created.
   // The Feed mode ships in the table too; `table.feed: false` withholds it.
   const modeRenderers = useMemo(
@@ -834,6 +842,12 @@ function DataTableContent({
 
   return (
     <TableStateSyncProvider enabled={config.table.syncUrl !== false}>
+      {/* Location editors (cells, record forms, the Form view) suggest places with `actions.geocode`. */}
+      <LocationProvider
+        geocode={geocode}
+        locale={planningLocale}
+        translate={locationTranslate}
+      >
       <Suspense fallback={<DataTableSkeleton />}>
         <DataTableUIProvider
           columnsConfig={{
@@ -1054,6 +1068,7 @@ function DataTableContent({
         tableId={tableId}
         tableType={tableType}
       />
+      </LocationProvider>
     </TableStateSyncProvider>
   );
 }

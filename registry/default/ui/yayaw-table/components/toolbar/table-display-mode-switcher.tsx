@@ -10,6 +10,7 @@ import {
   Images,
   List,
   type LucideIcon,
+  MapIcon,
   Newspaper,
   Table2,
 } from "lucide-react";
@@ -50,6 +51,7 @@ export const DISPLAY_MODE_ICONS: Record<TableDisplayMode, LucideIcon> = {
   gallery: Images,
   kanban: Columns3,
   list: List,
+  map: MapIcon,
   table: Table2,
 };
 

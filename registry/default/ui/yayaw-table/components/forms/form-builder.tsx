@@ -16,6 +16,7 @@ import {
   CollectionField,
   DateField,
   DynamicValueField,
+  LocationField,
   MultiSelectField,
   NumberField,
   RadioField,
@@ -434,6 +435,14 @@ function FormBuilderField<TFieldValues extends FieldValues>({
               }
               fieldApi={normalizeFieldApi(f) as unknown as FormFieldApi<string>}
             />
+          )}
+        </form.Field>
+      );
+    case "location":
+      return (
+        <form.Field key={field.name} name={field.name as Path<TFieldValues>}>
+          {(f) => (
+            <LocationField field={field} fieldApi={normalizeFieldApi(f)} />
           )}
         </form.Field>
       );

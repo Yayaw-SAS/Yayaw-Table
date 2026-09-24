@@ -63,6 +63,7 @@ const NUMBER_TYPES = new Set(["number", "currency", "percent", "rating"]);
 const BOOLEAN_TYPES = new Set(["boolean", "checkbox", "switch"]);
 const DATE_TYPES = new Set(["date", "datetime"]);
 const OPTIONS_TYPES = new Set(["multiSelect", "multi_select", "tags"]);
+const PLACE_TEXT = /^\s*(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)\s*$/;
 const TRIMMED_TYPES = new Set([
   "select",
   "status",
@@ -298,6 +299,29 @@ function normalizeText(value: unknown, trim: boolean): SyncValue {
   return trim ? text.trim() : text;
 }
 
+const finitePair = (lat: unknown, lng: unknown) =>
+  typeof lat === "number" &&
+  typeof lng === "number" &&
+  Number.isFinite(lat) &&
+  Number.isFinite(lng);
+
+/**
+ * A place (`location` column: `{ lat, lng, label?, address? }`) as the
+ * "lat, lng" text Notion and Sheets receive. Undefined for other values.
+ */
+export function placeText(value: unknown): string | undefined {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const { lat, lng } = value as { lat?: unknown; lng?: unknown };
+    return finitePair(lat, lng) ? `${lat}, ${lng}` : undefined;
+  }
+  const match = typeof value === "string" ? PLACE_TEXT.exec(value) : null;
+  return match ? `${Number(match[1])}, ${Number(match[2])}` : undefined;
+}
+
+function normalizePlace(value: unknown): SyncValue {
+  return placeText(value) ?? normalizeText(value, true);
+}
+
 /**
  * The canonical form of a value for a table column type, so a round trip
  * through Notion or Sheets never looks like a change:
@@ -310,10 +334,14 @@ function normalizeText(value: unknown, trim: boolean): SyncValue {
  * - booleans accept `true`/`false` and yes/no words;
  * - multi-selects become sorted, unique, trimmed names (from arrays or
  *   comma-separated text);
- * - select, status, url and email are trimmed text; other types are text.
+ * - select, status, url and email are trimmed text; other types are text;
+ * - places (`location`) are "lat, lng" text, whatever the spacing.
  */
 export function normalizeSyncValue(value: unknown, type?: string): SyncValue {
   const kind = type ?? "text";
+  if (kind === "location") {
+    return normalizePlace(value);
+  }
   if (NUMBER_TYPES.has(kind)) {
     return normalizeNumber(value);
   }

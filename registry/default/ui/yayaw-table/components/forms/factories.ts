@@ -6,6 +6,7 @@ import type {
   DateFieldDefinition,
   DynamicValueFieldDefinition,
   FieldValues,
+  LocationFieldDefinition,
   MultiSelectFieldDefinition,
   NumberFieldDefinition,
   Path,
@@ -266,6 +267,21 @@ export function createTextField<TFieldValues extends FieldValues = FieldValues>(
   return {
     ...options,
     type: "text",
+  };
+}
+
+/**
+ * Create a location field: a place `{ lat, lng, label?, address? }`, with
+ * address suggestions from `actions.geocode`.
+ */
+export function createLocationField<
+  TFieldValues extends FieldValues = FieldValues,
+>(
+  options: Omit<LocationFieldDefinition<TFieldValues>, "type">
+): LocationFieldDefinition<TFieldValues> {
+  return {
+    ...options,
+    type: "location",
   };
 }
 

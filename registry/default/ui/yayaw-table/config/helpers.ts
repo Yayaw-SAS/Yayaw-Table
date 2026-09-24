@@ -30,6 +30,7 @@ export type InlineEditEditor =
   | "boolean"
   | "date"
   | "json"
+  | "location"
   | "multiSelect"
   | "number"
   | "select"

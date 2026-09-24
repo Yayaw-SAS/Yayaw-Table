@@ -15,8 +15,10 @@ import {
 } from "vue";
 import { useTableContext, useTableTranslation } from "../../context";
 import { resolveDataType, resolveDataTypeEditor, TABLE_DATA_TYPES, dataTypeDateInput, dataTypeValueError } from "../../table-contracts";
-import { Check, Image as ImageIcon } from "lucide-vue-next";
+import { Check, Image as ImageIcon, MapPin } from "lucide-vue-next";
 import InlineMultiSelect from "./InlineMultiSelect.vue";
+import LocationEditor from "../location/LocationEditor.vue";
+import { formatCoordinates, formatLocation, parseLocation } from "../../location-model";
 import { displayCellValue, safeHttpUrl, imageSource } from "../../core";
 import { numberBarRatio } from "../../value-format";
 import {
@@ -313,7 +315,8 @@ const save = async (close = true): Promise<void> => {
 };
 watch(draft, () => {
   clearScheduledSave();
-  if (!editing.value || !dirty.value) return;
+  // A place is saved with Done, Enter or when focus leaves its editor.
+  if (!editing.value || !dirty.value || editor.value === "location") return;
   const delay = Math.max(0, debounceMs.value);
   currentTime.value = Date.now();
   scheduledAt.value = currentTime.value + delay;
@@ -349,6 +352,15 @@ const onKeydown = async (event: KeyboardEvent): Promise<void> => {
     await save();
   }
 };
+const place = computed(() =>
+  effectiveColumn.value.type === "location" ? parseLocation(props.value) : null
+);
+const placeTitle = computed(() =>
+  place.value && (place.value.label || place.value.address)
+    ? `${formatLocation(place.value)} (${formatCoordinates(place.value)})`
+    : undefined
+);
+const locationAnchor = ref<HTMLElement | null>(null);
 const url = computed(() => safeHttpUrl(props.value));
 const urlDomain = computed(() => {
   if (!url.value) {
@@ -409,6 +421,25 @@ const tags = computed(() =>
           {{ option.label }}
         </option>
       </select>
+      <div v-else-if="editor === 'location'" class="yayaw-location-inline">
+        <span ref="locationAnchor" class="yayaw-location-cell">
+          <MapPin v-if="place" :size="14" aria-hidden="true" />
+          <span>{{ formatLocation(value) || "—" }}</span>
+        </span>
+        <LocationEditor
+          v-if="locationAnchor"
+          :value="draft"
+          :anchor="locationAnchor"
+          floating
+          actions
+          autofocus
+          :label="formField?.label ?? column.header"
+          @change="draft = $event"
+          @done="save()"
+          @cancel="cancel"
+          @leave="save()"
+        />
+      </div>
       <InlineMultiSelect
         v-else-if="editor === 'multiSelect'"
         v-model="draft"
@@ -460,6 +491,15 @@ const tags = computed(() =>
       </button>
     </template>
     <VNodeRenderer v-else-if="customNode" :node="customNode" />
+    <span
+      v-else-if="effectiveColumn.type === 'location' && place"
+      class="yayaw-location-cell"
+      data-location-cell=""
+      :title="placeTitle"
+      ><MapPin :size="14" aria-hidden="true" /><span>{{
+        formatLocation(place)
+      }}</span></span
+    >
     <span
       v-else-if="effectiveColumn.type === 'boolean'"
       class="yayaw-boolean"

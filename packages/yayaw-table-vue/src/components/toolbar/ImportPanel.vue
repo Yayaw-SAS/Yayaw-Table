@@ -42,6 +42,8 @@ const props = defineProps<{
   findExisting: ImportFlowOptions["findExisting"];
   batchSize?: number;
   allowNewOptions?: boolean;
+  /** `actions.geocode`: addresses imported into location columns become places. */
+  geocode?: ImportFlowOptions["geocode"];
 }>();
 const emit = defineEmits<{ done: []; imported: [result: ImportRunResult]; connector: [id: string] }>();
 const id = useId();
@@ -57,6 +59,7 @@ const flow = createImportFlow({
   loadSource: props.loadSource,
   batchSize: props.batchSize,
   allowNewOptions: opened.allowNewOptions,
+  geocode: props.geocode,
   onChange: (next) => {
     state.value = next;
   },

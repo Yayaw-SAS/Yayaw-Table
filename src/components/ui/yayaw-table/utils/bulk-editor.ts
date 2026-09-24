@@ -64,6 +64,7 @@ export function bulkClearCandidate(field: {
     case "number":
     case "date":
     case "json":
+    case "location":
     case "select":
     case "radio":
     case "select-with-add-new":
