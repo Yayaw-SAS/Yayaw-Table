@@ -117,6 +117,31 @@ Pinned React releases are available under `/r/vX.Y.Z/yayaw-table.json`. Projects
 npx shadcn@latest add @yayaw/yayaw-table
 ```
 
+## Use with AI agents
+
+[`skills/yayaw-table`](skills/yayaw-table/SKILL.md) is an
+[Agent Skill](https://agentskills.io) for coding agents such as Claude Code
+and Codex. It tells them how to install, configure and extend YaYaw Table in
+an app (registry items and pinned installs, `TableConfig`, display modes,
+server contracts, forms, connectors, React/Vue parity and known pitfalls) and
+sends them to the copied source and types, which remain the source of truth.
+
+Copy the folder into your project, ideally from the release you installed
+(add `--branch vX.Y.Z` to the clone):
+
+```bash
+git clone --depth 1 https://github.com/Yayaw-SAS/Yayaw-Table.git /tmp/yayaw-table-repo
+# Claude Code: this project, or ~/.claude/skills/ for every project
+mkdir -p .claude/skills && cp -R /tmp/yayaw-table-repo/skills/yayaw-table .claude/skills/
+# Codex
+mkdir -p .codex/skills && cp -R /tmp/yayaw-table-repo/skills/yayaw-table .codex/skills/
+```
+
+Agents load it when a task matches its description. In this repository,
+`bun run skill:check` (part of `bun run check`) fails when the skill no longer
+matches the code: display modes, actions, scope kinds, column types, filter
+operators, registry items, helper names, paths and links.
+
 ## React quick start
 
 ```tsx
