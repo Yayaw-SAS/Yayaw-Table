@@ -39,13 +39,13 @@ Each entry: what you see, why, what to do.
   everywhere, and formatted versus raw exports are chosen by the user.
 - **Dates one day early.** A date-only value stored or returned as UTC
   midnight (`2026-09-10T00:00:00Z`). Return `YYYY-MM-DD` for calendar days;
-  use presets with `timeZone` for instants (`dateFormat` patterns ignore
-  `timeZone`).
+  set `timeZone` on columns of instants (presets and patterns follow it).
 - **Numbers look different in React and Vue.** No `numberFormat`: React shows
   the raw value, Vue groups digits. Set `numberFormat`.
 - **Exports do not look like the screen.** `exportFile` ignores `formatted`.
-  Format with the columns' settings when `formatted` is true; write stored
-  values otherwise.
+  When `formatted` is true, format with `request.columns` (type, options,
+  number and date formats) in `request.locale`; write stored values
+  otherwise.
 
 ## Setup and rendering
 

@@ -25,6 +25,7 @@ import {
 } from "@/src/components/ui/custom/kanban";
 import { Button } from "@/src/components/ui/button";
 import type { TableCatalogueColumnConfig } from "../hooks/use-table-config";
+import { useLocale } from "../providers/table-provider";
 import type {
   TableKanbanConfig,
   TableKanbanGroupConfig,
@@ -34,6 +35,7 @@ import {
   getCompactCardPropertiesClassName,
   getCompactCardPropertyClassName,
 } from "../utils/card-properties";
+import { fieldText } from "../utils/table-contracts";
 import { isBlankCardValue } from "../utils/value-format";
 
 import { ServerKanbanView } from "./server-kanban-view";
@@ -116,8 +118,12 @@ function getColumnLabel(
   );
 }
 
+/** Lane titles read the grouped value as the table shows it; `value` stays raw. */
+type KanbanLaneLabel = (value: unknown) => string;
+
 export function createConfiguredGroups(
-  groups: TableKanbanGroupConfig[] | undefined
+  groups: TableKanbanGroupConfig[] | undefined,
+  labelOf?: KanbanLaneLabel
 ): KanbanGroup[] {
   if (!groups?.length) {
     return [];
@@ -127,7 +133,9 @@ export function createConfiguredGroups(
     const value = getStringValue(group.value);
     return {
       id: `kanban-group-${value || "empty"}`,
-      label: group.label ?? (value || EMPTY_GROUP_LABEL),
+      label:
+        group.label ??
+        ((value && (labelOf?.(group.value) || value)) || EMPTY_GROUP_LABEL),
       value,
     };
   });
@@ -146,17 +154,20 @@ export function shouldUseConfiguredKanbanGroups({
 export function createKanbanGroups<TData extends Record<string, unknown>>({
   configuredGroups,
   groupBy,
+  labelOf,
   rows,
 }: {
   configuredGroups: KanbanGroup[];
   groupBy: string;
+  labelOf?: KanbanLaneLabel;
   rows: Row<TData>[];
 }): KanbanGroup[] {
   const groups = [...configuredGroups];
   const knownValues = new Set(groups.map((group) => group.value));
 
   for (const row of rows) {
-    const value = getStringValue(row.original[groupBy]);
+    const raw = row.original[groupBy];
+    const value = getStringValue(raw);
     if (knownValues.has(value)) {
       continue;
     }
@@ -164,7 +175,7 @@ export function createKanbanGroups<TData extends Record<string, unknown>>({
     knownValues.add(value);
     groups.push({
       id: `kanban-group-${value || "empty"}`,
-      label: value || EMPTY_GROUP_LABEL,
+      label: (value && (labelOf?.(raw) || value)) || EMPTY_GROUP_LABEL,
       value,
     });
   }
@@ -377,11 +388,18 @@ function DataTableKanbanCard<TData extends Record<string, unknown>>({
     isClickable && "hover:border-primary/40 hover:bg-muted/20",
     isActive && "border-primary/50 shadow-[inset_2px_0_0_var(--primary)]"
   );
+  const locale = useLocale();
   const titleContent = titleCell
     ? flexRender(titleCell.column.columnDef.cell, titleCell.getContext())
     : row.id;
+  // Read aloud as shown: option labels, number and date formats.
   const cardName = titleCell
-    ? getStringValue(row.original[titleCell.column.id]) || row.id
+    ? fieldText(
+        row.original[titleCell.column.id],
+        columnDefinitionsById.get(titleCell.column.id),
+        locale,
+        row.original
+      ) || row.id
     : row.id;
   const cardInteractionProps = isClickable
     ? {
@@ -488,14 +506,26 @@ function LocalDataTableKanbanView<TData extends Record<string, unknown>>({
     configuredGroupBy: config?.groupBy,
     groupBy,
   });
+  const locale = useLocale();
+  const groupColumn = columnDefinitions.find(
+    (definition) => definition.id === groupBy
+  );
+  const laneLabel = useCallback(
+    (value: unknown) => fieldText(value, groupColumn, locale),
+    [groupColumn, locale]
+  );
   const configuredGroups = useMemo(
     () =>
-      createConfiguredGroups(shouldUseConfiguredGroups ? config?.groups : undefined),
-    [config?.groups, shouldUseConfiguredGroups]
+      createConfiguredGroups(
+        shouldUseConfiguredGroups ? config?.groups : undefined,
+        laneLabel
+      ),
+    [config?.groups, laneLabel, shouldUseConfiguredGroups]
   );
   const groups = useMemo(
-    () => createKanbanGroups({ configuredGroups, groupBy, rows }),
-    [configuredGroups, groupBy, rows]
+    () =>
+      createKanbanGroups({ configuredGroups, groupBy, labelOf: laneLabel, rows }),
+    [configuredGroups, groupBy, laneLabel, rows]
   );
   const kanbanColumns = useMemo(() => createKanbanColumns(groups), [groups]);
   const resolvedTitleColumnId =

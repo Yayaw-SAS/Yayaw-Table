@@ -19,6 +19,7 @@ import type {
 } from "../../../types/filter-types";
 import { useTableConfig } from "../../../hooks/use-table-config";
 import { filterBarColumns } from "../../../utils/filter-bar";
+import { fieldText } from "../../../utils/table-contracts";
 import { TableFilterBar } from "../../filters/table-filter-bar";
 import { AdvancedFilterPanel } from "../../filters/advanced-filter-panel";
 
@@ -61,8 +62,11 @@ export function TableFiltersMenu({
   advancedColumnsConfig = EMPTY_COLUMNS_CONFIG,
   useAdvancedFilters = false,
 }: TableFiltersMenuProps) {
-  const { t } = useTranslations();
+  const { t, locale } = useTranslations();
   const { config } = useTableConfig(tableType ?? tableId);
+  // Active filters read like the column: its header, option labels and formats.
+  const columnOf = (id: string) =>
+    config.columns.definitions.find((column) => column.id === id);
   const quickColumns = filterBarColumns(
     config.columns.definitions,
     config.table.filterBarColumns
@@ -137,9 +141,14 @@ export function TableFiltersMenu({
                   className="flex items-center gap-2 rounded-md border p-2"
                   key={filter.id}
                 >
-                  <span className="font-medium text-sm">{filter.id}</span>
+                  <span className="font-medium text-sm">
+                    {columnOf(filter.id)?.header ?? filter.id}
+                  </span>
                   <span className="text-muted-foreground text-xs">:</span>
-                  <span className="text-sm">{String(filter.value)}</span>
+                  <span className="text-sm">
+                    {fieldText(filter.value, columnOf(filter.id), locale) ||
+                      String(filter.value)}
+                  </span>
                   <Button
                     className="ml-auto h-6 w-6 p-0"
                     onClick={() => {

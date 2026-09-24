@@ -172,9 +172,10 @@ function FeedPosts({
       groupFeedRows(
         rows,
         groupBy ? columnMap.get(groupBy) : undefined,
-        label("noValue")
+        label("noValue"),
+        locale
       ),
-    [columnMap, groupBy, label, rows]
+    [columnMap, groupBy, label, locale, rows]
   );
   const positions = useMemo(
     () => new Map(rows.map((row, index) => [row, index + 1] as const)),

@@ -10,6 +10,7 @@ import {
   feedDate,
   feedPropertyValue,
   feedRowMedia,
+  feedTitleText,
   feedValue,
   type ResolvedFeedSettings,
 } from "../feed-view";
@@ -43,12 +44,11 @@ const emit = defineEmits<{
 
 const titleId = useId();
 const column = (id?: string) => (id ? props.columns.get(id) : undefined);
-const title = computed(() => {
-  const raw = feedValue(props.row, column(props.settings.titleColumn));
-  return raw === null || raw === undefined || raw === ""
-    ? props.label("untitled")
-    : String(raw);
-});
+const title = computed(
+  () =>
+    feedTitleText(props.row, column(props.settings.titleColumn), props.locale) ||
+    props.label("untitled")
+);
 const dateColumn = computed(() => column(props.settings.dateColumn));
 const date = computed(() =>
   dateColumn.value

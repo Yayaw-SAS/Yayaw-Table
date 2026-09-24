@@ -10,6 +10,10 @@ import { FeedExample } from "../feed-react";
 import { FormExample } from "../form-react";
 import { RecordPresentationExample } from "../record-presentation-react";
 import { ServerKanbanExample } from "../server-kanban-react";
+import {
+  ValueFormatsDashboardExample,
+  ValueFormatsExample,
+} from "../value-formats-react";
 import { ViewsExample } from "../views-react";
 
 const client = new QueryClient();
@@ -38,6 +42,12 @@ const renderExample = () => {
   }
   if (example === "feed") {
     return <FeedExample />;
+  }
+  if (example === "formats") {
+    return <ValueFormatsExample />;
+  }
+  if (example === "formats-dashboard") {
+    return <ValueFormatsDashboardExample />;
   }
   return <RecordPresentationExample />;
 };

@@ -1,11 +1,14 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import type { TableCatalogueColumnConfig } from "../hooks/use-table-config";
+import { useLocale } from "../providers/table-provider";
 import {
   createServerKanban,
   type ServerKanbanSource,
   type ServerKanbanState,
 } from "../utils/server-kanban";
+import { fieldText } from "../utils/table-contracts";
+import { DataTypeCell } from "./cells/data-type-cell";
 
 export function ServerKanbanView({
   source,
@@ -18,6 +21,7 @@ export function ServerKanbanView({
   titleColumn?: string;
   propertyIds: string[];
 }) {
+  const locale = useLocale();
   const [state, setState] = useState<ServerKanbanState>({
     lanes: [],
     loading: true,
@@ -42,7 +46,16 @@ export function ServerKanbanView({
     empty: "No results",
     ...source.labels,
   };
-  const value = (row: Record<string, unknown>, id: string) => row[id];
+  const columnOf = (id: string) => columns.find((item) => item.id === id);
+  // Values as the table reads them: the accessor first, then the id.
+  const value = (row: Record<string, unknown>, id: string) => {
+    const column = columnOf(id);
+    if (typeof column?.accessorFn === "function") {
+      return (column.accessorFn as (record: typeof row) => unknown)(row);
+    }
+    return row[(column?.accessorKey as string | undefined) ?? id];
+  };
+  const titleId = titleColumn ?? "name";
   return (
     <div>
       {state.loading && <output>{labels.loading}</output>}
@@ -84,13 +97,18 @@ export function ServerKanbanView({
                   onClick={() => source.onActivate?.(row)}
                   type="button"
                 >
-                  {String(value(row, titleColumn ?? "name") ?? row.id)}
+                  {fieldText(
+                    value(row, titleId),
+                    columnOf(titleId),
+                    locale,
+                    row
+                  ) || String(row.id ?? "")}
                 </button>
                 <dl>
                   {propertyIds
                     .filter((id) => id !== titleColumn)
                     .map((id) => {
-                      const column = columns.find((item) => item.id === id);
+                      const column = columnOf(id);
                       const cell = value(row, id);
                       return (
                         <div key={id}>
@@ -98,9 +116,15 @@ export function ServerKanbanView({
                             {column?.header ?? id}
                           </dt>
                           <dd className="text-sm">
-                            {column?.cellRenderer
-                              ? column.cellRenderer(cell, row)
-                              : String(cell ?? "")}
+                            {column ? (
+                              <DataTypeCell
+                                column={column}
+                                row={row}
+                                value={cell}
+                              />
+                            ) : (
+                              String(cell ?? "")
+                            )}
                           </dd>
                         </div>
                       );

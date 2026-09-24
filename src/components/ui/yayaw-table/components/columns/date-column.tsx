@@ -40,10 +40,7 @@ interface DateColumnProps {
    */
   className?: string;
 
-  /**
-   * Date format string (date-fns compatible)
-   * @default "PPP" (localized date with month name)
-   */
+  /** date-fns pattern; wins over the presets when set. */
   dateFormat?: string;
 
   /**
@@ -110,7 +107,7 @@ function DateGroupLabel({ value }: { value: unknown }) {
 export function createDateColumn<TData>({
   accessorKey,
   className,
-  dateFormat = "PPP",
+  dateFormat,
   dateDisplayPreset,
   fallbackDateDisplayPreset,
   enableColumnFilter = true,

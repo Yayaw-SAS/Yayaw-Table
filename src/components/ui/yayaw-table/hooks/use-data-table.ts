@@ -668,6 +668,8 @@ export function useDataTable<TData extends Record<string, unknown>>(
             enableSorting: colDef.enableSorting,
             fallbackDateDisplayPreset: config.table.dateDisplayPreset,
             header: getTranslationSafe(colDef.header),
+            hour12: colDef.hour12,
+            timeZone: colDef.timeZone,
           });
         }
         case "dynamicType": {

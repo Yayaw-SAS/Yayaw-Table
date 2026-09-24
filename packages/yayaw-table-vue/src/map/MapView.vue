@@ -146,7 +146,8 @@ const located = computed(() =>
     rows.value,
     settings.value,
     props.context.columns,
-    props.context.getRowId
+    props.context.getRowId,
+    props.context.locale
   )
 );
 const markers = computed(() => located.value.markers);

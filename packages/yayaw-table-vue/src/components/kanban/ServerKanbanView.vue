@@ -3,6 +3,7 @@ import { onBeforeUnmount, shallowRef, watch } from "vue";
 import { createServerKanban, type ServerKanbanSource, type ServerKanbanState } from "../../server-kanban";
 import { useTableContext } from "../../context";
 import CellRenderer from "../table/CellRenderer.vue";
+import { fieldText } from "../../table-contracts";
 const props = defineProps<{ source: ServerKanbanSource; titleColumn: string; propertyIds: string[] }>();
 const context = useTableContext();
 const state = shallowRef<ServerKanbanState>({ lanes: [], loading: true });
@@ -23,7 +24,7 @@ const label = (key: "loading" | "retry" | "loadMore" | "empty", fallback: string
  <header><strong>{{ lane.label }}</strong><span class="yayaw-count">{{ lane.totalCount }}</span></header>
  <div class="yayaw-kanban-cards">
  <article v-for="row in lane.rows" :key="source.getRowId?.(row) ?? String(row.id)" class="yayaw-card yayaw-kanban-card">
- <button type="button" class="yayaw-button yayaw-button-ghost" :disabled="!source.onActivate" @click="source.onActivate?.(row)">{{ value(row, titleColumn) ?? row.id }}</button>
+ <button type="button" class="yayaw-button yayaw-button-ghost" :disabled="!source.onActivate" @click="source.onActivate?.(row)">{{ fieldText(value(row, titleColumn), column(titleColumn), context.locale, row) || row.id }}</button>
  <dl class="yayaw-card-properties labeled"><template v-for="id in propertyIds.filter(item => item !== titleColumn)" :key="id"><dt>{{ column(id).header }}</dt><dd><CellRenderer :column="column(id)" :row="row" :value="value(row, id)" /></dd></template></dl>
  </article>
  <p v-if="lane.loading" role="status">{{ label('loading', 'Loading…') }}</p><p v-if="lane.error" role="alert">{{ lane.error }}</p>

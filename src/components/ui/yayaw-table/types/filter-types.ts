@@ -159,8 +159,10 @@ export interface ColumnFilterConfig<
   displayValueFn?: (value: FilterValues<TType>) => string;
   /** Date display preset for date columns */
   dateDisplayPreset?: DateDisplayPreset;
-  /** Legacy date-fns format string fallback */
+  /** date-fns pattern of date columns; filter chips show its date part */
   dateFormat?: string;
+  /** The number column's format: filter chips show values in it */
+  numberFormat?: import("../utils/value-format").NumberFormatConfig;
 }
 
 /**

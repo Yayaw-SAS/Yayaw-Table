@@ -126,7 +126,12 @@ const COLUMNS = [
     type: "number",
     numberFormat: { currency: "EUR", locale: "en-US" },
   },
-  { id: "due", header: "Due", type: "date", dateDisplayPreset: "iso-date" },
+  {
+    id: "due",
+    header: "Due",
+    type: "date",
+    dateDisplayPreset: "iso-date" as const,
+  },
   { id: "site", header: "Site", type: "location" },
   { id: "office", header: "Office", type: "location" },
 ];

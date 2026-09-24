@@ -212,10 +212,11 @@ default. Point `getTableConfig(tableType)` at a catalogue of configs;
   `syncUrl`, `density`, `displayModes`, `defaultDisplayMode`…) and one object
   per display mode (`table.kanban`, `table.chart`…).
 - **A format applies everywhere.** Set `numberFormat`, `dateDisplayPreset` /
-  `dateFormat`, `timeZone` and `hour12` on the column once: cells, cards,
-  record details, the Form view, feed, map popups, charts and formatted
-  exports all read it, and imports read it back. Return raw values from the
-  server (numbers, ISO dates, `YYYY-MM-DD` days), never pre-formatted text.
+  `dateFormat`, `timeZone` and `hour12` on the column once: cells, totals,
+  group headings, cards, record details, the Form view, feed, calendar,
+  Gantt, map popups, charts, dashboards, filter chips and formatted exports
+  all read it, and imports read it back. Return raw values from the server
+  (numbers, ISO dates, `YYYY-MM-DD` days), never pre-formatted text.
 
 Column types, every flag, formats, translations, URL state, saved views and
 multi-instance pages: [configuration](references/configuration.md).

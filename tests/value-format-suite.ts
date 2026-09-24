@@ -3,6 +3,11 @@ import type * as Format from "../src/components/ui/yayaw-table/utils/value-forma
 
 type FormatModule = Pick<
   typeof Format,
+  | "datePartOfPattern"
+  | "formatColumnDate"
+  | "formatColumnDay"
+  | "formatColumnNumber"
+  | "formatColumnValue"
   | "formatDateValue"
   | "formatNumberValue"
   | "isBlankCardValue"
@@ -64,6 +69,15 @@ export function valueFormatSuite(
     );
     assert.equal(number(1234.5, { thousandsSeparator: "none" }), "1234.5");
     assert.equal(number(42, { prefix: "~", suffix: " pts" }), "~42 pts");
+    // Affixes and separators keep their spaces as stored.
+    assert.equal(
+      format.formatNumberValue(
+        1234.5,
+        { prefix: "≈ ", suffix: " kg", thousandsSeparator: " ", decimals: 1 },
+        "en-US"
+      ),
+      "≈ 1 234.5 kg"
+    );
     assert.equal(number(5, { signDisplay: "always" }), "+5");
     assert.equal(
       number(-1234.5, { currency: "USD", negative: "parentheses" }),
@@ -140,5 +154,125 @@ export function valueFormatSuite(
     );
     assert.equal(format.formatDateValue("", {}), "—");
     assert.equal(format.formatDateValue("soon", {}), "soon");
+  });
+
+  test("patterns follow the column's time zone; calendar days never shift", () => {
+    const paris = { pattern: "dd/MM/yyyy HH:mm", timeZone: "Europe/Paris" };
+    // 22:30 UTC is already the next day in Paris.
+    assert.equal(
+      format.formatDateValue("2026-09-05T22:30:00Z", paris),
+      "06/09/2026 00:30"
+    );
+    assert.equal(
+      format.formatDateValue("2026-09-05T22:30:00Z", {
+        ...paris,
+        timeZone: "Asia/Tokyo",
+      }),
+      "06/09/2026 07:30"
+    );
+    // A date-only value is a day, whatever the zone.
+    assert.equal(
+      format.formatDateValue("2026-09-05", {
+        pattern: "dd/MM/yyyy",
+        timeZone: "Pacific/Honolulu",
+      }),
+      "05/09/2026"
+    );
+    assert.equal(
+      format.formatDateValue("2026-09-05", {
+        preset: "iso-date",
+        timeZone: "Pacific/Kiritimati",
+      }),
+      "2026-09-05"
+    );
+    // An unknown zone shows local time instead of failing.
+    assert.equal(
+      format.formatDateValue("2026-09-05", {
+        pattern: "dd/MM/yyyy",
+        timeZone: "Nowhere/Zone",
+      }),
+      "05/09/2026"
+    );
+  });
+
+  test("the column's pattern wins over its preset and the table's", () => {
+    const column = {
+      type: "date",
+      dateFormat: "dd/MM/yyyy HH:mm",
+      dateDisplayPreset: "localized-long" as const,
+      timeZone: "Europe/Paris",
+    };
+    const instant = "2026-09-05T22:30:00Z";
+    assert.equal(
+      format.formatColumnDate(instant, column, "fr-FR"),
+      "06/09/2026 00:30"
+    );
+    assert.equal(
+      format.formatColumnValue(instant, column, "en-US"),
+      "06/09/2026 00:30"
+    );
+    assert.equal(
+      plain(
+        format.formatColumnDate(
+          instant,
+          { type: "date", timeZone: "UTC" },
+          "en-US",
+          "localized-medium"
+        )
+      ),
+      "Sep 5, 2026"
+    );
+    // Days (chart buckets, filter dates) keep the date part only.
+    assert.equal(
+      format.formatColumnDay("2026-09-06", column, "fr-FR"),
+      "06/09/2026"
+    );
+    assert.equal(
+      plain(
+        format.formatColumnDay(
+          "2026-09-06",
+          { type: "date", dateDisplayPreset: "dateTime" },
+          "en-US"
+        )
+      ),
+      "Sep 6, 2026"
+    );
+    assert.equal(format.datePartOfPattern("PPpp"), "PP");
+    assert.equal(format.datePartOfPattern("HH:mm dd/MM"), "dd/MM");
+    assert.equal(
+      format.datePartOfPattern("d MMM yyyy 'at' HH:mm"),
+      "d MMM yyyy"
+    );
+    assert.equal(format.datePartOfPattern("HH:mm"), undefined);
+  });
+
+  test("numbers take their column's format in the table locale", () => {
+    const amount = {
+      type: "number",
+      numberFormat: { style: "currency" as const, currency: "EUR" },
+    };
+    assert.equal(
+      plain(format.formatColumnNumber(2499, amount, "fr-FR")),
+      "2 499,00 €"
+    );
+    assert.equal(format.formatColumnValue(2499, amount, "en-US"), "€2,499.00");
+    const progress = {
+      type: "number",
+      numberFormat: { style: "percent" as const, display: "bar" as const },
+    };
+    assert.equal(
+      plain(format.formatColumnNumber(0.45, progress, "fr-FR")),
+      "45 %"
+    );
+    assert.equal(format.formatColumnNumber(0.45, progress, "en-US"), "45%");
+    // The "locale" preset keeps two decimals at most in every surface.
+    assert.equal(
+      format.formatColumnNumber(1234.5678, { numberFormat: "locale" }, "en-US"),
+      "1,234.57"
+    );
+    assert.equal(
+      format.formatColumnValue("x", { type: "text" }, "en-US"),
+      undefined
+    );
   });
 }

@@ -123,7 +123,7 @@ view asks only its fields (`formFields` in the renderer context). Unavailable
 columns are listed in the form builder. A submission calls `actions.create`
 with the fixed values, then the visible answers, with `set` values applied.
 Numbers show the column's `numberFormat` once typed; dates are stored as
-`YYYY-MM-DD`.
+`YYYY-MM-DD` and shown in the date part of the column's format.
 
 People edit a Form view in the form builder: "Edit form" above the form (or
 View settings → Form, a summary) opens a near full-screen dialog with the

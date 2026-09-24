@@ -4,6 +4,11 @@
  */
 
 import type { CalculationType } from "../types/footer-types";
+import {
+  type ColumnValueFormat,
+  formatColumnCalculation,
+  parseDateValue,
+} from "./value-format";
 
 /**
  * Extract a typed value from a cell.
@@ -24,19 +29,6 @@ const toNumber = (v: unknown): number | undefined => {
     const parsed = Number(v);
     if (Number.isFinite(parsed)) {
       return parsed;
-    }
-  }
-  return undefined;
-};
-
-const toDate = (v: unknown): Date | undefined => {
-  if (v instanceof Date && !Number.isNaN(v.getTime())) {
-    return v;
-  }
-  if (typeof v === "string" || typeof v === "number") {
-    const d = new Date(v);
-    if (!Number.isNaN(d.getTime())) {
-      return d;
     }
   }
   return undefined;
@@ -67,20 +59,39 @@ const toBoolean = (v: unknown): boolean | undefined => {
   return undefined;
 };
 
+interface CalculationResult {
+  raw: number | string | null;
+  label: string;
+}
+
+const EMPTY_RESULT: CalculationResult = { raw: null, label: "—" };
+
+const percentOf = (count: number, total: number): number =>
+  total === 0 ? 0 : Math.round((count / total) * 100);
+
 /**
  * Compute a column calculation over a set of raw values.
  *
  * @param values - raw cell values for a single column across all visible rows
  * @param type - the calculation to perform
- * @param columnType - the column data type (number, date, etc.) for formatting hints
- * @returns the calculated result as a display-ready value, or null if not applicable
+ * @param columnType - the column data type (number, date, etc.)
+ * @param locale - the table locale
+ * @param column - the column's formats: sums, averages and extremes read in
+ *   them; counts and shares stay plain
+ * @returns the raw result and its label, or null when not applicable
  */
 export const calculateColumn = (
   values: unknown[],
   type: CalculationType,
   columnType?: string,
-  locale?: string
-): { raw: number | string | null; label: string } => {
+  locale?: string,
+  column?: ColumnValueFormat
+): CalculationResult => {
+  const format = { ...column, type: columnType ?? column?.type };
+  const labelled = (raw: number | null, shown: unknown = raw) =>
+    raw === null
+      ? EMPTY_RESULT
+      : { raw, label: formatColumnCalculation(shown, type, format, locale) };
   const total = values.length;
   const normalized = values.map(normalize);
   const nonEmpty = normalized.filter((v) => v !== undefined);
@@ -94,80 +105,36 @@ export const calculateColumn = (
   switch (type) {
     case "none":
       return { raw: null, label: "" };
-
     case "count_all":
-      return { raw: total, label: String(total) };
-
+      return labelled(total);
     case "count_values":
-      return { raw: nonEmpty.length, label: String(nonEmpty.length) };
-
-    case "count_unique": {
-      const unique = new Set(nonEmpty.map(String));
-      return { raw: unique.size, label: String(unique.size) };
-    }
-
-    case "count_empty":
-      return { raw: emptyCount, label: String(emptyCount) };
-
     case "count_not_empty":
-      return { raw: nonEmpty.length, label: String(nonEmpty.length) };
-
+      return labelled(nonEmpty.length);
+    case "count_unique":
+      return labelled(new Set(nonEmpty.map(String)).size);
+    case "count_empty":
+      return labelled(emptyCount);
     case "count_true":
-      return { raw: trueCount, label: String(trueCount) };
-
+      return labelled(trueCount);
     case "count_false":
-      return { raw: falseCount, label: String(falseCount) };
-
-    case "percent_empty": {
-      if (total === 0) {
-        return { raw: 0, label: "0%" };
-      }
-      const pct = Math.round((emptyCount / total) * 100);
-      return { raw: pct, label: `${pct}%` };
-    }
-
-    case "percent_not_empty": {
-      if (total === 0) {
-        return { raw: 0, label: "0%" };
-      }
-      const pct = Math.round((nonEmpty.length / total) * 100);
-      return { raw: pct, label: `${pct}%` };
-    }
-
-    case "percent_true": {
-      if (total === 0) {
-        return { raw: 0, label: "0%" };
-      }
-      const pct = Math.round((trueCount / total) * 100);
-      return { raw: pct, label: `${pct}%` };
-    }
-
-    case "percent_false": {
-      if (total === 0) {
-        return { raw: 0, label: "0%" };
-      }
-      const pct = Math.round((falseCount / total) * 100);
-      return { raw: pct, label: `${pct}%` };
-    }
-
+      return labelled(falseCount);
+    case "percent_empty":
+      return labelled(percentOf(emptyCount, total));
+    case "percent_not_empty":
+      return labelled(percentOf(nonEmpty.length, total));
+    case "percent_true":
+      return labelled(percentOf(trueCount, total));
+    case "percent_false":
+      return labelled(percentOf(falseCount, total));
     case "sum":
-      return computeNumericOrDate(nonEmpty, columnType, "sum", locale);
-
     case "average":
-      return computeNumericOrDate(nonEmpty, columnType, "average", locale);
-
     case "median":
-      return computeNumericOrDate(nonEmpty, columnType, "median", locale);
-
     case "min":
-      return computeNumericOrDate(nonEmpty, columnType, "min", locale);
-
     case "max":
-      return computeNumericOrDate(nonEmpty, columnType, "max", locale);
-
     case "range":
-      return computeNumericOrDate(nonEmpty, columnType, "range", locale);
-
+      return format.type === "date"
+        ? computeDate(nonEmpty, type, labelled)
+        : labelled(computeNumeric(nonEmpty, type));
     default:
       return { raw: null, label: "" };
   }
@@ -175,108 +142,67 @@ export const calculateColumn = (
 
 type NumericOp = "sum" | "average" | "median" | "min" | "max" | "range";
 
-const computeNumericOrDate = (
-  nonEmpty: unknown[],
-  columnType: string | undefined,
-  op: NumericOp,
-  locale?: string
-): { raw: number | string | null; label: string } => {
-  if (columnType === "date") {
-    return computeDate(nonEmpty, op, locale);
+const computeNumeric = (nonEmpty: unknown[], op: NumericOp): number | null => {
+  const numbers = nonEmpty
+    .map(toNumber)
+    .filter((n): n is number => n !== undefined)
+    .sort((a, b) => a - b);
+  const first = numbers.at(0);
+  const last = numbers.at(-1);
+  if (first === undefined || last === undefined) {
+    return null;
   }
-  return computeNumeric(nonEmpty, op, locale);
-};
-
-const computeNumeric = (
-  nonEmpty: unknown[],
-  op: NumericOp,
-  locale?: string
-): { raw: number | string | null; label: string } => {
-  const numbers = nonEmpty.map(toNumber).filter((n): n is number => n !== undefined);
-  if (numbers.length === 0) {
-    return { raw: null, label: "—" };
-  }
-
+  const sum = numbers.reduce((a, b) => a + b, 0);
   switch (op) {
-    case "sum": {
-      const s = numbers.reduce((a, b) => a + b, 0);
-      return { raw: s, label: s.toLocaleString(locale) };
-    }
-    case "average": {
-      const avg = numbers.reduce((a, b) => a + b, 0) / numbers.length;
-      return {
-        raw: avg,
-        label: avg.toLocaleString(locale, { maximumFractionDigits: 2 }),
-      };
-    }
+    case "sum":
+      return sum;
+    case "average":
+      return sum / numbers.length;
     case "median": {
-      const sorted = [...numbers].sort((a, b) => a - b);
-      const mid = Math.floor(sorted.length / 2);
-      const med =
-        sorted.length % 2 === 0
-          ? (sorted[mid - 1] + sorted[mid]) / 2
-          : sorted[mid];
-      return {
-        raw: med,
-        label: med.toLocaleString(locale, { maximumFractionDigits: 2 }),
-      };
+      const mid = Math.floor(numbers.length / 2);
+      const upper = numbers[mid] ?? last;
+      return numbers.length % 2 === 0
+        ? ((numbers[mid - 1] ?? upper) + upper) / 2
+        : upper;
     }
-    case "min": {
-      const m = Math.min(...numbers);
-      return { raw: m, label: m.toLocaleString(locale) };
-    }
-    case "max": {
-      const m = Math.max(...numbers);
-      return { raw: m, label: m.toLocaleString(locale) };
-    }
-    case "range": {
-      const min = Math.min(...numbers);
-      const max = Math.max(...numbers);
-      const r = max - min;
-      return { raw: r, label: r.toLocaleString(locale) };
-    }
+    case "min":
+      return first;
+    case "max":
+      return last;
+    case "range":
+      return last - first;
     default:
-      return { raw: null, label: "—" };
+      return null;
   }
 };
 
+/**
+ * Earliest and latest dates keep the stored value, so a calendar day stays
+ * that day in the column's format; the range counts whole days.
+ */
 const computeDate = (
   nonEmpty: unknown[],
   op: NumericOp,
-  locale?: string
-): { raw: number | string | null; label: string } => {
-  const dates = nonEmpty.map(toDate).filter((d): d is Date => d !== undefined);
-  if (dates.length === 0) {
-    return { raw: null, label: "—" };
-  }
-
-  const timestamps = dates.map((d) => d.getTime());
-  const formatter = new Intl.DateTimeFormat(locale, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
+  labelled: (raw: number | null, shown?: unknown) => CalculationResult
+): CalculationResult => {
+  const dated = nonEmpty.flatMap((value) => {
+    const date = parseDateValue(value);
+    return date ? [{ value, time: date.getTime() }] : [];
   });
-
+  dated.sort((left, right) => left.time - right.time);
+  const first = dated.at(0);
+  const last = dated.at(-1);
+  if (!(first && last)) {
+    return EMPTY_RESULT;
+  }
   switch (op) {
-    case "min": {
-      const minTs = Math.min(...timestamps);
-      return { raw: minTs, label: formatter.format(new Date(minTs)) };
-    }
-    case "max": {
-      const maxTs = Math.max(...timestamps);
-      return { raw: maxTs, label: formatter.format(new Date(maxTs)) };
-    }
-    case "range": {
-      const minTs = Math.min(...timestamps);
-      const maxTs = Math.max(...timestamps);
-      const diffDays = Math.round((maxTs - minTs) / (1_000 * 60 * 60 * 24));
-      return { raw: diffDays, label: `${diffDays}d` };
-    }
-    case "sum":
-    case "average":
-    case "median":
-      return { raw: null, label: "—" };
+    case "min":
+      return labelled(first.time, first.value);
+    case "max":
+      return labelled(last.time, last.value);
+    case "range":
+      return labelled(Math.round((last.time - first.time) / 86_400_000));
     default:
-      return { raw: null, label: "—" };
+      return EMPTY_RESULT;
   }
 };

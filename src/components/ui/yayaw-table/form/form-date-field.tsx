@@ -21,10 +21,12 @@ import {
   formDateAnswer,
   formDateDisplay,
   formWeekStart,
+  type ResolvedFormQuestion,
 } from "../utils/form-view";
 import { parseDateValue } from "../utils/value-format";
 
 type WeekStart = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+type FormDateFormat = ResolvedFormQuestion["dateFormat"];
 
 export interface FormDateFieldProps {
   /** Id of the trigger, so the question's label points at it. */
@@ -47,6 +49,8 @@ export interface FormDateFieldProps {
    * pickers in a drawer whose focus trap would otherwise dismiss it.
    */
   portalContainer?: RefObject<HTMLElement | null> | null;
+  /** The column's date format: the day shows as the table shows it. */
+  format?: FormDateFormat;
   onChange: (value: string) => void;
 }
 
@@ -120,6 +124,7 @@ export function FormDateField({
   clearLabel,
   describedBy,
   disabled,
+  format,
   id,
   invalid,
   labelId,
@@ -134,7 +139,7 @@ export function FormDateField({
 }: FormDateFieldProps) {
   const [open, setOpen] = useState(false);
   const text = useCalendarText(locale);
-  const shown = formDateDisplay(value, locale);
+  const shown = formDateDisplay(value, locale, format);
   const selected = shown ? parseDateValue(value) : undefined;
   const valueId = `${id}-value`;
   const calendar = useRef<HTMLDivElement>(null);

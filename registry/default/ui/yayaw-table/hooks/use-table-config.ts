@@ -23,6 +23,7 @@ import {
   resolveTableDisplayMode,
   resolveTableDisplayModes,
   resolveTableLayoutPreset,
+  withTableDatePreset,
 } from "../config/helpers";
 import {
   useTableConfig as useProviderTableConfig,
@@ -419,9 +420,12 @@ function resolveTableBehaviorConfig(
 
 function resolveColumnsConfig(
   providerConfig: Pick<ProviderTableConfig, "columns"> &
-    Pick<TableCatalogueTableConfig, "enableRowSelection">
+    Pick<TableCatalogueTableConfig, "dateDisplayPreset" | "enableRowSelection">
 ): TableCatalogueConfig["columns"] {
-  const definitions = providerConfig?.columns?.definitions || [];
+  const definitions = withTableDatePreset(
+    providerConfig?.columns?.definitions || [],
+    providerConfig.dateDisplayPreset
+  );
   const order = providerConfig?.columns?.order || [];
   const hasExplicitVisibleConfig = Array.isArray(
     providerConfig?.columns?.visible
@@ -461,13 +465,15 @@ export function resolveTableCatalogueConfig(
   const tableOptions = hasNestedShape ? providerConfig.table : providerConfig;
   const columns = providerConfig.columns as ProviderTableConfig["columns"];
   const translations = hasNestedShape ? providerConfig.translations : undefined;
+  const table = resolveTableBehaviorConfig(tableOptions);
 
   return {
-    table: resolveTableBehaviorConfig(tableOptions),
+    table,
     presentation: providerConfig.presentation,
     form: providerConfig.form,
     columns: resolveColumnsConfig({
       columns,
+      dateDisplayPreset: table.dateDisplayPreset,
       enableRowSelection: tableOptions.enableRowSelection ?? true,
     }),
     translations: translations ?? {

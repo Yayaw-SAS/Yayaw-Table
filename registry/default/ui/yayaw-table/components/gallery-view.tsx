@@ -40,6 +40,7 @@ import {
   selectRowWithRange,
 } from "../utils/row-selection-interaction";
 import "../utils/media-viewer.css";
+import { fieldText } from "../utils/table-contracts";
 import { TableTooltip } from "../utils/table-tooltip";
 
 const SYSTEM_COLUMN_IDS = new Set(["actions", "select"]);
@@ -113,7 +114,8 @@ interface GalleryCardProps<TData extends Record<string, unknown>> {
   selectionCell?: ReturnType<Row<TData>["getVisibleCells"]>[number];
   showCardLabels: boolean;
   titleCell?: ReturnType<Row<TData>["getVisibleCells"]>[number];
-  titleColumnId?: string;
+  /** The title as the table shows it, for names, alt text and fallbacks. */
+  titleText: string;
 }
 
 interface GalleryCardPropertiesProps<TData extends Record<string, unknown>> {
@@ -249,14 +251,6 @@ export function resolveGalleryPropertyColumnIds({
   );
 }
 
-function getStringValue(value: unknown): string {
-  if (value === null || value === undefined) {
-    return "";
-  }
-
-  return String(value);
-}
-
 function getGalleryGroupValue(value: unknown): string {
   if (value === null || value === undefined) {
     return EMPTY_GROUP_VALUE;
@@ -267,9 +261,12 @@ function getGalleryGroupValue(value: unknown): string {
 
 export function createGalleryGroups<TData extends Record<string, unknown>>({
   groupBy,
+  labelOf,
   rows,
 }: {
   groupBy: string;
+  /** Group headings read the value as the table shows it. */
+  labelOf?: (value: unknown) => string;
   rows: Row<TData>[];
 }): GalleryGroup<TData>[] {
   if (!groupBy) {
@@ -287,7 +284,8 @@ export function createGalleryGroups<TData extends Record<string, unknown>>({
   const groupByValue = new Map<string, GalleryGroup<TData>>();
 
   for (const row of rows) {
-    const value = getGalleryGroupValue(row.original[groupBy]);
+    const raw = row.original[groupBy];
+    const value = getGalleryGroupValue(raw);
     const existingGroup = groupByValue.get(value);
     if (existingGroup) {
       existingGroup.rows.push(row);
@@ -296,7 +294,7 @@ export function createGalleryGroups<TData extends Record<string, unknown>>({
 
     const group = {
       id: `gallery-group-${value || "empty"}`,
-      label: value || EMPTY_GROUP_LABEL,
+      label: (value && (labelOf?.(raw) || value)) || EMPTY_GROUP_LABEL,
       rows: [row],
       value,
     };
@@ -659,14 +657,12 @@ function DataTableGalleryCard<TData extends Record<string, unknown>>({
   selectionCell,
   showCardLabels,
   titleCell,
-  titleColumnId,
+  titleText,
 }: GalleryCardProps<TData>) {
+  const title = titleText || row.id;
   const titleContent = titleCell
     ? flexRender(titleCell.column.columnDef.cell, titleCell.getContext())
-    : getStringValue(row.original[titleColumnId ?? ""] ?? row.id);
-  const title =
-    getStringValue(titleColumnId ? row.original[titleColumnId] : row.id) ||
-    row.id;
+    : title;
   const imageSource = resolveImageSource(
     imageColumnId ? row.original[imageColumnId] : undefined
   );
@@ -863,10 +859,29 @@ export function DataTableGalleryView<TData extends Record<string, unknown>>({
       ])
     );
   }, [columnDefinitions]);
-  const galleryGroups = useMemo(
-    () => createGalleryGroups({ groupBy, rows }),
-    [groupBy, rows]
+  const titleColumn = columnDefinitions.find(
+    (definition) => definition.id === titleColumnId
   );
+  // Titles read as the table shows them: option labels, number and date formats.
+  const titleTextOf = (row: Row<TData>) =>
+    titleColumnId
+      ? fieldText(
+          row.original[titleColumnId],
+          titleColumn,
+          locale,
+          row.original
+        )
+      : "";
+  const galleryGroups = useMemo(() => {
+    const groupColumn = columnDefinitions.find(
+      (definition) => definition.id === groupBy
+    );
+    return createGalleryGroups({
+      groupBy,
+      labelOf: (value) => fieldText(value, groupColumn, locale),
+      rows,
+    });
+  }, [columnDefinitions, groupBy, locale, rows]);
 
   const viewer = useRef<ReturnType<typeof openMediaViewer> | undefined>(
     undefined
@@ -879,7 +894,7 @@ export function DataTableGalleryView<TData extends Record<string, unknown>>({
     viewer.current = openMediaViewer({
       items: orderedRows.map((item) => ({
         id: item.id,
-        title: String(item.original[titleColumnId ?? "id"] ?? item.id),
+        title: titleTextOf(item) || item.id,
         source: resolveGalleryMedia(
           item.original,
           resolvedConfig.media,
@@ -949,7 +964,7 @@ export function DataTableGalleryView<TData extends Record<string, unknown>>({
         showCardLabels={shouldShowGalleryCardLabels(resolvedConfig)}
         table={table}
         titleCell={getCellByColumnId(row, titleColumnId)}
-        titleColumnId={titleColumnId}
+        titleText={titleTextOf(row)}
       />
     );
   };

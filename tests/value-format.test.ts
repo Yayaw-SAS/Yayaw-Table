@@ -1,5 +1,10 @@
 import { test } from "bun:test";
 import {
+  datePartOfPattern,
+  formatColumnDate,
+  formatColumnDay,
+  formatColumnNumber,
+  formatColumnValue,
   formatDateValue,
   formatNumberValue,
   isBlankCardValue,
@@ -8,6 +13,11 @@ import {
 import { valueFormatSuite } from "./value-format-suite";
 
 valueFormatSuite(test, {
+  datePartOfPattern,
+  formatColumnDate,
+  formatColumnDay,
+  formatColumnNumber,
+  formatColumnValue,
   formatDateValue,
   formatNumberValue,
   isBlankCardValue,

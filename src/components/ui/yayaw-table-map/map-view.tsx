@@ -650,8 +650,14 @@ export function MapView({ context }: { context: DisplayModeRenderContext }) {
   const loaded = useMapRows(context, settings.locationColumn, search, maxRows);
   const { markers, withoutLocation } = useMemo(
     () =>
-      mapMarkers(loaded.rows, settings, context.columns, context.getRowId),
-    [context.columns, context.getRowId, loaded.rows, settings]
+      mapMarkers(
+        loaded.rows,
+        settings,
+        context.columns,
+        context.getRowId,
+        context.locale
+      ),
+    [context.columns, context.getRowId, context.locale, loaded.rows, settings]
   );
   const style = resolveMapStyle(config, context.settings as MapViewSettings);
   const fitted = useRef<string>(undefined);

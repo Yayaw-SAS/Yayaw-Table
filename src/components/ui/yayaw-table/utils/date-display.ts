@@ -1,4 +1,3 @@
-import { format as formatDateFns } from "date-fns";
 import { formatDateValue, parseDateValue } from "./value-format";
 import {
   DEFAULT_DATE_DISPLAY_PRESET,
@@ -73,15 +72,6 @@ const appendTimeIfNeeded = (
   return `${label} ${formatLocalTime(date, locale)}`;
 };
 
-const formatWithLegacyPattern = (
-  date: Date,
-  dateFormat: string,
-  showTime: boolean
-): string => {
-  const formatString = showTime ? `${dateFormat} HH:mm` : dateFormat;
-  return formatDateFns(date, formatString);
-};
-
 const isDateWithSet = (value: unknown): value is { set: unknown } => {
   return Boolean(
     value &&
@@ -131,6 +121,22 @@ export const toValidDateRange = (value: unknown): [Date, Date] | undefined => {
     : [endDate, startDate];
 };
 
+/** The value the shared formatter reads: date-only strings stay calendar days. */
+const dateSource = (value: unknown, parsedDate: Date): unknown => {
+  if (isDateWithSet(value)) {
+    return dateSource(value.set, parsedDate);
+  }
+  return typeof value === "string" ||
+    typeof value === "number" ||
+    value instanceof Date
+    ? value
+    : parsedDate;
+};
+
+/**
+ * A date as its column shows it, through the shared formatter: the column's
+ * pattern wins over its preset, then the table's default preset.
+ */
 export const formatDateForDisplay = (
   value: unknown,
   config: DateDisplayConfig = {}
@@ -139,49 +145,21 @@ export const formatDateForDisplay = (
   if (!parsedDate) {
     return;
   }
-
-  const preset = resolvePreset(config);
-  if (preset) {
-    return appendTimeIfNeeded(
-      formatWithPreset(parsedDate, preset, config.locale, config),
-      parsedDate,
-      Boolean(config.showTime),
-      config.locale
-    );
-  }
-
+  const showTime = Boolean(config.showTime);
+  let pattern: string | undefined;
   if (config.dateFormat) {
-    try {
-      return formatWithLegacyPattern(
-        parsedDate,
-        config.dateFormat,
-        Boolean(config.showTime)
-      );
-    } catch {
-      return appendTimeIfNeeded(
-        formatWithPreset(
-          parsedDate,
-          DEFAULT_DATE_DISPLAY_PRESET,
-          config.locale
-        ),
-        parsedDate,
-        Boolean(config.showTime),
-        config.locale
-      );
-    }
+    pattern = showTime ? `${config.dateFormat} HH:mm` : config.dateFormat;
   }
-
-  return appendTimeIfNeeded(
-    formatWithPreset(
-      parsedDate,
-      DEFAULT_DATE_DISPLAY_PRESET,
-      config.locale,
-      config
-    ),
-    parsedDate,
-    Boolean(config.showTime),
-    config.locale
-  );
+  const label = formatDateValue(dateSource(value, parsedDate), {
+    preset: resolvePreset(config) ?? DEFAULT_DATE_DISPLAY_PRESET,
+    pattern,
+    locale: resolveLocale(config.locale),
+    timeZone: config.timeZone,
+    hour12: config.hour12,
+  });
+  return pattern
+    ? label
+    : appendTimeIfNeeded(label, parsedDate, showTime, config.locale);
 };
 
 export const formatDateRangeForDisplay = (

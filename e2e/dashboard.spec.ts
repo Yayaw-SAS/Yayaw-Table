@@ -116,9 +116,8 @@ test("dashboard filters reach every targeted table's requests", async ({
     "Tuesday, September 1, 2026",
     "Thursday, September 10, 2026",
   ]);
-  await expect(filterValue(page, "due")).toHaveText(
-    "Sep 1, 2026 – Sep 10, 2026"
-  );
+  // Days read as the first target column (Projects › Due) shows dates.
+  await expect(filterValue(page, "due")).toHaveText("9/1/26 – 9/10/26");
   await expect(figure(page, "projects-count")).toHaveText("3");
   await expect(figure(page, "revenue-total")).toHaveText("€568.00");
   await expect(widget(page, "projects-list")).not.toContainText(

@@ -6,6 +6,7 @@ import { displayCellValue } from "../../core";
 import { GripVertical } from "lucide-vue-next";
 import { isManualOrder, moveInOrder, REORDER_ROW_ATTRIBUTE, reorderRowAt } from "../../manual-order";
 import { selectionAfterClick } from "../../selection-interaction";
+import { fieldText } from "../../table-contracts";
 import type { ColumnDefinition, TableRecord } from "../../types";
 import TableCheckbox from "../controls/TableCheckbox.vue";
 import CellRenderer from "../table/CellRenderer.vue";
@@ -61,21 +62,30 @@ const sections = computed(() => {
   if (!groupBy.value) {
     return [{ id: "all", label: "", rows: rows.value }];
   }
-  const groups = new Map<string, TableRecord[]>();
+  // Headings read the value as the table shows it; ids stay the raw value.
+  const groups = new Map<string, { label: string; rows: TableRecord[] }>();
   for (const row of rows.value) {
     const raw = value(row, groupBy.value);
-    const label =
-      raw === null || raw === undefined || raw === ""
+    const empty = raw === null || raw === undefined || raw === "";
+    const key = empty ? EMPTY_GROUP_LABEL : String(raw);
+    const section = groups.get(key) ?? {
+      label: empty
         ? EMPTY_GROUP_LABEL
-        : String(raw);
-    groups.set(label, [...(groups.get(label) ?? []), row]);
+        : fieldText(raw, column(groupBy.value), context.locale) || key,
+      rows: [],
+    };
+    section.rows.push(row);
+    groups.set(key, section);
   }
-  return [...groups].map(([label, sectionRows]) => ({
-    id: label,
-    label,
-    rows: sectionRows,
+  return [...groups].map(([key, section]) => ({
+    id: key,
+    label: section.label,
+    rows: section.rows,
   }));
 });
+/** The title as read aloud: option labels, number and date formats. */
+const titleText = (row: TableRecord): string =>
+  fieldText(value(row, titleColumn.value), column(titleColumn.value), context.locale, row);
 const groupHeader = computed(
   () => column(groupBy.value)?.header ?? groupBy.value
 );
@@ -293,7 +303,7 @@ const activate = (row: TableRecord, event: MouseEvent | KeyboardEvent): void => 
               @click.stop
             >
               <TableCheckbox
-                :label="`${translate('selectRow', 'Select')} ${String(value(row, titleColumn))}`"
+                :label="`${translate('selectRow', 'Select')} ${titleText(row)}`"
                 :model-value="Boolean(context.selection.value[context.getRowId(row)])"
                 :disabled="!selectable(row)"
                 @update:model-value="toggleSelection(row, $event, checkboxShift); checkboxShift = false"

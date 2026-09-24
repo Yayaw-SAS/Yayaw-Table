@@ -29,6 +29,7 @@ import {
   type DashboardTranslate,
   dashboardDateRangeText,
   dashboardFilterColoredTags,
+  dashboardFilterColumn,
   dashboardFilterOptions,
   dashboardFilterTargetsLabel,
   isDashboardFilterActive,
@@ -65,7 +66,8 @@ const pickRange = (filter: DashboardFilter, next: { start?: DateValue; end?: Dat
   emit("change", filter.id, { start: next?.start?.toString(), end: next?.end?.toString() });
 const hasRange = (filter: DashboardFilter) => Boolean(rangeOf(filter).start || rangeOf(filter).end);
 const weekStart = () => formWeekStart(props.locale) as WeekStart;
-const rangeText = (filter: DashboardFilter) => dashboardDateRangeText(filter.value, props.locale, props.translate);
+const rangeText = (filter: DashboardFilter) =>
+  dashboardDateRangeText(filter.value, props.locale, props.translate, dashboardFilterColumn(filter, props.tables));
 
 const selected = (filter: DashboardFilter): string[] => (Array.isArray(filter.value) ? filter.value : []);
 const chosen = (filter: DashboardFilter) =>

@@ -36,6 +36,8 @@ import {
   geocodeAddresses,
   type LocationValue,
 } from "./location-model";
+import { fieldText } from "./table-contracts";
+import type { NumberFormatConfig } from "./value-format";
 
 type MaybePromise<T> = T | Promise<T>;
 
@@ -190,7 +192,7 @@ const ENGLISH_LABELS: Record<ImportLabelKey, string> = {
   invalidCount: "{count} won’t convert",
   invalidOne: "1 won’t convert",
   preview: "Preview",
-  previewCaption: "First rows as they will be written",
+  previewCaption: "First rows as the table will show them",
   rowsFound: "{count} rows",
   rowsFoundOne: "1 row",
   review: "Review",
@@ -278,7 +280,7 @@ const FRENCH_LABELS: Record<ImportLabelKey, string> = {
   invalidCount: "{count} non convertibles",
   invalidOne: "1 non convertible",
   preview: "Aperçu",
-  previewCaption: "Premières lignes telles qu’elles seront enregistrées",
+  previewCaption: "Premières lignes telles que le tableau les affichera",
   rowsFound: "{count} lignes",
   rowsFoundOne: "1 ligne",
   review: "Vérifier",
@@ -923,10 +925,12 @@ export interface ImportPreview {
 
 const PREVIEW_ROWS = 5;
 
+/** A value as the table will show it: option labels, number and date formats, places. */
 const displayValue = (
   value: unknown,
   column: ImportColumn,
-  t: ImportT
+  t: ImportT,
+  locale: string
 ): string => {
   if (value === null || value === undefined) {
     return "";
@@ -934,16 +938,14 @@ const displayValue = (
   if (typeof value === "boolean") {
     return value ? t("yes") : t("no");
   }
-  const label = (item: unknown) =>
-    column.options?.find((option) => Object.is(option.value, item))?.label ??
-    String(item);
-  if (Array.isArray(value)) {
-    return value.map(label).join(", ");
-  }
-  return typeof value === "object" ? JSON.stringify(value) : label(value);
+  return fieldText(
+    value,
+    { ...column, numberFormat: column.numberFormat as NumberFormatConfig },
+    locale
+  );
 };
 
-/** The first rows as they will be written, invalid cells with their error. */
+/** The first rows as the table will show them, invalid cells with their error. */
 export function importPreview(
   state: ImportFlowState,
   options: {
@@ -984,7 +986,7 @@ export function importPreview(
             }
           : {
               columnId: column.id,
-              text: displayValue(result.value, column, t),
+              text: displayValue(result.value, column, t, options.locale),
             };
       }),
     }));
@@ -1095,6 +1097,10 @@ export function importColumnsFrom(
     type?: unknown;
     options?: unknown;
     numberFormat?: unknown;
+    dateDisplayPreset?: unknown;
+    dateFormat?: unknown;
+    timeZone?: unknown;
+    hour12?: unknown;
     required?: unknown;
     import?: unknown;
   }[]
@@ -1117,6 +1123,19 @@ export function importColumnsFrom(
       ...(column.numberFormat === undefined
         ? {}
         : { numberFormat: column.numberFormat }),
+      ...(typeof column.dateDisplayPreset === "string"
+        ? {
+            dateDisplayPreset:
+              column.dateDisplayPreset as ImportColumn["dateDisplayPreset"],
+          }
+        : {}),
+      ...(typeof column.dateFormat === "string"
+        ? { dateFormat: column.dateFormat }
+        : {}),
+      ...(typeof column.timeZone === "string"
+        ? { timeZone: column.timeZone }
+        : {}),
+      ...(typeof column.hour12 === "boolean" ? { hour12: column.hour12 } : {}),
       ...(column.required === true ? { required: true } : {}),
     }));
 }

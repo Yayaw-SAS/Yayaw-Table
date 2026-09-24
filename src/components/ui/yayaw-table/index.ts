@@ -156,6 +156,10 @@ export { defineTableConfig } from "./config/helpers";
 export { createMemoryPlanningAdapter } from "./planning/adapter";
 export { calculatePlanning, resolvedPlanningSnapshot } from "./planning/engine";
 export {
+  type PlanningFormatters,
+  planningFormatters,
+} from "./planning/format";
+export {
   type PlanningRowAdapter,
   planningTasksFromRows,
 } from "./planning/rows";

@@ -7,6 +7,7 @@
 import type { CellContext, ColumnDef } from "@/components/ui/yayaw-table/tanstack";
 import { Hash, type LucideIcon } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
+import { useLocale } from "../../providers/table-provider";
 import { formatNumber } from "../../utils/number-format";
 import type { NumberFormatConfig } from "../../utils/number-format";
 import { NumberCell } from "../cells/number-cell";
@@ -70,6 +71,27 @@ interface NumberColumnProps {
   numberFormat?: NumberFormatConfig;
 }
 
+/** A group value or subtotal in the column's format and the table locale. */
+function NumberGroupValue({
+  formatter,
+  numberFormat,
+  value,
+}: {
+  formatter?: (value: number) => string;
+  numberFormat?: NumberFormatConfig;
+  value: unknown;
+}) {
+  const locale = useLocale();
+  const numeric = Number(value);
+  if (value === null || value === undefined || !Number.isFinite(numeric)) {
+    return <>{value === null || value === undefined ? "—" : String(value)}</>;
+  }
+  if (formatter) {
+    return <>{formatter(numeric)}</>;
+  }
+  return <>{formatNumber(numeric, numberFormat ?? "locale", undefined, locale)}</>;
+}
+
 /**
  * Creates a number column definition
  * @returns Column definition for displaying numeric values
@@ -95,7 +117,7 @@ export function createNumberColumn<TData>({
         const toggle = info.row.getToggleExpandedHandler();
         const expanded = info.row.getIsExpanded();
         const count = info.row.subRows?.length ?? 0;
-        const label = String(info.getValue() ?? "");
+
         return (
           <div className="flex items-center gap-2">
             <Button
@@ -112,7 +134,13 @@ export function createNumberColumn<TData>({
             >
               <span aria-hidden>{expanded ? "▾" : "▸"}</span>
             </Button>
-            <span className="font-medium">{label}</span>
+            <span className="font-medium">
+              <NumberGroupValue
+                formatter={formatter}
+                numberFormat={numberFormat}
+                value={info.getValue()}
+              />
+            </span>
             <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground text-xs">
               {count}
             </span>
@@ -136,20 +164,15 @@ export function createNumberColumn<TData>({
       );
     },
     // Render subtotal values on grouped rows
-    aggregatedCell: ({ getValue }) => {
-      const sum = Number(getValue() as number);
-      let formatted = "—";
-      if (Number.isFinite(sum)) {
-        if (typeof formatter === "function") {
-          formatted = formatter(sum);
-        } else if (numberFormat !== undefined) {
-          formatted = formatNumber(sum, numberFormat);
-        } else {
-          formatted = sum.toLocaleString();
-        }
-      }
-      return <span className="font-medium">{formatted}</span>;
-    },
+    aggregatedCell: ({ getValue }) => (
+      <span className="font-medium">
+        <NumberGroupValue
+          formatter={formatter}
+          numberFormat={numberFormat}
+          value={getValue()}
+        />
+      </span>
+    ),
     enableColumnFilter,
     enableHiding,
     enableSorting,

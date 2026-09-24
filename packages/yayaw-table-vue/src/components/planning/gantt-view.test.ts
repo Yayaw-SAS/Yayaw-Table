@@ -100,7 +100,8 @@ it("labels every bar with its interval so a move is announced", async () => {
   try {
     const bars = wrapper.findAll(".yayaw-gantt-bar-body");
     expect(bars).toHaveLength(2);
-    expect(bars[0]?.attributes("aria-label")).toContain("2026-09-14");
+    // Days read as the table shows the start and end columns.
+    expect(bars[0]?.attributes("aria-label")).toContain("9/14/26 – 9/16/26");
   } finally {
     wrapper.unmount();
   }

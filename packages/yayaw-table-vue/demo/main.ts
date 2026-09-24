@@ -6,6 +6,8 @@ import DefaultSortExample from "./DefaultSortExample.vue";
 import FeedExample from "./FeedExample.vue";
 import FormExample from "./FormExample.vue";
 import RecordDetailsExample from "./RecordDetailsExample.vue";
+import ValueFormatsDashboardExample from "./ValueFormatsDashboardExample.vue";
+import ValueFormatsExample from "./ValueFormatsExample.vue";
 import ViewsExample from "./ViewsExample.vue";
 import "../src/styles.css";
 
@@ -20,6 +22,8 @@ const examples = {
   assets: AssetsExample,
   feed: FeedExample,
   form: FormExample,
+  formats: ValueFormatsExample,
+  "formats-dashboard": ValueFormatsDashboardExample,
   "record-details": RecordDetailsExample,
   views: ViewsExample,
 };

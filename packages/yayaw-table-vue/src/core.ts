@@ -1,4 +1,3 @@
-import { isValid } from "date-fns";
 import { normalizeGenericModeConfigs } from "./display-modes";
 import { normalizeGalleryViewConfig } from "./gallery-view-state";
 import { formatLocation } from "./location-model";
@@ -24,8 +23,12 @@ import type {
   TableViewConfig,
 } from "./types";
 import {
+  type ColumnValueFormat,
+  formatColumnCalculation,
+  formatColumnDate,
   formatNumberValue,
   formatDateValue as formatSharedDate,
+  parseDateValue,
 } from "./value-format";
 
 const CSV_ESCAPE_PATTERN = /[",\n\r]/;
@@ -269,33 +272,44 @@ const numericValues = (rows: TableRecord[], columnId: string): number[] =>
     .map(Number)
     .filter(Number.isFinite);
 
+/**
+ * Earliest and latest dates as their column shows them (the stored value, so
+ * a calendar day stays that day); the range in days. Without the column, the
+ * medium date and `"<n>d"` as before.
+ */
 const calculateDateColumn = (
   values: unknown[],
   calculation: CalculationType,
-  locale?: string
+  locale?: string,
+  column?: ColumnValueFormat
 ): string | null | undefined => {
   if (!["min", "max", "range"].includes(calculation)) {
     return undefined;
   }
   const dates = values
     .filter((value) => !isEmptyValue(value))
-    .map((value) => (value instanceof Date ? value : new Date(String(value))))
-    .filter((value) => isValid(value))
-    .sort((left, right) => left.getTime() - right.getTime());
+    .flatMap((value) => {
+      const date = parseDateValue(value);
+      return date ? [{ value, time: date.getTime() }] : [];
+    })
+    .sort((left, right) => left.time - right.time);
   const first = dates.at(0);
   const last = dates.at(-1);
   if (!(first && last)) {
     return null;
   }
   if (calculation === "range") {
-    return `${Math.round((last.getTime() - first.getTime()) / 86_400_000)}d`;
+    const days = Math.round((last.time - first.time) / 86_400_000);
+    return column
+      ? formatColumnCalculation(days, calculation, column, locale)
+      : `${days}d`;
   }
   const selected = calculation === "min" ? first : last;
-  return new Intl.DateTimeFormat(locale, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  }).format(selected);
+  return formatColumnDate(
+    selected.value,
+    column ?? { type: "date", dateDisplayPreset: "localized-medium" },
+    locale
+  );
 };
 
 const calculateCounts = (
@@ -365,18 +379,24 @@ const calculateNumeric = (
   }
 };
 
+/**
+ * A column calculation over the rows: numbers for sums, averages, extremes,
+ * counts and `percent_*` shares (0–100); text for date extremes and ranges.
+ * `formatColumnCalculation` turns numbers into the footer's text.
+ */
 export const calculateColumn = (
   rows: TableRecord[],
   columnId: string,
   calculation: CalculationType,
   columnType?: string,
-  locale?: string
+  locale?: string,
+  column?: ColumnValueFormat
 ): number | string | null => {
   const values = rows.map((row) => row[columnId]);
   const numbers = numericValues(rows, columnId).sort((a, b) => a - b);
   const nonEmpty = values.filter((value) => !isEmptyValue(value));
   if (columnType === "date") {
-    const dateResult = calculateDateColumn(values, calculation, locale);
+    const dateResult = calculateDateColumn(values, calculation, locale, column);
     if (dateResult !== undefined) {
       return dateResult;
     }

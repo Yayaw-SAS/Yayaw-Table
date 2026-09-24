@@ -28,7 +28,12 @@ import {
   normalizeFieldName,
 } from "./field-matching";
 import { coerceImportValue } from "./import-model";
-import { formatDateValue, formatNumberValue } from "./value-format";
+import { fieldText } from "./table-contracts";
+import {
+  type ColumnValueFormat,
+  formatColumnDate,
+  formatColumnNumber,
+} from "./value-format";
 
 type MaybePromise<T> = T | Promise<T>;
 
@@ -95,8 +100,11 @@ export interface ConnectorSchema {
   allowNewFields?: boolean;
 }
 
-/** A table column as a connector sees it. `type` is the table column type. */
-export interface ConnectorColumn {
+/**
+ * A table column as a connector sees it. `type` is the table column type;
+ * the formats show its values in previews and conflicts as the table does.
+ */
+export interface ConnectorColumn extends Omit<ColumnValueFormat, "type"> {
   id: string;
   header: string;
   type?: string;
@@ -107,6 +115,22 @@ export interface ConnectorColumn {
 /** A column of the view, with whether it is shown. */
 export interface ConnectorViewColumn extends ConnectorColumn {
   visible: boolean;
+}
+
+/** The formats a column sets, for connector columns (only the fields it sets). */
+export function connectorColumnFormats(
+  column: ColumnValueFormat
+): Omit<ColumnValueFormat, "type"> {
+  const formats = {
+    numberFormat: column.numberFormat,
+    dateDisplayPreset: column.dateDisplayPreset,
+    dateFormat: column.dateFormat,
+    timeZone: column.timeZone,
+    hour12: column.hour12,
+  };
+  return Object.fromEntries(
+    Object.entries(formats).filter(([, value]) => value !== undefined)
+  );
 }
 
 /**
@@ -2405,33 +2429,40 @@ const isEmptyValue = (value: unknown) =>
   value === "" ||
   (Array.isArray(value) && value.length === 0);
 
+/** What the preview needs of a column to show its values as the table does. */
+export interface SyncValueColumn extends ColumnValueFormat {
+  type?: string;
+  locale?: string;
+  options?: unknown;
+}
+
 /**
  * A value as the preview and the conflicts list show it: "(empty)", lists
- * joined with commas, and with a column `type`, numbers and dates in the
- * locale and yes/no for booleans.
+ * joined with commas, yes/no for booleans, option labels, and numbers and
+ * dates in the column's format and the locale.
  */
 export function formatSyncValue(
   value: unknown,
   t: ConnectorT,
-  column: { type?: string; locale?: string } = {}
+  column: SyncValueColumn = {}
 ): string {
   if (isEmptyValue(value)) {
     return t("emptyValue");
   }
   if (Array.isArray(value)) {
-    return value.map(String).join(", ");
+    return value.map((item) => formatSyncValue(item, t, column)).join(", ");
   }
   if (typeof value === "boolean") {
     return t(value ? "valueYes" : "valueNo");
   }
   const type = column.type ?? "";
   if (NUMBER_COLUMN_TYPES.has(type) && Number.isFinite(Number(value))) {
-    return formatNumberValue(value, undefined, column.locale);
+    return formatColumnNumber(value, column, column.locale);
   }
   if (DATE_COLUMN_TYPES.has(type)) {
-    return formatDateValue(value, { locale: column.locale });
+    return formatColumnDate(value, column, column.locale);
   }
-  return String(value);
+  return fieldText(value, column, column.locale);
 }
 
 const sideCounts = (
@@ -2509,10 +2540,7 @@ function conflictLine(
 ): SyncPreviewConflictLine {
   const column = context.columns.find((item) => item.id === conflict.columnId);
   const format = (value: unknown) =>
-    formatSyncValue(value, context.t, {
-      type: column?.type,
-      locale: context.locale,
-    });
+    formatSyncValue(value, context.t, { ...column, locale: context.locale });
   const { resolution } = conflict;
   const winner =
     resolution === "table" || resolution === "target" ? resolution : undefined;

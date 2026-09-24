@@ -3,14 +3,9 @@
  * Export screen, the values written for each column, and the CSV or printable
  * page built from them. Excel files come from an optional registry item.
  */
-import { formatLocation, locationToText } from "./location-model";
-import { dataTypeOptionLabel } from "./table-contracts";
-import {
-  type ColumnDateFormat,
-  formatDateValue,
-  formatNumberValue,
-  type NumberFormatConfig,
-} from "./value-format";
+import { locationToText } from "./location-model";
+import { fieldText } from "./table-contracts";
+import type { ColumnDateFormat, NumberFormatConfig } from "./value-format";
 
 export type ExportFormat = "csv" | "xlsx" | "pdf";
 export type ExportScope = "view" | "selection";
@@ -26,16 +21,19 @@ export interface ExportSettings {
   fileName: string;
 }
 
-/** What a column contributes to an export. */
+/** What a column contributes to an export: its values as displayed, or raw. */
 export interface ExportColumn {
   id: string;
   header: string;
   type?: string;
+  /** The row field naming a `dynamicType` column's type. */
+  typeKey?: string;
   options?: unknown;
   numberFormat?: NumberFormatConfig;
   dateDisplayPreset?: ColumnDateFormat["preset"];
   dateFormat?: string;
   timeZone?: string;
+  hour12?: boolean;
 }
 
 export type ExportCell = string | number | boolean | null;
@@ -92,33 +90,20 @@ export function exportFileName(settings: ExportSettings): string {
     : `${name}.${extension}`;
 }
 
-function formattedCell(value: unknown, column: ExportColumn, locale?: string) {
+/**
+ * As displayed: option labels, numbers and dates in the column's format
+ * (time zone and clock included), places by name, in the table locale.
+ */
+function formattedCell(
+  value: unknown,
+  column: ExportColumn,
+  locale: string | undefined,
+  row: Record<string, unknown>
+) {
   if (value === null || value === undefined || value === "") {
     return "";
   }
-  if (Array.isArray(value)) {
-    return value
-      .map((item) => dataTypeOptionLabel(item, column.options))
-      .join(", ");
-  }
-  switch (column.type) {
-    case "number":
-      return formatNumberValue(value, column.numberFormat, locale);
-    case "date":
-      return formatDateValue(value, {
-        preset: column.dateDisplayPreset,
-        pattern: column.dateFormat,
-        locale,
-        timeZone: column.timeZone,
-      });
-    case "select":
-    case "multiSelect":
-      return dataTypeOptionLabel(value, column.options);
-    case "location":
-      return formatLocation(value);
-    default:
-      return typeof value === "object" ? JSON.stringify(value) : String(value);
-  }
+  return fieldText(value, column, locale, row);
 }
 
 /** Places are written "lat,lng", which imports read back. */
@@ -153,7 +138,7 @@ export function exportMatrix(
     rows: rows.map((row) =>
       columns.map((column) =>
         formatted
-          ? formattedCell(row[column.id], column, locale)
+          ? formattedCell(row[column.id], column, locale, row)
           : rawCell(row[column.id], column)
       )
     ),
@@ -243,9 +228,42 @@ export interface ExportFileRequest {
   viewId: string | null;
   /** The view's query in the `list` shape; the server loads the records. */
   query: import("./data-destinations").DataDestinationQuery;
-  columns: { id: string; header: string }[];
+  /**
+   * The columns in order, with what the table shows them with (type, option
+   * labels, number and date formats), so `formatted` files can match it.
+   */
+  columns: ExportRequestColumn[];
   selectedRowIds: string[];
+  /** The table locale formats apply in; absent when the table sets none. */
+  locale?: string;
 }
+
+/** A column as `actions.exportFile` receives it: only the fields it sets. */
+export type ExportRequestColumn = Pick<ExportColumn, "id" | "header"> &
+  Partial<Omit<ExportColumn, "id" | "header">>;
+
+const exportRequestColumn = (column: ExportColumn): ExportRequestColumn => {
+  const { id, header, type, typeKey, options } = column;
+  const { numberFormat, dateDisplayPreset, dateFormat, timeZone, hour12 } =
+    column;
+  const fields = {
+    type,
+    typeKey,
+    options,
+    numberFormat,
+    dateDisplayPreset,
+    dateFormat,
+    timeZone,
+    hour12,
+  };
+  return {
+    id,
+    header,
+    ...Object.fromEntries(
+      Object.entries(fields).filter(([, value]) => value !== undefined)
+    ),
+  };
+};
 
 /** A link to download, a file built on the server, or nothing to do. */
 export type ExportFileResult = { url: string } | { blob: Blob } | undefined;
@@ -298,9 +316,10 @@ export async function runExport(runtime: ExportRuntime): Promise<void> {
       fileName,
       viewId: runtime.viewId,
       query: runtime.query,
-      columns: columns.map(({ id, header }) => ({ id, header })),
+      columns: columns.map(exportRequestColumn),
       selectedRowIds:
         settings.scope === "selection" ? runtime.selectedRowIds : [],
+      ...(runtime.locale ? { locale: runtime.locale } : {}),
     });
     if (result && "url" in result) {
       runtime.download(result.url, fileName);

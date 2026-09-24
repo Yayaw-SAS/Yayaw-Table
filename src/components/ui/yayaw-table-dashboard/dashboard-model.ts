@@ -5,6 +5,7 @@
  * normalize, lay out, filter and label dashboards the same way.
  */
 import { normalizeFilterEnvelope } from "../yayaw-table/utils/table-contracts";
+import { type ColumnValueFormat, formatColumnDay } from "../yayaw-table/utils/value-format";
 
 // Contract ----------------------------------------------------------------------
 
@@ -119,11 +120,27 @@ export interface DashboardTableInfo {
   coloredTags?: boolean;
 }
 
-export interface DashboardColumn {
+/** A column as the dashboard reads it, formats included. */
+export interface DashboardColumn extends ColumnValueFormat {
   id: string;
   header?: string;
   type?: string;
   options?: readonly { value: unknown; label?: string }[];
+}
+
+/** The fields of a table column a dashboard keeps: its name, type, options and formats. */
+export function dashboardColumn(column: DashboardColumn): DashboardColumn {
+  return {
+    id: column.id,
+    header: column.header,
+    type: column.type,
+    options: column.options,
+    numberFormat: column.numberFormat,
+    dateDisplayPreset: column.dateDisplayPreset,
+    dateFormat: column.dateFormat,
+    timeZone: column.timeZone,
+    hour12: column.hour12,
+  };
 }
 
 /** A saved view a widget can show. */
@@ -1411,17 +1428,40 @@ export function dashboardDayValue(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
-/** What a date range filter's button shows, e.g. "Sep 1, 2026 – Sep 10, 2026". */
+/** The column a filter's dates read in: its first target's. */
+export function dashboardFilterColumn(
+  filter: DashboardFilter,
+  tables: Readonly<Record<string, DashboardTableInfo>>
+): DashboardColumn | undefined {
+  for (const target of filter.targets) {
+    const column = tables[target.tableId]?.columns.find(
+      (item) => item.id === target.columnId
+    );
+    if (column) {
+      return column;
+    }
+  }
+  return;
+}
+
+/**
+ * What a date range filter's button shows, e.g. "Sep 1, 2026 – Sep 10, 2026":
+ * the days in the target column's day format when given.
+ */
 export function dashboardDateRangeText(
   value: unknown,
   locale: string,
-  translate?: DashboardTranslate
+  translate?: DashboardTranslate,
+  column?: DashboardColumn
 ): string {
   const { start, end } = dateRangeOf(value);
   const format = new Intl.DateTimeFormat(locale, { dateStyle: "medium" });
   const show = (day?: string) => {
     const date = dashboardDay(day);
-    return date ? format.format(date) : "";
+    if (!date) {
+      return "";
+    }
+    return column ? formatColumnDay(day, column, locale) : format.format(date);
   };
   if (start && end) {
     return dashboardLabel("dateRange", locale, translate, {

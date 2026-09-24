@@ -79,7 +79,8 @@ const sections = computed(() =>
     props.context.groupBy
       ? columnMap.value.get(props.context.groupBy)
       : undefined,
-    label("noValue")
+    label("noValue"),
+    props.context.locale
   )
 );
 const positions = computed(

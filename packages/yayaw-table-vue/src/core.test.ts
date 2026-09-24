@@ -236,6 +236,31 @@ describe("calculations", () => {
       100 / 3
     );
   });
+
+  it("reads date extremes in the column's format and time zone", () => {
+    const dated = [
+      { due: "2026-09-05T22:30:00Z" },
+      { due: "2026-09-15T12:00:00Z" },
+      { due: 1_790_000_000_000 },
+    ];
+    const due = {
+      id: "due",
+      header: "Due",
+      type: "date" as const,
+      dateFormat: "dd/MM/yyyy HH:mm",
+      timeZone: "Europe/Paris",
+    };
+    expect(calculateColumn(dated, "due", "min", "date", "en-US", due)).toBe(
+      "06/09/2026 00:30"
+    );
+    // Timestamps are dates too.
+    expect(calculateColumn(dated, "due", "max", "date", "en-US", due)).toBe(
+      "21/09/2026 16:13"
+    );
+    expect(calculateColumn(dated, "due", "range", "date", "fr-FR", due)).toBe(
+      "16j"
+    );
+  });
 });
 
 describe("format and export", () => {
@@ -263,6 +288,53 @@ describe("format and export", () => {
         showQuotes: true,
       })
     ).toBe("“quoted”");
+  });
+
+  it("a column's pattern and time zone win over the table's date preset", () => {
+    const config = defineTableConfig({
+      id: "dates",
+      columns: {
+        definitions: [
+          {
+            id: "due",
+            header: "Due",
+            type: "date",
+            dateFormat: "dd/MM/yyyy HH:mm",
+            timeZone: "Europe/Paris",
+          },
+          {
+            id: "score",
+            header: "Score",
+            type: "number",
+            numberFormat: {
+              decimals: 1,
+              prefix: "≈ ",
+              suffix: " pts",
+              thousandsSeparator: " ",
+            },
+          },
+        ],
+        mandatory: [],
+        order: ["due", "score"],
+        visible: ["due", "score"],
+      },
+      table: { dateDisplayPreset: "localized-short" },
+      translations: { namespace: "dates", keys: {} },
+    });
+    const [due, score] = config.columns.definitions;
+    // The table preset fills the column, and the pattern still wins.
+    expect(due?.dateDisplayPreset).toBe("localized-short");
+    expect(
+      displayCellValue(
+        "2026-09-05T22:30:00Z",
+        due ?? { id: "", header: "" },
+        "fr-FR"
+      )
+    ).toBe("06/09/2026 00:30");
+    // Affixes and separators keep their spaces.
+    expect(
+      displayCellValue(1234.5, score ?? { id: "", header: "" }, "fr-FR")
+    ).toBe("≈ 1 234,5 pts");
   });
 
   it("exports escaped CSV", () => {

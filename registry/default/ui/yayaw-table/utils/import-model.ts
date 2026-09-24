@@ -13,6 +13,7 @@ import {
   normalizeFieldName,
 } from "./field-matching";
 import { type LocationValue, parseLocationImport } from "./location-model";
+import type { DateDisplayPreset } from "./value-format";
 
 type MaybePromise<T> = T | Promise<T>;
 
@@ -197,6 +198,11 @@ export interface ImportColumn {
   /** Choices of select and multiSelect columns. */
   options?: readonly { value: unknown; label?: string }[];
   numberFormat?: unknown;
+  /** Date formats: the preview shows dates as the table will. */
+  dateDisplayPreset?: DateDisplayPreset;
+  dateFormat?: string;
+  timeZone?: string;
+  hour12?: boolean;
   required?: boolean;
   /** Unknown choices are kept as new options instead of failing. */
   allowNewOptions?: boolean;

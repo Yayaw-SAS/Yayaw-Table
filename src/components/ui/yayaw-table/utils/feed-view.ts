@@ -8,12 +8,18 @@ import {
   resolveGalleryMedia,
   type TableGalleryMediaConfig,
 } from "./media-contract";
-import { type ContractRecord, compatibleListParams } from "./table-contracts";
+import {
+  type ContractRecord,
+  compatibleListParams,
+  fieldText,
+} from "./table-contracts";
 import { tagAppearance } from "./tag-colors";
 import {
   type DateDisplayPreset,
+  formatColumnDate,
+  formatColumnNumber,
+  formatColumnValue,
   formatDateValue,
-  formatNumberValue,
   type NumberFormatConfig,
   parseDateValue,
 } from "./value-format";
@@ -633,7 +639,11 @@ export function formatFeedRelativeDate(
   return format.format(Math.round(seconds / size), unit);
 }
 
-/** The full date (and time for instants) in the locale, as shown on hover. */
+/**
+ * The date as its column shows it (pattern or preset, time zone, clock), in
+ * the absolute display and on hover. Without a format of the column's own:
+ * the full date, and the time for instants.
+ */
 export function formatFeedAbsoluteDate(
   value: unknown,
   locale: string,
@@ -643,6 +653,9 @@ export function formatFeedAbsoluteDate(
   if (!date) {
     return;
   }
+  if (column?.dateFormat || column?.dateDisplayPreset) {
+    return formatColumnDate(value, column, locale);
+  }
   const calendarDay = typeof value === "string" && DATE_ONLY.test(value);
   return formatDateValue(value, {
     preset: calendarDay ? "localized-medium" : "dateTime",
@@ -650,6 +663,15 @@ export function formatFeedAbsoluteDate(
     timeZone: column?.timeZone,
     hour12: column?.hour12,
   });
+}
+
+/** A card's title: the title column's value as the table shows it. */
+export function feedTitleText(
+  row: Record<string, unknown>,
+  column: FeedColumn | undefined,
+  locale: string
+): string {
+  return column ? fieldText(feedValue(row, column), column, locale, row) : "";
 }
 
 export interface FeedDate {
@@ -1049,18 +1071,12 @@ export function feedPropertyValue(
     case "number":
       return {
         kind: "text",
-        text: formatNumberValue(value, column.numberFormat, options.locale),
+        text: formatColumnNumber(value, column, options.locale),
       };
     case "date":
       return {
         kind: "text",
-        text: formatDateValue(value, {
-          preset: column.dateDisplayPreset,
-          pattern: column.dateFormat,
-          locale: options.locale,
-          timeZone: column.timeZone,
-          hour12: column.hour12,
-        }),
+        text: formatColumnDate(value, column, options.locale),
       };
     case "url": {
       const href = safeHref(value);
@@ -1081,16 +1097,22 @@ export interface FeedSection<T> {
   rows: T[];
 }
 
-/** Rows by the grouped column's value, in order of first appearance. */
+/**
+ * Rows by the grouped column's value, in order of first appearance. Headings
+ * show option labels, and numbers and dates in the column's format.
+ */
 export function groupFeedRows<T extends Record<string, unknown>>(
   rows: readonly T[],
   column: FeedColumn | undefined,
-  emptyLabel: string
+  emptyLabel: string,
+  locale?: string
 ): FeedSection<T>[] {
   if (!column) {
     return [{ id: "all", label: "", rows: [...rows] }];
   }
   const sections = new Map<string, FeedSection<T>>();
+  const labelOf = (item: unknown) =>
+    formatColumnValue(item, column, locale) ?? feedOptionLabel(column, item);
   for (const row of rows) {
     const raw = feedValue(row, column);
     const empty = isEmptyValue(raw);
@@ -1099,9 +1121,7 @@ export function groupFeedRows<T extends Record<string, unknown>>(
     if (!section) {
       const label = empty
         ? emptyLabel
-        : (Array.isArray(raw) ? raw : [raw])
-            .map((item) => feedOptionLabel(column, item))
-            .join(", ");
+        : (Array.isArray(raw) ? raw : [raw]).map(labelOf).join(", ");
       section = { id, label, rows: [] };
       sections.set(id, section);
     }

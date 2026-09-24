@@ -6,6 +6,10 @@ import {
   withoutDisabledModeRenderers,
 } from "../utils/display-modes";
 import { planningLabelOverrides } from "../planning/labels";
+import {
+  type PlanningFormatters,
+  planningFormatters,
+} from "../planning/format";
 import { PlanningSurface, usePlanningState } from "../planning/react";
 /**
  * New DataTable component using the declarative architecture
@@ -533,11 +537,13 @@ function PlanningRecordOverlay({
   session,
   locale,
   labels,
+  formatters,
   onOpen,
 }: {
   session: ReturnType<typeof usePlanningState>["session"];
   locale: string;
   labels?: ReturnType<typeof planningLabelOverrides>;
+  formatters?: PlanningFormatters;
   onOpen?: (row: Record<string, unknown>) => void;
 }) {
   if (!session) {
@@ -545,6 +551,7 @@ function PlanningRecordOverlay({
   }
   return (
     <PlanningSurface
+      formatters={formatters}
       labels={labels}
       locale={locale}
       onOpenRecord={
@@ -757,6 +764,16 @@ function DataTableContent({
     tableId,
     tableType,
   });
+  // The planning dialog reads names, days and fields as the table shows them.
+  const planningFormat = useMemo(
+    () =>
+      planningFormatters(
+        config.columns.definitions,
+        config.table.gantt,
+        planningLocale
+      ),
+    [config.columns.definitions, config.table.gantt, planningLocale]
+  );
 
   // Use fetched data from API
   const baseData = data || [];
@@ -1081,6 +1098,7 @@ function DataTableContent({
         <CatalogueFormContainer tableId={tableId} />
       </Suspense>
       <PlanningRecordOverlay
+        formatters={planningFormat}
         labels={planningLabels}
         locale={planningLocale}
         onOpen={openDetails}

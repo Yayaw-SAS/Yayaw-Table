@@ -269,7 +269,10 @@ export function CalendarView({
   );
   const events = useMemo<EventInput[]>(
     () =>
-      calendarEvents(rows, settings, context.getRowId).map((event) => {
+      calendarEvents(rows, settings, context.getRowId, {
+        columns: context.columns,
+        locale: context.locale,
+      }).map((event) => {
         const row = rowsById.get(event.id) ?? {};
         const editable = context.canEditRow(row);
         return {

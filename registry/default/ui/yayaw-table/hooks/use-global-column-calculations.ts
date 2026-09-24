@@ -25,19 +25,63 @@ import {
   toPageSize,
 } from "../utils/filtered-rows";
 import { normalizeFilterEnvelope } from "../utils/table-contracts";
+import {
+  type ColumnValueFormat,
+  formatColumnCalculation,
+} from "../utils/value-format";
 import { useTableUrlState } from "./use-table-url-state";
 
-interface ColumnCalculationDefinition {
+/** A column as the footer reads it: its type, formats and accessor. */
+interface ColumnCalculationDefinition extends ColumnValueFormat {
   id: string;
   type?: string;
   enableCalculation?: boolean;
   defaultCalculation?: string;
+  accessorKey?: string;
+  accessorFn?: (row: never) => unknown;
 }
 
 interface ResolvedCalculations {
   calculations: Record<string, CalculationType>;
   columnTypes: Record<string, string | undefined>;
 }
+
+/** Only what formats a result: the query key changes when a format does. */
+const formatOf = (
+  column: ColumnCalculationDefinition | undefined
+): ColumnValueFormat | undefined =>
+  column && {
+    type: column.type,
+    numberFormat: column.numberFormat,
+    dateDisplayPreset: column.dateDisplayPreset,
+    dateFormat: column.dateFormat,
+    timeZone: column.timeZone,
+    hour12: column.hour12,
+  };
+
+/**
+ * A host's result keeps its own label; a plain value (or a result without a
+ * label) reads in the column's format, as the list fallback does.
+ */
+const resultWithLabel = (
+  value: unknown,
+  calculation: CalculationType,
+  column: ColumnValueFormat | undefined,
+  locale: string
+): TableAggregateResultValue => {
+  const record =
+    value && typeof value === "object"
+      ? (value as Partial<TableAggregateResultValue>)
+      : undefined;
+  if (typeof record?.label === "string") {
+    return record as TableAggregateResultValue;
+  }
+  const raw = (record ? record.raw : value) as number | string | null;
+  return {
+    raw: raw ?? null,
+    label: formatColumnCalculation(raw, calculation, column, locale),
+  };
+};
 
 const EMPTY_RESULTS: Record<string, TableAggregateResultValue> = {};
 const isSystemColumnId = (columnId: string): boolean => {
@@ -245,9 +289,25 @@ export const useGlobalColumnCalculations = ({
     [columnDefinitions, columnIds, userCalculations]
   );
 
+  const columnsById = useMemo(
+    () =>
+      Object.fromEntries(
+        columnDefinitions
+          .filter((definition) => definition.id in calculations)
+          .map((definition) => [definition.id, definition])
+      ),
+    [calculations, columnDefinitions]
+  );
   const calculationsKey = useMemo(
-    () => JSON.stringify(calculations),
-    [calculations]
+    () =>
+      JSON.stringify([
+        calculations,
+        Object.values(columnsById).map((definition) => [
+          definition.id,
+          formatOf(definition),
+        ]),
+      ]),
+    [calculations, columnsById]
   );
 
   const filtersKey = useMemo(
@@ -283,6 +343,7 @@ export const useGlobalColumnCalculations = ({
         actions: tableActions,
         advancedFiltersParam,
         calculations,
+        columns: columnsById,
         columnTypes,
         filtersParam,
         globalSearchParam,
@@ -306,6 +367,7 @@ export const loadGlobalColumnCalculationResults = async ({
   actions,
   advancedFiltersParam,
   calculations,
+  columns = {},
   columnTypes,
   filtersParam,
   globalSearchParam,
@@ -316,6 +378,8 @@ export const loadGlobalColumnCalculationResults = async ({
   actions: TableActions | undefined;
   advancedFiltersParam: unknown;
   calculations: Record<string, CalculationType>;
+  /** Formats and accessors of the calculated columns, by id. */
+  columns?: Record<string, ColumnCalculationDefinition>;
   columnTypes: Record<string, string | undefined>;
   filtersParam: unknown;
   globalSearchParam: string;
@@ -339,7 +403,19 @@ export const loadGlobalColumnCalculationResults = async ({
         calculations,
         locale,
       });
-      return response.results ?? EMPTY_RESULTS;
+      return Object.fromEntries(
+        Object.entries(response.results ?? EMPTY_RESULTS).map(
+          ([columnId, value]) => [
+            columnId,
+            resultWithLabel(
+              value,
+              calculations[columnId] ?? "none",
+              formatOf(columns[columnId]) ?? { type: columnTypes[columnId] },
+              locale
+            ),
+          ]
+        )
+      );
     } catch {
       // Fallback to list strategy below when aggregate fails.
     }
@@ -360,12 +436,20 @@ export const loadGlobalColumnCalculationResults = async ({
 
   const results: Record<string, TableAggregateResultValue> = {};
   for (const [columnId, calculationType] of Object.entries(calculations)) {
-    const values = rows.map((row) => row[columnId]);
+    const column = columns[columnId];
+    // Read values as the cells do: the accessor first, then the id.
+    const values = rows.map((row) => {
+      if (column?.accessorFn) {
+        return (column.accessorFn as (record: typeof row) => unknown)(row);
+      }
+      return row[column?.accessorKey ?? columnId];
+    });
     results[columnId] = calculateColumn(
       values,
       calculationType,
       columnTypes[columnId],
-      locale
+      locale,
+      formatOf(column)
     );
   }
 

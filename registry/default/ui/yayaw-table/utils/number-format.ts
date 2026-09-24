@@ -23,9 +23,7 @@ export type NumberFormatConfig = SharedNumberFormatConfig;
 export function resolveNumberFormat(
   config: NumberFormatConfig
 ): NumberFormatOptions {
-  return config === "locale"
-    ? { maximumFractionDigits: 2 }
-    : resolveSharedNumberFormat(config);
+  return resolveSharedNumberFormat(config);
 }
 
 /**

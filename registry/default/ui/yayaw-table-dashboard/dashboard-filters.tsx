@@ -24,6 +24,7 @@ import {
   dashboardDay,
   dashboardDayValue,
   dashboardFilterColoredTags,
+  dashboardFilterColumn,
   dashboardFilterOptions,
   dashboardFilterTargetsLabel,
   isDashboardFilterActive,
@@ -68,13 +69,19 @@ function DateRangeControl({
   label,
   locale,
   onChange,
+  tables,
   translate,
 }: FilterControlProps) {
   const text = useCalendarText(locale);
   const range = (filter.value ?? {}) as DashboardDateRange;
   const from = dashboardDay(range.start);
   const to = dashboardDay(range.end);
-  const shown = dashboardDateRangeText(filter.value, locale, translate);
+  const shown = dashboardDateRangeText(
+    filter.value,
+    locale,
+    translate,
+    dashboardFilterColumn(filter, tables)
+  );
   return (
     <Popover>
       <PopoverTrigger

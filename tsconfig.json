@@ -37,6 +37,8 @@
     "examples/views.ts",
     "examples/views-spreadsheet.ts",
     "examples/views-react.tsx",
+    "examples/value-formats.ts",
+    "examples/value-formats-react.tsx",
     "examples/dashboard.ts",
     "examples/dashboard-react.tsx",
     "examples/assets.ts",

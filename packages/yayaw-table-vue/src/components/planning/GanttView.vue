@@ -5,6 +5,7 @@ import { useTableContext } from "../../context";
 import { useCardRows } from "../../composables/use-card-rows";
 import { dateDay, dayDate } from "../../planning/calendar";
 import { normalizeGanttView } from "../../planning/engine";
+import { planningFormatters } from "../../planning/format";
 import { planningLabelOverrides, planningLabels } from "../../planning/labels";
 import {
   TIMELINE_HEADER_HEIGHT,
@@ -74,6 +75,16 @@ const titleColumn = computed<ColumnDefinition | undefined>(() => {
   const definitions = context.config.columns.definitions;
   return definitions.find((item) => item.id === configured) ?? definitions[0];
 });
+
+// Names and days read as the table shows the title, start and end columns.
+const formatters = computed(() =>
+  planningFormatters(
+    context.config.columns.definitions,
+    context.config.table.gantt,
+    context.locale,
+    titleColumn.value?.id
+  )
+);
 
 /** The timeline projects the same search, filters and sort as the rest of the table. */
 const matches = computed(() => {
@@ -276,7 +287,7 @@ onBeforeUnmount(() => observer?.disconnect());
             :key="cell.date"
             class="yayaw-gantt-date"
             :class="{ today: cell.isToday }"
-            :title="cell.date"
+            :title="formatters.day(cell.date)"
             :aria-current="cell.isToday ? 'date' : undefined"
             :style="{ left: `${cell.left}px`, width: `${cell.width}px` }"
           >
@@ -306,7 +317,7 @@ onBeforeUnmount(() => observer?.disconnect());
             <span v-else class="yayaw-gantt-spacer" aria-hidden="true" />
             <span v-if="context.config.table.enableRowSelection && recordFor(row.task)" class="yayaw-gantt-select" @click.stop>
               <TableCheckbox
-                :label="`${translate('selectRow')} ${row.task.label}`"
+                :label="`${translate('selectRow')} ${formatters.task(row.task)}`"
                 :model-value="Boolean(context.selection.value[context.getRowId(recordFor(row.task)!)])"
                 :disabled="context.config.table.canSelectRow?.(recordFor(row.task)!) === false"
                 @update:model-value="toggleSelection(recordFor(row.task)!, $event)"
@@ -320,8 +331,8 @@ onBeforeUnmount(() => observer?.disconnect());
               :row="recordFor(row.task)!"
               :value="recordFor(row.task)![titleColumn.accessorKey ?? titleColumn.id]"
             />
-            <button v-else type="button" class="yayaw-gantt-title" :title="`${row.task.ref.source} · ${row.task.label}`" @click="activate(row.task)">
-              {{ row.task.label }}
+            <button v-else type="button" class="yayaw-gantt-title" :title="`${row.task.ref.source} · ${formatters.task(row.task)}`" @click="activate(row.task)">
+              {{ formatters.task(row.task) }}
             </button>
           </div>
           <div
@@ -347,13 +358,13 @@ onBeforeUnmount(() => observer?.disconnect());
               <button
                 type="button"
                 class="yayaw-gantt-bar-body"
-                :aria-label="`${labels.move} ${row.task.label}: ${row.task.start} – ${row.task.end}`"
-                :title="`${row.task.label}: ${row.task.start} – ${row.task.end}`"
+                :aria-label="`${labels.move} ${formatters.task(row.task)}: ${formatters.day(row.task.start, 'start')} – ${formatters.day(row.task.end, 'end')}`"
+                :title="`${formatters.task(row.task)}: ${formatters.day(row.task.start, 'start')} – ${formatters.day(row.task.end, 'end')}`"
                 @click="open(row.task.ref)"
                 @keydown="editable(row.task, row.hasChildren) && keyAdjust($event, row.task, 'move')"
                 @pointerdown="editable(row.task, row.hasChildren) && startDrag($event, planningKey(row.task.ref), 'move')"
               >
-                {{ row.task.label }}
+                {{ formatters.task(row.task) }}
               </button>
               <template v-if="editable(row.task, row.hasChildren) && resizable(row.hasChildren)">
                 <button
@@ -362,7 +373,7 @@ onBeforeUnmount(() => observer?.disconnect());
                   type="button"
                   class="yayaw-gantt-handle"
                   :class="side"
-                  :aria-label="`${side === 'start' ? labels.resizeStart : labels.resizeEnd} ${row.task.label}`"
+                  :aria-label="`${side === 'start' ? labels.resizeStart : labels.resizeEnd} ${formatters.task(row.task)}`"
                   @keydown="keyAdjust($event, row.task, side)"
                   @pointerdown="startDrag($event, planningKey(row.task.ref), side)"
                 />

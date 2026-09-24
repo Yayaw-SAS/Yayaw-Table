@@ -1223,6 +1223,11 @@
           "target": "components/ui/yayaw-table/planning/engine.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/planning/format.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/planning/format.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/planning/labels.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/planning/labels.ts"

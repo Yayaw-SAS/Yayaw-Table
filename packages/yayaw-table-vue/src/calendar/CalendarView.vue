@@ -108,7 +108,10 @@ const colorColumn = computed(() =>
   props.context.columns.find((column) => column.id === settings.value.colorColumn)
 );
 const events = computed<EventInput[]>(() =>
-  calendarEvents(rows.value, settings.value, props.context.getRowId).map((event) => {
+  calendarEvents(rows.value, settings.value, props.context.getRowId, {
+    columns: props.context.columns,
+    locale: props.context.locale,
+  }).map((event) => {
     const row = rowsById.value.get(event.id) ?? {};
     const editable = props.context.canEditRow(row);
     const column = colorColumn.value;
