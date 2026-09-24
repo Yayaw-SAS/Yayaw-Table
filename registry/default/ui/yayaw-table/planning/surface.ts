@@ -1,3 +1,4 @@
+import type { PlanningFormatters } from "./format";
 import { type PlanningSurfaceLabels, planningLabels } from "./labels";
 import type { PlanningSession } from "./session";
 import {
@@ -19,6 +20,11 @@ export interface PlanningSurfaceOptions {
   onOpenRecord?: (task: PlanningTask) => void;
   /** Host translations for the planning vocabulary; unset keys keep their built-in value. */
   labels?: Partial<PlanningSurfaceLabels>;
+  /**
+   * How names, days and changed fields read; the table passes its columns'
+   * formats. Without it: labels, `YYYY-MM-DD` days and JSON values.
+   */
+  formatters?: Partial<PlanningFormatters>;
 }
 const ICON_PATHS = {
   previous: "m14 6-6 6 6 6",
@@ -45,6 +51,14 @@ export function mountPlanningSurface(
   container.classList.add("yayaw-planning");
   const labels = (): PlanningSurfaceLabels =>
     planningLabels(options.locale, options.labels);
+  // Names, days and fields as the table shows them, when it passes formatters.
+  const taskName = (task: PlanningTask | undefined): string =>
+    task ? (options.formatters?.task?.(task) ?? task.label) : "";
+  const dayText = (day: string | null | undefined, side: "start" | "end") =>
+    day ? (options.formatters?.day?.(day, side) ?? day) : "";
+  const fieldText = (key: string, value: unknown): string =>
+    options.formatters?.field?.(key, value) ??
+    `${key}: ${JSON.stringify(value ?? null)}`;
   const node = <K extends keyof HTMLElementTagNameMap>(
     tag: K,
     text?: string,
@@ -159,7 +173,10 @@ export function mountPlanningSurface(
             item.ref.source === source.value &&
             !samePlanningRef(item.ref, task.ref)
         )
-        .map((item) => ({ value: planningKey(item.ref), label: item.label }));
+        .map((item) => ({
+          value: planningKey(item.ref),
+          label: taskName(item),
+        }));
     const entries = taskOptions();
     const predecessor = select(
       entries,
@@ -250,7 +267,7 @@ export function mountPlanningSurface(
         .filter((item) => !samePlanningRef(task.ref, item.ref))
         .map((item) => ({
           value: planningKey(item.ref),
-          label: `${item.ref.source} · ${item.label}`,
+          label: `${item.ref.source} · ${taskName(item)}`,
         })),
     ];
     const parent = select(
@@ -316,7 +333,7 @@ export function mountPlanningSurface(
     row.append(
       node(
         "span",
-        `${from?.label ?? edge.from.id} → ${to?.label ?? edge.to.id} · ${edge.type} · ${edge.lag ?? 0}`
+        `${from ? taskName(from) : edge.from.id} → ${to ? taskName(to) : edge.to.id} · ${edge.type} · ${edge.lag ?? 0}`
       )
     );
     if (session.config.allowDependencyEdit && session.canEdit(task)) {
@@ -438,12 +455,12 @@ export function mountPlanningSurface(
           JSON.stringify(item.record?.[key]) !==
             JSON.stringify(other.record?.[key])
       )
-      .map((key) => `${key}: ${JSON.stringify(item.record?.[key] ?? null)}`);
+      .map((key) => fieldText(key, item.record?.[key]));
     const parent = item.parent
       ? `${item.parent.source}/${item.parent.id}`
       : t.root;
     return [
-      `${item.start ?? t.noDates} → ${item.end ?? t.noDates}`,
+      `${dayText(item.start, "start") || t.noDates} → ${dayText(item.end, "end") || t.noDates}`,
       `${t.parent}: ${parent}`,
       ...recordChanges,
     ].join(" · ");
@@ -467,7 +484,7 @@ export function mountPlanningSurface(
       const tr = node("tr");
       const reason = change.reasons.map((item) => reasonLabel(item)).join(", ");
       for (const text of [
-        `${change.ref.source} · ${change.after.label}`,
+        `${change.ref.source} · ${taskName(change.after)}`,
         taskChangeSummary(change.before, change.after),
         taskChangeSummary(change.after, change.before),
         reason,
@@ -583,10 +600,10 @@ export function mountPlanningSurface(
     dialog.replaceChildren();
     dialog.setAttribute(
       "aria-label",
-      state.preview ? t.preview : `${t.planning}: ${task?.label ?? ""}`
+      state.preview ? t.preview : `${t.planning}: ${taskName(task)}`
     );
     const heading = node("div", undefined, "yp-dialog-heading");
-    heading.append(node("h2", state.preview ? t.preview : task?.label));
+    heading.append(node("h2", state.preview ? t.preview : taskName(task)));
     const close = button(
       t.close,
       () => {

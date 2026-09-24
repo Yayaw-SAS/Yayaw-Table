@@ -20,8 +20,13 @@ import {
   type ScopedRowsRequest,
   type ScopedRowsResult,
 } from "./scoped-rows";
+import { fieldText } from "./table-contracts";
 import { tagAppearance } from "./tag-colors";
-import { formatDateValue, formatNumberValue } from "./value-format";
+import {
+  type ColumnValueFormat,
+  formatColumnDate,
+  formatColumnNumber,
+} from "./value-format";
 
 export type MapInitialView = "fit" | "saved";
 
@@ -86,16 +91,13 @@ export interface MapTableConfig extends Omit<MapViewSettings, "style"> {
   workerUrl?: string;
 }
 
-export interface MapColumn {
+/** Columns bring their formats: titles and popups show values as the table does. */
+export interface MapColumn extends ColumnValueFormat {
   id: string;
   header?: string;
   type?: string;
   options?: unknown;
   coloredTags?: boolean;
-  numberFormat?: unknown;
-  dateDisplayPreset?: string;
-  dateFormat?: string;
-  timeZone?: string;
 }
 
 export const MAP_DEFAULTS = {
@@ -392,10 +394,11 @@ export function markerColor(
   return hue ? `hsl(${hue} 70% 45%)` : undefined;
 }
 
-const titleText = (value: unknown) =>
-  value === null || value === undefined ? "" : String(value);
-
-/** Markers of the rows that have a place, and how many rows have none. */
+/**
+ * Markers of the rows that have a place, and how many rows have none. Titles
+ * read as the table shows the title column (option labels, number and date
+ * formats in `locale`).
+ */
 export function mapMarkers(
   rows: readonly Record<string, unknown>[],
   settings: Pick<
@@ -403,13 +406,19 @@ export function mapMarkers(
     "colorColumn" | "locationColumn" | "titleColumn"
   >,
   columns: readonly MapColumn[],
-  getRowId: (row: Record<string, unknown>) => string
+  getRowId: (row: Record<string, unknown>) => string,
+  locale?: string
 ): { markers: MapMarker[]; withoutLocation: number } {
   const { locationColumn, titleColumn, colorColumn } = settings;
   if (!locationColumn) {
     return { markers: [], withoutLocation: rows.length };
   }
   const colorBy = columnById(columns, colorColumn);
+  const titleBy = columnById(columns, titleColumn);
+  const titleText = (row: Record<string, unknown>) =>
+    titleColumn
+      ? fieldText(row[titleColumn], titleBy ?? { id: titleColumn }, locale, row)
+      : "";
   const markers: MapMarker[] = [];
   let withoutLocation = 0;
   for (const row of rows) {
@@ -419,9 +428,7 @@ export function mapMarkers(
       continue;
     }
     const id = getRowId(row);
-    const title =
-      titleText(titleColumn ? row[titleColumn] : undefined) ||
-      formatLocation(location);
+    const title = titleText(row) || formatLocation(location);
     markers.push({
       id,
       lat: location.lat,
@@ -860,19 +867,10 @@ function propertyText(
     return optionLabel(column, value);
   }
   if (column.type === "number") {
-    return formatNumberValue(
-      value,
-      column.numberFormat as Parameters<typeof formatNumberValue>[1],
-      locale
-    );
+    return formatColumnNumber(value, column, locale);
   }
   if (DATE_TYPES.has(column.type ?? "")) {
-    return formatDateValue(value, {
-      preset: column.dateDisplayPreset as never,
-      pattern: column.dateFormat,
-      locale,
-      timeZone: column.timeZone,
-    });
+    return formatColumnDate(value, column, locale);
   }
   if (column.type === "location") {
     return formatLocation(value);

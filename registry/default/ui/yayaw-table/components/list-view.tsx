@@ -13,6 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "../hooks/use-mobile";
 import type { TableCatalogueColumnConfig } from "../hooks/use-table-config";
+import { useLocale } from "../providers/table-provider";
 import type { Cell, Row, Table as TanStackTable } from "../tanstack";
 import { flexRender } from "../tanstack";
 import type { TableListConfig } from "../types/display-types";
@@ -32,6 +33,7 @@ import {
   selectRowWithRange,
 } from "../utils/row-selection-interaction";
 import {
+  fieldText,
   TABLE_DENSITY_METRICS,
   type TableDensity,
 } from "../utils/table-contracts";
@@ -93,6 +95,8 @@ interface ListItemProps<TData extends Record<string, unknown>> {
   settings: Pick<ListViewSettings, "propertyAlign" | "showActions" | "wrap">;
   table: TanStackTable<TData>;
   titleColumnId?: string;
+  /** The title as the table shows it, when its column is hidden. */
+  titleText?: string;
 }
 
 const renderCell = <TData extends Record<string, unknown>>(
@@ -134,11 +138,13 @@ function ListLineTitle<TData extends Record<string, unknown>>({
   align,
   row,
   titleCell,
+  titleText,
   wrap,
 }: {
   align: ListViewSettings["propertyAlign"];
   row: Row<TData>;
   titleCell?: ListCell<TData>;
+  titleText?: string;
   wrap?: boolean;
 }) {
   return (
@@ -149,7 +155,7 @@ function ListLineTitle<TData extends Record<string, unknown>>({
         align === "start" ? "shrink" : "flex-1"
       )}
     >
-      {titleCell ? renderCell(titleCell) : row.id}
+      {titleCell ? renderCell(titleCell) : titleText || row.id}
     </div>
   );
 }
@@ -200,6 +206,7 @@ function DataTableListItem<TData extends Record<string, unknown>>({
   settings,
   table,
   titleColumnId,
+  titleText,
 }: ListItemProps<TData>) {
   const handleReorderKey = (event: KeyboardEvent<HTMLElement>) => {
     if (!(reorder?.draggable && event.altKey)) {
@@ -304,6 +311,7 @@ function DataTableListItem<TData extends Record<string, unknown>>({
           align={settings.propertyAlign}
           row={row}
           titleCell={titleCell}
+          titleText={titleText}
           wrap={settings.wrap}
         />
         <ListLineProperties
@@ -394,10 +402,20 @@ export function DataTableListView<TData extends Record<string, unknown>>({
       ),
     [columnDefinitions]
   );
-  const groups = useMemo(
-    () => createGalleryGroups({ groupBy, rows }),
-    [groupBy, rows]
+  const locale = useLocale();
+  const titleColumn = columnDefinitions.find(
+    (definition) => definition.id === titleColumnId
   );
+  const groups = useMemo(() => {
+    const groupColumn = columnDefinitions.find(
+      (definition) => definition.id === groupBy
+    );
+    return createGalleryGroups({
+      groupBy,
+      labelOf: (value) => fieldText(value, groupColumn, locale),
+      rows,
+    });
+  }, [columnDefinitions, groupBy, locale, rows]);
 
   if (rows.length === 0) {
     return emptyState ? (
@@ -500,6 +518,16 @@ export function DataTableListView<TData extends Record<string, unknown>>({
         showLabels={settings.showCardLabels}
         table={table}
         titleColumnId={titleColumnId}
+        titleText={
+          titleColumnId
+            ? fieldText(
+                row.original[titleColumnId],
+                titleColumn,
+                locale,
+                row.original
+              )
+            : undefined
+        }
       />
     );
   };

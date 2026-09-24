@@ -13,6 +13,7 @@ import type {
   AdvancedFilterPreset,
   AdvancedFiltersState,
   ColumnDataType,
+  ColumnFilterConfig,
   ColumnOption,
   ColumnsFilterConfig,
   FilterActions,
@@ -514,6 +515,7 @@ const createColumnConfig = (
     number: {
       min: typeof column.min === "number" ? column.min : undefined,
       max: typeof column.max === "number" ? column.max : undefined,
+      numberFormat: column.numberFormat as ColumnFilterConfig["numberFormat"],
       operators: getOperatorsByType("number"),
     },
     select: {

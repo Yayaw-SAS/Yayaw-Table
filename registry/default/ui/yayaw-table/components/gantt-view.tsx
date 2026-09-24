@@ -21,6 +21,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { dateDay, dayDate } from "../planning/calendar";
+import {
+  type PlanningFormatters,
+  planningFormatters,
+} from "../planning/format";
 import type { PlanningSurfaceLabels } from "../planning/labels";
 import type { PlanningSession } from "../planning/session";
 import {
@@ -56,6 +60,7 @@ import { flexRender } from "../tanstack";
 
 const SELECTION_COLUMN_ID = "select";
 const SYSTEM_COLUMN_IDS = new Set([SELECTION_COLUMN_ID, "actions"]);
+const EMPTY_FORMAT_COLUMNS: never[] = [];
 const TREE_INDENT = 16;
 const LABEL_PADDING = 8;
 const KEYBOARD_WEEK = 7;
@@ -93,7 +98,11 @@ export interface DataTableGanttViewProps<
   table: TanStackTable<TData>;
   view: TableGanttViewConfig;
   visible?: (task: PlanningTask) => boolean;
+  /** The table's columns: names and days read in their formats. */
+  columns?: readonly PlanningFormatColumn[];
 }
+
+type PlanningFormatColumn = Parameters<typeof planningFormatters>[0][number];
 
 function rowIdentity<TData extends Record<string, unknown>>(
   row: Row<TData>,
@@ -195,11 +204,13 @@ function GanttControls({
 }
 
 function GanttHeader({
+  formatDay,
   geometry,
   labels,
   locale,
   view,
 }: {
+  formatDay: PlanningFormatters["day"];
   geometry: TimelineGeometry;
   labels: PlanningSurfaceLabels;
   locale: string;
@@ -256,7 +267,7 @@ function GanttHeader({
           )}
           key={cell.date}
           style={{ left: cell.left, top: 24, width: cell.width, height: 40 }}
-          title={cell.date}
+          title={formatDay(cell.date)}
         >
           {cell.weekday ? (
             <span className="opacity-70">
@@ -283,6 +294,7 @@ function GanttBar({
   canResize,
   dragDelta,
   editable,
+  formatters,
   geometry,
   labels,
   onDrag,
@@ -293,6 +305,7 @@ function GanttBar({
   task,
 }: {
   canResize: boolean;
+  formatters: PlanningFormatters;
   dragDelta: { operation: DragOperation; days: number } | undefined;
   editable: boolean;
   geometry: TimelineGeometry;
@@ -311,7 +324,9 @@ function GanttBar({
   const moveShift = dragDelta?.operation === "move" ? shift : 0;
   const startShift = dragDelta?.operation === "start" ? shift : 0;
   const endShift = dragDelta?.operation === "end" ? shift : 0;
-  const range = `${task.start} – ${task.end}`;
+  // Names and days as the table shows the title, start and end columns.
+  const range = `${formatters.day(task.start, "start")} – ${formatters.day(task.end, "end")}`;
+  const name = formatters.task(task);
   const keyAdjust =
     (operation: DragOperation) => (event: React.KeyboardEvent) => {
       if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
@@ -336,7 +351,7 @@ function GanttBar({
       }}
     >
       <button
-        aria-label={`${labels.move} ${task.label}: ${range}`}
+        aria-label={`${labels.move} ${name}: ${range}`}
         className={cn(
           "flex size-full items-center truncate rounded-md px-2 text-left font-medium text-xs",
           editable ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"
@@ -344,15 +359,15 @@ function GanttBar({
         onClick={onOpen}
         onKeyDown={editable ? keyAdjust("move") : undefined}
         onPointerDown={editable ? (event) => onDrag(event, "move") : undefined}
-        title={`${task.label}: ${range}`}
+        title={`${name}: ${range}`}
         type="button"
       >
-        {task.label}
+        {name}
       </button>
       {editable && canResize
         ? (["start", "end"] as const).map((side) => (
             <button
-              aria-label={`${side === "start" ? labels.resizeStart : labels.resizeEnd} ${task.label}`}
+              aria-label={`${side === "start" ? labels.resizeStart : labels.resizeEnd} ${name}`}
               className={cn(
                 "absolute inset-y-0 w-2 cursor-ew-resize rounded-sm opacity-0 transition-opacity focus-visible:opacity-100 group-hover/bar:opacity-100",
                 "bg-primary/40 [@media(hover:none)]:opacity-100",
@@ -371,6 +386,7 @@ function GanttBar({
 
 function GanttTrack({
   dragDelta,
+  formatters,
   geometry,
   labels,
   onDrag,
@@ -381,6 +397,7 @@ function GanttTrack({
   snapshot,
 }: {
   dragDelta: { operation: DragOperation; days: number } | undefined;
+  formatters: PlanningFormatters;
   geometry: TimelineGeometry;
   labels: PlanningSurfaceLabels;
   onDrag: (
@@ -422,6 +439,7 @@ function GanttTrack({
           canResize={timelineCanResize({ hasChildren, session })}
           dragDelta={dragDelta}
           editable={editable}
+          formatters={formatters}
           geometry={geometry}
           labels={labels}
           onDrag={onDrag}
@@ -460,6 +478,7 @@ export function DataTableGanttView<TData extends Record<string, unknown>>({
   table,
   view,
   visible,
+  columns = EMPTY_FORMAT_COLUMNS,
 }: DataTableGanttViewProps<TData>) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const [scroll, setScroll] = useState({ top: 0, left: 0 });
@@ -470,6 +489,10 @@ export function DataTableGanttView<TData extends Record<string, unknown>>({
   const [drag, setDrag] = useState<DragState | undefined>(undefined);
   const rowsByTaskId = useRowsByTaskId(table, getRowId);
   const titleId = titleColumnId(table, config.titleColumn);
+  const formatters = useMemo(
+    () => planningFormatters(columns, config, locale, titleId),
+    [columns, config, locale, titleId]
+  );
 
   useEffect(() => {
     const element = viewportRef.current;
@@ -658,6 +681,7 @@ export function DataTableGanttView<TData extends Record<string, unknown>>({
           style={{ width: geometry.totalWidth, height: geometry.canvasHeight }}
         >
           <GanttHeader
+            formatDay={formatters.day}
             geometry={geometry}
             labels={labels}
             locale={locale}
@@ -742,6 +766,7 @@ export function DataTableGanttView<TData extends Record<string, unknown>>({
                     onRowClick={onRowClick}
                     row={tableRow}
                     task={row.task}
+                    taskName={formatters.task(row.task)}
                     titleId={titleId}
                   />
                 </div>
@@ -751,6 +776,7 @@ export function DataTableGanttView<TData extends Record<string, unknown>>({
                       ? { operation: drag.operation, days: drag.deltaDays }
                       : undefined
                   }
+                  formatters={formatters}
                   geometry={geometry}
                   labels={labels}
                   onDrag={(event, operation) =>
@@ -852,6 +878,7 @@ function GanttLabel<TData extends Record<string, unknown>>({
   onRowClick,
   row,
   task,
+  taskName,
   titleId,
 }: {
   isClickable: boolean;
@@ -859,6 +886,8 @@ function GanttLabel<TData extends Record<string, unknown>>({
   onRowClick?: (row: Row<TData>, event: ReactMouseEvent<HTMLElement>) => void;
   row?: Row<TData>;
   task: PlanningTask;
+  /** The title as the table shows it, for tooltips and unloaded rows. */
+  taskName: string;
   titleId?: string;
 }) {
   const cell = row
@@ -866,13 +895,13 @@ function GanttLabel<TData extends Record<string, unknown>>({
     .find((item) => item.column.id === titleId);
   const content = cell
     ? flexRender(cell.column.columnDef.cell, cell.getContext())
-    : task.label;
+    : taskName;
   if (row && onRowClick && isClickable) {
     return (
       <button
         className="min-w-0 flex-1 truncate text-left text-sm hover:underline"
         onClick={(event) => onRowClick(row, event)}
-        title={`${task.ref.source} · ${task.label}`}
+        title={`${task.ref.source} · ${taskName}`}
         type="button"
       >
         {content}
@@ -883,7 +912,7 @@ function GanttLabel<TData extends Record<string, unknown>>({
     <button
       className="min-w-0 flex-1 truncate text-left text-sm hover:underline"
       onClick={onOpen}
-      title={`${task.ref.source} · ${task.label}`}
+      title={`${task.ref.source} · ${taskName}`}
       type="button"
     >
       {content}

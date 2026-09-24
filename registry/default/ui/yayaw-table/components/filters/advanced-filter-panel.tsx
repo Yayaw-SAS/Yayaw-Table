@@ -202,6 +202,7 @@ function FilterChip({
       {
         dateDisplayPreset: config.dateDisplayPreset,
         dateFormat: config.dateFormat,
+        numberFormat: config.numberFormat,
         locale,
       }
     );
@@ -212,6 +213,7 @@ function FilterChip({
     config.options,
     config.dateDisplayPreset,
     config.dateFormat,
+    config.numberFormat,
     locale,
   ]);
 

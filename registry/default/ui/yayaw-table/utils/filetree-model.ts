@@ -11,7 +11,12 @@ import {
   type TableGalleryMediaConfig,
 } from "./media-contract";
 import { compatibleListParams } from "./table-contracts";
-import { formatNumberValue, type NumberFormatConfig } from "./value-format";
+import {
+  type ColumnValueFormat,
+  formatColumnDate,
+  formatColumnNumber,
+  parseDateValue,
+} from "./value-format";
 
 type Row = Record<string, unknown>;
 
@@ -154,11 +159,11 @@ export interface ResolvedFileTreeSettings {
   expandedSaved: boolean;
 }
 
-export interface FileTreeColumn {
+/** Columns bring their formats: dates and numbers read as in the table. */
+export interface FileTreeColumn extends ColumnValueFormat {
   id: string;
   header?: string;
   type?: string;
-  numberFormat?: unknown;
   options?: { value: unknown; label?: string }[];
 }
 
@@ -1725,24 +1730,21 @@ const WEEK_DAYS = 7;
 const capitalize = (text: string, locale: string) =>
   text.charAt(0).toLocaleUpperCase(locale) + text.slice(1);
 
-function toDate(value: unknown): Date | undefined {
-  if (value === null || value === undefined || value === "") {
-    return;
-  }
-  const date = value instanceof Date ? value : new Date(value as string);
-  return Number.isFinite(date.getTime()) ? date : undefined;
-}
-
 const startOfDay = (date: Date) =>
   new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
 
-/** "Just now", "5 minutes ago", "2 hours ago", "Yesterday", "3 days ago", then the date. */
+/**
+ * "Just now", "5 minutes ago", "2 hours ago", "Yesterday", "3 days ago", then
+ * the date: in the column's format when given, else the medium date.
+ * Date-only values are local calendar days.
+ */
 export function formatRelativeDate(
   value: unknown,
   locale = "en",
-  now: Date = new Date()
+  now: Date = new Date(),
+  column?: FileTreeColumn
 ): string {
-  const date = toDate(value);
+  const date = parseDateValue(value);
   if (!date) {
     return "--";
   }
@@ -1767,6 +1769,9 @@ export function formatRelativeDate(
   if (days > 0 && days < WEEK_DAYS) {
     return capitalize(format.format(-days, "day"), locale);
   }
+  if (column?.dateFormat || column?.dateDisplayPreset) {
+    return formatColumnDate(value, column, locale);
+  }
   return new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(date);
 }
 
@@ -1784,12 +1789,15 @@ export function formatFileTreeValue(
 ): string {
   const id = column?.id;
   if (id && id === options.settings.sizeColumn) {
-    return options.folder
-      ? formatFileSize(options.folderSize, options.locale)
-      : formatFileSize(value, options.locale);
+    const size = options.folder ? options.folderSize : value;
+    // A number format set on the size column wins over the file units.
+    if (column?.numberFormat && size !== null && size !== undefined) {
+      return formatColumnNumber(size, column, options.locale);
+    }
+    return formatFileSize(size, options.locale);
   }
   if (id && id === options.settings.updatedColumn) {
-    return formatRelativeDate(value, options.locale, options.now);
+    return formatRelativeDate(value, options.locale, options.now, column);
   }
   if (value === null || value === undefined || value === "") {
     return "--";
@@ -1800,14 +1808,10 @@ export function formatFileTreeValue(
       .join(", ");
   }
   if (column?.type === "number") {
-    return formatNumberValue(
-      value,
-      column.numberFormat as NumberFormatConfig,
-      options.locale
-    );
+    return formatColumnNumber(value, column, options.locale);
   }
   if (column?.type === "date") {
-    return formatRelativeDate(value, options.locale, options.now);
+    return formatColumnDate(value, column, options.locale);
   }
   const option = column?.options?.find((item) => item.value === value);
   if (option) {
