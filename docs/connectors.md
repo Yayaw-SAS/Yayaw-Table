@@ -162,11 +162,11 @@ Catch `ConnectorError` in the action to return its `code` (and
 
 ```ts
 // server/api/connections/[id]/notion-push.post.ts
-import { toConnectorRows } from "~/components/ui/yayaw-table-vue/connectors/connector-model";
 import {
   ConnectorError,
-  pushRowsToNotionDatabase,
-} from "~/components/ui/yayaw-table-vue/connectors/notion";
+  toConnectorRows,
+} from "~/components/ui/yayaw-table-vue/connectors/connector-model";
+import { pushRowsToNotionDatabase } from "~/components/ui/yayaw-table-vue/connectors/notion";
 
 export default defineEventHandler(async (event) => {
   const user = await requireUserSession(event);
