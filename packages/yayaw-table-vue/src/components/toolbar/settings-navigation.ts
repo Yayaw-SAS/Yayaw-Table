@@ -8,3 +8,8 @@ export interface SettingsNavigation {
 export const settingsNavigationKey: InjectionKey<
   ShallowRef<SettingsNavigation | undefined>
 > = Symbol("settings-navigation");
+
+/** Closes the enclosing popover or drawer, e.g. before a settings screen opens a larger editor. */
+export const settingsMenuCloseKey: InjectionKey<() => void> = Symbol(
+  "settings-menu-close"
+);

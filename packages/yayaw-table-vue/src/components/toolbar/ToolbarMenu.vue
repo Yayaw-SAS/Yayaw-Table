@@ -7,7 +7,7 @@ import {
 } from "reka-ui";
 import { nextTick, provide, shallowRef, ref, watch, type CSSProperties } from "vue";
 
-import { settingsNavigationKey, type SettingsNavigation } from "./settings-navigation";
+import { settingsMenuCloseKey, settingsNavigationKey, type SettingsNavigation } from "./settings-navigation";
 const childView = shallowRef<SettingsNavigation>();
 const backButton = ref<HTMLButtonElement>();
 watch(childView, async (view) => { if (view) { await nextTick(); backButton.value?.focus(); } });
@@ -15,6 +15,7 @@ provide(settingsNavigationKey, childView);
 
 const props = defineProps<{ open: boolean; compact?: boolean; title: string; back?: boolean; backLabel?: string; closeLabel?: string; align?: "start" | "end" }>();
 const emit = defineEmits<{ "update:open": [open: boolean]; back: [] }>();
+provide(settingsMenuCloseKey, () => emit("update:open", false));
 const anchor = ref<HTMLElement>();
 const theme = ref<CSSProperties>({});
 watch(() => props.open, (open) => {

@@ -18,6 +18,11 @@ export interface DisplayModeSettingsContext {
   /** Save settings for this mode in the view and URL (`undefined` resets them). */
   updateSettings: (settings: Record<string, unknown> | undefined) => void;
   translate: (key: string, fallback: string) => string;
+  /**
+   * Fields of the table's create form (`getFormConfig` for its create form
+   * type), when the host declares one: the Form mode asks only these columns.
+   */
+  formFields?: readonly string[];
 }
 
 /**

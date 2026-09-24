@@ -67,6 +67,21 @@ export interface FormColumn {
   coloredTags?: boolean;
   /** How the table shows numbers, e.g. `{ currency: "EUR" }`. */
   numberFormat?: unknown;
+  /**
+   * `false`: forms never ask the column (nor write it); `true`: they may,
+   * whatever its other flags.
+   */
+  form?: boolean;
+  /** Read-only columns (`readonly`, `readOnly` or `editable: false`) are never asked. */
+  readonly?: boolean;
+  readOnly?: boolean;
+  editable?: boolean;
+  /** Values the host computes: never asked. */
+  computed?: boolean;
+  /** System or metadata columns (record ids, created and updated stamps…): never asked. */
+  system?: boolean;
+  /** Columns people never see: never asked. */
+  hidden?: boolean;
 }
 
 export type { FormText } from "./form-text";
@@ -196,6 +211,11 @@ export interface FormViewSettings {
   allowAnotherResponse?: boolean;
   /** Where the host may send people after a success; the host decides whether to follow it. */
   redirectUrl?: string;
+  /**
+   * Show "Edit form" above the form in the Form view (default true). The
+   * form stays editable from View settings.
+   */
+  editButton?: boolean;
 }
 
 export type FormHiddenValue = boolean | number | string | (number | string)[];
@@ -685,6 +705,9 @@ export function normalizeFormViewConfig(
   if (typeof value.review === "boolean") {
     normalized.review = value.review;
   }
+  if (typeof value.editButton === "boolean") {
+    normalized.editButton = value.editButton;
+  }
   const redirectUrl = text(value.redirectUrl);
   if (redirectUrl && SAFE_URL.test(redirectUrl)) {
     normalized.redirectUrl = redirectUrl;
@@ -707,7 +730,52 @@ export function formColumnEditor(column: FormColumn): FormEditor | undefined {
   return kind ? EDITORS[kind] : undefined;
 }
 
-/** Columns a form can ask, and the others (listed with a note in the settings). */
+/**
+ * Ids of the metadata columns tables commonly carry (record ids, creation and
+ * update stamps): forms never ask them unless the column says `form: true`.
+ */
+const SYSTEM_COLUMN_IDS = new Set([
+  "_id",
+  "id",
+  "uuid",
+  "createdAt",
+  "created_at",
+  "createdBy",
+  "created_by",
+  "updatedAt",
+  "updated_at",
+  "updatedBy",
+  "updated_by",
+  "deletedAt",
+  "deleted_at",
+]);
+
+/**
+ * Whether forms may write a column, from its flags: columns with `form:
+ * false`, `readonly`, `readOnly`, `editable: false`, `computed`, `system` or
+ * `hidden`, and metadata ids (`id`, `createdAt`…), are never asked. `form:
+ * true` opts a column in.
+ */
+export function formColumnWritable(column: FormColumn): boolean {
+  if (column.form === true) {
+    return true;
+  }
+  return !(
+    column.form === false ||
+    column.readonly === true ||
+    column.readOnly === true ||
+    column.editable === false ||
+    column.computed === true ||
+    column.system === true ||
+    column.hidden === true ||
+    SYSTEM_COLUMN_IDS.has(column.id)
+  );
+}
+
+/**
+ * Columns a form can ask (a form editor, and writable: see
+ * `formColumnWritable`), and the others (listed with a note in the builder).
+ */
 export function formColumns<T extends FormColumn>(
   columns: readonly T[]
 ): { eligible: T[]; excluded: T[] } {
@@ -717,9 +785,52 @@ export function formColumns<T extends FormColumn>(
     if (EXCLUDED_IDS.has(column.id) || column.type === "actions") {
       continue;
     }
-    (formColumnEditor(column) ? eligible : excluded).push(column);
+    const askable = formColumnWritable(column) && formColumnEditor(column);
+    (askable ? eligible : excluded).push(column);
   }
   return { eligible, excluded };
+}
+
+/**
+ * The fields a host's create form declares (`getFormConfig` for the create
+ * form type), without those it hides or disables; `undefined` when it
+ * declares none.
+ */
+export function formCreateFields(fields: unknown): string[] | undefined {
+  if (!Array.isArray(fields)) {
+    return;
+  }
+  const names = fields.flatMap((field) =>
+    isRecord(field) &&
+    typeof field.name === "string" &&
+    field.hidden !== true &&
+    field.disabled !== true
+      ? [field.name]
+      : []
+  );
+  return names.length ? names : undefined;
+}
+
+/**
+ * Columns as forms see them when the table's create form declares its fields
+ * (`formFields`): the others get `form: false`, unless they opt in with
+ * `form: true`. A Form view creates records like the create form does.
+ */
+export function withFormFields<T extends FormColumn>(
+  columns: readonly T[],
+  formFields: readonly string[] | undefined
+): T[] {
+  if (!formFields?.length) {
+    return [...columns];
+  }
+  const names = new Set(formFields);
+  return columns.map((column) =>
+    column.form === true ||
+    names.has(column.id) ||
+    (typeof column.accessorKey === "string" && names.has(column.accessorKey))
+      ? column
+      : { ...column, form: false }
+  );
 }
 
 /** `[{ value, label }]` or plain values, as columns declare options. */
@@ -1080,11 +1191,15 @@ function freeId(base: string, taken: ReadonlySet<string>): string {
   return id;
 }
 
-/** Ask a column (appended at the end) or stop asking it; a hidden field writing that column stops writing it. */
+/**
+ * Ask a column (after `afterId`, else at the end) or stop asking it; a hidden
+ * field writing that column stops writing it.
+ */
 export function toggleFormQuestion(
   questions: readonly FormItem[],
   columnId: string,
-  asked: boolean
+  asked: boolean,
+  afterId?: string
 ): FormItem[] {
   const rest = questions.filter(
     (question) => !isFormQuestion(question) || question.columnId !== columnId
@@ -1099,7 +1214,36 @@ export function toggleFormQuestion(
         : item
   );
   const id = freeId(columnId, takenIds(kept));
-  return [...kept, { id, columnId }];
+  return insertItem(kept, { id, columnId }, afterId);
+}
+
+/**
+ * Move a question, section or consent to `index` among the ordered items
+ * (every item but hidden fields, which keep their places).
+ */
+export function moveFormItemTo<T extends FormItem>(
+  questions: readonly T[],
+  id: string,
+  index: number
+): T[] {
+  const ordered = formOrderedItems(questions);
+  const from = ordered.findIndex((item) => item.id === id);
+  const moved = ordered[from];
+  if (!moved) {
+    return [...questions];
+  }
+  const rest = ordered.filter((item) => item !== moved);
+  const target = Math.max(0, Math.min(Math.trunc(index), rest.length));
+  rest.splice(target, 0, moved);
+  let next = 0;
+  return questions.map((item) => {
+    if (isFormHiddenField(item)) {
+      return item;
+    }
+    const placed = rest[next] ?? item;
+    next += 1;
+    return placed;
+  });
 }
 
 type FormItemPatch = Partial<
@@ -1188,6 +1332,18 @@ export function addFormConsent(
     id,
   };
 }
+
+/** Labels of the hidden field sources. */
+export const FORM_HIDDEN_SOURCE_LABELS: Record<
+  FormHiddenSourceType,
+  FormLabelKey
+> = {
+  urlParam: "sourceUrlParam",
+  pageUrl: "sourcePageUrl",
+  referrer: "sourceReferrer",
+  locale: "sourceLocale",
+  static: "sourceStatic",
+};
 
 const UTM_PARAMS = [
   "utm_source",
@@ -2395,6 +2551,54 @@ const ENGLISH_LABELS = {
   staticValue: "Text",
   saveIn: "Save in",
   responseDetails: "Response details",
+  editForm: "Edit form",
+  builderDescription: "Changes apply to this view when you save them.",
+  builderOutline: "Form outline",
+  builderPreview: "Preview",
+  builderProperties: "Properties",
+  builderPreviewNote: "Answers typed here are not sent.",
+  builderShowClosed: "Show as closed",
+  save: "Save",
+  unsavedChanges: "Unsaved changes",
+  builderSaved: "Saved in this view.",
+  discardTitle: "Discard your changes?",
+  discardDescription: "Changes to this form have not been saved.",
+  discard: "Discard",
+  keepEditing: "Keep editing",
+  saveAndClose: "Save and close",
+  addItem: "Add",
+  addQuestion: "Add a question",
+  noColumnsLeft: "Every column is asked.",
+  notInForm: "Not in the form",
+  notInFormHint:
+    "Columns the form does not ask. A fixed value can be saved with every response.",
+  askQuestion: "Ask this question",
+  removeQuestion: "Remove from the form",
+  remove: "Remove",
+  fixedValue: "Fixed value",
+  reorderHint: "Alt + Up or Down arrow moves it.",
+  builderMoved: "{label}: position {position} of {count}.",
+  builderAdded: "Added: {label}.",
+  builderRemoved: "Removed: {label}.",
+  columnOf: "Column {label}",
+  untitledForm: "Untitled form",
+  questionKind: "Question",
+  hasConditions: "has conditions",
+  languages: "Languages",
+  inTheView: "In the view",
+  editButtonSetting: "Show “Edit form” above the form",
+  editButtonHint: "The form stays editable from View settings.",
+  resetHint: "Use the table’s form settings again.",
+  saveToPublish: "Save your changes to publish them.",
+  summaryQuestions:
+    "{count, plural, one {1 question} other {{count} questions}}",
+  summarySections: "{count, plural, one {1 section} other {{count} sections}}",
+  summaryConsents: "{count, plural, one {1 consent} other {{count} consents}}",
+  summaryHiddenFields:
+    "{count, plural, one {1 hidden field} other {{count} hidden fields}}",
+  summaryReview: "with a review",
+  summaryHint:
+    "Questions, conditions, languages and messages are edited in the form editor.",
 } as const;
 
 const FRENCH_LABELS: Record<FormLabelKey, string> = {
@@ -2622,6 +2826,59 @@ const FRENCH_LABELS: Record<FormLabelKey, string> = {
   staticValue: "Texte",
   saveIn: "Enregistrer dans",
   responseDetails: "Détails de la réponse",
+  editForm: "Modifier le formulaire",
+  builderDescription:
+    "Les modifications s’appliquent à cette vue quand vous les enregistrez.",
+  builderOutline: "Structure du formulaire",
+  builderPreview: "Aperçu",
+  builderProperties: "Propriétés",
+  builderPreviewNote: "Les réponses saisies ici ne sont pas envoyées.",
+  builderShowClosed: "Afficher fermé",
+  save: "Enregistrer",
+  unsavedChanges: "Modifications non enregistrées",
+  builderSaved: "Enregistré dans cette vue.",
+  discardTitle: "Abandonner vos modifications ?",
+  discardDescription:
+    "Les modifications de ce formulaire n’ont pas été enregistrées.",
+  discard: "Abandonner",
+  keepEditing: "Continuer",
+  saveAndClose: "Enregistrer et fermer",
+  addItem: "Ajouter",
+  addQuestion: "Ajouter une question",
+  noColumnsLeft: "Toutes les colonnes sont demandées.",
+  notInForm: "Hors du formulaire",
+  notInFormHint:
+    "Colonnes que le formulaire ne demande pas. Une valeur fixe peut être enregistrée avec chaque réponse.",
+  askQuestion: "Poser cette question",
+  removeQuestion: "Retirer du formulaire",
+  remove: "Supprimer",
+  fixedValue: "Valeur fixe",
+  reorderHint: "Alt + flèche haut ou bas pour le déplacer.",
+  builderMoved: "{label} : position {position} sur {count}.",
+  builderAdded: "Ajout : {label}.",
+  builderRemoved: "Retrait : {label}.",
+  columnOf: "Colonne {label}",
+  untitledForm: "Formulaire sans titre",
+  questionKind: "Question",
+  hasConditions: "avec conditions",
+  languages: "Langues",
+  inTheView: "Dans la vue",
+  editButtonSetting:
+    "Afficher « Modifier le formulaire » au-dessus du formulaire",
+  editButtonHint:
+    "Le formulaire reste modifiable depuis les paramètres de la vue.",
+  resetHint: "Reprendre les réglages de formulaire de la table.",
+  saveToPublish: "Enregistrez vos modifications pour les publier.",
+  summaryQuestions:
+    "{count, plural, one {1 question} other {{count} questions}}",
+  summarySections: "{count, plural, one {1 section} other {{count} sections}}",
+  summaryConsents:
+    "{count, plural, one {1 consentement} other {{count} consentements}}",
+  summaryHiddenFields:
+    "{count, plural, one {1 champ caché} other {{count} champs cachés}}",
+  summaryReview: "avec relecture",
+  summaryHint:
+    "Les questions, conditions, langues et messages se modifient dans l’éditeur de formulaire.",
 };
 
 /** Host override for a label (`form.<key>`), or the built-in one. */

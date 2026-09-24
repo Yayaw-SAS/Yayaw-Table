@@ -119,6 +119,9 @@ Each entry: what you see, why, what to do.
   to `formLinks.publish`. Build it on the server with
   `buildPublicFormSnapshot()` and check each response with
   `acceptPublicFormResponse()`.
+- **A Form view asks record ids or timestamps.** Flag host-managed columns
+  `system`, `readonly` or `computed` (or `form: false`), or declare the create
+  form with `getFormConfig`: forms then ask only what people may write.
 - **Selection jumps between records after paging.** Rows have positional
   ids. Pass `getRowId` returning stable record ids.
 - **UI flags treated as permissions.** `allowEdit`, `canEditRow`,

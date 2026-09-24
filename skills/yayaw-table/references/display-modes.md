@@ -159,6 +159,7 @@ or `@/components/ui/yayaw-table-vue/map/map-renderer` (Vue); both load lazily.
 
 Built in; offered when the table has `actions.create` and `allowCreate` is not
 false; `table.form: false` turns it off and `table.form: { … }` sets defaults.
+"Edit form" above the form (and View settings → Form) opens the form builder.
 See [forms](forms.md).
 
 ## `gantt`
@@ -221,5 +222,6 @@ replaces the built-in view of that mode (documented for `form`, `feed` and
 `formLinks`, `tree`, `media`, `imageColumn`, `selection`, `coloredTags`,
 `revision` (changes after each mutation: reload), `emptyState`, `title`,
 `syncUrl` and `refresh`, plus the settings context (`tableId`, `locale`,
-`columns`, `defaults`, `settings`, `updateSettings`, `translate`). Use
+`columns`, `defaults`, `settings`, `updateSettings`, `translate` and
+`formFields`, the create form's fields when `getFormConfig` declares them). Use
 `loadScopedRows()` to load every row of a window with a scope.

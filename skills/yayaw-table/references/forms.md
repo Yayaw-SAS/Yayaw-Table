@@ -95,22 +95,44 @@ Offered when the table can create (`actions.create`, `allowCreate`);
 `table.form: false` turns it off, `table.form: { … }` sets defaults, and each
 saved view keeps its own settings (`FormViewSettings`):
 
-- `title`, `description`, `submitLabel`, `successMessage`,
-  `allowAnotherResponse`, `redirectUrl` (the host decides whether to follow it);
+- `title`, `description`, `submitLabel`, `successMessage`, `closedMessage`,
+  `allowAnotherResponse`, `redirectUrl` (the host decides whether to follow
+  it); texts are a string or one per language (`{ en: "Name", fr: "Nom" }`),
+  with `defaultLocale` and `locales` (`table.form.locales`: the host's
+  languages);
 - `questions`: ordered `{ id, columnId, label?, help?, placeholder?,
-  required? }` and section breaks `{ id, kind: "section", title?,
-  description? }`; unset asks every eligible column;
+  required?, optionLabels? }`, section breaks `{ id, kind: "section", title?,
+  description? }`, consents `{ id, kind: "consent", text?, link?, version? }`
+  (a required checkbox recorded in the response's `metadata.consents`) and
+  hidden fields `{ id, kind: "hidden", source, columnId? }` (a URL parameter,
+  the page, the referrer, the language or a fixed text); unset asks every
+  eligible column;
 - `rules` (on question ids), `layout` (`"page"` or `"steps"`, one question or
   one section per step), `review` (a final review step);
 - `hiddenValues`: fixed values for columns not asked (for example
-  `{ status: "new" }`).
+  `{ status: "new" }`);
+- `editButton: false` hides "Edit form" above the form.
 
-Eligible columns have a form editor: text, code, number, date, select, tag,
-multi-select, boolean, URL, image and location. JSON, custom, dynamic and
-computed columns are listed as unavailable. A submission calls
-`actions.create` with the fixed values, then the visible answers, with `set`
-values applied. Numbers show the column's `numberFormat` once typed; dates are
-stored as `YYYY-MM-DD`.
+Eligible columns have a form editor (text, code, number, date, select, tag,
+multi-select, boolean, URL, image and location) and are writable: a Form view
+never asks columns flagged `form: false`, `readonly`, `readOnly`,
+`editable: false`, `computed`, `system` or `hidden`, computed (`accessorFn`)
+columns, nor metadata ids (`id`, `createdAt`, `updatedBy`…); `form: true`
+opts a column in. When `getFormConfig` declares the create form, the Form
+view asks only its fields (`formFields` in the renderer context). Unavailable
+columns are listed in the form builder. A submission calls `actions.create`
+with the fixed values, then the visible answers, with `set` values applied.
+Numbers show the column's `numberFormat` once typed; dates are stored as
+`YYYY-MM-DD`.
+
+People edit a Form view in the form builder: "Edit form" above the form (or
+View settings → Form, a summary) opens a near full-screen dialog with the
+outline (drag or Alt + ↑ / ↓ to reorder, "Add"), a live preview in the
+language and layout edited, and the selected item's properties with its
+conditions. Edits stay in a draft until Save, which writes the view's settings
+like any view setting; closing with unsaved changes asks first. On phones it
+fills the screen with Questions, Preview and Properties tabs. The shared
+controller is `FormBuilderController` (`utils/form-builder.ts`).
 
 ## Standalone form
 

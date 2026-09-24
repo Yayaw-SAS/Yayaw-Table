@@ -20,6 +20,8 @@ interface TableRendererSettingsProps {
   columns: TableCatalogueColumnConfig[];
   defaultDisplayMode?: TableDisplayMode;
   defaults?: Record<string, unknown>;
+  /** Fields of the create form, when the host declares them. */
+  formFields?: readonly string[];
   mode: TableDisplayMode;
   renderer: DisplayModeRenderer;
   tableId: string;
@@ -32,6 +34,7 @@ export function TableRendererSettings({
   columns,
   defaultDisplayMode,
   defaults,
+  formFields,
   mode,
   renderer,
   tableId,
@@ -59,11 +62,13 @@ export function TableRendererSettings({
         }
       },
       translate: (key, fallback) => translateWithFallback(t, key, fallback),
+      formFields,
     }),
     [
       columns,
       configKey,
       defaults,
+      formFields,
       locale,
       setModeConfigFromUI,
       settings,

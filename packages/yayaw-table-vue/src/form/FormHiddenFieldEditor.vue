@@ -1,23 +1,17 @@
-<script lang="ts">
-import type { FormHiddenSourceType, FormLabelKey } from "../form-view";
-
-/** Labels of the hidden field sources. */
-export const FORM_HIDDEN_SOURCE_LABELS: Record<FormHiddenSourceType, FormLabelKey> = {
-  urlParam: "sourceUrlParam",
-  pageUrl: "sourcePageUrl",
-  referrer: "sourceReferrer",
-  locale: "sourceLocale",
-  static: "sourceStatic",
-};
-</script>
-
 <script setup lang="ts">
 /**
  * A hidden field's source (URL parameter, page, referrer, language or fixed
  * text) and where its value is saved: a column, or the response details.
  */
 import { computed } from "vue";
-import type { FormColumn, FormHiddenField, FormHiddenSource } from "../form-view";
+import {
+  FORM_HIDDEN_SOURCE_LABELS,
+  type FormColumn,
+  type FormHiddenField,
+  type FormHiddenSource,
+  type FormHiddenSourceType,
+  type FormLabelKey,
+} from "../form-view";
 import FormRuleSelect from "./FormRuleSelect.vue";
 import FormSettingText from "./FormSettingText.vue";
 

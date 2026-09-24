@@ -129,6 +129,7 @@ import {
   openUpdateForm,
 } from "./forms/atoms/catalogue-form-atoms";
 import { CatalogueBulkEditor } from "./forms/catalogue-bulk-editor";
+import { useCreateFormFields } from "./forms/hooks/use-create-form-fields";
 import type { FormConfigContext } from "./forms/types";
 import {
   DataTableGalleryView,
@@ -2121,6 +2122,13 @@ function ModernDataTable<
     tableId,
     viewParam,
   });
+  // The Form mode asks what the create form offers, when the host declares it.
+  const formFields = useCreateFormFields({
+    createFormType: tableConfig.form?.createFormType,
+    formType: defaultFormType,
+    tableId,
+    tableType: resolvedTableType,
+  });
   // A clicked chart group: its rules join the view's filters, then the records show as a table.
   const showRendererRecords = useCallback(
     (rules: Record<string, unknown>[]) => {
@@ -2177,6 +2185,7 @@ function ModernDataTable<
     canEditRow: canEditRendererRow,
     columns: tableConfig.columns.definitions,
     ...formRendererActions,
+    formFields,
     createRow: createRendererRow,
     editRow: editRendererRow,
     emptyState: emptyStateContent,
