@@ -1670,6 +1670,71 @@
       }
     },
     {
+      "name": "yayaw-table-dashboard",
+      "type": "registry:block",
+      "title": "Yayaw Table Dashboard",
+      "description": "Optional Notion-like dashboard for YaYaw Table: a 4-column grid (gridstack.js, loaded on demand) of widgets showing saved views of any table in any display mode, numbers and notes, with dashboard filters sent to each table's list and aggregate requests. Render `<YayawDashboard actions={{ dashboards }} tables={…} />`; the host stores dashboards (`list`, `load`, `save`, `remove`).",
+      "registryDependencies": [
+        "button",
+        "calendar",
+        "dialog",
+        "dropdown-menu",
+        "input",
+        "native-select",
+        "popover",
+        "textarea",
+        "https://table.yayaw.app/r/yayaw-table.json"
+      ],
+      "dependencies": ["gridstack"],
+      "files": [
+        {
+          "path": "registry/default/ui/yayaw-table-dashboard/dashboard-dialogs.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table-dashboard/dashboard-dialogs.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table-dashboard/dashboard-filters.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table-dashboard/dashboard-filters.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table-dashboard/dashboard-grid-engine.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table-dashboard/dashboard-grid-engine.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table-dashboard/dashboard-grid.css",
+          "type": "registry:style",
+          "target": "components/ui/yayaw-table-dashboard/dashboard-grid.css"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table-dashboard/dashboard-grid.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table-dashboard/dashboard-grid.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table-dashboard/dashboard-model.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table-dashboard/dashboard-model.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table-dashboard/dashboard-widget.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table-dashboard/dashboard-widget.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table-dashboard/yayaw-dashboard.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table-dashboard/yayaw-dashboard.tsx"
+        }
+      ],
+      "meta": {
+        "registryUrl": "https://table.yayaw.app/r/yayaw-table-dashboard.json",
+        "version": "3.5.0",
+        "versionedRegistryUrl": "https://table.yayaw.app/r/v3.5.0/yayaw-table-dashboard.json"
+      }
+    },
+    {
       "name": "yayaw-table-connector-notion",
       "type": "registry:lib",
       "title": "YaYaw Table Notion Connector",

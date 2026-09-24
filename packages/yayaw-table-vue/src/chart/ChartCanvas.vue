@@ -162,7 +162,11 @@ const labelSets = computed(() => {
 
 <template>
   <div class="yayaw-chart-canvas" :data-chart-clickable="props.clickable ? 'true' : undefined">
-    <VisSingleContainer v-if="props.model.type === 'donut'" :data="donutRows" :height="CHART_HEIGHT">
+    <div v-if="props.model.type === 'number'" class="yayaw-chart-figure">
+      <output class="yayaw-chart-figure-value" data-chart-number>{{ props.model.format(props.model.total) }}</output>
+      <span class="yayaw-chart-muted">{{ props.model.valueLabel }}</span>
+    </div>
+    <VisSingleContainer v-else-if="props.model.type === 'donut'" :data="donutRows" :height="CHART_HEIGHT">
       <VisDonut
         :value="(row: ChartRow) => row.values[0] ?? 0"
         :color="(row: ChartRow) => row.color"

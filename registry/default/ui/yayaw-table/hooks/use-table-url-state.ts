@@ -12,7 +12,11 @@ import { footerVisibleAtom } from "../atoms/footer-atoms";
 import { filterResetVersionAtom, tableDensityAtom } from "../atoms/table-atoms";
 import { normalizeGanttView } from "../planning/engine";
 import type { TableGanttViewConfig } from "../planning/types";
-import { useTableStateSync } from "../providers/table-state-sync-provider";
+import {
+  tableUrlKeys,
+  useTableInstanceId,
+  useTableStateSync,
+} from "../providers/table-state-sync-provider";
 import type {
   ColumnFiltersState,
   ColumnPinningState,
@@ -420,6 +424,12 @@ export function useTableUrlState({
   );
   const inheritedSync = useTableStateSync();
   const shouldSyncUrl = enabled ?? inheritedSync;
+  const instanceId = useTableInstanceId();
+  const urlKeys = useMemo(
+    () => tableUrlKeys(tableId, instanceId),
+    [instanceId, tableId]
+  );
+  const urlPrefix = urlKeys.prefix;
   const resetVersionAtom = filterResetVersionAtom(tableId);
   const resolvedDefaultPageSize = normalizePageSize(defaultPageSize);
   const defaultPageSizeParam = resolvedDefaultPageSize.toString();
@@ -479,7 +489,7 @@ export function useTableUrlState({
 
   // URL parameters using nuqs
   // View and history management
-  const [urlViewParam, setUrlViewParam] = useQueryState("view");
+  const [urlViewParam, setUrlViewParam] = useQueryState(urlKeys.view);
   const [viewParam, setViewParam] = useStateChannel(
     tableId,
     shouldSyncUrl,
@@ -489,7 +499,7 @@ export function useTableUrlState({
     null
   );
   const [urlHistoryIndexParam, setUrlHistoryIndexParam] = useQueryState(
-    "historyIndex",
+    urlKeys.historyIndex,
     {
       defaultValue: "0",
     }
@@ -505,7 +515,7 @@ export function useTableUrlState({
 
   // Table state parameters
   const [urlSortParam, setUrlSortParam] = useQueryState(
-    `${tableId}-sort`,
+    `${urlPrefix}-sort`,
     arrayParser
   );
   const [sortParam, setSortParam] = useStateChannel(
@@ -518,7 +528,7 @@ export function useTableUrlState({
   );
 
   const [urlFiltersParam, setUrlFiltersParam] = useQueryState(
-    `${tableId}-filters`,
+    `${urlPrefix}-filters`,
     arrayParser
   );
   const [filtersParam, setFiltersParam] = useStateChannel(
@@ -532,7 +542,7 @@ export function useTableUrlState({
 
   // Advanced filters parameter
   const [urlAdvancedFiltersParam, setUrlAdvancedFiltersParam] = useQueryState(
-    `${tableId}-advancedFilters`,
+    `${urlPrefix}-advancedFilters`,
     advancedFiltersParser
   );
   const [advancedFiltersParam, setAdvancedFiltersParam] = useStateChannel(
@@ -544,7 +554,7 @@ export function useTableUrlState({
     EMPTY_ARRAY as AdvancedFiltersState
   );
 
-  const [urlPageParam, setUrlPageParam] = useQueryState(`${tableId}-page`, {
+  const [urlPageParam, setUrlPageParam] = useQueryState(`${urlPrefix}-page`, {
     defaultValue: "0",
   });
   const [pageParam, setPageParam] = useStateChannel(
@@ -557,7 +567,7 @@ export function useTableUrlState({
   );
 
   const [urlPageSizeParam, setUrlPageSizeParam] = useQueryState(
-    `${tableId}-pageSize`,
+    `${urlPrefix}-pageSize`,
     {
       defaultValue: defaultPageSizeParam,
     }
@@ -572,7 +582,7 @@ export function useTableUrlState({
   );
 
   const [urlVisibilityParam, setUrlVisibilityParam] = useQueryState(
-    `${tableId}-visibility`,
+    `${urlPrefix}-visibility`,
     objectParser
   );
   const [visibilityParam, setVisibilityParam] = useStateChannel(
@@ -585,7 +595,7 @@ export function useTableUrlState({
   );
 
   const [urlOrderParam, setUrlOrderParam] = useQueryState(
-    `${tableId}-order`,
+    `${urlPrefix}-order`,
     arrayParser
   );
   const [orderParam, setOrderParam] = useStateChannel(
@@ -598,7 +608,7 @@ export function useTableUrlState({
   );
 
   const [urlSizingParam, setUrlSizingParam] = useQueryState(
-    `${tableId}-sizing`,
+    `${urlPrefix}-sizing`,
     objectParser
   );
   const [sizingParam, setSizingParam] = useStateChannel(
@@ -611,7 +621,7 @@ export function useTableUrlState({
   );
 
   const [urlExpandedParam, setUrlExpandedParam] = useQueryState<object>(
-    `${tableId}-expanded`,
+    `${urlPrefix}-expanded`,
     createParser({
       parse: (value: string) => {
         try {
@@ -662,7 +672,7 @@ export function useTableUrlState({
   );
 
   const [urlGroupingParam, setUrlGroupingParam] = useQueryState(
-    `${tableId}-grouping`,
+    `${urlPrefix}-grouping`,
     arrayParser
   );
   const [groupingParam, setGroupingParam] = useStateChannel(
@@ -675,7 +685,7 @@ export function useTableUrlState({
   );
 
   const [urlDisplayModeParam, setUrlDisplayModeParam] = useQueryState(
-    `${tableId}-display`
+    `${urlPrefix}-display`
   );
   const [displayModeParam, setDisplayModeParam] = useStateChannel(
     tableId,
@@ -687,7 +697,7 @@ export function useTableUrlState({
   );
 
   const [urlKanbanGroupByParam, setUrlKanbanGroupByParam] = useQueryState(
-    `${tableId}-kanbanGroupBy`
+    `${urlPrefix}-kanbanGroupBy`
   );
   const [kanbanGroupByParam, setKanbanGroupByParam] = useStateChannel(
     tableId,
@@ -699,7 +709,7 @@ export function useTableUrlState({
   );
 
   const [urlKanbanParam, setUrlKanbanParam] = useQueryState(
-    `${tableId}-kanban`,
+    `${urlPrefix}-kanban`,
     kanbanParser
   );
   const [kanbanParam, setKanbanParam] = useStateChannel(
@@ -715,9 +725,9 @@ export function useTableUrlState({
   const modeConfigUrlKeys = useMemo(
     () =>
       Object.fromEntries(
-        GENERIC_MODE_CONFIG_KEYS.map((key) => [key, `${tableId}-${key}`])
+        GENERIC_MODE_CONFIG_KEYS.map((key) => [key, `${urlPrefix}-${key}`])
       ) as Record<GenericModeConfigKey, string>,
-    [tableId]
+    [urlPrefix]
   );
   const [urlModeConfigs, setUrlModeConfigs] = useQueryStates(
     MODE_CONFIG_PARSERS,
@@ -741,7 +751,7 @@ export function useTableUrlState({
   const listParam = (modeConfigs.list ?? EMPTY_OBJECT) as TableListViewConfig;
 
   const [urlGalleryParam, setUrlGalleryParam] = useQueryState(
-    `${tableId}-gallery`,
+    `${urlPrefix}-gallery`,
     galleryParser
   );
   const [galleryParam, setGalleryParam] = useStateChannel(
@@ -754,7 +764,7 @@ export function useTableUrlState({
   );
 
   const [urlGanttParam, setUrlGanttParam] = useQueryState(
-    `${tableId}-gantt`,
+    `${urlPrefix}-gantt`,
     ganttParser
   );
   const [ganttParam, setGanttParam] = useStateChannel(
@@ -791,7 +801,7 @@ export function useTableUrlState({
 
   // Global search parameter (server-side global filter)
   const [urlGlobalSearchParam, setUrlGlobalSearchParam] = useQueryState(
-    `${tableId}-q`
+    `${urlPrefix}-q`
   );
   const [globalSearchParam, setGlobalSearchParam] = useStateChannel(
     tableId,
@@ -804,7 +814,7 @@ export function useTableUrlState({
 
   // Column pinning parameter
   const [urlPinningParam, setUrlPinningParam] = useQueryState(
-    `${tableId}-pinning`,
+    `${urlPrefix}-pinning`,
     {
       defaultValue: "",
       parse: (value) =>
@@ -918,12 +928,12 @@ export function useTableUrlState({
   const setColumnFiltersFromUI = useCallback(
     (filters: ColumnFiltersState) => {
       debouncedSetParamRef.current?.(
-        `${tableId}-filters`,
+        `${urlPrefix}-filters`,
         filters,
         store.get(resetVersionAtom)
       );
     },
-    [resetVersionAtom, store, tableId]
+    [resetVersionAtom, store, urlPrefix]
   );
 
   // Advanced filters setter
@@ -931,31 +941,31 @@ export function useTableUrlState({
     (filters: AdvancedFiltersState) => {
       // Write as-is; server/mock layer ignores inactive or empty filters
       debouncedSetParamRef.current?.(
-        `${tableId}-advancedFilters`,
+        `${urlPrefix}-advancedFilters`,
         filters,
         store.get(resetVersionAtom)
       );
     },
-    [resetVersionAtom, store, tableId]
+    [resetVersionAtom, store, urlPrefix]
   );
 
   const setSorting = useCallback(
     (sorting: SortingState) => {
-      debouncedSetParamRef.current?.(`${tableId}-sort`, sorting);
+      debouncedSetParamRef.current?.(`${urlPrefix}-sort`, sorting);
     },
-    [tableId]
+    [urlPrefix]
   );
 
   // Global search setter
   const setGlobalSearchFromUI = useCallback(
     (value: string) => {
       debouncedSetParamRef.current?.(
-        `${tableId}-q`,
+        `${urlPrefix}-q`,
         value || "",
         store.get(resetVersionAtom)
       );
     },
-    [resetVersionAtom, store, tableId]
+    [resetVersionAtom, store, urlPrefix]
   );
 
   // Clear every filtering input while preserving the table's presentation.
@@ -1311,29 +1321,29 @@ export function useTableUrlState({
   // Helper function to set table-specific parameters
   const setTableParams = useCallback(
     (url: URL) => {
-      setUrlParam(url, `${tableId}-sort`, sortParam);
-      setUrlParam(url, `${tableId}-filters`, filtersParam);
-      setUrlParam(url, `${tableId}-advancedFilters`, advancedFiltersParam);
-      setUrlParam(url, `${tableId}-q`, globalSearchParam);
-      setUrlParam(url, `${tableId}-page`, pageParam);
-      setUrlParam(url, `${tableId}-pageSize`, pageSizeParam);
-      setUrlParam(url, `${tableId}-visibility`, visibilityParam);
-      setUrlParam(url, `${tableId}-order`, orderParam);
-      setUrlParam(url, `${tableId}-sizing`, sizingParam);
-      setUrlParam(url, `${tableId}-expanded`, expandedParam);
-      setUrlParam(url, `${tableId}-grouping`, resolvedGroupingParam);
-      setUrlParam(url, `${tableId}-display`, displayModeParam);
-      url.searchParams.delete(`${tableId}-kanbanGroupBy`);
-      url.searchParams.delete(`${tableId}-kanban`);
-      setUrlParam(url, `${tableId}-kanban`, resolvedKanbanCardParam);
+      setUrlParam(url, `${urlPrefix}-sort`, sortParam);
+      setUrlParam(url, `${urlPrefix}-filters`, filtersParam);
+      setUrlParam(url, `${urlPrefix}-advancedFilters`, advancedFiltersParam);
+      setUrlParam(url, `${urlPrefix}-q`, globalSearchParam);
+      setUrlParam(url, `${urlPrefix}-page`, pageParam);
+      setUrlParam(url, `${urlPrefix}-pageSize`, pageSizeParam);
+      setUrlParam(url, `${urlPrefix}-visibility`, visibilityParam);
+      setUrlParam(url, `${urlPrefix}-order`, orderParam);
+      setUrlParam(url, `${urlPrefix}-sizing`, sizingParam);
+      setUrlParam(url, `${urlPrefix}-expanded`, expandedParam);
+      setUrlParam(url, `${urlPrefix}-grouping`, resolvedGroupingParam);
+      setUrlParam(url, `${urlPrefix}-display`, displayModeParam);
+      url.searchParams.delete(`${urlPrefix}-kanbanGroupBy`);
+      url.searchParams.delete(`${urlPrefix}-kanban`);
+      setUrlParam(url, `${urlPrefix}-kanban`, resolvedKanbanCardParam);
       setUrlParam(
         url,
-        `${tableId}-gantt`,
+        `${urlPrefix}-gantt`,
         normalizeGanttView({ ...defaultGantt, ...ganttParam })
       );
-      setUrlParam(url, `${tableId}-gallery`, galleryParam);
+      setUrlParam(url, `${urlPrefix}-gallery`, galleryParam);
       for (const key of GENERIC_MODE_CONFIG_KEYS) {
-        setUrlParam(url, `${tableId}-${key}`, modeConfigs[key]);
+        setUrlParam(url, `${urlPrefix}-${key}`, modeConfigs[key]);
       }
 
       // Special case for pinning
@@ -1341,11 +1351,11 @@ export function useTableUrlState({
         pinningParam &&
         (pinningParam.left?.length || pinningParam.right?.length)
       ) {
-        setUrlParam(url, `${tableId}-pinning`, pinningParam, true);
+        setUrlParam(url, `${urlPrefix}-pinning`, pinningParam, true);
       }
     },
     [
-      tableId,
+      urlPrefix,
       sortParam,
       filtersParam,
       advancedFiltersParam,
@@ -1376,14 +1386,14 @@ export function useTableUrlState({
     const url = new URL(window.location.href);
 
     // Add view and history parameters
-    setUrlParam(url, "view", viewParam);
-    setUrlParam(url, "historyIndex", historyIndexParam);
+    setUrlParam(url, urlKeys.view, viewParam);
+    setUrlParam(url, urlKeys.historyIndex, historyIndexParam);
 
     // Add all table-specific parameters
     setTableParams(url);
 
     return url.toString();
-  }, [viewParam, historyIndexParam, setUrlParam, setTableParams]);
+  }, [viewParam, historyIndexParam, setUrlParam, setTableParams, urlKeys]);
 
   // Reset all URL state parameters
   const resetUrlState = useCallback(() => {
@@ -1564,4 +1574,89 @@ function _normalizeSortingObject(sort: { desc: boolean; id: string }) {
   // TanStack Table requires sorting objects to have 'id' property first, then 'desc'
   // eslint_disable-next-line perfectionist/sort-objects
   return { id: sort.id, desc: sort.desc };
+}
+
+type JotaiStore = ReturnType<typeof useStore>;
+
+/**
+ * Starts a table instance whose URL sync is off from a saved view, before its
+ * first request: what selecting the view would write, in the instance's store.
+ */
+export function seedTableViewState(
+  store: JotaiStore,
+  tableId: string,
+  view: { id?: null | string; config: TableViewConfig },
+  defaults: {
+    density?: TableViewConfig["density"];
+    displayMode?: TableDisplayMode;
+    pageSize?: number;
+  } = {}
+): void {
+  const defaultDisplayMode =
+    normalizeDisplayMode(defaults.displayMode) ?? DEFAULT_DISPLAY_MODE;
+  const input = view.config;
+  const displayMode = input.displayMode ?? defaultDisplayMode;
+  const kanbanLanes =
+    displayMode === "kanban" && input.kanban?.groupBy
+      ? [input.kanban.groupBy]
+      : [];
+  const config = normalizeTableViewConfig({
+    displayMode,
+    pageSize: normalizePageSize(defaults.pageSize),
+    grouping: kanbanLanes,
+    ...input,
+    density: input.density ?? defaults.density ?? "medium",
+    footerCalculationsVisible: input.footerCalculationsVisible ?? true,
+  });
+  store.set(tableDensityAtom(tableId), config.density);
+  // The footer preference is stored per table: write it only when the view hides it.
+  if (config.footerCalculationsVisible === false) {
+    store.set(footerVisibleAtom(tableId), false);
+  }
+  store.set(
+    localTableStateAtom(tableId),
+    viewStateChannels(config, view.id ?? null, defaultDisplayMode)
+  );
+}
+
+/** What selecting a view writes in the state channels of a table without URL sync. */
+function viewStateChannels(
+  config: TableViewConfig,
+  viewId: null | string,
+  defaultDisplayMode: TableDisplayMode
+): Record<string, unknown> {
+  const modeSource = config as Record<string, unknown>;
+  const displayMode = config.displayMode ?? defaultDisplayMode;
+  return {
+    view: viewId,
+    historyIndex: "0",
+    sort: config.sorting ?? [],
+    filters: config.columnFilters ?? [],
+    advancedFilters: config.advancedFilters ?? [],
+    globalSearch: config.globalSearch || null,
+    displayMode: displayMode === defaultDisplayMode ? null : displayMode,
+    kanban: config.kanban || null,
+    kanbanGroupBy: null,
+    gantt: config.gantt || null,
+    gallery: config.gallery || null,
+    modeConfigs: Object.fromEntries(
+      GENERIC_MODE_CONFIG_KEYS.map((key) => [
+        key,
+        (normalizeModeConfig(key, modeSource[key]) as
+          | Record<string, unknown>
+          | undefined) ?? null,
+      ])
+    ),
+    page: "0",
+    pageSize: normalizePageSize(config.pageSize).toString(),
+    visibility: config.columnVisibility ?? {},
+    order: config.columnOrder ?? [],
+    sizing: config.columnSizing ?? {},
+    expanded: {},
+    grouping: config.grouping ?? [],
+    pinning: normalizeColumnPinning(config.columnPinning) ?? {
+      left: [],
+      right: [],
+    },
+  };
 }

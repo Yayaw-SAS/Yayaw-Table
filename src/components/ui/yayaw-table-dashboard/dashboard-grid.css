@@ -1,0 +1,92 @@
+/*
+ * Dashboard grid, shared by the React and Vue editions. gridstack.js places
+ * the widgets on desktop once loaded; until then (and when it cannot load)
+ * these rules put them where the layout says. Phones stack them.
+ */
+.yayaw-dashboard-grid {
+  --dashboard-columns: 4;
+  position: relative;
+  min-height: calc(var(--dashboard-rows, 1) * var(--dashboard-row-height));
+}
+.yayaw-dashboard-grid:not([data-grid-ready]) > .grid-stack-item {
+  position: absolute;
+  left: calc(var(--dashboard-x) * 100% / var(--dashboard-columns));
+  top: calc(var(--dashboard-y) * var(--dashboard-row-height));
+  width: calc(var(--dashboard-w) * 100% / var(--dashboard-columns));
+  height: calc(var(--dashboard-h) * var(--dashboard-row-height));
+}
+.yayaw-dashboard-grid:not([data-grid-ready])
+  > .grid-stack-item
+  > .grid-stack-item-content {
+  position: absolute;
+  inset: var(--dashboard-margin);
+}
+.yayaw-dashboard-grid > .grid-stack-item > .grid-stack-item-content {
+  overflow: visible;
+}
+.yayaw-dashboard-grid .grid-stack-placeholder > .placeholder-content {
+  border: 2px dashed var(--ring, oklch(0.708 0 0));
+  border-radius: calc(var(--radius, 0.625rem) + 2px);
+  background: color-mix(
+    in oklab,
+    var(--muted, oklch(0.97 0 0)) 70%,
+    transparent
+  );
+}
+.yayaw-dashboard-grid > .grid-stack-item > .ui-resizable-se {
+  right: calc(var(--dashboard-margin) + 2px);
+  bottom: calc(var(--dashboard-margin) + 2px);
+  border-radius: 4px;
+  background-color: var(--background, oklch(1 0 0));
+  opacity: 0.9;
+}
+.yayaw-dashboard-grid [data-dashboard-drag-handle] {
+  cursor: grab;
+  touch-action: none;
+}
+.yayaw-dashboard-stack {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: calc(var(--dashboard-margin) * 2);
+}
+.yayaw-dashboard-stack > [data-dashboard-item] {
+  display: flex;
+  min-width: 0;
+  min-height: calc(var(--dashboard-h) * var(--dashboard-row-height));
+}
+.yayaw-dashboard-stack > [data-dashboard-item] > * {
+  flex: 1;
+  min-width: 0;
+}
+/* Numbers: the widget's title names the figure, which fills the card. */
+[data-widget-type="kpi"] [data-widget-body] {
+  display: flex;
+  align-items: safe center;
+  padding-block: 0.25rem;
+}
+[data-widget-type="kpi"] [data-widget-body] * {
+  min-height: 0;
+}
+[data-widget-type="kpi"] [data-widget-body] > * {
+  flex: 1;
+  min-width: 0;
+}
+[data-widget-type="kpi"] [data-chart-type="number"] {
+  gap: 0;
+}
+[data-widget-type="kpi"] [data-chart-type="number"] > :has([data-chart-title]),
+[data-widget-type="kpi"] [data-chart-number] + * {
+  display: none;
+}
+[data-widget-type="kpi"] :has(> [data-chart-number]) {
+  justify-items: start;
+  padding: 0;
+}
+[data-widget-type="kpi"] [data-chart-number] {
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+}
+/* Widgets line up with the toolbar despite their margins. */
+[data-dashboard-layout="grid"] {
+  margin-inline: calc(var(--dashboard-margin) * -1);
+}

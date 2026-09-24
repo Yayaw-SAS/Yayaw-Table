@@ -18,6 +18,7 @@ const standaloneRegistryItems = [
   "yayaw-table-vue",
   "yayaw-table-vue-calendar",
   "yayaw-table-vue-chart",
+  "yayaw-table-vue-dashboard",
   "yayaw-table-vue-connector-notion",
   "yayaw-table-vue-connector-google-sheets",
 ];

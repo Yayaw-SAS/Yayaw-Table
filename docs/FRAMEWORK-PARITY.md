@@ -1511,3 +1511,146 @@ submit), the rule editor ("Edit conditions" dialog, the problem linked to its
 control, a condition, a nested Any group, short comparisons, Escape keeping
 the settings open, the summary and the form following it), the create form's
 condition and date picked in the calendar, and the bulk edit mixed note.
+
+## Table instances on one page
+
+Both editions take two additive props for pages with several tables:
+
+- `instanceId` scopes an instance's URL keys: `<instanceId>-view`,
+  `<instanceId>-historyIndex` (React) and `<instanceId>-<key>` instead of
+  `view`, `historyIndex` and `<tableId>-<key>`. React also gives the instance
+  a jotai store of its own (`TableInstanceScope`), so two instances of one
+  table never share atoms; Vue instances already keep their state in their own
+  refs. Config, actions and saved views still resolve by table. Without
+  `instanceId`, keys and stores are unchanged.
+- `initialView: { id?, config }` starts an instance whose URL sync is off
+  from a saved view before its first request: React seeds the instance's
+  store with what selecting the view writes (`seedTableViewState`), Vue
+  applies it with `applyView` before loading. With URL sync on it is ignored
+  in both; use `initialActiveViewId`.
+
+React embedded instances share the host's single `QueryClient` (required), so
+their `tableId` doubles as the cache key; Vue instances create their own
+client. Dashboards pass an instance id that changes with the widget's
+dashboard filters and with "Refresh all", so a widget reloads with fresh data.
+
+Verification: `tests/table-instances.test.tsx` and
+`packages/yayaw-table-vue/src/components/table-instances.test.ts` check that
+two instances of one table write only their own keys (the shared `view` key
+included), read only their own keys from an incoming URL, and that two
+embedded instances each send their own view's filters in their first request
+without touching the URL.
+
+## Dashboard
+
+Dashboards ship as optional registry items: `yayaw-table-dashboard` (React:
+`YayawDashboard`, shadcn `button`, `calendar`, `dialog`, `dropdown-menu`,
+`input`, `native-select`, `popover`, `textarea`) and `yayaw-table-vue-dashboard` (Vue:
+`YayawDashboard.vue`, reka-ui like the table). Both list `gridstack` and load
+it, with its stylesheet, in a chunk fetched by the first desktop grid
+(`import("./dashboard-grid-engine")`), never by the table or on phones.
+
+Grid engine: gridstack.js in both editions rather than react-grid-layout and
+grid-layout-plus, so dragging, resizing, collisions and top gravity are the
+same code. The framework renders the items (`.grid-stack-item[gs-id]`);
+`dashboard-grid-engine.ts` (shared, synced to Vue) hands them to gridstack,
+applies layout changes and reports every widget's place after a drag or a
+resize. Until gridstack is ready (or if it fails), `dashboard-grid.css`
+(shared) places the items from CSS variables, so there is no layout shift.
+Grids narrower than 640px stack the widgets in reading order, full width,
+without drag; the widget menu still moves them.
+
+The shared `dashboard-model.ts` owns the contract and every rule:
+
+- JSON `{ version: 1, id, name, layout: [{ widgetId, x, y, w, h }],
+  widgets: [{ id, type: "view" | "kpi" | "note", tableId?, viewId?, title?,
+  settings }], filters, updatedAt? }`. `validateDashboard` drops invalid or
+  duplicate widgets and filters, repairs the layout and reports issues;
+  `normalizeDashboard` throws for non-dashboards and newer versions. JSON
+  without `version` (0) is migrated: layout items keyed `i`
+  (react-grid-layout) become `widgetId`.
+- Layout: 4 columns, rows of 120px, widgets 1–4 wide and 1–12 tall; overlaps
+  are resolved with the moved widget fixed, then everything rises (gridstack's
+  top gravity). Keyboard moves swap with the neighbour above, below or beside
+  (left/right fall back to one column); Wider moves the widget left at the
+  edge. Menu entries that cannot apply are disabled. New widgets (view 2×3,
+  number 1×1, note 1×2) take the first free spot.
+- Widgets: `view` renders the saved view (`viewId`, or the table's defaults)
+  in its display mode through an embedded table (`instanceId`,
+  `initialView`, URL sync, toolbar and header off). `kpi` renders a number
+  chart (`metric`: count, sum, avg, min, max; `metricColumn`) over its view's
+  records, compacted by `dashboard-grid.css`. `note` renders
+  `settings.text` through the host's `renderMarkdown` (React node / Vue
+  `VNodeChild`) or as plain text.
+- Filters: `dateRange` (`{ start?, end? }` calendar days → `between`,
+  `greaterThanOrEqual` or `lessThanOrEqual`) and `select` (values →
+  `isAnyOf`), each with `targets: [{ tableId, columnId, widgetIds? }]`.
+  `withDashboardFilters` wraps a table's `list` and `aggregate`:
+  `mergeDashboardFilters` appends the rules to the view's active rules (AND)
+  and also sends them as `requiredFilters`, which hosts must AND. A view that
+  matches any of its rules (OR, two or more) keeps its `advancedFilters` and
+  relies on `requiredFilters`, as a flat list cannot say "(A or B) and C".
+  The demo hosts honour `requiredFilters`. Filter values change in view mode
+  without saving; definitions are added and removed in edit mode.
+- Labels: EN/FR `dashboardLabel`, host overrides `dashboard.<key>`
+  (`translations`).
+
+Behaviour, identical in both editions: the header shows the name (an input in
+edit mode), "Refresh all", "Add widget" (edit), "Edit"/"Done" when `canEdit`;
+"Done" saves through `actions.dashboards.save` and toasts. Each widget card
+has its title, "Open full view" (`openView(tableId, viewId | null)`, table
+and number widgets) and, in edit mode, a drag handle and the menu (Move
+left/right/up/down, Wider/Narrower, Taller/Shorter, Remove), with moves
+announced in a polite live region. A widget shows "Loading…" while its views
+load, an error when its table or view is missing or its `list` fails (with
+Retry), and an error boundary (`WidgetErrorBoundary` / `onErrorCaptured`)
+keeps a failing widget from breaking the others.
+
+Filter controls are the library's own: a date range filter opens the Form
+view's popover calendar in range mode (react-day-picker in React, reka-ui
+`RangeCalendar` with the form calendar's styles in Vue), its button reading
+"Any date", "From Sep 1, 2026", "Until …" or "Sep 1, 2026 – Sep 10, 2026"
+(`dashboardDateRangeText`); a select filter opens an option dropdown with
+"All" and a checkbox per option, and shows the chosen options as the table's
+tags (`tagAppearance`, the first target table's `coloredTags`).
+
+Found on the way, now aligned in both editions:
+
+- Vue number charts drew nothing; they now show the figure and what it
+  counts, as React does.
+- Booleans render as a checkbox-style mark everywhere a cell renders them
+  (table, list, board and gallery cards): filled with a check for true, an
+  empty box for false, `role="img"` named by `common.true`/`common.false`.
+  React used a green or red (destructive) "True"/"False" badge, Vue a ✓ or
+  "—" chip.
+- Compact board cards (no property labels) leave out properties with
+  nothing to show (`isBlankCardValue`: null, blank text, empty list; false
+  and 0 are values). Vue board cards now default to the visible columns, as
+  React does, instead of every column (hidden ones showed "—").
+- Card pagination (list, gallery, board) shows when there is more than one
+  page by the server's page count or by the row count, as React decides;
+  Vue used the server's page count only.
+
+Verification for these: `tests/boolean-cell.test.tsx`,
+`packages/yayaw-table-vue/src/components/card-value-parity.test.ts`, the
+shared `value-format` suite and the last `e2e/dashboard.spec.ts` test.
+
+Demo: "Projects overview" (`?example=dashboard`, `examples/dashboard.ts`):
+the views example's Projects table (numbers, "Revenue by category", "Projects
+list", "Status board") and a Tasks table ("Open tasks"), a note, a "Due date"
+filter on Projects › Due and Tasks › Deadline and a "Category" filter,
+in-memory storage mirrored in `sessionStorage`. `?readonly` removes edit
+rights; `?theme=dark` shows the dark tokens. Requests are logged in
+`window.yayawDashboardRequests`.
+
+Verification: `tests/dashboard-model-suite.ts` (normalization, collisions,
+keyboard moves and resizes, phones, grid changes, widgets, KPI configs,
+titles and labels, views, filter rules per widget, AND merge and
+`requiredFilters`, action wrapping, filters, validation and versions) runs in
+both editions. `e2e/dashboard.spec.ts` on both demos: every widget renders
+from its own view with the URL untouched; dashboard filters change the
+numbers, lists and tasks and reach `list`/`aggregate` as `requiredFilters`;
+keyboard moves and resizes are saved and kept after a reload; drag to move and
+the resize handle; adding a table view and a number from the picker, and
+removing one; phones stack in reading order without drag; "Open full view"
+calls the host and readers cannot edit.

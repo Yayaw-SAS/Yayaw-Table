@@ -181,3 +181,29 @@ for (const [source, target] of [
     new URL(`../packages/yayaw-table-vue/src/${target}`, import.meta.url)
   );
 }
+
+// The dashboard's model, gridstack controller and grid styles are shared by
+// both optional dashboard items; only the table contracts path differs.
+const dashboardSource = new URL(
+  "../src/components/ui/yayaw-table-dashboard/",
+  import.meta.url
+);
+const dashboardTarget = new URL(
+  "../packages/yayaw-table-vue/src/dashboard/",
+  import.meta.url
+);
+await mkdir(dashboardTarget, { recursive: true });
+for (const name of [
+  "dashboard-model.ts",
+  "dashboard-grid-engine.ts",
+  "dashboard-grid.css",
+]) {
+  const content = await readFile(new URL(name, dashboardSource), "utf8");
+  await writeFile(
+    new URL(name, dashboardTarget),
+    content.replaceAll(
+      "../yayaw-table/utils/table-contracts",
+      "../table-contracts"
+    )
+  );
+}

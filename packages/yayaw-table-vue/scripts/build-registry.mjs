@@ -23,6 +23,8 @@ const calendarRoot = join(sourceRoot, "calendar");
 const isCalendarFile = (path) => path.startsWith(`${calendarRoot}/`);
 const chartRoot = join(sourceRoot, "chart");
 const isChartFile = (path) => path.startsWith(`${chartRoot}/`);
+const dashboardRoot = join(sourceRoot, "dashboard");
+const isDashboardFile = (path) => path.startsWith(`${dashboardRoot}/`);
 const allSourceFiles = (await walk(sourceRoot)).filter((path) => {
   if (!includedExtensions.has(extname(path))) {
     return false;
@@ -41,7 +43,12 @@ const connectorsRoot = join(sourceRoot, "connectors");
 const isConnectorFile = (path) => path.startsWith(`${connectorsRoot}/`);
 const sourceFiles = allSourceFiles.filter(
   (path) =>
-    !(isCalendarFile(path) || isChartFile(path) || isConnectorFile(path))
+    !(
+      isCalendarFile(path) ||
+      isChartFile(path) ||
+      isDashboardFile(path) ||
+      isConnectorFile(path)
+    )
 );
 
 const toRegistryFiles = async (paths, type = "registry:component") =>
@@ -110,6 +117,18 @@ const chartItem = {
   files: await toRegistryFiles(allSourceFiles.filter(isChartFile)),
 };
 
+const dashboardItem = {
+  $schema: "https://shadcn-vue.com/schema/registry-item.json",
+  name: "yayaw-table-vue-dashboard",
+  type: "registry:block",
+  title: "YaYaw Table Vue Dashboard",
+  description:
+    'Optional Notion-like dashboard for YaYaw Table Vue: a 4-column grid (gridstack.js, loaded on demand) of widgets showing saved views of any table in any display mode, numbers and notes, with dashboard filters sent to each table\'s list and aggregate requests. Render `<YayawDashboard :actions="{ dashboards }" :tables="…" />`; the host stores dashboards (`list`, `load`, `save`, `remove`).',
+  dependencies: ["gridstack@^14.0.0"],
+  registryDependencies: ["https://table.yayaw.app/r/yayaw-table-vue.json"],
+  files: await toRegistryFiles(allSourceFiles.filter(isDashboardFile)),
+};
+
 const connectorFiles = (name) =>
   toRegistryFiles(
     ["connector-model.ts", "sync-engine.ts", name].map((file) =>
@@ -144,12 +163,18 @@ const connectorItems = [
 ];
 
 await mkdir(outputRoot, { recursive: true });
-for (const registryItem of [item, calendarItem, chartItem, ...connectorItems]) {
+for (const registryItem of [
+  item,
+  calendarItem,
+  chartItem,
+  dashboardItem,
+  ...connectorItems,
+]) {
   await writeFile(
     join(outputRoot, `${registryItem.name}.json`),
     `${JSON.stringify(registryItem, null, 2)}\n`
   );
 }
 console.log(
-  `Built ${files.length} Vue registry files, ${calendarItem.files.length} calendar files, ${chartItem.files.length} chart files and ${connectorItems.length} connector items.`
+  `Built ${files.length} Vue registry files, ${calendarItem.files.length} calendar files, ${chartItem.files.length} chart files, ${dashboardItem.files.length} dashboard files and ${connectorItems.length} connector items.`
 );

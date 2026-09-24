@@ -111,12 +111,15 @@ export const useTableState = <TData extends TableRecord>({
   config,
   syncUrl,
   initialActiveViewId,
+  instanceId,
   planning = false,
   renderers,
 }: {
   config: TableConfig<TData>;
   syncUrl: boolean;
   initialActiveViewId?: string;
+  /** Scopes the URL keys: `<instanceId>-view`, `<instanceId>-…`. */
+  instanceId?: string;
   /** Whether a planning session exists; without one, links asking for Gantt fall back. */
   planning?: boolean;
   /** Modes with an optional renderer installed, such as `calendar`. */
@@ -124,6 +127,9 @@ export const useTableState = <TData extends TableRecord>({
 }): TableStateRefs => {
   const tableId = config.id;
   const columnDragStorageKey = `${tableId}-column-drag-enabled`;
+  // A scoped instance prefixes every URL key, `view` included, with its id.
+  const urlPrefix = instanceId || tableId;
+  const viewKey = instanceId ? `${instanceId}-view` : "view";
   const columnDndFeatureEnabled = config.table.enableColumnDnd !== false;
   const initialColumnDragEnabled = (): boolean => {
     if (!columnDndFeatureEnabled) {
@@ -241,10 +247,10 @@ export const useTableState = <TData extends TableRecord>({
     syncUrl && typeof window !== "undefined" ? window.location.search : ""
   );
   const hasInitialTableUrlState = [...initialParams.keys()].some((key) =>
-    key.startsWith(`${tableId}-`)
+    key.startsWith(`${urlPrefix}-`)
   );
   const initialViewId =
-    initialParams.get("view") ??
+    initialParams.get(viewKey) ??
     (hasInitialTableUrlState ? undefined : initialActiveViewId);
   const activeViewId = ref<string | undefined>(initialViewId);
   let hydrating = true;
@@ -309,19 +315,19 @@ export const useTableState = <TData extends TableRecord>({
     defaults: TableViewConfig
   ): void => {
     gantt.value = normalizeGanttView(
-      parseJson(params.get(`${tableId}-gantt`), defaults.gantt ?? {})
+      parseJson(params.get(`${urlPrefix}-gantt`), defaults.gantt ?? {})
     );
     modeConfigs.value = Object.fromEntries(
       GENERIC_MODE_CONFIG_KEYS.map((key) => [
         key,
         parseJson(
-          params.get(`${tableId}-${key}`),
+          params.get(`${urlPrefix}-${key}`),
           (defaults[key] ?? {}) as Record<string, unknown>
         ),
       ])
     );
     gallery.value = parseJson(
-      params.get(`${tableId}-gallery`),
+      params.get(`${urlPrefix}-gallery`),
       defaults.gallery ?? {}
     );
   };
@@ -333,72 +339,75 @@ export const useTableState = <TData extends TableRecord>({
     }
     const params = new URLSearchParams(window.location.search);
     const defaults = resolveView({});
-    search.value = params.get(`${tableId}-q`) ?? "";
+    search.value = params.get(`${urlPrefix}-q`) ?? "";
     filters.value = enabledFilters(
-      parseJson(params.get(`${tableId}-filters`), [])
+      parseJson(params.get(`${urlPrefix}-filters`), [])
     );
     advancedFilters.value = enabledAdvancedFilters(
       parseJson(
-        params.get(`${tableId}-advancedFilters`),
+        params.get(`${urlPrefix}-advancedFilters`),
         emptyAdvancedFilters()
       )
     );
     sorting.value = parseJson(
-      params.get(`${tableId}-sort`),
+      params.get(`${urlPrefix}-sort`),
       config.columns.sort ?? []
     );
     visibility.value = parseJson(
-      params.get(`${tableId}-visibility`),
+      params.get(`${urlPrefix}-visibility`),
       defaults.columnVisibility ?? {}
     );
     order.value = parseJson(
-      params.get(`${tableId}-order`),
+      params.get(`${urlPrefix}-order`),
       config.columns.order
     );
     sizing.value = enabledSizing(
-      parseJson(params.get(`${tableId}-sizing`), {})
+      parseJson(params.get(`${urlPrefix}-sizing`), {})
     );
     grouping.value = enabledGrouping(
-      parseJson(params.get(`${tableId}-grouping`), [])
+      parseJson(params.get(`${urlPrefix}-grouping`), [])
     );
     pinning.value = enabledPinning(
-      parseJson(params.get(`${tableId}-pinning`), emptyPinning())
+      parseJson(params.get(`${urlPrefix}-pinning`), emptyPinning())
     );
     pagination.value = {
-      pageIndex: Math.max(0, positiveInteger(params.get(`${tableId}-page`), 0)),
+      pageIndex: Math.max(
+        0,
+        positiveInteger(params.get(`${urlPrefix}-page`), 0)
+      ),
       pageSize: positiveInteger(
-        params.get(`${tableId}-pageSize`),
+        params.get(`${urlPrefix}-pageSize`),
         config.table.defaultPageSize
       ),
     };
     const requestedMode = params.get(
-      `${tableId}-display`
+      `${urlPrefix}-display`
     ) as TableDisplayMode | null;
     displayMode.value = enabledDisplayMode(requestedMode ?? undefined);
     kanban.value = parseJson(
-      params.get(`${tableId}-kanban`),
+      params.get(`${urlPrefix}-kanban`),
       defaults.kanban ?? {}
     );
     if (!kanban.value.groupBy) {
       kanban.value = {
         ...kanban.value,
         groupBy:
-          params.get(`${tableId}-kanbanGroupBy`) ??
+          params.get(`${urlPrefix}-kanbanGroupBy`) ??
           config.table.kanban?.groupBy,
       };
     }
     if (
       displayMode.value === "kanban" &&
-      !params.has(`${tableId}-grouping`) &&
-      (params.has(`${tableId}-kanban`) ||
-        params.has(`${tableId}-kanbanGroupBy`)) &&
+      !params.has(`${urlPrefix}-grouping`) &&
+      (params.has(`${urlPrefix}-kanban`) ||
+        params.has(`${urlPrefix}-kanbanGroupBy`)) &&
       kanban.value.groupBy
     ) {
       grouping.value = enabledGrouping([kanban.value.groupBy]);
     }
     readModeSettings(params, defaults);
     activeViewId.value =
-      params.get("view") ?? (hydrating ? initialViewId : undefined);
+      params.get(viewKey) ?? (hydrating ? initialViewId : undefined);
     hydrating = false;
   };
 
@@ -413,54 +422,57 @@ export const useTableState = <TData extends TableRecord>({
     const url = new URL(window.location.href);
     const set = (key: string, value: string | undefined): void =>
       value ? url.searchParams.set(key, value) : url.searchParams.delete(key);
-    set(`${tableId}-q`, search.value || undefined);
+    set(`${urlPrefix}-q`, search.value || undefined);
     set(
-      `${tableId}-filters`,
+      `${urlPrefix}-filters`,
       filters.value.length ? serialize(filters.value) : undefined
     );
     set(
-      `${tableId}-advancedFilters`,
+      `${urlPrefix}-advancedFilters`,
       advancedFilters.value.filters.length
         ? serialize(advancedFilters.value)
         : undefined
     );
     set(
-      `${tableId}-sort`,
+      `${urlPrefix}-sort`,
       sorting.value.length ? serialize(sorting.value) : undefined
     );
-    set(`${tableId}-visibility`, serialize(visibility.value));
-    set(`${tableId}-order`, serialize(order.value));
+    set(`${urlPrefix}-visibility`, serialize(visibility.value));
+    set(`${urlPrefix}-order`, serialize(order.value));
     set(
-      `${tableId}-sizing`,
+      `${urlPrefix}-sizing`,
       Object.keys(sizing.value).length ? serialize(sizing.value) : undefined
     );
-    set(`${tableId}-grouping`, serializedGrouping.value);
-    set(`${tableId}-pinning`, serializeEncoded(pinning.value));
+    set(`${urlPrefix}-grouping`, serializedGrouping.value);
+    set(`${urlPrefix}-pinning`, serializeEncoded(pinning.value));
     set(
-      `${tableId}-page`,
+      `${urlPrefix}-page`,
       pagination.value.pageIndex
         ? String(pagination.value.pageIndex)
         : undefined
     );
     set(
-      `${tableId}-pageSize`,
+      `${urlPrefix}-pageSize`,
       pagination.value.pageSize !== config.table.defaultPageSize
         ? String(pagination.value.pageSize)
         : undefined
     );
     set(
-      `${tableId}-display`,
+      `${urlPrefix}-display`,
       displayMode.value !== (config.table.defaultDisplayMode ?? "table")
         ? displayMode.value
         : undefined
     );
-    set(`${tableId}-kanban`, serializePresent(kanban.value));
-    set(`${tableId}-gantt`, serializePresent(gantt.value));
-    set(`${tableId}-gallery`, serializePresent(gallery.value));
+    set(`${urlPrefix}-kanban`, serializePresent(kanban.value));
+    set(`${urlPrefix}-gantt`, serializePresent(gantt.value));
+    set(`${urlPrefix}-gallery`, serializePresent(gallery.value));
     for (const key of GENERIC_MODE_CONFIG_KEYS) {
-      set(`${tableId}-${key}`, serializePresent(modeConfigs.value[key] ?? {}));
+      set(
+        `${urlPrefix}-${key}`,
+        serializePresent(modeConfigs.value[key] ?? {})
+      );
     }
-    set("view", activeViewId.value);
+    set(viewKey, activeViewId.value);
     window.history.replaceState(window.history.state, "", url);
   };
 

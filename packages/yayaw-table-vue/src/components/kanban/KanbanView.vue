@@ -9,6 +9,7 @@ import type { ColumnDefinition, TableRecord } from "../../types";
 import { useCardRows } from "../../composables/use-card-rows";
 import TableCheckbox from "../controls/TableCheckbox.vue";
 import CellRenderer from "../table/CellRenderer.vue";
+import { isBlankCardValue } from "../../value-format";
 import RowActions from "../table/RowActions.vue";
 
 const { context, translate, titleColumn, propertyIds, showLabels, groupBy } = useKanbanSettings();
@@ -177,7 +178,7 @@ const toggleSelection = (row: TableRecord, checked: boolean): void => {
               <RowActions :row="row" />
             </div>
             <dl class="yayaw-card-properties" :class="{ labeled: showLabels }">
-              <template v-for="id in propertyIds.filter((item) => item !== titleColumn && item !== groupBy)" :key="id">
+              <template v-for="id in propertyIds.filter((item) => item !== titleColumn && item !== groupBy && (showLabels || !isBlankCardValue(value(row, item))))" :key="id">
                 <dt v-if="showLabels">{{ column(id)?.header ?? id }}</dt>
                 <dd :data-type="column(id)?.type"><CellRenderer :value="value(row, id)" :row="row" :column="column(id) ?? { id, header: id }" /></dd>
               </template>

@@ -315,3 +315,17 @@ export function formatDateValue(
     timeZone: options.timeZone,
   }).format(date);
 }
+
+/**
+ * Whether a card property has nothing to show (null, blank text, empty list);
+ * compact board cards leave such properties out in both editions.
+ */
+export function isBlankCardValue(value: unknown): boolean {
+  if (value === null || value === undefined) {
+    return true;
+  }
+  if (typeof value === "string") {
+    return value.trim() === "";
+  }
+  return Array.isArray(value) && value.length === 0;
+}
