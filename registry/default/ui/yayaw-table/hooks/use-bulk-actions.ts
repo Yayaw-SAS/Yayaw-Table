@@ -44,6 +44,7 @@ interface ActionResult {
 }
 
 type BulkDeleteAction = (ids: string[]) => Promise<ActionResult>;
+type BulkCopyAction = (ids: string[]) => Promise<ActionResult>;
 type DeleteAction = (id: string) => Promise<ActionResult>;
 
 export interface BulkActionResult {
@@ -309,6 +310,7 @@ interface CrossPageSelectionResult<TData> {
 
 const DEFAULT_BULK_DELETE_ERROR =
   "Failed to delete selected rows. Please try again.";
+const DEFAULT_BULK_COPY_ERROR = "Failed to copy selected rows.";
 const DEFAULT_NO_VALID_IDS_ERROR =
   "No valid row IDs were found in the selected rows.";
 const DEFAULT_SELECT_ALL_ERROR = "Failed to select all matching rows.";
@@ -710,6 +712,47 @@ export async function loadAllMatchingRowsForSelection<TData>({
     rowIds: selectedRows.map((row) => row.id),
     rows: selectedRows,
   };
+}
+
+/**
+ * Copy the selected records through the host's `actions.bulkCopy(ids)`, as
+ * Vue does. The caller refreshes the table after a success.
+ */
+export async function executeBulkCopyAction({
+  bulkCopy,
+  ids,
+}: {
+  bulkCopy: BulkCopyAction;
+  ids: string[];
+}): Promise<BulkActionResult> {
+  if (ids.length === 0) {
+    return {
+      ...DEFAULT_BULK_ACTION_FAILURE_RESULT,
+      message: DEFAULT_NO_VALID_IDS_ERROR,
+    };
+  }
+
+  try {
+    const result = await bulkCopy(ids);
+    if (result.success) {
+      return {
+        clearSelection: false,
+        closeMenu: true,
+        message: `Copied ${ids.length} ${pluralizeRows(ids.length)}.`,
+        success: true,
+      };
+    }
+
+    return {
+      ...DEFAULT_BULK_ACTION_FAILURE_RESULT,
+      message: result.error?.trim() || DEFAULT_BULK_COPY_ERROR,
+    };
+  } catch (error) {
+    return {
+      ...DEFAULT_BULK_ACTION_FAILURE_RESULT,
+      message: toErrorMessage(error, DEFAULT_BULK_COPY_ERROR),
+    };
+  }
 }
 
 export async function executeBulkDeleteOperation({
@@ -1584,16 +1627,26 @@ export function useBulkActions<TData>({
         showBulkActionMessage(result);
         return result;
       } catch (error) {
-        const errorMessage = toErrorMessage(
-          error,
-          "Failed to copy selected rows."
-        );
+        const errorMessage = toErrorMessage(error, DEFAULT_BULK_COPY_ERROR);
         toast.error(errorMessage);
         return {
           ...DEFAULT_BULK_ACTION_FAILURE_RESULT,
           message: errorMessage,
         };
       }
+    }
+
+    const bulkCopyAction = provider?.actions.bulkCopy;
+    if (bulkCopyAction) {
+      const result = await executeBulkCopyAction({
+        bulkCopy: bulkCopyAction,
+        ids: extractSelectedRowIds(selectedRows),
+      });
+      if (result.success) {
+        await invalidateTableData();
+      }
+      showBulkActionMessage(result);
+      return result;
     }
 
     // Default copy to clipboard
@@ -1613,17 +1666,19 @@ export function useBulkActions<TData>({
 
       throw new Error("Clipboard API is not available in this environment.");
     } catch (error) {
-      const errorMessage = toErrorMessage(
-        error,
-        "Failed to copy selected rows."
-      );
+      const errorMessage = toErrorMessage(error, DEFAULT_BULK_COPY_ERROR);
       toast.error(errorMessage);
       return {
         ...DEFAULT_BULK_ACTION_FAILURE_RESULT,
         message: errorMessage,
       };
     }
-  }, [selectedRows, onBulkCopy]);
+  }, [
+    selectedRows,
+    onBulkCopy,
+    provider?.actions.bulkCopy,
+    invalidateTableData,
+  ]);
 
   // Handle bulk CSV export
   const handleBulkExport = useCallback(async (): Promise<BulkActionResult> => {

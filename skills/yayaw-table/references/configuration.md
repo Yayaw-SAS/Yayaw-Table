@@ -233,5 +233,5 @@ framework-native or known:
 | Events | callback props (`onRowActivate`, `onRowSelectionStateChange`) | emits (`row-activate`, `row-selection-change`) |
 | Bulk callbacks | receive TanStack `Row` objects | receive plain rows |
 | Numbers without `numberFormat` | raw (`1234.5`) | locale-grouped (`1,234.5`) |
-| Bulk Copy | `onBulkCopy`, else JSON to the clipboard; `actions.bulkCopy` is not called | `onBulkCopy`, else `actions.bulkCopy`; hidden without either |
+| Bulk Copy without `onBulkCopy` or `actions.bulkCopy` | JSON to the clipboard | hidden |
 | URL | also `-expanded` and `historyIndex` | no `-expanded`, no `historyIndex` |

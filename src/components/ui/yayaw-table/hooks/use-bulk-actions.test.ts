@@ -9,6 +9,7 @@ import {
   canSelectAllRows,
   completedBulkSelectionIds,
   createSyntheticSelectedRows,
+  executeBulkCopyAction,
   executeBulkDeleteOperation,
   executeCustomBulkDeleteHandler,
   loadAllMatchingRowsForSelection,
@@ -65,6 +66,64 @@ describe("executeBulkDeleteOperation", () => {
     const feedback = buildBulkDeleteFeedback(outcome);
     assert.equal(feedback.tone, "error");
     assert.ok(feedback.message.includes("Bulk delete is not configured"));
+  });
+});
+
+describe("executeBulkCopyAction", () => {
+  it("copies the selected ids through actions.bulkCopy", async () => {
+    const calls: string[][] = [];
+    const result = await executeBulkCopyAction({
+      bulkCopy: async (ids) => {
+        calls.push(ids);
+        return { success: true, data: [] };
+      },
+      ids: ["row-1", "row-2"],
+    });
+
+    assert.deepEqual(calls, [["row-1", "row-2"]]);
+    assert.equal(result.success, true);
+    assert.equal(result.closeMenu, true);
+    assert.equal(result.clearSelection, false);
+    assert.equal(result.message, "Copied 2 rows.");
+  });
+
+  it("reports the host error and keeps the menu open", async () => {
+    const result = await executeBulkCopyAction({
+      bulkCopy: async () => ({ success: false, error: "Copy is locked." }),
+      ids: ["row-1"],
+    });
+
+    assert.equal(result.success, false);
+    assert.equal(result.closeMenu, false);
+    assert.equal(result.message, "Copy is locked.");
+  });
+
+  it("turns a thrown error or a silent failure into a message", async () => {
+    const thrown = await executeBulkCopyAction({
+      bulkCopy: () => Promise.reject(new Error("Network down")),
+      ids: ["row-1"],
+    });
+    const silent = await executeBulkCopyAction({
+      bulkCopy: async () => ({ success: false }),
+      ids: ["row-1"],
+    });
+
+    assert.equal(thrown.message, "Network down");
+    assert.equal(silent.message, "Failed to copy selected rows.");
+  });
+
+  it("does not call the host without ids", async () => {
+    let called = false;
+    const result = await executeBulkCopyAction({
+      bulkCopy: async () => {
+        called = true;
+        return { success: true };
+      },
+      ids: [],
+    });
+
+    assert.equal(called, false);
+    assert.equal(result.success, false);
   });
 });
 

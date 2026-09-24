@@ -123,7 +123,7 @@ calculations, at most 2,000 rows for a chart) and computes in the browser.
 | `duplicate` | `(id)` | Return the copy in `data`; Ctrl/Cmd+D selects returned copies. |
 | `bulkUpdate` | `(ids, patch)` | Only the fields added in the bulk editor. On partial failure return `failedIds`: the complete subset still to update. |
 | `bulkDelete` | `(ids)` | Same `failedIds` rule. Without it the table calls `delete` per row. |
-| `bulkCopy` | `(ids)` | Called by Vue only (see the React and Vue differences). |
+| `bulkCopy` | `(ids)` | Bulk Copy when there is no `onBulkCopy`; the table refreshes after a success. React up to 3.6.1 never called it. |
 | `reorder` | `({ viewId, id, previousId?, nextId? }, { row })` | Store one order per view; never modify records. `{ success, error? }`. |
 
 ## Saved views

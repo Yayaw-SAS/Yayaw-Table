@@ -102,8 +102,9 @@ Each entry: what you see, why, what to do.
 - **Excel is missing from Export.** Only offered with `actions.exportFile`.
 - **Addresses fail to import into a `location` column.** Without
   `actions.geocode` only coordinates import; addresses become errors.
-- **React's bulk Copy ignores `actions.bulkCopy`.** A known parity gap in
-  3.6.1: React copies the selected rows as JSON unless `onBulkCopy` is passed.
+- **React's bulk Copy puts JSON on the clipboard.** Without `onBulkCopy` or
+  `actions.bulkCopy`, React copies the selected rows as JSON; Vue hides Copy.
+  Up to 3.6.1, React also ignored `actions.bulkCopy`.
 - **Exhaustive `switch` or `Record` over `TableDisplayMode`, column types or
   operators stops compiling after an upgrade.** Unions grow in minor
   releases; add the new members.
