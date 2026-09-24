@@ -17,10 +17,10 @@ type FormModule = Pick<
   | "formItemMissingTranslation"
   | "formLabel"
   | "formLocales"
-  | "formMatchLocale"
   | "formReviewConsents"
   | "formSettingsRows"
   | "formStepOptional"
+  | "formStepPlan"
   | "formSteps"
   | "formSubmission"
   | "formViewLocales"
@@ -38,9 +38,11 @@ type FormModule = Pick<
 type TextModule = Pick<
   typeof Text,
   | "formLanguageName"
+  | "formLocaleMatch"
   | "formLocaleTag"
   | "formTextIn"
   | "formTextMissing"
+  | "formTextVersion"
   | "normalizeFormText"
   | "resolveFormText"
   | "setFormText"
@@ -145,6 +147,23 @@ function textTests(test: TestFn, text: TextModule) {
     assert.equal(text.formLocaleTag("fr_ca"), "fr-CA");
     assert.equal(text.formLocaleTag("zh-hant-tw"), "zh-Hant-TW");
     assert.equal(text.formLocaleTag("not a locale"), undefined);
+    assert.equal(text.formLocaleMatch(["en", "fr"], "fr-CA"), "fr");
+    assert.equal(text.formLocaleMatch(["en", "fr-FR"], "fr-BE"), "fr-FR");
+    assert.equal(text.formLocaleMatch(["en", "fr"], "de"), undefined);
+  });
+
+  test("a text's own version says its language, or leaves the caller's default", () => {
+    assert.deepEqual(text.formTextVersion({ en: "Name", fr: "Nom" }, "fr-CA"), {
+      text: "Nom",
+      locale: "fr",
+    });
+    assert.deepEqual(text.formTextVersion("Name", "fr", "en"), {
+      text: "Name",
+      locale: "en",
+    });
+    // Only another language has a text: the caller's own default applies.
+    assert.equal(text.formTextVersion({ fr: "Nom" }, "en", "en"), undefined);
+    assert.equal(text.resolveFormText({ fr: "Nom" }, "en", "en"), "Nom");
   });
 
   test("localized texts keep valid locales and plain strings stay plain", () => {
@@ -236,10 +255,96 @@ function localeTests(test: TestFn, form: FormModule) {
         href: "/fr/confidentialite",
       },
       version: "2026-09",
+      locale: "fr",
     });
     const de = form.resolveFormSettings(COLUMNS, undefined, BILINGUAL, "de");
     assert.equal(de.title, "Project request");
     assert.equal(de.questions[1]?.label, "Category");
+  });
+
+  test("texts with a default of their own never show another language's translation", () => {
+    const frenchOnly = {
+      defaultLocale: "en",
+      title: { fr: "Demande" },
+      submitLabel: { fr: "Envoyer la demande" },
+      questions: [
+        { id: "name", columnId: "name", label: { fr: "Nom du projet" } },
+        {
+          id: "category",
+          columnId: "category",
+          optionLabels: { Hardware: { fr: "Matériel" } },
+        },
+        { id: "terms", kind: "consent", text: { fr: "J’accepte." } },
+      ],
+    };
+    const en = form.resolveFormSettings(COLUMNS, undefined, frenchOnly, "en");
+    // The column's name, its option labels and the built-in texts stay English.
+    assert.equal(en.questions[0]?.label, "Name");
+    assert.deepEqual(
+      en.questions[1]?.options.map((option) => option.label),
+      ["Hardware", "Software"]
+    );
+    assert.equal(en.submitLabel, undefined);
+    assert.equal(
+      en.consents[0]?.text,
+      "I agree to the processing of my answers."
+    );
+    assert.equal(en.consents[0]?.locale, "en");
+    // A text with no default of its own shows the version there is.
+    assert.equal(en.title, "Demande");
+    const fr = form.resolveFormSettings(COLUMNS, undefined, frenchOnly, "fr");
+    assert.equal(fr.questions[0]?.label, "Nom du projet");
+    assert.equal(fr.submitLabel, "Envoyer la demande");
+  });
+
+  test("built-in consent statements follow the host's label overrides", () => {
+    const settings = {
+      questions: [
+        { id: "terms", kind: "consent" as const, link: { href: "/privacy" } },
+      ],
+    };
+    const overrides: Record<string, string> = {
+      consentTextLink: "Ich stimme der {link} zu.",
+      consentLinkLabel: "Datenschutzerklärung",
+    };
+    const german = form.resolveFormSettings(
+      COLUMNS,
+      undefined,
+      settings,
+      "de",
+      (key, fallback) => overrides[key] ?? fallback
+    );
+    assert.deepEqual(german.consents[0], {
+      id: "terms",
+      text: "Ich stimme der {link} zu.",
+      link: { label: "Datenschutzerklärung", href: "/privacy" },
+      version: "1",
+      locale: "de",
+    });
+    const snapshot = form.publicFormSnapshot(settings, COLUMNS);
+    const accepted = form.acceptPublicFormResponse(
+      snapshot,
+      {},
+      {
+        consents: { terms: true },
+        locale: "de",
+        translate: (key, fallback) =>
+          key === "consentTextLink" ? "Ich stimme der {link} zu." : fallback,
+      }
+    );
+    assert.ok(accepted.ok);
+    assert.equal(
+      accepted.metadata.consents[0]?.text,
+      "Ich stimme der privacy policy zu."
+    );
+    // Without overrides a German reader sees the English statement, recorded as English.
+    const english = form.acceptPublicFormResponse(
+      snapshot,
+      {},
+      { consents: { terms: true }, locale: "de" }
+    );
+    assert.ok(english.ok);
+    assert.equal(english.metadata.consents[0]?.locale, "en");
   });
 
   test("the form's languages: its default, the added ones and those its texts use", () => {
@@ -267,8 +372,6 @@ function localeTests(test: TestFn, form: FormModule) {
       ["eu", "en", "de"]
     );
     assert.ok(!form.formAddableLocales({}, ["en"]).includes("en"));
-    assert.equal(form.formMatchLocale(["en", "fr"], "fr-CA"), "fr");
-    assert.equal(form.formMatchLocale(["en", "fr"], "de"), undefined);
   });
 
   test("items missing a translation are flagged per language", () => {
@@ -528,6 +631,40 @@ function consentTests(test: TestFn, form: FormModule) {
     );
   });
 
+  test("a consent keeps a step when the rules hide every question", () => {
+    const settings = {
+      layout: "steps",
+      questions: [
+        { id: "s1", kind: "section", title: "About" },
+        { id: "name", columnId: "name" },
+        { id: "terms", kind: "consent" },
+      ],
+      rules: [hideWhenNameEmpty("hide-about", "s1")],
+    };
+    const plan = (review: boolean) => {
+      const resolved = form.resolveFormSettings(COLUMNS, undefined, {
+        ...settings,
+        review,
+      });
+      const result = form.formStepPlan(
+        resolved,
+        form.evaluateFormView(resolved, {})
+      );
+      return {
+        steps: result.steps.map((step) => [
+          step.id,
+          (step.consents ?? []).map((consent) => consent.id),
+        ]),
+        review: result.reviewConsents.map((consent) => consent.id),
+      };
+    };
+    assert.deepEqual(plan(false), {
+      steps: [["consents", ["terms"]]],
+      review: [],
+    });
+    assert.deepEqual(plan(true), { steps: [], review: ["terms"] });
+  });
+
   test("the server requires each consent and records it in the response's language", () => {
     const snapshot = form.publicFormSnapshot(saved(form), COLUMNS);
     assert.deepEqual(
@@ -582,6 +719,7 @@ function consentTests(test: TestFn, form: FormModule) {
         { id: "consent-1", kind: "consent" },
       ],
     });
+    // A consent sharing an asked column's id is kept under another id.
     assert.deepEqual(
       form.normalizeFormViewConfig({
         questions: [
@@ -592,7 +730,20 @@ function consentTests(test: TestFn, form: FormModule) {
       })?.questions,
       [
         { id: "name", columnId: "name" },
+        { id: "name-consent", kind: "consent" },
         { id: "agree", kind: "consent", version: "2" },
+      ]
+    );
+    const asked = form.toggleFormQuestion(
+      [{ id: "email", kind: "consent" as const }],
+      "email",
+      true
+    );
+    assert.deepEqual(
+      form.normalizeFormViewConfig({ questions: asked })?.questions,
+      [
+        { id: "email-consent", kind: "consent" },
+        { id: "email-2", columnId: "email" },
       ]
     );
     const updated = form.updateFormQuestion(added.questions, "consent-1", {
@@ -628,7 +779,7 @@ function consentTests(test: TestFn, form: FormModule) {
 
 function hiddenTests(test: TestFn, form: FormModule) {
   const page = {
-    url: "https://example.com/contact?utm_source=newsletter&utm_campaign=spring",
+    url: "https://example.com/contact?utm_source=newsletter&utm_campaign=spring#access_token=secret",
     referrer: "https://search.example/?q=forms",
     locale: "fr",
   };
@@ -639,7 +790,8 @@ function hiddenTests(test: TestFn, form: FormModule) {
       form.collectFormHiddenFields(resolved.hiddenFields, page),
       {
         utm_source: "newsletter",
-        page: page.url,
+        // Without the query or fragment, which may hold tokens.
+        page: "https://example.com/contact",
         campaign: "spring",
       }
     );
@@ -656,7 +808,7 @@ function hiddenTests(test: TestFn, form: FormModule) {
         ],
         page
       ),
-      { ref: page.referrer, lang: "fr" }
+      { ref: "https://search.example/", lang: "fr" }
     );
     // Bound fields write their column like an answer; fixed values stay a fallback.
     assert.deepEqual(

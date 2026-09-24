@@ -24,10 +24,11 @@ import {
 import {
   FORM_COMMON_LOCALES,
   type FormText,
-  formLanguage,
+  type FormTextVersion,
   formLocaleTag,
   formTextLocales,
   formTextMissing,
+  formTextVersion,
   normalizeFormText,
   resolveFormText,
   uniqueFormLocales,
@@ -237,6 +238,8 @@ export interface ResolvedFormConsent {
   /** The link, when the consent has one; without `href` its text shows unlinked. */
   link?: { label: string; href?: string };
   version: string;
+  /** The language the statement is written in, when it is known. */
+  locale?: string;
 }
 
 /** A hidden field with how its column takes the value, when it is bound to one. */
@@ -490,18 +493,24 @@ export function normalizeFormHiddenSource(
   }
 }
 
+/** A hidden field; without `columnId` its value goes to `metadata.context`. */
+const hiddenFieldOf = (
+  id: string,
+  source: FormHiddenSource,
+  columnId?: string
+): FormHiddenField =>
+  columnId
+    ? { id, kind: "hidden", source, columnId }
+    : { id, kind: "hidden", source };
+
 function normalizeHiddenField(
   value: Record<string, unknown>
 ): FormHiddenField | undefined {
   const id = text(value.id);
   const source = normalizeFormHiddenSource(value.source);
-  if (!(id && source)) {
-    return;
-  }
-  const columnId = text(value.columnId);
-  return columnId
-    ? { id, kind: "hidden", source, columnId }
-    : { id, kind: "hidden", source };
+  return id && source
+    ? hiddenFieldOf(id, source, text(value.columnId))
+    : undefined;
 }
 
 function normalizeOptionLabels(
@@ -563,7 +572,7 @@ function unbindTaken(items: FormItem[], asked: Set<string>): FormItem[] {
       return item;
     }
     if (asked.has(item.columnId) || bound.has(item.columnId)) {
-      return { id: item.id, kind: "hidden", source: item.source };
+      return hiddenFieldOf(item.id, item.source);
     }
     bound.add(item.columnId);
     return item;
@@ -571,9 +580,27 @@ function unbindTaken(items: FormItem[], asked: Set<string>): FormItem[] {
 }
 
 /**
+ * A consent keeps its answer under its id, next to the answers kept under
+ * column ids: one sharing an asked column's id gets another id.
+ */
+function apartFromColumns(
+  entries: readonly FormItem[],
+  asked: ReadonlySet<string>
+): FormItem[] {
+  const taken = new Set([...asked, ...entries.map((item) => item.id)]);
+  return entries.map((item) => {
+    if (!(isFormConsent(item) && asked.has(item.id))) {
+      return item;
+    }
+    const id = freeId(`${item.id}-consent`, taken);
+    taken.add(id);
+    return { ...item, id };
+  });
+}
+
+/**
  * Questions, sections, consents and hidden fields in order, each column and
- * id at most once. A consent may not share its id with an asked column (its
- * answer is kept under that key).
+ * id at most once. A consent never shares its id with an asked column.
  */
 export function normalizeFormQuestions(value: unknown): FormItem[] {
   if (!Array.isArray(value)) {
@@ -589,10 +616,9 @@ export function normalizeFormQuestions(value: unknown): FormItem[] {
   const ids = new Set<string>();
   const columns = new Set<string>();
   const items: FormItem[] = [];
-  for (const item of entries) {
+  for (const item of apartFromColumns(entries, asked)) {
     const column = isFormQuestion(item) ? item.columnId : undefined;
-    const clash = isFormConsent(item) && asked.has(item.id);
-    if (!(ids.has(item.id) || (column && columns.has(column)) || clash)) {
+    if (!(ids.has(item.id) || (column && columns.has(column)))) {
       ids.add(item.id);
       if (column) {
         columns.add(column);
@@ -736,26 +762,56 @@ export const formDefaultLocale = (
 const isNumberFormat = (value: unknown): value is NumberFormatConfig =>
   typeof value === "string" || isRecord(value);
 
-/** Resolves a text in the form's language (see `resolveFormText`). */
-type TextResolver = (value: FormText | undefined) => string | undefined;
+/** How a form reads its texts, in the reader's language. */
+interface TextReader {
+  /** A text with no default of its own: its version, else the first available. */
+  text: (value: FormText | undefined) => string | undefined;
+  /** A text with a default of its own (a column name, a built-in label): its version, else the default. */
+  own: (value: FormText | undefined) => FormTextVersion | undefined;
+  /** A built-in label (host overrides applied), with its language. */
+  builtIn: (key: FormLabelKey) => FormTextVersion;
+}
+
+/** The language of the built-in labels shown for `locale`: French for `fr*`, else English. */
+const builtInLocale = (locale: string): string =>
+  locale.toLowerCase().startsWith("fr") ? "fr" : "en";
+
+function textReader(
+  locale: string | undefined,
+  defaultLocale: string | undefined,
+  translate: FormTranslate | undefined
+): TextReader {
+  const labels = locale ?? defaultLocale ?? "en";
+  return {
+    text: (value) => resolveFormText(value, locale, defaultLocale),
+    own: (value) => formTextVersion(value, locale, defaultLocale),
+    builtIn: (key) => {
+      const text = formLabel(key, labels, translate);
+      // A host override is written in the reader's language.
+      return text === formLabel(key, labels)
+        ? { text, locale: builtInLocale(labels) }
+        : { text, locale: labels };
+    },
+  };
+}
 
 function resolveQuestion(
   question: FormQuestion,
   column: FormColumn,
   editor: FormEditor,
-  t: TextResolver
+  read: TextReader
 ): ResolvedFormQuestion {
   const options = formOptions(column.options).map((option) => {
-    const label = t(question.optionLabels?.[String(option.value)]);
-    return label ? { ...option, label } : option;
+    const label = read.own(question.optionLabels?.[String(option.value)]);
+    return label ? { ...option, label: label.text } : option;
   });
   return {
     id: question.id,
     columnId: column.id,
     editor,
-    label: t(question.label) ?? column.header,
-    help: t(question.help),
-    placeholder: t(question.placeholder),
+    label: read.own(question.label)?.text ?? column.header,
+    help: read.text(question.help),
+    placeholder: read.text(question.placeholder),
     required: question.required === true,
     options,
     tags: column.displayVariant === "tag",
@@ -768,11 +824,11 @@ function resolveQuestion(
 
 function resolveSection(
   section: FormSectionBreak,
-  t: TextResolver
+  read: TextReader
 ): ResolvedFormSection {
   const resolved: ResolvedFormSection = { id: section.id, kind: "section" };
-  const title = t(section.title);
-  const description = t(section.description);
+  const title = read.text(section.title);
+  const description = read.text(section.description);
   if (title) {
     resolved.title = title;
   }
@@ -782,23 +838,30 @@ function resolveSection(
   return resolved;
 }
 
-/** A consent in the form's language; the built-in statement and link text fill what is unset. */
+/**
+ * A consent in the reader's language; the built-in statement and link text
+ * fill what is unset. `locale` records the language the statement is in.
+ */
 function resolveConsent(
   consent: FormConsentQuestion,
-  t: TextResolver,
-  locale: string
+  read: TextReader
 ): ResolvedFormConsent {
+  const statement =
+    read.own(consent.text) ??
+    read.builtIn(consent.link ? "consentTextLink" : "consentText");
   const resolved: ResolvedFormConsent = {
     id: consent.id,
-    text:
-      t(consent.text) ??
-      formLabel(consent.link ? "consentTextLink" : "consentText", locale),
+    text: statement.text,
     version: consent.version ?? DEFAULT_CONSENT_VERSION,
   };
+  if (statement.locale) {
+    resolved.locale = statement.locale;
+  }
   if (consent.link) {
-    const label =
-      t(consent.link.label) ?? formLabel("consentLinkLabel", locale);
-    const href = t(consent.link.href);
+    const label = (
+      read.own(consent.link.label) ?? read.builtIn("consentLinkLabel")
+    ).text;
+    const href = read.text(consent.link.href);
     resolved.link = href ? { label, href } : { label };
   }
   return resolved;
@@ -816,7 +879,7 @@ function resolveHiddenField(
     !(column && editor && HIDDEN_FIELD_EDITORS.has(editor)) ||
     asked.has(column.id)
   ) {
-    return { id: field.id, kind: "hidden", source: field.source };
+    return hiddenFieldOf(field.id, field.source);
   }
   return { ...field, editor, options: formOptions(column.options) };
 }
@@ -827,15 +890,14 @@ const defaultItems = (eligible: readonly FormColumn[]): FormItem[] =>
 function resolveItems(
   items: readonly FormItem[],
   byId: Map<string, FormColumn>,
-  t: TextResolver,
-  locale: string
+  read: TextReader
 ): ResolvedFormItem[] {
   return items.flatMap((item): ResolvedFormItem[] => {
     if (isFormSection(item)) {
-      return [{ kind: "section", section: resolveSection(item, t) }];
+      return [{ kind: "section", section: resolveSection(item, read) }];
     }
     if (isFormConsent(item)) {
-      return [{ kind: "consent", consent: resolveConsent(item, t, locale) }];
+      return [{ kind: "consent", consent: resolveConsent(item, read) }];
     }
     if (!isFormQuestion(item)) {
       return [];
@@ -846,7 +908,7 @@ function resolveItems(
       ? [
           {
             kind: "question",
-            question: resolveQuestion(item, column, editor, t),
+            question: resolveQuestion(item, column, editor, read),
           },
         ]
       : [];
@@ -895,28 +957,25 @@ const sectionIds = (items: readonly ResolvedFormItem[]) =>
 /**
  * Everything a form renders, with questions limited to columns it can edit.
  * Texts are resolved in `locale`: its exact version, else its language, else
- * the form's default locale, else the first version available.
+ * the form's default locale; then a text's own default (the column name, a
+ * built-in label, with the host's `translate` overrides), else the first
+ * version available.
  */
 export function resolveFormSettings(
   columns: readonly FormColumn[],
   defaults: unknown,
   view: unknown,
-  locale?: string
+  locale?: string,
+  translate?: FormTranslate
 ): ResolvedFormSettings {
   const settings = mergeFormSettings(defaults, view);
   const defaultLocale = formDefaultLocale(settings);
   const readerLocale = formLocaleTag(locale);
-  const t: TextResolver = (value) =>
-    resolveFormText(value, readerLocale, defaultLocale);
+  const read = textReader(readerLocale, defaultLocale, translate);
   const { eligible } = formColumns(columns);
   const byId = new Map(eligible.map((column) => [column.id, column]));
   const saved = settings.questions ?? defaultItems(eligible);
-  const items = resolveItems(
-    saved,
-    byId,
-    t,
-    readerLocale ?? defaultLocale ?? "en"
-  );
+  const items = resolveItems(saved, byId, read);
   const questions = items.flatMap((item) =>
     item.kind === "question" ? [item.question] : []
   );
@@ -939,8 +998,8 @@ export function resolveFormSettings(
     { targets: sectionIds(items), order: itemIds(items), layout }
   );
   return {
-    title: t(settings.title),
-    description: t(settings.description),
+    title: read.text(settings.title),
+    description: read.text(settings.description),
     questions,
     items,
     consents,
@@ -949,9 +1008,10 @@ export function resolveFormSettings(
     layout,
     review: settings.review === true,
     hiddenValues,
-    submitLabel: t(settings.submitLabel),
-    successMessage: t(settings.successMessage),
-    closedMessage: t(settings.closedMessage),
+    // The built-in labels apply when the reader's language has no text.
+    submitLabel: read.own(settings.submitLabel)?.text,
+    successMessage: read.own(settings.successMessage)?.text,
+    closedMessage: read.own(settings.closedMessage)?.text,
     allowAnotherResponse: settings.allowAnotherResponse !== false,
     redirectUrl: settings.redirectUrl,
     ...(readerLocale ? { locale: readerLocale } : {}),
@@ -1035,7 +1095,7 @@ export function toggleFormQuestion(
   const kept = rest.map(
     (item): FormItem =>
       isFormHiddenField(item) && item.columnId === columnId
-        ? { id: item.id, kind: "hidden", source: item.source }
+        ? hiddenFieldOf(item.id, item.source)
         : item
   );
   const id = freeId(columnId, takenIds(kept));
@@ -1086,17 +1146,27 @@ function insertItem(
   return next;
 }
 
+/** `prefix-N`, from one more than the items of that kind, whichever is free. */
+function numberedId(
+  prefix: string,
+  questions: readonly FormItem[],
+  kind: "consent" | "section"
+): string {
+  const taken = takenIds(questions);
+  let count =
+    questions.filter((item) => "kind" in item && item.kind === kind).length + 1;
+  while (taken.has(`${prefix}-${count}`)) {
+    count += 1;
+  }
+  return `${prefix}-${count}`;
+}
+
 /** Add an empty section break after `afterId` (or at the end); returns the items and its id. */
 export function addFormSection(
   questions: readonly FormItem[],
   afterId?: string
 ): { questions: FormItem[]; id: string } {
-  const ids = takenIds(questions);
-  let count = questions.filter(isFormSection).length + 1;
-  while (ids.has(`section-${count}`)) {
-    count += 1;
-  }
-  const id = `section-${count}`;
+  const id = numberedId("section", questions, "section");
   return {
     questions: insertItem(questions, { id, kind: "section" }, afterId),
     id,
@@ -1112,12 +1182,7 @@ export function addFormConsent(
   questions: readonly FormItem[],
   afterId?: string
 ): { questions: FormItem[]; id: string } {
-  const ids = takenIds(questions);
-  let count = questions.filter(isFormConsent).length + 1;
-  while (ids.has(`consent-${count}`)) {
-    count += 1;
-  }
-  const id = `consent-${count}`;
+  const id = numberedId("consent", questions, "consent");
   return {
     questions: insertItem(questions, { id, kind: "consent" }, afterId),
     id,
@@ -1188,9 +1253,7 @@ export function updateFormHiddenField(
     follows && source !== field.source
       ? freeId(formHiddenFieldKey(source), others)
       : id;
-  const next: FormHiddenField = columnId
-    ? { id: nextId, kind: "hidden", source, columnId }
-    : { id: nextId, kind: "hidden", source };
+  const next = hiddenFieldOf(nextId, source, columnId);
   return {
     questions: questions.map((item) => (item === field ? next : item)),
     id: nextId,
@@ -1621,13 +1684,19 @@ function hiddenText(value: unknown, max: number): string | undefined {
   return content ? content.slice(0, max) : undefined;
 }
 
-/** A page or referrer address: http(s) only, dropped when too long. */
+/**
+ * A page or referrer address: http(s) only, dropped when too long, kept
+ * without its query and fragment, which may hold tokens or personal data
+ * (campaign parameters are read with `urlParam` fields).
+ */
 function hiddenAddress(value: unknown): string | undefined {
   const address =
     typeof value === "string" ? withoutControls(value).trim() : "";
-  return address.length <= FORM_HIDDEN_URL_MAX && validUrl(address)
-    ? address
-    : undefined;
+  if (address.length > FORM_HIDDEN_URL_MAX || !validUrl(address)) {
+    return;
+  }
+  const url = new URL(address);
+  return `${url.origin}${url.pathname}`;
 }
 
 /** A hidden value as the server keeps it: from the field's own source, as capped text. */
@@ -1799,7 +1868,7 @@ export interface FormConsentRecord {
   text: string;
   /** The link's address, when the statement has one. */
   href?: string;
-  /** The language the statement was shown in. */
+  /** The language the statement is written in, when it is known. */
   locale?: string;
   /** When the host's server received the response (`acceptedAt`). */
   acceptedAt?: string;
@@ -1818,9 +1887,13 @@ export interface FormResponseMetadata {
   server?: Record<string, FormServerContextValue>;
 }
 
-/** The metadata of a response: its consents (all accepted) and the hidden fields kept out of columns. */
+/**
+ * The metadata of a response: its consents (all accepted), each with the
+ * statement as shown and the language it is written in, and the hidden
+ * fields kept out of columns.
+ */
 export function formResponseMetadata(
-  settings: Pick<ResolvedFormSettings, "consents" | "locale">,
+  settings: Pick<ResolvedFormSettings, "consents">,
   context: Record<string, string>,
   acceptedAt?: string
 ): FormResponseMetadata {
@@ -1830,7 +1903,7 @@ export function formResponseMetadata(
       version: consent.version,
       text: formConsentStatement(consent),
       ...(consent.link?.href ? { href: consent.link.href } : {}),
-      ...(settings.locale ? { locale: settings.locale } : {}),
+      ...(consent.locale ? { locale: consent.locale } : {}),
       ...(acceptedAt ? { acceptedAt } : {}),
     })),
     context,
@@ -2038,36 +2111,54 @@ function plainSteps(
   );
 }
 
+/** Id of the step holding the consents of a form whose questions are all hidden. */
+export const CONSENT_STEP = "consents";
+
+/** The steps of the steps layout and the consents of its review step. */
+export interface FormStepPlan {
+  steps: FormStep[];
+  /** Consents shown on the review step (with `review`). */
+  reviewConsents: ResolvedFormConsent[];
+}
+
 /**
  * Steps of the steps layout, skipping what the rules hide: one per question,
  * or one per section when the form has section breaks. Consents show on the
- * step they are placed in; those placed last show on the last step, which is
- * the review (`formReviewConsents`) when the form has one.
+ * step they are placed in; those placed last show on the last step, the
+ * review when the form has one. When the rules hide every question, the
+ * consents still get a step of their own.
  */
-export function formSteps(
+export function formStepPlan(
   settings: StepSettings,
   evaluation?: Pick<FormEvaluation, "hidden">
-): FormStep[] {
+): FormStepPlan {
   const visible = (id: string) => !evaluation?.hidden.has(id);
-  const steps = plainSteps(settings, visible);
-  const { byStep } = consentPlaces(settings, steps);
-  return steps.map((step) => ({
+  const plain = plainSteps(settings, visible);
+  const { byStep, review } = consentPlaces(settings, plain);
+  const steps = plain.map((step) => ({
     ...step,
     consents: byStep.get(step.id) ?? [],
   }));
+  if (settings.review || !review.length) {
+    return { steps, reviewConsents: settings.review ? review : [] };
+  }
+  return {
+    steps: [...steps, { id: CONSENT_STEP, questions: [], consents: review }],
+    reviewConsents: [],
+  };
 }
 
-/** Consents shown on the review step: those placed after the last visible question. */
-export function formReviewConsents(
+/** The steps of `formStepPlan`. */
+export const formSteps = (
   settings: StepSettings,
   evaluation?: Pick<FormEvaluation, "hidden">
-): ResolvedFormConsent[] {
-  if (!settings.review) {
-    return [];
-  }
-  const visible = (id: string) => !evaluation?.hidden.has(id);
-  return consentPlaces(settings, plainSteps(settings, visible)).review;
-}
+): FormStep[] => formStepPlan(settings, evaluation).steps;
+
+/** The review step's consents of `formStepPlan`: those placed after the last visible question. */
+export const formReviewConsents = (
+  settings: StepSettings,
+  evaluation?: Pick<FormEvaluation, "hidden">
+): ResolvedFormConsent[] => formStepPlan(settings, evaluation).reviewConsents;
 
 /** Whether a step may be skipped: none of its visible questions is required, and it asks no consent. */
 export const formStepOptional = (
@@ -2274,6 +2365,7 @@ const ENGLISH_LABELS = {
   editingLanguage: "Editing",
   previewLanguage: "Language",
   addLanguage: "Add language",
+  defaultLanguage: "Default language",
   translationHint: "Texts not translated show in {language}.",
   missingTranslation: "Missing translation",
   closedMessage: "Closed message",
@@ -2499,6 +2591,7 @@ const FRENCH_LABELS: Record<FormLabelKey, string> = {
   editingLanguage: "Édition",
   previewLanguage: "Langue",
   addLanguage: "Ajouter une langue",
+  defaultLanguage: "Langue par défaut",
   translationHint: "Les textes non traduits s’affichent en {language}.",
   missingTranslation: "Traduction manquante",
   closedMessage: "Message de fermeture",
@@ -2773,14 +2866,7 @@ function snapshotColumn(column: FormColumn): FormColumn {
 
 /** A hidden field as saved: its id, source and column. */
 const plainHiddenField = (field: FormHiddenField): FormHiddenField =>
-  field.columnId
-    ? {
-        id: field.id,
-        kind: "hidden",
-        source: field.source,
-        columnId: field.columnId,
-      }
-    : { id: field.id, kind: "hidden", source: field.source };
+  hiddenFieldOf(field.id, field.source, field.columnId);
 
 /**
  * The saved questions, sections and consents kept by a snapshot, with their
@@ -2811,7 +2897,7 @@ function snapshotItems(
   const collected = resolved.hiddenFields.flatMap((field): FormItem[] =>
     field.source.type === "static"
       ? []
-      : [{ id: field.id, kind: "hidden", source: field.source }]
+      : [hiddenFieldOf(field.id, field.source)]
   );
   return [...items, ...collected];
 }
@@ -2950,6 +3036,8 @@ export interface PublicFormResponseInput {
   locale?: unknown;
   /** Set by the host's server: stamped on each accepted consent. */
   acceptedAt?: Date | string;
+  /** Set by the host's server: the label overrides the page used (`form.<key>`), so built-in statements are recorded as shown. */
+  translate?: FormTranslate;
 }
 
 /** A public response the server accepted: the record to create and its metadata. */
@@ -3002,7 +3090,8 @@ export function acceptPublicFormResponse(
     snapshot.columns,
     undefined,
     snapshot.form,
-    formLocaleTag(response.locale)
+    formLocaleTag(response.locale),
+    response.translate
   );
   const answers = isRecord(input) ? input : {};
   const values = Object.fromEntries(
@@ -3241,20 +3330,6 @@ export function formAddableLocales(
   const present = new Set(languages.map((locale) => locale.toLowerCase()));
   return uniqueFormLocales([...offered, ...FORM_COMMON_LOCALES]).filter(
     (locale) => !present.has(locale.toLowerCase())
-  );
-}
-
-/** The language a form is shown in among its languages: the reader's locale, its language, else the default. */
-export function formMatchLocale(
-  languages: readonly string[],
-  locale: string
-): string | undefined {
-  const lower = locale.toLowerCase();
-  const language = formLanguage(locale);
-  return (
-    languages.find((item) => item.toLowerCase() === lower) ??
-    languages.find((item) => item.toLowerCase() === language) ??
-    languages.find((item) => formLanguage(item) === language)
   );
 }
 

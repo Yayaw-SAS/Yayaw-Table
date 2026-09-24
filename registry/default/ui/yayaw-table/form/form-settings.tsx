@@ -5,41 +5,22 @@ import {
   ArrowUp,
   ChevronDown,
   GripVertical,
-  ListFilter,
   Plus,
   Trash2,
 } from "lucide-react";
-import {
-  type ChangeEvent,
-  type KeyboardEvent,
-  type ReactNode,
-  useEffect,
-  useId,
-  useState,
-} from "react";
+import { type ReactNode, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import {
   type ViewSettingField,
   ViewSettingsPanel,
 } from "../components/toolbar/view-settings-panel";
 import type { DisplayModeSettingsContext } from "../types/display-mode-renderer";
-import type {
-  ConditionField,
-  FormRule,
-  RuleIssue,
-} from "../utils/form-conditions";
 import {
-  type FormText,
   formLanguage,
   formLanguageName,
-  formTextIn,
-  formTextMissing,
   resolveFormText,
-  setFormText,
   uniqueFormLocales,
 } from "../utils/form-text";
 import {
@@ -51,16 +32,13 @@ import {
   type FormConsentQuestion,
   type FormHiddenField,
   type FormHiddenSource,
-  type FormHiddenSourceType,
   type FormHiddenValue,
   type FormItem,
-  type FormLabelKey,
   type FormQuestion,
   type FormSectionBreak,
   type FormTranslate,
   type FormViewSettings,
   formAddableLocales,
-  formColumnEditor,
   formColumns,
   formDefaultLocale,
   formHiddenChoices,
@@ -69,7 +47,6 @@ import {
   formHiddenValueText,
   formItemMissingTranslation,
   formLabel,
-  formOptions,
   formOrderedItems,
   formQuestionList,
   formRuleFields,
@@ -82,251 +59,37 @@ import {
   mergeFormSettings,
   moveFormQuestion,
   normalizeFormViewConfig,
-  type ResolvedFormQuestion,
   removeFormItem,
   removeFormRule,
   resolveFormSettings,
-  setFormOptionLabel,
   toggleFormQuestion,
   updateFormHiddenField,
   updateFormQuestion,
   upsertFormRule,
 } from "../utils/form-view";
+import {
+  FORM_HIDDEN_SOURCE_LABELS,
+  FormConsentEditor,
+  type FormEditingLanguage,
+  FormHiddenFieldEditor,
+  FormLocalizedText,
+  FormMissingTranslation,
+  FormQuestionEditor,
+  type FormQuestionRules,
+  FormSettingSelect,
+  FormSettingSwitch,
+  type FormSettingsLabel,
+  FormSettingText,
+} from "./form-editors";
 import { FormLanguageSwitch } from "./form-languages";
-import { FormRuleEditor, RuleSelect } from "./form-rules";
-import { FormRulesDialog } from "./form-rules-dialog";
 
-type Label = (key: FormLabelKey, params?: Record<string, string>) => string;
+type Label = FormSettingsLabel;
 
 const NONE = "";
-/** "Save in" choice of a hidden field kept in the response details. */
-const DETAILS = "__details";
 const PREVIEW_LENGTH = 48;
-
-/** The language texts are written in, and the form's default language. */
-interface Editing {
-  locale: string;
-  defaultLocale: string;
-  missingLabel: string;
-}
-
-const MISSING_CLASS =
-  "rounded-sm bg-amber-500/10 px-1.5 py-0.5 text-amber-700 text-xs dark:text-amber-400";
-
-const describedBy = (ids: (string | false | undefined)[]) =>
-  ids.filter(Boolean).join(" ") || undefined;
-
-/** A text setting saved when it loses focus or on Enter, not on every key. */
-function CommitText({
-  hint,
-  id,
-  label,
-  lang,
-  missing,
-  missingLabel,
-  multiline,
-  onCommit,
-  placeholder,
-  type = "text",
-  value,
-}: {
-  id: string;
-  label: string;
-  multiline?: boolean;
-  onCommit: (value: string) => void;
-  type?: string;
-  value: string;
-  /** Shown while empty, e.g. the text of the default language. */
-  placeholder?: string;
-  /** Language of the text typed, for spelling and screen readers. */
-  lang?: string;
-  /** Flags a missing translation next to the label. */
-  missing?: boolean;
-  missingLabel?: string;
-  hint?: string;
-}) {
-  const [draft, setDraft] = useState(value);
-  useEffect(() => setDraft(value), [value]);
-  const commit = () => {
-    if (draft !== value) {
-      onCommit(draft);
-    }
-  };
-  const onChange = (
-    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => setDraft(event.target.value);
-  const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      commit();
-    }
-  };
-  const description = describedBy([
-    missing && `${id}-missing`,
-    hint && `${id}-hint`,
-  ]);
-  return (
-    <div className="grid min-w-0 gap-1.5">
-      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-        <label className="text-muted-foreground text-sm" htmlFor={id}>
-          {label}
-        </label>
-        {missing ? (
-          <span
-            className={MISSING_CLASS}
-            data-form-missing-translation
-            id={`${id}-missing`}
-          >
-            {missingLabel}
-          </span>
-        ) : null}
-      </div>
-      {multiline ? (
-        <Textarea
-          aria-describedby={description}
-          id={id}
-          lang={lang}
-          onBlur={commit}
-          onChange={onChange}
-          placeholder={placeholder}
-          rows={2}
-          value={draft}
-        />
-      ) : (
-        <Input
-          aria-describedby={description}
-          id={id}
-          lang={lang}
-          onBlur={commit}
-          onChange={onChange}
-          onKeyDown={onKeyDown}
-          placeholder={placeholder}
-          type={type}
-          value={draft}
-        />
-      )}
-      {hint ? (
-        <p className="text-muted-foreground text-xs" id={`${id}-hint`}>
-          {hint}
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
-/**
- * A text written in the language being edited: the other languages keep
- * theirs; the default language's text shows as the placeholder while this
- * one is not translated, and "Missing translation" flags it.
- */
-function LocalizedText({
-  editing,
-  fallback,
-  flagMissing = true,
-  hint,
-  id,
-  label,
-  multiline,
-  onChange,
-  source,
-  text,
-  type,
-}: {
-  editing: Editing;
-  id: string;
-  label: string;
-  text: FormText | undefined;
-  onChange: (text: FormText | undefined) => void;
-  /** False for texts often the same in every language (an address). */
-  flagMissing?: boolean;
-  /** What shows while no language has a text (a column name): it needs a translation too. */
-  source?: string;
-  /** The built-in text shown while empty (it is already translated). */
-  fallback?: string;
-  multiline?: boolean;
-  type?: string;
-  hint?: string;
-}) {
-  const { defaultLocale, locale } = editing;
-  const original = resolveFormText(text, defaultLocale) ?? source;
-  const placeholder = locale === defaultLocale ? source : original;
-  return (
-    <CommitText
-      hint={hint}
-      id={id}
-      label={label}
-      lang={locale}
-      missing={
-        flagMissing && formTextMissing(text, locale, defaultLocale, source)
-      }
-      missingLabel={editing.missingLabel}
-      multiline={multiline}
-      onCommit={(value) =>
-        onChange(setFormText(text, locale, value, defaultLocale))
-      }
-      placeholder={placeholder ?? fallback}
-      type={type}
-      value={formTextIn(text, locale, defaultLocale)}
-    />
-  );
-}
-
-/** A labelled switch, as in the table's settings menus. */
-function SwitchSetting({
-  checked,
-  id,
-  label,
-  onChange,
-}: {
-  checked: boolean;
-  id: string;
-  label: string;
-  onChange: (checked: boolean) => void;
-}) {
-  return (
-    <div className="flex min-h-8 items-center justify-between gap-3">
-      <label className="min-w-0 text-sm" htmlFor={id} id={`${id}-label`}>
-        {label}
-      </label>
-      <Switch
-        aria-labelledby={`${id}-label`}
-        checked={checked}
-        id={id}
-        onCheckedChange={(next) => onChange(next)}
-      />
-    </div>
-  );
-}
-
-/** A labelled settings select (the rule editor's compact select). */
-function SelectSetting({
-  label,
-  onChange,
-  options,
-  placeholder,
-  value,
-}: {
-  label: string;
-  onChange: (value: string) => void;
-  options: { value: string; label: string }[];
-  placeholder?: string;
-  value: string;
-}) {
-  return (
-    <div className="grid min-w-0 gap-1.5">
-      <span aria-hidden="true" className="text-muted-foreground text-sm">
-        {label}
-      </span>
-      <RuleSelect
-        label={label}
-        onChange={onChange}
-        options={options}
-        placeholder={placeholder}
-        value={value}
-      />
-    </div>
-  );
-}
+/** The panel an item's editor opens in, under its row. */
+const DETAILS_CLASS =
+  "mx-1 mb-1 grid gap-3 rounded-md bg-muted/50 p-3 dark:bg-muted/30";
 
 function SettingsHeading({ children }: { children: ReactNode }) {
   return (
@@ -336,238 +99,14 @@ function SettingsHeading({ children }: { children: ReactNode }) {
   );
 }
 
-/** "Missing translation" under a row of the list, in the language being edited. */
-function MissingLine({ label, missing }: { label: string; missing: boolean }) {
-  return missing ? (
-    <p className="pb-1 pl-7" data-form-missing-translation>
-      <span className={MISSING_CLASS}>{label}</span>
-    </p>
-  ) : null;
-}
-
-/** The rules of one question, as its row edits them. */
-interface QuestionRules {
-  list: FormRule[];
-  fields: ConditionField[];
-  issues: RuleIssue[];
-  summaries: string[];
-  questions: ResolvedFormQuestion[];
-  locale: string;
-  translate?: FormTranslate;
-  onAdd: () => void;
-  onChange: (rule: FormRule) => void;
-  onRemove: (id: string) => void;
-}
-
-/**
- * The side panel keeps a status line and "Edit conditions"; the rules are
- * edited in a dialog (a drawer on phones) where the conditions have room.
- */
-function RulesEditor({
-  label,
-  name,
-  rules,
-}: {
-  label: Label;
-  name: string;
-  rules: QuestionRules;
-}) {
-  const [open, setOpen] = useState(false);
-  const status = rules.list.length ? null : label("noConditions");
-  return (
-    <section className="grid gap-2" data-form-rules>
-      <h4 className="font-medium text-muted-foreground text-xs">
-        {label("conditions")}
-      </h4>
-      {status ? (
-        <p className="text-muted-foreground text-xs">{status}</p>
-      ) : null}
-      {rules.issues.length ? (
-        <p className="text-destructive text-xs" data-form-rules-problem>
-          {label("conditionsProblem")}
-        </p>
-      ) : null}
-      <Button
-        className="w-fit font-normal"
-        disabled={rules.fields.length === 0 && rules.list.length === 0}
-        onClick={() => setOpen(true)}
-        size="sm"
-        type="button"
-        variant="outline"
-      >
-        <ListFilter aria-hidden="true" />
-        {label("editConditions")}
-      </Button>
-      <FormRulesDialog
-        description={label("conditionsDescription")}
-        doneLabel={label("done")}
-        onOpenChange={setOpen}
-        open={open}
-        title={label("conditionsTitle", { label: name })}
-      >
-        {rules.list.map((rule) => (
-          <FormRuleEditor
-            fields={rules.fields}
-            issues={rules.issues.filter((issue) => issue.ruleId === rule.id)}
-            key={rule.id}
-            label={label}
-            locale={rules.locale}
-            onChange={rules.onChange}
-            onRemove={() => rules.onRemove(rule.id)}
-            questions={rules.questions}
-            rule={rule}
-            translate={rules.translate}
-          />
-        ))}
-        {rules.list.length ? null : (
-          <p className="text-muted-foreground text-sm">
-            {label("noConditions")}
-          </p>
-        )}
-        <Button
-          className="w-fit font-normal"
-          disabled={rules.fields.length === 0}
-          onClick={rules.onAdd}
-          size="sm"
-          type="button"
-          variant="outline"
-        >
-          <Plus aria-hidden="true" />
-          {label("addRule")}
-        </Button>
-      </FormRulesDialog>
-    </section>
-  );
-}
-
-/** Option labels of a select question, in the language being edited. */
-function OptionLabels({
-  column,
-  editing,
-  id,
-  label,
-  onChange,
-  question,
-}: {
-  column: FormColumn;
-  editing: Editing;
-  id: string;
-  label: Label;
-  onChange: (patch: Partial<FormQuestion>) => void;
-  question: FormQuestion;
-}) {
-  const options = formOptions(column.options);
-  if (!options.length) {
-    return null;
-  }
-  return (
-    <fieldset className="grid min-w-0 gap-2" data-form-option-labels>
-      <legend className="mb-1 font-medium text-muted-foreground text-xs">
-        {label("optionLabels")}
-      </legend>
-      {options.map((option, index) => {
-        const value = String(option.value);
-        return (
-          <LocalizedText
-            editing={editing}
-            id={`${id}-option-${index}`}
-            key={value}
-            label={label("optionLabel", { option: option.label })}
-            onChange={(text) =>
-              onChange({
-                optionLabels: setFormOptionLabel(question, value, text),
-              })
-            }
-            source={option.label}
-            text={question.optionLabels?.[value]}
-          />
-        );
-      })}
-    </fieldset>
-  );
-}
-
-function QuestionDetails({
-  column,
-  editing,
-  id,
-  label,
-  name,
-  onChange,
-  question,
-  rules,
-}: {
-  column: FormColumn;
-  editing: Editing;
-  id: string;
-  label: Label;
-  name: string;
-  onChange: (patch: Partial<FormQuestion>) => void;
-  question: FormQuestion;
-  rules: QuestionRules;
-}) {
-  const editor = formColumnEditor(column);
-  const textInput = editor !== "boolean" && editor !== "multiSelect";
-  const choices = editor === "select" || editor === "multiSelect";
-  return (
-    <div
-      className="mx-1 mb-1 grid gap-3 rounded-md bg-muted/50 p-3 dark:bg-muted/30"
-      id={`${id}-details`}
-    >
-      <LocalizedText
-        editing={editing}
-        id={`${id}-label`}
-        label={label("label")}
-        onChange={(text) => onChange({ label: text })}
-        source={column.header}
-        text={question.label}
-      />
-      <LocalizedText
-        editing={editing}
-        id={`${id}-help`}
-        label={label("help")}
-        multiline
-        onChange={(text) => onChange({ help: text })}
-        text={question.help}
-      />
-      {textInput ? (
-        <LocalizedText
-          editing={editing}
-          id={`${id}-placeholder`}
-          label={label("placeholder")}
-          onChange={(text) => onChange({ placeholder: text })}
-          text={question.placeholder}
-        />
-      ) : null}
-      {choices ? (
-        <OptionLabels
-          column={column}
-          editing={editing}
-          id={id}
-          label={label}
-          onChange={onChange}
-          question={question}
-        />
-      ) : null}
-      <SwitchSetting
-        checked={question.required === true}
-        id={`${id}-required`}
-        label={label("requiredToggle")}
-        onChange={(required) => onChange({ required })}
-      />
-      <RulesEditor label={label} name={name} rules={rules} />
-    </div>
-  );
-}
-
 interface QuestionRowProps {
   column: FormColumn;
   index: number;
   count: number;
   label: Label;
-  editing: Editing;
+  editing: FormEditingLanguage;
   question?: FormQuestion;
-  rules?: QuestionRules;
+  rules?: FormQuestionRules;
   onAsk: (asked: boolean) => void;
   onMove: (offset: -1 | 1) => void;
   onChange: (patch: Partial<FormQuestion>) => void;
@@ -763,18 +302,20 @@ function QuestionRow({
         />
       </div>
       {question && rules ? <RuleSummaries summaries={rules.summaries} /> : null}
-      <MissingLine label={language.missingLabel} missing={missing} />
+      <FormMissingTranslation label={language.missingLabel} missing={missing} />
       {question && rules && editing ? (
-        <QuestionDetails
-          column={column}
-          editing={language}
-          id={id}
-          label={label}
-          name={title}
-          onChange={onChange}
-          question={question}
-          rules={rules}
-        />
+        <div className={DETAILS_CLASS} id={`${id}-details`}>
+          <FormQuestionEditor
+            column={column}
+            editing={language}
+            id={id}
+            label={label}
+            name={title}
+            onChange={onChange}
+            question={question}
+            rules={rules}
+          />
+        </div>
       ) : null}
     </li>
   );
@@ -792,7 +333,7 @@ function SectionRow({
   section,
 }: {
   count: number;
-  editing: Editing;
+  editing: FormEditingLanguage;
   index: number;
   label: Label;
   onChange: (patch: Partial<FormSectionBreak>) => void;
@@ -838,7 +379,7 @@ function SectionRow({
           onRemove={onRemove}
         />
       </div>
-      <MissingLine
+      <FormMissingTranslation
         label={language.missingLabel}
         missing={formItemMissingTranslation(
           section,
@@ -847,18 +388,15 @@ function SectionRow({
         )}
       />
       {editing ? (
-        <div
-          className="mx-1 mb-1 grid gap-3 rounded-md bg-muted/50 p-3 dark:bg-muted/30"
-          id={`${id}-details`}
-        >
-          <LocalizedText
+        <div className={DETAILS_CLASS} id={`${id}-details`}>
+          <FormLocalizedText
             editing={language}
             id={`${id}-title`}
             label={label("sectionTitle")}
             onChange={(title) => onChange({ title })}
             text={section.title}
           />
-          <LocalizedText
+          <FormLocalizedText
             editing={language}
             id={`${id}-description`}
             label={label("sectionDescription")}
@@ -888,7 +426,7 @@ function ConsentRow({
 }: {
   consent: FormConsentQuestion;
   count: number;
-  editing: Editing;
+  editing: FormEditingLanguage;
   index: number;
   label: Label;
   onChange: (patch: Partial<FormConsentQuestion>) => void;
@@ -897,10 +435,12 @@ function ConsentRow({
 }) {
   const id = useId();
   const [editing, setEditing] = useState(false);
-  const builtIn = (key: FormLabelKey) => formLabel(key, language.locale);
   const statement =
     resolveFormText(consent.text, language.locale, language.defaultLocale) ??
-    builtIn(consent.link ? "consentTextLink" : "consentText");
+    formLabel(
+      consent.link ? "consentTextLink" : "consentText",
+      language.locale
+    );
   const name = `${label("consent")}: ${preview(statement)}`;
   return (
     <li
@@ -935,7 +475,7 @@ function ConsentRow({
           onRemove={onRemove}
         />
       </div>
-      <MissingLine
+      <FormMissingTranslation
         label={language.missingLabel}
         missing={formItemMissingTranslation(
           consent,
@@ -944,76 +484,18 @@ function ConsentRow({
         )}
       />
       {editing ? (
-        <div
-          className="mx-1 mb-1 grid gap-3 rounded-md bg-muted/50 p-3 dark:bg-muted/30"
-          id={`${id}-details`}
-        >
-          <LocalizedText
+        <div className={DETAILS_CLASS} id={`${id}-details`}>
+          <FormConsentEditor
+            consent={consent}
             editing={language}
-            fallback={builtIn(consent.link ? "consentTextLink" : "consentText")}
-            hint={label("consentLinkHint")}
-            id={`${id}-text`}
-            label={label("consentStatement")}
-            multiline
-            onChange={(text) => onChange({ text })}
-            text={consent.text}
+            id={id}
+            label={label}
+            onChange={onChange}
           />
-          <LocalizedText
-            editing={language}
-            fallback={builtIn("consentLinkLabel")}
-            id={`${id}-link-label`}
-            label={label("linkText")}
-            onChange={(text) =>
-              onChange({ link: { ...consent.link, label: text } })
-            }
-            text={consent.link?.label}
-          />
-          <LocalizedText
-            editing={language}
-            flagMissing={false}
-            id={`${id}-link-href`}
-            label={label("linkUrl")}
-            onChange={(href) => onChange({ link: { ...consent.link, href } })}
-            text={consent.link?.href}
-            type="url"
-          />
-          <CommitText
-            id={`${id}-version`}
-            label={label("consentVersion")}
-            onCommit={(version) => onChange({ version })}
-            placeholder="1"
-            value={consent.version ?? ""}
-          />
-          <p className="text-muted-foreground text-xs">
-            {label("consentNote")}
-          </p>
         </div>
       ) : null}
     </li>
   );
-}
-
-const SOURCE_LABELS: Record<FormHiddenSourceType, FormLabelKey> = {
-  urlParam: "sourceUrlParam",
-  pageUrl: "sourcePageUrl",
-  referrer: "sourceReferrer",
-  locale: "sourceLocale",
-  static: "sourceStatic",
-};
-
-/** A source of another type, keeping what it can of the current one. */
-function sourceOfType(
-  type: FormHiddenSourceType,
-  field: FormHiddenField
-): FormHiddenSource {
-  switch (type) {
-    case "urlParam":
-      return { type, name: "utm_source" };
-    case "static":
-      return { type, value: field.id };
-    default:
-      return { type };
-  }
 }
 
 /** A hidden field: where its value comes from and where it is saved. */
@@ -1035,7 +517,7 @@ function HiddenFieldRow({
   open: boolean;
 }) {
   const id = useId();
-  const source = label(SOURCE_LABELS[field.source.type]);
+  const source = label(FORM_HIDDEN_SOURCE_LABELS[field.source.type]);
   const column = columns.find((item) => item.id === field.columnId);
   const name = field.source.type === "urlParam" ? field.source.name : source;
   const saved = column ? column.header : label("responseDetails");
@@ -1065,56 +547,13 @@ function HiddenFieldRow({
         />
       </div>
       {open ? (
-        <div
-          className="mx-1 mb-1 grid gap-3 rounded-md bg-muted/50 p-3 dark:bg-muted/30"
-          id={`${id}-details`}
-        >
-          <SelectSetting
-            label={label("hiddenSource")}
-            onChange={(type) =>
-              onChange({
-                source: sourceOfType(type as FormHiddenSourceType, field),
-              })
-            }
-            options={Object.entries(SOURCE_LABELS).map(([value, key]) => ({
-              value,
-              label: label(key),
-            }))}
-            value={field.source.type}
-          />
-          {field.source.type === "urlParam" ? (
-            <CommitText
-              id={`${id}-param`}
-              label={label("paramName")}
-              onCommit={(value) =>
-                onChange({ source: { type: "urlParam", name: value } })
-              }
-              value={field.source.name}
-            />
-          ) : null}
-          {field.source.type === "static" ? (
-            <CommitText
-              id={`${id}-static`}
-              label={label("staticValue")}
-              onCommit={(value) =>
-                onChange({ source: { type: "static", value } })
-              }
-              value={field.source.value}
-            />
-          ) : null}
-          <SelectSetting
-            label={label("saveIn")}
-            onChange={(value) =>
-              onChange({ columnId: value === DETAILS ? undefined : value })
-            }
-            options={[
-              { value: DETAILS, label: label("responseDetails") },
-              ...columns.map((item) => ({
-                value: item.id,
-                label: item.header,
-              })),
-            ]}
-            value={field.columnId ?? DETAILS}
+        <div className={DETAILS_CLASS} id={`${id}-details`}>
+          <FormHiddenFieldEditor
+            columns={columns}
+            field={field}
+            id={id}
+            label={label}
+            onChange={onChange}
           />
         </div>
       ) : null}
@@ -1163,7 +602,7 @@ function useQuestionRules(
   merged: FormViewSettings,
   update: (patch: FormViewSettings) => void,
   translate: FormTranslate
-): (questionId: string) => QuestionRules {
+): (questionId: string) => FormQuestionRules {
   const fields = formRuleFields(context.columns, merged, context.locale);
   const issues = formRuleIssues(context.columns, merged);
   const resolved = resolveFormSettings(
@@ -1266,7 +705,7 @@ export function FormSettings({
         ? patch
         : { ...patch, ...languages.pin }
     );
-  const editing: Editing = {
+  const editing: FormEditingLanguage = {
     locale: languages.locale,
     defaultLocale: languages.defaultLocale,
     missingLabel: label("missingTranslation"),
@@ -1335,16 +774,28 @@ export function FormSettings({
             })}
           </p>
         )}
+        {languages.languages.length > 1 ? (
+          // Texts written without a language (plain texts) are in this one.
+          <FormSettingSelect
+            label={label("defaultLanguage")}
+            onChange={(defaultLocale) => update({ defaultLocale })}
+            options={languages.languages.map((locale) => ({
+              value: locale,
+              label: formLanguageName(locale),
+            }))}
+            value={languages.defaultLocale}
+          />
+        ) : null}
       </div>
       <SettingsSection title={label("settings")}>
-        <LocalizedText
+        <FormLocalizedText
           editing={editing}
           id={`${id}-title`}
           label={label("title")}
           onChange={(title) => write({ title })}
           text={merged.title}
         />
-        <LocalizedText
+        <FormLocalizedText
           editing={editing}
           id={`${id}-description`}
           label={label("description")}
@@ -1354,14 +805,14 @@ export function FormSettings({
         />
       </SettingsSection>
       <SettingsSection title={label("layout")}>
-        <SwitchSetting
+        <FormSettingSwitch
           checked={steps}
           id={`${id}-steps`}
           label={label("layoutSteps")}
           onChange={(next) => update({ layout: next ? "steps" : "page" })}
         />
         {steps ? (
-          <SwitchSetting
+          <FormSettingSwitch
             checked={merged.review === true}
             id={`${id}-review`}
             label={label("review")}
@@ -1535,7 +986,7 @@ export function FormSettings({
     <div className="grid min-w-0" data-form-settings>
       <ViewSettingsPanel fields={choiceFields} intro={intro}>
         {typedFixed.map((column) => (
-          <CommitText
+          <FormSettingText
             id={`${id}-hidden-${column.id}`}
             key={column.id}
             label={label("hiddenValue", { label: column.header })}
@@ -1546,7 +997,7 @@ export function FormSettings({
           />
         ))}
         <SettingsSection title={label("afterSubmit")}>
-          <LocalizedText
+          <FormLocalizedText
             editing={editing}
             fallback={formLabel("submit", editing.locale)}
             id={`${id}-submit`}
@@ -1554,7 +1005,7 @@ export function FormSettings({
             onChange={(submitLabel) => write({ submitLabel })}
             text={merged.submitLabel}
           />
-          <LocalizedText
+          <FormLocalizedText
             editing={editing}
             fallback={formLabel("success", editing.locale)}
             id={`${id}-success`}
@@ -1563,7 +1014,7 @@ export function FormSettings({
             onChange={(successMessage) => write({ successMessage })}
             text={merged.successMessage}
           />
-          <SwitchSetting
+          <FormSettingSwitch
             checked={merged.allowAnotherResponse !== false}
             id={`${id}-another`}
             label={label("allowAnother")}
@@ -1571,7 +1022,7 @@ export function FormSettings({
               update({ allowAnotherResponse })
             }
           />
-          <CommitText
+          <FormSettingText
             id={`${id}-redirect`}
             label={label("redirectUrl")}
             onCommit={(redirectUrl) => update({ redirectUrl })}
@@ -1581,7 +1032,7 @@ export function FormSettings({
           <p className="text-muted-foreground text-xs">
             {label("redirectHint")}
           </p>
-          <LocalizedText
+          <FormLocalizedText
             editing={editing}
             fallback={formLabel("closed", editing.locale)}
             id={`${id}-closed`}

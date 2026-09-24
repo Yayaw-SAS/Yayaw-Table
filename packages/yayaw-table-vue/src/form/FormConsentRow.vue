@@ -15,10 +15,8 @@ import {
   formItemMissingTranslation,
   formLabel,
 } from "../form-view";
-import FormLocalizedText, {
-  type FormEditingLanguage,
-} from "./FormLocalizedText.vue";
-import FormSettingText from "./FormSettingText.vue";
+import FormConsentEditor from "./FormConsentEditor.vue";
+import type { FormEditingLanguage } from "./FormLocalizedText.vue";
 
 const PREVIEW_LENGTH = 48;
 
@@ -117,41 +115,13 @@ const missing = computed(() =>
       <span class="yayaw-form-missing">{{ editing.missingLabel }}</span>
     </p>
     <div v-if="open" :id="`${id}-details`" class="yayaw-form-settings-details">
-      <FormLocalizedText
-        :id="`${id}-text`"
+      <FormConsentEditor
+        :consent="consent"
         :editing="editing"
-        :label="label('consentStatement')"
-        :text="consent.text"
-        :fallback="builtIn(statementKey)"
-        :hint="label('consentLinkHint')"
-        multiline
-        @change="emit('change', { text: $event })"
+        :id-prefix="id"
+        :label="label"
+        @change="emit('change', $event)"
       />
-      <FormLocalizedText
-        :id="`${id}-link-label`"
-        :editing="editing"
-        :label="label('linkText')"
-        :text="consent.link?.label"
-        :fallback="builtIn('consentLinkLabel')"
-        @change="emit('change', { link: { ...consent.link, label: $event } })"
-      />
-      <FormLocalizedText
-        :id="`${id}-link-href`"
-        :editing="editing"
-        :label="label('linkUrl')"
-        :text="consent.link?.href"
-        :flag-missing="false"
-        type="url"
-        @change="emit('change', { link: { ...consent.link, href: $event } })"
-      />
-      <FormSettingText
-        :id="`${id}-version`"
-        :label="label('consentVersion')"
-        :value="consent.version ?? ''"
-        placeholder="1"
-        @commit="emit('change', { version: $event })"
-      />
-      <p class="yayaw-form-settings-note">{{ label("consentNote") }}</p>
     </div>
   </li>
 </template>

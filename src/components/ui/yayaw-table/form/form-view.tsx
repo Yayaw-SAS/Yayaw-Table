@@ -2,11 +2,10 @@
 
 import { useCallback, useMemo, useState } from "react";
 import type { DisplayModeRenderContext } from "../types/display-mode-renderer";
-import { formLanguage } from "../utils/form-text";
+import { formLanguage, formLocaleMatch } from "../utils/form-text";
 import {
   type FormLabelKey,
   formLabel,
-  formMatchLocale,
   formViewLocales,
   mergeFormSettings,
   publicFormSnapshot,
@@ -65,7 +64,7 @@ export function FormView({ context }: { context: DisplayModeRenderContext }) {
               onChange={setPreview}
               value={
                 previewed ??
-                formMatchLocale(languages, locale) ??
+                formLocaleMatch(languages, locale) ??
                 languages[0] ??
                 locale
               }

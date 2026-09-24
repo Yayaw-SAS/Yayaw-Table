@@ -116,8 +116,15 @@ const label = (
   key: FormLabelKey,
   params?: Record<string, number | string>
 ): string => formLabel(key, props.locale, override.value, params);
+// Built-in consent statements follow the host's label overrides too.
 const settings = computed(() =>
-  resolveFormSettings(props.columns, undefined, props.form, props.locale)
+  resolveFormSettings(
+    props.columns,
+    undefined,
+    props.form,
+    props.locale,
+    override.value
+  )
 );
 const questions = computed(() => settings.value.questions);
 

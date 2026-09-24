@@ -14,6 +14,7 @@ const PRIVACY_POLICY = /^privacy policy/;
 const PRIVACY_POLICY_FR = /^politique de confidentialité/;
 const WANTED_BY = /^Wanted by/;
 const WANTED_BY_FR = /^Souhaité pour le/;
+const PAGE_ADDRESS = /^http:\/\/127\.0\.0\.1:\d+\/$/;
 /** The built-in statement of a consent with a link. */
 const BUILT_IN_CONSENT =
   /^I agree to the processing of my answers as described in the privacy policy/;
@@ -57,6 +58,10 @@ test("the settings switch language and translate a question", async ({
   const settings = page.locator("[data-form-settings]");
   const editing = settings.getByRole("group", { name: "Editing" });
   await expect(editing.getByRole("radio", { name: "English" })).toBeChecked();
+  // Plain texts are written in the default language.
+  await expect(
+    settings.getByRole("combobox", { name: "Default language" })
+  ).toContainText("English");
 
   await language(page, "[data-form-settings]", "fr").click();
   await expect(editing.getByRole("radio", { name: "Français" })).toBeChecked();
@@ -196,7 +201,8 @@ test("an unchecked consent blocks the response; the campaign reaches the metadat
     category: "Service",
     status: "Draft",
   });
-  expect(accepted.metadata.context.page).toContain("utm_source=newsletter");
+  // The page's address, without its query or fragment.
+  expect(accepted.metadata.context.page).toMatch(PAGE_ADDRESS);
   expect(accepted.metadata.consents).toMatchObject([
     { id: "privacy", version: "2026-09", href: "https://example.com/privacy" },
   ]);

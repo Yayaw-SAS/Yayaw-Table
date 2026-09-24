@@ -25,9 +25,8 @@ import {
   type FormLabelKey,
   type FormStep,
   formAnswerText,
-  formReviewConsents,
   formStepOptional,
-  formSteps,
+  formStepPlan,
   type ResolvedFormConsent,
   type ResolvedFormQuestion,
   type ResolvedFormSettings,
@@ -67,10 +66,9 @@ const root = ref<{ $el: HTMLFormElement }>();
 const form = computed(() => root.value?.$el);
 defineExpose({ form });
 
-const steps = computed(() => formSteps(props.settings, props.evaluation));
-const reviewConsents = computed(() =>
-  formReviewConsents(props.settings, props.evaluation)
-);
+const plan = computed(() => formStepPlan(props.settings, props.evaluation));
+const steps = computed(() => plan.value.steps);
+const reviewConsents = computed(() => plan.value.reviewConsents);
 const ids = computed(() => [
   ...steps.value.map((item) => item.id),
   ...(props.settings.review ? [REVIEW_STEP] : []),

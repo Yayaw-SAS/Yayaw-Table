@@ -1739,10 +1739,17 @@ link, and the new per-question `optionLabels` (option labels by option value,
 e.g. to translate a column's options). `YayawTableForm`'s `locale` prop (the
 Form view passes the table's locale) picks the version: the exact locale, then
 its language ("fr" for "fr-CA", or "fr-FR"), then the form's `defaultLocale`
-(else the first of its `locales`), then the first version available; a plain
-string reads the same in every language. `resolveFormSettings(columns,
-defaults, view, locale)` resolves every text, so the renderers, steps, review,
-rule summaries and validation keep working on strings. Language tags are
+(else the first of its `locales`); a plain string reads the same in every
+language. A text with a default of its own then falls back to it, never to
+another language's translation: a question label to the column name, an
+option label to the column's, the submit label, success and closed messages
+and the consent statement and link text to the built-in labels (with the
+host's `form.<key>` overrides). Other texts (title, description, help,
+placeholder, sections, the consent's address) show the first version
+available. `resolveFormSettings(columns, defaults, view, locale, translate)`
+resolves every text (`formTextVersion`, `resolveFormText`,
+`formLocaleMatch`), so the renderers, steps, review, rule summaries and
+validation keep working on strings. Language tags are
 normalized (`fr_ca` → `fr-CA`, malformed tags dropped), empty versions
 removed, and a text written only in the default language stays a plain string
 (`setFormText`). Built-in labels still come in English or French (`fr*`) and
@@ -1769,11 +1776,29 @@ the column's option labels; a consent's link address is never flagged (one
 address often serves every language). Rows of the question list show
 "Missing translation" under them (`formItemMissingTranslation`). Under the
 switcher, "Texts not translated show in English." names the default
-language in the table's language. Writing in another language pins
-`defaultLocale` in the view when neither the view nor the table sets one, so
-plain texts keep their language whoever edits them. The Form view shows a
+language in the table's language, and a "Default language" select (when the
+form has several languages) says which language plain texts are written in;
+changing it reinterprets them. Writing in another language pins
+`defaultLocale` in the view when neither the view nor the table sets one
+(the guess is the table's language), so plain texts keep their language
+whoever edits them; hosts that know it set `table.form.defaultLocale`. The Form view shows a
 "Language" switcher above the form (next to "Share form") when the form has
 several languages, to preview it in each; answers are kept while switching.
+
+The settings are built from editors that do not depend on the side panel, so
+a larger form builder can reuse them (internal modules, not public API):
+React `form/form-languages.tsx` (`FormLanguageSwitch`) and
+`form/form-editors.tsx` (`FormLocalizedText`, `FormQuestionEditor` with its
+conditions given `rules`, `FormQuestionRulesEditor`, `FormConsentEditor`,
+`FormHiddenFieldEditor`, and the small `FormSettingText`, `FormSettingSwitch`,
+`FormSettingSelect`, `FormMissingTranslation`); Vue has the same components
+(`FormLanguageSwitch.vue`, `FormLocalizedText.vue`, `FormQuestionEditor.vue`
+with the conditions in its default slot, `FormQuestionRulesEditor.vue`,
+`FormConsentEditor.vue`, `FormHiddenFieldEditor.vue`, `FormSettingText.vue`).
+Each takes its item, the language being edited (`FormEditingLanguage`:
+`{ locale, defaultLocale, missingLabel }`), an id prefix and the label
+function, and reports patches; the settings rows only add the row header,
+ordering and removal around them.
 
 Consent (`{ id, kind: "consent", text?, link?: { label?, href? }, version? }`,
 added with "Add consent", bound to no column): a checkbox labelled by its
@@ -1787,13 +1812,15 @@ are dropped when saved); the link opens in a new tab, announced by
 "(opens in a new tab)" read after its text. Rules cannot hide a consent: its
 id is no rule target (rules aiming at it are dropped as `unknownTarget`), a
 hidden section keeps its consents, and the settings offer no conditions for
-it. The answer is kept in the draft under the consent's id (a consent may not
-share its id with an asked column), errors are keyed by it, and it is never
-written to a column. In the steps layout a consent shows on the step it is
+it. The answer is kept in the draft under the consent's id (a consent sharing
+an asked column's id is renamed `<id>-consent` when saved, never dropped),
+errors are keyed by it, and it is never written to a column. In the steps layout a consent shows on the step it is
 placed in (its section, or the question before it); one placed after the last
 visible question, or whose step is skipped, shows on the last step, the review
-when there is one (`formSteps`' `consents`, `formReviewConsents`); a step
-with a consent cannot be skipped and Next validates it.
+when there is one (`formStepPlan`: `steps[].consents` and
+`reviewConsents`); when the rules hide every question, the consents keep a
+step of their own (`consents`); a step with a consent cannot be skipped and
+Next validates it.
 
 Hidden fields (`{ id, kind: "hidden", source, columnId? }`, "Hidden fields" in
 the settings with "Add hidden field", Source, Parameter name or Text, and
@@ -1815,14 +1842,19 @@ read from the page), `locale`, and `metadata` as the browser sees it
 (`onSuccess` also receives it). A public form's host sends `consents`,
 `fields` and `locale` to its server with the values, where
 `acceptPublicFormResponse(snapshot, values, { consents, fields, locale,
-acceptedAt })` treats them as untrusted: every consent must be `true`
-(`errorConsent` otherwise), hidden fields read only the snapshot's fields and
-sources, as text without control characters, cut at 500 characters (page and
-referrer addresses must be http(s) and are dropped beyond 2048), locale tags
-checked, fixed texts taken from the snapshot, unknown ids ignored. It returns
-`{ ok: true, values, metadata }` with `metadata.consents: [{ id, version,
-text, href?, locale?, acceptedAt? }]` (the statement as shown, in the
-response's language, the link's text in place) and `metadata.context`.
+acceptedAt, translate })` treats them as untrusted: every consent must be
+`true` (`errorConsent` otherwise), hidden fields read only the snapshot's
+fields and sources, as text without control characters, cut at 500
+characters; page and referrer addresses must be http(s), are dropped beyond
+2048 characters and are kept without their query and fragment, which may
+hold tokens (campaign parameters are read with `urlParam` fields); locale
+tags are checked, fixed texts taken from the snapshot, unknown ids ignored.
+It returns `{ ok: true, values, metadata }` with `metadata.consents: [{ id,
+version, text, href?, locale?, acceptedAt? }]` (the statement as shown, the
+link's text in place, and the language it is written in: the translation
+used, or English/French for built-in statements; `translate` gives the
+server the page's label overrides so built-in statements are recorded as
+shown) and `metadata.context`.
 `withFormServerContext(accepted, { pageId, revision, formToken })` adds what
 the server knows under `metadata.server` (word-character keys; text, numbers
 or yes/no values). Snapshots split hidden fields: the browser part
@@ -1847,11 +1879,13 @@ the record and its metadata; the demo host requires the consent, stamps
 `acceptedAt` and adds `pageId` and the publication `revision`.
 
 Verification: `tests/form-i18n-suite.ts` runs in both editions (resolution and
-fallback, plain strings unchanged, settings writes and missing translations,
-languages and "Add language", snapshots with every language, consent
-required/blocked/metadata, rules and sections never hiding it, step
-placement, hidden field collection, server sanitation and column binding,
-server context); `tests/form-links-demo.test.ts` covers the demo host.
+fallback, texts with a default of their own, plain strings unchanged,
+settings writes and missing translations, languages and "Add language",
+snapshots with every language, consent required/blocked/metadata and its
+language, host overrides of built-in statements, rules and sections never
+hiding it, renamed ids, step placement and the consent step, hidden field
+collection, addresses without query or fragment, server sanitation and
+column binding, server context); `tests/form-links-demo.test.ts` covers the demo host.
 `e2e/form-i18n.spec.ts` covers, on both demos, switching the settings to
 French and translating a question (badge, placeholder, `lang`, the Form
 view's French preview), the public form in French (texts, option and built-in

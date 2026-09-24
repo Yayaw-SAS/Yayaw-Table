@@ -157,11 +157,12 @@ function useFormLabels(
     () => translate ?? formTranslateFrom(translations),
     [translate, translations]
   );
-  return useCallback(
+  const label = useCallback(
     (key: FormLabelKey, params?: Record<string, number | string>) =>
       formLabel(key, locale, override, params),
     [locale, override]
   );
+  return { label, override };
 }
 
 /** Answers (consents included) and step: controlled, stored under a key, or local. */
@@ -425,10 +426,11 @@ export function YayawTableForm(props: YayawTableFormProps) {
     validate,
   } = props;
   const id = useId();
-  const label = useFormLabels(locale, translate, translations);
+  const { label, override } = useFormLabels(locale, translate, translations);
+  // Built-in consent statements follow the host's label overrides too.
   const settings = useMemo(
-    () => resolveFormSettings(columns, undefined, form, locale),
-    [columns, form, locale]
+    () => resolveFormSettings(columns, undefined, form, locale, override),
+    [columns, form, locale, override]
   );
   const { questions } = settings;
   const { draft, setDraft, step, setStep } = useFormProgress(settings, props);

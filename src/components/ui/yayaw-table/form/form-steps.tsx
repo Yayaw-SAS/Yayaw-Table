@@ -37,9 +37,8 @@ import {
   type FormLabelKey,
   type FormStep,
   formAnswerText,
-  formReviewConsents,
   formStepOptional,
-  formSteps,
+  formStepPlan,
   type ResolvedFormConsent,
   type ResolvedFormQuestion,
   type ResolvedFormSettings,
@@ -307,8 +306,7 @@ export function FormSteps(props: FormStepsProps) {
     submitText,
     values,
   } = props;
-  const steps = formSteps(settings, evaluation);
-  const reviewConsents = formReviewConsents(settings, evaluation);
+  const { reviewConsents, steps } = formStepPlan(settings, evaluation);
   const ids = [
     ...steps.map((item) => item.id),
     ...(settings.review ? [REVIEW_STEP] : []),

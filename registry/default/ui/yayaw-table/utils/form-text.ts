@@ -130,9 +130,12 @@ const textEntries = (text: Readonly<Record<string, string>>) =>
       typeof entry[1] === "string" && entry[1].trim() !== ""
   );
 
-/** The version for `locale`: its exact tag, else its language ("fr" for "fr-CA", or "fr-FR"). */
-function pick(
-  entries: readonly [string, string][],
+/**
+ * The language among `locales` that serves `locale`: its exact tag, else its
+ * language ("fr" for "fr-CA"), else another variant of it ("fr-FR").
+ */
+export function formLocaleMatch(
+  locales: readonly string[],
   locale: string | undefined
 ): string | undefined {
   const tag = formLocaleTag(locale);
@@ -141,33 +144,61 @@ function pick(
   }
   const lower = tag.toLowerCase();
   const language = formLanguage(tag);
-  const found =
-    entries.find(([key]) => key.toLowerCase() === lower) ??
-    entries.find(([key]) => key.toLowerCase() === language) ??
-    entries.find(([key]) => formLanguage(key) === language);
-  return found?.[1];
+  return (
+    locales.find((key) => key.toLowerCase() === lower) ??
+    locales.find((key) => key.toLowerCase() === language) ??
+    locales.find((key) => formLanguage(key) === language)
+  );
+}
+
+/** A text in one language, and that language when it is known. */
+export interface FormTextVersion {
+  text: string;
+  locale?: string;
+}
+
+/**
+ * The version of a text for `locale`, with its language: the exact locale,
+ * then its language, then the form's default locale. A plain string is the
+ * default locale's. `undefined` when none of them has a text, so callers can
+ * use their own default (a column name, a built-in label).
+ */
+export function formTextVersion(
+  text: FormText | undefined,
+  locale?: string,
+  defaultLocale?: string
+): FormTextVersion | undefined {
+  if (text === undefined) {
+    return;
+  }
+  if (typeof text === "string") {
+    const content = text.trim();
+    return content ? { text: content, locale: defaultLocale } : undefined;
+  }
+  const entries = textEntries(text);
+  const keys = entries.map(([key]) => key);
+  const key =
+    formLocaleMatch(keys, locale) ?? formLocaleMatch(keys, defaultLocale);
+  const found = entries.find(([entry]) => entry === key);
+  return found ? { text: found[1], locale: found[0] } : undefined;
 }
 
 /**
  * A text in `locale`: the exact locale, then its language, then the form's
  * default locale, then the first version available. Plain strings are the
- * same in every language.
+ * same in every language. Texts with a default of their own (a question's
+ * column name, a built-in label) use `formTextVersion` instead.
  */
 export function resolveFormText(
   text: FormText | undefined,
   locale?: string,
   defaultLocale?: string
 ): string | undefined {
-  if (text === undefined) {
-    return;
+  const version = formTextVersion(text, locale, defaultLocale);
+  if (version || !text || typeof text === "string") {
+    return version?.text;
   }
-  if (typeof text === "string") {
-    return text.trim() || undefined;
-  }
-  const entries = textEntries(text);
-  return (
-    pick(entries, locale) ?? pick(entries, defaultLocale) ?? entries[0]?.[1]
-  );
+  return textEntries(text)[0]?.[1];
 }
 
 const sameLocale = (left: string, right: string) =>

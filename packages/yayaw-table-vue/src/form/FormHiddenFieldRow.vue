@@ -6,21 +6,11 @@ import type {
   FormColumn,
   FormHiddenField,
   FormHiddenSource,
-  FormHiddenSourceType,
   FormLabelKey,
 } from "../form-view";
-import FormRuleSelect from "./FormRuleSelect.vue";
-import FormSettingText from "./FormSettingText.vue";
-
-/** "Save in" choice of a value kept in the response details. */
-const DETAILS = "__details";
-const SOURCE_LABELS: Record<FormHiddenSourceType, FormLabelKey> = {
-  urlParam: "sourceUrlParam",
-  pageUrl: "sourcePageUrl",
-  referrer: "sourceReferrer",
-  locale: "sourceLocale",
-  static: "sourceStatic",
-};
+import FormHiddenFieldEditor, {
+  FORM_HIDDEN_SOURCE_LABELS,
+} from "./FormHiddenFieldEditor.vue";
 
 const props = defineProps<{
   field: FormHiddenField;
@@ -35,44 +25,16 @@ const emit = defineEmits<{
   toggle: [];
 }>();
 const id = `yayaw-form-hidden-${useId()}`;
-const sourceName = computed(() => props.label(SOURCE_LABELS[props.field.source.type]));
-const paramName = computed(() =>
-  props.field.source.type === "urlParam" ? props.field.source.name : ""
+const name = computed(() =>
+  props.field.source.type === "urlParam"
+    ? props.field.source.name
+    : props.label(FORM_HIDDEN_SOURCE_LABELS[props.field.source.type])
 );
-const staticValue = computed(() =>
-  props.field.source.type === "static" ? props.field.source.value : ""
-);
-const name = computed(() => paramName.value || sourceName.value);
 const saved = computed(
   () =>
     props.columns.find((column) => column.id === props.field.columnId)?.header ??
     props.label("responseDetails")
 );
-const sourceOptions = computed(() =>
-  Object.entries(SOURCE_LABELS).map(([value, key]) => ({
-    value,
-    label: props.label(key),
-  }))
-);
-const columnOptions = computed(() => [
-  { value: DETAILS, label: props.label("responseDetails") },
-  ...props.columns.map((column) => ({ value: column.id, label: column.header })),
-]);
-/** A source of another type, keeping what it can of the current one. */
-const sourceOfType = (type: string): FormHiddenSource => {
-  switch (type as FormHiddenSourceType) {
-    case "urlParam":
-      return { type: "urlParam", name: "utm_source" };
-    case "static":
-      return { type: "static", value: props.field.id };
-    case "pageUrl":
-      return { type: "pageUrl" };
-    case "referrer":
-      return { type: "referrer" };
-    default:
-      return { type: "locale" };
-  }
-};
 </script>
 
 <template>
@@ -105,38 +67,13 @@ const sourceOfType = (type: string): FormHiddenSource => {
       </button>
     </div>
     <div v-if="open" :id="`${id}-details`" class="yayaw-form-settings-details">
-      <div class="yayaw-form-setting">
-        <span class="yayaw-form-setting-label" aria-hidden="true">{{ label("hiddenSource") }}</span>
-        <FormRuleSelect
-          :label="label('hiddenSource')"
-          :value="field.source.type"
-          :options="sourceOptions"
-          @change="emit('change', { source: sourceOfType($event) })"
-        />
-      </div>
-      <FormSettingText
-        v-if="field.source.type === 'urlParam'"
-        :id="`${id}-param`"
-        :label="label('paramName')"
-        :value="paramName"
-        @commit="emit('change', { source: { type: 'urlParam', name: $event } })"
+      <FormHiddenFieldEditor
+        :field="field"
+        :columns="columns"
+        :id-prefix="id"
+        :label="label"
+        @change="emit('change', $event)"
       />
-      <FormSettingText
-        v-if="field.source.type === 'static'"
-        :id="`${id}-static`"
-        :label="label('staticValue')"
-        :value="staticValue"
-        @commit="emit('change', { source: { type: 'static', value: $event } })"
-      />
-      <div class="yayaw-form-setting">
-        <span class="yayaw-form-setting-label" aria-hidden="true">{{ label("saveIn") }}</span>
-        <FormRuleSelect
-          :label="label('saveIn')"
-          :value="field.columnId ?? DETAILS"
-          :options="columnOptions"
-          @change="emit('change', { columnId: $event === DETAILS ? undefined : $event })"
-        />
-      </div>
     </div>
   </li>
 </template>

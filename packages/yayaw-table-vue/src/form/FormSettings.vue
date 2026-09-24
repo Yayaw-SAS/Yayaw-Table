@@ -4,7 +4,6 @@ import {
   ArrowUp,
   ChevronDown,
   GripVertical,
-  ListFilter,
   Plus,
   Trash2,
 } from "lucide-vue-next";
@@ -14,7 +13,6 @@ import ViewSettingsPanel from "../components/controls/ViewSettingsPanel.vue";
 import type { DisplayModeSettingsContext } from "../display-mode-renderer";
 import type { FormRule } from "../form-conditions";
 import {
-  type FormText,
   formLanguage,
   formLanguageName,
   resolveFormText,
@@ -37,7 +35,6 @@ import {
   type FormTranslate,
   type FormViewSettings,
   formAddableLocales,
-  formColumnEditor,
   formColumns,
   formDefaultLocale,
   formHiddenChoices,
@@ -46,7 +43,6 @@ import {
   formHiddenValueText,
   formItemMissingTranslation,
   formLabel,
-  formOptions,
   formOrderedItems,
   formQuestionList,
   formRuleFields,
@@ -62,7 +58,6 @@ import {
   removeFormItem,
   removeFormRule,
   resolveFormSettings,
-  setFormOptionLabel,
   toggleFormQuestion,
   updateFormHiddenField,
   updateFormQuestion,
@@ -74,8 +69,9 @@ import FormLanguageSwitch from "./FormLanguageSwitch.vue";
 import FormLocalizedText, {
   type FormEditingLanguage,
 } from "./FormLocalizedText.vue";
-import FormRuleEditor from "./FormRuleEditor.vue";
-import FormRulesDialog from "./FormRulesDialog.vue";
+import FormQuestionEditor from "./FormQuestionEditor.vue";
+import FormQuestionRulesEditor from "./FormQuestionRulesEditor.vue";
+import FormRuleSelect from "./FormRuleSelect.vue";
 import FormSettingText from "./FormSettingText.vue";
 
 /** View → Form settings: languages, texts, layout, questions, sections, consents and rules, hidden fields, fixed values and the end of the form. */
@@ -135,6 +131,9 @@ const language = computed<FormEditingLanguage>(() => ({
   defaultLocale: defaultLocale.value,
   missingLabel: label("missingTranslation"),
 }));
+const languageOptions = computed(() =>
+  languages.value.map((locale) => ({ value: locale, label: formLanguageName(locale) }))
+);
 const translationHint = computed(() =>
   label("translationHint", {
     language: formLanguageName(defaultLocale.value, props.context.locale),
@@ -162,10 +161,6 @@ const fieldsFor = (questionId: string) =>
   ruleFields.value.filter((field) => field.id !== questionId);
 const issuesOf = (rule: FormRule) =>
   ruleIssues.value.filter((issue) => issue.ruleId === rule.id);
-const hasIssues = (questionId: string): boolean =>
-  rulesOf(questionId).some((rule) => issuesOf(rule).length > 0);
-/** The question whose conditions are edited in the dialog. */
-const rulesOpen = ref<string | null>(null);
 const summary = (rule: FormRule): string =>
   formRuleSummary(rule, resolvedQuestions.value, props.context.locale, translate);
 /** A question's name in the table's language, for its conditions dialog. */
@@ -253,24 +248,6 @@ const setHidden = (columnId: string, value: FormHiddenValue | undefined) => {
   else next[columnId] = value;
   update({ hiddenValues: next });
 };
-const textInput = (column: FormColumn): boolean => {
-  const editor = formColumnEditor(column);
-  return editor !== "boolean" && editor !== "multiSelect";
-};
-const choiceOptions = (column: FormColumn) => {
-  const editor = formColumnEditor(column);
-  return editor === "select" || editor === "multiSelect"
-    ? formOptions(column.options)
-    : [];
-};
-const setOptionLabel = (
-  question: FormQuestion,
-  option: unknown,
-  text: FormText | undefined
-): void =>
-  change(question, {
-    optionLabels: setFormOptionLabel(question, String(option), text),
-  });
 const missing = (item: FormItem, column?: FormColumn): boolean =>
   formItemMissingTranslation(
     item,
@@ -332,6 +309,16 @@ const typedFixed = computed(() =>
           >
             {{ translationHint }}
           </p>
+          <!-- Texts written without a language (plain texts) are in this one. -->
+          <div v-if="languages.length > 1" class="yayaw-form-setting">
+            <span class="yayaw-form-setting-label" aria-hidden="true">{{ label("defaultLanguage") }}</span>
+            <FormRuleSelect
+              :label="label('defaultLanguage')"
+              :value="defaultLocale"
+              :options="languageOptions"
+              @change="update({ defaultLocale: $event })"
+            />
+          </div>
         </div>
         <section class="yayaw-form-settings-section">
           <h3 class="yayaw-setting-heading" data-setting-heading>{{ label("settings") }}</h3>
@@ -507,87 +494,28 @@ const typedFixed = computed(() =>
                   :id="`${id}-details-${row.column.id}`"
                   class="yayaw-form-settings-details"
                 >
-                  <FormLocalizedText :id="`${id}-label-${row.column.id}`" :editing="language" :label="label('label')" :text="row.question.label" :source="row.column.header" @change="change(row.question, { label: $event })" />
-                  <FormLocalizedText :id="`${id}-help-${row.column.id}`" :editing="language" :label="label('help')" :text="row.question.help" multiline @change="change(row.question, { help: $event })" />
-                  <FormLocalizedText
-                    v-if="textInput(row.column)"
-                    :id="`${id}-placeholder-${row.column.id}`"
+                  <FormQuestionEditor
+                    :column="row.column"
+                    :question="row.question"
                     :editing="language"
-                    :label="label('placeholder')"
-                    :text="row.question.placeholder"
-                    @change="change(row.question, { placeholder: $event })"
-                  />
-                  <fieldset v-if="choiceOptions(row.column).length" class="yayaw-form-option-labels" data-form-option-labels>
-                    <legend class="yayaw-form-rules-heading">{{ label("optionLabels") }}</legend>
-                    <FormLocalizedText
-                      v-for="(option, index) in choiceOptions(row.column)"
-                      :id="`${id}-option-${row.column.id}-${index}`"
-                      :key="String(option.value)"
-                      :editing="language"
-                      :label="label('optionLabel', { option: option.label })"
-                      :text="row.question.optionLabels?.[String(option.value)]"
-                      :source="option.label"
-                      @change="setOptionLabel(row.question, option.value, $event)"
+                    :id-prefix="`${id}-q-${row.column.id}`"
+                    :label="label"
+                    @change="change(row.question, $event)"
+                  >
+                    <FormQuestionRulesEditor
+                      :name="questionTitle(row.question, row.column)"
+                      :rules="rulesOf(row.question.id)"
+                      :fields="fieldsFor(row.question.id)"
+                      :issues="rulesOf(row.question.id).flatMap(issuesOf)"
+                      :questions="resolvedQuestions"
+                      :locale="context.locale"
+                      :translate="translate"
+                      :label="label"
+                      @add="addRule(row.question.id)"
+                      @change="update({ rules: upsertFormRule(rules, $event) })"
+                      @remove="update({ rules: removeFormRule(rules, $event) })"
                     />
-                  </fieldset>
-                  <div class="yayaw-form-switch-setting">
-                    <label :id="`${id}-required-${row.column.id}-label`" class="yayaw-form-switch-label" :for="`${id}-required-${row.column.id}`">{{ label("requiredToggle") }}</label>
-                    <SwitchRoot
-                      :id="`${id}-required-${row.column.id}`"
-                      class="yayaw-switch-root"
-                      :model-value="row.question.required === true"
-                      :aria-labelledby="`${id}-required-${row.column.id}-label`"
-                      @update:model-value="change(row.question, { required: $event === true })"
-                    >
-                      <SwitchThumb class="yayaw-switch-thumb" />
-                    </SwitchRoot>
-                  </div>
-                  <section class="yayaw-form-rules" data-form-rules>
-                    <h4 class="yayaw-form-rules-heading">{{ label("conditions") }}</h4>
-                    <p v-if="rulesOf(row.question.id).length === 0" class="yayaw-form-rules-status">{{ label("noConditions") }}</p>
-                    <p v-if="hasIssues(row.question.id)" class="yayaw-form-rules-status yayaw-rule-issue" data-form-rules-problem>
-                      {{ label("conditionsProblem") }}
-                    </p>
-                    <button
-                      type="button"
-                      class="yayaw-button yayaw-button-outline yayaw-form-settings-add"
-                      :disabled="fieldsFor(row.question.id).length === 0 && rulesOf(row.question.id).length === 0"
-                      @click="rulesOpen = row.question.id"
-                    >
-                      <ListFilter :size="14" aria-hidden="true" />{{ label("editConditions") }}
-                    </button>
-                    <FormRulesDialog
-                      :open="rulesOpen === row.question.id"
-                      :title="label('conditionsTitle', { label: questionTitle(row.question, row.column) })"
-                      :description="label('conditionsDescription')"
-                      :done-label="label('done')"
-                      :close-label="label('close')"
-                      @update:open="rulesOpen = $event ? row.question.id : null"
-                    >
-                      <FormRuleEditor
-                        v-for="rule in rulesOf(row.question.id)"
-                        :key="rule.id"
-                        :rule="rule"
-                        :fields="fieldsFor(row.question.id)"
-                        :issues="issuesOf(rule)"
-                        :label="label"
-                        :locale="context.locale"
-                        :questions="resolvedQuestions"
-                        :translate="translate"
-                        @change="update({ rules: upsertFormRule(rules, $event) })"
-                        @remove="update({ rules: removeFormRule(rules, rule.id) })"
-                      />
-                      <p v-if="rulesOf(row.question.id).length === 0" class="yayaw-form-rules-empty">{{ label("noConditions") }}</p>
-                      <button
-                        type="button"
-                        class="yayaw-button yayaw-button-outline yayaw-form-settings-add"
-                        :disabled="fieldsFor(row.question.id).length === 0"
-                        @click="addRule(row.question.id)"
-                      >
-                        <Plus :size="14" aria-hidden="true" />{{ label("addRule") }}
-                      </button>
-                    </FormRulesDialog>
-                  </section>
+                  </FormQuestionEditor>
                 </div>
               </li>
             </template>

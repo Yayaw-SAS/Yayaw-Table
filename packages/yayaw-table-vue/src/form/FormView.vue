@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import type { DisplayModeRenderContext } from "../display-mode-renderer";
-import { formLanguage } from "../form-text";
+import { formLanguage, formLocaleMatch } from "../form-text";
 import {
   type FormColumn,
   type FormLabelKey,
   formLabel,
-  formMatchLocale,
   formViewLocales,
   mergeFormSettings,
   publicFormSnapshot,
@@ -52,7 +51,7 @@ const previewed = computed(() =>
 const shown = computed(
   () =>
     previewed.value ??
-    formMatchLocale(languages.value, props.context.locale) ??
+    formLocaleMatch(languages.value, props.context.locale) ??
     languages.value[0] ??
     props.context.locale
 );
