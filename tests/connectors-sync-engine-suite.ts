@@ -1183,6 +1183,61 @@ export function connectorsSyncEngineSuite(
     assert.deepEqual(result.state.links, before.links);
   });
 
+  test("an adopted record fills empty values instead of clearing them", async () => {
+    const tableKept = world(
+      [row("r1", { name: "Launch", status: "Active" })],
+      [page("page-7", "r1", { name: "Launch v2", status: null })]
+    );
+    const first = await run(tableKept, { conflictRule: "target-wins" });
+    assert.deepEqual(
+      first.plan.conflicts.map((conflict) => [
+        conflict.columnId,
+        conflict.resolution,
+      ]),
+      [["name", "target"]]
+    );
+    assert.deepEqual(
+      first.plan.initialized.map((item) => [
+        item.rowId,
+        item.remoteId,
+        item.columnId,
+        item.side,
+        item.value,
+      ]),
+      [["r1", "page-7", "status", "target", "Active"]]
+    );
+    assert.deepEqual(
+      [
+        tableKept.table.records.get("r1")?.values,
+        tableKept.target.records.get("page-7")?.values,
+      ],
+      [
+        { name: "Launch v2", status: "Active" },
+        { name: "Launch v2", status: "Active" },
+      ]
+    );
+    assert.equal(changes(plan(tableKept, { conflictRule: "target-wins" })), 0);
+
+    const targetKept = world(
+      [row("r1", { name: "Launch", status: "" })],
+      [page("page-7", "r1", { name: "Launch", status: "Done" })]
+    );
+    const second = await run(targetKept, {
+      conflictRule: "table-wins",
+      ownership: { status: "table" },
+    });
+    assert.deepEqual(second.plan.conflicts, []);
+    assert.deepEqual(second.plan.overridden, []);
+    assert.deepEqual(second.plan.updateInTarget, []);
+    assert.deepEqual(
+      second.plan.updateInTable.map((item) => item.values),
+      [{ status: "Done" }]
+    );
+    assert.equal(second.plan.initialized[0]?.side, "table");
+    assert.equal(targetKept.table.records.get("r1")?.values.status, "Done");
+    assert.equal(changes(plan(targetKept)), 0);
+  });
+
   /** r1 synced once without Site, then Site holds these values on each side. */
   const siteWorld = async (
     tableSite: unknown,

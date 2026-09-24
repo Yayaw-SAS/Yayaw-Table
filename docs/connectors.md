@@ -256,9 +256,9 @@ targetRecords, state, now })` returns a `SyncPlan`:
   conflict. Without `baseValues`, the engine compares record hashes instead:
   a record changed on one side wins every differing column, and a record
   changed on both sides makes every differing column a conflict.
-- **Columns never synced.** A linked record's column without a base value
-  (mapped since the last run, or unknown on one side then) has nothing to
-  compare with, so neither side counts as changed. When only one side has a
+- **Columns never synced.** A column of a record adopted by key, or a linked
+  record's column without a base value (mapped since the last run, or
+  unknown on one side then), has nothing to compare with, so neither side counts as changed. When only one side has a
   value, it fills the empty side, whatever `conflictRule` and `ownership` say:
   mapping a new column never clears the table from an empty sheet column or
   a property "Prepare" just created. Each fill is listed in `initialized`.
@@ -279,8 +279,9 @@ targetRecords, state, now })` returns a `SyncPlan`:
 - **Matching.** Linked records are found by `rowId` and `remoteId` (then by
   key, for a sheet row whose remote id became its key). Unlinked records are
   matched by key before anything is created, so an existing target record is
-  adopted instead of duplicated; differing columns of an adopted record are
-  conflicts. Records sharing a key (or an id) are reported in `duplicates` and
+  adopted instead of duplicated; an empty column of an adopted record is
+  filled from the other side, and columns holding different values on both
+  sides are conflicts. Records sharing a key (or an id) are reported in `duplicates` and
   left alone, never guessed; a linked record whose key became duplicated is
   not treated as deleted.
 - `deletePolicy` for a linked record missing on one side: `ignore` keeps the

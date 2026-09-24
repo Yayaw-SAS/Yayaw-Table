@@ -994,8 +994,9 @@ function fieldChange(
     return "both";
   }
   if (!link) {
-    // An adopted record: differing columns are conflicts.
-    return "both";
+    // An adopted record has never synced: an empty side is filled, and
+    // different values on both sides are conflicts.
+    return "unsynced";
   }
   if (link.baseValues) {
     if (!Object.hasOwn(link.baseValues, columnId)) {

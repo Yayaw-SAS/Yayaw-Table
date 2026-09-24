@@ -1187,14 +1187,14 @@ win names. The demo has no multi-select column (adding one would change the
 Form view and other end-to-end tests), so "Merged" is covered by the unit
 suites only.
 
-A column a linked record never synced (mapped after the first run, or
-unknown on one side then) is filled from the side with a value whatever the
+A column a record never synced (a record adopted by key, a column mapped
+after the first run, or unknown on one side then) is filled from the side with a value whatever the
 rules, reported in `SyncPlan.initialized`, counted by `summarizeSyncPlan` and
 returned by `toSyncPreview` as `initialized`; `describeSyncPreview` adds the
 note "N empty values will be filled in from the other side." in both
 editions (`filledNote`, `filledNoteOne`). Hash-only links store their hashed
 `columns`. The shared engine suite covers each rule and direction, owned and
-manual columns, both-empty and removed columns, a field added by Prepare,
+manual columns, adopted records, both-empty and removed columns, a field added by Prepare,
 partial reads, hash-only and legacy links and idempotence.
 
 ## Connector target health
