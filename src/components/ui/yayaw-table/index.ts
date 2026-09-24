@@ -63,6 +63,16 @@ export {
   formatFeedRelativeDate,
   normalizeFeedViewConfig,
 } from "./utils/feed-view";
+// File tree view: folders and files linked by a parent column.
+export { fileTreeRenderer } from "./filetree/filetree-renderer";
+export type {
+  FileTreeActions,
+  FileTreeHooks,
+  FileTreeMoveInput,
+  FileTreeMoveResult,
+  FileTreeTableConfig,
+  FileTreeViewSettings,
+} from "./utils/filetree-model";
 // Form view; public routes can import `form/yayaw-table-form` on its own.
 export { formRenderer } from "./form/form-renderer";
 export {

@@ -3398,7 +3398,13 @@
   font-weight: 400;
 }
 /* shadcn's dark: variants: inputs, outline buttons and checkboxes take --input at 30%. */
-.dark :is(.yayaw-input, .yayaw-select, .yayaw-textarea, .yayaw-checkbox),
+.dark
+:is(
+  .yayaw-input,
+  .yayaw-select,
+  .yayaw-textarea,
+  .yayaw-checkbox:not([data-state="checked"])
+),
 .dark .yayaw-data-grid input[type="checkbox"]:not(:checked),
 .dark .yayaw-button-outline {
   border-color: var(--yayaw-input);

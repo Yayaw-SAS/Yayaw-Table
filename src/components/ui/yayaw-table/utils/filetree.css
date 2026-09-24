@@ -1,0 +1,776 @@
+/* File tree view: one stylesheet for the React and Vue editions. */
+.yayaw-ft {
+  --ft-bg: var(--yayaw-background, var(--background, oklch(1 0 0)));
+  --ft-fg: var(--yayaw-foreground, var(--foreground, oklch(0.145 0 0)));
+  --ft-muted: var(--yayaw-muted, var(--muted, oklch(0.97 0 0)));
+  --ft-muted-fg: var(
+    --yayaw-muted-foreground,
+    var(--muted-foreground, oklch(0.556 0 0))
+  );
+  --ft-border: var(--yayaw-border, var(--border, oklch(0.922 0 0)));
+  --ft-primary: var(--yayaw-primary, var(--primary, oklch(0.205 0 0)));
+  --ft-danger: var(
+    --yayaw-danger,
+    var(--destructive, oklch(0.577 0.245 27.325))
+  );
+  --ft-ring: var(--yayaw-ring, var(--ring, oklch(0.708 0 0)));
+  --ft-radius: var(--yayaw-radius, calc(var(--radius, 0.625rem) - 2px));
+  --ft-row-height: 40px;
+  --ft-indent: 1.25rem;
+  --ft-details-width: 320px;
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+  color: var(--ft-fg);
+  font-size: 14px;
+  line-height: 1.4;
+  container-type: inline-size;
+}
+.yayaw-ft *,
+.yayaw-ft-dialog *,
+.yayaw-ft-dialog {
+  box-sizing: border-box;
+}
+.yayaw-ft-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Header: root label, summary, breadcrumbs and view actions. */
+.yayaw-ft-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+.yayaw-ft-heading {
+  display: grid;
+  gap: 0.125rem;
+  min-width: 0;
+  padding: 0.25rem 0.5rem 0.25rem 0.25rem;
+  border-radius: var(--ft-radius);
+}
+.yayaw-ft-heading[data-ft-drop="valid"] {
+  background: color-mix(in oklab, var(--ft-primary) 10%, transparent);
+  box-shadow: inset 0 0 0 2px var(--ft-primary);
+}
+.yayaw-ft-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.yayaw-ft-summary {
+  margin: 0;
+  color: var(--ft-muted-fg);
+  font-size: 13px;
+}
+.yayaw-ft-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+.yayaw-ft-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  height: 2rem;
+  padding: 0 0.625rem;
+  border: 1px solid var(--ft-border);
+  border-radius: var(--ft-radius);
+  background: var(--ft-bg);
+  color: var(--ft-fg);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.yayaw-ft-button:hover:not(:disabled) {
+  background: var(--ft-muted);
+}
+.yayaw-ft-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.yayaw-ft-button[aria-pressed="true"] {
+  background: var(--ft-muted);
+}
+.yayaw-ft-button[data-variant="primary"] {
+  border-color: var(--ft-primary);
+  background: var(--ft-primary);
+  color: var(--yayaw-primary-foreground, var(--primary-foreground, #fff));
+}
+.yayaw-ft-button[data-variant="danger"] {
+  border-color: var(--ft-danger);
+  background: var(--ft-danger);
+  color: #fff;
+}
+.yayaw-ft-button:focus-visible,
+.yayaw-ft-icon-button:focus-visible,
+.yayaw-ft-crumbs button:focus-visible {
+  outline: 2px solid var(--ft-ring);
+  outline-offset: 1px;
+}
+.yayaw-ft-button svg,
+.yayaw-ft-icon-button svg {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+}
+.yayaw-ft-icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: calc(var(--ft-radius) - 2px);
+  background: transparent;
+  color: var(--ft-muted-fg);
+  cursor: pointer;
+}
+.yayaw-ft-icon-button:hover {
+  background: var(--ft-muted);
+  color: var(--ft-fg);
+}
+.yayaw-ft-crumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.125rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--ft-muted-fg);
+  font-size: 13px;
+}
+.yayaw-ft-crumbs li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  min-width: 0;
+}
+.yayaw-ft-crumbs li + li::before {
+  content: "›";
+  padding: 0 0.25rem;
+}
+.yayaw-ft-crumbs button {
+  max-width: 14rem;
+  overflow: hidden;
+  padding: 0.125rem 0.25rem;
+  border: 0;
+  border-radius: 0.25rem;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.yayaw-ft-crumbs button:hover {
+  color: var(--ft-fg);
+  text-decoration: underline;
+}
+.yayaw-ft-crumbs [aria-current="page"] {
+  color: var(--ft-fg);
+  font-weight: 500;
+}
+.yayaw-ft-notice,
+.yayaw-ft-selection {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--ft-border);
+  border-radius: var(--ft-radius);
+  background: var(--ft-muted);
+  color: var(--ft-muted-fg);
+  font-size: 13px;
+}
+.yayaw-ft-selection {
+  position: sticky;
+  bottom: 1rem;
+  z-index: 5;
+  justify-self: center;
+  background: var(--ft-bg);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.12);
+}
+.yayaw-ft-selection strong {
+  margin-right: 0.5rem;
+  color: var(--ft-fg);
+  font-weight: 500;
+}
+
+/* Tree table and details pane. */
+.yayaw-ft-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: start;
+}
+.yayaw-ft-body[data-details="true"] {
+  grid-template-columns: minmax(0, 1fr) var(--ft-details-width);
+}
+.yayaw-ft-card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--ft-border);
+  border-radius: calc(var(--ft-radius) + 2px);
+  background: var(--ft-bg);
+}
+.yayaw-ft-scroll {
+  overflow: auto;
+}
+.yayaw-ft-scroll[data-windowed="true"] {
+  max-height: min(70vh, 40rem);
+}
+.yayaw-ft-grid {
+  display: block;
+  min-width: 100%;
+  outline: none;
+}
+.yayaw-ft-row {
+  display: grid;
+  grid-template-columns: var(--ft-columns);
+  align-items: center;
+  height: var(--ft-row-height);
+  border-bottom: 1px solid var(--ft-border);
+  background: var(--ft-bg);
+  color: inherit;
+  outline: none;
+  user-select: none;
+}
+.yayaw-ft-row:last-child {
+  border-bottom: 0;
+}
+.yayaw-ft-row[role="row"]:not(.yayaw-ft-head):hover {
+  background: color-mix(in oklab, var(--ft-muted) 60%, var(--ft-bg));
+}
+.yayaw-ft-row[aria-selected="true"] {
+  background: color-mix(in oklab, var(--ft-primary) 7%, var(--ft-bg));
+}
+.yayaw-ft-row[aria-selected="true"]:hover {
+  background: color-mix(in oklab, var(--ft-primary) 10%, var(--ft-bg));
+}
+.yayaw-ft-row:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--ft-ring);
+}
+.yayaw-ft-row[data-cut="true"] .yayaw-ft-label,
+.yayaw-ft-row[data-cut="true"] .yayaw-ft-icon {
+  opacity: 0.45;
+}
+.yayaw-ft-row[data-dragging="true"] {
+  opacity: 0.5;
+}
+.yayaw-ft-row[data-ft-drop="valid"],
+.yayaw-ft-row[data-ft-file-drop="true"] {
+  background: color-mix(in oklab, var(--ft-primary) 12%, var(--ft-bg));
+  box-shadow: inset 0 0 0 2px var(--ft-primary);
+}
+.yayaw-ft-row[data-ft-drop="invalid"] {
+  background: color-mix(in oklab, var(--ft-danger) 8%, var(--ft-bg));
+  box-shadow: inset 0 0 0 2px
+    color-mix(in oklab, var(--ft-danger) 60%, transparent);
+}
+.yayaw-ft-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: 2.5rem;
+  background: var(--ft-bg);
+  color: var(--ft-muted-fg);
+  font-size: 13px;
+  font-weight: 500;
+}
+.yayaw-ft-cell {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  height: 100%;
+  padding: 0 0.75rem;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.yayaw-ft-cell[data-align="end"] {
+  justify-content: flex-end;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.yayaw-ft-cell[data-muted="true"] {
+  color: var(--ft-muted-fg);
+}
+.yayaw-ft-check {
+  justify-content: center;
+  padding: 0;
+}
+.yayaw-ft-check > * {
+  opacity: 0;
+}
+.yayaw-ft-row:hover .yayaw-ft-check > *,
+.yayaw-ft-row:focus-within .yayaw-ft-check > *,
+.yayaw-ft-row[aria-selected="true"] .yayaw-ft-check > *,
+.yayaw-ft[data-selecting="true"] .yayaw-ft-check > *,
+.yayaw-ft-head .yayaw-ft-check > * {
+  opacity: 1;
+}
+.yayaw-ft-menu {
+  justify-content: center;
+  padding: 0;
+}
+.yayaw-ft-menu .yayaw-ft-icon-button {
+  opacity: 0;
+}
+.yayaw-ft-row:hover .yayaw-ft-menu .yayaw-ft-icon-button,
+.yayaw-ft-row:focus-within .yayaw-ft-menu .yayaw-ft-icon-button,
+.yayaw-ft-menu .yayaw-ft-icon-button[aria-expanded="true"] {
+  opacity: 1;
+}
+.yayaw-ft-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0 -0.375rem;
+  padding: 0.25rem 0.375rem;
+  border: 0;
+  border-radius: 0.25rem;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.yayaw-ft-sort:hover {
+  background: var(--ft-muted);
+  color: var(--ft-fg);
+}
+.yayaw-ft-sort svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+.yayaw-ft-name {
+  gap: 0.375rem;
+  padding-left: calc(0.5rem + var(--ft-level, 0) * var(--ft-indent));
+}
+.yayaw-ft-toggle {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0.25rem;
+  background: none;
+  color: var(--ft-muted-fg);
+  cursor: pointer;
+}
+.yayaw-ft-toggle:hover {
+  background: var(--ft-muted);
+  color: var(--ft-fg);
+}
+.yayaw-ft-toggle svg {
+  width: 1rem;
+  height: 1rem;
+  transition: transform 120ms ease;
+}
+.yayaw-ft-toggle[data-expanded="true"] svg {
+  transform: rotate(90deg);
+}
+.yayaw-ft-spacer {
+  flex: none;
+  width: 1.25rem;
+}
+.yayaw-ft-icon {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 1.125rem;
+  height: 1.125rem;
+  color: var(--ft-muted-fg);
+}
+.yayaw-ft-icon svg,
+.yayaw-ft-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.yayaw-ft-icon[data-kind="folder"],
+.yayaw-ft-icon[data-kind="folder-open"] {
+  color: oklch(0.7 0.14 250);
+}
+.yayaw-ft-icon[data-kind="image"] {
+  color: oklch(0.65 0.15 155);
+}
+.yayaw-ft-icon[data-kind="video"] {
+  color: oklch(0.6 0.2 295);
+}
+.yayaw-ft-icon[data-kind="audio"] {
+  color: oklch(0.65 0.2 350);
+}
+.yayaw-ft-icon[data-kind="document"] {
+  color: oklch(0.62 0.2 25);
+}
+.yayaw-ft-icon[data-kind="archive"] {
+  color: oklch(0.72 0.15 70);
+}
+.yayaw-ft-icon[data-kind="code"] {
+  color: oklch(0.65 0.12 210);
+}
+.yayaw-ft-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.yayaw-ft-row[data-folder="true"] .yayaw-ft-label {
+  font-weight: 500;
+}
+.yayaw-ft-label mark {
+  border-radius: 0.2rem;
+  background: color-mix(in oklab, oklch(0.85 0.17 90) 60%, transparent);
+  color: inherit;
+}
+.yayaw-ft-count {
+  flex: none;
+  padding: 0 0.375rem;
+  border-radius: 999px;
+  background: var(--ft-muted);
+  color: var(--ft-muted-fg);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25rem;
+}
+.yayaw-ft-rename {
+  flex: 1;
+  min-width: 6rem;
+  height: 1.75rem;
+  padding: 0 0.5rem;
+  border: 1px solid var(--ft-ring);
+  border-radius: calc(var(--ft-radius) - 2px);
+  background: var(--ft-bg);
+  color: var(--ft-fg);
+  font: inherit;
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--ft-ring) 35%, transparent);
+  user-select: text;
+}
+.yayaw-ft-error {
+  flex: none;
+  color: var(--ft-danger);
+  font-size: 12px;
+}
+.yayaw-ft-status {
+  color: var(--ft-muted-fg);
+  font-size: 13px;
+  font-style: italic;
+}
+.yayaw-ft-more {
+  padding: 0.125rem 0.375rem;
+  border: 0;
+  border-radius: 0.25rem;
+  background: none;
+  color: var(--ft-fg);
+  font: inherit;
+  font-style: normal;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.yayaw-ft-empty {
+  display: grid;
+  place-items: center;
+  gap: 0.5rem;
+  padding: 3rem 1rem;
+  color: var(--ft-muted-fg);
+  text-align: center;
+}
+
+/* Details pane. */
+.yayaw-ft-details {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 1rem;
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--ft-border);
+  border-radius: calc(var(--ft-radius) + 2px);
+  background: var(--ft-bg);
+}
+.yayaw-ft-details header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+.yayaw-ft-details h3 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 15px;
+  font-weight: 600;
+}
+.yayaw-ft-preview {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+  border-radius: var(--ft-radius);
+  background: var(--ft-muted);
+}
+.yayaw-ft-thumb {
+  width: 100%;
+  height: 100%;
+}
+.yayaw-ft-thumb:empty {
+  display: none;
+}
+.yayaw-ft-preview .yayaw-ft-icon {
+  width: 3rem;
+  height: 3rem;
+}
+.yayaw-ft-preview .yayaw-media-thumbnail img,
+.yayaw-ft-preview .yayaw-media-thumbnail video {
+  object-fit: cover;
+}
+.yayaw-ft-details dl {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.375rem 1rem;
+  margin: 0;
+  font-size: 13px;
+}
+.yayaw-ft-details dt {
+  color: var(--ft-muted-fg);
+}
+.yayaw-ft-details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.yayaw-ft-details-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+.yayaw-ft-resize {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -0.5rem;
+  width: 0.5rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: col-resize;
+}
+.yayaw-ft-resize:hover,
+.yayaw-ft-resize:focus-visible {
+  background: color-mix(in oklab, var(--ft-ring) 40%, transparent);
+  outline: none;
+}
+
+/* Row menu (both editions render a menu popup with these items). */
+.yayaw-ft-menu-item-danger {
+  color: var(--ft-danger);
+}
+
+/* Floating drag label and cursor. */
+.yayaw-ft-drag-label {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  max-width: 22rem;
+  padding: 0.375rem 0.625rem;
+  border: 1px solid var(--yayaw-border, var(--border, #e5e5e5));
+  border-radius: 0.5rem;
+  background: var(--yayaw-background, var(--background, #fff));
+  color: var(--yayaw-foreground, var(--foreground, #0a0a0a));
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.15);
+  font:
+    500 13px / 1.4 system-ui,
+    sans-serif;
+  pointer-events: none;
+}
+.yayaw-ft-drag-label[data-valid="false"] {
+  color: var(--yayaw-danger, var(--destructive, #dc2626));
+}
+.yayaw-ft-drag-label[data-theme="dark"] {
+  border-color: #ffffff26;
+  background: #262626;
+  color: #fafafa;
+}
+.yayaw-ft-drag-label[data-theme="dark"][data-valid="false"] {
+  color: #f87171;
+}
+html.yayaw-ft-dragging,
+html.yayaw-ft-dragging * {
+  cursor: grabbing !important;
+}
+html.yayaw-ft-dragging[data-ft-invalid],
+html.yayaw-ft-dragging[data-ft-invalid] * {
+  cursor: not-allowed !important;
+}
+
+/* Native dialogs: Move to, New folder name on phones, delete confirmation. */
+.yayaw-ft-dialog {
+  --ft-bg: var(--yayaw-background, var(--background, oklch(1 0 0)));
+  --ft-fg: var(--yayaw-foreground, var(--foreground, oklch(0.145 0 0)));
+  --ft-muted: var(--yayaw-muted, var(--muted, oklch(0.97 0 0)));
+  --ft-muted-fg: var(
+    --yayaw-muted-foreground,
+    var(--muted-foreground, oklch(0.556 0 0))
+  );
+  --ft-border: var(--yayaw-border, var(--border, oklch(0.922 0 0)));
+  --ft-primary: var(--yayaw-primary, var(--primary, oklch(0.205 0 0)));
+  --ft-danger: var(
+    --yayaw-danger,
+    var(--destructive, oklch(0.577 0.245 27.325))
+  );
+  --ft-ring: var(--yayaw-ring, var(--ring, oklch(0.708 0 0)));
+  --ft-radius: var(--yayaw-radius, calc(var(--radius, 0.625rem) - 2px));
+  width: min(30rem, calc(100vw - 2rem));
+  max-height: min(36rem, calc(100dvh - 2rem));
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--ft-border);
+  border-radius: 0.75rem;
+  background: var(--ft-bg);
+  color: var(--ft-fg);
+  box-shadow: 0 20px 60px rgb(0 0 0 / 0.2);
+  font-size: 14px;
+}
+.yayaw-ft-dialog[open] {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+}
+.yayaw-ft-dialog::backdrop {
+  background: rgb(0 0 0 / 0.4);
+}
+.yayaw-ft-dialog h2 {
+  margin: 0;
+  padding: 1rem 1rem 0.25rem;
+  font-size: 16px;
+  font-weight: 600;
+}
+.yayaw-ft-dialog p {
+  margin: 0;
+  padding: 0 1rem 0.5rem;
+  color: var(--ft-muted-fg);
+  font-size: 13px;
+}
+.yayaw-ft-dialog-search {
+  margin: 0 1rem 0.5rem;
+  height: 2.25rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--ft-border);
+  border-radius: var(--ft-radius);
+  background: var(--ft-bg);
+  color: var(--ft-fg);
+  font: inherit;
+}
+.yayaw-ft-dialog-search:focus-visible {
+  outline: 2px solid var(--ft-ring);
+  outline-offset: 0;
+}
+.yayaw-ft-folders {
+  min-height: 8rem;
+  margin: 0 1rem;
+  padding: 0.25rem;
+  overflow: auto;
+  border: 1px solid var(--ft-border);
+  border-radius: var(--ft-radius);
+  list-style: none;
+}
+.yayaw-ft-folder {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding-left: calc(var(--ft-level, 0) * var(--ft-indent, 1.25rem));
+}
+.yayaw-ft-folder-button {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  height: 2rem;
+  padding: 0 0.5rem;
+  border: 0;
+  border-radius: calc(var(--ft-radius) - 2px);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.yayaw-ft-folder-button > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-ft-folder-button small {
+  color: var(--ft-muted-fg);
+}
+.yayaw-ft-folder-button:hover:not(:disabled) {
+  background: var(--ft-muted);
+}
+.yayaw-ft-folder-button[aria-pressed="true"] {
+  background: color-mix(in oklab, var(--ft-primary) 12%, var(--ft-bg));
+}
+.yayaw-ft-folder-button:disabled {
+  color: var(--ft-muted-fg);
+  cursor: not-allowed;
+}
+.yayaw-ft-dialog footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 1rem;
+}
+.yayaw-ft-dialog footer .yayaw-ft-error {
+  margin-right: auto;
+}
+
+/* Narrow widths hide the optional columns; phones drill into folders. */
+@container (max-width: 34rem) {
+  .yayaw-ft-row [data-optional="true"] {
+    display: none;
+  }
+  .yayaw-ft-row {
+    grid-template-columns: var(--ft-columns-compact);
+  }
+}
+.yayaw-ft[data-phone="true"] .yayaw-ft-name > .yayaw-ft-spacer:first-child {
+  display: none;
+}
+.yayaw-ft[data-phone="true"] .yayaw-ft-check > * {
+  opacity: 1;
+}
+.yayaw-ft[data-phone="true"] .yayaw-ft-menu .yayaw-ft-icon-button {
+  opacity: 1;
+}
+@media (max-width: 40rem) {
+  .yayaw-ft-dialog[open] {
+    width: 100vw;
+    max-width: 100vw;
+    max-height: 85dvh;
+    margin: auto 0 0;
+    border-radius: 1rem 1rem 0 0;
+  }
+}

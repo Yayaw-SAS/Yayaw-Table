@@ -95,9 +95,21 @@ export interface TableActions {
     meta?: {
       pageCount?: number;
       totalCount?: number;
+      /** `"applied"` when the list honoured `params.scope` (date range, file tree children…). */
+      scope?: string;
+      /** File tree: children per folder id, for expanders and counts. */
+      childCounts?: Record<string, number>;
+      /** File tree: total bytes per folder id. */
+      sizes?: Record<string, number>;
+      /** File tree `tree-matches` scope: ancestor folders of the matches. */
+      ancestors?: unknown[];
+      /** The rows were capped (`subtree`, `tree-matches`). */
+      truncated?: boolean;
     };
   }>;
   aggregate?: (params: TableAggregateParams) => Promise<TableAggregateResponse>;
+  /** Server operations of the File tree view (path, move, createFolder). */
+  tree?: import("../utils/filetree-model").FileTreeActions;
   create?: (data: Record<string, unknown>) => Promise<{
     success: boolean;
     data?: unknown;
@@ -885,6 +897,7 @@ export const defaultTranslations: DataTableTranslations = {
       calendar: "Calendar",
       chart: "Chart",
       feed: "Feed",
+      filetree: "File tree",
       form: "Form",
       gantt: "Gantt",
       gallery: "Gallery",

@@ -44,6 +44,10 @@ await copyFile(
 for (const file of [
   "calendar-model.ts",
   "chart-model.ts",
+  "filetree-model.ts",
+  "filetree-controller.ts",
+  "filetree-dom.ts",
+  "filetree.css",
   "connector-flow.ts",
   "connector-schema.ts",
   "data-destinations.ts",

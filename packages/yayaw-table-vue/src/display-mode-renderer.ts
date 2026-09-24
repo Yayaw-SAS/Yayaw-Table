@@ -1,5 +1,7 @@
 import type { Component } from "vue";
+import type { FileTreeActions } from "./filetree-model";
 import type { FormLinkActions, FormSubmitResult } from "./form-view";
+import type { TableGalleryMediaConfig } from "./media-contract";
 import type { ScopedRowsRequest } from "./scoped-rows";
 import type { ColumnDefinition, TableDisplayMode, TableRecord } from "./types";
 
@@ -58,6 +60,32 @@ export interface DisplayModeRenderContext extends DisplayModeSettingsContext {
   coloredTags: boolean;
   /** Changes after each mutation so renderers reload their rows. */
   revision: number;
+  /** The table's name (`translations.keys.title`), e.g. for a root label. */
+  title?: string;
+  /** `actions.tree`: path, move and createFolder for the file tree. */
+  tree?: FileTreeActions;
+  /**
+   * Save a patch through `actions.update` and answer its result without a
+   * notification, so the renderer can show the error where it happened.
+   */
+  patchRow?: (
+    row: TableRecord,
+    patch: TableRecord
+  ) => Promise<{ success: boolean; error?: string }>;
+  /** Delete a record through `actions.delete`; absent when records cannot be deleted. */
+  deleteRow?: (
+    row: TableRecord
+  ) => Promise<{ success: boolean; error?: string }>;
+  canDeleteRow: (row: TableRecord) => boolean;
+  /** `table.gallery.media` and image column, for file icons and previews. */
+  media?: TableGalleryMediaConfig;
+  imageColumn?: string;
+  /** Row selection settings of the table. */
+  selection: { enabled: boolean; multiple: boolean };
+  /** The table keeps its state in the URL (`table.syncUrl`). */
+  syncUrl: boolean;
+  /** Reload the table's rows (after a change made through `actions.tree`). */
+  refresh: () => Promise<void>;
 }
 
 /** Components receive a `context` prop. */

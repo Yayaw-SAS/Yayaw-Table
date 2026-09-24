@@ -59,6 +59,20 @@ export interface DisplayModeRenderInput {
   viewId: string | null;
   formLinks?: FormLinkActions;
   emptyState: ReactNode;
+  /** What the file tree needs besides the common context. */
+  extras: Pick<
+    DisplayModeRenderContext,
+    | "canDeleteRow"
+    | "deleteRow"
+    | "imageColumn"
+    | "media"
+    | "patchRow"
+    | "refresh"
+    | "selection"
+    | "syncUrl"
+    | "title"
+    | "tree"
+  >;
 }
 
 const defaultRowId = (row: RowRecord) => String(row.id ?? row._id ?? "");
@@ -93,6 +107,7 @@ export function useDisplayModeRenderContext(
     tableId,
     tableType,
     viewId,
+    extras,
   } = input;
   // Page data changes after any mutation or form submit; renderers reload with it.
   const revisionCounter = useRef(0);
@@ -156,6 +171,7 @@ export function useDisplayModeRenderContext(
       coloredTags: (tableDefaults as RowRecord).coloredTags !== false,
       revision,
       emptyState,
+      ...extras,
     }),
     [
       activateRow,
@@ -169,6 +185,7 @@ export function useDisplayModeRenderContext(
       createRow,
       editRow,
       emptyState,
+      extras,
       formLinks,
       getRowId,
       groupBy,

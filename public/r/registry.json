@@ -941,6 +941,26 @@
           "target": "components/ui/yayaw-table/feed/use-feed-pages.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/filetree/filetree-parts.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/filetree/filetree-parts.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/filetree/filetree-renderer.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/filetree/filetree-renderer.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/filetree/filetree-settings.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/filetree/filetree-settings.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/filetree/filetree-view.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/filetree/filetree-view.tsx"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/form/form-date-field.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/form/form-date-field.tsx"
@@ -1409,6 +1429,26 @@
           "path": "registry/default/ui/yayaw-table/utils/field-matching.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/field-matching.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/filetree-controller.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/filetree-controller.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/filetree-dom.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/filetree-dom.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/filetree-model.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/filetree-model.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/filetree.css",
+          "type": "registry:style",
+          "target": "components/ui/yayaw-table/utils/filetree.css"
         },
         {
           "path": "registry/default/ui/yayaw-table/utils/filter-bar.ts",

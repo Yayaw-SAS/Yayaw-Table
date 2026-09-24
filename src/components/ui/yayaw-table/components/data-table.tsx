@@ -43,7 +43,9 @@ import {
 } from "../providers/table-state-sync-provider";
 import { seedTableViewState } from "../hooks/use-table-url-state";
 import { withFeedRenderer } from "../feed/feed-renderer";
+import { withFileTreeRenderer } from "../filetree/filetree-renderer";
 import { withFormRenderer } from "../form/form-renderer";
+import { isFileTreeAvailable } from "../utils/filetree-model";
 import { isFormModeEnabled } from "../utils/form-view";
 import { resolveTranslationsToUiStrings } from "../providers/translation-cache";
 import type { TableGanttViewConfig } from "../planning/types";
@@ -780,14 +782,23 @@ function DataTableContent({
   // The Feed mode ships in the table too; `table.feed: false` withholds it.
   const modeRenderers = useMemo(
     () =>
-      withFormRenderer(
-        withoutDisabledModeRenderers(
-          withFeedRenderer(displayModeRenderers),
-          config.table
+      withFileTreeRenderer(
+        withFormRenderer(
+          withoutDisabledModeRenderers(
+            withFeedRenderer(displayModeRenderers),
+            config.table
+          ),
+          isFormModeEnabled(config.table.form, canCreateRecords)
         ),
-        isFormModeEnabled(config.table.form, canCreateRecords)
+        // The File tree ships in the table; it is offered when rows have a parent column.
+        isFileTreeAvailable(config.table.filetree, config.columns.definitions)
       ),
-    [canCreateRecords, config.table, displayModeRenderers]
+    [
+      canCreateRecords,
+      config.columns.definitions,
+      config.table,
+      displayModeRenderers,
+    ]
   );
   const offeredDisplayModes = useMemo(
     () =>

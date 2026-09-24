@@ -50,6 +50,8 @@ import DisplayModeRendererHost from "./DisplayModeRendererHost.vue";
 import type { DisplayModeRenderers } from "../display-mode-renderer";
 import { withFeedRenderer } from "../feed/feed-renderer";
 import { withFormRenderer } from "../form/form-renderer";
+import { withFileTreeRenderer } from "../filetree/filetree-renderer";
+import { isFileTreeAvailable } from "../filetree-model";
 import { withoutDisabledModeRenderers } from "../display-modes";
 import { isFormModeEnabled } from "../form-view";
 import ListView from "./list/ListView.vue";
@@ -219,15 +221,19 @@ const searchDebounceMs = computed(
 );
 // The Form mode ships in the table; it is offered when records can be created.
 // The Feed mode ships in the table too; `table.feed: false` withholds it.
-const modeRenderers = withFormRenderer(
-  withoutDisabledModeRenderers(
-    withFeedRenderer(props.displayModeRenderers),
-    config.table
+// The File tree is offered when rows have a parent column.
+const modeRenderers = withFileTreeRenderer(
+  withFormRenderer(
+    withoutDisabledModeRenderers(
+      withFeedRenderer(props.displayModeRenderers),
+      config.table
+    ),
+    isFormModeEnabled(
+      config.table.form,
+      config.table.allowCreate !== false && Boolean(actions.value?.create)
+    )
   ),
-  isFormModeEnabled(
-    config.table.form,
-    config.table.allowCreate !== false && Boolean(actions.value?.create)
-  )
+  isFileTreeAvailable(config.table.filetree, config.columns.definitions)
 );
 const syncUrl = props.syncUrl ?? config.table.syncUrl ?? true;
 const state = useTableState({
