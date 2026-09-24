@@ -3,7 +3,7 @@ import { Check, Pencil, Plus, RefreshCw } from "lucide-vue-next";
 import { toast } from "vue-sonner";
 import { computed, ref, shallowRef, watch, type VNodeChild } from "vue";
 import type { DisplayModeRenderers } from "../display-mode-renderer";
-import type { TableRecord } from "../types";
+import type { DataTableTranslations, TableRecord } from "../types";
 import DashboardAddFilter from "./DashboardAddFilter.vue";
 import DashboardAddWidget from "./DashboardAddWidget.vue";
 import DashboardFilters from "./DashboardFilters.vue";
@@ -26,6 +26,7 @@ import {
   dashboardColumn,
   dashboardLabel,
   dashboardTranslate,
+  dashboardWidgetSize,
   dashboardWidgetTitle,
   loadDashboardViews,
   moveDashboardWidget,
@@ -59,9 +60,15 @@ const props = withDefaults(
     renderMarkdown?: (text: string) => VNodeChild;
     /** Optional display modes widgets may use, e.g. `{ chart, calendar }`. */
     displayModeRenderers?: DisplayModeRenderers;
+    /** Language of the dashboard and of every widget (dates, numbers, labels). */
     locale?: string;
     /** Label overrides keyed `dashboard.<key>`. */
     translations?: Record<string, string>;
+    /**
+     * Table label overrides every widget uses (pagination, empty states, menus…),
+     * as `YayawDataTable`'s `translations`; `locale` already picks the built-in French.
+     */
+    tableTranslations?: DataTableTranslations;
     getRowId?: (row: TableRecord) => string;
   }>(),
   { canEdit: false, locale: "en" }
@@ -125,6 +132,7 @@ const infos = computed<Record<string, DashboardTableInfo>>(() =>
       {
         name: source.name ?? source.config.translations?.keys?.title ?? id,
         coloredTags: source.config.table?.coloredTags,
+        defaultDisplayMode: source.config.table?.defaultDisplayMode,
         columns: source.config.columns.definitions.map((column) =>
           dashboardColumn(column as DashboardColumn)
         ),
@@ -158,6 +166,21 @@ const openable = (widget: DashboardWidget) => Boolean(props.openView && widget.t
 const open = (widget: DashboardWidget) => {
   if (widget.tableId) props.openView?.(widget.tableId, widget.viewId ?? null);
 };
+const sizeOf = (widgetId: string) => {
+  const place = dashboard.value?.layout.find((item) => item.widgetId === widgetId);
+  return { w: place?.w ?? 1, h: place?.h ?? 1 };
+};
+const addWidget = (widget: Omit<DashboardWidget, "id">) =>
+  update((current) =>
+    addDashboardWidget(
+      current,
+      widget,
+      dashboardWidgetSize(widget, {
+        views: views.value[widget.tableId ?? ""],
+        table: infos.value[widget.tableId ?? ""],
+      })
+    )
+  );
 const move = (widget: DashboardWidget, direction: DashboardDirection) => {
   update((current) => moveDashboardWidget(current, widget.id, direction));
   announcement.value = label("moved", { title: titleOf(widget) });
@@ -260,9 +283,14 @@ const loadMessage = computed(() => {
             :revision="revision"
             :label="label"
             :locale="props.locale"
+            :translate="translate"
+            :table-translations="props.tableTranslations"
+            :size="sizeOf(widgetId)"
+            :openable="openable(widgetOf(widgetId)!)"
             :renderers="props.displayModeRenderers"
             :render-markdown="props.renderMarkdown"
             :get-row-id="props.getRowId"
+            @view-all="open(widgetOf(widgetId)!)"
           />
         </DashboardWidgetFrame>
       </template>
@@ -279,7 +307,7 @@ const loadMessage = computed(() => {
         :label="label"
         :locale="props.locale"
         :translate="translate"
-        @add="(widget) => update((current) => addDashboardWidget(current, widget))"
+        @add="addWidget"
       />
       <DashboardAddFilter
         v-model:open="addingFilter"

@@ -1855,6 +1855,11 @@
           "target": "components/ui/yayaw-table-dashboard/dashboard-filters.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table-dashboard/dashboard-fit.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table-dashboard/dashboard-fit.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table-dashboard/dashboard-grid-engine.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table-dashboard/dashboard-grid-engine.ts"
@@ -1868,6 +1873,11 @@
           "path": "registry/default/ui/yayaw-table-dashboard/dashboard-grid.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table-dashboard/dashboard-grid.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table-dashboard/dashboard-kpi.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table-dashboard/dashboard-kpi.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table-dashboard/dashboard-model.ts",

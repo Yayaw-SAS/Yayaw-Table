@@ -255,6 +255,7 @@ function DataTableListItem<TData extends Record<string, unknown>>({
         reorder?.isTarget && "shadow-[inset_0_2px_0_0_var(--primary)]"
       )}
       data-active={isActive ? "true" : undefined}
+      data-row-id={row.id}
       {...(reorder ? { [REORDER_ROW_ATTRIBUTE]: row.id } : {})}
     >
       {/* biome-ignore lint/a11y: a clickable line keeps nested selection/actions valid, takes the button role and provides keyboard activation. */}

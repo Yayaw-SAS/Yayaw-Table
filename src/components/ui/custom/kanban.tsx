@@ -71,17 +71,23 @@ const KanbanContext = createContext<KanbanContextProps>({
   data: [],
 });
 
-export interface KanbanBoardProps {
+export interface KanbanBoardProps extends HTMLAttributes<HTMLElement> {
   children: ReactNode;
   className?: string;
   id: string;
 }
 
-export const KanbanBoard = ({ children, className, id }: KanbanBoardProps) => {
+export const KanbanBoard = ({
+  children,
+  className,
+  id,
+  ...props
+}: KanbanBoardProps) => {
   const { isOver, setNodeRef } = useDroppable({ id });
 
   return (
     <section
+      {...props}
       className={cn(
         "flex size-full min-h-40 flex-col divide-y overflow-hidden rounded-md border bg-secondary text-xs shadow-sm ring-2 transition-all",
         isOver ? "ring-primary" : "ring-transparent",
@@ -107,6 +113,8 @@ export type KanbanCardProps<T extends KanbanItemProps = KanbanItemProps> =
     className?: string;
     disabled?: boolean;
     dragHandle?: (props: KanbanDragHandleProps) => ReactNode;
+    /** Attributes of the card's outer element, e.g. `data-row-id`. */
+    itemAttributes?: Record<string, string | undefined>;
   };
 
 export const KanbanCard = <T extends KanbanItemProps = KanbanItemProps>({
@@ -115,6 +123,7 @@ export const KanbanCard = <T extends KanbanItemProps = KanbanItemProps>({
   disabled = false,
   dragHandle,
   id,
+  itemAttributes,
   name,
 }: KanbanCardProps<T>) => {
   const {
@@ -143,7 +152,7 @@ export const KanbanCard = <T extends KanbanItemProps = KanbanItemProps>({
 
   return (
     <>
-      <div ref={setNodeRef} style={style} {...dragProps}>
+      <div {...itemAttributes} ref={setNodeRef} style={style} {...dragProps}>
         <Card className={cardClassName}>
           {content}
           {dragHandle?.({

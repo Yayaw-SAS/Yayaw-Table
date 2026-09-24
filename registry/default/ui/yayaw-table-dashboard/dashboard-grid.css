@@ -44,6 +44,7 @@
   cursor: grab;
   touch-action: none;
 }
+/* Phones: one column, each widget as tall as its rows by default. */
 .yayaw-dashboard-stack {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -52,41 +53,222 @@
 .yayaw-dashboard-stack > [data-dashboard-item] {
   display: flex;
   min-width: 0;
-  min-height: calc(var(--dashboard-h) * var(--dashboard-row-height));
+  height: calc(
+    var(--dashboard-h) *
+    var(--dashboard-row-height) -
+    var(--dashboard-margin) *
+    2
+  );
 }
 .yayaw-dashboard-stack > [data-dashboard-item] > * {
   flex: 1;
   min-width: 0;
 }
-/* Numbers: the widget's title names the figure, which fills the card. */
-[data-widget-type="kpi"] [data-widget-body] {
-  display: flex;
-  align-items: safe center;
-  padding-block: 0.25rem;
+/*
+ * Rows are sized for a quarter of a desktop grid, not for a phone: figures and
+ * notes take the height of their content, charts one proportional to the
+ * phone's width. Record widgets keep their rows, which set how many they show.
+ */
+.yayaw-dashboard-stack
+> [data-dashboard-item]:has(
+  [data-widget-type="kpi"],
+  [data-widget-type="note"],
+  [data-widget-mode="chart"]
+) {
+  height: auto;
 }
-[data-widget-type="kpi"] [data-widget-body] * {
-  min-height: 0;
+.yayaw-dashboard-stack [data-widget-type="kpi"] > [data-widget-body],
+.yayaw-dashboard-stack [data-widget-type="note"] > [data-widget-body] {
+  flex: none;
+  container-type: inline-size;
 }
-[data-widget-type="kpi"] [data-widget-body] > * {
-  flex: 1;
-  min-width: 0;
-}
-[data-widget-type="kpi"] [data-chart-type="number"] {
-  gap: 0;
-}
-[data-widget-type="kpi"] [data-chart-type="number"] > :has([data-chart-title]),
-[data-widget-type="kpi"] [data-chart-number] + * {
-  display: none;
-}
-[data-widget-type="kpi"] :has(> [data-chart-number]) {
-  justify-items: start;
-  padding: 0;
-}
-[data-widget-type="kpi"] [data-chart-number] {
-  font-size: 1.875rem;
-  line-height: 2.25rem;
+.yayaw-dashboard-stack
+  [data-dashboard-widget]:has([data-widget-mode="chart"])
+  > [data-widget-body] {
+  flex: none;
+  height: auto;
+  min-height: 11rem;
+  max-height: 20rem;
+  aspect-ratio: 16 / 10;
 }
 /* Widgets line up with the toolbar despite their margins. */
 [data-dashboard-layout="grid"] {
   margin-inline: calc(var(--dashboard-margin) * -1);
+}
+
+/*
+ * Widget bodies are size containers: charts fill them (`100cqh`). They clip,
+ * unless the widget asks to scroll (`settings.overflow: "scroll"`).
+ */
+[data-dashboard-widget] > [data-widget-body] {
+  container-type: size;
+  overflow: hidden;
+}
+[data-dashboard-widget] > [data-widget-body][data-overflow="scroll"] {
+  overflow: auto;
+}
+
+/* Fit: the records that do not fit are hidden (dashboard-fit.ts). */
+[data-dashboard-fit] {
+  display: flex;
+  flex: 1 1 0%;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+[data-dashboard-fit] [data-dashboard-overflow] {
+  display: none !important;
+}
+[data-dashboard-fit] [data-feed-footer] {
+  display: none !important;
+}
+/* No space kept below the records for pagination or bulk actions. */
+[data-dashboard-fit] [data-yayaw-table-selection-scope] > * {
+  margin-block: 0;
+}
+/* Boards share the widget's width; lanes that do not fit are hidden. */
+[data-dashboard-fit] [data-kanban-board],
+[data-dashboard-fit] [data-kanban-board] > * {
+  width: auto;
+  min-width: 0;
+  min-height: 0;
+  grid-auto-columns: minmax(9rem, 1fr);
+}
+[data-dashboard-fit] [data-kanban-board] {
+  overflow: hidden;
+}
+[data-dashboard-fit] [data-kanban-lane] {
+  width: auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* "+3 more · View all" under a fit widget's records. */
+[data-widget-more] {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.375rem;
+  padding-top: 0.375rem;
+  color: var(--yayaw-muted-foreground, var(--muted-foreground));
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+[data-widget-more] button {
+  margin: 0;
+  border: 0;
+  border-radius: 0.25rem;
+  background: none;
+  padding: 0;
+  color: var(--yayaw-foreground, var(--foreground));
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+[data-widget-more] button:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+[data-widget-more] button:focus-visible {
+  outline: 2px solid var(--yayaw-ring, var(--ring));
+  outline-offset: 2px;
+}
+
+/* Numbers: a compact card, the title above the figure. */
+[data-widget-type="kpi"] > [data-widget-header] {
+  min-height: 0;
+  border-bottom-width: 0;
+  padding-bottom: 0;
+}
+[data-widget-type="kpi"] > [data-widget-header] [data-widget-title] {
+  color: var(--yayaw-muted-foreground, var(--muted-foreground));
+  font-size: 0.8125rem;
+}
+[data-widget-type="kpi"] > [data-widget-body] {
+  padding-top: 0.125rem;
+  padding-bottom: 0.625rem;
+}
+/* Figures start under the title, so the numbers of a row line up. */
+[data-kpi] {
+  display: flex;
+  height: 100%;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 0.125rem;
+}
+[data-kpi-main] {
+  display: flex;
+  min-width: 0;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+[data-kpi-value] {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 1.75rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 2rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+[data-kpi-trend] {
+  display: block;
+  width: min(42%, 7.5rem);
+  height: 2rem;
+  flex: none;
+  overflow: visible;
+  color: var(--yayaw-chart-1, var(--chart-1, currentColor));
+}
+[data-kpi-trend] polyline {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.75;
+  vector-effect: non-scaling-stroke;
+}
+[data-kpi-compare] {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0;
+  overflow: hidden;
+  color: var(--yayaw-muted-foreground, var(--muted-foreground));
+  font-size: 0.75rem;
+  line-height: 1rem;
+  white-space: nowrap;
+}
+[data-kpi-compare] > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+[data-kpi-compare] > svg {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex: none;
+}
+[data-kpi-compare][data-tone="positive"] {
+  color: oklch(0.527 0.154 150.069);
+}
+[data-kpi-compare][data-tone="negative"] {
+  color: var(--yayaw-danger, var(--destructive, oklch(0.577 0.245 27.325)));
+}
+.dark [data-kpi-compare][data-tone="positive"] {
+  color: oklch(0.723 0.219 149.579);
+}
+[data-kpi-state] {
+  margin: 0;
+  color: var(--yayaw-muted-foreground, var(--muted-foreground));
+  font-size: 0.75rem;
+}
+[data-kpi-state="error"] {
+  color: var(--yayaw-danger, var(--destructive));
 }

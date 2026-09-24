@@ -6,15 +6,17 @@ import {
 import {
   DropdownMenuContent, DropdownMenuItem, DropdownMenuPortal, DropdownMenuRoot, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "reka-ui";
-import { useId } from "vue";
+import { computed, useId } from "vue";
 import {
   canMoveLayoutItem,
   canResizeLayoutItem,
   type DashboardDirection,
   type DashboardLabelKey,
   type DashboardLayoutItem,
+  type DashboardOverflow,
   type DashboardResize,
   type DashboardWidget,
+  widgetOverflow,
 } from "./dashboard-model";
 import type { DashboardLabel } from "./dashboard-types";
 
@@ -35,6 +37,9 @@ const emit = defineEmits<{
   open: [];
 }>();
 const titleId = useId();
+const overflow = computed<DashboardOverflow>(() =>
+  props.widget.type === "view" ? widgetOverflow(props.widget) : "fit"
+);
 
 const moves: { direction: DashboardDirection; key: DashboardLabelKey; icon: unknown }[] = [
   { direction: "left", key: "moveLeft", icon: ArrowLeft },
@@ -57,7 +62,7 @@ const resizes: { change: DashboardResize; key: DashboardLabelKey; icon: unknown 
     :data-dashboard-widget="props.widget.id"
     :data-widget-type="props.widget.type"
   >
-    <header class="yayaw-dashboard-widget-header">
+    <header class="yayaw-dashboard-widget-header" data-widget-header="">
       <span
         v-if="props.editing && !props.phone"
         class="yayaw-dashboard-handle"
@@ -119,7 +124,7 @@ const resizes: { change: DashboardResize; key: DashboardLabelKey; icon: unknown 
         </DropdownMenuPortal>
       </DropdownMenuRoot>
     </header>
-    <div class="yayaw-dashboard-widget-body" data-widget-body="">
+    <div class="yayaw-dashboard-widget-body" data-widget-body="" :data-overflow="overflow">
       <slot />
     </div>
   </section>

@@ -54,8 +54,12 @@ Dashboards like Notion's are
 arranges saved views of any table, numbers and notes on a 4-column grid
 (gridstack.js, loaded on demand; stacked on phones) with dashboard filters
 sent to each table's `list`/`aggregate`, and stores dashboards through
-`actions.dashboards` (`list`, `load`, `save`, `remove`). Several tables on one
-page stay apart with `instanceId`. The File tree view ships in the table items:
+`actions.dashboards` (`list`, `load`, `save`, `remove`). Nothing scrolls inside
+a widget by default: lists, tables, boards, galleries and feeds show the
+records that fit and "+N more · View all" (`settings.overflow: "scroll"`
+scrolls instead), charts fill their widget, and numbers can compare with the
+previous period and draw a trend line. Several tables on one page stay apart
+with `instanceId`. The File tree view ships in the table items:
 records linked by a parent column (`table.filetree.parentColumn`, or a column
 named `parentId`) show as folders and files in a tree table; add `"filetree"`
 to `displayModes`. It loads folders with `list({ scope: { kind: "children" } })`

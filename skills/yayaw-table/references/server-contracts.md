@@ -305,4 +305,8 @@ and the sync engine: [connectors](connectors.md).
 | `actions.dashboards.remove` | `(id)` |
 
 Authorize every call; `canEdit` only shows the editing controls. Widgets call
-each table's own `list` and `aggregate` with `requiredFilters`.
+each table's own `list` and `aggregate` with `requiredFilters`. Number
+widgets call `aggregate` with `groupBy: []` (and, for a trend line, one date
+bucket level); a comparison or a trend sends each period as a `between` rule
+on the date column in `requiredFilters`. Without `aggregate`, they page
+through `list`. Fit widgets read `meta.totalCount` for "+N more".

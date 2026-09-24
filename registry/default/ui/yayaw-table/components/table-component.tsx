@@ -2633,6 +2633,7 @@ function ModernDataTable<
             canClickRow && "cursor-pointer hover:bg-muted/40"
           )}
           data-active={isActiveRow ? "true" : undefined}
+          data-row-id={row.id}
           data-state={row.getIsSelected() ? "selected" : ""}
           key={row.id}
           onClick={

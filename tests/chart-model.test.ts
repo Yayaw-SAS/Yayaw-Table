@@ -10,6 +10,7 @@ import {
   chartBucketKey,
   chartBucketLabel,
   chartBucketRange,
+  chartFillLayout,
   chartFunnelLayout,
   chartFunnelOrientation,
   chartGroupFilters,
@@ -27,6 +28,7 @@ import {
   resolveChartSettings,
   withChartFilters,
 } from "../src/components/ui/yayaw-table/utils/chart-model";
+
 import {
   modeDefaultsOf,
   normalizeModeConfig,
@@ -51,6 +53,7 @@ chartModelSuite(
     chartBucketRange,
     chartFunnelLayout,
     chartFunnelOrientation,
+    chartFillLayout,
     chartGroupFilters,
     chartLabel,
     chartMetricUnit,

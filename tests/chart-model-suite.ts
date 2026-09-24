@@ -17,6 +17,7 @@ type ChartApi = Pick<
   | "chartBucketRange"
   | "chartFunnelLayout"
   | "chartFunnelOrientation"
+  | "chartFillLayout"
   | "chartGroupFilters"
   | "chartLabel"
   | "chartMetricUnit"
@@ -983,6 +984,89 @@ export function chartModelSuite(
       modes.modeDefaultsOf({ chart: { type: "line" } }, "chart"),
       { type: "line" }
     );
+  });
+
+  test("a filled chart places its legend and keeps labels by the room it has", () => {
+    const layout = (
+      input: Partial<Parameters<ChartApi["chartFillLayout"]>[0]>
+    ) =>
+      chart.chartFillLayout({
+        width: 300,
+        height: 170,
+        type: "donut",
+        categories: 5,
+        legendItems: 5,
+        showDataLabels: true,
+        ...input,
+      });
+    // A donut in a wide box: the legend beside it, with the values.
+    assert.deepEqual(layout({}), {
+      plotWidth: 160,
+      plotHeight: 170,
+      legend: "right",
+      legendWidth: 132,
+      dataLabels: true,
+      valueAxis: false,
+      categoryStep: 2,
+    });
+    // Tall and narrow: under it.
+    assert.deepEqual(
+      [
+        layout({ width: 200, height: 400 }).legend,
+        layout({ width: 200, height: 400 }).plotHeight,
+      ],
+      ["bottom", 332]
+    );
+    // No room for either: none.
+    assert.equal(
+      layout({ width: 150, height: 100, type: "line" }).legend,
+      "none"
+    );
+    // Bars keep their values when each has room, and drop the value axis.
+    const bars = layout({
+      width: 600,
+      height: 200,
+      type: "bar",
+      categories: 4,
+      legendItems: 0,
+    });
+    assert.deepEqual(
+      [bars.legend, bars.dataLabels, bars.valueAxis, bars.categoryStep],
+      ["none", true, false, 1]
+    );
+    // Crowded lines: no labels, the value axis, every fourth category.
+    const line = layout({
+      width: 300,
+      height: 140,
+      type: "line",
+      categories: 12,
+      legendItems: 0,
+    });
+    assert.deepEqual(
+      [line.dataLabels, line.valueAxis, line.categoryStep],
+      [false, true, 4]
+    );
+    assert.equal(
+      layout({
+        width: 280,
+        height: 180,
+        type: "horizontalBar",
+        categories: 4,
+        legendItems: 0,
+      }).dataLabels,
+      true
+    );
+    assert.equal(
+      layout({
+        width: 280,
+        height: 120,
+        type: "horizontalBar",
+        categories: 4,
+        legendItems: 0,
+      }).dataLabels,
+      false
+    );
+    assert.equal(chart.normalizeChartViewConfig({ fill: true })?.fill, true);
   });
 
   test("value axes use round ticks, whole numbers for counts", () => {

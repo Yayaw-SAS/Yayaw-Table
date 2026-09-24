@@ -13,10 +13,12 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { DisplayModeRenderers } from "@/components/ui/yayaw-table/types/display-mode-renderer";
+import type { DataTableTranslations } from "@/components/ui/yayaw-table/types/translations";
 import { cn } from "@/lib/utils";
 import { AddFilterDialog, AddWidgetDialog } from "./dashboard-dialogs";
 import { DashboardFilterBar } from "./dashboard-filters";
 import { DashboardGrid } from "./dashboard-grid";
+import { KpiWidget } from "./dashboard-kpi";
 import {
   addDashboardFilter,
   addDashboardWidget,
@@ -29,12 +31,14 @@ import {
   type DashboardResize,
   type DashboardStorage,
   type DashboardTableInfo,
+  type DashboardTranslate,
   type DashboardView,
   type DashboardWidget,
   dashboardColumn,
   dashboardFilterRules,
   dashboardLabel,
   dashboardTranslate,
+  dashboardWidgetSize,
   dashboardWidgetTitle,
   loadDashboardViews,
   moveDashboardWidget,
@@ -71,9 +75,15 @@ export interface YayawDashboardProps {
   renderMarkdown?: (text: string) => ReactNode;
   /** Optional display modes widgets may use, e.g. `{ chart, calendar }`. */
   displayModeRenderers?: DisplayModeRenderers;
+  /** Language of the dashboard and of every widget (dates, numbers, labels). */
   locale?: string;
   /** Label overrides keyed `dashboard.<key>`. */
   translations?: Record<string, string>;
+  /**
+   * The table labels every widget uses (pagination, empty states, menus…), as
+   * `DataTable`'s `translations`: pass the page's own, e.g. French ones.
+   */
+  tableTranslations?: DataTableTranslations;
   getRowId?: (row: Record<string, unknown>) => string;
   /** Called with the dashboard after each change (saved or not). */
   onChange?: (dashboard: Dashboard) => void;
@@ -150,6 +160,7 @@ const tableInfo = (
 ): DashboardTableInfo => ({
   name: source.name ?? source.config.translations?.keys?.title ?? tableId,
   coloredTags: source.config.table.coloredTags,
+  defaultDisplayMode: source.config.table.defaultDisplayMode,
   columns: source.config.columns.definitions.map((column) =>
     dashboardColumn(column as DashboardColumn)
   ),
@@ -158,14 +169,18 @@ const tableInfo = (
 interface WidgetContentProps {
   dashboard: Dashboard;
   widget: DashboardWidget;
+  size: { w: number; h: number };
   tables: Record<string, DashboardTableSource>;
   views: Record<string, DashboardView[] | undefined>;
   revision: number;
   label: DashboardLabel;
   locale: string;
+  translate: DashboardTranslate;
+  tableTranslations?: DataTableTranslations;
   renderers?: DisplayModeRenderers;
   renderMarkdown?: (text: string) => ReactNode;
   getRowId?: (row: Record<string, unknown>) => string;
+  onViewAll?: () => void;
 }
 
 function WidgetContent(props: WidgetContentProps) {
@@ -191,16 +206,33 @@ function WidgetContent(props: WidgetContentProps) {
   if (widget.viewId && !view) {
     return <WidgetMessage tone="error">{label("missingView")}</WidgetMessage>;
   }
+  if (widget.type === "kpi") {
+    return (
+      <KpiWidget
+        dashboard={dashboard}
+        label={label}
+        locale={props.locale}
+        revision={props.revision}
+        source={source}
+        translate={props.translate}
+        view={view}
+        widget={widget}
+      />
+    );
+  }
   return (
     <EmbeddedTableWidget
       dashboardId={dashboard.id}
       getRowId={props.getRowId}
       label={label}
       locale={props.locale}
+      onViewAll={props.onViewAll}
       renderers={props.renderers}
       revision={props.revision}
       rules={dashboardFilterRules(dashboard, widget)}
+      size={props.size}
       source={source}
+      translations={props.tableTranslations}
       view={view}
       widget={widget}
     />
@@ -293,6 +325,7 @@ export function YayawDashboard({
   onChange,
   openView,
   renderMarkdown,
+  tableTranslations,
   tables,
   translations,
 }: YayawDashboardProps) {
@@ -404,6 +437,7 @@ export function YayawDashboard({
       openView && tableId && widget.type !== "note"
         ? () => openView(tableId, widget.viewId ?? null)
         : undefined;
+    const place = dashboard.layout.find((item) => item.widgetId === widgetId);
     return (
       <DashboardWidgetFrame
         editing={editing}
@@ -443,10 +477,14 @@ export function YayawDashboard({
             getRowId={getRowId}
             label={label}
             locale={locale}
+            onViewAll={open}
             renderers={displayModeRenderers}
             renderMarkdown={renderMarkdown}
             revision={revision}
+            size={{ w: place?.w ?? 1, h: place?.h ?? 1 }}
             tables={tables}
+            tableTranslations={tableTranslations}
+            translate={translate}
             views={views}
             widget={widget}
           />
@@ -511,7 +549,16 @@ export function YayawDashboard({
             label={label}
             locale={locale}
             onAdd={(widget) =>
-              update((current) => addDashboardWidget(current, widget))
+              update((current) =>
+                addDashboardWidget(
+                  current,
+                  widget,
+                  dashboardWidgetSize(widget, {
+                    views: views[widget.tableId ?? ""],
+                    table: infos[widget.tableId ?? ""],
+                  })
+                )
+              )
             }
             onOpenChange={setAddingWidget}
             open={addingWidget}

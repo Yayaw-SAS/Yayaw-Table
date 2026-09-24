@@ -1,7 +1,7 @@
 "use client";
 
 import { Table2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -29,6 +29,7 @@ import {
   buildChartModel,
   type ChartCategory,
   type ChartDataResult,
+  type ChartFillLayout,
   type ChartLabelKey,
   type ChartModel,
   type ChartSeriesItem,
@@ -36,6 +37,7 @@ import {
   canAddChartFilters,
   chartAggregateRequest,
   chartBarLabelRoom,
+  chartFillLayout,
   chartGroupFilters,
   chartLabel,
   chartTickFormat,
@@ -59,6 +61,38 @@ const OTHER_COLOR = "var(--muted-foreground)";
 const CHART_HEIGHT = 320;
 const ROW_HEIGHT = 36;
 const AXIS_WIDTH = 120;
+/** A filled chart's category axis takes at most this share of its width. */
+const FILL_AXIS_SHARE = 0.35;
+const SMALL_DONUT = 200;
+
+// Layout effects measure before paint in the browser; the server skips them.
+const useBrowserLayoutEffect =
+  typeof window === "undefined" ? useEffect : useLayoutEffect;
+
+/** The size of an element, kept up to date. */
+function useBoxSize() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState({ width: 0, height: 0 });
+  useBrowserLayoutEffect(() => {
+    const element = ref.current;
+    if (!element) {
+      return;
+    }
+    const measure = () => {
+      const { width, height } = element.getBoundingClientRect();
+      setSize((current) =>
+        current.width === width && current.height === height
+          ? current
+          : { width, height }
+      );
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+  return { ref, size };
+}
 
 const valueDomain = (model: ChartModel): [number, number] => [
   model.valueTicks.at(0) ?? 0,
@@ -236,29 +270,49 @@ function TooltipBody({
   );
 }
 
+/** Plot margins: roomy on a page, tight when the chart fills a small box. */
+const chartMargin = (
+  fill: ChartFillLayout | undefined,
+  labels: boolean,
+  right = fill ? 16 : 24
+) =>
+  fill
+    ? { top: labels ? 18 : 8, right, left: 4, bottom: 0 }
+    : { top: 20, right, left: 8, bottom: 4 };
+/** In a filled chart, category labels that would overlap are skipped. */
+const FILL_INTERVAL = "preserveStartEnd";
+
 function BarsChart({
   model,
   settings,
   onGroup,
   clickable,
+  fill,
 }: {
   model: ChartModel;
   settings: ResolvedChartSettings;
   onGroup: GroupClick;
   clickable: boolean;
+  /** Set when the chart fills a box (`fill`): its size and what it keeps. */
+  fill?: ChartFillLayout;
 }) {
   const horizontal = model.type === "horizontalBar";
   const rows = chartRows(model);
   const stacked = model.stacked && model.series.length > 1;
+  const labels = fill ? fill.dataLabels : settings.showDataLabels;
   let labelPosition: "center" | "right" | "top" = "top";
   if (stacked) {
     labelPosition = "center";
   } else if (horizontal) {
     labelPosition = "right";
   }
-  const height = horizontal
+  let height = horizontal
     ? Math.max(CHART_HEIGHT, rows.length * ROW_HEIGHT)
     : CHART_HEIGHT;
+  if (fill) {
+    height = fill.plotHeight;
+  }
+  const categoryInterval = fill ? FILL_INTERVAL : undefined;
   return (
     <ChartContainer
       className="aspect-auto w-full"
@@ -269,23 +323,24 @@ function BarsChart({
         accessibilityLayer
         data={rows}
         layout={horizontal ? "vertical" : "horizontal"}
-        margin={{
-          top: 20,
+        margin={chartMargin(
+          fill,
+          labels,
           // Horizontal bars keep room for the longest bar's value label.
-          right:
-            horizontal && settings.showDataLabels && !stacked
-              ? 24 + chartBarLabelRoom(model)
-              : 24,
-          left: 8,
-          bottom: 4,
-        }}
+          (fill ? 16 : 24) +
+            (horizontal && labels && !stacked ? chartBarLabelRoom(model) : 0)
+        )}
       >
-        <CartesianGrid horizontal={!horizontal} vertical={horizontal} />
+        {/* Without a value axis (values on the bars), no grid lines either. */}
+        {fill && !fill.valueAxis ? null : (
+          <CartesianGrid horizontal={!horizontal} vertical={horizontal} />
+        )}
         {horizontal ? (
           <>
             <XAxis
               axisLine={false}
               domain={valueDomain(model)}
+              hide={fill ? !fill.valueAxis : false}
               tickFormatter={(value: number) => model.format(value)}
               tickLine={false}
               ticks={model.valueTicks}
@@ -294,9 +349,14 @@ function BarsChart({
             <YAxis
               axisLine={false}
               dataKey="label"
+              interval={categoryInterval}
               tickLine={false}
               type="category"
-              width={AXIS_WIDTH}
+              width={
+                fill
+                  ? Math.min(AXIS_WIDTH, fill.plotWidth * FILL_AXIS_SHARE)
+                  : AXIS_WIDTH
+              }
             />
           </>
         ) : (
@@ -304,12 +364,14 @@ function BarsChart({
             <XAxis
               axisLine={false}
               dataKey="label"
+              interval={categoryInterval}
               tickLine={false}
               tickMargin={8}
             />
             <YAxis
               axisLine={false}
               domain={valueDomain(model)}
+              hide={fill ? !fill.valueAxis : false}
               tickFormatter={(value: number) => model.format(value)}
               tickLine={false}
               ticks={model.valueTicks}
@@ -342,7 +404,7 @@ function BarsChart({
                   <Cell fill={category.color} key={category.id} />
                 ))
               : null}
-            {settings.showDataLabels ? (
+            {labels ? (
               <LabelList
                 className="fill-foreground"
                 dataKey={seriesKey(index)}
@@ -360,40 +422,50 @@ function BarsChart({
   );
 }
 
+/** Space before the first and after the last point of a line. */
+const LINE_PADDING = 40;
+const FILL_LINE_PADDING = 24;
+
 function LinesChart({
   model,
   settings,
   onGroup,
+  fill,
 }: {
   model: ChartModel;
   settings: ResolvedChartSettings;
   onGroup: GroupClick;
+  fill?: ChartFillLayout;
 }) {
+  const labels = fill?.dataLabels ?? settings.showDataLabels;
+  const padding = fill ? FILL_LINE_PADDING : LINE_PADDING;
   return (
     <ChartContainer
       className="aspect-auto w-full"
       config={chartConfig(model)}
-      style={{ height: CHART_HEIGHT }}
+      style={{ height: fill ? fill.plotHeight : CHART_HEIGHT }}
     >
       <LineChart
         accessibilityLayer
         data={chartRows(model)}
-        margin={{ top: 20, right: 24, left: 8, bottom: 4 }}
+        margin={chartMargin(fill, labels)}
         onClick={categoryClick(model, onGroup)}
         throttledEvents={IMMEDIATE_EVENTS}
       >
-        <CartesianGrid vertical={false} />
+        {fill && !fill.valueAxis ? null : <CartesianGrid vertical={false} />}
         {/* Labels that would overlap on narrow charts are skipped. */}
         <XAxis
           axisLine={false}
           dataKey="label"
-          padding={{ left: 40, right: 40 }}
+          interval={fill ? FILL_INTERVAL : undefined}
+          padding={{ left: padding, right: padding }}
           tickLine={false}
           tickMargin={8}
         />
         <YAxis
           axisLine={false}
           domain={valueDomain(model)}
+          hide={fill ? !fill.valueAxis : false}
           tickFormatter={(value: number) => model.format(value)}
           tickLine={false}
           ticks={model.valueTicks}
@@ -413,7 +485,7 @@ function LinesChart({
             strokeWidth={2}
             type={curveOf(settings)}
           >
-            {settings.showDataLabels ? (
+            {labels ? (
               <LabelList
                 className="fill-foreground"
                 dataKey={seriesKey(index)}
@@ -435,38 +507,44 @@ function AreasChart({
   model,
   settings,
   onGroup,
+  fill,
 }: {
   model: ChartModel;
   settings: ResolvedChartSettings;
   onGroup: GroupClick;
+  fill?: ChartFillLayout;
 }) {
   const stacked = model.stacked && !model.single;
   const tickFormat = chartTickFormat(model);
+  const labels = fill?.dataLabels ?? settings.showDataLabels;
+  const padding = fill ? FILL_LINE_PADDING : LINE_PADDING;
   return (
     <ChartContainer
       className="aspect-auto w-full"
       config={chartConfig(model)}
-      style={{ height: CHART_HEIGHT }}
+      style={{ height: fill ? fill.plotHeight : CHART_HEIGHT }}
     >
       <AreaChart
         accessibilityLayer
         data={chartRows(model)}
-        margin={{ top: 20, right: 24, left: 8, bottom: 4 }}
+        margin={chartMargin(fill, labels)}
         onClick={categoryClick(model, onGroup)}
         throttledEvents={IMMEDIATE_EVENTS}
       >
-        <CartesianGrid vertical={false} />
+        {fill && !fill.valueAxis ? null : <CartesianGrid vertical={false} />}
         {/* Labels that would overlap on narrow charts are skipped. */}
         <XAxis
           axisLine={false}
           dataKey="label"
-          padding={{ left: 40, right: 40 }}
+          interval={fill ? FILL_INTERVAL : undefined}
+          padding={{ left: padding, right: padding }}
           tickLine={false}
           tickMargin={8}
         />
         <YAxis
           axisLine={false}
           domain={valueDomain(model)}
+          hide={fill ? !fill.valueAxis : false}
           tickFormatter={(value: number) => tickFormat(value)}
           tickLine={false}
           ticks={model.valueTicks}
@@ -488,7 +566,7 @@ function AreasChart({
             strokeWidth={2}
             type={curveOf(settings)}
           >
-            {settings.showDataLabels ? (
+            {labels ? (
               <LabelList
                 className="fill-foreground"
                 dataKey={seriesKey(index)}
@@ -507,46 +585,78 @@ function AreasChart({
   );
 }
 
+/** A combo chart's series, formats and axes, as a filled chart has room for. */
+function comboLayout(
+  model: ChartModel,
+  settings: ResolvedChartSettings,
+  fill: ChartFillLayout | undefined
+) {
+  const [bars, line] = model.series;
+  const valueAxis = fill?.valueAxis ?? true;
+  const secondary = model.secondaryTicks;
+  return {
+    bars,
+    line,
+    valueAxis,
+    secondary,
+    right: valueAxis && secondary,
+    lineAxis: secondary ? ("right" as const) : ("left" as const),
+    barFormat: bars?.format ?? model.format,
+    lineFormat: line?.format ?? model.format,
+    labels: fill?.dataLabels ?? settings.showDataLabels,
+  };
+}
+
 /** Bars for one metric and a line for another, on a second axis when their units differ. */
 function ComboChart({
   model,
   settings,
   onGroup,
   clickable,
+  fill,
 }: {
   model: ChartModel;
   settings: ResolvedChartSettings;
   onGroup: GroupClick;
   clickable: boolean;
+  fill?: ChartFillLayout;
 }) {
-  const [bars, line] = model.series;
-  const right = model.secondaryTicks;
-  const lineAxis = right ? "right" : "left";
-  const barFormat = bars?.format ?? model.format;
-  const lineFormat = line?.format ?? model.format;
+  const {
+    bars,
+    barFormat,
+    labels,
+    line,
+    lineAxis,
+    lineFormat,
+    right,
+    secondary,
+    valueAxis,
+  } = comboLayout(model, settings, fill);
   return (
     <ChartContainer
       className="aspect-auto w-full"
       config={chartConfig(model)}
-      style={{ height: CHART_HEIGHT }}
+      style={{ height: fill ? fill.plotHeight : CHART_HEIGHT }}
     >
       <ComposedChart
         accessibilityLayer
         data={chartRows(model)}
-        margin={{ top: 20, right: right ? 8 : 24, left: 8, bottom: 4 }}
+        margin={chartMargin(fill, labels, right ? 8 : undefined)}
         onClick={categoryClick(model, onGroup)}
         throttledEvents={IMMEDIATE_EVENTS}
       >
-        <CartesianGrid vertical={false} />
+        {valueAxis ? <CartesianGrid vertical={false} /> : null}
         <XAxis
           axisLine={false}
           dataKey="label"
+          interval={fill ? FILL_INTERVAL : undefined}
           tickLine={false}
           tickMargin={8}
         />
         <YAxis
           axisLine={false}
           domain={valueDomain(model)}
+          hide={!valueAxis}
           tickFormatter={(value: number) => barFormat(value)}
           tickLine={false}
           ticks={model.valueTicks}
@@ -554,14 +664,15 @@ function ComboChart({
           width="auto"
           yAxisId="left"
         />
-        {right ? (
+        {secondary ? (
           <YAxis
             axisLine={false}
-            domain={[right.at(0) ?? 0, right.at(-1) ?? 1]}
+            domain={[secondary.at(0) ?? 0, secondary.at(-1) ?? 1]}
+            hide={!right}
             orientation="right"
             tickFormatter={(value: number) => lineFormat(value)}
             tickLine={false}
-            ticks={right}
+            ticks={secondary}
             type="number"
             width="auto"
             yAxisId="right"
@@ -582,7 +693,7 @@ function ComboChart({
             radius={4}
             yAxisId="left"
           >
-            {settings.showDataLabels ? (
+            {labels ? (
               <LabelList
                 className="fill-foreground"
                 dataKey={seriesKey(0)}
@@ -607,7 +718,7 @@ function ComboChart({
             type={curveOf(settings)}
             yAxisId={lineAxis}
           >
-            {settings.showDataLabels ? (
+            {labels ? (
               <LabelList
                 className="fill-foreground"
                 dataKey={seriesKey(1)}
@@ -629,11 +740,13 @@ function DonutChart({
   onGroup,
   clickable,
   label,
+  fill,
 }: {
   model: ChartModel;
   onGroup: GroupClick;
   clickable: boolean;
   label: Label;
+  fill?: ChartFillLayout;
 }) {
   const data = model.categories
     .filter((category) => category.total > 0)
@@ -642,11 +755,14 @@ function DonutChart({
       label: category.label,
       value: category.total,
     }));
+  const height = fill ? fill.plotHeight : CHART_HEIGHT;
+  // A small donut's hole holds the total alone.
+  const small = Math.min(height, fill?.plotWidth ?? height) < SMALL_DONUT;
   return (
     <ChartContainer
       className="aspect-auto w-full"
       config={chartConfig(model)}
-      style={{ height: CHART_HEIGHT }}
+      style={{ height }}
     >
       <PieChart accessibilityLayer>
         <ChartTooltip content={<TooltipBody model={model} />} />
@@ -679,33 +795,54 @@ function DonutChart({
           ))}
         </Pie>
         <text
-          className="fill-foreground font-semibold text-2xl"
+          className={cn(
+            "fill-foreground font-semibold",
+            small ? "text-base" : "text-2xl"
+          )}
           dominantBaseline="middle"
+          dy={small ? 0 : -6}
           textAnchor="middle"
           x="50%"
-          y="48%"
+          y="50%"
         >
           {model.format(model.total)}
         </text>
-        <text
-          className="fill-muted-foreground text-xs"
-          dominantBaseline="middle"
-          textAnchor="middle"
-          x="50%"
-          y="56%"
-        >
-          {label("total")}
-        </text>
+        {small ? null : (
+          <text
+            className="fill-muted-foreground text-xs"
+            dominantBaseline="middle"
+            dy={16}
+            textAnchor="middle"
+            x="50%"
+            y="50%"
+          >
+            {label("total")}
+          </text>
+        )}
       </PieChart>
     </ChartContainer>
   );
 }
 
-function NumberChart({ model }: { model: ChartModel }) {
+function NumberChart({
+  model,
+  fill,
+}: {
+  model: ChartModel;
+  fill?: ChartFillLayout;
+}) {
   return (
-    <div className="grid place-items-center gap-1 py-12 text-center">
+    <div
+      className={cn(
+        "grid place-items-center gap-1 text-center",
+        fill ? "h-full content-center" : "py-12"
+      )}
+    >
       <output
-        className="font-semibold text-5xl tabular-nums tracking-tight"
+        className={cn(
+          "font-semibold tabular-nums tracking-tight",
+          fill ? "text-4xl" : "text-5xl"
+        )}
         data-chart-number
       >
         {model.format(model.total)}
@@ -715,37 +852,62 @@ function NumberChart({ model }: { model: ChartModel }) {
   );
 }
 
-function ChartLegend({
-  model,
-  settings,
-}: {
-  model: ChartModel;
-  settings: ResolvedChartSettings;
-}) {
-  let items: { id: string; label: string; color: string; value?: number }[] =
-    model.series.map((item) => ({ ...item, value: undefined }));
+/** Legend entries: a donut's slices with their values, else the series. */
+/** Legend entries: donut slices and funnel stages with their values, else the series. */
+function legendItems(
+  model: ChartModel
+): { id: string; label: string; color: string; value?: number }[] {
   if (model.type === "donut") {
-    items = model.categories
+    return model.categories
       .filter((category) => category.total > 0)
       .map((category) => ({ ...category, value: category.total }));
-  } else if (model.type === "funnel") {
-    items = model.stages ?? [];
   }
+  if (model.type === "funnel") {
+    return model.stages ?? [];
+  }
+  return model.series.map((item) => ({ ...item, value: undefined }));
+}
+
+function ChartLegend({
+  model,
+  values,
+  side,
+}: {
+  model: ChartModel;
+  /** Show each entry's value (donut slices). */
+  values: boolean;
+  /** Beside the chart, one entry per line, this wide (px). */
+  side?: number;
+}) {
   return (
     <ul
-      className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs"
+      className={cn(
+        "flex text-xs",
+        side
+          ? "shrink-0 flex-col justify-center gap-1"
+          : "flex-wrap items-center justify-center gap-x-4 gap-y-1"
+      )}
       data-chart-legend
+      data-placement={side ? "right" : "bottom"}
+      style={side ? { width: side } : undefined}
     >
-      {items.map((item) => (
-        <li className="flex items-center gap-1.5" key={item.id}>
+      {legendItems(model).map((item) => (
+        <li className="flex min-w-0 items-center gap-1.5" key={item.id}>
           <span
             aria-hidden="true"
             className="size-2.5 shrink-0 rounded-[2px]"
             style={{ background: item.color }}
           />
-          <span>{item.label}</span>
-          {settings.showDataLabels && item.value !== undefined ? (
-            <span className="text-muted-foreground tabular-nums">
+          <span className={side ? "min-w-0 truncate" : undefined}>
+            {item.label}
+          </span>
+          {values && item.value !== undefined ? (
+            <span
+              className={cn(
+                "text-muted-foreground tabular-nums",
+                side && "ml-auto"
+              )}
+            >
               {model.format(item.value)}
             </span>
           ) : null}
@@ -838,33 +1000,51 @@ function ChartBody({
   onGroup,
   clickable,
   label,
+  fill,
 }: {
   model: ChartModel;
   settings: ResolvedChartSettings;
   onGroup: GroupClick;
   clickable: boolean;
   label: Label;
+  fill?: ChartFillLayout;
 }) {
   switch (model.type) {
     case "number":
-      return <NumberChart model={model} />;
+      return <NumberChart fill={fill} model={model} />;
     case "donut":
       return (
         <DonutChart
           clickable={clickable}
+          fill={fill}
           label={label}
           model={model}
           onGroup={onGroup}
         />
       );
     case "line":
-      return <LinesChart model={model} onGroup={onGroup} settings={settings} />;
+      return (
+        <LinesChart
+          fill={fill}
+          model={model}
+          onGroup={onGroup}
+          settings={settings}
+        />
+      );
     case "area":
-      return <AreasChart model={model} onGroup={onGroup} settings={settings} />;
+      return (
+        <AreasChart
+          fill={fill}
+          model={model}
+          onGroup={onGroup}
+          settings={settings}
+        />
+      );
     case "combo":
       return (
         <ComboChart
           clickable={clickable}
+          fill={fill}
           model={model}
           onGroup={onGroup}
           settings={settings}
@@ -883,12 +1063,89 @@ function ChartBody({
       return (
         <BarsChart
           clickable={clickable}
+          fill={fill}
           model={model}
           onGroup={onGroup}
           settings={settings}
         />
       );
   }
+}
+
+/** Whether the chart shows a legend: a donut's slices, or several series. */
+const hasLegend = (model: ChartModel, settings: ResolvedChartSettings) =>
+  settings.showLegend &&
+  (model.type === "donut" ||
+    model.type === "funnel" ||
+    (model.type !== "number" && !model.single));
+
+/**
+ * A chart filling its box (`fill`): the legend beside, under or out of the
+ * chart and data labels as the room allows; no title, toggle or hint.
+ */
+function FilledChart({
+  model,
+  settings,
+  clickable,
+  loading,
+  onGroup,
+  label,
+}: {
+  model: ChartModel;
+  settings: ResolvedChartSettings;
+  clickable: boolean;
+  loading: boolean;
+  onGroup: GroupClick;
+  label: Label;
+}) {
+  const box = useBoxSize();
+  const legend = hasLegend(model, settings) ? legendItems(model).length : 0;
+  const layout = chartFillLayout({
+    width: box.size.width,
+    height: box.size.height,
+    type: model.type,
+    categories: model.categories.length,
+    legendItems: legend,
+    showDataLabels: settings.showDataLabels,
+  });
+  const ready = box.size.width > 0 && box.size.height > 0;
+  return (
+    <div
+      className={cn("relative min-h-0 flex-1", loading && "opacity-60")}
+      data-chart-legend-placement={layout.legend}
+      ref={box.ref}
+    >
+      {ready ? (
+        <div
+          className={cn(
+            "absolute inset-0 flex gap-2",
+            layout.legend === "right" ? "flex-row items-center" : "flex-col"
+          )}
+        >
+          <div
+            className="min-w-0"
+            style={{ height: layout.plotHeight, width: layout.plotWidth }}
+          >
+            <ChartBody
+              clickable={clickable}
+              fill={layout}
+              label={label}
+              model={model}
+              onGroup={onGroup}
+              settings={settings}
+            />
+          </div>
+          {layout.legend === "none" ? null : (
+            <ChartLegend
+              model={model}
+              side={layout.legend === "right" ? layout.legendWidth : undefined}
+              values={layout.dataLabels}
+            />
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 function ChartMessage({
@@ -927,10 +1184,7 @@ function ChartContent({
 }) {
   const hasTable = model.type !== "number";
   const funnel = model.type === "funnel";
-  const showLegend =
-    settings.showLegend &&
-    !asTable &&
-    (model.type === "donut" || funnel || (hasTable && !model.single));
+  const showLegend = !asTable && hasLegend(model, settings);
   let hint: ChartLabelKey = "filterUnavailable";
   if (clickable) {
     hint = funnel ? "funnelHint" : "filterHint";
@@ -954,7 +1208,9 @@ function ChartContent({
           settings={settings}
         />
       )}
-      {showLegend ? <ChartLegend model={model} settings={settings} /> : null}
+      {showLegend ? (
+        <ChartLegend model={model} values={settings.showDataLabels} />
+      ) : null}
       {hasTable && !asTable ? (
         <p className="text-muted-foreground text-xs" data-chart-hint>
           {label(hint)}
@@ -1092,6 +1348,34 @@ export function ChartView({ context }: { context: DisplayModeRenderContext }) {
     return <ChartMessage>{label("noColumn")}</ChartMessage>;
   }
   const visible = model && !(model.empty && model.type !== "number");
+  if (settings.fill) {
+    return (
+      <section
+        aria-busy={state.loading}
+        aria-label={model?.title}
+        className="flex h-[100cqh] min-h-0 flex-col gap-2 overflow-hidden"
+        data-chart-fill=""
+        data-chart-type={settings.type}
+      >
+        <ChartMessages
+          label={label}
+          model={model}
+          notice={notice}
+          state={state}
+        />
+        {visible ? (
+          <FilledChart
+            clickable={clickable}
+            label={label}
+            loading={state.loading}
+            model={model}
+            onGroup={onGroup}
+            settings={settings}
+          />
+        ) : null}
+      </section>
+    );
+  }
   return (
     <section
       aria-busy={state.loading}

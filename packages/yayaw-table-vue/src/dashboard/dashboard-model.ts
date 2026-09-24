@@ -4,6 +4,17 @@
  * Vue editions (synced to Vue by `scripts/sync-table-contracts.mjs`), so both
  * normalize, lay out, filter and label dashboards the same way.
  */
+import {
+  type ChartAggregateGroup,
+  type ChartAggregateRequest,
+  type ChartBucket,
+  type ChartColumn,
+  chartBucketKey,
+  chartBucketLabel,
+  chartBucketRange,
+  chartValueFormatter,
+  loadChartData,
+} from "../chart-model";
 import { normalizeFilterEnvelope } from "../table-contracts";
 import { type ColumnValueFormat, formatColumnDay } from "../value-format";
 
@@ -39,9 +50,10 @@ export interface DashboardLayoutItem {
 
 /**
  * A widget. `view`: a saved view (`viewId`, or the table's default view) of
- * `tableId` shown in its display mode. `kpi`: one number over a table (or a
- * view's records), `settings: { metric, metricColumn?, label? }`. `note`:
- * text, `settings: { text }`, rendered by the host's `renderMarkdown`.
+ * `tableId` shown in its display mode, `settings: { overflow? }`. `kpi`: one
+ * number over a table (or a view's records), `settings: { metric,
+ * metricColumn?, label?, dateColumn?, compare?, sparkline? }`. `note`: text,
+ * `settings: { text }`, rendered by the host's `renderMarkdown`.
  */
 export interface DashboardWidget {
   id: string;
@@ -118,6 +130,8 @@ export interface DashboardTableInfo {
   columns: readonly DashboardColumn[];
   /** The table's `coloredTags` setting (default true), for option tags. */
   coloredTags?: boolean;
+  /** The table's `defaultDisplayMode`, which sizes widgets of its default view. */
+  defaultDisplayMode?: string;
 }
 
 /** A column as the dashboard reads it, formats included. */
@@ -166,15 +180,57 @@ const clamp = (value: number, min: number, max: number): number =>
 // Layout ------------------------------------------------------------------------
 
 const DEFAULT_SIZES: Record<DashboardWidgetType, { w: number; h: number }> = {
-  view: { w: 2, h: 3 },
+  view: { w: 2, h: 2 },
   kpi: { w: 1, h: 1 },
   note: { w: 1, h: 2 },
 };
 
-/** Size of a new widget of this type. */
+/**
+ * View widgets by display mode: records and charts take 2×2 (the default),
+ * boards, galleries, calendars and feeds 2×3, file trees 1×3, Gantt charts
+ * the whole width.
+ */
+const MODE_SIZES: Readonly<Record<string, { w: number; h: number }>> = {
+  kanban: { w: 2, h: 3 },
+  gallery: { w: 2, h: 3 },
+  calendar: { w: 2, h: 3 },
+  feed: { w: 2, h: 3 },
+  form: { w: 2, h: 3 },
+  filetree: { w: 1, h: 3 },
+  gantt: { w: 4, h: 3 },
+};
+
+/** Size of a new widget of this type (and, for views, display mode). */
 export const defaultWidgetSize = (
-  type: DashboardWidgetType
-): { w: number; h: number } => ({ ...DEFAULT_SIZES[type] });
+  type: DashboardWidgetType,
+  mode?: string
+): { w: number; h: number } => ({
+  ...((type === "view" && mode ? MODE_SIZES[mode] : undefined) ??
+    DEFAULT_SIZES[type]),
+});
+
+/**
+ * Size of a widget about to be added: by its type, and for a view by the
+ * display mode of its saved view (or of the table's default view).
+ */
+export function dashboardWidgetSize(
+  widget: Pick<DashboardWidget, "type" | "viewId">,
+  context: {
+    views?: readonly DashboardView[];
+    table?: Pick<DashboardTableInfo, "defaultDisplayMode">;
+  } = {}
+): { w: number; h: number } {
+  if (widget.type !== "view") {
+    return defaultWidgetSize(widget.type);
+  }
+  const view = widget.viewId
+    ? context.views?.find((item) => item.id === widget.viewId)
+    : undefined;
+  const mode = view
+    ? widgetDisplayMode(view.config)
+    : text(context.table?.defaultDisplayMode) || "table";
+  return defaultWidgetSize("view", mode);
+}
 
 /** Whole numbers inside the grid: `w` 1…columns, `h` 1…max, `x` keeps it inside. */
 export function clampLayoutItem(
@@ -555,14 +611,17 @@ export function nextWidgetId(widgets: readonly { id: string }[]): string {
   return `widget-${index}`;
 }
 
-/** Adds a widget in the first free spot. */
+/**
+ * Adds a widget in the first free spot, at `size` (by default the size of its
+ * type, see `defaultWidgetSize`).
+ */
 export function addDashboardWidget(
   dashboard: Dashboard,
-  widget: Omit<DashboardWidget, "id"> & { id?: string }
+  widget: Omit<DashboardWidget, "id"> & { id?: string },
+  size: { w: number; h: number } = defaultWidgetSize(widget.type)
 ): Dashboard {
   const id = widget.id ?? nextWidgetId(dashboard.widgets);
   const added: DashboardWidget = { ...widget, id, settings: widget.settings };
-  const size = defaultWidgetSize(added.type);
   const spot = findFreeSpot(dashboard.layout, size);
   return {
     ...dashboard,
@@ -573,6 +632,117 @@ export function addDashboardWidget(
     ),
   };
 }
+
+/** What the widget picker collects before a widget is added. */
+export interface DashboardWidgetDraft {
+  type: DashboardWidgetType;
+  tableId: string;
+  /** Saved view; empty for the table's default view. */
+  viewId: string;
+  title: string;
+  /** Note text. */
+  text: string;
+  /** View widgets: what happens to records that do not fit. */
+  overflow: DashboardOverflow;
+  metric: DashboardKpiMetric;
+  metricColumn: string;
+  /** Numbers: the date column periods and the trend read; empty for none. */
+  dateColumn: string;
+  compare: boolean;
+  compareDays: number;
+  /** Whether a rise (`up`) or a fall (`down`) shows as good. */
+  compareBetter: DashboardKpiBetter;
+  sparkline: boolean;
+}
+
+/** A blank picker: a view of the first table, fitting its records. */
+export const emptyWidgetDraft = (tableId = ""): DashboardWidgetDraft => ({
+  type: "view",
+  tableId,
+  viewId: "",
+  title: "",
+  text: "",
+  overflow: "fit",
+  metric: "count",
+  metricColumn: "",
+  dateColumn: "",
+  compare: false,
+  compareDays: DEFAULT_COMPARE_DAYS,
+  compareBetter: "up",
+  sparkline: false,
+});
+
+/** A trend line added from the picker: the last 6 months. */
+function kpiDraftSettings(
+  draft: DashboardWidgetDraft
+): Record<string, unknown> {
+  const title = draft.title.trim();
+  const reads = draft.metric !== "count" && Boolean(draft.metricColumn);
+  const dateColumn = draft.dateColumn.trim();
+  return {
+    metric: draft.metric,
+    ...(reads ? { metricColumn: draft.metricColumn } : {}),
+    ...(title ? { label: title } : {}),
+    ...(dateColumn && (draft.compare || draft.sparkline) ? { dateColumn } : {}),
+    ...(dateColumn && draft.compare
+      ? {
+          compare: {
+            period: "previous",
+            days: draft.compareDays,
+            ...(draft.compareBetter === "down" ? { better: "down" } : {}),
+          },
+        }
+      : {}),
+    ...(dateColumn && draft.sparkline
+      ? {
+          sparkline: { bucket: "month", buckets: DEFAULT_SPARKLINE_BUCKETS },
+        }
+      : {}),
+  };
+}
+
+/** The widget a picker draft describes (without its id). */
+export function dashboardWidgetFromDraft(
+  draft: DashboardWidgetDraft
+): Omit<DashboardWidget, "id"> {
+  const title = draft.title.trim();
+  if (draft.type === "note") {
+    return {
+      type: "note",
+      ...(title ? { title } : {}),
+      settings: { text: draft.text },
+    };
+  }
+  const base = {
+    type: draft.type,
+    tableId: draft.tableId,
+    ...(draft.viewId ? { viewId: draft.viewId } : {}),
+  };
+  if (draft.type === "view") {
+    return {
+      ...base,
+      ...(title ? { title } : {}),
+      settings: draft.overflow === "scroll" ? { overflow: "scroll" } : {},
+    };
+  }
+  return { ...base, settings: kpiDraftSettings(draft) };
+}
+
+/** Date columns a number can compare periods and draw a trend on. */
+export const dashboardDateColumns = (
+  columns: readonly DashboardColumn[]
+): DashboardColumn[] =>
+  columns.filter((column) => DATE_COLUMN_TYPES.has(String(column.type)));
+
+/** "Last 7 days" … "Last 365 days": the periods the picker offers. */
+export const dashboardCompareDayOptions = (
+  locale: string,
+  translate?: DashboardTranslate
+): { value: number; label: string }[] =>
+  DASHBOARD_COMPARE_DAYS.map((count) => ({
+    value: count,
+    label: dashboardLabel("lastDays", locale, translate, { count }),
+  }));
 
 /** Removes a widget, its place and its mentions in filter targets. */
 export function removeDashboardWidget(
@@ -656,6 +826,693 @@ export function widgetViewConfig(
 /** Display mode a view widget renders (`table` by default). */
 export const widgetDisplayMode = (config: Record<string, unknown>): string =>
   text(config.displayMode) || "table";
+
+// Fitting records ----------------------------------------------------------------
+
+/**
+ * What a view widget does with records that do not fit its height: `fit`
+ * (the default) shows the ones that fit and "+N more"; `scroll` keeps the
+ * view's pagination and scrolls inside the widget.
+ */
+export type DashboardOverflow = "fit" | "scroll";
+
+/** A widget's `settings.overflow`: `fit` unless it asks to scroll. */
+export const widgetOverflow = (
+  widget: Pick<DashboardWidget, "settings">
+): DashboardOverflow =>
+  widget.settings.overflow === "scroll" ? "scroll" : "fit";
+
+/** Display modes whose records a fit widget trims to its height. */
+const FIT_RECORD_MODES = new Set([
+  "table",
+  "list",
+  "gallery",
+  "kanban",
+  "feed",
+]);
+
+/** Whether a fit widget in this display mode trims its records ("+N more"). */
+export const dashboardFitsRecords = (mode: string): boolean =>
+  FIT_RECORD_MODES.has(mode);
+
+/** Smallest height of one line of records, per mode (a card row for galleries). */
+const FIT_LINE_HEIGHTS: Readonly<Record<string, number>> = {
+  table: 28,
+  list: 28,
+  kanban: 44,
+  gallery: 140,
+  feed: 96,
+};
+/** Records per line: cards side by side in a gallery, lanes of a board. */
+const FIT_LINE_WIDTH = 150;
+const FIT_BOARD_LANES = 4;
+const MIN_FIT_PAGE_SIZE = 5;
+const MAX_FIT_PAGE_SIZE = 100;
+
+/**
+ * Records a fit widget loads: the view's own page size when it has one (a
+ * "Top 5" view shows at most 5), otherwise enough to fill a widget of this
+ * size with the smallest records, between 5 and 100.
+ */
+export function dashboardFitPageSize(
+  mode: string,
+  size: { w: number; h: number },
+  viewPageSize?: unknown
+): number {
+  const own = integer(viewPageSize, 0);
+  if (own > 0) {
+    return Math.min(own, MAX_FIT_PAGE_SIZE);
+  }
+  const lines = Math.ceil(
+    (Math.max(1, size.h) * DASHBOARD_ROW_HEIGHT) /
+      (FIT_LINE_HEIGHTS[mode] ?? FIT_LINE_HEIGHTS.table ?? 28)
+  );
+  let perLine = 1;
+  if (mode === "gallery") {
+    perLine = Math.max(
+      1,
+      Math.floor(
+        (Math.max(1, size.w) * DASHBOARD_ROW_HEIGHT * 2.5) / FIT_LINE_WIDTH
+      )
+    );
+  } else if (mode === "kanban") {
+    perLine = FIT_BOARD_LANES;
+  }
+  return clamp(lines * perLine, MIN_FIT_PAGE_SIZE, MAX_FIT_PAGE_SIZE);
+}
+
+/** Records left out of a fit widget: all the view matches (`total`) but those shown. */
+export const dashboardMoreCount = (total: number, shown: number): number =>
+  Number.isFinite(total) && Number.isFinite(shown)
+    ? Math.max(0, Math.trunc(total) - Math.max(0, Math.trunc(shown)))
+    : 0;
+
+/** The total a table's `list` reports: `meta.totalCount`, else the rows it sent. */
+export function dashboardListTotal(result: unknown): number | undefined {
+  if (!isRecord(result)) {
+    return;
+  }
+  const meta = isRecord(result.meta) ? result.meta : {};
+  const total = Number(meta.totalCount ?? meta.rowCount ?? result.totalCount);
+  if (Number.isFinite(total) && total >= 0) {
+    return Math.trunc(total);
+  }
+  return Array.isArray(result.data) ? result.data.length : undefined;
+}
+
+// Numbers: comparison and trend ----------------------------------------------------
+
+/** Which change a comparison shows as good: an increase (`up`) or a decrease. */
+export type DashboardKpiBetter = "up" | "down";
+
+/**
+ * Comparison with the period just before, as long as the current one. The
+ * current period is the dashboard's date range on the KPI's `dateColumn` when
+ * a date filter targets it, otherwise the last `days` days up to today.
+ */
+export interface DashboardKpiCompare {
+  period: "previous";
+  days: number;
+  better: DashboardKpiBetter;
+}
+
+/** A tiny line of the metric over the last `buckets` date buckets. */
+export interface DashboardKpiSparkline {
+  bucket: ChartBucket;
+  buckets: number;
+}
+
+/** A KPI widget's settings, normalized. */
+export interface DashboardKpiSettings {
+  metric: DashboardKpiMetric;
+  metricColumn?: string;
+  label?: string;
+  /** The date column periods and trend buckets read; required by both. */
+  dateColumn?: string;
+  compare?: DashboardKpiCompare;
+  sparkline?: DashboardKpiSparkline;
+}
+
+/** Days `compare.days` offers in the widget picker. */
+export const DASHBOARD_COMPARE_DAYS = [7, 30, 90, 365] as const;
+const DEFAULT_COMPARE_DAYS = 30;
+const MAX_COMPARE_DAYS = 3660;
+const DEFAULT_SPARKLINE_BUCKETS = 6;
+const MIN_SPARKLINE_BUCKETS = 2;
+const MAX_SPARKLINE_BUCKETS = 24;
+const SPARKLINE_BUCKETS = new Set<ChartBucket>([
+  "day",
+  "week",
+  "month",
+  "quarter",
+  "year",
+]);
+
+const optionRecord = (value: unknown): UnknownRecord | undefined => {
+  if (value === true) {
+    return {};
+  }
+  return isRecord(value) ? value : undefined;
+};
+
+function normalizeCompare(value: unknown): DashboardKpiCompare | undefined {
+  const input = optionRecord(value);
+  if (!input || (input.period !== undefined && input.period !== "previous")) {
+    return;
+  }
+  return {
+    period: "previous",
+    days: clamp(integer(input.days, DEFAULT_COMPARE_DAYS), 1, MAX_COMPARE_DAYS),
+    better: input.better === "down" ? "down" : "up",
+  };
+}
+
+function normalizeSparkline(value: unknown): DashboardKpiSparkline | undefined {
+  const input = optionRecord(value);
+  if (!input) {
+    return;
+  }
+  const bucket = text(input.bucket) as ChartBucket;
+  return {
+    bucket: SPARKLINE_BUCKETS.has(bucket) ? bucket : "month",
+    buckets: clamp(
+      integer(input.buckets, DEFAULT_SPARKLINE_BUCKETS),
+      MIN_SPARKLINE_BUCKETS,
+      MAX_SPARKLINE_BUCKETS
+    ),
+  };
+}
+
+/**
+ * A KPI's settings: `metric` other than `count` needs `metricColumn`;
+ * `compare` (`true` or `{ period: "previous", days?, better? }`) and
+ * `sparkline` (`true` or `{ bucket?, buckets? }`) need `dateColumn`.
+ */
+export function dashboardKpiSettings(
+  widget: Pick<DashboardWidget, "settings">
+): DashboardKpiSettings {
+  const { settings } = widget;
+  const metric = KPI_METRICS.has(settings.metric as DashboardKpiMetric)
+    ? (settings.metric as DashboardKpiMetric)
+    : "count";
+  const metricColumn = text(settings.metricColumn);
+  const reads = metric !== "count" && Boolean(metricColumn);
+  const label = text(settings.label);
+  const dateColumn = text(settings.dateColumn);
+  const compare = dateColumn ? normalizeCompare(settings.compare) : undefined;
+  const sparkline = dateColumn
+    ? normalizeSparkline(settings.sparkline)
+    : undefined;
+  return {
+    metric: reads ? metric : "count",
+    ...(reads ? { metricColumn } : {}),
+    ...(label ? { label } : {}),
+    ...(dateColumn ? { dateColumn } : {}),
+    ...(compare ? { compare } : {}),
+    ...(sparkline ? { sparkline } : {}),
+  };
+}
+
+/** Days from `start` to `end`, both included. */
+export interface DashboardPeriod {
+  start: string;
+  end: string;
+}
+
+const DAY_MS = 86_400_000;
+const dayTime = (day: string): number | undefined => {
+  const date = DATE_ONLY.test(day) ? day.split("-").map(Number) : undefined;
+  return date
+    ? Date.UTC(date[0] ?? 0, (date[1] ?? 1) - 1, date[2] ?? 1)
+    : undefined;
+};
+
+/** A calendar day `YYYY-MM-DD` moved by `days` (back when negative). */
+export function shiftDashboardDay(day: string, days: number): string {
+  const time = dayTime(day);
+  return time === undefined
+    ? day
+    : new Date(time + days * DAY_MS).toISOString().slice(0, 10);
+}
+
+const periodLength = (period: DashboardPeriod): number =>
+  Math.round(
+    ((dayTime(period.end) ?? 0) - (dayTime(period.start) ?? 0)) / DAY_MS
+  ) + 1;
+
+/**
+ * A KPI's current period and the one just before it (same length). A date
+ * range from the dashboard sets the current period: both ends as they are,
+ * a start alone up to today, an end alone `days` back. Without one, it is the
+ * last `days` days up to `today`.
+ */
+export function dashboardKpiPeriods(
+  days: number,
+  today: string,
+  range: DashboardDateRange = {}
+): { current: DashboardPeriod; previous: DashboardPeriod } {
+  const length = clamp(
+    integer(days, DEFAULT_COMPARE_DAYS),
+    1,
+    MAX_COMPARE_DAYS
+  );
+  const { start, end } = dateRangeOf(range);
+  let current: DashboardPeriod;
+  if (start && end) {
+    current = start <= end ? { start, end } : { start: end, end: start };
+  } else if (start) {
+    current = { start, end: start > today ? start : today };
+  } else if (end) {
+    current = { start: shiftDashboardDay(end, 1 - length), end };
+  } else {
+    current = { start: shiftDashboardDay(today, 1 - length), end: today };
+  }
+  const span = periodLength(current);
+  return {
+    current,
+    previous: {
+      start: shiftDashboardDay(current.start, -span),
+      end: shiftDashboardDay(current.start, -1),
+    },
+  };
+}
+
+/** The dashboard's date range on a widget's column, when an active date filter targets it. */
+export function dashboardDateRangeFor(
+  dashboard: Pick<Dashboard, "filters">,
+  widget: Pick<DashboardWidget, "id" | "tableId">,
+  columnId: string
+): DashboardDateRange | undefined {
+  for (const filter of dashboard.filters) {
+    const target =
+      filter.type === "dateRange" && isDashboardFilterActive(filter)
+        ? filter.targets.find((item) => targetsWidget(item, widget))
+        : undefined;
+    if (target?.columnId === columnId) {
+      return dateRangeOf(filter.value);
+    }
+  }
+  return;
+}
+
+/** The rule selecting a period of days on a date column. */
+export const dashboardPeriodRule = (
+  columnId: string,
+  period: DashboardPeriod,
+  id = `dashboard-period-${columnId}`
+): UnknownRecord => ({
+  id,
+  columnId,
+  isActive: true,
+  type: "date",
+  operator: "between",
+  values: [period.start, period.end],
+});
+
+/** A current value against the previous one. */
+export interface DashboardComparison {
+  current: number;
+  previous: number;
+  /** Relative change (0.12 is +12 %); undefined when only the current period has a value. */
+  change?: number;
+  trend: "up" | "down" | "flat";
+  /** Whether the change is good, by the KPI's `better` direction. */
+  tone: "positive" | "negative" | "neutral";
+}
+
+/** How `current` compares with `previous`. */
+export function dashboardComparison(
+  current: number,
+  previous: number,
+  better: DashboardKpiBetter = "up"
+): DashboardComparison {
+  let trend: DashboardComparison["trend"] = "flat";
+  if (current > previous) {
+    trend = "up";
+  } else if (current < previous) {
+    trend = "down";
+  }
+  let change: number | undefined;
+  if (previous !== 0) {
+    change = (current - previous) / Math.abs(previous);
+  } else if (current === 0) {
+    change = 0;
+  }
+  let tone: DashboardComparison["tone"] = "neutral";
+  if (trend !== "flat") {
+    tone = trend === better ? "positive" : "negative";
+  }
+  return {
+    current,
+    previous,
+    ...(change === undefined ? {} : { change }),
+    trend,
+    tone,
+  };
+}
+
+const SMALL_CHANGE = 0.1;
+
+/** "+12% vs previous period" (percent in the locale's format), or why there is none. */
+export function dashboardComparisonText(
+  comparison: DashboardComparison,
+  locale: string,
+  translate?: DashboardTranslate
+): string {
+  if (comparison.change === undefined) {
+    return dashboardLabel("compareNoPrevious", locale, translate);
+  }
+  const format = new Intl.NumberFormat(locale, {
+    style: "percent",
+    signDisplay: "exceptZero",
+    maximumFractionDigits: Math.abs(comparison.change) < SMALL_CHANGE ? 1 : 0,
+  });
+  return dashboardLabel("compareChange", locale, translate, {
+    change: format.format(comparison.change),
+  });
+}
+
+/** "Aug 26 – Sep 24, 2026 vs Jul 27 – Aug 25, 2026": the periods compared. */
+export function dashboardPeriodsText(
+  periods: { current: DashboardPeriod; previous: DashboardPeriod },
+  locale: string,
+  translate?: DashboardTranslate
+): string {
+  const show = (period: DashboardPeriod) =>
+    dashboardDateRangeText(period, locale, translate);
+  return dashboardLabel("comparePeriods", locale, translate, {
+    current: show(periods.current),
+    previous: show(periods.previous),
+  });
+}
+
+/** The `count` date buckets ending with the one holding `end`, oldest first. */
+export function dashboardSparklineKeys(
+  end: string,
+  bucket: ChartBucket,
+  count: number,
+  weekStartsOn = 1
+): string[] {
+  const keys: string[] = [];
+  let day = end;
+  while (keys.length < count) {
+    const key = chartBucketKey(day, bucket, { weekStartsOn });
+    const range = key ? chartBucketRange(key, bucket) : undefined;
+    if (!(key && range)) {
+      break;
+    }
+    keys.unshift(key);
+    day = shiftDashboardDay(range[0], -1);
+  }
+  return keys;
+}
+
+/** The metric of each bucket key from aggregate groups (missing buckets are 0). */
+export function dashboardSparklineValues(
+  keys: readonly string[],
+  groups: readonly ChartAggregateGroup[]
+): number[] {
+  const values = new Map<string, number>();
+  for (const group of groups) {
+    const key = group.keys.at(0);
+    if (typeof key === "string") {
+      values.set(key, (values.get(key) ?? 0) + (group.values.at(0) ?? 0));
+    }
+  }
+  return keys.map((key) => values.get(key) ?? 0);
+}
+
+const SPARKLINE_INSET = 2;
+const round2 = (value: number) => Math.round(value * 100) / 100;
+
+/**
+ * Points of an SVG polyline drawing `values` in a `width`×`height` box (the
+ * lowest value at the bottom, the highest at the top; a flat line in the
+ * middle), with room for the stroke.
+ */
+export function dashboardSparklinePoints(
+  values: readonly number[],
+  width = 100,
+  height = 32
+): string {
+  const finite = values.map((value) => (Number.isFinite(value) ? value : 0));
+  if (!finite.length) {
+    return "";
+  }
+  const low = Math.min(...finite);
+  const high = Math.max(...finite);
+  const inner = height - SPARKLINE_INSET * 2;
+  const step =
+    finite.length > 1 ? (width - SPARKLINE_INSET * 2) / (finite.length - 1) : 0;
+  return finite
+    .map((value, index) => {
+      const x = finite.length > 1 ? SPARKLINE_INSET + index * step : width / 2;
+      const y =
+        high === low
+          ? height / 2
+          : SPARKLINE_INSET + inner - ((value - low) / (high - low)) * inner;
+      return `${round2(x)},${round2(y)}`;
+    })
+    .join(" ");
+}
+
+/** One request of a KPI: its rules and what it aggregates. */
+export interface DashboardKpiQuery {
+  key: "value" | "previous" | "trend";
+  rules: UnknownRecord[];
+  request: ChartAggregateRequest;
+}
+
+/** What a KPI asks the table for: its value, the previous period's and the trend. */
+export interface DashboardKpiPlan {
+  settings: DashboardKpiSettings;
+  periods?: { current: DashboardPeriod; previous: DashboardPeriod };
+  trend?: { keys: string[]; bucket: ChartBucket; period: DashboardPeriod };
+  queries: DashboardKpiQuery[];
+}
+
+/**
+ * The requests of a KPI widget. Without a comparison or a trend, one total
+ * with the dashboard's rules. With them, the dashboard's rules on the date
+ * column give way to each request's period.
+ */
+export function dashboardKpiPlan(
+  dashboard: Pick<Dashboard, "filters">,
+  widget: DashboardWidget,
+  today: string,
+  columns: readonly Pick<ChartColumn, "id" | "timeZone">[] = []
+): DashboardKpiPlan {
+  const settings = dashboardKpiSettings(widget);
+  const rules = dashboardFilterRules(dashboard, widget);
+  const metrics = [
+    settings.metricColumn
+      ? { columnId: settings.metricColumn, fn: settings.metric }
+      : { fn: settings.metric },
+  ];
+  const { compare, dateColumn, sparkline } = settings;
+  const timeZone = columns.find((column) => column.id === dateColumn)?.timeZone;
+  const total: ChartAggregateRequest = {
+    groupBy: [],
+    metrics,
+    weekStartsOn: 1,
+    ...(timeZone ? { timeZone } : {}),
+  };
+  if (!(dateColumn && (compare || sparkline))) {
+    return { settings, queries: [{ key: "value", rules, request: total }] };
+  }
+  const others = rules.filter((rule) => rule.columnId !== dateColumn);
+  const range = dashboardDateRangeFor(dashboard, widget, dateColumn);
+  const queries: DashboardKpiQuery[] = [];
+  const periods = compare
+    ? dashboardKpiPeriods(compare.days, today, range)
+    : undefined;
+  if (periods) {
+    queries.push(
+      {
+        key: "value",
+        rules: [...others, dashboardPeriodRule(dateColumn, periods.current)],
+        request: total,
+      },
+      {
+        key: "previous",
+        rules: [...others, dashboardPeriodRule(dateColumn, periods.previous)],
+        request: total,
+      }
+    );
+  } else {
+    queries.push({ key: "value", rules, request: total });
+  }
+  const end = periods?.current.end ?? range?.end ?? today;
+  const keys = sparkline
+    ? dashboardSparklineKeys(end, sparkline.bucket, sparkline.buckets)
+    : [];
+  const first = keys.at(0);
+  const last = keys.at(-1);
+  const from =
+    first && sparkline ? chartBucketRange(first, sparkline.bucket) : undefined;
+  const to =
+    last && sparkline ? chartBucketRange(last, sparkline.bucket) : undefined;
+  if (!(sparkline && from && to)) {
+    return { settings, ...(periods ? { periods } : {}), queries };
+  }
+  const period = { start: from[0], end: to[1] };
+  queries.push({
+    key: "trend",
+    rules: [...others, dashboardPeriodRule(dateColumn, period)],
+    request: {
+      ...total,
+      groupBy: [{ columnId: dateColumn, bucket: sparkline.bucket }],
+    },
+  });
+  return {
+    settings,
+    ...(periods ? { periods } : {}),
+    trend: { keys, bucket: sparkline.bucket, period },
+    queries,
+  };
+}
+
+/** A saved view's query as list parameters: its filters and search. */
+export function dashboardViewParams(
+  config: Record<string, unknown> = {}
+): Record<string, unknown> {
+  const columnFilters = Array.isArray(config.columnFilters)
+    ? config.columnFilters.filter(isRecord)
+    : [];
+  const search = text(config.globalSearch);
+  return {
+    advancedFilters: config.advancedFilters ?? [],
+    filters: Object.fromEntries(
+      columnFilters.map((filter) => [String(filter.id), filter.value])
+    ),
+    ...(search ? { search } : {}),
+  };
+}
+
+/** The numbers a KPI shows. */
+export interface DashboardKpiResult {
+  value: number;
+  previous?: number;
+  trend?: number[];
+  /** Some groups were computed over part of the records only. */
+  truncated?: boolean;
+}
+
+type ActionFn = (params: never) => unknown;
+
+/**
+ * Runs a KPI's requests through the table's `aggregate` (or its `list`, when
+ * the host cannot group), each with the view's query and its own rules sent
+ * as `requiredFilters`.
+ */
+export async function loadDashboardKpi(input: {
+  plan: DashboardKpiPlan;
+  actions: { list?: ActionFn; aggregate?: ActionFn };
+  params: Record<string, unknown>;
+  locale: string;
+  signal?: AbortSignal;
+}): Promise<DashboardKpiResult> {
+  const answers = await Promise.all(
+    input.plan.queries.map(async (query) => {
+      const actions = withDashboardFilters(input.actions, query.rules) as {
+        list?: (params: Record<string, unknown>) => Promise<{
+          data: unknown[];
+          meta?: { pageCount?: number; totalCount?: number };
+        }>;
+        aggregate?: (params: Record<string, unknown>) => unknown;
+      };
+      const result = await loadChartData({
+        aggregate: actions.aggregate,
+        list: actions.list,
+        params: input.params,
+        request: query.request,
+        locale: input.locale,
+        signal: input.signal,
+      });
+      return { query, result };
+    })
+  );
+  let value = 0;
+  let previous: number | undefined;
+  let trend: number[] | undefined;
+  let truncated = false;
+  for (const { query, result } of answers) {
+    truncated ||= result.truncated === true;
+    const total = result.groups.at(0)?.values.at(0) ?? 0;
+    if (query.key === "value") {
+      value = total;
+    } else if (query.key === "previous") {
+      previous = total;
+    } else {
+      trend = dashboardSparklineValues(
+        input.plan.trend?.keys ?? [],
+        result.groups
+      );
+    }
+  }
+  return {
+    value,
+    ...(previous === undefined ? {} : { previous }),
+    ...(trend ? { trend } : {}),
+    ...(truncated ? { truncated: true } : {}),
+  };
+}
+
+/** Everything a KPI widget draws, in the column's format and the dashboard's language. */
+export interface DashboardKpiDisplay {
+  value: string;
+  /** What the figure counts, e.g. "Sum of Price" (for screen readers and tooltips). */
+  caption: string;
+  comparison?: DashboardComparison & { text: string; periods: string };
+  trend?: { points: string; title: string };
+}
+
+/** The figure, its comparison and its trend line, formatted. */
+export function dashboardKpiDisplay(input: {
+  plan: DashboardKpiPlan;
+  result: DashboardKpiResult;
+  columns: readonly ChartColumn[];
+  locale: string;
+  translate?: DashboardTranslate;
+}): DashboardKpiDisplay {
+  const { plan, result, columns, locale, translate } = input;
+  const { settings } = plan;
+  const format = chartValueFormatter(settings, columns, locale);
+  const column = columns.find((item) => item.id === settings.metricColumn);
+  const caption =
+    settings.metric === "count"
+      ? dashboardLabel("kpiCount", locale, translate)
+      : `${dashboardLabel(METRIC_LABELS[settings.metric], locale, translate)} · ${column?.header ?? settings.metricColumn ?? ""}`;
+  const display: DashboardKpiDisplay = { value: format(result.value), caption };
+  if (plan.periods && settings.compare && result.previous !== undefined) {
+    const comparison = dashboardComparison(
+      result.value,
+      result.previous,
+      settings.compare.better
+    );
+    display.comparison = {
+      ...comparison,
+      text: dashboardComparisonText(comparison, locale, translate),
+      periods: dashboardPeriodsText(plan.periods, locale, translate),
+    };
+  }
+  if (plan.trend && result.trend?.length) {
+    const { bucket, keys } = plan.trend;
+    const values = result.trend;
+    display.trend = {
+      points: dashboardSparklinePoints(values),
+      title: dashboardLabel("trendTitle", locale, translate, {
+        values: keys
+          .map(
+            (key, index) =>
+              `${chartBucketLabel(key, bucket, locale)} ${format(values[index] ?? 0)}`
+          )
+          .join(", "),
+      }),
+    };
+  }
+  return display;
+}
 
 // Filters -----------------------------------------------------------------------
 
@@ -1244,6 +2101,24 @@ const ENGLISH_LABELS = {
   fromDate: "From {date}",
   untilDate: "Until {date}",
   dateRange: "{start} – {end}",
+  moreCount: "+{count} more",
+  viewAll: "View all",
+  compareChange: "{change} vs previous period",
+  compareNoPrevious: "Nothing in the previous period",
+  comparePeriods: "{current} vs {previous}",
+  trendTitle: "Trend: {values}",
+  dateColumn: "Date",
+  noDateColumn: "None",
+  compare: "Compare with the previous period",
+  compareDays: "Period",
+  lastDays: "Last {count} days",
+  compareBetter: "Better when it",
+  compareUp: "Goes up",
+  compareDown: "Goes down",
+  sparkline: "Trend line",
+  overflow: "Records that do not fit",
+  overflowFit: "Show what fits, then “+N more”",
+  overflowScroll: "Scroll inside the widget",
 };
 
 export type DashboardLabelKey = keyof typeof ENGLISH_LABELS;
@@ -1323,6 +2198,24 @@ const FRENCH_LABELS: Record<DashboardLabelKey, string> = {
   fromDate: "À partir du {date}",
   untilDate: "Jusqu’au {date}",
   dateRange: "{start} – {end}",
+  moreCount: "+{count} de plus",
+  viewAll: "Tout voir",
+  compareChange: "{change} vs période précédente",
+  compareNoPrevious: "Rien sur la période précédente",
+  comparePeriods: "{current} vs {previous}",
+  trendTitle: "Tendance : {values}",
+  dateColumn: "Date",
+  noDateColumn: "Aucune",
+  compare: "Comparer à la période précédente",
+  compareDays: "Période",
+  lastDays: "{count} derniers jours",
+  compareBetter: "Meilleur quand il",
+  compareUp: "Augmente",
+  compareDown: "Baisse",
+  sparkline: "Courbe de tendance",
+  overflow: "Enregistrements qui ne tiennent pas",
+  overflowFit: "Afficher ce qui tient, puis « +N de plus »",
+  overflowScroll: "Faire défiler dans le widget",
 };
 
 /** Host override for a label (`dashboard.<key>`), or the built-in one. */
