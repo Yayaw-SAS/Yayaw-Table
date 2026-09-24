@@ -6,7 +6,7 @@
  * language being edited, a question's properties, a consent and a hidden
  * field. Each edits one value and reports changes; the caller saves them.
  */
-import { ListFilter, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import {
   type ChangeEvent,
   type KeyboardEvent,
@@ -30,6 +30,7 @@ import {
   setFormText,
 } from "../utils/form-text";
 import {
+  FORM_HIDDEN_SOURCE_LABELS,
   type FormColumn,
   type FormConsentQuestion,
   type FormHiddenField,
@@ -45,7 +46,6 @@ import {
   setFormOptionLabel,
 } from "../utils/form-view";
 import { FormRuleEditor, RuleSelect } from "./form-rules";
-import { FormRulesDialog } from "./form-rules-dialog";
 
 /** Labels of the settings, in the table's language (`form.<key>` overrides applied). */
 export type FormSettingsLabel = (
@@ -312,81 +312,47 @@ export interface FormQuestionRules {
 }
 
 /**
- * A question's conditions: a status line and "Edit conditions", which opens
- * the rules in a dialog (a drawer on phones) where the conditions have room.
+ * A question's rules, each in its editor, then "Add a condition": the body of
+ * the conditions dialog, and the conditions of the form builder's properties.
  */
-export function FormQuestionRulesEditor({
+export function FormRulesList({
   label,
-  name,
   rules,
 }: {
   label: FormSettingsLabel;
-  name: string;
   rules: FormQuestionRules;
 }) {
-  const [open, setOpen] = useState(false);
-  const status = rules.list.length ? null : label("noConditions");
   return (
-    <section className="grid gap-2" data-form-rules>
-      <h4 className="font-medium text-muted-foreground text-xs">
-        {label("conditions")}
-      </h4>
-      {status ? <p className="text-muted-foreground text-xs">{status}</p> : null}
-      {rules.issues.length ? (
-        <p className="text-destructive text-xs" data-form-rules-problem>
-          {label("conditionsProblem")}
-        </p>
-      ) : null}
+    <>
+      {rules.list.map((rule) => (
+        <FormRuleEditor
+          fields={rules.fields}
+          issues={rules.issues.filter((issue) => issue.ruleId === rule.id)}
+          key={rule.id}
+          label={label}
+          locale={rules.locale}
+          onChange={rules.onChange}
+          onRemove={() => rules.onRemove(rule.id)}
+          questions={rules.questions}
+          rule={rule}
+          translate={rules.translate}
+        />
+      ))}
+      {rules.list.length ? null : (
+        <p className="text-muted-foreground text-sm">{label("noConditions")}</p>
+      )}
       <Button
         className="w-fit font-normal"
-        disabled={rules.fields.length === 0 && rules.list.length === 0}
-        onClick={() => setOpen(true)}
+        disabled={rules.fields.length === 0}
+        onClick={rules.onAdd}
         size="sm"
         type="button"
         variant="outline"
       >
-        <ListFilter aria-hidden="true" />
-        {label("editConditions")}
+        <Plus aria-hidden="true" />
+        {label("addRule")}
       </Button>
-      <FormRulesDialog
-        description={label("conditionsDescription")}
-        doneLabel={label("done")}
-        onOpenChange={setOpen}
-        open={open}
-        title={label("conditionsTitle", { label: name })}
-      >
-        {rules.list.map((rule) => (
-          <FormRuleEditor
-            fields={rules.fields}
-            issues={rules.issues.filter((issue) => issue.ruleId === rule.id)}
-            key={rule.id}
-            label={label}
-            locale={rules.locale}
-            onChange={rules.onChange}
-            onRemove={() => rules.onRemove(rule.id)}
-            questions={rules.questions}
-            rule={rule}
-            translate={rules.translate}
-          />
-        ))}
-        {rules.list.length ? null : (
-          <p className="text-muted-foreground text-sm">
-            {label("noConditions")}
-          </p>
-        )}
-        <Button
-          className="w-fit font-normal"
-          disabled={rules.fields.length === 0}
-          onClick={rules.onAdd}
-          size="sm"
-          type="button"
-          variant="outline"
-        >
-          <Plus aria-hidden="true" />
-          {label("addRule")}
-        </Button>
-      </FormRulesDialog>
-    </section>
+    </>
   );
 }
 
@@ -439,29 +405,24 @@ function OptionLabels({
 
 /**
  * A question's properties in the language being edited: its label (the
- * column name by default), help, placeholder, option labels, "Required" and,
- * with `rules`, its conditions.
+ * column name by default), help, placeholder, option labels and "Required".
+ * Its conditions are edited with `FormRulesList`.
  */
 export function FormQuestionEditor({
   column,
   editing,
   id,
   label,
-  name,
   onChange,
   question,
-  rules,
 }: {
   column: FormColumn;
   editing: FormEditingLanguage;
   /** Prefix of the editor's control ids. */
   id: string;
   label: FormSettingsLabel;
-  /** The question's name, for its conditions dialog. */
-  name: string;
   onChange: (patch: Partial<FormQuestion>) => void;
   question: FormQuestion;
-  rules?: FormQuestionRules;
 }) {
   const editor = formColumnEditor(column);
   const textInput = editor !== "boolean" && editor !== "multiSelect";
@@ -509,9 +470,6 @@ export function FormQuestionEditor({
         label={label("requiredToggle")}
         onChange={(required) => onChange({ required })}
       />
-      {rules ? (
-        <FormQuestionRulesEditor label={label} name={name} rules={rules} />
-      ) : null}
     </>
   );
 }
@@ -576,18 +534,6 @@ export function FormConsentEditor({
     </>
   );
 }
-
-/** Labels of the hidden field sources. */
-export const FORM_HIDDEN_SOURCE_LABELS: Record<
-  FormHiddenSourceType,
-  FormLabelKey
-> = {
-  urlParam: "sourceUrlParam",
-  pageUrl: "sourcePageUrl",
-  referrer: "sourceReferrer",
-  locale: "sourceLocale",
-  static: "sourceStatic",
-};
 
 /** A source of another type, keeping what it can of the current one. */
 function sourceOfType(

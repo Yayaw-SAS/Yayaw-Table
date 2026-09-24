@@ -9,7 +9,6 @@ const CONSENT_FR = /^J’accepte que ma demande soit traitée/;
 const REQUEST_SUCCESS = "Thank you! Your request is in the Draft column.";
 const REQUEST_SUCCESS_FR = "Merci ! Votre demande est dans la colonne Draft.";
 const FORM_MODE = /^form$/i;
-const EDIT_CONSENT = /^Edit Consent/;
 const PRIVACY_POLICY = /^privacy policy/;
 const PRIVACY_POLICY_FR = /^politique de confidentialité/;
 const WANTED_BY = /^Wanted by/;
@@ -48,36 +47,42 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByText("Alpha launch").first()).toBeVisible();
 });
 
-test("the settings switch language and translate a question", async ({
+test("the form builder switches language and translates a question", async ({
   page,
 }) => {
   await page.getByRole("tab", { name: "Request", exact: true }).click();
-  await page.getByRole("button", { name: SETTINGS }).click();
-  const menu = page.getByRole("dialog", { name: SETTINGS });
-  await menu.getByRole("button", { name: FORM_SETTINGS }).click();
-  const settings = page.locator("[data-form-settings]");
-  const editing = settings.getByRole("group", { name: "Editing" });
+  await page
+    .locator("[data-form-toolbar]")
+    .getByRole("button", { name: "Edit form" })
+    .click();
+  const builder = page.getByRole("dialog", { name: "Edit form" });
+  const outline = builder.locator("[data-form-builder-outline]");
+  const properties = builder.locator("[data-form-builder-properties]");
+  const editing = builder
+    .locator("[data-form-builder-bar]")
+    .getByRole("group", { name: "Editing" });
   await expect(editing.getByRole("radio", { name: "English" })).toBeChecked();
   // Plain texts are written in the default language.
+  await outline.getByRole("button", { name: FORM_SETTINGS }).click();
   await expect(
-    settings.getByRole("combobox", { name: "Default language" })
+    properties.getByRole("combobox", { name: "Default language" })
   ).toContainText("English");
 
-  await language(page, "[data-form-settings]", "fr").click();
+  await language(page, "[data-form-builder-bar]", "fr").click();
   await expect(editing.getByRole("radio", { name: "Français" })).toBeChecked();
-  await expect(settings.locator("[data-form-translation-hint]")).toHaveText(
+  await expect(properties.locator("[data-form-translation-hint]")).toHaveText(
     "Texts not translated show in English."
   );
-  await expect(settings.getByRole("textbox", { name: "Title" })).toHaveValue(
+  await expect(properties.getByRole("textbox", { name: "Title" })).toHaveValue(
     "Demande de projet"
   );
   // "Wanted by" has no French label yet.
-  const due = settings.locator('[data-form-setting-question="dueDate"]');
+  const due = outline.locator('[data-key="item:dueDate"]');
   await expect(due.locator("[data-form-missing-translation]")).toHaveText(
     "Missing translation"
   );
-  await page.getByRole("button", { name: "Edit Due" }).click();
-  const label = due.getByRole("textbox", { name: "Question" });
+  await due.getByRole("button").click();
+  const label = properties.getByRole("textbox", { name: "Question" });
   await expect(label).toHaveValue("");
   await expect(label).toHaveAttribute("placeholder", "Wanted by");
   await expect(label).toHaveAttribute("lang", "fr");
@@ -85,12 +90,14 @@ test("the settings switch language and translate a question", async ({
   await label.fill("Souhaité pour le");
   await label.press("Enter");
   await expect(due.locator("[data-form-missing-translation]")).toHaveCount(0);
+  await expect(due).toContainText("Souhaité pour le");
 
   // The English text is unchanged.
-  await language(page, "[data-form-settings]", "en").click();
+  await language(page, "[data-form-builder-bar]", "en").click();
   await expect(label).toHaveValue("Wanted by");
-  await page.keyboard.press("Escape");
-  await expect(menu).toBeHidden();
+  await builder.getByRole("button", { name: "Save", exact: true }).click();
+  await builder.getByRole("button", { name: "Close", exact: true }).click();
+  await expect(builder).toBeHidden();
 
   // The Form view previews the form in French.
   const form = page.locator("[data-yayaw-form]");
@@ -208,37 +215,50 @@ test("an unchecked consent blocks the response; the campaign reaches the metadat
   ]);
 });
 
-test("the settings add a consent and a hidden field", async ({ page }) => {
+test("the form builder adds a consent and a hidden field", async ({ page }) => {
   await page.getByRole("button", { name: SETTINGS }).click();
   const menu = page.getByRole("dialog", { name: SETTINGS });
   await menu.getByRole("combobox", { name: "Display mode" }).click();
   await page.getByRole("option", { name: FORM_MODE }).click();
-  await menu.getByRole("button", { name: FORM_SETTINGS }).click();
-  const settings = page.locator("[data-form-settings]");
+  await page.keyboard.press("Escape");
+  await expect(menu).toBeHidden();
+  await page
+    .locator("[data-form-toolbar]")
+    .getByRole("button", { name: "Edit form" })
+    .click();
+  const builder = page.getByRole("dialog", { name: "Edit form" });
+  const outline = builder.locator("[data-form-builder-outline]");
+  const properties = builder.locator("[data-form-builder-properties]");
 
-  await settings.getByRole("button", { name: "Add consent" }).click();
-  const consent = settings.locator("[data-form-setting-consent]");
+  await builder.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Add consent" }).click();
+  const consent = outline.locator('[data-kind="consent"]');
   await expect(consent).toContainText(
     "I agree to the processing of my answers."
   );
-  await consent.getByRole("button", { name: EDIT_CONSENT }).click();
   // Always required: a consent has no conditions.
-  await expect(
-    consent.getByRole("button", { name: "Edit conditions" })
-  ).toHaveCount(0);
-  const address = consent.getByRole("textbox", { name: "Link address" });
+  await expect(properties.locator("[data-form-rules]")).toHaveCount(0);
+  const address = properties.getByRole("textbox", { name: "Link address" });
   await address.fill("https://example.com/privacy");
   await address.press("Enter");
 
-  await settings.getByRole("switch", { name: "Ask Author" }).uncheck();
-  await settings.getByRole("button", { name: "Add hidden field" }).click();
-  const hidden = settings.locator("[data-form-setting-hidden]");
-  await expect(hidden).toContainText("utm_source → Response details");
-  await hidden.getByRole("combobox", { name: "Save in", exact: true }).click();
+  await outline.getByRole("button", { name: "Author", exact: true }).click();
+  await properties
+    .getByRole("button", { name: "Remove from the form" })
+    .click();
+  await builder.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Add hidden field" }).click();
+  const hidden = outline.locator('[data-kind="hidden"]');
+  await expect(hidden).toContainText("utm_source");
+  await expect(hidden).toContainText("→ Response details");
+  await properties
+    .getByRole("combobox", { name: "Save in", exact: true })
+    .click();
   await page.getByRole("option", { name: "Author", exact: true }).click();
-  await expect(hidden).toContainText("utm_source → Author");
-  await page.keyboard.press("Escape");
-  await expect(menu).toBeHidden();
+  await expect(hidden).toContainText("→ Author");
+  await builder.getByRole("button", { name: "Save", exact: true }).click();
+  await builder.getByRole("button", { name: "Close", exact: true }).click();
+  await expect(builder).toBeHidden();
 
   const form = page.locator("[data-yayaw-form]");
   const checkbox = form.getByRole("checkbox", { name: BUILT_IN_CONSENT });

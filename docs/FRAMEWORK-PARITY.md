@@ -1577,7 +1577,8 @@ normalization (`normalizeFormViewConfig`, saved in views as `config.form` and
 in the `<tableId>-form` URL key), eligible columns (`formColumns`: text,
 textarea/code, number, date, select/tag, multi-select, boolean, URL/image;
 JSON, custom, dynamic and computed columns are excluded and listed in the
-settings), questions as an ordered array of `{ id, columnId, label, help,
+form builder, and so are columns forms may not write, see "Columns a form may
+ask" under "Form builder"), questions as an ordered array of `{ id, columnId, label, help,
 placeholder, required, optionLabels }` with a stable `id` (room for future
 conditions and a step-by-step layout; texts may be localized, and consents and
 hidden fields join the array, see "Form languages, consent and hidden
@@ -1587,14 +1588,9 @@ columns not asked, then answers), English and French labels overridable with
 `form.<key>` translations (React accepts flat `"form.submit"` keys), and the
 public-link contract.
 
-Settings panel (View → Form settings, same content in both editions, built on
-`ViewSettingsPanel`): title, description, one row per eligible column with a
-grip, Move up/Move down icon buttons, an Edit disclosure (label, help text,
-placeholder, a "Required" switch) and an "Ask <column>" switch; fixed values
-for columns not asked (a settings select for option and yes/no columns, which
-opens a choice screen in phone drawers, text otherwise), submit label, success
-message, an "Offer another response" switch, redirect URL, Reset. Texts are
-saved on blur or Enter.
+Settings: the form is edited in the form builder ("Edit form" above the Form
+view, or View → Form settings, which now summarize the form); see "Form
+builder". Texts are saved on blur or Enter.
 
 The standalone component (React `form/yayaw-table-form.tsx`, Vue
 `form/YayawTableForm.vue`) takes `columns`, `form`, `onSubmit(values, {
@@ -1646,8 +1642,11 @@ view and `?example=form` shows the standalone component.
 
 Renderer context additions (both editions): `createRecord(values)`, `viewId`,
 `formLinks` and `coloredTags` (the table setting, applied to the form's tags
-unless a column sets its own). `tests/form-view-suite.ts` runs in both editions and
-`e2e/form.spec.ts` covers configuring questions (order, required, help text),
+unless a column sets its own); the settings context (and so the render
+context) also has `formFields`, the fields of the table's create form when the
+host declares them. `tests/form-view-suite.ts` runs in both editions and
+`e2e/form.spec.ts` covers configuring questions in the form builder (order,
+required, help text),
 error focus, the number format shown after typing, success and the new row in
 the table, picking a date in the standalone form, publishing, copying and
 opening the link, a public response reaching the table, closing responses,
@@ -1697,7 +1696,7 @@ ignored, `set` applied). `publicFormSnapshot` keeps the rules that can act,
 sections, `layout` and `review`.
 
 Section breaks are items of `questions`: `{ id, kind: "section", title?,
-description? }` (Form settings: "Add section", move, edit title and
+description? }` (form builder: "Add" → "Add section", move, edit title and
 description, remove; removing drops rules left without target). The page
 layout renders them as headings.
 
@@ -1727,17 +1726,12 @@ lists answers as displayed (`formAnswerText`) with "Change" buttons.
 sent, via `readFormProgress` / `writeFormProgress`). The Form view keys the
 form by view id so answers never leak between views.
 
-Rule editor (Form settings, both editions): each question's Edit disclosure
-has "Conditions" with a status ("Always shown." without rules, "Some
-conditions are incomplete." while a rule has a problem) and "Edit
-conditions", which opens the question's rules at a comfortable width: a
-centered dialog (~640px) on larger screens, the table's bottom drawer on
-phones (below 768px; React: vaul drawer whose dropdowns and calendars render
-inside it through `DrawerFormPortalContainerContext` and `FormDateField`'s
-`portalContainer`; Vue: the Reka dialog styled as a bottom sheet). The side
-panel keeps the rules' summaries ("Shown when Category is Hardware and Budget
-> 1000") under the question's row. Changes are saved as they are made; "Done"
-and Escape close the dialog only. A rule has its action ("Show / Hide /
+Rule editor (form builder, both editions): a question's properties end with
+"Conditions": the rules' summaries ("Shown when Category is Hardware and
+Budget > 1000"), each rule's card (`FormRulesList`, in place: the properties
+column and the phone tab have room for it), "Always shown." without rules and
+"Add a condition"; the outline marks conditional questions. Changes join the
+builder's draft. A rule has its action ("Show / Hide /
 Require this question when…"), an All/Any segmented control (two radios under
 a "Match" legend) when it has several items, condition cards, "Add
 condition", "Add group" (one level) and removal buttons. A condition card
@@ -1767,7 +1761,7 @@ given, so existing predicates behave as before; `custom` conditions are never
 serialised. Contexts without `formRules` (cell renderers, host code) keep
 using the predicate directly. Collection items drop the parent's rules. The
 create-form conditions are configured in code (there is no create-form
-settings UI); the Form settings are the only rule editor. React's form also
+settings UI); the form builder is the only rule editor. React's form also
 re-validates shown errors when values change so a rule change never leaves a
 stale error blocking Save; Vue's catalogue form is `novalidate` so the rules,
 not the browser's constraint bubbles, decide.
@@ -1816,9 +1810,9 @@ editions; `tests/form-links-demo.test.ts` checks the demo host ignores a
 tampered snapshot. `e2e/form-conditions.spec.ts` covers, on both demos, the
 page layout showing/hiding/requiring by rule, the steps layout (progress,
 Enter, Back/Next/Skip, a conditional step appearing and disappearing, review,
-submit), the rule editor ("Edit conditions" dialog, the problem linked to its
-control, a condition, a nested Any group, short comparisons, Escape keeping
-the settings open, the summary and the form following it), the create form's
+submit), the rule editor (conditions in the builder's properties, the problem
+linked to its control, a condition, a nested Any group, short comparisons,
+the summary, saving and the form following it), the create form's
 condition and date picked in the calendar, and the bulk edit mixed note.
 
 ## Form languages, consent and hidden fields
@@ -1862,42 +1856,42 @@ languages (`formViewLocales`, the same computation in both editions because
 Vue seeds a view's settings from `table.form`) are its default language, its
 `locales` and every language its texts use.
 
-Settings (both editions): an "Editing" switcher at the top of Form settings
-(one radio per language, named in itself: "English", "Français"; arrow keys
-switch) and "Add language" (the host's languages, then common ones, less those
-the form has). Every text input edits the selected language: it shows that
+Form builder (both editions): an "Editing" switcher in the top bar (above the
+preview and the properties on phones; one radio per language, named in itself:
+"English", "Français"; arrow keys switch) and "Add language" (the host's
+languages, then common ones, less those the form has); the preview follows the
+language edited. Every text input edits the selected language: it shows that
 language's text (`lang` set on the input), the default language's text as
 placeholder, and a "Missing translation" badge (also its accessible
 description) while another language has a text and this one has none; the
 default language is flagged only when other languages have a text it lacks.
 Question labels count the column name as a text to translate, option labels
 the column's option labels; a consent's link address is never flagged (one
-address often serves every language). Rows of the question list show
-"Missing translation" under them (`formItemMissingTranslation`). Under the
-switcher, "Texts not translated show in English." names the default
-language in the table's language, and a "Default language" select (when the
-form has several languages) says which language plain texts are written in;
-changing it reinterprets them. Writing in another language pins
+address often serves every language). Outline entries missing a translation
+show a dot read as "Missing translation" (`formItemMissingTranslation`).
+Above the properties, "Texts not translated show in English." names the
+default language in the table's language, and the form's settings have a
+"Default language" select (when the form has several languages) saying which
+language plain texts are written in; changing it reinterprets them. Writing in another language pins
 `defaultLocale` in the view when neither the view nor the table sets one
 (the guess is the table's language), so plain texts keep their language
 whoever edits them; hosts that know it set `table.form.defaultLocale`. The Form view shows a
 "Language" switcher above the form (next to "Share form") when the form has
 several languages, to preview it in each; answers are kept while switching.
 
-The settings are built from editors that do not depend on the side panel, so
-a larger form builder can reuse them (internal modules, not public API):
-React `form/form-languages.tsx` (`FormLanguageSwitch`) and
-`form/form-editors.tsx` (`FormLocalizedText`, `FormQuestionEditor` with its
-conditions given `rules`, `FormQuestionRulesEditor`, `FormConsentEditor`,
-`FormHiddenFieldEditor`, and the small `FormSettingText`, `FormSettingSwitch`,
-`FormSettingSelect`, `FormMissingTranslation`); Vue has the same components
-(`FormLanguageSwitch.vue`, `FormLocalizedText.vue`, `FormQuestionEditor.vue`
-with the conditions in its default slot, `FormQuestionRulesEditor.vue`,
-`FormConsentEditor.vue`, `FormHiddenFieldEditor.vue`, `FormSettingText.vue`).
-Each takes its item, the language being edited (`FormEditingLanguage`:
-`{ locale, defaultLocale, missingLabel }`), an id prefix and the label
-function, and reports patches; the settings rows only add the row header,
-ordering and removal around them.
+The builder's properties are made of editors that stand on their own
+(internal modules, not public API): React `form/form-languages.tsx`
+(`FormLanguageSwitch`) and `form/form-editors.tsx` (`FormLocalizedText`,
+`FormQuestionEditor`, `FormRulesList`, `FormConsentEditor`,
+`FormHiddenFieldEditor`, and the small `FormSettingText`,
+`FormSettingSwitch`, `FormSettingSelect`, `FormMissingTranslation`); Vue has
+the same components (`FormLanguageSwitch.vue`, `FormLocalizedText.vue`,
+`FormQuestionEditor.vue`, `FormRulesList.vue`, `FormConsentEditor.vue`,
+`FormHiddenFieldEditor.vue`, `FormSettingText.vue`, `FormSettingSwitch.vue`,
+`FormSettingSelect.vue`). Each takes its item, the language being edited
+(`FormEditingLanguage`: `{ locale, defaultLocale, missingLabel }`), an id
+prefix and the label function, and reports patches. The conditions dialog of
+the former side panel (`FormQuestionRulesEditor`, `FormRulesDialog`) is gone.
 
 Consent (`{ id, kind: "consent", text?, link?: { label?, href? }, version? }`,
 added with "Add consent", bound to no column): a checkbox labelled by its
@@ -1910,7 +1904,7 @@ French. Link addresses must be `https://`, `http://` or a site path (others
 are dropped when saved); the link opens in a new tab, announced by
 "(opens in a new tab)" read after its text. Rules cannot hide a consent: its
 id is no rule target (rules aiming at it are dropped as `unknownTarget`), a
-hidden section keeps its consents, and the settings offer no conditions for
+hidden section keeps its consents, and the builder offers no conditions for
 it. The answer is kept in the draft under the consent's id (a consent sharing
 an asked column's id is renamed `<id>-consent` when saved, never dropped),
 errors are keyed by it, and it is never written to a column. In the steps layout a consent shows on the step it is
@@ -1922,7 +1916,7 @@ step of their own (`consents`); a step with a consent cannot be skipped and
 Next validates it.
 
 Hidden fields (`{ id, kind: "hidden", source, columnId? }`, "Hidden fields" in
-the settings with "Add hidden field", Source, Parameter name or Text, and
+the builder with "Add" → "Add hidden field", Source, Parameter name or Text, and
 "Save in": "Response details" or a column): `source` is `{ type: "urlParam",
 name }` (`utm_source`, `gclid`…), `pageUrl`, `referrer`, `locale` (the form's
 language) or `{ type: "static", value }`. They are never shown; the browser
@@ -1985,12 +1979,131 @@ language, host overrides of built-in statements, rules and sections never
 hiding it, renamed ids, step placement and the consent step, hidden field
 collection, addresses without query or fragment, server sanitation and
 column binding, server context); `tests/form-links-demo.test.ts` covers the demo host.
-`e2e/form-i18n.spec.ts` covers, on both demos, switching the settings to
+`e2e/form-i18n.spec.ts` covers, on both demos, switching the form builder to
 French and translating a question (badge, placeholder, `lang`, the Form
 view's French preview), the public form in French (texts, option and built-in
 labels, consent error), an unchecked consent blocking the response and the
 UTM parameters reaching the host's metadata, and adding a consent and a
-hidden field in the settings; the existing form specs check the consent.
+hidden field in the builder; the existing form specs check the consent.
+
+## Form builder
+
+A view's form is edited in a near full-screen dialog in both editions (React
+`form/form-builder-dialog.tsx` with `form-builder-outline.tsx`,
+`form-builder-preview.tsx` and `form-builder-properties.tsx`; Vue
+`form/FormBuilderDialog.vue` with `FormBuilderSession.vue`,
+`FormBuilderOutline.vue`, `FormBuilderPreview.vue`,
+`FormBuilderProperties.vue` and `FormBuilderFormSettings.vue`), built on a
+framework-neutral controller shared by both, `utils/form-builder.ts` (synced
+to Vue as `form-builder.ts`, like the file tree's controller):
+`FormBuilderController` holds a draft of the view's form settings, the entry
+selected, the language edited, the drag, the phone tab and the discard
+question; views subscribe to `getState()` (React `useSyncExternalStore`, Vue a
+shallow ref) and call its edits.
+
+Opening: "Edit form" above the Form view (next to the language preview and
+"Share form"), and View → Form settings, which now show a summary
+(`formBuilderSummary` / `formBuilderSummaryLines`: "6 questions · 1 consent ·
+4 hidden fields", "One page" or "Step by step, with a review", the languages),
+"Edit form" and Reset. Settings' "Edit form" closes the menu (React
+`useStackMenu().onOpenChange`, Vue the `settingsMenuCloseKey` the toolbar menu
+provides) and asks the Form view to open its builder (React a jotai atom per
+table, per instance store; Vue a request counter per table context), so one
+builder opens with the view's public links. A view setting, `editButton:
+false` ("Show “Edit form” above the form" in the builder), hides the button
+above the form; the builder stays in View settings.
+
+Layout, desktop and tablets from 1024px: a top bar (title "Edit form" and the
+form's title, the layout as a segmented control, the Editing language switch
+with "Add language", "Unsaved changes", "Form settings", "Share form" when the
+host has `actions.formLinks`, Save and Close), then three labelled regions:
+the outline (left), the preview (middle) and the properties (right).
+
+- Outline: "Form settings" (the form's own settings: title, description,
+  layout and review, default language, submit label, success message,
+  "Offer another response", redirect URL, closed message, the Edit form
+  button, Reset), then groups: the questions, sections and consents in order,
+  the hidden fields, and the columns the form does not ask ("Not in the form":
+  asking one, or a fixed value saved with every response), with a note on the
+  columns forms cannot ask. Entries show the input's icon, the name in the
+  language edited, a required mark, a conditions mark and a missing
+  translation dot (each read by screen readers). "Add" lists the columns to
+  ask, then "Add section", "Add consent" and "Add hidden field"; new items go
+  after the selection and get selected. Reordering: drag an entry's grip
+  (mouse, pen or touch; `attachFormOutlineDrag` shows where it drops and
+  scrolls near the edges, Escape cancels) or Alt + ↑ / ↓ on the focused
+  entry (`formBuilderKeyMove`; the entry keeps the focus and a live region
+  says "Budget: position 2 of 7."); the properties also have Move up / Move
+  down. The groups are a list, so a form writing several tables can add a
+  group of its tables.
+- Preview: `YayawTableForm` with the draft, in the language edited and the
+  chosen layout, its rules applied as answers are typed; nothing is sent
+  ("Answers typed here are not sent.", a success screen previews the success
+  message) and "Show as closed" previews the closed message. The selected
+  question, section or consent is outlined and scrolled into view (sections
+  now carry their id on `data-form-section`).
+- Properties: the selected entry's editors (see "Form languages, consent and
+  hidden fields"), a question's conditions in place, Move up, Move down and
+  "Remove from the form" (the column then shows under "Not in the form"), or
+  Remove for sections, consents and hidden fields.
+
+Saving: edits change the draft only; "Save" (or Ctrl/Cmd + S) writes it to the
+view (`updateSettings`, so the view shows its unsaved-changes dot like any
+view setting) and keeps the builder open; the top bar says "Unsaved changes"
+until then. Close and Escape never lose work silently (a click outside does
+not close the builder): with unsaved changes "Discard your changes?" offers
+"Keep editing", "Discard" and "Save and close" (Escape closes an open menu or
+select first). "Share form" publishes the saved form, never the draft: with unsaved
+changes its panel says "Save your changes to publish them." (FormShare gains
+`compact`, `iconOnly` and `note`; in the builder it is always a popover). The
+dialog traps the focus, opens on the selected entry and gives the focus back to
+"Edit form" when it closes.
+
+Phones and narrow windows (below 1024px): the dialog fills the screen, the top
+bar keeps the title, Share (icon), Save and Close, and Questions, Preview and
+Properties are tabs; choosing an entry opens its properties, and the language
+switch sits above the preview and the properties.
+
+Columns a form may ask (`formColumns`, used by the builder, the preview, the
+Form view, `resolveFormSettings` and `buildPublicFormSnapshot` alike): a form
+editor (text, number, date, option, yes/no, URL, location…), and writable
+(`formColumnWritable`): never columns a host flags `form: false`, `readonly`,
+`readOnly`, `editable: false`, `computed`, `system` or `hidden`, nor
+computed (`accessorFn`) columns, nor the metadata ids tables commonly carry
+(`id`, `_id`, `uuid`, `createdAt`, `updatedAt`, `createdBy`, `updatedBy`,
+`deletedAt` and their snake_case forms); `form: true` opts a column in. When
+the host declares the table's create form (`getFormConfig` for
+`form.createFormType`, else the table's form type, in create mode), the
+contexts carry its fields (`formFields`, from `formCreateFields`: fields it
+hides or disables are left out) and `withFormFields` marks the other columns
+`form: false`: a Form view creates records like the create form. A form
+without saved questions asks every column it may; saved questions on other
+columns are not asked. The demo's "Posted at" is `readonly`.
+
+Labels (English and French, `form.<key>`): `editForm`, `builderDescription`,
+`builderOutline`, `builderPreview`, `builderProperties`,
+`builderPreviewNote`, `builderShowClosed`, `save`, `unsavedChanges`,
+`builderSaved`, `discardTitle`, `discardDescription`, `discard`,
+`keepEditing`, `saveAndClose`, `addItem`, `addQuestion`, `noColumnsLeft`,
+`notInForm`, `notInFormHint`, `askQuestion`, `removeQuestion`, `remove`,
+`fixedValue`, `reorderHint`, `builderMoved`, `builderAdded`,
+`builderRemoved`, `columnOf`, `untitledForm`, `questionKind`,
+`hasConditions`, `languages`, `inTheView`, `editButtonSetting`,
+`editButtonHint`, `resetHint`, `saveToPublish` and the `summary*` counts.
+
+Verification: `tests/form-builder-suite.ts` runs in both editions (the
+outline, languages and pinning, asking and removing, sections, consents and
+hidden fields after the selection, rules, fixed values, reset, Alt + arrows,
+drag and drop with hidden fields kept in place, saving and the discard
+question, phone tabs, settings compared regardless of key order, the summary
+in English and French, columns forms never ask, the create form's fields);
+`e2e/form-builder.spec.ts` covers, on both demos, editing a question with the
+preview following, Alt + ↑ and its announcement, asking a column with a
+condition applied in the preview, French and the missing translation dot, the
+steps layout, saving, closing and reopening; the summary in View settings
+opening the builder, Escape asking before discarding (Keep editing, Discard);
+a form without questions never asking the read-only column (outline, Add menu,
+note); dragging an entry's grip; and the phone tabs.
 
 ## Table instances on one page
 

@@ -1,33 +1,43 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { Pencil } from "lucide-vue-next";
+import { computed, ref, watch } from "vue";
 import type { DisplayModeRenderContext } from "../display-mode-renderer";
 import { formLanguage, formLocaleMatch } from "../form-text";
 import {
   type FormColumn,
   type FormLabelKey,
+  type FormViewSettings,
   formLabel,
   formViewLocales,
   mergeFormSettings,
   publicFormSnapshot,
+  withFormFields,
 } from "../form-view";
+import FormBuilderDialog from "./FormBuilderDialog.vue";
 import FormLanguageSwitch from "./FormLanguageSwitch.vue";
 import FormShare from "./FormShare.vue";
+import { useFormBuilderRequests } from "./form-builder-request";
 import YayawTableForm from "./YayawTableForm.vue";
 
 /**
- * The Form display mode: the view's form, creating records in this table. A
- * form written in several languages can be previewed in each of them.
+ * The Form display mode: the view's form, creating records in this table,
+ * with "Edit form" (the form builder) and "Share form" above it. A form
+ * written in several languages can be previewed in each of them.
  */
 const props = defineProps<{ context: DisplayModeRenderContext }>();
 const columns = computed(
   () => props.context.columns as unknown as readonly FormColumn[]
 );
 // Tags look like the table's: its colored-tags setting applies to the form.
+// Columns the create form lacks are not asked.
 const formColumns = computed(() =>
-  columns.value.map((column) => ({
-    ...column,
-    coloredTags: column.coloredTags ?? props.context.coloredTags,
-  }))
+  withFormFields(
+    columns.value.map((column) => ({
+      ...column,
+      coloredTags: column.coloredTags ?? props.context.coloredTags,
+    })),
+    props.context.formFields
+  )
 );
 const form = computed(() =>
   mergeFormSettings(props.context.defaults, props.context.settings)
@@ -56,11 +66,31 @@ const shown = computed(
     props.context.locale
 );
 const multilingual = computed(() => languages.value.length > 1);
+const editable = computed(() => form.value.editButton !== false);
+
+// The form builder: "Edit form" here, or in View settings.
+const building = ref(false);
+const editButton = ref<HTMLButtonElement>();
+const requests = useFormBuilderRequests();
+watch(requests, () => {
+  building.value = true;
+});
+const share = computed(() =>
+  props.context.formLinks
+    ? {
+        formLinks: props.context.formLinks,
+        viewId: props.context.viewId,
+        snapshot,
+      }
+    : undefined
+);
+const save = (next: FormViewSettings | undefined): void =>
+  props.context.updateSettings(next as Record<string, unknown> | undefined);
 </script>
 
 <template>
   <div class="yayaw-form-view" data-form-view>
-    <div v-if="context.formLinks || multilingual" class="yayaw-form-toolbar" data-form-toolbar>
+    <div v-if="context.formLinks || multilingual || editable" class="yayaw-form-toolbar" data-form-toolbar>
       <FormLanguageSwitch
         v-if="multilingual"
         :label="formLabel('previewLanguage', context.locale, translate)"
@@ -68,8 +98,19 @@ const multilingual = computed(() => languages.value.length > 1);
         :value="shown"
         @change="preview = $event"
       />
-      <div v-if="context.formLinks" class="yayaw-form-toolbar-end">
+      <div class="yayaw-form-toolbar-end">
+        <button
+          v-if="editable"
+          ref="editButton"
+          type="button"
+          class="yayaw-button yayaw-button-outline yayaw-form-edit-trigger"
+          data-form-edit
+          @click="building = true"
+        >
+          <Pencil :size="16" aria-hidden="true" />{{ formLabel("editForm", context.locale, translate) }}
+        </button>
         <FormShare
+          v-if="context.formLinks"
           :form-links="context.formLinks"
           :view-id="context.viewId"
           :snapshot="snapshot"
@@ -88,5 +129,17 @@ const multilingual = computed(() => languages.value.length > 1);
         :on-submit="(values) => context.createRecord(values)"
       />
     </div>
+    <FormBuilderDialog
+      :open="building"
+      :columns="formColumns"
+      :defaults="context.defaults"
+      :settings="context.settings"
+      :locale="context.locale"
+      :translate="translate"
+      :share="share"
+      :final-focus="editButton"
+      @update:open="building = $event"
+      @save="save"
+    />
   </div>
 </template>

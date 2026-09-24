@@ -5028,108 +5028,9 @@
   border-color: var(--yayaw-danger);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--yayaw-danger) 20%, transparent);
 }
-/* "Edit conditions": a centered dialog, a bottom sheet on phones. */
-.yayaw-rules-dialog-anchor {
+/* The form builder's anchor in the table, for its theme tokens. */
+.yayaw-form-builder-anchor {
   display: contents;
-}
-.yayaw-rules-dialog-backdrop {
-  position: fixed;
-  z-index: 100;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.1);
-  -webkit-backdrop-filter: blur(var(--blur-xs, 4px));
-  backdrop-filter: blur(var(--blur-xs, 4px));
-}
-.yayaw-rules-dialog,
-.yayaw-rules-dialog * {
-  box-sizing: border-box;
-}
-.yayaw-rules-dialog {
-  position: fixed;
-  z-index: 101;
-  top: 50%;
-  left: 50%;
-  display: flex;
-  width: min(640px, calc(100vw - 32px));
-  max-height: min(85dvh, 768px);
-  flex-direction: column;
-  border-radius: 12px;
-  background: var(--yayaw-background);
-  color: var(--yayaw-foreground);
-  box-shadow:
-    0 0 0 1px color-mix(in oklab, var(--yayaw-foreground) 10%, transparent),
-    0 10px 15px -3px rgb(0 0 0 / 0.1);
-  font-size: 14px;
-  line-height: 1.4;
-  outline: none;
-  transform: translate(-50%, -50%);
-}
-.yayaw-rules-dialog[data-compact] {
-  top: auto;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  max-height: 92dvh;
-  border-radius: 16px 16px 0 0;
-  padding-bottom: env(safe-area-inset-bottom);
-  transform: none;
-}
-.yayaw-rules-dialog-header {
-  position: relative;
-  display: grid;
-  gap: 4px;
-  border-bottom: 1px solid var(--yayaw-border);
-  padding: 16px 48px 16px 16px;
-}
-.yayaw-rules-dialog-title {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 500;
-  line-height: 1.25;
-}
-.yayaw-rules-dialog-description {
-  margin: 0;
-  color: var(--yayaw-muted-foreground);
-  font-size: 14px;
-}
-.yayaw-button.yayaw-rules-dialog-close {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 32px;
-  min-width: 32px;
-  height: 32px;
-  min-height: 32px;
-  padding: 0;
-  background: transparent;
-  color: var(--yayaw-foreground);
-}
-.yayaw-rules-dialog-body {
-  display: grid;
-  min-height: 0;
-  align-content: start;
-  gap: 12px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: 12px 16px;
-}
-.yayaw-rules-dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  border-top: 1px solid var(--yayaw-border);
-  padding: 12px;
-}
-.yayaw-rules-dialog[data-compact] .yayaw-rules-dialog-header {
-  padding-right: 16px;
-  text-align: center;
-}
-.yayaw-rules-dialog[data-compact] .yayaw-rules-dialog-footer .yayaw-button {
-  width: 100%;
-}
-.yayaw-rules-dialog[data-compact]
-  :where(button, .yayaw-rule-select-trigger, .yayaw-rule-input) {
-  min-height: 44px;
 }
 .yayaw-button.yayaw-form-settings-add {
   width: fit-content;
@@ -5294,7 +5195,627 @@
   color: var(--yayaw-primary);
 }
 .yayaw-form-toolbar-end {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
   margin-left: auto;
+}
+.yayaw-form-edit-trigger {
+  min-height: 32px;
+  height: 32px;
+  gap: 8px;
+  padding: 0 10px;
+  font-size: 14px;
+}
+.yayaw-form-share-trigger.yayaw-icon-only {
+  width: 32px;
+  padding: 0;
+}
+.yayaw-form-share-note {
+  margin: 0;
+  border-radius: var(--yayaw-radius);
+  background: color-mix(in oklab, oklch(0.769 0.188 70.08) 10%, transparent);
+  padding: 8px 10px;
+  color: oklch(0.473 0.137 46.201);
+  font-size: 14px;
+}
+.dark .yayaw-form-share-note {
+  color: oklch(0.879 0.169 91.605);
+}
+
+/* View → Form settings: a summary and "Edit form". */
+.yayaw-form-summary {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+.yayaw-form-summary p {
+  margin: 0;
+  font-size: 14px;
+}
+.yayaw-form-summary-title {
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-form-summary-line {
+  color: var(--yayaw-muted-foreground);
+}
+.yayaw-form-settings[data-form-settings] {
+  gap: 12px;
+}
+.yayaw-button.yayaw-form-settings-edit {
+  width: 100%;
+  gap: 8px;
+}
+.yayaw-form-settings[data-form-settings] > .yayaw-form-settings-add {
+  width: 100%;
+  justify-content: center;
+}
+
+/* The form builder: a near full-screen dialog, full screen with tabs on phones. */
+.yayaw-form-builder-backdrop {
+  position: fixed;
+  z-index: 60;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.1);
+  -webkit-backdrop-filter: blur(var(--blur-xs, 4px));
+  backdrop-filter: blur(var(--blur-xs, 4px));
+}
+.yayaw-form-builder,
+.yayaw-form-builder *,
+.yayaw-form-builder-confirm,
+.yayaw-form-builder-confirm * {
+  box-sizing: border-box;
+}
+.yayaw-form-builder {
+  position: fixed;
+  z-index: 61;
+  inset: 16px;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--yayaw-background);
+  color: var(--yayaw-foreground);
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--yayaw-foreground) 10%, transparent),
+    0 10px 15px -3px rgb(0 0 0 / 0.1);
+  font-size: 14px;
+  line-height: 1.4;
+  outline: none;
+}
+.yayaw-form-builder[data-compact] {
+  inset: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.yayaw-form-builder-bar {
+  display: flex;
+  min-height: 56px;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  border-bottom: 1px solid var(--yayaw-border);
+  padding: 8px 16px;
+}
+.yayaw-form-builder[data-compact] .yayaw-form-builder-bar {
+  padding: 8px 12px;
+}
+.yayaw-form-builder-heading {
+  min-width: 0;
+  flex: 1 1 160px;
+}
+.yayaw-form-builder-title {
+  overflow: hidden;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-form-builder-subtitle {
+  overflow: hidden;
+  margin: 0;
+  color: var(--yayaw-muted-foreground);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-form-builder-layout {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+.yayaw-form-builder-layout .yayaw-form-language {
+  white-space: nowrap;
+}
+.yayaw-form-builder-bar-end {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.yayaw-form-builder-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--yayaw-muted-foreground);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.yayaw-form-builder-status-dot,
+.yayaw-form-builder-missing-dot {
+  display: block;
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 999px;
+  background: oklch(0.769 0.188 70.08);
+}
+.yayaw-form-builder-missing-dot {
+  width: 6px;
+  height: 6px;
+}
+.yayaw-button.yayaw-form-builder-settings,
+.yayaw-button.yayaw-form-builder-save,
+.yayaw-button.yayaw-form-builder-add,
+.yayaw-button.yayaw-form-builder-remove,
+.yayaw-button.yayaw-form-builder-ask {
+  min-height: 32px;
+  height: 32px;
+  gap: 6px;
+  padding: 0 10px;
+  font-size: 14px;
+}
+.yayaw-button.yayaw-form-builder-close,
+.yayaw-form-builder-actions .yayaw-button.yayaw-icon-only {
+  width: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  height: 32px;
+  padding: 0;
+}
+.yayaw-button.yayaw-form-builder-ask {
+  width: fit-content;
+}
+.yayaw-form-builder-panes {
+  display: grid;
+  min-height: 0;
+  flex: 1;
+  grid-template-columns: minmax(14rem, 17rem) minmax(0, 1fr) minmax(
+      19rem,
+      23rem
+    );
+  grid-template-rows: minmax(0, 1fr);
+}
+@media (min-width: 1280px) {
+  .yayaw-form-builder-panes {
+    grid-template-columns: 18rem minmax(0, 1fr) 25rem;
+  }
+}
+.yayaw-form-builder-pane {
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+  flex-direction: column;
+}
+.yayaw-form-builder-pane-start {
+  border-right: 1px solid var(--yayaw-border);
+}
+.yayaw-form-builder-pane-end {
+  border-left: 1px solid var(--yayaw-border);
+}
+.yayaw-form-builder-outline,
+.yayaw-form-builder-preview,
+.yayaw-form-builder-properties {
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+.yayaw-form-builder-pane-header {
+  display: flex;
+  min-height: 48px;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 1px solid var(--yayaw-border);
+  padding: 8px 12px;
+}
+.yayaw-form-builder-properties-header {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0;
+  padding: 8px 16px;
+}
+.yayaw-form-builder-pane-title {
+  overflow: hidden;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-form-builder-scroll {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.yayaw-form-builder-outline .yayaw-form-builder-scroll {
+  padding: 8px;
+}
+.yayaw-form-builder-entry {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 32px;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: var(--yayaw-radius);
+  background: transparent;
+  padding: 4px 8px;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 150ms;
+}
+.yayaw-form-builder-entry:hover {
+  background: var(--yayaw-muted);
+}
+.yayaw-form-builder-entry[aria-current="true"] {
+  background: color-mix(
+    in oklab,
+    var(--yayaw-muted) 100%,
+    var(--yayaw-foreground) 4%
+  );
+}
+.yayaw-form-builder-entry:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--yayaw-ring) 50%, transparent);
+}
+.yayaw-form-builder-form-entry {
+  min-height: 36px;
+  font-weight: 500;
+}
+.yayaw-form-builder-entry-icon,
+.yayaw-form-builder-mark-icon {
+  flex: none;
+  color: var(--yayaw-muted-foreground);
+}
+.yayaw-form-builder-entry-name {
+  overflow: hidden;
+  min-width: 0;
+  flex: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-form-builder-row[data-kind="section"] .yayaw-form-builder-entry {
+  font-weight: 500;
+}
+.yayaw-form-builder-row[data-kind="column"] .yayaw-form-builder-entry {
+  color: var(--yayaw-muted-foreground);
+}
+.yayaw-form-builder-marks {
+  display: flex;
+  min-width: 0;
+  flex-shrink: 1;
+  align-items: center;
+  gap: 6px;
+}
+.yayaw-form-builder-marks:empty {
+  display: none;
+}
+.yayaw-form-builder-required {
+  color: var(--yayaw-danger);
+}
+.yayaw-form-builder-detail {
+  overflow: hidden;
+  color: var(--yayaw-muted-foreground);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-form-builder-group {
+  display: grid;
+  gap: 4px;
+}
+.yayaw-form-builder-group-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 12px 8px 0;
+  color: var(--yayaw-muted-foreground);
+  font-size: 12px;
+  font-weight: 500;
+}
+.yayaw-form-builder-count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+}
+.yayaw-form-builder-note {
+  margin: 0;
+  padding: 0 8px;
+  color: var(--yayaw-muted-foreground);
+  font-size: 12px;
+}
+.yayaw-form-builder-scroll > .yayaw-form-builder-note {
+  padding-top: 12px;
+}
+.yayaw-form-builder-list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.yayaw-form-builder-row {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  border-radius: var(--yayaw-radius);
+}
+.yayaw-form-builder-row[data-kind="section"] {
+  margin-top: 8px;
+}
+.yayaw-form-builder-row[data-kind="section"]:first-child {
+  margin-top: 0;
+}
+.yayaw-form-builder-row[data-dragging] {
+  opacity: 0.5;
+}
+.yayaw-form-builder-row[data-drop]::after {
+  position: absolute;
+  right: 4px;
+  left: 4px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--yayaw-primary);
+  content: "";
+}
+.yayaw-form-builder-row[data-drop="before"]::after {
+  top: -1px;
+}
+.yayaw-form-builder-row[data-drop="after"]::after {
+  bottom: -1px;
+}
+.yayaw-form-builder-grip,
+.yayaw-form-builder-grip-space {
+  display: flex;
+  width: 20px;
+  height: 32px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+}
+.yayaw-form-builder-grip {
+  color: color-mix(in oklab, var(--yayaw-muted-foreground) 60%, transparent);
+  cursor: grab;
+  touch-action: none;
+}
+.yayaw-form-builder-grip:hover {
+  color: var(--yayaw-muted-foreground);
+}
+.yayaw-form-builder-grip:active {
+  cursor: grabbing;
+}
+.yayaw-form-builder-menu {
+  width: 256px;
+}
+.yayaw-form-builder-menu-label {
+  padding: 6px 8px;
+  color: var(--yayaw-muted-foreground);
+  font-size: 12px;
+  font-weight: 500;
+}
+.yayaw-form-builder-preview {
+  background: color-mix(in oklab, var(--yayaw-muted) 40%, transparent);
+}
+.dark .yayaw-form-builder-preview {
+  background: color-mix(in oklab, var(--yayaw-muted) 20%, transparent);
+}
+.yayaw-form-builder-preview-header {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 4px 12px;
+  background: var(--yayaw-background);
+  padding: 8px 16px;
+}
+.yayaw-form-builder-closed {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.yayaw-form-builder-preview-body {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 20px 12px;
+}
+@media (min-width: 640px) {
+  .yayaw-form-builder-preview-body {
+    padding: 32px 24px;
+  }
+}
+.yayaw-form-builder-preview-inner {
+  display: grid;
+  width: 100%;
+  max-width: 640px;
+  gap: 12px;
+  margin: 0 auto;
+}
+.yayaw-form-builder-preview-body [data-builder-selected] {
+  border-radius: 6px;
+  outline: 2px solid color-mix(in oklab, var(--yayaw-primary) 60%, transparent);
+  outline-offset: 4px;
+}
+.yayaw-form-builder-properties-body {
+  display: grid;
+  min-width: 0;
+  gap: 16px;
+  padding: 16px;
+}
+.yayaw-form-builder-section {
+  display: grid;
+  min-width: 0;
+  gap: 12px;
+}
+.yayaw-form-builder-section-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+.yayaw-form-builder-rules {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+}
+.yayaw-form-builder-rules .yayaw-form-rule-summary {
+  padding: 0;
+}
+.yayaw-form-builder-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid var(--yayaw-border);
+  padding-top: 16px;
+}
+.yayaw-button.yayaw-form-builder-remove {
+  margin-left: auto;
+  color: var(--yayaw-danger);
+}
+.yayaw-form-builder-reset {
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+  border-top: 1px solid var(--yayaw-border);
+  padding-top: 16px;
+}
+.yayaw-form-builder-tabs {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+.yayaw-form-builder-tab-list {
+  display: flex;
+  height: 44px;
+  flex: none;
+  border-bottom: 1px solid var(--yayaw-border);
+  padding: 0 8px;
+}
+.yayaw-form-builder-tab {
+  position: relative;
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: var(--yayaw-muted-foreground);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.yayaw-form-builder-tab[data-state="active"] {
+  color: var(--yayaw-foreground);
+}
+.yayaw-form-builder-tab[data-state="active"]::after {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 2px;
+  background: var(--yayaw-foreground);
+  content: "";
+}
+.yayaw-form-builder-tab:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px
+    color-mix(in srgb, var(--yayaw-ring) 50%, transparent);
+}
+.yayaw-form-builder-tab-panel {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+.yayaw-form-builder-tab-panel[hidden] {
+  display: none;
+}
+.yayaw-form-builder[data-compact] .yayaw-form-builder-entry {
+  min-height: 40px;
+}
+.yayaw-form-builder-confirm-backdrop {
+  position: fixed;
+  z-index: 80;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.1);
+}
+.yayaw-form-builder-confirm {
+  position: fixed;
+  z-index: 81;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  width: min(440px, calc(100vw - 32px));
+  gap: 12px;
+  border-radius: 12px;
+  background: var(--yayaw-background);
+  padding: 24px;
+  color: var(--yayaw-foreground);
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--yayaw-foreground) 10%, transparent),
+    0 10px 15px -3px rgb(0 0 0 / 0.1);
+  font-size: 14px;
+  line-height: 1.4;
+  transform: translate(-50%, -50%);
+}
+.yayaw-form-builder-confirm-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 500;
+}
+.yayaw-form-builder-confirm-description {
+  margin: 0;
+  color: var(--yayaw-muted-foreground);
+}
+.yayaw-form-builder-confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+.yayaw-button.yayaw-form-builder-discard {
+  background: color-mix(in oklab, var(--yayaw-danger) 10%, transparent);
+  color: var(--yayaw-danger);
+}
+.yayaw-button.yayaw-form-builder-discard:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--yayaw-danger) 20%, transparent);
+}
+.dark .yayaw-button.yayaw-form-builder-discard {
+  background: color-mix(in oklab, var(--yayaw-danger) 20%, transparent);
 }
 
 /* Bulk edit: fields whose rules read values that differ across the selection. */
@@ -5370,12 +5891,6 @@
   min-height: 24px;
   padding: 0;
   background: transparent;
-}
-.yayaw-rules-dialog[data-compact] .yayaw-rule .yayaw-form-settings-action {
-  width: 32px;
-  min-width: 32px;
-  height: 32px;
-  min-height: 32px;
 }
 .yayaw-rule .yayaw-button-ghost,
 .yayaw-button.yayaw-rule-add {

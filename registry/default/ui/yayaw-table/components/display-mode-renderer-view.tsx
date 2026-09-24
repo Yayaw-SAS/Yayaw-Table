@@ -58,6 +58,8 @@ export interface DisplayModeRenderInput {
   createRecord: (values: RowRecord) => Promise<FormSubmitResult>;
   viewId: string | null;
   formLinks?: FormLinkActions;
+  /** Fields of the create form, when the host declares them. */
+  formFields?: readonly string[];
   emptyState: ReactNode;
   /** What the file tree needs besides the common context. */
   extras: Pick<
@@ -90,6 +92,7 @@ export function useDisplayModeRenderContext(
     createRow,
     editRow,
     emptyState,
+    formFields,
     formLinks,
     getRowId,
     grouping,
@@ -168,6 +171,7 @@ export function useDisplayModeRenderContext(
       createRecord,
       viewId,
       formLinks,
+      formFields,
       coloredTags: (tableDefaults as RowRecord).coloredTags !== false,
       revision,
       emptyState,
@@ -186,6 +190,7 @@ export function useDisplayModeRenderContext(
       editRow,
       emptyState,
       extras,
+      formFields,
       formLinks,
       getRowId,
       groupBy,

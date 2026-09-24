@@ -86,6 +86,7 @@ import { TableDisplayModeSwitcher } from "./toolbar/table-display-mode-switcher"
 import { TableGalleryMenu } from "./toolbar/table-gallery-menu";
 import { TableListMenu } from "./toolbar/table-list-menu";
 import { TableRendererSettings } from "./toolbar/table-renderer-settings";
+import { useCreateFormFields } from "./forms/hooks/use-create-form-fields";
 import { TableGanttSettings } from "./toolbar/table-gantt-settings";
 import { TableKanbanGroupingMenu } from "./toolbar/table-kanban-grouping-menu";
 
@@ -277,6 +278,7 @@ function rendererSettings({
   defaultDisplayMode,
   defaults,
   displayModes,
+  formFields,
   renderers,
   tableId,
 }: {
@@ -284,6 +286,7 @@ function rendererSettings({
   defaultDisplayMode?: TableDisplayMode;
   defaults: object;
   displayModes?: TableDisplayMode[];
+  formFields?: readonly string[];
   renderers?: DisplayModeRenderers;
   tableId: string;
 }): Partial<Record<TableDisplayMode, ReactNode>> {
@@ -296,6 +299,7 @@ function rendererSettings({
           columns={columns}
           defaultDisplayMode={defaultDisplayMode}
           defaults={modeDefaultsOf(defaults, mode)}
+          formFields={formFields}
           mode={mode}
           renderer={renderer}
           tableId={tableId}
@@ -318,6 +322,7 @@ function DataTableHeaderControls({
   displayModeRenderers,
   rendererColumns,
   rendererDefaults,
+  formFields,
   enableKanbanGrouping,
   enableGalleryControl,
   enableAdvancedFilters,
@@ -355,6 +360,7 @@ function DataTableHeaderControls({
   displayModeRenderers?: DisplayModeRenderers;
   rendererColumns: TableCatalogueColumnConfig[];
   rendererDefaults: object;
+  formFields?: readonly string[];
   enableKanbanGrouping: boolean;
   enableGalleryControl: boolean;
   enableAdvancedFilters: boolean;
@@ -421,6 +427,7 @@ function DataTableHeaderControls({
           defaultDisplayMode,
           defaults: rendererDefaults,
           displayModes,
+          formFields,
           renderers: displayModeRenderers,
           tableId,
         }),
@@ -790,6 +797,13 @@ function DataTableContent({
     toolbarActionsPlacement,
   });
   const getTableActions = useTableActions();
+  // The Form mode asks what the create form offers, when the host declares it.
+  const formFields = useCreateFormFields({
+    createFormType: config.form?.createFormType,
+    formType: defaultFormType,
+    tableId,
+    tableType,
+  });
   const canCreateRecords =
     config.table.allowCreate !== false &&
     typeof getTableActions?.(tableType)?.create === "function";
@@ -980,6 +994,7 @@ function DataTableContent({
                     showFilterBar,
                     config.table.showFilterBar
                   )}
+                  formFields={formFields}
                   rendererColumns={config.columns.definitions}
                   rendererDefaults={config.table}
                   searchDebounceMs={resolvedSearchDebounceMs}

@@ -29,6 +29,12 @@ interface FormShareProps {
   snapshot: () => PublicFormSnapshot;
   locale: string;
   translate?: FormTranslate;
+  /** A drawer on phones (default), or always a popover (`false`, e.g. inside the form builder). */
+  compact?: boolean;
+  /** The trigger shows its icon only (the text stays its name). */
+  iconOnly?: boolean;
+  /** Shown above the publishing controls, e.g. "Save your changes to publish them." */
+  note?: string;
 }
 
 type Label = (key: FormLabelKey) => string;
@@ -268,14 +274,18 @@ function PublishedControls({
  * never go live by accident.
  */
 export function FormShare({
+  compact: compactProp,
   formLinks,
+  iconOnly,
   locale,
+  note,
   snapshot,
   translate,
   viewId,
 }: FormShareProps) {
   const id = useId();
-  const compact = useIsMobile();
+  const phone = useIsMobile();
+  const compact = compactProp ?? phone;
   const label: Label = (key) => formLabel(key, locale, translate);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -361,19 +371,28 @@ export function FormShare({
       open={open}
       trigger={
         <Button
+          aria-label={iconOnly ? label("share") : undefined}
           className={cn("gap-2", compact && "min-h-11")}
           data-form-share
-          size="sm"
+          size={iconOnly ? "icon-sm" : "sm"}
           type="button"
           variant="outline"
         >
           <Link2 aria-hidden="true" className="size-4" />
-          {label("share")}
+          {iconOnly ? null : label("share")}
         </Button>
       }
     >
       <StackMenuView name="main" title={label("share")}>
         <StackMenuContent className="grid gap-4 p-3" data-form-share-panel>
+          {note ? (
+            <p
+              className="rounded-md bg-amber-500/10 px-2.5 py-2 text-amber-800 text-sm dark:text-amber-300"
+              data-form-share-note
+            >
+              {note}
+            </p>
+          ) : null}
           {panel}
           {failed ? (
             <p className="text-destructive text-sm" role="alert">

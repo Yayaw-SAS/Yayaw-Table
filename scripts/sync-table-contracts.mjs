@@ -53,6 +53,7 @@ for (const file of [
   "data-destinations.ts",
   "export-model.ts",
   "field-matching.ts",
+  "form-builder.ts",
   "form-conditions.ts",
   "feed-view.ts",
   "feed-controller.ts",

@@ -209,6 +209,8 @@ export const viewsColumns = [
     header: "Posted at",
     type: "date" as const,
     dateDisplayPreset: "dateTime" as const,
+    // Stamped when an update is posted: forms never ask it.
+    readonly: true,
   },
 ];
 

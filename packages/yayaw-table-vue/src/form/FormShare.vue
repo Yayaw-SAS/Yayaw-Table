@@ -26,14 +26,23 @@ import {
  * edits reach the link with "Update public form", so unsaved experiments
  * never go live by accident.
  */
-const props = defineProps<{
-  formLinks: FormLinkActions;
-  viewId: string | null;
-  /** The form as it would be published now. */
-  snapshot: () => PublicFormSnapshot;
-  locale: string;
-  translate?: FormTranslate;
-}>();
+const props = withDefaults(
+  defineProps<{
+    formLinks: FormLinkActions;
+    viewId: string | null;
+    /** The form as it would be published now. */
+    snapshot: () => PublicFormSnapshot;
+    locale: string;
+    translate?: FormTranslate;
+    /** A drawer on phones (default), or always a popover (`false`, e.g. inside the form builder). */
+    compact?: boolean;
+    /** The trigger shows its icon only (the text stays its name). */
+    iconOnly?: boolean;
+    /** Shown above the publishing controls, e.g. "Save your changes to publish them." */
+    note?: string;
+  }>(),
+  { translate: undefined, compact: undefined, iconOnly: false, note: undefined }
+);
 
 const id = `yayaw-form-share-${useId()}`;
 const label = (key: FormLabelKey): string =>
@@ -46,11 +55,12 @@ const copied = ref(false);
 const COPIED_MS = 2000;
 let copiedTimer: ReturnType<typeof setTimeout> | undefined;
 
-// Phones get the drawer, as the table's menus do.
-const compact = ref(false);
+// Phones get the drawer, as the table's menus do, unless the caller decides.
+const phone = ref(false);
+const compact = computed(() => props.compact ?? phone.value);
 let media: MediaQueryList | undefined;
 const updateCompact = (): void => {
-  compact.value = media?.matches ?? false;
+  phone.value = media?.matches ?? false;
 };
 onMounted(() => {
   media = window.matchMedia?.("(max-width: 767px)");
@@ -155,12 +165,15 @@ const copy = async () => {
       <button
         type="button"
         class="yayaw-button yayaw-button-outline yayaw-form-share-trigger"
+        :class="{ 'yayaw-icon-only': iconOnly }"
+        :aria-label="iconOnly ? label('share') : undefined"
         data-form-share
       >
-        <Link2 :size="16" aria-hidden="true" />{{ label("share") }}
+        <Link2 :size="16" aria-hidden="true" /><template v-if="!iconOnly">{{ label("share") }}</template>
       </button>
     </template>
     <div class="yayaw-form-share-panel" data-form-share-panel>
+      <p v-if="note" class="yayaw-form-share-note" data-form-share-note>{{ note }}</p>
       <template v-if="viewId">
         <div class="yayaw-form-switch-setting">
           <span class="yayaw-form-share-icon"><Globe :size="16" aria-hidden="true" /></span>

@@ -3,7 +3,6 @@ import { expect, type Page, test } from "@playwright/test";
 const EXAMPLE = "/?example=views";
 const STANDALONE = "/?example=form";
 const SETTINGS = "View settings";
-const FORM_SETTINGS = /^form settings/i;
 const FORM_MODE = /^form$/i;
 const TABLE_MODE = /^table$/i;
 const PUBLIC_LINK = /\?example=form&form=request$/;
@@ -61,7 +60,15 @@ test("a form view asks the chosen questions and creates the record", async ({
   page,
 }) => {
   const menu = await chooseMode(page, FORM_MODE);
-  await menu.getByRole("button", { name: FORM_SETTINGS }).click();
+  await page.keyboard.press("Escape");
+  await expect(menu).toBeHidden();
+  await page
+    .locator("[data-form-toolbar]")
+    .getByRole("button", { name: "Edit form" })
+    .click();
+  const builder = page.getByRole("dialog", { name: "Edit form" });
+  const outline = builder.locator("[data-form-builder-outline]");
+  const properties = builder.locator("[data-form-builder-properties]");
   for (const column of [
     "Category",
     "Status",
@@ -72,18 +79,21 @@ test("a form view asks the chosen questions and creates the record", async ({
     "Details",
     "Update",
     "Author",
-    "Posted at",
   ]) {
-    await page.getByRole("switch", { name: `Ask ${column}` }).uncheck();
+    await outline.getByRole("button", { name: column, exact: true }).click();
+    await properties
+      .getByRole("button", { name: "Remove from the form" })
+      .click();
   }
-  await page.getByRole("button", { name: "Move Price up" }).click();
-  await page.getByRole("button", { name: "Edit Price" }).click();
-  await page.getByRole("switch", { name: "Required" }).check();
-  const help = page.getByRole("textbox", { name: "Help text" });
+  await outline.getByRole("button", { name: "Price", exact: true }).click();
+  await properties.getByRole("button", { name: "Move Price up" }).click();
+  await properties.getByRole("switch", { name: "Required" }).click();
+  const help = properties.getByRole("textbox", { name: "Help text" });
   await help.fill("Budget in euros");
   await help.press("Tab");
-  await page.keyboard.press("Escape");
-  await expect(menu).toBeHidden();
+  await builder.getByRole("button", { name: "Save", exact: true }).click();
+  await builder.getByRole("button", { name: "Close", exact: true }).click();
+  await expect(builder).toBeHidden();
 
   await expect.poll(() => questionIds(page)).toEqual(["price", "name"]);
   const form = page.locator("[data-yayaw-form]");

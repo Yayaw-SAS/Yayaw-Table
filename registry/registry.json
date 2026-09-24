@@ -663,6 +663,11 @@
           "target": "components/ui/yayaw-table/components/forms/helpers.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/components/forms/hooks/use-create-form-fields.ts",
+          "type": "registry:hook",
+          "target": "components/ui/yayaw-table/components/forms/hooks/use-create-form-fields.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/components/forms/hooks/use-form-builder.ts",
           "type": "registry:hook",
           "target": "components/ui/yayaw-table/components/forms/hooks/use-form-builder.ts"
@@ -998,6 +1003,31 @@
           "target": "components/ui/yayaw-table/filetree/filetree-view.tsx"
         },
         {
+          "path": "registry/default/ui/yayaw-table/form/form-builder-dialog.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/form/form-builder-dialog.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/form/form-builder-outline.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/form/form-builder-outline.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/form/form-builder-preview.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/form/form-builder-preview.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/form/form-builder-properties.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/form/form-builder-properties.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/form/form-builder-request.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/form/form-builder-request.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/form/form-date-field.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/form/form-date-field.tsx"
@@ -1021,11 +1051,6 @@
           "path": "registry/default/ui/yayaw-table/form/form-renderer.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/form/form-renderer.ts"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/form/form-rules-dialog.tsx",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/form/form-rules-dialog.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/form/form-rules.tsx",
@@ -1516,6 +1541,11 @@
           "path": "registry/default/ui/yayaw-table/utils/filtered-rows.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/filtered-rows.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/form-builder.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/form-builder.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/utils/form-conditions.ts",

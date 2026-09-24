@@ -94,6 +94,15 @@ into a column or `metadata.context`. `onSubmit` receives `meta.consents`,
 `meta.fields` and `meta.locale` for the host's server, where
 `acceptPublicFormResponse(snapshot, values, meta)` checks them again and
 `withFormServerContext` adds what the server knows (page, revision, token).
+Forms are edited in a near full-screen form builder ("Edit form" above the
+Form view, or in View settings → Form): the outline of questions, sections,
+consents and hidden fields on the left (drag or Alt + ↑ / ↓ to reorder), a
+live preview in the language and layout being edited, and the selected
+item's properties with its conditions; changes apply to the view with Save.
+Forms never ask columns a host marks `readonly`, `editable: false`,
+`computed`, `system`, `hidden` or `form: false`, nor metadata ids (`id`,
+`createdAt`…); when the host's create form (`getFormConfig`) declares its
+fields, forms ask only those.
 The Feed view also ships in the table items: add `"feed"` to `displayModes`
 for posts in a centered column (title, author and date, a clamped body with
 "Show more", media and properties), loaded page by page from `list` as the end

@@ -363,12 +363,12 @@ const restart = async (): Promise<void> => {
           <div
             v-if="visible(item.section.id) && (item.section.title || item.section.description)"
             class="yayaw-form-section-break"
-            data-form-section
+            :data-form-section="item.section.id"
           >
             <h3 v-if="item.section.title" class="yayaw-form-section-title">{{ item.section.title }}</h3>
             <p v-if="item.section.description" class="yayaw-form-description">{{ item.section.description }}</p>
           </div>
-          <hr v-else-if="visible(item.section.id)" class="yayaw-form-section-rule" data-form-section />
+          <hr v-else-if="visible(item.section.id)" class="yayaw-form-section-rule" :data-form-section="item.section.id" />
         </template>
         <FormConsent
           v-else-if="item.kind === 'consent'"

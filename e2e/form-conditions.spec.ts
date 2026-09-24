@@ -3,12 +3,11 @@ import { expect, type Locator, type Page, test } from "@playwright/test";
 const VIEWS = "/?example=views";
 const STANDALONE = "/?example=form";
 const RECORDS = "/?example=records";
-const SETTINGS = "View settings";
-const FORM_SETTINGS = /^form settings/i;
 const REQUEST_SUCCESS = "Thank you! Your request is in the Draft column.";
 const REQUIRED = "Answer this question.";
 const SELECT_ROW = /^Select (row|Workspace Pro|Studio Display|Team Support)$/;
 const WANTED_BY = /^Wanted by/;
+const SERIAL_NUMBER = /^Serial number/;
 const CREATED = /^Created/;
 const BULK_EDIT = /^(Edit|Bulk edit)$/;
 /** The Request form's consent to the privacy policy. */
@@ -151,28 +150,32 @@ test("steps layout: progress, Back/Next/Skip, conditional steps, review and subm
   await expect(page.getByText(REQUEST_SUCCESS)).toBeVisible();
 });
 
-test("the rule editor edits conditions in a dialog and shows their summary", async ({
+test("the form builder edits conditions in place and shows their summary", async ({
   page,
 }) => {
   await page.goto(VIEWS);
   await page.getByRole("tab", { name: "Request", exact: true }).click();
   const wanted = page.getByRole("button", { name: WANTED_BY });
   await expect(wanted).toBeVisible();
-  await page.getByRole("button", { name: SETTINGS }).click();
-  const menu = page.getByRole("dialog", { name: SETTINGS });
-  await menu.getByRole("button", { name: FORM_SETTINGS }).click();
-  // The shipped rules are summarised under their questions.
-  await expect(
-    page.locator('[data-form-setting-question="serialNumber"]')
-  ).toContainText("Shown when Category is Hardware");
+  await page
+    .locator("[data-form-toolbar]")
+    .getByRole("button", { name: "Edit form" })
+    .click();
+  const builder = page.getByRole("dialog", { name: "Edit form" });
+  const outline = builder.locator("[data-form-builder-outline]");
+  // The shipped rules mark their questions and are summarised in their properties.
+  const serial = outline.getByRole("button", { name: SERIAL_NUMBER });
+  await expect(serial).toContainText("has conditions");
+  await serial.click();
+  const properties = builder.locator("[data-form-builder-properties]");
+  await expect(properties.locator("[data-form-rule-summary]")).toHaveText(
+    "Shown when Category is Hardware"
+  );
 
-  // The side panel keeps a status and "Edit conditions"; the editor opens wide.
-  await page.getByRole("button", { name: "Edit Due" }).click();
-  const due = page.locator('[data-form-setting-question="dueDate"]');
-  await expect(due.locator("[data-form-rules]")).toContainText("Always shown.");
-  await due.getByRole("button", { name: "Edit conditions" }).click();
-  const dialog = page.getByRole("dialog", { name: "Conditions for Wanted by" });
-  await expect(dialog).toBeVisible();
+  // A question's conditions are edited in its properties.
+  await outline.getByRole("button", { name: WANTED_BY }).click();
+  const dialog = properties.locator("[data-form-rules]");
+  await expect(dialog).toContainText("Always shown.");
   await dialog.getByRole("button", { name: "Add a condition" }).click();
   const issue = dialog.locator("[data-rule-issue]");
   await expect(issue).toHaveText("Choose a question.");
@@ -214,15 +217,12 @@ test("the rule editor edits conditions in a dialog and shows their summary", asy
   await expect(
     group.getByRole("combobox", { name: "Comparison", exact: true }).nth(1)
   ).toContainText("is empty");
-  // Escape closes the dialog only; the settings stay open with the summary.
-  await page.keyboard.press("Escape");
-  await expect(dialog).toBeHidden();
-  await expect(due).toBeVisible();
-  await expect(due.locator("[data-form-rule-summary]")).toHaveText(
+  await expect(dialog.locator("[data-form-rule-summary]")).toHaveText(
     "Shown when Category is Software and (Budget > 1000 or Budget is empty)"
   );
-  await page.keyboard.press("Escape");
-  await expect(due).toBeHidden();
+  await builder.getByRole("button", { name: "Save", exact: true }).click();
+  await builder.getByRole("button", { name: "Close", exact: true }).click();
+  await expect(builder).toBeHidden();
 
   await expect(wanted).toHaveCount(0);
   await choose(page, "Category", "Software");

@@ -291,16 +291,22 @@ function FormState({
 /** A section break of the page layout: a titled group of the next questions. */
 export function FormSectionHeading({
   description,
+  id,
   title,
 }: {
   description?: string;
+  /** The section's id, on `data-form-section`. */
+  id?: string;
   title?: string;
 }) {
   if (!(title || description)) {
-    return <hr className="border-border" data-form-section />;
+    return <hr className="border-border" data-form-section={id ?? ""} />;
   }
   return (
-    <div className="grid gap-1 border-t pt-5 first:border-t-0 first:pt-0" data-form-section>
+    <div
+      className="grid gap-1 border-t pt-5 first:border-t-0 first:pt-0"
+      data-form-section={id ?? ""}
+    >
       {title ? <h3 className="font-medium text-base">{title}</h3> : null}
       {description ? (
         <p className="whitespace-pre-line text-muted-foreground text-sm">
@@ -343,6 +349,7 @@ function PageSection({
   return evaluation.hidden.has(item.section.id) ? null : (
     <FormSectionHeading
       description={item.section.description}
+      id={item.section.id}
       title={item.section.title}
     />
   );
