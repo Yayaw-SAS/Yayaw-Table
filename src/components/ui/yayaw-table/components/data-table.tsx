@@ -594,6 +594,7 @@ function DataTableContent({
   enableViews = true,
   columnTypeMapping = EMPTY_COLUMN_TYPE_MAPPING,
   initialData,
+  initialDataSort,
   initialPageCount,
   initialRowCount,
   initialActiveViewId,
@@ -685,9 +686,19 @@ function DataTableContent({
   /**
    * Server-rendered rows used to hydrate the first table view before the client
    * query refreshes. Pair with initialPageCount and initialRowCount for
-   * server-paginated datasets.
+   * server-paginated datasets. They stand for the table's default state: page
+   * 1 at `table.defaultPageSize`, no filters or search, sorted by
+   * `columns.sort` when it is set. Under `columns.sort` they show at once and
+   * load again on mount in that sort, unless `initialDataSort` says they were
+   * produced in it.
    */
   initialData?: Record<string, unknown>[];
+  /**
+   * The sort `initialData` was produced with. When it is `columns.sort` (`[]`
+   * without one) and the table starts there, the rows are current and do not
+   * load again on mount.
+   */
+  initialDataSort?: { desc: boolean; id: string }[];
   initialPageCount?: number;
   initialRowCount?: number;
   /**
@@ -733,6 +744,7 @@ function DataTableContent({
     rowActions,
     formType: defaultFormType,
     initialData,
+    initialDataSort,
     initialPageCount,
     initialRowCount,
     tableId,

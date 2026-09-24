@@ -65,6 +65,7 @@ for (const file of [
   "display-modes.ts",
   "scoped-rows.ts",
   "manual-order.ts",
+  "initial-rows.ts",
   "list-view.ts",
   "value-format.ts",
   "server-kanban.ts",

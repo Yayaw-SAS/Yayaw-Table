@@ -1526,6 +1526,11 @@
           "target": "components/ui/yayaw-table/utils/import-model.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/utils/initial-rows.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/initial-rows.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/utils/list-view.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/list-view.ts"

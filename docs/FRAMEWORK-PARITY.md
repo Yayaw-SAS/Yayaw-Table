@@ -610,6 +610,32 @@ and Vue by the configured column. Playwright `e2e/default-sort.spec.ts`
 table, Kanban, Gallery and Gantt with and without `columns.sort`, and that a
 URL sort wins.
 
+Initial rows follow the same default. `initialData` (with `initialPageCount`
+and `initialRowCount`) is the host's first page of the table's default state:
+page 1 at `table.defaultPageSize`, no filters or search, sorted by
+`columns.sort` when it is set. Both editions show it at once, on the server and
+in the first client render, when the table starts in that state, the
+configured sort included. React used to take it only when no sort was set, so
+from 3.6.1 a table with `columns.sort` and initial rows rendered no rows on the
+server and skeletons until its first request. Unless the host names the sort
+it produced the rows with, rows shown under `columns.sort` load again once on
+mount in that sort, which corrects rows produced in another order. With
+`initialDataSort` equal to `columns.sort` the rows are current: neither edition
+requests that page on mount, and an invalidation still reloads it. Rows are
+the default state's only: a table starting on another page or page size, with
+a filter or a search, or in a URL or view sort that differs from `columns.sort`
+waits for its own request, as before (React shows its loading state instead of
+them, Vue keeps them under its loading overlay). One earlier difference
+remains: rows without `initialDataSort` for a table with no sort at all are
+kept by React for its query's stale time (30 s), while Vue loads that page
+again on mount; `initialDataSort: []` avoids the request in both.
+`utils/initial-rows.ts` (copied to Vue) decides for both editions and
+`tests/initial-rows-suite.ts` runs in both suites; `tests/initial-rows.test.tsx`
+and Vue `initial-rows.test.ts` check server rendering, the single reload and
+its absence, and Playwright `e2e/default-sort.spec.ts` (`&initial=list` or
+`&initial=sorted`) checks that the first table each demo paints already holds
+the host's rows, without skeletons.
+
 ## List view
 
 `displayModes: ["list"]` renders one line per record in both editions: the

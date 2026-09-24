@@ -1022,7 +1022,19 @@ export interface YayawTableProps<TData extends TableRecord = TableRecord> {
     context?: FormFieldContext<TData>
   ) => FormConfig<TData> | undefined;
   data?: TData[];
+  /**
+   * Rows shown before the first request, e.g. a server-rendered first page.
+   * They stand for the table's default state (page 1, no filters or search,
+   * sorted by `columns.sort` when it is set) and load again on mount unless
+   * `initialDataSort` says they were produced in the sort the table starts from.
+   */
   initialData?: TData[];
+  /**
+   * The sort `initialData` was produced with. When it is `columns.sort` (`[]`
+   * without one) and the table starts there, the rows are current and do not
+   * load again on mount.
+   */
+  initialDataSort?: SortingState;
   initialRowCount?: number;
   initialPageCount?: number;
   initialViews?: TableView[];

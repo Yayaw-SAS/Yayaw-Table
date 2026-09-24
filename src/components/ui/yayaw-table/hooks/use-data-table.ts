@@ -120,6 +120,11 @@ export interface UseDataTableOptions<TData = Record<string, unknown>> {
    */
   initialData?: TData[];
   /**
+   * The sort the initial rows were produced with. When it is `columns.sort`
+   * and the table starts there, they are current and do not load again.
+   */
+  initialDataSort?: { desc: boolean; id: string }[];
+  /**
    * Total page count that matches the initial rows.
    */
   initialPageCount?: number;
@@ -160,6 +165,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
     enabled = true,
     initialPageSize = 10,
     initialData,
+    initialDataSort,
     initialPageCount,
     initialRowCount,
     tableType,
@@ -402,8 +408,10 @@ export function useDataTable<TData extends Record<string, unknown>>(
   // Use the tableUrlData hook for proper API data fetching
   const urlDataResult = useTableUrlData<TData>({
     defaultPageSize,
+    defaultSorting: config.columns.sort,
     enabled,
     initialData,
+    initialDataSort,
     initialPageCount,
     initialRowCount,
     queryFn,

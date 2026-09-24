@@ -9,6 +9,14 @@ import { useAtom } from "jotai";
 import { useCallback, useMemo } from "react";
 
 import { rowSelectionAtom } from "../atoms/table-atoms";
+import {
+  type TableSorting,
+  useTableDefaultSorting,
+} from "../providers/table-state-sync-provider";
+import {
+  type InitialRowsUse,
+  resolveInitialRowsUse,
+} from "../utils/initial-rows";
 import { isManualOrder } from "../utils/manual-order";
 import { processServerFilters } from "../utils/server-filters";
 import { invalidateAndRefetchTableData } from "./query-cache-utils";
@@ -21,9 +29,19 @@ const defaultGetRowId = <TData>(row: TData): string =>
 
 interface UseTableUrlDataOptions<TData> {
   defaultPageSize?: number;
+  /**
+   * The table's configured sort (`columns.sort`), where it starts when neither
+   * the URL nor a view sets one. Defaults to the enclosing table's.
+   */
+  defaultSorting?: TableSorting;
   enabled?: boolean;
   getRowId?: (row: TData) => string;
   initialData?: TData[];
+  /**
+   * The sort `initialData` was produced with. When it is `columns.sort` and
+   * the table starts there, the rows are current and do not load again.
+   */
+  initialDataSort?: TableSorting;
   initialPageCount?: number;
   initialRowCount?: number;
   syncUrl?: boolean;
@@ -65,23 +83,29 @@ function hasStateValue(value: unknown): boolean {
   return false;
 }
 
-export function shouldUseInitialTableQueryData({
+interface InitialTableQueryState {
+  advancedFiltersParam?: unknown;
+  /** The table's `columns.sort`: the host's rows also show at once under it. */
+  configuredSorting?: unknown;
+  defaultPageSize: number;
+  filtersParam?: unknown;
+  globalSearchParam?: string | null;
+  /** The sort the host produced `initialData` with, when it says. */
+  initialDataSort?: unknown;
+  pagination: { pageIndex: number; pageSize: number };
+  serverFilters?: Record<string, unknown>;
+  sortParam?: unknown;
+}
+
+/** Whether the table starts on page 1 at its default page size, without filters or search. */
+function isInitialTablePage({
   advancedFiltersParam,
   defaultPageSize,
   filtersParam,
   globalSearchParam,
   pagination,
   serverFilters,
-  sortParam,
-}: {
-  advancedFiltersParam?: unknown;
-  defaultPageSize: number;
-  filtersParam?: unknown;
-  globalSearchParam?: string | null;
-  pagination: { pageIndex: number; pageSize: number };
-  serverFilters?: Record<string, unknown>;
-  sortParam?: unknown;
-}): boolean {
+}: InitialTableQueryState): boolean {
   const resolvedDefaultPageSize =
     Number.isFinite(defaultPageSize) && defaultPageSize > 0
       ? Math.trunc(defaultPageSize)
@@ -93,9 +117,42 @@ export function shouldUseInitialTableQueryData({
     !hasStateValue(filtersParam) &&
     !hasStateValue(advancedFiltersParam) &&
     !hasStateValue(globalSearchParam) &&
-    !hasStateValue(serverFilters) &&
-    !hasStateValue(sortParam)
+    !hasStateValue(serverFilters)
   );
+}
+
+/**
+ * How the table starts from `initialData` (see `utils/initial-rows.ts`):
+ * `current` rows stay for the query's stale time, `placeholder` rows show at
+ * once and load again on mount in the starting sort, `unused` rows belong to
+ * another state and the table shows its loading state instead.
+ */
+export function resolveInitialTableRowsUse(
+  state: InitialTableQueryState
+): InitialRowsUse {
+  const use = resolveInitialRowsUse({
+    configuredSorting: state.configuredSorting,
+    firstPage: isInitialTablePage(state),
+    initialDataSort: state.initialDataSort,
+    sorting: state.sortParam,
+  });
+  // Rows given without their sort to a table that has none are in the list's
+  // order: React has always kept them (Vue loads that page again on mount).
+  if (
+    use === "placeholder" &&
+    !Array.isArray(state.initialDataSort) &&
+    !hasStateValue(state.sortParam)
+  ) {
+    return "current";
+  }
+  return use;
+}
+
+/** Whether the host's rows are the table's first value (SSR and first render). */
+export function shouldUseInitialTableQueryData(
+  state: InitialTableQueryState
+): boolean {
+  return resolveInitialTableRowsUse(state) !== "unused";
 }
 
 export function resolveInitialTableQueryData<TData>({
@@ -131,9 +188,11 @@ export function resolveInitialTableQueryData<TData>({
  */
 export function useTableUrlData<TData>({
   defaultPageSize = 10,
+  defaultSorting,
   enabled = true,
   getRowId = defaultGetRowId,
   initialData = [],
+  initialDataSort,
   initialPageCount,
   initialRowCount,
   queryFn,
@@ -144,6 +203,8 @@ export function useTableUrlData<TData>({
     Number.isFinite(defaultPageSize) && defaultPageSize > 0
       ? Math.trunc(defaultPageSize)
       : 10;
+  const inheritedDefaultSorting = useTableDefaultSorting();
+  const configuredSorting = defaultSorting ?? inheritedDefaultSorting;
 
   // Get URL state - include advanced filters!
   const {
@@ -156,6 +217,7 @@ export function useTableUrlData<TData>({
     viewParam,
   } = useTableUrlState({
     defaultPageSize: resolvedDefaultPageSize,
+    defaultSorting: configuredSorting,
     enabled: syncUrl,
     tableId,
   });
@@ -235,33 +297,33 @@ export function useTableUrlData<TData>({
       advancedFilters: [],
     };
 
+  // The host's rows show on the server and the first render when the table
+  // starts in its default state, the configured sort included.
+  const initialRowsUse: InitialRowsUse =
+    initialData.length > 0
+      ? resolveInitialTableRowsUse({
+          advancedFiltersParam,
+          configuredSorting,
+          defaultPageSize: resolvedDefaultPageSize,
+          filtersParam,
+          globalSearchParam,
+          initialDataSort,
+          pagination,
+          serverFilters,
+          sortParam,
+        })
+      : "unused";
+  const usesInitialRows = initialRowsUse !== "unused";
+
   // Modify the enabled condition to also run when processedFiltersQuery is pending but we have initial data
   // This prevents the infinite loading state when processedFiltersQuery is stuck in pending
   const shouldEnableQuery =
     Boolean(tableId) &&
     enabled &&
     (processedFiltersQuery.status === "success" ||
-      (processedFiltersQuery.status === "pending" &&
-        shouldUseInitialTableQueryData({
-          advancedFiltersParam,
-          defaultPageSize: resolvedDefaultPageSize,
-          filtersParam,
-          globalSearchParam,
-          pagination,
-          serverFilters,
-          sortParam,
-        }) &&
-        initialData.length > 0));
+      (processedFiltersQuery.status === "pending" && usesInitialRows));
 
-  const initialQueryData = shouldUseInitialTableQueryData({
-    advancedFiltersParam,
-    defaultPageSize: resolvedDefaultPageSize,
-    filtersParam,
-    globalSearchParam,
-    pagination,
-    serverFilters,
-    sortParam,
-  })
+  const initialQueryData = usesInitialRows
     ? resolveInitialTableQueryData({
         initialData,
         initialPageCount,
@@ -281,6 +343,9 @@ export function useTableUrlData<TData>({
     // Enable the query when processedFiltersQuery is complete or when we have initial data
     enabled: shouldEnableQuery,
     initialData: initialQueryData,
+    // Rows shown until the starting sort loads are stale at once: the first
+    // page loads again on mount in that sort, as in Vue.
+    ...(initialRowsUse === "placeholder" ? { initialDataUpdatedAt: 0 } : {}),
     queryFn: async () => {
       // Convert serverFilters to columnFilters format for compatibility
       const columnFilters = Object.entries(serverFilters).map(

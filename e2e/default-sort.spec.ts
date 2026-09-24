@@ -53,3 +53,75 @@ test("a sort in the URL wins over the configured one", async ({ page }) => {
   await page.goto(`${EXAMPLE}&restock-sort=${byName}`);
   await expect.poll(() => recordOrder(page)).toEqual(["Lamp", "Desk", "Chair"]);
 });
+
+interface PageState {
+  names: string[];
+  skeleton: boolean;
+  table: boolean;
+}
+
+/**
+ * Records each state the page shows from its first paint: the record names in
+ * order, and whether a table body or a loading skeleton is up.
+ */
+function recordPageStates(names: string[]) {
+  const states: PageState[] = [];
+  Object.assign(window, { __defaultSortStates: states });
+  const record = () => {
+    if (!document.body) {
+      return;
+    }
+    const seen: string[] = [];
+    const walker = document.createTreeWalker(
+      document.body,
+      NodeFilter.SHOW_TEXT
+    );
+    while (walker.nextNode()) {
+      const text = walker.currentNode.textContent?.trim() ?? "";
+      if (names.includes(text) && !seen.includes(text)) {
+        seen.push(text);
+      }
+    }
+    states.push({
+      names: seen,
+      skeleton: Boolean(document.querySelector('[data-slot="skeleton"]')),
+      table: Boolean(document.querySelector("tbody")),
+    });
+  };
+  new MutationObserver(record).observe(document, {
+    characterData: true,
+    childList: true,
+    subtree: true,
+  });
+}
+
+const pageStates = (page: Page) =>
+  page.evaluate(
+    () =>
+      (window as unknown as { __defaultSortStates: PageState[] })
+        .__defaultSortStates
+  );
+
+// `&initial=…`: the host renders its first page before the list answers
+// (a server-rendered page, as far as the table can tell).
+test("the host's first rows show at once, then load in columns.sort", async ({
+  page,
+}) => {
+  await page.addInitScript(recordPageStates, NAMES);
+  await page.goto(`${EXAMPLE}&initial=list`);
+  await expect.poll(() => recordOrder(page)).toEqual(BY_START);
+  const states = await pageStates(page);
+  // The first table the page shows already holds the host's rows, in the
+  // list's own order, and no skeleton ever replaces them.
+  expect(states.find((state) => state.table)?.names).toEqual(BY_ID);
+  expect(states.some((state) => state.skeleton)).toBe(false);
+});
+
+test("rows the host ordered by columns.sort show at once", async ({ page }) => {
+  await page.addInitScript(recordPageStates, NAMES);
+  await page.goto(`${EXAMPLE}&initial=sorted`);
+  await expect.poll(() => recordOrder(page)).toEqual(BY_START);
+  const states = await pageStates(page);
+  expect(states.find((state) => state.table)?.names).toEqual(BY_START);
+  expect(states.some((state) => state.skeleton)).toBe(false);
+});
