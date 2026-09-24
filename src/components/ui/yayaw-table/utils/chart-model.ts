@@ -2266,6 +2266,29 @@ export function chartValueText(
   return share === undefined ? text : `${text} (${model.formatShare(share)})`;
 }
 
+/** Average width of an 11px data label character. */
+const DATA_LABEL_CHAR_WIDTH = 7;
+
+/**
+ * Room, in pixels, that horizontal bars keep past their end for their value
+ * labels, so the longest bar's label is not cut at the chart's edge.
+ */
+export function chartBarLabelRoom(
+  model: Pick<ChartModel, "categories" | "format" | "series" | "stacked">
+): number {
+  const lengths = model.categories.map((category) =>
+    model.stacked || model.series.length === 1
+      ? model.format(category.total).length
+      : Math.max(
+          0,
+          ...model.series.map(
+            (item) => model.format(category.values[item.id] ?? 0).length
+          )
+        )
+  );
+  return Math.max(0, ...lengths) * DATA_LABEL_CHAR_WIDTH;
+}
+
 /** The value axis of a chart: shares when stacked to 100 %, else values. */
 export const chartTickFormat = (
   model: Pick<ChartModel, "format" | "formatShare" | "percent">

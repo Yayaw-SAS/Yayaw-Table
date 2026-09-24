@@ -20,6 +20,7 @@ import {
   type ChartLabelKey,
   type ChartModel,
   type ChartSeriesItem,
+  chartBarLabelRoom,
   chartTickFormat,
   chartValueText,
   type ResolvedChartSettings,
@@ -148,6 +149,12 @@ const barTriggers = computed(() => ({
 }));
 const crosshairTemplate = (row: ChartRow): string => tooltip(row);
 
+// Horizontal bars keep room for the longest bar's value label.
+const barMargin = computed(() =>
+  horizontal.value && props.settings.showDataLabels && props.model.series.length === 1
+    ? { ...MARGIN, right: MARGIN.right + chartBarLabelRoom(props.model) }
+    : MARGIN
+);
 // Single bars carry their label just past their end.
 const labelOffset = computed(
   () => ((props.model.valueTicks.at(-1) ?? 1) - (props.model.valueTicks.at(0) ?? 0)) * (horizontal.value ? 0.08 : 0.04)
@@ -313,7 +320,7 @@ const comboLineLabel = (row: ChartRow): string =>
         label-position="top"
         :events="pointEvents"
       />
-      <VisAxis type="x" :tick-values="ticks" :tick-format="tickLabel" :grid-line="false" :tick-line="false" :domain-line="false" />
+      <VisAxis type="x" :tick-values="ticks" :tick-format="tickLabel" :tick-text-hide-overlapping="true" :grid-line="false" :tick-line="false" :domain-line="false" />
       <VisAxis type="y" :tick-values="props.model.valueTicks" :tick-format="valueTick" :tick-line="false" :domain-line="false" />
       <VisCrosshair :template="crosshairTemplate" :color="(_row: ChartRow, index: number) => props.model.series[index]?.color" />
       <VisTooltip />
@@ -364,7 +371,7 @@ const comboLineLabel = (row: ChartRow): string =>
           color="var(--yayaw-foreground)"
           :label-font-size="11"
         />
-        <VisAxis type="x" :tick-values="ticks" :tick-format="tickLabel" :grid-line="false" :tick-line="false" :domain-line="false" />
+        <VisAxis type="x" :tick-values="ticks" :tick-format="tickLabel" :tick-text-hide-overlapping="true" :grid-line="false" :tick-line="false" :domain-line="false" />
         <VisAxis type="y" :tick-values="props.model.valueTicks" :tick-format="valueTick" :tick-line="false" :domain-line="false" />
         <!-- Crosshair options are passed as they are named (camelCase). -->
         <VisCrosshair
@@ -452,7 +459,7 @@ const comboLineLabel = (row: ChartRow): string =>
       v-else
       :data="rows"
       :height="height"
-      :margin="MARGIN"
+      :margin="barMargin"
       :x-domain="horizontal ? valueDomain : categoryDomain"
       :y-domain="horizontal ? categoryDomain : valueDomain"
     >

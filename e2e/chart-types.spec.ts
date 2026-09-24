@@ -393,3 +393,75 @@ for (const [group, operator, values, shown, hidden] of [
       ]);
   });
 }
+
+/** Boxes of the visible x-axis labels of both engines, left to right. */
+const xLabelBoxes = async (page: Page) =>
+  (
+    await chart(page)
+      .locator("svg text")
+      .evaluateAll((items) =>
+        items
+          .filter((item) => (item.textContent ?? "").trim() !== "")
+          .filter((item) => {
+            const style = getComputedStyle(item);
+            return (
+              style.opacity !== "0" &&
+              style.visibility !== "hidden" &&
+              style.display !== "none"
+            );
+          })
+          .map((item) => {
+            const box = item.getBoundingClientRect();
+            return { left: box.left, right: box.right, top: box.top };
+          })
+      )
+  )
+    .filter((box) => box.right > box.left)
+    .sort((left, right) => left.left - right.left);
+
+test("on a phone, a line's day labels do not overlap", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(
+    chartUrl({ type: "line", xColumn: "dueDate", bucket: "day" })
+  );
+  await expect(chart(page)).toHaveAttribute("data-chart-type", "line");
+  await expect
+    .poll(async () => (await xLabelBoxes(page)).length)
+    .toBeGreaterThan(1);
+  // The x axis is the lowest row of labels.
+  const boxes = await xLabelBoxes(page);
+  const bottom = Math.max(...boxes.map((box) => box.top));
+  const row = boxes.filter((box) => bottom - box.top < 6);
+  for (const [index, box] of row.entries()) {
+    const next = row[index + 1];
+    if (next) {
+      expect(box.right).toBeLessThanOrEqual(next.left + 1);
+    }
+  }
+});
+
+test("on a phone, the longest horizontal bar keeps its value label inside", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(
+    chartUrl({
+      type: "horizontalBar",
+      xColumn: "category",
+      metric: "sum",
+      metricColumn: "price",
+      showDataLabels: true,
+    })
+  );
+  const label = chart(page).getByText("€478.00", { exact: true });
+  await expect(label).toBeVisible();
+  const surface = await chart(page)
+    .locator(".recharts-surface, .yayaw-chart-canvas svg")
+    .first()
+    .boundingBox();
+  const text = await label.boundingBox();
+  if (!(surface && text)) {
+    throw new Error("The chart or its label has no box.");
+  }
+  expect(text.x + text.width).toBeLessThanOrEqual(surface.x + surface.width);
+});

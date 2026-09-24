@@ -965,7 +965,11 @@ axis' labels as text over fixed margins; Vue areas and combo charts take the
 category from the crosshair on the next frame. As for lines, React pads the
 x axis by 40 px and Vue by half a category. The funnel is the same SVG in
 both editions. Vue charts shrink with their container (the chart grid has a
-`minmax(0, 1fr)` column), as React's `ResponsiveContainer` does.
+`minmax(0, 1fr)` column), as React's `ResponsiveContainer` does. On narrow
+charts, x labels of lines and areas that would overlap are skipped (Recharts'
+default interval) or hidden (Unovis `tickTextHideOverlapping`), and
+horizontal bars with data labels keep `chartBarLabelRoom` pixels past the
+longest bar so its value is not cut at the edge (both checked at 390 px).
 
 Verification: `tests/chart-model-suite.ts` runs in both editions (settings,
 request and parameters, buckets incl. DST and week starts, labels, every

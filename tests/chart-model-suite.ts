@@ -11,6 +11,7 @@ type ChartApi = Pick<
   | "chartAggregateParams"
   | "chartAggregateRequest"
   | "chartAlignedTicks"
+  | "chartBarLabelRoom"
   | "chartBucketKey"
   | "chartBucketLabel"
   | "chartBucketRange"
@@ -1273,6 +1274,18 @@ export function chartModelSuite(
     });
     assert.deepEqual(counts.valueTicks, [0, 1, 2]);
     assert.deepEqual(counts.secondaryTicks, [0, 5, 10]);
+  });
+
+  test("horizontal bars keep room for their longest value label", () => {
+    const built = model({
+      type: "horizontalBar",
+      metric: "sum",
+      metricColumn: "price",
+      showDataLabels: true,
+    });
+    // "€478.00" is the longest label: 7 characters of 7 pixels.
+    assert.equal(chart.chartBarLabelRoom(built), 49);
+    assert.equal(chart.chartBarLabelRoom({ ...built, categories: [] }), 0);
   });
 
   test("resolves each metric's unit from its column's number format", () => {

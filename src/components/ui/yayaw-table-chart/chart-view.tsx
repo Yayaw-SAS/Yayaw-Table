@@ -36,6 +36,7 @@ import {
   type ChartViewSettings,
   canAddChartFilters,
   chartAggregateRequest,
+  chartBarLabelRoom,
   chartGroupFilters,
   chartLabel,
   chartTickFormat,
@@ -268,7 +269,16 @@ function BarsChart({
         accessibilityLayer
         data={rows}
         layout={horizontal ? "vertical" : "horizontal"}
-        margin={{ top: 20, right: 24, left: 8, bottom: 4 }}
+        margin={{
+          top: 20,
+          // Horizontal bars keep room for the longest bar's value label.
+          right:
+            horizontal && settings.showDataLabels && !stacked
+              ? 24 + chartBarLabelRoom(model)
+              : 24,
+          left: 8,
+          bottom: 4,
+        }}
       >
         <CartesianGrid horizontal={!horizontal} vertical={horizontal} />
         {horizontal ? (
@@ -373,10 +383,10 @@ function LinesChart({
         throttledEvents={IMMEDIATE_EVENTS}
       >
         <CartesianGrid vertical={false} />
+        {/* Labels that would overlap on narrow charts are skipped. */}
         <XAxis
           axisLine={false}
           dataKey="label"
-          interval={0}
           padding={{ left: 40, right: 40 }}
           tickLine={false}
           tickMargin={8}
