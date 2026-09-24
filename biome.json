@@ -8,8 +8,7 @@
       "!packages/yayaw-table-vue/**/*.vue",
       "!packages/yayaw-table-vue/src/components/questionnaire",
       "!public/r/yayaw-table.json",
-      "!public/r/v*/yayaw-table.json",
-      "!public/r/v*/registry.json"
+      "!public/r/v*"
     ]
   },
   "overrides": [
