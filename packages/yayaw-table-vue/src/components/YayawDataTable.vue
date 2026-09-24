@@ -34,6 +34,7 @@ import type {
   TableConfig,
   TableRecord,
   TableView,
+  TableViewConfig,
   ToolbarActionsInput,
   ToolbarActionsPlacement,
 } from "../types";
@@ -88,6 +89,18 @@ const props = withDefaults(
     initialPageCount?: number;
     initialViews?: TableView[];
     initialActiveViewId?: string;
+    /**
+     * Isolates this instance on a page with other tables: its URL keys are
+     * `<instanceId>-view` and `<instanceId>-…` instead of `view` and
+     * `<tableId>-…`. Config, actions and views still use the table.
+     */
+    instanceId?: string;
+    /**
+     * Settings an instance with URL sync off starts from, applied before its
+     * first request: a saved view (its id becomes the active view) or a view
+     * config. For tables embedded without a toolbar, e.g. dashboard widgets.
+     */
+    initialView?: { id?: string | null; config: TableViewConfig };
     title?: string;
     description?: string;
     locale?: string;
@@ -216,13 +229,19 @@ const modeRenderers = withFormRenderer(
     config.table.allowCreate !== false && Boolean(actions.value?.create)
   )
 );
+const syncUrl = props.syncUrl ?? config.table.syncUrl ?? true;
 const state = useTableState({
   config,
-  syncUrl: props.syncUrl ?? config.table.syncUrl ?? true,
+  syncUrl,
   initialActiveViewId: props.initialActiveViewId,
+  instanceId: props.instanceId,
   planning: Boolean(planning),
   renderers: Object.keys(modeRenderers ?? {}),
 });
+// An embedded instance starts from its view before its first request.
+if (props.initialView && !syncUrl) {
+  state.applyView(props.initialView.config, props.initialView.id ?? undefined);
+}
 const tableData = useTableData({
   actions,
   inputData,

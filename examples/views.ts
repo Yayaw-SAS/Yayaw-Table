@@ -194,20 +194,26 @@ function searchRows(rows: ViewRow[], params: Record<string, unknown>) {
     : rows;
 }
 
-/** Like a server: keep the rows matching the view's advanced filters. */
+/**
+ * Like a server: keep the rows matching the view's advanced filters and the
+ * `requiredFilters` a dashboard joins to them (always AND).
+ */
 function filterRows(rows: ViewRow[], input: Record<string, unknown>) {
   const params = compatibleListParams(input);
   const rules = params.advancedFilters as Record<string, unknown>[];
-  if (!rules.length) {
+  const required = Array.isArray(input.requiredFilters)
+    ? (input.requiredFilters as Record<string, unknown>[])
+    : [];
+  if (!(rules.length || required.length)) {
     return rows;
   }
   const matches = (row: ViewRow) => (rule: Record<string, unknown>) =>
     matchesContractFilter(row[String(rule.columnId) as keyof ViewRow], rule);
-  return rows.filter((row) =>
-    params.advancedFilterJoin === "or"
+  const matchesView = (row: ViewRow) =>
+    params.advancedFilterJoin === "or" && rules.length
       ? rules.some(matches(row))
-      : rules.every(matches(row))
-  );
+      : rules.every(matches(row));
+  return rows.filter((row) => matchesView(row) && required.every(matches(row)));
 }
 
 /** Like a server: apply the first column sort (the manual order is kept). */

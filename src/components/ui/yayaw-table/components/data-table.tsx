@@ -12,7 +12,7 @@ import { PlanningSurface, usePlanningState } from "../planning/react";
  * This component replaces the old DataTable with a more streamlined API
  */
 
-import { useAtomValue } from "jotai";
+import { createStore, Provider as JotaiProvider, useAtomValue } from "jotai";
 import type React from "react";
 import type { ReactNode } from "react";
 // Import advanced filters hook directly
@@ -37,7 +37,11 @@ import {
   useTableComponents,
   useTranslations,
 } from "../providers/table-provider";
-import { TableStateSyncProvider } from "../providers/table-state-sync-provider";
+import {
+  TableInstanceProvider,
+  TableStateSyncProvider,
+} from "../providers/table-state-sync-provider";
+import { seedTableViewState } from "../hooks/use-table-url-state";
 import { withFeedRenderer } from "../feed/feed-renderer";
 import { withFormRenderer } from "../form/form-renderer";
 import { isFormModeEnabled } from "../utils/form-view";
@@ -55,7 +59,7 @@ import type {
 } from "../types/toolbar-types";
 import type { DataTableTranslations } from "../types/translations";
 import type { DisplayModeRenderers } from "../types/display-mode-renderer";
-import type { TableView } from "../types/view-types";
+import type { TableView, TableViewConfig } from "../types/view-types";
 import type {
   DetailRevertHandler,
   RecordDetailsConfig,
@@ -1059,6 +1063,19 @@ export function DataTable(
       typeof TableProvider
     >[0]["DescriptionComponent"];
     children?: React.ReactNode;
+    /**
+     * Isolates this instance on a page with other tables: its URL keys are
+     * `<instanceId>-view`, `<instanceId>-historyIndex` and `<instanceId>-…`
+     * (instead of `view`, `historyIndex` and `<tableId>-…`) and its state
+     * lives in a store of its own. Config, actions and views still use the table.
+     */
+    instanceId?: string;
+    /**
+     * Settings an instance with URL sync off starts from, applied before its
+     * first request: a saved view (its id becomes the active view) or a view
+     * config. For tables embedded without a toolbar, e.g. dashboard widgets.
+     */
+    initialView?: { id?: null | string; config: TableViewConfig };
   }
 ) {
   const {
@@ -1076,12 +1093,14 @@ export function DataTable(
     tableId,
     formType,
     children,
+    instanceId,
+    initialView,
     ...rest
   } = props;
   const resolvedTableId = tableId ?? tableType;
 
   type ContentProps = Parameters<typeof DataTableContent>[0];
-  return (
+  const table = (
     <TableProvider
       columnsConfig={columnsConfig}
       DescriptionComponent={DescriptionComponent}
@@ -1107,6 +1126,56 @@ export function DataTable(
         tableType={tableType}
       />
     </TableProvider>
+  );
+  if (!(instanceId || initialView)) {
+    return table;
+  }
+  const sourceConfig = getTableConfig?.(tableType);
+  const sourceTable =
+    sourceConfig && "table" in sourceConfig ? sourceConfig.table : undefined;
+  return (
+    <TableInstanceScope
+      defaults={{
+        density: sourceTable?.density,
+        displayMode: sourceTable?.defaultDisplayMode,
+        pageSize: sourceTable?.defaultPageSize,
+      }}
+      initialView={sourceTable?.syncUrl === false ? initialView : undefined}
+      instanceId={instanceId}
+      tableId={resolvedTableId}
+    >
+      {table}
+    </TableInstanceScope>
+  );
+}
+
+/** A store of the instance's own, started from `initialView` when given. */
+function TableInstanceScope({
+  children,
+  defaults,
+  initialView,
+  instanceId,
+  tableId,
+}: {
+  children: ReactNode;
+  defaults: Parameters<typeof seedTableViewState>[3];
+  initialView?: { id?: null | string; config: TableViewConfig };
+  instanceId?: string;
+  tableId: string;
+}) {
+  const [store] = useState(() => {
+    const instanceStore = createStore();
+    if (initialView) {
+      seedTableViewState(instanceStore, tableId, initialView, defaults);
+    }
+    return instanceStore;
+  });
+  return (
+    <JotaiProvider store={store}>
+      <TableInstanceProvider instanceId={instanceId}>
+        {children}
+      </TableInstanceProvider>
+    </JotaiProvider>
   );
 }
 

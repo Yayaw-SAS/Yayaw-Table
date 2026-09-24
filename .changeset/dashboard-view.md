@@ -1,0 +1,12 @@
+---
+"yayaw-table-workspace": minor
+---
+
+Add Notion-like dashboards to React and Vue as optional registry items (`yayaw-table-dashboard`, `yayaw-table-vue-dashboard`): `YayawDashboard` shows widgets on a 4-column grid, each a saved view of any table in its display mode (table, list, board, gallery, calendar, chart, form), a number (a number chart over a table or a view) or a note (host `renderMarkdown`, plain text by default). Both editions use gridstack.js (the items list `gridstack`), loaded with the first desktop grid; phones stack the widgets in one column without drag.
+
+- Contract: `actions.dashboards` stores dashboards (`list`, `load`, `save`, `remove`); `tables: Record<tableId, { config, actions, views?, name? }>` lists the tables widgets can show. Dashboard JSON is `{ version: 1, id, name, layout: [{ widgetId, x, y, w, h }], widgets: [{ id, type, tableId?, viewId?, title?, settings }], filters }`; the shared `dashboard-model.ts` (synced to Vue) normalizes it, repairs layouts, migrates version-less JSON (react-grid-layout `i` keys) and refuses newer versions.
+- Edit mode (`canEdit`): drag and resize handles, a widget menu with keyboard alternatives (Move left/right/up/down, Wider/Narrower, Taller/Shorter, Remove), "Add widget" (a table's saved view, a number or a note), dashboard filters, rename; "Done" saves through `dashboards.save`. "Refresh all" reloads every widget; "Open full view" calls the host's `openView(tableId, viewId)`.
+- Dashboard filters (date range, select) apply per table column ("Applies to Projects › Due, Tasks › Deadline"). Each widget's `list` and `aggregate` requests receive the rules joined (AND) to the view's own filters, and alone as `requiredFilters`, which hosts must AND (views matching any rule keep their own `advancedFilters`).
+- Each widget is its own table instance: URL sync off, private state, compact chrome, its own loading, error (with Retry) and empty states. EN/FR labels, overridable as `dashboard.<key>`.
+- Tables gain two additive props in both editions: `instanceId` scopes an instance's URL keys (`<instanceId>-view`, `<instanceId>-historyIndex`, `<instanceId>-…` instead of `view`, `historyIndex` and `<tableId>-…`; in React also its atoms, in a store of its own) so several tables share a page, and `initialView` starts an instance with URL sync off from a saved view before its first request. Without them nothing changes.
+- Vue number charts now render (the figure and what it counts), as in React.

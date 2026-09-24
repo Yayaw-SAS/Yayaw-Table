@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { NuqsAdapter } from "nuqs/adapters/react";
 import { createRoot } from "react-dom/client";
 import { Toaster } from "sonner";
+import { DashboardExample } from "../dashboard-react";
 import { FormExample } from "../form-react";
 import { RecordPresentationExample } from "../record-presentation-react";
 import { ServerKanbanExample } from "../server-kanban-react";
@@ -20,8 +21,15 @@ const renderExample = () => {
   if (example === "views-fallback") {
     return <ViewsExample aggregate={false} />;
   }
+  if (example === "dashboard") {
+    return <DashboardExample />;
+  }
   return <RecordPresentationExample />;
 };
+// `?theme=dark` previews the dark tokens.
+if (new URLSearchParams(window.location.search).get("theme") === "dark") {
+  document.documentElement.classList.add("dark");
+}
 const root = document.getElementById("root");
 if (root && example === "form") {
   // The standalone form needs none of the table's providers.

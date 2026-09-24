@@ -44,6 +44,7 @@ Les vues optionnelles ont leur propre item, pour que la table ne dépende pas de
 
 - `https://table.yayaw.app/r/yayaw-table-calendar.json` (React) et `https://table.yayaw.app/r/yayaw-table-vue-calendar.json` (Vue) : vue Calendrier avec FullCalendar. Passez `calendarRenderer` à `displayModeRenderers` et ajoutez `"calendar"` à `displayModes`.
 - `https://table.yayaw.app/r/yayaw-table-chart.json` (React, shadcn/ui `chart` avec Recharts) et `https://table.yayaw.app/r/yayaw-table-vue-chart.json` (Vue, Unovis) : vue Graphique (barres, courbe, anneau, nombre). Passez `chartRenderer` à `displayModeRenderers` et ajoutez `"chart"` à `displayModes`.
+- `https://table.yayaw.app/r/yayaw-table-dashboard.json` (React) et `https://table.yayaw.app/r/yayaw-table-vue-dashboard.json` (Vue) : tableaux de bord (`YayawDashboard`) avec gridstack.js, chargé à la demande. Les widgets affichent des vues enregistrées de n'importe quelle table, des nombres et des notes ; l'hôte stocke les tableaux de bord via `actions.dashboards` et fournit ses tables dans `tables`.
 
 Le registry publie aussi deux items optionnels CLI v4 :
 

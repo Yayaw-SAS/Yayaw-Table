@@ -192,3 +192,18 @@
   outline-offset: 2px;
   border-radius: 2px;
 }
+/* Number charts: the figure and what it counts, as in React. */
+.yayaw-chart-figure {
+  display: grid;
+  place-items: center;
+  gap: 0.25rem;
+  padding: 3rem 0;
+  text-align: center;
+}
+.yayaw-chart-figure-value {
+  font-size: 3rem;
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  font-variant-numeric: tabular-nums;
+}

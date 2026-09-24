@@ -45,7 +45,14 @@ Recharts in React, Unovis in Vue) are
 `https://table.yayaw.app/r/yayaw-table-vue-chart.json`: pass `chartRenderer`
 and add `"chart"`. Charts ask `actions.aggregate` for grouped values
 (`groupBy`, `metrics`) and fall back to the rows `list` returns; clicking a
-group filters the table to it. The Form view ships in the table items: add `"form"` to
+group filters the table to it. Dashboards like Notion's are
+`https://table.yayaw.app/r/yayaw-table-dashboard.json` and
+`https://table.yayaw.app/r/yayaw-table-vue-dashboard.json`: `YayawDashboard`
+arranges saved views of any table, numbers and notes on a 4-column grid
+(gridstack.js, loaded on demand; stacked on phones) with dashboard filters
+sent to each table's `list`/`aggregate`, and stores dashboards through
+`actions.dashboards` (`list`, `load`, `save`, `remove`). Several tables on one
+page stay apart with `instanceId`. The Form view ships in the table items: add `"form"` to
 `displayModes` (tables with a `create` action). Its standalone
 `YayawTableForm` renders a saved Form view on a public route without table
 state. Forms can show, hide and require questions by rule (`form.rules`,

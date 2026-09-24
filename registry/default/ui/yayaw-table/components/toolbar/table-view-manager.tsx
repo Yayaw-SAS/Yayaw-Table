@@ -46,7 +46,11 @@ import {
   useTableActions as useProviderTableActions,
   useTranslations,
 } from "../../providers/table-provider";
-import { useTableStateSync } from "../../providers/table-state-sync-provider";
+import {
+  tableUrlKeys,
+  useTableInstanceId,
+  useTableStateSync,
+} from "../../providers/table-state-sync-provider";
 import type { TableDisplayMode } from "../../types/display-types";
 import type {
   TableView,
@@ -183,18 +187,19 @@ function getCurrentViewLabel({
   return fallbackDefaultLabel;
 }
 
-function hasTableUrlState(tableId: string): boolean {
+function hasTableUrlState(tableId: string, instanceId?: string): boolean {
   if (typeof window === "undefined") {
     return false;
   }
 
+  const keys = tableUrlKeys(tableId, instanceId);
   const searchParams = new URLSearchParams(window.location.search);
-  if (searchParams.has("view")) {
+  if (searchParams.has(keys.view)) {
     return true;
   }
 
   for (const key of searchParams.keys()) {
-    if (key.startsWith(`${tableId}-`)) {
+    if (key.startsWith(`${keys.prefix}-`)) {
       return true;
     }
   }
@@ -779,6 +784,7 @@ export function DataTableViewManager({
   const hasAppliedInitialViewRef = useRef(false);
   const deletedViewIds = useRef(new Set<string>());
   const shouldSyncUrl = useTableStateSync();
+  const instanceId = useTableInstanceId();
   const { applyViewConfig, getCurrentViewConfig, viewParam, setViewParam } =
     useTableUrlState({
       defaultDensity,
@@ -899,7 +905,8 @@ export function DataTableViewManager({
     viewParam,
   });
   const initialConfigRef = useRef(currentConfig);
-  const hasInitialUrlState = shouldSyncUrl && hasTableUrlState(tableId);
+  const hasInitialUrlState =
+    shouldSyncUrl && hasTableUrlState(tableId, instanceId);
   const canApplyInitialView =
     enabled &&
     !hasAppliedInitialViewRef.current &&

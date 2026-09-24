@@ -2,6 +2,7 @@
 @import "../responsive-toolbar-theme.css";
 @source "../../src";
 @source "../record-presentation-react.tsx";
+@source "../dashboard-react.tsx";
 body {
   margin: 0;
   font-family: system-ui, sans-serif;
