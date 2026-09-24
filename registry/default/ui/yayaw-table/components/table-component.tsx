@@ -3144,10 +3144,12 @@ function ModernDataTable<
         pageSize: table.store.state.pagination.pageSize,
         rowCount,
       });
-    // The file tree pages each folder itself ("Show more").
+    // The file tree pages each folder itself ("Show more"); the feed loads
+    // its pages as it scrolls, as in Vue.
     const showPaginationArea =
       !((isKanbanMode && kanbanConfig.server) || isGanttMode) &&
       activeDisplayMode !== "filetree" &&
+      activeDisplayMode !== "feed" &&
       enablePagination &&
       (showPaginationControls || renderBulkActionsInFooter);
     const fixedBulkActionsViewportOffset = getBulkActionsViewportBottomOffset({

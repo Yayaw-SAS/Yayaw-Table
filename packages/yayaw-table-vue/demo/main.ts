@@ -3,6 +3,7 @@ import App from "./App.vue";
 import AssetsExample from "./AssetsExample.vue";
 import DashboardExample from "./DashboardExample.vue";
 import DefaultSortExample from "./DefaultSortExample.vue";
+import FeedExample from "./FeedExample.vue";
 import FormExample from "./FormExample.vue";
 import RecordDetailsExample from "./RecordDetailsExample.vue";
 import ViewsExample from "./ViewsExample.vue";
@@ -17,6 +18,7 @@ const examples = {
   dashboard: DashboardExample,
   "default-sort": DefaultSortExample,
   assets: AssetsExample,
+  feed: FeedExample,
   form: FormExample,
   "record-details": RecordDetailsExample,
   views: ViewsExample,

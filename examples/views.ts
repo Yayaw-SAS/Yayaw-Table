@@ -616,7 +616,10 @@ export const chartViews = [
   }),
 ];
 
-/** The "Updates" feed view: team updates, newest first, three per page. */
+/**
+ * The "Updates" feed view: team updates, newest first, three per page. It
+ * turns loading on scroll off: "Load more" loads the next page.
+ */
 export const updatesFeedView = {
   id: "updates",
   tableId: "views",
@@ -634,6 +637,7 @@ export const updatesFeedView = {
       bodyColumn: "update",
       propertyColumnIds: ["status", "category", "dueDate"],
       pageSize: 3,
+      infiniteScroll: false,
     },
   },
 };

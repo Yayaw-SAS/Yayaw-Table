@@ -24,7 +24,10 @@ const props = defineProps<{
   hasContent: boolean;
   showMore: string;
   showLess: string;
+  /** Kept by the view per row id, so it survives windowing. */
+  expanded: boolean;
 }>();
+const emit = defineEmits<{ toggle: [] }>();
 
 /** Shows whatever the host renderer returned (VNode or string). */
 const RenderedBody = defineComponent({
@@ -34,7 +37,7 @@ const RenderedBody = defineComponent({
 
 const id = useId();
 const element = ref<HTMLElement>();
-const expanded = ref(false);
+const expanded = computed(() => props.expanded);
 const overflows = ref(false);
 const clamped = computed(() => props.lines > 0 && !expanded.value);
 const style = computed<CSSProperties>(() => {
@@ -106,7 +109,7 @@ watch(
       class="yayaw-feed-toggle"
       :aria-controls="id"
       :aria-expanded="expanded"
-      @click="expanded = !expanded"
+      @click="emit('toggle')"
     >
       {{ expanded ? props.showLess : props.showMore }}
     </button>

@@ -951,9 +951,14 @@
           "target": "components/ui/yayaw-table/feed/feed-card.tsx"
         },
         {
-          "path": "registry/default/ui/yayaw-table/feed/feed-renderer.ts",
+          "path": "registry/default/ui/yayaw-table/feed/feed-loading.tsx",
           "type": "registry:component",
-          "target": "components/ui/yayaw-table/feed/feed-renderer.ts"
+          "target": "components/ui/yayaw-table/feed/feed-loading.tsx"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/feed/feed-renderer.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/feed/feed-renderer.tsx"
         },
         {
           "path": "registry/default/ui/yayaw-table/feed/feed-settings.tsx",
@@ -1459,6 +1464,16 @@
           "path": "registry/default/ui/yayaw-table/utils/export-model.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/export-model.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/feed-controller.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/feed-controller.ts"
+        },
+        {
+          "path": "registry/default/ui/yayaw-table/utils/feed-dom.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/feed-dom.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/utils/feed-view.ts",

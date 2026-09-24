@@ -1,13 +1,20 @@
+import { defineAsyncComponent } from "vue";
 import type {
   DisplayModeRenderer,
   DisplayModeRenderers,
 } from "../display-mode-renderer";
+import FeedLoading from "./FeedLoading.vue";
 import FeedSettings from "./FeedSettings.vue";
-import FeedView from "./FeedView.vue";
 
 /** The built-in Feed mode: records as posts, and its settings panel. */
 export const feedRenderer: DisplayModeRenderer = {
-  view: FeedView,
+  // The feed's code loads with the first feed shown, not with the table;
+  // meanwhile the feed's own loading state shows.
+  view: defineAsyncComponent({
+    loader: () => import("./FeedView.vue"),
+    loadingComponent: FeedLoading,
+    delay: 0,
+  }),
   settings: FeedSettings,
 };
 

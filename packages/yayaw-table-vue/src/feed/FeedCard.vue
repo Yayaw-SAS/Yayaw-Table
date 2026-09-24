@@ -8,11 +8,12 @@ import {
   feedAuthor,
   feedBodyText,
   feedDate,
-  feedMedia,
   feedPropertyValue,
+  feedRowMedia,
   feedValue,
   type ResolvedFeedSettings,
 } from "../feed-view";
+import type { TableGalleryMediaConfig } from "../media-contract";
 import FeedBody from "./FeedBody.vue";
 
 type RowRecord = Record<string, unknown>;
@@ -29,8 +30,16 @@ const props = defineProps<{
   now: Date;
   position: number;
   setSize: number;
+  /** "Show more" state, kept by the view per row id so it survives windowing. */
+  expanded: boolean;
+  /** `table.gallery.media` and image column: the media contract of the table. */
+  gallery?: TableGalleryMediaConfig;
+  imageColumn?: string;
 }>();
-const emit = defineEmits<{ open: [row: RowRecord, event: MouseEvent] }>();
+const emit = defineEmits<{
+  open: [row: RowRecord, event: MouseEvent];
+  toggle: [rowId: string];
+}>();
 
 const titleId = useId();
 const column = (id?: string) => (id ? props.columns.get(id) : undefined);
@@ -66,7 +75,7 @@ const rendered = computed(() =>
 );
 const mediaColumn = computed(() => column(props.settings.mediaColumn));
 const media = computed(() =>
-  feedMedia(feedValue(props.row, mediaColumn.value), mediaColumn.value)
+  feedRowMedia(props.row, mediaColumn.value, props.gallery, props.imageColumn)
 );
 const properties = computed(() =>
   props.settings.propertyColumnIds.flatMap((id) => {
@@ -91,6 +100,7 @@ const properties = computed(() =>
     :aria-posinset="props.position"
     :aria-setsize="props.setSize"
     data-feed-card
+    data-feed-item
     :data-row-id="props.rowId"
   >
     <header class="yayaw-feed-header">
@@ -108,6 +118,8 @@ const properties = computed(() =>
             alt=""
             width="24"
             height="24"
+            loading="lazy"
+            decoding="async"
           />
           <span v-else class="yayaw-feed-avatar yayaw-feed-initials" aria-hidden="true">{{ author.initials }}</span>
           <span class="yayaw-feed-author-name"><span class="yayaw-sr-only">{{ `${props.label("by")} ` }}</span>{{ author.name }}</span>
@@ -131,8 +143,14 @@ const properties = computed(() =>
       :has-content="hasRendered"
       :show-more="props.label('showMore')"
       :show-less="props.label('showLess')"
+      :expanded="props.expanded"
+      @toggle="emit('toggle', props.rowId)"
     />
-    <div v-if="media.images.length || media.files.length" class="yayaw-feed-media" data-feed-media>
+    <div
+      v-if="media.images.length || media.videos.length || media.files.length"
+      class="yayaw-feed-media"
+      data-feed-media
+    >
       <ul
         v-if="media.images.length"
         class="yayaw-feed-images"
@@ -140,13 +158,45 @@ const properties = computed(() =>
         :aria-label="props.label('media', { title })"
       >
         <li v-for="(image, index) in media.images" :key="image.url">
-          <img :src="image.url" :alt="image.alt" loading="lazy" />
+          <!-- Lazy, decoded off the main thread, in a box of fixed ratio: no layout shift. -->
+          <img
+            :src="image.url"
+            :alt="image.alt"
+            width="720"
+            :height="media.images.length > 1 ? 360 : 450"
+            loading="lazy"
+            decoding="async"
+          />
           <span
             v-if="media.moreImages > 0 && index === media.images.length - 1"
             class="yayaw-feed-more-images"
           >{{ props.label("moreImages", { count: media.moreImages }) }}</span>
         </li>
       </ul>
+      <!-- The poster stands for the video: nothing loads beyond metadata before it plays. -->
+      <video
+        v-for="video in media.videos"
+        :key="video.url"
+        class="yayaw-feed-video"
+        data-feed-video
+        controls
+        playsinline
+        width="720"
+        height="405"
+        :poster="video.poster"
+        :preload="video.poster ? 'none' : 'metadata'"
+        :aria-label="video.alt || props.label('video', { title })"
+      >
+        <source :src="video.url" :type="video.mimeType" />
+        <track
+          v-for="track in video.tracks"
+          :key="`${track.srcLang ?? ''}:${track.src}`"
+          :kind="track.kind"
+          :label="track.label"
+          :src="track.src"
+          :srclang="track.srcLang"
+        />
+      </video>
       <ul v-if="media.files.length" class="yayaw-feed-files">
         <li v-for="file in media.files" :key="`${file.name}:${file.url ?? ''}`">
           <FileText :size="14" aria-hidden="true" />

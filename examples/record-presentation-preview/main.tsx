@@ -6,7 +6,7 @@ import { Toaster } from "sonner";
 import { AssetsExample } from "../assets-react";
 import { DashboardExample } from "../dashboard-react";
 import { DefaultSortExample } from "../default-sort-react";
-
+import { FeedExample } from "../feed-react";
 import { FormExample } from "../form-react";
 import { RecordPresentationExample } from "../record-presentation-react";
 import { ServerKanbanExample } from "../server-kanban-react";
@@ -35,6 +35,9 @@ const renderExample = () => {
   }
   if (example === "default-sort") {
     return <DefaultSortExample />;
+  }
+  if (example === "feed") {
+    return <FeedExample />;
   }
   return <RecordPresentationExample />;
 };
