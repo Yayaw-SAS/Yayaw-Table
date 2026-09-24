@@ -93,6 +93,13 @@ export interface ChartViewSettings {
    * column's option order; without it the stages follow the option order.
    */
   stageOrder?: string[];
+  /**
+   * Fill the nearest size container (CSS `container-type: size`, e.g. a
+   * dashboard widget) instead of a 320px tall chart: no title, table toggle
+   * or hint; the legend moves beside or under the chart, or hides, and data
+   * labels hide when the space is too small (`chartFillLayout`).
+   */
+  fill?: boolean;
 }
 
 export const CHART_DEFAULTS = {
@@ -194,6 +201,7 @@ const BOOLEAN_KEYS = [
   "hideEmpty",
   "showDataLabels",
   "showLegend",
+  "fill",
 ] as const;
 const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/;
 const MONTH_KEY = /^(\d{4})-(\d{2})$/;
@@ -2504,6 +2512,154 @@ export function chartFunnelLayout(
         height: Math.max(1, stages.length) * FUNNEL_ROW_HEIGHT,
         shapes: horizontalFunnel(stages, drawn, sizeOf),
       };
+}
+
+// Filling a container --------------------------------------------------------------
+
+/** What a chart drawn in a box of its own (`fill`) has room for. */
+export interface ChartFillLayout {
+  /** Size of the plot, legend excluded (px). */
+  plotWidth: number;
+  plotHeight: number;
+  legend: "none" | "bottom" | "right";
+  /** Width of a legend beside the chart (px). */
+  legendWidth: number;
+  /** Values on the bars, points or legend entries. */
+  dataLabels: boolean;
+  /** Ticks of the value axis (bars and lines). */
+  valueAxis: boolean;
+  /** Every how many categories the category axis shows a label. */
+  categoryStep: number;
+}
+
+export interface ChartFillInput {
+  width: number;
+  height: number;
+  type: ChartType;
+  /** Categories on the category axis (bars, points or slices). */
+  categories: number;
+  /** Entries of the legend the chart would show (0 without one). */
+  legendItems: number;
+  showDataLabels: boolean;
+}
+
+const LEGEND_ROW_HEIGHT = 20;
+const LEGEND_ITEM_WIDTH = 96;
+const LEGEND_SIDE_WIDTH = 132;
+const LEGEND_GAP = 8;
+const MIN_PLOT_HEIGHT = 96;
+const MIN_PLOT_WIDTH = 120;
+const MIN_LABEL_HEIGHT = 150;
+const MIN_LABEL_SLOT = 36;
+const MIN_BAR_LABEL_SLOT = 18;
+const MIN_VALUE_AXIS_WIDTH = 220;
+const VALUE_AXIS_WIDTH = 56;
+const CATEGORY_LABEL_WIDTH = 64;
+const WIDE_DONUT_RATIO = 1.3;
+
+/** Where the legend goes and the room it leaves the plot. */
+function fillLegend(
+  input: ChartFillInput,
+  width: number,
+  height: number
+): Pick<
+  ChartFillLayout,
+  "legend" | "legendWidth" | "plotHeight" | "plotWidth"
+> {
+  const none = {
+    legend: "none" as const,
+    legendWidth: 0,
+    plotWidth: width,
+    plotHeight: height,
+  };
+  if (input.legendItems <= 0) {
+    return none;
+  }
+  const perRow = Math.max(1, Math.floor(width / LEGEND_ITEM_WIDTH));
+  const bottom =
+    Math.ceil(input.legendItems / perRow) * LEGEND_ROW_HEIGHT + LEGEND_GAP;
+  const side = Math.min(LEGEND_SIDE_WIDTH, Math.floor(width * 0.45));
+  const beside = {
+    legend: "right" as const,
+    legendWidth: side,
+    plotWidth: width - side - LEGEND_GAP,
+    plotHeight: height,
+  };
+  const sideFits =
+    beside.plotWidth >= MIN_PLOT_WIDTH &&
+    input.legendItems * LEGEND_ROW_HEIGHT <= height;
+  // A donut is round: in a wide box its legend goes beside it.
+  if (
+    input.type === "donut" &&
+    sideFits &&
+    width >= height * WIDE_DONUT_RATIO
+  ) {
+    return beside;
+  }
+  if (height - bottom >= MIN_PLOT_HEIGHT) {
+    return { ...none, legend: "bottom", plotHeight: height - bottom };
+  }
+  return sideFits ? beside : none;
+}
+
+/** Values on the bars, points or legend entries, when there is room for them. */
+function fillDataLabels(
+  input: ChartFillInput,
+  room: Pick<ChartFillLayout, "legend" | "plotHeight" | "plotWidth">
+): boolean {
+  if (!input.showDataLabels) {
+    return false;
+  }
+  if (input.type === "donut" || input.type === "funnel") {
+    return room.legend !== "none";
+  }
+  const horizontal = input.type === "horizontalBar";
+  const slot =
+    (horizontal ? room.plotHeight : room.plotWidth) /
+    Math.max(1, input.categories);
+  return (
+    slot >= (horizontal ? MIN_BAR_LABEL_SLOT : MIN_LABEL_SLOT) &&
+    room.plotHeight >= MIN_LABEL_HEIGHT
+  );
+}
+
+/**
+ * Where a filled chart puts its legend and what it keeps: a donut in a wide
+ * box has its legend beside it, other charts under them when the plot keeps
+ * enough height, beside them otherwise, and none when neither fits. Data
+ * labels need room per category; the value axis needs width, and bars with
+ * their values on them do without it.
+ */
+export function chartFillLayout(input: ChartFillInput): ChartFillLayout {
+  const room = fillLegend(
+    input,
+    Math.max(0, input.width),
+    Math.max(0, input.height)
+  );
+  const dataLabels = fillDataLabels(input, room);
+  const horizontal = input.type === "horizontalBar";
+  // Lines and areas keep their axis beside their labels; bars carry values.
+  const lineLike = input.type === "line" || input.type === "area";
+  const valueAxis =
+    !(
+      ["donut", "funnel", "number"].includes(input.type) ||
+      (dataLabels && !lineLike)
+    ) &&
+    (!horizontal || room.plotHeight >= MIN_PLOT_HEIGHT) &&
+    room.plotWidth >= MIN_VALUE_AXIS_WIDTH;
+  const categories = Math.max(1, input.categories);
+  // The category axis shares its side with the value axis' labels.
+  const axisRoom = horizontal
+    ? room.plotHeight - (valueAxis ? LEGEND_ROW_HEIGHT : 0)
+    : room.plotWidth - (valueAxis ? VALUE_AXIS_WIDTH : 0);
+  const labelSpace =
+    categories * (horizontal ? LEGEND_ROW_HEIGHT : CATEGORY_LABEL_WIDTH);
+  return {
+    ...room,
+    dataLabels,
+    valueAxis,
+    categoryStep: Math.max(1, Math.ceil(labelSpace / Math.max(1, axisRoom))),
+  };
 }
 
 // Filtering on click -------------------------------------------------------------

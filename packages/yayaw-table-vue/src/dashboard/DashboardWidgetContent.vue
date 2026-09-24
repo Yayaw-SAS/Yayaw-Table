@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import { computed, onErrorCaptured, ref, type VNodeChild } from "vue";
 import type { DisplayModeRenderers } from "../display-mode-renderer";
-import type { TableRecord } from "../types";
+import type { DataTableTranslations, TableRecord } from "../types";
 import {
   type Dashboard,
+  type DashboardTranslate,
   type DashboardView,
   type DashboardWidget,
   dashboardFilterRules,
 } from "./dashboard-model";
 import type { DashboardLabel, DashboardTableSource } from "./dashboard-types";
+import DashboardKpiWidget from "./DashboardKpiWidget.vue";
 import DashboardTableWidget from "./DashboardTableWidget.vue";
 
 /** What a widget shows: a note, an embedded table, or why it cannot. */
@@ -20,10 +22,18 @@ const props = defineProps<{
   revision: number;
   label: DashboardLabel;
   locale: string;
+  translate: DashboardTranslate;
+  /** The page's table labels, e.g. French pagination. */
+  tableTranslations?: DataTableTranslations;
+  /** The widget's size in the layout. */
+  size: { w: number; h: number };
+  /** Whether the full view can open ("View all" under fit records). */
+  openable?: boolean;
   renderers?: DisplayModeRenderers;
   renderMarkdown?: (text: string) => VNodeChild;
   getRowId?: (row: TableRecord) => string;
 }>();
+const emit = defineEmits<{ viewAll: [] }>();
 
 // A widget that fails to render shows its error; the others keep working.
 const error = ref<Error>();
@@ -47,7 +57,7 @@ const state = computed(() => {
   if (!source.value) return "missingTable";
   if (props.widget.viewId && !tableViews.value) return "loading";
   if (props.widget.viewId && !view.value) return "missingView";
-  return "table";
+  return props.widget.type === "kpi" ? "kpi" : "table";
 });
 const rules = computed(() => dashboardFilterRules(props.dashboard, props.widget));
 </script>
@@ -72,6 +82,18 @@ const rules = computed(() => dashboardFilterRules(props.dashboard, props.widget)
   <div v-else-if="state === 'loading'" class="yayaw-dashboard-message" data-widget-state="muted">
     <output>{{ props.label("widgetLoading") }}</output>
   </div>
+  <DashboardKpiWidget
+    v-else-if="state === 'kpi' && source"
+    :key="attempt"
+    :dashboard="props.dashboard"
+    :widget="props.widget"
+    :source="source"
+    :view="view"
+    :revision="props.revision"
+    :locale="props.locale"
+    :label="props.label"
+    :translate="props.translate"
+  />
   <DashboardTableWidget
     v-else-if="source"
     :key="attempt"
@@ -83,7 +105,11 @@ const rules = computed(() => dashboardFilterRules(props.dashboard, props.widget)
     :revision="props.revision"
     :renderers="props.renderers"
     :locale="props.locale"
+    :translations="props.tableTranslations"
     :label="props.label"
     :get-row-id="props.getRowId"
+    :size="props.size"
+    :openable="props.openable"
+    @view-all="emit('viewAll')"
   />
 </template>

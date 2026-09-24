@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Table2 } from "lucide-vue-next";
-import { computed, ref, shallowRef, watch } from "vue";
+import { computed, onBeforeUnmount, ref, shallowRef, watch } from "vue";
 import {
   buildChartModel,
   type ChartCategory,
@@ -10,6 +10,7 @@ import {
   type ChartViewSettings,
   canAddChartFilters,
   chartAggregateRequest,
+  chartFillLayout,
   chartGroupFilters,
   chartLabel,
   loadChartData,
@@ -122,9 +123,10 @@ const hasTable = computed(() => Boolean(model.value) && model.value?.type !== "n
 const visible = computed(
   () => model.value && !(model.value.empty && model.value.type !== "number")
 );
-const legendItems = computed(() => {
+/** Legend entries: a donut's slices with their values, else the series. */
+const legendEntries = computed(() => {
   const current = model.value;
-  if (!(current && settings.value.showLegend)) return [];
+  if (!current) return [];
   if (current.type === "donut") {
     return current.categories
       .filter((category) => category.total > 0)
@@ -151,6 +153,46 @@ const legendItems = computed(() => {
     value: undefined as number | undefined,
   }));
 });
+const legendItems = computed(() => (settings.value.showLegend ? legendEntries.value : []));
+
+// A chart filling its box (`fill`): the legend beside, under or out of the
+// chart and data labels as the room allows; no title, toggle or hint.
+const fillBox = ref<HTMLElement>();
+const fillSize = ref({ width: 0, height: 0 });
+let fillObserver: ResizeObserver | undefined;
+watch(
+  fillBox,
+  (element) => {
+    fillObserver?.disconnect();
+    fillObserver = undefined;
+    if (!element) return;
+    const measure = () => {
+      const { width, height } = element.getBoundingClientRect();
+      if (fillSize.value.width !== width || fillSize.value.height !== height) {
+        fillSize.value = { width, height };
+      }
+    };
+    measure();
+    fillObserver = new ResizeObserver(measure);
+    fillObserver.observe(element);
+  },
+  { flush: "post" }
+);
+onBeforeUnmount(() => fillObserver?.disconnect());
+const fillLayout = computed(() => {
+  const current = model.value;
+  if (!(current && settings.value.fill)) return undefined;
+  const legend = legendItems.value.length;
+  return chartFillLayout({
+    width: fillSize.value.width,
+    height: fillSize.value.height,
+    type: current.type,
+    categories: current.categories.length,
+    legendItems: legend,
+    showDataLabels: settings.value.showDataLabels,
+  });
+});
+const fillReady = computed(() => fillSize.value.width > 0 && fillSize.value.height > 0);
 
 const hint = computed<ChartLabelKey>(() => {
   if (!clickable.value) return "filterUnavailable";
@@ -173,6 +215,46 @@ const onGroup = (category?: ChartCategory, series?: ChartSeriesItem): void => {
   <output v-if="!(settings.xColumn || settings.type === 'number')" class="yayaw-chart-message">
     {{ label("noColumn") }}
   </output>
+  <section
+    v-else-if="settings.fill"
+    class="yayaw-chart-view yayaw-chart-fill"
+    :aria-busy="loading"
+    :aria-label="model?.title"
+    :data-chart-type="settings.type"
+    data-chart-fill=""
+  >
+    <div v-if="error" class="yayaw-chart-message yayaw-chart-error" role="alert">{{ error }}</div>
+    <div v-if="notice" class="yayaw-chart-message yayaw-chart-error" role="alert">{{ notice }}</div>
+    <output v-if="result?.truncated" class="yayaw-chart-message">{{ label("truncated") }}</output>
+    <output v-if="!model && loading" class="yayaw-chart-message">{{ label("loading") }}</output>
+    <output v-if="model?.empty && model.type !== 'number'" class="yayaw-chart-message">{{ label("empty") }}</output>
+    <div
+      v-if="model && visible"
+      ref="fillBox"
+      class="yayaw-chart-fill-box"
+      :class="{ 'yayaw-chart-loading': loading }"
+      :data-chart-legend-placement="fillLayout?.legend"
+    >
+      <div v-if="fillReady && fillLayout" class="yayaw-chart-fill-content" :data-legend="fillLayout.legend">
+        <div class="yayaw-chart-fill-plot" :style="{ height: `${fillLayout.plotHeight}px`, width: `${fillLayout.plotWidth}px` }">
+          <ChartCanvas :model="model" :settings="settings" :clickable="clickable" :label="label" :fill="fillLayout" @group="onGroup" />
+        </div>
+        <ul
+          v-if="fillLayout.legend !== 'none'"
+          class="yayaw-chart-legend"
+          data-chart-legend
+          :data-placement="fillLayout.legend"
+          :style="fillLayout.legend === 'right' ? { width: `${fillLayout.legendWidth}px` } : undefined"
+        >
+          <li v-for="item in legendItems" :key="item.id">
+            <span class="yayaw-chart-swatch" :style="{ background: item.color }" aria-hidden="true" />
+            <span class="yayaw-chart-legend-label">{{ item.label }}</span>
+            <span v-if="fillLayout.dataLabels && item.value !== undefined" class="yayaw-chart-muted">{{ model.format(item.value) }}</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </section>
   <section
     v-else
     class="yayaw-chart-view"

@@ -19,6 +19,7 @@ import {
   RangeCalendarPrev,
   RangeCalendarRoot,
 } from "reka-ui";
+import { useId } from "vue";
 import { formWeekStart } from "../form-view";
 import { tagAppearance } from "../tag-colors";
 import "../tag-colors.css";
@@ -79,17 +80,21 @@ const toggle = (filter: DashboardFilter, value: string) => {
 };
 const tag = (filter: DashboardFilter, value: string) =>
   tagAppearance(value, dashboardFilterColoredTags(filter, props.tables));
+// "Applies to …" describes each filter's button.
+const prefix = useId();
+const targetsId = (filter: DashboardFilter) => `${prefix}-${filter.id}-targets`;
 </script>
 
 <template>
   <section
     v-if="props.filters.length || props.editing"
     class="yayaw-dashboard-filters"
+    :data-editing="props.editing ? '' : undefined"
     :aria-label="props.label('filters')"
     data-dashboard-filters=""
   >
     <fieldset v-for="filter in props.filters" :key="filter.id" class="yayaw-dashboard-filter" :data-dashboard-filter="filter.id">
-      <legend>
+      <legend :class="{ 'yayaw-dashboard-sr-only': !props.editing }">
         {{ filter.label }}
         <button
           v-if="props.editing"
@@ -110,8 +115,10 @@ const tag = (filter: DashboardFilter, value: string) =>
               class="yayaw-button yayaw-button-outline yayaw-dashboard-filter-trigger yayaw-dashboard-date-trigger"
               data-filter-trigger=""
               :aria-label="`${filter.label}: ${rangeText(filter)}`"
+              :aria-describedby="targetsId(filter)"
             >
               <CalendarIcon :size="16" aria-hidden="true" class="yayaw-dashboard-muted" />
+              <span v-if="!props.editing" class="yayaw-dashboard-filter-name" data-filter-name="">{{ filter.label }}</span>
               <span class="yayaw-dashboard-filter-value" data-filter-value="" :data-empty="!hasRange(filter) || undefined">{{ rangeText(filter) }}</span>
               <ChevronDown :size="16" aria-hidden="true" class="yayaw-dashboard-muted" />
             </button>
@@ -161,7 +168,14 @@ const tag = (filter: DashboardFilter, value: string) =>
         </PopoverRoot>
         <PopoverRoot v-else>
           <PopoverTrigger as-child>
-            <button type="button" class="yayaw-button yayaw-button-outline yayaw-dashboard-filter-trigger" data-filter-trigger="" :aria-label="filter.label">
+            <button
+              type="button"
+              class="yayaw-button yayaw-button-outline yayaw-dashboard-filter-trigger"
+              data-filter-trigger=""
+              :aria-label="filter.label"
+              :aria-describedby="targetsId(filter)"
+            >
+              <span v-if="!props.editing" class="yayaw-dashboard-filter-name" data-filter-name="">{{ filter.label }}</span>
               <span class="yayaw-dashboard-filter-value yayaw-dashboard-filter-tags" data-filter-value="">
                 <template v-if="chosen(filter).length">
                   <span
@@ -209,7 +223,7 @@ const tag = (filter: DashboardFilter, value: string) =>
           {{ props.label("clear") }}
         </button>
       </div>
-      <p class="yayaw-dashboard-targets" data-filter-targets="">
+      <p :id="targetsId(filter)" class="yayaw-dashboard-targets" :class="{ 'yayaw-dashboard-sr-only': !props.editing }" data-filter-targets="">
         {{ props.label("appliesTo", { targets: dashboardFilterTargetsLabel(filter, props.tables) }) }}
       </p>
     </fieldset>

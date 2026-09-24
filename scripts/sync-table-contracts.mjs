@@ -195,8 +195,9 @@ for (const [source, target] of [
   );
 }
 
-// The dashboard's model, gridstack controller and grid styles are shared by
-// both optional dashboard items; only the table contracts path differs.
+// The dashboard's model, record fitting, gridstack controller and grid styles
+// are shared by both optional dashboard items; only the paths of the table's
+// shared helpers (table contracts, chart model) differ.
 const dashboardSource = new URL(
   "../src/components/ui/yayaw-table-dashboard/",
   import.meta.url
@@ -208,14 +209,13 @@ const dashboardTarget = new URL(
 await mkdir(dashboardTarget, { recursive: true });
 for (const name of [
   "dashboard-model.ts",
+  "dashboard-fit.ts",
   "dashboard-grid-engine.ts",
   "dashboard-grid.css",
 ]) {
   const content = await readFile(new URL(name, dashboardSource), "utf8");
   await writeFile(
     new URL(name, dashboardTarget),
-    content
-      .replaceAll("../yayaw-table/utils/table-contracts", "../table-contracts")
-      .replaceAll("../yayaw-table/utils/value-format", "../value-format")
+    content.replaceAll("../yayaw-table/utils/", "../")
   );
 }

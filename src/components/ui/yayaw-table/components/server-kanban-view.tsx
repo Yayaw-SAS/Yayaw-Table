@@ -72,11 +72,12 @@ export function ServerKanbanView({
       {!(state.loading || state.error || state.lanes.length) && (
         <p>{labels.empty}</p>
       )}
-      <div className="flex gap-3 overflow-x-auto p-3">
+      <div className="flex gap-3 overflow-x-auto p-3" data-kanban-board="">
         {state.lanes.map((lane) => (
           <section
             aria-label={lane.label}
             className="w-72 shrink-0 rounded-md border bg-muted/20 p-3"
+            data-kanban-lane={lane.value}
             key={lane.value}
           >
             <h3 className="mb-3 flex justify-between font-medium">
@@ -86,6 +87,7 @@ export function ServerKanbanView({
             {lane.rows.map((row) => (
               <article
                 className="mb-3 rounded-md border bg-background p-3"
+                data-row-id={source.getRowId?.(row) ?? String(row.id)}
                 key={source.getRowId?.(row) ?? String(row.id)}
               >
                 <button

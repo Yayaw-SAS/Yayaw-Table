@@ -8,49 +8,55 @@ import type { DashboardTableSource } from "../src/dashboard/dashboard-types";
 import YayawDashboard from "../src/dashboard/YayawDashboard.vue";
 import {
   createDemoDashboardStorage,
-  createTasksActions,
+  createProjectActions,
+  createTaskActions,
   dashboardProjectViews,
   dashboardTaskViews,
   logDashboardRequests,
-  tasksColumns,
-  tasksTableOptions,
+  projectColumns,
+  projectTableOptions,
+  projectVisibleColumns,
+  taskColumns,
+  taskTableOptions,
 } from "../../../examples/dashboard";
-import { createViewsActions, viewsColumns, viewsTableOptions, viewsVisibleColumns } from "../../../examples/views";
 
-// "Projects overview": saved views of two tables, numbers and a note on a
-// dashboard with filters. `?readonly` shows it without edit rights.
-const canEdit = !new URLSearchParams(window.location.search).has("readonly");
+// "Projects overview": numbers, charts and lists of two tables on a
+// dashboard with filters, without a scrollbar. `?readonly` shows it without
+// edit rights, `?lang=fr` in French (the table labels are built in).
+const search = new URLSearchParams(window.location.search);
+const canEdit = !search.has("readonly");
+const locale = search.get("lang") === "fr" ? "fr" : "en";
 const tables: Record<string, DashboardTableSource> = {
-  views: {
+  projects: {
     name: "Projects",
     config: defineTableConfig({
-      id: "views",
+      id: "projects",
       columns: {
-        definitions: viewsColumns,
-        order: viewsColumns.map((column) => column.id),
-        visible: viewsVisibleColumns,
+        definitions: projectColumns,
+        order: projectColumns.map((column) => column.id),
+        visible: projectVisibleColumns,
         mandatory: ["name"],
       },
-      table: viewsTableOptions,
-      translations: { namespace: "views", keys: { title: "Projects" } },
+      table: projectTableOptions,
+      translations: { namespace: "projects", keys: { title: "Projects" } },
     }),
-    actions: logDashboardRequests("views", createViewsActions()) as unknown as TableActions,
-    views: dashboardProjectViews as unknown as TableView[],
+    actions: logDashboardRequests("projects", createProjectActions()) as unknown as TableActions,
+    views: dashboardProjectViews() as unknown as TableView[],
   },
   tasks: {
     name: "Tasks",
     config: defineTableConfig({
       id: "tasks",
       columns: {
-        definitions: tasksColumns,
-        order: tasksColumns.map((column) => column.id),
-        visible: tasksColumns.map((column) => column.id),
+        definitions: taskColumns,
+        order: taskColumns.map((column) => column.id),
+        visible: taskColumns.map((column) => column.id),
         mandatory: ["title"],
       },
-      table: tasksTableOptions,
+      table: taskTableOptions,
       translations: { namespace: "tasks", keys: { title: "Tasks" } },
     }),
-    actions: logDashboardRequests("tasks", createTasksActions()) as unknown as TableActions,
+    actions: logDashboardRequests("tasks", createTaskActions()) as unknown as TableActions,
     views: dashboardTaskViews as unknown as TableView[],
   },
 };
@@ -72,8 +78,9 @@ const openView = (tableId: string, viewId: string | null) => {
         :display-mode-renderers="renderers"
         :open-view="openView"
         :get-row-id="(row) => String(row.id)"
+        :locale="locale"
       />
-      <output class="dashboard-example-opened" data-dashboard-opened="">{{ opened }}</output>
+      <output v-if="opened" class="dashboard-example-opened" data-dashboard-opened="">{{ opened }}</output>
     </div>
     <Toaster position="bottom-right" />
   </main>
@@ -89,8 +96,19 @@ body:has(.dashboard-example) {
 }
 </style>
 <style scoped>
-.dashboard-example { box-sizing: border-box; min-height: 100vh; padding: 1.5rem; }
-.dashboard-example-inner { max-width: 80rem; margin: auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; }
-.dashboard-example-opened { display: block; color: var(--yayaw-muted-foreground); font-size: 14px; min-height: 1.25rem; }
+.dashboard-example { box-sizing: border-box; min-height: 100vh; padding: 1rem 1.5rem; }
+.dashboard-example-inner { max-width: 80rem; margin: auto; }
+.dashboard-example-opened {
+  position: fixed;
+  bottom: 1rem;
+  left: 1rem;
+  border: 1px solid var(--yayaw-border);
+  border-radius: var(--yayaw-radius);
+  background: var(--yayaw-background);
+  padding: 0.5rem 0.75rem;
+  color: var(--yayaw-muted-foreground);
+  font-size: 14px;
+  box-shadow: var(--yayaw-shadow-xs);
+}
 @media (max-width: 639px) { .dashboard-example { padding: 1rem; } }
 </style>

@@ -272,6 +272,7 @@ const activate = (row: TableRecord, event: MouseEvent | KeyboardEvent): void => 
           v-bind="canReorder ? { [REORDER_ROW_ATTRIBUTE]: context.getRowId(row) } : {}"
           :class="{ selected: context.selection.value[context.getRowId(row)], 'yayaw-list-dragging': dragged === row, 'yayaw-list-target': target === row && dragged !== row }"
           :data-yayaw-row-id="context.getRowId(row)"
+          :data-row-id="context.getRowId(row)"
         >
           <div
             class="yayaw-list-item"

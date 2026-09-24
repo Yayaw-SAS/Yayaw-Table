@@ -822,7 +822,7 @@ const pinnedStyle = (column: Column<TableRecord>): CSSProperties => {
                 </button>
               </td>
             </tr>
-            <tr v-else :class="{ selected: row.getIsSelected() }" @click="rowClick(row.original, $event)">
+            <tr v-else :class="{ selected: row.getIsSelected() }" :data-row-id="row.id" @click="rowClick(row.original, $event)">
               <td v-for="cell in row.getVisibleCells()" :key="cell.id" :style="pinnedStyle(cell.column)">
                 <span v-if="context.planning && cell.column.id === row.getVisibleCells().find(item => !['select', 'actions'].includes(item.column.id))?.column.id" :style="{paddingInlineStart: `${row.depth * 16}px`}">
                   <button v-if="row.subRows.length" type="button" :aria-expanded="row.getIsExpanded()" :aria-label="`${row.getIsExpanded() ? 'Collapse' : 'Expand'} ${row.id}`" @click.stop="row.toggleExpanded()">{{ row.getIsExpanded() ? '▾' : '▸' }}</button>

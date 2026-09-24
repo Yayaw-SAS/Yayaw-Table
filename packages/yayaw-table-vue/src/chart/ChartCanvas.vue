@@ -17,6 +17,7 @@ import {
 import { computed, ref } from "vue";
 import {
   type ChartCategory,
+  type ChartFillLayout,
   type ChartLabelKey,
   type ChartModel,
   type ChartSeriesItem,
@@ -32,6 +33,8 @@ const props = defineProps<{
   settings: ResolvedChartSettings;
   clickable: boolean;
   label: (key: ChartLabelKey, params?: Record<string, number | string>) => string;
+  /** Set when the chart fills a box (`fill`): its size and what it keeps. */
+  fill?: ChartFillLayout;
 }>();
 const emit = defineEmits<{
   group: [category?: ChartCategory, series?: ChartSeriesItem];
@@ -40,6 +43,10 @@ const emit = defineEmits<{
 const CHART_HEIGHT = 320;
 const ROW_HEIGHT = 36;
 const MARGIN = { top: 20, right: 24, bottom: 4, left: 8 };
+/** A small donut's hole holds the total alone. */
+const SMALL_DONUT = 200;
+const DONUT_RADIUS = 0.8;
+const DONUT_ARC = 0.45;
 
 interface ChartRow {
   i: number;
@@ -67,11 +74,23 @@ const horizontal = computed(() => props.model.type === "horizontalBar");
 const stacked = computed(
   () => props.model.stacked || props.model.series.length === 1
 );
-const height = computed(() =>
-  horizontal.value
+const height = computed(() => {
+  if (props.fill) return props.fill.plotHeight;
+  return horizontal.value
     ? Math.max(CHART_HEIGHT, rows.value.length * ROW_HEIGHT)
-    : CHART_HEIGHT
+    : CHART_HEIGHT;
+});
+/** Values on bars and points: the setting, or what a filled chart has room for. */
+const dataLabels = computed(() => (props.fill ? props.fill.dataLabels : props.settings.showDataLabels));
+const valueAxis = computed(() => (props.fill ? props.fill.valueAxis : true));
+// Plot margins: roomy on a page, tight when the chart fills a small box.
+const margin = computed(() =>
+  props.fill ? { top: dataLabels.value ? 18 : 8, right: 16, bottom: 0, left: 4 } : MARGIN
 );
+const donutSize = computed(() => Math.min(height.value, props.fill?.plotWidth ?? height.value));
+const smallDonut = computed(() => donutSize.value < SMALL_DONUT);
+const donutRadius = computed(() => (props.fill ? (donutSize.value / 2) * DONUT_RADIUS : undefined));
+const donutArc = computed(() => (donutRadius.value ? donutRadius.value * DONUT_ARC : 56));
 // Horizontal bars list categories from the top, as in React.
 const x = (row: ChartRow): number =>
   horizontal.value ? rows.value.length - 1 - row.i : row.i;
@@ -88,7 +107,12 @@ const ys = computed(() =>
 );
 const seriesColor = (row: ChartRow, index: number): string =>
   props.model.single ? row.color : (props.model.series[index]?.color ?? row.color);
-const ticks = computed(() => rows.value.map((row) => x(row)));
+// A filled chart shows every `categoryStep`-th category label.
+const ticks = computed(() =>
+  rows.value
+    .filter((row) => row.i % (props.fill?.categoryStep ?? 1) === 0)
+    .map((row) => x(row))
+);
 const tickLabel = (value: number | Date): string =>
   rows.value.find((row) => x(row) === Number(value))?.label ?? "";
 const tickFormat = computed(() => chartTickFormat(props.model));
@@ -151,17 +175,28 @@ const crosshairTemplate = (row: ChartRow): string => tooltip(row);
 
 // Horizontal bars keep room for the longest bar's value label.
 const barMargin = computed(() =>
-  horizontal.value && props.settings.showDataLabels && props.model.series.length === 1
-    ? { ...MARGIN, right: MARGIN.right + chartBarLabelRoom(props.model) }
-    : MARGIN
+  horizontal.value && dataLabels.value && props.model.series.length === 1
+    ? { ...margin.value, right: margin.value.right + chartBarLabelRoom(props.model) }
+    : margin.value
 );
 // Single bars carry their label just past their end.
-const labelOffset = computed(
-  () => ((props.model.valueTicks.at(-1) ?? 1) - (props.model.valueTicks.at(0) ?? 0)) * (horizontal.value ? 0.08 : 0.04)
-);
+// Labels are centered on their point: past the end of a bar by half a label
+// beside horizontal bars (the category axis takes part of the width), or
+// 10px above vertical ones.
+const LABEL_SIDE_PX = 48;
+const LABEL_TOP_PX = 10;
+const labelOffset = computed(() => {
+  const span = (props.model.valueTicks.at(-1) ?? 1) - (props.model.valueTicks.at(0) ?? 0);
+  if (props.fill) {
+    return horizontal.value
+      ? (span * LABEL_SIDE_PX) / Math.max(1, props.fill.plotWidth)
+      : (span * LABEL_TOP_PX) / Math.max(1, props.fill.plotHeight);
+  }
+  return span * (horizontal.value ? 0.08 : 0.04);
+});
 /** Data labels: at the top of single bars, in the middle of stacked segments. */
 const labelSets = computed(() => {
-  if (!props.settings.showDataLabels) return [];
+  if (!dataLabels.value) return [];
   const multiple = props.model.series.length > 1;
   if (multiple && !props.model.stacked) return [];
   return props.model.series.map((_, index) => ({
@@ -209,7 +244,7 @@ const areaTops = computed(() =>
 const areaColor = (_rows: ChartRow[], index: number): string =>
   props.model.series[index]?.color ?? "";
 const areaLabels = computed(() =>
-  props.settings.showDataLabels
+  dataLabels.value
     ? props.model.series.map((item, index) => ({
         id: item.id,
         y: (row: ChartRow) => (areaTops.value[index]?.(row) ?? 0) + labelOffset.value,
@@ -259,7 +294,7 @@ const rightLabels = computed(() => {
   const low = ticks.at(0) ?? 0;
   const span = (ticks.at(-1) ?? 1) - low || 1;
   const { top, bottom, right } = dualMargin.value;
-  const plot = CHART_HEIGHT - top - bottom;
+  const plot = height.value - top - bottom;
   return ticks.map((tick) => ({
     text: lineTick(tick),
     top: `${top + (1 - (tick - low) / span) * plot}px`,
@@ -275,8 +310,12 @@ const comboLineLabel = (row: ChartRow): string =>
 </script>
 
 <template>
-  <div class="yayaw-chart-canvas" :data-chart-clickable="props.clickable ? 'true' : undefined">
-    <div v-if="props.model.type === 'number'" class="yayaw-chart-figure">
+  <div
+    class="yayaw-chart-canvas"
+    :data-chart-clickable="props.clickable ? 'true' : undefined"
+    :data-small-donut="props.model.type === 'donut' && smallDonut ? '' : undefined"
+  >
+    <div v-if="props.model.type === 'number'" class="yayaw-chart-figure" :data-fill="props.fill ? '' : undefined">
       <output class="yayaw-chart-figure-value" data-chart-number>{{ props.model.format(props.model.total) }}</output>
       <span class="yayaw-chart-muted">{{ props.model.valueLabel }}</span>
     </div>
@@ -287,14 +326,15 @@ const comboLineLabel = (row: ChartRow): string =>
       :label="props.label"
       @group="(category) => emit('group', category)"
     />
-    <VisSingleContainer v-else-if="props.model.type === 'donut'" :data="donutRows" :height="CHART_HEIGHT">
+    <VisSingleContainer v-else-if="props.model.type === 'donut'" :data="donutRows" :height="height">
       <VisDonut
         :value="(row: ChartRow) => row.values[0] ?? 0"
         :color="(row: ChartRow) => row.color"
-        :arc-width="56"
+        :radius="donutRadius"
+        :arc-width="donutArc"
         :pad-angle="0.01"
         :central-label="props.model.format(props.model.total)"
-        :central-sub-label="props.label('total')"
+        :central-sub-label="smallDonut ? '' : props.label('total')"
         :events="donutEvents"
       />
       <VisTooltip :triggers="barTriggers" />
@@ -302,8 +342,8 @@ const comboLineLabel = (row: ChartRow): string =>
     <VisXYContainer
       v-else-if="props.model.type === 'line'"
       :data="rows"
-      :height="CHART_HEIGHT"
-      :margin="MARGIN"
+      :height="height"
+      :margin="margin"
       :x-domain="categoryDomain"
       :y-domain="valueDomain"
     >
@@ -316,12 +356,12 @@ const comboLineLabel = (row: ChartRow): string =>
         :color="item.color"
         :size="8"
         :cursor="cursor"
-        :label="props.settings.showDataLabels ? (row: ChartRow) => props.model.format(row.values[index] ?? 0) : undefined"
+        :label="dataLabels ? (row: ChartRow) => props.model.format(row.values[index] ?? 0) : undefined"
         label-position="top"
         :events="pointEvents"
       />
       <VisAxis type="x" :tick-values="ticks" :tick-format="tickLabel" :tick-text-hide-overlapping="true" :grid-line="false" :tick-line="false" :domain-line="false" />
-      <VisAxis type="y" :tick-values="props.model.valueTicks" :tick-format="valueTick" :tick-line="false" :domain-line="false" />
+      <VisAxis v-if="valueAxis" type="y" :tick-values="props.model.valueTicks" :tick-format="valueTick" :tick-line="false" :domain-line="false" />
       <VisCrosshair :template="crosshairTemplate" :color="(_row: ChartRow, index: number) => props.model.series[index]?.color" />
       <VisTooltip />
     </VisXYContainer>
@@ -333,8 +373,8 @@ const comboLineLabel = (row: ChartRow): string =>
     >
       <VisXYContainer
         :data="rows"
-        :height="CHART_HEIGHT"
-        :margin="MARGIN"
+        :height="height"
+        :margin="margin"
         :x-domain="categoryDomain"
         :y-domain="valueDomain"
       >
@@ -372,7 +412,7 @@ const comboLineLabel = (row: ChartRow): string =>
           :label-font-size="11"
         />
         <VisAxis type="x" :tick-values="ticks" :tick-format="tickLabel" :tick-text-hide-overlapping="true" :grid-line="false" :tick-line="false" :domain-line="false" />
-        <VisAxis type="y" :tick-values="props.model.valueTicks" :tick-format="valueTick" :tick-line="false" :domain-line="false" />
+        <VisAxis v-if="valueAxis" type="y" :tick-values="props.model.valueTicks" :tick-format="valueTick" :tick-line="false" :domain-line="false" />
         <!-- Crosshair options are passed as they are named (camelCase). -->
         <VisCrosshair
           :template="crosshairTemplate"
@@ -393,8 +433,8 @@ const comboLineLabel = (row: ChartRow): string =>
     >
       <VisXYContainer
         :data="rows"
-        :height="CHART_HEIGHT"
-        :margin="rightTicks.length ? dualMargin : MARGIN"
+        :height="height"
+        :margin="rightTicks.length ? dualMargin : margin"
         :auto-margin="!rightTicks.length"
         :x-domain="categoryDomain"
         :y-domain="valueDomain"
@@ -415,11 +455,11 @@ const comboLineLabel = (row: ChartRow): string =>
           :color="lineSeries?.color"
           :size="8"
           :cursor="cursor"
-          :label="props.settings.showDataLabels ? comboLineLabel : undefined"
+          :label="dataLabels ? comboLineLabel : undefined"
           label-position="top"
         />
         <VisXYLabels
-          v-if="props.settings.showDataLabels"
+          v-if="dataLabels"
           :x="x"
           :y="(row: ChartRow) => barY(row) + labelOffset"
           :label="comboBarLabel"
@@ -506,8 +546,9 @@ const comboLineLabel = (row: ChartRow): string =>
         :grid-line="false"
         :tick-line="false"
         :domain-line="false"
+        :tick-text-hide-overlapping="Boolean(props.fill)"
       />
-      <VisAxis :type="horizontal ? 'x' : 'y'" :tick-values="props.model.valueTicks" :tick-format="valueTick" :tick-line="false" :domain-line="false" />
+      <VisAxis v-if="valueAxis" :type="horizontal ? 'x' : 'y'" :tick-values="props.model.valueTicks" :tick-format="valueTick" :tick-line="false" :domain-line="false" />
       <VisTooltip :triggers="barTriggers" />
     </VisXYContainer>
   </div>

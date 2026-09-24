@@ -11,6 +11,7 @@ import {
   chartBucketKey,
   chartBucketLabel,
   chartBucketRange,
+  chartFillLayout,
   chartFunnelLayout,
   chartFunnelOrientation,
   chartGroupFilters,
@@ -28,6 +29,7 @@ import {
   resolveChartSettings,
   withChartFilters,
 } from "./chart-model";
+
 import {
   modeDefaultsOf,
   normalizeModeConfig,
@@ -51,6 +53,7 @@ chartModelSuite(
     chartBucketRange,
     chartFunnelLayout,
     chartFunnelOrientation,
+    chartFillLayout,
     chartGroupFilters,
     chartLabel,
     chartMetricUnit,

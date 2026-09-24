@@ -19,12 +19,18 @@ import {
   type DashboardFilter,
   type DashboardFilterType,
   type DashboardKpiMetric,
+  type DashboardOverflow,
   type DashboardTableInfo,
   type DashboardTranslate,
   type DashboardView,
   type DashboardWidget,
+  type DashboardWidgetDraft,
   type DashboardWidgetType,
+  dashboardCompareDayOptions,
+  dashboardDateColumns,
   dashboardMetricOptions,
+  dashboardWidgetFromDraft,
+  emptyWidgetDraft,
   filterableColumns,
 } from "./dashboard-model";
 import type { DashboardLabel } from "./dashboard-widget";
@@ -48,6 +54,37 @@ function Field({
   );
 }
 
+/** A checkbox with its label on the right. */
+function CheckField({
+  checked,
+  disabled,
+  id,
+  label,
+  onChange,
+}: {
+  checked: boolean;
+  disabled?: boolean;
+  id: string;
+  label: string;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <input
+        checked={checked}
+        className="size-4 accent-primary"
+        disabled={disabled}
+        id={id}
+        onChange={(event) => onChange(event.target.checked)}
+        type="checkbox"
+      />
+      <label className="text-sm" htmlFor={id}>
+        {label}
+      </label>
+    </div>
+  );
+}
+
 const NUMBER_TYPES = new Set(["number", "currency", "percent"]);
 
 export interface AddWidgetDialogProps {
@@ -61,45 +98,6 @@ export interface AddWidgetDialogProps {
   onAdd: (widget: Omit<DashboardWidget, "id">) => void;
 }
 
-interface WidgetDraft {
-  type: DashboardWidgetType;
-  tableId: string;
-  viewId: string;
-  metric: DashboardKpiMetric;
-  metricColumn: string;
-  title: string;
-  text: string;
-}
-
-const draftWidget = (draft: WidgetDraft): Omit<DashboardWidget, "id"> => {
-  const title = draft.title.trim();
-  if (draft.type === "note") {
-    return {
-      type: "note",
-      ...(title ? { title } : {}),
-      settings: { text: draft.text },
-    };
-  }
-  const base = {
-    type: draft.type,
-    tableId: draft.tableId,
-    ...(draft.viewId ? { viewId: draft.viewId } : {}),
-  };
-  if (draft.type === "view") {
-    return { ...base, ...(title ? { title } : {}), settings: {} };
-  }
-  return {
-    ...base,
-    settings: {
-      metric: draft.metric,
-      ...(draft.metric !== "count" && draft.metricColumn
-        ? { metricColumn: draft.metricColumn }
-        : {}),
-      ...(title ? { label: title } : {}),
-    },
-  };
-};
-
 function TableFields({
   draft,
   ids,
@@ -108,10 +106,10 @@ function TableFields({
   tables,
   views,
 }: {
-  draft: WidgetDraft;
+  draft: DashboardWidgetDraft;
   ids: Record<string, string>;
   label: DashboardLabel;
-  setDraft: (draft: WidgetDraft) => void;
+  setDraft: (draft: DashboardWidgetDraft) => void;
   tables: Record<string, DashboardTableInfo>;
   views: Record<string, DashboardView[] | undefined>;
 }) {
@@ -127,6 +125,7 @@ function TableFields({
               tableId: event.target.value,
               viewId: "",
               metricColumn: "",
+              dateColumn: "",
             })
           }
           value={draft.tableId}
@@ -161,6 +160,148 @@ function TableFields({
   );
 }
 
+/** Records that do not fit: show what fits ("+N more"), or scroll. */
+function OverflowField({
+  draft,
+  ids,
+  label,
+  setDraft,
+}: {
+  draft: DashboardWidgetDraft;
+  ids: Record<string, string>;
+  label: DashboardLabel;
+  setDraft: (draft: DashboardWidgetDraft) => void;
+}) {
+  return (
+    <Field htmlFor={ids.overflow} label={label("overflow")}>
+      <NativeSelect
+        className="w-full"
+        id={ids.overflow}
+        onChange={(event) =>
+          setDraft({
+            ...draft,
+            overflow: event.target.value as DashboardOverflow,
+          })
+        }
+        value={draft.overflow}
+      >
+        <NativeSelectOption value="fit">
+          {label("overflowFit")}
+        </NativeSelectOption>
+        <NativeSelectOption value="scroll">
+          {label("overflowScroll")}
+        </NativeSelectOption>
+      </NativeSelect>
+    </Field>
+  );
+}
+
+/** The period and trend options of a number, over one of its date columns. */
+function KpiPeriodFields({
+  draft,
+  ids,
+  label,
+  locale,
+  setDraft,
+  tables,
+  translate,
+}: {
+  draft: DashboardWidgetDraft;
+  ids: Record<string, string>;
+  label: DashboardLabel;
+  locale: string;
+  setDraft: (draft: DashboardWidgetDraft) => void;
+  tables: Record<string, DashboardTableInfo>;
+  translate: DashboardTranslate;
+}) {
+  const dateColumns = dashboardDateColumns(
+    tables[draft.tableId]?.columns ?? []
+  );
+  if (!dateColumns.length) {
+    return null;
+  }
+  return (
+    <>
+      <Field htmlFor={ids.date} label={label("dateColumn")}>
+        <NativeSelect
+          className="w-full"
+          id={ids.date}
+          onChange={(event) =>
+            setDraft({ ...draft, dateColumn: event.target.value })
+          }
+          value={draft.dateColumn}
+        >
+          <NativeSelectOption value="">
+            {label("noDateColumn")}
+          </NativeSelectOption>
+          {dateColumns.map((column) => (
+            <NativeSelectOption key={column.id} value={column.id}>
+              {column.header ?? column.id}
+            </NativeSelectOption>
+          ))}
+        </NativeSelect>
+      </Field>
+      <CheckField
+        checked={draft.compare}
+        disabled={!draft.dateColumn}
+        id={ids.compare}
+        label={label("compare")}
+        onChange={(compare) => setDraft({ ...draft, compare })}
+      />
+      {draft.compare && draft.dateColumn ? (
+        <div className="grid grid-cols-2 gap-4">
+          <Field htmlFor={ids.days} label={label("compareDays")}>
+            <NativeSelect
+              className="w-full"
+              id={ids.days}
+              onChange={(event) =>
+                setDraft({ ...draft, compareDays: Number(event.target.value) })
+              }
+              value={String(draft.compareDays)}
+            >
+              {dashboardCompareDayOptions(locale, translate).map((option) => (
+                <NativeSelectOption
+                  key={option.value}
+                  value={String(option.value)}
+                >
+                  {option.label}
+                </NativeSelectOption>
+              ))}
+            </NativeSelect>
+          </Field>
+          <Field htmlFor={ids.better} label={label("compareBetter")}>
+            <NativeSelect
+              className="w-full"
+              id={ids.better}
+              onChange={(event) =>
+                setDraft({
+                  ...draft,
+                  compareBetter: event.target.value === "down" ? "down" : "up",
+                })
+              }
+              value={draft.compareBetter}
+            >
+              <NativeSelectOption value="up">
+                {label("compareUp")}
+              </NativeSelectOption>
+              <NativeSelectOption value="down">
+                {label("compareDown")}
+              </NativeSelectOption>
+            </NativeSelect>
+          </Field>
+        </div>
+      ) : null}
+      <CheckField
+        checked={draft.sparkline}
+        disabled={!draft.dateColumn}
+        id={ids.sparkline}
+        label={label("sparkline")}
+        onChange={(sparkline) => setDraft({ ...draft, sparkline })}
+      />
+    </>
+  );
+}
+
 function KpiFields({
   draft,
   ids,
@@ -170,11 +311,11 @@ function KpiFields({
   tables,
   translate,
 }: {
-  draft: WidgetDraft;
+  draft: DashboardWidgetDraft;
   ids: Record<string, string>;
   label: DashboardLabel;
   locale: string;
-  setDraft: (draft: WidgetDraft) => void;
+  setDraft: (draft: DashboardWidgetDraft) => void;
   tables: Record<string, DashboardTableInfo>;
   translate: DashboardTranslate;
 }) {
@@ -222,6 +363,15 @@ function KpiFields({
           </NativeSelect>
         </Field>
       )}
+      <KpiPeriodFields
+        draft={draft}
+        ids={ids}
+        label={label}
+        locale={locale}
+        setDraft={setDraft}
+        tables={tables}
+        translate={translate}
+      />
     </>
   );
 }
@@ -242,30 +392,31 @@ export function AddWidgetDialog({
     type: `${prefix}-type`,
     table: `${prefix}-table`,
     view: `${prefix}-view`,
+    overflow: `${prefix}-overflow`,
     metric: `${prefix}-metric`,
     column: `${prefix}-column`,
+    date: `${prefix}-date`,
+    compare: `${prefix}-compare`,
+    days: `${prefix}-days`,
+    better: `${prefix}-better`,
+    sparkline: `${prefix}-sparkline`,
     title: `${prefix}-title`,
     text: `${prefix}-text`,
   };
-  const initial = (): WidgetDraft => ({
-    type: "view",
-    tableId: Object.keys(tables).at(0) ?? "",
-    viewId: "",
-    metric: "count",
-    metricColumn: "",
-    title: "",
-    text: "",
-  });
+  const initial = () => emptyWidgetDraft(Object.keys(tables).at(0) ?? "");
   const [draft, setDraft] = useState(initial);
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    onAdd(draftWidget(draft));
+    onAdd(dashboardWidgetFromDraft(draft));
     setDraft(initial());
     onOpenChange(false);
   };
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent data-dashboard-dialog="add-widget">
+      <DialogContent
+        className="max-h-[calc(100dvh-2rem)] overflow-y-auto"
+        data-dashboard-dialog="add-widget"
+      >
         <DialogHeader>
           <DialogTitle>{label("addWidgetTitle")}</DialogTitle>
         </DialogHeader>
@@ -301,6 +452,14 @@ export function AddWidgetDialog({
               setDraft={setDraft}
               tables={tables}
               views={views}
+            />
+          )}
+          {draft.type === "view" && (
+            <OverflowField
+              draft={draft}
+              ids={ids}
+              label={label}
+              setDraft={setDraft}
             />
           )}
           {draft.type === "kpi" && (
@@ -403,7 +562,10 @@ export function AddFilterDialog({
   };
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent data-dashboard-dialog="add-filter">
+      <DialogContent
+        className="max-h-[calc(100dvh-2rem)] overflow-y-auto"
+        data-dashboard-dialog="add-filter"
+      >
         <DialogHeader>
           <DialogTitle>{label("addFilterTitle")}</DialogTitle>
         </DialogHeader>

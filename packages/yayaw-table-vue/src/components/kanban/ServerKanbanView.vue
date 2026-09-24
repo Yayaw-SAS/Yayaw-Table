@@ -19,11 +19,11 @@ const label = (key: "loading" | "retry" | "loadMore" | "empty", fallback: string
  <p v-if="state.loading" role="status">{{ label('loading', 'Loading…') }}</p>
  <div v-if="state.error" role="alert">{{ state.error }}<button class="yayaw-button" type="button" @click="session?.load()">{{ label('retry', 'Retry') }}</button></div>
  <p v-if="!state.loading && !state.error && !state.lanes.length">{{ label('empty', 'No results') }}</p>
- <div class="yayaw-card-view-shell"><div class="yayaw-kanban">
- <section v-for="lane in state.lanes" :key="lane.value" class="yayaw-kanban-lane" :aria-label="lane.label">
+ <div class="yayaw-card-view-shell"><div class="yayaw-kanban" data-kanban-board="">
+ <section v-for="lane in state.lanes" :key="lane.value" class="yayaw-kanban-lane" :aria-label="lane.label" :data-kanban-lane="lane.value">
  <header><strong>{{ lane.label }}</strong><span class="yayaw-count">{{ lane.totalCount }}</span></header>
  <div class="yayaw-kanban-cards">
- <article v-for="row in lane.rows" :key="source.getRowId?.(row) ?? String(row.id)" class="yayaw-card yayaw-kanban-card">
+ <article v-for="row in lane.rows" :key="source.getRowId?.(row) ?? String(row.id)" class="yayaw-card yayaw-kanban-card" :data-row-id="source.getRowId?.(row) ?? String(row.id)">
  <button type="button" class="yayaw-button yayaw-button-ghost" :disabled="!source.onActivate" @click="source.onActivate?.(row)">{{ fieldText(value(row, titleColumn), column(titleColumn), context.locale, row) || row.id }}</button>
  <dl class="yayaw-card-properties labeled"><template v-for="id in propertyIds.filter(item => item !== titleColumn)" :key="id"><dt>{{ column(id).header }}</dt><dd><CellRenderer :column="column(id)" :row="row" :value="value(row, id)" /></dd></template></dl>
  </article>

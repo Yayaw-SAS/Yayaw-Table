@@ -117,7 +117,9 @@ offer the mode.
 `stacking` (areas: `stacked`, `percent`, `none`), `curve` (`smooth`,
 `linear`), `lineMetric` and `lineMetricColumn` (the line of a `combo`, whose
 bars use `metric`), `stageOrder` (funnel stages as option values), `sort`,
-`cumulative`, `hideEmpty`, `topN`, `showDataLabels`, `showLegend`, `colors`.
+`cumulative`, `hideEmpty`, `topN`, `showDataLabels`, `showLegend`, `colors`,
+`fill` (take the height of the nearest CSS size container instead of 320px,
+without title, table toggle or hint; dashboards set it).
 A combo chart puts its line on a right axis when the two metrics' number
 formats differ; a funnel shows each stage's value, share of the first stage
 and conversion from the previous one.
@@ -205,7 +207,12 @@ import YayawDashboard from "@/components/ui/yayaw-table-vue/dashboard/YayawDashb
   widgets may show; `displayModeRenderers` for widgets using optional modes;
   `dashboardId` (else the first one `list` returns); `canEdit` (false by
   default); `openView(tableId, viewId)`; `renderMarkdown(text)` (sanitize any
-  HTML); `translations` as `dashboard.<key>`; `onChange` (Vue `change`).
+  HTML); `locale` (every widget follows it); `translations` as
+  `dashboard.<key>`; `tableTranslations`, the page's table labels passed to
+  every widget (React needs them for a French page; Vue has French built in);
+  `onChange` (Vue `change`).
+- Phones stack widgets: numbers and notes at their content's height, charts
+  at a 16:10 body, record widgets at their rows' height.
 - Storage: `actions.dashboards` (`list`, `load`, `save`, `remove`), see
   [server contracts](server-contracts.md#dashboards). The JSON is
   `{ version: 1, id, name, layout, widgets, filters }`; the model repairs
@@ -215,7 +222,26 @@ import YayawDashboard from "@/components/ui/yayaw-table-vue/dashboard/YayawDashb
   alone, as `requiredFilters`: the server must AND them with everything else,
   including a view that matches any rule with OR.
 - Each widget is its own table instance (`instanceId`, `initialView`, URL
-  sync off), so a dashboard never writes to the page URL.
+  sync off, no toolbar, no row selection), so a dashboard never writes to the
+  page URL.
+- Nothing scrolls inside a widget by default. A view widget's
+  `settings.overflow` is `"fit"` (default: tables, lists, galleries, boards
+  and feeds drop their pagination, show the records that fit and "+N more ·
+  View all", which calls `openView`) or `"scroll"` (the widget scrolls and
+  keeps the view's pagination). Fitting hides the elements marked
+  `data-row-id` (lanes `data-kanban-lane`) that overflow; a custom renderer
+  used in a fit widget should mark its records the same way. "+N more" reads
+  `meta.totalCount` from `list`.
+- Charts in widgets fill them: dashboards set the chart setting `fill: true`
+  (legend placement, data labels and axes follow the room).
+- Numbers (`type: "kpi"`) take `settings: { metric, metricColumn?, label?,
+  dateColumn?, compare?: { period: "previous", days?: 30, better?: "up" |
+  "down" }, sparkline?: { bucket?: "month", buckets?: 6 } }`. `compare` and
+  `sparkline` need `dateColumn`; the dashboard's date range on that column
+  sets the current period, else the last `days` days.
+- New widgets take a size by type and display mode (numbers 1×1, notes 1×2,
+  tables, lists, charts and maps 2×2, boards, galleries, calendars, feeds and
+  forms 2×3).
 
 ## Custom renderers
 

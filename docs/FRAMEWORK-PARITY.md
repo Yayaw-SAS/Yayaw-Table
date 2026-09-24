@@ -859,7 +859,7 @@ The shared `chart-model.ts` owns everything but the drawing:
   `donut`, `funnel`, `number`), `xColumn`, `bucket`, `weekStartsOn`,
   `metric`, `metricColumn`, `seriesColumn`, `stacked`, `stacking`, `curve`,
   `lineMetric`, `lineMetricColumn`, `stageOrder`, `sort`, `cumulative`,
-  `hideEmpty`, `topN`, `showDataLabels`, `showLegend`, `colors`. Saved with
+  `hideEmpty`, `topN`, `showDataLabels`, `showLegend`, `colors`, `fill`. Saved with
   views and in `<tableId>-chart`. Defaults: bars, first option column (else
   date, else any groupable column), count, `stacking: "stacked"`,
   `curve: "smooth"`, `lineMetric: "count"`; views saved before these settings
@@ -970,6 +970,16 @@ charts, x labels of lines and areas that would overlap are skipped (Recharts'
 default interval) or hidden (Unovis `tickTextHideOverlapping`), and
 horizontal bars with data labels keep `chartBarLabelRoom` pixels past the
 longest bar so its value is not cut at the edge (both checked at 390 px).
+
+`fill: true` (a chart setting, set by dashboards on their embedded tables)
+makes the chart take the height of its nearest size container (`100cqh`)
+instead of 320px, without title, table toggle or hint. Each edition measures
+the room left and follows `chartFillLayout` (shared): the legend beside a
+donut in a wide box, under a chart when the plot keeps 96px, beside it when
+that fits, else none; data labels only with room per category; no value axis
+under 220px or when bars carry their values; category labels thinned (Recharts
+`preserveStartEnd`, Unovis every `categoryStep`-th tick with overlapping ticks
+hidden); small donuts show their total alone.
 
 Verification: `tests/chart-model-suite.ts` runs in both editions (settings,
 request and parameters, buckets incl. DST and week starts, labels, every
@@ -2312,7 +2322,8 @@ applies layout changes and reports every widget's place after a drag or a
 resize. Until gridstack is ready (or if it fails), `dashboard-grid.css`
 (shared) places the items from CSS variables, so there is no layout shift.
 Grids narrower than 640px stack the widgets in reading order, full width,
-without drag; the widget menu still moves them.
+without drag, each as tall as on desktop (its rows of 120px less the
+margins); the widget menu still moves them.
 
 The shared `dashboard-model.ts` owns the contract and every rule:
 
@@ -2327,15 +2338,83 @@ The shared `dashboard-model.ts` owns the contract and every rule:
   are resolved with the moved widget fixed, then everything rises (gridstack's
   top gravity). Keyboard moves swap with the neighbour above, below or beside
   (left/right fall back to one column); Wider moves the widget left at the
-  edge. Menu entries that cannot apply are disabled. New widgets (view 2×3,
-  number 1×1, note 1×2) take the first free spot.
+  edge. Menu entries that cannot apply are disabled. New widgets take the
+  first free spot at a size that suits them (`defaultWidgetSize`,
+  `dashboardWidgetSize`): numbers 1×1, notes 1×2, views 2×2 (table, list,
+  chart, map), boards, galleries, calendars, feeds and forms 2×3, file trees
+  1×3, Gantt charts 4×3 — by the display mode of the chosen view, or of the
+  table's default view.
 - Widgets: `view` renders the saved view (`viewId`, or the table's defaults)
   in its display mode through an embedded table (`instanceId`,
-  `initialView`, URL sync, toolbar and header off). `kpi` renders a number
-  chart (`metric`: count, sum, avg, min, max; `metricColumn`) over its view's
-  records, compacted by `dashboard-grid.css`. `note` renders
-  `settings.text` through the host's `renderMarkdown` (React node / Vue
-  `VNodeChild`) or as plain text.
+  `initialView`; URL sync, toolbar, header, saved views and row selection
+  off). `kpi` renders a number (`metric`: count, sum, avg, min, max;
+  `metricColumn`) over its view's records, loaded by the dashboard itself
+  through the chart contract (`loadDashboardKpi`: `aggregate` with
+  `groupBy: []`, else the rows `list` returns), so numbers no longer need the
+  chart renderer. `note` renders `settings.text` through the host's
+  `renderMarkdown` (React node / Vue `VNodeChild`) or as plain text.
+- No inner scrollbars by default. Widget bodies clip (`overflow: hidden`) and
+  are CSS size containers. A view widget's `settings.overflow` is `"fit"`
+  (default) or `"scroll"`:
+  - Fit, in table, list, gallery, board and feed modes: the embedded table
+    has no pagination and loads `dashboardFitPageSize(mode, size,
+    view.pageSize)` records (the view's own page size when it has one, e.g. a
+    "Top 5" view; otherwise enough to fill the widget with the smallest
+    records, 5 to 100). `dashboard-fit.ts` (shared DOM helper) then hides, on
+    every resize and content change (ResizeObserver, MutationObserver, image
+    loads, fonts), the board lanes and table columns that overflow the width
+    and the records that overflow the height, from the lowest up; the first
+    record always stays. Records are the elements marked `data-row-id` (table
+    rows, list lines, gallery cards, board cards, feed posts — both editions),
+    lanes `data-kanban-lane`, boards `data-kanban-board`; hidden ones carry
+    `data-dashboard-overflow`. The widget's footer reads "+N more · View all"
+    (`moreCount`, `viewAll`): N is the `list` total (`meta.totalCount`, else
+    the rows sent) less the records shown, and View all calls `openView`.
+    Board lanes share the width (`minmax(9rem, 1fr)`), feeds lose their "Load
+    more" footer.
+  - Scroll: the body scrolls, and table, list, gallery, board and feed views
+    keep their pagination (every other mode has none in a widget).
+- Charts fill their widget: the embedded table's chart defaults get
+  `fill: true` (a new chart setting, also usable by hosts): the chart takes
+  its size container's height (`100cqh`), drops its title, table toggle and
+  hint, and `chartFillLayout` (shared chart model) decides from its measured
+  size where the legend goes (beside a donut in a wide box, under the chart
+  when the plot keeps 96px, beside it when that fits, else none), whether
+  data labels fit (36px per category, 18px per horizontal bar, 150px of
+  height; donut values when the legend shows), whether the value axis stays
+  (220px wide, and never with values on bars) and which category labels show
+  (Recharts `preserveStartEnd`; every `categoryStep`-th tick with
+  `tickTextHideOverlapping` in Unovis). Small donuts keep only their total.
+- Numbers: `settings.dateColumn` enables `compare: { period: "previous",
+  days?: 30, better?: "up" | "down" }` (or `true`) and `sparkline: { bucket?:
+  "month", buckets?: 6 }` (or `true`), normalized by `dashboardKpiSettings`.
+  `dashboardKpiPlan` builds the requests: the current period is the
+  dashboard's date range on `dateColumn` when a date filter targets it (both
+  ends; a start alone runs to today, an end alone `days` back), otherwise the
+  last `days` days up to today; the previous period is as long, just before
+  it. Each request replaces the dashboard's rules on `dateColumn` by its
+  period (`between`), keeps the others and goes out as `requiredFilters`. The
+  trend groups the metric by `bucket` over the `buckets` buckets ending with
+  the current period (`dashboardSparklineKeys`, missing buckets are 0).
+  `dashboardKpiDisplay` formats the figure with the column's format
+  (`chartValueFormatter`), the change as "+12% vs previous period" in the
+  locale's percent format (`dashboardComparisonText`; one decimal under
+  10 %, "Nothing in the previous period" when only the current period has a
+  value) with a tone (`better` decides whether up is good) and a tooltip
+  naming both periods, and the trend as an SVG polyline
+  (`dashboardSparklinePoints`) titled with each bucket's value. Number cards
+  are compact (title above the figure, no header rule) so the figures of a
+  row line up.
+- Compact filters: outside edit mode each filter is one button showing its
+  name, then its value ("Due date" "Any date", "Category" "All"); its legend
+  and "Applies to …" stay for screen readers (`aria-describedby`). Edit mode
+  shows them as before, with the remove buttons and "Add filter".
+- Widget picker: views choose "Records that do not fit" (fit or scroll);
+  numbers choose a date column, "Compare with the previous period" with its
+  period (7, 30, 90 or 365 days) and "Better when it" goes up or down, and
+  "Trend line" (6 months). The draft is shared (`emptyWidgetDraft`,
+  `dashboardWidgetFromDraft`, `dashboardDateColumns`,
+  `dashboardCompareDayOptions`).
 - Filters: `dateRange` (`{ start?, end? }` calendar days → `between`,
   `greaterThanOrEqual` or `lessThanOrEqual`) and `select` (values →
   `isAnyOf`), each with `targets: [{ tableId, columnId, widgetIds? }]`.
@@ -2347,7 +2426,15 @@ The shared `dashboard-model.ts` owns the contract and every rule:
   The demo hosts honour `requiredFilters`. Filter values change in view mode
   without saving; definitions are added and removed in edit mode.
 - Labels: EN/FR `dashboardLabel`, host overrides `dashboard.<key>`
-  (`translations`).
+  (`translations`). `locale` reaches every widget (numbers, dates, table
+  labels) and `tableTranslations` (the page's `DataTableTranslations`) is
+  passed to every embedded table: React has no built-in French table labels,
+  so a French page passes its own; Vue picks its built-in French from
+  `locale` and applies `tableTranslations` as overrides.
+- Phones: widgets stack in reading order. Numbers and notes take the height
+  of their content and charts a 16:10 body (11–20rem) from the phone's width
+  (`dashboard-grid.css`, via `data-widget-type` and `data-widget-mode`);
+  record widgets keep their rows' height, which sets how many records fit.
 
 Behaviour, identical in both editions: the header shows the name (an input in
 edit mode), "Refresh all", "Add widget" (edit), "Edit"/"Done" when `canEdit`;
@@ -2387,24 +2474,52 @@ Found on the way, now aligned in both editions:
 
 Verification for these: `tests/boolean-cell.test.tsx`,
 `packages/yayaw-table-vue/src/components/card-value-parity.test.ts`, the
-shared `value-format` suite and the last `e2e/dashboard.spec.ts` test.
+shared `value-format` suite, the picker test (booleans, board cards) and the
+last test (list pages) of `e2e/dashboard.spec.ts`.
 
-Demo: "Projects overview" (`?example=dashboard`, `examples/dashboard.ts`):
-the views example's Projects table (numbers, "Revenue by category", "Projects
-list", "Status board") and a Tasks table ("Open tasks"), a note, a "Due date"
-filter on Projects › Due and Tasks › Deadline and a "Category" filter,
-in-memory storage mirrored in `sessionStorage`. `?readonly` removes edit
-rights; `?theme=dark` shows the dark tokens. Requests are logged in
-`window.yayawDashboardRequests`.
+Demo: "Projects overview" (`?example=dashboard`, `examples/dashboard.ts`,
+identical in both editions), laid out to fit 1280×800 without a scrollbar
+and to stack on phones. Its own data follows today (32 projects due from
+six months ago to next month, 10 tasks), so the numbers, comparison and
+trends always look current. Row 1: four numbers — Revenue (sum of Revenue,
+last 30 days by Due vs the 30 before, 6-month trend), Projects (count,
+6-month trend), Needs attention (count of the "Delayed or On hold" view) and
+Due this week (count of the "next 7 days" view). Rows 2–3: "Revenue by
+month" (line, 2×2), "Revenue by category" (horizontal bars with values,
+1×2), "Projects by status" (donut, legend beside, 1×2). Rows 4–5: "Top
+projects by revenue" (list sorted by revenue, 5 per page, 2×2) and "Open
+tasks" (table, 2×2), both "+N more". Filters: "Due date" on Projects › Due
+and Tasks › Deadline, "Category" on Projects › Category. In-memory storage
+mirrored in `sessionStorage` (key `yayaw-demo-dashboards-v2`). `?readonly`
+removes edit rights; `?theme=dark` shows the dark tokens; `?lang=fr` shows it
+in French (React passes French pagination labels as `tableTranslations`). Requests are
+logged in `window.yayawDashboardRequests`; "Open full view" and "View all"
+show what the host received in a corner.
 
 Verification: `tests/dashboard-model-suite.ts` (normalization, collisions,
 keyboard moves and resizes, phones, grid changes, widgets, KPI configs,
 titles and labels, views, filter rules per widget, AND merge and
-`requiredFilters`, action wrapping, filters, validation and versions) runs in
-both editions. `e2e/dashboard.spec.ts` on both demos: every widget renders
-from its own view with the URL untouched; dashboard filters change the
-numbers, lists and tasks and reach `list`/`aggregate` as `requiredFilters`;
-keyboard moves and resizes are saved and kept after a reload; drag to move and
-the resize handle; adding a table view and a number from the picker, and
-removing one; phones stack in reading order without drag; "Open full view"
-calls the host and readers cannot edit.
+`requiredFilters`, action wrapping, filters, validation and versions, default
+sizes, fit page sizes and "+N more" counts, KPI settings, periods,
+comparisons and their text, sparkline buckets, values and points, KPI plans,
+loading through `aggregate` and through `list`, KPI display, picker drafts)
+runs in both editions; `tests/chart-model-suite.ts` covers `chartFillLayout`
+and the `fill` setting in both. `e2e/dashboard.spec.ts` on both demos: at
+1280×800 every widget renders from its own view, with the numbers, the
+revenue comparison ("+38% vs previous period", positive, up) and trend
+lines, filled charts without titles, and no element inside the dashboard
+scrolling either way (nor the page); fit widgets show whole records inside
+their card, "+N more" matches the total less the records shown, View all
+opens the full view, and widgets have no pagination nor selection; the due
+date filter reaches `list`/`aggregate` as `requiredFilters` and becomes the
+revenue's period (its comparison text checked against the demo data), the
+category filter narrows the projects; keyboard moves and resizes are saved
+and kept after a reload; a one-row donut drops its legend and narrow charts
+still draw, without scrollbars; drag to move and the resize handle; the
+picker adds a tasks table (2×2, booleans as marks), a board (2×3, cards
+inside, "+N more") and a number comparing 90 days with its trend, and a note
+has nothing to open; phones stack in reading order without drag or
+scrollbars, numbers at their content's height, charts at 16:10 and record
+widgets at their rows' height; a French page (`?lang=fr`) shows French
+dashboard labels and a scrolling widget's pagination in French; "Open full
+view" calls the host and readers cannot edit.

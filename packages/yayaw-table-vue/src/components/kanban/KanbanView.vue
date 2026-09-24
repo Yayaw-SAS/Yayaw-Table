@@ -145,8 +145,8 @@ const toggleSelection = (row: TableRecord, checked: boolean): void => {
   />
   <div v-else class="yayaw-card-view-shell">
 
-    <div class="yayaw-kanban">
-      <section v-for="group in rawGroups" :key="group.value" class="yayaw-kanban-lane" @dragover.prevent @drop="drop(group.value)">
+    <div class="yayaw-kanban" data-kanban-board="">
+      <section v-for="group in rawGroups" :key="group.value" class="yayaw-kanban-lane" :data-kanban-lane="group.value" @dragover.prevent @drop="drop(group.value)">
         <header><strong>{{ group.label }}</strong><span class="yayaw-count">{{ rowsFor(group.value).length }}</span></header>
         <div class="yayaw-kanban-cards">
           <article
@@ -154,6 +154,7 @@ const toggleSelection = (row: TableRecord, checked: boolean): void => {
             :key="context.getRowId(row)"
             class="yayaw-card yayaw-kanban-card"
             :class="{ pending: pending === context.getRowId(row) }"
+            :data-row-id="context.getRowId(row)"
             :draggable="canDrag && canEditRow(row)"
             tabindex="0"
             @dragstart="dragged = row"

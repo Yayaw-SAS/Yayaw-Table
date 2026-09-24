@@ -704,6 +704,7 @@ function DataTableGalleryCard<TData extends Record<string, unknown>>({
           "border-primary/60 ring-1 ring-primary/30"
       )}
       data-active={isActive ? "true" : undefined}
+      data-row-id={row.id}
       onClick={
         isClickable
           ? (event) => {

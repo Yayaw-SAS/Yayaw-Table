@@ -18,8 +18,10 @@ import {
   Component,
   type ReactNode,
   useCallback,
+  useEffect,
   useId,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { Button } from "@/src/components/ui/button";
@@ -35,17 +37,25 @@ import type { TableConfig } from "@/src/components/ui/yayaw-table/config/helpers
 import type { TableActions } from "@/src/components/ui/yayaw-table/providers/table-provider";
 import type { TableDisplayMode } from "@/src/components/ui/yayaw-table/types/display-types";
 import type { DisplayModeRenderers } from "@/src/components/ui/yayaw-table/types/display-mode-renderer";
+import type { DataTableTranslations } from "@/src/components/ui/yayaw-table/types/translations";
 import type { TableView } from "@/src/components/ui/yayaw-table/types/view-types";
+import { observeDashboardFit } from "./dashboard-fit";
 import {
   canMoveLayoutItem,
   canResizeLayoutItem,
   type DashboardDirection,
   type DashboardLabelKey,
   type DashboardLayoutItem,
+  type DashboardOverflow,
   type DashboardResize,
   type DashboardView,
   type DashboardWidget,
+  dashboardFitPageSize,
+  dashboardFitsRecords,
+  dashboardListTotal,
+  dashboardMoreCount,
   widgetDisplayMode,
+  widgetOverflow,
   widgetViewConfig,
   withDashboardFilters,
 } from "./dashboard-model";
@@ -188,6 +198,8 @@ export function DashboardWidgetFrame({
   widget,
 }: DashboardWidgetFrameProps) {
   const titleId = useId();
+  const overflow: DashboardOverflow =
+    widget.type === "view" ? widgetOverflow(widget) : "fit";
   return (
     <section
       aria-labelledby={titleId}
@@ -195,7 +207,10 @@ export function DashboardWidgetFrame({
       data-dashboard-widget={widget.id}
       data-widget-type={widget.type}
     >
-      <header className="flex min-h-11 items-center gap-1 border-b px-2 py-1.5">
+      <header
+        className="flex min-h-10 items-center gap-1 border-b px-2 py-1"
+        data-widget-header=""
+      >
         {editing && !phone && (
           <span
             aria-hidden="true"
@@ -237,7 +252,11 @@ export function DashboardWidgetFrame({
           />
         )}
       </header>
-      <div className="min-h-0 flex-1 overflow-auto p-3" data-widget-body="">
+      <div
+        className="flex min-h-0 flex-1 flex-col p-3"
+        data-overflow={overflow}
+        data-widget-body=""
+      >
         {children}
       </div>
     </section>
@@ -301,22 +320,92 @@ export function WidgetMessage({
   );
 }
 
-const withMode = (config: TableConfig, mode: string): TableConfig => {
+/**
+ * The table as a widget embeds it: no URL, toolbar, views or row selection;
+ * charts fill the widget. Only records that scroll (`overflow: "scroll"`)
+ * keep their pagination; fit records show "+N more" instead.
+ */
+const withMode = (
+  config: TableConfig,
+  mode: string,
+  paginated: boolean
+): TableConfig => {
   const modes = config.table.displayModes ?? ["table"];
+  const chart = config.table.chart;
   return {
     ...config,
     table: {
       ...config.table,
-      // Embedded: no URL, no toolbar, the widget's own view.
       syncUrl: false,
       showToolbar: false,
       showToolbarHeader: false,
       enableViews: false,
+      enableRowSelection: false,
+      ...(paginated ? {} : { enablePagination: false }),
+      ...(chart === false
+        ? {}
+        : { chart: { ...(typeof chart === "object" ? chart : {}), fill: true } }),
       displayModes: modes.includes(mode as TableDisplayMode)
         ? modes
         : [...modes, mode as TableDisplayMode],
     },
   };
+};
+
+/** "+3 more · View all" under a fit widget's records. */
+export function WidgetMore({
+  count,
+  label,
+  onViewAll,
+}: {
+  count: number;
+  label: DashboardLabel;
+  onViewAll?: () => void;
+}) {
+  return (
+    <footer data-widget-more="">
+      <span>{label("moreCount", { count })}</span>
+      {onViewAll ? (
+        <>
+          <span aria-hidden="true">·</span>
+          <button onClick={onViewAll} type="button">
+            {label("viewAll")}
+          </button>
+        </>
+      ) : null}
+    </footer>
+  );
+}
+
+/** Records shown by a fit widget, as its container fits them. */
+function useFitRecords(enabled: boolean, key: string) {
+  const container = useRef<HTMLDivElement>(null);
+  const [shown, setShown] = useState<number>();
+  useEffect(() => {
+    const element = container.current;
+    setShown(undefined);
+    if (!(enabled && element && key)) {
+      return;
+    }
+    return observeDashboardFit(element, (result) => setShown(result.shown));
+  }, [enabled, key]);
+  return { container, shown };
+}
+
+/**
+ * Totals `list` reported per instance: an instance mounted again (a phone
+ * rotated to a desktop width) reads its rows from the query cache, not `list`.
+ * The most recent ones are kept.
+ */
+const listTotals = new Map<string, number>();
+const MAX_LIST_TOTALS = 200;
+const rememberTotal = (instanceId: string, total: number) => {
+  listTotals.delete(instanceId);
+  listTotals.set(instanceId, total);
+  const oldest = listTotals.keys().next().value;
+  if (listTotals.size > MAX_LIST_TOTALS && oldest !== undefined) {
+    listTotals.delete(oldest);
+  }
 };
 
 /** Short, stable instance keys (widget, filters and refresh count). */
@@ -339,21 +428,31 @@ export interface EmbeddedTableWidgetProps {
   locale: string;
   label: DashboardLabel;
   getRowId?: (row: Record<string, unknown>) => string;
+  /** The widget's size in the layout, which sets how many records a fit widget loads. */
+  size: { w: number; h: number };
+  /** "View all" under the records of a fit widget: the full view. */
+  onViewAll?: () => void;
+  /** The page's table labels, e.g. French pagination. */
+  translations?: DataTableTranslations;
 }
 
 /**
  * A table instance of its own (no URL, private state) showing the widget's
- * view; the dashboard filters join its `list`/`aggregate` requests.
+ * view; the dashboard filters join its `list`/`aggregate` requests. A fit
+ * widget (the default) shows the records that fit and "+N more".
  */
 export function EmbeddedTableWidget({
   dashboardId,
   getRowId,
   label,
   locale,
+  onViewAll,
   renderers,
   revision,
   rules,
+  size,
   source,
+  translations,
   view,
   widget,
 }: EmbeddedTableWidgetProps) {
@@ -364,11 +463,23 @@ export function EmbeddedTableWidget({
     [view, widget]
   );
   const mode = widgetDisplayMode(viewConfig);
+  const records = dashboardFitsRecords(mode);
+  const fits = records && widgetOverflow(widget) === "fit";
+  const pageSize = fits
+    ? dashboardFitPageSize(mode, size, viewConfig.pageSize)
+    : undefined;
+  const paginated = records && !fits;
   const config = useMemo(
-    () => withMode(source.config, mode),
-    [mode, source.config]
+    () => withMode(source.config, mode, paginated),
+    [mode, paginated, source.config]
   );
   const rulesKey = JSON.stringify(rules);
+  const instanceId = `dashboard-${hash(
+    `${dashboardId}:${widget.id}:${rulesKey}:${revision}:${attempt}:${pageSize ?? ""}`
+  )}`;
+  // Re-renders when `list` answers; the total is read for the current instance.
+  const [, setListed] = useState(0);
+  const total = listTotals.get(instanceId);
   const actions = useMemo(() => {
     const filtered = withDashboardFilters(
       source.actions,
@@ -382,7 +493,12 @@ export function EmbeddedTableWidget({
             list: async (params: Record<string, unknown>) => {
               try {
                 const result = await list(params);
+                const count = dashboardListTotal(result);
+                if (count !== undefined) {
+                  rememberTotal(instanceId, count);
+                }
                 setFailure(undefined);
+                setListed((value) => value + 1);
                 return result;
               } catch (error) {
                 setFailure(
@@ -394,18 +510,19 @@ export function EmbeddedTableWidget({
           }
         : {}),
     } as TableActions;
-  }, [rulesKey, source.actions]);
+  }, [instanceId, rulesKey, source.actions]);
   const retry = useCallback(() => {
     setFailure(undefined);
     setAttempt((value) => value + 1);
   }, []);
-  const instanceId = `dashboard-${hash(
-    `${dashboardId}:${widget.id}:${rulesKey}:${revision}:${attempt}`
-  )}`;
   const initialView = useMemo(
-    () => ({ id: view?.id ?? null, config: viewConfig }),
-    [view?.id, viewConfig]
+    () => ({
+      id: view?.id ?? null,
+      config: pageSize ? { ...viewConfig, pageSize } : viewConfig,
+    }),
+    [pageSize, view?.id, viewConfig]
   );
+  const fit = useFitRecords(fits, instanceId);
   if (mode === "chart" && !renderers?.chart) {
     return (
       <WidgetMessage tone="error">
@@ -413,8 +530,33 @@ export function EmbeddedTableWidget({
       </WidgetMessage>
     );
   }
+  const table = (
+    <DataTable
+      displayModeRenderers={renderers}
+      enableToolbar={false}
+      getRowId={getRowId}
+      getTableActions={() => actions}
+      getTableConfig={() => config}
+      initialView={initialView}
+      instanceId={instanceId}
+      key={instanceId}
+      locale={locale}
+      showFilterBar={false}
+      tableId={instanceId}
+      tableType={widget.tableId ?? source.config.id}
+      translations={translations}
+    />
+  );
+  const more =
+    fits && total !== undefined && fit.shown !== undefined
+      ? dashboardMoreCount(total, fit.shown)
+      : 0;
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2" data-widget-mode={mode}>
+    <div
+      className="flex h-full min-h-0 flex-col"
+      data-widget-mode={mode}
+      data-widget-overflow={fits ? "fit" : undefined}
+    >
       {failure && (
         <WidgetMessage
           onRetry={retry}
@@ -424,20 +566,16 @@ export function EmbeddedTableWidget({
           {label("widgetError", { error: failure })}
         </WidgetMessage>
       )}
-      <DataTable
-        displayModeRenderers={renderers}
-        enableToolbar={false}
-        getRowId={getRowId}
-        getTableActions={() => actions}
-        getTableConfig={() => config}
-        initialView={initialView}
-        instanceId={instanceId}
-        key={instanceId}
-        locale={locale}
-        showFilterBar={false}
-        tableId={instanceId}
-        tableType={widget.tableId ?? source.config.id}
-      />
+      {fits ? (
+        <div data-dashboard-fit="" ref={fit.container}>
+          {table}
+        </div>
+      ) : (
+        table
+      )}
+      {more > 0 ? (
+        <WidgetMore count={more} label={label} onViewAll={onViewAll} />
+      ) : null}
     </div>
   );
 }

@@ -481,6 +481,7 @@ function DataTableKanbanCard<TData extends Record<string, unknown>>({
           : undefined
       }
       id={row.id}
+      itemAttributes={{ "data-row-id": row.id }}
       name={cardName}
     >
       {cardContent}
@@ -624,6 +625,7 @@ function LocalDataTableKanbanView<TData extends Record<string, unknown>>({
         "overflow-x-auto rounded-md border bg-background",
         className
       )}
+      data-kanban-board=""
     >
       <KanbanProvider<DataTableKanbanItem<TData>, DataTableKanbanColumn>
         className="min-h-[30rem] w-max auto-cols-[18rem] gap-3 p-3"
@@ -635,6 +637,7 @@ function LocalDataTableKanbanView<TData extends Record<string, unknown>>({
         {(column) => (
           <KanbanBoard
             className="min-h-[28rem] w-[18rem] bg-muted/20"
+            data-kanban-lane={column.id}
             id={column.id}
             key={column.id}
           >

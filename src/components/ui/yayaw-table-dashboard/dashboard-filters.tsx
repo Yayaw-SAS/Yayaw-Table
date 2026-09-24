@@ -1,7 +1,7 @@
 "use client";
 
 import { CalendarIcon, ChevronDown, X } from "lucide-react";
-import { useMemo } from "react";
+import { useId, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/src/components/ui/button";
 import { Calendar } from "@/src/components/ui/calendar";
@@ -42,6 +42,17 @@ interface FilterControlProps {
   translate: DashboardTranslate;
   onChange: (value: DashboardDateRange | string[] | undefined) => void;
   onRemove: () => void;
+  /** Id of the "Applies to …" text describing the control. */
+  describedBy?: string;
+}
+
+/** Outside edit mode the filter's name leads its button, as a compact chip. */
+function TriggerName({ filter, editing }: FilterControlProps) {
+  return editing ? null : (
+    <span className="shrink-0 text-muted-foreground" data-filter-name="">
+      {filter.label}
+    </span>
+  );
 }
 
 /** Month captions, weekdays and day names in the dashboard's language. */
@@ -64,14 +75,9 @@ function useCalendarText(locale: string) {
 }
 
 /** The Form view's popover calendar, picking a range of days. */
-function DateRangeControl({
-  filter,
-  label,
-  locale,
-  onChange,
-  tables,
-  translate,
-}: FilterControlProps) {
+function DateRangeControl(props: FilterControlProps) {
+  const { describedBy, filter, label, locale, onChange, tables, translate } =
+    props;
   const text = useCalendarText(locale);
   const range = (filter.value ?? {}) as DashboardDateRange;
   const from = dashboardDay(range.start);
@@ -87,8 +93,9 @@ function DateRangeControl({
       <PopoverTrigger
         render={
           <Button
+            aria-describedby={describedBy}
             aria-label={`${filter.label}: ${shown}`}
-            className="h-8 min-w-56 justify-start gap-2 px-2.5 font-normal"
+            className="h-8 min-w-56 max-w-full justify-start gap-2 px-2.5 font-normal"
             data-filter-trigger=""
             size="sm"
             type="button"
@@ -97,6 +104,7 @@ function DateRangeControl({
         }
       >
         <CalendarIcon aria-hidden="true" className="text-muted-foreground" />
+        <TriggerName {...props} />
         <span
           className={cn(
             "min-w-0 flex-1 truncate text-left",
@@ -171,7 +179,8 @@ function OptionTag({
 }
 
 /** The library's option dropdown: "All" or the chosen options, shown as tags. */
-function SelectControl({ filter, label, onChange, tables }: FilterControlProps) {
+function SelectControl(props: FilterControlProps) {
+  const { describedBy, filter, label, onChange, tables } = props;
   const values = Array.isArray(filter.value) ? filter.value : [];
   const options = dashboardFilterOptions(filter, tables);
   const colored = dashboardFilterColoredTags(filter, tables);
@@ -187,6 +196,7 @@ function SelectControl({ filter, label, onChange, tables }: FilterControlProps) 
       <PopoverTrigger
         render={
           <Button
+            aria-describedby={describedBy}
             aria-label={filter.label}
             className="h-8 min-w-44 max-w-80 justify-start gap-1.5 px-2 font-normal"
             data-filter-trigger=""
@@ -196,6 +206,7 @@ function SelectControl({ filter, label, onChange, tables }: FilterControlProps) 
           />
         }
       >
+        <TriggerName {...props} />
         <span
           className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden"
           data-filter-value=""
@@ -248,14 +259,25 @@ function SelectControl({ filter, label, onChange, tables }: FilterControlProps) 
   );
 }
 
+/**
+ * A filter: a compact button outside edit mode (its name inside, where it
+ * applies read by screen readers); its name, remove button and targets
+ * above and below it while editing.
+ */
 function DashboardFilterControl(props: FilterControlProps) {
   const { editing, filter, label, onChange, onRemove, tables } = props;
+  const targetsId = useId();
+  const control = { ...props, describedBy: targetsId };
   return (
     <fieldset
-      className="flex min-w-0 flex-col gap-1.5"
+      className={cn("flex min-w-0 flex-col", editing && "gap-1.5")}
       data-dashboard-filter={filter.id}
     >
-      <legend className="mb-1.5 flex items-center gap-1 font-medium text-sm">
+      <legend
+        className={cn(
+          editing ? "mb-1.5 flex items-center gap-1 font-medium text-sm" : "sr-only"
+        )}
+      >
         {filter.label}
         {editing && (
           <Button
@@ -269,11 +291,11 @@ function DashboardFilterControl(props: FilterControlProps) {
           </Button>
         )}
       </legend>
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-1">
         {filter.type === "dateRange" ? (
-          <DateRangeControl {...props} />
+          <DateRangeControl {...control} />
         ) : (
-          <SelectControl {...props} />
+          <SelectControl {...control} />
         )}
         {isDashboardFilterActive(filter) && (
           <Button
@@ -286,7 +308,11 @@ function DashboardFilterControl(props: FilterControlProps) {
           </Button>
         )}
       </div>
-      <p className="text-muted-foreground text-xs" data-filter-targets="">
+      <p
+        className={editing ? "text-muted-foreground text-xs" : "sr-only"}
+        data-filter-targets=""
+        id={targetsId}
+      >
         {label("appliesTo", {
           targets: dashboardFilterTargetsLabel(filter, tables),
         })}
@@ -326,7 +352,12 @@ export function DashboardFilterBar({
   return (
     <section
       aria-label={label("filters")}
-      className="flex flex-wrap items-end gap-x-6 gap-y-3 rounded-xl border bg-muted/40 p-3"
+      className={cn(
+        "flex flex-wrap",
+        editing
+          ? "items-end gap-x-6 gap-y-3 rounded-xl border bg-muted/40 p-3"
+          : "items-center gap-2"
+      )}
       data-dashboard-filters=""
     >
       {filters.map((filter) => (

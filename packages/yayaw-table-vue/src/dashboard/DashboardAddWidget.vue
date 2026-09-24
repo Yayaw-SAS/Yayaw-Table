@@ -8,8 +8,12 @@ import {
   type DashboardTranslate,
   type DashboardView,
   type DashboardWidget,
-  type DashboardWidgetType,
+  type DashboardWidgetDraft,
+  dashboardCompareDayOptions,
+  dashboardDateColumns,
   dashboardMetricOptions,
+  dashboardWidgetFromDraft,
+  emptyWidgetDraft,
 } from "./dashboard-model";
 import type { DashboardLabel } from "./dashboard-types";
 
@@ -30,57 +34,27 @@ const emit = defineEmits<{
 const NUMBER_TYPES = new Set(["number", "currency", "percent"]);
 const prefix = useId();
 const firstTable = () => Object.keys(props.tables)[0] ?? "";
-const type = ref<DashboardWidgetType>("view");
-const tableId = ref(firstTable());
-const viewId = ref("");
-const metric = ref<DashboardKpiMetric>("count");
-const metricColumn = ref("");
-const title = ref("");
-const text = ref("");
+const draft = ref<DashboardWidgetDraft>(emptyWidgetDraft(firstTable()));
 const numberColumns = computed(() =>
-  (props.tables[tableId.value]?.columns ?? []).filter((column) => NUMBER_TYPES.has(String(column.type)))
+  (props.tables[draft.value.tableId]?.columns ?? []).filter((column) => NUMBER_TYPES.has(String(column.type)))
 );
+const dateColumns = computed(() => dashboardDateColumns(props.tables[draft.value.tableId]?.columns ?? []));
 const metricOptions = computed(() => dashboardMetricOptions(props.locale, props.translate));
+const dayOptions = computed(() => dashboardCompareDayOptions(props.locale, props.translate));
 
 const chooseTable = (value: string) => {
-  tableId.value = value;
-  viewId.value = "";
-  metricColumn.value = "";
+  draft.value = { ...draft.value, tableId: value, viewId: "", metricColumn: "", dateColumn: "" };
 };
 const chooseMetric = (value: string) => {
-  metric.value = value as DashboardKpiMetric;
-  metricColumn.value ||= numberColumns.value[0]?.id ?? "";
-};
-const widget = (): Omit<DashboardWidget, "id"> => {
-  const name = title.value.trim();
-  if (type.value === "note") {
-    return { type: "note", ...(name ? { title: name } : {}), settings: { text: text.value } };
-  }
-  const base = { type: type.value, tableId: tableId.value, ...(viewId.value ? { viewId: viewId.value } : {}) };
-  if (type.value === "view") {
-    return { ...base, ...(name ? { title: name } : {}), settings: {} };
-  }
-  return {
-    ...base,
-    settings: {
-      metric: metric.value,
-      ...(metric.value !== "count" && metricColumn.value ? { metricColumn: metricColumn.value } : {}),
-      ...(name ? { label: name } : {}),
-    },
+  draft.value = {
+    ...draft.value,
+    metric: value as DashboardKpiMetric,
+    metricColumn: draft.value.metricColumn || (numberColumns.value[0]?.id ?? ""),
   };
 };
-const reset = () => {
-  type.value = "view";
-  tableId.value = firstTable();
-  viewId.value = "";
-  metric.value = "count";
-  metricColumn.value = "";
-  title.value = "";
-  text.value = "";
-};
 const submit = () => {
-  emit("add", widget());
-  reset();
+  emit("add", dashboardWidgetFromDraft(draft.value));
+  draft.value = emptyWidgetDraft(firstTable());
   emit("update:open", false);
 };
 </script>
@@ -95,52 +69,91 @@ const submit = () => {
         <form class="yayaw-dashboard-form" @submit.prevent="submit">
           <div class="yayaw-dashboard-field">
             <label :for="`${prefix}-type`">{{ props.label("widgetType") }}</label>
-            <select :id="`${prefix}-type`" v-model="type" class="yayaw-select">
+            <select :id="`${prefix}-type`" v-model="draft.type" class="yayaw-select">
               <option value="view">{{ props.label("typeView") }}</option>
               <option value="kpi">{{ props.label("typeKpi") }}</option>
               <option value="note">{{ props.label("typeNote") }}</option>
             </select>
           </div>
-          <template v-if="type !== 'note'">
+          <template v-if="draft.type !== 'note'">
             <div class="yayaw-dashboard-field">
               <label :for="`${prefix}-table`">{{ props.label("table") }}</label>
-              <select :id="`${prefix}-table`" class="yayaw-select" :value="tableId" @change="chooseTable(($event.target as HTMLSelectElement).value)">
+              <select :id="`${prefix}-table`" class="yayaw-select" :value="draft.tableId" @change="chooseTable(($event.target as HTMLSelectElement).value)">
                 <option v-for="(table, id) in props.tables" :key="id" :value="id">{{ table.name }}</option>
               </select>
             </div>
             <div class="yayaw-dashboard-field">
               <label :for="`${prefix}-view`">{{ props.label("view") }}</label>
-              <select :id="`${prefix}-view`" v-model="viewId" class="yayaw-select">
+              <select :id="`${prefix}-view`" v-model="draft.viewId" class="yayaw-select">
                 <option value="">{{ props.label("defaultView") }}</option>
-                <option v-for="view in props.views[tableId] ?? []" :key="view.id" :value="view.id">{{ view.name }}</option>
+                <option v-for="view in props.views[draft.tableId] ?? []" :key="view.id" :value="view.id">{{ view.name }}</option>
               </select>
             </div>
           </template>
-          <template v-if="type === 'kpi'">
+          <div v-if="draft.type === 'view'" class="yayaw-dashboard-field">
+            <label :for="`${prefix}-overflow`">{{ props.label("overflow") }}</label>
+            <select :id="`${prefix}-overflow`" v-model="draft.overflow" class="yayaw-select">
+              <option value="fit">{{ props.label("overflowFit") }}</option>
+              <option value="scroll">{{ props.label("overflowScroll") }}</option>
+            </select>
+          </div>
+          <template v-if="draft.type === 'kpi'">
             <div class="yayaw-dashboard-field">
               <label :for="`${prefix}-metric`">{{ props.label("metric") }}</label>
-              <select :id="`${prefix}-metric`" class="yayaw-select" :value="metric" @change="chooseMetric(($event.target as HTMLSelectElement).value)">
+              <select :id="`${prefix}-metric`" class="yayaw-select" :value="draft.metric" @change="chooseMetric(($event.target as HTMLSelectElement).value)">
                 <option v-for="option in metricOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
               </select>
             </div>
-            <div v-if="metric !== 'count'" class="yayaw-dashboard-field">
+            <div v-if="draft.metric !== 'count'" class="yayaw-dashboard-field">
               <label :for="`${prefix}-column`">{{ props.label("metricColumn") }}</label>
-              <select :id="`${prefix}-column`" v-model="metricColumn" class="yayaw-select">
+              <select :id="`${prefix}-column`" v-model="draft.metricColumn" class="yayaw-select">
                 <option v-for="column in numberColumns" :key="column.id" :value="column.id">{{ column.header ?? column.id }}</option>
               </select>
             </div>
+            <template v-if="dateColumns.length">
+              <div class="yayaw-dashboard-field">
+                <label :for="`${prefix}-date`">{{ props.label("dateColumn") }}</label>
+                <select :id="`${prefix}-date`" v-model="draft.dateColumn" class="yayaw-select">
+                  <option value="">{{ props.label("noDateColumn") }}</option>
+                  <option v-for="column in dateColumns" :key="column.id" :value="column.id">{{ column.header ?? column.id }}</option>
+                </select>
+              </div>
+              <div class="yayaw-dashboard-check">
+                <input :id="`${prefix}-compare`" v-model="draft.compare" type="checkbox" :disabled="!draft.dateColumn">
+                <label :for="`${prefix}-compare`">{{ props.label("compare") }}</label>
+              </div>
+              <div v-if="draft.compare && draft.dateColumn" class="yayaw-dashboard-field-row">
+                <div class="yayaw-dashboard-field">
+                  <label :for="`${prefix}-days`">{{ props.label("compareDays") }}</label>
+                  <select :id="`${prefix}-days`" v-model.number="draft.compareDays" class="yayaw-select">
+                    <option v-for="option in dayOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+                  </select>
+                </div>
+                <div class="yayaw-dashboard-field">
+                  <label :for="`${prefix}-better`">{{ props.label("compareBetter") }}</label>
+                  <select :id="`${prefix}-better`" v-model="draft.compareBetter" class="yayaw-select">
+                    <option value="up">{{ props.label("compareUp") }}</option>
+                    <option value="down">{{ props.label("compareDown") }}</option>
+                  </select>
+                </div>
+              </div>
+              <div class="yayaw-dashboard-check">
+                <input :id="`${prefix}-sparkline`" v-model="draft.sparkline" type="checkbox" :disabled="!draft.dateColumn">
+                <label :for="`${prefix}-sparkline`">{{ props.label("sparkline") }}</label>
+              </div>
+            </template>
           </template>
           <div class="yayaw-dashboard-field">
             <label :for="`${prefix}-title`">{{ props.label("widgetTitle") }}</label>
-            <input :id="`${prefix}-title`" v-model="title" class="yayaw-input">
+            <input :id="`${prefix}-title`" v-model="draft.title" class="yayaw-input">
           </div>
-          <div v-if="type === 'note'" class="yayaw-dashboard-field">
+          <div v-if="draft.type === 'note'" class="yayaw-dashboard-field">
             <label :for="`${prefix}-text`">{{ props.label("noteText") }}</label>
-            <textarea :id="`${prefix}-text`" v-model="text" class="yayaw-textarea" rows="4" />
+            <textarea :id="`${prefix}-text`" v-model="draft.text" class="yayaw-textarea" rows="4" />
           </div>
           <footer class="yayaw-dashboard-dialog-footer">
             <button type="button" class="yayaw-button yayaw-button-outline" @click="emit('update:open', false)">{{ props.label("cancel") }}</button>
-            <button type="submit" class="yayaw-button" :disabled="type !== 'note' && !tableId">{{ props.label("add") }}</button>
+            <button type="submit" class="yayaw-button" :disabled="draft.type !== 'note' && !draft.tableId">{{ props.label("add") }}</button>
           </footer>
         </form>
       </DialogContent>
