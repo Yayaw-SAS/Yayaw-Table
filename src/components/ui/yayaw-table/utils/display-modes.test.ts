@@ -14,6 +14,7 @@ describe("display mode registry", () => {
       "gallery",
       "calendar",
       "chart",
+      "feed",
       "form",
       "gantt",
     ]);

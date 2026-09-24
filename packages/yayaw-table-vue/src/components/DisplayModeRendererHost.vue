@@ -110,6 +110,7 @@ const renderContext = computed<DisplayModeRenderContext>(() => ({
   aggregate: aggregateAction.value,
   rows: localRows.value,
   advancedFilters: context.state.advancedFilters.value,
+  groupBy: context.state.grouping.value[0] || undefined,
   showRecords,
   getRowId: (row) => context.getRowId(row),
   canEditRow,

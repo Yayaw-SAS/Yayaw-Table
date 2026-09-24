@@ -46,7 +46,10 @@ test("saved views appear as tabs with their layout, and + creates one in another
     "Revenue by category",
   ]);
   await page.getByRole("button", { name: "More", exact: true }).click();
-  await expect(page.getByRole("menuitem")).toHaveText(["Projects over time"]);
+  await expect(page.getByRole("menuitem")).toHaveText([
+    "Projects over time",
+    "Updates",
+  ]);
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "View actions" }).click();
   await page.getByRole("button", { name: "Save this view…" }).click();

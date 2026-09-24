@@ -798,6 +798,58 @@ over time" view. The views demo shows three saved views as tabs
 (`viewTabs.maxVisible: 3`) so the toolbar stays on one line; the others are
 under "More".
 
+## Feed view
+
+`displayModes: ["feed"]` shows each record as a post in a centered column
+(720px at most) in both editions. The mode ships in the table items like the
+Form mode: `withFeedRenderer` plugs the built-in `feedRenderer` in (a host
+renderer for `feed` wins) and `table.feed: false` withholds it. Posts show the
+title (a button opening the record view like a row click), the author (text,
+or `{ name | label | email, avatarUrl }` with initials otherwise) and the date,
+the body, media and properties. Dates are relative by default ("3 hr. ago",
+"il y a 3 h", "yesterday"; calendar days compare by local day) with the full
+date in `title` and `<time datetime>`, or absolute.
+
+The body is plain text (`white-space: pre-wrap`), clamped to `bodyLines` lines
+with a 1.5 line height; "Show more" / "Show less" is a button with
+`aria-expanded` and `aria-controls`, offered when the measured body overflows
+(the length estimate applies before layout). `table.feed.renderBody(value,
+row)` renders markdown or HTML (React node, Vue VNode or string), clamped by
+height; nothing is set as HTML by default. Media takes up to four images from
+the media column (URLs, lists or `{ url, name, type, mimeType }`, same safe
+URL rule as the gallery) and lists other files as links. Properties are tags
+for option columns (colored-tags settings apply) and formatted numbers, dates
+and links; empty values are left out.
+
+Settings live in `utils/feed-view.ts` (synced to Vue), are saved with views and
+in `<tableId>-feed`, and resolve defaults, then `table.feed`, then the view:
+`titleColumn`, `authorColumn`, `dateColumn`, `dateDisplay`, `bodyColumn`,
+`mediaColumn` (`null` for none), `propertyColumnIds`, `showPropertyLabels`,
+`bodyLines` (4; 0 for the full text), `density` (`comfortable`, `compact`),
+`pageSize` (10) and `infiniteScroll` (off). Unset columns are guessed by type
+and name (author, posted/created date, update/body text, image column; option
+columns as properties). Both editions build the same settings panel from
+`feedSettingFields`.
+
+Pages come from `list` with `page` and `pageSize`, sorted by the date column
+descending when the view has no sort, plus `grouping` when the view is
+grouped. "Load more" appends the next page without repeating records; with
+`infiniteScroll` an `IntersectionObserver` near the end loads it and the
+button stays. After a mutation (`revision`) the pages shown so far reload.
+Without `list`, local rows are paged the same way. A grouped view (one level)
+shows sections headed by the option label and a count, in order of
+appearance. Loading shows skeleton cards, an empty feed the table's empty
+state, a failed first page an error with "Retry". Renderer contexts gain
+`groupBy` in both editions. Labels are `feed.<key>` with English and French
+defaults. Covered by `tests/feed-view-suite.ts` in both editions and
+Playwright `e2e/feed.spec.ts` on both demos (picker, the "Updates" view, Show
+more/less by keyboard, Load more, record view, body setting in the URL,
+groups, infinite scroll, phone and wide layouts, card measures).
+
+The views demo gains the hidden columns Update, Author and Posted at, and its
+`list` now answers one page of `pageSize` rows. Import mapping no longer
+guesses "Échéance" by its values alone there, since two date columns fit.
+
 ## Row click and display mode picker
 
 Both editions resolve `rowClickMode: "default"` the same way: the edit form

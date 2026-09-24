@@ -52,6 +52,17 @@ export type {
   CatalogueFormLayoutConfig,
   TableFormConfig,
 } from "./config/form-config";
+// Feed view, built into the table (`table.feed: false` turns it off).
+export { feedRenderer } from "./feed/feed-renderer";
+export {
+  type FeedBodyRenderer,
+  type FeedDateDisplay,
+  type FeedDensity,
+  type FeedTableSettings,
+  type FeedViewSettings,
+  formatFeedRelativeDate,
+  normalizeFeedViewConfig,
+} from "./utils/feed-view";
 // Form view; public routes can import `form/yayaw-table-form` on its own.
 export { formRenderer } from "./form/form-renderer";
 export {

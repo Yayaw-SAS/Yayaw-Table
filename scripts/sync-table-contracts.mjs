@@ -50,6 +50,7 @@ for (const file of [
   "export-model.ts",
   "field-matching.ts",
   "form-conditions.ts",
+  "feed-view.ts",
   "form-view.ts",
   "import-flow.ts",
   "import-model.ts",

@@ -11,6 +11,41 @@ import { createDemoFormLinks, demoFormResponses } from "./form-links";
 import { createNotionConnector } from "./views-notion";
 import { createSpreadsheetConnector } from "./views-spreadsheet";
 
+const HOUR_MS = 3_600_000;
+/** Posted some hours before the page loaded, so the feed reads "2 hr. ago". */
+const postedHoursAgo = (hours: number) =>
+  new Date(Date.now() - hours * HOUR_MS).toISOString();
+
+/** Team updates shown by the "Updates" feed view: author, text and age. */
+const viewsUpdates: Record<string, [string, string, number]> = {
+  alpha: [
+    "Ada Martin",
+    "Alpha is live for the first customers. Sign-ups are ahead of plan and support volume is low.\n\nNext: the onboarding emails, the pricing page review and a short survey for the first twenty accounts. We will share the numbers at Friday's review, with the churn signals we are watching and the two support themes that came up most this week.",
+    2,
+  ],
+  bravo: [
+    "Léa Dubois",
+    "The audit scope is agreed. Interviews start on Monday.",
+    5,
+  ],
+  charlie: [
+    "Sam Chen",
+    "Display prototypes arrived. Two panels show uneven backlight, so we asked the supplier for a second batch before the pilot.",
+    27,
+  ],
+  delta: ["Ada Martin", "Support contract archived after the renewal.", 76],
+  echo: [
+    "Léa Dubois",
+    "Sensor calibration is done for the first lot; the second lot waits for parts.",
+    200,
+  ],
+  foxtrot: [
+    "Sam Chen",
+    "Portal beta opened to the partner team. Feedback so far is about search and exports.",
+    480,
+  ],
+};
+
 /** Shared records and columns for the React and Vue view-switching examples and end-to-end tests. */
 export const viewsRows = [
   ["alpha", "Alpha launch", "Software", "Active", 49, "2026-09-02"],
@@ -29,6 +64,9 @@ export const viewsRows = [
   dueDate: String(dueDate),
   serialNumber: "",
   details: "",
+  update: viewsUpdates[String(id)]?.[1] ?? "",
+  author: viewsUpdates[String(id)]?.[0] ?? "",
+  postedAt: postedHoursAgo(viewsUpdates[String(id)]?.[2] ?? 0),
 }));
 
 const options = (values: string[]) =>
@@ -66,12 +104,30 @@ export const viewsColumns = [
   // Asked by the Request form's rules; hidden in the table by default.
   { id: "serialNumber", header: "Serial number", type: "text" as const },
   { id: "details", header: "Details", type: "text" as const },
+  // Read by the "Updates" feed view; hidden in the table by default.
+  { id: "update", header: "Update", type: "text" as const },
+  { id: "author", header: "Author", type: "text" as const },
+  {
+    id: "postedAt",
+    header: "Posted at",
+    type: "date" as const,
+    dateDisplayPreset: "dateTime" as const,
+  },
 ];
 
-/** Columns the examples show at first; the form-only ones stay hidden. */
+/** Columns only the feed and forms show. */
+const HIDDEN_COLUMNS = new Set([
+  "serialNumber",
+  "details",
+  "update",
+  "author",
+  "postedAt",
+]);
+
+/** Columns the examples show at first; the form and feed ones stay hidden. */
 export const viewsVisibleColumns = viewsColumns
   .map((column) => column.id)
-  .filter((id) => id !== "serialNumber" && id !== "details");
+  .filter((id) => !HIDDEN_COLUMNS.has(id));
 
 export const viewsTableOptions = {
   syncUrl: true,
@@ -86,6 +142,7 @@ export const viewsTableOptions = {
     "kanban",
     "calendar",
     "chart",
+    "feed",
     "form",
   ] as (
     | "table"
@@ -94,6 +151,7 @@ export const viewsTableOptions = {
     | "kanban"
     | "calendar"
     | "chart"
+    | "feed"
     | "form"
   )[],
   // Three saved views as tabs keep the toolbar on one line; the rest are under "More".
@@ -203,6 +261,9 @@ export function createViewsActions(host: { aggregate?: boolean } = {}) {
         dueDate: "",
         serialNumber: "",
         details: "",
+        update: "",
+        author: "",
+        postedAt: "",
         ...values,
       } as ViewRow);
       return id;
@@ -256,10 +317,19 @@ export function createViewsActions(host: { aggregate?: boolean } = {}) {
         ),
         sorting
       );
+      // Like a server: one page of `pageSize` rows (the feed loads more).
+      const pageSize = Number(params.pageSize);
+      const size =
+        Number.isInteger(pageSize) && pageSize > 0 ? pageSize : rows.length;
+      const page = Math.max(1, Number(params.page) || 1);
+      const pageRows = rows.slice((page - 1) * size, page * size);
       return Promise.resolve({
         // Like a server response: copies, so edits made since show up.
-        data: rows.map((row) => ({ ...row })),
-        meta: { pageCount: 1, totalCount: rows.length },
+        data: pageRows.map((row) => ({ ...row })),
+        meta: {
+          pageCount: Math.max(1, Math.ceil(rows.length / Math.max(1, size))),
+          totalCount: rows.length,
+        },
       });
     },
     // Chart groups computed "on the server" with the shared contract helper.
@@ -397,3 +467,25 @@ export const chartViews = [
     showDataLabels: true,
   }),
 ];
+
+/** The "Updates" feed view: team updates, newest first, three per page. */
+export const updatesFeedView = {
+  id: "updates",
+  tableId: "views",
+  name: "Updates",
+  createdById: "demo",
+  isGlobal: true,
+  canEdit: false,
+  canDelete: false,
+  config: {
+    displayMode: "feed" as const,
+    feed: {
+      titleColumn: "name",
+      authorColumn: "author",
+      dateColumn: "postedAt",
+      bodyColumn: "update",
+      propertyColumnIds: ["status", "category", "dueDate"],
+      pageSize: 3,
+    },
+  },
+};

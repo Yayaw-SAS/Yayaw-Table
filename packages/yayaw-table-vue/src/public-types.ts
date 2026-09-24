@@ -55,7 +55,18 @@ export {
   publicFormSnapshot,
 } from "./form-view";
 export declare const formRenderer: import("./display-mode-renderer").DisplayModeRenderer;
+export declare const feedRenderer: import("./display-mode-renderer").DisplayModeRenderer;
+
 export { default as RecordDetails } from "./components/details/RecordDetails.vue";
+export {
+  type FeedBodyRenderer,
+  type FeedDateDisplay,
+  type FeedDensity,
+  type FeedTableSettings,
+  type FeedViewSettings,
+  formatFeedRelativeDate,
+  normalizeFeedViewConfig,
+} from "./feed-view";
 export type {
   DetailActivity,
   DetailField,

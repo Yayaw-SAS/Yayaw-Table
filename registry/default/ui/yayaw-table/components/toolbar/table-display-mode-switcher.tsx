@@ -9,6 +9,7 @@ import {
   Images,
   List,
   type LucideIcon,
+  Newspaper,
   Table2,
 } from "lucide-react";
 import { useId } from "react";
@@ -41,6 +42,7 @@ interface TableDisplayModeSwitcherProps {
 export const DISPLAY_MODE_ICONS: Record<TableDisplayMode, LucideIcon> = {
   calendar: CalendarDays,
   chart: ChartColumnBig,
+  feed: Newspaper,
   form: ClipboardList,
   gantt: ChartGantt,
   gallery: Images,

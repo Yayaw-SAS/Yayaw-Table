@@ -55,6 +55,11 @@ React item now lists the `questionnaire` shadcn component (and its
 `@shadcn/react` package) as a dependency; the Vue item ships its own copy.
 Hosts publish public forms from the saved view on their server with
 `buildPublicFormSnapshot` (the snapshot passed by the browser is deprecated).
+The Feed view also ships in the table items: add `"feed"` to `displayModes`
+for posts in a centered column (title, author and date, a clamped body with
+"Show more", media and properties), loaded page by page from `list` with
+"Load more" or on scroll. Bodies are plain text unless `table.feed.renderBody`
+renders them (markdown or sanitized HTML); `table.feed: false` turns it off.
 
 Server connectors that push rows to Notion or Google Sheets, or sync them both
 ways, are optional framework-agnostic items as well
