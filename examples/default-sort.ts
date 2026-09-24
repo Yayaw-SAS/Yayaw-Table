@@ -4,6 +4,11 @@
  * and the handler, like a server, orders by `orderBy` and then by id. With
  * `columns.sort` configured every mode starts sorted by it; with
  * `&sort=none` no sort is sent and the list order is kept.
+ *
+ * With `&initial=list` or `&initial=sorted` the host also renders its first
+ * page before the first request (`initialData`), in the list's own order or
+ * in `columns.sort`, which it then names with `initialDataSort`. The list
+ * answers after a moment, like a server.
  */
 
 export interface RestockRow extends Record<string, unknown> {
@@ -41,26 +46,31 @@ const ROWS: RestockRow[] = [
 const compareText = (left: unknown, right: unknown): number =>
   String(left ?? "").localeCompare(String(right ?? ""));
 
+/** The rows as the list orders them: by `orderBy`, then by id. */
+function orderRestockRows(orderBy: Record<string, string>): RestockRow[] {
+  const sorts = Object.entries(orderBy);
+  return [...ROWS]
+    .sort((left, right) => {
+      for (const [id, direction] of sorts) {
+        const comparison = compareText(left[id], right[id]);
+        if (comparison) {
+          return direction === "desc" ? -comparison : comparison;
+        }
+      }
+      return compareText(left.id, right.id);
+    })
+    .map((row) => ({ ...row }));
+}
+
 /** A server-like list: `orderBy` first, then the id, one page at a time. */
 export function listRestockRows(params: Record<string, unknown>) {
-  const orderBy = Object.entries(
+  const rows = orderRestockRows(
     (params.orderBy ?? {}) as Record<string, string>
   );
-  const rows = [...ROWS].sort((left, right) => {
-    for (const [id, direction] of orderBy) {
-      const comparison = compareText(left[id], right[id]);
-      if (comparison) {
-        return direction === "desc" ? -comparison : comparison;
-      }
-    }
-    return compareText(left.id, right.id);
-  });
   const pageSize = Math.max(1, Number(params.pageSize) || rows.length);
   const page = Math.max(1, Number(params.page) || 1);
   return Promise.resolve({
-    data: rows
-      .slice((page - 1) * pageSize, page * pageSize)
-      .map((row) => ({ ...row })),
+    data: rows.slice((page - 1) * pageSize, page * pageSize),
     meta: {
       pageCount: Math.max(1, Math.ceil(rows.length / pageSize)),
       totalCount: rows.length,
@@ -68,10 +78,63 @@ export function listRestockRows(params: Record<string, unknown>) {
   });
 }
 
+/** How long the list takes when the host shows its own first page meanwhile. */
+const LIST_DELAY_MS = 300;
+
+/** `listRestockRows` answering after a moment, like a server. */
+export const listRestockRowsLater = async (params: Record<string, unknown>) => {
+  await new Promise((resolve) => setTimeout(resolve, LIST_DELAY_MS));
+  return await listRestockRows(params);
+};
+
 /** Whether the page asks for the table without a configured sort. */
 export const withoutDefaultSort = (): boolean =>
   typeof window !== "undefined" &&
   new URLSearchParams(window.location.search).get("sort") === "none";
+
+/** The configured sort (`columns.sort`) unless the page asks for none. */
+export const RESTOCK_SORT = [{ id: "restockFrom", desc: false }];
+
+/** The first page a host renders before the first request. */
+export interface RestockFirstPage {
+  initialData: RestockRow[];
+  /** Set when the host ordered the page by `columns.sort`. */
+  initialDataSort?: { id: string; desc: boolean }[];
+  initialPageCount: number;
+  initialRowCount: number;
+}
+
+/**
+ * The host's first page, in the list's own order (by id) or ordered by
+ * `columns.sort`, which it then names with `initialDataSort`.
+ */
+export function restockFirstPage(sortedLikeTable: boolean): RestockFirstPage {
+  const rows = orderRestockRows(
+    sortedLikeTable
+      ? Object.fromEntries(
+          RESTOCK_SORT.map(({ desc, id }) => [id, desc ? "desc" : "asc"])
+        )
+      : {}
+  );
+  return {
+    initialData: rows,
+    ...(sortedLikeTable ? { initialDataSort: RESTOCK_SORT } : {}),
+    initialPageCount: 1,
+    initialRowCount: rows.length,
+  };
+}
+
+/** `&initial=list` or `&initial=sorted`: the host's first page, if any. */
+export function initialRestockPage(): RestockFirstPage | undefined {
+  const mode =
+    typeof window === "undefined"
+      ? null
+      : new URLSearchParams(window.location.search).get("initial");
+  if (mode !== "list" && mode !== "sorted") {
+    return;
+  }
+  return restockFirstPage(mode === "sorted");
+}
 
 /** The table config both editions pass to `defineTableConfig`. */
 export function defaultSortConfig(configuredSort: boolean) {
@@ -95,7 +158,7 @@ export function defaultSortConfig(configuredSort: boolean) {
       order: ["name", "restockFrom", "restockTo", "status"],
       visible: ["name", "restockFrom", "restockTo", "status"],
       mandatory: ["name"],
-      sort: configuredSort ? [{ id: "restockFrom", desc: false }] : [],
+      sort: configuredSort ? RESTOCK_SORT.map((sort) => ({ ...sort })) : [],
     },
     table: {
       displayModes: ["table", "gantt", "kanban", "gallery"] as (

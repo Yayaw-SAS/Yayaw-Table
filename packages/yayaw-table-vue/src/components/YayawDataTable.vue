@@ -21,6 +21,7 @@ import {
 } from "../context";
 import { applyTableQuery } from "../core";
 import { cloneFormValue } from "../form-runtime";
+import { resolveInitialRowsUse } from "../initial-rows";
 import { createTranslations } from "../translations";
 import type {
   BulkAction,
@@ -30,6 +31,7 @@ import type {
   FormConfig,
   FormFieldContext,
   MaybePromise,
+  SortingState,
   TableActions,
   TableConfig,
   TableRecord,
@@ -86,7 +88,20 @@ const props = withDefaults(
       context?: FormFieldContext
     ) => FormConfig | undefined;
     data?: TableRecord[];
+    /**
+     * Rows shown before the first request, e.g. a server-rendered first page.
+     * They stand for the table's default state (page 1 at
+     * `table.defaultPageSize`, no filters or search, sorted by `columns.sort`
+     * when it is set) and load again on mount unless `initialDataSort` says
+     * they were produced in the sort the table starts from.
+     */
     initialData?: TableRecord[];
+    /**
+     * The sort `initialData` was produced with. When it is `columns.sort`
+     * (`[]` without one) and the table starts there, the rows are current and
+     * do not load again on mount.
+     */
+    initialDataSort?: SortingState;
     initialRowCount?: number;
     initialPageCount?: number;
     initialViews?: TableView[];
@@ -248,6 +263,22 @@ const state = useTableState({
 if (props.initialView && !syncUrl) {
   state.applyView(props.initialView.config, props.initialView.id ?? undefined);
 }
+// The host's rows are current when produced in the sort the table starts
+// from, on its first page (see initial-rows.ts); otherwise they load again.
+const initialRowsCurrent =
+  !props.data.length &&
+  props.initialData.length > 0 &&
+  resolveInitialRowsUse({
+    configuredSorting: config.columns.sort,
+    firstPage:
+      state.pagination.value.pageIndex === 0 &&
+      state.pagination.value.pageSize === config.table.defaultPageSize &&
+      !state.search.value.trim() &&
+      !state.filters.value.length &&
+      !state.advancedFilters.value.filters.length,
+    initialDataSort: props.initialDataSort,
+    sorting: state.sorting.value,
+  }) === "current";
 const tableData = useTableData({
   actions,
   inputData,
@@ -259,6 +290,7 @@ const tableData = useTableData({
   pagination: state.pagination,
   initialRowCount: props.initialRowCount,
   initialPageCount: props.initialPageCount,
+  initialRowsCurrent,
   queryClient,
   searchDebounceMs,
   tableId: config.id,

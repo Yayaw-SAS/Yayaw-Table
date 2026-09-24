@@ -40,6 +40,7 @@ export const useTableData = <TData extends TableRecord>({
   pagination,
   initialRowCount,
   initialPageCount,
+  initialRowsCurrent = false,
   queryClient,
   tableId,
   searchDebounceMs,
@@ -55,6 +56,12 @@ export const useTableData = <TData extends TableRecord>({
   pagination: Ref<PaginationState>;
   initialRowCount?: number;
   initialPageCount?: number;
+  /**
+   * The rows passed in are the starting state's first page, produced in its
+   * sort (see `initial-rows.ts`): keep them until the state changes instead
+   * of loading that page again on mount.
+   */
+  initialRowsCurrent?: boolean;
   queryClient: QueryClient;
   tableId: string;
   searchDebounceMs?: Readonly<Ref<number>>;
@@ -81,6 +88,29 @@ export const useTableData = <TData extends TableRecord>({
     requestId += 1;
   });
 
+  const listParams = () =>
+    withManualOrderView(
+      {
+        page: pagination.value.pageIndex + 1,
+        pageSize: pagination.value.pageSize,
+        search: search.value,
+        filters: Object.fromEntries(
+          filters.value.map((filter) => [filter.id, filter.value])
+        ),
+        advancedFilters: advancedFilters.value.filters,
+        advancedFilterJoin: advancedFilters.value.joinOperator,
+        sorting: sorting.value,
+        grouping: grouping.value,
+      },
+      sorting.value,
+      viewId?.value
+    );
+  const listQueryKey = (params: ReturnType<typeof listParams>) => [
+    "yayaw-table",
+    tableId,
+    params,
+  ];
+
   const loadRows = async (): Promise<void> => {
     cancelSearch();
     if (!actions.value?.list) {
@@ -93,26 +123,11 @@ export const useTableData = <TData extends TableRecord>({
     isLoading.value = true;
     error.value = undefined;
     try {
-      const params = withManualOrderView(
-        {
-          page: pagination.value.pageIndex + 1,
-          pageSize: pagination.value.pageSize,
-          search: search.value,
-          filters: Object.fromEntries(
-            filters.value.map((filter) => [filter.id, filter.value])
-          ),
-          advancedFilters: advancedFilters.value.filters,
-          advancedFilterJoin: advancedFilters.value.joinOperator,
-          sorting: sorting.value,
-          grouping: grouping.value,
-        },
-        sorting.value,
-        viewId?.value
-      );
+      const params = listParams();
       const list = actions.value.list;
-      activeQueryKey = JSON.stringify(["yayaw-table", tableId, params]);
+      activeQueryKey = JSON.stringify(listQueryKey(params));
       const result = await queryClient.fetchQuery({
-        queryKey: ["yayaw-table", tableId, params],
+        queryKey: listQueryKey(params),
         queryFn: () =>
           list(compatibleListParams(params) as unknown as TableListParams),
         staleTime: 0,
@@ -166,6 +181,37 @@ export const useTableData = <TData extends TableRecord>({
   });
   onScopeDispose(unsubscribe);
 
+  // Current rows stand for the starting state's first page, cached as its
+  // response so an invalidation still reloads them, until the state or the
+  // actions change (reading the URL on mount may set equal values again).
+  let currentRowsKey = "";
+  if (initialRowsCurrent && isServer.value) {
+    const params = listParams();
+    currentRowsKey = JSON.stringify(listQueryKey(params));
+    activeQueryKey = currentRowsKey;
+    queryClient.setQueryData(listQueryKey(params), {
+      data: [...inputData.value],
+      meta: { pageCount: pageCount.value, totalCount: rowCount.value },
+    });
+  }
+  const keepsCurrentRows = (
+    current: unknown[],
+    previous: unknown[]
+  ): boolean => {
+    if (!currentRowsKey) {
+      return false;
+    }
+    const sameActions = previous.length === 0 || current[0] === previous[0];
+    if (
+      sameActions &&
+      JSON.stringify(listQueryKey(listParams())) === currentRowsKey
+    ) {
+      return true;
+    }
+    currentRowsKey = "";
+    return false;
+  };
+
   watch(
     inputData,
     async () => {
@@ -187,6 +233,9 @@ export const useTableData = <TData extends TableRecord>({
       () => viewId?.value,
     ],
     async (current, previous) => {
+      if (keepsCurrentRows(current, previous)) {
+        return;
+      }
       cancelSearch();
       // Invalidate in-flight results before the debounce window starts.
       requestId += 1;

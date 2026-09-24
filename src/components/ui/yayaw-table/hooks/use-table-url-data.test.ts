@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "bun:test";
 import {
   resolveInitialTableQueryData,
+  resolveInitialTableRowsUse,
   shouldUseInitialTableQueryData,
 } from "./use-table-url-data";
 
@@ -108,6 +109,109 @@ describe("shouldUseInitialTableQueryData", () => {
         serverFilters: { status: "published" },
       }),
       false
+    );
+  });
+
+  it("hydrates the table's configured sort, where it starts", () => {
+    const configuredSorting = [{ desc: true, id: "updatedAt" }];
+    assert.equal(
+      shouldUseInitialTableQueryData({
+        configuredSorting,
+        defaultPageSize: 20,
+        pagination: { pageIndex: 0, pageSize: 20 },
+        sortParam: [{ id: "updatedAt", desc: true }],
+      }),
+      true
+    );
+  });
+});
+
+describe("resolveInitialTableRowsUse", () => {
+  const firstPage = {
+    defaultPageSize: 20,
+    pagination: { pageIndex: 0, pageSize: 20 },
+  };
+  const configuredSorting = [{ desc: true, id: "updatedAt" }];
+
+  it("shows the rows under the configured sort, then loads them again in it", () => {
+    assert.equal(
+      resolveInitialTableRowsUse({
+        ...firstPage,
+        configuredSorting,
+        sortParam: configuredSorting,
+      }),
+      "placeholder"
+    );
+  });
+
+  it("keeps rows the host says it produced in the starting sort", () => {
+    assert.equal(
+      resolveInitialTableRowsUse({
+        ...firstPage,
+        configuredSorting,
+        initialDataSort: configuredSorting,
+        sortParam: [{ id: "updatedAt", desc: true }],
+      }),
+      "current"
+    );
+  });
+
+  it("keeps the rows of a table without a sort, as before", () => {
+    assert.equal(resolveInitialTableRowsUse(firstPage), "current");
+    assert.equal(
+      resolveInitialTableRowsUse({
+        ...firstPage,
+        configuredSorting: [],
+        sortParam: [],
+      }),
+      "current"
+    );
+  });
+
+  it("loads rows produced in another sort again", () => {
+    assert.equal(
+      resolveInitialTableRowsUse({
+        ...firstPage,
+        initialDataSort: configuredSorting,
+        sortParam: [],
+      }),
+      "placeholder"
+    );
+  });
+
+  it("leaves rows made for another sort, page, filter or search", () => {
+    const configuredState = {
+      ...firstPage,
+      configuredSorting,
+      sortParam: configuredSorting,
+    };
+    assert.equal(
+      resolveInitialTableRowsUse({
+        ...configuredState,
+        sortParam: [{ desc: false, id: "updatedAt" }],
+      }),
+      "unused"
+    );
+    assert.equal(
+      resolveInitialTableRowsUse({
+        ...configuredState,
+        pagination: { pageIndex: 1, pageSize: 20 },
+      }),
+      "unused"
+    );
+    assert.equal(
+      resolveInitialTableRowsUse({
+        ...configuredState,
+        filtersParam: [{ id: "status", value: "published" }],
+      }),
+      "unused"
+    );
+    assert.equal(
+      resolveInitialTableRowsUse({
+        ...configuredState,
+        globalSearchParam: "hero",
+      }),
+      "unused"
     );
   });
 });
