@@ -148,11 +148,14 @@ function settingsTests(test: TestFn, form: FormModule) {
       ],
     });
     assert.deepEqual(
-      resolved.items.map((item) =>
-        item.kind === "section"
+      resolved.items.map((item) => {
+        if (item.kind === "question") {
+          return item.question.id;
+        }
+        return item.kind === "section"
           ? `section:${item.section.id}`
-          : item.question.id
-      ),
+          : `consent:${item.consent.id}`;
+      }),
       ["section:s1", "name", "category", "budget", "serial", "notes"]
     );
     assert.deepEqual(
@@ -382,6 +385,7 @@ function publicTests(test: TestFn, form: FormModule) {
       {
         ok: true,
         values: { name: "A", category: "Software", status: "Draft" },
+        metadata: { consents: [], context: {} },
       }
     );
     assert.deepEqual(
@@ -400,6 +404,7 @@ function publicTests(test: TestFn, form: FormModule) {
           serial: "SN-1",
           status: "Draft",
         },
+        metadata: { consents: [], context: {} },
       }
     );
   });

@@ -55,6 +55,7 @@ for (const file of [
   "field-matching.ts",
   "form-conditions.ts",
   "feed-view.ts",
+  "form-text.ts",
   "form-view.ts",
   "import-flow.ts",
   "import-model.ts",

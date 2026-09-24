@@ -5,160 +5,91 @@ import {
   ArrowUp,
   ChevronDown,
   GripVertical,
-  ListFilter,
   Plus,
   Trash2,
 } from "lucide-react";
-import {
-  type ChangeEvent,
-  type KeyboardEvent,
-  type ReactNode,
-  useEffect,
-  useId,
-  useState,
-} from "react";
+import { type ReactNode, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import {
   type ViewSettingField,
   ViewSettingsPanel,
 } from "../components/toolbar/view-settings-panel";
 import type { DisplayModeSettingsContext } from "../types/display-mode-renderer";
-import type {
-  ConditionField,
-  FormRule,
-  RuleIssue,
-} from "../utils/form-conditions";
 import {
+  formLanguage,
+  formLanguageName,
+  resolveFormText,
+  uniqueFormLocales,
+} from "../utils/form-text";
+import {
+  addFormConsent,
+  addFormHiddenField,
   addFormSection,
   createFormRule,
   type FormColumn,
+  type FormConsentQuestion,
+  type FormHiddenField,
+  type FormHiddenSource,
   type FormHiddenValue,
   type FormItem,
-  type FormLabelKey,
   type FormQuestion,
   type FormSectionBreak,
   type FormTranslate,
   type FormViewSettings,
-  formColumnEditor,
+  formAddableLocales,
   formColumns,
+  formDefaultLocale,
   formHiddenChoices,
+  formHiddenFieldColumns,
   formHiddenValueFrom,
   formHiddenValueText,
+  formItemMissingTranslation,
   formLabel,
+  formOrderedItems,
   formQuestionList,
   formRuleFields,
   formRuleIssues,
   formRuleSummary,
   formRulesFor,
   formSettingsRows,
-  isFormSection,
+  formViewLocales,
+  isFormQuestion,
   mergeFormSettings,
   moveFormQuestion,
   normalizeFormViewConfig,
-  type ResolvedFormQuestion,
+  removeFormItem,
   removeFormRule,
-  removeFormSection,
   resolveFormSettings,
   toggleFormQuestion,
+  updateFormHiddenField,
   updateFormQuestion,
   upsertFormRule,
 } from "../utils/form-view";
-import { FormRuleEditor } from "./form-rules";
-import { FormRulesDialog } from "./form-rules-dialog";
+import {
+  FORM_HIDDEN_SOURCE_LABELS,
+  FormConsentEditor,
+  type FormEditingLanguage,
+  FormHiddenFieldEditor,
+  FormLocalizedText,
+  FormMissingTranslation,
+  FormQuestionEditor,
+  type FormQuestionRules,
+  FormSettingSelect,
+  FormSettingSwitch,
+  type FormSettingsLabel,
+  FormSettingText,
+} from "./form-editors";
+import { FormLanguageSwitch } from "./form-languages";
 
-type Label = (key: FormLabelKey, params?: Record<string, string>) => string;
+type Label = FormSettingsLabel;
 
 const NONE = "";
-
-/** A text setting saved when it loses focus or on Enter, not on every key. */
-function CommitText({
-  id,
-  label,
-  multiline,
-  onCommit,
-  type = "text",
-  value,
-}: {
-  id: string;
-  label: string;
-  multiline?: boolean;
-  onCommit: (value: string) => void;
-  type?: string;
-  value: string;
-}) {
-  const [draft, setDraft] = useState(value);
-  useEffect(() => setDraft(value), [value]);
-  const commit = () => {
-    if (draft !== value) {
-      onCommit(draft);
-    }
-  };
-  const onChange = (
-    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => setDraft(event.target.value);
-  const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      commit();
-    }
-  };
-  return (
-    <div className="grid min-w-0 gap-1.5">
-      <label className="text-muted-foreground text-sm" htmlFor={id}>
-        {label}
-      </label>
-      {multiline ? (
-        <Textarea
-          id={id}
-          onBlur={commit}
-          onChange={onChange}
-          rows={2}
-          value={draft}
-        />
-      ) : (
-        <Input
-          id={id}
-          onBlur={commit}
-          onChange={onChange}
-          onKeyDown={onKeyDown}
-          type={type}
-          value={draft}
-        />
-      )}
-    </div>
-  );
-}
-
-/** A labelled switch, as in the table's settings menus. */
-function SwitchSetting({
-  checked,
-  id,
-  label,
-  onChange,
-}: {
-  checked: boolean;
-  id: string;
-  label: string;
-  onChange: (checked: boolean) => void;
-}) {
-  return (
-    <div className="flex min-h-8 items-center justify-between gap-3">
-      <label className="min-w-0 text-sm" htmlFor={id} id={`${id}-label`}>
-        {label}
-      </label>
-      <Switch
-        aria-labelledby={`${id}-label`}
-        checked={checked}
-        id={id}
-        onCheckedChange={(next) => onChange(next)}
-      />
-    </div>
-  );
-}
+const PREVIEW_LENGTH = 48;
+/** The panel an item's editor opens in, under its row. */
+const DETAILS_CLASS =
+  "mx-1 mb-1 grid gap-3 rounded-md bg-muted/50 p-3 dark:bg-muted/30";
 
 function SettingsHeading({ children }: { children: ReactNode }) {
   return (
@@ -168,162 +99,14 @@ function SettingsHeading({ children }: { children: ReactNode }) {
   );
 }
 
-/** The rules of one question, as its row edits them. */
-interface QuestionRules {
-  list: FormRule[];
-  fields: ConditionField[];
-  issues: RuleIssue[];
-  summaries: string[];
-  questions: ResolvedFormQuestion[];
-  locale: string;
-  translate?: FormTranslate;
-  onAdd: () => void;
-  onChange: (rule: FormRule) => void;
-  onRemove: (id: string) => void;
-}
-
-/**
- * The side panel keeps a status line and "Edit conditions"; the rules are
- * edited in a dialog (a drawer on phones) where the conditions have room.
- */
-function RulesEditor({
-  label,
-  name,
-  rules,
-}: {
-  label: Label;
-  name: string;
-  rules: QuestionRules;
-}) {
-  const [open, setOpen] = useState(false);
-  const status = rules.list.length ? null : label("noConditions");
-  return (
-    <section className="grid gap-2" data-form-rules>
-      <h4 className="font-medium text-muted-foreground text-xs">
-        {label("conditions")}
-      </h4>
-      {status ? (
-        <p className="text-muted-foreground text-xs">{status}</p>
-      ) : null}
-      {rules.issues.length ? (
-        <p className="text-destructive text-xs" data-form-rules-problem>
-          {label("conditionsProblem")}
-        </p>
-      ) : null}
-      <Button
-        className="w-fit font-normal"
-        disabled={rules.fields.length === 0 && rules.list.length === 0}
-        onClick={() => setOpen(true)}
-        size="sm"
-        type="button"
-        variant="outline"
-      >
-        <ListFilter aria-hidden="true" />
-        {label("editConditions")}
-      </Button>
-      <FormRulesDialog
-        description={label("conditionsDescription")}
-        doneLabel={label("done")}
-        onOpenChange={setOpen}
-        open={open}
-        title={label("conditionsTitle", { label: name })}
-      >
-        {rules.list.map((rule) => (
-          <FormRuleEditor
-            fields={rules.fields}
-            issues={rules.issues.filter((issue) => issue.ruleId === rule.id)}
-            key={rule.id}
-            label={label}
-            locale={rules.locale}
-            onChange={rules.onChange}
-            onRemove={() => rules.onRemove(rule.id)}
-            questions={rules.questions}
-            rule={rule}
-            translate={rules.translate}
-          />
-        ))}
-        {rules.list.length ? null : (
-          <p className="text-muted-foreground text-sm">
-            {label("noConditions")}
-          </p>
-        )}
-        <Button
-          className="w-fit font-normal"
-          disabled={rules.fields.length === 0}
-          onClick={rules.onAdd}
-          size="sm"
-          type="button"
-          variant="outline"
-        >
-          <Plus aria-hidden="true" />
-          {label("addRule")}
-        </Button>
-      </FormRulesDialog>
-    </section>
-  );
-}
-
-function QuestionDetails({
-  id,
-  label,
-  name,
-  onChange,
-  question,
-  rules,
-  textInput,
-}: {
-  id: string;
-  label: Label;
-  name: string;
-  onChange: (patch: Partial<FormQuestion>) => void;
-  question: FormQuestion;
-  rules: QuestionRules;
-  textInput: boolean;
-}) {
-  return (
-    <div
-      className="mx-1 mb-1 grid gap-3 rounded-md bg-muted/50 p-3 dark:bg-muted/30"
-      id={`${id}-details`}
-    >
-      <CommitText
-        id={`${id}-label`}
-        label={label("label")}
-        onCommit={(value) => onChange({ label: value })}
-        value={question.label ?? ""}
-      />
-      <CommitText
-        id={`${id}-help`}
-        label={label("help")}
-        multiline
-        onCommit={(value) => onChange({ help: value })}
-        value={question.help ?? ""}
-      />
-      {textInput ? (
-        <CommitText
-          id={`${id}-placeholder`}
-          label={label("placeholder")}
-          onCommit={(value) => onChange({ placeholder: value })}
-          value={question.placeholder ?? ""}
-        />
-      ) : null}
-      <SwitchSetting
-        checked={question.required === true}
-        id={`${id}-required`}
-        label={label("requiredToggle")}
-        onChange={(required) => onChange({ required })}
-      />
-      <RulesEditor label={label} name={question.label || name} rules={rules} />
-    </div>
-  );
-}
-
 interface QuestionRowProps {
   column: FormColumn;
   index: number;
   count: number;
   label: Label;
+  editing: FormEditingLanguage;
   question?: FormQuestion;
-  rules?: QuestionRules;
+  rules?: FormQuestionRules;
   onAsk: (asked: boolean) => void;
   onMove: (offset: -1 | 1) => void;
   onChange: (patch: Partial<FormQuestion>) => void;
@@ -372,21 +155,57 @@ function RowActions({
       >
         <ArrowDown aria-hidden="true" />
       </Button>
-      <Button
-        aria-controls={`${id}-details`}
-        aria-expanded={editing}
-        aria-label={editLabel}
-        onClick={onEdit}
-        size="icon-xs"
-        type="button"
-        variant="ghost"
-      >
-        <ChevronDown
-          aria-hidden="true"
-          className={cn("transition-transform", editing && "rotate-180")}
-        />
-      </Button>
+      <EditToggle editing={editing} id={id} label={editLabel} onEdit={onEdit} />
     </>
+  );
+}
+
+function EditToggle({
+  editing,
+  id,
+  label,
+  onEdit,
+}: {
+  editing: boolean;
+  id: string;
+  label: string;
+  onEdit: () => void;
+}) {
+  return (
+    <Button
+      aria-controls={`${id}-details`}
+      aria-expanded={editing}
+      aria-label={label}
+      onClick={onEdit}
+      size="icon-xs"
+      type="button"
+      variant="ghost"
+    >
+      <ChevronDown
+        aria-hidden="true"
+        className={cn("transition-transform", editing && "rotate-180")}
+      />
+    </Button>
+  );
+}
+
+function RemoveButton({
+  label,
+  onRemove,
+}: {
+  label: string;
+  onRemove: () => void;
+}) {
+  return (
+    <Button
+      aria-label={label}
+      onClick={onRemove}
+      size="icon-xs"
+      type="button"
+      variant="ghost"
+    >
+      <Trash2 aria-hidden="true" />
+    </Button>
   );
 }
 
@@ -406,6 +225,7 @@ function RuleSummaries({ summaries }: { summaries: string[] }) {
 function QuestionRow({
   column,
   count,
+  editing: language,
   index,
   label,
   onAsk,
@@ -417,8 +237,17 @@ function QuestionRow({
   const id = useId();
   const [editing, setEditing] = useState(false);
   const name = column.header;
-  const editor = formColumnEditor(column);
-  const textInput = editor !== "boolean" && editor !== "multiSelect";
+  const title =
+    resolveFormText(question?.label, rules?.locale, language.defaultLocale) ??
+    name;
+  const missing = question
+    ? formItemMissingTranslation(
+        question,
+        language.locale,
+        language.defaultLocale,
+        column
+      )
+    : false;
   return (
     <li
       className={cn(
@@ -473,16 +302,20 @@ function QuestionRow({
         />
       </div>
       {question && rules ? <RuleSummaries summaries={rules.summaries} /> : null}
+      <FormMissingTranslation label={language.missingLabel} missing={missing} />
       {question && rules && editing ? (
-        <QuestionDetails
-          id={id}
-          label={label}
-          name={name}
-          onChange={onChange}
-          question={question}
-          rules={rules}
-          textInput={textInput}
-        />
+        <div className={DETAILS_CLASS} id={`${id}-details`}>
+          <FormQuestionEditor
+            column={column}
+            editing={language}
+            id={id}
+            label={label}
+            name={title}
+            onChange={onChange}
+            question={question}
+            rules={rules}
+          />
+        </div>
       ) : null}
     </li>
   );
@@ -491,6 +324,7 @@ function QuestionRow({
 /** A section break: a title and description starting a group (one step in steps). */
 function SectionRow({
   count,
+  editing: language,
   index,
   label,
   onChange,
@@ -499,6 +333,7 @@ function SectionRow({
   section,
 }: {
   count: number;
+  editing: FormEditingLanguage;
   index: number;
   label: Label;
   onChange: (patch: Partial<FormSectionBreak>) => void;
@@ -508,7 +343,9 @@ function SectionRow({
 }) {
   const id = useId();
   const [editing, setEditing] = useState(!section.title);
-  const name = section.title ?? label("untitledSection");
+  const name =
+    resolveFormText(section.title, language.locale, language.defaultLocale) ??
+    label("untitledSection");
   return (
     <li
       className={cn(
@@ -537,33 +374,186 @@ function SectionRow({
           onEdit={() => setEditing((value) => !value)}
           onMove={onMove}
         />
-        <Button
-          aria-label={label("removeSection", { label: name })}
-          onClick={onRemove}
-          size="icon-xs"
-          type="button"
-          variant="ghost"
-        >
-          <Trash2 aria-hidden="true" />
-        </Button>
+        <RemoveButton
+          label={label("removeSection", { label: name })}
+          onRemove={onRemove}
+        />
       </div>
+      <FormMissingTranslation
+        label={language.missingLabel}
+        missing={formItemMissingTranslation(
+          section,
+          language.locale,
+          language.defaultLocale
+        )}
+      />
       {editing ? (
-        <div
-          className="mx-1 mb-1 grid gap-3 rounded-md bg-muted/50 p-3 dark:bg-muted/30"
-          id={`${id}-details`}
-        >
-          <CommitText
+        <div className={DETAILS_CLASS} id={`${id}-details`}>
+          <FormLocalizedText
+            editing={language}
             id={`${id}-title`}
             label={label("sectionTitle")}
-            onCommit={(title) => onChange({ title })}
-            value={section.title ?? ""}
+            onChange={(title) => onChange({ title })}
+            text={section.title}
           />
-          <CommitText
+          <FormLocalizedText
+            editing={language}
             id={`${id}-description`}
             label={label("sectionDescription")}
             multiline
-            onCommit={(description) => onChange({ description })}
-            value={section.description ?? ""}
+            onChange={(description) => onChange({ description })}
+            text={section.description}
+          />
+        </div>
+      ) : null}
+    </li>
+  );
+}
+
+const preview = (text: string) =>
+  text.length > PREVIEW_LENGTH ? `${text.slice(0, PREVIEW_LENGTH)}…` : text;
+
+/** A consent: its statement, link and version; always required, never hidden by rules. */
+function ConsentRow({
+  consent,
+  count,
+  editing: language,
+  index,
+  label,
+  onChange,
+  onMove,
+  onRemove,
+}: {
+  consent: FormConsentQuestion;
+  count: number;
+  editing: FormEditingLanguage;
+  index: number;
+  label: Label;
+  onChange: (patch: Partial<FormConsentQuestion>) => void;
+  onMove: (offset: -1 | 1) => void;
+  onRemove: () => void;
+}) {
+  const id = useId();
+  const [editing, setEditing] = useState(false);
+  const statement =
+    resolveFormText(consent.text, language.locale, language.defaultLocale) ??
+    formLabel(
+      consent.link ? "consentTextLink" : "consentText",
+      language.locale
+    );
+  const name = `${label("consent")}: ${preview(statement)}`;
+  return (
+    <li
+      className={cn(
+        "grid rounded-md",
+        editing && "bg-accent/40 dark:bg-accent/20"
+      )}
+      data-form-setting-consent={consent.id}
+    >
+      <div className="flex min-h-9 min-w-0 items-center gap-1 px-1">
+        <GripVertical
+          aria-hidden="true"
+          className="size-4 shrink-0 text-muted-foreground/60"
+        />
+        <span className="min-w-0 flex-1 truncate py-1 text-sm">
+          <span className="font-medium">{label("consent")}</span>
+          <span className="text-muted-foreground"> · {preview(statement)}</span>
+        </span>
+        <RowActions
+          count={count}
+          editing={editing}
+          editLabel={label("editSection", { label: name })}
+          id={id}
+          index={index}
+          label={label}
+          name={name}
+          onEdit={() => setEditing((value) => !value)}
+          onMove={onMove}
+        />
+        <RemoveButton
+          label={label("removeSection", { label: name })}
+          onRemove={onRemove}
+        />
+      </div>
+      <FormMissingTranslation
+        label={language.missingLabel}
+        missing={formItemMissingTranslation(
+          consent,
+          language.locale,
+          language.defaultLocale
+        )}
+      />
+      {editing ? (
+        <div className={DETAILS_CLASS} id={`${id}-details`}>
+          <FormConsentEditor
+            consent={consent}
+            editing={language}
+            id={id}
+            label={label}
+            onChange={onChange}
+          />
+        </div>
+      ) : null}
+    </li>
+  );
+}
+
+/** A hidden field: where its value comes from and where it is saved. */
+function HiddenFieldRow({
+  columns,
+  field,
+  label,
+  onChange,
+  onRemove,
+  onToggle,
+  open,
+}: {
+  columns: readonly FormColumn[];
+  field: FormHiddenField;
+  label: Label;
+  onChange: (patch: { source?: FormHiddenSource; columnId?: string }) => void;
+  onRemove: () => void;
+  onToggle: () => void;
+  open: boolean;
+}) {
+  const id = useId();
+  const source = label(FORM_HIDDEN_SOURCE_LABELS[field.source.type]);
+  const column = columns.find((item) => item.id === field.columnId);
+  const name = field.source.type === "urlParam" ? field.source.name : source;
+  const saved = column ? column.header : label("responseDetails");
+  return (
+    <li
+      className={cn(
+        "grid rounded-md",
+        open && "bg-accent/40 dark:bg-accent/20"
+      )}
+      data-form-setting-hidden={field.id}
+    >
+      <div className="flex min-h-9 min-w-0 items-center gap-1 px-1">
+        <span className="min-w-0 flex-1 truncate py-1 pl-1 text-sm">
+          <span className="sr-only">{label("hiddenField")}: </span>
+          <span className="font-medium">{name}</span>
+          <span className="text-muted-foreground"> → {saved}</span>
+        </span>
+        <EditToggle
+          editing={open}
+          id={id}
+          label={label("editSection", { label: name })}
+          onEdit={onToggle}
+        />
+        <RemoveButton
+          label={label("removeSection", { label: name })}
+          onRemove={onRemove}
+        />
+      </div>
+      {open ? (
+        <div className={DETAILS_CLASS} id={`${id}-details`}>
+          <FormHiddenFieldEditor
+            columns={columns}
+            field={field}
+            id={id}
+            label={label}
+            onChange={onChange}
           />
         </div>
       ) : null}
@@ -612,13 +602,15 @@ function useQuestionRules(
   merged: FormViewSettings,
   update: (patch: FormViewSettings) => void,
   translate: FormTranslate
-): (questionId: string) => QuestionRules {
-  const fields = formRuleFields(context.columns, merged);
+): (questionId: string) => FormQuestionRules {
+  const fields = formRuleFields(context.columns, merged, context.locale);
   const issues = formRuleIssues(context.columns, merged);
-  const resolved = resolveFormSettings(context.columns, undefined, {
-    ...merged,
-    rules: [],
-  });
+  const resolved = resolveFormSettings(
+    context.columns,
+    undefined,
+    { ...merged, rules: [] },
+    context.locale
+  );
   const rules = merged.rules ?? [];
   return (questionId) => {
     const list = formRulesFor(rules, questionId);
@@ -644,7 +636,41 @@ function useQuestionRules(
   };
 }
 
-/** View → Form settings: texts, layout, questions, sections and rules, fixed values and the end of the form. */
+/** The form's languages and the one being edited, with "Add language". */
+function useFormLanguages(
+  context: DisplayModeSettingsContext,
+  merged: FormViewSettings,
+  update: (patch: FormViewSettings) => void
+) {
+  const fallback = formLanguage(context.locale) || "en";
+  const pinned = formDefaultLocale(merged);
+  const defaultLocale = pinned ?? fallback;
+  const languages = formViewLocales(
+    context.defaults,
+    context.settings,
+    fallback
+  );
+  const [choice, setChoice] = useState<string>();
+  const locale = choice && languages.includes(choice) ? choice : defaultLocale;
+  return {
+    defaultLocale,
+    languages,
+    locale,
+    setLocale: setChoice,
+    addable: formAddableLocales(context.defaults, languages),
+    /** Texts written in another language pin the default one, so plain texts keep theirs. */
+    pin: pinned ? {} : { defaultLocale },
+    add: (added: string) => {
+      update({
+        locales: uniqueFormLocales([...languages, added]),
+        defaultLocale,
+      });
+      setChoice(added);
+    },
+  };
+}
+
+/** View → Form settings: languages, texts, layout, questions, sections, consents and rules, hidden fields, fixed values and the end of the form. */
 export function FormSettings({
   context,
 }: {
@@ -661,8 +687,9 @@ export function FormSettings({
   const { eligible, excluded } = formColumns(context.columns);
   const questions = formQuestionList(context.columns, merged);
   const rows = formSettingsRows(context.columns, merged);
+  const count = formOrderedItems(questions).length;
   const asked = new Set(
-    questions.flatMap((item) => (isFormSection(item) ? [] : [item.columnId]))
+    questions.filter(isFormQuestion).map((item) => item.columnId)
   );
   const update = (patch: FormViewSettings) =>
     context.updateSettings(
@@ -670,8 +697,22 @@ export function FormSettings({
         | Record<string, unknown>
         | undefined
     );
-  const setQuestions = (next: FormItem[]) => update({ questions: next });
+  const languages = useFormLanguages(context, merged, update);
+  /** Texts are written in the language being edited. */
+  const write = (patch: FormViewSettings) =>
+    update(
+      languages.locale === languages.defaultLocale
+        ? patch
+        : { ...patch, ...languages.pin }
+    );
+  const editing: FormEditingLanguage = {
+    locale: languages.locale,
+    defaultLocale: languages.defaultLocale,
+    missingLabel: label("missingTranslation"),
+  };
+  const setQuestions = (next: FormItem[]) => write({ questions: next });
   const rulesOf = useQuestionRules(context, merged, update, translate);
+  const [openHidden, setOpenHidden] = useState<string | null>(null);
   const hiddenValues = merged.hiddenValues ?? {};
   const setHidden = (columnId: string, value: FormHiddenValue | undefined) => {
     const next = { ...hiddenValues };
@@ -691,33 +732,87 @@ export function FormSettings({
   });
   const typedFixed = notAsked.filter((column) => !formHiddenChoices(column));
   const steps = merged.layout === "steps";
+  const hiddenRows = rows.flatMap((row) =>
+    row.kind === "hidden" ? [row] : []
+  );
+  const changeHidden = (
+    field: FormHiddenField,
+    patch: { source?: FormHiddenSource; columnId?: string }
+  ) => {
+    const next = updateFormHiddenField(questions, field.id, patch);
+    setOpenHidden(next.id);
+    update({ questions: next.questions });
+  };
+  const addHidden = () => {
+    const next = addFormHiddenField(questions);
+    setOpenHidden(next.id);
+    update({ questions: next.questions });
+  };
 
   const intro = (
     <>
+      <div className="grid gap-1.5">
+        <FormLanguageSwitch
+          addable={languages.addable}
+          addLabel={label("addLanguage")}
+          label={label("editingLanguage")}
+          languages={languages.languages}
+          onAdd={languages.add}
+          onChange={languages.setLocale}
+          value={languages.locale}
+        />
+        {languages.locale === languages.defaultLocale ? null : (
+          <p
+            className="text-muted-foreground text-xs"
+            data-form-translation-hint
+          >
+            {label("translationHint", {
+              language: formLanguageName(
+                languages.defaultLocale,
+                context.locale
+              ),
+            })}
+          </p>
+        )}
+        {languages.languages.length > 1 ? (
+          // Texts written without a language (plain texts) are in this one.
+          <FormSettingSelect
+            label={label("defaultLanguage")}
+            onChange={(defaultLocale) => update({ defaultLocale })}
+            options={languages.languages.map((locale) => ({
+              value: locale,
+              label: formLanguageName(locale),
+            }))}
+            value={languages.defaultLocale}
+          />
+        ) : null}
+      </div>
       <SettingsSection title={label("settings")}>
-        <CommitText
+        <FormLocalizedText
+          editing={editing}
           id={`${id}-title`}
           label={label("title")}
-          onCommit={(title) => update({ title })}
-          value={merged.title ?? ""}
+          onChange={(title) => write({ title })}
+          text={merged.title}
         />
-        <CommitText
+        <FormLocalizedText
+          editing={editing}
           id={`${id}-description`}
           label={label("description")}
           multiline
-          onCommit={(description) => update({ description })}
-          value={merged.description ?? ""}
+          onChange={(description) => write({ description })}
+          text={merged.description}
         />
       </SettingsSection>
       <SettingsSection title={label("layout")}>
-        <SwitchSetting
+        <FormSettingSwitch
           checked={steps}
           id={`${id}-steps`}
           label={label("layoutSteps")}
           onChange={(next) => update({ layout: next ? "steps" : "page" })}
         />
         {steps ? (
-          <SwitchSetting
+          <FormSettingSwitch
             checked={merged.review === true}
             id={`${id}-review`}
             label={label("review")}
@@ -727,32 +822,66 @@ export function FormSettings({
       </SettingsSection>
       <SettingsSection title={label("questions")}>
         <ul className="-mx-1 grid gap-0.5">
-          {rows.map((row) =>
-            row.kind === "section" ? (
-              <SectionRow
-                count={questions.length}
-                index={row.index}
-                key={row.section.id}
-                label={label}
-                onChange={(patch) =>
-                  setQuestions(
-                    updateFormQuestion(questions, row.section.id, patch)
-                  )
-                }
-                onMove={(offset) =>
-                  setQuestions(
-                    moveFormQuestion(questions, row.section.id, offset)
-                  )
-                }
-                onRemove={() =>
-                  update(removeFormSection(merged, row.section.id))
-                }
-                section={row.section}
-              />
-            ) : (
+          {rows.map((row) => {
+            if (row.kind === "hidden") {
+              return null;
+            }
+            if (row.kind === "section") {
+              return (
+                <SectionRow
+                  count={count}
+                  editing={editing}
+                  index={row.index}
+                  key={row.section.id}
+                  label={label}
+                  onChange={(patch) =>
+                    setQuestions(
+                      updateFormQuestion(questions, row.section.id, patch)
+                    )
+                  }
+                  onMove={(offset) =>
+                    setQuestions(
+                      moveFormQuestion(questions, row.section.id, offset)
+                    )
+                  }
+                  onRemove={() =>
+                    update(removeFormItem(merged, row.section.id))
+                  }
+                  section={row.section}
+                />
+              );
+            }
+            if (row.kind === "consent") {
+              return (
+                <ConsentRow
+                  consent={row.consent}
+                  count={count}
+                  editing={editing}
+                  index={row.index}
+                  key={row.consent.id}
+                  label={label}
+                  onChange={(patch) =>
+                    setQuestions(
+                      updateFormQuestion(questions, row.consent.id, patch)
+                    )
+                  }
+                  onMove={(offset) =>
+                    setQuestions(
+                      moveFormQuestion(questions, row.consent.id, offset)
+                    )
+                  }
+                  onRemove={() =>
+                    update(removeFormItem(merged, row.consent.id))
+                  }
+                />
+              );
+            }
+            const { question } = row;
+            return (
               <QuestionRow
                 column={row.column}
-                count={questions.length}
+                count={count}
+                editing={editing}
                 index={row.index}
                 key={row.column.id}
                 label={label}
@@ -762,33 +891,43 @@ export function FormSettings({
                   )
                 }
                 onChange={(patch) =>
-                  row.question &&
+                  question &&
                   setQuestions(
-                    updateFormQuestion(questions, row.question.id, patch)
+                    updateFormQuestion(questions, question.id, patch)
                   )
                 }
                 onMove={(offset) =>
-                  row.question &&
-                  setQuestions(
-                    moveFormQuestion(questions, row.question.id, offset)
-                  )
+                  question &&
+                  setQuestions(moveFormQuestion(questions, question.id, offset))
                 }
-                question={row.question}
-                rules={row.question ? rulesOf(row.question.id) : undefined}
+                question={question}
+                rules={question ? rulesOf(question.id) : undefined}
               />
-            )
-          )}
+            );
+          })}
         </ul>
-        <Button
-          className="w-fit font-normal"
-          onClick={() => setQuestions(addFormSection(questions).questions)}
-          size="sm"
-          type="button"
-          variant="outline"
-        >
-          <Plus aria-hidden="true" />
-          {label("addSection")}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            className="w-fit font-normal"
+            onClick={() => setQuestions(addFormSection(questions).questions)}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            <Plus aria-hidden="true" />
+            {label("addSection")}
+          </Button>
+          <Button
+            className="w-fit font-normal"
+            onClick={() => setQuestions(addFormConsent(questions).questions)}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            <Plus aria-hidden="true" />
+            {label("addConsent")}
+          </Button>
+        </div>
         {excluded.length ? (
           <p className="text-muted-foreground text-xs">
             {label("excluded", {
@@ -796,6 +935,43 @@ export function FormSettings({
             })}
           </p>
         ) : null}
+      </SettingsSection>
+      <SettingsSection title={label("hiddenFields")}>
+        <p className="-mt-1 text-muted-foreground text-xs">
+          {label("hiddenFieldsHint")}
+        </p>
+        {hiddenRows.length ? (
+          <ul className="-mx-1 grid gap-0.5" data-form-hidden-fields>
+            {hiddenRows.map(({ field }) => (
+              <HiddenFieldRow
+                columns={formHiddenFieldColumns(
+                  context.columns,
+                  questions,
+                  field.id
+                )}
+                field={field}
+                key={field.id}
+                label={label}
+                onChange={(patch) => changeHidden(field, patch)}
+                onRemove={() => update(removeFormItem(merged, field.id))}
+                onToggle={() =>
+                  setOpenHidden((open) => (open === field.id ? null : field.id))
+                }
+                open={openHidden === field.id}
+              />
+            ))}
+          </ul>
+        ) : null}
+        <Button
+          className="w-fit font-normal"
+          onClick={addHidden}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          <Plus aria-hidden="true" />
+          {label("addHiddenField")}
+        </Button>
       </SettingsSection>
       {notAsked.length ? (
         <div className="grid gap-1">
@@ -810,7 +986,7 @@ export function FormSettings({
     <div className="grid min-w-0" data-form-settings>
       <ViewSettingsPanel fields={choiceFields} intro={intro}>
         {typedFixed.map((column) => (
-          <CommitText
+          <FormSettingText
             id={`${id}-hidden-${column.id}`}
             key={column.id}
             label={label("hiddenValue", { label: column.header })}
@@ -821,20 +997,24 @@ export function FormSettings({
           />
         ))}
         <SettingsSection title={label("afterSubmit")}>
-          <CommitText
+          <FormLocalizedText
+            editing={editing}
+            fallback={formLabel("submit", editing.locale)}
             id={`${id}-submit`}
             label={label("submitLabel")}
-            onCommit={(submitLabel) => update({ submitLabel })}
-            value={merged.submitLabel ?? ""}
+            onChange={(submitLabel) => write({ submitLabel })}
+            text={merged.submitLabel}
           />
-          <CommitText
+          <FormLocalizedText
+            editing={editing}
+            fallback={formLabel("success", editing.locale)}
             id={`${id}-success`}
             label={label("successMessage")}
             multiline
-            onCommit={(successMessage) => update({ successMessage })}
-            value={merged.successMessage ?? ""}
+            onChange={(successMessage) => write({ successMessage })}
+            text={merged.successMessage}
           />
-          <SwitchSetting
+          <FormSettingSwitch
             checked={merged.allowAnotherResponse !== false}
             id={`${id}-another`}
             label={label("allowAnother")}
@@ -842,7 +1022,7 @@ export function FormSettings({
               update({ allowAnotherResponse })
             }
           />
-          <CommitText
+          <FormSettingText
             id={`${id}-redirect`}
             label={label("redirectUrl")}
             onCommit={(redirectUrl) => update({ redirectUrl })}
@@ -852,6 +1032,15 @@ export function FormSettings({
           <p className="text-muted-foreground text-xs">
             {label("redirectHint")}
           </p>
+          <FormLocalizedText
+            editing={editing}
+            fallback={formLabel("closed", editing.locale)}
+            id={`${id}-closed`}
+            label={label("closedMessage")}
+            multiline
+            onChange={(closedMessage) => write({ closedMessage })}
+            text={merged.closedMessage}
+          />
         </SettingsSection>
         <Button
           className="font-normal"

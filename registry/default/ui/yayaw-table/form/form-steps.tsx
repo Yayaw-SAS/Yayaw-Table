@@ -7,6 +7,8 @@
  * text; an optional review step. Questions keep the table's own controls
  * (selects with tags, the date picker, number formats), so navigation and
  * validation are ours: the Questionnaire only validates its native answers.
+ * Consents show on the step they are placed in, or on the last step (the
+ * review, when there is one).
  */
 import {
   type KeyboardEvent,
@@ -36,12 +38,18 @@ import {
   type FormStep,
   formAnswerText,
   formStepOptional,
-  formSteps,
+  formStepPlan,
+  type ResolvedFormConsent,
   type ResolvedFormQuestion,
   type ResolvedFormSettings,
+  validateFormConsents,
   validateFormValues,
 } from "../utils/form-view";
-import { FormQuestionField, type FormQuestionLabels } from "./form-question";
+import {
+  FormConsentField,
+  FormQuestionField,
+  type FormQuestionLabels,
+} from "./form-question";
 
 export const REVIEW_STEP = "review";
 
@@ -67,8 +75,9 @@ interface FormStepsProps {
   submitText: string;
   className: string;
   formRef: RefObject<HTMLFormElement | null>;
-  inputId: (question: ResolvedFormQuestion) => string;
-  onAnswer: (columnId: string, value: FormDraft[string]) => void;
+  inputId: (item: { id: string }) => string;
+  /** An answer, by column id, or a consent, by its id. */
+  onAnswer: (key: string, value: FormDraft[string]) => void;
   onErrors: (errors: Record<string, string>) => void;
   onStepChange: (step: string) => void;
   onSubmit: () => Promise<void>;
@@ -93,20 +102,77 @@ const advancesOnEnter = (event: KeyboardEvent<HTMLFormElement>) => {
   );
 };
 
-const stepOf = (steps: readonly FormStep[], columnId: string) =>
-  steps.find((item) =>
-    item.questions.some((question) => question.columnId === columnId)
-  );
+/** Error keys a step owns: its questions' columns and its consents. */
+const stepKeys = (step: FormStep): string[] => [
+  ...step.questions.map((question) => question.columnId),
+  ...(step.consents ?? []).map((consent) => consent.id),
+];
+
+const stepOf = (steps: readonly FormStep[], key: string) =>
+  steps.find((item) => stepKeys(item).includes(key));
+
+/** The step showing the error of `key`: its question's or consent's step, or the review. */
+function failedStep(
+  key: string | undefined,
+  steps: readonly FormStep[],
+  reviewConsents: readonly ResolvedFormConsent[]
+): string | undefined {
+  if (!key) {
+    return;
+  }
+  const step = stepOf(steps, key);
+  if (step) {
+    return step.id;
+  }
+  return reviewConsents.some((consent) => consent.id === key)
+    ? REVIEW_STEP
+    : undefined;
+}
+
+function ConsentFields({
+  consents,
+  disabled,
+  draft,
+  errors,
+  inputId,
+  labels,
+  onAnswer,
+}: Pick<
+  FormStepsProps,
+  "disabled" | "draft" | "errors" | "inputId" | "labels" | "onAnswer"
+> & { consents: readonly ResolvedFormConsent[] }) {
+  return consents.length ? (
+    <div className="grid gap-4">
+      {consents.map((consent) => (
+        <FormConsentField
+          consent={consent}
+          disabled={disabled}
+          error={errors[consent.id]}
+          inputId={inputId(consent)}
+          key={consent.id}
+          newTabLabel={labels.newTab ?? ""}
+          onChange={(checked) => onAnswer(consent.id, checked)}
+          value={draft[consent.id]}
+        />
+      ))}
+    </div>
+  ) : null;
+}
 
 function ReviewStep({
+  consents,
   draft,
   evaluation,
   label,
   locale,
   onChange,
   steps,
-}: {
-  draft: FormDraft;
+  ...fields
+}: Pick<
+  FormStepsProps,
+  "disabled" | "draft" | "errors" | "inputId" | "labels" | "onAnswer"
+> & {
+  consents: readonly ResolvedFormConsent[];
   evaluation: FormEvaluation;
   label: Label;
   locale: string;
@@ -115,7 +181,12 @@ function ReviewStep({
 }) {
   const words = { yes: label("yes"), no: label("no") };
   return (
-    <QuestionnaireItem data-form-review name={REVIEW_STEP} required>
+    <QuestionnaireItem
+      data-form-review
+      invalid={consents.some((consent) => fields.errors[consent.id])}
+      name={REVIEW_STEP}
+      required
+    >
       <QuestionnaireTitle>{label("reviewTitle")}</QuestionnaireTitle>
       <dl className="grid gap-3">
         {steps.flatMap((item) =>
@@ -158,6 +229,7 @@ function ReviewStep({
           })
         )}
       </dl>
+      <ConsentFields consents={consents} draft={draft} {...fields} />
     </QuestionnaireItem>
   );
 }
@@ -201,6 +273,15 @@ function StepFields({
           value={draft[question.columnId]}
         />
       ))}
+      <ConsentFields
+        consents={step.consents ?? []}
+        disabled={disabled}
+        draft={draft}
+        errors={errors}
+        inputId={inputId}
+        labels={labels}
+        onAnswer={onAnswer}
+      />
     </div>
   );
 }
@@ -225,7 +306,7 @@ export function FormSteps(props: FormStepsProps) {
     submitText,
     values,
   } = props;
-  const steps = formSteps(settings, evaluation);
+  const { reviewConsents, steps } = formStepPlan(settings, evaluation);
   const ids = [
     ...steps.map((item) => item.id),
     ...(settings.review ? [REVIEW_STEP] : []),
@@ -233,7 +314,13 @@ export function FormSteps(props: FormStepsProps) {
   const active =
     props.step && ids.includes(props.step) ? props.step : (ids[0] ?? "");
   const index = ids.indexOf(active);
-  const current = steps.find((item) => item.id === active);
+  const review: FormStep = {
+    id: REVIEW_STEP,
+    questions: [],
+    consents: reviewConsents,
+  };
+  const current =
+    active === REVIEW_STEP ? review : steps.find((item) => item.id === active);
   const moved = useRef(false);
 
   // After moving, focus the first invalid (or first) control of the new step.
@@ -254,16 +341,13 @@ export function FormSteps(props: FormStepsProps) {
 
   // A failed submission jumps to the first step with an error.
   useEffect(() => {
-    const columns = Object.keys(errors);
-    const failed = columns.length ? stepOf(steps, columns[0] ?? "") : undefined;
-    if (
-      failed &&
-      !current?.questions.some((question) => errors[question.columnId])
-    ) {
+    const failed = failedStep(Object.keys(errors)[0], steps, reviewConsents);
+    const here = current ? stepKeys(current).some((key) => errors[key]) : false;
+    if (failed && !here) {
       moved.current = true;
-      onStepChange(failed.id);
+      onStepChange(failed);
     }
-  }, [errors, steps, current, onStepChange]);
+  }, [errors, steps, current, onStepChange, reviewConsents]);
 
   const go = (next: string | undefined) => {
     if (next) {
@@ -274,22 +358,19 @@ export function FormSteps(props: FormStepsProps) {
 
   const stepErrors = (item: FormStep) =>
     Object.fromEntries(
-      Object.entries(
-        validateFormValues(item.questions, values, evaluation)
-      ).map(([columnId, code]) => [columnId, label(code)])
+      Object.entries({
+        ...validateFormValues(item.questions, values, evaluation),
+        ...validateFormConsents(item.consents ?? [], draft),
+      }).map(([key, code]) => [key, label(code)])
     );
 
   const next = (event?: MouseEvent) => {
     event?.preventDefault();
     if (current) {
       const found = stepErrors(current);
+      const keys = stepKeys(current);
       const others = Object.fromEntries(
-        Object.entries(errors).filter(
-          ([columnId]) =>
-            !current.questions.some(
-              (question) => question.columnId === columnId
-            )
-        )
+        Object.entries(errors).filter(([key]) => !keys.includes(key))
       );
       onErrors({ ...others, ...found });
       if (Object.keys(found).length) {
@@ -382,7 +463,7 @@ export function FormSteps(props: FormStepsProps) {
         <QuestionnaireItem
           aria-label={item.section ? undefined : item.questions[0]?.label}
           data-form-step={item.id}
-          invalid={item.questions.some((question) => errors[question.columnId])}
+          invalid={stepKeys(item).some((key) => errors[key])}
           key={item.id}
           name={item.id}
           required={!formStepOptional(item, evaluation)}
@@ -404,10 +485,16 @@ export function FormSteps(props: FormStepsProps) {
       ))}
       {settings.review ? (
         <ReviewStep
+          consents={reviewConsents}
+          disabled={disabled}
           draft={draft}
+          errors={errors}
           evaluation={evaluation}
+          inputId={props.inputId}
           label={label}
+          labels={props.labels}
           locale={props.locale}
+          onAnswer={props.onAnswer}
           onChange={go}
           steps={steps}
         />

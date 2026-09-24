@@ -279,6 +279,8 @@ export const viewsTableOptions = {
   )[],
   // Three saved views as tabs keep the toolbar on one line; the rest are under "More".
   viewTabs: { maxVisible: 3 },
+  // A bilingual site: forms are written in English and French.
+  form: { locales: ["en", "fr"] },
   kanban: { groupBy: "status" },
   gallery: { titleColumn: "name", cardColumnIds: ["category", "status"] },
   list: { titleColumn: "name", cardColumnIds: ["status", "price", "dueDate"] },

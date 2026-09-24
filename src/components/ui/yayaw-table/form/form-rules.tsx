@@ -129,7 +129,7 @@ function OptionText({ option }: { option: RuleOption }) {
 }
 
 /** A compact settings select (base-ui), labelled for assistive technologies. */
-function RuleSelect({
+export function RuleSelect({
   describedBy,
   invalid,
   label,

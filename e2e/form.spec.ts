@@ -11,6 +11,8 @@ const SUCCESS = "Thank you, your response has been recorded.";
 const REQUEST_SUCCESS = "Thank you! Your request is in the Draft column.";
 const CLOSED = "This form is no longer accepting responses.";
 const WANTED_BY = /^Wanted by/;
+/** The Request form's consent to the privacy policy. */
+const CONSENT = /^I agree that my request is processed/;
 
 const chooseMode = async (page: Page, mode: RegExp) => {
   await page.getByRole("button", { name: SETTINGS }).click();
@@ -133,6 +135,7 @@ test("a published form takes public responses into the table", async ({
     .getByRole("textbox", { name: "Project name" })
     .fill("Public request");
   await choose(publicPage, "Category", "Service");
+  await publicPage.getByRole("checkbox", { name: CONSENT }).check();
   await publicPage.getByRole("button", { name: "Send request" }).click();
   await expect(publicPage.getByText(REQUEST_SUCCESS)).toBeVisible();
 
@@ -195,6 +198,7 @@ test("the standalone form works without a table", async ({ page }) => {
   await expect(wanted).toContainText(
     new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(today)
   );
+  await form.getByRole("checkbox", { name: CONSENT }).check();
   await form.getByRole("button", { name: "Send request" }).click();
   await expect(form.getByText(REQUEST_SUCCESS)).toBeVisible();
 
