@@ -162,7 +162,11 @@ view is `view` (React also writes `historyIndex`); the file tree adds
 `<tableId>-folder`. Density is not a URL key.
 
 - Precedence on arrival: explicit URL state, then `initialActiveViewId`, the
-  personal favorite, the first `isDefault` view, then the configuration. The
+  personal favorite, the first `isDefault` view, then the configuration. A
+  link with only `?view=<id>` opens that saved view with its settings. A view
+  named by the link or by `initialActiveViewId` does not wait for
+  `getFavorite`; the URL is read once on mount, so the table's own first
+  writes (its column order) never cancel it. The
   starting sort is the URL's, then the view's, then `columns.sort`; with none,
   no sort is sent and the order `list` returns is kept.
 - Nested tables (the `tablePicker` form field) keep their state out of the
