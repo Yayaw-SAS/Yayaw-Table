@@ -99,7 +99,8 @@ Receives the query (`search`, `filters`, `advancedFilters`,
   `count_not_empty`, `count_true`, `count_false`, `percent_empty`,
   `percent_not_empty`, `percent_true`, `percent_false`, `sum`, `average`,
   `median`, `min`, `max`, `range`): answer `{ results: { [columnId]: { raw,
-  label } } }` (Vue also accepts plain values);
+  label } } }`; a `label` shows as is, a plain value (or `raw` alone) in the
+  column's format;
 - or, for charts, `groupBy: [{ columnId, bucket? }]` (one or two levels),
   `metrics: [{ fn, columnId? }]` (`count`, `sum`, `avg`, `min`, `max`,
   `countDistinct`), `timeZone` and `weekStartsOn`, with empty `calculations`:
@@ -202,10 +203,13 @@ before planning.
 
 `actions.exportFile(request)` builds files on the server. The request is
 `{ format: "csv" | "xlsx" | "pdf", scope: "view" | "selection", formatted,
-fileName, viewId, query, columns: [{ id, header }], selectedRowIds }`; answer
-`{ url }`, `{ blob }` or nothing. Load the rows yourself from `query` with the
-user's permissions (limit to `selectedRowIds` for a selection), write
-`formatted` values with each column's format or the stored values otherwise.
+fileName, viewId, query, columns, selectedRowIds, locale? }`, where each
+column is `{ id, header }` plus what the table shows it with, when set:
+`type`, `typeKey`, `options`, `numberFormat`, `dateDisplayPreset`,
+`dateFormat`, `timeZone`, `hour12`. Answer `{ url }`, `{ blob }` or nothing.
+Load the rows yourself from `query` with the user's permissions (limit to
+`selectedRowIds` for a selection), write `formatted` values with each
+column's format in `locale`, or the stored values otherwise.
 Excel is offered only with `exportFile`; `table.exportFormats` narrows the
 formats. Without it, the browser writes a UTF-8 CSV or prints a PDF from rows
 loaded through `list`, and `onExport` can replace the CSV file.

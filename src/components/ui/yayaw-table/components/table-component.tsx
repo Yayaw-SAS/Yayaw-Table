@@ -99,7 +99,11 @@ import type {
   RecordDetailsConfig,
 } from "../utils/record-details";
 import { formatYearMonthGroupLabel } from "../utils/date-display";
-import { groupedLeafRows, groupedValueLabel } from "../utils/table-contracts";
+import {
+  type FieldTextColumn,
+  groupedLeafRows,
+  groupedValueLabel,
+} from "../utils/table-contracts";
 import { TABLE_DENSITY_CLASSES } from "../utils/table-density";
 import { getPrimaryGrouping } from "../utils/table-view-state";
 import { availableDisplayModes } from "../utils/view-menu";
@@ -166,6 +170,22 @@ const PAGINATION_VIEWPORT_OPTIONS = {
 } as const;
 const BULK_ACTIONS_FIXED_VIEWPORT_MARGIN = 24;
 const YEAR_MONTH_KEY = /^\d{4}-\d{2}$/;
+
+/**
+ * A group heading's value in its column's format. Date columns without an
+ * accessor group by month ("YYYY-MM") and read as that month.
+ */
+const groupHeadingValue = (
+  groupingValue: unknown,
+  value: unknown,
+  column: FieldTextColumn | undefined,
+  locale: string
+): string =>
+  column?.type === "date" &&
+  typeof groupingValue === "string" &&
+  YEAR_MONTH_KEY.test(groupingValue)
+    ? formatYearMonthGroupLabel(groupingValue, locale)
+    : groupedValueLabel(value, column?.options, { column, locale });
 
 export const shouldShowCalculationsFooter = ({
   enableCalculations,
@@ -2394,21 +2414,13 @@ function ModernDataTable<
       const definition = tableConfig.columns.definitions.find(
         (column) => column.id === groupingColumn
       );
-      // Date columns without an accessor group by month ("YYYY-MM").
-      const monthKey =
-        definition?.type === "date" &&
-        typeof row.groupingValue === "string" &&
-        YEAR_MONTH_KEY.test(row.groupingValue)
-          ? row.groupingValue
-          : undefined;
-      const groupValue = monthKey
-        ? formatYearMonthGroupLabel(monthKey, locale)
-        : groupedValueLabel(row.getValue(groupingColumn), definition?.options, {
-            column: definition,
-            locale,
-          });
       return {
-        groupValue,
+        groupValue: groupHeadingValue(
+          row.groupingValue,
+          row.getValue(groupingColumn),
+          definition,
+          locale
+        ),
         columnLabel: definition?.header ?? groupingColumn,
         groupingColumn,
         icon: getColumnIcon(groupingColumn),
@@ -2814,6 +2826,7 @@ function ModernDataTable<
     handleInteractiveRowClick,
     activeRowId,
     enableColumnResizing,
+    locale,
   ]);
 
   // Optimize table header with better memoization (columnOrder in deps so header re-renders when order changes)

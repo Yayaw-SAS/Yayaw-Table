@@ -59,7 +59,10 @@ const toBoolean = (v: unknown): boolean | undefined => {
   return undefined;
 };
 
-type CalculationResult = { raw: number | string | null; label: string };
+interface CalculationResult {
+  raw: number | string | null;
+  label: string;
+}
 
 const EMPTY_RESULT: CalculationResult = { raw: null, label: "—" };
 

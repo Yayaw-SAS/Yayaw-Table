@@ -73,9 +73,13 @@ family (`TABLE_DATA_TYPES` in `table-contracts.ts`):
 ## Value formats
 
 A format is a column setting and applies everywhere the value is shown: table
-cells, list, Kanban and gallery cards, record details, the Form view, feed
-posts, map popups, chart values and formatted exports; imports read numbers
-back with the column's separators. Shared code: `value-format.ts`.
+cells and footer totals, group headings, list, Kanban and gallery cards and
+lanes, record details, the Form view, feed posts, calendar and Gantt titles,
+map titles and popups, chart axes, tooltips and legends, dashboard widgets and
+filters, filter chips, the file tree, the import preview, connector previews
+and formatted exports; imports read numbers back with the column's
+separators. Values stay raw only in server requests, connector pushes and raw
+exports. Shared code: `value-format.ts`.
 
 - `numberFormat`: a preset (`"space"`, `"dot"`, `"comma"`, `"locale"`) or
   `{ style: "decimal" | "currency" | "percent" | "compact" | "unit", currency,
@@ -86,10 +90,16 @@ back with the column's separators. Shared code: `value-format.ts`.
 - Dates: `dateDisplayPreset` (`localized-short` by default, `localized-medium`,
   `localized-long`, `month-name-long`, `month-year`, `dmy-numeric`, `dmy-short`,
   `mdy-numeric`, `mdy-short`, `iso-date`, `iso`, `date`, `short`, `long`,
-  `dateTime`, `time`, `relative`), or a date-fns `dateFormat` pattern, which
-  wins over the preset. `table.dateDisplayPreset` sets the table default.
-- `timeZone` (IANA) and `hour12` apply to presets only; patterns use the
-  browser's zone. Charts bucket dates in the x column's `timeZone`.
+  `dateTime`, `time`, `relative`), or a date-fns `dateFormat` pattern.
+  `table.dateDisplayPreset` sets the table default. One rule in both
+  editions: the column's pattern, else its preset, else the table's preset.
+- `timeZone` (IANA) applies to presets and patterns, `hour12` to presets (a
+  pattern picks `HH` or `h`); an unknown zone shows local time. Charts bucket
+  dates in the x column's `timeZone`.
+- Days (chart day and week buckets, date filters, Form answers) show the
+  date part of the column's format. Totals (sum, average, min, max…) use the
+  column's format; counts and percentages are plain localized numbers.
+- `prefix`, `suffix` and separators keep their spaces (`" kg"`).
 - Date-only strings (`2026-09-10`) are local calendar days in both editions;
   store and return them as such. Timestamps are instants.
 - Without `numberFormat`, React shows the raw number (`1234.5`) and Vue a
