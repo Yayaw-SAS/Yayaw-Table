@@ -211,6 +211,46 @@ export function resolveTableDisplayMode({
   return resolveDisplayMode({ allowed: allowedModes, requested: displayMode });
 }
 
+const DATE_PRESET_CACHE = new WeakMap<
+  readonly unknown[],
+  Map<DateDisplayPreset, unknown[]>
+>();
+
+/**
+ * Date columns without a preset of their own take the table's, as in Vue, so
+ * every surface (cards, charts, exports…) reads one declaration.
+ */
+export function withTableDatePreset<
+  T extends {
+    type?: string;
+    dateDisplayPreset?: DateDisplayPreset;
+    meta?: unknown;
+  },
+>(definitions: T[], preset: DateDisplayPreset | undefined): T[] {
+  const missing = (column: T) =>
+    column.type === "date" && !column.dateDisplayPreset;
+  if (!(preset && definitions.some(missing))) {
+    return definitions;
+  }
+  // The same definitions give the same array: hooks keyed on it stay stable.
+  const cached = DATE_PRESET_CACHE.get(definitions)?.get(preset);
+  if (cached) {
+    return cached as T[];
+  }
+  const filled = definitions.map((column) => {
+    if (!missing(column)) {
+      return column;
+    }
+    const legacy = (column.meta as { dateDisplayPreset?: DateDisplayPreset })
+      ?.dateDisplayPreset;
+    return { ...column, dateDisplayPreset: legacy ?? preset };
+  });
+  const byPreset = DATE_PRESET_CACHE.get(definitions) ?? new Map();
+  byPreset.set(preset, filled);
+  DATE_PRESET_CACHE.set(definitions, byPreset);
+  return filled;
+}
+
 /**
  * Column definition for a data table
  */
@@ -800,7 +840,10 @@ export function defineTableConfig(config: {
 
   return {
     columns: {
-      definitions: config.columns.definitions,
+      definitions: withTableDatePreset(
+        config.columns.definitions,
+        tableDefaults.dateDisplayPreset
+      ),
       mandatory: config.columns.mandatory,
       order: config.columns.order,
       sort: config.columns.sort || [],

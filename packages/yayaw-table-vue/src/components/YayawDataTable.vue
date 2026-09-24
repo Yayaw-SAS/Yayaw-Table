@@ -2,6 +2,7 @@
 import { createPlanningSession, withPlanningActions } from "../planning/session";
 import { canDeriveRowsPlanning, createRowsPlanningAdapter } from "../planning/rows-adapter";
 import { planningLabels, planningLabelOverrides } from "../planning/labels";
+import { planningFormatters } from "../planning/format";
 import PlanningSurface from "./planning/PlanningSurface.vue";
 import GanttView from "./planning/GanttView.vue";
 import { createSelectionDuplicate, duplicateLabels } from "../duplicate-shortcut";
@@ -345,6 +346,8 @@ const translations = computed(() =>
   createTranslations(props.locale, { ...config.translations.keys, ...props.translations })
 );
 const ganttLabels = computed(() => planningLabels(props.locale, planningLabelOverrides((key) => {const value = translations.value[key]; return typeof value === "string" ? value : key;})));
+// The planning dialog reads names, days and fields as the table shows them.
+const planningFormat = computed(() => planningFormatters(config.columns.definitions, config.table.gantt, props.locale));
 const customBulkActions = computed(() => props.customBulkActions);
 const toolbarActions = computed(() => props.toolbarActions ?? config.toolbarActions ?? []);
 const getRowId = (row: TableRecord, index = 0): string =>
@@ -703,7 +706,7 @@ provide(tableContextKey, {
     <CatalogueForm v-if="form.open && !currentDetailRow">
       <template v-for="(_, name) in $slots" #[name]="scope"><slot :name="name" v-bind="scope" /></template>
     </CatalogueForm>
-    <PlanningSurface v-if="planning" :session="planning" :labels="ganttLabels" :locale="locale" :on-open-record="recordDetails || onOpenDetails ? (task) => {if (task.record) openDetails(task.record)} : undefined" />
+    <PlanningSurface v-if="planning" :session="planning" :labels="ganttLabels" :locale="locale" :formatters="planningFormat" :on-open-record="recordDetails || onOpenDetails ? (task) => {if (task.record) openDetails(task.record)} : undefined" />
     <RecordDetails v-if="recordDetails && currentDetailRow" :key="getRowId(currentDetailRow)" :row="currentDetailRow" :config="{ ...recordDetails, presentation: config.presentation ?? recordDetails.presentation }" :editing="form.open" :editor-busy="detailEditorBusy" :columns="config.columns.definitions" :locale="locale"
       :can-edit="config.table.allowEdit && Boolean(actions?.update) && config.table.canEditRow?.(currentDetailRow) !== false"
       :can-delete="config.table.allowDelete && Boolean(actions?.delete) && config.table.canDeleteRow?.(currentDetailRow) !== false"

@@ -129,7 +129,8 @@ export function exportModelSuite(
         fileName: "projects.xlsx",
         viewId: "v1",
         query,
-        columns: [{ id: "name", header: "Name" }],
+        // Formats travel with each column, so the server can match "formatted".
+        columns: [{ id: "name", header: "Name", type: "text" }],
         selectedRowIds: ["1"],
       },
     ]);

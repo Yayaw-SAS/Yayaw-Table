@@ -98,6 +98,7 @@ import type {
   DetailRevertHandler,
   RecordDetailsConfig,
 } from "../utils/record-details";
+import { formatYearMonthGroupLabel } from "../utils/date-display";
 import { groupedLeafRows, groupedValueLabel } from "../utils/table-contracts";
 import { TABLE_DENSITY_CLASSES } from "../utils/table-density";
 import { getPrimaryGrouping } from "../utils/table-view-state";
@@ -164,6 +165,7 @@ const PAGINATION_VIEWPORT_OPTIONS = {
   threshold: 0,
 } as const;
 const BULK_ACTIONS_FIXED_VIEWPORT_MARGIN = 24;
+const YEAR_MONTH_KEY = /^\d{4}-\d{2}$/;
 
 export const shouldShowCalculationsFooter = ({
   enableCalculations,
@@ -2392,10 +2394,19 @@ function ModernDataTable<
       const definition = tableConfig.columns.definitions.find(
         (column) => column.id === groupingColumn
       );
-      const groupValue = groupedValueLabel(
-        row.getValue(groupingColumn),
-        definition?.options
-      );
+      // Date columns without an accessor group by month ("YYYY-MM").
+      const monthKey =
+        definition?.type === "date" &&
+        typeof row.groupingValue === "string" &&
+        YEAR_MONTH_KEY.test(row.groupingValue)
+          ? row.groupingValue
+          : undefined;
+      const groupValue = monthKey
+        ? formatYearMonthGroupLabel(monthKey, locale)
+        : groupedValueLabel(row.getValue(groupingColumn), definition?.options, {
+            column: definition,
+            locale,
+          });
       return {
         groupValue,
         columnLabel: definition?.header ?? groupingColumn,
@@ -2929,6 +2940,7 @@ function ModernDataTable<
               columns: tableConfig.columns.definitions,
             })
           }
+          columns={tableConfig.columns.definitions}
           config={tableConfig.table.gantt ?? {}}
           emptyState={emptyStateContent}
           error={planningState.error}

@@ -142,4 +142,56 @@ describe("calculateColumn", () => {
       label: "0%",
     });
   });
+
+  it("reads sums, averages and extremes in the column's format; counts stay plain", () => {
+    const amount = {
+      numberFormat: { style: "currency" as const, currency: "EUR" },
+    };
+    assert.deepEqual(
+      calculateColumn([2499, 1200.5, 350], "sum", "number", "en-US", amount),
+      { raw: 4049.5, label: "€4,049.50" }
+    );
+    assert.equal(
+      calculateColumn(
+        [0.45, 0.8, 0.1],
+        "average",
+        "number",
+        "fr-FR",
+        { numberFormat: { style: "percent" as const } }
+      ).label.replace(/[  ]/g, " "),
+      "45 %"
+    );
+    assert.deepEqual(
+      calculateColumn([2499, 1200.5], "count_values", "number", "en-US", amount),
+      { raw: 2, label: "2" }
+    );
+    const due = {
+      dateFormat: "dd/MM/yyyy HH:mm",
+      timeZone: "Europe/Paris",
+    };
+    const values = ["2026-09-05T22:30:00Z", "2026-09-15T12:00:00Z"];
+    assert.equal(
+      calculateColumn(values, "min", "date", "en-US", due).label,
+      "06/09/2026 00:30"
+    );
+    assert.equal(
+      calculateColumn(values, "max", "date", "en-US", due).label,
+      "15/09/2026 14:00"
+    );
+    // Calendar days stay the day stored, whatever the zone.
+    assert.equal(
+      calculateColumn(
+        ["2026-01-02", "2026-01-09"],
+        "min",
+        "date",
+        "en-US",
+        { dateDisplayPreset: "iso-date", timeZone: "Pacific/Honolulu" }
+      ).label,
+      "2026-01-02"
+    );
+    assert.equal(
+      calculateColumn(values, "range", "date", "fr-FR", due).label,
+      "10j"
+    );
+  });
 });

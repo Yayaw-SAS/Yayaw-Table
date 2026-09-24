@@ -15,6 +15,7 @@ import type {
   TableRecord,
 } from "../../types";
 import { useCardRows } from "../../composables/use-card-rows";
+import { fieldText } from "../../table-contracts";
 import TableCheckbox from "../controls/TableCheckbox.vue";
 import CellRenderer from "../table/CellRenderer.vue";
 import RowActions from "../table/RowActions.vue";
@@ -30,22 +31,30 @@ const value = (row: TableRecord, id: string): unknown =>
 const sections = computed(() => {
   const groupBy = context.state.grouping.value[0];
   if (!groupBy) {
-    return [{ label: "", rows: rows.value }];
+    return [{ id: "all", label: "", rows: rows.value }];
   }
-  const groups = new Map<string, TableRecord[]>();
+  // Headings read the value as the table shows it; groups stay by raw value.
+  const groups = new Map<string, { id: string; label: string; rows: TableRecord[] }>();
   for (const row of rows.value) {
-    const label = String(value(row, groupBy) ?? "Unassigned");
-    groups.set(label, [...(groups.get(label) ?? []), row]);
+    const raw = value(row, groupBy);
+    const key = String(raw ?? "Unassigned");
+    const section = groups.get(key) ?? {
+      id: key,
+      label: fieldText(raw, column(groupBy), context.locale) || key,
+      rows: [],
+    };
+    section.rows.push(row);
+    groups.set(key, section);
   }
-  return [...groups].map(([label, sectionRows]) => ({
-    label,
-    rows: sectionRows,
-  }));
+  return [...groups.values()];
 });
+/** The title as the table shows it, for names, alt text and initials. */
+const titleText = (row: TableRecord): string =>
+  fieldText(value(row, titleColumn.value), column(titleColumn.value), context.locale, row);
 const imageFor = (row: TableRecord): string | undefined =>
   imageSource(value(row, imageColumn.value));
 const initialFor = (row: TableRecord): string =>
-  String(value(row, titleColumn.value) ?? "?")
+  (titleText(row) || "?")
     .trim()
     .charAt(0)
     .toLocaleUpperCase() || "?";
@@ -82,12 +91,12 @@ onBeforeUnmount(() => viewer?.destroy());
 const openPreview = (row: TableRecord, target: HTMLElement) => {
   viewer?.destroy();
   viewer = openMediaViewer({
-    items: orderedRows.value.map(item => ({ id: context.getRowId(item), title: String(value(item, titleColumn.value) ?? context.getRowId(item)), source: resolveGalleryMedia(item, context.config.table.gallery?.media, imageColumn.value) })),
+    items: orderedRows.value.map(item => ({ id: context.getRowId(item), title: titleText(item) || context.getRowId(item), source: resolveGalleryMedia(item, context.config.table.gallery?.media, imageColumn.value) })),
     index: orderedRows.value.findIndex(item => context.getRowId(item) === context.getRowId(row)), labels: labels.value, returnFocus: target,
     onInfo: context.openDetails ? id => { const item = orderedRows.value.find(item => context.getRowId(item) === id); if (item) context.openDetails?.(item); } : undefined,
   });
 };
-const mediaContext = (row: TableRecord) => ({ row, title: String(value(row, titleColumn.value) ?? context.getRowId(row)), source: imageFor(row), imageFit: imageFit.value, aspectRatio: aspectRatio.value });
+const mediaContext = (row: TableRecord) => ({ row, title: titleText(row) || context.getRowId(row), source: imageFor(row), imageFit: imageFit.value, aspectRatio: aspectRatio.value });
 const CustomContent = defineComponent({ props: { node: { type: null as unknown as PropType<VNodeChild>, required: true } }, setup: props => () => props.node });
 </script>
 
@@ -98,16 +107,16 @@ const CustomContent = defineComponent({ props: { node: { type: null as unknown a
   />
   <div v-else class="yayaw-card-view-shell yayaw-gallery-panel">
 
-    <section v-for="section in sections" :key="section.label" class="yayaw-gallery-section">
+    <section v-for="section in sections" :key="section.id" class="yayaw-gallery-section">
       <h3 v-if="section.label">{{ section.label }} <span class="yayaw-count">{{ section.rows.length }}</span></h3>
       <div class="yayaw-gallery" :data-size="cardSize">
         <article v-for="row in section.rows" :key="context.getRowId(row)" class="yayaw-card yayaw-gallery-card" :class="{ selected: context.selection.value[context.getRowId(row)] }" :data-yayaw-row-id="context.getRowId(row)" tabindex="0" role="button" @click.capture="captureSelection(row, $event)" @contextmenu.capture="event => { if(event.ctrlKey && event.button === 0) captureSelection(row, event); }" @mousedown.capture="event => { if(event.shiftKey || event.ctrlKey || event.metaKey) event.preventDefault(); }" @click="activate(row, $event)" @keydown="activate(row, $event)">
           <div class="yayaw-gallery-media" :data-ratio="aspectRatio" :style="{ aspectRatio: galleryAspectRatio(aspectRatio, previewSize) }">
             <CustomContent v-if="context.config.table.gallery?.renderMedia" :node="context.config.table.gallery.renderMedia(mediaContext(row))" />
             <GalleryMedia v-else-if="context.config.table.gallery?.media?.enabled" :source="resolveGalleryMedia(row, context.config.table.gallery.media, imageColumn)" :title="mediaContext(row).title" :fit="imageFit" :hover-preview="context.config.table.gallery.media.hoverPreview" :preview-label="labels.preview" @open="openPreview(row, $event)" />
-            <img v-else-if="imageFor(row)" :src="imageFor(row)" :alt="String(value(row, titleColumn) ?? '')" loading="lazy" :style="{ objectFit: imageFit }" />
+            <img v-else-if="imageFor(row)" :src="imageFor(row)" :alt="titleText(row)" loading="lazy" :style="{ objectFit: imageFit }" />
             <span v-else class="yayaw-gallery-placeholder"><ImageIcon :size="24" aria-hidden="true" /><span>{{ initialFor(row) }}</span></span>
-            <span v-if="context.config.table.enableRowSelection" class="yayaw-card-select" @click.capture="checkboxShift = $event.shiftKey" @click.stop><TableCheckbox :label="translate('selectRow', 'Select') + ' ' + String(value(row, titleColumn))" :model-value="Boolean(context.selection.value[context.getRowId(row)])" :disabled="context.config.table.canSelectRow?.(row) === false" @update:model-value="toggleSelection(row, $event, checkboxShift); checkboxShift = false" /></span>
+            <span v-if="context.config.table.enableRowSelection" class="yayaw-card-select" @click.capture="checkboxShift = $event.shiftKey" @click.stop><TableCheckbox :label="translate('selectRow', 'Select') + ' ' + titleText(row)" :model-value="Boolean(context.selection.value[context.getRowId(row)])" :disabled="context.config.table.canSelectRow?.(row) === false" @update:model-value="toggleSelection(row, $event, checkboxShift); checkboxShift = false" /></span>
           </div>
           <div class="yayaw-gallery-body">
             <div class="yayaw-card-header"><strong>{{ displayCellValue(value(row, titleColumn), column(titleColumn) ?? { id: titleColumn, header: titleColumn }, context.locale) }}</strong><RowActions :row="row" /></div>

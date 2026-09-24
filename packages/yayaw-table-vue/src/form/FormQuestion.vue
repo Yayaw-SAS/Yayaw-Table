@@ -280,6 +280,7 @@ const tag = (option: FormOption) =>
       :label-id="labelId"
       :value="text"
       :locale="locale"
+      :format="question.dateFormat"
       :placeholder="question.placeholder ?? labels.pickDate"
       :clear-label="labels.clearDate"
       :disabled="disabled"

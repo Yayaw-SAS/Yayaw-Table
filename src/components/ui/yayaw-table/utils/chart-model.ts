@@ -15,8 +15,9 @@ import {
 } from "./table-contracts";
 import { tagAppearance } from "./tag-colors";
 import {
-  formatNumberValue,
-  type NumberFormatConfig,
+  type ColumnValueFormat,
+  formatColumnDay,
+  formatColumnNumber,
   parseDateValue,
 } from "./value-format";
 
@@ -221,13 +222,12 @@ export function normalizeChartViewConfig(
 }
 
 /** A column as the chart reads it. */
-export interface ChartColumn {
+/** Columns bring their formats: metrics, number groups and day buckets use them. */
+export interface ChartColumn extends ColumnValueFormat {
   id: string;
   header?: string;
   type?: string;
   options?: unknown;
-  numberFormat?: NumberFormatConfig;
-  timeZone?: string;
   coloredTags?: boolean;
   tagColorMap?: Record<string, string>;
 }
@@ -1095,12 +1095,17 @@ function formatUtcDay(
   return formatter.format(date);
 }
 
-/** A bucket key as people read it, e.g. "Sep 2026" or "Q3 2026". */
+/**
+ * A bucket key as people read it, e.g. "Sep 2026" or "Q3 2026". Days and
+ * weeks read in the date column's day format (its pattern or preset without
+ * the time); months, quarters and years are periods with their own names.
+ */
 export function chartBucketLabel(
   key: string,
   bucket: ChartBucket,
   locale: string,
-  translate?: ChartTranslate
+  translate?: ChartTranslate,
+  column?: ChartColumn
 ): string {
   const start = bucketStart(key, bucket);
   if (!start) {
@@ -1108,10 +1113,10 @@ export function chartBucketLabel(
   }
   switch (bucket) {
     case "day":
-      return formatUtcDay(start, locale, { dateStyle: "medium" });
+      return formatColumnDay(dayKey(start), column, locale);
     case "week":
       return chartLabel("weekOf", locale, translate, {
-        date: formatUtcDay(start, locale, { dateStyle: "medium" }),
+        date: formatColumnDay(dayKey(start), column, locale),
       });
     case "month":
       return formatUtcDay(start, locale, { month: "short", year: "numeric" });
@@ -1136,13 +1141,20 @@ function groupKeyLabel(
     return chartLabel("noValue", locale, translate);
   }
   if (bucket && typeof key === "string") {
-    return chartBucketLabel(key, bucket, locale, translate);
+    return chartBucketLabel(key, bucket, locale, translate, column);
   }
   if (typeof key === "boolean") {
     return chartLabel(key ? "checked" : "unchecked", locale, translate);
   }
-  if (typeof key === "number" && column?.type === "number") {
-    return formatNumberValue(key, column.numberFormat, locale);
+  // Hosts may answer number groups as text, e.g. SQL decimals.
+  const numeric =
+    typeof key === "string" && key.trim() !== "" ? Number(key) : key;
+  if (
+    column?.type === "number" &&
+    typeof numeric === "number" &&
+    Number.isFinite(numeric)
+  ) {
+    return formatColumnNumber(numeric, column, locale);
   }
   return dataTypeOptionLabel(key, column?.options);
 }
@@ -1164,7 +1176,7 @@ export function chartValueFormatter(
     });
     return (value) => formatter.format(value);
   }
-  return (value) => formatNumberValue(value, column.numberFormat, locale);
+  return (value) => formatColumnNumber(value, column, locale);
 }
 
 // Chart model ------------------------------------------------------------------

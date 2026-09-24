@@ -4,6 +4,11 @@ import type {
   RecordPresentation,
   RecordPresentationConfig,
 } from "./record-presentation";
+import {
+  type ColumnValueFormat,
+  formatColumnDate,
+  formatColumnNumber,
+} from "./value-format";
 
 /** Framework-independent contracts for read-only records and application-owned audit data. */
 export type DetailRecord = Record<string, unknown>;
@@ -48,7 +53,13 @@ export interface DetailField {
   getValue?: (row: DetailRecord) => unknown;
   typeKey?: string;
   options?: readonly { value: unknown; label: string }[];
+  /** Intl options for this field only; otherwise its column's format applies. */
   numberFormat?: Intl.NumberFormatOptions;
+  /**
+   * The column's formats (number format, date pattern or preset, time zone,
+   * clock): values read as in the table. Filled from the table's columns.
+   */
+  format?: ColumnValueFormat;
   /** Explicitly omit sensitive or irrelevant fields from both details and activity. */
   hidden?: boolean | ((row: DetailRecord) => boolean);
 }
@@ -201,7 +212,7 @@ export function detailUndoMessage(
   return labels.undoSuccess.replaceAll("{action}", () => entry.action);
 }
 
-interface DetailColumn {
+interface DetailColumn extends ColumnValueFormat {
   id: string;
   header?: string;
   type?: string;
@@ -210,6 +221,15 @@ interface DetailColumn {
   options?: readonly { value: unknown; label: string }[];
   typeKey?: string;
 }
+
+const columnFormat = (column: DetailColumn): ColumnValueFormat => ({
+  type: column.type,
+  numberFormat: column.numberFormat,
+  dateDisplayPreset: column.dateDisplayPreset,
+  dateFormat: column.dateFormat,
+  timeZone: column.timeZone,
+  hour12: column.hour12,
+});
 
 export function detailSections(
   config: RecordDetailsConfig,
@@ -236,15 +256,27 @@ export function detailSections(
           getValue: column.accessorFn,
           options: column.options,
           typeKey: column.typeKey,
+          format: columnFormat(column),
         })),
     },
   ];
+  // A hand-written field of a table column shows its values as the table does.
+  const columnOf = (field: DetailField) =>
+    columns.find((column) => column.id === (field.accessorKey ?? field.id)) ??
+    columns.find((column) => column.id === field.id);
   return sections
     .map((section) => ({
       ...section,
-      fields: section.fields.filter((field) =>
-        typeof field.hidden === "function" ? !field.hidden(row) : !field.hidden
-      ),
+      fields: section.fields
+        .filter((field) =>
+          typeof field.hidden === "function"
+            ? !field.hidden(row)
+            : !field.hidden
+        )
+        .map((field) => {
+          const column = field.format ? undefined : columnOf(field);
+          return column ? { ...field, format: columnFormat(column) } : field;
+        }),
     }))
     .filter((section) => section.fields.length > 0);
 }
@@ -445,6 +477,34 @@ function detailItems(value: unknown, type: string): DetailDisplay {
   return { kind: "items", text: "", items };
 }
 
+/** The field's own Intl options win; otherwise the column's number format. */
+function detailNumberText(
+  field: DetailField,
+  value: unknown,
+  locale: string
+): string {
+  if (field.numberFormat) {
+    return typeof value === "number" && Number.isFinite(value)
+      ? new Intl.NumberFormat(locale, field.numberFormat).format(value)
+      : detailText(value);
+  }
+  return formatColumnNumber(value, field.format, locale);
+}
+
+/** Dates read in the column's pattern or preset, time zone and clock. */
+function detailDateText(
+  field: DetailField,
+  value: unknown,
+  locale: string,
+  withTime: boolean
+): string {
+  const format = field.format;
+  if (!(format?.dateFormat || format?.dateDisplayPreset)) {
+    return detailDate(value, locale, withTime);
+  }
+  return formatColumnDate(value, format, locale);
+}
+
 export function detailDisplay(
   field: DetailField,
   value: unknown,
@@ -487,16 +547,10 @@ export function detailDisplay(
     case "datetime":
       return {
         kind: "text",
-        text: detailDate(value, locale, type === "datetime"),
+        text: detailDateText(field, value, locale, type === "datetime"),
       };
     case "number":
-      return {
-        kind: "text",
-        text:
-          typeof value === "number" && Number.isFinite(value)
-            ? new Intl.NumberFormat(locale, field.numberFormat).format(value)
-            : detailText(value),
-      };
+      return { kind: "text", text: detailNumberText(field, value, locale) };
     case "url":
     case "email":
     case "tel":

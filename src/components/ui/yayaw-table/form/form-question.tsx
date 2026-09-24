@@ -261,6 +261,7 @@ function Control(props: ControlProps) {
           clearLabel={labels.clearDate}
           describedBy={description}
           disabled={disabled}
+          format={question.dateFormat}
           id={inputId}
           invalid={Boolean(error)}
           labelId={labelId}

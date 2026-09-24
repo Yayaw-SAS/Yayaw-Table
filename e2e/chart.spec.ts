@@ -154,13 +154,14 @@ test("the table fallback lists the chart's numbers and opens a group", async ({
     chartUrl({ type: "line", xColumn: "dueDate", bucket: "week" })
   );
   await page.getByRole("button", { name: SHOW_TABLE }).click();
+  // Weeks read in the Due column's format (the table's default short date).
   expect(await tableRows(page)).toEqual([
-    "Week of Aug 31, 2026 2",
-    "Week of Sep 7, 2026 2",
-    "Week of Sep 14, 2026 2",
+    "Week of 8/31/26 2",
+    "Week of 9/7/26 2",
+    "Week of 9/14/26 2",
   ]);
   await page
-    .getByRole("button", { name: "Show the records of Week of Sep 7, 2026" })
+    .getByRole("button", { name: "Show the records of Week of 9/7/26" })
     .click();
   await expect.poll(() => displayParam(page)).toBeNull();
   await expect(page.getByText("Charlie display").first()).toBeVisible();

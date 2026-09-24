@@ -1,5 +1,10 @@
 /** Framework-independent adapters. Also copied into the standalone Vue registry. */
-import { locationValueError, matchesLocationFilter } from "./location-model";
+import {
+  formatLocation,
+  locationValueError,
+  matchesLocationFilter,
+} from "./location-model";
+import { type ColumnValueFormat, formatColumnValue } from "./value-format";
 
 const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 export type ContractRecord = Record<string, unknown>;
@@ -591,8 +596,76 @@ export function dataTypeOptionLabel(value: unknown, options?: unknown): string {
   return option?.label ?? String(value ?? "");
 }
 
-/** Group headings use accessor values and option labels, never aggregated IDs. */
-export function groupedValueLabel(value: unknown, options?: unknown): string {
+/** What a column says about showing its values as text. */
+export interface FieldTextColumn extends ColumnValueFormat {
+  options?: unknown;
+  typeKey?: string;
+}
+
+const matchingOption = (value: unknown, options: unknown) =>
+  Array.isArray(options)
+    ? (options as ContractRecord[]).find((item) =>
+        Object.is(item?.value, value)
+      )
+    : undefined;
+
+/**
+ * A field's value as one line of text — titles, group and lane names, labels
+ * read aloud: option labels, numbers and dates in the column's format and the
+ * table locale, places by name. Empty values give "".
+ */
+export function fieldText(
+  value: unknown,
+  column: FieldTextColumn | undefined,
+  locale?: string,
+  row?: ContractRecord
+): string {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => fieldText(item, column, locale, row))
+      .filter(Boolean)
+      .join(", ");
+  }
+  const option = matchingOption(value, column?.options);
+  if (option) {
+    return String(option.label ?? option.value ?? "");
+  }
+  if (value === null || value === undefined || value === "") {
+    return "";
+  }
+  const type = column
+    ? resolveDataType(column.type, row, column.typeKey)
+    : undefined;
+  const formatted = formatColumnValue(
+    value,
+    column && { ...column, type },
+    locale
+  );
+  if (formatted !== undefined) {
+    return formatted;
+  }
+  if (type === "location") {
+    return formatLocation(value);
+  }
+  return typeof value === "object" ? JSON.stringify(value) : String(value);
+}
+
+/**
+ * Group headings use accessor values and option labels, never aggregated
+ * IDs; with the column, numbers and dates read in its format.
+ */
+export function groupedValueLabel(
+  value: unknown,
+  options?: unknown,
+  format?: { column?: FieldTextColumn; locale?: string }
+): string {
+  if (format?.column) {
+    return fieldText(
+      value,
+      { ...format.column, options: options ?? format.column.options },
+      format.locale
+    );
+  }
   return Array.isArray(value)
     ? value.map((item) => dataTypeOptionLabel(item, options)).join(", ")
     : dataTypeOptionLabel(value, options);

@@ -10,28 +10,40 @@ import { useCardRows } from "../../composables/use-card-rows";
 import TableCheckbox from "../controls/TableCheckbox.vue";
 import CellRenderer from "../table/CellRenderer.vue";
 import { isBlankCardValue } from "../../value-format";
+import { fieldText } from "../../table-contracts";
 import RowActions from "../table/RowActions.vue";
 
 const { context, translate, titleColumn, propertyIds, showLabels, groupBy } = useKanbanSettings();
 const dragged = ref<TableRecord>();
 const pending = ref<string>();
 const rows = useCardRows();
+// Lane titles read the grouped value as the table shows it; `value` stays raw.
+const laneLabel = (raw: unknown, fallback: string): string =>
+  fieldText(raw, column(groupBy.value), context.locale) || fallback;
 const rawGroups = computed(() => {
   const configured = groupBy.value === context.config.table.kanban?.groupBy ? context.config.table.kanban?.groups ?? [] : [];
-  const values = new Set(
-    rows.value.map((row) => String(value(row, groupBy.value) ?? "Unassigned"))
-  );
+  const values = new Map<string, unknown>();
+  for (const row of rows.value) {
+    const raw = value(row, groupBy.value);
+    const key = String(raw ?? "Unassigned");
+    if (!values.has(key)) {
+      values.set(key, raw);
+    }
+  }
   const groups = configured.map((group) => ({
     value: group.value,
-    label: group.label ?? group.value,
+    label: group.label ?? laneLabel(group.value, group.value),
   }));
-  for (const value of values) {
-    if (!groups.some((group) => group.value === value)) {
-      groups.push({ value, label: value });
+  for (const [key, raw] of values) {
+    if (!groups.some((group) => group.value === key)) {
+      groups.push({ value: key, label: laneLabel(raw, key) });
     }
   }
   return groups;
 });
+/** The card's title as read aloud: option labels, number and date formats. */
+const titleText = (row: TableRecord): string =>
+  fieldText(value(row, titleColumn.value), column(titleColumn.value), context.locale, row);
 const rowsFor = (group: string): TableRecord[] =>
   rows.value.filter(
     (row) => String(value(row, groupBy.value) ?? "Unassigned") === group
@@ -150,7 +162,7 @@ const toggleSelection = (row: TableRecord, checked: boolean): void => {
           >
             <div class="yayaw-card-header">
               <span v-if="context.config.table.enableRowSelection" class="yayaw-card-select" @click.stop>
-                <TableCheckbox :label="translate('selectRow', 'Select') + ' ' + String(value(row, titleColumn))" :model-value="Boolean(context.selection.value[context.getRowId(row)])" :disabled="context.config.table.canSelectRow?.(row) === false" @update:model-value="toggleSelection(row, $event)" />
+                <TableCheckbox :label="translate('selectRow', 'Select') + ' ' + titleText(row)" :model-value="Boolean(context.selection.value[context.getRowId(row)])" :disabled="context.config.table.canSelectRow?.(row) === false" @update:model-value="toggleSelection(row, $event)" />
               </span>
               <strong>{{ displayCellValue(value(row, titleColumn), column(titleColumn) ?? { id: titleColumn, header: titleColumn }, context.locale) }}</strong>
               <div v-if="canDrag && canEditRow(row)" class="yayaw-kanban-move-actions">
@@ -158,7 +170,7 @@ const toggleSelection = (row: TableRecord, checked: boolean): void => {
                   v-if="adjacentGroup(row, -1)"
                   type="button"
                   class="yayaw-icon-button"
-                  :aria-label="translate('moveTo', 'Move') + ' ' + String(value(row, titleColumn)) + ' ' + translate('to', 'to') + ' ' + adjacentGroup(row, -1)?.label"
+                  :aria-label="translate('moveTo', 'Move') + ' ' + titleText(row) + ' ' + translate('to', 'to') + ' ' + adjacentGroup(row, -1)?.label"
                   :disabled="Boolean(pending)"
                   @click.stop="moveRow(row, adjacentGroup(row, -1)?.value ?? '')"
                 >
@@ -168,7 +180,7 @@ const toggleSelection = (row: TableRecord, checked: boolean): void => {
                   v-if="adjacentGroup(row, 1)"
                   type="button"
                   class="yayaw-icon-button"
-                  :aria-label="translate('moveTo', 'Move') + ' ' + String(value(row, titleColumn)) + ' ' + translate('to', 'to') + ' ' + adjacentGroup(row, 1)?.label"
+                  :aria-label="translate('moveTo', 'Move') + ' ' + titleText(row) + ' ' + translate('to', 'to') + ' ' + adjacentGroup(row, 1)?.label"
                   :disabled="Boolean(pending)"
                   @click.stop="moveRow(row, adjacentGroup(row, 1)?.value ?? '')"
                 >

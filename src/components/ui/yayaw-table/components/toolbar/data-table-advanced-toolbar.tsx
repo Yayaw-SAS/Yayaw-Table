@@ -118,6 +118,7 @@ import {
 import { isSchedulable, scheduleLabel } from "../../utils/schedule-model";
 import {
   type ConnectorViewColumn,
+  connectorColumnFormats,
   connectorColumnOptions,
   connectorLabels,
   connectorScheduleSuffix,
@@ -379,6 +380,8 @@ function createColumnOptions(
         options: (colDef as { options?: unknown }).options,
         dateDisplayPreset: resolvedDateDisplayPreset,
         dateFormat: resolvedDateFormat,
+        // Filter chips show values in the column's format.
+        numberFormat: (colDef as { numberFormat?: unknown }).numberFormat,
         type: colDef.type,
       };
       return option;
@@ -1526,11 +1529,13 @@ export function DataTableAdvancedToolbar<TData>({
             id: column.id,
             header: column.header,
             type: column.type,
+            typeKey: column.typeKey,
             options: (column as { options?: unknown }).options,
             numberFormat: column.numberFormat,
             dateDisplayPreset: column.dateDisplayPreset,
             dateFormat: column.dateFormat,
-            timeZone: (column as { timeZone?: string }).timeZone,
+            timeZone: column.timeZone,
+            hour12: column.hour12,
           },
         ];
       });
@@ -1560,6 +1565,8 @@ export function DataTableAdvancedToolbar<TData>({
         header: String(column.header),
         ...(column.type ? { type: String(column.type) } : {}),
         ...(options ? { options } : {}),
+        // Previews and conflicts show values in the column's format.
+        ...connectorColumnFormats(column),
         visible: visible.has(column.id),
       };
     });

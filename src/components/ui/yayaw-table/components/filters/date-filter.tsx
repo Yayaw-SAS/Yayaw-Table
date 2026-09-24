@@ -29,10 +29,7 @@ import {
   DEFAULT_OPERATORS,
   FILTER_OPERATORS_LABELS,
 } from "../../types/filter-types";
-import {
-  formatDateForDisplay,
-  formatDateRangeForDisplay,
-} from "../../utils/date-display";
+import { formatFilterValueForDisplay } from "../../utils/advanced-filters";
 import {
   getTranslatedOperatorLabel,
   translateWithFallback,
@@ -146,6 +143,7 @@ const toDateRange = (
   return fallbackDateRange();
 };
 
+/** The picked day(s) as the column shows days: the date part of its format. */
 const formatDateForDisplayValue = ({
   value,
   dateDisplayPreset,
@@ -156,28 +154,21 @@ const formatDateForDisplayValue = ({
   value: DateFilterValue | undefined;
   dateDisplayPreset?: DateDisplayPreset;
   fallbackDateDisplayPreset?: DateDisplayPreset;
-  dateFormat: string;
+  dateFormat?: string;
   locale?: string;
 }): string | undefined => {
   if (!value) {
     return;
   }
-
-  if (Array.isArray(value)) {
-    return formatDateRangeForDisplay(value, {
-      dateDisplayPreset,
-      fallbackDateDisplayPreset,
-      dateFormat,
-      locale,
-    });
-  }
-
-  return formatDateForDisplay(value, {
-    dateDisplayPreset,
-    fallbackDateDisplayPreset,
-    dateFormat,
-    locale,
-  });
+  return (
+    formatFilterValueForDisplay(
+      "date",
+      Array.isArray(value) ? "between" : "equals",
+      value,
+      undefined,
+      { dateDisplayPreset, fallbackDateDisplayPreset, dateFormat, locale }
+    ) || undefined
+  );
 };
 
 /**
@@ -192,7 +183,7 @@ export function DateFilter({
   onOperatorChange,
   label,
   showOperator = true,
-  dateFormat = "PPP",
+  dateFormat,
   dateDisplayPreset,
   fallbackDateDisplayPreset,
   inline = false,
@@ -429,7 +420,7 @@ export function CompactDateFilter({
   operator,
   onValueChange,
   disabled = false,
-  dateFormat = "PP",
+  dateFormat,
   dateDisplayPreset,
   fallbackDateDisplayPreset,
 }: Pick<

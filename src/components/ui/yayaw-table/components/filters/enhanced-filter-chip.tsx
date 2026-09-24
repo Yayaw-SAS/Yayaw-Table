@@ -18,16 +18,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/src/components/ui/popover";
-import {
-  formatDateForDisplay,
-  formatDateRangeForDisplay,
-} from "../../utils/date-display";
+import { formatFilterValueForDisplay } from "../../utils/advanced-filters";
 import { getColumnTypeIcon } from "../../utils/column-icons";
 
 import { useLocale, useTranslations } from "../../providers/table-provider";
 import type {
   AdvancedFilterModel,
   ColumnDataType,
+  ColumnFilterConfig,
   FilterOperators,
 } from "../../types/filter-types";
 import { FilterValueInput } from "./filter-value-input";
@@ -108,32 +106,8 @@ interface EnhancedFilterChipProps {
   disabled?: boolean;
   isEditing?: boolean;
   onEditingChange?: (editing: boolean) => void;
-}
-
-/**
- * Format number value for display
- */
-function formatNumberValue(values: unknown, operator: string): string {
-  if (operator === "between" && Array.isArray(values)) {
-    return `${values[0]} - ${values[1]}`;
-  }
-  return String(values);
-}
-
-function formatDateValue(values: unknown, operator: string, locale?: string): string {
-  if (operator === "between") {
-    return (
-      formatDateRangeForDisplay(values, {
-        locale,
-      }) ?? String(values ?? "")
-    );
-  }
-
-  return (
-    formatDateForDisplay(values, {
-      locale,
-    }) ?? String(values ?? "")
-  );
+  /** The column's filter config: values show in its number or date format. */
+  config?: Partial<ColumnFilterConfig>;
 }
 
 /**
@@ -160,7 +134,8 @@ function formatFilterValue(
   operator: FilterOperators[ColumnDataType],
   type: ColumnDataType,
   maxLength = 20,
-  locale?: string
+  locale?: string,
+  config?: Partial<ColumnFilterConfig>
 ): string {
   if (values === null || values === undefined) {
     return "";
@@ -174,11 +149,20 @@ function formatFilterValue(
       break;
 
     case "number":
-      displayValue = formatNumberValue(values, operator);
-      break;
-
     case "date":
-      displayValue = formatDateValue(values, operator, locale);
+      // The column's number format, or the date part of its date format.
+      displayValue = formatFilterValueForDisplay(
+        type,
+        operator,
+        values,
+        undefined,
+        {
+          dateDisplayPreset: config?.dateDisplayPreset,
+          dateFormat: config?.dateFormat,
+          numberFormat: config?.numberFormat,
+          locale,
+        }
+      );
       break;
 
     case "select":
@@ -251,6 +235,7 @@ export function EnhancedFilterChip({
   disabled = false,
   isEditing = false,
   onEditingChange,
+  config,
 }: EnhancedFilterChipProps) {
   const { t } = useTranslations();
   const locale = useLocale();
@@ -281,7 +266,8 @@ export function EnhancedFilterChip({
     filter.operator,
     filter.type,
     maxValueLength,
-    locale
+    locale,
+    config
   );
 
   // Handle remove with animation
@@ -454,6 +440,7 @@ export function EnhancedFilterChip({
             {/* Filter Configuration */}
             <FilterValueInput
               config={{
+                ...config,
                 type: filter.type,
                 filterable: true,
               }}

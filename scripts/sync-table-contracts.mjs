@@ -157,7 +157,9 @@ for (const name of await readdir(planningSource)) {
     const content = await readFile(new URL(name, planningSource), "utf8");
     await writeFile(
       new URL(name, planningTarget),
-      content.replaceAll("../utils/table-contracts", "../table-contracts")
+      content
+        .replaceAll("../utils/table-contracts", "../table-contracts")
+        .replaceAll("../utils/value-format", "../value-format")
     );
   }
 }
@@ -212,9 +214,8 @@ for (const name of [
   const content = await readFile(new URL(name, dashboardSource), "utf8");
   await writeFile(
     new URL(name, dashboardTarget),
-    content.replaceAll(
-      "../yayaw-table/utils/table-contracts",
-      "../table-contracts"
-    )
+    content
+      .replaceAll("../yayaw-table/utils/table-contracts", "../table-contracts")
+      .replaceAll("../yayaw-table/utils/value-format", "../value-format")
   );
 }

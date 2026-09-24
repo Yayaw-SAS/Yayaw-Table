@@ -23,6 +23,7 @@ import {
   feedDate,
   feedPropertyValue,
   feedRowMedia,
+  feedTitleText,
   feedValue,
   type ResolvedFeedSettings,
 } from "../utils/feed-view";
@@ -416,12 +417,9 @@ export function FeedCard(props: FeedCardProps) {
   const { columns, label, locale, now, onOpen, row, settings } = props;
   const titleId = useId();
   const column = (id?: string) => (id ? columns.get(id) : undefined);
-  const titleColumn = column(settings.titleColumn);
-  const rawTitle = feedValue(row, titleColumn);
   const title =
-    rawTitle === null || rawTitle === undefined || rawTitle === ""
-      ? label("untitled")
-      : String(rawTitle);
+    feedTitleText(row, column(settings.titleColumn), locale) ||
+    label("untitled");
   const dateColumn = column(settings.dateColumn);
   const date = dateColumn
     ? feedDate(

@@ -204,4 +204,59 @@ describe("loadGlobalColumnCalculationResults", () => {
 
     assert.deepEqual(results, {});
   });
+
+  it("reads results in the column's format: host labels stay, plain values are formatted", async () => {
+    const columns = {
+      price: {
+        id: "price",
+        type: "number",
+        accessorKey: "amount",
+        numberFormat: { style: "currency" as const, currency: "EUR" },
+      },
+      count: { id: "count", type: "number" },
+    };
+    const served = await loadGlobalColumnCalculationResults({
+      actions: {
+        aggregate: () =>
+          Promise.resolve({
+            // A primitive (as Vue hosts answer) and a host label.
+            results: { price: 4049.5, count: { raw: 3, label: "three" } },
+          }),
+      } as unknown as TableActions,
+      advancedFiltersParam: [],
+      calculations: { price: "sum", count: "count_all" },
+      columns,
+      columnTypes: { price: "number", count: "number" },
+      filtersParam: [],
+      globalSearchParam: "",
+      locale: "en-US",
+      pageSizeParam: "10",
+      sortParam: [],
+    });
+    assert.deepEqual(served, {
+      price: { raw: 4049.5, label: "€4,049.50" },
+      count: { raw: 3, label: "three" },
+    });
+
+    // The list fallback reads the accessor and the column's format.
+    const listed = await loadGlobalColumnCalculationResults({
+      actions: {
+        list: () =>
+          Promise.resolve({
+            data: [{ amount: 2499 }, { amount: 1200.5 }],
+            meta: { pageCount: 1, totalCount: 2 },
+          }),
+      },
+      advancedFiltersParam: [],
+      calculations: { price: "sum" },
+      columns,
+      columnTypes: { price: "number" },
+      filtersParam: [],
+      globalSearchParam: "",
+      locale: "en-US",
+      pageSizeParam: "10",
+      sortParam: [],
+    });
+    assert.deepEqual(listed, { price: { raw: 3699.5, label: "€3,699.50" } });
+  });
 });

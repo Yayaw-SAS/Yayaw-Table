@@ -26,7 +26,7 @@ import {
 } from "reka-ui";
 import { computed, ref, useTemplateRef } from "vue";
 import { useOverlayTheme } from "../composables/use-overlay-theme";
-import { formDateDisplay, formWeekStart } from "../form-view";
+import { formDateDisplay, formWeekStart, type ResolvedFormQuestion } from "../form-view";
 
 /** A date question: a button showing the date in the form's language, and a calendar. */
 const props = defineProps<{
@@ -45,6 +45,8 @@ const props = defineProps<{
   /** Earliest and latest days that can be picked (`YYYY-MM-DD`). */
   min?: string;
   max?: string;
+  /** The column's date format: the day shows as the table shows it. */
+  format?: ResolvedFormQuestion["dateFormat"];
 }>();
 const emit = defineEmits<{ change: [value: string] }>();
 
@@ -53,7 +55,7 @@ type WeekStart = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 const open = ref(false);
 const anchor = useTemplateRef<HTMLElement>("anchor");
 const { overlayStyle, updateOpen } = useOverlayTheme(anchor);
-const shown = computed(() => formDateDisplay(props.value, props.locale));
+const shown = computed(() => formDateDisplay(props.value, props.locale, props.format));
 const selected = computed<DateValue | undefined>(() =>
   shown.value ? parseDate(props.value) : undefined
 );

@@ -57,6 +57,7 @@ import { existingLookupFromRows, type ImportAdapters } from "../../import-model"
 import { fetchAllContractRows } from "../../table-contracts";
 import {
   type ConnectorViewColumn,
+  connectorColumnFormats,
   connectorColumnOptions,
   connectorLabels,
   connectorScheduleSuffix,
@@ -433,11 +434,13 @@ const exportColumn = (column: ColumnDefinition): ExportColumn => ({
   id: column.id,
   header: column.header,
   type: column.type,
+  typeKey: column.typeKey,
   options: column.options,
   numberFormat: column.numberFormat as ExportColumn["numberFormat"],
   dateDisplayPreset: column.dateDisplayPreset,
   dateFormat: column.dateFormat,
   timeZone: column.timeZone,
+  hour12: column.hour12,
 });
 const exportLabel = (key: string, fallback: string): string => translate(`exportScreen.${key}`, fallback);
 const exportFormats = computed(() =>
@@ -561,6 +564,8 @@ const connectorColumns = (): ConnectorViewColumn[] => {
       header: String(column.header),
       ...(column.type ? { type: String(column.type) } : {}),
       ...(options ? { options } : {}),
+      // Previews and conflicts show values in the column's format.
+      ...connectorColumnFormats(column),
       visible: visibleIds.has(column.id),
     };
   });

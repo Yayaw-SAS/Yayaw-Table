@@ -14,10 +14,7 @@ export interface DateCellProps {
    */
   className?: string;
 
-  /**
-   * Date format string (date-fns compatible)
-   * @default "PPP" (localized date with month name)
-   */
+  /** date-fns pattern; wins over the presets when set. */
   dateFormat?: string;
 
   /**
@@ -53,7 +50,7 @@ export interface DateCellProps {
  */
 export function DateCell({
   className = "",
-  dateFormat = "PPP",
+  dateFormat,
   dateDisplayPreset,
   fallbackDateDisplayPreset,
   showTime = false,

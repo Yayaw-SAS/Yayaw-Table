@@ -3,6 +3,9 @@
  * calendar-library dependency: the optional calendar registry items render it.
  */
 import { type DateRangeScope, localDayKey } from "./scoped-rows";
+import { type FieldTextColumn, fieldText } from "./table-contracts";
+
+type FieldTextColumnWithId = FieldTextColumn & { id: string };
 
 export type CalendarLayout = "month" | "week" | "list";
 
@@ -158,15 +161,23 @@ export function daysBetween(from: string, to: string): number {
   return Math.round((toTime(to) - toTime(from)) / DAY_MS);
 }
 
-/** Rows with a start date become all-day events; an end before the start is ignored. */
+/**
+ * Rows with a start date become all-day events; an end before the start is
+ * ignored. With the columns and locale, titles read as the table shows the
+ * title column (option labels, number and date formats).
+ */
 export function calendarEvents(
   rows: readonly Record<string, unknown>[],
   settings: CalendarViewSettings,
-  getRowId: (row: Record<string, unknown>) => string
+  getRowId: (row: Record<string, unknown>) => string,
+  format: { columns?: readonly FieldTextColumnWithId[]; locale?: string } = {}
 ): CalendarEvent[] {
   if (!settings.dateColumn) {
     return [];
   }
+  const titleColumn = format.columns?.find(
+    (column) => column.id === settings.titleColumn
+  );
   return rows.flatMap((row) => {
     const start = localDayKey(row[settings.dateColumn as string]);
     if (!start) {
@@ -180,7 +191,7 @@ export function calendarEvents(
     return [
       {
         id: getRowId(row),
-        title: title === null || title === undefined ? "" : String(title),
+        title: fieldText(title, titleColumn, format.locale, row),
         start,
         end: addDays(last, 1),
         allDay: true as const,

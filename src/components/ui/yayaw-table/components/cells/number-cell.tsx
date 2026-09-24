@@ -45,8 +45,8 @@ export function NumberCell({
   value,
 }: NumberCellProps) {
   const locale = useLocale();
-  // Handle null or undefined
-  if (value === null || value === undefined) {
+  // Nothing to show (an empty string is not zero)
+  if (value === null || value === undefined || value === "") {
     return <span className="text-muted-foreground">-</span>;
   }
 

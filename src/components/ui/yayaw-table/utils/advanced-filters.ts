@@ -12,14 +12,17 @@ import type {
   FilterValues,
 } from "../types/filter-types";
 import type { DateDisplayPreset } from "../types/date-types";
+import { toValidDateRange } from "./date-display";
 import {
   formatLocationFilterValue,
   matchesLocationFilter,
 } from "./location-model";
+import { dataTypeDateInput } from "./table-contracts";
 import {
-  formatDateForDisplay,
-  formatDateRangeForDisplay,
-} from "./date-display";
+  formatColumnDay,
+  formatNumberValue as formatNumberText,
+  type NumberFormatConfig,
+} from "./value-format";
 
 /**
  * Generate a unique ID for filters
@@ -391,50 +394,65 @@ export function getFacetedDateRange<TData = Record<string, unknown>>(
   ];
 }
 
-/**
- * Format number values for display
- */
-function formatNumberValue(operator: string, values: unknown): string {
-  if (operator === "between" && Array.isArray(values)) {
-    return `${values[0]} - ${values[1]}`;
-  }
-  return String(values || "");
-}
-
+/** How a filter chip shows values: the column's formats and the table locale. */
 export interface DateFilterDisplayOptions {
   dateDisplayPreset?: DateDisplayPreset;
   fallbackDateDisplayPreset?: DateDisplayPreset;
   dateFormat?: string;
+  numberFormat?: NumberFormatConfig;
   locale?: string;
 }
 
+const isBlankFilterValue = (value: unknown) =>
+  value === null || value === undefined || value === "";
+
+/** Numbers in the column's format, including 0; ranges as "a - b". */
+function formatNumberValue(
+  operator: string,
+  values: unknown,
+  options?: DateFilterDisplayOptions
+): string {
+  const show = (value: unknown) =>
+    isBlankFilterValue(value)
+      ? ""
+      : formatNumberText(value, options?.numberFormat, options?.locale);
+  if (operator === "between" && Array.isArray(values)) {
+    return `${show(values[0])} - ${show(values[1])}`;
+  }
+  return show(Array.isArray(values) ? values[0] : values);
+}
+
 /**
- * Format date values for display
+ * Filter dates are calendar days: they read in the date part of the
+ * column's pattern or preset, never shifted by a time zone.
  */
 function formatDateValue(
   operator: string,
   values: unknown,
   dateOptions?: DateFilterDisplayOptions
 ): string {
+  const column = {
+    dateDisplayPreset: dateOptions?.dateDisplayPreset,
+    dateFormat: dateOptions?.dateFormat,
+  };
+  const day = (value: unknown) => {
+    const key = dataTypeDateInput(value);
+    return key
+      ? formatColumnDay(
+          key,
+          column,
+          dateOptions?.locale,
+          dateOptions?.fallbackDateDisplayPreset
+        )
+      : undefined;
+  };
   if (operator === "between") {
-    return (
-      formatDateRangeForDisplay(values, {
-        dateDisplayPreset: dateOptions?.dateDisplayPreset,
-        fallbackDateDisplayPreset: dateOptions?.fallbackDateDisplayPreset,
-        dateFormat: dateOptions?.dateFormat,
-        locale: dateOptions?.locale,
-      }) ?? String(values ?? "")
-    );
+    const range = toValidDateRange(values);
+    const start = range && day(range[0]);
+    const end = range && day(range[1]);
+    return start && end ? `${start} - ${end}` : String(values ?? "");
   }
-
-  return (
-    formatDateForDisplay(values, {
-      dateDisplayPreset: dateOptions?.dateDisplayPreset,
-      fallbackDateDisplayPreset: dateOptions?.fallbackDateDisplayPreset,
-      dateFormat: dateOptions?.dateFormat,
-      locale: dateOptions?.locale,
-    }) ?? String(values ?? "")
-  );
+  return day(Array.isArray(values) ? values[0] : values) ?? String(values ?? "");
 }
 
 /**
@@ -465,7 +483,7 @@ export function formatFilterValueForDisplay(
     case "text":
       return String(values || "");
     case "number":
-      return formatNumberValue(operator, values);
+      return formatNumberValue(operator, values, dateOptions);
     case "date":
       return formatDateValue(operator, values, dateOptions);
     case "select":

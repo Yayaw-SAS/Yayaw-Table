@@ -46,7 +46,7 @@ List actions receive both naming conventions:
 | Advanced filters | Active `advancedFilters` array and `advancedFilterJoin` (`and`/`or`) |
 | Scope (optional) | `scope`, for example `{ kind: "dateRange", field, endField?, from, to }` |
 
-URL page indexes remain zero-based. Invalid page sizes fall back to defaults. Existing action handlers can keep reading their original names. Aggregation receives the filter join operator too. Vue accepts primitive aggregate results and React's `{ raw, label }` values.
+URL page indexes remain zero-based. Invalid page sizes fall back to defaults. Existing action handlers can keep reading their original names. Aggregation receives the filter join operator too. Both editions accept primitive aggregate results, shown in the column's format like the list fallback, and `{ raw, label }` values, whose label is shown as given.
 
 Advanced filter input accepts either an array or `{ filters, joinOperator }`. Inactive rules do not filter rows. An OR envelope retains its join when converted to an array. The local engines understand both select operator families: `is`/`isNot`/`isAnyOf`/`isNoneOf` and `equals`/`notEquals`/`in`/`notIn`, plus multi-select membership operators. Date equality covers the whole calendar day. Remote handlers remain responsible for applying the supplied filters and join operator.
 
@@ -313,8 +313,10 @@ in the runnable examples.
 ## Grouped row rendering
 
 Both editions render groups as expandable headings using the configured column
-header, accessor value, and option labels (including zero and false). Headings
-count leaf records across nested groups and never aggregate unrelated category IDs.
+header, accessor value in the column's number or date format, and option labels
+(including zero and false). React date columns without an accessor group by
+month and show the month's name. Headings count leaf records across nested
+groups and never aggregate unrelated category IDs.
 Expanded records retain all their ordinary cell values. Synthetic headings do not
 activate or edit a record, and their selection controls only select permitted leaf
 IDs. Selection-disabled tables use the full visible column span. Groups initially
@@ -683,21 +685,99 @@ panel. Covered by `tests/list-view-suite.ts` in both editions and Playwright.
 
 ## Number and date formats
 
-`utils/value-format.ts` (synced to Vue) formats number and date cells in both
+`utils/value-format.ts` (synced to Vue) formats numbers and dates in both
 editions. `numberFormat` accepts the historical presets (`"space"`, `"dot"`,
-`"comma"`, `"locale"`), React's `decimals` and Vue's `decimalPlaces`, and adds
-`style` (`decimal`, `currency`, `percent`, `compact`, `unit`), currency and unit
-display, min/max fraction digits, separators applied to any style,
-`prefix`/`suffix`, `signDisplay`, `negative: "parentheses"`, `percentBase`
-(`fraction` or `whole`) and `display: "bar"` with `max` for a progress bar.
-Dates share the 17 presets, `dateFormat` patterns, `timeZone` and `hour12`;
-`"relative"` uses `Intl.RelativeTimeFormat` in the table locale. Date-only
-strings are local calendar days in both editions.
+`"comma"`, `"locale"`, which keeps two decimals at most everywhere), React's
+`decimals` and Vue's `decimalPlaces`, and adds `style` (`decimal`,
+`currency`, `percent`, `compact`, `unit`), currency and unit display, min/max
+fraction digits, separators applied to any style, `prefix`/`suffix` (the
+affixes and separators keep their spaces as stored, e.g. `" kg"`),
+`signDisplay`, `negative: "parentheses"`, `percentBase` (`fraction` or
+`whole`) and `display: "bar"` with `max` for a progress bar. Dates share the
+17 presets, `dateFormat` patterns, `timeZone` and `hour12`. A pattern wins
+over the preset (React table cells now honour it, and `timeZone`/`hour12`,
+instead of the table's default preset), `timeZone` applies to presets and
+patterns alike, and date-only strings are local calendar days that no zone
+shifts. `"relative"` uses `Intl.RelativeTimeFormat` in the table locale. Date
+columns without a preset take the table's `dateDisplayPreset` in both
+editions (Vue's `defineTableConfig` did; React now fills it when it resolves
+the config). An unknown zone shows local time and an invalid pattern falls
+back to the preset instead of failing.
 
 Known difference kept for compatibility: a number column without
-`numberFormat` shows the raw value in React (`1234.5`) and a locale-grouped
-value in Vue (`1,234.5`). Set `numberFormat` for identical output.
+`numberFormat` shows the raw value in React cells and card properties
+(`1234.5`) and a locale-grouped value in Vue (`1,234.5`); the shared surfaces
+(footers, group headings, charts, feed, map, record view, exports…) use the
+locale's grouping in both. Set `numberFormat` for identical output.
 `tests/value-format-suite.ts` runs in both editions.
+
+## Formats apply everywhere
+
+A format set on a column (`numberFormat`, `dateDisplayPreset`, `dateFormat`,
+`timeZone`, `hour12`, else the table's `dateDisplayPreset`) applies wherever
+the field shows, in both editions, through one shared helper per value type:
+
+- `formatColumnNumber`, `formatColumnDate` and `formatColumnValue`
+  (`value-format.ts`): a value in its column's format and the table locale.
+- `formatColumnDay`: a calendar day (chart day and week buckets, filter
+  values, dashboard date chips, Gantt days, form answers) in the date part of
+  the column's pattern or preset, never with a time, never shifted.
+- `formatColumnCalculation`: sums, averages, medians, extremes and ranges in
+  the column's format (date extremes in its date format, date ranges in days,
+  "9d"/"9j"); counts stay plain whole numbers and `percent_*` plain percents,
+  in the table locale.
+- `fieldText` (`table-contracts.ts`): a value as one line of text for titles,
+  headings and labels read aloud (option labels, number and date formats,
+  places); `groupedValueLabel` takes the column to use it.
+
+Surfaces, in both editions: table cells of every type and inline cells when
+not editing; footer calculations (local, list fallback, and server results
+without a label); table group headings; List lines and group headings; Kanban
+cards, lane titles, card names read aloud and the server Kanban's cards and
+titles; Gallery cards, alt text, viewer titles and group headings; Calendar
+event titles and tooltips; Gantt bars, tooltips, day titles, label tooltips
+and the planning dialog (names, days, changed fields, through
+`planningFormatters` and `PlanningSurfaceOptions.formatters`); Chart axes,
+data labels, tooltips, legend and "Show as table"; Dashboard numbers (KPIs
+are charts) and date filter chips; Feed titles, date line, properties and
+group headings; Map marker titles, list panel and popups; File tree number
+and date columns (a `numberFormat` on the size column wins over file units;
+the Updated column reads relative for a week, then in its format); the
+record view for every field and the activity's before/after values (fields
+listed in `details.sections` inherit their column's formats; a field's own
+Intl `numberFormat` still wins); filter chips and active filter summaries
+(React; Vue edits rules inline and has no chips) and the date filter button;
+Form view answers once typed or picked and the review step; the Import
+preview; Export "as displayed" and the `exportFile` request; connector
+previews and conflict lists.
+
+Values stay raw where that is the point: `list`, `update`, `aggregate` and
+the other server contracts, connector pushes and syncs, the Raw export,
+editors while editing (inline inputs, filter value inputs, a number question
+while focused, catalogue form fields), and import mapping samples (the file's
+own text). Copying selected text copies what is displayed; the bulk Copy
+action (a host `onBulkCopy`/`bulkCopy`, or React's built-in JSON fallback)
+works on the stored records.
+
+Kept on purpose:
+
+- Chart month, quarter and year buckets keep their period names
+  ("Sep 2026", "Q3 2026").
+- The feed's relative date line reads relative time (the column's format is
+  in its hover title), and so does the file tree's Updated column during its
+  first week.
+- Calendar events and Gantt bars sit on the browser's local day; the column's
+  `timeZone` applies to their text.
+- Patterns print date-fns tokens, so their month and day names are English;
+  presets are localized.
+- Catalogue form date pickers (create, edit, bulk edit) show the picked day in
+  the table language.
+
+Coverage: the format matrix `examples/value-formats.ts` (currency EUR, percent
+progress bar, unit, compact, a pattern in Europe/Paris, a date and time
+preset, spaced prefix, suffix and separator), `tests/format-matrix-suite.ts` and `tests/value-format-suite.ts` in
+both editions, and `e2e/value-formats.spec.ts` on both demos in English and
+French (`?example=formats`, `?example=formats-dashboard`, `&locale=fr`).
 
 ## Visual parity
 
@@ -803,7 +883,10 @@ The shared `chart-model.ts` owns everything but the drawing:
   additive metrics (count, sum), cumulative totals for bars and lines, at most
   ten series (the rest folded into "Other"), option colors (explicit option
   `color`, else the tag hue when tags are colored) or the `--chart-1…5`
-  palette, value formats from the metric column's `numberFormat`, round value
+  palette, value formats from the metric column's `numberFormat`, number
+  groups in the x column's format, day and week buckets in the date column's
+  format without its time (months, quarters and years keep their period
+  names), round value
   ticks (`chartValueTicks`, whole numbers for counts) and EN/FR labels
   (`chart.<key>` overrides the built-in text in both editions).
 - Click to filter: a group becomes advanced filter rules (select `isAnyOf`,
@@ -854,8 +937,9 @@ the code arrives; the settings panel stays in the table's code. Posts show the
 title (a button opening the record view like a row click), the author (text,
 or `{ name | label | email, avatarUrl }` with initials otherwise) and the date,
 the body, media and properties. Dates are relative by default ("3 hr. ago",
-"il y a 3 h", "yesterday"; calendar days compare by local day) with the full
-date in `title` and `<time datetime>`, or absolute.
+"il y a 3 h", "yesterday"; calendar days compare by local day) with the date
+in the column's format in `title` and `<time datetime>`, or absolute (the
+column's format).
 
 The body is plain text (`white-space: pre-wrap`), clamped to `bodyLines` lines
 with a 1.5 line height; "Show more" / "Show less" is a button with
@@ -1113,8 +1197,8 @@ The shared `map-model.ts` owns everything but the drawing:
   layer; `attachMapItems` reads the rendered clusters and records and both
   editions draw them as DOM buttons (MapLibre markers), so every marker is
   focusable and has a name. A cluster zooms to its expansion zoom.
-- Popup: title, place, the popup properties formatted like the table
-  (`mapPopupProperties`), a close button and "Open", which opens the record
+- Popup: title (the title column as the table shows it), place, the popup
+  properties formatted like the table (`mapPopupProperties`), a close button and "Open", which opens the record
   like a row click (the details drawer in the demo). Clicking the map
   background closes it (`isMapBackgroundClick`: MapLibre reports marker
   clicks as map clicks). Opened from the keyboard, focus moves to "Open";
@@ -1201,7 +1285,9 @@ records, columns, values, file name) and hand the choice to the shared
 `export-model.ts`: `runExport` sends an `ExportFileRequest` to
 `actions.exportFile` when the host builds files, otherwise it loads the rows
 (or uses the selection), builds the matrix with the shared value formatting
-and downloads a CSV or prints a page from a hidden frame. `availableExportFormats`
+and downloads a CSV or prints a page from a hidden frame. The request carries
+each column's type, options and formats and the table `locale`, so a server
+file "as displayed" can match the table. `availableExportFormats`
 offers Excel only with a writer and honours `table.exportFormats`.
 `tests/export-model-suite.ts` runs in both editions.
 
@@ -1321,8 +1407,8 @@ return to the Data menu. The screen is driven by the shared, framework-neutral
   (accents, case and separators ignored, same type family first, then the one
   remaining column that converts the field's values); "Match existing records
   by" (none by default unless a mapped column is an id); a preview of the
-  first 5 rows as written, invalid cells highlighted with their error as a
-  title. Choosing a column already taken moves it.
+  first 5 rows as the table will show them (option labels, number and date
+  formats), invalid cells highlighted with their error as a title. Choosing a column already taken moves it.
 - Values (`coerceImportValue`): numbers with decimal commas, grouping,
   currency symbols and percents (the column's `numberFormat` decimal
   separator and percent base win; a single ambiguous separator follows the
@@ -1610,8 +1696,9 @@ create-form field components themselves (`TextField`, `SelectField`, …) are
 not reused: they need the table provider and a TanStack form field and carry
 no `aria-describedby`/required hooks. Select and multi-select options render
 as the column's tags when `displayVariant: "tag"` (colored per
-`coloredTags`); dates show in the form's language (`formDateDisplay`,
-`formWeekStart` for the calendar) and are stored as `YYYY-MM-DD`; numbers are
+`coloredTags`); dates show in the date part of the column's format, else in
+the form's language (`formDateDisplay`, `formWeekStart` for the calendar) and
+are stored as `YYYY-MM-DD`; numbers are
 typed plainly and shown with the column's `numberFormat` once the field is
 left (`formNumberDisplay`); yes/no columns are a switch row. Accessibility is
 the same in both: labels, `required`/`aria-required`, help and error ids in
@@ -1632,7 +1719,8 @@ copied" for two seconds) and Open icon buttons, "Accept responses" switch and
 "Update public form" with its hint.
 Republishing is explicit so unsaved edits never go live. `publicFormSnapshot`
 keeps only the asked columns (id, header, type, options and, when set,
-`displayVariant`, `coloredTags`, `numberFormat`), the form settings and
+`displayVariant`, `coloredTags`, `numberFormat`, `dateDisplayPreset`,
+`dateFormat`), the form settings and
 the fixed values (kept server-side); `acceptPublicFormResponse` re-validates a
 response against the snapshot, drops other fields and adds the fixed values;
 `formSettingsFromView` reads a saved view. The demo host
@@ -2203,7 +2291,7 @@ Filter controls are the library's own: a date range filter opens the Form
 view's popover calendar in range mode (react-day-picker in React, reka-ui
 `RangeCalendar` with the form calendar's styles in Vue), its button reading
 "Any date", "From Sep 1, 2026", "Until …" or "Sep 1, 2026 – Sep 10, 2026"
-(`dashboardDateRangeText`); a select filter opens an option dropdown with
+(`dashboardDateRangeText`, the days in the first target column's date format); a select filter opens an option dropdown with
 "All" and a checkbox per option, and shows the chosen options as the table's
 tags (`tagAppearance`, the first target table's `coloredTags`).
 

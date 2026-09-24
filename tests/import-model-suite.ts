@@ -731,7 +731,23 @@ export function importModelSuite(
     const price = preview.rows[0]?.cells.find(
       (cell) => cell.columnId === "price"
     );
-    assert.equal(price?.text, "1234.5");
+    // Values show as the table will display them, in the table locale.
+    assert.equal(price?.text, "1,234.5");
+    const euros = model.importPreview(state, {
+      columns: demoColumns.map((item) =>
+        item.id === "price"
+          ? { ...item, numberFormat: { style: "currency", currency: "EUR" } }
+          : item
+      ),
+      locale: "fr-FR",
+      t: en,
+    });
+    assert.equal(
+      euros.rows[0]?.cells
+        .find((cell) => cell.columnId === "price")
+        ?.text.replace(/[  ]/g, " "),
+      "1 234,50 €"
+    );
 
     model.applyImportField(flow, "map:Progress", model.IMPORT_IGNORE);
     model.applyImportField(flow, "key", "name");

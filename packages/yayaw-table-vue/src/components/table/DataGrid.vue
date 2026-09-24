@@ -20,7 +20,8 @@ import {
 import { ArrowDown, ArrowUp, GripVertical } from "lucide-vue-next";
 import { type CSSProperties, computed, h, ref, watch, onBeforeUnmount } from "vue";
 import { useTableContext } from "../../context";
-import { applyTableQuery, calculateColumn, formatNumber } from "../../core";
+import { applyTableQuery, calculateColumn } from "../../core";
+import { formatColumnCalculation } from "../../value-format";
 import { groupedLeafRows, groupedValueLabel, resizedColumnSizeFromKey } from "../../table-contracts";
 import type {
   CalculationType,
@@ -338,7 +339,10 @@ watch(context.state.grouping, () => { expanded.value = true; }, { deep: true });
 const groupColumn = (row: Row<TableRecord>) =>
   sourceColumns.value.find((column) => column.id === row.groupingColumnId);
 const groupLabel = (row: Row<TableRecord>): string =>
-  groupedValueLabel(row.getValue(row.groupingColumnId ?? ""), groupColumn(row)?.options);
+  groupedValueLabel(row.getValue(row.groupingColumnId ?? ""), groupColumn(row)?.options, {
+    column: groupColumn(row),
+    locale: context.locale,
+  });
 const groupSelectionVisible = computed(() =>
   context.config.table.enableRowSelection && context.config.table.enableMultiRowSelection
 );
@@ -545,6 +549,18 @@ const availableCalculations = (column: ColumnDefinition): CalculationType[] => {
   return base;
 };
 const aggregateResults = ref<Record<string, unknown>>({});
+/**
+ * Footer text: sums, averages and extremes in the column's format, counts
+ * and shares plain; date extremes and ranges arrive as text already.
+ */
+const calculationText = (
+  value: number | string | null,
+  calculation: CalculationType,
+  column: ColumnDefinition | undefined
+): string =>
+  typeof value === "number"
+    ? formatColumnCalculation(value, calculation, column, context.locale)
+    : String(value ?? "—");
 let calculationRequest = 0;
 const refreshCalculations = async (): Promise<void> => {
   if (!(context.data.isServer.value && calculations.value.length)) {
@@ -595,21 +611,33 @@ const refreshCalculations = async (): Promise<void> => {
     const rows = await context.loadAllMatchingRows();
     if (request === calculationRequest) {
       aggregateResults.value = Object.fromEntries(
-        calculations.value.map((column) => [
-          column.id,
-          calculateColumn(
-            column.accessorFn
-              ? rows.map((row) => ({
-                  ...row,
-                  [column.id]: column.accessorFn?.(row),
-                }))
-              : rows,
-            column.accessorFn ? column.id : (column.accessorKey ?? column.id),
-            selectedCalculations.value[column.id] ?? "none",
-            column.type,
-            context.locale
-          ),
-        ])
+        calculations.value.map((column) => {
+          const calculation = selectedCalculations.value[column.id] ?? "none";
+          return [
+            column.id,
+            {
+              label: calculationText(
+                calculateColumn(
+                  column.accessorFn
+                    ? rows.map((row) => ({
+                        ...row,
+                        [column.id]: column.accessorFn?.(row),
+                      }))
+                    : rows,
+                  column.accessorFn
+                    ? column.id
+                    : (column.accessorKey ?? column.id),
+                  calculation,
+                  column.type,
+                  context.locale,
+                  column
+                ),
+                calculation,
+                column
+              ),
+            },
+          ];
+        })
       );
     }
   } catch {
@@ -644,10 +672,10 @@ const calculationFor = (
   const definition = sourceColumns.value.find(
     (column) => column.id === columnId
   );
-  const localRows = table.getFilteredRowModel().rows.map((row) => row.original);
-  const value = context.data.isServer.value
-    ? aggregateResults.value[columnId]
-    : calculateColumn(
+  if (!context.data.isServer.value) {
+    const localRows = table.getFilteredRowModel().rows.map((row) => row.original);
+    return calculationText(
+      calculateColumn(
         definition?.accessorFn
           ? localRows.map((row) => ({
               ...row,
@@ -659,14 +687,22 @@ const calculationFor = (
           : (definition?.accessorKey ?? columnId),
         calculation,
         definition?.type,
-        context.locale
-      );
-  if (value && typeof value === "object" && "label" in value) return String(value.label);
-  if (typeof value !== "number") {
-    return String(value ?? "—");
+        context.locale,
+        definition
+      ),
+      calculation,
+      definition
+    );
   }
-  const formatted = formatNumber(value, { locale: context.locale });
-  return calculation.startsWith("percent_") ? `${formatted}%` : formatted;
+  const value = aggregateResults.value[columnId];
+  // A host's label is kept; its plain values read in the column's format.
+  if (value && typeof value === "object") {
+    const result = value as { label?: unknown; raw?: unknown };
+    return result.label === undefined
+      ? formatColumnCalculation(result.raw, calculation, definition, context.locale)
+      : String(result.label);
+  }
+  return formatColumnCalculation(value, calculation, definition, context.locale);
 };
 const pinnedStyle = (column: Column<TableRecord>): CSSProperties => {
   const pinned = column.getIsPinned();

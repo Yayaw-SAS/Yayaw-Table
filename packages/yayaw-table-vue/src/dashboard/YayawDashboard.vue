@@ -15,6 +15,7 @@ import {
   addDashboardWidget,
   applyGridLayout,
   type Dashboard,
+  type DashboardColumn,
   type DashboardDirection,
   type DashboardLabelKey,
   type DashboardResize,
@@ -22,6 +23,7 @@ import {
   type DashboardTableInfo,
   type DashboardView,
   type DashboardWidget,
+  dashboardColumn,
   dashboardLabel,
   dashboardTranslate,
   dashboardWidgetTitle,
@@ -123,12 +125,9 @@ const infos = computed<Record<string, DashboardTableInfo>>(() =>
       {
         name: source.name ?? source.config.translations?.keys?.title ?? id,
         coloredTags: source.config.table?.coloredTags,
-        columns: source.config.columns.definitions.map((column) => ({
-          id: column.id,
-          header: column.header,
-          type: column.type,
-          options: (column as { options?: { value: unknown; label?: string }[] }).options,
-        })),
+        columns: source.config.columns.definitions.map((column) =>
+          dashboardColumn(column as DashboardColumn)
+        ),
       },
     ])
   )

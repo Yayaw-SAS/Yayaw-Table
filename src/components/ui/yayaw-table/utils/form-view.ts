@@ -36,7 +36,9 @@ import {
 import { formatLocation, parseLocation } from "./location-model";
 import { resolveDataType, TABLE_DATA_TYPES } from "./table-contracts";
 import {
-  formatDateValue,
+  type ColumnValueFormat,
+  type DateDisplayPreset,
+  formatColumnDay,
   formatNumberValue,
   type NumberFormatConfig,
 } from "./value-format";
@@ -82,6 +84,9 @@ export interface FormColumn {
   system?: boolean;
   /** Columns people never see: never asked. */
   hidden?: boolean;
+  /** How the table shows dates; answers are days, shown with the date part. */
+  dateDisplayPreset?: unknown;
+  dateFormat?: unknown;
 }
 
 export type { FormText } from "./form-text";
@@ -241,6 +246,8 @@ export interface ResolvedFormQuestion {
   coloredTags: boolean;
   /** Number display of the column, used once the answer is typed. */
   numberFormat?: NumberFormatConfig;
+  /** Date display of the column, used once the day is picked. */
+  dateFormat?: Pick<ColumnValueFormat, "dateDisplayPreset" | "dateFormat">;
 }
 
 export interface ResolvedFormSection {
@@ -930,6 +937,7 @@ function resolveQuestion(
     numberFormat: isNumberFormat(column.numberFormat)
       ? column.numberFormat
       : undefined,
+    dateFormat: questionDateFormat(column),
   };
 }
 
@@ -993,6 +1001,21 @@ function resolveHiddenField(
     return hiddenFieldOf(field.id, field.source);
   }
   return { ...field, editor, options: formOptions(column.options) };
+}
+
+/** The column's date preset and pattern, when it sets them. */
+function questionDateFormat(
+  column: FormColumn
+): ResolvedFormQuestion["dateFormat"] {
+  const preset =
+    typeof column.dateDisplayPreset === "string"
+      ? (column.dateDisplayPreset as DateDisplayPreset)
+      : undefined;
+  const pattern =
+    typeof column.dateFormat === "string" ? column.dateFormat : undefined;
+  return preset || pattern
+    ? { dateDisplayPreset: preset, dateFormat: pattern }
+    : undefined;
 }
 
 const defaultItems = (eligible: readonly FormColumn[]): FormItem[] =>
@@ -1585,13 +1608,21 @@ export function formNumberDisplay(
   return formatNumberValue(number, format, locale);
 }
 
-/** A date answer (`YYYY-MM-DD`) in the reader's language, e.g. "Sep 30, 2026". */
+/**
+ * A date answer (`YYYY-MM-DD`) in the reader's language, e.g. "Sep 30, 2026";
+ * with the column's date format, the day as the table shows it.
+ */
 export function formDateDisplay(
   raw: string,
-  locale: string
+  locale: string,
+  format?: ResolvedFormQuestion["dateFormat"]
 ): string | undefined {
   return validDate(raw)
-    ? formatDateValue(raw, { preset: "localized-medium", locale })
+    ? formatColumnDay(
+        raw,
+        format ?? { dateDisplayPreset: "localized-medium" },
+        locale
+      )
     : undefined;
 }
 
@@ -1629,7 +1660,7 @@ export function formAnswerText(
     case "number":
       return formNumberDisplay(value, question.numberFormat, locale) ?? value;
     case "date":
-      return formDateDisplay(value, locale) ?? value;
+      return formDateDisplay(value, locale, question.dateFormat) ?? value;
     case "location":
       return formatLocation(value) || value;
     default:
@@ -3109,6 +3140,8 @@ function snapshotColumn(column: FormColumn): FormColumn {
     displayVariant: column.displayVariant,
     coloredTags: column.coloredTags,
     numberFormat: column.numberFormat,
+    dateDisplayPreset: column.dateDisplayPreset,
+    dateFormat: column.dateFormat,
   };
   return {
     id,

@@ -341,6 +341,31 @@ export function chartModelSuite(test: Test, chart: ChartApi, modes: ModesApi) {
     assert.equal(chart.chartBucketRange("nope", "month"), undefined);
   });
 
+  test("number groups read in the column's format, also as server text", () => {
+    const built = chart.buildChartModel({
+      // Hosts may answer SQL decimals as strings.
+      result: {
+        groups: [
+          { keys: ["49"], values: [1] },
+          { keys: [120], values: [2] },
+        ],
+      },
+      settings: settings({ type: "bar", xColumn: "price" }),
+      columns: COLUMNS,
+      locale: "en-US",
+      palette: PALETTE,
+      otherColor: "grey",
+    });
+    assert.deepEqual(
+      built.categories.map((category) => category.label),
+      ["€49.00", "€120.00"]
+    );
+    // Counts stay plain whole numbers; sums keep the column's currency.
+    assert.equal(built.format(1234), "1,234");
+    const sums = model({ type: "bar", metric: "sum", metricColumn: "price" });
+    assert.equal(sums.format(1234.5), "€1,234.50");
+  });
+
   test("labels buckets in the viewer's language", () => {
     assert.equal(
       chart.chartBucketLabel("2026-09", "month", "en-US"),
@@ -359,6 +384,33 @@ export function chartModelSuite(test: Test, chart: ChartApi, modes: ModesApi) {
       "Week of Aug 31, 2026"
     );
     assert.equal(chart.chartBucketLabel("2026", "year", "en-US"), "2026");
+    // Days and weeks read in the date column's format, without its time.
+    const due = {
+      id: "due",
+      type: "date",
+      dateFormat: "dd/MM/yyyy HH:mm",
+      timeZone: "Europe/Paris",
+    };
+    assert.equal(
+      chart.chartBucketLabel("2026-09-06", "day", "en-US", undefined, due),
+      "06/09/2026"
+    );
+    assert.equal(
+      chart.chartBucketLabel("2026-08-31", "week", "fr-FR", undefined, due),
+      "Semaine du 31/08/2026"
+    );
+    assert.equal(
+      chart.chartBucketLabel("2026-09-06", "day", "en-US", undefined, {
+        id: "due",
+        type: "date",
+        dateDisplayPreset: "dateTime",
+      }),
+      "Sep 6, 2026"
+    );
+    assert.equal(
+      chart.chartBucketLabel("2026-09", "month", "en-US", undefined, due),
+      "Sep 2026"
+    );
     assert.equal(chart.chartLabel("other", "fr"), "Autres");
     assert.equal(
       chart.chartLabel(
