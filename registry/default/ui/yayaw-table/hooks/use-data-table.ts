@@ -834,12 +834,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
           colDef.type
         ) || colDef.cellRenderer
           ? {
-              cell: (
-                info: import("@/components/ui/yayaw-table/tanstack").CellContext<
-                  TData,
-                  unknown
-                >
-              ) =>
+              cell: (info: import("../tanstack").CellContext<TData, unknown>) =>
                 createElement(DataTypeCell, {
                   column: colDef,
                   coloredTags: config.table.coloredTags,
