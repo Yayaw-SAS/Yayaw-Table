@@ -77,6 +77,8 @@ const CONNECTOR_ITEMS = [
 const REGEX_TSX_CSS = /\.(tsx?|css)$/;
 const REGEX_TEST_FILE = /\.(test|spec)\.[^.]+$/;
 const REGEX_TS_EXT = /\.(tsx?|ts)$/;
+const REGEX_APP_UI_IMPORT =
+  /\b(?:from|import)\s*\(?\s*["']@\/components\/ui\/([^"'/]+)[^"']*["']/g;
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
@@ -153,6 +155,16 @@ function transformContent(content, fileRel) {
     (_, subPath) => {
       const toPath = subPath.replace(REGEX_TS_EXT, "");
       return `from "${relativeImport(fileRel, toPath)}"`;
+    }
+  );
+
+  // Inline type imports: import("@/(src/)components/ui/yayaw-table/XXX")
+  // -> relative path, like the declarations above
+  out = out.replace(
+    /import\(\s*["']@\/(?:src\/)?components\/ui\/yayaw-table\/([^"']+)["']\s*\)/g,
+    (_, subPath) => {
+      const toPath = subPath.replace(REGEX_TS_EXT, "");
+      return `import("${relativeImport(fileRel, toPath)}")`;
     }
   );
 
@@ -276,6 +288,43 @@ function assertUnversionedRegistryDependencies(registryItem) {
   );
 }
 
+function declaresRegistryDependency(registryItem, componentName) {
+  return (registryItem.registryDependencies ?? []).some(
+    (entry) =>
+      entry === componentName ||
+      entry.endsWith(`/${componentName}`) ||
+      entry.endsWith(`/${componentName}.json`)
+  );
+}
+
+/**
+ * The CLI installs only the shadcn components an item declares, so an
+ * undeclared `@/components/ui/<name>` import compiles here but breaks clean
+ * installs. Items import the table block itself by alias; that is declared
+ * through its registry URL.
+ */
+function assertDeclaredUiDependencies(registryItem, directory, rels) {
+  const missing = [];
+  for (const rel of rels) {
+    const content = fs.readFileSync(path.join(directory, rel), "utf8");
+    for (const [, name] of content.matchAll(REGEX_APP_UI_IMPORT)) {
+      if (!declaresRegistryDependency(registryItem, name)) {
+        missing.push(`${name} (imported by ${rel})`);
+      }
+    }
+  }
+
+  if (missing.length === 0) {
+    return;
+  }
+
+  throw new Error(
+    `${registryItem.name} imports shadcn components missing from its ` +
+      "registryDependencies in registry/registry.json:\n" +
+      [...new Set(missing)].join("\n")
+  );
+}
+
 function getRegistryItemUrl(homepage, itemName) {
   return `${homepage}/r/${itemName}.json`;
 }
@@ -361,6 +410,7 @@ if (!tableRegistryItem) {
 
 tableRegistryItem.files = files;
 assertUnversionedRegistryDependencies(tableRegistryItem);
+assertDeclaredUiDependencies(tableRegistryItem, REGISTRY_BLOCK, allRels);
 
 for (const optional of OPTIONAL_ITEMS) {
   const item = registry.items.find((entry) => entry.name === optional.name);
@@ -400,6 +450,7 @@ for (const optional of OPTIONAL_ITEMS) {
     };
   });
   assertUnversionedRegistryDependencies(item);
+  assertDeclaredUiDependencies(item, dest, rels);
 }
 
 const connectorsSource = path.join(SRC_YAYAW_TABLE, CONNECTORS_DIR);

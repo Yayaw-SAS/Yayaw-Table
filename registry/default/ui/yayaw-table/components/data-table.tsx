@@ -1003,7 +1003,7 @@ function DataTableContent({
                   className={className}
                   closeOnError={closeOnError}
                   columns={
-                    columns as import("@/components/ui/yayaw-table/tanstack").ColumnDef<
+                    columns as import("../tanstack").ColumnDef<
                       Record<string, unknown>
                     >[]
                   }
