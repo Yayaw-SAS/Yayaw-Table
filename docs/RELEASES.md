@@ -167,8 +167,16 @@ for artifact retention and publication recovery.
 
 `bun run registry:release` updates the latest files and creates the versioned
 snapshot for the current `package.json` version. The snapshot includes
-`registry.json`, `release.json`, `yayaw-table.json`, `yayaw-table-vue.json`,
-`font-yayaw-sans.json`, and `yayaw-table-base.json`.
+`registry.json`, `release.json` and every item: each React item listed in
+`registry.json` (core, optional views, connectors, font and base) and every
+Vue item.
+
+In the snapshot, dependencies on items of this registry are pinned to the same
+version: `r/vX.Y.Z/yayaw-table-chart.json` depends on
+`https://table.yayaw.app/r/vX.Y.Z/yayaw-table.json`, not on the latest core
+(`scripts/registry-snapshot-pins.mjs`; snapshots up to v3.6.1 predate this).
+Everything else is identical to the latest files, which `release:verify`
+checks.
 
 Versioned snapshots are immutable. If any file under `public/r/vX.Y.Z/` already
 exists with different content, bump the version before releasing. Use

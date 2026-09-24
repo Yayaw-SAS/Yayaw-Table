@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { pinSnapshotDependencies } from "./registry-snapshot-pins.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -40,8 +41,10 @@ function assertFileExists(filePath, label) {
   throw new Error(`${label} does not exist: ${filePath}`);
 }
 
-function writeImmutableFile(sourcePath, targetPath) {
-  const sourceContent = fs.readFileSync(sourcePath);
+function writeImmutableFile(sourcePath, targetPath, pinOptions) {
+  const sourceContent = Buffer.from(
+    pinSnapshotDependencies(fs.readFileSync(sourcePath, "utf8"), pinOptions)
+  );
   if (fs.existsSync(targetPath)) {
     const targetContent = fs.readFileSync(targetPath);
     if (!(sourceContent.equals(targetContent) || allowOverwrite)) {
@@ -75,12 +78,16 @@ for (const itemFileName of itemFileNames) {
   );
 }
 
-writeImmutableFile(latestIndexPath, versionedIndexPath);
+// Pinned items depend on the same version of this registry's items.
+const pinOptions = { homepage: packageJson.homepage, itemNames, version };
+
+writeImmutableFile(latestIndexPath, versionedIndexPath, pinOptions);
 
 for (const itemFileName of itemFileNames) {
   writeImmutableFile(
     path.join(PUBLIC_REGISTRY_DIR, itemFileName),
-    path.join(versionedRegistryDir, itemFileName)
+    path.join(versionedRegistryDir, itemFileName),
+    pinOptions
   );
 }
 
