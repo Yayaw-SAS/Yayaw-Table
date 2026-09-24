@@ -3,10 +3,13 @@
 import { Table2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
   Cell,
+  ComposedChart,
   LabelList,
   Line,
   LineChart,
@@ -33,12 +36,16 @@ import {
   type ChartViewSettings,
   canAddChartFilters,
   chartAggregateRequest,
+  chartBarLabelRoom,
   chartGroupFilters,
   chartLabel,
+  chartTickFormat,
+  chartValueText,
   loadChartData,
   type ResolvedChartSettings,
   resolveChartSettings,
 } from "@/src/components/ui/yayaw-table/utils/chart-model";
+import { FunnelChart, FunnelDataTable } from "./chart-funnel";
 
 /** The host's shadcn chart tokens, light and dark. */
 const PALETTE = [
@@ -120,7 +127,11 @@ function useChartResult(
 
 /** Series keys safe as Recharts data keys and CSS names. */
 const seriesKey = (index: number) => `s${index}`;
+/** Recharts curve of lines and areas. */
+const curveOf = (settings: ResolvedChartSettings) =>
+  settings.curve === "linear" ? "linear" : "monotone";
 
+/** One row per category; areas stacked to 100 % plot each series' share. */
 function chartRows(model: ChartModel) {
   return model.categories.map((category) => {
     const row: Record<string, number | string> = {
@@ -128,11 +139,33 @@ function chartRows(model: ChartModel) {
       label: category.label,
     };
     for (const [index, item] of model.series.entries()) {
-      row[seriesKey(index)] = category.values[item.id] ?? 0;
+      row[seriesKey(index)] = model.percent
+        ? (category.shares?.[item.id] ?? 0)
+        : (category.values[item.id] ?? 0);
     }
     return row;
   });
 }
+
+/**
+ * Clicking a category's band (bars, points, areas) shows its records. The
+ * charts using it process pointer moves as they come (`throttledEvents`
+ * empty), so a tap or a quick click reads the category under the pointer.
+ */
+const categoryClick =
+  (model: ChartModel, onGroup: GroupClick) =>
+  (state: { activeTooltipIndex?: unknown } | null) => {
+    const active = state?.activeTooltipIndex;
+    const index =
+      active === null || active === undefined || active === ""
+        ? Number.NaN
+        : Number(active);
+    if (Number.isInteger(index)) {
+      onGroup(model.categories.at(index));
+    }
+  };
+/** No throttled pointer events: see `categoryClick`. */
+const IMMEDIATE_EVENTS: [] = [];
 
 function chartConfig(model: ChartModel): ChartConfig {
   return Object.fromEntries(
@@ -192,7 +225,9 @@ function TooltipBody({
               {model.single ? model.valueLabel : series?.label}
             </span>
             <span className="ml-auto font-medium font-mono tabular-nums">
-              {model.format(Number(entry.value ?? 0))}
+              {category
+                ? chartValueText(model, category, series)
+                : model.format(Number(entry.value ?? 0))}
             </span>
           </div>
         );
@@ -234,7 +269,16 @@ function BarsChart({
         accessibilityLayer
         data={rows}
         layout={horizontal ? "vertical" : "horizontal"}
-        margin={{ top: 20, right: 24, left: 8, bottom: 4 }}
+        margin={{
+          top: 20,
+          // Horizontal bars keep room for the longest bar's value label.
+          right:
+            horizontal && settings.showDataLabels && !stacked
+              ? 24 + chartBarLabelRoom(model)
+              : 24,
+          left: 8,
+          bottom: 4,
+        }}
       >
         <CartesianGrid horizontal={!horizontal} vertical={horizontal} />
         {horizontal ? (
@@ -335,18 +379,14 @@ function LinesChart({
         accessibilityLayer
         data={chartRows(model)}
         margin={{ top: 20, right: 24, left: 8, bottom: 4 }}
-        onClick={(state) => {
-          const index = Number(state?.activeTooltipIndex);
-          if (Number.isInteger(index)) {
-            onGroup(model.categories.at(index));
-          }
-        }}
+        onClick={categoryClick(model, onGroup)}
+        throttledEvents={IMMEDIATE_EVENTS}
       >
         <CartesianGrid vertical={false} />
+        {/* Labels that would overlap on narrow charts are skipped. */}
         <XAxis
           axisLine={false}
           dataKey="label"
-          interval={0}
           padding={{ left: 40, right: 40 }}
           tickLine={false}
           tickMargin={8}
@@ -371,7 +411,7 @@ function LinesChart({
             name={item.label}
             stroke={item.color}
             strokeWidth={2}
-            type="monotone"
+            type={curveOf(settings)}
           >
             {settings.showDataLabels ? (
               <LabelList
@@ -386,6 +426,200 @@ function LinesChart({
           </Line>
         ))}
       </LineChart>
+    </ChartContainer>
+  );
+}
+
+/** Areas: one per series, stacked (as values or shares of 100 %) or overlapping. */
+function AreasChart({
+  model,
+  settings,
+  onGroup,
+}: {
+  model: ChartModel;
+  settings: ResolvedChartSettings;
+  onGroup: GroupClick;
+}) {
+  const stacked = model.stacked && !model.single;
+  const tickFormat = chartTickFormat(model);
+  return (
+    <ChartContainer
+      className="aspect-auto w-full"
+      config={chartConfig(model)}
+      style={{ height: CHART_HEIGHT }}
+    >
+      <AreaChart
+        accessibilityLayer
+        data={chartRows(model)}
+        margin={{ top: 20, right: 24, left: 8, bottom: 4 }}
+        onClick={categoryClick(model, onGroup)}
+        throttledEvents={IMMEDIATE_EVENTS}
+      >
+        <CartesianGrid vertical={false} />
+        {/* Labels that would overlap on narrow charts are skipped. */}
+        <XAxis
+          axisLine={false}
+          dataKey="label"
+          padding={{ left: 40, right: 40 }}
+          tickLine={false}
+          tickMargin={8}
+        />
+        <YAxis
+          axisLine={false}
+          domain={valueDomain(model)}
+          tickFormatter={(value: number) => tickFormat(value)}
+          tickLine={false}
+          ticks={model.valueTicks}
+          type="number"
+          width="auto"
+        />
+        <ChartTooltip content={<TooltipBody model={model} />} />
+        {model.series.map((item, index) => (
+          <Area
+            activeDot={{ r: 5, className: "cursor-pointer" }}
+            dataKey={seriesKey(index)}
+            fill={item.color}
+            fillOpacity={stacked ? 0.6 : 0.3}
+            isAnimationActive={false}
+            key={item.id}
+            name={item.label}
+            stackId={stacked ? "stack" : undefined}
+            stroke={item.color}
+            strokeWidth={2}
+            type={curveOf(settings)}
+          >
+            {settings.showDataLabels ? (
+              <LabelList
+                className="fill-foreground"
+                dataKey={seriesKey(index)}
+                fontSize={11}
+                formatter={(value: unknown) =>
+                  Number(value) ? tickFormat(Number(value)) : ""
+                }
+                offset={8}
+                position="top"
+              />
+            ) : null}
+          </Area>
+        ))}
+      </AreaChart>
+    </ChartContainer>
+  );
+}
+
+/** Bars for one metric and a line for another, on a second axis when their units differ. */
+function ComboChart({
+  model,
+  settings,
+  onGroup,
+  clickable,
+}: {
+  model: ChartModel;
+  settings: ResolvedChartSettings;
+  onGroup: GroupClick;
+  clickable: boolean;
+}) {
+  const [bars, line] = model.series;
+  const right = model.secondaryTicks;
+  const lineAxis = right ? "right" : "left";
+  const barFormat = bars?.format ?? model.format;
+  const lineFormat = line?.format ?? model.format;
+  return (
+    <ChartContainer
+      className="aspect-auto w-full"
+      config={chartConfig(model)}
+      style={{ height: CHART_HEIGHT }}
+    >
+      <ComposedChart
+        accessibilityLayer
+        data={chartRows(model)}
+        margin={{ top: 20, right: right ? 8 : 24, left: 8, bottom: 4 }}
+        onClick={categoryClick(model, onGroup)}
+        throttledEvents={IMMEDIATE_EVENTS}
+      >
+        <CartesianGrid vertical={false} />
+        <XAxis
+          axisLine={false}
+          dataKey="label"
+          tickLine={false}
+          tickMargin={8}
+        />
+        <YAxis
+          axisLine={false}
+          domain={valueDomain(model)}
+          tickFormatter={(value: number) => barFormat(value)}
+          tickLine={false}
+          ticks={model.valueTicks}
+          type="number"
+          width="auto"
+          yAxisId="left"
+        />
+        {right ? (
+          <YAxis
+            axisLine={false}
+            domain={[right.at(0) ?? 0, right.at(-1) ?? 1]}
+            orientation="right"
+            tickFormatter={(value: number) => lineFormat(value)}
+            tickLine={false}
+            ticks={right}
+            type="number"
+            width="auto"
+            yAxisId="right"
+          />
+        ) : null}
+        <ChartTooltip
+          content={<TooltipBody model={model} />}
+          cursor={{ fillOpacity: 0.4 }}
+        />
+        {bars ? (
+          <Bar
+            className={clickable ? "cursor-pointer" : undefined}
+            dataKey={seriesKey(0)}
+            fill={bars.color}
+            isAnimationActive={false}
+            maxBarSize={64}
+            name={bars.label}
+            radius={4}
+            yAxisId="left"
+          >
+            {settings.showDataLabels ? (
+              <LabelList
+                className="fill-foreground"
+                dataKey={seriesKey(0)}
+                fontSize={11}
+                formatter={(value: unknown) =>
+                  Number(value) ? barFormat(Number(value)) : ""
+                }
+                position="top"
+              />
+            ) : null}
+          </Bar>
+        ) : null}
+        {line ? (
+          <Line
+            activeDot={{ r: 6, className: "cursor-pointer" }}
+            dataKey={seriesKey(1)}
+            dot={{ r: 3, fill: line.color }}
+            isAnimationActive={false}
+            name={line.label}
+            stroke={line.color}
+            strokeWidth={2}
+            type={curveOf(settings)}
+            yAxisId={lineAxis}
+          >
+            {settings.showDataLabels ? (
+              <LabelList
+                className="fill-foreground"
+                dataKey={seriesKey(1)}
+                fontSize={11}
+                formatter={(value: unknown) => lineFormat(Number(value))}
+                offset={10}
+                position="top"
+              />
+            ) : null}
+          </Line>
+        ) : null}
+      </ComposedChart>
     </ChartContainer>
   );
 }
@@ -486,12 +720,15 @@ function ChartLegend({
   model: ChartModel;
   settings: ResolvedChartSettings;
 }) {
-  const items =
-    model.type === "donut"
-      ? model.categories
-          .filter((category) => category.total > 0)
-          .map((category) => ({ ...category, value: category.total }))
-      : model.series.map((item) => ({ ...item, value: undefined }));
+  let items: { id: string; label: string; color: string; value?: number }[] =
+    model.series.map((item) => ({ ...item, value: undefined }));
+  if (model.type === "donut") {
+    items = model.categories
+      .filter((category) => category.total > 0)
+      .map((category) => ({ ...category, value: category.total }));
+  } else if (model.type === "funnel") {
+    items = model.stages ?? [];
+  }
   return (
     <ul
       className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs"
@@ -543,7 +780,7 @@ function ChartDataTable({
                 {withSeries ? item.label : model.valueLabel}
               </th>
             ))}
-            {withSeries ? (
+            {model.totalColumn ? (
               <th className="px-3 py-2 text-right font-medium" scope="col">
                 {label("total")}
               </th>
@@ -570,10 +807,10 @@ function ChartDataTable({
               </th>
               {model.series.map((item) => (
                 <td className="px-3 py-1.5 text-right tabular-nums" key={item.id}>
-                  {model.format(category.values[item.id] ?? 0)}
+                  {chartValueText(model, category, item)}
                 </td>
               ))}
-              {withSeries ? (
+              {model.totalColumn ? (
                 <td className="px-3 py-1.5 text-right font-medium tabular-nums">
                   {model.format(category.total)}
                 </td>
@@ -613,6 +850,26 @@ function ChartBody({
       );
     case "line":
       return <LinesChart model={model} onGroup={onGroup} settings={settings} />;
+    case "area":
+      return <AreasChart model={model} onGroup={onGroup} settings={settings} />;
+    case "combo":
+      return (
+        <ComboChart
+          clickable={clickable}
+          model={model}
+          onGroup={onGroup}
+          settings={settings}
+        />
+      );
+    case "funnel":
+      return (
+        <FunnelChart
+          clickable={clickable}
+          label={label}
+          model={model}
+          onGroup={onGroup}
+        />
+      );
     default:
       return (
         <BarsChart
@@ -654,14 +911,20 @@ function ChartContent({
   label: Label;
 }) {
   const hasTable = model.type !== "number";
+  const funnel = model.type === "funnel";
   const showLegend =
     settings.showLegend &&
     !asTable &&
-    (model.type === "donut" || (hasTable && !model.single));
+    (model.type === "donut" || funnel || (hasTable && !model.single));
+  let hint: ChartLabelKey = "filterUnavailable";
+  if (clickable) {
+    hint = funnel ? "funnelHint" : "filterHint";
+  }
+  const Table = funnel ? FunnelDataTable : ChartDataTable;
   return (
     <div className={cn("grid gap-3", loading && "opacity-60")}>
       {asTable && hasTable ? (
-        <ChartDataTable
+        <Table
           clickable={clickable}
           label={label}
           model={model}
@@ -679,7 +942,7 @@ function ChartContent({
       {showLegend ? <ChartLegend model={model} settings={settings} /> : null}
       {hasTable && !asTable ? (
         <p className="text-muted-foreground text-xs" data-chart-hint>
-          {label(clickable ? "filterHint" : "filterUnavailable")}
+          {label(hint)}
         </p>
       ) : null}
     </div>

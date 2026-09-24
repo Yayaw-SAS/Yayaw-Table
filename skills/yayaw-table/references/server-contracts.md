@@ -82,7 +82,7 @@ every operator the editions can send; mirror `matchesContractFilter()`:
 | `between` | number, date | Inclusive `values[0]` to `values[1]`; dates cover whole days |
 | `before`, `after` | date | Strictly before or after the day |
 | `isEmpty`, `isNotEmpty` | every type | `null`, `""` or `[]` |
-| `isTrue`, `isFalse` | boolean | From chart clicks and boolean filters |
+| `isTrue`, `isFalse` | boolean | Older Vue boolean rules (charts and filter menus now write select `isAnyOf` with `true`/`false`) |
 | `withinDistance` | location | `values: [lat, lng, km]`, great-circle distance |
 | `withinBounds` | location | `values: [west, south, east, north]`; `west > east` crosses the antimeridian |
 
@@ -107,9 +107,11 @@ Receives the query (`search`, `filters`, `advancedFilters`,
   answer `{ groups: [{ keys, values }], truncated? }`. Keys follow `groupBy`:
   `null` for empty values, `YYYY-MM-DD` days, the first day of a week,
   `YYYY-MM` months, `YYYY-Qn` quarters, `YYYY` years; a multi-select value
-  counts in each of its groups. Values follow `metrics`.
+  counts in each of its groups. Values follow `metrics` (a bars-and-line
+  chart sends two: the bars', then the line's).
 
-Without `aggregate`, when it throws, or when a chart gets no `groups`, the
+Without `aggregate`, when it throws, or when a chart gets no `groups` (or
+fewer values than metrics), the
 table loads the matching rows through `list` (every page for footer
 calculations, at most 2,000 rows for a chart) and computes in the browser.
 `aggregateChartRows()` is the reference implementation of chart groups.

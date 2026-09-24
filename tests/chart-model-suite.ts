@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import type * as Chart from "../src/components/ui/yayaw-table/utils/chart-model";
 import type * as Modes from "../src/components/ui/yayaw-table/utils/display-modes";
+import type * as Contracts from "../src/components/ui/yayaw-table/utils/table-contracts";
 
 type ChartApi = Pick<
   typeof Chart,
@@ -9,13 +10,21 @@ type ChartApi = Pick<
   | "canAddChartFilters"
   | "chartAggregateParams"
   | "chartAggregateRequest"
+  | "chartAlignedTicks"
+  | "chartBarLabelRoom"
   | "chartBucketKey"
   | "chartBucketLabel"
   | "chartBucketRange"
+  | "chartFunnelLayout"
+  | "chartFunnelOrientation"
   | "chartGroupFilters"
   | "chartLabel"
+  | "chartMetricUnit"
   | "chartSettingFields"
+  | "chartShares"
+  | "chartStageList"
   | "chartValueTicks"
+  | "fitChartLabel"
   | "loadChartData"
   | "nextChartBucketKey"
   | "normalizeChartAggregateResult"
@@ -30,6 +39,8 @@ type ModesApi = Pick<
   | "resolveDisplayModes"
   | "withoutDisabledModeRenderers"
 >;
+/** The shared rule matcher hosts and both tables filter with. */
+type ContractsApi = Pick<typeof Contracts, "matchesContractFilter">;
 type Test = (name: string, run: () => void | Promise<void>) => void;
 
 const COLUMNS = [
@@ -123,25 +134,63 @@ const ROWS = [
   },
 ];
 const PALETTE = ["c1", "c2", "c3", "c4", "c5"];
+/** A percent column for combo charts: margins exact in binary, so averages compare exactly. */
+const MARGIN_COLUMNS = [
+  ...COLUMNS,
+  {
+    id: "margin",
+    type: "number",
+    header: "Margin",
+    numberFormat: { style: "percent" as const, maximumFractionDigits: 1 },
+  },
+  { id: "units", type: "number", header: "Units" },
+];
+const MARGINS = [0.5, 0.25, 0.125, 0.5, 0.25, 0.75];
+const MARGIN_ROWS = ROWS.map((row, index) => ({
+  ...row,
+  margin: MARGINS[index],
+  units: index + 1,
+}));
+const COMBO = {
+  type: "combo",
+  xColumn: "category",
+  metric: "sum",
+  metricColumn: "price",
+  lineMetric: "avg",
+  lineMetricColumn: "margin",
+} as const;
 
-export function chartModelSuite(test: Test, chart: ChartApi, modes: ModesApi) {
+export function chartModelSuite(
+  test: Test,
+  chart: ChartApi,
+  modes: ModesApi,
+  contracts: ContractsApi
+) {
   const settings = (view: Chart.ChartViewSettings = {}) =>
     chart.resolveChartSettings(COLUMNS, undefined, view);
-  const model = (view: Chart.ChartViewSettings, rows = ROWS) => {
-    const resolved = settings(view);
-    const request = chart.chartAggregateRequest(resolved, COLUMNS);
+  const build = (
+    view: Chart.ChartViewSettings,
+    columns: readonly Chart.ChartColumn[],
+    rows: readonly unknown[]
+  ) => {
+    const resolved = chart.resolveChartSettings(columns, undefined, view);
+    const request = chart.chartAggregateRequest(resolved, columns);
     if (!request) {
       throw new Error("The chart has no x axis.");
     }
     return chart.buildChartModel({
       result: chart.aggregateChartRows(rows, request),
       settings: resolved,
-      columns: COLUMNS,
+      columns,
       locale: "en-US",
       palette: PALETTE,
       otherColor: "grey",
     });
   };
+  const model = (view: Chart.ChartViewSettings, rows = ROWS) =>
+    build(view, COLUMNS, rows);
+  const combo = (view: Chart.ChartViewSettings = {}) =>
+    build({ ...COMBO, ...view }, MARGIN_COLUMNS, MARGIN_ROWS);
   const totals = (built: Chart.ChartModel) =>
     built.categories.map((category) => [category.label, category.total]);
 
@@ -706,7 +755,7 @@ export function chartModelSuite(test: Test, chart: ChartApi, modes: ModesApi) {
           },
         })
         ?.at(0)?.operator,
-      "isFalse"
+      "isAnyOf"
     );
     const top = model({ topN: 1 });
     assert.equal(
@@ -715,6 +764,95 @@ export function chartModelSuite(test: Test, chart: ChartApi, modes: ModesApi) {
       }),
       undefined
     );
+  });
+
+  test("group rules are the table's own filter rules, for yes/no, option, date and empty groups", () => {
+    const columns = [
+      ...COLUMNS,
+      { id: "email", type: "email", header: "Email" },
+    ];
+    const rule = (
+      xColumn: string,
+      key: unknown,
+      view: Chart.ChartViewSettings = {}
+    ) =>
+      chart
+        .chartGroupFilters(
+          chart.resolveChartSettings(columns, undefined, { xColumn, ...view }),
+          columns,
+          {
+            category: {
+              id: "x",
+              key,
+              label: "",
+              color: "",
+              total: 1,
+              values: {},
+            },
+          }
+        )
+        ?.map(({ columnId, type, operator, values }) => [
+          columnId,
+          type,
+          operator,
+          values,
+        ]);
+    // Yes/no columns filter as selects of their stored value, as in the filter menus.
+    assert.deepEqual(rule("done", true), [
+      ["done", "select", "isAnyOf", [true]],
+    ]);
+    assert.deepEqual(rule("done", false), [
+      ["done", "select", "isAnyOf", [false]],
+    ]);
+    assert.deepEqual(rule("done", null), [["done", "select", "isEmpty", []]]);
+    assert.deepEqual(rule("category", "Service"), [
+      ["category", "select", "isAnyOf", ["Service"]],
+    ]);
+    assert.deepEqual(rule("category", null), [
+      ["category", "select", "isEmpty", []],
+    ]);
+    assert.deepEqual(rule("tags", "a"), [
+      ["tags", "multiSelect", "contains", ["a"]],
+    ]);
+    assert.deepEqual(rule("tags", null), [
+      ["tags", "multiSelect", "isEmpty", []],
+    ]);
+    assert.deepEqual(rule("due", "2026-Q3", { bucket: "quarter" }), [
+      ["due", "date", "between", ["2026-07-01", "2026-09-30"]],
+    ]);
+    assert.deepEqual(rule("due", null), [["due", "date", "isEmpty", []]]);
+    // Emails and links are text filters.
+    assert.deepEqual(rule("email", "ada@example.com"), [
+      ["email", "text", "equals", ["ada@example.com"]],
+    ]);
+    assert.deepEqual(rule("price", 49), [["price", "number", "equals", [49]]]);
+    // Each group's rules select exactly its records, with the shared matcher.
+    for (const view of [
+      { xColumn: "done" },
+      { xColumn: "category" },
+      { xColumn: "tags" },
+      { xColumn: "due", bucket: "month" },
+      { xColumn: "due", bucket: "week" },
+    ] as const) {
+      const resolved = settings(view);
+      for (const category of model(view).categories) {
+        const rules = chart.chartGroupFilters(resolved, COLUMNS, { category });
+        assert.ok(rules, `${view.xColumn}: ${category.label}`);
+        const matched = ROWS.filter((row) =>
+          rules.every((item) =>
+            contracts.matchesContractFilter(
+              row[item.columnId as keyof (typeof ROWS)[number]],
+              { ...item }
+            )
+          )
+        );
+        assert.equal(
+          matched.length,
+          category.total,
+          `${view.xColumn}: ${category.label}`
+        );
+      }
+    }
   });
 
   test("adds group rules to the view's filters unless they match any rule", () => {
@@ -927,8 +1065,658 @@ export function chartModelSuite(test: Test, chart: ChartApi, modes: ModesApi) {
           update: () => undefined,
         })
         .find((field) => field.id === "type")
-        ?.options.at(3)?.label,
+        ?.options.find((option) => option.value === "donut")?.label,
       "Anneau"
     );
+  });
+
+  test("keeps the area, combo and funnel settings, with defaults for older views", () => {
+    assert.deepEqual(
+      chart.normalizeChartViewConfig({
+        type: "funnel",
+        stacking: "percent",
+        curve: "linear",
+        lineMetric: "avg",
+        lineMetricColumn: " price ",
+        stageOrder: ["Service", "", 3, "Service", "Software"],
+      }),
+      {
+        type: "funnel",
+        lineMetricColumn: "price",
+        stacking: "percent",
+        curve: "linear",
+        lineMetric: "avg",
+        stageOrder: ["Service", "Software"],
+      }
+    );
+    assert.equal(
+      chart.normalizeChartViewConfig({
+        stacking: "stream",
+        curve: "step",
+        lineMetric: "median",
+        stageOrder: "Service",
+      }),
+      undefined
+    );
+    // Views saved before these types resolve as they did, with the new defaults.
+    const older = settings({ type: "line", xColumn: "due" });
+    assert.equal(older.stacking, "stacked");
+    assert.equal(older.curve, "smooth");
+    assert.equal(older.lineMetric, "count");
+    assert.equal(older.lineMetricColumn, undefined);
+    assert.equal(older.stageOrder, undefined);
+    // A line metric reading a column falls back to a count without a fitting one.
+    assert.equal(
+      settings({ type: "combo", lineMetric: "sum", lineMetricColumn: "name" })
+        .lineMetric,
+      "count"
+    );
+    // Combo charts and funnels have no series; areas do.
+    for (const type of ["combo", "funnel"] as const) {
+      assert.equal(
+        settings({ type, seriesColumn: "done" }).seriesColumn,
+        undefined
+      );
+    }
+    assert.equal(
+      settings({ type: "area", seriesColumn: "done" }).seriesColumn,
+      "done"
+    );
+  });
+
+  test("areas stack their series as values, as shares of 100% or not at all", () => {
+    const view = {
+      type: "area",
+      xColumn: "due",
+      seriesColumn: "category",
+      hideEmpty: true,
+    } as const;
+    const stacked = model(view);
+    assert.equal(stacked.stacked, true);
+    assert.equal(stacked.percent, false);
+    assert.deepEqual(totals(stacked), [
+      ["Sep 2026", 3],
+      ["Nov 2026", 2],
+    ]);
+    // Stacked areas fit their totals: 3 records in September.
+    assert.deepEqual(stacked.valueTicks, [0, 1, 2, 3]);
+
+    const percent = model({ ...view, stacking: "percent" });
+    assert.equal(percent.percent, true);
+    assert.deepEqual(percent.valueTicks, [0, 0.25, 0.5, 0.75, 1]);
+    assert.deepEqual(percent.categories.at(1)?.shares, {
+      "string:Software": 0,
+      "string:Hardware": 0.5,
+      "string:Service": 0.5,
+    });
+    // Values stay the records counted; shares of each category add up to 1.
+    assert.deepEqual(percent.categories.at(1)?.values, {
+      "string:Software": 0,
+      "string:Hardware": 1,
+      "string:Service": 1,
+    });
+    for (const category of percent.categories) {
+      const sum = Object.values(category.shares ?? {}).reduce(
+        (total, share) => total + share,
+        0
+      );
+      assert.ok(Math.abs(sum - 1) < 1e-9);
+    }
+    assert.equal(percent.formatShare(1 / 3), "33.3%");
+    assert.deepEqual(chart.chartShares({ a: 1, b: 3 }), { a: 0.25, b: 0.75 });
+    assert.deepEqual(chart.chartShares({ a: 0, b: 0 }), { a: 0, b: 0 });
+
+    // Running totals, stacked: 3 in September, 5 by November.
+    const cumulative = model({ ...view, cumulative: true });
+    assert.deepEqual(totals(cumulative), [
+      ["Sep 2026", 3],
+      ["Nov 2026", 5],
+    ]);
+    assert.deepEqual(cumulative.valueTicks, [0, 2, 4, 6]);
+    // Overlapping areas fit each value instead.
+    const overlapping = model({ ...view, cumulative: true, stacking: "none" });
+    assert.equal(overlapping.stacked, false);
+    assert.deepEqual(overlapping.valueTicks, [0, 1, 2]);
+    // One series has nothing to share: percent stacking does not apply.
+    const single = model({
+      type: "area",
+      xColumn: "due",
+      stacking: "percent",
+      hideEmpty: true,
+    });
+    assert.equal(single.percent, false);
+    assert.equal(single.categories.at(0)?.shares, undefined);
+    assert.deepEqual(single.valueTicks, [0, 1, 2, 3]);
+  });
+
+  test("combo charts ask for both metrics at once and chart them on two axes when their units differ", () => {
+    const resolved = chart.resolveChartSettings(MARGIN_COLUMNS, undefined, {
+      ...COMBO,
+      seriesColumn: "done",
+    });
+    const request = chart.chartAggregateRequest(resolved, MARGIN_COLUMNS);
+    assert.deepEqual(request, {
+      groupBy: [{ columnId: "category" }],
+      metrics: [
+        { columnId: "price", fn: "sum" },
+        { columnId: "margin", fn: "avg" },
+      ],
+      weekStartsOn: 1,
+    });
+    // Both metrics, computed over the rows too.
+    assert.ok(request);
+    const software = chart
+      .aggregateChartRows(MARGIN_ROWS, request)
+      .groups.find((group) => group.keys[0] === "Software");
+    assert.deepEqual(software?.values, [64, 0.625]);
+
+    const built = combo();
+    assert.equal(built.title, "Sum of Price and Average of Margin by Category");
+    assert.deepEqual(
+      built.series.map(({ id, label, mark, axis, color }) => ({
+        id,
+        label,
+        mark,
+        axis,
+        color,
+      })),
+      [
+        {
+          id: "bars",
+          label: "Sum of Price",
+          mark: "bar",
+          axis: "left",
+          color: "c1",
+        },
+        {
+          id: "line",
+          label: "Average of Margin",
+          mark: "line",
+          axis: "right",
+          color: "c2",
+        },
+      ]
+    );
+    assert.deepEqual(
+      built.categories.map((category) => [category.label, category.values]),
+      [
+        ["Software", { bars: 64, line: 0.625 }],
+        ["Hardware", { bars: 478, line: 0.1875 }],
+        ["Service", { bars: 219, line: 0.375 }],
+        ["Other", { bars: 0, line: 0 }],
+      ]
+    );
+    assert.equal(built.single, false);
+    assert.equal(built.totalColumn, false);
+    // Currency on the left, percent on the right, with the same grid lines.
+    assert.deepEqual(built.valueTicks, [0, 200, 400, 600]);
+    assert.deepEqual(built.secondaryTicks, [0, 0.25, 0.5, 0.75]);
+    assert.equal(built.format(478), "€478.00");
+    assert.equal(built.series.at(1)?.format?.(0.1875), "18.8%");
+    // Sorting by value follows the bars.
+    assert.deepEqual(
+      combo({ sort: "valueDesc", hideEmpty: true }).categories.map(
+        (category) => category.label
+      ),
+      ["Hardware", "Service", "Software"]
+    );
+
+    // The same unit shares one axis fitting both metrics.
+    const sameUnit = combo({ lineMetric: "max", lineMetricColumn: "price" });
+    assert.equal(sameUnit.series.at(1)?.axis, "left");
+    assert.equal(sameUnit.secondaryTicks, undefined);
+    assert.deepEqual(sameUnit.valueTicks, [0, 200, 400, 600]);
+    // Counts and plain numbers are different units.
+    const counts = combo({
+      metric: "count",
+      lineMetric: "sum",
+      lineMetricColumn: "units",
+    });
+    assert.deepEqual(counts.valueTicks, [0, 1, 2]);
+    assert.deepEqual(counts.secondaryTicks, [0, 5, 10]);
+  });
+
+  test("horizontal bars keep room for their longest value label", () => {
+    const built = model({
+      type: "horizontalBar",
+      metric: "sum",
+      metricColumn: "price",
+      showDataLabels: true,
+    });
+    // "€478.00" is the longest label: 7 characters of 7 pixels.
+    assert.equal(chart.chartBarLabelRoom(built), 49);
+    assert.equal(chart.chartBarLabelRoom({ ...built, categories: [] }), 0);
+  });
+
+  test("resolves each metric's unit from its column's number format", () => {
+    const unit = (metric: Chart.ChartMetricFn, metricColumn?: string) =>
+      chart.chartMetricUnit({ metric, metricColumn }, MARGIN_COLUMNS);
+    assert.equal(unit("count"), "count");
+    assert.equal(unit("countDistinct", "tags"), "count");
+    assert.equal(unit("sum", "price"), "currency:EUR");
+    assert.equal(unit("avg", "margin"), "percent:fraction");
+    assert.equal(unit("max", "units"), "number");
+    assert.deepEqual(
+      chart.chartAlignedTicks([0.625, 0.1875], 3),
+      [0, 0.25, 0.5, 0.75]
+    );
+    assert.deepEqual(chart.chartAlignedTicks([7, 8], 2, true), [0, 5, 10]);
+    assert.deepEqual(
+      chart.chartAlignedTicks([-30, 45], 4),
+      [-50, -25, 0, 25, 50]
+    );
+    assert.deepEqual(chart.chartAlignedTicks([], 2), [0, 0.5, 1]);
+  });
+
+  test("combo charts fold the top N into Other only when both metrics add up", () => {
+    const additive = combo({
+      lineMetric: "sum",
+      lineMetricColumn: "units",
+      sort: "valueDesc",
+      topN: 1,
+    });
+    assert.deepEqual(
+      additive.categories.map((category) => [category.label, category.values]),
+      [
+        ["Hardware", { bars: 478, line: 8 }],
+        ["Other", { bars: 283, line: 13 }],
+      ]
+    );
+    const averages = combo({ sort: "valueDesc", topN: 1 });
+    assert.deepEqual(
+      averages.categories.map((category) => category.label),
+      ["Hardware"]
+    );
+    // A clicked bar or point selects its category; the metric adds no rule.
+    const rules = chart.chartGroupFilters(
+      chart.resolveChartSettings(MARGIN_COLUMNS, undefined, COMBO),
+      MARGIN_COLUMNS,
+      {
+        category: additive.categories.at(0),
+        series: additive.series.at(1),
+      }
+    );
+    assert.deepEqual(
+      rules?.map(({ columnId, operator, values }) => ({
+        columnId,
+        operator,
+        values,
+      })),
+      [{ columnId: "category", operator: "isAnyOf", values: ["Hardware"] }]
+    );
+    // Empty groups are those where both metrics are zero.
+    assert.deepEqual(
+      combo({ hideEmpty: true }).categories.map((category) => category.label),
+      ["Software", "Hardware", "Service"]
+    );
+  });
+
+  test("combo charts fall back to the rows when the host answers one metric only", async () => {
+    const resolved = chart.resolveChartSettings(
+      MARGIN_COLUMNS,
+      undefined,
+      COMBO
+    );
+    const request = chart.chartAggregateRequest(resolved, MARGIN_COLUMNS);
+    assert.ok(request);
+    let received: Record<string, unknown> = {};
+    const server = await chart.loadChartData({
+      aggregate: (params) => {
+        received = params;
+        return chart.aggregateChartRows(MARGIN_ROWS, request);
+      },
+      rows: MARGIN_ROWS,
+      params: {},
+      request,
+      locale: "en-US",
+    });
+    assert.equal(server.source, "server");
+    assert.deepEqual(received.metrics, request.metrics);
+    const oneMetric = await chart.loadChartData({
+      aggregate: () => ({
+        groups: chart
+          .aggregateChartRows(MARGIN_ROWS, request)
+          .groups.map((group) => ({
+            ...group,
+            values: group.values.slice(0, 1),
+          })),
+      }),
+      rows: MARGIN_ROWS,
+      params: {},
+      request,
+      locale: "en-US",
+    });
+    assert.equal(oneMetric.source, "client");
+    assert.deepEqual(oneMetric.groups, server.groups);
+  });
+
+  test("funnels order their stages and show shares of the first and conversions", () => {
+    const view = {
+      type: "funnel",
+      xColumn: "category",
+      metric: "sum",
+      metricColumn: "price",
+      topN: 1,
+    } as const;
+    // Option order by default; top N does not cut a funnel.
+    assert.deepEqual(
+      model(view).stages?.map((stage) => stage.label),
+      ["Software", "Hardware", "Service", "Other"]
+    );
+    const built = model({
+      ...view,
+      stageOrder: ["Hardware", "Service", "Gone"],
+    });
+    const stages = built.stages ?? [];
+    assert.deepEqual(
+      stages.map((stage) => [stage.label, stage.value, stage.color]),
+      [
+        ["Hardware", 478, "c1"],
+        ["Service", 219, "#ff0000"],
+        ["Software", 64, "c3"],
+        ["Other", 0, "c4"],
+      ]
+    );
+    assert.deepEqual(
+      stages.map((stage) => [stage.shareOfFirst, stage.conversion]),
+      [
+        [1, undefined],
+        [219 / 478, 219 / 478],
+        [64 / 478, 64 / 219],
+        [0, 0],
+      ]
+    );
+    assert.deepEqual(
+      stages.map((stage) => [
+        stage.valueText,
+        stage.shareText,
+        stage.conversionText,
+      ]),
+      [
+        ["€478.00", "100% of first", undefined],
+        ["€219.00", "45.8% of first", "45.8% from previous"],
+        ["€64.00", "13.4% of first", "29.2% from previous"],
+        ["€0.00", "0% of first", "0% from previous"],
+      ]
+    );
+    // Hidden empty stages; a stage after a zero has no conversion.
+    assert.deepEqual(
+      model({ ...view, hideEmpty: true }).stages?.map((stage) => stage.label),
+      ["Software", "Hardware", "Service"]
+    );
+    const afterZero = model({ ...view, stageOrder: ["Other", "Service"] });
+    assert.equal(afterZero.stages?.at(0)?.shareText, "— of first");
+    assert.equal(afterZero.stages?.at(1)?.conversionText, "— from previous");
+    // Records without a stage are in none: dates ascending, no "No value".
+    assert.deepEqual(
+      model({ type: "funnel", xColumn: "due" }).stages?.map((stage) => [
+        stage.label,
+        stage.value,
+      ]),
+      [
+        ["Sep 2026", 3],
+        ["Oct 2026", 0],
+        ["Nov 2026", 2],
+      ]
+    );
+    // A stage filters the table to its records.
+    assert.deepEqual(
+      chart
+        .chartGroupFilters(settings(view), COLUMNS, {
+          category: stages.at(1)?.category,
+        })
+        ?.map(({ operator, values }) => [operator, values]),
+      [["isAnyOf", ["Service"]]]
+    );
+    assert.equal(chart.chartLabel("typeFunnel", "fr"), "Entonnoir");
+  });
+
+  test("funnel shapes are drawn the same in both editions, side by side or stacked", () => {
+    const stages =
+      model({
+        type: "funnel",
+        xColumn: "category",
+        metric: "sum",
+        metricColumn: "price",
+        stageOrder: ["Hardware", "Service"],
+      }).stages ?? [];
+    assert.equal(chart.chartFunnelOrientation(800, 4), "vertical");
+    assert.equal(chart.chartFunnelOrientation(470, 3), "horizontal");
+    assert.equal(chart.chartFunnelOrientation(560, 5), "horizontal");
+    const wide = chart.chartFunnelLayout(stages, 800);
+    assert.equal(wide.orientation, "vertical");
+    assert.deepEqual([wide.width, wide.height], [800, 320]);
+    // The first stage is the largest: full height, narrowing to the next stage.
+    assert.equal(wide.shapes.at(0)?.points, "3,48 197,108.7 197,211.3 3,272");
+    // A zero stage keeps a sliver and ends square.
+    assert.equal(wide.shapes.at(3)?.points, "603,159 797,159 797,161 603,161");
+    assert.deepEqual(wide.shapes.at(1)?.box, {
+      x: 200,
+      y: 0,
+      width: 200,
+      height: 320,
+    });
+    assert.deepEqual(wide.shapes.at(0)?.name, {
+      x: 100,
+      y: 16,
+      anchor: "middle",
+      text: "Hardware",
+    });
+    assert.equal(wide.shapes.at(0)?.conversion, undefined);
+    assert.deepEqual(wide.shapes.at(1)?.conversion, {
+      x: 300,
+      y: 314,
+      anchor: "middle",
+      text: "45.8% from previous",
+    });
+
+    const narrow = chart.chartFunnelLayout(stages, 300);
+    assert.equal(narrow.orientation, "horizontal");
+    assert.deepEqual([narrow.width, narrow.height], [300, 304]);
+    assert.equal(narrow.shapes.at(0)?.points, "0,22 300,22 218.7,50 81.3,50");
+    assert.deepEqual(narrow.shapes.at(1)?.box, {
+      x: 0,
+      y: 76,
+      width: 300,
+      height: 76,
+    });
+    assert.deepEqual(narrow.shapes.at(1)?.value, {
+      x: 300,
+      y: 91,
+      anchor: "end",
+      text: "€219.00",
+    });
+    assert.deepEqual(narrow.shapes.at(1)?.share, {
+      x: 0,
+      y: 142,
+      anchor: "start",
+      text: "45.8% of first",
+    });
+    // Before it is measured, a funnel is drawn 640 pixels wide.
+    assert.equal(chart.chartFunnelLayout(stages, 0).width, 640);
+    assert.equal(chart.fitChartLabel("Hardware and services", 70), "Hardware…");
+    assert.equal(chart.fitChartLabel("Service", 70), "Service");
+  });
+
+  test("the funnel's stage order moves by drag or arrows and is saved with the view", () => {
+    let saved: Record<string, unknown> | undefined;
+    const list = (
+      view: Chart.ChartViewSettings,
+      defaults?: Chart.ChartViewSettings
+    ) =>
+      chart.chartStageList({
+        columns: COLUMNS,
+        defaults,
+        view,
+        locale: "en-US",
+        update: (next) => {
+          saved = next;
+        },
+      });
+    const funnel = { type: "funnel", xColumn: "category" } as const;
+    const stages = list(funnel);
+    assert.ok(stages);
+    assert.deepEqual(
+      stages.stages.map((stage) => stage.value),
+      ["Software", "Hardware", "Service", "Other"]
+    );
+    assert.equal(stages.label, "Stage order");
+    assert.equal(stages.stages.at(0)?.moveUpLabel, "Move Software up");
+    assert.equal(stages.stages.at(0)?.moveDownLabel, "Move Software down");
+    assert.equal(stages.customized, false);
+    stages.move(0, 2);
+    assert.deepEqual(saved, {
+      ...funnel,
+      stageOrder: ["Hardware", "Service", "Software", "Other"],
+    });
+    // Saved values that are no longer options are left out.
+    const moved = list({
+      ...funnel,
+      stageOrder: ["Hardware", "Gone", "Service", "Software", "Other"],
+    });
+    assert.deepEqual(
+      moved?.stages.map((stage) => stage.label),
+      ["Hardware", "Service", "Software", "Other"]
+    );
+    assert.equal(moved?.customized, true);
+    // Back to the option order: the view keeps no order of its own.
+    moved?.move(2, 0);
+    assert.deepEqual(saved, funnel);
+    moved?.reset();
+    assert.deepEqual(saved, funnel);
+    // The table's order is the starting point.
+    list(funnel, { stageOrder: ["Service"] })?.move(0, 1);
+    assert.deepEqual(saved, {
+      ...funnel,
+      stageOrder: ["Software", "Service", "Hardware", "Other"],
+    });
+    list(
+      { ...funnel, stageOrder: ["Software", "Service"] },
+      { stageOrder: ["Service"] }
+    )?.move(0, 1);
+    assert.deepEqual(saved, funnel);
+    // Only funnels on option columns have an order to set.
+    assert.equal(list({ type: "bar", xColumn: "category" }), undefined);
+    assert.equal(list({ type: "funnel", xColumn: "due" }), undefined);
+    assert.equal(
+      chart
+        .chartStageList({
+          columns: COLUMNS,
+          view: funnel,
+          locale: "fr-FR",
+          update: () => undefined,
+        })
+        ?.stages.at(0)?.moveUpLabel,
+      "Monter Software"
+    );
+  });
+
+  test("settings offer the fields of areas, combo charts and funnels", () => {
+    let saved: Record<string, unknown> = {};
+    const fields = (
+      view: Chart.ChartViewSettings,
+      columns: readonly Chart.ChartColumn[] = COLUMNS
+    ) =>
+      chart.chartSettingFields({
+        columns,
+        view,
+        locale: "en-US",
+        update: (next) => {
+          saved = next;
+        },
+      });
+    const ids = (view: Chart.ChartViewSettings) =>
+      fields(view).map((field) => field.id);
+    assert.deepEqual(ids({ type: "area" }), [
+      "type",
+      "xColumn",
+      "metric",
+      "seriesColumn",
+      "curve",
+      "sort",
+      "cumulative",
+      "hideEmpty",
+      "topN",
+      "showDataLabels",
+      "showLegend",
+      "colors",
+    ]);
+    assert.deepEqual(ids({ type: "area", seriesColumn: "done" }).slice(3, 6), [
+      "seriesColumn",
+      "stacking",
+      "curve",
+    ]);
+    assert.ok(ids({ type: "line" }).includes("curve"));
+    assert.ok(!ids({ type: "bar" }).includes("curve"));
+    assert.deepEqual(ids({ type: "combo" }), [
+      "type",
+      "xColumn",
+      "metric",
+      "lineMetric",
+      "curve",
+      "sort",
+      "hideEmpty",
+      "topN",
+      "showDataLabels",
+      "showLegend",
+    ]);
+    assert.deepEqual(ids({ type: "funnel" }), [
+      "type",
+      "xColumn",
+      "metric",
+      "hideEmpty",
+      "showLegend",
+      "colors",
+    ]);
+    const comboFields = fields(COMBO, MARGIN_COLUMNS);
+    assert.deepEqual(
+      comboFields.map((field) => [field.id, field.label]).slice(2, 6),
+      [
+        ["metric", "Bars"],
+        ["metricColumn", "Bars of"],
+        ["lineMetric", "Line"],
+        ["lineMetricColumn", "Line of"],
+      ]
+    );
+    // Choosing a line metric picks a column it can read.
+    fields({ type: "combo" })
+      .find((field) => field.id === "lineMetric")
+      ?.onChange("avg");
+    assert.deepEqual(saved, {
+      type: "combo",
+      lineMetric: "avg",
+      lineMetricColumn: "price",
+    });
+    fields({ type: "area", seriesColumn: "done" })
+      .find((field) => field.id === "stacking")
+      ?.onChange("percent");
+    assert.deepEqual(saved, {
+      type: "area",
+      seriesColumn: "done",
+      stacking: "percent",
+    });
+    fields({ type: "line" })
+      .find((field) => field.id === "curve")
+      ?.onChange("linear");
+    assert.deepEqual(saved, { type: "line", curve: "linear" });
+    const french = chart
+      .chartSettingFields({
+        columns: COLUMNS,
+        view: {},
+        locale: "fr-FR",
+        update: () => undefined,
+      })
+      .find((field) => field.id === "type")
+      ?.options.map((option) => option.label);
+    assert.deepEqual(french, [
+      "Barres verticales",
+      "Barres horizontales",
+      "Courbe",
+      "Aires",
+      "Barres et courbe",
+      "Anneau",
+      "Entonnoir",
+      "Nombre",
+    ]);
   });
 }

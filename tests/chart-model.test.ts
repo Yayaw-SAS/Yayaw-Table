@@ -5,13 +5,21 @@ import {
   canAddChartFilters,
   chartAggregateParams,
   chartAggregateRequest,
+  chartAlignedTicks,
+  chartBarLabelRoom,
   chartBucketKey,
   chartBucketLabel,
   chartBucketRange,
+  chartFunnelLayout,
+  chartFunnelOrientation,
   chartGroupFilters,
   chartLabel,
+  chartMetricUnit,
   chartSettingFields,
+  chartShares,
+  chartStageList,
   chartValueTicks,
+  fitChartLabel,
   loadChartData,
   nextChartBucketKey,
   normalizeChartAggregateResult,
@@ -25,6 +33,7 @@ import {
   resolveDisplayModes,
   withoutDisabledModeRenderers,
 } from "../src/components/ui/yayaw-table/utils/display-modes";
+import { matchesContractFilter } from "../src/components/ui/yayaw-table/utils/table-contracts";
 import { chartModelSuite } from "./chart-model-suite";
 
 chartModelSuite(
@@ -35,13 +44,21 @@ chartModelSuite(
     canAddChartFilters,
     chartAggregateParams,
     chartAggregateRequest,
+    chartAlignedTicks,
+    chartBarLabelRoom,
     chartBucketKey,
     chartBucketLabel,
     chartBucketRange,
+    chartFunnelLayout,
+    chartFunnelOrientation,
     chartGroupFilters,
     chartLabel,
+    chartMetricUnit,
     chartSettingFields,
+    chartShares,
+    chartStageList,
     chartValueTicks,
+    fitChartLabel,
     loadChartData,
     nextChartBucketKey,
     normalizeChartAggregateResult,
@@ -54,5 +71,6 @@ chartModelSuite(
     normalizeModeConfig,
     resolveDisplayModes,
     withoutDisabledModeRenderers,
-  }
+  },
+  { matchesContractFilter }
 );

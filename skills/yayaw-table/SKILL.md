@@ -232,7 +232,7 @@ multi-instance pages: [configuration](references/configuration.md).
 | `gallery` | Image cards, media viewer (image, video, audio, PDF) | an image column (`table.gallery.imageColumn`) or `table.gallery.media`; placeholders otherwise | core |
 | `filetree` | Folders and files linked by a parent column | `table.filetree.parentColumn`, or a column named `parentId`, `parent`, `folderId`… | core, offered when a parent column exists |
 | `calendar` | Records on a month, week or list calendar | a date column (and an end column to stretch) | `yayaw-table-calendar`, `yayaw-table-vue-calendar` |
-| `chart` | Bars, line, donut or a single number | a column to group by; `actions.aggregate` for server groups | `yayaw-table-chart`, `yayaw-table-vue-chart` |
+| `chart` | Bars, line, areas, bars and line, donut, funnel or a single number | a column to group by; `actions.aggregate` for server groups | `yayaw-table-chart`, `yayaw-table-vue-chart` |
 | `feed` | Posts in a column: updates, news, comments | title, body and date columns (guessed); `list` paging | core, on unless `table.feed: false` |
 | `map` | Markers, clusters, "Search this area" | a `location` column and a basemap (`table.map.style`) | `yayaw-table-map`, `yayaw-table-vue-map` |
 | `form` | A form that creates records, also on a public link | `actions.create` and `allowCreate` | core, offered when the table can create |

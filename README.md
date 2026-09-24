@@ -39,13 +39,16 @@ libraries. The calendar (FullCalendar) is
 `https://table.yayaw.app/r/yayaw-table-calendar.json` for React and
 `https://table.yayaw.app/r/yayaw-table-vue-calendar.json` for Vue: pass
 `calendarRenderer` to `displayModeRenderers` and add `"calendar"` to
-`displayModes`. Charts (bars, line, donut, number; shadcn/ui charts with
-Recharts in React, Unovis in Vue) are
+`displayModes`. Charts (bars, line, stacked or 100 % areas, bars and line
+with a second axis, donut, funnel, number; shadcn/ui charts with Recharts in
+React, Unovis in Vue, the same SVG funnel in both) are
 `https://table.yayaw.app/r/yayaw-table-chart.json` and
 `https://table.yayaw.app/r/yayaw-table-vue-chart.json`: pass `chartRenderer`
 and add `"chart"`. Charts ask `actions.aggregate` for grouped values
-(`groupBy`, `metrics`) and fall back to the rows `list` returns; clicking a
-group filters the table to it. Dashboards like Notion's are
+(`groupBy`, `metrics`; bars-and-line charts ask for both metrics at once) and
+fall back to the rows `list` returns; clicking a group (a bar, a point, a
+funnel stage) filters the table to it with the rules its filter menus write.
+Dashboards like Notion's are
 `https://table.yayaw.app/r/yayaw-table-dashboard.json` and
 `https://table.yayaw.app/r/yayaw-table-vue-dashboard.json`: `YayawDashboard`
 arranges saved views of any table, numbers and notes on a 4-column grid

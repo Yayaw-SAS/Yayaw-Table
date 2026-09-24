@@ -459,14 +459,11 @@ function formatDateValue(
  * Format select values for display
  */
 function formatSelectValue(values: unknown, options?: ColumnOption[]): string {
-  if (Array.isArray(values)) {
-    return values
-      .map((v) => options?.find((opt) => opt.value === v)?.label || v)
-      .join(", ");
-  }
-  return (
-    options?.find((opt) => opt.value === values)?.label || String(values || "")
-  );
+  // Options hold text; rules may hold the stored numbers or yes/no booleans.
+  const label = (value: unknown) =>
+    options?.find((opt) => opt.value === String(value))?.label ||
+    String(value ?? "");
+  return Array.isArray(values) ? values.map(label).join(", ") : label(values);
 }
 
 /**

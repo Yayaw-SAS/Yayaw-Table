@@ -50,6 +50,21 @@ export interface FilterValueInputProps<
 }
 
 /**
+ * Option pickers hold text values; rules may hold the stored numbers or
+ * yes/no booleans (charts, the Vue edition), shown as the same choices.
+ */
+const asOptionValues = (value: unknown): unknown => {
+  if (Array.isArray(value)) {
+    return value.map((item) =>
+      typeof item === "string" ? item : String(item)
+    );
+  }
+  return typeof value === "number" || typeof value === "boolean"
+    ? String(value)
+    : value;
+};
+
+/**
  * Filter value input component that routes to the appropriate filter based on data type
  */
 export function FilterValueInput<TType extends ColumnDataType>({
@@ -184,7 +199,7 @@ export function FilterValueInput<TType extends ColumnDataType>({
     }
 
     case "select": {
-      const selectValue = value as string | string[];
+      const selectValue = asOptionValues(value) as string | string[];
       const selectOperator = operator as FilterOperators["select"];
 
       if (!config.options) {
@@ -223,7 +238,7 @@ export function FilterValueInput<TType extends ColumnDataType>({
     }
 
     case "multiSelect": {
-      const multiSelectValue = value as string[];
+      const multiSelectValue = asOptionValues(value) as string[];
       const multiSelectOperator = operator as FilterOperators["multiSelect"];
 
       if (!config.options) {

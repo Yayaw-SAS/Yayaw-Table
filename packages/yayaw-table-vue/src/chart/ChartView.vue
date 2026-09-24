@@ -135,6 +135,14 @@ const legendItems = computed(() => {
         value: category.total as number | undefined,
       }));
   }
+  if (current.type === "funnel") {
+    return (current.stages ?? []).map((stage) => ({
+      id: stage.id,
+      label: stage.label,
+      color: stage.color,
+      value: stage.value as number | undefined,
+    }));
+  }
   if (current.single || current.type === "number") return [];
   return current.series.map((item) => ({
     id: item.id,
@@ -142,6 +150,11 @@ const legendItems = computed(() => {
     color: item.color,
     value: undefined as number | undefined,
   }));
+});
+
+const hint = computed<ChartLabelKey>(() => {
+  if (!clickable.value) return "filterUnavailable";
+  return model.value?.type === "funnel" ? "funnelHint" : "filterHint";
 });
 
 const onGroup = (category?: ChartCategory, series?: ChartSeriesItem): void => {
@@ -209,7 +222,7 @@ const onGroup = (category?: ChartCategory, series?: ChartSeriesItem): void => {
         </li>
       </ul>
       <p v-if="hasTable && !asTable" class="yayaw-chart-hint" data-chart-hint>
-        {{ label(clickable ? "filterHint" : "filterUnavailable") }}
+        {{ label(hint) }}
       </p>
     </div>
   </section>
