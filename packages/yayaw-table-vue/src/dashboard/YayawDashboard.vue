@@ -122,6 +122,7 @@ const infos = computed<Record<string, DashboardTableInfo>>(() =>
       id,
       {
         name: source.name ?? source.config.translations?.keys?.title ?? id,
+        coloredTags: source.config.table?.coloredTags,
         columns: source.config.columns.definitions.map((column) => ({
           id: column.id,
           header: column.header,
@@ -225,6 +226,8 @@ const loadMessage = computed(() => {
       :tables="infos"
       :editing="editing"
       :label="label"
+      :locale="props.locale"
+      :translate="translate"
       @change="(filterId, value) => update((current) => setDashboardFilterValue(current, filterId, value))"
       @remove="(filterId) => update((current) => removeDashboardFilter(current, filterId))"
       @add="addingFilter = true"

@@ -1,10 +1,11 @@
 /**
  * Boolean cell component for data tables
- * Shows formatted boolean values with appropriate styling
+ * Shows a checked or unchecked checkbox-style mark, as in the Vue edition
  */
 "use client";
 
-import { Badge } from "@/components/ui/badge";
+import { Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 import { useTableTranslations } from "../../hooks";
 
@@ -13,21 +14,24 @@ interface BooleanCellProps {
 }
 
 /**
- * Cell component for displaying boolean values
- * Shows green badge for true and red badge for false
+ * Cell component for displaying boolean values: a filled mark with a check
+ * for true, an empty box for false (never an error-colored badge).
  */
 export function BooleanCell({ value }: BooleanCellProps) {
   const translations = useTableTranslations();
   return (
-    <Badge
-      className={
+    <span
+      aria-label={value ? translations.true : translations.false}
+      className={cn(
+        "yayaw-boolean inline-flex size-4 shrink-0 items-center justify-center self-center rounded-[4px] border align-middle shadow-xs",
         value
-          ? "bg-green-500/10 text-green-600 hover:bg-green-500/20 dark:bg-green-500/20 dark:text-green-400"
-          : ""
-      }
-      variant={value ? "default" : "destructive"}
+          ? "border-primary bg-primary text-primary-foreground"
+          : "border-input bg-transparent"
+      )}
+      data-value={String(value)}
+      role="img"
     >
-      {value ? translations.true : translations.false}
-    </Badge>
+      {value ? <Check aria-hidden="true" className="size-3.5" /> : null}
+    </span>
   );
 }

@@ -115,6 +115,8 @@ export interface DashboardStorage {
 export interface DashboardTableInfo {
   name: string;
   columns: readonly DashboardColumn[];
+  /** The table's `coloredTags` setting (default true), for option tags. */
+  coloredTags?: boolean;
 }
 
 export interface DashboardColumn {
@@ -1221,6 +1223,10 @@ const ENGLISH_LABELS = {
   moved: "{title} moved",
   resized: "{title} resized",
   kpiCount: "Records",
+  anyDate: "Any date",
+  fromDate: "From {date}",
+  untilDate: "Until {date}",
+  dateRange: "{start} – {end}",
 };
 
 export type DashboardLabelKey = keyof typeof ENGLISH_LABELS;
@@ -1296,6 +1302,10 @@ const FRENCH_LABELS: Record<DashboardLabelKey, string> = {
   moved: "{title} déplacé",
   resized: "{title} redimensionné",
   kpiCount: "Enregistrements",
+  anyDate: "Toutes les dates",
+  fromDate: "À partir du {date}",
+  untilDate: "Jusqu’au {date}",
+  dateRange: "{start} – {end}",
 };
 
 /** Host override for a label (`dashboard.<key>`), or the built-in one. */
@@ -1373,4 +1383,57 @@ export function dashboardWidgetTitle(
   return context.view?.name
     ? context.view.name
     : `${tableName} › ${dashboardLabel("defaultView", context.locale, context.translate)}`;
+}
+
+/** Whether a select filter's option tags are colored: its first target table's setting. */
+export function dashboardFilterColoredTags(
+  filter: DashboardFilter,
+  tables: Readonly<Record<string, DashboardTableInfo>>
+): boolean {
+  const table = filter.targets
+    .map((target) => tables[target.tableId])
+    .find(Boolean);
+  return table?.coloredTags !== false;
+}
+
+/** Calendar day `YYYY-MM-DD` as a local date. */
+export function dashboardDay(value?: string): Date | undefined {
+  if (!(value && DATE_ONLY.test(value))) {
+    return;
+  }
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year ?? 0, (month ?? 1) - 1, day ?? 1);
+}
+
+/** A picked calendar day as `YYYY-MM-DD`. */
+export function dashboardDayValue(date: Date): string {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/** What a date range filter's button shows, e.g. "Sep 1, 2026 – Sep 10, 2026". */
+export function dashboardDateRangeText(
+  value: unknown,
+  locale: string,
+  translate?: DashboardTranslate
+): string {
+  const { start, end } = dateRangeOf(value);
+  const format = new Intl.DateTimeFormat(locale, { dateStyle: "medium" });
+  const show = (day?: string) => {
+    const date = dashboardDay(day);
+    return date ? format.format(date) : "";
+  };
+  if (start && end) {
+    return dashboardLabel("dateRange", locale, translate, {
+      start: show(start),
+      end: show(end),
+    });
+  }
+  if (start) {
+    return dashboardLabel("fromDate", locale, translate, { date: show(start) });
+  }
+  if (end) {
+    return dashboardLabel("untilDate", locale, translate, { date: show(end) });
+  }
+  return dashboardLabel("anyDate", locale, translate);
 }

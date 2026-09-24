@@ -1544,8 +1544,8 @@ without touching the URL.
 ## Dashboard
 
 Dashboards ship as optional registry items: `yayaw-table-dashboard` (React:
-`YayawDashboard`, shadcn `button`, `dialog`, `dropdown-menu`, `input`,
-`native-select`, `textarea`) and `yayaw-table-vue-dashboard` (Vue:
+`YayawDashboard`, shadcn `button`, `calendar`, `dialog`, `dropdown-menu`,
+`input`, `native-select`, `popover`, `textarea`) and `yayaw-table-vue-dashboard` (Vue:
 `YayawDashboard.vue`, reka-ui like the table). Both list `gridstack` and load
 it, with its stylesheet, in a chunk fetched by the first desktop grid
 (`import("./dashboard-grid-engine")`), never by the table or on phones.
@@ -1606,8 +1606,34 @@ load, an error when its table or view is missing or its `list` fails (with
 Retry), and an error boundary (`WidgetErrorBoundary` / `onErrorCaptured`)
 keeps a failing widget from breaking the others.
 
-Found on the way: Vue number charts drew nothing; they now show the figure
-and what it counts, as React does.
+Filter controls are the library's own: a date range filter opens the Form
+view's popover calendar in range mode (react-day-picker in React, reka-ui
+`RangeCalendar` with the form calendar's styles in Vue), its button reading
+"Any date", "From Sep 1, 2026", "Until …" or "Sep 1, 2026 – Sep 10, 2026"
+(`dashboardDateRangeText`); a select filter opens an option dropdown with
+"All" and a checkbox per option, and shows the chosen options as the table's
+tags (`tagAppearance`, the first target table's `coloredTags`).
+
+Found on the way, now aligned in both editions:
+
+- Vue number charts drew nothing; they now show the figure and what it
+  counts, as React does.
+- Booleans render as a checkbox-style mark everywhere a cell renders them
+  (table, list, board and gallery cards): filled with a check for true, an
+  empty box for false, `role="img"` named by `common.true`/`common.false`.
+  React used a green or red (destructive) "True"/"False" badge, Vue a ✓ or
+  "—" chip.
+- Compact board cards (no property labels) leave out properties with
+  nothing to show (`isBlankCardValue`: null, blank text, empty list; false
+  and 0 are values). Vue board cards now default to the visible columns, as
+  React does, instead of every column (hidden ones showed "—").
+- Card pagination (list, gallery, board) shows when there is more than one
+  page by the server's page count or by the row count, as React decides;
+  Vue used the server's page count only.
+
+Verification for these: `tests/boolean-cell.test.tsx`,
+`packages/yayaw-table-vue/src/components/card-value-parity.test.ts`, the
+shared `value-format` suite and the last `e2e/dashboard.spec.ts` test.
 
 Demo: "Projects overview" (`?example=dashboard`, `examples/dashboard.ts`):
 the views example's Projects table (numbers, "Revenue by category", "Projects

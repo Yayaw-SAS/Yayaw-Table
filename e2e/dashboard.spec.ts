@@ -40,6 +40,34 @@ const openMenu = async (page: Page, title: string) => {
     .getByRole("button", { name: `Widget options for ${title}`, exact: true })
     .click();
 };
+const filterValue = (page: Page, id: string) =>
+  page.locator(`[data-dashboard-filter="${id}"] [data-filter-value]`);
+const filterPopup = (page: Page, id: string) =>
+  page.locator(`[data-dashboard-filter-popup="${id}"]`);
+/** The popover calendar: pick the first and last day of a range. */
+const pickDays = async (page: Page, id: string, days: string[]) => {
+  await page
+    .locator(`[data-dashboard-filter="${id}"] [data-filter-trigger]`)
+    .click();
+  for (const day of days) {
+    await filterPopup(page, id)
+      .getByRole("button", { name: day, exact: true })
+      .click();
+  }
+  await page.keyboard.press("Escape");
+  await expect(filterPopup(page, id)).toHaveCount(0);
+};
+/** The option dropdown: tick an option. */
+const chooseOption = async (page: Page, id: string, option: string) => {
+  await page
+    .locator(`[data-dashboard-filter="${id}"] [data-filter-trigger]`)
+    .click();
+  await filterPopup(page, id)
+    .getByRole("checkbox", { name: option, exact: true })
+    .check();
+  await page.keyboard.press("Escape");
+  await expect(filterPopup(page, id)).toHaveCount(0);
+};
 const toolbar = (page: Page) => page.locator("[data-dashboard] > header");
 const gridReady = (page: Page) =>
   expect(page.locator(".yayaw-dashboard-grid[data-grid-ready]")).toHaveCount(1);
@@ -83,8 +111,14 @@ test("dashboard filters reach every targeted table's requests", async ({
     page.locator('[data-dashboard-filter="due"] [data-filter-targets]')
   ).toHaveText("Applies to Projects › Due, Tasks › Deadline");
   await clearRequests(page);
-  await page.getByLabel("Due date: From").fill("2026-09-01");
-  await page.getByLabel("Due date: To").fill("2026-09-10");
+  await expect(filterValue(page, "due")).toHaveText("Any date");
+  await pickDays(page, "due", [
+    "Tuesday, September 1, 2026",
+    "Thursday, September 10, 2026",
+  ]);
+  await expect(filterValue(page, "due")).toHaveText(
+    "Sep 1, 2026 – Sep 10, 2026"
+  );
   await expect(figure(page, "projects-count")).toHaveText("3");
   await expect(figure(page, "revenue-total")).toHaveText("€568.00");
   await expect(widget(page, "projects-list")).not.toContainText(
@@ -115,9 +149,11 @@ test("dashboard filters reach every targeted table's requests", async ({
   expect(filtered("tasks", "list", "deadline")).toBe(true);
 
   // The category filter targets the Projects widgets only.
-  await page
-    .locator('[data-dashboard-filter="category"] select')
-    .selectOption("Software");
+  await expect(filterValue(page, "category")).toHaveText("All");
+  await chooseOption(page, "category", "Software");
+  await expect(filterValue(page, "category").locator(".yayaw-tag")).toHaveText([
+    "Software",
+  ]);
   await expect(figure(page, "projects-count")).toHaveText("1");
   await expect(widget(page, "open-tasks")).toContainText(
     "Calibrate the display"
@@ -314,4 +350,37 @@ test("Open full view asks the host, and readers cannot edit", async ({
   await expect(
     widget(page, "welcome").getByRole("button", { name: "Open full view" })
   ).toHaveCount(0);
+});
+
+const NEXT_PAGE = /next/i;
+
+test("booleans, board cards and list pages render alike in both editions", async ({
+  page,
+}) => {
+  await page.goto(DASHBOARD);
+  // Booleans: an unchecked checkbox-style mark, never a red "False" badge.
+  const tasks = widget(page, "open-tasks");
+  await expect(tasks.locator('.yayaw-boolean[data-value="false"]')).toHaveCount(
+    4
+  );
+  await expect(
+    tasks.getByRole("img", { name: "False", exact: true }).first()
+  ).toBeVisible();
+  await expect(tasks).not.toContainText("False");
+  // Board cards leave out hidden columns and blank values.
+  const board = widget(page, "status-board");
+  await expect(board).toContainText("Charlie display");
+  await expect(board).not.toContainText("—");
+  // One page of projects: no pagination under the list.
+  await expect(widget(page, "projects-list")).toContainText("Foxtrot portal");
+  await expect(
+    widget(page, "projects-list").getByRole("button", { name: NEXT_PAGE })
+  ).toHaveCount(0);
+
+  // More rows than a page: both editions show the list's pagination.
+  await page.goto("/?example=views&views-display=list&views-pageSize=5");
+  await expect(page.getByText("Alpha launch").first()).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: NEXT_PAGE }).first()
+  ).toBeVisible();
 });

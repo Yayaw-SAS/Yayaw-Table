@@ -47,10 +47,11 @@ export function useKanbanSettings() {
       context.state.kanban.value.cardColumnIds ??
       context.config.table.kanban?.cardColumnIds ??
       context.config.columns.definitions
-        // Every property by default, as in React.
+        // Every visible property by default, as in React.
         .filter(
           (column) =>
-            !["select", "actions", titleColumn.value].includes(column.id)
+            !["select", "actions", titleColumn.value].includes(column.id) &&
+            context.state.visibility.value[column.id] !== false
         )
         .map((column) => column.id),
     set: (value: string[]) => {

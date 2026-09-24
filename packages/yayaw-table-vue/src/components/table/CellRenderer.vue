@@ -13,9 +13,9 @@ import {
   watch,
   type VNodeChild,
 } from "vue";
-import { useTableContext } from "../../context";
+import { useTableContext, useTableTranslation } from "../../context";
 import { resolveDataType, resolveDataTypeEditor, TABLE_DATA_TYPES, dataTypeDateInput, dataTypeValueError } from "../../table-contracts";
-import { Image as ImageIcon } from "lucide-vue-next";
+import { Check, Image as ImageIcon } from "lucide-vue-next";
 import InlineMultiSelect from "./InlineMultiSelect.vue";
 import { displayCellValue, safeHttpUrl, imageSource } from "../../core";
 import { numberBarRatio } from "../../value-format";
@@ -44,6 +44,7 @@ const props = defineProps<{
   column: ColumnDefinition;
 }>();
 const context = useTableContext();
+const translateCell = useTableTranslation();
 const editing = ref(false);
 const pending = ref(false);
 const draft = ref<unknown>(props.value);
@@ -464,8 +465,8 @@ const tags = computed(() =>
       class="yayaw-boolean"
       :data-value="Boolean(value)"
       role="img"
-      :aria-label="value ? 'True' : 'False'"
-      ><span aria-hidden="true">{{ value ? "✓" : "—" }}</span></span
+      :aria-label="value ? translateCell('common.true', 'True') : translateCell('common.false', 'False')"
+      ><Check v-if="value" :size="14" aria-hidden="true" /></span
     >
     <code v-else-if="effectiveColumn.type === 'code'" class="yayaw-code">{{
       displayCellValue(value, effectiveColumn, context.locale)

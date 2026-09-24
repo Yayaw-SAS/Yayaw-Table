@@ -31,7 +31,7 @@ const tables: Record<string, DashboardTableSource> = {
         visible: viewsVisibleColumns,
         mandatory: ["name"],
       },
-      table: { ...viewsTableOptions, defaultPageSize: 5 },
+      table: viewsTableOptions,
       translations: { namespace: "views", keys: { title: "Projects" } },
     }),
     actions: logDashboardRequests("views", createViewsActions()) as unknown as TableActions,

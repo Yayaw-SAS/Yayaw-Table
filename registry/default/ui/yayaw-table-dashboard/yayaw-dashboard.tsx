@@ -147,6 +147,7 @@ const tableInfo = (
   source: DashboardTableSource
 ): DashboardTableInfo => ({
   name: source.name ?? source.config.translations?.keys?.title ?? tableId,
+  coloredTags: source.config.table.coloredTags,
   columns: source.config.columns.definitions.map((column) => ({
     id: column.id,
     header: column.header,
@@ -478,6 +479,7 @@ export function YayawDashboard({
         editing={editing}
         filters={dashboard.filters}
         label={label}
+        locale={locale}
         onAddFilter={() => setAddingFilter(true)}
         onChange={(filterId, value) =>
           update((current) => setDashboardFilterValue(current, filterId, value))
@@ -486,6 +488,7 @@ export function YayawDashboard({
           update((current) => removeDashboardFilter(current, filterId))
         }
         tables={infos}
+        translate={translate}
       />
       {dashboard.widgets.length ? (
         <DashboardGrid

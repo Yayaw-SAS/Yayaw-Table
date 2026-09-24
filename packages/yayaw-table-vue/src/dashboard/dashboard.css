@@ -82,17 +82,6 @@
   align-items: center;
   gap: 0.5rem;
 }
-.yayaw-dashboard-filter .yayaw-input,
-.yayaw-dashboard-filter .yayaw-select {
-  min-height: 32px;
-  padding: 4px 8px;
-}
-.yayaw-dashboard-filter input[type="date"] {
-  width: 10rem;
-}
-.yayaw-dashboard-filter .yayaw-select {
-  width: 11rem;
-}
 .yayaw-dashboard-targets {
   margin: 0;
   color: var(--yayaw-muted-foreground);
@@ -274,4 +263,70 @@
   position: absolute;
   top: 1rem;
   right: 1rem;
+}
+/* Filter controls: the Form view's popover calendar and the option dropdown. */
+.yayaw-dashboard .yayaw-dashboard-filter-trigger {
+  min-width: 11rem;
+  max-width: 20rem;
+  justify-content: flex-start;
+  gap: 6px;
+  padding: 4px 8px;
+  font-weight: 400;
+}
+.yayaw-dashboard .yayaw-dashboard-date-trigger {
+  min-width: 14rem;
+}
+.yayaw-dashboard-filter-value {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+  text-align: left;
+  white-space: nowrap;
+}
+.yayaw-dashboard-filter-value[data-empty] {
+  color: var(--yayaw-muted-foreground);
+}
+.yayaw-dashboard-tag {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  overflow: hidden;
+  padding: 2px 8px;
+  font-size: 12px;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-dashboard-options {
+  width: 16rem;
+  gap: 2px;
+  padding: 4px;
+}
+.yayaw-dashboard-choices {
+  display: grid;
+  max-height: 16rem;
+  min-width: 0;
+  gap: 2px;
+  overflow: auto;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+.yayaw-dashboard-range
+  .yayaw-form-calendar-day[data-selected]:not(
+    [data-selection-start],
+    [data-selection-end]
+  ) {
+  border-radius: 0;
+  background: var(--yayaw-muted);
+  color: var(--yayaw-foreground);
+}
+.yayaw-dashboard-range .yayaw-form-calendar-day[data-highlighted] {
+  background: var(--yayaw-muted);
+}
+.yayaw-dashboard-filter-row .yayaw-button-ghost {
+  background: transparent;
 }

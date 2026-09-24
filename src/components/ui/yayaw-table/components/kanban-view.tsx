@@ -34,6 +34,7 @@ import {
   getCompactCardPropertiesClassName,
   getCompactCardPropertyClassName,
 } from "../utils/card-properties";
+import { isBlankCardValue } from "../utils/value-format";
 
 import { ServerKanbanView } from "./server-kanban-view";
 
@@ -327,9 +328,16 @@ function KanbanCardProperties<TData extends Record<string, unknown>>({
     );
   }
 
+  // Compact cards leave out properties with nothing to show, as in Vue.
+  const shown = propertyCells.filter(
+    (cell) => !isBlankCardValue(cell.getValue())
+  );
+  if (shown.length === 0) {
+    return null;
+  }
   return (
     <div className={getCompactCardPropertiesClassName()}>
-      {propertyCells.map((cell) => {
+      {shown.map((cell) => {
         const label = propertyLabels.get(cell.column.id) ?? cell.column.id;
         return (
           <div className={getCompactCardPropertyClassName()} key={cell.id}>

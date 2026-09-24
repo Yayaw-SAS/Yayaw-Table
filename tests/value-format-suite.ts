@@ -3,7 +3,10 @@ import type * as Format from "../src/components/ui/yayaw-table/utils/value-forma
 
 type FormatModule = Pick<
   typeof Format,
-  "formatDateValue" | "formatNumberValue" | "numberBarRatio"
+  | "formatDateValue"
+  | "formatNumberValue"
+  | "isBlankCardValue"
+  | "numberBarRatio"
 >;
 
 const DATE_TIME = /^Sep 5, 2026(,| at) 2:30 PM$/;
@@ -15,6 +18,16 @@ export function valueFormatSuite(
   test: (name: string, run: () => void) => void,
   format: FormatModule
 ) {
+  test("card properties with nothing to show are blank", () => {
+    for (const blank of [null, undefined, "", "  ", []]) {
+      assert.equal(format.isBlankCardValue(blank), true);
+    }
+    // False, zero and text are values: booleans show an unchecked mark.
+    for (const value of [false, 0, "x", ["a"], new Date(0)]) {
+      assert.equal(format.isBlankCardValue(value), false);
+    }
+  });
+
   const number = (value: unknown, config?: Format.NumberFormatConfig) =>
     plain(format.formatNumberValue(value, config, "en-US"));
 
