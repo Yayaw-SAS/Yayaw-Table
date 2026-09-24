@@ -106,3 +106,57 @@ it("labels every bar with its interval so a move is announced", async () => {
     wrapper.unmount();
   }
 });
+
+it("titles bars with the first visible data column by default", async () => {
+  const wrapper = mount(YayawDataTable, {
+    props: {
+      tableType: "gantt-title",
+      getTableActions: () => ({
+        list: () =>
+          Promise.resolve({
+            data: rows.map((row) => ({ ...row, code: `T-${row.id}` })),
+            meta: { pageCount: 1, totalCount: rows.length },
+          }),
+      }),
+      getTableConfig: () =>
+        defineTableConfig({
+          ...config,
+          id: "gantt-title",
+          columns: {
+            ...config.columns,
+            definitions: [
+              { id: "code", header: "Code", type: "text" },
+              ...config.columns.definitions,
+            ],
+            order: ["select", "code", "name", "start", "end"],
+            visible: ["name", "start", "end"],
+          },
+          table: {
+            ...config.table,
+            planning: {
+              enabled: true,
+              scopeId: "gantt-title",
+              sourceId: "tasks",
+            },
+            gantt: {
+              startColumn: "start",
+              endColumn: "end",
+              parentColumn: "parentId",
+            },
+          },
+          translations: { namespace: "gantt-title", keys: {} },
+        }),
+    },
+    attachTo: document.body,
+  });
+  await flushPromises();
+  await new Promise((resolve) => setTimeout(resolve, 40));
+  await flushPromises();
+  try {
+    const label = wrapper.get(".yayaw-gantt-bar-body").attributes("aria-label");
+    expect(label).toContain("Design");
+    expect(label).not.toContain("T-a");
+  } finally {
+    wrapper.unmount();
+  }
+});

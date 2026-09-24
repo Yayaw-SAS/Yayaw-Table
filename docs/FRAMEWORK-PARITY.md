@@ -314,9 +314,11 @@ in the runnable examples.
 
 Both editions render groups as expandable headings using the configured column
 header, accessor value in the column's number or date format, and option labels
-(including zero and false). React date columns without an accessor group by
-month and show the month's name. Headings count leaf records across nested
-groups and never aggregate unrelated category IDs.
+(including zero and false). Date columns always group by calendar month, with or
+without `accessorKey`/`accessorFn`: the shared `dateGroupKey` keys each record by
+its local `YYYY-MM` and `groupHeadingLabel` heads the group with the month's name
+in the table locale ("March 2026", "mars 2026"). Headings count leaf records
+across nested groups and never aggregate unrelated category IDs.
 Expanded records retain all their ordinary cell values. Synthetic headings do not
 activate or edit a record, and their selection controls only select permitted leaf
 IDs. Selection-disabled tables use the full visible column span. Groups initially
@@ -326,8 +328,17 @@ Enable `table.enableGrouping` and `table.showToolbar`, and keep eligible column
 `enableGrouping` flags enabled. Grouping is local to the supplied records: a server
 that paginates before returning records produces page-local groups.
 
-Coverage: shared `tests/fixtures/grouped-rows.json`, React `tests/grouped-rows.test.tsx`,
-and Vue `src/grouped-rows.test.ts`, plus browser interaction in both editions.
+Records without a value in Kanban lanes, Gallery sections and List sections are
+grouped under one heading from the shared `emptyGroupLabel`: "No value", or
+"Aucune valeur" in French locales. `null`, `undefined` and an empty
+string share the `""` group key from `groupValueKey`, so moving a Kanban card to
+that lane writes `""` in both editions.
+
+Coverage: shared `tests/fixtures/grouped-rows.json` (including date columns with
+and without an accessor), React `tests/grouped-rows.test.tsx`, Vue
+`src/grouped-rows.test.ts`, the shared helpers in `tests/contracts-parity.test.ts`,
+React Kanban/Gallery group suites and Vue `src/empty-group-label.test.ts`, plus
+browser interaction in both editions.
 
 ## Optional filter bar
 
@@ -458,6 +469,8 @@ geometry, bar placement, dependency paths, header cells and every date edit from
 `planning/timeline` model, so behaviour stays equivalent while each presentation uses its own idioms
 and theme tokens. The planning dialog stays a single shared surface, since it is a modal form with no
 table state. A task from another source renders without cells rather than disappearing.
+Without `table.gantt.titleColumn`, both editions title tasks with the first visible data column in
+the current column order (never `select` or `actions`), so a hidden first definition is skipped.
 
 Equivalent shared fixtures cover the four dependency types, signed/calendar offsets, summaries,
 source identity collisions, invalid/cyclic/incomplete graphs, flags, permissions, stale previews,
@@ -465,7 +478,8 @@ atomic failure and idempotent retries. The shared timeline suite covers the week
 and navigation steps, inclusive bar spans, collapsed ancestors, the centred date marker, the edit and
 resize flags, and the mutations a pointer or arrow key produces. DOM tests cover draft retention,
 exact relation previews, cancellation and instance isolation in the dialog; per-edition component
-tests cover each timeline's own wiring. Both editions use the same bounded virtual timeline; hidden
+tests cover each timeline's own wiring, including the default title column (React
+`tests/gantt-title-column.test.tsx`, Vue `components/planning/gantt-view.test.ts`). Both editions use the same bounded virtual timeline; hidden
 links remain available in the editor and constrain planning.
 
 ### Embedded Gantt examples
@@ -646,7 +660,7 @@ selection checkbox, the title column, the chosen properties and the row actions.
 `cardColumnIds` every non-title data column is shown. The grouped column is
 omitted from properties and lines are sectioned by the first grouping level
 (`maxGroups: 1`), headed "Column: value" with a count; empty values read
-"No value". Settings are saved in views and in the `<tableId>-list` URL key, and
+"No value" ("Aucune valeur" in French), like Kanban and Gallery. Settings are saved in views and in the `<tableId>-list` URL key, and
 resetting a view restores `table.list`. The list uses the current page, like
 Gallery and Kanban. Density applies to lines as to table rows: both editions
 size them from the shared `TABLE_DENSITY_METRICS`, and the density control is

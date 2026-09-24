@@ -42,7 +42,8 @@ const config = defineTableConfig({
 That configuration is all a Gantt needs. When no `actions.planning` adapter is supplied, the table
 derives the planning graph from its own `list` action through `createRowsPlanningAdapter`, and saves
 date and hierarchy edits through its own `update` action — the way Kanban and Gallery need only their
-own column mappings. `gantt.parentColumn` adds a hierarchy, `gantt.calendarColumn` selects a calendar
+own column mappings. Without `gantt.titleColumn`, tasks are titled by the first visible data column
+in the current column order. `gantt.parentColumn` adds a hierarchy, `gantt.calendarColumn` selects a calendar
 per row.
 
 Keep `getTableActions` referentially stable, as with any table: the derived graph is rebuilt whenever

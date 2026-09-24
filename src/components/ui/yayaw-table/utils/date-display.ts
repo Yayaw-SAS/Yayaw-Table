@@ -15,7 +15,6 @@ interface DateDisplayConfig {
   hour12?: boolean;
 }
 
-const pad2 = (value: number): string => value.toString().padStart(2, "0");
 const YEAR_MONTH_GROUP_KEY_REGEX = /^(\d{4})-(\d{2})$/;
 
 const resolveLocale = (locale?: string): string => {
@@ -178,15 +177,6 @@ export const formatDateRangeForDisplay = (
   }
 
   return `${startLabel} - ${endLabel}`;
-};
-
-export const toYearMonthGroupKey = (value: unknown): string | undefined => {
-  const parsedDate = toValidDate(value);
-  if (!parsedDate) {
-    return;
-  }
-
-  return `${parsedDate.getFullYear()}-${pad2(parsedDate.getMonth() + 1)}`;
 };
 
 export const formatYearMonthGroupLabel = (

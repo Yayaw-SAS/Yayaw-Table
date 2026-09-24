@@ -22,7 +22,7 @@ import { type CSSProperties, computed, h, ref, watch, onBeforeUnmount } from "vu
 import { useTableContext } from "../../context";
 import { applyTableQuery, calculateColumn } from "../../core";
 import { formatColumnCalculation } from "../../value-format";
-import { groupedLeafRows, groupedValueLabel, resizedColumnSizeFromKey } from "../../table-contracts";
+import { dateGroupKey, groupedLeafRows, groupHeadingLabel, resizedColumnSizeFromKey } from "../../table-contracts";
 import type {
   CalculationType,
   ColumnDefinition,
@@ -89,6 +89,10 @@ const columns = computed<ColumnDef<TableRecord>[]>(() => {
     (column) => ({
       id: column.id,
       accessorFn: (row) => columnValue(column, row),
+      // Date columns group by month, like React.
+      ...(column.type === "date"
+        ? { getGroupingValue: (row: TableRecord) => dateGroupKey(columnValue(column, row)) }
+        : {}),
       header: column.header,
       enableHiding:
         !context.config.columns.mandatory.includes(column.id) &&
@@ -339,10 +343,12 @@ watch(context.state.grouping, () => { expanded.value = true; }, { deep: true });
 const groupColumn = (row: Row<TableRecord>) =>
   sourceColumns.value.find((column) => column.id === row.groupingColumnId);
 const groupLabel = (row: Row<TableRecord>): string =>
-  groupedValueLabel(row.getValue(row.groupingColumnId ?? ""), groupColumn(row)?.options, {
-    column: groupColumn(row),
-    locale: context.locale,
-  });
+  groupHeadingLabel(
+    row.groupingValue,
+    row.getValue(row.groupingColumnId ?? ""),
+    groupColumn(row),
+    context.locale
+  );
 const groupSelectionVisible = computed(() =>
   context.config.table.enableRowSelection && context.config.table.enableMultiRowSelection
 );

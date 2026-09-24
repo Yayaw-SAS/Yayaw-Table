@@ -1763,7 +1763,10 @@
         "button",
         "https://table.yayaw.app/r/yayaw-table.json"
       ],
-      "dependencies": ["@fullcalendar/react", "temporal-polyfill"],
+      "dependencies": [
+        "@fullcalendar/react",
+        "temporal-polyfill"
+      ],
       "files": [
         {
           "path": "registry/default/ui/yayaw-table-calendar/calendar-renderer.ts",
@@ -1797,7 +1800,9 @@
         "chart",
         "https://table.yayaw.app/r/yayaw-table.json"
       ],
-      "dependencies": ["recharts"],
+      "dependencies": [
+        "recharts"
+      ],
       "files": [
         {
           "path": "registry/default/ui/yayaw-table-chart/chart-funnel.tsx",
@@ -1842,7 +1847,9 @@
         "textarea",
         "https://table.yayaw.app/r/yayaw-table.json"
       ],
-      "dependencies": ["gridstack"],
+      "dependencies": [
+        "gridstack"
+      ],
       "files": [
         {
           "path": "registry/default/ui/yayaw-table-dashboard/dashboard-dialogs.tsx",
@@ -1911,7 +1918,9 @@
         "https://mapcn.dev/r/map.json",
         "https://table.yayaw.app/r/yayaw-table.json"
       ],
-      "dependencies": ["maplibre-gl"],
+      "dependencies": [
+        "maplibre-gl"
+      ],
       "meta": {
         "registryUrl": "https://table.yayaw.app/r/yayaw-table-map.json",
         "version": "3.7.0",
@@ -2006,11 +2015,17 @@
         "provider": "google",
         "import": "Plus_Jakarta_Sans",
         "variable": "--font-sans",
-        "subsets": ["latin"],
+        "subsets": [
+          "latin"
+        ],
         "dependency": "@fontsource-variable/plus-jakarta-sans@^5.2.8"
       },
       "docs": "Installs the optional YaYaw Table sans font preset. This item is additive; installing `yayaw-table` does not require it.",
-      "categories": ["font", "theme", "yayaw-table"],
+      "categories": [
+        "font",
+        "theme",
+        "yayaw-table"
+      ],
       "meta": {
         "registryUrl": "https://table.yayaw.app/r/font-yayaw-sans.json",
         "version": "3.7.0",
@@ -2054,7 +2069,10 @@
         "tailwind-merge@^3.4.0",
         "tw-animate-css@^1.4.0"
       ],
-      "registryDependencies": ["@yayaw/font-yayaw-sans", "@yayaw/yayaw-table"],
+      "registryDependencies": [
+        "@yayaw/font-yayaw-sans",
+        "@yayaw/yayaw-table"
+      ],
       "cssVars": {
         "theme": {
           "font-sans": "'Plus Jakarta Sans Variable', sans-serif"
@@ -2072,7 +2090,11 @@
         }
       },
       "docs": "Installs a YaYaw-ready Shadcn base, the optional YaYaw Sans font preset, and YaYaw Table. Existing consumers can keep installing `yayaw-table` directly.",
-      "categories": ["base", "theme", "yayaw-table"],
+      "categories": [
+        "base",
+        "theme",
+        "yayaw-table"
+      ],
       "meta": {
         "registryUrl": "https://table.yayaw.app/r/yayaw-table-base.json",
         "version": "3.7.0",

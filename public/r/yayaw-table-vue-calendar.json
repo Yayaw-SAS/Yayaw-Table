@@ -4,8 +4,13 @@
   "type": "registry:block",
   "title": "YaYaw Table Vue Calendar",
   "description": "Optional calendar display mode for YaYaw Table Vue (month, week and list), rendered with FullCalendar. Pass `calendarRenderer` to `display-mode-renderers` and add \"calendar\" to `table.displayModes`.",
-  "dependencies": ["@fullcalendar/vue3@^7.1.0", "temporal-polyfill@^1.0.5"],
-  "registryDependencies": ["https://table.yayaw.app/r/yayaw-table-vue.json"],
+  "dependencies": [
+    "@fullcalendar/vue3@^7.1.0",
+    "temporal-polyfill@^1.0.5"
+  ],
+  "registryDependencies": [
+    "https://table.yayaw.app/r/yayaw-table-vue.json"
+  ],
   "files": [
     {
       "path": "src/calendar/CalendarSettings.vue",

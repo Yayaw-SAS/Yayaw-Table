@@ -4,7 +4,12 @@ import {
   locationValueError,
   matchesLocationFilter,
 } from "./location-model";
-import { type ColumnValueFormat, formatColumnValue } from "./value-format";
+import {
+  type ColumnValueFormat,
+  formatColumnValue,
+  formatDateValue,
+  parseDateValue,
+} from "./value-format";
 
 const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 export type ContractRecord = Record<string, unknown>;
@@ -669,6 +674,56 @@ export function groupedValueLabel(
   return Array.isArray(value)
     ? value.map((item) => dataTypeOptionLabel(item, options)).join(", ")
     : dataTypeOptionLabel(value, options);
+}
+
+const YEAR_MONTH_GROUP_KEY = /^\d{4}-\d{2}$/;
+
+/** A record's group key: `""` groups the records without a value. */
+export function groupValueKey(value: unknown): string {
+  return value === null || value === undefined ? "" : String(value);
+}
+
+/**
+ * The heading of the group of records without a value, in Kanban lanes and
+ * list and gallery sections alike.
+ */
+export function emptyGroupLabel(locale?: string): string {
+  return locale?.toLowerCase().startsWith("fr") ? "Aucune valeur" : "No value";
+}
+
+/**
+ * Date columns group by calendar month, whatever their accessor: the key is
+ * the local `YYYY-MM` of the value, or `""` when it is not a date.
+ */
+export function dateGroupKey(value: unknown): string {
+  const date = parseDateValue(value);
+  if (!date) {
+    return "";
+  }
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+/**
+ * A group heading: date columns read their month key as the month's name;
+ * other columns read the value like `groupedValueLabel`.
+ */
+export function groupHeadingLabel(
+  groupingValue: unknown,
+  value: unknown,
+  column: FieldTextColumn | undefined,
+  locale?: string
+): string {
+  if (
+    column?.type === "date" &&
+    typeof groupingValue === "string" &&
+    YEAR_MONTH_GROUP_KEY.test(groupingValue)
+  ) {
+    return formatDateValue(`${groupingValue}-01`, {
+      preset: "month-year",
+      locale,
+    });
+  }
+  return groupedValueLabel(value, column?.options, { column, locale });
 }
 
 /** Count and select records, excluding synthetic rows at every grouping depth. */

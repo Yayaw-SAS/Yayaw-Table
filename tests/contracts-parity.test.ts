@@ -3,6 +3,10 @@ import { readFileSync } from "node:fs";
 import { applyFilters } from "../src/components/ui/yayaw-table/hooks/use-data-table-advanced-filters";
 import {
   compatibleListParams,
+  dateGroupKey,
+  emptyGroupLabel,
+  groupHeadingLabel,
+  groupValueKey,
   normalizeColumnSizing,
   normalizeFilterEnvelope,
   normalizeViewAliases,
@@ -149,4 +153,26 @@ it("rejects inconsistent pagination and the page limit instead of returning trun
       }),
     })
   ).rejects.toThrow("Too many pages");
+});
+
+it("groups dates by month and heads empty groups with one translated label", () => {
+  expect(dateGroupKey("2026-03-30")).toBe("2026-03");
+  expect(dateGroupKey(new Date(2026, 3, 20, 23, 59))).toBe("2026-04");
+  expect(dateGroupKey("not a date")).toBe("");
+  expect(dateGroupKey(null)).toBe("");
+  expect(
+    groupHeadingLabel("2026-03", "2026-03-30", { type: "date" }, "en-US")
+  ).toBe("March 2026");
+  expect(
+    groupHeadingLabel("2026-03", "2026-03-30", { type: "date" }, "fr-FR")
+  ).toBe("mars 2026");
+  expect(groupHeadingLabel("2026-03", "2026-03", { type: "text" })).toBe(
+    "2026-03"
+  );
+  expect(groupValueKey(null)).toBe("");
+  expect(groupValueKey(undefined)).toBe("");
+  expect(groupValueKey(0)).toBe("0");
+  expect(emptyGroupLabel()).toBe("No value");
+  expect(emptyGroupLabel("en-GB")).toBe("No value");
+  expect(emptyGroupLabel("fr-FR")).toBe("Aucune valeur");
 });

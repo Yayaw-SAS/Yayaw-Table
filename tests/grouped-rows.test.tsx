@@ -19,6 +19,8 @@ afterEach(async () => {
   }
   document.body.replaceChildren();
 });
+const MARCH_GROUP = /March 2026.*3$/;
+const APRIL_GROUP = /April 2026.*1$/;
 const settle = () => new Promise((resolve) => setTimeout(resolve, 60));
 async function mountGroups(grouping = ["category"], selection = true) {
   const config = defineTableConfig({
@@ -51,9 +53,34 @@ async function mountGroups(grouping = ["category"], selection = true) {
           type: "number",
           enableGrouping: false,
         },
+        { id: "due", header: "Due", type: "date" },
+        {
+          id: "deadline",
+          header: "Deadline",
+          type: "date",
+          accessorFn: (row: Record<string, unknown>) => row.due,
+        },
       ],
-      visible: ["select", "name", "category", "active", "country", "amount"],
-      order: ["select", "name", "category", "active", "country", "amount"],
+      visible: [
+        "select",
+        "name",
+        "category",
+        "active",
+        "country",
+        "amount",
+        "due",
+        "deadline",
+      ],
+      order: [
+        "select",
+        "name",
+        "category",
+        "active",
+        "country",
+        "amount",
+        "due",
+        "deadline",
+      ],
     },
     table: {
       enableGrouping: true,
@@ -170,4 +197,18 @@ it("spans visible columns without a phantom checkbox when selection is disabled"
   expect(group?.querySelector("td")?.getAttribute("colspan")).toBe(
     String(container.querySelectorAll("thead th").length)
   );
+});
+
+it("groups date columns by month with or without an accessor", async () => {
+  for (const column of ["due", "deadline"]) {
+    const container = await mountGroups([column]);
+    const labels = groupButtons(container).map((group) => group.textContent);
+    expect(labels).toHaveLength(2);
+    expect(labels[0]).toMatch(MARCH_GROUP);
+    expect(labels[1]).toMatch(APRIL_GROUP);
+    for (const root of roots.splice(0)) {
+      await act(() => root.unmount());
+    }
+    document.body.replaceChildren();
+  }
 });

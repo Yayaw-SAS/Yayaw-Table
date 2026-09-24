@@ -23,6 +23,7 @@ import {
   visibleListProperties,
 } from "../utils/list-view";
 import {
+  emptyGroupLabel,
   fieldText,
   TABLE_DENSITY_METRICS,
   type TableDensity,
@@ -412,6 +413,7 @@ export function DataTableListView<TData extends Record<string, unknown>>({
       (definition) => definition.id === groupBy
     );
     return createGalleryGroups({
+      emptyLabel: emptyGroupLabel(locale),
       groupBy,
       labelOf: (value) => fieldText(value, groupColumn, locale),
       rows,

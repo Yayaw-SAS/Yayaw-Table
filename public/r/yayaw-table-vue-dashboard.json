@@ -4,8 +4,12 @@
   "type": "registry:block",
   "title": "YaYaw Table Vue Dashboard",
   "description": "Optional Notion-like dashboard for YaYaw Table Vue: a 4-column grid (gridstack.js, loaded on demand) of widgets showing saved views of any table in any display mode, numbers and notes, with dashboard filters sent to each table's list and aggregate requests. Render `<YayawDashboard :actions=\"{ dashboards }\" :tables=\"…\" />`; the host stores dashboards (`list`, `load`, `save`, `remove`).",
-  "dependencies": ["gridstack@^14.0.0"],
-  "registryDependencies": ["https://table.yayaw.app/r/yayaw-table-vue.json"],
+  "dependencies": [
+    "gridstack@^14.0.0"
+  ],
+  "registryDependencies": [
+    "https://table.yayaw.app/r/yayaw-table-vue.json"
+  ],
   "files": [
     {
       "path": "src/dashboard/DashboardAddFilter.vue",

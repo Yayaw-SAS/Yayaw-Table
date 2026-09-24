@@ -83,7 +83,6 @@ import {
 } from "../utils/chart-model";
 import { ColumnIcon } from "../utils/column-icons";
 import { buildCsvExportColumns } from "../utils/csv-export";
-import { formatYearMonthGroupLabel } from "../utils/date-display";
 import { recordsDisplayMode, resolveDisplayMode } from "../utils/display-modes";
 import {
   type FormLinkActions,
@@ -96,11 +95,7 @@ import type {
   DetailRevertHandler,
   RecordDetailsConfig,
 } from "../utils/record-details";
-import {
-  type FieldTextColumn,
-  groupedLeafRows,
-  groupedValueLabel,
-} from "../utils/table-contracts";
+import { groupedLeafRows, groupHeadingLabel } from "../utils/table-contracts";
 import { TABLE_DENSITY_CLASSES } from "../utils/table-density";
 import { getPrimaryGrouping } from "../utils/table-view-state";
 import { availableDisplayModes } from "../utils/view-menu";
@@ -160,24 +155,6 @@ const PAGINATION_VIEWPORT_OPTIONS = {
   threshold: 0,
 } as const;
 const BULK_ACTIONS_FIXED_VIEWPORT_MARGIN = 24;
-const YEAR_MONTH_KEY = /^\d{4}-\d{2}$/;
-
-/**
- * A group heading's value in its column's format. Date columns without an
- * accessor group by month ("YYYY-MM") and read as that month.
- */
-const groupHeadingValue = (
-  groupingValue: unknown,
-  value: unknown,
-  column: FieldTextColumn | undefined,
-  locale: string
-): string =>
-  column?.type === "date" &&
-  typeof groupingValue === "string" &&
-  YEAR_MONTH_KEY.test(groupingValue)
-    ? formatYearMonthGroupLabel(groupingValue, locale)
-    : groupedValueLabel(value, column?.options, { column, locale });
-
 export const shouldShowCalculationsFooter = ({
   enableCalculations,
   isFooterVisible,
@@ -2407,7 +2384,7 @@ function ModernDataTable<
         (column) => column.id === groupingColumn
       );
       return {
-        groupValue: groupHeadingValue(
+        groupValue: groupHeadingLabel(
           row.groupingValue,
           row.getValue(groupingColumn),
           definition,

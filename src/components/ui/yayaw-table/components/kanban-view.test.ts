@@ -48,6 +48,41 @@ describe("Kanban group resolution", () => {
   });
 });
 
+describe("Kanban empty lane", () => {
+  it("heads records without a value with the translated empty label", () => {
+    const rows = [
+      { original: { status: "Open" } },
+      { original: { status: null } },
+      { original: {} },
+    ] as unknown as Row<Record<string, unknown>>[];
+
+    assert.deepEqual(
+      createKanbanGroups({
+        configuredGroups: createConfiguredGroups(undefined),
+        groupBy: "status",
+        rows,
+      }).map((group) => [group.value, group.label]),
+      [
+        ["Open", "Open"],
+        ["", "No value"],
+      ]
+    );
+    assert.deepEqual(
+      createKanbanGroups({
+        configuredGroups: createConfiguredGroups(
+          [{ value: "" }],
+          undefined,
+          "Aucune valeur"
+        ),
+        emptyLabel: "Aucune valeur",
+        groupBy: "status",
+        rows,
+      }).map((group) => group.label),
+      ["Aucune valeur", "Open"]
+    );
+  });
+});
+
 describe("Kanban card labels", () => {
   it("hides property labels by default and keeps an opt-in", () => {
     assert.equal(shouldShowKanbanCardLabels(undefined), false);
