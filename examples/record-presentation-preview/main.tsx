@@ -5,6 +5,7 @@ import { createRoot } from "react-dom/client";
 import { Toaster } from "sonner";
 import { AssetsExample } from "../assets-react";
 import { DashboardExample } from "../dashboard-react";
+import { DefaultSortExample } from "../default-sort-react";
 
 import { FormExample } from "../form-react";
 import { RecordPresentationExample } from "../record-presentation-react";
@@ -31,6 +32,9 @@ const renderExample = () => {
   }
   if (example === "dashboard") {
     return <DashboardExample />;
+  }
+  if (example === "default-sort") {
+    return <DefaultSortExample />;
   }
   return <RecordPresentationExample />;
 };

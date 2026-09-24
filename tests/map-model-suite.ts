@@ -1045,6 +1045,23 @@ function mapLayerTests(test: Test, { map }: MapModelModules) {
       "https://unpkg.com/maplibre-gl@6.11.1/dist/maplibre-gl-worker.mjs"
     );
     assert.equal(map.mapWorkerUrl("6.11.1", "/worker.mjs"), "/worker.mjs");
+    // MapLibre 6's worker imports `./maplibre-gl-shared.mjs` from its own
+    // folder: the default URL has it on unpkg, a self-hosted one next to it.
+    const shared = (workerUrl: string) =>
+      new URL("./maplibre-gl-shared.mjs", workerUrl).href;
+    assert.equal(
+      shared(map.mapWorkerUrl("6.11.1")),
+      "https://unpkg.com/maplibre-gl@6.11.1/dist/maplibre-gl-shared.mjs"
+    );
+    assert.equal(
+      shared(
+        map.mapWorkerUrl(
+          "6.11.1",
+          "https://app.example/maplibre/maplibre-gl-worker.mjs"
+        )
+      ),
+      "https://app.example/maplibre/maplibre-gl-shared.mjs"
+    );
   });
 
   test("the settings panel edits the view's map settings", () => {

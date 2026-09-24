@@ -25,6 +25,7 @@ import type {
   BulkDeleteCustomHandlerResult,
 } from "../hooks/use-bulk-actions";
 import { useDataTable } from "../hooks/use-data-table";
+import { useTableConfig } from "../hooks/use-table-config";
 import type {
   TableCatalogueColumnConfig,
   TableCatalogueConfig,
@@ -841,7 +842,10 @@ function DataTableContent({
     shouldShowGallery;
 
   return (
-    <TableStateSyncProvider enabled={config.table.syncUrl !== false}>
+    <TableStateSyncProvider
+      defaultSorting={config.columns.sort}
+      enabled={config.table.syncUrl !== false}
+    >
       {/* Location editors (cells, record forms, the Form view) suggest places with `actions.geocode`. */}
       <LocationProvider
         geocode={geocode}
@@ -1145,12 +1149,14 @@ export function DataTable(
       }
     >
       {children}
-      <DataTableContent
-        {...(rest as ContentProps)}
-        formType={formType}
-        tableId={resolvedTableId}
-        tableType={tableType}
-      />
+      <TableStateScope tableType={tableType}>
+        <DataTableContent
+          {...(rest as ContentProps)}
+          formType={formType}
+          tableId={resolvedTableId}
+          tableType={tableType}
+        />
+      </TableStateScope>
     </TableProvider>
   );
   if (!(instanceId || initialView)) {
@@ -1172,6 +1178,28 @@ export function DataTable(
     >
       {table}
     </TableInstanceScope>
+  );
+}
+
+/**
+ * URL sync and the configured sort (`columns.sort`) for every hook of the
+ * table, including the ones `DataTableContent` itself calls.
+ */
+function TableStateScope({
+  children,
+  tableType,
+}: {
+  children: ReactNode;
+  tableType: string;
+}) {
+  const { config } = useTableConfig(tableType);
+  return (
+    <TableStateSyncProvider
+      defaultSorting={config.columns.sort}
+      enabled={config.table.syncUrl !== false}
+    >
+      {children}
+    </TableStateSyncProvider>
   );
 }
 

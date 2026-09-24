@@ -65,7 +65,11 @@ MapLibre GL in Vue) are `https://table.yayaw.app/r/yayaw-table-map.json` and
 `https://table.yayaw.app/r/yayaw-table-vue-map.json`: pass `mapRenderer` and add
 `"map"`. The basemap comes from the host (`table.map.style` or
 `table.map.styles`; no tiles or API keys ship with the library, the demos use
-keyless OpenFreeMap styles). "Search this area" sends
+keyless OpenFreeMap styles). MapLibre's worker loads from unpkg; to self-host
+it (strict CSP, offline), copy both `maplibre-gl-worker.mjs` and
+`maplibre-gl-shared.mjs` from `node_modules/maplibre-gl/dist/` into one folder
+and set `table.map.workerUrl` to the worker (MapLibre 6's worker imports the
+shared file next to it). "Search this area" sends
 `scope: { kind: "bbox", field, west, south, east, north }` to `list`; hosts that
 filter by it answer `meta.scope: "applied"`, otherwise the loaded rows are
 filtered in the browser. `location` columns (`{ lat, lng, label?, address? }`)

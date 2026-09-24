@@ -191,6 +191,7 @@ export function useDataTable<TData extends Record<string, unknown>>(
   const defaultPageSize = config.table.defaultPageSize ?? initialPageSize;
   const tableUrlState = useTableUrlState({
     defaultPageSize,
+    defaultSorting: config.columns.sort,
     enabled: config.table.syncUrl !== false,
     tableId,
   });
