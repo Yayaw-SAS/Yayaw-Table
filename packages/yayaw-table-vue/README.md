@@ -8,7 +8,10 @@ does not widen framework compatibility.
 
 ## Included
 
-- Table, Kanban, and Gallery display modes
+- Eleven display modes: Table, List, Kanban, Gallery, File tree, Calendar,
+  Chart, Feed, Map, Form and Gantt. Calendar, Chart and Map, like the
+  Dashboard of saved views, come from optional registry items
+  (`yayaw-table-vue-calendar`, `-chart`, `-map`, `-dashboard`)
 - Kanban/Gallery settings, card selection, and page-size controls use Shadcn-style Reka UI primitives. Selects support keyboard navigation; the Properties menu stays open for multiple choices and restores focus on Escape. Popups inherit the table theme, including scoped CSS variables.
 - Local and server-side sorting, filtering, pagination, grouping, and search
 - URL-backed state compatible with existing YaYaw table query keys
@@ -89,23 +92,23 @@ const config = defineTableConfig({
 ### Toolbar shortcuts
 
 Set `table.actionsAsIcons: true` to render toolbar and bulk actions as icons.
-Set `table.showResetFilters: true` to show a dedicated reset icon next to the
-Options menu. It is disabled by default for compatibility with existing tables.
-The shortcut clears search, column and advanced filters, and returns to the first
-page. Sorting, grouping, column visibility/order/pinning, display mode, page size,
-and the selected saved view are preserved. `showClearFilters` is the preferred
-name; `showResetFilters` remains a compatible alias with the same React/Vue
-behavior. The reset command inside Options separately restores presentation
-defaults. Both work with or without URL synchronization.
+Set `table.showClearFilters: true` to add a **Clear filters** button to
+View settings › Filters (off by default; `showResetFilters` remains a
+compatible alias). It clears search, column and advanced filters, and returns
+to the first page. Sorting, grouping, column visibility/order/pinning, display
+mode, page size, and the selected saved view are preserved. The separate
+**Reset view** command in the view menu restores the saved view, or the
+initial configuration for a temporary view. Both work with or without URL
+synchronization.
 
-The clear shortcut uses the `clearFilters` translation key and the Options reset
-uses `reset` (English and French defaults are included).
+The button uses the `clearFilters` translation key and Reset view uses
+`views.reset` (English and French defaults are included).
 
 ### Empty states
 
 Table, Kanban, and Gallery compose the Shadcn Vue Empty parts with the registry's standalone CSS tokens. Filtered empty results offer **Clear filters** independently of toolbar visibility and `showClearFilters`. The action clears search, column filters, and advanced filters and returns to page one while preserving presentation and the selected view. It does not save or overwrite a view.
 
-The default copy uses `noResults`, `noResultsDescription`, `noDataAvailable`, and `clearFilters` (English/French defaults included). Inactive advanced filters do not activate the reset action. `table.emptyState.title` and `description` still override the copy, and `show: false` hides the complete state across all three modes. Loading and failed requests do not display an empty result.
+The default copy uses `noResults`, `noResultsDescription`, `noDataAvailable`, and `clearFilters` (English/French defaults included). Inactive advanced filters do not activate the reset action. `table.emptyState.title` and `description` still override the copy, and `show: false` hides the complete state in every display mode. Loading and failed requests do not display an empty result.
 
 ### Catalogue-owned controls
 
