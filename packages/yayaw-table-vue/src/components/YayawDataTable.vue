@@ -47,6 +47,7 @@ import type { DetailRevertHandler, RecordDetailsConfig } from "../record-details
 import GalleryView from "./gallery/GalleryView.vue";
 import DisplayModeRendererHost from "./DisplayModeRendererHost.vue";
 import type { DisplayModeRenderers } from "../display-mode-renderer";
+import { withFeedRenderer } from "../feed/feed-renderer";
 import { withFormRenderer } from "../form/form-renderer";
 import { withoutDisabledModeRenderers } from "../display-modes";
 import { isFormModeEnabled } from "../form-view";
@@ -204,8 +205,12 @@ const searchDebounceMs = computed(
   () => props.searchDebounceMs ?? config.table.searchDebounceMs ?? 300
 );
 // The Form mode ships in the table; it is offered when records can be created.
+// The Feed mode ships in the table too; `table.feed: false` withholds it.
 const modeRenderers = withFormRenderer(
-  withoutDisabledModeRenderers(props.displayModeRenderers, config.table),
+  withoutDisabledModeRenderers(
+    withFeedRenderer(props.displayModeRenderers),
+    config.table
+  ),
   isFormModeEnabled(
     config.table.form,
     config.table.allowCreate !== false && Boolean(actions.value?.create)

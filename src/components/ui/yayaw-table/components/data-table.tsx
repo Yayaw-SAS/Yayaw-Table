@@ -38,6 +38,7 @@ import {
   useTranslations,
 } from "../providers/table-provider";
 import { TableStateSyncProvider } from "../providers/table-state-sync-provider";
+import { withFeedRenderer } from "../feed/feed-renderer";
 import { withFormRenderer } from "../form/form-renderer";
 import { isFormModeEnabled } from "../utils/form-view";
 import { resolveTranslationsToUiStrings } from "../providers/translation-cache";
@@ -772,10 +773,14 @@ function DataTableContent({
     config.table.allowCreate !== false &&
     typeof getTableActions?.(tableType)?.create === "function";
   // The Form mode ships in the table; it is offered when records can be created.
+  // The Feed mode ships in the table too; `table.feed: false` withholds it.
   const modeRenderers = useMemo(
     () =>
       withFormRenderer(
-        withoutDisabledModeRenderers(displayModeRenderers, config.table),
+        withoutDisabledModeRenderers(
+          withFeedRenderer(displayModeRenderers),
+          config.table
+        ),
         isFormModeEnabled(config.table.form, canCreateRecords)
       ),
     [canCreateRecords, config.table, displayModeRenderers]

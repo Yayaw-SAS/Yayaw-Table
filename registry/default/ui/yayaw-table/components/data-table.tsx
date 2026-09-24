@@ -18,6 +18,7 @@ import type { ReactNode } from "react";
 // Import advanced filters hook directly
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import type { TableEmptyStateConfig } from "../config/helpers";
+import { withFeedRenderer } from "../feed/feed-renderer";
 import { withFormRenderer } from "../form/form-renderer";
 import { useAutoPageSizeLifetime } from "../hooks/use-auto-page-size";
 import type {
@@ -772,10 +773,14 @@ function DataTableContent({
     config.table.allowCreate !== false &&
     typeof getTableActions?.(tableType)?.create === "function";
   // The Form mode ships in the table; it is offered when records can be created.
+  // The Feed mode ships in the table too; `table.feed: false` withholds it.
   const modeRenderers = useMemo(
     () =>
       withFormRenderer(
-        withoutDisabledModeRenderers(displayModeRenderers, config.table),
+        withoutDisabledModeRenderers(
+          withFeedRenderer(displayModeRenderers),
+          config.table
+        ),
         isFormModeEnabled(config.table.form, canCreateRecords)
       ),
     [canCreateRecords, config.table, displayModeRenderers]

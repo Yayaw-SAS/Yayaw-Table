@@ -20,6 +20,7 @@ import {
   toOrderByParam,
 } from "../utils/filtered-rows";
 import type { FormLinkActions, FormSubmitResult } from "../utils/form-view";
+import { getPrimaryGrouping } from "../utils/table-view-state";
 import { translateWithFallback } from "./filters/i18n-utils";
 
 type RowRecord = Record<string, unknown>;
@@ -42,6 +43,8 @@ export interface DisplayModeRenderInput {
     search: string;
     sort: unknown;
   };
+  /** The view's grouping (column ids). */
+  grouping?: unknown;
   list?: TableActions["list"];
   aggregate?: TableActions["aggregate"];
   showRecords: (rules: RowRecord[]) => boolean;
@@ -75,6 +78,7 @@ export function useDisplayModeRenderContext(
     emptyState,
     formLinks,
     getRowId,
+    grouping,
     list,
     aggregate,
     showRecords,
@@ -102,6 +106,7 @@ export function useDisplayModeRenderContext(
       ((modeConfigs as RowRecord)[configKey] as RowRecord | undefined)) ||
     EMPTY_SETTINGS;
   const { advancedFilters, filters, search, sort } = query;
+  const groupBy = getPrimaryGrouping(grouping) || undefined;
   const listParams = useMemo(
     () => ({
       advancedFilters: toAdvancedFiltersParam(advancedFilters),
@@ -131,6 +136,7 @@ export function useDisplayModeRenderContext(
       aggregate,
       rows,
       advancedFilters,
+      groupBy,
       showRecords,
       getRowId: getRowId ?? defaultRowId,
       canEditRow,
@@ -165,6 +171,7 @@ export function useDisplayModeRenderContext(
       emptyState,
       formLinks,
       getRowId,
+      groupBy,
       list,
       listParams,
       locale,

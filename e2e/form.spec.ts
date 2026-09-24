@@ -67,6 +67,9 @@ test("a form view asks the chosen questions and creates the record", async ({
     "Due",
     "Serial number",
     "Details",
+    "Update",
+    "Author",
+    "Posted at",
   ]) {
     await page.getByRole("switch", { name: `Ask ${column}` }).uncheck();
   }

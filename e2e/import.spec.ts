@@ -65,9 +65,12 @@ test("a CSV file maps to the columns, imports and re-imports as updates", async 
   await expect(
     panel.getByRole("combobox", { name: "Catégorie", exact: true })
   ).toHaveText(CATEGORY);
-  await expect(
-    panel.getByRole("combobox", { name: "Échéance", exact: true })
-  ).toHaveText(DUE);
+  // Two date columns (Due and the feed's Posted at) fit the dates: values alone
+  // do not decide, so the field waits for a choice.
+  const due = panel.getByRole("combobox", { name: "Échéance", exact: true });
+  await expect(due).toHaveText(IGNORE);
+  await choose(panel, "Échéance", "Due");
+  await expect(due).toHaveText(DUE);
   await expect(
     panel.getByRole("combobox", { name: "Notes", exact: true })
   ).toHaveText(IGNORE);

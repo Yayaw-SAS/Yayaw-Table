@@ -1,0 +1,317 @@
+/* Feed posts: the same measures as the React edition's Tailwind classes. */
+.yayaw-feed-view {
+  box-sizing: border-box;
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  max-width: 720px;
+  margin-inline: auto;
+  gap: 1rem;
+  padding-block: 0.5rem;
+  color: var(--yayaw-foreground);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+.yayaw-feed-failed {
+  justify-items: center;
+  gap: 0.75rem;
+  padding-block: 2.5rem;
+  text-align: center;
+}
+.yayaw-feed-list {
+  display: grid;
+  gap: 1.5rem;
+}
+.yayaw-feed-section {
+  display: grid;
+  gap: 0.75rem;
+}
+.yayaw-feed-view[data-density="compact"] .yayaw-feed-list {
+  gap: 1rem;
+}
+.yayaw-feed-view[data-density="compact"] .yayaw-feed-section {
+  gap: 0.5rem;
+}
+.yayaw-feed-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  color: var(--yayaw-muted-foreground);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+.yayaw-feed-section-count {
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+.yayaw-feed-card {
+  box-sizing: border-box;
+  display: grid;
+  min-width: 0;
+  gap: 0.75rem;
+  border: 1px solid var(--yayaw-border);
+  border-radius: var(--radius, 0.625rem);
+  background: var(--yayaw-card);
+  box-shadow: var(--yayaw-shadow-xs);
+  padding: 1rem;
+}
+@media (min-width: 640px) {
+  .yayaw-feed-card {
+    padding: 1.25rem;
+  }
+}
+.yayaw-feed-view[data-density="compact"] .yayaw-feed-card {
+  gap: 0.5rem;
+  padding: 0.75rem;
+}
+.yayaw-feed-header {
+  display: grid;
+  min-width: 0;
+  gap: 0.375rem;
+}
+.yayaw-feed-title {
+  min-width: 0;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.375;
+}
+.yayaw-feed-view[data-density="compact"] .yayaw-feed-title {
+  font-size: 0.875rem;
+}
+.yayaw-feed-title button {
+  max-width: 100%;
+  border: 0;
+  border-radius: 0.125rem;
+  background: none;
+  color: inherit;
+  padding: 0;
+  font: inherit;
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.yayaw-feed-title button:hover {
+  text-decoration: underline;
+}
+.yayaw-feed-title button:focus-visible,
+.yayaw-feed-toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--yayaw-ring);
+}
+.yayaw-feed-byline {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--yayaw-muted-foreground);
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+.yayaw-feed-author {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.5rem;
+}
+.yayaw-feed-avatar {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  object-fit: cover;
+}
+.yayaw-feed-initials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--yayaw-muted);
+  color: var(--yayaw-foreground);
+  font-size: 0.625rem;
+  font-weight: 500;
+}
+.yayaw-feed-author-name {
+  overflow: hidden;
+  color: var(--yayaw-foreground);
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-feed-date {
+  flex-shrink: 0;
+}
+.yayaw-feed-body-wrap {
+  display: grid;
+  justify-items: start;
+  gap: 0.25rem;
+}
+.yayaw-feed-body {
+  width: 100%;
+  font-size: 0.875rem;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+}
+.yayaw-feed-body.yayaw-feed-rich {
+  white-space: normal;
+}
+.yayaw-feed-toggle {
+  border: 0;
+  border-radius: 0.125rem;
+  background: none;
+  color: var(--yayaw-muted-foreground);
+  padding: 0;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+.yayaw-feed-toggle:hover {
+  color: var(--yayaw-foreground);
+  text-decoration: underline;
+}
+.yayaw-feed-media {
+  display: grid;
+  gap: 0.5rem;
+}
+.yayaw-feed-images {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.25rem;
+  overflow: hidden;
+  margin: 0;
+  border: 1px solid var(--yayaw-border);
+  border-radius: var(--yayaw-radius);
+  background: color-mix(in srgb, var(--yayaw-muted) 40%, transparent);
+  padding: 0;
+  list-style: none;
+}
+.yayaw-feed-images[data-count="many"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.yayaw-feed-images li {
+  position: relative;
+}
+.yayaw-feed-images img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+}
+.yayaw-feed-images[data-count="many"] img {
+  aspect-ratio: 1;
+}
+.yayaw-feed-more-images {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(0 0 0 / 0.5);
+  color: #fff;
+  font-size: 1.125rem;
+  font-weight: 500;
+}
+.yayaw-feed-files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.yayaw-feed-files li {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.375rem;
+  border: 1px solid var(--yayaw-border);
+  border-radius: var(--yayaw-radius);
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+}
+.yayaw-feed-files a,
+.yayaw-feed-properties a {
+  overflow: hidden;
+  color: inherit;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.yayaw-feed-files a:hover,
+.yayaw-feed-properties a:hover {
+  text-decoration: underline;
+}
+.yayaw-feed-properties {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem 0.75rem;
+  margin: 0;
+  color: var(--yayaw-muted-foreground);
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+.yayaw-feed-property {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.375rem;
+}
+.yayaw-feed-property dt:not(.yayaw-sr-only) {
+  flex-shrink: 0;
+}
+.yayaw-feed-property dd {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  margin: 0;
+}
+.yayaw-feed-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+.yayaw-feed-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+.yayaw-feed-footer {
+  display: flex;
+  justify-content: center;
+  padding-top: 0.25rem;
+}
+.yayaw-feed-footer .yayaw-button {
+  min-height: 2rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.875rem;
+}
+.yayaw-feed-spin {
+  animation: yayaw-spin 1s linear infinite;
+}
+.yayaw-feed-error {
+  margin: 0;
+  color: var(--yayaw-danger);
+  font-size: 0.875rem;
+  text-align: center;
+}
+.yayaw-feed-skeleton {
+  display: grid;
+  gap: 0.75rem;
+}
+.yayaw-feed-skeleton-card {
+  display: grid;
+  gap: 0.75rem;
+  border: 1px solid var(--yayaw-border);
+  border-radius: var(--radius, 0.625rem);
+  padding: 1rem;
+}
+.yayaw-feed-skeleton-line {
+  display: block;
+  border-radius: var(--yayaw-radius);
+  background: var(--yayaw-muted);
+  animation: yayaw-pulse 2s ease-in-out infinite;
+}

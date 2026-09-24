@@ -882,6 +882,7 @@ export const defaultTranslations: DataTableTranslations = {
       title: "Display mode",
       calendar: "Calendar",
       chart: "Chart",
+      feed: "Feed",
       form: "Form",
       gantt: "Gantt",
       gallery: "Gallery",

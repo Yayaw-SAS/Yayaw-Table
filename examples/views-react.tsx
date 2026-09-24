@@ -11,6 +11,7 @@ import {
   chartViews,
   createViewsActions,
   initialViewsRows,
+  updatesFeedView,
   viewsColumns,
   viewsTableOptions,
   viewsVisibleColumns,
@@ -55,7 +56,12 @@ export function ViewsExample({ aggregate = true }: { aggregate?: boolean }) {
         initialData={rows}
         initialPageCount={1}
         initialRowCount={rows.length}
-        initialViews={[requestFormView, guidedRequestFormView, ...chartViews]}
+        initialViews={[
+          requestFormView,
+          guidedRequestFormView,
+          ...chartViews,
+          updatesFeedView,
+        ]}
         tableType={config.id}
       />
     </main>

@@ -5,6 +5,7 @@ import {
   ChartColumnBig,
   ChartGantt,
   ClipboardList,
+  Newspaper,
   Columns3,
   Images,
   List,
@@ -41,6 +42,7 @@ interface TableDisplayModeSwitcherProps {
 export const DISPLAY_MODE_ICONS: Record<TableDisplayMode, LucideIcon> = {
   calendar: CalendarDays,
   chart: ChartColumnBig,
+  feed: Newspaper,
   form: ClipboardList,
   gantt: ChartGantt,
   gallery: Images,

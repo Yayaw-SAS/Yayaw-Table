@@ -72,6 +72,8 @@ export type {
 } from "./config/helpers";
 // Config helper and types
 export { defineTableConfig } from "./config/helpers";
+// Feed view, built into the table (`table.feed: false` turns it off).
+export { feedRenderer } from "./feed/feed-renderer";
 // Form view; public routes can import `form/yayaw-table-form` on its own.
 export { formRenderer } from "./form/form-renderer";
 export {
@@ -119,6 +121,15 @@ export type {
   UpdateTableViewInput,
 } from "./types/view-types";
 export type { TableActivityRecord } from "./utils/activity-shortcuts";
+export {
+  type FeedBodyRenderer,
+  type FeedDateDisplay,
+  type FeedDensity,
+  type FeedTableSettings,
+  type FeedViewSettings,
+  formatFeedRelativeDate,
+  normalizeFeedViewConfig,
+} from "./utils/feed-view";
 export {
   type Condition,
   type ConditionField,

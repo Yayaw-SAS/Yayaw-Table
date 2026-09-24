@@ -12,6 +12,11 @@ import {
   type ChartViewSettings,
   normalizeChartViewConfig,
 } from "./chart-model";
+import {
+  type FeedTableSettings,
+  type FeedViewSettings,
+  normalizeFeedViewConfig,
+} from "./feed-view";
 import { type FormViewSettings, normalizeFormViewConfig } from "./form-view";
 import { type ListViewSettings, normalizeListViewConfig } from "./list-view";
 
@@ -80,6 +85,14 @@ export const DISPLAY_MODES = {
     configKey: "chart",
     maxGroups: 0,
     normalizeConfig: normalizeChartViewConfig,
+    requiresRenderer: true,
+  },
+  feed: {
+    capabilities: NO_TABLE_CONTROLS,
+    configKey: "feed",
+    maxGroups: 1,
+    normalizeConfig: normalizeFeedViewConfig,
+    // The table plugs its built-in feed renderer in unless `table.feed: false`.
     requiresRenderer: true,
   },
   form: {
@@ -178,16 +191,19 @@ export interface GenericModeViewConfigs {
   list?: ListViewSettings;
   calendar?: CalendarViewSettings;
   chart?: ChartViewSettings;
+  feed?: FeedViewSettings;
   form?: FormViewSettings;
 }
 
 /**
  * Table-level defaults of the generic modes; `form: false` also turns the Form
- * mode off and `chart: false` the Chart mode.
+ * mode off, `chart: false` the Chart mode and `feed: false` the Feed mode.
  */
 export interface GenericModeTableConfigs
-  extends Omit<GenericModeViewConfigs, "chart" | "form"> {
+  extends Omit<GenericModeViewConfigs, "chart" | "feed" | "form"> {
   chart?: boolean | ChartViewSettings;
+  /** Feed defaults, plus the runtime `renderBody` hook; `false` turns the mode off. */
+  feed?: boolean | FeedTableSettings;
   form?: boolean | FormViewSettings;
 }
 

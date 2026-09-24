@@ -2036,6 +2036,7 @@ function ModernDataTable<
     editRow: editRendererRow,
     emptyState: emptyStateContent,
     getRowId: getRowId as ((row: Record<string, unknown>) => string) | undefined,
+    grouping: state.grouping,
     list: providerTableActions?.list,
     locale,
     mode: activeDisplayMode,

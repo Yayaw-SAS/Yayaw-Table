@@ -33,6 +33,8 @@ export interface DisplayModeRenderContext extends DisplayModeSettingsContext {
   rows: Record<string, unknown>[];
   /** The view's advanced filters (array or `{ filters, joinOperator }`). */
   advancedFilters: unknown;
+  /** The view's first grouping column, for modes that section their records. */
+  groupBy?: string;
   /**
    * Show the records matching these advanced filter rules: they join the
    * view's filters and the table mode opens. False when they cannot be added.
