@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Donut, GroupedBar, Scatter, StackedBar } from "@unovis/ts";
 import {
+  VisArea,
   VisAxis,
   VisCrosshair,
   VisDonut,
@@ -13,14 +14,17 @@ import {
   VisXYContainer,
   VisXYLabels,
 } from "@unovis/vue";
-import { computed } from "vue";
-import type {
-  ChartCategory,
-  ChartLabelKey,
-  ChartModel,
-  ChartSeriesItem,
-  ResolvedChartSettings,
+import { computed, ref } from "vue";
+import {
+  type ChartCategory,
+  type ChartLabelKey,
+  type ChartModel,
+  type ChartSeriesItem,
+  chartTickFormat,
+  chartValueText,
+  type ResolvedChartSettings,
 } from "../chart-model";
+import ChartFunnel from "./ChartFunnel.vue";
 
 const props = defineProps<{
   model: ChartModel;
@@ -41,6 +45,7 @@ interface ChartRow {
   id: string;
   label: string;
   color: string;
+  /** Plotted values by series: shares when areas are stacked to 100 %. */
   values: number[];
 }
 
@@ -50,7 +55,11 @@ const rows = computed<ChartRow[]>(() =>
     id: category.id,
     label: category.label,
     color: category.color,
-    values: props.model.series.map((item) => category.values[item.id] ?? 0),
+    values: props.model.series.map((item) =>
+      props.model.percent
+        ? (category.shares?.[item.id] ?? 0)
+        : (category.values[item.id] ?? 0)
+    ),
   }))
 );
 const horizontal = computed(() => props.model.type === "horizontalBar");
@@ -81,8 +90,12 @@ const seriesColor = (row: ChartRow, index: number): string =>
 const ticks = computed(() => rows.value.map((row) => x(row)));
 const tickLabel = (value: number | Date): string =>
   rows.value.find((row) => x(row) === Number(value))?.label ?? "";
-const valueTick = (value: number | Date): string => props.model.format(Number(value));
+const tickFormat = computed(() => chartTickFormat(props.model));
+const valueTick = (value: number | Date): string => tickFormat.value(Number(value));
 const cursor = computed(() => (props.clickable ? "pointer" : "default"));
+const curveType = computed(() =>
+  props.settings.curve === "linear" ? "linear" : "monotoneX"
+);
 
 const escape = (text: string): string =>
   text.replace(/[&<>"']/g, (character) => `&#${character.charCodeAt(0)};`);
@@ -92,7 +105,7 @@ const tooltipRows = (row: ChartRow, only?: number): string =>
     .filter(({ index }) => only === undefined || index === only)
     .map(
       ({ item, index }) =>
-        `<div class="yayaw-chart-tip-row"><span class="yayaw-chart-swatch" style="background:${seriesColor(row, index)}"></span><span class="yayaw-chart-muted">${escape(props.model.single ? props.model.valueLabel : item.label)}</span><strong>${escape(props.model.format(row.values[index] ?? 0))}</strong></div>`
+        `<div class="yayaw-chart-tip-row"><span class="yayaw-chart-swatch" style="background:${seriesColor(row, index)}"></span><span class="yayaw-chart-muted">${escape(props.model.single ? props.model.valueLabel : item.label)}</span><strong>${escape(chartValueText(props.model, props.model.categories[row.i], item))}</strong></div>`
     )
     .join("");
 const tooltip = (row: ChartRow, only?: number): string =>
@@ -158,6 +171,100 @@ const labelSets = computed(() => {
     },
   }));
 });
+
+// Areas and combo charts: a click anywhere in a category's band shows its
+// records, as the React chart does, from the category under the crosshair.
+// The crosshair follows the pointer on the next frame, so the click reads it
+// then (a tap or a quick click moves and clicks within one frame).
+const hovered = ref<number>();
+const onCrosshairMove = (
+  _x?: number | Date,
+  _datum?: ChartRow,
+  index?: number
+): void => {
+  hovered.value = index;
+};
+const onBandClick = (): void => {
+  requestAnimationFrame(() => {
+    if (hovered.value !== undefined) group(hovered.value);
+  });
+};
+
+const areaStacked = computed(() => props.model.stacked && !props.model.single);
+/** The top of each area: its stacked total when stacked, its value otherwise. */
+const areaTops = computed(() =>
+  props.model.series.map((_, index) => (row: ChartRow) =>
+    areaStacked.value
+      ? row.values.slice(0, index + 1).reduce((sum, item) => sum + item, 0)
+      : (row.values[index] ?? 0)
+  )
+);
+const areaColor = (_rows: ChartRow[], index: number): string =>
+  props.model.series[index]?.color ?? "";
+const areaLabels = computed(() =>
+  props.settings.showDataLabels
+    ? props.model.series.map((item, index) => ({
+        id: item.id,
+        y: (row: ChartRow) => (areaTops.value[index]?.(row) ?? 0) + labelOffset.value,
+        label: (row: ChartRow) => {
+          const value = row.values[index] ?? 0;
+          return value ? tickFormat.value(value) : "";
+        },
+      }))
+    : []
+);
+
+// Combo charts: the line on a right axis when its unit differs, drawn in the
+// left axis' domain so both share the grid lines. A container holds one value
+// axis, so the right one is text placed over fixed margins.
+const barSeries = computed(() => props.model.series[0]);
+const lineSeries = computed(() => props.model.series[1]);
+const rightTicks = computed(() => props.model.secondaryTicks ?? []);
+const toLeft = (value: number): number => {
+  const right = rightTicks.value;
+  const low = right.at(0);
+  const high = right.at(-1);
+  if (low === undefined || high === undefined || high === low) return value;
+  const [start, end] = valueDomain.value;
+  return start + ((value - low) / (high - low)) * (end - start);
+};
+const barY = (row: ChartRow): number => row.values[0] ?? 0;
+const lineY = (row: ChartRow): number => toLeft(row.values[1] ?? 0);
+const barTick = (value: number | Date): string =>
+  (barSeries.value?.format ?? props.model.format)(Number(value));
+const lineTick = (value: number): string =>
+  (lineSeries.value?.format ?? props.model.format)(value);
+/** Width of axis labels, estimated from their length at 12px. */
+const AXIS_CHAR_WIDTH = 7.5;
+const AXIS_PADDING = 14;
+const X_AXIS_HEIGHT = 28;
+const axisWidth = (labels: string[]): number =>
+  AXIS_PADDING + Math.max(0, ...labels.map((text) => text.length)) * AXIS_CHAR_WIDTH;
+const dualMargin = computed(() => ({
+  top: MARGIN.top,
+  bottom: X_AXIS_HEIGHT,
+  left: MARGIN.left + axisWidth(props.model.valueTicks.map((tick) => barTick(tick))),
+  right: MARGIN.left + axisWidth(rightTicks.value.map(lineTick)),
+}));
+/** The right axis' labels, at their ticks' heights in the plot. */
+const rightLabels = computed(() => {
+  const ticks = rightTicks.value;
+  const low = ticks.at(0) ?? 0;
+  const span = (ticks.at(-1) ?? 1) - low || 1;
+  const { top, bottom, right } = dualMargin.value;
+  const plot = CHART_HEIGHT - top - bottom;
+  return ticks.map((tick) => ({
+    text: lineTick(tick),
+    top: `${top + (1 - (tick - low) / span) * plot}px`,
+    width: `${right - MARGIN.left}px`,
+  }));
+});
+const comboBarLabel = (row: ChartRow): string => {
+  const value = barY(row);
+  return value ? barTick(value) : "";
+};
+const comboLineLabel = (row: ChartRow): string =>
+  (lineSeries.value?.format ?? props.model.format)(row.values[1] ?? 0);
 </script>
 
 <template>
@@ -166,6 +273,13 @@ const labelSets = computed(() => {
       <output class="yayaw-chart-figure-value" data-chart-number>{{ props.model.format(props.model.total) }}</output>
       <span class="yayaw-chart-muted">{{ props.model.valueLabel }}</span>
     </div>
+    <ChartFunnel
+      v-else-if="props.model.type === 'funnel'"
+      :model="props.model"
+      :clickable="props.clickable"
+      :label="props.label"
+      @group="(category) => emit('group', category)"
+    />
     <VisSingleContainer v-else-if="props.model.type === 'donut'" :data="donutRows" :height="CHART_HEIGHT">
       <VisDonut
         :value="(row: ChartRow) => row.values[0] ?? 0"
@@ -186,7 +300,7 @@ const labelSets = computed(() => {
       :x-domain="categoryDomain"
       :y-domain="valueDomain"
     >
-      <VisLine :x="x" :y="ys" :color="(_rows: ChartRow[], index: number) => props.model.series[index]?.color" :line-width="2" curve-type="monotoneX" />
+      <VisLine :x="x" :y="ys" :color="(_rows: ChartRow[], index: number) => props.model.series[index]?.color" :line-width="2" :curve-type="curveType" />
       <VisScatter
         v-for="(item, index) in props.model.series"
         :key="item.id"
@@ -204,6 +318,136 @@ const labelSets = computed(() => {
       <VisCrosshair :template="crosshairTemplate" :color="(_row: ChartRow, index: number) => props.model.series[index]?.color" />
       <VisTooltip />
     </VisXYContainer>
+    <div
+      v-else-if="props.model.type === 'area'"
+      class="yayaw-chart-band"
+      data-chart-area
+      @click="onBandClick"
+    >
+      <VisXYContainer
+        :data="rows"
+        :height="CHART_HEIGHT"
+        :margin="MARGIN"
+        :x-domain="categoryDomain"
+        :y-domain="valueDomain"
+      >
+        <VisArea
+          v-if="areaStacked"
+          :x="x"
+          :y="ys"
+          :color="areaColor"
+          :opacity="0.6"
+          :curve-type="curveType"
+          :line="true"
+          :line-width="2"
+        />
+        <template v-else>
+          <VisArea
+            v-for="(item, index) in props.model.series"
+            :key="item.id"
+            :x="x"
+            :y="ys[index]"
+            :color="item.color"
+            :opacity="0.3"
+            :curve-type="curveType"
+            :line="true"
+            :line-width="2"
+          />
+        </template>
+        <VisXYLabels
+          v-for="set in areaLabels"
+          :key="set.id"
+          :x="x"
+          :y="set.y"
+          :label="set.label"
+          background-color="transparent"
+          color="var(--yayaw-foreground)"
+          :label-font-size="11"
+        />
+        <VisAxis type="x" :tick-values="ticks" :tick-format="tickLabel" :grid-line="false" :tick-line="false" :domain-line="false" />
+        <VisAxis type="y" :tick-values="props.model.valueTicks" :tick-format="valueTick" :tick-line="false" :domain-line="false" />
+        <!-- Crosshair options are passed as they are named (camelCase). -->
+        <VisCrosshair
+          :template="crosshairTemplate"
+          :x="x"
+          :y="areaStacked ? undefined : ys"
+          :yStacked="areaStacked ? ys : undefined"
+          :color="(_row: ChartRow, index: number) => props.model.series[index]?.color"
+          :onCrosshairMove="onCrosshairMove"
+        />
+        <VisTooltip />
+      </VisXYContainer>
+    </div>
+    <div
+      v-else-if="props.model.type === 'combo'"
+      class="yayaw-chart-band"
+      data-chart-combo
+      @click="onBandClick"
+    >
+      <VisXYContainer
+        :data="rows"
+        :height="CHART_HEIGHT"
+        :margin="rightTicks.length ? dualMargin : MARGIN"
+        :auto-margin="!rightTicks.length"
+        :x-domain="categoryDomain"
+        :y-domain="valueDomain"
+      >
+        <VisStackedBar
+          :x="x"
+          :y="[barY]"
+          :color="barSeries?.color"
+          :rounded-corners="4"
+          :bar-padding="0.2"
+          :bar-max-width="64"
+          :cursor="cursor"
+        />
+        <VisLine :x="x" :y="lineY" :color="lineSeries?.color" :line-width="2" :curve-type="curveType" />
+        <VisScatter
+          :x="x"
+          :y="lineY"
+          :color="lineSeries?.color"
+          :size="8"
+          :cursor="cursor"
+          :label="props.settings.showDataLabels ? comboLineLabel : undefined"
+          label-position="top"
+        />
+        <VisXYLabels
+          v-if="props.settings.showDataLabels"
+          :x="x"
+          :y="(row: ChartRow) => barY(row) + labelOffset"
+          :label="comboBarLabel"
+          background-color="transparent"
+          color="var(--yayaw-foreground)"
+          :label-font-size="11"
+        />
+        <!-- Fixed margins (two value axes) keep category labels on one line. -->
+        <VisAxis
+          type="x"
+          :tick-values="ticks"
+          :tick-format="tickLabel"
+          :tick-text-fit-mode="rightTicks.length ? 'trim' : 'wrap'"
+          :grid-line="false"
+          :tick-line="false"
+          :domain-line="false"
+        />
+        <VisAxis type="y" :tick-values="props.model.valueTicks" :tick-format="barTick" :tick-line="false" :domain-line="false" />
+        <VisCrosshair
+          :template="crosshairTemplate"
+          :x="x"
+          :y="[lineY]"
+          :color="() => lineSeries?.color"
+          :onCrosshairMove="onCrosshairMove"
+        />
+        <VisTooltip />
+      </VisXYContainer>
+      <div v-if="rightTicks.length" class="yayaw-chart-right-axis" aria-hidden="true">
+        <span
+          v-for="tick in rightLabels"
+          :key="tick.text"
+          :style="{ top: tick.top, width: tick.width }"
+        >{{ tick.text }}</span>
+      </div>
+    </div>
     <VisXYContainer
       v-else
       :data="rows"

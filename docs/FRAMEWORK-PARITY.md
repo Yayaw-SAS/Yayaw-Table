@@ -855,74 +855,143 @@ removes the mode (`withoutDisabledModeRenderers`).
 
 The shared `chart-model.ts` owns everything but the drawing:
 
-- Settings: `type` (`bar`, `horizontalBar`, `line`, `donut`, `number`),
-  `xColumn`, `bucket`, `weekStartsOn`, `metric`, `metricColumn`,
-  `seriesColumn`, `stacked`, `sort`, `cumulative`, `hideEmpty`, `topN`,
-  `showDataLabels`, `showLegend`, `colors`. Saved with views and in
-  `<tableId>-chart`. Defaults: bars, first option column (else date, else any
-  groupable column), count. A metric reading a column falls back to a count
-  without a fitting column; choosing it in the settings picks the first one.
-  The settings panel is `chartSettingFields`, rendered by each edition's
-  `ViewSettingsPanel`, so both show the same fields in the same order.
+- Settings: `type` (`bar`, `horizontalBar`, `line`, `area`, `combo`,
+  `donut`, `funnel`, `number`), `xColumn`, `bucket`, `weekStartsOn`,
+  `metric`, `metricColumn`, `seriesColumn`, `stacked`, `stacking`, `curve`,
+  `lineMetric`, `lineMetricColumn`, `stageOrder`, `sort`, `cumulative`,
+  `hideEmpty`, `topN`, `showDataLabels`, `showLegend`, `colors`. Saved with
+  views and in `<tableId>-chart`. Defaults: bars, first option column (else
+  date, else any groupable column), count, `stacking: "stacked"`,
+  `curve: "smooth"`, `lineMetric: "count"`; views saved before these settings
+  resolve as they did. A metric (or line metric) reading a column falls back
+  to a count without a fitting column; choosing it in the settings picks the
+  first one. Series apply to bars, lines and areas. The settings panel is
+  `chartSettingFields`, rendered by each edition's `ViewSettingsPanel`, so
+  both show the same fields in the same order, followed by the funnel's
+  stage order (`chartStageList`).
 - Contract: `actions.aggregate` receives the table's query plus
   `groupBy: [{ columnId, bucket? }]` (at most two levels), `metrics`,
   `timeZone` (the x column's `timeZone`) and `weekStartsOn`, with empty
   `calculations`; it answers `{ groups: [{ keys, values }], truncated? }`.
   Keys: `null` for empty values, `YYYY-MM-DD` days, the first day of `YYYY-MM-DD`
   weeks, `YYYY-MM` months, `YYYY-Qn` quarters, `YYYY` years; multi-select values
-  count in each of their groups. `loadChartData` falls back to
-  `loadScopedRows` + `aggregateChartRows` when there is no aggregate action,
-  when it fails, or when it answers without `groups` (column calculations
-  only). The demo host uses `aggregateChartRows` as its in-memory
-  implementation, and rejects column calculations so they keep the list
-  fallback.
+  count in each of their groups. Combo charts ask for both metrics in one
+  request (`metrics: [bars, line]`, `values` in that order). `loadChartData`
+  falls back to `loadScopedRows` + `aggregateChartRows` when there is no
+  aggregate action, when it fails, when it answers without `groups` (column
+  calculations only) or with fewer values than metrics. The demo host uses
+  `aggregateChartRows` as its in-memory implementation, and rejects column
+  calculations so they keep the list fallback.
 - Model: date buckets in the column's zone (date-only values stay calendar
   days, so DST never moves them), missing buckets and options filled unless
   `hideEmpty`, sort (automatic: option order for selects, label for dates,
   numbers and booleans, value otherwise), top N with an "Other" group for
-  additive metrics (count, sum), cumulative totals for bars and lines, at most
-  ten series (the rest folded into "Other"), option colors (explicit option
-  `color`, else the tag hue when tags are colored) or the `--chart-1…5`
-  palette, value formats from the metric column's `numberFormat`, number
-  groups in the x column's format, day and week buckets in the date column's
-  format without its time (months, quarters and years keep their period
-  names), round value
-  ticks (`chartValueTicks`, whole numbers for counts) and EN/FR labels
-  (`chart.<key>` overrides the built-in text in both editions).
-- Click to filter: a group becomes advanced filter rules (select `isAnyOf`,
-  multi-select `contains`, date bucket `between` first and last day, boolean
-  `isTrue`/`isFalse`, empty `isEmpty`, others `equals`), appended to the
-  view's rules with `and`, then the table (else the list) opens. Renderers
-  call the new `showRecords(rules)` of the context, which also exposes
-  `aggregate` and `advancedFilters`. "Other" groups are not clickable; when
-  the view's filters match any rule (`or` with two rules or more) groups cannot
-  be added and the hint says so. We chose opening the table over an inline
-  list so the records keep every table feature and the filter stays visible
-  and editable in the filter menus.
+  additive metrics (count, sum), cumulative totals for bars, lines and areas,
+  at most ten series (the rest folded into "Other"), option colors (explicit
+  option `color`, else the tag hue when tags are colored) or the
+  `--chart-1…5` palette, value formats from the metric column's
+  `numberFormat`, number groups in the x column's format, day and week
+  buckets in the date column's format without its time (months, quarters and
+  years keep their period names), round value ticks (`chartValueTicks`, whole numbers for
+  counts) and EN/FR labels (`chart.<key>` overrides the built-in text in both
+  editions). `chartValueText` gives tables and tooltips the same text.
+- Areas: one area per series, stacked on each other (`stacking: "stacked"`,
+  ticks fit the totals), stacked to 100 % (`"percent"`: `categories[].shares`
+  are drawn, ticks 0–100 %, tables and tooltips show "2 (50%)") or
+  overlapping (`"none"`, ticks fit each value); a single series is one area.
+  `curve` (`smooth` or `linear`) is shared with lines and the combo's line.
+- Combo charts: bars for `metric`/`metricColumn` and a line for
+  `lineMetric`/`lineMetricColumn`, as series `bars` and `line` with their own
+  formats. Each metric's unit comes from its column's number format
+  (`chartMetricUnit`: count, `currency:EUR`, `percent:fraction`, `unit:…`,
+  number); when they differ the line gets a right axis whose ticks
+  (`secondaryTicks`, `chartAlignedTicks`) have as many steps as the left
+  axis', so both share the grid lines. Sorting and top N follow the bars;
+  "Other" needs both metrics additive; an empty group has both metrics at
+  zero. The legend lists both metrics; there is no series column.
+- Funnels: one stage per x value in `stageOrder`, then the automatic order
+  (the option order for selects); records without a value are in no stage.
+  Each stage has its value (count or metric), its share of the first stage
+  and its conversion from the previous one (`—` after a zero), and the texts
+  "100% of first" / "67% from previous". `chartFunnelLayout(stages, width)`
+  draws the same shapes in both editions: stages side by side (vertical
+  funnel, 320 px tall) when each gets 120 px and the chart is 480 px wide,
+  otherwise stacked from top to bottom (horizontal funnel, 76 px per stage);
+  a stage's leading edge is as long as its value against the largest, its
+  trailing edge as the next stage's, and zero stages keep a 2 px sliver. Both
+  renderers measure their width (`ResizeObserver`), so funnels fill a
+  dashboard widget or a phone. Settings: axis, metric, hide empty stages,
+  legend, colors, and the stage order list for option columns: drag a stage,
+  or use its "Move … up/down" arrows (focus stays on the moved stage); an order
+  equal to the table's is not saved, "Reset the order" removes the view's.
+- Click to filter: a group becomes the advanced filter rules the filter menus
+  write for its column: the column's filter type (`dataTypeFilter`: yes/no
+  columns are selects, emails and links text) with one of its operators
+  (select `isAnyOf` with the stored value, `true`/`false` for yes/no groups,
+  multi-select `contains`, date bucket `between` first and last day, empty
+  groups `isEmpty`, others `equals`), so hosts, saved views and the filter
+  menus read them like any rule. They are appended to the view's rules with
+  `and`, then the table (else the list) opens. Renderers call the new
+  `showRecords(rules)` of the context, which also exposes `aggregate` and
+  `advancedFilters`. "Other" groups are not clickable; when the view's filters
+  match any rule (`or` with two rules or more) groups cannot be added and the
+  hint says so. Area and combo charts filter the category whose band is
+  clicked (bars, points or the area); funnels have a button over each stage.
+  React's filter menus show and edit yes/no and number values of such rules
+  against their text choices. We chose opening the table over an inline list
+  so the records keep every table feature and the filter stays visible and
+  editable in the filter menus.
 
 Accessibility: a "Show as table" toggle lists the chart's numbers in a table
 whose group names are buttons ("Show the records of …"), the keyboard path to
-filtering. Recharts adds its keyboard layer (arrow keys move the tooltip);
-Unovis marks are hidden from assistive technology and rely on the table.
+filtering; the funnel's table lists stage, value, "% of first" and
+conversion. Recharts adds its keyboard layer (arrow keys move the tooltip);
+Unovis marks are hidden from assistive technology and rely on the table. The
+funnel is an SVG `img` named by the chart title and described by every
+stage's numbers, with a real button over each stage ("Show the records of …",
+in the tab order, a visible focus ring).
 
 Rendering differences the engines impose: React labels segments with
 Recharts `LabelList`, Vue with Unovis `XYLabels` (grouped, unstacked bars have
 no per-bar labels in Vue; the table lists the values) and scatter labels for
 lines; donut values are shown in the legend in both editions; tooltips follow
 each engine's positioning. Both use the same legend markup, title, hint,
-table fallback, ticks and colors.
+table fallback, ticks and colors. React draws areas and combo charts with
+Recharts `AreaChart` and `ComposedChart` (two `YAxis`) and reads the clicked
+category from the tooltip index (pointer events are not throttled, so a tap
+selects the category under it); areas skip x labels that would overlap. A
+Unovis container holds one value axis, so the Vue combo chart draws the right
+axis' labels as text over fixed margins; Vue areas and combo charts take the
+category from the crosshair on the next frame. As for lines, React pads the
+x axis by 40 px and Vue by half a category. The funnel is the same SVG in
+both editions. Vue charts shrink with their container (the chart grid has a
+`minmax(0, 1fr)` column), as React's `ResponsiveContainer` does.
 
 Verification: `tests/chart-model-suite.ts` runs in both editions (settings,
 request and parameters, buckets incl. DST and week starts, labels, every
 metric, multi-select, series, sorts, filled and hidden groups, cumulation,
 top N and Other, formats, colors, filter rules, server and fallback parity,
-ticks, settings fields). `e2e/chart.spec.ts` covers both demos: the "Revenue
-by category" view with and without `aggregate` (`?example=views-fallback`),
-type/axis/metric changes kept in the URL, legend and data labels, donut
-totals, clicking a bar, the table fallback opening a group and the "Projects
-over time" view. The views demo shows three saved views as tabs
-(`viewTabs.maxVisible: 3`) so the toolbar stays on one line; the others are
-under "More".
+ticks, settings fields; the new settings and their defaults, area stacking
+with shares of 100 %, combo requests, units, aligned ticks, Other and the
+one-metric fallback, funnel order, rates, texts and shapes in both
+orientations, the stage order list, and group rules of every column type,
+checked with the shared matcher to select exactly each group's records).
+`e2e/chart.spec.ts` covers both demos: the "Revenue by category" view with
+and without `aggregate` (`?example=views-fallback`), type/axis/metric changes
+kept in the URL, legend and data labels, donut totals, clicking a bar, the
+table fallback opening a group and the "Projects over time" view.
+`e2e/chart-types.spec.ts` covers the new types on both demos: "Revenus et
+marge" (combo, both axes, legend, table numbers with and without
+`aggregate`, clicking a bar), switching a chart to a combo with a line metric
+and a straight curve, "Pipeline" (funnel texts, vertical then horizontal on a
+phone, table, clicking a stage, reordering by arrows and by drag, reload,
+reset), "Livraisons cumulées" (stacked areas, table, 100 % stacking, clicking
+a week) and yes/no groups (checked, unchecked, no value) filtering the table
+with select rules that survive a reload. The views demo shows three saved
+views as tabs (`viewTabs.maxVisible: 3`) so the toolbar stays on one line;
+the others (Projects over time, Revenus et marge, Pipeline, Livraisons
+cumulées, Updates, Sites) are under "More". It gains two hidden columns read
+by charts: Margin (a percent) and Invoiced (yes/no, empty for Foxtrot).
 
 ## Feed view
 

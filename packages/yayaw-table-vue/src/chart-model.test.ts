@@ -6,13 +6,20 @@ import {
   canAddChartFilters,
   chartAggregateParams,
   chartAggregateRequest,
+  chartAlignedTicks,
   chartBucketKey,
   chartBucketLabel,
   chartBucketRange,
+  chartFunnelLayout,
+  chartFunnelOrientation,
   chartGroupFilters,
   chartLabel,
+  chartMetricUnit,
   chartSettingFields,
+  chartShares,
+  chartStageList,
   chartValueTicks,
+  fitChartLabel,
   loadChartData,
   nextChartBucketKey,
   normalizeChartAggregateResult,
@@ -26,6 +33,7 @@ import {
   resolveDisplayModes,
   withoutDisabledModeRenderers,
 } from "./display-modes";
+import { matchesContractFilter } from "./table-contracts";
 
 chartModelSuite(
   it,
@@ -35,13 +43,20 @@ chartModelSuite(
     canAddChartFilters,
     chartAggregateParams,
     chartAggregateRequest,
+    chartAlignedTicks,
     chartBucketKey,
     chartBucketLabel,
     chartBucketRange,
+    chartFunnelLayout,
+    chartFunnelOrientation,
     chartGroupFilters,
     chartLabel,
+    chartMetricUnit,
     chartSettingFields,
+    chartShares,
+    chartStageList,
     chartValueTicks,
+    fitChartLabel,
     loadChartData,
     nextChartBucketKey,
     normalizeChartAggregateResult,
@@ -54,5 +69,6 @@ chartModelSuite(
     normalizeModeConfig,
     resolveDisplayModes,
     withoutDisabledModeRenderers,
-  }
+  },
+  { matchesContractFilter }
 );

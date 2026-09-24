@@ -114,7 +114,7 @@ const chartItem = {
   type: "registry:block",
   title: "YaYaw Table Vue Chart",
   description:
-    'Optional chart display mode for YaYaw Table Vue (vertical and horizontal bars, line, donut and number), rendered with Unovis as in shadcn-vue charts. Pass `chartRenderer` to `display-mode-renderers` and add "chart" to `table.displayModes`.',
+    'Optional chart display mode for YaYaw Table Vue (vertical and horizontal bars, line, area, bars and line, donut, funnel and number), rendered with Unovis as in shadcn-vue charts and an SVG funnel. Pass `chartRenderer` to `display-mode-renderers` and add "chart" to `table.displayModes`.',
   dependencies: ["@unovis/ts@^1.7.0", "@unovis/vue@^1.7.0"],
   registryDependencies: ["https://table.yayaw.app/r/yayaw-table-vue.json"],
   files: await toRegistryFiles(allSourceFiles.filter(isChartFile)),

@@ -48,6 +48,9 @@ test("saved views appear as tabs with their layout, and + creates one in another
   await page.getByRole("button", { name: "More", exact: true }).click();
   await expect(page.getByRole("menuitem")).toHaveText([
     "Projects over time",
+    "Revenus et marge",
+    "Pipeline",
+    "Livraisons cumulées",
     "Updates",
     "Sites",
   ]);

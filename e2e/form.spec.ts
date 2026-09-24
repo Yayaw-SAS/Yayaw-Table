@@ -79,6 +79,8 @@ test("a form view asks the chosen questions and creates the record", async ({
     "Details",
     "Update",
     "Author",
+    "Margin",
+    "Invoiced",
   ]) {
     await outline.getByRole("button", { name: column, exact: true }).click();
     await properties

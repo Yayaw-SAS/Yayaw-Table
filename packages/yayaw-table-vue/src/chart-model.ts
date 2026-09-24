@@ -9,6 +9,7 @@
  */
 import { loadScopedRows, type ScopedRowsRequest } from "./scoped-rows";
 import {
+  dataTypeFilter,
   dataTypeOptionLabel,
   normalizeFilterEnvelope,
   recordValue,
@@ -19,10 +20,23 @@ import {
   formatColumnDay,
   formatColumnNumber,
   parseDateValue,
+  resolveNumberFormat,
 } from "./value-format";
 
-export type ChartType = "bar" | "horizontalBar" | "line" | "donut" | "number";
+export type ChartType =
+  | "bar"
+  | "horizontalBar"
+  | "line"
+  | "area"
+  | "combo"
+  | "donut"
+  | "funnel"
+  | "number";
 export type ChartBucket = "day" | "week" | "month" | "quarter" | "year";
+/** Area series on top of each other, as shares of each category (100 %), or overlapping. */
+export type ChartStacking = "stacked" | "percent" | "none";
+/** Lines and areas: smooth curves or straight segments. */
+export type ChartCurve = "smooth" | "linear";
 export type ChartMetricFn =
   | "count"
   | "sum"
@@ -66,6 +80,19 @@ export interface ChartViewSettings {
   colors?: ChartColors;
   /** First day of week buckets, 0 = Sunday … 6 = Saturday (default Monday). */
   weekStartsOn?: number;
+  /** Area charts with series: stacked (default), stacked to 100 % or overlapping. */
+  stacking?: ChartStacking;
+  /** Lines, areas and the line of combo charts: smooth (default) or straight. */
+  curve?: ChartCurve;
+  /** What the line of a combo chart measures (default `count`); bars use `metric`. */
+  lineMetric?: ChartMetricFn;
+  /** Column the line metric reads; required by every line metric but `count`. */
+  lineMetricColumn?: string;
+  /**
+   * Funnel stages in order, as option values. Options left out follow in the
+   * column's option order; without it the stages follow the option order.
+   */
+  stageOrder?: string[];
 }
 
 export const CHART_DEFAULTS = {
@@ -80,6 +107,9 @@ export const CHART_DEFAULTS = {
   showLegend: true,
   colors: "options",
   weekStartsOn: 1,
+  stacking: "stacked",
+  curve: "smooth",
+  lineMetric: "count",
 } as const satisfies ChartViewSettings;
 
 export type ResolvedChartSettings = ChartViewSettings &
@@ -89,12 +119,15 @@ export type ResolvedChartSettings = ChartViewSettings &
       | "bucket"
       | "colors"
       | "cumulative"
+      | "curve"
       | "hideEmpty"
+      | "lineMetric"
       | "metric"
       | "showDataLabels"
       | "showLegend"
       | "sort"
       | "stacked"
+      | "stacking"
       | "type"
       | "weekStartsOn"
     >
@@ -104,9 +137,18 @@ export const CHART_TYPES: readonly ChartType[] = [
   "bar",
   "horizontalBar",
   "line",
+  "area",
+  "combo",
   "donut",
+  "funnel",
   "number",
 ];
+export const CHART_STACKINGS: readonly ChartStacking[] = [
+  "stacked",
+  "percent",
+  "none",
+];
+export const CHART_CURVES: readonly ChartCurve[] = ["smooth", "linear"];
 export const CHART_BUCKETS: readonly ChartBucket[] = [
   "day",
   "week",
@@ -138,7 +180,14 @@ const MAX_FILLED_BUCKETS = 500;
 const DAYS_IN_WEEK = 7;
 const MONTHS_IN_QUARTER = 3;
 const DAY_MS = 86_400_000;
-const STRING_KEYS = ["xColumn", "metricColumn", "seriesColumn"] as const;
+/** Funnel stages kept in a saved order, at most. */
+const MAX_STAGE_ORDER = 200;
+const STRING_KEYS = [
+  "xColumn",
+  "metricColumn",
+  "seriesColumn",
+  "lineMetricColumn",
+] as const;
 const BOOLEAN_KEYS = [
   "stacked",
   "cumulative",
@@ -154,6 +203,9 @@ const TEMPLATE_PARAM = /\{(\w+)\}/g;
 const EMPTY_ID = "__empty";
 export const OTHER_ID = "__other";
 export const VALUE_SERIES_ID = "value";
+/** Series ids of combo charts: the bars' metric and the line's. */
+export const COMBO_BAR_ID = "bars";
+export const COMBO_LINE_ID = "line";
 
 const pad = (value: number, size = 2) => String(value).padStart(size, "0");
 const oneOf = <T extends string>(list: readonly T[], value: unknown) =>
@@ -184,6 +236,21 @@ function normalizedWeekStart(value: unknown): number | undefined {
     : undefined;
 }
 
+/** Distinct option values as text, in order; anything else is dropped. */
+function normalizedStageOrder(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) {
+    return;
+  }
+  const stages = [
+    ...new Set(
+      value.filter(
+        (item): item is string => typeof item === "string" && item !== ""
+      )
+    ),
+  ].slice(0, MAX_STAGE_ORDER);
+  return stages.length ? stages : undefined;
+}
+
 /** Keep only valid chart settings; unknown or malformed values are dropped. */
 export function normalizeChartViewConfig(
   value: unknown
@@ -212,6 +279,10 @@ export function normalizeChartViewConfig(
     colors: oneOf(["options", "palette"] as const, input.colors),
     topN: normalizedTopN(input.topN),
     weekStartsOn: normalizedWeekStart(input.weekStartsOn),
+    stacking: oneOf(CHART_STACKINGS, input.stacking),
+    curve: oneOf(CHART_CURVES, input.curve),
+    lineMetric: oneOf(CHART_METRICS, input.lineMetric),
+    stageOrder: normalizedStageOrder(input.stageOrder),
   };
   for (const [key, item] of Object.entries(enums)) {
     if (item !== undefined) {
@@ -295,6 +366,14 @@ function resolvedMetric(
     : { metric: "count" };
 }
 
+/** Chart types that split their values by a series column. */
+const SERIES_TYPES = new Set<ChartType>([
+  "bar",
+  "horizontalBar",
+  "line",
+  "area",
+]);
+
 /** Table defaults, then the view; sensible columns when none are chosen. */
 export function resolveChartSettings(
   columns: readonly ChartColumn[],
@@ -312,21 +391,24 @@ export function resolveChartSettings(
       : undefined;
   const xColumn = known(merged.xColumn) ?? defaultXColumn(columns);
   const seriesColumn = known(merged.seriesColumn);
-  const usesSeries =
-    merged.type !== "donut" &&
-    merged.type !== "number" &&
-    seriesColumn !== xColumn;
+  const usesSeries = SERIES_TYPES.has(merged.type) && seriesColumn !== xColumn;
+  const line = resolvedMetric(
+    columns,
+    merged.lineMetric,
+    merged.lineMetricColumn
+  );
   const resolved: ResolvedChartSettings = {
     ...merged,
     ...resolvedMetric(columns, merged.metric, merged.metricColumn),
+    lineMetric: line.metric ?? "count",
+    lineMetricColumn: line.metricColumn,
     xColumn,
     seriesColumn: usesSeries ? seriesColumn : undefined,
   };
-  if (!resolved.metricColumn) {
-    Reflect.deleteProperty(resolved, "metricColumn");
-  }
-  if (!resolved.seriesColumn) {
-    Reflect.deleteProperty(resolved, "seriesColumn");
+  for (const key of ["metricColumn", "lineMetricColumn", "seriesColumn"]) {
+    if (!resolved[key as keyof ResolvedChartSettings]) {
+      Reflect.deleteProperty(resolved, key);
+    }
   }
   return resolved;
 }
@@ -380,17 +462,24 @@ const groupByFor = (column: ChartColumn, bucket: ChartBucket): ChartGroupBy =>
     ? { columnId: column.id, bucket }
     : { columnId: column.id };
 
-/** The aggregate request of a chart, or undefined while it has no x axis. */
+const metricOf = (fn: ChartMetricFn, columnId: string | undefined) =>
+  columnId ? { columnId, fn } : { fn };
+
+/**
+ * The aggregate request of a chart, or undefined while it has no x axis.
+ * Combo charts ask for both metrics at once: the bars', then the line's.
+ */
 export function chartAggregateRequest(
   settings: ResolvedChartSettings,
   columns: readonly ChartColumn[]
 ): ChartAggregateRequest | undefined {
   const x = columnById(columns, settings.xColumn);
   const metrics: ChartMetric[] = [
-    settings.metricColumn
-      ? { columnId: settings.metricColumn, fn: settings.metric }
-      : { fn: settings.metric },
+    metricOf(settings.metric, settings.metricColumn),
   ];
+  if (settings.type === "combo") {
+    metrics.push(metricOf(settings.lineMetric, settings.lineMetricColumn));
+  }
   const base = {
     metrics,
     weekStartsOn: settings.weekStartsOn,
@@ -838,11 +927,16 @@ async function serverGroups(
     return;
   }
   try {
-    return normalizeChartAggregateResult(
+    const answer = normalizeChartAggregateResult(
       await input.aggregate(
         chartAggregateParams(input.params, input.request, input.locale)
       )
     );
+    const metrics = input.request.metrics.length;
+    // Hosts that answer fewer values than metrics (one metric only) fall back too.
+    return answer?.groups.every((group) => group.values.length >= metrics)
+      ? answer
+      : undefined;
   } catch {
     // Hosts that reject grouped requests fall back to loaded rows.
     return;
@@ -879,7 +973,10 @@ const ENGLISH_LABELS = {
   typeBar: "Vertical bars",
   typeHorizontalBar: "Horizontal bars",
   typeLine: "Line",
+  typeArea: "Area",
+  typeCombo: "Bars and line",
   typeDonut: "Donut",
+  typeFunnel: "Funnel",
   typeNumber: "Number",
   xColumn: "X axis",
   bucket: "Group dates by",
@@ -949,6 +1046,29 @@ const ENGLISH_LABELS = {
   filterUnavailable:
     "The view's filters match any rule, so a group cannot be added to them.",
   showRecords: "Show the records of {group}",
+  stacking: "Stacking",
+  stackingStacked: "Stacked",
+  stackingPercent: "Stacked to 100%",
+  stackingNone: "Overlapping",
+  curve: "Curve",
+  curveSmooth: "Smooth",
+  curveLinear: "Straight",
+  barMetric: "Bars",
+  barMetricColumn: "Bars of",
+  lineMetric: "Line",
+  lineMetricColumn: "Line of",
+  comboOf: "{bars} and {line} by {column}",
+  stageOrder: "Stage order",
+  stageOrderHint: "Drag the stages, or use the arrows, to change their order.",
+  stageOrderReset: "Reset the order",
+  moveStageUp: "Move {stage} up",
+  moveStageDown: "Move {stage} down",
+  stage: "Stage",
+  shareOfFirst: "% of first",
+  conversion: "Conversion",
+  ofFirst: "{percent} of first",
+  fromPrevious: "{percent} from previous",
+  funnelHint: "Select a stage to see its records in the table.",
 };
 
 export type ChartLabelKey = keyof typeof ENGLISH_LABELS;
@@ -958,7 +1078,10 @@ const FRENCH_LABELS: Record<ChartLabelKey, string> = {
   typeBar: "Barres verticales",
   typeHorizontalBar: "Barres horizontales",
   typeLine: "Courbe",
+  typeArea: "Aires",
+  typeCombo: "Barres et courbe",
   typeDonut: "Anneau",
+  typeFunnel: "Entonnoir",
   typeNumber: "Nombre",
   xColumn: "Axe X",
   bucket: "Regrouper les dates par",
@@ -1030,6 +1153,31 @@ const FRENCH_LABELS: Record<ChartLabelKey, string> = {
   filterUnavailable:
     "Les filtres de la vue correspondent à l’une des règles : un groupe ne peut pas y être ajouté.",
   showRecords: "Afficher les enregistrements de {group}",
+  stacking: "Empilement",
+  stackingStacked: "Empilé",
+  stackingPercent: "Empilé à 100 %",
+  stackingNone: "Superposé",
+  curve: "Tracé",
+  curveSmooth: "Lissé",
+  curveLinear: "Droit",
+  barMetric: "Barres",
+  barMetricColumn: "Barres : colonne",
+  lineMetric: "Courbe",
+  lineMetricColumn: "Courbe : colonne",
+  comboOf: "{bars} et {line} par {column}",
+  stageOrder: "Ordre des étapes",
+  stageOrderHint:
+    "Faites glisser les étapes, ou utilisez les flèches, pour changer leur ordre.",
+  stageOrderReset: "Rétablir l’ordre",
+  moveStageUp: "Monter {stage}",
+  moveStageDown: "Descendre {stage}",
+  stage: "Étape",
+  shareOfFirst: "% de la première",
+  conversion: "Conversion",
+  ofFirst: "{percent} de la première",
+  fromPrevious: "{percent} de la précédente",
+  funnelHint:
+    "Sélectionnez une étape pour voir ses enregistrements dans le tableau.",
 };
 
 /** Host override for a label (`chart.<key>`), or the built-in one. */
@@ -1179,6 +1327,45 @@ export function chartValueFormatter(
   return (value) => formatColumnNumber(value, column, locale);
 }
 
+const isCounting = (metric: ChartMetricFn | undefined) =>
+  !metric || metric === "count" || metric === "countDistinct";
+
+/**
+ * What a metric's values are measured in, from its column's number format:
+ * `count`, `currency:EUR`, `percent:fraction`, `unit:kilogram` or `number`.
+ * Combo charts give the line its own axis when it differs from the bars'.
+ */
+export function chartMetricUnit(
+  settings: Pick<ChartViewSettings, "metric" | "metricColumn">,
+  columns: readonly ChartColumn[]
+): string {
+  const column = columnById(columns, settings.metricColumn);
+  if (isCounting(settings.metric) || !column) {
+    return "count";
+  }
+  const format = resolveNumberFormat(column.numberFormat);
+  const style = format.style ?? (format.currency ? "currency" : "decimal");
+  switch (style) {
+    case "currency":
+      return `currency:${format.currency ?? "USD"}`;
+    case "percent":
+      return `percent:${format.percentBase ?? "fraction"}`;
+    case "unit":
+      return `unit:${format.unit ?? ""}`;
+    default:
+      return "number";
+  }
+}
+
+/** Formats shares such as 0.25 as "25%" (percent stacking, funnel rates). */
+export function chartShareFormatter(locale: string): (share: number) => string {
+  const formatter = new Intl.NumberFormat(locale, {
+    style: "percent",
+    maximumFractionDigits: 1,
+  });
+  return (share) => formatter.format(share);
+}
+
 // Chart model ------------------------------------------------------------------
 
 export interface ChartSeriesItem {
@@ -1188,6 +1375,12 @@ export interface ChartSeriesItem {
   label: string;
   color: string;
   other?: boolean;
+  /** Combo charts: drawn as bars or as a line. */
+  mark?: "bar" | "line";
+  /** Combo charts: the value axis, on the right when the line has another unit. */
+  axis?: "left" | "right";
+  /** Combo charts: the series' own number format (else the model's). */
+  format?: (value: number) => string;
 }
 
 export interface ChartCategory {
@@ -1196,11 +1389,32 @@ export interface ChartCategory {
   key?: unknown;
   label: string;
   color: string;
-  /** Sum of the category's series values (after cumulation). */
+  /** Sum of the category's series values (after cumulation); the bars' value in combo charts. */
   total: number;
   /** Values by series id. */
   values: Record<string, number>;
+  /** Areas stacked to 100 %: each series' share of `total`, from 0 to 1. */
+  shares?: Record<string, number>;
   other?: boolean;
+}
+
+/** One stage of a funnel chart, with its rates. */
+export interface ChartFunnelStage {
+  id: string;
+  category: ChartCategory;
+  label: string;
+  color: string;
+  value: number;
+  /** The value over the first stage's; undefined when the first stage is zero. */
+  shareOfFirst?: number;
+  /** The value over the previous stage's; undefined for the first stage or after a zero. */
+  conversion?: number;
+  /** The value as the metric's format shows it, e.g. "3" or "€463.00". */
+  valueText: string;
+  /** "100% of first" (or "—" when the first stage is zero). */
+  shareText: string;
+  /** "67% from previous"; undefined for the first stage. */
+  conversionText?: string;
 }
 
 export interface ChartModel {
@@ -1210,6 +1424,8 @@ export interface ChartModel {
   /** One series (`VALUE_SERIES_ID`) when the chart has no series column. */
   single: boolean;
   stacked: boolean;
+  /** Areas stacked to 100 %: `categories[].shares` are drawn, ticks go from 0 to 1. */
+  percent: boolean;
   /** Grand total for number and donut charts. */
   total: number;
   xLabel: string;
@@ -1217,8 +1433,19 @@ export interface ChartModel {
   /** Accessible summary, e.g. "Sum of Price by Category". */
   title: string;
   format: (value: number) => string;
+  /** Formats shares such as 0.25 as "25%" (percent stacking, funnel rates). */
+  formatShare: (share: number) => string;
   /** Value axis ticks, from the lowest to the highest (whole numbers for counts). */
   valueTicks: number[];
+  /**
+   * Combo charts whose line has another unit than the bars: the right axis'
+   * ticks, as many as `valueTicks` so both axes share the grid lines.
+   */
+  secondaryTicks?: number[];
+  /** Funnel charts: the stages in order, with their rates and texts. */
+  stages?: ChartFunnelStage[];
+  /** Whether the table fallback adds each category's total (charts with series). */
+  totalColumn: boolean;
   empty: boolean;
 }
 
@@ -1497,6 +1724,59 @@ function groupColor(
   return hue ? `hsl(${hue} 70% 55%)` : paletteColor;
 }
 
+/** The value a category is sorted, limited and hidden by: the bars' in combo charts. */
+function categoryTotal(
+  values: Record<string, number>,
+  type: ChartType
+): number {
+  if (type === "combo") {
+    return values[COMBO_BAR_ID] ?? 0;
+  }
+  return Object.values(values).reduce((sum, value) => sum + value, 0);
+}
+
+/** Hidden empty groups: no value, or zero (every metric of a combo chart). */
+function isShownCategory(
+  category: ChartCategory,
+  settings: ResolvedChartSettings
+): boolean {
+  if (category.key === null || category.key === undefined) {
+    // Records without a stage belong to no funnel stage.
+    return !(settings.hideEmpty || settings.type === "funnel");
+  }
+  if (!settings.hideEmpty) {
+    return true;
+  }
+  return settings.type === "combo"
+    ? Object.values(category.values).some((value) => value !== 0)
+    : category.total !== 0;
+}
+
+/**
+ * Funnel stages: the saved stage order first, then the automatic order (the
+ * option order of select columns, dates ascending, other values by value).
+ */
+function sortStages(
+  categories: ChartCategory[],
+  settings: ResolvedChartSettings,
+  column: ChartColumn | undefined
+): ChartCategory[] {
+  const saved = settings.stageOrder ?? [];
+  const position = (key: unknown) => {
+    const index = saved.indexOf(String(key));
+    return index === -1 ? saved.length : index;
+  };
+  const automatic = sortCategories(categories, "auto", column);
+  const rank = new Map(
+    automatic.map((category, index) => [category.id, index])
+  );
+  return [...automatic].sort(
+    (left, right) =>
+      position(left.key) - position(right.key) ||
+      (rank.get(left.id) ?? 0) - (rank.get(right.id) ?? 0)
+  );
+}
+
 function buildCategories(
   tables: GroupTables,
   plan: SeriesPlan,
@@ -1507,6 +1787,7 @@ function buildCategories(
   const { settings } = input;
   const perCategoryColor =
     settings.type === "donut" ||
+    settings.type === "funnel" ||
     (plan.series.length === 1 &&
       settings.colors === "options" &&
       hasOptionColors(column, input.coloredTags));
@@ -1521,25 +1802,22 @@ function buildCategories(
         values[target] = (values[target] ?? 0) + value;
       }
     }
-    const total = Object.values(values).reduce((sum, value) => sum + value, 0);
     categories.push({
       id,
       key: category.key,
       label: label(category.key),
       color: plan.series.at(0)?.color ?? input.otherColor,
-      total,
+      total: categoryTotal(values, settings.type),
       values,
     });
   }
-  const shown = settings.hideEmpty
-    ? categories.filter(
-        (category) =>
-          category.key !== null &&
-          category.key !== undefined &&
-          category.total !== 0
-      )
-    : categories;
-  const sorted = sortCategories(shown, settings.sort, column);
+  const shown = categories.filter((category) =>
+    isShownCategory(category, settings)
+  );
+  const sorted =
+    settings.type === "funnel"
+      ? sortStages(shown, settings, column)
+      : sortCategories(shown, settings.sort, column);
   return perCategoryColor
     ? sorted.map((category, index) => ({
         ...category,
@@ -1548,17 +1826,22 @@ function buildCategories(
     : sorted;
 }
 
+/** Whether groups past the top N add up into "Other": every metric is a count or a sum. */
+const foldsIntoOther = (settings: ResolvedChartSettings) =>
+  isAdditive(settings.metric) &&
+  (settings.type !== "combo" || isAdditive(settings.lineMetric));
+
 function limitCategories(
   categories: ChartCategory[],
   input: ChartModelInput,
   series: ChartSeriesItem[]
 ): ChartCategory[] {
-  const { topN, metric } = input.settings;
-  if (!topN || categories.length <= topN) {
+  const { topN, type } = input.settings;
+  if (!topN || categories.length <= topN || type === "funnel") {
     return categories;
   }
   const kept = categories.slice(0, topN);
-  if (!isAdditive(metric)) {
+  if (!foldsIntoOther(input.settings)) {
     return kept;
   }
   const values: Record<string, number> = Object.fromEntries(
@@ -1575,7 +1858,7 @@ function limitCategories(
       id: OTHER_ID,
       label: chartLabel("other", input.locale, input.translate),
       color: input.otherColor,
-      total: Object.values(values).reduce((sum, value) => sum + value, 0),
+      total: categoryTotal(values, type),
       values,
       other: true,
     },
@@ -1598,15 +1881,46 @@ function cumulate(categories: ChartCategory[]): ChartCategory[] {
   });
 }
 
+/** Chart types whose values can add up along the x axis. */
+const CUMULATIVE_TYPES = new Set<ChartType>([
+  "bar",
+  "horizontalBar",
+  "line",
+  "area",
+]);
+
+/**
+ * Each series' share of the category's total, for areas stacked to 100 %.
+ * A category whose total is zero shares nothing.
+ */
+export function chartShares(
+  values: Readonly<Record<string, number>>
+): Record<string, number> {
+  const total = Object.values(values).reduce((sum, value) => sum + value, 0);
+  return Object.fromEntries(
+    Object.entries(values).map(([id, value]) => [id, total ? value / total : 0])
+  );
+}
+
+/** Stacked series: bars when `stacked`, areas unless `stacking` is `none`. */
+function isStackedChart(settings: ResolvedChartSettings): boolean {
+  if (settings.type === "area") {
+    return settings.stacking !== "none";
+  }
+  return settings.stacked && settings.type !== "line";
+}
+
 const TICK_COUNT = 4;
 const NICE_STEPS = [1, 2, 5, 10];
+/** Areas stacked to 100 %: quarters of the whole. */
+const PERCENT_TICKS = [0, 0.25, 0.5, 0.75, 1];
 
 /** The values a value axis must fit: stacked totals, or each value. */
 function plottedValues(
   categories: readonly ChartCategory[],
   settings: ResolvedChartSettings
 ): number[] {
-  const stacked = settings.stacked && settings.type !== "line";
+  const stacked = isStackedChart(settings);
   return categories.flatMap((category) =>
     stacked ? [category.total] : Object.values(category.values)
   );
@@ -1641,6 +1955,206 @@ export function chartValueTicks(
   return ticks;
 }
 
+const ALIGNED_STEPS = [1, 2, 2.5, 5];
+const MAX_MAGNITUDES = 12;
+
+/**
+ * Round ticks covering the values and zero in exactly `intervals` steps, so a
+ * second value axis shares the grid lines of the first (combo charts).
+ */
+export function chartAlignedTicks(
+  values: readonly number[],
+  intervals: number,
+  integer = false
+): number[] {
+  const count = Math.max(1, Math.round(intervals));
+  const finite = values.filter((value) => Number.isFinite(value));
+  const low = Math.min(0, ...finite);
+  // Without values (or only zeros) the axis still spans one unit.
+  const high = Math.max(0, ...finite) || (low === 0 ? 1 : 0);
+  let magnitude = 10 ** Math.floor(Math.log10((high - low) / count));
+  let step = magnitude;
+  for (let attempt = 0; attempt < MAX_MAGNITUDES; attempt += 1) {
+    const fitting = ALIGNED_STEPS.map((nice) =>
+      integer ? Math.max(1, Math.ceil(nice * magnitude)) : nice * magnitude
+    ).find(
+      (candidate) =>
+        Math.floor(low / candidate) * candidate + candidate * count >=
+        high - candidate * 1e-9
+    );
+    if (fitting) {
+      step = fitting;
+      break;
+    }
+    magnitude *= 10;
+  }
+  const first = Math.floor(low / step) * step;
+  return Array.from({ length: count + 1 }, (_, index) =>
+    Number((first + step * index).toPrecision(12))
+  );
+}
+
+/** What every chart model shares, before its categories. */
+interface ModelBase {
+  type: ChartType;
+  stacked: boolean;
+  percent: boolean;
+  xLabel: string;
+  valueLabel: string;
+  title: string;
+  format: (value: number) => string;
+  formatShare: (share: number) => string;
+  totalColumn: boolean;
+}
+
+/** Combo charts: one category per x value, one value per metric (bars, then line). */
+function tabulateMetrics(
+  result: ChartAggregateResult,
+  ids: readonly string[]
+): GroupTables {
+  const categories: GroupTables["categories"] = new Map();
+  const series: GroupTables["series"] = new Map();
+  for (const group of result.groups) {
+    const [xKey = null] = group.keys;
+    const categoryId = chartKeyId(xKey);
+    let category = categories.get(categoryId);
+    if (!category) {
+      category = { key: xKey, values: new Map() };
+      categories.set(categoryId, category);
+    }
+    for (const [index, id] of ids.entries()) {
+      const value = group.values.at(index) ?? 0;
+      category.values.set(id, (category.values.get(id) ?? 0) + value);
+      const item = series.get(id) ?? { key: undefined, total: 0 };
+      item.total += value;
+      series.set(id, item);
+    }
+  }
+  return { categories, series };
+}
+
+/** Combo charts: bars and a line by x value, each metric with its format and axis. */
+function buildComboModel(input: ChartModelInput, base: ModelBase): ChartModel {
+  const { settings, columns, locale, translate, palette, otherColor } = input;
+  const x = columnById(columns, settings.xColumn);
+  const bars = { metric: settings.metric, metricColumn: settings.metricColumn };
+  const line = {
+    metric: settings.lineMetric,
+    metricColumn: settings.lineMetricColumn,
+  };
+  const dual =
+    chartMetricUnit(bars, columns) !== chartMetricUnit(line, columns);
+  const barsLabel = chartMetricLabel(bars, columns, locale, translate);
+  const lineLabel = chartMetricLabel(line, columns, locale, translate);
+  const series: ChartSeriesItem[] = [
+    {
+      id: COMBO_BAR_ID,
+      label: barsLabel,
+      color: palette.at(0) ?? otherColor,
+      mark: "bar",
+      axis: "left",
+      format: base.format,
+    },
+    {
+      id: COMBO_LINE_ID,
+      label: lineLabel,
+      color: palette.at(1) ?? palette.at(0) ?? otherColor,
+      mark: "line",
+      axis: dual ? "right" : "left",
+      format: chartValueFormatter(line, columns, locale),
+    },
+  ];
+  const tables = tabulateMetrics(input.result, [COMBO_BAR_ID, COMBO_LINE_ID]);
+  fillCategories(tables, settings, x);
+  const plan: SeriesPlan = {
+    series,
+    shownAs: new Map(series.map((item) => [item.id, item.id])),
+  };
+  const bucket = x?.type === "date" ? settings.bucket : undefined;
+  const categories = limitCategories(
+    buildCategories(tables, plan, input, x, (key) =>
+      groupKeyLabel(key, x, bucket, locale, translate)
+    ),
+    input,
+    series
+  );
+  const valuesOf = (id: string) =>
+    categories.map((category) => category.values[id] ?? 0);
+  const valueTicks = chartValueTicks(
+    dual
+      ? valuesOf(COMBO_BAR_ID)
+      : [...valuesOf(COMBO_BAR_ID), ...valuesOf(COMBO_LINE_ID)],
+    isCounting(settings.metric) && (dual || isCounting(settings.lineMetric))
+  );
+  const secondary = dual
+    ? {
+        secondaryTicks: chartAlignedTicks(
+          valuesOf(COMBO_LINE_ID),
+          valueTicks.length - 1,
+          isCounting(settings.lineMetric)
+        ),
+      }
+    : {};
+  return {
+    ...base,
+    stacked: false,
+    percent: false,
+    totalColumn: false,
+    title: chartLabel("comboOf", locale, translate, {
+      bars: barsLabel,
+      line: lineLabel,
+      column: base.xLabel,
+    }),
+    categories,
+    series,
+    single: false,
+    total: categories.reduce((sum, category) => sum + category.total, 0),
+    valueTicks,
+    ...secondary,
+    empty: categories.every((category) =>
+      Object.values(category.values).every((value) => value === 0)
+    ),
+  };
+}
+
+/** Funnel stages: each value, its share of the first stage and its conversion from the previous. */
+function funnelStages(
+  categories: readonly ChartCategory[],
+  base: Pick<ModelBase, "format" | "formatShare">,
+  label: (key: ChartLabelKey, params: Record<string, string>) => string
+): ChartFunnelStage[] {
+  const first = categories.at(0)?.total ?? 0;
+  const percent = (share: number | undefined) =>
+    share === undefined ? "—" : base.formatShare(share);
+  return categories.map((category, index) => {
+    const value = category.total;
+    const previous = index > 0 ? categories[index - 1]?.total : undefined;
+    const shareOfFirst = first ? value / first : undefined;
+    const conversion = previous ? value / previous : undefined;
+    const stage: ChartFunnelStage = {
+      id: category.id,
+      category,
+      label: category.label,
+      color: category.color,
+      value,
+      valueText: base.format(value),
+      shareText: label("ofFirst", { percent: percent(shareOfFirst) }),
+    };
+    if (shareOfFirst !== undefined) {
+      stage.shareOfFirst = shareOfFirst;
+    }
+    if (conversion !== undefined) {
+      stage.conversion = conversion;
+    }
+    if (index > 0) {
+      stage.conversionText = label("fromPrevious", {
+        percent: percent(conversion),
+      });
+    }
+    return stage;
+  });
+}
+
 /** Everything a renderer draws: categories, series, colors, labels and formats. */
 export function buildChartModel(input: ChartModelInput): ChartModel {
   const { settings, columns, locale, translate } = input;
@@ -1649,9 +2163,13 @@ export function buildChartModel(input: ChartModelInput): ChartModel {
   const format = chartValueFormatter(settings, columns, locale);
   const valueLabel = chartMetricLabel(settings, columns, locale, translate);
   const xLabel = x?.header ?? x?.id ?? "";
-  const common = {
+  const common: ModelBase = {
     type: settings.type,
-    stacked: settings.stacked && settings.type !== "line",
+    stacked: isStackedChart(settings),
+    percent:
+      settings.type === "area" &&
+      settings.stacking === "percent" &&
+      Boolean(seriesColumn),
     xLabel,
     valueLabel,
     title: chartLabel("chartOf", locale, translate, {
@@ -1659,6 +2177,8 @@ export function buildChartModel(input: ChartModelInput): ChartModel {
       column: xLabel,
     }),
     format,
+    formatShare: chartShareFormatter(locale),
+    totalColumn: Boolean(seriesColumn),
   };
   if (settings.type === "number") {
     const total = input.result.groups.at(0)?.values.at(0) ?? 0;
@@ -1673,6 +2193,9 @@ export function buildChartModel(input: ChartModelInput): ChartModel {
       empty: false,
     };
   }
+  if (settings.type === "combo") {
+    return buildComboModel(input, common);
+  }
   const bucketOf = (column: ChartColumn | undefined) =>
     column?.type === "date" ? settings.bucket : undefined;
   const labelFor = (column: ChartColumn | undefined) => (key: unknown) =>
@@ -1685,30 +2208,279 @@ export function buildChartModel(input: ChartModelInput): ChartModel {
     input,
     plan.series
   );
-  if (
-    settings.cumulative &&
-    (settings.type === "bar" ||
-      settings.type === "horizontalBar" ||
-      settings.type === "line")
-  ) {
+  if (settings.cumulative && CUMULATIVE_TYPES.has(settings.type)) {
     categories = cumulate(categories);
   }
+  if (common.percent) {
+    categories = categories.map((category) => ({
+      ...category,
+      shares: chartShares(category.values),
+    }));
+  }
   const total =
-    settings.type === "donut"
+    settings.type === "donut" || settings.type === "funnel"
       ? categories.reduce((sum, category) => sum + category.total, 0)
       : [...tables.series.values()].reduce((sum, item) => sum + item.total, 0);
+  let valueTicks: number[] = [];
+  if (common.percent) {
+    valueTicks = [...PERCENT_TICKS];
+  } else if (settings.type !== "funnel") {
+    valueTicks = chartValueTicks(
+      plottedValues(categories, settings),
+      isCounting(settings.metric)
+    );
+  }
+  const funnel =
+    settings.type === "funnel"
+      ? {
+          stages: funnelStages(categories, common, (key, params) =>
+            chartLabel(key, locale, translate, params)
+          ),
+        }
+      : {};
   return {
     ...common,
     categories,
     series: plan.series,
     single: !seriesColumn,
     total,
-    valueTicks: chartValueTicks(
-      plottedValues(categories, settings),
-      settings.metric === "count" || settings.metric === "countDistinct"
-    ),
+    valueTicks,
+    ...funnel,
     empty: categories.every((category) => category.total === 0),
   };
+}
+
+/**
+ * A category's value for a series as tables and tooltips show it: in the
+ * series' format (combo metrics have their own), with its share of the
+ * category when areas are stacked to 100 %, e.g. "2 (50%)".
+ */
+export function chartValueText(
+  model: Pick<ChartModel, "format" | "formatShare" | "percent">,
+  category: Pick<ChartCategory, "shares" | "values"> | undefined,
+  series: Pick<ChartSeriesItem, "format" | "id"> | undefined
+): string {
+  const id = series?.id ?? VALUE_SERIES_ID;
+  const text = (series?.format ?? model.format)(category?.values[id] ?? 0);
+  const share = model.percent ? category?.shares?.[id] : undefined;
+  return share === undefined ? text : `${text} (${model.formatShare(share)})`;
+}
+
+/** The value axis of a chart: shares when stacked to 100 %, else values. */
+export const chartTickFormat = (
+  model: Pick<ChartModel, "format" | "formatShare" | "percent">
+): ((value: number) => string) =>
+  model.percent ? model.formatShare : model.format;
+
+// Funnel geometry ------------------------------------------------------------------
+
+/**
+ * Stages side by side from left to right (`vertical`, like vertical bars) or
+ * stacked from top to bottom (`horizontal`, on narrow widths).
+ */
+export type ChartFunnelOrientation = "vertical" | "horizontal";
+
+/** Width each stage needs side by side; narrower charts stack the stages. */
+export const FUNNEL_STAGE_MIN_WIDTH = 120;
+/** Charts narrower than this always stack the stages. */
+export const FUNNEL_MIN_WIDE_WIDTH = 480;
+/** Width drawn before the chart is measured. */
+export const FUNNEL_DEFAULT_WIDTH = 640;
+/** A vertical funnel is as tall as the other charts. */
+const FUNNEL_HEIGHT = 320;
+/** Two text lines above the shapes and two below, in a vertical funnel. */
+const FUNNEL_TEXT_BAND = 48;
+/** Each stage of a horizontal funnel: a text line, the shape, a text line. */
+const FUNNEL_ROW_HEIGHT = 76;
+const FUNNEL_ROW_SHAPE_TOP = 22;
+const FUNNEL_ROW_SHAPE_HEIGHT = 28;
+const FUNNEL_GAP = 6;
+/** Zero stages keep a sliver, so every stage stays visible and clickable. */
+const FUNNEL_MIN_SIZE = 2;
+/** Average width of a 12px label character, to cut labels that do not fit. */
+const FUNNEL_CHAR_WIDTH = 7;
+const FUNNEL_TEXT_PADDING = 8;
+
+/** A text of the funnel: position (SVG baseline), alignment and content. */
+export interface ChartFunnelText {
+  x: number;
+  y: number;
+  anchor: "start" | "middle" | "end";
+  text: string;
+}
+
+export interface ChartFunnelShape {
+  stage: ChartFunnelStage;
+  /**
+   * SVG polygon points: the leading edge is as long as the stage's value, the
+   * trailing edge as the next stage's (the last stage ends square).
+   */
+  points: string;
+  /** The stage's area (shape and texts), e.g. for the button over it. */
+  box: { x: number; y: number; width: number; height: number };
+  name: ChartFunnelText;
+  value: ChartFunnelText;
+  share: ChartFunnelText;
+  conversion?: ChartFunnelText;
+}
+
+export interface ChartFunnelLayout {
+  orientation: ChartFunnelOrientation;
+  width: number;
+  height: number;
+  shapes: ChartFunnelShape[];
+}
+
+/** Stages side by side when each gets `FUNNEL_STAGE_MIN_WIDTH`, else stacked. */
+export function chartFunnelOrientation(
+  width: number,
+  stageCount: number
+): ChartFunnelOrientation {
+  return width >=
+    Math.max(FUNNEL_MIN_WIDE_WIDTH, stageCount * FUNNEL_STAGE_MIN_WIDTH)
+    ? "vertical"
+    : "horizontal";
+}
+
+/** A label cut to the width it has, with an ellipsis. */
+export function fitChartLabel(text: string, width: number): string {
+  const characters = Math.max(1, Math.floor(width / FUNNEL_CHAR_WIDTH));
+  return text.length > characters
+    ? `${text.slice(0, Math.max(1, characters - 1)).trimEnd()}…`
+    : text;
+}
+
+const roundPixel = (value: number) => Math.round(value * 10) / 10;
+const toPoints = (points: [number, number][]) =>
+  points.map(([x, y]) => `${roundPixel(x)},${roundPixel(y)}`).join(" ");
+
+function verticalFunnel(
+  stages: readonly ChartFunnelStage[],
+  width: number,
+  sizeOf: (value: number, full: number) => number
+): ChartFunnelShape[] {
+  const slot = width / Math.max(1, stages.length);
+  const full = FUNNEL_HEIGHT - FUNNEL_TEXT_BAND * 2;
+  const middle = FUNNEL_HEIGHT / 2;
+  const room = slot - FUNNEL_TEXT_PADDING;
+  return stages.map((stage, index) => {
+    const lead = sizeOf(stage.value, full);
+    const next = stages[index + 1];
+    const trail = next ? sizeOf(next.value, full) : lead;
+    const start = index * slot + FUNNEL_GAP / 2;
+    const end = (index + 1) * slot - FUNNEL_GAP / 2;
+    const center = roundPixel(index * slot + slot / 2);
+    const text = (y: number, content: string): ChartFunnelText => ({
+      x: center,
+      y,
+      anchor: "middle",
+      text: fitChartLabel(content, room),
+    });
+    return {
+      stage,
+      points: toPoints([
+        [start, middle - lead / 2],
+        [end, middle - trail / 2],
+        [end, middle + trail / 2],
+        [start, middle + lead / 2],
+      ]),
+      box: {
+        x: roundPixel(index * slot),
+        y: 0,
+        width: roundPixel(slot),
+        height: FUNNEL_HEIGHT,
+      },
+      name: text(16, stage.label),
+      value: text(36, stage.valueText),
+      share: text(FUNNEL_HEIGHT - 24, stage.shareText),
+      ...(stage.conversionText
+        ? { conversion: text(FUNNEL_HEIGHT - 6, stage.conversionText) }
+        : {}),
+    };
+  });
+}
+
+function horizontalFunnel(
+  stages: readonly ChartFunnelStage[],
+  width: number,
+  sizeOf: (value: number, full: number) => number
+): ChartFunnelShape[] {
+  const middle = width / 2;
+  const half = width / 2 - FUNNEL_TEXT_PADDING / 2;
+  return stages.map((stage, index) => {
+    const top = index * FUNNEL_ROW_HEIGHT;
+    const shapeTop = top + FUNNEL_ROW_SHAPE_TOP;
+    const shapeBottom = shapeTop + FUNNEL_ROW_SHAPE_HEIGHT;
+    const lead = sizeOf(stage.value, width);
+    const next = stages[index + 1];
+    const trail = next ? sizeOf(next.value, width) : lead;
+    const valueWidth =
+      stage.valueText.length * FUNNEL_CHAR_WIDTH + FUNNEL_TEXT_PADDING;
+    return {
+      stage,
+      points: toPoints([
+        [middle - lead / 2, shapeTop],
+        [middle + lead / 2, shapeTop],
+        [middle + trail / 2, shapeBottom],
+        [middle - trail / 2, shapeBottom],
+      ]),
+      box: { x: 0, y: top, width, height: FUNNEL_ROW_HEIGHT },
+      name: {
+        x: 0,
+        y: top + 15,
+        anchor: "start",
+        text: fitChartLabel(stage.label, width - valueWidth),
+      },
+      value: { x: width, y: top + 15, anchor: "end", text: stage.valueText },
+      share: {
+        x: 0,
+        y: top + 66,
+        anchor: "start",
+        text: fitChartLabel(stage.shareText, half),
+      },
+      ...(stage.conversionText
+        ? {
+            conversion: {
+              x: width,
+              y: top + 66,
+              anchor: "end" as const,
+              text: fitChartLabel(stage.conversionText, half),
+            },
+          }
+        : {}),
+    };
+  });
+}
+
+/**
+ * Shapes and texts of a funnel `width` pixels wide, the same in both editions:
+ * stages side by side on wide charts, stacked on narrow ones. Shapes are as
+ * long as their stage's value against the largest one.
+ */
+export function chartFunnelLayout(
+  stages: readonly ChartFunnelStage[],
+  width: number
+): ChartFunnelLayout {
+  const drawn = roundPixel(width > 0 ? width : FUNNEL_DEFAULT_WIDTH);
+  const orientation = chartFunnelOrientation(drawn, stages.length);
+  const largest = Math.max(0, ...stages.map((stage) => stage.value));
+  const sizeOf = (value: number, full: number) =>
+    largest > 0
+      ? Math.max(FUNNEL_MIN_SIZE, (Math.max(0, value) / largest) * full)
+      : FUNNEL_MIN_SIZE;
+  return orientation === "vertical"
+    ? {
+        orientation,
+        width: drawn,
+        height: FUNNEL_HEIGHT,
+        shapes: verticalFunnel(stages, drawn, sizeOf),
+      }
+    : {
+        orientation,
+        width: drawn,
+        height: Math.max(1, stages.length) * FUNNEL_ROW_HEIGHT,
+        shapes: horizontalFunnel(stages, drawn, sizeOf),
+      };
 }
 
 // Filtering on click -------------------------------------------------------------
@@ -1723,31 +2495,40 @@ export interface ChartFilterRule {
   isActive: true;
 }
 
+/**
+ * The rule the table's own filter menus would write for a group: the
+ * column's filter type (booleans are select filters, emails and links text
+ * filters) with one of that type's operators, so hosts and saved views read
+ * it like any other rule. Yes/no groups select their stored value.
+ */
 function ruleFor(
   column: ChartColumn,
   key: unknown,
   bucket: ChartBucket
 ): Omit<ChartFilterRule, "id" | "isActive"> | undefined {
-  const type = column.type ?? "text";
+  const type = dataTypeFilter(
+    column.type,
+    Array.isArray(column.options) && column.options.length > 0
+  );
   const base = { columnId: column.id, type };
   if (key === null || key === undefined) {
     return { ...base, operator: "isEmpty", values: [] };
   }
-  if (type === "date") {
-    const range =
-      typeof key === "string" ? chartBucketRange(key, bucket) : undefined;
-    return range ? { ...base, operator: "between", values: range } : undefined;
+  switch (type) {
+    case "date": {
+      const range =
+        typeof key === "string" ? chartBucketRange(key, bucket) : undefined;
+      return range
+        ? { ...base, operator: "between", values: range }
+        : undefined;
+    }
+    case "multiSelect":
+      return { ...base, operator: "contains", values: [key] };
+    case "select":
+      return { ...base, operator: "isAnyOf", values: [key] };
+    default:
+      return { ...base, operator: "equals", values: [key] };
   }
-  if (type === "boolean" || typeof key === "boolean") {
-    return { ...base, operator: key ? "isTrue" : "isFalse", values: [] };
-  }
-  if (type === "multiSelect") {
-    return { ...base, operator: "contains", values: [key] };
-  }
-  if (type === "select") {
-    return { ...base, operator: "isAnyOf", values: [key] };
-  }
-  return { ...base, operator: "equals", values: [key] };
 }
 
 /**
@@ -1766,7 +2547,12 @@ export function chartGroupFilters(
     }
     parts.push([columnById(columns, settings.xColumn), group.category.key]);
   }
-  if (group.series && group.series.id !== VALUE_SERIES_ID) {
+  // Combo metrics are series without a column: the x value is the group.
+  if (
+    group.series &&
+    group.series.id !== VALUE_SERIES_ID &&
+    settings.seriesColumn
+  ) {
     if (group.series.other) {
       return;
     }
@@ -1836,8 +2622,20 @@ const TYPE_LABELS: Record<ChartType, ChartLabelKey> = {
   bar: "typeBar",
   horizontalBar: "typeHorizontalBar",
   line: "typeLine",
+  area: "typeArea",
+  combo: "typeCombo",
   donut: "typeDonut",
+  funnel: "typeFunnel",
   number: "typeNumber",
+};
+const STACKING_KEYS: Record<ChartStacking, ChartLabelKey> = {
+  stacked: "stackingStacked",
+  percent: "stackingPercent",
+  none: "stackingNone",
+};
+const CURVE_KEYS: Record<ChartCurve, ChartLabelKey> = {
+  smooth: "curveSmooth",
+  linear: "curveLinear",
 };
 const METRIC_KEYS: Record<ChartMetricFn, ChartLabelKey> = {
   count: "metricCount",
@@ -1959,44 +2757,89 @@ function metricColumnFor(
     : candidates.at(0)?.id;
 }
 
-function metricFields(context: FieldContext): ChartSettingField[] {
+/** A metric's settings: the bars' (`metric`) or a combo chart's line (`lineMetric`). */
+interface MetricKeys {
+  metric: "metric" | "lineMetric";
+  column: "metricColumn" | "lineMetricColumn";
+  label: ChartLabelKey;
+  columnLabel: ChartLabelKey;
+}
+
+const METRIC_SETTINGS: MetricKeys = {
+  metric: "metric",
+  column: "metricColumn",
+  label: "metric",
+  columnLabel: "metricColumn",
+};
+const BAR_METRIC_SETTINGS: MetricKeys = {
+  ...METRIC_SETTINGS,
+  label: "barMetric",
+  columnLabel: "barMetricColumn",
+};
+const LINE_METRIC_SETTINGS: MetricKeys = {
+  metric: "lineMetric",
+  column: "lineMetricColumn",
+  label: "lineMetric",
+  columnLabel: "lineMetricColumn",
+};
+
+function metricFields(
+  context: FieldContext,
+  keys: MetricKeys = METRIC_SETTINGS
+): ChartSettingField[] {
   const { active, label, set, columns } = context;
+  const metric = active[keys.metric];
+  const current = active[keys.column];
   const fields: ChartSettingField[] = [
     {
-      id: "metric",
-      label: label("metric"),
-      value: active.metric,
-      options: CHART_METRICS.map((metric) => ({
-        value: metric,
-        label: label(METRIC_KEYS[metric]),
+      id: keys.metric,
+      label: label(keys.label),
+      value: metric,
+      options: CHART_METRICS.map((item) => ({
+        value: item,
+        label: label(METRIC_KEYS[item]),
       })),
       onChange: (value) =>
         set({
-          metric: value,
-          metricColumn: metricColumnFor(
+          [keys.metric]: value,
+          [keys.column]: metricColumnFor(
             columns,
             value as ChartMetricFn,
-            active.metricColumn
+            current
           ),
         }),
     },
   ];
-  if (active.metric !== "count") {
-    const candidates = metricCandidates(columns, active.metric);
+  if (metric !== "count") {
+    const candidates = metricCandidates(columns, metric);
     fields.push({
-      id: "metricColumn",
-      label: label("metricColumn"),
-      value: active.metricColumn ?? NONE,
+      id: keys.column,
+      label: label(keys.columnLabel),
+      value: current ?? NONE,
       options: candidates.map(columnOption),
-      onChange: (value) => set({ metricColumn: value }),
+      onChange: (value) => set({ [keys.column]: value }),
     });
   }
   return fields;
 }
 
+function curveField(context: FieldContext): ChartSettingField {
+  const { active, label, set } = context;
+  return {
+    id: "curve",
+    label: label("curve"),
+    value: active.curve,
+    options: CHART_CURVES.map((curve) => ({
+      value: curve,
+      label: label(CURVE_KEYS[curve]),
+    })),
+    onChange: (value) => set({ curve: value }),
+  };
+}
+
 function seriesFields(context: FieldContext): ChartSettingField[] {
   const { active, label, set, columns } = context;
-  if (active.type === "donut" || active.type === "number") {
+  if (!SERIES_TYPES.has(active.type)) {
     return [];
   }
   const fields: ChartSettingField[] = [
@@ -2015,14 +2858,67 @@ function seriesFields(context: FieldContext): ChartSettingField[] {
       onChange: (value) => set({ seriesColumn: value }),
     },
   ];
-  if (active.seriesColumn && active.type !== "line") {
+  if (active.seriesColumn && active.type === "area") {
+    fields.push({
+      id: "stacking",
+      label: label("stacking"),
+      value: active.stacking,
+      options: CHART_STACKINGS.map((stacking) => ({
+        value: stacking,
+        label: label(STACKING_KEYS[stacking]),
+      })),
+      onChange: (value) => set({ stacking: value }),
+    });
+  } else if (active.seriesColumn && active.type !== "line") {
     fields.push(onOffField(context, "stacked"));
+  }
+  if (active.type === "line" || active.type === "area") {
+    fields.push(curveField(context));
   }
   return fields;
 }
 
+function topNField(context: FieldContext): ChartSettingField {
+  const { active, label, set } = context;
+  return {
+    id: "topN",
+    label: label("topN"),
+    value: active.topN ? String(active.topN) : NONE,
+    options: [
+      { value: NONE, label: label("topAll") },
+      ...TOP_N_CHOICES.map((count) => ({
+        value: String(count),
+        label: label("top", { count }),
+      })),
+    ],
+    onChange: (value) => set({ topN: value ? Number(value) : undefined }),
+  };
+}
+
+function colorsField(context: FieldContext): ChartSettingField {
+  const { active, label, set } = context;
+  return {
+    id: "colors",
+    label: label("colors"),
+    value: active.colors,
+    options: [
+      { value: "options", label: label("colorsOptions") },
+      { value: "palette", label: label("colorsPalette") },
+    ],
+    onChange: (value) => set({ colors: value }),
+  };
+}
+
 function displayFields(context: FieldContext): ChartSettingField[] {
   const { active, label, set } = context;
+  if (active.type === "funnel") {
+    // Stages keep their order (see `chartStageList`) and always show their numbers.
+    return [
+      onOffField(context, "hideEmpty"),
+      onOffField(context, "showLegend"),
+      colorsField(context),
+    ];
+  }
   const fields: ChartSettingField[] = [
     {
       id: "sort",
@@ -2035,47 +2931,28 @@ function displayFields(context: FieldContext): ChartSettingField[] {
       onChange: (value) => set({ sort: value === "auto" ? undefined : value }),
     },
   ];
-  if (active.type !== "donut") {
+  if (CUMULATIVE_TYPES.has(active.type)) {
     fields.push(onOffField(context, "cumulative"));
   }
   fields.push(
     onOffField(context, "hideEmpty"),
-    {
-      id: "topN",
-      label: label("topN"),
-      value: active.topN ? String(active.topN) : NONE,
-      options: [
-        { value: NONE, label: label("topAll") },
-        ...TOP_N_CHOICES.map((count) => ({
-          value: String(count),
-          label: label("top", { count }),
-        })),
-      ],
-      onChange: (value) => set({ topN: value ? Number(value) : undefined }),
-    },
+    topNField(context),
     onOffField(context, "showDataLabels"),
-    onOffField(context, "showLegend"),
-    {
-      id: "colors",
-      label: label("colors"),
-      value: active.colors,
-      options: [
-        { value: "options", label: label("colorsOptions") },
-        { value: "palette", label: label("colorsPalette") },
-      ],
-      onChange: (value) => set({ colors: value }),
-    }
+    onOffField(context, "showLegend")
   );
+  // Combo charts draw their two metrics in the palette's first colors.
+  if (active.type !== "combo") {
+    fields.push(colorsField(context));
+  }
   return fields;
 }
 
-/** The chart settings panel: type, axes, grouping and display, as selects. */
-export function chartSettingFields(
-  input: ChartSettingFieldsInput
-): ChartSettingField[] {
-  const { columns, defaults, view, locale, translate, update } = input;
-  const active = resolveChartSettings(columns, defaults, view);
-  const set = (patch: Record<string, unknown>) => {
+/** Saves a patch of the view's settings, leaving out undefined and empty values. */
+function settingsWriter(
+  view: ChartViewSettings,
+  update: (settings: Record<string, unknown>) => void
+) {
+  return (patch: Record<string, unknown>) => {
     const next: Record<string, unknown> = { ...view, ...patch };
     for (const [key, value] of Object.entries(next)) {
       if (value === undefined || value === NONE) {
@@ -2084,6 +2961,38 @@ export function chartSettingFields(
     }
     update(next);
   };
+}
+
+/** The fields of a chart type, after its type. */
+function typeFields(context: FieldContext): ChartSettingField[] {
+  switch (context.active.type) {
+    case "number":
+      return metricFields(context);
+    case "combo":
+      return [
+        ...axisFields(context),
+        ...metricFields(context, BAR_METRIC_SETTINGS),
+        ...metricFields(context, LINE_METRIC_SETTINGS),
+        curveField(context),
+        ...displayFields(context),
+      ];
+    default:
+      return [
+        ...axisFields(context),
+        ...metricFields(context),
+        ...seriesFields(context),
+        ...displayFields(context),
+      ];
+  }
+}
+
+/** The chart settings panel: type, axes, grouping and display, as selects. */
+export function chartSettingFields(
+  input: ChartSettingFieldsInput
+): ChartSettingField[] {
+  const { columns, defaults, view, locale, translate, update } = input;
+  const active = resolveChartSettings(columns, defaults, view);
+  const set = settingsWriter(view, update);
   const context: FieldContext = {
     label: (key, params) => chartLabel(key, locale, translate, params),
     active,
@@ -2100,14 +3009,107 @@ export function chartSettingFields(
     })),
     onChange: (value) => set({ type: value }),
   };
-  if (active.type === "number") {
-    return [typeField, ...metricFields(context)];
+  return [typeField, ...typeFields(context)];
+}
+
+/** One stage of the stage order list. */
+export interface ChartStageItem {
+  /** The option value, as text. */
+  value: string;
+  label: string;
+  moveUpLabel: string;
+  moveDownLabel: string;
+}
+
+/** The funnel's stage order in the settings panel: drag or arrows to move a stage. */
+export interface ChartStageList {
+  label: string;
+  hint: string;
+  resetLabel: string;
+  stages: ChartStageItem[];
+  /** The view saves its own order; `reset` returns to the table's (or the option order). */
+  customized: boolean;
+  /** Moves the stage at `from` to `to` and saves the order. */
+  move: (from: number, to: number) => void;
+  reset: () => void;
+}
+
+/** Saved stages that are options, then the other options in option order. */
+function stageOrderOf(
+  optionOrder: readonly string[],
+  saved: readonly string[] | undefined
+): string[] {
+  const known = (saved ?? []).filter((value) => optionOrder.includes(value));
+  return [...known, ...optionOrder.filter((value) => !known.includes(value))];
+}
+
+const sameOrder = (left: readonly string[], right: readonly string[]) =>
+  left.length === right.length &&
+  left.every((value, index) => value === right[index]);
+
+/**
+ * The stage order list of a funnel whose stages are the options of a select
+ * column; undefined for other charts and columns. Both editions render it
+ * after the settings fields.
+ */
+export function chartStageList(
+  input: ChartSettingFieldsInput
+): ChartStageList | undefined {
+  const { columns, defaults, view, locale, translate, update } = input;
+  const active = resolveChartSettings(columns, defaults, view);
+  const column = columnById(columns, active.xColumn);
+  if (
+    active.type !== "funnel" ||
+    !(column && OPTION_TYPES.has(column.type ?? ""))
+  ) {
+    return;
   }
-  return [
-    typeField,
-    ...axisFields(context),
-    ...metricFields(context),
-    ...seriesFields(context),
-    ...displayFields(context),
-  ];
+  const options = Array.isArray(column.options)
+    ? column.options.map(recordValue)
+    : [];
+  const values = options
+    .map((option) => String(option.value ?? ""))
+    .filter((value) => value !== "");
+  if (!values.length) {
+    return;
+  }
+  const label = (key: ChartLabelKey, params?: Record<string, string>) =>
+    chartLabel(key, locale, translate, params);
+  const set = settingsWriter(view, update);
+  const inherited = stageOrderOf(
+    values,
+    normalizeChartViewConfig(defaults)?.stageOrder
+  );
+  const order = stageOrderOf(values, active.stageOrder);
+  const labelOf = (value: string) =>
+    dataTypeOptionLabel(
+      options.find((option) => String(option.value) === value)?.value ?? value,
+      column.options
+    );
+  return {
+    label: label("stageOrder"),
+    hint: label("stageOrderHint"),
+    resetLabel: label("stageOrderReset"),
+    stages: order.map((value) => {
+      const stage = labelOf(value);
+      return {
+        value,
+        label: stage,
+        moveUpLabel: label("moveStageUp", { stage }),
+        moveDownLabel: label("moveStageDown", { stage }),
+      };
+    }),
+    customized: Boolean(normalizeChartViewConfig(view)?.stageOrder),
+    move: (from, to) => {
+      const next = [...order];
+      const [moved] = next.splice(from, 1);
+      if (moved === undefined || to < 0 || to >= order.length) {
+        return;
+      }
+      next.splice(to, 0, moved);
+      // The table's order needs no copy in the view.
+      set({ stageOrder: sameOrder(next, inherited) ? undefined : next });
+    },
+    reset: () => set({ stageOrder: undefined }),
+  };
 }

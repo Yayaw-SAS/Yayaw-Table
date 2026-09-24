@@ -1791,7 +1791,7 @@
       "name": "yayaw-table-chart",
       "type": "registry:block",
       "title": "Yayaw Table Chart",
-      "description": "Optional chart display mode for YaYaw Table (vertical and horizontal bars, line, donut and number), rendered with shadcn/ui charts (Recharts). Pass `chartRenderer` to `displayModeRenderers` and add \"chart\" to `table.displayModes`.",
+      "description": "Optional chart display mode for YaYaw Table (vertical and horizontal bars, line, area, bars and line, donut, funnel and number), rendered with shadcn/ui charts (Recharts) and an SVG funnel. Pass `chartRenderer` to `displayModeRenderers` and add \"chart\" to `table.displayModes`.",
       "registryDependencies": [
         "button",
         "chart",
@@ -1799,6 +1799,11 @@
       ],
       "dependencies": ["recharts"],
       "files": [
+        {
+          "path": "registry/default/ui/yayaw-table-chart/chart-funnel.tsx",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table-chart/chart-funnel.tsx"
+        },
         {
           "path": "registry/default/ui/yayaw-table-chart/chart-renderer.tsx",
           "type": "registry:component",

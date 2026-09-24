@@ -140,6 +140,25 @@ const SITES: Record<string, string> = {
   foxtrot: "La Défense hub",
 };
 
+/** Gross margin of each project, read by the "Revenus et marge" chart. */
+const MARGINS: Record<string, number> = {
+  alpha: 0.62,
+  bravo: 0.35,
+  charlie: 0.18,
+  delta: 0.41,
+  echo: 0.27,
+  foxtrot: 0.55,
+};
+/** Whether each project was invoiced: yes, no, or not known yet (Foxtrot). */
+const INVOICED: Record<string, boolean | null> = {
+  alpha: true,
+  bravo: false,
+  charlie: true,
+  delta: true,
+  echo: false,
+  foxtrot: null,
+};
+
 /** Shared records and columns for the React and Vue view-switching examples and end-to-end tests. */
 export const viewsRows = [
   ["alpha", "Alpha launch", "Software", "Active", 49, "2026-09-02"],
@@ -162,6 +181,8 @@ export const viewsRows = [
   update: viewsUpdates[String(id)]?.[1] ?? "",
   author: viewsUpdates[String(id)]?.[0] ?? "",
   postedAt: postedHoursAgo(viewsUpdates[String(id)]?.[2] ?? 0),
+  margin: MARGINS[String(id)] ?? 0,
+  invoiced: INVOICED[String(id)] ?? null,
 }));
 
 const options = (values: string[]) =>
@@ -212,15 +233,25 @@ export const viewsColumns = [
     // Stamped when an update is posted: forms never ask it.
     readonly: true,
   },
+  // Read by charts ("Revenus et marge", yes/no groups); hidden in the table by default.
+  {
+    id: "margin",
+    header: "Margin",
+    type: "number" as const,
+    numberFormat: { style: "percent" as const, maximumFractionDigits: 1 },
+  },
+  { id: "invoiced", header: "Invoiced", type: "boolean" as const },
 ];
 
-/** Columns only the feed and forms show. */
+/** Columns only the feed, forms and charts show. */
 const HIDDEN_COLUMNS = new Set([
   "serialNumber",
   "details",
   "update",
   "author",
   "postedAt",
+  "margin",
+  "invoiced",
 ]);
 
 /** Columns the examples show at first; the form and feed ones stay hidden. */
@@ -408,6 +439,8 @@ export function createViewsActions(host: { aggregate?: boolean } = {}) {
         update: "",
         author: "",
         postedAt: "",
+        margin: 0,
+        invoiced: null,
         ...values,
       } as ViewRow);
       return id;
@@ -601,7 +634,11 @@ const chartView = (
   config: { displayMode: "chart" as const, chart },
 });
 
-/** Saved chart views of the examples: revenue by category and projects by due month. */
+/**
+ * Saved chart views of the examples: revenue by category, projects by due
+ * month, revenue with the average margin, the status pipeline and deliveries
+ * adding up week after week.
+ */
 export const chartViews = [
   chartView("revenue-by-category", "Revenue by category", {
     type: "bar",
@@ -615,6 +652,27 @@ export const chartViews = [
     xColumn: "dueDate",
     bucket: "month",
     showDataLabels: true,
+  }),
+  // Bars in euros on the left, the margin in percent on the right.
+  chartView("revenue-and-margin", "Revenus et marge", {
+    type: "combo",
+    xColumn: "category",
+    metric: "sum",
+    metricColumn: "price",
+    lineMetric: "avg",
+    lineMetricColumn: "margin",
+    hideEmpty: true,
+  }),
+  chartView("pipeline", "Pipeline", {
+    type: "funnel",
+    xColumn: "status",
+  }),
+  chartView("cumulative-deliveries", "Livraisons cumulées", {
+    type: "area",
+    xColumn: "dueDate",
+    bucket: "week",
+    seriesColumn: "category",
+    cumulative: true,
   }),
 ];
 

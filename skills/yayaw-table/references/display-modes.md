@@ -110,18 +110,27 @@ offer the mode.
 
 ## `chart` (optional item)
 
-`table.chart`: `type` (`bar`, `horizontalBar`, `line`, `donut`, `number`),
-`xColumn`, `bucket` (`day`, `week`, `month`, `quarter`, `year`),
-`weekStartsOn`, `metric` (`count`, `sum`, `avg`, `min`, `max`,
-`countDistinct`), `metricColumn`, `seriesColumn`, `stacked`, `sort`,
+`table.chart`: `type` (`bar`, `horizontalBar`, `line`, `area`, `combo`,
+`donut`, `funnel`, `number`), `xColumn`, `bucket` (`day`, `week`, `month`,
+`quarter`, `year`), `weekStartsOn`, `metric` (`count`, `sum`, `avg`, `min`,
+`max`, `countDistinct`), `metricColumn`, `seriesColumn`, `stacked` (bars),
+`stacking` (areas: `stacked`, `percent`, `none`), `curve` (`smooth`,
+`linear`), `lineMetric` and `lineMetricColumn` (the line of a `combo`, whose
+bars use `metric`), `stageOrder` (funnel stages as option values), `sort`,
 `cumulative`, `hideEmpty`, `topN`, `showDataLabels`, `showLegend`, `colors`.
+A combo chart puts its line on a right axis when the two metrics' number
+formats differ; a funnel shows each stage's value, share of the first stage
+and conversion from the previous one.
 Server first: `actions.aggregate` receives the query plus `groupBy`
-(at most two levels), `metrics`, `timeZone` and `weekStartsOn`, and answers
+(at most two levels), `metrics` (two for a combo chart: bars, then line),
+`timeZone` and `weekStartsOn`, and answers
 `{ groups: [{ keys, values }], truncated? }`; `aggregateChartRows()` is a
-reference implementation. Without it (or when it answers only `results`), the
-chart aggregates the rows of the query in the browser. Clicking a group adds
-its rules to the view's filters and opens the table (not possible when the
-view matches any rule with OR). Imports: `@/components/ui/yayaw-table-chart/chart-renderer`
+reference implementation. Without it (or when it answers only `results`, or
+fewer values than metrics), the chart aggregates the rows of the query in the
+browser. Clicking a group adds the rules the filter menus write for its
+column (yes/no groups are select rules on `true`/`false`) to the view's
+filters and opens the table (not possible when the view matches any rule with
+OR). Imports: `@/components/ui/yayaw-table-chart/chart-renderer`
 (React, shadcn `chart` on Recharts) or
 `@/components/ui/yayaw-table-vue/chart/chart-renderer` (Vue, Unovis); both
 load their library lazily. Colors: option `color`, tag hues or `--chart-1…5`.
