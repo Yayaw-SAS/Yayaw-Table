@@ -79,12 +79,12 @@ npx shadcn@latest add ./yayaw-table.json
 Record the version you installed (the copied files carry none), for example
 in the README or next to `components.json`, and keep the digests in review.
 
-Optional items depend on the **latest** core URL
-(`https://table.yayaw.app/r/yayaw-table.json` or `…/yayaw-table-vue.json`),
-even inside a versioned snapshot. When you add a pinned optional item to a
-pinned core, refuse the CLI's offers to overwrite files of the core folder, or
-review `git diff` afterwards and restore them, so the core stays at your
-version.
+From v3.7.0, a pinned optional item depends on the core of the same version
+(`https://table.yayaw.app/r/vX.Y.Z/yayaw-table.json` or
+`…/vX.Y.Z/yayaw-table-vue.json`), so installing it keeps the core at your
+version. Snapshots up to v3.6.1 still point optional items at the **latest**
+core URL: with those, refuse the CLI's offers to overwrite files of the core
+folder, or review `git diff` afterwards and restore them.
 
 ## Host requirements
 

@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { pinSnapshotDependencies } from "./registry-snapshot-pins.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -60,6 +61,8 @@ const expectedFileNames = [
   ...itemNames.map((itemName) => `${itemName}.json`),
 ];
 
+const pinOptions = { homepage: packageJson.homepage, itemNames, version };
+
 for (const fileName of expectedFileNames) {
   const latestPath = path.join(publicRegistryDir, fileName);
   const versionedPath = path.join(versionedRegistryDir, fileName);
@@ -75,11 +78,15 @@ for (const fileName of expectedFileNames) {
     );
   }
 
-  const latestContent = fs.readFileSync(latestPath);
-  const versionedContent = fs.readFileSync(versionedPath);
-  if (!latestContent.equals(versionedContent)) {
+  const expectedContent = pinSnapshotDependencies(
+    fs.readFileSync(latestPath, "utf8"),
+    pinOptions
+  );
+  const versionedContent = fs.readFileSync(versionedPath, "utf8");
+  if (expectedContent !== versionedContent) {
     fail(
-      `Latest registry file ${fileName} and ${expectedTag} snapshot differ.\n` +
+      `Latest registry file ${fileName} and ${expectedTag} snapshot differ ` +
+        `(once its registry dependencies are pinned to ${expectedTag}).\n` +
         "Run bun run registry:release after the final version bump."
     );
   }
