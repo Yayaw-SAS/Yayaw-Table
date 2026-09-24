@@ -85,6 +85,15 @@ React item now lists the `questionnaire` shadcn component (and its
 `@shadcn/react` package) as a dependency; the Vue item ships its own copy.
 Hosts publish public forms from the saved view on their server with
 `buildPublicFormSnapshot` (the snapshot passed by the browser is deprecated).
+Form texts may be one string or one per language (`{ en: "Name", fr: "Nom" }`,
+shown in `YayawTableForm`'s `locale`; `table.form.locales` lists the host's
+languages for the settings' "Editing" switcher), a `consent` question adds a
+required GDPR checkbox recorded in `metadata.consents`, and `hidden` questions
+read a URL parameter (`utm_source`…), the page, the referrer or the language
+into a column or `metadata.context`. `onSubmit` receives `meta.consents`,
+`meta.fields` and `meta.locale` for the host's server, where
+`acceptPublicFormResponse(snapshot, values, meta)` checks them again and
+`withFormServerContext` adds what the server knows (page, revision, token).
 The Feed view also ships in the table items: add `"feed"` to `displayModes`
 for posts in a centered column (title, author and date, a clamped body with
 "Show more", media and properties), loaded page by page from `list` with

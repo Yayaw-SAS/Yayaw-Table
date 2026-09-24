@@ -25,7 +25,9 @@ import { parseLocation } from "../utils/location-model";
 import {
   type FormDraft,
   type FormOption,
+  formConsentParts,
   formNumberDisplay,
+  type ResolvedFormConsent,
   type ResolvedFormQuestion,
 } from "../utils/form-view";
 import { tagAppearance } from "../utils/tag-colors";
@@ -42,6 +44,8 @@ export interface FormQuestionLabels {
   pickDate: string;
   /** Removes the picked date. */
   clearDate: string;
+  /** Read after links that open in a new tab (a consent's policy). */
+  newTab?: string;
 }
 
 export interface FormQuestionFieldProps {
@@ -398,6 +402,82 @@ function QuestionHeader({
       {children}
       {help ? <FieldDescription id={helpId}>{help}</FieldDescription> : null}
     </div>
+  );
+}
+
+export interface FormConsentFieldProps {
+  consent: ResolvedFormConsent;
+  /** Id of the checkbox; its statement labels it. */
+  inputId: string;
+  value: Answer | undefined;
+  error?: string;
+  disabled?: boolean;
+  /** Read after the link, which opens in a new tab ("(opens in a new tab)"). */
+  newTabLabel: string;
+  onChange: (checked: boolean) => void;
+}
+
+/**
+ * A consent: a required checkbox labelled by its statement, whose link (the
+ * privacy policy…) opens in a new tab so the answers are kept.
+ */
+export function FormConsentField({
+  consent,
+  disabled,
+  error,
+  inputId,
+  newTabLabel,
+  onChange,
+  value,
+}: FormConsentFieldProps) {
+  const labelId = `${inputId}-label`;
+  const errorId = `${inputId}-error`;
+  const { after, before, link } = formConsentParts(consent);
+  return (
+    <Field
+      data-form-consent={consent.id}
+      data-invalid={error ? true : undefined}
+    >
+      <div className="flex items-start gap-3 rounded-lg border p-3 shadow-xs">
+        <Checkbox
+          aria-describedby={error ? errorId : undefined}
+          aria-invalid={error ? true : undefined}
+          aria-labelledby={labelId}
+          aria-required
+          checked={value === true}
+          className="mt-0.5"
+          data-form-focus
+          disabled={disabled}
+          id={inputId}
+          onCheckedChange={(checked) => onChange(checked === true)}
+        />
+        <FieldLabel
+          className="block w-auto min-w-0 font-normal"
+          htmlFor={inputId}
+          id={labelId}
+        >
+          {before}
+          {link?.href ? (
+            <a
+              className="font-medium text-foreground underline underline-offset-4 hover:text-primary"
+              href={link.href}
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              {link.label}
+              <span className="sr-only"> {newTabLabel}</span>
+            </a>
+          ) : (
+            link?.label
+          )}
+          {after}
+          <span aria-hidden="true" className="ml-0.5 text-destructive">
+            *
+          </span>
+        </FieldLabel>
+      </div>
+      <QuestionError error={error} id={errorId} />
+    </Field>
   );
 }
 

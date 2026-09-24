@@ -40,26 +40,38 @@ import {
 import { cn } from "@/lib/utils";
 import type { FormEvaluation } from "../utils/form-conditions";
 import {
+  collectFormHiddenFields,
   evaluateFormView,
   type FormColumn,
   type FormDraft,
   type FormLabelKey,
+  type FormResponseMetadata,
+  type FormSubmitMeta,
   type FormSubmitResult,
   type FormTranslate,
   type FormViewSettings,
   formDraftValues,
+  formFirstError,
   formLabel,
+  formPageContext,
   formSubmission,
+  formSubmitMeta,
   formTranslateFrom,
   initialFormDraft,
+  type ResolvedFormItem,
   type ResolvedFormQuestion,
   type ResolvedFormSettings,
   readFormProgress,
   resolveFormSettings,
+  validateFormConsents,
   validateFormValues,
   writeFormProgress,
 } from "../utils/form-view";
-import { FormQuestionField, type FormQuestionLabels } from "./form-question";
+import {
+  FormConsentField,
+  FormQuestionField,
+  type FormQuestionLabels,
+} from "./form-question";
 import { FormSteps } from "./form-steps";
 
 export interface YayawTableFormProps {
@@ -67,10 +79,15 @@ export interface YayawTableFormProps {
   columns: readonly FormColumn[];
   /** Form settings, e.g. `formSettingsFromView(view)` or `snapshot.form`. */
   form?: FormViewSettings;
-  /** Create the record. Resolve `{ ok: true }`, or `{ errors, message }`. */
+  /**
+   * Create the record. Resolve `{ ok: true }`, or `{ errors, message }`
+   * (errors by column id, or consent id). A public form sends `meta.consents`,
+   * `meta.fields` and `meta.locale` to its server with the values, for
+   * `acceptPublicFormResponse`.
+   */
   onSubmit: (
     values: Record<string, unknown>,
-    meta: { context?: Record<string, unknown> }
+    meta: FormSubmitMeta
   ) => FormSubmitResult | Promise<FormSubmitResult>;
   /** Extra checks after the built-in ones, e.g. on the host's server; return errors by column id. */
   validate?: (
@@ -83,12 +100,17 @@ export interface YayawTableFormProps {
   onSuccess?: (info: {
     values: Record<string, unknown>;
     redirectUrl?: string;
+    metadata?: FormResponseMetadata;
   }) => void;
   /** Label overrides, as `{ submit }` or `{ "form.submit" }`. */
   translations?: Record<string, string | undefined>;
   /** Label overrides as a function; wins over `translations`. */
   translate?: FormTranslate;
-  /** Built-in labels are English, or French for `fr*` locales. */
+  /**
+   * The reader's language: the form's texts are shown in it (exact locale,
+   * its language, the form's default language, then the first available) and
+   * built-in labels are English, or French for `fr*` locales.
+   */
   locale?: string;
   /** Host data passed to `onSubmit` unchanged (campaign, referrer, …). */
   context?: Record<string, unknown>;
@@ -117,20 +139,14 @@ const errorMessages = (
     Object.entries(codes).map(([columnId, code]) => [columnId, label(code)])
   );
 
-/** The control a question focuses (the first choice of a multi-select). */
-const questionControl = (
+/** The control a question or consent focuses (the first choice of a multi-select). */
+const itemControl = (
   form: HTMLElement | null,
-  question: ResolvedFormQuestion
+  item: { kind: "consent" | "question"; id: string }
 ) =>
   form?.querySelector<HTMLElement>(
-    `[data-form-question="${CSS.escape(question.id)}"] [data-form-focus]`
+    `[data-form-${item.kind}="${CSS.escape(item.id)}"] [data-form-focus]`
   );
-
-/** Question ids in order, for focusing the first invalid one. */
-const firstInvalid = (
-  questions: readonly ResolvedFormQuestion[],
-  errors: Record<string, string>
-) => questions.find((question) => errors[question.columnId]);
 
 function useFormLabels(
   locale: string,
@@ -148,9 +164,9 @@ function useFormLabels(
   );
 }
 
-/** Answers and step: controlled, stored under a key, or local. */
+/** Answers (consents included) and step: controlled, stored under a key, or local. */
 function useFormProgress(
-  questions: readonly ResolvedFormQuestion[],
+  settings: Pick<ResolvedFormSettings, "consents" | "questions">,
   props: Pick<
     YayawTableFormProps,
     "draftStorageKey" | "onStepChange" | "onValueChange" | "step" | "value"
@@ -161,7 +177,7 @@ function useFormProgress(
     draftStorageKey ? readFormProgress(draftStorageKey) : undefined
   );
   const [localDraft, setLocalDraft] = useState<FormDraft>(() => ({
-    ...initialFormDraft(questions),
+    ...initialFormDraft(settings.questions, settings.consents),
     ...saved?.draft,
   }));
   const [localStep, setLocalStep] = useState<string | undefined>(saved?.step);
@@ -199,14 +215,18 @@ function useFormProgress(
 }
 
 async function collectErrors(
-  questions: readonly ResolvedFormQuestion[],
+  settings: Pick<ResolvedFormSettings, "consents" | "questions">,
+  draft: FormDraft,
   values: Record<string, unknown>,
   evaluation: FormEvaluation,
   label: (key: FormLabelKey) => string,
   validate: YayawTableFormProps["validate"]
 ): Promise<Record<string, string>> {
   const builtIn = errorMessages(
-    validateFormValues(questions, values, evaluation),
+    {
+      ...validateFormValues(settings.questions, values, evaluation),
+      ...validateFormConsents(settings.consents, draft),
+    },
     label
   );
   if (Object.keys(builtIn).length || !validate) {
@@ -310,11 +330,27 @@ interface PageBodyProps {
   disabled: boolean;
   locale: string;
   labels: FormQuestionLabels;
-  inputId: (question: ResolvedFormQuestion) => string;
-  onAnswer: (columnId: string, value: FormDraft[string]) => void;
+  inputId: (item: { id: string }) => string;
+  onAnswer: (key: string, value: FormDraft[string]) => void;
 }
 
-/** Every visible question at once, with section headings. */
+/** A section heading, or nothing while the rules hide it. */
+function PageSection({
+  evaluation,
+  item,
+}: {
+  evaluation: FormEvaluation;
+  item: Extract<ResolvedFormItem, { kind: "section" }>;
+}) {
+  return evaluation.hidden.has(item.section.id) ? null : (
+    <FormSectionHeading
+      description={item.section.description}
+      title={item.section.title}
+    />
+  );
+}
+
+/** Every visible question at once, with section headings and consents. */
 function FormPageBody({
   disabled,
   draft,
@@ -330,11 +366,26 @@ function FormPageBody({
     <div className="grid gap-6">
       {settings.items.map((item) => {
         if (item.kind === "section") {
-          return evaluation.hidden.has(item.section.id) ? null : (
-            <FormSectionHeading
-              description={item.section.description}
+          return (
+            <PageSection
+              evaluation={evaluation}
+              item={item}
               key={item.section.id}
-              title={item.section.title}
+            />
+          );
+        }
+        if (item.kind === "consent") {
+          const { consent } = item;
+          return (
+            <FormConsentField
+              consent={consent}
+              disabled={disabled}
+              error={errors[consent.id]}
+              inputId={inputId(consent)}
+              key={consent.id}
+              newTabLabel={labels.newTab ?? ""}
+              onChange={(checked) => onAnswer(consent.id, checked)}
+              value={draft[consent.id]}
             />
           );
         }
@@ -379,11 +430,11 @@ export function YayawTableForm(props: YayawTableFormProps) {
   const id = useId();
   const label = useFormLabels(locale, translate, translations);
   const settings = useMemo(
-    () => resolveFormSettings(columns, undefined, form),
-    [columns, form]
+    () => resolveFormSettings(columns, undefined, form, locale),
+    [columns, form, locale]
   );
   const { questions } = settings;
-  const { draft, setDraft, step, setStep } = useFormProgress(questions, props);
+  const { draft, setDraft, step, setStep } = useFormProgress(settings, props);
   const values = useMemo(
     () => formDraftValues(questions, draft),
     [questions, draft]
@@ -397,7 +448,7 @@ export function YayawTableForm(props: YayawTableFormProps) {
   const [status, setStatus] = useState<Status>("idle");
   const [focusRequest, setFocusRequest] = useState(0);
   const formRef = useRef<HTMLFormElement>(null);
-  const inputId = (question: ResolvedFormQuestion) => `${id}-${question.id}`;
+  const inputId = (item: { id: string }) => `${id}-${item.id}`;
   const steps = settings.layout === "steps";
 
   // Move focus after the errors render, so the invalid field is announced.
@@ -405,12 +456,12 @@ export function YayawTableForm(props: YayawTableFormProps) {
     if (!focusRequest) {
       return;
     }
-    const question = firstInvalid(questions, errors);
-    const target = question
-      ? questionControl(formRef.current, question)
+    const first = formFirstError(settings.items, errors);
+    const target = first
+      ? itemControl(formRef.current, first)
       : formRef.current?.querySelector<HTMLElement>("[data-form-message]");
     target?.focus();
-  }, [focusRequest, errors, questions]);
+  }, [focusRequest, errors, settings.items]);
 
   const fail = (next: Record<string, string>, text?: string) => {
     setErrors(next);
@@ -419,8 +470,8 @@ export function YayawTableForm(props: YayawTableFormProps) {
     setFocusRequest((value) => value + 1);
   };
 
-  const answer = (columnId: string, value: FormDraft[string]) =>
-    setDraft({ ...draft, [columnId]: value });
+  const answer = (key: string, value: FormDraft[string]) =>
+    setDraft({ ...draft, [key]: value });
 
   const send = async () => {
     if (status === "submitting") {
@@ -428,7 +479,8 @@ export function YayawTableForm(props: YayawTableFormProps) {
     }
     setStatus("submitting");
     const found = await collectErrors(
-      questions,
+      settings,
+      draft,
       values,
       evaluation,
       label,
@@ -439,8 +491,14 @@ export function YayawTableForm(props: YayawTableFormProps) {
       return;
     }
     try {
-      const record = formSubmission(settings, values);
-      const result = await onSubmit(record, { context });
+      // Hidden fields read the page as it is when the response is sent.
+      const fields = collectFormHiddenFields(
+        settings.hiddenFields,
+        formPageContext(settings.locale ?? locale)
+      );
+      const record = formSubmission(settings, values, fields);
+      const meta = formSubmitMeta(settings, fields, locale, context);
+      const result = await onSubmit(record, meta);
       if (result.ok) {
         setErrors({});
         setMessage(undefined);
@@ -448,7 +506,11 @@ export function YayawTableForm(props: YayawTableFormProps) {
         if (props.draftStorageKey) {
           writeFormProgress(props.draftStorageKey, undefined);
         }
-        onSuccess?.({ values: record, redirectUrl: settings.redirectUrl });
+        onSuccess?.({
+          values: record,
+          redirectUrl: settings.redirectUrl,
+          metadata: meta.metadata,
+        });
         return;
       }
       fail(result.errors ?? {}, result.message ?? label("submitError"));
@@ -463,14 +525,17 @@ export function YayawTableForm(props: YayawTableFormProps) {
   };
 
   const restart = () => {
-    setDraft(initialFormDraft(questions));
+    setDraft(initialFormDraft(questions, settings.consents));
     setErrors({});
     setMessage(undefined);
     setStatus("idle");
     requestAnimationFrame(() => {
       const first = questions[0];
       if (first) {
-        questionControl(formRef.current, first)?.focus();
+        itemControl(formRef.current, {
+          kind: "question",
+          id: first.id,
+        })?.focus();
       }
     });
   };
@@ -489,7 +554,7 @@ export function YayawTableForm(props: YayawTableFormProps) {
         {header}
         <FormState
           icon={<Lock aria-hidden="true" />}
-          message={label("closed")}
+          message={settings.closedMessage ?? label("closed")}
         />
       </section>
     );
@@ -517,6 +582,7 @@ export function YayawTableForm(props: YayawTableFormProps) {
   const questionLabels = {
     choose: label("choose"),
     clearDate: label("clearDate"),
+    newTab: label("newTab"),
     pickDate: label("pickDate"),
   };
   const alert = message ? (

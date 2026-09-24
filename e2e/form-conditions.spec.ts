@@ -11,6 +11,8 @@ const SELECT_ROW = /^Select (row|Workspace Pro|Studio Display|Team Support)$/;
 const WANTED_BY = /^Wanted by/;
 const CREATED = /^Created/;
 const BULK_EDIT = /^(Edit|Bulk edit)$/;
+/** The Request form's consent to the privacy policy. */
+const CONSENT = /^I agree that my request is processed/;
 
 /** Selects are the table's own listboxes in both editions. */
 const choose = async (page: Page, name: string, option: string) => {
@@ -64,6 +66,7 @@ test("page layout: rules show, hide and require questions", async ({
   await expect(more).toBeVisible();
   await expect(budget).not.toHaveAttribute("required", "");
   await more.fill("A custom project");
+  await form.getByRole("checkbox", { name: CONSENT }).check();
   await form.getByRole("button", { name: "Send request" }).click();
   await expect(form.getByText(REQUEST_SUCCESS)).toBeVisible();
 
@@ -137,6 +140,13 @@ test("steps layout: progress, Back/Next/Skip, conditional steps, review and subm
   await expect(page.getByRole("button", { name: "Wanted by" })).toBeVisible();
   await page.getByRole("button", { name: "Next" }).click();
   await expect(review).not.toContainText("SN-9");
+  // The consent, placed last, is on the last step: the review.
+  const consent = review.getByRole("checkbox", { name: CONSENT });
+  await page.getByRole("button", { name: "Send request" }).click();
+  await expect(consent).toBeFocused();
+  await expect(consent).toHaveAttribute("aria-invalid", "true");
+  await expect(review.getByText("Check this box to continue.")).toBeVisible();
+  await consent.check();
   await page.getByRole("button", { name: "Send request" }).click();
   await expect(page.getByText(REQUEST_SUCCESS)).toBeVisible();
 });

@@ -423,7 +423,11 @@ export function formViewSuite(
         price: 1_000_000,
         urgent: false,
       }),
-      { ok: true, values: { name: "Ada", status: "Done", urgent: true } }
+      {
+        ok: true,
+        values: { name: "Ada", status: "Done", urgent: true },
+        metadata: { consents: [], context: {} },
+      }
     );
     assert.deepEqual(form.acceptPublicFormResponse(snapshot, { status: "X" }), {
       ok: false,

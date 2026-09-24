@@ -4294,8 +4294,8 @@
 .yayaw-form-toolbar {
   display: flex;
   min-height: 32px;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: flex-end;
   gap: 8px;
 }
 .yayaw-form-share-trigger {
@@ -5144,6 +5144,157 @@
 }
 .yayaw-form-settings-section-name {
   font-weight: 500;
+}
+
+/* Form languages, consents and hidden fields. */
+.yayaw-form-languages {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.yayaw-form-language-set {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+.yayaw-form-language-legend {
+  float: left;
+  margin-right: 4px;
+  padding: 0;
+  color: var(--yayaw-muted-foreground);
+  font-size: 14px;
+}
+.yayaw-form-language-options {
+  display: inline-flex;
+  flex-wrap: wrap;
+  border: 1px solid var(--yayaw-border);
+  border-radius: var(--yayaw-radius);
+  background: color-mix(in oklab, var(--yayaw-muted) 60%, transparent);
+  padding: 2px;
+}
+.yayaw-form-language {
+  position: relative;
+  display: inline-flex;
+  height: 28px;
+  align-items: center;
+  border-radius: calc(var(--yayaw-radius) - 2px);
+  padding: 0 10px;
+  color: var(--yayaw-muted-foreground);
+  font-size: 14px;
+  cursor: pointer;
+  transition:
+    background-color 150ms,
+    color 150ms;
+}
+.yayaw-form-language:has(input:checked) {
+  background: var(--yayaw-background);
+  color: var(--yayaw-foreground);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+}
+.dark .yayaw-form-language:has(input:checked) {
+  background: color-mix(in oklab, var(--yayaw-input) 60%, transparent);
+}
+.yayaw-form-language:has(input:focus-visible) {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--yayaw-ring) 50%, transparent);
+}
+.yayaw-form-language-add {
+  width: 176px;
+  max-width: 100%;
+}
+.yayaw-form-settings-languages {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+}
+.yayaw-form-setting-head {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+.yayaw-form-missing {
+  border-radius: calc(var(--yayaw-radius) - 4px);
+  background: color-mix(in oklab, oklch(0.769 0.188 70.08) 12%, transparent);
+  padding: 2px 6px;
+  color: color-mix(
+    in oklab,
+    oklch(0.555 0.163 48.998) 85%,
+    var(--yayaw-foreground)
+  );
+  font-size: 12px;
+}
+.dark .yayaw-form-missing {
+  color: oklch(0.828 0.189 84.429);
+}
+.yayaw-form-missing-line {
+  margin: 0;
+  padding: 0 4px 4px 28px;
+}
+.yayaw-form-settings-kind {
+  font-weight: 500;
+}
+.yayaw-form-settings-preview {
+  color: var(--yayaw-muted-foreground);
+}
+.yayaw-form-hidden-name {
+  padding-left: 4px;
+}
+.yayaw-form-option-labels {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+.yayaw-form-option-labels > legend {
+  margin-bottom: 4px;
+  padding: 0;
+}
+.yayaw-form-settings-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.yayaw-form-consent {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 12px;
+  border: 1px solid var(--yayaw-border);
+  border-radius: calc(var(--yayaw-radius) + 2px);
+  box-shadow: var(--yayaw-shadow-xs);
+  padding: 12px;
+}
+.yayaw-form-consent-box {
+  margin-top: 2px;
+}
+.yayaw-form-consent-label {
+  min-width: 0;
+  line-height: 1.375;
+}
+.yayaw-form-consent-label .yayaw-form-required {
+  margin-left: 2px;
+}
+.yayaw-form-consent-link {
+  color: var(--yayaw-foreground);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.yayaw-form-consent-link:hover {
+  color: var(--yayaw-primary);
+}
+.yayaw-form-toolbar-end {
+  margin-left: auto;
 }
 
 /* Bulk edit: fields whose rules read values that differ across the selection. */

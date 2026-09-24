@@ -5,6 +5,8 @@
  * rules; Back, Next and Skip (optional steps); a progress text; an optional
  * review step. Questions keep the table's own controls, so navigation and
  * validation are ours: the Questionnaire only validates its native answers.
+ * Consents show on the step they are placed in, or on the last step (the
+ * review, when there is one).
  */
 import { computed, nextTick, ref, watch } from "vue";
 import Questionnaire from "../components/questionnaire/Questionnaire.vue";
@@ -23,12 +25,16 @@ import {
   type FormLabelKey,
   type FormStep,
   formAnswerText,
+  formReviewConsents,
   formStepOptional,
   formSteps,
+  type ResolvedFormConsent,
   type ResolvedFormQuestion,
   type ResolvedFormSettings,
+  validateFormConsents,
   validateFormValues,
 } from "../form-view";
+import FormConsent from "./FormConsent.vue";
 import FormQuestion from "./FormQuestion.vue";
 
 const REVIEW_STEP = "review";
@@ -43,13 +49,14 @@ const props = defineProps<{
   disabled: boolean;
   locale: string;
   label: (key: FormLabelKey, params?: Record<string, number | string>) => string;
-  labels: { choose: string; pickDate: string; clearDate: string };
+  labels: { choose: string; pickDate: string; clearDate: string; newTab?: string };
   message?: string;
   submitText: string;
-  inputId: (question: ResolvedFormQuestion) => string;
+  inputId: (item: { id: string }) => string;
 }>();
 const emit = defineEmits<{
-  answer: [columnId: string, value: FormDraft[string]];
+  /** An answer, by column id, or a consent, by its id. */
+  answer: [key: string, value: FormDraft[string]];
   errors: [errors: Record<string, string>];
   step: [step: string];
   submit: [];
@@ -61,6 +68,9 @@ const form = computed(() => root.value?.$el);
 defineExpose({ form });
 
 const steps = computed(() => formSteps(props.settings, props.evaluation));
+const reviewConsents = computed(() =>
+  formReviewConsents(props.settings, props.evaluation)
+);
 const ids = computed(() => [
   ...steps.value.map((item) => item.id),
   ...(props.settings.review ? [REVIEW_STEP] : []),
@@ -69,7 +79,26 @@ const active = computed(() =>
   props.step && ids.value.includes(props.step) ? props.step : (ids.value[0] ?? "")
 );
 const index = computed(() => ids.value.indexOf(active.value));
-const current = computed(() => steps.value.find((item) => item.id === active.value));
+/** The active step; the review is one too, for its consents. */
+const current = computed<FormStep | undefined>(() =>
+  active.value === REVIEW_STEP
+    ? { id: REVIEW_STEP, questions: [], consents: reviewConsents.value }
+    : steps.value.find((item) => item.id === active.value)
+);
+/** Error keys a step owns: its questions' columns and its consents. */
+const stepKeys = (item: FormStep): string[] => [
+  ...item.questions.map((question) => question.columnId),
+  ...(item.consents ?? []).map((consent) => consent.id),
+];
+/** The step showing the error of `key`: its question's or consent's step, or the review. */
+const failedStep = (key: string | undefined): string | undefined => {
+  if (!key) return;
+  const found = steps.value.find((item) => stepKeys(item).includes(key));
+  if (found) return found.id;
+  return reviewConsents.value.some((consent: ResolvedFormConsent) => consent.id === key)
+    ? REVIEW_STEP
+    : undefined;
+};
 const last = computed(() => index.value === ids.value.length - 1);
 const progress = computed(() =>
   props.label("stepProgress", { current: index.value + 1, total: ids.value.length })
@@ -99,24 +128,20 @@ const go = (next: string | undefined): void => {
 watch(
   () => props.errors,
   (errors) => {
-    const [first] = Object.keys(errors);
-    const failed = first
-      ? steps.value.find((item) =>
-          item.questions.some((question) => question.columnId === first)
-        )
-      : undefined;
-    const here = current.value?.questions.some(
-      (question) => errors[question.columnId]
-    );
-    if (failed && !here) go(failed.id);
+    const failed = failedStep(Object.keys(errors)[0]);
+    const here = current.value
+      ? stepKeys(current.value).some((key) => errors[key])
+      : false;
+    if (failed && !here) go(failed);
   }
 );
 
 const stepErrors = (item: FormStep): Record<string, string> =>
   Object.fromEntries(
-    Object.entries(validateFormValues(item.questions, props.values, props.evaluation)).map(
-      ([columnId, code]) => [columnId, props.label(code)]
-    )
+    Object.entries({
+      ...validateFormValues(item.questions, props.values, props.evaluation),
+      ...validateFormConsents(item.consents ?? [], props.draft),
+    }).map(([key, code]) => [key, props.label(code)])
   );
 
 const next = (event?: Event): void => {
@@ -124,10 +149,9 @@ const next = (event?: Event): void => {
   const item = current.value;
   if (item) {
     const found = stepErrors(item);
+    const keys = stepKeys(item);
     const others = Object.fromEntries(
-      Object.entries(props.errors).filter(
-        ([columnId]) => !item.questions.some((question) => question.columnId === columnId)
-      )
+      Object.entries(props.errors).filter(([key]) => !keys.includes(key))
     );
     emit("errors", { ...others, ...found });
     if (Object.keys(found).length) {
@@ -178,7 +202,7 @@ const ruled = (question: ResolvedFormQuestion): ResolvedFormQuestion => ({
   required: props.evaluation.required.has(question.id),
 });
 const hasError = (item: FormStep): boolean =>
-  item.questions.some((question) => props.errors[question.columnId]);
+  stepKeys(item).some((key) => props.errors[key]);
 </script>
 
 <template>
@@ -239,9 +263,26 @@ const hasError = (item: FormStep): boolean =>
           :labels="labels"
           @change="emit('answer', question.columnId, $event)"
         />
+        <FormConsent
+          v-for="consent in item.consents ?? []"
+          :key="consent.id"
+          :consent="consent"
+          :input-id="inputId(consent)"
+          :value="draft[consent.id]"
+          :error="errors[consent.id]"
+          :disabled="disabled"
+          :new-tab-label="labels.newTab ?? ''"
+          @change="emit('answer', consent.id, $event)"
+        />
       </div>
     </QuestionnaireItem>
-    <QuestionnaireItem v-if="settings.review" :name="REVIEW_STEP" data-form-review required>
+    <QuestionnaireItem
+      v-if="settings.review"
+      :name="REVIEW_STEP"
+      data-form-review
+      :invalid="reviewConsents.some((consent) => Boolean(errors[consent.id]))"
+      required
+    >
       <QuestionnaireTitle>{{ label("reviewTitle") }}</QuestionnaireTitle>
       <dl class="yayaw-form-review">
         <template v-for="item in steps" :key="item.id">
@@ -269,6 +310,19 @@ const hasError = (item: FormStep): boolean =>
           </div>
         </template>
       </dl>
+      <div v-if="reviewConsents.length" class="yayaw-form-questions">
+        <FormConsent
+          v-for="consent in reviewConsents"
+          :key="consent.id"
+          :consent="consent"
+          :input-id="inputId(consent)"
+          :value="draft[consent.id]"
+          :error="errors[consent.id]"
+          :disabled="disabled"
+          :new-tab-label="labels.newTab ?? ''"
+          @change="emit('answer', consent.id, $event)"
+        />
+      </div>
     </QuestionnaireItem>
     <slot v-if="last" name="extra-fields" />
     <QuestionnaireActions class="yayaw-form-step-actions">

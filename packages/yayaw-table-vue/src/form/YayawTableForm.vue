@@ -16,24 +16,33 @@ import EmptyHeader from "../components/empty/EmptyHeader.vue";
 import EmptyMedia from "../components/empty/EmptyMedia.vue";
 import EmptyTitle from "../components/empty/EmptyTitle.vue";
 import {
+  collectFormHiddenFields,
   evaluateFormView,
   type FormColumn,
   type FormDraft,
   type FormLabelKey,
+  type FormResponseMetadata,
+  type FormSubmitMeta,
   type FormSubmitResult,
   type FormTranslate,
   type FormViewSettings,
   formDraftValues,
+  formFirstError,
+  formItemId,
   formLabel,
+  formPageContext,
   formSubmission,
+  formSubmitMeta,
   formTranslateFrom,
   initialFormDraft,
   type ResolvedFormQuestion,
   readFormProgress,
   resolveFormSettings,
+  validateFormConsents,
   validateFormValues,
   writeFormProgress,
 } from "../form-view";
+import FormConsent from "./FormConsent.vue";
 import FormQuestion from "./FormQuestion.vue";
 import FormSteps from "./FormSteps.vue";
 
@@ -43,10 +52,15 @@ const props = withDefaults(
     columns: readonly FormColumn[];
     /** Form settings, e.g. `formSettingsFromView(view)` or `snapshot.form`. */
     form?: FormViewSettings;
-    /** Create the record. Resolve `{ ok: true }`, or `{ errors, message }`. */
+    /**
+     * Create the record. Resolve `{ ok: true }`, or `{ errors, message }`
+     * (errors by column id, or consent id). A public form sends
+     * `meta.consents`, `meta.fields` and `meta.locale` to its server with the
+     * values, for `acceptPublicFormResponse`.
+     */
     onSubmit: (
       values: Record<string, unknown>,
-      meta: { context?: Record<string, unknown> }
+      meta: FormSubmitMeta
     ) => FormSubmitResult | Promise<FormSubmitResult>;
     /** Extra checks after the built-in ones, e.g. on the host's server; return errors by column id. */
     validate?: (
@@ -59,12 +73,17 @@ const props = withDefaults(
     onSuccess?: (info: {
       values: Record<string, unknown>;
       redirectUrl?: string;
+      metadata?: FormResponseMetadata;
     }) => void;
     /** Label overrides, as `{ submit }` or `{ "form.submit" }`. */
     translations?: Record<string, string | undefined>;
     /** Label overrides as a function; wins over `translations`. */
     translate?: FormTranslate;
-    /** Built-in labels are English, or French for `fr*` locales. */
+    /**
+     * The reader's language: the form's texts are shown in it (exact locale,
+     * its language, the form's default language, then the first available)
+     * and built-in labels are English, or French for `fr*` locales.
+     */
     locale?: string;
     /** Host data passed to `onSubmit` unchanged (campaign, referrer, …). */
     context?: Record<string, unknown>;
@@ -98,7 +117,7 @@ const label = (
   params?: Record<string, number | string>
 ): string => formLabel(key, props.locale, override.value, params);
 const settings = computed(() =>
-  resolveFormSettings(props.columns, undefined, props.form)
+  resolveFormSettings(props.columns, undefined, props.form, props.locale)
 );
 const questions = computed(() => settings.value.questions);
 
@@ -107,7 +126,7 @@ const saved = props.draftStorageKey
   ? readFormProgress(props.draftStorageKey)
   : undefined;
 const localDraft = ref<FormDraft>({
-  ...initialFormDraft(questions.value),
+  ...initialFormDraft(questions.value, settings.value.consents),
   ...saved?.draft,
 });
 const localStep = ref<string | undefined>(saved?.step);
@@ -143,16 +162,16 @@ const formElement = ref<HTMLFormElement>();
 const stepsElement = ref<{ form: HTMLFormElement | undefined }>();
 const root = (): HTMLFormElement | undefined =>
   formElement.value ?? stepsElement.value?.form;
-const inputId = (question: ResolvedFormQuestion): string =>
-  `${id}-${question.id}`;
-/** The control a question focuses (the first choice of a multi-select). */
-const questionControl = (question: ResolvedFormQuestion) =>
+const inputId = (item: { id: string }): string => `${id}-${item.id}`;
+/** The control a question or consent focuses (the first choice of a multi-select). */
+const itemControl = (item: { kind: "consent" | "question"; id: string }) =>
   root()?.querySelector<HTMLElement>(
-    `[data-form-question="${CSS.escape(question.id)}"] [data-form-focus]`
+    `[data-form-${item.kind}="${CSS.escape(item.id)}"] [data-form-focus]`
   );
 const questionLabels = computed(() => ({
   choose: label("choose"),
   clearDate: label("clearDate"),
+  newTab: label("newTab"),
   pickDate: label("pickDate"),
 }));
 /** A question as the rules make it: required by a `require` rule too. */
@@ -170,16 +189,18 @@ const submitText = computed(() =>
     : (settings.value.submitLabel ?? label("submit"))
 );
 
-const setAnswer = (columnId: string, value: FormDraft[string]): void =>
-  setDraft({ ...draft.value, [columnId]: value });
+/** An answer, by column id, or a consent, by its id. */
+const setAnswer = (key: string, value: FormDraft[string]): void =>
+  setDraft({ ...draft.value, [key]: value });
 
 const collectErrors = async (
   current: Record<string, unknown>
 ): Promise<Record<string, string>> => {
   const builtIn = Object.fromEntries(
-    Object.entries(
-      validateFormValues(questions.value, current, evaluation.value)
-    ).map(([columnId, code]) => [columnId, label(code)])
+    Object.entries({
+      ...validateFormValues(questions.value, current, evaluation.value),
+      ...validateFormConsents(settings.value.consents, draft.value),
+    }).map(([key, code]) => [key, label(code)])
   );
   if (Object.keys(builtIn).length || !props.validate) return builtIn;
   return (await props.validate(current)) ?? {};
@@ -192,9 +213,9 @@ const fail = async (next: Record<string, string>, text?: string) => {
   status.value = "idle";
   await nextTick();
   if (steps.value) return;
-  const question = questions.value.find((item) => next[item.columnId]);
-  const target = question
-    ? questionControl(question)
+  const first = formFirstError(settings.value.items, next);
+  const target = first
+    ? itemControl(first)
     : root()?.querySelector<HTMLElement>("[data-form-message]");
   target?.focus();
 };
@@ -209,8 +230,14 @@ const submit = async (): Promise<void> => {
     return;
   }
   try {
-    const record = formSubmission(settings.value, current);
-    const result = await props.onSubmit(record, { context: props.context });
+    // Hidden fields read the page as it is when the response is sent.
+    const fields = collectFormHiddenFields(
+      settings.value.hiddenFields,
+      formPageContext(settings.value.locale ?? props.locale)
+    );
+    const record = formSubmission(settings.value, current, fields);
+    const meta = formSubmitMeta(settings.value, fields, props.locale, props.context);
+    const result = await props.onSubmit(record, meta);
     if (result.ok) {
       errors.value = {};
       message.value = undefined;
@@ -218,7 +245,11 @@ const submit = async (): Promise<void> => {
       if (props.draftStorageKey) {
         writeFormProgress(props.draftStorageKey, undefined);
       }
-      props.onSuccess?.({ values: record, redirectUrl: settings.value.redirectUrl });
+      props.onSuccess?.({
+        values: record,
+        redirectUrl: settings.value.redirectUrl,
+        metadata: meta.metadata,
+      });
       return;
     }
     await fail(result.errors ?? {}, result.message ?? label("submitError"));
@@ -228,13 +259,13 @@ const submit = async (): Promise<void> => {
 };
 
 const restart = async (): Promise<void> => {
-  setDraft(initialFormDraft(questions.value));
+  setDraft(initialFormDraft(questions.value, settings.value.consents));
   errors.value = {};
   message.value = undefined;
   status.value = "idle";
   await nextTick();
   const first = questions.value[0];
-  if (first) questionControl(first)?.focus();
+  if (first) itemControl({ kind: "question", id: first.id })?.focus();
 };
 </script>
 
@@ -248,7 +279,7 @@ const restart = async (): Promise<void> => {
       <EmptyHeader>
         <EmptyMedia variant="icon"><Lock aria-hidden="true" /></EmptyMedia>
         <output class="yayaw-form-state-text">
-          <EmptyDescription>{{ label("closed") }}</EmptyDescription>
+          <EmptyDescription>{{ settings.closedMessage ?? label("closed") }}</EmptyDescription>
         </output>
       </EmptyHeader>
     </Empty>
@@ -319,7 +350,7 @@ const restart = async (): Promise<void> => {
     <div class="yayaw-form-questions">
       <template
         v-for="item in settings.items"
-        :key="item.kind === 'section' ? `section-${item.section.id}` : item.question.id"
+        :key="`${item.kind}-${formItemId(item)}`"
       >
         <template v-if="item.kind === 'section'">
           <div
@@ -332,6 +363,16 @@ const restart = async (): Promise<void> => {
           </div>
           <hr v-else-if="visible(item.section.id)" class="yayaw-form-section-rule" data-form-section />
         </template>
+        <FormConsent
+          v-else-if="item.kind === 'consent'"
+          :consent="item.consent"
+          :input-id="inputId(item.consent)"
+          :value="draft[item.consent.id]"
+          :error="errors[item.consent.id]"
+          :disabled="status === 'submitting'"
+          :new-tab-label="questionLabels.newTab"
+          @change="setAnswer(item.consent.id, $event)"
+        />
         <FormQuestion
           v-else-if="visible(item.question.id)"
           :question="ruled(item.question)"
