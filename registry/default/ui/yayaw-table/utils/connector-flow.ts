@@ -306,6 +306,11 @@ export interface SyncPreview {
   overriddenCount?: number;
   /** Conflicts that will wait for a person after this sync. */
   pendingConflicts?: number;
+  /**
+   * Empty values filled in from the other side, in columns mapped since the
+   * last sync (never cleared by the empty side). Default 0.
+   */
+  initialized?: number;
   /** Keys shared by several records, left alone. */
   duplicates: number;
   unchanged: number;
@@ -681,6 +686,8 @@ export type ConflictLabelKey =
   | "moreOverridden"
   | "pendingNote"
   | "pendingNoteOne"
+  | "filledNote"
+  | "filledNoteOne"
   | "conflictsToResolve"
   | "conflictsHint"
   | "keepTable"
@@ -908,6 +915,8 @@ const ENGLISH_LABELS: Record<ConnectorLabelKey, string> = {
   moreOverridden: "And {count} more",
   pendingNote: "{count} conflicts will wait for your decision.",
   pendingNoteOne: "{count} conflict will wait for your decision.",
+  filledNote: "{count} empty values will be filled in from the other side.",
+  filledNoteOne: "{count} empty value will be filled in from the other side.",
   conflictsToResolve: "Conflicts to resolve ({count})",
   conflictsHint: "Both sides changed these values. Choose the one to keep.",
   keepTable: "Keep table value",
@@ -1178,6 +1187,8 @@ const FRENCH_LABELS: Record<ConnectorLabelKey, string> = {
   moreOverridden: "Et {count} de plus",
   pendingNote: "{count} conflits attendront votre décision.",
   pendingNoteOne: "{count} conflit attendra votre décision.",
+  filledNote: "{count} valeurs vides seront remplies depuis l’autre côté.",
+  filledNoteOne: "{count} valeur vide sera remplie depuis l’autre côté.",
   conflictsToResolve: "Conflits à résoudre ({count})",
   conflictsHint:
     "Les deux côtés ont modifié ces valeurs. Choisissez celle à garder.",
@@ -2211,6 +2222,7 @@ export interface SyncPlanLike {
     owner: ConflictOwner;
   }[];
   pendingConflicts?: readonly unknown[];
+  initialized?: readonly unknown[];
 }
 
 const SYNC_COUNT_KEYS = [
@@ -2246,6 +2258,7 @@ export function toSyncPreview(
   const limit = options.limit ?? DEFAULT_PREVIEW_CONFLICTS;
   const overridden = plan.overridden ?? [];
   const pending = plan.pendingConflicts?.length ?? 0;
+  const initialized = plan.initialized?.length ?? 0;
   return {
     createInTarget: plan.createInTarget.length,
     updateInTarget: plan.updateInTarget.length,
@@ -2280,6 +2293,7 @@ export function toSyncPreview(
         }
       : {}),
     ...(pending > 0 ? { pendingConflicts: pending } : {}),
+    ...(initialized > 0 ? { initialized } : {}),
   };
 }
 
@@ -2447,6 +2461,9 @@ const previewNotes = (
           "pendingNote",
           "pendingNoteOne"
         )
+      : null,
+    (preview.initialized ?? 0) > 0
+      ? countLabel(t, preview.initialized ?? 0, "filledNote", "filledNoteOne")
       : null,
     preview.unchanged > 0 ? t("unchanged", { count: preview.unchanged }) : null,
   ].filter((note): note is string => note !== null);

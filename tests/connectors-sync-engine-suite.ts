@@ -31,6 +31,11 @@ const fields: Engine.SyncField[] = [
   { columnId: "status", field: "Status", type: "select" },
 ];
 const mapping: Engine.SyncMapping = { keyField: "Yayaw ID", fields };
+/** The mapping once a Site column is mapped after the first sync. */
+const siteMapping: Engine.SyncMapping = {
+  keyField: "Yayaw ID",
+  fields: [...fields, { columnId: "site", field: "Site" }],
+};
 const NOW = "2026-09-23T10:00:00.000Z";
 const HASH = /^[0-9a-f]{16}$/;
 
@@ -351,6 +356,7 @@ export function connectorsSyncEngineSuite(
       deleteInTarget: 0,
       duplicates: 0,
       flagged: 0,
+      initialized: 0,
       overridden: 0,
       pendingConflicts: 0,
       setKeyInTarget: 0,
@@ -1175,6 +1181,372 @@ export function connectorsSyncEngineSuite(
     assert.equal(result.failed, 1);
     assert.deepEqual(result.state.pendingConflicts, before.pendingConflicts);
     assert.deepEqual(result.state.links, before.links);
+  });
+
+  test("an adopted record fills empty values instead of clearing them", async () => {
+    const tableKept = world(
+      [row("r1", { name: "Launch", status: "Active" })],
+      [page("page-7", "r1", { name: "Launch v2", status: null })]
+    );
+    const first = await run(tableKept, { conflictRule: "target-wins" });
+    assert.deepEqual(
+      first.plan.conflicts.map((conflict) => [
+        conflict.columnId,
+        conflict.resolution,
+      ]),
+      [["name", "target"]]
+    );
+    assert.deepEqual(
+      first.plan.initialized.map((item) => [
+        item.rowId,
+        item.remoteId,
+        item.columnId,
+        item.side,
+        item.value,
+      ]),
+      [["r1", "page-7", "status", "target", "Active"]]
+    );
+    assert.deepEqual(
+      [
+        tableKept.table.records.get("r1")?.values,
+        tableKept.target.records.get("page-7")?.values,
+      ],
+      [
+        { name: "Launch v2", status: "Active" },
+        { name: "Launch v2", status: "Active" },
+      ]
+    );
+    assert.equal(changes(plan(tableKept, { conflictRule: "target-wins" })), 0);
+
+    const targetKept = world(
+      [row("r1", { name: "Launch", status: "" })],
+      [page("page-7", "r1", { name: "Launch", status: "Done" })]
+    );
+    const second = await run(targetKept, {
+      conflictRule: "table-wins",
+      ownership: { status: "table" },
+    });
+    assert.deepEqual(second.plan.conflicts, []);
+    assert.deepEqual(second.plan.overridden, []);
+    assert.deepEqual(second.plan.updateInTarget, []);
+    assert.deepEqual(
+      second.plan.updateInTable.map((item) => item.values),
+      [{ status: "Done" }]
+    );
+    assert.equal(second.plan.initialized[0]?.side, "table");
+    assert.equal(targetKept.table.records.get("r1")?.values.status, "Done");
+    assert.equal(changes(plan(targetKept)), 0);
+  });
+
+  /** r1 synced once without Site, then Site holds these values on each side. */
+  const siteWorld = async (
+    tableSite: unknown,
+    targetSite: unknown,
+    input: Pick<PlanSyncInput, "storeBaseValues"> = {}
+  ) => {
+    const current = await linkedWorld(input);
+    edit(current.table, "r1", { site: tableSite });
+    edit(current.target, "page-1", { site: targetSite });
+    return current;
+  };
+
+  const site = (current: World) => [
+    current.table.records.get("r1")?.values.site,
+    current.target.records.get("page-1")?.values.site,
+  ];
+
+  const filled = (planned: Engine.SyncPlan) =>
+    planned.initialized.map((item) => [
+      item.rowId,
+      item.remoteId,
+      item.columnId,
+      item.field,
+      item.side,
+      item.value,
+    ]);
+
+  test("a column mapped after a sync fills the empty side and never clears the other", async () => {
+    const rules: Engine.ConflictRule[] = [
+      "table-wins",
+      "target-wins",
+      "latest-wins",
+    ];
+    for (const conflictRule of rules) {
+      const input = { mapping: siteMapping, conflictRule };
+      const toTarget = await siteWorld("Paris", null);
+      const first = await run(toTarget, input);
+      assert.deepEqual(first.plan.updateInTable, [], conflictRule);
+      assert.deepEqual(
+        first.plan.updateInTarget.map((item) => item.values),
+        [{ site: "Paris" }],
+        conflictRule
+      );
+      assert.deepEqual(first.plan.conflicts, []);
+      assert.deepEqual(filled(first.plan), [
+        ["r1", "page-1", "site", "Site", "target", "Paris"],
+      ]);
+      assert.equal(api.summarizeSyncPlan(first.plan).initialized, 1);
+      assert.deepEqual(site(toTarget), ["Paris", "Paris"]);
+      assert.equal(toTarget.state.links[0]?.baseValues?.site, "Paris");
+      const again = plan(toTarget, input);
+      assert.deepEqual([changes(again), again.initialized], [0, []]);
+
+      const toTable = await siteWorld("", "Lyon");
+      const second = await run(toTable, input);
+      assert.deepEqual(second.plan.updateInTarget, [], conflictRule);
+      assert.deepEqual(
+        second.plan.updateInTable.map((item) => item.values),
+        [{ site: "Lyon" }],
+        conflictRule
+      );
+      assert.deepEqual(filled(second.plan), [
+        ["r1", "page-1", "site", "Site", "table", "Lyon"],
+      ]);
+      assert.deepEqual(site(toTable), ["Lyon", "Lyon"]);
+      assert.equal(changes(plan(toTable, input)), 0);
+    }
+  });
+
+  test("a newly mapped column with a value on both sides is a conflict", async () => {
+    const winners: [Engine.ConflictRule, Engine.SyncSide][] = [
+      ["table-wins", "table"],
+      ["target-wins", "target"],
+    ];
+    for (const [conflictRule, winner] of winners) {
+      const current = await siteWorld("Paris", "Lyon");
+      const { plan: planned } = await run(current, {
+        mapping: siteMapping,
+        conflictRule,
+      });
+      assert.deepEqual(
+        planned.conflicts.map((conflict) => [
+          conflict.columnId,
+          conflict.tableValue,
+          conflict.targetValue,
+          conflict.baseValue,
+          conflict.resolution,
+        ]),
+        [["site", "Paris", "Lyon", undefined, winner]]
+      );
+      assert.deepEqual(planned.initialized, []);
+      const kept = winner === "table" ? "Paris" : "Lyon";
+      assert.deepEqual(site(current), [kept, kept]);
+      assert.equal(changes(plan(current, { mapping: siteMapping })), 0);
+    }
+    const owned = await siteWorld("Paris", "Lyon");
+    const ownedPlan = plan(owned, {
+      mapping: siteMapping,
+      ownership: { site: "target" },
+    });
+    assert.deepEqual(
+      ownedPlan.overridden.map((item) => [item.owner, item.bothChanged]),
+      [["target", true]]
+    );
+    const manual = await siteWorld("Paris", "Lyon");
+    const manualPlan = plan(manual, {
+      mapping: siteMapping,
+      columnRules: { site: "manual" },
+    });
+    assert.deepEqual(changes(manualPlan), 0);
+    assert.deepEqual(
+      manualPlan.pendingConflicts.map((item) => item.columnId),
+      ["site"]
+    );
+  });
+
+  test("an owned column mapped after a sync is filled from the side with a value", async () => {
+    const current = await siteWorld("Paris", null);
+    const planned = plan(current, {
+      mapping: siteMapping,
+      ownership: { site: "target" },
+    });
+    assert.deepEqual(planned.updateInTable, []);
+    assert.deepEqual(filled(planned), [
+      ["r1", "page-1", "site", "Site", "target", "Paris"],
+    ]);
+    assert.deepEqual(planned.overridden, []);
+  });
+
+  test("a newly mapped column empty on both sides changes nothing", async () => {
+    const current = await siteWorld(null, "");
+    const { plan: planned } = await run(current, {
+      mapping: siteMapping,
+      conflictRule: "target-wins",
+    });
+    assert.deepEqual(
+      [changes(planned), planned.initialized, planned.conflicts],
+      [0, [], []]
+    );
+    assert.equal(current.state.links[0]?.baseValues?.site, null);
+    edit(current.table, "r1", { site: "Paris" });
+    assert.deepEqual(
+      plan(current, { mapping: siteMapping }).updateInTarget.map(
+        (item) => item.values
+      ),
+      [{ site: "Paris" }]
+    );
+  });
+
+  test("a column the target does not have yet is filled once it exists", async () => {
+    const current = await linkedWorld();
+    edit(current.table, "r1", { site: "Paris" });
+    const input = {
+      mapping: siteMapping,
+      conflictRule: "target-wins" as const,
+    };
+    const before = await run(current, input);
+    assert.equal(changes(before.plan), 0);
+    assert.equal(
+      Object.hasOwn(current.state.links[0]?.baseValues ?? {}, "site"),
+      false
+    );
+    // "Prepare" added the field: every record now holds it, empty.
+    edit(current.target, "page-1", { site: null });
+    const after = await run(current, input);
+    assert.deepEqual(
+      after.plan.updateInTarget.map((item) => item.values),
+      [{ site: "Paris" }]
+    );
+    assert.deepEqual(site(current), ["Paris", "Paris"]);
+  });
+
+  test("one-way syncs fill a newly mapped column but never clear it", async () => {
+    const pulled = await siteWorld("Paris", null);
+    const pullInput = { mapping: siteMapping, direction: "pull" as const };
+    const pull = await run(pulled, pullInput);
+    assert.deepEqual([changes(pull.plan), pull.plan.initialized], [0, []]);
+    assert.deepEqual(site(pulled), ["Paris", null]);
+    assert.equal(changes(plan(pulled, pullInput)), 0);
+    // Once the target holds a value, a pull mirrors it as usual.
+    edit(pulled.target, "page-1", { site: "Lyon" });
+    assert.deepEqual(
+      plan(pulled, pullInput).updateInTable.map((item) => item.values),
+      [{ site: "Lyon" }]
+    );
+
+    const fromTarget = await siteWorld(null, "Lyon");
+    const filledPull = plan(fromTarget, pullInput);
+    assert.deepEqual(
+      filledPull.updateInTable.map((item) => item.values),
+      [{ site: "Lyon" }]
+    );
+    assert.deepEqual(filled(filledPull), [
+      ["r1", "page-1", "site", "Site", "table", "Lyon"],
+    ]);
+
+    const pushed = await siteWorld(null, "Lyon");
+    const push = await run(pushed, { mapping: siteMapping, direction: "push" });
+    assert.equal(changes(push.plan), 0);
+    assert.deepEqual(site(pushed), [null, "Lyon"]);
+  });
+
+  test("a column removed from the mapping is left alone on both sides", async () => {
+    const withoutStatus: Engine.SyncMapping = {
+      keyField: "Yayaw ID",
+      fields: fields.filter((field) => field.columnId !== "status"),
+    };
+    for (const storeBaseValues of [true, false]) {
+      const current = await linkedWorld({ storeBaseValues });
+      edit(current.table, "r1", { status: "Paused" });
+      edit(current.target, "page-1", { status: null });
+      const input = {
+        mapping: withoutStatus,
+        storeBaseValues,
+        conflictRule: "target-wins" as const,
+      };
+      const { plan: planned } = await run(current, input);
+      assert.equal(changes(planned), 0);
+      assert.deepEqual(
+        [
+          current.table.records.get("r1")?.values.status,
+          current.target.records.get("page-1")?.values.status,
+        ],
+        ["Paused", null]
+      );
+      const link = current.state.links[0];
+      assert.equal(Object.hasOwn(link?.baseValues ?? {}, "status"), false);
+      assert.equal(link?.columns?.includes("status") ?? false, false);
+      assert.equal(changes(plan(current, input)), 0);
+    }
+  });
+
+  test("hash-only links fill a newly mapped column too", async () => {
+    const current = await siteWorld("Paris", null, { storeBaseValues: false });
+    assert.deepEqual(current.state.links[0]?.columns, [
+      "amount",
+      "done",
+      "due",
+      "name",
+      "status",
+      "tags",
+    ]);
+    edit(current.table, "r1", { name: "Launch v2" });
+    const input = {
+      mapping: siteMapping,
+      storeBaseValues: false,
+      conflictRule: "target-wins" as const,
+    };
+    const { plan: planned } = await run(current, input);
+    assert.deepEqual(planned.conflicts, []);
+    assert.deepEqual(planned.updateInTable, []);
+    assert.deepEqual(planned.updateInTarget[0]?.values, {
+      name: "Launch v2",
+      site: "Paris",
+    });
+    assert.equal(planned.initialized.length, 1);
+    assert.equal(current.state.links[0]?.columns?.includes("site"), true);
+    assert.equal(changes(plan(current, input)), 0);
+
+    // Older links without `columns` cover every mapped column, as before.
+    const legacy = await linkedWorld({ storeBaseValues: false });
+    legacy.state = {
+      ...legacy.state,
+      links: legacy.state.links.map(({ columns: _columns, ...link }) => link),
+    };
+    edit(legacy.target, "page-1", { amount: 7 });
+    const legacyPlan = plan(legacy, { storeBaseValues: false });
+    assert.deepEqual(legacyPlan.conflicts, []);
+    assert.deepEqual(legacyPlan.updateInTable[0]?.values, { amount: 7 });
+
+    // A hashed column no longer mapped: the hashes cannot be compared, so an
+    // empty value never wins.
+    const removed = await linkedWorld({ storeBaseValues: false });
+    edit(removed.target, "page-1", { name: null });
+    const removedPlan = plan(removed, {
+      mapping: {
+        keyField: "Yayaw ID",
+        fields: fields.filter((field) => field.columnId !== "status"),
+      },
+      storeBaseValues: false,
+      conflictRule: "target-wins",
+    });
+    assert.deepEqual(removedPlan.updateInTable, []);
+    assert.deepEqual(removedPlan.updateInTarget[0]?.values, {
+      name: "Launch",
+    });
+  });
+
+  test("a partial read never records a newly mapped column as synced", async () => {
+    const current = await linkedWorld();
+    edit(current.table, "r1", { site: "Paris" });
+    const input = {
+      mapping: siteMapping,
+      targetRecords: [],
+      targetPartial: true,
+      conflictRule: "target-wins" as const,
+    };
+    await run(current, input);
+    assert.equal(
+      Object.hasOwn(current.state.links[0]?.baseValues ?? {}, "site"),
+      false
+    );
+    edit(current.target, "page-1", { site: null });
+    const full = plan(current, { mapping: siteMapping });
+    assert.deepEqual(
+      full.updateInTarget.map((item) => item.values),
+      [{ site: "Paris" }]
+    );
+    assert.deepEqual(full.updateInTable, []);
   });
 
   test("validates conflict settings against the mapping and direction", () => {

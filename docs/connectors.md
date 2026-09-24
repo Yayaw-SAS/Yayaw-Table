@@ -219,8 +219,11 @@ logs. The host reads both sides, stores the sync state and runs the job.
   the table column type and drives normalization. `toSyncMapping(settings,
   columns)` builds it from the connector screen settings (`keyField` and
   `mapping` entries, `field: null` for skipped columns).
-- `SyncLink { rowId, remoteId, tableHash, targetHash, baseValues?, syncedAt }`
-  is what the host stores per linked row, in `SyncState { links, lastSyncAt? }`.
+- `SyncLink { rowId, remoteId, tableHash, targetHash, baseValues?, columns?,
+  syncedAt }` is what the host stores per linked row, in `SyncState { links,
+  lastSyncAt? }`. `baseValues` only holds the columns both sides agreed on;
+  links without them (`storeBaseValues: false`) store the columns their
+  hashes cover in `columns` instead.
   Store one `SyncState` per destination and view (for example next to the
   view's Connect settings), as JSON.
 
@@ -253,6 +256,21 @@ targetRecords, state, now })` returns a `SyncPlan`:
   conflict. Without `baseValues`, the engine compares record hashes instead:
   a record changed on one side wins every differing column, and a record
   changed on both sides makes every differing column a conflict.
+- **Columns never synced.** A column of a record adopted by key, or a linked
+  record's column without a base value (mapped since the last run, or
+  unknown on one side then), has nothing to compare with, so neither side counts as changed. When only one side has a
+  value, it fills the empty side, whatever `conflictRule` and `ownership` say:
+  mapping a new column never clears the table from an empty sheet column or
+  a property "Prepare" just created. Each fill is listed in `initialized`.
+  When both sides hold different values, it is a conflict settled as usual;
+  when both are empty, nothing happens. The column joins the link's
+  `baseValues` (or `columns`) once synced, and later runs merge it three-way.
+  A push or pull fills the other side the same way but never clears it with
+  an empty source. A column removed from the mapping is left alone on both
+  sides. A column unknown on one side (a sheet without that header, a page
+  missing from a partial read) is not recorded as synced. Hash-only links
+  saved before `columns` existed cover every mapped column: map new columns
+  with base values stored, or expect the old record-level comparison.
 - `conflictRule`: `table-wins` (default), `target-wins`, or `latest-wins`,
   which compares `updatedAt` of both records and falls back to the table
   without both times or on a tie (Sheets rows have no edit time, so it acts as
@@ -261,8 +279,9 @@ targetRecords, state, now })` returns a `SyncPlan`:
 - **Matching.** Linked records are found by `rowId` and `remoteId` (then by
   key, for a sheet row whose remote id became its key). Unlinked records are
   matched by key before anything is created, so an existing target record is
-  adopted instead of duplicated; differing columns of an adopted record are
-  conflicts. Records sharing a key (or an id) are reported in `duplicates` and
+  adopted instead of duplicated; an empty column of an adopted record is
+  filled from the other side, and columns holding different values on both
+  sides are conflicts. Records sharing a key (or an id) are reported in `duplicates` and
   left alone, never guessed; a linked record whose key became duplicated is
   not treated as deleted.
 - `deletePolicy` for a linked record missing on one side: `ignore` keeps the
@@ -280,7 +299,8 @@ targetRecords, state, now })` returns a `SyncPlan`:
 `summarizeSyncPlan(plan)` returns the counts for a preview (`createInTarget`,
 `updateInTarget`, `setKeyInTarget`, `createInTable`, `updateInTable`,
 `deleteInTarget`, `deleteInTable`, `changes`, `conflicts`, `flagged`,
-`duplicates`, `skipped`, `unchanged`). A plan with `changes: 0` has nothing to
+`initialized`, `duplicates`, `skipped`, `unchanged`). `initialized` counts
+values, not records: a filled value is also part of its record's update. A plan with `changes: 0` has nothing to
 write; running a sync twice gives such a plan the second time.
 
 ### Applying
@@ -457,7 +477,9 @@ decide conflicts per column, in code, with three optional `planSync` inputs.
 They are applied to each column changed on both sides in this order, and the
 first one that decides wins: **`ownership` → `columnRules` →
 `resolveConflict` → `conflictRule`**. Everything stays backward compatible: a
-plan without them behaves exactly as before.
+plan without them behaves exactly as before. A column never synced before
+with a value on one side only is not a conflict: the value fills the empty
+side before any rule applies (see "Columns never synced" above).
 
 ```ts
 import {
@@ -644,7 +666,8 @@ Labels are English and French and overridable with `connector.<key>`
 `ruleMerge`, `ruleManual`, `ruleTableWins`, `ruleTargetWins`,
 `ruleLatestWins`, `ownedBy`, `resolutionMerged`, `resolutionManual`,
 `resolutionCustom`, `resolutionSkipped`, `resultValue`, `overridden`,
-`moreOverridden`, `pendingNote`, `pendingNoteOne`, `conflictsToResolve`,
+`moreOverridden`, `pendingNote`, `pendingNoteOne`, `filledNote`,
+`filledNoteOne`, `conflictsToResolve`,
 `conflictsHint`, `keepTable`, `keepTarget`, `keepAllTable`, `keepAllTarget`,
 `noConflicts`, `resolvingConflicts`, `backToSettings`, `valueYes`,
 `valueNo`).
@@ -732,6 +755,10 @@ property, sends every existing option back, skips option names Notion refuses
 run applies nothing. `prepareSheet({ credentials, spreadsheetId, sheetTitle,
 fixes })` adds missing headers at the end of the header row (the key first),
 growing the grid when needed, and never reorders or deletes a column.
+A field created this way is empty: the next two-way sync fills it
+from the table, and a pull leaves the table as it is (`toSyncPreview` returns
+`initialized` and the preview says "N empty values will be filled in from
+the other side.").
 
 ### In the connector screen
 
