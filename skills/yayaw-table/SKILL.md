@@ -269,7 +269,7 @@ runs where you implement it (fetch, server action, RPC), so authorize there.
 | `actions.duplicate` | Duplicate and Ctrl/Cmd+D | No Duplicate |
 | `actions.bulkDelete` | Deleting a selection in one call | Deletes row by row with `delete` |
 | `actions.bulkUpdate` | The built-in bulk editor (when there is no `onBulkEdit`) | No bulk edit unless `onBulkEdit` is passed |
-| `actions.bulkCopy` | Vue bulk Copy (after `onBulkCopy`) | React copies the rows as JSON; Vue hides Copy |
+| `actions.bulkCopy` | Bulk Copy (after `onBulkCopy`) | React copies the rows as JSON; Vue hides Copy |
 | `actions.reorder` | "Manual order" sort (`table.manualOrder`) | No manual order |
 | `actions.views` | Saved views and the personal favorite | Views and favorite in `localStorage`, per browser |
 | `actions.tree` | File tree path, moves, new folders | Parent-column walk, `update`, `create` |
