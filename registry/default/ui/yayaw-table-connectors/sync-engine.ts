@@ -127,8 +127,17 @@ export interface SyncRecord {
 
 /** Per-row state the host stores between runs. */
 export interface SyncLink {
-  /** Values both sides agreed on at the last sync, for three-way merges. */
+  /**
+   * Values both sides agreed on at the last sync, for three-way merges. A
+   * mapped column without a base value (mapped since, or unknown on a side
+   * then) has never been synced: the next run fills the empty side.
+   */
   baseValues?: Record<string, SyncValue>;
+  /**
+   * Columns the hashes cover, on links without `baseValues`. Absent on older
+   * links, whose hashes cover every column mapped at the time.
+   */
+  columns?: string[];
   remoteId: string;
   rowId: string;
   syncedAt: string;
@@ -386,6 +395,19 @@ export function hashSyncValues(
   ).join("");
 }
 
+/** The mapped fields `values` holds: what a link's hash and `columns` cover. */
+const heldFields = (
+  values: Record<string, unknown>,
+  fields: readonly SyncField[]
+): SyncField[] =>
+  fields.filter((field) => Object.hasOwn(values, field.columnId));
+
+/** A link's hash: only the columns both sides agreed on. */
+const linkHash = (
+  values: Record<string, unknown>,
+  fields: readonly SyncField[]
+): string => hashSyncValues(values, heldFields(values, fields));
+
 /**
  * A sync mapping from the connector screen settings (`keyField`, `mapping`
  * entries with `field: null` for skipped columns) and the table columns,
@@ -538,6 +560,22 @@ export interface SyncOverride {
   targetValue: SyncValue;
 }
 
+/**
+ * A value filled in on the side that had none, for a column never synced on
+ * a linked pair (mapped since the last run): the non-empty side wins
+ * whatever the conflict rule, so an empty value never clears the other side.
+ */
+export interface SyncInitialized {
+  columnId: string;
+  field: string;
+  ref: Ref;
+  remoteId: string;
+  rowId: string;
+  /** The side that receives the value. */
+  side: SyncSide;
+  value: SyncValue;
+}
+
 /** Records sharing a key: none of them is synced until it is fixed. */
 export interface SyncDuplicate {
   /** Record ids on that side. */
@@ -570,6 +608,8 @@ export interface SyncPlan {
   entries: SyncPlanEntry[];
   fields: SyncField[];
   flagged: SyncFlag[];
+  /** Values filled in on the empty side of columns never synced before. */
+  initialized: SyncInitialized[];
   keyField: string;
   /** Columns written back by their owning side (see `ownership`). */
   overridden: SyncOverride[];
@@ -784,6 +824,7 @@ function emptyPlan(input: PlanSyncInput): SyncPlan {
     deleteInTarget: [],
     deleteInTable: [],
     flagged: [],
+    initialized: [],
     conflicts: [],
     duplicates: [],
     entries: [],
@@ -919,9 +960,12 @@ function ruleWinner(
     : "table";
 }
 
-type FieldChange = SyncSide | "both";
+/** The side that changed a column, both, or `unsynced`: no base to compare. */
+type FieldChange = SyncSide | "both" | "unsynced";
 
 interface PairChanges {
+  /** Columns the link's hashes cover; the others were never synced. */
+  covered: ReadonlySet<string>;
   table: boolean;
   target: boolean;
 }
@@ -949,14 +993,23 @@ function fieldChange(
   if (link && context.previousPending.has(pendingKey(link.rowId, columnId))) {
     return "both";
   }
-  if (link?.baseValues && Object.hasOwn(link.baseValues, columnId)) {
+  if (!link) {
+    // An adopted record: differing columns are conflicts.
+    return "both";
+  }
+  if (link.baseValues) {
+    if (!Object.hasOwn(link.baseValues, columnId)) {
+      return "unsynced";
+    }
     const base = link.baseValues[columnId] ?? null;
     return changedSide(
       !syncValuesEqual(values.table, base),
       !syncValuesEqual(values.target, base)
     );
   }
-  return changes ? changedSide(changes.table, changes.target) : "both";
+  return changes?.covered.has(columnId)
+    ? changedSide(changes.table, changes.target)
+    : "unsynced";
 }
 
 interface MergeResult {
@@ -965,20 +1018,45 @@ interface MergeResult {
   toTarget: Record<string, unknown>;
 }
 
+/**
+ * The mapped fields a hash-only link's hashes cover, or `undefined` when they
+ * cannot be recomputed (a covered column is no longer mapped). Older links
+ * without `columns` cover every mapped column.
+ */
+function hashedFields(
+  link: SyncLink,
+  fields: readonly SyncField[]
+): readonly SyncField[] | undefined {
+  if (!link.columns) {
+    return fields;
+  }
+  const mapped = new Set(fields.map((field) => field.columnId));
+  if (!link.columns.every((columnId) => mapped.has(columnId))) {
+    return;
+  }
+  const covered = new Set(link.columns);
+  return fields.filter((field) => covered.has(field.columnId));
+}
+
 function pairChanges(
   context: PlanContext,
   pair: Pair,
   table: SyncRecord,
   target: SyncRecord
 ): PairChanges | undefined {
-  if (!pair.link) {
+  if (!pair.link || pair.link.baseValues) {
     return;
   }
+  const hashed = hashedFields(pair.link, context.fields);
+  if (!hashed) {
+    return { covered: new Set(), table: false, target: false };
+  }
   return {
-    table: hashSyncValues(table.values, context.fields) !== pair.link.tableHash,
+    covered: new Set(hashed.map((field) => field.columnId)),
+    table: hashSyncValues(table.values, hashed) !== pair.link.tableHash,
     target:
       !pair.assumed &&
-      hashSyncValues(target.values, context.fields) !== pair.link.targetHash,
+      hashSyncValues(target.values, hashed) !== pair.link.targetHash,
   };
 }
 
@@ -992,7 +1070,8 @@ interface PairRecords {
 type FieldOutcome =
   | { kind: "side"; side: SyncSide }
   | { kind: "value"; raw: unknown; value: SyncValue }
-  | { kind: "keep"; value: SyncValue };
+  | { kind: "keep"; value: SyncValue }
+  | { kind: "unsynced" };
 
 interface Decision {
   error?: SyncConflict["error"];
@@ -1261,21 +1340,49 @@ const ownerOf = (
   return owner === "table" || owner === "target" ? owner : undefined;
 };
 
-function fieldOutcome(
+/** Empty in canonical form: `null`, or `false` for booleans. */
+const isEmptySyncValue = (value: SyncValue) =>
+  value === null || value === false;
+
+function reportInitialized(
+  context: PlanContext,
+  pair: Pair,
+  conflict: ConflictContext,
+  from: SyncSide
+) {
+  context.plan.initialized.push({
+    ref: pair.ref,
+    rowId: conflict.rowId,
+    remoteId: conflict.remoteId,
+    columnId: conflict.columnId,
+    field: conflict.field,
+    side: from === "table" ? "target" : "table",
+    value: from === "table" ? conflict.tableValue : conflict.targetValue,
+  });
+}
+
+/** The side holding a value when the other is empty. */
+const filledSide = (values: FieldValues): SyncSide | undefined => {
+  const tableEmpty = isEmptySyncValue(values.table);
+  if (tableEmpty === isEmptySyncValue(values.target)) {
+    return;
+  }
+  return tableEmpty ? "target" : "table";
+};
+
+function oneWayOutcome(
   context: PlanContext,
   pair: Pair,
   field: SyncField,
   values: FieldValues,
   records: PairRecords
 ): FieldOutcome {
-  const { direction } = context.input;
+  const source: SyncSide =
+    context.input.direction === "push" ? "table" : "target";
   const owner = ownerOf(context, field.columnId);
-  if (direction !== "two-way") {
-    const source: SyncSide = direction === "push" ? "table" : "target";
-    // A one-way sync never writes a column to the side that owns it.
-    return owner && owner !== source
-      ? { kind: "keep", value: values[owner] }
-      : { kind: "side", side: source };
+  // A one-way sync never writes a column to the side that owns it.
+  if (owner && owner !== source) {
+    return { kind: "keep", value: values[owner] };
   }
   const change = fieldChange(
     context,
@@ -1284,14 +1391,53 @@ function fieldOutcome(
     values,
     records.changes
   );
+  if (change === "unsynced") {
+    const filled = filledSide(values);
+    if (filled && filled !== source) {
+      // An empty source never clears a column it has never synced.
+      return { kind: "unsynced" };
+    }
+    if (filled) {
+      const conflict = conflictContext(pair, field, values, records);
+      reportInitialized(context, pair, conflict, filled);
+    }
+  }
+  return { kind: "side", side: source };
+}
+
+function fieldOutcome(
+  context: PlanContext,
+  pair: Pair,
+  field: SyncField,
+  values: FieldValues,
+  records: PairRecords
+): FieldOutcome {
+  if (context.input.direction !== "two-way") {
+    return oneWayOutcome(context, pair, field, values, records);
+  }
+  const owner = ownerOf(context, field.columnId);
+  const change = fieldChange(
+    context,
+    pair.link,
+    field.columnId,
+    values,
+    records.changes
+  );
   const conflict = conflictContext(pair, field, values, records);
+  const filled = change === "unsynced" ? filledSide(values) : undefined;
+  if (filled) {
+    // Never synced: the value fills the empty side, whatever the rules.
+    reportInitialized(context, pair, conflict, filled);
+    return { kind: "side", side: filled };
+  }
+  const oneSide = change === "table" || change === "target";
   if (owner) {
     if (change !== owner) {
-      reportOverride(context, pair, conflict, owner, change === "both");
+      reportOverride(context, pair, conflict, owner, !oneSide);
     }
     return { kind: "side", side: owner };
   }
-  if (change !== "both") {
+  if (oneSide) {
     return { kind: "side", side: change };
   }
   return resolveFieldConflict(context, pair, field, conflict);
@@ -1303,6 +1449,9 @@ function applyOutcome(
   outcome: FieldOutcome,
   records: PairRecords & { values: FieldValues }
 ) {
+  if (outcome.kind === "unsynced") {
+    return;
+  }
   if (outcome.kind === "keep") {
     result.merged[id] = outcome.value;
     return;
@@ -1348,8 +1497,10 @@ function mergeRecords(
       target: normalizeSyncValue(target.values[id], field.type),
     };
     if (!(inTable && inTarget)) {
-      if (inTable || inTarget) {
-        result.merged[id] = inTable ? values.table : values.target;
+      // Unknown on a side: nothing is compared, the base (if any) stays.
+      const base = pair.link?.baseValues;
+      if (base && Object.hasOwn(base, id)) {
+        result.merged[id] = base[id] ?? null;
       }
     } else if (syncValuesEqual(values.table, values.target)) {
       result.merged[id] = values.table;
@@ -1386,18 +1537,29 @@ function assumedMerge(
   pair: Pair,
   table: SyncRecord
 ): MergeResult {
-  const merged = normalizeSyncValues(table.values, context.fields);
+  const hashed = pair.link
+    ? hashedFields(pair.link, context.fields)
+    : undefined;
   const changed =
-    hashSyncValues(table.values, context.fields) !== pair.link?.tableHash;
-  const toTarget: Record<string, unknown> = {};
-  if (changed && context.input.direction !== "pull") {
-    for (const field of context.fields) {
-      if (Object.hasOwn(table.values, field.columnId)) {
-        toTarget[field.columnId] = table.values[field.columnId];
-      }
-    }
+    hashed !== undefined &&
+    hashSyncValues(table.values, hashed) !== pair.link?.tableHash;
+  if (!changed || context.input.direction === "pull") {
+    // Only the columns the target is known to hold stay synced.
+    return {
+      merged: normalizeSyncValues(table.values, hashed ?? []),
+      toTable: {},
+      toTarget: {},
+    };
   }
-  return { merged, toTable: {}, toTarget };
+  const toTarget: Record<string, unknown> = {};
+  for (const field of heldFields(table.values, context.fields)) {
+    toTarget[field.columnId] = table.values[field.columnId];
+  }
+  return {
+    merged: normalizeSyncValues(table.values, context.fields),
+    toTable: {},
+    toTarget,
+  };
 }
 
 const hasKeys = (values: Record<string, unknown>) =>
@@ -1435,17 +1597,33 @@ function planPairWrites(
   return writes;
 }
 
+/** The `columns` a hash-only link stores: the ones `values` holds, sorted. */
+const linkColumns = (
+  values: Record<string, unknown>,
+  fields: readonly SyncField[]
+): string[] =>
+  heldFields(values, fields)
+    .map((field) => field.columnId)
+    .sort(compareText);
+
 function sameLink(
   context: PlanContext,
   link: SyncLink,
   remoteId: string,
-  hash: string
+  merged: Record<string, SyncValue>
 ): boolean {
+  const hash = linkHash(merged, context.fields);
+  const { storeBaseValues } = context.plan;
+  const sameColumns = storeBaseValues
+    ? link.columns === undefined
+    : JSON.stringify(link.columns) ===
+      JSON.stringify(linkColumns(merged, context.fields));
   return (
     link.remoteId === remoteId &&
     link.tableHash === hash &&
     link.targetHash === hash &&
-    Boolean(link.baseValues) === context.plan.storeBaseValues
+    Boolean(link.baseValues) === storeBaseValues &&
+    sameColumns
   );
 }
 
@@ -1461,9 +1639,10 @@ function planMatchedPair(
     ? assumedMerge(context, pair, table)
     : mergeRecords(context, pair, table, target);
   const writes = planPairWrites(context, pair, table, target, result);
-  const hash = hashSyncValues(result.merged, context.fields);
   const unchangedLink =
-    !writes && pair.link && sameLink(context, pair.link, target.id, hash);
+    !writes &&
+    pair.link &&
+    sameLink(context, pair.link, target.id, result.merged);
   if (!writes) {
     context.plan.unchanged += 1;
   }
@@ -1667,6 +1846,8 @@ export interface SyncPlanSummary {
   deleteInTarget: number;
   duplicates: number;
   flagged: number;
+  /** Values filled in on the empty side of columns never synced before. */
+  initialized: number;
   /** Columns written back by their owning side. */
   overridden: number;
   /** Conflicts waiting for a person once the plan is applied. */
@@ -1695,6 +1876,7 @@ export function summarizeSyncPlan(plan: SyncPlan): SyncPlanSummary {
     conflicts: plan.conflicts.length,
     duplicates: plan.duplicates.length,
     flagged: plan.flagged.length,
+    initialized: plan.initialized?.length ?? 0,
     overridden: plan.overridden.length,
     pendingConflicts: plan.pendingConflicts.length,
     skipped: plan.skipped,
@@ -1730,13 +1912,15 @@ function nextLink(
   if (!(rowId && remoteId && entry.values)) {
     return entry.previous;
   }
-  const hash = hashSyncValues(entry.values, plan.fields);
+  const hash = linkHash(entry.values, plan.fields);
   return {
     rowId,
     remoteId,
     tableHash: hash,
     targetHash: hash,
-    ...(plan.storeBaseValues ? { baseValues: entry.values } : {}),
+    ...(plan.storeBaseValues
+      ? { baseValues: entry.values }
+      : { columns: linkColumns(entry.values, plan.fields) }),
     syncedAt: plan.syncedAt,
   };
 }
@@ -2238,7 +2422,7 @@ function resolvedLinks(
     for (const item of settled) {
       baseValues[item.pending.columnId] = item.value;
     }
-    const hash = fields ? hashSyncValues(baseValues, fields) : undefined;
+    const hash = fields ? linkHash(baseValues, fields) : undefined;
     return {
       ...link,
       baseValues,

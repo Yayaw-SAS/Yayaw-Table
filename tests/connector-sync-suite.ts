@@ -519,6 +519,39 @@ export function connectorSyncSuite(
     assert.equal(model.formatSyncValue("", fr), "(vide)");
   });
 
+  test("the preview says how many empty values a sync fills in", () => {
+    const plan = {
+      unchanged: 0,
+      createInTarget: [],
+      updateInTarget: [{}],
+      createInTable: [],
+      updateInTable: [{}],
+      deleteInTarget: [],
+      deleteInTable: [],
+      flagged: [],
+      duplicates: [],
+      conflicts: [],
+      initialized: [{}, {}],
+    };
+    const preview = model.toSyncPreview(plan);
+    assert.equal(preview.initialized, 2);
+    assert.equal(
+      model.toSyncPreview({ ...plan, initialized: [] }).initialized,
+      undefined
+    );
+    assert.deepEqual(
+      model.describeSyncPreview(preview, { t: en, name: "Spreadsheet" }).notes,
+      ["2 empty values will be filled in from the other side."]
+    );
+    assert.deepEqual(
+      model.describeSyncPreview(
+        { ...preview, initialized: 1 },
+        { t: fr, name: "Notion" }
+      ).notes,
+      ["1 valeur vide sera remplie depuis l’autre côté."]
+    );
+  });
+
   test("sync results: applied counts by side, failures, flagged and stop reason", () => {
     const result = model.toSyncRunResult(
       {
