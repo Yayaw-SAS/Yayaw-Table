@@ -22,6 +22,7 @@ import { parseDateValue } from "../utils/value-format";
 import type { TableGanttViewConfig } from "../planning/types";
 import {
   tableUrlKeys,
+  useTableDefaultSorting,
   useTableInstanceId,
   useTableStateSync,
 } from "../providers/table-state-sync-provider";
@@ -381,6 +382,12 @@ interface UseTableUrlStateOptions {
   defaultPageSize?: number;
 
   /**
+   * Sort used when neither the URL nor the table state carries one: the
+   * table's `columns.sort`. Defaults to the enclosing table's configured sort.
+   */
+  defaultSorting?: SortingState;
+
+  /**
    * Whether URL state management is enabled
    * @default true
    */
@@ -404,6 +411,7 @@ export function useTableUrlState({
   defaultDensity = "medium",
   defaultDisplayMode,
   defaultPageSize,
+  defaultSorting: defaultSortingOption,
   enabled,
   tableId,
 }: UseTableUrlStateOptions) {
@@ -413,6 +421,15 @@ export function useTableUrlState({
     footerVisibleAtom(tableId)
   );
   const inheritedSync = useTableStateSync();
+  const inheritedDefaultSorting = useTableDefaultSorting() as SortingState;
+  const defaultSortingKey = JSON.stringify(
+    defaultSortingOption ?? inheritedDefaultSorting
+  );
+  // One reference per configured sort, so memoized state stays stable.
+  const defaultSorting = useMemo(
+    () => JSON.parse(defaultSortingKey) as SortingState,
+    [defaultSortingKey]
+  );
   const shouldSyncUrl = enabled ?? inheritedSync;
   const instanceId = useTableInstanceId();
   const urlKeys = useMemo(
@@ -508,13 +525,15 @@ export function useTableUrlState({
     `${urlPrefix}-sort`,
     arrayParser
   );
+  // Without a sort in the URL or the table state, the table's configured
+  // `columns.sort` applies (as in the Vue edition); no sort keeps the list order.
   const [sortParam, setSortParam] = useStateChannel(
     tableId,
     shouldSyncUrl,
     "sort",
-    urlSortParam as SortingState,
+    (urlSortParam as SortingState | null) ?? defaultSorting,
     setUrlSortParam,
-    EMPTY_ARRAY as SortingState
+    defaultSorting
   );
 
   const [urlFiltersParam, setUrlFiltersParam] = useQueryState(
@@ -1391,7 +1410,8 @@ export function useTableUrlState({
       // Reset all URL parameters
       setViewParam(null);
       setHistoryIndexParam("0");
-      setSortParam([]);
+      // Reset returns to the configured sort, as in the Vue edition.
+      setSortParam(shouldSyncUrl ? null : defaultSorting);
       setFiltersParam([]);
       setAdvancedFiltersParam([]);
       setPageParam("0");
@@ -1448,6 +1468,8 @@ export function useTableUrlState({
     setGlobalSearchParam,
     setPinningParam,
     defaultPageSizeParam,
+    defaultSorting,
+    shouldSyncUrl,
   ]);
 
   // Get pagination state from URL parameters

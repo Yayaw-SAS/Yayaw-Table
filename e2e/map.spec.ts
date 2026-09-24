@@ -19,7 +19,7 @@ test.use({
 
 const MAP = "/?example=views&views-display=map";
 const SETTINGS_PARAM = "views-map";
-const WORKER_FILE = /[^/]+$/;
+const DIST_FILE = /[^/]+$/;
 const TOULOUSE = /Toulouse lab/;
 const ECHO = /Echo sensors/;
 /** The demo's basemap, replaced by a plain background so tests stay offline. */
@@ -67,10 +67,12 @@ test.beforeEach(async ({ context }) => {
   await context.route("https://tiles.openfreemap.org/**", (route) =>
     route.fulfill({ json: BLANK_STYLE })
   );
-  // MapLibre's worker is loaded from unpkg, as mapcn does: serve the local copy.
+  // MapLibre's worker is loaded from unpkg, as mapcn does: serve the local
+  // copies. The worker imports `./maplibre-gl-shared.mjs` from its own folder,
+  // so every file of `dist/` is served by name, not only the worker.
   await context.route("https://unpkg.com/maplibre-gl@*/dist/*", (route) =>
     route.fulfill({
-      path: `node_modules/maplibre-gl/dist/${WORKER_FILE.exec(new URL(route.request().url()).pathname)?.[0]}`,
+      path: `node_modules/maplibre-gl/dist/${DIST_FILE.exec(new URL(route.request().url()).pathname)?.[0]}`,
       contentType: "text/javascript",
       headers: { "access-control-allow-origin": "*" },
     })

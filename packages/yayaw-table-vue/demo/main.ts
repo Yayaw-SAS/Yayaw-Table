@@ -2,6 +2,7 @@ import { createApp } from "vue";
 import App from "./App.vue";
 import AssetsExample from "./AssetsExample.vue";
 import DashboardExample from "./DashboardExample.vue";
+import DefaultSortExample from "./DefaultSortExample.vue";
 import FormExample from "./FormExample.vue";
 import RecordDetailsExample from "./RecordDetailsExample.vue";
 import ViewsExample from "./ViewsExample.vue";
@@ -14,6 +15,7 @@ if (new URLSearchParams(window.location.search).get("theme") === "dark") {
 }
 const examples = {
   dashboard: DashboardExample,
+  "default-sort": DefaultSortExample,
   assets: AssetsExample,
   form: FormExample,
   "record-details": RecordDetailsExample,

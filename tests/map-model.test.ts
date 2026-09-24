@@ -1,4 +1,5 @@
-import { test } from "bun:test";
+import { expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
 import {
   normalizeSyncValue,
   placeText,
@@ -149,4 +150,23 @@ mapModelSuite(test, {
   formView: { formColumnEditor },
   sync: { normalizeSyncValue, placeText },
   modes: { isTableDisplayMode, normalizeModeConfig },
+});
+
+// The docs tell hosts that self-host the worker to copy it with
+// `maplibre-gl-shared.mjs`: the installed worker must import only that sibling.
+const MAPLIBRE_IMPORTS =
+  /\bfrom\s*["'`]([^"'`]+)["'`]|\bimport\s*["'`]([^"'`]+)["'`]/g;
+
+test("MapLibre's worker imports only maplibre-gl-shared.mjs, from its own folder", () => {
+  const worker = readFileSync(
+    new URL(
+      "../node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs",
+      import.meta.url
+    ),
+    "utf8"
+  );
+  const imports = new Set(
+    [...worker.matchAll(MAPLIBRE_IMPORTS)].map((match) => match[1] ?? match[2])
+  );
+  expect([...imports]).toEqual(["./maplibre-gl-shared.mjs"]);
 });

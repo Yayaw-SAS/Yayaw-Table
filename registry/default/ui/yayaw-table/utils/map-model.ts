@@ -76,7 +76,13 @@ export interface MapTableConfig extends Omit<MapViewSettings, "style"> {
   attribution?: string;
   /** Records kept at most when the host does not filter by area (default 2000). */
   maxRows?: number;
-  /** MapLibre's worker script, when unpkg cannot be used (strict CSPs, offline apps). */
+  /**
+   * MapLibre's worker script (`maplibre-gl-worker.mjs`), when unpkg cannot be
+   * used (strict CSPs, offline apps). Since MapLibre 6 the worker imports
+   * `./maplibre-gl-shared.mjs` relative to its own URL: serve both files from
+   * `node_modules/maplibre-gl/dist/` in the same folder, e.g.
+   * `/maplibre/maplibre-gl-worker.mjs` next to `/maplibre/maplibre-gl-shared.mjs`.
+   */
   workerUrl?: string;
 }
 
@@ -673,7 +679,8 @@ export function supportsWebGL(): boolean {
 /**
  * MapLibre's worker, as mapcn loads it: from unpkg for the installed
  * version, unless the host sets `table.map.workerUrl` (strict CSPs,
- * offline apps).
+ * offline apps). The worker loads `maplibre-gl-shared.mjs` from its own
+ * folder, so a self-hosted worker needs that file next to it.
  */
 export const mapWorkerUrl = (version: string, override?: string): string =>
   override ??

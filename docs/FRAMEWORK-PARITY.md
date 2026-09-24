@@ -593,6 +593,23 @@ or more advanced filter rules, both editions offer "Match all / any condition"
 Playwright `e2e/views.spec.ts` checks the combination round trip in both
 editions.
 
+### Default sort
+
+The sort a table starts from is, in order: the URL (`<tableId>-sort`), the
+saved or initial view, then `columns.sort`. Without any of them no sort is
+sent and every mode keeps the order `list` returns; the table adds no implicit
+order (by id, date or anything else). Modes that define their own order when
+nothing is sorted keep it: Feed sends its date column descending. Reset
+returns to `columns.sort`. Both editions apply this to every hook of the table
+(React reads `columns.sort` through `TableStateSyncProvider`, which now wraps
+the whole table, Vue starts its sorting state from it); React used to start
+from no sort and only applied `columns.sort` when the default view was chosen
+again, so a host that orders by id when nothing is sorted showed React by id
+and Vue by the configured column. Playwright `e2e/default-sort.spec.ts`
+(`?example=default-sort`, the same rows and list handler in both demos) checks
+table, Kanban, Gallery and Gantt with and without `columns.sort`, and that a
+URL sort wins.
+
 ## List view
 
 `displayModes: ["list"]` renders one line per record in both editions: the
@@ -985,6 +1002,11 @@ The shared `map-model.ts` owns everything but the drawing:
   `workerUrl`. No tiles and no keys ship; without a basemap the map is blank
   and a notice names `table.map.style`. The worker comes from unpkg for the
   installed MapLibre version (mapcn's default) unless `workerUrl` is set.
+  MapLibre 6's worker imports `./maplibre-gl-shared.mjs` relative to its own
+  URL, so a self-hosted `workerUrl` needs both `maplibre-gl-worker.mjs` and
+  `maplibre-gl-shared.mjs` (from `node_modules/maplibre-gl/dist/`) in the same
+  folder; the shared suite checks where the sibling resolves and the React
+  tests check that the installed worker imports nothing else.
 - Markers (`mapMarkers`): records with a place; the others are counted
   ("1 record without a location"). Colors: the option's `color`, else its tag
   hue (also when the table shows plain tags). Clustering: a MapLibre GeoJSON
@@ -1020,8 +1042,8 @@ import/export, connector text, settings, basemaps, markers and colors,
 clustering input and items, bbox scope with server and browser filtering,
 notices, labels, the cluster layer on a fake map, the settings panel).
 `tests/fixtures/data-types.json` covers the new type. `e2e/map.spec.ts` runs on
-both demos with WebGL through SwiftShader (tiles and the unpkg worker served
-locally): markers and the cluster, popup and Open, keyboard, color by status,
+both demos with WebGL through SwiftShader (tiles and the unpkg worker and its
+`maplibre-gl-shared.mjs` served locally): markers and the cluster, popup and Open, keyboard, color by status,
 settings in the URL, the list panel and highlights, "Search this area" sending
 a bbox scope, the inline editor with geocoder suggestions, and the phone
 layout.

@@ -42,6 +42,7 @@ import {
 import { useTableUrlState } from "../../hooks/use-table-url-state";
 import { planningLabelOverrides } from "../../planning/labels";
 import { ganttSettingsLabels } from "../../planning/settings";
+import { useTableDefaultSorting } from "../../providers/table-state-sync-provider";
 import { useLocale, useTranslations } from "../../providers/table-provider";
 import type { ColumnDataType } from "../../types";
 import type { TableDisplayMode } from "../../types/display-types";
@@ -659,18 +660,21 @@ export function TableMenu({
     setFooterCalculationsVisible((previous) => !previous);
   }, [setFooterCalculationsVisible]);
 
+  const defaultSorting = useTableDefaultSorting();
   const handleResetAll = useCallback(() => {
     setColumnFilters([]);
     if (useAdvancedFilters && advancedFiltersConfig?.actions?.clearFilters) {
       advancedFiltersConfig.actions.clearFilters();
     }
-    setSorting([]);
+    // Reset returns to the configured sort (`columns.sort`), as in Vue.
+    setSorting(defaultSorting);
     finalSetGrouping([]);
     setColumnVisibility({});
   }, [
     setColumnFilters,
     useAdvancedFilters,
     advancedFiltersConfig?.actions,
+    defaultSorting,
     setSorting,
     finalSetGrouping,
     setColumnVisibility,
