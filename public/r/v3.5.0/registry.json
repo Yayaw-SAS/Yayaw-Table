@@ -916,31 +916,6 @@
           "target": "components/ui/yayaw-table/config/index.ts"
         },
         {
-          "path": "registry/default/ui/yayaw-table/feed/feed-card.tsx",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/feed/feed-card.tsx"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/feed/feed-renderer.ts",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/feed/feed-renderer.ts"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/feed/feed-settings.tsx",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/feed/feed-settings.tsx"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/feed/feed-view.tsx",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/feed/feed-view.tsx"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/feed/use-feed-pages.ts",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/feed/use-feed-pages.ts"
-        },
-        {
           "path": "registry/default/ui/yayaw-table/form/form-date-field.tsx",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/form/form-date-field.tsx"
@@ -1399,11 +1374,6 @@
           "path": "registry/default/ui/yayaw-table/utils/export-model.ts",
           "type": "registry:component",
           "target": "components/ui/yayaw-table/utils/export-model.ts"
-        },
-        {
-          "path": "registry/default/ui/yayaw-table/utils/feed-view.ts",
-          "type": "registry:component",
-          "target": "components/ui/yayaw-table/utils/feed-view.ts"
         },
         {
           "path": "registry/default/ui/yayaw-table/utils/field-matching.ts",
