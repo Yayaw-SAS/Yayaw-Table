@@ -216,8 +216,15 @@ view is `view` (React also writes `historyIndex`); the file tree adds
 - `isSystem` views cannot be changed; `canEdit` and `canDelete` are the
   host's per-view permissions for the interface; one personal favorite per
   table opens on arrival.
-- Without `actions.views`, views and the favorite live in `localStorage`
-  (`createLocalTableViewActions()`), per browser and not per account.
+- Each user orders their views: the view menu's "Move left" and "Move right"
+  ("Move up" and "Move down" where it lists the views: phones, `viewTabs:
+  false`) move the current view, announced to screen readers. The order
+  applies to the tabs, the "…" (More views) list and the menu; system views
+  and the `isDefault` view stay first and new views come last. It is kept by
+  `actions.views.setOrder` and `list`'s `order`, else in `localStorage`.
+- Without `actions.views`, views, the favorite and the order live in
+  `localStorage` (`createLocalTableViewActions()`, the order beside it), per
+  browser and not per account.
   Persistence contract: [server contracts](server-contracts.md#saved-views);
   sharing rules: [saved views](https://github.com/Yayaw-SAS/Yayaw-Table/blob/main/docs/SAVED-VIEWS.md).
 

@@ -65,10 +65,11 @@ Each entry: what you see, why, what to do.
   component renders `DataTable` with `getTableActions`. Put the table in a
   `"use client"` component; its actions may call server actions.
 - **Server-rendered markup ignores the URL, the saved view or the favorite.**
-  URL state, views, favorites (`localStorage` without `actions.views`) and
-  measured page sizes exist only in the browser: the server renders the
-  default state and the client applies the rest after hydration (React defers
-  skeletons and drag handles to avoid mismatches; Vue reads the URL on mount).
+  URL state, views, favorites and the order of views (`localStorage`
+  without `actions.views`) and measured page sizes exist only in the
+  browser: the server renders the default state and the client applies the
+  rest after hydration (React defers skeletons and drag handles to avoid
+  mismatches; Vue reads the URL on mount).
   Keep view-dependent UI inside the table, and on statically rendered Next.js
   routes wrap the table in `<Suspense>` because the adapter reads search
   params.
