@@ -16,7 +16,7 @@ editor for the people who manage them:
 | `validateDashboard`, `checkDashboardReferences`, `dashboardJsonSchema` | The widget dialog (what, source, settings), to add and to edit |
 | `sanitizeViewConfig`, `dashboardFingerprint`, builders | The source catalogue over `sources.list()`: searched, grouped, unavailable sources shown disabled |
 | The `sources` catalogue, loaded on demand; unavailable sources kept | The view editor: the live table, read through `onViewConfigChange` |
-| Host `blocks`, full-page `table` widgets with their toolbar, saved views and URL | Block props: the host's `settings` form, or JSON checked by `validateProps` |
+| Host `blocks` (they can set the screen's filters; a "Facet list" block ships), full-page `table` widgets with their toolbar, saved views and URL | Block props: the host's `settings` form, or JSON checked by `validateProps` |
 | Readers' filter values in the URL, relative date periods, `meta.notice` | "Use a copy of this view", "Make the current view the screen default" |
 | "Refresh all", reloads after changes, the `?example=screen` demo | "Done" validates before saving; the editor loads in a chunk of its own |
 
@@ -511,6 +511,8 @@ The component receives `DashboardBlockProps`:
 | `revision` | Changes with "Refresh all" and after changes to the screen's data: load again |
 | `filters` | The screen's filter values by filter id: `{ start, end, preset? }` for date ranges (presets resolved), options for selects |
 | `refresh(tableId?)` | Reloads the widgets of a source, or all of them |
+| `setFilter(filterId, value)` | Sets a filter's value as the filter bar does; answers `{ ok: true, value }` or `{ ok: false, code, message }` (see below) |
+| `filterRules(tableId, { exclude? })` | The rules the screen's filters give a source, without the filters in `exclude`, for the block's own `list`/`aggregate` requests (`withDashboardFilters(actions, rules)` adds them as widgets do) |
 | `openView?` | The host's `openView` |
 
 A block that throws shows its error in its widget only (an error boundary in
@@ -518,6 +520,59 @@ React, `onErrorCaptured` in Vue). A block may render nothing: in a flow
 section its widget collapses (it shows while editing), in a grid it stays an
 empty card. A key the host does not have shows "Unavailable block", and the
 widget and its props are kept on save.
+
+### Blocks that set filters
+
+A block can drive the screen: `setFilter(filterId, value)` changes a filter
+exactly as the filter bar does. For a reader the value goes to the URL
+(`<dashboardId>.<filterId>`) and every widget follows; in edit mode it
+changes the document's default. The value is checked first
+(`checkDashboardFilterValue`, pure, in `dashboard-model.ts`):
+
+| Filter | Takes | Refused with |
+| --- | --- | --- |
+| `select` | A text or number, or a list of them, among the filter's `options` when it lists them, else among the options of the column it targets | `invalidValue` (another type, or a value that is not an option) |
+| `dateRange` | `{ start?, end? }` days (`YYYY-MM-DD`, `start` before `end`), or a known `{ preset }` alone | `invalidValue` |
+| any | `undefined`, `null`, `[]` or `{}`: clears the filter, as the filter bar's Clear does | |
+| a filter the screen does not have | nothing | `unknownFilter` |
+
+A refused value changes nothing, and the answer carries a `message` in the
+screen's language. `filterRules(tableId, { exclude })` gives the rules the
+other filters put on a source, so a block that counts records can leave its
+own filter out, as a facet does.
+
+The library ships a block built on it, the **facet list**: a column's values
+with their numbers of records under the screen's other filters, whose clicks
+set a `select` filter ("All" clears it). Register it with `createFacetBlock`:
+
+```tsx
+// React
+import { createFacetBlock } from "@/components/ui/yayaw-table-dashboard/dashboard-facet-block";
+
+const blocks: DashboardBlockRegistry = {
+  "pages.sections": createFacetBlock({
+    filterId: "section", // a select filter of the screen
+    tableId: "pages", // the source it counts
+    column: { id: "section", header: "Section", type: "select", options },
+    actions: pageActions, // the source's list/aggregate
+    label: { en: "Sections", fr: "Rubriques" },
+    layout: "chips", // or "list"
+  }),
+};
+```
+
+```ts
+// Vue
+import { createFacetBlock } from "@/components/ui/yayaw-table-vue/dashboard/dashboard-facet-block";
+```
+
+Counts come from the source's `aggregate` (grouped by the column and
+counted), else from the rows its `list` returns (2,000 at most), with the
+screen's other filters as `requiredFilters`. The widget's props are
+`{ filterId?, layout?: "chips" | "list", showCounts? }` (JSON, checked by the
+block's `validateProps`). The shared rules are in `dashboard-facets.ts`
+(`facetBlockSchema`, `facetBlockColumn`, `loadFacetBlockCounts`,
+`toggleFacetBlockValue`, `facetBlockEntries`), over the table's facet model.
 
 ### Filters: readers' values and relative periods
 
@@ -587,7 +642,9 @@ the table and the attention block. The sources loaded are logged in
 `?readonly` removes edit rights, `?hide` hides unavailable widgets, `?lang=fr`
 shows it in French. The `shortcuts` block's props are edited as JSON (its
 `validateProps` wants a list of `{ label, href }`); the `attention` block has
-a `settings` form choosing the items it lists.
+a `settings` form choosing the items it lists. Above the Pages table, the
+"Sections" facet list (`pages.sections`, made with `createFacetBlock`) sets
+the screen's "Section" filter: the table and the numbers follow.
 
 ## The screen editor
 

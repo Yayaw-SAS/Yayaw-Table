@@ -141,6 +141,39 @@ Defaults in brackets. Flags only shape the interface; the server decides.
 - Modes: `displayModes` [`["table"]`], `defaultDisplayMode`, and `kanban`,
   `gallery`, `list`, `filetree`, `calendar`, `chart`, `feed`, `map`, `form`,
   `gantt`, `planning` objects: see [display modes](display-modes.md).
+- Facets: `facets` [none], see below.
+
+## Facets
+
+`table.facets` shows a panel of facets beside the records in every display
+mode but `form` (a sheet on phones and compact toolbars, opened from the
+toolbar's button, which also hides the panel on wide screens): each column's
+values with their numbers of records; a click filters the table.
+
+<!-- skill-check: table.facets -->
+| Setting | Meaning |
+| --- | --- |
+| `table.facets.columns` | Column ids in order, or `{ id, label?, limit?, sort?: "options" \| "count" \| "label", showEmpty? }`. Select and tag columns, multi-select and tags columns, booleans (Yes, No) and the file tree's parent column (folders, with "Root"); others and `enableFiltering: false` columns are ignored. |
+| `table.facets.position` | `"left"` (default) or `"right"` of the records. |
+| `table.facets.defaultOpen` | Open at first on wide screens (true). |
+| `table.facets.limit` | Values shown before "Show N more" (8); a search appears past it. |
+| `table.facets.showCounts` | Show the numbers of records (true). |
+| `table.facets.showZero` | List values no record has (false). |
+| `table.facets.width` | Panel width in pixels (256, 180 to 480). |
+
+- A click writes the rule the filter menus write, ANDed with the others:
+  `isAnyOf` for selects, booleans and folders, `contains` for lists, and
+  `isEmpty` alone for "No value" (folders: "Root"). It is view state: in
+  `<tableId>-advancedFilters`, saved with views, listed in the filter menus.
+  Tables with facets get the advanced filter menu. While the view matches
+  any rule (OR), facets cannot change it and say so.
+- Counts ask `actions.aggregate` for the view's query without the facet's
+  own rule (so the facet keeps offering its other values), grouped by the
+  column and counted as charts ask; without it, the rows `list` returns
+  (2,000 at most; a notice says when counts cover fewer records). See
+  [server contracts](server-contracts.md#aggregate).
+- Labels: `facets.<key>` overrides (English and French built in).
+
 
 ## Translations
 
