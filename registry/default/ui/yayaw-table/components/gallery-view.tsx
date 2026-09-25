@@ -40,12 +40,14 @@ import {
   selectRowWithRange,
 } from "../utils/row-selection-interaction";
 import "../utils/media-viewer.css";
-import { fieldText } from "../utils/table-contracts";
+import {
+  emptyGroupLabel,
+  fieldText,
+  groupValueKey,
+} from "../utils/table-contracts";
 import { TableTooltip } from "../utils/table-tooltip";
 
 const SYSTEM_COLUMN_IDS = new Set(["actions", "select"]);
-const EMPTY_GROUP_VALUE = "";
-const EMPTY_GROUP_LABEL = "No value";
 
 const GALLERY_CARD_SIZE_CLASS = {
   large: "grid-cols-[repeat(auto-fill,minmax(min(100%,22rem),1fr))]",
@@ -251,19 +253,14 @@ export function resolveGalleryPropertyColumnIds({
   );
 }
 
-function getGalleryGroupValue(value: unknown): string {
-  if (value === null || value === undefined) {
-    return EMPTY_GROUP_VALUE;
-  }
-
-  return String(value);
-}
-
 export function createGalleryGroups<TData extends Record<string, unknown>>({
+  emptyLabel = emptyGroupLabel(),
   groupBy,
   labelOf,
   rows,
 }: {
+  /** Heading of the group without a value. */
+  emptyLabel?: string;
   groupBy: string;
   /** Group headings read the value as the table shows it. */
   labelOf?: (value: unknown) => string;
@@ -285,7 +282,7 @@ export function createGalleryGroups<TData extends Record<string, unknown>>({
 
   for (const row of rows) {
     const raw = row.original[groupBy];
-    const value = getGalleryGroupValue(raw);
+    const value = groupValueKey(raw);
     const existingGroup = groupByValue.get(value);
     if (existingGroup) {
       existingGroup.rows.push(row);
@@ -294,7 +291,7 @@ export function createGalleryGroups<TData extends Record<string, unknown>>({
 
     const group = {
       id: `gallery-group-${value || "empty"}`,
-      label: (value && (labelOf?.(raw) || value)) || EMPTY_GROUP_LABEL,
+      label: (value && (labelOf?.(raw) || value)) || emptyLabel,
       rows: [row],
       value,
     };
@@ -878,6 +875,7 @@ export function DataTableGalleryView<TData extends Record<string, unknown>>({
       (definition) => definition.id === groupBy
     );
     return createGalleryGroups({
+      emptyLabel: emptyGroupLabel(locale),
       groupBy,
       labelOf: (value) => fieldText(value, groupColumn, locale),
       rows,

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "bun:test";
 import type { TableCatalogueColumnConfig } from "../hooks/use-table-config";
 import { getImageFallbackInitial, resolveImageSource } from "../utils/image-source";
+import { emptyGroupLabel } from "../utils/table-contracts";
 import {
   createGalleryGroups,
   resolveGalleryDisplayConfig,
@@ -120,6 +121,24 @@ describe("Gallery display helpers", () => {
         { label: "Published", rowIds: ["2"] },
         { label: "No value", rowIds: ["4"] },
       ]
+    );
+  });
+
+  it("heads gallery and list sections without a value in the table locale", () => {
+    const rows = [
+      { id: "1", original: { status: null } },
+      { id: "2", original: {} },
+    ] as unknown as import("@/components/ui/yayaw-table/tanstack").Row<
+      Record<string, unknown>
+    >[];
+
+    assert.deepEqual(
+      createGalleryGroups({
+        emptyLabel: emptyGroupLabel("fr"),
+        groupBy: "status",
+        rows,
+      }).map((group) => [group.label, group.rows.length]),
+      [["Aucune valeur", 2]]
     );
   });
 });

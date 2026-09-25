@@ -15,7 +15,7 @@ import type {
   TableRecord,
 } from "../../types";
 import { useCardRows } from "../../composables/use-card-rows";
-import { fieldText } from "../../table-contracts";
+import { emptyGroupLabel, fieldText, groupValueKey } from "../../table-contracts";
 import TableCheckbox from "../controls/TableCheckbox.vue";
 import CellRenderer from "../table/CellRenderer.vue";
 import RowActions from "../table/RowActions.vue";
@@ -37,10 +37,12 @@ const sections = computed(() => {
   const groups = new Map<string, { id: string; label: string; rows: TableRecord[] }>();
   for (const row of rows.value) {
     const raw = value(row, groupBy);
-    const key = String(raw ?? "Unassigned");
+    const key = groupValueKey(raw);
     const section = groups.get(key) ?? {
       id: key,
-      label: fieldText(raw, column(groupBy), context.locale) || key,
+      label:
+        (key && (fieldText(raw, column(groupBy), context.locale) || key)) ||
+        emptyGroupLabel(context.locale),
       rows: [],
     };
     section.rows.push(row);

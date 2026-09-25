@@ -14,10 +14,8 @@ import { Button } from "@/components/ui/button";
 import { useLocale } from "../../providers/table-provider";
 import type { CellContext, ColumnDef } from "../../tanstack";
 import type { DateDisplayPreset } from "../../types/date-types";
-import {
-  formatYearMonthGroupLabel,
-  toYearMonthGroupKey,
-} from "../../utils/date-display";
+import { formatYearMonthGroupLabel } from "../../utils/date-display";
+import { dateGroupKey } from "../../utils/table-contracts";
 
 import { DateCell } from "../cells/date-cell";
 
@@ -129,7 +127,7 @@ export function createDateColumn<TData>({
         | number
         | string
         | undefined;
-      return toYearMonthGroupKey(value) ?? "";
+      return dateGroupKey(value);
     },
     // Aggregation for grouped rows (count of rows)
     aggregationFn: "count",

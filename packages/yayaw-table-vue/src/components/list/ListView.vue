@@ -6,14 +6,13 @@ import { displayCellValue } from "../../core";
 import { GripVertical } from "lucide-vue-next";
 import { isManualOrder, moveInOrder, REORDER_ROW_ATTRIBUTE, reorderRowAt } from "../../manual-order";
 import { selectionAfterClick } from "../../selection-interaction";
-import { fieldText } from "../../table-contracts";
+import { emptyGroupLabel, fieldText, groupValueKey } from "../../table-contracts";
 import type { ColumnDefinition, TableRecord } from "../../types";
 import TableCheckbox from "../controls/TableCheckbox.vue";
 import CellRenderer from "../table/CellRenderer.vue";
 import RowActions from "../table/RowActions.vue";
 import TableEmptyState from "../table/TableEmptyState.vue";
 
-const EMPTY_GROUP_LABEL = "No value";
 const {
   context,
   translate,
@@ -66,12 +65,11 @@ const sections = computed(() => {
   const groups = new Map<string, { label: string; rows: TableRecord[] }>();
   for (const row of rows.value) {
     const raw = value(row, groupBy.value);
-    const empty = raw === null || raw === undefined || raw === "";
-    const key = empty ? EMPTY_GROUP_LABEL : String(raw);
+    const key = groupValueKey(raw);
     const section = groups.get(key) ?? {
-      label: empty
-        ? EMPTY_GROUP_LABEL
-        : fieldText(raw, column(groupBy.value), context.locale) || key,
+      label:
+        (key && (fieldText(raw, column(groupBy.value), context.locale) || key)) ||
+        emptyGroupLabel(context.locale),
       rows: [],
     };
     section.rows.push(row);

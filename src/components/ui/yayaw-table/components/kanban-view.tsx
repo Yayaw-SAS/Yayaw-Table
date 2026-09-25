@@ -35,14 +35,16 @@ import {
   getCompactCardPropertiesClassName,
   getCompactCardPropertyClassName,
 } from "../utils/card-properties";
-import { fieldText } from "../utils/table-contracts";
+import {
+  emptyGroupLabel,
+  fieldText,
+  groupValueKey,
+} from "../utils/table-contracts";
 import { isBlankCardValue } from "../utils/value-format";
 
 import { ServerKanbanView } from "./server-kanban-view";
 
 const SYSTEM_COLUMN_IDS = new Set(["actions", "select"]);
-const EMPTY_GROUP_VALUE = "";
-const EMPTY_GROUP_LABEL = "No value";
 
 export interface KanbanGroup {
   id: string;
@@ -100,14 +102,6 @@ interface DataTableKanbanItem<TData extends Record<string, unknown>>
   row: Row<TData>;
 }
 
-function getStringValue(value: unknown): string {
-  if (value === null || value === undefined) {
-    return EMPTY_GROUP_VALUE;
-  }
-
-  return String(value);
-}
-
 function getColumnLabel(
   columnDefinitions: TableCatalogueColumnConfig[],
   columnId: string
@@ -123,19 +117,20 @@ type KanbanLaneLabel = (value: unknown) => string;
 
 export function createConfiguredGroups(
   groups: TableKanbanGroupConfig[] | undefined,
-  labelOf?: KanbanLaneLabel
+  labelOf?: KanbanLaneLabel,
+  emptyLabel = emptyGroupLabel()
 ): KanbanGroup[] {
   if (!groups?.length) {
     return [];
   }
 
   return groups.map((group) => {
-    const value = getStringValue(group.value);
+    const value = groupValueKey(group.value);
     return {
       id: `kanban-group-${value || "empty"}`,
       label:
         group.label ??
-        ((value && (labelOf?.(group.value) || value)) || EMPTY_GROUP_LABEL),
+        ((value && (labelOf?.(group.value) || value)) || emptyLabel),
       value,
     };
   });
@@ -153,11 +148,14 @@ export function shouldUseConfiguredKanbanGroups({
 
 export function createKanbanGroups<TData extends Record<string, unknown>>({
   configuredGroups,
+  emptyLabel = emptyGroupLabel(),
   groupBy,
   labelOf,
   rows,
 }: {
   configuredGroups: KanbanGroup[];
+  /** Heading of the lane without a value. */
+  emptyLabel?: string;
   groupBy: string;
   labelOf?: KanbanLaneLabel;
   rows: Row<TData>[];
@@ -167,7 +165,7 @@ export function createKanbanGroups<TData extends Record<string, unknown>>({
 
   for (const row of rows) {
     const raw = row.original[groupBy];
-    const value = getStringValue(raw);
+    const value = groupValueKey(raw);
     if (knownValues.has(value)) {
       continue;
     }
@@ -175,7 +173,7 @@ export function createKanbanGroups<TData extends Record<string, unknown>>({
     knownValues.add(value);
     groups.push({
       id: `kanban-group-${value || "empty"}`,
-      label: (value && (labelOf?.(raw) || value)) || EMPTY_GROUP_LABEL,
+      label: (value && (labelOf?.(raw) || value)) || emptyLabel,
       value,
     });
   }
@@ -208,7 +206,7 @@ function createKanbanItems<TData extends Record<string, unknown>>({
   );
 
   return rows.map((row) => {
-    const groupValue = getStringValue(row.original[groupBy]);
+    const groupValue = groupValueKey(row.original[groupBy]);
     const titleValue =
       titleColumnId && row.original[titleColumnId] !== undefined
         ? row.original[titleColumnId]
@@ -218,7 +216,7 @@ function createKanbanItems<TData extends Record<string, unknown>>({
       column: columnIdByValue.get(groupValue) ?? groupValue,
       groupValue,
       id: row.id,
-      name: getStringValue(titleValue) || row.id,
+      name: groupValueKey(titleValue) || row.id,
       row,
     };
   });
@@ -519,14 +517,21 @@ function LocalDataTableKanbanView<TData extends Record<string, unknown>>({
     () =>
       createConfiguredGroups(
         shouldUseConfiguredGroups ? config?.groups : undefined,
-        laneLabel
+        laneLabel,
+        emptyGroupLabel(locale)
       ),
-    [config?.groups, laneLabel, shouldUseConfiguredGroups]
+    [config?.groups, laneLabel, locale, shouldUseConfiguredGroups]
   );
   const groups = useMemo(
     () =>
-      createKanbanGroups({ configuredGroups, groupBy, labelOf: laneLabel, rows }),
-    [configuredGroups, groupBy, laneLabel, rows]
+      createKanbanGroups({
+        configuredGroups,
+        emptyLabel: emptyGroupLabel(locale),
+        groupBy,
+        labelOf: laneLabel,
+        rows,
+      }),
+    [configuredGroups, groupBy, laneLabel, locale, rows]
   );
   const kanbanColumns = useMemo(() => createKanbanColumns(groups), [groups]);
   const resolvedTitleColumnId =

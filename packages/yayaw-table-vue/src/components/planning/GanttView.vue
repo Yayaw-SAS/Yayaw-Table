@@ -3,6 +3,7 @@ import { ChevronDown, ChevronLeft, ChevronRight, FileText, Layers, RotateCw } fr
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useTableContext } from "../../context";
 import { useCardRows } from "../../composables/use-card-rows";
+import { exportColumns } from "../../core";
 import { dateDay, dayDate } from "../../planning/calendar";
 import { normalizeGanttView } from "../../planning/engine";
 import { planningFormatters } from "../../planning/format";
@@ -70,10 +71,18 @@ const rowsById = computed(() => {
 const recordFor = (task: PlanningTask): TableRecord | undefined =>
   task.ref.source === sourceId.value ? rowsById.value.get(task.ref.id) : undefined;
 
+// The configured title column, else the first visible data column, as in React.
 const titleColumn = computed<ColumnDefinition | undefined>(() => {
   const configured = context.config.table.gantt?.titleColumn;
   const definitions = context.config.columns.definitions;
-  return definitions.find((item) => item.id === configured) ?? definitions[0];
+  return (
+    definitions.find((item) => item.id === configured) ??
+    exportColumns(
+      definitions,
+      context.state.visibility.value,
+      context.state.order.value
+    ).find((item) => item.id !== "select" && item.id !== "actions")
+  );
 });
 
 // Names and days read as the table shows the title, start and end columns.

@@ -10,7 +10,7 @@ import { useCardRows } from "../../composables/use-card-rows";
 import TableCheckbox from "../controls/TableCheckbox.vue";
 import CellRenderer from "../table/CellRenderer.vue";
 import { isBlankCardValue } from "../../value-format";
-import { fieldText } from "../../table-contracts";
+import { emptyGroupLabel, fieldText, groupValueKey } from "../../table-contracts";
 import RowActions from "../table/RowActions.vue";
 
 const { context, translate, titleColumn, propertyIds, showLabels, groupBy } = useKanbanSettings();
@@ -19,13 +19,15 @@ const pending = ref<string>();
 const rows = useCardRows();
 // Lane titles read the grouped value as the table shows it; `value` stays raw.
 const laneLabel = (raw: unknown, fallback: string): string =>
-  fieldText(raw, column(groupBy.value), context.locale) || fallback;
+  (fallback && fieldText(raw, column(groupBy.value), context.locale)) ||
+  fallback ||
+  emptyGroupLabel(context.locale);
 const rawGroups = computed(() => {
   const configured = groupBy.value === context.config.table.kanban?.groupBy ? context.config.table.kanban?.groups ?? [] : [];
   const values = new Map<string, unknown>();
   for (const row of rows.value) {
     const raw = value(row, groupBy.value);
-    const key = String(raw ?? "Unassigned");
+    const key = groupValueKey(raw);
     if (!values.has(key)) {
       values.set(key, raw);
     }
@@ -46,7 +48,7 @@ const titleText = (row: TableRecord): string =>
   fieldText(value(row, titleColumn.value), column(titleColumn.value), context.locale, row);
 const rowsFor = (group: string): TableRecord[] =>
   rows.value.filter(
-    (row) => String(value(row, groupBy.value) ?? "Unassigned") === group
+    (row) => groupValueKey(value(row, groupBy.value)) === group
   );
 const column = (id: string): ColumnDefinition | undefined =>
   context.config.columns.definitions.find((item) => item.id === id);
@@ -109,7 +111,7 @@ const adjacentGroup = (
   row: TableRecord,
   offset: -1 | 1
 ): { label: string; value: string } | undefined => {
-  const currentValue = String(value(row, groupBy.value) ?? "Unassigned");
+  const currentValue = groupValueKey(value(row, groupBy.value));
   const currentIndex = rawGroups.value.findIndex(
     (group) => group.value === currentValue
   );

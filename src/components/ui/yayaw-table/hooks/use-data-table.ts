@@ -26,7 +26,10 @@ import type {
 } from "../components/columns/actions-column";
 import { useColumns } from "../components/columns/hooks/use-columns";
 import { useTranslations } from "../providers/table-provider";
-import { compatibleListParams } from "../utils/table-contracts";
+import {
+  compatibleListParams,
+  dateGroupKey,
+} from "../utils/table-contracts";
 import { invalidateTableDataQuery } from "./query-cache-utils";
 import { useGalleryMediaActions } from "./use-gallery-media-actions";
 import type { InlineEditColumnRuntimeConfig } from "./use-inline-edit-runtime";
@@ -823,14 +826,18 @@ export function useDataTable<TData extends Record<string, unknown>>(
           ? { accessorFn: colDef.accessorFn as (row: TData) => unknown }
           : {}),
         // A configured accessor also owns grouping; base renderers use the ID.
+        // Date columns group by month either way.
         ...(colDef.accessorFn || colDef.accessorKey
           ? {
-              getGroupingValue: (row: TData) =>
-                typeof colDef.accessorFn === "function"
-                  ? (colDef.accessorFn as (record: TData) => unknown)(row)
-                  : (row as Record<string, unknown>)[
-                      colDef.accessorKey as string
-                    ],
+              getGroupingValue: (row: TData) => {
+                const value =
+                  typeof colDef.accessorFn === "function"
+                    ? (colDef.accessorFn as (record: TData) => unknown)(row)
+                    : (row as Record<string, unknown>)[
+                        colDef.accessorKey as string
+                      ];
+                return colDef.type === "date" ? dateGroupKey(value) : value;
+              },
             }
           : {}),
         ...(["select", "multiSelect", "tag", "dynamicType", "custom"].includes(

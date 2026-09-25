@@ -4,6 +4,8 @@ import rows from "../../../tests/fixtures/grouped-rows.json";
 import YayawDataTable from "./components/YayawDataTable.vue";
 import { defineTableConfig } from "./config";
 
+const MARCH_GROUP = /March 2026.*3$/;
+const APRIL_GROUP = /April 2026.*1$/;
 enableAutoUnmount(afterEach);
 beforeEach(() => window.history.replaceState({}, "", "/"));
 
@@ -43,9 +45,33 @@ async function mountGroups(grouping = ["category"], selection = true) {
           type: "number",
           enableGrouping: false,
         },
+        { id: "due", header: "Due", type: "date" },
+        {
+          id: "deadline",
+          header: "Deadline",
+          type: "date",
+          accessorFn: (row) => row.due,
+        },
       ],
-      visible: ["name", "category", "active", "country", "amount"],
-      order: ["select", "name", "category", "active", "country", "amount"],
+      visible: [
+        "name",
+        "category",
+        "active",
+        "country",
+        "amount",
+        "due",
+        "deadline",
+      ],
+      order: [
+        "select",
+        "name",
+        "category",
+        "active",
+        "country",
+        "amount",
+        "due",
+        "deadline",
+      ],
     },
     table: {
       enableGrouping: true,
@@ -125,4 +151,15 @@ it("spans the visible columns without a phantom checkbox when selection is disab
   expect(group.get("td").attributes("colspan")).toBe(
     String(wrapper.findAll("thead th").length)
   );
+});
+
+it("groups date columns by month with or without an accessor", async () => {
+  for (const column of ["due", "deadline"]) {
+    const { wrapper } = await mountGroups([column]);
+    const labels = wrapper.findAll("tbody tr.grouped").map((row) => row.text());
+    expect(labels).toHaveLength(2);
+    expect(labels[0]).toMatch(MARCH_GROUP);
+    expect(labels[1]).toMatch(APRIL_GROUP);
+    wrapper.unmount();
+  }
 });
