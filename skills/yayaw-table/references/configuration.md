@@ -200,7 +200,8 @@ values with their numbers of records; a click filters the table.
 With `syncUrl` on, the state is in the query string, so links reproduce a
 view. Keys use the prefix `<tableId>` (or `<instanceId>`):
 `-q`, `-filters`, `-advancedFilters`, `-sort`, `-page` (**zero-based**, while
-`list` receives `page` from 1), `-pageSize`, `-visibility`, `-order`,
+`list` receives `page` from 1), `-pageSize`, `-visibility`, `-order` (the
+column order; rows keep the order `list` returns),
 `-sizing`, `-pinning`, `-grouping`, `-display`, `-kanban`, `-kanbanGroupBy`,
 `-gallery`, `-gantt`, one per generic mode (`-list`, `-filetree`, `-calendar`,
 `-chart`, `-feed`, `-map`, `-form`) and, in React, `-expanded`. The active saved

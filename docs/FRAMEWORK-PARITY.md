@@ -992,7 +992,13 @@ date (and end date) prefilled. Layout changes are view settings.
 Renderers receive a framework-neutral context: settings and their setter,
 current list parameters and action, local rows, row id, permissions,
 `updateRow`, `openRow`, `createRow` and a `revision` that changes after each
-mutation. React translation keys are `views.calendar.*`; Vue keys are
+mutation. In both editions `rows` stays the same array, and `revision` the
+same number, until the page data changes: renders (a host passing new
+callbacks for the same actions included) and column-order changes reload no
+display mode. The rows keep the order `list` returns; `<tableId>-order` is the
+column order only (`tests/table-page-rows.test.tsx`, Vue
+`components/page-rows.test.ts`).
+React translation keys are `views.calendar.*`; Vue keys are
 `calendar.*` with English and French defaults. `tests/calendar-model-suite.ts`
 runs in both editions and `e2e/calendar.spec.ts` covers both demos.
 

@@ -336,7 +336,9 @@ replaces the built-in view of that mode (documented for `form`, `feed` and
 `canEditRow`, `canCreate`, `updateRow`, `patchRow`, `deleteRow`,
 `canDeleteRow`, `openRow`, `createRow`, `createRecord`, `viewId`,
 `formLinks`, `tree`, `media`, `imageColumn`, `selection`, `coloredTags`,
-`revision` (changes after each mutation: reload), `emptyState`, `title`,
+`revision` (changes when the page data changes, e.g. after a mutation: reload;
+it and `rows` stay the same across renders and column-order changes),
+`emptyState`, `title`,
 `syncUrl` and `refresh`, plus the settings context (`tableId`, `locale`,
 `columns`, `defaults`, `settings`, `updateSettings`, `translate` and
 `formFields`, the create form's fields when `getFormConfig` declares them). Use
