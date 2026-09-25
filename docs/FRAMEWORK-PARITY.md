@@ -297,6 +297,7 @@ The parity contract covers user-visible behavior and serializable catalogue/acti
 | View manager | Default/system views, dirty state, create/update/delete/share permissions, recoverable persistence | Vue saved-view suites; React view-manager suites |
 | Columns | Sort/filter/pin/hide menus, mandatory/utility locks, persistent DnD preference, pointer and keyboard reorder, optional resizing stored in views/URLs | Shared contract/view-state suites; Vue `catalogue-controls.test.ts`, `yayaw-data-table.test.ts`; React column and URL-state suites |
 | Display modes | Shared mode registry, fallback for unavailable modes, grouping and pagination, card renderers, configurable empty state, one-page pagination hiding | Shared `display-modes.test.ts`; Playwright `e2e/views.spec.ts` in both editions; Vue `parity.test.ts`; React gallery/Kanban suites |
+| First load | One request for the first page, the loading state until it answers (React skeletons, on the server too; Vue overlay), views mounted once and loading their data once | React `table-loading.test.tsx`, `initial-rows.test.tsx`; Vue `table-loading.test.ts`; Playwright `e2e/filetree.spec.ts` |
 | Kanban updates | Permission-aware moves, optimistic update, rollback and accessible non-pointer movement | Vue `parity.test.ts`; React Kanban suites |
 | Selection | Controlled state, cross-page cache, select-all race protection, optional query persistence | React `selection-parity.test.tsx`; Vue component/action suites |
 | Catalogue forms | Generated fields, conditions, async values/options, nested collections, validation, transforms, patch mode | Shared `form-scenarios.json`; both form-contract suites and mounted form suites |
@@ -738,6 +739,35 @@ so existing hosts keep working with more data transferred. Results are capped
 (`maxRows`, 2000 by default): views either show a `truncated` result or, with
 `overflow: "throw"`, refuse an incomplete one. Vue's local-data mode filters its
 rows the same way. `tests/scoped-rows-suite.ts` runs in both editions.
+
+## First load
+
+A table requests its first page once and its view mounts once. React shows its
+loading state (skeletons) from the first render until the first page answers,
+then mounts the view with the rows; without `initialData`, the server renders
+that loading state too. React used to derive its filters with an asynchronous
+query, which held the page query back one render: the first render (and the
+server) showed an empty table that the loading state then replaced, so every
+view mounted twice, and a File tree listed its root and each folder it opens
+twice, with the renderer context's `revision` starting over. Vue mounts its
+view at once under its loading overlay, as before. Its `revision` now moves
+for a new query or list and for new rows of the query shown (a mutation, a
+form submit, another page), not for the first rows of a query, nor when the
+URL read on mount (or on back and forward) sets equal values: `listParams`
+keeps its object while `tableQueryKey` finds the same query. The Vue File tree
+used to list its root three times and each folder it opens twice at load, and
+a search's matches twice. At load, both editions now send the page request,
+then one `children` request for the root and for each folder the tree opens;
+a search sends one page request and one `tree-matches` request.
+
+React `tests/table-loading.test.tsx` checks the loading state first, one
+mount with the rows at `revision` 1, one request per folder at load, and the
+loading state while a new query loads; `tests/initial-rows.test.tsx` checks
+the server rendering without initial rows. Vue `table-loading.test.ts` checks
+one request per folder at `revision` 1, a refresh that loads the tree again
+and a search that loads it once. Playwright `e2e/filetree.spec.ts` ("lists the
+root and each folder it opens once at load, and the matches once for a
+search") runs in both editions.
 
 ## Multiple sorts and filter combination
 
@@ -1358,7 +1388,8 @@ without the subtree scope, search with and without `tree-matches`, moves with
 undo, rollback and the `update` fallback, cut/paste, drags, rename clashes,
 folder creation, deletes, deep links and phone drill-down.
 `e2e/filetree.spec.ts` covers both demos (`?example=assets`,
-`?example=assets-fallback`): lazy loading with the `children` requests, expand
+`?example=assets-fallback`): lazy loading with the `children` requests, one
+request per folder at load and per search (see First load), expand
 all with the `subtree` request and collapse all, the details pane, drag and
 undo, an invalid drop into a descendant, cut/paste and Move to…, new folder,
 F2 rename with a clash, keyboard navigation and type-ahead, search with

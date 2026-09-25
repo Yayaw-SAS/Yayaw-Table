@@ -343,3 +343,8 @@ it and `rows` stay the same across renders and column-order changes),
 `columns`, `defaults`, `settings`, `updateSettings`, `translate` and
 `formFields`, the create form's fields when `getFormConfig` declares them). Use
 `loadScopedRows()` to load every row of a window with a scope.
+
+A view mounts once when the table loads: React mounts it with the first page
+(the table shows its loading state until then), Vue at once under its loading
+overlay. Load at mount, then again when `revision` or the query in
+`listParams` changes; `revision` stays at 1 through the first load.

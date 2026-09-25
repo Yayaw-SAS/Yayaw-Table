@@ -136,6 +136,17 @@ it("renders the host's rows on the server under columns.sort, without skeletons"
   }
 });
 
+it("renders its loading state on the server without the host's rows, not an empty table", () => {
+  const html = renderToString(
+    restockTable({
+      firstPage: { initialData: [], initialPageCount: 0, initialRowCount: 0 },
+      list: listRestockRows,
+    })
+  );
+  expect(html).toContain(SKELETON);
+  expect(html).not.toContain(EMPTY_STATE);
+});
+
 it("shows rows produced in another order at once, then loads them once in columns.sort", async () => {
   const { calls, list, release } = heldList();
   const container = await mount(
