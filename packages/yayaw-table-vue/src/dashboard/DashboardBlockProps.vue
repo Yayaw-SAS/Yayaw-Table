@@ -29,6 +29,8 @@ const block = computed(() =>
 );
 // A registry held in reactive state must not make its components reactive.
 const settings = computed(() => (block.value?.settings ? toRaw(block.value.settings) : undefined));
+// As the block reads them: its props over the block's defaults.
+const shownProps = computed(() => ({ ...block.value?.defaultProps, ...props.draft.props }));
 const problems = computed(() =>
   props.check?.issues.filter((issue) => (props.check?.ok ? issue.severity === "warning" : true)) ?? []
 );
@@ -41,7 +43,7 @@ const changeProps = (next: DashboardJsonObject) => emit("update:draft", { ...pro
       :is="settings"
       v-if="settings"
       :widget-id="props.widgetId"
-      :props="props.draft.props ?? {}"
+      :props="shownProps"
       :locale="props.locale"
       :on-change="changeProps"
     />

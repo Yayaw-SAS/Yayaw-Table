@@ -1032,6 +1032,100 @@ test("a block's props are JSON, checked before they apply", async ({
   });
 });
 
+test("a block's own settings form edits its props", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 1100 });
+  await page.goto(SCREEN);
+  await ready(page);
+  const listed = widget(page, "attention").locator("[data-attention-item]");
+  await expect(listed).toHaveCount(2);
+  await edit(page);
+  await openWidgetMenu(page, "attention");
+  await page.getByRole("menuitem", { name: "Edit…" }).click();
+  const dialog = widgetDialog(page, "Edit the widget");
+  // The host's form instead of JSON, showing the block's default props.
+  const settings = dialog.locator("[data-attention-settings]");
+  await expect(settings).toBeVisible();
+  await expect(dialog.getByLabel("Properties (JSON)")).toHaveCount(0);
+  const review = settings.getByRole("checkbox", {
+    name: "Pages waiting for review",
+  });
+  const alt = settings.getByRole("checkbox", {
+    name: "Images without alt text",
+  });
+  await expect(review).toBeChecked();
+  await expect(alt).toBeChecked();
+  await alt.uncheck();
+  await dialog.getByRole("button", { name: "Apply", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  const reviewOnly = [`${count("review")} pages waiting for review`];
+  await expect(listed).toHaveText(reviewOnly);
+  const saved = await done(page);
+  expect(saved.widgets.find((entry) => entry.id === "attention")).toEqual({
+    id: "attention",
+    type: "block",
+    block: "attention",
+    props: { items: ["review"] },
+    settings: {},
+  });
+  await page.reload();
+  await expect(listed).toHaveText(reviewOnly);
+});
+
+test("Done saves nothing while the screen has errors, and says where they are", async ({
+  page,
+}) => {
+  const links = {
+    id: "links",
+    type: "block",
+    block: "shortcuts",
+    title: "Links",
+    props: { links: "nope" },
+    settings: {},
+  };
+  await saveDashboards(page, [
+    {
+      version: 2,
+      id: "content-admin",
+      name: "Errors",
+      sections: [{ id: "page", type: "flow", widgetIds: ["links", "notes"] }],
+      widgets: [
+        links,
+        { id: "notes", type: "note", settings: { text: "Below." } },
+      ],
+      filters: [],
+    },
+  ]);
+  await page.goto(SCREEN);
+  await expect(widget(page, "notes")).toContainText("Below.");
+  await edit(page);
+  await toolbar(page).getByRole("button", { name: "Done" }).click();
+  const issues = page.locator("[data-dashboard-issues]");
+  await expect(issues).toContainText(
+    "The screen was not saved. Fix these problems first:"
+  );
+  await expect(issues.locator("li")).toHaveText([
+    "Links: links is a list of { label, href }.",
+  ]);
+  // Still editing; the stored document is unchanged.
+  await expect(
+    toolbar(page).getByRole("button", { name: "Done" })
+  ).toBeVisible();
+  expect(
+    ((await savedDashboards(page))["content-admin"]?.widgets as unknown[])[0]
+  ).toEqual(links);
+  // Fixed in the widget dialog, the screen saves.
+  await openWidgetMenu(page, "links");
+  await page.getByRole("menuitem", { name: "Edit…" }).click();
+  const editing = widgetDialog(page, "Edit the widget");
+  await editing.getByLabel("Properties (JSON)").fill('{ "links": [] }');
+  await editing.getByRole("button", { name: "Apply", exact: true }).click();
+  const saved = await done(page);
+  await expect(issues).toHaveCount(0);
+  expect(saved.widgets.find((entry) => entry.id === "links")?.props).toEqual({
+    links: [],
+  });
+});
+
 test("unavailable sources are listed in the catalogue, disabled, with the reason", async ({
   page,
 }) => {

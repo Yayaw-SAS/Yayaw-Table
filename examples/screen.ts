@@ -524,11 +524,72 @@ export const screenText = (text: Text | string, locale: string): string => {
   return locale.toLowerCase().startsWith("fr") ? text.fr : text.en;
 };
 
+/** What the `attention` block can list: pages waiting for review, images without alt text. */
+export const ATTENTION_ITEMS = ["review", "alt"] as const;
+export type ScreenAttentionId = (typeof ATTENTION_ITEMS)[number];
+
 /** Something the `attention` block asks to deal with. */
 export interface ScreenAttentionItem {
-  id: "review" | "alt";
+  id: ScreenAttentionId;
   count: number;
   text: string;
+}
+
+const isAttentionId = (value: unknown): value is ScreenAttentionId =>
+  ATTENTION_ITEMS.includes(value as ScreenAttentionId);
+
+/** The items the `attention` block lists (its `items` prop; all of them without one). */
+export const attentionItems = (props: Row): ScreenAttentionId[] =>
+  Array.isArray(props.items)
+    ? ATTENTION_ITEMS.filter((id) => (props.items as unknown[]).includes(id))
+    : [...ATTENTION_ITEMS];
+
+/** The `attention` block's props with an item listed or not, in the block's order. */
+export const toggleAttentionItem = (
+  props: Row,
+  id: ScreenAttentionId,
+  listed: boolean
+): Row => {
+  const items = new Set(attentionItems(props));
+  if (listed) {
+    items.add(id);
+  } else {
+    items.delete(id);
+  }
+  return { ...props, items: ATTENTION_ITEMS.filter((item) => items.has(item)) };
+};
+
+/** What the `attention` block's settings call its items. */
+export const attentionItemLabel = (
+  id: ScreenAttentionId,
+  locale: string
+): string =>
+  screenText(
+    id === "review"
+      ? { en: "Pages waiting for review", fr: "Pages en attente de relecture" }
+      : { en: "Images without alt text", fr: "Images sans texte alternatif" },
+    locale
+  );
+
+/** What the `attention` block's settings call the list of items. */
+export const attentionSettingsLegend = (locale: string): string =>
+  screenText({ en: "Items listed", fr: "Éléments listés" }, locale);
+
+/** The problems of the `attention` block's props: `items` lists known items. */
+export function attentionProblems(
+  props: Row
+): { message: string; path: string }[] | undefined {
+  const { items } = props;
+  const known =
+    items === undefined || (Array.isArray(items) && items.every(isAttentionId));
+  return known
+    ? undefined
+    : [
+        {
+          message: `items lists some of ${ATTENTION_ITEMS.join(", ")}.`,
+          path: "items",
+        },
+      ];
 }
 
 const inRange = (day: string, range: unknown): boolean => {
@@ -543,7 +604,8 @@ const inRange = (day: string, range: unknown): boolean => {
 export function screenAttention(
   host: Pick<ScreenHost<unknown>, "pages" | "media">,
   filters: Readonly<Record<string, DashboardFilterValue | undefined>>,
-  locale: string
+  locale: string,
+  listed: readonly ScreenAttentionId[] = ATTENTION_ITEMS
 ): ScreenAttentionItem[] {
   const authors = Array.isArray(filters.author) ? filters.author : [];
   const review = host.pages.filter(
@@ -576,7 +638,7 @@ export function screenAttention(
         : `${alt} images without alt text`,
     },
   ];
-  return items.filter((item) => item.count > 0);
+  return items.filter((item) => item.count > 0 && listed.includes(item.id));
 }
 
 /** The views the `attention` block opens: pages waiting for review, images without alt text. */
@@ -824,5 +886,16 @@ export const SCREEN_BLOCKS: Record<
     group: "CMS",
     placement: "any",
     defaultSize: { w: 1, h: 2 },
+    defaultProps: { items: [...ATTENTION_ITEMS] },
+    validateProps: attentionProblems,
+    propsSchema: {
+      type: "object",
+      properties: {
+        items: {
+          type: "array",
+          items: { enum: [...ATTENTION_ITEMS] },
+        },
+      },
+    },
   },
 };

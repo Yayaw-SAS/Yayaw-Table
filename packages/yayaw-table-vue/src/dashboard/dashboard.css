@@ -218,6 +218,9 @@
 }
 .yayaw-dashboard-menu {
   min-width: 11rem;
+  /* Long widget menus scroll in short windows instead of leaving the screen. */
+  max-height: var(--reka-dropdown-menu-content-available-height);
+  overflow-y: auto;
 }
 .yayaw-dashboard-sr-only {
   position: absolute;

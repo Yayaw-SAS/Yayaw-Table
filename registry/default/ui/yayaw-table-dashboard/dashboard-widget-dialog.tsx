@@ -319,7 +319,8 @@ function BlockPropsField({
           onChange={(props: DashboardJsonObject) =>
             setDraft({ ...draft, props })
           }
-          props={draft.props ?? {}}
+          // As the block reads them: its props over the block's defaults.
+          props={{ ...block?.defaultProps, ...draft.props }}
           widgetId={widgetId}
         />
       ) : (

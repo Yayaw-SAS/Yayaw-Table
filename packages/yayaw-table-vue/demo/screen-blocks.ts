@@ -6,11 +6,16 @@ import {
   type PropType,
 } from "vue";
 import {
+  ATTENTION_ITEMS,
+  attentionItemLabel,
+  attentionItems,
+  attentionSettingsLegend,
   attentionViews,
   type ScreenHost,
   type ScreenShortcut,
   screenAttention,
   screenText,
+  toggleAttentionItem,
 } from "../../../examples/screen";
 import type {
   DashboardFilterValue,
@@ -90,7 +95,12 @@ export const AttentionBlock = defineComponent({
     const host = inject(screenHostKey);
     return () => {
       const items = host
-        ? screenAttention(host, props.filters, props.locale)
+        ? screenAttention(
+            host,
+            props.filters,
+            props.locale,
+            attentionItems(props.props)
+          )
         : [];
       if (!items.length) {
         return null;
@@ -117,6 +127,49 @@ export const AttentionBlock = defineComponent({
             ),
           ])
         )
+      );
+    };
+  },
+});
+
+/** The `attention` block's settings in the screen editor: the items it lists. */
+export const AttentionSettings = defineComponent({
+  name: "AttentionSettings",
+  props: {
+    widgetId: { type: String, required: true },
+    props: { type: Object as PropType<DashboardJsonObject>, required: true },
+    locale: { type: String, required: true },
+    onChange: {
+      type: Function as PropType<(props: DashboardJsonObject) => void>,
+      required: true,
+    },
+  },
+  setup(props) {
+    return () => {
+      const listed = attentionItems(props.props);
+      return h(
+        "fieldset",
+        { class: "screen-block-settings", "data-attention-settings": "" },
+        [
+          h("legend", attentionSettingsLegend(props.locale)),
+          ...ATTENTION_ITEMS.map((id) =>
+            h("label", { key: id }, [
+              h("input", {
+                type: "checkbox",
+                checked: listed.includes(id),
+                onChange: (event: Event) =>
+                  props.onChange(
+                    toggleAttentionItem(
+                      props.props,
+                      id,
+                      (event.target as HTMLInputElement).checked
+                    ) as DashboardJsonObject
+                  ),
+              }),
+              attentionItemLabel(id, props.locale),
+            ])
+          ),
+        ]
       );
     };
   },

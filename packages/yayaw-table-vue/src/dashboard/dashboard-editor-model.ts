@@ -36,11 +36,6 @@ import {
 } from "./dashboard-schema";
 import type { DashboardSourceSummary } from "./dashboard-sources";
 
-type Row = Record<string, unknown>;
-
-const isRecord = (value: unknown): value is Row =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
-
 /** What the screen editor opens: one dialog at a time. */
 export type DashboardEditorRequest =
   | { kind: "addWidget"; sectionId?: string }
@@ -492,7 +487,10 @@ export function dashboardViewToApply(
   return kept === undefined ? config : { ...config, pageSize: kept };
 }
 
-/** Actions that change records: the view editor's table leaves them out. */
+/**
+ * Actions that change records or send them somewhere: the view editor's
+ * table leaves them out (a manual order is stored per view by `reorder`).
+ */
 const WRITE_ACTIONS: ReadonlySet<string> = new Set([
   "create",
   "update",
@@ -502,16 +500,34 @@ const WRITE_ACTIONS: ReadonlySet<string> = new Set([
   "bulkCopy",
   "bulkUpdate",
   "import",
+  "reorder",
+  "destinations",
+  "formLinks",
 ]);
+/** The file tree's writes (`actions.tree`); its reads stay. */
+const TREE_WRITES: ReadonlySet<string> = new Set(["move", "createFolder"]);
+/** The file tree's upload hook (`table.filetree.onDropFiles`). */
+const DROP_HOOKS: ReadonlySet<string> = new Set(["onDropFiles"]);
+
+const withoutKeys = (
+  value: object,
+  keys: ReadonlySet<string>
+): Record<string, unknown> =>
+  Object.fromEntries(Object.entries(value).filter(([key]) => !keys.has(key)));
 
 /**
  * The source's actions as the view editor's table gets them: reading only
- * (`list`, `aggregate`, the file tree's and planning's reads…), so editing a
- * view never changes records.
+ * (`list`, `aggregate`, the file tree's `path`, planning's reads, which
+ * `allowEdit: false` keeps read-only…), so editing a view never changes
+ * records.
  */
 export function dashboardViewEditorActions<T extends object>(actions: T): T {
-  return Object.fromEntries(
-    Object.entries(actions).filter(([name]) => !WRITE_ACTIONS.has(name))
+  const kept = withoutKeys(actions, WRITE_ACTIONS);
+  const { tree } = kept;
+  return (
+    typeof tree === "object" && tree !== null
+      ? { ...kept, tree: withoutKeys(tree, TREE_WRITES) }
+      : kept
   ) as T;
 }
 
@@ -523,10 +539,18 @@ export function dashboardViewEditorActions<T extends object>(actions: T): T {
 export function dashboardViewEditorConfig<T extends { table?: object }>(
   config: T
 ): T {
+  // Files dropped from the desktop would upload through the host's hook.
+  const filetree = (config.table as { filetree?: unknown } | undefined)
+    ?.filetree;
+  const tree =
+    typeof filetree === "object" && filetree !== null
+      ? { filetree: withoutKeys(filetree, DROP_HOOKS) }
+      : {};
   return {
     ...config,
     table: {
       ...config.table,
+      ...tree,
       syncUrl: false,
       enableViews: false,
       allowViewSave: false,
@@ -682,8 +706,3 @@ export function dashboardIssueTarget(
 export const dashboardSaveErrors = (
   issues: readonly DashboardIssue[]
 ): DashboardIssue[] => issues.filter((issue) => issue.severity === "error");
-
-/** Whether a value is a JSON object (block props, view settings). */
-export const isDashboardJsonObject = (
-  value: unknown
-): value is DashboardJsonObject => isRecord(value);

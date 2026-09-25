@@ -622,14 +622,32 @@ function viewEditorSuite(test: Test, api: DashboardEditorApi) {
       bulkCopy: read,
       bulkUpdate: read,
       import: { importRows: read },
-      tree: { list: read },
+      reorder: read,
+      destinations: [],
+      formLinks: { status: read },
+      tree: { path: read, move: read, createFolder: read },
+      planning: { load: read },
+      exportFile: read,
       views: { list: read },
     };
-    assert.deepEqual(Object.keys(api.dashboardViewEditorActions(actions)), [
+    const kept = api.dashboardViewEditorActions(actions) as Record<
+      string,
+      unknown
+    >;
+    assert.deepEqual(Object.keys(kept), [
       "list",
       "aggregate",
       "tree",
+      "planning",
+      "exportFile",
       "views",
+    ]);
+    assert.deepEqual(Object.keys(kept.tree as object), ["path"]);
+    // The source's own actions are untouched.
+    assert.deepEqual(Object.keys(actions.tree), [
+      "path",
+      "move",
+      "createFolder",
     ]);
     const config = api.dashboardViewEditorConfig({
       id: "pages",
@@ -641,11 +659,13 @@ function viewEditorSuite(test: Test, api: DashboardEditorApi) {
         showToolbar: false,
         defaultPageSize: 20,
         displayModes: ["table", "list"],
+        filetree: { parentColumn: "parentId", onDropFiles: read },
       },
     });
     assert.deepEqual(config, {
       id: "pages",
       table: {
+        filetree: { parentColumn: "parentId" },
         syncUrl: false,
         enableViews: false,
         allowViewSave: false,
