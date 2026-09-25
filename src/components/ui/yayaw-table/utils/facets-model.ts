@@ -858,7 +858,8 @@ function emptyFacetEntry(
 /**
  * The values a facet lists: its options and the values records hold, with
  * their counts, those without records left out (unless selected or
- * `showZero`), in the facet's order, "No value" last.
+ * `showZero`), in the facet's order, "No value" last (a folder facet's
+ * "Root" first).
  */
 export function facetEntries(
   facet: FacetColumn,
@@ -899,7 +900,11 @@ export function facetEntries(
     (entry) => orders.get(entry.key) ?? Number.POSITIVE_INFINITY
   );
   const empty = emptyFacetEntry(facet, input);
-  return empty ? [...sorted, empty] : sorted;
+  if (!empty) {
+    return sorted;
+  }
+  // The root heads the folders, as in the tree; "No value" comes last.
+  return facet.kind === "folder" ? [empty, ...sorted] : [...sorted, empty];
 }
 
 const DIACRITICS = /\p{M}/gu;

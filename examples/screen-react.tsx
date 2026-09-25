@@ -10,6 +10,7 @@ import type {
   DashboardBlockRegistry,
   DashboardBlockSettingsProps,
 } from "../src/components/ui/yayaw-table-dashboard/dashboard-block";
+import { createFacetBlock } from "../src/components/ui/yayaw-table-dashboard/dashboard-facet-block";
 import type { DashboardInlineView } from "../src/components/ui/yayaw-table-dashboard/dashboard-schema";
 import {
   type DashboardTableSource,
@@ -29,6 +30,7 @@ import {
   type ScreenShortcut,
   type ScreenSourceSpec,
   screenAttention,
+  screenSectionBlockOptions,
   screenText,
   toggleAttentionItem,
 } from "./screen";
@@ -139,14 +141,18 @@ function AttentionSettings({
   );
 }
 
-const blocks: DashboardBlockRegistry = {
+/** The host's blocks: two of its own and the library's facet list over the pages' sections. */
+const screenBlocks = (
+  host: ScreenHost<DashboardTableSource>
+): DashboardBlockRegistry => ({
   shortcuts: { ...SCREEN_BLOCKS.shortcuts, component: ShortcutsBlock },
   attention: {
     ...SCREEN_BLOCKS.attention,
     component: AttentionBlock,
     settings: AttentionSettings,
   },
-};
+  "pages.sections": createFacetBlock(screenSectionBlockOptions(host)),
+});
 
 /** Each catalogue source as a React table; the Pages list page is wrapped by the host. */
 const buildSource =
@@ -192,6 +198,7 @@ export function ScreenExample() {
   const french = search.get("lang") === "fr";
   const locale = french ? "fr" : "en";
   const host = useMemo(() => createScreenHost(buildSource(locale)), [locale]);
+  const blocks = useMemo(() => screenBlocks(host), [host]);
   const storage = useMemo(() => createScreenStorage(), []);
   const [opened, setOpened] = useState("");
   return (

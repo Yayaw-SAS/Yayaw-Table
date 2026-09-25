@@ -482,6 +482,7 @@ const EN_LABELS = {
   parentFolder: "Parent folder",
   inFolder: "In",
   noFolders: "No folders",
+  createFailed: "The folder could not be created.",
 } as const;
 
 const FR_LABELS: Record<FileTreeLabelKey, string> = {
@@ -589,6 +590,7 @@ const FR_LABELS: Record<FileTreeLabelKey, string> = {
   parentFolder: "Dossier parent",
   inFolder: "Dans",
   noFolders: "Aucun dossier",
+  createFailed: "Le dossier n’a pas pu être créé.",
 };
 
 export type FileTreeTranslate = (key: string, fallback: string) => string;

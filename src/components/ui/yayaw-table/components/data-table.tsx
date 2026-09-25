@@ -47,11 +47,14 @@ import {
   TableStateSyncProvider,
 } from "../providers/table-state-sync-provider";
 import { seedTableViewState } from "../hooks/use-table-url-state";
+import { toolbarCompactAtom } from "../atoms/table-atoms";
 import { useViewConfigReport } from "../hooks/use-view-config";
 import type { ViewConfig } from "../utils/view-config";
 import { withFeedRenderer } from "../feed/feed-renderer";
 import { withFileTreeRenderer } from "../filetree/filetree-renderer";
 import { withFormRenderer } from "../form/form-renderer";
+import { resolveFacets } from "../utils/facets-model";
+import { folderTreeOf } from "../utils/folder-directory";
 import { isFileTreeAvailable } from "../utils/filetree-model";
 import { isFormModeEnabled } from "../utils/form-view";
 import { resolveTranslationsToUiStrings } from "../providers/translation-cache";
@@ -80,6 +83,7 @@ import { DataTableSkeleton } from "./data-table-skeleton";
 import { TableRecordDetails } from "./details/table-record-details";
 // Direct import keeps the toolbar available without a client-only dynamic wrapper.
 import { translateWithFallback } from "./filters/i18n-utils";
+import { TableFacetsLayout } from "./facets/facet-panel";
 import { TableFilterBar } from "./filters/table-filter-bar";
 import { LocationProvider } from "./location/location-context";
 // Lazy load heavy components using React.lazy inside './forms/lazy-forms'
@@ -233,8 +237,17 @@ function resolveToolbarRuntime({
       toolbarActionsPlacement ??
       config.toolbarActionsPlacement ??
       "between-create-export",
+    // Facet clicks are advanced rules: tables with facets show their menu.
     shouldEnableAdvancedFilters:
-      enableAdvancedFilters ?? config.table.enableAdvancedFilters ?? false,
+      (enableAdvancedFilters ?? config.table.enableAdvancedFilters ?? false) ||
+      Boolean(
+        resolveFacets(config.table.facets, config.columns.definitions, {
+          folderColumn: folderTreeOf(
+            config.table.filetree,
+            config.columns.definitions
+          )?.parentColumn,
+        })
+      ),
   } as const;
 }
 
@@ -822,6 +835,7 @@ function DataTableContent({
   const Title = TitleComponent || DefaultTableTitle;
   const Description = DescriptionComponent || DefaultTableDescription;
   const shouldShowToolbar = enableToolbar && config.table.showToolbar !== false;
+  const toolbarCompact = useAtomValue(toolbarCompactAtom(tableId));
   const shouldShowToolbarHeader = config.table.showToolbarHeader !== false;
   const shouldShowViews =
     enableViews !== false && config.table.enableViews !== false;
@@ -1056,7 +1070,12 @@ function DataTableContent({
               </div>
             )}
 
-            {/* Table content */}
+            {/* Table content, beside the facet panel when the table has one */}
+            <TableFacetsLayout
+              compact={toolbarCompact || !shouldShowToolbar}
+              tableId={tableId}
+              tableType={tableType}
+            >
             {isLoading ? (
               <DataTableSkeleton />
             ) : (
@@ -1120,6 +1139,7 @@ function DataTableContent({
                 tableType={tableType}
               />
             )}
+            </TableFacetsLayout>
           </div>
         </DataTableUIProvider>
       </Suspense>

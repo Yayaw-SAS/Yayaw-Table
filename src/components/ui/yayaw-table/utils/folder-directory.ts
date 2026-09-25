@@ -43,6 +43,8 @@ export interface FolderEntry {
   depth: number;
   /** Place in the tree's order (folders first, natural names). */
   order: number;
+  /** The folder's record (for the host's `canCreateFolder`). */
+  row: Row;
 }
 
 export interface FolderDirectory {
@@ -127,6 +129,7 @@ export function buildFolderDirectory(
         ancestors: ancestors.map(name),
         depth: ancestors.length,
         order: folders.length,
+        row: index.rows.get(id) ?? {},
       });
       visit(id);
     }
@@ -142,6 +145,7 @@ export function buildFolderDirectory(
         ancestors: [],
         depth: 0,
         order: folders.length,
+        row: index.rows.get(id) ?? {},
       });
       visit(id);
     }

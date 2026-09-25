@@ -629,10 +629,10 @@ export function facetsSuite(test: Test, api: FacetsSuiteApi) {
     assert.deepEqual(
       entries.map((entry) => [entry.label, entry.detail]),
       [
+        ["Root", undefined],
         ["Logos", "Brand"],
         ["Été", "Campaigns › 2026"],
         ["f-gone", "Unfiled"],
-        ["Root", undefined],
       ]
     );
   });
