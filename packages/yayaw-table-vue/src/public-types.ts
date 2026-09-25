@@ -106,6 +106,38 @@ export type {
   DetailSection,
   RecordDetailsConfig,
 } from "./record-details";
+// Tag catalogs (`actions.tags`): shared helpers a host can use on its server.
+export {
+  applyTagPatch,
+  isTagPatch,
+  mergeTagValue,
+  normalizeTagList,
+  type ResolvedTagColumn,
+  removeTagValue,
+  resolveTagColumn,
+  type TableTag,
+  type TableTagActions,
+  type TableTagAnswer,
+  type TableTagCreateInput,
+  type TableTagMergeInput,
+  type TableTagRemoveInput,
+  type TableTagScope,
+  type TableTagUpdateInput,
+  type TagBulkMode,
+  type TagColumnConfig,
+  type TagColumnInput,
+  type TagPatch,
+  tagColumnsOf,
+  tagLabels,
+  tagOptions,
+  tagUsageCounts,
+  tagUsageRequest,
+} from "./tag-catalog";
+export {
+  TAG_COLOR_NAMES,
+  type TagColorName,
+  tagColorValue,
+} from "./tag-colors";
 export declare const GalleryView: DefineComponent;
 export declare const KanbanView: DefineComponent;
 export declare const YayawTablePlugin: Plugin;

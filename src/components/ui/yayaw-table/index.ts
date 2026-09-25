@@ -226,6 +226,38 @@ export type {
   MapViewSettings,
 } from "./utils/map-model";
 export type { BoundsScope, ListScope } from "./utils/scoped-rows";
+// Tag catalogs (`actions.tags`): shared helpers a host can use on its server.
+export {
+  applyTagPatch,
+  isTagPatch,
+  mergeTagValue,
+  normalizeTagList,
+  removeTagValue,
+  type ResolvedTagColumn,
+  resolveTagColumn,
+  type TableTag,
+  type TableTagActions,
+  type TableTagAnswer,
+  type TableTagCreateInput,
+  type TableTagMergeInput,
+  type TableTagRemoveInput,
+  type TableTagScope,
+  type TableTagUpdateInput,
+  type TagBulkMode,
+  type TagColumnConfig,
+  type TagColumnInput,
+  type TagPatch,
+  tagColumnsOf,
+  tagLabels,
+  tagOptions,
+  tagUsageCounts,
+  tagUsageRequest,
+} from "./utils/tag-catalog";
+export {
+  TAG_COLOR_NAMES,
+  type TagColorName,
+  tagColorValue,
+} from "./utils/tag-colors";
 
 
 export type { ActionItem, ActionItem as RowActionItem } from "./components/columns/actions-column";

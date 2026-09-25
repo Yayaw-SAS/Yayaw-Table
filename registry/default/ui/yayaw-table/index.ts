@@ -230,3 +230,35 @@ export type {
 } from "./utils/record-presentation";
 export type { BoundsScope, ListScope } from "./utils/scoped-rows";
 export { createLocalTableViewActions } from "./utils/table-view-storage";
+// Tag catalogs (`actions.tags`): shared helpers a host can use on its server.
+export {
+  applyTagPatch,
+  isTagPatch,
+  mergeTagValue,
+  normalizeTagList,
+  type ResolvedTagColumn,
+  removeTagValue,
+  resolveTagColumn,
+  type TableTag,
+  type TableTagActions,
+  type TableTagAnswer,
+  type TableTagCreateInput,
+  type TableTagMergeInput,
+  type TableTagRemoveInput,
+  type TableTagScope,
+  type TableTagUpdateInput,
+  type TagBulkMode,
+  type TagColumnConfig,
+  type TagColumnInput,
+  type TagPatch,
+  tagColumnsOf,
+  tagLabels,
+  tagOptions,
+  tagUsageCounts,
+  tagUsageRequest,
+} from "./utils/tag-catalog";
+export {
+  TAG_COLOR_NAMES,
+  type TagColorName,
+  tagColorValue,
+} from "./utils/tag-colors";

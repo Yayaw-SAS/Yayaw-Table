@@ -41,7 +41,6 @@ export type {
   FileTreeTableConfig,
   FileTreeViewSettings,
 } from "./filetree-model";
-
 export { formRenderer } from "./form/form-renderer";
 export { default as YayawTableForm } from "./form/YayawTableForm.vue";
 export {
@@ -126,6 +125,38 @@ export type {
   RecordDetailsConfig,
 } from "./record-details";
 export type { BoundsScope, ListScope } from "./scoped-rows";
+// Tag catalogs (`actions.tags`): shared helpers a host can use on its server.
+export {
+  applyTagPatch,
+  isTagPatch,
+  mergeTagValue,
+  normalizeTagList,
+  type ResolvedTagColumn,
+  removeTagValue,
+  resolveTagColumn,
+  type TableTag,
+  type TableTagActions,
+  type TableTagAnswer,
+  type TableTagCreateInput,
+  type TableTagMergeInput,
+  type TableTagRemoveInput,
+  type TableTagScope,
+  type TableTagUpdateInput,
+  type TagBulkMode,
+  type TagColumnConfig,
+  type TagColumnInput,
+  type TagPatch,
+  tagColumnsOf,
+  tagLabels,
+  tagOptions,
+  tagUsageCounts,
+  tagUsageRequest,
+} from "./tag-catalog";
+export {
+  TAG_COLOR_NAMES,
+  type TagColorName,
+  tagColorValue,
+} from "./tag-colors";
 export * from "./translations";
 export * from "./types";
 

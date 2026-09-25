@@ -85,6 +85,8 @@ export interface TableCatalogueColumnConfig extends ColumnDefinition {
 export interface TableCatalogueTableConfig
   extends GenericModeTableConfigs {
   coloredTags?: boolean;
+  /** Offer "Manage tags" on tags columns when `actions.tags` can; default true. */
+  canManageTags?: boolean;
   allowCreate?: boolean;
   allowEdit?: boolean;
   allowDuplicate?: boolean;
@@ -371,6 +373,7 @@ function resolveTableBehaviorConfig(
     bulkExport: mergedConfig.bulkExport ?? true,
     actionsAsIcons: mergedConfig.actionsAsIcons ?? false,
     coloredTags: mergedConfig.coloredTags !== false,
+    canManageTags: mergedConfig.canManageTags,
     density: normalizeDensityMode(mergedConfig.density),
     layoutPreset,
     displayModes,

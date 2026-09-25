@@ -219,6 +219,12 @@ export interface TableActions {
    * call your provider (with its key) on your server.
    */
   geocode?: import("../utils/location-model").GeocodeAction;
+  /**
+   * The host's tag catalogs, for columns with `tags`: their options, created
+   * on the fly in pickers, renamed, recolored, merged and deleted in "Manage
+   * tags". See `utils/tag-catalog.ts`.
+   */
+  tags?: import("../utils/tag-catalog").TableTagActions;
   views?: TableViewActions;
   [key: string]: unknown;
 }

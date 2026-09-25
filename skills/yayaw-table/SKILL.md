@@ -284,6 +284,7 @@ runs where you implement it (fetch, server action, RPC), so authorize there.
 | `actions.geocode` | Address suggestions for `location` columns and imports | Coordinates only; addresses cannot import |
 | `actions.formLinks` | Publishing Form views on public links | No "Share form" |
 | `actions.destinations` | Data › Connect and Share rows, connector screens, schedules | Only the built-in export and link |
+| `actions.tags` | Tags columns: catalog options, create on the fly, bulk add/remove, "Manage tags" | Static `options` |
 
 `list` receives both naming conventions (`page` from **1**, `pageSize` and
 `limit`, `sorting` and `orderBy`, `search`, `q` and `globalSearch`), plus

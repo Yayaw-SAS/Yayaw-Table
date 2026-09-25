@@ -135,6 +135,12 @@ export interface ColumnDefinition<TData extends TableRecord = TableRecord> {
   inlineEdit?: boolean | InlineEditColumnConfig;
   tagColorMap?: Record<string, string>;
   coloredTags?: boolean;
+  /**
+   * A tags column: with `actions.tags`, its options come from the host's
+   * catalog, pickers create tags on the fly and "Manage tags" edits them.
+   * `multiSelect` columns hold a list of tag ids, `select` columns one.
+   */
+  tags?: import("./tag-catalog").TagColumnInput;
   options?: SelectOption[];
   numberFormat?: ColumnNumberFormat;
   size?: number;
@@ -218,6 +224,11 @@ export interface TableGalleryRenderContext {
 export interface TableBehaviorConfig<TData extends TableRecord = TableRecord>
   extends GenericModeTableConfigs {
   coloredTags?: boolean;
+  /**
+   * Offer "Manage tags" (rename, recolor, merge, delete) on tags columns when
+   * `actions.tags` can; default true. Creating tags in pickers stays available.
+   */
+  canManageTags?: boolean;
   allowCreate: boolean;
   allowEdit: boolean;
   allowDuplicate: boolean;
@@ -902,6 +913,12 @@ export interface TableActions<TData extends TableRecord = TableRecord> {
    * call your provider (with its key) on your server.
    */
   geocode?: import("./location-model").GeocodeAction;
+  /**
+   * The host's tag catalogs, for columns with `tags`: their options, created
+   * on the fly in pickers, renamed, recolored, merged and deleted in "Manage
+   * tags". See `tag-catalog.ts`.
+   */
+  tags?: import("./tag-catalog").TableTagActions;
   views?: TableViewActions;
   [key: string]: unknown;
 }

@@ -1733,6 +1733,11 @@
           "target": "components/ui/yayaw-table/utils/table-view-storage.ts"
         },
         {
+          "path": "registry/default/ui/yayaw-table/utils/tag-catalog.ts",
+          "type": "registry:component",
+          "target": "components/ui/yayaw-table/utils/tag-catalog.ts"
+        },
+        {
           "path": "registry/default/ui/yayaw-table/utils/tag-colors.css",
           "type": "registry:style",
           "target": "components/ui/yayaw-table/utils/tag-colors.css"
