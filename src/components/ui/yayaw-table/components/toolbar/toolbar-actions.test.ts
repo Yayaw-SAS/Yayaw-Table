@@ -15,6 +15,7 @@ import {
 
 const baseContext: ToolbarActionContext = {
   actionsAsIcons: false,
+  getViewConfig: () => ({ displayMode: "table" }),
   hasListAction: true,
   isCreateEnabled: true,
   isExportEnabled: true,

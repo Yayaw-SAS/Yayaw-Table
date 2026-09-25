@@ -9,9 +9,11 @@ const VUE = "packages/yayaw-table-vue/src";
 const ENTRIES = [
   "src/components/ui/yayaw-table-dashboard/dashboard-schema.ts",
   "src/components/ui/yayaw-table-dashboard/dashboard-sources.ts",
+  "src/components/ui/yayaw-table-dashboard/dashboard-editor-model.ts",
   "src/components/ui/yayaw-table/utils/view-config.ts",
   `${VUE}/dashboard/dashboard-schema.ts`,
   `${VUE}/dashboard/dashboard-sources.ts`,
+  `${VUE}/dashboard/dashboard-editor-model.ts`,
   `${VUE}/view-config.ts`,
 ];
 const UI_PACKAGE =

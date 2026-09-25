@@ -1,8 +1,15 @@
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { defineComponent, h } from "vue";
+import viewChange from "../../../../tests/fixtures/view-config-change.json";
 import { defineTableConfig } from "../config";
-import type { TableListParams, TableRecord, TableViewConfig } from "../types";
+import type {
+  TableListParams,
+  TableRecord,
+  TableViewConfig,
+  ToolbarActionContext,
+} from "../types";
+import type { ViewConfig } from "../view-config";
 import YayawDataTable from "./YayawDataTable.vue";
 
 const rows: TableRecord[] = [
@@ -157,5 +164,94 @@ describe("table instances on one page", () => {
       )
     ).toEqual(["Open", "Closed"]);
     expect(window.location.search).toBe("");
+  });
+
+  it("reports its view when it starts, after a sort and after a search, as React does", async () => {
+    const reportedConfig = defineTableConfig({
+      id: "reported",
+      columns: {
+        definitions: viewChange.columns as never,
+        mandatory: ["name"],
+        order: ["name", "status"],
+        visible: ["name", "status"],
+      },
+      table: {
+        syncUrl: false,
+        enableViews: false,
+        enableRowSelection: false,
+        searchDebounceMs: 0,
+      },
+      translations: { namespace: "reported", keys: {} },
+    });
+    const actions = {
+      list: () =>
+        Promise.resolve({
+          data: viewChange.rows,
+          meta: { pageCount: 1, totalCount: viewChange.rows.length },
+        }),
+    };
+    const reported: unknown[] = [];
+    const read: unknown[] = [];
+    const Page = defineComponent(
+      () => () =>
+        h(YayawDataTable, {
+          tableType: "reported",
+          config: reportedConfig,
+          getTableActions: () => actions,
+          getRowId: (row: TableRecord) => String(row.id),
+          initialView: {
+            id: null,
+            config: viewChange.initialView as unknown as TableViewConfig,
+          },
+          instanceId: "reported-view",
+          syncUrl: false,
+          onViewConfigChange: (view: ViewConfig) => reported.push(view),
+          toolbarActions: [
+            {
+              id: "read-view",
+              label: "Read view",
+              onClick: (context: ToolbarActionContext) => {
+                read.push(context.getViewConfig());
+              },
+            },
+          ],
+        })
+    );
+    const wrapper = mount(Page, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          PopperArrow: true,
+          PopperContent: { template: "<div><slot /></div>" },
+        },
+      },
+    });
+    await settle();
+    expect(reported).toEqual([viewChange.reports.started]);
+
+    // Sort by name, descending, from the column's menu.
+    await wrapper
+      .get('[aria-label="Column options: Name"]')
+      .trigger("keydown", { key: "Enter" });
+    await flushPromises();
+    [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')]
+      .find((element) => element.textContent?.trim() === "Descending")
+      ?.click();
+    await settle();
+    expect(reported.at(-1)).toEqual(viewChange.reports.sorted);
+
+    // Search: a filter of the view.
+    await wrapper.get('input[type="search"]').setValue(viewChange.search);
+    await settle();
+    expect(reported.at(-1)).toEqual(viewChange.reports.searched);
+    // Each distinct view once.
+    expect(new Set(reported.map((view) => JSON.stringify(view))).size).toBe(
+      reported.length
+    );
+
+    // A toolbar action reads the live view.
+    await wrapper.get('[aria-label="Read view"]').trigger("click");
+    await flushPromises();
+    expect(read).toEqual([viewChange.reports.searched]);
   });
 });

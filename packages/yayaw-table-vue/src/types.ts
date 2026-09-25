@@ -16,6 +16,7 @@ import type {
   TableGalleryPreviewSize,
 } from "./media-contract";
 import type { RecordPresentationConfig } from "./record-presentation";
+import type { ViewConfig } from "./view-config";
 
 export type TableRecord = Record<string, unknown>;
 export type PrimitiveValue = boolean | number | string;
@@ -928,6 +929,11 @@ export interface BulkAction<TData extends TableRecord = TableRecord> {
 export interface ToolbarActionContext<TData extends TableRecord = TableRecord>
   extends BulkActionContext<TData> {
   actionsAsIcons: boolean;
+  /**
+   * The view the table shows now, as a saved view's `config` (the shape
+   * `sanitizeViewConfig` accepts; what `view-config-change` reports).
+   */
+  getViewConfig: () => ViewConfig;
   data: TData[];
   hasListAction: boolean;
   isCreateEnabled: boolean;

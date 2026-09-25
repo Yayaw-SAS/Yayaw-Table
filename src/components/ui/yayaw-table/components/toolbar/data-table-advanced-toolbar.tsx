@@ -61,6 +61,7 @@ import {
 import { useTableConfig } from "../../hooks/use-table-config";
 import { useTableInstance } from "../../hooks/use-table-instance";
 import { useTableUrlState } from "../../hooks/use-table-url-state";
+import { useCurrentViewConfig } from "../../hooks/use-view-config";
 import { useToolbarLayout } from "../../hooks/use-toolbar-layout";
 import {
   useTableActions as useProviderTableActions,
@@ -85,6 +86,7 @@ import {
   toPageSize,
 } from "../../utils/filtered-rows";
 import { TableTooltip } from "../../utils/table-tooltip";
+import { tableViewDefaults } from "../../utils/table-view-state";
 import { sharePageUrl } from "../../utils/view-menu";
 import { TableFilterBar } from "../filters/table-filter-bar";
 import {
@@ -1281,9 +1283,15 @@ export function DataTableAdvancedToolbar<TData>({
     sortParam,
     tableActions?.list,
   ]);
+  // Toolbar actions read the live view when they run.
+  const viewConfig = useCurrentViewConfig(tableId, tableConfig);
+  const viewConfigRef = useRef(viewConfig);
+  viewConfigRef.current = viewConfig;
+  const getViewConfig = useCallback(() => viewConfigRef.current, []);
   const toolbarActionContext = useMemo<ToolbarActionContext>(
     () => ({
       actionsAsIcons,
+      getViewConfig,
       hasListAction,
       isCreateEnabled,
       isExportEnabled,
@@ -1301,6 +1309,7 @@ export function DataTableAdvancedToolbar<TData>({
     }),
     [
       actionsAsIcons,
+      getViewConfig,
       hasListAction,
       isCreateEnabled,
       isExportEnabled,
@@ -1907,26 +1916,7 @@ export function DataTableAdvancedToolbar<TData>({
       useAdvancedFilters={enableAdvancedFilters}
     />
   );
-  const defaultViewConfig = {
-    // An inactive Kanban lane default must not group the initial table view.
-    grouping: [],
-    density: tableConfig.table.density,
-    displayMode: tableConfig.table.defaultDisplayMode ?? ("table" as const),
-    footerCalculationsVisible: true,
-    pageSize: tableConfig.table.defaultPageSize,
-    sorting: tableConfig.columns.sort,
-    columnOrder: tableConfig.columns.order,
-    columnVisibility: Object.fromEntries(
-      tableConfig.columns.definitions.map((column) => [
-        column.id,
-        tableConfig.columns.visible?.includes(column.id) ?? true,
-      ])
-    ),
-    kanban: tableConfig.table.kanban,
-    gallery: tableConfig.table.gallery,
-    list: tableConfig.table.list,
-    gantt: tableConfig.table.gantt,
-  };
+  const defaultViewConfig = tableViewDefaults(tableConfig).config;
   return (
     <TooltipProvider>
       <div

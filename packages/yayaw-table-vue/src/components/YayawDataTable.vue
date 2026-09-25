@@ -23,6 +23,7 @@ import {
 import { applyTableQuery } from "../core";
 import { cloneFormValue } from "../form-runtime";
 import { resolveInitialRowsUse } from "../initial-rows";
+import { canonicalViewConfig, type ViewConfig } from "../view-config";
 import { createTranslations } from "../translations";
 import type {
   BulkAction,
@@ -178,6 +179,13 @@ const props = withDefaults(
 const emit = defineEmits<{
   rowActivate: [row: TableRecord, event: MouseEvent];
   rowSelectionChange: [selection: Record<string, boolean>];
+  /**
+   * `view-config-change`: the view the table shows, as a saved view's `config`
+   * (the shape `sanitizeViewConfig` accepts), once the table starts, then
+   * after each change of its sort, filters, search, columns, display mode or
+   * mode settings. React: `onViewConfigChange`.
+   */
+  viewConfigChange: [config: ViewConfig];
 }>();
 
 const sourceConfig = props.config ?? props.getTableConfig?.(props.tableType);
@@ -662,8 +670,24 @@ provide(tableContextKey, {
   onExport: props.onExport,
 } as TableContextValue);
 
-/** `refresh()`: loads the rows (and aggregates) again, e.g. a dashboard's "Refresh all". */
-defineExpose({ refresh });
+// The view the table shows, as both editions report it.
+const viewConfig = computed(() => canonicalViewConfig(state.snapshot.value));
+let reportedView = "";
+const reportView = (): void => {
+  const json = JSON.stringify(viewConfig.value);
+  if (json !== reportedView) {
+    reportedView = json;
+    emit("viewConfigChange", viewConfig.value);
+  }
+};
+onMounted(reportView);
+watch(viewConfig, reportView);
+
+/**
+ * `refresh()`: loads the rows (and aggregates) again, e.g. a dashboard's
+ * "Refresh all". `getViewConfig()`: the view the table shows now.
+ */
+defineExpose({ refresh, getViewConfig: () => viewConfig.value });
 </script>
 
 <template>
