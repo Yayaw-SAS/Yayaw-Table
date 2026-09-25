@@ -303,5 +303,25 @@
       ],
       "sameQuery": false
     }
+  ],
+  "columnOrders": [
+    {
+      "label": "the configured columns first, the others in definition order",
+      "columns": ["name", "status", "amount"],
+      "order": ["amount", "name"],
+      "resolved": ["select", "amount", "name", "status", "actions"]
+    },
+    {
+      "label": "no configured order keeps the definition order",
+      "columns": ["name", "status", "amount"],
+      "order": [],
+      "resolved": ["select", "name", "status", "amount", "actions"]
+    },
+    {
+      "label": "unknown, repeated and utility columns in the order",
+      "columns": ["name", "status", "amount"],
+      "order": ["actions", "amount", "ghost", "amount", "select", "name"],
+      "resolved": ["select", "amount", "name", "status", "actions"]
+    }
   ]
 }

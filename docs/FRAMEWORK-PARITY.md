@@ -32,7 +32,7 @@ Every parity-affecting PR must update this document and keep the Vue example at 
 
 ## Actions and views
 
-Both managers support one personal favorite per table, separate from shared view records. The star is available for saved system/shared views even with saving disabled. Arrival priority is explicit URL state, `initialActiveViewId`, an accessible favorite, then `isDefault`. A link with only `?view=<id>` applies that view's settings, and a view named by the link or by `initialActiveViewId` is applied once the saved views load, without waiting for `getFavorite`. Both editions read the incoming URL once on mount, so the table's own first URL writes (React's `<tableId>-order`) never cancel it (`tests/table-view-favorite.test.tsx`, `saved-views.test.ts`, `e2e/views.spec.ts`). Optional `getFavorite`/`setFavorite` actions synchronize preferences; otherwise persistence is browser-local. The same holds for each user's order of views: optional `setOrder`, with `list`'s `order`, else browser-local (see [View order](#view-order)). Organization scoping and permissions remain the host's responsibility; see [saved views](SAVED-VIEWS.md).
+Both managers support one personal favorite per table, separate from shared view records. The star is available for saved system/shared views even with saving disabled. Arrival priority is explicit URL state, `initialActiveViewId`, an accessible favorite, then `isDefault`. A link with only `?view=<id>` applies that view's settings, and a view named by the link or by `initialActiveViewId` is applied once the saved views load, without waiting for `getFavorite`. Both editions read the incoming URL once on mount, so a URL write the table makes itself right after arrival never cancels it; React makes none, not even `<tableId>-order`, so a `columns.order` that differs from the definitions no longer reads as a change by the user (`tests/table-view-favorite.test.tsx`, `tests/initial-column-order.test.tsx`, `saved-views.test.ts`, `initial-column-order.test.ts`, `e2e/views.spec.ts`). Optional `getFavorite`/`setFavorite` actions synchronize preferences; otherwise persistence is browser-local. The same holds for each user's order of views: optional `setOrder`, with `list`'s `order`, else browser-local (see [View order](#view-order)). Organization scoping and permissions remain the host's responsibility; see [saved views](SAVED-VIEWS.md).
 
 List actions receive both naming conventions:
 
@@ -558,6 +558,16 @@ the configured column order; React action cells retain native table-cell layout.
 Utility columns remain visible when a data-only default visibility list is used.
 Their automatic positions do not dirty a saved view or suppress its initial application;
 shared fixtures still detect changes to the order of data columns.
+
+Both editions start a table in its configured `columns.order`: the listed
+columns that exist, in that order, then the others in definition order, with
+`select` first and `actions` last. A link's `<tableId>-order` is completed the
+same way (the `columnOrders` fixtures of `tests/fixtures/parity.json` in both
+contract suites). React writes `<tableId>-order` only once the user moves a
+column, so back and forward show the column order each URL names; the
+Properties menu and the bulk export follow the order the table shows (React
+`tests/initial-column-order.test.tsx`, Vue `initial-column-order.test.ts`,
+`e2e/views.spec.ts` in both editions).
 
 The view panel follows its content height and uses a single Shadcn scroll area
 only when needed. Compact height includes the drawer handle, header and safe-area

@@ -81,6 +81,27 @@ const displayParam = (page: Page) =>
 const urlParam = (page: Page, key: string) =>
   new URL(page.url()).searchParams.get(key);
 
+const ORDER_PARAM = "views-order";
+const isDataColumn = (id: string) => id !== "select" && id !== "actions";
+/** The first three data columns of the table, left to right. */
+const leadColumns = async (page: Page): Promise<string[]> =>
+  (
+    await page
+      .locator("tbody tr")
+      .first()
+      .locator("td[data-column-id]")
+      .evaluateAll((cells) =>
+        cells.map((cell) => cell.getAttribute("data-column-id") ?? "")
+      )
+  )
+    .filter(isDataColumn)
+    .slice(0, 3);
+/** The first three data columns of the URL's column order. */
+const urlLeadColumns = (page: Page): string[] =>
+  (JSON.parse(urlParam(page, ORDER_PARAM) ?? "[]") as string[])
+    .filter(isDataColumn)
+    .slice(0, 3);
+
 test.beforeEach(async ({ page }) => {
   await page.goto(EXAMPLE);
   await page.evaluate(() => localStorage.clear());
@@ -127,15 +148,52 @@ test("a link naming only a saved view opens it with its settings", async ({
 
 test("a link's page is kept on arrival, in the table and the URL", async ({
   page,
-}) => {
+}, testInfo) => {
   // The six projects fit one page of ten: five per page gives a second one.
   await page.goto(`${EXAMPLE}&views-page=1&views-pageSize=5`);
   const rows = page.getByRole("row");
   await expect(rows.filter({ hasText: "Foxtrot portal" })).toBeVisible();
   await expect(rows.filter({ hasText: "Alpha launch" })).toHaveCount(0);
-  // Both editions write the column order on arrival; the page outlives it.
-  await expect.poll(() => urlParam(page, "views-order")).not.toBeNull();
+  // Vue writes its state to the URL on arrival and the page outlives it;
+  // React writes nothing, not even its column order, until the user acts.
+  if (testInfo.project.name === "vue") {
+    await expect.poll(() => urlParam(page, ORDER_PARAM)).not.toBeNull();
+  } else {
+    await page.waitForTimeout(300);
+    expect(urlParam(page, ORDER_PARAM)).toBeNull();
+  }
   expect(urlParam(page, "views-page")).toBe("1");
+});
+
+test("back and forward show the column order each URL names", async ({
+  page,
+}) => {
+  const statusFirst = ["status", "name", "category"];
+  const categoryFirst = ["category", "status", "name"];
+  await page.goto(
+    `${EXAMPLE}&${ORDER_PARAM}=${encodeURIComponent(JSON.stringify(statusFirst))}`
+  );
+  await expect.poll(() => leadColumns(page)).toEqual(statusFirst);
+  // A second history entry that differs only in its column order.
+  await page.evaluate(
+    ([key, order]) => {
+      const url = new URL(window.location.href);
+      url.searchParams.set(key, order);
+      window.history.pushState(null, "", url);
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    },
+    [ORDER_PARAM, JSON.stringify(categoryFirst)]
+  );
+  await expect.poll(() => leadColumns(page)).toEqual(categoryFirst);
+  await page.goBack();
+  await expect.poll(() => leadColumns(page)).toEqual(statusFirst);
+  await expect.poll(() => urlLeadColumns(page)).toEqual(statusFirst);
+  await page.goForward();
+  await expect.poll(() => leadColumns(page)).toEqual(categoryFirst);
+  // Nothing writes the previous order back.
+  await page.waitForTimeout(300);
+  expect(urlLeadColumns(page)).toEqual(categoryFirst);
+  expect(await leadColumns(page)).toEqual(categoryFirst);
 });
 
 test("a search from the second page starts on the first page", async ({

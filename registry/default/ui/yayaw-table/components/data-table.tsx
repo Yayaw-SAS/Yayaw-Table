@@ -780,26 +780,18 @@ function DataTableContent({
   const { translations: nestedTranslations } = useTranslations();
 
   // Use our data table hook to get everything we need
-  const {
-    columns,
-    config,
-    data,
-    isLoading,
-    pageCount,
-    refetch,
-    rowCount,
-    visibilityKey,
-  } = useDataTable({
-    onView: openDetails,
-    rowActions,
-    formType: defaultFormType,
-    initialData,
-    initialDataSort,
-    initialPageCount,
-    initialRowCount,
-    tableId,
-    tableType,
-  });
+  const { columns, config, data, isLoading, pageCount, refetch, rowCount } =
+    useDataTable({
+      onView: openDetails,
+      rowActions,
+      formType: defaultFormType,
+      initialData,
+      initialDataSort,
+      initialPageCount,
+      initialRowCount,
+      tableId,
+      tableType,
+    });
   // The planning dialog reads names, days and fields as the table shows them.
   const planningFormat = useMemo(
     () =>
@@ -1111,7 +1103,11 @@ function DataTableContent({
                     enableSorting={config.table.enableSorting}
                     formType={defaultFormType}
                     getRowId={getRowId}
-                    key={`${tableId}-${visibilityKey}`}
+                    // Stays mounted when a view or the user changes the column
+                    // visibility: the table reads it from the URL state. A table
+                    // mounted while those URL writes are pending would keep the
+                    // previous URL (nuqs reads it on mount, before it subscribes).
+                    key={tableId}
                     loadingOverlay={loadingOverlay}
                     onBulkCopy={onBulkCopy}
                     onBulkDelete={onBulkDelete}

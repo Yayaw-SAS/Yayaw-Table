@@ -11,7 +11,7 @@ const config = defineTableConfig({
   id: "projects",                       // catalogue id; tableType usually matches it
   columns: {
     definitions: [/* ColumnDefinition */],
-    order: ["select", "name", "status", "actions"], // select/actions are the utility columns
+    order: ["select", "name", "status", "actions"], // starting order; unlisted columns follow, select/actions stay first/last
     visible: ["name", "status"],        // the rest start hidden
     mandatory: ["name"],                // cannot be hidden
     sort: [{ id: "name", desc: false }], // the sort the table starts from and resets to
@@ -212,10 +212,12 @@ view is `view` (React also writes `historyIndex`); the file tree adds
   personal favorite, the first `isDefault` view, then the configuration. A
   link with only `?view=<id>` opens that saved view with its settings. A view
   named by the link or by `initialActiveViewId` does not wait for
-  `getFavorite`; the URL is read once on mount, so the table's own first
-  writes (its column order) never cancel it. The
+  `getFavorite`; the URL is read once on mount, so a write the table makes
+  itself right after arrival never cancels it (React writes `-order` only
+  once the user moves a column). The
   starting sort is the URL's, then the view's, then `columns.sort`; with none,
-  no sort is sent and the order `list` returns is kept.
+  no sort is sent and the order `list` returns is kept. The starting column
+  order is the URL's, then the view's, then `columns.order`.
 - The page: a link keeps the page it names, on arrival and on back and
   forward. A search, filter or sort changed in the table starts on the first
   page (repeating the current query keeps the page), as do saved views and

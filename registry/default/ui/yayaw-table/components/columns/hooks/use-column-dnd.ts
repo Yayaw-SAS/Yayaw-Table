@@ -44,13 +44,16 @@ function arrayMove<T>(array: T[], from: number, to: number): T[] {
  * @param tableId - ID of the table
  * @param onColumnOrderChange - Optional callback for when column order changes
  * @param enableByDefault - Whether to enable drag & drop by default (from configuration)
+ * @param featureEnabled - Whether columns can be dragged at all (`table.enableColumnDnd`)
+ * @param shownOrder - The column order on screen, moved while the URL has none
  * @returns Object with column drag and drop utilities
  */
 export function useColumnDnd(
   tableId: string,
   onColumnOrderChange?: (newOrder: string[]) => void,
   enableByDefault?: boolean,
-  featureEnabled = true
+  featureEnabled = true,
+  shownOrder?: string[]
 ) {
   // **URL STATE** - source of truth for column order (shareable)
   const { orderParam, setOrderFromUI } = useTableUrlState({ tableId });
@@ -108,8 +111,10 @@ export function useColumnDnd(
     setIsDragEnabled(false);
   }, [featureEnabled, isDragEnabled, setIsDragEnabled]);
 
-  // Get current column order from URL state
-  const columnOrder = (orderParam as string[]) || [];
+  // The URL's column order, else the order on screen: a table writes its
+  // order to the URL only once the user moves a column.
+  const urlOrder = (orderParam as string[]) || [];
+  const columnOrder = urlOrder.length > 0 ? urlOrder : (shownOrder ?? urlOrder);
 
   // Configure sensors for drag and drop
   const mouseSensor = useSensor(MouseSensor, {
@@ -154,19 +159,6 @@ export function useColumnDnd(
     [isFixedColumn]
   );
 
-  // Helper function to get column order from DOM
-  const getColumnOrderFromDOM = useCallback((): string[] | null => {
-    const headerElements = document.querySelectorAll("[data-column-id]");
-    const idsFromDOM = Array.from(headerElements).map((el) =>
-      el.getAttribute("data-column-id")
-    );
-
-    if (idsFromDOM.length > 0) {
-      return idsFromDOM.filter(Boolean) as string[];
-    }
-    return null;
-  }, []);
-
   // Helper function to process column reorder
   const processColumnReorder = useCallback(
     (newOrder: string[]) => {
@@ -187,16 +179,6 @@ export function useColumnDnd(
   // Helper function to handle the actual drag operation
   const handleValidDragOperation = useCallback(
     (activeId: string, overId: string) => {
-      // Process the drag and drop event
-      // If column order is empty, we need to get the columns from the DOM
-      if (columnOrder.length === 0) {
-        const newOrderFromDOM = getColumnOrderFromDOM();
-        if (newOrderFromDOM) {
-          processColumnReorder(newOrderFromDOM);
-          return;
-        }
-      }
-
       // Get the current column order
       const oldIndex = columnOrder.indexOf(activeId);
       const newIndex = columnOrder.indexOf(overId);
@@ -207,7 +189,7 @@ export function useColumnDnd(
         processColumnReorder(newOrder);
       }
     },
-    [columnOrder, getColumnOrderFromDOM, processColumnReorder]
+    [columnOrder, processColumnReorder]
   );
 
   // Handle drag end event
