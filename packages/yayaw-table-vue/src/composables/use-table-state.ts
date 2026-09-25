@@ -656,6 +656,9 @@ export const useTableState = <TData extends TableRecord>({
     writeUrl,
     { deep: true }
   );
+  // A new query starts on the first page. Synchronous, so it runs while the
+  // URL is read: arrival keeps the link's page, and `fromUrl` sets the page
+  // after the query on back and forward.
   watch(
     [search, filters, advancedFilters, sorting],
     () => {
@@ -663,7 +666,7 @@ export const useTableState = <TData extends TableRecord>({
         pagination.value = { ...pagination.value, pageIndex: 0 };
       }
     },
-    { deep: true }
+    { deep: true, flush: "sync" }
   );
   onMounted(() => {
     fromUrl();
