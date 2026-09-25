@@ -20,6 +20,7 @@ import type {
   FilterOperators,
   FilterStrategy,
 } from "../types/filter-types";
+import { calendarDay, todayCalendarDay } from "../utils/date-filter-days";
 import {
   matchesContractFilter,
   normalizeFilterEnvelope,
@@ -271,13 +272,7 @@ export function useDataTableAdvancedFilters<TData = Record<string, unknown>>(
       );
 
       // Add to advanced filters
-      let value:
-        | string
-        | number
-        | Date
-        | string[]
-        | [number, number]
-        | [Date, Date] = "";
+      let value: string | number | string[] | [number, number] = "";
       let operator: FilterOperators[ColumnDataType] = "contains";
 
       switch (type) {
@@ -290,10 +285,8 @@ export function useDataTableAdvancedFilters<TData = Record<string, unknown>>(
           operator = "equals" as FilterOperators["number"];
           break;
         case "date":
-          value =
-            existingLegacyFilter.value instanceof Date
-              ? existingLegacyFilter.value
-              : new Date();
+          // Date rules name the viewer's calendar days.
+          value = calendarDay(existingLegacyFilter.value) ?? todayCalendarDay();
           operator = "equals" as FilterOperators["date"];
           break;
         case "select":

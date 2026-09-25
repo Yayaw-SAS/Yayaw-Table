@@ -104,6 +104,15 @@ snapshot; it does not indicate active filters. Save changes stays visible but
 inactive when clean, with an explanation on focus/hover or directly on mobile.
 Temporary views offer Save this view and have no saved-view dot.
 
+Date rules are saved as calendar days (`YYYY-MM-DD`). Views saved by older
+versions may hold the instant of the saver's local midnight instead: both
+editions apply them as the viewer's days and compare them that way, so such a
+view is not marked modified, and it keeps its stored instants until it is saved
+again. Server code that reads stored views without a browser (MCP reads,
+scheduled connector pushes) should pass their rules through
+`normalizeDateFilterRules(rules, { timeZone })` with the zone of the person who
+saved the view.
+
 Reset view restores the active snapshot, or the application's initial configuration
 for a temporary view. It includes density, display mode, card configuration,
 filters, sorting, grouping, columns and `footerCalculationsVisible`. Missing legacy

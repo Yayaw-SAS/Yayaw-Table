@@ -15,6 +15,7 @@ import {
   isTableDisplayMode,
   normalizeGenericModeConfigs,
 } from "./display-modes";
+import { normalizeDateFilterRules } from "./date-filter-days";
 import { normalizeGalleryViewConfig } from "./gallery-view-state";
 import {
   isTableDensity,
@@ -162,8 +163,10 @@ export function normalizeTableViewConfig(
   input: TableViewConfig
 ): TableViewConfig {
   const config = normalizeViewAliases(input) as TableViewConfig;
-  config.advancedFilters = normalizeFilterEnvelope(config.advancedFilters)
-    .filters as unknown as AdvancedFiltersState;
+  // Date rules name calendar days; older views saved instants.
+  config.advancedFilters = normalizeDateFilterRules(
+    normalizeFilterEnvelope(config.advancedFilters).filters
+  ) as unknown as AdvancedFiltersState;
   const normalized: TableViewConfig = normalizeViewDensity(config.density);
   Object.assign(
     normalized,

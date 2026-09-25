@@ -17,7 +17,7 @@ import {
   formatLocationFilterValue,
   matchesLocationFilter,
 } from "./location-model";
-import { dataTypeDateInput } from "./table-contracts";
+import { dataTypeDateInput, matchesContractFilter } from "./table-contracts";
 import {
   formatColumnDay,
   formatNumberValue as formatNumberText,
@@ -142,43 +142,21 @@ export const clientFilterFunctions = {
     }
   },
 
+  /**
+   * Calendar days, compared like the shared contract (`matchesContractFilter`):
+   * the record's day in the viewer's time zone against the rule's days,
+   * `between` including both.
+   */
   date: (
     value: unknown,
-    filterValue: Date | [Date, Date],
+    filterValue: FilterValues<"date">,
     operator: FilterOperators["date"]
-  ): boolean => {
-    const dateValue =
-      value instanceof Date ? value : new Date(value as string | number);
-
-    if (Number.isNaN(dateValue.getTime())) {
-      return operator === "isEmpty";
-    }
-
-    switch (operator) {
-      case "equals": {
-        const filterDate = filterValue as Date;
-        return dateValue.toDateString() === filterDate.toDateString();
-      }
-      case "before":
-        return dateValue < (filterValue as Date);
-      case "after":
-        return dateValue > (filterValue as Date);
-      case "between": {
-        const [startDate, endDate] = filterValue as [Date, Date];
-        return dateValue >= startDate && dateValue <= endDate;
-      }
-      case "notEquals": {
-        const notEqualDate = filterValue as Date;
-        return dateValue.toDateString() !== notEqualDate.toDateString();
-      }
-      case "isEmpty":
-        return !value || Number.isNaN(dateValue.getTime());
-      case "isNotEmpty":
-        return !!value && !Number.isNaN(dateValue.getTime());
-      default:
-        return true;
-    }
-  },
+  ): boolean =>
+    matchesContractFilter(value, {
+      type: "date",
+      operator,
+      values: filterValue,
+    }),
 
   select: (
     value: unknown,
@@ -273,7 +251,7 @@ export function applyFilter<TData = Record<string, unknown>>(
     case "date":
       return clientFilterFunctions.date(
         value,
-        values as Date | [Date, Date],
+        values as FilterValues<"date">,
         operator as FilterOperators["date"]
       );
     case "select":

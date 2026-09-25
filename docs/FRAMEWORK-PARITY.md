@@ -48,7 +48,7 @@ List actions receive both naming conventions:
 
 URL page indexes remain zero-based. Invalid page sizes fall back to defaults. Existing action handlers can keep reading their original names. Aggregation receives the filter join operator too. Both editions accept primitive aggregate results, shown in the column's format like the list fallback, and `{ raw, label }` values, whose label is shown as given.
 
-Advanced filter input accepts either an array or `{ filters, joinOperator }`. Inactive rules do not filter rows. An OR envelope retains its join when converted to an array. The local engines understand both select operator families: `is`/`isNot`/`isAnyOf`/`isNoneOf` and `equals`/`notEquals`/`in`/`notIn`, plus multi-select membership operators. Date equality covers the whole calendar day. Remote handlers remain responsible for applying the supplied filters and join operator.
+Advanced filter input accepts either an array or `{ filters, joinOperator }`. Inactive rules do not filter rows. An OR envelope retains its join when converted to an array. The local engines understand both select operator families: `is`/`isNot`/`isAnyOf`/`isNoneOf` and `equals`/`notEquals`/`in`/`notIn`, plus multi-select membership operators. Date rules compare whole calendar days and carry `YYYY-MM-DD` values (see [Date filter values](#date-filter-values)). Remote handlers remain responsible for applying the supplied filters and join operator.
 
 Saved views accept canonical `globalSearch`, `columnFilters`, and `columnPinning`, as well as Vue's earlier `search`, `filters`, and `pinning`. Canonical values take precedence when both are present. Legacy Kanban grouping is migrated to `grouping`. Vue applies a default view when there is no requested view or explicit table URL state, protects system views from update/deletion in the UI, indicates modified views, and preserves drafts when persistence fails.
 
@@ -218,6 +218,48 @@ Vue advanced filters use the same operator families as React. A new rule starts 
 
 Filter controls use the React `filters.*` translation keys, with English and French defaults. Table feedback and reusable field/collection controls inherit the table translations; standalone fields retain their English fallbacks. Date-only values from native inputs represent a local calendar date in both editions, including time zones west of UTC. The Options panel and row menus move focus when opened and restore it on dismissal. Row menus support arrow keys, skip disabled actions, and use a modal confirmation with trapped focus for deletion. A failed deletion retains its confirmation for retry.
 
+## Date filter values
+
+Date rules compare whole days, so both editions write, store and send their
+values as calendar days, `YYYY-MM-DD`: one day, or `[first, last]` for
+`between` (ordered, both days included), for date and timestamp columns
+alike. Every filter date picker is day-granular: React's calendar (single or
+range) and its Today, Yesterday, Last 7 days, Last 30 days and This month
+shortcuts, and Vue's native date inputs. No filter offers a time, so every
+date operator (`equals`, `notEquals`, `before`, `after`, `between`, and the
+older `greaterThan`, `greaterThanOrEqual`, `lessThan`, `lessThanOrEqual`
+aliases) carries days. Chart clicks (`between` over the bucket's first and
+last days) and dashboard filters already wrote days; the calendar sends its
+visible range as a `dateRange` scope of days, not as rules.
+
+Older links, saved views and React presets could hold instants at the viewer's
+local midnight, such as `2026-09-24T22:00:00.000Z` for 25 September in Paris.
+Both editions read them as the viewer's days whenever rules enter the table
+state: when they read a URL, apply a view (React's `seedTableViewState`
+included) or a preset, or commit a rule from the editor; chart clicks add
+days. The saved-view comparison reads both sides the same way, so an older
+view is not marked modified, and dashboard KPIs normalize the rules of the
+view they query (`dashboardViewParams`). A rule keeps its shape (one value or
+a list); values that are not dates stay for the editor's validation. The
+shared `date-filter-days.ts` holds the one implementation (`calendarDay`,
+`dateFilterDays`, `normalizeDateFilterRules`), and `matchesContractFilter`
+compares the record's day in the viewer's zone with the rule's days for Vue's
+local data and every client fallback; React's `clientFilterFunctions.date` now
+delegates to it.
+
+React's range shortcuts live in its date popover; Vue's native inputs have no
+shortcuts. This framework-native difference predates the calendar-day values
+and does not change the rules either edition writes.
+
+Coverage: the shared `tests/date-filter-days-suite.ts`, run by both runners
+(days, wall-clock times and instants, older instants from Europe/Paris and
+America/New_York viewers, `between` bounds in either order, each day operator,
+each edition's URL reading and saved-view application, chart buckets and
+calendar ranges); React `tests/date-filter-picker.test.tsx` and the URL and
+view-state tests; Vue `components/filters/advanced-filters.test.ts`; and the
+Playwright `e2e/date-filter.spec.ts`, which picks a range from the column
+filter and opens an older link in both editions and both zones.
+
 ## Behavioral parity matrix
 
 The parity contract covers user-visible behavior and serializable catalogue/action contracts. Component names, framework primitives, DOM structure, slots, and framework-native escape hatches remain specific to React or Vue.
@@ -226,6 +268,7 @@ The parity contract covers user-visible behavior and serializable catalogue/acti
 | --- | --- | --- |
 | Defaults and feature gates | Common defaults for editing, filters, column DnD/pinning, grouping, pagination, selection, views, debounce, URL state, and page sizes | Shared `behavior-defaults.json`, executed by both test runners |
 | List/filter/view contracts | One-based action pages, both page-size/search aliases, multi-sort, simple and advanced filters, aggregate labels, normalized saved views | Shared `parity.json`; both `contracts-parity.test.ts` suites; view-state suites |
+| Date filter values | `YYYY-MM-DD` days in requests, URLs and views; older instants read as the viewer's days; inclusive `between` | Shared `date-filter-days-suite.ts`; React `date-filter-picker.test.tsx`; Vue `advanced-filters.test.ts`; Playwright `e2e/date-filter.spec.ts` |
 | Toolbar | Create/export order, icon mode, callback/static custom actions, action context, three placements, clear-filter shortcut | Vue `yayaw-data-table.test.ts`, `filter-reset.test.ts`; React toolbar and filter-reset suites |
 | View manager | Default/system views, dirty state, create/update/delete/share permissions, recoverable persistence | Vue saved-view suites; React view-manager suites |
 | Columns | Sort/filter/pin/hide menus, mandatory/utility locks, persistent DnD preference, pointer and keyboard reorder, optional resizing stored in views/URLs | Shared contract/view-state suites; Vue `catalogue-controls.test.ts`, `yayaw-data-table.test.ts`; React column and URL-state suites |

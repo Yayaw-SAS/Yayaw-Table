@@ -12,6 +12,7 @@ import {
   lockedColumnVisibility,
 } from "../column-locks";
 import { createTableViewSnapshot } from "../core";
+import { normalizeDateFilterRules } from "../date-filter-days";
 import {
   GENERIC_MODE_CONFIG_KEYS,
   pickGenericModeSettings,
@@ -257,11 +258,20 @@ export const useTableState = <TData extends TableRecord>({
   let urlTimer: ReturnType<typeof setTimeout> | undefined;
   const enabledFilters = (value: ColumnFiltersState): ColumnFiltersState =>
     config.table.enableColumnFilters ? value : [];
+  const dateColumnIds = new Set(
+    config.columns.definitions
+      .filter((column) => column.type === "date")
+      .map((column) => column.id)
+  );
+  // Date rules name calendar days: older links and views saved instants,
+  // which read as the viewer's days.
   const enabledAdvancedFilters = (
     value: AdvancedFiltersState
   ): AdvancedFiltersState =>
     config.table.enableColumnFilters
-      ? (normalizeFilterEnvelope(value) as unknown as AdvancedFiltersState)
+      ? (normalizeDateFilterRules(normalizeFilterEnvelope(value), {
+          isDateColumn: (columnId) => dateColumnIds.has(columnId),
+        }) as unknown as AdvancedFiltersState)
       : emptyAdvancedFilters();
   const enabledGrouping = (value: string[]): string[] =>
     config.table.enableGrouping ? value : [];

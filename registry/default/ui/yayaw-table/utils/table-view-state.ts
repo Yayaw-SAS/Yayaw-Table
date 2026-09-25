@@ -9,6 +9,7 @@ import type {
 import type { TableDisplayMode } from "../types/display-types";
 import type { AdvancedFiltersState } from "../types/filter-types";
 import type { TableViewConfig } from "../types/view-types";
+import { normalizeDateFilterRules } from "./date-filter-days";
 import {
   displayModeMaxGroups,
   type GenericModeViewConfigs,
@@ -162,8 +163,10 @@ export function normalizeTableViewConfig(
   input: TableViewConfig
 ): TableViewConfig {
   const config = normalizeViewAliases(input) as TableViewConfig;
-  config.advancedFilters = normalizeFilterEnvelope(config.advancedFilters)
-    .filters as unknown as AdvancedFiltersState;
+  // Date rules name calendar days; older views saved instants.
+  config.advancedFilters = normalizeDateFilterRules(
+    normalizeFilterEnvelope(config.advancedFilters).filters
+  ) as unknown as AdvancedFiltersState;
   const normalized: TableViewConfig = normalizeViewDensity(config.density);
   Object.assign(
     normalized,

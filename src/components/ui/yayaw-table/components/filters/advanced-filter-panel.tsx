@@ -930,13 +930,10 @@ export function CompactFilterPanel({
               disabled={disabled}
               onAddFilter={(columnId, type) => {
                 const operator = getDefaultFilterOperator(type);
-                const value = getDefaultFilterValue(type, operator) as
-                  | string
-                  | number
-                  | [number, number]
-                  | Date
-                  | [Date, Date]
-                  | string[];
+                const value: FilterValues = getDefaultFilterValue(
+                  type,
+                  operator
+                );
                 actions.addFilter({
                   columnId,
                   type,
@@ -1019,13 +1016,10 @@ export function CompactFilterPanel({
             disabled={disabled}
             onAddFilter={(columnId, type) => {
               const operator = getDefaultFilterOperator(type);
-              const value = getDefaultFilterValue(type, operator) as
-                | string
-                | number
-                | [number, number]
-                | Date
-                | [Date, Date]
-                | string[];
+              const value: FilterValues = getDefaultFilterValue(
+                type,
+                operator
+              );
               actions.addFilter({
                 columnId,
                 type,

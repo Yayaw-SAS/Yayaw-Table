@@ -18,6 +18,7 @@ import {
   chartValueFormatter,
   loadChartData,
 } from "../chart-model";
+import { normalizeDateFilterRules } from "../date-filter-days";
 import { formLocaleMatch } from "../form-text";
 import { normalizeFilterEnvelope } from "../table-contracts";
 import { type ColumnValueFormat, formatColumnDay } from "../value-format";
@@ -802,7 +803,10 @@ export function dashboardKpiPlan(
   };
 }
 
-/** A saved view's query as list parameters: its filters and search. */
+/**
+ * A saved view's query as list parameters: its filters (date rules as the
+ * viewer's days, whatever an older view saved) and search.
+ */
 export function dashboardViewParams(
   config: Record<string, unknown> = {}
 ): Record<string, unknown> {
@@ -811,7 +815,7 @@ export function dashboardViewParams(
     : [];
   const search = text(config.globalSearch);
   return {
-    advancedFilters: config.advancedFilters ?? [],
+    advancedFilters: normalizeDateFilterRules(config.advancedFilters ?? []),
     filters: Object.fromEntries(
       columnFilters.map((filter) => [String(filter.id), filter.value])
     ),

@@ -4,6 +4,7 @@
  */
 
 import type { ReactElement } from "react";
+import type { CalendarDay } from "../utils/date-filter-days";
 import type { DateDisplayPreset } from "./date-types";
 
 /**
@@ -59,7 +60,9 @@ export interface FilterOperators {
 }
 
 /**
- * Filter values mapped by data type
+ * Filter values mapped by data type. Date rules compare calendar days: their
+ * values are `YYYY-MM-DD` days (`[first, last]` for `between`, both included),
+ * never instants.
  */
 export type FilterValues<TType extends ColumnDataType = ColumnDataType> =
   TType extends "text"
@@ -67,7 +70,7 @@ export type FilterValues<TType extends ColumnDataType = ColumnDataType> =
     : TType extends "number"
       ? number | [number, number]
       : TType extends "date"
-        ? Date | [Date, Date]
+        ? CalendarDay | [CalendarDay, CalendarDay]
         : TType extends "select"
           ? string | string[]
           : TType extends "multiSelect"

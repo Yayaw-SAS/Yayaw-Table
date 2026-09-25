@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from "vue";
+import { normalizeDateFilterRule } from "../../date-filter-days";
 import { newFilter } from "../../filter-config";
 import { useTableContext } from "../../context";
 import type { AdvancedFilter } from "../../types";
@@ -31,7 +32,9 @@ const t = (key: string, fallback: string): string => {
   const value = context.translations.value[`filters.${key}`];
   return typeof value === "string" ? value : fallback;
 };
-const update = (filter: AdvancedFilter): void => {
+const update = (edited: AdvancedFilter): void => {
+  // Date rules keep the calendar days they name, whatever an older link saved.
+  const filter = normalizeDateFilterRule(edited);
   if (drafts.value.some((item) => item.id === filter.id)) {
     state.value = { ...state.value, filters: [...state.value.filters, filter] };
     drafts.value = drafts.value.filter((item) => item.id !== filter.id);

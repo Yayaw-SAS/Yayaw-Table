@@ -26,7 +26,7 @@ server) are the reference for parameter names and filter semantics.
 | `sorting`, `orderBy` | Every sort in priority order: `[{ id, desc }]`, and the same as `{ [id]: "asc" \| "desc" }`. Empty: keep your natural order. `__manual` means the view's manual order (with `viewId`). |
 | `search`, `q`, `globalSearch` | Global search text. |
 | `filters` | Column filters by column id (column menus, filter bar, `filterRenderer`), in the shape the column's filter control writes. |
-| `advancedFilters` | Active rules `{ id, columnId, operator, values, type? }[]` (inactive rules are not sent). |
+| `advancedFilters` | Active rules `{ id, columnId, operator, values, type? }[]` (inactive rules are not sent). Date rules carry `YYYY-MM-DD` days (see [Date rules](#date-rules)). |
 | `advancedFilterJoin` | `"and"` or `"or"` between the advanced rules. |
 | `grouping` | Grouping column ids of the view. |
 | `viewId` | Saved view id (`null` for the default view), sent with the manual-order sort. |
@@ -73,21 +73,48 @@ every operator the editions can send; mirror `matchesContractFilter()`:
 | --- | --- | --- |
 | `contains`, `notContains` | text, multi-select | Text contains `values[0]` (case-insensitive); a list contains any of `values` |
 | `startsWith`, `endsWith` | text | Prefix, suffix (case-insensitive) |
-| `equals`, `notEquals` | text, number, date, select | Equality; dates compare whole local days |
+| `equals`, `notEquals` | text, number, date, select | Equality; dates compare whole days |
 | `is`, `isNot` | select (text: case-insensitive) | Equality of option values |
 | `isAnyOf`, `in` | select | One of `values` |
 | `isNoneOf`, `notIn` | select | None of `values` |
 | `containsAll`, `containsNone` | multi-select | Every or none of `values` |
-| `greaterThan`, `greaterThanOrEqual`, `lessThan`, `lessThanOrEqual` | number, date | Compared with `values[0]`; dates by local day |
-| `between` | number, date | Inclusive `values[0]` to `values[1]`; dates cover whole days |
+| `greaterThan`, `greaterThanOrEqual`, `lessThan`, `lessThanOrEqual` | number, date | Compared with `values[0]`; dates by day |
+| `between` | number, date | Inclusive `values[0]` to `values[1]`; dates cover both whole days |
 | `before`, `after` | date | Strictly before or after the day |
 | `isEmpty`, `isNotEmpty` | every type | `null`, `""` or `[]` |
 | `isTrue`, `isFalse` | boolean | Older Vue boolean rules (charts and filter menus now write select `isAnyOf` with `true`/`false`) |
 | `withinDistance` | location | `values: [lat, lng, km]`, great-circle distance |
 | `withinBounds` | location | `values: [west, south, east, north]`; `west > east` crosses the antimeridian |
 
-A rule without its values matches every row. Date-only values are local
-calendar days, not UTC midnights.
+A rule without its values matches every row.
+
+### Date rules
+
+Every date operator compares whole days, so date rule values are calendar
+days written `YYYY-MM-DD`, never instants: one day, or `[first, last]` for
+`between` (ordered, both days included), on date and timestamp columns alike.
+The filter menus, chart clicks and dashboards all write days, and no filter
+picks a time. Compare a `date` field with the day itself; on a timestamp
+field, a day covers `[start of the day, start of the next day)` in the zone
+you choose (the viewer's when you know it, otherwise the organization's or
+UTC):
+
+```ts
+// between ["2026-09-05", "2026-09-12"] on a timestamp column, in `zone`
+where.push(gte(col, startOfDay("2026-09-05", zone)), lt(col, startOfDay("2026-09-13", zone)));
+```
+
+Links and saved views written by older versions may hold instants at the
+viewer's local midnight (`2026-09-24T22:00:00.000Z` for 25 September in
+Paris). The tables read them as the viewer's days before calling `list` or
+`aggregate`. Code that reads stored views without a browser (an MCP read, a
+scheduled push) can do the same with the zone of the person who saved the
+view: `normalizeDateFilterRules(rules, { timeZone })` rewrites the date rules
+of a list or a `{ filters, joinOperator }` envelope, and
+`calendarDay(value, timeZone)` reads one value
+(`components/ui/yayaw-table/utils/date-filter-days.ts`, pure and safe on a
+server). Without a zone they use the server's, which is right only for
+viewers in that zone.
 
 ## `aggregate`
 

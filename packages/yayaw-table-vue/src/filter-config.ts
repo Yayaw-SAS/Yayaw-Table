@@ -1,3 +1,4 @@
+import { isCalendarDay } from "./date-filter-days";
 import { locationFilterHasValue } from "./location-model";
 import { dataTypeFilter } from "./table-contracts";
 import type {
@@ -110,7 +111,8 @@ export const filterHasValue = (filter: AdvancedFilter): boolean => {
       return typeof value === "number" && Number.isFinite(value);
     }
     if (filter.type === "date") {
-      return value !== "" && Number.isFinite(new Date(String(value)).getTime());
+      // Date rules name calendar days, written `YYYY-MM-DD`.
+      return isCalendarDay(value);
     }
     return (
       filter.type === "select" || filter.type === "multiSelect" || value !== ""

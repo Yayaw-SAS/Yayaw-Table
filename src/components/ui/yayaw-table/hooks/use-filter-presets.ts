@@ -8,11 +8,28 @@ import type {
   AdvancedFilterState,
   FilterComparison,
   FilterExport,
+  FilterGroup,
   FilterPreset,
 } from "../types/advanced-filter-types";
+import { normalizeDateFilterRule } from "../utils/date-filter-days";
 
 // Local storage keys
 const PRESETS_STORAGE_KEY = "data-table-filter-presets";
+
+/**
+ * A preset's rules with their date values as the calendar days they name:
+ * presets stored by older versions hold instants, which read as the viewer's
+ * days.
+ */
+function presetStateWithDays(state: AdvancedFilterState): AdvancedFilterState {
+  const withDays = (group: FilterGroup): FilterGroup => ({
+    ...group,
+    filters: group.filters.map((entry) =>
+      "filters" in entry ? withDays(entry) : normalizeDateFilterRule(entry)
+    ),
+  });
+  return { ...state, groups: (state.groups ?? []).map(withDays) };
+}
 const USAGE_STORAGE_KEY = "data-table-filter-usage";
 const SETTINGS_STORAGE_KEY = "data-table-filter-settings";
 
@@ -447,7 +464,7 @@ export function useFilterPresets(
       setPresets(updatedPresets);
       savePresetsToStorage(updatedPresets);
 
-      return preset.state;
+      return presetStateWithDays(preset.state);
     },
     [presets, systemPresets, trackUsage, savePresetsToStorage]
   );
@@ -576,6 +593,7 @@ export function useFilterPresets(
         // Generate new ID and update metadata
         const newPreset: FilterPreset = {
           ...preset,
+          state: presetStateWithDays(preset.state),
           id: generatePresetId(),
           isSystem: false,
           metadata: {

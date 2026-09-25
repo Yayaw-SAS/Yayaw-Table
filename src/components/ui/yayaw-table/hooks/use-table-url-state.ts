@@ -18,6 +18,10 @@ import type {
 import { footerVisibleAtom } from "../atoms/footer-atoms";
 import { filterResetVersionAtom, tableDensityAtom } from "../atoms/table-atoms";
 import { normalizeGanttView } from "../planning/engine";
+import {
+  normalizeDateFilterRule,
+  normalizeDateFilterRules,
+} from "../utils/date-filter-days";
 import { parseDateValue } from "../utils/value-format";
 import type { TableGanttViewConfig } from "../planning/types";
 import {
@@ -185,9 +189,6 @@ const toValidDate = (value: unknown): Date | undefined => {
     return Number.isNaN(value.getTime()) ? undefined : value;
   }
 
-  // Date-only strings ("2026-09-07") are local calendar days, as in the date
-  // filters; `new Date("2026-09-07")` would be UTC midnight, the previous day
-  // west of Greenwich.
   if (typeof value === "string" || typeof value === "number") {
     return parseDateValue(value);
   }
@@ -195,53 +196,19 @@ const toValidDate = (value: unknown): Date | undefined => {
   return;
 };
 
-const normalizeBetweenDateValues = (values: unknown): unknown => {
-  if (!Array.isArray(values)) {
-    const singleDate = toValidDate(values);
-    return singleDate ? ([singleDate, singleDate] as [Date, Date]) : values;
-  }
-
-  const startDate = toValidDate(values[0]);
-  const endDate = toValidDate(values[1] ?? values[0]);
-  if (startDate && endDate) {
-    return [startDate, endDate] as [Date, Date];
-  }
-  if (startDate) {
-    return [startDate, startDate] as [Date, Date];
-  }
-  if (endDate) {
-    return [endDate, endDate] as [Date, Date];
-  }
-  return values;
-};
-
-const normalizeSingleDateValue = (values: unknown): unknown => {
-  const parsedDate = toValidDate(Array.isArray(values) ? values[0] : values);
-  return parsedDate ?? values;
-};
-
-const normalizeDateFilterValues = (
-  operator: unknown,
-  values: unknown
-): unknown => {
-  const operatorKey = typeof operator === "string" ? operator : "";
-  if (operatorKey === "isEmpty" || operatorKey === "isNotEmpty") {
-    return values;
-  }
-
-  if (operatorKey === "between") {
-    return normalizeBetweenDateValues(values);
-  }
-
-  return normalizeSingleDateValue(values);
-};
-
+/**
+ * A rule read from a link or a saved view: its edit timestamps become dates,
+ * and its date values the calendar days they name. Older links wrote instants
+ * at the viewer's local midnight; they read as the viewer's days.
+ */
 const normalizeAdvancedFilter = (filter: unknown): unknown => {
   if (!isRecord(filter)) {
     return filter;
   }
 
-  const normalizedFilter: Record<string, unknown> = { ...filter };
+  const normalizedFilter: Record<string, unknown> = normalizeDateFilterRule({
+    ...filter,
+  });
 
   const createdAt = toValidDate(normalizedFilter.createdAt);
   if (createdAt) {
@@ -251,13 +218,6 @@ const normalizeAdvancedFilter = (filter: unknown): unknown => {
   const updatedAt = toValidDate(normalizedFilter.updatedAt);
   if (updatedAt) {
     normalizedFilter.updatedAt = updatedAt;
-  }
-
-  if (normalizedFilter.type === "date") {
-    normalizedFilter.values = normalizeDateFilterValues(
-      normalizedFilter.operator,
-      normalizedFilter.values
-    );
   }
 
   return normalizedFilter;
@@ -328,7 +288,7 @@ const kanbanParser = createParser({
 const ganttParser = createParser({parse: (value: string) => {try {return normalizeGanttView(JSON.parse(value));} catch {return {};}}, serialize: (value: TableGanttViewConfig) => JSON.stringify(normalizeGanttView(value))});
 
 // Parser for advanced filters
-/** Advanced filters from their URL value; date values become `Date`s. */
+/** Advanced filters from their URL value; date values become `YYYY-MM-DD` days. */
 export function parseAdvancedFiltersParam(value: string): AdvancedFiltersState {
   try {
     const parsedValue = value ? JSON.parse(value) : [];
@@ -938,10 +898,11 @@ export function useTableUrlState({
   // Advanced filters setter
   const setAdvancedFiltersFromUI = useCallback(
     (filters: AdvancedFiltersState) => {
-      // Write as-is; server/mock layer ignores inactive or empty filters
+      // Inactive or empty rules are kept; the list request leaves them out.
+      // Date rules are written as the calendar days they name.
       debouncedSetParamRef.current?.(
         `${urlPrefix}-advancedFilters`,
-        filters,
+        normalizeDateFilterRules(filters),
         store.get(resetVersionAtom)
       );
     },
@@ -1230,7 +1191,11 @@ export function useTableUrlState({
       queueUrlUpdate(setHistoryIndexParam, "0");
       queueUrlUpdate(setSortParam, config.sorting ?? []);
       queueUrlUpdate(setFiltersParam, config.columnFilters ?? []);
-      queueUrlUpdate(setAdvancedFiltersParam, config.advancedFilters ?? []);
+      // Normalized: date rules as days, whatever an older view saved.
+      queueUrlUpdate(
+        setAdvancedFiltersParam,
+        normalizedConfig.advancedFilters ?? []
+      );
       queueUrlUpdate(setGlobalSearchParam, config.globalSearch || null);
       queueUrlUpdate(
         setDisplayModeParam,
