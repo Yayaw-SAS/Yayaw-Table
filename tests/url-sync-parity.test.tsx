@@ -1,11 +1,15 @@
 import "./setup-dom";
 import { afterEach, expect, it } from "bun:test";
+import { QueryClient } from "@tanstack/react-query";
 import { createStore, Provider } from "jotai";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { DataTable } from "../src/components/ui/yayaw-table/components/data-table";
+import { defineTableConfig } from "../src/components/ui/yayaw-table/config/helpers";
 import { useTableUrlState } from "../src/components/ui/yayaw-table/hooks/use-table-url-state";
 import { TableStateSyncProvider } from "../src/components/ui/yayaw-table/providers/table-state-sync-provider";
+import type { DisplayModeRenderContext } from "../src/components/ui/yayaw-table/types/display-mode-renderer";
 
 const roots: Root[] = [];
 
@@ -164,3 +168,90 @@ for (const syncUrl of [false, true]) {
     expect(container.textContent).toBe("select,actions,name");
   });
 }
+
+/** Lets the table load and write its URL, one frame per `act`. */
+const settle = async (frames = 8): Promise<void> => {
+  if (frames === 0) {
+    return;
+  }
+  await act(() => new Promise((resolve) => setTimeout(resolve, 52)));
+  await settle(frames - 1);
+};
+
+it("keeps a display mode's rows when back or forward keeps the query, as Vue does", async () => {
+  const listed: unknown[] = [];
+  const revisions: number[] = [];
+  const list = (params: Record<string, unknown>) => {
+    listed.push(params);
+    return Promise.resolve({
+      data: [
+        { id: "alpha", name: "Alpha", status: "Open" },
+        { id: "beta", name: "Beta", status: "Closed" },
+      ],
+      meta: { pageCount: 1, totalCount: 2 },
+    });
+  };
+  function Calendar({ context }: { context: DisplayModeRenderContext }) {
+    revisions.push(context.revision);
+    return <span>{context.rows.length} rows</span>;
+  }
+  const config = defineTableConfig({
+    id: "history",
+    columns: {
+      definitions: [
+        { id: "name", header: "Name", type: "text" },
+        { id: "status", header: "Status", type: "text" },
+      ],
+      order: ["name", "status"],
+      visible: ["name", "status"],
+      mandatory: ["name"],
+    },
+    table: {
+      defaultDisplayMode: "calendar",
+      displayModes: ["calendar", "table"],
+      syncUrl: true,
+    },
+    translations: { namespace: "history", keys: { title: "History" } },
+  });
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  roots.push(root);
+  const store = createStore();
+  // Opening another URL stands for back or forward.
+  const open = async (keys: Record<string, string>) => {
+    await act(() => {
+      root.render(
+        <Provider store={store}>
+          <NuqsTestingAdapter hasMemory searchParams={keys}>
+            <DataTable
+              displayModeRenderers={{ calendar: { View: Calendar } }}
+              getRowId={(row) => String(row.id)}
+              getTableActions={() => ({ list })}
+              getTableConfig={() => config}
+              queryClient={client}
+              tableType={config.id}
+            />
+          </NuqsTestingAdapter>
+        </Provider>
+      );
+    });
+    await settle();
+  };
+  const link = { "history-q": "a" };
+  await open(link);
+  expect(container.textContent).toContain("2 rows");
+  const loaded = { listed: listed.length, revision: revisions.at(-1) };
+
+  // The same state, then another column order: nothing loads again.
+  await open(link);
+  await open({
+    ...link,
+    "history-order": JSON.stringify(["select", "status", "name", "actions"]),
+  });
+  expect(listed).toHaveLength(loaded.listed);
+  expect(revisions.at(-1)).toBe(loaded.revision);
+});

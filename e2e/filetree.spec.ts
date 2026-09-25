@@ -50,6 +50,19 @@ async function open(page: Page, url = ASSETS) {
   await expect(row(page, "Photos")).toBeVisible();
 }
 
+/** The host's requests, once none has arrived for a moment. */
+async function quietRequests(page: Page) {
+  let seen = await requests(page);
+  await expect(async () => {
+    await page.waitForTimeout(250);
+    const latest = await requests(page);
+    const quiet = latest.length === seen.length;
+    seen = latest;
+    expect(quiet).toBe(true);
+  }).toPass();
+  return seen;
+}
+
 /** Press on a row's name, move over another row, and optionally drop. */
 async function dragRow(page: Page, from: string, to: string, drop = true) {
   const source = await row(page, from).locator(".yayaw-ft-label").boundingBox();
@@ -320,6 +333,28 @@ test("a link opens a folder with its path", async ({ page }) => {
   await expect
     .poll(() => new URL(page.url()).searchParams.get("assets-folder"))
     .toBe("f-photos");
+});
+
+test("back or forward to the same query keeps the tree loaded, even with another column order", async ({
+  page,
+}) => {
+  await open(page);
+  const before = (await quietRequests(page)).length;
+  await page.evaluate(
+    (order) => {
+      // Back or forward to the same URL, then to one with another column order.
+      window.dispatchEvent(new PopStateEvent("popstate"));
+      const url = new URL(window.location.href);
+      url.searchParams.set("assets-order", order);
+      window.history.pushState(null, "", url);
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    },
+    JSON.stringify(["tags", "updatedAt", "size", "kind", "name"])
+  );
+  await page.waitForTimeout(300);
+  const after = (await requests(page)).slice(before);
+  expect(after.filter((request) => request.scope)).toEqual([]);
+  await expect(row(page, "Office.jpg")).toBeVisible();
 });
 
 test("hosts without scopes get a tree built in the browser, with Unfiled", async ({

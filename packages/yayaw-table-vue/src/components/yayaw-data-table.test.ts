@@ -7,6 +7,13 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { nextTick } from "vue";
 import {
+  type AssetRequest,
+  assetColumns,
+  assetTableOptions,
+  assetVisibleColumns,
+  createAssetActions,
+} from "../../../../examples/assets";
+import {
   chooseDisplayMode,
   inlineTestPortals,
   openViewMenu,
@@ -64,6 +71,13 @@ enableAutoUnmount((unmount) =>
     document.body.replaceChildren();
   })
 );
+/** Lets requests, renders and the table's URL write finish. */
+const settle = async (frames = 6) => {
+  for (let frame = 0; frame < frames; frame += 1) {
+    await flushPromises();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+};
 
 describe("YayawDataTable", () => {
   beforeEach(() => {
@@ -850,5 +864,64 @@ describe("YayawDataTable", () => {
     await wrapper.get('input[type="search"]').setValue("Alpha");
     await new Promise((resolve) => setTimeout(resolve, 60));
     expect(window.location.search).toContain("test-q=Alpha");
+  });
+
+  it("keeps its rows and File tree when back or forward keeps the query, as React does", async () => {
+    const requests: AssetRequest[] = [];
+    const actions = createAssetActions({
+      log: (request) => requests.push(request),
+    }) as unknown as TableActions;
+    const assets = defineTableConfig({
+      id: "assets",
+      columns: {
+        definitions: assetColumns,
+        order: assetColumns.map((column) => column.id),
+        visible: assetVisibleColumns,
+        mandatory: ["name"],
+      },
+      table: assetTableOptions,
+      translations: { namespace: "assets", keys: { title: "Assets" } },
+    });
+    const wrapper = mount(YayawDataTable, {
+      props: {
+        tableType: "assets",
+        config: assets,
+        getTableActions: () => actions,
+      },
+      attachTo: document.body,
+    });
+    await settle();
+    expect(wrapper.find('[role="row"][aria-label="Photos"]').exists()).toBe(
+      true
+    );
+    const url = new URL(window.location.href);
+    const popTo = async (): Promise<void> => {
+      window.history.replaceState({}, "", url);
+      window.dispatchEvent(new PopStateEvent("popstate"));
+      await settle();
+    };
+    requests.length = 0;
+
+    // Back or forward to the same state, then to another column order.
+    await popTo();
+    url.searchParams.set(
+      "assets-order",
+      JSON.stringify(["name", "tags", "kind"])
+    );
+    await popTo();
+    expect(requests).toEqual([]);
+    expect(
+      JSON.parse(
+        new URL(window.location.href).searchParams.get("assets-order") ?? "[]"
+      ).slice(0, 4)
+    ).toEqual(["select", "name", "tags", "kind"]);
+
+    // A search is a new query: the File tree asks for its matches.
+    url.searchParams.set("assets-q", "banner");
+    await popTo();
+    expect(requests).toContainEqual({
+      scope: "tree-matches",
+      parentId: undefined,
+    });
   });
 });
