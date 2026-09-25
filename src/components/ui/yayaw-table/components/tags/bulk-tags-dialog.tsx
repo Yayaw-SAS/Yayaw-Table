@@ -75,13 +75,13 @@ const rowIdOf = (row: unknown): string | undefined => {
   return id === null || id === undefined ? undefined : String(id);
 };
 
-/** Sets the tags field of cached rows by id; returns what restores them. */
-function patchCachedRows(
+/** Sets the tags field of the cached rows with these ids. */
+function setCachedTags(
   queryClient: QueryClient,
   tableId: string,
   field: string,
   values: Record<string, unknown>
-): () => void {
+) {
   const snapshots = queryClient.getQueriesData<CachedPayload>({
     queryKey: ["tableData", tableId],
   });
@@ -92,7 +92,7 @@ function patchCachedRows(
     let changed = false;
     const data = payload.data.map((row) => {
       const id = rowIdOf(row);
-      if (id === undefined || !(id in values)) {
+      if (id === undefined || !Object.hasOwn(values, id)) {
         return row;
       }
       changed = true;
@@ -102,10 +102,31 @@ function patchCachedRows(
       queryClient.setQueryData(key, { ...payload, data });
     }
   }
-  return () => {
-    for (const [key, payload] of snapshots) {
-      queryClient.setQueryData(key, payload);
-    }
+}
+
+/**
+ * Shows the rows' new tags at once; answers what puts back the tags of
+ * the rows that were not saved.
+ */
+function patchCachedRows(
+  queryClient: QueryClient,
+  tableId: string,
+  field: string,
+  targets: readonly BulkTagsTarget[],
+  values: Record<string, unknown>
+): (ids: string[]) => void {
+  setCachedTags(queryClient, tableId, field, values);
+  return (ids) => {
+    setCachedTags(
+      queryClient,
+      tableId,
+      field,
+      Object.fromEntries(
+        targets
+          .filter((target) => ids.includes(target.id))
+          .map((target) => [target.id, target.row[field]])
+      )
+    );
   };
 }
 
@@ -304,6 +325,7 @@ export function BulkTagsDialog({
       queryClient,
       tableId,
       column.field,
+      targets,
       plan.next
     );
     const selectedTargets = [...targets];
@@ -314,7 +336,7 @@ export function BulkTagsDialog({
           .map((target) => target.id)
           .filter((id) => !failed.includes(id));
         if (failed.length) {
-          restore();
+          restore(failed);
           toast.error(
             error ??
               formatTagLabel(labels.bulkFailed, { count: failed.length })
@@ -329,7 +351,7 @@ export function BulkTagsDialog({
         await onCompleted(completed, selectedTargets);
       })
       .catch((cause) => {
-        restore();
+        restore(selectedTargets.map((target) => target.id));
         toast.error(errorText(cause));
       });
   };

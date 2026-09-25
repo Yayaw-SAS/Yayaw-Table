@@ -150,8 +150,11 @@ const apply = (): void => {
       row[current.field] = next;
     }
   }
-  const restore = () => {
-    for (const [row, value] of previous) row[current.field] = value;
+  /** Puts back the tags of the rows that were not saved (every row when none are given). */
+  const restore = (ids?: string[]) => {
+    for (const [row, value] of previous) {
+      if (!ids || ids.includes(context.getRowId(row))) row[current.field] = value;
+    }
   };
   emit("close");
   runPlan(plan, current.field, rows)
@@ -159,7 +162,7 @@ const apply = (): void => {
       const ids = rows.map((row) => context.getRowId(row));
       const completed = new Set(ids.filter((id) => !failed.includes(id)));
       if (failed.length) {
-        restore();
+        restore(failed);
         context.status.value = {
           type: "error",
           message: error ?? formatTagLabel(words.bulkFailed, { count: failed.length }),
@@ -181,7 +184,7 @@ const apply = (): void => {
       await context.refresh();
     })
     .catch((cause: unknown) => {
-      restore();
+      restore(rows.map((row) => context.getRowId(row)));
       context.status.value = { type: "error", message: errorText(cause) };
     });
 };

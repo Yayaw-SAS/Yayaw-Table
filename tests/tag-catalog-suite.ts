@@ -41,6 +41,7 @@ export type TagHelper =
   | "tagColumnsOf"
   | "tagCreateName"
   | "tagLabels"
+  | "tagPickerEnter"
   | "tagUsageCounts"
   | "tagUsageRequest"
   | "withTagCatalogOptions"
@@ -262,6 +263,18 @@ export function tagCatalogSuite(
       tags.tagCreateName("  Summer   sale ", catalog),
       "Summer sale"
     );
+  });
+
+  test("Enter picks the highlighted tag only after typing or moving in the list", () => {
+    const enter = (query: string, navigated: boolean, highlighted: boolean) =>
+      tags.tagPickerEnter({ query, navigated, highlighted });
+    // Opening highlights the selected tag: Enter saves instead of removing it.
+    assert.equal(enter("", false, true), "done");
+    assert.equal(enter("", true, true), "highlighted");
+    assert.equal(enter("pri", false, true), "highlighted");
+    // Nothing highlighted: the typed name is picked or created.
+    assert.equal(enter(" Summer ", false, false), "typed");
+    assert.equal(enter("  ", true, false), "done");
   });
 
   test("creating on the fly calls create once and selects the new tag", async () => {

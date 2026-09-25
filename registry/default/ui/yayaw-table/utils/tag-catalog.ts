@@ -453,6 +453,24 @@ export function tagCreateName(
   return name && !findTagByName(tags, name) ? name : undefined;
 }
 
+/**
+ * What Enter does in a tag picker: the list picks its highlighted item only
+ * after typing or moving in it (`"highlighted"`); otherwise a typed name is
+ * picked, or created (`"typed"`); otherwise the picker is done: a cell saves,
+ * a field closes its list (`"done"`).
+ */
+export function tagPickerEnter(input: {
+  query: string;
+  navigated: boolean;
+  highlighted: boolean;
+}): "done" | "highlighted" | "typed" {
+  const typed = input.query.trim() !== "";
+  if (input.highlighted && (typed || input.navigated)) {
+    return "highlighted";
+  }
+  return typed ? "typed" : "done";
+}
+
 /** The value of the "Create “…”" item in pickers, never a tag id. */
 export const TAG_CREATE_ITEM = "__yayaw-create-tag__";
 

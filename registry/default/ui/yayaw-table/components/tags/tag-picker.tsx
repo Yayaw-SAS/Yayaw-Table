@@ -23,12 +23,14 @@ import { cn } from "@/lib/utils";
 import {
   cleanTagName,
   filterTags,
+  findTagByName,
   formatTagLabel,
   TAG_CREATE_ITEM,
   type TableTag,
   type TagLabels,
   tagCreateName,
   tagIdsOf,
+  tagPickerEnter,
   tagValueOf,
   withTagSelected,
 } from "../../utils/tag-catalog";
@@ -212,6 +214,46 @@ export function TagPicker({
     setQuery("");
   };
 
+  const pickTyped = () => {
+    const existing = findTagByName(tags, query);
+    if (!existing) {
+      create();
+      return;
+    }
+    handleValueChange(
+      selected.includes(existing.id) ? selected : [...selected, existing.id]
+    );
+  };
+
+  const handleEnter = (
+    event: KeyboardEvent<HTMLInputElement> & {
+      preventBaseUIHandler?: () => void;
+    }
+  ) => {
+    if (mode === "cell") {
+      event.stopPropagation();
+    }
+    const action = tagPickerEnter({
+      query,
+      navigated: navigated.current,
+      highlighted: Boolean(
+        event.currentTarget.getAttribute("aria-activedescendant")
+      ),
+    });
+    if (action === "highlighted") {
+      return;
+    }
+    event.preventDefault();
+    event.preventBaseUIHandler?.();
+    if (action === "typed") {
+      pickTyped();
+    } else if (mode === "cell") {
+      finish().catch(() => undefined);
+    } else {
+      setOpen(false);
+    }
+  };
+
   const handleKeyDown = (
     event: KeyboardEvent<HTMLInputElement> & {
       preventBaseUIHandler?: () => void;
@@ -222,33 +264,12 @@ export function TagPicker({
     }
     if (NAVIGATION_KEYS.has(event.key)) {
       navigated.current = true;
-      return;
-    }
-    if (event.key === "Escape" && mode === "cell") {
+    } else if (event.key === "Escape" && mode === "cell") {
       event.preventDefault();
       event.stopPropagation();
       onCancel?.();
-      return;
-    }
-    if (event.key !== "Enter") {
-      return;
-    }
-    if (mode === "cell") {
-      event.stopPropagation();
-    }
-    const picking =
-      (query.trim() !== "" || navigated.current) &&
-      Boolean(event.currentTarget.getAttribute("aria-activedescendant"));
-    if (picking) {
-      return;
-    }
-    // Nothing to pick: Enter saves the cell, or closes the list of a field.
-    event.preventDefault();
-    event.preventBaseUIHandler?.();
-    if (mode === "cell") {
-      finish().catch(() => undefined);
-    } else {
-      setOpen(false);
+    } else if (event.key === "Enter") {
+      handleEnter(event);
     }
   };
 

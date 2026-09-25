@@ -21,6 +21,7 @@ import {
   type TagLabels,
   tagCreateName,
   tagIdsOf,
+  tagPickerEnter,
   tagValueOf,
   withTagSelected,
 } from "../../tag-catalog";
@@ -211,12 +212,15 @@ const onKeydownCapture = (event: KeyboardEvent): void => {
     return;
   }
   if (event.key !== "Enter" || input.tagName !== "INPUT") return;
-  const typed = query.value.trim() !== "";
-  if (input.getAttribute("aria-activedescendant") && (typed || navigated))
-    return;
+  const action = tagPickerEnter({
+    query: query.value,
+    navigated,
+    highlighted: Boolean(input.getAttribute("aria-activedescendant")),
+  });
+  if (action === "highlighted") return;
   event.preventDefault();
   event.stopPropagation();
-  if (typed) {
+  if (action === "typed") {
     const existing = findTagByName(props.tags, query.value);
     if (existing) pick(existing.id);
     else createFromQuery();

@@ -1026,10 +1026,15 @@ function tagsOf(
   return {
     kind: "tags",
     tags: values.map((item, index) => {
+      // An option's own color (a catalog tag's) wins, as in table cells.
+      const option = optionsOf(column).find((candidate) =>
+        Object.is(candidate.value, item)
+      ) as { color?: unknown } | undefined;
       const appearance = tagAppearance(
         String(isRecord(item) ? (item.value ?? item.id ?? "") : item),
         column.coloredTags ?? coloredTags,
-        column.tagColorMap
+        column.tagColorMap,
+        typeof option?.color === "string" ? option.color : undefined
       );
       return {
         id: `${index}`,
