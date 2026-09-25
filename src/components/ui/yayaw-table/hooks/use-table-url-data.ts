@@ -6,7 +6,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAtom } from "jotai";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect } from "react";
 
 import { rowSelectionAtom } from "../atoms/table-atoms";
 import {
@@ -25,8 +25,8 @@ import { useTableUrlState } from "./use-table-url-state";
 
 const _DEBUG = false;
 
-const defaultGetRowId = <TData,>(row: TData): string =>
-  (row as Record<string, unknown>).id as string;
+/** The rows while nothing is loaded: one array, so renders keep the same rows. */
+const EMPTY_ROWS: never[] = [];
 
 interface UseTableUrlDataOptions<TData> {
   defaultPageSize?: number;
@@ -36,6 +36,7 @@ interface UseTableUrlDataOptions<TData> {
    */
   defaultSorting?: TableSorting;
   enabled?: boolean;
+  /** @deprecated Unused: the rows keep the order the query returns. */
   getRowId?: (row: TData) => string;
   initialData?: TData[];
   /**
@@ -209,7 +210,6 @@ export function useTableUrlData<TData>({
   defaultPageSize = 10,
   defaultSorting,
   enabled = true,
-  getRowId = defaultGetRowId,
   initialData = [],
   initialDataSort,
   initialPageCount,
@@ -229,7 +229,6 @@ export function useTableUrlData<TData>({
   const {
     filtersParam,
     advancedFiltersParam,
-    orderParam,
     pagination,
     setPageParam,
     sortParam,
@@ -426,48 +425,11 @@ export function useTableUrlData<TData>({
     }
   }, [isPastLastPage, lastPageIndex, setPageParam]);
 
-  // Get data from query result or use initial data (none past the last page)
-  const data = (!isPastLastPage && queryResult?.data) || [];
-
-  // Apply row ordering if drag is enabled and we have a row order
-  const orderedData = useMemo(() => {
-    if (!Array.isArray(data) || data.length === 0) {
-      return data;
-    }
-
-    // If we have a row order, apply it
-    if (Array.isArray(orderParam) && orderParam.length > 0) {
-      // Create a map of row IDs to their order index
-      const orderMap = new Map<string, number>();
-      (orderParam as string[]).forEach((id, index) => {
-        orderMap.set(id, index);
-      });
-
-      // Sort the data based on the order map
-      return [...data].sort((a, b) => {
-        const aId = getRowId(a);
-        const bId = getRowId(b);
-
-        // If both rows are in the order map, sort by their order
-        if (orderMap.has(aId) && orderMap.has(bId)) {
-          return (orderMap.get(aId) || 0) - (orderMap.get(bId) || 0);
-        }
-
-        // If only one row is in the order map, it comes first
-        if (orderMap.has(aId)) {
-          return -1;
-        }
-        if (orderMap.has(bId)) {
-          return 1;
-        }
-
-        // If neither row is in the order map, maintain original order
-        return 0;
-      });
-    }
-
-    return data;
-  }, [data, orderParam, getRowId]);
+  // The rows in the order the query returned them (none past the last page),
+  // the same array until the data changes: renderers reload on each new array
+  // (see `revision`). The `<tableId>-order` key is the column order; a manual
+  // row order is a sort.
+  const data: TData[] = (!isPastLastPage && queryResult?.data) || EMPTY_ROWS;
 
   // Enhanced refetch that invalidates the cache
   const enhancedRefetch = useCallback(async () => {
@@ -479,7 +441,7 @@ export function useTableUrlData<TData>({
   }, [queryClient, refetch, tableId]);
 
   return {
-    data: orderedData,
+    data,
     enhancedRefetch,
     error,
     isError,
