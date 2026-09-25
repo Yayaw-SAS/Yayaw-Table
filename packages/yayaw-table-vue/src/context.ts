@@ -66,6 +66,12 @@ export interface TableContextValue<TData extends TableRecord = TableRecord> {
   toolbarActions: ComputedRef<ToolbarActionsInput<TData>>;
   form: Ref<OpenFormState>;
   toolbarCompact: Ref<boolean>;
+  /** The facet panel shows on wide screens; undefined keeps `table.facets.defaultOpen`. */
+  facetsOpen: Ref<boolean | undefined>;
+  /** Changes when the table reloads after a change (facet counts, folders reload). */
+  dataRevision: Ref<number>;
+  /** The table's folders, for "New folder", the folder filter and folder facets. */
+  folders: import("./composables/use-folder-directory").FolderDirectoryStore;
   footerCalculationsVisible: Ref<boolean>;
   optionsRequest: Ref<TableOptionsRequest | undefined>;
   getRowId: (row: TData, index?: number) => string;

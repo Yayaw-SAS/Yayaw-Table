@@ -12,6 +12,15 @@ import {
   operatorTranslationKeys,
 } from "../../filter-config";
 import { cloneFormValue, formValuesEqual } from "../../form-runtime";
+import { type FileTreeLabelKey, fileTreeLabel } from "../../filetree-model";
+import {
+  folderChoiceComplete,
+  folderChoiceOf,
+  folderTableOptions,
+  rootFolderLabel,
+  toggleFolderChoice,
+} from "../../folder-directory";
+import FolderPicker from "../folders/FolderPicker.vue";
 import { type LocationLabelKey, locationLabel } from "../../location-model";
 import type {
   AdvancedFilter,
@@ -40,17 +49,35 @@ watch(
 const column = computed(() =>
   props.columns.find((item) => item.id === draft.value.columnId)
 );
-const type = computed(() => filterType(column.value));
+// The file tree's parent column filters with a folder picker (the root or folders).
+const folderColumn = computed(
+  () =>
+    Boolean(column.value) &&
+    column.value?.id === context.folders.tree?.parentColumn &&
+    folderTableOptions(context.config.table.filetree).folderFilter
+);
+watch(folderColumn, (value) => { if (value) context.folders.use(); }, { immediate: true });
+const type = computed(() => (folderColumn.value ? "select" : filterType(column.value)));
 const multiple = computed(() =>
   filterIsMultiple(type.value, draft.value.operator)
 );
 const range = computed(() => draft.value.operator === "between");
 const dirty = computed(() => !formValuesEqual(props.filter, draft.value));
-const valid = computed(
-  () =>
-    Boolean(column.value) &&
-    filterHasValue({ ...draft.value, type: type.value })
-);
+const valid = computed(() => {
+  if (!column.value) return false;
+  // A folder rule needs the root or a folder.
+  if (folderColumn.value) return folderChoiceComplete(draft.value);
+  return filterHasValue({ ...draft.value, type: type.value });
+});
+const folderTranslate = (key: string, fallback: string): string => {
+  const value = context.translations.value[`filetree.${key}`];
+  return typeof value === "string" ? value : fallback;
+};
+const folderLabel = (key: FileTreeLabelKey): string => fileTreeLabel(key, context.locale, folderTranslate);
+const folderChoice = computed(() => folderChoiceOf(draft.value));
+const pickFolder = (id: string | null): void => {
+  draft.value = { ...draft.value, ...toggleFolderChoice(draft.value, id) } as AdvancedFilter;
+};
 const t = (key: string, fallback: string): string => {
   const value = context.translations.value[`filters.${key}`];
   return typeof value === "string" ? value : fallback;
@@ -92,12 +119,15 @@ const changeColumn = (event: Event): void => {
   const id = (event.target as HTMLSelectElement).value;
   const nextColumn = props.columns.find((item) => item.id === id);
   if (!nextColumn) return;
+  const folders =
+    id === context.folders.tree?.parentColumn &&
+    folderTableOptions(context.config.table.filetree).folderFilter;
   draft.value = {
     ...draft.value,
     columnId: id,
-    type: filterType(nextColumn),
-    operator: filterOperators(nextColumn)[0] ?? "contains",
-    values: undefined,
+    type: folders ? "select" : filterType(nextColumn),
+    operator: folders ? "isAnyOf" : (filterOperators(nextColumn)[0] ?? "contains"),
+    values: folders ? [] : undefined,
   };
   search.value = "";
 };
@@ -190,13 +220,27 @@ const revert = async (): Promise<void> => {
           <option v-for="item in columns" :key="item.id" :value="item.id">{{ item.header }}</option>
         </select>
       </label>
-      <label class="yayaw-field-inline">
+      <fieldset v-if="folderColumn" class="yayaw-filter-options">
+        <legend>{{ folderLabel("inFolder") }}</legend>
+        <FolderPicker
+          :directory="context.folders.directory.value"
+          :loading="context.folders.loading.value"
+          :label="column?.header ?? folderLabel('folder')"
+          :search-label="folderLabel('searchFolders')"
+          :loading-label="folderLabel('loading')"
+          :empty-label="folderLabel('noFolders')"
+          :root-label="rootFolderLabel(context.locale, folderTranslate)"
+          :selected="(id) => (id === null ? folderChoice.root : folderChoice.ids.includes(id))"
+          @pick="pickFolder"
+        />
+      </fieldset>
+      <label v-if="!folderColumn" class="yayaw-field-inline">
         <span>{{ t('select_operator', 'Filter operator') }}</span>
         <select class="yayaw-select" :value="draft.operator" @change="changeOperator">
           <option v-for="operator in filterOperators(column, draft.operator)" :key="operator" :value="operator">{{ t(`operators.${operatorTranslationKeys[operator]}`, operator) }}</option>
         </select>
       </label>
-      <template v-if="filterNeedsValue(draft.operator)">
+      <template v-if="!folderColumn && filterNeedsValue(draft.operator)">
         <fieldset v-if="multiple" class="yayaw-filter-options">
           <legend>{{ t('value', 'Filter value') }}</legend>
           <input v-if="options.length > 6" v-model="search" type="search" class="yayaw-input" :aria-label="t('search', 'Search values')" :placeholder="t('search', 'Search values')" />

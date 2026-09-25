@@ -52,14 +52,18 @@ import {
   type DashboardLabelKey,
   type DashboardNotice,
   type DashboardOpenViewContext,
+  type DashboardSetFilterResult,
   type DashboardStorage,
   type DashboardTableInfo,
+  checkDashboardFilterValue,
   dashboardDayValue,
   dashboardFilterLabel,
+  dashboardFilterOptions,
   dashboardFilterValues,
   dashboardLabel,
   dashboardNoticeText,
   dashboardOpenViewContext,
+  dashboardSourceFilterRules,
   dashboardTranslate,
   dashboardVisibleSections,
   dashboardWidgetSize,
@@ -328,6 +332,20 @@ const changeFilter = (filterId: string, value: DashboardDateRange | string[] | u
   if (editing.value) update((current) => setDashboardFilterValue(current, filterId, value));
   else viewer.set(filterId, value);
 };
+// A block sets a screen filter as the filter bar does, once the value fits the filter.
+const setBlockFilter = (filterId: string, value: unknown): DashboardSetFilterResult => {
+  const current = dashboard.value;
+  const filter = current?.filters.find((item) => item.id === filterId);
+  const checked = checkDashboardFilterValue(current ?? { filters: [] }, filterId, value, {
+    options: filter ? dashboardFilterOptions(filter, infos.value) : undefined,
+    locale: props.locale,
+    translate: translate.value,
+  });
+  if (checked.ok) changeFilter(filterId, checked.value);
+  return checked;
+};
+const blockFilterRules = (tableId: string, options?: { exclude?: readonly string[] }) =>
+  shown.value ? dashboardSourceFilterRules(shown.value, tableId, { exclude: options?.exclude, today: today.value }) : [];
 const startEditing = () => {
   // Edit mode shows and changes the document's default values.
   viewer.clear();
@@ -645,6 +663,8 @@ const loadMessage = computed(() => {
               :get-row-id="props.getRowId"
               :natural="flow"
               :refresh="revisions.refresh"
+              :set-filter="setBlockFilter"
+              :filter-rules="blockFilterRules"
               :open-view="props.openView"
               @view-all="openFull(widgetOf(widgetId)!)"
               @mutated="revisions.mutated"

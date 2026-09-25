@@ -8,6 +8,7 @@ import {
   type DashboardFilterValue,
   type DashboardNotice,
   type DashboardOpenViewContext,
+  type DashboardSetFilterResult,
   type DashboardTranslate,
   type DashboardView,
   type DashboardWidget,
@@ -72,6 +73,13 @@ const props = defineProps<{
   /** A flow section's widget: its natural height. */
   natural?: boolean;
   refresh: (tableId?: string) => void;
+  /** A block sets a screen filter, as the filter bar does. */
+  setFilter: (filterId: string, value: unknown) => DashboardSetFilterResult;
+  /** The rules the screen's filters give a source's requests, for blocks. */
+  filterRules: (
+    tableId: string,
+    options?: { exclude?: readonly string[] }
+  ) => Record<string, unknown>[];
   openView?: (
     tableId: string,
     viewId: string | null,
@@ -160,6 +168,8 @@ const blockProps = computed(() => ({
   revision: props.blockRevision,
   filters: props.filterValues,
   refresh: props.refresh,
+  setFilter: props.setFilter,
+  filterRules: props.filterRules,
   openView: props.openView,
 }));
 const screenViewName = computed(
