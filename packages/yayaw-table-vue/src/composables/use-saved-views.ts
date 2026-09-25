@@ -1,6 +1,10 @@
 import { computed, nextTick, onMounted, onScopeDispose, ref, watch } from "vue";
 import { useTableContext } from "../context";
-import { createLocalTableViewActions } from "../core";
+import {
+  createLocalTableViewActions,
+  readLocalTableViewOrder,
+  storeLocalTableViewOrder,
+} from "../core";
 import { cloneFormValue, formValuesEqual } from "../form-runtime";
 import { resolveInitialTableView } from "../table-view-favorite";
 import type {
@@ -10,6 +14,16 @@ import type {
   TableViewConfig,
 } from "../types";
 import { areViewSettingsEqual } from "../view-menu";
+import {
+  formatViewMove,
+  listedViewOrder,
+  moveViewInOrder,
+  orderViews,
+  parseViewOrder,
+  type ViewMoveDirection,
+  viewMoves,
+  viewPosition,
+} from "../view-order";
 
 /** Keep persistence and asynchronous state separate from menu/dialog presentation. */
 export function useSavedViews(
@@ -27,12 +41,24 @@ export function useSavedViews(
     create: context.actions.value?.views?.create ?? fallback.create,
     update: context.actions.value?.views?.update ?? fallback.update,
     delete: context.actions.value?.views?.delete ?? fallback.delete,
+    // No local action: without the host's, this browser keeps the order.
+    setOrder: context.actions.value?.views?.setOrder,
   }));
   const actionContext = {
     tableId: context.config.id,
     tableType: context.tableType,
   };
+  // The host keeps the user's order with `setOrder` (and `list` answers
+  // with it); otherwise this browser keeps it.
+  const hostKeepsOrder = computed(
+    () => typeof actions.value.setOrder === "function"
+  );
   const views = ref<TableView[]>(cloneFormValue(initialViews()));
+  const localOrder = ref<string[]>();
+  /** The views in the user's order: tabs, "More views" and the view menu. */
+  const orderedViews = computed(() =>
+    orderViews(views.value, hostKeepsOrder.value ? undefined : localOrder.value)
+  );
   const active = computed(() =>
     views.value.find((view) => view.id === context.state.activeViewId.value)
   );
@@ -81,6 +107,10 @@ export function useSavedViews(
       (context.state.activeViewId.value ?? null) ===
       effectiveFavoriteViewId.value
   );
+  /** Where the current view can move; undefined when it keeps its place. */
+  const moves = computed(() => viewMoves(orderedViews.value, active.value?.id));
+  /** Announced after a move, while the focus stays on the action. */
+  const moveAnnouncement = ref("");
   let disposed = false;
   let hasInitialized = false;
   let initialSnapshot: TableViewConfig | undefined;
@@ -148,6 +178,12 @@ export function useSavedViews(
       }
     }
   };
+  /** The order this browser keeps, when the host does not (no `setOrder`). */
+  const loadLocalOrder = (): void => {
+    localOrder.value = hostKeepsOrder.value
+      ? undefined
+      : readLocalTableViewOrder(actionContext);
+  };
   /** The saved views; false when the manager was disposed meanwhile. */
   const loadViews = async (): Promise<boolean> => {
     const response = await actions.value.list(actionContext);
@@ -161,11 +197,13 @@ export function useSavedViews(
       return false;
     }
     // Persisted records supersede initial seeds, including their renamed/configured values.
-    views.value = cloneFormValue([
+    const merged = cloneFormValue([
       ...new Map(
         [...initialViews(), ...loaded].map((view) => [view.id, view])
       ).values(),
     ]);
+    const order = listedViewOrder(response, hostKeepsOrder.value);
+    views.value = order ? orderViews(merged, order) : merged;
     return true;
   };
   const load = async (): Promise<void> => {
@@ -175,6 +213,7 @@ export function useSavedViews(
     }
     loading.value = true;
     loadError.value = "";
+    loadLocalOrder();
     // Parent URL hydration finishes before testing whether the user has edited the table.
     await nextTick();
     initialSnapshot ??= cloneFormValue(context.state.snapshot.value);
@@ -278,6 +317,56 @@ export function useSavedViews(
         );
         if (!disposed) {
           favoriteViewId.value = result ? result.viewId : viewId;
+        }
+      },
+      error,
+      failure
+    );
+  };
+  /** Keeps a new order with the host's `setOrder`, else in this browser. */
+  const persistOrder = async (
+    viewIds: string[],
+    failure: string
+  ): Promise<string[]> => {
+    const setOrder = actions.value.setOrder;
+    if (!setOrder) {
+      if (!storeLocalTableViewOrder(actionContext, viewIds)) {
+        throw new Error(failure);
+      }
+      localOrder.value = viewIds;
+      return viewIds;
+    }
+    const saved = resultData(
+      await setOrder({ ...actionContext, viewIds }),
+      failure
+    );
+    const order = parseViewOrder(saved?.viewIds) ?? viewIds;
+    if (!disposed) {
+      views.value = orderViews(views.value, order);
+    }
+    return order;
+  };
+  /** Moves the current view one step, keeps the new order and announces it. */
+  const move = async (direction: ViewMoveDirection): Promise<void> => {
+    const view = active.value;
+    const viewIds =
+      view && moveViewInOrder(orderedViews.value, view.id, direction);
+    if (!(view && viewIds) || busy.value) {
+      return;
+    }
+    const failure = label("views.orderError", "viewOrderError");
+    await run(
+      async () => {
+        const order = await persistOrder(viewIds, failure);
+        const place = viewPosition(
+          orderViews(orderedViews.value, order),
+          view.id
+        );
+        if (place && !disposed) {
+          moveAnnouncement.value = formatViewMove(
+            label("views.moved", "viewMoved"),
+            { name: view.name, ...place }
+          );
         }
       },
       error,
@@ -409,6 +498,10 @@ export function useSavedViews(
   return {
     context,
     views,
+    orderedViews,
+    moves,
+    move,
+    moveAnnouncement,
     active,
     dirty,
     editable,
