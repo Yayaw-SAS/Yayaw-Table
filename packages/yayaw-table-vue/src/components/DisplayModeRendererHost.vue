@@ -14,6 +14,7 @@ import {
   withChartFilters,
 } from "../chart-model";
 import { recordsDisplayMode } from "../display-modes";
+import { tableQueryKey } from "../table-contracts";
 import type { AdvancedFilter } from "../types";
 
 const props = defineProps<{ renderer: DisplayModeRenderer }>();
@@ -25,26 +26,49 @@ const listAction = computed(() => {
         await list(params as unknown as TableListParams)
     : undefined;
 });
-const listParams = computed(() => ({
-  search: context.state.search.value || undefined,
-  filters: Object.fromEntries(
-    context.state.filters.value.map((filter) => [filter.id, filter.value])
-  ),
-  advancedFilters: context.state.advancedFilters.value,
-  sorting: context.state.sorting.value,
-}));
+// The same object while the query stays the same: values read again from the
+// URL (on mount, on back and forward) are no new query for renderers.
+const listParams = computed<Record<string, unknown>>((previous) => {
+  const params = {
+    search: context.state.search.value || undefined,
+    filters: Object.fromEntries(
+      context.state.filters.value.map((filter) => [filter.id, filter.value])
+    ),
+    advancedFilters: context.state.advancedFilters.value,
+    sorting: context.state.sorting.value,
+  };
+  return previous && tableQueryKey(previous) === tableQueryKey(params)
+    ? previous
+    : params;
+});
 // Without a list action, renderers read every row matching the query.
 const localRows = ref<TableRecord[]>([]);
-const revision = ref(0);
 watch(
   [() => context.data.rows.value, listParams, listAction],
   async () => {
-    revision.value += 1;
     if (!listAction.value) {
       localRows.value = await context.loadAllMatchingRows();
     }
   },
   { immediate: true }
+);
+// Renderers load again for a new query or list, and for new rows of the query
+// they show (a mutation, a form submit, another page). The first rows of a
+// query are not new: renderers load a new query themselves, and they mount
+// while the table's first page loads (React mounts them with it).
+const revision = ref(1);
+let rowsQuery = context.data.isLoading.value ? undefined : listParams.value;
+watch([listParams, listAction], () => {
+  revision.value += 1;
+});
+watch(
+  () => context.data.rows.value,
+  () => {
+    if (rowsQuery === listParams.value) {
+      revision.value += 1;
+    }
+    rowsQuery = listParams.value;
+  }
 );
 const canEditRow = (row: TableRecord): boolean =>
   Boolean(context.actions.value?.update) &&

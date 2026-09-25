@@ -33,6 +33,17 @@ const requests = (page: Page) =>
         }
       ).__assetRequests ?? []
   );
+/** Each request as "page", or its scope and the folder it lists, sorted. */
+const requestNames = async (page: Page, from = 0) =>
+  (await requests(page))
+    .slice(from)
+    .map(({ parentId, scope }) => {
+      if (!scope) {
+        return "page";
+      }
+      return parentId === undefined ? scope : `${scope}:${parentId ?? "root"}`;
+    })
+    .sort();
 
 async function open(page: Page, url = ASSETS) {
   await page.goto(url);
@@ -106,6 +117,27 @@ test("lazy loads folders with the children scope and expands or collapses them",
   await row(page, "Photos").getByRole("button", { name: "Collapse" }).click();
   await expect(row(page, "Office.jpg")).toHaveCount(0);
   await expect(row(page, "Photos")).toHaveAttribute("aria-expanded", "false");
+});
+
+test("lists the root and each folder it opens once at load, and the matches once for a search", async ({
+  page,
+}) => {
+  await open(page);
+  await expect(row(page, "Office.jpg")).toBeVisible();
+  // A second mount of the tree or a new revision would load it again by now.
+  await page.waitForTimeout(300);
+  expect(await requestNames(page)).toEqual([
+    "children:f-brand",
+    "children:f-campaigns",
+    "children:f-photos",
+    "children:root",
+    "page",
+  ]);
+  const loaded = (await requests(page)).length;
+  await page.getByPlaceholder(SEARCH).fill("banner");
+  await expect(row(page, "Banner 10.jpg")).toBeVisible();
+  await page.waitForTimeout(300);
+  expect(await requestNames(page, loaded)).toEqual(["page", "tree-matches"]);
 });
 
 test("expand all opens every folder with the subtree scope; collapse all keeps the root rows", async ({

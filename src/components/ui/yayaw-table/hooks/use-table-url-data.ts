@@ -202,6 +202,64 @@ export function resolveInitialTableQueryData<TData>({
 }
 
 /**
+ * The URL's filters in the list's shape: the column filters (a `global`
+ * entry included), their operators (`contains`, `startsWith`…) and the
+ * active advanced filters. Pure, so the page query starts on the first render.
+ */
+function resolveListFilters(
+  filtersParam: unknown,
+  advancedFiltersParam: unknown
+) {
+  // Ensure filtersParam is always an array
+  const filters = Array.isArray(filtersParam) ? filtersParam : [];
+  // Ensure advancedFiltersParam is always an array
+  const advancedFilters = Array.isArray(advancedFiltersParam)
+    ? advancedFiltersParam
+    : [];
+  if (filters.length === 0 && advancedFilters.length === 0) {
+    return { complexFilters: [], serverFilters: {}, advancedFilters: [] };
+  }
+
+  // Extract global filter if present
+  const globalFilterEntry = filters.find(
+    (f: unknown): f is { id: string; value: unknown } =>
+      typeof f === "object" &&
+      f !== null &&
+      "id" in f &&
+      (f as { id: string }).id === "global"
+  );
+  const globalFilter =
+    globalFilterEntry &&
+    typeof globalFilterEntry === "object" &&
+    "value" in globalFilterEntry
+      ? (globalFilterEntry.value as string)
+      : "";
+
+  // Process column filters for server-side compatibility
+  const result = processServerFilters(
+    (filters as Array<{ id: string; value: unknown }>)
+      .filter((filter) => filter.id !== "global") // Remove global filter from regular filters
+      .map((filter) => ({
+        id: filter.id,
+        value: filter.value,
+      }))
+  );
+
+  // Add global filter if present
+  if (globalFilter) {
+    result.serverFilters.global = globalFilter;
+  }
+
+  // Add advanced filters to the result
+  return {
+    ...result,
+    advancedFilters: advancedFilters.filter(
+      (filter: { isActive: boolean }) => filter.isActive
+    ), // Only include active filters
+  };
+}
+
+/**
  * Hook for fetching and managing table data with URL state
  * @param options - Configuration options for data fetching
  * @returns Object with data and loading state
@@ -246,75 +304,13 @@ export function useTableUrlData<TData>({
   // Get query client
   const queryClient = useQueryClient();
 
-  // Process filters for server-side compatibility
-  const processedFiltersQuery = useQuery({
-    queryFn: () => {
-      // Ensure filtersParam is always an array
-      const filters = Array.isArray(filtersParam) ? filtersParam : [];
-      // Ensure advancedFiltersParam is always an array
-      const advancedFilters = Array.isArray(advancedFiltersParam)
-        ? advancedFiltersParam
-        : [];
-      if (filters.length === 0 && advancedFilters.length === 0) {
-        return { complexFilters: [], serverFilters: {}, advancedFilters: [] };
-      }
-
-      // Extract global filter if present
-      const globalFilterEntry = filters.find(
-        (f: unknown): f is { id: string; value: unknown } =>
-          typeof f === "object" &&
-          f !== null &&
-          "id" in f &&
-          (f as { id: string }).id === "global"
-      );
-      const globalFilter =
-        globalFilterEntry &&
-        typeof globalFilterEntry === "object" &&
-        "value" in globalFilterEntry
-          ? (globalFilterEntry.value as string)
-          : "";
-
-      // Process column filters for server-side compatibility
-      const result = processServerFilters(
-        (filters as Array<{ id: string; value: unknown }>)
-          .filter((filter) => filter.id !== "global") // Remove global filter from regular filters
-          .map((filter) => ({
-            id: filter.id,
-            value: filter.value,
-          }))
-      );
-
-      // Add global filter if present
-      if (globalFilter) {
-        result.serverFilters.global = globalFilter;
-      }
-
-      // Add advanced filters to the result
-      const finalResult = {
-        ...result,
-        advancedFilters: advancedFilters.filter(
-          (filter: { isActive: boolean }) => filter.isActive
-        ), // Only include active filters
-      };
-      return finalResult;
-    },
-    // Include advancedFiltersParam in query key
-    queryKey: [
-      "tableProcessedFilters",
-      tableId,
-      filtersParam,
-      advancedFiltersParam,
-    ],
-    staleTime: 5000, // 5 seconds
-  });
-
-  // Extract complex filters, server filters, and advanced filters from the query result
-  const { complexFilters, serverFilters, advancedFilters } =
-    processedFiltersQuery.data || {
-      complexFilters: [],
-      serverFilters: {},
-      advancedFilters: [],
-    };
+  // Filters in the list's shape, derived in render: the page query starts
+  // with the first render, so the table shows its loading state instead of
+  // an empty table that mounts again once the rows arrive.
+  const { complexFilters, serverFilters, advancedFilters } = resolveListFilters(
+    filtersParam,
+    advancedFiltersParam
+  );
 
   // The host's rows show on the server and the first render when the table
   // starts in its default state, the configured sort included.
@@ -334,14 +330,6 @@ export function useTableUrlData<TData>({
       : "unused";
   const usesInitialRows = initialRowsUse !== "unused";
 
-  // Modify the enabled condition to also run when processedFiltersQuery is pending but we have initial data
-  // This prevents the infinite loading state when processedFiltersQuery is stuck in pending
-  const shouldEnableQuery =
-    Boolean(tableId) &&
-    enabled &&
-    (processedFiltersQuery.status === "success" ||
-      (processedFiltersQuery.status === "pending" && usesInitialRows));
-
   const initialQueryData = usesInitialRows
     ? resolveInitialTableQueryData({
         initialData,
@@ -359,8 +347,7 @@ export function useTableUrlData<TData>({
     refetch,
     status,
   } = useQuery({
-    // Enable the query when processedFiltersQuery is complete or when we have initial data
-    enabled: shouldEnableQuery,
+    enabled: Boolean(tableId) && enabled,
     initialData: initialQueryData,
     // Rows shown until the starting sort loads are stale at once: the first
     // page loads again on mount in that sort, as in Vue.
