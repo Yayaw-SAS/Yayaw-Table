@@ -75,6 +75,23 @@ const serialize = (value: unknown): string => JSON.stringify(value);
 const serializeEncoded = (value: unknown): string =>
   encodeURIComponent(JSON.stringify(value));
 
+/**
+ * Sets `value`, in the form `read` gives it, unless the ref already holds it:
+ * equal as JSON once read the same way, as React compares its URL state. Vue
+ * treats an equal new object as a change, and its deep watchers would load
+ * the rows and every display mode again.
+ */
+const assignChanged = <T>(
+  target: Ref<T>,
+  value: T,
+  read: (value: T) => T = (same) => same
+): void => {
+  const next = read(value);
+  if (serialize(read(target.value)) !== serialize(next)) {
+    target.value = next;
+  }
+};
+
 export interface TableStateRefs {
   search: Ref<string>;
   filters: Ref<ColumnFiltersState>;
@@ -162,28 +179,17 @@ export const useTableState = <TData extends TableRecord>({
   const grouping = ref<string[]>([]);
   const pinning = ref<ColumnPinningState>(emptyPinning());
   const columnIds = config.columns.definitions.map((column) => column.id);
+  const lockVisibility = (value: ColumnVisibilityState) =>
+    lockedColumnVisibility(value, config.columns.mandatory);
+  const lockOrder = (value: string[]) => lockedColumnOrder(value, columnIds);
+  const lockPinning = (value: ColumnPinningState) =>
+    lockedColumnPinning(value, columnIds, config.table.enableColumnPinning);
   watch(
     [visibility, order, pinning],
     () => {
-      const nextVisibility = lockedColumnVisibility(
-        visibility.value,
-        config.columns.mandatory
-      );
-      const nextOrder = lockedColumnOrder(order.value, columnIds);
-      const nextPinning = lockedColumnPinning(
-        pinning.value,
-        columnIds,
-        config.table.enableColumnPinning
-      );
-      if (serialize(visibility.value) !== serialize(nextVisibility)) {
-        visibility.value = nextVisibility;
-      }
-      if (serialize(order.value) !== serialize(nextOrder)) {
-        order.value = nextOrder;
-      }
-      if (serialize(pinning.value) !== serialize(nextPinning)) {
-        pinning.value = nextPinning;
-      }
+      assignChanged(visibility, lockVisibility(visibility.value));
+      assignChanged(order, lockOrder(order.value));
+      assignChanged(pinning, lockPinning(pinning.value));
     },
     { deep: true, immediate: true, flush: "sync" }
   );
@@ -325,22 +331,62 @@ export const useTableState = <TData extends TableRecord>({
     params: URLSearchParams,
     defaults: TableViewConfig
   ): void => {
-    gantt.value = normalizeGanttView(
-      parseJson(params.get(`${urlPrefix}-gantt`), defaults.gantt ?? {})
+    assignChanged(
+      gantt,
+      parseJson(params.get(`${urlPrefix}-gantt`), defaults.gantt ?? {}),
+      normalizeGanttView
     );
-    modeConfigs.value = Object.fromEntries(
-      GENERIC_MODE_CONFIG_KEYS.map((key) => [
-        key,
-        parseJson(
-          params.get(`${urlPrefix}-${key}`),
-          (defaults[key] ?? {}) as Record<string, unknown>
-        ),
-      ])
+    assignChanged(
+      modeConfigs,
+      Object.fromEntries(
+        GENERIC_MODE_CONFIG_KEYS.map((key) => [
+          key,
+          parseJson(
+            params.get(`${urlPrefix}-${key}`),
+            (defaults[key] ?? {}) as Record<string, unknown>
+          ),
+        ])
+      )
     );
-    gallery.value = parseJson(
-      params.get(`${urlPrefix}-gallery`),
-      defaults.gallery ?? {}
+    assignChanged(
+      gallery,
+      parseJson(params.get(`${urlPrefix}-gallery`), defaults.gallery ?? {})
     );
+  };
+
+  /** Kanban settings; the legacy `kanbanGroupBy` key names their lane. */
+  const readKanban = (
+    params: URLSearchParams,
+    defaults: TableViewConfig
+  ): TableKanbanViewConfig => {
+    const value = parseJson<TableKanbanViewConfig>(
+      params.get(`${urlPrefix}-kanban`),
+      defaults.kanban ?? {}
+    );
+    return value.groupBy
+      ? value
+      : {
+          ...value,
+          groupBy:
+            params.get(`${urlPrefix}-kanbanGroupBy`) ??
+            config.table.kanban?.groupBy,
+        };
+  };
+
+  /** Grouping; a Kanban link without one groups the rows by its lane. */
+  const readGrouping = (
+    params: URLSearchParams,
+    mode: TableDisplayMode,
+    lane: string | undefined
+  ): string[] => {
+    const kanbanLink =
+      mode === "kanban" &&
+      !params.has(`${urlPrefix}-grouping`) &&
+      (params.has(`${urlPrefix}-kanban`) ||
+        params.has(`${urlPrefix}-kanbanGroupBy`));
+    return kanbanLink && lane
+      ? [lane]
+      : parseJson<string[]>(params.get(`${urlPrefix}-grouping`), []);
   };
 
   const fromUrl = (): void => {
@@ -350,38 +396,61 @@ export const useTableState = <TData extends TableRecord>({
     }
     const params = new URLSearchParams(window.location.search);
     const defaults = resolveView({});
-    search.value = params.get(`${urlPrefix}-q`) ?? "";
-    filters.value = enabledFilters(
-      parseJson(params.get(`${urlPrefix}-filters`), [])
+    const arriving = hydrating;
+    const mode = enabledDisplayMode(
+      (params.get(`${urlPrefix}-display`) as TableDisplayMode | null) ??
+        undefined
     );
-    advancedFilters.value = enabledAdvancedFilters(
+    const kanbanView = readKanban(params, defaults);
+    // Only what the URL changed: back or forward to the same state, or to
+    // another column order, keeps the rows and the display modes loaded.
+    assignChanged(search, params.get(`${urlPrefix}-q`) ?? "");
+    assignChanged(
+      filters,
+      parseJson(params.get(`${urlPrefix}-filters`), []),
+      enabledFilters
+    );
+    assignChanged(
+      advancedFilters,
       parseJson(
         params.get(`${urlPrefix}-advancedFilters`),
         emptyAdvancedFilters()
-      )
+      ),
+      enabledAdvancedFilters
     );
-    sorting.value = parseJson(
-      params.get(`${urlPrefix}-sort`),
-      config.columns.sort ?? []
+    assignChanged(
+      sorting,
+      parseJson(params.get(`${urlPrefix}-sort`), config.columns.sort ?? [])
     );
-    visibility.value = parseJson(
-      params.get(`${urlPrefix}-visibility`),
-      defaults.columnVisibility ?? {}
+    assignChanged(
+      visibility,
+      parseJson(
+        params.get(`${urlPrefix}-visibility`),
+        defaults.columnVisibility ?? {}
+      ),
+      lockVisibility
     );
-    order.value = parseJson(
-      params.get(`${urlPrefix}-order`),
-      config.columns.order
+    assignChanged(
+      order,
+      parseJson(params.get(`${urlPrefix}-order`), config.columns.order),
+      lockOrder
     );
-    sizing.value = enabledSizing(
-      parseJson(params.get(`${urlPrefix}-sizing`), {})
+    assignChanged(
+      sizing,
+      parseJson(params.get(`${urlPrefix}-sizing`), {}),
+      enabledSizing
     );
-    grouping.value = enabledGrouping(
-      parseJson(params.get(`${urlPrefix}-grouping`), [])
+    assignChanged(
+      grouping,
+      readGrouping(params, mode, kanbanView.groupBy),
+      enabledGrouping
     );
-    pinning.value = enabledPinning(
-      parseJson(params.get(`${urlPrefix}-pinning`), emptyPinning())
+    assignChanged(
+      pinning,
+      parseJson(params.get(`${urlPrefix}-pinning`), emptyPinning()),
+      (value) => lockPinning(enabledPinning(value))
     );
-    pagination.value = {
+    assignChanged(pagination, {
       pageIndex: Math.max(
         0,
         positiveInteger(params.get(`${urlPrefix}-page`), 0)
@@ -390,36 +459,19 @@ export const useTableState = <TData extends TableRecord>({
         params.get(`${urlPrefix}-pageSize`),
         config.table.defaultPageSize
       ),
-    };
-    const requestedMode = params.get(
-      `${urlPrefix}-display`
-    ) as TableDisplayMode | null;
-    displayMode.value = enabledDisplayMode(requestedMode ?? undefined);
-    kanban.value = parseJson(
-      params.get(`${urlPrefix}-kanban`),
-      defaults.kanban ?? {}
-    );
-    if (!kanban.value.groupBy) {
-      kanban.value = {
-        ...kanban.value,
-        groupBy:
-          params.get(`${urlPrefix}-kanbanGroupBy`) ??
-          config.table.kanban?.groupBy,
-      };
-    }
-    if (
-      displayMode.value === "kanban" &&
-      !params.has(`${urlPrefix}-grouping`) &&
-      (params.has(`${urlPrefix}-kanban`) ||
-        params.has(`${urlPrefix}-kanbanGroupBy`)) &&
-      kanban.value.groupBy
-    ) {
-      grouping.value = enabledGrouping([kanban.value.groupBy]);
-    }
+    });
+    assignChanged(displayMode, mode);
+    assignChanged(kanban, kanbanView);
     readModeSettings(params, defaults);
-    activeViewId.value =
-      params.get(viewKey) ?? (hydrating ? initialViewId : undefined);
+    assignChanged(
+      activeViewId,
+      params.get(viewKey) ?? (arriving ? initialViewId : undefined)
+    );
     hydrating = false;
+    if (arriving) {
+      // The table writes its state on arrival, even when the link set none.
+      writeUrl();
+    }
   };
 
   const serializedGrouping = computed(() =>

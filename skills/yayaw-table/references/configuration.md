@@ -224,6 +224,9 @@ view is `view` (React also writes `historyIndex`); the file tree adds
   resets. A page past the last one moves to the last page once `list`
   answers, so `meta.pageCount` or `meta.totalCount` must describe the whole
   result.
+- Back and forward read the URL again and set only what changed: the same
+  query, or another column order, loads neither the rows nor the display
+  modes (File tree, Feed, Calendar, Chart, Map) again.
 - Nested tables (the `tablePicker` form field) keep their state out of the
   URL unless `syncUrl: true`.
 - Turn URL sync off (`table.syncUrl: false`; Vue also has a `syncUrl` prop)

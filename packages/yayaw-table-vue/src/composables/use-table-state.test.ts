@@ -39,6 +39,31 @@ const openLink = (keys: Record<string, string>): TableStateRefs => {
 };
 const urlKey = (key: string): string | null =>
   new URL(window.location.href).searchParams.get(key);
+/** The values the table reads from its URL keys, by name. */
+const urlValues = (state: TableStateRefs) => ({
+  search: state.search.value,
+  filters: state.filters.value,
+  advancedFilters: state.advancedFilters.value,
+  sorting: state.sorting.value,
+  visibility: state.visibility.value,
+  order: state.order.value,
+  sizing: state.sizing.value,
+  grouping: state.grouping.value,
+  pinning: state.pinning.value,
+  pagination: state.pagination.value,
+  displayMode: state.displayMode.value,
+  kanban: state.kanban.value,
+  gantt: state.gantt.value,
+  gallery: state.gallery.value,
+  modeConfigs: state.modeConfigs.value,
+  activeViewId: state.activeViewId.value,
+});
+type UrlValues = ReturnType<typeof urlValues>;
+/** Names of the values set again since `before`: new objects, even if equal. */
+const setAgain = (before: UrlValues, after: UrlValues): string[] =>
+  Object.keys(before).filter(
+    (key) => after[key as keyof UrlValues] !== before[key as keyof UrlValues]
+  );
 
 it("keeps the page a link opens on, with the link's search and sort", async () => {
   vi.useFakeTimers();
@@ -168,6 +193,53 @@ it("restores the page of the URL that back or forward returns to", async () => {
   await nextTick();
   expect(state.search.value).toBe("echo");
   expect(state.pagination.value.pageIndex).toBe(2);
+});
+
+it("sets only what back or forward changed, as React does", async () => {
+  vi.useFakeTimers();
+  onTestFinished(() => {
+    vi.useRealTimers();
+  });
+  const state = openLink({
+    "paged-page": "1",
+    "paged-q": "beta",
+    "paged-sort": JSON.stringify([{ id: "name", desc: true }]),
+    "paged-filters": JSON.stringify([{ id: "status", value: ["Open"] }]),
+    view: "mine",
+  });
+  await nextTick();
+  // "Any rule" as the filter menu writes it: the URL reads its rules back
+  // with the join added to each one.
+  state.advancedFilters.value = {
+    filters: [
+      {
+        id: "rule",
+        columnId: "status",
+        type: "text",
+        operator: "contains",
+        values: ["Op"],
+        isActive: true,
+      },
+    ],
+    joinOperator: "or",
+  };
+  await vi.runOnlyPendingTimersAsync();
+  const before = urlValues(state);
+
+  // Back or forward to the URL the table wrote: nothing is set again, so
+  // neither the rows nor the display modes load again.
+  window.dispatchEvent(new PopStateEvent("popstate"));
+  await nextTick();
+  expect(setAgain(before, urlValues(state))).toEqual([]);
+
+  // Another column order changes the order alone.
+  const url = new URL(window.location.href);
+  url.searchParams.set("paged-order", JSON.stringify(["status", "name"]));
+  window.history.replaceState({}, "", url);
+  window.dispatchEvent(new PopStateEvent("popstate"));
+  await nextTick();
+  expect(setAgain(before, urlValues(state))).toEqual(["order"]);
+  expect(state.order.value).toEqual(["select", "status", "name", "actions"]);
 });
 
 it("restores partial views from catalogue defaults and isolates saved configuration from edits", () => {
