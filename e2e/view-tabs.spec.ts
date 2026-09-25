@@ -14,6 +14,14 @@ const MANUAL = /Manual/;
 const WEEKLY = /Weekly/;
 const THURSDAY = /Thursday/;
 const NEXT_THURSDAY_RUN = /^Next: Thu.*, 09:30 \(Europe\/Paris\)$/;
+const MOVED = /moved to position/;
+const GUIDED_REQUEST = /^Guided request/;
+const FIRST_VIEWS = new Set([
+  "Default view",
+  "Request",
+  "Guided request",
+  "Revenue by category",
+]);
 
 const displayParam = (page: Page) =>
   new URL(page.url()).searchParams.get(DISPLAY_PARAM);
@@ -38,14 +46,14 @@ test("saved views appear as tabs with their layout, and + creates one in another
   page,
 }) => {
   // The default view is a tab from the start, next to the example's saved views;
-  // past three (`viewTabs.maxVisible`) they move under "More".
+  // past three (`viewTabs.maxVisible`) they move under "…" (More views).
   await expect(page.getByRole("tab")).toHaveText([
     "Default view",
     "Request",
     "Guided request",
     "Revenue by category",
   ]);
-  await page.getByRole("button", { name: "More", exact: true }).click();
+  await page.getByRole("button", { name: "More views", exact: true }).click();
   await expect(page.getByRole("menuitem")).toHaveText([
     "Projects over time",
     "Revenus et marge",
@@ -82,7 +90,7 @@ test("saved views appear as tabs with their layout, and + creates one in another
 
   await tabs.getByRole("tab", { name: "Default view" }).click();
   await expect.poll(() => displayParam(page)).toBeNull();
-  await page.getByRole("button", { name: "More", exact: true }).click();
+  await page.getByRole("button", { name: "More views", exact: true }).click();
   await page.getByRole("menuitem", { name: "Deadlines" }).click();
   await expect.poll(() => displayParam(page)).toBe("calendar");
 
@@ -91,6 +99,72 @@ test("saved views appear as tabs with their layout, and + creates one in another
   await expect(
     page.getByRole("dialog", { name: "View settings" })
   ).toBeVisible();
+});
+
+test("the views past the tabs are under an icon-only “…” named More views", async ({
+  page,
+}) => {
+  const more = page.getByRole("button", { name: "More views", exact: true });
+  // No text and no chevron: the chevron next to it opens the view menu.
+  await expect(more).toHaveText("");
+  await expect(more.locator("svg")).toHaveCount(1);
+  await more.hover();
+  await expect(page.locator('[data-slot="tooltip-content"]')).toContainText(
+    "More views"
+  );
+  await more.click();
+  await expect(page.getByRole("menuitem")).toHaveCount(6);
+});
+
+test("a view moves right from the view menu and keeps its place after a reload", async ({
+  page,
+}) => {
+  const tabs = page.getByRole("tablist", { name: "Views" });
+  await tabs.getByRole("tab", { name: "Request", exact: true }).click();
+  await page.getByRole("button", { name: "View actions" }).click();
+  const moveLeft = page.getByRole("button", { name: "Move left" });
+  const moveRight = page.getByRole("button", { name: "Move right" });
+  // The first saved view cannot move left: the action stays, inactive.
+  await expect(moveLeft).toHaveAttribute("aria-disabled", "true");
+
+  await moveRight.click();
+  await expect(tabs.getByRole("tab")).toHaveText([
+    "Default view",
+    "Guided request",
+    "Request",
+    "Revenue by category",
+  ]);
+  const status = page.getByRole("status").filter({ hasText: MOVED });
+  await expect(status).toHaveText("View “Request” moved to position 3 of 10");
+  // Keyboard: the focus stays on the action, which moves the view again.
+  await expect(moveRight).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(tabs.getByRole("tab")).toHaveText([
+    "Default view",
+    "Guided request",
+    "Revenue by category",
+    "Request",
+  ]);
+  await expect(status).toHaveText("View “Request” moved to position 4 of 10");
+  await expect(moveLeft).not.toHaveAttribute("aria-disabled", "true");
+
+  // The demo keeps the order in localStorage.
+  await page.reload();
+  await expect(tabs.getByRole("tab")).toHaveText([
+    "Default view",
+    "Guided request",
+    "Revenue by category",
+    "Request",
+  ]);
+  await page.getByRole("button", { name: "More views", exact: true }).click();
+  await expect(page.getByRole("menuitem")).toHaveText([
+    "Projects over time",
+    "Revenus et marge",
+    "Pipeline",
+    "Livraisons cumulées",
+    "Updates",
+    "Sites",
+  ]);
 });
 
 test("an edited view shows as modified on its tab", async ({ page }) => {
@@ -140,6 +214,40 @@ test("on phones, views and settings are two separate menus and search opens on d
   await expect
     .poll(() => new URL(page.url()).searchParams.get("views-q"))
     .toBe("Bravo");
+});
+
+test("on phones, the view menu lists the views in the user's order and moves them up and down", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 800 });
+  await page.goto(EXAMPLE);
+  const trigger = page.getByRole("button", { name: CURRENT_VIEW_TRIGGER });
+  const menu = page.getByRole("dialog", { name: "Views" });
+  const listed = async () =>
+    (await menu.getByRole("button").allInnerTexts())
+      .map((text) => text.trim())
+      .filter((text) => FIRST_VIEWS.has(text));
+  await trigger.click();
+  await menu.getByRole("button", { name: GUIDED_REQUEST }).click();
+  await trigger.click();
+  // The list is vertical: up and down instead of left and right.
+  await expect(menu.getByRole("button", { name: "Move left" })).toHaveCount(0);
+  const moveUp = menu.getByRole("button", { name: "Move up" });
+  // A touch target, like the rest of the phone menu.
+  await expect(moveUp).toHaveCSS("min-height", "44px");
+  await moveUp.click();
+  await expect
+    .poll(listed)
+    .toEqual([
+      "Default view",
+      "Guided request",
+      "Request",
+      "Revenue by category",
+    ]);
+  await expect(moveUp).toHaveAttribute("aria-disabled", "true");
+  await expect(page.getByRole("status").filter({ hasText: MOVED })).toHaveText(
+    "View “Guided request” moved to position 2 of 10"
+  );
 });
 
 test("custom destinations receive the view's query from the Data section", async ({

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import TableTooltip from "./TableTooltip.vue";
-import { Check, ChevronDown, LayoutList, CopyPlus, ListRestart, Save, Star, Trash2, Users } from "lucide-vue-next";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, ChevronDown, LayoutList, CopyPlus, ListRestart, Save, Star, Trash2, Users } from "lucide-vue-next";
 import ToolbarMenu from "./ToolbarMenu.vue";
 import { areViewSettingsEqual, availableDisplayModes } from "../../view-menu";
 import { resolveViewTabs } from "../../view-tabs";
@@ -13,7 +13,7 @@ import FormDialog from "../forms/FormDialog.vue";
 
 const props = defineProps<{ initialViews: TableView[]; enabled?: boolean; compact?: boolean }>();
 const {
-  context, views, active, dirty, editable, deletable, busy, loading, loadError, error,
+  context, views, orderedViews, moves, move, moveAnnouncement, active, dirty, editable, deletable, busy, loading, loadError, error,
   dialogError, dialogOpen, name, shared, newViewMode, label, select, load, openSave, closeSave, save, update, remove,
   favorite, favoriteViewId, toggleFavorite,
 } = useSavedViews(() => props.initialViews, () => props.enabled !== false);
@@ -36,8 +36,18 @@ const VIEW_FILTER_THRESHOLD = 7;
 const viewFilter = ref("");
 const listedViews = computed(() => {
   const needle = viewFilter.value.trim().toLocaleLowerCase();
-  return needle ? views.value.filter((view) => view.name.toLocaleLowerCase().includes(needle)) : views.value;
+  return needle ? orderedViews.value.filter((view) => view.name.toLocaleLowerCase().includes(needle)) : orderedViews.value;
 });
+// Left and right next to tabs; up and down where the menu lists the views (phones, tabs off).
+const moveActions = computed(() => showTabs.value
+  ? [
+      { direction: "previous" as const, icon: ArrowLeft, text: label("views.moveLeft", "moveViewLeft") },
+      { direction: "next" as const, icon: ArrowRight, text: label("views.moveRight", "moveViewRight") },
+    ]
+  : [
+      { direction: "previous" as const, icon: ArrowUp, text: label("views.moveUp", "moveViewUp") },
+      { direction: "next" as const, icon: ArrowDown, text: label("views.moveDown", "moveViewDown") },
+    ]);
 const defaultMode = computed(() => context.config.table.defaultDisplayMode ?? "table");
 const offeredModes = computed(() => availableDisplayModes(context.config.table.displayModes, {
   planning: Boolean(context.planning),
@@ -75,7 +85,7 @@ const focusName = (event: Event): void => {
     <ViewTabs v-if="showTabs && tabSettings" :active-id="context.state.activeViewId.value ?? null"
       :can-create="Boolean(context.config.table.allowViewSave)" :dirty="dirty" :disabled="busy" :max-visible="tabSettings.maxVisible"
       :default-tab="{ id: null, name: label('views.defaultView', 'defaultView'), displayMode: defaultMode }"
-      :views="views.map((view) => ({ id: view.id, name: view.name, displayMode: view.config.displayMode ?? defaultMode }))"
+      :views="orderedViews.map((view) => ({ id: view.id, name: view.name, displayMode: view.config.displayMode ?? defaultMode }))"
       :labels="{ tabs: label('views.tabs', 'viewTabs'), more: label('views.more', 'moreViews'), newView: label('views.newView', 'newView'), modified: label('views.modified', 'viewModified') }"
       @select="selectTab" @create="openDialog" />
     <ToolbarMenu :open="menuOpen" :compact="compact" :title="showTabs ? currentLabel : label('views.tabs', 'viewTabs')"
@@ -121,6 +131,13 @@ const focusName = (event: Event): void => {
           <button v-if="viewEnabled && (active || !context.state.activeViewId.value)" type="button" class="yayaw-view-menu-item" :disabled="busy || loading" :aria-label="favoriteLabel" :aria-pressed="favorite" @click="toggleFavorite">
             <Star :size="16" aria-hidden="true" />{{ favoriteLabel }}
           </button>
+          <template v-if="viewEnabled && moves">
+            <!-- At an end the action stays focusable, so the focus stays on it after a move. -->
+            <button v-for="action in moveActions" :key="action.direction" type="button" class="yayaw-view-menu-item"
+              :aria-label="action.text" :aria-disabled="busy || !moves[action.direction]" @click="!busy && moves[action.direction] && move(action.direction)">
+              <component :is="action.icon" :size="16" aria-hidden="true" />{{ action.text }}
+            </button>
+          </template>
           <TableTooltip :label="label(active ? 'views.resetSavedDescription' : 'views.resetDefaultDescription', 'reset')">
             <button type="button" class="yayaw-view-menu-item" :aria-label="label('views.reset', 'reset')" :aria-disabled="resetDisabled" @click="resetView">
               <ListRestart :size="16" aria-hidden="true" /><span>{{ label('views.reset', 'reset') }}<small v-if="compact">{{ label(active ? 'views.resetSavedDescription' : 'views.resetDefaultDescription', 'reset') }}</small></span>
@@ -135,6 +152,7 @@ const focusName = (event: Event): void => {
       <button type="button" class="yayaw-button yayaw-button-ghost" :disabled="loading" @click="load">{{ label('views.retry', 'retry') }}</button>
     </div>
     <p v-if="error" class="yayaw-view-error" role="alert">{{ error }}</p>
+    <output class="yayaw-sr-only" aria-live="polite">{{ moveAnnouncement }}</output>
     <FormDialog v-if="dialogOpen" :open="dialogOpen" presentation="modal" width="min(512px, 94vw)"
       :title="label('views.dialog.save.title', 'saveView')" :description="label('views.dialog.save.description', 'saveViewDescription')"
       :close-label="label('views.close', 'close')" :busy="busy" :return-focus="returnFocus"

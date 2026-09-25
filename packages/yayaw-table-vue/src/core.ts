@@ -30,6 +30,12 @@ import {
   formatDateValue as formatSharedDate,
   parseDateValue,
 } from "./value-format";
+import {
+  readStoredViewOrder,
+  storeViewOrder,
+  type ViewOrderContext,
+  type ViewOrderStorage,
+} from "./view-order";
 
 const CSV_ESCAPE_PATTERN = /[",\n\r]/;
 const VIEW_STORAGE_KEY_PATTERN = /^yayaw-table:(.+):views$/;
@@ -533,7 +539,39 @@ const storeLocalViews = (tableId: string, views: TableView[]): void => {
   }
 };
 
-export const createLocalTableViewActions = (): Required<TableViewActions> => ({
+/** localStorage when the browser allows it. */
+const browserStorage = (): ViewOrderStorage | undefined => {
+  try {
+    return typeof localStorage === "undefined" ? undefined : localStorage;
+  } catch {
+    return;
+  }
+};
+
+/**
+ * The user's order of views without `actions.views.setOrder`: kept in this
+ * browser, per table type and table id (like the favorite).
+ */
+export const readLocalTableViewOrder = (
+  context: ViewOrderContext
+): string[] | undefined => readStoredViewOrder(browserStorage(), context);
+
+/** Stores the order `readLocalTableViewOrder` reads; `false` when refused. */
+export const storeLocalTableViewOrder = (
+  context: ViewOrderContext,
+  viewIds: readonly string[]
+): boolean => storeViewOrder(browserStorage(), context, viewIds);
+
+/**
+ * Views and the favorite in localStorage. The user's order of views is not an
+ * action here: without the host's `setOrder`, the view manager keeps it with
+ * `readLocalTableViewOrder` and `storeLocalTableViewOrder`.
+ */
+export type LocalTableViewActions = Required<
+  Omit<TableViewActions, "setOrder">
+>;
+
+export const createLocalTableViewActions = (): LocalTableViewActions => ({
   getFavorite: (context) => ({
     success: true,
     data: {

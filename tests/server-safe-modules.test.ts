@@ -11,10 +11,12 @@ const ENTRIES = [
   "src/components/ui/yayaw-table-dashboard/dashboard-sources.ts",
   "src/components/ui/yayaw-table-dashboard/dashboard-editor-model.ts",
   "src/components/ui/yayaw-table/utils/view-config.ts",
+  "src/components/ui/yayaw-table/utils/view-order.ts",
   `${VUE}/dashboard/dashboard-schema.ts`,
   `${VUE}/dashboard/dashboard-sources.ts`,
   `${VUE}/dashboard/dashboard-editor-model.ts`,
   `${VUE}/view-config.ts`,
+  `${VUE}/view-order.ts`,
 ];
 const UI_PACKAGE =
   /^(?:react|react-dom|vue|next|reka-ui|jotai|nuqs|sonner|vue-sonner|lucide-react|lucide-vue-next)(?:\/|$)|^@(?:vue|base-ui|tanstack\/(?:react|vue)-[\w-]+)(?:\/|$)/;
@@ -152,8 +154,11 @@ for (const entry of ENTRIES) {
   it(`${entry} runs on a server: no React, Vue, CSS or client module in its imports`, () => {
     const { files, problems } = walk(entry);
     expect(problems).toEqual([]);
-    // The walk follows the table's own helpers (view settings reach every mode's normalizer).
-    expect(files.size).toBeGreaterThan(entry.includes("sources") ? 0 : 8);
+    // The walk follows the table's own helpers (view settings reach every
+    // mode's normalizer); the sources and the order of views stand alone.
+    const standalone =
+      entry.includes("sources") || entry.endsWith("view-order.ts");
+    expect(files.size).toBeGreaterThan(standalone ? 0 : 8);
   });
 }
 

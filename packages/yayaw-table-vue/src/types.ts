@@ -713,6 +713,32 @@ export interface TableViewActionResult<T = TableView> {
   success?: boolean;
 }
 
+/**
+ * What `list` answers, besides a bare array of views: the views and, when the
+ * host keeps the user's order (`setOrder`), that order.
+ */
+export interface TableViewListResult
+  extends TableViewActionResult<TableView[]> {
+  /**
+   * The current user's order of their views: the `viewIds` `setOrder` last
+   * received. The table applies it (system and default views first, views it
+   * does not name last). Without it, a host with `setOrder` lists the views in
+   * that order.
+   */
+  order?: string[];
+}
+
+/** Input of `setOrder`: the user's new order. */
+export interface SetTableViewOrderInput {
+  tableId: string;
+  tableType?: string;
+  /**
+   * Every view the user orders, first to last: the listed views except
+   * system views (`isSystem`) and the default view (`isDefault`).
+   */
+  viewIds: string[];
+}
+
 export interface TableViewActions {
   /** Read the current user's favorite independently of shared view records. */
   getFavorite?: (context: {
@@ -727,7 +753,15 @@ export interface TableViewActions {
   list?: (context: {
     tableId: string;
     tableType?: string;
-  }) => MaybePromise<TableViewActionResult<TableView[]> | TableView[]>;
+  }) => MaybePromise<TableViewListResult | TableView[]>;
+  /**
+   * Persist the current user's order of their views (per user, organization,
+   * table type and table id); `list` answers with it next time. Without it,
+   * the order stays in this browser's localStorage.
+   */
+  setOrder?: (
+    input: SetTableViewOrderInput
+  ) => MaybePromise<TableViewActionResult<{ viewIds: string[] }>>;
   create?: (input: CreateTableViewInput) => MaybePromise<TableViewActionResult>;
   update?: (
     id: string,
