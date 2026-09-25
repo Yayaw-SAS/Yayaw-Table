@@ -78,6 +78,8 @@ const openViewActions = async (page: Page) => {
 
 const displayParam = (page: Page) =>
   new URL(page.url()).searchParams.get(DISPLAY_PARAM);
+const urlParam = (page: Page, key: string) =>
+  new URL(page.url()).searchParams.get(key);
 
 test.beforeEach(async ({ page }) => {
   await page.goto(EXAMPLE);
@@ -121,6 +123,19 @@ test("a link naming only a saved view opens it with its settings", async ({
   // The view's settings apply, not only its tab: the Feed layout.
   await expect.poll(() => displayParam(page)).toBe("feed");
   await expectMode(page, FEED_MODE);
+});
+
+test("a link's page is kept on arrival, in the table and the URL", async ({
+  page,
+}) => {
+  // The six projects fit one page of ten: five per page gives a second one.
+  await page.goto(`${EXAMPLE}&views-page=1&views-pageSize=5`);
+  const rows = page.getByRole("row");
+  await expect(rows.filter({ hasText: "Foxtrot portal" })).toBeVisible();
+  await expect(rows.filter({ hasText: "Alpha launch" })).toHaveCount(0);
+  // Both editions write the column order on arrival; the page outlives it.
+  await expect.poll(() => urlParam(page, "views-order")).not.toBeNull();
+  expect(urlParam(page, "views-page")).toBe("1");
 });
 
 test("a saved view restores its display mode", async ({ page }) => {

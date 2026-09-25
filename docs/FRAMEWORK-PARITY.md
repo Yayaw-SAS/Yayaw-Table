@@ -46,7 +46,7 @@ List actions receive both naming conventions:
 | Advanced filters | Active `advancedFilters` array and `advancedFilterJoin` (`and`/`or`) |
 | Scope (optional) | `scope`, for example `{ kind: "dateRange", field, endField?, from, to }` |
 
-URL page indexes remain zero-based. Invalid page sizes fall back to defaults. Existing action handlers can keep reading their original names. Aggregation receives the filter join operator too. Both editions accept primitive aggregate results, shown in the column's format like the list fallback, and `{ raw, label }` values, whose label is shown as given.
+URL page indexes remain zero-based. Invalid page sizes fall back to defaults. Both editions open a link on the page it names (`<tableId>-page`) and keep the key in the URL: reading the link's search, filters and sort, on arrival or on back and forward, is not a new query (Vue `use-table-state.test.ts`, `e2e/views.spec.ts` in both editions). Known differences: Vue also returns to the first page when a search, a column or advanced filter, or a sort changes, and moves a page past the last one to the last page; React returns to the first page only from the filter bar, saved views and resets, and shows a page past the last one empty. Existing action handlers can keep reading their original names. Aggregation receives the filter join operator too. Both editions accept primitive aggregate results, shown in the column's format like the list fallback, and `{ raw, label }` values, whose label is shown as given.
 
 Advanced filter input accepts either an array or `{ filters, joinOperator }`. Inactive rules do not filter rows. An OR envelope retains its join when converted to an array. The local engines understand both select operator families: `is`/`isNot`/`isAnyOf`/`isNoneOf` and `equals`/`notEquals`/`in`/`notIn`, plus multi-select membership operators. Date rules compare whole calendar days and carry `YYYY-MM-DD` values (see [Date filter values](#date-filter-values)). Remote handlers remain responsible for applying the supplied filters and join operator.
 
@@ -281,7 +281,7 @@ The parity contract covers user-visible behavior and serializable catalogue/acti
 | Inline editing | Catalogue validation, debounce, cancellation, permissions, optimistic rollback | React inline-form suites; Vue inline-edit suites |
 | Export and refresh | All matching pages, current query/order, partial-result protection, mutation refresh/clamping | Shared paginated fixtures; both action suites |
 | Accessibility and i18n | Translated controls, menu/dialog focus, row activation, column/Kanban keyboard alternatives | Vue keyboard suites; React mounted interaction suites |
-| URL state | Compatible query keys when enabled; isolated in-memory state when disabled | React `url-sync-parity.test.tsx`; Vue state/catalogue-control suites |
+| URL state | Compatible query keys when enabled; a link's page kept on arrival and on back/forward; isolated in-memory state when disabled | React `url-sync-parity.test.tsx`; Vue `use-table-state.test.ts` and state/catalogue-control suites; Playwright `e2e/views.spec.ts` |
 | Distribution | TanStack Table 9.2.4 with matched explicit features, generated React and Vue registries, and the repository Vue example | Adapter compatibility tests, type checks, full tests, Vue builds, registry sync/pages build |
 
 ## Verification and distribution
