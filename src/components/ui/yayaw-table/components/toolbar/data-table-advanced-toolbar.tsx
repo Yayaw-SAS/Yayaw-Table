@@ -383,6 +383,11 @@ function createColumnOptions(
             })
           : `Filter by ${colDef.header || colDef.id}...`,
         options: (colDef as { options?: unknown }).options,
+        // Tags columns show their options' colors in filter menus.
+        tags: Boolean((colDef as { tags?: unknown }).tags),
+        coloredTags:
+          (colDef as { coloredTags?: boolean }).coloredTags ??
+          (table?.coloredTags as boolean | undefined),
         dateDisplayPreset: resolvedDateDisplayPreset,
         dateFormat: resolvedDateFormat,
         // Filter chips show values in the column's format.

@@ -912,9 +912,7 @@ export class FileTreeController {
     }
     if (this.mode === "unknown") {
       if (metaOf(result).scope !== "applied") {
-        // The host ignores the children scope: build the tree in memory.
-        this.mode = "client";
-        await this.loadClient(this.generation);
+        await this.switchToClient();
         return;
       }
       this.mode = "server";
@@ -926,6 +924,18 @@ export class FileTreeController {
       return;
     }
     this.afterChildrenLoaded(key);
+  }
+
+  /** The host ignores the children scope: build the tree in memory. */
+  private async switchToClient(): Promise<void> {
+    this.mode = "client";
+    this.refetch.clear();
+    await this.loadClient(this.generation);
+    // A reload asked while the children loaded (new page rows, say) has
+    // already settled: nothing else would show the tree built here.
+    if (!this.disposed) {
+      this.emit();
+    }
   }
 
   private absorbChildren(

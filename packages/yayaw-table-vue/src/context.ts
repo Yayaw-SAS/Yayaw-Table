@@ -2,6 +2,7 @@ import type { QueryClient } from "@tanstack/vue-query";
 import { type ComputedRef, type InjectionKey, inject, type Ref } from "vue";
 import type { TableDataResult } from "./composables/use-table-data";
 import type { TableStateRefs } from "./composables/use-table-state";
+import type { TagCatalogRuntime } from "./composables/use-tag-catalogs";
 import type { DisplayModeRenderers } from "./display-mode-renderer";
 import type {
   BulkAction,
@@ -92,6 +93,8 @@ export interface TableContextValue<TData extends TableRecord = TableRecord> {
   loadAllMatchingRows: () => Promise<TData[]>;
   status: Ref<{ type: "error" | "success"; message: string } | undefined>;
   queryClient: QueryClient;
+  /** The host's tag catalogs, for tables with tags columns and `actions.tags`. */
+  tags?: TagCatalogRuntime;
   locale: string;
   onBulkDelete?: (rows: TData[]) => MaybePromise<BulkActionHandlerResult>;
   onBulkEdit?: (

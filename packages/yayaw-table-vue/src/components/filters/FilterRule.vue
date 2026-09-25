@@ -22,6 +22,7 @@ import {
 } from "../../folder-directory";
 import FolderPicker from "../folders/FolderPicker.vue";
 import { type LocationLabelKey, locationLabel } from "../../location-model";
+import { tagSwatchColor } from "../../tag-colors";
 import type {
   AdvancedFilter,
   AdvancedFilterOperator,
@@ -107,6 +108,16 @@ const options = computed(() => {
   for (const value of values.value) add(value);
   return result;
 });
+/** A tags column's options show their color, as its cells do. */
+const tagSwatch = (option: SelectOption) => {
+  if (!column.value?.tags) return;
+  const color = tagSwatchColor(
+    String(option.value),
+    (column.value.coloredTags ?? context.config.table.coloredTags) !== false,
+    option.color
+  );
+  return color ? { "--yayaw-tag-color": color } : undefined;
+};
 const visibleOptions = computed(() =>
   options.value.filter((option) =>
     option.label.toLocaleLowerCase().includes(search.value.toLocaleLowerCase())
@@ -247,6 +258,7 @@ const revert = async (): Promise<void> => {
           <div class="yayaw-filter-option-list">
             <label v-for="option in visibleOptions" :key="`${typeof option.value}:${option.value}`" class="yayaw-checkbox-label">
               <input type="checkbox" :checked="values.some((value) => Object.is(value, option.value))" :disabled="option.disabled" @change="toggleOption(option, $event)" />
+              <span v-if="tagSwatch(option)" class="yayaw-tag-swatch" :style="tagSwatch(option)" aria-hidden="true" />
               {{ option.label }}
             </label>
             <span v-if="!visibleOptions.length">{{ t('noResults', 'No values available') }}</span>

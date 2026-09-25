@@ -14,6 +14,7 @@ const ENTRIES = [
   "src/components/ui/yayaw-table/utils/view-order.ts",
   "src/components/ui/yayaw-table/utils/facets-model.ts",
   "src/components/ui/yayaw-table/utils/folder-directory.ts",
+  "src/components/ui/yayaw-table/utils/tag-catalog.ts",
   `${VUE}/dashboard/dashboard-schema.ts`,
   `${VUE}/dashboard/dashboard-sources.ts`,
   `${VUE}/dashboard/dashboard-editor-model.ts`,
@@ -21,6 +22,7 @@ const ENTRIES = [
   `${VUE}/view-order.ts`,
   `${VUE}/facets-model.ts`,
   `${VUE}/folder-directory.ts`,
+  `${VUE}/tag-catalog.ts`,
 ];
 const UI_PACKAGE =
   /^(?:react|react-dom|vue|next|reka-ui|jotai|nuqs|sonner|vue-sonner|lucide-react|lucide-vue-next)(?:\/|$)|^@(?:vue|base-ui|tanstack\/(?:react|vue)-[\w-]+)(?:\/|$)/;
@@ -157,10 +159,15 @@ function walk(entry: string) {
 /**
  * Files the walk must pass to show it follows the table's own helpers: view
  * settings reach every mode's normalizer, facets and folders the chart and
- * file tree models; the sources and the order of views stand alone.
+ * file tree models; the sources, the order of views and the tag catalogs
+ * stand alone.
  */
 function minimumWalk(entry: string): number {
-  if (entry.includes("sources") || entry.endsWith("view-order.ts")) {
+  if (
+    entry.includes("sources") ||
+    entry.endsWith("view-order.ts") ||
+    entry.endsWith("tag-catalog.ts")
+  ) {
     return 0;
   }
   if (

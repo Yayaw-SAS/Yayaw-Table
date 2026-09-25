@@ -35,6 +35,7 @@ import {
   validateInlineEditValue,
 } from "../../hooks/use-inline-edit-runtime";
 import { useTranslations } from "../../providers/table-provider";
+import { useTagCatalog } from "../../providers/tag-catalog-provider";
 import type { Cell } from "../../tanstack";
 import {
   optionControlKey,
@@ -44,6 +45,7 @@ import {
 import { TableTooltip } from "../../utils/table-tooltip";
 import type { AnyFieldDefinition } from "../forms/types";
 import { LocationEditor } from "../location/location-editor";
+import { TagPicker } from "../tags/tag-picker";
 
 interface InlineEditableCellProps<TData extends Record<string, unknown>> {
   cell: Cell<TData, unknown>;
@@ -128,6 +130,8 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
   onCommit,
 }: InlineEditableCellProps<TData>) {
   const { t } = useTranslations();
+  const tagCatalog = useTagCatalog();
+  const tagColumn = tagCatalog?.column(cell.column.id);
 
   const resolvedOptions = useMemo(
     () => resolveInlineEditOptions(inlineConfig.options, formFieldDefinition),
@@ -575,7 +579,46 @@ function InlineEditableCellBase<TData extends Record<string, unknown>>({
     null
   );
 
+  const renderTagEditor = () => {
+    if (!(tagCatalog && tagColumn)) {
+      return null;
+    }
+    const columnId = tagColumn.columnId;
+    return (
+      <TagPicker
+        coloredTags={tagCatalog.coloredTags(columnId)}
+        label={
+          typeof cell.column.columnDef.header === "string"
+            ? cell.column.columnDef.header
+            : cell.column.id
+        }
+        labels={tagCatalog.labels}
+        loadError={tagCatalog.status(columnId) === "error"}
+        mode="cell"
+        multiple={tagColumn.multiple}
+        onCancel={cancelEditing}
+        onChange={(next) => updateDraftValue(next)}
+        onCommit={() => {
+          commitAndClose().catch(() => undefined);
+        }}
+        onCreate={
+          tagCatalog.canCreate(columnId)
+            ? (name) => tagCatalog.create(columnId, name)
+            : undefined
+        }
+        onRetry={() => {
+          tagCatalog.reload(columnId).catch(() => undefined);
+        }}
+        tags={tagCatalog.tags(columnId)}
+        value={editorValue}
+      />
+    );
+  };
+
   const renderEditor = () => {
+    if (tagColumn) {
+      return renderTagEditor();
+    }
     if (resolvedEditor === "location") {
       return renderLocationEditor();
     }

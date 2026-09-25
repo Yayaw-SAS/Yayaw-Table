@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import TableTooltip from "../toolbar/TableTooltip.vue";
 import type { Column } from "../../tanstack";
-import { ArrowDown, ArrowLeftToLine, ArrowRightToLine, ArrowUp, ArrowUpDown, EyeOff, Funnel, GripVertical, MoreHorizontal, PinOff } from "lucide-vue-next";
+import { ArrowDown, ArrowLeftToLine, ArrowRightToLine, ArrowUp, ArrowUpDown, EyeOff, Funnel, GripVertical, MoreHorizontal, PinOff, Tags } from "lucide-vue-next";
 import { DropdownMenuContent, DropdownMenuItem, DropdownMenuPortal, DropdownMenuRoot, DropdownMenuSeparator, DropdownMenuTrigger } from "reka-ui";
 import { computed, ref } from "vue";
 import { useTableContext } from "../../context";
 import type { TableRecord } from "../../types";
+import ManageTagsDialog from "../tags/ManageTagsDialog.vue";
 
 const props = defineProps<{ column: Column<TableRecord> }>();
 const context = useTableContext();
@@ -13,7 +14,10 @@ const context = useTableContext();
 const trigger = ref<HTMLButtonElement>();
 const label = computed(() => context.config.columns.definitions.find(column => column.id === props.column.id)?.header ?? props.column.id);
 const columnDndFeatureEnabled = computed(() => context.config.table.enableColumnDnd !== false);
-const available = computed(() => !["select", "actions"].includes(props.column.id) && (props.column.getCanSort() || props.column.getCanFilter() || props.column.getCanHide() || props.column.getCanPin() || columnDndFeatureEnabled.value));
+// "Manage tags" for tags columns the host lets users edit (`actions.tags`).
+const canManageTags = computed(() => context.tags?.canManage(props.column.id) === true);
+const managingTags = ref(false);
+const available = computed(() => !["select", "actions"].includes(props.column.id) && (props.column.getCanSort() || props.column.getCanFilter() || props.column.getCanHide() || props.column.getCanPin() || columnDndFeatureEnabled.value || canManageTags.value));
 const translate = (key: string): string => String(context.translations.value[key]);
 const toggleColumnDrag = (): void => {
   if (columnDndFeatureEnabled.value) {
@@ -56,6 +60,7 @@ const restoreMenuFocus = (event: Event): void => {
           <DropdownMenuItem v-if="column.getIsSorted()" class="yayaw-column-menu-item" @select="column.clearSorting()"><ArrowUpDown :size="16" aria-hidden="true" />{{ translate('clearSort') }}</DropdownMenuItem>
         </template>
         <DropdownMenuItem v-if="column.getCanFilter()" class="yayaw-column-menu-item" @select="openColumnFilter"><Funnel :size="16" aria-hidden="true" />{{ translate('filters.column') }}</DropdownMenuItem>
+        <DropdownMenuItem v-if="canManageTags && context.tags" class="yayaw-column-menu-item" @select="managingTags = true"><Tags :size="16" aria-hidden="true" />{{ context.tags.labels.value.manageTags }}</DropdownMenuItem>
         <DropdownMenuSeparator v-if="(column.getCanSort() || column.getCanFilter()) && (column.getCanPin() || column.getCanHide())" class="yayaw-column-menu-divider" />
         <template v-if="column.getCanPin()">
           <DropdownMenuItem class="yayaw-column-menu-item" :disabled="column.getIsPinned() === 'start'" @select="column.pin('start')"><ArrowLeftToLine :size="16" aria-hidden="true" />{{ translate('pinLeft') }}</DropdownMenuItem>
@@ -69,4 +74,5 @@ const restoreMenuFocus = (event: Event): void => {
       </DropdownMenuContent>
     </DropdownMenuPortal>
   </DropdownMenuRoot>
+  <ManageTagsDialog v-if="canManageTags" v-model:open="managingTags" :column-id="column.id" />
 </template>

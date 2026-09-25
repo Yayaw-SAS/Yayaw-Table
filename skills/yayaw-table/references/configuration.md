@@ -38,6 +38,7 @@ or an `instanceId`.
 | `id`, `header`, `type` | Identity, label, type (below). Vue also takes `accessorKey` or `accessorFn`. |
 | `options` | `{ value, label, color? }[]` for select, tag and multi-select columns; values keep their primitive type. |
 | `displayVariant: "tag"`, `coloredTags`, `tagColorMap` | Tags instead of plain text; colors come from the stored value or `color`. |
+| `tags` | `true` or `{ create?, manage?, bulk? }`: a tags column whose options come from `actions.tags` (see [tag catalogs](server-contracts.md#tag-catalogs)); `bulk: "patch"` sends `{ add, remove }` to `bulkUpdate`. In `table.facets`, it lists the catalog's names. |
 | `numberFormat`, `dateDisplayPreset`, `dateFormat`, `timeZone`, `hour12` | Formats, see below. |
 | `inlineEdit` | `true` or `{ enabled, editor, debounceMs, options, readonly }`; editing is opt-in per column or with `table.inlineEdit.enabled`. |
 | `enableSorting`, `enableFiltering`, `enableGrouping`, `enablePinning`, `enableResizing`, `enableCalculation`, `defaultCalculation` | Per-column capabilities and the default footer calculation. |
@@ -133,6 +134,8 @@ Defaults in brackets. Flags only shape the interface; the server decides.
   [true], `enableColumnDragDropByDefault` [false], `enableColumnResizing`
   [false], `enableColumnPinning` [true], `enableCalculations` [false],
   `coloredTags` [true], `presentation` (on the config, not `table`).
+- Tags: `canManageTags` [true]: "Manage tags" on tags columns when
+  `actions.tags` can update, merge or remove.
 - Selection: `enableRowSelection`, `enableMultiRowSelection` [true]; pass
   `getRowId` with stable record ids for server pagination.
 - Views and URL: `enableViews` [true], `allowViewSave` [true],
@@ -186,9 +189,9 @@ values with their numbers of records; a click filters the table.
 - Vue: `locale` (`"fr…"` selects French) and `translations` merge over the
   built-in English and French strings.
 - Feature screens (chart, map, form, file tree, feed, import, connectors,
-  schedules, dashboards, Gantt) carry English and French labels and read
+  schedules, dashboards, Gantt, tags) carry English and French labels and read
   overrides as `<feature>.<key>` (`chart.loading`, `connector.send`,
-  `views.gantt.today`…). A few keys differ between editions (React
+  `views.gantt.today`, `tags.addTags`…). A few keys differ between editions (React
   `views.calendar.*`, `views.tabs`; Vue `calendar.*`, `viewTabs`): copy key
   names from the edition's translations file.
 
@@ -273,6 +276,8 @@ view is `view` (React also writes `historyIndex`); the file tree adds
 - Bulk actions: `customBulkActions`, `onBulkEdit`, `onBulkDelete`,
   `onBulkCopy`, `onBulkExport` (callbacks win over the built-in behaviour),
   `rowActions` for extra row menu entries, `toolbarActions` for the toolbar.
+  Tables with tags columns holding lists add "Add tags" and "Remove tags"
+  (with `allowBulkEdit` and `bulkUpdate` or `update`).
 - Keyboard: Shift-click ranges, Ctrl/Cmd+A (all matching rows, across pages),
   Ctrl/Cmd+D (duplicate), Ctrl/Cmd+Z (undo through record activity).
 

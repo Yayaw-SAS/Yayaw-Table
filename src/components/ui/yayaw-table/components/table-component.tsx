@@ -132,6 +132,11 @@ import {
   openUpdateForm,
 } from "./forms/atoms/catalogue-form-atoms";
 import { CatalogueBulkEditor } from "./forms/catalogue-bulk-editor";
+import {
+  type BulkTagsActions,
+  BulkTagsLayer,
+  useBulkTags,
+} from "./tags/bulk-tags-dialog";
 import { useCreateFormFields } from "./forms/hooks/use-create-form-fields";
 import type { FormConfigContext } from "./forms/types";
 import {
@@ -156,8 +161,9 @@ const EMPTY_COLUMNS: never[] = [];
 const EMPTY_DATA: never[] = [];
 
 const EMPTY_EXPANDED: Record<string, boolean> = {};
+// Options and lists of cell editors are portaled, but their clicks still reach the row.
 const ROW_CLICK_INTERACTIVE_SELECTOR =
-  "button, a, [role=checkbox], [role=menuitem], input, select, textarea, [data-location-editor]";
+  "button, a, [role=checkbox], [role=menuitem], [role=option], [role=listbox], input, select, textarea, [data-location-editor]";
 const ROW_CLICK_SYSTEM_COLUMN_SELECTOR =
   '[data-column-id="select"], [data-column-id="actions"]';
 const BULK_ACTIONS_ANCHOR_VIEWPORT_OPTIONS = {
@@ -1735,6 +1741,15 @@ function ModernDataTable<
     onRowSelectionChange?.(bulkActions.selectedRows);
   }, [bulkActions.selectedRows, onRowSelectionChange]);
 
+  // Bulk "Add tags" and "Remove tags" on tags columns holding lists.
+  const bulkTags = useBulkTags({
+    actions: providerTableActions as BulkTagsActions | undefined,
+    allowBulkEdit: tableConfig.table.allowBulkEdit,
+    canEditRow: tableConfig.table.canEditRow,
+    selectedRows: bulkActions.selectedRows,
+  });
+  const bulkTagActions = bulkTags.menuActions;
+
   const selectionRootRef = useRef<HTMLDivElement>(null);
   useTableActivityShortcuts(selectionRootRef, {
     details,
@@ -3220,6 +3235,7 @@ function ModernDataTable<
                       showBulkDelete={bulkActions.isBulkDeleteEnabled}
                       showBulkEdit={bulkActions.isBulkEditEnabled}
                       showBulkExport={bulkActions.isBulkExportEnabled}
+                      tagActions={bulkTagActions}
                     />
                   ) : undefined
                 }
@@ -3256,6 +3272,7 @@ function ModernDataTable<
               showBulkDelete={bulkActions.isBulkDeleteEnabled}
               showBulkEdit={bulkActions.isBulkEditEnabled}
               showBulkExport={bulkActions.isBulkExportEnabled}
+              tagActions={bulkTagActions}
               viewportBottomOffset={fixedBulkActionsViewportOffset}
             />
           )}
@@ -3286,6 +3303,12 @@ function ModernDataTable<
         tableId={tableId}
         tableType={resolvedTableType}
         targets={bulkActions.bulkEditTargets}
+      />
+      <BulkTagsLayer
+        actions={providerTableActions as BulkTagsActions | undefined}
+        dialog={bulkTags.dialog}
+        onCompleted={bulkActions.completeBulkEdit}
+        tableId={tableId}
       />
     </div>
   );

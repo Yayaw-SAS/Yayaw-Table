@@ -141,6 +141,11 @@ const TABLE_CHECKS = {
     "form-view.ts",
     "FormLinkActions"
   ),
+  "actions.tags": membersOf(
+    "utils/tag-catalog.ts",
+    "tag-catalog.ts",
+    "TableTagActions"
+  ),
   "actions.planning": membersOf(
     "planning/types.ts",
     "planning/types.ts",

@@ -9,7 +9,9 @@ import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "../../providers/table-provider";
+import { useTagCatalog } from "../../providers/tag-catalog-provider";
 import { resolveFormBlocks } from "../../utils/form-layout";
+import { TagField } from "../tags/tag-field";
 import { RuntimeField } from "./field-runtime";
 import {
   CheckboxField,
@@ -183,6 +185,26 @@ function FormBuilderField<TFieldValues extends FieldValues>({
   field: AnyFieldDefinition<TFieldValues>;
   form: FormBuilderFormInstance<TFieldValues>;
 }) {
+  // A field of a tags column picks from the host's catalog.
+  const tagCatalog = useTagCatalog();
+  const tagColumn =
+    field.type === "multiSelect" || field.type === "select"
+      ? tagCatalog?.columnForField(String(field.name))
+      : undefined;
+  if (tagCatalog && tagColumn) {
+    return (
+      <form.Field key={field.name} name={field.name as Path<TFieldValues>}>
+        {(f) => (
+          <TagField
+            catalog={tagCatalog}
+            column={tagColumn}
+            field={field}
+            fieldApi={normalizeFieldApi(f) as unknown as FormFieldApi<unknown>}
+          />
+        )}
+      </form.Field>
+    );
+  }
   switch (field.type) {
     case "checkbox":
       return (

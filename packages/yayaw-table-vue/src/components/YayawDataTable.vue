@@ -14,6 +14,7 @@ import { toast } from "vue-sonner";
 import { type Component, computed, onBeforeUnmount, onMounted, provide, ref, shallowRef, watch } from "vue";
 import { useTableData } from "../composables/use-table-data";
 import { useTableState } from "../composables/use-table-state";
+import { useTagCatalogs } from "../composables/use-tag-catalogs";
 import { defineTableConfig } from "../config";
 import {
   type OpenFormState,
@@ -241,6 +242,22 @@ const queryClient = props.queryClient ?? new QueryClient();
 const inputData = computed(() =>
   props.data.length ? props.data : props.initialData
 );
+// Tags columns take their options from the host's catalogs (`actions.tags`).
+// It runs first: facets and filters read the columns it fills.
+const tagCatalogs = useTagCatalogs({
+  config,
+  actions,
+  queryClient,
+  tableId: config.id,
+  tableType: props.tableType,
+  locale: props.locale,
+  translate: (key) => {
+    const value = translations.value[key];
+    return typeof value === "string" ? value : undefined;
+  },
+  rows: () => tableData.rows.value,
+  refresh: () => refresh(),
+});
 // Facet clicks are advanced rules: tables with facets show their menu.
 const advancedFiltersEnabled = computed(
   () =>
@@ -703,6 +720,7 @@ provide(tableContextKey, {
   loadAllMatchingRows,
   status,
   queryClient,
+  tags: tagCatalogs,
   locale: props.locale,
   onBulkDelete: props.onBulkDelete,
   get onBulkEdit() { return props.onBulkEdit; },

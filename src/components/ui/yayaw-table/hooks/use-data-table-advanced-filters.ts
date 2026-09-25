@@ -5,7 +5,9 @@ import { dataTypeFilter } from "../utils/table-contracts";
  * Provides backward compatibility while adding advanced filtering capabilities
  */
 
-import { useCallback, useMemo } from "react";
+import { createElement, useCallback, useMemo } from "react";
+import { TagSwatch } from "../components/tags/tag-chip";
+import { tagSwatchColor } from "../utils/tag-colors";
 import type { ColumnFiltersState } from "@/components/ui/yayaw-table/tanstack";
 import type { DateDisplayPreset } from "../types/date-types";
 import type {
@@ -498,10 +500,28 @@ const createColumnConfig = (
       : [];
   if (column.type !== "boolean" && Array.isArray(column.options)) {
     options.push(
-      ...column.options.map((option) => ({
-        ...option,
-        value: String(option.value),
-      }))
+      ...column.options.map((option) => {
+        const value = String(option.value);
+        const color =
+          typeof option.color === "string" ? option.color : undefined;
+        // A tags column's options show their color, as its cells do.
+        const swatch =
+          column.tags === true &&
+          tagSwatchColor(value, column.coloredTags !== false, color);
+        return {
+          ...option,
+          value,
+          ...(swatch
+            ? {
+                icon: createElement(TagSwatch, {
+                  color,
+                  coloredTags: column.coloredTags !== false,
+                  id: value,
+                }),
+              }
+            : {}),
+        };
+      })
     );
   }
   // Type-specific configurations
